@@ -30,12 +30,14 @@
 #include "mozilla/dom/CSSFontFaceRule.h"
 #include "mozilla/dom/CSSFontFeatureValuesRule.h"
 #include "mozilla/dom/CSSImportRule.h"
+#include "mozilla/dom/CSSLayerRule.h"
 #include "mozilla/dom/CSSMediaRule.h"
 #include "mozilla/dom/CSSMozDocumentRule.h"
 #include "mozilla/dom/CSSKeyframesRule.h"
 #include "mozilla/dom/CSSKeyframeRule.h"
 #include "mozilla/dom/CSSNamespaceRule.h"
 #include "mozilla/dom/CSSPageRule.h"
+#include "mozilla/dom/CSSScrollTimelineRule.h"
 #include "mozilla/dom/CSSSupportsRule.h"
 #include "mozilla/dom/ChildIterator.h"
 #include "mozilla/dom/FontFaceSet.h"
@@ -47,6 +49,7 @@
 #include "nsDeviceContext.h"
 #include "nsHTMLStyleSheet.h"
 #include "nsIAnonymousContentCreator.h"
+#include "nsLayoutUtils.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "nsPrintfCString.h"
 #include "gfxUserFontSet.h"
@@ -628,6 +631,28 @@ StyleSheet* ServoStyleSet::SheetAt(Origin aOrigin, size_t aIndex) const {
       Servo_StyleSet_GetSheetAt(mRawSet.get(), aOrigin, aIndex));
 }
 
+Maybe<StyleOrientation> ServoStyleSet::GetDefaultPageOrientation() {
+  const RefPtr<ComputedStyle> style =
+      ResolveNonInheritingAnonymousBoxStyle(PseudoStyleType::pageContent);
+  const StylePageSize& pageSize = style->StylePage()->mSize;
+  if (pageSize.IsOrientation()) {
+    return Some(pageSize.AsOrientation());
+  }
+  if (pageSize.IsSize()) {
+    const CSSCoord w = pageSize.AsSize().width.ToCSSPixels();
+    const CSSCoord h = pageSize.AsSize().height.ToCSSPixels();
+    if (w > h) {
+      return Some(StyleOrientation::Landscape);
+    }
+    if (w < h) {
+      return Some(StyleOrientation::Portrait);
+    }
+  } else {
+    MOZ_ASSERT(pageSize.IsAuto(), "Impossible page size");
+  }
+  return Nothing();
+}
+
 void ServoStyleSet::AppendAllNonDocumentAuthorSheets(
     nsTArray<StyleSheet*>& aArray) const {
   EnumerateShadowRoots(*mDocument, [&](ShadowRoot& aShadowRoot) {
@@ -923,6 +948,7 @@ void ServoStyleSet::RuleChangedInternal(StyleSheet& aSheet, css::Rule& aRule,
     CASE_FOR(Document, MozDocument)
     CASE_FOR(Supports, Supports)
     CASE_FOR(Layer, Layer)
+    CASE_FOR(ScrollTimeline, ScrollTimeline)
     // @namespace can only be inserted / removed when there are only other
     // @namespace and @import rules, and can't be mutated.
     case StyleCssRuleType::Namespace:

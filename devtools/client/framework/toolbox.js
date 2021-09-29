@@ -317,7 +317,6 @@ function Toolbox(
   this.toggleSplitConsole = this.toggleSplitConsole.bind(this);
   this.toggleOptions = this.toggleOptions.bind(this);
   this.togglePaintFlashing = this.togglePaintFlashing.bind(this);
-  this.toggleDragging = this.toggleDragging.bind(this);
   this._onTargetAvailable = this._onTargetAvailable.bind(this);
   this._onTargetDestroyed = this._onTargetDestroyed.bind(this);
   this._onResourceAvailable = this._onResourceAvailable.bind(this);
@@ -521,10 +520,6 @@ Toolbox.prototype = {
     return this._toolPanels.get(this.currentToolId);
   },
 
-  toggleDragging: function() {
-    this.doc.querySelector("window").classList.toggle("dragging");
-  },
-
   /**
    * Get the current top level target the toolbox is debugging.
    *
@@ -713,6 +708,10 @@ Toolbox.prototype = {
       // These methods expect the target to be attached, which is guaranteed by the time
       // _onTargetAvailable is called by the targetCommand.
       await this._listFrames();
+      // The target may have been destroyed while calling _listFrames if we navigate quickly
+      if (targetFront.isDestroyed()) {
+        return;
+      }
       await this.initPerformance();
     }
   },
@@ -3148,7 +3147,7 @@ Toolbox.prototype = {
 
   _listFrames: async function(event) {
     if (!this.target.getTrait("frames")) {
-      // We are not targetting a regular BrowsingContextTargetActor
+      // We are not targetting a regular WindowGlobalTargetActor
       // it can be either an addon or browser toolbox actor
       return promise.resolve();
     }

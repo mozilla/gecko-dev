@@ -204,8 +204,8 @@ void MacroAssembler::mulDouble(FloatRegister src, FloatRegister dest) {
 }
 
 void MacroAssembler::quotient32(Register rhs, Register srcDest,
-                                bool isUnsigned) {
-  MOZ_ASSERT(srcDest == eax);
+                                Register tempEdx, bool isUnsigned) {
+  MOZ_ASSERT(srcDest == eax && tempEdx == edx);
 
   // Sign extend eax into edx to make (edx:eax): idiv/udiv are 64-bit.
   if (isUnsigned) {
@@ -218,8 +218,8 @@ void MacroAssembler::quotient32(Register rhs, Register srcDest,
 }
 
 void MacroAssembler::remainder32(Register rhs, Register srcDest,
-                                 bool isUnsigned) {
-  MOZ_ASSERT(srcDest == eax);
+                                 Register tempEdx, bool isUnsigned) {
+  MOZ_ASSERT(srcDest == eax && tempEdx == edx);
 
   // Sign extend eax into edx to make (edx:eax): idiv/udiv are 64-bit.
   if (isUnsigned) {
@@ -2870,6 +2870,26 @@ void MacroAssembler::fmsFloat64x2(FloatRegister src1, FloatRegister src2,
   moveSimd128(src1, scratch);
   mulFloat64x2(src2, scratch);
   subFloat64x2(scratch, srcDest);
+}
+
+void MacroAssembler::minFloat32x4Relaxed(FloatRegister src,
+                                         FloatRegister srcDest) {
+  vminps(Operand(src), srcDest, srcDest);
+}
+
+void MacroAssembler::maxFloat32x4Relaxed(FloatRegister src,
+                                         FloatRegister srcDest) {
+  vmaxps(Operand(src), srcDest, srcDest);
+}
+
+void MacroAssembler::minFloat64x2Relaxed(FloatRegister src,
+                                         FloatRegister srcDest) {
+  vminpd(Operand(src), srcDest, srcDest);
+}
+
+void MacroAssembler::maxFloat64x2Relaxed(FloatRegister src,
+                                         FloatRegister srcDest) {
+  vmaxpd(Operand(src), srcDest, srcDest);
 }
 
 // ========================================================================

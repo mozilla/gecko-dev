@@ -1140,11 +1140,9 @@ class nsLayoutUtils {
     HideCaret = 0x20,
     ToWindow = 0x40,
     ExistingTransaction = 0x80,
-    NoComposite = 0x100,
-    Compressed = 0x200,
-    ForWebRender = 0x400,
-    UseHighQualityScaling = 0x800,
-    ResetViewportScrolling = 0x1000,
+    ForWebRender = 0x100,
+    UseHighQualityScaling = 0x200,
+    ResetViewportScrolling = 0x400,
   };
 
   /**
@@ -2662,12 +2660,6 @@ class nsLayoutUtils {
    * enabled.
    */
   static bool AsyncPanZoomEnabled(const nsIFrame* aFrame);
-
-  /**
-   * Returns the current APZ Resolution Scale. When Java Pan/Zoom is
-   * enabled in Fennec it will always return 1.0.
-   */
-  static float GetCurrentAPZResolutionScale(PresShell* aPresShell);
 
   /**
    * Returns true if aDocument should be allowed to use resolution

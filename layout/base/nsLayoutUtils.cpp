@@ -34,6 +34,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/DisplayPortUtils.h"
 #include "mozilla/GeckoBindings.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/dom/AnonymousContent.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/CanvasUtils.h"
@@ -698,10 +699,6 @@ bool nsLayoutUtils::AllowZoomingForDocument(
   return StaticPrefs::apz_allow_zooming() ||
          (bc && bc->InRDMPane() &&
           nsLayoutUtils::ShouldHandleMetaViewport(aDocument));
-}
-
-float nsLayoutUtils::GetCurrentAPZResolutionScale(PresShell* aPresShell) {
-  return aPresShell ? aPresShell->GetCumulativeResolution() : 1.0;
 }
 
 static bool HasVisibleAnonymousContents(Document* aDoc) {
@@ -2801,19 +2798,14 @@ FrameMetrics nsLayoutUtils::CalculateBasicFrameMetrics(
     // the presShell's resolution. All the other frames are 1.0.
     resolution = presShell->GetResolution();
   }
-  // Note: unlike in ComputeFrameMetrics(), we don't know the full cumulative
-  // resolution including FrameMetrics::mExtraResolution, because layout hasn't
-  // chosen a resolution to paint at yet. However, the display port calculation
-  // divides out mExtraResolution anyways, so we get the correct result by
-  // setting the mCumulativeResolution to everything except the extra resolution
-  // and leaving mExtraResolution at 1.
   LayoutDeviceToLayerScale2D cumulativeResolution(
-      presShell->GetCumulativeResolution() *
-      nsLayoutUtils::GetTransformToAncestorScale(frame));
+      LayoutDeviceToLayerScale(presShell->GetCumulativeResolution()));
 
   LayerToParentLayerScale layerToParentLayerScale(1.0f);
   metrics.SetDevPixelsPerCSSPixel(deviceScale);
   metrics.SetPresShellResolution(resolution);
+  metrics.SetTransformToAncestorScale(
+      Scale2D(nsLayoutUtils::GetTransformToAncestorScale(frame)));
   metrics.SetCumulativeResolution(cumulativeResolution);
   metrics.SetZoom(deviceScale * cumulativeResolution * layerToParentLayerScale);
 
@@ -3100,6 +3092,7 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
   PresShell* presShell = presContext->PresShell();
 
   TimeStamp startBuildDisplayList = TimeStamp::Now();
+  auto dlTimerId = mozilla::glean::paint::build_displaylist_time.Start();
 
   const bool buildCaret = !(aFlags & PaintFrameFlags::HideCaret);
 
@@ -3387,9 +3380,7 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
 
   const double geckoDLBuildTime =
       (TimeStamp::Now() - startBuildDisplayList).ToMilliseconds();
-
-  Telemetry::Accumulate(Telemetry::PAINT_BUILD_DISPLAYLIST_TIME,
-                        geckoDLBuildTime);
+  mozilla::glean::paint::build_displaylist_time.StopAndAccumulate(std::move(dlTimerId));
 
   bool consoleNeedsDisplayList =
       (gfxUtils::DumpDisplayList() || gfxEnv::DumpPaint()) &&
@@ -3424,12 +3415,6 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
   }
   if (aFlags & PaintFrameFlags::ExistingTransaction) {
     flags |= nsDisplayList::PAINT_EXISTING_TRANSACTION;
-  }
-  if (aFlags & PaintFrameFlags::NoComposite) {
-    flags |= nsDisplayList::PAINT_NO_COMPOSITE;
-  }
-  if (aFlags & PaintFrameFlags::Compressed) {
-    flags |= nsDisplayList::PAINT_COMPRESSED;
   }
   if (updateState == PartialUpdateResult::NoChange && !aRenderingContext) {
     flags |= nsDisplayList::PAINT_IDENTICAL_DISPLAY_LIST;
@@ -4493,7 +4478,7 @@ static bool GetIntrinsicCoord(nsIFrame::ExtremumLength aStyle,
     return false;
   }
 
-  if (aStyle == nsIFrame::ExtremumLength::MozFitContent) {
+  if (aStyle == nsIFrame::ExtremumLength::FitContent) {
     switch (aProperty) {
       case nsIFrame::SizeProperty::Size:
         // handle like 'width: auto'
@@ -8778,12 +8763,10 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
   metrics.SetCumulativeResolution(LayoutDeviceToLayerScale2D(
       LayoutDeviceToLayerScale(presShell->GetCumulativeResolution())));
 
-  LayoutDeviceToScreenScale2D resolutionToScreen(
-      presShell->GetCumulativeResolution() *
-      nsLayoutUtils::GetTransformToAncestorScale(aScrollFrame ? aScrollFrame
-                                                              : aForFrame));
-  metrics.SetExtraResolution(metrics.GetCumulativeResolution() /
-                             resolutionToScreen);
+  gfxSize transformToAncestorScale = nsLayoutUtils::GetTransformToAncestorScale(
+      aScrollFrame ? aScrollFrame : aForFrame);
+
+  metrics.SetTransformToAncestorScale(Scale2D(transformToAncestorScale));
 
   metrics.SetDevPixelsPerCSSPixel(presContext->CSSToDevPixelScale());
 
@@ -9724,32 +9707,40 @@ ComputedStyle* nsLayoutUtils::StyleForScrollbar(nsIFrame* aScrollbarPart) {
   return style.get();
 }
 
-// NOTE: Returns Nothing() if |aFrame| is not in out-of-process or if we haven't
-// received enough information from APZ.
-static Maybe<ScreenRect> GetFrameVisibleRectOnScreen(const nsIFrame* aFrame) {
+enum class FramePosition : uint8_t {
+  Unknown,
+  InView,
+  OutOfView,
+};
+
+// NOTE: Returns a pair of Nothing() and `FramePosition::Unknown` if |aFrame|
+// is not in out-of-process or if we haven't received enough information from
+// APZ.
+static std::pair<Maybe<ScreenRect>, FramePosition> GetFrameVisibleRectOnScreen(
+    const nsIFrame* aFrame) {
   // We actually want the in-process top prescontext here.
   nsPresContext* topContextInProcess =
       aFrame->PresContext()->GetInProcessRootContentDocumentPresContext();
   if (!topContextInProcess) {
     // We are in chrome process.
-    return Nothing();
+    return std::make_pair(Nothing(), FramePosition::Unknown);
   }
 
   if (topContextInProcess->Document()->IsTopLevelContentDocument()) {
     // We are in the top of content document.
-    return Nothing();
+    return std::make_pair(Nothing(), FramePosition::Unknown);
   }
 
   nsIDocShell* docShell = topContextInProcess->GetDocShell();
   BrowserChild* browserChild = BrowserChild::GetFrom(docShell);
   if (!browserChild) {
     // We are not in out-of-process iframe.
-    return Nothing();
+    return std::make_pair(Nothing(), FramePosition::Unknown);
   }
 
   if (!browserChild->GetEffectsInfo().IsVisible()) {
     // There is no visible rect on this iframe at all.
-    return Some(ScreenRect());
+    return std::make_pair(Some(ScreenRect()), FramePosition::Unknown);
   }
 
   Maybe<ScreenRect> visibleRect =
@@ -9757,7 +9748,7 @@ static Maybe<ScreenRect> GetFrameVisibleRectOnScreen(const nsIFrame* aFrame) {
   if (!visibleRect) {
     // We are unsure if we haven't received the transformed rectangle of the
     // iframe's visible area.
-    return Nothing();
+    return std::make_pair(Nothing(), FramePosition::Unknown);
   }
 
   nsIFrame* rootFrame = topContextInProcess->PresShell()->GetRootFrame();
@@ -9772,24 +9763,42 @@ static Maybe<ScreenRect> GetFrameVisibleRectOnScreen(const nsIFrame* aFrame) {
           rectInLayoutDevicePixel),
       PixelCastJustification::ContentProcessIsLayerInUiProcess);
 
-  return Some(visibleRect->Intersect(transformedToRoot));
+  FramePosition position = FramePosition::Unknown;
+  // we need to check whether the transformed rect is outside the iframe
+  // visible rect or not because in some cases the rect size is (0x0), thus
+  // the intersection between the transformed rect and the iframe visible rect
+  // would also be (0x0), then we can't tell whether the given nsIFrame is
+  // inside the iframe visible rect or not by calling BaseRect::IsEmpty for the
+  // intersection.
+  if (transformedToRoot.x > visibleRect->XMost() ||
+      transformedToRoot.y > visibleRect->YMost() ||
+      visibleRect->x > transformedToRoot.XMost() ||
+      visibleRect->y > transformedToRoot.YMost()) {
+    position = FramePosition::OutOfView;
+  } else {
+    position = FramePosition::InView;
+  }
+
+  return std::make_pair(Some(visibleRect->Intersect(transformedToRoot)),
+                        position);
 }
 
 // static
 bool nsLayoutUtils::FrameIsScrolledOutOfViewInCrossProcess(
     const nsIFrame* aFrame) {
-  Maybe<ScreenRect> visibleRect = GetFrameVisibleRectOnScreen(aFrame);
+  auto [visibleRect, framePosition] = GetFrameVisibleRectOnScreen(aFrame);
   if (visibleRect.isNothing()) {
     return false;
   }
 
-  return visibleRect->IsEmpty();
+  return visibleRect->IsEmpty() && framePosition != FramePosition::InView;
 }
 
 // static
 bool nsLayoutUtils::FrameIsMostlyScrolledOutOfViewInCrossProcess(
     const nsIFrame* aFrame, nscoord aMargin) {
-  Maybe<ScreenRect> visibleRect = GetFrameVisibleRectOnScreen(aFrame);
+  auto [visibleRect, framePosition] = GetFrameVisibleRectOnScreen(aFrame);
+  (void)framePosition;
   if (visibleRect.isNothing()) {
     return false;
   }

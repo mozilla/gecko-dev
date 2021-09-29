@@ -259,9 +259,7 @@
   }
 
   #TabsToolbar[brighttext] .tab-throbber[busy]:not([selected=true])::before {
-    /* Don't change the --tab-loading-fill variable because this should only affect
-       tabs that are not visually selected. */
-    fill: #717171;
+    fill: var(--lwt-tab-loading-fill-inactive, #717171);
     opacity: 1;
   }
 
@@ -271,9 +269,7 @@
   }
 
   #TabsToolbar[brighttext] .tab-throbber[progress]:not([selected=true])::before {
-    /* Don't change the --tab-loading-fill variable because this should only affect
-       tabs that are not visually selected. */
-    fill: #84c1ff;
+    fill: var(--lwt-tab-loading-fill-inactive, #84c1ff);
   }
 }
 
@@ -620,11 +616,11 @@
 /* Pinned tabs */
 
 #TabsToolbar {
-  --attention-icon-color: rgb(42,195,162);
+  --attention-icon-color: var(--lwt-tab-attention-icon-color, rgb(42,195,162));
 }
 
 #TabsToolbar[brighttext] {
-  --attention-icon-color: rgb(84,255,189);
+  --attention-icon-color: var(--lwt-tab-attention-icon-color, rgb(84,255,189));
 }
 
 .tabbrowser-tab:is([image], [pinned]) > .tab-stack > .tab-content[attention]:not([selected="true"]),

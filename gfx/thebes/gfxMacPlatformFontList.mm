@@ -805,24 +805,6 @@ void gfxSingleFaceMacFontFamily::ReadOtherFamilyNames(gfxPlatformFontList* aPlat
 /* gfxMacPlatformFontList */
 #pragma mark -
 
-// A bunch of fonts for "additional language support" are shipped in a
-// "Language Support" directory, and don't show up in the standard font
-// list returned by CTFontManagerCopyAvailableFontFamilyNames unless
-// we explicitly activate them.
-//
-// On macOS Big Sur, the various Noto fonts etc have moved to a new location
-// under /System/Fonts. Whether they're exposed in the font list by default
-// depends on the SDK used; when built with SDK 10.15, they're absent. So
-// we explicitly activate them to be sure they'll be available.
-#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101500
-static const nsLiteralCString kLangFontsDirs[] = {
-    "/Library/Application Support/Apple/Fonts/Language Support"_ns};
-#else
-static const nsLiteralCString kLangFontsDirs[] = {
-    "/Library/Application Support/Apple/Fonts/Language Support"_ns,
-    "/System/Library/Fonts/Supplemental"_ns};
-#endif
-
 gfxMacPlatformFontList::gfxMacPlatformFontList()
     : gfxPlatformFontList(false), mDefaultFont(nullptr), mUseSizeSensitiveSystemFont(false) {
   CheckFamilyList(kBaseFonts);
@@ -1768,7 +1750,6 @@ void gfxMacPlatformFontList::GetFacesInitDataForFamily(const fontlist::Family* a
     int32_t appKitWeight = [[face objectAtIndex:INDEX_FONT_WEIGHT] unsignedIntValue];
     uint32_t macTraits = [[face objectAtIndex:INDEX_FONT_TRAITS] unsignedIntValue];
     NSString* facename = [face objectAtIndex:INDEX_FONT_FACE_NAME];
-    bool isStandardFace = false;
 
     if (appKitWeight == kAppleExtraLightWeight) {
       // if the facename contains UltraLight, set the weight to the ultralight weight value
@@ -1792,12 +1773,6 @@ void gfxMacPlatformFontList::GetFacesInitDataForFamily(const fontlist::Family* a
       }
     }
     cssWeight *= 100;  // scale up to CSS values
-
-    if ([facename isEqualToString:@"Regular"] || [facename isEqualToString:@"Bold"] ||
-        [facename isEqualToString:@"Italic"] || [facename isEqualToString:@"Oblique"] ||
-        [facename isEqualToString:@"Bold Italic"] || [facename isEqualToString:@"Bold Oblique"]) {
-      isStandardFace = true;
-    }
 
     StretchRange stretch(FontStretch::Normal());
     if (macTraits & (NSCondensedFontMask | NSNarrowFontMask | NSCompressedFontMask)) {

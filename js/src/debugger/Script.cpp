@@ -1519,6 +1519,7 @@ static bool BytecodeIsEffectful(JSOp op) {
     case JSOp::Not:
     case JSOp::FunctionThis:
     case JSOp::GlobalThis:
+    case JSOp::NonSyntacticGlobalThis:
     case JSOp::Callee:
     case JSOp::EnvCallee:
     case JSOp::SuperBase:
@@ -1551,7 +1552,6 @@ static bool BytecodeIsEffectful(JSOp op) {
     case JSOp::Instanceof:
     case JSOp::DebugLeaveLexicalEnv:
     case JSOp::Debugger:
-    case JSOp::GImplicitThis:
     case JSOp::ImplicitThis:
     case JSOp::NewTarget:
     case JSOp::CheckIsObj:

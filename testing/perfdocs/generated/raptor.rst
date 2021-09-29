@@ -456,258 +456,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **use live sites**: true
 
 
-.. dropdown:: raptor-youtube-playback-widevine-h264-sfr-chrome (CH)
-   :container: + anchor-id-raptor-youtube-playback-widevine-h264-sfr-chrome-b
-
-   * **alert threshold**: 2.0
-   * **apps**: chrome
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-sfr-h264-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-h264-sfr-fenix (FE)
-   :container: + anchor-id-raptor-youtube-playback-widevine-h264-sfr-fenix-b
-
-   * **alert threshold**: 2.0
-   * **apps**: fenix
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-sfr-h264-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-h264-sfr-firefox (FF)
-   :container: + anchor-id-raptor-youtube-playback-widevine-h264-sfr-firefox-b
-
-   * **alert threshold**: 2.0
-   * **apps**: firefox
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-sfr-h264-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-h264-sfr-geckoview (GV)
-   :container: + anchor-id-raptor-youtube-playback-widevine-h264-sfr-geckoview-b
-
-   * **alert threshold**: 2.0
-   * **apps**: geckoview
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-sfr-h264-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-hfr-chrome (CH)
-   :container: + anchor-id-raptor-youtube-playback-widevine-hfr-chrome-b
-
-   * **alert threshold**: 2.0
-   * **apps**: chrome
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-hfr-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-hfr-fenix (FE)
-   :container: + anchor-id-raptor-youtube-playback-widevine-hfr-fenix-b
-
-   * **alert threshold**: 2.0
-   * **apps**: fenix
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-hfr-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-hfr-firefox (FF)
-   :container: + anchor-id-raptor-youtube-playback-widevine-hfr-firefox-b
-
-   * **alert threshold**: 2.0
-   * **apps**: firefox
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-hfr-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-hfr-geckoview (GV)
-   :container: + anchor-id-raptor-youtube-playback-widevine-hfr-geckoview-b
-
-   * **alert threshold**: 2.0
-   * **apps**: geckoview
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-hfr-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-vp9-sfr-chrome (CH)
-   :container: + anchor-id-raptor-youtube-playback-widevine-vp9-sfr-chrome-b
-
-   * **alert threshold**: 2.0
-   * **apps**: chrome
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 2700000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-sfr-vp9-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-vp9-sfr-fenix (FE)
-   :container: + anchor-id-raptor-youtube-playback-widevine-vp9-sfr-fenix-b
-
-   * **alert threshold**: 2.0
-   * **apps**: fenix
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 2700000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-sfr-vp9-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-vp9-sfr-firefox (FF)
-   :container: + anchor-id-raptor-youtube-playback-widevine-vp9-sfr-firefox-b
-
-   * **alert threshold**: 2.0
-   * **apps**: firefox
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 2700000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-sfr-vp9-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-widevine-vp9-sfr-geckoview (GV)
-   :container: + anchor-id-raptor-youtube-playback-widevine-vp9-sfr-geckoview-b
-
-   * **alert threshold**: 2.0
-   * **apps**: geckoview
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 2700000
-   * **preferences**: {"media.eme.enabled": true, "media.gmp-manager.updateEnabled": true, "media.eme.require-app-approval": false}
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-widevine-sfr-vp9-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
 .. dropdown:: speedometer (FF, CH, CU, FE, GV, RB, CH-M)
    :container: + anchor-id-speedometer-b
 
@@ -2204,7 +1952,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm6-darwin-firefox-buzzfeed.manifest
+   * **playback pageset manifest**: mitm6-linux-firefox-buzzfeed.manifest
    * **playback version**: 6.0.2
    * **secondary url**: `<https://www.buzzfeed.com/quizzes>`__
    * **test url**: `<https://www.buzzfeed.com/>`__
@@ -2340,6 +2088,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **playback**: mitmproxy
    * **playback pageset manifest**: mitm6-darwin-firefox-ebay.manifest
    * **playback version**: 6.0.2
+   * **secondary url**: `<https://www.ebay.com/deals>`__
    * **test url**: `<https://www.ebay.com/>`__
    * **type**: pageload
    * **unit**: ms
@@ -2481,8 +2230,9 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm5-linux-firefox-expedia.manifest
-   * **playback version**: 5.1.1
+   * **playback pageset manifest**: mitm6-linux-firefox-expedia.manifest
+   * **playback version**: 6.0.2
+   * **secondary url**: `<https://www.expedia.com/Activities>`__
    * **test url**: `<https://expedia.com/Hotel-Search?destination=New+York%2C+New+York&latLong=40.756680%2C-73.986470&regionId=178293&startDate=&endDate=&rooms=1&_xpid=11905%7C1&adults=2>`__
    * **type**: pageload
    * **unit**: ms
@@ -2540,8 +2290,9 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm5-linux-firefox-facebook.manifest
-   * **playback version**: 5.1.1
+   * **playback pageset manifest**: mitm6-linux-firefox-facebook.manifest
+   * **playback version**: 6.0.2
+   * **secondary url**: `<https://www.facebook.com/marketplace/?ref=bookmark>`__
    * **test url**: `<https://www.facebook.com>`__
    * **type**: pageload
    * **unit**: ms
@@ -8329,11 +8080,11 @@ Tests are now defined in a similar fashion compared to what exists in mozilla-ce
 * https://github.com/mozilla-mobile/fenix/blob/1c9c5317eb33d92dde3293dfe6a857c279a7ab12/taskcluster/ci/raptor/kind.yml
 * https://github.com/mozilla-mobile/reference-browser/blob/4560a83cb559d3d4d06383205a8bb76a44336704/taskcluster/ci/raptor/kind.yml
 
-If you want to test your changes on a PR, before they land, you need to apply a patch like this one: https://github.com/mozilla-mobile/fenix/pull/5565/files. Don't forget to revert it before merging the patch.
+If you want to test your changes on a PR, before they land, you need to apply a patch like this one: https://github.com/mozilla-mobile/fenix/pull/5565/files. Don't forget to revert it before merging the patch. Note that the checks will run but the results aren't currently available on treeherder (`bug 1593252 <https://bugzilla.mozilla.org/show_bug.cgi?id=1593252>`_ is expected to address this).
 
 On Fenix and Reference-Browser, the raptor revision is tied to the latest nightly of mozilla-central
 
-For more information, please reach out to :jlorenzo or :mhentges in #cia
+For more information, please reach out to :mhentges in #cia
 
 Code formatting on Raptor
 *************************

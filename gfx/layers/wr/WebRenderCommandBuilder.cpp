@@ -2211,7 +2211,8 @@ WebRenderCommandBuilder::GenerateFallbackData(
   // Ideally we'd be able to ask an item its bounds in pixels and whether
   // they're all opaque. Unfortunately no such API exists so we currently
   // just hope that we get it right.
-  if (opacity == wr::OpacityType::Opaque && snap) {
+  if (aBuilder.GetInheritedOpacity() == 1.0f &&
+      opacity == wr::OpacityType::Opaque && snap) {
     dtRect = LayerIntRect::FromUnknownRect(
         ScaleToNearestPixelsOffset(paintBounds, scale.width, scale.height,
                                    appUnitsPerDevPixel, residualOffset));
@@ -2268,7 +2269,8 @@ WebRenderCommandBuilder::GenerateFallbackData(
       nsRect lastBounds = fallbackData->mBounds;
       lastBounds.MoveBy(shift);
 
-      if (lastBounds.IsEqualInterior(paintBounds) && invalidRegion.IsEmpty()) {
+      if (lastBounds.IsEqualInterior(paintBounds) && invalidRegion.IsEmpty() &&
+          aBuilder.GetInheritedOpacity() == fallbackData->mOpacity) {
         if (aItem->GetType() == DisplayItemType::TYPE_FILTER) {
           needPaint = ComputeInvalidationForDisplayList(
               aDisplayListBuilder, shift, aItem->GetChildren());
@@ -2319,9 +2321,16 @@ WebRenderCommandBuilder::GenerateFallbackData(
           gfx::BackendType::SKIA, gfx::IntSize(1, 1), format);
       RefPtr<gfx::DrawTarget> dt = gfx::Factory::CreateRecordingDrawTarget(
           recorder, dummyDt, (dtRect - dtRect.TopLeft()).ToUnknownRect());
+      if (aBuilder.GetInheritedOpacity() != 1.0f) {
+        dt->PushLayer(false, aBuilder.GetInheritedOpacity(), nullptr,
+                      gfx::Matrix());
+      }
       PaintItemByDrawTarget(aItem, dt, (dtRect / layerScale).TopLeft(),
                             /*aVisibleRect: */ dt->GetRect(),
                             aDisplayListBuilder, scale, highlight);
+      if (aBuilder.GetInheritedOpacity() != 1.0f) {
+        dt->PopLayer();
+      }
 
       // the item bounds are relative to the blob origin which is
       // dtRect.TopLeft()
@@ -2365,10 +2374,17 @@ WebRenderCommandBuilder::GenerateFallbackData(
           if (!dt) {
             return nullptr;
           }
+          if (aBuilder.GetInheritedOpacity() != 1.0f) {
+            dt->PushLayer(false, aBuilder.GetInheritedOpacity(), nullptr,
+                          gfx::Matrix());
+          }
           PaintItemByDrawTarget(aItem, dt,
                                 /*aOffset: */ aImageRect.TopLeft(),
                                 /*aVisibleRect: */ dt->GetRect(),
                                 aDisplayListBuilder, scale, highlight);
+          if (aBuilder.GetInheritedOpacity() != 1.0f) {
+            dt->PopLayer();
+          }
         }
 
         // Update image if there it's invalidated.
@@ -2387,6 +2403,7 @@ WebRenderCommandBuilder::GenerateFallbackData(
     }
 
     fallbackData->mScale = scale;
+    fallbackData->mOpacity = aBuilder.GetInheritedOpacity();
     fallbackData->SetInvalid(false);
   }
 
@@ -2409,39 +2426,16 @@ WebRenderCommandBuilder::GenerateFallbackData(
   return fallbackData.forget();
 }
 
-class WebRenderMaskData : public WebRenderUserData {
- public:
-  explicit WebRenderMaskData(RenderRootStateManager* aManager,
-                             nsDisplayItem* aItem)
-      : WebRenderUserData(aManager, aItem),
-        mMaskStyle(nsStyleImageLayers::LayerType::Mask),
-        mShouldHandleOpacity(false) {
-    MOZ_COUNT_CTOR(WebRenderMaskData);
+void WebRenderMaskData::ClearImageKey() {
+  if (mBlobKey) {
+    mManager->AddBlobImageKeyForDiscard(mBlobKey.value());
   }
-  virtual ~WebRenderMaskData() {
-    MOZ_COUNT_DTOR(WebRenderMaskData);
-    ClearImageKey();
-  }
+  mBlobKey.reset();
+}
 
-  void ClearImageKey() {
-    if (mBlobKey) {
-      mManager->AddBlobImageKeyForDiscard(mBlobKey.value());
-    }
-    mBlobKey.reset();
-  }
-
-  UserDataType GetType() override { return UserDataType::eMask; }
-  static UserDataType Type() { return UserDataType::eMask; }
-
-  Maybe<wr::BlobImageKey> mBlobKey;
-  std::vector<RefPtr<gfx::ScaledFont>> mFonts;
-  std::vector<RefPtr<gfx::SourceSurface>> mExternalSurfaces;
-  LayerIntRect mItemRect;
-  nsPoint mMaskOffset;
-  nsStyleImageLayers mMaskStyle;
-  gfx::Size mScale;
-  bool mShouldHandleOpacity;
-};
+void WebRenderMaskData::Invalidate() {
+  mMaskStyle = nsStyleImageLayers(nsStyleImageLayers::LayerType::Mask);
+}
 
 Maybe<wr::ImageMask> WebRenderCommandBuilder::BuildWrMaskImage(
     nsDisplayMasksAndClipPaths* aMaskItem, wr::DisplayListBuilder& aBuilder,

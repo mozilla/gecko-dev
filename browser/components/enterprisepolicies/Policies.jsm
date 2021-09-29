@@ -1136,6 +1136,11 @@ var Policies = {
           param.Pocket,
           locked
         );
+        setDefaultPref(
+          "browser.newtabpage.activity-stream.feeds.section.topstories",
+          param.Pocket,
+          locked
+        );
       }
       if ("Snippets" in param) {
         setDefaultPref(
@@ -1564,6 +1569,7 @@ var Policies = {
         "security.mixed_content.block_active_content",
         "security.osclientcerts.autoload",
         "security.ssl.errorReporting.enabled",
+        "security.tls.enable_0rtt_data",
         "security.tls.hello_downgrade_check",
         "security.tls.version.enable-deprecated",
         "security.warn_submit_secure_to_insecure",

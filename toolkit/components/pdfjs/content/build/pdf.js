@@ -62,7 +62,12 @@ exports.DEFAULT_LINK_REL = DEFAULT_LINK_REL;
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PixelsPerInch = {
   CSS: 96.0,
-  PDF: 72.0
+  PDF: 72.0,
+
+  get PDF_TO_CSS_UNITS() {
+    return (0, _util.shadow)(this, "PDF_TO_CSS_UNITS", this.CSS / this.PDF);
+  }
+
 };
 exports.PixelsPerInch = PixelsPerInch;
 
@@ -1665,7 +1670,7 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.getDocument = getDocument;
 exports.setPDFNetworkStreamFactory = setPDFNetworkStreamFactory;
-exports.version = exports.PDFWorker = exports.PDFPageProxy = exports.PDFDocumentProxy = exports.PDFDataRangeTransport = exports.LoopbackPort = exports.DefaultStandardFontDataFactory = exports.DefaultCMapReaderFactory = exports.DefaultCanvasFactory = exports.build = void 0;
+exports.version = exports.RenderTask = exports.PDFWorker = exports.PDFPageProxy = exports.PDFDocumentProxy = exports.PDFDocumentLoadingTask = exports.PDFDataRangeTransport = exports.LoopbackPort = exports.DefaultStandardFontDataFactory = exports.DefaultCMapReaderFactory = exports.DefaultCanvasFactory = exports.build = void 0;
 
 var _util = __w_pdfjs_require__(2);
 
@@ -1907,7 +1912,7 @@ async function _fetchDocument(worker, source, pdfDataRangeTransport, docId) {
 
   const workerId = await worker.messageHandler.sendWithPromise("GetDocRequest", {
     docId,
-    apiVersion: '2.11.243',
+    apiVersion: '2.11.298',
     source: {
       data: source.data,
       url: source.url,
@@ -1971,6 +1976,8 @@ class PDFDocumentLoadingTask {
   }
 
 }
+
+exports.PDFDocumentLoadingTask = PDFDocumentLoadingTask;
 
 class PDFDataRangeTransport {
   constructor(length, initialData, progressiveDone = false, contentDispositionFilename = null) {
@@ -3201,6 +3208,7 @@ class WorkerTransport {
     Promise.all(waitOn).then(() => {
       this.commonObjs.clear();
       this.fontLoader.clear();
+      this._getFieldObjectsPromise = null;
       this._hasJSActionsPromise = null;
 
       if (this._networkStream) {
@@ -3605,7 +3613,7 @@ class WorkerTransport {
   }
 
   getFieldObjects() {
-    return this.messageHandler.sendWithPromise("GetFieldObjects", null);
+    return this._getFieldObjectsPromise ||= this.messageHandler.sendWithPromise("GetFieldObjects", null);
   }
 
   hasJSActions() {
@@ -3734,13 +3742,15 @@ class WorkerTransport {
       this.fontLoader.clear();
     }
 
+    this._getFieldObjectsPromise = null;
     this._hasJSActionsPromise = null;
   }
 
   get loadingParams() {
     const params = this._params;
     return (0, _util.shadow)(this, "loadingParams", {
-      disableAutoFetch: params.disableAutoFetch
+      disableAutoFetch: params.disableAutoFetch,
+      enableXfa: params.enableXfa
     });
   }
 
@@ -3813,6 +3823,8 @@ class RenderTask {
   }
 
 }
+
+exports.RenderTask = RenderTask;
 
 class InternalRenderTask {
   static get canvasInUse() {
@@ -3984,9 +3996,9 @@ class InternalRenderTask {
 
 }
 
-const version = '2.11.243';
+const version = '2.11.298';
 exports.version = version;
-const build = '7fb653b19';
+const build = 'd370a281c';
 exports.build = build;
 
 /***/ }),
@@ -4321,7 +4333,13 @@ class AnnotationStorage {
   }
 
   getValue(key, defaultValue) {
-    return this._storage.get(key) ?? defaultValue;
+    const value = this._storage.get(key);
+
+    if (value === undefined) {
+      return defaultValue;
+    }
+
+    return Object.assign(defaultValue, value);
   }
 
   setValue(key, value) {
@@ -5153,7 +5171,7 @@ function getImageSmoothingEnabled(transform, interpolate) {
 
   scale[0] = Math.fround(scale[0]);
   scale[1] = Math.fround(scale[1]);
-  const actualScale = Math.fround((globalThis.devicePixelRatio || 1) * _display_utils.PixelsPerInch.CSS / _display_utils.PixelsPerInch.PDF);
+  const actualScale = Math.fround((globalThis.devicePixelRatio || 1) * _display_utils.PixelsPerInch.PDF_TO_CSS_UNITS);
 
   if (interpolate !== undefined) {
     return interpolate;
@@ -8595,6 +8613,7 @@ var _annotation_storage = __w_pdfjs_require__(9);
 var _scripting_utils = __w_pdfjs_require__(19);
 
 const DEFAULT_TAB_INDEX = 1000;
+const GetElementsByNameSet = new WeakSet();
 
 class AnnotationElementFactory {
   static create(parameters) {
@@ -8700,6 +8719,7 @@ class AnnotationElement {
     this.annotationStorage = parameters.annotationStorage;
     this.enableScripting = parameters.enableScripting;
     this.hasJSActions = parameters.hasJSActions;
+    this._fieldObjects = parameters.fieldObjects;
     this._mouseState = parameters.mouseState;
 
     if (isRenderable) {
@@ -8838,6 +8858,69 @@ class AnnotationElement {
     (0, _util.unreachable)("Abstract method `AnnotationElement.render` called");
   }
 
+  _getElementsByName(name, skipId = null) {
+    const fields = [];
+
+    if (this._fieldObjects) {
+      const fieldObj = this._fieldObjects[name];
+
+      if (fieldObj) {
+        for (const {
+          page,
+          id,
+          exportValues
+        } of fieldObj) {
+          if (page === -1) {
+            continue;
+          }
+
+          if (id === skipId) {
+            continue;
+          }
+
+          const exportValue = typeof exportValues === "string" ? exportValues : null;
+          const domElement = document.getElementById(id);
+
+          if (domElement && !GetElementsByNameSet.has(domElement)) {
+            (0, _util.warn)(`_getElementsByName - element not allowed: ${id}`);
+            continue;
+          }
+
+          fields.push({
+            id,
+            exportValue,
+            domElement
+          });
+        }
+      }
+
+      return fields;
+    }
+
+    for (const domElement of document.getElementsByName(name)) {
+      const {
+        id,
+        exportValue
+      } = domElement;
+
+      if (id === skipId) {
+        continue;
+      }
+
+      if (!GetElementsByNameSet.has(domElement)) {
+        continue;
+      }
+
+      fields.push({
+        id,
+        exportValue,
+        domElement
+      });
+    }
+
+    return fields;
+  }
+
   static get platform() {
     const platform = typeof navigator !== "undefined" ? navigator.platform : "";
     return (0, _util.shadow)(this, "platform", {
@@ -8942,6 +9025,10 @@ class LinkAnnotationElement extends AnnotationElement {
         });
         return false;
       };
+    }
+
+    if (!link.onclick) {
+      link.onclick = () => false;
     }
 
     link.className = "internalLink";
@@ -9122,13 +9209,14 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
   setPropertyOnSiblings(base, key, value, keyInStorage) {
     const storage = this.annotationStorage;
 
-    for (const element of document.getElementsByName(base.name)) {
-      if (element !== base) {
-        element[key] = value;
-        const data = Object.create(null);
-        data[keyInStorage] = value;
-        storage.setValue(element.getAttribute("id"), data);
+    for (const element of this._getElementsByName(base.name, base.id)) {
+      if (element.domElement) {
+        element.domElement[key] = value;
       }
+
+      storage.setValue(element.id, {
+        [keyInStorage]: value
+      });
     }
   }
 
@@ -9160,6 +9248,9 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
         element.setAttribute("value", textContent);
       }
 
+      GetElementsByNameSet.add(element);
+      element.disabled = this.data.readOnly;
+      element.name = this.data.fieldName;
       element.tabIndex = DEFAULT_TAB_INDEX;
       elementData.userValue = textContent;
       element.setAttribute("id", id);
@@ -9317,9 +9408,6 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
         element.addEventListener("blur", blurListener);
       }
 
-      element.disabled = this.data.readOnly;
-      element.name = this.data.fieldName;
-
       if (this.data.maxLen !== null) {
         element.maxLength = this.data.maxLen;
       }
@@ -9388,30 +9476,38 @@ class CheckboxWidgetAnnotationElement extends WidgetAnnotationElement {
 
     this.container.className = "buttonWidgetAnnotation checkBox";
     const element = document.createElement("input");
+    GetElementsByNameSet.add(element);
     element.disabled = data.readOnly;
     element.type = "checkbox";
-    element.name = this.data.fieldName;
+    element.name = data.fieldName;
 
     if (value) {
       element.setAttribute("checked", true);
     }
 
     element.setAttribute("id", id);
+    element.setAttribute("exportValue", data.exportValue);
     element.tabIndex = DEFAULT_TAB_INDEX;
-    element.addEventListener("change", function (event) {
-      const name = event.target.name;
+    element.addEventListener("change", event => {
+      const {
+        name,
+        checked
+      } = event.target;
 
-      for (const checkbox of document.getElementsByName(name)) {
-        if (checkbox !== event.target) {
-          checkbox.checked = false;
-          storage.setValue(checkbox.parentNode.getAttribute("data-annotation-id"), {
-            value: false
-          });
+      for (const checkbox of this._getElementsByName(name, id)) {
+        const curChecked = checked && checkbox.exportValue === data.exportValue;
+
+        if (checkbox.domElement) {
+          checkbox.domElement.checked = curChecked;
         }
+
+        storage.setValue(checkbox.id, {
+          value: curChecked
+        });
       }
 
       storage.setValue(id, {
-        value: event.target.checked
+        value: checked
       });
     });
 
@@ -9463,6 +9559,7 @@ class RadioButtonWidgetAnnotationElement extends WidgetAnnotationElement {
     }
 
     const element = document.createElement("input");
+    GetElementsByNameSet.add(element);
     element.disabled = data.readOnly;
     element.type = "radio";
     element.name = data.fieldName;
@@ -9473,21 +9570,20 @@ class RadioButtonWidgetAnnotationElement extends WidgetAnnotationElement {
 
     element.setAttribute("id", id);
     element.tabIndex = DEFAULT_TAB_INDEX;
-    element.addEventListener("change", function (event) {
+    element.addEventListener("change", event => {
       const {
-        target
-      } = event;
+        name,
+        checked
+      } = event.target;
 
-      for (const radio of document.getElementsByName(target.name)) {
-        if (radio !== target) {
-          storage.setValue(radio.getAttribute("id"), {
-            value: false
-          });
-        }
+      for (const radio of this._getElementsByName(name, id)) {
+        storage.setValue(radio.id, {
+          value: false
+        });
       }
 
       storage.setValue(id, {
-        value: target.checked
+        value: checked
       });
     });
 
@@ -9495,18 +9591,21 @@ class RadioButtonWidgetAnnotationElement extends WidgetAnnotationElement {
       const pdfButtonValue = data.buttonValue;
       element.addEventListener("updatefromsandbox", jsEvent => {
         const actions = {
-          value(event) {
+          value: event => {
             const checked = pdfButtonValue === event.detail.value;
 
-            for (const radio of document.getElementsByName(event.target.name)) {
-              const radioId = radio.getAttribute("id");
-              radio.checked = radioId === id && checked;
-              storage.setValue(radioId, {
-                value: radio.checked
+            for (const radio of this._getElementsByName(event.target.name)) {
+              const curChecked = checked && radio.id === id;
+
+              if (radio.domElement) {
+                radio.domElement.checked = curChecked;
+              }
+
+              storage.setValue(radio.id, {
+                value: curChecked
               });
             }
           }
-
         };
 
         this._dispatchEventFromSandbox(actions, jsEvent);
@@ -9559,6 +9658,7 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
 
     const fontSizeStyle = `calc(${fontSize}px * var(--zoom-factor))`;
     const selectElement = document.createElement("select");
+    GetElementsByNameSet.add(selectElement);
     selectElement.disabled = this.data.readOnly;
     selectElement.name = this.data.fieldName;
     selectElement.setAttribute("id", id);
@@ -10353,6 +10453,7 @@ class AnnotationLayer {
         annotationStorage: parameters.annotationStorage || new _annotation_storage.AnnotationStorage(),
         enableScripting: parameters.enableScripting,
         hasJSActions: parameters.hasJSActions,
+        fieldObjects: parameters.fieldObjects,
         mouseState: parameters.mouseState || {
           isDown: false
         }
@@ -11766,8 +11867,8 @@ var _svg = __w_pdfjs_require__(21);
 
 var _xfa_layer = __w_pdfjs_require__(22);
 
-const pdfjsVersion = '2.11.243';
-const pdfjsBuild = '7fb653b19';
+const pdfjsVersion = '2.11.298';
+const pdfjsBuild = 'd370a281c';
 ;
 })();
 

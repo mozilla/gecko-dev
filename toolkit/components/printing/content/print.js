@@ -821,7 +821,7 @@ var PrintEventHandler = {
         .add(elapsed);
     }
 
-    let totalPageCount, sheetCount, isEmpty;
+    let totalPageCount, sheetCount, isEmpty, orientation;
     try {
       // This resolves with a PrintPreviewSuccessInfo dictionary.
       let { sourceVersion } = this.viewSettings;
@@ -831,6 +831,7 @@ var PrintEventHandler = {
         totalPageCount,
         sheetCount,
         isEmpty,
+        orientation,
       } = await this.printPreviewEl.printPreview(settings, {
         sourceVersion,
         sourceURI,
@@ -839,6 +840,18 @@ var PrintEventHandler = {
       this.reportPrintingError("PRINT_PREVIEW");
       Cu.reportError(e);
       throw e;
+    }
+
+    // If there is a set orientation, update the settings to use it. In this
+    // case, the document will already have used this orientation to create
+    // the print preview.
+    if (orientation != "unspecified") {
+      const kIPrintSettings = Ci.nsIPrintSettings;
+      settings.orientation =
+        orientation == "landscape"
+          ? kIPrintSettings.kLandscapeOrientation
+          : kIPrintSettings.kPortraitOrientation;
+      document.dispatchEvent(new CustomEvent("hide-orientation"));
     }
 
     this.previewIsEmpty = isEmpty;
@@ -1900,6 +1913,11 @@ customElements.define("paper-size-select", PaperSizePicker, {
 });
 
 class OrientationInput extends PrintUIControlMixin(HTMLElement) {
+  initialize() {
+    super.initialize();
+    document.addEventListener("hide-orientation", this);
+  }
+
   get templateId() {
     return "orientation-template";
   }
@@ -1911,6 +1929,10 @@ class OrientationInput extends PrintUIControlMixin(HTMLElement) {
   }
 
   handleEvent(e) {
+    if (e.type == "hide-orientation") {
+      document.getElementById("orientation").hidden = true;
+      return;
+    }
     this.dispatchSettingsChange({
       orientation: e.target.value,
     });
@@ -2327,18 +2349,39 @@ class MarginsPicker extends PrintUIControlMixin(HTMLElement) {
   updateMaxValues() {
     let maxWidth = this.toCurrentUnitValue(this._maxWidth);
     let maxHeight = this.toCurrentUnitValue(this._maxHeight);
-    this._customTopMargin.max = maxHeight - this._customBottomMargin.value;
-    this._customBottomMargin.max = maxHeight - this._customTopMargin.value;
-    this._customLeftMargin.max = maxWidth - this._customRightMargin.value;
-    this._customRightMargin.max = maxWidth - this._customLeftMargin.value;
+    this._customTopMargin.max = this.formatMaxAttr(
+      maxHeight - this._customBottomMargin.value
+    );
+    this._customBottomMargin.max = this.formatMaxAttr(
+      maxHeight - this._customTopMargin.value
+    );
+    this._customLeftMargin.max = this.formatMaxAttr(
+      maxWidth - this._customRightMargin.value
+    );
+    this._customRightMargin.max = this.formatMaxAttr(
+      maxWidth - this._customLeftMargin.value
+    );
+  }
+
+  truncateTwoDecimals(val) {
+    if (val.split(".")[1].length > 2) {
+      let dotIndex = val.indexOf(".");
+      return val.slice(0, dotIndex + 3);
+    }
+    return val;
+  }
+
+  formatMaxAttr(val) {
+    const strVal = val.toString();
+    if (strVal.includes(".")) {
+      return this.truncateTwoDecimals(strVal);
+    }
+    return val;
   }
 
   formatMargin(target) {
     if (target.value.includes(".")) {
-      if (target.value.split(".")[1].length > 2) {
-        let dotIndex = target.value.indexOf(".");
-        target.value = target.value.slice(0, dotIndex + 3);
-      }
+      target.value = this.truncateTwoDecimals(target.value);
     }
   }
 

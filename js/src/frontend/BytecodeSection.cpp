@@ -49,6 +49,11 @@ mozilla::Maybe<ScopeIndex> GCThingList::getScopeIndex(size_t index) const {
   return mozilla::Some(vector[index].toScope());
 }
 
+TaggedParserAtomIndex GCThingList::getAtom(size_t index) const {
+  const TaggedScriptThingIndex& elem = vector[index];
+  return elem.toAtom();
+}
+
 bool js::frontend::EmitScriptThingsVector(
     JSContext* cx, const CompilationAtomCache& atomCache,
     const CompilationStencil& stencil, CompilationGCOutput& gcOutput,
@@ -62,9 +67,9 @@ bool js::frontend::EmitScriptThingsVector(
     switch (thing.tag()) {
       case TaggedScriptThingIndex::Kind::ParserAtomIndex:
       case TaggedScriptThingIndex::Kind::WellKnown: {
-        JSAtom* atom = atomCache.getExistingAtomAt(cx, thing.toAtom());
-        MOZ_ASSERT(atom);
-        output[i] = JS::GCCellPtr(atom);
+        JSString* str = atomCache.getExistingStringAt(cx, thing.toAtom());
+        MOZ_ASSERT(str);
+        output[i] = JS::GCCellPtr(str);
         break;
       }
       case TaggedScriptThingIndex::Kind::Null:

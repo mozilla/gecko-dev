@@ -1511,6 +1511,17 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
       }
       break;
     }
+    case JOF_STRING: {
+      RootedValue v(cx, StringValue(script->getString(pc)));
+      UniqueChars bytes = ToDisassemblySource(cx, v);
+      if (!bytes) {
+        return 0;
+      }
+      if (!sp->jsprintf(" %s", bytes.get())) {
+        return 0;
+      }
+      break;
+    }
 
     case JOF_DOUBLE: {
       double d = GET_INLINE_VALUE(pc).toDouble();
@@ -1768,6 +1779,7 @@ struct ExpressionDecompiler {
   bool decompilePC(const OffsetAndDefIndex& offsetAndDefIndex);
   JSAtom* getArg(unsigned slot);
   JSAtom* loadAtom(jsbytecode* pc);
+  JSString* loadString(jsbytecode* pc);
   bool quote(JSString* s, char quote);
   bool write(const char* s);
   bool write(JSString* str);
@@ -1916,7 +1928,7 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
     case JSOp::Int32:
       return sprinter.printf("%d", GetBytecodeInteger(pc));
     case JSOp::String:
-      return quote(loadAtom(pc), '"');
+      return quote(loadString(pc), '"');
     case JSOp::Symbol: {
       unsigned i = uint8_t(pc[1]);
       MOZ_ASSERT(i < JS::WellKnownSymbolLimit);
@@ -1928,6 +1940,7 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
     case JSOp::Undefined:
       return write(js_undefined_str);
     case JSOp::GlobalThis:
+    case JSOp::NonSyntacticGlobalThis:
       // |this| could convert to a very long object initialiser, so cite it by
       // its keyword name.
       return write(js_this_str);
@@ -2079,7 +2092,6 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
         MOZ_ASSERT(defIndex == 1);
         return write("PC");
 
-      case JSOp::GImplicitThis:
       case JSOp::FunctionThis:
       case JSOp::ImplicitThis:
         return write("THIS");
@@ -2254,6 +2266,10 @@ bool ExpressionDecompiler::quote(JSString* s, char quote) {
 
 JSAtom* ExpressionDecompiler::loadAtom(jsbytecode* pc) {
   return script->getAtom(pc);
+}
+
+JSString* ExpressionDecompiler::loadString(jsbytecode* pc) {
+  return script->getString(pc);
 }
 
 JSAtom* ExpressionDecompiler::getArg(unsigned slot) {

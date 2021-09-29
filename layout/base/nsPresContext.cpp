@@ -27,6 +27,7 @@
 #include "nsCOMPtr.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsDocShell.h"
+#include "nsIConsoleService.h"
 #include "nsIContentViewer.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/ServoStyleSet.h"
@@ -136,6 +137,52 @@ bool nsPresContext::IsDOMPaintEventPending() {
   return false;
 }
 
+struct WeakRunnableMethod : Runnable {
+  using Method = void (nsPresContext::*)();
+
+  WeakRunnableMethod(const char* aName, nsPresContext* aPc, Method aMethod)
+      : Runnable(aName), mPresContext(aPc), mMethod(aMethod) {}
+
+  NS_IMETHOD Run() override {
+    if (nsPresContext* pc = mPresContext.get()) {
+      (pc->*mMethod)();
+    }
+    return NS_OK;
+  }
+
+ private:
+  WeakPtr<nsPresContext> mPresContext;
+  Method mMethod;
+};
+
+// When forcing a font-info-update reflow from style, we don't need to reframe,
+// but we'll need to restyle to pick up updated font metrics. In order to avoid
+// synchronously having to deal with multiple restyles, we use an early refresh
+// driver runner, which should prevent flashing for users.
+//
+// We might do a bit of extra work if the page flushes layout between the
+// restyle and when this happens, which is a bit unfortunate, but not worse than
+// what we used to do...
+//
+// A better solution would be to be able to synchronously initialize font
+// information from style worker threads, perhaps...
+void nsPresContext::ForceReflowForFontInfoUpdateFromStyle() {
+  if (mPendingFontInfoUpdateReflowFromStyle) {
+    return;
+  }
+
+  mPendingFontInfoUpdateReflowFromStyle = true;
+  nsCOMPtr<nsIRunnable> ev = new WeakRunnableMethod(
+      "nsPresContext::DoForceReflowForFontInfoUpdateFromStyle", this,
+      &nsPresContext::DoForceReflowForFontInfoUpdateFromStyle);
+  RefreshDriver()->AddEarlyRunner(ev);
+}
+
+void nsPresContext::DoForceReflowForFontInfoUpdateFromStyle() {
+  mPendingFontInfoUpdateReflowFromStyle = false;
+  ForceReflowForFontInfoUpdate(false);
+}
+
 void nsPresContext::ForceReflowForFontInfoUpdate(bool aNeedsReframe) {
   // In the case of a static-clone document used for printing or print-preview,
   // this is undesirable because the nsPrintJob is holding weak refs to frames
@@ -223,6 +270,7 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
       mPendingThemeChanged(false),
       mPendingThemeChangeKind(0),
       mPendingUIResolutionChanged(false),
+      mPendingFontInfoUpdateReflowFromStyle(false),
       mIsGlyph(false),
       mUsesExChUnits(false),
       mCounterStylesDirty(true),
@@ -275,24 +323,26 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
 }
 
 static const char* gExactCallbackPrefs[] = {
-    "browser.underline_anchors",
-    "browser.anchor_color",
     "browser.active_color",
+    "browser.anchor_color",
+    "browser.underline_anchors",
     "browser.visited_color",
-    "image.animation_mode",
-    "dom.send_after_paint_to_content",
-    "layout.css.dpi",
-    "layout.css.devPixelsPerPx",
-    "nglayout.debug.paint_flashing",
-    "nglayout.debug.paint_flashing_chrome",
-    "intl.accept_languages",
     "dom.meta-viewport.enabled",
+    "dom.send_after_paint_to_content",
+    "image.animation_mode",
+    "intl.accept_languages",
+    "layout.css.devPixelsPerPx",
+    "layout.css.dpi",
+    "nglayout.debug.paint_flashing_chrome",
+    "nglayout.debug.paint_flashing",
+    "privacy.resistFingerprinting",
+    "privacy.trackingprotection.enabled",
     nullptr,
 };
 
 static const char* gPrefixCallbackPrefs[] = {
-    "font.", "browser.display.",    "browser.viewport.",
-    "bidi.", "gfx.font_rendering.", "layout.css.font-visibility.",
+    "bidi.", "browser.display.",    "browser.viewport.",
+    "font.", "gfx.font_rendering.", "layout.css.font-visibility.",
     nullptr,
 };
 
@@ -572,8 +622,10 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
   auto restyleHint = RestyleHint{0};
   // Changing any of these potentially changes the value of @media
   // (prefers-contrast).
-  if (prefName.EqualsLiteral("layout.css.prefers-contrast.enabled") ||
-      prefName.EqualsLiteral("browser.display.document_color_use") ||
+  // The layout.css.prefers-contrast.enabled pref itself is not handled here,
+  // because that pref doesn't just affect the "live" value of the media query;
+  // it affects whether it is parsed at all.
+  if (prefName.EqualsLiteral("browser.display.document_color_use") ||
       prefName.EqualsLiteral("privacy.resistFingerprinting") ||
       prefName.EqualsLiteral("browser.display.foreground_color") ||
       prefName.EqualsLiteral("browser.display.background_color")) {
@@ -653,24 +705,6 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
 
   InvalidatePaintedLayers();
 }
-
-struct WeakRunnableMethod : Runnable {
-  using Method = void (nsPresContext::*)();
-
-  WeakRunnableMethod(const char* aName, nsPresContext* aPc, Method aMethod)
-      : Runnable(aName), mPresContext(aPc), mMethod(aMethod) {}
-
-  NS_IMETHOD Run() override {
-    if (nsPresContext* pc = mPresContext.get()) {
-      (pc->*mMethod)();
-    }
-    return NS_OK;
-  }
-
- private:
-  WeakPtr<nsPresContext> mPresContext;
-  Method mMethod;
-};
 
 nsresult nsPresContext::Init(nsDeviceContext* aDeviceContext) {
   NS_ASSERTION(!mInitialized, "attempt to reinit pres context");
@@ -768,15 +802,61 @@ nsresult nsPresContext::Init(nsDeviceContext* aDeviceContext) {
 
 bool nsPresContext::UpdateFontVisibility() {
   FontVisibility oldValue = mFontVisibility;
-  if (StaticPrefs::privacy_resistFingerprinting()) {
-    mFontVisibility = FontVisibility::Base;
-  } else {
-    mFontVisibility = FontVisibility(
-        std::min(int32_t(FontVisibility::User),
-                 std::max(int32_t(FontVisibility::Base),
-                          StaticPrefs::layout_css_font_visibility_level())));
+
+  // Is this a private browsing context?
+  bool isPrivate = false;
+  if (nsCOMPtr<nsILoadContext> loadContext = mDocument->GetLoadContext()) {
+    isPrivate = loadContext->UsePrivateBrowsing();
   }
+
+  // Read the relevant pref depending on RFP/trackingProtection state
+  // to determine the visibility level to use.
+  int32_t level;
+  if (StaticPrefs::privacy_resistFingerprinting()) {
+    level = StaticPrefs::layout_css_font_visibility_resistFingerprinting();
+  } else if (StaticPrefs::privacy_trackingprotection_enabled() ||
+             (isPrivate &&
+              StaticPrefs::privacy_trackingprotection_pbmode_enabled())) {
+    level = StaticPrefs::layout_css_font_visibility_trackingprotection();
+  } else {
+    level = StaticPrefs::layout_css_font_visibility_standard();
+  }
+
+  // For private browsing contexts, apply the private-mode limit.
+  if (isPrivate) {
+    int32_t priv = StaticPrefs::layout_css_font_visibility_private();
+    level = std::max(std::min(level, priv), int32_t(FontVisibility::Base));
+  }
+
+  // Clamp result to the valid range of levels.
+  level = std::max(std::min(level, int32_t(FontVisibility::User)),
+                   int32_t(FontVisibility::Base));
+
+  mFontVisibility = FontVisibility(level);
   return mFontVisibility != oldValue;
+}
+
+void nsPresContext::ReportBlockedFontFamilyName(const nsCString& aFamily,
+                                                FontVisibility aVisibility) {
+  if (!mBlockedFonts.EnsureInserted(aFamily)) {
+    return;
+  }
+  nsAutoString msg;
+  msg.AppendPrintf(
+      "Request for font \"%s\" blocked at visibility level %d (requires %d)\n",
+      aFamily.get(), int(GetFontVisibility()), int(aVisibility));
+  nsContentUtils::ReportToConsoleNonLocalized(msg, nsIScriptError::warningFlag,
+                                              "Security"_ns, mDocument);
+}
+
+void nsPresContext::ReportBlockedFontFamily(const fontlist::Family& aFamily) {
+  auto* fontList = gfxPlatformFontList::PlatformFontList()->SharedFontList();
+  const nsCString& name = aFamily.DisplayName().AsString(fontList);
+  ReportBlockedFontFamilyName(name, aFamily.Visibility());
+}
+
+void nsPresContext::ReportBlockedFontFamily(const gfxFontFamily& aFamily) {
+  ReportBlockedFontFamilyName(aFamily.Name(), aFamily.Visibility());
 }
 
 void nsPresContext::InitFontCache() {
@@ -1779,6 +1859,12 @@ void nsPresContext::SetPrintSettings(nsIPrintSettings* aPrintSettings) {
 }
 
 bool nsPresContext::EnsureVisible() {
+  BrowsingContext* browsingContext =
+      mDocument ? mDocument->GetBrowsingContext() : nullptr;
+  if (!browsingContext || browsingContext->IsInBFCache()) {
+    return false;
+  }
+
   nsCOMPtr<nsIDocShell> docShell(GetDocShell());
   if (!docShell) {
     return false;

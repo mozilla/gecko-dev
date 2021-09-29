@@ -21,29 +21,10 @@ L10nFileSource::L10nFileSource(RefPtr<const ffi::FileSource> aRaw,
     : mGlobal(aGlobal), mRaw(std::move(aRaw)) {}
 
 /* static */
-already_AddRefed<L10nFileSource> L10nFileSource::Create(
-    const nsACString& aName, const nsTArray<nsCString>& aLocales,
-    const nsACString& aPrePath, const FileSourceOptions& aOptions,
-    ErrorResult& aRv) {
-  ffi::L10nFileSourceStatus status;
-
-  bool allowOverrides = aOptions.mAddResourceOptions.mAllowOverrides;
-
-  RefPtr<const ffi::FileSource> raw(dont_AddRef(ffi::l10nfilesource_new(
-      &aName, &aLocales, &aPrePath, allowOverrides, &status)));
-
-  if (PopulateError(aRv, status)) {
-    return nullptr;
-  }
-
-  return MakeAndAddRef<L10nFileSource>(std::move(raw));
-}
-
-/* static */
 already_AddRefed<L10nFileSource> L10nFileSource::Constructor(
     const GlobalObject& aGlobal, const nsACString& aName,
-    const nsTArray<nsCString>& aLocales, const nsACString& aPrePath,
-    const dom::FileSourceOptions& aOptions,
+    const nsACString& aMetaSource, const nsTArray<nsCString>& aLocales,
+    const nsACString& aPrePath, const dom::FileSourceOptions& aOptions,
     const Optional<Sequence<nsCString>>& aIndex, ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
 
@@ -54,11 +35,11 @@ already_AddRefed<L10nFileSource> L10nFileSource::Constructor(
   RefPtr<const ffi::FileSource> raw;
   if (aIndex.WasPassed()) {
     raw = dont_AddRef(ffi::l10nfilesource_new_with_index(
-        &aName, &aLocales, &aPrePath, aIndex.Value().Elements(),
+        &aName, &aMetaSource, &aLocales, &aPrePath, aIndex.Value().Elements(),
         aIndex.Value().Length(), allowOverrides, &status));
   } else {
-    raw = dont_AddRef(ffi::l10nfilesource_new(&aName, &aLocales, &aPrePath,
-                                              allowOverrides, &status));
+    raw = dont_AddRef(ffi::l10nfilesource_new(
+        &aName, &aMetaSource, &aLocales, &aPrePath, allowOverrides, &status));
   }
 
   if (PopulateError(aRv, status)) {
@@ -70,8 +51,9 @@ already_AddRefed<L10nFileSource> L10nFileSource::Constructor(
 /* static */
 already_AddRefed<L10nFileSource> L10nFileSource::CreateMock(
     const GlobalObject& aGlobal, const nsACString& aName,
-    const nsTArray<nsCString>& aLocales, const nsACString& aPrePath,
-    const nsTArray<L10nFileSourceMockFile>& aFS, ErrorResult& aRv) {
+    const nsACString& aMetaSource, const nsTArray<nsCString>& aLocales,
+    const nsACString& aPrePath, const nsTArray<L10nFileSourceMockFile>& aFS,
+    ErrorResult& aRv) {
   nsTArray<ffi::L10nFileSourceMockFile> fs(aFS.Length());
   for (const auto& file : aFS) {
     auto f = fs.AppendElement();
@@ -83,7 +65,7 @@ already_AddRefed<L10nFileSource> L10nFileSource::CreateMock(
   ffi::L10nFileSourceStatus status;
 
   RefPtr<const ffi::FileSource> raw(dont_AddRef(ffi::l10nfilesource_new_mock(
-      &aName, &aLocales, &aPrePath, &fs, &status)));
+      &aName, &aMetaSource, &aLocales, &aPrePath, &fs, &status)));
 
   if (PopulateError(aRv, status)) {
     return nullptr;
@@ -98,6 +80,10 @@ JSObject* L10nFileSource::WrapObject(JSContext* aCx,
 
 void L10nFileSource::GetName(nsCString& aRetVal) {
   ffi::l10nfilesource_get_name(mRaw.get(), &aRetVal);
+}
+
+void L10nFileSource::GetMetaSource(nsCString& aRetVal) {
+  ffi::l10nfilesource_get_metasource(mRaw.get(), &aRetVal);
 }
 
 void L10nFileSource::GetLocales(nsTArray<nsCString>& aRetVal) {

@@ -18,10 +18,9 @@
   runTest(async () => {
     await pushPrefs(["media.setsinkid.enabled", true]);
 
-    if (!SpecialPowers.getCharPref("media.audio_loopback_dev", "")) {
-      ok(false, "No loopback device set by framework. Try --use-test-media-devices");
-      return;
-    }
+    // Expose an audio output device.
+    SpecialPowers.wrap(document).notifyUserGestureActivation();
+    await navigator.mediaDevices.selectAudioOutput();
 
     const allDevices = await navigator.mediaDevices.enumerateDevices();
     const audioDevices = allDevices.filter(({kind}) => kind == 'audiooutput');

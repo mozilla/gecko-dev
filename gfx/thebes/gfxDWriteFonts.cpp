@@ -752,8 +752,7 @@ already_AddRefed<ScaledFont> gfxDWriteFont::GetScaledFont(
   }
   if (!mAzureScaledFont) {
     gfxDWriteFontEntry* fe = static_cast<gfxDWriteFontEntry*>(mFontEntry.get());
-    bool forceGDI =
-        aTarget->GetFormat() == SurfaceFormat::B8G8R8X8 && GetForceGDIClassic();
+    bool forceGDI = GetForceGDIClassic();
     bool useEmbeddedBitmap =
         (gfxVars::SystemTextRenderingMode() == DWRITE_RENDERING_MODE_DEFAULT ||
          forceGDI) &&
@@ -771,6 +770,39 @@ already_AddRefed<ScaledFont> gfxDWriteFont::GetScaledFont(
   }
 
   RefPtr<ScaledFont> scaledFont(mAzureScaledFont);
+  return scaledFont.forget();
+}
+
+already_AddRefed<ScaledFont> gfxDWriteFont::GetScaledFontNoGDI(
+    mozilla::gfx::DrawTarget* aTarget) {
+  if (!GetForceGDIClassic()) {
+    return GetScaledFont(aTarget);
+  }
+
+  if (mAzureScaledFontNoGDIUsedClearType != UsingClearType()) {
+    mAzureScaledFontNoGDI = nullptr;
+  }
+  if (!mAzureScaledFontNoGDI) {
+    gfxDWriteFontEntry* fe = static_cast<gfxDWriteFontEntry*>(mFontEntry.get());
+    bool useEmbeddedBitmap =
+        gfxVars::SystemTextRenderingMode() == DWRITE_RENDERING_MODE_DEFAULT &&
+        fe->IsCJKFont() && HasBitmapStrikeForSize(NS_lround(mAdjustedSize));
+
+    const gfxFontStyle* fontStyle = GetStyle();
+    mAzureScaledFontNoGDI = Factory::CreateScaledFontForDWriteFont(
+        mFontFace, fontStyle, GetUnscaledFont(), GetAdjustedSize(),
+        useEmbeddedBitmap, false);
+    if (!mAzureScaledFontNoGDI) {
+      return nullptr;
+    }
+    float angle = AngleForSyntheticOblique();
+    if (angle != 0.0f) {
+      mAzureScaledFontNoGDI->SetSyntheticObliqueAngle(angle);
+    }
+    mAzureScaledFontNoGDIUsedClearType = UsingClearType();
+  }
+
+  RefPtr<ScaledFont> scaledFont(mAzureScaledFontNoGDI);
   return scaledFont.forget();
 }
 

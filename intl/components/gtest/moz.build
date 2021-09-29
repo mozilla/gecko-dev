@@ -7,12 +7,18 @@
 UNIFIED_SOURCES += [
     "TestCalendar.cpp",
     "TestCollator.cpp",
+    "TestCurrency.cpp",
     "TestDateTimeFormat.cpp",
     "TestListFormat.cpp",
+    "TestLocale.cpp",
     "TestLocaleCanonicalizer.cpp",
+    "TestMeasureUnit.cpp",
     "TestNumberFormat.cpp",
+    "TestNumberingSystem.cpp",
     "TestPluralRules.cpp",
     "TestRelativeTimeFormat.cpp",
+    "TestString.cpp",
+    "TestTimeZone.cpp",
 ]
 
 FINAL_LIBRARY = "xul-gtest"

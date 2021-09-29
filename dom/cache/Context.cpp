@@ -411,9 +411,10 @@ Context::QuotaInitRunnable::Run() {
         QuotaManager* quotaManager = QuotaManager::Get();
         MOZ_DIAGNOSTIC_ASSERT(quotaManager);
 
-        QM_TRY(quotaManager->EnsureStorageIsInitialized());
+        QM_TRY(MOZ_TO_RESULT(quotaManager->EnsureStorageIsInitialized()));
 
-        QM_TRY(quotaManager->EnsureTemporaryStorageIsInitialized());
+        QM_TRY(
+            MOZ_TO_RESULT(quotaManager->EnsureTemporaryStorageIsInitialized()));
 
         QM_TRY_UNWRAP(mQuotaInfo.mDir,
                       quotaManager
@@ -740,10 +741,11 @@ Context::ThreadsafeHandle::~ThreadsafeHandle() {
     return;
   }
 
-  // Dispatch is guaranteed to succeed here because we block shutdown until
-  // all Contexts have been destroyed.
-  NS_ProxyRelease("Context::ThreadsafeHandle::mStrongRef", mOwningEventTarget,
-                  mStrongRef.forget());
+  // Dispatch in NS_ProxyRelease is guaranteed to succeed here because we block
+  // shutdown until all Contexts have been destroyed. Therefore it is ok to have
+  // MOZ_ALWAYS_SUCCEED here.
+  MOZ_ALWAYS_SUCCEEDS(NS_ProxyRelease("Context::ThreadsafeHandle::mStrongRef",
+                                      mOwningEventTarget, mStrongRef.forget()));
 }
 
 void Context::ThreadsafeHandle::AllowToCloseOnOwningThread() {

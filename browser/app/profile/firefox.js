@@ -299,6 +299,9 @@ pref("browser.startup.homepage.abouthome_cache.loglevel", "Warn");
 // Whether we should skip the homepage when opening the first-run page
 pref("browser.startup.firstrunSkipsHomepage", true);
 
+// Whether we should show the session-restore infobar on startup
+pref("browser.startup.couldRestoreSession.count", 0);
+
 // Show an about:blank window as early as possible for quick startup feedback.
 // Held to nightly on Linux due to bug 1450626.
 // Disabled on Mac because the bouncing dock icon already provides feedback.
@@ -611,7 +614,7 @@ pref("browser.tabs.insertRelatedAfterCurrent", true);
 // for non-related links. Note that if this is set to true, it will trump
 // the value of browser.tabs.insertRelatedAfterCurrent.
 pref("browser.tabs.insertAfterCurrent", false);
-pref("browser.tabs.warnOnClose", true);
+pref("browser.tabs.warnOnClose", false);
 pref("browser.tabs.warnOnCloseOtherTabs", true);
 pref("browser.tabs.warnOnOpen", true);
 pref("browser.tabs.maxOpenBeforeWarn", 15);
@@ -1461,6 +1464,11 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiment
 pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", true);
 pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", true);
 
+// Default to allowing the ASRouter captive portal VPN promo messages to be
+// shown when specified, but do so in a pref in case someone needs to override
+// it.
+pref("browser.newtabpage.activity-stream.asrouter.disable-captive-portal-vpn-promo", false);
+
 // The pref that controls if ASRouter uses the remote fluent files.
 // It's enabled by default, but could be disabled to force ASRouter to use the local files.
 pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
@@ -1469,6 +1477,9 @@ pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
 pref("browser.newtabpage.activity-stream.discoverystream.enabled", true);
 pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
 pref("browser.newtabpage.activity-stream.discoverystream.compactLayout.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.loadMore.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.lastCardMessage.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.newFooterSection.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,11,20");
 pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint", "");
 pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint-query", "");
@@ -2175,7 +2186,7 @@ pref("devtools.command-button-measure.enabled", false);
 pref("devtools.command-button-noautohide.enabled", false);
 pref("devtools.command-button-errorcount.enabled", true);
 #ifndef MOZILLA_OFFICIAL
-  pref("devtools.command-button-fission-prefs.enabled", true);
+  pref("devtools.command-button-experimental-prefs.enabled", true);
 #endif
 
 // Inspector preferences

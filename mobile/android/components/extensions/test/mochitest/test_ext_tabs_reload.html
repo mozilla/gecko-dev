@@ -15,10 +15,6 @@
 
 add_task(async function() {
   const extension = ExtensionTestUtils.loadExtension({
-    manifest: {
-      "permissions": ["tabs"],
-    },
-
     files: {
       "tab.js": function() {
         browser.runtime.sendMessage("tab-loaded");
@@ -32,8 +28,8 @@ add_task(async function() {
 
     async background() {
       let tabLoadedCount = 0;
-
-      const tab = await browser.tabs.create({url: "tab.html", active: true});
+      // eslint-disable-next-line prefer-const
+      let tab;
 
       browser.runtime.onMessage.addListener(msg => {
         if (msg == "tab-loaded") {
@@ -56,6 +52,7 @@ add_task(async function() {
           }
         }
       });
+      tab = await browser.tabs.create({url: "tab.html", active: true});
     },
   });
 

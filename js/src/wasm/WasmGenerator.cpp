@@ -26,6 +26,7 @@
 
 #include "jit/Assembler.h"
 #include "jit/JitOptions.h"
+#include "js/Printf.h"
 #include "util/Memory.h"
 #include "util/Text.h"
 #include "vm/HelperThreads.h"
@@ -83,9 +84,11 @@ ModuleGenerator::ModuleGenerator(const CompileArgs& args,
                                  ModuleEnvironment* moduleEnv,
                                  CompilerEnvironment* compilerEnv,
                                  const Atomic<bool>* cancelled,
-                                 UniqueChars* error)
+                                 UniqueChars* error,
+                                 UniqueCharsVector* warnings)
     : compileArgs_(&args),
       error_(error),
+      warnings_(warnings),
       cancelled_(cancelled),
       moduleEnv_(moduleEnv),
       compilerEnv_(compilerEnv),
@@ -275,9 +278,9 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata) {
     // Copy type definitions to metadata that are required at runtime,
     // allocating global data so that codegen can find the type id's at
     // runtime.
-    for (uint32_t typeIndex = 0; typeIndex < moduleEnv_->types.length();
+    for (uint32_t typeIndex = 0; typeIndex < moduleEnv_->types->length();
          typeIndex++) {
-      const TypeDef& typeDef = moduleEnv_->types[typeIndex];
+      const TypeDef& typeDef = (*moduleEnv_->types)[typeIndex];
       TypeIdDesc& typeId = moduleEnv_->typeIds[typeIndex];
 
       if (TypeIdDesc::isGlobal(typeDef)) {
@@ -308,12 +311,12 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata) {
     if (moduleEnv_->functionReferencesEnabled()) {
       // Do a linear pass to create a map from src index to dest index.
       RenumberVector renumbering;
-      if (!renumbering.reserve(moduleEnv_->types.length())) {
+      if (!renumbering.reserve(moduleEnv_->types->length())) {
         return false;
       }
       for (uint32_t srcIndex = 0, destIndex = 0;
-           srcIndex < moduleEnv_->types.length(); srcIndex++) {
-        const TypeDef& typeDef = moduleEnv_->types[srcIndex];
+           srcIndex < moduleEnv_->types->length(); srcIndex++) {
+        const TypeDef& typeDef = (*moduleEnv_->types)[srcIndex];
         if (!TypeIdDesc::isGlobal(typeDef)) {
           renumbering.infallibleAppend(UINT32_MAX);
           continue;
@@ -1084,6 +1087,7 @@ UniqueCodeTier ModuleGenerator::finishCodeTier() {
   UniqueModuleSegment segment =
       ModuleSegment::create(tier(), masm_, *linkData_);
   if (!segment) {
+    warnf("failed to allocate executable memory for module");
     return nullptr;
   }
 
@@ -1295,6 +1299,22 @@ bool ModuleGenerator::finishTier2(const Module& module) {
   }
 
   return module.finishTier2(*linkData_, std::move(codeTier));
+}
+
+void ModuleGenerator::warnf(const char* msg, ...) {
+  if (!warnings_) {
+    return;
+  }
+
+  va_list ap;
+  va_start(ap, msg);
+  UniqueChars str(JS_vsmprintf(msg, ap));
+  va_end(ap);
+  if (!str) {
+    return;
+  }
+
+  (void)warnings_->append(std::move(str));
 }
 
 size_t CompiledCode::sizeOfExcludingThis(

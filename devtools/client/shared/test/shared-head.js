@@ -196,19 +196,27 @@ registerCleanupFunction(() => {
  * Spawn an instance of the highlighter test actor for the given toolbox
  *
  * @param {Toolbox} toolbox
+ * @param {Object} options
+ * @param {Function} options.target: Optional target to get the highlighterTestFront for.
+ *        If not provided, the top level target will be used.
  * @returns {HighlighterTestFront}
  */
-async function getHighlighterTestFront(toolbox) {
+async function getHighlighterTestFront(toolbox, { target } = {}) {
   // Loading the Inspector panel in order to overwrite the TestActor getter for the
   // highlighter instance with a method that points to the currently visible
   // Box Model Highlighter managed by the Inspector panel.
   const inspector = await toolbox.loadTool("inspector");
-  const highlighterTestFront = await toolbox.target.getFront("highlighterTest");
+
+  const highlighterTestFront = await (target || toolbox.target).getFront(
+    "highlighterTest"
+  );
   // Override the highligher getter with a method to return the active box model
   // highlighter. Adaptation for multi-process scenarios where there can be multiple
   // highlighters, one per process.
   highlighterTestFront.highlighter = () => {
-    return inspector.highlighters.getActiveHighlighter("BoxModelHighlighter");
+    return inspector.highlighters.getActiveHighlighter(
+      inspector.highlighters.TYPES.BOXMODEL
+    );
   };
   return highlighterTestFront;
 }
@@ -761,7 +769,7 @@ async function watchForTargetSwitching(commands, browser) {
  *
  * @param {XULTab} tab
  *        The tab for which a target should be created.
- * @return {BrowsingContextTargetFront} The attached target front.
+ * @return {WindowGlobalTargetFront} The attached target front.
  */
 async function createAndAttachTargetForTab(tab) {
   info("Creating and attaching to a local tab target");
@@ -783,6 +791,13 @@ function isFissionEnabled() {
 
 function isServerTargetSwitchingEnabled() {
   return Services.prefs.getBoolPref(TARGET_SWITCHING_PREF);
+}
+
+function isEveryFrameTargetEnabled() {
+  return Services.prefs.getBoolPref(
+    "devtools.every-frame-target.enabled",
+    false
+  );
 }
 
 /**

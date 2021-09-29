@@ -5,13 +5,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DevToolsModules(
-    "browsing-context.js",
     "content-process.js",
-    "frame.js",
     "index.js",
     "parent-process.js",
     "target-actor-mixin.js",
     "target-actor-registry.jsm",
     "webextension.js",
+    "window-global.js",
     "worker.js",
 )

@@ -134,9 +134,6 @@ class HTMLInputElement final : public TextControlElement,
 
   int32_t TabIndexDefault() override;
   using nsGenericHTMLElement::Focus;
-  void Blur(ErrorResult& aError) override;
-  void Focus(const FocusOptions& aOptions, CallerType aCallerType,
-             ErrorResult& aError) override;
 
   // nsINode
 #if !defined(ANDROID) && !defined(XP_MACOSX)
@@ -617,7 +614,7 @@ class HTMLInputElement final : public TextControlElement,
     SetHTMLAttr(nsGkAtoms::step, aValue, aRv);
   }
 
-  void GetType(nsAString& aValue);
+  void GetType(nsAString& aValue) const;
   void SetType(const nsAString& aValue, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::type, aValue, aRv);
   }
@@ -847,7 +844,7 @@ class HTMLInputElement final : public TextControlElement,
    */
   bool IsRequired() const { return State().HasState(NS_EVENT_STATE_REQUIRED); }
 
-  bool HasBeenTypePassword() { return mHasBeenTypePassword; }
+  bool HasBeenTypePassword() const { return mHasBeenTypePassword; }
 
   /**
    * Returns whether the current value is the empty string.  This only makes

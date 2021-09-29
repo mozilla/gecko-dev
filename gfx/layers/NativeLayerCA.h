@@ -118,6 +118,8 @@ class NativeLayerRootCA : public NativeLayerRoot {
   already_AddRefed<NativeLayer> CreateLayerForExternalTexture(
       bool aIsOpaque) override;
 
+  void SetWindowIsFullscreen(bool aFullscreen);
+
  protected:
   explicit NativeLayerRootCA(CALayer* aLayer);
   ~NativeLayerRootCA() override;
@@ -126,7 +128,11 @@ class NativeLayerRootCA : public NativeLayerRoot {
     explicit Representation(CALayer* aRootCALayer);
     ~Representation();
     void Commit(WhichRepresentation aRepresentation,
-                const nsTArray<RefPtr<NativeLayerCA>>& aSublayers);
+                const nsTArray<RefPtr<NativeLayerCA>>& aSublayers,
+                bool aWindowIsFullscreen);
+    CALayer* FindVideoLayerToIsolate(
+        WhichRepresentation aRepresentation,
+        const nsTArray<RefPtr<NativeLayerCA>>& aSublayers);
     CALayer* mRootCALayer = nullptr;  // strong
     bool mMutated = false;
   };
@@ -153,6 +159,10 @@ class NativeLayerRootCA : public NativeLayerRoot {
   // indicates that CommitToScreen() needs to be called at the next available
   // opportunity.
   bool mCommitPending = false;
+
+  // Updated by the layer's view's window to match the fullscreen state
+  // of that window.
+  bool mWindowIsFullscreen = false;
 };
 
 class RenderSourceNLRS;
@@ -229,6 +239,10 @@ class NativeLayerCA : public NativeLayer {
 
   void AttachExternalImage(wr::RenderTextureHost* aExternalImage) override;
 
+  bool IsVideo();
+  bool ShouldSpecializeVideo();
+  void SetRootWindowIsFullscreen(bool aFullscreen);
+
  protected:
   friend class NativeLayerRootCA;
 
@@ -285,9 +299,12 @@ class NativeLayerCA : public NativeLayer {
 
   // Wraps one CALayer representation of this NativeLayer.
   struct Representation {
+    Representation();
     ~Representation();
 
     CALayer* UnderlyingCALayer() { return mWrappingCALayer; }
+
+    bool EnqueueSurface(IOSurfaceRef aSurfaceRef);
 
     // Applies buffered changes to the native CALayers. The contract with the
     // caller is as follows: If any of these values have changed since the last
@@ -300,6 +317,7 @@ class NativeLayerCA : public NativeLayer {
                       const Maybe<gfx::IntRect>& aClipRect, float aBackingScale,
                       bool aSurfaceIsFlipped,
                       gfx::SamplingFilter aSamplingFilter,
+                      bool aSpecializeVideo,
                       CFTypeRefPtr<IOSurfaceRef> aFrontSurface);
 
     // Return whether any aspects of this layer representation have been mutated
@@ -318,15 +336,16 @@ class NativeLayerCA : public NativeLayer {
     CALayer* mContentCALayer = nullptr;       // strong
     CALayer* mOpaquenessTintLayer = nullptr;  // strong
 
-    bool mMutatedPosition = true;
-    bool mMutatedTransform = true;
-    bool mMutatedDisplayRect = true;
-    bool mMutatedClipRect = true;
-    bool mMutatedBackingScale = true;
-    bool mMutatedSize = true;
-    bool mMutatedSurfaceIsFlipped = true;
-    bool mMutatedFrontSurface = true;
-    bool mMutatedSamplingFilter = true;
+    bool mMutatedPosition : 1;
+    bool mMutatedTransform : 1;
+    bool mMutatedDisplayRect : 1;
+    bool mMutatedClipRect : 1;
+    bool mMutatedBackingScale : 1;
+    bool mMutatedSize : 1;
+    bool mMutatedSurfaceIsFlipped : 1;
+    bool mMutatedFrontSurface : 1;
+    bool mMutatedSamplingFilter : 1;
+    bool mMutatedSpecializeVideo : 1;
   };
 
   Representation& GetRepresentation(WhichRepresentation aRepresentation);
@@ -399,6 +418,7 @@ class NativeLayerCA : public NativeLayer {
   float mBackingScale = 1.0f;
   bool mSurfaceIsFlipped = false;
   const bool mIsOpaque = false;
+  bool mRootWindowIsFullscreen = false;
 };
 
 }  // namespace layers

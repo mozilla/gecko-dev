@@ -81,7 +81,6 @@ load 325984-2.html
 load chrome://reftest/content/crashtests/layout/base/crashtests/328944-1.xhtml
 load 329900-1.html
 load 330015-1.html
-load 331204-1.html
 load 331679-1.xhtml
 load 331679-2.xml
 load 331679-3.xml
@@ -554,6 +553,7 @@ load 1586600.html
 load 1599518.html
 load 1599532.html
 pref(layout.accessiblecaret.enabled,true) load 1606492.html
+load 1654315.html
 load 1676301-1.html
 pref(apz.mvm.force-enabled,false) pref(dom.meta-viewport.enabled,false) pref(apz.allow_zooming,false) pref(layout.dynamic-toolbar-max-height,100) load 1689371.html
 load 1685146.html
@@ -561,3 +561,4 @@ load 1689912.html
 load 1690163.html
 load 1723200.html
 load 1729578.html
+load 1729581.html

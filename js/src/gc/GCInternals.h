@@ -16,6 +16,7 @@
 
 #include "gc/GC.h"
 #include "vm/GeckoProfiler.h"
+#include "vm/HelperThreads.h"
 #include "vm/JSContext.h"
 
 namespace js {
@@ -182,6 +183,44 @@ class AutoDisableBarriers {
   GCRuntime* gc;
 };
 
+// Set compartments' maybeAlive flags if anything is marked while this class is
+// live. This is used while marking roots.
+class AutoUpdateLiveCompartments {
+  GCRuntime* gc;
+
+ public:
+  explicit AutoUpdateLiveCompartments(GCRuntime* gc);
+  ~AutoUpdateLiveCompartments();
+};
+
+class MOZ_RAII AutoRunParallelTask : public GCParallelTask {
+  // This class takes a pointer to a member function of GCRuntime.
+  using TaskFunc = JS_MEMBER_FN_PTR_TYPE(GCRuntime, void);
+
+  TaskFunc func_;
+  AutoLockHelperThreadState& lock_;
+
+ public:
+  AutoRunParallelTask(GCRuntime* gc, TaskFunc func, gcstats::PhaseKind phase,
+                      AutoLockHelperThreadState& lock)
+      : GCParallelTask(gc, phase), func_(func), lock_(lock) {
+    gc->startTask(*this, lock_);
+  }
+
+  ~AutoRunParallelTask() { gc->joinTask(*this, lock_); }
+
+  void run(AutoLockHelperThreadState& lock) override {
+    AutoUnlockHelperThreadState unlock(lock);
+
+    // The hazard analysis can't tell what the call to func_ will do but it's
+    // not allowed to GC.
+    JS::AutoSuppressGCAnalysis nogc;
+
+    // Call pointer to member function on |gc|.
+    JS_CALL_MEMBER_FN_PTR(gc, func_);
+  }
+};
+
 GCAbortReason IsIncrementalGCUnsafe(JSRuntime* rt);
 
 #ifdef JS_GC_ZEAL
@@ -231,50 +270,22 @@ void CheckHashTablesAfterMovingGC(JSRuntime* rt);
 void CheckHeapAfterGC(JSRuntime* rt);
 #endif
 
-struct MovingTracer final : public GenericTracer {
-  explicit MovingTracer(JSRuntime* rt)
-      : GenericTracer(rt, JS::TracerKind::Moving,
-                      JS::WeakMapTraceAction::TraceKeysAndValues) {}
-
-  JSObject* onObjectEdge(JSObject* obj) override;
-  Shape* onShapeEdge(Shape* shape) override;
-  JSString* onStringEdge(JSString* string) override;
-  js::BaseScript* onScriptEdge(js::BaseScript* script) override;
-  BaseShape* onBaseShapeEdge(BaseShape* base) override;
-  GetterSetter* onGetterSetterEdge(GetterSetter* gs) override;
-  PropMap* onPropMapEdge(PropMap* map) override;
-  Scope* onScopeEdge(Scope* scope) override;
-  RegExpShared* onRegExpSharedEdge(RegExpShared* shared) override;
-  BigInt* onBigIntEdge(BigInt* bi) override;
-  JS::Symbol* onSymbolEdge(JS::Symbol* sym) override;
-  jit::JitCode* onJitCodeEdge(jit::JitCode* jit) override;
+struct MovingTracer final : public GenericTracerImpl<MovingTracer> {
+  explicit MovingTracer(JSRuntime* rt);
 
  private:
   template <typename T>
   T* onEdge(T* thingp);
+  friend class GenericTracerImpl<MovingTracer>;
 };
 
-struct SweepingTracer final : public GenericTracer {
-  explicit SweepingTracer(JSRuntime* rt)
-      : GenericTracer(rt, JS::TracerKind::Sweeping,
-                      JS::WeakMapTraceAction::TraceKeysAndValues) {}
-
-  JSObject* onObjectEdge(JSObject* obj) override;
-  Shape* onShapeEdge(Shape* shape) override;
-  JSString* onStringEdge(JSString* string) override;
-  js::BaseScript* onScriptEdge(js::BaseScript* script) override;
-  BaseShape* onBaseShapeEdge(BaseShape* base) override;
-  GetterSetter* onGetterSetterEdge(js::GetterSetter* gs) override;
-  PropMap* onPropMapEdge(PropMap* map) override;
-  jit::JitCode* onJitCodeEdge(jit::JitCode* jit) override;
-  Scope* onScopeEdge(Scope* scope) override;
-  RegExpShared* onRegExpSharedEdge(RegExpShared* shared) override;
-  BigInt* onBigIntEdge(BigInt* bi) override;
-  JS::Symbol* onSymbolEdge(JS::Symbol* sym) override;
+struct SweepingTracer final : public GenericTracerImpl<SweepingTracer> {
+  explicit SweepingTracer(JSRuntime* rt);
 
  private:
   template <typename T>
   T* onEdge(T* thingp);
+  friend class GenericTracerImpl<SweepingTracer>;
 };
 
 extern void DelayCrossCompartmentGrayMarking(JSObject* src);

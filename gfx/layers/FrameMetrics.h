@@ -11,6 +11,7 @@
 #include <iosfwd>
 
 #include "Units.h"                  // for CSSRect, CSSPixel, etc
+#include "UnitTransforms.h"         // for ViewAs
 #include "mozilla/DefineEnum.h"     // for MOZ_DEFINE_ENUM
 #include "mozilla/HashFunctions.h"  // for HashGeneric
 #include "mozilla/Maybe.h"
@@ -95,7 +96,7 @@ struct FrameMetrics {
         mBoundingCompositionSize(0, 0),
         mPresShellId(-1),
         mLayoutViewport(0, 0, 0, 0),
-        mExtraResolution(),
+        mTransformToAncestorScale(),
         mPaintRequestTime(),
         mVisualDestination(0, 0),
         mVisualScrollUpdateType(eNone),
@@ -125,7 +126,7 @@ struct FrameMetrics {
            mBoundingCompositionSize == aOther.mBoundingCompositionSize &&
            mPresShellId == aOther.mPresShellId &&
            mLayoutViewport.IsEqualEdges(aOther.mLayoutViewport) &&
-           mExtraResolution == aOther.mExtraResolution &&
+           mTransformToAncestorScale == aOther.mTransformToAncestorScale &&
            mPaintRequestTime == aOther.mPaintRequestTime &&
            mVisualDestination == aOther.mVisualDestination &&
            mVisualScrollUpdateType == aOther.mVisualScrollUpdateType &&
@@ -155,7 +156,16 @@ struct FrameMetrics {
     // this repaint request is processed, LayersPixelsPerCSSPixel() does not yet
     // include the async zoom, but it will when the displayport is interpreted
     // for the repaint.
-    return mZoom * ParentLayerToLayerScale(1.0f) / mExtraResolution;
+    // Note 2: we include the transform to ancestor scale because this function
+    // (as the name implies) is used only in various displayport calculation
+    // related places, and those calculations want the transform to ancestor
+    // scale to be included becaese they want to reason about pixels which are
+    // the same size as screen pixels (so displayport sizes are e.g. limited to
+    // a multiple of the screen size). Whereas mZoom and mCumulativeResolution
+    // do not include it because of expectations of the code where they are
+    // used.
+    return mZoom * ParentLayerToLayerScale(1.0f) *
+           ViewAs<LayerToScreenScale2D>(mTransformToAncestorScale);
   }
 
   CSSToLayerScale2D LayersPixelsPerCSSPixel() const {
@@ -389,12 +399,12 @@ struct FrameMetrics {
                    CalculateCompositedSizeInCssPixels());
   }
 
-  void SetExtraResolution(const ScreenToLayerScale2D& aExtraResolution) {
-    mExtraResolution = aExtraResolution;
+  void SetTransformToAncestorScale(const Scale2D& aTransformToAncestorScale) {
+    mTransformToAncestorScale = aTransformToAncestorScale;
   }
 
-  const ScreenToLayerScale2D& GetExtraResolution() const {
-    return mExtraResolution;
+  const Scale2D& GetTransformToAncestorScale() const {
+    return mTransformToAncestorScale;
   }
 
   const CSSRect& GetScrollableRect() const { return mScrollableRect; }
@@ -625,9 +635,8 @@ struct FrameMetrics {
   // invalid.
   CSSRect mLayoutViewport;
 
-  // The extra resolution at which content in this scroll frame is drawn beyond
-  // that necessary to draw one Layer pixel per Screen pixel.
-  ScreenToLayerScale2D mExtraResolution;
+  // The scale on this scroll frame induced by enclosing CSS transforms.
+  Scale2D mTransformToAncestorScale;
 
   // The time at which the APZC last requested a repaint for this scroll frame.
   TimeStamp mPaintRequestTime;

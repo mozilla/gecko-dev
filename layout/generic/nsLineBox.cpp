@@ -559,64 +559,13 @@ void nsLineBox::SetOverflowAreas(const OverflowAreas& aOverflowAreas) {
 
 //----------------------------------------------------------------------
 
-static nsLineBox* gDummyLines[1];
-
-nsLineIterator::nsLineIterator() {
-  mLines = gDummyLines;
-  mNumLines = 0;
-  mIndex = 0;
-  mRightToLeft = false;
-}
-
-nsLineIterator::~nsLineIterator() {
-  if (mLines != gDummyLines) {
-    delete[] mLines;
-  }
-}
-
-/* virtual */
-void nsLineIterator::DisposeLineIterator() { delete this; }
-
-nsresult nsLineIterator::Init(nsLineList& aLines, bool aRightToLeft) {
-  mRightToLeft = aRightToLeft;
-
-  // Count the lines
-  int32_t numLines = aLines.size();
-  if (0 == numLines) {
-    // Use gDummyLines so that we don't need null pointer checks in
-    // the accessor methods
-    mLines = gDummyLines;
-    return NS_OK;
-  }
-
-  // Make a linear array of the lines
-  mLines = new nsLineBox*[numLines];
-  if (!mLines) {
-    // Use gDummyLines so that we don't need null pointer checks in
-    // the accessor methods
-    mLines = gDummyLines;
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-  nsLineBox** lp = mLines;
-  for (nsLineList::iterator line = aLines.begin(), line_end = aLines.end();
-       line != line_end; ++line) {
-    *lp++ = line;
-  }
-  mNumLines = numLines;
-  return NS_OK;
-}
-
-int32_t nsLineIterator::GetNumLines() const { return mNumLines; }
-
-bool nsLineIterator::GetDirection() { return mRightToLeft; }
-
 Result<nsILineIterator::LineInfo, nsresult> nsLineIterator::GetLine(
-    int32_t aLineNumber) const {
-  if ((aLineNumber < 0) || (aLineNumber >= mNumLines)) {
+    int32_t aLineNumber) {
+  const nsLineBox* line = GetLineAt(aLineNumber);
+  if (!line) {
     return Err(NS_ERROR_FAILURE);
   }
   LineInfo structure;
-  nsLineBox* line = mLines[aLineNumber];
   structure.mFirstFrameOnLine = line->mFirstChild;
   structure.mNumFramesOnLine = line->GetChildCount();
   structure.mLineBounds = line->GetPhysicalBounds();
@@ -626,14 +575,13 @@ Result<nsILineIterator::LineInfo, nsresult> nsLineIterator::GetLine(
 
 int32_t nsLineIterator::FindLineContaining(nsIFrame* aFrame,
                                            int32_t aStartLine) {
-  MOZ_ASSERT(aStartLine <= mNumLines, "Bogus line numbers");
-  int32_t lineNumber = aStartLine;
-  while (lineNumber != mNumLines) {
-    nsLineBox* line = mLines[lineNumber];
+  const nsLineBox* line = GetLineAt(aStartLine);
+  MOZ_ASSERT(line, "aStartLine out of range");
+  while (line) {
     if (line->Contains(aFrame)) {
-      return lineNumber;
+      return mIndex;
     }
-    ++lineNumber;
+    line = NextLine();
   }
   return -1;
 }
@@ -642,10 +590,10 @@ NS_IMETHODIMP
 nsLineIterator::CheckLineOrder(int32_t aLine, bool* aIsReordered,
                                nsIFrame** aFirstVisual,
                                nsIFrame** aLastVisual) {
-  NS_ASSERTION(aLine >= 0 && aLine < mNumLines, "aLine out of range!");
-  nsLineBox* line = mLines[aLine];
+  const nsLineBox* line = GetLineAt(aLine);
+  MOZ_ASSERT(line, "aLine out of range!");
 
-  if (!line->mFirstChild) {  // empty line
+  if (!line || !line->mFirstChild) {  // empty line
     *aIsReordered = false;
     *aFirstVisual = nullptr;
     *aLastVisual = nullptr;
@@ -669,18 +617,15 @@ NS_IMETHODIMP
 nsLineIterator::FindFrameAt(int32_t aLineNumber, nsPoint aPos,
                             nsIFrame** aFrameFound,
                             bool* aPosIsBeforeFirstFrame,
-                            bool* aPosIsAfterLastFrame) const {
+                            bool* aPosIsAfterLastFrame) {
   MOZ_ASSERT(aFrameFound && aPosIsBeforeFirstFrame && aPosIsAfterLastFrame,
              "null OUT ptr");
 
   if (!aFrameFound || !aPosIsBeforeFirstFrame || !aPosIsAfterLastFrame) {
     return NS_ERROR_NULL_POINTER;
   }
-  if ((aLineNumber < 0) || (aLineNumber >= mNumLines)) {
-    return NS_ERROR_INVALID_ARG;
-  }
 
-  nsLineBox* line = mLines[aLineNumber];
+  const nsLineBox* line = GetLineAt(aLineNumber);
   if (!line) {
     *aFrameFound = nullptr;
     *aPosIsBeforeFirstFrame = true;
@@ -746,13 +691,6 @@ nsLineIterator::FindFrameAt(int32_t aLineNumber, nsPoint aPos,
       *aFrameFound = closestFromEnd;
     }
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsLineIterator::GetNextSiblingOnLine(nsIFrame*& aFrame,
-                                     int32_t aLineNumber) const {
-  aFrame = aFrame->GetNextSibling();
   return NS_OK;
 }
 

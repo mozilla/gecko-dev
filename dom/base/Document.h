@@ -1197,7 +1197,7 @@ class Document : public nsINode,
 
   // Instead using this method, what you probably want is
   // RemoveFromBFCacheSync() as we do in MessagePort and BroadcastChannel.
-  void DisallowBFCaching();
+  void DisallowBFCaching(uint16_t aStatus = BFCacheStatus::NOT_ALLOWED);
 
   bool IsBFCachingAllowed() const { return !mBFCacheDisallowed; }
 
@@ -1419,6 +1419,10 @@ class Document : public nsINode,
 
   // Returns whether this document has the storage access permission.
   bool HasStorageAccessPermissionGranted();
+
+  // Returns whether the storage access permission of the document is granted by
+  // the allow list.
+  bool HasStorageAccessPermissionGrantedByAllowList();
 
   // Increments the document generation.
   inline void Changed() { ++mGeneration; }
@@ -2243,6 +2247,13 @@ class Document : public nsINode,
   static bool CallerIsTrustedAboutNetError(JSContext* aCx, JSObject* aObject);
 
   /**
+   * This function checks if the document that is trying to access
+   * ReloadWithHttpsOnlyException is a trusted HTTPS only error page.
+   */
+  static bool CallerIsTrustedAboutHttpsOnlyError(JSContext* aCx,
+                                                 JSObject* aObject);
+
+  /**
    * Get security info like error code for a failed channel. This
    * property is only exposed to about:neterror documents.
    */
@@ -2654,11 +2665,11 @@ class Document : public nsINode,
 
   /**
    * Return true when this document is active, i.e., an active document
-   * in a content viewer.  Note that this will return true for bfcached
-   * documents, so this does NOT match the "active document" concept in
-   * the WHATWG spec - see IsCurrentActiveDocument.
+   * in a content viewer and not in the bfcache.
+   * This does NOT match the "active document" concept in the WHATWG spec -
+   * see IsCurrentActiveDocument.
    */
-  bool IsActive() const { return mDocumentContainer && !mRemovedFromDocShell; }
+  bool IsActive() const;
 
   /**
    * Return true if this is the current active document for its
@@ -2700,6 +2711,8 @@ class Document : public nsINode,
   // Enumerate all the observers in mActivityObservers by the aEnumerator.
   using ActivityObserverEnumerator = FunctionRef<void(nsISupports*)>;
   void EnumerateActivityObservers(ActivityObserverEnumerator aEnumerator);
+
+  void NotifyActivityChanged();
 
   // Indicates whether mAnimationController has been (lazily) initialized.
   // If this returns true, we're promising that GetAnimationController()
@@ -3996,6 +4009,8 @@ class Document : public nsINode,
 
   already_AddRefed<Promise> AddCertException(bool aIsTemporary);
 
+  void ReloadWithHttpsOnlyException();
+
   // Subframes need to be static cloned after the main document has been
   // embedded within a script global. A `PendingFrameStaticClone` is a static
   // clone which has not yet been performed.
@@ -4031,6 +4046,10 @@ class Document : public nsINode,
   void ClearOOPChildrenLoading();
 
   bool HasOOPChildrenLoading() { return !mOOPChildrenLoading.IsEmpty(); }
+
+  void SetDidHitCompleteSheetCache() { mDidHitCompleteSheetCache = true; }
+
+  bool DidHitCompleteSheetCache() const { return mDidHitCompleteSheetCache; }
 
  protected:
   // Returns the WindowContext for the document that we will contribute
@@ -4180,7 +4199,7 @@ class Document : public nsINode,
   class MOZ_RAII AutoEditorCommandTarget {
    public:
     MOZ_CAN_RUN_SCRIPT AutoEditorCommandTarget(
-        nsPresContext* aPresContext, const InternalCommandData& aCommandData);
+        Document& aDocument, const InternalCommandData& aCommandData);
     AutoEditorCommandTarget() = delete;
     explicit AutoEditorCommandTarget(const AutoEditorCommandTarget& aOther) =
         delete;
@@ -4770,6 +4789,9 @@ class Document : public nsINode,
   // readystate when they finish.
   bool mSetCompleteAfterDOMContentLoaded : 1;
 
+  // Set the true if a completed cached stylesheet was created for the document.
+  bool mDidHitCompleteSheetCache : 1;
+
   uint8_t mPendingFullscreenRequests;
 
   uint8_t mXMLDeclarationBits;
@@ -5278,8 +5300,6 @@ class Document : public nsINode,
 
   nsRefPtrHashtable<nsRefPtrHashKey<Element>, nsXULPrototypeElement>
       mL10nProtoElements;
-
-  void TraceProtos(JSTracer* aTrc);
 
   float GetSavedResolutionBeforeMVM() { return mSavedResolutionBeforeMVM; }
   void SetSavedResolutionBeforeMVM(float aResolution) {

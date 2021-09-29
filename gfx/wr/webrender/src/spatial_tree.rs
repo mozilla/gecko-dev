@@ -27,13 +27,6 @@ pub type ScrollStates = FastHashMap<ExternalScrollId, ScrollFrameInfo>;
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct CoordinateSystemId(pub u32);
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct StaticCoordinateSystemId(pub u32);
-
-impl StaticCoordinateSystemId {
-    pub const ROOT: StaticCoordinateSystemId = StaticCoordinateSystemId(0);
-}
-
 /// A node in the hierarchy of coordinate system
 /// transforms.
 #[derive(Debug)]
@@ -55,7 +48,7 @@ impl CoordinateSystem {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, Hash, MallocSizeOf, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, Eq, Hash, MallocSizeOf, PartialEq)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct SpatialNodeIndex(u32);
@@ -126,9 +119,6 @@ pub struct SceneSpatialTree {
     /// we're not seeing duplicates. Likely to be removed once we rely on this feature.
     spatial_node_uids: FastHashSet<SpatialNodeUid>,
 
-    /// Next id to assign when creating a new static coordinate system
-    next_static_coord_system_id: u32,
-
     root_reference_frame_index: SpatialNodeIndex,
 }
 
@@ -150,14 +140,13 @@ impl SceneSpatialTree {
             },
             LayoutVector2D::zero(),
             PipelineId::dummy(),
-            StaticCoordinateSystemId::ROOT,
+            true,
         );
 
         let mut tree = SceneSpatialTree {
             spatial_nodes: Vec::new(),
             spatial_node_uids: FastHashSet::default(),
             root_reference_frame_index: SpatialNodeIndex(0),
-            next_static_coord_system_id: 1,
         };
 
         tree.add_spatial_node(node, SpatialNodeUid::root());
@@ -333,13 +322,7 @@ impl SceneSpatialTree {
             }
         };
 
-        let static_coordinate_system_id = if new_static_coord_system {
-            let id = StaticCoordinateSystemId(self.next_static_coord_system_id);
-            self.next_static_coord_system_id += 1;
-            id
-        } else {
-            self.get_static_coordinate_system_id(parent_index)
-        };
+        let is_root_coord_system = self.get_spatial_node(parent_index).is_root_coord_system && !new_static_coord_system;
 
         let node = SpatialNode::new_reference_frame(
             Some(parent_index),
@@ -348,7 +331,7 @@ impl SceneSpatialTree {
             kind,
             origin_in_parent_reference_frame,
             pipeline_id,
-            static_coordinate_system_id,
+            is_root_coord_system,
         );
         self.add_spatial_node(node, uid)
     }
@@ -366,7 +349,7 @@ impl SceneSpatialTree {
         uid: SpatialNodeUid,
     ) -> SpatialNodeIndex {
         // Scroll frames are only 2d translations - they can't introduce a new static coord system
-        let static_coordinate_system_id = self.get_static_coordinate_system_id(parent_index);
+        let is_root_coord_system = self.get_spatial_node(parent_index).is_root_coord_system;
 
         let node = SpatialNode::new_scroll_frame(
             pipeline_id,
@@ -377,7 +360,7 @@ impl SceneSpatialTree {
             scroll_sensitivity,
             frame_kind,
             external_scroll_offset,
-            static_coordinate_system_id,
+            is_root_coord_system,
         );
         self.add_spatial_node(node, uid)
     }
@@ -390,21 +373,16 @@ impl SceneSpatialTree {
         key: SpatialTreeItemKey,
     ) -> SpatialNodeIndex {
         // Sticky frames are only 2d translations - they can't introduce a new static coord system
-        let static_coordinate_system_id = self.get_static_coordinate_system_id(parent_index);
+        let is_root_coord_system = self.get_spatial_node(parent_index).is_root_coord_system;
         let uid = SpatialNodeUid::external(key);
 
         let node = SpatialNode::new_sticky_frame(
             parent_index,
             sticky_frame_info,
             pipeline_id,
-            static_coordinate_system_id,
+            is_root_coord_system,
         );
         self.add_spatial_node(node, uid)
-    }
-
-    /// Get the static coordinate system for a given spatial node index
-    pub fn get_static_coordinate_system_id(&self, node_index: SpatialNodeIndex) -> StaticCoordinateSystemId {
-        self.get_spatial_node(node_index).static_coordinate_system_id
     }
 }
 
@@ -605,37 +583,20 @@ impl SpatialTree {
         let child = self.get_spatial_node(child_index);
         let parent = self.get_spatial_node(parent_index);
 
+        // TODO(gw): We expect this never to fail, but it's possible that it might due to
+        //           either (a) a bug in WR / Gecko, or (b) some obscure real-world content
+        //           that we're unaware of. If we ever hit this, please open a bug with any
+        //           repro steps!
+        assert!(
+            child.coordinate_system_id.0 >= parent.coordinate_system_id.0,
+            "bug: this is an unexpected case - please open a bug and talk to #gfx team!",
+        );
+
         if child.coordinate_system_id == parent.coordinate_system_id {
             let scale_offset = parent.content_transform
                 .inverse()
                 .accumulate(&child.content_transform);
             return CoordinateSpaceMapping::ScaleOffset(scale_offset);
-        }
-
-        if child_index.0 < parent_index.0 {
-            warn!("Unexpected transform queried from {:?} to {:?}, please call the graphics team!", child_index, parent_index);
-            let child_cs = &self.coord_systems[child.coordinate_system_id.0 as usize];
-            let child_transform = child.content_transform
-                .to_transform::<LayoutPixel, LayoutPixel>()
-                .then(&child_cs.world_transform);
-            let parent_cs = &self.coord_systems[parent.coordinate_system_id.0 as usize];
-            let parent_transform = parent.content_transform
-                .to_transform()
-                .then(&parent_cs.world_transform);
-
-            let result = parent_transform
-                .inverse()
-                .unwrap_or_default()
-                .then(&child_transform)
-                .with_source::<LayoutPixel>()
-                .with_destination::<LayoutPixel>();
-
-            if let Some(face) = visible_face {
-                if result.is_backface_visible() {
-                    *face = VisibleFace::Back;
-                }
-            }
-            return CoordinateSpaceMapping::Transform(result);
         }
 
         let mut coordinate_system_id = child.coordinate_system_id;
@@ -880,11 +841,6 @@ impl SpatialTree {
         }
     }
 
-    /// Get the static coordinate system for a given spatial node index
-    pub fn get_static_coordinate_system_id(&self, node_index: SpatialNodeIndex) -> StaticCoordinateSystemId {
-        self.get_spatial_node(node_index).static_coordinate_system_id
-    }
-
     pub fn discard_frame_state_for_pipeline(&mut self, pipeline_id: PipelineId) {
         self.pipelines_to_discard.insert(pipeline_id);
     }
@@ -922,7 +878,6 @@ impl SpatialTree {
         pt.add_item(format!("viewport_transform: {:?}", node.viewport_transform));
         pt.add_item(format!("snapping_transform: {:?}", node.snapping_transform));
         pt.add_item(format!("coordinate_system_id: {:?}", node.coordinate_system_id));
-        pt.add_item(format!("static_coordinate_system_id: {:?}", node.static_coordinate_system_id));
 
         for child_index in &node.children {
             self.print_node(*child_index, pt);

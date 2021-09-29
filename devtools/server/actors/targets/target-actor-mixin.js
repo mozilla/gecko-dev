@@ -17,6 +17,7 @@ const {
   TARGET_CONFIGURATION,
   THREAD_CONFIGURATION,
   XHR_BREAKPOINTS,
+  EVENT_BREAKPOINTS,
 } = WatchedDataHelpers.SUPPORTED_DATA;
 
 loader.lazyRequireGetter(
@@ -45,6 +46,7 @@ module.exports = function(targetType, targetActorSpec, implementation) {
      *        Set to true if this function is called just after a new document (and its
      *        associated target) is created.
      */
+    // eslint-disable-next-line complexity
     async addWatcherDataEntry(type, entries, isDocumentCreation = false) {
       if (type == RESOURCES) {
         await this._watchTargetResources(entries);
@@ -75,7 +77,7 @@ module.exports = function(targetType, targetActorSpec, implementation) {
           );
         }
       } else if (type == TARGET_CONFIGURATION) {
-        // Only BrowsingContextTargetActor implements updateTargetConfiguration,
+        // Only WindowGlobalTargetActor implements updateTargetConfiguration,
         // skip this data entry update for other targets.
         if (typeof this.updateTargetConfiguration == "function") {
           const options = {};
@@ -126,6 +128,20 @@ module.exports = function(targetType, targetActorSpec, implementation) {
             this.threadActor.setXHRBreakpoint(path, method)
           )
         );
+      } else if (type == EVENT_BREAKPOINTS) {
+        // Same as comments for XHR breakpoints. See lines 109-112
+        if (typeof this.attach == "function") {
+          this.attach();
+        }
+
+        // Same as comments for XHR breakpoints. See lines 117-118
+        if (
+          this.threadActor.state == THREAD_STATES.DETACHED &&
+          !this.targetType.endsWith("worker")
+        ) {
+          this.threadActor.attach();
+        }
+        await this.threadActor.setActiveEventBreakpoints(entries);
       }
     },
 
@@ -200,15 +216,6 @@ module.exports = function(targetType, targetActorSpec, implementation) {
       }
       return this._styleSheetManager;
     },
-
-    destroy() {
-      if (this._styleSheetManager) {
-        this._styleSheetManager.destroy();
-        this._styleSheetManager = null;
-      }
-
-      implementation.destroy.call(this);
-    },
   };
   // Use getOwnPropertyDescriptors in order to prevent calling getter from implementation
   Object.defineProperties(
@@ -222,6 +229,16 @@ module.exports = function(targetType, targetActorSpec, implementation) {
 
     if (typeof implementation.initialize == "function") {
       implementation.initialize.apply(this, arguments);
+    }
+  };
+  proto.destroy = function() {
+    if (this._styleSheetManager) {
+      this._styleSheetManager.destroy();
+      this._styleSheetManager = null;
+    }
+
+    if (typeof implementation.destroy == "function") {
+      implementation.destroy.apply(this, arguments);
     }
   };
   return ActorClassWithSpec(targetActorSpec, proto);

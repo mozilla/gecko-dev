@@ -27,30 +27,20 @@ class DiagnosticsD3D11;
 
 class CompositorD3D11 : public Compositor {
  public:
-  CompositorD3D11(CompositorBridgeParent* aParent,
-                  widget::CompositorWidget* aWidget);
+  explicit CompositorD3D11(widget::CompositorWidget* aWidget);
   virtual ~CompositorD3D11();
 
   CompositorD3D11* AsCompositorD3D11() override { return this; }
 
   bool Initialize(nsCString* const out_failureReason) override;
 
-  TextureFactoryIdentifier GetTextureFactoryIdentifier() override;
-
   already_AddRefed<DataTextureSource> CreateDataTextureSource(
       TextureFlags aFlags = TextureFlags::NO_FLAGS) override;
 
-  bool CanUseCanvasLayerForSize(const gfx::IntSize& aSize) override;
   int32_t GetMaxTextureSize() const final;
-
-  void MakeCurrent(MakeCurrentFlags aFlags = 0) override {}
 
   already_AddRefed<CompositingRenderTarget> CreateRenderTarget(
       const gfx::IntRect& aRect, SurfaceInitMode aInit) override;
-
-  already_AddRefed<CompositingRenderTarget> CreateRenderTargetFromSource(
-      const gfx::IntRect& aRect, const CompositingRenderTarget* aSource,
-      const gfx::IntPoint& aSourcePoint) override;
 
   void SetRenderTarget(CompositingRenderTarget* aSurface) override;
   already_AddRefed<CompositingRenderTarget> GetCurrentRenderTarget()
@@ -71,7 +61,7 @@ class CompositorD3D11 : public Compositor {
 
   void SetDestinationSurfaceSize(const gfx::IntSize& aSize) override {}
 
-  void ClearRect(const gfx::Rect& aRect) override;
+  void ClearRect(const gfx::Rect& aRect);
 
   void DrawQuad(const gfx::Rect& aRect, const gfx::IntRect& aClipRect,
                 const EffectChain& aEffectChain, gfx::Float aOpacity,
@@ -85,21 +75,6 @@ class CompositorD3D11 : public Compositor {
       const nsIntRegion& aInvalidRegion, const Maybe<gfx::IntRect>& aClipRect,
       const gfx::IntRect& aRenderBounds,
       const nsIntRegion& aOpaqueRegion) override;
-
-  Maybe<gfx::IntRect> BeginFrameForTarget(
-      const nsIntRegion& aInvalidRegion, const Maybe<gfx::IntRect>& aClipRect,
-      const gfx::IntRect& aRenderBounds, const nsIntRegion& aOpaqueRegion,
-      gfx::DrawTarget* aTarget, const gfx::IntRect& aTargetBounds) override;
-
-  void BeginFrameForNativeLayers() override;
-
-  Maybe<gfx::IntRect> BeginRenderingToNativeLayer(
-      const nsIntRegion& aInvalidRegion, const Maybe<gfx::IntRect>& aClipRect,
-      const nsIntRegion& aOpaqueRegion, NativeLayer* aNativeLayer) override;
-
-  void EndRenderingToNativeLayer() override;
-
-  void NormalDrawingDone() override;
 
   /**
    * Flush the current frame to the screen.
@@ -117,10 +92,6 @@ class CompositorD3D11 : public Compositor {
                                const gfx::Matrix4x4& aProjection, float aZNear,
                                float aZFar);
 
-  bool SupportsPartialTextureUpdate() override { return true; }
-
-  bool SupportsLayerGeometry() const override;
-
 #ifdef MOZ_DUMP_PAINTING
   const char* Name() const override { return "Direct3D 11"; }
 #endif
@@ -128,8 +99,6 @@ class CompositorD3D11 : public Compositor {
   LayersBackend GetBackendType() const override {
     return LayersBackend::LAYERS_D3D11;
   }
-
-  virtual void ForcePresent();
 
   // For TextureSourceProvider.
   ID3D11Device* GetD3D11Device() const override { return mDevice; }
@@ -173,8 +142,7 @@ class CompositorD3D11 : public Compositor {
   bool UpdateConstantBuffers();
   void SetSamplerForSamplingFilter(gfx::SamplingFilter aSamplingFilter);
 
-  ID3D11PixelShader* GetPSForEffect(Effect* aEffect, const bool aUseBlendShader,
-                                    const MaskType aMaskType);
+  ID3D11PixelShader* GetPSForEffect(Effect* aEffect);
   Maybe<gfx::IntRect> BeginFrame(const nsIntRegion& aInvalidRegion,
                                  const Maybe<gfx::IntRect>& aClipRect,
                                  const gfx::IntRect& aRenderBounds,
@@ -183,46 +151,12 @@ class CompositorD3D11 : public Compositor {
   RefPtr<ID3D11Texture2D> CreateTexture(const gfx::IntRect& aRect,
                                         const CompositingRenderTarget* aSource,
                                         const gfx::IntPoint& aSourcePoint);
-  bool CopyBackdrop(const gfx::IntRect& aRect,
-                    RefPtr<ID3D11Texture2D>* aOutTexture,
-                    RefPtr<ID3D11ShaderResourceView>* aOutView);
 
-  void DrawTriangles(const nsTArray<gfx::TexturedTriangle>& aTriangles,
-                     const gfx::Rect& aRect, const gfx::IntRect& aClipRect,
-                     const EffectChain& aEffectChain, gfx::Float aOpacity,
-                     const gfx::Matrix4x4& aTransform,
-                     const gfx::Rect& aVisibleRect) override;
-
-  template <typename Geometry>
-  void DrawGeometry(const Geometry& aGeometry, const gfx::Rect& aRect,
-                    const gfx::IntRect& aClipRect,
-                    const EffectChain& aEffectChain, gfx::Float aOpacity,
-                    const gfx::Matrix4x4& aTransform,
-                    const gfx::Rect& aVisibleRect);
-
-  bool UpdateDynamicVertexBuffer(
-      const nsTArray<gfx::TexturedTriangle>& aTriangles);
-
-  void PrepareDynamicVertexBuffer();
   void PrepareStaticVertexBuffer();
-
-  // Overloads for rendering both rects and triangles with same rendering path
-  void Draw(const nsTArray<gfx::TexturedTriangle>& aGeometry,
-            const gfx::Rect* aTexCoords);
 
   void Draw(const gfx::Rect& aGeometry, const gfx::Rect* aTexCoords);
 
-  void GetFrameStats(GPUStats* aStats) override;
-
   void Present();
-
-  ID3D11VertexShader* GetVSForGeometry(
-      const nsTArray<gfx::TexturedTriangle>& aTriangles,
-      const bool aUseBlendShader, const MaskType aMaskType);
-
-  ID3D11VertexShader* GetVSForGeometry(const gfx::Rect& aRect,
-                                       const bool aUseBlendShader,
-                                       const MaskType aMaskType);
 
   template <typename VertexType>
   void SetVertexBuffer(ID3D11Buffer* aBuffer);

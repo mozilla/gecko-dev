@@ -5,7 +5,7 @@
 // Tests the paused overlay in a remote frame
 
 const TEST_COM_URI =
-  URL_ROOT_COM + "examples/doc_dbg-fission-frame-sources.html";
+  URL_ROOT_COM_SSL + "examples/doc_dbg-fission-frame-sources.html";
 
 add_task(async function() {
   info("Load a test page with a remote frame");
@@ -36,8 +36,8 @@ add_task(async function() {
   ok(true, "debugger is paused");
 
   let highlighterTestFront;
-  if (isFissionEnabled()) {
-    // We need to retrieve the highlighterTestFront for the remote frame target.
+  if (isFissionEnabled() || isEveryFrameTargetEnabled()) {
+    // We need to retrieve the highlighterTestFront for the frame target.
     const iframeTarget = commands.targetCommand
       .getAllTargets([commands.targetCommand.TYPES.FRAME])
       .find(target => target.url.includes("example.org"));

@@ -96,8 +96,46 @@ template <typename CharT, typename SeqCharT>
   return entry;
 }
 
-JSAtom* ParserAtom::instantiate(JSContext* cx, ParserAtomIndex index,
-                                CompilationAtomCache& atomCache) const {
+bool ParserAtom::isInstantiatedAsJSAtom() const {
+  if (isMarkedAtomize()) {
+    return true;
+  }
+
+  // Always use JSAtom for short strings.
+  if (length() < MinimumLengthForNonAtom) {
+    return true;
+  }
+
+  return false;
+}
+
+JSString* ParserAtom::instantiateString(JSContext* cx, ParserAtomIndex index,
+                                        CompilationAtomCache& atomCache) const {
+  MOZ_ASSERT(!isInstantiatedAsJSAtom());
+
+  JSString* str;
+  if (hasLatin1Chars()) {
+    str =
+        NewStringCopyN<CanGC>(cx, reinterpret_cast<const char*>(latin1Chars()),
+                              length(), gc::TenuredHeap);
+  } else {
+    str = NewStringCopyN<CanGC>(cx, twoByteChars(), length(), gc::TenuredHeap);
+  }
+  if (!str) {
+    return nullptr;
+  }
+  if (!atomCache.setAtomAt(cx, index, str)) {
+    return nullptr;
+  }
+
+  return str;
+}
+
+JSAtom* ParserAtom::instantiateAtom(JSContext* cx, ParserAtomIndex index,
+                                    CompilationAtomCache& atomCache) const {
+  // See the comment in InstantiateMarkedAtoms for !cx->zone().
+  MOZ_ASSERT(isInstantiatedAsJSAtom() || !cx->zone());
+
   JSAtom* atom;
   if (hasLatin1Chars()) {
     atom = AtomizeChars(cx, hash(), latin1Chars(), length());
@@ -110,7 +148,6 @@ JSAtom* ParserAtom::instantiate(JSContext* cx, ParserAtomIndex index,
   if (!atomCache.setAtomAt(cx, index, atom)) {
     return nullptr;
   }
-
   return atom;
 }
 
@@ -315,11 +352,26 @@ TaggedParserAtomIndex ParserAtomsTable::internExternalParserAtomImpl(
   // Check for existing atom.
   auto addPtr = entryMap_.lookupForAdd(lookup);
   if (addPtr) {
-    return addPtr->value();
+    auto index = addPtr->value();
+
+    // Copy UsedByStencilFlag and AtomizeFlag.
+    MOZ_ASSERT(entries_[index.toParserAtomIndex()]->hasTwoByteChars() ==
+               atom->hasTwoByteChars());
+    entries_[index.toParserAtomIndex()]->flags_ |= atom->flags_;
+    return index;
   }
 
-  return internChar16Seq<AtomCharT>(cx, addPtr, atom->hash(), seq,
-                                    atom->length());
+  auto index =
+      internChar16Seq<AtomCharT>(cx, addPtr, atom->hash(), seq, atom->length());
+  if (!index) {
+    return TaggedParserAtomIndex::null();
+  }
+
+  // Copy UsedByStencilFlag and AtomizeFlag.
+  MOZ_ASSERT(entries_[index.toParserAtomIndex()]->hasTwoByteChars() ==
+             atom->hasTwoByteChars());
+  entries_[index.toParserAtomIndex()]->flags_ |= atom->flags_;
+  return index;
 }
 
 TaggedParserAtomIndex ParserAtomsTable::internExternalParserAtom(
@@ -472,12 +524,22 @@ ParserAtom* ParserAtomsTable::getParserAtom(ParserAtomIndex index) const {
   return entries_[index];
 }
 
-void ParserAtomsTable::markUsedByStencil(TaggedParserAtomIndex index) const {
+void ParserAtomsTable::markUsedByStencil(TaggedParserAtomIndex index,
+                                         ParserAtom::Atomize atomize) const {
   if (!index.isParserAtomIndex()) {
     return;
   }
 
-  getParserAtom(index.toParserAtomIndex())->markUsedByStencil();
+  getParserAtom(index.toParserAtomIndex())->markUsedByStencil(atomize);
+}
+
+void ParserAtomsTable::markAtomize(TaggedParserAtomIndex index,
+                                   ParserAtom::Atomize atomize) const {
+  if (!index.isParserAtomIndex()) {
+    return;
+  }
+
+  getParserAtom(index.toParserAtomIndex())->markAtomize(atomize);
 }
 
 bool ParserAtomsTable::isIdentifier(TaggedParserAtomIndex index) const {
@@ -647,6 +709,17 @@ bool ParserAtomsTable::isIndex(TaggedParserAtomIndex index,
   return false;
 }
 
+bool ParserAtomsTable::isInstantiatedAsJSAtom(
+    TaggedParserAtomIndex index) const {
+  if (index.isParserAtomIndex()) {
+    const auto* atom = getParserAtom(index.toParserAtomIndex());
+    return atom->isInstantiatedAsJSAtom();
+  }
+
+  // Everything else are always JSAtom.
+  return true;
+}
+
 uint32_t ParserAtomsTable::length(TaggedParserAtomIndex index) const {
   if (index.isParserAtomIndex()) {
     return getParserAtom(index.toParserAtomIndex())->length();
@@ -812,14 +885,23 @@ UniqueChars ParserAtomsTable::toQuotedString(
 
 JSAtom* ParserAtomsTable::toJSAtom(JSContext* cx, TaggedParserAtomIndex index,
                                    CompilationAtomCache& atomCache) const {
+  // This function can be called before we instantiate atoms based on
+  // AtomizeFlag.
+
   if (index.isParserAtomIndex()) {
     auto atomIndex = index.toParserAtomIndex();
+
+    // If we already instantiated this parser atom, it should always be JSAtom.
+    // `asAtom()` called in getAtomAt asserts that.
     JSAtom* atom = atomCache.getAtomAt(atomIndex);
     if (atom) {
       return atom;
     }
 
-    return getParserAtom(atomIndex)->instantiate(cx, atomIndex, atomCache);
+    // For consistency, mark atomize.
+    ParserAtom* parserAtom = getParserAtom(atomIndex);
+    parserAtom->markAtomize(ParserAtom::Atomize::Yes);
+    return parserAtom->instantiateAtom(cx, atomIndex, atomCache);
   }
 
   if (index.isWellKnownAtomId()) {
@@ -864,17 +946,30 @@ bool ParserAtomsTable::appendTo(StringBuffer& buffer,
 
 bool InstantiateMarkedAtoms(JSContext* cx, const ParserAtomSpan& entries,
                             CompilationAtomCache& atomCache) {
+  // Self-hosting JS has no zone, and it should ue JSAtom for all strings.
+  bool allowNonAtom = !!cx->zone();
+
   for (size_t i = 0; i < entries.size(); i++) {
     const auto& entry = entries[i];
     if (!entry) {
       continue;
     }
-    if (entry->isUsedByStencil()) {
-      auto index = ParserAtomIndex(i);
-      if (!atomCache.hasAtomAt(index)) {
-        if (!entry->instantiate(cx, index, atomCache)) {
-          return false;
-        }
+    if (!entry->isUsedByStencil()) {
+      continue;
+    }
+
+    auto index = ParserAtomIndex(i);
+    if (atomCache.hasAtomAt(index)) {
+      continue;
+    }
+
+    if (allowNonAtom && !entry->isInstantiatedAsJSAtom()) {
+      if (!entry->instantiateString(cx, index, atomCache)) {
+        return false;
+      }
+    } else {
+      if (!entry->instantiateAtom(cx, index, atomCache)) {
+        return false;
       }
     }
   }

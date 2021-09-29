@@ -24,7 +24,6 @@
 #include "vm/PropertyResult.h"
 #include "vm/Shape.h"
 #include "vm/StringType.h"
-#include "vm/Xdr.h"
 
 namespace JS {
 struct ClassInfo;
@@ -564,7 +563,7 @@ inline bool JSObject::is<JSObject>() const {
 
 template <typename Wrapper>
 template <typename U>
-MOZ_ALWAYS_INLINE JS::Handle<U*> js::RootedBase<JSObject*, Wrapper>::as()
+MOZ_ALWAYS_INLINE JS::Handle<U*> js::RootedOperations<JSObject*, Wrapper>::as()
     const {
   const Wrapper& self = *static_cast<const Wrapper*>(this);
   MOZ_ASSERT(self->template is<U>());
@@ -574,7 +573,7 @@ MOZ_ALWAYS_INLINE JS::Handle<U*> js::RootedBase<JSObject*, Wrapper>::as()
 
 template <typename Wrapper>
 template <class U>
-MOZ_ALWAYS_INLINE JS::Handle<U*> js::HandleBase<JSObject*, Wrapper>::as()
+MOZ_ALWAYS_INLINE JS::Handle<U*> js::HandleOperations<JSObject*, Wrapper>::as()
     const {
   const JS::Handle<JSObject*>& self =
       *static_cast<const JS::Handle<JSObject*>*>(this);
@@ -818,8 +817,6 @@ MOZ_ALWAYS_INLINE bool GetPrototypeFromBuiltinConstructor(
 extern JSObject* CreateThis(JSContext* cx, const JSClass* clasp,
                             js::HandleObject callee);
 
-extern JSObject* DeepCloneObjectLiteral(JSContext* cx, HandleObject obj);
-
 /* ES6 draft rev 32 (2015 Feb 2) 6.2.4.5 ToPropertyDescriptor(Obj) */
 bool ToPropertyDescriptor(JSContext* cx, HandleValue descval,
                           bool checkAccessors,
@@ -956,9 +953,6 @@ MOZ_ALWAYS_INLINE JSObject* ToObjectFromStackForPropertyAccess(
   }
   return js::ToObjectSlowForPropertyAccess(cx, vp, vpIndex, key);
 }
-
-template <XDRMode mode>
-XDRResult XDRObjectLiteral(XDRState<mode>* xdr, MutableHandleObject obj);
 
 /*
  * Report a TypeError: "so-and-so is not an object".

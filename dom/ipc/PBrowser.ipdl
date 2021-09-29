@@ -168,6 +168,9 @@ struct PrintPreviewResultInfo
   bool hasSelection;
   // Whether there's a selection in the previewed page, excluding its subframes.
   bool hasSelfSelection;
+  // If present, indicates if the page should be printed landscape when true or
+  // portrait when false;
+  bool? printLandscape;
 };
 
 /**
@@ -229,7 +232,9 @@ parent:
      * parent process to start painting the new document, if it's still painting
      * the old one.
      */
-    [Priority=mediumhigh] async DidUnsuppressPainting();
+    [Priority=control] async DidUnsuppressPainting();
+
+    async DidUnsuppressPaintingNormalPriority();
 
     /**
      * When child sends this message, parent should move focus to

@@ -200,6 +200,12 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme,
     case ColorID::Captiontext:
       idx = COLOR_CAPTIONTEXT;
       break;
+    case ColorID::MozCellhighlighttext:
+      aColor = NS_RGB(0, 0, 0);
+      return NS_OK;
+    case ColorID::MozCellhighlight:
+      aColor = NS_RGB(206, 206, 206);
+      return NS_OK;
     case ColorID::Graytext:
       idx = COLOR_GRAYTEXT;
       break;
@@ -289,7 +295,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme,
       idx = COLOR_WINDOWTEXT;
       break;
     case ColorID::MozDialog:
-    case ColorID::MozCellhighlight:
       idx = COLOR_3DFACE;
       break;
     case ColorID::MozAccentColor:
@@ -324,7 +329,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme,
       idx = COLOR_WINDOWTEXT;
       break;
     case ColorID::MozDialogtext:
-    case ColorID::MozCellhighlighttext:
     case ColorID::MozColheadertext:
     case ColorID::MozColheaderhovertext:
       idx = COLOR_WINDOWTEXT;
@@ -449,11 +453,6 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       aResult = int32_t(GetOperatingSystemVersion());
       break;
     }
-
-    case IntID::MacGraphiteTheme:
-      aResult = 0;
-      res = NS_ERROR_NOT_IMPLEMENTED;
-      break;
     case IntID::DWMCompositor:
       aResult = gfxWindowsPlatform::GetPlatform()->DwmCompositionEnabled();
       break;

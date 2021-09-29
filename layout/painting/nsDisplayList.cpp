@@ -53,11 +53,11 @@
 #include "mozilla/MathAlgorithms.h"
 
 #include "imgIContainer.h"
+#include "Layers.h"
 #include "nsBoxFrame.h"
 #include "nsImageFrame.h"
 #include "nsSubDocumentFrame.h"
 #include "nsViewManager.h"
-#include "ImageLayers.h"
 #include "ImageContainer.h"
 #include "nsCanvasFrame.h"
 #include "nsSubDocumentFrame.h"
@@ -436,6 +436,12 @@ void nsDisplayListBuilder::AutoCurrentActiveScrolledRootSetter::
   }
 
   mUsed = true;
+}
+
+nsDisplayListBuilder::AutoContainerASRTracker::AutoContainerASRTracker(
+    nsDisplayListBuilder* aBuilder)
+    : mBuilder(aBuilder), mSavedContainerASR(aBuilder->mCurrentContainerASR) {
+  mBuilder->mCurrentContainerASR = mBuilder->mCurrentActiveScrolledRoot;
 }
 
 nsPresContext* nsDisplayListBuilder::CurrentPresContext() {
@@ -2232,13 +2238,9 @@ void nsDisplayList::PaintRoot(nsDisplayListBuilder* aBuilder, gfxContext* aCtx,
   }
 
   bool temp = aBuilder->SetIsCompositingCheap(renderer->IsCompositingCheap());
-  LayerManager::EndTransactionFlags flags = LayerManager::END_DEFAULT;
-  if (renderer->NeedsWidgetInvalidation() && (aFlags & PAINT_NO_COMPOSITE)) {
-    flags = LayerManager::END_NO_COMPOSITE;
-  }
-
   fallback->EndTransactionWithList(aBuilder, this,
-                                   presContext->AppUnitsPerDevPixel(), flags);
+                                   presContext->AppUnitsPerDevPixel(),
+                                   LayerManager::END_DEFAULT);
 
   if (widgetTransaction ||
       // SVG-as-an-image docs don't paint as part of the retained layer tree,
@@ -2253,18 +2255,6 @@ void nsDisplayList::PaintRoot(nsDisplayListBuilder* aBuilder, gfxContext* aCtx,
   if (document && widgetTransaction) {
     TriggerPendingAnimations(*document, renderer->GetAnimationReadyTime());
   }
-
-  bool shouldInvalidate = renderer->NeedsWidgetInvalidation();
-  if (view) {
-    if (shouldInvalidate) {
-      // If we're the fallback renderer, then we don't need to invalidate
-      // as we've just drawn directly to the window and don't need to do
-      // anything else.
-      NS_ASSERTION(!(aFlags & PAINT_NO_COMPOSITE),
-                   "Must be compositing during fallback");
-    }
-  }
-  return;
 }
 
 nsDisplayItem* nsDisplayList::RemoveBottom() {
@@ -2653,7 +2643,8 @@ nsDisplayContainer::nsDisplayContainer(
 
 nsRect nsDisplayItem::GetPaintRect(nsDisplayListBuilder* aBuilder,
                                    gfxContext* aCtx) {
-  nsRect result = GetClippedBounds(aBuilder);
+  bool dummy;
+  nsRect result = GetBounds(aBuilder, &dummy);
   if (aCtx) {
     result.IntersectRect(result,
                          nsLayoutUtils::RoundGfxRectToAppRect(
@@ -7927,28 +7918,6 @@ bool nsDisplayMasksAndClipPaths::PaintMask(nsDisplayListBuilder* aBuilder,
          (imgParams.result == ImgDrawResult::SUCCESS ||
           imgParams.result == ImgDrawResult::SUCCESS_NOT_COMPLETE ||
           imgParams.result == ImgDrawResult::WRONG_SIZE);
-}
-
-bool nsDisplayMasksAndClipPaths::CanPaintOnMaskLayer(LayerManager* aManager) {
-  if (!aManager->IsWidgetLayerManager()) {
-    return false;
-  }
-
-  if (!SVGIntegrationUtils::IsMaskResourceReady(mFrame)) {
-    return false;
-  }
-
-  if (StaticPrefs::layers_draw_mask_debug()) {
-    return false;
-  }
-
-  // We don't currently support this item creating a mask
-  // for both the clip-path, and rounded rect clipping.
-  if (GetClip().GetRoundedRectCount() != 0) {
-    return false;
-  }
-
-  return true;
 }
 
 void nsDisplayMasksAndClipPaths::ComputeInvalidationRegion(

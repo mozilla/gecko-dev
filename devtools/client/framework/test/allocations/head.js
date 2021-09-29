@@ -24,6 +24,25 @@ let tracker;
   tracker = allocationTracker({ watchDevToolsGlobals: true });
 }
 
+// /!\ Be careful about imports/require
+//
+// Some tests may record the very first time we load a module.
+// If we start loading them from here, we might only retrieve the already loaded
+// module from the loader's cache. This would no longer highlight the cost
+// of loading a new module from scratch.
+//
+// => Avoid loading devtools module as much as possible
+// => If you really have to, lazy load them
+
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+XPCOMUtils.defineLazyGetter(this, "TrackedObjects", () => {
+  return ChromeUtils.import(
+    "resource://devtools/shared/test-helpers/tracked-objects.jsm"
+  );
+});
+
 // So that PERFHERDER data can be extracted from the logs.
 SimpleTest.requestCompleteLog();
 
@@ -38,10 +57,6 @@ const env = Cc["@mozilla.org/process/environment;1"].getService(
   Ci.nsIEnvironment
 );
 const DEBUG_ALLOCATIONS = env.get("DEBUG_DEVTOOLS_ALLOCATIONS");
-
-const TrackedObjects = ChromeUtils.import(
-  "resource://devtools/shared/test-helpers/tracked-objects.jsm"
-);
 
 async function addTab(url) {
   const tab = BrowserTestUtils.addTab(gBrowser, url);
@@ -111,9 +126,6 @@ async function stopRecordingAllocations(
     DEBUG_ALLOCATIONS
   );
 
-  // Only do that from the parent process for now,
-  // as traceObjects doesn't work from the content process.
-  // It throws because the content process isn't allowed to read the snapshot files.
   const objectNodeIds = TrackedObjects.getAllNodeIds();
   if (objectNodeIds.length > 0) {
     tracker.traceObjects(objectNodeIds);
@@ -135,6 +147,36 @@ async function stopRecordingAllocations(
         );
         return tracker.stopRecordingAllocations(debug_allocations);
       }
+    );
+  }
+
+  const trackedObjectsInContent = await SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [],
+    () => {
+      const TrackedObjects = ChromeUtils.import(
+        "resource://devtools/shared/test-helpers/tracked-objects.jsm"
+      );
+      const objectNodeIds = TrackedObjects.getAllNodeIds();
+      if (objectNodeIds.length > 0) {
+        const { DevToolsLoader } = ChromeUtils.import(
+          "resource://devtools/shared/Loader.jsm"
+        );
+        const { tracker } = DevToolsLoader;
+        // Record the heap snapshot from the content process,
+        // and pass the record's filepath to the parent process
+        // As only the parent process can read the file because
+        // of sandbox restrictions made to content processes regarding file I/O.
+        const snapshotFile = tracker.getSnapshotFile();
+        return { snapshotFile, objectNodeIds };
+      }
+      return null;
+    }
+  );
+  if (trackedObjectsInContent) {
+    tracker.traceObjects(
+      trackedObjectsInContent.objectNodeIds,
+      trackedObjectsInContent.snapshotFile
     );
   }
 

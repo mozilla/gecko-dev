@@ -1057,7 +1057,7 @@ dependencies = [
 [[package]]
 name = "cubeb-pulse"
 version = "0.3.0"
-source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=3ad5978575f501ab10b1753626f176f1bba3f584#3ad5978575f501ab10b1753626f176f1bba3f584"
+source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=e9e55a4529642da99e64452467ecaef9f7753531#e9e55a4529642da99e64452467ecaef9f7753531"
 dependencies = [
  "cubeb-backend",
  "pulse",
@@ -1780,9 +1780,11 @@ dependencies = [
 name = "gecko-profiler"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "bindgen",
  "lazy_static",
  "profiler-macros",
+ "serde",
 ]
 
 [[package]]
@@ -1985,9 +1987,9 @@ dependencies = [
 
 [[package]]
 name = "glean"
-version = "40.1.0"
+version = "41.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e5a8f84d2fde6fd00464853df398213c29eab988406d6dd24ba610a24de96f5"
+checksum = "902bb302c950d15ccb253285666ddb6831976c7841063d0110924f3d66072efa"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -2005,9 +2007,9 @@ dependencies = [
 
 [[package]]
 name = "glean-core"
-version = "40.1.0"
+version = "41.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b80bf28ad601449d6d159ddceb4ee5bb30fc229e6027f2c1488c248232e8c143"
+checksum = "2c750625f7772518f3f41ab920406e867f1e52d09bd4fd47e3cf09b0aa40df20"
 dependencies = [
  "bincode",
  "chrono",
@@ -2025,9 +2027,9 @@ dependencies = [
 
 [[package]]
 name = "glean-ffi"
-version = "40.1.0"
+version = "41.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58e68d41f1a8a06fe66cc8537f6286bf7a9e2f7868e1f776aaa4295f555d4390"
+checksum = "5d9f603e4eeccdc13012388e225802596dd2a474aa6daf806d5b90c1803a1d6d"
 dependencies = [
  "android_logger",
  "env_logger",
@@ -2480,7 +2482,7 @@ source = "git+https://github.com/kvark/dummy-web#5731e569d865a1ebaf116f48dad781f
 [[package]]
 name = "jsparagus"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=2e56bb9bae5d8211137980a717ee991cc4a5eb98#2e56bb9bae5d8211137980a717ee991cc4a5eb98"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=ecc433935118a4ff22d33c4fe7c625a5d0bfb571#ecc433935118a4ff22d33c4fe7c625a5d0bfb571"
 dependencies = [
  "jsparagus-ast",
  "jsparagus-emitter",
@@ -2494,7 +2496,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-ast"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=2e56bb9bae5d8211137980a717ee991cc4a5eb98#2e56bb9bae5d8211137980a717ee991cc4a5eb98"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=ecc433935118a4ff22d33c4fe7c625a5d0bfb571#ecc433935118a4ff22d33c4fe7c625a5d0bfb571"
 dependencies = [
  "bumpalo",
  "indexmap",
@@ -2503,7 +2505,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-emitter"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=2e56bb9bae5d8211137980a717ee991cc4a5eb98#2e56bb9bae5d8211137980a717ee991cc4a5eb98"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=ecc433935118a4ff22d33c4fe7c625a5d0bfb571#ecc433935118a4ff22d33c4fe7c625a5d0bfb571"
 dependencies = [
  "bumpalo",
  "byteorder",
@@ -2516,7 +2518,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-generated-parser"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=2e56bb9bae5d8211137980a717ee991cc4a5eb98#2e56bb9bae5d8211137980a717ee991cc4a5eb98"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=ecc433935118a4ff22d33c4fe7c625a5d0bfb571#ecc433935118a4ff22d33c4fe7c625a5d0bfb571"
 dependencies = [
  "bumpalo",
  "jsparagus-ast",
@@ -2526,12 +2528,12 @@ dependencies = [
 [[package]]
 name = "jsparagus-json-log"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=2e56bb9bae5d8211137980a717ee991cc4a5eb98#2e56bb9bae5d8211137980a717ee991cc4a5eb98"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=ecc433935118a4ff22d33c4fe7c625a5d0bfb571#ecc433935118a4ff22d33c4fe7c625a5d0bfb571"
 
 [[package]]
 name = "jsparagus-parser"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=2e56bb9bae5d8211137980a717ee991cc4a5eb98#2e56bb9bae5d8211137980a717ee991cc4a5eb98"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=ecc433935118a4ff22d33c4fe7c625a5d0bfb571#ecc433935118a4ff22d33c4fe7c625a5d0bfb571"
 dependencies = [
  "arrayvec 0.5.2",
  "bumpalo",
@@ -2543,7 +2545,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-scope"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=2e56bb9bae5d8211137980a717ee991cc4a5eb98#2e56bb9bae5d8211137980a717ee991cc4a5eb98"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=ecc433935118a4ff22d33c4fe7c625a5d0bfb571#ecc433935118a4ff22d33c4fe7c625a5d0bfb571"
 dependencies = [
  "indexmap",
  "jsparagus-ast",
@@ -2553,7 +2555,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-stencil"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=2e56bb9bae5d8211137980a717ee991cc4a5eb98#2e56bb9bae5d8211137980a717ee991cc4a5eb98"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=ecc433935118a4ff22d33c4fe7c625a5d0bfb571#ecc433935118a4ff22d33c4fe7c625a5d0bfb571"
 dependencies = [
  "jsparagus-ast",
 ]
@@ -2620,8 +2622,8 @@ dependencies = [
 
 [[package]]
 name = "l10nregistry"
-version = "0.2.0"
-source = "git+https://github.com/mozilla/l10nregistry-rs?rev=a69df9836b1ef536727195209013b9ad6b132618#a69df9836b1ef536727195209013b9ad6b132618"
+version = "0.3.0"
+source = "git+https://github.com/mozilla/l10nregistry-rs?rev=fd02134161505f978e132114cbabdac057ce3b71#fd02134161505f978e132114cbabdac057ce3b71"
 dependencies = [
  "async-trait",
  "fluent-bundle",
@@ -3572,9 +3574,10 @@ dependencies = [
 [[package]]
 name = "packed_simd"
 version = "0.3.4"
-source = "git+https://github.com/hsivonen/packed_simd?rev=6a16f954950401b92b4e220fbf2dfaf6f00e1fb2#6a16f954950401b92b4e220fbf2dfaf6f00e1fb2"
+source = "git+https://github.com/hsivonen/packed_simd?rev=8b4bd7d8229660a749dbe419a57ea01df9de5453#8b4bd7d8229660a749dbe419a57ea01df9de5453"
 dependencies = [
  "cfg-if 0.1.10",
+ "rustc_version",
 ]
 
 [[package]]
@@ -3929,7 +3932,7 @@ dependencies = [
 [[package]]
 name = "pulse"
 version = "0.3.0"
-source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=3ad5978575f501ab10b1753626f176f1bba3f584#3ad5978575f501ab10b1753626f176f1bba3f584"
+source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=e9e55a4529642da99e64452467ecaef9f7753531#e9e55a4529642da99e64452467ecaef9f7753531"
 dependencies = [
  "bitflags",
  "pulse-ffi",
@@ -3938,7 +3941,7 @@ dependencies = [
 [[package]]
 name = "pulse-ffi"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=3ad5978575f501ab10b1753626f176f1bba3f584#3ad5978575f501ab10b1753626f176f1bba3f584"
+source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=e9e55a4529642da99e64452467ecaef9f7753531#e9e55a4529642da99e64452467ecaef9f7753531"
 dependencies = [
  "libc",
 ]

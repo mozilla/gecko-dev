@@ -49,6 +49,7 @@ thread_local!(static L10N_REGISTRY: Rc<GeckoL10nRegistry> = {
              .map(|entry| {
                  FileSource::new(
                      entry.entry.to_string(),
+                     Some("app".to_string()),
                      packaged_locales.clone(),
                      entry.value.to_string(),
                      Default::default(),
@@ -84,6 +85,7 @@ impl<V> GeckoReportError<V, L10nRegistrySetupError> for Result<V, L10nRegistrySe
 #[repr(C)]
 pub struct L10nFileSourceDescriptor {
     name: nsCString,
+    metasource: nsCString,
     locales: ThinVec<nsCString>,
     pre_path: nsCString,
     index: ThinVec<nsCString>,
@@ -139,6 +141,7 @@ pub fn set_l10n_registry(new_sources: &ThinVec<L10nFileSourceDescriptor>) {
             if !old_sources.contains(&desc.name.to_string()) {
                 add_sources.push(FileSource::new(
                     desc.name.to_string(),
+                    Some(desc.metasource.to_string()),
                     desc.locales
                         .iter()
                         .map(|s| s.to_utf8().parse().unwrap())
@@ -199,6 +202,7 @@ pub unsafe extern "C" fn l10nregistry_get_parent_process_sources(
         let source = reg.get_source(&name).unwrap().unwrap();
         let descriptor = L10nFileSourceDescriptor {
             name: source.name.as_str().into(),
+            metasource: source.metasource.as_str().into(),
             locales: source
                 .locales()
                 .iter()

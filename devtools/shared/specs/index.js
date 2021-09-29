@@ -294,18 +294,8 @@ const Types = (exports.__TypesForTests = [
     front: "devtools/client/fronts/target-configuration",
   },
   {
-    types: ["browsingContextTarget"],
-    spec: "devtools/shared/specs/targets/browsing-context",
-    front: "devtools/client/fronts/targets/browsing-context",
-  },
-  {
     types: ["contentProcessTarget"],
     spec: "devtools/shared/specs/targets/content-process",
-    front: null,
-  },
-  {
-    types: ["frameTarget"],
-    spec: "devtools/shared/specs/targets/frame",
     front: null,
   },
   {
@@ -317,6 +307,11 @@ const Types = (exports.__TypesForTests = [
     types: ["webExtensionTarget"],
     spec: "devtools/shared/specs/targets/webextension",
     front: null,
+  },
+  {
+    types: ["windowGlobalTarget"],
+    spec: "devtools/shared/specs/targets/window-global",
+    front: "devtools/client/fronts/targets/window-global",
   },
   {
     types: ["workerTarget"],

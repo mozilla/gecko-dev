@@ -206,12 +206,6 @@ inline RegExpShared* RegExpToShared(JSContext* cx, HandleObject obj) {
   return Proxy::regexp_toShared(cx, obj);
 }
 
-template <XDRMode mode>
-XDRResult XDRScriptRegExpObject(XDRState<mode>* xdr,
-                                MutableHandle<RegExpObject*> objp);
-
-extern JSObject* CloneScriptRegExpObject(JSContext* cx, RegExpObject& re);
-
 /* Escape all slashes and newlines in the given string. */
 extern JSLinearString* EscapeRegExpPattern(JSContext* cx, HandleAtom src);
 

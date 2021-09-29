@@ -9,6 +9,8 @@
 #include "mozilla/Span.h"
 #include "TestBuffer.h"
 
+#include <string_view>
+
 namespace mozilla::intl {
 
 // Firefox 1.0 release date.
@@ -135,6 +137,25 @@ TEST(IntlDateTimeFormat, Time_zone_IANA_identifier)
   TestBuffer<char> buffer;
   dtFormat->TryFormat(DATE, buffer).unwrap();
   ASSERT_TRUE(buffer.verboseMatches("Sep 23, 2002, 12:07:30 PM"));
+}
+
+TEST(IntlDateTimeFormat, GetAllowedHourCycles)
+{
+  auto allowed_en_US = DateTimeFormat::GetAllowedHourCycles(
+                           MakeStringSpan("en"), Some(MakeStringSpan("US")))
+                           .unwrap();
+
+  ASSERT_TRUE(allowed_en_US.length() == 2);
+  ASSERT_EQ(allowed_en_US[0], DateTimeFormat::HourCycle::H12);
+  ASSERT_EQ(allowed_en_US[1], DateTimeFormat::HourCycle::H23);
+
+  auto allowed_de =
+      DateTimeFormat::GetAllowedHourCycles(MakeStringSpan("de"), Nothing())
+          .unwrap();
+
+  ASSERT_TRUE(allowed_de.length() == 2);
+  ASSERT_EQ(allowed_de[0], DateTimeFormat::HourCycle::H23);
+  ASSERT_EQ(allowed_de[1], DateTimeFormat::HourCycle::H12);
 }
 
 TEST(IntlDateTimePatternGenerator, GetBestPattern)
@@ -478,6 +499,32 @@ TEST(IntlDateTimeFormat, GetOriginalSkeleton)
 
   ASSERT_TRUE(resolvedSkeletonResult.isOk());
   ASSERT_TRUE(resolvedSkeleton.verboseMatches(u"Mdd"));
+}
+
+TEST(IntlDateTimeFormat, GetAvailableLocales)
+{
+  using namespace std::literals;
+
+  int32_t english = 0;
+  int32_t german = 0;
+  int32_t chinese = 0;
+
+  // Since this list is dependent on ICU, and may change between upgrades, only
+  // test a subset of the available locales.
+  for (const char* locale : DateTimeFormat::GetAvailableLocales()) {
+    if (locale == "en"sv) {
+      english++;
+    } else if (locale == "de"sv) {
+      german++;
+    } else if (locale == "zh"sv) {
+      chinese++;
+    }
+  }
+
+  // Each locale should be found exactly once.
+  ASSERT_EQ(english, 1);
+  ASSERT_EQ(german, 1);
+  ASSERT_EQ(chinese, 1);
 }
 
 }  // namespace mozilla::intl

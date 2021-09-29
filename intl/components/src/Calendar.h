@@ -3,20 +3,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef intl_components_Calendar_h_
 #define intl_components_Calendar_h_
-#include "unicode/ucal.h"
 
 #include "mozilla/Assertions.h"
-#include "mozilla/intl/DateTimeFormat.h"
+#include "mozilla/EnumSet.h"
 #include "mozilla/intl/ICU4CGlue.h"
 #include "mozilla/intl/ICUError.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
 #include "mozilla/Span.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/Utf8.h"
-#include "mozilla/Vector.h"
+
+using UCalendar = void*;
 
 namespace mozilla::intl {
+
+/**
+ * Weekdays in the ISO-8601 calendar.
+ */
+enum class Weekday : uint8_t {
+  Monday = 1,
+  Tuesday,
+  Wednesday,
+  Thursday,
+  Friday,
+  Saturday,
+  Sunday,
+};
 
 /**
  * This component is a Mozilla-focused API for working with calendar systems in
@@ -49,51 +61,19 @@ class Calendar final {
   Result<const char*, ICUError> GetBcp47Type();
 
   /**
-   * A number indicating the raw offset from GMT in milliseconds.
+   * Return the set of weekdays which are considered as part of the weekend.
    */
-  Result<int32_t, ICUError> GetDefaultTimeZoneOffsetMs();
+  Result<EnumSet<Weekday>, ICUError> GetWeekend();
 
   /**
-   * Fill the buffer with the system's default IANA time zone identifier, e.g.
-   * "America/Chicago".
+   * Return the weekday which is considered the first day of the week.
    */
-  template <typename B>
-  static ICUResult GetDefaultTimeZone(B& aBuffer) {
-    return FillBufferWithICUCall(aBuffer, ucal_getDefaultTimeZone);
-  }
+  Weekday GetFirstDayOfWeek();
 
   /**
-   * Returns the canonical system time zone ID or the normalized custom time
-   * zone ID for the given time zone ID.
+   * Return the minimal number of days in the first week of a year.
    */
-  template <typename B>
-  static ICUResult GetCanonicalTimeZoneID(Span<const char16_t> inputTimeZone,
-                                          B& aBuffer) {
-    static_assert(std::is_same_v<typename B::CharType, char16_t>,
-                  "Currently only UTF-16 buffers are supported.");
-
-    if (aBuffer.capacity() == 0) {
-      // ucal_getCanonicalTimeZoneID differs from other API calls and fails when
-      // passed a nullptr or 0 length result. Reserve some space initially so
-      // that a real pointer will be used in the API.
-      //
-      // At the time of this writing 32 characters fits every time zone listed
-      // in: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-      // https://gist.github.com/gregtatum/f926de157a44e5965864da866fe71e63
-      if (!aBuffer.reserve(32)) {
-        return Err(ICUError::OutOfMemory);
-      }
-    }
-
-    return FillBufferWithICUCall(
-        aBuffer,
-        [&inputTimeZone](UChar* target, int32_t length, UErrorCode* status) {
-          return ucal_getCanonicalTimeZoneID(
-              inputTimeZone.Elements(),
-              static_cast<int32_t>(inputTimeZone.Length()), target, length,
-              /* isSystemID */ nullptr, status);
-        });
-  }
+  int32_t GetMinimalDaysInFirstWeek();
 
   /**
    * Set the time for the calendar relative to the number of milliseconds since
@@ -117,13 +97,27 @@ class Calendar final {
                                                   int32_t aLength);
 
  public:
+  enum class CommonlyUsed : bool {
+    /**
+     * Select all possible values, even when not commonly used by a locale.
+     */
+    No,
+
+    /**
+     * Only select the values which are commonly used by a locale.
+     */
+    Yes,
+  };
+
   using Bcp47IdentifierEnumeration =
       Enumeration<char, SpanResult<char>, Calendar::LegacyIdentifierToBcp47>;
+
   /**
    * Return BCP 47 Unicode locale extension type keywords.
    */
   static Result<Bcp47IdentifierEnumeration, ICUError>
-  GetBcp47KeywordValuesForLocale(const char* aLocale);
+  GetBcp47KeywordValuesForLocale(const char* aLocale,
+                                 CommonlyUsed aCommonlyUsed = CommonlyUsed::No);
 
   ~Calendar();
 

@@ -408,18 +408,6 @@ def check_prog(*args, **kwargs):
     return check_prog(*args, **kwargs)
 
 
-@depends(target, host)
-def want_wine(target, host):
-    return target.kernel == "WINNT" and host.kernel != "WINNT"
-
-
-wine = check_prog(
-    "WINE",
-    ["wine64", "wine"],
-    allow_missing=True,
-    when=want_wine,
-    bootstrap="wine/bin",
-)
 check_prog("WGET", ("wget",), allow_missing=True)
 
 
@@ -887,50 +875,27 @@ check_prog("HFS_TOOL", extra_programs.HFS_TOOL, allow_missing=True)
 check_prog("RPMBUILD", extra_programs.RPMBUILD, allow_missing=True)
 
 
-@depends(target)
-@imports("os")
-def makensis_progs(target):
-    if target.kernel != "WINNT":
-        return
-
-    candidates = [
-        "makensis-3.01",
-        "makensis-3.0b3",
-        "makensis-3.0b1",
-        "makensis",
-        "makensis.exe",
-    ]
-
-    # Look for nsis installed by msys environment. But only the 32-bit version.
-    # We use an absolute path and insert as the first entry so it is preferred
-    # over a 64-bit exe that may be in PATH.
-    if "MSYSTEM_PREFIX" in os.environ:
-        prefix = os.path.dirname(os.environ["MSYSTEM_PREFIX"])
-        candidates.insert(0, os.path.join(prefix, "mingw32", "bin", "makensis.exe"))
-
-    return tuple(candidates)
-
-
-nsis = check_prog("MAKENSISU", makensis_progs, bootstrap="nsis/bin", allow_missing=True)
+nsis = check_prog(
+    "MAKENSISU",
+    ("makensis",),
+    bootstrap="nsis/bin",
+    allow_missing=True,
+    when=target_is_windows,
+)
 
 # Make sure the version of makensis is up to date.
 
 
-@depends(nsis, wine)
+@depends_if(nsis)
 @checking("for NSIS version")
 @imports("re")
-def nsis_version(nsis, wine):
-    if not nsis:
-        return None
+def nsis_version(nsis):
     nsis_min_version = "3.0b1"
 
     def onerror():
         return die("Failed to get nsis version.")
 
-    if wine and nsis.lower().endswith(".exe"):
-        out = check_cmd_output(wine, nsis, "-version", onerror=onerror)
-    else:
-        out = check_cmd_output(nsis, "-version", onerror=onerror)
+    out = check_cmd_output(nsis, "-version", onerror=onerror)
 
     m = re.search(r"(?<=v)[0-9]+\.[0-9]+((a|b|rc)[0-9]+)?", out)
 

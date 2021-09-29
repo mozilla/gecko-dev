@@ -102,7 +102,6 @@
 #include "mozilla/SMILTimeContainer.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Components.h"
-#include "mozilla/ServoCSSPropList.h"
 #include "mozilla/ServoStyleConsts.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/ServoTypes.h"
@@ -1392,6 +1391,7 @@ Document::Document(const char* aContentType)
       mHasWarnedAboutZoom(false),
       mIsRunningExecCommand(false),
       mSetCompleteAfterDOMContentLoaded(false),
+      mDidHitCompleteSheetCache(false),
       mPendingFullscreenRequests(0),
       mXMLDeclarationBits(0),
       mOnloadBlockCount(0),
@@ -1508,6 +1508,18 @@ bool Document::CallerIsTrustedAboutNetError(JSContext* aCx, JSObject* aObject) {
   return win && win->GetDocument() && win->GetDocument()->IsErrorPage();
 #else
   return win && IsAboutErrorPage(win, "neterror");
+#endif
+}
+
+bool Document::CallerIsTrustedAboutHttpsOnlyError(JSContext* aCx,
+                                                  JSObject* aObject) {
+  nsGlobalWindowInner* win = xpc::WindowOrNull(aObject);
+#ifdef ANDROID
+  // GeckoView uses data URLs for error pages, so for now just check for any
+  // error page
+  return win && win->GetDocument() && win->GetDocument()->IsErrorPage();
+#else
+  return win && IsAboutErrorPage(win, "httpsonlyerror");
 #endif
 }
 
@@ -1650,6 +1662,12 @@ already_AddRefed<mozilla::dom::Promise> Document::AddCertException(
 
   promise->MaybeReject(NS_ERROR_FAILURE);
   return promise.forget();
+}
+
+void Document::ReloadWithHttpsOnlyException() {
+  if (WindowGlobalChild* wgc = GetWindowGlobalChild()) {
+    wgc->SendReloadWithHttpsOnlyException();
+  }
 }
 
 void Document::GetNetErrorInfo(NetErrorInfo& aInfo, ErrorResult& aRv) {
@@ -5000,26 +5018,35 @@ Document::InternalCommandData Document::ConvertToInternalCommand(
 }
 
 Document::AutoEditorCommandTarget::AutoEditorCommandTarget(
-    nsPresContext* aPresContext, const InternalCommandData& aCommandData)
+    Document& aDocument, const InternalCommandData& aCommandData)
     : mCommandData(aCommandData) {
-  // Consider context of command handling which is automatically resolved
-  // by order of controllers in `nsCommandManager::GetControllerForCommand()`.
-  // The order is:
-  //   1. TextEditor if there is an active element and it has TextEditor like
-  //      <input type="text"> or <textarea>.
-  //   2. HTMLEditor for the document, if there is.
-  //   3. Retarget to the DocShell or nsCommandManager as what we've done.
-  if (aPresContext) {
+  // We'll retrieve an editor with current DOM tree and layout information.
+  // However, JS may have already hidden or remove exposed root content of
+  // the editor.  Therefore, we need the latest layout information here.
+  aDocument.FlushPendingNotifications(FlushType::Layout);
+  if (!aDocument.GetPresShell() || aDocument.GetPresShell()->IsDestroying()) {
+    mDoNothing = true;
+    return;
+  }
+
+  if (nsPresContext* presContext = aDocument.GetPresContext()) {
+    // Consider context of command handling which is automatically resolved
+    // by order of controllers in `nsCommandManager::GetControllerForCommand()`.
+    // The order is:
+    //   1. TextEditor if there is an active element and it has TextEditor like
+    //      <input type="text"> or <textarea>.
+    //   2. HTMLEditor for the document, if there is.
+    //   3. Retarget to the DocShell or nsCommandManager as what we've done.
     if (aCommandData.IsCutOrCopyCommand()) {
       // Note that we used to use DocShell to handle `cut` and `copy` command
       // for dispatching corresponding events for making possible web apps to
       // implement their own editor without editable elements but supports
       // standard shortcut keys, etc.  In this case, we prefer to use active
       // element's editor to keep same behavior.
-      mActiveEditor = nsContentUtils::GetActiveEditor(aPresContext);
+      mActiveEditor = nsContentUtils::GetActiveEditor(presContext);
     } else {
-      mActiveEditor = nsContentUtils::GetActiveEditor(aPresContext);
-      mHTMLEditor = nsContentUtils::GetHTMLEditor(aPresContext);
+      mActiveEditor = nsContentUtils::GetActiveEditor(presContext);
+      mHTMLEditor = nsContentUtils::GetHTMLEditor(presContext);
       if (!mActiveEditor) {
         mActiveEditor = mHTMLEditor;
       }
@@ -5223,10 +5250,11 @@ bool Document::ExecCommand(const nsAString& aHTMLCommandName, bool aShowUI,
     }
   }
 
+  AutoRunningExecCommandMarker markRunningExecCommand(*this);
+
   // Next, consider context of command handling which is automatically resolved
   // by order of controllers in `nsCommandManager::GetControllerForCommand()`.
-  RefPtr<nsPresContext> presContext = GetPresContext();
-  AutoEditorCommandTarget editCommandTarget(presContext, commandData);
+  AutoEditorCommandTarget editCommandTarget(*this, commandData);
   if (commandData.IsAvailableOnlyWhenEditable() &&
       !editCommandTarget.IsEditable(this)) {
     return false;
@@ -5235,8 +5263,6 @@ bool Document::ExecCommand(const nsAString& aHTMLCommandName, bool aShowUI,
   if (editCommandTarget.DoNothing()) {
     return false;
   }
-
-  AutoRunningExecCommandMarker markRunningExecCommand(*this);
 
   // If we cannot use EditorCommand instance directly, we need to handle the
   // command with traditional path (i.e., with DocShell or nsCommandManager).
@@ -5407,8 +5433,7 @@ bool Document::QueryCommandEnabled(const nsAString& aHTMLCommandName,
     return false;
   }
 
-  RefPtr<nsPresContext> presContext = GetPresContext();
-  AutoEditorCommandTarget editCommandTarget(presContext, commandData);
+  AutoEditorCommandTarget editCommandTarget(*this, commandData);
   if (commandData.IsAvailableOnlyWhenEditable() &&
       !editCommandTarget.IsEditable(this)) {
     return false;
@@ -5448,8 +5473,7 @@ bool Document::QueryCommandIndeterm(const nsAString& aHTMLCommandName,
     return false;
   }
 
-  RefPtr<nsPresContext> presContext = GetPresContext();
-  AutoEditorCommandTarget editCommandTarget(presContext, commandData);
+  AutoEditorCommandTarget editCommandTarget(*this, commandData);
   if (commandData.IsAvailableOnlyWhenEditable() &&
       !editCommandTarget.IsEditable(this)) {
     return false;
@@ -5526,8 +5550,7 @@ bool Document::QueryCommandState(const nsAString& aHTMLCommandName,
     return false;
   }
 
-  RefPtr<nsPresContext> presContext = GetPresContext();
-  AutoEditorCommandTarget editCommandTarget(presContext, commandData);
+  AutoEditorCommandTarget editCommandTarget(*this, commandData);
   if (commandData.IsAvailableOnlyWhenEditable() &&
       !editCommandTarget.IsEditable(this)) {
     return false;
@@ -5713,8 +5736,7 @@ void Document::QueryCommandValue(const nsAString& aHTMLCommandName,
       break;
   }
 
-  RefPtr<nsPresContext> presContext = GetPresContext();
-  AutoEditorCommandTarget editCommandTarget(presContext, commandData);
+  AutoEditorCommandTarget editCommandTarget(*this, commandData);
   if (commandData.IsAvailableOnlyWhenEditable() &&
       !editCommandTarget.IsEditable(this)) {
     return;
@@ -6896,12 +6918,12 @@ void Document::DeletePresShell() {
   mDesignModeSheetAdded = false;
 }
 
-void Document::DisallowBFCaching() {
+void Document::DisallowBFCaching(uint16_t aStatus) {
   NS_ASSERTION(!mBFCacheEntry, "We're already in the bfcache!");
   if (!mBFCacheDisallowed) {
     WindowGlobalChild* wgc = GetWindowGlobalChild();
     if (wgc) {
-      wgc->BlockBFCacheFor(BFCacheStatus::NOT_ALLOWED);
+      wgc->SendUpdateBFCacheStatus(aStatus, 0);
     }
   }
   mBFCacheDisallowed = true;
@@ -7401,7 +7423,7 @@ bool Document::ContainsMSEContent() {
   return containsMSE;
 }
 
-static void NotifyActivityChanged(nsISupports* aSupports) {
+static void NotifyActivityChangedCallback(nsISupports* aSupports) {
   nsCOMPtr<nsIContent> content(do_QueryInterface(aSupports));
   if (auto mediaElem = HTMLMediaElement::FromNodeOrNull(content)) {
     mediaElem->NotifyOwnerDocumentActivityChanged();
@@ -7427,6 +7449,10 @@ static void NotifyActivityChanged(nsISupports* aSupports) {
   }
 }
 
+void Document::NotifyActivityChanged() {
+  EnumerateActivityObservers(NotifyActivityChangedCallback);
+}
+
 bool Document::IsTopLevelWindowInactive() const {
   if (BrowsingContext* bc = GetBrowsingContext()) {
     return !bc->GetIsActiveBrowserWindow();
@@ -7445,7 +7471,7 @@ void Document::SetContainer(nsDocShell* aContainer) {
   mInChromeDocShell =
       aContainer && aContainer->GetBrowsingContext()->IsChrome();
 
-  EnumerateActivityObservers(NotifyActivityChanged);
+  NotifyActivityChanged();
 
   // IsTopLevelWindowInactive depends on the docshell, so
   // update the cached value now that it's available.
@@ -11269,7 +11295,7 @@ void Document::RemovedFromDocShell() {
   if (mRemovedFromDocShell) return;
 
   mRemovedFromDocShell = true;
-  EnumerateActivityObservers(NotifyActivityChanged);
+  NotifyActivityChanged();
 
   for (nsIContent* child = GetFirstChild(); child;
        child = child->GetNextSibling()) {
@@ -11539,7 +11565,7 @@ void Document::OnPageShow(bool aPersisted, EventTarget* aDispatchStartTarget,
     UpdateVisibilityState();
   }
 
-  EnumerateActivityObservers(NotifyActivityChanged);
+  NotifyActivityChanged();
 
   auto notifyExternal = [aPersisted](Document& aExternalResource) {
     aExternalResource.OnPageShow(aPersisted, nullptr);
@@ -11663,7 +11689,7 @@ void Document::OnPageHide(bool aPersisted, EventTarget* aDispatchStartTarget,
     return CallState::Continue;
   };
   EnumerateExternalResources(notifyExternal);
-  EnumerateActivityObservers(NotifyActivityChanged);
+  NotifyActivityChanged();
 
   ClearPendingFullscreenRequests(this);
   if (GetUnretargetedFullScreenElement()) {
@@ -12497,6 +12523,11 @@ void Document::SetSuppressedEventListener(EventListener* aListener) {
     return CallState::Continue;
   };
   EnumerateSubDocuments(setOnSubDocs);
+}
+
+bool Document::IsActive() const {
+  return mDocumentContainer && !mRemovedFromDocShell && GetBrowsingContext() &&
+         !GetBrowsingContext()->IsInBFCache();
 }
 
 nsISupports* Document::GetCurrentContentSink() {
@@ -14917,7 +14948,7 @@ void Document::UpdateVisibilityState(DispatchVisibilityChange aDispatchEvent) {
                                            u"visibilitychange"_ns,
                                            CanBubble::eYes, Cancelable::eNo);
     }
-    EnumerateActivityObservers(NotifyActivityChanged);
+    NotifyActivityChanged();
     if (mVisibilityState == dom::VisibilityState::Visible) {
       MaybeActiveMediaComponents();
     }
@@ -15562,7 +15593,7 @@ void Document::IncLazyLoadImageReachViewport(bool aLoading) {
 }
 
 void Document::NotifyLayerManagerRecreated() {
-  EnumerateActivityObservers(NotifyActivityChanged);
+  NotifyActivityChanged();
   EnumerateSubDocuments([](Document& aSubDoc) {
     aSubDoc.NotifyLayerManagerRecreated();
     return CallState::Continue;
@@ -16209,12 +16240,6 @@ bool Document::IsExtensionPage() const {
   return Preferences::GetBool("media.autoplay.allow-extension-background-pages",
                               true) &&
          BasePrincipal::Cast(NodePrincipal())->AddonPolicy();
-}
-
-void Document::TraceProtos(JSTracer* aTrc) {
-  if (mPrototypeDocument) {
-    mPrototypeDocument->TraceProtos(aTrc);
-  }
 }
 
 /**
@@ -17099,7 +17124,21 @@ bool Document::HasStorageAccessPermissionGranted() {
   }
 
   nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
-  return loadInfo->GetHasStoragePermission();
+  return loadInfo->GetStoragePermission() != nsILoadInfo::NoStoragePermission;
+}
+
+bool Document::HasStorageAccessPermissionGrantedByAllowList() {
+  // We only care about if the document gets the storage permission via the
+  // allow list here. So we don't check the storage access cache in the inner
+  // window.
+
+  if (!mChannel) {
+    return false;
+  }
+
+  nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
+  return loadInfo->GetStoragePermission() ==
+         nsILoadInfo::StoragePermissionAllowListed;
 }
 
 nsIPrincipal* Document::EffectiveStoragePrincipal() const {

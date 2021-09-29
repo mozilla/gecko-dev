@@ -11,6 +11,10 @@
 // shellapi.h is needed to build with WIN32_LEAN_AND_MEAN
 #include <shellapi.h>
 
+#include <functional>
+#include <thread>
+#include <chrono>
+
 #include "nsArrayUtils.h"
 #include "nsCOMPtr.h"
 #include "nsDataObj.h"
@@ -252,19 +256,57 @@ nsresult nsClipboard::SetupNativeDataObject(nsITransferable* aTransferable,
   return NS_OK;
 }
 
-// static
-void nsClipboard::LogOleGetClipboardResult(const HRESULT aHres) {
-  if (MOZ_LOG_TEST(gWin32ClipboardLog, LogLevel::Debug)) {
-    nsAutoCString hresString;
-    OleGetClipboardResultToString(aHres, hresString);
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Debug,
-            ("OleGetClipboard result: %s", hresString.get()));
+// See methods listed at
+// <https://docs.microsoft.com/en-us/windows/win32/api/objidl/nn-objidl-idataobject#methods>.
+static void IDataObjectMethodResultToString(const HRESULT aHres,
+                                            nsACString& aResult) {
+  switch (aHres) {
+    case E_INVALIDARG:
+      aResult = "E_INVALIDARG";
+      break;
+    case E_UNEXPECTED:
+      aResult = "E_UNEXPECTED";
+      break;
+    case E_OUTOFMEMORY:
+      aResult = "E_OUTOFMEMORY";
+      break;
+    case DV_E_LINDEX:
+      aResult = "DV_E_LINDEX";
+      break;
+    case DV_E_FORMATETC:
+      aResult = "DV_E_FORMATETC";
+      break;
+    case DV_E_TYMED:
+      aResult = "DV_E_TYMED";
+      break;
+    case DV_E_DVASPECT:
+      aResult = "DV_E_DVASPECT";
+      break;
+    case OLE_E_NOTRUNNING:
+      aResult = "OLE_E_NOTRUNNING";
+      break;
+    case STG_E_MEDIUMFULL:
+      aResult = "STG_E_MEDIUMFULL";
+      break;
+    case DV_E_CLIPFORMAT:
+      aResult = "DV_E_CLIPFORMAT";
+      break;
+    case S_OK:
+      aResult = "S_OK";
+      break;
+    default:
+      // Explicit template instantiaton, because otherwise the call is
+      // ambiguous.
+      constexpr int kRadix = 16;
+      aResult = IntToCString<int32_t>(aHres, kRadix);
+      break;
   }
 }
 
-// static
-void nsClipboard::OleGetClipboardResultToString(const HRESULT aHres,
-                                                nsACString& aResult) {
+// See
+// <https://docs.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-olegetclipboard>.
+static void OleGetClipboardResultToString(const HRESULT aHres,
+                                          nsACString& aResult) {
   switch (aHres) {
     case S_OK:
       aResult = "S_OK";
@@ -284,9 +326,20 @@ void nsClipboard::OleGetClipboardResultToString(const HRESULT aHres,
   }
 }
 
-// static
-void nsClipboard::OleSetClipboardResultToString(HRESULT aHres,
-                                                nsACString& aResult) {
+// See
+// <https://docs.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-olegetclipboard>.
+static void LogOleGetClipboardResult(const HRESULT aHres) {
+  if (MOZ_LOG_TEST(gWin32ClipboardLog, LogLevel::Debug)) {
+    nsAutoCString hresString;
+    OleGetClipboardResultToString(aHres, hresString);
+    MOZ_LOG(gWin32ClipboardLog, LogLevel::Debug,
+            ("OleGetClipboard result: %s", hresString.get()));
+  }
+}
+
+// See
+// <https://docs.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-olesetclipboard>.
+static void OleSetClipboardResultToString(HRESULT aHres, nsACString& aResult) {
   switch (aHres) {
     case S_OK:
       aResult = "S_OK";
@@ -312,14 +365,46 @@ void nsClipboard::OleSetClipboardResultToString(HRESULT aHres,
   }
 }
 
-// static
-void nsClipboard::LogOleSetClipboardResult(const HRESULT aHres) {
+// See
+// <https://docs.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-olesetclipboard>.
+static void LogOleSetClipboardResult(const HRESULT aHres) {
   if (MOZ_LOG_TEST(gWin32ClipboardLog, LogLevel::Debug)) {
     nsAutoCString hresString;
     OleSetClipboardResultToString(aHres, hresString);
     MOZ_LOG(gWin32ClipboardLog, LogLevel::Debug,
             ("OleSetClipboard result: %s", hresString.get()));
   }
+}
+
+template <typename Function, typename LogFunction, typename... Args>
+static HRESULT RepeatedlyTry(Function aFunction, LogFunction aLogFunction,
+                             Args... aArgs) {
+  // These are magic values based on local testing. They are chosen not higher
+  // to avoid jank (<https://developer.mozilla.org/en-US/docs/Glossary/Jank>).
+  // When changing them, be careful.
+  static constexpr int kNumberOfTries = 3;
+  static constexpr int kDelayInMs = 3;
+
+  HRESULT hres;
+  for (int i = 0; i < kNumberOfTries; ++i) {
+    hres = aFunction(aArgs...);
+    aLogFunction(hres);
+
+    if (hres == S_OK) {
+      break;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(kDelayInMs));
+  }
+
+  return hres;
+}
+
+// Other apps can block access to the clipboard. This repeatedly
+// calls `::OleSetClipboard` for a fixed number of times and should be called
+// instead of `::OleSetClipboard`.
+static void RepeatedlyTryOleSetClipboard(IDataObject* aDataObj) {
+  RepeatedlyTry(::OleSetClipboard, LogOleSetClipboardResult, aDataObj);
 }
 
 //-------------------------------------------------------------------------
@@ -340,11 +425,11 @@ NS_IMETHODIMP nsClipboard::SetNativeClipboardData(int32_t aWhichClipboard) {
   IDataObject* dataObj;
   if (NS_SUCCEEDED(CreateNativeDataObject(mTransferable, &dataObj,
                                           nullptr))) {  // this add refs dataObj
-    LogOleSetClipboardResult(::OleSetClipboard(dataObj));
+    RepeatedlyTryOleSetClipboard(dataObj);
     dataObj->Release();
   } else {
     // Clear the native clipboard
-    LogOleSetClipboardResult(::OleSetClipboard(nullptr));
+    RepeatedlyTryOleSetClipboard(nullptr);
   }
 
   mIgnoreEmptyNotification = false;
@@ -427,48 +512,48 @@ nsresult nsClipboard::GetNativeDataOffClipboard(nsIWidget* aWidget,
   return result;
 }
 
-static void DisplayErrCode(HRESULT hres) {
-  if (hres == E_INVALIDARG) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("E_INVALIDARG\n"));
-  } else if (hres == E_UNEXPECTED) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("E_UNEXPECTED\n"));
-  } else if (hres == E_OUTOFMEMORY) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("E_OUTOFMEMORY\n"));
-  } else if (hres == DV_E_LINDEX) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("DV_E_LINDEX\n"));
-  } else if (hres == DV_E_FORMATETC) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("DV_E_FORMATETC\n"));
-  } else if (hres == DV_E_TYMED) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("DV_E_TYMED\n"));
-  } else if (hres == DV_E_DVASPECT) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("DV_E_DVASPECT\n"));
-  } else if (hres == OLE_E_NOTRUNNING) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("OLE_E_NOTRUNNING\n"));
-  } else if (hres == STG_E_MEDIUMFULL) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("STG_E_MEDIUMFULL\n"));
-  } else if (hres == DV_E_CLIPFORMAT) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("DV_E_CLIPFORMAT\n"));
-  } else if (hres == S_OK) {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info, ("S_OK\n"));
-  } else {
-    MOZ_LOG(gWin32ClipboardLog, LogLevel::Info,
-            ("****** DisplayErrCode 0x%X\n", hres));
+// See methods listed at
+// <https://docs.microsoft.com/en-us/windows/win32/api/objidl/nn-objidl-idataobject#methods>.
+static void LogIDataObjectMethodResult(const HRESULT aHres,
+                                       const nsCString& aMethodName) {
+  if (MOZ_LOG_TEST(gWin32ClipboardLog, LogLevel::Debug)) {
+    nsAutoCString hresString;
+    IDataObjectMethodResultToString(aHres, hresString);
+    MOZ_LOG(
+        gWin32ClipboardLog, LogLevel::Debug,
+        ("IDataObject::%s result: %s", aMethodName.get(), hresString.get()));
   }
 }
 
+// Other apps can block access to the clipboard. This repeatedly calls
+// `GetData` for a fixed number of times and should be called instead of
+// `GetData`. See
+// <https://docs.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-idataobject-getdata>.
+// While Microsoft's documentation doesn't include `CLIPBRD_E_CANT_OPEN`
+// explicitly, it allows it implicitly and in local experiments it was indeed
+// returned.
+static HRESULT RepeatedlyTryGetData(IDataObject& aDataObject, LPFORMATETC pFE,
+                                    LPSTGMEDIUM pSTM) {
+  return RepeatedlyTry(
+      [&aDataObject, &pFE, &pSTM]() { return aDataObject.GetData(pFE, pSTM); },
+      std::bind(LogIDataObjectMethodResult, std::placeholders::_1,
+                "GetData"_ns));
+}
+
 //-------------------------------------------------------------------------
-static HRESULT FillSTGMedium(IDataObject* aDataObject, UINT aFormat,
-                             LPFORMATETC pFE, LPSTGMEDIUM pSTM, DWORD aTymed) {
+// static
+HRESULT nsClipboard::FillSTGMedium(IDataObject* aDataObject, UINT aFormat,
+                                   LPFORMATETC pFE, LPSTGMEDIUM pSTM,
+                                   DWORD aTymed) {
   SET_FORMATETC(*pFE, aFormat, 0, DVASPECT_CONTENT, -1, aTymed);
 
   // Starting by querying for the data to see if we can get it as from global
   // memory
   HRESULT hres = S_FALSE;
   hres = aDataObject->QueryGetData(pFE);
-  DisplayErrCode(hres);
+  LogIDataObjectMethodResult(hres, "QueryGetData"_ns);
   if (S_OK == hres) {
-    hres = aDataObject->GetData(pFE, pSTM);
-    DisplayErrCode(hres);
+    hres = RepeatedlyTryGetData(*aDataObject, pFE, pSTM);
   }
   return hres;
 }
@@ -1060,6 +1145,13 @@ bool nsClipboard ::FindURLFromNativeURL(IDataObject* inDataObject, UINT inIndex,
   return dataFound;
 }  // FindURLFromNativeURL
 
+// Other apps can block access to the clipboard. This repeatedly
+// calls `::OleGetClipboard` for a fixed number of times and should be called
+// instead of `::OleGetClipboard`.
+static HRESULT RepeatedlyTryOleGetClipboard(IDataObject** aDataObj) {
+  return RepeatedlyTry(::OleGetClipboard, LogOleGetClipboardResult, aDataObj);
+}
+
 //
 // ResolveShortcut
 //
@@ -1105,9 +1197,7 @@ nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
 
   // This makes sure we can use the OLE functionality for the clipboard
   IDataObject* dataObj;
-  const HRESULT hres = ::OleGetClipboard(&dataObj);
-  LogOleGetClipboardResult(hres);
-  if (S_OK == hres) {
+  if (S_OK == RepeatedlyTryOleGetClipboard(&dataObj)) {
     // Use OLE IDataObject for clipboard operations
     MOZ_LOG(gWin32ClipboardLog, LogLevel::Verbose,
             ("%s: use OLE IDataObject.", __FUNCTION__));
@@ -1128,7 +1218,7 @@ nsClipboard::EmptyClipboard(int32_t aWhichClipboard) {
   // has the clipboard open.  So to avoid this race condition for OpenClipboard
   // we do not empty the clipboard when we're setting it.
   if (aWhichClipboard == kGlobalClipboard && !mEmptyingForSetData) {
-    LogOleSetClipboardResult(::OleSetClipboard(nullptr));
+    RepeatedlyTryOleSetClipboard(nullptr);
   }
   return nsBaseClipboard::EmptyClipboard(aWhichClipboard);
 }

@@ -9,6 +9,10 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
+#ifdef JS_HAS_INTL_API
+#  include "mozilla/intl/Locale.h"
+#  include "mozilla/intl/TimeZone.h"
+#endif
 #include "mozilla/Maybe.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Span.h"
@@ -40,6 +44,7 @@
 
 #ifdef JS_HAS_INTL_API
 #  include "builtin/intl/CommonFunctions.h"
+#  include "builtin/intl/FormatBuffer.h"
 #  include "builtin/intl/SharedIntlData.h"
 #endif
 #include "builtin/Promise.h"
@@ -49,7 +54,8 @@
 #  include "frontend/TokenStream.h"
 #endif
 #include "frontend/BytecodeCompilation.h"  // frontend::CanLazilyParse
-#include "frontend/CompilationStencil.h"   // frontend::CompilationStencil
+#include "frontend/BytecodeCompiler.h"  // frontend::ParseModuleToExtensibleStencil
+#include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
 #include "gc/Allocator.h"
 #include "gc/Zone.h"
 #include "jit/BaselineJIT.h"
@@ -99,7 +105,6 @@
 #ifdef JS_HAS_INTL_API
 #  include "unicode/ucal.h"
 #  include "unicode/uchar.h"
-#  include "unicode/uloc.h"
 #  include "unicode/utypes.h"
 #  include "unicode/uversion.h"
 #endif
@@ -5721,11 +5726,6 @@ static bool EvalReturningScope(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedScript script(cx, JS::Compile(cx, options, srcBuf));
-  if (!script) {
-    return false;
-  }
-
   if (global) {
     global = CheckedUnwrapDynamic(global, cx, /* stopAtWindowProxy = */ false);
     if (!global) {
@@ -5743,10 +5743,16 @@ static bool EvalReturningScope(JSContext* cx, unsigned argc, Value* vp) {
   RootedObject varObj(cx);
 
   {
-    // If we're switching globals here, ExecuteInFrameScriptEnvironment will
-    // take care of cloning the script into that compartment before
-    // executing it.
+    // ExecuteInFrameScriptEnvironment requires the script be in the same
+    // realm as the global. The script compilation should be done after
+    // switching globals.
     AutoRealm ar(cx, global);
+
+    RootedScript script(cx, JS::Compile(cx, options, srcBuf));
+    if (!script) {
+      return false;
+    }
+
     JS::RootedObject obj(cx, JS_NewPlainObject(cx));
     if (!obj) {
       return false;
@@ -5767,76 +5773,6 @@ static bool EvalReturningScope(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   args.rval().set(varObjVal);
-  return true;
-}
-
-static bool ShellCloneAndExecuteScript(JSContext* cx, unsigned argc,
-                                       Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  if (!args.requireAtLeast(cx, "cloneAndExecuteScript", 2)) {
-    return false;
-  }
-
-  RootedString str(cx, ToString(cx, args[0]));
-  if (!str) {
-    return false;
-  }
-
-  RootedObject global(cx, ToObject(cx, args[1]));
-  if (!global) {
-    return false;
-  }
-
-  AutoStableStringChars strChars(cx);
-  if (!strChars.initTwoByte(cx, str)) {
-    return false;
-  }
-
-  mozilla::Range<const char16_t> chars = strChars.twoByteRange();
-  size_t srclen = chars.length();
-  const char16_t* src = chars.begin().get();
-
-  JS::AutoFilename filename;
-  unsigned lineno;
-
-  JS::DescribeScriptedCaller(cx, &filename, &lineno);
-
-  JS::CompileOptions options(cx);
-  options.setFileAndLine(filename.get(), lineno);
-
-  JS::SourceText<char16_t> srcBuf;
-  if (!srcBuf.init(cx, src, srclen, SourceOwnership::Borrowed)) {
-    return false;
-  }
-
-  RootedScript script(cx, JS::Compile(cx, options, srcBuf));
-  if (!script) {
-    return false;
-  }
-
-  global = CheckedUnwrapDynamic(global, cx, /* stopAtWindowProxy = */ false);
-  if (!global) {
-    JS_ReportErrorASCII(cx, "Permission denied to access global");
-    return false;
-  }
-  if (!global->is<GlobalObject>()) {
-    JS_ReportErrorASCII(cx, "Argument must be a global object");
-    return false;
-  }
-
-  JS::RootedValue rval(cx);
-  {
-    AutoRealm ar(cx, global);
-    if (!JS::CloneAndExecuteScript(cx, script, &rval)) {
-      return false;
-    }
-  }
-
-  if (!cx->compartment()->wrap(cx, &rval)) {
-    return false;
-  }
-
-  args.rval().set(rval);
   return true;
 }
 
@@ -5960,6 +5896,25 @@ static bool GetStringRepresentation(JSContext* cx, unsigned argc, Value* vp) {
 
 #endif
 
+static bool ParseCompileOptionsForModule(JSContext* cx,
+                                         JS::CompileOptions& options,
+                                         JS::Handle<JSObject*> opts,
+                                         bool& isModule) {
+  JS::Rooted<JS::Value> v(cx);
+
+  if (!JS_GetProperty(cx, opts, "module", &v)) {
+    return false;
+  }
+  if (!v.isUndefined() && JS::ToBoolean(v)) {
+    options.setModule();
+    isModule = true;
+  } else {
+    isModule = false;
+  }
+
+  return true;
+}
+
 static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -5985,6 +5940,7 @@ static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
 
   CompileOptions options(cx);
   UniqueChars fileNameBytes;
+  bool isModule = false;
   if (args.length() == 2) {
     if (!args[1].isObject()) {
       JS_ReportErrorASCII(
@@ -5997,10 +5953,18 @@ static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
     if (!js::ParseCompileOptions(cx, options, opts, &fileNameBytes)) {
       return false;
     }
+
+    if (!ParseCompileOptionsForModule(cx, options, opts, isModule)) {
+      return false;
+    }
   }
 
-  RefPtr<JS::Stencil> stencil =
-      JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
+  RefPtr<JS::Stencil> stencil;
+  if (isModule) {
+    stencil = JS::CompileModuleScriptToStencil(cx, options, srcBuf);
+  } else {
+    stencil = JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
+  }
   if (!stencil) {
     return false;
   }
@@ -6029,6 +5993,13 @@ static bool EvalStencil(JSContext* cx, uint32_t argc, Value* vp) {
   }
   Rooted<js::StencilObject*> stencilObj(
       cx, &args[0].toObject().as<js::StencilObject>());
+
+  if (stencilObj->stencil()->isModule()) {
+    JS_ReportErrorASCII(cx,
+                        "evalStencil: Module stencil cannot be evaluated. Use "
+                        "instantiateModuleStencil instead");
+    return false;
+  }
 
   CompileOptions options(cx);
   UniqueChars fileNameBytes;
@@ -6103,6 +6074,7 @@ static bool CompileToStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
 
   CompileOptions options(cx);
   UniqueChars fileNameBytes;
+  bool isModule = false;
   if (args.length() == 2) {
     if (!args[1].isObject()) {
       JS_ReportErrorASCII(
@@ -6115,13 +6087,22 @@ static bool CompileToStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
     if (!js::ParseCompileOptions(cx, options, opts, &fileNameBytes)) {
       return false;
     }
+
+    if (!ParseCompileOptionsForModule(cx, options, opts, isModule)) {
+      return false;
+    }
   }
 
   /* Compile the script text to stencil. */
   Rooted<frontend::CompilationInput> input(cx,
                                            frontend::CompilationInput(options));
-  auto stencil = frontend::CompileGlobalScriptToExtensibleStencil(
-      cx, input.get(), srcBuf, ScopeKind::Global);
+  UniquePtr<frontend::ExtensibleCompilationStencil> stencil;
+  if (isModule) {
+    stencil = frontend::ParseModuleToExtensibleStencil(cx, input.get(), srcBuf);
+  } else {
+    stencil = frontend::CompileGlobalScriptToExtensibleStencil(
+        cx, input.get(), srcBuf, ScopeKind::Global);
+  }
   if (!stencil) {
     return false;
   }
@@ -6194,6 +6175,13 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   }
   if (!succeeded) {
     JS_ReportErrorASCII(cx, "Decoding failure");
+    return false;
+  }
+
+  if (stencil.isModule()) {
+    JS_ReportErrorASCII(cx,
+                        "evalStencilXDR: Module stencil cannot be evaluated. "
+                        "Use instantiateModuleStencilXDR instead");
     return false;
   }
 
@@ -7285,7 +7273,7 @@ static bool GetICUOptions(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  str = NewStringCopyZ<CanGC>(cx, uloc_getDefault());
+  str = NewStringCopyZ<CanGC>(cx, mozilla::intl::Locale::GetDefaultLocale());
   if (!str || !JS_DefineProperty(cx, info, "locale", str, JSPROP_ENUMERATE)) {
     return false;
   }
@@ -7302,12 +7290,24 @@ static bool GetICUOptions(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  str = intl::CallICU(cx, ucal_getDefaultTimeZone);
+  intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> buf(cx);
+
+  if (auto ok = mozilla::intl::TimeZone::GetDefaultTimeZone(buf); ok.isErr()) {
+    intl::ReportInternalError(cx, ok.unwrapErr());
+    return false;
+  }
+
+  str = buf.toString(cx);
   if (!str || !JS_DefineProperty(cx, info, "timezone", str, JSPROP_ENUMERATE)) {
     return false;
   }
 
-  str = intl::CallICU(cx, ucal_getHostTimeZone);
+  if (auto ok = mozilla::intl::TimeZone::GetHostTimeZone(buf); ok.isErr()) {
+    intl::ReportInternalError(cx, ok.unwrapErr());
+    return false;
+  }
+
+  str = buf.toString(cx);
   if (!str ||
       !JS_DefineProperty(cx, info, "host-timezone", str, JSPROP_ENUMERATE)) {
     return false;
@@ -8214,11 +8214,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE, WASM_FEATURE)
 "  Evaluate the script in a new scope and return the scope.\n"
 "  If |global| is present, clone the script to |global| before executing."),
 
-    JS_FN_HELP("cloneAndExecuteScript", ShellCloneAndExecuteScript, 2, 0,
-"cloneAndExecuteScript(source, global)",
-"  Compile |source| in the current compartment, clone it into |global|'s\n"
-"  compartment, and run it there."),
-
     JS_FN_HELP("backtrace", DumpBacktrace, 1, 0,
 "backtrace()",
 "  Dump out a brief backtrace."),
@@ -8438,23 +8433,23 @@ JS_FN_HELP("isSmallFunction", IsSmallFunction, 1, 0,
 "  Returns true if a scripted function is small enough to be inlinable."),
 
     JS_FN_HELP("compileToStencil", CompileToStencil, 1, 0,
-"compileToStencil(string)",
+"compileToStencil(string, [options])",
 "  Parses the given string argument as js script, returns the stencil"
 "  for it."),
 
     JS_FN_HELP("evalStencil", EvalStencil, 1, 0,
-"compileStencil(stencil)",
+"evalStencil(stencil, [options])",
 "  Instantiates the given stencil, and evaluates the top-level script it"
 "  defines."),
 
     JS_FN_HELP("compileToStencilXDR", CompileToStencilXDR, 1, 0,
-"compileToStencilXDR(string)",
+"compileToStencilXDR(string, [options])",
 "  Parses the given string argument as js script, produces the stencil"
 "  for it, XDR-encodes the stencil, and returns an object that contains the"
 "  XDR buffer."),
 
     JS_FN_HELP("evalStencilXDR", EvalStencilXDR, 1, 0,
-"evalStencilXDR(stencilXDR)",
+"evalStencilXDR(stencilXDR, [options])",
 "  Reads the given stencil XDR object, and evaluates the top-level script it"
 "  defines."),
 

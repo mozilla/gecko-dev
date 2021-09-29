@@ -71,6 +71,7 @@
 #include "nsInlineFrame.h"
 #include "nsFrameSelection.h"
 #include "nsGkAtoms.h"
+#include "nsGridContainerFrame.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsCanvasFrame.h"
 
@@ -81,7 +82,6 @@
 #include "nsNameSpaceManager.h"
 #include "nsIPercentBSizeObserver.h"
 #include "nsStyleStructInlines.h"
-#include "ImageLayers.h"
 
 #include "nsBidiPresUtils.h"
 #include "RubyUtils.h"
@@ -2159,7 +2159,7 @@ void nsIFrame::UpdateVisibilitySynchronously() {
     }
     nsIFrame* parent = f->GetParent();
     if (!parent) {
-      parent = nsLayoutUtils::GetCrossDocParentFrame(f);
+      parent = nsLayoutUtils::GetCrossDocParentFrameInProcess(f);
       if (parent && parent->PresContext()->IsChrome()) {
         break;
       }
@@ -2338,7 +2338,7 @@ template <typename SizeOrMaxSize>
 static inline bool IsIntrinsicKeyword(const SizeOrMaxSize& aSize) {
   // All keywords other than auto/none/-moz-available depend on intrinsic sizes.
   return aSize.IsMaxContent() || aSize.IsMinContent() ||
-         aSize.IsMozFitContent() || aSize.IsFitContentFunction();
+         aSize.IsFitContent() || aSize.IsFitContentFunction();
 }
 
 bool nsIFrame::CanBeDynamicReflowRoot() const {
@@ -5750,6 +5750,10 @@ void nsIFrame::MarkIntrinsicISizesDirty() {
   if (HasAnyStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT)) {
     nsFontInflationData::MarkFontInflationDataTextDirty(this);
   }
+
+  if (StaticPrefs::layout_css_grid_item_baxis_measurement_enabled()) {
+    RemoveProperty(nsGridContainerFrame::CachedBAxisMeasurement::Prop());
+  }
 }
 
 void nsIFrame::MarkSubtreeDirty() {
@@ -6604,7 +6608,7 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
                           ? AspectRatioUsage::ToComputeISize
                           : AspectRatioUsage::None};
     case ExtremumLength::FitContentFunction:
-    case ExtremumLength::MozFitContent: {
+    case ExtremumLength::FitContent: {
       nscoord pref = NS_UNCONSTRAINEDSIZE;
       nscoord min = 0;
       if (intrinsicSizeFromAspectRatio) {
@@ -7205,13 +7209,7 @@ static void SchedulePaintInternal(
     return;
   }
 
-  pres->PresShell()->ScheduleViewManagerFlush(
-      aType == nsIFrame::PAINT_DELAYED_COMPRESS ? PaintType::DelayedCompress
-                                                : PaintType::Default);
-
-  if (aType == nsIFrame::PAINT_DELAYED_COMPRESS) {
-    return;
-  }
+  pres->PresShell()->ScheduleViewManagerFlush();
 
   if (aType == nsIFrame::PAINT_DEFAULT) {
     aDisplayRoot->AddStateBits(NS_FRAME_UPDATE_LAYER_TREE);
@@ -7490,9 +7488,10 @@ void nsIFrame::MovePositionBy(const nsPoint& aTranslation) {
 nsRect nsIFrame::GetNormalRect() const {
   // It might be faster to first check
   // StyleDisplay()->IsRelativelyPositionedStyle().
-  nsPoint* normalPosition = GetProperty(NormalPositionProperty());
-  if (normalPosition) {
-    return nsRect(*normalPosition, GetSize());
+  bool hasProperty;
+  nsPoint normalPosition = GetProperty(NormalPositionProperty(), &hasProperty);
+  if (hasProperty) {
+    return nsRect(normalPosition, GetSize());
   }
   return GetRect();
 }
@@ -8152,7 +8151,7 @@ nsresult nsIFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
   aPos->mAttach = aPos->mDirection == eDirNext ? CARET_ASSOCIATE_AFTER
                                                : CARET_ASSOCIATE_BEFORE;
 
-  const nsAutoLineIterator it = aBlockFrame->GetLineIterator();
+  nsAutoLineIterator it = aBlockFrame->GetLineIterator();
   if (!it) {
     return NS_ERROR_FAILURE;
   }
@@ -8196,8 +8195,8 @@ nsresult nsIFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
     lastFrame = firstFrame = line.mFirstFrameOnLine;
     for (int32_t lineFrameCount = line.mNumFramesOnLine; lineFrameCount > 1;
          lineFrameCount--) {
-      result = it->GetNextSiblingOnLine(lastFrame, searchingLine);
-      if (NS_FAILED(result) || !lastFrame) {
+      lastFrame = lastFrame->GetNextSibling();
+      if (!lastFrame) {
         NS_ERROR("GetLine promised more frames than could be found");
         return NS_ERROR_FAILURE;
       }
@@ -8226,8 +8225,7 @@ nsresult nsIFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
     if (resultFrame) {
       // check to see if this is ANOTHER blockframe inside the other one if so
       // then call into its lines
-      nsAutoLineIterator newIt = resultFrame->GetLineIterator();
-      if (newIt) {
+      if (resultFrame->CanProvideLineIterator()) {
         aPos->mResultFrame = resultFrame;
         return NS_OK;
       }
@@ -8726,16 +8724,19 @@ nsresult nsIFrame::PeekOffsetForWord(nsPeekOffsetStruct* aPos,
 }
 
 nsresult nsIFrame::PeekOffsetForLine(nsPeekOffsetStruct* aPos) {
-  nsAutoLineIterator iter;
   nsIFrame* blockFrame = this;
   nsresult result = NS_ERROR_FAILURE;
 
   while (NS_FAILED(result)) {
-    int32_t thisLine;
-    MOZ_TRY_VAR(thisLine,
-                blockFrame->GetLineNumber(aPos->mScrollViewStop, &blockFrame));
-    iter = blockFrame->GetLineIterator();
-    MOZ_ASSERT(iter, "GetLineNumber() succeeded but no block frame?");
+    auto [newBlock, lineFrame] =
+        blockFrame->GetContainingBlockForLine(aPos->mScrollViewStop);
+    if (!newBlock) {
+      return NS_ERROR_FAILURE;
+    }
+    blockFrame = newBlock;
+    nsAutoLineIterator iter = blockFrame->GetLineIterator();
+    int32_t thisLine = iter->FindLineContaining(lineFrame);
+    MOZ_ASSERT(thisLine >= 0, "Failed to find line!");
 
     int edgeCase = 0;  // no edge case. this should look at thisLine
 
@@ -8782,8 +8783,7 @@ nsresult nsIFrame::PeekOffsetForLine(nsPeekOffsetStruct* aPos) {
           // got the table frame now
           // ok time to drill down to find iterator
           while (frame) {
-            iter = frame->GetLineIterator();
-            if (iter) {
+            if (frame->CanProvideLineIterator()) {
               aPos->mResultFrame = frame;
               searchTableBool = true;
               result = NS_OK;
@@ -8795,12 +8795,13 @@ nsresult nsIFrame::PeekOffsetForLine(nsPeekOffsetStruct* aPos) {
         }
 
         if (!searchTableBool) {
-          iter = aPos->mResultFrame->GetLineIterator();
-          result = iter ? NS_OK : NS_ERROR_FAILURE;
+          result = aPos->mResultFrame->CanProvideLineIterator()
+                       ? NS_OK
+                       : NS_ERROR_FAILURE;
         }
 
         // we've struck another block element!
-        if (NS_SUCCEEDED(result) && iter) {
+        if (NS_SUCCEEDED(result)) {
           doneLooping = false;
           if (aPos->mDirection == eDirPrevious) {
             edgeCase = 1;  // far edge, search from end backwards
@@ -8825,14 +8826,19 @@ nsresult nsIFrame::PeekOffsetForLine(nsPeekOffsetStruct* aPos) {
 
 nsresult nsIFrame::PeekOffsetForLineEdge(nsPeekOffsetStruct* aPos) {
   // Adjusted so that the caret can't get confused when content changes
-  nsIFrame* blockFrame = AdjustFrameForSelectionStyles(this);
-  Element* editingHost = blockFrame->GetContent()->GetEditingHost();
+  nsIFrame* frame = AdjustFrameForSelectionStyles(this);
+  Element* editingHost = frame->GetContent()->GetEditingHost();
 
-  int32_t thisLine;
-  MOZ_TRY_VAR(thisLine,
-              blockFrame->GetLineNumber(aPos->mScrollViewStop, &blockFrame));
+  auto [blockFrame, lineFrame] =
+      frame->GetContainingBlockForLine(aPos->mScrollViewStop);
+  if (!blockFrame) {
+    return NS_ERROR_FAILURE;
+  }
   nsAutoLineIterator it = blockFrame->GetLineIterator();
-  MOZ_ASSERT(it, "GetLineNumber() succeeded but no block frame?");
+  int32_t thisLine = it->FindLineContaining(lineFrame);
+  if (thisLine < 0) {
+    return NS_ERROR_FAILURE;
+  }
 
   nsIFrame* baseFrame = nullptr;
   bool endOfLine = (eSelectEndLine == aPos->mAmount);
@@ -9032,14 +9038,11 @@ nsresult nsIFrame::CheckVisibility(nsPresContext*, int32_t, int32_t, bool,
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-Result<int32_t, nsresult> nsIFrame::GetLineNumber(bool aLockScroll,
-                                                  nsIFrame** aContainingBlock) {
-  MOZ_ASSERT(aContainingBlock);
-
-  nsIFrame* parentFrame = this;
-  nsIFrame* frame;
-  nsAutoLineIterator it;
-  while (!it && parentFrame) {
+std::pair<nsIFrame*, nsIFrame*> nsIFrame::GetContainingBlockForLine(
+    bool aLockScroll) const {
+  const nsIFrame* parentFrame = this;
+  const nsIFrame* frame;
+  while (parentFrame) {
     frame = parentFrame;
     if (frame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
       // if we are searching for a frame that is not in flow we will not find
@@ -9050,27 +9053,21 @@ Result<int32_t, nsresult> nsIFrame::GetLineNumber(bool aLockScroll,
       }
       frame = frame->GetPlaceholderFrame();
       if (!frame) {
-        return Err(NS_ERROR_FAILURE);
+        return std::pair(nullptr, nullptr);
       }
     }
     parentFrame = frame->GetParent();
     if (parentFrame) {
       if (aLockScroll && parentFrame->IsScrollFrame()) {
-        return Err(NS_ERROR_FAILURE);
+        return std::pair(nullptr, nullptr);
       }
-      it = parentFrame->GetLineIterator();
+      if (parentFrame->CanProvideLineIterator()) {
+        return std::pair(const_cast<nsIFrame*>(parentFrame),
+                         const_cast<nsIFrame*>(frame));
+      }
     }
   }
-  if (!parentFrame || !it) {
-    return Err(NS_ERROR_FAILURE);
-  }
-
-  *aContainingBlock = parentFrame;
-  int32_t line = it->FindLineContaining(frame);
-  if (line < 0) {
-    return Err(NS_ERROR_FAILURE);
-  }
-  return line;
+  return std::pair(nullptr, nullptr);
 }
 
 Result<bool, nsresult> nsIFrame::IsVisuallyAtLineEdge(
@@ -9112,7 +9109,7 @@ Result<bool, nsresult> nsIFrame::IsLogicallyAtLineEdge(
   nsIFrame* lastFrame = line.mFirstFrameOnLine;
   for (int32_t lineFrameCount = line.mNumFramesOnLine; lineFrameCount > 1;
        lineFrameCount--) {
-    MOZ_TRY(aLineIterator->GetNextSiblingOnLine(lastFrame, aLine));
+    lastFrame = lastFrame->GetNextSibling();
     if (!lastFrame) {
       NS_ERROR("should not be reached nsIFrame");
       return Err(NS_ERROR_FAILURE);
@@ -9141,13 +9138,17 @@ nsIFrame::SelectablePeekReport nsIFrame::GetFrameFromDirection(
   bool selectable = false;
   nsIFrame* traversedFrame = this;
   while (!selectable) {
-    nsIFrame* blockFrame;
-
-    int32_t thisLine;
-    MOZ_TRY_VAR(thisLine,
-                traversedFrame->GetLineNumber(aScrollViewStop, &blockFrame));
+    auto [blockFrame, lineFrame] =
+        traversedFrame->GetContainingBlockForLine(aScrollViewStop);
+    if (!blockFrame) {
+      return result;
+    }
 
     nsAutoLineIterator it = blockFrame->GetLineIterator();
+    int32_t thisLine = it->FindLineContaining(lineFrame);
+    if (thisLine < 0) {
+      return result;
+    }
 
     bool atLineEdge;
     MOZ_TRY_VAR(

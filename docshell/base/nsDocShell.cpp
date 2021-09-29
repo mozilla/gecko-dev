@@ -1161,6 +1161,7 @@ void nsDocShell::FirePageHideShowNonRecursive(bool aShow) {
     mFiredUnloadEvent = false;
     RefPtr<Document> doc = contentViewer->GetDocument();
     if (doc) {
+      doc->NotifyActivityChanged();
       RefPtr<nsGlobalWindowInner> inner =
           mScriptGlobal ? mScriptGlobal->GetCurrentInnerWindowInternal()
                         : nullptr;
@@ -3678,15 +3679,17 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
 
   // If the HTTPS-Only Mode upgraded this request and the upgrade might have
   // caused this error, we replace the error-page with about:httpsonlyerror
-  if (nsHTTPSOnlyUtils::CouldBeHttpsOnlyError(aFailedChannel, aError)) {
+  bool isHttpsOnlyError =
+      nsHTTPSOnlyUtils::CouldBeHttpsOnlyError(aFailedChannel, aError);
+  if (isHttpsOnlyError) {
     errorPage.AssignLiteral("httpsonlyerror");
   }
 
   if (nsCOMPtr<nsILoadURIDelegate> loadURIDelegate = GetLoadURIDelegate()) {
     nsCOMPtr<nsIURI> errorPageURI;
-    rv = loadURIDelegate->HandleLoadError(aURI, aError,
-                                          NS_ERROR_GET_MODULE(aError),
-                                          getter_AddRefs(errorPageURI));
+    rv = loadURIDelegate->HandleLoadError(
+        aURI, (isHttpsOnlyError ? NS_ERROR_HTTPS_ONLY : aError),
+        NS_ERROR_GET_MODULE(aError), getter_AddRefs(errorPageURI));
     // If the docshell is going away there's no point in showing an error page.
     if (NS_FAILED(rv) || mIsBeingDestroyed) {
       *aDisplayedErrorPage = false;
@@ -9321,6 +9324,23 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   // value for our purposes here.
   bool savePresentation =
       CanSavePresentation(aLoadState->LoadType(), nullptr, nullptr);
+
+  // nsDocShell::CanSavePresentation is for non-SHIP version only. Do a
+  // separate check for SHIP so that we know if there are ongoing requests
+  // before calling Stop() below.
+  if (mozilla::SessionHistoryInParent()) {
+    Document* document = GetDocument();
+    uint16_t flags = 0;
+    if (document && !document->CanSavePresentation(nullptr, flags, true)) {
+      // This forces some flags into the WindowGlobalParent's mBFCacheStatus,
+      // which we'll then use in CanonicalBrowsingContext::AllowedInBFCache,
+      // and in particular we'll store BFCacheStatus::REQUEST if needed.
+      // Also, we want to report all the flags to the parent process here (and
+      // not just BFCacheStatus::NOT_ALLOWED), so that it can update the
+      // telemetry data correctly.
+      document->DisallowBFCaching(flags);
+    }
+  }
 
   // Don't stop current network activity for javascript: URL's since
   // they might not result in any data, and thus nothing should be

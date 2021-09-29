@@ -1334,7 +1334,7 @@ class nsIFrame : public nsQueryFrame {
   NS_DECLARE_FRAME_PROPERTY_WITHOUT_DTOR(IBSplitSibling, nsContainerFrame)
   NS_DECLARE_FRAME_PROPERTY_WITHOUT_DTOR(IBSplitPrevSibling, nsContainerFrame)
 
-  NS_DECLARE_FRAME_PROPERTY_DELETABLE(NormalPositionProperty, nsPoint)
+  NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(NormalPositionProperty, nsPoint)
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(ComputedOffsetProperty, nsMargin)
 
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(OutlineInnerRectProperty, nsRect)
@@ -3076,7 +3076,7 @@ class nsIFrame : public nsQueryFrame {
   // intrinsic-sizing keywords.
   bool HasIntrinsicKeywordForBSize() const {
     const auto& bSize = StylePosition()->BSize(GetWritingMode());
-    return bSize.IsMozFitContent() || bSize.IsMinContent() ||
+    return bSize.IsFitContent() || bSize.IsMinContent() ||
            bSize.IsMaxContent() || bSize.IsFitContentFunction();
   }
   /**
@@ -3543,15 +3543,8 @@ class nsIFrame : public nsQueryFrame {
    * @param aType PAINT_COMPOSITE_ONLY : No changes have been made
    * that require a layer tree update, so only schedule a layer
    * tree composite.
-   * PAINT_DELAYED_COMPRESS : Schedule a paint to be executed after a delay, and
-   * put FrameLayerBuilder in 'compressed' mode that avoids short cut
-   * optimizations.
    */
-  enum PaintType {
-    PAINT_DEFAULT = 0,
-    PAINT_COMPOSITE_ONLY,
-    PAINT_DELAYED_COMPRESS
-  };
+  enum PaintType { PAINT_DEFAULT = 0, PAINT_COMPOSITE_ONLY };
   void SchedulePaint(PaintType aType = PAINT_DEFAULT,
                      bool aFrameChanged = true);
 
@@ -3896,6 +3889,17 @@ class nsIFrame : public nsQueryFrame {
 
   SelectablePeekReport GetFrameFromDirection(const nsPeekOffsetStruct& aPos);
 
+  /**
+   * Return:
+   * (1) the containing block frame for a line; i.e. the frame which
+   * supports a line iterator, or null if none can be found; and
+   * (2) the frame to use to get a line number, which will be direct child of
+   * the returned containing block.
+   * @param aLockScroll true to avoid breaking outside scrollframes.
+   */
+  std::pair<nsIFrame*, nsIFrame*> GetContainingBlockForLine(
+      bool aLockScroll) const;
+
  private:
   Result<bool, nsresult> IsVisuallyAtLineEdge(nsILineIterator* aLineIterator,
                                               int32_t aLine,
@@ -3903,13 +3907,6 @@ class nsIFrame : public nsQueryFrame {
   Result<bool, nsresult> IsLogicallyAtLineEdge(nsILineIterator* aLineIterator,
                                                int32_t aLine,
                                                nsDirection aDirection);
-
-  // Return the line number of the aFrame, and (optionally) the containing block
-  // frame.
-  // If aScrollLock is true, don't break outside scrollframes when looking for a
-  // containing block frame.
-  Result<int32_t, nsresult> GetLineNumber(
-      bool aLockScroll, nsIFrame** aContainingBlock = nullptr);
 
  public:
   /**
@@ -4464,6 +4461,12 @@ class nsIFrame : public nsQueryFrame {
   CaretPosition GetExtremeCaretPosition(bool aStart);
 
   /**
+   * Query whether this frame supports getting a line iterator.
+   * @return true if a line iterator is supported.
+   */
+  virtual bool CanProvideLineIterator() const { return false; }
+
+  /**
    * Get a line iterator for this frame, if supported.
    *
    * @return nullptr if no line iterator is supported.
@@ -4775,7 +4778,7 @@ class nsIFrame : public nsQueryFrame {
     MinContent,
     MaxContent,
     MozAvailable,
-    MozFitContent,
+    FitContent,
     FitContentFunction,
   };
 
@@ -4788,8 +4791,8 @@ class nsIFrame : public nsQueryFrame {
         return mozilla::Some(ExtremumLength::MaxContent);
       case SizeOrMaxSize::Tag::MozAvailable:
         return mozilla::Some(ExtremumLength::MozAvailable);
-      case SizeOrMaxSize::Tag::MozFitContent:
-        return mozilla::Some(ExtremumLength::MozFitContent);
+      case SizeOrMaxSize::Tag::FitContent:
+        return mozilla::Some(ExtremumLength::FitContent);
       case SizeOrMaxSize::Tag::FitContentFunction:
         return mozilla::Some(ExtremumLength::FitContentFunction);
       default:

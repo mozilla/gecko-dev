@@ -127,7 +127,8 @@ const jexlEvaluationCache = new Map();
 function CachedTargetingGetter(
   property,
   options = null,
-  updateInterval = FRECENT_SITES_UPDATE_INTERVAL
+  updateInterval = FRECENT_SITES_UPDATE_INTERVAL,
+  getter = asProvider
 ) {
   return {
     _lastUpdated: 0,
@@ -140,7 +141,7 @@ function CachedTargetingGetter(
     async get() {
       const now = Date.now();
       if (now - this._lastUpdated >= updateInterval) {
-        this._value = await asProvider[property](options);
+        this._value = await getter[property](options);
         this._lastUpdated = now;
       }
       return this._value;
@@ -194,11 +195,13 @@ function CheckBrowserNeedsUpdate(
       return new Promise((resolve, reject) => {
         const now = Date.now();
         const updateServiceListener = {
-          onCheckComplete(request, updates) {
+          // eslint-disable-next-line require-await
+          async onCheckComplete(request, updates) {
             checker._value = !!updates.length;
             resolve(checker._value);
           },
-          onError(request, update) {
+          // eslint-disable-next-line require-await
+          async onError(request, update) {
             reject(request);
           },
 
@@ -230,6 +233,9 @@ const QueryCache = {
     Object.keys(this.queries).forEach(query => {
       this.queries[query].expire();
     });
+    Object.keys(this.getters).forEach(key => {
+      this.getters[key].expire();
+    });
   },
   queries: {
     TopFrecentSites: new CachedTargetingGetter("getTopFrecentSites", {
@@ -244,6 +250,14 @@ const QueryCache = {
     RecentBookmarks: new CachedTargetingGetter("getRecentBookmarks"),
     ListAttachedOAuthClients: new CacheListAttachedOAuthClients(),
     UserMonthlyActivity: new CachedTargetingGetter("getUserMonthlyActivity"),
+  },
+  getters: {
+    doesAppNeedPin: new CachedTargetingGetter(
+      "doesAppNeedPin",
+      null,
+      FRECENT_SITES_UPDATE_INTERVAL,
+      ShellService
+    ),
   },
 };
 
@@ -617,10 +631,16 @@ const TargetingGetters = {
   get activeNotifications() {
     let window = BrowserWindowTracker.getTopWindow();
 
+    // Technically this doesn't mean we have active notifications,
+    // but because we use !activeNotifications to check for conflicts, this should return true
+    if (!window) {
+      return true;
+    }
+
     if (
-      window.gURLBar.view.isOpen ||
-      window.gNotificationBox.currentNotification ||
-      window.gBrowser.getNotificationBox().currentNotification
+      window.gURLBar?.view.isOpen ||
+      window.gNotificationBox?.currentNotification ||
+      window.gBrowser.getNotificationBox()?.currentNotification
     ) {
       return true;
     }
@@ -638,6 +658,10 @@ const TargetingGetters = {
 
   get userMonthlyActivity() {
     return QueryCache.queries.UserMonthlyActivity.get();
+  },
+
+  get doesAppNeedPin() {
+    return QueryCache.getters.doesAppNeedPin.get();
   },
 };
 

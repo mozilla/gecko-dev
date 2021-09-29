@@ -2220,7 +2220,9 @@ void nsWindow::WaylandPopupSetDirectPosition(GdkPoint* aPosition,
     LOG_POPUP(("  setting new bounds [%d, %d]\n", mBounds.x, mBounds.y));
     NotifyWindowMoved(mBounds.x, mBounds.y);
     nsMenuPopupFrame* popupFrame = GetMenuPopupFrame(GetFrame());
-    popupFrame->MoveTo(CSSIntPoint(mPopupPosition.x, mPopupPosition.y), true);
+    if (popupFrame) {
+      popupFrame->MoveTo(CSSIntPoint(mPopupPosition.x, mPopupPosition.y), true);
+    }
   }
 }
 
@@ -8139,8 +8141,16 @@ gboolean WindowDragMotionHandler(GtkWidget* aWidget,
   LayoutDeviceIntPoint point = window->GdkPointToDevicePixels({retx, rety});
 
   RefPtr<nsDragService> dragService = nsDragService::GetInstance();
-  return dragService->ScheduleMotionEvent(innerMostWindow, aDragContext,
-                                          aDataOffer, point, aTime);
+  if (!dragService->ScheduleMotionEvent(innerMostWindow, aDragContext,
+                                        aDataOffer, point, aTime)) {
+    return FALSE;
+  }
+  // We need to reply to drag_motion event on Wayland immediately,
+  // see Bug 1730203.
+  if (GdkIsWaylandDisplay()) {
+    dragService->ReplyToDragMotion();
+  }
+  return TRUE;
 }
 
 static gboolean drag_motion_event_cb(GtkWidget* aWidget,
@@ -8152,13 +8162,17 @@ static gboolean drag_motion_event_cb(GtkWidget* aWidget,
 void WindowDragLeaveHandler(GtkWidget* aWidget) {
   LOGDRAG(("WindowDragLeaveHandler()\n"));
 
+  RefPtr<nsDragService> dragService = nsDragService::GetInstance();
+  if (!dragService->IsDragActive()) {
+    LOGDRAG(("    Already finished.\n"));
+    return;
+  }
+
   RefPtr<nsWindow> window = get_window_for_gtk_widget(aWidget);
   if (!window) {
     LOGDRAG(("    Failed - can't find nsWindow!\n"));
     return;
   }
-
-  RefPtr<nsDragService> dragService = nsDragService::GetInstance();
 
   nsWindow* mostRecentDragWindow = dragService->GetMostRecentDestWindow();
   if (!mostRecentDragWindow) {

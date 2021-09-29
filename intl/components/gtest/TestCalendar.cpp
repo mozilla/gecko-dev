@@ -4,6 +4,7 @@
 #include "gtest/gtest.h"
 
 #include "mozilla/intl/Calendar.h"
+#include "mozilla/intl/DateTimeFormat.h"
 #include "mozilla/Span.h"
 #include "TestBuffer.h"
 
@@ -52,6 +53,28 @@ TEST(IntlCalendar, GetBcp47KeywordValuesForLocale)
   ASSERT_TRUE(hasIslamic);
 }
 
+TEST(IntlCalendar, GetBcp47KeywordValuesForLocaleCommonlyUsed)
+{
+  bool hasGregory = false;
+  bool hasIslamic = false;
+  auto gregory = MakeStringSpan("gregory");
+  auto islamic = MakeStringSpan("islamic");
+  auto keywords = Calendar::GetBcp47KeywordValuesForLocale(
+                      "en-US", Calendar::CommonlyUsed::Yes)
+                      .unwrap();
+  for (auto name : keywords) {
+    // Check a few keywords, as this list may not be stable between ICU updates.
+    if (name.unwrap() == gregory) {
+      hasGregory = true;
+    }
+    if (name.unwrap() == islamic) {
+      hasIslamic = true;
+    }
+  }
+  ASSERT_TRUE(hasGregory);
+  ASSERT_FALSE(hasIslamic);
+}
+
 TEST(IntlCalendar, GetBcp47Type)
 {
   auto calendar =
@@ -59,21 +82,13 @@ TEST(IntlCalendar, GetBcp47Type)
   ASSERT_STREQ(calendar->GetBcp47Type().unwrap(), "gregory");
 }
 
-// These tests are dependent on the machine that this test is being run on.
-// Unwrap the results to ensure it doesn't fail, but don't check the values.
-TEST(IntlCalendar, SystemDependentTests)
+TEST(IntlCalendar, SetTimeInMs)
 {
   auto calendar =
       Calendar::TryCreate("en-US", Some(MakeStringSpan(u"GMT+3"))).unwrap();
-  TestBuffer<char16_t> buffer;
-  // e.g. For America/Chicago: 1000 * 60 * 60 * -6
-  calendar->GetDefaultTimeZoneOffsetMs().unwrap();
 
-  // e.g. "America/Chicago"
-  Calendar::GetDefaultTimeZone(buffer).unwrap();
-
-  // This isn't system dependent, but currently there is no way to verify the
-  // results.
+  // There is no way to verify the results. Unwrap the results to ensure it
+  // doesn't fail, but don't check the values.
   calendar->SetTimeInMs(CALENDAR_DATE).unwrap();
 }
 
@@ -93,24 +108,49 @@ TEST(IntlCalendar, CloneFrom)
   dtFormat->CloneCalendar(CALENDAR_DATE).unwrap();
 }
 
-TEST(IntlCalendar, GetCanonicalTimeZoneID)
+TEST(IntlCalendar, GetWeekend)
 {
-  TestBuffer<char16_t> buffer;
+  auto calendar_en_US = Calendar::TryCreate("en-US").unwrap();
+  auto weekend_en_US = calendar_en_US->GetWeekend().unwrap();
+  ASSERT_EQ(weekend_en_US, EnumSet({Weekday::Saturday, Weekday::Sunday}));
 
-  // Providing a canonical time zone results in the same string at the end.
-  Calendar::GetCanonicalTimeZoneID(MakeStringSpan(u"America/Chicago"), buffer)
-      .unwrap();
-  ASSERT_EQ(buffer.get_string_view(), u"America/Chicago");
+  auto calendar_de_DE = Calendar::TryCreate("de-DE").unwrap();
+  auto weekend_de_DE = calendar_de_DE->GetWeekend().unwrap();
+  ASSERT_EQ(weekend_de_DE, EnumSet({Weekday::Saturday, Weekday::Sunday}));
 
-  // Providing an alias will result in the canonical representation.
-  Calendar::GetCanonicalTimeZoneID(MakeStringSpan(u"Europe/Belfast"), buffer)
-      .unwrap();
-  ASSERT_EQ(buffer.get_string_view(), u"Europe/London");
+  auto calendar_ar_EG = Calendar::TryCreate("ar-EG").unwrap();
+  auto weekend_ar_EG = calendar_ar_EG->GetWeekend().unwrap();
+  ASSERT_EQ(weekend_ar_EG, EnumSet({Weekday::Friday, Weekday::Saturday}));
+}
 
-  // An unknown time zone results in an error.
-  ASSERT_TRUE(Calendar::GetCanonicalTimeZoneID(
-                  MakeStringSpan(u"Not a time zone"), buffer)
-                  .isErr());
+TEST(IntlCalendar, GetFirstDayOfWeek)
+{
+  auto calendar_en_US = Calendar::TryCreate("en-US").unwrap();
+  auto firstDayOfWeek_en_US = calendar_en_US->GetFirstDayOfWeek();
+  ASSERT_EQ(firstDayOfWeek_en_US, Weekday::Sunday);
+
+  auto calendar_de_DE = Calendar::TryCreate("de-DE").unwrap();
+  auto firstDayOfWeek_de_DE = calendar_de_DE->GetFirstDayOfWeek();
+  ASSERT_EQ(firstDayOfWeek_de_DE, Weekday::Monday);
+
+  auto calendar_ar_EG = Calendar::TryCreate("ar-EG").unwrap();
+  auto firstDayOfWeek_ar_EG = calendar_ar_EG->GetFirstDayOfWeek();
+  ASSERT_EQ(firstDayOfWeek_ar_EG, Weekday::Saturday);
+}
+
+TEST(IntlCalendar, GetMinimalDaysInFirstWeek)
+{
+  auto calendar_en_US = Calendar::TryCreate("en-US").unwrap();
+  auto minimalDays_en_US = calendar_en_US->GetMinimalDaysInFirstWeek();
+  ASSERT_EQ(minimalDays_en_US, 1);
+
+  auto calendar_de_DE = Calendar::TryCreate("de-DE").unwrap();
+  auto minimalDays_de_DE = calendar_de_DE->GetMinimalDaysInFirstWeek();
+  ASSERT_EQ(minimalDays_de_DE, 4);
+
+  auto calendar_ar_EG = Calendar::TryCreate("ar-EG").unwrap();
+  auto minimalDays_ar_EG = calendar_ar_EG->GetMinimalDaysInFirstWeek();
+  ASSERT_EQ(minimalDays_ar_EG, 1);
 }
 
 }  // namespace mozilla::intl

@@ -231,7 +231,7 @@ bool Table::fillFuncRef(uint32_t index, uint32_t fillCount, FuncRef ref,
 #endif
 
   Instance& instance = instanceObj->instance();
-  void* code = instance.createIndirectStub(funcIndex, instance.tlsData());
+  void* code = instance.createIndirectStub(funcIndex);
   if (!code) {
     return false;
   }

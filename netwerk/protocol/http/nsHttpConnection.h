@@ -24,6 +24,7 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsISupportsPriority.h"
 #include "nsITimer.h"
+#include "nsITlsHandshakeListener.h"
 
 class nsISocketTransport;
 class nsISSLSocketControl;
@@ -56,6 +57,7 @@ class nsHttpConnection final : public HttpConnectionBase,
                                public nsIOutputStreamCallback,
                                public nsITransportEventSink,
                                public nsIInterfaceRequestor,
+                               public nsITlsHandshakeCallbackListener,
                                public NudgeTunnelCallback {
  private:
   virtual ~nsHttpConnection();
@@ -70,6 +72,7 @@ class nsHttpConnection final : public HttpConnectionBase,
   NS_DECL_NSIOUTPUTSTREAMCALLBACK
   NS_DECL_NSITRANSPORTEVENTSINK
   NS_DECL_NSIINTERFACEREQUESTOR
+  NS_DECL_NSITLSHANDSHAKECALLBACKLISTENER
   NS_DECL_NUDGETUNNELCALLBACK
 
   nsHttpConnection();
@@ -217,8 +220,7 @@ class nsHttpConnection final : public HttpConnectionBase,
 
   // Makes certain the SSL handshake is complete and NPN negotiation
   // has had a chance to happen
-  [[nodiscard]] bool EnsureNPNComplete(nsresult& aOut0RTTWriteHandshakeValue,
-                                       uint32_t& aOut0RTTBytesWritten);
+  [[nodiscard]] bool EnsureNPNComplete();
 
   void SetupSSL();
 
@@ -243,6 +245,11 @@ class nsHttpConnection final : public HttpConnectionBase,
   [[nodiscard]] nsresult DisableTCPKeepalives();
 
   bool CheckCanWrite0RTTData();
+  void Check0RttEnabled(nsISSLSocketControl* ssl);
+  void EarlyDataTelemetry(int16_t tlsVersion, bool earlyDataAccepted);
+  void FinishNPNSetup(bool handshakeSucceeded, bool hasSecurityInfo);
+  void Reset0RttForSpdy();
+  void HandshakeDoneInternal();
 
  private:
   // mTransaction only points to the HTTP Transaction callbacks if the
@@ -345,13 +352,23 @@ class nsHttpConnection final : public HttpConnectionBase,
   // Helper variable for 0RTT handshake;
   // Possible 0RTT has been checked.
   bool m0RTTChecked{false};
-  // We have are sending 0RTT data and we are waiting
-  // for the end of the handsake.
-  bool mWaitingFor0RTTResponse{false};
+  // 0RTT data state.
+  enum EarlyData {
+    NOT_AVAILABLE,
+    USED,
+    CANNOT_BE_USED,
+    DONE,
+  };
+  EarlyData mEarlyDataState{EarlyData::NOT_AVAILABLE};
+  bool EarlyDataAvailable() const {
+    return mEarlyDataState == EarlyData::USED ||
+           mEarlyDataState == EarlyData::CANNOT_BE_USED;
+  }
+  bool EarlyDataUsed() const { return mEarlyDataState == EarlyData::USED; }
   int64_t mContentBytesWritten0RTT{0};
-  bool mEarlyDataNegotiated{false};  // Only used for telemetry
   nsCString mEarlyNegotiatedALPN;
   bool mDid0RTTSpdy{false};
+  bool mTlsHandshakeComplitionPending{false};
 
   nsresult mErrorBeforeConnect = NS_OK;
 

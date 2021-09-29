@@ -203,27 +203,11 @@ static inline bool GetPropertyOperation(JSContext* cx, HandlePropertyName name,
   return GetProperty(cx, lval, name, vp);
 }
 
-static inline bool GetNameOperation(JSContext* cx, InterpreterFrame* fp,
-                                    jsbytecode* pc, MutableHandleValue vp) {
-  RootedObject envChain(cx, fp->environmentChain());
-  RootedPropertyName name(cx, fp->script()->getName(pc));
-
-  /*
-   * Skip along the env chain to the enclosing global object. This is
-   * used for GNAME opcodes where the bytecode emitter has determined a
-   * name access must be on the global. It also insulates us from bugs
-   * in the emitter: type inference will assume that GNAME opcodes are
-   * accessing the global object, and the inferred behavior should match
-   * the actual behavior even if the id could be found on the env chain
-   * before the global object.
-   */
-  if (IsGlobalOp(JSOp(*pc)) && !fp->script()->hasNonSyntacticScope()) {
-    envChain = &cx->global()->lexicalEnvironment();
-  }
-
+static inline bool GetNameOperation(JSContext* cx, HandleObject envChain,
+                                    HandlePropertyName name, JSOp nextOp,
+                                    MutableHandleValue vp) {
   /* Kludge to allow (typeof foo == "undefined") tests. */
-  JSOp op2 = JSOp(pc[JSOpLength_GetName]);
-  if (op2 == JSOp::Typeof) {
+  if (nextOp == JSOp::Typeof) {
     return GetEnvironmentName<GetNameMode::TypeOf>(cx, envChain, name, vp);
   }
   return GetEnvironmentName<GetNameMode::Normal>(cx, envChain, name, vp);
@@ -1793,7 +1777,7 @@ static MOZ_ALWAYS_INLINE void InitElemArrayOperation(JSContext* cx,
  */
 
 template <typename T>
-class ReservedRooted : public RootedBase<T, ReservedRooted<T>> {
+class ReservedRooted : public RootedOperations<T, ReservedRooted<T>> {
   Rooted<T>* savedRoot;
 
  public:
@@ -2166,10 +2150,7 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
     }
     END_CASE(ForceInterpreter)
 
-    CASE(Undefined) {
-      // If this ever changes, change what JSOp::GImplicitThis does too.
-      PUSH_UNDEFINED();
-    }
+    CASE(Undefined) { PUSH_UNDEFINED(); }
     END_CASE(Undefined)
 
     CASE(Pop) { REGS.sp--; }
@@ -2495,9 +2476,10 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
     CASE(BindName) {
       JSOp op = JSOp(*REGS.pc);
       ReservedRooted<JSObject*> envChain(&rootObject0);
-      if (op == JSOp::BindName || script->hasNonSyntacticScope()) {
+      if (op == JSOp::BindName) {
         envChain.set(REGS.fp()->environmentChain());
       } else {
+        MOZ_ASSERT(!script->hasNonSyntacticScope());
         envChain.set(&REGS.fp()->global().lexicalEnvironment());
       }
       ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
@@ -2868,15 +2850,17 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
     END_CASE(FunctionThis)
 
     CASE(GlobalThis) {
-      if (script->hasNonSyntacticScope()) {
-        PUSH_NULL();
-        GetNonSyntacticGlobalThis(cx, REGS.fp()->environmentChain(),
-                                  REGS.stackHandleAt(-1));
-      } else {
-        PUSH_OBJECT(*cx->global()->lexicalEnvironment().thisObject());
-      }
+      MOZ_ASSERT(!script->hasNonSyntacticScope());
+      PUSH_OBJECT(*cx->global()->lexicalEnvironment().thisObject());
     }
     END_CASE(GlobalThis)
+
+    CASE(NonSyntacticGlobalThis) {
+      PUSH_NULL();
+      GetNonSyntacticGlobalThis(cx, REGS.fp()->environmentChain(),
+                                REGS.stackHandleAt(-1));
+    }
+    END_CASE(NonSyntacticGlobalThis)
 
     CASE(CheckIsObj) {
       if (!REGS.sp[-1].isObject()) {
@@ -2973,7 +2957,7 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
       static_assert(JSOpLength_SetName == JSOpLength_StrictSetName,
                     "setname and strictsetname must be the same size");
       static_assert(JSOpLength_SetGName == JSOpLength_StrictSetGName,
-                    "setganem adn strictsetgname must be the same size");
+                    "setgname and strictsetgname must be the same size");
       static_assert(JSOpLength_SetName == JSOpLength_SetGName,
                     "We're sharing the END_CASE so the lengths better match");
 
@@ -3356,40 +3340,44 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
     }
     END_CASE(ThrowMsg)
 
-    CASE(ImplicitThis)
-    CASE(GImplicitThis) {
-      JSOp op = JSOp(*REGS.pc);
-      if (op == JSOp::ImplicitThis || script->hasNonSyntacticScope()) {
-        ReservedRooted<PropertyName*> name(&rootName0,
-                                           script->getName(REGS.pc));
-        ReservedRooted<JSObject*> envObj(&rootObject0,
-                                         REGS.fp()->environmentChain());
-        ReservedRooted<JSObject*> env(&rootObject1);
-        if (!LookupNameWithGlobalDefault(cx, name, envObj, &env)) {
-          goto error;
-        }
-
-        Value v = ComputeImplicitThis(env);
-        PUSH_COPY(v);
-      } else {
-        // Treat it like JSOp::Undefined.
-        PUSH_UNDEFINED();
+    CASE(ImplicitThis) {
+      ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
+      ReservedRooted<JSObject*> envObj(&rootObject0,
+                                       REGS.fp()->environmentChain());
+      ReservedRooted<JSObject*> env(&rootObject1);
+      if (!LookupNameWithGlobalDefault(cx, name, envObj, &env)) {
+        goto error;
       }
-      static_assert(JSOpLength_ImplicitThis == JSOpLength_GImplicitThis,
-                    "We're sharing the END_CASE so the lengths better match");
+
+      Value v = ComputeImplicitThis(env);
+      PUSH_COPY(v);
     }
     END_CASE(ImplicitThis)
 
-    CASE(GetGName)
-    CASE(GetName) {
+    CASE(GetGName) {
       ReservedRooted<Value> rval(&rootValue0);
-      if (!GetNameOperation(cx, REGS.fp(), REGS.pc, &rval)) {
+      ReservedRooted<JSObject*> env(&rootObject0,
+                                    &cx->global()->lexicalEnvironment());
+      ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
+      MOZ_ASSERT(!script->hasNonSyntacticScope());
+      if (!GetNameOperation(cx, env, name, JSOp(REGS.pc[JSOpLength_GetGName]),
+                            &rval)) {
         goto error;
       }
 
       PUSH_COPY(rval);
-      static_assert(JSOpLength_GetName == JSOpLength_GetGName,
-                    "We're sharing the END_CASE so the lengths better match");
+    }
+    END_CASE(GetGName)
+
+    CASE(GetName) {
+      ReservedRooted<Value> rval(&rootValue0);
+      ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
+      if (!GetNameOperation(cx, REGS.fp()->environmentChain(), name,
+                            JSOp(REGS.pc[JSOpLength_GetName]), &rval)) {
+        goto error;
+      }
+
+      PUSH_COPY(rval);
     }
     END_CASE(GetName)
 
@@ -3429,7 +3417,7 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
     CASE(Double) { PUSH_COPY(GET_INLINE_VALUE(REGS.pc)); }
     END_CASE(Double)
 
-    CASE(String) { PUSH_STRING(script->getAtom(REGS.pc)); }
+    CASE(String) { PUSH_STRING(script->getString(REGS.pc)); }
     END_CASE(String)
 
     CASE(ToString) {

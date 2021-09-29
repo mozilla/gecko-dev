@@ -1106,18 +1106,24 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Perform an integer division, returning the integer part rounded toward
   // zero. rhs must not be zero, and the division must not overflow.
   //
-  // On x86_shared, srcDest must be eax and edx will be clobbered.
   // On ARM, the chip must have hardware division instructions.
-  inline void quotient32(Register rhs, Register srcDest,
-                         bool isUnsigned) PER_SHARED_ARCH;
+  inline void quotient32(Register rhs, Register srcDest, bool isUnsigned)
+      DEFINED_ON(mips_shared, arm, arm64);
+
+  // As above, but srcDest must be eax and tempEdx must be edx.
+  inline void quotient32(Register rhs, Register srcDest, Register tempEdx,
+                         bool isUnsigned) DEFINED_ON(x86_shared);
 
   // Perform an integer division, returning the remainder part.
   // rhs must not be zero, and the division must not overflow.
   //
-  // On x86_shared, srcDest must be eax and edx will be clobbered.
   // On ARM, the chip must have hardware division instructions.
-  inline void remainder32(Register rhs, Register srcDest,
-                          bool isUnsigned) PER_SHARED_ARCH;
+  inline void remainder32(Register rhs, Register srcDest, bool isUnsigned)
+      DEFINED_ON(mips_shared, arm, arm64);
+
+  // As above, but srcDest must be eax and tempEdx must be edx.
+  inline void remainder32(Register rhs, Register srcDest, Register tempEdx,
+                          bool isUnsigned) DEFINED_ON(x86_shared);
 
   // Perform an integer division, returning the integer part rounded toward
   // zero. rhs must not be zero, and the division must not overflow.
@@ -3483,6 +3489,30 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void fmsFloat64x2(FloatRegister src1, FloatRegister src2,
                            FloatRegister srcDest) DEFINED_ON(x86_shared, arm64);
+
+  inline void minFloat32x4Relaxed(FloatRegister src, FloatRegister srcDest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void minFloat32x4Relaxed(FloatRegister lhs, FloatRegister rhs,
+                                  FloatRegister dest) DEFINED_ON(arm64);
+
+  inline void maxFloat32x4Relaxed(FloatRegister src, FloatRegister srcDest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void maxFloat32x4Relaxed(FloatRegister lhs, FloatRegister rhs,
+                                  FloatRegister dest) DEFINED_ON(arm64);
+
+  inline void minFloat64x2Relaxed(FloatRegister src, FloatRegister srcDest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void minFloat64x2Relaxed(FloatRegister lhs, FloatRegister rhs,
+                                  FloatRegister dest) DEFINED_ON(arm64);
+
+  inline void maxFloat64x2Relaxed(FloatRegister src, FloatRegister srcDest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void maxFloat64x2Relaxed(FloatRegister lhs, FloatRegister rhs,
+                                  FloatRegister dest) DEFINED_ON(arm64);
 
  public:
   // ========================================================================

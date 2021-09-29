@@ -28,6 +28,7 @@
 #include "apz/src/AsyncPanZoomController.h"
 #include "apz/src/HitTestingTreeNode.h"
 #include "base/task.h"
+#include "gfxPlatform.h"
 #include "Layers.h"
 #include "TestLayers.h"
 #include "TestWRScrollData.h"
@@ -224,8 +225,8 @@ class MockContentControllerDelayed : public MockContentController {
 class TestAPZCTreeManager : public APZCTreeManager {
  public:
   explicit TestAPZCTreeManager(MockContentControllerDelayed* aMcc,
-                               HitTestKind aHitTestKind)
-      : APZCTreeManager(LayersId{0}, aHitTestKind), mcc(aMcc) {}
+                               UniquePtr<IAPZHitTester> aHitTester = nullptr)
+      : APZCTreeManager(LayersId{0}, std::move(aHitTester)), mcc(aMcc) {}
 
   RefPtr<InputQueue> GetInputQueue() const { return mInputQueue; }
 

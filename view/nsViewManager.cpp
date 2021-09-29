@@ -286,22 +286,7 @@ void nsViewManager::Refresh(nsView* aView,
     return;
   }
 
-  // damageRegion is the damaged area, in twips, relative to the view origin
-  nsRegion damageRegion = aRegion.ToAppUnits(AppUnitsPerDevPixel());
-
-  // move region from widget coordinates into view coordinates
-  damageRegion.MoveBy(-aView->ViewToWidgetOffset());
-
-  if (damageRegion.IsEmpty()) {
-#ifdef DEBUG_roc
-    nsRect viewRect = aView->GetDimensions();
-    nsRect damageRect = damageRegion.GetBounds();
-    printf_stderr(
-        "XXX Damage rectangle (%d,%d,%d,%d) does not intersect the widget's "
-        "view (%d,%d,%d,%d)!\n",
-        damageRect.x, damageRect.y, damageRect.width, damageRect.height,
-        viewRect.x, viewRect.y, viewRect.width, viewRect.height);
-#endif
+  if (aRegion.IsEmpty()) {
     return;
   }
 
@@ -333,15 +318,7 @@ void nsViewManager::Refresh(nsView* aView,
       if (!renderer->NeedsWidgetInvalidation()) {
         renderer->FlushRendering();
       } else {
-        // Try to just Composite the current WindowRenderer contents. If
-        // that fails then we need tor repaint, and request that it gets
-        // composited as well.
-        // Once BasicLayerManager is removed, Composite will never succeed, so
-        // we can remove it and only have the call to Paint for
-        // FallbackRenderer.
-        if (!presShell->Composite(aView)) {
-          presShell->Paint(aView, damageRegion, PaintFlags::PaintComposite);
-        }
+        presShell->SyncPaintFallback(aView);
       }
 #ifdef MOZ_DUMP_PAINTING
       if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
@@ -464,7 +441,7 @@ void nsViewManager::ProcessPendingUpdatesPaint(nsIWidget* aWidget) {
       }
 #endif
 
-      presShell->Paint(view, nsRegion(), PaintFlags::None);
+      presShell->PaintAndRequestComposite(view, PaintFlags::None);
       view->SetForcedRepaint(false);
 
 #ifdef MOZ_DUMP_PAINTING

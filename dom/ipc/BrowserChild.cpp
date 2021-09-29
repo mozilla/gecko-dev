@@ -2478,8 +2478,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvPrintPreview(
   // went wrong.
   auto sendCallbackError = MakeScopeExit([&] {
     if (aCallback) {
-      aCallback(
-          PrintPreviewResultInfo(0, 0, false, false, false));  // signal error
+      // signal error
+      aCallback(PrintPreviewResultInfo(0, 0, false, false, false, {}));
     }
   });
 
@@ -2734,7 +2734,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvRenderLayers(
   } else {
     RefPtr<nsViewManager> vm = presShell->GetViewManager();
     if (nsView* view = vm->GetRootView()) {
-      presShell->Paint(view, view->GetBounds(), PaintFlags::None);
+      presShell->PaintAndRequestComposite(view, PaintFlags::None);
     }
   }
   presShell->SuppressDisplayport(false);

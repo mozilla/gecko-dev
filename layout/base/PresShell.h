@@ -90,6 +90,7 @@ struct nsCallbackEventRequest;
 namespace mozilla {
 class nsDisplayList;
 class nsDisplayListBuilder;
+class FallbackRenderer;
 
 class AccessibleCaretEventHub;
 class EventStates;
@@ -692,6 +693,8 @@ class PresShell final : public nsStubDocumentObserver,
    */
   bool IsPaintingSuppressed() const { return mPaintingSuppressed; }
 
+  void TryUnsuppressPaintingSoon();
+
   void UnsuppressPainting();
   void InitPaintSuppressionTimer();
   void CancelPaintSuppressionTimer();
@@ -1265,11 +1268,21 @@ class PresShell final : public nsStubDocumentObserver,
 
   void BackingScaleFactorChanged() { mPresContext->UIResolutionChangedSync(); }
 
+  /**
+   * Does any painting work required to update retained paint state, and pushes
+   * it the compositor (if any). Requests a composite, either by scheduling a
+   * remote composite, or invalidating the widget so that we get a call to
+   * SyncPaintFallback from the widget paint event.
+   */
   MOZ_CAN_RUN_SCRIPT
-  void Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
-             PaintFlags aFlags);
+  void PaintAndRequestComposite(nsView* aView, PaintFlags aFlags);
 
-  bool Composite(nsView* aViewToPaint);
+  /**
+   * Does an immediate paint+composite using the FallbackRenderer (which must
+   * be the current WindowRenderer for the root frame's widget).
+   */
+  MOZ_CAN_RUN_SCRIPT
+  void SyncPaintFallback(nsView* aView);
 
   /**
    * Notify that we're going to call Paint with PaintFlags::PaintLayers
@@ -1283,12 +1296,8 @@ class PresShell final : public nsStubDocumentObserver,
   /**
    * Ensures that the refresh driver is running, and schedules a view
    * manager flush on the next tick.
-   *
-   * @param aType PaintType::DelayedCompress : Schedule a paint to be executed
-   * after a delay, and put FrameLayerBuilder in 'compressed' mode that avoids
-   * short cut optimizations.
    */
-  void ScheduleViewManagerFlush(PaintType aType = PaintType::Default);
+  void ScheduleViewManagerFlush();
 
   // caret handling
   NS_IMETHOD SetCaretEnabled(bool aInEnable) override;
@@ -1541,8 +1550,6 @@ class PresShell final : public nsStubDocumentObserver,
 
   size_t SizeOfTextRuns(MallocSizeOf aMallocSizeOf) const;
 
-  void SetNextPaintCompressed() { mNextPaintCompressed = true; }
-
   static PresShell* GetShellForEventTarget(nsIFrame* aFrame,
                                            nsIContent* aContent);
   static PresShell* GetShellForTouchEvent(WidgetGUIEvent* aEvent);
@@ -1707,6 +1714,9 @@ class PresShell final : public nsStubDocumentObserver,
 
   void SetIsActive(bool aIsActive);
   bool ShouldBeActive() const;
+
+  MOZ_CAN_RUN_SCRIPT
+  void PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags);
 
   /**
    * Refresh observer management.
@@ -3099,8 +3109,6 @@ class PresShell final : public nsStubDocumentObserver,
 
   bool mApproximateFrameVisibilityVisited : 1;
 
-  bool mNextPaintCompressed : 1;
-
   bool mHasCSSBackgroundColor : 1;
 
   // Whether the last chrome-only escape key event is consumed.
@@ -3134,6 +3142,8 @@ class PresShell final : public nsStubDocumentObserver,
   // Set to true if mMouseLocation is set by a mouse event which is synthesized
   // for tests.
   bool mMouseLocationWasSetBySynthesizedMouseEventForTests : 1;
+
+  bool mHasTriedFastUnsuppress : 1;
 
   struct CapturingContentInfo final {
     CapturingContentInfo()

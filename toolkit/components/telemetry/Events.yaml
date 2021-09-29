@@ -417,11 +417,11 @@ blocklist:
         This field is documented in more detail in the definition of the blocklist.mlbf_source scalar.
         Possible values are "dump_match", "cache_match", "remote_match", "dump_fallback", "cache_fallback", "unknown".
     notification_emails: ["addons-dev-internal@mozilla.com", "rwu@mozilla.com"]
-    expiry_version: "95"
+    expiry_version: "102"
     products:
       - "firefox"
     record_in_processes: ["main"]
-    bug_numbers: [1662857]
+    bug_numbers: [1662857, 1730037]
     release_channel_collection: opt-out
 
 downloads:
@@ -560,9 +560,9 @@ extensions.data:
       the value of this event is the addon id.
   storageLocalError:
     objects: ["get", "set", "remove", "clear"]
-    bug_numbers: [1606903, 1649948, 1689255]
+    bug_numbers: [1606903, 1649948, 1689255, 1730038]
     notification_emails: ["addons-dev-internal@mozilla.com"]
-    expiry_version: "95"
+    expiry_version: "102"
     products:
       - "firefox"
     record_in_processes: ["main", "content"]
@@ -2355,9 +2355,13 @@ security:
         resourceuri - resource:// file
         datauri - a data URI
         bloburi - a blob URI
+        abouturi - an about URI
         singlestring - A single file or string with no slashes
-        mozillaextension - An extension claiming to be from *mozilla.org
-        otherextension - Another extension not from Mozilla
+        mozillaextension - An extension claiming to be from *mozilla.org (Deprecated)
+        otherextension - Another extension not from Mozilla (Deprecated)
+        mozillaextension_file - An extension claiming to be from *mozilla.org, loaded from a file://
+        otherextension_file - Another extension not from Mozilla, loaded from a file://
+        extension_uri - A URI with the moz-extension:// scheme
         suspectedUserChromeJS - A filepath ending in .uc.js
         sanitizedWindowsPath - A filepath, on Windows, sanitized by WinUtils::PreparePathForTelemetry
                                which is a bare filename or a subpath of %ProgramFiles%, %SystemRoot%,
@@ -2370,8 +2374,9 @@ security:
                           could be any other.
         regexfailure - Our Regex Matching code threw an error
       The fileinfo key may contain additional information about the file that caused the eval()
-      depending on the above value. Resource, Chrome, and SingleString will contain the full value.
-      Extensions will contain the full value; however .xpi! will be shortened to !,
+      depending on the above value. Resource, Chrome, About, and SingleString will contain the full value.
+      (About URIs will remove any querystring values.)
+      Extensions-from-file will contain the full value; however .xpi! will be shortened to !,
       shield.mozilla.org! to s! and mozilla.org! to m!.  Data, Blob, UserChromeJS, Other, and
       Regexfailure should have no value.
     notification_emails:
@@ -2447,13 +2452,13 @@ pictureinpicture:
       - mconley@mozilla.com
     products:
       - "firefox"
-      - "fennec"
     record_in_processes:
       - main
     bug_numbers:
       - 1560590
       - 1678202
-    expiry_version: "95"
+      - 1730039
+    expiry_version: "never"
     release_channel_collection: opt-out
   resize:
     objects: ["player"]
@@ -2466,13 +2471,13 @@ pictureinpicture:
       - mconley@mozilla.com
     products:
       - "firefox"
-      - "fennec"
     record_in_processes:
       - main
     bug_numbers:
       - 1560590
       - 1678202
-    expiry_version: "95"
+      - 1730039
+    expiry_version: "never"
     release_channel_collection: opt-out
   move:
     objects: ["player"]
@@ -2485,13 +2490,13 @@ pictureinpicture:
       - mconley@mozilla.com
     products:
       - "firefox"
-      - "fennec"
     record_in_processes:
       - main
     bug_numbers:
       - 1560590
       - 1678202
-    expiry_version: "95"
+      - 1730039
+    expiry_version: "never"
     release_channel_collection: opt-out
 
 doh:

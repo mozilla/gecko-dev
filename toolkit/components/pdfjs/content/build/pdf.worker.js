@@ -125,7 +125,7 @@ class WorkerMessageHandler {
     const WorkerTasks = [];
     const verbosity = (0, _util.getVerbosityLevel)();
     const apiVersion = docParams.apiVersion;
-    const workerVersion = '2.11.243';
+    const workerVersion = '2.11.298';
 
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
@@ -517,22 +517,22 @@ class WorkerMessageHandler {
         }
 
         const xfa = acroForm instanceof _primitives.Dict && acroForm.get("XFA") || null;
-        let xfaDatasets = null;
-        let hasDatasets = false;
+        let xfaDatasetsRef = null;
+        let hasXfaDatasetsEntry = false;
 
         if (Array.isArray(xfa)) {
           for (let i = 0, ii = xfa.length; i < ii; i += 2) {
             if (xfa[i] === "datasets") {
-              xfaDatasets = xfa[i + 1];
+              xfaDatasetsRef = xfa[i + 1];
               acroFormRef = null;
-              hasDatasets = true;
+              hasXfaDatasetsEntry = true;
             }
           }
 
-          if (xfaDatasets === null) {
-            xfaDatasets = xref.getNewRef();
+          if (xfaDatasetsRef === null) {
+            xfaDatasetsRef = xref.getNewRef();
           }
-        } else {
+        } else if (xfa) {
           acroFormRef = null;
           (0, _util.warn)("Unsupported XFA type.");
         }
@@ -569,8 +569,9 @@ class WorkerMessageHandler {
           xrefInfo: newXrefInfo,
           newRefs,
           xref,
-          datasetsRef: xfaDatasets,
-          hasDatasets,
+          hasXfa: !!xfa,
+          xfaDatasetsRef,
+          hasXfaDatasetsEntry,
           acroFormRef,
           acroForm,
           xfaData
@@ -2961,6 +2962,7 @@ exports.ChunkedStreamManager = ChunkedStreamManager;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
+exports.addDefaultProtocolToUrl = addDefaultProtocolToUrl;
 exports.collectActions = collectActions;
 exports.encodeToXmlString = encodeToXmlString;
 exports.escapePDFName = escapePDFName;
@@ -2974,6 +2976,7 @@ exports.readInt8 = readInt8;
 exports.readUint16 = readUint16;
 exports.readUint32 = readUint32;
 exports.toRomanNumerals = toRomanNumerals;
+exports.tryConvertUrlEncoding = tryConvertUrlEncoding;
 exports.validateCSSFont = validateCSSFont;
 exports.XRefParseException = exports.XRefEntryException = exports.ParserEOFException = exports.MissingDataException = void 0;
 
@@ -3363,6 +3366,18 @@ function validateCSSFont(cssFontInfo) {
   const angle = parseFloat(italicAngle);
   cssFontInfo.italicAngle = isNaN(angle) || angle < -90 || angle > 90 ? DEFAULT_CSS_FONT_OBLIQUE : italicAngle.toString();
   return true;
+}
+
+function addDefaultProtocolToUrl(url) {
+  return url.startsWith("www.") ? `http://${url}` : url;
+}
+
+function tryConvertUrlEncoding(url) {
+  try {
+    return (0, _util.stringToUTF8String)(url);
+  } catch (e) {
+    return url;
+  }
 }
 
 /***/ }),
@@ -7519,6 +7534,12 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
 
     if (!(0, _primitives.isDict)(normalAppearance)) {
       return;
+    }
+
+    const asValue = this._decodeFormValue(params.dict.get("AS"));
+
+    if (typeof asValue === "string") {
+      this.data.fieldValue = asValue;
     }
 
     const exportValues = normalAppearance.getKeys();
@@ -12483,6 +12504,11 @@ class PartialEvaluator {
 
         const map = new Array(cmap.length);
         cmap.forEach(function (charCode, token) {
+          if (typeof token === "number") {
+            map[charCode] = String.fromCodePoint(token);
+            return;
+          }
+
           const str = [];
 
           for (let k = 0; k < token.length; k += 2) {
@@ -24533,8 +24559,8 @@ function adjustToUnicode(properties, builtInEncoding) {
       if (properties.toUnicode.has(charCode)) {
         continue;
       }
-    } else {
-      if (properties.hasEncoding && properties.differences[charCode] !== undefined) {
+    } else if (properties.hasEncoding) {
+      if (properties.differences.length === 0 || properties.differences[charCode] !== undefined) {
         continue;
       }
     }
@@ -24706,6 +24732,12 @@ function getFontFileType(file, {
   }
 
   return [fileType, fileSubtype];
+}
+
+function applyStandardFontGlyphMap(map, glyphMap) {
+  for (const charCode in glyphMap) {
+    map[+charCode] = glyphMap[charCode];
+  }
 }
 
 function buildToFontChar(encoding, glyphsUnicodeMap, differences) {
@@ -25233,26 +25265,14 @@ class Font {
     this.remeasure = (!isStandardFont || isNarrow) && Object.keys(this.widths).length > 0;
 
     if ((isStandardFont || isMappedToStandardFont) && type === "CIDFontType2" && this.cidEncoding.startsWith("Identity-")) {
-      const GlyphMapForStandardFonts = (0, _standard_fonts.getGlyphMapForStandardFonts)(),
-            cidToGidMap = properties.cidToGidMap;
+      const cidToGidMap = properties.cidToGidMap;
       const map = [];
-
-      for (const charCode in GlyphMapForStandardFonts) {
-        map[+charCode] = GlyphMapForStandardFonts[charCode];
-      }
+      applyStandardFontGlyphMap(map, (0, _standard_fonts.getGlyphMapForStandardFonts)());
 
       if (/Arial-?Black/i.test(name)) {
-        const SupplementalGlyphMapForArialBlack = (0, _standard_fonts.getSupplementalGlyphMapForArialBlack)();
-
-        for (const charCode in SupplementalGlyphMapForArialBlack) {
-          map[+charCode] = SupplementalGlyphMapForArialBlack[charCode];
-        }
+        applyStandardFontGlyphMap(map, (0, _standard_fonts.getSupplementalGlyphMapForArialBlack)());
       } else if (/Calibri/i.test(name)) {
-        const SupplementalGlyphMapForCalibri = (0, _standard_fonts.getSupplementalGlyphMapForCalibri)();
-
-        for (const charCode in SupplementalGlyphMapForCalibri) {
-          map[+charCode] = SupplementalGlyphMapForCalibri[charCode];
-        }
+        applyStandardFontGlyphMap(map, (0, _standard_fonts.getSupplementalGlyphMapForCalibri)());
       }
 
       if (cidToGidMap) {
@@ -25262,6 +25282,16 @@ class Font {
           if (cidToGidMap[cid] !== undefined) {
             map[+charCode] = cidToGidMap[cid];
           }
+        }
+
+        if (cidToGidMap.length !== this.toUnicode.length && properties.hasIncludedToUnicodeMap && this.toUnicode instanceof _to_unicode_map.IdentityToUnicodeMap) {
+          this.toUnicode.forEach(function (charCode, unicodeCharCode) {
+            const cid = map[charCode];
+
+            if (cidToGidMap[cid] === undefined) {
+              map[+charCode] = unicodeCharCode;
+            }
+          });
         }
       }
 
@@ -25309,11 +25339,7 @@ class Font {
 
       if (this.composite && this.toUnicode instanceof _to_unicode_map.IdentityToUnicodeMap) {
         if (/Verdana/i.test(name)) {
-          const GlyphMapForStandardFonts = (0, _standard_fonts.getGlyphMapForStandardFonts)();
-
-          for (const charCode in GlyphMapForStandardFonts) {
-            map[+charCode] = GlyphMapForStandardFonts[charCode];
-          }
+          applyStandardFontGlyphMap(map, (0, _standard_fonts.getGlyphMapForStandardFonts)());
         }
       }
 
@@ -40534,9 +40560,9 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.Catalog = void 0;
 
-var _primitives = __w_pdfjs_require__(5);
-
 var _core_utils = __w_pdfjs_require__(9);
+
+var _primitives = __w_pdfjs_require__(5);
 
 var _util = __w_pdfjs_require__(2);
 
@@ -41853,18 +41879,6 @@ class Catalog {
   }
 
   static parseDestDictionary(params) {
-    function addDefaultProtocolToUrl(url) {
-      return url.startsWith("www.") ? `http://${url}` : url;
-    }
-
-    function tryConvertUrlEncoding(url) {
-      try {
-        return (0, _util.stringToUTF8String)(url);
-      } catch (e) {
-        return url;
-      }
-    }
-
     const destDict = params.destDict;
 
     if (!(0, _primitives.isDict)(destDict)) {
@@ -41917,7 +41931,7 @@ class Catalog {
           if ((0, _primitives.isName)(url)) {
             url = "/" + url.name;
           } else if ((0, _util.isString)(url)) {
-            url = addDefaultProtocolToUrl(url);
+            url = (0, _core_utils.addDefaultProtocolToUrl)(url);
           }
 
           break;
@@ -42010,7 +42024,7 @@ class Catalog {
     }
 
     if ((0, _util.isString)(url)) {
-      url = tryConvertUrlEncoding(url);
+      url = (0, _core_utils.tryConvertUrlEncoding)(url);
       const absoluteUrl = (0, _util.createValidAbsoluteUrl)(url, docBaseUrl);
 
       if (absoluteUrl) {
@@ -43683,8 +43697,8 @@ function writeXFADataForAcroform(str, newRefs) {
 
 function updateXFA({
   xfaData,
-  datasetsRef,
-  hasDatasets,
+  xfaDatasetsRef,
+  hasXfaDatasetsEntry,
   acroFormRef,
   acroForm,
   newRefs,
@@ -43695,7 +43709,7 @@ function updateXFA({
     return;
   }
 
-  if (!hasDatasets) {
+  if (!hasXfaDatasetsEntry) {
     if (!acroFormRef) {
       (0, _util.warn)("XFA - Cannot save it");
       return;
@@ -43704,7 +43718,7 @@ function updateXFA({
     const oldXfa = acroForm.get("XFA");
     const newXfa = oldXfa.slice();
     newXfa.splice(2, 0, "datasets");
-    newXfa.splice(3, 0, datasetsRef);
+    newXfa.splice(3, 0, xfaDatasetsRef);
     acroForm.set("XFA", newXfa);
     const encrypt = xref.encrypt;
     let transform = null;
@@ -43724,20 +43738,20 @@ function updateXFA({
   }
 
   if (xfaData === null) {
-    const datasets = xref.fetchIfRef(datasetsRef);
+    const datasets = xref.fetchIfRef(xfaDatasetsRef);
     xfaData = writeXFADataForAcroform(datasets.getString(), newRefs);
   }
 
   const encrypt = xref.encrypt;
 
   if (encrypt) {
-    const transform = encrypt.createCipherTransform(datasetsRef.num, datasetsRef.gen);
+    const transform = encrypt.createCipherTransform(xfaDatasetsRef.num, xfaDatasetsRef.gen);
     xfaData = transform.encryptString(xfaData);
   }
 
-  const data = `${datasetsRef.num} ${datasetsRef.gen} obj\n` + `<< /Type /EmbeddedFile /Length ${xfaData.length}>>\nstream\n` + xfaData + "\nendstream\nendobj\n";
+  const data = `${xfaDatasetsRef.num} ${xfaDatasetsRef.gen} obj\n` + `<< /Type /EmbeddedFile /Length ${xfaData.length}>>\nstream\n` + xfaData + "\nendstream\nendobj\n";
   newRefs.push({
-    ref: datasetsRef,
+    ref: xfaDatasetsRef,
     data
   });
 }
@@ -43747,22 +43761,26 @@ function incrementalUpdate({
   xrefInfo,
   newRefs,
   xref = null,
-  datasetsRef = null,
-  hasDatasets = false,
+  hasXfa = false,
+  xfaDatasetsRef = null,
+  hasXfaDatasetsEntry = false,
   acroFormRef = null,
   acroForm = null,
   xfaData = null
 }) {
-  updateXFA({
-    xfaData,
-    datasetsRef,
-    hasDatasets,
-    acroFormRef,
-    acroForm,
-    newRefs,
-    xref,
-    xrefInfo
-  });
+  if (hasXfa) {
+    updateXFA({
+      xfaData,
+      xfaDatasetsRef,
+      hasXfaDatasetsEntry,
+      acroFormRef,
+      acroForm,
+      newRefs,
+      xref,
+      xrefInfo
+    });
+  }
+
   const newXref = new _primitives.Dict(null);
   const refForXrefTable = xrefInfo.newRef;
   let buffer, baseOffset;
@@ -58675,9 +58693,13 @@ var _xfa_object = __w_pdfjs_require__(75);
 
 var _namespaces = __w_pdfjs_require__(77);
 
+var _core_utils = __w_pdfjs_require__(9);
+
 var _html_utils = __w_pdfjs_require__(82);
 
 var _utils = __w_pdfjs_require__(76);
+
+var _util = __w_pdfjs_require__(2);
 
 const XHTML_NS_ID = _namespaces.NamespaceIds.xhtml.id;
 const VALID_STYLES = new Set(["color", "font", "font-family", "font-size", "font-stretch", "font-style", "font-weight", "margin", "margin-bottom", "margin-left", "margin-right", "margin-top", "letter-spacing", "line-height", "orphans", "page-break-after", "page-break-before", "page-break-inside", "tab-interval", "tab-stop", "text-align", "text-decoration", "text-indent", "vertical-align", "widows", "kerning-mode", "xfa-font-horizontal-scale", "xfa-font-vertical-scale", "xfa-spacerun", "xfa-tab-stops"]);
@@ -58913,7 +58935,19 @@ class XhtmlObject extends _xfa_object.XmlObject {
 class A extends XhtmlObject {
   constructor(attributes) {
     super(attributes, "a");
-    this.href = attributes.href || "";
+    let href = "";
+
+    if (typeof attributes.href === "string") {
+      let url = (0, _core_utils.addDefaultProtocolToUrl)(attributes.href);
+      url = (0, _core_utils.tryConvertUrlEncoding)(url);
+      const absoluteUrl = (0, _util.createValidAbsoluteUrl)(url);
+
+      if (absoluteUrl) {
+        href = absoluteUrl.href;
+      }
+    }
+
+    this.href = href;
   }
 
 }
@@ -60729,8 +60763,8 @@ Object.defineProperty(exports, "WorkerMessageHandler", ({
 
 var _worker = __w_pdfjs_require__(1);
 
-const pdfjsVersion = '2.11.243';
-const pdfjsBuild = '7fb653b19';
+const pdfjsVersion = '2.11.298';
+const pdfjsBuild = 'd370a281c';
 })();
 
 /******/ 	return __webpack_exports__;

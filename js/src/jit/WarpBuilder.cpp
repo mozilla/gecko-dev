@@ -846,8 +846,8 @@ bool WarpBuilder::build_BigInt(BytecodeLocation loc) {
 }
 
 bool WarpBuilder::build_String(BytecodeLocation loc) {
-  JSAtom* atom = loc.getAtom(script_);
-  pushConstant(StringValue(atom));
+  JSString* str = loc.getString(script_);
+  pushConstant(StringValue(str));
   return true;
 }
 
@@ -1895,8 +1895,7 @@ bool WarpBuilder::build_FunctionThis(BytecodeLocation loc) {
 }
 
 bool WarpBuilder::build_GlobalThis(BytecodeLocation loc) {
-  MOZ_ASSERT(!script_->hasNonSyntacticScope(),
-             "WarpOracle should have aborted compilation");
+  MOZ_ASSERT(!script_->hasNonSyntacticScope());
   JSObject* obj = snapshot().globalLexicalEnvThis();
   pushConstant(ObjectValue(*obj));
   return true;
@@ -1913,9 +1912,7 @@ bool WarpBuilder::build_GetName(BytecodeLocation loc) {
 }
 
 bool WarpBuilder::build_GetGName(BytecodeLocation loc) {
-  if (script_->hasNonSyntacticScope()) {
-    return build_GetName(loc);
-  }
+  MOZ_ASSERT(!script_->hasNonSyntacticScope());
 
   // Try to optimize undefined/NaN/Infinity.
   PropertyName* name = loc.getPropertyName(script_);
@@ -1944,15 +1941,12 @@ bool WarpBuilder::build_BindName(BytecodeLocation loc) {
 }
 
 bool WarpBuilder::build_BindGName(BytecodeLocation loc) {
+  MOZ_ASSERT(!script_->hasNonSyntacticScope());
+
   if (const auto* snapshot = getOpSnapshot<WarpBindGName>(loc)) {
-    MOZ_ASSERT(!script_->hasNonSyntacticScope());
     JSObject* globalEnv = snapshot->globalEnv();
     pushConstant(ObjectValue(*globalEnv));
     return true;
-  }
-
-  if (script_->hasNonSyntacticScope()) {
-    return build_BindName(loc);
   }
 
   MDefinition* env = globalLexicalEnvConstant();
@@ -2121,13 +2115,6 @@ bool WarpBuilder::build_ImplicitThis(BytecodeLocation loc) {
   current->add(ins);
   current->push(ins);
   return resumeAfter(ins, loc);
-}
-
-bool WarpBuilder::build_GImplicitThis(BytecodeLocation loc) {
-  if (script_->hasNonSyntacticScope()) {
-    return build_ImplicitThis(loc);
-  }
-  return build_Undefined(loc);
 }
 
 bool WarpBuilder::build_CheckClassHeritage(BytecodeLocation loc) {

@@ -1502,6 +1502,9 @@ pub extern "C" fn wr_window_new(
 ) -> bool {
     assert!(unsafe { is_in_render_thread() });
 
+    // Ensure the WR profiler callbacks are hooked up to the Gecko profiler.
+    set_profiler_hooks(Some(&PROFILER_HOOKS));
+
     let software = !swgl_context.is_null();
     let (gl, sw_gl) = if software {
         let ctx = swgl::Context::from(swgl_context);
@@ -1649,9 +1652,6 @@ pub extern "C" fn wr_window_new(
         ..Default::default()
     };
 
-    // Ensure the WR profiler callbacks are hooked up to the Gecko profiler.
-    set_profiler_hooks(Some(&PROFILER_HOOKS));
-
     let window_size = DeviceIntSize::new(window_width, window_height);
     let notifier = Box::new(CppNotifier { window_id });
     let (renderer, sender) = match Renderer::new(gl, notifier, opts, shaders.map(|sh| &sh.0)) {
@@ -1734,6 +1734,11 @@ pub extern "C" fn wr_api_set_debug_flags(dh: &mut DocumentHandle, flags: DebugFl
 }
 
 #[no_mangle]
+pub extern "C" fn wr_api_set_bool(dh: &mut DocumentHandle, param_name: BoolParameter, val: bool) {
+    dh.api.set_parameter(Parameter::Bool(param_name, val));
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn wr_api_accumulate_memory_report(
     dh: &mut DocumentHandle,
     report: &mut MemoryReport,
@@ -1754,11 +1759,6 @@ pub unsafe extern "C" fn wr_api_clear_all_caches(dh: &mut DocumentHandle) {
 #[no_mangle]
 pub unsafe extern "C" fn wr_api_enable_native_compositor(dh: &mut DocumentHandle, enable: bool) {
     dh.api.send_debug_cmd(DebugCommand::EnableNativeCompositor(enable));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wr_api_enable_multithreading(dh: &mut DocumentHandle, enable: bool) {
-    dh.api.send_debug_cmd(DebugCommand::EnableMultithreading(enable));
 }
 
 #[no_mangle]

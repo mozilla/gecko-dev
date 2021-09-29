@@ -443,6 +443,32 @@ class DateTimeFormat final {
   static Maybe<DateTimeFormat::HourCycle> HourCycleFromPattern(
       Span<const char16_t> aPattern);
 
+  using HourCyclesVector = Vector<HourCycle, 4>;
+
+  /**
+   * Returns the allowed hour cycles for the input locale.
+   *
+   * NOTE: This function currently takes a language subtag and an optional
+   * region subtag. This is a restriction until bug 1719746 has migrated
+   * language tag processing into the unified Intl component. After bug 1719746,
+   * this function should be changed to accept a single locale tag.
+   */
+  static Result<HourCyclesVector, ICUError> GetAllowedHourCycles(
+      Span<const char> aLanguage, Maybe<Span<const char>> aRegion);
+
+  /**
+   * Returns an iterator over all supported date-time formatter locales.
+   *
+   * The returned strings are ICU locale identifiers and NOT BCP 47 language
+   * tags.
+   *
+   * Also see <https://unicode-org.github.io/icu/userguide/locale>.
+   */
+  static auto GetAvailableLocales() {
+    return AvailableLocalesEnumeration<udat_countAvailable,
+                                       udat_getAvailable>();
+  }
+
  private:
   explicit DateTimeFormat(UDateFormat* aDateFormat);
 

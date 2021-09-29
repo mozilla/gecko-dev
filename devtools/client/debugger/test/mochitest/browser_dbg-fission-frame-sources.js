@@ -5,7 +5,7 @@
 "use strict";
 
 const TEST_COM_URI =
-  URL_ROOT_COM + "examples/doc_dbg-fission-frame-sources.html";
+  URL_ROOT_COM_SSL + "examples/doc_dbg-fission-frame-sources.html";
 
 add_task(async function() {
   // Simply load a test page with a remote frame and wait for both sources to
@@ -29,9 +29,13 @@ add_task(async function() {
   info("Waiting for simple1.js from example.com (parent page)");
   await waitUntil(() => findSourceNodeWithText(dbg, "simple1.js"));
 
-  // If fission is enabled, the second source is under another root node.
-  if (isFissionEnabled()) {
-    is(rootNodes.length, 2, "Found 2 sourceview root nodes when fission is on");
+  // If fission or EFT is enabled, the second source is under another root node.
+  if (isFissionEnabled() || isEveryFrameTargetEnabled()) {
+    is(
+      rootNodes.length,
+      2,
+      "Found 2 sourceview root nodes when iframe has dedicated target"
+    );
 
     info("Expands the remote frame root node");
     await expandAllSourceNodes(dbg, rootNodes[1]);

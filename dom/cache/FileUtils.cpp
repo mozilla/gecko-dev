@@ -8,6 +8,7 @@
 
 #include "DBSchema.h"
 #include "mozilla/dom/InternalResponse.h"
+#include "mozilla/dom/QMResultInlines.h"
 #include "mozilla/dom/quota/FileStreams.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/QuotaObject.h"
@@ -77,7 +78,7 @@ Result<NotNull<nsCOMPtr<nsIFile>>, nsresult> BodyGetCacheDir(nsIFile& aBaseDir,
   // in a single directory.  Mitigate this issue by spreading the body
   // files out into sub-directories.  We use the last byte of the ID for
   // the name of the sub-directory.
-  QM_TRY(cacheDir->Append(IntToString(aId.m3[7])));
+  QM_TRY(MOZ_TO_RESULT(cacheDir->Append(IntToString(aId.m3[7]))));
 
   // Callers call this function without checking if the directory already
   // exists (idempotent usage). QM_OR_ELSE_WARN_IF is not used here since we
@@ -119,7 +120,7 @@ nsresult BodyDeleteDir(const QuotaInfo& aQuotaInfo, nsIFile& aBaseDir) {
   QM_TRY_INSPECT(const auto& bodyDir,
                  CloneFileAndAppend(aBaseDir, kMorgueDirectory));
 
-  QM_TRY(RemoveNsIFileRecursively(aQuotaInfo, *bodyDir));
+  QM_TRY(MOZ_TO_RESULT(RemoveNsIFileRecursively(aQuotaInfo, *bodyDir)));
 
   return NS_OK;
 }
@@ -135,7 +136,7 @@ Result<std::pair<nsID, nsCOMPtr<nsISupports>>, nsresult> BodyStartWriteStream(
                                         "@mozilla.org/uuid-generator;1"));
 
   nsID id;
-  QM_TRY(idGen->GenerateUUIDInPlace(&id));
+  QM_TRY(MOZ_TO_RESULT(idGen->GenerateUUIDInPlace(&id)));
 
   QM_TRY_INSPECT(const auto& finalFile,
                  BodyIdToFile(aBaseDir, id, BODY_FILE_FINAL));
@@ -161,17 +162,18 @@ Result<std::pair<nsID, nsCOMPtr<nsISupports>>, nsresult> BodyStartWriteStream(
       do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
 
   nsCOMPtr<nsISupports> copyContext;
-  QM_TRY(NS_AsyncCopy(&aSource, compressed, target,
-                      NS_ASYNCCOPY_VIA_WRITESEGMENTS, compressed->BlockSize(),
-                      aCallback, aClosure, true,
-                      true,  // close streams
-                      getter_AddRefs(copyContext)));
+  QM_TRY(MOZ_TO_RESULT(
+      NS_AsyncCopy(&aSource, compressed, target, NS_ASYNCCOPY_VIA_WRITESEGMENTS,
+                   compressed->BlockSize(), aCallback, aClosure, true,
+                   true,  // close streams
+                   getter_AddRefs(copyContext))));
 
   return std::make_pair(id, std::move(copyContext));
 }
 
 void BodyCancelWrite(nsISupports& aCopyContext) {
-  QM_WARNONLY_TRY(NS_CancelAsyncCopy(&aCopyContext, NS_ERROR_ABORT));
+  QM_WARNONLY_TRY(
+      QM_TO_RESULT(NS_CancelAsyncCopy(&aCopyContext, NS_ERROR_ABORT)));
 
   // TODO The partially written file must be cleaned up after the async copy
   // makes its callback.
@@ -185,12 +187,12 @@ nsresult BodyFinalizeWrite(nsIFile& aBaseDir, const nsID& aId) {
                  BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL));
 
   nsAutoString finalFileName;
-  QM_TRY(finalFile->GetLeafName(finalFileName));
+  QM_TRY(MOZ_TO_RESULT(finalFile->GetLeafName(finalFileName)));
 
   // It's fine to not notify the QuotaManager that the path has been changed,
   // because its path will be updated and its size will be recalculated when
   // opening file next time.
-  QM_TRY(tmpFile->RenameTo(nullptr, finalFileName));
+  QM_TRY(MOZ_TO_RESULT(tmpFile->RenameTo(nullptr, finalFileName)));
 
   return NS_OK;
 }
@@ -269,9 +271,10 @@ nsresult BodyDeleteFiles(const QuotaInfo& aQuotaInfo, nsIFile& aBaseDir,
 
       return false;
     };
-    QM_TRY(BodyTraverseFiles(aQuotaInfo, *bodyDir, removeFileForId,
-                             /* aCanRemoveFiles */ false,
-                             /* aTrackQuota */ true));
+    QM_TRY(
+        MOZ_TO_RESULT(BodyTraverseFiles(aQuotaInfo, *bodyDir, removeFileForId,
+                                        /* aCanRemoveFiles */ false,
+                                        /* aTrackQuota */ true)));
   }
 
   return NS_OK;
@@ -294,7 +297,7 @@ Result<NotNull<nsCOMPtr<nsIFile>>, nsresult> BodyIdToFile(
     fileName.AppendLiteral(".tmp");
   }
 
-  QM_TRY(bodyFile->Append(fileName));
+  QM_TRY(MOZ_TO_RESULT(bodyFile->Append(fileName)));
 
   return bodyFile;
 }
@@ -333,7 +336,7 @@ nsresult DirectoryPaddingWrite(nsIFile& aBaseDir,
   nsCOMPtr<nsIObjectOutputStream> objectStream =
       NS_NewObjectOutputStream(outputStream);
 
-  QM_TRY(objectStream->Write64(aPaddingSize));
+  QM_TRY(MOZ_TO_RESULT(objectStream->Write64(aPaddingSize)));
 
   return NS_OK;
 }
@@ -425,7 +428,7 @@ Result<nsCOMPtr<nsIFile>, nsresult> GetMarkerFileHandle(
     const QuotaInfo& aQuotaInfo) {
   QM_TRY_UNWRAP(auto marker, CloneFileAndAppend(*aQuotaInfo.mDir, u"cache"_ns));
 
-  QM_TRY(marker->Append(u"context_open.marker"_ns));
+  QM_TRY(MOZ_TO_RESULT(marker->Append(u"context_open.marker"_ns)));
 
   return marker;
 }
@@ -500,13 +503,14 @@ nsresult RemoveNsIFileRecursively(const QuotaInfo& aQuotaInfo, nsIFile& aFile,
           aFile,
           [&aQuotaInfo, &aTrackQuota](
               const nsCOMPtr<nsIFile>& file) -> Result<Ok, nsresult> {
-            QM_TRY(RemoveNsIFileRecursively(aQuotaInfo, *file, aTrackQuota));
+            QM_TRY(MOZ_TO_RESULT(
+                RemoveNsIFileRecursively(aQuotaInfo, *file, aTrackQuota)));
 
             return Ok{};
           }));
 
       // In the end, remove the folder
-      QM_TRY(aFile.Remove(/* recursive */ false));
+      QM_TRY(MOZ_TO_RESULT(aFile.Remove(/* recursive */ false)));
 
       break;
 
@@ -604,7 +608,8 @@ Result<int64_t, nsresult> DirectoryPaddingGet(nsIFile& aBaseDir) {
 }
 
 nsresult DirectoryPaddingInit(nsIFile& aBaseDir) {
-  QM_TRY(DirectoryPaddingWrite(aBaseDir, DirPaddingFile::FILE, 0));
+  QM_TRY(
+      MOZ_TO_RESULT(DirectoryPaddingWrite(aBaseDir, DirPaddingFile::FILE, 0)));
 
   return NS_OK;
 }
@@ -639,7 +644,8 @@ nsresult UpdateDirectoryPaddingFile(nsIFile& aBaseDir,
 
           // Not delete the temporary padding file here, because we're going
           // to overwrite it below anyway.
-          QM_TRY(DirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::FILE));
+          QM_TRY(MOZ_TO_RESULT(
+              DirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::FILE)));
 
           // We don't need to add the aIncreaseSize or aDecreaseSize here,
           // because it's already encompassed within the database.
@@ -670,7 +676,8 @@ nsresult UpdateDirectoryPaddingFile(nsIFile& aBaseDir,
           // incorrect.
           // Delete padding file to indicate the padding size is incorrect for
           // avoiding error happening in the following lines.
-          QM_TRY(DirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::FILE));
+          QM_TRY(MOZ_TO_RESULT(
+              DirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::FILE)));
 
           QM_TRY_UNWRAP(currentPaddingSize, db::FindOverallPaddingSize(aConn));
 
@@ -694,8 +701,8 @@ nsresult UpdateDirectoryPaddingFile(nsIFile& aBaseDir,
 
   MOZ_DIAGNOSTIC_ASSERT(currentPaddingSize >= 0);
 
-  QM_TRY(DirectoryPaddingWrite(aBaseDir, DirPaddingFile::TMP_FILE,
-                               currentPaddingSize));
+  QM_TRY(MOZ_TO_RESULT(DirectoryPaddingWrite(aBaseDir, DirPaddingFile::TMP_FILE,
+                                             currentPaddingSize)));
 
   return NS_OK;
 }
@@ -708,7 +715,8 @@ nsresult DirectoryPaddingFinalizeWrite(nsIFile& aBaseDir) {
       const auto& file,
       CloneFileAndAppend(aBaseDir, nsLiteralString(PADDING_TMP_FILE_NAME)));
 
-  QM_TRY(file->RenameTo(nullptr, nsLiteralString(PADDING_FILE_NAME)));
+  QM_TRY(MOZ_TO_RESULT(
+      file->RenameTo(nullptr, nsLiteralString(PADDING_FILE_NAME))));
 
   return NS_OK;
 }
@@ -717,16 +725,19 @@ Result<int64_t, nsresult> DirectoryPaddingRestore(nsIFile& aBaseDir,
                                                   mozIStorageConnection& aConn,
                                                   const bool aMustRestore) {
   // The content of padding file is untrusted, so remove it here.
-  QM_TRY(DirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::FILE));
+  QM_TRY(MOZ_TO_RESULT(
+      DirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::FILE)));
 
   QM_TRY_INSPECT(const int64_t& paddingSize, db::FindOverallPaddingSize(aConn));
   MOZ_DIAGNOSTIC_ASSERT(paddingSize >= 0);
 
-  QM_TRY(DirectoryPaddingWrite(aBaseDir, DirPaddingFile::FILE, paddingSize),
+  QM_TRY(MOZ_TO_RESULT(DirectoryPaddingWrite(aBaseDir, DirPaddingFile::FILE,
+                                             paddingSize)),
          (aMustRestore ? Err(tryTempError)
                        : Result<int64_t, nsresult>{paddingSize}));
 
-  QM_TRY(DirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::TMP_FILE));
+  QM_TRY(MOZ_TO_RESULT(
+      DirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::TMP_FILE)));
 
   return paddingSize;
 }

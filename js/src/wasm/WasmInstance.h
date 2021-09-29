@@ -180,7 +180,7 @@ class Instance {
 
   void* getIndirectStub(uint32_t funcIndex, TlsData* targetTlsData,
                         const Tier tier) const;
-  void* createIndirectStub(uint32_t funcIndex, TlsData* targetTlsData);
+  void* createIndirectStub(uint32_t funcIndex);
   bool createManyIndirectStubs(const VectorOfIndirectStubTarget& targets,
                                const Tier tier);
   bool ensureIndirectStubs(const Uint32Vector& elemFuncIndices,

@@ -6,33 +6,43 @@
 EXPORTS.mozilla.intl = [
     "src/Calendar.h",
     "src/Collator.h",
+    "src/Currency.h",
     "src/DateTimeFormat.h",
     "src/DateTimePatternGenerator.h",
     "src/ICU4CGlue.h",
     "src/ICUError.h",
     "src/ListFormat.h",
+    "src/Locale.h",
     "src/LocaleCanonicalizer.h",
+    "src/MeasureUnit.h",
     "src/NumberFormat.h",
+    "src/NumberingSystem.h",
     "src/NumberPart.h",
     "src/NumberRangeFormat.h",
     "src/PluralRules.h",
     "src/RelativeTimeFormat.h",
+    "src/String.h",
+    "src/TimeZone.h",
 ]
 
 UNIFIED_SOURCES += [
     "src/Calendar.cpp",
     "src/Collator.cpp",
+    "src/Currency.cpp",
     "src/DateTimeFormat.cpp",
     "src/DateTimePatternGenerator.cpp",
     "src/ICU4CGlue.cpp",
     "src/ListFormat.cpp",
     "src/LocaleCanonicalizer.cpp",
+    "src/MeasureUnit.cpp",
     "src/NumberFormat.cpp",
     "src/NumberFormatFields.cpp",
     "src/NumberFormatterSkeleton.cpp",
+    "src/NumberingSystem.cpp",
     "src/NumberRangeFormat.cpp",
     "src/PluralRules.cpp",
     "src/RelativeTimeFormat.cpp",
+    "src/TimeZone.cpp",
 ]
 
 if not CONFIG["JS_STANDALONE"]:

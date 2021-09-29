@@ -48,8 +48,7 @@
 // cpp file
 #include "gfx2DGlue.h"           // for ThebesPoint
 #include "mozilla/Assertions.h"  // for AssertionConditionType, MOZ_ASSERT, MOZ_A...
-#include "mozilla/DebugOnly.h"              // for DebugOnly
-#include "mozilla/layers/CanvasRenderer.h"  // for CanvasRenderer
+#include "mozilla/DebugOnly.h"  // for DebugOnly
 #include "mozilla/layers/LayersTypes.h"  // for MOZ_LAYERS_LOG_IF_SHADOWABLE, LayersId, EventRegionsO...
 #include "nsDebug.h"  // for NS_ASSERTION, NS_WARNING
 
@@ -67,10 +66,8 @@ class Animation;
 class AsyncPanZoomController;
 class PaintedLayer;
 class ContainerLayer;
-class ImageLayer;
 class ColorLayer;
 class CompositorAnimations;
-class CanvasLayer;
 class RefLayer;
 class SpecificLayerAttributes;
 class Compositor;
@@ -153,12 +150,6 @@ class Layer {
      * This should never be set at the same time as CONTENT_OPAQUE.
      */
     CONTENT_COMPONENT_ALPHA = 0x02,
-
-    /**
-     * If this is set then one of the descendant layers of this one has
-     * CONTENT_COMPONENT_ALPHA set.
-     */
-    CONTENT_COMPONENT_ALPHA_DESCENDANT = 0x04,
 
     /**
      * If this is set then this layer is part of a preserve-3d group, and should
@@ -811,18 +802,6 @@ class Layer {
    * ColorLayer.
    */
   virtual ColorLayer* AsColorLayer() { return nullptr; }
-
-  /**
-   * Dynamic cast to a Canvas. Returns null if this is not a
-   * ColorLayer.
-   */
-  virtual CanvasLayer* AsCanvasLayer() { return nullptr; }
-
-  /**
-   * Dynamic cast to an Image. Returns null if this is not a
-   * ColorLayer.
-   */
-  virtual ImageLayer* AsImageLayer() { return nullptr; }
 
   // These getters can be used anytime.  They return the effective
   // values that should be used when drawing this layer to screen,
@@ -1497,20 +1476,6 @@ class ContainerLayer : public Layer {
    */
   bool HasMultipleChildren();
 
-  /**
-   * Returns true if this container supports children with component alpha.
-   * Should only be called while painting a child of this layer.
-   */
-  bool SupportsComponentAlphaChildren() {
-    return mSupportsComponentAlphaChildren;
-  }
-
-  /**
-   * Returns true if aLayer or any layer in its parent chain has the opaque
-   * content flag set.
-   */
-  static bool HasOpaqueAncestorLayer(Layer* aLayer);
-
   void SetChildrenChanged(bool aVal) { mChildrenChanged = aVal; }
 
   // If |aRect| is null, the entire layer should be considered invalid for
@@ -1563,17 +1528,6 @@ class ContainerLayer : public Layer {
       const gfx::Matrix4x4& aTransformToSurface);
 
   /**
-   * A default implementation to compute and set the value for
-   * SupportsComponentAlphaChildren().
-   *
-   * If aNeedsSurfaceCopy is provided, then it is set to true if the caller
-   * needs to copy the background up into the intermediate surface created,
-   * false otherwise.
-   */
-  void DefaultComputeSupportsComponentAlphaChildren(
-      bool* aNeedsSurfaceCopy = nullptr);
-
-  /**
    * Loops over the children calling ComputeEffectiveTransforms on them.
    */
   void ComputeEffectiveTransformsForChildren(
@@ -1600,7 +1554,6 @@ class ContainerLayer : public Layer {
   // associated pres shell; for other layers, 1.0.
   float mPresShellResolution;
   bool mUseIntermediateSurface;
-  bool mSupportsComponentAlphaChildren;
   bool mMayHaveReadbackChild;
   // This is updated by ComputeDifferences. This will be true if we need to
   // invalidate the intermediate surface.
@@ -1657,101 +1610,6 @@ class ColorLayer : public Layer {
 
   gfx::IntRect mBounds;
   gfx::DeviceColor mColor;
-};
-
-/**
- * A Layer for HTML Canvas elements.  It's backed by either a
- * gfxASurface or a GLContext (for WebGL layers), and has some control
- * for intelligent updating from the source if necessary (for example,
- * if hardware compositing is not available, for reading from the GL
- * buffer into an image surface that we can layer composite.)
- *
- * After Initialize is called, the underlying canvas Surface/GLContext
- * must not be modified during a layer transaction.
- */
-class CanvasLayer : public Layer {
- public:
-  void SetBounds(gfx::IntRect aBounds) { mBounds = aBounds; }
-
-  CanvasLayer* AsCanvasLayer() override { return this; }
-
-  /**
-   * Notify this CanvasLayer that the canvas surface contents have
-   * changed (or will change) before the next transaction.
-   */
-  void Updated() {
-    mCanvasRenderer->SetDirty();
-    SetInvalidRectToVisibleRegion();
-  }
-
-  /**
-   * Notify this CanvasLayer that the canvas surface contents have
-   * been painted since the last change.
-   */
-  void Painted() { mCanvasRenderer->ResetDirty(); }
-
-  /**
-   * Returns true if the canvas surface contents have changed since the
-   * last paint.
-   */
-  bool IsDirty() {
-    // We can only tell if we are dirty if we're part of the
-    // widget's retained layer tree.
-    if (!mManager || !mManager->IsWidgetLayerManager()) {
-      return true;
-    }
-    return mCanvasRenderer->IsDirty();
-  }
-
-  const nsIntRect& GetBounds() const { return mBounds; }
-
-  RefPtr<CanvasRenderer> CreateOrGetCanvasRenderer();
-
- public:
-  /**
-   * CONSTRUCTION PHASE ONLY
-   * Set the filter used to resample this image (if necessary).
-   */
-  void SetSamplingFilter(gfx::SamplingFilter aSamplingFilter) {
-    if (mSamplingFilter != aSamplingFilter) {
-      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) Filter", this));
-      mSamplingFilter = aSamplingFilter;
-      Mutated();
-    }
-  }
-  gfx::SamplingFilter GetSamplingFilter() const { return mSamplingFilter; }
-
-  MOZ_LAYER_DECL_NAME("CanvasLayer", TYPE_CANVAS)
-
-  void ComputeEffectiveTransforms(
-      const gfx::Matrix4x4& aTransformToSurface) override {
-    // Snap our local transform first, and snap the inherited transform as well.
-    // This makes our snapping equivalent to what would happen if our content
-    // was drawn into a PaintedLayer (gfxContext would snap using the local
-    // transform, then we'd snap again when compositing the PaintedLayer).
-    mEffectiveTransform =
-        SnapTransform(GetLocalTransform(),
-                      gfxRect(0, 0, mBounds.Width(), mBounds.Height()),
-                      nullptr) *
-        SnapTransformTranslation(aTransformToSurface, nullptr);
-    ComputeEffectiveTransformForMaskLayers(aTransformToSurface);
-  }
-
- protected:
-  CanvasLayer(LayerManager* aManager, void* aImplData);
-  virtual ~CanvasLayer();
-
-  void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
-
-  virtual RefPtr<CanvasRenderer> CreateCanvasRendererInternal() = 0;
-
-  RefPtr<CanvasRenderer> mCanvasRenderer;
-  gfx::SamplingFilter mSamplingFilter;
-
-  /**
-   * 0, 0, canvaswidth, canvasheight
-   */
-  gfx::IntRect mBounds;
 };
 
 /**

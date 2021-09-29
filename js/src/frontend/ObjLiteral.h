@@ -12,7 +12,7 @@
 #include "mozilla/EnumSet.h"
 #include "mozilla/Span.h"
 
-#include "frontend/ParserAtom.h"  // ParserAtomsTable, TaggedParserAtomIndex
+#include "frontend/ParserAtom.h"  // ParserAtomsTable, TaggedParserAtomIndex, ParserAtom
 #include "js/AllocPolicy.h"
 #include "js/GCPolicyAPI.h"
 #include "js/Value.h"
@@ -124,7 +124,7 @@ enum class ObjLiteralOpcode : uint8_t {
   INVALID = 0,
 
   ConstValue = 1,  // numeric types only.
-  ConstAtom = 2,
+  ConstString = 2,
   Null = 3,
   Undefined = 4,
   True = 5,
@@ -197,7 +197,7 @@ inline bool ObjLiteralOpcodeHasValueArg(ObjLiteralOpcode op) {
 }
 
 inline bool ObjLiteralOpcodeHasAtomArg(ObjLiteralOpcode op) {
-  return op == ObjLiteralOpcode::ConstAtom;
+  return op == ObjLiteralOpcode::ConstString;
 }
 
 struct ObjLiteralReaderBase;
@@ -381,7 +381,7 @@ struct ObjLiteralWriter : private ObjLiteralWriterBase {
       const frontend::TaggedParserAtomIndex propName) {
     MOZ_ASSERT(kind_ == ObjLiteralKind::Object ||
                kind_ == ObjLiteralKind::Shape);
-    parserAtoms.markUsedByStencil(propName);
+    parserAtoms.markUsedByStencil(propName, frontend::ParserAtom::Atomize::Yes);
     nextKey_ = ObjLiteralKey::fromPropName(propName);
   }
   void setPropIndex(uint32_t propIndex) {
@@ -410,8 +410,8 @@ struct ObjLiteralWriter : private ObjLiteralWriterBase {
       const frontend::TaggedParserAtomIndex value) {
     MOZ_ASSERT(kind_ != ObjLiteralKind::Shape);
     propertyCount_++;
-    parserAtoms.markUsedByStencil(value);
-    return pushOpAndName(cx, ObjLiteralOpcode::ConstAtom, nextKey_) &&
+    parserAtoms.markUsedByStencil(value, frontend::ParserAtom::Atomize::No);
+    return pushOpAndName(cx, ObjLiteralOpcode::ConstString, nextKey_) &&
            pushAtomArg(cx, value);
   }
   [[nodiscard]] bool propWithNullValue(JSContext* cx) {

@@ -203,7 +203,7 @@ class nsTableRowGroupFrame final : public nsContainerFrame,
   virtual bool GetDirection() override;
 
   /** Return structural information about a line. */
-  Result<LineInfo, nsresult> GetLine(int32_t aLineNumber) const override;
+  Result<LineInfo, nsresult> GetLine(int32_t aLineNumber) override;
 
   /** Given a frame that's a child of the rowgroup, find which line its on.
    * @param aFrame       - frame, should be a row
@@ -228,7 +228,7 @@ class nsTableRowGroupFrame final : public nsContainerFrame,
    */
   NS_IMETHOD FindFrameAt(int32_t aLineNumber, nsPoint aPos,
                          nsIFrame** aFrameFound, bool* aPosIsBeforeFirstFrame,
-                         bool* aPosIsAfterLastFrame) const override;
+                         bool* aPosIsAfterLastFrame) override;
 
   /** Check whether visual and logical order of cell frames within a line are
    * identical. As the layout will reorder them this is always the case
@@ -241,14 +241,6 @@ class nsTableRowGroupFrame final : public nsContainerFrame,
   NS_IMETHOD CheckLineOrder(int32_t aLine, bool* aIsReordered,
                             nsIFrame** aFirstVisual,
                             nsIFrame** aLastVisual) override;
-
-  /** Find the next originating cell frame that originates in the row.
-   * @param aFrame      - cell frame to start with, will return the next cell
-   *                      originating in a row
-   * @param aLineNumber - the index of the row relative to the table
-   */
-  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame,
-                                  int32_t aLineNumber) const override;
 
   // row cursor methods to speed up searching for the row(s)
   // containing a point. The basic idea is that we set the cursor
@@ -302,7 +294,8 @@ class nsTableRowGroupFrame final : public nsContainerFrame,
    */
   FrameCursorData* SetupRowCursor();
 
-  virtual nsILineIterator* GetLineIterator() override { return this; }
+  bool CanProvideLineIterator() const final { return true; }
+  nsILineIterator* GetLineIterator() final { return this; }
 
   virtual bool IsFrameOfType(uint32_t aFlags) const override {
     if (aFlags & (eSupportsContainLayoutAndPaint | eSupportsAspectRatio)) {

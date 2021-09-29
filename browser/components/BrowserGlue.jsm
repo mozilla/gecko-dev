@@ -123,6 +123,8 @@ XPCOMUtils.defineLazyServiceGetters(this, {
 });
 
 const PREF_PDFJS_ISDEFAULT_CACHE_STATE = "pdfjs.enabledCache.state";
+const PREF_DFPI_ENABLED_BY_DEFAULT =
+  "privacy.restrict3rdpartystorage.rollout.enabledByDefault";
 
 /**
  * Fission-compatible JSProcess implementations.
@@ -1337,6 +1339,10 @@ BrowserGlue.prototype = {
       "browser.contentblocking.features.strict",
       this._setPrefExpectationsAndUpdate
     );
+    Services.prefs.removeObserver(
+      PREF_DFPI_ENABLED_BY_DEFAULT,
+      this._setDefaultCookieBehavior
+    );
   },
 
   // runs on startup, before the first command line handler is invoked
@@ -1393,28 +1399,130 @@ BrowserGlue.prototype = {
         false
       )
     ) {
-      // Temporarily install a prototype monochromatic theme for UX iteration.
-      // We uninstall it during shutdown so it does not persist if the pref is
-      // disabled.
-      const kMonochromaticThemeID = "firefox-monochromatic-purple@mozilla.org";
-      AddonManager.maybeInstallBuiltinAddon(
-        kMonochromaticThemeID,
-        "1.0",
-        "resource://builtin-themes/monochromatic-purple/"
-      );
-      AsyncShutdown.profileChangeTeardown.addBlocker(
-        "Uninstall Prototype Monochromatic Theme",
-        async () => {
-          try {
-            let addon = await AddonManager.getAddonByID(kMonochromaticThemeID);
-            await addon.uninstall();
-          } catch (e) {
-            Cu.reportError(
-              "Failed to uninstall firefox-monochromatic-purple on shutdown"
-            );
+      // List of monochromatic themes. The themes are represented by objects
+      // containing their id, current version, and path relative to
+      // resource://builtin-themes/monochromatic/.
+      const kMonochromaticThemeList = [
+        {
+          id: "firefox-lush-soft@mozilla.org",
+          version: "1.0",
+          path: "lush/soft/",
+        },
+        {
+          id: "firefox-lush-balanced@mozilla.org",
+          version: "1.0",
+          path: "lush/balanced/",
+        },
+        {
+          id: "firefox-lush-soft@mozilla.org",
+          version: "1.0",
+          path: "lush/soft/",
+        },
+        {
+          id: "firefox-lush-balanced@mozilla.org",
+          version: "1.0",
+          path: "lush/balanced/",
+        },
+        {
+          id: "firefox-lush-bold@mozilla.org",
+          version: "1.0",
+          path: "lush/bold/",
+        },
+        {
+          id: "firefox-abstract-soft@mozilla.org",
+          version: "1.0",
+          path: "abstract/soft/",
+        },
+        {
+          id: "firefox-abstract-balanced@mozilla.org",
+          version: "1.0",
+          path: "abstract/balanced/",
+        },
+        {
+          id: "firefox-abstract-bold@mozilla.org",
+          version: "1.0",
+          path: "abstract/bold/",
+        },
+        {
+          id: "firefox-elemental-soft@mozilla.org",
+          version: "1.0",
+          path: "elemental/soft/",
+        },
+        {
+          id: "firefox-elemental-balanced@mozilla.org",
+          version: "1.0",
+          path: "elemental/balanced/",
+        },
+        {
+          id: "firefox-elemental-bold@mozilla.org",
+          version: "1.0",
+          path: "elemental/bold/",
+        },
+        {
+          id: "firefox-cheers-soft@mozilla.org",
+          version: "1.0",
+          path: "cheers/soft/",
+        },
+        {
+          id: "firefox-cheers-balanced@mozilla.org",
+          version: "1.0",
+          path: "cheers/balanced/",
+        },
+        {
+          id: "firefox-cheers-bold@mozilla.org",
+          version: "1.0",
+          path: "cheers/bold/",
+        },
+        {
+          id: "firefox-graffiti-soft@mozilla.org",
+          version: "1.0",
+          path: "graffiti/soft/",
+        },
+        {
+          id: "firefox-graffiti-balanced@mozilla.org",
+          version: "1.0",
+          path: "graffiti/balanced/",
+        },
+        {
+          id: "firefox-graffiti-bold@mozilla.org",
+          version: "1.0",
+          path: "graffiti/bold/",
+        },
+        {
+          id: "firefox-foto-soft@mozilla.org",
+          version: "1.0",
+          path: "foto/soft/",
+        },
+        {
+          id: "firefox-foto-balanced@mozilla.org",
+          version: "1.0",
+          path: "foto/balanced/",
+        },
+        {
+          id: "firefox-foto-bold@mozilla.org",
+          version: "1.0",
+          path: "foto/bold/",
+        },
+      ];
+      for (let { id, version, path } of kMonochromaticThemeList) {
+        AddonManager.maybeInstallBuiltinAddon(
+          id,
+          version,
+          `resource://builtin-themes/monochromatic/${path}`
+        );
+
+        AsyncShutdown.profileChangeTeardown.addBlocker(
+          "Uninstall Monochromatic Theme",
+          async () => {
+            try {
+              let addon = await AddonManager.getAddonByID(id);
+              await addon.uninstall();
+            } catch (e) {
+              Cu.reportError(`Failed to uninstall ${id} on shutdown`);
+            }
           }
-        }
-      );
+        );
+      }
     }
 
     if (AppConstants.MOZ_NORMANDY) {
@@ -1565,10 +1673,12 @@ BrowserGlue.prototype = {
     ];
 
     win.gNotificationBox.appendNotification(
-      message,
       "reset-profile-notification",
-      "chrome://global/skin/icons/help.svg",
-      win.gNotificationBox.PRIORITY_INFO_LOW,
+      {
+        label: message,
+        image: "chrome://global/skin/icons/question-64.png",
+        priority: win.gNotificationBox.PRIORITY_INFO_LOW,
+      },
       buttons
     );
   },
@@ -1597,10 +1707,11 @@ BrowserGlue.prototype = {
     ];
 
     win.gNotificationBox.appendNotification(
-      message,
       "unsigned-addons-disabled",
-      "",
-      win.gNotificationBox.PRIORITY_WARNING_MEDIUM,
+      {
+        label: message,
+        priority: win.gNotificationBox.PRIORITY_WARNING_MEDIUM,
+      },
       buttons
     );
   },
@@ -1750,6 +1861,9 @@ BrowserGlue.prototype = {
     PlacesUtils.favicons.setDefaultIconURIPreferredSize(
       16 * aWindow.devicePixelRatio
     );
+    // _setDefaultCookieBehavior needs to run before other functions that modify
+    // privacy preferences such as _setPrefExpectationsAndUpdate and _matchCBCategory
+    this._setDefaultCookieBehavior();
     this._setPrefExpectationsAndUpdate();
     this._matchCBCategory();
 
@@ -1790,6 +1904,10 @@ BrowserGlue.prototype = {
       "browser.contentblocking.features.strict",
       this._setPrefExpectationsAndUpdate
     );
+    Services.prefs.addObserver(
+      PREF_DFPI_ENABLED_BY_DEFAULT,
+      this._setDefaultCookieBehavior
+    );
   },
 
   _updateAutoplayPref() {
@@ -1801,6 +1919,20 @@ BrowserGlue.prototype = {
     if (blocked in labels) {
       telemetry.add(labels[blocked]);
     }
+  },
+
+  // For the initial rollout of dFPI, set the default cookieBehavior based on the pref
+  // set during onboarding when the user chooses to enable protections or not.
+  _setDefaultCookieBehavior() {
+    if (!Services.prefs.getBoolPref(PREF_DFPI_ENABLED_BY_DEFAULT, false)) {
+      return;
+    }
+
+    let defaultPrefs = Services.prefs.getDefaultBranch("");
+    defaultPrefs.setIntPref(
+      "network.cookie.cookieBehavior",
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN
+    );
   },
 
   _setPrefExpectations() {
@@ -2257,6 +2389,7 @@ BrowserGlue.prototype = {
     }
 
     Sanitizer.onStartup();
+    this._maybeShowRestoreSessionInfoBar();
     this._scheduleStartupIdleTasks();
     this._lateTasksIdleObserver = (idleService, topic, data) => {
       if (topic == "idle") {
@@ -2869,14 +3002,12 @@ BrowserGlue.prototype = {
     // The warning will appear even when only one window/tab is open. For other
     // methods of quitting, the warning only appears when there is more than one
     // window or tab open.
-    if (this._quitSource == "shortcut") {
-      if (!Services.prefs.getBoolPref("browser.warnOnQuitShortcut")) {
-        return;
-      }
-    } else if (
-      pagecount < 2 ||
-      !Services.prefs.getBoolPref("browser.tabs.warnOnClose")
-    ) {
+    let shouldWarnForShortcut =
+      this._quitSource == "shortcut" &&
+      Services.prefs.getBoolPref("browser.warnOnQuitShortcut");
+    let shouldWarnForTabs =
+      pagecount >= 2 && Services.prefs.getBoolPref("browser.tabs.warnOnClose");
+    if (!shouldWarnForTabs && !shouldWarnForShortcut) {
       return;
     }
 
@@ -2904,7 +3035,7 @@ BrowserGlue.prototype = {
       title = gTabbrowserBundle.GetStringFromName("tabs.closeTabsTitle");
       title = PluralForm.get(pagecount, title).replace("#1", pagecount);
 
-      if (this._quitSource == "shortcut") {
+      if (shouldWarnForShortcut) {
         let productName = gBrandBundle.GetStringFromName("brandShorterName");
         title = gTabbrowserBundle.formatStringFromName(
           "tabs.closeTabsWithKeyTitle",
@@ -2926,7 +3057,7 @@ BrowserGlue.prototype = {
     // The checkbox label is different depending on whether the shortcut
     // was used to quit or not.
     let checkboxLabel;
-    if (this._quitSource == "shortcut") {
+    if (shouldWarnForShortcut) {
       let quitKeyElement = win.document.getElementById("key_quitApplication");
       let quitKey = ShortcutUtils.prettifyShortcut(quitKeyElement);
 
@@ -2980,7 +3111,7 @@ BrowserGlue.prototype = {
     // If the user has unticked the box, and has confirmed closing, stop showing
     // the warning.
     if (buttonPressed == 0 && !warnOnClose.value) {
-      if (this._quitSource == "shortcut") {
+      if (shouldWarnForShortcut) {
         Services.prefs.setBoolPref("browser.warnOnQuitShortcut", false);
       } else {
         Services.prefs.setBoolPref("browser.tabs.warnOnClose", false);
@@ -3255,7 +3386,6 @@ BrowserGlue.prototype = {
     var placesBundle = Services.strings.createBundle(
       "chrome://browser/locale/places/places.properties"
     );
-    var title = placesBundle.GetStringFromName("lockPrompt.title");
     var text = placesBundle.formatStringFromName("lockPrompt.text", [
       applicationName,
     ]);
@@ -3265,10 +3395,11 @@ BrowserGlue.prototype = {
 
     var notifyBox = win.gBrowser.getNotificationBox();
     var notification = notifyBox.appendNotification(
-      text,
-      title,
-      null,
-      notifyBox.PRIORITY_CRITICAL_MEDIUM,
+      "places-locked",
+      {
+        label: text,
+        priority: win.gNotificationBox.PRIORITY_CRITICAL_MEDIUM,
+      },
       buttons
     );
     notification.persistence = -1; // Until user closes it
@@ -3312,7 +3443,7 @@ BrowserGlue.prototype = {
   _migrateUI: function BG__migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 117;
+    const UI_VERSION = 118;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -3940,6 +4071,29 @@ BrowserGlue.prototype = {
       UrlbarPrefs.migrateResultBuckets();
     }
 
+    if (currentUIVersion < 118 && AppConstants.NIGHTLY_BUILD) {
+      // Uninstall experimental monochromatic purple theme.
+      let addonPromise;
+      try {
+        addonPromise = AddonManager.getAddonByID(
+          "firefox-monochromatic-purple@mozilla.org"
+        );
+      } catch (error) {
+        Cu.reportError(
+          "Could not access the AddonManager to upgrade the profile. This is most " +
+            "likely because the upgrader is being run from an xpcshell test where " +
+            "the AddonManager is not initialized."
+        );
+      }
+      Promise.resolve(addonPromise).then(addon => {
+        if (!addon) {
+          // Either the addon wasn't installed, or the call to getAddonByID failed.
+          return;
+        }
+        addon.uninstall().catch(Cu.reportError);
+      }, Cu.reportError);
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
@@ -4020,6 +4174,73 @@ BrowserGlue.prototype = {
       id: "defaultBrowserCheck",
       context: { willShowDefaultPrompt: willPrompt, source: "startup" },
     });
+  },
+
+  /**
+   * Only show the infobar when canRestoreLastSession and the pref value == 1
+   */
+  async _maybeShowRestoreSessionInfoBar() {
+    let count = Services.prefs.getIntPref(
+      "browser.startup.couldRestoreSession.count",
+      0
+    );
+    if (count < 0 || count >= 2) {
+      return;
+    }
+    if (count == 0) {
+      // We don't show the infobar right after the update which establishes this pref
+      // Increment the counter so we can consider it next time
+      Services.prefs.setIntPref(
+        "browser.startup.couldRestoreSession.count",
+        ++count
+      );
+      return;
+    }
+
+    // We've restarted at least once; we will show the notification if possible:
+    if (!SessionStore.canRestoreLastSession) {
+      return;
+    }
+
+    Services.prefs.setIntPref(
+      "browser.startup.couldRestoreSession.count",
+      ++count
+    );
+
+    const win = BrowserWindowTracker.getTopWindow();
+    const messageFragment = win.document.createDocumentFragment();
+    const message = win.document.createElement("span");
+    const icon = win.document.createElement("img");
+    icon.src = "chrome://browser/skin/menu.svg";
+    icon.setAttribute("data-l10n-name", "icon");
+    icon.className = "inline-icon";
+    message.appendChild(icon);
+    messageFragment.appendChild(message);
+    win.document.l10n.setAttributes(
+      message,
+      "restore-session-startup-suggestion-message"
+    );
+
+    const buttons = [
+      {
+        "l10n-id": "restore-session-startup-suggestion-button",
+        callback: () => {
+          win.PanelUI.show();
+        },
+      },
+    ];
+
+    const notifyBox = win.gBrowser.getNotificationBox();
+    const notification = notifyBox.appendNotification(
+      "startup-restore-session-suggestion",
+      {
+        label: messageFragment,
+        priority: notifyBox.PRIORITY_INFO_MEDIUM,
+      },
+      buttons
+    );
+    // Don't allow it to be immediately hidden:
+    notification.timeout = Date.now() + 3000;
   },
 
   /**
@@ -4315,10 +4536,11 @@ BrowserGlue.prototype = {
 
     // XXXndeakin is this notification still relevant?
     win.gNotificationBox.appendNotification(
-      message,
       "flash-hang",
-      null,
-      win.gNotificationBox.PRIORITY_INFO_MEDIUM,
+      {
+        label: message,
+        priority: win.gNotificationBox.PRIORITY_INFO_MEDIUM,
+      },
       buttons
     );
   },

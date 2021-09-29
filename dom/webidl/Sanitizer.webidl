@@ -21,7 +21,7 @@ interface Sanitizer {
   [Throws]
   DocumentFragment sanitize(SanitizerInput input);
   [Throws]
-  DOMString sanitizeToString(SanitizerInput input);
+  Element? sanitizeFor(DOMString element, DOMString input);
 };
 
 dictionary SanitizerConfig {

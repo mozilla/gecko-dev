@@ -8,13 +8,7 @@ const Services = require("Services");
 
 loader.lazyRequireGetter(
   this,
-  "isWindowIncluded",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isRemoteFrame",
+  "isRemoteBrowserElement",
   "devtools/shared/layout/utils",
   true
 );
@@ -22,6 +16,8 @@ loader.lazyRequireGetter(
 const IS_OSX = Services.appinfo.OS === "Darwin";
 
 class NodePicker {
+  #eventListenersAbortController;
+
   constructor(walker, targetActor) {
     this._walker = walker;
     this._targetActor = targetActor;
@@ -34,6 +30,7 @@ class NodePicker {
     this._onKey = this._onKey.bind(this);
     this._onPick = this._onPick.bind(this);
     this._onSuppressedEvent = this._onSuppressedEvent.bind(this);
+    this._preventContentEvent = this._preventContentEvent.bind(this);
   }
 
   _findAndAttachElement(event) {
@@ -45,20 +42,32 @@ class NodePicker {
   }
 
   /**
-   * Returns `true` if the event was dispatched from a window included in
-   * the current highlighter environment; or if the highlighter environment has
-   * chrome privileges
+   * Returns `true` if the event was dispatched from a window managed by the associated
+   * targetActor.
    *
    * @param {Event} event
    *          The event to allow
    * @return {Boolean}
    */
-  _isEventAllowed({ view }) {
-    const { window } = this._targetActor;
+  _isEventAllowed({ target, view }) {
+    // Allow "non multiprocess" browser toolbox to inspect documents loaded in the parent
+    // process (e.g. about:robots)
+    if (view instanceof Ci.nsIDOMChromeWindow) {
+      return true;
+    }
 
-    return (
-      window instanceof Ci.nsIDOMChromeWindow || isWindowIncluded(window, view)
-    );
+    // If the picked node is a remote browser element, then we need to let the event through,
+    // since there's a highlighter actor in that sub-frame also picking.
+    // ⚠️ This means we will not handle events made on the padding area of the <browser>
+    // elements, but we don't have any way to discriminate those. Note that we can ignore
+    // `<iframe>` elements as the "parent" document does not receive events happening in
+    // the embedded document (e.g. hovering _inside_ the iframe, won't emit a mousemove
+    // event on the top document).
+    if (isRemoteBrowserElement(target)) {
+      return false;
+    }
+
+    return this._targetActor.windows.includes(view);
   }
 
   /**
@@ -72,16 +81,11 @@ class NodePicker {
    * Once a node is picked, events will cease, and listeners will be removed.
    */
   _onPick(event) {
-    // If the picked node is a remote frame, then we need to let the event through
-    // since there's a highlighter actor in that sub-frame also picking.
-    if (isRemoteFrame(event.target)) {
+    if (!this._isEventAllowed(event)) {
       return;
     }
 
     this._preventContentEvent(event);
-    if (!this._isEventAllowed(event)) {
-      return;
-    }
 
     // If Shift is pressed, this is only a preview click.
     // Send the event to the client, but don't stop picking.
@@ -103,16 +107,10 @@ class NodePicker {
   }
 
   _onHovered(event) {
-    // If the hovered node is a remote frame, then we need to let the event through
-    // since there's a highlighter actor in that sub-frame also picking.
-    if (isRemoteFrame(event.target)) {
-      return;
-    }
-
-    this._preventContentEvent(event);
     if (!this._isEventAllowed(event)) {
       return;
     }
+    this._preventContentEvent(event);
 
     this._currentNode = this._findAndAttachElement(event);
     if (this._hoveredNode !== this._currentNode.node) {
@@ -126,10 +124,10 @@ class NodePicker {
       return;
     }
 
-    this._preventContentEvent(event);
     if (!this._isEventAllowed(event)) {
       return;
     }
+    this._preventContentEvent(event);
 
     let currentNode = this._currentNode.node.rawNode;
 
@@ -211,11 +209,11 @@ class NodePicker {
 
   // In most cases, we need to prevent content events from reaching the content. This is
   // needed to avoid triggering actions such as submitting forms or following links.
-  // In the case where the event happens on a remote frame however, we do want to let it
-  // through. That is because otherwise the pickers started in nested remote frames will
-  // never have a chance of picking their own elements.
+  // However, in the case where the event happens on a frame associated with another target,
+  // we do want to let it through. That is because otherwise the pickers started in nested
+  // frames will never have a chance of picking their own elements.
   _preventContentEvent(event) {
-    if (isRemoteFrame(event.target)) {
+    if (!this._isEventAllowed(event)) {
       return;
     }
     event.stopPropagation();
@@ -233,42 +231,41 @@ class NodePicker {
    * @param callback The function to call with suppressed events, or null.
    */
   _setSuppressedEventListener(callback) {
-    const { document } = this._targetActor.window;
+    if (!this._targetActor?.window?.document) {
+      return;
+    }
 
     // Pass the callback to setSuppressedEventListener as an EventListener.
-    document.setSuppressedEventListener(
+    this._targetActor.window.document.setSuppressedEventListener(
       callback ? { handleEvent: callback } : null
     );
   }
 
   _startPickerListeners() {
     const target = this._targetActor.chromeEventHandler;
-    target.addEventListener("mousemove", this._onHovered, true);
-    target.addEventListener("click", this._onPick, true);
-    target.addEventListener("mousedown", this._preventContentEvent, true);
-    target.addEventListener("mouseup", this._preventContentEvent, true);
-    target.addEventListener("dblclick", this._preventContentEvent, true);
-    target.addEventListener("keydown", this._onKey, true);
-    target.addEventListener("keyup", this._preventContentEvent, true);
+    this.#eventListenersAbortController = new AbortController();
+    const config = {
+      capture: true,
+      signal: this.#eventListenersAbortController.signal,
+    };
+    target.addEventListener("mousemove", this._onHovered, config);
+    target.addEventListener("click", this._onPick, config);
+    target.addEventListener("mousedown", this._preventContentEvent, config);
+    target.addEventListener("mouseup", this._preventContentEvent, config);
+    target.addEventListener("dblclick", this._preventContentEvent, config);
+    target.addEventListener("keydown", this._onKey, config);
+    target.addEventListener("keyup", this._preventContentEvent, config);
 
     this._setSuppressedEventListener(this._onSuppressedEvent);
   }
 
   _stopPickerListeners() {
-    const target = this._targetActor.chromeEventHandler;
-    if (!target) {
-      return;
-    }
-
-    target.removeEventListener("mousemove", this._onHovered, true);
-    target.removeEventListener("click", this._onPick, true);
-    target.removeEventListener("mousedown", this._preventContentEvent, true);
-    target.removeEventListener("mouseup", this._preventContentEvent, true);
-    target.removeEventListener("dblclick", this._preventContentEvent, true);
-    target.removeEventListener("keydown", this._onKey, true);
-    target.removeEventListener("keyup", this._preventContentEvent, true);
-
     this._setSuppressedEventListener(null);
+
+    if (this.#eventListenersAbortController) {
+      this.#eventListenersAbortController.abort();
+      this.#eventListenersAbortController = null;
+    }
   }
 
   cancelPick() {
@@ -298,6 +295,10 @@ class NodePicker {
     if (doFocus) {
       this._targetActor.window.focus();
     }
+  }
+
+  resetHoveredNodeReference() {
+    this._hoveredNode = null;
   }
 
   destroy() {

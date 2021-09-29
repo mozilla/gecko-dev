@@ -695,7 +695,7 @@ void XPCJSRuntime::TraceNativeBlackRoots(JSTracer* trc) {
     }
   }
 
-  dom::TraceBlackJS(trc, nsIXPConnect::XPConnect()->GetIsShuttingDown());
+  dom::TraceBlackJS(trc);
 }
 
 void XPCJSRuntime::TraceAdditionalNativeGrayRoots(JSTracer* trc) {
@@ -2501,6 +2501,7 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
       "Used regexpshared cells.");
 
   MOZ_ASSERT(gcThingTotal == rtStats.gcHeapGCThings);
+  (void)gcThingTotal;
 
   // Report xpconnect.
 
@@ -2586,6 +2587,12 @@ static void AccumulateTelemetryCallback(int id, uint32_t sample,
       break;
     case JS_TELEMETRY_GC_BUDGET_MS_2:
       Telemetry::Accumulate(Telemetry::GC_BUDGET_MS_2, sample);
+      break;
+    case JS_TELEMETRY_GC_BUDGET_WAS_INCREASED:
+      Telemetry::Accumulate(Telemetry::GC_BUDGET_WAS_INCREASED, sample);
+      break;
+    case JS_TELEMETRY_GC_SLICE_WAS_LONG:
+      Telemetry::Accumulate(Telemetry::GC_SLICE_WAS_LONG, sample);
       break;
     case JS_TELEMETRY_GC_BUDGET_OVERRUN:
       Telemetry::Accumulate(Telemetry::GC_BUDGET_OVERRUN, sample);

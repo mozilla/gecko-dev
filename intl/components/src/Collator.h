@@ -136,10 +136,27 @@ class Collator final {
                        const Maybe<Options&> aPrevOptions = Nothing());
 
   /**
+   * Return the case first option of this collator.
+   */
+  Result<CaseFirst, ICUError> GetCaseFirst() const;
+
+  /**
    * Map keywords to their BCP 47 equivalents.
    */
   static SpanResult<char> KeywordValueToBcp47Extension(const char* aKeyword,
                                                        int32_t aLength);
+
+  enum class CommonlyUsed : bool {
+    /**
+     * Select all possible values, even when not commonly used by a locale.
+     */
+    No,
+
+    /**
+     * Only select the values which are commonly used by a locale.
+     */
+    Yes,
+  };
 
   using Bcp47ExtEnumeration =
       Enumeration<char, SpanResult<char>,
@@ -155,7 +172,31 @@ class Collator final {
    * http://cldr.unicode.org/core-spec/#Key_Type_Definitions
    */
   static Result<Bcp47ExtEnumeration, ICUError> GetBcp47KeywordValuesForLocale(
-      const char* aLocale);
+      const char* aLocale, CommonlyUsed aCommonlyUsed = CommonlyUsed::No);
+
+  /**
+   * Returns an iterator over all possible collator locale extensions.
+   * These extensions can be used in BCP 47 locales. For instance this
+   * iterator could return "phonebk" and could be appled to the German locale
+   * "de" as "de-co-phonebk" for a phonebook-style collation.
+   *
+   * The collation extensions can be found here:
+   * http://cldr.unicode.org/core-spec/#Key_Type_Definitions
+   */
+  static Result<Bcp47ExtEnumeration, ICUError> GetBcp47KeywordValues();
+
+  /**
+   * Returns an iterator over all supported collator locales.
+   *
+   * The returned strings are ICU locale identifiers and NOT BCP 47 language
+   * tags.
+   *
+   * Also see <https://unicode-org.github.io/icu/userguide/locale>.
+   */
+  static auto GetAvailableLocales() {
+    return AvailableLocalesEnumeration<ucol_countAvailable,
+                                       ucol_getAvailable>();
+  }
 
  private:
   /**

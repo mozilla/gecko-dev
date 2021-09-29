@@ -88,13 +88,12 @@ class IncrementalFinalizeRunnable;
 // SegmentedVector to speed up iteration.
 class JSHolderMap {
  public:
-  enum WhichHolders { AllHolders, HoldersInGrayMarkingZones };
+  enum WhichHolders { AllHolders, HoldersRequiredForGrayMarking };
+
+  class Iter;
 
   JSHolderMap();
-
-  // Call functor |f| for each holder.
-  template <typename F>
-  void ForEach(F&& f, WhichHolders aWhich = AllHolders);
+  ~JSHolderMap() { MOZ_RELEASE_ASSERT(!mHasIterator); }
 
   bool Has(void* aHolder) const;
   nsScriptObjectTracer* Get(void* aHolder) const;
@@ -124,8 +123,7 @@ class JSHolderMap {
       mozilla::HashMap<JS::Zone*, UniquePtr<EntryVector>,
                        DefaultHasher<JS::Zone*>, InfallibleAllocPolicy>;
 
-  template <typename F>
-  void ForEach(EntryVector& aJSHolders, const F& f, JS::Zone* aZone);
+  class EntryVectorIter;
 
   bool RemoveEntry(EntryVector& aJSHolders, Entry* aEntry);
 
@@ -142,6 +140,69 @@ class JSHolderMap {
   // Currently this will only contain wrapper cache wrappers since these are the
   // only holders to pass a zone parameter through to AddJSHolder.
   EntryVectorMap mPerZoneJSHolders;
+
+  // Iterators can mutate the element vectors by removing stale elements. Allow
+  // at most one to exist at a time.
+  bool mHasIterator = false;
+};
+
+// An iterator over an EntryVector that skips over removed entries and removes
+// them from the map.
+class JSHolderMap::EntryVectorIter {
+ public:
+  EntryVectorIter(JSHolderMap& aMap, EntryVector& aVector)
+      : mHolderMap(aMap), mVector(aVector), mIter(aVector.Iter()) {
+    Settle();
+  }
+
+  const EntryVector& Vector() const { return mVector; }
+
+  bool Done() const { return mIter.Done(); }
+  const Entry& Get() const { return mIter.Get(); }
+  void Next() {
+    mIter.Next();
+    Settle();
+  }
+
+  operator const Entry*() const { return &Get(); }
+  const Entry* operator->() const { return &Get(); }
+
+ private:
+  void Settle();
+
+  JSHolderMap& mHolderMap;
+  EntryVector& mVector;
+  EntryVector::IterImpl mIter;
+};
+
+class JSHolderMap::Iter {
+ public:
+  explicit Iter(JSHolderMap& aMap, WhichHolders aWhich = AllHolders);
+
+  ~Iter() {
+    MOZ_RELEASE_ASSERT(mHolderMap.mHasIterator);
+    mHolderMap.mHasIterator = false;
+  }
+
+  bool Done() const { return mIter.Done(); }
+  const Entry& Get() const { return mIter.Get(); }
+  void Next() {
+    mIter.Next();
+    Settle();
+  }
+
+  operator const Entry*() const { return &Get(); }
+  const Entry* operator->() const { return &Get(); }
+
+  JS::Zone* Zone() const { return mZone; }
+
+ private:
+  void Settle();
+
+  JSHolderMap& mHolderMap;
+  Vector<JS::Zone*, 1, InfallibleAllocPolicy> mZones;
+  JS::Zone* mZone = nullptr;
+  EntryVectorIter mIter;
 };
 
 class CycleCollectedJSRuntime {

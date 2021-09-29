@@ -18,7 +18,6 @@ EXPORTS += [
     "GLImages.h",
     "GPUVideoImage.h",
     "ImageContainer.h",
-    "ImageLayers.h",
     "ImageTypes.h",
     "IMFYCbCrImage.h",
     "Layers.h",
@@ -198,7 +197,6 @@ EXPORTS.mozilla.layers += [
     "ScrollableLayerGuid.h",
     "ShareableCanvasRenderer.h",
     "SourceSurfaceSharedData.h",
-    "SourceSurfaceVolatileData.h",
     "SurfacePool.h",
     "SyncObject.h",
     "TextureSourceProvider.h",
@@ -305,6 +303,7 @@ UNIFIED_SOURCES += [
     "apz/src/GenericScrollAnimation.cpp",
     "apz/src/GestureEventListener.cpp",
     "apz/src/HitTestingTreeNode.cpp",
+    "apz/src/IAPZHitTester.cpp",
     "apz/src/InputBlockState.cpp",
     "apz/src/InputQueue.cpp",
     "apz/src/KeyboardMap.cpp",
@@ -318,6 +317,7 @@ UNIFIED_SOURCES += [
     "apz/src/SmoothMsdScrollAnimation.cpp",
     "apz/src/SmoothScrollAnimation.cpp",
     "apz/src/WheelScrollAnimation.cpp",
+    "apz/src/WRHitTester.cpp",
     "apz/testutil/APZTestData.cpp",
     "apz/util/ActiveElementManager.cpp",
     "apz/util/APZCCallbackHelper.cpp",
@@ -358,7 +358,6 @@ UNIFIED_SOURCES += [
     "FrameMetrics.cpp",
     "GLImages.cpp",
     "ImageDataSerializer.cpp",
-    "ImageLayers.cpp",
     "ipc/APZChild.cpp",
     "ipc/APZCTreeManagerChild.cpp",
     "ipc/APZCTreeManagerParent.cpp",
@@ -412,7 +411,6 @@ UNIFIED_SOURCES += [
     "ScrollableLayerGuid.cpp",
     "ShareableCanvasRenderer.cpp",
     "SourceSurfaceSharedData.cpp",
-    "SourceSurfaceVolatileData.cpp",
     "SyncObject.cpp",
     "TextureSourceProvider.cpp",
     "TextureWrapperImage.cpp",
@@ -519,9 +517,7 @@ if CONFIG["CC_TYPE"] in ("clang", "gcc"):
     # Suppress warnings in third-party code.
     CXXFLAGS += ["-Wno-maybe-uninitialized"]
 
-UNIFIED_SOURCES += [
-    "composite/PaintCounter.cpp",
-]
+UNIFIED_SOURCES += []
 
 if CONFIG["FUZZING"] and CONFIG["FUZZING_INTERFACES"]:
     TEST_DIRS += ["ipc/fuzztest"]

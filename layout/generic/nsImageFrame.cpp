@@ -79,7 +79,6 @@
 #include "nsBidiPresUtils.h"
 
 #include "gfxRect.h"
-#include "ImageLayers.h"
 #include "ImageRegion.h"
 #include "ImageContainer.h"
 #include "mozilla/ServoStyleSet.h"
@@ -214,7 +213,7 @@ static bool DependsOnIntrinsicSize(const SizeOrMaxSize& aMinOrMaxSize) {
   switch (*length) {
     case nsIFrame::ExtremumLength::MinContent:
     case nsIFrame::ExtremumLength::MaxContent:
-    case nsIFrame::ExtremumLength::MozFitContent:
+    case nsIFrame::ExtremumLength::FitContent:
     case nsIFrame::ExtremumLength::FitContentFunction:
       return true;
     case nsIFrame::ExtremumLength::MozAvailable:

@@ -167,7 +167,8 @@
     {
       "login": false,
       "name": "ebay",
-      "test_url": "https://www.ebay.com/"
+      "test_url": "https://www.ebay.com/",
+      "secondary_url": "https://www.ebay.com/deals"
     },
     {
       "login": false,
@@ -177,12 +178,14 @@
     {
       "login": false,
       "name": "expedia",
-      "test_url": "https://expedia.com/Hotel-Search?destination=New+York%2C+New+York&latLong=40.756680%2C-73.986470&regionId=178293&startDate=&endDate=&rooms=1&_xpid=11905%7C1&adults=2"
+      "test_url": "https://expedia.com/Hotel-Search?destination=New+York%2C+New+York&latLong=40.756680%2C-73.986470&regionId=178293&startDate=&endDate=&rooms=1&_xpid=11905%7C1&adults=2",
+      "secondary_url": "https://www.expedia.com/Activities"
     },
     {
-      "login": true,
+      "login": false,
       "name": "facebook",
-      "test_url": "https://www.facebook.com"
+      "test_url": "https://www.facebook.com",
+      "secondary_url": "https://www.facebook.com/marketplace/?ref=bookmark"
     },
     {
       "login": false,
