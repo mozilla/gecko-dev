@@ -246,9 +246,9 @@ static XDRResult VersionCheck(XDRState<mode>* xdr) {
 }
 
 template <XDRMode mode>
-static XDRResult XDRStencilHeader(
-    XDRState<mode>* xdr, const JS::ReadOnlyCompileOptions* maybeOptions,
-    RefPtr<ScriptSource>& source) {
+static XDRResult XDRStencilHeader(XDRState<mode>* xdr,
+                                  const JS::DecodeOptions* maybeOptions,
+                                  RefPtr<ScriptSource>& source) {
   // The XDR-Stencil header is inserted at beginning of buffer, but it is
   // computed at the end the incremental-encoding process.
 
@@ -291,7 +291,7 @@ XDRIncrementalStencilEncoder::~XDRIncrementalStencilEncoder() {
 }
 
 XDRResult XDRIncrementalStencilEncoder::setInitial(
-    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    JSContext* cx,
     UniquePtr<frontend::ExtensibleCompilationStencil>&& initial) {
   MOZ_TRY(frontend::StencilXDR::checkCompilationStencil(*initial));
 
@@ -333,8 +333,7 @@ XDRResult XDRIncrementalStencilEncoder::linearize(JSContext* cx,
 }
 
 XDRResult XDRStencilDecoder::codeStencil(
-    const JS::ReadOnlyCompileOptions& options,
-    frontend::CompilationStencil& stencil) {
+    const JS::DecodeOptions& options, frontend::CompilationStencil& stencil) {
 #ifdef DEBUG
   auto sanityCheck = mozilla::MakeScopeExit(
       [&] { MOZ_ASSERT(validateResultCode(cx(), resultCode())); });
@@ -343,7 +342,7 @@ XDRResult XDRStencilDecoder::codeStencil(
   auto resetOptions = mozilla::MakeScopeExit([&] { options_ = nullptr; });
   options_ = &options;
 
-  MOZ_TRY(XDRStencilHeader(this, options_, stencil.source));
+  MOZ_TRY(XDRStencilHeader(this, &options, stencil.source));
   MOZ_TRY(frontend::StencilXDR::codeCompilationStencil(this, stencil));
 
   return Ok();

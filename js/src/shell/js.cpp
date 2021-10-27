@@ -14,6 +14,7 @@
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/mozalloc.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/TimeStamp.h"
@@ -629,6 +630,9 @@ bool shell::enableIteratorHelpers = false;
 bool shell::enablePrivateClassFields = false;
 bool shell::enablePrivateClassMethods = false;
 bool shell::enableErgonomicBrandChecks = true;
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+bool shell::enableChangeArrayByCopy = false;
+#endif
 bool shell::useOffThreadParseGlobal = true;
 bool shell::enableClassStaticBlocks = true;
 #ifdef JS_GC_ZEAL
@@ -787,7 +791,7 @@ ShellContext* js::shell::GetShellContext(JSContext* cx) {
   return sc;
 }
 
-static void TraceGrayRoots(JSTracer* trc, void* data) {
+static bool TraceGrayRoots(JSTracer* trc, SliceBudget& budget, void* data) {
   JSRuntime* rt = trc->runtime();
   for (ZonesIter zone(rt, SkipAtoms); !zone.done(); zone.next()) {
     for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next()) {
@@ -798,6 +802,8 @@ static void TraceGrayRoots(JSTracer* trc, void* data) {
       }
     }
   }
+
+  return true;
 }
 
 static mozilla::UniqueFreePtr<char[]> GetLine(FILE* file, const char* prompt) {
@@ -2208,10 +2214,6 @@ static bool ConvertTranscodeResultToJSException(JSContext* cx,
       MOZ_ASSERT(!cx->isExceptionPending());
       JS_ReportErrorASCII(cx, "the build-id does not match");
       return false;
-    case JS::TranscodeResult::Failure_RunOnceNotSupported:
-      MOZ_ASSERT(!cx->isExceptionPending());
-      JS_ReportErrorASCII(cx, "run-once script are not supported by XDR");
-      return false;
     case JS::TranscodeResult::Failure_AsmJSNotSupported:
       MOZ_ASSERT(!cx->isExceptionPending());
       JS_ReportErrorASCII(cx, "Asm.js is not supported by XDR");
@@ -2220,21 +2222,37 @@ static bool ConvertTranscodeResultToJSException(JSContext* cx,
       MOZ_ASSERT(!cx->isExceptionPending());
       JS_ReportErrorASCII(cx, "XDR data corruption");
       return false;
-    case JS::TranscodeResult::Failure_WrongCompileOption:
-      MOZ_ASSERT(!cx->isExceptionPending());
-      JS_ReportErrorASCII(
-          cx, "Compile options differs from Compile options of the encoding");
-      return false;
-    case JS::TranscodeResult::Failure_NotInterpretedFun:
-      MOZ_ASSERT(!cx->isExceptionPending());
-      JS_ReportErrorASCII(cx,
-                          "Only interepreted functions are supported by XDR");
-      return false;
 
     case JS::TranscodeResult::Throw:
       MOZ_ASSERT(cx->isExceptionPending());
       return false;
   }
+}
+
+static bool StartIncrementalEncoding(JSContext* cx,
+                                     const JS::ReadOnlyCompileOptions& options,
+                                     JS::Stencil* stencil) {
+  Rooted<frontend::CompilationInput> input(cx,
+                                           frontend::CompilationInput(options));
+
+  auto initial =
+      js::MakeUnique<frontend::ExtensibleCompilationStencil>(cx, input.get());
+  if (!initial) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  auto* source = stencil->source.get();
+
+  if (!initial->steal(cx, std::move(*stencil))) {
+    return false;
+  }
+
+  if (!source->startIncrementalEncoding(cx, std::move(initial))) {
+    return false;
+  }
+
+  return true;
 }
 
 static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
@@ -2283,7 +2301,7 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
 
   options.setIntroductionType("js shell evaluate")
       .setFileAndLine("@evaluate", 1)
-      .setdeferDebugMetadata();
+      .setDeferDebugMetadata();
 
   options.borrowBuffer = true;
 
@@ -2301,28 +2319,11 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
     if (!ParseDebugMetadata(cx, opts, &privateValue, &elementAttributeName)) {
       return false;
     }
+    if (!ParseSourceOptions(cx, opts, &displayURL, &sourceMapURL)) {
+      return false;
+    }
 
     RootedValue v(cx);
-    if (!JS_GetProperty(cx, opts, "displayURL", &v)) {
-      return false;
-    }
-    if (!v.isUndefined()) {
-      displayURL = ToString(cx, v);
-      if (!displayURL) {
-        return false;
-      }
-    }
-
-    if (!JS_GetProperty(cx, opts, "sourceMapURL", &v)) {
-      return false;
-    }
-    if (!v.isUndefined()) {
-      sourceMapURL = ToString(cx, v);
-      if (!sourceMapURL) {
-        return false;
-      }
-    }
-
     if (!JS_GetProperty(cx, opts, "catchTermination", &v)) {
       return false;
     }
@@ -2472,16 +2473,26 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
 
     {
       if (loadBytecode) {
-        JS::TranscodeResult rv;
+        JS::TranscodeRange range(loadBuffer.begin(), loadBuffer.length());
+
+        RefPtr<JS::Stencil> stencil;
+
+        JS::DecodeOptions decodeOptions(options);
+
+        JS::TranscodeResult rv = JS::DecodeStencil(cx, decodeOptions, range,
+                                                   getter_AddRefs(stencil));
+        if (!ConvertTranscodeResultToJSException(cx, rv)) {
+          return false;
+        }
+
+        JS::InstantiateOptions instantiateOptions(options);
+        script = JS::InstantiateGlobalStencil(cx, instantiateOptions, stencil);
+        if (!script) {
+          return false;
+        }
+
         if (saveIncrementalBytecode) {
-          rv = JS::DecodeScriptAndStartIncrementalEncoding(cx, options,
-                                                           loadBuffer, &script);
-          if (!ConvertTranscodeResultToJSException(cx, rv)) {
-            return false;
-          }
-        } else {
-          rv = JS::DecodeScriptMaybeStencil(cx, options, loadBuffer, &script);
-          if (!ConvertTranscodeResultToJSException(cx, rv)) {
+          if (!StartIncrementalEncoding(cx, options, stencil)) {
             return false;
           }
         }
@@ -2507,26 +2518,13 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
       }
     }
 
-    if (displayURL && !script->scriptSource()->hasDisplayURL()) {
-      UniqueTwoByteChars chars = JS_CopyStringCharsZ(cx, displayURL);
-      if (!chars) {
-        return false;
-      }
-      if (!script->scriptSource()->setDisplayURL(cx, std::move(chars))) {
-        return false;
-      }
-    }
-    if (sourceMapURL && !script->scriptSource()->hasSourceMapURL()) {
-      UniqueTwoByteChars chars = JS_CopyStringCharsZ(cx, sourceMapURL);
-      if (!chars) {
-        return false;
-      }
-      if (!script->scriptSource()->setSourceMapURL(cx, std::move(chars))) {
-        return false;
-      }
+    if (!SetSourceOptions(cx, script->scriptSource(), displayURL,
+                          sourceMapURL)) {
+      return false;
     }
 
-    if (!JS::UpdateDebugMetadata(cx, script, options, privateValue,
+    JS::InstantiateOptions instantiateOptions(options);
+    if (!JS::UpdateDebugMetadata(cx, script, instantiateOptions, privateValue,
                                  elementAttributeName, nullptr, nullptr)) {
       return false;
     }
@@ -5312,7 +5310,7 @@ static bool Compile(JSContext* cx, unsigned argc, Value* vp) {
       .setFileAndLine("<string>", 1)
       .setIsRunOnce(true)
       .setNoScriptRval(true)
-      .setdeferDebugMetadata();
+      .setDeferDebugMetadata();
   RootedValue privateValue(cx);
   RootedString elementAttributeName(cx);
 
@@ -5343,7 +5341,8 @@ static bool Compile(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  if (!JS::UpdateDebugMetadata(cx, script, options, privateValue,
+  JS::InstantiateOptions instantiateOptions(options);
+  if (!JS::UpdateDebugMetadata(cx, script, instantiateOptions, privateValue,
                                elementAttributeName, nullptr, nullptr)) {
     return false;
   }
@@ -6205,7 +6204,7 @@ static bool OffThreadCompileScript(JSContext* cx, unsigned argc, Value* vp) {
   CompileOptions options(cx);
   options.setIntroductionType("js shell offThreadCompileScript")
       .setFileAndLine("<string>", 1)
-      .setdeferDebugMetadata();
+      .setDeferDebugMetadata();
 
   if (args.length() >= 2) {
     if (args[1].isPrimitive()) {
@@ -6318,8 +6317,10 @@ static bool runOffThreadScript(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   CompileOptions dummyOptions(cx);
-  if (!JS::UpdateDebugMetadata(cx, script, dummyOptions, privateValue,
-                               elementAttributeName, nullptr, nullptr)) {
+  JS::InstantiateOptions dummyInstantiateOptions(dummyOptions);
+  if (!JS::UpdateDebugMetadata(cx, script, dummyInstantiateOptions,
+                               privateValue, elementAttributeName, nullptr,
+                               nullptr)) {
     return false;
   }
 
@@ -6348,7 +6349,7 @@ static bool OffThreadCompileToStencil(JSContext* cx, unsigned argc, Value* vp) {
   CompileOptions options(cx);
   options.setIntroductionType("js shell offThreadCompileToStencil")
       .setFileAndLine("<string>", 1)
-      .setdeferDebugMetadata();
+      .setDeferDebugMetadata();
 
   if (args.length() >= 2) {
     if (args[1].isPrimitive()) {
@@ -7805,6 +7806,7 @@ struct SharedObjectMailbox {
     struct {
       SharedArrayRawBuffer* buffer;
       size_t length;
+      bool isHugeMemory;  // For a WasmMemory tag, otherwise false
     } sarb;
     JS::WasmModule* module;
     double number;
@@ -7907,7 +7909,8 @@ static bool GetSharedObject(JSContext* cx, unsigned argc, Value* vp) {
           }
           RootedObject proto(cx,
                              &cx->global()->getPrototype(JSProto_WasmMemory));
-          newObj = WasmMemoryObject::create(cx, maybesab, proto);
+          newObj = WasmMemoryObject::create(cx, maybesab,
+                                            mbx->val.sarb.isHugeMemory, proto);
           MOZ_ASSERT_IF(newObj, newObj->as<WasmMemoryObject>().isShared());
           if (!newObj) {
             return false;
@@ -7961,6 +7964,7 @@ static bool SetSharedObject(JSContext* cx, unsigned argc, Value* vp) {
       tag = MailboxTag::SharedArrayBuffer;
       value.sarb.buffer = sab->rawBufferObject();
       value.sarb.length = sab->byteLength();
+      value.sarb.isHugeMemory = false;
       if (!value.sarb.buffer->addReference()) {
         JS_ReportErrorASCII(cx,
                             "Reference count overflow on SharedArrayBuffer");
@@ -7977,6 +7981,7 @@ static bool SetSharedObject(JSContext* cx, unsigned argc, Value* vp) {
         tag = MailboxTag::WasmMemory;
         value.sarb.buffer = sab->rawBufferObject();
         value.sarb.length = sab->byteLength();
+        value.sarb.isHugeMemory = obj->as<WasmMemoryObject>().isHuge();
         if (!value.sarb.buffer->addReference()) {
           JS_ReportErrorASCII(cx,
                               "Reference count overflow on SharedArrayBuffer");
@@ -8057,8 +8062,9 @@ class StreamCacheEntry : public AtomicRefCounted<StreamCacheEntry>,
 
   const Uint8Vector& bytes() const { return bytes_; }
 
-  void storeOptimizedEncoding(JS::UniqueOptimizedEncodingBytes src) override {
-    MOZ_ASSERT(src->length() > 0);
+  void storeOptimizedEncoding(const uint8_t* srcBytes,
+                              size_t srcLength) override {
+    MOZ_ASSERT(srcLength > 0);
 
     // Tolerate races since a single StreamCacheEntry object can be used as
     // the source of multiple streaming compilations.
@@ -8067,10 +8073,10 @@ class StreamCacheEntry : public AtomicRefCounted<StreamCacheEntry>,
       return;
     }
 
-    if (!dstBytes->resize(src->length())) {
+    if (!dstBytes->resize(srcLength)) {
       return;
     }
-    memcpy(dstBytes->begin(), src->begin(), src->length());
+    memcpy(dstBytes->begin(), srcBytes, srcLength);
   }
 
   bool hasOptimizedEncoding() const { return !optimized_.lock()->empty(); }
@@ -9316,6 +9322,57 @@ static bool DebugGetQueuedJobs(JSContext* cx, unsigned argc, Value* vp) {
 }
 #endif
 
+#ifdef FUZZING_INTERFACES
+extern "C" {
+size_t gluesmith(uint8_t* data, size_t size, uint8_t* out, size_t maxsize);
+}
+
+static bool GetWasmSmithModule(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  RootedObject callee(cx, &args.callee());
+
+  if (args.length() != 1) {
+    ReportUsageErrorASCII(cx, callee, "Wrong number of arguments");
+    return false;
+  }
+
+  if (!args[0].isObject() || !args[0].toObject().is<ArrayBufferObject>()) {
+    ReportUsageErrorASCII(cx, callee, "Argument must be ArrayBuffer.");
+    return false;
+  }
+
+  ArrayBufferObject* arrayBuffer = &args[0].toObject().as<ArrayBufferObject>();
+  size_t length = arrayBuffer->byteLength();
+  uint8_t* data = arrayBuffer->dataPointer();
+
+  const size_t maxModuleSize = 4096;
+  uint8_t tmp[maxModuleSize];
+
+  size_t outSize = gluesmith(data, length, tmp, maxModuleSize);
+  if (!outSize) {
+    JS_ReportErrorASCII(cx, "Generated module is too large.");
+    return false;
+  }
+
+  JS::Rooted<JSObject*> outArr(cx, JS_NewUint8ClampedArray(cx, outSize));
+  if (!outArr) {
+    return false;
+  }
+
+  {
+    JS::AutoCheckCannotGC nogc;
+    bool isShared;
+    uint8_t* data = JS_GetUint8ClampedArrayData(outArr, &isShared, nogc);
+    MOZ_RELEASE_ASSERT(!isShared);
+    memcpy(data, tmp, outSize);
+  }
+
+  args.rval().setObject(*outArr);
+  return true;
+}
+
+#endif
+
 // clang-format off
 static const JSFunctionSpecWithHelp shell_functions[] = {
     JS_FN_HELP("options", Options, 0, 0,
@@ -9991,6 +10048,12 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
     JS_FN_HELP("fuzzilli", Fuzzilli, 0, 0,
 "fuzzilli(operation, arg)",
 "  Exposes functionality used by the Fuzzilli JavaScript fuzzer."),
+#endif
+
+#ifdef FUZZING_INTERFACES
+    JS_FN_HELP("getWasmSmithModule", GetWasmSmithModule, 1, 0,
+"getWasmSmithModule(arrayBuffer)",
+"  Call wasm-smith to generate a random wasm module from the provided data."),
 #endif
 
     JS_FS_HELP_END
@@ -11243,6 +11306,9 @@ static bool SetContextOptions(JSContext* cx, const OptionParser& op) {
   enablePrivateClassMethods = !op.getBoolOption("disable-private-methods");
   enableErgonomicBrandChecks =
       !op.getBoolOption("disable-ergonomic-brand-checks");
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+  enableChangeArrayByCopy = op.getBoolOption("enable-change-array-by-copy");
+#endif
   enableClassStaticBlocks = !op.getBoolOption("disable-class-static-blocks");
   useOffThreadParseGlobal = op.getBoolOption("off-thread-parse-global");
   useFdlibmForSinCosTan = op.getBoolOption("use-fdlibm-for-sin-cos-tan");
@@ -11275,6 +11341,9 @@ static bool SetContextOptions(JSContext* cx, const OptionParser& op) {
       .setPrivateClassFields(enablePrivateClassFields)
       .setPrivateClassMethods(enablePrivateClassMethods)
       .setErgnomicBrandChecks(enableErgonomicBrandChecks)
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+      .setChangeArrayByCopy(enableChangeArrayByCopy)
+#endif
       .setClassStaticBlocks(enableClassStaticBlocks);
 
   JS::SetUseOffThreadParseGlobal(useOffThreadParseGlobal);
@@ -12225,6 +12294,15 @@ int main(int argc, char** argv) {
       !op.addBoolOption(
           '\0', "disable-ergonomic-brand-checks",
           "Disable ergonomic brand checks for private class fields") ||
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+      !op.addBoolOption('\0', "enable-change-array-by-copy",
+                        "Enable change-array-by-copy methods") ||
+      !op.addBoolOption('\0', "disable-change-array-by-copy",
+                        "Disable change-array-by-copy methods") ||
+#else
+      !op.addBoolOption('\0', "enable-change-array-by-copy", "no-op") ||
+      !op.addBoolOption('\0', "disable-change-array-by-copy", "no-op") ||
+#endif
       !op.addBoolOption('\0', "enable-top-level-await",
                         "Enable top-level await") ||
       !op.addBoolOption('\0', "disable-class-static-blocks",

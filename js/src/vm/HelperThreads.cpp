@@ -13,13 +13,14 @@
 
 #include <algorithm>
 
-#include "frontend/BytecodeCompilation.h"
-#include "frontend/BytecodeCompiler.h"
+#include "frontend/BytecodeCompilation.h"  // frontend::{CompileGlobalScriptToExtensibleStencil, FireOnNewScript, FireOnNewScripts}
+#include "frontend/BytecodeCompiler.h"  // frontend::ParseModuleToExtensibleStencil
 #include "frontend/CompilationStencil.h"  // frontend::{CompilationStencil, ExtensibleCompilationStencil, CompilationInput, CompilationGCOutput, BorrowingCompilationStencil}
 #include "frontend/ParserAtom.h"          // frontend::ParserAtomsTable
 #include "gc/GC.h"                        // gc::MergeRealms
 #include "jit/IonCompileTask.h"
 #include "jit/JitRuntime.h"
+#include "js/CompileOptions.h"  // JS::CompileOptions, JS::DecodeOptions, JS::ReadOnlyCompileOptions
 #include "js/ContextOptions.h"  // JS::ContextOptions
 #include "js/experimental/JSStencil.h"
 #include "js/friend/StackLimits.h"  // js::ReportOverRecursed
@@ -855,7 +856,8 @@ void ScriptDecodeTask::parse(JSContext* cx) {
   }
 
   XDRStencilDecoder decoder(cx, range);
-  XDRResult res = decoder.codeStencil(stencilInput_->options, *stencil_);
+  JS::DecodeOptions options(stencilInput_->options);
+  XDRResult res = decoder.codeStencil(options, *stencil_);
   if (!res.isOk()) {
     stencil_.reset();
     return;
@@ -866,7 +868,7 @@ void ScriptDecodeTask::parse(JSContext* cx) {
     stencil_.reset();
   }
 
-  if (options.useOffThreadParseGlobal) {
+  if (stencilInput_->options.useOffThreadParseGlobal) {
     (void)instantiateStencils(cx);
   }
 }
@@ -886,12 +888,10 @@ void MultiStencilsDecodeTask::parse(JSContext* cx) {
   }
 
   for (auto& source : *sources) {
-    CompileOptions opts(cx, options);
-    opts.setFileAndLine(source.filename, source.lineno);
-
+    JS::DecodeOptions decodeOptions(options);
     RefPtr<JS::Stencil> stencil;
-    if (JS::DecodeStencil(cx, options, source.range, getter_AddRefs(stencil)) !=
-        JS::TranscodeResult::Ok) {
+    if (JS::DecodeStencil(cx, decodeOptions, source.range,
+                          getter_AddRefs(stencil)) != JS::TranscodeResult::Ok) {
       break;
     }
 
@@ -2066,7 +2066,8 @@ UniquePtr<ParseTask> GlobalHelperThreadState::finishParseTaskCommon(
     for (auto& sourceObject : parseTask->sourceObjects) {
       RootedScriptSourceObject sso(cx, sourceObject);
 
-      if (!ScriptSourceObject::initFromOptions(cx, sso, parseTask->options)) {
+      const JS::InstantiateOptions instantiateOptions(parseTask->options);
+      if (!ScriptSourceObject::initFromOptions(cx, sso, instantiateOptions)) {
         return nullptr;
       }
 
@@ -2191,9 +2192,8 @@ JSScript* GlobalHelperThreadState::finishSingleParseTask(
 
     // The Debugger only needs to be told about the topmost script that was
     // compiled.
-    if (!parseTask->options.hideFromNewScriptInitial()) {
-      DebugAPI::onNewScript(cx, script);
-    }
+    const JS::InstantiateOptions instantiateOptions(parseTask->options);
+    frontend::FireOnNewScript(cx, instantiateOptions, script);
   } else {
     MOZ_ASSERT(parseTask->stencil_.get() ||
                parseTask->extensibleStencil_.get());
@@ -2220,13 +2220,12 @@ JSScript* GlobalHelperThreadState::finishSingleParseTask(
       }
 
       if (!script->scriptSource()->startIncrementalEncoding(
-              cx, parseTask->options, std::move(initial))) {
+              cx, std::move(initial))) {
         return nullptr;
       }
     } else if (parseTask->extensibleStencil_) {
       if (!script->scriptSource()->startIncrementalEncoding(
-              cx, parseTask->options,
-              std::move(parseTask->extensibleStencil_))) {
+              cx, std::move(parseTask->extensibleStencil_))) {
         return nullptr;
       }
     }

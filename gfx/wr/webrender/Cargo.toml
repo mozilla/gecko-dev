@@ -30,7 +30,6 @@ webrender_build = { version = "0.0.1", path = "../webrender_build" }
 bincode = "1.0"
 bitflags = "1.2"
 byteorder = "1.0"
-cstr = "0.2"
 euclid = { version = "0.22.0", features = ["serde"] }
 fxhash = "0.2.1"
 gleam = "0.13.1"
@@ -51,7 +50,7 @@ malloc_size_of = { version = "0.0.1", path = "../wr_malloc_size_of", package = "
 svg_fmt = "0.4"
 tracy-rs = "0.1.2"
 derive_more = "0.99"
-etagere = "0.2.4"
+etagere = "0.2.6"
 swgl = { path = "../swgl", optional = true }
 
 [dev-dependencies]
@@ -70,3 +69,4 @@ core-foundation = "0.9"
 core-graphics = "0.22"
 core-text = { version = "19", default-features = false }
 objc = "0.2"
+foreign-types = "0.3.0"

@@ -240,6 +240,9 @@ class WebConsoleUI {
     this.proxy = null;
     this.additionalProxies = null;
 
+    this.networkDataProvider.destroy();
+    this.networkDataProvider = null;
+
     // Nullify `hud` last as it nullify also target which is used on destroy
     this.window = this.hud = this.wrapper = null;
   }
@@ -364,17 +367,12 @@ class WebConsoleUI {
       }
     );
 
-    // @backward-compat { version 93 } Starts supporting setSaveRequestAndResponseBodies.
-    //                                 But until we enable NETWORK_EVENT server watcher in the browser toolbox
-    //                                 we still have to support the console actor codepath.
-    //                                 We will be able to remove the trait check via hasTargetWatcherSupport
-    //                                 once we drop support for 92.
+    // Until we enable NETWORK_EVENT server watcher in the browser toolbox
+    // we still have to support the console actor codepath.
     const hasNetworkResourceCommandSupport = resourceCommand.hasResourceCommandSupport(
       resourceCommand.TYPES.NETWORK_EVENT
     );
-    const supportsWatcherRequest = commands.targetCommand.hasTargetWatcherSupport(
-      "saveRequestAndResponseBodies"
-    );
+    const supportsWatcherRequest = commands.targetCommand.hasTargetWatcherSupport();
     if (hasNetworkResourceCommandSupport && supportsWatcherRequest) {
       const networkFront = await commands.watcherFront.getNetworkParentActor();
       //

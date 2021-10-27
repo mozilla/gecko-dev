@@ -219,7 +219,6 @@ class HTMLEditor final : public EditorBase,
   MOZ_CAN_RUN_SCRIPT nsresult
   HandleKeyPressEvent(WidgetKeyboardEvent* aKeyboardEvent) final;
   nsIContent* GetFocusedContent() const final;
-  nsIContent* GetFocusedContentForIME() const final;
   bool IsActiveInDOMWindow() const final;
   dom::EventTarget* GetDOMEventTarget() const final;
   Element* FindSelectionRoot(nsINode* aNode) const final;
@@ -675,10 +674,7 @@ class HTMLEditor final : public EditorBase,
   /**
    * Retruns true if we're in designMode.
    */
-  bool IsInDesignMode() const {
-    Document* document = GetDocument();
-    return document && document->HasFlag(NODE_IS_EDITABLE);
-  }
+  bool IsInDesignMode() const;
 
   /**
    * Basically, this always returns true if we're for `contenteditable` or

@@ -10,7 +10,9 @@
 #include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
 #ifdef JS_HAS_INTL_API
+#  include "mozilla/intl/ICU4CLibrary.h"
 #  include "mozilla/intl/Locale.h"
+#  include "mozilla/intl/String.h"
 #  include "mozilla/intl/TimeZone.h"
 #endif
 #include "mozilla/Maybe.h"
@@ -102,12 +104,6 @@
 #include "js/Vector.h"
 #include "js/Wrapper.h"
 #include "threading/CpuCount.h"
-#ifdef JS_HAS_INTL_API
-#  include "unicode/ucal.h"
-#  include "unicode/uchar.h"
-#  include "unicode/utypes.h"
-#  include "unicode/uversion.h"
-#endif
 #include "util/DifferentialTesting.h"
 #include "util/StringBuffer.h"
 #include "util/Text.h"
@@ -215,6 +211,14 @@ static bool GetRealmConfiguration(JSContext* cx, unsigned argc, Value* vp) {
           offThreadParseGlobal ? TrueHandleValue : FalseHandleValue)) {
     return false;
   }
+
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+  bool changeArrayByCopy = cx->options().changeArrayByCopy();
+  if (!JS_SetProperty(cx, info, "enableChangeArrayByCopy",
+                      changeArrayByCopy ? TrueHandleValue : FalseHandleValue)) {
+    return false;
+  }
+#endif
 
   args.rval().setObject(*info);
   return true;
@@ -524,6 +528,15 @@ static bool GetBuildConfiguration(JSContext* cx, unsigned argc, Value* vp) {
 
   value.setInt32(sizeof(void*));
   if (!JS_SetProperty(cx, info, "pointer-byte-size", value)) {
+    return false;
+  }
+
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+  value = BooleanValue(true);
+#else
+  value = BooleanValue(false);
+#endif
+  if (!JS_SetProperty(cx, info, "change-array-by-copy", value)) {
     return false;
   }
 
@@ -862,6 +875,41 @@ static bool WasmHugeMemorySupported(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setBoolean(false);
 #endif
   return true;
+}
+
+static bool WasmMaxMemoryPages(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (args.length() < 1) {
+    JS_ReportErrorASCII(cx, "not enough arguments");
+    return false;
+  }
+  if (!args.get(0).isString()) {
+    JS_ReportErrorASCII(cx, "index type must be a string");
+    return false;
+  }
+  RootedString s(cx, args.get(0).toString());
+  RootedLinearString ls(cx, s->ensureLinear(cx));
+  if (!ls) {
+    return false;
+  }
+  if (StringEqualsLiteral(ls, "i32")) {
+    args.rval().setInt32(
+        int32_t(wasm::MaxMemoryPages(wasm::IndexType::I32).value()));
+    return true;
+  }
+  if (StringEqualsLiteral(ls, "i64")) {
+#ifdef ENABLE_WASM_MEMORY64
+    if (wasm::Memory64Available(cx)) {
+      args.rval().setInt32(
+          int32_t(wasm::MaxMemoryPages(wasm::IndexType::I64).value()));
+      return true;
+    }
+#endif
+    JS_ReportErrorASCII(cx, "memory64 not enabled");
+    return false;
+  }
+  JS_ReportErrorASCII(cx, "bad index type");
+  return false;
 }
 
 static bool WasmThreadsEnabled(JSContext* cx, unsigned argc, Value* vp) {
@@ -4676,9 +4724,9 @@ static bool DisableTraceLogger(JSContext* cx, unsigned argc, Value* vp) {
 // ShapeSnapshot holds information about an object's properties. This is used
 // for checking object and shape changes between two points in time.
 class ShapeSnapshot {
-  GCPtr<JSObject*> object_;
-  GCPtr<Shape*> shape_;
-  GCPtr<BaseShape*> baseShape_;
+  HeapPtr<JSObject*> object_;
+  HeapPtr<Shape*> shape_;
+  HeapPtr<BaseShape*> baseShape_;
   ObjectFlags objectFlags_;
 
   GCVector<HeapPtr<Value>, 8> slots_;
@@ -5939,6 +5987,8 @@ static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
   }
 
   CompileOptions options(cx);
+  RootedString displayURL(cx);
+  RootedString sourceMapURL(cx);
   UniqueChars fileNameBytes;
   bool isModule = false;
   if (args.length() == 2) {
@@ -5953,8 +6003,10 @@ static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
     if (!js::ParseCompileOptions(cx, options, opts, &fileNameBytes)) {
       return false;
     }
-
     if (!ParseCompileOptionsForModule(cx, options, opts, isModule)) {
+      return false;
+    }
+    if (!js::ParseSourceOptions(cx, opts, &displayURL, &sourceMapURL)) {
       return false;
     }
   }
@@ -5966,6 +6018,10 @@ static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
     stencil = JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
   }
   if (!stencil) {
+    return false;
+  }
+
+  if (!SetSourceOptions(cx, stencil->source, displayURL, sourceMapURL)) {
     return false;
   }
 
@@ -6073,6 +6129,8 @@ static bool CompileToStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   }
 
   CompileOptions options(cx);
+  RootedString displayURL(cx);
+  RootedString sourceMapURL(cx);
   UniqueChars fileNameBytes;
   bool isModule = false;
   if (args.length() == 2) {
@@ -6087,8 +6145,10 @@ static bool CompileToStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
     if (!js::ParseCompileOptions(cx, options, opts, &fileNameBytes)) {
       return false;
     }
-
     if (!ParseCompileOptionsForModule(cx, options, opts, isModule)) {
+      return false;
+    }
+    if (!js::ParseSourceOptions(cx, opts, &displayURL, &sourceMapURL)) {
       return false;
     }
   }
@@ -6104,6 +6164,10 @@ static bool CompileToStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
         cx, input.get(), srcBuf, ScopeKind::Global);
   }
   if (!stencil) {
+    return false;
+  }
+
+  if (!SetSourceOptions(cx, stencil->source, displayURL, sourceMapURL)) {
     return false;
   }
 
@@ -6200,6 +6264,66 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   }
 
   args.rval().set(retVal);
+  return true;
+}
+
+static bool GetExceptionInfo(JSContext* cx, uint32_t argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "getExceptionInfo", 1)) {
+    return false;
+  }
+
+  if (!args[0].isObject() || !args[0].toObject().is<JSFunction>()) {
+    JS_ReportErrorASCII(cx, "getExceptionInfo: expected function argument");
+    return false;
+  }
+
+  RootedValue rval(cx);
+  if (JS_CallFunctionValue(cx, nullptr, args[0], JS::HandleValueArray::empty(),
+                           &rval)) {
+    // Function didn't throw.
+    args.rval().setNull();
+    return true;
+  }
+
+  // We currently don't support interrupts or forced returns.
+  if (!cx->isExceptionPending()) {
+    JS_ReportErrorASCII(cx, "getExceptionInfo: unsupported exception status");
+    return false;
+  }
+
+  RootedValue excVal(cx);
+  RootedSavedFrame stack(cx);
+  if (!GetAndClearExceptionAndStack(cx, &excVal, &stack)) {
+    return false;
+  }
+
+  RootedValue stackVal(cx);
+  if (stack) {
+    RootedString stackString(cx);
+    if (!BuildStackString(cx, cx->realm()->principals(), stack, &stackString)) {
+      return false;
+    }
+    stackVal.setString(stackString);
+  } else {
+    stackVal.setNull();
+  }
+
+  RootedObject obj(cx, NewPlainObject(cx));
+  if (!obj) {
+    return false;
+  }
+
+  if (!JS_DefineProperty(cx, obj, "exception", excVal, JSPROP_ENUMERATE)) {
+    return false;
+  }
+
+  if (!JS_DefineProperty(cx, obj, "stack", stackVal, JSPROP_ENUMERATE)) {
+    return false;
+  }
+
+  args.rval().setObject(*obj);
   return true;
 }
 
@@ -7263,12 +7387,12 @@ static bool GetICUOptions(JSContext* cx, unsigned argc, Value* vp) {
 #ifdef JS_HAS_INTL_API
   RootedString str(cx);
 
-  str = NewStringCopyZ<CanGC>(cx, U_ICU_VERSION);
+  str = NewStringCopy<CanGC>(cx, mozilla::intl::ICU4CLibrary::GetVersion());
   if (!str || !JS_DefineProperty(cx, info, "version", str, JSPROP_ENUMERATE)) {
     return false;
   }
 
-  str = NewStringCopyZ<CanGC>(cx, U_UNICODE_VERSION);
+  str = NewStringCopy<CanGC>(cx, mozilla::intl::String::GetUnicodeVersion());
   if (!str || !JS_DefineProperty(cx, info, "unicode", str, JSPROP_ENUMERATE)) {
     return false;
   }
@@ -7278,14 +7402,13 @@ static bool GetICUOptions(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  UErrorCode status = U_ZERO_ERROR;
-  const char* tzdataVersion = ucal_getTZDataVersion(&status);
-  if (U_FAILURE(status)) {
-    intl::ReportInternalError(cx);
+  auto tzdataVersion = mozilla::intl::TimeZone::GetTZDataVersion();
+  if (tzdataVersion.isErr()) {
+    intl::ReportInternalError(cx, tzdataVersion.unwrapErr());
     return false;
   }
 
-  str = NewStringCopyZ<CanGC>(cx, tzdataVersion);
+  str = NewStringCopy<CanGC>(cx, tzdataVersion.unwrap());
   if (!str || !JS_DefineProperty(cx, info, "tzdata", str, JSPROP_ENUMERATE)) {
     return false;
   }
@@ -7899,6 +8022,15 @@ gc::ZealModeHelpText),
 "  Returns a boolean indicating whether WebAssembly supports using a large"
 "  virtual memory reservation in order to elide bounds checks on this platform."),
 
+    JS_FN_HELP("wasmMaxMemoryPages", WasmMaxMemoryPages, 1, 0,
+"wasmMaxMemoryPages(indexType)",
+"  Returns an int with the maximum number of pages that can be allocated to a memory."
+"  This is an implementation artifact that does depend on the index type, the hardware,"
+"  the operating system, the build configuration, and flags.  The result is constant for"
+"  a given combination of those; there is no guarantee that that size allocation will"
+"  always succeed, only that it can succeed in principle.  The indexType is a string,"
+"  'i32' or 'i64'."),
+
 #define WASM_FEATURE(NAME, ...) \
     JS_FN_HELP("wasm" #NAME "Enabled", Wasm##NAME##Enabled, 0, 0, \
 "wasm" #NAME "Enabled()", \
@@ -8452,6 +8584,11 @@ JS_FN_HELP("isSmallFunction", IsSmallFunction, 1, 0,
 "evalStencilXDR(stencilXDR, [options])",
 "  Reads the given stencil XDR object, and evaluates the top-level script it"
 "  defines."),
+
+    JS_FN_HELP("getExceptionInfo", GetExceptionInfo, 1, 0,
+"getExceptionInfo(fun)",
+"  Calls the given function and returns information about the exception it"
+"  throws. Returns null if the function didn't throw an exception."),
 
     JS_FS_HELP_END
 };

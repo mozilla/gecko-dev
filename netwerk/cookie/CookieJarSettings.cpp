@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/AntiTrackingUtils.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ContentBlockingAllowList.h"
 #include "mozilla/dom/BrowsingContext.h"
@@ -21,6 +22,7 @@
 #  include "nsIProtocolHandler.h"
 #endif
 #include "nsIClassInfoImpl.h"
+#include "nsIChannel.h"
 #include "nsICookieManager.h"
 #include "nsICookieService.h"
 #include "nsIObjectInputStream.h"
@@ -213,6 +215,26 @@ CookieJarSettings::GetLimitForeignContexts(bool* aLimitForeignContexts) {
       (StaticPrefs::privacy_dynamic_firstparty_limitForeign() &&
        mCookieBehavior ==
            nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+CookieJarSettings::GetBlockingAllThirdPartyContexts(
+    bool* aBlockingAllThirdPartyContexts) {
+  // XXX For non-cookie forms of storage, we handle BEHAVIOR_LIMIT_FOREIGN by
+  // simply rejecting the request to use the storage. In the future, if we
+  // change the meaning of BEHAVIOR_LIMIT_FOREIGN to be one which makes sense
+  // for non-cookie storage types, this may change.
+  *aBlockingAllThirdPartyContexts =
+      mCookieBehavior == nsICookieService::BEHAVIOR_LIMIT_FOREIGN ||
+      (!StaticPrefs::network_cookie_rejectForeignWithExceptions_enabled() &&
+       mCookieBehavior == nsICookieService::BEHAVIOR_REJECT_FOREIGN);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+CookieJarSettings::GetBlockingAllContexts(bool* aBlockingAllContexts) {
+  *aBlockingAllContexts = mCookieBehavior == nsICookieService::BEHAVIOR_REJECT;
   return NS_OK;
 }
 

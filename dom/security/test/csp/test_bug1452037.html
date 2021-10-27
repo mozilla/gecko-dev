@@ -7,32 +7,33 @@
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
-    <iframe src="file_bug1452037.html"></iframe>
+    <iframe></iframe>
 
 <script class="testbody">
-    SimpleTest.requestCompleteLog();
-    SimpleTest.waitForExplicitFinish();
+      SimpleTest.requestCompleteLog();
+      SimpleTest.waitForExplicitFinish();
 
-    let frame = document.querySelector("iframe");
-    
-    window.addEventListener("message", (msg)=>{
+      let frame = document.querySelector("iframe");
+
+      window.addEventListener("message", (msg) => {
         ok(false, "The CSP did not block javascript:uri");
-          SimpleTest.finish();
-    });
+        SimpleTest.finish();
+      });
 
-    document.addEventListener("securitypolicyviolation",()=>{
+      document.addEventListener("securitypolicyviolation", () => {
         ok(true, "The CSP did block javascript:uri");
         SimpleTest.finish();
-    });
-    
-    frame.addEventListener("load",()=>{
-    let link = frame.contentWindow.document.querySelector("a");
-    frame.contentWindow.document.addEventListener("securitypolicyviolation",()=>{
-        ok(true, "The CSP did block javascript:uri");
-        SimpleTest.finish();
-    })
-    link.click();
-    })
+      });
+
+      frame.addEventListener("load", () => {
+        let link = frame.contentWindow.document.querySelector("a");
+        frame.contentWindow.document.addEventListener("securitypolicyviolation", () => {
+          ok(true, "The CSP did block javascript:uri");
+          SimpleTest.finish();
+        })
+        link.click();
+      });
+      frame.src = "file_bug1452037.html";
 
 
 </script>

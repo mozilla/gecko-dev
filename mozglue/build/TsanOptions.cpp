@@ -205,6 +205,14 @@ extern "C" const char* __tsan_default_suppressions() {
          // trigger OS-level paging. It is never joined with the main thread.
          "thread:StartupCache\n"
 
+         // Bug 1734262 - Permanent
+         // When spawning async processes, we create a helper thread to wait for
+         // the process to terminate in order to asynchronously report the exit
+         // code to Gecko. This thread waits on a syscall for the process to end,
+         // which means there's no easy way to cancel and join it during Gecko
+         // shutdown. Suppress thread leak reports for this thread.
+         "thread:CreateMonitorThread\n"
+
          // Bug 1601600
          "race:SkARGB32_Blitter\n"
          "race:SkARGB32_Shader_Blitter\n"
@@ -222,12 +230,6 @@ extern "C" const char* __tsan_default_suppressions() {
 
          // Bug 1606803
          "race:ipv6_is_present\n"
-
-         // Bug 1606864
-         "race:nsSocketTransport::Close\n"
-         "race:nsSocketTransport::OnSocketDetached\n"
-         "race:nsSocketTransport::OnMsgInputClosed\n"
-         "race:nsSocketTransport::OpenOutputStream\n"
 
          // Bug 1615017
          "race:CacheFileMetadata::SetHash\n"
@@ -295,6 +297,12 @@ extern "C" const char* __tsan_default_suppressions() {
          "race:scale_blit\n"
 
          "race:mozilla::gl::MesaMemoryLeakWorkaround\n"
+
+         // Bug 1733908
+         "race:js::wasm::Code::bestTier\n"
+         "race:js::wasm::Code::commitTier2\n"
+         "race:js::wasm::Code::setTier2\n"
+         "race:js::wasm::Code::setAndBorrowTier2\n"
 
       // End of suppressions.
       ;  // Please keep this semicolon.

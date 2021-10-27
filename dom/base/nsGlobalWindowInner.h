@@ -325,6 +325,12 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   virtual bool IsFrozen() const override;
   void SyncStateFromParentWindow();
 
+  // Called on the current inner window of a browsing context when its
+  // background state changes according to selected tab or visibility of the
+  // browser window.  Used with Suspend()/Resume() or Freeze()/Thaw() because
+  // background state may change while the inner window is not current.
+  void UpdateBackgroundState();
+
   mozilla::dom::DebuggerNotificationManager*
   GetOrCreateDebuggerNotificationManager() override;
 
@@ -896,6 +902,11 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       int32_t aSw, int32_t aSh,
       const mozilla::dom::ImageBitmapOptions& aOptions,
       mozilla::ErrorResult& aRv);
+
+  void StructuredClone(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                       const mozilla::dom::StructuredSerializeOptions& aOptions,
+                       JS::MutableHandle<JS::Value> aRetval,
+                       mozilla::ErrorResult& aError);
 
   // ChromeWindow bits.  Do NOT call these unless your window is in
   // fact chrome.

@@ -399,7 +399,6 @@ nsresult nsCocoaWindow::CreateNativeWindow(const NSRect& aRect, nsBorderStyle aB
   switch (mWindowType) {
     case eWindowType_invisible:
     case eWindowType_child:
-    case eWindowType_plugin:
       break;
     case eWindowType_popup:
       if (aBorderStyle != eBorderStyle_default && mBorderStyle & eBorderStyle_title) {
@@ -798,6 +797,14 @@ void nsCocoaWindow::Show(bool bState) {
       (parentWidget) ? (NSWindow*)parentWidget->GetNativeData(NS_NATIVE_WINDOW) : nil;
 
   if (bState && !mBounds.IsEmpty()) {
+    // If we had set the activationPolicy to accessory, then right now we won't
+    // have a dock icon. Make sure that we undo that and show a dock icon now that
+    // we're going to show a window.
+    if ([NSApp activationPolicy] != NSApplicationActivationPolicyRegular) {
+      [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+      PR_SetEnv("MOZ_APP_NO_DOCK=");
+    }
+
     // Don't try to show a popup when the parent isn't visible or is minimized.
     if (mWindowType == eWindowType_popup && nativeParentWindow) {
       if (![nativeParentWindow isVisible] || [nativeParentWindow isMiniaturized]) {
@@ -823,7 +830,11 @@ void nsCocoaWindow::Show(bool bState) {
       bool parentIsSheet = false;
       if (NS_SUCCEEDED(piParentWidget->GetIsSheet(&parentIsSheet)) && parentIsSheet) {
         piParentWidget->GetSheetWindowParent(&topNonSheetWindow);
+#ifdef MOZ_THUNDERBIRD
+        [NSApp endSheet:nativeParentWindow];
+#else
         [nativeParentWindow.sheetParent endSheet:nativeParentWindow];
+#endif
       }
 
       nsCOMPtr<nsIWidget> sheetShown;
@@ -831,10 +842,24 @@ void nsCocoaWindow::Show(bool bState) {
           (!sheetShown || sheetShown == this)) {
         // If this sheet is already the sheet actually being shown, don't
         // tell it to show again. Otherwise the number of calls to
+#ifdef MOZ_THUNDERBIRD
+        // [NSApp beginSheet...] won't match up with [NSApp endSheet...].
+#else
         // [NSWindow beginSheet...] won't match up with [NSWindow endSheet...].
+#endif
         if (![mWindow isVisible]) {
           mSheetNeedsShow = false;
           mSheetWindowParent = topNonSheetWindow;
+#ifdef MOZ_THUNDERBIRD
+          // Only set contextInfo if our parent isn't a sheet.
+          NSWindow* contextInfo = parentIsSheet ? nil : mSheetWindowParent;
+          [TopLevelWindowData deactivateInWindow:mSheetWindowParent];
+          [NSApp beginSheet:mWindow
+              modalForWindow:mSheetWindowParent
+               modalDelegate:mDelegate
+              didEndSelector:@selector(didEndSheet:returnCode:contextInfo:)
+                 contextInfo:contextInfo];
+#else
           NSWindow* sheet = mWindow;
           NSWindow* nonSheetParent = parentIsSheet ? nil : mSheetWindowParent;
           [TopLevelWindowData deactivateInWindow:mSheetWindowParent];
@@ -852,6 +877,7 @@ void nsCocoaWindow::Show(bool bState) {
                            [TopLevelWindowData activateInWindow:nonSheetParent];
                          }
                        }];
+#endif
           [TopLevelWindowData activateInWindow:mWindow];
           SendSetZLevelEvent();
         }
@@ -938,8 +964,11 @@ void nsCocoaWindow::Show(bool bState) {
         NSWindow* sheetParent = mSheetWindowParent;
 
         // hide the sheet
+#ifdef MOZ_THUNDERBIRD
+        [NSApp endSheet:mWindow];
+#else
         [mSheetWindowParent endSheet:mWindow];
-
+#endif
         [TopLevelWindowData deactivateInWindow:mWindow];
 
         nsCOMPtr<nsIWidget> siblingSheetToShow;
@@ -953,9 +982,15 @@ void nsCocoaWindow::Show(bool bState) {
           siblingSheetToShow->Show(true);
         } else if (nativeParentWindow && piParentWidget &&
                    NS_SUCCEEDED(piParentWidget->GetIsSheet(&parentIsSheet)) && parentIsSheet) {
+#ifdef MOZ_THUNDERBIRD
+          // Only set contextInfo if the parent of the parent sheet we're about
+          // to restore isn't itself a sheet.
+          NSWindow* contextInfo = sheetParent;
+#else
           // Only set nonSheetGrandparent if the parent of the parent sheet we're about
           // to restore isn't itself a sheet.
           NSWindow* nonSheetGrandparent = sheetParent;
+#endif
           nsIWidget* grandparentWidget = nil;
           if (NS_SUCCEEDED(piParentWidget->GetRealParent(&grandparentWidget)) &&
               grandparentWidget) {
@@ -964,12 +999,23 @@ void nsCocoaWindow::Show(bool bState) {
             if (piGrandparentWidget &&
                 NS_SUCCEEDED(piGrandparentWidget->GetIsSheet(&grandparentIsSheet)) &&
                 grandparentIsSheet) {
+#ifdef MOZ_THUNDERBIRD
+              contextInfo = nil;
+#else
               nonSheetGrandparent = nil;
+#endif
             }
           }
           // If there are no sibling sheets, but the parent is a sheet, restore
           // it.  It wasn't sent any deactivate events when it was hidden, so
           // don't call through Show, just let the OS put it back up.
+#ifdef MOZ_THUNDERBIRD
+          [NSApp beginSheet:nativeParentWindow
+              modalForWindow:sheetParent
+               modalDelegate:[nativeParentWindow delegate]
+              didEndSelector:@selector(didEndSheet:returnCode:contextInfo:)
+                 contextInfo:contextInfo];
+#else
           [nativeParentWindow beginSheet:sheetParent
                        completionHandler:^(NSModalResponse returnCode) {
                          // Note: 'nonSheetGrandparent' (if it is set) is the window that is the
@@ -984,6 +1030,7 @@ void nsCocoaWindow::Show(bool bState) {
                            [TopLevelWindowData activateInWindow:nonSheetGrandparent];
                          }
                        }];
+#endif
         } else {
           // Sheet, that was hard.  No more siblings or parents, going back
           // to a real window.
@@ -1026,13 +1073,6 @@ bool nsCocoaWindow::NeedsRecreateToReshow() {
   // Limit the workaround to popup windows because only they need to override
   // the "Assign To" setting. i.e., to display where the parent window is.
   return (mWindowType == eWindowType_popup) && mWasShown && ([[NSScreen screens] count] > 1);
-}
-
-nsresult nsCocoaWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations) {
-  if (mPopupContentView) {
-    mPopupContentView->ConfigureChildren(aConfigurations);
-  }
-  return NS_OK;
 }
 
 WindowRenderer* nsCocoaWindow::GetWindowRenderer() {
@@ -2315,6 +2355,18 @@ void nsCocoaWindow::SetWindowOpacity(float aOpacity) {
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
+void nsCocoaWindow::SetColorScheme(const Maybe<ColorScheme>& aScheme) {
+  NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
+
+  if (!mWindow) {
+    return;
+  }
+
+  mWindow.appearance = aScheme ? NSAppearanceForColorScheme(*aScheme) : nil;
+
+  NS_OBJC_END_TRY_IGNORE_BLOCK;
+}
+
 static inline CGAffineTransform GfxMatrixToCGAffineTransform(const gfx::Matrix& m) {
   CGAffineTransform t;
   t.a = m._11;
@@ -2903,6 +2955,25 @@ already_AddRefed<nsIWidget> nsIWidget::CreateChildWindow() {
   }
   return rect;
 }
+
+#ifdef MOZ_THUNDERBIRD
+- (void)didEndSheet:(NSWindow*)sheet returnCode:(int)returnCode contextInfo:(void*)contextInfo {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
+
+  // Note: 'contextInfo' (if it is set) is the window that is the parent of
+  // the sheet.  The value of contextInfo is determined in
+  // nsCocoaWindow::Show().  If it's set, 'contextInfo' is always the top-
+  // level window, not another sheet itself.  But 'contextInfo' is nil if
+  // our parent window is also a sheet -- in that case we shouldn't send
+  // the top-level window any activate events (because it's our parent
+  // window that needs to get these events, not the top-level window).
+  [TopLevelWindowData deactivateInWindow:sheet];
+  [sheet orderOut:self];
+  if (contextInfo) [TopLevelWindowData activateInWindow:(NSWindow*)contextInfo];
+
+  NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+#endif
 
 - (void)windowDidChangeBackingProperties:(NSNotification*)aNotification {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;

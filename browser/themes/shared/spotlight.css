@@ -58,14 +58,8 @@ body {
 }
 
 #secondary {
-  /* make this look like a link rather than a button */
-  background: none;
-
-  /* without this; we fall back to black on mouseover */
-  color: var(--in-content-link-color);
-
   /* make the font look like the mock */
   font-size: 13px;
   line-height: 16px;
-  font-weight: normal;
+  padding: 4px;
 }

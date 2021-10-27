@@ -15,16 +15,32 @@
  * - VIDEO_HIDDEN_PLAY_TIME_PERCENTAGE
  * - VIDEO_INFERRED_DECODE_SUSPEND_PERCENTAGE
  * - VIDEO_VISIBLE_PLAY_TIME_MS
+ * - MEDIA_PLAY_TIME_MS
+ * - MUTED_PLAY_TIME_PERCENT
+ * - AUDIBLE_PLAY_TIME_PERCENT
  */
-const histNames = ["VIDEO_PLAY_TIME_MS", "VIDEO_HIDDEN_PLAY_TIME_MS"];
-const keyedHistNames = ["VIDEO_HIDDEN_PLAY_TIME_PERCENTAGE", "VIDEO_INFERRED_DECODE_SUSPEND_PERCENTAGE", "VIDEO_VISIBLE_PLAY_TIME_MS"];
+const videoHistNames = [
+  "VIDEO_PLAY_TIME_MS",
+  "VIDEO_HIDDEN_PLAY_TIME_MS"
+];
+const videoKeyedHistNames = [
+  "VIDEO_HIDDEN_PLAY_TIME_PERCENTAGE",
+  "VIDEO_INFERRED_DECODE_SUSPEND_PERCENTAGE",
+  "VIDEO_VISIBLE_PLAY_TIME_MS"
+];
+const audioKeyedHistNames = [
+  "MUTED_PLAY_TIME_PERCENT",
+  "AUDIBLE_PLAY_TIME_PERCENT"
+];
 
 add_task(async function setTestPref() {
   await SpecialPowers.pushPrefEnv({
     set: [["media.testing-only-events", true],
           ["media.test.video-suspend", true],
           ["media.suspend-bkgnd-video.enabled", true],
-          ["media.suspend-bkgnd-video.delay-ms", 0]]});
+          ["media.suspend-bkgnd-video.delay-ms", 0],
+          ["dom.media.silence_duration_for_audibility", 0.1]
+    ]});
 });
 
 add_task(async function testTotalPlayTime() {
@@ -35,7 +51,7 @@ add_task(async function testTotalPlayTime() {
   info(`all accumulated time should be zero`);
   const videoChrome = SpecialPowers.wrap(video);
   await new Promise(r => video.onloadeddata = r);
-  assertValueEqualTo(videoChrome, "totalPlayTime", 0);
+  assertValueEqualTo(videoChrome, "totalVideoPlayTime", 0);
   assertValueEqualTo(videoChrome, "invisiblePlayTime", 0);
 
   info(`start accumulating play time after media starts`);
@@ -44,15 +60,15 @@ add_task(async function testTotalPlayTime() {
     once(video, "playing"),
     once(video, "moztotalplaytimestarted"),
   ]);
-  await assertValueConstantlyIncreases(videoChrome, "totalPlayTime");
+  await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
   assertValueKeptUnchanged(videoChrome, "invisiblePlayTime");
   assertValueKeptUnchanged(videoChrome, "videoDecodeSuspendedTime");
 
   info(`should not accumulate time for paused video`);
   video.pause();
   await once(video, "moztotalplaytimepaused");
-  assertValueKeptUnchanged(videoChrome, "totalPlayTime");
-  assertValueEqualTo(videoChrome, "totalPlayTime", 0);
+  assertValueKeptUnchanged(videoChrome, "totalVideoPlayTime");
+  assertValueEqualTo(videoChrome, "totalVideoPlayTime", 0);
 
   info(`should start accumulating time again`);
   let rv = await Promise.all([
@@ -60,7 +76,7 @@ add_task(async function testTotalPlayTime() {
     video.play().then(_ => true, _ => false),
   ]);
   ok(returnTrueWhenAllValuesAreTrue(rv), "video started again");
-  await assertValueConstantlyIncreases(videoChrome, "totalPlayTime");
+  await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
   await cleanUpMediaAndCheckTelemetry(video);
 });
 
@@ -72,7 +88,7 @@ add_task(async function testVisiblePlayTime() {
   info(`all accumulated time should be zero`);
   const videoChrome = SpecialPowers.wrap(video);
   await new Promise(r => video.onloadeddata = r);
-  assertValueEqualTo(videoChrome, "totalPlayTime", 0);
+  assertValueEqualTo(videoChrome, "totalVideoPlayTime", 0);
   assertValueEqualTo(videoChrome, "visiblePlayTime", 0);
   assertValueEqualTo(videoChrome, "invisiblePlayTime", 0);
 
@@ -82,16 +98,61 @@ add_task(async function testVisiblePlayTime() {
     once(video, "playing"),
     once(video, "moztotalplaytimestarted"),
   ]);
-  await assertValueConstantlyIncreases(videoChrome, "totalPlayTime");
+  await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
   await assertValueConstantlyIncreases(videoChrome, "visiblePlayTime");
   assertValueKeptUnchanged(videoChrome, "invisiblePlayTime");
 
   info(`make video invisible`);
-  document.body.removeChild(video);
-  await assertValueConstantlyIncreases(videoChrome, "totalPlayTime");
+  video.style.display = "none";
+  await once(video, "mozinvisibleplaytimestarted");
+  await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
   await assertValueConstantlyIncreases(videoChrome, "invisiblePlayTime");
   assertValueKeptUnchanged(videoChrome, "visiblePlayTime");
   await cleanUpMediaAndCheckTelemetry(video);
+});
+
+add_task(async function testAudibleAudioPlayTime() {
+  const audio = document.createElement('audio');
+  audio.src = "tone2s-silence4s-tone2s.opus";
+  audio.controls = true;
+  audio.loop = true;
+  document.body.appendChild(audio);
+
+  info(`all accumulated time should be zero`);
+  const audioChrome = SpecialPowers.wrap(audio);
+  await new Promise(r => audio.onloadeddata = r);
+  assertValueEqualTo(audioChrome, "totalVideoPlayTime", 0);
+  assertValueEqualTo(audioChrome, "totalAudioPlayTime", 0);
+  assertValueEqualTo(audioChrome, "mutedPlayTime", 0);
+  assertValueEqualTo(audioChrome, "audiblePlayTime", 0);
+
+  info(`start accumulating play time after media starts`);
+  await Promise.all([
+    audio.play(),
+    once(audio, "moztotalplaytimestarted"),
+  ]);
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "mutedPlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  info(`audio becomes inaudible for 4s`);
+  await once(audio, "mozinaudibleaudioplaytimestarted");
+
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  assertValueKeptUnchanged(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "mutedPlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  info(`audio becomes audible after 4s`);
+  await once(audio, "mozinaudibleaudioplaytimepaused");
+
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "mutedPlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  await cleanUpMediaAndCheckTelemetry(audio, {hasVideo: false});
 });
 
 add_task(async function testHiddenPlayTime() {
@@ -140,11 +201,7 @@ add_task(async function testHiddenPlayTime() {
     if (reason == "notInTree" || reason == "notInConnectedTree") {
       document.body.appendChild(video);
     } else if (reason == "invisibleInDisplay") {
-      // If we set only `display` the video would still be hidden, so setting
-      // width and height to make it visible.
-      video.style.display = "unset";
-      video.style.width = "300px";
-      video.style.height = "150px";
+      video.style.display = "block";
     } else {
       ok(false, "undefined reason");
     }
@@ -154,12 +211,159 @@ add_task(async function testHiddenPlayTime() {
   }
 });
 
+add_task(async function testAudioProbesWithoutAudio() {
+  const video = document.createElement('video');
+  video.src = "gizmo-noaudio.mp4";
+  video.loop = true;
+  document.body.appendChild(video);
+
+  info(`all accumulated time should be zero`);
+  const videoChrome = SpecialPowers.wrap(video);
+  await new Promise(r => video.onloadeddata = r);
+  assertValueEqualTo(videoChrome, "totalVideoPlayTime", 0);
+  assertValueEqualTo(videoChrome, "totalAudioPlayTime", 0);
+  assertValueEqualTo(videoChrome, "mutedPlayTime", 0);
+  assertValueEqualTo(videoChrome, "audiblePlayTime", 0);
+
+  info(`start accumulating play time after media starts`);
+  await Promise.all([
+    video.play(),
+    once(video, "moztotalplaytimestarted"),
+  ]);
+
+  async function checkInvariants() {
+    await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
+    assertValueKeptUnchanged(videoChrome, "audiblePlayTime");
+    assertValueKeptUnchanged(videoChrome, "mutedPlayTime");
+    assertValueKeptUnchanged(videoChrome, "totalAudioPlayTime");
+  }
+
+  checkInvariants();
+
+  video.muted = true;
+
+  checkInvariants();
+
+  video.currentTime = 0.0;
+  await once(video, "seeked");
+
+  checkInvariants();
+
+  video.muted = false;
+
+  checkInvariants();
+
+  video.volume = 0.0;
+
+  checkInvariants();
+
+  video.volume = 1.0;
+
+  checkInvariants();
+
+  video.muted = true;
+
+  checkInvariants();
+
+  video.currentTime = 0.0;
+
+  checkInvariants();
+
+  await cleanUpMediaAndCheckTelemetry(video, {hasAudio: false});
+});
+
+add_task(async function testMutedAudioPlayTime() {
+  const audio = document.createElement('audio');
+  audio.src = "gizmo.mp4";
+  audio.controls = true;
+  audio.loop = true;
+  document.body.appendChild(audio);
+
+  info(`all accumulated time should be zero`);
+  const audioChrome = SpecialPowers.wrap(audio);
+  await new Promise(r => audio.onloadeddata = r);
+  assertValueEqualTo(audioChrome, "totalVideoPlayTime", 0);
+  assertValueEqualTo(audioChrome, "totalAudioPlayTime", 0);
+  assertValueEqualTo(audioChrome, "mutedPlayTime", 0);
+  assertValueEqualTo(audioChrome, "audiblePlayTime", 0);
+
+  info(`start accumulating play time after media starts`);
+  await Promise.all([
+    audio.play(),
+    once(audio, "moztotalplaytimestarted"),
+  ]);
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "mutedPlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  audio.muted = true;
+  await once(audio, "mozmutedaudioplaytimestarted");
+
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "mutedPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  audio.currentTime = 0.0;
+  await once(audio, "seeked");
+
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "mutedPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  audio.muted = false;
+  await once(audio, "mozmutedeaudioplaytimepaused");
+
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "mutedPlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  audio.volume = 0.0;
+  await once(audio, "mozmutedaudioplaytimestarted");
+
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "mutedPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  audio.volume = 1.0;
+  await once(audio, "mozmutedeaudioplaytimepaused");
+
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "mutedPlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  audio.muted = true;
+  await once(audio, "mozmutedaudioplaytimestarted");
+
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "mutedPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  audio.currentTime = 0.0;
+
+  await assertValueConstantlyIncreases(audioChrome, "totalAudioPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "mutedPlayTime");
+  await assertValueConstantlyIncreases(audioChrome, "audiblePlayTime");
+  assertValueKeptUnchanged(audioChrome, "totalVideoPlayTime");
+
+  // The media has a video track, but it's being played back in an
+  // HTMLAudioElement, without video frame location.
+  await cleanUpMediaAndCheckTelemetry(audio, {hasVideo: false});
+});
+
 // Note that video suspended time is not always align with the invisible play
 // time even if `media.suspend-bkgnd-video.delay-ms` is `0`, because not all
 // invisible videos would be suspended under current strategy.
 add_task(async function testDecodeSuspendedTime() {
   const video = document.createElement('video');
   video.src = "gizmo.mp4";
+  video.loop = true;
   document.body.appendChild(video);
 
   info(`start video should start accumulating timers`);
@@ -169,14 +373,14 @@ add_task(async function testDecodeSuspendedTime() {
     video.play().then(_ => true, _ => false),
   ]);
   ok(returnTrueWhenAllValuesAreTrue(rv), "video started playing");
-  await assertValueConstantlyIncreases(videoChrome, "totalPlayTime");
+  await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
   assertValueKeptUnchanged(videoChrome, "invisiblePlayTime");
   assertValueKeptUnchanged(videoChrome, "videoDecodeSuspendedTime");
 
   info(`make it invisible and force to suspend decoding`);
   video.setVisible(false);
   await once(video, "mozvideodecodesuspendedstarted");
-  await assertValueConstantlyIncreases(videoChrome, "totalPlayTime");
+  await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
   await assertValueConstantlyIncreases(videoChrome, "invisiblePlayTime");
   await assertValueConstantlyIncreases(videoChrome, "videoDecodeSuspendedTime");
 
@@ -186,7 +390,7 @@ add_task(async function testDecodeSuspendedTime() {
     once(video, "mozinvisibleplaytimepaused"),
     once(video, "mozvideodecodesuspendedpaused"),
   ]);
-  await assertValueConstantlyIncreases(videoChrome, "totalPlayTime");
+  await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
   assertValueKeptUnchanged(videoChrome, "invisiblePlayTime");
   assertValueKeptUnchanged(videoChrome, "videoDecodeSuspendedTime");
   await cleanUpMediaAndCheckTelemetry(video);
@@ -204,7 +408,7 @@ add_task(async function reuseSameElementForPlayback() {
     video.play().then(_ => true, _ => false),
   ]);
   ok(returnTrueWhenAllValuesAreTrue(rv), "video started again");
-  await assertValueConstantlyIncreases(videoChrome, "totalPlayTime");
+  await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
 
   info(`reset its src and all accumulated value should be reset after then`);
   // After setting its src to nothing, that would trigger a failed load and set
@@ -216,7 +420,7 @@ add_task(async function reuseSameElementForPlayback() {
     cleanUpMediaAndCheckTelemetry(video),
   ]);
   // video doesn't have a decoder, so the return value would be -1 (error).
-  assertValueEqualTo(videoChrome, "totalPlayTime", -1);
+  assertValueEqualTo(videoChrome, "totalVideoPlayTime", -1);
   assertValueEqualTo(videoChrome, "invisiblePlayTime", -1);
 
   info(`resue same element, make it visible and start playback again`);
@@ -226,7 +430,7 @@ add_task(async function reuseSameElementForPlayback() {
     video.play().then(_ => true, _ => false),
   ]);
   ok(returnTrueWhenAllValuesAreTrue(rv), "video started");
-  await assertValueConstantlyIncreases(videoChrome, "totalPlayTime");
+  await assertValueConstantlyIncreases(videoChrome, "totalVideoPlayTime");
   await cleanUpMediaAndCheckTelemetry(video);
 });
 
@@ -249,35 +453,27 @@ add_task(async function testNoReportedTelemetryResult() {
   ok(video.error != undefined, "video got error");
   assertAllProbeRelatedAttributesKeptUnchanged(video);
   await assertNoReportedTelemetryResult(video);
-
-  info(`No result for playing an audio`);
-  const audio = document.createElement('audio');
-  audio.src = "gizmo.mp4";
-  document.body.appendChild(audio);
-  ok(await audio.play().then(_ => true, _ => false), "audio started playing");
-  audio.pause();
-  await assertNoReportedTelemetryResult(audio);
 });
 
 /**
  * Following are helper functions
  */
-async function cleanUpMediaAndCheckTelemetry(media, { shouldReport = true } = {}) {
+async function cleanUpMediaAndCheckTelemetry(media, { reportExpected = true, hasVideo = true, hasAudio = true} = {}) {
   media.src = "";
-  await checkReportedTelemetry(media, shouldReport);
+  await checkReportedTelemetry(media, reportExpected, hasVideo, hasAudio);
 }
 
 async function assertNoReportedTelemetryResult(media) {
-  await checkReportedTelemetry(media, false);
+  await checkReportedTelemetry(media, false, true, true);
 }
 
-async function checkReportedTelemetry(media, shouldReport) {
+async function checkReportedTelemetry(media, reportExpected, hasVideo, hasAudio) {
   const reportResultPromise = once(media, "mozreportedtelemetry");
-  info(`check telemetry result, shouldReport=${shouldReport}`);
-  if (shouldReport) {
+  info(`check telemetry result, reportExpected=${reportExpected}`);
+  if (reportExpected) {
     await reportResultPromise;
   }
-  for (const name of histNames) {
+  for (const name of videoHistNames) {
     try {
       const hist = SpecialPowers.Services.telemetry.getHistogramById(name);
       /**
@@ -291,7 +487,7 @@ async function checkReportedTelemetry(media, shouldReport) {
        * }
        */
       const entriesNums = Object.entries(hist.snapshot().values).length;
-      if (shouldReport) {
+      if (reportExpected && hasVideo) {
         ok(entriesNums > 0, `Reported result for ${name}`);
       } else {
         ok(entriesNums == 0, `Reported nothing for ${name}`);
@@ -301,7 +497,7 @@ async function checkReportedTelemetry(media, shouldReport) {
       ok(false , `histogram '${name}' doesn't exist`);
     }
   }
-  for (const name of keyedHistNames) {
+  for (const name of videoKeyedHistNames) {
     try {
       const hist = SpecialPowers.Services.telemetry.getKeyedHistogramById(name);
       /**
@@ -321,10 +517,47 @@ async function checkReportedTelemetry(media, shouldReport) {
       if (items.length > 0) {
         for (const [key, value] of items) {
           const entriesNums = Object.entries(value.values).length;
-          ok(shouldReport && entriesNums > 0, `Reported ${key} for ${name}`);
+          ok(reportExpected && entriesNums > 0, `Reported ${key} for ${name}`);
+        }
+      } else if (reportExpected) {
+        ok(!hasVideo, `No video telemetry reported but no video track in the media`);
+      } else {
+        ok(true, `No video telemetry expected, none reported`);
+      }
+      // Avoid to pollute next test task.
+      hist.clear();
+    } catch (e) {
+      ok(false , `keyed histogram '${name}' doesn't exist`);
+    }
+  }
+
+  // In any case, the combined probe MEDIA_PLAY_TIME_MS should be reported, if
+  // expected
+  {
+    const hist =
+      SpecialPowers.Services.telemetry.getKeyedHistogramById("MEDIA_PLAY_TIME_MS");
+    const items = Object.entries(hist.snapshot());
+    if (items.length > 0) {
+      for (const item of items) {
+        ok(item[0].includes("V") != -1 || !hasVideo, "Video time is reported if video was present");
+      }
+      hist.clear();
+    } else {
+      ok(!reportExpected, "MEDIA_PLAY_TIME_MS should always be reported if a report is expected");
+    }
+  }
+
+  for (const name of audioKeyedHistNames) {
+    try {
+      const hist = SpecialPowers.Services.telemetry.getKeyedHistogramById(name);
+      const items = Object.entries(hist.snapshot());
+      if (items.length > 0) {
+        for (const [key, value] of items) {
+          const entriesNums = Object.entries(value.values).length;
+          ok(reportExpected && entriesNums > 0, `Reported ${key} for ${name}`);
         }
       } else {
-        ok(!shouldReport, `Reported nothing for ${name}`);
+        ok(!reportExpected || !hasAudio, `No audio telemetry expected, none reported`);
       }
       // Avoid to pollute next test task.
       hist.clear();
@@ -351,6 +584,18 @@ function returnTrueWhenAllValuesAreTrue(arr) {
   return true;
 }
 
+// Block the main thread for a number of milliseconds
+function blockMainThread(durationMS) {
+  const start = Date.now();
+  while (Date.now() - start < durationMS) { /* spin */ }
+}
+
+// Allows comparing two values from the system clocks that are not gathered
+// atomically. Allow up to 1ms of fuzzing when lhs and rhs are seconds.
+function timeFuzzyEquals(lhs, rhs, str) {
+  ok(Math.abs(lhs - rhs) < 1e-3, str);
+}
+
 function assertAttributeDefined(mediaChrome, checkType) {
   ok(mediaChrome[checkType] != undefined, `${checkType} exists`);
 }
@@ -363,8 +608,9 @@ function assertValueEqualTo(mediaChrome, checkType, expectedValue) {
 async function assertValueConstantlyIncreases(mediaChrome, checkType) {
   assertAttributeDefined(mediaChrome, checkType);
   const valueSnapshot = mediaChrome[checkType];
-  // Simply wait for a short while.
-  await new Promise(r => r());
+  // 30ms is long enough to have a low-resolution system clock tick, but short
+  // enough to not slow the test down.
+  blockMainThread(30);
   const current = mediaChrome[checkType];
   ok(current > valueSnapshot, `${checkType} keeps increasing (${current} > ${valueSnapshot})`);
 }
@@ -372,12 +618,16 @@ async function assertValueConstantlyIncreases(mediaChrome, checkType) {
 function assertValueKeptUnchanged(mediaChrome, checkType) {
   assertAttributeDefined(mediaChrome, checkType);
   const valueSnapshot = mediaChrome[checkType];
-  is(mediaChrome[checkType], valueSnapshot, `${checkType} keeps unchanged (${valueSnapshot})`);
+  // 30ms is long enough to have a low-resolution system clock tick, but short
+  // enough to not slow the test down.
+  blockMainThread(30);
+  const newValue = mediaChrome[checkType];
+  timeFuzzyEquals(newValue, valueSnapshot, `${checkType} keeps unchanged (${newValue} vs. ${valueSnapshot})`);
 }
 
 function assertAllProbeRelatedAttributesKeptUnchanged(video) {
   const videoChrome = SpecialPowers.wrap(video);
-  assertValueKeptUnchanged(videoChrome, "totalPlayTime");
+  assertValueKeptUnchanged(videoChrome, "totalVideoPlayTime");
   assertValueKeptUnchanged(videoChrome, "invisiblePlayTime");
   assertValueKeptUnchanged(videoChrome, "videoDecodeSuspendedTime");
 }

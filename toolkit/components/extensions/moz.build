@@ -32,13 +32,12 @@ EXTRA_JS_MODULES += [
     "ExtensionStorageSyncKinto.jsm",
     "ExtensionTelemetry.jsm",
     "ExtensionUtils.jsm",
+    "ExtensionWorkerChild.jsm",
     "FindContent.jsm",
     "MatchURLFilters.jsm",
-    "MessageChannel.jsm",
     "MessageManagerProxy.jsm",
     "NativeManifests.jsm",
     "NativeMessaging.jsm",
-    "onExtensionBrowser.js",
     "PerformanceCounters.jsm",
     "ProxyChannelFilter.jsm",
     "Schemas.jsm",
@@ -53,6 +52,7 @@ EXTRA_COMPONENTS += [
 TESTING_JS_MODULES += [
     "ExtensionTestCommon.jsm",
     "ExtensionXPCShellUtils.jsm",
+    "MessageChannel.jsm",
 ]
 
 DIRS += [

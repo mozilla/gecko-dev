@@ -623,9 +623,10 @@ class nsFlexContainerFrame::FlexItem final {
   void UpdateMainMinSize(nscoord aNewMinSize) {
     NS_ASSERTION(aNewMinSize >= 0,
                  "How did we end up with a negative min-size?");
-    MOZ_ASSERT(mMainMaxSize >= aNewMinSize,
-               "Should only use this function for resolving min-size:auto, "
-               "and main max-size should be an upper-bound for resolved val");
+    MOZ_ASSERT(
+        mMainMaxSize == NS_UNCONSTRAINEDSIZE || mMainMaxSize >= aNewMinSize,
+        "Should only use this function for resolving min-size:auto, "
+        "and main max-size should be an upper-bound for resolved val");
     MOZ_ASSERT(
         mNeedsMinSizeAutoResolution &&
             (mMainMinSize == 0 || mFrame->IsThemed(mFrame->StyleDisplay())),
@@ -1735,6 +1736,13 @@ void nsFlexContainerFrame::ResolveAutoFlexBasisAndMinSize(
       // Clamp the resolved min main size by the max main size if it's definite.
       if (aFlexItem.MainMaxSize() != NS_UNCONSTRAINEDSIZE) {
         resolvedMinSize = std::min(resolvedMinSize, aFlexItem.MainMaxSize());
+      } else if (MOZ_UNLIKELY(resolvedMinSize > nscoord_MAX)) {
+        NS_WARNING("Bogus resolved auto min main size!");
+        // Our resolved min-size is bogus, probably due to some huge sizes in
+        // the content. Clamp it to the valid nscoord range, so that we can at
+        // least depend on it being <= the max-size (which is also the
+        // nscoord_MAX sentinel value if we reach this point).
+        resolvedMinSize = nscoord_MAX;
       }
       FLEX_LOGV(" Resolved auto min main size: %d", resolvedMinSize);
     }
@@ -1989,6 +1997,8 @@ const CachedBAxisMeasurement& nsFlexContainerFrame::MeasureBSizeForFlexItem(
     FLEX_LOG("[perf] MeasureBSizeForFlexItem didn't have a cached value");
   }
 
+  // CachedFlexItemData is stored in item's writing mode, so we pass
+  // aChildReflowInput into ReflowOutput's constructor.
   ReflowOutput childReflowOutput(aChildReflowInput);
   nsReflowStatus childReflowStatus;
 
@@ -4099,10 +4109,8 @@ void nsFlexContainerFrame::GenerateFlexLines(
     // (e.g. if main axis is vertical & 'height' is 'auto'), make sure we at
     // least wrap when we hit its max main-size.
     if (wrapThreshold == NS_UNCONSTRAINEDSIZE) {
-      const nscoord flexContainerMaxMainSize = GET_MAIN_COMPONENT_LOGICAL(
-          aAxisTracker, aAxisTracker.GetWritingMode(),
-          aReflowInput.ComputedMaxISize(), aReflowInput.ComputedMaxBSize());
-
+      const nscoord flexContainerMaxMainSize =
+          aAxisTracker.MainComponent(aReflowInput.ComputedMaxSize());
       wrapThreshold = flexContainerMaxMainSize;
     }
   }
@@ -5636,6 +5644,8 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
   // after this point, because some of its methods (e.g. SetComputedWidth)
   // internally call InitResizeFlags and stomp on mVResize & mHResize.
 
+  // CachedFlexItemData is stored in item's writing mode, so we pass
+  // aChildReflowInput into ReflowOutput's constructor.
   ReflowOutput childReflowOutput(childReflowInput);
   nsReflowStatus childReflowStatus;
   ReflowChild(aItem.Frame(), PresContext(), childReflowOutput, childReflowInput,
@@ -5679,7 +5689,7 @@ void nsFlexContainerFrame::ReflowPlaceholders(
                                  availSize);
     // No need to set the -webkit-line-clamp related flags when reflowing
     // a placeholder.
-    ReflowOutput childReflowOutput(childReflowInput);
+    ReflowOutput childReflowOutput(outerWM);
     nsReflowStatus childReflowStatus;
     ReflowChild(placeholder, PresContext(), childReflowOutput, childReflowInput,
                 outerWM, aContentBoxOrigin, aContainerSize,

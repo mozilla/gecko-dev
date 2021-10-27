@@ -26,7 +26,7 @@ ChromeUtils.import("resource://gre/modules/ActorManagerParent.jsm");
 XPCOMUtils.defineLazyModuleGetters(this, {
   ContentTask: "resource://testing-common/ContentTask.jsm",
   HttpServer: "resource://testing-common/httpd.js",
-  MessageChannel: "resource://gre/modules/MessageChannel.jsm",
+  MessageChannel: "resource://testing-common/MessageChannel.jsm",
   TestUtils: "resource://testing-common/TestUtils.jsm",
 });
 
@@ -44,7 +44,7 @@ const REMOTE_CONTENT_SUBFRAMES = Services.appinfo.fissionAutostart;
 
 function frameScript() {
   const { MessageChannel } = ChromeUtils.import(
-    "resource://gre/modules/MessageChannel.jsm"
+    "resource://testing-common/MessageChannel.jsm"
   );
   const { Services } = ChromeUtils.import(
     "resource://gre/modules/Services.jsm"
@@ -53,8 +53,6 @@ function frameScript() {
   // We need to make sure that the ExtensionPolicy service has been initialized
   // as it sets up the observers that inject extension content scripts.
   Cc["@mozilla.org/addons/policy-service;1"].getService();
-
-  Services.obs.notifyObservers(this, "tab-content-frameloader-created");
 
   const messageListener = {
     async receiveMessage({ target, messageName, recipient, data, name }) {

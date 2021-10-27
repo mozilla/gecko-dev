@@ -29,19 +29,28 @@ class ExtensionEventManager;
 
 class ExtensionPort final : public nsISupports,
                             public nsWrapperCache,
+                            public SupportsWeakPtr,
                             public ExtensionAPIBase {
   nsCOMPtr<nsIGlobalObject> mGlobal;
+  RefPtr<ExtensionBrowser> mExtensionBrowser;
   RefPtr<ExtensionEventManager> mOnDisconnectEventMgr;
   RefPtr<ExtensionEventManager> mOnMessageEventMgr;
   UniquePtr<dom::ExtensionPortDescriptor> mPortDescriptor;
+  RefPtr<dom::Function> mCallback;
 
   ~ExtensionPort() = default;
-  ExtensionPort(nsIGlobalObject* aGlobal,
-                UniquePtr<dom::ExtensionPortDescriptor> aPortDescriptor);
+  ExtensionPort(nsIGlobalObject* aGlobal, ExtensionBrowser* aExtensionBrowser,
+                UniquePtr<dom::ExtensionPortDescriptor>&& aPortDescriptor);
+
+  void ForgetReleasedPort();
 
  protected:
   // ExtensionAPIBase methods
   nsIGlobalObject* GetGlobalObject() const override { return mGlobal; }
+
+  ExtensionBrowser* GetExtensionBrowser() const override {
+    return mExtensionBrowser;
+  }
 
   nsString GetAPINamespace() const override { return u"runtime"_ns; }
 
@@ -51,8 +60,11 @@ class ExtensionPort final : public nsISupports,
 
  public:
   static already_AddRefed<ExtensionPort> Create(
-      nsIGlobalObject* aGlobal, JS::Handle<JS::Value> aDescriptorValue,
-      ErrorResult& aRv);
+      nsIGlobalObject* aGlobal, ExtensionBrowser* aExtensionBrowser,
+      UniquePtr<dom::ExtensionPortDescriptor>&& aPortDescriptor);
+
+  static UniquePtr<dom::ExtensionPortDescriptor> ToPortDescriptor(
+      JS::Handle<JS::Value> aDescriptorValue, ErrorResult& aRv);
 
   // nsWrapperCache interface methods
   JSObject* WrapObject(JSContext* aCx,
@@ -64,17 +76,11 @@ class ExtensionPort final : public nsISupports,
   ExtensionEventManager* OnMessage();
 
   void GetName(nsAString& aString);
-  void GetError(JSContext* aCx, JS::MutableHandle<JSObject*> aResult) {
-    // TODO: this is currently just a placeholder, should be filled in
-    // with the actual implementation (which may send to the API request
-    // handler an API request to get the property value from the port object
-    // representation that lives on the main thread).
+  void GetError(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
+    GetWebExtPropertyAsJSValue(aCx, u"error"_ns, aRetval);
   }
-  void GetSender(JSContext* aCx, JS::MutableHandle<JSObject*> aResult) {
-    // TODO: this is currently just a placeholder, needed to please the
-    // webidl binding which excepts this property to always return
-    // an object.
-    aResult.set(JS_NewPlainObject(aCx));
+  void GetSender(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
+    GetWebExtPropertyAsJSValue(aCx, u"sender"_ns, aRetval);
   };
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

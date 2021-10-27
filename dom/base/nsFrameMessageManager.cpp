@@ -1202,14 +1202,9 @@ void nsMessageManagerScriptExecutor::LoadScriptInternal(
   if (stencil) {
     JS::CompileOptions options(cx);
     FillCompileOptionsForCachedStencil(options);
-
-    if (JS::StencilCanLazilyParse(stencil)) {
-      // See TryCacheLoadAndCompileScript.
-      options.setSourceIsLazy(false);
-    }
-
+    JS::InstantiateOptions instantiateOptions(options);
     JS::Rooted<JSScript*> script(
-        cx, JS::InstantiateGlobalStencil(cx, options, stencil));
+        cx, JS::InstantiateGlobalStencil(cx, instantiateOptions, stencil));
 
     if (script) {
       if (aRunInUniqueScope) {
@@ -1264,7 +1259,8 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
   // We don't cache data: scripts!
   nsAutoCString scheme;
   uri->GetScheme(scheme);
-  bool useScriptPreloader = !scheme.EqualsLiteral("data");
+  bool isCacheable = !scheme.EqualsLiteral("data");
+  bool useScriptPreloader = isCacheable;
 
   // If the script will be reused in this session, compile it in the compilation
   // scope instead of the current global to avoid keeping the current
@@ -1275,14 +1271,12 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
   }
   JSContext* cx = jsapi.cx();
 
-  JS::CompileOptions options(cx);
-  FillCompileOptionsForCachedStencil(options);
-  options.setFileAndLine(url.get(), 1);
-
   RefPtr<JS::Stencil> stencil;
   if (useScriptPreloader) {
-    stencil =
-        ScriptPreloader::GetChildSingleton().GetCachedStencil(cx, options, url);
+    JS::DecodeOptions decodeOptions;
+    ScriptPreloader::FillDecodeOptionsForCachedStencil(decodeOptions);
+    stencil = ScriptPreloader::GetChildSingleton().GetCachedStencil(
+        cx, decodeOptions, url);
   }
 
   if (!stencil) {
@@ -1319,6 +1313,10 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
       return nullptr;
     }
 
+    JS::CompileOptions options(cx);
+    FillCompileOptionsForCachedStencil(options);
+    options.setFileAndLine(url.get(), 1);
+
     // If we are not encoding to the ScriptPreloader cache, we can now relax the
     // compile options and use the JS syntax-parser for lower latency.
     if (!useScriptPreloader || !ScriptPreloader::GetChildSingleton().Active()) {
@@ -1336,6 +1334,18 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
     if (!stencil) {
       return nullptr;
     }
+
+    if (isCacheable && !isRunOnce) {
+      // Store into our cache only when we compile it here.
+      auto* holder = new nsMessageManagerScriptHolder(stencil);
+      sCachedScripts->InsertOrUpdate(aURL, holder);
+    }
+
+#ifdef DEBUG
+    // The above shouldn't touch any options for instantiation.
+    JS::InstantiateOptions instantiateOptions(options);
+    instantiateOptions.assertDefault();
+#endif
   }
 
   MOZ_ASSERT(stencil);
@@ -1343,14 +1353,6 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
   if (useScriptPreloader) {
     ScriptPreloader::GetChildSingleton().NoteStencil(url, url, stencil,
                                                      isRunOnce);
-
-    // If this script will only run once per process, only cache it in the
-    // preloader cache, not the session cache.
-    if (!isRunOnce) {
-      // Root the object also for caching.
-      auto* holder = new nsMessageManagerScriptHolder(stencil);
-      sCachedScripts->InsertOrUpdate(aURL, holder);
-    }
   }
 
   return stencil.forget();

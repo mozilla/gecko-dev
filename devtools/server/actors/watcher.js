@@ -66,6 +66,23 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
     protocol.Actor.prototype.initialize.call(this, conn);
     this._browser = options && options.browser;
     this._config = options ? options.config : {};
+    // Sometimes we get iframe targets before the top-level targets
+    // mostly when doing bfcache navigations, lets cache the early iframes targets and
+    // flush them after the top-level target is available. See Bug 1726568 for details.
+    this._earlyIframeTargets = {};
+
+    // All currently available WindowGlobal target's form, keyed by `innerWindowId`.
+    //
+    // This helps to:
+    // - determine if the iframe targets are early or not.
+    //   i.e. if it is notified before its parent target is available.
+    // - notify the destruction of all children targets when a parent is destroyed.
+    //   i.e. have a reliable order of destruction between parent and children.
+    //
+    // Note that there should be just one top-level window target at a time,
+    // but there are certain cases when a new target is available before the
+    // old target is destroyed.
+    this._currentWindowGlobalTargets = new Map();
 
     this.notifyResourceAvailable = this.notifyResourceAvailable.bind(this);
     this.notifyResourceDestroyed = this.notifyResourceDestroyed.bind(this);
@@ -118,8 +135,8 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
    * @return Array<String>
    *         Returns the list of currently watched resource types.
    */
-  get watchedData() {
-    return WatcherRegistry.getWatchedData(this);
+  get sessionData() {
+    return WatcherRegistry.getSessionData(this);
   },
 
   form() {
@@ -145,9 +162,6 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
           // We enabled them for content toolboxes only because we don't support
           // content process targets yet. Bug 1620248 should help supporting
           // them and enable this more broadly.
-          //
-          // New server-side resources can be gated behind
-          // `devtools.testing.enableServerWatcherSupport` if needed.
           [Resources.TYPES.CONSOLE_MESSAGE]: true,
           [Resources.TYPES.CSS_CHANGE]: hasBrowserElement,
           [Resources.TYPES.CSS_MESSAGE]: true,
@@ -169,10 +183,6 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
           [Resources.TYPES.WEBSOCKET]: hasBrowserElement,
         },
 
-        // @backward-compat { version 93 } Starts supporting setSaveRequestAndResponseBodies on the NetworkParent actor
-        saveRequestAndResponseBodies: true,
-        // @backward-compat { version 93 } The network parent actor started exposing setPersist method.
-        "network-persist": true,
         // @backward-compat { version 94 } Full support for event breakpoints via the watcher actor
         "event-breakpoints": true,
       },
@@ -220,16 +230,108 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
   },
 
   /**
+   * Flush any early iframe targets relating to this top level
+   * window target.
+   * @param {number} topInnerWindowID
+   */
+  _flushIframeTargets(topInnerWindowID) {
+    while (this._earlyIframeTargets[topInnerWindowID]?.length > 0) {
+      const actor = this._earlyIframeTargets[topInnerWindowID].shift();
+      this.emit("target-available-form", actor);
+    }
+  },
+
+  /**
    * Called by a Watcher module, whenever a new target is available
    */
   notifyTargetAvailable(actor) {
-    this.emit("target-available-form", actor);
+    // Emit immediately for worker, process & extension targets
+    // as they don't have a parent browsing context.
+    if (!actor.traits?.isBrowsingContext) {
+      this.emit("target-available-form", actor);
+      return;
+    }
+
+    // If isBrowsingContext trait is true, we are processing a WindowGlobalTarget.
+    // (this trait should be renamed)
+    this._currentWindowGlobalTargets.set(actor.innerWindowId, actor);
+
+    // The top-level is always the same for the browser-toolbox
+    if (!this.browserId) {
+      this.emit("target-available-form", actor);
+      return;
+    }
+
+    if (actor.isTopLevelTarget) {
+      this.emit("target-available-form", actor);
+      // Flush any existing early iframe targets
+      this._flushIframeTargets(actor.innerWindowId);
+    } else if (this._currentWindowGlobalTargets.has(actor.topInnerWindowId)) {
+      // Emit the event immediately if the top-level target is already available
+      this.emit("target-available-form", actor);
+    } else if (this._earlyIframeTargets[actor.topInnerWindowId]) {
+      // Add the early iframe target to the list of other early targets.
+      this._earlyIframeTargets[actor.topInnerWindowId].push(actor);
+    } else {
+      // Set the first early iframe target
+      this._earlyIframeTargets[actor.topInnerWindowId] = [actor];
+    }
   },
 
   /**
    * Called by a Watcher module, whenever a target has been destroyed
    */
-  notifyTargetDestroyed(actor) {
+  async notifyTargetDestroyed(actor) {
+    // Emit immediately for worker, process & extension targets
+    // as they don't have a parent browsing context.
+    if (!actor.innerWindowId) {
+      this.emit("target-destroyed-form", actor);
+      return;
+    }
+    // Flush all iframe targets if we are destroying a top level target.
+    if (actor.isTopLevelTarget) {
+      // First compute the list of children actors, as notifyTargetDestroy will mutate _currentWindowGlobalTargets
+      const childrenActors = [
+        ...this._currentWindowGlobalTargets.values(),
+      ].filter(
+        form =>
+          form.topInnerWindowId == actor.innerWindowId &&
+          // Ignore the top level target itself, because its topInnerWindowId will be its innerWindowId
+          form.innerWindowId != actor.innerWindowId
+      );
+      childrenActors.map(form => this.notifyTargetDestroyed(form));
+    }
+    if (this._earlyIframeTargets[actor.innerWindowId]) {
+      delete this._earlyIframeTargets[actor.innerWindowId];
+    }
+    this._currentWindowGlobalTargets.delete(actor.innerWindowId);
+    const documentEventWatcher = Resources.getResourceWatcher(
+      this,
+      Resources.TYPES.DOCUMENT_EVENT
+    );
+    // If we have a Watcher class instantiated, ensure that target-destroyed is sent
+    // *after* DOCUMENT_EVENT's will-navigate. Otherwise this resource will have an undefined
+    // `targetFront` attribute, as it is associated with the target from which we navigate
+    // and not the one we navigate to.
+    //
+    // About documentEventWatcher check: We won't have any watcher class if we aren't
+    // using server side Watcher classes.
+    // i.e. when we are using the legacy listener for DOCUMENT_EVENT.
+    // This is still the case for all toolboxes but the one for local and remote tabs.
+    //
+    // About isServerTargetSwitchingEnabled check: if we are using the watcher class
+    // we may still use client side target, which will still use legacy listeners for
+    // will-navigate and so will-navigate will be emitted by the target actor itself.
+    //
+    // About isTopLevelTarget check: only top level targets emit will-navigate,
+    // so there is no reason to delay target-destroy for remote iframes.
+    if (
+      documentEventWatcher &&
+      this.isServerTargetSwitchingEnabled &&
+      actor.isTopLevelTarget
+    ) {
+      await documentEventWatcher.onceWillNavigateIsEmitted(actor.innerWindowId);
+    }
     this.emit("target-destroyed-form", actor);
   },
 
@@ -355,7 +457,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
         continue;
       }
       const targetHelperModule = TARGET_HELPERS[targetType];
-      await targetHelperModule.addWatcherDataEntry({
+      await targetHelperModule.addSessionDataEntry({
         watcher: this,
         type: "resources",
         entries: targetResourceTypes,
@@ -386,7 +488,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
     if (frameResourceTypes.length > 0) {
       const targetActor = this._getTargetActorInParentProcess();
       if (targetActor) {
-        await targetActor.addWatcherDataEntry("resources", frameResourceTypes);
+        await targetActor.addSessionDataEntry("resources", frameResourceTypes);
       }
     }
   },
@@ -440,7 +542,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
           continue;
         }
         const targetHelperModule = TARGET_HELPERS[targetType];
-        targetHelperModule.removeWatcherDataEntry({
+        targetHelperModule.removeSessionDataEntry({
           watcher: this,
           type: "resources",
           entries: targetResourceTypes,
@@ -456,7 +558,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
     if (frameResourceTypes.length > 0) {
       const targetActor = this._getTargetActorInParentProcess();
       if (targetActor) {
-        targetActor.removeWatcherDataEntry("resources", frameResourceTypes);
+        targetActor.removeSessionDataEntry("resources", frameResourceTypes);
       }
     }
 
@@ -529,7 +631,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
    *        List of values to add for this data type.
    */
   async addDataEntry(type, entries) {
-    WatcherRegistry.addWatcherDataEntry(this, type, entries);
+    WatcherRegistry.addSessionDataEntry(this, type, entries);
 
     await Promise.all(
       Object.values(Targets.TYPES)
@@ -545,7 +647,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
         )
         .map(async targetType => {
           const targetHelperModule = TARGET_HELPERS[targetType];
-          await targetHelperModule.addWatcherDataEntry({
+          await targetHelperModule.addSessionDataEntry({
             watcher: this,
             type,
             entries,
@@ -556,7 +658,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
     // See comment in watchResources
     const targetActor = this._getTargetActorInParentProcess();
     if (targetActor) {
-      await targetActor.addWatcherDataEntry(type, entries);
+      await targetActor.addSessionDataEntry(type, entries);
     }
   },
 
@@ -571,7 +673,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
    *        List of values to remove from this data type.
    */
   removeDataEntry(type, entries) {
-    WatcherRegistry.removeWatcherDataEntry(this, type, entries);
+    WatcherRegistry.removeSessionDataEntry(this, type, entries);
 
     Object.values(Targets.TYPES)
       .filter(
@@ -582,7 +684,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
       )
       .forEach(targetType => {
         const targetHelperModule = TARGET_HELPERS[targetType];
-        targetHelperModule.removeWatcherDataEntry({
+        targetHelperModule.removeSessionDataEntry({
           watcher: this,
           type,
           entries,
@@ -592,7 +694,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
     // See comment in addDataEntry
     const targetActor = this._getTargetActorInParentProcess();
     if (targetActor) {
-      targetActor.removeWatcherDataEntry(type, entries);
+      targetActor.removeSessionDataEntry(type, entries);
     }
   },
 
@@ -602,7 +704,7 @@ exports.WatcherActor = protocol.ActorClassWithSpec(watcherSpec, {
    * @param {String} type
    *        Data type to retrieve.
    */
-  getWatchedData(type) {
-    return this.watchedData?.[type];
+  getSessionDataForType(type) {
+    return this.sessionData?.[type];
   },
 });

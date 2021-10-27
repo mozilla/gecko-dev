@@ -123,9 +123,8 @@ impl Example for App {
                 None,
                 doc.content_rect.size(),
                 builder.end(),
-                true,
             );
-            txn.generate_frame(0);
+            txn.generate_frame(0, RenderReasons::empty());
             api.send_transaction(doc.id, txn);
         }
     }

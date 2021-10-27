@@ -10,10 +10,6 @@
 // This is loaded into all XUL windows. Wrap in a block to prevent
 // leaking to window scope.
 {
-  const { AppConstants } = ChromeUtils.import(
-    "resource://gre/modules/AppConstants.jsm"
-  );
-
   /**
    * This class handles the custom element for the places popup menu.
    */
@@ -31,7 +27,7 @@
         "dragend",
       ];
       for (let event_name of event_names) {
-        this.addEventListener(event_name, ev => this[`on_${event_name}`](ev));
+        this.addEventListener(event_name, this);
       }
     }
 
@@ -364,24 +360,13 @@
     }
 
     on_DOMMenuItemActive(event) {
+      if (super.on_DOMMenuItemActive) {
+        super.on_DOMMenuItemActive(event);
+      }
+
       let elt = event.target;
       if (elt.parentNode != this) {
         return;
-      }
-
-      if (AppConstants.platform === "macosx") {
-        // XXX: The following check is a temporary hack until bug 420033 is
-        // resolved.
-        let parentElt = elt.parent;
-        while (parentElt) {
-          if (
-            parentElt.id == "bookmarksMenuPopup" ||
-            parentElt.id == "goPopup"
-          ) {
-            return;
-          }
-          parentElt = parentElt.parentNode;
-        }
       }
 
       if (window.XULBrowserWindow) {
@@ -590,12 +575,11 @@
         "popupshowing",
         "popuppositioned",
         "popupshown",
-        "transitionend",
         "popuphiding",
         "popuphidden",
       ];
       for (let event_name of event_names) {
-        this.addEventListener(event_name, ev => this[`on_${event_name}`](ev));
+        this.addEventListener(event_name, this);
       }
     }
 
@@ -637,7 +621,6 @@
       this.setAttribute("flip", "both");
       this.setAttribute("side", "top");
       this.setAttribute("position", "bottomcenter topright");
-      this.style.pointerEvents = "none";
     }
 
     get container() {
@@ -717,6 +700,7 @@
     on_popupshowing(event) {
       if (event.target == this) {
         this.setAttribute("animate", "open");
+        this.style.pointerEvents = "none";
       }
     }
 
@@ -732,35 +716,7 @@
       }
 
       this.setAttribute("panelopen", "true");
-      let disablePointerEvents;
-      if (!this.hasAttribute("disablepointereventsfortransition")) {
-        let cs = getComputedStyle(this.container);
-        let transitionProp = cs.transitionProperty;
-        let transitionTime = parseFloat(cs.transitionDuration);
-        disablePointerEvents =
-          (transitionProp.includes("transform") || transitionProp == "all") &&
-          transitionTime > 0;
-        this.setAttribute(
-          "disablepointereventsfortransition",
-          disablePointerEvents
-        );
-      } else {
-        disablePointerEvents =
-          this.getAttribute("disablepointereventsfortransition") == "true";
-      }
-      if (!disablePointerEvents) {
-        this.style.removeProperty("pointer-events");
-      }
-    }
-
-    on_transitionend(event) {
-      if (
-        event.originalTarget.classList.contains("panel-arrowcontainer") &&
-        (event.propertyName == "transform" ||
-          event.propertyName == "-moz-window-transform")
-      ) {
-        this.style.removeProperty("pointer-events");
-      }
+      this.style.removeProperty("pointer-events");
     }
 
     on_popuphiding(event) {
@@ -772,9 +728,6 @@
     on_popuphidden(event) {
       if (event.target == this) {
         this.removeAttribute("panelopen");
-        if (this.getAttribute("disablepointereventsfortransition") == "true") {
-          this.style.pointerEvents = "none";
-        }
         this.removeAttribute("animate");
       }
     }

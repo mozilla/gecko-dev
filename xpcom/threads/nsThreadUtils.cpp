@@ -18,6 +18,7 @@
 #include "prsystem.h"
 
 #include "nsThreadManager.h"
+#include "TaskController.h"
 
 #ifdef XP_WIN
 #  include <windows.h>
@@ -137,10 +138,10 @@ PrioritizableRunnable::GetPriority(uint32_t* aPriority) {
   return NS_OK;
 }
 
-already_AddRefed<nsIRunnable> mozilla::CreateMediumHighRunnable(
+already_AddRefed<nsIRunnable> mozilla::CreateRenderBlockingRunnable(
     already_AddRefed<nsIRunnable>&& aRunnable) {
   nsCOMPtr<nsIRunnable> runnable = new PrioritizableRunnable(
-      std::move(aRunnable), nsIRunnablePriority::PRIORITY_MEDIUMHIGH);
+      std::move(aRunnable), nsIRunnablePriority::PRIORITY_RENDER_BLOCKING);
   return runnable.forget();
 }
 
@@ -474,6 +475,10 @@ void NS_SetCurrentThreadName(const char* aName) {
 #else
   PR_SetCurrentThreadName(aName);
 #endif
+  if (nsThreadManager::get().IsNSThread()) {
+    nsThread* thread = nsThreadManager::get().GetCurrentThread();
+    thread->SetThreadNameInternal(nsDependentCString(aName));
+  }
   CrashReporter::SetCurrentThreadName(aName);
 }
 

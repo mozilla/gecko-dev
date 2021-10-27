@@ -9,6 +9,7 @@
 #include "nsIContent.h"
 #include "nsIFrame.h"
 #include "nsIScrollableFrame.h"
+#include "nsLayoutUtils.h"
 #include "nsNumberControlFrame.h"
 #include "nsPresContext.h"
 #include "nsString.h"
@@ -42,7 +43,9 @@ NS_IMPL_ISUPPORTS(nsNativeTheme, nsITimerCallback, nsINamed)
 
 /* static */ EventStates nsNativeTheme::GetContentState(
     nsIFrame* aFrame, StyleAppearance aAppearance) {
-  if (!aFrame) return EventStates();
+  if (!aFrame) {
+    return EventStates();
+  }
 
   bool isXULCheckboxRadio = (aAppearance == StyleAppearance::Checkbox ||
                              aAppearance == StyleAppearance::Radio) &&
@@ -69,12 +72,21 @@ NS_IMPL_ISUPPORTS(nsNativeTheme, nsITimerCallback, nsINamed)
     }
   }
 
-  if (isXULCheckboxRadio && aAppearance == StyleAppearance::Radio &&
-      IsFocused(aFrame)) {
-    flags |= NS_EVENT_STATE_FOCUS;
-    nsPIDOMWindowOuter* window = aFrame->GetContent()->OwnerDoc()->GetWindow();
-    if (window && window->ShouldShowFocusRing()) {
-      flags |= NS_EVENT_STATE_FOCUSRING;
+  if (isXULCheckboxRadio) {
+    if (aAppearance == StyleAppearance::Radio) {
+      if (IsFocused(aFrame)) {
+        flags |= NS_EVENT_STATE_FOCUS;
+        nsPIDOMWindowOuter* window =
+            aFrame->GetContent()->OwnerDoc()->GetWindow();
+        if (window && window->ShouldShowFocusRing()) {
+          flags |= NS_EVENT_STATE_FOCUSRING;
+        }
+      }
+      if (CheckBooleanAttr(aFrame, nsGkAtoms::selected)) {
+        flags |= NS_EVENT_STATE_CHECKED;
+      }
+    } else if (CheckBooleanAttr(aFrame, nsGkAtoms::checked)) {
+      flags |= NS_EVENT_STATE_CHECKED;
     }
   }
 
@@ -272,8 +284,7 @@ bool nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext,
   return nsLayoutUtils::AuthorSpecifiedBorderBackgroundDisablesTheming(
              aAppearance) &&
          aFrame->GetContent()->IsHTMLElement() &&
-         aPresContext->HasAuthorSpecifiedRules(
-             aFrame, NS_AUTHOR_SPECIFIED_BORDER_OR_BACKGROUND);
+         aFrame->Style()->HasAuthorSpecifiedBorderOrBackground();
 }
 
 bool nsNativeTheme::IsDisabled(nsIFrame* aFrame, EventStates aEventStates) {

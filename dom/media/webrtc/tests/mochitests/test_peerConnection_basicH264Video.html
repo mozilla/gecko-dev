@@ -12,7 +12,8 @@
   });
 
   var test;
-  runNetworkTest(function (options) {
+  runNetworkTest(async function (options) {
+    matchPlatformH264CodecPrefs();
     options = options || { };
     options.h264 = true;
     test = new PeerConnectionTest(options);

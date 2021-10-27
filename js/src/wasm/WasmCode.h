@@ -72,21 +72,6 @@ class MacroAssembler;
 
 namespace wasm {
 
-struct IndirectStubTarget {
-  uint32_t functionIdx;
-  void* checkedCallEntryAddress;
-  TlsData* tls;
-
-  bool operator==(const IndirectStubTarget& other) const {
-    return functionIdx == other.functionIdx &&
-           checkedCallEntryAddress == other.checkedCallEntryAddress &&
-           tls == other.tls;
-  }
-};
-
-using VectorOfIndirectStubTarget =
-    Vector<IndirectStubTarget, 8, SystemAllocPolicy>;
-
 struct MetadataTier;
 struct Metadata;
 
@@ -504,7 +489,7 @@ struct MetadataTier {
 using UniqueMetadataTier = UniquePtr<MetadataTier>;
 
 // LazyStubSegment is a code segment lazily generated for function entry stubs
-// (both interpreter and jit ones) and for indirect stubs.
+// (both interpreter and jit ones).
 //
 // Because a stub is usually small (a few KiB) and an executable code segment
 // isn't (64KiB), a given stub segment can contain entry stubs of many
@@ -536,11 +521,6 @@ class LazyStubSegment : public CodeSegment {
                 const CodeRangeVector& codeRanges, uint8_t** codePtr,
                 size_t* indexFirstInsertedCodeRange);
 
-  bool addIndirectStubs(size_t codeLength,
-                        const VectorOfIndirectStubTarget& targets,
-                        const CodeRangeVector& codeRanges, uint8_t** codePtr,
-                        size_t* indexFirstInsertedCodeRange);
-
   const CodeRangeVector& codeRanges() const { return codeRanges_; }
   const CodeRange* lookupRange(const void* pc) const;
 
@@ -565,27 +545,8 @@ struct LazyFuncExport {
 
 using LazyFuncExportVector = Vector<LazyFuncExport, 0, SystemAllocPolicy>;
 
-// IndirectStub provides a mapping between function indices and
-// indirect stubs code ranges.
-
-struct IndirectStub {
-  size_t funcIndex;
-  size_t segmentIndex;
-  size_t codeRangeIndex;
-  void* tls;
-  IndirectStub(size_t funcIndex, size_t segmentIndex, size_t codeRangeIndex,
-               TlsData* tls)
-      : funcIndex(funcIndex),
-        segmentIndex(segmentIndex),
-        codeRangeIndex(codeRangeIndex),
-        tls(tls) {}
-};
-
-using IndirectStubVector = Vector<IndirectStub, 0, SystemAllocPolicy>;
-
 // LazyStubTier contains all the necessary information for lazy function entry
-// stubs and indirect stubs that are generated at runtime.
-// None of its data are ever serialized.
+// stubs that are generated at runtime. None of its data is ever serialized.
 //
 // It must be protected by a lock, because the main thread can both read and
 // write lazy stubs at any time while a background thread can regenerate lazy
@@ -594,36 +555,25 @@ using IndirectStubVector = Vector<IndirectStub, 0, SystemAllocPolicy>;
 class LazyStubTier {
   LazyStubSegmentVector stubSegments_;
   LazyFuncExportVector exports_;
-  IndirectStubVector indirectStubVector_;
   size_t lastStubSegmentIndex_;
 
-  bool createManyEntryStubs(const Uint32Vector& funcExportIndices,
-                            const CodeTier& codeTier,
-                            bool flushAllThreadsIcaches,
-                            size_t* stubSegmentIndex);
+  bool createMany(const Uint32Vector& funcExportIndices,
+                  const CodeTier& codeTier, bool flushAllThreadsIcaches,
+                  size_t* stubSegmentIndex);
 
  public:
   LazyStubTier() : lastStubSegmentIndex_(0) {}
 
-  // Creates one lazy stub for the exported function, for which the jit entry
-  // will be set to the lazily-generated one.
-  bool createOneEntryStub(uint32_t funcExportIndex, const CodeTier& codeTier);
+  bool empty() const { return stubSegments_.empty(); }
+  bool hasStub(uint32_t funcIndex) const;
 
-  bool entryStubsEmpty() const { return stubSegments_.empty(); }
-  bool hasEntryStub(uint32_t funcIndex) const;
-
-  // Returns a pointer to the raw interpreter entry of a given function for
-  // which stubs have been lazily generated.
+  // Returns a pointer to the raw interpreter entry of a given function which
+  // stubs have been lazily generated.
   void* lookupInterpEntry(uint32_t funcIndex) const;
 
-  // Creates many indirect stubs.
-  bool createManyIndirectStubs(const VectorOfIndirectStubTarget& targets,
-                               const CodeTier& codeTier);
-
-  // Returns a pointer to the indirect stub of a given function.
-  void* lookupIndirectStub(uint32_t funcIndex, void* tls) const;
-
-  const CodeRange* lookupRange(const void* pc) const;
+  // Creates one lazy stub for the exported function, for which the jit entry
+  // will be set to the lazily-generated one.
+  bool createOne(uint32_t funcExportIndex, const CodeTier& codeTier);
 
   // Create one lazy stub for all the functions in funcExportIndices, putting
   // them in a single stub. Jit entries won't be used until
@@ -791,8 +741,27 @@ using MutableCode = RefPtr<Code>;
 
 class Code : public ShareableBase<Code> {
   UniqueCodeTier tier1_;
-  mutable UniqueConstCodeTier tier2_;  // Access only when hasTier2() is true
+
+  // [SMDOC] Tier-2 data
+  //
+  // hasTier2_ and tier2_ implement a three-state protocol for broadcasting
+  // tier-2 data; this also amounts to a single-writer/multiple-reader setup.
+  //
+  // Initially hasTier2_ is false and tier2_ is null.
+  //
+  // While hasTier2_ is false, *no* thread may read tier2_, but one thread may
+  // make tier2_ non-null (this will be the tier-2 compiler thread).  That same
+  // thread must then later set hasTier2_ to true to broadcast the tier2_ value
+  // and its availability.  Note that the writing thread may not itself read
+  // tier2_ before setting hasTier2_, in order to simplify reasoning about
+  // global invariants.
+  //
+  // Once hasTier2_ is true, *no* thread may write tier2_ and *no* thread may
+  // read tier2_ without having observed hasTier2_ as true first.  Once
+  // hasTier2_ is true, it stays true.
+  mutable UniqueConstCodeTier tier2_;
   mutable Atomic<bool> hasTier2_;
+
   SharedMetadata metadata_;
   ExclusiveData<CacheableCharsVector> profilingLabels_;
   JumpTables jumpTables_;
@@ -820,7 +789,12 @@ class Code : public ShareableBase<Code> {
   }
   uint32_t getFuncIndex(JSFunction* fun) const;
 
-  bool setTier2(UniqueCodeTier tier2, const LinkData& linkData) const;
+  // Install the tier2 code without committing it.  To maintain the invariant
+  // that tier2_ is never accessed without the tier having been committed, this
+  // returns a pointer to the installed tier that the caller can use for
+  // subsequent operations.
+  bool setAndBorrowTier2(UniqueCodeTier tier2, const LinkData& linkData,
+                         const CodeTier** borrowedTier) const;
   void commitTier2() const;
 
   bool hasTier2() const { return hasTier2_; }
@@ -845,7 +819,6 @@ class Code : public ShareableBase<Code> {
 
   const CallSite* lookupCallSite(void* returnAddress) const;
   const CodeRange* lookupFuncRange(void* pc) const;
-  const CodeRange* lookupIndirectStubRange(void* pc) const;
   const StackMap* lookupStackMap(uint8_t* nextPC) const;
 #ifdef ENABLE_WASM_EXCEPTIONS
   const WasmTryNote* lookupWasmTryNote(void* pc, Tier* tier) const;

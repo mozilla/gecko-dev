@@ -266,7 +266,6 @@ class ResponsiveUI {
       await Promise.all([
         this.updateScreenOrientation("landscape-primary", 0),
         this.updateMaxTouchPointsEnabled(false),
-        this.responsiveFront.setFloatingScrollbars(false),
       ]);
 
       // Hide browser UI to avoid displaying weird intermediate states while closing.
@@ -501,8 +500,11 @@ class ResponsiveUI {
     if (reloadNeeded) {
       this.reloadBrowser();
     }
+
     // Used by tests
-    this.emit("device-changed");
+    this.emitForTests("device-changed", {
+      reloadTriggered: reloadNeeded || reloadOnTouchSimulationChange,
+    });
   }
 
   async onChangeNetworkThrottling(event) {
@@ -561,7 +563,9 @@ class ResponsiveUI {
       this.reloadBrowser();
     }
     // Used by tests
-    this.emit("device-association-removed");
+    this.emitForTests("device-association-removed", {
+      reloadTriggered: reloadNeeded || reloadOnTouchSimulationChange,
+    });
   }
 
   /**
@@ -750,9 +754,6 @@ class ResponsiveUI {
     // on the BrowsingContext by RDM are not preserved. So we need to call
     // enterResponsiveMode whenever there is a target switch.
     this.tab.linkedBrowser.enterResponsiveMode();
-
-    // Apply floating scrollbar styles to document.
-    await this.responsiveFront.setFloatingScrollbars(true);
 
     // Attach current target to the selected browser tab.
     await this.currentTarget.attach();

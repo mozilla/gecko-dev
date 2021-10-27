@@ -19,9 +19,9 @@ use crate::api::{BlobImageData, BlobImageKey, ImageData, ImageDescriptor, ImageK
 use crate::api::{BlobImageParams, BlobImageRequest, BlobImageResult, AsyncBlobImageRasterizer, BlobImageHandler};
 use crate::api::{DocumentId, PipelineId, PropertyBindingId, PropertyBindingKey, ExternalEvent};
 use crate::api::{HitTestResult, HitTesterRequest, ApiHitTester, PropertyValue, DynamicProperties};
-use crate::api::{ScrollClamping, TileSize, NotificationRequest, DebugFlags, ScrollNodeState};
+use crate::api::{ScrollClamping, TileSize, NotificationRequest, DebugFlags};
 use crate::api::{GlyphDimensionRequest, GlyphIndexRequest, GlyphIndex, GlyphDimensions};
-use crate::api::{FontInstanceOptions, FontInstancePlatformOptions, FontVariation};
+use crate::api::{FontInstanceOptions, FontInstancePlatformOptions, FontVariation, RenderReasons};
 use crate::api::DEFAULT_TILE_SIZE;
 use crate::api::units::*;
 use crate::api_resources::ApiResources;
@@ -174,6 +174,9 @@ pub struct Transaction {
     pub invalidate_rendered_frame: bool,
 
     low_priority: bool,
+
+    ///
+    pub render_reasons: RenderReasons,
 }
 
 impl Transaction {
@@ -188,6 +191,7 @@ impl Transaction {
             generate_frame: GenerateFrame::No,
             invalidate_rendered_frame: false,
             low_priority: false,
+            render_reasons: RenderReasons::empty(),
         }
     }
 
@@ -269,16 +273,12 @@ impl Transaction {
     /// * `viewport_size`: The size of the viewport for this frame.
     /// * `pipeline_id`: The ID of the pipeline that is supplying this display list.
     /// * `display_list`: The root Display list used in this frame.
-    /// * `preserve_frame_state`: If a previous frame exists which matches this pipeline
-    ///                           id, this setting determines if frame state (such as scrolling
-    ///                           position) should be preserved for this new display list.
     pub fn set_display_list(
         &mut self,
         epoch: Epoch,
         background: Option<ColorF>,
         viewport_size: LayoutSize,
         (pipeline_id, mut display_list): (PipelineId, BuiltDisplayList),
-        preserve_frame_state: bool,
     ) {
         display_list.set_send_time_ns(precise_time_ns());
         self.scene_ops.push(
@@ -288,7 +288,6 @@ impl Transaction {
                 pipeline_id,
                 background,
                 viewport_size,
-                preserve_frame_state,
             }
         );
     }
@@ -363,8 +362,9 @@ impl Transaction {
     /// as to when happened.
     ///
     /// [notifier]: trait.RenderNotifier.html#tymethod.new_frame_ready
-    pub fn generate_frame(&mut self, id: u64) {
+    pub fn generate_frame(&mut self, id: u64, reasons: RenderReasons) {
         self.generate_frame = GenerateFrame::Yes{ id };
+        self.render_reasons |= reasons;
     }
 
     /// Invalidate rendered frame. It ensure that frame will be rendered during
@@ -373,8 +373,9 @@ impl Transaction {
     /// But there are cases that needs to force rendering.
     ///  - Content of image is updated by reusing same ExternalImageId.
     ///  - Platform requests it if pixels become stale (like wakeup from standby).
-    pub fn invalidate_rendered_frame(&mut self) {
+    pub fn invalidate_rendered_frame(&mut self, reasons: RenderReasons) {
         self.invalidate_rendered_frame = true;
+        self.render_reasons |= reasons
     }
 
     /// Reset the list of animated property bindings that should be used to resolve
@@ -417,6 +418,7 @@ impl Transaction {
             blob_requests: Vec::new(),
             rasterized_blobs: Vec::new(),
             profile: TransactionProfile::new(),
+            render_reasons: self.render_reasons,
         })
     }
 
@@ -602,6 +604,8 @@ pub struct TransactionMsg {
     pub rasterized_blobs: Vec<(BlobImageRequest, BlobImageResult)>,
     /// Collect various data along the rendering pipeline to display it in the embedded profiler.
     pub profile: TransactionProfile,
+    /// Keep track of who asks rendering to happen.
+    pub render_reasons: RenderReasons,
 }
 
 impl fmt::Debug for TransactionMsg {
@@ -776,8 +780,6 @@ pub enum SceneMsg {
         background: Option<ColorF>,
         ///
         viewport_size: LayoutSize,
-        ///
-        preserve_frame_state: bool,
     },
     ///
     SetDocumentView {
@@ -796,13 +798,11 @@ pub enum FrameMsg {
     ///
     UpdateEpoch(PipelineId, Epoch),
     ///
-    HitTest(Option<PipelineId>, WorldPoint, Sender<HitTestResult>),
+    HitTest(WorldPoint, Sender<HitTestResult>),
     ///
     RequestHitTester(Sender<Arc<dyn ApiHitTester>>),
     ///
     ScrollNodeWithId(LayoutPoint, ExternalScrollId, ScrollClamping),
-    ///
-    GetScrollNodeState(Sender<Vec<ScrollNodeState>>),
     ///
     ResetDynamicProperties,
     ///
@@ -833,7 +833,6 @@ impl fmt::Debug for FrameMsg {
             FrameMsg::HitTest(..) => "FrameMsg::HitTest",
             FrameMsg::RequestHitTester(..) => "FrameMsg::RequestHitTester",
             FrameMsg::ScrollNodeWithId(..) => "FrameMsg::ScrollNodeWithId",
-            FrameMsg::GetScrollNodeState(..) => "FrameMsg::GetScrollNodeState",
             FrameMsg::ResetDynamicProperties => "FrameMsg::ResetDynamicProperties",
             FrameMsg::AppendDynamicProperties(..) => "FrameMsg::AppendDynamicProperties",
             FrameMsg::AppendDynamicTransformProperties(..) => "FrameMsg::AppendDynamicTransformProperties",
@@ -1229,6 +1228,7 @@ impl RenderApi {
             blob_requests: Vec::new(),
             rasterized_blobs: Vec::new(),
             profile: TransactionProfile::new(),
+            render_reasons: RenderReasons::empty(),
         })
     }
 
@@ -1273,14 +1273,13 @@ impl RenderApi {
     /// front to back.
     pub fn hit_test(&self,
         document_id: DocumentId,
-        pipeline_id: Option<PipelineId>,
         point: WorldPoint,
     ) -> HitTestResult {
         let (tx, rx) = single_msg_channel();
 
         self.send_frame_msg(
             document_id,
-            FrameMsg::HitTest(pipeline_id, point, tx)
+            FrameMsg::HitTest(point, tx)
         );
         rx.recv().unwrap()
     }
@@ -1294,13 +1293,6 @@ impl RenderApi {
         );
 
         HitTesterRequest { rx }
-    }
-
-    ///
-    pub fn get_scroll_node_state(&self, document_id: DocumentId) -> Vec<ScrollNodeState> {
-        let (tx, rx) = single_msg_channel();
-        self.send_frame_msg(document_id, FrameMsg::GetScrollNodeState(tx));
-        rx.recv().unwrap()
     }
 
     // Some internal scheduling magic that leaked into the API.

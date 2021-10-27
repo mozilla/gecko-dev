@@ -133,7 +133,7 @@ class nsContextMenu {
         onEditable: this.onEditable,
         onSpellcheckable: this.onSpellcheckable,
         onPassword: this.onPassword,
-        srcUrl: this.mediaURL,
+        srcUrl: this.originalMediaURL,
         frameUrl: this.contentData ? this.contentData.docLocation : undefined,
         pageUrl: this.browser ? this.browser.currentURI.spec : undefined,
         linkText: this.linkTextStr,
@@ -1301,7 +1301,11 @@ class nsContextMenu {
     if (SCREENSHOT_BROWSER_COMPONENT) {
       Services.obs.notifyObservers(window, "menuitem-screenshot", true);
     } else {
-      Services.obs.notifyObservers(null, "menuitem-screenshot-extension", true);
+      Services.obs.notifyObservers(
+        null,
+        "menuitem-screenshot-extension",
+        "contextMenu"
+      );
     }
   }
 

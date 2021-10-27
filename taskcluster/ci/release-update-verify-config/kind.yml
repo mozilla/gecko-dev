@@ -2,12 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-loader: taskgraph.loader.transform:loader
+loader: gecko_taskgraph.loader.transform:loader
 
 transforms:
-    - taskgraph.transforms.update_verify_config:transforms
-    - taskgraph.transforms.job:transforms
-    - taskgraph.transforms.task:transforms
+    - gecko_taskgraph.transforms.update_verify_config:transforms
+    - gecko_taskgraph.transforms.job:transforms
+    - gecko_taskgraph.transforms.task:transforms
 
 job-defaults:
     name: update-verify-config
@@ -43,11 +43,6 @@ job-defaults:
             by-release-level:
                 staging: dep
                 production: null
-        # This is overridden for devedition to exclude 58.0b1
-        # because of the special case added by
-        # https://bugzilla.mozilla.org/show_bug.cgi?id=1419189
-        # The devedition override can be removed after 58.0b1
-        # is behind a watershed
         include-version:
             by-release-type:
                 beta: beta
@@ -56,13 +51,9 @@ job-defaults:
                 default: beta
         last-watershed:
             by-release-type:
-                beta:
-                    by-platform:
-                        win64-aarch64.*: "67.0b2"
-                        default: "56.0b3"
+                beta: "72.0"
                 release(-rc)?: "72.0.2"
-                esr78: "68.0esr"
-                esr91: "91.0esr"
+                esr91: "68.0esr"
                 default: "default"
 
 jobs:
@@ -224,7 +215,6 @@ jobs:
             platform: linux-i686
             updater-platform: linux-x86_64
             channel: "aurora-localtest"
-            include-version: devedition_hack
 
     devedition-linux64:
         shipping-product: devedition
@@ -240,7 +230,6 @@ jobs:
             platform: linux-x86_64
             updater-platform: linux-x86_64
             channel: "aurora-localtest"
-            include-version: devedition_hack
 
     devedition-macosx64:
         shipping-product: devedition
@@ -256,7 +245,6 @@ jobs:
             platform: mac
             updater-platform: linux-x86_64
             channel: "aurora-localtest"
-            include-version: devedition_hack
 
     devedition-win32:
         shipping-product: devedition
@@ -272,7 +260,6 @@ jobs:
             platform: win32
             updater-platform: linux-x86_64
             channel: "aurora-localtest"
-            include-version: devedition_hack
 
     devedition-win64:
         shipping-product: devedition
@@ -288,7 +275,6 @@ jobs:
             platform: win64
             updater-platform: linux-x86_64
             channel: "aurora-localtest"
-            include-version: devedition_hack
 
     devedition-win64-aarch64:
         shipping-product: devedition
@@ -304,4 +290,3 @@ jobs:
             platform: win64-aarch64
             updater-platform: linux-x86_64
             channel: "aurora-localtest"
-            include-version: devedition_hack

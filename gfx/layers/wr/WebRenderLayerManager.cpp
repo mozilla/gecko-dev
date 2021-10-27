@@ -27,6 +27,7 @@
 
 #ifdef XP_WIN
 #  include "gfxDWriteFonts.h"
+#  include "mozilla/WindowsProcessMitigations.h"
 #endif
 
 namespace mozilla {
@@ -601,14 +602,9 @@ void WebRenderLayerManager::DidComposite(
       mTransactionIdAllocator->NotifyTransactionCompleted(aTransactionId);
     }
   }
-
-  // These observers fire whether or not we were in a transaction.
-  for (size_t i = 0; i < mDidCompositeObservers.Length(); i++) {
-    mDidCompositeObservers[i]->DidComposite();
-  }
 }
 
-void WebRenderLayerManager::ClearCachedResources(Layer* aSubtree) {
+void WebRenderLayerManager::ClearCachedResources() {
   if (!WrBridge()->IPCOpen()) {
     gfxCriticalNote << "IPC Channel is already torn down unexpectedly\n";
     return;
@@ -672,19 +668,7 @@ TransactionId WebRenderLayerManager::GetLastTransactionId() {
   return mLatestTransactionId;
 }
 
-void WebRenderLayerManager::AddDidCompositeObserver(
-    DidCompositeObserver* aObserver) {
-  if (!mDidCompositeObservers.Contains(aObserver)) {
-    mDidCompositeObservers.AppendElement(aObserver);
-  }
-}
-
-void WebRenderLayerManager::RemoveDidCompositeObserver(
-    DidCompositeObserver* aObserver) {
-  mDidCompositeObservers.RemoveElement(aObserver);
-}
-
-void WebRenderLayerManager::FlushRendering() {
+void WebRenderLayerManager::FlushRendering(wr::RenderReasons aReasons) {
   CompositorBridgeChild* cBridge = GetCompositorBridgeChild();
   if (!cBridge) {
     return;
@@ -695,15 +679,19 @@ void WebRenderLayerManager::FlushRendering() {
   // might happen.
   bool resizing = mWidget && mWidget->IsResizingNativeWidget().valueOr(true);
 
+  if (resizing) {
+    aReasons = aReasons | wr::RenderReasons::RESIZE;
+  }
+
   // Limit async FlushRendering to !resizing and Win DComp.
   // XXX relax the limitation
   if (WrBridge()->GetCompositorUseDComp() && !resizing) {
-    cBridge->SendFlushRenderingAsync();
+    cBridge->SendFlushRenderingAsync(aReasons);
   } else if (mWidget->SynchronouslyRepaintOnResize() ||
              StaticPrefs::layers_force_synchronous_resize()) {
-    cBridge->SendFlushRendering();
+    cBridge->SendFlushRendering(aReasons);
   } else {
-    cBridge->SendFlushRenderingAsync();
+    cBridge->SendFlushRenderingAsync(aReasons);
   }
 }
 
@@ -730,17 +718,25 @@ void WebRenderLayerManager::SendInvalidRegion(const nsIntRegion& aRegion) {
   }
 }
 
-void WebRenderLayerManager::ScheduleComposite() {
-  WrBridge()->SendScheduleComposite();
+void WebRenderLayerManager::ScheduleComposite(wr::RenderReasons aReasons) {
+  WrBridge()->SendScheduleComposite(aReasons);
 }
 
 already_AddRefed<PersistentBufferProvider>
 WebRenderLayerManager::CreatePersistentBufferProvider(
     const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat) {
-  // Ensure devices initialization for canvas 2d if not remote. The devices are
-  // lazily initialized with WebRender to reduce memory usage.
   if (!gfxPlatform::UseRemoteCanvas()) {
+#ifdef XP_WIN
+    // Any kind of hardware acceleration is incompatible with Win32k Lockdown
+    // We don't initialize devices here so that PersistentBufferProviderShared
+    // will fall back to using a piece of shared memory as a backing for the
+    // canvas
+    if (!IsWin32kLockedDown()) {
+      gfxPlatform::GetPlatform()->EnsureDevicesInitialized();
+    }
+#else
     gfxPlatform::GetPlatform()->EnsureDevicesInitialized();
+#endif
   }
 
   RefPtr<PersistentBufferProvider> provider =

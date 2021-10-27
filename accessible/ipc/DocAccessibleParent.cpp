@@ -476,6 +476,10 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvScrollingEvent(
 mozilla::ipc::IPCResult DocAccessibleParent::RecvCache(
     const mozilla::a11y::CacheUpdateType& aUpdateType,
     nsTArray<CacheData>&& aData, const bool& aFinal) {
+  if (mShutdown) {
+    return IPC_OK();
+  }
+
   for (auto& entry : aData) {
     RemoteAccessible* remote = GetAccessible(entry.ID());
     if (!remote) {
@@ -484,6 +488,11 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvCache(
     }
 
     remote->ApplyCache(aUpdateType, entry.Fields());
+  }
+
+  if (nsCOMPtr<nsIObserverService> obsService =
+          services::GetObserverService()) {
+    obsService->NotifyObservers(nullptr, NS_ACCESSIBLE_CACHE_TOPIC, nullptr);
   }
 
   return IPC_OK();

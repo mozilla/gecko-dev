@@ -34,24 +34,11 @@ const APPROX_FACTOR = 1.51;
 const MS_PER_NS = 1000000;
 
 // Wait for `about:processes` to be updated.
-async function promiseAboutProcessesUpdated({
-  doc,
-  tbody,
-  force,
-  tabAboutProcesses,
-}) {
+async function promiseAboutProcessesUpdated({ doc, force, tabAboutProcesses }) {
   let startTime = performance.now();
-  let mutationPromise = new Promise(resolve => {
-    let observer = new doc.ownerGlobal.MutationObserver(() => {
-      info("Observed about:processes tbody childList change");
-      observer.disconnect();
-      resolve();
-    });
-    observer.observe(tbody, {
-      childList: true,
-      attributes: true,
-      subtree: true,
-    });
+
+  let updatePromise = new Promise(resolve => {
+    doc.addEventListener("AboutProcessesUpdated", resolve, { once: true });
   });
 
   if (force) {
@@ -61,11 +48,15 @@ async function promiseAboutProcessesUpdated({
     });
   }
 
-  await mutationPromise;
+  await updatePromise;
 
   // Fluent will update the visible table content during the next
   // refresh driver tick, wait for it.
+  // requestAnimationFrame calls us at the begining of the tick, we use
+  // dispatchToMainThread to execute our code after the end of it.
+  //XXX: Replace with proper wait for l10n completion once bug 1520659 is fixed.
   await new Promise(doc.defaultView.requestAnimationFrame);
+  await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
 
   ChromeUtils.addProfilerMarker(
     "promiseAboutProcessesUpdated",
@@ -157,10 +148,6 @@ async function testCpu(element, total, slope, assumptions) {
   info(
     `Testing CPU display ${element.textContent} - ${element.title} vs total ${total}, slope ${slope}`
   );
-  await BrowserTestUtils.waitForCondition(
-    () => !!element.textContent.length,
-    "waiting for l10n to populate"
-  );
   if (element.textContent == "(measuring)") {
     info("Still measuring");
     return;
@@ -235,10 +222,6 @@ async function testCpu(element, total, slope, assumptions) {
 async function testMemory(element, total, delta, assumptions) {
   info(
     `Testing memory display ${element.textContent} - ${element.title} vs total ${total}, delta ${delta}`
-  );
-  await BrowserTestUtils.waitForCondition(
-    () => !!element.textContent.length,
-    "waiting for l10n to populate"
   );
   const MEMORY_TEXT_CONTENT_REGEXP = /([0-9.,]+)(TB|GB|MB|KB|B)/;
   // Example: "383.55MB"
@@ -333,7 +316,7 @@ function extractProcessDetails(row) {
       "The profiler icon should be shown"
     );
   }
-  let fluentArgs = document.l10n.getAttributes(name).args;
+  let fluentArgs = row.ownerDocument.l10n.getAttributes(name).args;
   let threadDetailsRow = row.nextSibling;
   while (threadDetailsRow) {
     if (threadDetailsRow.classList.contains("process")) {
@@ -440,6 +423,10 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       let frame = content.document.createElement("iframe");
       content.document.body.appendChild(frame);
     });
+    await BrowserTestUtils.browserLoaded(
+      tab.linkedBrowser,
+      true /* includeSubFrames */
+    );
     return tab;
   })();
 
@@ -505,8 +492,16 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
 
   let doc = tabAboutProcesses.linkedBrowser.contentDocument;
   let tbody = doc.getElementById("process-tbody");
-  Assert.ok(doc);
-  Assert.ok(tbody);
+  Assert.ok(!!tbody, "Found the #process-tbody element");
+
+  if (isFission) {
+    // We're going to kill this process later, so tell it to add an
+    // annotation so the leak checker knows it is okay there is no
+    // leak log.
+    await SpecialPowers.spawn(tabCloseProcess1.linkedBrowser, [], () => {
+      ChromeUtils.privateNoteIntentionalCrash();
+    });
+  }
 
   info("Setting up fake process hang detector");
   let hungChildID = tabHung.linkedBrowser.frameLoader.childID;
@@ -537,7 +532,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
   fakeProcessHangMonitor();
 
   // about:processes will take a little time to appear and be populated.
-  await promiseAboutProcessesUpdated({ doc, tbody, tabAboutProcesses });
+  await promiseAboutProcessesUpdated({ doc, tabAboutProcesses });
   Assert.ok(tbody.childElementCount, "The table should be populated");
   Assert.ok(
     !!tbody.getElementsByClassName("hung").length,
@@ -612,7 +607,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
     } else {
       Assert.ok(threads, "We have a thread summary row");
 
-      let { number, active = 0, list } = document.l10n.getAttributes(
+      let { number, active = 0, list } = doc.l10n.getAttributes(
         threads.children[0].children[1]
       ).args;
 
@@ -642,7 +637,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
         number,
         "The number of active threads should not exceed the total number of threads"
       );
-      let activeThreads = row.process.threads.filter(t => t.slopeCpu);
+      let activeThreads = row.process.threads.filter(t => t.active);
       Assert.equal(
         active,
         activeThreads.length,
@@ -664,6 +659,14 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       let twisty = threads.getElementsByClassName("twisty")[0];
       twisty.click();
 
+      // Fluent will update the text content of new rows during the
+      // next refresh driver tick, wait for it.
+      // requestAnimationFrame calls us at the begining of the tick, we use
+      // dispatchToMainThread to execute our code after the end of it.
+      //XXX: Replace with proper wait for l10n completion once bug 1520659 is fixed.
+      await new Promise(doc.defaultView.requestAnimationFrame);
+      await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
+
       let numberOfThreadsFound = 0;
       for (
         let threadRow = threads.nextSibling;
@@ -683,18 +686,13 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
         threadRow && threadRow.classList.contains("thread");
         threadRow = threadRow.nextSibling
       ) {
-        // Wait for l10n to populate.
-        await BrowserTestUtils.waitForCondition(
-          () => !!threadRow.children[1].textContent.length,
-          "waiting for l10n to populate"
-        );
         Assert.ok(
           threadRow.children.length >= 3 && threadRow.children[1].textContent,
           "The thread row should be populated"
         );
         let children = threadRow.children;
         let cpu = children[1];
-        let l10nArgs = document.l10n.getAttributes(children[0]).args;
+        let l10nArgs = doc.l10n.getAttributes(children[0]).args;
 
         // Sanity checks: name
         Assert.ok(threadRow.thread.name, "Thread name is not empty");
@@ -729,6 +727,12 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
     }
   }
 
+  await promiseAboutProcessesUpdated({
+    doc,
+    force: true,
+    tabAboutProcesses,
+  });
+
   // Testing subframes.
   info("Testing subframes");
   let foundAtLeastOneInProcessSubframe = false;
@@ -737,7 +741,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
     if (subframe.tab) {
       continue;
     }
-    let url = document.l10n.getAttributes(row.children[0]).args.url;
+    let url = doc.l10n.getAttributes(row.children[0]).args.url;
     Assert.equal(url, subframe.documentURI.spec);
     if (!subframe.isProcessRoot) {
       foundAtLeastOneInProcessSubframe = true;
@@ -754,13 +758,6 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       "We shouldn't have any about:blank in-process subframe"
     );
   }
-
-  await promiseAboutProcessesUpdated({
-    doc,
-    tbody,
-    force: true,
-    tabAboutProcesses,
-  });
 
   info("Double-clicking on a tab");
   let whenTabSwitchedToWeb = BrowserTestUtils.switchTab(gBrowser, () => {
@@ -829,7 +826,6 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
   let waitForProcessesToDisappear = [];
   await promiseAboutProcessesUpdated({
     doc,
-    tbody,
     force: true,
     tabAboutProcesses,
   });
@@ -867,7 +863,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       );
     }
     Assert.equal(
-      document.l10n.getAttributes(name).args.origin,
+      doc.l10n.getAttributes(name).args.origin,
       "http://example.com — " +
         ContextualIdentityService.getUserContextLabel(1),
       "The user context ID should be replaced with the localized container name"
@@ -927,7 +923,6 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
   // processes actually being killed.
   await promiseAboutProcessesUpdated({
     doc,
-    tbody,
     force: true,
     tabAboutProcesses,
   });
@@ -988,7 +983,6 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
     info("Waiting for about:processes to be updated");
     await promiseAboutProcessesUpdated({
       doc,
-      tbody,
       force: true,
       tabAboutProcesses,
     });
@@ -1005,7 +999,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
   }
 
   info("Additional sanity check for all processes");
-  for (let row of document.getElementsByClassName("process")) {
+  for (let row of doc.getElementsByClassName("process")) {
     let { pidContent } = extractProcessDetails(row);
     Assert.equal(Number.parseInt(pidContent), row.process.pid);
   }

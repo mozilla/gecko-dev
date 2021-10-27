@@ -41,7 +41,7 @@ use api::{DisplayItem, DisplayItemRef, ExtendMode, ExternalScrollId, FilterData,
 use api::{FilterOp, FilterPrimitive, FontInstanceKey, FontSize, GlyphInstance, GlyphOptions, GradientStop};
 use api::{IframeDisplayItem, ImageKey, ImageRendering, ItemRange, ColorDepth, QualitySettings};
 use api::{LineOrientation, LineStyle, NinePatchBorderSource, PipelineId, MixBlendMode, StackingContextFlags};
-use api::{PropertyBinding, ReferenceFrameKind, ScrollFrameDescriptor, ScrollSensitivity, ReferenceFrameMapper};
+use api::{PropertyBinding, ReferenceFrameKind, ScrollFrameDescriptor, ReferenceFrameMapper};
 use api::{Shadow, SpaceAndClipInfo, SpatialId, StickyFrameDescriptor, ImageMask, ItemTag};
 use api::{ClipMode, PrimitiveKeyKind, TransformStyle, YuvColorSpace, ColorRange, YuvData, TempFilterData};
 use api::{ReferenceTransformBinding, Rotation, FillRule, SpatialTreeItem, ReferenceFrameDescriptor};
@@ -50,7 +50,7 @@ use crate::image_tiling::simplify_repeated_primitive;
 use crate::clip::{ClipChainId, ClipItemKey, ClipStore, ClipItemKeyKind};
 use crate::clip::{ClipInternData, ClipNodeKind, ClipInstance, SceneClipInstance};
 use crate::clip::{PolygonDataHandle};
-use crate::spatial_tree::{SpatialTree, SceneSpatialTree, SpatialNodeIndex, get_external_scroll_offset};
+use crate::spatial_tree::{SceneSpatialTree, SpatialNodeIndex, get_external_scroll_offset};
 use crate::frame_builder::{ChasePrimitive, FrameBuilderConfig};
 use crate::glyph_rasterizer::FontInstance;
 use crate::hit_test::HitTestingScene;
@@ -80,7 +80,6 @@ use crate::scene::{Scene, ScenePipeline, BuiltScene, SceneStats, StackingContext
 use crate::scene_builder_thread::Interners;
 use crate::space::SpaceSnapper;
 use crate::spatial_node::{StickyFrameInfo, ScrollFrameKind, SpatialNodeUid};
-use crate::spatial_tree::SpatialNodeContainer;
 use crate::tile_cache::TileCacheBuilder;
 use euclid::approxeq::ApproxEq;
 use std::{f32, mem, usize};
@@ -397,7 +396,7 @@ pub struct SceneBuilder<'a> {
     pending_shadow_items: VecDeque<ShadowItem>,
 
     /// The SpatialTree that we are currently building during building.
-    pub spatial_tree: SceneSpatialTree,
+    pub spatial_tree: &'a mut SceneSpatialTree,
 
     /// The store of primitives.
     pub prim_store: PrimitiveStore,
@@ -462,6 +461,7 @@ impl<'a> SceneBuilder<'a> {
         view: &SceneView,
         frame_builder_config: &FrameBuilderConfig,
         interners: &mut Interners,
+        spatial_tree: &mut SceneSpatialTree,
         stats: &SceneStats,
     ) -> BuiltScene {
         profile_scope!("build_scene");
@@ -474,7 +474,6 @@ impl<'a> SceneBuilder<'a> {
             .background_color
             .and_then(|color| if color.a > 0.0 { Some(color) } else { None });
 
-        let spatial_tree = SceneSpatialTree::new();
         let root_reference_frame_index = spatial_tree.root_reference_frame_index();
 
         // During scene building, we assume a 1:1 picture -> raster pixel scale
@@ -529,7 +528,6 @@ impl<'a> SceneBuilder<'a> {
             output_rect: view.device_rect.size().into(),
             background_color,
             hit_testing_scene: Arc::new(builder.hit_testing_scene),
-            spatial_tree: SpatialTree::new(builder.spatial_tree),
             prim_store: builder.prim_store,
             clip_store: builder.clip_store,
             config: builder.config,
@@ -556,7 +554,7 @@ impl<'a> SceneBuilder<'a> {
             .external_scroll_mapper
             .external_scroll_offset(
                 spatial_node_index,
-                &self.spatial_tree,
+                self.spatial_tree,
             );
 
         rf_offset + scroll_offset
@@ -854,7 +852,7 @@ impl<'a> SceneBuilder<'a> {
             transform,
             info.reference_frame.kind,
             info.origin.to_vector(),
-            SpatialNodeUid::external(info.reference_frame.key),
+            SpatialNodeUid::external(info.reference_frame.key, pipeline_id),
         );
     }
 
@@ -876,10 +874,9 @@ impl<'a> SceneBuilder<'a> {
             pipeline_id,
             &info.frame_rect,
             &content_size,
-            info.scroll_sensitivity,
             ScrollFrameKind::Explicit,
             info.external_scroll_offset,
-            SpatialNodeUid::external(info.key),
+            SpatialNodeUid::external(info.key, pipeline_id),
         );
     }
 
@@ -897,13 +894,10 @@ impl<'a> SceneBuilder<'a> {
             },
         };
 
-        let current_offset = self.current_offset(spatial_node_index);
-        let clip_rect = info.clip_rect.translate(current_offset);
-
         self.add_rect_clip_node(
             ClipId::root(iframe_pipeline_id),
             &info.space_and_clip,
-            &clip_rect,
+            &info.clip_rect,
         );
 
         self.clip_store.push_clip_root(
@@ -912,7 +906,7 @@ impl<'a> SceneBuilder<'a> {
         );
 
         let bounds = self.snap_rect(
-            &info.bounds.translate(current_offset),
+            &info.bounds,
             spatial_node_index,
         );
 
@@ -940,7 +934,6 @@ impl<'a> SceneBuilder<'a> {
             iframe_pipeline_id,
             &iframe_rect,
             &bounds.size(),
-            ScrollSensitivity::ScriptAndInputEvents,
             ScrollFrameKind::PipelineRoot {
                 is_root_pipeline,
             },
@@ -1043,7 +1036,7 @@ impl<'a> SceneBuilder<'a> {
     ) -> LayoutRect {
         self.snap_to_device.set_target_spatial_node(
             target_spatial_node,
-            &self.spatial_tree
+            self.spatial_tree,
         );
         self.snap_to_device.snap_rect(&rect)
     }
@@ -1455,18 +1448,10 @@ impl<'a> SceneBuilder<'a> {
             DisplayItem::ImageMaskClip(ref info) => {
                 profile_scope!("image_clip");
 
-                let parent_space = self.get_space(info.parent_space_and_clip.spatial_id);
-                let current_offset = self.current_offset(parent_space);
-
-                let image_mask = ImageMask {
-                    rect: info.image_mask.rect.translate(current_offset),
-                    ..info.image_mask
-                };
-
                 self.add_image_mask_clip_node(
                     info.id,
                     &info.parent_space_and_clip,
-                    &image_mask,
+                    &info.image_mask,
                     info.fill_rule,
                     item.points(),
                 );
@@ -1474,27 +1459,19 @@ impl<'a> SceneBuilder<'a> {
             DisplayItem::RoundedRectClip(ref info) => {
                 profile_scope!("rounded_clip");
 
-                let parent_space = self.get_space(info.parent_space_and_clip.spatial_id);
-                let current_offset = self.current_offset(parent_space);
-
                 self.add_rounded_rect_clip_node(
                     info.id,
                     &info.parent_space_and_clip,
                     &info.clip,
-                    current_offset,
                 );
             }
             DisplayItem::RectClip(ref info) => {
                 profile_scope!("rect_clip");
 
-                let parent_space = self.get_space(info.parent_space_and_clip.spatial_id);
-                let current_offset = self.current_offset(parent_space);
-                let clip_rect = info.clip_rect.translate(current_offset);
-
                 self.add_rect_clip_node(
                     info.id,
                     &info.parent_space_and_clip,
-                    &clip_rect,
+                    &info.clip_rect,
                 );
             }
             DisplayItem::ClipChain(ref info) => {
@@ -1704,7 +1681,7 @@ impl<'a> SceneBuilder<'a> {
                     prim_rect,
                     spatial_node_index,
                     flags,
-                    &self.spatial_tree,
+                    self.spatial_tree,
                     &self.clip_store,
                     self.interners,
                     &self.config,
@@ -1838,8 +1815,11 @@ impl<'a> SceneBuilder<'a> {
     ) -> StackingContextInfo {
         profile_scope!("push_stacking_context");
 
-        // Push current requested raster space on stack for prims to access
-        self.raster_space_stack.push(requested_raster_space);
+        let new_space = match self.raster_space_stack.last() {
+            Some(RasterSpace::Local(scale)) => RasterSpace::Local(*scale),
+            Some(RasterSpace::Screen) | None => requested_raster_space,
+        };
+        self.raster_space_stack.push(new_space);
 
         // Get the transform-style of the parent stacking context,
         // which determines if we *might* need to draw this on
@@ -2064,12 +2044,12 @@ impl<'a> SceneBuilder<'a> {
         if stacking_context.flags.contains(StackingContextFlags::IS_BLEND_CONTAINER) &&
            self.sc_stack.is_empty() &&
            self.tile_cache_builder.can_add_container_tile_cache() &&
-           self.spatial_tree.get_spatial_node(stacking_context.spatial_node_index).is_root_coord_system
+           self.spatial_tree.is_root_coord_system(stacking_context.spatial_node_index)
         {
             self.tile_cache_builder.add_tile_cache(
                 stacking_context.prim_list,
                 stacking_context.clip_chain_id,
-                &self.spatial_tree,
+                self.spatial_tree,
                 &self.clip_store,
                 self.interners,
                 &self.config,
@@ -2388,7 +2368,6 @@ impl<'a> SceneBuilder<'a> {
             pipeline_id,
             &viewport_rect,
             &viewport_rect.size(),
-            ScrollSensitivity::ScriptAndInputEvents,
             ScrollFrameKind::PipelineRoot {
                 is_root_pipeline: true,
             },
@@ -2488,17 +2467,16 @@ impl<'a> SceneBuilder<'a> {
         );
     }
 
-    pub fn add_rounded_rect_clip_node(
+    fn add_rounded_rect_clip_node(
         &mut self,
         new_node_id: ClipId,
         space_and_clip: &SpaceAndClipInfo,
         clip: &ComplexClipRegion,
-        current_offset: LayoutVector2D,
     ) {
         let spatial_node_index = self.id_to_index_mapper.get_spatial_node_index(space_and_clip.spatial_id);
 
         let snapped_region_rect = self.snap_rect(
-            &clip.rect.translate(current_offset),
+            &clip.rect,
             spatial_node_index,
         );
         let item = ClipItemKey {
@@ -2538,7 +2516,6 @@ impl<'a> SceneBuilder<'a> {
         pipeline_id: PipelineId,
         frame_rect: &LayoutRect,
         content_size: &LayoutSize,
-        scroll_sensitivity: ScrollSensitivity,
         frame_kind: ScrollFrameKind,
         external_scroll_offset: LayoutVector2D,
         uid: SpatialNodeUid,
@@ -2549,7 +2526,6 @@ impl<'a> SceneBuilder<'a> {
             pipeline_id,
             frame_rect,
             content_size,
-            scroll_sensitivity,
             frame_kind,
             external_scroll_offset,
             uid,

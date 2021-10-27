@@ -2156,6 +2156,7 @@ void StyleAnimation::SetInitialValues() {
   mFillMode = dom::FillMode::None;
   mPlayState = StyleAnimationPlayState::Running;
   mIterationCount = 1.0f;
+  mTimeline = StyleAnimationTimeline::Auto();
 }
 
 bool StyleAnimation::operator==(const StyleAnimation& aOther) const {
@@ -2163,7 +2164,8 @@ bool StyleAnimation::operator==(const StyleAnimation& aOther) const {
          mDuration == aOther.mDuration && mDelay == aOther.mDelay &&
          mName == aOther.mName && mDirection == aOther.mDirection &&
          mFillMode == aOther.mFillMode && mPlayState == aOther.mPlayState &&
-         mIterationCount == aOther.mIterationCount;
+         mIterationCount == aOther.mIterationCount &&
+         mTimeline == aOther.mTimeline;
 }
 
 // --------------------
@@ -2186,6 +2188,7 @@ nsStyleDisplay::nsStyleDisplay(const Document& aDocument)
       mAnimationFillModeCount(1),
       mAnimationPlayStateCount(1),
       mAnimationIterationCountCount(1),
+      mAnimationTimelineCount(1),
       mWillChange{{}, {0}},
       mDisplay(StyleDisplay::Inline),
       mOriginalDisplay(StyleDisplay::Inline),
@@ -2256,6 +2259,7 @@ nsStyleDisplay::nsStyleDisplay(const nsStyleDisplay& aSource)
       mAnimationFillModeCount(aSource.mAnimationFillModeCount),
       mAnimationPlayStateCount(aSource.mAnimationPlayStateCount),
       mAnimationIterationCountCount(aSource.mAnimationIterationCountCount),
+      mAnimationTimelineCount(aSource.mAnimationTimelineCount),
       mWillChange(aSource.mWillChange),
       mDisplay(aSource.mDisplay),
       mOriginalDisplay(aSource.mOriginalDisplay),
@@ -2446,17 +2450,10 @@ nsChangeHint nsStyleDisplay::CalcDifference(
       hint |= nsChangeHint_ScrollbarChange;
     } else if (isScrollable) {
       if (ScrollbarGenerationChanged(*this, aNewData)) {
-        // We need to reframe in the case of hidden -> non-hidden case though,
-        // since ScrollFrameHelper::CreateAnonymousContent avoids creating
-        // scrollbars altogether for overflow: hidden. That seems it could
-        // create some interesting perf cliffs...
-        //
-        // We reframe when non-hidden -> hidden too, for now.
-        //
-        // FIXME(bug 1590247): Seems we could avoid reframing once we've created
-        // scrollbars, which should get us the optimization for elements that
-        // have toggled scrollbars, but would prevent the cliff of toggling
-        // overflow causing jank.
+        // We might need to reframe in the case of hidden -> non-hidden case
+        // though, since ScrollFrameHelper::CreateAnonymousContent avoids
+        // creating scrollbars altogether for overflow: hidden. That seems it
+        // could create some interesting perf cliffs...
         hint |= nsChangeHint_ScrollbarChange;
       } else {
         // Otherwise, for changes where both overflow values are scrollable,
@@ -2679,6 +2676,7 @@ nsChangeHint nsStyleDisplay::CalcDifference(
                 mAnimationPlayStateCount != aNewData.mAnimationPlayStateCount ||
                 mAnimationIterationCountCount !=
                     aNewData.mAnimationIterationCountCount ||
+                mAnimationTimelineCount != aNewData.mAnimationTimelineCount ||
                 mWillChange != aNewData.mWillChange ||
                 mOverflowAnchor != aNewData.mOverflowAnchor)) {
     hint |= nsChangeHint_NeutralChange;
@@ -3115,28 +3113,38 @@ void nsStyleUI::TriggerImageLoads(Document& aDocument,
 }
 
 nsChangeHint nsStyleUI::CalcDifference(const nsStyleUI& aNewData) const {
+  // SVGGeometryFrame's mRect depends on stroke _and_ on the value of
+  // pointer-events. See SVGGeometryFrame::ReflowSVG's use of GetHitTestFlags.
+  // (Only a reflow, no visual change.)
+  //
+  // pointer-events changes can change event regions overrides on layers and
+  // so needs a repaint.
+  const auto kPointerEventsHint =
+      nsChangeHint_NeedReflow |
+      nsChangeHint_NeedDirtyReflow |  // XXX remove me: bug 876085
+      nsChangeHint_SchedulePaint;
+
   nsChangeHint hint = nsChangeHint(0);
   if (mCursor != aNewData.mCursor) {
     hint |= nsChangeHint_UpdateCursor;
   }
 
   if (mPointerEvents != aNewData.mPointerEvents) {
-    // SVGGeometryFrame's mRect depends on stroke _and_ on the value
-    // of pointer-events. See SVGGeometryFrame::ReflowSVG's use of
-    // GetHitTestFlags. (Only a reflow, no visual change.)
-    hint |= nsChangeHint_NeedReflow |
-            nsChangeHint_NeedDirtyReflow |  // XXX remove me: bug 876085
-            nsChangeHint_SchedulePaint;     // pointer-events changes can change
-                                            // event regions overrides on layers
-                                            // and so needs a repaint.
+    hint |= kPointerEventsHint;
   }
 
   if (mUserModify != aNewData.mUserModify) {
     hint |= NS_STYLE_HINT_VISUAL;
   }
 
-  if (mUserFocus != aNewData.mUserFocus || mInert != aNewData.mInert ||
-      mUserInput != aNewData.mUserInput) {
+  if (mInert != aNewData.mInert) {
+    // inert affects pointer-events, user-modify, user-select, user-focus and
+    // -moz-user-input, do the union of all them (minus
+    // nsChangeHint_NeutralChange which isn't needed if there's any other hint).
+    hint |= NS_STYLE_HINT_VISUAL | kPointerEventsHint;
+  }
+
+  if (mUserFocus != aNewData.mUserFocus || mUserInput != aNewData.mUserInput) {
     hint |= nsChangeHint_NeutralChange;
   }
 

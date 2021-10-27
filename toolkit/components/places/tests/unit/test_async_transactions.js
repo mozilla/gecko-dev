@@ -27,6 +27,8 @@ var observer = {
     this.itemsRemoved = new Map();
     this.itemsChanged = new Map();
     this.itemsMoved = new Map();
+    this.itemsTitleChanged = new Map();
+    this.itemsUrlChanged = new Map();
   },
 
   handlePlacesEvents(events) {
@@ -66,6 +68,25 @@ var observer = {
             newParentGuid: event.parentGuid,
             newIndex: event.index,
             itemType: event.itemType,
+          });
+          break;
+        case "bookmark-title-changed":
+          if (this.tagRelatedGuids.has(event.guid)) {
+            return;
+          }
+
+          this.itemsTitleChanged.set(event.guid, {
+            title: event.title,
+            parentGuid: event.parentGuid,
+          });
+          break;
+        case "bookmark-url-changed":
+          if (this.tagRelatedGuids.has(event.guid)) {
+            return;
+          }
+
+          this.itemsUrlChanged.set(event.guid, {
+            url: event.url,
           });
           break;
       }
@@ -110,13 +131,25 @@ function run_test() {
   bmsvc.addObserver(observer);
   observer.handlePlacesEvents = observer.handlePlacesEvents.bind(observer);
   obsvc.addListener(
-    ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+    [
+      "bookmark-added",
+      "bookmark-removed",
+      "bookmark-moved",
+      "bookmark-title-changed",
+      "bookmark-url-changed",
+    ],
     observer.handlePlacesEvents
   );
   registerCleanupFunction(function() {
     bmsvc.removeObserver(observer);
     obsvc.removeListener(
-      ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+      [
+        "bookmark-added",
+        "bookmark-removed",
+        "bookmark-moved",
+        "bookmark-title-changed",
+        "bookmark-url-changed",
+      ],
       observer.handlePlacesEvents
     );
   });
@@ -298,13 +331,41 @@ function ensureItemsMoved(...items) {
   }
 }
 
-function ensureTimestampsUpdated(aGuid, aCheckDateAdded = false) {
-  Assert.ok(observer.itemsChanged.has(aGuid));
-  let changes = observer.itemsChanged.get(aGuid);
-  if (aCheckDateAdded) {
-    Assert.ok(changes.has("dateAdded"));
+function ensureItemsTitleChanged(...items) {
+  Assert.equal(
+    observer.itemsTitleChanged.size,
+    items.length,
+    "Should have received the correct number of bookmark-title-changed notifications"
+  );
+  for (const item of items) {
+    Assert.ok(
+      observer.itemsTitleChanged.has(item.guid),
+      `Observer should have a title changed for ${item.guid}`
+    );
+    const info = observer.itemsTitleChanged.get(item.guid);
+    Assert.equal(info.title, item.title, "Should have the correct title");
+    Assert.equal(
+      info.parentGuid,
+      item.parentGuid,
+      "Should have the correct parent guid"
+    );
   }
-  Assert.ok(changes.has("lastModified"));
+}
+
+function ensureItemsUrlChanged(...items) {
+  Assert.equal(
+    observer.itemsUrlChanged.size,
+    items.length,
+    "Should have received the correct number of bookmark-url-changed notifications"
+  );
+  for (const item of items) {
+    Assert.ok(
+      observer.itemsUrlChanged.has(item.guid),
+      `Observer should have a title changed for ${item.guid}`
+    );
+    const info = observer.itemsUrlChanged.get(item.guid);
+    Assert.equal(info.url, item.url, "Should have the correct url");
+  }
 }
 
 function ensureTagsForURI(aURI, aTags) {
@@ -1333,10 +1394,10 @@ add_task(async function test_edit_title() {
   };
 
   function ensureTitleChange(aCurrentTitle) {
-    ensureItemsChanged({
+    ensureItemsTitleChanged({
       guid: bm_info.guid,
-      property: "title",
-      newValue: aCurrentTitle,
+      title: aCurrentTitle,
+      parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     });
   }
 
@@ -1378,10 +1439,9 @@ add_task(async function test_edit_url() {
     aPostChangeURI,
     aOLdURITagsPreserved
   ) {
-    ensureItemsChanged({
+    ensureItemsUrlChanged({
       guid: bm_info.guid,
-      property: "uri",
-      newValue: aPostChangeURI,
+      url: aPostChangeURI,
     });
     ensureTagsForURI(aPostChangeURI, bm_info.tags);
     ensureTagsForURI(aPreChangeURI, aOLdURITagsPreserved ? bm_info.tags : []);

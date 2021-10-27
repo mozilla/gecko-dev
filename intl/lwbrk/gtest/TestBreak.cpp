@@ -7,15 +7,17 @@
 #include <stdio.h>
 
 #include "gtest/gtest.h"
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/intl/LineBreaker.h"
 #include "mozilla/intl/WordBreaker.h"
+#include "mozilla/Span.h"
 #include "nsISupports.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
+#include "nsTArray.h"
 #include "nsXPCOM.h"
 
-using mozilla::ArrayLength;
+using mozilla::intl::LineBreaker;
+using mozilla::intl::WordBreaker;
 
 // Turn off clang-format to align the ruler comments to the test strings.
 
@@ -73,8 +75,10 @@ static char ruler1[] =
 static char ruler2[] =
     "0123456789012345678901234567890123456789012345678901234567890123456789012";
 
-bool Check(const char* in, const uint32_t* out, uint32_t outlen, uint32_t i,
-           uint32_t res[256]) {
+bool Check(const char* in, mozilla::Span<const uint32_t> out,
+           mozilla::Span<const uint32_t> res) {
+  const uint32_t outlen = out.Length();
+  const uint32_t i = res.Length();
   bool ok = true;
 
   if (i != outlen) {
@@ -114,59 +118,54 @@ bool Check(const char* in, const uint32_t* out, uint32_t outlen, uint32_t i,
   return ok;
 }
 
-bool TestASCIILB(mozilla::intl::LineBreaker* lb, const char* in,
-                 const uint32_t* out, uint32_t outlen) {
-  NS_ConvertASCIItoUTF16 eng1(in);
-  uint32_t i;
-  uint32_t res[256];
-  int32_t curr;
+bool TestASCIILB(const char* in, mozilla::Span<const uint32_t> out) {
+  NS_ConvertASCIItoUTF16 input(in);
+  EXPECT_GT(input.Length(), 0u) << "Expect a non-empty input!";
 
-  for (i = 0, curr = 0; curr != NS_LINEBREAKER_NEED_MORE_TEXT && i < 256; i++) {
-    curr = lb->Next(eng1.get(), eng1.Length(), curr);
-    res[i] = curr != NS_LINEBREAKER_NEED_MORE_TEXT ? curr : eng1.Length();
+  nsTArray<uint32_t> result;
+  int32_t curr = 0;
+  while (true) {
+    curr = LineBreaker::Next(input.get(), input.Length(), curr);
+    if (curr == NS_LINEBREAKER_NEED_MORE_TEXT) {
+      break;
+    }
+    result.AppendElement(curr);
   }
 
-  return Check(in, out, outlen, i, res);
+  return Check(in, out, result);
 }
 
-bool TestASCIIWB(mozilla::intl::WordBreaker* wb, const char* in,
-                 const uint32_t* out, uint32_t outlen) {
-  NS_ConvertASCIItoUTF16 eng1(in);
+bool TestASCIIWB(const char* in, mozilla::Span<const uint32_t> out) {
+  NS_ConvertASCIItoUTF16 input(in);
+  EXPECT_GT(input.Length(), 0u) << "Expect a non-empty input!";
 
-  uint32_t i;
-  uint32_t res[256];
+  nsTArray<uint32_t> result;
   int32_t curr = 0;
-
-  for (i = 0, curr = wb->Next(eng1.get(), eng1.Length(), curr);
-       curr != NS_WORDBREAKER_NEED_MORE_TEXT && i < 256;
-       curr = wb->Next(eng1.get(), eng1.Length(), curr), i++) {
-    res[i] = curr != NS_WORDBREAKER_NEED_MORE_TEXT ? curr : eng1.Length();
+  while (true) {
+    curr = WordBreaker::Next(input.get(), input.Length(), curr);
+    if (curr == NS_WORDBREAKER_NEED_MORE_TEXT) {
+      break;
+    }
+    result.AppendElement(curr);
   }
 
-  return Check(in, out, outlen, i, res);
+  return Check(in, out, result);
 }
 
 TEST(LineBreak, LineBreaker)
 {
-  RefPtr<mozilla::intl::LineBreaker> t = mozilla::intl::LineBreaker::Create();
-
-  ASSERT_TRUE(t);
-
-  ASSERT_TRUE(TestASCIILB(t, teng0, lexp0, ArrayLength(lexp0)));
-  ASSERT_TRUE(TestASCIILB(t, teng1, lexp1, ArrayLength(lexp1)));
-  ASSERT_TRUE(TestASCIILB(t, teng2, lexp2, ArrayLength(lexp2)));
-  ASSERT_TRUE(TestASCIILB(t, teng3, lexp3, ArrayLength(lexp3)));
+  ASSERT_TRUE(TestASCIILB(teng0, lexp0));
+  ASSERT_TRUE(TestASCIILB(teng1, lexp1));
+  ASSERT_TRUE(TestASCIILB(teng2, lexp2));
+  ASSERT_TRUE(TestASCIILB(teng3, lexp3));
 }
 
-TEST(LineBreak, WordBreaker)
+TEST(WordBreak, WordBreaker)
 {
-  RefPtr<mozilla::intl::WordBreaker> t = mozilla::intl::WordBreaker::Create();
-  ASSERT_TRUE(t);
-
-  ASSERT_TRUE(TestASCIIWB(t, teng0, wexp0, ArrayLength(wexp0)));
-  ASSERT_TRUE(TestASCIIWB(t, teng1, wexp1, ArrayLength(wexp1)));
-  ASSERT_TRUE(TestASCIIWB(t, teng2, wexp2, ArrayLength(wexp2)));
-  ASSERT_TRUE(TestASCIIWB(t, teng3, wexp3, ArrayLength(wexp3)));
+  ASSERT_TRUE(TestASCIIWB(teng0, wexp0));
+  ASSERT_TRUE(TestASCIIWB(teng1, wexp1));
+  ASSERT_TRUE(TestASCIIWB(teng2, wexp2));
+  ASSERT_TRUE(TestASCIIWB(teng3, wexp3));
 }
 
 //                         012345678901234
@@ -184,7 +183,6 @@ static const char* wb[] = {wb0, wb1, wb2, wb3, wb4, wb5, wb6, wb7};
 TEST(WordBreak, TestPrintWordWithBreak)
 {
   uint32_t numOfFragment = sizeof(wb) / sizeof(char*);
-  RefPtr<mozilla::intl::WordBreaker> wbk = mozilla::intl::WordBreaker::Create();
 
   // This test generate the result string by appending '^' at every word break
   // opportunity except the one at end of the text.
@@ -194,7 +192,7 @@ TEST(WordBreak, TestPrintWordWithBreak)
     NS_ConvertASCIItoUTF16 fragText(wb[i]);
 
     int32_t cur = 0;
-    cur = wbk->Next(fragText.get(), fragText.Length(), cur);
+    cur = WordBreaker::Next(fragText.get(), fragText.Length(), cur);
     uint32_t start = 0;
     while (cur != NS_WORDBREAKER_NEED_MORE_TEXT) {
       result.Append(Substring(fragText, start, cur - start));
@@ -206,7 +204,7 @@ TEST(WordBreak, TestPrintWordWithBreak)
         result.Append('^');
       }
       start = (cur >= 0 ? cur : cur - start);
-      cur = wbk->Next(fragText.get(), fragText.Length(), cur);
+      cur = WordBreaker::Next(fragText.get(), fragText.Length(), cur);
     }
 
     if (i != numOfFragment - 1) {
@@ -222,7 +220,7 @@ TEST(WordBreak, TestPrintWordWithBreak)
 
       bool canBreak =
           origFragLen ==
-          wbk->Next(fragText.get(), fragText.Length(), origFragLen - 1);
+          WordBreaker::Next(fragText.get(), fragText.Length(), origFragLen - 1);
       if (canBreak) {
         result.Append('^');
       }
@@ -239,12 +237,11 @@ TEST(WordBreak, TestPrintWordWithBreak)
 void TestFindWordBreakFromPosition(uint32_t fragN, uint32_t offset,
                                    const char* expected) {
   uint32_t numOfFragment = sizeof(wb) / sizeof(char*);
-  RefPtr<mozilla::intl::WordBreaker> wbk = mozilla::intl::WordBreaker::Create();
 
   NS_ConvertASCIItoUTF16 fragText(wb[fragN]);
 
   mozilla::intl::WordRange res =
-      wbk->FindWord(fragText.get(), fragText.Length(), offset);
+      WordBreaker::FindWord(fragText.get(), fragText.Length(), offset);
 
   nsAutoString result(Substring(fragText, res.mBegin, res.mEnd - res.mBegin));
 
@@ -261,14 +258,14 @@ void TestFindWordBreakFromPosition(uint32_t fragN, uint32_t offset,
 
       const auto origFragLen = static_cast<int32_t>(curFragText.Length());
       curFragText.Append(nextFragText);
-      bool canBreak =
-          origFragLen ==
-          wbk->Next(curFragText.get(), curFragText.Length(), origFragLen - 1);
+      bool canBreak = origFragLen == WordBreaker::Next(curFragText.get(),
+                                                       curFragText.Length(),
+                                                       origFragLen - 1);
       if (canBreak) {
         break;
       }
       mozilla::intl::WordRange r =
-          wbk->FindWord(nextFragText.get(), nextFragText.Length(), 0);
+          WordBreaker::FindWord(nextFragText.get(), nextFragText.Length(), 0);
 
       result.Append(Substring(nextFragText, r.mBegin, r.mEnd - r.mBegin));
 
@@ -284,12 +281,12 @@ void TestFindWordBreakFromPosition(uint32_t fragN, uint32_t offset,
 
 TEST(WordBreak, TestNextWordBreakWithComplexLanguage)
 {
-  RefPtr<mozilla::intl::WordBreaker> wbk = mozilla::intl::WordBreaker::Create();
   nsString fragText(u"\u0e40\u0e1b\u0e47\u0e19\u0e19\u0e31\u0e01");
 
   int32_t offset = 0;
   while (offset != NS_WORDBREAKER_NEED_MORE_TEXT) {
-    int32_t newOffset = wbk->Next(fragText.get(), fragText.Length(), offset);
+    int32_t newOffset =
+        WordBreaker::Next(fragText.get(), fragText.Length(), offset);
     ASSERT_NE(offset, newOffset);
     offset = newOffset;
   }
@@ -298,20 +295,18 @@ TEST(WordBreak, TestNextWordBreakWithComplexLanguage)
 
 TEST(WordBreak, TestFindWordWithEmptyString)
 {
-  RefPtr<mozilla::intl::WordBreaker> wbk = mozilla::intl::WordBreaker::Create();
   char16_t empty[] = {};
   mozilla::intl::WordRange expect{0, 0};
-  mozilla::intl::WordRange result = wbk->FindWord(empty, 0, 0);
+  mozilla::intl::WordRange result = WordBreaker::FindWord(empty, 0, 0);
   ASSERT_EQ(expect.mBegin, result.mBegin);
   ASSERT_EQ(expect.mEnd, result.mEnd);
 }
 
 TEST(WordBreak, TestNextWordBreakWithEmptyString)
 {
-  RefPtr<mozilla::intl::WordBreaker> wbk = mozilla::intl::WordBreaker::Create();
   char16_t empty[] = {};
-  ASSERT_EQ(NS_WORDBREAKER_NEED_MORE_TEXT, wbk->Next(empty, 0, 0));
-  ASSERT_EQ(NS_WORDBREAKER_NEED_MORE_TEXT, wbk->Next(empty, 0, 1));
+  ASSERT_EQ(NS_WORDBREAKER_NEED_MORE_TEXT, WordBreaker::Next(empty, 0, 0));
+  ASSERT_EQ(NS_WORDBREAKER_NEED_MORE_TEXT, WordBreaker::Next(empty, 0, 1));
 }
 
 TEST(WordBreak, TestFindWordBreakFromPosition)

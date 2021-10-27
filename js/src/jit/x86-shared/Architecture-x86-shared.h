@@ -13,6 +13,7 @@
 
 #include "mozilla/MathAlgorithms.h"
 
+#include <algorithm>
 #include <string.h>
 
 #include "jit/shared/Architecture-shared.h"
@@ -37,8 +38,6 @@ static const uint32_t ShadowStackSpace = 32;
 #else
 static const uint32_t ShadowStackSpace = 0;
 #endif
-
-static const uint32_t SizeOfReturnAddressAfterCall = sizeof(void*);
 
 static const uint32_t JumpImmediateRange = INT32_MAX;
 
@@ -258,6 +257,10 @@ class FloatRegisters {
   static const SetType WrapperMask = VolatileMask;
   static const SetType AllocatableMask = AllMask & ~NonAllocatableMask;
 };
+
+static const uint32_t SpillSlotSize =
+    std::max(sizeof(Registers::RegisterContent),
+             sizeof(FloatRegisters::RegisterContent));
 
 template <typename T>
 class TypedRegisterSet;

@@ -370,6 +370,7 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       stats_(this),
       marker(rt),
       barrierTracer(rt),
+      sweepingTracer(rt),
       heapSize(nullptr),
       helperThreadRatio(TuningDefaults::HelperThreadRatio),
       maxHelperThreads(TuningDefaults::MaxHelperThreads),
@@ -884,46 +885,53 @@ void GCRuntime::finish() {
   stats().printTotalProfileTimes();
 }
 
-void GCRuntime::freezePermanentAtoms() {
-  // This is called just after the permanent atoms have been created. At this
-  // point all existing atoms are permanent. Move the arenas containing atoms
-  // out of atoms zone arena lists until shutdown. Since we won't sweep them, we
-  // don't need to mark them at the start of every GC.
+void GCRuntime::freezePermanentSharedThings() {
+  // This is called just after permanent atoms and well-known symbols have been
+  // created. At this point all existing atoms and symbols are permanent. Move
+  // the arenas containing these things out of atoms zone arena lists until
+  // shutdown. This has two benefits:
+  //
+  //  - since we won't sweep them, we don't need to mark them at the start of
+  //    every GC.
+  //  - shared things are always marked so we don't have to check whether a
+  //    thing is shared when marking
 
   MOZ_ASSERT(atomsZone);
   MOZ_ASSERT(zones().empty());
 
   atomsZone->arenas.clearFreeLists();
-  freezePermanentAtomsOfKind(AllocKind::ATOM, permanentAtoms.ref());
-  freezePermanentAtomsOfKind(AllocKind::FAT_INLINE_ATOM,
-                             permanentFatInlineAtoms.ref());
+  freezeAtomsZoneArenas<JSAtom>(AllocKind::ATOM, permanentAtoms.ref());
+  freezeAtomsZoneArenas<JSAtom>(AllocKind::FAT_INLINE_ATOM,
+                                permanentFatInlineAtoms.ref());
+  freezeAtomsZoneArenas<JS::Symbol>(AllocKind::SYMBOL,
+                                    permanentWellKnownSymbols.ref());
 }
 
-void GCRuntime::freezePermanentAtomsOfKind(AllocKind kind,
-                                           ArenaList& arenaList) {
-  for (auto atom = atomsZone->cellIterUnsafe<JSAtom>(kind); !atom.done();
-       atom.next()) {
-    MOZ_ASSERT(atom->isPermanentAtom());
-    atom->asTenured().markBlack();
+template <typename T>
+void GCRuntime::freezeAtomsZoneArenas(AllocKind kind, ArenaList& arenaList) {
+  for (auto thing = atomsZone->cellIterUnsafe<T>(kind); !thing.done();
+       thing.next()) {
+    MOZ_ASSERT(thing->isPermanentAndMayBeShared());
+    thing->asTenured().markBlack();
   }
 
   arenaList = std::move(atomsZone->arenas.arenaList(kind));
 }
 
-void GCRuntime::restorePermanentAtoms() {
+void GCRuntime::restorePermanentSharedThings() {
   // Move the arenas containing permanent atoms that were removed by
-  // freezePermanentAtoms() back to the atoms zone arena lists so we can collect
-  // them.
+  // freezePermanentSharedThings() back to the atoms zone arena lists so we can
+  // collect them.
 
   MOZ_ASSERT(heapState() == JS::HeapState::MajorCollecting);
 
-  restorePermanentAtomsOfKind(AllocKind::ATOM, permanentAtoms.ref());
-  restorePermanentAtomsOfKind(AllocKind::FAT_INLINE_ATOM,
-                              permanentFatInlineAtoms.ref());
+  restoreAtomsZoneArenas(AllocKind::ATOM, permanentAtoms.ref());
+  restoreAtomsZoneArenas(AllocKind::FAT_INLINE_ATOM,
+                         permanentFatInlineAtoms.ref());
+  restoreAtomsZoneArenas(AllocKind::SYMBOL, permanentWellKnownSymbols.ref());
 }
 
-void GCRuntime::restorePermanentAtomsOfKind(AllocKind kind,
-                                            ArenaList& arenaList) {
+void GCRuntime::restoreAtomsZoneArenas(AllocKind kind, ArenaList& arenaList) {
   atomsZone->arenas.arenaList(kind).insertListWithCursorAtEnd(arenaList);
 }
 
@@ -1202,7 +1210,7 @@ void GCRuntime::removeBlackRootsTracer(JSTraceDataOp traceOp, void* data) {
   }
 }
 
-void GCRuntime::setGrayRootsTracer(JSTraceDataOp traceOp, void* data) {
+void GCRuntime::setGrayRootsTracer(JSGrayRootsTracer traceOp, void* data) {
   AssertHeapIsIdle();
   grayRootTracer.ref() = {traceOp, data};
 }
@@ -1287,10 +1295,9 @@ void GCRuntime::removeWeakPointerZonesCallback(
   EraseCallback(updateWeakPointerZonesCallbacks.ref(), callback);
 }
 
-void GCRuntime::callWeakPointerZonesCallbacks() const {
-  JSContext* cx = rt->mainContextFromOwnThread();
+void GCRuntime::callWeakPointerZonesCallbacks(JSTracer* trc) const {
   for (auto const& p : updateWeakPointerZonesCallbacks.ref()) {
-    p.op(cx, p.data);
+    p.op(trc, p.data);
   }
 }
 
@@ -1306,10 +1313,9 @@ void GCRuntime::removeWeakPointerCompartmentCallback(
 }
 
 void GCRuntime::callWeakPointerCompartmentCallbacks(
-    JS::Compartment* comp) const {
-  JSContext* cx = rt->mainContextFromOwnThread();
+    JSTracer* trc, JS::Compartment* comp) const {
   for (auto const& p : updateWeakPointerCompartmentCallbacks.ref()) {
-    p.op(cx, comp, p.data);
+    p.op(trc, comp, p.data);
   }
 }
 
@@ -1817,21 +1823,6 @@ void GCRuntime::queueBuffersForFreeAfterMinorGC(Nursery::BufferSet& buffers) {
   std::swap(buffersToFreeAfterMinorGC.ref(), buffers);
 }
 
-/* static */
-bool UniqueIdGCPolicy::needsSweep(Cell** cellp, uint64_t*) {
-  Cell* cell = *cellp;
-  return MapGCThingTyped(cell, cell->getTraceKind(), [](auto t) {
-    mozilla::DebugOnly<const Cell*> prior = t;
-    bool result = IsAboutToBeFinalizedUnbarriered(&t);
-    // Sweep should not have to deal with moved pointers, since moving GC
-    // handles updating the UID table manually.
-    MOZ_ASSERT(t == prior);
-    return result;
-  });
-}
-
-void JS::Zone::sweepUniqueIds() { uniqueIds().sweep(); }
-
 void Realm::destroy(JSFreeOp* fop) {
   JSRuntime* rt = fop->runtime();
   if (auto callback = rt->destroyRealmCallback) {
@@ -1997,8 +1988,6 @@ void GCRuntime::purgeRuntimeForMinorGC() {
   for (ZonesIter zone(this, SkipAtoms); !zone.done(); zone.next()) {
     zone->functionToStringCache().purge();
   }
-
-  rt->caches().purgeForMinorGC(rt);
 }
 
 void GCRuntime::purgeRuntime() {
@@ -2372,7 +2361,7 @@ bool GCRuntime::beginPreparePhase(JS::GCReason reason, AutoGCSession& session) {
   }
 
   if (reason == JS::GCReason::DESTROY_RUNTIME) {
-    restorePermanentAtoms();
+    restorePermanentSharedThings();
   }
 
   /*

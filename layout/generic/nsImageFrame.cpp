@@ -12,6 +12,7 @@
 #include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxUtils.h"
+#include "mozilla/intl/Bidi.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Encoding.h"
@@ -25,6 +26,7 @@
 #include "mozilla/dom/HTMLAreaElement.h"
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/ResponsiveImageSelector.h"
+#include "mozilla/image/WebRenderImageProvider.h"
 #include "mozilla/layers/RenderRootStateManager.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/MouseEvents.h"
@@ -931,9 +933,13 @@ void nsImageFrame::UpdateImage(imgIRequest* aRequest, imgIContainer* aImage) {
       return;
     }
   }
-  // NOTE(emilio): Intentionally using `|` instead of `||` to avoid
-  // short-circuiting.
-  bool intrinsicSizeChanged = UpdateIntrinsicSize() | UpdateIntrinsicRatio();
+  bool intrinsicSizeOrRatioChanged = [&] {
+    // NOTE(emilio): We intentionally want to call both functions and avoid
+    // short-circuiting.
+    bool intrinsicSizeChanged = UpdateIntrinsicSize();
+    bool intrinsicRatioChanged = UpdateIntrinsicRatio();
+    return intrinsicSizeChanged || intrinsicRatioChanged;
+  }();
   if (!GotInitialReflow()) {
     return;
   }
@@ -941,17 +947,10 @@ void nsImageFrame::UpdateImage(imgIRequest* aRequest, imgIContainer* aImage) {
   // We're going to need to repaint now either way.
   InvalidateFrame();
 
-  if (intrinsicSizeChanged) {
+  if (intrinsicSizeOrRatioChanged) {
     // Now we need to reflow if we have an unconstrained size and have
     // already gotten the initial reflow.
     if (!(mState & IMAGE_SIZECONSTRAINED)) {
-#ifdef ACCESSIBILITY
-      if (mKind != Kind::ListStyleImage) {
-        if (nsAccessibilityService* accService = GetAccService()) {
-          accService->NotifyOfImageSizeAvailable(PresShell(), mContent);
-        }
-      }
-#endif
       PresShell()->FrameNeedsReflow(this, IntrinsicDirty::StyleChange,
                                     NS_FRAME_IS_DIRTY);
     } else if (PresShell()->IsActive()) {
@@ -1000,9 +999,8 @@ void nsImageFrame::InvalidateSelf(const nsIntRect* aLayerInvalidRect,
   // Check if WebRender has interacted with this frame. If it has
   // we need to let it know that things have changed.
   const auto type = DisplayItemType::TYPE_IMAGE;
-  const auto producerId =
-      mImage ? mImage->GetProducerId() : kContainerProducerID_Invalid;
-  if (WebRenderUserData::ProcessInvalidateForImage(this, type, producerId)) {
+  const auto providerId = mImage ? mImage->GetProviderId() : 0;
+  if (WebRenderUserData::ProcessInvalidateForImage(this, type, providerId)) {
     return;
   }
 
@@ -1437,31 +1435,31 @@ void nsImageFrame::DisplayAltText(nsPresContext* aPresContext,
     nsresult rv = NS_ERROR_FAILURE;
 
     if (aPresContext->BidiEnabled()) {
-      nsBidiDirection dir;
+      mozilla::intl::Bidi::EmbeddingLevel level;
       nscoord x, y;
 
       if (isVertical) {
         x = pt.x + maxDescent;
         if (wm.IsBidiLTR()) {
           y = aRect.y;
-          dir = NSBIDI_LTR;
+          level = mozilla::intl::Bidi::EmbeddingLevel::LTR();
         } else {
           y = aRect.YMost() - strWidth;
-          dir = NSBIDI_RTL;
+          level = mozilla::intl::Bidi::EmbeddingLevel::RTL();
         }
       } else {
         y = pt.y + maxAscent;
         if (wm.IsBidiLTR()) {
           x = aRect.x;
-          dir = NSBIDI_LTR;
+          level = mozilla::intl::Bidi::EmbeddingLevel::LTR();
         } else {
           x = aRect.XMost() - strWidth;
-          dir = NSBIDI_RTL;
+          level = mozilla::intl::Bidi::EmbeddingLevel::RTL();
         }
       }
 
       rv = nsBidiPresUtils::RenderText(
-          str, maxFit, dir, aPresContext, aRenderingContext,
+          str, maxFit, level, aPresContext, aRenderingContext,
           aRenderingContext.GetDrawTarget(), *fm, x, y);
     }
     if (NS_FAILED(rv)) {
@@ -1845,13 +1843,13 @@ ImgDrawResult nsImageFrame::DisplayAltFeedbackWithoutLayer(
           nsLayoutUtils::ComputeImageContainerDrawingParameters(
               imgCon, this, destRect, destRect, aSc, aFlags, svgContext,
               region);
-      RefPtr<ImageContainer> container;
-      result = imgCon->GetImageContainerAtSize(
-          aManager->LayerManager(), decodeSize, svgContext, region, aFlags,
-          getter_AddRefs(container));
-      if (container) {
-        bool wrResult = aManager->CommandBuilder().PushImage(
-            aItem, container, aBuilder, aResources, aSc, destRect, bounds);
+      RefPtr<image::WebRenderImageProvider> provider;
+      result = imgCon->GetImageProvider(aManager->LayerManager(), decodeSize,
+                                        svgContext, region, aFlags,
+                                        getter_AddRefs(provider));
+      if (provider) {
+        bool wrResult = aManager->CommandBuilder().PushImageProvider(
+            aItem, provider, aBuilder, aResources, destRect, bounds);
         result &= wrResult ? ImgDrawResult::SUCCESS : ImgDrawResult::NOT_READY;
       } else {
         // We don't use &= here because we want the result to be NOT_READY so
@@ -2100,10 +2098,10 @@ bool nsDisplayImage::CreateWebRenderCommands(
   IntSize decodeSize = nsLayoutUtils::ComputeImageContainerDrawingParameters(
       mImage, mFrame, destRect, destRect, aSc, flags, svgContext, region);
 
-  RefPtr<layers::ImageContainer> container;
-  ImgDrawResult drawResult = mImage->GetImageContainerAtSize(
-      aManager->LayerManager(), decodeSize, svgContext, region, flags,
-      getter_AddRefs(container));
+  RefPtr<image::WebRenderImageProvider> provider;
+  ImgDrawResult drawResult =
+      mImage->GetImageProvider(aManager->LayerManager(), decodeSize, svgContext,
+                               region, flags, getter_AddRefs(provider));
 
   // While we got a container, it may not contain a fully decoded surface. If
   // that is the case, and we have an image we were previously displaying which
@@ -2125,13 +2123,13 @@ bool nsDisplayImage::CreateWebRenderCommands(
           prevFlags &= ~imgIContainer::FLAG_RECORD_BLOB;
         }
 
-        RefPtr<ImageContainer> prevContainer;
-        ImgDrawResult newDrawResult = mPrevImage->GetImageContainerAtSize(
+        RefPtr<image::WebRenderImageProvider> prevProvider;
+        ImgDrawResult newDrawResult = mPrevImage->GetImageProvider(
             aManager->LayerManager(), decodeSize, svgContext, region, prevFlags,
-            getter_AddRefs(prevContainer));
-        if (prevContainer && newDrawResult == ImgDrawResult::SUCCESS) {
+            getter_AddRefs(prevProvider));
+        if (prevProvider && newDrawResult == ImgDrawResult::SUCCESS) {
           drawResult = newDrawResult;
-          container = std::move(prevContainer);
+          provider = std::move(prevProvider);
           flags = prevFlags;
           break;
         }
@@ -2158,14 +2156,9 @@ bool nsDisplayImage::CreateWebRenderCommands(
   // If the image container is empty, we don't want to fallback. Any other
   // failure will be due to resource constraints and fallback is unlikely to
   // help us. Hence we can ignore the return value from PushImage.
-  if (container) {
-    if (flags & imgIContainer::FLAG_RECORD_BLOB) {
-      aManager->CommandBuilder().PushBlobImage(this, container, aBuilder,
-                                               aResources, destRect, destRect);
-    } else {
-      aManager->CommandBuilder().PushImage(this, container, aBuilder,
-                                           aResources, aSc, destRect, destRect);
-    }
+  if (provider) {
+    aManager->CommandBuilder().PushImageProvider(
+        this, provider, aBuilder, aResources, destRect, destRect);
   }
 
   nsDisplayItemGenericImageGeometry::UpdateDrawResult(this, drawResult);
@@ -2527,7 +2520,7 @@ Maybe<nsIFrame::Cursor> nsImageFrame::GetCursor(const nsPoint& aPoint) {
   // get styles out of the blue and expect to trigger image loads for those.
   areaStyle->StartImageLoads(*PresContext()->Document());
 
-  StyleCursorKind kind = areaStyle->StyleUI()->mCursor.keyword;
+  StyleCursorKind kind = areaStyle->StyleUI()->Cursor().keyword;
   if (kind == StyleCursorKind::Auto) {
     kind = StyleCursorKind::Default;
   }

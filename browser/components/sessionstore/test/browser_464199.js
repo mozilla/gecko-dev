@@ -127,10 +127,14 @@ add_task(async function() {
     "browser.sessionstore.max_tabs_undo",
     test_state.windows[0]._closedTabs.length
   );
-  ss.setWindowState(newWin, JSON.stringify(test_state), true);
-  await promiseWindowRestored(newWin);
 
-  let closedTabs = JSON.parse(ss.getClosedTabData(newWin));
+  let restoring = promiseWindowRestoring(newWin);
+  let restored = promiseWindowRestored(newWin);
+  ss.setWindowState(newWin, JSON.stringify(test_state), true);
+  await restoring;
+  await restored;
+
+  let closedTabs = ss.getClosedTabData(newWin);
   is(
     closedTabs.length,
     test_state.windows[0]._closedTabs.length,
@@ -150,7 +154,7 @@ add_task(async function() {
   let promise = promiseClearHistory();
   await ForgetAboutSite.removeDataFromDomain("example.net");
   await promise;
-  closedTabs = JSON.parse(ss.getClosedTabData(newWin));
+  closedTabs = ss.getClosedTabData(newWin);
   is(
     closedTabs.length,
     remember_count,

@@ -161,10 +161,7 @@ const SIGNED_TYPES = new Set(["extension", "locale", "theme"]);
 // Time to wait before async save of XPI JSON database, in milliseconds
 const ASYNC_SAVE_DELAY_MS = 20;
 
-const LOCALE_BUNDLES = [
-  "chrome://global/locale/global-extension-fields.properties",
-  "chrome://global/locale/app-extension-fields.properties",
-].map(url => Services.strings.createBundle(url));
+const l10n = new Localization(["browser/appExtensionFields.ftl"], true);
 
 /**
  * Schedules an idle task, and returns a promise which resolves to an
@@ -1325,15 +1322,6 @@ function chooseValue(aAddon, aObj, aProp) {
     return [repositoryAddon[aProp], true];
   }
 
-  let id = `extension.${aAddon.id}.${aProp}`;
-  for (let bundle of LOCALE_BUNDLES) {
-    try {
-      return [bundle.GetStringFromName(id), false];
-    } catch (e) {
-      // Ignore missing overrides.
-    }
-  }
-
   return [objValue, false];
 }
 
@@ -1431,9 +1419,58 @@ defineAddonWrapperProperty("signedDate", function() {
   });
 });
 
+// Add to this Map if you need to change an addon's Fluent ID. Keep it in sync
+// with the list in browser_verify_l10n_strings.js
+const updatedAddonFluentIds = new Map([
+  ["extension-default-theme-name", "extension-default-theme-name-auto"],
+]);
+
 ["name", "description", "creator", "homepageURL"].forEach(function(aProp) {
   defineAddonWrapperProperty(aProp, function() {
     let addon = addonFor(this);
+
+    let formattedMessage;
+    // We want to make sure that all built-in themes that are localizable can
+    // actually localized, particularly those for thunderbird and desktop.
+    if (
+      (aProp === "name" || aProp === "description") &&
+      addon.location.name === KEY_APP_BUILTINS &&
+      addon.type === "theme"
+    ) {
+      // Built-in themes are localized with Fluent instead of the WebExtension API.
+      let addonIdPrefix = addon.id.replace("@mozilla.org", "");
+      if (addonIdPrefix.endsWith("colorway")) {
+        // Colorway themes combine an unlocalized color name with a localized
+        // variant name. Their ids have the format
+        // {colorName}-{variantName}-colorway@mozilla.org.
+        if (aProp == "description") {
+          // Colorway themes do not have a description.
+          return null;
+        }
+        let [colorName, variantName] = addonIdPrefix.split("-", 2);
+        // We're not using toLocaleUpperCase because these color names are
+        // always in English.
+        colorName = colorName[0].toUpperCase() + colorName.slice(1);
+        let defaultFluentId = `extension-colorways-${variantName}-name`;
+        let fluentId =
+          updatedAddonFluentIds.get(defaultFluentId) || defaultFluentId;
+        [formattedMessage] = l10n.formatMessagesSync([
+          {
+            id: fluentId,
+            args: {
+              "colorway-name": colorName,
+            },
+          },
+        ]);
+      } else {
+        let defaultFluentId = `extension-${addonIdPrefix}-${aProp}`;
+        let fluentId =
+          updatedAddonFluentIds.get(defaultFluentId) || defaultFluentId;
+        [formattedMessage] = l10n.formatMessagesSync([{ id: fluentId }]);
+      }
+
+      return formattedMessage.value;
+    }
 
     let [result, usedRepository] = chooseValue(
       addon,

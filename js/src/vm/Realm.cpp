@@ -256,7 +256,7 @@ ObjectRealm::getNonSyntacticLexicalEnvironment(JSObject* key) const {
   return &lexicalEnv->as<NonSyntacticLexicalEnvironmentObject>();
 }
 
-void Realm::traceGlobal(JSTracer* trc) {
+void Realm::traceGlobalData(JSTracer* trc) {
   // Trace things reachable from the realm's global. Note that these edges
   // must be swept too in case the realm is live but the global is not.
 
@@ -326,27 +326,27 @@ void Realm::finishRoots() {
   objects_.finishRoots();
 }
 
-void ObjectRealm::sweepAfterMinorGC() {
+void ObjectRealm::sweepAfterMinorGC(JSTracer* trc) {
   InnerViewTable& table = innerViews.get();
   if (table.needsSweepAfterMinorGC()) {
-    table.sweepAfterMinorGC();
+    table.sweepAfterMinorGC(trc);
   }
 }
 
-void Realm::sweepAfterMinorGC() {
+void Realm::sweepAfterMinorGC(JSTracer* trc) {
   globalWriteBarriered = 0;
   dtoaCache.purge();
-  objects_.sweepAfterMinorGC();
+  objects_.sweepAfterMinorGC(trc);
 }
 
 void Realm::traceWeakSavedStacks(JSTracer* trc) { savedStacks_.traceWeak(trc); }
 
-void Realm::traceWeakObjects(JSTracer* trc) {
+void Realm::traceWeakGlobalEdge(JSTracer* trc) {
   // If the global is dead, free its GlobalObjectData.
-  if (zone_->isGCSweeping() && globalIsAboutToBeFinalized()) {
-    global_.unbarrieredGet()->releaseData(runtime_->defaultFreeOp());
+  auto result = TraceWeakEdge(trc, &global_, "Realm::global_");
+  if (result.isDead()) {
+    result.initialTarget()->releaseData(runtime_->defaultFreeOp());
   }
-  TraceWeakEdge(trc, &global_, "Realm::global_");
 }
 
 void Realm::traceWeakEdgesInJitRealm(JSTracer* trc) {
@@ -364,9 +364,9 @@ void Realm::traceWeakRegExps(JSTracer* trc) {
   regExps.traceWeak(trc);
 }
 
-void Realm::sweepDebugEnvironments() {
+void Realm::traceWeakDebugEnvironmentEdges(JSTracer* trc) {
   if (debugEnvs_) {
-    debugEnvs_->sweep();
+    debugEnvs_->traceWeak(trc);
   }
 }
 
@@ -391,14 +391,7 @@ void Realm::traceWeakObjectRealm(JSTracer* trc) {
 
 void Realm::fixupAfterMovingGC(JSTracer* trc) {
   purge();
-  fixupGlobal();
-}
-
-void Realm::fixupGlobal() {
-  GlobalObject* global = global_.unbarrieredGet();
-  if (global) {
-    global_.unbarrieredSet(MaybeForwarded(global));
-  }
+  traceWeakGlobalEdge(trc);
 }
 
 void Realm::purge() {
@@ -600,6 +593,40 @@ void Realm::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
   }
 }
 
+bool Realm::shouldCaptureStackForThrow() {
+  // Determine whether a stack trace should be captured for throw-statements (or
+  // similar) in JS code in this realm. We don't want to do this unconditionally
+  // because capturing stacks is slow and some scripts throw a lot of
+  // exceptions.
+  //
+  // Note: this is unrelated to Error.stack! That property is observable from
+  // JS code so we can't use these heuristics there. The code here is mostly
+  // relevant for uncaught exceptions that are not Error objects.
+
+  // To match other browsers, we always capture a stack trace if the realm is a
+  // debuggee (this includes the devtools console being open).
+  if (isDebuggee()) {
+    return true;
+  }
+
+  // Also always capture for chrome code. This is code we control and this helps
+  // debugging.
+  if (principals() &&
+      principals() == runtimeFromMainThread()->trustedPrincipals()) {
+    return true;
+  }
+
+  // Else, capture the stack only for the first N exceptions so that we can
+  // still show stack traces for scripts that don't throw a lot of exceptions
+  // (if the console is opened later).
+  static constexpr uint16_t MaxStacksCapturedForThrow = 50;
+  if (numStacksCapturedForThrow_ > MaxStacksCapturedForThrow) {
+    return false;
+  }
+  numStacksCapturedForThrow_++;
+  return true;
+}
+
 mozilla::HashCodeScrambler Realm::randomHashCodeScrambler() {
   return mozilla::HashCodeScrambler(randomKeyGenerator_.next(),
                                     randomKeyGenerator_.next());
@@ -656,11 +683,7 @@ JS_PUBLIC_API void gc::TraceRealm(JSTracer* trc, JS::Realm* realm,
   // Here we simply trace our side of that edge. During GC,
   // GCRuntime::traceRuntimeCommon() marks all other realm roots, for
   // all realms.
-  realm->traceGlobal(trc);
-}
-
-JS_PUBLIC_API bool gc::RealmNeedsSweep(JS::Realm* realm) {
-  return realm->globalIsAboutToBeFinalized();
+  realm->traceGlobalData(trc);
 }
 
 JS_PUBLIC_API JS::Realm* JS::GetCurrentRealmOrNull(JSContext* cx) {

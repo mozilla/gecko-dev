@@ -1372,9 +1372,6 @@ void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* lir) {
              lir->ifFalse());
 }
 
-// See ../CodeGenerator.cpp for more information.
-void CodeGenerator::visitWasmRegisterResult(LWasmRegisterResult* lir) {}
-
 void CodeGenerator::visitWasmUint32ToDouble(LWasmUint32ToDouble* lir) {
   masm.convertUInt32ToDouble(ToRegister(lir->input()),
                              ToFloatRegister(lir->output()));
@@ -2069,6 +2066,10 @@ void CodeGenerator::visitWasmAddOffset(LWasmAddOffset* lir) {
                          &ok);
   masm.wasmTrap(wasm::Trap::OutOfBounds, mir->bytecodeOffset());
   masm.bind(&ok);
+}
+
+void CodeGenerator::visitWasmAddOffset64(LWasmAddOffset64* lir) {
+  MOZ_CRASH("NYI");
 }
 
 void CodeGenerator::visitAtomicTypedArrayElementBinop(

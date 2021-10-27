@@ -2,15 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-loader: taskgraph.loader.transform:loader
+loader: gecko_taskgraph.loader.transform:loader
 
 kind-dependencies:
     - toolchain
     - build
 
 transforms:
-    - taskgraph.transforms.job:transforms
-    - taskgraph.transforms.task:transforms
+    - gecko_taskgraph.transforms.job:transforms
+    - gecko_taskgraph.transforms.task:transforms
 
 job-defaults:
     attributes:
@@ -107,15 +107,15 @@ jobs:
                   name: public/build/wrench-macos-headless.tar.bz2
                   path: /builds/worker/artifacts/wrench-macos-headless.tar.bz2
         dependencies:
-            macosx64-clang-11: toolchain-macosx64-clang-11
+            macosx64-clang-13: toolchain-macosx64-clang-13
         fetches:
             toolchain:
                 - linux64-rust-macos
                 - linux64-cctools-port
-                - linux64-clang-11-macosx-cross
+                - linux64-clang-13-macosx-cross
                 - macosx64-sdk-10.12
                 - wrench-deps
-            macosx64-clang-11:
+            macosx64-clang-13:
                 - artifact: clang.tar.zst
                   dest: clang-mac
         run:

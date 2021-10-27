@@ -493,22 +493,22 @@ void MacroAssemblerCompat::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
           } else {
             MOZ_ASSERT(access.isWidenSimd128Load());
             switch (access.widenSimdOp()) {
-              case wasm::SimdOp::I16x8LoadS8x8:
+              case wasm::SimdOp::V128Load8x8S:
                 Sshll(SelectFPReg(outany, out64, 128).V8H(), scratch.V8B(), 0);
                 break;
-              case wasm::SimdOp::I16x8LoadU8x8:
+              case wasm::SimdOp::V128Load8x8U:
                 Ushll(SelectFPReg(outany, out64, 128).V8H(), scratch.V8B(), 0);
                 break;
-              case wasm::SimdOp::I32x4LoadS16x4:
+              case wasm::SimdOp::V128Load16x4S:
                 Sshll(SelectFPReg(outany, out64, 128).V4S(), scratch.V4H(), 0);
                 break;
-              case wasm::SimdOp::I32x4LoadU16x4:
+              case wasm::SimdOp::V128Load16x4U:
                 Ushll(SelectFPReg(outany, out64, 128).V4S(), scratch.V4H(), 0);
                 break;
-              case wasm::SimdOp::I64x2LoadS32x2:
+              case wasm::SimdOp::V128Load32x2S:
                 Sshll(SelectFPReg(outany, out64, 128).V2D(), scratch.V2S(), 0);
                 break;
-              case wasm::SimdOp::I64x2LoadU32x2:
+              case wasm::SimdOp::V128Load32x2U:
                 Ushll(SelectFPReg(outany, out64, 128).V2D(), scratch.V2S(), 0);
                 break;
               default:
@@ -1767,26 +1767,24 @@ CodeOffset MacroAssembler::wasmTrapInstruction() {
 }
 
 void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,
-                                       Register boundsCheckLimit,
-                                       Label* label) {
-  branch32(cond, index, boundsCheckLimit, label);
+                                       Register boundsCheckLimit, Label* ok) {
+  branch32(cond, index, boundsCheckLimit, ok);
   if (JitOptions.spectreIndexMasking) {
     csel(ARMRegister(index, 32), vixl::wzr, ARMRegister(index, 32), cond);
   }
 }
 
 void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,
-                                       Address boundsCheckLimit, Label* label) {
-  branch32(cond, index, boundsCheckLimit, label);
+                                       Address boundsCheckLimit, Label* ok) {
+  branch32(cond, index, boundsCheckLimit, ok);
   if (JitOptions.spectreIndexMasking) {
     csel(ARMRegister(index, 32), vixl::wzr, ARMRegister(index, 32), cond);
   }
 }
 
 void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
-                                       Register64 boundsCheckLimit,
-                                       Label* label) {
-  branchPtr(cond, index.reg, boundsCheckLimit.reg, label);
+                                       Register64 boundsCheckLimit, Label* ok) {
+  branchPtr(cond, index.reg, boundsCheckLimit.reg, ok);
   if (JitOptions.spectreIndexMasking) {
     csel(ARMRegister(index.reg, 64), vixl::xzr, ARMRegister(index.reg, 64),
          cond);
@@ -1794,8 +1792,8 @@ void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
 }
 
 void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
-                                       Address boundsCheckLimit, Label* label) {
-  branchPtr(InvertCondition(cond), boundsCheckLimit, index.reg, label);
+                                       Address boundsCheckLimit, Label* ok) {
+  branchPtr(InvertCondition(cond), boundsCheckLimit, index.reg, ok);
   if (JitOptions.spectreIndexMasking) {
     csel(ARMRegister(index.reg, 64), vixl::xzr, ARMRegister(index.reg, 64),
          cond);
@@ -2109,6 +2107,10 @@ void MacroAssembler::enterFakeExitFrameForWasm(Register cxreg, Register scratch,
   Mov(tmp, sp);  // SP may be unaligned, can't use it for memory op
   Mov(tmp2, int32_t(type));
   Str(tmp2, vixl::MemOperand(tmp, 0));
+}
+
+void MacroAssembler::widenInt32(Register r) {
+  move32To64ZeroExtend(r, Register64(r));
 }
 
 // ========================================================================

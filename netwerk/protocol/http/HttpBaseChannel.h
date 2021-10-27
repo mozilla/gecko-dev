@@ -415,6 +415,8 @@ class HttpBaseChannel : public nsHashPropertyBag,
     return mResponseTrailers.get();
   }
 
+  void SetDummyChannelForImageCache();
+
   const NetAddr& GetSelfAddr() { return mSelfAddr; }
   const NetAddr& GetPeerAddr() { return mPeerAddr; }
 
@@ -574,9 +576,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
   // Redirect tracking
   // Checks whether or not aURI and mOriginalURI share the same domain.
   virtual bool SameOriginWithOriginalUri(nsIURI* aURI);
-
-  // GetPrincipal Returns the channel's URI principal.
-  nsIPrincipal* GetURIPrincipal();
 
   [[nodiscard]] bool BypassServiceWorker() const;
 
@@ -894,6 +893,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   const bool mCachedOpaqueResponseBlockingPref;
   bool mBlockOpaqueResponseAfterSniff;
   bool mCheckIsOpaqueResponseAllowedAfterSniff;
+  bool mDummyChannelForImageCache;
 
   // clang-format off
   MOZ_ATOMIC_BITFIELDS(mAtomicBitfields3, 8, (

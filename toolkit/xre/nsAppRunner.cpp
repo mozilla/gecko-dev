@@ -23,11 +23,13 @@
 #include "mozilla/Printf.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Utf8.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/JSONWriter.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "BaseProfiler.h"
 
 #include "nsAppRunner.h"
@@ -276,7 +278,6 @@ static const char kPrefThemeId[] = "extensions.activeThemeID";
 static const char kPrefBrowserStartupBlankWindow[] =
     "browser.startup.blankWindow";
 static const char kPrefPreXulSkeletonUI[] = "browser.startup.preXulSkeletonUI";
-static const char kPrefDrawTabsInTitlebar[] = "browser.tabs.drawInTitlebar";
 #endif  // defined(XP_WIN)
 
 int gArgc;
@@ -1326,6 +1327,18 @@ nsXULAppInfo::GetRestartedByOS(bool* aResult) {
 }
 
 NS_IMETHODIMP
+nsXULAppInfo::GetChromeColorSchemeIsDark(bool* aResult) {
+  *aResult = LookAndFeel::ColorSchemeForChrome() == ColorScheme::Dark;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULAppInfo::GetDrawInTitlebar(bool* aResult) {
+  *aResult = LookAndFeel::DrawInTitlebar();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsXULAppInfo::GetProcessStartupShortcut(nsAString& aShortcut) {
 #if defined(XP_WIN)
   if (XRE_IsParentProcess()) {
@@ -1990,7 +2003,7 @@ static void ReflectSkeletonUIPrefToRegistry(const char* aPref, void* aData) {
   bool shouldBeEnabled =
       Preferences::GetBool(kPrefPreXulSkeletonUI, false) &&
       Preferences::GetBool(kPrefBrowserStartupBlankWindow, false) &&
-      Preferences::GetBool(kPrefDrawTabsInTitlebar, false);
+      LookAndFeel::DrawInTitlebar();
   if (shouldBeEnabled && Preferences::HasUserValue(kPrefThemeId)) {
     nsCString themeId;
     Preferences::GetCString(kPrefThemeId, themeId);
@@ -2019,8 +2032,9 @@ static void SetupSkeletonUIPrefs() {
   Preferences::RegisterCallback(&ReflectSkeletonUIPrefToRegistry,
                                 kPrefBrowserStartupBlankWindow);
   Preferences::RegisterCallback(&ReflectSkeletonUIPrefToRegistry, kPrefThemeId);
-  Preferences::RegisterCallback(&ReflectSkeletonUIPrefToRegistry,
-                                kPrefDrawTabsInTitlebar);
+  Preferences::RegisterCallback(
+      &ReflectSkeletonUIPrefToRegistry,
+      nsDependentCString(StaticPrefs::GetPrefName_browser_tabs_drawInTitlebar()));
 }
 
 #  if defined(MOZ_LAUNCHER_PROCESS)
@@ -2611,7 +2625,6 @@ static ReturnAbortOnError ShowProfileManager(
 
 static bool gDoMigration = false;
 static bool gDoProfileReset = false;
-static bool gResetDeleteOldProfile = true;
 static nsCOMPtr<nsIToolkitProfile> gResetOldProfile;
 
 static nsresult LockProfile(nsINativeAppSupport* aNative, nsIFile* aRootDir,
@@ -2713,19 +2726,6 @@ static nsresult SelectProfile(nsToolkitProfileService* aProfileSvc,
   }
 
   NS_ENSURE_SUCCESS(rv, rv);
-
-  if (rv == NS_MIGRATE_INTO_PACKAGE) {
-    if (!*aProfile) {
-      NS_WARNING(
-          "Attempted package profile migration without existing profile.");
-      return NS_ERROR_ABORT;
-    }
-
-    gDoProfileReset = true;
-    gResetDeleteOldProfile = false;
-    gDoMigration = true;
-    return NS_OK;
-  }
 
   if (didCreate) {
     // For a fresh install, we would like to let users decide
@@ -4983,8 +4983,9 @@ nsresult XREMain::XRE_mainRun() {
           initializedJSContext = true;
         }
 
-        if (NS_FAILED(ProfileResetCleanup(mProfileSvc, gResetOldProfile,
-                                          gResetDeleteOldProfile))) {
+        nsresult backupCreated =
+            ProfileResetCleanup(mProfileSvc, gResetOldProfile);
+        if (NS_FAILED(backupCreated)) {
           NS_WARNING("Could not cleanup the profile that was reset");
         }
       }
@@ -5167,13 +5168,14 @@ nsresult XREMain::XRE_mainRun() {
       free(tempArgv);
       NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
+#  ifdef MOZILLA_OFFICIAL
       // Check if we're running from a DMG and allow the user to install to the
       // Applications directory.
-      if (mProfileSvc->GetIsFirstRun() &&
-          MacRunFromDmgUtils::MaybeInstallFromDmgAndRelaunch()) {
+      if (MacRunFromDmgUtils::MaybeInstallFromDmgAndRelaunch()) {
         bool userAllowedQuit = true;
         appStartup->Quit(nsIAppStartup::eForceQuit, 0, &userAllowedQuit);
       }
+#  endif
 #endif
 
       nsCOMPtr<nsIObserverService> obsService =
@@ -5218,10 +5220,10 @@ nsresult XREMain::XRE_mainRun() {
 #endif /* MOZ_INSTRUMENT_EVENT_LOOP */
 
     // Send Telemetry about Gecko version and buildid
-    Telemetry::ScalarSet(Telemetry::ScalarID::GECKO_VERSION,
-                         NS_ConvertASCIItoUTF16(gAppData->version));
-    Telemetry::ScalarSet(Telemetry::ScalarID::GECKO_BUILD_ID,
-                         NS_ConvertASCIItoUTF16(gAppData->buildID));
+    nsAutoCString version(gAppData->version);
+    nsAutoCString buildID(gAppData->buildID);
+    mozilla::glean::geckoview_validation::version.Set(version);
+    mozilla::glean::geckoview_validation::build_id.Set(buildID);
 
 #if defined(MOZ_SANDBOX) && defined(XP_LINUX)
     // If we're on Linux, we now have information about the OS capabilities

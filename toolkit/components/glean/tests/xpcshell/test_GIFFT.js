@@ -4,8 +4,8 @@
 "use strict";
 
 Cu.importGlobalProperties(["Glean"]);
-const { ObjectUtils } = ChromeUtils.import(
-  "resource://gre/modules/ObjectUtils.jsm"
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
 );
 const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
@@ -32,9 +32,22 @@ add_task(function test_setup() {
   // FOG needs a profile directory to put its data in.
   do_get_profile();
 
+  Services.prefs.setBoolPref(
+    "toolkit.telemetry.testing.overrideProductsCheck",
+    true
+  );
+
+  Services.prefs.setBoolPref(
+    "toolkit.telemetry.testing.overrideProductsCheck",
+    true
+  );
+
   // We need to initialize it once, otherwise operations will be stuck in the pre-init queue.
-  let FOG = Cc["@mozilla.org/toolkit/glean;1"].createInstance(Ci.nsIFOG);
-  FOG.initializeFOG();
+  // On Android FOG is set up through head.js.
+  if (AppConstants.platform != "android") {
+    let FOG = Cc["@mozilla.org/toolkit/glean;1"].createInstance(Ci.nsIFOG);
+    FOG.initializeFOG();
+  }
 });
 
 add_task(function test_gifft_counter() {
@@ -99,8 +112,10 @@ add_task(function test_gifft_custom_dist() {
     );
   }
 
-  data = Telemetry.getHistogramById("TELEMETRY_TEST_LINEAR").snapshot();
-  Telemetry.getHistogramById("TELEMETRY_TEST_LINEAR").clear();
+  data = Telemetry.getHistogramById(
+    "TELEMETRY_TEST_MIRROR_FOR_CUSTOM"
+  ).snapshot();
+  Telemetry.getHistogramById("TELEMETRY_TEST_MIRROR_FOR_CUSTOM").clear();
   Assert.equal(7 + 268435458, data.sum, "Sum in histogram is correct");
   Assert.equal(1, data.values["1"], "One sample in the low bucket");
   // Yes, the bucket is off-by-one compared to Glean.

@@ -10,22 +10,23 @@
 #include <stdio.h>   // for nullptr, stdout
 #include <string.h>  // for strcmp
 
-#include "ChangeAttributeTransaction.h"       // for ChangeAttributeTransaction
-#include "CompositionTransaction.h"           // for CompositionTransaction
-#include "CreateElementTransaction.h"         // for CreateElementTransaction
-#include "DeleteNodeTransaction.h"            // for DeleteNodeTransaction
-#include "DeleteRangeTransaction.h"           // for DeleteRangeTransaction
-#include "DeleteTextTransaction.h"            // for DeleteTextTransaction
-#include "EditAggregateTransaction.h"         // for EditAggregateTransaction
-#include "EditTransactionBase.h"              // for EditTransactionBase
-#include "EditorEventListener.h"              // for EditorEventListener
-#include "gfxFontUtils.h"                     // for gfxFontUtils
-#include "HTMLEditUtils.h"                    // for HTMLEditUtils
-#include "InsertNodeTransaction.h"            // for InsertNodeTransaction
-#include "InsertTextTransaction.h"            // for InsertTextTransaction
-#include "JoinNodeTransaction.h"              // for JoinNodeTransaction
-#include "PlaceholderTransaction.h"           // for PlaceholderTransaction
-#include "SplitNodeTransaction.h"             // for SplitNodeTransaction
+#include "ChangeAttributeTransaction.h"  // for ChangeAttributeTransaction
+#include "CompositionTransaction.h"      // for CompositionTransaction
+#include "CreateElementTransaction.h"    // for CreateElementTransaction
+#include "DeleteNodeTransaction.h"       // for DeleteNodeTransaction
+#include "DeleteRangeTransaction.h"      // for DeleteRangeTransaction
+#include "DeleteTextTransaction.h"       // for DeleteTextTransaction
+#include "EditAggregateTransaction.h"    // for EditAggregateTransaction
+#include "EditTransactionBase.h"         // for EditTransactionBase
+#include "EditorEventListener.h"         // for EditorEventListener
+#include "gfxFontUtils.h"                // for gfxFontUtils
+#include "HTMLEditUtils.h"               // for HTMLEditUtils
+#include "InsertNodeTransaction.h"       // for InsertNodeTransaction
+#include "InsertTextTransaction.h"       // for InsertTextTransaction
+#include "JoinNodeTransaction.h"         // for JoinNodeTransaction
+#include "PlaceholderTransaction.h"      // for PlaceholderTransaction
+#include "SplitNodeTransaction.h"        // for SplitNodeTransaction
+#include "mozilla/intl/Bidi.h"
 #include "mozilla/BasePrincipal.h"            // for BasePrincipal
 #include "mozilla/CheckedInt.h"               // for CheckedInt
 #include "mozilla/ComposerCommandsUpdater.h"  // for ComposerCommandsUpdater
@@ -96,6 +97,7 @@
 #include "nsGkAtoms.h"                 // for nsGkAtoms, nsGkAtoms::dir
 #include "nsIClipboard.h"              // for nsIClipboard
 #include "nsIContent.h"                // for nsIContent
+#include "nsIContentInlines.h"         // for nsINode::IsInDesignMode()
 #include "nsIDocumentEncoder.h"        // for nsIDocumentEncoder
 #include "nsIDocumentStateListener.h"  // for nsIDocumentStateListener
 #include "nsIDocShell.h"               // for nsIDocShell
@@ -458,9 +460,7 @@ nsresult EditorBase::PostCreateInternal() {
       NS_WARNING("EditorBase::GetPreferredIMEState() failed");
       return NS_OK;
     }
-    // May be null in design mode
-    nsCOMPtr<nsIContent> content = GetFocusedContentForIME();
-    IMEStateManager::UpdateIMEState(newState, content, *this);
+    IMEStateManager::UpdateIMEState(newState, focusedContent, *this);
   }
 
   // FYI: This call might cause destroying this editor.
@@ -706,7 +706,7 @@ NS_IMETHODIMP EditorBase::SetFlags(uint32_t aFlags) {
     if (NS_SUCCEEDED(rv)) {
       // NOTE: When the enabled state isn't going to be modified, this method
       // is going to do nothing.
-      nsCOMPtr<nsIContent> content = GetFocusedContentForIME();
+      nsCOMPtr<nsIContent> content = GetFocusedContent();
       IMEStateManager::UpdateIMEState(newState, content, *this);
     }
   }
@@ -2295,14 +2295,14 @@ void EditorBase::NotifyEditorObservers(
 
       if (!mDispatchInputEvent || IsEditActionAborted() ||
           IsEditActionCanceled()) {
-        return;
+        break;
       }
 
       DispatchInputEvent();
       break;
     case eNotifyEditorObserversOfBefore:
       if (NS_WARN_IF(mIsInEditSubAction)) {
-        break;
+        return;
       }
 
       mIsInEditSubAction = true;
@@ -2311,7 +2311,7 @@ void EditorBase::NotifyEditorObservers(
         RefPtr<IMEContentObserver> observer = mIMEContentObserver;
         observer->BeforeEditAction();
       }
-      break;
+      return;
     case eNotifyEditorObserversOfCancel:
       mIsInEditSubAction = false;
 
@@ -2327,6 +2327,19 @@ void EditorBase::NotifyEditorObservers(
     default:
       MOZ_CRASH("Handle all notifications here");
       break;
+  }
+
+  if (IsHTMLEditor() && !Destroyed()) {
+    // We may need to show resizing handles or update existing ones after
+    // all transactions are done. This way of doing is preferred to DOM
+    // mutation events listeners because all the changes the user can apply
+    // to a document may result in multiple events, some of them quite hard
+    // to listen too (in particular when an ancestor of the selection is
+    // changed but the selection itself is not changed).
+    DebugOnly<nsresult> rvIgnored =
+        MOZ_KnownLive(AsHTMLEditor())->RefreshEditingUI();
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                         "HTMLEditor::RefreshEditingUI() failed, but ignored");
   }
 }
 
@@ -3487,21 +3500,6 @@ void EditorBase::EndUpdateViewBatch() {
 
   // Turn selection updating and notifications back on.
   SelectionRef().EndBatchChanges();
-
-  if (!IsHTMLEditor()) {
-    return;
-  }
-
-  // We may need to show resizing handles or update existing ones after
-  // all transactions are done. This way of doing is preferred to DOM
-  // mutation events listeners because all the changes the user can apply
-  // to a document may result in multiple events, some of them quite hard
-  // to listen too (in particular when an ancestor of the selection is
-  // changed but the selection itself is not changed).
-  DebugOnly<nsresult> rvIgnored =
-      MOZ_KnownLive(AsHTMLEditor())->RefreshEditingUI();
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
-                       "HTMLEditor::RefreshEditingUI() failed, but ignored");
 }
 
 TextComposition* EditorBase::GetComposition() const { return mComposition; }
@@ -4531,7 +4529,11 @@ nsresult EditorBase::HandleDropEvent(DragEvent* aDropEvent) {
   if (IsTextEditor()) {
     newFocusedElement = GetExposedRoot();
     focusedElement = IsActiveInDOMWindow() ? newFocusedElement : nullptr;
-  } else if (!AsHTMLEditor()->IsInDesignMode()) {
+  }
+  // TODO: We need to add automated tests when dropping something into an
+  //       editing host for contenteditable which is in a shadow DOM tree
+  //       and its host which is in design mode.
+  else if (!AsHTMLEditor()->IsInDesignMode()) {
     focusedElement = AsHTMLEditor()->GetActiveEditingHost();
     if (focusedElement &&
         droppedAt.GetContainerAsContent()->IsInclusiveDescendantOf(
@@ -5229,8 +5231,7 @@ nsresult EditorBase::InitializeSelection(nsINode& aFocusEventTargetNode) {
   // Also, make sure to always ignore it for designMode, since that effectively
   // overrides everything and we allow to edit stuff with
   // contenteditable="false" subtrees in such a document.
-  caret->SetIgnoreUserModify(
-      aFocusEventTargetNode.OwnerDoc()->HasFlag(NODE_IS_EDITABLE));
+  caret->SetIgnoreUserModify(aFocusEventTargetNode.IsInDesignMode());
 
   // Init selection
   rvIgnored =
@@ -5343,7 +5344,7 @@ void EditorBase::ReinitializeSelection(Element& aElement) {
   if (NS_WARN_IF(!presContext)) {
     return;
   }
-  nsCOMPtr<nsIContent> focusedContent = GetFocusedContentForIME();
+  nsCOMPtr<nsIContent> focusedContent = GetFocusedContent();
   IMEStateManager::OnFocusInEditor(presContext, focusedContent, *this);
 }
 
@@ -5519,10 +5520,6 @@ nsIContent* EditorBase::GetFocusedContent() const {
   MOZ_ASSERT((content == piTarget) == SameCOMIdentity(content, piTarget));
 
   return (content == piTarget) ? content : nullptr;
-}
-
-nsIContent* EditorBase::GetFocusedContentForIME() const {
-  return GetFocusedContent();
 }
 
 bool EditorBase::IsActiveInDOMWindow() const {
@@ -5769,12 +5766,13 @@ EditorBase::AutoCaretBidiLevelManager::AutoCaretBidiLevelManager(
   nsPrevNextBidiLevels levels = frameSelection->GetPrevNextBidiLevels(
       aPointAtCaret.GetContainerAsContent(), aPointAtCaret.Offset(), true);
 
-  nsBidiLevel levelBefore = levels.mLevelBefore;
-  nsBidiLevel levelAfter = levels.mLevelAfter;
+  mozilla::intl::Bidi::EmbeddingLevel levelBefore = levels.mLevelBefore;
+  mozilla::intl::Bidi::EmbeddingLevel levelAfter = levels.mLevelAfter;
 
-  nsBidiLevel currentCaretLevel = frameSelection->GetCaretBidiLevel();
+  mozilla::intl::Bidi::EmbeddingLevel currentCaretLevel =
+      frameSelection->GetCaretBidiLevel();
 
-  nsBidiLevel levelOfDeletion;
+  mozilla::intl::Bidi::EmbeddingLevel levelOfDeletion;
   levelOfDeletion = (nsIEditor::eNext == aDirectionAndAmount ||
                      nsIEditor::eNextWord == aDirectionAndAmount)
                         ? levelAfter

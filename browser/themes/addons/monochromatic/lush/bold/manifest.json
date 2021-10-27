@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "applications": {
     "gecko": {
-      "id": "firefox-lush-bold@mozilla.org"
+      "id": "lush-bold-colorway@mozilla.org"
     }
   },
   "name": "Lush – Bold",
@@ -30,7 +30,9 @@
       "toolbar_field": "hsl(139, 16%, 30%)",
       "toolbar_field_text": "hsl(0, 0%, 100%)",
       "toolbar_field_focus": "hsl(140, 2%, 28%)",
-      "toolbar_field_border_focus": "hsl(140, 10%, 35%)",
+      "toolbar_field_border_focus": "rgba(0, 221, 255, 0.7)",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": "hsl(139, 16%, 30%)",
       "ntp_background": "hsl(150, 2%, 20%)",
       "ntp_card_background": "hsl(140, 2%, 28%)",
       "ntp_text": "hsl(0, 0%, 100%)",

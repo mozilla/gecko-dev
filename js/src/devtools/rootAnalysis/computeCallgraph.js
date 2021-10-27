@@ -15,18 +15,18 @@ if (scriptArgs[0] == '--function' || scriptArgs[0] == '-f') {
 }
 
 var typeInfo_filename = scriptArgs[0] || "typeInfo.txt";
-var callgraphOut_filename = scriptArgs[1] || "callgraph.txt";
+var callgraphOut_filename = scriptArgs[1] || "rawcalls.txt";
+var batch = (scriptArgs[2]|0) || 1;
+var numBatches = (scriptArgs[3]|0) || 1;
 
 var origOut = os.file.redirect(callgraphOut_filename);
 
 var memoized = new Map();
-var memoizedCount = 0;
-
-var JSNativeCaller = Object.create(null);
-var JSNatives = [];
 
 var unmangled2id = new Set();
 
+// Insert a string into the name table and return the ID. Do not use for
+// functions, which must be handled specially.
 function getId(name)
 {
     let id = memoized.get(name);
@@ -40,6 +40,8 @@ function getId(name)
     return id;
 }
 
+// Split a function into mangled and unmangled parts and return the ID for the
+// function.
 function functionId(name)
 {
     const [mangled, unmangled] = splitFunction(name);
@@ -108,11 +110,11 @@ function processBody(functionName, body)
     if (!('PEdge' in body))
         return;
 
-
     for (var tag of getAnnotations(functionName, body).values()) {
-        print("T " + functionId(functionName) + " " + tag);
+        const id = functionId(functionName);
+        print(`T ${id} ${tag}`);
         if (tag == "Calls JSNatives")
-            JSNativeCaller[functionName] = true;
+            printOnce(`D ${id} ${functionId("(js-code)")}`);
     }
 
     // Set of all callees that have been output so far, in order to suppress
@@ -130,23 +132,23 @@ function processBody(functionName, body)
         if (edge.Kind != "Call")
             continue;
 
-        // The limits (eg LIMIT_CANNOT_GC) are determined by whatever RAII
+        // The attrs (eg ATTR_GC_SUPPRESSED) are determined by whatever RAII
         // scopes might be active, which have been computed previously for all
         // points in the body.
-        var edgeLimited = body.limits[edge.Index[0]] | 0;
+        var edgeAttrs = body.attrs[edge.Index[0]] | 0;
 
         for (var callee of getCallees(edge)) {
-            // Individual callees may have additional limits. The only such
-            // limit currently is that nsISupports.{AddRef,Release} are assumed
+            // Individual callees may have additional attrs. The only such
+            // bit currently is that nsISupports.{AddRef,Release} are assumed
             // to never GC.
-            const limits = edgeLimited | callee.limits;
-            let prologue = limits ? `/${limits} ` : "";
+            const attrs = edgeAttrs | callee.attrs;
+            let prologue = attrs ? `/${attrs} ` : "";
             prologue += functionId(functionName) + " ";
             if (callee.kind == 'direct') {
-                const prev_limits = seen.has(callee.name) ? seen.get(callee.name) : LIMIT_UNVISITED;
-                if (prev_limits & ~limits) {
+                const prev_attrs = seen.has(callee.name) ? seen.get(callee.name) : ATTRS_UNVISITED;
+                if (prev_attrs & ~attrs) {
                     // Only output an edge if it loosens a limit.
-                    seen.set(callee.name, prev_limits & limits);
+                    seen.set(callee.name, prev_attrs & attrs);
                     printOnce("D " + prologue + functionId(callee.name));
                 }
             } else if (callee.kind == 'field') {
@@ -156,9 +158,9 @@ function processBody(functionName, body)
                 printOnce(`${tag} ${prologue}${getId(fullfield)} CLASS ${csu} FIELD ${field}`);
             } else if (callee.kind == 'resolved-field') {
                 // Fully-resolved field (virtual method) call. Record the
-                // callgraph edges. Do not consider limits, since they are
-                // local to this callsite and we are writing out a global
-                // record here.
+                // callgraph edges. Do not consider attrs, since they are local
+                // to this callsite and we are writing out a global record
+                // here.
                 //
                 // Any field call that does *not* have an R entry must be
                 // assumed to call anything.
@@ -181,9 +183,70 @@ function processBody(functionName, body)
     }
 }
 
+// Reserve IDs for special function names.
+
+// represents anything that can run JS
+assert(ID.jscode == functionId("(js-code)"));
+
+// function pointers will get an edge to this in loadCallgraph.js; only the ID
+// reservation is present in callgraph.txt
+assert(ID.anyfunc == functionId("(any-function)"));
+
+// same as above, but for fields annotated to never GC
+assert(ID.nogcfunc == functionId("(nogc-function)"));
+
+// garbage collection
+assert(ID.gc == functionId("(GC)"));
+
 var typeInfo = loadTypeInfo(typeInfo_filename);
 
 loadTypes("src_comp.xdb");
+
+// Output call edges for all virtual methods defined anywhere, from
+// Class.methodname to what a (dynamic) instance of Class would run when
+// methodname was called (either Class::methodname() if defined, or some
+// Base::methodname() for inherited method definitions).
+for (const [fieldkey, methods] of virtualDefinitions) {
+    const caller = getId(fieldkey);
+    for (const name of methods) {
+        const callee = functionId(name);
+        printOnce(`D ${caller} ${callee}`);
+    }
+}
+
+function ancestorClassesAndSelf(C) {
+    const ancestors = [C];
+    for (const base of (superclasses.get(C) || []))
+        ancestors.push(...ancestorClassesAndSelf(base));
+    return ancestors;
+}
+
+function isOverridable(C, field) {
+    for (const A of ancestorClassesAndSelf(C)) {
+        if (isOverridableField(C, A, field))
+            return true;
+    }
+    return false;
+}
+
+// Output call edges from C.methodname -> S.methodname for all subclasses S of
+// class C. This is for when you are calling methodname on a pointer/ref of
+// dynamic type C, so that the callgraph contains calls to all descendant
+// subclasses' implementations.
+for (const [csu, methods] of virtualDeclarations) {
+    for (const {field, dtor} of methods) {
+        const caller = getId(fieldKey(csu, field));
+        if (isOverridable(csu, field.Name[0]))
+            printOnce(`D ${caller} ${functionId("(js-code)")}`);
+        if (dtor)
+            printOnce(`D ${caller} ${functionId(dtor)}`);
+        if (!subclasses.has(csu))
+            continue;
+        for (const sub of subclasses.get(csu)) {
+            printOnce(`D ${caller} ${getId(fieldKey(sub, field))}`);
+        }
+    }
+}
 
 var xdb = xdbLibrary();
 xdb.open("src_body.xdb");
@@ -205,16 +268,22 @@ if (theFunctionNameToFind) {
 function process(functionName, functionBodies)
 {
     for (var body of functionBodies)
-        body.limits = [];
+        body.attrs = [];
 
     for (var body of functionBodies) {
-        for (var [pbody, id, limits] of allRAIIGuardedCallPoints(typeInfo, functionBodies, body, isLimitConstructor)) {
-            pbody.limits[id] = limits;
+        for (var [pbody, id, attrs] of allRAIIGuardedCallPoints(typeInfo, functionBodies, body, isLimitConstructor)) {
+            pbody.attrs[id] = attrs;
         }
     }
 
     for (var body of functionBodies)
         processBody(functionName, body);
+
+    // Not strictly necessary, but add an edge from the synthetic "(js-code)"
+    // to RunScript to allow better stacks than just randomly selecting a
+    // JSNative to blame things on.
+    if (functionName.includes("js::RunScript"))
+        print(`D ${functionId("(js-code)")} ${functionId(functionName)}`);
 
     // GCC generates multiple constructors and destructors ("in-charge" and
     // "not-in-charge") to handle virtual base classes. They are normally
@@ -318,25 +387,18 @@ function process(functionName, functionBodies)
     }
 
     if (isJSNative(mangled))
-        JSNatives.push(functionName);
+        printOnce(`D ${functionId("(js-code)")} ${functionId(functionName)}`);
 }
 
-function postprocess_callgraph() {
-    for (const caller of Object.keys(JSNativeCaller)) {
-        const caller_id = functionId(caller);
-        for (const callee of JSNatives)
-            printOnce(`D ${caller_id} ${functionId(callee)}`);
-    }
-}
+var start = batchStart(batch, numBatches, minStream, maxStream);
+var end = batchLast(batch, numBatches, minStream, maxStream);
 
-for (var nameIndex = minStream; nameIndex <= maxStream; nameIndex++) {
+for (var nameIndex = start; nameIndex <= end; nameIndex++) {
     var name = xdb.read_key(nameIndex);
     var data = xdb.read_entry(name);
     process(name.readString(), JSON.parse(data.readString()));
     xdb.free_string(name);
     xdb.free_string(data);
 }
-
-postprocess_callgraph();
 
 os.file.close(os.file.redirect(origOut));

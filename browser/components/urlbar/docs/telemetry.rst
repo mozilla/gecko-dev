@@ -536,14 +536,59 @@ contextservices.quicksuggest
 
     - Category: ``contextservices.quicksuggest``
     - Method: ``opt_in_dialog``
-    - Objects: ``accept``, ``settings``, ``learn_more``, ``not_now`` --
+    - Objects: ``accept``, ``dismissed_escape_key``, ``dismissed_other``,
+      ``learn_more``, ``not_now_link``, ``settings`` --
       ``accept`` is recorded when the user accepts the dialog and opts in,
       ``settings`` is recorded when the user clicks in the "Customize" button
-      (the user remains opted out in this case), ``learn_more`` is recorded when
-      the user clicks "Learn more" (the user remains opted out), ``not_now`` is
-      recorded when the user clicks "Not now" (the user remains opted out)
+      (the user remains opted out in this case),
+      ``learn_more`` is recorded when the user clicks "Learn more" (the user
+      remains opted out),
+      ``not_now_link`` is recorded when the user clicks "Not now" (the user
+      remains opted out),
+      ``dismissed_escape_key`` is recorded when the user dismisses the dialog by
+      pressing the Escape key (the user remains opted out),
+      ``dismissed_other`` is recorded when the dialog is dismissed in some other
+      unknown way, for example when the dialog is replaced with another higher
+      priority dialog like the one shown when quitting the app (the user remains
+      opted out).
+      Note: In older versions of Firefox, ``not_now_link``,
+      ``dismissed_escape_key``, ``dismissed_other`` did not exist; instead, all
+      three of these cases were represented by a single ``not_now`` object.
     - Value: Not used
     - Extra: Not used
+
+Telemetry Environment
+  The following preferences relevant to the address bar are recorded in
+  :doc:`telemetry environment data </toolkit/components/telemetry/data/environment>`:
+
+    - ``browser.search.suggest.enabled``: The global toggle for search
+      suggestions everywhere in Firefox (search bar, urlbar, etc.). Defaults to
+      true.
+    - ``browser.urlbar.quicksuggest.onboardingDialogChoice``: The user's choice
+      in the Firefox Suggest onboarding dialog. If the dialog was shown multiple
+      times, this records the user's most recent choice. Values are the
+      following.
+      Empty string: The user has not made a choice (e.g., because the
+      dialog hasn't been shown).
+      ``accept``: The user accepted the dialog and opted in.
+      ``settings``: The user clicked in the "Customize" button (the user remains
+      opted out in this case).
+      ``learn_more``: The user clicked "Learn more" (the user remains opted
+      out).
+      ``not_now_link``: The user clicked "Not now" (the user remains opted
+      out).
+      ``dismissed_escape_key``: The user dismissed the dialog by pressing the
+      Escape key (the user remains opted out).
+      ``dismissed_other``: The dialog was dismissed in some other unknown way,
+      for example when the dialog is replaced with another higher priority
+      dialog like the one shown when quitting the app (the user remains opted
+      out).
+    - ``browser.urlbar.suggest.quicksuggest``: True if Firefox Suggest
+      suggestions in general are enabled in the urlbar.
+    - ``browser.urlbar.suggest.quicksuggest.sponsored``: True if sponsored
+      Firefox Suggest suggestions in particular are enabled in the urlbar.
+    - ``browser.urlbar.suggest.searches``: True if search suggestions are
+      enabled in the urlbar. Defaults to false.
 
 Obsolete probes
 ---------------
@@ -553,11 +598,11 @@ Obsolete histograms
 
 FX_URLBAR_SELECTED_RESULT_INDEX (OBSOLETE)
   This probe tracked the indexes of picked results in the results list.
-  It was an enumerated histogram with 17 buckets.
+  It was an enumerated histogram with 17 groups.
 
 FX_URLBAR_SELECTED_RESULT_TYPE and FX_URLBAR_SELECTED_RESULT_TYPE_2 (from Firefox 78 on) (OBSOLETE)
   This probe tracked the types of picked results.
-  It was an enumerated histogram with 17 buckets:
+  It was an enumerated histogram with 17 groups:
 
     0. autofill
     1. bookmark

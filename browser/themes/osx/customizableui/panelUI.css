@@ -30,7 +30,8 @@ panel[type="arrow"][side="right"] {
 #customizationui-widget-panel,
 #identity-popup,
 #permission-popup,
-#protections-popup {
+#protections-popup,
+#appMenu-notification-popup {
   margin-top: -1px; /* Overrides value from panelUI.inc.css */
 }
 
@@ -90,11 +91,11 @@ menu.subviewbutton > .menu-right {
 }
 
 .panel-button@buttonStateHover@ {
-  background-color: var(--arrowpanel-dimmed-further);
+  background-color: var(--panel-item-hover-bgcolor);
 }
 
 .panel-button@buttonStateActive@ {
-  background-color: var(--arrowpanel-dimmed-even-further);
+  background-color: var(--panel-item-active-bgcolor);
 }
 
 .panel-button:-moz-focusring {

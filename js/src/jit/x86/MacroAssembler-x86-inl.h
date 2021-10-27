@@ -679,6 +679,18 @@ void MacroAssembler::popcnt64(Register64 src, Register64 dest, Register tmp) {
 // ===============================================================
 // Condition functions
 
+void MacroAssembler::cmp64Set(Condition cond, Address lhs, Imm64 rhs,
+                              Register dest) {
+  Label success, done;
+
+  branch64(cond, lhs, rhs, &success);
+  move32(Imm32(0), dest);
+  jump(&done);
+  bind(&success);
+  move32(Imm32(1), dest);
+  bind(&done);
+}
+
 template <typename T1, typename T2>
 void MacroAssembler::cmpPtrSet(Condition cond, T1 lhs, T2 rhs, Register dest) {
   cmpPtr(lhs, rhs);
@@ -948,6 +960,12 @@ void MacroAssembler::branchTruncateDoubleToInt32(FloatRegister src,
   // smaller immediate field).
   cmp32(dest, Imm32(1));
   j(Assembler::Overflow, fail);
+}
+
+void MacroAssembler::branchAdd64(Condition cond, Imm64 imm, Register64 dest,
+                                 Label* label) {
+  add64(imm, dest);
+  j(cond, label);
 }
 
 void MacroAssembler::branchTest32(Condition cond, const AbsoluteAddress& lhs,

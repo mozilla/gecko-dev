@@ -44,6 +44,7 @@ class HTMLImageMapAccessible;
 class HTMLLIAccessible;
 class HTMLLinkAccessible;
 class HyperTextAccessible;
+class HyperTextAccessibleBase;
 class ImageAccessible;
 class KeyBinding;
 class OuterDocAccessible;
@@ -78,24 +79,6 @@ struct GroupPos {
   int32_t level;
   int32_t posInSet;
   int32_t setSize;
-};
-
-/**
- * An index type. Assert if out of range value was attempted to be used.
- */
-class index_t {
- public:
-  MOZ_IMPLICIT index_t(int32_t aVal) : mVal(aVal) {}
-
-  operator uint32_t() const {
-    MOZ_ASSERT(mVal >= 0, "Attempt to use wrong index!");
-    return mVal;
-  }
-
-  bool IsValid() const { return mVal >= 0; }
-
- private:
-  int32_t mVal;
 };
 
 typedef nsRefPtrHashtable<nsPtrHashKey<const void>, LocalAccessible>
@@ -418,7 +401,7 @@ class LocalAccessible : public nsISupports, public Accessible {
   /**
    * Return embedded accessible child at the given index.
    */
-  LocalAccessible* GetEmbeddedChildAt(uint32_t aIndex);
+  virtual LocalAccessible* EmbeddedChildAt(uint32_t aIndex) override;
 
   /**
    * Return index of the given embedded accessible child.
@@ -457,18 +440,8 @@ class LocalAccessible : public nsISupports, public Accessible {
            !aEl->IsAnyOfHTMLElements(nsGkAtoms::option, nsGkAtoms::optgroup);
   }
 
-  /**
-   * Returns text of accessible if accessible has text role otherwise empty
-   * string.
-   *
-   * @param aText         [in] returned text of the accessible
-   * @param aStartOffset  [in, optional] start offset inside of the accessible,
-   *                        if missed entire text is appended
-   * @param aLength       [in, optional] required length of text, if missed
-   *                        then text form start offset till the end is appended
-   */
   virtual void AppendTextTo(nsAString& aText, uint32_t aStartOffset = 0,
-                            uint32_t aLength = UINT32_MAX);
+                            uint32_t aLength = UINT32_MAX) override;
 
   /**
    * Return boundaries in screen coordinates in app units.
@@ -478,7 +451,7 @@ class LocalAccessible : public nsISupports, public Accessible {
   /**
    * Return boundaries in screen coordinates.
    */
-  virtual nsIntRect Bounds() const;
+  virtual nsIntRect Bounds() const override;
 
   /**
    * Return boundaries in screen coordinates in CSS pixels.
@@ -489,6 +462,11 @@ class LocalAccessible : public nsISupports, public Accessible {
    * Return boundaries rect relative the bounding frame.
    */
   virtual nsRect RelativeBounds(nsIFrame** aRelativeFrame) const;
+
+  /**
+   * Return boundaries rect relative to the frame of the parent accessible.
+   */
+  virtual nsRect ParentRelativeBounds();
 
   /**
    * Selects the accessible within its container if applicable.
@@ -534,6 +512,7 @@ class LocalAccessible : public nsISupports, public Accessible {
   DocAccessible* AsDoc();
 
   HyperTextAccessible* AsHyperText();
+  virtual HyperTextAccessibleBase* AsHyperTextBase() override;
 
   HTMLLIAccessible* AsHTMLListItem();
 
@@ -877,12 +856,6 @@ class LocalAccessible : public nsISupports, public Accessible {
 
   void Announce(const nsAString& aAnnouncement, uint16_t aPriority);
 
-  /**
-   * Fire a focusable state change event if the previous state
-   * was different.
-   */
-  void MaybeFireFocusableStateChange(bool aPreviouslyFocusable);
-
   virtual bool IsRemote() const override { return false; }
 
   already_AddRefed<AccAttributes> BundleFieldsForCache(
@@ -914,7 +887,7 @@ class LocalAccessible : public nsISupports, public Accessible {
    * This is used to capture the state before the attribute change and compare
    * it with the state after.
    */
-  bool AttributeChangesState(nsAtom* aAttribute);
+  virtual bool AttributeChangesState(nsAtom* aAttribute);
 
   /**
    * Notify accessible that a DOM attribute on its associated content has
@@ -1085,6 +1058,7 @@ class LocalAccessible : public nsISupports, public Accessible {
   LocalAccessible* mParent;
   nsTArray<LocalAccessible*> mChildren;
   int32_t mIndexInParent;
+  Maybe<nsRect> mBounds;
 
   static const uint8_t kStateFlagsBits = 11;
   static const uint8_t kContextFlagsBits = 3;

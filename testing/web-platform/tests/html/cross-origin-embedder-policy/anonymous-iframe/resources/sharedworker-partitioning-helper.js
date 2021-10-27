@@ -9,10 +9,11 @@ onconnect = function(e) {
 
     if (action === 'record') {
       messages[from] = true;
+      port.postMessage({ack: from});
     }
 
     if (action === 'retrieve') {
-      port.postMessage(messages);
+      port.postMessage({ack: from, messages: messages});
     }
   });
 

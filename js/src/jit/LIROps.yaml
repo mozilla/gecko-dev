@@ -320,6 +320,31 @@
     object: WordSized
   mir_op: TypeOf
 
+- name: TypeOfName
+  result_type: WordSized
+  operands:
+    input: WordSized
+  mir_op: true
+
+- name: TypeOfIsNonPrimitiveV
+  result_type: WordSized
+  operands:
+    input: BoxedValue
+  num_temps: 1
+  mir_op: TypeOfIs
+
+- name: TypeOfIsNonPrimitiveO
+  result_type: WordSized
+  operands:
+    input: WordSized
+  mir_op: TypeOfIs
+
+- name: TypeOfIsPrimitive
+  result_type: WordSized
+  operands:
+    input: BoxedValue
+  mir_op: TypeOfIs
+
 - name: ToAsyncIter
   result_type: WordSized
   operands:
@@ -574,6 +599,14 @@
   operands:
     left: WordSized
     right: WordSized
+  mir_op: Compare
+
+- name: CompareSInline
+  result_type: WordSized
+  operands:
+    input: WordSized
+  arguments:
+    constant: JSLinearString*
   mir_op: Compare
 
 - name: CompareBigInt
@@ -2517,6 +2550,12 @@
     base: WordSized
   mir_op: true
 
+- name: WasmAddOffset64
+  result_type: Int64
+  operands:
+    base: Int64
+  mir_op: WasmAddOffset
+
 - name: WasmBoundsCheck
   result_type: WordSized
   operands:
@@ -2544,11 +2583,22 @@
     ptr: WordSized
   mir_op: true
 
+- name: WasmAlignmentCheck64
+  operands:
+    ptr: Int64
+  mir_op: WasmAlignmentCheck
+
 - name: WasmLoadTls
   result_type: WordSized
   operands:
     tlsPtr: WordSized
   mir_op: true
+
+- name: WasmLoadTls64
+  result_type: Int64
+  operands:
+    tlsPtr: WordSized
+  mir_op: WasmLoadTls
 
 - name: WasmHeapBase
   result_type: WordSized
@@ -2730,6 +2780,11 @@
   mir_op: true
 
 - name: GuardNullOrUndefined
+  operands:
+    input: BoxedValue
+  mir_op: true
+
+- name: GuardIsNotObject
   operands:
     input: BoxedValue
   mir_op: true

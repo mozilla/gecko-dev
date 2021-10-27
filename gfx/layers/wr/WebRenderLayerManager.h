@@ -23,12 +23,12 @@
 #include "mozilla/layers/CompositorTypes.h"   // for TextureFactoryIdentifier
 #include "mozilla/layers/DisplayItemCache.h"  // for DisplayItemCache
 #include "mozilla/layers/FocusTarget.h"       // for FocusTarget
-#include "mozilla/layers/LayerManager.h"  // for DidCompositeObserver (ptr only), LayerManager::END_DEFAULT, LayerManager::En...
 #include "mozilla/layers/LayersTypes.h"  // for TransactionId, LayersBackend, CompositionPayload (ptr only), LayersBackend::...
 #include "mozilla/layers/RenderRootStateManager.h"  // for RenderRootStateManager
 #include "mozilla/layers/ScrollableLayerGuid.h"  // for ScrollableLayerGuid, ScrollableLayerGuid::ViewID
 #include "mozilla/layers/WebRenderCommandBuilder.h"  // for WebRenderCommandBuilder
 #include "mozilla/layers/WebRenderScrollData.h"      // for WebRenderScrollData
+#include "WindowRenderer.h"
 #include "nsHashKeys.h"                              // for nsRefPtrHashKey
 #include "nsRegion.h"                                // for nsIntRegion
 #include "nsStringFwd.h"                             // for nsCString, nsAString
@@ -52,6 +52,8 @@ class Layer;
 class PCompositorBridgeChild;
 class WebRenderBridgeChild;
 class WebRenderParentCommand;
+class TransactionIdAllocator;
+class LayerUserData;
 
 class WebRenderLayerManager final : public WindowRenderer {
   typedef nsTArray<RefPtr<Layer>> LayerRefArray;
@@ -99,7 +101,7 @@ class WebRenderLayerManager final : public WindowRenderer {
                     const mozilla::TimeStamp& aCompositeStart,
                     const mozilla::TimeStamp& aCompositeEnd);
 
-  void ClearCachedResources(Layer* aSubtree = nullptr);
+  void ClearCachedResources();
   void UpdateTextureFactoryIdentifier(
       const TextureFactoryIdentifier& aNewIdentifier);
   TextureFactoryIdentifier GetTextureFactoryIdentifier();
@@ -107,15 +109,12 @@ class WebRenderLayerManager final : public WindowRenderer {
   void SetTransactionIdAllocator(TransactionIdAllocator* aAllocator);
   TransactionId GetLastTransactionId();
 
-  void AddDidCompositeObserver(DidCompositeObserver* aObserver);
-  void RemoveDidCompositeObserver(DidCompositeObserver* aObserver);
-
-  void FlushRendering() override;
+  void FlushRendering(wr::RenderReasons aReasons) override;
   void WaitOnTransactionProcessed() override;
 
   void SendInvalidRegion(const nsIntRegion& aRegion);
 
-  void ScheduleComposite();
+  void ScheduleComposite(wr::RenderReasons aReasons);
 
   void SetNeedsComposite(bool aNeedsComposite) {
     mNeedsComposite = aNeedsComposite;
@@ -227,8 +226,6 @@ class WebRenderLayerManager final : public WindowRenderer {
 
   RefPtr<TransactionIdAllocator> mTransactionIdAllocator;
   TransactionId mLatestTransactionId;
-
-  nsTArray<DidCompositeObserver*> mDidCompositeObservers;
 
   gfx::UserData mUserData;
 

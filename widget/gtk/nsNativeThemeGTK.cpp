@@ -49,9 +49,6 @@
 #  ifdef CAIRO_HAS_XLIB_SURFACE
 #    include "cairo-xlib.h"
 #  endif
-#  ifdef CAIRO_HAS_XLIB_XRENDER_SURFACE
-#    include "cairo-xlib-xrender.h"
-#  endif
 #endif
 
 #include <algorithm>
@@ -71,7 +68,7 @@ static inline gint GetMonitorScaleFactor(nsPresContext* aPresContext) {
   // the real monitor scale cannot go under 1.
   double scale = StaticPrefs::layout_css_devPixelsPerPx();
   if (scale <= 0) {
-    if (nsIWidget* rootWidget = aPresContext->GetRootWidget()) {
+    if (nsCOMPtr<nsIWidget> rootWidget = aPresContext->GetRootWidget()) {
       // We need to use GetDefaultScale() despite it returns monitor scale
       // factor multiplied by font scale factor because it is the only scale
       // updated in nsPuppetWidget.
@@ -847,21 +844,9 @@ static void DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
     BorrowedXlibDrawable borrow(aDrawTarget);
     if (borrow.GetDrawable()) {
       nsIntSize size = borrow.GetSize();
-      cairo_surface_t* surf = nullptr;
-      // Check if the surface is using XRender.
-#  ifdef CAIRO_HAS_XLIB_XRENDER_SURFACE
-      if (borrow.GetXRenderFormat()) {
-        surf = cairo_xlib_surface_create_with_xrender_format(
-            borrow.GetDisplay(), borrow.GetDrawable(), borrow.GetScreen(),
-            borrow.GetXRenderFormat(), size.width, size.height);
-      } else {
-#  else
-      if (!borrow.GetXRenderFormat()) {
-#  endif
-        surf = cairo_xlib_surface_create(
-            borrow.GetDisplay(), borrow.GetDrawable(), borrow.GetVisual(),
-            size.width, size.height);
-      }
+      cairo_surface_t* surf = cairo_xlib_surface_create(
+          borrow.GetDisplay(), borrow.GetDrawable(), borrow.GetVisual(),
+          size.width, size.height);
       if (!NS_WARN_IF(!surf)) {
         Point offset = borrow.GetOffset();
         if (offset != Point()) {
@@ -1063,7 +1048,7 @@ nsNativeThemeGTK::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
                                        const nsRect& aRect,
                                        const nsRect& aDirtyRect,
                                        DrawOverflow aDrawOverflow) {
-  if (IsNonNativeWidgetType(aAppearance)) {
+  if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
     return nsNativeBasicThemeGTK::DrawWidgetBackground(
         aContext, aFrame, aAppearance, aRect, aDirtyRect, aDrawOverflow);
   }
@@ -1192,7 +1177,7 @@ bool nsNativeThemeGTK::CreateWebRenderCommandsForWidget(
     const mozilla::layers::StackingContextHelper& aSc,
     mozilla::layers::RenderRootStateManager* aManager, nsIFrame* aFrame,
     StyleAppearance aAppearance, const nsRect& aRect) {
-  if (IsNonNativeWidgetType(aAppearance)) {
+  if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
     return nsNativeBasicThemeGTK::CreateWebRenderCommandsForWidget(
         aBuilder, aResources, aSc, aManager, aFrame, aAppearance, aRect);
   }
@@ -1403,7 +1388,7 @@ bool nsNativeThemeGTK::GetWidgetOverflow(nsDeviceContext* aContext,
                                          nsIFrame* aFrame,
                                          StyleAppearance aAppearance,
                                          nsRect* aOverflowRect) {
-  if (IsNonNativeWidgetType(aAppearance)) {
+  if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
     return nsNativeBasicThemeGTK::GetWidgetOverflow(aContext, aFrame,
                                                     aAppearance, aOverflowRect);
   }
@@ -1423,9 +1408,23 @@ bool nsNativeThemeGTK::GetWidgetOverflow(nsDeviceContext* aContext,
   return true;
 }
 
-bool nsNativeThemeGTK::IsNonNativeWidgetType(StyleAppearance aAppearance) {
-  return StaticPrefs::widget_non_native_theme_enabled() &&
-         IsWidgetScrollbarPart(aAppearance);
+auto nsNativeThemeGTK::IsWidgetNonNative(nsIFrame* aFrame,
+                                         StyleAppearance aAppearance)
+    -> NonNative {
+  if (!StaticPrefs::widget_non_native_theme_enabled()) {
+    return NonNative::No;
+  }
+  if (IsWidgetScrollbarPart(aAppearance)) {
+    return NonNative::Always;
+  }
+  // We can't draw light widgets if the current GTK theme is dark or vice versa.
+  if (nsNativeBasicThemeGTK::ThemeSupportsWidget(aFrame->PresContext(), aFrame,
+                                                 aAppearance) &&
+      LookAndFeel::ColorSchemeForFrame(aFrame) !=
+          LookAndFeel::ColorSchemeForChrome()) {
+    return NonNative::BecauseColorMismatch;
+  }
+  return NonNative::No;
 }
 
 NS_IMETHODIMP
@@ -1434,7 +1433,7 @@ nsNativeThemeGTK::GetMinimumWidgetSize(nsPresContext* aPresContext,
                                        StyleAppearance aAppearance,
                                        LayoutDeviceIntSize* aResult,
                                        bool* aIsOverridable) {
-  if (IsNonNativeWidgetType(aAppearance)) {
+  if (IsWidgetNonNative(aFrame, aAppearance) == NonNative::Always) {
     return nsNativeBasicThemeGTK::GetMinimumWidgetSize(
         aPresContext, aFrame, aAppearance, aResult, aIsOverridable);
   }
@@ -1683,7 +1682,7 @@ nsNativeThemeGTK::WidgetStateChanged(nsIFrame* aFrame,
                                      const nsAttrValue* aOldValue) {
   *aShouldRepaint = false;
 
-  if (IsNonNativeWidgetType(aAppearance)) {
+  if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
     return nsNativeBasicThemeGTK::WidgetStateChanged(
         aFrame, aAppearance, aAttribute, aShouldRepaint, aOldValue);
   }
@@ -1794,7 +1793,7 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
     return false;
   }
 
-  if (IsNonNativeWidgetType(aAppearance)) {
+  if (IsWidgetNonNative(aFrame, aAppearance) == NonNative::Always) {
     return nsNativeBasicThemeGTK::ThemeSupportsWidget(aPresContext, aFrame,
                                                       aAppearance);
   }
@@ -1946,7 +1945,7 @@ bool nsNativeThemeGTK::ThemeNeedsComboboxDropmarker() { return false; }
 
 nsITheme::Transparency nsNativeThemeGTK::GetWidgetTransparency(
     nsIFrame* aFrame, StyleAppearance aAppearance) {
-  if (IsNonNativeWidgetType(aAppearance)) {
+  if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
     return nsNativeBasicThemeGTK::GetWidgetTransparency(aFrame, aAppearance);
   }
 

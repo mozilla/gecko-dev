@@ -90,9 +90,6 @@ if (AppConstants.NIGHTLY_BUILD) {
 // referencing the whitelisted file in a way that the test can't detect, or a
 // bug number to remove or use the file if it is indeed currently unreferenced.
 var whitelist = [
-  // pocket/content/panels/tmpl/loggedoutvariants/variant_a.handlebars
-  { file: "chrome://pocket/content/panels/img/glyph.svg" },
-
   // toolkit/components/pdfjs/content/PdfStreamConverter.jsm
   { file: "chrome://pdf.js/locale/chrome.properties" },
   { file: "chrome://pdf.js/locale/viewer.properties" },
@@ -210,8 +207,6 @@ var whitelist = [
   { file: "resource://gre/modules/Manifest.jsm" },
   // Bug 1356045
   { file: "chrome://global/content/test-ipc.xhtml" },
-  // Bug 1378173 (warning: still used by devtools)
-  { file: "resource://gre/modules/Promise.jsm" },
   // Bug 1494170
   // (The references to these files are dynamically generated, so the test can't
   // find the references)
@@ -472,6 +467,12 @@ async function parseJsonManifest(uri) {
     return uri;
   }
 
+  if (data.background?.scripts) {
+    for (let bgscript of data.background.scripts) {
+      gReferencesFromCode.set(uri.resolve(bgscript), null);
+    }
+  }
+
   if (data.icons) {
     for (let icon of Object.values(data.icons)) {
       gReferencesFromCode.set(uri.resolve(icon), null);
@@ -483,6 +484,10 @@ async function parseJsonManifest(uri) {
       if (api.parent && api.parent.script) {
         let script = uri.resolve(api.parent.script);
         gReferencesFromCode.set(script, null);
+      }
+
+      if (api.schema) {
+        gReferencesFromCode.set(uri.resolve(api.schema), null);
       }
     }
   }

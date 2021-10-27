@@ -14,13 +14,14 @@
 #include "nsStyleConsts.h"
 #include "nsUXThemeConstants.h"
 #include "nsUXThemeData.h"
+#include "nsNativeBasicThemeWin.h"
 #include "gfxTypes.h"
 #include <windows.h>
 #include "mozilla/Maybe.h"
 #include "mozilla/TimeStamp.h"
 #include "nsSize.h"
 
-class nsNativeThemeWin : private nsNativeTheme, public nsITheme {
+class nsNativeThemeWin : public nsNativeBasicThemeWin {
   virtual ~nsNativeThemeWin();
 
  public:
@@ -29,11 +30,28 @@ class nsNativeThemeWin : private nsNativeTheme, public nsITheme {
 
   NS_DECL_ISUPPORTS_INHERITED
 
+  // Whether we draw a non-native widget.
+  //
+  // We draw widgets as non-native when their color-scheme is dark, since win32
+  // classic APIs don't allow us to draw dark form controls.
+  //
+  // We don't call into the non-native theme for sizing information
+  // (GetWidgetPadding/Border and GetMinimumWidgetSize), to avoid subtle sizing
+  // changes. The non-native theme can basically draw at any size, so we prefer
+  // to have consistent sizing information with the native theme.
+  bool IsWidgetNonNative(nsIFrame*, StyleAppearance);
+
   // The nsITheme interface.
   NS_IMETHOD DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
                                   StyleAppearance aAppearance,
                                   const nsRect& aRect, const nsRect& aDirtyRect,
                                   DrawOverflow) override;
+
+  bool CreateWebRenderCommandsForWidget(
+      mozilla::wr::DisplayListBuilder&, mozilla::wr::IpcResourceUpdateQueue&,
+      const mozilla::layers::StackingContextHelper&,
+      mozilla::layers::RenderRootStateManager*, nsIFrame*, StyleAppearance,
+      const nsRect&) override;
 
   [[nodiscard]] LayoutDeviceIntMargin GetWidgetBorder(
       nsDeviceContext* aContext, nsIFrame* aFrame,

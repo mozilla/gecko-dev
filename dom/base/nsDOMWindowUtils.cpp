@@ -125,6 +125,8 @@
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/ViewportUtils.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
+#include "mozilla/IMEStateManager.h"
+#include "mozilla/IMEContentObserver.h"
 
 #ifdef XP_WIN
 #  undef GetClassName
@@ -1292,14 +1294,14 @@ nsDOMWindowUtils::GarbageCollect(nsICycleCollectorListener* aListener) {
   AUTO_PROFILER_LABEL("nsDOMWindowUtils::GarbageCollect", GCCC);
 
   nsJSContext::GarbageCollectNow(JS::GCReason::DOM_UTILS);
-  nsJSContext::CycleCollectNow(aListener);
+  nsJSContext::CycleCollectNow(CCReason::API, aListener);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMWindowUtils::CycleCollect(nsICycleCollectorListener* aListener) {
-  nsJSContext::CycleCollectNow(aListener);
+  nsJSContext::CycleCollectNow(CCReason::API, aListener);
   return NS_OK;
 }
 
@@ -1871,6 +1873,46 @@ nsDOMWindowUtils::ToScreenRect(float aX, float aY, float aWidth, float aHeight,
 }
 
 NS_IMETHODIMP
+nsDOMWindowUtils::ConvertFromParentProcessWidgetToLocal(float aX, float aY,
+                                                        float aWidth,
+                                                        float aHeight,
+                                                        DOMRect** aResult) {
+  if (!XRE_IsContentProcess()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
+  if (!window) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (!widget) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  LayoutDeviceRect devPixelsRect = LayoutDeviceRect(aX, aY, aWidth, aHeight);
+
+  Maybe<LayoutDeviceToLayoutDeviceMatrix4x4> inverse =
+      widget->WidgetToTopLevelWidgetTransform().MaybeInverse();
+  if (inverse) {
+    Maybe<LayoutDeviceRect> rect =
+        UntransformBy(*inverse, devPixelsRect, LayoutDeviceRect::MaxIntRect());
+    if (rect) {
+      RefPtr<DOMRect> outRect = new DOMRect(mWindow);
+      outRect->SetRect(rect->x, rect->y, rect->width, rect->height);
+      outRect.forget(aResult);
+      return NS_OK;
+    }
+  }
+
+  RefPtr<DOMRect> outRect = new DOMRect(mWindow);
+  outRect->SetRect(0, 0, 0, 0);
+  outRect.forget(aResult);
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
 nsDOMWindowUtils::SetDynamicToolbarMaxHeight(uint32_t aHeightInScreen) {
   if (aHeightInScreen > INT32_MAX) {
     return NS_ERROR_INVALID_ARG;
@@ -2056,6 +2098,19 @@ nsDOMWindowUtils::GetInputContextOrigin(uint32_t* aOrigin) {
   MOZ_ASSERT(context.mOrigin == InputContext::Origin::ORIGIN_MAIN ||
              context.mOrigin == InputContext::Origin::ORIGIN_CONTENT);
   *aOrigin = static_cast<uint32_t>(context.mOrigin);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetNodeObservedByIMEContentObserver(nsINode** aNode) {
+  NS_ENSURE_ARG_POINTER(aNode);
+
+  IMEContentObserver* observer = IMEStateManager::GetActiveContentObserver();
+  if (!observer) {
+    *aNode = nullptr;
+    return NS_OK;
+  }
+  *aNode = do_AddRef(observer->GetObservingContent()).take();
   return NS_OK;
 }
 
@@ -4629,12 +4684,6 @@ nsDOMWindowUtils::GetLayersId(uint64_t* aOutLayersId) {
     return NS_ERROR_FAILURE;
   }
   *aOutLayersId = (uint64_t)child->GetLayersId();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::GetUsesOverlayScrollbars(bool* aResult) {
-  *aResult = Document::UseOverlayScrollbars(GetDocument());
   return NS_OK;
 }
 

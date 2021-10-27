@@ -8,19 +8,22 @@
 
 loadRelativeToScript('dumpCFG.js');
 
-// Limit inset bits - each call edge may carry a set of 'limit' bits, saying eg
+// Attribute bits - each call edge may carry a set of 'attrs' bits, saying eg
 // that the edge takes place within a scope where GC is suppressed, for
 // example.
-var LIMIT_NONE = 0;
-var LIMIT_CANNOT_GC = 1;
-var LIMIT_ALL = 1;
+var ATTR_GC_SUPPRESSED     = 1;
+var ATTR_CANSCRIPT_BOUNDED = 2; // Unimplemented
+var ATTR_DOM_ITERATING     = 4; // Unimplemented
+
+var ATTRS_NONE             = 0;
+var ATTRS_ALL              = 7; // All possible bits set
 
 // The traversal algorithms we run will recurse into children if you change any
-// limit bit to zero. Use all bits set to maximally limited, including
+// attrs bit to zero. Use all bits set to maximally attributed, including
 // additional bits that all just mean "unvisited", so that the first time we
-// see a node with this limit, we're guaranteed to turn at least one bit off
+// see a node with this attrs, we're guaranteed to turn at least one bit off
 // and thereby keep going.
-var LIMIT_UNVISITED = 0xffff;
+var ATTRS_UNVISITED = 0xffff;
 
 // gcc appends this to mangled function names for "not in charge"
 // constructors/destructors.
@@ -286,7 +289,56 @@ function addToKeyedList(collection, key, entry)
     return collection[key];
 }
 
+function addToMappedList(map, key, entry)
+{
+    if (!map.has(key))
+        map.set(key, []);
+    map.get(key).push(entry);
+    return map.get(key);
+}
+
 function loadTypeInfo(filename)
 {
     return JSON.parse(os.file.readFile(filename));
+}
+
+// Given the range `first` .. `last`, break it down into `count` batches and
+// return the start of the (1-based) `num` batch.
+function batchStart(num, count, first, last) {
+  const N = (last - first) + 1;
+  return Math.floor((num - 1) / count * N) + first;
+}
+
+// As above, but return the last value in the (1-based) `num` batch.
+function batchLast(num, count, first, last) {
+  const N = (last - first) + 1;
+  return Math.floor(num / count * N) + first - 1;
+}
+
+// Debugging tool. See usage below.
+function PropertyTracer(traced_prop, check) {
+    return {
+        matches(prop, value) {
+            if (prop != traced_prop)
+                return false;
+            if ('value' in check)
+                return value == check.value;
+            return true;
+        },
+
+        // Also called when defining a property.
+        set(obj, prop, value) {
+            if (this.matches(prop, value))
+                debugger;
+            return Reflect.set(...arguments);
+        },
+    };
+}
+
+// Usage: var myobj = traced({}, 'name', {value: 'Bob'})
+//
+// This will execute a `debugger;` statement when myobj['name'] is defined or
+// set to 'Bob'.
+function traced(obj, traced_prop, check) {
+  return new Proxy(obj, PropertyTracer(traced_prop, check));
 }

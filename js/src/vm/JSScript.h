@@ -124,6 +124,8 @@ class ScriptCounts {
 
   size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
+  bool traceWeak(JSTracer* trc) { return true; }
+
  private:
   friend class ::JSScript;
   friend struct ScriptAndCounts;
@@ -162,25 +164,28 @@ class ScriptCounts {
 // TODO: Clean this up by either aggregating coverage results in some other
 // way, or by tweaking sweep ordering.
 using UniqueScriptCounts = js::UniquePtr<ScriptCounts>;
-using ScriptCountsMap = HashMap<BaseScript*, UniqueScriptCounts,
-                                DefaultHasher<BaseScript*>, SystemAllocPolicy>;
+using ScriptCountsMap =
+    GCRekeyableHashMap<HeapPtr<BaseScript*>, UniqueScriptCounts,
+                       DefaultHasher<HeapPtr<BaseScript*>>, SystemAllocPolicy>;
 
 // The 'const char*' for the function name is a pointer within the LCovSource's
 // LifoAlloc and will be discarded at the same time.
 using ScriptLCovEntry = mozilla::Tuple<coverage::LCovSource*, const char*>;
-using ScriptLCovMap = HashMap<BaseScript*, ScriptLCovEntry,
-                              DefaultHasher<BaseScript*>, SystemAllocPolicy>;
+using ScriptLCovMap =
+    GCRekeyableHashMap<HeapPtr<BaseScript*>, ScriptLCovEntry,
+                       DefaultHasher<HeapPtr<BaseScript*>>, SystemAllocPolicy>;
 
 #ifdef MOZ_VTUNE
-using ScriptVTuneIdMap = HashMap<BaseScript*, uint32_t,
-                                 DefaultHasher<BaseScript*>, SystemAllocPolicy>;
+using ScriptVTuneIdMap =
+    GCRekeyableHashMap<HeapPtr<BaseScript*>, uint32_t,
+                       DefaultHasher<HeapPtr<BaseScript*>>, SystemAllocPolicy>;
 #endif
 #ifdef JS_CACHEIR_SPEW
 using ScriptFinalWarmUpCountEntry =
     mozilla::Tuple<uint32_t, SharedImmutableString>;
 using ScriptFinalWarmUpCountMap =
-    HashMap<BaseScript*, ScriptFinalWarmUpCountEntry,
-            DefaultHasher<BaseScript*>, SystemAllocPolicy>;
+    GCRekeyableHashMap<HeapPtr<BaseScript*>, ScriptFinalWarmUpCountEntry,
+                       DefaultHasher<HeapPtr<BaseScript*>>, SystemAllocPolicy>;
 #endif
 
 class ScriptSource;
@@ -575,9 +580,6 @@ class ScriptSource {
 
   // See: CompileOptions::mutedErrors.
   bool mutedErrors_ = false;
-
-  // Set to true if parser saw  asmjs directives.
-  bool containsAsmJS_ = false;
 
   //
   // End of fields.
@@ -1017,14 +1019,11 @@ class ScriptSource {
     introductionOffset_.emplace(offset);
   }
 
-  bool containsAsmJS() const { return containsAsmJS_; }
-  void setContainsAsmJS() { containsAsmJS_ = true; }
-
   // Return wether an XDR encoder is present or not.
   bool hasEncoder() const { return bool(xdrEncoder_); }
 
   [[nodiscard]] bool startIncrementalEncoding(
-      JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+      JSContext* cx,
       UniquePtr<frontend::ExtensibleCompilationStencil>&& initial);
 
   [[nodiscard]] bool addDelazificationToIncrementalEncoding(
@@ -1058,9 +1057,9 @@ class ScriptSource {
 
  public:
   template <XDRMode mode>
-  [[nodiscard]] static XDRResult XDR(
-      XDRState<mode>* xdr, const JS::ReadOnlyCompileOptions* maybeOptions,
-      RefPtr<ScriptSource>& source);
+  [[nodiscard]] static XDRResult XDR(XDRState<mode>* xdr,
+                                     const JS::DecodeOptions* maybeOptions,
+                                     RefPtr<ScriptSource>& source);
 };
 
 // [SMDOC] ScriptSourceObject
@@ -1079,7 +1078,7 @@ class ScriptSourceObject : public NativeObject {
   // Initialize those properties of this ScriptSourceObject whose values
   // are provided by |options|, re-wrapping as necessary.
   static bool initFromOptions(JSContext* cx, HandleScriptSourceObject source,
-                              const JS::ReadOnlyCompileOptions& options);
+                              const JS::InstantiateOptions& options);
 
   static bool initElementProperties(JSContext* cx,
                                     HandleScriptSourceObject source,
@@ -1416,13 +1415,11 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   // to interpreted-bytecode to JITs. See: ScriptWarmUpData type for more info.
   ScriptWarmUpData warmUpData_ = {};
 
-  // Object that determines what Realm this script is compiled for. For function
-  // scripts this is the canonical function, otherwise it is the GlobalObject of
-  // the realm.
-  const GCPtrObject functionOrGlobal_ = {};
+  // For function scripts this is the canonical function, otherwise nullptr.
+  const GCPtr<JSFunction*> function_ = {};
 
-  // The ScriptSourceObject for this script. This is always same-compartment
-  // with this script.
+  // The ScriptSourceObject for this script. This is always same-compartment and
+  // same-realm with this script.
   const GCPtr<ScriptSourceObject*> sourceObject_ = {};
 
   // Position of the function in the source buffer. Both in terms of line/column
@@ -1453,24 +1450,14 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
 
   // End of fields.
 
-  BaseScript(uint8_t* stubEntry, JSObject* functionOrGlobal,
+  BaseScript(uint8_t* stubEntry, JSFunction* function,
              ScriptSourceObject* sourceObject, const SourceExtent& extent,
-             uint32_t immutableFlags)
-      : TenuredCellWithNonGCPointer(stubEntry),
-        functionOrGlobal_(functionOrGlobal),
-        sourceObject_(sourceObject),
-        extent_(extent),
-        immutableFlags_(immutableFlags) {
-    MOZ_ASSERT(functionOrGlobal->compartment() == sourceObject->compartment());
-    MOZ_ASSERT(extent_.toStringStart <= extent_.sourceStart);
-    MOZ_ASSERT(extent_.sourceStart <= extent_.sourceEnd);
-    MOZ_ASSERT(extent_.sourceEnd <= extent_.toStringEnd);
-  }
+             uint32_t immutableFlags);
 
   void setJitCodeRaw(uint8_t* code) { setHeaderPtr(code); }
 
  public:
-  static BaseScript* New(JSContext* cx, js::HandleObject functionOrGlobal,
+  static BaseScript* New(JSContext* cx, JS::Handle<JSFunction*> function,
                          js::HandleScriptSourceObject sourceObject,
                          const js::SourceExtent& extent,
                          uint32_t immutableFlags);
@@ -1486,19 +1473,10 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
 
   // Canonical function for the script, if it has a function. For top-level
   // scripts this is nullptr.
-  JSFunction* function() const {
-    // JSFunction's definition isn't visible at this point, so we can't use
-    // the normal |is<JSFunction>| and |as<JSFunction>| pair.
-    if (isFunction()) {
-      return reinterpret_cast<JSFunction*>(functionOrGlobal_.get());
-    }
-    return nullptr;
-  }
+  JSFunction* function() const { return function_; }
 
-  JS::Realm* realm() const { return functionOrGlobal_->nonCCWRealm(); }
-  JS::Compartment* compartment() const {
-    return functionOrGlobal_->compartment();
-  }
+  JS::Realm* realm() const { return sourceObject()->realm(); }
+  JS::Compartment* compartment() const { return sourceObject()->compartment(); }
   JS::Compartment* maybeCompartment() const { return compartment(); }
   inline JSPrincipals* principals() const;
 
@@ -1657,7 +1635,7 @@ class JSScript : public js::BaseScript {
   using js::BaseScript::BaseScript;
 
  public:
-  static JSScript* Create(JSContext* cx, js::HandleObject functionOrGlobal,
+  static JSScript* Create(JSContext* cx, JS::Handle<JSFunction*> function,
                           js::HandleScriptSourceObject sourceObject,
                           const js::SourceExtent& extent,
                           js::ImmutableScriptFlags flags);
@@ -2226,6 +2204,17 @@ void FillImmutableFlagsFromCompileOptionsForFunction(
 } /* namespace js */
 
 namespace JS {
+
+template <>
+struct GCPolicy<js::ScriptLCovEntry>
+    : public IgnoreGCPolicy<js::ScriptLCovEntry> {};
+
+#ifdef JS_CACHEIR_SPEW
+template <>
+struct GCPolicy<js::ScriptFinalWarmUpCountEntry>
+    : public IgnoreGCPolicy<js::ScriptFinalWarmUpCountEntry> {};
+#endif
+
 namespace ubi {
 
 template <>

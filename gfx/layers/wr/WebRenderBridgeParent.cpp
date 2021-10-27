@@ -65,36 +65,6 @@ bool is_in_render_thread() {
   return mozilla::wr::RenderThread::IsInRenderThread();
 }
 
-void gecko_profiler_start_marker(const char* name) {
-  PROFILER_MARKER(mozilla::ProfilerString8View::WrapNullTerminatedString(name),
-                  GRAPHICS, mozilla::MarkerTiming::IntervalStart(), Tracing,
-                  "WebRender");
-}
-
-void gecko_profiler_end_marker(const char* name) {
-  PROFILER_MARKER(mozilla::ProfilerString8View::WrapNullTerminatedString(name),
-                  GRAPHICS, mozilla::MarkerTiming::IntervalEnd(), Tracing,
-                  "WebRender");
-}
-
-void gecko_profiler_event_marker(const char* name) {
-  PROFILER_MARKER(mozilla::ProfilerString8View::WrapNullTerminatedString(name),
-                  GRAPHICS, {}, Tracing, "WebRender");
-}
-
-void gecko_profiler_add_text_marker(const char* name, const char* text_bytes,
-                                    size_t text_len, uint64_t microseconds) {
-  if (profiler_thread_is_being_profiled()) {
-    auto now = mozilla::TimeStamp::Now();
-    [[maybe_unused]] auto start =
-        now - mozilla::TimeDuration::FromMicroseconds(microseconds);
-    PROFILER_MARKER_TEXT(
-        mozilla::ProfilerString8View::WrapNullTerminatedString(name), GRAPHICS,
-        mozilla::MarkerTiming::Interval(start, now),
-        mozilla::ProfilerString8View(text_bytes, text_len));
-  }
-}
-
 bool gecko_profiler_thread_is_being_profiled() {
   return profiler_thread_is_being_profiled();
 }
@@ -251,7 +221,7 @@ class SceneBuiltNotification : public wr::NotificationHandler {
     CompositorThread()->Dispatch(NS_NewRunnableFunction(
         "SceneBuiltNotificationRunnable", [parent, epoch, startTime]() {
           auto endTime = TimeStamp::Now();
-          if (profiler_can_accept_markers()) {
+          if (profiler_thread_is_being_profiled()) {
             PROFILER_MARKER("CONTENT_FULL_PAINT_TIME", GRAPHICS,
                             MarkerTiming::Interval(startTime, endTime),
                             ContentBuildMarker);
@@ -338,6 +308,7 @@ WebRenderBridgeParent::WebRenderBridgeParent(
       mScreenPixelsTarget(nullptr),
 #endif
       mBlobTileSize(256),
+      mSkippedCompositeReasons(wr::RenderReasons::NONE),
       mDestroyed(false),
       mReceivedDisplayList(false),
       mIsFirstPaint(true),
@@ -963,7 +934,7 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvUpdateResources(
     // There are resource updates, then we update Epoch of transaction.
     txn.UpdateEpoch(mPipelineId, mWrEpoch);
     mAsyncImageManager->SetWillGenerateFrame();
-    ScheduleGenerateFrame();
+    ScheduleGenerateFrame(wr::RenderReasons::RESOURCE_UPDATE);
   } else {
     // If TransactionBuilder does not have resource updates nor display list,
     // ScheduleGenerateFrame is not triggered via SceneBuilder and there is no
@@ -1413,6 +1384,7 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvEmptyTransaction(
   UpdateAPZFocusState(aFocusTarget);
 
   bool scheduleAnyComposite = false;
+  wr::RenderReasons renderReasons = wr::RenderReasons::NONE;
 
   if (aTransactionData) {
     bool scheduleComposite = false;
@@ -1425,6 +1397,7 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvEmptyTransaction(
       return IPC_FAIL(this, "Failed to process empty transaction update.");
     }
     scheduleAnyComposite = scheduleAnyComposite || scheduleComposite;
+    renderReasons |= wr::RenderReasons::RESOURCE_UPDATE;
   }
 
   // If we are going to kick off a new composite as a result of this
@@ -1446,7 +1419,7 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvEmptyTransaction(
                            /* aUseForTelemetry */ scheduleAnyComposite);
 
   if (scheduleAnyComposite) {
-    ScheduleGenerateFrame();
+    ScheduleGenerateFrame(renderReasons);
   } else if (sendDidComposite) {
     // The only thing in the pending transaction id queue should be the entry
     // we just added, and now we're going to pretend we rendered it
@@ -1537,7 +1510,7 @@ bool WebRenderBridgeParent::ProcessWebRenderParentCommands(
       case WebRenderParentCommand::TOpUpdatedAsyncImagePipeline: {
         const OpUpdatedAsyncImagePipeline& op =
             cmd.get_OpUpdatedAsyncImagePipeline();
-        aTxn.InvalidateRenderedFrame();
+        aTxn.InvalidateRenderedFrame(wr::RenderReasons::ASYNC_IMAGE);
         mAsyncImageManager->ApplyAsyncImageForPipeline(op.pipelineId(), aTxn,
                                                        txnForImageBridge);
         break;
@@ -1602,10 +1575,10 @@ void WebRenderBridgeParent::FlushSceneBuilds() {
   // shouldn't be calling this function all that much in production so this
   // is probably fine. If it becomes an issue we can add more state tracking
   // machinery to optimize it away.
-  ScheduleGenerateFrame();
+  ScheduleGenerateFrame(wr::RenderReasons::FLUSH);
 }
 
-void WebRenderBridgeParent::FlushFrameGeneration() {
+void WebRenderBridgeParent::FlushFrameGeneration(wr::RenderReasons aReasons) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   MOZ_ASSERT(IsRootWebRenderBridgeParent());  // This function is only useful on
                                               // the root WRBP
@@ -1616,7 +1589,7 @@ void WebRenderBridgeParent::FlushFrameGeneration() {
     mCompositorScheduler->CancelCurrentCompositeTask();
     // Update timestamp of scheduler for APZ and animation.
     mCompositorScheduler->UpdateLastComposeTime();
-    MaybeGenerateFrame(VsyncId(), /* aForceGenerateFrame */ true);
+    MaybeGenerateFrame(VsyncId(), /* aForceGenerateFrame */ true, aReasons);
   }
 }
 
@@ -1637,7 +1610,7 @@ void WebRenderBridgeParent::DisableNativeCompositor() {
   // Disable WebRender's native compositor usage
   mApi->EnableNativeCompositor(false);
   // Ensure we generate and render a frame immediately.
-  ScheduleForcedGenerateFrame();
+  ScheduleForcedGenerateFrame(wr::RenderReasons::CONFIG_CHANGE);
 
   mDisablingNativeCompositor = true;
 }
@@ -1782,7 +1755,7 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvGetSnapshot(
   MOZ_ASSERT((uint32_t)(size.width * 4) == stride);
 
   FlushSceneBuilds();
-  FlushFrameGeneration();
+  FlushFrameGeneration(wr::RenderReasons::SNAPSHOT);
   mApi->Readback(start, size, bufferTexture->GetFormat(),
                  Range<uint8_t>(buffer, buffer_size), aNeedsYFlip);
 
@@ -1923,7 +1896,7 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvClearCachedResources() {
   mApi->SendTransaction(txn);
 
   // Schedule generate frame to clean up Pipeline
-  ScheduleGenerateFrame();
+  ScheduleGenerateFrame(wr::RenderReasons::CLEAR_RESOURCES);
 
   ClearAnimationResources();
 
@@ -1985,11 +1958,12 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvInvalidateRenderedFrame() {
       wr::AsUint64(mPipelineId), wr::AsUint64(mApi->GetId()),
       IsRootWebRenderBridgeParent());
 
-  InvalidateRenderedFrame();
+  InvalidateRenderedFrame(wr::RenderReasons::WIDGET);
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult WebRenderBridgeParent::RecvScheduleComposite() {
+mozilla::ipc::IPCResult WebRenderBridgeParent::RecvScheduleComposite(
+    const wr::RenderReasons& aReasons) {
   LOG("WebRenderBridgeParent::RecvScheduleComposite() PipelineId %" PRIx64
       " Id %" PRIx64 " root %d",
       wr::AsUint64(mPipelineId), wr::AsUint64(mApi->GetId()),
@@ -1997,27 +1971,29 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvScheduleComposite() {
 
   // Caller of LayerManager::ScheduleComposite() expects that it trigger
   // composite. Then we do not want to skip generate frame.
-  ScheduleForcedGenerateFrame();
+  ScheduleForcedGenerateFrame(aReasons);
   return IPC_OK();
 }
 
-void WebRenderBridgeParent::InvalidateRenderedFrame() {
+void WebRenderBridgeParent::InvalidateRenderedFrame(
+    wr::RenderReasons aReasons) {
   if (mDestroyed) {
     return;
   }
 
   wr::TransactionBuilder fastTxn(mApi, /* aUseSceneBuilderThread */ false);
-  fastTxn.InvalidateRenderedFrame();
+  fastTxn.InvalidateRenderedFrame(aReasons);
   mApi->SendTransaction(fastTxn);
 }
 
-void WebRenderBridgeParent::ScheduleForcedGenerateFrame() {
+void WebRenderBridgeParent::ScheduleForcedGenerateFrame(
+    wr::RenderReasons aReasons) {
   if (mDestroyed) {
     return;
   }
 
-  InvalidateRenderedFrame();
-  ScheduleGenerateFrame();
+  InvalidateRenderedFrame(aReasons);
+  ScheduleGenerateFrame(aReasons);
 }
 
 mozilla::ipc::IPCResult WebRenderBridgeParent::RecvCapture() {
@@ -2050,7 +2026,7 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvSyncWithCompositor() {
 
   FlushSceneBuilds();
   if (RefPtr<WebRenderBridgeParent> root = GetRootWebRenderBridgeParent()) {
-    root->FlushFrameGeneration();
+    root->FlushFrameGeneration(wr::RenderReasons::CONTENT_SYNC);
   }
   FlushFramePresentation();
   // Finally, we force the AsyncImagePipelineManager to handle all the
@@ -2194,12 +2170,14 @@ void WebRenderBridgeParent::CompositeIfNeeded() {
   if (mSkippedComposite) {
     mSkippedComposite = false;
     if (mCompositorScheduler) {
-      mCompositorScheduler->ScheduleComposition();
+      mCompositorScheduler->ScheduleComposition(mSkippedCompositeReasons);
     }
+    mSkippedCompositeReasons = wr::RenderReasons::NONE;
   }
 }
 
 void WebRenderBridgeParent::CompositeToTarget(VsyncId aId,
+                                              wr::RenderReasons aReasons,
                                               gfx::DrawTarget* aTarget,
                                               const gfx::IntRect* aRect) {
   // This function should only get called in the root WRBP
@@ -2235,6 +2213,7 @@ void WebRenderBridgeParent::CompositeToTarget(VsyncId aId,
       wr::RenderThread::Get()->TooManyPendingFrames(mApi->GetId())) {
     // Render thread is busy, try next time.
     mSkippedComposite = true;
+    mSkippedCompositeReasons = mSkippedCompositeReasons | aReasons;
     ResetPreviousSampleTime();
 
     // Record that we skipped presenting a frame for
@@ -2251,7 +2230,7 @@ void WebRenderBridgeParent::CompositeToTarget(VsyncId aId,
   }
 
   mCompositionOpportunityId = mCompositionOpportunityId.Next();
-  MaybeGenerateFrame(aId, /* aForceGenerateFrame */ false);
+  MaybeGenerateFrame(aId, /* aForceGenerateFrame */ false, aReasons);
 }
 
 TimeDuration WebRenderBridgeParent::GetVsyncInterval() const {
@@ -2264,7 +2243,8 @@ TimeDuration WebRenderBridgeParent::GetVsyncInterval() const {
 }
 
 void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
-                                               bool aForceGenerateFrame) {
+                                               bool aForceGenerateFrame,
+                                               wr::RenderReasons aReasons) {
   // This function should only get called in the root WRBP
   MOZ_ASSERT(IsRootWebRenderBridgeParent());
   LOG("WebRenderBridgeParent::MaybeGenerateFrame() PipelineId %" PRIx64
@@ -2304,7 +2284,7 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
     // Trigger another CompositeToTarget() call because there might be another
     // frame that we want to generate after this one.
     // It will check if we actually want to generate the frame or not.
-    mCompositorScheduler->ScheduleComposition();
+    mCompositorScheduler->ScheduleComposition(aReasons);
   }
 
   bool generateFrame = mAsyncImageManager->GetAndResetWillGenerateFrame() ||
@@ -2321,7 +2301,7 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
 
   if (RefPtr<OMTASampler> sampler = GetOMTASampler()) {
     if (sampler->HasAnimations()) {
-      ScheduleGenerateFrame();
+      ScheduleGenerateFrame(wr::RenderReasons::ANIMATED_PROPERTY);
     }
   }
 
@@ -2336,7 +2316,7 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
 #endif
 
   MOZ_ASSERT(generateFrame);
-  fastTxn.GenerateFrame(aId);
+  fastTxn.GenerateFrame(aId, aReasons);
   mApi->SendTransaction(fastTxn);
 
 #if defined(MOZ_WIDGET_ANDROID)
@@ -2352,7 +2332,7 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
     mDisablingNativeCompositor = false;
 
     // Ensure we generate and render a frame immediately.
-    ScheduleForcedGenerateFrame();
+    ScheduleForcedGenerateFrame(aReasons);
   }
 }
 
@@ -2406,7 +2386,7 @@ void WebRenderBridgeParent::NotifyDidSceneBuild(
       mMostRecentComposite >= lastVsync ||
       ((TimeStamp::Now() - lastVsync).ToMilliseconds() >
        StaticPrefs::gfx_webrender_late_scenebuild_threshold())) {
-    mCompositorScheduler->ScheduleComposition();
+    mCompositorScheduler->ScheduleComposition(wr::RenderReasons::SCENE);
     return;
   }
 
@@ -2425,13 +2405,14 @@ void WebRenderBridgeParent::NotifyDidSceneBuild(
       // we did all of display list building and scene building within the
       // threshold), then don't do an early composite.
       if (startId == lastVsyncId) {
-        mCompositorScheduler->ScheduleComposition();
+        mCompositorScheduler->ScheduleComposition(wr::RenderReasons::SCENE);
         return;
       }
     }
   }
 
-  CompositeToTarget(mCompositorScheduler->GetLastVsyncId(), nullptr, nullptr);
+  CompositeToTarget(mCompositorScheduler->GetLastVsyncId(),
+                    wr::RenderReasons::SCENE, nullptr, nullptr);
 }
 
 static Telemetry::HistogramID GetHistogramId(const bool aIsLargePaint,
@@ -2555,14 +2536,15 @@ LayersId WebRenderBridgeParent::GetLayersId() const {
   return wr::AsLayersId(mPipelineId);
 }
 
-void WebRenderBridgeParent::ScheduleGenerateFrame() {
+void WebRenderBridgeParent::ScheduleGenerateFrame(wr::RenderReasons aReasons) {
   if (mCompositorScheduler) {
     mAsyncImageManager->SetWillGenerateFrame();
-    mCompositorScheduler->ScheduleComposition();
+    mCompositorScheduler->ScheduleComposition(aReasons);
   }
 }
 
-void WebRenderBridgeParent::FlushRendering(bool aWaitForPresent) {
+void WebRenderBridgeParent::FlushRendering(wr::RenderReasons aReasons,
+                                           bool aWaitForPresent) {
   if (mDestroyed) {
     return;
   }
@@ -2570,7 +2552,7 @@ void WebRenderBridgeParent::FlushRendering(bool aWaitForPresent) {
   // This gets called during e.g. window resizes, so we need to flush the
   // scene (which has the display list at the new window size).
   FlushSceneBuilds();
-  FlushFrameGeneration();
+  FlushFrameGeneration(aReasons);
   if (aWaitForPresent) {
     FlushFramePresentation();
   }
@@ -2616,7 +2598,7 @@ bool WebRenderBridgeParent::Resume() {
   }
 
   // Ensure we generate and render a frame immediately.
-  ScheduleForcedGenerateFrame();
+  ScheduleForcedGenerateFrame(wr::RenderReasons::WIDGET);
   return true;
 }
 
@@ -2633,7 +2615,7 @@ void WebRenderBridgeParent::ClearResources() {
   wr::Epoch wrEpoch = GetNextWrEpoch();
   mReceivedDisplayList = false;
   // Schedule generate frame to clean up Pipeline
-  ScheduleGenerateFrame();
+  ScheduleGenerateFrame(wr::RenderReasons::CLEAR_RESOURCES);
 
   // WrFontKeys and WrImageKeys are deleted during WebRenderAPI destruction.
   for (const auto& entry : mTextureHosts) {

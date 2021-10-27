@@ -60,7 +60,8 @@ const char* sPhaseObserverKeys[] = {
     "xpcom-shutdown-threads",           // XPCOMShutdownThreads
     nullptr,                            // XPCOMShutdownLoaders
     nullptr,                            // XPCOMShutdownFinal
-    nullptr                             // CCPostLastCycleCollection
+    nullptr,                            // CCPostLastCycleCollection
+    nullptr                             // PostJSShutDown
 };
 
 static_assert(sizeof(sPhaseObserverKeys) / sizeof(sPhaseObserverKeys[0]) ==
@@ -227,7 +228,7 @@ void AppShutdown::MaybeFastShutdown(ShutdownPhase aPhase) {
     nsCOMPtr<nsICertStorage> certStorage =
         do_GetService("@mozilla.org/security/certstorage;1", &rv);
     if (NS_SUCCEEDED(rv)) {
-      SpinEventLoopUntil([&]() {
+      SpinEventLoopUntil("AppShutdown::MaybeFastShutdown"_ns, [&]() {
         int32_t remainingOps;
         nsresult rv = certStorage->GetRemainingOperationCount(&remainingOps);
         NS_ASSERTION(NS_SUCCEEDED(rv),

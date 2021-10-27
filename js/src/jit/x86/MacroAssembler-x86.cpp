@@ -984,22 +984,22 @@ void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
         vmovddup(srcAddr, out.fpu());
       } else if (access.isWidenSimd128Load()) {
         switch (access.widenSimdOp()) {
-          case wasm::SimdOp::I16x8LoadS8x8:
+          case wasm::SimdOp::V128Load8x8S:
             vpmovsxbw(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I16x8LoadU8x8:
+          case wasm::SimdOp::V128Load8x8U:
             vpmovzxbw(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I32x4LoadS16x4:
+          case wasm::SimdOp::V128Load16x4S:
             vpmovsxwd(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I32x4LoadU16x4:
+          case wasm::SimdOp::V128Load16x4U:
             vpmovzxwd(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I64x2LoadS32x2:
+          case wasm::SimdOp::V128Load32x2S:
             vpmovsxdq(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I64x2LoadU32x2:
+          case wasm::SimdOp::V128Load32x2U:
             vpmovzxdq(srcAddr, out.fpu());
             break;
           default:
@@ -1727,6 +1727,24 @@ CodeOffset MacroAssembler::moveNearAddressWithPatch(Register dest) {
 void MacroAssembler::patchNearAddressMove(CodeLocationLabel loc,
                                           CodeLocationLabel target) {
   PatchDataWithValueCheck(loc, ImmPtr(target.raw()), ImmPtr(nullptr));
+}
+
+void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
+                                       Register64 boundsCheckLimit, Label* ok) {
+  Label notOk;
+  cmp32(index.high, Imm32(0));
+  j(Assembler::NonZero, &notOk);
+  wasmBoundsCheck32(cond, index.low, boundsCheckLimit.low, ok);
+  bind(&notOk);
+}
+
+void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
+                                       Address boundsCheckLimit, Label* ok) {
+  Label notOk;
+  cmp32(index.high, Imm32(0));
+  j(Assembler::NonZero, &notOk);
+  wasmBoundsCheck32(cond, index.low, boundsCheckLimit, ok);
+  bind(&notOk);
 }
 
 //}}} check_macroassembler_style

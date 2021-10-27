@@ -150,6 +150,8 @@ class String final {
     // Copy the already normalized prefix.
     if (spanLength > 0) {
       PodCopy(aBuffer.data(), aString.data(), spanLength);
+
+      aBuffer.written(spanLength);
     }
 
     MOZ_TRY(FillBufferWithICUCall(
@@ -243,6 +245,11 @@ class String final {
     utext_close(&text);
     return len;
   }
+
+  /**
+   * Return the Unicode version, for example "13.0".
+   */
+  static Span<const char> GetUnicodeVersion();
 };
 
 }  // namespace mozilla::intl

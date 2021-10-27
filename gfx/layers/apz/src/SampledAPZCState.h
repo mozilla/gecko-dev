@@ -25,10 +25,13 @@ class SampledAPZCState {
 
   CSSRect GetLayoutViewport() const { return mLayoutViewport; }
   CSSPoint GetVisualScrollOffset() const { return mVisualScrollOffset; }
-  CSSToParentLayerScale2D GetZoom() const { return mZoom; }
+  CSSToParentLayerScale GetZoom() const { return mZoom; }
   Maybe<CompositionPayload> TakeScrollPayload();
 
   void UpdateScrollProperties(const FrameMetrics& aMetrics);
+  void UpdateScrollPropertiesWithRelativeDelta(const FrameMetrics& aMetrics,
+                                               const CSSPoint& aRelativeDelta);
+
   void UpdateZoomProperties(const FrameMetrics& aMetrics);
 
   /**
@@ -41,18 +44,22 @@ class SampledAPZCState {
    */
   void ClampVisualScrollOffset(const FrameMetrics& aMetrics);
 
-  void ZoomBy(const gfxSize& aScale);
+  void ZoomBy(float aScale);
 
  private:
   // These variables cache the layout viewport, scroll offset, and zoom stored
   // in |Metrics()| at the time this class was constructed.
   CSSRect mLayoutViewport;
   CSSPoint mVisualScrollOffset;
-  CSSToParentLayerScale2D mZoom;
+  CSSToParentLayerScale mZoom;
   // An optional payload that rides along with the sampled state.
   Maybe<CompositionPayload> mScrollPayload;
 
   void RemoveFractionalAsyncDelta();
+  // A handy wrapper to call
+  // FrameMetrics::KeepLayoutViewportEnclosingVisualViewport with this
+  // SampledAPZCState and the given |aMetrics|.
+  void KeepLayoutViewportEnclosingVisualViewport(const FrameMetrics& aMetrics);
 };
 
 }  // namespace layers

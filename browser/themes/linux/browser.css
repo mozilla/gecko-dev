@@ -120,59 +120,6 @@ menuitem.bookmark-item {
 %include ../shared/toolbarbutton-icons.inc.css
 %include ../shared/menupanel.inc.css
 
-/* Fullscreen window controls */
-
-#minimize-button,
-#restore-button,
-#close-button {
-  appearance: none;
-  padding: 6px 12px;
-  -moz-context-properties: stroke;
-  stroke: currentColor;
-  color: inherit;
-}
-
-#minimize-button {
-  list-style-image: url(chrome://browser/skin/window-controls/minimize.svg);
-}
-
-#restore-button {
-  list-style-image: url(chrome://browser/skin/window-controls/restore.svg);
-}
-
-#minimize-button:hover,
-#restore-button:hover {
-  background-color: hsla(0,0%,0%,.12);
-}
-
-#minimize-button:hover:active,
-#restore-button:hover:active {
-  background-color: hsla(0,0%,0%,.22);
-}
-
-#TabsToolbar[brighttext] > #window-controls > #minimize-button:hover,
-#TabsToolbar[brighttext] > #window-controls > #restore-button:hover {
-  background-color: hsla(0,0%,100%,.12);
-}
-
-#TabsToolbar[brighttext] > #window-controls > #minimize-button:hover:active,
-#TabsToolbar[brighttext] > #window-controls > #restore-button:hover:active {
-  background-color: hsla(0,0%,100%,.22);
-}
-
-#close-button {
-  list-style-image: url(chrome://browser/skin/window-controls/close.svg);
-}
-
-#close-button:hover {
-  background-color: #d70022;
-  stroke: white;
-}
-
-#close-button:hover:active {
-  background-color: #ff0039;
-}
-
 /* Address bar */
 
 %include ../shared/urlbar-searchbar.inc.css
@@ -386,26 +333,18 @@ menuitem.bookmark-item {
 
 /* We draw to titlebar when Gkt+ CSD is available */
 @media (-moz-gtk-csd-available) {
-  /* Some Gtk+ themes use non-rectangular toplevel windows. To fully support
-   * such themes we need to make toplevel window transparent.
-   * It may cause performance issues so let's put it under a preference
-   * and enable it for desktop environment which do that by default.
-   * See nsWindow::TopLevelWindowUseARGBVisual() for details. */
-  @media (-moz-gtk-csd-transparent-background) {
-    :root[tabsintitlebar][sizemode="normal"]:not(:-moz-lwtheme) {
-      background-color: transparent;
-      appearance: none;
-    }
+  :root[tabsintitlebar][sizemode="normal"]:not(:-moz-lwtheme) {
+    background-color: transparent;
   }
 
   :root[tabsintitlebar] #titlebar {
     appearance: auto;
     -moz-default-appearance: -moz-window-titlebar-maximized;
-    color: -moz-gtk-titlebar-text;
+    color: CaptionText;
   }
 
   :root[tabsintitlebar] #titlebar:-moz-window-inactive {
-    color: -moz-gtk-titlebar-inactive-text;
+    color: InactiveCaptionText;
   }
 
   :root[tabsintitlebar] #titlebar:-moz-lwtheme {
@@ -457,46 +396,40 @@ menuitem.bookmark-item {
 
   /* Render titlebar command buttons according to system config.
    * Use full scale icons here as the Gtk+ does. */
-  @media (-moz-gtk-csd-minimize-button) {
-    .titlebar-min {
-      appearance: auto;
-      -moz-default-appearance: -moz-window-button-minimize;
-    }
+  .titlebar-min {
+    appearance: auto;
+    -moz-default-appearance: -moz-window-button-minimize;
   }
-  @media (-moz-gtk-csd-minimize-button: 0) {
+  .titlebar-max {
+    appearance: auto;
+    -moz-default-appearance: -moz-window-button-maximize;
+  }
+  .titlebar-restore {
+    appearance: auto;
+    -moz-default-appearance: -moz-window-button-restore;
+  }
+  .titlebar-close {
+    appearance: auto;
+    -moz-default-appearance: -moz-window-button-close;
+  }
+
+  @media not (-moz-gtk-csd-minimize-button) {
     .titlebar-min {
       display: none;
     }
   }
-
-  @media (-moz-gtk-csd-maximize-button) {
-    .titlebar-max {
-      appearance: auto;
-      -moz-default-appearance: -moz-window-button-maximize;
-    }
-    .titlebar-restore {
-      appearance: auto;
-      -moz-default-appearance: -moz-window-button-restore;
-    }
-  }
-  @media (-moz-gtk-csd-maximize-button: 0) {
+  @media not (-moz-gtk-csd-maximize-button) {
     .titlebar-restore,
     .titlebar-max {
       display: none;
     }
   }
-
-  @media (-moz-gtk-csd-close-button) {
-    .titlebar-close {
-      appearance: auto;
-      -moz-default-appearance: -moz-window-button-close;
-    }
-  }
-  @media (-moz-gtk-csd-close-button: 0) {
+  @media not (-moz-gtk-csd-close-button) {
     .titlebar-close {
       display: none;
     }
   }
+
   @media (-moz-gtk-csd-reversed-placement) {
     .titlebar-buttonbox-container,
     .titlebar-close {

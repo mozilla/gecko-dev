@@ -1015,8 +1015,11 @@ uint32_t gfxTextRun::BreakAndMeasureText(
       // atHyphenationBreak indicates we're at a "soft" hyphen, where an extra
       // hyphen glyph will need to be painted. It is NOT set for breaks at an
       // explicit hyphen present in the text.
+      //
+      // NOTE(emilio): If you change this condition you also need to change
+      // nsTextFrame::AddInlineMinISizeForFlow to match.
       bool atHyphenationBreak = !atNaturalBreak && haveHyphenation &&
-                                hyphenBuffer[i - aStart] > HyphenType::Explicit;
+                                IsOptionalHyphenBreak(hyphenBuffer[i - aStart]);
       bool atAutoHyphenWithManualHyphenInSameWord =
           atHyphenationBreak &&
           hyphenBuffer[i - aStart] == HyphenType::AutoWithManualInSameWord;
@@ -3026,7 +3029,10 @@ gfxFont* gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
 
   // For Unicode hyphens, if not supported in the font then we'll try for
   // the ASCII hyphen-minus as a fallback.
-  uint32_t fallbackChar = (aCh == 0x2010 || aCh == 0x2011) ? '-' : 0;
+  // Similarly, for NBSP we try normal <space> as a fallback.
+  uint32_t fallbackChar = (aCh == 0x2010 || aCh == 0x2011) ? '-'
+                          : (aCh == 0x00A0)                ? ' '
+                                                           : 0;
 
   // Whether we've seen a font that is currently loading a resource that may
   // provide this character (so we should not start a new load).
@@ -3416,10 +3422,6 @@ void gfxFontGroup::ComputeRanges(nsTArray<TextRange>& aRanges, const T* aString,
     } else {
       // 8-bit case is trivial.
       nextCh = i < aLength - 1 ? aString[i + 1] : 0;
-    }
-
-    if (ch == 0xa0) {
-      ch = ' ';
     }
 
     gfxFont* font;

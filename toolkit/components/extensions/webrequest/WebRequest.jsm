@@ -33,6 +33,11 @@ XPCOMUtils.defineLazyGetter(this, "getCookieStoreIdForOriginAttributes", () => {
   return ExtensionParent.apiManager.global.getCookieStoreIdForOriginAttributes;
 });
 
+// URI schemes that service workers are allowed to load scripts from (any other
+// scheme is not allowed by the specs and it is not expected by the service workers
+// internals neither, which would likely trigger unexpected behaviors).
+const ALLOWED_SERVICEWORKER_SCHEMES = ["https", "http", "moz-extension"];
+
 // Classes of requests that should be sent immediately instead of batched.
 // Covers basically anything that can delay first paint or DOMContentLoaded:
 // top frame HTML, <head> blocking CSS, fonts preflight, sync JS and XHR.
@@ -80,6 +85,32 @@ function parseExtra(extra, allowed = [], optionsObj = {}) {
 
 function isThenable(value) {
   return value && typeof value === "object" && typeof value.then === "function";
+}
+
+// Verify a requested redirect and throw a more explicit error.
+function verifyRedirect(channel, redirectUri, finalUrl, addonId) {
+  const { isServiceWorkerScript } = channel;
+
+  if (
+    isServiceWorkerScript &&
+    channel.loadInfo?.internalContentPolicyType ===
+      Ci.nsIContentPolicy.TYPE_INTERNAL_SERVICE_WORKER
+  ) {
+    throw new Error(
+      `Invalid redirectUrl ${redirectUri?.spec} on service worker main script ${finalUrl} requested by ${addonId}`
+    );
+  }
+
+  if (
+    isServiceWorkerScript &&
+    channel.loadInfo?.internalContentPolicyType ===
+      Ci.nsIContentPolicy.TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS &&
+    !ALLOWED_SERVICEWORKER_SCHEMES.includes(redirectUri?.scheme)
+  ) {
+    throw new Error(
+      `Invalid redirectUrl ${redirectUri?.spec} on service worker imported script ${finalUrl} requested by ${addonId}`
+    );
+  }
 }
 
 class HeaderChanger {
@@ -944,14 +975,25 @@ HttpObserverManager = {
     requestHeaders,
     responseHeaders
   ) {
+    const { finalURL, id: chanId } = channel;
     let shouldResume = !channel.suspended;
-    let suspenders = [];
-
+    // NOTE: if a request has been suspended before the GeckoProfiler
+    // has been activated and then resumed while the GeckoProfiler is active
+    // and collecting data, the resulting "Extension Suspend" marker will be
+    // recorded with an empty marker text (and so without url, chan id and
+    // the supenders addon ids).
+    let markerText = "";
+    if (Services.profiler?.IsActive()) {
+      const suspenders = handlerResults
+        .filter(({ result }) => isThenable(result))
+        .map(({ opts }) => opts.addonId)
+        .join(", ");
+      markerText = `${kind} ${finalURL} by ${suspenders} (chanId: ${chanId})`;
+    }
     try {
       for (let { opts, result } of handlerResults) {
         if (isThenable(result)) {
-          suspenders.push(opts.addonId);
-          channel.suspend();
+          channel.suspend(markerText);
           try {
             result = await result;
           } catch (e) {
@@ -986,16 +1028,15 @@ HttpObserverManager = {
         }
 
         if (result.cancel) {
-          let text = "";
-          if (Services.profiler?.IsActive()) {
-            text =
-              `${kind} ${channel.finalURL}` +
-              ` by ${suspenders.join(", ")} canceled`;
-          }
-          channel.resume(text);
+          channel.resume();
           channel.cancel(
             Cr.NS_ERROR_ABORT,
             Ci.nsILoadInfo.BLOCKING_REASON_EXTENSION_WEBREQUEST
+          );
+          ChromeUtils.addProfilerMarker(
+            "Extension Canceled",
+            { category: "Network" },
+            `${kind} ${finalURL} canceled by ${opts.addonId} (chanId: ${chanId})`
           );
           if (opts.policy) {
             let properties = channel.channel.QueryInterface(
@@ -1008,15 +1049,16 @@ HttpObserverManager = {
 
         if (result.redirectUrl) {
           try {
-            let text = "";
-            if (Services.profiler?.IsActive()) {
-              text =
-                `${kind} ${channel.finalURL}` +
-                ` by ${suspenders.join(", ")}` +
-                ` redirected to ${result.redirectUrl}`;
-            }
-            channel.resume(text);
-            channel.redirectTo(Services.io.newURI(result.redirectUrl));
+            const { redirectUrl } = result;
+            channel.resume();
+            const redirectUri = Services.io.newURI(redirectUrl);
+            verifyRedirect(channel, redirectUri, finalURL, opts.addonId);
+            channel.redirectTo(redirectUri);
+            ChromeUtils.addProfilerMarker(
+              "Extension Redirected",
+              { category: "Network" },
+              `${kind} ${finalURL} redirected to ${redirectUrl} by ${opts.addonId} (chanId: ${chanId})`
+            );
             if (opts.policy) {
               let properties = channel.channel.QueryInterface(
                 Ci.nsIWritablePropertyBag
@@ -1102,11 +1144,7 @@ HttpObserverManager = {
 
     // Only resume the channel if it was suspended by this call.
     if (shouldResume) {
-      let text = "";
-      if (Services.profiler?.IsActive()) {
-        text = `${kind} ${channel.finalURL} by ${suspenders.join(", ")}`;
-      }
-      channel.resume(text);
+      channel.resume();
     }
   },
 

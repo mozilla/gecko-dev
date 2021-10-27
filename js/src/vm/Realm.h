@@ -265,7 +265,7 @@ class ObjectRealm {
 
   void finishRoots();
   void trace(JSTracer* trc);
-  void sweepAfterMinorGC();
+  void sweepAfterMinorGC(JSTracer* trc);
   void traceWeakNativeIterators(JSTracer* trc);
 
   void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
@@ -418,6 +418,9 @@ class JS::Realm : public JS::shadow::Realm {
    */
   uint32_t globalWriteBarriered = 0;
 
+  // Counter for shouldCaptureStackForThrow.
+  uint16_t numStacksCapturedForThrow_ = 0;
+
 #ifdef DEBUG
   bool firedOnNewGlobalObject = false;
 #endif
@@ -491,9 +494,6 @@ class JS::Realm : public JS::shadow::Realm {
     return global_.unbarrieredGet();
   }
 
-  /* True if a global object exists, but it's being collected. */
-  inline bool globalIsAboutToBeFinalized();
-
   /* True if a global exists and it's not being collected. */
   inline bool hasLiveGlobal() const;
 
@@ -503,10 +503,9 @@ class JS::Realm : public JS::shadow::Realm {
    * This method traces data that is live iff we know that this realm's
    * global is still live.
    */
-  void traceGlobal(JSTracer* trc);
+  void traceGlobalData(JSTracer* trc);
 
-  void traceWeakObjects(JSTracer* trc);
-  void fixupGlobal();
+  void traceWeakGlobalEdge(JSTracer* trc);
 
   /*
    * This method traces Realm-owned GC roots that are considered live
@@ -519,8 +518,8 @@ class JS::Realm : public JS::shadow::Realm {
    */
   void finishRoots();
 
-  void sweepAfterMinorGC();
-  void sweepDebugEnvironments();
+  void sweepAfterMinorGC(JSTracer* trc);
+  void traceWeakDebugEnvironmentEdges(JSTracer* trc);
   void traceWeakObjectRealm(JSTracer* trc);
   void traceWeakRegExps(JSTracer* trc);
 
@@ -687,6 +686,8 @@ class JS::Realm : public JS::shadow::Realm {
 
   // Get or allocate the associated LCovRealm.
   js::coverage::LCovRealm* lcovRealm();
+
+  bool shouldCaptureStackForThrow();
 
   // Initializes randomNumberGenerator if needed.
   mozilla::non_crypto::XorShift128PlusRNG& getOrCreateRandomNumberGenerator();

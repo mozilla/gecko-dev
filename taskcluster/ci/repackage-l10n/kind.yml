@@ -2,14 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-loader: taskgraph.loader.single_dep:loader
+loader: gecko_taskgraph.loader.single_dep:loader
 
 transforms:
-    - taskgraph.transforms.repackage_l10n:transforms
-    - taskgraph.transforms.name_sanity:transforms
-    - taskgraph.transforms.repackage:transforms
-    - taskgraph.transforms.job:transforms
-    - taskgraph.transforms.task:transforms
+    - gecko_taskgraph.transforms.repackage_l10n:transforms
+    - gecko_taskgraph.transforms.name_sanity:transforms
+    - gecko_taskgraph.transforms.repackage:transforms
+    - gecko_taskgraph.transforms.job:transforms
+    - gecko_taskgraph.transforms.task:transforms
 
 kind-dependencies:
     - shippable-l10n-signing
@@ -58,21 +58,11 @@ job-template:
                     - repackage/win64-aarch64_sfx_stub.py
                     - repackage/win64_signed.py
     package-formats:
-        by-release-type:
-            esr.*:
-                by-build-platform:
-                    linux.*: [mar]
-                    linux4\b.*: [mar]
-                    macosx64\b.*: [mar, dmg]
-                    win32\b.*: [mar, installer]
-                    win64\b.*: [mar, installer]
-            default:
-                by-build-platform:
-                    linux.*: [mar]
-                    linux4\b.*: [mar]
-                    macosx64\b.*: [mar, dmg]
-                    win32\b.*: [mar, installer]
-                    win64\b.*: [mar, installer]
+        by-build-platform:
+            linux.*: [mar]
+            macosx64\b.*: [mar, dmg]
+            win32\b.*: [mar, installer]
+            win64\b.*: [mar, installer]
     fetches:
         toolchain:
             - linux64-mar-tools

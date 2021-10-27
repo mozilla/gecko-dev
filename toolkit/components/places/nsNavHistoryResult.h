@@ -314,6 +314,14 @@ class nsNavHistoryResultNode : public nsINavHistoryResultNode {
 
   virtual void OnRemoving();
 
+  nsresult OnItemTagsChanged(int64_t aItemId, const nsAString& aURL);
+  nsresult OnItemTimeChanged(int64_t aItemId, const nsACString& aGUID,
+                             PRTime aDateAdded, PRTime aLastModified);
+  nsresult OnItemTitleChanged(int64_t aItemId, const nsACString& aGUID,
+                              const nsACString& aTitle, PRTime aLastModified);
+  nsresult OnItemUrlChanged(int64_t aItemId, const nsACString& aGUID,
+                            const nsACString& aURL, PRTime aLastModified);
+
   // Called from result's onItemChanged, see also bookmark observer declaration
   // in nsNavHistoryFolderResultNode
   NS_IMETHOD OnItemChanged(int64_t aItemId, const nsACString& aProperty,
@@ -693,6 +701,9 @@ class nsNavHistoryQueryResultNode final
                        const nsACString& aOldParentGUID,
                        const nsACString& aNewParentGUID, uint16_t aSource,
                        const nsACString& aURI);
+  nsresult OnItemTagsChanged(int64_t aItemId, const nsAString& aURL);
+  nsresult OnItemUrlChanged(int64_t aItemId, const nsACString& aGUID,
+                            const nsACString& aURL, PRTime aLastModified);
 
   // The internal version has an output aAdded parameter, it is incremented by
   // query nodes when the visited uri belongs to them. If no such query exists,

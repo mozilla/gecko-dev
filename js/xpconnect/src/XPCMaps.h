@@ -9,19 +9,11 @@
 #ifndef xpcmaps_h___
 #define xpcmaps_h___
 
+#include "mozilla/AllocPolicy.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/HashTable.h"
 
 #include "js/GCHashTable.h"
-
-// Maps...
-
-// Note that most of the declarations for hash table entries begin with
-// a pointer to something or another. This makes them look enough like
-// the PLDHashEntryStub struct that the default ops (PLDHashTable::StubOps())
-// just do the right thing for most of our needs.
-
-// no virtuals in the maps - all the common stuff inlined
-// templates could be used to good effect here.
 
 /***************************************************************************/
 // default initial sizes for maps (hashtables)
@@ -88,7 +80,7 @@ class JSObject2WrappedJSMap {
     }
   }
 
-  void UpdateWeakPointersAfterGC();
+  void UpdateWeakPointersAfterGC(JSTracer* trc);
 
   void ShutdownMarker();
 
@@ -105,137 +97,136 @@ class JSObject2WrappedJSMap {
 /*************************/
 
 class Native2WrappedNativeMap {
- public:
-  struct Entry : public PLDHashEntryHdr {
-    nsISupports* key;
-    XPCWrappedNative* value;
-  };
+  using Map = mozilla::HashMap<nsISupports*, XPCWrappedNative*,
+                               mozilla::DefaultHasher<nsISupports*>,
+                               mozilla::MallocAllocPolicy>;
 
+ public:
   Native2WrappedNativeMap();
 
-  inline XPCWrappedNative* Find(nsISupports* Obj) const {
-    MOZ_ASSERT(Obj, "bad param");
-    auto entry = static_cast<Entry*>(mTable.Search(Obj));
-    return entry ? entry->value : nullptr;
+  XPCWrappedNative* Find(nsISupports* obj) const {
+    MOZ_ASSERT(obj, "bad param");
+    Map::Ptr ptr = mMap.lookup(obj);
+    return ptr ? ptr->value() : nullptr;
   }
 
-  inline XPCWrappedNative* Add(XPCWrappedNative* wrapper) {
+  XPCWrappedNative* Add(XPCWrappedNative* wrapper) {
     MOZ_ASSERT(wrapper, "bad param");
     nsISupports* obj = wrapper->GetIdentityObject();
-    MOZ_ASSERT(!Find(obj), "wrapper already in new scope!");
-    auto entry = static_cast<Entry*>(mTable.Add(obj, mozilla::fallible));
-    if (!entry) {
+    Map::AddPtr ptr = mMap.lookupForAdd(obj);
+    MOZ_ASSERT(!ptr, "wrapper already in new scope!");
+    if (ptr) {
+      return ptr->value();
+    }
+    if (!mMap.add(ptr, obj, wrapper)) {
       return nullptr;
     }
-    if (entry->key) {
-      return entry->value;
-    }
-    entry->key = obj;
-    entry->value = wrapper;
     return wrapper;
   }
 
-  inline void Clear() { mTable.Clear(); }
+  void Clear() { mMap.clear(); }
 
-  inline uint32_t Count() { return mTable.EntryCount(); }
+  uint32_t Count() { return mMap.count(); }
 
-  PLDHashTable::Iterator Iter() { return mTable.Iter(); }
+  Map::Iterator Iter() { return mMap.iter(); }
+  Map::ModIterator ModIter() { return mMap.modIter(); }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
  private:
-  PLDHashTable mTable;
+  Map mMap;
 };
 
 /*************************/
 
-class IID2NativeInterfaceMap {
- public:
-  struct Entry : public PLDHashEntryHdr {
-    const nsIID* key;
-    XPCNativeInterface* value;
+struct IIDHasher {
+  using Key = const nsIID*;
+  using Lookup = Key;
 
-    static const struct PLDHashTableOps sOps;
-  };
-
-  IID2NativeInterfaceMap();
-
-  inline XPCNativeInterface* Find(REFNSIID iid) const {
-    auto entry = static_cast<Entry*>(mTable.Search(&iid));
-    return entry ? entry->value : nullptr;
+  // Note this is returning the hash of the bit pattern of the first part of the
+  // nsID, not the hash of the pointer to the nsID.
+  static mozilla::HashNumber hash(Lookup lookup) {
+    uintptr_t v;
+    memcpy(&v, lookup, sizeof(v));
+    return mozilla::HashGeneric(v);
   }
 
-  inline XPCNativeInterface* Add(XPCNativeInterface* iface) {
+  static bool match(Key key, Lookup lookup) {
+    return key->Equals(*lookup);
+  }
+};
+
+class IID2NativeInterfaceMap {
+  using Map = mozilla::HashMap<const nsIID*, XPCNativeInterface*, IIDHasher,
+                               mozilla::MallocAllocPolicy>;
+
+ public:
+  IID2NativeInterfaceMap();
+
+  XPCNativeInterface* Find(REFNSIID iid) const {
+    Map::Ptr ptr = mMap.lookup(&iid);
+    return ptr ? ptr->value() : nullptr;
+  }
+
+  XPCNativeInterface* Add(XPCNativeInterface* iface) {
     MOZ_ASSERT(iface, "bad param");
     const nsIID* iid = iface->GetIID();
-    auto entry = static_cast<Entry*>(mTable.Add(iid, mozilla::fallible));
-    if (!entry) {
+    Map::AddPtr ptr = mMap.lookupForAdd(iid);
+    if (ptr) {
+      return ptr->value();
+    }
+    if (!mMap.add(ptr, iid, iface)) {
       return nullptr;
     }
-    if (entry->key) {
-      return entry->value;
-    }
-    entry->key = iid;
-    entry->value = iface;
     return iface;
   }
 
-  inline void Remove(XPCNativeInterface* iface) {
+  void Remove(XPCNativeInterface* iface) {
     MOZ_ASSERT(iface, "bad param");
-    mTable.Remove(iface->GetIID());
+    mMap.remove(iface->GetIID());
   }
 
-  inline uint32_t Count() { return mTable.EntryCount(); }
-
-  PLDHashTable::Iterator Iter() { return mTable.Iter(); }
+  uint32_t Count() { return mMap.count(); }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
  private:
-  PLDHashTable mTable;
+  Map mMap;
 };
 
 /*************************/
 
 class ClassInfo2NativeSetMap {
+  using Map = mozilla::HashMap<nsIClassInfo*, RefPtr<XPCNativeSet>,
+                               mozilla::DefaultHasher<nsIClassInfo*>,
+                               mozilla::MallocAllocPolicy>;
+
  public:
-  struct Entry : public PLDHashEntryHdr {
-    nsIClassInfo* key;
-    XPCNativeSet* value;  // strong reference
-    static const PLDHashTableOps sOps;
-
-   private:
-    static bool Match(const PLDHashEntryHdr* aEntry, const void* aKey);
-    static void Clear(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
-  };
-
   ClassInfo2NativeSetMap();
 
-  inline XPCNativeSet* Find(nsIClassInfo* info) const {
-    auto entry = static_cast<Entry*>(mTable.Search(info));
-    return entry ? entry->value : nullptr;
+  XPCNativeSet* Find(nsIClassInfo* info) const {
+    auto ptr = mMap.lookup(info);
+    return ptr ? ptr->value().get() : nullptr;
   }
 
-  inline XPCNativeSet* Add(nsIClassInfo* info, XPCNativeSet* set) {
+  XPCNativeSet* Add(nsIClassInfo* info, XPCNativeSet* set) {
     MOZ_ASSERT(info, "bad param");
-    auto entry = static_cast<Entry*>(mTable.Add(info, mozilla::fallible));
-    if (!entry) {
+    auto ptr = mMap.lookupForAdd(info);
+    if (ptr) {
+      return ptr->value();
+    }
+    if (!mMap.add(ptr, info, set)) {
       return nullptr;
     }
-    if (entry->key) {
-      return entry->value;
-    }
-    entry->key = info;
-    NS_ADDREF(entry->value = set);
     return set;
   }
 
-  inline void Remove(nsIClassInfo* info) {
+  void Remove(nsIClassInfo* info) {
     MOZ_ASSERT(info, "bad param");
-    mTable.Remove(info);
+    mMap.remove(info);
   }
 
-  inline uint32_t Count() { return mTable.EntryCount(); }
+  uint32_t Count() { return mMap.count(); }
 
   // ClassInfo2NativeSetMap holds pointers to *some* XPCNativeSets.
   // So we don't want to count those XPCNativeSets, because they are better
@@ -244,82 +235,82 @@ class ClassInfo2NativeSetMap {
   size_t ShallowSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
  private:
-  PLDHashTable mTable;
+  Map mMap;
 };
 
 /*************************/
 
 class ClassInfo2WrappedNativeProtoMap {
- public:
-  struct Entry : public PLDHashEntryHdr {
-    nsIClassInfo* key;
-    XPCWrappedNativeProto* value;
-  };
+  using Map = mozilla::HashMap<nsIClassInfo*, XPCWrappedNativeProto*,
+                               mozilla::DefaultHasher<nsIClassInfo*>,
+                               mozilla::MallocAllocPolicy>;
 
+ public:
   ClassInfo2WrappedNativeProtoMap();
 
-  inline XPCWrappedNativeProto* Find(nsIClassInfo* info) const {
-    auto entry = static_cast<Entry*>(mTable.Search(info));
-    return entry ? entry->value : nullptr;
+  XPCWrappedNativeProto* Find(nsIClassInfo* info) const {
+    auto ptr = mMap.lookup(info);
+    return ptr ? ptr->value() : nullptr;
   }
 
-  inline XPCWrappedNativeProto* Add(nsIClassInfo* info,
+  XPCWrappedNativeProto* Add(nsIClassInfo* info,
                                     XPCWrappedNativeProto* proto) {
     MOZ_ASSERT(info, "bad param");
-    auto entry = static_cast<Entry*>(mTable.Add(info, mozilla::fallible));
-    if (!entry) {
+    auto ptr = mMap.lookupForAdd(info);
+    if (ptr) {
+      return ptr->value();
+    }
+    if (!mMap.add(ptr, info, proto)) {
       return nullptr;
     }
-    if (entry->key) {
-      return entry->value;
-    }
-    entry->key = info;
-    entry->value = proto;
     return proto;
   }
 
-  inline void Clear() { mTable.Clear(); }
+  void Clear() { mMap.clear(); }
 
-  inline uint32_t Count() { return mTable.EntryCount(); }
+  uint32_t Count() { return mMap.count(); }
 
-  PLDHashTable::Iterator Iter() { return mTable.Iter(); }
+  Map::Iterator Iter() { return mMap.iter(); }
+  Map::ModIterator ModIter() { return mMap.modIter(); }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
  private:
-  PLDHashTable mTable;
+  Map mMap;
 };
 
 /*************************/
 
+struct NativeSetHasher {
+  using Key = XPCNativeSet*;
+  using Lookup = const XPCNativeSetKey*;
+
+  static mozilla::HashNumber hash(Lookup lookup) { return lookup->Hash(); }
+  static bool match(Key key, Lookup lookup);
+};
+
 class NativeSetMap {
+  using Set = mozilla::HashSet<XPCNativeSet*, NativeSetHasher,
+                               mozilla::MallocAllocPolicy>;
+
  public:
-  struct Entry : public PLDHashEntryHdr {
-    XPCNativeSet* key_value;
-
-    static bool Match(const PLDHashEntryHdr* entry, const void* key);
-
-    static const struct PLDHashTableOps sOps;
-  };
-
   NativeSetMap();
 
-  inline XPCNativeSet* Find(XPCNativeSetKey* key) const {
-    auto entry = static_cast<Entry*>(mTable.Search(key));
-    return entry ? entry->key_value : nullptr;
+  XPCNativeSet* Find(const XPCNativeSetKey* key) const {
+    auto ptr = mSet.lookup(key);
+    return ptr ? *ptr : nullptr;
   }
 
-  inline XPCNativeSet* Add(const XPCNativeSetKey* key, XPCNativeSet* set) {
+  XPCNativeSet* Add(const XPCNativeSetKey* key, XPCNativeSet* set) {
     MOZ_ASSERT(key, "bad param");
     MOZ_ASSERT(set, "bad param");
-    auto entry = static_cast<Entry*>(mTable.Add(key, mozilla::fallible));
-    if (!entry) {
+    auto ptr = mSet.lookupForAdd(key);
+    if (ptr) {
+      return *ptr;
+    }
+    if (!mSet.add(ptr, set)) {
       return nullptr;
     }
-    if (entry->key_value) {
-      return entry->key_value;
-    }
-    entry->key_value = set;
     return set;
   }
 
@@ -336,51 +327,21 @@ class NativeSetMap {
     return true;
   }
 
-  inline void Remove(XPCNativeSet* set) {
+  void Remove(XPCNativeSet* set) {
     MOZ_ASSERT(set, "bad param");
 
     XPCNativeSetKey key(set);
-    mTable.Remove(&key);
+    mSet.remove(&key);
   }
 
-  inline uint32_t Count() { return mTable.EntryCount(); }
+  uint32_t Count() { return mSet.count(); }
 
-  PLDHashTable::Iterator Iter() { return mTable.Iter(); }
+  Set::Iterator Iter() { return mSet.iter(); }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
  private:
-  PLDHashTable mTable;
-};
-
-/***************************************************************************/
-
-class XPCWrappedNativeProtoMap {
- public:
-  using Entry = PLDHashEntryStub;
-
-  XPCWrappedNativeProtoMap();
-
-  inline XPCWrappedNativeProto* Add(XPCWrappedNativeProto* proto) {
-    MOZ_ASSERT(proto, "bad param");
-    auto entry =
-        static_cast<PLDHashEntryStub*>(mTable.Add(proto, mozilla::fallible));
-    if (!entry) {
-      return nullptr;
-    }
-    if (entry->key) {
-      return (XPCWrappedNativeProto*)entry->key;
-    }
-    entry->key = proto;
-    return proto;
-  }
-
-  inline uint32_t Count() { return mTable.EntryCount(); }
-
-  PLDHashTable::Iterator Iter() { return mTable.Iter(); }
-
- private:
-  PLDHashTable mTable;
+  Set mSet;
 };
 
 /***************************************************************************/
@@ -424,7 +385,7 @@ class JSObject2JSObjectMap {
 
   inline uint32_t Count() { return mTable.count(); }
 
-  void Sweep() { mTable.sweep(); }
+  void UpdateWeakPointers(JSTracer* trc) { mTable.traceWeak(trc); }
 
  private:
   Map mTable{XPC_WRAPPER_MAP_LENGTH};

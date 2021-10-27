@@ -3,7 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const EXPORTED_SYMBOLS = ["BroadcastConduit", "ConduitsParent"];
+const EXPORTED_SYMBOLS = [
+  "BroadcastConduit",
+  "ConduitsParent",
+  "ProcessConduitsParent",
+];
 
 /**
  * This @file implements the parent side of Conduits, an abstraction over
@@ -109,15 +113,47 @@ const Hub = {
   },
 
   /**
-   * Confirm that a remote conduit comes from an extension page.
+   * Confirm that a remote conduit comes from an extension background
+   * service worker.
    * @see ExtensionPolicyService::CheckParentFrames
    * @param {ConduitAddress} remote
    * @returns {boolean}
    */
-  verifyEnv({ actor, envType, extensionId }) {
+  verifyWorkerEnv({ actor, extensionId, workerScriptURL }) {
+    const addonPolicy = WebExtensionPolicy.getByID(extensionId);
+    if (!addonPolicy) {
+      throw new Error(`No WebExtensionPolicy found for ${extensionId}`);
+    }
+    if (actor.manager.remoteType !== addonPolicy.extension.remoteType) {
+      throw new Error(
+        `Bad ${extensionId} process: ${actor.manager.remoteType}`
+      );
+    }
+    if (!addonPolicy.isManifestBackgroundWorker(workerScriptURL)) {
+      throw new Error(
+        `Bad ${extensionId} background service worker script url: ${workerScriptURL}`
+      );
+    }
+    return true;
+  },
+
+  /**
+   * Confirm that a remote conduit comes from an extension page or
+   * an extension background service worker.
+   * @see ExtensionPolicyService::CheckParentFrames
+   * @param {ConduitAddress} remote
+   * @returns {boolean}
+   */
+  verifyEnv({ actor, envType, extensionId, ...rest }) {
     if (!extensionId || !ADDON_ENV.has(envType)) {
       return false;
     }
+
+    // ProcessConduit related to a background service worker context.
+    if (actor.manager && actor.manager instanceof Ci.nsIDOMProcessParent) {
+      return this.verifyWorkerEnv({ actor, envType, extensionId, ...rest });
+    }
+
     let windowGlobal = actor.manager;
 
     while (windowGlobal) {
@@ -146,8 +182,19 @@ const Hub = {
   fillInAddress(address, actor) {
     address.actor = actor;
     address.verified = this.verifyEnv(address);
-    address.frameId = WebNavigationFrames.getFrameId(actor.browsingContext);
-    address.url = actor.browsingContext.currentURI.spec;
+    if (actor instanceof JSWindowActorParent) {
+      address.frameId = WebNavigationFrames.getFrameId(actor.browsingContext);
+      address.url = actor.manager.documentURI?.spec;
+    } else {
+      // Background service worker contexts do not have an associated frame
+      // and there is no browsingContext to retrieve the expected url from.
+      //
+      // WorkerContextChild sent in the address part of the ConduitOpened request
+      // the worker script URL as address.workerScriptURL, and so we can use that
+      // as the address.url too.
+      address.frameId = -1;
+      address.url = address.workerScriptURL;
+    }
   },
 
   /**
@@ -270,9 +317,12 @@ class BroadcastConduit extends BaseConduit {
       // Target Messengers by extensionId, tabId (topBC) and frameId.
       tab: remote =>
         remote.extensionId === arg.extensionId &&
-        remote.actor.manager.browsingContext.top.id === arg.topBC &&
+        remote.actor.manager.browsingContext?.top.id === arg.topBC &&
         (arg.frameId == null || remote.frameId === arg.frameId) &&
         remote.recv.includes(method),
+
+      // Target Messengers by extensionId.
+      extension: remote => remote.instanceId === arg.instanceId,
     };
 
     let targets = Array.from(Hub.remotes.values()).filter(filters[kind]);
@@ -406,4 +456,13 @@ class ConduitsParent extends JSWindowActorParent {
   didDestroy() {
     Hub.actorClosed(this);
   }
+}
+
+/**
+ * Parent side of the Conduits process actor.  Same code as JSWindowActor.
+ */
+class ProcessConduitsParent extends JSProcessActorParent {
+  receiveMessage = ConduitsParent.prototype.receiveMessage;
+  willDestroy = ConduitsParent.prototype.willDestroy;
+  didDestroy = ConduitsParent.prototype.didDestroy;
 }

@@ -54,6 +54,35 @@ nsAtom* HTMLFormAccessible::LandmarkRole() const {
                         : nsGkAtoms::form;
 }
 
+void HTMLFormAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
+                                             nsAtom* aAttribute,
+                                             int32_t aModType,
+                                             const nsAttrValue* aOldValue,
+                                             uint64_t aOldState) {
+  HyperTextAccessibleWrap::DOMAttributeChanged(aNameSpaceID, aAttribute,
+                                               aModType, aOldValue, aOldState);
+  if (aAttribute == nsGkAtoms::autocomplete) {
+    dom::HTMLFormElement* formEl = dom::HTMLFormElement::FromNode(mContent);
+
+    nsIHTMLCollection* controls = formEl->Elements();
+    uint32_t length = controls->Length();
+    for (uint32_t i = 0; i < length; i++) {
+      if (LocalAccessible* acc = mDoc->GetAccessible(controls->Item(i))) {
+        if (acc->IsTextField() && !acc->IsPassword()) {
+          if (!acc->Elm()->HasAttr(nsGkAtoms::list_) &&
+              !acc->Elm()->AttrValueIs(kNameSpaceID_None,
+                                       nsGkAtoms::autocomplete, nsGkAtoms::OFF,
+                                       eIgnoreCase)) {
+            RefPtr<AccEvent> stateChangeEvent =
+                new AccStateChangeEvent(acc, states::SUPPORTS_AUTOCOMPLETION);
+            mDoc->FireDelayedEvent(stateChangeEvent);
+          }
+        }
+      }
+    }
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // HTMLRadioButtonAccessible
 ////////////////////////////////////////////////////////////////////////////////
@@ -261,32 +290,25 @@ already_AddRefed<AccAttributes> HTMLTextFieldAccessible::NativeAttributes() {
 
   // Expose type for text input elements as it gives some useful context,
   // especially for mobile.
-  nsAutoString type;
-  // In the case of this element being part of a binding, the binding's
-  // parent's type should have precedence. For example an input[type=number]
-  // has an embedded anonymous input[type=text] (along with spinner buttons).
-  // In that case, we would want to take the input type from the parent
-  // and not the anonymous content.
-  nsIContent* widgetElm = BindingOrWidgetParent();
-  if ((widgetElm && widgetElm->AsElement()->GetAttr(kNameSpaceID_None,
-                                                    nsGkAtoms::type, type)) ||
-      mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::type,
+  nsString type;
+  if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::type,
                                      type)) {
-    attributes->SetAttribute(nsGkAtoms::textInputType, type);
     if (!ARIARoleMap() && type.EqualsLiteral("search")) {
-      attributes->SetAttribute(nsGkAtoms::xmlroles, u"searchbox"_ns);
+      attributes->SetAttribute(nsGkAtoms::xmlroles, nsGkAtoms::searchbox);
     }
+    attributes->SetAttribute(nsGkAtoms::textInputType, std::move(type));
   }
 
   // If this element  has the placeholder attribute set,
   // and if that is not identical to the name, expose it as an object attribute.
-  nsAutoString placeholderText;
+  nsString placeholderText;
   if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::placeholder,
                                      placeholderText)) {
     nsAutoString name;
     const_cast<HTMLTextFieldAccessible*>(this)->Name(name);
     if (!name.Equals(placeholderText)) {
-      attributes->SetAttribute(nsGkAtoms::placeholder, placeholderText);
+      attributes->SetAttribute(nsGkAtoms::placeholder,
+                               std::move(placeholderText));
     }
   }
 
@@ -296,10 +318,6 @@ already_AddRefed<AccAttributes> HTMLTextFieldAccessible::NativeAttributes() {
 ENameValueFlag HTMLTextFieldAccessible::NativeName(nsString& aName) const {
   ENameValueFlag nameFlag = LocalAccessible::NativeName(aName);
   if (!aName.IsEmpty()) return nameFlag;
-
-  // If part of compound of XUL widget then grab a name from XUL widget element.
-  nsIContent* widgetElm = BindingOrWidgetParent();
-  if (widgetElm) XULElmName(mDoc, widgetElm, aName);
 
   if (!aName.IsEmpty()) return eNameOK;
 
@@ -329,16 +347,18 @@ void HTMLTextFieldAccessible::Value(nsString& aValue) const {
   }
 }
 
+bool HTMLTextFieldAccessible::AttributeChangesState(nsAtom* aAttribute) {
+  if (aAttribute == nsGkAtoms::readonly || aAttribute == nsGkAtoms::list_ ||
+      aAttribute == nsGkAtoms::autocomplete) {
+    return true;
+  }
+
+  return LocalAccessible::AttributeChangesState(aAttribute);
+}
+
 void HTMLTextFieldAccessible::ApplyARIAState(uint64_t* aState) const {
   HyperTextAccessibleWrap::ApplyARIAState(aState);
   aria::MapToState(aria::eARIAAutoComplete, mContent->AsElement(), aState);
-
-  // If part of compound of XUL widget then pick up ARIA stuff from XUL widget
-  // element.
-  nsIContent* widgetElm = BindingOrWidgetParent();
-  if (widgetElm) {
-    aria::MapToState(aria::eARIAAutoComplete, widgetElm->AsElement(), aState);
-  }
 }
 
 uint64_t HTMLTextFieldAccessible::NativeState() const {
@@ -368,21 +388,12 @@ uint64_t HTMLTextFieldAccessible::NativeState() const {
     return state;
   }
 
-  // Expose autocomplete states if this input is part of autocomplete widget.
-  LocalAccessible* widget = ContainerWidget();
-  if (widget && widget - IsAutoComplete()) {
-    state |= states::HASPOPUP | states::SUPPORTS_AUTOCOMPLETION;
-    return state;
-  }
-
   // Expose autocomplete state if it has associated autocomplete list.
   if (mContent->AsElement()->HasAttr(kNameSpaceID_None, nsGkAtoms::list_)) {
     return state | states::SUPPORTS_AUTOCOMPLETION | states::HASPOPUP;
   }
 
-  // Ordinal XUL textboxes don't support autocomplete.
-  if (!BindingOrWidgetParent() &&
-      Preferences::GetBool("browser.formfill.enable")) {
+  if (Preferences::GetBool("browser.formfill.enable")) {
     // Check to see if autocompletion is allowed on this input. We don't expose
     // it for password fields even though the entire password can be remembered
     // for a page if the user asks it to be. However, the kind of autocomplete

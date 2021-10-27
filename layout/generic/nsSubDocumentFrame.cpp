@@ -334,8 +334,8 @@ void nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   bool isRemoteFrame = frameLoader && frameLoader->IsRemoteFrame();
 
   // If we are pointer-events:none then we don't need to HitTest background
-  bool pointerEventsNone =
-      StyleUI()->mPointerEvents == StylePointerEvents::None;
+  const bool pointerEventsNone =
+      Style()->PointerEvents() == StylePointerEvents::None;
   if (!aBuilder->IsForEventDelivery() || !pointerEventsNone) {
     nsDisplayListCollection decorations(aBuilder);
     DisplayBorderBackgroundOutline(aBuilder, decorations);
@@ -1265,8 +1265,8 @@ nsDisplayRemote::nsDisplayRemote(nsDisplayListBuilder* aBuilder,
                                  nsSubDocumentFrame* aFrame)
     : nsPaintedDisplayItem(aBuilder, aFrame),
       mEventRegionsOverride(EventRegionsOverride::NoOverride) {
-  bool frameIsPointerEventsNone = aFrame->StyleUI()->GetEffectivePointerEvents(
-                                      aFrame) == StylePointerEvents::None;
+  const bool frameIsPointerEventsNone =
+      aFrame->Style()->PointerEvents() == StylePointerEvents::None;
   if (aBuilder->IsInsidePointerEventsNoneDoc() || frameIsPointerEventsNone) {
     mEventRegionsOverride |= EventRegionsOverride::ForceEmptyHitRegion;
   }
@@ -1352,9 +1352,18 @@ bool nsDisplayRemote::CreateWebRenderCommands(
 
     // Generate an effects update notifying the browser it is visible
     gfx::Size scale = aSc.GetInheritedScale();
+
+    ParentLayerToScreenScale2D transformToAncestorScale =
+        ParentLayerToParentLayerScale(
+            pc->GetPresShell() ? pc->GetPresShell()->GetCumulativeResolution()
+                               : 1.f) *
+        nsLayoutUtils::GetTransformToAncestorScaleCrossProcessForFrameMetrics(
+            mFrame);
+
     aDisplayListBuilder->AddEffectUpdate(
         remoteBrowser,
-        EffectsInfo::VisibleWithinRect(visibleRect, scale.width, scale.height));
+        EffectsInfo::VisibleWithinRect(visibleRect, scale.width, scale.height,
+                                       transformToAncestorScale));
 
     // Create a WebRenderRemoteData to notify the RemoteBrowser when it is no
     // longer visible

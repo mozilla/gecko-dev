@@ -168,7 +168,8 @@ bool Module::finishTier2(const LinkData& linkData2,
   // Install the data in the data structures. They will not be visible
   // until commitTier2().
 
-  if (!code().setTier2(std::move(code2), linkData2)) {
+  const CodeTier* borrowedTier2;
+  if (!code().setAndBorrowTier2(std::move(code2), linkData2, &borrowedTier2)) {
     return false;
   }
 
@@ -186,9 +187,9 @@ bool Module::finishTier2(const LinkData& linkData2,
     const MetadataTier& metadataTier1 = metadata(Tier::Baseline);
 
     auto stubs1 = code().codeTier(Tier::Baseline).lazyStubs().lock();
-    auto stubs2 = code().codeTier(Tier::Optimized).lazyStubs().lock();
+    auto stubs2 = borrowedTier2->lazyStubs().lock();
 
-    MOZ_ASSERT(stubs2->entryStubsEmpty());
+    MOZ_ASSERT(stubs2->empty());
 
     Uint32Vector funcExportIndices;
     for (size_t i = 0; i < metadataTier1.funcExports.length(); i++) {
@@ -196,7 +197,7 @@ bool Module::finishTier2(const LinkData& linkData2,
       if (fe.hasEagerStubs()) {
         continue;
       }
-      if (!stubs1->hasEntryStub(fe.funcIndex())) {
+      if (!stubs1->hasStub(fe.funcIndex())) {
         continue;
       }
       if (!funcExportIndices.emplaceBack(i)) {
@@ -204,10 +205,8 @@ bool Module::finishTier2(const LinkData& linkData2,
       }
     }
 
-    const CodeTier& tier2 = code().codeTier(Tier::Optimized);
-
     Maybe<size_t> stub2Index;
-    if (!stubs2->createTier2(funcExportIndices, tier2, &stub2Index)) {
+    if (!stubs2->createTier2(funcExportIndices, *borrowedTier2, &stub2Index)) {
       return false;
     }
 
@@ -385,14 +384,14 @@ MutableModule Module::deserialize(const uint8_t* begin, size_t size,
 
 void Module::serialize(const LinkData& linkData,
                        JS::OptimizedEncodingListener& listener) const {
-  auto bytes = MakeUnique<JS::OptimizedEncodingBytes>();
-  if (!bytes || !bytes->resize(serializedSize(linkData))) {
+  Bytes bytes;
+  if (!bytes.resizeUninitialized(serializedSize(linkData))) {
     return;
   }
 
-  serialize(linkData, bytes->begin(), bytes->length());
+  serialize(linkData, bytes.begin(), bytes.length());
 
-  listener.storeOptimizedEncoding(std::move(bytes));
+  listener.storeOptimizedEncoding(bytes.begin(), bytes.length());
 }
 
 /* virtual */
@@ -424,7 +423,7 @@ bool wasm::GetOptimizedEncodingBuildId(JS::BuildIdCharVector* buildId) {
   uint32_t cpu = ObservedCPUFeatures();
 
   if (!buildId->reserve(buildId->length() +
-                        12 /* "()" + 8 nibbles + "m[+-]" */)) {
+                        13 /* "()" + 8 nibbles + "m[+-][+-]" */)) {
     return false;
   }
 
@@ -436,7 +435,10 @@ bool wasm::GetOptimizedEncodingBuildId(JS::BuildIdCharVector* buildId) {
   buildId->infallibleAppend(')');
 
   buildId->infallibleAppend('m');
-  buildId->infallibleAppend(wasm::IsHugeMemoryEnabled() ? '+' : '-');
+  buildId->infallibleAppend(wasm::IsHugeMemoryEnabled(IndexType::I32) ? '+'
+                                                                      : '-');
+  buildId->infallibleAppend(wasm::IsHugeMemoryEnabled(IndexType::I64) ? '+'
+                                                                      : '-');
 
   return true;
 }
@@ -769,7 +771,7 @@ bool Module::instantiateMemory(JSContext* cx,
     }
 
     if (!CheckLimits(cx, desc.initialPages(), desc.maximumPages(),
-                     /* defaultMax */ MaxMemoryPages(),
+                     /* defaultMax */ MaxMemoryPages(desc.indexType()),
                      /* actualLength */
                      memory->volatilePages(), memory->sourceMaxPages(),
                      metadata().isAsmJS(), "Memory")) {
@@ -782,19 +784,20 @@ bool Module::instantiateMemory(JSContext* cx,
   } else {
     MOZ_ASSERT(!metadata().isAsmJS());
 
-    if (desc.initialPages() > MaxMemoryPages()) {
+    if (desc.initialPages() > MaxMemoryPages(desc.indexType())) {
       JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                JSMSG_WASM_MEM_IMP_LIMIT);
       return false;
     }
 
     RootedArrayBufferObjectMaybeShared buffer(cx);
-    if (!CreateWasmBuffer32(cx, desc, &buffer)) {
+    if (!CreateWasmBuffer(cx, desc, &buffer)) {
       return false;
     }
 
     RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmMemory));
-    memory.set(WasmMemoryObject::create(cx, buffer, proto));
+    memory.set(WasmMemoryObject::create(
+        cx, buffer, IsHugeMemoryEnabled(desc.indexType()), proto));
     if (!memory) {
       return false;
     }
@@ -840,8 +843,7 @@ bool Module::instantiateLocalTag(JSContext* cx, const TagDesc& ed,
     // If the tag description is exported, create an export tag
     // object for it.
     RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmTag));
-    RootedWasmTagObject tagObj(cx,
-                               WasmTagObject::create(cx, ed.argTypes, proto));
+    RootedWasmTagObject tagObj(cx, WasmTagObject::create(cx, ed.type, proto));
     if (!tagObj) {
       return false;
     }
@@ -1292,12 +1294,6 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
     return false;
   }
 
-  UniqueTlsData tlsData = CreateTlsData(metadata().globalDataLength);
-  if (!tlsData) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-
   SharedCode code;
   UniqueDebugState maybeDebug;
   if (metadata().debugEnabled) {
@@ -1317,10 +1313,10 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
   }
 
   instance.set(WasmInstanceObject::create(
-      cx, code, dataSegments_, elemSegments_, std::move(tlsData), memory,
-      std::move(tags), std::move(tables), imports.funcs, metadata().globals,
-      imports.globalValues, imports.globalObjs, instanceProto,
-      std::move(maybeDebug)));
+      cx, code, dataSegments_, elemSegments_, metadata().globalDataLength,
+      memory, std::move(tags), std::move(tables), imports.funcs,
+      metadata().globals, imports.globalValues, imports.globalObjs,
+      instanceProto, std::move(maybeDebug)));
   if (!instance) {
     return false;
   }

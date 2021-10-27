@@ -214,7 +214,7 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
             Ok(mut connection) => {
                 if connection.is_none() {
                     if let NewSession(ref capabilities) = msg.command {
-                        let conn = self.create_connection(msg.session_id.clone(), &capabilities)?;
+                        let conn = self.create_connection(msg.session_id.clone(), capabilities)?;
                         *connection = Some(conn);
                     } else {
                         return Err(WebDriverError::new(
@@ -1469,7 +1469,6 @@ impl ToMarionette<MarionetteFrame> for SwitchToFrameParameters {
 impl ToMarionette<Window> for SwitchToWindowParameters {
     fn to_marionette(&self) -> WebDriverResult<Window> {
         Ok(Window {
-            name: self.handle.clone(),
             handle: self.handle.clone(),
         })
     }

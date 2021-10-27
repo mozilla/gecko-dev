@@ -149,6 +149,12 @@ class MacroAssemblerX86Shared : public Assembler {
   void cmp32(const Operand& lhs, Register rhs) { cmpl(rhs, lhs); }
   void cmp32(Register lhs, const Operand& rhs) { cmpl(rhs, lhs); }
 
+  void cmp16(const Address& lhs, Imm32 rhs) { cmp16(Operand(lhs), rhs); }
+  void cmp16(const Operand& lhs, Imm32 rhs) { cmpw(rhs, lhs); }
+
+  void cmp8(const Address& lhs, Imm32 rhs) { cmp8(Operand(lhs), rhs); }
+  void cmp8(const Operand& lhs, Imm32 rhs) { cmpb(rhs, lhs); }
+
   void atomic_inc32(const Operand& addr) { lock_incl(addr); }
   void atomic_dec32(const Operand& addr) { lock_decl(addr); }
 
@@ -410,10 +416,14 @@ class MacroAssemblerX86Shared : public Assembler {
   void truncSatFloat32x4ToInt32x4(FloatRegister src, FloatRegister dest);
   void unsignedTruncSatFloat32x4ToInt32x4(FloatRegister src, FloatRegister temp,
                                           FloatRegister dest);
+  void unsignedTruncSatFloat32x4ToInt32x4Relaxed(FloatRegister src,
+                                                 FloatRegister dest);
   void truncSatFloat64x2ToInt32x4(FloatRegister src, FloatRegister temp,
                                   FloatRegister dest);
   void unsignedTruncSatFloat64x2ToInt32x4(FloatRegister src, FloatRegister temp,
                                           FloatRegister dest);
+  void unsignedTruncSatFloat64x2ToInt32x4Relaxed(FloatRegister src,
+                                                 FloatRegister dest);
 
   void splatX16(Register input, FloatRegister output);
   void splatX8(Register input, FloatRegister output);
@@ -442,6 +452,8 @@ class MacroAssemblerX86Shared : public Assembler {
                     FloatRegister temp, const uint8_t lanes[16]);
   void blendInt16x8(FloatRegister lhs, FloatRegister rhs, FloatRegister output,
                     const uint16_t lanes[8]);
+  void laneSelectSimd128(FloatRegister lhs, FloatRegister rhs,
+                         FloatRegister mask, FloatRegister output);
 
   void compareInt8x16(FloatRegister lhs, Operand rhs, Assembler::Condition cond,
                       FloatRegister output);

@@ -39,6 +39,7 @@
 #include "mozilla/StorageAccess.h"
 #include "mozilla/TaskCategory.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/Unused.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -453,7 +454,7 @@ void WorkerGlobalScope::ImportScripts(JSContext* aCx,
   {
     AUTO_PROFILER_MARKER_TEXT(
         "ImportScripts", JS, MarkerStack::Capture(),
-        profiler_can_accept_markers()
+        profiler_thread_is_being_profiled()
             ? StringJoin(","_ns, aScriptURLs,
                          [](nsACString& dest, const auto& scriptUrl) {
                            AppendUTF16toUTF8(scriptUrl, dest);
@@ -669,6 +670,14 @@ already_AddRefed<Promise> WorkerGlobalScope::CreateImageBitmap(
       this, aImage, Some(gfx::IntRect(aSx, aSy, aSw, aSh)), aOptions, aRv);
 }
 
+// https://html.spec.whatwg.org/#structured-cloning
+void WorkerGlobalScope::StructuredClone(
+    JSContext* aCx, JS::Handle<JS::Value> aValue,
+    const StructuredSerializeOptions& aOptions,
+    JS::MutableHandle<JS::Value> aRetval, ErrorResult& aError) {
+  nsContentUtils::StructuredClone(aCx, this, aValue, aOptions, aRetval, aError);
+}
+
 mozilla::dom::DebuggerNotificationManager*
 WorkerGlobalScope::GetOrCreateDebuggerNotificationManager() {
   if (!mDebuggerNotificationManager) {
@@ -782,10 +791,9 @@ void DedicatedWorkerGlobalScope::PostMessage(
   mWorkerPrivate->PostMessageToParent(aCx, aMessage, aTransferable, aRv);
 }
 
-void DedicatedWorkerGlobalScope::PostMessage(JSContext* aCx,
-                                             JS::Handle<JS::Value> aMessage,
-                                             const PostMessageOptions& aOptions,
-                                             ErrorResult& aRv) {
+void DedicatedWorkerGlobalScope::PostMessage(
+    JSContext* aCx, JS::Handle<JS::Value> aMessage,
+    const StructuredSerializeOptions& aOptions, ErrorResult& aRv) {
   mWorkerPrivate->AssertIsOnWorkerThread();
   mWorkerPrivate->PostMessageToParent(aCx, aMessage, aOptions.mTransfer, aRv);
 }

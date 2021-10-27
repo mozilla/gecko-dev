@@ -58,7 +58,7 @@ class Calendar final {
    * Get the BCP 47 keyword value string designating the calendar type. For
    * instance "gregory", "chinese", "islamic-civil", etc.
    */
-  Result<const char*, ICUError> GetBcp47Type();
+  Result<Span<const char>, ICUError> GetBcp47Type();
 
   /**
    * Return the set of weekdays which are considered as part of the weekend.
@@ -121,14 +121,10 @@ class Calendar final {
 
   ~Calendar();
 
-  /**
-   * TODO(Bug 1686965) - Temporarily get the underlying ICU object while
-   * migrating to the unified API. This should be removed when completing the
-   * migration.
-   */
-  UCalendar* UnsafeGetUCalendar() const { return mCalendar; }
-
  private:
+  friend class DateIntervalFormat;
+  UCalendar* GetUCalendar() const { return mCalendar; }
+
   UCalendar* mCalendar = nullptr;
 };
 

@@ -24,6 +24,17 @@ uint64_t ToNanoSeconds(const FILETIME& aFileTime) {
   return usec.QuadPart * 100;
 }
 
+nsresult GetCpuTimeSinceProcessStartInMs(uint64_t* aResult) {
+  FILETIME createTime, exitTime, kernelTime, userTime;
+  if (!GetProcessTimes(::GetCurrentProcess(), &createTime, &exitTime,
+                       &kernelTime, &userTime)) {
+    return NS_ERROR_FAILURE;
+  }
+  *aResult =
+      (ToNanoSeconds(kernelTime) + ToNanoSeconds(userTime)) / PR_NSEC_PER_MSEC;
+  return NS_OK;
+}
+
 RefPtr<ProcInfoPromise> GetProcInfo(nsTArray<ProcInfoRequest>&& aRequests) {
   auto holder = MakeUnique<MozPromiseHolder<ProcInfoPromise>>();
   RefPtr<ProcInfoPromise> promise = holder->Ensure(__func__);
@@ -91,6 +102,8 @@ RefPtr<ProcInfoPromise> GetProcInfo(nsTArray<ProcInfoRequest>&& aRequests) {
           info.filename.Assign(filename);
           info.cpuKernel = ToNanoSeconds(kernelTime);
           info.cpuUser = ToNanoSeconds(userTime);
+          QueryProcessCycleTime(handle.get(), &info.cpuCycleCount);
+
           info.memory = memoryCounters.PrivateUsage;
 
           if (!gathered.put(request.pid, std::move(info))) {
@@ -156,6 +169,8 @@ RefPtr<ProcInfoPromise> GetProcInfo(nsTArray<ProcInfoRequest>&& aRequests) {
             threadInfo->cpuKernel = ToNanoSeconds(kernelTime);
             threadInfo->cpuUser = ToNanoSeconds(userTime);
           }
+
+          QueryThreadCycleTime(hThread.get(), &threadInfo->cpuCycleCount);
 
           // Attempt to get thread name.
           // If we fail, continue without this piece of information.

@@ -375,17 +375,12 @@ var FullScreen = {
     // don't need that kind of precision in our CSS.
     shiftSize = shiftSize.toFixed(2);
     let toolbox = document.getElementById("navigator-toolbox");
-    let browserEl = document.getElementById("browser");
     if (shiftSize > 0) {
       toolbox.style.setProperty("transform", `translateY(${shiftSize}px)`);
       toolbox.style.setProperty("z-index", "2");
-      toolbox.style.setProperty("position", "relative");
-      browserEl.style.setProperty("position", "relative");
     } else {
       toolbox.style.removeProperty("transform");
       toolbox.style.removeProperty("z-index");
-      toolbox.style.removeProperty("position");
-      browserEl.style.removeProperty("position");
     }
   },
 
@@ -854,26 +849,6 @@ var FullScreen = {
     }
 
     ToolbarIconColor.inferFromText("fullscreen", aEnterFS);
-
-    // For macOS, we use native full screen, all full screen controls
-    // are hidden, don't bother to touch them. If we don't stop here,
-    // the following code could cause the native full screen button be
-    // shown unexpectedly. See bug 1165570.
-    if (AppConstants.platform == "macosx") {
-      return;
-    }
-
-    var fullscreenctls = document.getElementById("window-controls");
-    var navbar = document.getElementById("nav-bar");
-    var ctlsOnTabbar = window.toolbar.visible;
-    if (fullscreenctls.parentNode == navbar && ctlsOnTabbar) {
-      fullscreenctls.removeAttribute("flex");
-      document.getElementById("TabsToolbar").appendChild(fullscreenctls);
-    } else if (fullscreenctls.parentNode.id == "TabsToolbar" && !ctlsOnTabbar) {
-      fullscreenctls.setAttribute("flex", "1");
-      navbar.appendChild(fullscreenctls);
-    }
-    fullscreenctls.hidden = !aEnterFS;
   },
 };
 

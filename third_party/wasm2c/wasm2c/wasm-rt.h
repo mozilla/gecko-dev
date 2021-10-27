@@ -17,6 +17,7 @@
 #ifndef WASM_RT_H_
 #define WASM_RT_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <setjmp.h>
@@ -63,16 +64,24 @@ extern "C" {
 #define WASM_RT_NO_RETURN __attribute__((noreturn))
 #endif
 
-/** Reason a trap occurred. Provide this to `wasm_rt_trap`. */
+/** Reason a trap occurred. Provide this to `wasm_rt_trap`.
+ * If you update this enum also update the error message in wasm_rt_trap.
+ */
 typedef enum {
-  WASM_RT_TRAP_NONE,         /** No error. */
-  WASM_RT_TRAP_OOB,          /** Out-of-bounds access in linear memory. */
-  WASM_RT_TRAP_INT_OVERFLOW, /** Integer overflow on divide or truncation. */
-  WASM_RT_TRAP_DIV_BY_ZERO,  /** Integer divide by zero. */
-  WASM_RT_TRAP_INVALID_CONVERSION, /** Conversion from NaN to integer. */
-  WASM_RT_TRAP_UNREACHABLE,        /** Unreachable instruction executed. */
-  WASM_RT_TRAP_CALL_INDIRECT,      /** Invalid call_indirect, for any reason. */
-  WASM_RT_TRAP_EXHAUSTION,         /** Call stack exhausted. */
+  WASM_RT_TRAP_NONE,                          /** No error. */
+  WASM_RT_TRAP_OOB,                           /** Out-of-bounds access in linear memory. */
+  WASM_RT_TRAP_INT_OVERFLOW,                  /** Integer overflow on divide or truncation. */
+  WASM_RT_TRAP_DIV_BY_ZERO,                   /** Integer divide by zero. */
+  WASM_RT_TRAP_INVALID_CONVERSION,            /** Conversion from NaN to integer. */
+  WASM_RT_TRAP_UNREACHABLE,                   /** Unreachable instruction executed. */
+  WASM_RT_TRAP_CALL_INDIRECT_TABLE_EXPANSION, /** Invalid call_indirect, as func table cannot grow/grow further. */
+  WASM_RT_TRAP_CALL_INDIRECT_OOB_INDEX,       /** Invalid call_indirect, due to index larger than func table. */
+  WASM_RT_TRAP_CALL_INDIRECT_NULL_PTR,        /** Invalid call_indirect, as function being invoked is null. */
+  WASM_RT_TRAP_CALL_INDIRECT_TYPE_MISMATCH,   /** Invalid call_indirect, as function being invoked has an unexpected type. */
+  WASM_RT_TRAP_CALL_INDIRECT_UNKNOWN_ERR,     /** Invalid call_indirect, for other reason. */
+  WASM_RT_TRAP_EXHAUSTION,                    /** Call stack exhausted. */
+  WASM_RT_TRAP_SHADOW_MEM,                    /** Trap due to shadow memory mismatch */
+  WASM_RT_TRAP_WASI,                          /** Trap due to WASI error */
 } wasm_rt_trap_t;
 
 /** Value types. Used to define function signatures. */
@@ -196,6 +205,12 @@ typedef struct wasm2c_sandbox_funcs_t {
  *  This is typically called by the generated code, and not the embedder. */
 WASM_RT_NO_RETURN extern void wasm_rt_trap(wasm_rt_trap_t);
 
+/** An indirect callback function failed.
+ *  Deduce the reason for the failure and then call trap.
+ *
+ *  This is typically called by the generated code, and not the embedder. */
+WASM_RT_NO_RETURN extern void wasm_rt_callback_error_trap(wasm_rt_table_t* table, uint32_t func_index, uint32_t expected_func_type);
+
 /** Register a function type with the given signature. The returned function
  * index is guaranteed to be the same for all calls with the same signature.
  * The following varargs must all be of type `wasm_rt_type_t`, first the
@@ -231,7 +246,7 @@ void wasm_rt_cleanup_func_types(wasm_func_type_t** p_func_type_structs,
  *    // 1 initial page (65536 bytes), and a maximum of 2 pages.
  *    wasm_rt_allocate_memory(&my_memory, 1, 2);
  *  ``` */
-extern void wasm_rt_allocate_memory(wasm_rt_memory_t*,
+extern bool wasm_rt_allocate_memory(wasm_rt_memory_t*,
                                     uint32_t initial_pages,
                                     uint32_t max_pages);
 

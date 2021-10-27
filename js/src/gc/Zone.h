@@ -42,7 +42,7 @@ class ZoneList;
 using ZoneComponentFinder = ComponentFinder<JS::Zone>;
 
 struct UniqueIdGCPolicy {
-  static bool needsSweep(Cell** cell, uint64_t* value);
+  static bool traceWeak(JSTracer* trc, Cell** keyp, uint64_t* valuep);
 };
 
 // Maps a Cell* to a unique, 64bit id.
@@ -67,8 +67,8 @@ using FinalizationRecordVector = GCVector<HeapPtrObject, 1, ZoneAllocPolicy>;
 // `DuplicatesPossible` will allow this and map both wrappers to the same (now
 // tenured) source string.
 using StringWrapperMap =
-    NurseryAwareHashMap<JSString*, JSString*, DefaultHasher<JSString*>,
-                        ZoneAllocPolicy, DuplicatesPossible>;
+    NurseryAwareHashMap<JSString*, JSString*, ZoneAllocPolicy,
+                        DuplicatesPossible>;
 
 class MOZ_NON_TEMPORARY_CLASS ExternalStringCache {
   static const size_t NumEntries = 4;
@@ -116,7 +116,7 @@ class WeakRefHeapPtrVector
   using GCVector::GCVector;
 
   // call in compacting, to update the target in each WeakRefObject.
-  void sweep(js::HeapPtrObject& target);
+  void traceWeak(JSTracer* trc, JSObject* target);
 };
 
 // WeakRefMap is a per-zone GCHashMap, which maps from the target of the JS
@@ -128,7 +128,7 @@ class WeakRefMap
   using GCHashMap::GCHashMap;
   using Base = GCHashMap<HeapPtrObject, WeakRefHeapPtrVector,
                          MovableCellHasher<HeapPtrObject>, ZoneAllocPolicy>;
-  void sweep(gc::StoreBuffer* sbToLock);
+  void traceWeak(JSTracer* trc, gc::StoreBuffer* sbToLock);
 };
 
 }  // namespace js
@@ -271,11 +271,11 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   // This is used by the GC to trace them all first when compacting, since the
   // TypedObject trace hook may access these objects.
   //
-  // There are no barriers here - the set contains only tenured objects so no
+  // (Although this uses HeapPtrObject, the set contains only tenured objects so no
   // post-barrier is required, and these are weak references so no pre-barrier
-  // is required.
+  // is required.)
   using RttValueObjectSet =
-      js::GCHashSet<JSObject*, js::MovableCellHasher<JSObject*>,
+      js::GCHashSet<js::HeapPtrObject, js::MovableCellHasher<js::HeapPtrObject>,
                     js::SystemAllocPolicy>;
 
   js::ZoneData<JS::WeakCache<RttValueObjectSet>> rttValueObjects_;
@@ -442,7 +442,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
 
   bool isCollectingFromAnyThread() const {
     if (RuntimeHeapIsCollecting()) {
-      return gcState_ != NoGC;
+      return wasGCStarted();
     } else {
       return needsIncrementalBarrier();
     }
@@ -480,8 +480,14 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
 
   void sweepAfterMinorGC(JSTracer* trc);
   void sweepUniqueIds();
-  void sweepWeakMaps();
   void sweepCompartments(JSFreeOp* fop, bool keepAtleastOne, bool lastGC);
+
+  // Remove dead weak maps from gcWeakMapList_ and remove entries from the
+  // remaining weak maps whose keys are dead.
+  void sweepWeakMaps(JSTracer* trc);
+
+  // Trace all weak maps in this zone. Used to update edges after a moving GC.
+  void traceWeakMaps(JSTracer* trc);
 
   js::gc::UniqueIdMap& uniqueIds() { return uniqueIds_.ref(); }
 
@@ -512,7 +518,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
 
   void dropStringWrappersOnGC();
 
-  void sweepAllCrossCompartmentWrappers();
+  void traceWeakCCWEdges(JSTracer* trc);
   static void fixupAllCrossCompartmentWrappersAfterMovingGC(JSTracer* trc);
 
   mozilla::LinkedList<detail::WeakCacheBase>& weakCaches() {

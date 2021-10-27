@@ -913,6 +913,13 @@ void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Register rs, ImmWord imm,
   }
 }
 
+void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Address address, ImmWord imm,
+                                      Condition c) {
+  SecondScratchRegisterScope scratch2(asMasm());
+  ma_load(scratch2, address, SizeDouble);
+  ma_cmp_set(rd, scratch2, imm, c);
+}
+
 void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Register rs, ImmPtr imm,
                                       Condition c) {
   ma_cmp_set(rd, rs, ImmWord(uintptr_t(imm.value)), c);
@@ -920,8 +927,9 @@ void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Register rs, ImmPtr imm,
 
 void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Address address, Imm32 imm,
                                       Condition c) {
-  ma_load(ScratchRegister, address, SizeWord, SignExtend);
-  ma_cmp_set(rd, ScratchRegister, imm, c);
+  SecondScratchRegisterScope scratch2(asMasm());
+  ma_load(scratch2, address, SizeWord, SignExtend);
+  ma_cmp_set(rd, scratch2, imm, c);
 }
 
 // fp instructions
@@ -2259,27 +2267,30 @@ void MacroAssembler::PushBoxed(FloatRegister reg) {
 }
 
 void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,
-                                       Register boundsCheckLimit,
-                                       Label* label) {
-  ma_b(index, boundsCheckLimit, label, cond);
+                                       Register boundsCheckLimit, Label* ok) {
+  ma_b(index, boundsCheckLimit, ok, cond);
 }
 
 void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,
-                                       Address boundsCheckLimit, Label* label) {
+                                       Address boundsCheckLimit, Label* ok) {
   SecondScratchRegisterScope scratch2(*this);
   load32(boundsCheckLimit, SecondScratchReg);
-  ma_b(index, SecondScratchReg, label, cond);
+  ma_b(index, SecondScratchReg, ok, cond);
 }
 
 void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
-                                       Register64 boundsCheckLimit,
-                                       Label* label) {
+                                       Register64 boundsCheckLimit, Label* ok) {
   MOZ_CRASH("IMPLEMENTME");
 }
 
 void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
-                                       Address boundsCheckLimit, Label* label) {
+                                       Address boundsCheckLimit, Label* ok) {
   MOZ_CRASH("IMPLEMENTME");
+}
+
+void MacroAssembler::widenInt32(Register r) {
+  // I *think* this is correct.  It may be redundant.
+  move32To64SignExtend(r, Register64(r));
 }
 
 void MacroAssembler::wasmTruncateDoubleToUInt32(FloatRegister input,

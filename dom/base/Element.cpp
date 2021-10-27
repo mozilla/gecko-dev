@@ -80,6 +80,7 @@
 #include "mozilla/dom/FromParser.h"
 #include "mozilla/dom/Grid.h"
 #include "mozilla/dom/HTMLDivElement.h"
+#include "mozilla/dom/HTMLElement.h"
 #include "mozilla/dom/HTMLParagraphElement.h"
 #include "mozilla/dom/HTMLPreElement.h"
 #include "mozilla/dom/HTMLSpanElement.h"
@@ -223,6 +224,7 @@ namespace mozilla::dom {
 // bucket sizes.
 ASSERT_NODE_SIZE(Element, 128, 80);
 ASSERT_NODE_SIZE(HTMLDivElement, 128, 80);
+ASSERT_NODE_SIZE(HTMLElement, 128, 80);
 ASSERT_NODE_SIZE(HTMLParagraphElement, 128, 80);
 ASSERT_NODE_SIZE(HTMLPreElement, 128, 80);
 ASSERT_NODE_SIZE(HTMLSpanElement, 128, 80);
@@ -955,8 +957,7 @@ nsRect Element::GetClientAreaRect() {
   // We can avoid a layout flush if this is the scrolling element of the
   // document, we have overlay scrollbars, and we aren't embedded in another
   // document
-  bool overlayScrollbars =
-      LookAndFeel::GetInt(LookAndFeel::IntID::UseOverlayScrollbars) != 0;
+  bool overlayScrollbars = presContext && presContext->UseOverlayScrollbars();
   bool rootContentDocument =
       presContext && presContext->IsRootContentDocument();
   if (overlayScrollbars && rootContentDocument &&
@@ -1480,7 +1481,7 @@ already_AddRefed<Attr> Element::RemoveAttributeNode(Attr& aAttribute,
 
 void Element::GetAttributeNS(const nsAString& aNamespaceURI,
                              const nsAString& aLocalName, nsAString& aReturn) {
-  int32_t nsid = nsContentUtils::NameSpaceManager()->GetNameSpaceID(
+  int32_t nsid = nsNameSpaceManager::GetInstance()->GetNameSpaceID(
       aNamespaceURI, nsContentUtils::IsChromeDoc(OwnerDoc()));
 
   if (nsid == kNameSpaceID_Unknown) {
@@ -1553,7 +1554,7 @@ void Element::RemoveAttributeNS(const nsAString& aNamespaceURI,
                                 const nsAString& aLocalName,
                                 ErrorResult& aError) {
   RefPtr<nsAtom> name = NS_AtomizeMainThread(aLocalName);
-  int32_t nsid = nsContentUtils::NameSpaceManager()->GetNameSpaceID(
+  int32_t nsid = nsNameSpaceManager::GetInstance()->GetNameSpaceID(
       aNamespaceURI, nsContentUtils::IsChromeDoc(OwnerDoc()));
 
   if (nsid == kNameSpaceID_Unknown) {
@@ -1587,8 +1588,8 @@ already_AddRefed<nsIHTMLCollection> Element::GetElementsByTagNameNS(
   int32_t nameSpaceId = kNameSpaceID_Wildcard;
 
   if (!aNamespaceURI.EqualsLiteral("*")) {
-    aError = nsContentUtils::NameSpaceManager()->RegisterNameSpace(
-        aNamespaceURI, nameSpaceId);
+    aError = nsNameSpaceManager::GetInstance()->RegisterNameSpace(aNamespaceURI,
+                                                                  nameSpaceId);
     if (aError.Failed()) {
       return nullptr;
     }
@@ -1601,7 +1602,7 @@ already_AddRefed<nsIHTMLCollection> Element::GetElementsByTagNameNS(
 
 bool Element::HasAttributeNS(const nsAString& aNamespaceURI,
                              const nsAString& aLocalName) const {
-  int32_t nsid = nsContentUtils::NameSpaceManager()->GetNameSpaceID(
+  int32_t nsid = nsNameSpaceManager::GetInstance()->GetNameSpaceID(
       aNamespaceURI, nsContentUtils::IsChromeDoc(OwnerDoc()));
 
   if (nsid == kNameSpaceID_Unknown) {
@@ -1715,7 +1716,7 @@ nsresult Element::BindToTree(BindContext& aContext, nsINode& aParent) {
     if (CustomElementData* data = GetCustomElementData()) {
       if (data->mState == CustomElementData::State::eCustom) {
         nsContentUtils::EnqueueLifecycleCallback(
-            ElementCallbackType::eConnected, this);
+            ElementCallbackType::eConnected, this, {});
       } else {
         // Step 7.7.2.2 https://dom.spec.whatwg.org/#concept-node-insert
         nsContentUtils::TryToUpgradeElement(this);
@@ -1948,7 +1949,7 @@ void Element::UnbindFromTree(bool aNullParent) {
     if (data) {
       if (data->mState == CustomElementData::State::eCustom) {
         nsContentUtils::EnqueueLifecycleCallback(
-            ElementCallbackType::eDisconnected, this);
+            ElementCallbackType::eDisconnected, this, {});
       } else {
         // Remove an unresolved custom element that is a candidate for upgrade
         // when a custom element is disconnected.
@@ -2503,18 +2504,18 @@ nsresult Element::SetAttrAndNotify(
       }
       RefPtr<nsAtom> newValueAtom = valueForAfterSetAttr.GetAsAtom();
       nsAutoString ns;
-      nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNamespaceID, ns);
+      nsNameSpaceManager::GetInstance()->GetNameSpaceURI(aNamespaceID, ns);
 
-      LifecycleCallbackArgs args = {nsDependentAtomString(aName),
-                                    aModType == MutationEvent_Binding::ADDITION
-                                        ? VoidString()
-                                        : nsDependentAtomString(oldValueAtom),
-                                    nsDependentAtomString(newValueAtom),
-                                    (ns.IsEmpty() ? VoidString() : ns)};
+      LifecycleCallbackArgs args;
+      args.mName = nsDependentAtomString(aName);
+      args.mOldValue = (aModType == MutationEvent_Binding::ADDITION
+                            ? VoidString()
+                            : nsDependentAtomString(oldValueAtom));
+      args.mNewValue = nsDependentAtomString(newValueAtom);
+      args.mNamespaceURI = (ns.IsEmpty() ? VoidString() : ns);
 
       nsContentUtils::EnqueueLifecycleCallback(
-          ElementCallbackType::eAttributeChanged, this, &args, nullptr,
-          definition);
+          ElementCallbackType::eAttributeChanged, this, args, definition);
     }
   }
 
@@ -2544,7 +2545,7 @@ nsresult Element::SetAttrAndNotify(
     InternalMutationEvent mutation(true, eLegacyAttrModified);
 
     nsAutoString ns;
-    nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNamespaceID, ns);
+    nsNameSpaceManager::GetInstance()->GetNameSpaceURI(aNamespaceID, ns);
     Attr* attrNode =
         GetAttributeNodeNSInternal(ns, nsDependentAtomString(aName));
     mutation.mRelatedNode = attrNode;
@@ -2689,15 +2690,17 @@ nsresult Element::OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
 
     if (definition->IsInObservedAttributeList(aName)) {
       nsAutoString ns;
-      nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNamespaceID, ns);
+      nsNameSpaceManager::GetInstance()->GetNameSpaceURI(aNamespaceID, ns);
 
       nsAutoString value(aValue.String());
-      LifecycleCallbackArgs args = {nsDependentAtomString(aName), value, value,
-                                    (ns.IsEmpty() ? VoidString() : ns)};
+      LifecycleCallbackArgs args;
+      args.mName = nsDependentAtomString(aName);
+      args.mOldValue = value;
+      args.mNewValue = value;
+      args.mNamespaceURI = (ns.IsEmpty() ? VoidString() : ns);
 
       nsContentUtils::EnqueueLifecycleCallback(
-          ElementCallbackType::eAttributeChanged, this, &args, nullptr,
-          definition);
+          ElementCallbackType::eAttributeChanged, this, args, definition);
     }
   }
 
@@ -2766,7 +2769,7 @@ nsresult Element::UnsetAttr(int32_t aNameSpaceID, nsAtom* aName, bool aNotify) {
   RefPtr<Attr> attrNode;
   if (hasMutationListeners) {
     nsAutoString ns;
-    nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNameSpaceID, ns);
+    nsNameSpaceManager::GetInstance()->GetNameSpaceURI(aNameSpaceID, ns);
     attrNode = GetAttributeNodeNSInternal(ns, nsDependentAtomString(aName));
   }
 
@@ -2801,16 +2804,17 @@ nsresult Element::UnsetAttr(int32_t aNameSpaceID, nsAtom* aName, bool aNotify) {
 
     if (definition->IsInObservedAttributeList(aName)) {
       nsAutoString ns;
-      nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNameSpaceID, ns);
+      nsNameSpaceManager::GetInstance()->GetNameSpaceURI(aNameSpaceID, ns);
 
       RefPtr<nsAtom> oldValueAtom = oldValue.GetAsAtom();
-      LifecycleCallbackArgs args = {
-          nsDependentAtomString(aName), nsDependentAtomString(oldValueAtom),
-          VoidString(), (ns.IsEmpty() ? VoidString() : ns)};
+      LifecycleCallbackArgs args;
+      args.mName = nsDependentAtomString(aName);
+      args.mOldValue = nsDependentAtomString(oldValueAtom);
+      args.mNewValue = VoidString();
+      args.mNamespaceURI = (ns.IsEmpty() ? VoidString() : ns);
 
       nsContentUtils::EnqueueLifecycleCallback(
-          ElementCallbackType::eAttributeChanged, this, &args, nullptr,
-          definition);
+          ElementCallbackType::eAttributeChanged, this, args, definition);
     }
   }
 
@@ -4525,6 +4529,20 @@ void Element::RegUnRegAccessKey(bool aDoReg) {
 void Element::SetHTML(const nsAString& aInnerHTML,
                       const SetHTMLOptions& aOptions, ErrorResult& aError) {
   FragmentOrElement* target = this;
+  // Throw for disallowed elements
+  if (IsHTMLElement(nsGkAtoms::script)) {
+    aError.ThrowTypeError("This does not work on <script> elements");
+    return;
+  }
+  if (IsHTMLElement(nsGkAtoms::object)) {
+    aError.ThrowTypeError("This does not work on <object> elements");
+    return;
+  }
+  if (IsHTMLElement(nsGkAtoms::iframe)) {
+    aError.ThrowTypeError("This does not work on <iframe> elements");
+    return;
+  }
+
   // Handle template case.
   if (target->IsTemplateElement()) {
     DocumentFragment* frag =

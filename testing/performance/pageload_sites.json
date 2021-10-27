@@ -33,7 +33,8 @@
     {
       "login": false,
       "name": "cnn",
-      "test_url": "https://cnn.com"
+      "test_url": "https://cnn.com",
+      "secondary_url": "https://www.cnn.com/weather"
     },
     {
       "login": false,
@@ -144,12 +145,6 @@
     },
     {
       "login": false,
-      "name": "amazon-sec",
-      "test_url": "https://www.amazon.com/s?k=laptop&ref=nb_sb_noss_1",
-      "secondary_url": "https://www.amazon.com/Acer-A515-46-R14K-Quad-Core-Processor-Backlit/dp/B08VKNVDDR/ref=sr_1_3?dchild=1&keywords=laptop&qid=1627047187&sr=8-3"
-    },
-    {
-      "login": false,
       "name": "bing-search",
       "test_url": "https://www.bing.com/search?q=barack+obama"
     },
@@ -162,7 +157,8 @@
     {
       "login": false,
       "name": "cnn",
-      "test_url": "https://www.cnn.com/2021/03/22/weather/climate-change-warm-waters-lake-michigan/index.html"
+      "test_url": "https://www.cnn.com/2021/03/22/weather/climate-change-warm-waters-lake-michigan/index.html",
+      "secondary_url": "https://www.cnn.com/weather"
     },
     {
       "login": false,
@@ -200,7 +196,8 @@
     {
       "login": false,
       "name": "google-docs",
-      "test_url": "https://docs.google.com/document/d/1US-07msg12slQtI_xchzYxcKlTs6Fp7WqIc6W5GK5M8/edit?usp=sharing"
+      "test_url": "https://docs.google.com/document/d/1US-07msg12slQtI_xchzYxcKlTs6Fp7WqIc6W5GK5M8/edit?usp=sharing",
+      "secondary_url": "https://docs.google.com/document/d/1vUnn0ePU-ynArE1OdxyEHXR2G0sl74ja_st_4OOzlgE/preview"
     },
     {
       "login": false,
@@ -215,12 +212,14 @@
     {
       "login": false,
       "name": "google-slides",
-      "test_url": "https://docs.google.com/presentation/d/1Ici0ceWwpFvmIb3EmKeWSq_vAQdmmdFcWqaiLqUkJng/edit?usp=sharing"
+      "test_url": "https://docs.google.com/presentation/d/1Ici0ceWwpFvmIb3EmKeWSq_vAQdmmdFcWqaiLqUkJng/edit?usp=sharing",
+      "secondary_url": "https://docs.google.com/document/d/1vUnn0ePU-ynArE1OdxyEHXR2G0sl74ja_st_4OOzlgE/preview"
     },
     {
       "login": false,
       "name": "imdb",
-      "test_url": "https://www.imdb.com/title/tt0084967/?ref_=nv_sr_2"
+      "test_url": "https://www.imdb.com/title/tt0084967/?ref_=nv_sr_2",
+      "secondary_url": "https://www.imdb.com/title/tt0084967/episodes/?ref_=tt_ov_epl"
     },
     {
       "login": false,
@@ -235,27 +234,32 @@
     {
       "login": true,
       "name": "linkedin",
-      "test_url": "https://www.linkedin.com/in/thommy-harris-hk-385723106/"
+      "test_url": "https://www.linkedin.com/in/thommy-harris-hk-385723106/",
+      "secondary_url": "https://www.linkedin.com/company/github?trk=affiliated-pages"
     },
     {
       "login": false,
       "name": "microsoft",
-      "test_url": "https://www.microsoft.com/en-us/"
+      "test_url": "https://www.microsoft.com/en-us/",
+      "secondary_url": "https://support.microsoft.com/en-us"
     },
     {
       "login": true,
       "name": "netflix",
-      "test_url": "https://www.netflix.com/title/80117263"
+      "test_url": "https://www.netflix.com/title/80117263",
+      "secondary_url": "https://www.netflix.com/title/699257"
     },
     {
       "login": false,
       "name": "nytimes",
-      "test_url": "https://www.nytimes.com/2020/02/19/opinion/surprise-medical-bill.html"
+      "test_url": "https://www.nytimes.com/2020/02/19/opinion/surprise-medical-bill.html",
+      "secondary_url": "https://www.nytimes.com/section/opinion/columnists"
     },
     {
       "login": true,
       "name": "office",
-      "test_url": "https://office.live.com/start/Word.aspx?omkt=en-US"
+      "test_url": "https://www.office.com/launch/word",
+      "secondary_url": "https://www.office.com/"
     },
     {
       "login": true,
@@ -270,17 +274,20 @@
     {
       "login": true,
       "name": "pinterest",
-      "test_url": "https://pinterest.com/"
+      "test_url": "https://pinterest.com/",
+      "secondary_url": "https://www.pinterest.com/today/best/halloween-costumes-for-your-furry-friends/75787/"
     },
     {
       "login": false,
       "name": "reddit",
-      "test_url": "https://www.reddit.com/r/technology/comments/9sqwyh/we_posed_as_100_senators_to_run_ads_on_facebook/"
+      "test_url": "https://www.reddit.com/r/technology/comments/9sqwyh/we_posed_as_100_senators_to_run_ads_on_facebook/",
+      "secondary_url": "https://www.reddit.com/r/technology/"
     },
     {
       "login": true,
       "name": "tumblr",
-      "test_url": "https://www.tumblr.com/dashboard"
+      "test_url": "https://www.tumblr.com/dashboard",
+      "secondary_url": "https://www.tumblr.com/tagged/funny+cats?sort=top"
     },
     {
       "login": false,
@@ -300,7 +307,8 @@
     {
       "login": false,
       "name": "wikipedia",
-      "test_url": "https://en.wikipedia.org/wiki/Barack_Obama"
+      "test_url": "https://en.wikipedia.org/wiki/Barack_Obama",
+      "secondary_url": "https://en.wikipedia.org/wiki/Joe_Biden"
     },
     {
       "login": true,
@@ -310,7 +318,82 @@
     {
       "login": false,
       "name": "youtube",
-      "test_url": "https://www.youtube.com"
+      "test_url": "https://www.youtube.com",
+      "secondary_url": "https://www.youtube.com/watch?v=JrdEMERq8MA"
+    },
+    {
+      "login": false,
+      "name": "cnn-nav",
+      "test_url": "https://www.cnn.com/",
+      "test_cmds":  [
+        ["measure.start", "landing"],
+        ["navigate", "https://www.cnn.com"],
+        ["wait.byTime", 4000],
+        ["measure.stop", ""],
+        ["measure.start", "world"],
+        ["click.byXpathAndWait", "/html/body/div[5]/div/div/header/div/div[1]/div/div[2]/nav/ul/li[2]/a"],
+        ["wait.byTime", 1000],
+        ["measure.stop", ""]
+      ]
+    },
+    {
+      "login": false,
+      "name": "reddit-billgates-ama",
+      "test_url": "https://www.reddit.com/",
+      "test_cmds":  [
+        ["measure.start", "billg-ama"],
+        ["navigate", "https://www.reddit.com/r/IAmA/comments/m8n4vt/im_bill_gates_cochair_of_the_bill_and_melinda/"],
+        ["wait.byTime", 5000],
+        ["measure.stop", ""],
+        ["measure.start", "members"],
+        ["click.byXpathAndWait", "/html/body/div[1]/div/div[2]/div[2]/div/div[3]/div[2]/div/div[1]/div/div[4]/div[1]/div"],
+        ["wait.byTime", 1000],
+        ["measure.stop", ""]
+      ]
+    },
+    {
+      "login": false,
+      "name": "reddit-billgates-post",
+      "test_url": "https://www.reddit.com/user/thisisbillgates/",
+      "test_cmds":  [
+        ["measure.start", "billg"],
+        ["navigate", "https://www.reddit.com/user/thisisbillgates/"],
+        ["wait.byTime", 5000],
+        ["measure.stop", ""],
+        ["measure.start", "posts"],
+        ["click.byXpathAndWait", "/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div/a[2]"],
+        ["wait.byTime", 15000],
+        ["measure.stop", ""],
+        ["measure.start", "comments"],
+        ["click.byXpathAndWait", "/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div/a[3]"],
+        ["wait.byTime", 15000],
+        ["measure.stop", ""],
+        ["measure.start", "hot"],
+        ["click.byXpathAndWait", "/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[4]/div[1]/div[1]/div[2]/a[2]"],
+        ["wait.byTime", 15000],
+        ["measure.stop", ""],
+        ["measure.start", "top"],
+        ["click.byXpathAndWait", "/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[4]/div[1]/div[1]/div[2]/a[3]"],
+        ["wait.byTime", 15000],
+        ["measure.stop", ""]
+      ]
+    },
+    {
+      "login": false,
+      "name": "facebook-nav",
+      "test_url": "https://www.facebook.com/",
+      "test_cmds":  [
+        ["navigate", "https://www.facebook.com/login"],
+        ["wait.byTime", 30000],
+        ["measure.start", "https://www.facebook.com/"],
+        ["wait.byTime", 5000],
+        ["measure.start", "https://www.facebook.com/marketplace/"],
+        ["wait.byTime", 5000],
+        ["measure.start", "https://www.facebook.com/groups/discover/"],
+        ["wait.byTime", 10000],
+        ["measure.start", "https://www.facebook.com/friends"],
+        ["wait.byTime", 10000]
+      ]
     }
   ]
 }

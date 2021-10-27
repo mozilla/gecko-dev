@@ -15,6 +15,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/StaticMutex.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Variant.h"
 #include "mozilla/Logging.h"
@@ -39,7 +40,23 @@ class LogModule;
 // a separate lifecycle so we can Cancel() the underlying timer when the user of
 // the nsTimer has let go of its last reference.
 class nsTimerImpl {
-  ~nsTimerImpl() { MOZ_ASSERT(!mHolder); }
+  ~nsTimerImpl() {
+    MOZ_ASSERT(!mHolder);
+
+    // The nsITimer interface requires that its users keep a reference to the
+    // timers they use while those timers are initialized but have not yet
+    // fired. If this assert ever fails, it is a bug in the code that created
+    // and used the timer.
+    //
+    // Further, note that this should never fail even with a misbehaving user,
+    // because nsTimer::Release checks for a refcount of 1 with an armed timer
+    // (a timer whose only reference is from the timer thread) and when it hits
+    // this will remove the timer from the timer thread and thus destroy the
+    // last reference, preventing this situation from occurring.
+    MOZ_ASSERT(
+        mCallback.is<UnknownCallback>() || mEventTarget->IsOnCurrentThread(),
+        "Must not release mCallback off-target without canceling");
+  }
 
  public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -149,14 +166,16 @@ class nsTimerImpl {
   // Updated only after this timer has been removed from the timer thread.
   mozilla::TimeStamp mTimeout;
 
-  static double sDeltaSum;
-  static double sDeltaSumSquared;
-  static double sDeltaNum;
   RefPtr<nsITimer> mITimer;
   mozilla::Mutex mMutex;
   Callback mCallback;
   // Counter because in rare cases we can Fire reentrantly
   unsigned int mFiring;
+
+  static mozilla::StaticMutex sDeltaMutex;
+  static double sDeltaSum;
+  static double sDeltaSumSquared;
+  static double sDeltaNum;
 };
 
 class nsTimer final : public nsITimer {

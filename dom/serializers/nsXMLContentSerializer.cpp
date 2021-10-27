@@ -810,7 +810,7 @@ bool nsXMLContentSerializer::SerializeAttributes(
 
     bool addNSAttr = false;
     if (kNameSpaceID_XMLNS != namespaceID) {
-      nsContentUtils::NameSpaceManager()->GetNameSpaceURI(namespaceID, uriStr);
+      nsNameSpaceManager::GetInstance()->GetNameSpaceURI(namespaceID, uriStr);
       addNSAttr = ConfirmPrefix(prefixStr, uriStr, aOriginalElement, true);
     }
 
@@ -1536,19 +1536,36 @@ bool nsXMLContentSerializer::AppendWrapped_NonWhitespaceSequence(
         int32_t wrapPosition = 0;
 
         if (mAllowLineBreaking) {
-          mozilla::intl::LineBreaker* lineBreaker =
-              nsContentUtils::LineBreaker();
+          MOZ_ASSERT(aPos < aEnd,
+                     "We shouldn't be here if aPos reaches the end of text!");
 
-          wrapPosition =
-              lineBreaker->Prev(aSequenceStart, (aEnd - aSequenceStart),
-                                (aPos - aSequenceStart) + 1);
-          if (wrapPosition != NS_LINEBREAKER_NEED_MORE_TEXT) {
+          // Search forward from aSequenceStart until we find the largest
+          // wrap position less than or equal to aPos.
+          int32_t nextWrapPosition = 0;
+          while (true) {
+            nextWrapPosition = intl::LineBreaker::Next(
+                aSequenceStart, aEnd - aSequenceStart, wrapPosition);
+            MOZ_ASSERT(nextWrapPosition != NS_LINEBREAKER_NEED_MORE_TEXT,
+                       "We should've exited the loop when reaching the end of "
+                       "text in the previous iteration!");
+            if (aSequenceStart + nextWrapPosition > aPos) {
+              break;
+            }
+            wrapPosition = nextWrapPosition;
+          }
+
+          if (wrapPosition != 0) {
             foundWrapPosition = true;
           } else {
-            wrapPosition =
-                lineBreaker->Next(aSequenceStart, (aEnd - aSequenceStart),
-                                  (aPos - aSequenceStart));
-            if (wrapPosition != NS_LINEBREAKER_NEED_MORE_TEXT) {
+            // The wrap position found in the first iteration of the above loop
+            // already exceeds aPos. We however still accept it as valid a wrap
+            // position.
+            wrapPosition = nextWrapPosition;
+
+            // If the line-breaker returned end-of-text, we don't know that it
+            // is actually a good wrap position, so ignore it and continue to
+            // use the fallback code below.
+            if (wrapPosition < aEnd - aSequenceStart) {
               foundWrapPosition = true;
             }
           }
@@ -1573,6 +1590,14 @@ bool nsXMLContentSerializer::AppendWrapped_NonWhitespaceSequence(
           // try some simple fallback logic
           // go forward up to the next whitespace position,
           // in the worst case this will be all the rest of the data
+
+          // XXX(jfkthame) Should we (conditionally) output indentation here?
+          // It makes for tidier-looking formatted output, at the cost of
+          // exceeding the target width by a greater amount on such lines.
+          // if (!mColPos && mDoFormat) {
+          //   NS_ENSURE_TRUE(AppendIndentation(aOutputStr), false);
+          //   mAddSpace = false;
+          // }
 
           // we update the mColPos variable with the length of
           // the part already parsed.

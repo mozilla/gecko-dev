@@ -95,7 +95,7 @@ bool PaymentRequest::PrefEnabled(JSContext* aCx, JSObject* aObj) {
   }
   nsAutoCString locale;
   LocaleService::GetInstance()->GetAppLocaleAsBCP47(locale);
-  mozilla::intl::Locale loc = mozilla::intl::Locale(locale);
+  mozilla::intl::MozLocale loc = mozilla::intl::MozLocale(locale);
   if (!(loc.GetLanguage() == "en" && loc.GetRegion() == "US")) {
     return false;
   }
@@ -790,7 +790,6 @@ void PaymentRequest::RespondShowPayment(const nsAString& aMethodName,
                                         const nsAString& aPayerEmail,
                                         const nsAString& aPayerPhone,
                                         ErrorResult&& aResult) {
-  MOZ_ASSERT(mAcceptPromise || mResponse);
   MOZ_ASSERT(mState == eInteractive);
 
   if (aResult.Failed()) {
@@ -805,12 +804,17 @@ void PaymentRequest::RespondShowPayment(const nsAString& aMethodName,
   if (mResponse) {
     mResponse->RespondRetry(aMethodName, mShippingOption, mShippingAddress,
                             aDetails, aPayerName, aPayerEmail, aPayerPhone);
-  } else {
+  } else if (mAcceptPromise) {
     RefPtr<PaymentResponse> paymentResponse = new PaymentResponse(
         GetOwner(), this, mId, aMethodName, mShippingOption, mShippingAddress,
         aDetails, aPayerName, aPayerEmail, aPayerPhone);
     mResponse = paymentResponse;
     mAcceptPromise->MaybeResolve(paymentResponse);
+  } else {
+    // mAccpetPromise could be nulled through document activity changed. And
+    // there is nothing to do here.
+    mState = eClosed;
+    return;
   }
 
   mState = eClosed;

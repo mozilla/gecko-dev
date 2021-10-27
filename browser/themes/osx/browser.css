@@ -31,8 +31,15 @@
   --arrowpanel-field-background: rgba(12,12,13,.3);
 }
 
+#browser {
+  /* #browser and #navigator-toolbox must have relative positions so that the
+     latter can slide over the former in fullscreen mode. */
+  position: relative;
+}
+
 #navigator-toolbox {
   appearance: none;
+  position: relative;
 }
 
 #navigator-toolbox:not(:-moz-lwtheme) {
@@ -75,6 +82,11 @@
 
 .titlebar-buttonbox-container {
   -moz-box-align: center;
+}
+
+/* Hide window controls in fullscreen */
+:root[inFullscreen] .titlebar-buttonbox-container {
+  display: none;
 }
 
 .titlebar-buttonbox:-moz-locale-dir(ltr) {
@@ -183,14 +195,6 @@
 .bookmark-item:not(:hover):-moz-window-inactive,
 :root:not([customizing]) .toolbarbutton-1:-moz-window-inactive[disabled="true"] {
   opacity: 0.5;
-}
-
-/* ----- FULLSCREEN WINDOW CONTROLS ----- */
-
-#minimize-button,
-#close-button,
-#fullscreen-button ~ #window-controls > #restore-button {
-  display: none;
 }
 
 /* Address bar */

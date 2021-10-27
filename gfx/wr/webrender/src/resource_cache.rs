@@ -25,10 +25,12 @@ use crate::glyph_cache::GlyphCacheEntry;
 use crate::glyph_rasterizer::{GLYPH_FLASHING, FontInstance, GlyphFormat, GlyphKey, GlyphRasterizer};
 use crate::gpu_cache::{GpuCache, GpuCacheAddress, GpuCacheHandle};
 use crate::gpu_types::UvRectKind;
-use crate::internal_types::{CacheTextureId, FastHashMap, FastHashSet, TextureSource, ResourceUpdateList};
+use crate::internal_types::{
+    CacheTextureId, FastHashMap, FastHashSet, TextureSource, ResourceUpdateList,
+    FrameId, FrameStamp,
+};
 use crate::picture::SurfaceInfo;
 use crate::profiler::{self, TransactionProfile, bytes_to_mb};
-use crate::render_backend::{FrameId, FrameStamp};
 use crate::render_task_graph::{RenderTaskId, RenderTaskGraphBuilder};
 use crate::render_task_cache::{RenderTaskCache, RenderTaskCacheKey, RenderTaskParent};
 use crate::render_task_cache::{RenderTaskCacheEntry, RenderTaskCacheEntryHandle};
@@ -49,6 +51,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::u32;
 use crate::texture_cache::{TextureCache, TextureCacheHandle, Eviction, TargetShader};
+use crate::picture_textures::PictureTextures;
 
 // Counter for generating unique native surface ids
 static NEXT_NATIVE_SURFACE_ID: AtomicUsize = AtomicUsize::new(0);
@@ -467,6 +470,7 @@ pub struct ResourceCache {
     capture_dirty: bool,
 
     pub texture_cache: TextureCache,
+    pub picture_textures: PictureTextures,
 
     /// TODO(gw): We should expire (parts of) this cache semi-regularly!
     cached_glyph_dimensions: GlyphDimensionsCache,
@@ -496,6 +500,7 @@ pub struct ResourceCache {
 impl ResourceCache {
     pub fn new(
         texture_cache: TextureCache,
+        picture_textures: PictureTextures,
         glyph_rasterizer: GlyphRasterizer,
         cached_glyphs: GlyphCache,
         font_instances: SharedFontInstanceMap,
@@ -512,6 +517,7 @@ impl ResourceCache {
             },
             cached_glyph_dimensions: FastHashMap::default(),
             texture_cache,
+            picture_textures,
             state: State::Idle,
             current_frame_id: FrameId::INVALID,
             pending_image_requests: FastHashSet::default(),
@@ -541,9 +547,14 @@ impl ResourceCache {
         let glyph_rasterizer = GlyphRasterizer::new(workers, true).unwrap();
         let cached_glyphs = GlyphCache::new();
         let font_instances = SharedFontInstanceMap::new();
+        let picture_textures = PictureTextures::new(
+            crate::picture::TILE_SIZE_DEFAULT,
+            TextureFilter::Nearest,
+        );
 
         ResourceCache::new(
             texture_cache,
+            picture_textures,
             glyph_rasterizer,
             cached_glyphs,
             font_instances,
@@ -1218,11 +1229,13 @@ impl ResourceCache {
         })
     }
 
-    pub fn begin_frame(&mut self, stamp: FrameStamp, profile: &mut TransactionProfile) {
+    pub fn begin_frame(&mut self, stamp: FrameStamp, gpu_cache: &mut GpuCache, profile: &mut TransactionProfile) {
         profile_scope!("begin_frame");
         debug_assert_eq!(self.state, State::Idle);
         self.state = State::AddResources;
         self.texture_cache.begin_frame(stamp, profile);
+        self.picture_textures.begin_frame(stamp, &mut self.texture_cache.pending_updates);
+
         self.cached_glyphs.begin_frame(
             stamp,
             &mut self.texture_cache,
@@ -1234,6 +1247,8 @@ impl ResourceCache {
         // pop the old frame and push a new one
         self.deleted_blob_keys.pop_front();
         self.deleted_blob_keys.push_back(Vec::new());
+
+        self.texture_cache.run_compaction(gpu_cache);
     }
 
     pub fn block_until_all_resources_added(
@@ -1496,11 +1511,17 @@ impl ResourceCache {
         );
 
         self.texture_cache.end_frame(profile);
+        self.picture_textures.gc(
+            &mut self.texture_cache.pending_updates,
+        );
+
+        self.picture_textures.update_profile(profile);
     }
 
     pub fn set_debug_flags(&mut self, flags: DebugFlags) {
         GLYPH_FLASHING.store(flags.contains(DebugFlags::GLYPH_FLASHING), std::sync::atomic::Ordering::Relaxed);
         self.texture_cache.set_debug_flags(flags);
+        self.picture_textures.set_debug_flags(flags);
     }
 
     pub fn clear(&mut self, what: ClearCache) {
@@ -1520,6 +1541,7 @@ impl ResourceCache {
         }
         if what.contains(ClearCache::TEXTURE_CACHE) {
             self.texture_cache.clear_all();
+            self.picture_textures.clear(&mut self.texture_cache.pending_updates);
         }
         if what.contains(ClearCache::RENDER_TARGETS) {
             self.clear_render_target_pool();
@@ -1782,6 +1804,7 @@ pub struct PlainCacheRef<'a> {
     images: &'a ImageCache,
     render_tasks: &'a RenderTaskCache,
     textures: &'a TextureCache,
+    picture_textures: &'a PictureTextures,
 }
 
 #[cfg(feature = "replay")]
@@ -1793,6 +1816,7 @@ pub struct PlainCacheOwn {
     images: ImageCache,
     render_tasks: RenderTaskCache,
     textures: TextureCache,
+    picture_textures: PictureTextures,
 }
 
 #[cfg(feature = "replay")]
@@ -1982,6 +2006,7 @@ impl ResourceCache {
             images: &self.cached_images,
             render_tasks: &self.cached_render_tasks,
             textures: &self.texture_cache,
+            picture_textures: &self.picture_textures,
         }
     }
 
@@ -2012,17 +2037,20 @@ impl ResourceCache {
                 self.cached_images = cached.images;
                 self.cached_render_tasks = cached.render_tasks;
                 self.texture_cache = cached.textures;
+                self.picture_textures = cached.picture_textures;
             }
             None => {
                 self.current_frame_id = FrameId::INVALID;
                 self.texture_cache = TextureCache::new(
                     self.texture_cache.max_texture_size(),
                     self.texture_cache.tiling_threshold(),
-                    self.texture_cache.default_picture_tile_size(),
                     self.texture_cache.color_formats(),
                     self.texture_cache.swizzle_settings(),
                     &TextureCacheConfig::DEFAULT,
-                    self.texture_cache.picture_texture_filter(),
+                );
+                self.picture_textures = PictureTextures::new(
+                    self.picture_textures.default_tile_size(),
+                    self.picture_textures.filter(),
                 );
             }
         }

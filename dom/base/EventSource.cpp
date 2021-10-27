@@ -56,7 +56,9 @@
 
 namespace mozilla::dom {
 
+#ifdef DEBUG
 static LazyLogModule gEventSourceLog("EventSource");
+#endif
 
 #define SPACE_CHAR (char16_t)0x0020
 #define CR_CHAR (char16_t)0x000D
@@ -791,10 +793,8 @@ void EventSourceImpl::ParseSegment(const char* aBuffer, uint32_t aLength) {
     uint32_t result;
     size_t read;
     size_t written;
-    bool hadErrors;
-    Tie(result, read, written, hadErrors) =
+    Tie(result, read, written, Ignore) =
         mUnicodeDecoder->DecodeToUTF16(src, dst, false);
-    Unused << hadErrors;
     for (auto c : dst.To(written)) {
       nsresult rv = ParseCharacter(c);
       NS_ENSURE_SUCCESS_VOID(rv);

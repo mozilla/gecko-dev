@@ -7,9 +7,12 @@
 #include "DNS.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/StaticPrefs_network.h"
 #include "ODoHService.h"
 // Put DNSLogging.h at the end to avoid LOG being overwritten by other headers.
 #include "DNSLogging.h"
+
+#include "nsIInputStream.h"
 
 namespace mozilla {
 namespace net {
@@ -345,8 +348,10 @@ nsresult DNSPacket::EncodeRequest(nsCString& aBody, const nsACString& aHost,
   aBody += '\0';
   aBody += '\0';  // NSCOUNT
 
-  aBody += '\0';                    // ARCOUNT
-  aBody += aDisableECS ? 1 : '\0';  // ARCOUNT low byte for EDNS(0)
+  char additionalRecords =
+      (aDisableECS || StaticPrefs::network_trr_padding()) ? 1 : 0;
+  aBody += '\0';               // ARCOUNT
+  aBody += additionalRecords;  // ARCOUNT low byte for EDNS(0)
 
   // Question
 
@@ -390,7 +395,7 @@ nsresult DNSPacket::EncodeRequest(nsCString& aBody, const nsACString& aHost,
   aBody += '\0';           // upper 8 bit CLASS
   aBody += kDNS_CLASS_IN;  // IN - "the Internet"
 
-  if (aDisableECS) {
+  if (additionalRecords) {
     // EDNS(0) is RFC 6891, ECS is RFC 7871
     aBody += '\0';  // NAME       | domain name  | MUST be 0 (root domain) |
     aBody += '\0';
@@ -403,27 +408,75 @@ nsresult DNSPacket::EncodeRequest(nsCString& aBody, const nsACString& aHost,
     aBody += '\0';
     aBody += '\0';
 
-    aBody += '\0';  // upper 8 bit RDLEN
-    aBody += 8;  // RDLEN      | u_int16_t    | length of all RDATA          |
+    // calculate padding length
+    unsigned int paddingLen = 0;
+    unsigned int rdlen = 0;
+    bool padding = StaticPrefs::network_trr_padding();
+    if (padding) {
+      // always add padding specified in rfc 7830 when this config is enabled
+      // to allow the reponse to be padded as well
+
+      // two bytes RDLEN, 4 bytes padding header
+      unsigned int packetLen = aBody.Length() + 2 + 4;
+      if (aDisableECS) {
+        // 8 bytes for disabling ecs
+        packetLen += 8;
+      }
+
+      // clamp the padding length, because the padding extension only allows up
+      // to 2^16 - 1 bytes padding and adding too much padding wastes resources
+      uint32_t padTo = std::clamp<uint32_t>(
+          StaticPrefs::network_trr_padding_length(), 0, 1024);
+
+      // Calculate number of padding bytes. The second '%'-operator is necessary
+      // because we prefer to add 0 bytes padding rather than padTo bytes
+      if (padTo > 0) {
+        paddingLen = (padTo - (packetLen % padTo)) % padTo;
+      }
+      // padding header + padding length
+      rdlen += 4 + paddingLen;
+    }
+    if (aDisableECS) {
+      rdlen += 8;
+    }
+
+    // RDLEN      | u_int16_t    | length of all RDATA          |
+    aBody += (char)((rdlen >> 8) & 0xff);  // upper 8 bit RDLEN
+    aBody += (char)(rdlen & 0xff);
 
     // RDATA      | octet stream | {attribute,value} pairs      |
     // The RDATA is just the ECS option setting zero subnet prefix
 
-    aBody += '\0';  // upper 8 bit OPTION-CODE ECS
-    aBody += 8;     // OPTION-CODE, 2 octets, for ECS is 8
+    if (aDisableECS) {
+      aBody += '\0';  // upper 8 bit OPTION-CODE ECS
+      aBody += 8;     // OPTION-CODE, 2 octets, for ECS is 8
 
-    aBody += '\0';  // upper 8 bit OPTION-LENGTH
-    aBody += 4;  // OPTION-LENGTH, 2 octets, contains the length of the payload
-                 // after OPTION-LENGTH
-    aBody += '\0';  // upper 8 bit FAMILY. IANA Address Family Numbers registry,
-                    // not the AF_* constants!
-    aBody += 1;     // FAMILY (Ipv4), 2 octets
+      aBody += '\0';  // upper 8 bit OPTION-LENGTH
+      aBody += 4;     // OPTION-LENGTH, 2 octets, contains the length of the
+                      // payload after OPTION-LENGTH
+      aBody += '\0';  // upper 8 bit FAMILY. IANA Address Family Numbers
+                      // registry, not the AF_* constants!
+      aBody += 1;     // FAMILY (Ipv4), 2 octets
 
-    aBody += '\0';  // SOURCE PREFIX-LENGTH      |     SCOPE PREFIX-LENGTH |
-    aBody += '\0';
+      aBody += '\0';  // SOURCE PREFIX-LENGTH      |     SCOPE PREFIX-LENGTH |
+      aBody += '\0';
 
-    // ADDRESS, minimum number of octets == nothing because zero bits
+      // ADDRESS, minimum number of octets == nothing because zero bits
+    }
+
+    if (padding) {
+      aBody += '\0';  // upper 8 bit option OPTION-CODE PADDING
+      aBody += 12;    // OPTION-CODE, 2 octets, for PADDING is 12
+
+      // OPTION-LENGTH, 2 octets
+      aBody += (char)((paddingLen >> 8) & 0xff);
+      aBody += (char)(paddingLen & 0xff);
+      for (unsigned int i = 0; i < paddingLen; i++) {
+        aBody += '\0';
+      }
+    }
   }
+
   SetDNSPacketStatus(DNSPacketStatus::Success);
   return NS_OK;
 }

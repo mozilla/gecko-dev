@@ -543,6 +543,14 @@ partial interface Document {
   Promise<void> requestStorageAccess();
 };
 
+// A privileged API to give chrome privileged code and the content script of the
+// webcompat extension the ability to request the storage access for a given
+// third party.
+partial interface Document {
+  [Func="Document::CallerCanAccessPrivilegeSSA", Throws]
+  Promise<void> requestStorageAccessForOrigin(DOMString thirdPartyOrigin);
+};
+
 enum DocumentAutoplayPolicy {
   "allowed",       // autoplay is currently allowed
   "allowed-muted", // muted video autoplay is currently allowed
@@ -707,4 +715,26 @@ partial interface Document {
 partial interface Document {
   [ChromeOnly]
   readonly attribute boolean isInitialDocument;
+};
+
+// Extension to allow chrome code to get some wireframe-like structure.
+enum WireframeRectType {
+  "image",
+  "background",
+  "text",
+  "unknown",
+};
+dictionary WireframeTaggedRect {
+  DOMRectReadOnly rect;
+  DOMString? color; /* Only relevant for "background" rects */
+  WireframeRectType type;
+  Node? node;
+};
+dictionary Wireframe {
+  DOMString canvasBackground;
+  sequence<WireframeTaggedRect> rects;
+};
+partial interface Document {
+  [ChromeOnly]
+  Wireframe? getWireframe(optional boolean aIncludeNodes = false);
 };

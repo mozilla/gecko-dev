@@ -21,8 +21,6 @@ const CHROME_ONLY_TOGGLES = [
   "-moz-windows-non-native-menus",
   "-moz-swipe-animation-enabled",
   "-moz-gtk-csd-available",
-  "-moz-gtk-csd-hide-titlebar-by-default",
-  "-moz-gtk-csd-transparent-background",
   "-moz-gtk-csd-minimize-button",
   "-moz-gtk-csd-maximize-button",
   "-moz-gtk-csd-close-button",
@@ -37,7 +35,4 @@ const CHROME_ONLY_QUERIES = [
   "(-moz-os-version: windows-win7)",
   "(-moz-os-version: windows-win8)",
   "(-moz-os-version: windows-win10)",
-  "(-moz-toolbar-prefers-color-scheme: dark)",
-  "(-moz-toolbar-prefers-color-scheme: light)",
-  "(-moz-toolbar-prefers-color-scheme: system)",
 ];

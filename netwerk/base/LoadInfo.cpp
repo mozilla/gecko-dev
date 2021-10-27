@@ -30,6 +30,8 @@
 #include "nsIContentSecurityPolicy.h"
 #include "nsIDocShell.h"
 #include "mozilla/dom/Document.h"
+#include "nsIHttpChannel.h"
+#include "nsIHttpChannelInternal.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIScriptElement.h"
 #include "nsISupportsImpl.h"
@@ -754,7 +756,41 @@ void LoadInfo::ComputeIsThirdPartyContext(dom::WindowGlobalParent* aGlobal) {
   thirdPartyUtil->IsThirdPartyGlobal(aGlobal, &mIsThirdPartyContext);
 }
 
-NS_IMPL_ISUPPORTS(LoadInfo, nsILoadInfo)
+NS_IMPL_ADDREF(LoadInfo)
+
+bool LoadInfo::DispatchRelease() {
+  if (NS_IsMainThread()) {
+    return false;
+  }
+
+  NS_DispatchToMainThread(NewNonOwningRunnableMethod("net::LoadInfo::Release",
+                                                     this, &LoadInfo::Release),
+                          NS_DISPATCH_NORMAL);
+  return true;
+}
+
+NS_IMETHODIMP_(MozExternalRefCountType)
+LoadInfo::Release() {
+  nsrefcnt count = mRefCnt - 1;
+  if (DispatchRelease()) {
+    // Redispatched to main thread.
+    return count;
+  }
+
+  MOZ_ASSERT(0 != mRefCnt, "dup release");
+  count = --mRefCnt;
+  NS_LOG_RELEASE(this, count, "LoadInfo");
+
+  if (0 == count) {
+    mRefCnt = 1;
+    delete (this);
+    return 0;
+  }
+
+  return count;
+}
+
+NS_IMPL_QUERY_INTERFACE(LoadInfo, nsILoadInfo)
 
 already_AddRefed<nsILoadInfo> LoadInfo::Clone() const {
   RefPtr<LoadInfo> copy(new LoadInfo(*this));
@@ -779,7 +815,7 @@ already_AddRefed<nsILoadInfo> LoadInfo::CloneForNewRequest() const {
 
 NS_IMETHODIMP
 LoadInfo::GetLoadingPrincipal(nsIPrincipal** aLoadingPrincipal) {
-  NS_IF_ADDREF(*aLoadingPrincipal = mLoadingPrincipal);
+  *aLoadingPrincipal = do_AddRef(mLoadingPrincipal).take();
   return NS_OK;
 }
 
@@ -797,7 +833,7 @@ nsIPrincipal* LoadInfo::TriggeringPrincipal() { return mTriggeringPrincipal; }
 
 NS_IMETHODIMP
 LoadInfo::GetPrincipalToInherit(nsIPrincipal** aPrincipalToInherit) {
-  NS_IF_ADDREF(*aPrincipalToInherit = mPrincipalToInherit);
+  *aPrincipalToInherit = do_AddRef(mPrincipalToInherit).take();
   return NS_OK;
 }
 
@@ -1326,14 +1362,41 @@ LoadInfo::GetInitialSecurityCheckDone(bool* aResult) {
 }
 
 NS_IMETHODIMP
-LoadInfo::AppendRedirectHistoryEntry(nsIRedirectHistoryEntry* aEntry,
+LoadInfo::AppendRedirectHistoryEntry(nsIChannel* aChannel,
                                      bool aIsInternalRedirect) {
-  NS_ENSURE_ARG(aEntry);
+  NS_ENSURE_ARG(aChannel);
   MOZ_ASSERT(NS_IsMainThread());
 
-  mRedirectChainIncludingInternalRedirects.AppendElement(aEntry);
+  nsCOMPtr<nsIPrincipal> uriPrincipal;
+  nsIScriptSecurityManager* sm = nsContentUtils::GetSecurityManager();
+  sm->GetChannelURIPrincipal(aChannel, getter_AddRefs(uriPrincipal));
+
+  nsCOMPtr<nsIURI> referrer;
+  nsCString remoteAddress;
+
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
+  if (httpChannel) {
+    nsCOMPtr<nsIReferrerInfo> referrerInfo;
+    Unused << httpChannel->GetReferrerInfo(getter_AddRefs(referrerInfo));
+    if (referrerInfo) {
+      referrer = referrerInfo->GetComputedReferrer();
+    }
+  }
+
+  // ClassifierDummyChannel implements this, but not nsIHttpChannel,
+  // whereas NullHttpChannel implements nsIHttpChannel but not this, so
+  // we can't make assumptions by nesting these QIs.
+  nsCOMPtr<nsIHttpChannelInternal> intChannel(do_QueryInterface(aChannel));
+  if (intChannel) {
+    Unused << intChannel->GetRemoteAddress(remoteAddress);
+  }
+
+  nsCOMPtr<nsIRedirectHistoryEntry> entry =
+      new nsRedirectHistoryEntry(uriPrincipal, referrer, remoteAddress);
+
+  mRedirectChainIncludingInternalRedirects.AppendElement(entry);
   if (!aIsInternalRedirect) {
-    mRedirectChain.AppendElement(aEntry);
+    mRedirectChain.AppendElement(entry);
   }
   return NS_OK;
 }
@@ -1689,7 +1752,7 @@ LoadInfo::GetIsFromObjectOrEmbed(bool* aIsFromObjectOrEmbed) {
 
 NS_IMETHODIMP
 LoadInfo::GetResultPrincipalURI(nsIURI** aURI) {
-  NS_IF_ADDREF(*aURI = mResultPrincipalURI);
+  *aURI = do_AddRef(mResultPrincipalURI).take();
   return NS_OK;
 }
 
@@ -1830,7 +1893,7 @@ PerformanceStorage* LoadInfo::GetPerformanceStorage() {
 
 NS_IMETHODIMP
 LoadInfo::GetCspEventListener(nsICSPEventListener** aCSPEventListener) {
-  NS_IF_ADDREF(*aCSPEventListener = mCSPEventListener);
+  *aCSPEventListener = do_AddRef(mCSPEventListener).take();
   return NS_OK;
 }
 

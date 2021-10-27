@@ -28,6 +28,7 @@
 #include "nsIDocShell.h"
 #include "mozilla/dom/Document.h"
 #include "nsPIDOMWindow.h"
+#include "nsIContentInlines.h"
 #include "nsIEditingSession.h"
 #include "nsIFrame.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -50,6 +51,7 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLSelectElement.h"
 #include "mozilla/dom/MutationEventBinding.h"
 #include "mozilla/dom/UserActivation.h"
 
@@ -270,9 +272,9 @@ already_AddRefed<AccAttributes> DocAccessible::Attributes() {
   // Override ARIA object attributes from outerdoc.
   aria::AttrIterator attribIter(mParent->GetContent());
   while (attribIter.Next()) {
-    nsAutoString value;
+    nsString value;
     attribIter.AttrValue(value);
-    attributes->SetAttribute(attribIter.AttrName(), value);
+    attributes->SetAttribute(attribIter.AttrName(), std::move(value));
   }
 
   return attributes.forget();
@@ -297,7 +299,7 @@ void DocAccessible::TakeFocus() const {
 already_AddRefed<EditorBase> DocAccessible::GetEditor() const {
   // Check if document is editable (designMode="on" case). Otherwise check if
   // the html:body (for HTML document case) or document element is editable.
-  if (!mDocumentNode->HasFlag(NODE_IS_EDITABLE) &&
+  if (!mDocumentNode->IsInDesignMode() &&
       (!mContent || !mContent->HasFlag(NODE_IS_EDITABLE))) {
     return nullptr;
   }
@@ -769,6 +771,7 @@ void DocAccessible::AttributeChanged(dom::Element* aElement,
     dom::Element* elm = accessible->Elm();
     RelocateARIAOwnedIfNeeded(elm);
     ARIAActiveDescendantIDMaybeMoved(elm);
+    accessible->SendCache(CacheDomain::DOMNodeID, CacheUpdateType::Update);
   }
 
   // The activedescendant universal property redirects accessible focus events
@@ -876,6 +879,12 @@ void DocAccessible::ContentStateChanged(dom::Document* aDocument,
         new AccStateChangeEvent(accessible, states::TRAVERSED, true);
     FireDelayedEvent(event);
   }
+
+  if (aStateMask.HasState(NS_EVENT_STATE_DEFAULT)) {
+    RefPtr<AccEvent> event =
+        new AccStateChangeEvent(accessible, states::DEFAULT);
+    FireDelayedEvent(event);
+  }
 }
 
 void DocAccessible::CharacterDataWillChange(nsIContent* aContent,
@@ -900,6 +909,10 @@ void DocAccessible::ContentRemoved(nsIContent* aChildNode,
   // double processing of same subtrees. If it pops up in profiling, then
   // consider reusing a document node cache to reject these notifications early.
   ContentRemoved(aChildNode);
+}
+
+void DocAccessible::MarkForBoundsProcessing(LocalAccessible* aAcc) {
+  mMaybeBoundsChanged.EnsureInserted(aAcc);
 }
 
 void DocAccessible::ParentChainChanged(nsIContent* aContent) {}
@@ -932,8 +945,7 @@ void* DocAccessible::GetNativeWindow() const {
   nsViewManager* vm = mPresShell->GetViewManager();
   if (!vm) return nullptr;
 
-  nsCOMPtr<nsIWidget> widget;
-  vm->GetRootWidget(getter_AddRefs(widget));
+  nsCOMPtr<nsIWidget> widget = vm->GetRootWidget();
   if (widget) return widget->GetNativeData(NS_NATIVE_WINDOW);
 
   return nullptr;
@@ -1330,6 +1342,31 @@ void DocAccessible::ProcessInvalidationList() {
   mInvalidationList.Clear();
 }
 
+void DocAccessible::ProcessBoundsChanged() {
+  if (!StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return;
+  }
+
+  nsTArray<CacheData> data;
+  for (auto* acc : mMaybeBoundsChanged) {
+    if (!acc->IsDefunct()) {
+      RefPtr<AccAttributes> fields = acc->BundleFieldsForCache(
+          CacheDomain::Bounds, CacheUpdateType::Update);
+      if (fields->Count()) {
+        data.AppendElement(CacheData(
+            acc->IsDoc() ? 0 : reinterpret_cast<uint64_t>(acc->UniqueID()),
+            fields));
+      }
+    }
+  }
+
+  mMaybeBoundsChanged.Clear();
+
+  if (data.Length()) {
+    IPCDoc()->SendCache(CacheUpdateType::Update, data, true);
+  }
+}
+
 LocalAccessible* DocAccessible::GetAccessibleEvenIfNotInMap(
     nsINode* aNode) const {
   if (!aNode->IsContent() ||
@@ -1616,13 +1653,24 @@ bool DocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     return true;
   }
 
-  if (aAttribute == nsGkAtoms::aria_multiselectable &&
-      aElement->HasAttr(kNameSpaceID_None, nsGkAtoms::role)) {
-    // This affects whether the accessible supports SelectAccessible.
-    // COM says we cannot change what interfaces are supported on-the-fly,
-    // so invalidate this object. A new one will be created on demand.
-    RecreateAccessible(aElement);
+  if (aAttribute == nsGkAtoms::multiple) {
+    if (dom::HTMLSelectElement* select =
+            dom::HTMLSelectElement::FromNode(aElement)) {
+      if (select->Size() <= 1) {
+        // Adding the 'multiple' attribute to a select that has a size of 1
+        // creates a listbox as opposed to a combobox with a popup combobox
+        // list. Removing the attribute does the opposite.
+        RecreateAccessible(aElement);
+        return true;
+      }
+    }
+  }
 
+  if (aAttribute == nsGkAtoms::size &&
+      aElement->IsHTMLElement(nsGkAtoms::select)) {
+    // Changing the size of a select element can potentially change it from a
+    // combobox button to a listbox with different underlying implementations.
+    RecreateAccessible(aElement);
     return true;
   }
 

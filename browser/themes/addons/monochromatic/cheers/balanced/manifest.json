@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "applications": {
     "gecko": {
-      "id": "firefox-cheers-balanced@mozilla.org"
+      "id": "cheers-balanced-colorway@mozilla.org"
     }
   },
   "name": "Cheers – Balanced",
@@ -16,7 +16,7 @@
       "tab_background_text": "hsl(0, 0%, 0%)",
       "tab_text": "hsl(0, 0%, 100%)",
       "tab_selected": "hsl(0, 0%, 20%)",
-      "tab_line": "hsl(0, 0%, 0%)",
+      "tab_line": "transparent",
       "tab_loading": "hsl(42, 95%, 60%)",
       "tab_loading_inactive": "hsl(42, 100%, 27%)",
       "frame": "hsl(42, 95%, 60%)",
@@ -30,7 +30,9 @@
       "toolbar_field": "hsl(0, 0%, 20%)",
       "toolbar_field_text": "hsl(0, 0%, 100%)",
       "toolbar_field_focus": "hsl(0, 0%, 20%)",
-      "toolbar_field_border_focus": "hsl(42, 63%, 78%)",
+      "toolbar_field_border_focus": "rgba(0, 179, 244, 1)",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": "hsl(42, 95%, 60%)",
       "ntp_background": "hsl(0, 0%, 9%)",
       "ntp_card_background": "hsl(0, 0%, 20%)",
       "ntp_text": "hsl(0, 0%, 100%)",

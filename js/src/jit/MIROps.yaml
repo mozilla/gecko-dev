@@ -573,6 +573,19 @@
 - name: TypeOf
   gen_boilerplate: false
 
+- name: TypeOfName
+  operands:
+    input: Int32
+  result_type: String
+  movable: true
+  folds_to: custom
+  congruent_to: if_operands_equal
+  alias_set: none
+  can_recover: true
+
+- name: TypeOfIs
+  gen_boilerplate: false
+
 - name: ToAsyncIter
   operands:
     iterator: Object
@@ -656,7 +669,7 @@
 
 - name: Random
   result_type: Double
-  alias_set: none
+  alias_set: custom
   possibly_calls: true
   compute_range: custom
   can_recover: custom
@@ -1454,6 +1467,16 @@
   gen_boilerplate: false
 
 - name: GuardNullOrUndefined
+  operands:
+    value: Value
+  result_type: Value
+  guard: true
+  movable: true
+  congruent_to: if_operands_equal
+  folds_to: custom
+  alias_set: none
+
+- name: GuardIsNotObject
   operands:
     value: Value
   result_type: Value
@@ -2465,6 +2488,9 @@
   operands:
     input: Int32
   result_type: Int64
+  movable: true
+  congruent_to: if_operands_equal
+  folds_to: custom
   type_policy: none
   alias_set: none
 
@@ -2472,6 +2498,9 @@
   operands:
     input: Int64
   result_type: Int32
+  movable: true
+  congruent_to: if_operands_equal
+  folds_to: custom
   type_policy: none
   alias_set: none
 

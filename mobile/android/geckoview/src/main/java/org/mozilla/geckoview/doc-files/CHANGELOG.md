@@ -13,6 +13,35 @@ exclude: true
 
 ⚠️  breaking change and deprecation notices
 
+## v95
+- Added [`GeckoSession.ContentDelegate.onPointerIconChange()`][95.1] to notify
+  the application of changing pointer icon. If the application wants to handle
+  pointer icon, it should override this.
+- Deprecated [`ContentBlockingController`][95.2], use
+  [`StorageController`][95.3] instead. A [`PERMISSION_TRACKING`][95.4]
+  permission is now present in [`onLocationChange`][95.5] for every page load,
+  which can be used to set tracking protection exceptions.
+- Added [`setPrivateBrowsingPermanentPermission`][95.6], which allows apps to set
+  permanent permissions in private browsing (e.g. to set permanent tracking
+  protection permissions in private browsing).
+- Deprecated [`GeckoRuntimeSettings.Builder.enterpiseRootsEnabled`][95.7] due to typo.
+- Added [`GeckoRuntimeSettings.Builder.enterpriseRootsEnabled`][95.8] to replace [`GeckoRuntimeSettings.Builder.enterpiseRootsEnabled`][95.7].
+- Added [`GeckoSession.ContentDelegate.onPreviewImage()`][95.9] to notify
+  the application of a preview image URL.
+
+[95.1]: {{javadoc_uri}}/GeckoSession.ContentDelegate.html#onPointerIconChange-org.mozilla.geckoview.GeckoSession-android.view.PointerIcon-
+[95.2]: {{javadoc_uri}/ContentBlockingController.html
+[95.3]: {{javadoc_uri}/StorageController.java
+[95.4]: {{javadoc_uri}/GeckoSession.PermissionDelegate.html#PERMISSION_TRACKING
+[95.5]: {{javadoc_uri}/GeckoSession.NavigationDelegate.html#onLocationChange-org.mozilla.geckoview.GeckoSession-java.lang.String-java.util.List-
+[95.6]: {{javadoc_uri}/StorageController.html#setPrivateBrowsingPermanentPermission-org.mozilla.geckoview.GeckoSession.PermissionDelegate.ContentPermission-int-
+[95.7]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#enterpiseRootsEnabled-boolean-
+[95.8]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#enterpriseRootsEnabled-boolean-
+[95.9]: {{javadoc_uri}}/GeckoSession.ContentDelegate.html#onPreviewImage-org.mozilla.geckoview.GeckoSession-java.lang.String-
+
+## v94
+- Extended [`Autocomplete`][78.7] API to support credit card saving.
+
 ## v93
 - Removed deprecated ['Autocomplete.LoginStorageDelegate'][78.8].
 - Removed deprecated [`GeckoRuntime.getProfileDir`][90.5].
@@ -1043,4 +1072,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport-android.content.Context-android.os.Bundle-java.lang.String-
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 946ddd60a1f2b617c93f4c403a588c33f2d4fdef
+[api-version]: d44de923c2ba7fb152398b9001d26b4ed2689138

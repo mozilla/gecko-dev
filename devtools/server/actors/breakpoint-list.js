@@ -7,16 +7,16 @@
 const { ActorClassWithSpec, Actor } = require("devtools/shared/protocol");
 const { breakpointListSpec } = require("devtools/shared/specs/breakpoint-list");
 const {
-  WatchedDataHelpers,
-} = require("devtools/server/actors/watcher/WatchedDataHelpers.jsm");
-const { SUPPORTED_DATA } = WatchedDataHelpers;
+  SessionDataHelpers,
+} = require("devtools/server/actors/watcher/SessionDataHelpers.jsm");
+const { SUPPORTED_DATA } = SessionDataHelpers;
 const { BREAKPOINTS, XHR_BREAKPOINTS, EVENT_BREAKPOINTS } = SUPPORTED_DATA;
 
 /**
  * This actor manages the breakpoints list.
  *
  * Breakpoints should be available as early as possible to new targets and
- * will be forwarded to the WatcherActor to populate the shared watcher data available to
+ * will be forwarded to the WatcherActor to populate the shared session data available to
  * all DevTools targets.
  *
  * @constructor
@@ -78,7 +78,9 @@ const BreakpointListActor = ActorClassWithSpec(breakpointListSpec, {
    *                        for details.
    */
   setActiveEventBreakpoints(ids) {
-    const existingIds = this.watcherActor.getWatchedData(EVENT_BREAKPOINTS);
+    const existingIds = this.watcherActor.getSessionDataForType(
+      EVENT_BREAKPOINTS
+    );
     const addIds = ids.filter(id => !existingIds.includes(id));
     const removeIds = existingIds.filter(id => !ids.includes(id));
 

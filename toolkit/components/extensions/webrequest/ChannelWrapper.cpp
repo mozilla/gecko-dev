@@ -246,35 +246,40 @@ void ChannelWrapper::UpgradeToSecure(ErrorResult& aRv) {
   }
 }
 
-void ChannelWrapper::Suspend(ErrorResult& aRv) {
+void ChannelWrapper::Suspend(const nsCString& aProfileMarkerText,
+                             ErrorResult& aRv) {
   if (!mSuspended) {
     nsresult rv = NS_ERROR_UNEXPECTED;
     if (nsCOMPtr<nsIChannel> chan = MaybeChannel()) {
-      mSuspendTime = mozilla::TimeStamp::Now();
       rv = chan->Suspend();
     }
     if (NS_FAILED(rv)) {
       aRv.Throw(rv);
     } else {
       mSuspended = true;
+      MOZ_ASSERT(mSuspendedMarkerText.IsVoid());
+      mSuspendedMarkerText = aProfileMarkerText;
+      PROFILER_MARKER_TEXT("Extension Suspend", NETWORK,
+                           MarkerOptions(MarkerTiming::IntervalStart()),
+                           mSuspendedMarkerText);
     }
   }
 }
 
-void ChannelWrapper::Resume(const nsCString& aText, ErrorResult& aRv) {
+void ChannelWrapper::Resume(ErrorResult& aRv) {
   if (mSuspended) {
     nsresult rv = NS_ERROR_UNEXPECTED;
     if (nsCOMPtr<nsIChannel> chan = MaybeChannel()) {
       rv = chan->Resume();
-
-      PROFILER_MARKER_TEXT("Extension Suspend", NETWORK,
-                           MarkerTiming::IntervalUntilNowFrom(mSuspendTime),
-                           aText);
     }
     if (NS_FAILED(rv)) {
       aRv.Throw(rv);
     } else {
       mSuspended = false;
+      PROFILER_MARKER_TEXT("Extension Suspend", NETWORK,
+                           MarkerOptions(MarkerTiming::IntervalEnd()),
+                           mSuspendedMarkerText);
+      mSuspendedMarkerText = VoidCString();
     }
   }
 }
@@ -450,6 +455,44 @@ already_AddRefed<Element> ChannelWrapper::GetBrowserElement() const {
     }
   }
   return nullptr;
+}
+
+bool ChannelWrapper::IsServiceWorkerScript() const {
+  nsCOMPtr<nsIChannel> chan = MaybeChannel();
+  return IsServiceWorkerScript(chan);
+}
+
+// static
+bool ChannelWrapper::IsServiceWorkerScript(const nsCOMPtr<nsIChannel>& chan) {
+  nsCOMPtr<nsILoadInfo> loadInfo;
+
+  if (chan) {
+    chan->GetLoadInfo(getter_AddRefs(loadInfo));
+  }
+
+  if (loadInfo) {
+    // Not a script.
+    if (loadInfo->GetExternalContentPolicyType() !=
+        ExtContentPolicy::TYPE_SCRIPT) {
+      return false;
+    }
+
+    // Service worker main script load.
+    if (loadInfo->InternalContentPolicyType() ==
+        nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER) {
+      return true;
+    }
+
+    // Service worker import scripts load.
+    if (loadInfo->InternalContentPolicyType() ==
+        nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS) {
+      nsLoadFlags loadFlags = 0;
+      chan->GetLoadFlags(&loadFlags);
+      return loadFlags & nsIChannel::LOAD_BYPASS_SERVICE_WORKER;
+    }
+  }
+
+  return false;
 }
 
 static inline bool IsSystemPrincipal(nsIPrincipal* aPrincipal) {

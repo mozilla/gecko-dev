@@ -326,9 +326,7 @@ class nsDocShellLoadState final {
 
   mozilla::dom::DocShellLoadStateInit Serialize();
 
-  void SetLoadIsFromSessionHistory(int32_t aRequestedIndex,
-                                   int32_t aSessionHistoryLength,
-                                   bool aLoadingFromActiveEntry);
+  void SetLoadIsFromSessionHistory(int32_t aOffset, bool aLoadingCurrentEntry);
   void ClearLoadIsFromSessionHistory();
 
   void MaybeStripTrackerQueryStrings(mozilla::dom::BrowsingContext* aContext,

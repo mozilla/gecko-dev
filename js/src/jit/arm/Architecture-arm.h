@@ -9,6 +9,7 @@
 
 #include "mozilla/MathAlgorithms.h"
 
+#include <algorithm>
 #include <limits.h>
 #include <stdint.h>
 
@@ -32,7 +33,6 @@ static const int32_t NUNBOX32_TYPE_OFFSET = 4;
 static const int32_t NUNBOX32_PAYLOAD_OFFSET = 0;
 
 static const uint32_t ShadowStackSpace = 0;
-static const uint32_t SizeOfReturnAddressAfterCall = 0u;
 
 // How far forward/back can a jump go? Provide a generous buffer for thunks.
 static const uint32_t JumpImmediateRange = 20 * 1024 * 1024;
@@ -329,6 +329,10 @@ class FloatRegisters {
 
   static const SetType AllocatableMask = AllMask & ~NonAllocatableMask;
 };
+
+static const uint32_t SpillSlotSize =
+    std::max(sizeof(Registers::RegisterContent),
+             sizeof(FloatRegisters::RegisterContent));
 
 template <typename T>
 class TypedRegisterSet;

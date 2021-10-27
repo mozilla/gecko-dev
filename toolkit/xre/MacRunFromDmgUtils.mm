@@ -26,7 +26,9 @@
 #include "nsIMacDockSupport.h"
 #include "nsObjCExceptions.h"
 #include "nsString.h"
-#include "nsUpdateDriver.h"
+#ifdef MOZ_UPDATER
+#  include "nsUpdateDriver.h"
+#endif
 #include "SDKDeclarations.h"
 
 // For IOKit docs, see:
@@ -35,6 +37,81 @@
 
 namespace mozilla {
 namespace MacRunFromDmgUtils {
+
+/**
+ * Opens a dialog to ask the user whether the existing app in the Applications
+ * folder should be launched, or if the user wants to proceed with launching
+ * the app from the .dmg.
+ * Returns true if the dialog is successfully opened and the user chooses to
+ * launch the app from the Applications folder, otherwise returns false.
+ */
+static bool AskUserIfWeShouldLaunchExistingInstall() {
+  NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
+
+  // Try to get the localized strings:
+  nsTArray<nsCString> resIds = {
+      "branding/brand.ftl"_ns,
+      "toolkit/global/run-from-dmg.ftl"_ns,
+  };
+  RefPtr<intl::Localization> l10n = intl::Localization::Create(resIds, true);
+
+  ErrorResult rv;
+  nsAutoCString mozTitle, mozMessage, mozLaunchExisting, mozLaunchFromDMG;
+  l10n->FormatValueSync("prompt-to-launch-existing-app-title"_ns, {}, mozTitle, rv);
+  if (rv.Failed()) {
+    return false;
+  }
+  l10n->FormatValueSync("prompt-to-launch-existing-app-message"_ns, {}, mozMessage, rv);
+  if (rv.Failed()) {
+    return false;
+  }
+  l10n->FormatValueSync("prompt-to-launch-existing-app-yes-button"_ns, {}, mozLaunchExisting, rv);
+  if (rv.Failed()) {
+    return false;
+  }
+  l10n->FormatValueSync("prompt-to-launch-existing-app-no-button"_ns, {}, mozLaunchFromDMG, rv);
+  if (rv.Failed()) {
+    return false;
+  }
+
+  NSString* title = [NSString stringWithUTF8String:reinterpret_cast<const char*>(mozTitle.get())];
+  NSString* message =
+      [NSString stringWithUTF8String:reinterpret_cast<const char*>(mozMessage.get())];
+  NSString* launchExisting =
+      [NSString stringWithUTF8String:reinterpret_cast<const char*>(mozLaunchExisting.get())];
+  NSString* launchFromDMG =
+      [NSString stringWithUTF8String:reinterpret_cast<const char*>(mozLaunchFromDMG.get())];
+
+  NSAlert* alert = [[[NSAlert alloc] init] autorelease];
+
+  // Note that we don't set an icon since the app icon is used by default.
+  [alert setAlertStyle:NSAlertStyleInformational];
+  [alert setMessageText:title];
+  [alert setInformativeText:message];
+  // Note that if the user hits 'Enter' the "Install" button is activated,
+  // whereas if they hit  'Space' the "Don't Install" button is activated.
+  // That's standard behavior so probably desirable.
+  [alert addButtonWithTitle:launchExisting];
+  NSButton* launchFromDMGButton = [alert addButtonWithTitle:launchFromDMG];
+  // Since the "Don't Install" button doesn't have the title "Cancel" we need
+  // to map the Escape key to it manually:
+  [launchFromDMGButton setKeyEquivalent:@"\e"];
+
+  __block NSInteger result = -1;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    result = [alert runModal];
+    [NSApp stop:nil];
+  });
+
+  // We need to call run on NSApp here for accessibility. See
+  // AskUserIfWeShouldInstall for a detailed explanation.
+  [NSApp run];
+  MOZ_ASSERT(result != -1);
+
+  return result == NSAlertFirstButtonReturn;
+
+  NS_OBJC_END_TRY_BLOCK_RETURN(false);
+}
 
 /**
  * Opens a dialog to ask the user whether the app should be installed to their
@@ -156,7 +233,17 @@ static void ShowInstallFailedDialog() {
   [alert setMessageText:title];
   [alert setInformativeText:message];
 
-  [alert runModal];
+  __block NSInteger result = -1;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    result = [alert runModal];
+    [NSApp stop:nil];
+  });
+
+  // We need to call run on NSApp here for accessibility. See
+  // AskUserIfWeShouldInstall for a detailed explanation.
+  [NSApp run];
+  MOZ_ASSERT(result != -1);
+  (void)result;
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
@@ -198,6 +285,7 @@ static void StripQuarantineBit(NSString* aBundlePath) {
   LaunchTask(@"/usr/bin/xattr", arguments);
 }
 
+#ifdef MOZ_UPDATER
 bool LaunchElevatedDmgInstall(NSString* aBundlePath, NSArray* aArguments) {
   NSTask* task;
   if (@available(macOS 10.13, *)) {
@@ -226,6 +314,7 @@ bool LaunchElevatedDmgInstall(NSString* aBundlePath, NSArray* aArguments) {
 
   return didSucceed;
 }
+#endif
 
 // Note: both arguments are expected to contain the app name (to end with
 // '.app').
@@ -238,6 +327,7 @@ static bool InstallFromDmg(NSString* aBundlePath, NSString* aDestPath) {
     installSuccessful = true;
   }
 
+#ifdef MOZ_UPDATER
   // The installation may have been unsuccessful if the user did not have the
   // rights to write to the Applications directory. Check for this situation and
   // launch an elevated installation if necessary. Rather than creating a new,
@@ -257,6 +347,7 @@ static bool InstallFromDmg(NSString* aBundlePath, NSString* aDestPath) {
     LaunchElevatedDmgInstall(updaterBinPath, arguments);
     installSuccessful = [fileManager fileExistsAtPath:aDestPath];
   }
+#endif
 
   if (!installSuccessful) {
     return false;
@@ -334,7 +425,7 @@ bool IsAppRunningFromDmg() {
     return false;
   }
   const char* imageClass =
-      nsCocoaFeatures::macOSVersionMajor() >= 12 ? "AppleDiskImageDevice" : "IOHDIXHDDrive";
+      nsCocoaFeatures::OnMontereyOrLater() ? "AppleDiskImageDevice" : "IOHDIXHDDrive";
   for (imageDrive = media; imageDrive; imageDrive = IOIteratorNext(iter)) {
     if (IOObjectConformsTo(imageDrive, imageClass)) {
       break;
@@ -358,7 +449,7 @@ bool MaybeInstallFromDmgAndRelaunch() {
   @autoreleasepool {
     bool isFromDmg = IsAppRunningFromDmg();
 
-    Telemetry::ScalarSet(Telemetry::ScalarID::STARTUP_FIRST_RUN_IS_FROM_DMG, isFromDmg);
+    Telemetry::ScalarSet(Telemetry::ScalarID::STARTUP_IS_RUN_FROM_DMG, isFromDmg);
 
     if (!isFromDmg) {
       return false;
@@ -383,15 +474,14 @@ bool MaybeInstallFromDmgAndRelaunch() {
     NSString* destPath = [applicationsDir stringByAppendingPathComponent:appName];
 
     // If the app (an app of the same name) is already installed we can't really
-    // tell if we're dealing with the edge case of an inexperienced user running
-    // from .dmg by mistake, or if we're dealing with a more sophisticated user
-    // intentionally running from .dmg.
-    // We could throw a series of prompts at the user to figure out if they want
-    // to overwrite the installed app, or maybe just launch it, or continue with
-    // running from .dmg, but that seems like overkill for an edge case when
-    // we're just trying to provide mitigate inexperienced mac users trying to
-    // get and run our app for the first time.
+    // tell without asking if we're dealing with the edge case of an
+    // inexperienced user running from .dmg by mistake, or if we're dealing with
+    // a more sophisticated user intentionally running from .dmg.
     if ([fileManager fileExistsAtPath:destPath]) {
+      if (AskUserIfWeShouldLaunchExistingInstall()) {
+        LaunchInstalledApp(destPath);
+        return true;
+      }
       return false;
     }
 

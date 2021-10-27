@@ -17,7 +17,7 @@ class EventChainPreVisitor;
 namespace dom {
 class FormData;
 
-class HTMLButtonElement final : public nsGenericHTMLFormElementWithState,
+class HTMLButtonElement final : public nsGenericHTMLFormControlElementWithState,
                                 public nsIConstraintValidation {
  public:
   using nsIConstraintValidation::GetValidationMessage;
@@ -26,8 +26,8 @@ class HTMLButtonElement final : public nsGenericHTMLFormElementWithState,
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
       FromParser aFromParser = NOT_FROM_PARSER);
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLButtonElement,
-                                           nsGenericHTMLFormElementWithState)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(
+      HTMLButtonElement, nsGenericHTMLFormControlElementWithState)
 
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
@@ -100,8 +100,6 @@ class HTMLButtonElement final : public nsGenericHTMLFormElementWithState,
   void SetDisabled(bool aDisabled, ErrorResult& aError) {
     SetHTMLBoolAttr(nsGkAtoms::disabled, aDisabled, aError);
   }
-  // nsGenericHTMLFormElement::GetForm is fine.
-  using nsGenericHTMLFormElement::GetForm;
   // GetFormAction implemented in superclass
   void SetFormAction(const nsAString& aFormAction, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::formaction, aFormAction, aRv);

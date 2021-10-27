@@ -6,9 +6,9 @@
 // Test the resource command API around CONSOLE_MESSAGE when navigating
 // tab and inner iframes to distinct origin/processes.
 
-const TEST_URL = URL_ROOT + "doc_console.html";
-const TEST_IFRAME_URL = URL_ROOT_NET + "doc_console_iframe.html";
-const TEST_DOMAIN = "http://example.net";
+const TEST_URL = URL_ROOT_COM_SSL + "doc_console.html";
+const TEST_IFRAME_URL = URL_ROOT_ORG_SSL + "doc_console_iframe.html";
+const TEST_DOMAIN = "https://example.org";
 add_task(async function() {
   const START_URL = "data:text/html;charset=utf-8,foo";
   const tab = await addTab(START_URL);
@@ -27,7 +27,7 @@ add_task(async function() {
 
 async function testCrossProcessTabNavigation(browser, resourceCommand) {
   info(
-    "Navigate the top level document from data: URI to a http document including remote iframes"
+    "Navigate the top level document from data: URI to a https document including remote iframes"
   );
 
   let doneResolve;
@@ -53,12 +53,24 @@ async function testCrossProcessTabNavigation(browser, resourceCommand) {
   info("Wait for log message");
   await onConsoleLogsComplete;
 
-  assertConsoleMessage(resourceCommand, messages[0], {
+  // messages are coming from different targets so the order isn't guaranteed
+  const topLevelMessageResource = messages.find(resource =>
+    resource.message.filename.startsWith(URL_ROOT_COM_SSL)
+  );
+  const iframeMessage = messages.find(resource =>
+    resource.message.filename.startsWith("data:")
+  );
+
+  assertConsoleMessage(resourceCommand, topLevelMessageResource, {
     targetFront: resourceCommand.targetCommand.targetFront,
     messageText: "top-level document log",
   });
-  assertConsoleMessage(resourceCommand, messages[1], {
-    targetFront: resourceCommand.targetCommand.targetFront,
+  assertConsoleMessage(resourceCommand, iframeMessage, {
+    targetFront: isEveryFrameTargetEnabled
+      ? resourceCommand.targetCommand
+          .getAllTargets([resourceCommand.targetCommand.TYPES.FRAME])
+          .find(t => t.url.startsWith("data:"))
+      : resourceCommand.targetCommand.targetFront,
     messageText: "data url data log",
   });
 
@@ -68,7 +80,7 @@ async function testCrossProcessTabNavigation(browser, resourceCommand) {
 }
 
 async function testCrossProcessIframeNavigation(browser, resourceCommand) {
-  info("Navigate an inner iframe from data: URI to a http remote URL");
+  info("Navigate an inner iframe from data: URI to a https remote URL");
 
   let doneResolve;
   const messages = [];
@@ -92,11 +104,19 @@ async function testCrossProcessIframeNavigation(browser, resourceCommand) {
     }
   );
 
+  // messages are coming from different targets so the order isn't guaranteed
+  const topLevelMessageResource = messages.find(resource =>
+    resource.message.arguments[0].startsWith("top-level")
+  );
+  const dataUrlMessageResource = messages.find(resource =>
+    resource.message.arguments[0].startsWith("data url")
+  );
+
   // Assert cached messages from the previous top document
-  assertConsoleMessage(resourceCommand, messages[0], {
+  assertConsoleMessage(resourceCommand, topLevelMessageResource, {
     messageText: "top-level document log",
   });
-  assertConsoleMessage(resourceCommand, messages[1], {
+  assertConsoleMessage(resourceCommand, dataUrlMessageResource, {
     messageText: "data url data log",
   });
 
@@ -114,7 +134,10 @@ async function testCrossProcessIframeNavigation(browser, resourceCommand) {
     resourceCommand.targetCommand
   );
 
-  assertConsoleMessage(resourceCommand, messages[2], {
+  const iframeMessageResource = messages.find(resource =>
+    resource.message.arguments[0].endsWith("iframe log")
+  );
+  assertConsoleMessage(resourceCommand, iframeMessageResource, {
     messageText: `${TEST_DOMAIN} iframe log`,
     targetFront: iframeTarget,
   });
@@ -145,10 +168,10 @@ function assertConsoleMessage(resourceCommand, messageResource, expected) {
   );
 }
 
-async function getIframeTargetFront(targetCommand, iframeUrl) {
-  // If Fission is enabled, the iframe will have a dedicated target,
+async function getIframeTargetFront(targetCommand) {
+  // If Fission/EFT is enabled, the iframe will have a dedicated target,
   // otherwise it will be debuggable via the top level target.
-  if (!isFissionEnabled()) {
+  if (!isFissionEnabled() && !isEveryFrameTargetEnabled()) {
     return targetCommand.targetFront;
   }
   const frameTargets = targetCommand.getAllTargets([targetCommand.TYPES.FRAME]);

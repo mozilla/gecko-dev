@@ -143,7 +143,7 @@ host_fetches = {
         },
         "ImageMagick": {
             "type": "static-url",
-            "url": "https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.1.0-4-portable-Q16-x64.zip",  # noqa
+            "url": "https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.1.0-portable-Q16-x64.zip",  # noqa
             # An extension to `fetch` syntax.
             "path": "ImageMagick-7.1.0",
         },
@@ -248,7 +248,12 @@ def setup_prerequisites(command_context):
                 os.chdir(cwd)
 
 
-def setup_browsertime(command_context, should_clobber=False, new_upstream_url=""):
+def setup_browsertime(
+    command_context,
+    should_clobber=False,
+    new_upstream_url="",
+    install_vismet_reqs=False,
+):
     r"""Install browsertime and visualmetrics.py prerequisites and the Node.js package."""
 
     sys.path.append(mozpath.join(command_context.topsrcdir, "tools", "lint", "eslint"))
@@ -300,6 +305,13 @@ def setup_browsertime(command_context, should_clobber=False, new_upstream_url=""
     if AUTOMATION:
         os.environ["CHROMEDRIVER_SKIP_DOWNLOAD"] = "true"
         os.environ["GECKODRIVER_SKIP_DOWNLOAD"] = "true"
+
+    if install_vismet_reqs:
+        # Hide this behind a flag so we don't install them by default in Raptor
+        command_context.log(
+            logging.INFO, "browsertime", {}, "Installing python requirements"
+        )
+        activate_browsertime_virtualenv(command_context)
 
     command_context.log(
         logging.INFO,
@@ -610,7 +622,13 @@ def _verify_node_install(command_context):
     action="store_true",
     help="Skip all local caches to force re-fetching remote artifacts.",
 )
-@CommandArgument("--check", default=False, action="store_true")
+@CommandArgument("--check-browsertime", default=False, action="store_true")
+@CommandArgument(
+    "--install-vismet-reqs",
+    default=False,
+    action="store_true",
+    help="Add this flag to get the visual metrics requirements installed.",
+)
 @CommandArgument(
     "--browsertime-help",
     default=False,
@@ -626,8 +644,9 @@ def browsertime(
     setup=False,
     clobber=False,
     skip_cache=False,
-    check=False,
+    check_browsertime=False,
     browsertime_help=False,
+    install_vismet_reqs=False,
 ):
     command_context._set_log_level(verbose)
 
@@ -652,14 +671,22 @@ def browsertime(
     time.sleep(5)
 
     if update_upstream_url:
-        return setup_browsertime(command_context, new_upstream_url=update_upstream_url)
+        return setup_browsertime(
+            command_context,
+            new_upstream_url=update_upstream_url,
+            install_vismet_reqs=install_vismet_reqs,
+        )
     elif setup:
-        return setup_browsertime(command_context, should_clobber=clobber)
+        return setup_browsertime(
+            command_context,
+            should_clobber=clobber,
+            install_vismet_reqs=install_vismet_reqs,
+        )
     else:
         if not _verify_node_install(command_context):
             return 1
 
-    if check:
+    if check_browsertime:
         return check(command_context)
 
     if browsertime_help:

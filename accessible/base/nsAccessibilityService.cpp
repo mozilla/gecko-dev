@@ -11,6 +11,7 @@
 #include "ARIAGridAccessibleWrap.h"
 #include "ARIAMap.h"
 #include "DocAccessible-inl.h"
+#include "DocAccessibleChild.h"
 #include "FocusManager.h"
 #include "HTMLCanvasAccessible.h"
 #include "HTMLElementAccessibles.h"
@@ -49,7 +50,6 @@
 #ifdef XP_WIN
 #  include "mozilla/a11y/Compatibility.h"
 #  include "mozilla/dom/ContentChild.h"
-#  include "mozilla/StaticPrefs_accessibility.h"
 #  include "mozilla/StaticPtr.h"
 #endif
 
@@ -73,6 +73,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/Services.h"
+#include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/SVGGeometryFrame.h"
 #include "nsDeckFrame.h"
 
@@ -364,21 +365,30 @@ void nsAccessibilityService::FireAccessibleEvent(uint32_t aEvent,
   nsEventShell::FireEvent(aEvent, aTarget);
 }
 
-void nsAccessibilityService::NotifyOfImageSizeAvailable(
+void nsAccessibilityService::NotifyOfPossibleBoundsChange(
     mozilla::PresShell* aPresShell, nsIContent* aContent) {
-  // If the size of an image is initially unknown, it will have the invisible
-  // state (and a 0 width and height), causing it to be ignored by some screen
-  // readers. Fire a state change event to update any client caches.
-  DocAccessible* document = GetDocAccessible(aPresShell);
-  if (document) {
-    LocalAccessible* accessible = document->GetAccessible(aContent);
-    // The accessible may not be an ImageAccessible if this was previously a
-    // broken image with an alt attribute. In that case, do nothing; the
-    // accessible will be recreated if this becomes a valid image.
-    if (accessible && accessible->IsImage()) {
-      RefPtr<AccEvent> event =
-          new AccStateChangeEvent(accessible, states::INVISIBLE, false);
-      document->FireDelayedEvent(event);
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    DocAccessible* document = GetDocAccessible(aPresShell);
+    if (document) {
+      LocalAccessible* accessible = document->GetAccessible(aContent);
+      if (accessible) {
+        document->MarkForBoundsProcessing(accessible);
+        document->Controller()->ScheduleProcessing();
+      }
+    }
+  }
+}
+
+void nsAccessibilityService::NotifyOfResolutionChange(
+    mozilla::PresShell* aPresShell, float aResolution) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    DocAccessible* document = GetDocAccessible(aPresShell);
+    if (document && document->IPCDoc()) {
+      nsTArray<mozilla::a11y::CacheData> data(1);
+      RefPtr<AccAttributes> fields = new AccAttributes();
+      fields->SetAttribute(nsGkAtoms::resolution, aResolution);
+      data.AppendElement(mozilla::a11y::CacheData(0, fields));
+      document->IPCDoc()->SendCache(CacheUpdateType::Update, data, true);
     }
   }
 }
@@ -1469,15 +1479,14 @@ void nsAccessibilityService::MarkupAttributes(
         continue;
       }
 
-      nsAutoString value;
-
+      nsString value;
       if (aContent->IsElement()) {
         aContent->AsElement()->GetAttr(kNameSpaceID_None, info->DOMAttrName,
                                        value);
       }
 
       if (!value.IsEmpty()) {
-        aAttributes->SetAttribute(info->name, value);
+        aAttributes->SetAttribute(info->name, std::move(value));
       }
 
       continue;

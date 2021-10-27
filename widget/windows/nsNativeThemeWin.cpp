@@ -67,6 +67,16 @@ nsNativeThemeWin::nsNativeThemeWin()
 
 nsNativeThemeWin::~nsNativeThemeWin() { nsUXThemeData::Invalidate(); }
 
+bool nsNativeThemeWin::IsWidgetNonNative(nsIFrame* aFrame,
+                                         StyleAppearance aAppearance) {
+  // We only know how to draw light widgets, so we defer to the non-native
+  // theme when appropriate.
+  return nsNativeBasicThemeWin::ThemeSupportsWidget(aFrame->PresContext(),
+                                                    aFrame, aAppearance) &&
+         LookAndFeel::ColorSchemeForFrame(aFrame) ==
+             LookAndFeel::ColorScheme::Dark;
+}
+
 static int32_t GetTopLevelWindowActiveState(nsIFrame* aFrame) {
   // Used by window frame and button box rendering. We can end up in here in
   // the content process when rendering one of these moz styles freely in a
@@ -1462,7 +1472,7 @@ static bool AssumeThemePartAndStateAreTransparent(int32_t aPart,
 static inline double GetThemeDpiScaleFactor(nsPresContext* aPresContext) {
   if (WinUtils::IsPerMonitorDPIAware() ||
       StaticPrefs::layout_css_devPixelsPerPx() > 0.0) {
-    nsIWidget* rootWidget = aPresContext->GetRootWidget();
+    nsCOMPtr<nsIWidget> rootWidget = aPresContext->GetRootWidget();
     if (rootWidget) {
       double systemScale = WinUtils::SystemScaleFactor();
       return rootWidget->GetDefaultScale().scale / systemScale;
@@ -1479,7 +1489,13 @@ NS_IMETHODIMP
 nsNativeThemeWin::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
                                        StyleAppearance aAppearance,
                                        const nsRect& aRect,
-                                       const nsRect& aDirtyRect, DrawOverflow) {
+                                       const nsRect& aDirtyRect,
+                                       DrawOverflow aDrawOverflow) {
+  if (IsWidgetNonNative(aFrame, aAppearance)) {
+    return nsNativeBasicThemeWin::DrawWidgetBackground(
+        aContext, aFrame, aAppearance, aRect, aDirtyRect, aDrawOverflow);
+  }
+
   if (IsWidgetScrollbarPart(aAppearance)) {
     if (MayDrawCustomScrollbarPart(aContext, aFrame, aAppearance, aRect,
                                    aDirtyRect)) {
@@ -1869,6 +1885,18 @@ RENDER_AGAIN:
   return NS_OK;
 }
 
+bool nsNativeThemeWin::CreateWebRenderCommandsForWidget(
+    wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
+    const layers::StackingContextHelper& aSc,
+    layers::RenderRootStateManager* aManager, nsIFrame* aFrame,
+    StyleAppearance aAppearance, const nsRect& aRect) {
+  if (IsWidgetNonNative(aFrame, aAppearance)) {
+    return nsNativeBasicThemeWin::CreateWebRenderCommandsForWidget(
+        aBuilder, aResources, aSc, aManager, aFrame, aAppearance, aRect);
+  }
+  return false;
+}
+
 static void ScaleForFrameDPI(LayoutDeviceIntMargin* aMargin, nsIFrame* aFrame) {
   double themeScale = GetThemeDpiScaleFactor(aFrame);
   if (themeScale != 1.0) {
@@ -2007,7 +2035,7 @@ bool nsNativeThemeWin::GetWidgetPadding(nsDeviceContext* aContext,
     // the border padding. This should be addressed in nsWindow,
     // but currently can't be, see UpdateNonClientMargins.
     if (aAppearance == StyleAppearance::MozWindowTitlebarMaximized) {
-      nsIWidget* rootWidget = nullptr;
+      nsCOMPtr<nsIWidget> rootWidget;
       if (WinUtils::HasSystemMetricsForDpi()) {
         rootWidget = aFrame->PresContext()->GetRootWidget();
       }
@@ -2038,18 +2066,6 @@ bool nsNativeThemeWin::GetWidgetPadding(nsDeviceContext* aContext,
     aResult->left = aResult->right = popupSize.cx;
     ScaleForFrameDPI(aResult, aFrame);
     return ok;
-  }
-
-  if (aAppearance == StyleAppearance::NumberInput ||
-      aAppearance == StyleAppearance::Textfield ||
-      aAppearance == StyleAppearance::Textarea ||
-      aAppearance == StyleAppearance::MenulistButton ||
-      aAppearance == StyleAppearance::Menulist) {
-    // If we have author-specified padding for these elements, don't do the
-    // fixups below.
-    if (aFrame->PresContext()->HasAuthorSpecifiedRules(
-            aFrame, NS_AUTHOR_SPECIFIED_PADDING))
-      return false;
   }
 
   /* textfields need extra pixels on all sides, otherwise they wrap their
@@ -2131,6 +2147,11 @@ bool nsNativeThemeWin::GetWidgetOverflow(nsDeviceContext* aContext,
                                          nsIFrame* aFrame,
                                          StyleAppearance aAppearance,
                                          nsRect* aOverflowRect) {
+  if (IsWidgetNonNative(aFrame, aAppearance)) {
+    return nsNativeBasicThemeWin::GetWidgetOverflow(aContext, aFrame,
+                                                    aAppearance, aOverflowRect);
+  }
+
   /* This is disabled for now, because it causes invalidation problems --
    * see bug 420381.  The effect of not updating the overflow area is that
    * for dropdown buttons in content areas, there is a 1px border on 3 sides
@@ -2569,6 +2590,10 @@ nsITheme::ThemeGeometryType nsNativeThemeWin::ThemeGeometryTypeForWidget(
 
 nsITheme::Transparency nsNativeThemeWin::GetWidgetTransparency(
     nsIFrame* aFrame, StyleAppearance aAppearance) {
+  if (IsWidgetNonNative(aFrame, aAppearance)) {
+    return nsNativeBasicThemeWin::GetWidgetTransparency(aFrame, aAppearance);
+  }
+
   if (auto transparency =
           ScrollbarUtil::GetScrollbarPartTransparency(aFrame, aAppearance)) {
     return *transparency;
@@ -2992,9 +3017,8 @@ nsresult nsNativeThemeWin::ClassicGetThemePartAndState(
         if (contentState.HasAllStates(NS_EVENT_STATE_ACTIVE |
                                       NS_EVENT_STATE_HOVER)) {
           aState |= DFCS_PUSHED;
-          const nsStyleUI* uiData = aFrame->StyleUI();
           // The down state is flat if the button is focusable
-          if (uiData->mUserFocus == StyleUserFocus::Normal) {
+          if (aFrame->StyleUI()->UserFocus() == StyleUserFocus::Normal) {
             if (!aFrame->GetContent()->IsHTMLElement()) aState |= DFCS_FLAT;
 
             aFocused = true;
@@ -3759,7 +3783,7 @@ RENDER_AGAIN:
       int32_t offset = GetSystemMetrics(SM_CXFRAME);
 
       // first fill the area to the color of the window background
-      FillRect(hdc, &rect, (HBRUSH)(COLOR_3DFACE + 1));
+      ::FillRect(hdc, &rect, (HBRUSH)(COLOR_3DFACE + 1));
 
       // inset the caption area so it doesn't overflow.
       rect.top += offset;
@@ -3769,9 +3793,9 @@ RENDER_AGAIN:
       SystemParametersInfo(SPI_GETGRADIENTCAPTIONS, 0, &bFlag, 0);
       if (!bFlag) {
         if (state == mozilla::widget::themeconst::FS_ACTIVE)
-          FillRect(hdc, &rect, (HBRUSH)(COLOR_ACTIVECAPTION + 1));
+          ::FillRect(hdc, &rect, (HBRUSH)(COLOR_ACTIVECAPTION + 1));
         else
-          FillRect(hdc, &rect, (HBRUSH)(COLOR_INACTIVECAPTION + 1));
+          ::FillRect(hdc, &rect, (HBRUSH)(COLOR_INACTIVECAPTION + 1));
       } else {
         DWORD startColor, endColor;
         if (state == mozilla::widget::themeconst::FS_ACTIVE) {

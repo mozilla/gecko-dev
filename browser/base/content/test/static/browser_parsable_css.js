@@ -61,6 +61,16 @@ let whitelist = [
   },
 ];
 
+if (!Services.prefs.getBoolPref("layout.css.color-mix.enabled")) {
+  // Reserved to UA sheets unless layout.css.color-mix.enabled flipped to true.
+  whitelist.push({
+    sourceName: /\b(autocomplete-item)\.css$/,
+    errorMessage: /Expected color but found \u2018color-mix\u2019./i,
+    isFromDevTools: false,
+    platforms: ["windows"],
+  });
+}
+
 if (!Services.prefs.getBoolPref("layout.css.math-depth.enabled")) {
   // mathml.css UA sheet rule for math-depth.
   whitelist.push({
@@ -435,10 +445,24 @@ add_task(async function checkAllTheCSS() {
   await throttledMapPromises(allPromises, loadCSS);
 
   // Check if all the files referenced from CSS actually exist.
+  // Files in browser/ should never be referenced outside browser/.
   for (let [image, references] of imageURIsToReferencesMap) {
     if (!chromeFileExists(image)) {
       for (let ref of references) {
         ok(false, "missing " + image + " referenced from " + ref);
+      }
+    }
+
+    let imageHost = image.split("/")[2];
+    if (imageHost == "browser") {
+      for (let ref of references) {
+        let refHost = ref.split("/")[2];
+        if (!["activity-stream", "browser"].includes(refHost)) {
+          ok(
+            false,
+            "browser file " + image + " referenced outside browser in " + ref
+          );
+        }
       }
     }
   }

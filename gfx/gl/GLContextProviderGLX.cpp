@@ -482,8 +482,10 @@ bool GLContextGLX::MakeCurrentImpl() const {
     // Many GLX implementations default to blocking until the next
     // VBlank when calling glXSwapBuffers. We want to run unthrottled
     // in ASAP mode. See bug 1280744.
+    const bool swapInterval = gfxVars::SwapIntervalGLX();
     const bool isASAP = (StaticPrefs::layout_frame_rate() == 0);
-    mGLX->fSwapInterval(*mDisplay, mDrawable, isASAP ? 0 : 1);
+    const int interval = (swapInterval && !isASAP) ? 1 : 0;
+    mGLX->fSwapInterval(*mDisplay, mDrawable, interval);
   }
   return succeeded;
 }
@@ -597,6 +599,11 @@ already_AddRefed<GLContext> CreateForWidget(Display* aXDisplay, Window aXWindow,
     return nullptr;
   }
 
+  if (!aXWindow) {
+    NS_ERROR("X window required for GLX Context provider");
+    return nullptr;
+  }
+
   int xscreen = DefaultScreen(aXDisplay);
 
   ScopedXFree<GLXFBConfig> cfgs;
@@ -695,8 +702,8 @@ static bool ChooseConfig(GLXLibrary* glx, Display* display, int screen,
   return false;
 }
 
-bool GLContextGLX::FindVisual(Display* display, int screen, bool useWebRender,
-                              bool useAlpha, int* const out_visualId) {
+bool GLContextGLX::FindVisual(Display* display, int screen,
+                              int* const out_visualId) {
   if (!sGLXLibrary.EnsureInitialized(display)) {
     return false;
   }
@@ -731,9 +738,7 @@ bool GLContextGLX::FindVisual(Display* display, int screen, bool useWebRender,
     return false;
   }
 
-  const int bpp = useAlpha ? 32 : 24;
-  const int alphaSize = useAlpha ? 8 : 0;
-  const int depthSize = useWebRender ? 24 : 0;
+  const int bpp = 32;
 
   for (auto& cur : visualInfos) {
     const auto fnConfigMatches = [&](const int pname, const int expected) {
@@ -755,8 +760,7 @@ bool GLContextGLX::FindVisual(Display* display, int screen, bool useWebRender,
         fnConfigMatches(LOCAL_GLX_RED_SIZE, 8) &&
         fnConfigMatches(LOCAL_GLX_GREEN_SIZE, 8) &&
         fnConfigMatches(LOCAL_GLX_BLUE_SIZE, 8) &&
-        fnConfigMatches(LOCAL_GLX_ALPHA_SIZE, alphaSize) &&
-        fnConfigMatches(LOCAL_GLX_DEPTH_SIZE, depthSize)) {
+        fnConfigMatches(LOCAL_GLX_ALPHA_SIZE, 8)) {
       *out_visualId = cur.visualid;
       return true;
     }

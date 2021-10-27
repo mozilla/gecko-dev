@@ -808,6 +808,7 @@ bool js::HasInstance(JSContext* cx, HandleObject obj, HandleValue v, bool* bp) {
 }
 
 JSType js::TypeOfObject(JSObject* obj) {
+  AutoUnsafeCallWithABI unsafe;
   if (EmulatesUndefined(obj)) {
     return JSTYPE_UNDEFINED;
   }
@@ -1786,10 +1787,10 @@ class ReservedRooted : public RootedOperations<T, ReservedRooted<T>> {
   }
 
   explicit ReservedRooted(Rooted<T>* root) : savedRoot(root) {
-    *root = JS::SafelyInitialized<T>();
+    *root = JS::SafelyInitialized<T>::create();
   }
 
-  ~ReservedRooted() { *savedRoot = JS::SafelyInitialized<T>(); }
+  ~ReservedRooted() { *savedRoot = JS::SafelyInitialized<T>::create(); }
 
   void set(const T& p) const { *savedRoot = p; }
   operator Handle<T>() { return *savedRoot; }
@@ -3971,7 +3972,7 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
          * 350509, due to Igor Bukanov.
          */
         ReservedRooted<Value> v(&rootValue0, rval);
-        cx->setPendingExceptionAndCaptureStack(v);
+        cx->setPendingException(v, ShouldCaptureStack::Maybe);
         goto error;
       }
 
@@ -4485,7 +4486,7 @@ prologue_error:
 
 bool js::ThrowOperation(JSContext* cx, HandleValue v) {
   MOZ_ASSERT(!cx->isExceptionPending());
-  cx->setPendingExceptionAndCaptureStack(v);
+  cx->setPendingException(v, ShouldCaptureStack::Maybe);
   return false;
 }
 

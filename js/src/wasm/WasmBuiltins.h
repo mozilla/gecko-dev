@@ -87,17 +87,27 @@ enum class SymbolicAddress {
   Uint64ToDouble,
   Int64ToFloat32,
   Int64ToDouble,
-  MemoryGrow,
-  MemorySize,
-  WaitI32,
-  WaitI64,
-  Wake,
-  MemCopy32,
-  MemCopyShared32,
+  MemoryGrowM32,
+  MemoryGrowM64,
+  MemorySizeM32,
+  MemorySizeM64,
+  WaitI32M32,
+  WaitI32M64,
+  WaitI64M32,
+  WaitI64M64,
+  WakeM32,
+  WakeM64,
+  MemCopyM32,
+  MemCopySharedM32,
+  MemCopyM64,
+  MemCopySharedM64,
   DataDrop,
-  MemFill32,
-  MemFillShared32,
-  MemInit32,
+  MemFillM32,
+  MemFillSharedM32,
+  MemFillM64,
+  MemFillSharedM64,
+  MemInitM32,
+  MemInitM64,
   TableCopy,
   ElemDrop,
   TableFill,
@@ -116,7 +126,7 @@ enum class SymbolicAddress {
 #if defined(ENABLE_WASM_EXCEPTIONS)
   ExceptionNew,
   ThrowException,
-  GetLocalExceptionIndex,
+  ConsumePendingException,
   PushRefIntoExn,
 #endif
   ArrayNew,
@@ -203,17 +213,27 @@ extern const SymbolicAddressSignature SASigExpD;
 extern const SymbolicAddressSignature SASigLogD;
 extern const SymbolicAddressSignature SASigPowD;
 extern const SymbolicAddressSignature SASigATan2D;
-extern const SymbolicAddressSignature SASigMemoryGrow;
-extern const SymbolicAddressSignature SASigMemorySize;
-extern const SymbolicAddressSignature SASigWaitI32;
-extern const SymbolicAddressSignature SASigWaitI64;
-extern const SymbolicAddressSignature SASigWake;
-extern const SymbolicAddressSignature SASigMemCopy32;
-extern const SymbolicAddressSignature SASigMemCopyShared32;
+extern const SymbolicAddressSignature SASigMemoryGrowM32;
+extern const SymbolicAddressSignature SASigMemoryGrowM64;
+extern const SymbolicAddressSignature SASigMemorySizeM32;
+extern const SymbolicAddressSignature SASigMemorySizeM64;
+extern const SymbolicAddressSignature SASigWaitI32M32;
+extern const SymbolicAddressSignature SASigWaitI32M64;
+extern const SymbolicAddressSignature SASigWaitI64M32;
+extern const SymbolicAddressSignature SASigWaitI64M64;
+extern const SymbolicAddressSignature SASigWakeM32;
+extern const SymbolicAddressSignature SASigWakeM64;
+extern const SymbolicAddressSignature SASigMemCopyM32;
+extern const SymbolicAddressSignature SASigMemCopySharedM32;
+extern const SymbolicAddressSignature SASigMemCopyM64;
+extern const SymbolicAddressSignature SASigMemCopySharedM64;
 extern const SymbolicAddressSignature SASigDataDrop;
-extern const SymbolicAddressSignature SASigMemFill32;
-extern const SymbolicAddressSignature SASigMemFillShared32;
-extern const SymbolicAddressSignature SASigMemInit32;
+extern const SymbolicAddressSignature SASigMemFillM32;
+extern const SymbolicAddressSignature SASigMemFillSharedM32;
+extern const SymbolicAddressSignature SASigMemFillM64;
+extern const SymbolicAddressSignature SASigMemFillSharedM64;
+extern const SymbolicAddressSignature SASigMemInitM32;
+extern const SymbolicAddressSignature SASigMemInitM64;
 extern const SymbolicAddressSignature SASigTableCopy;
 extern const SymbolicAddressSignature SASigElemDrop;
 extern const SymbolicAddressSignature SASigTableFill;
@@ -230,7 +250,7 @@ extern const SymbolicAddressSignature SASigStructNew;
 #ifdef ENABLE_WASM_EXCEPTIONS
 extern const SymbolicAddressSignature SASigExceptionNew;
 extern const SymbolicAddressSignature SASigThrowException;
-extern const SymbolicAddressSignature SASigGetLocalExceptionIndex;
+extern const SymbolicAddressSignature SASigConsumePendingException;
 extern const SymbolicAddressSignature SASigPushRefIntoExn;
 #endif
 extern const SymbolicAddressSignature SASigArrayNew;

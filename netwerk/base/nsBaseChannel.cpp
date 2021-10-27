@@ -56,9 +56,7 @@ nsBaseChannel::nsBaseChannel() : NeckoTargetHolder(nullptr) {
   mContentType.AssignLiteral(UNKNOWN_CONTENT_TYPE);
 }
 
-nsBaseChannel::~nsBaseChannel() {
-  NS_ReleaseOnMainThread("nsBaseChannel::mLoadInfo", mLoadInfo.forget());
-}
+nsBaseChannel::~nsBaseChannel() {}
 
 nsresult nsBaseChannel::Redirect(nsIChannel* newChannel, uint32_t redirectFlags,
                                  bool openNewChannel) {
@@ -78,19 +76,11 @@ nsresult nsBaseChannel::Redirect(nsIChannel* newChannel, uint32_t redirectFlags,
       static_cast<net::LoadInfo*>(mLoadInfo.get())
           ->CloneWithNewSecFlags(secFlags);
 
-  nsCOMPtr<nsIPrincipal> uriPrincipal;
-  nsIScriptSecurityManager* sm = nsContentUtils::GetSecurityManager();
-  sm->GetChannelURIPrincipal(this, getter_AddRefs(uriPrincipal));
   bool isInternalRedirect =
       (redirectFlags & (nsIChannelEventSink::REDIRECT_INTERNAL |
                         nsIChannelEventSink::REDIRECT_STS_UPGRADE));
 
-  // nsBaseChannel hst no thing to do with HttpBaseChannel, we would not care
-  // about referrer and remote address in this case
-  nsCOMPtr<nsIRedirectHistoryEntry> entry =
-      new net::nsRedirectHistoryEntry(uriPrincipal, nullptr, ""_ns);
-
-  newLoadInfo->AppendRedirectHistoryEntry(entry, isInternalRedirect);
+  newLoadInfo->AppendRedirectHistoryEntry(this, isInternalRedirect);
 
   // Ensure the channel's loadInfo's result principal URI so that it's
   // either non-null or updated to the redirect target URI.
@@ -203,8 +193,11 @@ nsresult nsBaseChannel::PushStreamConverter(const char* fromType,
 nsresult nsBaseChannel::BeginPumpingData() {
   nsresult rv;
 
-  rv = BeginAsyncRead(this, getter_AddRefs(mRequest));
+  rv = BeginAsyncRead(this, getter_AddRefs(mRequest),
+                      getter_AddRefs(mCancelableAsyncRequest));
   if (NS_SUCCEEDED(rv)) {
+    MOZ_ASSERT(mRequest || mCancelableAsyncRequest,
+               "should have got a request or cancelable");
     mPumpingData = true;
     return NS_OK;
   }
@@ -380,6 +373,10 @@ nsBaseChannel::Cancel(nsresult status) {
 
   mCanceled = true;
   mStatus = status;
+
+  if (mCancelableAsyncRequest) {
+    mCancelableAsyncRequest->Cancel(status);
+  }
 
   if (mRequest) {
     mRequest->Cancel(status);
@@ -796,6 +793,7 @@ static void CallUnknownTypeSniffer(void* aClosure, const uint8_t* aData,
 NS_IMETHODIMP
 nsBaseChannel::OnStartRequest(nsIRequest* request) {
   MOZ_ASSERT_IF(mRequest, request == mRequest);
+  MOZ_ASSERT_IF(mCancelableAsyncRequest, !mRequest);
 
   nsAutoCString scheme;
   mURI->GetScheme(scheme);
@@ -832,6 +830,7 @@ nsBaseChannel::OnStopRequest(nsIRequest* request, nsresult status) {
   // Cause Pending to return false.
   mPump = nullptr;
   mRequest = nullptr;
+  mCancelableAsyncRequest = nullptr;
   mPumpingData = false;
 
   if (mListener) {  // null in case of redirect

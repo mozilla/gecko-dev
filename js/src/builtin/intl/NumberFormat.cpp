@@ -11,6 +11,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/intl/Locale.h"
 #include "mozilla/intl/MeasureUnit.h"
 #include "mozilla/intl/NumberFormat.h"
 #include "mozilla/intl/NumberingSystem.h"
@@ -31,6 +32,7 @@
 #include "builtin/Array.h"
 #include "builtin/intl/CommonFunctions.h"
 #include "builtin/intl/DecimalNumber.h"
+#include "builtin/intl/FormatBuffer.h"
 #include "builtin/intl/LanguageTag.h"
 #include "builtin/intl/MeasureUnitGenerated.h"
 #include "builtin/intl/RelativeTimeFormat.h"
@@ -288,14 +290,14 @@ static UniqueChars NumberFormatLocale(JSContext* cx, HandleObject internals) {
 
   // ICU expects numberingSystem as a Unicode locale extensions on locale.
 
-  intl::LanguageTag tag(cx);
+  mozilla::intl::Locale tag;
   {
-    JSLinearString* locale = value.toString()->ensureLinear(cx);
+    RootedLinearString locale(cx, value.toString()->ensureLinear(cx));
     if (!locale) {
       return nullptr;
     }
 
-    if (!intl::LanguageTagParser::parse(cx, locale, tag)) {
+    if (!intl::ParseLocale(cx, locale, tag)) {
       return nullptr;
     }
   }
@@ -326,7 +328,12 @@ static UniqueChars NumberFormatLocale(JSContext* cx, HandleObject internals) {
     return nullptr;
   }
 
-  return tag.toStringZ(cx);
+  intl::FormatBuffer<char> buffer(cx);
+  if (auto result = tag.toString(buffer); result.isErr()) {
+    intl::ReportInternalError(cx, result.unwrapErr());
+    return nullptr;
+  }
+  return buffer.extractStringZ();
 }
 
 struct NumberFormatOptions : public mozilla::intl::NumberRangeFormatOptions {
@@ -767,8 +774,46 @@ static Formatter* NewNumberFormat(JSContext* cx,
     return result.unwrap().release();
   }
 
-  intl::ReportInternalError(cx);
+  intl::ReportInternalError(cx, result.unwrapErr());
   return nullptr;
+}
+
+static mozilla::intl::NumberFormat* GetOrCreateNumberFormat(
+    JSContext* cx, Handle<NumberFormatObject*> numberFormat) {
+  // Obtain a cached mozilla::intl::NumberFormat object.
+  mozilla::intl::NumberFormat* nf = numberFormat->getNumberFormatter();
+  if (nf) {
+    return nf;
+  }
+
+  nf = NewNumberFormat<mozilla::intl::NumberFormat>(cx, numberFormat);
+  if (!nf) {
+    return nullptr;
+  }
+  numberFormat->setNumberFormatter(nf);
+
+  intl::AddICUCellMemory(numberFormat, NumberFormatObject::EstimatedMemoryUse);
+  return nf;
+}
+
+static mozilla::intl::NumberRangeFormat* GetOrCreateNumberRangeFormat(
+    JSContext* cx, Handle<NumberFormatObject*> numberFormat) {
+  // Obtain a cached mozilla::intl::NumberRangeFormat object.
+  mozilla::intl::NumberRangeFormat* nrf =
+      numberFormat->getNumberRangeFormatter();
+  if (nrf) {
+    return nrf;
+  }
+
+  nrf = NewNumberFormat<mozilla::intl::NumberRangeFormat>(cx, numberFormat);
+  if (!nrf) {
+    return nullptr;
+  }
+  numberFormat->setNumberRangeFormatter(nrf);
+
+  intl::AddICUCellMemory(numberFormat,
+                         NumberFormatObject::EstimatedRangeFormatterMemoryUse);
+  return nrf;
 }
 
 static FieldType GetFieldTypeForNumberPartType(
@@ -1119,17 +1164,9 @@ bool js::intl_FormatNumber(JSContext* cx, unsigned argc, Value* vp) {
   }
 #endif
 
-  // Obtain a cached mozilla::intl::NumberFormat object.
-  mozilla::intl::NumberFormat* nf = numberFormat->getNumberFormatter();
+  mozilla::intl::NumberFormat* nf = GetOrCreateNumberFormat(cx, numberFormat);
   if (!nf) {
-    nf = NewNumberFormat<mozilla::intl::NumberFormat>(cx, numberFormat);
-    if (!nf) {
-      return false;
-    }
-    numberFormat->setNumberFormatter(nf);
-
-    intl::AddICUCellMemory(numberFormat,
-                           NumberFormatObject::EstimatedMemoryUse);
+    return false;
   }
 
   // Actually format the number
@@ -1197,7 +1234,7 @@ bool js::intl_FormatNumber(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   if (result.isErr()) {
-    intl::ReportInternalError(cx);
+    intl::ReportInternalError(cx, result.unwrapErr());
     return false;
   }
 
@@ -1459,18 +1496,10 @@ bool js::intl_FormatNumberRange(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Obtain a cached mozilla::intl::NumberFormat object.
   using NumberRangeFormat = mozilla::intl::NumberRangeFormat;
-  NumberRangeFormat* nf = numberFormat->getNumberRangeFormatter();
+  NumberRangeFormat* nf = GetOrCreateNumberRangeFormat(cx, numberFormat);
   if (!nf) {
-    nf = NewNumberFormat<NumberRangeFormat>(cx, numberFormat);
-    if (!nf) {
-      return false;
-    }
-    numberFormat->setNumberRangeFormatter(nf);
-
-    intl::AddICUCellMemory(
-        numberFormat, NumberFormatObject::EstimatedRangeFormatterMemoryUse);
+    return false;
   }
 
   auto valueRepresentableAsDouble = [](const Value& val, double* num) {
@@ -1540,7 +1569,7 @@ bool js::intl_FormatNumberRange(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   if (result.isErr()) {
-    intl::ReportInternalError(cx);
+    intl::ReportInternalError(cx, result.unwrapErr());
     return false;
   }
 

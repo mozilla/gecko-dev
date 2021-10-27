@@ -13,6 +13,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   AMTelemetry: "resource://gre/modules/AddonManager.jsm",
+  BuiltInThemes: "resource:///modules/BuiltInThemes.jsm",
   ClientID: "resource://gre/modules/ClientID.jsm",
   DeferredTask: "resource://gre/modules/DeferredTask.jsm",
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
@@ -78,96 +79,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 const PLUGIN_ICON_URL = "chrome://global/skin/icons/plugin.svg";
 const EXTENSION_ICON_URL =
   "chrome://mozapps/skin/extensions/extensionGeneric.svg";
-const BUILTIN_THEME_PREVIEWS = new Map([
-  [
-    "default-theme@mozilla.org",
-    "chrome://mozapps/content/extensions/default-theme/preview.svg",
-  ],
-  [
-    "firefox-compact-light@mozilla.org",
-    "resource://builtin-themes/light/preview.svg",
-  ],
-  [
-    "firefox-compact-dark@mozilla.org",
-    "resource://builtin-themes/dark/preview.svg",
-  ],
-  [
-    "firefox-alpenglow@mozilla.org",
-    "resource://builtin-themes/alpenglow/preview.svg",
-  ],
-  [
-    "firefox-lush-soft@mozilla.org",
-    "resource://builtin-themes/monochromatic/lush/soft/preview.svg",
-  ],
-  [
-    "firefox-lush-balanced@mozilla.org",
-    "resource://builtin-themes/monochromatic/lush/balanced/preview.svg",
-  ],
-  [
-    "firefox-lush-bold@mozilla.org",
-    "resource://builtin-themes/monochromatic/lush/bold/preview.svg",
-  ],
-  [
-    "firefox-abstract-soft@mozilla.org",
-    "resource://builtin-themes/monochromatic/abstract/soft/preview.svg",
-  ],
-  [
-    "firefox-abstract-balanced@mozilla.org",
-    "resource://builtin-themes/monochromatic/abstract/balanced/preview.svg",
-  ],
-  [
-    "firefox-abstract-bold@mozilla.org",
-    "resource://builtin-themes/monochromatic/abstract/bold/preview.svg",
-  ],
-  [
-    "firefox-elemental-soft@mozilla.org",
-    "resource://builtin-themes/monochromatic/elemental/soft/preview.svg",
-  ],
-  [
-    "firefox-elemental-balanced@mozilla.org",
-    "resource://builtin-themes/monochromatic/elemental/balanced/preview.svg",
-  ],
-  [
-    "firefox-elemental-bold@mozilla.org",
-    "resource://builtin-themes/monochromatic/elemental/bold/preview.svg",
-  ],
-  [
-    "firefox-cheers-soft@mozilla.org",
-    "resource://builtin-themes/monochromatic/cheers/soft/preview.svg",
-  ],
-  [
-    "firefox-cheers-balanced@mozilla.org",
-    "resource://builtin-themes/monochromatic/cheers/balanced/preview.svg",
-  ],
-  [
-    "firefox-cheers-bold@mozilla.org",
-    "resource://builtin-themes/monochromatic/cheers/bold/preview.svg",
-  ],
-  [
-    "firefox-graffiti-soft@mozilla.org",
-    "resource://builtin-themes/monochromatic/graffiti/soft/preview.svg",
-  ],
-  [
-    "firefox-graffiti-balanced@mozilla.org",
-    "resource://builtin-themes/monochromatic/graffiti/balanced/preview.svg",
-  ],
-  [
-    "firefox-graffiti-bold@mozilla.org",
-    "resource://builtin-themes/monochromatic/graffiti/bold/preview.svg",
-  ],
-  [
-    "firefox-foto-soft@mozilla.org",
-    "resource://builtin-themes/monochromatic/foto/soft/preview.svg",
-  ],
-  [
-    "firefox-foto-balanced@mozilla.org",
-    "resource://builtin-themes/monochromatic/foto/balanced/preview.svg",
-  ],
-  [
-    "firefox-foto-bold@mozilla.org",
-    "resource://builtin-themes/monochromatic/foto/bold/preview.svg",
-  ],
-]);
 
 const PERMISSION_MASKS = {
   enable: AddonManager.PERM_CAN_ENABLE,
@@ -540,8 +451,12 @@ function nl2br(text) {
  *          The URL of the best fitting screenshot, if any.
  */
 function getScreenshotUrlForAddon(addon) {
-  if (BUILTIN_THEME_PREVIEWS.has(addon.id)) {
-    return BUILTIN_THEME_PREVIEWS.get(addon.id);
+  if (addon.id == "default-theme@mozilla.org") {
+    return "chrome://mozapps/content/extensions/default-theme/preview.svg";
+  }
+  const builtInThemePreview = BuiltInThemes.previewForBuiltInThemeId(addon.id);
+  if (builtInThemePreview) {
+    return builtInThemePreview;
   }
 
   let { screenshots } = addon;
@@ -3947,6 +3862,10 @@ class AddonList extends HTMLElement {
     let type = this.type == "all" ? null : [this.type];
     let addons = await AddonManager.getAddonsByTypes(type);
 
+    if (type == "theme") {
+      await BuiltInThemes.ensureBuiltInThemes();
+    }
+
     // Put the add-ons into the sections, an add-on goes in the first section
     // that it matches the filterFn for. It might not go in any section.
     let sectionedAddons = this.sections.map(() => []);
@@ -4017,11 +3936,22 @@ class AddonList extends HTMLElement {
   }
 
   createSectionHeading(headingIndex) {
-    let { headingId } = this.sections[headingIndex];
+    let { headingId, subheadingId } = this.sections[headingIndex];
+    let frag = document.createDocumentFragment();
     let heading = document.createElement("h2");
     heading.classList.add("list-section-heading");
     document.l10n.setAttributes(heading, headingId);
-    return heading;
+    frag.append(heading);
+
+    if (subheadingId) {
+      let subheading = document.createElement("h3");
+      subheading.classList.add("list-section-subheading");
+      heading.className = "header-name";
+      document.l10n.setAttributes(subheading, subheadingId);
+      frag.append(subheading);
+    }
+
+    return frag;
   }
 
   createEmptyListMessage() {
@@ -4574,7 +4504,7 @@ class RecommendedThemesFooter extends HTMLElement {
     let action = event.target.getAttribute("action");
     switch (action) {
       case "open-amo":
-        openAmoInTab(this);
+        openAmoInTab(this, "themes");
         break;
     }
   }
@@ -4655,11 +4585,21 @@ gViewController.defineView("list", async type => {
     return null;
   }
 
-  let frag = document.createDocumentFragment();
+  // If monochromatic themes are enabled and any are builtin to Firefox, we
+  // display those themes together in a separate subsection.
+  let isMonochromaticTheme = addon =>
+    addon.id.endsWith("-colorway@mozilla.org");
 
+  let monochromaticEnabled = Services.prefs.getBoolPref(
+    "browser.theme.colorways.enabled",
+    true
+  );
+
+  let frag = document.createDocumentFragment();
   let list = document.createElement("addon-list");
   list.type = type;
-  list.setSections([
+
+  let sections = [
     {
       headingId: type + "-enabled-heading",
       filterFn: addon =>
@@ -4668,10 +4608,28 @@ gViewController.defineView("list", async type => {
     {
       headingId: type + "-disabled-heading",
       filterFn: addon =>
-        !addon.hidden && !addon.isActive && !isPending(addon, "uninstall"),
+        !addon.hidden &&
+        !addon.isActive &&
+        !isPending(addon, "uninstall") &&
+        !isMonochromaticTheme(addon),
     },
-  ]);
+  ];
+  list.setSections(sections);
   frag.appendChild(list);
+
+  if (type == "theme" && monochromaticEnabled) {
+    let monochromaticList = document.createElement("addon-list");
+    monochromaticList.classList.add("monochromatic-addon-list");
+    monochromaticList.type = type;
+    monochromaticList.setSections([
+      {
+        headingId: type + "-monochromatic-heading",
+        subheadingId: type + "-monochromatic-subheading",
+        filterFn: addon => !addon.hidden && isMonochromaticTheme(addon),
+      },
+    ]);
+    frag.appendChild(monochromaticList);
+  }
 
   // Show recommendations for themes and extensions.
   if (
@@ -4798,7 +4756,7 @@ function getTelemetryViewName(el) {
 /**
  * @param {Element} el The button element.
  */
-function openAmoInTab(el) {
+function openAmoInTab(el, path) {
   // The element is a button but opens a URL, so record as link.
   AMTelemetry.recordLinkEvent({
     object: "aboutAddons",
@@ -4810,6 +4768,11 @@ function openAmoInTab(el) {
   let amoUrl = Services.urlFormatter.formatURLPref(
     "extensions.getAddons.link.url"
   );
+
+  if (path) {
+    amoUrl += path;
+  }
+
   amoUrl = formatUTMParams("find-more-link-bottom", amoUrl);
   windowRoot.ownerGlobal.openTrustedLinkIn(amoUrl, "tab");
 }

@@ -5835,9 +5835,13 @@ def getJSToNativeConversionInfo(
         assert not isEnforceRange and not isClamp and not isAllowShared
 
         if failureCode is None:
-            notSequence = 'cx.ThrowErrorMessage<MSG_NOT_SEQUENCE>("%s");\n' "%s" % (
-                firstCap(sourceDescription),
-                exceptionCode,
+            notSequence = (
+                'cx.ThrowErrorMessage<MSG_CONVERSION_ERROR>("%s", "sequence");\n'
+                "%s"
+                % (
+                    firstCap(sourceDescription),
+                    exceptionCode,
+                )
             )
         else:
             notSequence = failureCode
@@ -9895,7 +9899,7 @@ class CGMethodCall(CGThing):
         argDesc = "argument %d"
 
         if method.getExtendedAttribute("UseCounter"):
-            useCounterName = methodName.replace(".", "_")
+            useCounterName = methodName.replace(".", "_").replace(" ", "_")
         else:
             useCounterName = None
 
@@ -16659,7 +16663,7 @@ class CGDictionary(CGThing):
             body += dedent(
                 """
                 if (!IsConvertibleToDictionary(val)) {
-                  return cx.ThrowErrorMessage<MSG_NOT_DICTIONARY>(sourceDescription);
+                  return cx.ThrowErrorMessage<MSG_CONVERSION_ERROR>(sourceDescription, "dictionary");
                 }
 
                 """
@@ -20512,9 +20516,6 @@ class CallbackMember(CGNativeMember):
         )
         # We have to do all the generation of our body now, because
         # the caller relies on us throwing if we can't manage it.
-        self.exceptionCode = (
-            "aRv.Throw(NS_ERROR_UNEXPECTED);\n" "return%s;\n" % self.getDefaultRetval()
-        )
         self.body = self.getImpl()
 
     def getImpl(self):
@@ -20556,6 +20557,15 @@ class CallbackMember(CGNativeMember):
             """
         )
 
+    def getExceptionCode(self, forResult):
+        return fill(
+            """
+            aRv.Throw(NS_ERROR_UNEXPECTED);
+            return${defaultRetval};
+            """,
+            defaultRetval=self.getDefaultRetval(),
+        )
+
     def getResultConversion(
         self, val="rval", failureCode=None, isDefinitelyObject=False, exceptionCode=None
     ):
@@ -20581,7 +20591,7 @@ class CallbackMember(CGNativeMember):
                 self.descriptorProvider,
                 failureCode=failureCode,
                 isDefinitelyObject=isDefinitelyObject,
-                exceptionCode=exceptionCode or self.exceptionCode,
+                exceptionCode=exceptionCode or self.getExceptionCode(forResult=True),
                 isCallbackReturnValue=isCallbackReturnValue,
                 # Allow returning a callback type that
                 # allows non-callable objects.
@@ -20657,7 +20667,7 @@ class CallbackMember(CGNativeMember):
                 "jsvalHandle": "argv[%s]" % jsvalIndex,
                 "obj": self.wrapScope,
                 "returnsNewObject": False,
-                "exceptionCode": self.exceptionCode,
+                "exceptionCode": self.getExceptionCode(forResult=False),
                 "spiderMonkeyInterfacesAreStructs": self.spiderMonkeyInterfacesAreStructs,
             },
         )
@@ -20840,6 +20850,15 @@ class CallbackMethod(CallbackMember):
     def getRvalDecl(self):
         return "JS::Rooted<JS::Value> rval(cx);\n"
 
+    def getNoteCallFailed(self):
+        return fill(
+            """
+                aRv.NoteJSContextException(cx);
+                return${errorReturn};
+                """,
+            errorReturn=self.getDefaultRetval(),
+        )
+
     def getCall(self):
         if self.argCount > 0:
             args = "JS::HandleValueArray::subarray(argv, 0, argc)"
@@ -20852,8 +20871,7 @@ class CallbackMethod(CallbackMember):
             $*{declThis}
             if (${callGuard}!JS::Call(cx, ${thisVal}, callable,
                           ${args}, &rval)) {
-              aRv.NoteJSContextException(cx);
-              return${errorReturn};
+              $*{noteError}
             }
             """,
             declCallable=self.getCallableDecl(),
@@ -20861,7 +20879,7 @@ class CallbackMethod(CallbackMember):
             callGuard=self.getCallGuard(),
             thisVal=self.getThisVal(),
             args=args,
-            errorReturn=self.getDefaultRetval(),
+            noteError=self.getNoteCallFailed(),
         )
 
 
@@ -20876,6 +20894,33 @@ class CallCallback(CallbackMethod):
             needThisHandling=True,
             canRunScript=not callback.isRunScriptBoundary(),
         )
+
+    def getNoteCallFailed(self):
+        if self.retvalType.isPromise():
+            return dedent(
+                """
+                // Convert exception to a rejected promise.
+                // See https://heycam.github.io/webidl/#call-a-user-objects-operation
+                // step 12 and step 15.5.
+                return CreateRejectedPromiseFromThrownException(cx, aRv);
+                """
+            )
+        return CallbackMethod.getNoteCallFailed(self)
+
+    def getExceptionCode(self, forResult):
+        # If the result value is a promise, and conversion
+        # to the promise throws an exception we shouldn't
+        # try to convert that exception to a promise again.
+        if self.retvalType.isPromise() and not forResult:
+            return dedent(
+                """
+                // Convert exception to a rejected promise.
+                // See https://heycam.github.io/webidl/#call-a-user-objects-operation
+                // step 10 and step 15.5.
+                return CreateRejectedPromiseFromThrownException(cx, aRv);
+                """
+            )
+        return CallbackMethod.getExceptionCode(self, forResult)
 
     def getThisDecl(self):
         return ""

@@ -135,7 +135,7 @@ const CustomizableWidgets = [
 
       PanelMultiView.getViewNode(
         document,
-        "appMenuRestoreSession"
+        "appMenu-restoreSession"
       ).hidden = !SessionStore.canRestoreLastSession;
 
       // We restrict the amount of results to 42. Not 50, but 42. Why? Because 42.
@@ -525,6 +525,7 @@ if (Services.prefs.getBoolPref("identity.fxaccounts.enabled")) {
 if (!screenshotsDisabled) {
   CustomizableWidgets.push({
     id: "screenshot-button",
+    shortcutId: "key_screenshot",
     l10nId: "screenshot-toolbarbutton",
     onCommand(aEvent) {
       if (SCREENSHOT_BROWSER_COMPONENT) {
@@ -533,7 +534,11 @@ if (!screenshotsDisabled) {
           "menuitem-screenshot"
         );
       } else {
-        Services.obs.notifyObservers(null, "menuitem-screenshot-extension");
+        Services.obs.notifyObservers(
+          null,
+          "menuitem-screenshot-extension",
+          "toolbar"
+        );
       }
     },
     onCreated(aNode) {

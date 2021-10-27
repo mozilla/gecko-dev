@@ -156,7 +156,8 @@ nsresult nsHttpConnectionMgr::Shutdown() {
   }
 
   // wait for shutdown event to complete
-  SpinEventLoopUntil([&, shutdownWrapper]() { return shutdownWrapper->mBool; });
+  SpinEventLoopUntil("nsHttpConnectionMgr::Shutdown"_ns,
+                     [&, shutdownWrapper]() { return shutdownWrapper->mBool; });
 
   return NS_OK;
 }
@@ -3230,7 +3231,7 @@ ConnectionEntry* nsHttpConnectionMgr::GetOrCreateConnectionEntry(
   }
 
   // step 2
-  if (!prohibitWildCard && !aNoHttp3) {
+  if (!prohibitWildCard && aNoHttp3) {
     RefPtr<nsHttpConnectionInfo> wildCardProxyCI;
     DebugOnly<nsresult> rv =
         specificCI->CreateWildCard(getter_AddRefs(wildCardProxyCI));

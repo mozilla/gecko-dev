@@ -33,6 +33,7 @@
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/dom/Location.h"
 #include "mozilla/dom/LocationBinding.h"
+#include "mozilla/dom/MediaDevices.h"
 #include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/SessionStorageManager.h"
@@ -814,10 +815,16 @@ void BrowsingContext::Detach(bool aFromIPC) {
   MOZ_DIAGNOSTIC_ASSERT(mEverAttached);
   MOZ_DIAGNOSTIC_ASSERT(!mIsDiscarded);
 
+  if (XRE_IsParentProcess()) {
+    Canonical()->AddPendingDiscard();
+  }
   auto callListeners =
-      MakeScopeExit([listeners = std::move(mDiscardListeners), id = Id()] {
+      MakeScopeExit([&, listeners = std::move(mDiscardListeners), id = Id()] {
         for (const auto& listener : listeners) {
           listener(id);
+        }
+        if (XRE_IsParentProcess()) {
+          Canonical()->RemovePendingDiscard();
         }
       });
 
@@ -2161,6 +2168,7 @@ PopupBlocker::PopupControlState BrowsingContext::RevisePopupAbuseLevel(
     return PopupBlocker::openAllowed;
   }
 
+  RefPtr<Document> doc = GetExtantDocument();
   PopupBlocker::PopupControlState abuse = aControl;
   switch (abuse) {
     case PopupBlocker::openControlled:
@@ -2171,7 +2179,8 @@ PopupBlocker::PopupControlState BrowsingContext::RevisePopupAbuseLevel(
       }
       break;
     case PopupBlocker::openAbused:
-      if (IsPopupAllowed()) {
+      if (IsPopupAllowed() ||
+          (doc && doc->HasValidTransientUserGestureActivation())) {
         // Skip PopupBlocker::openBlocked
         abuse = PopupBlocker::openControlled;
       }
@@ -2194,7 +2203,7 @@ PopupBlocker::PopupControlState BrowsingContext::RevisePopupAbuseLevel(
 
   // If we're currently in-process, attempt to consume transient user gesture
   // activations.
-  if (RefPtr<Document> doc = GetExtantDocument()) {
+  if (doc) {
     // HACK: Some pages using bogus library + UA sniffing call window.open()
     // from a blank iframe, only on Firefox, see bug 1685056.
     //
@@ -2653,6 +2662,29 @@ void BrowsingContext::DidSet(FieldIndex<IDX_ExplicitActive>,
   });
 }
 
+void BrowsingContext::DidSet(FieldIndex<IDX_InRDMPane>, bool aOldValue) {
+  MOZ_ASSERT(IsTop(),
+             "Should only set InRDMPane in the top-level browsing context");
+  if (GetInRDMPane() == aOldValue) {
+    return;
+  }
+
+  PreOrderWalk([&](BrowsingContext* aContext) {
+    if (nsIDocShell* shell = aContext->GetDocShell()) {
+      if (nsPresContext* pc = shell->GetPresContext()) {
+        pc->RecomputeTheme();
+
+        // This is a bit of a lie, but this affects the overlay-scrollbars
+        // media query and it's the code-path that gets taken for regular system
+        // metrics changes via ThemeChanged().
+        pc->MediaFeatureValuesChanged(
+            {MediaFeatureChangeReason::SystemMetricsChange},
+            MediaFeatureChangePropagation::JustThisDocument);
+      }
+    }
+  });
+}
+
 bool BrowsingContext::CanSet(FieldIndex<IDX_PageAwakeRequestCount>,
                              uint32_t aNewValue, ContentParent* aSource) {
   return IsTop() && XRE_IsParentProcess() && !aSource;
@@ -2728,15 +2760,7 @@ void BrowsingContext::DidSet(FieldIndex<IDX_PrefersColorSchemeOverride>,
   PreOrderWalk([&](BrowsingContext* aContext) {
     if (nsIDocShell* shell = aContext->GetDocShell()) {
       if (nsPresContext* pc = shell->GetPresContext()) {
-        // This is a bit of a lie, but it's the code-path that gets taken for
-        // regular system metrics changes via ThemeChanged().
-        // TODO(emilio): The JustThisDocument is a bit suspect here,
-        // prefers-color-scheme also applies to images or such, but the override
-        // means that we could need to render the same image both with "light"
-        // and "dark" appearance, so we just don't bother.
-        pc->MediaFeatureValuesChanged(
-            {MediaFeatureChangeReason::SystemMetricsChange},
-            MediaFeatureChangePropagation::JustThisDocument);
+        pc->RecomputeBrowsingContextDependentData();
       }
     }
   });
@@ -2922,14 +2946,19 @@ void BrowsingContext::DidSet(FieldIndex<IDX_IsActiveBrowserWindowInternal>,
     if (RefPtr<Document> doc = aContext->GetExtantDocument()) {
       doc->UpdateDocumentStates(NS_DOCUMENT_STATE_WINDOW_INACTIVE, true);
 
+      RefPtr<nsPIDOMWindowInner> win = doc->GetInnerWindow();
+      RefPtr<MediaDevices> devices;
+      if (isActivateEvent && (devices = win->GetExtantMediaDevices())) {
+        devices->BrowserWindowBecameActive();
+      }
+
       if (XRE_IsContentProcess() &&
           (!aContext->GetParent() || !aContext->GetParent()->IsInProcess())) {
         // Send the inner window an activate/deactivate event if
         // the context is the top of a sub-tree of in-process
         // contexts.
         nsContentUtils::DispatchEventOnlyToChrome(
-            doc, doc->GetWindow()->GetCurrentInnerWindow(),
-            isActivateEvent ? u"activate"_ns : u"deactivate"_ns,
+            doc, win, isActivateEvent ? u"activate"_ns : u"deactivate"_ns,
             CanBubble::eYes, Cancelable::eYes, nullptr);
       }
     }
@@ -3406,7 +3435,8 @@ bool BrowsingContext::IsPopupAllowed() {
 
 void BrowsingContext::SessionHistoryCommit(
     const LoadingSessionHistoryInfo& aInfo, uint32_t aLoadType,
-    bool aHadActiveEntry, bool aPersist, bool aCloneEntryChildren) {
+    bool aHadActiveEntry, bool aPersist, bool aCloneEntryChildren,
+    bool aChannelExpired) {
   nsID changeID = {};
   if (XRE_IsContentProcess()) {
     RefPtr<ChildSHistory> rootSH = Top()->GetChildSessionHistory();
@@ -3426,19 +3456,18 @@ void BrowsingContext::SessionHistoryCommit(
           changeID = rootSH->AddPendingHistoryChange();
         }
       } else {
-        // This is a load from session history, so we can update
-        // index and length immediately.
-        rootSH->SetIndexAndLength(aInfo.mRequestedIndex,
-                                  aInfo.mSessionHistoryLength, changeID);
+        // History load doesn't change the length, only index.
+        changeID = rootSH->AddPendingHistoryChange(aInfo.mOffset, 0);
       }
     }
     ContentChild* cc = ContentChild::GetSingleton();
-    mozilla::Unused << cc->SendHistoryCommit(this, aInfo.mLoadId, changeID,
-                                             aLoadType, aPersist,
-                                             aCloneEntryChildren);
+    mozilla::Unused << cc->SendHistoryCommit(
+        this, aInfo.mLoadId, changeID, aLoadType, aPersist, aCloneEntryChildren,
+        aChannelExpired);
   } else {
     Canonical()->SessionHistoryCommit(aInfo.mLoadId, changeID, aLoadType,
-                                      aPersist, aCloneEntryChildren);
+                                      aPersist, aCloneEntryChildren,
+                                      aChannelExpired);
   }
 }
 

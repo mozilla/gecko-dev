@@ -1182,7 +1182,7 @@ def x11_libs(webrtc):
         "xcb-shm",
         "x11-xcb",
         "xext",
-        "xrender",
+        "xrandr >= 1.4.0",
     ]
     if webrtc:
         # third_party/libwebrtc/webrtc/webrtc_gn/moz.build adds those
@@ -2114,13 +2114,12 @@ def wasm_sandboxing_libraries():
 
 @depends(dependable(wasm_sandboxing_libraries), target, "MOZ_AUTOMATION")
 def default_wasm_sandboxing_libraries(libraries, target, automation):
-    if automation and (
-        (target.kernel == "Linux" and target.os == "GNU" and target.cpu == "x86_64")
-        or (target.os == "Android" and target.bitness == 64)
-        or (target.kernel == "Darwin" and target.bitness == 64)
-        or (target.kernel == "WINNT" and target.bitness == 64)
-    ):
-        return libraries
+    non_default_libs = set()
+    if target.bitness == 32:
+        non_default_libs.add("hunspell")
+
+    if automation:
+        return tuple(l for l in libraries if l not in non_default_libs)
 
 
 option(
@@ -2237,13 +2236,10 @@ with only_when(requires_wasm_sandboxing & compile_environment):
     set_config("WASM_CXXFLAGS", wasm_cxxflags)
 
 
-@depends("--with-wasm-sandboxed-libraries", target)
-def wasm_sandboxing(libraries, target):
+@depends("--with-wasm-sandboxed-libraries")
+def wasm_sandboxing(libraries):
     if not libraries:
         return
-
-    if target.bitness != 64:
-        die("wasm sandboxing is only supported on 64-bits platforms")
 
     return namespace(**{name: True for name in libraries})
 
@@ -2536,3 +2532,13 @@ wine = check_prog(
     when=want_wine,
     bootstrap="wine/bin",
 )
+
+# DOM Streams
+# ==============================================================
+option(
+    "--enable-dom-streams",
+    help="Enable the DOM Streams prototype",
+)
+
+set_config("MOZ_DOM_STREAMS", True, when="--enable-dom-streams")
+set_define("MOZ_DOM_STREAMS", True, when="--enable-dom-streams")

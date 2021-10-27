@@ -21,6 +21,7 @@
 #include "nsLayoutUtils.h"
 #include "nsStyleConsts.h"
 #include "mozilla/ViewportUtils.h"
+#include "mozilla/EventListenerManager.h"
 
 namespace mozilla {
 namespace layers {
@@ -196,6 +197,17 @@ static bool IsReplacedElement(const nsCOMPtr<dom::Element>& aElement) {
   return false;
 }
 
+static bool HasNonPassiveWheelListenerOnAncestor(nsIContent* aContent) {
+  for (nsIContent* content = aContent; content;
+       content = content->GetFlattenedTreeParent()) {
+    EventListenerManager* elm = content->GetExistingListenerManager();
+    if (elm && elm->HasNonPassiveWheelListener()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 ZoomTarget CalculateRectToZoomTo(
     const RefPtr<dom::Document>& aRootContentDocument, const CSSPoint& aPoint) {
   // Ensure the layout information we get is up-to-date.
@@ -206,13 +218,13 @@ ZoomTarget CalculateRectToZoomTo(
 
   RefPtr<PresShell> presShell = aRootContentDocument->GetPresShell();
   if (!presShell) {
-    return ZoomTarget{zoomOut};
+    return ZoomTarget{zoomOut, CantZoomOutBehavior::ZoomIn};
   }
 
   nsIScrollableFrame* rootScrollFrame =
       presShell->GetRootScrollFrameAsScrollable();
   if (!rootScrollFrame) {
-    return ZoomTarget{zoomOut};
+    return ZoomTarget{zoomOut, CantZoomOutBehavior::ZoomIn};
   }
 
   CSSPoint documentRelativePoint =
@@ -222,8 +234,14 @@ ZoomTarget CalculateRectToZoomTo(
 
   nsCOMPtr<dom::Element> element = ElementFromPoint(presShell, aPoint);
   if (!element) {
-    return ZoomTarget{zoomOut, Nothing(), Some(documentRelativePoint)};
+    return ZoomTarget{zoomOut, CantZoomOutBehavior::ZoomIn, Nothing(),
+                      Some(documentRelativePoint)};
   }
+
+  CantZoomOutBehavior cantZoomOutBehavior =
+      HasNonPassiveWheelListenerOnAncestor(element)
+          ? CantZoomOutBehavior::Nothing
+          : CantZoomOutBehavior::ZoomIn;
 
   FrameMetrics metrics =
       nsLayoutUtils::CalculateBasicFrameMetrics(rootScrollFrame);
@@ -234,7 +252,8 @@ ZoomTarget CalculateRectToZoomTo(
   }
 
   if (!element) {
-    return ZoomTarget{zoomOut, Nothing(), Some(documentRelativePoint)};
+    return ZoomTarget{zoomOut, cantZoomOutBehavior, Nothing(),
+                      Some(documentRelativePoint)};
   }
 
   CSSPoint visualScrollOffset = metrics.GetVisualScrollOffset();
@@ -336,7 +355,8 @@ ZoomTarget CalculateRectToZoomTo(
   // If the rect is already taking up most of the visible area and is
   // stretching the width of the page, then we want to zoom out instead.
   if (RectHasAlmostSameZoomLevel(rect, compositedArea)) {
-    return ZoomTarget{zoomOut, Nothing(), Some(documentRelativePoint)};
+    return ZoomTarget{zoomOut, cantZoomOutBehavior, Nothing(),
+                      Some(documentRelativePoint)};
   }
 
   elementBoundingRect = AddHMargin(elementBoundingRect, margin, metrics);
@@ -348,7 +368,7 @@ ZoomTarget CalculateRectToZoomTo(
 
   rect.Round();
   elementBoundingRect.Round();
-  return ZoomTarget{rect, Some(elementBoundingRect),
+  return ZoomTarget{rect, cantZoomOutBehavior, Some(elementBoundingRect),
                     Some(documentRelativePoint)};
 }
 

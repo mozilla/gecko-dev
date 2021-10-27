@@ -21,6 +21,14 @@ const { PollPromise } = ChromeUtils.import(
   "chrome://remote/content/shared/Sync.jsm"
 );
 
+const BASE_ORIGIN = "https://example.com";
+const BASE_PATH = `${BASE_ORIGIN}/browser/remote/cdp/test/browser/page`;
+const FRAMESET_MULTI_URL = `${BASE_PATH}/doc_frameset_multi.html`;
+const FRAMESET_NESTED_URL = `${BASE_PATH}/doc_frameset_nested.html`;
+const FRAMESET_SINGLE_URL = `${BASE_PATH}/doc_frameset_single.html`;
+const PAGE_FRAME_URL = `${BASE_PATH}/doc_frame.html`;
+const PAGE_URL = `${BASE_PATH}/doc_empty.html`;
+
 const TIMEOUT_SET_HISTORY_INDEX = 1000;
 
 function assertHistoryEntries(history, expectedData, expectedIndex) {

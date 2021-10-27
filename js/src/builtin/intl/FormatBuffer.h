@@ -8,14 +8,15 @@
 #define builtin_intl_FormatBuffer_h
 
 #include "mozilla/Assertions.h"
-#include "mozilla/Range.h"
 #include "mozilla/Span.h"
+#include "mozilla/TextUtils.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
 #include "gc/Allocator.h"
 #include "js/AllocPolicy.h"
+#include "js/CharacterEncoding.h"
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
 #include "js/Vector.h"
@@ -89,13 +90,23 @@ class FormatBuffer {
                   std::is_same_v<CharT, char>) {
       // Handle the UTF-8 encoding case.
       return NewStringCopyUTF8N<CanGC>(
-          cx, mozilla::Range(reinterpret_cast<unsigned char>(buffer_.begin()),
-                             buffer_.length()));
+          cx, JS::UTF8Chars(buffer_.begin(), buffer_.length()));
     } else {
       // Handle the UTF-16 encoding case.
       static_assert(std::is_same_v<CharT, char16_t>);
       return NewStringCopyN<CanGC>(cx, buffer_.begin(), buffer_.length());
     }
+  }
+
+  /**
+   * Copies the buffer's data to a JSString. The buffer must contain only
+   * ASCII characters.
+   */
+  JSLinearString* toAsciiString(JSContext* cx) const {
+    static_assert(std::is_same_v<CharT, char>);
+
+    MOZ_ASSERT(mozilla::IsAscii(buffer_));
+    return NewStringCopyN<CanGC>(cx, buffer_.begin(), buffer_.length());
   }
 
   /**

@@ -95,7 +95,7 @@ UiCompositorControllerParent::RecvInvalidateAndRender() {
           mRootLayerTreeId);
   if (parent) {
     parent->Invalidate();
-    parent->ScheduleComposition();
+    parent->ScheduleComposition(wr::RenderReasons::OTHER);
   }
   return IPC_OK();
 }
@@ -141,7 +141,7 @@ UiCompositorControllerParent::RecvRequestScreenPixels() {
 
   if (state && state->mWrBridge) {
     state->mWrBridge->RequestScreenPixels(this);
-    state->mWrBridge->ScheduleForcedGenerateFrame();
+    state->mWrBridge->ScheduleForcedGenerateFrame(wr::RenderReasons::OTHER);
   }
 #endif  // defined(MOZ_WIDGET_ANDROID)
 
@@ -206,8 +206,7 @@ void UiCompositorControllerParent::NotifyUpdateScreenMetrics(
 #if defined(MOZ_WIDGET_ANDROID)
   // TODO: Need to handle different x-and y-scales.
   CSSToScreenScale scale = ViewTargetAs<ScreenPixel>(
-      aMetrics.mZoom.ToScaleFactor(),
-      PixelCastJustification::ScreenIsParentLayerForRoot);
+      aMetrics.mZoom, PixelCastJustification::ScreenIsParentLayerForRoot);
   ScreenPoint scrollOffset = aMetrics.mVisualScrollOffset * scale;
   CompositorThread()->Dispatch(NewRunnableMethod<ScreenPoint, CSSToScreenScale>(
       "UiCompositorControllerParent::SendRootFrameMetrics", this,

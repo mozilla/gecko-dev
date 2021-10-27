@@ -164,6 +164,18 @@ add_task(async function test_pingSender() {
   // Check that the PingSender removed the pending ping.
   await waitForPingDeletion(data.id);
 
+  // Shut down the failing server.
+  await new Promise(r => failingServer.stop(r));
+});
+
+add_task(async function test_bannedDomains() {
+  // Generate a new ping and save it among the pending pings.
+  const data = generateTestPingData();
+  await TelemetryStorage.savePing(data, true);
+
+  // Get the local path of the saved ping.
+  const pingPath = OS.Path.join(TelemetryStorage.pingDirectoryPath, data.id);
+
   // Confirm we can't send a ping to another destination url
   let bannedUris = [
     "https://example.com",
@@ -173,35 +185,25 @@ add_task(async function test_pingSender() {
     "http://localhost:bob@example.com",
     "http://localhost:localhost@localhost.example.com",
   ];
-  for (let indx in bannedUris) {
-    TelemetrySend.testRunPingSender(
-      [{ url: bannedUris[indx], path: pingPath }],
-      (_, topic, __) => {
-        switch (topic) {
-          case "process-finished": // finished indicates an exit code of 0
-            Assert.equal(
-              false,
-              true,
-              "Pingsender should not be able to post to any banned urls: " +
-                bannedUris[indx]
-            );
-            break;
-          case "process-failed": // failed indicates an exit code != 0
-            Assert.equal(
-              true,
-              true,
-              "Pingsender should not be able to post to any banned urls: " +
-                bannedUris[indx]
-            );
-            break;
+  for (let url of bannedUris) {
+    let result = await new Promise(resolve =>
+      TelemetrySend.testRunPingSender(
+        [{ url, path: pingPath }],
+        (_, topic, __) => {
+          switch (topic) {
+            case "process-finished": // finished indicates an exit code of 0
+            case "process-failed": // failed indicates an exit code != 0
+              resolve(topic);
+          }
         }
-      }
+      )
+    );
+    Assert.equal(
+      result,
+      "process-failed",
+      `Pingsender should not be able to post to ${url}`
     );
   }
-
-  // Shut down the failing server. We do this now, and not right after using it,
-  // to make sure we're not interfering with the test.
-  await new Promise(r => failingServer.stop(r));
 });
 
 add_task(async function test_pingSender_multiple_pings() {
@@ -220,15 +222,23 @@ add_task(async function test_pingSender_multiple_pings() {
   // Try to send them using the pingsender.
   testSendingPings(pingPaths);
 
-  // Check the pings
-  for (const d of data) {
+  // Check the pings. We don't have an ordering guarantee, so we move the
+  // elements to a new array when we find them.
+  let data2 = [];
+  while (data.length) {
     let req = await PingServer.promiseNextRequest();
     let ping = decodeRequestPayload(req);
-    Assert.equal(ping.id, d.id, "Should have received the correct ping id.");
+    let idx = data.findIndex(d => d.id == ping.id);
+    Assert.ok(
+      idx >= 0,
+      `Should have received the correct ping id: ${data[idx].id}`
+    );
+    data2.push(data[idx]);
+    data.splice(idx, 1);
   }
 
   // Check that the PingSender removed the pending pings.
-  for (const d of data) {
+  for (const d of data2) {
     await waitForPingDeletion(d.id);
   }
 });

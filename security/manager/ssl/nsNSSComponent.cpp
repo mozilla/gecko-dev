@@ -1870,6 +1870,54 @@ static nsresult InitializeNSSWithFallbacks(const nsACString& profilePath,
   return srv == SECSuccess ? NS_OK : NS_ERROR_FAILURE;
 }
 
+#if defined(NIGHTLY_BUILD) && !defined(ANDROID)
+// dbType is either "cert9.db" or "key4.db"
+void UnmigrateOneCertDB(const nsCOMPtr<nsIFile>& profileDirectory,
+                        const nsACString& dbType) {
+  nsCOMPtr<nsIFile> dbFile;
+  nsresult rv = profileDirectory->Clone(getter_AddRefs(dbFile));
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  rv = dbFile->AppendNative(dbType);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  bool exists;
+  rv = dbFile->Exists(&exists);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  // If the unprefixed DB already exists, don't overwrite it.
+  if (exists) {
+    return;
+  }
+  nsCOMPtr<nsIFile> prefixedDBFile;
+  rv = profileDirectory->Clone(getter_AddRefs(prefixedDBFile));
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  nsAutoCString prefixedDBName("gecko-no-share-");
+  prefixedDBName.Append(dbType);
+  rv = prefixedDBFile->AppendNative(prefixedDBName);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  Unused << prefixedDBFile->MoveToNative(nullptr, dbType);
+}
+
+void UnmigrateFromPrefixedCertDBs() {
+  nsCOMPtr<nsIFile> profileDirectory;
+  nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
+                                       getter_AddRefs(profileDirectory));
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  UnmigrateOneCertDB(profileDirectory, "cert9.db"_ns);
+  UnmigrateOneCertDB(profileDirectory, "key4.db"_ns);
+}
+#endif  // defined(NIGHTLY_BUILD) && !defined(ANDROID)
+
 nsresult nsNSSComponent::InitializeNSS() {
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsNSSComponent::InitializeNSS\n"));
   AUTO_PROFILER_LABEL("nsNSSComponent::InitializeNSS", OTHER);
@@ -1890,6 +1938,12 @@ nsresult nsNSSComponent::InitializeNSS() {
   if (NS_FAILED(rv)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
+
+#if defined(NIGHTLY_BUILD) && !defined(ANDROID)
+  if (!profileStr.IsEmpty()) {
+    UnmigrateFromPrefixedCertDBs();
+  }
+#endif
 
 #if defined(XP_WIN) || (defined(XP_LINUX) && !defined(ANDROID))
   SetNSSDatabaseCacheModeAsAppropriate();

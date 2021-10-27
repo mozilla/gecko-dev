@@ -266,6 +266,10 @@ static void SweepEphemeronEdgesWhileMinorSweeping(
 void Zone::sweepAfterMinorGC(JSTracer* trc) {
   sweepEphemeronTablesAfterMinorGC();
   crossZoneStringWrappers().sweepAfterMinorGC(trc);
+
+  for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next()) {
+    comp->sweepAfterMinorGC(trc);
+  }
 }
 
 void Zone::sweepEphemeronTablesAfterMinorGC() {
@@ -337,10 +341,10 @@ void Zone::sweepEphemeronTablesAfterMinorGC() {
   }
 }
 
-void Zone::sweepAllCrossCompartmentWrappers() {
-  crossZoneStringWrappers().sweep();
+void Zone::traceWeakCCWEdges(JSTracer* trc) {
+  crossZoneStringWrappers().traceWeak(trc);
   for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next()) {
-    comp->sweepCrossCompartmentObjectWrappers();
+    comp->traceCrossCompartmentObjectWrapperEdges(trc);
   }
 }
 
@@ -349,9 +353,9 @@ void Zone::fixupAllCrossCompartmentWrappersAfterMovingGC(JSTracer* trc) {
   MOZ_ASSERT(trc->runtime()->gc.isHeapCompacting());
 
   for (ZonesIter zone(trc->runtime(), WithAtoms); !zone.done(); zone.next()) {
-    // Sweep the wrapper map to update keys (wrapped values) in other
+    // Trace the wrapper map to update keys (wrapped values) in other
     // compartments that may have been moved.
-    zone->crossZoneStringWrappers().sweep();
+    zone->crossZoneStringWrappers().traceWeak(trc);
 
     for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next()) {
       comp->fixupCrossCompartmentObjectWrappersAfterMovingGC(trc);
@@ -380,18 +384,13 @@ void Zone::checkStringWrappersAfterMovingGC() {
     // wrapper map that points into the nursery, and that the hash table entries
     // are discoverable.
     auto key = e.front().key();
-    CheckGCThingAfterMovingGC(key);
+    CheckGCThingAfterMovingGC(key.get());
 
     auto ptr = crossZoneStringWrappers().lookup(key);
     MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &e.front());
   }
 }
 #endif
-
-void Zone::sweepWeakMaps() {
-  /* Finalize unreachable (key,value) pairs in all weak maps. */
-  WeakMapBase::sweepZone(this);
-}
 
 void Zone::discardJitCode(JSFreeOp* fop, const DiscardOptions& options) {
   if (!jitZone()) {
@@ -850,48 +849,22 @@ void Zone::fixupScriptMapsAfterMovingGC(JSTracer* trc) {
   // script pointers here in case they are moved by the GC.
 
   if (scriptCountsMap) {
-    for (ScriptCountsMap::Enum e(*scriptCountsMap); !e.empty(); e.popFront()) {
-      BaseScript* script = e.front().key();
-      TraceManuallyBarrieredEdge(trc, &script, "Realm::scriptCountsMap::key");
-      if (script != e.front().key()) {
-        e.rekeyFront(script);
-      }
-    }
+    scriptCountsMap->traceWeak(trc);
   }
 
   if (scriptLCovMap) {
-    for (ScriptLCovMap::Enum e(*scriptLCovMap); !e.empty(); e.popFront()) {
-      BaseScript* script = e.front().key();
-      if (!IsAboutToBeFinalizedUnbarriered(&script) &&
-          script != e.front().key()) {
-        e.rekeyFront(script);
-      }
-    }
+    scriptLCovMap->traceWeak(trc);
   }
 
 #ifdef MOZ_VTUNE
   if (scriptVTuneIdMap) {
-    for (ScriptVTuneIdMap::Enum e(*scriptVTuneIdMap); !e.empty();
-         e.popFront()) {
-      BaseScript* script = e.front().key();
-      if (!IsAboutToBeFinalizedUnbarriered(&script) &&
-          script != e.front().key()) {
-        e.rekeyFront(script);
-      }
-    }
+    scriptVTuneIdMap->traceWeak(trc);
   }
 #endif
 
 #ifdef JS_CACHEIR_SPEW
   if (scriptFinalWarmUpCountMap) {
-    for (ScriptFinalWarmUpCountMap::Enum e(*scriptFinalWarmUpCountMap);
-         !e.empty(); e.popFront()) {
-      BaseScript* script = e.front().key();
-      if (!IsAboutToBeFinalizedUnbarriered(&script) &&
-          script != e.front().key()) {
-        e.rekeyFront(script);
-      }
-    }
+    scriptFinalWarmUpCountMap->traceWeak(trc);
   }
 #endif
 }

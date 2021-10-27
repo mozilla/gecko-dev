@@ -59,8 +59,6 @@
 
 //-----------------------------------------------------------------------------
 
-static NS_DEFINE_CID(kMultiplexInputStream, NS_MULTIPLEXINPUTSTREAM_CID);
-
 // Place a limit on how much non-compliant HTTP can be skipped while
 // looking for a response header
 #define MAX_INVALID_RESPONSE_BODY_SIZE (1024 * 128)
@@ -1325,6 +1323,16 @@ void nsHttpTransaction::MaybeReportFailedSVCDomain(
   }
 }
 
+bool nsHttpTransaction::ShouldRestartOn0RttError(nsresult reason) {
+  LOG(
+      ("nsHttpTransaction::ShouldRestartOn0RttError [this=%p, "
+       "mEarlyDataWasAvailable=%d error=%" PRIx32 "]\n",
+       this, mEarlyDataWasAvailable, static_cast<uint32_t>(reason)));
+  return StaticPrefs::network_http_early_data_disable_on_error() &&
+         mEarlyDataWasAvailable &&
+         SecurityErrorToBeHandledByTransaction(reason);
+}
+
 void nsHttpTransaction::Close(nsresult reason) {
   LOG(("nsHttpTransaction::Close [this=%p reason=%" PRIx32 "]\n", this,
        static_cast<uint32_t>(reason)));
@@ -1453,6 +1461,7 @@ void nsHttpTransaction::Close(nsresult reason) {
   if ((reason == NS_ERROR_NET_RESET || reason == NS_OK ||
        reason ==
            psm::GetXPCOMFromNSSError(SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA) ||
+       ShouldRestartOn0RttError(reason) ||
        shouldRestartTransactionForHTTPSRR) &&
       (!(mCaps & NS_HTTP_STICKY_CONNECTION) ||
        (mCaps & NS_HTTP_CONNECTION_RESTARTABLE) ||
@@ -1481,6 +1490,7 @@ void nsHttpTransaction::Close(nsresult reason) {
       }
     }
 
+    mDoNotTryEarlyData = true;
     // reallySentData is meant to separate the instances where data has
     // been sent by this transaction but buffered at a higher level while
     // a TLS session (perhaps via a tunnel) is setup.
@@ -1494,6 +1504,7 @@ void nsHttpTransaction::Close(nsresult reason) {
 
     if (reason ==
             psm::GetXPCOMFromNSSError(SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA) ||
+        reason == psm::GetXPCOMFromNSSError(SSL_ERROR_PROTOCOL_VERSION_ALERT) ||
         (!mReceivedData && ((mRequestHead && mRequestHead->IsSafeMethod()) ||
                             !reallySentData || connReused)) ||
         shouldRestartTransactionForHTTPSRR) {
@@ -1534,6 +1545,9 @@ void nsHttpTransaction::Close(nsresult reason) {
       } else if (reason == psm::GetXPCOMFromNSSError(
                                SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA)) {
         SetRestartReason(TRANSACTION_RESTART_DOWNGRADE_WITH_EARLY_DATA);
+      } else if (reason ==
+                 psm::GetXPCOMFromNSSError(SSL_ERROR_PROTOCOL_VERSION_ALERT)) {
+        SetRestartReason(TRANSACTION_RESTART_PROTOCOL_VERSION_ALERT);
       }
       // if restarting fails, then we must proceed to close the pipe,
       // which will notify the channel that the transaction failed.
@@ -1674,6 +1688,13 @@ void nsHttpTransaction::Close(nsresult reason) {
     mConnection = nullptr;
   }
 
+  if (isHttp2or3 &&
+      reason == psm::GetXPCOMFromNSSError(SSL_ERROR_PROTOCOL_VERSION_ALERT)) {
+    // Change reason to NS_ERROR_ABORT, so we avoid showing a missleading
+    // error page tthat TLS1.0 is disabled. H2 or H3 is used here so the
+    // TLS version is not a problem.
+    reason = NS_ERROR_ABORT;
+  }
   mStatus = reason;
   mTransactionDone = true;  // forcibly flag the transaction as complete
   mClosed = true;
@@ -1794,6 +1815,7 @@ nsresult nsHttpTransaction::Restart() {
 
   // Reset mDoNotRemoveAltSvc for the next try.
   mDoNotRemoveAltSvc = false;
+  mEarlyDataWasAvailable = false;
   mRestarted = true;
 
   // Use TRANSACTION_RESTART_OTHERS as a catch-all.
@@ -2373,18 +2395,25 @@ nsresult nsHttpTransaction::ProcessData(char* buf, uint32_t count,
     if (count && bytesConsumed) memmove(buf, buf + bytesConsumed, count);
 
     // report the completed response header
-    if (mActivityDistributor && mResponseHead && mHaveAllHeaders &&
-        !mReportedResponseHeader) {
-      mReportedResponseHeader = true;
-      nsAutoCString completeResponseHeaders;
-      mResponseHead->Flatten(completeResponseHeaders, false);
-      completeResponseHeaders.AppendLiteral("\r\n");
-      rv = mActivityDistributor->ObserveActivityWithArgs(
-          HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
-          NS_HTTP_ACTIVITY_SUBTYPE_RESPONSE_HEADER, PR_Now(), 0,
-          completeResponseHeaders);
-      if (NS_FAILED(rv)) {
-        LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
+    if (mActivityDistributor && mResponseHead && mHaveAllHeaders) {
+      auto reportResponseHeader = [&](uint32_t aSubType) {
+        nsAutoCString completeResponseHeaders;
+        mResponseHead->Flatten(completeResponseHeaders, false);
+        completeResponseHeaders.AppendLiteral("\r\n");
+        rv = mActivityDistributor->ObserveActivityWithArgs(
+            HttpActivityArgs(mChannelId),
+            NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION, aSubType, PR_Now(), 0,
+            completeResponseHeaders);
+        if (NS_FAILED(rv)) {
+          LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
+        }
+      };
+
+      if (mConnection->IsProxyConnectInProgress()) {
+        reportResponseHeader(NS_HTTP_ACTIVITY_SUBTYPE_PROXY_RESPONSE_HEADER);
+      } else if (!mReportedResponseHeader) {
+        mReportedResponseHeader = true;
+        reportResponseHeader(NS_HTTP_ACTIVITY_SUBTYPE_RESPONSE_HEADER);
       }
     }
   }
@@ -2839,6 +2868,7 @@ void nsHttpTransaction::GetNetworkAddresses(NetAddr& self, NetAddr& peer,
 }
 
 bool nsHttpTransaction::Do0RTT() {
+  mEarlyDataWasAvailable = true;
   if (mRequestHead->IsSafeMethod() && !mDoNotTryEarlyData &&
       (!mConnection || !mConnection->IsProxyConnectInProgress())) {
     m0RTTInProgress = true;

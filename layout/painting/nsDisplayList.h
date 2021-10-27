@@ -86,7 +86,6 @@ namespace layers {
 struct FrameMetrics;
 class RenderRootStateManager;
 class Layer;
-class ImageLayer;
 class ImageContainer;
 class StackingContextHelper;
 class WebRenderScrollData;
@@ -926,6 +925,14 @@ class nsDisplayListBuilder {
    */
   const DisplayItemClipChain* CreateClipChainIntersection(
       const DisplayItemClipChain* aAncestor,
+      const DisplayItemClipChain* aLeafClip1,
+      const DisplayItemClipChain* aLeafClip2);
+
+  /**
+   * Same as above, except aAncestor is computed as the nearest common
+   * ancestor of the two provided clips.
+   */
+  const DisplayItemClipChain* CreateClipChainIntersection(
       const DisplayItemClipChain* aLeafClip1,
       const DisplayItemClipChain* aLeafClip2);
 
@@ -5004,8 +5011,8 @@ class nsDisplayOpacity : public nsDisplayWrapList {
     return mChildOpacityState == ChildOpacityState::Applied;
   }
 
-  static bool NeedsActiveLayer(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                               bool aEnforceMinimumSize = true);
+  static bool NeedsActiveLayer(nsDisplayListBuilder* aBuilder,
+                               nsIFrame* aFrame);
   void WriteDebugInfo(std::stringstream& aStream) override;
   bool CanUseAsyncAnimations(nsDisplayListBuilder* aBuilder) override;
   bool CreateWebRenderCommands(
@@ -5477,11 +5484,11 @@ class nsDisplayFixedPosition : public nsDisplayOwnLayer {
   nsDisplayFixedPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                          nsDisplayList* aList,
                          const ActiveScrolledRoot* aActiveScrolledRoot,
-                         const ActiveScrolledRoot* aContainerASR);
+                         const ActiveScrolledRoot* aScrollTargetASR);
   nsDisplayFixedPosition(nsDisplayListBuilder* aBuilder,
                          const nsDisplayFixedPosition& aOther)
       : nsDisplayOwnLayer(aBuilder, aOther),
-        mContainerASR(aOther.mContainerASR),
+        mScrollTargetASR(aOther.mScrollTargetASR),
         mIsFixedBackground(aOther.mIsFixedBackground) {
     MOZ_COUNT_CTOR(nsDisplayFixedPosition);
   }
@@ -5489,7 +5496,7 @@ class nsDisplayFixedPosition : public nsDisplayOwnLayer {
   static nsDisplayFixedPosition* CreateForFixedBackground(
       nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
       nsIFrame* aSecondaryFrame, nsDisplayBackgroundImage* aImage,
-      const uint16_t aIndex);
+      const uint16_t aIndex, const ActiveScrolledRoot* aScrollTargetASR);
 
   MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayFixedPosition)
 
@@ -5516,10 +5523,11 @@ class nsDisplayFixedPosition : public nsDisplayOwnLayer {
  protected:
   // For background-attachment:fixed
   nsDisplayFixedPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                         nsDisplayList* aList);
+                         nsDisplayList* aList,
+                         const ActiveScrolledRoot* aScrollTargetASR);
   ViewID GetScrollTargetId();
 
-  RefPtr<const ActiveScrolledRoot> mContainerASR;
+  RefPtr<const ActiveScrolledRoot> mScrollTargetASR;
   bool mIsFixedBackground;
 
  private:
@@ -5542,7 +5550,8 @@ class nsDisplayTableFixedPosition : public nsDisplayFixedPosition {
 
  protected:
   nsDisplayTableFixedPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                              nsDisplayList* aList, nsIFrame* aAncestorFrame);
+                              nsDisplayList* aList, nsIFrame* aAncestorFrame,
+                              const ActiveScrolledRoot* aScrollTargetASR);
 
   nsDisplayTableFixedPosition(nsDisplayListBuilder* aBuilder,
                               const nsDisplayTableFixedPosition& aOther)
@@ -6247,8 +6256,7 @@ class nsDisplayTransform : public nsPaintedDisplayItem {
 
   bool CanUseAsyncAnimations(nsDisplayListBuilder* aBuilder) override;
 
-  bool MayBeAnimated(nsDisplayListBuilder* aBuilder,
-                     bool aEnforceMinimumSize = true) const;
+  bool MayBeAnimated(nsDisplayListBuilder* aBuilder) const;
 
   void WriteDebugInfo(std::stringstream& aStream) override;
 

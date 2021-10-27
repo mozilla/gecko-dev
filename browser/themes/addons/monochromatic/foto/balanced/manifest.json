@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "applications": {
     "gecko": {
-      "id": "firefox-foto-balanced@mozilla.org"
+      "id": "foto-balanced-colorway@mozilla.org"
     }
   },
   "name": "Foto – Balanced",
@@ -16,7 +16,7 @@
       "tab_background_text": "hsl(0, 0%, 100%)",
       "tab_text": "hsl(0, 0%, 0%)",
       "tab_selected": "hsl(349, 35%, 94%)",
-      "tab_line": "hsl(0, 0%, 0%)",
+      "tab_line": "transparent",
       "tab_loading": "hsl(351, 37%, 40%)",
       "tab_loading_inactive": "hsl(352, 56%, 84%)",
       "frame": "hsl(351, 37%, 40%)",
@@ -30,7 +30,9 @@
       "toolbar_field": "hsl(349, 35%, 94%)",
       "toolbar_field_text": "hsl(0, 0%, 0%)",
       "toolbar_field_focus": "hsl(0, 0%, 100%)",
-      "toolbar_field_border_focus": "hsl(351, 44%, 63%)",
+      "toolbar_field_border_focus": "rgba(0, 179, 244, 1)",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": "hsl(351, 37%, 40%)",
       "ntp_background": "hsl(351, 37%, 80%)",
       "ntp_card_background": "hsl(0, 0%, 100%)",
       "ntp_text": "hsl(0, 0%, 0%)",

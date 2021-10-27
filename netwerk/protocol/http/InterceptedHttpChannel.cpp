@@ -16,6 +16,7 @@
 #include "nsIRedirectResultListener.h"
 #include "nsStringStream.h"
 #include "nsStreamUtils.h"
+#include "nsQueryObject.h"
 
 namespace mozilla {
 namespace net {
@@ -91,7 +92,7 @@ void InterceptedHttpChannel::AsyncOpenInternal() {
   // We save this timestamp from outside of the if block in case we enable the
   // profiler after AsyncOpen().
   mLastStatusReported = TimeStamp::Now();
-  if (profiler_can_accept_markers()) {
+  if (profiler_thread_is_being_profiled()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
 
@@ -504,7 +505,7 @@ InterceptedHttpChannel::Cancel(nsresult aStatus) {
 
   mCanceled = true;
 
-  if (mLastStatusReported && profiler_can_accept_markers()) {
+  if (mLastStatusReported && profiler_thread_is_being_profiled()) {
     // These do allocations/frees/etc; avoid if not active
     // mLastStatusReported can be null if Cancel is called before we added the
     // start marker.
@@ -674,7 +675,7 @@ InterceptedHttpChannel::ResetInterception(bool aBypass) {
                             mLoadFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (profiler_can_accept_markers()) {
+  if (profiler_thread_is_being_profiled()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
 
@@ -1042,7 +1043,7 @@ InterceptedHttpChannel::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   // Register entry to the PerformanceStorage resource timing
   MaybeReportTimingData();
 
-  if (profiler_can_accept_markers()) {
+  if (profiler_thread_is_being_profiled()) {
     // These do allocations/frees/etc; avoid if not active
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
@@ -1235,7 +1236,7 @@ InterceptedHttpChannel::SetPreferCacheLoadOverBypass(
 NS_IMETHODIMP
 InterceptedHttpChannel::PreferAlternativeDataType(
     const nsACString& aType, const nsACString& aContentType,
-    bool aDeliverAltData) {
+    PreferredAlternativeDataDeliveryType aDeliverAltData) {
   ENSURE_CALLED_BEFORE_ASYNC_OPEN();
   mPreferredCachedAltDataTypes.AppendElement(PreferredAlternativeDataTypeParams(
       nsCString(aType), nsCString(aContentType), aDeliverAltData));
@@ -1276,10 +1277,10 @@ InterceptedHttpChannel::GetOriginalInputStream(
 }
 
 NS_IMETHODIMP
-InterceptedHttpChannel::GetAltDataInputStream(
-    const nsACString& aType, nsIInputStreamReceiver* aReceiver) {
+InterceptedHttpChannel::GetAlternativeDataInputStream(
+    nsIInputStream** aInputStream) {
   if (mSynthesizedCacheInfo) {
-    return mSynthesizedCacheInfo->GetAltDataInputStream(aType, aReceiver);
+    return mSynthesizedCacheInfo->GetAlternativeDataInputStream(aInputStream);
   }
   return NS_ERROR_NOT_AVAILABLE;
 }

@@ -23,7 +23,7 @@
 
 #include "jstypes.h"  // JS_PUBLIC_API
 
-#include "js/CompileOptions.h"              // JS::ReadOnlyCompileOptions
+#include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions, JS::InstantiateOptions, JS::DecodeOptions
 #include "js/OffThreadScriptCompilation.h"  // JS::OffThreadCompileCallback
 #include "js/SourceText.h"                  // JS::SourceText
 #include "js/Transcoding.h"                 // JS::TranscodeSource
@@ -81,7 +81,7 @@ extern JS_PUBLIC_API already_AddRefed<Stencil> FinishOffThreadStencil(
 
 // Instantiate the Stencil into current Realm and return the JSScript.
 extern JS_PUBLIC_API JSScript* InstantiateGlobalStencil(
-    JSContext* cx, const ReadOnlyCompileOptions& options, Stencil* stencil);
+    JSContext* cx, const InstantiateOptions& options, Stencil* stencil);
 
 // Return true if the stencil relies on external data as a result of XDR
 // decoding.
@@ -93,17 +93,18 @@ extern JS_PUBLIC_API bool StencilCanLazilyParse(Stencil* stencil);
 // Instantiate a module Stencil and return the associated object. Inside the
 // engine this is a js::ModuleObject.
 extern JS_PUBLIC_API JSObject* InstantiateModuleStencil(
-    JSContext* cx, const ReadOnlyCompileOptions& options, Stencil* stencil);
+    JSContext* cx, const InstantiateOptions& options, Stencil* stencil);
 
 // Serialize the Stencil into the transcode buffer.
-extern JS_PUBLIC_API TranscodeResult
-EncodeStencil(JSContext* cx, const JS::ReadOnlyCompileOptions& options,
-              Stencil* stencil, TranscodeBuffer& buffer);
+extern JS_PUBLIC_API TranscodeResult EncodeStencil(JSContext* cx,
+                                                   Stencil* stencil,
+                                                   TranscodeBuffer& buffer);
 
 // Deserialize data and create a new Stencil.
-extern JS_PUBLIC_API TranscodeResult
-DecodeStencil(JSContext* cx, const ReadOnlyCompileOptions& options,
-              const TranscodeRange& range, Stencil** stencilOut);
+extern JS_PUBLIC_API TranscodeResult DecodeStencil(JSContext* cx,
+                                                   const DecodeOptions& options,
+                                                   const TranscodeRange& range,
+                                                   Stencil** stencilOut);
 
 extern JS_PUBLIC_API size_t SizeOfStencil(Stencil* stencil,
                                           mozilla::MallocSizeOf mallocSizeOf);

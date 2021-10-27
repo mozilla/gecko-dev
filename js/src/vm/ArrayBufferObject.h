@@ -34,7 +34,8 @@ struct MemoryDesc;
 // of size `initialCommittedSize`.  Both arguments denote bytes and must be
 // multiples of the page size, with `initialCommittedSize` <= `mappedSize`.
 // Returns nullptr on failure.
-void* MapBufferMemory(size_t mappedSize, size_t initialCommittedSize);
+void* MapBufferMemory(wasm::IndexType, size_t mappedSize,
+                      size_t initialCommittedSize);
 
 // Commit additional memory in an existing mapping.  `dataEnd` must be the
 // correct value for the end of the existing committed area, and `delta` must be
@@ -52,7 +53,7 @@ bool ExtendBufferMapping(void* dataStart, size_t mappedSize,
 
 // Remove an existing mapping.  `dataStart` must be the pointer to the start of
 // the mapping, and `mappedSize` the size of that mapping.
-void UnmapBufferMemory(void* dataStart, size_t mappedSize);
+void UnmapBufferMemory(wasm::IndexType t, void* dataStart, size_t mappedSize);
 
 // Return the number of currently live mapped buffers.
 int32_t LiveMappedBufferCount();
@@ -466,10 +467,12 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   mozilla::Maybe<wasm::Pages> wasmSourceMaxPages() const;
 
   [[nodiscard]] static bool wasmGrowToPagesInPlace(
-      wasm::Pages newPages, Handle<ArrayBufferObject*> oldBuf,
+      wasm::IndexType t, wasm::Pages newPages,
+      Handle<ArrayBufferObject*> oldBuf,
       MutableHandle<ArrayBufferObject*> newBuf, JSContext* cx);
   [[nodiscard]] static bool wasmMovingGrowToPages(
-      wasm::Pages newPages, Handle<ArrayBufferObject*> oldBuf,
+      wasm::IndexType t, wasm::Pages newPages,
+      Handle<ArrayBufferObject*> oldBuf,
       MutableHandle<ArrayBufferObject*> newBuf, JSContext* cx);
 
   static void finalize(JSFreeOp* fop, JSObject* obj);
@@ -513,35 +516,30 @@ using RootedArrayBufferObject = Rooted<ArrayBufferObject*>;
 using HandleArrayBufferObject = Handle<ArrayBufferObject*>;
 using MutableHandleArrayBufferObject = MutableHandle<ArrayBufferObject*>;
 
-// Create a buffer for a 32-bit wasm memory.
-bool CreateWasmBuffer32(JSContext* cx, const wasm::MemoryDesc& memory,
-                        MutableHandleArrayBufferObjectMaybeShared buffer);
+// Create a buffer for a wasm memory, whose type is determined by
+// memory.indexType().
+bool CreateWasmBuffer(JSContext* cx, const wasm::MemoryDesc& memory,
+                      MutableHandleArrayBufferObjectMaybeShared buffer);
 
 // Per-compartment table that manages the relationship between array buffers
 // and the views that use their storage.
 class InnerViewTable {
  public:
-  typedef Vector<JSObject*, 1, ZoneAllocPolicy> ViewVector;
+  using ViewVector = GCVector<UnsafeBarePtr<JSObject*>, 1, ZoneAllocPolicy>;
 
   friend class ArrayBufferObject;
 
  private:
-  struct MapGCPolicy {
-    static bool needsSweep(JSObject** key, ViewVector* value) {
-      return InnerViewTable::sweepEntry(key, *value);
-    }
-  };
-
   // This key is a raw pointer and not a WeakHeapPtr because the post-barrier
   // would hold nursery-allocated entries live unconditionally. It is a very
   // common pattern in low-level and performance-oriented JavaScript to create
   // hundreds or thousands of very short lived temporary views on a larger
-  // buffer; having to tenured all of these would be a catastrophic performance
+  // buffer; having to tenure all of these would be a catastrophic performance
   // regression. Thus, it is vital that nursery pointers in this map not be held
   // live. Special support is required in the minor GC, implemented in
   // sweepAfterMinorGC.
-  using Map = GCHashMap<JSObject*, ViewVector, MovableCellHasher<JSObject*>,
-                        ZoneAllocPolicy, MapGCPolicy>;
+  using Map = GCHashMap<UnsafeBarePtr<JSObject*>, ViewVector,
+                        MovableCellHasher<JSObject*>, ZoneAllocPolicy>;
 
   // For all objects sharing their storage with some other view, this maps
   // the object to the list of such views. All entries in this map are weak.
@@ -557,9 +555,6 @@ class InnerViewTable {
   // Whether nurseryKeys is a complete list.
   bool nurseryKeysValid;
 
-  // Sweep an entry during GC, returning whether the entry should be removed.
-  static bool sweepEntry(JSObject** pkey, ViewVector& views);
-
   bool addView(JSContext* cx, ArrayBufferObject* buffer, JSObject* view);
   ViewVector* maybeViewsUnbarriered(ArrayBufferObject* obj);
   void removeViews(ArrayBufferObject* obj);
@@ -569,10 +564,10 @@ class InnerViewTable {
 
   // Remove references to dead objects in the table and update table entries
   // to reflect moved objects.
-  void sweep();
-  void sweepAfterMinorGC();
+  bool traceWeak(JSTracer* trc);
+  void sweepAfterMinorGC(JSTracer* trc);
 
-  bool needsSweep() const { return map.needsSweep(); }
+  bool empty() const { return map.empty(); }
 
   bool needsSweepAfterMinorGC() const {
     return !nurseryKeys.empty() || !nurseryKeysValid;

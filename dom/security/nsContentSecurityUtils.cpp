@@ -54,6 +54,8 @@ using namespace mozilla::Telemetry;
 extern mozilla::LazyLogModule sCSMLog;
 extern Atomic<bool, mozilla::Relaxed> sJSHacksChecked;
 extern Atomic<bool, mozilla::Relaxed> sJSHacksPresent;
+extern Atomic<bool, mozilla::Relaxed> sCSSHacksChecked;
+extern Atomic<bool, mozilla::Relaxed> sCSSHacksPresent;
 extern Atomic<bool, mozilla::Relaxed> sTelemetryEventEnabled;
 
 // Helper function for IsConsideredSameOriginForUIR which makes
@@ -350,46 +352,44 @@ FilenameTypeAndDetails nsContentSecurityUtils::FilenameToFilenameType(
     return FilenameTypeAndDetails(kDataUri, Nothing());
   }
 
-  if (!NS_IsMainThread()) {
-    // We can't do Regex matching off the main thread; so just report.
-    return FilenameTypeAndDetails(kOtherWorker, Nothing());
-  }
+  // Can't do regex matching off-main-thread
+  if (NS_IsMainThread()) {
+    // Extension as loaded via a file://
+    bool regexMatch;
+    nsTArray<nsString> regexResults;
+    nsresult rv = RegexEval(kExtensionRegex, fileName, /* aOnlyMatch = */ false,
+                            regexMatch, &regexResults);
+    if (NS_FAILED(rv)) {
+      return FilenameTypeAndDetails(kRegexFailure, Nothing());
+    }
+    if (regexMatch) {
+      nsCString type = StringEndsWith(regexResults[2], u"mozilla.org.xpi"_ns)
+                           ? kMozillaExtensionFile
+                           : kOtherExtensionFile;
+      const auto& extensionNameAndPath =
+          Substring(regexResults[0], ArrayLength("extensions/") - 1);
+      return FilenameTypeAndDetails(
+          type, Some(OptimizeFileName(extensionNameAndPath)));
+    }
 
-  // Extension as loaded via a file://
-  bool regexMatch;
-  nsTArray<nsString> regexResults;
-  nsresult rv = RegexEval(kExtensionRegex, fileName, /* aOnlyMatch = */ false,
-                          regexMatch, &regexResults);
-  if (NS_FAILED(rv)) {
-    return FilenameTypeAndDetails(kRegexFailure, Nothing());
-  }
-  if (regexMatch) {
-    nsCString type = StringEndsWith(regexResults[2], u"mozilla.org.xpi"_ns)
-                         ? kMozillaExtensionFile
-                         : kOtherExtensionFile;
-    auto& extensionNameAndPath =
-        Substring(regexResults[0], ArrayLength("extensions/") - 1);
-    return FilenameTypeAndDetails(type,
-                                  Some(OptimizeFileName(extensionNameAndPath)));
-  }
+    // Single File
+    rv = RegexEval(kSingleFileRegex, fileName, /* aOnlyMatch = */ true,
+                   regexMatch);
+    if (NS_FAILED(rv)) {
+      return FilenameTypeAndDetails(kRegexFailure, Nothing());
+    }
+    if (regexMatch) {
+      return FilenameTypeAndDetails(kSingleString, Some(fileName));
+    }
 
-  // Single File
-  rv = RegexEval(kSingleFileRegex, fileName, /* aOnlyMatch = */ true,
-                 regexMatch);
-  if (NS_FAILED(rv)) {
-    return FilenameTypeAndDetails(kRegexFailure, Nothing());
-  }
-  if (regexMatch) {
-    return FilenameTypeAndDetails(kSingleString, Some(fileName));
-  }
-
-  // Suspected userChromeJS script
-  rv = RegexEval(kUCJSRegex, fileName, /* aOnlyMatch = */ true, regexMatch);
-  if (NS_FAILED(rv)) {
-    return FilenameTypeAndDetails(kRegexFailure, Nothing());
-  }
-  if (regexMatch) {
-    return FilenameTypeAndDetails(kSuspectedUserChromeJS, Nothing());
+    // Suspected userChromeJS script
+    rv = RegexEval(kUCJSRegex, fileName, /* aOnlyMatch = */ true, regexMatch);
+    if (NS_FAILED(rv)) {
+      return FilenameTypeAndDetails(kRegexFailure, Nothing());
+    }
+    if (regexMatch) {
+      return FilenameTypeAndDetails(kSuspectedUserChromeJS, Nothing());
+    }
   }
 
   // Something loaded via an about:// URI.
@@ -486,6 +486,9 @@ FilenameTypeAndDetails nsContentSecurityUtils::FilenameToFilenameType(
   }
 #endif
 
+  if (!NS_IsMainThread()) {
+    return FilenameTypeAndDetails(kOtherWorker, Nothing());
+  }
   return FilenameTypeAndDetails(kOther, Nothing());
 }
 
@@ -593,7 +596,7 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
       // Test-only third-party library
       "resource://testing-common/sinon-7.2.7.js"_ns,
       // Test-only third-party library
-      "resource://testing-common/ajv-4.1.1.js"_ns,
+      "resource://testing-common/ajv-6.12.6.js"_ns,
       // Test-only utility
       "resource://testing-common/content-task.js"_ns,
 
@@ -809,29 +812,57 @@ void nsContentSecurityUtils::DetectJsHacks() {
     return;
   }
   // No need to check again.
-  if (MOZ_LIKELY(sJSHacksChecked)) {
+  if (MOZ_LIKELY(sJSHacksChecked || sJSHacksPresent)) {
     return;
   }
+  // This preference is required by bootstrapLoader.xpi, which is an
+  // alternate way to load legacy-style extensions. It only works on
+  // DevEdition/Nightly.
+  bool xpinstallSignatures =
+      Preferences::GetBool("xpinstall.signatures.required", false);
+  if (!xpinstallSignatures) {
+    sJSHacksPresent = true;
+    sJSHacksChecked = true;
+    return;
+  }
+
   // This preference is a file used for autoconfiguration of Firefox
   // by administrators. It has also been (ab)used by the userChromeJS
   // project to run legacy-style 'extensions', some of which use eval,
   // all of which run in the System Principal context.
   nsAutoString jsConfigPref;
-  Preferences::GetString("general.config.filename", jsConfigPref);
+  nsresult rv = Preferences::GetString("general.config.filename", jsConfigPref);
+  if (NS_FAILED(rv)) {
+    return;
+  }
   if (!jsConfigPref.IsEmpty()) {
     sJSHacksPresent = true;
   }
 
-  // This preference is required by bootstrapLoader.xpi, which is an
-  // alternate way to load legacy-style extensions. It only works on
-  // DevEdition/Nightly.
-  bool xpinstallSignatures;
-  Preferences::GetBool("xpinstall.signatures.required", &xpinstallSignatures);
-  if (!xpinstallSignatures) {
-    sJSHacksPresent = true;
+  sJSHacksChecked = true;
+}
+
+/* static */
+void nsContentSecurityUtils::DetectCssHacks() {
+  // We can only perform the check of this preference on the Main Thread
+  // It's possible that this function may therefore race and we expect the
+  // caller to ensure that the checks have actually happened.
+  if (!NS_IsMainThread()) {
+    return;
+  }
+  // No need to check again.
+  if (MOZ_LIKELY(sCSSHacksChecked || sCSSHacksPresent)) {
+    return;
   }
 
-  sJSHacksChecked = true;
+  // This preference is a bool to see if userChrome css is loaded
+  bool customStylesPresent = Preferences::GetBool(
+      "toolkit.legacyUserProfileCustomizations.stylesheets", false);
+  if (customStylesPresent) {
+    sCSSHacksPresent = true;
+  }
+
+  sCSSHacksChecked = true;
 }
 
 /* static */
@@ -1266,16 +1297,26 @@ bool nsContentSecurityUtils::ValidateScriptFilename(const char* aFilename,
     }
   }
 
-  auto kAllowedFilenames = {
+  auto kAllowedFilenamesExact = {
       // Allow through the injection provided by about:sync addon
       u"data:,new function() {\n  Components.utils.import(\"chrome://aboutsync/content/AboutSyncRedirector.js\");\n  AboutSyncRedirector.register();\n}"_ns,
+  };
+
+  for (auto allowedFilename : kAllowedFilenamesExact) {
+    if (filenameU == allowedFilename) {
+      return true;
+    }
+  }
+
+  auto kAllowedFilenamesPrefix = {
       // Until 371900 is fixed, we need to do something about about:downloads
       // and this is the most reasonable. See 1727770
       u"about:downloads"_ns,
       // We think this is the same problem as about:downloads
       u"about:preferences"_ns};
-  for (auto allowedFilename : kAllowedFilenames) {
-    if (filenameU == allowedFilename) {
+
+  for (auto allowedFilenamePrefix : kAllowedFilenamesPrefix) {
+    if (StringBeginsWith(filenameU, allowedFilenamePrefix)) {
       return true;
     }
   }

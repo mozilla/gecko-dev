@@ -108,13 +108,20 @@ void nsLookAndFeel::NativeInit() { EnsureInit(); }
 
 /* virtual */
 void nsLookAndFeel::RefreshImpl() {
-  nsXPLookAndFeel::RefreshImpl();
   mInitialized = false;  // Fetch system colors next time they're used.
+  nsXPLookAndFeel::RefreshImpl();
 }
 
-nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme,
+nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
                                        nscolor& aColor) {
   EnsureInit();
+
+  if (aScheme == ColorScheme::Dark) {
+    if (auto color = GenericDarkColor(aID)) {
+      aColor = *color;
+      return NS_OK;
+    }
+  }
 
   nsresult res = NS_OK;
 
@@ -185,6 +192,8 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme,
       break;
     case ColorID::Buttonface:
     case ColorID::MozButtonhoverface:
+    case ColorID::MozButtonactiveface:
+    case ColorID::MozButtondisabledface:
       idx = COLOR_BTNFACE;
       break;
     case ColorID::Buttonhighlight:
@@ -195,6 +204,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme,
       break;
     case ColorID::Buttontext:
     case ColorID::MozButtonhovertext:
+    case ColorID::MozButtonactivetext:
       idx = COLOR_BTNTEXT;
       break;
     case ColorID::Captiontext:
@@ -270,6 +280,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme,
       idx = COLOR_3DHIGHLIGHT;
       break;
     case ColorID::Threedlightshadow:
+    case ColorID::MozDisabledfield:
       idx = COLOR_3DLIGHT;
       break;
     case ColorID::Threedshadow:
@@ -445,9 +456,6 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       break;
     case IntID::WindowsDefaultTheme:
       aResult = nsUXThemeData::IsDefaultWindowTheme();
-      break;
-    case IntID::WindowsThemeIdentifier:
-      aResult = nsUXThemeData::GetNativeThemeId();
       break;
     case IntID::OperatingSystemVersionIdentifier: {
       aResult = int32_t(GetOperatingSystemVersion());

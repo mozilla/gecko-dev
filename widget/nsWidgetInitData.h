@@ -21,11 +21,6 @@ enum nsWindowType {
   eWindowType_child,      // child windows (contained inside a window on the
                           // desktop (has no border))
   eWindowType_invisible,  // windows that are invisible or offscreen
-  eWindowType_plugin,     // plugin window
-  eWindowType_plugin_ipc_chrome,   // chrome side native widget for plugins
-                                   // (e10s)
-  eWindowType_plugin_ipc_content,  // content side puppet widget for plugins
-                                   // (e10s)
 };
 
 /**
@@ -102,7 +97,6 @@ struct nsWidgetInitData {
         clipChildren(false),
         clipSiblings(false),
         mDropShadow(false),
-        mListenForResizes(false),
         mRTL(false),
         mNoAutoHide(false),
         mIsDragPopup(false),
@@ -125,7 +119,6 @@ struct nsWidgetInitData {
   uint32_t mScreenId;
   // when painting exclude area occupied by child windows and sibling windows
   bool clipChildren, clipSiblings, mDropShadow;
-  bool mListenForResizes;
   bool mRTL;
   bool mNoAutoHide;   // true for noautohide panels
   bool mIsDragPopup;  // true for drag feedback panels

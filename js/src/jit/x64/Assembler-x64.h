@@ -65,6 +65,10 @@ static constexpr FloatRegister xmm14 =
 static constexpr FloatRegister xmm15 =
     FloatRegister(X86Encoding::xmm15, FloatRegisters::Double);
 
+// Vector registers fixed for use with some instructions, e.g. PBLENDVB.
+static constexpr FloatRegister vmm0 =
+    FloatRegister(X86Encoding::xmm0, FloatRegisters::Simd128);
+
 // X86-common synonyms.
 static constexpr Register eax = rax;
 static constexpr Register ebx = rbx;
@@ -231,10 +235,6 @@ static constexpr Register WasmTableCallIndexReg = ABINonArgReg3;
 // code.  This must not overlap ReturnReg, JSReturnOperand, or WasmTlsReg.  It
 // must be a volatile register.
 static constexpr Register WasmJitEntryReturnScratch = rbx;
-
-// Register used to store a reference to an exception thrown by Wasm to an
-// exception handling block. Should not overlap with WasmTlsReg.
-static constexpr Register WasmExceptionReg = ABINonArgReg0;
 
 static constexpr Register OsrFrameReg = IntArgReg3;
 

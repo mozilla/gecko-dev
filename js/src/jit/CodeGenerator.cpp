@@ -12,7 +12,9 @@
 #include "mozilla/EndianUtils.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/EnumeratedRange.h"
+#include "mozilla/EnumSet.h"
 #include "mozilla/IntegerTypeTraits.h"
+#include "mozilla/Latin1.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Tuple.h"
@@ -1503,40 +1505,36 @@ void CodeGenerator::testValueTruthyKernel(
   ScratchTagScope tag(masm, value);
   masm.splitTagForTest(value, tag);
 
-  const uint32_t NumTypes = 9;
-  const auto& defaultOrder = {
+  const std::initializer_list<JSValueType> defaultOrder = {
       JSVAL_TYPE_UNDEFINED, JSVAL_TYPE_NULL,   JSVAL_TYPE_BOOLEAN,
       JSVAL_TYPE_INT32,     JSVAL_TYPE_OBJECT, JSVAL_TYPE_STRING,
       JSVAL_TYPE_DOUBLE,    JSVAL_TYPE_SYMBOL, JSVAL_TYPE_BIGINT};
-  MOZ_ASSERT(defaultOrder.size() == NumTypes);
 
-  Vector<JSValueType, NumTypes, SystemAllocPolicy> remaining;
-  MOZ_ALWAYS_TRUE(remaining.reserve(defaultOrder.size()));
-  remaining.infallibleAppend(defaultOrder.begin(), defaultOrder.end());
-
-  uint32_t numRemaining = remaining.length();
+  mozilla::EnumSet<JSValueType, uint32_t> remaining(defaultOrder);
 
   // Generate tests for previously observed types first.
   // The TypeDataList is sorted by descending frequency.
   for (auto& observed : observedTypes) {
     JSValueType type = observed.type();
+    remaining -= type;
 
     testValueTruthyForType(type, tag, value, scratch1Reg, scratch2Reg, fr,
                            ifTruthy, ifFalsy, ool, /*skipTypeTest*/ false);
-    MOZ_ASSERT(std::count(remaining.begin(), remaining.end(), type) == 1);
-    remaining.eraseIfEqual(type);
-    numRemaining--;
   }
 
   // Generate tests for remaining types.
-  for (auto type : remaining) {
+  for (auto type : defaultOrder) {
+    if (!remaining.contains(type)) {
+      continue;
+    }
+    remaining -= type;
+
     // We don't need a type test for the last possible type.
-    bool skipTypeTest = numRemaining == 1;
+    bool skipTypeTest = remaining.isEmpty();
     testValueTruthyForType(type, tag, value, scratch1Reg, scratch2Reg, fr,
                            ifTruthy, ifFalsy, ool, skipTypeTest);
-    numRemaining--;
   }
-  MOZ_ASSERT(numRemaining == 0);
+  MOZ_ASSERT(remaining.isEmpty());
 
   // We fall through if the final test is truthy.
 }
@@ -4220,10 +4218,6 @@ void CodeGenerator::visitMegamorphicLoadSlot(LMegamorphicLoadSlot* lir) {
 
   masm.branchIfFalseBool(ReturnReg, &bail);
 
-  if (JitOptions.spectreJitToCxxCalls) {
-    masm.speculationBarrier();
-  }
-
   bailoutFrom(&bail, lir->snapshot());
 }
 
@@ -4261,9 +4255,6 @@ void CodeGenerator::visitMegamorphicLoadSlotByValue(
   masm.jump(&bail);
 
   masm.bind(&ok);
-  if (JitOptions.spectreJitToCxxCalls) {
-    masm.speculationBarrier();
-  }
   masm.popValue(output);
 
   bailoutFrom(&bail, lir->snapshot());
@@ -4683,6 +4674,14 @@ void CodeGenerator::visitGuardNullOrUndefined(LGuardNullOrUndefined* lir) {
   bailoutFrom(&bail, lir->snapshot());
 
   masm.bind(&done);
+}
+
+void CodeGenerator::visitGuardIsNotObject(LGuardIsNotObject* lir) {
+  ValueOperand input = ToValue(lir, LGuardIsNotObject::InputIndex);
+
+  Label bail;
+  masm.branchTestObject(Assembler::Equal, input, &bail);
+  bailoutFrom(&bail, lir->snapshot());
 }
 
 void CodeGenerator::visitGuardFunctionFlags(LGuardFunctionFlags* lir) {
@@ -7879,8 +7878,7 @@ void CodeGenerator::visitGetNextEntryForIterator(
 }
 
 // The point of these is to inform Ion of where these values already are; they
-// don't normally generate code.  Still, visitWasmRegisterResult is
-// per-platform.
+// don't normally generate (much) code.
 void CodeGenerator::visitWasmRegisterPairResult(LWasmRegisterPairResult* lir) {}
 void CodeGenerator::visitWasmStackResult(LWasmStackResult* lir) {}
 void CodeGenerator::visitWasmStackResult64(LWasmStackResult64* lir) {}
@@ -7902,6 +7900,16 @@ void CodeGenerator::visitWasmStackResultArea(LWasmStackResultArea* lir) {
   }
 }
 
+void CodeGenerator::visitWasmRegisterResult(LWasmRegisterResult* lir) {
+#ifdef JS_64BIT
+  if (MWasmRegisterResult* mir = lir->mir()) {
+    if (mir->type() == MIRType::Int32) {
+      masm.widenInt32(ToRegister(lir->output()));
+    }
+  }
+#endif
+}
+
 void CodeGenerator::visitWasmCall(LWasmCall* lir) {
   MWasmCall* mir = lir->mir();
   bool needsBoundsCheck = lir->needsBoundsCheck();
@@ -7921,34 +7929,37 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
 #endif
 
   // LWasmCallBase::isCallPreserved() assumes that all MWasmCalls preserve the
-  // TLS and pinned regs. The only case where where we have to reload
-  // the TLS and pinned regs is when we emit import or builtin instance calls.
-  bool reloadRegs = false;
-  bool switchRealm = false;
+  // TLS and pinned regs. The only case where where we don't have to reload
+  // the TLS and pinned regs is when the callee preserves them.
+  bool reloadRegs = true;
+  bool switchRealm = true;
 
   const wasm::CallSiteDesc& desc = mir->desc();
   const wasm::CalleeDesc& callee = mir->callee();
   switch (callee.which()) {
     case wasm::CalleeDesc::Func:
       masm.call(desc, callee.funcIndex());
+      reloadRegs = false;
+      switchRealm = false;
       break;
     case wasm::CalleeDesc::Import:
       masm.wasmCallImport(desc, callee);
-      reloadRegs = true;
-      switchRealm = true;
       break;
     case wasm::CalleeDesc::AsmJSTable:
     case wasm::CalleeDesc::WasmTable:
       masm.wasmCallIndirect(desc, callee, needsBoundsCheck);
+      reloadRegs = switchRealm = callee.which() == wasm::CalleeDesc::WasmTable;
       break;
     case wasm::CalleeDesc::Builtin:
       masm.call(desc, callee.builtin());
+      reloadRegs = false;
+      switchRealm = false;
       break;
     case wasm::CalleeDesc::BuiltinInstanceMethod:
       masm.wasmCallBuiltinInstanceMethod(desc, mir->instanceArg(),
                                          callee.builtin(),
                                          mir->builtinMethodFailureMode());
-      reloadRegs = true;
+      switchRealm = false;
       break;
   }
 
@@ -9362,6 +9373,230 @@ void CodeGenerator::visitCompareS(LCompareS* lir) {
   }
 
   masm.compareStrings(op, left, right, output, ool->entry());
+
+  masm.bind(ool->rejoin());
+}
+
+template <typename T, typename CharT>
+static inline T CopyCharacters(const CharT* chars) {
+  T value = 0;
+  std::memcpy(&value, chars, sizeof(T));
+  return value;
+}
+
+template <typename T>
+static inline T CopyCharacters(const JSLinearString* str, size_t index) {
+  JS::AutoCheckCannotGC nogc;
+
+  if (str->hasLatin1Chars()) {
+    MOZ_ASSERT(index + sizeof(T) / sizeof(JS::Latin1Char) <= str->length());
+    return CopyCharacters<T>(str->latin1Chars(nogc) + index);
+  }
+
+  MOZ_ASSERT(sizeof(T) >= sizeof(char16_t));
+  MOZ_ASSERT(index + sizeof(T) / sizeof(char16_t) <= str->length());
+  return CopyCharacters<T>(str->twoByteChars(nogc) + index);
+}
+
+void CodeGenerator::visitCompareSInline(LCompareSInline* lir) {
+  JSOp op = lir->mir()->jsop();
+  MOZ_ASSERT(IsEqualityOp(op));
+
+  Register input = ToRegister(lir->input());
+  Register output = ToRegister(lir->output());
+
+  const JSLinearString* str = lir->constant();
+  MOZ_ASSERT(str->length() > 0);
+
+  size_t length = str->length();
+  CharEncoding encoding =
+      str->hasLatin1Chars() ? CharEncoding::Latin1 : CharEncoding::TwoByte;
+  size_t encodingSize = encoding == CharEncoding::Latin1
+                            ? sizeof(JS::Latin1Char)
+                            : sizeof(char16_t);
+  size_t byteLength = length * encodingSize;
+
+  OutOfLineCode* ool = nullptr;
+
+  using Fn = bool (*)(JSContext*, HandleString, HandleString, bool*);
+  if (op == JSOp::Eq || op == JSOp::StrictEq) {
+    ool = oolCallVM<Fn, jit::StringsEqual<EqualityKind::Equal>>(
+        lir, ArgList(ImmGCPtr(str), input), StoreRegisterTo(output));
+  } else {
+    MOZ_ASSERT(op == JSOp::Ne || op == JSOp::StrictNe);
+    ool = oolCallVM<Fn, jit::StringsEqual<EqualityKind::NotEqual>>(
+        lir, ArgList(ImmGCPtr(str), input), StoreRegisterTo(output));
+  }
+
+  Label compareChars;
+  {
+    Label notPointerEqual;
+
+    // If operands point to the same instance, the strings are trivially equal.
+    masm.branchPtr(Assembler::NotEqual, input, ImmGCPtr(str), &notPointerEqual);
+    masm.move32(Imm32(op == JSOp::Eq || op == JSOp::StrictEq), output);
+    masm.jump(ool->rejoin());
+
+    masm.bind(&notPointerEqual);
+
+    Label setNotEqualResult;
+    if (str->isAtom()) {
+      // Atoms cannot be equal to each other if they point to different strings.
+      Imm32 atomBit(JSString::ATOM_BIT);
+      masm.branchTest32(Assembler::NonZero,
+                        Address(input, JSString::offsetOfFlags()), atomBit,
+                        &setNotEqualResult);
+    }
+
+    if (encoding == CharEncoding::TwoByte) {
+      // Pure two-byte strings can't be equal to Latin-1 strings.
+      JS::AutoCheckCannotGC nogc;
+      if (!mozilla::IsUtf16Latin1(str->twoByteRange(nogc))) {
+        masm.branchLatin1String(input, &setNotEqualResult);
+      }
+    }
+
+    // Strings of different length can never be equal.
+    masm.branch32(Assembler::Equal, Address(input, JSString::offsetOfLength()),
+                  Imm32(str->length()), &compareChars);
+
+    masm.bind(&setNotEqualResult);
+    masm.move32(Imm32(op == JSOp::Ne || op == JSOp::StrictNe), output);
+    masm.jump(ool->rejoin());
+  }
+
+  masm.bind(&compareChars);
+  {
+    // Take the OOL path when the string is a rope or has a different character
+    // representation.
+    masm.branchIfRope(input, ool->entry());
+    if (encoding == CharEncoding::Latin1) {
+      masm.branchTwoByteString(input, ool->entry());
+    } else {
+      JS::AutoCheckCannotGC nogc;
+      if (mozilla::IsUtf16Latin1(str->twoByteRange(nogc))) {
+        masm.branchLatin1String(input, ool->entry());
+      } else {
+        // This case was already handled above.
+#ifdef DEBUG
+        Label ok;
+        masm.branchTwoByteString(input, &ok);
+        masm.assumeUnreachable("Unexpected Latin-1 string");
+        masm.bind(&ok);
+#endif
+      }
+    }
+
+    // Load the input string's characters.
+    Register stringChars = output;
+    masm.loadStringChars(input, stringChars, encoding);
+
+    // Prefer a single compare-and-set instruction if possible.
+    if (byteLength == 1 || byteLength == 2 || byteLength == 4 ||
+        byteLength == 8) {
+      auto cond = JSOpToCondition(op, /* isSigned = */ false);
+
+      Address addr(stringChars, 0);
+      switch (byteLength) {
+        case 8: {
+          auto x = CopyCharacters<uint64_t>(str, 0);
+          masm.cmp64Set(cond, addr, Imm64(x), output);
+          break;
+        }
+        case 4: {
+          auto x = CopyCharacters<uint32_t>(str, 0);
+          masm.cmp32Set(cond, addr, Imm32(x), output);
+          break;
+        }
+        case 2: {
+          auto x = CopyCharacters<uint16_t>(str, 0);
+          masm.cmp16Set(cond, addr, Imm32(x), output);
+          break;
+        }
+        case 1: {
+          auto x = CopyCharacters<uint8_t>(str, 0);
+          masm.cmp8Set(cond, addr, Imm32(x), output);
+          break;
+        }
+      }
+    } else {
+      Label setNotEqualResult;
+
+      size_t pos = 0;
+      for (size_t stride : {8, 4, 2, 1}) {
+        while (byteLength >= stride) {
+          Address addr(stringChars, pos * encodingSize);
+          switch (stride) {
+            case 8: {
+              auto x = CopyCharacters<uint64_t>(str, pos);
+              masm.branch64(Assembler::NotEqual, addr, Imm64(x),
+                            &setNotEqualResult);
+              break;
+            }
+            case 4: {
+              auto x = CopyCharacters<uint32_t>(str, pos);
+              masm.branch32(Assembler::NotEqual, addr, Imm32(x),
+                            &setNotEqualResult);
+              break;
+            }
+            case 2: {
+              auto x = CopyCharacters<uint16_t>(str, pos);
+              masm.branch16(Assembler::NotEqual, addr, Imm32(x),
+                            &setNotEqualResult);
+              break;
+            }
+            case 1: {
+              auto x = CopyCharacters<uint8_t>(str, pos);
+              masm.branch8(Assembler::NotEqual, addr, Imm32(x),
+                           &setNotEqualResult);
+              break;
+            }
+          }
+
+          byteLength -= stride;
+          pos += stride / encodingSize;
+        }
+
+        // Prefer a single comparison for trailing bytes instead of doing
+        // multiple consecutive comparisons.
+        //
+        // For example when comparing against the string "example", emit two
+        // four-byte comparisons against "exam" and "mple" instead of doing
+        // three comparisons against "exam", "pl", and finally "e".
+        if (pos > 0 && byteLength > stride / 2) {
+          MOZ_ASSERT(stride == 8 || stride == 4);
+
+          size_t prev = pos - (stride - byteLength) / encodingSize;
+          Address addr(stringChars, prev * encodingSize);
+          switch (stride) {
+            case 8: {
+              auto x = CopyCharacters<uint64_t>(str, prev);
+              masm.branch64(Assembler::NotEqual, addr, Imm64(x),
+                            &setNotEqualResult);
+              break;
+            }
+            case 4: {
+              auto x = CopyCharacters<uint32_t>(str, prev);
+              masm.branch32(Assembler::NotEqual, addr, Imm32(x),
+                            &setNotEqualResult);
+              break;
+            }
+          }
+
+          // Break from the loop, because we've finished the complete string.
+          break;
+        }
+      }
+
+      // Falls through if both strings are equal.
+
+      masm.move32(Imm32(op == JSOp::Eq || op == JSOp::StrictEq), output);
+      masm.jump(ool->rejoin());
+
+      masm.bind(&setNotEqualResult);
+      masm.move32(Imm32(op == JSOp::Ne || op == JSOp::StrictNe), output);
+    }
+  }
 
   masm.bind(ool->rejoin());
 }
@@ -12416,34 +12651,32 @@ class OutOfLineTypeOfV : public OutOfLineCodeBase<CodeGenerator> {
   LTypeOfV* ins() const { return ins_; }
 };
 
-void CodeGenerator::emitTypeOfName(JSValueType type, Register output) {
-  const JSAtomState& names = gen->runtime->names();
-
+void CodeGenerator::emitTypeOfJSType(JSValueType type, Register output) {
   switch (type) {
     case JSVAL_TYPE_OBJECT:
-      masm.movePtr(ImmGCPtr(names.object), output);
+      masm.move32(Imm32(JSTYPE_OBJECT), output);
       break;
     case JSVAL_TYPE_DOUBLE:
     case JSVAL_TYPE_INT32:
-      masm.movePtr(ImmGCPtr(names.number), output);
+      masm.move32(Imm32(JSTYPE_NUMBER), output);
       break;
     case JSVAL_TYPE_BOOLEAN:
-      masm.movePtr(ImmGCPtr(names.boolean), output);
+      masm.move32(Imm32(JSTYPE_BOOLEAN), output);
       break;
     case JSVAL_TYPE_UNDEFINED:
-      masm.movePtr(ImmGCPtr(names.undefined), output);
+      masm.move32(Imm32(JSTYPE_UNDEFINED), output);
       break;
     case JSVAL_TYPE_NULL:
-      masm.movePtr(ImmGCPtr(names.object), output);
+      masm.move32(Imm32(JSTYPE_OBJECT), output);
       break;
     case JSVAL_TYPE_STRING:
-      masm.movePtr(ImmGCPtr(names.string), output);
+      masm.move32(Imm32(JSTYPE_STRING), output);
       break;
     case JSVAL_TYPE_SYMBOL:
-      masm.movePtr(ImmGCPtr(names.symbol), output);
+      masm.move32(Imm32(JSTYPE_SYMBOL), output);
       break;
     case JSVAL_TYPE_BIGINT:
-      masm.movePtr(ImmGCPtr(names.bigint), output);
+      masm.move32(Imm32(JSTYPE_BIGINT), output);
       break;
     default:
       MOZ_CRASH("Unsupported JSValueType");
@@ -12469,7 +12702,7 @@ void CodeGenerator::emitTypeOfCheck(JSValueType type, Register tag,
       break;
   }
 
-  emitTypeOfName(type, output);
+  emitTypeOfJSType(type, output);
   masm.jump(done);
   masm.bind(&notMatch);
 }
@@ -12484,18 +12717,12 @@ void CodeGenerator::visitTypeOfV(LTypeOfV* lir) {
   auto* ool = new (alloc()) OutOfLineTypeOfV(lir);
   addOutOfLineCode(ool, lir->mir());
 
-  const uint32_t NumTypes = 8;
-  const auto& defaultOrder = {JSVAL_TYPE_OBJECT,    JSVAL_TYPE_DOUBLE,
-                              JSVAL_TYPE_UNDEFINED, JSVAL_TYPE_NULL,
-                              JSVAL_TYPE_BOOLEAN,   JSVAL_TYPE_STRING,
-                              JSVAL_TYPE_SYMBOL,    JSVAL_TYPE_BIGINT};
-  MOZ_ASSERT(defaultOrder.size() == NumTypes);
+  const std::initializer_list<JSValueType> defaultOrder = {
+      JSVAL_TYPE_OBJECT, JSVAL_TYPE_DOUBLE,  JSVAL_TYPE_UNDEFINED,
+      JSVAL_TYPE_NULL,   JSVAL_TYPE_BOOLEAN, JSVAL_TYPE_STRING,
+      JSVAL_TYPE_SYMBOL, JSVAL_TYPE_BIGINT};
 
-  Vector<JSValueType, NumTypes, SystemAllocPolicy> remaining;
-  MOZ_ALWAYS_TRUE(remaining.reserve(defaultOrder.size()));
-  remaining.infallibleAppend(defaultOrder.begin(), defaultOrder.end());
-
-  uint32_t numRemaining = remaining.length();
+  mozilla::EnumSet<JSValueType, uint32_t> remaining(defaultOrder);
 
   // Generate checks for previously observed types first.
   // The TypeDataList is sorted by descending frequency.
@@ -12507,28 +12734,32 @@ void CodeGenerator::visitTypeOfV(LTypeOfV* lir) {
       type = JSVAL_TYPE_DOUBLE;
     }
 
+    remaining -= type;
+
     emitTypeOfCheck(type, tag, output, &done, ool->entry());
-    MOZ_ASSERT(std::count(remaining.begin(), remaining.end(), type) == 1);
-    remaining.eraseIfEqual(type);
-    numRemaining--;
   }
 
   // Generate checks for remaining types.
-  for (auto type : remaining) {
-    if (numRemaining == 1) {
-      // We can skip the check for the last remaining type.
+  for (auto type : defaultOrder) {
+    if (!remaining.contains(type)) {
+      continue;
+    }
+    remaining -= type;
+
+    if (remaining.isEmpty() && type != JSVAL_TYPE_OBJECT) {
+      // We can skip the check for the last remaining type, unless the type is
+      // JSVAL_TYPE_OBJECT, which may have to go through the OOL path.
 #ifdef DEBUG
       emitTypeOfCheck(type, tag, output, &done, ool->entry());
       masm.assumeUnreachable("Unexpected Value type in visitTypeOfV");
 #else
-      emitTypeOfName(type, output);
+      emitTypeOfJSType(type, output);
 #endif
     } else {
       emitTypeOfCheck(type, tag, output, &done, ool->entry());
     }
-    numRemaining--;
   }
-  MOZ_ASSERT(numRemaining == 0);
+  MOZ_ASSERT(remaining.isEmpty());
 
   masm.bind(&done);
   masm.bind(ool->rejoin());
@@ -12536,34 +12767,30 @@ void CodeGenerator::visitTypeOfV(LTypeOfV* lir) {
 
 void CodeGenerator::emitTypeOfObject(Register obj, Register output,
                                      Label* done) {
-  const JSAtomState& names = gen->runtime->names();
-
   Label slowCheck, isObject, isCallable, isUndefined;
   masm.typeOfObject(obj, output, &slowCheck, &isObject, &isCallable,
                     &isUndefined);
 
   masm.bind(&isCallable);
-  masm.movePtr(ImmGCPtr(names.function), output);
+  masm.move32(Imm32(JSTYPE_FUNCTION), output);
   masm.jump(done);
 
   masm.bind(&isUndefined);
-  masm.movePtr(ImmGCPtr(names.undefined), output);
+  masm.move32(Imm32(JSTYPE_UNDEFINED), output);
   masm.jump(done);
 
   masm.bind(&isObject);
-  masm.movePtr(ImmGCPtr(names.object), output);
+  masm.move32(Imm32(JSTYPE_OBJECT), output);
   masm.jump(done);
 
   masm.bind(&slowCheck);
 
   saveVolatile(output);
-  using Fn = JSString* (*)(JSObject * obj, JSRuntime * rt);
+  using Fn = JSType (*)(JSObject*);
   masm.setupUnalignedABICall(output);
   masm.passABIArg(obj);
-  masm.movePtr(ImmPtr(gen->runtime), output);
-  masm.passABIArg(output);
-  masm.callWithABI<Fn, TypeOfObject>();
-  masm.storeCallPointerResult(output);
+  masm.callWithABI<Fn, js::TypeOfObject>();
+  masm.storeCallInt32Result(output);
   restoreVolatile(output);
 }
 
@@ -12586,6 +12813,229 @@ void CodeGenerator::visitTypeOfO(LTypeOfO* lir) {
   Label done;
   emitTypeOfObject(obj, output, &done);
   masm.bind(&done);
+}
+
+void CodeGenerator::visitTypeOfName(LTypeOfName* lir) {
+  Register input = ToRegister(lir->input());
+  Register output = ToRegister(lir->output());
+
+#ifdef DEBUG
+  Label ok;
+  masm.branch32(Assembler::Below, input, Imm32(JSTYPE_LIMIT), &ok);
+  masm.assumeUnreachable("bad JSType");
+  masm.bind(&ok);
+#endif
+
+  static_assert(JSTYPE_UNDEFINED == 0);
+
+  masm.movePtr(ImmPtr(&gen->runtime->names().undefined), output);
+  masm.loadPtr(BaseIndex(output, input, ScalePointer), output);
+}
+
+class OutOfLineTypeOfIsNonPrimitiveV : public OutOfLineCodeBase<CodeGenerator> {
+  LTypeOfIsNonPrimitiveV* ins_;
+
+ public:
+  explicit OutOfLineTypeOfIsNonPrimitiveV(LTypeOfIsNonPrimitiveV* ins)
+      : ins_(ins) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineTypeOfIsNonPrimitiveV(this);
+  }
+  auto* ins() const { return ins_; }
+};
+
+class OutOfLineTypeOfIsNonPrimitiveO : public OutOfLineCodeBase<CodeGenerator> {
+  LTypeOfIsNonPrimitiveO* ins_;
+
+ public:
+  explicit OutOfLineTypeOfIsNonPrimitiveO(LTypeOfIsNonPrimitiveO* ins)
+      : ins_(ins) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineTypeOfIsNonPrimitiveO(this);
+  }
+  auto* ins() const { return ins_; }
+};
+
+void CodeGenerator::emitTypeOfIsObjectOOL(MTypeOfIs* mir, Register obj,
+                                          Register output) {
+  saveVolatile(output);
+  using Fn = JSType (*)(JSObject*);
+  masm.setupUnalignedABICall(output);
+  masm.passABIArg(obj);
+  masm.callWithABI<Fn, js::TypeOfObject>();
+  masm.storeCallInt32Result(output);
+  restoreVolatile(output);
+
+  auto cond = JSOpToCondition(mir->jsop(), /* isSigned = */ false);
+  masm.cmp32Set(cond, output, Imm32(mir->jstype()), output);
+}
+
+void CodeGenerator::visitOutOfLineTypeOfIsNonPrimitiveV(
+    OutOfLineTypeOfIsNonPrimitiveV* ool) {
+  auto* ins = ool->ins();
+  ValueOperand input = ToValue(ins, LTypeOfIsNonPrimitiveV::InputIndex);
+  Register output = ToRegister(ins->output());
+  Register temp = ToTempUnboxRegister(ins->temp0());
+
+  Register obj = masm.extractObject(input, temp);
+
+  emitTypeOfIsObjectOOL(ins->mir(), obj, output);
+
+  masm.jump(ool->rejoin());
+}
+
+void CodeGenerator::visitOutOfLineTypeOfIsNonPrimitiveO(
+    OutOfLineTypeOfIsNonPrimitiveO* ool) {
+  auto* ins = ool->ins();
+  Register input = ToRegister(ins->input());
+  Register output = ToRegister(ins->output());
+
+  emitTypeOfIsObjectOOL(ins->mir(), input, output);
+
+  masm.jump(ool->rejoin());
+}
+
+void CodeGenerator::emitTypeOfIsObject(MTypeOfIs* mir, Register obj,
+                                       Register output, Label* success,
+                                       Label* fail, Label* slowCheck) {
+  Label* isObject = fail;
+  Label* isFunction = fail;
+  Label* isUndefined = fail;
+
+  switch (mir->jstype()) {
+    case JSTYPE_UNDEFINED:
+      isUndefined = success;
+      break;
+
+    case JSTYPE_OBJECT:
+      isObject = success;
+      break;
+
+    case JSTYPE_FUNCTION:
+      isFunction = success;
+      break;
+
+    case JSTYPE_STRING:
+    case JSTYPE_NUMBER:
+    case JSTYPE_BOOLEAN:
+    case JSTYPE_SYMBOL:
+    case JSTYPE_BIGINT:
+    case JSTYPE_LIMIT:
+      MOZ_CRASH("Primitive type");
+  }
+
+  masm.typeOfObject(obj, output, slowCheck, isObject, isFunction, isUndefined);
+
+  auto op = mir->jsop();
+
+  Label done;
+  masm.bind(fail);
+  masm.move32(Imm32(op == JSOp::Ne || op == JSOp::StrictNe), output);
+  masm.jump(&done);
+  masm.bind(success);
+  masm.move32(Imm32(op == JSOp::Eq || op == JSOp::StrictEq), output);
+  masm.bind(&done);
+}
+
+void CodeGenerator::visitTypeOfIsNonPrimitiveV(LTypeOfIsNonPrimitiveV* lir) {
+  ValueOperand input = ToValue(lir, LTypeOfIsNonPrimitiveV::InputIndex);
+  Register output = ToRegister(lir->output());
+  Register temp = ToTempUnboxRegister(lir->temp0());
+
+  auto* mir = lir->mir();
+
+  auto* ool = new (alloc()) OutOfLineTypeOfIsNonPrimitiveV(lir);
+  addOutOfLineCode(ool, mir);
+
+  Label success, fail;
+
+  switch (mir->jstype()) {
+    case JSTYPE_UNDEFINED: {
+      ScratchTagScope tag(masm, input);
+      masm.splitTagForTest(input, tag);
+
+      masm.branchTestUndefined(Assembler::Equal, tag, &success);
+      masm.branchTestObject(Assembler::NotEqual, tag, &fail);
+      break;
+    }
+
+    case JSTYPE_OBJECT: {
+      ScratchTagScope tag(masm, input);
+      masm.splitTagForTest(input, tag);
+
+      masm.branchTestNull(Assembler::Equal, tag, &success);
+      masm.branchTestObject(Assembler::NotEqual, tag, &fail);
+      break;
+    }
+
+    case JSTYPE_FUNCTION: {
+      masm.branchTestObject(Assembler::NotEqual, input, &fail);
+      break;
+    }
+
+    case JSTYPE_STRING:
+    case JSTYPE_NUMBER:
+    case JSTYPE_BOOLEAN:
+    case JSTYPE_SYMBOL:
+    case JSTYPE_BIGINT:
+    case JSTYPE_LIMIT:
+      MOZ_CRASH("Primitive type");
+  }
+
+  Register obj = masm.extractObject(input, temp);
+
+  emitTypeOfIsObject(mir, obj, output, &success, &fail, ool->entry());
+
+  masm.bind(ool->rejoin());
+}
+
+void CodeGenerator::visitTypeOfIsNonPrimitiveO(LTypeOfIsNonPrimitiveO* lir) {
+  Register input = ToRegister(lir->input());
+  Register output = ToRegister(lir->output());
+
+  auto* mir = lir->mir();
+
+  auto* ool = new (alloc()) OutOfLineTypeOfIsNonPrimitiveO(lir);
+  addOutOfLineCode(ool, mir);
+
+  Label success, fail;
+  emitTypeOfIsObject(mir, input, output, &success, &fail, ool->entry());
+
+  masm.bind(ool->rejoin());
+}
+
+void CodeGenerator::visitTypeOfIsPrimitive(LTypeOfIsPrimitive* lir) {
+  ValueOperand input = ToValue(lir, LTypeOfIsPrimitive::InputIndex);
+  Register output = ToRegister(lir->output());
+
+  auto* mir = lir->mir();
+  auto cond = JSOpToCondition(mir->jsop(), /* isSigned = */ false);
+
+  switch (mir->jstype()) {
+    case JSTYPE_STRING:
+      masm.testStringSet(cond, input, output);
+      break;
+    case JSTYPE_NUMBER:
+      masm.testNumberSet(cond, input, output);
+      break;
+    case JSTYPE_BOOLEAN:
+      masm.testBooleanSet(cond, input, output);
+      break;
+    case JSTYPE_SYMBOL:
+      masm.testSymbolSet(cond, input, output);
+      break;
+    case JSTYPE_BIGINT:
+      masm.testBigIntSet(cond, input, output);
+      break;
+
+    case JSTYPE_UNDEFINED:
+    case JSTYPE_OBJECT:
+    case JSTYPE_FUNCTION:
+    case JSTYPE_LIMIT:
+      MOZ_CRASH("Non-primitive type");
+  }
 }
 
 void CodeGenerator::visitToAsyncIter(LToAsyncIter* lir) {
@@ -12640,19 +13090,22 @@ void CodeGenerator::visitLoadElementHole(LLoadElementHole* lir) {
 
   masm.loadValue(BaseObjectElementIndex(elements, index), out);
 
-  // If a hole check is needed, and the value wasn't a hole, we're done.
-  // Otherwise, we'll load undefined.
-  if (lir->mir()->needsHoleCheck()) {
-    masm.branchTestMagic(Assembler::NotEqual, out, &done);
-    masm.moveValue(UndefinedValue(), out);
-  }
-  masm.jump(&done);
+  // If the value wasn't a hole, we're done. Otherwise, we'll load undefined.
+  masm.branchTestMagic(Assembler::NotEqual, out, &done);
 
-  masm.bind(&outOfBounds);
   if (mir->needsNegativeIntCheck()) {
+    Label loadUndefined;
+    masm.jump(&loadUndefined);
+
+    masm.bind(&outOfBounds);
+
     Label negative;
     masm.branch32(Assembler::LessThan, index, Imm32(0), &negative);
     bailoutFrom(&negative, lir->snapshot());
+
+    masm.bind(&loadUndefined);
+  } else {
+    masm.bind(&outOfBounds);
   }
   masm.moveValue(UndefinedValue(), out);
 
@@ -14403,14 +14856,9 @@ void CodeGenerator::visitWasmBoundsCheck(LWasmBoundsCheck* ins) {
 void CodeGenerator::visitWasmBoundsCheck64(LWasmBoundsCheck64* ins) {
   const MWasmBoundsCheck* mir = ins->mir();
   Label ok;
-#ifdef JS_64BIT
   Register64 ptr = ToRegister64(ins->ptr());
   Register64 boundsCheckLimit = ToRegister64(ins->boundsCheckLimit());
   masm.wasmBoundsCheck64(Assembler::Below, ptr, boundsCheckLimit, &ok);
-#else
-  // 64-bit bounds checks are used only on 64-bit systems.
-  MOZ_CRASH("Should not happen");
-#endif
   masm.wasmTrap(wasm::Trap::OutOfBounds, mir->bytecodeOffset());
   masm.bind(&ok);
 }
@@ -14420,6 +14868,20 @@ void CodeGenerator::visitWasmAlignmentCheck(LWasmAlignmentCheck* ins) {
   Register ptr = ToRegister(ins->ptr());
   Label ok;
   masm.branchTest32(Assembler::Zero, ptr, Imm32(mir->byteSize() - 1), &ok);
+  masm.wasmTrap(wasm::Trap::UnalignedAccess, mir->bytecodeOffset());
+  masm.bind(&ok);
+}
+
+void CodeGenerator::visitWasmAlignmentCheck64(LWasmAlignmentCheck64* ins) {
+  const MWasmAlignmentCheck* mir = ins->mir();
+  Register64 ptr = ToRegister64(ins->ptr());
+#ifdef JS_64BIT
+  Register r = ptr.reg;
+#else
+  Register r = ptr.low;
+#endif
+  Label ok;
+  masm.branchTestPtr(Assembler::Zero, r, Imm32(mir->byteSize() - 1), &ok);
   masm.wasmTrap(wasm::Trap::UnalignedAccess, mir->bytecodeOffset());
   masm.bind(&ok);
 }
@@ -14434,15 +14896,15 @@ void CodeGenerator::visitWasmLoadTls(LWasmLoadTls* ins) {
       masm.load32(Address(ToRegister(ins->tlsPtr()), ins->mir()->offset()),
                   ToRegister(ins->output()));
       break;
-#ifdef JS_64BIT
-    case MIRType::Int64:
-      masm.load64(Address(ToRegister(ins->tlsPtr()), ins->mir()->offset()),
-                  ToOutRegister64(ins));
-      break;
-#endif
     default:
       MOZ_CRASH("MIRType not supported in WasmLoadTls");
   }
+}
+
+void CodeGenerator::visitWasmLoadTls64(LWasmLoadTls64* ins) {
+  MOZ_ASSERT(ins->mir()->type() == MIRType::Int64);
+  masm.load64(Address(ToRegister(ins->tlsPtr()), ins->mir()->offset()),
+              ToOutRegister64(ins));
 }
 
 void CodeGenerator::incrementWarmUpCounter(AbsoluteAddress warmUpCount,

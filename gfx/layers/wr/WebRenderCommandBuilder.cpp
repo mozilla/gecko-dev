@@ -17,6 +17,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/Types.h"
+#include "mozilla/image/WebRenderImageProvider.h"
 #include "mozilla/layers/AnimationHelper.h"
 #include "mozilla/layers/ClipManager.h"
 #include "mozilla/layers/ImageClient.h"
@@ -40,6 +41,7 @@ namespace mozilla {
 namespace layers {
 
 using namespace gfx;
+using namespace image;
 static int sIndent;
 #include <stdarg.h>
 #include <stdio.h>
@@ -96,8 +98,6 @@ struct BlobItemData {
   // We do this on a per-display item basis so that the lists remains correct
   // during invalidations.
   std::vector<RefPtr<SourceSurface>> mExternalSurfaces;
-
-  IntRect mImageRect;
 
   BlobItemData(DIGroup* aGroup, nsDisplayItem* aItem)
       : mUsed(false), mGroup(aGroup) {
@@ -311,7 +311,6 @@ struct DIGroup {
                                 // containers applied
   Maybe<wr::BlobImageKey> mKey;
   std::vector<RefPtr<ScaledFont>> mFonts;
-  bool mSuppressInvalidations = false;
 
   DIGroup()
       : mAppUnitsPerDevPixel(0),
@@ -319,9 +318,6 @@ struct DIGroup {
         mHitInfo(CompositorHitTestInvisibleToHit) {}
 
   void InvalidateRect(const IntRect& aRect) {
-    if (mSuppressInvalidations) {
-      return;
-    }
     auto r = aRect.Intersect(mPreservedRect);
     // Empty rects get dropped
     if (!r.IsEmpty()) {
@@ -410,9 +406,7 @@ struct DIGroup {
       InvalidateRect(aData->mRect);
       aData->mInvalid = true;
       invalidated = true;
-    } else if (aData->mInvalid ||
-               /* XXX: handle image load invalidation */ (
-                   aItem->IsInvalid(invalid) && invalid.IsEmpty())) {
+    } else if (aItem->IsInvalid(invalid) && invalid.IsEmpty()) {
       UniquePtr<nsDisplayItemGeometry> geometry(
           aItem->AllocateGeometry(aBuilder));
       nsRect clippedBounds = clip.ApplyNonRoundedIntersection(
@@ -547,7 +541,6 @@ struct DIGroup {
     }
     mActualBounds.OrWith(aData->mRect);
     aData->mClip = clip;
-    aData->mImageRect = mClippedImageBounds;
     GP("post mInvalidRect: %d %d %d %d\n", mInvalidRect.x, mInvalidRect.y,
        mInvalidRect.width, mInvalidRect.height);
     return invalidated;
@@ -606,7 +599,6 @@ struct DIGroup {
       return;
     }
 
-    gfx::SurfaceFormat format = gfx::SurfaceFormat::B8G8R8A8;
     std::vector<RefPtr<ScaledFont>> fonts;
     bool validFonts = true;
     RefPtr<WebRenderDrawEventRecorder> recorder =
@@ -629,8 +621,8 @@ struct DIGroup {
               fonts = std::move(aScaledFonts);
             });
 
-    RefPtr<gfx::DrawTarget> dummyDt = gfx::Factory::CreateDrawTarget(
-        gfx::BackendType::SKIA, gfx::IntSize(1, 1), format);
+    RefPtr<gfx::DrawTarget> dummyDt =
+        gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
 
     RefPtr<gfx::DrawTarget> dt = gfx::Factory::CreateRecordingDrawTarget(
         recorder, dummyDt, mLayerBounds.ToUnknownRect());
@@ -1101,15 +1093,14 @@ static bool IsItemProbablyActive(
       Matrix t2d;
       bool is2D = t.Is2D(&t2d);
       GP("active: %d\n", transformItem->MayBeAnimated(aDisplayListBuilder));
-      return transformItem->MayBeAnimated(aDisplayListBuilder, false) ||
-             !is2D ||
+      return transformItem->MayBeAnimated(aDisplayListBuilder) || !is2D ||
              HasActiveChildren(*transformItem->GetChildren(), aBuilder,
                                aResources, aSc, aManager, aDisplayListBuilder);
     }
     case DisplayItemType::TYPE_OPACITY: {
       nsDisplayOpacity* opacityItem = static_cast<nsDisplayOpacity*>(aItem);
       bool active = opacityItem->NeedsActiveLayer(aDisplayListBuilder,
-                                                  opacityItem->Frame(), false);
+                                                  opacityItem->Frame());
       GP("active: %d\n", active);
       return active ||
              HasActiveChildren(*opacityItem->GetChildren(), aBuilder,
@@ -1232,7 +1223,8 @@ void Grouper::ConstructGroups(nsDisplayListBuilder* aDisplayListBuilder,
                              item);
 
       {
-        auto spaceAndClipChain = mClipManager.SwitchItem(item);
+        auto spaceAndClipChain =
+            mClipManager.SwitchItem(aDisplayListBuilder, item);
         wr::SpaceAndClipChainHelper saccHelper(aBuilder, spaceAndClipChain);
         mHitTestInfoManager.ProcessItem(item, aBuilder, aDisplayListBuilder);
 
@@ -1307,18 +1299,14 @@ bool Grouper::ConstructItemInsideInactive(
     // entire item to be within the invalid region.
     Matrix m = mTransform;
     mTransform = Matrix();
-    bool old = aGroup->mSuppressInvalidations;
-    aGroup->mSuppressInvalidations = true;
     sIndent++;
     if (ConstructGroupInsideInactive(aCommandBuilder, aBuilder, aResources,
                                      aGroup, children, aSc)) {
       data->mInvalid = true;
-      aGroup->mSuppressInvalidations = old;
       aGroup->InvalidateRect(data->mRect);
       invalidated = true;
     }
     sIndent--;
-    aGroup->mSuppressInvalidations = old;
     mTransform = m;
   } else if (aItem->GetType() == DisplayItemType::TYPE_TRANSFORM) {
     Matrix m = mTransform;
@@ -1330,8 +1318,6 @@ bool Grouper::ConstructItemInsideInactive(
       // If ConstructGroupInsideInactive finds any change, we invalidate the
       // entire container item. This is needed because blob merging requires the
       // entire item to be within the invalid region.
-      bool old = aGroup->mSuppressInvalidations;
-      aGroup->mSuppressInvalidations = true;
       mTransform = Matrix();
       sIndent++;
       if (ConstructGroupInsideInactive(aCommandBuilder, aBuilder, aResources,
@@ -1341,7 +1327,6 @@ bool Grouper::ConstructItemInsideInactive(
         invalidated = true;
       }
       sIndent--;
-      aGroup->mSuppressInvalidations = old;
     } else {
       GP("t2d: %f %f\n", t2d._31, t2d._32);
       mTransform.PreMultiply(t2d);
@@ -1728,6 +1713,41 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
 
     DisplayItemType itemType = item->GetType();
 
+    // If this is a new (not retained/reused) item, then we need to disable
+    // the display item cache for descendants, since it's possible that some of
+    // them got cached with a flattened opacity values., which may no longer be
+    // applied.
+    Maybe<AutoDisplayItemCacheSuppressor> cacheSuppressor;
+
+    if (itemType == DisplayItemType::TYPE_OPACITY) {
+      nsDisplayOpacity* opacity = static_cast<nsDisplayOpacity*>(item);
+
+      if (!opacity->IsReused()) {
+        cacheSuppressor.emplace(aBuilder.GetDisplayItemCache());
+      }
+
+      if (opacity->CanApplyOpacityToChildren(
+              mManager->GetRenderRootStateManager()->LayerManager(),
+              aDisplayListBuilder, aBuilder.GetInheritedOpacity())) {
+        // If all our children support handling the opacity directly, then push
+        // the opacity and clip onto the builder and skip creating a stacking
+        // context.
+        float oldOpacity = aBuilder.GetInheritedOpacity();
+        const DisplayItemClipChain* oldClip = aBuilder.GetInheritedClipChain();
+        aBuilder.SetInheritedOpacity(oldOpacity * opacity->GetOpacity());
+        aBuilder.PushInheritedClipChain(aDisplayListBuilder,
+                                        opacity->GetClipChain());
+
+        CreateWebRenderCommandsFromDisplayList(opacity->GetChildren(), item,
+                                               aDisplayListBuilder, aSc,
+                                               aBuilder, aResources, false);
+
+        aBuilder.SetInheritedOpacity(oldOpacity);
+        aBuilder.SetInheritedClipChain(oldClip);
+        continue;
+      }
+    }
+
     // If this is an unscrolled background color item, in the root display list
     // for the parent process, consider doing opaque checks.
     if (XRE_IsParentProcess() && !aWrappingItem &&
@@ -1787,7 +1807,7 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
 
     // This is where we emulate the clip/scroll stack that was previously
     // implemented on the WR display list side.
-    auto spaceAndClipChain = mClipManager.SwitchItem(item);
+    auto spaceAndClipChain = mClipManager.SwitchItem(aDisplayListBuilder, item);
     wr::SpaceAndClipChainHelper saccHelper(aBuilder, spaceAndClipChain);
 
     {  // scope restoreDoGrouping
@@ -1991,24 +2011,22 @@ bool WebRenderCommandBuilder::PushImage(
   return true;
 }
 
-Maybe<wr::BlobImageKey> WebRenderCommandBuilder::CreateBlobImageKey(
-    nsDisplayItem* aItem, ImageContainer* aContainer,
+Maybe<wr::ImageKey> WebRenderCommandBuilder::CreateImageProviderKey(
+    nsDisplayItem* aItem, image::WebRenderImageProvider* aProvider,
     mozilla::wr::IpcResourceUpdateQueue& aResources) {
-  MOZ_ASSERT(!aContainer->IsAsync());
-
-  RefPtr<WebRenderBlobImageData> imageData =
-      CreateOrRecycleWebRenderUserData<WebRenderBlobImageData>(aItem);
+  RefPtr<WebRenderImageProviderData> imageData =
+      CreateOrRecycleWebRenderUserData<WebRenderImageProviderData>(aItem);
   MOZ_ASSERT(imageData);
-  return imageData->UpdateImageKey(aContainer, aResources);
+  return imageData->UpdateImageKey(aProvider, aResources);
 }
 
-bool WebRenderCommandBuilder::PushBlobImage(
-    nsDisplayItem* aItem, ImageContainer* aContainer,
+bool WebRenderCommandBuilder::PushImageProvider(
+    nsDisplayItem* aItem, image::WebRenderImageProvider* aProvider,
     mozilla::wr::DisplayListBuilder& aBuilder,
     mozilla::wr::IpcResourceUpdateQueue& aResources,
     const LayoutDeviceRect& aRect, const LayoutDeviceRect& aClip) {
-  Maybe<wr::BlobImageKey> key =
-      CreateBlobImageKey(aItem, aContainer, aResources);
+  Maybe<wr::ImageKey> key =
+      CreateImageProviderKey(aItem, aProvider, aResources);
   if (!key) {
     return false;
   }
@@ -2016,8 +2034,7 @@ bool WebRenderCommandBuilder::PushBlobImage(
   auto rendering = wr::ToImageRendering(aItem->Frame()->UsedImageRendering());
   auto r = wr::ToLayoutRect(aRect);
   auto c = wr::ToLayoutRect(aClip);
-  aBuilder.PushImage(r, c, !aItem->BackfaceIsHidden(), rendering,
-                     wr::AsImageKey(key.value()));
+  aBuilder.PushImage(r, c, !aItem->BackfaceIsHidden(), rendering, key.value());
 
   return true;
 }
@@ -2255,6 +2272,7 @@ WebRenderCommandBuilder::GenerateFallbackData(
 
   bool needPaint = true;
 
+  MOZ_RELEASE_ASSERT(aItem->GetType() != DisplayItemType::TYPE_SVG_WRAPPER);
   if (geometry && !fallbackData->IsInvalid() &&
       aItem->GetType() != DisplayItemType::TYPE_SVG_WRAPPER && differentScale) {
     nsRect invalid;
@@ -2363,8 +2381,7 @@ WebRenderCommandBuilder::GenerateFallbackData(
 
       imageData->CreateImageClientIfNeeded();
       RefPtr<ImageClient> imageClient = imageData->GetImageClient();
-      RefPtr<ImageContainer> imageContainer =
-          LayerManager::CreateImageContainer();
+      RefPtr<ImageContainer> imageContainer = MakeAndAddRef<ImageContainer>();
 
       {
         UpdateImageHelper helper(imageContainer, imageClient,

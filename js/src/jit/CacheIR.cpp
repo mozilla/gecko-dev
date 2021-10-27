@@ -6798,8 +6798,10 @@ AttachDecision CallIRGenerator::tryAttachMathHypot(HandleFunction callee) {
   // Guard callee is the 'hypot' native function.
   emitNativeCalleeGuard(callee);
 
-  ValOperandId firstId = writer.loadStandardCallArgument(0, argc_);
-  ValOperandId secondId = writer.loadStandardCallArgument(1, argc_);
+  ValOperandId firstId =
+      writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId secondId =
+      writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
 
   NumberOperandId firstNumId = writer.guardIsNumber(firstId);
   NumberOperandId secondNumId = writer.guardIsNumber(secondId);
@@ -6814,13 +6816,13 @@ AttachDecision CallIRGenerator::tryAttachMathHypot(HandleFunction callee) {
       writer.mathHypot2NumberResult(firstNumId, secondNumId);
       break;
     case 3:
-      thirdId = writer.loadStandardCallArgument(2, argc_);
+      thirdId = writer.loadArgumentFixedSlot(ArgumentKind::Arg2, argc_);
       thirdNumId = writer.guardIsNumber(thirdId);
       writer.mathHypot3NumberResult(firstNumId, secondNumId, thirdNumId);
       break;
     case 4:
-      thirdId = writer.loadStandardCallArgument(2, argc_);
-      fourthId = writer.loadStandardCallArgument(3, argc_);
+      thirdId = writer.loadArgumentFixedSlot(ArgumentKind::Arg2, argc_);
+      fourthId = writer.loadArgumentFixedSlot(ArgumentKind::Arg3, argc_);
       thirdNumId = writer.guardIsNumber(thirdId);
       fourthNumId = writer.guardIsNumber(fourthId);
       writer.mathHypot4NumberResult(firstNumId, secondNumId, thirdNumId,
@@ -6886,19 +6888,23 @@ AttachDecision CallIRGenerator::tryAttachMathMinMax(HandleFunction callee,
   emitNativeCalleeGuard(callee);
 
   if (allInt32) {
-    ValOperandId valId = writer.loadStandardCallArgument(0, argc_);
+    ValOperandId valId =
+        writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
     Int32OperandId resId = writer.guardToInt32(valId);
     for (size_t i = 1; i < argc_; i++) {
-      ValOperandId argId = writer.loadStandardCallArgument(i, argc_);
+      ValOperandId argId =
+          writer.loadArgumentFixedSlot(ArgumentKindForArgIndex(i), argc_);
       Int32OperandId argInt32Id = writer.guardToInt32(argId);
       resId = writer.int32MinMax(isMax, resId, argInt32Id);
     }
     writer.loadInt32Result(resId);
   } else {
-    ValOperandId valId = writer.loadStandardCallArgument(0, argc_);
+    ValOperandId valId =
+        writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
     NumberOperandId resId = writer.guardIsNumber(valId);
     for (size_t i = 1; i < argc_; i++) {
-      ValOperandId argId = writer.loadStandardCallArgument(i, argc_);
+      ValOperandId argId =
+          writer.loadArgumentFixedSlot(ArgumentKindForArgIndex(i), argc_);
       NumberOperandId argNumId = writer.guardIsNumber(argId);
       resId = writer.numberMinMax(isMax, resId, argNumId);
     }
@@ -7692,7 +7698,7 @@ AttachDecision CallIRGenerator::tryAttachObjectIsPrototypeOf(
 
   // Guard that |this| is an object.
   ValOperandId thisValId =
-      writer.loadArgumentDynamicSlot(ArgumentKind::This, argcId);
+      writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
   ObjOperandId thisObjId = writer.guardToObject(thisValId);
 
   ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
@@ -7728,7 +7734,7 @@ AttachDecision CallIRGenerator::tryAttachObjectToString(HandleFunction callee) {
 
   // Guard that |this| is an object.
   ValOperandId thisValId =
-      writer.loadArgumentDynamicSlot(ArgumentKind::This, argcId);
+      writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
   ObjOperandId thisObjId = writer.guardToObject(thisValId);
 
   writer.objectToStringResult(thisObjId);
@@ -9350,20 +9356,9 @@ ScriptedThisResult CallIRGenerator::getThisForScripted(
 
   // Only attach a stub if the newTarget is a function with a
   // nonconfigurable prototype.
-  RootedValue protov(cx_);
   RootedObject newTarget(cx_, &newTarget_.toObject());
   if (!newTarget->is<JSFunction>() ||
       !newTarget->as<JSFunction>().hasNonConfigurablePrototypeDataProperty()) {
-    return ScriptedThisResult::NoAction;
-  }
-
-  if (!GetProperty(cx_, newTarget, newTarget, cx_->names().prototype,
-                   &protov)) {
-    cx_->clearPendingException();
-    return ScriptedThisResult::NoAction;
-  }
-
-  if (!protov.isObject()) {
     return ScriptedThisResult::NoAction;
   }
 
@@ -9454,15 +9449,23 @@ AttachDecision CallIRGenerator::tryAttachCallScripted(
       uint32_t slot = prop->slot();
       MOZ_ASSERT(slot >= newTarget->numFixedSlots(),
                  "Stub code relies on this");
-      JSObject* prototypeObject = &newTarget->getSlot(slot).toObject();
 
       ValOperandId newTargetValId = writer.loadArgumentDynamicSlot(
           ArgumentKind::NewTarget, argcId, flags);
       ObjOperandId newTargetObjId = writer.guardToObject(newTargetValId);
       writer.guardShape(newTargetObjId, newTarget->shape());
-      ObjOperandId protoId = writer.loadObject(prototypeObject);
-      writer.guardDynamicSlotIsSpecificObject(
-          newTargetObjId, protoId, slot - newTarget->numFixedSlots());
+
+      const Value& value = newTarget->getSlot(slot);
+      if (value.isObject()) {
+        JSObject* prototypeObject = &value.toObject();
+
+        ObjOperandId protoId = writer.loadObject(prototypeObject);
+        writer.guardDynamicSlotIsSpecificObject(
+            newTargetObjId, protoId, slot - newTarget->numFixedSlots());
+      } else {
+        writer.guardDynamicSlotIsNotObject(newTargetObjId,
+                                           slot - newTarget->numFixedSlots());
+      }
 
       // Call metaScriptedTemplateObject before emitting the call, so that Warp
       // can use this template object before transpiling the call.

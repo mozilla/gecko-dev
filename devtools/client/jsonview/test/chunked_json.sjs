@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 const key = "json-viewer-chunked-response";
 function setResponse(response) {
@@ -7,12 +8,14 @@ function setResponse(response) {
 }
 function getResponse() {
   let response;
-  getObjectState(key, v => { response = v });
+  getObjectState(key, v => {
+    response = v;
+  });
   return response;
 }
 
 function handleRequest(request, response) {
-  let {queryString} = request;
+  const { queryString } = request;
   if (!queryString) {
     response.processAsync();
     setResponse(response);
@@ -21,7 +24,7 @@ function handleRequest(request, response) {
     response.write(" ");
     return;
   }
-  let [command, value] = queryString.split('=');
+  const [command, value] = queryString.split("=");
   switch (command) {
     case "write":
       getResponse().write(value);

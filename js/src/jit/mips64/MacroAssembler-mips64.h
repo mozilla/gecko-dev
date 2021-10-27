@@ -180,6 +180,7 @@ class MacroAssemblerMIPS64 : public MacroAssemblerMIPSShared {
   void ma_push(FloatRegister f);
 
   void ma_cmp_set(Register dst, Register lhs, ImmWord imm, Condition c);
+  void ma_cmp_set(Register dst, Address address, ImmWord imm, Condition c);
   void ma_cmp_set(Register dst, Register lhs, ImmPtr imm, Condition c);
   void ma_cmp_set(Register dst, Address address, Imm32 imm, Condition c);
 
@@ -789,11 +790,6 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
 
   void cmp32Set(Assembler::Condition cond, Register lhs, Address rhs,
                 Register dest);
-
-  void cmp64Set(Assembler::Condition cond, Register lhs, Imm32 rhs,
-                Register dest) {
-    ma_cmp_set(dest, lhs, rhs, cond);
-  }
 
  protected:
   bool buildOOLFakeExitFrame(void* fakeReturnAddr);

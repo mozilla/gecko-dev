@@ -39,9 +39,7 @@ addRDMTask(
     testViewportDeviceMenuLabel(ui, "Responsive");
 
     // Test device with custom properties
-    let { onPageLoaded } = await waitForViewportLoad(ui);
     await selectDevice(ui, "Fake Phone RDM Test");
-    await onPageLoaded;
     await waitForViewportResizeTo(ui, testDevice.width, testDevice.height);
     info("Should have device UA now that device is applied");
     await testUserAgent(ui, testDevice.userAgent);
@@ -49,17 +47,16 @@ addRDMTask(
     await testTouchEventsOverride(ui, true);
 
     // Test resetting device when resizing viewport
-    const deviceRemoved = once(ui, "device-association-removed");
-    ({ onPageLoaded } = await waitForViewportLoad(ui));
-
     await testViewportResize(
       ui,
       ".viewport-vertical-resize-handle",
       [-10, -10],
-      [0, -10]
+      [0, -10],
+      {
+        hasDevice: true,
+      }
     );
 
-    await Promise.all([deviceRemoved, onPageLoaded]);
     info("Should have default UA after resizing viewport");
     await testUserAgent(ui, DEFAULT_UA);
     await testDevicePixelRatio(ui, DEFAULT_DPPX);
@@ -99,17 +96,17 @@ addRDMTask(
     );
 
     // Select device with custom UA
-    let { onPageLoaded } = await waitForViewportLoad(ui);
+    const waitForReload = await watchForDevToolsReload(ui.getViewportBrowser());
     await selectDevice(ui, "Fake Phone RDM Test");
-    await onPageLoaded;
+    await waitForReload();
     await waitForViewportResizeTo(ui, testDevice.width, testDevice.height);
     info("Should have device UA now that device is applied");
     await testUserAgent(ui, testDevice.userAgent);
 
     // Browser will reload to clear the UA on RDM close
-    ({ onPageLoaded } = await waitForViewportLoad(ui));
+    const onReload = BrowserTestUtils.browserLoaded(ui.getViewportBrowser());
     await closeRDM(tab);
-    await onPageLoaded;
+    await onReload;
 
     // Ensure UA is reset to default after closing RDM
     info("Should have default UA after closing RDM");

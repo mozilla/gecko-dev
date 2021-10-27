@@ -125,7 +125,7 @@ class FormAutofillSection {
    *
    */
   isRecordCreatable(record) {
-    throw new TypeError("isRecordCreatable method must be overrided");
+    throw new TypeError("isRecordCreatable method must be overridden");
   }
 
   /**
@@ -284,6 +284,13 @@ class FormAutofillSection {
               ).slice(-2);
               const year2Digits = profile["cc-exp-year"].toString().slice(-2);
               profile[key] = `${month2Digits}/${year2Digits}`;
+            } else if (key == "cc-number") {
+              // We want to show the last four digits of credit card so that
+              // the masked credit card previews correctly and appears correctly
+              // in the autocomplete menu
+              profile[key] = profile[key].substr(
+                profile[key].length - maxLength
+              );
             } else {
               profile[key] = profile[key].substr(0, maxLength);
             }
@@ -364,6 +371,10 @@ class FormAutofillSection {
         profile[`${fieldDetail.fieldName}-formatted`] ||
         profile[fieldDetail.fieldName];
 
+      // Bug 1688607: The transform function allows us to handle the multiple credit card number fields case
+      if (fieldDetail.transform) {
+        value = fieldDetail.transform(value);
+      }
       if (ChromeUtils.getClassName(element) === "HTMLInputElement" && value) {
         // For the focused input element, it will be filled with a valid value
         // anyway.
@@ -562,6 +573,35 @@ class FormAutofillSection {
   }
 
   /**
+   *  Condenses multiple credit card number fields into one fieldDetail
+   *  in order to submit the credit card record correctly.
+   *
+   * @param {Array.<object>} condensedDetails
+   *  An array of fieldDetails
+   * @memberof FormAutofillSection
+   */
+  _condenseMultipleCCNumberFields(condensedDetails) {
+    let countOfCCNumbers = 0;
+    // We ignore the cases where there are more than or less than four credit card number
+    // fields in a form as this is not a valid case for filling the credit card number.
+    for (let i = condensedDetails.length - 1; i >= 0; i--) {
+      if (condensedDetails[i].fieldName == "cc-number") {
+        countOfCCNumbers++;
+        if (countOfCCNumbers == 4) {
+          countOfCCNumbers = 0;
+          condensedDetails[i].fieldValue =
+            condensedDetails[i].elementWeakRef.get()?.value +
+            condensedDetails[i + 1].elementWeakRef.get()?.value +
+            condensedDetails[i + 2].elementWeakRef.get()?.value +
+            condensedDetails[i + 3].elementWeakRef.get()?.value;
+          condensedDetails.splice(i + 1, 3);
+        }
+      } else {
+        countOfCCNumbers = 0;
+      }
+    }
+  }
+  /**
    * Return the record that is converted from `fieldDetails` and only valid
    * form record is included.
    *
@@ -586,11 +626,13 @@ class FormAutofillSection {
     if (this.flowId) {
       data.flowId = this.flowId;
     }
+    let condensedDetails = this.fieldDetails;
+    this._condenseMultipleCCNumberFields(condensedDetails);
 
-    details.forEach(detail => {
+    condensedDetails.forEach(detail => {
       let element = detail.elementWeakRef.get();
       // Remove the unnecessary spaces
-      let value = element && element.value.trim();
+      let value = detail.fieldValue ?? (element && element.value.trim());
       value = this.computeFillingValue(value, detail, element);
 
       if (!value || value.length > FormAutofillUtils.MAX_FIELD_VALUE_LENGTH) {
@@ -1029,13 +1071,18 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
     }
 
     let element = detail.elementWeakRef.get();
+
+    let ccExpMonth = profile["cc-exp-month"];
+    let ccExpYear = profile["cc-exp-year"];
     if (element.tagName != "INPUT" || !element.placeholder) {
+      // Bug 1688576: Change YYYY-MM to MM/YYYY since MM/YYYY is the
+      // preferred presentation format for credit card expiry dates.
+      profile["cc-exp"] =
+        ccExpMonth.toString().padStart(2, "0") + "/" + ccExpYear.toString();
       return;
     }
 
     let result,
-      ccExpMonth = profile["cc-exp-month"],
-      ccExpYear = profile["cc-exp-year"],
       placeholder = element.placeholder;
 
     // Bug 1687681: This is a short term fix to other locales having
@@ -1143,9 +1190,13 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
    * @override
    */
   applyTransformers(profile) {
-    this.matchSelectOptions(profile);
+    // The matchSelectOptions transformer must be placed after the expiry transformers.
+    // This ensures that the expiry value that is cached in the matchSelectOptions
+    // matches the expiry value that is stored in the profile ensuring that autofill works
+    // correctly when dealing with option elements.
     this.creditCardExpDateTransformer(profile);
     this.creditCardExpMonthTransformer(profile);
+    this.matchSelectOptions(profile);
     this.adaptFieldMaxLength(profile);
   }
 
@@ -1179,7 +1230,7 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
   }
 
   /**
-   * Customize for previewing prorifle.
+   * Customize for previewing profile
    *
    * @param {Object} profile
    *        A profile for pre-processing before previewing values.
@@ -1190,11 +1241,15 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
     // disabled.
     if (profile["cc-number-decrypted"]) {
       profile["cc-number"] = profile["cc-number-decrypted"];
+    } else if (!profile["cc-number"].startsWith("****")) {
+      // Show the previewed credit card as "**** 4444" which is
+      // needed when a credit card number field has a maxlength of four.
+      profile["cc-number"] = "****" + profile["cc-number"];
     }
   }
 
   /**
-   * Customize for filling prorifle.
+   * Customize for filling profile
    *
    * @param {Object} profile
    *        A profile for pre-processing before filling values.

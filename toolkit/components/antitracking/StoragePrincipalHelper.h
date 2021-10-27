@@ -17,7 +17,7 @@
  * StoragePrincipal is the nsIPrincipal to be used to open the cookie jar of a
  * resource's origin. Normally, the StoragePrincipal corresponds to the
  * resource's origin, but, in some scenarios, it can be different: it has the
- * `firstPartyDomain` attribute set to the top-level “site” (i.e., scheme plus
+ * `partitionKey` attribute set to the top-level “site” (i.e., scheme plus
  * eTLD+1 of the origin of the top-level document).
  *
  * Each storage component should always use the StoragePrincipal instead of the
@@ -37,23 +37,33 @@
  * Naming and usage
  * ~~~~~~~~~~~~~~~~
  *
- * StoragePrincipal exposes three types of principals for a resource:
+ * StoragePrincipal exposes four types of principals for a resource:
  * - Regular Principal:
  *     A “first-party” principal derived from the origin of the resource. This
- *     does not have the `first-party-domain` origin attribute set.
+ *     does not have the `partitionKey` origin attribute set.
  * - Partitioned Principal:
- *     The regular principal plus the first-party-domain origin attribute set to
+ *     The regular principal plus the partitionKey origin attribute set to
  *     the site of the top-level document (i.e., scheme plus eTLD+1).
  * - Storage Access Principal:
  *     A dynamic principal that changes when a resource receives storage access.
  *     By default, when storage access is denied, this is equal to the
  *     Partitioned Principal. When storage access is granted, this is equal to
  *     the Regular Principal.
+ * - Foreign Partitioned Principal
+ *     A principal that would be decided according to the fact that if the
+ *     resource is a third party or not. If the resource is in a third-party
+ *     context, this will be the partitioned principal. Otherwise, a regular
+ *     principal will be used. Also, this doesn't like Storage Access Principal
+ *     which changes according to storage access of a resource. Note that this
+ *     is dFPI only; this prinipcal will always return regular principal when
+ *     dFPI is disabled.
  *
  * Consumers of StoragePrincipal can request the principal type that meets their
  * needs. For example, storage that should always be partitioned should choose
  * the Partitioned Principal, while storage that should change with storage
- * access grants should choose the Storage Access Principal.
+ * access grants should choose the Storage Access Principal. And the storage
+ * should be always partiitoned in the third-party context should use the
+ * Foreign Partitioned Principal.
  *
  * You can obtain these nsIPrincipal objects:
  *
@@ -205,6 +215,7 @@ class nsICookieJarSettings;
 class nsILoadGroup;
 class nsIPrincipal;
 class nsIURI;
+class nsPIDOMWindowInner;
 
 namespace mozilla {
 
@@ -248,10 +259,35 @@ class StoragePrincipalHelper final {
     // This is the first-party principal, plus, First-party isolation attribute
     // set.
     ePartitionedPrincipal,
+
+    // This principal returns different results based on whether its associated
+    // channel/window is in a third-party context. While in a third-party
+    // context, it returns the partitioned principal; otherwise, it returns the
+    // regular principal.
+    //
+    // Note that this principal is not a dynamic principal like
+    // `eStorageAccessPrincipal`, which changes depending on whether the storage
+    // access permission is granted. This principal doesn't take the storage
+    // access permission into consideration. Also, this principle is used in
+    // dFPI only, meaning that it always returns the regular principal when dFP
+    // Is disabled.
+    eForeignPartitionedPrincipal,
   };
 
   /**
-   * Extract the right OriginAttributes from the channel's triggering principal.
+   * Extract the principal from the channel/document according to the given
+   * principal type.
+   */
+  static nsresult GetPrincipal(nsIChannel* aChannel,
+                               PrincipalType aPrincipalType,
+                               nsIPrincipal** aPrincipal);
+  static nsresult GetPrincipal(nsPIDOMWindowInner* aWindow,
+                               PrincipalType aPrincipalType,
+                               nsIPrincipal** aPrincipal);
+
+  /**
+   * Extract the right OriginAttributes from the channel's triggering
+   * principal.
    */
   static bool GetOriginAttributes(nsIChannel* aChannel,
                                   OriginAttributes& aAttributes,

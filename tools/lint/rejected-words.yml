@@ -99,7 +99,7 @@ avoid-blacklist-and-whitelist:
         - dom/base/nsTreeSanitizer.h
         - dom/base/test/browser_multiple_popups.js
         - dom/base/test/browser_timeout_throttling_with_audio_playback.js
-        - dom/base/test/chrome/test_permission_isHandlingUserInput.xhtml
+        - dom/base/test/chrome/test_permission_hasValidTransientUserActivation.xhtml
         - dom/bindings/Codegen.py
         - dom/bindings/parser/WebIDL.py
         - dom/bindings/RemoteObjectProxy.cpp
@@ -306,11 +306,11 @@ avoid-blacklist-and-whitelist:
         - services/fxaccounts/FxAccounts.jsm
         - services/sync/modules/engines/addons.js
         - taskcluster/ci/docker-image/kind.yml
-        - taskcluster/taskgraph/actions/create_interactive.py
-        - taskcluster/taskgraph/target_tasks.py
-        - taskcluster/taskgraph/transforms/tests.py
-        - taskcluster/taskgraph/try_option_syntax.py
-        - taskcluster/taskgraph/util/schema.py
+        - taskcluster/gecko_taskgraph/actions/create_interactive.py
+        - taskcluster/gecko_taskgraph/target_tasks.py
+        - taskcluster/gecko_taskgraph/transforms/tests.py
+        - taskcluster/gecko_taskgraph/try_option_syntax.py
+        - taskcluster/gecko_taskgraph/util/schema.py
         - taskcluster/test/test_mach_try_auto.py
         - testing/condprofile/condprof/client.py
         - testing/condprofile/condprof/tests/profile/prefs.js

@@ -328,9 +328,6 @@ class ObjectMemoryView : public MDefinitionVisitorDefaultNoop {
   void visitLambda(MLambda* ins);
   void visitLambdaArrow(MLambdaArrow* ins);
   void visitFunctionWithProto(MFunctionWithProto* ins);
-
- private:
-  void visitObjectGuard(MInstruction* ins, MDefinition* operand);
 };
 
 /* static */ const char ObjectMemoryView::phaseName[] =
@@ -369,9 +366,7 @@ bool ObjectMemoryView::initStartingState(BlockState** pState) {
   startBlock_->insertAfter(obj_, state);
 
   // Initialize the properties of the object state.
-  if (!state->initFromTemplateObject(alloc_, undefinedVal_)) {
-    return false;
-  }
+  state->initFromTemplateObject(alloc_, undefinedVal_);
 
   // Hold out of resume point until it is visited.
   state->setInWorklist();
@@ -622,14 +617,9 @@ void ObjectMemoryView::visitLoadDynamicSlot(MLoadDynamicSlot* ins) {
   ins->block()->discard(ins);
 }
 
-void ObjectMemoryView::visitObjectGuard(MInstruction* ins,
-                                        MDefinition* operand) {
-  MOZ_ASSERT(ins->numOperands() == 1);
-  MOZ_ASSERT(ins->getOperand(0) == operand);
-  MOZ_ASSERT(ins->type() == MIRType::Object);
-
+void ObjectMemoryView::visitGuardShape(MGuardShape* ins) {
   // Skip guards on other objects.
-  if (operand != obj_) {
+  if (ins->object() != obj_) {
     return;
   }
 
@@ -638,10 +628,6 @@ void ObjectMemoryView::visitObjectGuard(MInstruction* ins,
 
   // Remove original instruction.
   ins->block()->discard(ins);
-}
-
-void ObjectMemoryView::visitGuardShape(MGuardShape* ins) {
-  visitObjectGuard(ins, ins->object());
 }
 
 void ObjectMemoryView::visitCheckIsObj(MCheckIsObj* ins) {
@@ -1052,9 +1038,7 @@ bool ArrayMemoryView::initStartingState(BlockState** pState) {
   startBlock_->insertAfter(arr_, state);
 
   // Initialize the elements of the array state.
-  if (!state->initFromTemplateObject(alloc_, undefinedVal_)) {
-    return false;
-  }
+  state->initFromTemplateObject(alloc_, undefinedVal_);
 
   // Hold out of resume point until it is visited.
   state->setInWorklist();
@@ -1512,20 +1496,17 @@ bool ArgumentsReplacer::run() {
     // Iterates over phis and instructions.
     // We do not have to visit resume points. Any resume points that capture
     // the argument object will be handled by the Sink pass.
-    for (MNodeIterator iter(*block); iter;) {
+    for (MDefinitionIterator iter(*block); iter;) {
       // Increment the iterator before visiting the instruction, as the
       // visit function might discard itself from the basic block.
-      MNode* ins = *iter++;
-      if (ins->isDefinition()) {
-        MDefinition* def = ins->toDefinition();
-        switch (def->op()) {
+      MDefinition* def = *iter++;
+      switch (def->op()) {
 #define MIR_OP(op)              \
   case MDefinition::Opcode::op: \
     visit##op(def->to##op());   \
     break;
-          MIR_OPCODE_LIST(MIR_OP)
+        MIR_OPCODE_LIST(MIR_OP)
 #undef MIR_OP
-        }
       }
     }
   }

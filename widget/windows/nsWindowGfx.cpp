@@ -36,6 +36,7 @@
 #include "nsGfxCIID.h"
 #include "gfxContext.h"
 #include "WinUtils.h"
+#include "WinWindowOcclusionTracker.h"
 #include "nsIWidgetListener.h"
 #include "mozilla/Unused.h"
 #include "nsDebug.h"
@@ -53,6 +54,7 @@ using namespace mozilla::gfx;
 using namespace mozilla::layers;
 using namespace mozilla::widget;
 using namespace mozilla::plugins;
+extern mozilla::LazyLogModule gWindowsLog;
 
 /**************************************************************
  **************************************************************
@@ -127,7 +129,7 @@ nsIWidgetListener* nsWindow::GetPaintListener() {
 void nsWindow::ForcePresent() {
   if (mResizeState != RESIZING) {
     if (CompositorBridgeChild* remoteRenderer = GetRemoteRenderer()) {
-      remoteRenderer->SendForcePresent();
+      remoteRenderer->SendForcePresent(wr::RenderReasons::WIDGET);
     }
   }
 }
@@ -190,7 +192,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel) {
       !mBounds.IsEqualEdges(mLastPaintBounds)) {
     // Do an early async composite so that we at least have something on the
     // screen in the right place, even if the content is out of date.
-    layerManager->ScheduleComposite();
+    layerManager->ScheduleComposite(wr::RenderReasons::WIDGET);
   }
   mLastPaintBounds = mBounds;
 
@@ -256,7 +258,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel) {
   }
 
   if (knowsCompositor && layerManager && layerManager->NeedsComposite()) {
-    layerManager->ScheduleComposite();
+    layerManager->ScheduleComposite(wr::RenderReasons::WIDGET);
     layerManager->SetNeedsComposite(false);
   }
 
@@ -399,15 +401,83 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel) {
   return result;
 }
 
+bool nsWindow::NeedsToTrackWindowOcclusionState() {
+  if (!WinWindowOcclusionTracker::Get()) {
+    return false;
+  }
+
+  if (mCompositorSession && mWindowType == eWindowType_toplevel) {
+    return true;
+  }
+
+  return false;
+}
+
+void nsWindow::NotifyOcclusionState(mozilla::widget::OcclusionState aState) {
+  MOZ_ASSERT(NeedsToTrackWindowOcclusionState());
+
+  bool isFullyOccluded = aState == mozilla::widget::OcclusionState::OCCLUDED;
+  // When window is minimized, it is not set as fully occluded.
+  if (mSizeMode == nsSizeMode_Minimized) {
+    isFullyOccluded = false;
+  }
+
+  // Don't dispatch if the new occlustion state is the same as the current
+  // state.
+  if (mIsFullyOccluded == isFullyOccluded) {
+    return;
+  }
+
+  mIsFullyOccluded = isFullyOccluded;
+
+  MOZ_LOG(gWindowsLog, LogLevel::Info,
+          ("nsWindow::NotifyOcclusionState() mIsFullyOccluded %d mSizeMode %d",
+           mIsFullyOccluded, mSizeMode));
+
+  if (mWidgetListener) {
+    mWidgetListener->OcclusionStateChanged(mIsFullyOccluded);
+  }
+}
+
+void nsWindow::MaybeEnableWindowOcclusion(bool aEnable) {
+  bool enabled = gfxConfig::IsEnabled(gfx::Feature::WINDOW_OCCLUSION);
+
+  if (aEnable) {
+    // Enable window occlusion.
+    if (enabled && NeedsToTrackWindowOcclusionState()) {
+      WinWindowOcclusionTracker::Get()->Enable(this, mWnd);
+    }
+    return;
+  }
+
+  // Disable window occlusion.
+  MOZ_ASSERT(!aEnable);
+
+  if (!NeedsToTrackWindowOcclusionState()) {
+    return;
+  }
+
+  WinWindowOcclusionTracker::Get()->Disable(this, mWnd);
+  NotifyOcclusionState(OcclusionState::VISIBLE);
+}
+
 // This override of CreateCompositor is to add support for sending the IPC
 // call for RequesetFxrOutput as soon as the compositor for this widget is
 // available.
 void nsWindow::CreateCompositor() {
   nsWindowBase::CreateCompositor();
 
+  MaybeEnableWindowOcclusion(/* aEnable */ true);
+
   if (mRequestFxrOutputPending) {
     GetRemoteRenderer()->SendRequestFxrOutput();
   }
+}
+
+void nsWindow::DestroyCompositor() {
+  MaybeEnableWindowOcclusion(/* aEnable */ false);
+
+  nsWindowBase::DestroyCompositor();
 }
 
 void nsWindow::RequestFxrOutput() {

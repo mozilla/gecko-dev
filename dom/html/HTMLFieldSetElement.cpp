@@ -7,6 +7,7 @@
 #include "mozilla/BasicEvents.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStates.h"
+#include "mozilla/dom/CustomElementRegistry.h"
 #include "mozilla/dom/HTMLFieldSetElement.h"
 #include "mozilla/dom/HTMLFieldSetElementBinding.h"
 #include "nsContentList.h"
@@ -18,7 +19,8 @@ namespace mozilla::dom {
 
 HTMLFieldSetElement::HTMLFieldSetElement(
     already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
-    : nsGenericHTMLFormElement(std::move(aNodeInfo), FormControlType::Fieldset),
+    : nsGenericHTMLFormControlElement(std::move(aNodeInfo),
+                                      FormControlType::Fieldset),
       mElements(nullptr),
       mFirstLegend(nullptr),
       mInvalidElementsCount(0) {
@@ -37,11 +39,11 @@ HTMLFieldSetElement::~HTMLFieldSetElement() {
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLFieldSetElement,
-                                   nsGenericHTMLFormElement, mValidity,
+                                   nsGenericHTMLFormControlElement, mValidity,
                                    mElements)
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLFieldSetElement,
-                                             nsGenericHTMLFormElement,
+                                             nsGenericHTMLFormControlElement,
                                              nsIConstraintValidation)
 
 NS_IMPL_ELEMENT_CLONE(HTMLFieldSetElement)
@@ -58,7 +60,7 @@ void HTMLFieldSetElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
     return;
   }
 
-  nsGenericHTMLFormElement::GetEventTargetParent(aVisitor);
+  nsGenericHTMLFormControlElement::GetEventTargetParent(aVisitor);
 }
 
 nsresult HTMLFieldSetElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
@@ -85,7 +87,7 @@ nsresult HTMLFieldSetElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
     }
   }
 
-  return nsGenericHTMLFormElement::AfterSetAttr(
+  return nsGenericHTMLFormControlElement::AfterSetAttr(
       aNameSpaceID, aName, aValue, aOldValue, aSubjectPrincipal, aNotify);
 }
 
@@ -135,8 +137,8 @@ void HTMLFieldSetElement::InsertChildBefore(nsIContent* aChild,
     }
   }
 
-  nsGenericHTMLFormElement::InsertChildBefore(aChild, aBeforeThis, aNotify,
-                                              aRv);
+  nsGenericHTMLFormControlElement::InsertChildBefore(aChild, aBeforeThis,
+                                                     aNotify, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -163,7 +165,7 @@ void HTMLFieldSetElement::RemoveChildNode(nsIContent* aKid, bool aNotify) {
     }
   }
 
-  nsGenericHTMLFormElement::RemoveChildNode(aKid, aNotify);
+  nsGenericHTMLFormControlElement::RemoveChildNode(aKid, aNotify);
 
   if (firstLegendHasChanged) {
     NotifyElementsForFirstLegendChange(aNotify);
@@ -181,6 +183,14 @@ void HTMLFieldSetElement::AddElement(nsGenericHTMLFormElement* aElement) {
       UpdateValidity(false);
     }
     return;
+  }
+
+  // If the element is a form-associated custom element, adding element might be
+  // caused by FACE upgrade which won't trigger mutation observer, so mark
+  // mElements dirty manually here.
+  CustomElementData* data = aElement->GetCustomElementData();
+  if (data && data->IsFormAssociated() && mElements) {
+    mElements->SetDirty();
   }
 
   // We need to update the validity of the fieldset.
@@ -291,7 +301,7 @@ void HTMLFieldSetElement::UpdateValidity(bool aElementValidity) {
 }
 
 EventStates HTMLFieldSetElement::IntrinsicState() const {
-  EventStates state = nsGenericHTMLFormElement::IntrinsicState();
+  EventStates state = nsGenericHTMLFormControlElement::IntrinsicState();
 
   if (mInvalidElementsCount) {
     state |= NS_EVENT_STATE_INVALID;

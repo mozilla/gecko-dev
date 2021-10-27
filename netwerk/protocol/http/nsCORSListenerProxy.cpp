@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsString.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/StaticPrefs_content.h"
@@ -17,6 +18,7 @@
 #include "nsError.h"
 #include "nsContentUtils.h"
 #include "nsNetUtil.h"
+#include "nsComponentManagerUtils.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsMimeTypes.h"
@@ -47,6 +49,7 @@
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/nsHTTPSOnlyUtils.h"
+#include "mozilla/dom/ReferrerInfo.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -55,6 +58,15 @@ using namespace mozilla::net;
 #define PREFLIGHT_CACHE_SIZE 100
 // 5 seconds is chosen to be compatible with Chromium.
 #define PREFLIGHT_DEFAULT_EXPIRY_SECONDS 5
+
+static inline nsAutoString GetStatusCodeAsString(nsIHttpChannel* aHttp) {
+  nsAutoString result;
+  uint32_t code;
+  if (NS_SUCCEEDED(aHttp->GetResponseStatus(&code))) {
+    result.AppendInt(code);
+  }
+  return result;
+}
 
 static void LogBlockedRequest(nsIRequest* aRequest, const char* aProperty,
                               const char16_t* aParam, uint32_t aBlockingReason,
@@ -497,7 +509,7 @@ nsresult nsCORSListenerProxy::CheckRequestApproved(nsIRequest* aRequest) {
   nsresult status;
   nsresult rv = aRequest->GetStatus(&status);
   if (NS_FAILED(rv)) {
-    LogBlockedRequest(aRequest, "CORSDidNotSucceed", nullptr,
+    LogBlockedRequest(aRequest, "CORSDidNotSucceed2", nullptr,
                       nsILoadInfo::BLOCKING_REASON_CORSDIDNOTSUCCEED,
                       topChannel);
     return rv;
@@ -506,7 +518,7 @@ nsresult nsCORSListenerProxy::CheckRequestApproved(nsIRequest* aRequest) {
   if (NS_FAILED(status)) {
     if (NS_BINDING_ABORTED != status) {
       // Don't want to log mere cancellation as an error.
-      LogBlockedRequest(aRequest, "CORSDidNotSucceed", nullptr,
+      LogBlockedRequest(aRequest, "CORSDidNotSucceed2", nullptr,
                         nsILoadInfo::BLOCKING_REASON_CORSDIDNOTSUCCEED,
                         topChannel);
     }
@@ -556,7 +568,8 @@ nsresult nsCORSListenerProxy::CheckRequestApproved(nsIRequest* aRequest) {
   rv = http->GetResponseHeader("Access-Control-Allow-Origin"_ns,
                                allowedOriginHeader);
   if (NS_FAILED(rv)) {
-    LogBlockedRequest(aRequest, "CORSMissingAllowOrigin", nullptr,
+    auto statusCode = GetStatusCodeAsString(http);
+    LogBlockedRequest(aRequest, "CORSMissingAllowOrigin2", statusCode.get(),
                       nsILoadInfo::BLOCKING_REASON_CORSMISSINGALLOWORIGIN,
                       topChannel);
     return rv;
@@ -1054,7 +1067,8 @@ nsresult nsCORSListenerProxy::CheckPreflightNeeded(nsIChannel* aChannel,
 
   nsCOMPtr<nsIHttpChannelInternal> internal = do_QueryInterface(http);
   if (!internal) {
-    LogBlockedRequest(aChannel, "CORSDidNotSucceed", nullptr,
+    auto statusCode = GetStatusCodeAsString(http);
+    LogBlockedRequest(aChannel, "CORSDidNotSucceed2", statusCode.get(),
                       nsILoadInfo::BLOCKING_REASON_CORSDIDNOTSUCCEED,
                       mHttpChannel);
     return NS_ERROR_DOM_BAD_URI;
@@ -1297,7 +1311,8 @@ nsresult nsCORSPreflightListener::CheckPreflightRequestApproved(
   bool succeedded;
   rv = http->GetRequestSucceeded(&succeedded);
   if (NS_FAILED(rv) || !succeedded) {
-    LogBlockedRequest(aRequest, "CORSPreflightDidNotSucceed2", nullptr,
+    auto statusCode = GetStatusCodeAsString(http);
+    LogBlockedRequest(aRequest, "CORSPreflightDidNotSucceed3", statusCode.get(),
                       nsILoadInfo::BLOCKING_REASON_CORSPREFLIGHTDIDNOTSUCCEED,
                       parentHttpChannel);
     return NS_ERROR_DOM_BAD_URI;

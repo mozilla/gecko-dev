@@ -23,6 +23,13 @@ interface nsIFOG : nsISupports
   void initializeFOG([optional] in AUTF8String aDataPathOverride, [optional] in AUTF8String aAppIdOverride);
 
   /**
+   * Register custom pings.
+   *
+   * Ensure all custom pings are registered with Glean.
+   */
+  void registerCustomPings();
+
+  /**
    * Enable or Disable the logging of pings in the Glean SDK.
    * See https://firefox-source-docs.mozilla.org/toolkit/components/glean/testing.html
    * for details.
@@ -52,6 +59,48 @@ interface nsIFOG : nsISupports
    *                    (e.g if it is empty), no ping will be sent.
    */
   void sendPing(in ACString aPingName);
+
+  /**
+   * Indicate that an experiment is running.
+   * Glean will add an experiment annotation which is sent with pings.
+   * This information is not persisted between runs.
+   *
+   * See `glean_core::Glean::set_experiment_active`.
+   *
+   * Logs on error, but does not throw.
+   *
+   * @param aExperimentId - The id/slug of the experiment.
+   * @param aBranch - The name of the active branch of the experiment.
+   * @param aExtra - Optional string -> string dictionary of extra information.
+   */
+  [implicit_jscontext]
+  void setExperimentActive(in ACString aExperimentId, in ACString aBranch, [optional] in jsval aExtra);
+
+  /**
+   * Indicate that an experiment is no longer running.
+   *
+   * See `glean_core::Glean::set_experiment_inactive`.
+   *
+   * Logs on error, but does not throw.
+   *
+   * @param aExperimentId - The id/slug of the experiment from setExperimentActive.
+   */
+  void setExperimentInactive(in ACString aExperimentId);
+
+  /**
+   * **Test-only API**
+   *
+   * If the identified experiment was set active and hasn't been set inactive,
+   * this will give you the active branch and extra information.
+   *
+   * @param aExperimentId - The id/slug of the experiment from setExperimentActive.
+   *
+   * @return an object of the form
+   *         {branch: "branch-name", extra: {extra_key1: extra_value1, ...}}
+   *         if there is an active experiment. Undefined, otherwise.
+   */
+  [implicit_jscontext]
+  jsval testGetExperimentData(in ACString aExperimentId);
 
   /**
    * ** Test-only Method **

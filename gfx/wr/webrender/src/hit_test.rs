@@ -10,6 +10,7 @@ use crate::clip::{polygon_contains_point};
 use crate::prim_store::PolygonKey;
 use crate::scene_builder_thread::Interners;
 use crate::spatial_tree::{SpatialNodeIndex, SpatialTree, get_external_scroll_offset};
+use crate::spatial_node::SpatialNodeType;
 use crate::internal_types::{FastHashMap, FastHashSet, LayoutPrimitiveInfo};
 use std::ops;
 use std::sync::{Arc, Mutex};
@@ -43,10 +44,9 @@ impl SharedHitTester {
 
 impl ApiHitTester for SharedHitTester {
     fn hit_test(&self,
-        pipeline_id: Option<PipelineId>,
         point: WorldPoint,
     ) -> HitTestResult {
-        self.get_ref().hit_test(HitTest::new(pipeline_id, point))
+        self.get_ref().hit_test(HitTest::new(point))
     }
 }
 
@@ -353,12 +353,18 @@ impl HitTester {
         spatial_tree: &SpatialTree,
     ) {
         self.spatial_nodes.clear();
-
         self.spatial_nodes.reserve(spatial_tree.spatial_node_count());
-        spatial_tree.iter_nodes(|index, node| {
-            // If we haven't already seen a node for this pipeline, record this one as the root
-            // node.
-            self.pipeline_root_nodes.entry(node.pipeline_id).or_insert(index);
+        self.pipeline_root_nodes.clear();
+
+        spatial_tree.visit_nodes(|index, node| {
+
+            // Store root node for this pipeline so we can return pipeline-relative points
+            if let SpatialNodeType::ReferenceFrame(ref info) = node.node_type {
+                if info.is_pipeline_root {
+                    let _old = self.pipeline_root_nodes.insert(node.pipeline_id, index);
+                    debug_assert!(_old.is_none());
+                }
+            }
 
             //TODO: avoid inverting more than necessary:
             //  - if the coordinate system is non-invertible, no need to try any of these concrete transforms
@@ -389,10 +395,6 @@ impl HitTester {
         for item in self.scene.items.iter().rev() {
             let scroll_node = &self.spatial_nodes[&item.spatial_node_index];
             let pipeline_id = scroll_node.pipeline_id;
-            match (test.pipeline_id, pipeline_id) {
-                (Some(id), node_id) if node_id != id => continue,
-                _ => {},
-            }
 
             // Update the cached point in layer space, if the spatial node
             // changed since last primitive.
@@ -479,17 +481,14 @@ impl HitTester {
 
 #[derive(MallocSizeOf)]
 pub struct HitTest {
-    pipeline_id: Option<PipelineId>,
     point: WorldPoint,
 }
 
 impl HitTest {
     pub fn new(
-        pipeline_id: Option<PipelineId>,
         point: WorldPoint,
     ) -> HitTest {
         HitTest {
-            pipeline_id,
             point,
         }
     }

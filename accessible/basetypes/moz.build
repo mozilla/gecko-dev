@@ -6,10 +6,12 @@
 
 EXPORTS.mozilla.a11y += [
     "Accessible.h",
+    "HyperTextAccessibleBase.h",
 ]
 
 UNIFIED_SOURCES += [
     "Accessible.cpp",
+    "HyperTextAccessibleBase.cpp",
 ]
 
 LOCAL_INCLUDES += [

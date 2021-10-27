@@ -1578,17 +1578,10 @@ nsXULPrototypeScript::nsXULPrototypeScript(uint32_t aLineNo)
       mStencil(nullptr) {}
 
 static nsresult WriteStencil(nsIObjectOutputStream* aStream, JSContext* aCx,
-                             const JS::ReadOnlyCompileOptions& aOptions,
                              JS::Stencil* aStencil) {
-  uint8_t flags = 0;  // We don't have flags anymore.
-  nsresult rv = aStream->Write8(flags);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
   JS::TranscodeBuffer buffer;
   JS::TranscodeResult code;
-  code = JS::EncodeStencil(aCx, aOptions, aStencil, buffer);
+  code = JS::EncodeStencil(aCx, aStencil, buffer);
 
   if (code != JS::TranscodeResult::Ok) {
     if (code == JS::TranscodeResult::Throw) {
@@ -1604,7 +1597,7 @@ static nsresult WriteStencil(nsIObjectOutputStream* aStream, JSContext* aCx,
   if (size > UINT32_MAX) {
     return NS_ERROR_FAILURE;
   }
-  rv = aStream->Write32(size);
+  nsresult rv = aStream->Write32(size);
   if (NS_SUCCEEDED(rv)) {
     // Ideally we could just pass "buffer" here.  See bug 1566574.
     rv = aStream->WriteBytes(Span(buffer.begin(), size));
@@ -1614,14 +1607,8 @@ static nsresult WriteStencil(nsIObjectOutputStream* aStream, JSContext* aCx,
 }
 
 static nsresult ReadStencil(nsIObjectInputStream* aStream, JSContext* aCx,
-                            const JS::ReadOnlyCompileOptions& aOptions,
+                            const JS::DecodeOptions& aOptions,
                             JS::Stencil** aStencilOut) {
-  uint8_t flags;
-  nsresult rv = aStream->Read8(&flags);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
   // We don't serialize mutedError-ness of scripts, which is fine as long as
   // we only serialize system and XUL-y things. We can detect this by checking
   // where the caller wants us to deserialize.
@@ -1633,7 +1620,7 @@ static nsresult ReadStencil(nsIObjectInputStream* aStream, JSContext* aCx,
                      JS::CurrentGlobalOrNull(aCx) == loaderGlobal);
 
   uint32_t size;
-  rv = aStream->Read32(&size);
+  nsresult rv = aStream->Read32(&size);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1701,10 +1688,7 @@ nsresult nsXULPrototypeScript::Serialize(
   JSContext* cx = jsapi.cx();
   MOZ_ASSERT(xpc::CompilationScope() == JS::CurrentGlobalOrNull(cx));
 
-  JS::CompileOptions options(cx);
-  FillCompileOptions(options);
-
-  return WriteStencil(aStream, cx, options, mStencil);
+  return WriteStencil(aStream, cx, mStencil);
 }
 
 nsresult nsXULPrototypeScript::SerializeOutOfLine(
@@ -1766,9 +1750,7 @@ nsresult nsXULPrototypeScript::Deserialize(
   }
   JSContext* cx = jsapi.cx();
 
-  JS::CompileOptions options(cx);
-  FillCompileOptions(options);
-
+  JS::DecodeOptions options;
   RefPtr<JS::Stencil> newStencil;
   rv = ReadStencil(aStream, cx, options, getter_AddRefs(newStencil));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1984,10 +1966,8 @@ nsresult nsXULPrototypeScript::InstantiateScript(
 
   JS::CompileOptions options(aCx);
   FillCompileOptions(options);
-  // We don't need setIntroductionType and setFileAndLine here, unlike
-  // nsXULPrototypeScript::Compile.
-  // mStencil already contains the information.
-  aScript.set(JS::InstantiateGlobalStencil(aCx, options, mStencil));
+  JS::InstantiateOptions instantiateOptions(options);
+  aScript.set(JS::InstantiateGlobalStencil(aCx, instantiateOptions, mStencil));
   if (!aScript) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_OUT_OF_MEMORY;

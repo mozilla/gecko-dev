@@ -22,11 +22,8 @@ static constexpr auto kResourceURI = "resourceuri"_ns;
 static constexpr auto kBlobUri = "bloburi"_ns;
 static constexpr auto kDataUri = "dataurl"_ns;
 static constexpr auto kAboutUri = "abouturi"_ns;
-static constexpr auto kDataUriWebExtCStyle =
-    "dataurl-extension-contentstyle"_ns;
 static constexpr auto kSingleString = "singlestring"_ns;
 static constexpr auto kMozillaExtensionFile = "mozillaextension_file"_ns;
-static constexpr auto kOtherExtensionFile = "otherextension_file"_ns;
 static constexpr auto kExtensionURI = "extension_uri"_ns;
 static constexpr auto kSuspectedUserChromeJS = "suspectedUserChromeJS"_ns;
 #if defined(XP_WIN)
@@ -34,14 +31,17 @@ static constexpr auto kSanitizedWindowsURL = "sanitizedWindowsURL"_ns;
 static constexpr auto kSanitizedWindowsPath = "sanitizedWindowsPath"_ns;
 #endif
 static constexpr auto kOther = "other"_ns;
-static constexpr auto kOtherWorker = "other-on-worker"_ns;
-static constexpr auto kRegexFailure = "regexfailure"_ns;
 
 #define ASSERT_AND_PRINT(first, second, condition)                      \
   fprintf(stderr, "First: %s\n", first.get());                          \
   fprintf(stderr, "Second: %s\n", NS_ConvertUTF16toUTF8(second).get()); \
   ASSERT_TRUE((condition));
 // Usage: ASSERT_AND_PRINT(ret.first, ret.second.value(), ...
+
+#define ASSERT_AND_PRINT_FIRST(first, condition) \
+  fprintf(stderr, "First: %s\n", (first).get()); \
+  ASSERT_TRUE((condition));
+// Usage: ASSERT_AND_PRINT_FIRST(ret.first, ...
 
 TEST(FilenameEvalParser, ResourceChrome)
 {

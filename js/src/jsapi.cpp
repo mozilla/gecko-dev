@@ -1778,7 +1778,7 @@ JS_PUBLIC_API void JS_GlobalObjectTraceHook(JSTracer* trc, JSObject* global) {
 
   // Trace the realm for any GC things that should only stick around if we
   // know the global is live.
-  globalRealm->traceGlobal(trc);
+  globalRealm->traceGlobalData(trc);
 
   globalObj->traceData(trc);
 
@@ -2306,8 +2306,8 @@ void JS::TransitiveCompileOptions::copyPODTransitiveOptions(
   introductionLineno = rhs.introductionLineno;
   introductionOffset = rhs.introductionOffset;
   hasIntroductionInfo = rhs.hasIntroductionInfo;
-  hideScriptFromDebugger = rhs.hideScriptFromDebugger;
-  deferDebugMetadata = rhs.deferDebugMetadata;
+  hideScriptFromDebugger_ = rhs.hideScriptFromDebugger_;
+  deferDebugMetadata_ = rhs.deferDebugMetadata_;
   nonSyntacticScope = rhs.nonSyntacticScope;
   privateClassFields = rhs.privateClassFields;
   privateClassMethods = rhs.privateClassMethods;
@@ -3673,7 +3673,7 @@ JS_PUBLIC_API void JS_SetPendingException(JSContext* cx, HandleValue value,
   // exception values can be in an abitrary compartment.
 
   if (behavior == JS::ExceptionStackBehavior::Capture) {
-    cx->setPendingExceptionAndCaptureStack(value);
+    cx->setPendingException(value, ShouldCaptureStack::Always);
   } else {
     cx->setPendingException(value, nullptr);
   }
@@ -4455,104 +4455,6 @@ JS_PUBLIC_API void JS::detail::AssertArgumentsAreSane(JSContext* cx,
   cx->check(value);
 }
 #endif /* JS_DEBUG */
-
-static JS::TranscodeResult DecodeStencil(JSContext* cx,
-                                         JS::TranscodeBuffer& buffer,
-                                         frontend::CompilationInput& input,
-                                         frontend::CompilationStencil& stencil,
-                                         size_t cursorIndex) {
-  XDRStencilDecoder decoder(cx, buffer, cursorIndex);
-
-  if (!input.initForGlobal(cx)) {
-    return JS::TranscodeResult::Throw;
-  }
-
-  XDRResult res = decoder.codeStencil(input.options, stencil);
-  if (res.isErr()) {
-    return res.unwrapErr();
-  }
-
-  return JS::TranscodeResult::Ok;
-}
-
-JS_PUBLIC_API JS::TranscodeResult JS::DecodeScriptMaybeStencil(
-    JSContext* cx, const ReadOnlyCompileOptions& options,
-    TranscodeBuffer& buffer, JS::MutableHandleScript scriptp,
-    size_t cursorIndex) {
-  MOZ_ASSERT(JS::IsTranscodingBytecodeAligned(buffer.begin()));
-  MOZ_ASSERT(JS::IsTranscodingBytecodeOffsetAligned(cursorIndex));
-
-  // The buffer contains stencil.
-
-  CompileOptions opts(cx, options);
-  opts.borrowBuffer = true;
-
-  Rooted<frontend::CompilationInput> input(cx,
-                                           frontend::CompilationInput(opts));
-  frontend::CompilationStencil stencil(nullptr);
-
-  JS::TranscodeResult res =
-      DecodeStencil(cx, buffer, input.get(), stencil, cursorIndex);
-  if (res != JS::TranscodeResult::Ok) {
-    return res;
-  }
-
-  Rooted<frontend::CompilationGCOutput> gcOutput(cx);
-  if (!frontend::InstantiateStencils(cx, input.get(), stencil,
-                                     gcOutput.get())) {
-    return JS::TranscodeResult::Throw;
-  }
-
-  MOZ_ASSERT(gcOutput.get().script);
-  scriptp.set(gcOutput.get().script);
-
-  return JS::TranscodeResult::Ok;
-}
-
-JS_PUBLIC_API JS::TranscodeResult JS::DecodeScriptAndStartIncrementalEncoding(
-    JSContext* cx, const ReadOnlyCompileOptions& options,
-    TranscodeBuffer& buffer, JS::MutableHandleScript scriptp,
-    size_t cursorIndex) {
-  CompileOptions opts(cx, options);
-  opts.borrowBuffer = true;
-
-  Rooted<frontend::CompilationInput> input(cx,
-                                           frontend::CompilationInput(opts));
-  frontend::CompilationStencil stencil(nullptr);
-
-  JS::TranscodeResult res =
-      DecodeStencil(cx, buffer, input.get(), stencil, cursorIndex);
-  if (res != JS::TranscodeResult::Ok) {
-    return res;
-  }
-
-  Rooted<frontend::CompilationGCOutput> gcOutput(cx);
-  if (!frontend::InstantiateStencils(cx, input.get(), stencil,
-                                     gcOutput.get())) {
-    return JS::TranscodeResult::Throw;
-  }
-
-  MOZ_ASSERT(gcOutput.get().script);
-
-  auto initial =
-      js::MakeUnique<frontend::ExtensibleCompilationStencil>(cx, input.get());
-  if (!initial) {
-    ReportOutOfMemory(cx);
-    return JS::TranscodeResult::Throw;
-  }
-  if (!initial->steal(cx, std::move(stencil))) {
-    return JS::TranscodeResult::Throw;
-  }
-
-  if (!gcOutput.get().script->scriptSource()->startIncrementalEncoding(
-          cx, opts, std::move(initial))) {
-    return JS::TranscodeResult::Throw;
-  }
-
-  scriptp.set(gcOutput.get().script);
-
-  return JS::TranscodeResult::Ok;
-}
 
 JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
                                                  JS::HandleScript script,

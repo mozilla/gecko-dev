@@ -107,16 +107,16 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       this._updateStatePreAdd(result, state);
     }
 
-    // Determine the buckets to use for this sort.  In search mode with an
-    // engine, show search suggestions first.
-    let rootBucket = context.searchMode?.engineName
-      ? UrlbarPrefs.makeResultBuckets({ showSearchSuggestionsFirst: true })
+    // Determine the result groups to use for this sort.  In search mode with
+    // an engine, show search suggestions first.
+    let rootGroup = context.searchMode?.engineName
+      ? UrlbarPrefs.makeResultGroups({ showSearchSuggestionsFirst: true })
       : UrlbarPrefs.get("resultGroups");
-    logger.debug(`Buckets: ${rootBucket}`);
+    logger.debug(`Groups: ${rootGroup}`);
 
     // Fill the root group.
     let [sortedResults] = this._fillGroup(
-      rootBucket,
+      rootGroup,
       { availableSpan: state.availableResultSpan, maxResultCount: Infinity },
       state
     );
@@ -482,7 +482,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
         while (summedFillableLimit != fillableLimit) {
           if (!fractionalDataArray.length) {
             // This shouldn't happen, but don't let it break us.
-            Cu.reportError("fractionalDataArray is empty!");
+            logger.error("fractionalDataArray is empty!");
             break;
           }
           let data = flexDataArray[fractionalDataArray.shift().index];
@@ -573,7 +573,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
   }
 
   /**
-   * Returns whether a result can be added to its bucket given the current sort
+   * Returns whether a result can be added to its group given the current sort
    * state.
    *
    * @param {UrlbarResult} result
@@ -643,7 +643,8 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       state.context.heuristicResult.autofill &&
       !result.autofill &&
       state.context.heuristicResult.payload?.url == result.payload.url &&
-      state.context.heuristicResult.type == result.type
+      state.context.heuristicResult.type == result.type &&
+      !UrlbarPrefs.get("experimental.hideHeuristic")
     ) {
       return false;
     }
@@ -810,9 +811,9 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
 
     // Heuristic results must always be the first result.  If this result is a
     // heuristic but we've already added results, discard it.  Normally this
-    // should never happen because the standard result buckets are set up so
+    // should never happen because the standard result groups are set up so
     // that there's always at most one heuristic and it's always first, but
-    // since result buckets are stored in a pref and can therefore be modified
+    // since result groups are stored in a pref and can therefore be modified
     // by the user, we perform this check.
     if (result.heuristic && state.usedResultSpan) {
       return false;
@@ -862,7 +863,8 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
     if (
       (result.type == UrlbarUtils.RESULT_TYPE.URL ||
         result.type == UrlbarUtils.RESULT_TYPE.KEYWORD) &&
-      result.payload.url
+      result.payload.url &&
+      (!result.heuristic || !UrlbarPrefs.get("experimental.hideHeuristic"))
     ) {
       let [strippedUrl, prefix] = UrlbarUtils.stripPrefixAndTrim(
         result.payload.url,
@@ -939,7 +941,8 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       state.context.heuristicResult = result;
       if (
         result.type == UrlbarUtils.RESULT_TYPE.SEARCH &&
-        result.payload.query
+        result.payload.query &&
+        !UrlbarPrefs.get("experimental.hideHeuristic")
       ) {
         let query = result.payload.query.trim().toLocaleLowerCase();
         if (query) {

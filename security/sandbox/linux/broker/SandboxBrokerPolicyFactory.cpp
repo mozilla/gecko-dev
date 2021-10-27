@@ -335,8 +335,10 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
   // Various places where fonts reside
   policy->AddDir(rdonly, "/usr/X11R6/lib/X11/fonts");
   policy->AddDir(rdonly, "/nix/store");
+  // https://gitlab.com/freedesktop-sdk/freedesktop-sdk/-/blob/e434e680d22260f277f4a30ec4660ed32b591d16/files/fontconfig-flatpak.conf
   policy->AddDir(rdonly, "/run/host/fonts");
   policy->AddDir(rdonly, "/run/host/user-fonts");
+  policy->AddDir(rdonly, "/run/host/local-fonts");
   policy->AddDir(rdonly, "/var/cache/fontconfig");
 
   if (!headless) {
@@ -559,9 +561,30 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
       policy->AddPrefix(SandboxBroker::MAY_CONNECT, "/tmp/.X11-unix/X");
       if (auto* const xauth = PR_GetEnv("XAUTHORITY")) {
         policy->AddPath(rdonly, xauth);
+      } else if (auto* const home = PR_GetEnv("HOME")) {
+        // This follows the logic in libXau: append "/.Xauthority",
+        // even if $HOME ends in a slash, except in the special case
+        // where HOME=/ because POSIX allows implementations to treat
+        // an initial double slash specially.
+        nsAutoCString xauth(home);
+        if (xauth != "/"_ns) {
+          xauth.Append('/');
+        }
+        xauth.AppendLiteral(".Xauthority");
+        policy->AddPath(rdonly, xauth.get());
       }
     }
 #endif
+  }
+
+  // Bug 1732580: when packaged as a strictly confined snap, may need
+  // read-access to configuration files under $SNAP/.
+  const char* snap = PR_GetEnv("SNAP");
+  if (snap) {
+    // When running as a snap, the directory pointed to by $SNAP is guaranteed
+    // to exist before the app is launched, but unit tests need to create it
+    // dynamically, hence the use of AddFutureDir().
+    policy->AddFutureDir(rdonly, snap);
   }
 
   // Read any extra paths that will get write permissions,
@@ -716,6 +739,9 @@ UniquePtr<SandboxBroker::Policy> SandboxBrokerPolicyFactory::GetContentPolicy(
 
   // Bug 1198550: the profiler's replacement for dl_iterate_phdr
   policy->AddPath(rdonly, nsPrintfCString("/proc/%d/maps", aPid).get());
+
+  // Bug 1736040: CPU use telemetry
+  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/stat", aPid).get());
 
   // Bug 1198552: memory reporting.
   AddMemoryReporting(policy.get(), aPid);

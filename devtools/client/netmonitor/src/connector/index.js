@@ -171,6 +171,8 @@ class Connector {
     }
 
     this.webConsoleFront = null;
+
+    this.dataProvider.destroy();
     this.dataProvider = null;
   }
 
@@ -296,6 +298,8 @@ class Connector {
       if (!Services.prefs.getBoolPref(DEVTOOLS_ENABLE_PERSISTENT_LOG_PREF)) {
         this.actions.batchReset();
         this.actions.clearRequests();
+        // clean up all the dataProvider internal state
+        this.dataProvider.destroy();
       } else {
         // If the log is persistent, just clear all accumulated timing markers.
         this.actions.clearTimingMarkers();
@@ -432,9 +436,6 @@ class Connector {
     if (this.hasResourceCommandSupport && this.networkFront) {
       return this.networkFront.getBlockedUrls();
     }
-    if (!this.webConsoleFront.traits.blockedUrls) {
-      return [];
-    }
     return this.webConsoleFront.getBlockedUrls();
   }
 
@@ -443,12 +444,8 @@ class Connector {
       DEVTOOLS_ENABLE_PERSISTENT_LOG_PREF
     );
 
-    // @backward-compat { version 93 } The network parent actor started exposing setPersist method.
-    // Once we drop support for 92, we can drop the trait, but we will have to keep the other checks
-    // until we stop using legacy listeners entirely. (bug 1689459)
-    const hasServerSupport = this.commands.targetCommand.hasTargetWatcherSupport(
-      "network-persist"
-    );
+    // Lets keep these checks until we stop using legacy listeners entirely. (bug 1689459)
+    const hasServerSupport = this.commands.targetCommand.hasTargetWatcherSupport();
     if (
       hasServerSupport &&
       this.hasResourceCommandSupport &&

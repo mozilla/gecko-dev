@@ -40,9 +40,10 @@ struct MozContainerWayland {
   struct wl_callback* frame_callback_handler;
   struct wp_viewport* viewport;
   gboolean opaque_region_needs_updates;
-  gboolean opaque_region_subtract_corners;
+  int opaque_region_corner_radius;
   gboolean opaque_region_used;
   gboolean ready_to_draw;
+  gboolean commit_to_parent;
   gboolean before_first_size_alloc;
   int buffer_scale;
   std::vector<std::function<void(void)>> initial_draw_cbs;
@@ -79,11 +80,13 @@ void moz_container_wayland_set_scale_factor(MozContainer* container);
 void moz_container_wayland_set_scale_factor_locked(MozContainer* container);
 void moz_container_wayland_add_initial_draw_callback(
     MozContainer* container, const std::function<void(void)>& initial_draw_cb);
+void moz_container_wayland_clear_initial_draw_callback(MozContainer* container);
 wl_surface* moz_gtk_widget_get_wl_surface(GtkWidget* aWidget);
 void moz_container_wayland_update_opaque_region(MozContainer* container,
-                                                bool aSubtractCorners);
+                                                int corner_radius);
 gboolean moz_container_wayland_can_draw(MozContainer* container);
 double moz_container_wayland_get_scale(MozContainer* container);
-struct wp_viewport* moz_container_wayland_get_viewport(MozContainer* container);
+void moz_container_wayland_set_commit_to_parent(MozContainer* container);
+bool moz_container_wayland_is_commiting_to_parent(MozContainer* container);
 
 #endif /* __MOZ_CONTAINER_WAYLAND_H__ */

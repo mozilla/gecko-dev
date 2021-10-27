@@ -14,11 +14,6 @@
 using namespace mozilla::unicode;
 using namespace mozilla::intl;
 
-/*static*/
-already_AddRefed<LineBreaker> LineBreaker::Create() {
-  return RefPtr<LineBreaker>(new LineBreaker()).forget();
-}
-
 /*
 
    Simplification of Pair Table in JIS X 4051
@@ -370,11 +365,12 @@ static inline bool IS_HYPHEN(char16_t u) {
   return (u == U_HYPHEN || u == 0x2010 ||  // HYPHEN
           u == 0x2012 ||                   // FIGURE DASH
           u == 0x2013 ||                   // EN DASH
-#if ANDROID
-          /* Bug 1647377: On Android, we don't have a "platform" backend
-           * that supports Tibetan (nsRuleBreaker.cpp only knows about
-           * Thai), so instead we just treat the TSHEG like a hyphen to
-           * provide basic line-breaking possibilities.
+#if ANDROID || XP_WIN
+          /* Bug 1647377: On Android and Windows, we don't have a "platform"
+           * backend that supports Tibetan (nsRuleBreaker.cpp only knows about
+           * Thai, and ScriptBreak doesn't handle Tibetan well either), so
+           * instead we just treat the TSHEG like a hyphen to provide basic
+           * line-breaking possibilities.
            */
           u == 0x0F0B ||  // TIBETAN MARK INTERSYLLABIC TSHEG
 #endif
@@ -912,65 +908,48 @@ static int8_t ContextualAnalysis(char32_t prev, char32_t cur, char32_t next,
   return GetClass(cur, aLevel, aIsChineseOrJapanese);
 }
 
-int32_t LineBreaker::WordMove(const char16_t* aText, uint32_t aLen,
-                              uint32_t aPos, int8_t aDirection) {
-  bool textNeedsJISx4051 = false;
+int32_t LineBreaker::Next(const char16_t* aText, uint32_t aLen, uint32_t aPos) {
+  MOZ_ASSERT(aText);
+
+  if (aPos >= aLen) {
+    return NS_LINEBREAKER_NEED_MORE_TEXT;
+  }
+
+  bool textNeedsComplexLineBreak = false;
   int32_t begin, end;
 
   for (begin = aPos; begin > 0 && !NS_IsSpace(aText[begin - 1]); --begin) {
     if (IS_CJK_CHAR(aText[begin]) ||
         NS_NeedsPlatformNativeHandling(aText[begin])) {
-      textNeedsJISx4051 = true;
+      textNeedsComplexLineBreak = true;
     }
   }
   for (end = aPos + 1; end < int32_t(aLen) && !NS_IsSpace(aText[end]); ++end) {
     if (IS_CJK_CHAR(aText[end]) || NS_NeedsPlatformNativeHandling(aText[end])) {
-      textNeedsJISx4051 = true;
+      textNeedsComplexLineBreak = true;
     }
   }
 
   int32_t ret;
-  AutoTArray<uint8_t, 2000> breakState;
-  if (!textNeedsJISx4051) {
+  if (!textNeedsComplexLineBreak) {
     // No complex text character, do not try to do complex line break.
     // (This is required for serializers. See Bug #344816.)
-    if (aDirection < 0) {
-      ret = (begin == int32_t(aPos)) ? begin - 1 : begin;
-    } else {
-      ret = end;
-    }
+    ret = end;
   } else {
+    AutoTArray<uint8_t, 2000> breakState;
     // XXX(Bug 1631371) Check if this should use a fallible operation as it
     // pretended earlier.
     breakState.AppendElements(end - begin);
-    GetJISx4051Breaks(aText + begin, end - begin, WordBreak::Normal,
-                      Strictness::Auto, false, breakState.Elements());
+    ComputeBreakPositions(aText + begin, end - begin, WordBreak::Normal,
+                          Strictness::Auto, false, breakState.Elements());
 
     ret = aPos;
     do {
-      ret += aDirection;
+      ++ret;
     } while (begin < ret && ret < end && !breakState[ret - begin]);
   }
 
   return ret;
-}
-
-int32_t LineBreaker::Next(const char16_t* aText, uint32_t aLen, uint32_t aPos) {
-  NS_ASSERTION(aText, "aText shouldn't be null");
-  NS_ASSERTION(aLen > aPos,
-               "Bad position passed to nsJISx4051LineBreaker::Next");
-
-  int32_t nextPos = WordMove(aText, aLen, aPos, 1);
-  return nextPos < int32_t(aLen) ? nextPos : NS_LINEBREAKER_NEED_MORE_TEXT;
-}
-
-int32_t LineBreaker::Prev(const char16_t* aText, uint32_t aLen, uint32_t aPos) {
-  NS_ASSERTION(aText, "aText shouldn't be null");
-  NS_ASSERTION(aLen >= aPos && aPos > 0,
-               "Bad position passed to nsJISx4051LineBreaker::Prev");
-
-  int32_t prevPos = WordMove(aText, aLen, aPos, -1);
-  return prevPos > 0 ? prevPos : NS_LINEBREAKER_NEED_MORE_TEXT;
 }
 
 static bool SuppressBreakForKeepAll(uint32_t aPrev, uint32_t aCh) {
@@ -1001,10 +980,11 @@ static bool SuppressBreakForKeepAll(uint32_t aPrev, uint32_t aCh) {
          affectedByKeepAll(GetLineBreakClass(aCh));
 }
 
-void LineBreaker::GetJISx4051Breaks(const char16_t* aChars, uint32_t aLength,
-                                    WordBreak aWordBreak, Strictness aLevel,
-                                    bool aIsChineseOrJapanese,
-                                    uint8_t* aBreakBefore) {
+void LineBreaker::ComputeBreakPositions(const char16_t* aChars,
+                                        uint32_t aLength, WordBreak aWordBreak,
+                                        Strictness aLevel,
+                                        bool aIsChineseOrJapanese,
+                                        uint8_t* aBreakBefore) {
   uint32_t cur;
   int8_t lastClass = CLASS_NONE;
   ContextState state(aChars, aLength);
@@ -1110,7 +1090,7 @@ void LineBreaker::GetJISx4051Breaks(const char16_t* aChars, uint32_t aLength,
           aBreakBefore[ci - aChars] = true;
         }
       } else {
-        NS_GetComplexLineBreaks(aChars + cur, end - cur, aBreakBefore + cur);
+        ComplexBreaker::GetBreaks(aChars + cur, end - cur, aBreakBefore + cur);
         // restore breakability at chunk begin, which was always set to false
         // by the complex line breaker
         aBreakBefore[cur] = allowBreak;
@@ -1129,10 +1109,10 @@ void LineBreaker::GetJISx4051Breaks(const char16_t* aChars, uint32_t aLength,
   }
 }
 
-void LineBreaker::GetJISx4051Breaks(const uint8_t* aChars, uint32_t aLength,
-                                    WordBreak aWordBreak, Strictness aLevel,
-                                    bool aIsChineseOrJapanese,
-                                    uint8_t* aBreakBefore) {
+void LineBreaker::ComputeBreakPositions(const uint8_t* aChars, uint32_t aLength,
+                                        WordBreak aWordBreak, Strictness aLevel,
+                                        bool aIsChineseOrJapanese,
+                                        uint8_t* aBreakBefore) {
   uint32_t cur;
   int8_t lastClass = CLASS_NONE;
   ContextState state(aChars, aLength);

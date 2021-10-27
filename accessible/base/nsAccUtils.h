@@ -198,7 +198,7 @@ class nsAccUtils {
   /**
    * Return text length of the given accessible, return 0 on failure.
    */
-  static uint32_t TextLength(LocalAccessible* aAccessible);
+  static uint32_t TextLength(Accessible* aAccessible);
 
   /**
    * Transform nsIAccessibleStates constants to internal state constant.
@@ -220,7 +220,7 @@ class nsAccUtils {
   static uint32_t To32States(uint64_t aState, bool* aIsExtra) {
     uint32_t extraState = aState >> 31;
     *aIsExtra = !!extraState;
-    return aState | extraState;
+    return extraState ? extraState : aState;
   }
 
   /**

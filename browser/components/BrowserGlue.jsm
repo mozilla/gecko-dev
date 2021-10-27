@@ -35,6 +35,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.jsm",
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
+  BuiltInThemes: "resource:///modules/BuiltInThemes.jsm",
   ContextualIdentityService:
     "resource://gre/modules/ContextualIdentityService.jsm",
   Corroborate: "resource://gre/modules/Corroborate.jsm",
@@ -57,7 +58,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   NewTabUtils: "resource://gre/modules/NewTabUtils.jsm",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
   Normandy: "resource://normandy/Normandy.jsm",
-  OS: "resource://gre/modules/osfile.jsm",
   OsEnvironment: "resource://gre/modules/OsEnvironment.jsm",
   PageActions: "resource:///modules/PageActions.jsm",
   PageThumbs: "resource://gre/modules/PageThumbs.jsm",
@@ -397,22 +397,6 @@ let JSWINDOWACTORS = {
     },
 
     allFrames: true,
-  },
-
-  // Collects description and icon information from meta tags.
-  ContentMeta: {
-    parent: {
-      moduleURI: "resource:///actors/ContentMetaParent.jsm",
-    },
-
-    child: {
-      moduleURI: "resource:///actors/ContentMetaChild.jsm",
-      events: {
-        DOMMetaAdded: {},
-      },
-    },
-
-    messageManagerGroups: ["browsers"],
   },
 
   ContentSearch: {
@@ -799,10 +783,7 @@ let JSWINDOWACTORS = {
   );
 
   // Hide the titlebar if the actual browser window will draw in it.
-  let hiddenTitlebar = Services.prefs.getBoolPref(
-    "browser.tabs.drawInTitlebar",
-    win.matchMedia("(-moz-gtk-csd-hide-titlebar-by-default)").matches
-  );
+  let hiddenTitlebar = Services.appinfo.drawInTitlebar;
   if (hiddenTitlebar) {
     win.windowUtils.setChromeMargin(0, 2, 2, 2);
   }
@@ -914,9 +895,6 @@ const BOOKMARKS_BACKUP_IDLE_TIME_SEC = 8 * 60;
 // Minimum interval between backups.  We try to not create more than one backup
 // per interval.
 const BOOKMARKS_BACKUP_MIN_INTERVAL_DAYS = 1;
-// Maximum interval between backups.  If the last backup is older than these
-// days we will try to create a new one more aggressively.
-const BOOKMARKS_BACKUP_MAX_INTERVAL_DAYS = 3;
 // Seconds of idle time before the late idle tasks will be scheduled.
 const LATE_TASKS_IDLE_TIME_SEC = 20;
 // Time after we stop tracking startup crashes.
@@ -1097,7 +1075,8 @@ BrowserGlue.prototype = {
         } else if (data == "force-distribution-customization") {
           this._distributionCustomizer.applyCustomizations();
           // To apply distribution bookmarks use "places-init-complete".
-        } else if (data == "force-places-init") {
+        } else if (data == "test-force-places-init") {
+          this._placesInitialized = false;
           this._initPlaces(false);
         } else if (data == "mock-alerts-service") {
           Object.defineProperty(this, "AlertsService", {
@@ -1245,9 +1224,6 @@ BrowserGlue.prototype = {
     if (AppConstants.platform == "win") {
       JawsScreenReaderVersionCheck.init();
     }
-
-    // This value is to limit collecting Places telemetry once per session.
-    this._placesTelemetryGathered = false;
   },
 
   // cleanup (called on application shutdown)
@@ -1281,7 +1257,7 @@ BrowserGlue.prototype = {
         this,
         this._bookmarksBackupIdleTime
       );
-      delete this._bookmarksBackupIdleTime;
+      this._bookmarksBackupIdleTime = null;
     }
     if (this._lateTasksIdleObserver) {
       this._userIdleService.removeIdleObserver(
@@ -1375,155 +1351,7 @@ BrowserGlue.prototype = {
 
     SessionStore.init();
 
-    AddonManager.maybeInstallBuiltinAddon(
-      "firefox-compact-light@mozilla.org",
-      "1.2",
-      "resource://builtin-themes/light/"
-    );
-    AddonManager.maybeInstallBuiltinAddon(
-      "firefox-compact-dark@mozilla.org",
-      "1.2",
-      "resource://builtin-themes/dark/"
-    );
-
-    AddonManager.maybeInstallBuiltinAddon(
-      "firefox-alpenglow@mozilla.org",
-      "1.4",
-      "resource://builtin-themes/alpenglow/"
-    );
-
-    if (
-      AppConstants.NIGHTLY_BUILD &&
-      Services.prefs.getBoolPref(
-        "browser.theme.temporary.monochromatic.enabled",
-        false
-      )
-    ) {
-      // List of monochromatic themes. The themes are represented by objects
-      // containing their id, current version, and path relative to
-      // resource://builtin-themes/monochromatic/.
-      const kMonochromaticThemeList = [
-        {
-          id: "firefox-lush-soft@mozilla.org",
-          version: "1.0",
-          path: "lush/soft/",
-        },
-        {
-          id: "firefox-lush-balanced@mozilla.org",
-          version: "1.0",
-          path: "lush/balanced/",
-        },
-        {
-          id: "firefox-lush-soft@mozilla.org",
-          version: "1.0",
-          path: "lush/soft/",
-        },
-        {
-          id: "firefox-lush-balanced@mozilla.org",
-          version: "1.0",
-          path: "lush/balanced/",
-        },
-        {
-          id: "firefox-lush-bold@mozilla.org",
-          version: "1.0",
-          path: "lush/bold/",
-        },
-        {
-          id: "firefox-abstract-soft@mozilla.org",
-          version: "1.0",
-          path: "abstract/soft/",
-        },
-        {
-          id: "firefox-abstract-balanced@mozilla.org",
-          version: "1.0",
-          path: "abstract/balanced/",
-        },
-        {
-          id: "firefox-abstract-bold@mozilla.org",
-          version: "1.0",
-          path: "abstract/bold/",
-        },
-        {
-          id: "firefox-elemental-soft@mozilla.org",
-          version: "1.0",
-          path: "elemental/soft/",
-        },
-        {
-          id: "firefox-elemental-balanced@mozilla.org",
-          version: "1.0",
-          path: "elemental/balanced/",
-        },
-        {
-          id: "firefox-elemental-bold@mozilla.org",
-          version: "1.0",
-          path: "elemental/bold/",
-        },
-        {
-          id: "firefox-cheers-soft@mozilla.org",
-          version: "1.0",
-          path: "cheers/soft/",
-        },
-        {
-          id: "firefox-cheers-balanced@mozilla.org",
-          version: "1.0",
-          path: "cheers/balanced/",
-        },
-        {
-          id: "firefox-cheers-bold@mozilla.org",
-          version: "1.0",
-          path: "cheers/bold/",
-        },
-        {
-          id: "firefox-graffiti-soft@mozilla.org",
-          version: "1.0",
-          path: "graffiti/soft/",
-        },
-        {
-          id: "firefox-graffiti-balanced@mozilla.org",
-          version: "1.0",
-          path: "graffiti/balanced/",
-        },
-        {
-          id: "firefox-graffiti-bold@mozilla.org",
-          version: "1.0",
-          path: "graffiti/bold/",
-        },
-        {
-          id: "firefox-foto-soft@mozilla.org",
-          version: "1.0",
-          path: "foto/soft/",
-        },
-        {
-          id: "firefox-foto-balanced@mozilla.org",
-          version: "1.0",
-          path: "foto/balanced/",
-        },
-        {
-          id: "firefox-foto-bold@mozilla.org",
-          version: "1.0",
-          path: "foto/bold/",
-        },
-      ];
-      for (let { id, version, path } of kMonochromaticThemeList) {
-        AddonManager.maybeInstallBuiltinAddon(
-          id,
-          version,
-          `resource://builtin-themes/monochromatic/${path}`
-        );
-
-        AsyncShutdown.profileChangeTeardown.addBlocker(
-          "Uninstall Monochromatic Theme",
-          async () => {
-            try {
-              let addon = await AddonManager.getAddonByID(id);
-              await addon.uninstall();
-            } catch (e) {
-              Cu.reportError(`Failed to uninstall ${id} on shutdown`);
-            }
-          }
-        );
-      }
-    }
+    BuiltInThemes.maybeInstallActiveBuiltInTheme();
 
     if (AppConstants.MOZ_NORMANDY) {
       Normandy.init();
@@ -1849,14 +1677,6 @@ BrowserGlue.prototype = {
 
     this._collectStartupConditionsTelemetry();
 
-    if (!this._placesTelemetryGathered && TelemetryUtils.isTelemetryEnabled) {
-      this._placesTelemetryGathered = true;
-      // Collect Places telemetry on the first idle.
-      Services.tm.idleDispatchToMainThread(() => {
-        PlacesDBUtils.telemetry();
-      });
-    }
-
     // Set the default favicon size for UI views that use the page-icon protocol.
     PlacesUtils.favicons.setDefaultIconURIPreferredSize(
       16 * aWindow.devicePixelRatio
@@ -1924,14 +1744,17 @@ BrowserGlue.prototype = {
   // For the initial rollout of dFPI, set the default cookieBehavior based on the pref
   // set during onboarding when the user chooses to enable protections or not.
   _setDefaultCookieBehavior() {
-    if (!Services.prefs.getBoolPref(PREF_DFPI_ENABLED_BY_DEFAULT, false)) {
+    if (!Services.prefs.prefHasUserValue(PREF_DFPI_ENABLED_BY_DEFAULT)) {
       return;
     }
+    let dFPIEnabled = Services.prefs.getBoolPref(PREF_DFPI_ENABLED_BY_DEFAULT);
 
     let defaultPrefs = Services.prefs.getDefaultBranch("");
     defaultPrefs.setIntPref(
       "network.cookie.cookieBehavior",
-      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN
+      dFPIEnabled
+        ? Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN
+        : Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER
     );
   },
 
@@ -2103,7 +1926,7 @@ BrowserGlue.prototype = {
             this,
             this._bookmarksBackupIdleTime
           );
-          delete this._bookmarksBackupIdleTime;
+          this._bookmarksBackupIdleTime = null;
         }
       },
 
@@ -2210,6 +2033,25 @@ BrowserGlue.prototype = {
     };
     Services.prefs.addObserver(PREF, _checkTranslationsPref);
     _checkTranslationsPref();
+  },
+
+  async _setupSearchDetection() {
+    // There is no pref for this add-on because it shouldn't be disabled.
+    const ID = "addons-search-detection@mozilla.com";
+
+    let addon = await AddonManager.getAddonByID(ID);
+
+    // first time install of addon and install on firefox update
+    addon =
+      (await AddonManager.maybeInstallBuiltinAddon(
+        ID,
+        "2.0.0",
+        "resource://builtin-addons/search-detection/"
+      )) || addon;
+
+    if (!addon.isActive) {
+      addon.enable();
+    }
   },
 
   _monitorHTTPSOnlyPref() {
@@ -2337,6 +2179,39 @@ BrowserGlue.prototype = {
     Services.wm.addListener(windowListener);
   },
 
+  _monitorGPCPref() {
+    const FEATURE_PREF_ENABLED = "privacy.globalprivacycontrol.enabled";
+    const FUNCTIONALITY_PREF_ENABLED =
+      "privacy.globalprivacycontrol.functionality.enabled";
+    const PREF_WAS_ENABLED = "privacy.globalprivacycontrol.was_ever_enabled";
+    const _checkGPCPref = async () => {
+      const feature_enabled = Services.prefs.getBoolPref(
+        FEATURE_PREF_ENABLED,
+        false
+      );
+      const functionality_enabled = Services.prefs.getBoolPref(
+        FUNCTIONALITY_PREF_ENABLED,
+        false
+      );
+      const was_enabled = Services.prefs.getBoolPref(PREF_WAS_ENABLED, false);
+      let value = 0;
+      if (feature_enabled && functionality_enabled) {
+        value = 1;
+        Services.prefs.setBoolPref(PREF_WAS_ENABLED, true);
+      } else if (was_enabled) {
+        value = 2;
+      }
+      Services.telemetry.scalarSet(
+        "security.global_privacy_control_enabled",
+        value
+      );
+    };
+
+    Services.prefs.addObserver(FEATURE_PREF_ENABLED, _checkGPCPref);
+    Services.prefs.addObserver(FUNCTIONALITY_PREF_ENABLED, _checkGPCPref);
+    _checkGPCPref();
+  },
+
   // All initial windows have opened.
   _onWindowsRestored: function BG__onWindowsRestored() {
     if (this._windowsWereRestored) {
@@ -2411,9 +2286,12 @@ BrowserGlue.prototype = {
     this._monitorHTTPSOnlyPref();
     this._monitorIonPref();
     this._monitorIonStudies();
+    this._setupSearchDetection();
+
     if (AppConstants.NIGHTLY_BUILD) {
       this._monitorTranslationsPref();
     }
+    this._monitorGPCPref();
   },
 
   /**
@@ -2460,6 +2338,13 @@ BrowserGlue.prototype = {
           // We postponed loading bookmarks toolbar content until startup
           // has finished, so we can start loading it now:
           PlacesUIUtils.unblockToolbars();
+        },
+      },
+
+      {
+        condition: TelemetryUtils.isTelemetryEnabled,
+        task: () => {
+          PlacesDBUtils.telemetry().catch(console.error);
         },
       },
 
@@ -2563,6 +2448,14 @@ BrowserGlue.prototype = {
             "os.environment.launch_method",
             classification
           );
+        },
+      },
+
+      // Install built-in themes. We already installed the active built-in
+      // theme, if any, before UI startup.
+      {
+        task: async () => {
+          await BuiltInThemes.ensureBuiltInThemes();
         },
       },
 
@@ -3031,27 +2924,22 @@ BrowserGlue.prototype = {
           ? "tabs.closeWindowsButtonWin"
           : "tabs.closeWindowsButton";
       buttonLabel = gTabbrowserBundle.GetStringFromName(buttonLabel);
+    } else if (shouldWarnForShortcut) {
+      let productName = gBrandBundle.GetStringFromName("brandShorterName");
+      title = gTabbrowserBundle.formatStringFromName(
+        "tabs.closeTabsWithKeyTitle",
+        [productName]
+      );
+      buttonLabel = gTabbrowserBundle.formatStringFromName(
+        "tabs.closeTabsWithKeyButton",
+        [productName]
+      );
     } else {
       title = gTabbrowserBundle.GetStringFromName("tabs.closeTabsTitle");
       title = PluralForm.get(pagecount, title).replace("#1", pagecount);
-
-      if (shouldWarnForShortcut) {
-        let productName = gBrandBundle.GetStringFromName("brandShorterName");
-        title = gTabbrowserBundle.formatStringFromName(
-          "tabs.closeTabsWithKeyTitle",
-          [productName]
-        );
-        buttonLabel = gTabbrowserBundle.formatStringFromName(
-          "tabs.closeTabsWithKeyButton",
-          [productName]
-        );
-      } else {
-        title = gTabbrowserBundle.GetStringFromName("tabs.closeTabsTitle");
-        title = PluralForm.get(pagecount, title).replace("#1", pagecount);
-        buttonLabel = gTabbrowserBundle.GetStringFromName(
-          "tabs.closeButtonMultiple"
-        );
-      }
+      buttonLabel = gTabbrowserBundle.GetStringFromName(
+        "tabs.closeButtonMultiple"
+      );
     }
 
     // The checkbox label is different depending on whether the shortcut
@@ -3140,6 +3028,11 @@ BrowserGlue.prototype = {
    *   bookmarks.
    */
   _initPlaces: function BG__initPlaces(aInitialMigrationPerformed) {
+    if (this._placesInitialized) {
+      throw new Error("Cannot initialize Places more than once");
+    }
+    this._placesInitialized = true;
+
     // We must instantiate the history service since it will tell us if we
     // need to import or restore bookmarks due to first-run, corruption or
     // forced migration (due to a major schema change).
@@ -3204,15 +3097,11 @@ BrowserGlue.prototype = {
         }
       } catch (ex) {}
 
-      // This may be reused later, check for "=== undefined" to see if it has
-      // been populated already.
-      let lastBackupFile;
-
       // If the user did not require to restore default bookmarks, or import
       // from bookmarks.html, we will try to restore from JSON
       if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
         // get latest JSON backup
-        lastBackupFile = await PlacesBackups.getMostRecentBackup();
+        let lastBackupFile = await PlacesBackups.getMostRecentBackup();
         if (lastBackupFile) {
           // restore from JSON backup
           await BookmarkJSONUtils.importFromFile(lastBackupFile, {
@@ -3223,7 +3112,7 @@ BrowserGlue.prototype = {
         } else {
           // We have created a new database but we don't have any backup available
           importBookmarks = true;
-          if (await OS.File.exists(BookmarkHTMLUtils.defaultPath)) {
+          if (await IOUtils.exists(BookmarkHTMLUtils.defaultPath)) {
             // If bookmarks.html is available in current profile import it...
             importBookmarksHTML = true;
           } else {
@@ -3251,8 +3140,8 @@ BrowserGlue.prototype = {
         if (restoreDefaultBookmarks) {
           // User wants to restore bookmarks.html file from default profile folder
           bookmarksUrl = "chrome://browser/locale/bookmarks.html";
-        } else if (await OS.File.exists(BookmarkHTMLUtils.defaultPath)) {
-          bookmarksUrl = OS.Path.toFileURI(BookmarkHTMLUtils.defaultPath);
+        } else if (await IOUtils.exists(BookmarkHTMLUtils.defaultPath)) {
+          bookmarksUrl = PathUtils.toFileURI(BookmarkHTMLUtils.defaultPath);
         }
 
         if (bookmarksUrl) {
@@ -3294,46 +3183,14 @@ BrowserGlue.prototype = {
       }
 
       // Initialize bookmark archiving on idle.
-      if (!this._bookmarksBackupIdleTime) {
-        this._bookmarksBackupIdleTime = BOOKMARKS_BACKUP_IDLE_TIME_SEC;
-
-        // If there is no backup, or the last bookmarks backup is too old, use
-        // a more aggressive idle observer.
-        if (lastBackupFile === undefined) {
-          lastBackupFile = await PlacesBackups.getMostRecentBackup();
-        }
-        if (!lastBackupFile) {
-          this._bookmarksBackupIdleTime /= 2;
-        } else {
-          let lastBackupTime = PlacesBackups.getDateForFile(lastBackupFile);
-          let profileLastUse = Services.appinfo.replacedLockTime || Date.now();
-
-          // If there is a backup after the last profile usage date it's fine,
-          // regardless its age.  Otherwise check how old is the last
-          // available backup compared to that session.
-          if (profileLastUse > lastBackupTime) {
-            let backupAge = Math.round(
-              (profileLastUse - lastBackupTime) / 86400000
-            );
-            // Report the age of the last available backup.
-            try {
-              Services.telemetry
-                .getHistogramById("PLACES_BACKUPS_DAYSFROMLAST")
-                .add(backupAge);
-            } catch (ex) {
-              Cu.reportError(new Error("Unable to report telemetry."));
-            }
-
-            if (backupAge > BOOKMARKS_BACKUP_MAX_INTERVAL_DAYS) {
-              this._bookmarksBackupIdleTime /= 2;
-            }
-          }
-        }
-        this._userIdleService.addIdleObserver(
-          this,
-          this._bookmarksBackupIdleTime
-        );
+      // If the last backup has been created before the last browser session,
+      // and is days old, be more aggressive with the idle timer.
+      let idleTime = BOOKMARKS_BACKUP_IDLE_TIME_SEC;
+      if (!(await PlacesBackups.hasRecentBackup())) {
+        idleTime /= 2;
       }
+      this._userIdleService.addIdleObserver(this, idleTime);
+      this._bookmarksBackupIdleTime = idleTime;
 
       if (this._isNewProfile) {
         try {
@@ -3443,8 +3300,10 @@ BrowserGlue.prototype = {
   _migrateUI: function BG__migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 118;
+    const UI_VERSION = 119;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
+
+    const PROFILE_DIR = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
       // This is a new profile, nothing to migrate.
@@ -3464,10 +3323,9 @@ BrowserGlue.prototype = {
     let xulStore = Services.xulStore;
 
     if (currentUIVersion < 64) {
-      OS.File.remove(
-        OS.Path.join(OS.Constants.Path.profileDir, "directoryLinks.json"),
-        { ignoreAbsent: true }
-      );
+      IOUtils.remove(PathUtils.join(PROFILE_DIR, "directoryLinks.json"), {
+        ignoreAbsent: true,
+      });
     }
 
     if (
@@ -3512,10 +3370,9 @@ BrowserGlue.prototype = {
 
     if (currentUIVersion < 68) {
       // Remove blocklists legacy storage, now relying on IndexedDB.
-      OS.File.remove(
-        OS.Path.join(OS.Constants.Path.profileDir, "kinto.sqlite"),
-        { ignoreAbsent: true }
-      );
+      IOUtils.remove(PathUtils.join(PROFILE_DIR, "kinto.sqlite"), {
+        ignoreAbsent: true,
+      });
     }
 
     if (currentUIVersion < 69) {
@@ -3563,21 +3420,18 @@ BrowserGlue.prototype = {
 
     if (currentUIVersion < 73) {
       // Remove blocklist JSON local dumps in profile.
-      OS.File.removeDir(
-        OS.Path.join(OS.Constants.Path.profileDir, "blocklists"),
-        { ignoreAbsent: true }
-      );
-      OS.File.removeDir(
-        OS.Path.join(OS.Constants.Path.profileDir, "blocklists-preview"),
-        { ignoreAbsent: true }
-      );
+      IOUtils.remove(PathUtils.join(PROFILE_DIR, "blocklists"), {
+        recursive: true,
+        ignoreAbsent: true,
+      });
+      IOUtils.remove(PathUtils.join(PROFILE_DIR, "blocklists-preview"), {
+        recursive: true,
+        ignoreAbsent: true,
+      });
       for (const filename of ["addons.json", "plugins.json", "gfx.json"]) {
         // Some old versions used to dump without subfolders. Clean them while we are at it.
-        const path = OS.Path.join(
-          OS.Constants.Path.profileDir,
-          `blocklists-${filename}`
-        );
-        OS.File.remove(path, { ignoreAbsent: true });
+        const path = PathUtils.join(PROFILE_DIR, `blocklists-${filename}`);
+        IOUtils.remove(path, { ignoreAbsent: true });
       }
     }
 
@@ -4068,16 +3922,44 @@ BrowserGlue.prototype = {
       // 115 (bug 1713322): Move TAIL_SUGGESTION group and rename properties
       // 116 (bug 1717509): Remove HEURISTIC_UNIFIED_COMPLETE group
       // 117 (bug 1710518): Add GENERAL_PARENT group
-      UrlbarPrefs.migrateResultBuckets();
+      UrlbarPrefs.migrateResultGroups();
     }
 
-    if (currentUIVersion < 118 && AppConstants.NIGHTLY_BUILD) {
-      // Uninstall experimental monochromatic purple theme.
-      let addonPromise;
+    if (currentUIVersion < 119 && AppConstants.NIGHTLY_BUILD) {
+      // Uninstall outdated monochromatic themes for the following UI versions:
+      // 118: Uninstall prototype monochromatic purple theme.
+      // 119 (bug 1732957): Uninstall themes with old IDs.
+      const themeIdsToMigrate = [
+        "firefox-monochromatic-purple@mozilla.org",
+        "firefox-lush-soft@mozilla.org",
+        "firefox-lush-balanced@mozilla.org",
+        "firefox-lush-bold@mozilla.org",
+        "firefox-abstract-soft@mozilla.org",
+        "firefox-abstract-balanced@mozilla.org",
+        "firefox-abstract-bold@mozilla.org",
+        "firefox-elemental-soft@mozilla.org",
+        "firefox-elemental-balanced@mozilla.org",
+        "firefox-elemental-bold@mozilla.org",
+        "firefox-cheers-soft@mozilla.org",
+        "firefox-cheers-balanced@mozilla.org",
+        "firefox-cheers-bold@mozilla.org",
+        "firefox-graffiti-soft@mozilla.org",
+        "firefox-graffiti-balanced@mozilla.org",
+        "firefox-graffiti-bold@mozilla.org",
+        "firefox-foto-soft@mozilla.org",
+        "firefox-foto-balanced@mozilla.org",
+        "firefox-foto-bold@mozilla.org",
+      ];
       try {
-        addonPromise = AddonManager.getAddonByID(
-          "firefox-monochromatic-purple@mozilla.org"
-        );
+        for (let id of themeIdsToMigrate) {
+          AddonManager.getAddonByID(id).then(addon => {
+            if (!addon) {
+              // Either the addon wasn't installed, or the call to getAddonByID failed.
+              return;
+            }
+            addon.uninstall().catch(Cu.reportError);
+          }, Cu.reportError);
+        }
       } catch (error) {
         Cu.reportError(
           "Could not access the AddonManager to upgrade the profile. This is most " +
@@ -4085,13 +3967,6 @@ BrowserGlue.prototype = {
             "the AddonManager is not initialized."
         );
       }
-      Promise.resolve(addonPromise).then(addon => {
-        if (!addon) {
-          // Either the addon wasn't installed, or the call to getAddonByID failed.
-          return;
-        }
-        addon.uninstall().catch(Cu.reportError);
-      }, Cu.reportError);
     }
 
     // Update the migration version.
@@ -4107,12 +3982,9 @@ BrowserGlue.prototype = {
   async _maybeShowDefaultBrowserPrompt() {
     // Highest priority is the upgrade dialog, which can include a "primary
     // browser" request and is limited in various ways, e.g., major upgrades.
-    const dialogVersion = 89;
+    const dialogVersion = 94;
     const dialogVersionPref = "browser.startup.upgradeDialog.version";
     const dialogReason = await (async () => {
-      if (!Services.prefs.getBoolPref("browser.proton.enabled", true)) {
-        return "no-proton";
-      }
       if (!BrowserHandler.majorUpgrade) {
         return "not-major";
       }
@@ -4156,6 +4028,10 @@ BrowserGlue.prototype = {
     // Show the upgrade dialog if allowed and remember the version.
     if (!dialogReason) {
       Services.prefs.setIntPref(dialogVersionPref, dialogVersion);
+
+      // Show Firefox Home behind the upgrade dialog to see theme changes.
+      const { gBrowser } = BrowserWindowTracker.getTopWindow();
+      gBrowser.selectedTab = gBrowser.addTrustedTab("about:home");
       this._showUpgradeDialog();
       return;
     }
@@ -4224,8 +4100,12 @@ BrowserGlue.prototype = {
     const buttons = [
       {
         "l10n-id": "restore-session-startup-suggestion-button",
+        primary: true,
         callback: () => {
-          win.PanelUI.show();
+          win.PanelUI.selectAndMarkItem([
+            "appMenu-history-button",
+            "appMenu-restoreSession",
+          ]);
         },
       },
     ];
@@ -5004,7 +4884,10 @@ ContentPermissionPrompt.prototype = {
     let userInputHistogram = Services.telemetry.getKeyedHistogramById(
       "PERMISSION_REQUEST_HANDLING_USER_INPUT"
     );
-    userInputHistogram.add(type, request.isHandlingUserInput);
+    userInputHistogram.add(
+      type,
+      request.hasValidTransientUserGestureActivation
+    );
   },
 };
 

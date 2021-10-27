@@ -9,6 +9,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/FOGIPC.h"
+#include "mozilla/glean/bindings/Common.h"
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/MozPromise.h"
@@ -20,6 +21,27 @@
 #include "nsServiceManagerUtils.h"
 
 namespace mozilla {
+
+using glean::LogToBrowserConsole;
+
+#ifdef MOZ_GLEAN_ANDROID
+// Defined by `glean_ffi`. We reexport it here for later use.
+extern "C" NS_EXPORT void glean_enable_logging(void);
+
+// Defined by `glean`. We reexport it here for use by the Glean Core SDK.
+extern "C" NS_EXPORT void rlb_flush_dispatcher(void);
+
+// Workaround to force a re-export of the `no_mangle` symbols from `glean_ffi`
+//
+// Due to how linking works and hides symbols the symbols from `glean_ffi` might
+// not be re-exported and thus not usable. By forcing use of _at least one_
+// symbol in an exported function the functions will also be rexported.
+//
+// See also https://github.com/rust-lang/rust/issues/50007
+extern "C" NS_EXPORT void _fog_force_reexport_donotcall(void) {
+  glean_enable_logging();
+}
+#endif
 
 static StaticRefPtr<FOG> gFOG;
 
@@ -61,20 +83,18 @@ already_AddRefed<FOG> FOG::GetSingleton() {
   return do_AddRef(gFOG);
 }
 
-void FOG::Shutdown() {
-#ifndef MOZ_GLEAN_ANDROID
-  glean::impl::fog_shutdown();
-#endif
-}
+void FOG::Shutdown() { glean::impl::fog_shutdown(); }
 
 NS_IMETHODIMP
 FOG::InitializeFOG(const nsACString& aDataPathOverride,
                    const nsACString& aAppIdOverride) {
-#ifdef MOZ_GLEAN_ANDROID
-  return NS_OK;
-#else
   return glean::impl::fog_init(&aDataPathOverride, &aAppIdOverride);
-#endif
+}
+
+NS_IMETHODIMP
+FOG::RegisterCustomPings() {
+  glean::impl::fog_register_pings();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -101,6 +121,134 @@ FOG::SendPing(const nsACString& aPingName) {
   return NS_OK;
 #else
   return glean::impl::fog_submit_ping(&aPingName);
+#endif
+}
+
+NS_IMETHODIMP
+FOG::SetExperimentActive(const nsACString& aExperimentId,
+                         const nsACString& aBranch, JS::HandleValue aExtra,
+                         JSContext* aCx) {
+#ifdef MOZ_GLEAN_ANDROID
+  NS_WARNING("Don't set experiments from Gecko in Android. Ignoring.");
+  return NS_OK;
+#else
+  nsTArray<nsCString> extraKeys;
+  nsTArray<nsCString> extraValues;
+  if (!aExtra.isNullOrUndefined()) {
+    JS::RootedObject obj(aCx, &aExtra.toObject());
+    JS::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
+    if (!JS_Enumerate(aCx, obj, &keys)) {
+      LogToBrowserConsole(nsIScriptError::warningFlag,
+                          u"Failed to enumerate experiment extras object."_ns);
+      return NS_OK;
+    }
+
+    for (size_t i = 0, n = keys.length(); i < n; i++) {
+      nsAutoJSCString jsKey;
+      if (!jsKey.init(aCx, keys[i])) {
+        LogToBrowserConsole(
+            nsIScriptError::warningFlag,
+            u"Extra dictionary should only contain string keys."_ns);
+        return NS_OK;
+      }
+
+      JS::Rooted<JS::Value> value(aCx);
+      if (!JS_GetPropertyById(aCx, obj, keys[i], &value)) {
+        LogToBrowserConsole(nsIScriptError::warningFlag,
+                            u"Failed to get experiment extra property."_ns);
+        return NS_OK;
+      }
+
+      nsAutoJSCString jsValue;
+      if (!value.isString()) {
+        LogToBrowserConsole(
+            nsIScriptError::warningFlag,
+            u"Experiment extra properties must have string values."_ns);
+        return NS_OK;
+      }
+
+      if (!jsValue.init(aCx, value)) {
+        LogToBrowserConsole(nsIScriptError::warningFlag,
+                            u"Can't extract experiment extra property"_ns);
+        return NS_OK;
+      }
+
+      extraKeys.AppendElement(jsKey);
+      extraValues.AppendElement(jsValue);
+    }
+  }
+  glean::impl::fog_set_experiment_active(&aExperimentId, &aBranch, &extraKeys,
+                                         &extraValues);
+  return NS_OK;
+#endif
+}
+
+NS_IMETHODIMP
+FOG::SetExperimentInactive(const nsACString& aExperimentId) {
+#ifdef MOZ_GLEAN_ANDROID
+  NS_WARNING("Don't unset experiments from Gecko in Android. Ignoring.");
+  return NS_OK;
+#else
+  glean::impl::fog_set_experiment_inactive(&aExperimentId);
+  return NS_OK;
+#endif
+}
+
+NS_IMETHODIMP
+FOG::TestGetExperimentData(const nsACString& aExperimentId, JSContext* aCx,
+                           JS::MutableHandleValue aResult) {
+#ifdef MOZ_GLEAN_ANDROID
+  NS_WARNING("Don't test experiments from Gecko in Android. Throwing.");
+  aResult.set(JS::UndefinedValue());
+  return NS_ERROR_FAILURE;
+#else
+  if (!glean::impl::fog_test_is_experiment_active(&aExperimentId)) {
+    aResult.set(JS::UndefinedValue());
+    return NS_OK;
+  }
+
+  // We could struct-up the branch and extras and do what
+  // EventMetric::TestGetValue does... but keeping allocation on this side feels
+  // cleaner to me at the moment.
+  nsCString branch;
+  nsTArray<nsCString> extraKeys;
+  nsTArray<nsCString> extraValues;
+
+  glean::impl::fog_test_get_experiment_data(&aExperimentId, &branch, &extraKeys,
+                                            &extraValues);
+  MOZ_ASSERT(extraKeys.Length() == extraValues.Length());
+
+  JS::RootedObject jsExperimentDataObj(aCx, JS_NewPlainObject(aCx));
+  if (NS_WARN_IF(!jsExperimentDataObj)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  JS::RootedValue jsBranchStr(aCx);
+  if (!dom::ToJSValue(aCx, branch, &jsBranchStr) ||
+      !JS_DefineProperty(aCx, jsExperimentDataObj, "branch", jsBranchStr,
+                         JSPROP_ENUMERATE)) {
+    NS_WARNING("Failed to define branch for experiment data object.");
+    return NS_ERROR_FAILURE;
+  }
+
+  JS::RootedObject jsExtraObj(aCx, JS_NewPlainObject(aCx));
+  if (!JS_DefineProperty(aCx, jsExperimentDataObj, "extra", jsExtraObj,
+                         JSPROP_ENUMERATE)) {
+    NS_WARNING("Failed to define extra for experiment data object.");
+    return NS_ERROR_FAILURE;
+  }
+
+  for (unsigned int i = 0; i < extraKeys.Length(); i++) {
+    JS::RootedValue jsValueStr(aCx);
+    if (!dom::ToJSValue(aCx, extraValues[i], &jsValueStr) ||
+        !JS_DefineProperty(aCx, jsExtraObj, extraKeys[i].Data(), jsValueStr,
+                           JSPROP_ENUMERATE)) {
+      NS_WARNING("Failed to define extra property for experiment data object.");
+      return NS_ERROR_FAILURE;
+    }
+  }
+  aResult.setObject(*jsExperimentDataObj);
+  return NS_OK;
 #endif
 }
 

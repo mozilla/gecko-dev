@@ -34,8 +34,11 @@ static nsresult HandleTranscodeResult(JSContext* cx,
 }
 
 nsresult ReadCachedStencil(StartupCache* cache, nsACString& uri, JSContext* cx,
-                           const JS::ReadOnlyCompileOptions& options,
+                           const JS::DecodeOptions& options,
                            JS::Stencil** stencilOut) {
+  MOZ_ASSERT(options.borrowBuffer);
+  MOZ_ASSERT(!options.usePinnedBytecode);
+
   const char* buf;
   uint32_t len;
   nsresult rv = cache->GetBuffer(PromiseFlatCString(uri).get(), &buf, &len);
@@ -49,10 +52,9 @@ nsresult ReadCachedStencil(StartupCache* cache, nsACString& uri, JSContext* cx,
 }
 
 nsresult WriteCachedStencil(StartupCache* cache, nsACString& uri, JSContext* cx,
-                            const JS::ReadOnlyCompileOptions& options,
                             JS::Stencil* stencil) {
   JS::TranscodeBuffer buffer;
-  JS::TranscodeResult code = JS::EncodeStencil(cx, options, stencil, buffer);
+  JS::TranscodeResult code = JS::EncodeStencil(cx, stencil, buffer);
   if (code != JS::TranscodeResult::Ok) {
     return HandleTranscodeResult(cx, code);
   }

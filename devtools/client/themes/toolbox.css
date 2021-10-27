@@ -68,6 +68,7 @@
 
 .debug-target-info .navigation-button {
   padding: 8px;
+  margin: auto 2px;
   grid-column-gap: 0;
   border: 0;
   background: var(--theme-toolbarbutton-background);
@@ -440,7 +441,7 @@
 }
 
 #command-button-experimental-prefs::before {
-  background-image: url("chrome://browser/skin/preferences/category-experiments.svg");
+  background-image: url("chrome://global/skin/icons/experiments.svg");
   background-size: cover;
 }
 

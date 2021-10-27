@@ -10,6 +10,7 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/MozPromise.h"
+#include "mozilla/ProcInfo.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 
@@ -20,14 +21,36 @@ using FlushFOGDataPromise = mozilla::dom::ContentParent::FlushFOGDataPromise;
 namespace mozilla {
 namespace glean {
 
+static void RecordCpuTime() {
+  static uint64_t previousCpuTime = 0;
+
+  uint64_t cpuTime;
+  if (NS_FAILED(GetCpuTimeSinceProcessStartInMs(&cpuTime))) {
+    return;
+  }
+
+  uint64_t newCpuTime = cpuTime - previousCpuTime;
+  previousCpuTime += newCpuTime;
+
+  if (newCpuTime) {
+    // The counters are reset at least once a day. Assuming all cores are used
+    // continuously, an int32 can hold the data for 24.85 cores.
+    // This should be fine for now, but may overflow in the future.
+    power::total_cpu_time_ms.Add(int32_t(newCpuTime));
+  }
+}
+
 /**
- * The parent process is asking you to flush your data ASAP.
+ * Flush your data ASAP, either because the parent process is asking you to
+ * or because the process is about to shutdown.
  *
  * @param aResolver - The function you need to call with the bincoded,
  *                    serialized payload that the Rust impl hands you.
  */
 void FlushFOGData(std::function<void(ipc::ByteBuf&&)>&& aResolver) {
-#ifndef MOZ_GLEAN_ANDROID
+  // Record the CPU time right before data is sent to the parent.
+  RecordCpuTime();
+
   ByteBuf buf;
   uint32_t ipcBufferSize = impl::fog_serialize_ipc_buf();
   bool ok = buf.Allocate(ipcBufferSize);
@@ -39,7 +62,6 @@ void FlushFOGData(std::function<void(ipc::ByteBuf&&)>&& aResolver) {
     return;
   }
   aResolver(std::move(buf));
-#endif
 }
 
 /**
@@ -49,7 +71,6 @@ void FlushFOGData(std::function<void(ipc::ByteBuf&&)>&& aResolver) {
  */
 void FlushAllChildData(
     std::function<void(nsTArray<ipc::ByteBuf>&&)>&& aResolver) {
-#ifndef MOZ_GLEAN_ANDROID
   nsTArray<ContentParent*> parents;
   ContentParent::GetAll(parents);
   if (parents.Length() == 0) {
@@ -79,7 +100,6 @@ void FlushAllChildData(
                  aResolver(std::move(results));
                }
              });
-#endif
 }
 
 /**
@@ -87,10 +107,8 @@ void FlushAllChildData(
  * @param buf - a bincoded serialized payload that the Rust impl understands.
  */
 void FOGData(ipc::ByteBuf&& buf) {
-#ifndef MOZ_GLEAN_ANDROID
   fog_ipc::buffer_sizes.Accumulate(buf.mLen);
   impl::fog_use_ipc_buf(buf.mData, buf.mLen);
-#endif
 }
 
 /**
@@ -98,7 +116,6 @@ void FOGData(ipc::ByteBuf&& buf) {
  * @param buf - a bincoded serialized payload that the Rust impl understands.
  */
 void SendFOGData(ipc::ByteBuf&& buf) {
-#ifndef MOZ_GLEAN_ANDROID
   switch (XRE_GetProcessType()) {
     case GeckoProcessType_Content:
       mozilla::dom::ContentChild::GetSingleton()->SendFOGData(std::move(buf));
@@ -106,7 +123,6 @@ void SendFOGData(ipc::ByteBuf&& buf) {
     default:
       MOZ_ASSERT_UNREACHABLE("Unsuppored process type");
   }
-#endif
 }
 
 /**
@@ -114,6 +130,9 @@ void SendFOGData(ipc::ByteBuf&& buf) {
  * sending it all down into Rust to be used.
  */
 RefPtr<GenericPromise> FlushAndUseFOGData() {
+  // Record CPU time on the parent before sending requests to child processes.
+  RecordCpuTime();
+
   RefPtr<GenericPromise::Private> ret = new GenericPromise::Private(__func__);
   std::function<void(nsTArray<ByteBuf> &&)> resolver =
       [ret](nsTArray<ByteBuf>&& bufs) {

@@ -15,7 +15,6 @@
 #include "builtin/Array.h"
 #include "builtin/intl/CommonFunctions.h"
 #include "builtin/intl/FormatBuffer.h"
-#include "builtin/intl/ScopedICUObject.h"
 #include "gc/FreeOp.h"
 #include "js/Utility.h"
 #include "js/Vector.h"
@@ -32,11 +31,6 @@
 #include "vm/ObjectOperations-inl.h"
 
 using namespace js;
-
-using mozilla::CheckedInt;
-
-using js::intl::CallICU;
-using js::intl::IcuLocale;
 
 const JSClassOps ListFormatObject::classOps_ = {
     nullptr,                     // addProperty
@@ -206,7 +200,7 @@ static mozilla::intl::ListFormat* NewListFormat(
   }
 
   auto result = mozilla::intl::ListFormat::TryCreate(
-      mozilla::MakeStringSpan(IcuLocale(locale.get())), options);
+      mozilla::MakeStringSpan(locale.get()), options);
 
   if (result.isOk()) {
     return result.unwrap().release();
@@ -214,6 +208,24 @@ static mozilla::intl::ListFormat* NewListFormat(
 
   js::intl::ReportInternalError(cx, result.unwrapErr());
   return nullptr;
+}
+
+static mozilla::intl::ListFormat* GetOrCreateListFormat(
+    JSContext* cx, Handle<ListFormatObject*> listFormat) {
+  // Obtain a cached mozilla::intl::ListFormat object.
+  mozilla::intl::ListFormat* lf = listFormat->getListFormatSlot();
+  if (lf) {
+    return lf;
+  }
+
+  lf = NewListFormat(cx, listFormat);
+  if (!lf) {
+    return nullptr;
+  }
+  listFormat->setListFormatSlot(lf);
+
+  intl::AddICUCellMemory(listFormat, ListFormatObject::EstimatedMemoryUse);
+  return lf;
 }
 
 /**
@@ -306,16 +318,9 @@ bool js::intl_FormatList(JSContext* cx, unsigned argc, Value* vp) {
 
   bool formatToParts = args[2].toBoolean();
 
-  // Obtain a cached mozilla::intl::ListFormat object.
-  mozilla::intl::ListFormat* lf = listFormat->getListFormatSlot();
+  mozilla::intl::ListFormat* lf = GetOrCreateListFormat(cx, listFormat);
   if (!lf) {
-    lf = NewListFormat(cx, listFormat);
-    if (!lf) {
-      return false;
-    }
-    listFormat->setListFormatSlot(lf);
-
-    intl::AddICUCellMemory(listFormat, ListFormatObject::EstimatedMemoryUse);
+    return false;
   }
 
   // Collect all strings and their lengths.

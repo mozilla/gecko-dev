@@ -63,7 +63,6 @@ browser.jar:
         content/browser/browser-thumbnails.js               (content/browser-thumbnails.js)
         content/browser/browser-graphics-utils.js           (content/browser-graphics-utils.js)
         content/browser/browser-webrtc.js                   (content/browser-webrtc.js)
-        content/browser/tab-content.js                      (content/tab-content.js)
         content/browser/history-swipe-arrow.svg             (content/history-swipe-arrow.svg)
 *       content/browser/pageinfo/pageInfo.xhtml             (content/pageinfo/pageInfo.xhtml)
         content/browser/pageinfo/pageInfo.js                (content/pageinfo/pageInfo.js)
@@ -113,4 +112,3 @@ browser.jar:
 # L10n resources and overrides.
 % override chrome://global/locale/appstrings.properties chrome://browser/locale/appstrings.properties
 % override chrome://global/locale/netError.dtd chrome://browser/locale/netError.dtd
-% override chrome://global/locale/app-extension-fields.properties chrome://browser/locale/app-extension-fields.properties

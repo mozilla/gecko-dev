@@ -805,7 +805,15 @@ BookmarksTracker.prototype = {
       this.handlePlacesEvents.bind(this)
     );
     PlacesUtils.observers.addListener(
-      ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+      [
+        "bookmark-added",
+        "bookmark-removed",
+        "bookmark-moved",
+        "bookmark-tags-changed",
+        "bookmark-time-changed",
+        "bookmark-title-changed",
+        "bookmark-url-changed",
+      ],
       this._placesListener
     );
     Svc.Obs.add("bookmarks-restore-begin", this);
@@ -816,7 +824,15 @@ BookmarksTracker.prototype = {
   onStop() {
     PlacesUtils.bookmarks.removeObserver(this);
     PlacesUtils.observers.removeListener(
-      ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+      [
+        "bookmark-added",
+        "bookmark-removed",
+        "bookmark-moved",
+        "bookmark-tags-changed",
+        "bookmark-time-changed",
+        "bookmark-title-changed",
+        "bookmark-url-changed",
+      ],
       this._placesListener
     );
     Svc.Obs.remove("bookmarks-restore-begin", this);
@@ -869,27 +885,18 @@ BookmarksTracker.prototype = {
     for (let event of events) {
       switch (event.type) {
         case "bookmark-added":
-          if (IGNORED_SOURCES.includes(event.source)) {
-            continue;
-          }
-
-          this._log.trace("'bookmark-added': " + event.id);
-          this._upScore();
-          break;
         case "bookmark-removed":
+        case "bookmark-moved":
+        case "bookmark-guid-changed":
+        case "bookmark-tags-changed":
+        case "bookmark-time-changed":
+        case "bookmark-title-changed":
+        case "bookmark-url-changed":
           if (IGNORED_SOURCES.includes(event.source)) {
             continue;
           }
 
-          this._log.trace("'bookmark-removed': " + event.id);
-          this._upScore();
-          break;
-        case "bookmark-moved":
-          if (IGNORED_SOURCES.includes(event.source)) {
-            return;
-          }
-
-          this._log.trace("'bookmark-moved': " + event.id);
+          this._log.trace(`'${event.type}': ${event.id}`);
           this._upScore();
           break;
         case "purge-caches":

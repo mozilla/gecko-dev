@@ -272,12 +272,6 @@ function TargetMixin(parentClass) {
      * @return {Mixed}
      */
     getTrait(traitName) {
-      // @backward-compat { version 93 } All traits should be on the `targetForm`, remove
-      // this backward compatibility code.
-      if (this.traits && this.traits[traitName]) {
-        return this.traits[traitName];
-      }
-
       // If the targeted actor exposes traits and has a defined value for this
       // traits, override the root actor traits
       if (this.targetForm.traits && traitName in this.targetForm.traits) {
@@ -468,25 +462,6 @@ function TargetMixin(parentClass) {
       }
     }
 
-    // Attach the console actor
-    async attachConsole() {
-      const consoleFront = await this.getFront("console");
-
-      if (this.isDestroyedOrBeingDestroyed()) {
-        return;
-      }
-
-      // Calling startListeners will populate the traits as it's the first request we
-      // make to the front.
-      await consoleFront.startListeners([]);
-
-      this._onInspectObject = packet => this.emit("inspect-object", packet);
-      this.removeOnInspectObjectListener = consoleFront.on(
-        "inspectObject",
-        this._onInspectObject
-      );
-    }
-
     /**
      * This method attaches the target and then attaches its related thread, sending it
      * the options it needs (e.g. breakpoints, pause on exception setting, …).
@@ -648,12 +623,6 @@ function TargetMixin(parentClass) {
         }
       }
       this.fronts.clear();
-
-      // Remove listeners set in attachConsole
-      if (this.removeOnInspectObjectListener) {
-        this.removeOnInspectObjectListener();
-        this.removeOnInspectObjectListener = null;
-      }
 
       this.threadFront = null;
       this._offResourceEvent = null;

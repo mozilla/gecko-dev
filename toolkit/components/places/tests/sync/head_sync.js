@@ -360,6 +360,42 @@ BookmarkObserver.prototype = {
           this.notifications.push({ name: "bookmark-moved", params });
           break;
         }
+        case "bookmark-guid-changed": {
+          const params = {
+            itemId: event.id,
+            type: event.itemType,
+            urlHref: event.url,
+            guid: event.guid,
+            parentGuid: event.parentGuid,
+            source: event.source,
+            isTagging: event.isTagging,
+          };
+          this.notifications.push({ name: "bookmark-guid-changed", params });
+          break;
+        }
+        case "bookmark-title-changed": {
+          const params = {
+            itemId: event.id,
+            guid: event.guid,
+            title: event.title,
+            parentGuid: event.parentGuid,
+          };
+          this.notifications.push({ name: "bookmark-title-changed", params });
+          break;
+        }
+        case "bookmark-url-changed": {
+          const params = {
+            itemId: event.id,
+            type: event.itemType,
+            urlHref: event.url,
+            guid: event.guid,
+            parentGuid: event.parentGuid,
+            source: event.source,
+            isTagging: event.isTagging,
+          };
+          this.notifications.push({ name: "bookmark-url-changed", params });
+          break;
+        }
       }
     }
   },
@@ -399,7 +435,14 @@ BookmarkObserver.prototype = {
   check(expectedNotifications) {
     PlacesUtils.bookmarks.removeObserver(this);
     PlacesUtils.observers.removeListener(
-      ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+      [
+        "bookmark-added",
+        "bookmark-removed",
+        "bookmark-moved",
+        "bookmark-guid-changed",
+        "bookmark-title-changed",
+        "bookmark-url-changed",
+      ],
       this.handlePlacesEvents
     );
     if (!ObjectUtils.deepEqual(this.notifications, expectedNotifications)) {
@@ -417,7 +460,14 @@ function expectBookmarkChangeNotifications(options) {
   let observer = new BookmarkObserver(options);
   PlacesUtils.bookmarks.addObserver(observer);
   PlacesUtils.observers.addListener(
-    ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+    [
+      "bookmark-added",
+      "bookmark-removed",
+      "bookmark-moved",
+      "bookmark-guid-changed",
+      "bookmark-title-changed",
+      "bookmark-url-changed",
+    ],
     observer.handlePlacesEvents
   );
   return observer;

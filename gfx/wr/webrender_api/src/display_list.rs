@@ -1881,7 +1881,6 @@ impl DisplayListBuilder {
         external_id: di::ExternalScrollId,
         content_rect: LayoutRect,
         frame_rect: LayoutRect,
-        scroll_sensitivity: di::ScrollSensitivity,
         external_scroll_offset: LayoutVector2D,
         key: di::SpatialTreeItemKey,
     ) -> di::SpatialId {
@@ -1901,7 +1900,6 @@ impl DisplayListBuilder {
             parent_space,
             scroll_frame_id,
             external_id,
-            scroll_sensitivity,
             external_scroll_offset,
             key,
         });
@@ -1934,6 +1932,14 @@ impl DisplayListBuilder {
         fill_rule: di::FillRule,
     ) -> di::ClipId {
         let id = self.generate_clip_index();
+
+        let current_offset = self.current_offset(parent_space_and_clip.spatial_id);
+
+        let image_mask = di::ImageMask {
+            rect: image_mask.rect.translate(current_offset),
+            ..image_mask
+        };
+
         let item = di::DisplayItem::ImageMaskClip(di::ImageMaskClipDisplayItem {
             id,
             parent_space_and_clip: *parent_space_and_clip,
@@ -1959,6 +1965,10 @@ impl DisplayListBuilder {
         clip_rect: LayoutRect,
     ) -> di::ClipId {
         let id = self.generate_clip_index();
+
+        let current_offset = self.current_offset(parent_space_and_clip.spatial_id);
+        let clip_rect = clip_rect.translate(current_offset);
+
         let item = di::DisplayItem::RectClip(di::RectClipDisplayItem {
             id,
             parent_space_and_clip: *parent_space_and_clip,
@@ -1975,6 +1985,14 @@ impl DisplayListBuilder {
         clip: di::ComplexClipRegion,
     ) -> di::ClipId {
         let id = self.generate_clip_index();
+
+        let current_offset = self.current_offset(parent_space_and_clip.spatial_id);
+
+        let clip = di::ComplexClipRegion {
+            rect: clip.rect.translate(current_offset),
+            ..clip
+        };
+
         let item = di::DisplayItem::RoundedRectClip(di::RoundedRectClipDisplayItem {
             id,
             parent_space_and_clip: *parent_space_and_clip,
@@ -2027,6 +2045,10 @@ impl DisplayListBuilder {
         pipeline_id: PipelineId,
         ignore_missing_pipeline: bool
     ) {
+        let current_offset = self.current_offset(space_and_clip.spatial_id);
+        let bounds = bounds.translate(current_offset);
+        let clip_rect = clip_rect.translate(current_offset);
+
         let item = di::DisplayItem::Iframe(di::IframeDisplayItem {
             bounds,
             clip_rect,

@@ -23,6 +23,7 @@
 #include "mozilla/dom/PContent.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/net/AltSvcTransactionParent.h"
+#include "mozilla/net/AltSvcTransactionChild.h"
 
 /* RFC 7838 Alternative Services
    http://httpwg.org/http-extensions/opsec.html
@@ -1043,6 +1044,17 @@ void AltSvcCache::UpdateAltServiceMapping(
     return;
   }
 
+  if (map->IsHttp3()) {
+    bool isDirectOrNoProxy = pi ? pi->IsDirect() : true;
+    if (!isDirectOrNoProxy) {
+      LOG(
+          ("AltSvcCache::UpdateAltServiceMapping %p map %p ignored h3 because "
+           "proxy is in use %p\n",
+           this, map, existing.get()));
+      return;
+    }
+  }
+
   // start new validation, but don't overwrite a valid existing mapping unless
   // this completes successfully
   MOZ_ASSERT(!map->Validated());
@@ -1301,6 +1313,8 @@ AltSvcOverride::GetAllow1918(bool* allow) {
   *allow = true;
   return NS_OK;
 }
+
+template class AltSvcTransaction<AltSvcTransactionChild>;
 
 NS_IMPL_ISUPPORTS(AltSvcOverride, nsIInterfaceRequestor,
                   nsISpeculativeConnectionOverrider)

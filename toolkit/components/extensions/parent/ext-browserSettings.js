@@ -176,6 +176,15 @@ ExtensionPreferencesManager.addSetting("overrideDocumentColors", {
   },
 });
 
+ExtensionPreferencesManager.addSetting("overrideContentColorScheme", {
+  permission: "browserSettings",
+  prefNames: ["layout.css.prefers-color-scheme.content-override"],
+
+  setCallback(value) {
+    return { [this.prefNames[0]]: value };
+  },
+});
+
 ExtensionPreferencesManager.addSetting("useDocumentFonts", {
   permission: "browserSettings",
   prefNames: ["browser.display.use_document_fonts"],
@@ -430,6 +439,44 @@ this.browserSettings = class extends ExtensionAPI {
               return ExtensionPreferencesManager.setSetting(
                 extension.id,
                 "overrideDocumentColors",
+                prefValue
+              );
+            },
+          }
+        ),
+        overrideContentColorScheme: Object.assign(
+          getSettingsAPI({
+            context,
+            name: "overrideContentColorScheme",
+            callback() {
+              let prefValue = Services.prefs.getIntPref(
+                "layout.css.prefers-color-scheme.content-override"
+              );
+              switch (prefValue) {
+                case 0:
+                  return "dark";
+                case 1:
+                  return "light";
+                case 2:
+                  return "system";
+                default:
+                  return "browser";
+              }
+            },
+          }),
+          {
+            set: details => {
+              let prefValue = ["dark", "light", "system", "browser"].indexOf(
+                details.value
+              );
+              if (prefValue === -1) {
+                throw new ExtensionError(
+                  `${details.value} is not a valid value for overrideContentColorScheme.`
+                );
+              }
+              return ExtensionPreferencesManager.setSetting(
+                extension.id,
+                "overrideContentColorScheme",
                 prefValue
               );
             },

@@ -55,6 +55,8 @@ class CheckOverRecursedFailure;
 class OutOfLineUnboxFloatingPoint;
 class OutOfLineStoreElementHole;
 class OutOfLineTypeOfV;
+class OutOfLineTypeOfIsNonPrimitiveV;
+class OutOfLineTypeOfIsNonPrimitiveO;
 class OutOfLineUpdateCache;
 class OutOfLineICFallback;
 class OutOfLineCallPostWriteBarrier;
@@ -113,8 +115,11 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 
   void emitTypeOfCheck(JSValueType type, Register tag, Register output,
                        Label* done, Label* oolObject);
-  void emitTypeOfName(JSValueType type, Register output);
+  void emitTypeOfJSType(JSValueType type, Register output);
   void emitTypeOfObject(Register obj, Register output, Label* done);
+  void emitTypeOfIsObject(MTypeOfIs* mir, Register obj, Register output,
+                          Label* success, Label* fail, Label* slowCheck);
+  void emitTypeOfIsObjectOOL(MTypeOfIs* mir, Register obj, Register output);
 
   template <typename Fn, Fn fn, class ArgSeq, class StoreOutputTo>
   void visitOutOfLineCallVM(
@@ -129,6 +134,8 @@ class CodeGenerator final : public CodeGeneratorSpecific {
       OutOfLineRegExpInstanceOptimizable* ool);
 
   void visitOutOfLineTypeOfV(OutOfLineTypeOfV* ool);
+  void visitOutOfLineTypeOfIsNonPrimitiveV(OutOfLineTypeOfIsNonPrimitiveV* ool);
+  void visitOutOfLineTypeOfIsNonPrimitiveO(OutOfLineTypeOfIsNonPrimitiveO* ool);
 
   template <SwitchTableType tableType>
   void visitOutOfLineSwitch(OutOfLineSwitch<tableType>* ool);
@@ -227,14 +234,8 @@ class CodeGenerator final : public CodeGeneratorSpecific {
                            const ConstantOrRegister& id,
                            const ConstantOrRegister& value, bool strict);
 
-  [[nodiscard]] bool generateBranchV(const ValueOperand& value, Label* ifTrue,
-                                     Label* ifFalse, FloatRegister fr);
-
   void emitLambdaInit(Register resultReg, Register envChainReg,
                       const LambdaFunctionInfo& info);
-
-  void emitFilterArgumentsOrEval(LInstruction* lir, Register string,
-                                 Register temp1, Register temp2);
 
   template <class IteratorObject, class OrderedHashTable>
   void emitGetNextEntryForIterator(LGetNextEntryForIterator* lir);

@@ -15,6 +15,7 @@
 #include "mozilla/a11y/Platform.h"
 #include "RelationType.h"
 #include "mozilla/a11y/Role.h"
+#include "mozilla/StaticPrefs_accessibility.h"
 
 namespace mozilla {
 namespace a11y {
@@ -32,7 +33,7 @@ uint64_t RemoteAccessible::NativeState() const {
 }
 
 ENameValueFlag RemoteAccessible::Name(nsString& aName) const {
-  if (mCachedFields) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     return RemoteAccessibleBase<RemoteAccessible>::Name(aName);
   }
 
@@ -50,7 +51,7 @@ void RemoteAccessible::Help(nsString& aHelp) const {
 }
 
 void RemoteAccessible::Description(nsString& aDesc) const {
-  if (mCachedFields) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     RemoteAccessibleBase<RemoteAccessible>::Description(aDesc);
     return;
   }
@@ -153,7 +154,7 @@ int32_t RemoteAccessible::CaretLineNumber() {
   return line;
 }
 
-int32_t RemoteAccessible::CaretOffset() {
+int32_t RemoteAccessible::CaretOffset() const {
   int32_t offset = 0;
   Unused << mDoc->SendCaretOffset(mID, &offset);
   return offset;
@@ -163,7 +164,10 @@ void RemoteAccessible::SetCaretOffset(int32_t aOffset) {
   Unused << mDoc->SendSetCaretOffset(mID, aOffset);
 }
 
-int32_t RemoteAccessible::CharacterCount() {
+uint32_t RemoteAccessible::CharacterCount() const {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::CharacterCount();
+  }
   int32_t count = 0;
   Unused << mDoc->SendCharacterCount(mID, &count);
   return count;
@@ -175,12 +179,13 @@ int32_t RemoteAccessible::SelectionCount() {
   return count;
 }
 
-bool RemoteAccessible::TextSubstring(int32_t aStartOffset, int32_t aEndOfset,
-                                     nsString& aText) const {
+void RemoteAccessible::TextSubstring(int32_t aStartOffset, int32_t aEndOfset,
+                                     nsAString& aText) const {
   bool valid;
-  Unused << mDoc->SendTextSubstring(mID, aStartOffset, aEndOfset, &aText,
+  nsString text;
+  Unused << mDoc->SendTextSubstring(mID, aStartOffset, aEndOfset, &text,
                                     &valid);
-  return valid;
+  aText = std::move(text);
 }
 
 void RemoteAccessible::GetTextAfterOffset(int32_t aOffset,
@@ -192,12 +197,18 @@ void RemoteAccessible::GetTextAfterOffset(int32_t aOffset,
                                          aStartOffset, aEndOffset);
 }
 
-void RemoteAccessible::GetTextAtOffset(int32_t aOffset,
-                                       AccessibleTextBoundary aBoundaryType,
-                                       nsString& aText, int32_t* aStartOffset,
-                                       int32_t* aEndOffset) {
-  Unused << mDoc->SendGetTextAtOffset(mID, aOffset, aBoundaryType, &aText,
+void RemoteAccessible::TextAtOffset(int32_t aOffset,
+                                    AccessibleTextBoundary aBoundaryType,
+                                    int32_t* aStartOffset, int32_t* aEndOffset,
+                                    nsAString& aText) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::TextAtOffset(
+        aOffset, aBoundaryType, aStartOffset, aEndOffset, aText);
+  }
+  nsString text;
+  Unused << mDoc->SendGetTextAtOffset(mID, aOffset, aBoundaryType, &text,
                                       aStartOffset, aEndOffset);
+  aText = std::move(text);
 }
 
 void RemoteAccessible::GetTextBeforeOffset(int32_t aOffset,
@@ -750,7 +761,7 @@ void RemoteAccessible::AtkKeyBinding(nsString& aBinding) {
 }
 
 double RemoteAccessible::CurValue() const {
-  if (mCachedFields) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     return RemoteAccessibleBase<RemoteAccessible>::CurValue();
   }
 
@@ -766,7 +777,7 @@ bool RemoteAccessible::SetCurValue(double aValue) {
 }
 
 double RemoteAccessible::MinValue() const {
-  if (mCachedFields) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     return RemoteAccessibleBase<RemoteAccessible>::MinValue();
   }
 
@@ -776,7 +787,7 @@ double RemoteAccessible::MinValue() const {
 }
 
 double RemoteAccessible::MaxValue() const {
-  if (mCachedFields) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     return RemoteAccessibleBase<RemoteAccessible>::MaxValue();
   }
 
@@ -786,7 +797,7 @@ double RemoteAccessible::MaxValue() const {
 }
 
 double RemoteAccessible::Step() const {
-  if (mCachedFields) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     return RemoteAccessibleBase<RemoteAccessible>::Step();
   }
 
@@ -879,7 +890,11 @@ Accessible* RemoteAccessible::ChildAtPoint(
   return target;
 }
 
-nsIntRect RemoteAccessible::Bounds() {
+nsIntRect RemoteAccessible::Bounds() const {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::Bounds();
+  }
+
   nsIntRect rect;
   Unused << mDoc->SendExtents(mID, false, &(rect.x), &(rect.y), &(rect.width),
                               &(rect.height));
@@ -923,7 +938,10 @@ void RemoteAccessible::Extents(bool aNeedsScreenCoords, int32_t* aX,
   Unused << mDoc->SendExtents(mID, aNeedsScreenCoords, aX, aY, aWidth, aHeight);
 }
 
-void RemoteAccessible::DOMNodeID(nsString& aID) {
+void RemoteAccessible::DOMNodeID(nsString& aID) const {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::DOMNodeID(aID);
+  }
   Unused << mDoc->SendDOMNodeID(mID, &aID);
 }
 

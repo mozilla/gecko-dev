@@ -31,13 +31,6 @@ XPCOMUtils.defineLazyGetter(this, "gWidgetsBundle", function() {
   return Services.strings.createBundle(kUrl);
 });
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "gBookmarksToolbar2h2020",
-  "browser.toolbars.bookmarks.2h2020",
-  false
-);
-
 const kDefaultThemeID = "default-theme@mozilla.org";
 
 const kSpecialWidgetPfx = "customizableui-special-";
@@ -294,7 +287,7 @@ var CustomizableUIInternal = {
       {
         type: CustomizableUI.TYPE_TOOLBAR,
         defaultPlacements: ["personal-bookmarks"],
-        defaultCollapsed: gBookmarksToolbar2h2020 ? "newtab" : true,
+        defaultCollapsed: "newtab",
       },
       true
     );
@@ -3158,12 +3151,8 @@ var CustomizableUIInternal = {
 
   _resetUIState() {
     try {
-      // kPrefDrawInTitlebar may not be defined on Linux/Gtk+ which throws an exception
-      // and leads to whole test failure. Let's set a fallback default value to avoid that,
-      // both titlebar states are tested anyway and it's not important which state is tested first.
-      gUIStateBeforeReset.drawInTitlebar = Services.prefs.getBoolPref(
-        kPrefDrawInTitlebar,
-        false
+      gUIStateBeforeReset.drawInTitlebar = Services.prefs.getIntPref(
+        kPrefDrawInTitlebar
       );
       gUIStateBeforeReset.uiCustomizationState = Services.prefs.getCharPref(
         kPrefCustomizationState
@@ -3253,7 +3242,7 @@ var CustomizableUIInternal = {
     this._clearPreviousUIState();
 
     Services.prefs.setCharPref(kPrefCustomizationState, uiCustomizationState);
-    Services.prefs.setBoolPref(kPrefDrawInTitlebar, drawInTitlebar);
+    Services.prefs.setIntPref(kPrefDrawInTitlebar, drawInTitlebar);
     Services.prefs.setIntPref(kPrefUIDensity, uiDensity);
     Services.prefs.setBoolPref(kPrefAutoTouchMode, autoTouchMode);
     Services.prefs.setBoolPref(
@@ -3451,10 +3440,7 @@ var CustomizableUIInternal = {
           let collapsed = null;
           let defaultCollapsed = props.get("defaultCollapsed");
           let nondefaultState = false;
-          if (
-            areaId == CustomizableUI.AREA_BOOKMARKS &&
-            gBookmarksToolbar2h2020
-          ) {
+          if (areaId == CustomizableUI.AREA_BOOKMARKS) {
             collapsed = Services.prefs.getCharPref(
               "browser.toolbars.bookmarks.visibility"
             );

@@ -169,6 +169,7 @@ class JSHolderMap::EntryVectorIter {
 
  private:
   void Settle();
+  friend class JSHolderMap::Iter;
 
   JSHolderMap& mHolderMap;
   EntryVector& mVector;
@@ -190,6 +191,11 @@ class JSHolderMap::Iter {
     mIter.Next();
     Settle();
   }
+
+  // If the holders have been removed from the map while the iterator is live,
+  // then the iterator may point to a removed entry. Update the iterator to make
+  // sure it points to a valid entry or is done.
+  void UpdateForRemovals();
 
   operator const Entry*() const { return &Get(); }
   const Entry* operator->() const { return &Get(); }
@@ -263,7 +269,12 @@ class CycleCollectedJSRuntime {
   void TraverseNativeRoots(nsCycleCollectionNoteRootCallback& aCb);
 
   static void TraceBlackJS(JSTracer* aTracer, void* aData);
-  static void TraceGrayJS(JSTracer* aTracer, void* aData);
+
+  // Trace gray JS roots until budget is exceeded and return whether we
+  // finished.
+  static bool TraceGrayJS(JSTracer* aTracer, js::SliceBudget& budget,
+                          void* aData);
+
   static void GCCallback(JSContext* aContext, JSGCStatus aStatus,
                          JS::GCReason aReason, void* aData);
   static void GCSliceCallback(JSContext* aContext, JS::GCProgress aProgress,
@@ -279,15 +290,22 @@ class CycleCollectedJSRuntime {
   static void AfterWaitCallback(void* aCookie);
 
   virtual void TraceNativeBlackRoots(JSTracer* aTracer){};
-  void TraceNativeGrayRoots(JSTracer* aTracer,
-                            JSHolderMap::WhichHolders aWhich);
+
+#ifdef NS_BUILD_REFCNT_LOGGING
+  void TraceAllNativeGrayRoots(JSTracer* aTracer);
+#endif
+
+  bool TraceNativeGrayRoots(JSTracer* aTracer, JSHolderMap::WhichHolders aWhich,
+                            js::SliceBudget& aBudget);
+  bool TraceJSHolders(JSTracer* aTracer, JSHolderMap::Iter& aIter,
+                      js::SliceBudget& aBudget);
 
  public:
   void FinalizeDeferredThings(
       CycleCollectedJSContext::DeferredFinalizeType aType);
 
   virtual void PrepareForForgetSkippable() = 0;
-  virtual void BeginCycleCollectionCallback() = 0;
+  virtual void BeginCycleCollectionCallback(mozilla::CCReason aReason) = 0;
   virtual void EndCycleCollectionCallback(CycleCollectorResults& aResults) = 0;
   virtual void DispatchDeferredDeletion(bool aContinuation,
                                         bool aPurge = false) = 0;
@@ -433,6 +451,7 @@ class CycleCollectedJSRuntime {
   mozilla::TimeStamp mLatestNurseryCollectionStart;
 
   JSHolderMap mJSHolders;
+  Maybe<JSHolderMap::Iter> mHolderIter;
 
   typedef nsTHashMap<nsFuncPtrHashKey<DeferredFinalizeFunction>, void*>
       DeferredFinalizerTable;

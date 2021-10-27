@@ -164,6 +164,21 @@ readermode:
       label: The type of button clicked.
     products:
       - "firefox"
+  pocket_cta:
+    objects: ["close_cta", "sign_up_click", "rec_click", "minimize_recs_click", "cta_seen"]
+    release_channel_collection: opt-out
+    record_in_processes: ["content"]
+    description: >
+      Reader Mode Pocket CTA events
+    bug_numbers: [1726395]
+    notification_emails:
+      - "kirill@getpocket.com"
+      - "sdowne@getpocket.com"
+    expiry_version: never
+    extra_keys:
+      url: URL associated with click.
+    products:
+      - "firefox"
 
 addonsManager:
   install:
@@ -604,7 +619,7 @@ navigation:
   search:
     objects: ["about_home", "about_newtab", "contextmenu", "oneoff",
               "suggestion", "alias", "enter", "searchbar", "urlbar",
-              "urlbar_searchmode", "webextension"]
+              "urlbar_handoff", "urlbar_searchmode", "webextension"]
     release_channel_collection: opt-out
     products:
       - "firefox"
@@ -1173,10 +1188,9 @@ messaging_experiments:
   reach:
     objects: [
       "cfr",
-      "whats_new_panel",
       "moments_page",
-      "snippets",
-      "cfr_fxa"
+      "infobar",
+      "spotlight"
     ]
     methods: ["reach"]
     release_channel_collection: opt-out
@@ -1200,6 +1214,8 @@ messaging_experiments:
       - attribute_timeout
     methods:
       - targeting
+    extra_keys:
+      source: "Source of targeting expression: experiment slug or message id"
     release_channel_collection: opt-out
     products:
       - firefox
@@ -2902,7 +2918,6 @@ installation:
     bug_numbers: [1660198, 1725295]
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
-      - agashlin@mozilla.com
       - rtestard@mozilla.com
     expiry_version: "100"
 
@@ -2930,13 +2945,13 @@ contextservices.quicksuggest:
     description: >
       This is recorded when the `browser.urlbar.suggest.quicksuggest.sponsored`
       boolean pref is toggled.
-    bug_numbers: [1728430]
+    bug_numbers: [1728430, 1733687]
     notification_emails:
       - fx-search@mozilla.com
       - adw@mozilla.com
     expiry_version: never
   opt_in_dialog:
-    objects: ["accept", "not_now", "settings", "learn_more"]
+    objects: ["accept", "dismissed_escape_key", "dismissed_other", "learn_more", "not_now_link", "settings"]
     release_channel_collection: opt-out
     products:
       - "firefox"
@@ -2947,7 +2962,12 @@ contextservices.quicksuggest:
       and opts in, 'settings' is recorded when the user clicks in the
       "Customize" button (the user remains opted out in this case), 'learn_more'
       is recorded when the user clicks "Learn more" (the user remains opted
-      out), 'not_now' is recorded when the user clicks "Not now" (the user
+      out), 'not_now_link' is recorded when the user clicks "Not now" (the user
+      remains opted out), 'dismissed_escape_key' is recorded when the user
+      dismisses the dialog by pressing the Escape key (the user remains opted
+      out), 'dismissed_other' is recorded when the dialog is dismissed in some
+      other unknown way, for example when the dialog is replaced with another
+      higher priority dialog like the one shown when quitting the app (the user
       remains opted out)
     bug_numbers: [1723860]
     notification_emails:

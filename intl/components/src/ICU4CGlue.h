@@ -10,30 +10,59 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
+#include "mozilla/Span.h"
 #include "mozilla/Utf8.h"
 #include "mozilla/Vector.h"
 #include "mozilla/intl/ICUError.h"
 
+// When building standalone js shell, it will include headers from
+// intl/components if JS_HAS_INTL_API is true (the default value), but js shell
+// won't include headers from XPCOM, so don't include nsTArray.h when building
+// standalone js shell.
+#ifndef JS_STANDALONE
+#  include "nsTArray.h"
+#endif
+
+#include <cstring>
 #include <iterator>
 #include <stddef.h>
 #include <stdint.h>
+#include <string_view>
 
 namespace mozilla::intl {
 
 static inline const char* IcuLocale(const char* aLocale) {
+  // Return the empty string if the input is exactly equal to the string "und".
   const char* locale = aLocale;
-  if (!strncmp(locale, "und", 3)) {
-    locale = "";
+  if (!std::strcmp(locale, "und")) {
+    locale = "";  // ICU root locale
   }
   return locale;
 }
 
-using ICUResult = Result<Ok, ICUError>;
+static inline const char* AssertNullTerminatedString(Span<const char> aSpan) {
+  // Intentionally check one past the last character, because we expect that the
+  // NUL character isn't part of the string.
+  MOZ_ASSERT(*(aSpan.data() + aSpan.size()) == '\0');
 
-/**
- * Convert a UErrorCode to ICUResult.
- */
-ICUError ToICUError(UErrorCode status);
+  // Also ensure there aren't any other NUL characters within the string.
+  MOZ_ASSERT(std::strlen(aSpan.data()) == aSpan.size());
+
+  return aSpan.data();
+}
+
+static inline const char* AssertNullTerminatedString(std::string_view aView) {
+  // Intentionally check one past the last character, because we expect that the
+  // NUL character isn't part of the string.
+  MOZ_ASSERT(*(aView.data() + aView.size()) == '\0');
+
+  // Also ensure there aren't any other NUL characters within the string.
+  MOZ_ASSERT(std::strlen(aView.data()) == aView.size());
+
+  return aView.data();
+}
+
+using ICUResult = Result<Ok, ICUError>;
 
 /**
  * Convert a UErrorCode to ICUError. This will correctly apply the OutOfMemory
@@ -109,7 +138,8 @@ template <typename ICUStringFunction, typename Buffer>
 static ICUResult FillBufferWithICUCall(Buffer& buffer,
                                        const ICUStringFunction& strFn) {
   static_assert(std::is_same_v<typename Buffer::CharType, char16_t> ||
-                std::is_same_v<typename Buffer::CharType, char>);
+                std::is_same_v<typename Buffer::CharType, char> ||
+                std::is_same_v<typename Buffer::CharType, uint8_t>);
 
   UErrorCode status = U_ZERO_ERROR;
   int32_t length = strFn(buffer.data(), buffer.capacity(), &status);
@@ -159,15 +189,93 @@ class VectorToBufferAdaptor {
 };
 
 /**
- * A variant of FillBufferWithICUCall that accepts a mozilla::Vector rather than
- * a Buffer.
+ * An overload of FillBufferWithICUCall that accepts a mozilla::Vector rather
+ * than a Buffer.
  */
 template <typename ICUStringFunction, size_t InlineSize, typename CharType>
-static ICUResult FillVectorWithICUCall(Vector<CharType, InlineSize>& vector,
+static ICUResult FillBufferWithICUCall(Vector<CharType, InlineSize>& vector,
                                        const ICUStringFunction& strFn) {
   VectorToBufferAdaptor buffer(vector);
   return FillBufferWithICUCall(buffer, strFn);
 }
+
+#ifndef JS_STANDALONE
+/**
+ * mozilla::intl APIs require sizeable buffers. This class abstracts over
+ * the nsTArray.
+ */
+template <typename T>
+class nsTArrayToBufferAdapter {
+ public:
+  using CharType = T;
+
+  // Do not allow copy or move. Move could be added in the future if needed.
+  nsTArrayToBufferAdapter(const nsTArrayToBufferAdapter&) = delete;
+  nsTArrayToBufferAdapter& operator=(const nsTArrayToBufferAdapter&) = delete;
+
+  explicit nsTArrayToBufferAdapter(nsTArray<CharType>& aArray)
+      : mArray(aArray) {}
+
+  /**
+   * Ensures the buffer has enough space to accommodate |size| elements.
+   */
+  [[nodiscard]] bool reserve(size_t size) {
+    // Use faillible behavior here.
+    return mArray.SetCapacity(size, fallible);
+  }
+
+  /**
+   * Returns the raw data inside the buffer.
+   */
+  CharType* data() { return mArray.Elements(); }
+
+  /**
+   * Returns the count of elements written into the buffer.
+   */
+  size_t length() const { return mArray.Length(); }
+
+  /**
+   * Returns the buffer's overall capacity.
+   */
+  size_t capacity() const { return mArray.Capacity(); }
+
+  /**
+   * Resizes the buffer to the given amount of written elements.
+   */
+  void written(size_t amount) {
+    MOZ_ASSERT(amount <= mArray.Capacity());
+    // This sets |mArray|'s internal size so that it matches how much was
+    // written. This is necessary because the write happens across FFI
+    // boundaries.
+    mArray.SetLengthAndRetainStorage(amount);
+  }
+
+ private:
+  nsTArray<CharType>& mArray;
+};
+
+template <typename T, size_t N>
+class AutoTArrayToBufferAdapter : public nsTArrayToBufferAdapter<T> {
+  using nsTArrayToBufferAdapter<T>::nsTArrayToBufferAdapter;
+};
+
+/**
+ * An overload of FillBufferWithICUCall that accepts a nsTArray.
+ */
+template <typename ICUStringFunction, typename CharType>
+static ICUResult FillBufferWithICUCall(nsTArray<CharType>& array,
+                                       const ICUStringFunction& strFn) {
+  nsTArrayToBufferAdapter<CharType> buffer(array);
+  return FillBufferWithICUCall(buffer, strFn);
+}
+
+template <typename ICUStringFunction, typename CharType, size_t N>
+static ICUResult FillBufferWithICUCall(AutoTArray<CharType, N>& array,
+                                       const ICUStringFunction& strFn) {
+  AutoTArrayToBufferAdapter<CharType, N> buffer(array);
+  return FillBufferWithICUCall(buffer, strFn);
+}
+#endif
 
 /**
  * ICU4C works with UTF-16 strings, but consumers of mozilla::intl may require

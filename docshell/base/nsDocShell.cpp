@@ -850,6 +850,29 @@ nsresult nsDocShell::LoadURI(nsDocShellLoadState* aLoadState,
              "Shouldn't be loading from an entry when calling InternalLoad "
              "from LoadURI");
 
+  // If we have a system triggering principal, we can assume that this load was
+  // triggered by some UI in the browser chrome, such as the URL bar or
+  // bookmark bar. This should count as a user interaction for the current sh
+  // entry, so that the user may navigate back to the current entry, from the
+  // entry that is going to be added as part of this load.
+  nsCOMPtr<nsIPrincipal> triggeringPrincipal =
+      aLoadState->TriggeringPrincipal();
+  if (triggeringPrincipal && triggeringPrincipal->IsSystemPrincipal()) {
+    if (mozilla::SessionHistoryInParent()) {
+      WindowContext* topWc = mBrowsingContext->GetTopWindowContext();
+      if (topWc && !topWc->IsDiscarded()) {
+        MOZ_ALWAYS_SUCCEEDS(topWc->SetSHEntryHasUserInteraction(true));
+      }
+    } else {
+      bool oshe = false;
+      nsCOMPtr<nsISHEntry> currentSHEntry;
+      GetCurrentSHEntry(getter_AddRefs(currentSHEntry), &oshe);
+      if (currentSHEntry) {
+        currentSHEntry->SetHasUserInteraction(true);
+      }
+    }
+  }
+
   rv = InternalLoad(aLoadState);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -919,15 +942,15 @@ bool nsDocShell::MaybeHandleSubframeHistory(
 
             auto resolve =
                 [currentLoadIdentifier, browsingContext, parentDoc, loadState,
-                 isNavigating](Tuple<mozilla::Maybe<LoadingSessionHistoryInfo>,
-                                     int32_t, int32_t>&& aResult) {
+                 isNavigating](
+                    mozilla::Maybe<LoadingSessionHistoryInfo>&& aResult) {
                   if (currentLoadIdentifier ==
                           browsingContext->GetCurrentLoadIdentifier() &&
-                      Get<0>(aResult).isSome()) {
-                    loadState->SetLoadingSessionHistoryInfo(
-                        Get<0>(aResult).value());
-                    loadState->SetLoadIsFromSessionHistory(
-                        Get<1>(aResult), Get<2>(aResult), false);
+                      aResult.isSome()) {
+                    loadState->SetLoadingSessionHistoryInfo(aResult.value());
+                    // This is an initial subframe load from the session
+                    // history, index doesn't need to be updated.
+                    loadState->SetLoadIsFromSessionHistory(0, false);
                   }
                   RefPtr<nsDocShell> docShell =
                       static_cast<nsDocShell*>(browsingContext->GetDocShell());
@@ -947,14 +970,13 @@ bool nsDocShell::MaybeHandleSubframeHistory(
           }
         } else {
           Maybe<LoadingSessionHistoryInfo> info;
-          int32_t requestedIndex = -1;
-          int32_t sessionHistoryLength = 0;
           mBrowsingContext->Canonical()->GetLoadingSessionHistoryInfoFromParent(
-              info, &requestedIndex, &sessionHistoryLength);
+              info);
           if (info.isSome()) {
             aLoadState->SetLoadingSessionHistoryInfo(info.value());
-            aLoadState->SetLoadIsFromSessionHistory(
-                requestedIndex, sessionHistoryLength, false);
+            // This is an initial subframe load from the session
+            // history, index doesn't need to be updated.
+            aLoadState->SetLoadIsFromSessionHistory(0, false);
           }
         }
       }
@@ -3640,9 +3662,6 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
         // Bad Content Encoding.
         error = "contentEncodingError";
         break;
-      case NS_ERROR_REMOTE_XUL:
-        error = "remoteXUL";
-        break;
       case NS_ERROR_UNSAFE_CONTENT_TYPE:
         // Channel refused to load from an unrecognized content type.
         error = "unsafeContentType";
@@ -5546,7 +5565,8 @@ nsresult nsDocShell::RefreshURIFromQueue() {
 
 nsresult nsDocShell::Embed(nsIContentViewer* aContentViewer,
                            WindowGlobalChild* aWindowActor,
-                           bool aIsTransientAboutBlank, bool aPersist) {
+                           bool aIsTransientAboutBlank, bool aPersist,
+                           nsIRequest* aRequest) {
   // Save the LayoutHistoryState of the previous document, before
   // setting up new document
   PersistLayoutHistoryState();
@@ -5571,8 +5591,20 @@ nsresult nsDocShell::Embed(nsIContentViewer* aContentViewer,
   }
 
   if (!aIsTransientAboutBlank && mozilla::SessionHistoryInParent()) {
+    bool expired = false;
+    nsCOMPtr<nsICacheInfoChannel> cacheChannel = do_QueryInterface(aRequest);
+    if (cacheChannel) {
+      // Check if the page has expired from cache
+      uint32_t expTime = 0;
+      cacheChannel->GetCacheTokenExpirationTime(&expTime);
+      uint32_t now = PRTimeToSeconds(PR_Now());
+      if (expTime <= now) {
+        expired = true;
+      }
+    }
+
     MOZ_LOG(gSHLog, LogLevel::Debug, ("document %p Embed", this));
-    MoveLoadingToActiveEntry(aPersist);
+    MoveLoadingToActiveEntry(aPersist, expired);
   }
 
   bool updateHistory = true;
@@ -6170,7 +6202,6 @@ nsresult nsDocShell::FilterStatusForErrorPage(
       aStatus == NS_ERROR_MALWARE_URI || aStatus == NS_ERROR_PHISHING_URI ||
       aStatus == NS_ERROR_UNWANTED_URI || aStatus == NS_ERROR_HARMFUL_URI ||
       aStatus == NS_ERROR_UNSAFE_CONTENT_TYPE ||
-      aStatus == NS_ERROR_REMOTE_XUL ||
       aStatus == NS_ERROR_INTERCEPTION_FAILED ||
       aStatus == NS_ERROR_NET_INADEQUATE_SECURITY ||
       aStatus == NS_ERROR_NET_HTTP2_SENT_GOAWAY ||
@@ -6619,7 +6650,7 @@ nsresult nsDocShell::CreateAboutBlankContentViewer(
       // hook 'em up
       if (viewer) {
         viewer->SetContainer(this);
-        rv = Embed(viewer, aActor, true, false);
+        rv = Embed(viewer, aActor, true, false, nullptr);
         NS_ENSURE_SUCCESS(rv, rv);
 
         SetCurrentURI(blankDoc->GetDocumentURI(), nullptr,
@@ -6771,6 +6802,8 @@ void nsDocShell::ReportBFCacheComboTelemetry(uint16_t aCombo) {
   enum BFCacheStatusCombo : uint16_t {
     BFCACHE_SUCCESS,
     NOT_ONLY_TOPLEVEL = mozilla::dom::BFCacheStatus::NOT_ONLY_TOPLEVEL_IN_BCG,
+    // If both unload and beforeunload listeners are presented, it'll be
+    // recorded as unload
     UNLOAD = mozilla::dom::BFCacheStatus::UNLOAD_LISTENER,
     UNLOAD_REQUEST = mozilla::dom::BFCacheStatus::UNLOAD_LISTENER |
                      mozilla::dom::BFCacheStatus::REQUEST,
@@ -6791,9 +6824,15 @@ void nsDocShell::ReportBFCacheComboTelemetry(uint16_t aCombo) {
         mozilla::dom::BFCacheStatus::UNLOAD_LISTENER |
         mozilla::dom::BFCacheStatus::REQUEST |
         mozilla::dom::BFCacheStatus::ACTIVE_PEER_CONNECTION,
-    REMOTE_SUBFRAMES = mozilla::dom::BFCacheStatus::CONTAINS_REMOTE_SUBFRAMES
+    REMOTE_SUBFRAMES = mozilla::dom::BFCacheStatus::CONTAINS_REMOTE_SUBFRAMES,
+    BEFOREUNLOAD = mozilla::dom::BFCacheStatus::BEFOREUNLOAD_LISTENER,
   };
 
+  // Beforeunload is recorded as a blocker only if it is the only one to block
+  // bfcache.
+  if (aCombo != mozilla::dom::BFCacheStatus::BEFOREUNLOAD_LISTENER) {
+    aCombo &= ~mozilla::dom::BFCacheStatus::BEFOREUNLOAD_LISTENER;
+  }
   switch (aCombo) {
     case BFCACHE_SUCCESS:
       Telemetry::AccumulateCategorical(
@@ -6812,6 +6851,10 @@ void nsDocShell::ReportBFCacheComboTelemetry(uint16_t aCombo) {
       break;
     case UNLOAD:
       Telemetry::AccumulateCategorical(Telemetry::LABELS_BFCACHE_COMBO::Unload);
+      break;
+    case BEFOREUNLOAD:
+      Telemetry::AccumulateCategorical(
+          Telemetry::LABELS_BFCACHE_COMBO::Beforeunload);
       break;
     case UNLOAD_REQUEST:
       Telemetry::AccumulateCategorical(
@@ -7852,7 +7895,7 @@ nsresult nsDocShell::CreateContentViewer(const nsACString& aContentType,
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (!parentSite.Equals(thisSite)) {
-        if (profiler_can_accept_markers()) {
+        if (profiler_thread_is_being_profiled()) {
           nsCOMPtr<nsIURI> prinURI;
           BasePrincipal::Cast(thisPrincipal)->GetURI(getter_AddRefs(prinURI));
           nsPrintfCString marker("Iframe loaded in background: %s",
@@ -7865,7 +7908,8 @@ nsresult nsDocShell::CreateContentViewer(const nsACString& aContentType,
   }
 
   NS_ENSURE_SUCCESS(Embed(viewer, nullptr, false,
-                          ShouldAddToSessionHistory(finalURI, aOpenedChannel)),
+                          ShouldAddToSessionHistory(finalURI, aOpenedChannel),
+                          aOpenedChannel),
                     NS_ERROR_FAILURE);
 
   if (!mBrowsingContext->GetHasLoadedNonInitialDocument()) {
@@ -8636,7 +8680,7 @@ bool nsDocShell::IsSameDocumentNavigation(nsDocShellLoadState* aLoadState,
   }
 
   if (aState.mHistoryNavBetweenSameDoc &&
-      !aLoadState->GetLoadingSessionHistoryInfo()->mLoadingCurrentActiveEntry) {
+      !aLoadState->GetLoadingSessionHistoryInfo()->mLoadingCurrentEntry) {
     return true;
   }
 
@@ -8869,8 +8913,10 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
            this, mLoadingEntry->mInfo.GetURI()->GetSpecOrDefault().get()));
       bool hadActiveEntry = !!mActiveEntry;
       mActiveEntry = MakeUnique<SessionHistoryInfo>(mLoadingEntry->mInfo);
-      mBrowsingContext->SessionHistoryCommit(*mLoadingEntry, mLoadType,
-                                             hadActiveEntry, true, true);
+      mBrowsingContext->SessionHistoryCommit(
+          *mLoadingEntry, mLoadType, hadActiveEntry, true, true,
+          /* No expiration update on the same document loads*/
+          false);
       // FIXME Need to set postdata.
       SetCacheKeyOnHistoryEntry(nullptr, cacheKey);
 
@@ -11751,13 +11797,12 @@ nsresult nsDocShell::LoadHistoryEntry(const LoadingSessionHistoryInfo& aEntry,
   loadState->SetHasValidUserGestureActivation(
       loadState->HasValidUserGestureActivation() || aUserActivation);
 
-  return LoadHistoryEntry(loadState, aLoadType,
-                          aEntry.mLoadingCurrentActiveEntry);
+  return LoadHistoryEntry(loadState, aLoadType, aEntry.mLoadingCurrentEntry);
 }
 
 nsresult nsDocShell::LoadHistoryEntry(nsDocShellLoadState* aLoadState,
                                       uint32_t aLoadType,
-                                      bool aReloadingActiveEntry) {
+                                      bool aLoadingCurrentEntry) {
   if (!IsNavigationAllowed()) {
     return NS_OK;
   }
@@ -11778,7 +11823,7 @@ nsresult nsDocShell::LoadHistoryEntry(nsDocShellLoadState* aLoadState,
     rv = CreateAboutBlankContentViewer(
         aLoadState->PrincipalToInherit(),
         aLoadState->PartitionedPrincipalToInherit(), nullptr, nullptr,
-        /* aIsInitialDocument */ false, Nothing(), !aReloadingActiveEntry);
+        /* aIsInitialDocument */ false, Nothing(), !aLoadingCurrentEntry);
 
     if (NS_FAILED(rv)) {
       // The creation of the intermittent about:blank content
@@ -13361,7 +13406,7 @@ void nsDocShell::SetLoadingSessionHistoryInfo(
   mLoadingEntry = MakeUnique<LoadingSessionHistoryInfo>(aLoadingInfo);
 }
 
-void nsDocShell::MoveLoadingToActiveEntry(bool aPersist) {
+void nsDocShell::MoveLoadingToActiveEntry(bool aPersist, bool aExpired) {
   MOZ_ASSERT(mozilla::SessionHistoryInParent());
 
   MOZ_LOG(gSHLog, LogLevel::Debug,
@@ -13388,8 +13433,8 @@ void nsDocShell::MoveLoadingToActiveEntry(bool aPersist) {
     MOZ_ASSERT(loadingEntry);
     uint32_t loadType =
         mLoadType == LOAD_ERROR_PAGE ? mFailedLoadType : mLoadType;
-    mBrowsingContext->SessionHistoryCommit(*loadingEntry, loadType,
-                                           hadActiveEntry, aPersist, false);
+    mBrowsingContext->SessionHistoryCommit(
+        *loadingEntry, loadType, hadActiveEntry, aPersist, false, aExpired);
   }
 }
 

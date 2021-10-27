@@ -15,7 +15,6 @@ from marionette_driver.marionette import Alert
 from marionette_harness import (
     MarionetteTestCase,
     run_if_manage_instance,
-    skip_unless_browser_pref,
     WindowManagerMixin,
 )
 
@@ -375,6 +374,13 @@ class TestNavigate(BaseNavigationTestCase):
             message="'{}' hasn't been loaded".format(self.test_page_remote),
         )
         self.assertTrue(self.is_remote_tab)
+
+    def test_navigate_after_deleting_session(self):
+        self.marionette.delete_session()
+        self.marionette.start_session()
+
+        self.marionette.navigate(self.test_page_remote)
+        self.assertEqual(self.test_page_remote, self.marionette.get_url())
 
 
 class TestBackForwardNavigation(BaseNavigationTestCase):
@@ -851,12 +857,16 @@ class TestPageLoadStrategy(BaseNavigationTestCase):
         self.marionette.delete_session()
         self.marionette.start_session({"pageLoadStrategy": "none"})
 
+        # Navigate will return immediately. As such wait for the target URL to
+        # be the current location, and the element to exist.
         self.marionette.navigate(self.test_page_slow_resource)
         Wait(self.marionette, timeout=self.marionette.timeout.page_load).until(
             lambda _: self.marionette.get_url() == self.test_page_slow_resource,
             message="Target page has not been loaded",
         )
-        self.marionette.find_element(By.ID, "slow")
+        Wait(self.marionette, ignored_exceptions=errors.NoSuchElementException).until(
+            lambda _: self.marionette.find_element(By.ID, "slow")
+        )
 
     def test_eager(self):
         self.marionette.delete_session()

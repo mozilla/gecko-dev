@@ -58,7 +58,7 @@ void Compartment::checkObjectWrappersAfterMovingGC() {
     // wrapper map that points into the nursery, and that the hash table entries
     // are discoverable.
     auto key = e.front().key();
-    CheckGCThingAfterMovingGC(key);
+    CheckGCThingAfterMovingGC(key.get());
 
     auto ptr = crossCompartmentObjectWrappers.lookup(key);
     MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &e.front());
@@ -504,13 +504,13 @@ void Compartment::sweepAfterMinorGC(JSTracer* trc) {
   crossCompartmentObjectWrappers.sweepAfterMinorGC(trc);
 
   for (RealmsInCompartmentIter r(this); !r.done(); r.next()) {
-    r->sweepAfterMinorGC();
+    r->sweepAfterMinorGC(trc);
   }
 }
 
 // Remove dead wrappers from the table or update pointers to moved objects.
-void Compartment::sweepCrossCompartmentObjectWrappers() {
-  crossCompartmentObjectWrappers.sweep();
+void Compartment::traceCrossCompartmentObjectWrapperEdges(JSTracer* trc) {
+  crossCompartmentObjectWrappers.traceWeak(trc);
 }
 
 void Compartment::fixupCrossCompartmentObjectWrappersAfterMovingGC(
@@ -519,7 +519,7 @@ void Compartment::fixupCrossCompartmentObjectWrappersAfterMovingGC(
 
   // Sweep the wrapper map to update keys (wrapped values) in other
   // compartments that may have been moved.
-  sweepCrossCompartmentObjectWrappers();
+  traceCrossCompartmentObjectWrapperEdges(trc);
 
   // Trace the wrappers in the map to update their cross-compartment edges
   // to wrapped values in other compartments that may have been moved.
@@ -535,7 +535,7 @@ void Compartment::fixupAfterMovingGC(JSTracer* trc) {
 
   // Sweep the wrapper map to update values (wrapper objects) in this
   // compartment that may have been moved.
-  sweepCrossCompartmentObjectWrappers();
+  traceCrossCompartmentObjectWrapperEdges(trc);
 }
 
 void Compartment::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,

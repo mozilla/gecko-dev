@@ -1578,7 +1578,7 @@ already_AddRefed<nsIContent> nsCSSFrameConstructor::CreateGeneratedContent(
       int32_t attrNameSpace = kNameSpaceID_None;
       RefPtr<nsAtom> ns = attr.namespace_url.AsAtom();
       if (!ns->IsEmpty()) {
-        nsresult rv = nsContentUtils::NameSpaceManager()->RegisterNameSpace(
+        nsresult rv = nsNameSpaceManager::GetInstance()->RegisterNameSpace(
             ns.forget(), attrNameSpace);
         NS_ENSURE_SUCCESS(rv, nullptr);
       }
@@ -4000,19 +4000,39 @@ nsresult nsCSSFrameConstructor::GetAnonymousContent(
   // * when visibility or pointer-events is anything other than the initial
   //   value; we rely on visibility and pointer-events inheriting into anonymous
   //   content, but don't bother adding this state to the AnonymousContentKey,
-  //   since it's not so common. Note that on android scrollbars always have
-  //   pointer-events: none so we don't need to check for that.
+  //   since it's not so common. Note that with overlay scrollbars, scrollbars
+  //   always start off with pointer-events: none so we don't need to check for
+  //   that in that case.
   //
   // * when the medium is anything other than screen; some UA style sheet rules
   //   apply in e.g. print medium, and will give different results from the
   //   cached styles
-  bool allowStyleCaching =
-      StaticPrefs::layout_css_cached_scrollbar_styles_enabled() &&
-      aParentFrame->StyleVisibility()->mVisible == StyleVisibility::Visible &&
-#ifndef ANDROID
-      aParentFrame->StyleUI()->mPointerEvents == StylePointerEvents::Auto &&
-#endif
-      mPresShell->GetPresContext()->Medium() == nsGkAtoms::screen;
+  Maybe<bool> computedAllowStyleCaching;
+  auto ComputeAllowStyleCaching = [&] {
+    if (!StaticPrefs::layout_css_cached_scrollbar_styles_enabled()) {
+      return false;
+    }
+    if (aParentFrame->StyleVisibility()->mVisible != StyleVisibility::Visible) {
+      return false;
+    }
+    nsPresContext* pc = mPresShell->GetPresContext();
+    if (!pc->UseOverlayScrollbars() &&
+        aParentFrame->StyleUI()->ComputedPointerEvents() !=
+            StylePointerEvents::Auto) {
+      return false;
+    }
+    if (pc->Medium() != nsGkAtoms::screen) {
+      return false;
+    }
+    return true;
+  };
+
+  auto AllowStyleCaching = [&] {
+    if (computedAllowStyleCaching.isNothing()) {
+      computedAllowStyleCaching.emplace(ComputeAllowStyleCaching());
+    }
+    return computedAllowStyleCaching.value();
+  };
 
   // Compute styles for the anonymous content tree.
   ServoStyleSet* styleSet = mPresShell->StyleSet();
@@ -4022,7 +4042,7 @@ nsresult nsCSSFrameConstructor::GetAnonymousContent(
       continue;
     }
 
-    if (info.mKey == AnonymousContentKey::None || !allowStyleCaching) {
+    if (info.mKey == AnonymousContentKey::None || !AllowStyleCaching()) {
       // Most NAC subtrees do not use caching of computed styles.  Just go
       // ahead and eagerly style the subtree.
       styleSet->StyleNewSubtree(e);
@@ -4065,9 +4085,11 @@ nsresult nsCSSFrameConstructor::GetAnonymousContent(
             cachedStyles[i]->EqualForCachedAnonymousContentStyle(*cs),
             "cached anonymous content styles should be identical to those we "
             "would compute normally");
-#  ifdef ANDROID
-        MOZ_ASSERT(cs->StyleUI()->mPointerEvents == StylePointerEvents::None);
-#  endif
+        // All overlay scrollbars start off as inactive, so we can rely on their
+        // pointer-events value being always none.
+        MOZ_ASSERT(!mPresShell->GetPresContext()->UseOverlayScrollbars() ||
+                   cs->StyleUI()->ComputedPointerEvents() ==
+                       StylePointerEvents::None);
 #endif
         Servo_SetExplicitStyle(elements[i], cachedStyles[i]);
       }
@@ -9954,9 +9976,9 @@ static int32_t FirstLetterCount(const nsTextFragment* aFragment) {
   int32_t count = 0;
   int32_t firstLetterLength = 0;
 
-  int32_t i, n = aFragment->GetLength();
-  for (i = 0; i < n; i++) {
-    char16_t ch = aFragment->CharAt(i);
+  const uint32_t n = aFragment->GetLength();
+  for (uint32_t i = 0; i < n; i++) {
+    const char16_t ch = aFragment->CharAt(i);
     // FIXME: take content language into account when deciding whitespace.
     if (dom::IsSpaceCharacter(ch)) {
       if (firstLetterLength) {

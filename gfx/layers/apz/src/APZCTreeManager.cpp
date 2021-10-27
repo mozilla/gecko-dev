@@ -723,7 +723,8 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
 
   bool activeAnimations = AdvanceAnimationsInternal(lock, aSampleTime);
   if (activeAnimations && controller) {
-    controller->ScheduleRenderOnCompositorThread();
+    controller->ScheduleRenderOnCompositorThread(
+        wr::RenderReasons::ANIMATED_PROPERTY);
   }
 
   nsTArray<wr::WrTransformProperty> transforms;
@@ -745,6 +746,21 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
     if (Maybe<CompositionPayload> payload = apzc->NotifyScrollSampling()) {
       if (wrBridgeParent && aVsyncId) {
         wrBridgeParent->AddPendingScrollPayload(*payload, *aVsyncId);
+      }
+    }
+
+    if (StaticPrefs::apz_test_logging_enabled()) {
+      MutexAutoLock lock(mTestDataLock);
+
+      ScrollableLayerGuid guid = apzc->GetGuid();
+      auto it = mTestData.find(guid.mLayersId);
+      if (it != mTestData.end()) {
+        it->second->RecordSampledResult(
+            apzc->GetCurrentAsyncScrollOffsetInCssPixels(
+                AsyncPanZoomController::eForCompositing),
+            (aSampleTime.Time() - TimeStamp::ProcessCreation(nullptr))
+                .ToMicroseconds(),
+            guid.mLayersId, guid.mScrollId);
       }
     }
 
@@ -778,8 +794,7 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
     // async zoom. However, we only use LayoutAndVisual for non-zoomable APZCs,
     // so it makes no difference.
     LayoutDeviceToParentLayerScale resolution =
-        apzc->GetCumulativeResolution().ToScaleFactor() *
-        LayerToParentLayerScale(1.0f);
+        apzc->GetCumulativeResolution() * LayerToParentLayerScale(1.0f);
     // The positive translation means the painted content is supposed to
     // move down (or to the right), and that corresponds to a reduction in
     // the scroll offset. Since we are effectively giving WR the async
@@ -2272,8 +2287,9 @@ void APZCTreeManager::SynthesizePinchGestureFromMouseWheel(
   mInputQueue->ReceiveInputEvent(aTarget, confFlags, pinchEnd);
 }
 
-void APZCTreeManager::UpdateWheelTransaction(LayoutDeviceIntPoint aRefPoint,
-                                             EventMessage aEventMessage) {
+void APZCTreeManager::UpdateWheelTransaction(
+    LayoutDeviceIntPoint aRefPoint, EventMessage aEventMessage,
+    const Maybe<ScrollableLayerGuid>& aTargetGuid) {
   APZThreadUtils::AssertOnControllerThread();
 
   WheelBlockState* txn = mInputQueue->GetActiveWheelTransaction();
@@ -2294,7 +2310,7 @@ void APZCTreeManager::UpdateWheelTransaction(LayoutDeviceIntPoint aRefPoint,
           aRefPoint,
           PixelCastJustification::LayoutDeviceIsScreenForUntransformedEvent);
 
-      txn->OnMouseMove(point);
+      txn->OnMouseMove(point, aTargetGuid);
 
       return;
     }

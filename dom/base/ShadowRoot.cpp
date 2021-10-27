@@ -754,44 +754,41 @@ void ShadowRoot::MaybeUnslotHostChild(nsIContent& aChild) {
 }
 
 Element* ShadowRoot::GetFirstFocusable(bool aWithMouse) const {
-  for (nsIContent* child = GetFirstChild(); child;
-       child = child->GetNextNode()) {
-    if (auto* slot = HTMLSlotElement::FromNode(child)) {
-      const nsTArray<RefPtr<nsINode>>& assignedNodes = slot->AssignedNodes();
-      for (const auto& node : assignedNodes) {
-        if (node->IsElement()) {
-          Element* assignedElement = node->AsElement();
-          if (nsIFrame* frame = assignedElement->GetPrimaryFrame()) {
-            if (frame->IsFocusable(aWithMouse)) {
-              return assignedElement;
-            }
-          }
-        }
+  MOZ_ASSERT(DelegatesFocus(), "Why are we here?");
+
+  Element* potentialFocus = nullptr;
+
+  for (nsINode* node = GetFirstChild(); node; node = node->GetNextNode(this)) {
+    auto* el = Element::FromNode(*node);
+    if (!el) {
+      continue;
+    }
+    nsIFrame* frame = el->GetPrimaryFrame();
+    if (frame && frame->IsFocusable(aWithMouse)) {
+      if (el->GetBoolAttr(nsGkAtoms::autofocus)) {
+        return el;
+      }
+      if (!potentialFocus) {
+        potentialFocus = el;
       }
     }
-
-    if (child->IsElement()) {
-      if (nsIFrame* frame = child->GetPrimaryFrame()) {
-        if (frame->IsFocusable(aWithMouse)) {
-          return child->AsElement();
+    if (!potentialFocus) {
+      ShadowRoot* shadow = el->GetShadowRoot();
+      if (shadow && shadow->DelegatesFocus()) {
+        if (Element* nested = shadow->GetFirstFocusable(aWithMouse)) {
+          potentialFocus = nested;
         }
-      }
-    }
-
-    if (ShadowRoot* root = child->GetShadowRoot()) {
-      if (Element* firstFocusable = root->GetFirstFocusable(aWithMouse)) {
-        return firstFocusable;
       }
     }
   }
-
-  return nullptr;
+  return potentialFocus;
 }
 
 void ShadowRoot::MaybeSlotHostChild(nsIContent& aChild) {
   MOZ_ASSERT(aChild.GetParent() == GetHost());
   // Check to ensure that the child not an anonymous subtree root because even
-  // though its parent could be the host it may not be in the host's child list.
+  // though its parent could be the host it may not be in the host's child
+  // list.
   if (aChild.IsRootOfNativeAnonymousSubtree()) {
     return;
   }

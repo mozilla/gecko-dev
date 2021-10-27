@@ -929,6 +929,14 @@ TEST(GeckoProfiler, ThreadRegistry_DataAccess)
       });
       EXPECT_EQ(ranTest, 1);
 
+      EXPECT_TRUE(TRy::WithOffThreadRefOr(
+          testThreadId,
+          [&](TRy::OffThreadRef aOffThreadRef) {
+            TestOffThreadRef(aOffThreadRef);
+            return true;
+          },
+          false));
+
       ranTest = 0;
       EXPECT_FALSE(TRy::IsRegistryMutexLockedOnCurrentThread());
       for (TRy::OffThreadRef offThreadRef : TRy::LockedRegistry{}) {
@@ -966,10 +974,111 @@ TEST(GeckoProfiler, ThreadRegistry_DataAccess)
     std::thread otherThread([&]() {
       ASSERT_NE(profiler_current_thread_id(), testThreadId);
       testThroughRegistry();
+
+      // Test that this unregistered thread is really not registered.
+      int ranTest = 0;
+      TRy::WithOffThreadRef(
+          profiler_current_thread_id(),
+          [&](TRy::OffThreadRef aOffThreadRef) { ++ranTest; });
+      EXPECT_EQ(ranTest, 0);
+
+      EXPECT_FALSE(TRy::WithOffThreadRefOr(
+          profiler_current_thread_id(),
+          [&](TRy::OffThreadRef aOffThreadRef) {
+            ++ranTest;
+            return true;
+          },
+          false));
+      EXPECT_EQ(ranTest, 0);
     });
     otherThread.join();
   });
   testThread.join();
+}
+
+TEST(GeckoProfiler, ThreadRegistration_RegistrationEdgeCases)
+{
+  using TR = profiler::ThreadRegistration;
+  using TRy = profiler::ThreadRegistry;
+
+  profiler_init_main_thread_id();
+  ASSERT_TRUE(profiler_is_main_thread())
+  << "This test assumes it runs on the main thread";
+
+  // Note that the main thread could already be registered, so we work in a new
+  // thread to test an actual registration that we control.
+
+  int registrationCount = 0;
+  int otherThreadLoops = 0;
+  int otherThreadReads = 0;
+
+  // This thread will register and unregister in a loop, with some pauses.
+  // Another thread will attempty to access the test thread, and lock its data.
+  // The main goal is to check edges cases around (un)registrations.
+  std::thread testThread([&]() {
+    const ProfilerThreadId testThreadId = profiler_current_thread_id();
+
+    const TimeStamp endTestAt = TimeStamp::Now() + TimeDuration::FromSeconds(1);
+
+    std::thread otherThread([&]() {
+      // Initial sleep so that testThread can start its loop.
+      PR_Sleep(PR_MillisecondsToInterval(1));
+
+      while (TimeStamp::Now() < endTestAt) {
+        ++otherThreadLoops;
+
+        TRy::WithOffThreadRef(testThreadId, [&](TRy::OffThreadRef
+                                                    aOffThreadRef) {
+          if (otherThreadLoops % 1000 == 0) {
+            PR_Sleep(PR_MillisecondsToInterval(1));
+          }
+          TRy::OffThreadRef::RWFromAnyThreadWithLock rwFromAnyThreadWithLock =
+              aOffThreadRef.LockedRWFromAnyThread();
+          ++otherThreadReads;
+          if (otherThreadReads % 1000 == 0) {
+            PR_Sleep(PR_MillisecondsToInterval(1));
+          }
+        });
+      }
+    });
+
+    while (TimeStamp::Now() < endTestAt) {
+      ASSERT_FALSE(TR::IsRegistered())
+      << "A new std::thread should not start registered";
+      EXPECT_FALSE(TR::GetOnThreadPtr());
+      EXPECT_FALSE(TR::WithOnThreadRefOr([&](auto) { return true; }, false));
+
+      char onStackChar;
+
+      TR tr{"Test thread", &onStackChar};
+      ++registrationCount;
+
+      ASSERT_TRUE(TR::IsRegistered());
+
+      int ranTest = 0;
+      TRy::WithOffThreadRef(testThreadId, [&](TRy::OffThreadRef aOffThreadRef) {
+        if (registrationCount % 2000 == 0) {
+          PR_Sleep(PR_MillisecondsToInterval(1));
+        }
+        ++ranTest;
+      });
+      EXPECT_EQ(ranTest, 1);
+
+      if (registrationCount % 1000 == 0) {
+        PR_Sleep(PR_MillisecondsToInterval(1));
+      }
+    }
+
+    otherThread.join();
+  });
+
+  testThread.join();
+
+  // It's difficult to guess what these numbers should be, but they definitely
+  // should be non-zero. The main goal was to test that nothing goes wrong.
+  EXPECT_GT(registrationCount, 0);
+  EXPECT_GT(otherThreadLoops, 0);
+  EXPECT_GT(otherThreadReads, 0);
 }
 
 #ifdef MOZ_GECKO_PROFILER
@@ -1126,6 +1235,45 @@ static void JSONRootCheck(const Json::Value& aRoot,
 
   EXPECT_HAS_JSON(aRoot["profilerOverhead"], Object);
 
+  // "counters" is only present if there is any data to report.
+  // Test that expect "counters" should test for its presence first.
+  if (aRoot.isMember("counters")) {
+    // We have "counters", test their overall validity.
+    GET_JSON(counters, aRoot["counters"], Array);
+    for (const Json::Value& counter : counters) {
+      ASSERT_TRUE(counter.isObject());
+      EXPECT_HAS_JSON(counter["name"], String);
+      EXPECT_HAS_JSON(counter["category"], String);
+      EXPECT_HAS_JSON(counter["description"], String);
+      GET_JSON(sampleGroups, counter["sample_groups"], Array);
+      for (const Json::Value& sampleGroup : sampleGroups) {
+        ASSERT_TRUE(sampleGroup.isObject());
+        EXPECT_HAS_JSON(sampleGroup["id"], UInt);
+
+        GET_JSON(samples, sampleGroup["samples"], Object);
+        GET_JSON(samplesSchema, samples["schema"], Object);
+        EXPECT_GE(samplesSchema.size(), 3u);
+        GET_JSON_VALUE(samplesTime, samplesSchema["time"], UInt);
+        GET_JSON_VALUE(samplesNumber, samplesSchema["number"], UInt);
+        GET_JSON_VALUE(samplesCount, samplesSchema["count"], UInt);
+        GET_JSON(samplesData, samples["data"], Array);
+        double previousTime = 0.0;
+        for (const Json::Value& sample : samplesData) {
+          ASSERT_TRUE(sample.isArray());
+          GET_JSON_VALUE(time, sample[samplesTime], Double);
+          EXPECT_GE(time, previousTime);
+          previousTime = time;
+          if (sample.isValidIndex(samplesNumber)) {
+            EXPECT_HAS_JSON(sample[samplesNumber], UInt64);
+          }
+          if (sample.isValidIndex(samplesCount)) {
+            EXPECT_HAS_JSON(sample[samplesCount], Int64);
+          }
+        }
+      }
+    }
+  }
+
   GET_JSON(threads, aRoot["threads"], Array);
   const Json::ArrayIndex threadCount = threads.size();
   for (Json::ArrayIndex i = 0; i < threadCount; ++i) {
@@ -1225,6 +1373,22 @@ void JSONOutputCheck(const char* aOutput,
   JSONRootCheck(parsedRoot);
 
   std::forward<JSONCheckFunction>(aJSONCheckFunction)(parsedRoot);
+}
+
+// Returns `static_cast<SamplingState>(-1)` if callback could not be installed.
+static SamplingState WaitForSamplingState() {
+  Atomic<int> samplingState{-1};
+
+  if (!profiler_callback_after_sampling([&](SamplingState aSamplingState) {
+        samplingState = static_cast<int>(aSamplingState);
+      })) {
+    return static_cast<SamplingState>(-1);
+  }
+
+  while (samplingState == -1) {
+  }
+
+  return static_cast<SamplingState>(static_cast<int>(samplingState));
 }
 
 typedef Vector<const char*> StrVec;
@@ -1645,17 +1809,85 @@ TEST(GeckoProfiler, GetBacktrace)
 
 TEST(GeckoProfiler, Pause)
 {
+  profiler_init_main_thread_id();
+  ASSERT_TRUE(profiler_is_main_thread())
+  << "This test must run on the main thread";
+
   uint32_t features = ProfilerFeature::StackWalk;
-  const char* filters[] = {"GeckoMain"};
+  const char* filters[] = {"GeckoMain", "Profiled GeckoProfiler.Pause"};
 
   ASSERT_TRUE(!profiler_is_paused());
-  ASSERT_TRUE(!profiler_can_accept_markers());
+  ASSERT_TRUE(!profiler_thread_is_being_profiled());
+  ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+  ASSERT_TRUE(!profiler_thread_is_being_profiled(profiler_current_thread_id()));
+  ASSERT_TRUE(!profiler_thread_is_being_profiled(profiler_main_thread_id()));
+
+  std::thread{[&]() {
+    {
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD(
+          "Ignored GeckoProfiler.Pause - before start");
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD(
+          "Profiled GeckoProfiler.Pause - before start");
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+  }}.join();
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
                  filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   ASSERT_TRUE(!profiler_is_paused());
-  ASSERT_TRUE(profiler_can_accept_markers());
+  ASSERT_TRUE(profiler_thread_is_being_profiled());
+  ASSERT_TRUE(profiler_thread_is_being_profiled(ProfilerThreadId{}));
+  ASSERT_TRUE(profiler_thread_is_being_profiled(profiler_current_thread_id()));
+
+  std::thread{[&]() {
+    {
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD(
+          "Ignored GeckoProfiler.Pause - after start");
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD(
+          "Profiled GeckoProfiler.Pause - after start");
+      ASSERT_TRUE(profiler_thread_is_being_profiled());
+      ASSERT_TRUE(profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+  }}.join();
 
   // Check that we are writing samples while not paused.
   Maybe<ProfilerBufferInfo> info1 = profiler_get_buffer_info();
@@ -1672,7 +1904,40 @@ TEST(GeckoProfiler, Pause)
   profiler_pause();
 
   ASSERT_TRUE(profiler_is_paused());
-  ASSERT_TRUE(!profiler_can_accept_markers());
+  ASSERT_TRUE(!profiler_thread_is_being_profiled());
+  ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+  ASSERT_TRUE(!profiler_thread_is_being_profiled(profiler_current_thread_id()));
+
+  std::thread{[&]() {
+    {
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD(
+          "Ignored GeckoProfiler.Pause - after pause");
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD(
+          "Profiled GeckoProfiler.Pause - after pause");
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+  }}.join();
 
   // Check that we are not writing samples while paused.
   info1 = profiler_get_buffer_info();
@@ -1692,12 +1957,74 @@ TEST(GeckoProfiler, Pause)
   profiler_resume();
 
   ASSERT_TRUE(!profiler_is_paused());
-  ASSERT_TRUE(profiler_can_accept_markers());
+  ASSERT_TRUE(profiler_thread_is_being_profiled());
+  ASSERT_TRUE(profiler_thread_is_being_profiled(ProfilerThreadId{}));
+  ASSERT_TRUE(profiler_thread_is_being_profiled(profiler_current_thread_id()));
+
+  std::thread{[&]() {
+    {
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD(
+          "Ignored GeckoProfiler.Pause - after resume");
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD(
+          "Profiled GeckoProfiler.Pause - after resume");
+      ASSERT_TRUE(profiler_thread_is_being_profiled());
+      ASSERT_TRUE(profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+  }}.join();
 
   profiler_stop();
 
   ASSERT_TRUE(!profiler_is_paused());
-  ASSERT_TRUE(!profiler_can_accept_markers());
+  ASSERT_TRUE(!profiler_thread_is_being_profiled());
+  ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+  ASSERT_TRUE(!profiler_thread_is_being_profiled(profiler_current_thread_id()));
+
+  std::thread{[&]() {
+    {
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD("Ignored GeckoProfiler.Pause - after stop");
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+    {
+      AUTO_PROFILER_REGISTER_THREAD(
+          "Profiled GeckoProfiler.Pause - after stop");
+      ASSERT_TRUE(!profiler_thread_is_being_profiled());
+      ASSERT_TRUE(!profiler_thread_is_being_profiled(ProfilerThreadId{}));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_current_thread_id()));
+      ASSERT_TRUE(
+          !profiler_thread_is_being_profiled(profiler_main_thread_id()));
+    }
+  }}.join();
 }
 
 TEST(GeckoProfiler, Markers)
@@ -2045,7 +2372,7 @@ TEST(GeckoProfiler, Markers)
   std::thread registeredThread([]() {
     AUTO_PROFILER_REGISTER_THREAD("Marker test sub-thread");
     // Marker in non-profiled thread won't be stored.
-    EXPECT_TRUE(profiler_add_marker(
+    EXPECT_FALSE(profiler_add_marker(
         "Text in registered thread with stack", geckoprofiler::category::OTHER,
         MarkerStack::Capture(), geckoprofiler::markers::TextMarker{}, ""));
     // Marker will be stored in main thread, with stack from registered thread.
@@ -2059,10 +2386,10 @@ TEST(GeckoProfiler, Markers)
 
   std::thread unregisteredThread([]() {
     // Marker in unregistered thread won't be stored.
-    EXPECT_TRUE(profiler_add_marker("Text in unregistered thread with stack",
-                                    geckoprofiler::category::OTHER,
-                                    MarkerStack::Capture(),
-                                    geckoprofiler::markers::TextMarker{}, ""));
+    EXPECT_FALSE(profiler_add_marker("Text in unregistered thread with stack",
+                                     geckoprofiler::category::OTHER,
+                                     MarkerStack::Capture(),
+                                     geckoprofiler::markers::TextMarker{}, ""));
     // Marker will be stored in main thread, but stack cannot be captured in an
     // unregistered thread.
     EXPECT_TRUE(profiler_add_marker(
@@ -2859,41 +3186,129 @@ PROFILER_DEFINE_COUNT_TOTAL(TestCounter2, COUNTER_NAME2, COUNTER_DESCRIPTION2);
 TEST(GeckoProfiler, Counters)
 {
   uint32_t features = ProfilerFeature::Threads;
-  const char* filters[] = {"GeckoMain", "Compositor"};
+  const char* filters[] = {"GeckoMain"};
+
+  // We will record some counter values, and check that they're present (and no
+  // other) when expected.
+
+  struct NumberAndCount {
+    uint64_t mNumber;
+    int64_t mCount;
+  };
+
+  int64_t testCounters[] = {10, 7, -17};
+  NumberAndCount expectedTestCounters[] = {{1u, 10}, {0u, 0},   {1u, 7},
+                                           {0u, 0},  {1u, -17}, {0u, 0}};
+  constexpr size_t expectedTestCountersCount =
+      MOZ_ARRAY_LENGTH(expectedTestCounters);
+
+  bool expectCounter2 = false;
+  int64_t testCounters2[] = {10};
+  NumberAndCount expectedTestCounters2[] = {{1u, 10}, {0u, 0}};
+  constexpr size_t expectedTestCounters2Count =
+      MOZ_ARRAY_LENGTH(expectedTestCounters2);
+
+  auto checkCountersInJSON = [&](const Json::Value& aRoot) {
+    size_t nextExpectedTestCounter = 0u;
+    size_t nextExpectedTestCounter2 = 0u;
+
+    GET_JSON(counters, aRoot["counters"], Array);
+    for (const Json::Value& counter : counters) {
+      ASSERT_TRUE(counter.isObject());
+      GET_JSON_VALUE(name, counter["name"], String);
+      if (name == "TestCounter") {
+        EXPECT_EQ_JSON(counter["category"], String, COUNTER_NAME);
+        EXPECT_EQ_JSON(counter["description"], String, COUNTER_DESCRIPTION);
+        GET_JSON(sampleGroups, counter["sample_groups"], Array);
+        for (const Json::Value& sampleGroup : sampleGroups) {
+          ASSERT_TRUE(sampleGroup.isObject());
+          EXPECT_EQ_JSON(sampleGroup["id"], UInt, 0u);
+
+          GET_JSON(samples, sampleGroup["samples"], Object);
+          GET_JSON(samplesSchema, samples["schema"], Object);
+          EXPECT_GE(samplesSchema.size(), 3u);
+          GET_JSON_VALUE(samplesNumber, samplesSchema["number"], UInt);
+          GET_JSON_VALUE(samplesCount, samplesSchema["count"], UInt);
+          GET_JSON(samplesData, samples["data"], Array);
+          for (const Json::Value& sample : samplesData) {
+            ASSERT_TRUE(sample.isArray());
+            ASSERT_LT(nextExpectedTestCounter, expectedTestCountersCount);
+            EXPECT_EQ_JSON(
+                sample[samplesNumber], UInt64,
+                expectedTestCounters[nextExpectedTestCounter].mNumber);
+            EXPECT_EQ_JSON(
+                sample[samplesCount], Int64,
+                expectedTestCounters[nextExpectedTestCounter].mCount);
+            ++nextExpectedTestCounter;
+          }
+        }
+      } else if (name == "TestCounter2") {
+        EXPECT_TRUE(expectCounter2);
+
+        EXPECT_EQ_JSON(counter["category"], String, COUNTER_NAME2);
+        EXPECT_EQ_JSON(counter["description"], String, COUNTER_DESCRIPTION2);
+        GET_JSON(sampleGroups, counter["sample_groups"], Array);
+        for (const Json::Value& sampleGroup : sampleGroups) {
+          ASSERT_TRUE(sampleGroup.isObject());
+          EXPECT_EQ_JSON(sampleGroup["id"], UInt, 0u);
+
+          GET_JSON(samples, sampleGroup["samples"], Object);
+          GET_JSON(samplesSchema, samples["schema"], Object);
+          EXPECT_GE(samplesSchema.size(), 3u);
+          GET_JSON_VALUE(samplesNumber, samplesSchema["number"], UInt);
+          GET_JSON_VALUE(samplesCount, samplesSchema["count"], UInt);
+          GET_JSON(samplesData, samples["data"], Array);
+          for (const Json::Value& sample : samplesData) {
+            ASSERT_TRUE(sample.isArray());
+            ASSERT_LT(nextExpectedTestCounter2, expectedTestCounters2Count);
+            EXPECT_EQ_JSON(
+                sample[samplesNumber], UInt64,
+                expectedTestCounters2[nextExpectedTestCounter2].mNumber);
+            EXPECT_EQ_JSON(
+                sample[samplesCount], Int64,
+                expectedTestCounters2[nextExpectedTestCounter2].mCount);
+            ++nextExpectedTestCounter2;
+          }
+        }
+      }
+    }
+
+    EXPECT_EQ(nextExpectedTestCounter, expectedTestCountersCount);
+    if (expectCounter2) {
+      EXPECT_EQ(nextExpectedTestCounter2, expectedTestCounters2Count);
+    }
+  };
 
   // Inactive -> Active
   profiler_ensure_started(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
                           features, filters, MOZ_ARRAY_LENGTH(filters), 0);
 
-  AUTO_PROFILER_COUNT_TOTAL(TestCounter, 10);
-  PR_Sleep(PR_MillisecondsToInterval(200));
-  AUTO_PROFILER_COUNT_TOTAL(TestCounter, 7);
-  PR_Sleep(PR_MillisecondsToInterval(200));
-  AUTO_PROFILER_COUNT_TOTAL(TestCounter, -17);
-  PR_Sleep(PR_MillisecondsToInterval(200));
+  // Output all "TestCounter"s, with increasing delays (to test different
+  // number of counter samplings).
+  int samplingWaits = 2;
+  for (int64_t counter : testCounters) {
+    AUTO_PROFILER_COUNT_TOTAL(TestCounter, counter);
+    for (int i = 0; i < samplingWaits; ++i) {
+      ASSERT_EQ(WaitForSamplingState(), SamplingState::SamplingCompleted);
+    }
+    ++samplingWaits;
+  }
 
-  // Verify we got counters in the output
-  SpliceableChunkedJSONWriter w;
-  ASSERT_TRUE(::profiler_stream_json_for_this_process(w));
+  // Verify we got "TestCounter" in the output, but not "TestCounter2" yet.
+  UniquePtr<char[]> profile = profiler_get_profile();
+  JSONOutputCheck(profile.get(), checkCountersInJSON);
 
-  UniquePtr<char[]> profile = w.ChunkedWriteFunc().CopyData();
+  // Now introduce TestCounter2.
+  expectCounter2 = true;
+  for (int64_t counter2 : testCounters2) {
+    AUTO_PROFILER_COUNT_TOTAL(TestCounter2, counter2);
+    ASSERT_EQ(WaitForSamplingState(), SamplingState::SamplingCompleted);
+    ASSERT_EQ(WaitForSamplingState(), SamplingState::SamplingCompleted);
+  }
 
-  // counter name and description should appear as is.
-  ASSERT_TRUE(strstr(profile.get(), COUNTER_NAME));
-  ASSERT_TRUE(strstr(profile.get(), COUNTER_DESCRIPTION));
-  ASSERT_FALSE(strstr(profile.get(), COUNTER_NAME2));
-  ASSERT_FALSE(strstr(profile.get(), COUNTER_DESCRIPTION2));
-
-  AUTO_PROFILER_COUNT_TOTAL(TestCounter2, 10);
-  PR_Sleep(PR_MillisecondsToInterval(200));
-
-  ASSERT_TRUE(::profiler_stream_json_for_this_process(w));
-
-  profile = w.ChunkedWriteFunc().CopyData();
-  ASSERT_TRUE(strstr(profile.get(), COUNTER_NAME));
-  ASSERT_TRUE(strstr(profile.get(), COUNTER_DESCRIPTION));
-  ASSERT_TRUE(strstr(profile.get(), COUNTER_NAME2));
-  ASSERT_TRUE(strstr(profile.get(), COUNTER_DESCRIPTION2));
+  // Verify we got both "TestCounter" and "TestCounter2" in the output.
+  profile = profiler_get_profile();
+  JSONOutputCheck(profile.get(), checkCountersInJSON);
 
   profiler_stop();
 }
@@ -3160,22 +3575,6 @@ TEST(GeckoProfiler, SuspendAndSample)
   profiler_stop();
 
   ASSERT_TRUE(!profiler_is_active());
-}
-
-// Returns `static_cast<SamplingState>(-1)` if callback could not be installed.
-static SamplingState WaitForSamplingState() {
-  Atomic<int> samplingState{-1};
-
-  if (!profiler_callback_after_sampling([&](SamplingState aSamplingState) {
-        samplingState = static_cast<int>(aSamplingState);
-      })) {
-    return static_cast<SamplingState>(-1);
-  }
-
-  while (samplingState == -1) {
-  }
-
-  return static_cast<SamplingState>(static_cast<int>(samplingState));
 }
 
 TEST(GeckoProfiler, PostSamplingCallback)

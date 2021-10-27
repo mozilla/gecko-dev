@@ -661,7 +661,8 @@ void LIRGenerator::visitAsmJSStoreHeap(MAsmJSStoreHeap* ins) {
 
 void LIRGenerator::visitWasmCompareExchangeHeap(MWasmCompareExchangeHeap* ins) {
   MDefinition* base = ins->base();
-  MOZ_ASSERT(base->type() == MIRType::Int32);
+  // See comment in visitWasmLoad re the type of 'base'.
+  MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
 
   // Note, the access type may be Int64 here.
 
@@ -674,7 +675,8 @@ void LIRGenerator::visitWasmCompareExchangeHeap(MWasmCompareExchangeHeap* ins) {
 
 void LIRGenerator::visitWasmAtomicExchangeHeap(MWasmAtomicExchangeHeap* ins) {
   MDefinition* base = ins->base();
-  MOZ_ASSERT(base->type() == MIRType::Int32);
+  // See comment in visitWasmLoad re the type of 'base'.
+  MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
 
   // Note, the access type may be Int64 here.
 
@@ -685,7 +687,8 @@ void LIRGenerator::visitWasmAtomicExchangeHeap(MWasmAtomicExchangeHeap* ins) {
 
 void LIRGenerator::visitWasmAtomicBinopHeap(MWasmAtomicBinopHeap* ins) {
   MDefinition* base = ins->base();
-  MOZ_ASSERT(base->type() == MIRType::Int32);
+  // See comment in visitWasmLoad re the type of 'base'.
+  MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
 
   // Note, the access type may be Int64 here.
 
@@ -906,7 +909,9 @@ void LIRGenerator::visitWasmHeapBase(MWasmHeapBase* ins) {
 
 void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
   MDefinition* base = ins->base();
-  MOZ_ASSERT(base->type() == MIRType::Int32);
+  // 'base' is a GPR but may be of either type.  If it is 32-bit it is
+  // zero-extended and can act as 64-bit.
+  MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
 
   LAllocation ptr = useRegisterOrConstantAtStart(base);
 
@@ -921,7 +926,8 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
 
 void LIRGenerator::visitWasmStore(MWasmStore* ins) {
   MDefinition* base = ins->base();
-  MOZ_ASSERT(base->type() == MIRType::Int32);
+  // See comment in visitWasmLoad re the type of 'base'.
+  MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
 
   MDefinition* value = ins->value();
 
@@ -1002,6 +1008,16 @@ void LIRGenerator::visitWasmTernarySimd128(MWasmTernarySimd128* ins) {
           LWasmTernarySimd128(ins->simdOp(), useRegisterAtStart(ins->v0()),
                               useRegister(ins->v1()), useRegister(ins->v2()));
       defineReuseInput(lir, ins, LWasmTernarySimd128::V0);
+      break;
+    }
+    case wasm::SimdOp::I8x16LaneSelect:
+    case wasm::SimdOp::I16x8LaneSelect:
+    case wasm::SimdOp::I32x4LaneSelect:
+    case wasm::SimdOp::I64x2LaneSelect: {
+      auto* lir = new (alloc()) LWasmTernarySimd128(
+          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
+          useRegisterAtStart(ins->v2()));
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
       break;
     }
     default:
@@ -1135,6 +1151,9 @@ void LIRGenerator::visitWasmShuffleSimd128(MWasmShuffleSimd128* ins) {
         case SimdPermuteOp::ROTATE_RIGHT_8x16:
         case SimdPermuteOp::SHIFT_LEFT_8x16:
         case SimdPermuteOp::SHIFT_RIGHT_8x16:
+        case SimdPermuteOp::REVERSE_16x8:
+        case SimdPermuteOp::REVERSE_32x4:
+        case SimdPermuteOp::REVERSE_64x2:
           break;
         default:
           MOZ_CRASH("Unexpected operator");
@@ -1250,22 +1269,22 @@ void LIRGenerator::visitWasmUnarySimd128(MWasmUnarySimd128* ins) {
     case wasm::SimdOp::I16x8Abs:
     case wasm::SimdOp::I32x4Abs:
     case wasm::SimdOp::I64x2Abs:
-    case wasm::SimdOp::I32x4TruncSSatF32x4:
-    case wasm::SimdOp::F32x4ConvertUI32x4:
-    case wasm::SimdOp::I32x4TruncUSatF32x4:
-    case wasm::SimdOp::I16x8WidenLowSI8x16:
-    case wasm::SimdOp::I16x8WidenHighSI8x16:
-    case wasm::SimdOp::I16x8WidenLowUI8x16:
-    case wasm::SimdOp::I16x8WidenHighUI8x16:
-    case wasm::SimdOp::I32x4WidenLowSI16x8:
-    case wasm::SimdOp::I32x4WidenHighSI16x8:
-    case wasm::SimdOp::I32x4WidenLowUI16x8:
-    case wasm::SimdOp::I32x4WidenHighUI16x8:
-    case wasm::SimdOp::I64x2WidenLowSI32x4:
-    case wasm::SimdOp::I64x2WidenHighSI32x4:
-    case wasm::SimdOp::I64x2WidenLowUI32x4:
-    case wasm::SimdOp::I64x2WidenHighUI32x4:
-    case wasm::SimdOp::F32x4ConvertSI32x4:
+    case wasm::SimdOp::I32x4TruncSatF32x4S:
+    case wasm::SimdOp::F32x4ConvertI32x4U:
+    case wasm::SimdOp::I32x4TruncSatF32x4U:
+    case wasm::SimdOp::I16x8ExtendLowI8x16S:
+    case wasm::SimdOp::I16x8ExtendHighI8x16S:
+    case wasm::SimdOp::I16x8ExtendLowI8x16U:
+    case wasm::SimdOp::I16x8ExtendHighI8x16U:
+    case wasm::SimdOp::I32x4ExtendLowI16x8S:
+    case wasm::SimdOp::I32x4ExtendHighI16x8S:
+    case wasm::SimdOp::I32x4ExtendLowI16x8U:
+    case wasm::SimdOp::I32x4ExtendHighI16x8U:
+    case wasm::SimdOp::I64x2ExtendLowI32x4S:
+    case wasm::SimdOp::I64x2ExtendHighI32x4S:
+    case wasm::SimdOp::I64x2ExtendLowI32x4U:
+    case wasm::SimdOp::I64x2ExtendHighI32x4U:
+    case wasm::SimdOp::F32x4ConvertI32x4S:
     case wasm::SimdOp::F32x4Ceil:
     case wasm::SimdOp::F32x4Floor:
     case wasm::SimdOp::F32x4Trunc:
@@ -1278,11 +1297,15 @@ void LIRGenerator::visitWasmUnarySimd128(MWasmUnarySimd128* ins) {
     case wasm::SimdOp::F64x2PromoteLowF32x4:
     case wasm::SimdOp::F64x2ConvertLowI32x4S:
     case wasm::SimdOp::F64x2ConvertLowI32x4U:
-    case wasm::SimdOp::I16x8ExtAddPairwiseI8x16S:
-    case wasm::SimdOp::I16x8ExtAddPairwiseI8x16U:
-    case wasm::SimdOp::I32x4ExtAddPairwiseI16x8S:
-    case wasm::SimdOp::I32x4ExtAddPairwiseI16x8U:
+    case wasm::SimdOp::I16x8ExtaddPairwiseI8x16S:
+    case wasm::SimdOp::I16x8ExtaddPairwiseI8x16U:
+    case wasm::SimdOp::I32x4ExtaddPairwiseI16x8S:
+    case wasm::SimdOp::I32x4ExtaddPairwiseI16x8U:
     case wasm::SimdOp::I8x16Popcnt:
+    case wasm::SimdOp::I32x4RelaxedTruncSSatF32x4:
+    case wasm::SimdOp::I32x4RelaxedTruncUSatF32x4:
+    case wasm::SimdOp::I32x4RelaxedTruncSatF64x2SZero:
+    case wasm::SimdOp::I32x4RelaxedTruncSatF64x2UZero:
       break;
     case wasm::SimdOp::I32x4TruncSatF64x2SZero:
     case wasm::SimdOp::I32x4TruncSatF64x2UZero:
@@ -1351,6 +1374,9 @@ void LIRGenerator::visitWasmReduceSimd128(MWasmReduceSimd128* ins) {
 
 void LIRGenerator::visitWasmLoadLaneSimd128(MWasmLoadLaneSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
+  // On 64-bit systems, the base pointer can be 32 bits or 64 bits.  Either way,
+  // it fits in a GPR so we can ignore the Register/Register64 distinction here.
+
   // Optimal allocation here reuses the value input for the output register
   // because codegen otherwise has to copy the input to the output; this is
   // because load-lane is implemented as load + replace-lane.  Bug 1706106 may
@@ -1368,6 +1394,8 @@ void LIRGenerator::visitWasmLoadLaneSimd128(MWasmLoadLaneSimd128* ins) {
 
 void LIRGenerator::visitWasmStoreLaneSimd128(MWasmStoreLaneSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
+  // See comment above about the base pointer.
+
   LUse base = useRegisterAtStart(ins->base());
   LUse input = useRegisterAtStart(ins->value());
   MOZ_ASSERT(!ins->hasMemoryBase());

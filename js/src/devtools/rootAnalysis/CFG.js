@@ -11,7 +11,7 @@
 // Find all points (positions within the code) of the body given by the list of
 // bodies and the blockId to match (which will specify an outer function or a
 // loop within it), recursing into loops if needed.
-function findAllPoints(bodies, blockId, limits)
+function findAllPoints(bodies, blockId, bits)
 {
     var points = [];
     var body;
@@ -27,9 +27,9 @@ function findAllPoints(bodies, blockId, limits)
     if (!("PEdge" in body))
         return;
     for (var edge of body.PEdge) {
-        points.push([body, edge.Index[0], limits]);
+        points.push([body, edge.Index[0], bits]);
         if (edge.Kind == "Loop")
-            points.push(...findAllPoints(bodies, edge.BlockId, limits));
+            points.push(...findAllPoints(bodies, edge.BlockId, bits));
     }
 
     return points;
@@ -87,15 +87,15 @@ function allRAIIGuardedCallPoints(typeInfo, bodies, body, isConstructor)
             continue;
         var variable = callee.Variable;
         assert(variable.Kind == "Func");
-        const limits = isConstructor(typeInfo, edge.Type, variable.Name);
-        if (!limits)
+        const bits = isConstructor(typeInfo, edge.Type, variable.Name);
+        if (!bits)
             continue;
         if (!("PEdgeCallInstance" in edge))
             continue;
         if (edge.PEdgeCallInstance.Exp.Kind != "Var")
             continue;
 
-        points.push(...pointsInRAIIScope(bodies, body, edge, limits));
+        points.push(...pointsInRAIIScope(bodies, body, edge, bits));
     }
 
     return points;
@@ -153,7 +153,7 @@ function findMatchingConstructor(destructorEdge, body, warnIfNotFound=true)
     return undefined;
 }
 
-function pointsInRAIIScope(bodies, body, constructorEdge, limits) {
+function pointsInRAIIScope(bodies, body, constructorEdge, bits) {
     var seen = {};
     var worklist = [constructorEdge.Index[1]];
     var points = [];
@@ -162,7 +162,7 @@ function pointsInRAIIScope(bodies, body, constructorEdge, limits) {
         if (point in seen)
             continue;
         seen[point] = true;
-        points.push([body, point, limits]);
+        points.push([body, point, bits]);
         var successors = getSuccessors(body);
         if (!(point in successors))
             continue;
@@ -170,10 +170,86 @@ function pointsInRAIIScope(bodies, body, constructorEdge, limits) {
             if (isMatchingDestructor(constructorEdge, nedge))
                 continue;
             if (nedge.Kind == "Loop")
-                points.push(...findAllPoints(bodies, nedge.BlockId, limits));
+                points.push(...findAllPoints(bodies, nedge.BlockId, bits));
             worklist.push(nedge.Index[1]);
         }
     }
 
     return points;
+}
+
+// Look at an invocation of a virtual method or function pointer contained in a
+// field, and return the static type of the invocant (or the containing struct,
+// for a function pointer field.)
+function getFieldCallInstanceCSU(edge, field)
+{
+    if ("FieldInstanceFunction" in field) {
+        // We have a 'this'.
+        const instanceExp = edge.PEdgeCallInstance.Exp;
+        if (instanceExp.Kind == 'Drf') {
+            // somevar->foo()
+            return edge.Type.TypeFunctionCSU.Type.Name;
+        } else if (instanceExp.Kind == 'Fld') {
+            // somevar.foo()
+            return instanceExp.Field.FieldCSU.Type.Name;
+        } else if (instanceExp.Kind == 'Index') {
+            // A strange construct.
+            // C++ code: static_cast<JS::CustomAutoRooter*>(this)->trace(trc);
+            // CFG: Call(21,30, this*[-1]{JS::CustomAutoRooter}.trace*(trc*))
+            return instanceExp.Type.Name;
+        } else if (instanceExp.Kind == 'Var') {
+            // C++: reinterpret_cast<SimpleTimeZone*>(gRawGMT)->~SimpleTimeZone();
+            // CFG:
+            //   # icu_64::SimpleTimeZone::icu_64::SimpleTimeZone.__comp_dtor
+            //   [6,7] Call gRawGMT.icu_64::SimpleTimeZone.__comp_dtor ()
+            return field.FieldCSU.Type.Name;
+        } else {
+            printErr("------------------ edge -------------------");
+            printErr(JSON.stringify(edge, null, 4));
+            printErr("------------------ field -------------------");
+            printErr(JSON.stringify(field, null, 4));
+            assert(false, `unrecognized FieldInstanceFunction Kind ${instanceExp.Kind}`);
+        }
+    } else {
+        // somefar.foo() where somevar is a field of some CSU.
+        return field.FieldCSU.Type.Name;
+    }
+}
+
+// gcc uses something like "__dt_del " for virtual destructors that it
+// generates.
+function isSyntheticVirtualDestructor(funcName) {
+    return funcName.endsWith(" ");
+}
+
+function typedField(field)
+{
+    if ("FieldInstanceFunction" in field) {
+        // Virtual call
+        //
+        // This makes a minimal attempt at dealing with overloading, by
+        // incorporating the number of parameters. So far, that is all that has
+        // been needed. If more is needed, sixgill will need to produce a full
+        // mangled type.
+        const {Type, Name: [name]} = field;
+
+        // Virtual destructors don't need a type or argument count,
+        // and synthetic ones don't have them filled in.
+        if (isSyntheticVirtualDestructor(name)) {
+            return name;
+        }
+
+        var nargs = 0;
+        if (Type.Kind == "Function" && "TypeFunctionArguments" in Type)
+            nargs = Type.TypeFunctionArguments.Type.length;
+        return name + ":" + nargs;
+    } else {
+        // Function pointer field
+        return field.Name[0];
+    }
+}
+
+function fieldKey(csuName, field)
+{
+    return csuName + "." + typedField(field);
 }

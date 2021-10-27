@@ -573,7 +573,6 @@ impl Wrench {
                 root_background_color,
                 self.window_size_f32(),
                 display_list,
-                false,
             );
         }
 
@@ -581,7 +580,7 @@ impl Wrench {
             txn.scroll_node_with_id(*offset, *id, ScrollClamping::NoClamping);
         }
 
-        txn.generate_frame(0);
+        txn.generate_frame(0, RenderReasons::TESTING);
         self.api.send_transaction(self.document_id, txn);
     }
 
@@ -602,7 +601,7 @@ impl Wrench {
     pub fn refresh(&mut self) {
         self.begin_frame();
         let mut txn = Transaction::new();
-        txn.generate_frame(0);
+        txn.generate_frame(0, RenderReasons::TESTING);
         self.api.send_transaction(self.document_id, txn);
     }
 

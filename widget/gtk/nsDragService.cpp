@@ -293,8 +293,7 @@ static GtkWindow* GetGtkWindow(dom::Document* aDocument) {
   RefPtr<nsViewManager> vm = presShell->GetViewManager();
   if (!vm) return nullptr;
 
-  nsCOMPtr<nsIWidget> widget;
-  vm->GetRootWidget(getter_AddRefs(widget));
+  nsCOMPtr<nsIWidget> widget = vm->GetRootWidget();
   if (!widget) return nullptr;
 
   GtkWidget* gtkWidget =
@@ -1718,6 +1717,8 @@ void nsDragService::SourceBeginDrag(GdkDragContext* aContext) {
 void nsDragService::SetDragIcon(GdkDragContext* aContext) {
   if (!mHasImage && !mSelection) return;
 
+  LOGDRAGSERVICE(("nsDragService::SetDragIcon()"));
+
   LayoutDeviceIntRect dragRect;
   nsPresContext* pc;
   RefPtr<SourceSurface> surface;
@@ -1735,13 +1736,20 @@ void nsDragService::SetDragIcon(GdkDragContext* aContext) {
   // XXX: Disable drag popups on GTK 3.19.4 and above: see bug 1264454.
   //      Fix this once a new GTK version ships that does not destroy our
   //      widget in gtk_drag_set_icon_widget.
-  if (mDragPopup && gtk_check_version(3, 19, 4)) {
+  //      This is fixed in GTK 3.24
+  //      by
+  //      https://gitlab.gnome.org/GNOME/gtk/-/commit/c27c4e2048acb630feb24c31288f802345e99f4c
+  bool gtk_drag_set_icon_widget_is_working =
+      gtk_check_version(3, 19, 4) != nullptr ||
+      gtk_check_version(3, 24, 0) == nullptr;
+  if (mDragPopup && gtk_drag_set_icon_widget_is_working) {
     GtkWidget* gtkWidget = nullptr;
     nsIFrame* frame = mDragPopup->GetPrimaryFrame();
     if (frame) {
       // DrawDrag ensured that this is a popup frame.
       nsCOMPtr<nsIWidget> widget = frame->GetNearestWidget();
       if (widget) {
+        LOGDRAGSERVICE(("  set drag popup [%p]", widget.get()));
         gtkWidget = (GtkWidget*)widget->GetNativeData(NS_NATIVE_SHELLWIDGET);
         if (gtkWidget) {
           OpenDragPopup();
@@ -1754,6 +1762,7 @@ void nsDragService::SetDragIcon(GdkDragContext* aContext) {
       GdkPixbuf* dragPixbuf = nsImageToPixbuf::SourceSurfaceToPixbuf(
           surface, dragRect.width, dragRect.height);
       if (dragPixbuf) {
+        LOGDRAGSERVICE(("  set drag pixbuf"));
         gtk_drag_set_icon_pixbuf(aContext, dragPixbuf, offsetX, offsetY);
         g_object_unref(dragPixbuf);
       }
@@ -1987,6 +1996,7 @@ gboolean nsDragService::RunScheduledTask() {
   // Don't run RunScheduledTask() twice. As we use it in main thread only
   // we don't need to be thread safe here.
   if (mScheduledTaskIsRunning) {
+    LOGDRAGSERVICE(("  sheduled task is already running, quit."));
     return FALSE;
   }
   AutoRestore<bool> guard(mScheduledTaskIsRunning);
@@ -2019,7 +2029,8 @@ gboolean nsDragService::RunScheduledTask() {
   mTargetWindowPoint = mPendingWindowPoint;
 
   if (task == eDragTaskLeave || task == eDragTaskSourceEnd) {
-    LOGDRAGSERVICE(("  quit, task %s\n", GetDragServiceTaskName(task)));
+    LOGDRAGSERVICE(
+        ("  quit, selected task %s\n", GetDragServiceTaskName(task)));
     if (task == eDragTaskSourceEnd) {
       // Dispatch drag end events.
       EndDragSession(true, GetCurrentModifiers());

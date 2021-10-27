@@ -25,7 +25,6 @@
 #include "nsIObserverService.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/Services.h"
-#include "GeckoProfiler.h"
 
 #include <stdlib.h>
 
@@ -113,12 +112,6 @@ nsProcess::Init(nsIFile* aExecutable) {
 void nsProcess::Monitor(void* aArg) {
   RefPtr<nsProcess> process = dont_AddRef(static_cast<nsProcess*>(aArg));
 
-#ifdef MOZ_GECKO_PROFILER
-  Maybe<AutoProfilerRegisterThread> registerThread;
-  if (!process->mBlocking) {
-    registerThread.emplace("RunProcess");
-  }
-#endif
   if (!process->mBlocking) {
     NS_SetCurrentThreadName("RunProcess");
   }
@@ -436,9 +429,7 @@ nsresult nsProcess::RunProcess(bool aBlocking, char** aMyArgv,
       return NS_ERROR_FILE_EXECUTION_FAILED;
     }
   } else {
-    mThread =
-        PR_CreateThread(PR_SYSTEM_THREAD, Monitor, this, PR_PRIORITY_NORMAL,
-                        PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 0);
+    mThread = CreateMonitorThread();
     if (!mThread) {
       NS_RELEASE_THIS();
       return NS_ERROR_FAILURE;
@@ -452,6 +443,17 @@ nsresult nsProcess::RunProcess(bool aBlocking, char** aMyArgv,
   }
 
   return NS_OK;
+}
+
+// We don't guarantee that monitor threads are joined before Gecko exits, which
+// can cause TSAN to complain about thread leaks. We handle this with a TSAN
+// suppression, and route thread creation through this helper so that the
+// suppression is as narrowly-scoped as possible.
+PRThread*
+nsProcess::CreateMonitorThread()
+{
+  return PR_CreateThread(PR_SYSTEM_THREAD, Monitor, this, PR_PRIORITY_NORMAL,
+                         PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 0);
 }
 
 NS_IMETHODIMP

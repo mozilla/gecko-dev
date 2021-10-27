@@ -120,9 +120,6 @@ const throwIfRootId = id => {
 let observer = new (class extends EventEmitter {
   constructor() {
     super();
-
-    this.skipTags = true;
-
     this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
   }
 
@@ -177,43 +174,42 @@ let observer = new (class extends EventEmitter {
             },
           });
           break;
+        case "bookmark-title-changed":
+          if (event.isTagging) {
+            continue;
+          }
+
+          this.emit("changed", {
+            guid: event.guid,
+            info: { title: event.title },
+          });
+          break;
+        case "bookmark-url-changed":
+          if (event.isTagging) {
+            continue;
+          }
+
+          this.emit("changed", {
+            guid: event.guid,
+            info: { url: event.url },
+          });
+          break;
       }
     }
-  }
-
-  onItemChanged(
-    id,
-    prop,
-    isAnno,
-    val,
-    lastMod,
-    itemType,
-    parentId,
-    guid,
-    parentGuid,
-    oldVal,
-    source
-  ) {
-    let info = {};
-    if (prop == "title") {
-      info.title = val;
-    } else if (prop == "uri") {
-      info.url = val;
-    } else {
-      // Not defined yet.
-      return;
-    }
-
-    this.emit("changed", { guid, info });
   }
 })();
 
 const decrementListeners = () => {
   listenerCount -= 1;
   if (!listenerCount) {
-    PlacesUtils.bookmarks.removeObserver(observer);
     PlacesUtils.observers.removeListener(
-      ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+      [
+        "bookmark-added",
+        "bookmark-removed",
+        "bookmark-moved",
+        "bookmark-title-changed",
+        "bookmark-url-changed",
+      ],
       observer.handlePlacesEvents
     );
   }
@@ -222,9 +218,14 @@ const decrementListeners = () => {
 const incrementListeners = () => {
   listenerCount++;
   if (listenerCount == 1) {
-    PlacesUtils.bookmarks.addObserver(observer);
     PlacesUtils.observers.addListener(
-      ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+      [
+        "bookmark-added",
+        "bookmark-removed",
+        "bookmark-moved",
+        "bookmark-title-changed",
+        "bookmark-url-changed",
+      ],
       observer.handlePlacesEvents
     );
   }

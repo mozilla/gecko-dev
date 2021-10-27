@@ -78,7 +78,6 @@ talos-profiling:
     - talos-webgl-profiling
 
 talos-ref-hw:
-    - talos-g4
     - talos-webgl
 
 browsertime:
@@ -91,6 +90,7 @@ browsertime:
     - browsertime-youtube-playback
     - browsertime-custom
     - browsertime-first-install
+    - browsertime-responsiveness
 
 browsertime-profiling:
     - browsertime-tp6-profiling
@@ -240,19 +240,12 @@ windows10-2004-tests:
     - test-verify-wpt
     - xpcshell
 
-windows10-64-ccov-tests:
-    - jittest
-    - mochitest-plain
-    - mochitest-browser-chrome
-    - mochitest-devtools-chrome
-    - web-platform-tests
-    - web-platform-tests-reftest
-    - web-platform-tests-wdspec
+windows10-64-2004-ccov-tests:
     - crashtest
     - reftest
-    - xpcshell
-
-windows10-64-2004-ccov-tests:
+    - mochitest-browser-chrome
+    - mochitest-devtools-chrome
+    - mochitest-plain
     - gtest
     - marionette
     - test-coverage
@@ -260,8 +253,13 @@ windows10-64-2004-ccov-tests:
     - test-verify-gpu
     - cppunit
     - jsreftest
+    - web-platform-tests
     - web-platform-tests-crashtest
+    - web-platform-tests-reftest
     - web-platform-tests-print-reftest
+    - web-platform-tests-wdspec
+    - jittest
+    - xpcshell
 
 windows10-64-2004-failure-tests:
     - mochitest-browser-chrome-failures
@@ -324,19 +322,15 @@ windows-talos:
     - talos-perf-reftest-singletons
     - talos-svgr
     - talos-tp5o
-    - talos-xperf
     - talos-tabswitch
     - talos-realworld-webextensions
     - talos-webgl
     # - talos-h1 Bug 1487031 - Disabled for not finding actionable regressions
 
+talos-xperf:
+    - talos-xperf
+
 # macOS
-
-macosx1100-64-qr-failure-tests:
-    - xpcshell-failures
-    - mochitest-media-failures
-    - mochitest-browser-chrome-failures
-
 macosx1100-64-jittests:
     - jittest
 
@@ -353,10 +347,6 @@ macosx1100-64-qr-tests:
     - mochitest-webgl2-ext
     - reftest
     - xpcshell
-
-macosx1015-64-qr-failure-tests:
-    - mochitest-media-failures
-    - mochitest-browser-chrome-failures
 
 macosx1015-64-qr-tests:
     - cppunit

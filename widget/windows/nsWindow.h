@@ -24,6 +24,7 @@
 #include "nsWindowDbg.h"
 #include "cairo.h"
 #include "nsRegion.h"
+#include "mozilla/EnumeratedArray.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MouseEvents.h"
@@ -181,8 +182,6 @@ class nsWindow final : public nsWindowBase {
   virtual LayoutDeviceIntPoint GetClientOffset() override;
   void SetBackgroundColor(const nscolor& aColor) override;
   virtual void SetCursor(const Cursor&) override;
-  virtual nsresult ConfigureChildren(
-      const nsTArray<Configuration>& aConfigurations) override;
   virtual bool PrepareForFullscreenTransition(nsISupports** aData) override;
   virtual void PerformFullscreenTransition(FullscreenTransitionStage aStage,
                                            uint16_t aDuration,
@@ -271,7 +270,8 @@ class nsWindow final : public nsWindowBase {
                                   WPARAM wParam, LPARAM lParam,
                                   bool aIsContextMenuKey, int16_t aButton,
                                   uint16_t aInputSource,
-                                  WinPointerInfo* aPointerInfo = nullptr);
+                                  WinPointerInfo* aPointerInfo = nullptr,
+                                  bool aIgnoreAPZ = false);
   virtual bool DispatchWindowEvent(mozilla::WidgetGUIEvent* aEvent,
                                    nsEventStatus& aStatus);
   void DispatchPendingEvents();
@@ -364,6 +364,9 @@ class nsWindow final : public nsWindowBase {
 
   virtual void LocalesChanged() override;
 
+  void NotifyOcclusionState(mozilla::widget::OcclusionState aState) override;
+  void MaybeEnableWindowOcclusion(bool aEnable);
+
  protected:
   virtual ~nsWindow();
 
@@ -408,10 +411,14 @@ class nsWindow final : public nsWindowBase {
    */
   LPARAM lParamToScreen(LPARAM lParam);
   LPARAM lParamToClient(LPARAM lParam);
+
+  WPARAM wParamFromGlobalMouseState();
+
   virtual void SubclassWindow(BOOL bState);
   bool CanTakeFocus();
   bool UpdateNonClientMargins(int32_t aSizeMode = -1,
                               bool aReflowWindow = true);
+  void UpdateDarkModeToolbar();
   void UpdateGetWindowInfoCaptionStatus(bool aActiveCaption);
   void ResetLayout();
   void InvalidateNonClientRegion();
@@ -449,8 +456,9 @@ class nsWindow final : public nsWindowBase {
   static bool ConvertStatus(nsEventStatus aStatus);
   static void PostSleepWakeNotification(const bool aIsSleepMode);
   int32_t ClientMarginHitTestPoint(int32_t mx, int32_t my);
-  void SetMaximizeButtonRect(const LayoutDeviceIntRect& aClientRect) override {
-    mMaximizeBtnRect = aClientRect;
+  void SetWindowButtonRect(WindowButtonType aButtonType,
+                           const LayoutDeviceIntRect& aClientRect) override {
+    mWindowBtnRect[aButtonType] = aClientRect;
   }
   TimeStamp GetMessageTimeStamp(LONG aEventTime) const;
   static void UpdateFirstEventTime(DWORD aEventTime);
@@ -523,6 +531,7 @@ class nsWindow final : public nsWindowBase {
   }
   void UpdateGlass();
   bool IsSimulatedClientArea(int32_t clientX, int32_t clientY);
+  bool IsWindowButton(int32_t hitTestResult);
 
   bool DispatchTouchEventFromWMPointer(UINT msg, LPARAM aLParam,
                                        const WinPointerInfo& aPointerInfo,
@@ -540,9 +549,6 @@ class nsWindow final : public nsWindowBase {
   void StopFlashing();
   static HWND WindowAtMouse();
   static bool IsTopLevelMouseExit(HWND aWnd);
-  virtual nsresult SetWindowClipRegion(
-      const nsTArray<LayoutDeviceIntRect>& aRects,
-      bool aIntersectWithExisting) override;
   LayoutDeviceIntRegion GetRegionToPaint(bool aForceFullRepaint, PAINTSTRUCT ps,
                                          HDC aDC);
   nsIWidgetListener* GetPaintListener();
@@ -552,30 +558,15 @@ class nsWindow final : public nsWindowBase {
       mozilla::wr::DisplayListBuilder& aBuilder,
       mozilla::wr::IpcResourceUpdateQueue& aResourceUpdates) override;
 
-  already_AddRefed<SourceSurface> CreateScrollSnapshot() override;
-
-  struct ScrollSnapshot {
-    RefPtr<gfxWindowsSurface> surface;
-    bool surfaceHasSnapshot = false;
-    RECT clip;
-  };
-
-  ScrollSnapshot* EnsureSnapshotSurface(ScrollSnapshot& aSnapshotData,
-                                        const mozilla::gfx::IntSize& aSize);
-
-  ScrollSnapshot mFullSnapshot;
-  ScrollSnapshot mPartialSnapshot;
-  ScrollSnapshot* mCurrentSnapshot = nullptr;
-
-  already_AddRefed<SourceSurface> GetFallbackScrollSnapshot(
-      const RECT& aRequiredClip);
-
   void CreateCompositor() override;
+  void DestroyCompositor() override;
   void RequestFxrOutput();
 
   void RecreateDirectManipulationIfNeeded();
   void ResizeDirectManipulationViewport();
   void DestroyDirectManipulation();
+
+  bool NeedsToTrackWindowOcclusionState();
 
  protected:
   nsCOMPtr<nsIWidget> mParent;
@@ -747,8 +738,10 @@ class nsWindow final : public nsWindowBase {
 
   mozilla::UniquePtr<mozilla::widget::DirectManipulationOwner> mDmOwner;
 
-  // Client rect for maximize button.
-  LayoutDeviceIntRect mMaximizeBtnRect;
+  // Client rect for minimize, maximize and close buttons.
+  mozilla::EnumeratedArray<WindowButtonType, WindowButtonType::Count,
+                           LayoutDeviceIntRect>
+      mWindowBtnRect;
 };
 
 #endif  // Window_h__

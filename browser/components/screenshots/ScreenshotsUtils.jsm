@@ -16,14 +16,47 @@ var ScreenshotsUtils = {
     let { gBrowser } = subj;
     let browser = gBrowser.selectedBrowser;
 
+    let currDialogBox = browser.tabDialogBox;
+
+    // if dialog box exists and if it does then close current tab dialog box
+    if (currDialogBox) {
+      let manager = currDialogBox.getTabDialogManager();
+      let dialogs = manager.hasDialogs && manager.dialogs;
+      if (dialogs.length) {
+        for (let dialog of dialogs) {
+          if (
+            dialog._openedURL.endsWith(
+              `browsingContextId=${browser.browsingContext.id}`
+            ) &&
+            dialog._openedURL.includes("screenshots.html")
+          ) {
+            dialog.close();
+            return null;
+          }
+        }
+      }
+    }
+
     // init UI as a tab dialog box
     let dialogBox = gBrowser.getTabDialogBox(browser);
 
-    Services.obs.notifyObservers(subj, "toggle-screenshot-disable", "true");
-
     return dialogBox.open(
       `chrome://browser/content/screenshots/screenshots.html?browsingContextId=${browser.browsingContext.id}`,
-      { features: "resizable=no", sizeTo: "available" }
+      {
+        features: "resizable=no",
+        sizeTo: "available",
+        allowDuplicateDialogs: false,
+      }
     );
+  },
+  notify(window, type) {
+    if (Services.prefs.getBoolPref("screenshots.browser.component.enabled")) {
+      Services.obs.notifyObservers(
+        window.event.currentTarget.ownerGlobal,
+        "menuitem-screenshot"
+      );
+    } else {
+      Services.obs.notifyObservers(null, "menuitem-screenshot-extension", type);
+    }
   },
 };

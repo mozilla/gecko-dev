@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "applications": {
     "gecko": {
-      "id": "firefox-elemental-soft@mozilla.org"
+      "id": "elemental-soft-colorway@mozilla.org"
     }
   },
   "name": "Elemental – Soft",
@@ -16,7 +16,7 @@
       "tab_background_text": "hsl(48, 10%, 10%)",
       "tab_text": "hsl(48, 10%, 10%)",
       "tab_selected": "hsl(0, 0%, 100%)",
-      "tab_line": "hsl(0, 0%, 0%)",
+      "tab_line": "transparent",
       "tab_loading": "hsl(42, 7%, 38%)",
       "tab_loading_inactive": "hsl(42, 7%, 38%)",
       "frame": "hsl(45, 6%, 88%)",
@@ -30,7 +30,9 @@
       "toolbar_field": "hsl(45, 6%, 88%)",
       "toolbar_field_text": "hsl(48, 10%, 10%)",
       "toolbar_field_focus": "hsl(0, 0%, 100%)",
-      "toolbar_field_border_focus": "hsl(48, 6%, 85%)",
+      "toolbar_field_border_focus": "rgba(0, 96, 223, 0.5)",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": "hsl(45, 6%, 88%)",
       "ntp_background": "hsl(60, 8%, 95%)",
       "ntp_card_background": "hsl(0, 0%, 100%)",
       "ntp_text": "hsl(48, 10%, 10%)",

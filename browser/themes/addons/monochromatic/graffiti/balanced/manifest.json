@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "applications": {
     "gecko": {
-      "id": "firefox-graffiti-balanced@mozilla.org"
+      "id": "graffiti-balanced-colorway@mozilla.org"
     }
   },
   "name": "Graffiti – Balanced",
@@ -16,7 +16,7 @@
       "tab_background_text": "hsl(0, 0%, 100%)",
       "tab_text": "hsl(0, 0%, 0%)",
       "tab_selected": "hsl(278, 31%, 95%)",
-      "tab_line": "hsl(0, 0%, 0%)",
+      "tab_line": "transparent",
       "tab_loading": "hsl(278, 32%, 35%)",
       "tab_loading_inactive": "hsl(279, 77%, 95%)",
       "frame": "hsl(278, 33%, 40%)",
@@ -30,7 +30,9 @@
       "toolbar_field": "hsl(278, 31%, 95%)",
       "toolbar_field_text": "hsl(0, 0%, 0%)",
       "toolbar_field_focus": "hsl(0, 0%, 100%)",
-      "toolbar_field_border_focus": "hsl(278, 32%, 50%)",
+      "toolbar_field_border_focus": "rgba(0, 179, 244, 1)",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": "hsl(278, 33%, 40%)",
       "ntp_background": "hsl(277, 30%, 86%)",
       "ntp_card_background": "hsl(0, 0%, 100%)",
       "ntp_text": "hsl(0, 0%, 0%)",

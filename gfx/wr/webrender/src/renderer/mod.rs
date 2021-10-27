@@ -35,7 +35,7 @@
 //! calling `DrawTarget::to_framebuffer_rect`
 
 use api::{BlobImageHandler, ColorF, ColorU, MixBlendMode};
-use api::{DocumentId, Epoch, ExternalImageHandler};
+use api::{DocumentId, Epoch, ExternalImageHandler, RenderReasons};
 use api::CrashAnnotator;
 #[cfg(feature = "replay")]
 use api::ExternalImageId;
@@ -58,7 +58,6 @@ use crate::composite::{CompositeState, CompositeTileSurface, ResolvedExternalSur
 use crate::composite::{CompositorKind, Compositor, NativeTileId, CompositeFeatures, CompositeSurfaceFormat, ResolvedExternalSurfaceColorData};
 use crate::composite::{CompositorConfig, NativeSurfaceOperationDetails, NativeSurfaceId, NativeSurfaceOperation};
 use crate::composite::TileKind;
-use crate::c_str;
 use crate::debug_colors;
 use crate::device::{DepthFunction, Device, DrawTarget, ExternalTexture, GpuFrameId};
 use crate::device::{ProgramCache, ReadTarget, ShaderError, Texture, TextureFilter, TextureFlags, TextureSlot};
@@ -72,9 +71,9 @@ use crate::glyph_cache::GlyphCache;
 use crate::glyph_rasterizer::{GlyphFormat, GlyphRasterizer};
 use crate::gpu_cache::{GpuCacheUpdate, GpuCacheUpdateList};
 use crate::gpu_cache::{GpuCacheDebugChunk, GpuCacheDebugCmd};
-use crate::gpu_types::{PrimitiveInstanceData, ScalingInstance, SvgFilterInstance};
+use crate::gpu_types::{PrimitiveInstanceData, ScalingInstance, SvgFilterInstance, CopyInstance};
 use crate::gpu_types::{BlurInstance, ClearInstance, CompositeInstance, ZBufferId, CompositorTransform};
-use crate::internal_types::{TextureSource, ResourceCacheError, TextureCacheCategory};
+use crate::internal_types::{TextureSource, ResourceCacheError, TextureCacheCategory, FrameId};
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::internal_types::DebugOutput;
 use crate::internal_types::{CacheTextureId, FastHashMap, FastHashSet, RenderedDocument, ResultMsg};
@@ -85,7 +84,7 @@ use crate::prim_store::DeferredResolve;
 use crate::profiler::{self, GpuProfileTag, TransactionProfile};
 use crate::profiler::{Profiler, add_event_marker, add_text_marker, thread_is_being_profiled};
 use crate::device::query::{GpuProfiler, GpuDebugMethod};
-use crate::render_backend::{FrameId, RenderBackend};
+use crate::render_backend::RenderBackend;
 use crate::render_task_graph::RenderTaskGraph;
 use crate::render_task::{RenderTask, RenderTaskKind, ReadbackTask};
 use crate::resource_cache::ResourceCache;
@@ -95,6 +94,7 @@ use crate::render_target::{AlphaRenderTarget, ColorRenderTarget, PictureCacheTar
 use crate::render_target::{RenderTarget, TextureCacheRenderTarget};
 use crate::render_target::{RenderTargetKind, BlitJob};
 use crate::texture_cache::{TextureCache, TextureCacheConfig};
+use crate::picture_textures::PictureTextures;
 use crate::tile_cache::PictureCacheDebugInfo;
 use crate::util::drain_filter;
 use crate::rectangle_occlusion as occlusion;
@@ -1286,10 +1286,13 @@ impl Renderer {
             let texture_cache = TextureCache::new(
                 max_internal_texture_size,
                 image_tiling_threshold,
-                picture_tile_size,
                 color_cache_formats,
                 swizzle_settings,
                 &texture_cache_config,
+            );
+
+            let picture_textures = PictureTextures::new(
+                picture_tile_size,
                 picture_texture_filter,
             );
 
@@ -1297,6 +1300,7 @@ impl Renderer {
 
             let mut resource_cache = ResourceCache::new(
                 texture_cache,
+                picture_textures,
                 glyph_rasterizer,
                 glyph_cache,
                 rb_font_instances,
@@ -1497,6 +1501,7 @@ impl Renderer {
                         doc.profile.merge(&mut prev_doc.profile);
 
                         if prev_doc.frame.must_be_drawn() {
+                            prev_doc.render_reasons |= RenderReasons::TEXTURE_CACHE_FLUSH;
                             self.render_impl(
                                 document_id,
                                 &mut prev_doc,
@@ -2005,7 +2010,7 @@ impl Renderer {
                     let duration = Duration::new(0,0);
                     if let Some(n) = self.profile.get(profiler::RENDERED_PICTURE_TILES) {
                         let message = (n as usize).to_string();
-                        add_text_marker(cstr!("NumPictureCacheInvalidated"), &message, duration);
+                        add_text_marker("NumPictureCacheInvalidated", &message, duration);
                     }
                 }
 
@@ -2062,7 +2067,7 @@ impl Renderer {
         if thread_is_being_profiled() {
             let duration = Duration::new(0,0);
             let message = (self.profile.get_or(profiler::DRAW_CALLS, 0.0) as usize).to_string();
-            add_text_marker(cstr!("NumDrawCalls"), &message, duration);
+            add_text_marker("NumDrawCalls", &message, duration);
         }
 
         let report = self.texture_resolver.report_memory();
@@ -2086,6 +2091,29 @@ impl Renderer {
 
           self.profiler.update_frame_stats(stats);
         }
+
+        // Turn the render reasons bitflags into something we can see in the profiler.
+        // For now this is just a binary yes/no for each bit, which means that when looking
+        // at "Render reasons" in the profiler HUD the average view indicates the proportion
+        // of frames that had the bit set over a half second window whereas max shows whether
+        // the bit as been set at least once during that time window.
+        // We could implement better ways to visualize this information.
+        let add_markers = thread_is_being_profiled();
+        for i in 0..RenderReasons::NUM_BITS {
+            let counter = profiler::RENDER_REASON_FIRST + i as usize;
+            let mut val = 0.0;
+            let reason_bit = RenderReasons::from_bits_truncate(1 << i);
+            if active_doc.render_reasons.contains(reason_bit) {
+                val = 1.0;
+                if add_markers {
+                    let event_str = format!("Render reason {:?}", reason_bit);
+                    add_event_marker(&event_str);
+                }
+            }
+            self.profile.set(counter, val);
+        }
+        active_doc.render_reasons = RenderReasons::empty();
+
 
         self.texture_resolver.update_profile(&mut self.profile);
 
@@ -2221,6 +2249,45 @@ impl Renderer {
         let mut delete_cache_texture_time = 0;
 
         for update_list in pending_texture_updates.drain(..) {
+            // Handle copies from one texture to another.
+            for ((src_tex, dst_tex), copies) in &update_list.copies {
+
+                let dest_texture = &self.texture_resolver.texture_cache_map[&dst_tex].texture;
+                let dst_texture_size = dest_texture.get_dimensions().to_f32();
+
+                let mut copy_instances = Vec::new();
+                for copy in copies {
+                    copy_instances.push(CopyInstance {
+                        src_rect: copy.src_rect.to_f32(),
+                        dst_rect: copy.dst_rect.to_f32(),
+                        dst_texture_size,
+                    });
+                }
+
+                let draw_target = DrawTarget::from_texture(dest_texture, false);
+                self.device.bind_draw_target(draw_target);
+
+                self.shaders
+                    .borrow_mut()
+                    .ps_copy
+                    .bind(
+                        &mut self.device,
+                        &Transform3D::identity(),
+                        None,
+                        &mut self.renderer_errors,
+                        &mut self.profile,
+                    );
+
+                self.draw_instanced_batch(
+                    &copy_instances,
+                    VertexArrayKind::Copy,
+                    &BatchTextures::composite_rgb(
+                        TextureSource::TextureCache(*src_tex, Swizzle::default())
+                    ),
+                    &mut RendererStats::default(),
+                );
+            }
+
             // Find any textures that will need to be deleted in this group of allocations.
             let mut pending_deletes = Vec::new();
             for allocation in &update_list.allocations {
@@ -2266,11 +2333,12 @@ impl Renderer {
                     TextureCacheAllocationKind::Free => {}
                 }
             }
+
             // Now that we've saved as many deletions for reuse as we can, actually delete whatever is left.
             if !pending_deletes.is_empty() {
                 let delete_texture_start = precise_time_ns();
                 for (texture, _) in pending_deletes {
-                    add_event_marker(c_str!("TextureCacheFree"));
+                    add_event_marker("TextureCacheFree");
                     self.device.delete_texture(texture);
                 }
                 delete_cache_texture_time += precise_time_ns() - delete_texture_start;
@@ -2278,8 +2346,8 @@ impl Renderer {
 
             for allocation in update_list.allocations {
                 match allocation.kind {
-                    TextureCacheAllocationKind::Alloc(_) => add_event_marker(c_str!("TextureCacheAlloc")),
-                    TextureCacheAllocationKind::Reset(_) => add_event_marker(c_str!("TextureCacheReset")),
+                    TextureCacheAllocationKind::Alloc(_) => add_event_marker("TextureCacheAlloc"),
+                    TextureCacheAllocationKind::Reset(_) => add_event_marker("TextureCacheReset"),
                     TextureCacheAllocationKind::Free => {}
                 };
                 match allocation.kind {
@@ -4236,7 +4304,6 @@ impl Renderer {
                     ExternalTexture::new(
                         texture_id,
                         texture_target,
-                        Swizzle::default(),
                         image.uv,
                     )
                 }
@@ -4251,7 +4318,6 @@ impl Renderer {
                     ExternalTexture::new(
                         0,
                         texture_target,
-                        Swizzle::default(),
                         image.uv,
                     )
                 }

@@ -718,10 +718,75 @@ void MacroAssembler::rshift64Arithmetic(Register shift, Register64 srcDest) {
 // ===============================================================
 // Condition functions
 
+void MacroAssembler::cmp8Set(Condition cond, Address lhs, Imm32 rhs,
+                             Register dest) {
+  vixl::UseScratchRegisterScope temps(this);
+  Register scratch = temps.AcquireX().asUnsized();
+  MOZ_ASSERT(scratch != lhs.base);
+
+  switch (cond) {
+    case Assembler::Equal:
+    case Assembler::NotEqual:
+    case Assembler::Above:
+    case Assembler::AboveOrEqual:
+    case Assembler::Below:
+    case Assembler::BelowOrEqual:
+      load8ZeroExtend(lhs, scratch);
+      cmp32Set(cond, scratch, Imm32(uint8_t(rhs.value)), dest);
+      break;
+
+    case Assembler::GreaterThan:
+    case Assembler::GreaterThanOrEqual:
+    case Assembler::LessThan:
+    case Assembler::LessThanOrEqual:
+      load8SignExtend(lhs, scratch);
+      cmp32Set(cond, scratch, Imm32(int8_t(rhs.value)), dest);
+      break;
+
+    default:
+      MOZ_CRASH("unexpected condition");
+  }
+}
+
+void MacroAssembler::cmp16Set(Condition cond, Address lhs, Imm32 rhs,
+                              Register dest) {
+  vixl::UseScratchRegisterScope temps(this);
+  Register scratch = temps.AcquireX().asUnsized();
+  MOZ_ASSERT(scratch != lhs.base);
+
+  switch (cond) {
+    case Assembler::Equal:
+    case Assembler::NotEqual:
+    case Assembler::Above:
+    case Assembler::AboveOrEqual:
+    case Assembler::Below:
+    case Assembler::BelowOrEqual:
+      load16ZeroExtend(lhs, scratch);
+      cmp32Set(cond, scratch, Imm32(uint16_t(rhs.value)), dest);
+      break;
+
+    case Assembler::GreaterThan:
+    case Assembler::GreaterThanOrEqual:
+    case Assembler::LessThan:
+    case Assembler::LessThanOrEqual:
+      load16SignExtend(lhs, scratch);
+      cmp32Set(cond, scratch, Imm32(int16_t(rhs.value)), dest);
+      break;
+
+    default:
+      MOZ_CRASH("unexpected condition");
+  }
+}
+
 template <typename T1, typename T2>
 void MacroAssembler::cmp32Set(Condition cond, T1 lhs, T2 rhs, Register dest) {
   cmp32(lhs, rhs);
   emitSet(cond, dest);
+}
+
+void MacroAssembler::cmp64Set(Condition cond, Address lhs, Imm64 rhs,
+                              Register dest) {
+  cmpPtrSet(cond, lhs, ImmWord(static_cast<uintptr_t>(rhs.value)), dest);
 }
 
 template <typename T1, typename T2>
@@ -867,6 +932,66 @@ void MacroAssembler::popcnt64(Register64 src_, Register64 dest_,
 
 // ===============================================================
 // Branch functions
+
+void MacroAssembler::branch8(Condition cond, const Address& lhs, Imm32 rhs,
+                             Label* label) {
+  vixl::UseScratchRegisterScope temps(this);
+  Register scratch = temps.AcquireX().asUnsized();
+  MOZ_ASSERT(scratch != lhs.base);
+
+  switch (cond) {
+    case Assembler::Equal:
+    case Assembler::NotEqual:
+    case Assembler::Above:
+    case Assembler::AboveOrEqual:
+    case Assembler::Below:
+    case Assembler::BelowOrEqual:
+      load8ZeroExtend(lhs, scratch);
+      branch32(cond, scratch, Imm32(uint8_t(rhs.value)), label);
+      break;
+
+    case Assembler::GreaterThan:
+    case Assembler::GreaterThanOrEqual:
+    case Assembler::LessThan:
+    case Assembler::LessThanOrEqual:
+      load8SignExtend(lhs, scratch);
+      branch32(cond, scratch, Imm32(int8_t(rhs.value)), label);
+      break;
+
+    default:
+      MOZ_CRASH("unexpected condition");
+  }
+}
+
+void MacroAssembler::branch16(Condition cond, const Address& lhs, Imm32 rhs,
+                              Label* label) {
+  vixl::UseScratchRegisterScope temps(this);
+  Register scratch = temps.AcquireX().asUnsized();
+  MOZ_ASSERT(scratch != lhs.base);
+
+  switch (cond) {
+    case Assembler::Equal:
+    case Assembler::NotEqual:
+    case Assembler::Above:
+    case Assembler::AboveOrEqual:
+    case Assembler::Below:
+    case Assembler::BelowOrEqual:
+      load16ZeroExtend(lhs, scratch);
+      branch32(cond, scratch, Imm32(uint16_t(rhs.value)), label);
+      break;
+
+    case Assembler::GreaterThan:
+    case Assembler::GreaterThanOrEqual:
+    case Assembler::LessThan:
+    case Assembler::LessThanOrEqual:
+      load16SignExtend(lhs, scratch);
+      branch32(cond, scratch, Imm32(int16_t(rhs.value)), label);
+      break;
+
+    default:
+      MOZ_CRASH("unexpected condition");
+  }
+}
 
 template <class L>
 void MacroAssembler::branch32(Condition cond, Register lhs, Register rhs,
@@ -1778,6 +1903,41 @@ void MacroAssembler::branchTestValue(Condition cond, const BaseIndex& lhs,
   branchPtr(cond, lhs, rhs.valueReg(), label);
 }
 
+template <typename T>
+void MacroAssembler::testNumberSet(Condition cond, const T& src,
+                                   Register dest) {
+  cond = testNumber(cond, src);
+  emitSet(cond, dest);
+}
+
+template <typename T>
+void MacroAssembler::testBooleanSet(Condition cond, const T& src,
+                                    Register dest) {
+  cond = testBoolean(cond, src);
+  emitSet(cond, dest);
+}
+
+template <typename T>
+void MacroAssembler::testStringSet(Condition cond, const T& src,
+                                   Register dest) {
+  cond = testString(cond, src);
+  emitSet(cond, dest);
+}
+
+template <typename T>
+void MacroAssembler::testSymbolSet(Condition cond, const T& src,
+                                   Register dest) {
+  cond = testSymbol(cond, src);
+  emitSet(cond, dest);
+}
+
+template <typename T>
+void MacroAssembler::testBigIntSet(Condition cond, const T& src,
+                                   Register dest) {
+  cond = testBigInt(cond, src);
+  emitSet(cond, dest);
+}
+
 void MacroAssembler::branchToComputedAddress(const BaseIndex& addr) {
   vixl::UseScratchRegisterScope temps(&this->asVIXL());
   const ARMRegister scratch64 = temps.AcquireX();
@@ -2272,6 +2432,12 @@ void MacroAssembler::blendInt16x8(const uint16_t lanes[8], FloatRegister lhs,
   blendInt8x16(reinterpret_cast<const uint8_t*>(lanes), lhs, rhs, dest);
 }
 
+void MacroAssembler::laneSelectSimd128(FloatRegister mask, FloatRegister lhs,
+                                       FloatRegister rhs, FloatRegister dest) {
+  MOZ_ASSERT(mask == dest);
+  Bsl(Simd16B(mask), Simd16B(lhs), Simd16B(rhs));
+}
+
 void MacroAssembler::interleaveHighInt16x8(FloatRegister lhs, FloatRegister rhs,
                                            FloatRegister dest) {
   Zip2(Simd8H(dest), Simd8H(lhs), Simd8H(rhs));
@@ -2384,6 +2550,20 @@ void MacroAssembler::concatAndRightShiftSimd128(FloatRegister lhs,
   Ext(Simd16B(dest), Simd16B(rhs), Simd16B(lhs), shift);
 }
 
+// Reverse bytes in lanes.
+
+void MacroAssembler::reverseInt16x8(FloatRegister src, FloatRegister dest) {
+  Rev16(Simd16B(dest), Simd16B(src));
+}
+
+void MacroAssembler::reverseInt32x4(FloatRegister src, FloatRegister dest) {
+  Rev32(Simd16B(dest), Simd16B(src));
+}
+
+void MacroAssembler::reverseInt64x2(FloatRegister src, FloatRegister dest) {
+  Rev64(Simd16B(dest), Simd16B(src));
+}
+
 // Swizzle - permute with variable indices.  `rhs` holds the lanes parameter.
 
 void MacroAssembler::swizzleInt8x16(FloatRegister rhs, FloatRegister lhsDest) {
@@ -2392,6 +2572,16 @@ void MacroAssembler::swizzleInt8x16(FloatRegister rhs, FloatRegister lhsDest) {
 
 void MacroAssembler::swizzleInt8x16(FloatRegister lhs, FloatRegister rhs,
                                     FloatRegister dest) {
+  Tbl(Simd16B(dest), Simd16B(lhs), Simd16B(rhs));
+}
+
+void MacroAssembler::swizzleInt8x16Relaxed(FloatRegister rhs,
+                                           FloatRegister lhsDest) {
+  Tbl(Simd16B(lhsDest), Simd16B(lhsDest), Simd16B(rhs));
+}
+
+void MacroAssembler::swizzleInt8x16Relaxed(FloatRegister lhs, FloatRegister rhs,
+                                           FloatRegister dest) {
   Tbl(Simd16B(dest), Simd16B(lhs), Simd16B(rhs));
 }
 
@@ -3538,6 +3728,28 @@ void MacroAssembler::truncSatFloat64x2ToInt32x4(FloatRegister src,
 void MacroAssembler::unsignedTruncSatFloat64x2ToInt32x4(FloatRegister src,
                                                         FloatRegister dest,
                                                         FloatRegister temp) {
+  Fcvtzu(Simd2D(dest), Simd2D(src));
+  Uqxtn(Simd2S(dest), Simd2D(dest));
+}
+
+void MacroAssembler::truncSatFloat32x4ToInt32x4Relaxed(FloatRegister src,
+                                                       FloatRegister dest) {
+  Fcvtzs(Simd4S(dest), Simd4S(src));
+}
+
+void MacroAssembler::unsignedTruncSatFloat32x4ToInt32x4Relaxed(
+    FloatRegister src, FloatRegister dest) {
+  Fcvtzu(Simd4S(dest), Simd4S(src));
+}
+
+void MacroAssembler::truncSatFloat64x2ToInt32x4Relaxed(FloatRegister src,
+                                                       FloatRegister dest) {
+  Fcvtzs(Simd2D(dest), Simd2D(src));
+  Sqxtn(Simd2S(dest), Simd2D(dest));
+}
+
+void MacroAssembler::unsignedTruncSatFloat64x2ToInt32x4Relaxed(
+    FloatRegister src, FloatRegister dest) {
   Fcvtzu(Simd2D(dest), Simd2D(src));
   Uqxtn(Simd2S(dest), Simd2D(dest));
 }

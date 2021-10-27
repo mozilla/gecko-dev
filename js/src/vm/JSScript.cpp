@@ -31,6 +31,7 @@
 #include "jsapi.h"
 #include "jstypes.h"
 
+#include "frontend/BytecodeCompilation.h"  // frontend::FireOnNewScript
 #include "frontend/BytecodeCompiler.h"
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
@@ -770,7 +771,7 @@ ScriptSourceObject* ScriptSourceObject::create(JSContext* cx,
 
 [[nodiscard]] static bool MaybeValidateFilename(
     JSContext* cx, HandleScriptSourceObject sso,
-    const ReadOnlyCompileOptions& options) {
+    const JS::InstantiateOptions& options) {
   // When parsing off-thread we want to do filename validation on the main
   // thread. This makes off-thread parsing more pure and is simpler because we
   // can't easily throw exceptions off-thread.
@@ -781,7 +782,7 @@ ScriptSourceObject* ScriptSourceObject::create(JSContext* cx,
   }
 
   const char* filename = sso->source()->filename();
-  if (!filename || options.skipFilenameValidation()) {
+  if (!filename || options.skipFilenameValidation) {
     return true;
   }
 
@@ -803,7 +804,7 @@ ScriptSourceObject* ScriptSourceObject::create(JSContext* cx,
 /* static */
 bool ScriptSourceObject::initFromOptions(
     JSContext* cx, HandleScriptSourceObject source,
-    const ReadOnlyCompileOptions& options) {
+    const JS::InstantiateOptions& options) {
   cx->releaseCheck(source);
   MOZ_ASSERT(
       source->getReservedSlot(ELEMENT_PROPERTY_SLOT).isMagic(JS_GENERIC_MAGIC));
@@ -1786,10 +1787,11 @@ void ScriptSource::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
 }
 
 bool ScriptSource::startIncrementalEncoding(
-    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    JSContext* cx,
     UniquePtr<frontend::ExtensibleCompilationStencil>&& initial) {
+  // We don't support asm.js in XDR.
   // Encoding failures are reported by the xdrFinalizeEncoder function.
-  if (containsAsmJS()) {
+  if (initial->asmJS) {
     return true;
   }
 
@@ -1807,7 +1809,7 @@ bool ScriptSource::startIncrementalEncoding(
       mozilla::MakeScopeExit([&] { xdrEncoder_.reset(nullptr); });
 
   XDRResult res = xdrEncoder_->setInitial(
-      cx, options,
+      cx,
       std::forward<UniquePtr<frontend::ExtensibleCompilationStencil>>(initial));
   if (res.isErr()) {
     // On encoding failure, let failureCase destroy encoder and return true
@@ -2194,7 +2196,7 @@ XDRResult ScriptSource::xdrData(XDRState<mode>* const xdr,
 template <XDRMode mode>
 /* static */
 XDRResult ScriptSource::XDR(XDRState<mode>* xdr,
-                            const ReadOnlyCompileOptions* maybeOptions,
+                            const JS::DecodeOptions* maybeOptions,
                             RefPtr<ScriptSource>& source) {
   JSContext* cx = xdr->cx();
 
@@ -2204,40 +2206,46 @@ XDRResult ScriptSource::XDR(XDRState<mode>* xdr,
     if (!source) {
       return xdr->fail(JS::TranscodeResult::Throw);
     }
+  }
 
-    // We use this CompileOptions only to initialize the ScriptSourceObject.
-    // Most CompileOptions fields aren't used by ScriptSourceObject, and those
-    // that are (element; elementAttributeName) aren't preserved by XDR. So
-    // this can be simple.
-    if (!source->initFromOptions(cx, *maybeOptions)) {
-      return xdr->fail(JS::TranscodeResult::Throw);
+  static constexpr uint8_t HasFilename = 1 << 0;
+  static constexpr uint8_t HasDisplayURL = 1 << 1;
+  static constexpr uint8_t HasSourceMapURL = 1 << 2;
+  static constexpr uint8_t MutedErrors = 1 << 3;
+
+  uint8_t flags = 0;
+  if (mode == XDR_ENCODE) {
+    if (source->filename_) {
+      flags |= HasFilename;
+    }
+    if (source->hasDisplayURL()) {
+      flags |= HasDisplayURL;
+    }
+    if (source->hasSourceMapURL()) {
+      flags |= HasSourceMapURL;
+    }
+    if (source->mutedErrors()) {
+      flags |= MutedErrors;
     }
   }
 
-  MOZ_TRY(xdrData(xdr, source.get()));
+  MOZ_TRY(xdr->codeUint8(&flags));
 
-  uint8_t haveSourceMap = source->hasSourceMapURL();
-  MOZ_TRY(xdr->codeUint8(&haveSourceMap));
-
-  if (haveSourceMap) {
-    XDRTranscodeString<char16_t> chars;
+  if (flags & HasFilename) {
+    XDRTranscodeString<char> chars;
 
     if (mode == XDR_ENCODE) {
-      chars.construct<const char16_t*>(source->sourceMapURL());
+      chars.construct<const char*>(source->filename());
     }
     MOZ_TRY(xdr->codeCharsZ(chars));
     if (mode == XDR_DECODE) {
-      if (!source->setSourceMapURL(
-              cx, std::move(chars.ref<UniqueTwoByteChars>()))) {
+      if (!source->setFilename(cx, std::move(chars.ref<UniqueChars>()))) {
         return xdr->fail(JS::TranscodeResult::Throw);
       }
     }
   }
 
-  uint8_t haveDisplayURL = source->hasDisplayURL();
-  MOZ_TRY(xdr->codeUint8(&haveDisplayURL));
-
-  if (haveDisplayURL) {
+  if (flags & HasDisplayURL) {
     XDRTranscodeString<char16_t> chars;
 
     if (mode == XDR_ENCODE) {
@@ -2252,25 +2260,44 @@ XDRResult ScriptSource::XDR(XDRState<mode>* xdr,
     }
   }
 
-  uint8_t haveFilename = !!source->filename_;
-  MOZ_TRY(xdr->codeUint8(&haveFilename));
-
-  if (haveFilename) {
-    XDRTranscodeString<char> chars;
+  if (flags & HasSourceMapURL) {
+    XDRTranscodeString<char16_t> chars;
 
     if (mode == XDR_ENCODE) {
-      chars.construct<const char*>(source->filename());
+      chars.construct<const char16_t*>(source->sourceMapURL());
     }
     MOZ_TRY(xdr->codeCharsZ(chars));
     if (mode == XDR_DECODE) {
-      if (!source->filename()) {
-        if (!source->setFilename(cx, std::move(chars.ref<UniqueChars>()))) {
-          return xdr->fail(JS::TranscodeResult::Throw);
-        }
+      if (!source->setSourceMapURL(
+              cx, std::move(chars.ref<UniqueTwoByteChars>()))) {
+        return xdr->fail(JS::TranscodeResult::Throw);
       }
-      MOZ_ASSERT(source->filename());
     }
   }
+
+  MOZ_ASSERT(source->parameterListEnd_ == 0);
+
+  if (flags & MutedErrors) {
+    if (mode == XDR_DECODE) {
+      source->mutedErrors_ = true;
+    }
+  }
+
+  MOZ_TRY(xdr->codeUint32(&source->startLine_));
+
+  // The introduction info doesn't persist across encode/decode.
+  if (mode == XDR_DECODE) {
+    source->introductionType_ = maybeOptions->introductionType;
+    source->setIntroductionOffset(maybeOptions->introductionOffset);
+    if (maybeOptions->introducerFilename) {
+      if (!source->setIntroducerFilename(cx,
+                                         maybeOptions->introducerFilename)) {
+        return xdr->fail(JS::TranscodeResult::Throw);
+      }
+    }
+  }
+
+  MOZ_TRY(xdrData(xdr, source.get()));
 
   return Ok();
 }
@@ -2278,12 +2305,12 @@ XDRResult ScriptSource::XDR(XDRState<mode>* xdr,
 template /* static */
     XDRResult
     ScriptSource::XDR(XDRState<XDR_ENCODE>* xdr,
-                      const ReadOnlyCompileOptions* maybeOptions,
+                      const JS::DecodeOptions* maybeOptions,
                       RefPtr<ScriptSource>& holder);
 template /* static */
     XDRResult
     ScriptSource::XDR(XDRState<XDR_DECODE>* xdr,
-                      const ReadOnlyCompileOptions* maybeOptions,
+                      const JS::DecodeOptions* maybeOptions,
                       RefPtr<ScriptSource>& holder);
 
 // Format and return a cx->pod_malloc'ed URL for a generated script like:
@@ -2763,12 +2790,12 @@ void PrivateScriptData::trace(JSTracer* trc) {
 }
 
 /*static*/
-JSScript* JSScript::Create(JSContext* cx, js::HandleObject functionOrGlobal,
+JSScript* JSScript::Create(JSContext* cx, JS::Handle<JSFunction*> function,
                            js::HandleScriptSourceObject sourceObject,
                            const SourceExtent& extent,
                            js::ImmutableScriptFlags flags) {
   return static_cast<JSScript*>(
-      BaseScript::New(cx, functionOrGlobal, sourceObject, extent, flags));
+      BaseScript::New(cx, function, sourceObject, extent, flags));
 }
 
 #ifdef MOZ_VTUNE
@@ -2942,15 +2969,14 @@ JSScript* JSScript::fromStencil(JSContext* cx,
   MOZ_ASSERT(scriptStencil.hasSharedData(),
              "Need generated bytecode to use JSScript::fromStencil");
 
-  RootedObject functionOrGlobal(cx, cx->global());
+  Rooted<JSFunction*> function(cx);
   if (scriptStencil.isFunction()) {
-    functionOrGlobal = gcOutput.getFunction(scriptIndex);
+    function = gcOutput.getFunction(scriptIndex);
   }
 
   Rooted<ScriptSourceObject*> sourceObject(cx, gcOutput.sourceObject);
-  RootedScript script(
-      cx, Create(cx, functionOrGlobal, sourceObject, scriptExtra.extent,
-                 scriptExtra.immutableFlags));
+  RootedScript script(cx, Create(cx, function, sourceObject, scriptExtra.extent,
+                                 scriptExtra.immutableFlags));
   if (!script) {
     return nullptr;
   }
@@ -3572,8 +3598,21 @@ bool JSScript::formalLivesInArgumentsObject(unsigned argSlot) {
   return argsObjAliasesFormals() && !formalIsAliased(argSlot);
 }
 
+BaseScript::BaseScript(uint8_t* stubEntry, JSFunction* function,
+                       ScriptSourceObject* sourceObject,
+                       const SourceExtent& extent, uint32_t immutableFlags)
+    : TenuredCellWithNonGCPointer(stubEntry),
+      function_(function),
+      sourceObject_(sourceObject),
+      extent_(extent),
+      immutableFlags_(immutableFlags) {
+  MOZ_ASSERT(extent_.toStringStart <= extent_.sourceStart);
+  MOZ_ASSERT(extent_.sourceStart <= extent_.sourceEnd);
+  MOZ_ASSERT(extent_.sourceEnd <= extent_.toStringEnd);
+}
+
 /* static */
-BaseScript* BaseScript::New(JSContext* cx, HandleObject functionOrGlobal,
+BaseScript* BaseScript::New(JSContext* cx, JS::Handle<JSFunction*> function,
                             HandleScriptSourceObject sourceObject,
                             const SourceExtent& extent,
                             uint32_t immutableFlags) {
@@ -3588,8 +3627,12 @@ BaseScript* BaseScript::New(JSContext* cx, HandleObject functionOrGlobal,
   uint8_t* stubEntry = nullptr;
 #endif
 
-  return new (script) BaseScript(stubEntry, functionOrGlobal, sourceObject,
-                                 extent, immutableFlags);
+  MOZ_ASSERT_IF(function,
+                function->compartment() == sourceObject->compartment());
+  MOZ_ASSERT_IF(function, function->realm() == sourceObject->realm());
+
+  return new (script)
+      BaseScript(stubEntry, function, sourceObject, extent, immutableFlags);
 }
 
 /* static */

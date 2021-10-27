@@ -26,6 +26,10 @@
   margin-inline: @urlbarMarginInline@;
 }
 
+#search-container[cui-areatype="menu-panel"] {
+  margin: var(--arrowpanel-menuitem-margin);
+}
+
 :root[uidensity=touch] #urlbar-container,
 :root[uidensity=touch] #search-container {
   padding-block: 5px;
@@ -36,6 +40,23 @@
   min-height: var(--urlbar-min-height);
   text-shadow: none;
   color: var(--toolbar-field-color);
+}
+
+/**
+ * System colors and widgets are set based on toolbar color. Since toolbar
+ * fields can be styled differently from the toolbar, we need to use the
+ * correct color scheme in toolbar fields.
+ */
+#urlbar:-moz-lwtheme,
+#searchbar:-moz-lwtheme {
+  color-scheme: light;
+}
+
+:root[lwt-toolbar-field-brighttext] #urlbar:not([focused="true"]),
+:root[lwt-toolbar-field-brighttext] #searchbar:not(:focus-within),
+:root[lwt-toolbar-field-focus-brighttext] #urlbar[focused="true"],
+:root[lwt-toolbar-field-focus-brighttext] #searchbar:focus-within {
+  color-scheme: dark;
 }
 
 #urlbar-background,
@@ -109,25 +130,13 @@
 
 #urlbar-input:-moz-lwtheme::selection,
 .searchbar-textbox:-moz-lwtheme::selection {
-  background-color: var(--lwt-toolbar-field-highlight, -moz-system-color(Highlight, light));
-  color: var(--lwt-toolbar-field-highlight-text, -moz-system-color(HighlightText, light));
+  background-color: var(--lwt-toolbar-field-highlight, Highlight);
+  color: var(--lwt-toolbar-field-highlight-text, HighlightText);
 }
 
 #urlbar-input:not(:focus):-moz-lwtheme::selection,
 .searchbar-textbox:not(:focus-within):-moz-lwtheme::selection {
-  background-color: var(--lwt-toolbar-field-highlight, -moz-system-color(text-select-background-disabled, light));
-}
-
-:root[lwt-toolbar-field-focus-brighttext] #urlbar-input:focus::selection,
-:root[lwt-toolbar-field-focus-brighttext] .searchbar-textbox:focus-within::selection {
-  background-color: var(--lwt-toolbar-field-highlight, -moz-system-color(Highlight, dark));
-  color: var(--lwt-toolbar-field-highlight-text, -moz-system-color(HighlightText, dark));
-}
-
-:root[lwt-toolbar-field-brighttext] #urlbar-input:not(:focus)::selection,
-:root[lwt-toolbar-field-brighttext] .searchbar-textbox:not(:focus-within)::selection {
-  background-color: var(--lwt-toolbar-field-highlight, -moz-system-color(text-select-background-disabled, dark));
-  color: var(--lwt-toolbar-field-highlight-text, -moz-system-color(HighlightText, dark));
+  background-color: var(--lwt-toolbar-field-highlight, text-select-background-disabled);
 }
 
 #urlbar:not([focused="true"]) {
@@ -305,20 +314,15 @@
 }
 
 #urlbar-search-mode-indicator-close:hover {
-  background-color: hsla(0,0%,70%,.2);
+  background-color: var(--urlbar-box-hover-bgcolor);
+  color: var(--urlbar-box-hover-text-color);
 }
 #urlbar-search-mode-indicator-close:hover:active {
-  background-color: hsla(0,0%,70%,.3);
+  background-color: var(--urlbar-box-active-bgcolor);
+  color: var(--urlbar-box-hover-text-color);
 }
 
-/* Use system colors for low/high contrast mode */
 @media (prefers-contrast) {
-  #urlbar-search-mode-indicator {
-    background-color: SelectedItem;
-    outline-color: SelectedItem;
-    color: SelectedItemText;
-  }
-
   #urlbar-search-mode-indicator-close {
     fill-opacity: 1.0;
   }
@@ -344,7 +348,7 @@
 }
 #star-button[starred] {
   fill-opacity: 1;
-  fill: var(--lwt-toolbar-field-icon-fill-attention, var(--toolbarbutton-icon-fill-attention));
+  fill: var(--toolbar-field-icon-fill-attention);
 }
 
 /* URL bar and page action buttons */
@@ -397,14 +401,16 @@
 .urlbar-page-action:not([disabled]):hover,
 #urlbar-go-button:hover,
 .search-go-button:hover {
-  background-color: hsla(0,0%,70%,.2);
+  background-color: var(--urlbar-box-hover-bgcolor);
+  color: var(--urlbar-box-hover-text-color);
 }
 
 .urlbar-page-action:not([disabled])[open],
 .urlbar-page-action:not([disabled]):hover:active,
 #urlbar-go-button:hover:active,
 .search-go-button:hover:active {
-  background-color: hsla(0,0%,70%,.3);
+  background-color: var(--urlbar-box-active-bgcolor);
+  color: var(--urlbar-box-hover-text-color);
 }
 
 .urlbar-page-action:-moz-focusring {
@@ -567,7 +573,7 @@
 }
 
 #reader-mode-button[readeractive] > .urlbar-icon {
-  fill: var(--toolbarbutton-icon-fill-attention);
+  fill: var(--toolbar-field-icon-fill-attention);
   fill-opacity: 1;
 }
 
@@ -585,16 +591,18 @@
   overflow: hidden;
 }
 
-#urlbar[focused="true"] #urlbar-zoom-button {
+#urlbar[focused="true"] #urlbar-zoom-button:not(:hover) {
   background-color: var(--urlbar-box-focus-bgcolor);
 }
 
 #urlbar-zoom-button:hover {
   background-color: var(--urlbar-box-hover-bgcolor);
+  color: var(--urlbar-box-hover-text-color);
 }
 
 #urlbar-zoom-button:hover:active {
   background-color: var(--urlbar-box-active-bgcolor);
+  color: var(--urlbar-box-hover-text-color);
 }
 
 @keyframes urlbar-zoom-reset-pulse {
@@ -631,6 +639,15 @@
 
 #search-container {
   min-width: 125px;
+}
+
+#search-container[cui-areatype="menu-panel"] > #searchbar:-moz-lwtheme {
+  /* Theme authors usually only consider contrast against the toolbar when
+     picking a border color for the search bar. Since the search bar can be
+     dragged into the overflow panel, we need to show a high-contrast border
+     around the searchbar in case the searchbar and panel background are the
+     same color. */
+  border-color: var(--panel-separator-color);
 }
 
 .searchbar-search-button {

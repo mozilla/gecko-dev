@@ -98,8 +98,11 @@ uint32_t MediaEngineDefaultVideoSource::GetBestFitnessDistance(
   AssertIsOnOwningThread();
 
   uint64_t distance = 0;
+
 #ifdef MOZ_WEBRTC
-  for (const auto* cs : aConstraintSets) {
+  // distance is read from first entry only
+  if (aConstraintSets.Length() >= 1) {
+    const auto* cs = aConstraintSets.ElementAt(0);
     Maybe<nsString> facingMode = Nothing();
     distance +=
         MediaConstraintsHelper::FitnessDistance(facingMode, cs->mFacingMode);
@@ -113,10 +116,9 @@ uint32_t MediaEngineDefaultVideoSource::GetBestFitnessDistance(
         cs->mHeight.mMin > VIDEO_HEIGHT_MAX) {
       distance += UINT32_MAX;
     }
-
-    break;  // distance is read from first entry only
   }
 #endif
+
   return uint32_t(std::min(distance, uint64_t(UINT32_MAX)));
 }
 
@@ -244,7 +246,7 @@ nsresult MediaEngineDefaultVideoSource::Start() {
   }
 
   if (!mImageContainer) {
-    mImageContainer = layers::LayerManager::CreateImageContainer(
+    mImageContainer = MakeAndAddRef<layers::ImageContainer>(
         layers::ImageContainer::ASYNCHRONOUS);
   }
 
@@ -517,9 +519,13 @@ void AudioSourcePullListener::NotifyPull(MediaTrackGraph* aGraph,
 }
 
 void MediaEngineDefault::EnumerateDevices(
-    uint64_t aWindowId, MediaSourceEnum aMediaSource, MediaSinkEnum aMediaSink,
+    MediaSourceEnum aMediaSource, MediaSinkEnum aMediaSink,
     nsTArray<RefPtr<MediaDevice>>* aDevices) {
   AssertIsOnOwningThread();
+
+  if (aMediaSink == MediaSinkEnum::Speaker) {
+    NS_WARNING("No default implementation for MediaSinkEnum::Speaker");
+  }
 
   switch (aMediaSource) {
     case MediaSourceEnum::Camera: {
@@ -542,10 +548,6 @@ void MediaEngineDefault::EnumerateDevices(
     default:
       MOZ_ASSERT_UNREACHABLE("Unsupported source type");
       return;
-  }
-
-  if (aMediaSink == MediaSinkEnum::Speaker) {
-    NS_WARNING("No default implementation for MediaSinkEnum::Speaker");
   }
 }
 

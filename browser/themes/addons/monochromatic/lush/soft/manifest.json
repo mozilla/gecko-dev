@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "applications": {
     "gecko": {
-      "id": "firefox-lush-soft@mozilla.org"
+      "id": "lush-soft-colorway@mozilla.org"
     }
   },
   "name": "Lush – Soft",
@@ -16,7 +16,7 @@
       "tab_background_text": "hsl(150, 6%, 20%)",
       "tab_text": "hsl(150, 6%, 20%)",
       "tab_selected": "hsl(0, 0%, 100%)",
-      "tab_line": "hsl(0, 0%, 0%)",
+      "tab_line": "transparent",
       "tab_loading": "hsl(145, 24%, 32%)",
       "tab_loading_inactive": "hsl(145, 24%, 32%)",
       "frame": "hsl(147, 25%, 86%)",
@@ -30,7 +30,9 @@
       "toolbar_field": "hsl(147, 25%, 86%)",
       "toolbar_field_text": "hsl(150, 6%, 20%)",
       "toolbar_field_focus": "hsl(0, 0%, 100%)",
-      "toolbar_field_border_focus": "hsl(144, 25%, 88%)",
+      "toolbar_field_border_focus": "rgba(0, 96, 223, 0.5)",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": "hsl(147, 25%, 86%)",
       "ntp_background": "hsl(150, 25%, 97%)",
       "ntp_card_background": "hsl(0, 0%, 100%)",
       "ntp_text": "hsl(150, 6%, 20%)",

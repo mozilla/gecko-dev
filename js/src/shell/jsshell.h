@@ -136,6 +136,9 @@ extern bool enableIteratorHelpers;
 extern bool enablePrivateClassFields;
 extern bool enablePrivateClassMethods;
 extern bool enableErgonomicBrandChecks;
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+extern bool enableChangeArrayByCopy;
+#endif
 extern bool enableClassStaticBlocks;
 #ifdef JS_GC_ZEAL
 extern uint32_t gZealBits;
@@ -173,14 +176,13 @@ bool CreateAlias(JSContext* cx, const char* dstName,
 enum class ScriptKind { Script, ScriptStencil, DecodeScript, Module };
 
 class NonshrinkingGCObjectVector
-    : public GCVector<JSObject*, 0, SystemAllocPolicy> {
+    : public GCVector<HeapPtrObject, 0, SystemAllocPolicy> {
  public:
-  void sweep() {
-    for (JSObject*& obj : *this) {
-      if (JS::GCPolicy<JSObject*>::needsSweep(&obj)) {
-        obj = nullptr;
-      }
+  bool traceWeak(JSTracer* trc) {
+    for (HeapPtrObject& obj : *this) {
+      TraceWeakEdge(trc, &obj, "NonshrinkingGCObjectVector element");
     }
+    return true;
   }
 };
 

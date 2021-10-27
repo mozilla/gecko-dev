@@ -65,7 +65,7 @@ add_task(async function init() {
   let oldDefaultEngine = await Services.search.getDefault();
   await Services.search.setDefault(Services.search.getEngineByName("Example"));
 
-  await UrlbarTestUtils.ensureQuickSuggestInit(TEST_DATA);
+  await QuickSuggestTestUtils.ensureQuickSuggestInit(TEST_DATA);
 
   registerCleanupFunction(async () => {
     await PlacesUtils.history.clear();
@@ -258,7 +258,7 @@ async function doTestPermutations(callback) {
  *   True to run with a bunch of history, false to run with no history.
  * @param {number} generalIndex
  *   The value to set as the relevant index pref, i.e., the index within the
- *   general bucket of the quick suggest result.
+ *   general group of the quick suggest result.
  * @param {number} expectedResultCount
  *   The expected total result count for sanity checking.
  * @param {number} expectedIndex
@@ -308,11 +308,13 @@ async function doTest({
     expectedResultCount,
     "Expected result count"
   );
-  await assertIsQuickSuggest({
+  await QuickSuggestTestUtils.assertIsQuickSuggest({
+    window,
     isSponsored,
     index: expectedIndex,
-    sponsoredURL: `${TEST_URL}?q=${SPONSORED_SEARCH_STRING}`,
-    nonsponsoredURL: `${TEST_URL}?q=${NON_SPONSORED_SEARCH_STRING}`,
+    url: isSponsored
+      ? `${TEST_URL}?q=${SPONSORED_SEARCH_STRING}`
+      : `${TEST_URL}?q=${NON_SPONSORED_SEARCH_STRING}`,
   });
 
   await UrlbarTestUtils.promisePopupClose(window);

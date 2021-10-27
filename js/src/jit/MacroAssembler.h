@@ -270,11 +270,6 @@ constexpr uint32_t WasmCallerTLSOffsetBeforeCall =
 constexpr uint32_t WasmCalleeTLSOffsetBeforeCall =
     wasm::FrameWithTls::calleeTLSOffset() + ShadowStackSpace;
 
-constexpr uint32_t WasmCallerTLSOffsetAfterCall =
-    WasmCallerTLSOffsetBeforeCall + SizeOfReturnAddressAfterCall;
-constexpr uint32_t WasmCalleeTLSOffsetAfterCall =
-    WasmCalleeTLSOffsetBeforeCall + SizeOfReturnAddressAfterCall;
-
 // Allocation sites may be passed to GC thing allocation methods either via a
 // register (for baseline compilation) or an enum indicating one of the
 // catch-all allocation sites (for optimized compilation).
@@ -1357,15 +1352,31 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // ===============================================================
   // Condition functions
 
+  inline void cmp8Set(Condition cond, Address lhs, Imm32 rhs,
+                      Register dest) PER_SHARED_ARCH;
+
+  inline void cmp16Set(Condition cond, Address lhs, Imm32 rhs,
+                       Register dest) PER_SHARED_ARCH;
+
   template <typename T1, typename T2>
   inline void cmp32Set(Condition cond, T1 lhs, T2 rhs, Register dest)
       DEFINED_ON(x86_shared, arm, arm64, mips32, mips64);
+
+  // Only the NotEqual and Equal conditions are allowed.
+  inline void cmp64Set(Condition cond, Address lhs, Imm64 rhs,
+                       Register dest) PER_ARCH;
 
   template <typename T1, typename T2>
   inline void cmpPtrSet(Condition cond, T1 lhs, T2 rhs, Register dest) PER_ARCH;
 
   // ===============================================================
   // Branch functions
+
+  inline void branch8(Condition cond, const Address& lhs, Imm32 rhs,
+                      Label* label) PER_SHARED_ARCH;
+
+  inline void branch16(Condition cond, const Address& lhs, Imm32 rhs,
+                       Label* label) PER_SHARED_ARCH;
 
   template <class L>
   inline void branch32(Condition cond, Register lhs, Register rhs,
@@ -1537,6 +1548,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void branchNeg32(Condition cond, Register reg,
                           Label* label) PER_SHARED_ARCH;
+
+  inline void branchAdd64(Condition cond, Imm64 imm, Register64 dest,
+                          Label* label) DEFINED_ON(x86, arm);
 
   template <typename T>
   inline void branchAddPtr(Condition cond, T src, Register dest,
@@ -1925,6 +1939,23 @@ class MacroAssembler : public MacroAssemblerSpecific {
       DEFINED_ON(arm, arm64, x86_shared);
 
  public:
+  template <typename T>
+  inline void testNumberSet(Condition cond, const T& src,
+                            Register dest) PER_SHARED_ARCH;
+  template <typename T>
+  inline void testBooleanSet(Condition cond, const T& src,
+                             Register dest) PER_SHARED_ARCH;
+  template <typename T>
+  inline void testStringSet(Condition cond, const T& src,
+                            Register dest) PER_SHARED_ARCH;
+  template <typename T>
+  inline void testSymbolSet(Condition cond, const T& src,
+                            Register dest) PER_SHARED_ARCH;
+  template <typename T>
+  inline void testBigIntSet(Condition cond, const T& src,
+                            Register dest) PER_SHARED_ARCH;
+
+ public:
   // The fallibleUnbox* methods below combine a Value type check with an unbox.
   // Especially on 64-bit platforms this can be implemented more efficiently
   // than a separate branch + unbox.
@@ -2234,6 +2265,16 @@ class MacroAssembler : public MacroAssemblerSpecific {
                            FloatRegister rhs, FloatRegister dest)
       DEFINED_ON(x86_shared, arm64);
 
+  // Mask lane values must be ~0 or 0. The former selects from lhs and the
+  // latter from rhs.
+  // The implementation works effectively for I8x16, I16x8, I32x4, and I64x2.
+  inline void laneSelectSimd128(FloatRegister mask, FloatRegister rhsDest,
+                                FloatRegister lhs) DEFINED_ON(x86_shared);
+
+  inline void laneSelectSimd128(FloatRegister mask, FloatRegister lhs,
+                                FloatRegister rhs, FloatRegister dest)
+      DEFINED_ON(arm64);
+
   inline void interleaveHighInt8x16(FloatRegister rhs, FloatRegister lhsDest)
       DEFINED_ON(x86_shared);
 
@@ -2331,6 +2372,17 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                 FloatRegister dest)
       DEFINED_ON(x86_shared, arm64);
 
+  // Reverse bytes in lanes.
+
+  inline void reverseInt16x8(FloatRegister src, FloatRegister dest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void reverseInt32x4(FloatRegister src, FloatRegister dest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void reverseInt64x2(FloatRegister src, FloatRegister dest)
+      DEFINED_ON(x86_shared, arm64);
+
   // Swizzle - permute with variable indices.  `rhs` holds the lanes parameter.
 
   inline void swizzleInt8x16(FloatRegister rhs, FloatRegister lhsDest)
@@ -2338,6 +2390,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void swizzleInt8x16(FloatRegister lhs, FloatRegister rhs,
                              FloatRegister dest) DEFINED_ON(arm64);
+
+  inline void swizzleInt8x16Relaxed(FloatRegister rhs, FloatRegister lhsDest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void swizzleInt8x16Relaxed(FloatRegister lhs, FloatRegister rhs,
+                                    FloatRegister dest) DEFINED_ON(arm64);
 
   // Integer Add
 
@@ -3315,6 +3373,22 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                                  FloatRegister temp)
       DEFINED_ON(x86_shared, arm64);
 
+  inline void truncSatFloat32x4ToInt32x4Relaxed(FloatRegister src,
+                                                FloatRegister dest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void unsignedTruncSatFloat32x4ToInt32x4Relaxed(FloatRegister src,
+                                                        FloatRegister dest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void truncSatFloat64x2ToInt32x4Relaxed(FloatRegister src,
+                                                FloatRegister dest)
+      DEFINED_ON(x86_shared, arm64);
+
+  inline void unsignedTruncSatFloat64x2ToInt32x4Relaxed(FloatRegister src,
+                                                        FloatRegister dest)
+      DEFINED_ON(x86_shared, arm64);
+
   // Floating point narrowing
 
   inline void convertFloat64x2ToFloat32x4(FloatRegister src, FloatRegister dest)
@@ -3570,7 +3644,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   std::pair<CodeOffset, uint32_t> wasmReserveStackChecked(
       uint32_t amount, wasm::BytecodeOffset trapOffset);
 
-  // Emit a bounds check against the wasm heap limit, jumping to 'label' if
+  // Emit a bounds check against the wasm heap limit, jumping to 'ok' if
   // 'cond' holds. If JitOptions.spectreMaskIndex is true, in speculative
   // executions 'index' is saturated in-place to 'boundsCheckLimit'.
   //
@@ -3580,20 +3654,20 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // limited to something much larger.
 
   void wasmBoundsCheck32(Condition cond, Register index,
-                         Register boundsCheckLimit, Label* label)
+                         Register boundsCheckLimit, Label* ok)
       DEFINED_ON(arm, arm64, mips32, mips64, x86_shared);
 
   void wasmBoundsCheck32(Condition cond, Register index,
-                         Address boundsCheckLimit, Label* label)
+                         Address boundsCheckLimit, Label* ok)
       DEFINED_ON(arm, arm64, mips32, mips64, x86_shared);
 
   void wasmBoundsCheck64(Condition cond, Register64 index,
-                         Register64 boundsCheckLimit, Label* label)
-      DEFINED_ON(arm64, mips64, x64);
+                         Register64 boundsCheckLimit, Label* ok)
+      DEFINED_ON(arm64, mips64, x64, x86, arm);
 
   void wasmBoundsCheck64(Condition cond, Register64 index,
-                         Address boundsCheckLimit, Label* label)
-      DEFINED_ON(arm64, mips64, x64);
+                         Address boundsCheckLimit, Label* ok)
+      DEFINED_ON(arm64, mips64, x64, x86, arm);
 
   // Each wasm load/store instruction appends its own wasm::Trap::OutOfBounds.
   void wasmLoad(const wasm::MemoryAccessDesc& access, Operand srcAddr,
@@ -3743,6 +3817,16 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                            const ABIArg& instanceArg,
                                            wasm::SymbolicAddress builtin,
                                            wasm::FailureMode failureMode);
+
+  // The System ABI frequently states that the high bits of a 64-bit register
+  // that holds a 32-bit return value are unpredictable, and C++ compilers will
+  // indeed generate code that leaves garbage in the upper bits.
+  //
+  // Adjust the contents of the 64-bit register `r` to conform to our internal
+  // convention, which requires predictable high bits.  In practice, this means
+  // that the 32-bit valuewill be zero-extended or sign-extended to 64 bits as
+  // appropriate for the platform.
+  void widenInt32(Register r) DEFINED_ON(arm64, x64, mips64);
 
   // As enterFakeExitFrame(), but using register conventions appropriate for
   // wasm stubs.
@@ -5368,7 +5452,7 @@ inline DynFn JitPreWriteBarrier(MIRType type);
 
 namespace wasm {
 const TlsData* ExtractCalleeTlsFromFrameWithTls(const Frame* fp);
-const TlsData* ExtractCallerTlsFromFrameWithTls(const Frame* fp);
+TlsData* ExtractCallerTlsFromFrameWithTls(Frame* fp);
 }  // namespace wasm
 
 }  // namespace js

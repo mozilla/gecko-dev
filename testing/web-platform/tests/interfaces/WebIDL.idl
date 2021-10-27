@@ -1,10 +1,11 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Web IDL (https://heycam.github.io/webidl/)
+// Source: Web IDL Standard (https://webidl.spec.whatwg.org/)
 
 typedef (Int8Array or Int16Array or Int32Array or
          Uint8Array or Uint16Array or Uint32Array or Uint8ClampedArray or
+         BigInt64Array or BigUint64Array or
          Float32Array or Float64Array or DataView) ArrayBufferView;
 
 typedef (ArrayBufferView or ArrayBuffer) BufferSource;

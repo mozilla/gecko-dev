@@ -59,7 +59,6 @@ impl Example for App {
                 ExternalScrollId(EXT_SCROLL_ID_ROOT, PipelineId::dummy()),
                 (0, 0).by(1000, 1000),
                 scrollbox,
-                ScrollSensitivity::ScriptAndInputEvents,
                 LayoutVector2D::zero(),
                 SpatialTreeItemKey::new(0, 0),
             );
@@ -96,7 +95,6 @@ impl Example for App {
                 ExternalScrollId(EXT_SCROLL_ID_CONTENT, PipelineId::dummy()),
                 (0, 100).to(300, 1000),
                 (0, 100).to(200, 300),
-                ScrollSensitivity::ScriptAndInputEvents,
                 LayoutVector2D::zero(),
                 SpatialTreeItemKey::new(0, 1),
             );
@@ -190,7 +188,7 @@ impl Example for App {
                         ExternalScrollId(EXT_SCROLL_ID_CONTENT, PipelineId::dummy()),
                         ScrollClamping::ToContentBounds,
                     );
-                    txn.generate_frame(0);
+                    txn.generate_frame(0, RenderReasons::empty());
                 }
             }
             winit::WindowEvent::CursorMoved { position: LogicalPosition { x, y }, .. } => {
@@ -211,12 +209,11 @@ impl Example for App {
                     ScrollClamping::ToContentBounds,
                 );
 
-                txn.generate_frame(0);
+                txn.generate_frame(0, RenderReasons::empty());
             }
             winit::WindowEvent::MouseInput { .. } => {
                 let results = api.hit_test(
                     document_id,
-                    None,
                     self.cursor_position,
                 );
 

@@ -83,6 +83,9 @@ let openTabInNewProcess = async file => {
 };
 
 let killTabProcess = async tab => {
+  await SpecialPowers.spawn(tab.linkedBrowser, [], () => {
+    ChromeUtils.privateNoteIntentionalCrash();
+  });
   ProcessTools.kill(tab.linkedBrowser.frameLoader.remoteTab.osPid);
 };
 
@@ -188,7 +191,14 @@ add_task(async () => {
   await pc.setLocalDescription(
     await pc.createOffer({ offerToReceiveAudio: true })
   );
-  await new Promise(r => (pc.onicecandidate = r));
+  // Once gathering is done, the ICE stack should go quiescent
+  await new Promise(r => {
+    pc.onicegatheringstatechange = () => {
+      if (pc.iceGatheringState == "complete") {
+        r();
+      }
+    };
+  });
   let reports = await checkStatsReportCount(1);
   isnot(
     window.browsingContext.browserId,

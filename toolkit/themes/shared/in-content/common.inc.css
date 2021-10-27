@@ -34,14 +34,20 @@
    /* button background states are also used for checkboxes and radiobuttons */
   --in-content-button-text-color: var(--in-content-text-color);
   --in-content-button-text-color-hover: var(--in-content-text-color);
+  --in-content-button-text-color-active: var(--in-content-button-text-color-hover);
   --in-content-button-background: rgba(207,207,216,.33);
   --in-content-button-background-hover: rgba(207,207,216,.66);
   --in-content-button-background-active: rgb(207,207,216);
+  --in-content-button-border-color: transparent;
+  --in-content-button-border-color-hover: transparent;
+  --in-content-button-border-color-active: var(--in-content-button-border-color-hover);
   --in-content-primary-button-text-color: rgb(251,251,254);
   --in-content-primary-button-text-color-hover: var(--in-content-primary-button-text-color);
   --in-content-primary-button-background: #0061e0;
   --in-content-primary-button-background-hover: #0250bb;
   --in-content-primary-button-background-active: #053e94;
+  --in-content-primary-button-border-color: transparent;
+  --in-content-primary-button-border-hover: transparent;
   --in-content-danger-button-background: #e22850;
   --in-content-danger-button-background-hover: #c50042;
   --in-content-danger-button-background-active: #810220;
@@ -107,10 +113,16 @@
   accent-color: var(--in-content-accent-color);
 }
 
-@media (-moz-toolbar-prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark) {
   :host,
   :root {
-    /* Keep these in sync with layout/base/PresShell.cpp, and plaintext.css */
+    /* Keep these in sync with layout/base/PresShell.cpp, plaintext.css,
+     * and nsXPLookAndFeel::GenericDarkColor
+     *
+     * TODO (emilio): Once color-scheme support is complete, perhaps we can
+     * just replace most of these for system colors and remove all this
+     * duplication (assuming we honor the preferred color scheme for
+     * in-content privileged pages and plain-text documents). */
     --in-content-page-background: rgb(28,27,34);
     --in-content-page-color: rgb(251,251,254);
     --in-content-deemphasized-text: rgb(191,191,201);
@@ -206,12 +218,14 @@
     --in-content-button-text-color: ButtonText;
     --in-content-button-background-hover: SelectedItem;
     --in-content-button-background-active: SelectedItem;
+    --in-content-button-border-color: ThreeDShadow;
 
     --in-content-primary-button-text-color: SelectedItemText;
-    --in-content-primary-button-text-color-hover: ButtonText;
+    --in-content-primary-button-text-color-hover: SelectedItem;
     --in-content-primary-button-background: SelectedItem;
     --in-content-primary-button-background-hover: ButtonFace;
     --in-content-primary-button-background-active: ButtonFace;
+    --in-content-primary-button-border-hover: SelectedItem;
 
     --in-content-danger-button-background: var(--in-content-primary-button-background);
     --in-content-danger-button-background-hover: var(--in-content-primary-button-background-hover);
@@ -327,8 +341,8 @@ html|input[type="color"],
 xul|menulist {
   appearance: none;
   min-height: 32px;
-  color: var(--in-content-button-text-color, inherit);
-  border: 1px solid transparent; /* shows up in high-contrast mode */
+  color: var(--in-content-button-text-color);
+  border: 1px solid var(--in-content-button-border-color);
   border-radius: 4px;
   background-color: var(--in-content-button-background);
   font-weight: 400;
@@ -339,27 +353,12 @@ xul|menulist {
   font-size: 1em;
 }
 
-@media (prefers-contrast) {
-  button:not(.primary, [default], [type="submit"], [autofocus]),
-  html|select,
-  html|input[type="color"],
-  xul|menulist {
-    border-color: ThreeDShadow;
-  }
-}
-
 button {
   font-weight: 600;
 }
-/* Medium and small buttons get sized to 7/14 and 6/12px padding (when adding
- * the 1px border): */
-button.medium {
-  padding: 6px 13px;
-  min-height: 28px;
-  font-size: 0.95em;
-}
 
-button.small {
+/* Small buttons get sized to 6/12px padding (when adding the 1px border) */
+.small-button {
   padding: 5px 11px;
   min-height: 24px;
   font-size: 0.9em;
@@ -421,7 +420,7 @@ xul|button:not([disabled="true"]):hover,
 xul|menulist:not([disabled="true"]):hover {
   background-color: var(--in-content-button-background-hover);
   color: var(--in-content-button-text-color-hover);
-  border-color: transparent;
+  border-color: var(--in-content-button-border-color-hover);
 }
 
 html|button:enabled:hover:active,
@@ -432,6 +431,8 @@ xul|button[open],
 xul|button[open]:hover,
 xul|menulist[open="true"]:not([disabled="true"]) {
   background-color: var(--in-content-button-background-active);
+  color: var(--in-content-button-text-color-active);
+  border-color: var(--in-content-button-border-color-active);
 }
 
 html|button:disabled,
@@ -448,6 +449,7 @@ xul|button[default],
 button.primary {
   background-color: var(--in-content-primary-button-background);
   color: var(--in-content-primary-button-text-color);
+  border-color: var(--in-content-primary-button-border-color);
 }
 
 html|button[autofocus]:enabled:hover,
@@ -457,6 +459,7 @@ xul|button[default]:not([disabled="true"]):hover,
 xul|button.primary:not([disabled="true"]):hover {
   background-color: var(--in-content-primary-button-background-hover);
   color: var(--in-content-primary-button-text-color-hover);
+  border-color: var(--in-content-primary-button-border-hover);
 }
 
 html|button[autofocus]:enabled:hover:active,
@@ -478,27 +481,6 @@ xul|button.primary:not([disabled="true"]):hover:active {
 
   html|button.semi-transparent:not(.primary):enabled:hover:active {
     background-color: color-mix(in srgb, currentColor 30%, transparent);
-  }
-}
-
-@media (prefers-contrast) {
-  html|button[autofocus]:enabled:hover,
-  html|button[type="submit"]:enabled:hover,
-  html|button.primary:enabled:hover,
-  xul|button[default]:not([disabled="true"]):hover,
-  xul|button.primary:not([disabled="true"]):hover {
-    border-color: currentColor;
-  }
-
-  button:focus {
-    color: var(--in-content-button-text-color);
-  }
-
-  html|button[autofocus]:focus,
-  html|button[type="submit"]:focus,
-  xul|button[default]:focus,
-  button.primary:focus {
-    color: var(--in-content-primary-button-text-color);
   }
 }
 
@@ -654,7 +636,8 @@ html|a,
 }
 
 html|a:hover,
-.text-link:hover {
+.text-link:hover,
+button.text-link:is(:not([disabled="true"]), :enabled):hover {
   color: var(--in-content-link-color-hover);
   text-decoration: underline;
 }
@@ -664,7 +647,8 @@ html|a:visited {
 }
 
 html|a:hover:active,
-.text-link:hover:active {
+.text-link:hover:active,
+button.text-link:is(:not([disabled="true"]), :enabled):hover:active {
   color: var(--in-content-link-color-active);
   text-decoration: none;
 }
@@ -674,6 +658,15 @@ html|a:-moz-focusring,
   outline: 2px solid var(--in-content-focus-outline-color);
   outline-offset: 1px;
   border-radius: 4px;
+}
+
+button.text-link {
+  background-color: transparent !important; /* override hover related background changes */
+  padding: 0;
+  border: 0;
+  font-weight: normal;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* Checkboxes and radio buttons */
@@ -795,7 +788,7 @@ xul|*.radio-check[selected] {
   color: var(--in-content-primary-button-text-color);
   background-color: var(--in-content-primary-button-background);
   background-image: url("chrome://global/skin/icons/radio.svg");
-  border-color: transparent;
+  border-color: var(--in-content-primary-button-border-color);
 
   /* Style the button also when printing with "Print Backgrounds" unchecked */
   color-adjust: exact;
@@ -805,6 +798,7 @@ html|input[type="radio"]:enabled:checked:hover,
 xul|radio:not([disabled="true"])[selected]:hover > xul|*.radio-check {
   background-color: var(--in-content-primary-button-background-hover);
   color: var(--in-content-primary-button-text-color-hover);
+  border-color: var(--in-content-primary-button-border-hover);
 }
 
 html|input[type="radio"]:enabled:checked:hover:active,
@@ -1069,6 +1063,7 @@ xul|richlistbox:not(#categories) > xul|richlistitem[selected] {
   --in-content-button-background-active: color-mix(in srgb, currentColor 45%, transparent);
   --in-content-button-text-color: var(--in-content-item-selected-text);
   --in-content-button-text-color-hover: var(--in-content-item-selected-text);
+  --in-content-button-text-color-active: var(--in-content-button-text-color-hover);
   --in-content-focus-outline-color: var(--in-content-item-selected-text);
 }
 

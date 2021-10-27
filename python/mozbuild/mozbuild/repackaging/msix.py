@@ -12,8 +12,11 @@ r"""Repackage ZIP archives (or directories) into MSIX App Packages.
 
 from __future__ import absolute_import, print_function
 
+from collections import defaultdict
+import itertools
 import logging
 import os
+import shutil
 import sys
 import subprocess
 import time
@@ -112,48 +115,162 @@ def find_sdk_tool(binary, log=None):
 
 
 def get_embedded_version(version, buildid):
-    r"""Turn a display version into "dotted quad" notation."""
+    r"""Turn a display version into "dotted quad" notation.
+
+    N.b.: some parts of the MSIX packaging ecosystem require the final part of
+    the dotted quad to be identically 0, so we enforce that here.
+    """
 
     # It's irritating to roll our own version parsing, but the tree doesn't seem
     # to contain exactly what we need at this time.
     version = version.rsplit("esr", 1)[0]
     alpha = "a" in version
 
+    tail = None
     if "a" in version:
         head, tail = version.rsplit("a", 1)
+        if tail != "1":
+            # Disallow anything beyond `X.Ya1`.
+            raise ValueError(
+                f"Alpha version not of the form X.0a1 is not supported: {version}"
+            )
         tail = buildid
     elif "b" in version:
         head, tail = version.rsplit("b", 1)
+        if len(head.split(".")) > 2:
+            raise ValueError(
+                f"Beta version not of the form X.YbZ is not supported: {version}"
+            )
     elif "rc" in version:
         head, tail = version.rsplit("rc", 1)
+        if len(head.split(".")) > 2:
+            raise ValueError(
+                f"Release candidate version not of the form X.YrcZ is not supported: {version}"
+            )
     else:
         head = version
-        tail = "0"
 
-    components = (head.split(".") + ["0", "0", "0"])[:4]
-    components[3] = tail
+    components = (head.split(".") + ["0", "0", "0"])[:3]
+    if tail:
+        components[2] = tail
 
     if alpha:
-        # Nightly builds are all `X.Ya1`, which isn't helpful.  Include build ID
+        # Nightly builds are all `X.0a1`, which isn't helpful.  Include build ID
         # to disambiguate.  But each part of the dotted quad is 16 bits, so we
         # have to squash.
-        year = buildid[0:4]
+        if components[1] != "0":
+            # Disallow anything beyond `X.0a1`.
+            raise ValueError(
+                f"Alpha version not of the form X.0a1 is not supported: {version}"
+            )
+
+        # Last two digits only to save space.  Nightly builds in 2066 and 2099
+        # will be impacted, but future us can deal with that.
+        year = buildid[2:4]
+        if year[0] == "0":
+            # Avoid leading zero, like `.0YMm`.
+            year = year[1:]
         month = buildid[4:6]
-        if month[0] == "0":
-            month = month[1]
         day = buildid[6:8]
+        if day[0] == "0":
+            # Avoid leading zero, like `.0DHh`.
+            day = day[1:]
         hour = buildid[8:10]
-        if hour[0] == "0":
-            hour = hour[1]
-        minute = buildid[10:12]
 
-        components[1] = year
-        components[2] = "".join((month, day))
-        components[3] = "".join((hour, minute))
+        components[1] = "".join((year, month))
+        components[2] = "".join((day, hour))
 
-    version = "{}.{}.{}.{}".format(*components)
+    version = "{}.{}.{}.0".format(*components)
 
     return version
+
+
+def get_appconstants_jsm_values(finder, *args):
+    r"""Extract values, such as the display version like `MOZ_APP_VERSION_DISPLAY:
+    "...";`, from the omnijar.  This allows to determine the beta number, like
+    `X.YbW`, where the regular beta version is only `X.Y`.  Takes a list of
+    names and returns an iterator of the unique such value found for each name.
+    Raises an exception if a name is not found or if multiple values are found.
+    """
+
+    lines = defaultdict(list)
+    for _, f in finder.find("**/modules/AppConstants.jsm"):
+        for line in f.open().read().decode("utf-8").splitlines():
+            for arg in args:
+                if arg in line:
+                    lines[arg].append(line)
+
+    for arg in args:
+        (value,) = lines[arg]  # We expect exactly one definition.
+        _, _, value = value.partition(":")
+        value = value.strip().strip('",;')
+        yield value
+
+
+def unpack_msix(input_msix, output, log=None, verbose=False):
+    r"""Unpack the given MSIX to the given output directory.
+
+    MSIX packages are ZIP files, but they are Zip64/version 4.5 ZIP files, so
+    `mozjar.py` doesn't yet handle.  Unpack using `unzip{.exe}` for simplicity.
+
+    In addition, file names inside the MSIX package are URL quoted.  URL unquote
+    here.
+    """
+
+    log(
+        logging.INFO,
+        "msix",
+        {
+            "input_msix": input_msix,
+            "output": output,
+        },
+        "Unpacking input MSIX '{input_msix}' to directory '{output}'",
+    )
+
+    unzip = find_sdk_tool("unzip.exe", log=log)
+    if not unzip:
+        raise ValueError("unzip is required; set UNZIP or PATH")
+
+    subprocess.check_call(
+        [unzip, input_msix, "-d", output] + (["-q"] if not verbose else []),
+        universal_newlines=True,
+    )
+
+    # Sanity check: is this an MSIX?
+    temp_finder = FileFinder(output)
+    if not temp_finder.contains("AppxManifest.xml"):
+        raise ValueError("MSIX file does not contain 'AppxManifest.xml'?")
+
+    # Files in the MSIX are URL encoded/quoted; unquote here.
+    for dirpath, dirs, files in os.walk(output):
+        # This is a one way to update (in place, for os.walk) the variable `dirs` while iterating
+        # over it and `files`.
+        for i, (p, var) in itertools.chain(
+            enumerate((f, files) for f in files), enumerate((g, dirs) for g in dirs)
+        ):
+            q = urllib.parse.unquote(p)
+            if p != q:
+                log(
+                    logging.DEBUG,
+                    "msix",
+                    {
+                        "dirpath": dirpath,
+                        "p": p,
+                        "q": q,
+                    },
+                    "URL unquoting '{p}' -> '{q}' in {dirpath}",
+                )
+
+                var[i] = q
+                os.rename(os.path.join(dirpath, p), os.path.join(dirpath, q))
+
+    # The "package root" of our MSIX packages is like "Mozilla Firefox Beta Package Root", i.e., it
+    # varies by channel.  This is an easy way to determine it.
+    for p, _ in temp_finder.find("**/application.ini"):
+        relpath = os.path.split(p)[0]
+
+    # The application executable, like `firefox.exe`, is in this directory.
+    return mozpath.normpath(mozpath.join(output, relpath))
 
 
 def repackage_msix(
@@ -187,7 +304,6 @@ def repackage_msix(
     if not os.path.isdir(branding):
         raise Exception("branding dir {} does not exist".format(branding))
 
-        version = "1.2.3"  # XXX
     # TODO: maybe we can fish this from the package directly?  Maybe from a DLL,
     # maybe from application.ini?
     if arch is None or arch not in _MSIX_ARCH.keys():
@@ -198,6 +314,35 @@ def repackage_msix(
     if not os.path.exists(dir_or_package):
         raise Exception("{} does not exist".format(dir_or_package))
 
+    if (
+        os.path.isfile(dir_or_package)
+        and os.path.splitext(dir_or_package)[1] == ".msix"
+    ):
+        # The convention is $MOZBUILD_STATE_PATH/cache/$FEATURE.
+        msix_dir = mozpath.normsep(
+            mozpath.join(
+                get_state_dir(),
+                "cache",
+                "mach-msix",
+                "msix-unpack",
+            )
+        )
+
+        if os.path.exists(msix_dir):
+            shutil.rmtree(msix_dir)
+        ensureParentDir(msix_dir)
+
+        dir_or_package = unpack_msix(dir_or_package, msix_dir, log=log, verbose=verbose)
+
+    log(
+        logging.INFO,
+        "msix",
+        {
+            "input": dir_or_package,
+        },
+        "Adding files from '{input}'",
+    )
+
     if os.path.isdir(dir_or_package):
         finder = FileFinder(dir_or_package)
     else:
@@ -207,17 +352,57 @@ def repackage_msix(
         finder,
         dict(section="App", value="CodeName", fallback="Name"),
         dict(section="App", value="Vendor"),
-        dict(section="App", value="Version"),
-        dict(section="App", value="BuildID"),
     )
+
     first = next(values)
-    displayname = displayname or "Mozilla {}".format(first)
+    if not displayname:
+        displayname = "Mozilla {}".format(first)
+
+        if channel == "beta":
+            # Release (official) and Beta share branding.  Differentiate Beta a little bit.
+            displayname += " Beta"
+
     second = next(values)
     vendor = vendor or second
+
+    # For `AppConstants.jsm` and `brand.properties`, which are in the omnijar in packaged builds.
+    # The nested langpack XPI files can't be read by `mozjar.py`.
+    unpack_finder = UnpackFinder(finder, unpack_xpi=False)
+
     if not version:
-        version = next(values)
+        values = get_appconstants_jsm_values(
+            unpack_finder, "MOZ_APP_VERSION_DISPLAY", "MOZ_BUILDID"
+        )
+        display_version = next(values)
         buildid = next(values)
-        version = get_embedded_version(version, buildid)
+        version = get_embedded_version(display_version, buildid)
+        log(
+            logging.INFO,
+            "msix",
+            {
+                "version": version,
+                "display_version": display_version,
+                "buildid": buildid,
+            },
+            "AppConstants.jsm display version is '{display_version}' and build ID is '{buildid}':"
+            + " embedded version will be '{version}'",
+        )
+
+    # TODO: Bug 1721922: localize this description via Fluent.
+    lines = []
+    for _, f in unpack_finder.find("**/chrome/en-US/locale/branding/brand.properties"):
+        lines.extend(
+            line
+            for line in f.open().read().decode("utf-8").splitlines()
+            if "brandFullName" in line
+        )
+    (brandFullName,) = lines  # We expect exactly one definition.
+    _, _, brandFullName = brandFullName.partition("=")
+    brandFullName = brandFullName.strip()
+
+    if channel == "beta":
+        # Release (official) and Beta share branding.  Differentiate Beta a little bit.
+        brandFullName += " Beta"
 
     # We don't have a build at repackage-time to gives us this value, and the
     # source of truth is a branding-specific `configure.sh` shell script that we
@@ -234,31 +419,12 @@ def repackage_msix(
     if MOZ_IGECKOBACKCHANNEL_IID.startswith(('"', "'")):
         MOZ_IGECKOBACKCHANNEL_IID = MOZ_IGECKOBACKCHANNEL_IID[1:-1]
 
-    # TODO: Bug 1721922: localize this description via Fluent.
-    # For `brand.properties`, which is in the omnijar in packaged builds.
-    unpack_finder = UnpackFinder(finder)
-    lines = []
-    for _, f in unpack_finder.find("**/chrome/en-US/locale/branding/brand.properties"):
-        lines.extend(
-            line
-            for line in f.open().read().decode("utf-8").splitlines()
-            if "brandFullName" in line
-        )
-    (brandFullName,) = lines  # We expect exactly one definition.
-    _, _, brandFullName = brandFullName.partition("=")
-    brandFullName = brandFullName.strip()
-
     # The convention is $MOZBUILD_STATE_PATH/cache/$FEATURE.
     output_dir = mozpath.normsep(
         mozpath.join(
             get_state_dir(), "cache", "mach-msix", "msix-temp-{}".format(channel)
         )
     )
-
-    if channel == "beta":
-        # Release (official) and Beta share branding.  Differentiate Beta a little bit.
-        displayname += " Beta"
-        brandFullName += " Beta"
 
     # Like 'Firefox Package Root', 'Firefox Nightly Package Root', 'Firefox Beta
     # Package Root'.  This is `BrandFullName` in the installer, and we want to
@@ -272,7 +438,7 @@ def repackage_msix(
     # We might want to include the publisher ID hash here.  I.e.,
     # "__{publisherID}".  My locally produced MSIX was named like
     # `Mozilla.MozillaFirefoxNightly_89.0.0.0_x64__4gf61r4q480j0`, suggesting also a
-    # missing field, but it's necessary, since this is just an output file name.
+    # missing field, but it's not necessary, since this is just an output file name.
     package_output_name = "{identity}_{version}_{arch}".format(
         identity=identity, version=version, arch=_MSIX_ARCH[arch]
     )
@@ -295,8 +461,23 @@ def repackage_msix(
 
     # TODO: Bug 1710147: filter out MSVCRT files and use a dependency instead.
     for p, f in finder:
-        # `p` is like "firefox/firefox.exe"; we want just "firefox.exe".
-        pp = os.path.relpath(p, "firefox")
+        if not os.path.isdir(dir_or_package):
+            # In archived builds, `p` is like "firefox/firefox.exe"; we want just "firefox.exe".
+            pp = os.path.relpath(p, "firefox")
+        else:
+            # In local builds and unpacked MSIX directories, `p` is like "firefox.exe" already.
+            pp = p
+
+        if pp.startswith("distribution"):
+            # Treat any existing distribution as a distribution directory,
+            # potentially with language packs. This makes it easy to repack
+            # unpacked MSIXes.
+            distribution_dir = mozpath.join(dir_or_package, "distribution")
+            if distribution_dir not in distribution_dirs:
+                distribution_dirs.append(distribution_dir)
+
+            continue
+
         copier.add(mozpath.normsep(mozpath.join("VFS", "ProgramFiles", instdir, pp)), f)
 
     # Locales to declare as supported in `AppxManifest.xml`.
@@ -321,7 +502,8 @@ def repackage_msix(
         for p, f in finder:
             locale = None
             if os.path.basename(p) == "target.langpack.xpi":
-                # Turn "/path/to/LOCALE/target.langpack.xpi" into "LOCALE".
+                # Turn "/path/to/LOCALE/target.langpack.xpi" into "LOCALE".  This is how langpacks
+                # are presented in CI.
                 base, locale = os.path.split(os.path.dirname(p))
 
                 # Like "locale-LOCALE/langpack-LOCALE@firefox.mozilla.org.xpi".  This is what AMO
@@ -341,6 +523,14 @@ def repackage_msix(
                     {"path": p, "dest": dest},
                     "Renaming langpack {path} to {dest}",
                 )
+
+            elif os.path.basename(p).startswith("langpack-"):
+                # Turn "/path/to/langpack-LOCALE@firefox.mozilla.org.xpi" into "LOCALE".  This is
+                # how langpacks are presented from an unpacked MSIX.
+                _, _, locale = os.path.basename(p).partition("langpack-")
+                locale, _, _ = locale.partition("@")
+                dest = p
+
             else:
                 dest = p
 
@@ -354,10 +544,27 @@ def repackage_msix(
                     "Distributing locale '{locale}' from {dest}",
                 )
 
+            dest = mozpath.normsep(
+                mozpath.join("VFS", "ProgramFiles", instdir, "distribution", dest)
+            )
+            if copier.contains(dest):
+                log(
+                    logging.INFO,
+                    "msix",
+                    {"dest": dest, "path": mozpath.join(finder.base, p)},
+                    "Skipping duplicate: {dest} from {path}",
+                )
+                continue
+
+            log(
+                logging.DEBUG,
+                "msix",
+                {"dest": dest, "path": mozpath.join(finder.base, p)},
+                "Adding distribution path: {dest} from {path}",
+            )
+
             copier.add(
-                mozpath.normsep(
-                    mozpath.join("VFS", "ProgramFiles", instdir, "distribution", dest)
-                ),
+                dest,
                 f,
             )
 
@@ -397,7 +604,8 @@ def repackage_msix(
         "APPX_ARCH": _MSIX_ARCH[arch],
         "APPX_DISPLAYNAME": brandFullName,
         "APPX_DESCRIPTION": brandFullName,
-        # Like 'Mozilla.Firefox', 'Mozilla.Firefox.Beta', 'Mozilla.Firefox.Nightly'.
+        # Like 'Mozilla.MozillaFirefox', 'Mozilla.MozillaFirefoxBeta', or
+        # 'Mozilla.MozillaFirefoxNightly'.
         "APPX_IDENTITY": identity,
         # Like 'Firefox Package Root', 'Firefox Nightly Package Root', 'Firefox
         # Beta Package Root'.  See above.
@@ -432,11 +640,19 @@ def repackage_msix(
     if log:
         log_copy_result(log, time.time() - start, output_dir, result)
 
+    if verbose:
+        # Dump AppxManifest.xml contents for ease of debugging.
+        log(logging.DEBUG, "msix", {}, "AppxManifest.xml")
+        log(logging.DEBUG, "msix", {}, ">>>")
+        for line in open(mozpath.join(output_dir, "AppxManifest.xml")).readlines():
+            log(logging.DEBUG, "msix", {}, line[:-1])  # Drop trailing line terminator.
+        log(logging.DEBUG, "msix", {}, "<<<")
+
     if not makeappx:
         makeappx = find_sdk_tool("makeappx.exe", log=log)
     if not makeappx:
         raise ValueError(
-            "makeappx is required; " "set SIGNTOOL or WINDOWSSDKDIR or PATH"
+            "makeappx is required; " "set MAKEAPPX or WINDOWSSDKDIR or PATH"
         )
 
     # `makeappx.exe` supports both slash and hyphen style arguments; `makemsix`

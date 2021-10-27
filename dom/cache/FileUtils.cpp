@@ -86,7 +86,7 @@ Result<NotNull<nsCOMPtr<nsIFile>>, nsresult> BodyGetCacheDir(nsIFile& aBaseDir,
   // reports.
   QM_TRY(QM_OR_ELSE_LOG_VERBOSE_IF(
       // Expression.
-      ToResult(cacheDir->Create(nsIFile::DIRECTORY_TYPE, 0755)),
+      MOZ_TO_RESULT(cacheDir->Create(nsIFile::DIRECTORY_TYPE, 0755)),
       // Predicate.
       IsSpecificError<NS_ERROR_FILE_ALREADY_EXISTS>,
       // Fallback.
@@ -107,7 +107,7 @@ nsresult BodyCreateDir(nsIFile& aBaseDir) {
   // reports.
   QM_TRY(QM_OR_ELSE_LOG_VERBOSE_IF(
       // Expression.
-      ToResult(bodyDir->Create(nsIFile::DIRECTORY_TYPE, 0755)),
+      MOZ_TO_RESULT(bodyDir->Create(nsIFile::DIRECTORY_TYPE, 0755)),
       // Predicate.
       IsSpecificError<NS_ERROR_FILE_ALREADY_EXISTS>,
       // Fallback.
@@ -131,9 +131,10 @@ Result<std::pair<nsID, nsCOMPtr<nsISupports>>, nsresult> BodyStartWriteStream(
   MOZ_DIAGNOSTIC_ASSERT(aClosure);
   MOZ_DIAGNOSTIC_ASSERT(aCallback);
 
-  QM_TRY_INSPECT(const auto& idGen, ToResultGet<nsCOMPtr<nsIUUIDGenerator>>(
-                                        MOZ_SELECT_OVERLOAD(do_GetService),
-                                        "@mozilla.org/uuid-generator;1"));
+  QM_TRY_INSPECT(const auto& idGen,
+                 MOZ_TO_RESULT_GET_TYPED(nsCOMPtr<nsIUUIDGenerator>,
+                                         MOZ_SELECT_OVERLOAD(do_GetService),
+                                         "@mozilla.org/uuid-generator;1"));
 
   nsID id;
   QM_TRY(MOZ_TO_RESULT(idGen->GenerateUUIDInPlace(&id)));
@@ -391,10 +392,10 @@ nsresult BodyDeleteOrphanedFiles(const QuotaInfo& aQuotaInfo, nsIFile& aBaseDir,
             // a warning in the reports is not desired).
             QM_TRY(QM_OR_ELSE_LOG_VERBOSE_IF(
                 // Expression.
-                ToResult(BodyTraverseFiles(aQuotaInfo, *subdir,
-                                           removeOrphanedFiles,
-                                           /* aCanRemoveFiles */ true,
-                                           /* aTrackQuota */ true)),
+                MOZ_TO_RESULT(BodyTraverseFiles(aQuotaInfo, *subdir,
+                                                removeOrphanedFiles,
+                                                /* aCanRemoveFiles */ true,
+                                                /* aTrackQuota */ true)),
                 // Predicate.
                 IsSpecificError<NS_ERROR_FILE_FS_CORRUPTED>,
                 // Fallback. We treat NS_ERROR_FILE_FS_CORRUPTED as if the
@@ -454,7 +455,7 @@ nsresult CreateMarkerFile(const QuotaInfo& aQuotaInfo) {
   // QM_OR_ELSE_LOG_VERBOSE_IF to QM_OR_ELSE_WARN_IF in the end.
   QM_TRY(QM_OR_ELSE_LOG_VERBOSE_IF(
       // Expression.
-      ToResult(marker->Create(nsIFile::NORMAL_FILE_TYPE, 0644)),
+      MOZ_TO_RESULT(marker->Create(nsIFile::NORMAL_FILE_TYPE, 0644)),
       // Predicate.
       IsSpecificError<NS_ERROR_FILE_ALREADY_EXISTS>,
       // Fallback.
@@ -548,7 +549,7 @@ nsresult RemoveNsIFile(const QuotaInfo& aQuotaInfo, nsIFile& aFile,
 
   QM_TRY(QM_OR_ELSE_WARN_IF(
       // Expression.
-      ToResult(aFile.Remove(/* recursive */ false)),
+      MOZ_TO_RESULT(aFile.Remove(/* recursive */ false)),
       // Predicate.
       IsFileNotFoundError,
       // Fallback.
@@ -752,7 +753,7 @@ nsresult DirectoryPaddingDeleteFile(nsIFile& aBaseDir,
 
   QM_TRY(QM_OR_ELSE_WARN_IF(
       // Expression.
-      ToResult(file->Remove(/* recursive */ false)),
+      MOZ_TO_RESULT(file->Remove(/* recursive */ false)),
       // Predicate.
       IsFileNotFoundError,
       // Fallback.

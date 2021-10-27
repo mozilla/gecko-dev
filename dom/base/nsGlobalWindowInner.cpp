@@ -137,6 +137,7 @@
 #include "mozilla/dom/LocalStorage.h"
 #include "mozilla/dom/LocalStorageCommon.h"
 #include "mozilla/dom/Location.h"
+#include "mozilla/dom/MediaDevices.h"
 #include "mozilla/dom/MediaKeys.h"
 #include "mozilla/dom/NavigatorBinding.h"
 #include "mozilla/dom/Nullable.h"
@@ -2308,6 +2309,10 @@ Navigator* nsPIDOMWindowInner::Navigator() {
   }
 
   return mNavigator;
+}
+
+MediaDevices* nsPIDOMWindowInner::GetExtantMediaDevices() const {
+  return mNavigator ? mNavigator->GetExtantMediaDevices() : nullptr;
 }
 
 VisualViewport* nsGlobalWindowInner::VisualViewport() {
@@ -5045,8 +5050,9 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
       // script.
       RefPtr<nsGlobalWindowOuter> outer = GetOuterWindowInternal();
       outer->EnterModalState();
-      SpinEventLoopUntil(
-          [&]() { return monitor->IsDebuggerStartupComplete(); });
+      SpinEventLoopUntil("nsGlobalWindowInner::ShowSlowScriptDialog"_ns, [&]() {
+        return monitor->IsDebuggerStartupComplete();
+      });
       outer->LeaveModalState();
       return ContinueSlowScript;
     }
@@ -5569,6 +5575,10 @@ void nsGlobalWindowInner::Resume(bool aIncludeSubWindows) {
     mAudioContexts[i]->ResumeFromChrome();
   }
 
+  if (RefPtr<MediaDevices> devices = GetExtantMediaDevices()) {
+    devices->WindowResumed();
+  }
+
   mTimeoutManager->Resume();
 
   ResumeIdleRequests();
@@ -5718,6 +5728,13 @@ void nsGlobalWindowInner::SyncStateFromParentWindow() {
   for (uint32_t i = 0; i < (parentSuspendDepth - parentFreezeDepth); ++i) {
     Suspend();
   }
+}
+
+void nsGlobalWindowInner::UpdateBackgroundState() {
+  if (RefPtr<MediaDevices> devices = GetExtantMediaDevices()) {
+    devices->BackgroundStateChanged();
+  }
+  mTimeoutManager->UpdateBackgroundState();
 }
 
 template <typename Method, typename... Args>
@@ -6224,7 +6241,7 @@ bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout,
   const char* reason = GetTimeoutReasonString(timeout);
 
   nsCString str;
-  if (profiler_can_accept_markers()) {
+  if (profiler_thread_is_being_profiled()) {
     TimeDuration originalInterval = timeout->When() - timeout->SubmitTime();
     str.Append(reason);
     str.Append(" with interval ");
@@ -7434,6 +7451,14 @@ already_AddRefed<Promise> nsGlobalWindowInner::CreateImageBitmap(
     int32_t aSh, const ImageBitmapOptions& aOptions, ErrorResult& aRv) {
   return ImageBitmap::Create(
       this, aImage, Some(gfx::IntRect(aSx, aSy, aSw, aSh)), aOptions, aRv);
+}
+
+// https://html.spec.whatwg.org/#structured-cloning
+void nsGlobalWindowInner::StructuredClone(
+    JSContext* aCx, JS::Handle<JS::Value> aValue,
+    const StructuredSerializeOptions& aOptions,
+    JS::MutableHandle<JS::Value> aRetval, ErrorResult& aError) {
+  nsContentUtils::StructuredClone(aCx, this, aValue, aOptions, aRetval, aError);
 }
 
 nsresult nsGlobalWindowInner::Dispatch(

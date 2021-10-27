@@ -109,7 +109,7 @@ var UITour = {
 
   _annotationPanelMutationObservers: new WeakMap(),
 
-  highlightEffects: ["random", "wobble", "zoom", "color"],
+  highlightEffects: ["random", "wobble", "zoom", "color", "focus-outline"],
   targets: new Map([
     [
       "accountStatus",
@@ -827,6 +827,20 @@ var UITour = {
     this.hideHighlight(aWindow);
     this.hideInfo(aWindow);
 
+    await this.removePanelListeners(aWindow);
+
+    this.noautohideMenus.clear();
+
+    // If there are no more tour tabs left in the window, teardown the tour for the whole window.
+    if (!openTourBrowsers || openTourBrowsers.size == 0) {
+      this.teardownTourForWindow(aWindow);
+    }
+  },
+
+  /**
+   * Remove the listeners to a panel when tearing the tour down.
+   */
+  async removePanelListeners(aWindow) {
     let panels = [
       {
         name: "appMenu",
@@ -849,13 +863,6 @@ var UITour = {
       for (let [name, listener] of panel.events) {
         panel.node.removeEventListener(name, listener);
       }
-    }
-
-    this.noautohideMenus.clear();
-
-    // If there are no more tour tabs left in the window, teardown the tour for the whole window.
-    if (!openTourBrowsers || openTourBrowsers.size == 0) {
-      this.teardownTourForWindow(aWindow);
     }
   },
 

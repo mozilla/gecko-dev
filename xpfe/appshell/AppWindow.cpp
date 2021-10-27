@@ -512,7 +512,8 @@ NS_IMETHODIMP AppWindow::ShowModal() {
 
   {
     AutoNoJSAPI nojsapi;
-    SpinEventLoopUntil([&]() { return !mContinueModalLoop; });
+    SpinEventLoopUntil("AppWindow::ShowModal"_ns,
+                       [&]() { return !mContinueModalLoop; });
   }
 
   mContinueModalLoop = false;
@@ -1882,8 +1883,7 @@ nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
                          bookmarksVisibility);
   settings.bookmarksToolbarShown =
       bookmarksVisibility.EqualsLiteral("always") ||
-      (Preferences::GetBool("browser.toolbars.bookmarks.2h2020", false) &&
-       bookmarksVisibility.EqualsLiteral("newtab"));
+      bookmarksVisibility.EqualsLiteral("newtab");
 
   Element* menubar = doc->GetElementById(u"toolbar-menubar"_ns);
   menubar->GetAttribute(u"autohide"_ns, attributeValue);
@@ -2339,7 +2339,8 @@ NS_IMETHODIMP AppWindow::CreateNewContentWindow(
 
   {
     AutoNoJSAPI nojsapi;
-    SpinEventLoopUntil([&]() { return !appWin->IsLocked(); });
+    SpinEventLoopUntil("AppWindow::CreateNewContentWindow"_ns,
+                       [&]() { return !appWin->IsLocked(); });
   }
 
   NS_ENSURE_STATE(appWin->mPrimaryContentShell ||

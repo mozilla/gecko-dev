@@ -504,6 +504,24 @@ browser.engagement.navigation:
     record_in_processes:
       - 'main'
 
+  urlbar_handoff:
+    bug_numbers:
+      - 1732429
+    description: >
+      The count URI loads triggered in a subsession from the urlbar via handoff,
+      broken down by the originating action.
+    expires: never
+    kind: uint
+    keyed: True
+    notification_emails:
+      - fx-search@mozilla.com
+      - rev-data@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
   urlbar_searchmode:
     bug_numbers:
       - 1654680
@@ -1233,6 +1251,21 @@ security:
       - 'firefox'
     record_in_processes:
       - 'main'
+  global_privacy_control_enabled:
+    bug_numbers:
+      - 1734185
+    description: >
+      Measures user retention of the Global Privacy Control.
+      0 = never enabled, 1 = enabled, 2 = disabled (but was enabled)
+    expires: never
+    kind: uint
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
 
 pwmgr:
   potentially_breached_passwords:
@@ -1787,7 +1820,6 @@ os.environment:
     kind: string
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
-      - agashlin@mozilla.com
       - shong@mozilla.com
     release_channel_collection: opt-out
     products:
@@ -1823,7 +1855,6 @@ os.environment:
     kind: boolean
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
-      - agashlin@mozilla.com
       - shong@mozilla.com
     release_channel_collection: opt-out
     products:
@@ -2170,6 +2201,24 @@ media:
       Record whether the WMF decoder module is used in content or chrome process.
     expires: "99"
     kind: boolean
+    notification_emails:
+      - alwu@mozilla.com
+      - bvandyk@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+      - 'content'
+
+  video_hardware_decoding_support:
+    bug_numbers:
+      - 1733722
+    description: >
+      Record whether hardware decoding is supported for the specific video codec. The key is the type of video codec, eg. video/vp9.
+    expires: "100"
+    kind: boolean
+    keyed: true
     notification_emails:
       - alwu@mozilla.com
       - bvandyk@mozilla.com
@@ -4901,6 +4950,24 @@ browser.search.content:
     record_in_processes:
       - main
 
+  urlbar_handoff:
+    bug_numbers:
+      - 1732429
+    description: >
+      The count URI loads triggered in a subsession from the urlbar via handoff,
+      broken down by the originating action.
+    expires: never
+    kind: uint
+    keyed: True
+    notification_emails:
+      - fx-search@mozilla.com
+      - rev-data@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
   urlbar_searchmode:
     bug_numbers:
       - 1089670
@@ -5121,6 +5188,24 @@ browser.search.withads:
     record_in_processes:
       - main
 
+  urlbar_handoff:
+    bug_numbers:
+      - 1732429
+    description: >
+      The count URI loads triggered in a subsession from the urlbar via handoff,
+      broken down by the originating action.
+    expires: never
+    kind: uint
+    keyed: True
+    notification_emails:
+      - fx-search@mozilla.com
+      - rev-data@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
   urlbar_searchmode:
     bug_numbers:
       - 1664847
@@ -5308,6 +5393,24 @@ browser.search.adclicks:
       - 'firefox'
     record_in_processes:
       - main
+
+  urlbar_handoff:
+    bug_numbers:
+      - 1732429
+    description: >
+      The count URI loads triggered in a subsession from the urlbar via handoff,
+      broken down by the originating action.
+    expires: never
+    kind: uint
+    keyed: True
+    notification_emails:
+      - fx-search@mozilla.com
+      - rev-data@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
 
   urlbar_searchmode:
     bug_numbers:
@@ -5548,7 +5651,6 @@ startup:
       - 1522934
       - 1570652
       - 1623406
-      - 1709969
     description: >
       How the profile was selected during startup. One of the following reasons:
         unknown:
@@ -5579,9 +5681,6 @@ startup:
           the old default profile and created a new profile.
         firstrun-created-default:
           A first run of the application created a new profile to use.
-        firstrun-migrated-default:
-          A first run of the application created a new profile to use, based on
-          migrating an existing profile from the same application.
         default:
           The default profile was selected as normal.
     expires: "99"
@@ -5719,14 +5818,13 @@ startup:
     record_in_processes:
       - main
 
-  first_run_is_from_dmg:
+  is_run_from_dmg:
     bug_numbers:
       - 1700795
     description: >
-      Recorded on first run of a Firefox install on macOS, with a boolean value
+      Recorded on every run of a Firefox install on macOS, with a boolean value
       indicating whether Firefox is being run directly from .dmg without
-      installing, or not. Note if running from a .dmg we will get a new ping
-      everytime the .dmg is remounted due to App Translocation.
+      installing, or not.
     expires: "99"
     keyed: false
     kind: boolean
@@ -6163,6 +6261,23 @@ deletion.request:
     notification_emails:
       - lina@mozilla.com
       - sync-team@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+    record_into_store:
+      - 'deletion-request'
+
+  context_id:
+    bug_numbers:
+      - 1729474
+    description: >
+      An identifier to identify users for Contextual Services user interaction pings.
+    expires: never
+    kind: string
+    notification_emails:
+      - najiang@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -6988,7 +7103,7 @@ migration:
     expires: never
     kind: boolean
     notification_emails:
-      - agashlin@mozilla.com
+      - application-update-telemetry-alerts@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'

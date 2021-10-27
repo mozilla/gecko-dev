@@ -373,19 +373,19 @@ clang-10:
         repo: https://github.com/llvm/llvm-project
         revision: d32170dbd5b0d54436537b6b75beaf44324e0c28
 
-clang-11:
-    description: clang 11.0.1 source code
-    fetch:
-        type: git
-        repo: https://github.com/llvm/llvm-project
-        revision: 43ff75f2c3feef64f9d73328230d34dac8832a91
-
 clang-12:
     description: clang 12.0.1 source code
     fetch:
         type: git
         repo: https://github.com/llvm/llvm-project
         revision: fed41342a82f5a3a9201819a82bf7a48313e296b
+
+clang-13:
+    description: clang 13.0.0 source code
+    fetch:
+        type: git
+        repo: https://github.com/llvm/llvm-project
+        revision: d7b669b3a30345cfcdb2fde2af6f48aa4b94845d
 
 clang-trunk:
     description: clang main branch source code
@@ -487,7 +487,7 @@ makecab:
     fetch:
         type: git
         repo: https://github.com/luser/rust-makecab/
-        revision: d2bc6797648b7a834782714a55d339d2fd4e58c8
+        revision: 7eb27ba11b8909a1e2c01b63510e1f1c989912c8
 
 nodejs-10-linux64:
     description: nodejs 10 for x64 linux

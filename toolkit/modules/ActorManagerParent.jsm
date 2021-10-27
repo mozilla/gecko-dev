@@ -39,11 +39,21 @@ let JSPROCESSACTORS = {
       moduleURI: "resource://gre/modules/ContentPrefServiceChild.jsm",
     },
   },
+
   ExtensionContent: {
     child: {
       moduleURI: "resource://gre/modules/ExtensionContent.jsm",
     },
     includeParent: true,
+  },
+
+  ProcessConduits: {
+    parent: {
+      moduleURI: "resource://gre/modules/ConduitsParent.jsm",
+    },
+    child: {
+      moduleURI: "resource://gre/modules/ConduitsChild.jsm",
+    },
   },
 };
 
@@ -177,6 +187,21 @@ let JSWINDOWACTORS = {
     },
 
     allFrames: true,
+  },
+
+  ContentMeta: {
+    parent: {
+      moduleURI: "resource://gre/actors/ContentMetaParent.jsm",
+    },
+
+    child: {
+      moduleURI: "resource://gre/actors/ContentMetaChild.jsm",
+      events: {
+        DOMMetaAdded: {},
+      },
+    },
+
+    messageManagerGroups: ["browsers"],
   },
 
   Controllers: {

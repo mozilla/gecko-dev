@@ -44,6 +44,7 @@ enum class TracerKind {
   GrayBuffering,
   ClearEdges,
   Sweeping,
+  MinorSweeping,
   Barrier,
 
   // Callback tracers: General-purpose tracers that have a single virtual
@@ -505,29 +506,11 @@ extern JS_PUBLIC_API void UnsafeTraceManuallyBarrieredEdge(JSTracer* trc,
                                                            JSObject** edgep,
                                                            const char* name);
 
-// Not part of the public API, but declared here so we can use it in
-// GCPolicyAPI.h
-template <typename T>
-inline bool TraceManuallyBarrieredWeakEdge(JSTracer* trc, T* thingp,
-                                           const char* name);
-
-template <typename T>
-class WeakHeapPtr;
-
-template <typename T>
-inline bool TraceWeakEdge(JSTracer* trc, WeakHeapPtr<T>* thingp,
-                          const char* name);
-
 namespace gc {
 
 // Return true if the given edge is not live and is about to be swept.
 template <typename T>
-extern JS_PUBLIC_API bool EdgeNeedsSweep(JS::Heap<T>* edgep);
-
-// Not part of the public API, but declared here so we can use it in GCPolicy
-// which is.
-template <typename T>
-bool IsAboutToBeFinalizedUnbarriered(T* thingp);
+extern JS_PUBLIC_API bool TraceWeakEdge(JSTracer* trc, JS::Heap<T>* thingp);
 
 }  // namespace gc
 

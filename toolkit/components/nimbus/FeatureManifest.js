@@ -9,6 +9,23 @@ const EXPORTED_SYMBOLS = ["FeatureManifest"];
  * !! Don't forget to validate changes with ./mach test toolkit/components/nimbus/test/unit/test_FeatureManifest.js
  */
 const FeatureManifest = {
+  search: {
+    description: "The Search Services",
+    hasExposure: false,
+    variables: {
+      experiment: {
+        type: "string",
+        fallbackPref: "browser.search.experiment",
+        description:
+          "Used to activate only matching configurations that contain the value in `experiment`",
+      },
+      extraParams: {
+        type: "json",
+        description:
+          "Query parameters values for search engine configurations.",
+      },
+    },
+  },
   urlbar: {
     description: "The Address Bar",
     hasExposure: true,
@@ -177,6 +194,13 @@ const FeatureManifest = {
         fallbackPref:
           "browser.newtabpage.activity-stream.discoverystream.newFooterSection.enabled",
         description: "Enable an updated Pocket section topics footer",
+      },
+      saveToPocketCard: {
+        type: "boolean",
+        fallbackPref:
+          "browser.newtabpage.activity-stream.discoverystream.saveToPocketCard.enabled",
+        description:
+          "A save to Pocket button inside the card, shown on the card thumbnail, on hover.",
       },
     },
   },

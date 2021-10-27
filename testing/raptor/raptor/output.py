@@ -191,11 +191,29 @@ class PerftestOutput(object):
         if self.summarized_results == {}:
             success = False
             LOG.error(
-                "no summarized raptor results found for %s" % ", ".join(test_names)
+                "no summarized raptor results found for any of %s"
+                % ", ".join(test_names)
             )
         else:
             for suite in self.summarized_results["suites"]:
+                gecko_profiling_enabled = "gecko-profile" in suite.get(
+                    "extraOptions", []
+                )
+                if gecko_profiling_enabled:
+                    LOG.info("gecko profiling enabled")
+                    suite["shouldAlert"] = False
+
+                # as we do navigation, tname could end in .<alias>
+                # test_names doesn't have tname, so either add it to test_names,
+                # or strip it
                 tname = suite["name"]
+                parts = tname.split(".")
+                try:
+                    tname = ".".join(parts[:-1])
+                except Exception as e:
+                    LOG.info("no alias found on test, ignoring: %s" % e)
+                    pass
+
                 # Since test names might have been modified, check if
                 # part of the test name exists in the test_names list entries
                 found = False
@@ -205,7 +223,7 @@ class PerftestOutput(object):
                         break
                 if not found:
                     success = False
-                    LOG.error("no summarized raptor results found for %s" % tname)
+                    LOG.error("no summarized raptor results found for %s" % (tname))
 
             with open(results_path, "w") as f:
                 for result in self.summarized_results:
@@ -222,15 +240,9 @@ class PerftestOutput(object):
         if self.summarized_results == {}:
             return success, 0
 
-        # when gecko_profiling, we don't want results ingested by Perfherder
-        extra_opts = self.summarized_results["suites"][0].get("extraOptions", [])
         test_type = self.summarized_results["suites"][0].get("type", "")
-
         output_perf_data = True
         not_posting = "- not posting regular test results for perfherder"
-        if "gecko-profile" in extra_opts:
-            LOG.info("gecko profiling enabled %s" % not_posting)
-            output_perf_data = False
         if test_type == "scenario":
             # if a resource-usage flag was supplied the perfherder data
             # will still be output from output_supporting_data
@@ -1501,7 +1513,9 @@ class BrowsertimeOutput(PerftestOutput):
                     "name": test["name"],
                     "type": test["type"],
                     "extraOptions": extra_options,
-                    "tags": test.get("tags", extra_options),
+                    # There may be unique options in tags now, but we don't want to remove the
+                    # previous behaviour which includes the extra options in the tags.
+                    "tags": test.get("tags", []) + extra_options,
                     "lowerIsBetter": test["lower_is_better"],
                     "unit": test["unit"],
                     "alertThreshold": float(test["alert_threshold"]),

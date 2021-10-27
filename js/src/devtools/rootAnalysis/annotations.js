@@ -40,8 +40,8 @@ function indirectCallCannotGC(fullCaller, fullVariable)
 
     // This is usually a simple variable name, but sometimes a full name gets
     // passed through. And sometimes that name is truncated. Examples:
-    //   _ZL13gAbortHandler|mozalloc_oom.cpp:void (* gAbortHandler)(size_t)
-    //   _ZL14pMutexUnlockFn|umutex.cpp:void (* pMutexUnlockFn)(const void*
+    //   _ZL13gAbortHandler$mozalloc_oom.cpp:void (* gAbortHandler)(size_t)
+    //   _ZL14pMutexUnlockFn$umutex.cpp:void (* pMutexUnlockFn)(const void*
     var name = readable(fullVariable);
 
     if (name in ignoreIndirectCalls)
@@ -111,6 +111,7 @@ var ignoreCallees = {
     "struct js::gc::Callback<void (*)(JSContext*, void*)>.op" : true,
     "mozilla::ThreadSharedFloatArrayBufferList::Storage.mFree" : true,
     "mozilla::SizeOfState.mMallocSizeOf": true,
+    "mozilla::gfx::SourceSurfaceRawData.mDeallocator": true,
 };
 
 function fieldCallCannotGC(csu, fullfield)
@@ -174,12 +175,6 @@ function ignoreEdgeAddressTaken(edge)
     }
 
     return false;
-}
-
-// Return whether csu.method is one that we claim can never GC.
-function isSuppressedVirtualMethod(csu, method)
-{
-    return csu == "nsISupports" && (method == "AddRef" || method == "Release");
 }
 
 // Ignore calls of these functions (so ignore any stack containing these)
@@ -294,9 +289,14 @@ var ignoreFunctions = {
     // nsIEventTarget.IsOnCurrentThreadInfallible does not get resolved, and
     // this is called on non-JS threads so cannot use AutoSuppressGCAnalysis.
     "uint8 nsAutoOwningEventTarget::IsCurrentThread() const": true,
+
+    // ~JSStreamConsumer calls 2 ~RefCnt/~nsCOMPtr destructors for its fields,
+    // but the body of the destructor is written so that all Releases
+    // are proxied, and the members will all be empty at destruction time.
+    "void mozilla::dom::JSStreamConsumer::~JSStreamConsumer() [[base_dtor]]": true,
 };
 
-function extraGCFunctions() {
+function extraGCFunctions(readableNames) {
     return ["ffi_call"].filter(f => f in readableNames);
 }
 
@@ -323,7 +323,7 @@ function isICU(name)
            name.match(/u(prv_malloc|prv_realloc|prv_free|case_toFullLower)_\d+/)
 }
 
-function ignoreGCFunction(mangled)
+function ignoreGCFunction(mangled, readableNames)
 {
     // Field calls will not be in readableNames
     if (!(mangled in readableNames))
@@ -408,7 +408,7 @@ function isUnsafeStorage(typeName)
     return typeName.startsWith('UniquePtr<');
 }
 
-// If edgeType is a constructor type, return whatever limits it implies for its
+// If edgeType is a constructor type, return whatever bits it implies for its
 // scope (or zero if not matching).
 function isLimitConstructor(typeInfo, edgeType, varName)
 {
@@ -422,9 +422,9 @@ function isLimitConstructor(typeInfo, edgeType, varName)
 
     // Check whether the type is a known suppression type.
     var type = edgeType.TypeFunctionCSU.Type.Name;
-    let limit = 0;
+    let attrs = 0;
     if (type in typeInfo.GCSuppressors)
-        limit = limit | LIMIT_CANNOT_GC;
+        attrs = attrs | ATTR_GC_SUPPRESSED;
 
     // And now make sure this is the constructor, not some other method on a
     // suppression type. varName[0] contains the qualified name.
@@ -438,7 +438,7 @@ function isLimitConstructor(typeInfo, edgeType, varName)
     if (m[1] != type_stem)
         return 0;
 
-    return limit;
+    return attrs;
 }
 
 // nsISupports subclasses' methods may be scriptable (or overridden
@@ -446,8 +446,15 @@ function isLimitConstructor(typeInfo, edgeType, varName)
 // to get overridden with something that can GC.
 function isOverridableField(staticCSU, csu, field)
 {
+    // Special-case AddRef/Release for now. This isn't really true.
+    if (field == "AddRef" || field == "Release")
+        return false;
+
     if (csu != 'nsISupports')
         return false;
+
+    if (field.endsWith(" "))
+        return false; // gcc-synthesized virtual dtor
 
     // Now that binary XPCOM is dead, all these annotations should be replaced
     // with something based on bug 1347999.
@@ -468,6 +475,10 @@ function isOverridableField(staticCSU, csu, field)
     if (field == "DocAddSizeOfIncludingThis")
         return false;
     if (field == "ConstructUbiNode")
+        return false;
+    if (field == "isSystemOrAddonPrincipal")
+        return false;
+    if (field == "GetIsAddonOrExpandedAddonPrincipal")
         return false;
 
     // Fields on the [builtinclass] nsIPrincipal

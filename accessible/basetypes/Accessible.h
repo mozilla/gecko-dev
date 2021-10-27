@@ -9,6 +9,7 @@
 #include "mozilla/a11y/Role.h"
 #include "mozilla/a11y/AccTypes.h"
 #include "nsString.h"
+#include "nsRect.h"
 
 class nsAtom;
 
@@ -17,6 +18,7 @@ struct nsRoleMapEntry;
 namespace mozilla {
 namespace a11y {
 
+class HyperTextAccessibleBase;
 class LocalAccessible;
 class RemoteAccessible;
 
@@ -108,6 +110,11 @@ class Accessible {
    */
   bool HasGenericType(AccGenericType aType) const;
 
+  /**
+   * Return embedded accessible child at the given index.
+   */
+  virtual Accessible* EmbeddedChildAt(uint32_t aIndex) = 0;
+
   // Methods that potentially access a cache.
 
   /*
@@ -124,6 +131,21 @@ class Accessible {
   virtual double MinValue() const = 0;
   virtual double MaxValue() const = 0;
   virtual double Step() const = 0;
+
+  virtual nsIntRect Bounds() const = 0;
+
+  /**
+   * Returns text of accessible if accessible has text role otherwise empty
+   * string.
+   *
+   * @param aText         [in] returned text of the accessible
+   * @param aStartOffset  [in, optional] start offset inside of the accessible,
+   *                        if missed entire text is appended
+   * @param aLength       [in, optional] required length of text, if missed
+   *                        then text from start offset till the end is appended
+   */
+  virtual void AppendTextTo(nsAString& aText, uint32_t aStartOffset = 0,
+                            uint32_t aLength = UINT32_MAX) = 0;
 
   // Type "is" methods
 
@@ -157,8 +179,6 @@ class Accessible {
   bool IsApplication() const { return mType == eApplicationType; }
 
   bool IsAlert() const { return HasGenericType(eAlert); }
-
-  bool IsAutoComplete() const { return HasGenericType(eAutoComplete); }
 
   bool IsButton() const { return HasGenericType(eButton); }
 
@@ -237,6 +257,8 @@ class Accessible {
 
   bool IsLocal() { return !IsRemote(); }
   LocalAccessible* AsLocal();
+
+  virtual HyperTextAccessibleBase* AsHyperTextBase() { return nullptr; }
 
  private:
   static const uint8_t kTypeBits = 6;

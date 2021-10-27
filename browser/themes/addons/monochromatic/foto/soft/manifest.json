@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "applications": {
     "gecko": {
-      "id": "firefox-foto-soft@mozilla.org"
+      "id": "foto-soft-colorway@mozilla.org"
     }
   },
   "name": "Foto – Soft",
@@ -16,7 +16,7 @@
       "tab_background_text": "hsl(351, 32%, 8%)",
       "tab_text": "hsl(351, 32%, 8%)",
       "tab_selected": "hsl(0, 0%, 100%)",
-      "tab_line": "hsl(0, 0%, 0%)",
+      "tab_line": "transparent",
       "tab_loading": "hsl(351, 32%, 42%)",
       "tab_loading_inactive": "hsl(351, 32%, 42%)",
       "frame": "hsl(352, 56%, 84%)",
@@ -25,12 +25,14 @@
       "popup_border": "hsl(350, 61%, 88%)",
       "popup_highlight": "hsla(351, 52%, 82%, 0.5)",
       "popup_highlight_text": "hsl(351, 32%, 8%)",
-      "toolbar": "hsl(350, 46%, 87%)",
+      "toolbar": "hsl(351, 47%, 89%)",
       "toolbar_text": "hsl(351, 32%, 8%)",
       "toolbar_field": "hsl(352, 56%, 84%)",
       "toolbar_field_text": "hsl(351, 32%, 8%)",
       "toolbar_field_focus": "hsl(0, 0%, 100%)",
-      "toolbar_field_border_focus": "hsl(350, 61%, 88%)",
+      "toolbar_field_border_focus": "rgba(0, 96, 223, 0.5)",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": "hsl(352, 56%, 84%)",
       "ntp_background": "hsl(354, 33%, 94%)",
       "ntp_card_background": "hsl(0, 0%, 100%)",
       "ntp_text": "hsl(351, 32%, 8%)",
@@ -40,7 +42,7 @@
       "address_bar_box": "hsl(0, 0%, 100%)",
       "address_bar_box_hover": "hsla(0, 0%, 100%, 0.8)",
       "address_bar_box_active": "hsla(0, 0%, 100%, 0.65)",
-      "address_bar_box_focus": "hsl(350, 46%, 87%)",
+      "address_bar_box_focus": "hsl(351, 47%, 89%)",
       "address_bar_box_text": "hsl(351, 32%, 8%)",
       "address_bar_url_color": "hsl(351, 37%, 40%)",
       "panel_item_hover": "hsla(351, 52%, 82%, 0.5)",

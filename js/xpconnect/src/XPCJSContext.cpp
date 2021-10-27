@@ -588,7 +588,7 @@ bool XPCJSContext::InterruptCallback(JSContext* cx) {
   // Now is a good time to turn on profiling if it's pending.
   PROFILER_JS_INTERRUPT_CALLBACK();
 
-  if (profiler_can_accept_markers()) {
+  if (profiler_thread_is_being_profiled()) {
     nsDependentCString filename("unknown file");
     JS::AutoFilename scriptFilename;
     // Computing the line number can be very expensive (see bug 1330231 for
@@ -793,7 +793,8 @@ void xpc::SetPrefableRealmOptions(JS::RealmOptions& options) {
       .setCoopAndCoepEnabled(
           StaticPrefs::browser_tabs_remote_useCrossOriginOpenerPolicy() &&
           StaticPrefs::browser_tabs_remote_useCrossOriginEmbedderPolicy())
-      .setStreamsEnabled(sStreamsEnabled)
+      .setStreamsEnabled(
+          sStreamsEnabled)  // Note: Overridden by MOZ_DOM_STREAMS
       .setWritableStreamsEnabled(
           StaticPrefs::javascript_options_writable_streams())
       .setPropertyErrorMessageFixEnabled(sPropertyErrorMessageFixEnabled)
@@ -988,6 +989,10 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
 
   bool ergnomicBrandChecksEnabled = Preferences::GetBool(
       JS_OPTIONS_DOT_STR "experimental.ergonomic_brand_checks");
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+  bool enableChangeArrayByCopy = Preferences::GetBool(
+      JS_OPTIONS_DOT_STR "experimental.enable_change_array_by_copy");
+#endif
 
   bool classStaticBlocksEnabled = Preferences::GetBool(
       JS_OPTIONS_DOT_STR "experimental.class_static_blocks");
@@ -1041,6 +1046,9 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
       .setPrivateClassFields(privateFieldsEnabled)
       .setPrivateClassMethods(privateMethodsEnabled)
       .setClassStaticBlocks(classStaticBlocksEnabled)
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+      .setChangeArrayByCopy(enableChangeArrayByCopy)
+#endif
       .setErgnomicBrandChecks(ergnomicBrandChecksEnabled);
 
   JS::SetUseFdlibmForSinCosTan(

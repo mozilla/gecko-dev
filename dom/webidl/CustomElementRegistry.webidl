@@ -24,3 +24,33 @@ callback constructor CustomElementConstructor = any ();
 
 [MOZ_CAN_RUN_SCRIPT_BOUNDARY]
 callback CustomElementCreationCallback = void (DOMString name);
+
+[MOZ_CAN_RUN_SCRIPT_BOUNDARY]
+callback LifecycleConnectedCallback = void();
+[MOZ_CAN_RUN_SCRIPT_BOUNDARY]
+callback LifecycleDisconnectedCallback = void();
+[MOZ_CAN_RUN_SCRIPT_BOUNDARY]
+callback LifecycleAdoptedCallback = void(Document? oldDocument,
+                                         Document? newDocment);
+[MOZ_CAN_RUN_SCRIPT_BOUNDARY]
+callback LifecycleAttributeChangedCallback = void(DOMString attrName,
+                                                  DOMString? oldValue,
+                                                  DOMString? newValue,
+                                                  DOMString? namespaceURI);
+[MOZ_CAN_RUN_SCRIPT_BOUNDARY]
+callback LifecycleFormResetCallback = void();
+[MOZ_CAN_RUN_SCRIPT_BOUNDARY]
+callback LifecycleFormDisabledCallback = void(boolean disabled);
+[MOZ_CAN_RUN_SCRIPT_BOUNDARY]
+callback LifecycleGetCustomInterfaceCallback = object?(any iid);
+
+[GenerateInit]
+dictionary LifecycleCallbacks {
+  LifecycleConnectedCallback connectedCallback;
+  LifecycleDisconnectedCallback disconnectedCallback;
+  LifecycleAdoptedCallback adoptedCallback;
+  LifecycleAttributeChangedCallback attributeChangedCallback;
+  LifecycleFormResetCallback formResetCallback;
+  LifecycleFormDisabledCallback formDisabledCallback;
+  [ChromeOnly] LifecycleGetCustomInterfaceCallback getCustomInterfaceCallback;
+};

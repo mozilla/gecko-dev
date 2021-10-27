@@ -279,32 +279,52 @@ using GlobalDescVector = Vector<GlobalDesc, 0, SystemAllocPolicy>;
 // A TagDesc represents fresh per-instance tags that are used for the
 // exception handling proposal and potentially other future proposals.
 
-#ifdef ENABLE_WASM_EXCEPTIONS
 // The TagOffsetVector represents the offsets in the layout of the
 // data stored in a Wasm exception. For non-reference values, it is
 // an offset in the ArrayBuffer and for reference values it is the
 // offset in the elements of the exception's ArrayObject.
 using TagOffsetVector = Vector<int32_t, 0, SystemAllocPolicy>;
 
-struct TagDesc {
-  TagKind kind;
+// Not guarded by #ifdef like TagDesc as this is required for Wasm JS
+// API classes in WasmJS.h.
+struct TagType {
   ValTypeVector argTypes;
   TagOffsetVector argOffsets;
   int32_t bufferSize;
   int32_t refCount;
-  bool isExport;
 
-  TagDesc(TagKind kind, ValTypeVector&& argTypes, TagOffsetVector&& argOffsets,
-          bool isExport = false)
-      : kind(kind),
-        argTypes(std::move(argTypes)),
+  TagType() : argTypes(), argOffsets(), bufferSize(0), refCount(0) {}
+  TagType(ValTypeVector&& argTypes, TagOffsetVector&& argOffsets)
+      : argTypes(std::move(argTypes)),
         argOffsets(std::move(argOffsets)),
         bufferSize(0),
-        refCount(0),
-        isExport(isExport) {}
+        refCount(0) {}
 
   [[nodiscard]] bool computeLayout();
-  ResultType resultType() const { return ResultType::Vector(argTypes); }
+
+  [[nodiscard]] bool clone(const TagType& src) {
+    MOZ_ASSERT(argTypes.empty());
+    MOZ_ASSERT(argOffsets.empty());
+    if (!argTypes.appendAll(src.argTypes) ||
+        !argOffsets.appendAll(src.argOffsets)) {
+      return false;
+    }
+    bufferSize = src.bufferSize;
+    refCount = src.refCount;
+    return true;
+  }
+};
+
+#ifdef ENABLE_WASM_EXCEPTIONS
+struct TagDesc {
+  TagKind kind;
+  TagType type;
+  bool isExport;
+
+  TagDesc(TagKind kind, TagType&& type, bool isExport = false)
+      : kind(kind), type(std::move(type)), isExport(isExport) {}
+
+  ResultType resultType() const { return ResultType::Vector(type.argTypes); }
 };
 
 using TagDescVector = Vector<TagDesc, 0, SystemAllocPolicy>;
@@ -494,6 +514,11 @@ struct MemoryDesc {
   uint64_t initialLength32() const {
     MOZ_ASSERT(indexType() == IndexType::I32);
     // See static_assert after MemoryDesc for why this is safe.
+    return limits.initial * PageSize;
+  }
+
+  uint64_t initialLength64() const {
+    MOZ_ASSERT(indexType() == IndexType::I64);
     return limits.initial * PageSize;
   }
 

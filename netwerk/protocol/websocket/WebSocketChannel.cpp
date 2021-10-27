@@ -60,6 +60,8 @@
 #include "nsSocketTransportService2.h"
 #include "nsINSSErrorsService.h"
 #include "WebSocketConnectionBase.h"
+#include "nsIURIMutator.h"
+#include "nsITransportProvider.h"
 
 #include "plbase64.h"
 #include "prmem.h"
@@ -1195,7 +1197,6 @@ WebSocketChannel::~WebSocketChannel() {
   mListenerMT = nullptr;
 
   NS_ReleaseOnMainThread("WebSocketChannel::mLoadGroup", mLoadGroup.forget());
-  NS_ReleaseOnMainThread("WebSocketChannel::mLoadInfo", mLoadInfo.forget());
   NS_ReleaseOnMainThread("WebSocketChannel::mTargetThread",
                          mTargetThread.forget());
   NS_ReleaseOnMainThread("WebSocketChannel::mService", mService.forget());

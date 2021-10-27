@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "applications": {
     "gecko": {
-      "id": "firefox-elemental-balanced@mozilla.org"
+      "id": "elemental-balanced-colorway@mozilla.org"
     }
   },
   "name": "Elemental – Balanced",
@@ -16,7 +16,7 @@
       "tab_background_text": "hsl(0, 0%, 100%)",
       "tab_text": "hsl(0, 0%, 0%)",
       "tab_selected": "hsl(40, 7%, 92%)",
-      "tab_line": "hsl(0, 0%, 0%)",
+      "tab_line": "transparent",
       "tab_loading": "hsl(40, 7%, 18%)",
       "tab_loading_inactive": "hsl(40, 8%, 85%)",
       "frame": "hsl(38, 7%, 30%)",
@@ -30,8 +30,10 @@
       "toolbar_field": "hsl(40, 7%, 92%)",
       "toolbar_field_text": "hsl(0, 0%, 0%)",
       "toolbar_field_focus": "hsl(0, 0%, 100%)",
-      "toolbar_field_border_focus": "hsl(43, 7%, 60%)",
-      "ntp_background": "hsl(40, 7%, 18%)",
+      "toolbar_field_border_focus": "rgba(0, 179, 244, 1)",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": "hsl(38, 7%, 30%)",
+      "ntp_background": "hsl(42, 8%, 78%)",
       "ntp_card_background": "hsl(0, 0%, 100%)",
       "ntp_text": "hsl(0, 0%, 0%)",
       "sidebar": "hsl(0, 0%, 100%)",

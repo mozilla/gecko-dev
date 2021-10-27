@@ -65,6 +65,7 @@ treeherder:
         'M-f-spi-nw-1proc': 'Mochitest failures with networking on socket process without e10s'
         'M-f-swr': 'Mochitests failures with software webrender enabled'
         'M-f-swr-1proc': 'Mochitests failures with software webrender enabled without e10s'
+        'M-f-wayland': 'Mochitests failures with Wayland backend enabled'
         'MSI': 'Repack installers into MSIs'
         'MSIs': 'Signing of Repacked installers of MSIs'
         'MSIX': 'Repack into MSIX package'
@@ -122,6 +123,7 @@ treeherder:
         'Ub18': 'Packages for Ubuntu 18.04'
         'Ub20': 'Packages for Ubuntu 20.04'
         'I': 'Docker Image Builds'
+        'TA': 'Toolchain builds for Android'
         'TL': 'Toolchain builds for Linux 64-bits'
         'TL32': 'Toolchain builds for Linux 32-bits'
         'TM': 'Toolchain builds for OSX'
@@ -377,7 +379,7 @@ merge-automation:
             to-branch: 'esr91'
 
 scriptworker:
-    # See additional configuration in taskcluster/taskgraph/util/scriptworker.py
+    # See additional configuration in taskcluster/gecko_taskgraph/util/scriptworker.py
     scope-prefix: 'project:releng'
 
 partner-urls:
@@ -586,7 +588,7 @@ workers:
             implementation: generic-worker
             os: windows
             worker-type: 'gecko-{alias}'
-        win10-64-2004(|-gpu):
+        win10-64-2004(|-gpu|-ssd):
             provisioner: 'gecko-t'
             implementation: generic-worker
             os: windows

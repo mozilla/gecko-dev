@@ -5,7 +5,9 @@
 
 set -vex
 
-export UPDATEBOT_REVISION=30d36e01ad37caa3870fc3e92fd491ba6b751114
+. ./updatebot-version.sh # Get UPDATEBOT_REVISION
+
+# If you edit this, be sure to edit fetch/updatebot.yml
 export SQLPROXY_REVISION=fb1939ab92846761595833361c6b0b0ecd543861
 
 export DEBIAN_FRONTEND=noninteractive
@@ -51,7 +53,7 @@ go get github.com/GoogleCloudPlatform/cloudsql-proxy/cmd/cloud_sql_proxy@$SQLPRO
 cd /builds/worker/
 git clone https://github.com/mozilla-services/updatebot.git
 cd updatebot
-git checkout $UPDATEBOT_REVISION
+git checkout "$UPDATEBOT_REVISION"
 
 # Set up dependencies
 cd /builds/worker/

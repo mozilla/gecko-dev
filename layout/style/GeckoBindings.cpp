@@ -56,6 +56,7 @@
 #include "mozilla/StaticPresData.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/RestyleManager.h"
 #include "mozilla/SizeOfState.h"
 #include "mozilla/StyleAnimationValue.h"
@@ -87,7 +88,7 @@ using namespace mozilla::dom;
 bool ServoTraversalStatistics::sActive = false;
 ServoTraversalStatistics ServoTraversalStatistics::sSingleton;
 
-static RWLock* sServoFFILock = nullptr;
+static StaticAutoPtr<RWLock> sServoFFILock;
 
 static const nsFont* ThreadSafeGetDefaultFontHelper(
     const Document& aDocument, nsAtom* aLanguage,
@@ -687,21 +688,10 @@ bool Gecko_IsDocumentBody(const Element* aElement) {
 }
 
 nscolor Gecko_GetLookAndFeelSystemColor(int32_t aId, const Document* aDoc,
-                                        StyleSystemColorScheme aColorScheme,
                                         const StyleColorScheme* aStyle) {
   auto colorId = static_cast<LookAndFeel::ColorID>(aId);
   auto useStandins = LookAndFeel::ShouldUseStandins(*aDoc, colorId);
-  auto colorScheme = [&] {
-    switch (aColorScheme) {
-      case StyleSystemColorScheme::Default:
-        break;
-      case StyleSystemColorScheme::Light:
-        return LookAndFeel::ColorScheme::Light;
-      case StyleSystemColorScheme::Dark:
-        return LookAndFeel::ColorScheme::Dark;
-    }
-    return LookAndFeel::ColorSchemeForStyle(*aDoc, aStyle->bits);
-  }();
+  auto colorScheme = LookAndFeel::ColorSchemeForStyle(*aDoc, aStyle->bits);
 
   AutoWriteLock guard(*sServoFFILock);
   return LookAndFeel::Color(colorId, colorScheme, useStandins);
@@ -711,6 +701,12 @@ int32_t Gecko_GetLookAndFeelInt(int32_t aId) {
   auto intId = static_cast<LookAndFeel::IntID>(aId);
   AutoWriteLock guard(*sServoFFILock);
   return LookAndFeel::GetInt(intId);
+}
+
+float Gecko_GetLookAndFeelFloat(int32_t aId) {
+  auto id = static_cast<LookAndFeel::FloatID>(aId);
+  AutoWriteLock guard(*sServoFFILock);
+  return LookAndFeel::GetFloat(id);
 }
 
 bool Gecko_MatchLang(const Element* aElement, nsAtom* aOverrideLang,
@@ -816,10 +812,10 @@ static bool DoMatch(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
   if (MOZ_LIKELY(aNS)) {
     int32_t ns = aNS == nsGkAtoms::_empty
                      ? kNameSpaceID_None
-                     : nsContentUtils::NameSpaceManager()->GetNameSpaceID(
+                     : nsNameSpaceManager::GetInstance()->GetNameSpaceID(
                            aNS, aElement->IsInChromeDocument());
 
-    MOZ_ASSERT(ns == nsContentUtils::NameSpaceManager()->GetNameSpaceID(
+    MOZ_ASSERT(ns == nsNameSpaceManager::GetInstance()->GetNameSpaceID(
                          aNS, aElement->IsInChromeDocument()));
     NS_ENSURE_TRUE(ns != kNameSpaceID_Unknown, false);
     const nsAttrValue* value = aElement->GetParsedAttr(aName, ns);
@@ -1388,7 +1384,6 @@ void ShutdownServo() {
   UnregisterWeakMemoryReporter(gUACacheReporter);
   gUACacheReporter = nullptr;
 
-  delete sServoFFILock;
   sServoFFILock = nullptr;
   Servo_Shutdown();
 
@@ -1452,8 +1447,7 @@ void Gecko_StyleSheet_FinishAsyncParse(
                  counters = std::move(useCounters)]() mutable {
         MOZ_ASSERT(NS_IsMainThread());
         SheetLoadData* data = d->get();
-        data->mUseCounters = std::move(counters);
-        data->mSheet->FinishAsyncParse(contents.forget());
+        data->mSheet->FinishAsyncParse(contents.forget(), std::move(counters));
       }));
 }
 

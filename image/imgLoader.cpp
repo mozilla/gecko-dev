@@ -399,6 +399,39 @@ class imgMemoryReporter final : public nsIMemoryReporter {
                                     /* aRadix = */ 16);
       }
 
+      if (counter.Key().Region()) {
+        const ImageIntRegion& region = counter.Key().Region().ref();
+        const gfx::IntRect& rect = region.Rect();
+        surfacePathPrefix.AppendLiteral(", region:[ rect=(");
+        surfacePathPrefix.AppendInt(rect.x);
+        surfacePathPrefix.AppendLiteral(",");
+        surfacePathPrefix.AppendInt(rect.y);
+        surfacePathPrefix.AppendLiteral(") ");
+        surfacePathPrefix.AppendInt(rect.width);
+        surfacePathPrefix.AppendLiteral("x");
+        surfacePathPrefix.AppendInt(rect.height);
+        if (region.IsRestricted()) {
+          const gfx::IntRect& restrict = region.Restriction();
+          if (restrict == rect) {
+            surfacePathPrefix.AppendLiteral(", restrict=rect");
+          } else {
+            surfacePathPrefix.AppendLiteral(", restrict=(");
+            surfacePathPrefix.AppendInt(restrict.x);
+            surfacePathPrefix.AppendLiteral(",");
+            surfacePathPrefix.AppendInt(restrict.y);
+            surfacePathPrefix.AppendLiteral(") ");
+            surfacePathPrefix.AppendInt(restrict.width);
+            surfacePathPrefix.AppendLiteral("x");
+            surfacePathPrefix.AppendInt(restrict.height);
+          }
+        }
+        if (region.GetExtendMode() != gfx::ExtendMode::CLAMP) {
+          surfacePathPrefix.AppendLiteral(", extendMode=");
+          surfacePathPrefix.AppendInt(int32_t(region.GetExtendMode()));
+        }
+        surfacePathPrefix.AppendLiteral("]");
+      }
+
       if (counter.Key().SVGContext()) {
         const SVGImageContext& context = counter.Key().SVGContext().ref();
         surfacePathPrefix.AppendLiteral(", svgContext:[ ");
@@ -1869,6 +1902,35 @@ bool imgLoader::ValidateRequestWithNewChannel(
   return true;
 }
 
+void imgLoader::NotifyObserversForCachedImage(
+    imgCacheEntry* aEntry, imgRequest* request, nsIURI* aURI,
+    nsIReferrerInfo* aReferrerInfo, Document* aLoadingDocument,
+    nsIPrincipal* aTriggeringPrincipal, CORSMode aCORSMode) {
+  nsCOMPtr<nsIChannel> newChannel;
+  bool forcePrincipalCheck;
+  nsresult rv =
+      NewImageChannel(getter_AddRefs(newChannel), &forcePrincipalCheck, aURI,
+                      nullptr, aCORSMode, aReferrerInfo, nullptr, 0,
+                      nsIContentPolicy::TYPE_INTERNAL_IMAGE,
+                      aTriggeringPrincipal, aLoadingDocument, mRespectPrivacy);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  RefPtr<HttpBaseChannel> httpBaseChannel = do_QueryObject(newChannel);
+  if (httpBaseChannel) {
+    httpBaseChannel->SetDummyChannelForImageCache();
+    newChannel->SetContentType(nsDependentCString(request->GetMimeType()));
+    RefPtr<mozilla::image::Image> image = request->GetImage();
+    if (image) {
+      newChannel->SetContentLength(aEntry->GetDataSize());
+    }
+    nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+    obsService->NotifyObservers(newChannel, "http-on-image-cache-response",
+                                nullptr);
+  }
+}
+
 bool imgLoader::ValidateEntry(
     imgCacheEntry* aEntry, nsIURI* aURI, nsIURI* aInitialDocumentURI,
     nsIReferrerInfo* aReferrerInfo, nsILoadGroup* aLoadGroup,
@@ -2015,6 +2077,12 @@ bool imgLoader::ValidateEntry(
         aObserver, aLoadingDocument, innerWindowID, aLoadFlags, aLoadPolicyType,
         aProxyRequest, aTriggeringPrincipal, aCORSMode, aLinkPreload,
         aNewChannelCreated);
+  }
+
+  if (!validateRequest) {
+    NotifyObserversForCachedImage(aEntry, request, aURI, aReferrerInfo,
+                                  aLoadingDocument, aTriggeringPrincipal,
+                                  aCORSMode);
   }
 
   return !validateRequest;

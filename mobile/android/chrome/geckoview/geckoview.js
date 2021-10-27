@@ -516,12 +516,6 @@ function startup() {
   const browser = createBrowser();
   ModuleManager.init(browser, [
     {
-      name: "ExtensionContent",
-      onInit: {
-        frameScript: "chrome://geckoview/content/extension-content.js",
-      },
-    },
-    {
       name: "GeckoViewContent",
       onInit: {
         resource: "resource://gre/modules/GeckoViewContent.jsm",
@@ -778,6 +772,13 @@ function startup() {
       // Initialize safe browsing module. This is required for content
       // blocking features and manages blocklist downloads and updates.
       SafeBrowsing.init();
+    });
+
+    InitLater(() => {
+      // It's enough to run this once to set up FOG.
+      // (See also bug 1730026.)
+      const FOG = Cc["@mozilla.org/toolkit/glean;1"].createInstance(Ci.nsIFOG);
+      FOG.registerCustomPings();
     });
 
     // This should always go last, since the idle tasks (except for the ones with

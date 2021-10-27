@@ -77,8 +77,6 @@ add_task(async () => {
       ["apz.popups.enabled", true],
       ["apz.wr.activate_all_scroll_frames", false],
       ["apz.wr.activate_all_scroll_frames_when_fission", false],
-      ["apz.nonwr.activate_all_scroll_frames", false],
-      ["apz.nonwr.activate_all_scroll_frames_when_fission", false],
     ],
   });
 
@@ -91,7 +89,7 @@ add_task(async () => {
 
   // Flush APZ repaints and waits for MozAfterPaint to make sure APZ state is
   // stable.
-  await flushApzRepaintsInPopup(browserForPopup);
+  await promiseApzFlushedRepaintsInPopup(browserForPopup);
 
   // A Promise to wait for one scroll event for each scrollable element.
   const scrollEventsPromise = SpecialPowers.spawn(browserForPopup, [], () => {
@@ -118,7 +116,7 @@ add_task(async () => {
 
   // Flush APZ repaints and waits for MozAfterPaint to make sure the scroll has
   // been reflected on the main thread.
-  const apzPromise = flushApzRepaintsInPopup(browserForPopup);
+  const apzPromise = promiseApzFlushedRepaintsInPopup(browserForPopup);
 
   await Promise.all([apzPromise, scrollEventsPromise]);
 

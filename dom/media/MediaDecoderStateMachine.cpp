@@ -35,6 +35,7 @@
 #include "MediaShutdownManager.h"
 #include "MediaTrackGraph.h"
 #include "MediaTimer.h"
+#include "PerformanceRecorder.h"
 #include "ReaderProxy.h"
 #include "TimeUnits.h"
 #include "VideoSegment.h"
@@ -193,7 +194,7 @@ class MediaDecoderStateMachine::StateObject {
   virtual void HandleAudioDecoded(AudioData* aAudio) {
     Crash("Unexpected event!", __func__);
   }
-  virtual void HandleVideoDecoded(VideoData* aVideo, TimeStamp aDecodeStart) {
+  virtual void HandleVideoDecoded(VideoData* aVideo) {
     Crash("Unexpected event!", __func__);
   }
   virtual void HandleAudioWaited(MediaData::Type aType) {
@@ -434,9 +435,7 @@ class MediaDecoderStateMachine::DormantState
   void HandlePlayStateChanged(MediaDecoder::PlayState aPlayState) override;
 
   void HandleAudioDecoded(AudioData*) override { MaybeReleaseResources(); }
-  void HandleVideoDecoded(VideoData*, TimeStamp) override {
-    MaybeReleaseResources();
-  }
+  void HandleVideoDecoded(VideoData*) override { MaybeReleaseResources(); }
   void HandleWaitingForAudio() override { MaybeReleaseResources(); }
   void HandleWaitingForVideo() override { MaybeReleaseResources(); }
   void HandleAudioCanceled() override { MaybeReleaseResources(); }
@@ -486,7 +485,7 @@ class MediaDecoderStateMachine::DecodingFirstFrameState
     MaybeFinishDecodeFirstFrame();
   }
 
-  void HandleVideoDecoded(VideoData* aVideo, TimeStamp aDecodeStart) override {
+  void HandleVideoDecoded(VideoData* aVideo) override {
     mMaster->PushVideo(aVideo);
     MaybeFinishDecodeFirstFrame();
   }
@@ -591,14 +590,16 @@ class MediaDecoderStateMachine::DecodingState
     MaybeStopPrerolling();
   }
 
-  void HandleVideoDecoded(VideoData* aVideo, TimeStamp aDecodeStart) override {
+  void HandleVideoDecoded(VideoData* aVideo) override {
     const auto currentTime = mMaster->GetMediaTime();
     if (aVideo->GetEndTime() < currentTime) {
-      SLOG("video %" PRId64 " is too late (current=%" PRId64 ")",
-           aVideo->GetEndTime().ToMicroseconds(), currentTime.ToMicroseconds());
-      mRequestNextVideoKeyFrame = true;
+      if (!mVideoFirstLateTime) {
+        mVideoFirstLateTime = Some(TimeStamp::Now());
+      }
+      SLOG("video %" PRId64 " starts being late (current=%" PRId64 ")",
+           aVideo->mTime.ToMicroseconds(), currentTime.ToMicroseconds());
     } else {
-      mRequestNextVideoKeyFrame = false;
+      mVideoFirstLateTime.reset();
     }
     mMaster->PushVideo(aVideo);
     DispatchDecodeTasksIfNeeded();
@@ -609,7 +610,7 @@ class MediaDecoderStateMachine::DecodingState
 
   void HandleVideoCanceled() override {
     mMaster->RequestVideoData(mMaster->GetMediaTime(),
-                              mRequestNextVideoKeyFrame);
+                              ShouldRequestNextKeyFrame());
   }
 
   void HandleEndOfAudio() override;
@@ -631,7 +632,7 @@ class MediaDecoderStateMachine::DecodingState
 
   void HandleVideoWaited(MediaData::Type aType) override {
     mMaster->RequestVideoData(mMaster->GetMediaTime(),
-                              mRequestNextVideoKeyFrame);
+                              ShouldRequestNextKeyFrame());
   }
 
   void HandleAudioCaptured() override {
@@ -661,6 +662,7 @@ class MediaDecoderStateMachine::DecodingState
 
     if (aPlayState == MediaDecoder::PLAY_STATE_PAUSED) {
       StartDormantTimer();
+      mVideoFirstLateTime.reset();
     } else {
       mDormantTimer.Reset();
     }
@@ -759,6 +761,23 @@ class MediaDecoderStateMachine::DecodingState
         [this]() { mDormantTimer.CompleteRequest(); });
   }
 
+  bool ShouldRequestNextKeyFrame() const {
+    if (!mVideoFirstLateTime) {
+      return false;
+    }
+    const double elapsedTimeMs =
+        (TimeStamp::Now() - *mVideoFirstLateTime).ToMilliseconds();
+    const bool rv = elapsedTimeMs >=
+                    StaticPrefs::media_decoder_skip_when_video_too_slow_ms();
+    if (rv) {
+      SLOG(
+          "video has been late behind media time for %f ms, should skip to "
+          "next key frame",
+          elapsedTimeMs);
+    }
+    return rv;
+  }
+
   // Time at which we started decoding.
   TimeStamp mDecodeStartTime;
 
@@ -777,10 +796,10 @@ class MediaDecoderStateMachine::DecodingState
   MediaEventListener mOnAudioPopped;
   MediaEventListener mOnVideoPopped;
 
-  // It will be set to true if the received decoded video frame is already late
-  // comparing to the current time. So we will want to directly request the next
-  // keyframe in order to catch up with the playback time.
-  bool mRequestNextVideoKeyFrame = false;
+  // If video has been later than the media time, this will records when the
+  // video started being late. It will be reset once video catches up with the
+  // media time.
+  Maybe<TimeStamp> mVideoFirstLateTime;
 };
 
 /**
@@ -1057,8 +1076,7 @@ class MediaDecoderStateMachine::SeekingState
   State GetState() const override = 0;
 
   void HandleAudioDecoded(AudioData* aAudio) override = 0;
-  void HandleVideoDecoded(VideoData* aVideo,
-                          TimeStamp aDecodeStart) override = 0;
+  void HandleVideoDecoded(VideoData* aVideo) override = 0;
   void HandleAudioWaited(MediaData::Type aType) override = 0;
   void HandleVideoWaited(MediaData::Type aType) override = 0;
 
@@ -1146,7 +1164,7 @@ class MediaDecoderStateMachine::AccurateSeekingState
     MaybeFinishSeek();
   }
 
-  void HandleVideoDecoded(VideoData* aVideo, TimeStamp aDecodeStart) override {
+  void HandleVideoDecoded(VideoData* aVideo) override {
     MOZ_ASSERT(!mDoneAudioSeeking || !mDoneVideoSeeking,
                "Seek shouldn't be finished");
     MOZ_ASSERT(aVideo);
@@ -1543,7 +1561,7 @@ class MediaDecoderStateMachine::NextFrameSeekingState
     mMaster->PushAudio(aAudio);
   }
 
-  void HandleVideoDecoded(VideoData* aVideo, TimeStamp aDecodeStart) override {
+  void HandleVideoDecoded(VideoData* aVideo) override {
     MOZ_ASSERT(aVideo);
     MOZ_ASSERT(!mSeekJob.mPromise.IsEmpty(), "Seek shouldn't be finished");
     MOZ_ASSERT(NeedMoreVideo());
@@ -1930,7 +1948,7 @@ class MediaDecoderStateMachine::BufferingState
     mMaster->ScheduleStateMachine();
   }
 
-  void HandleVideoDecoded(VideoData* aVideo, TimeStamp aDecodeStart) override {
+  void HandleVideoDecoded(VideoData* aVideo) override {
     mMaster->PushVideo(aVideo);
     if (!mMaster->HaveEnoughDecodedVideo()) {
       mMaster->RequestVideoData(media::TimeUnit());
@@ -2479,7 +2497,8 @@ void MediaDecoderStateMachine::DecodingState::EnsureVideoDecodeTaskQueued() {
       mMaster->IsWaitingVideoData()) {
     return;
   }
-  mMaster->RequestVideoData(mMaster->GetMediaTime(), mRequestNextVideoKeyFrame);
+  mMaster->RequestVideoData(mMaster->GetMediaTime(),
+                            ShouldRequestNextKeyFrame());
 }
 
 void MediaDecoderStateMachine::DecodingState::MaybeStartBuffering() {
@@ -3274,11 +3293,15 @@ void MediaDecoderStateMachine::RequestAudioData() {
   LOGV("Queueing audio task - queued=%zu, decoder-queued=%zu",
        AudioQueue().GetSize(), mReader->SizeOfAudioQueueInFrames());
 
+  PerformanceRecorder perfRecorder(PerformanceRecorder::Stage::RequestData);
+  perfRecorder.Start();
   RefPtr<MediaDecoderStateMachine> self = this;
   mReader->RequestAudioData()
       ->Then(
           OwnerThread(), __func__,
-          [this, self](RefPtr<AudioData> aAudio) {
+          [this, self, perfRecorder(std::move(perfRecorder))](
+              RefPtr<AudioData> aAudio) mutable {
+            perfRecorder.End();
             AUTO_PROFILER_LABEL(
                 "MediaDecoderStateMachine::RequestAudioData:Resolved",
                 MEDIA_PLAYBACK);
@@ -3331,12 +3354,16 @@ void MediaDecoderStateMachine::RequestVideoData(
       VideoQueue().GetSize(), mReader->SizeOfVideoQueueInFrames(),
       aCurrentTime.ToMicroseconds());
 
-  TimeStamp videoDecodeStartTime = TimeStamp::Now();
+  PerformanceRecorder perfRecorder(PerformanceRecorder::Stage::RequestData,
+                                   Info().mVideo.mImage.height);
+  perfRecorder.Start();
   RefPtr<MediaDecoderStateMachine> self = this;
   mReader->RequestVideoData(aCurrentTime, aRequestNextKeyFrame)
       ->Then(
           OwnerThread(), __func__,
-          [this, self, videoDecodeStartTime](RefPtr<VideoData> aVideo) {
+          [this, self, perfRecorder(std::move(perfRecorder))](
+              RefPtr<VideoData> aVideo) mutable {
+            perfRecorder.End();
             AUTO_PROFILER_LABEL(
                 "MediaDecoderStateMachine::RequestVideoData:Resolved",
                 MEDIA_PLAYBACK);
@@ -3348,7 +3375,7 @@ void MediaDecoderStateMachine::RequestVideoData(
             LOGV("OnVideoDecoded [%" PRId64 ",%" PRId64 "]",
                  aVideo->mTime.ToMicroseconds(),
                  aVideo->GetEndTime().ToMicroseconds());
-            mStateObj->HandleVideoDecoded(aVideo, videoDecodeStartTime);
+            mStateObj->HandleVideoDecoded(aVideo);
           },
           [this, self](const MediaResult& aError) {
             AUTO_PROFILER_LABEL(

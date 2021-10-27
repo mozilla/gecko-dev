@@ -47,7 +47,8 @@ class SessionHistoryInfo {
                      nsIPrincipal* aPartitionedPrincipalToInherit,
                      nsIContentSecurityPolicy* aCsp,
                      const nsACString& aContentType);
-  SessionHistoryInfo(nsIChannel* aChannel, uint32_t aLoadType,
+  SessionHistoryInfo(nsIChannel* aOldChannel, nsIChannel* aNewChannel,
+                     uint32_t aLoadType,
                      nsIPrincipal* aPartitionedPrincipalToInherit,
                      nsIContentSecurityPolicy* aCsp);
 
@@ -229,13 +230,12 @@ struct LoadingSessionHistoryInfo {
   // but session-history-in-parent needs to pass needed information explicitly
   // to the relevant child process.
   bool mLoadIsFromSessionHistory = false;
-  // mRequestedIndex, mSessionHistoryLength and mLoadingCurrentActiveEntry are
-  // relevant only if mLoadIsFromSessionHistory is true.
-  int32_t mRequestedIndex = -1;
-  int32_t mSessionHistoryLength = 0;
-  // If we're loading from the current active entry we want to treat it as not
-  // a same-document navigation (see nsDocShell::IsSameDocumentNavigation).
-  bool mLoadingCurrentActiveEntry = false;
+  // mOffset and mLoadingCurrentEntry are relevant only if
+  // mLoadIsFromSessionHistory is true.
+  int32_t mOffset = 0;
+  // If we're loading from the current entry we want to treat it as not a
+  // same-document navigation (see nsDocShell::IsSameDocumentNavigation).
+  bool mLoadingCurrentEntry = false;
   // If mForceMaybeResetName.isSome() is true then the parent process has
   // determined whether the BC's name should be cleared and stored in session
   // history (see https://html.spec.whatwg.org/#history-traversal step 4.2).

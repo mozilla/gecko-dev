@@ -24,19 +24,20 @@
 #include "mozilla/dom/MouseEvent.h"        // for MouseEvent
 #include "mozilla/dom/Selection.h"
 #include "nsAString.h"
-#include "nsCaret.h"         // for nsCaret
-#include "nsDebug.h"         // for NS_WARNING, etc.
-#include "nsFocusManager.h"  // for nsFocusManager
-#include "nsGkAtoms.h"       // for nsGkAtoms, nsGkAtoms::input
-#include "nsIContent.h"      // for nsIContent
-#include "nsIController.h"   // for nsIController
+#include "nsCaret.h"            // for nsCaret
+#include "nsDebug.h"            // for NS_WARNING, etc.
+#include "nsFocusManager.h"     // for nsFocusManager
+#include "nsGkAtoms.h"          // for nsGkAtoms, nsGkAtoms::input
+#include "nsIContent.h"         // for nsIContent
+#include "nsIContentInlines.h"  // for nsINode::IsInDesignMode()
+#include "nsIController.h"      // for nsIController
 #include "nsID.h"
 #include "mozilla/dom/DOMStringList.h"
 #include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/DragEvent.h"
 #include "mozilla/dom/Document.h"  // for Document
 #include "nsIFormControl.h"        // for nsIFormControl, etc.
-#include "nsINode.h"               // for nsINode, ::NODE_IS_EDITABLE, etc.
+#include "nsINode.h"               // for nsINode, etc.
 #include "nsIWidget.h"             // for nsIWidget
 #include "nsLiteralString.h"       // for NS_LITERAL_STRING
 #include "nsPIWindowRoot.h"        // for nsPIWindowRoot
@@ -272,25 +273,6 @@ PresShell* EditorEventListener::GetPresShell() const {
 nsPresContext* EditorEventListener::GetPresContext() const {
   PresShell* presShell = GetPresShell();
   return presShell ? presShell->GetPresContext() : nullptr;
-}
-
-nsIContent* EditorEventListener::GetFocusedRootContent() {
-  MOZ_ASSERT(!DetachedFromEditor());
-  nsCOMPtr<nsIContent> focusedContent = mEditorBase->GetFocusedContent();
-  if (!focusedContent) {
-    return nullptr;
-  }
-
-  Document* composedDoc = focusedContent->GetComposedDoc();
-  if (NS_WARN_IF(!composedDoc)) {
-    return nullptr;
-  }
-
-  if (composedDoc->HasFlag(NODE_IS_EDITABLE)) {
-    return nullptr;
-  }
-
-  return focusedContent;
 }
 
 bool EditorEventListener::EditorHasFocus() {
@@ -680,7 +662,8 @@ nsresult EditorEventListener::MouseClick(WidgetMouseEvent* aMouseClickEvent) {
   if (EditorHasFocus()) {
     RefPtr<nsPresContext> presContext = GetPresContext();
     if (presContext) {
-      IMEStateManager::OnClickInEditor(presContext, GetFocusedRootContent(),
+      nsCOMPtr<nsIContent> focusedContent = mEditorBase->GetFocusedContent();
+      IMEStateManager::OnClickInEditor(presContext, focusedContent,
                                        aMouseClickEvent);
       if (DetachedFromEditor()) {
         return NS_OK;
@@ -751,9 +734,9 @@ bool EditorEventListener::NotifyIMEOfMouseButtonEvent(
   if (NS_WARN_IF(!presContext)) {
     return false;
   }
-  nsCOMPtr<nsIContent> focusedRootContent = GetFocusedRootContent();
+  nsCOMPtr<nsIContent> focusedContent = mEditorBase->GetFocusedContent();
   return IMEStateManager::OnMouseButtonEventInEditor(
-      presContext, focusedRootContent, aMouseEvent);
+      presContext, focusedContent, aMouseEvent);
 }
 
 nsresult EditorEventListener::MouseDown(MouseEvent* aMouseEvent) {
@@ -1122,8 +1105,7 @@ nsresult EditorEventListener::Focus(InternalFocusEvent* aFocusEvent) {
 
   // If the target is a document node but it's not editable, we should ignore
   // it because actual focused element's event is going to come.
-  if (eventTargetNode->IsDocument() &&
-      !eventTargetNode->HasFlag(NODE_IS_EDITABLE)) {
+  if (eventTargetNode->IsDocument() && !eventTargetNode->IsInDesignMode()) {
     return NS_OK;
   }
 
@@ -1171,7 +1153,7 @@ nsresult EditorEventListener::Focus(InternalFocusEvent* aFocusEvent) {
   if (NS_WARN_IF(!presContext)) {
     return NS_OK;
   }
-  nsCOMPtr<nsIContent> focusedContent = editorBase->GetFocusedContentForIME();
+  nsCOMPtr<nsIContent> focusedContent = editorBase->GetFocusedContent();
   IMEStateManager::OnFocusInEditor(presContext, focusedContent, *editorBase);
 
   return NS_OK;
@@ -1194,6 +1176,8 @@ nsresult EditorEventListener::Blur(InternalFocusEvent* aBlurEvent) {
     // If it's in the designMode, and blur occurs, the target must be the
     // window.  If a blur event is fired and the target is an element, it
     // must be delayed blur event at initializing the `HTMLEditor`.
+    // TODO: Add automated tests for checking the case that the target node
+    //       is in a shadow DOM tree whose host is in design mode.
     if (mEditorBase->IsHTMLEditor() &&
         mEditorBase->AsHTMLEditor()->IsInDesignMode()) {
       if (nsCOMPtr<Element> targetElement =
@@ -1263,8 +1247,7 @@ bool EditorEventListener::ShouldHandleNativeKeyBindings(
     return false;
   }
 
-  RefPtr<Document> doc = htmlEditor->GetDocument();
-  if (doc->HasFlag(NODE_IS_EDITABLE)) {
+  if (htmlEditor->IsInDesignMode()) {
     // Don't need to perform any checks in designMode documents.
     return true;
   }

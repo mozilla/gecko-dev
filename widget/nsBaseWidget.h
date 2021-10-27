@@ -16,6 +16,7 @@
 #include "mozilla/layers/CompositorOptions.h"
 #include "mozilla/layers/NativeLayer.h"
 #include "mozilla/widget/ThemeChangeKind.h"
+#include "mozilla/widget/WindowOcclusionState.h"
 #include "nsRect.h"
 #include "nsIWidget.h"
 #include "nsWidgetsCID.h"
@@ -29,13 +30,6 @@
 #include "nsWeakReference.h"
 
 #include <algorithm>
-
-#if defined(XP_WIN)
-// Scroll capture constants
-const uint32_t kScrollCaptureFillColor = 0xFFa0a0a0;  // gray
-const mozilla::gfx::SurfaceFormat kScrollCaptureFormat =
-    mozilla::gfx::SurfaceFormat::X8R8G8B8_UINT32;
-#endif
 
 class nsIContent;
 class gfxContext;
@@ -170,7 +164,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   void CaptureMouse(bool aCapture) override {}
   void CaptureRollupEvents(nsIRollupListener* aListener,
                            bool aDoCapture) override {}
-  nsIWidgetListener* GetWidgetListener() override;
+  nsIWidgetListener* GetWidgetListener() const override;
   void SetWidgetListener(nsIWidgetListener* alistener) override;
   void Destroy() override;
   void SetParent(nsIWidget* aNewParent) override{};
@@ -200,7 +194,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   }
   void SetTransparencyMode(nsTransparencyMode aMode) override;
   nsTransparencyMode GetTransparencyMode() override;
-  void GetWindowClipRegion(nsTArray<LayoutDeviceIntRect>* aRects) override;
   void SetWindowShadowStyle(mozilla::StyleWindowShadow aStyle) override {}
   void SetShowsToolbarButton(bool aShow) override {}
   void SetSupportsNativeFullscreen(bool aSupportsNativeFullscreen) override {}
@@ -241,8 +234,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   void SetModal(bool aModal) override {}
   uint32_t GetMaxTouchPoints() const override;
   void SetWindowClass(const nsAString& xulWinType) override {}
-  nsresult SetWindowClipRegion(const nsTArray<LayoutDeviceIntRect>& aRects,
-                               bool aIntersectWithExisting) override;
   // Return whether this widget interprets parameters to Move and Resize APIs
   // as "desktop pixels" rather than "device pixels", and therefore
   // applies its GetDefaultScale() value to them before using them as mBounds
@@ -307,7 +298,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
       const LayoutDeviceIntRect& aRect, nsWidgetInitData* aInitData = nullptr,
       bool aForceUseIWidgetParent = false) override;
   void AttachViewToTopLevel(bool aUseAttachedEvents) override;
-  nsIWidgetListener* GetAttachedWidgetListener() override;
+  nsIWidgetListener* GetAttachedWidgetListener() const override;
   void SetAttachedWidgetListener(nsIWidgetListener* aListener) override;
   nsIWidgetListener* GetPreviouslyAttachedWidgetListener() override;
   void SetPreviouslyAttachedWidgetListener(nsIWidgetListener*) override;
@@ -336,10 +327,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   void NotifyWindowDestroyed();
   void NotifySizeMoveDone();
   void NotifyWindowMoved(int32_t aX, int32_t aY);
-
-  // Register plugin windows for remote updates from the compositor
-  void RegisterPluginWindowForRemoteUpdates() override;
-  void UnregisterPluginWindowForRemoteUpdates() override;
 
   void SetNativeData(uint32_t aDataType, uintptr_t aVal) override {}
 
@@ -415,10 +402,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
   void QuitIME();
 
-#if defined(XP_WIN)
-  uint64_t CreateScrollCaptureContainer() override;
-#endif
-
   // These functions should be called at the start and end of a "live" widget
   // resize (i.e. when the window contents are repainting during the resize,
   // such as when the user drags a window border). It will suppress the
@@ -435,6 +418,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 #endif
 
   virtual void LocalesChanged() {}
+
+  virtual void NotifyOcclusionState(mozilla::widget::OcclusionState aState) {}
 
  protected:
   // These are methods for CompositorWidgetWrapper, and should only be
@@ -480,11 +465,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   nsEventStatus ProcessUntransformedAPZEvent(
       mozilla::WidgetInputEvent* aEvent,
       const mozilla::layers::APZEventResult& aApzResult);
-
-  const LayoutDeviceIntRegion RegionFromArray(
-      const nsTArray<LayoutDeviceIntRect>& aRects);
-  void ArrayFromRegion(const LayoutDeviceIntRegion& aRegion,
-                       nsTArray<LayoutDeviceIntRect>& aRects);
 
   nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
                                     int32_t aNativeKeyCode,
@@ -574,18 +554,11 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   void* GetPseudoIMEContext();
 
  protected:
-  // Utility to check if an array of clip rects is equal to our
-  // internally stored clip rect array mClipRects.
-  bool IsWindowClipRegionEqual(const nsTArray<LayoutDeviceIntRect>& aRects);
-
-  // Stores the clip rectangles in aRects into mClipRects.
-  void StoreWindowClipRegion(const nsTArray<LayoutDeviceIntRect>& aRects);
-
   virtual already_AddRefed<nsIWidget> AllocateChildPopupWidget() {
     return nsIWidget::CreateChildWindow();
   }
 
-  WindowRenderer* CreateBasicLayerManager();
+  WindowRenderer* CreateFallbackRenderer();
 
   nsPopupType PopupType() const { return mPopupType; }
 
@@ -666,27 +639,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   void DispatchPanGestureInput(mozilla::PanGestureInput& aInput);
   void DispatchPinchGestureInput(mozilla::PinchGestureInput& aInput);
 
-#if defined(XP_WIN)
-  void UpdateScrollCapture() override;
-
-  /**
-   * To be overridden by derived classes to return a snapshot that can be used
-   * during scrolling. Returning null means we won't update the container.
-   * @return an already AddRefed SourceSurface containing the snapshot
-   */
-  virtual already_AddRefed<SourceSurface> CreateScrollSnapshot() {
-    return nullptr;
-  };
-
-  /**
-   * Used by derived classes to create a fallback scroll image.
-   * @param aSnapshotDrawTarget DrawTarget to fill with fallback image.
-   */
-  void DefaultFillScrollCapture(DrawTarget* aSnapshotDrawTarget);
-
-  RefPtr<ImageContainer> mScrollCaptureContainer;
-#endif
-
  protected:
   // Returns whether compositing should use an external surface size.
   virtual bool UseExternalCompositingSurface() const { return false; }
@@ -729,9 +681,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   nsBorderStyle mBorderStyle;
   LayoutDeviceIntRect mBounds;
   LayoutDeviceIntRect* mOriginalBounds;
-  // When this pointer is null, the widget is not clipped
-  mozilla::UniquePtr<LayoutDeviceIntRect[]> mClipRects;
-  uint32_t mClipRectCount;
   nsSizeMode mSizeMode;
   bool mIsTiled;
   nsPopupLevel mPopupLevel;

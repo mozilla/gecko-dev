@@ -3481,8 +3481,34 @@ FunctionNode* Parser<FullParseHandler, Unit>::standaloneLazyFunction(
 }
 
 void ParserBase::setFunctionEndFromCurrentToken(FunctionBox* funbox) const {
-  MOZ_ASSERT(anyChars.currentToken().type != TokenKind::Eof);
-  funbox->setEnd(anyChars.currentToken().pos.end);
+  if (compilationState_.isInitialStencil()) {
+    MOZ_ASSERT(anyChars.currentToken().type != TokenKind::Eof);
+    MOZ_ASSERT(anyChars.currentToken().type < TokenKind::Limit);
+    funbox->setEnd(anyChars.currentToken().pos.end);
+  } else {
+    // If we're delazifying an arrow function with expression body and
+    // the expression is also a function, we arrive here immediately after
+    // skipping the function by Parser::skipLazyInnerFunction.
+    //
+    //   a => b => c
+    //              ^
+    //              |
+    //              we're here
+    //
+    // In that case, the current token's type field is either Limit or
+    // poisoned.
+    // We shouldn't read the value if it's poisoned.
+    // See TokenStreamSpecific<Unit, AnyCharsAccess>::advance and
+    // mfbt/MemoryChecking.h for more details.
+    //
+    // Also, in delazification, the FunctionBox should already have the
+    // correct extent, and we shouldn't overwrite it here.
+    // See ScriptStencil variant of PerHandlerParser::newFunctionBox.
+#if !defined(MOZ_ASAN) && !defined(MOZ_MSAN) && !defined(MOZ_VALGRIND)
+    MOZ_ASSERT(anyChars.currentToken().type != TokenKind::Eof);
+#endif
+    MOZ_ASSERT(funbox->extent().sourceEnd == anyChars.currentToken().pos.end);
+  }
 }
 
 template <class ParseHandler, typename Unit>
@@ -3847,13 +3873,6 @@ bool Parser<SyntaxParseHandler, Unit>::asmJS(ListNodeType list) {
   // encountered so that asm.js is always validated/compiled exactly once
   // during a full parse.
   MOZ_ALWAYS_FALSE(abortIfSyntaxParser());
-
-  // Record that the current script source constains some AsmJS, to disable
-  // any incremental encoder, as AsmJS cannot be encoded with XDR at the
-  // moment.
-  if (ss) {
-    ss->setContainsAsmJS();
-  }
   return false;
 }
 
@@ -3876,7 +3895,6 @@ bool Parser<FullParseHandler, Unit>::asmJS(ListNodeType list) {
     return true;
   }
 
-  ss->setContainsAsmJS();
   pc_->functionBox()->useAsm = true;
 
   // Attempt to validate and compile this asm.js module. On success, the

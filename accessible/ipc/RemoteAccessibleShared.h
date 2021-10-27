@@ -72,25 +72,21 @@ void ScrollToPoint(uint32_t aScrollType, int32_t aX, int32_t aY);
 void Announce(const nsString& aAnnouncement, uint16_t aPriority);
 
 int32_t CaretLineNumber();
-int32_t CaretOffset();
+virtual int32_t CaretOffset() const override;
 void SetCaretOffset(int32_t aOffset);
 
-int32_t CharacterCount();
 int32_t SelectionCount();
 
-/**
- * Get the text between the given offsets.
- */
-bool TextSubstring(int32_t aStartOffset, int32_t aEndOfset,
-                   nsString& aText) const;
+virtual void TextSubstring(int32_t aStartOffset, int32_t aEndOfset,
+                           nsAString& aText) const override;
 
 void GetTextAfterOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
                         nsString& aText, int32_t* aStartOffset,
                         int32_t* aEndOffset);
 
-void GetTextAtOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
-                     nsString& aText, int32_t* aStartOffset,
-                     int32_t* aEndOffset);
+virtual void TextAtOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
+                          int32_t* aStartOffset, int32_t* aEndOffset,
+                          nsAString& aText) override;
 
 void GetTextBeforeOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
                          nsString& aText, int32_t* aStartOffset,
@@ -250,7 +246,7 @@ RemoteAccessible* FocusedChild();
 virtual Accessible* ChildAtPoint(
     int32_t aX, int32_t aY,
     LocalAccessible::EWhichChildAtPoint aWhichChild) override;
-nsIntRect Bounds();
+nsIntRect Bounds() const override;
 nsIntRect BoundsInCSSPixels();
 
 void Language(nsString& aLocale);
@@ -264,10 +260,6 @@ void URLDocTypeMimeType(nsString& aURL, nsString& aDocType,
 void Extents(bool aNeedsScreenCoords, int32_t* aX, int32_t* aY, int32_t* aWidth,
              int32_t* aHeight);
 
-/**
- * Return the id of the dom node this accessible represents.  Note this
- * should probably only be used for testing.
- */
-void DOMNodeID(nsString& aID);
+virtual void DOMNodeID(nsString& aID) const override;
 
 #endif

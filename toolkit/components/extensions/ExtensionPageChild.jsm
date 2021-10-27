@@ -7,7 +7,7 @@
 
 /* exported ExtensionPageChild */
 
-var EXPORTED_SYMBOLS = ["ExtensionPageChild"];
+var EXPORTED_SYMBOLS = ["ExtensionPageChild", "getContextChildManagerGetter"];
 
 /**
  * This file handles privileged extension page logic that runs in the
@@ -20,11 +20,6 @@ ChromeUtils.defineModuleGetter(
   this,
   "ExtensionChildDevToolsUtils",
   "resource://gre/modules/ExtensionChildDevToolsUtils.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "ExtensionProcessScript",
-  "resource://gre/modules/ExtensionProcessScript.jsm"
 );
 ChromeUtils.defineModuleGetter(
   this,
@@ -109,10 +104,6 @@ const initializeBackgroundPage = context => {
   });
 };
 
-function getFrameData(global) {
-  return ExtensionProcessScript.getFrameData(global, true);
-}
-
 var apiManager = new (class extends SchemaAPIManager {
   constructor() {
     super("addon", Schemas);
@@ -150,6 +141,39 @@ var devtoolsAPIManager = new (class extends SchemaAPIManager {
     }
   }
 })();
+
+function getContextChildManagerGetter(
+  { envType },
+  ChildAPIManagerClass = ChildAPIManager
+) {
+  return function() {
+    let apiManager =
+      envType === "devtools_parent"
+        ? devtoolsAPIManager
+        : this.extension.apiManager;
+
+    apiManager.lazyInit();
+
+    let localApis = {};
+    let can = new CanOfAPIs(this, apiManager, localApis);
+
+    let childManager = new ChildAPIManagerClass(
+      this,
+      this.messageManager,
+      can,
+      {
+        envType,
+        viewType: this.viewType,
+        url: this.uri.spec,
+        incognito: this.incognito,
+      }
+    );
+
+    this.callOnClose(childManager);
+
+    return childManager;
+  };
+}
 
 class ExtensionBaseContextChild extends BaseContext {
   /**
@@ -282,23 +306,7 @@ class ExtensionPageContextChild extends ExtensionBaseContextChild {
 defineLazyGetter(
   ExtensionPageContextChild.prototype,
   "childManager",
-  function() {
-    this.extension.apiManager.lazyInit();
-
-    let localApis = {};
-    let can = new CanOfAPIs(this, this.extension.apiManager, localApis);
-
-    let childManager = new ChildAPIManager(this, this.messageManager, can, {
-      envType: "addon_parent",
-      viewType: this.viewType,
-      url: this.uri.spec,
-      incognito: this.incognito,
-    });
-
-    this.callOnClose(childManager);
-
-    return childManager;
-  }
+  getContextChildManagerGetter({ envType: "addon_parent" })
 );
 
 class DevToolsContextChild extends ExtensionBaseContextChild {
@@ -332,29 +340,17 @@ class DevToolsContextChild extends ExtensionBaseContextChild {
   }
 }
 
-defineLazyGetter(DevToolsContextChild.prototype, "childManager", function() {
-  devtoolsAPIManager.lazyInit();
-
-  let localApis = {};
-  let can = new CanOfAPIs(this, devtoolsAPIManager, localApis);
-
-  let childManager = new ChildAPIManager(this, this.messageManager, can, {
-    envType: "devtools_parent",
-    viewType: this.viewType,
-    url: this.uri.spec,
-    incognito: this.incognito,
-  });
-
-  this.callOnClose(childManager);
-
-  return childManager;
-});
+defineLazyGetter(
+  DevToolsContextChild.prototype,
+  "childManager",
+  getContextChildManagerGetter({ envType: "devtools_parent" })
+);
 
 ExtensionPageChild = {
+  initialized: false,
+
   // Map<innerWindowId, ExtensionPageContextChild>
   extensionContexts: new Map(),
-
-  initialized: false,
 
   apiManager,
 
@@ -424,11 +420,19 @@ ExtensionPageChild = {
       );
     }
 
-    let mm = contentWindow.docShell.messageManager;
-
-    let { viewType, tabId, devtoolsToolboxInfo } = getFrameData(mm) || {};
-
     let uri = contentWindow.document.documentURIObject;
+
+    let mm = contentWindow.docShell.messageManager;
+    let data = mm.sendSyncMessage("Extension:GetFrameData")[0];
+    if (!data) {
+      let policy = WebExtensionPolicy.getByHostname(uri.host);
+      Cu.reportError(`FrameData missing for ${policy?.id} page ${uri.spec}`);
+    }
+    let { viewType, tabId, devtoolsToolboxInfo } = data ?? {};
+
+    if (viewType) {
+      ExtensionPageChild.expectViewLoad(mm, viewType);
+    }
 
     if (devtoolsToolboxInfo) {
       context = new DevToolsContextChild(extension, {

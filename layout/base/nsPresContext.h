@@ -9,6 +9,7 @@
 #ifndef nsPresContext_h___
 #define nsPresContext_h___
 
+#include "mozilla/intl/Bidi.h"
 #include "mozilla/AppUnits.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EnumeratedArray.h"
@@ -43,7 +44,6 @@
 #include "nsThreadUtils.h"
 #include "Units.h"
 
-class nsBidi;
 class nsIPrintSettings;
 class nsDocShell;
 class nsIDocShell;
@@ -82,6 +82,7 @@ class ServoStyleSet;
 class StaticPresData;
 struct MediaFeatureChange;
 enum class MediaFeatureChangePropagation : uint8_t;
+enum class ColorScheme : uint8_t;
 namespace layers {
 class ContainerLayer;
 class LayerManager;
@@ -89,6 +90,7 @@ class LayerManager;
 namespace dom {
 class Document;
 class Element;
+enum class PrefersColorSchemeOverride : uint8_t;
 }  // namespace dom
 }  // namespace mozilla
 
@@ -118,10 +120,6 @@ enum class nsLayoutPhase : uint8_t {
   COUNT
 };
 #endif
-
-/* Used by nsPresContext::HasAuthorSpecifiedRules */
-#define NS_AUTHOR_SPECIFIED_BORDER_OR_BACKGROUND (1 << 0)
-#define NS_AUTHOR_SPECIFIED_PADDING (1 << 1)
 
 class nsRootPresContext;
 
@@ -236,13 +234,13 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   /**
    * Returns the root widget for this.
    */
-  nsIWidget* GetRootWidget() const;
+  already_AddRefed<nsIWidget> GetRootWidget() const;
 
   /**
    * Returns the widget which may have native focus and handles text input
    * like keyboard input, IME, etc.
    */
-  nsIWidget* GetTextInputHandlingWidget() const {
+  already_AddRefed<nsIWidget> GetTextInputHandlingWidget() const {
     // Currently, root widget for each PresContext handles text input.
     return GetRootWidget();
   }
@@ -577,12 +575,15 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
 
   float GetOverrideDPPX() const { return mMediaEmulationData.mDPPX; }
 
+  // Gets the forced color-scheme if any via either DevTools emulation or
+  // printing.
+  //
+  // NOTE(emilio): This might be called from an stylo thread.
+  Maybe<mozilla::ColorScheme> GetOverriddenColorScheme() const;
+
   /**
    * Recomputes the data dependent on the browsing context, like zoom and text
    * zoom.
-   *
-   * TODO(emilio): Eventually stuff like the media emulation data, overrideDPPX
-   * and such should also move here.
    */
   void RecomputeBrowsingContextDependentData();
 
@@ -821,6 +822,10 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
     return EnsureTheme();
   }
 
+  void RecomputeTheme();
+
+  bool UseOverlayScrollbars() const;
+
   /*
    * Notify the pres context that the theme has changed.  An internal switch
    * means it's one of our Mozilla themes that changed (e.g., Modern to
@@ -876,23 +881,19 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
 
   gfxTextPerfMetrics* GetTextPerfMetrics() { return mTextPerf.get(); }
 
-  bool IsDynamic() {
-    return (mType == eContext_PageLayout || mType == eContext_Galley);
+  bool IsDynamic() const {
+    return mType == eContext_PageLayout || mType == eContext_Galley;
   }
-  bool IsScreen() {
-    return (mMedium == nsGkAtoms::screen || mType == eContext_PageLayout ||
-            mType == eContext_PrintPreview);
+  bool IsScreen() const {
+    return mMedium == nsGkAtoms::screen || mType == eContext_PageLayout ||
+           mType == eContext_PrintPreview;
   }
-  bool IsPrintingOrPrintPreview() {
-    return (mType == eContext_Print || mType == eContext_PrintPreview);
+  bool IsPrintingOrPrintPreview() const {
+    return mType == eContext_Print || mType == eContext_PrintPreview;
   }
 
   // Is this presentation in a chrome docshell?
   bool IsChrome() const;
-
-  // Public API for native theme code to get style internals.
-  bool HasAuthorSpecifiedRules(const nsIFrame* aFrame,
-                               uint32_t ruleTypeMask) const;
 
   // Explicitly enable and disable paint flashing.
   void SetPaintFlashing(bool aPaintFlashing) {
@@ -1078,7 +1079,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
     mHasWarnedAboutTooLargeDashedOrDottedRadius = true;
   }
 
-  nsBidi& GetBidiEngine();
+  mozilla::intl::Bidi& GetBidiEngine();
 
   gfxFontFeatureValueSet* GetFontFeatureValuesLookup() const {
     return mFontFeatureValuesLookup;
@@ -1108,6 +1109,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   void UpdateCharSet(NotNull<const Encoding*> aCharSet);
 
   void DoForceReflowForFontInfoUpdateFromStyle();
+
  public:
   // Used by the PresShell to force a reflow when some aspect of font info
   // has been updated, potentially affecting font selection and layout.
@@ -1205,7 +1207,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   nsCOMPtr<nsITheme> mTheme;
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
 
-  mozilla::UniquePtr<nsBidi> mBidiEngine;
+  mozilla::UniquePtr<mozilla::intl::Bidi> mBidiEngine;
 
   AutoTArray<TransactionInvalidations, 4> mTransactions;
 
@@ -1376,7 +1378,10 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   unsigned mInitialized : 1;
 #endif
 
+  // FIXME(emilio): These would be better packed on top of the bitfields, but
+  // that breaks bindgen in win32.
   FontVisibility mFontVisibility = FontVisibility::Unknown;
+  mozilla::dom::PrefersColorSchemeOverride mColorSchemeOverride;
 
  protected:
   virtual ~nsPresContext();

@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "26.4.0",
+  "version": "27.5.0",
   "applications": {
     "gecko": {
       "id": "webcompat@mozilla.org",
@@ -76,6 +76,7 @@
       "lib/module_shim.js",
       "lib/messaging_helper.js",
       "lib/intervention_helpers.js",
+      "lib/ua_helpers.js",
       "data/injections.js",
       "data/shims.js",
       "data/ua_overrides.js",
@@ -111,7 +112,9 @@
     "shims/google-page-ad.js",
     "shims/google-publisher-tags.js",
     "shims/google-safeframe.html",
+    "shims/hamropatro.js",
     "shims/iaspet.js",
+    "shims/kinja.js",
     "shims/live-test-shim.js",
     "shims/moat.js",
     "shims/mochitest-shim-1.js",

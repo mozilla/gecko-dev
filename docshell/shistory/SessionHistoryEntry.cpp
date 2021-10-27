@@ -81,14 +81,14 @@ SessionHistoryInfo::SessionHistoryInfo(
 }
 
 SessionHistoryInfo::SessionHistoryInfo(
-    nsIChannel* aChannel, uint32_t aLoadType,
+    nsIChannel* aOldChannel, nsIChannel* aNewChannel, uint32_t aLoadType,
     nsIPrincipal* aPartitionedPrincipalToInherit,
     nsIContentSecurityPolicy* aCsp) {
-  aChannel->GetURI(getter_AddRefs(mURI));
+  aNewChannel->GetURI(getter_AddRefs(mURI));
   mLoadType = aLoadType;
 
   nsCOMPtr<nsILoadInfo> loadInfo;
-  aChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+  aNewChannel->GetLoadInfo(getter_AddRefs(loadInfo));
 
   loadInfo->GetResultPrincipalURI(getter_AddRefs(mResultPrincipalURI));
   loadInfo->GetTriggeringPrincipal(
@@ -99,16 +99,16 @@ SessionHistoryInfo::SessionHistoryInfo(
   mSharedState.Get()->mPartitionedPrincipalToInherit =
       aPartitionedPrincipalToInherit;
   mSharedState.Get()->mCsp = aCsp;
-  aChannel->GetContentType(mSharedState.Get()->mContentType);
-  aChannel->GetOriginalURI(getter_AddRefs(mOriginalURI));
+  aNewChannel->GetContentType(mSharedState.Get()->mContentType);
+  aOldChannel->GetOriginalURI(getter_AddRefs(mOriginalURI));
 
   uint32_t loadFlags;
-  aChannel->GetLoadFlags(&loadFlags);
+  aNewChannel->GetLoadFlags(&loadFlags);
   mLoadReplace = !!(loadFlags & nsIChannel::LOAD_REPLACE);
 
   MaybeUpdateTitleFromURI();
 
-  if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel)) {
+  if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aNewChannel)) {
     mReferrerInfo = httpChannel->GetReferrerInfo();
   }
 }
@@ -349,9 +349,8 @@ LoadingSessionHistoryInfo::LoadingSessionHistoryInfo(
     : mInfo(aEntry->Info()),
       mLoadId(aInfo->mLoadId),
       mLoadIsFromSessionHistory(aInfo->mLoadIsFromSessionHistory),
-      mRequestedIndex(aInfo->mRequestedIndex),
-      mSessionHistoryLength(aInfo->mSessionHistoryLength),
-      mLoadingCurrentActiveEntry(aInfo->mLoadingCurrentActiveEntry) {
+      mOffset(aInfo->mOffset),
+      mLoadingCurrentEntry(aInfo->mLoadingCurrentEntry) {
   MOZ_ASSERT(SessionHistoryEntry::sLoadIdToEntry &&
              SessionHistoryEntry::sLoadIdToEntry->Get(mLoadId) == aEntry);
 }
@@ -1586,9 +1585,8 @@ void IPDLParamTraits<dom::LoadingSessionHistoryInfo>::Write(
   WriteIPDLParam(aMsg, aActor, aParam.mInfo);
   WriteIPDLParam(aMsg, aActor, aParam.mLoadId);
   WriteIPDLParam(aMsg, aActor, aParam.mLoadIsFromSessionHistory);
-  WriteIPDLParam(aMsg, aActor, aParam.mRequestedIndex);
-  WriteIPDLParam(aMsg, aActor, aParam.mSessionHistoryLength);
-  WriteIPDLParam(aMsg, aActor, aParam.mLoadingCurrentActiveEntry);
+  WriteIPDLParam(aMsg, aActor, aParam.mOffset);
+  WriteIPDLParam(aMsg, aActor, aParam.mLoadingCurrentEntry);
   WriteIPDLParam(aMsg, aActor, aParam.mForceMaybeResetName);
 }
 
@@ -1599,10 +1597,8 @@ bool IPDLParamTraits<dom::LoadingSessionHistoryInfo>::Read(
       !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mLoadId) ||
       !ReadIPDLParam(aMsg, aIter, aActor,
                      &aResult->mLoadIsFromSessionHistory) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mRequestedIndex) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mSessionHistoryLength) ||
-      !ReadIPDLParam(aMsg, aIter, aActor,
-                     &aResult->mLoadingCurrentActiveEntry) ||
+      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mOffset) ||
+      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mLoadingCurrentEntry) ||
       !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mForceMaybeResetName)) {
     aActor->FatalError("Error reading fields for LoadingSessionHistoryInfo");
     return false;

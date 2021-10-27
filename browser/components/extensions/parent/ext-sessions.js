@@ -27,7 +27,7 @@ const getRecentlyClosed = (maxResults, extension) => {
   // Get closed windows
   // Closed private windows are not stored in sessionstore, we do
   // not need to check access for that.
-  let closedWindowData = SessionStore.getClosedWindowData(false);
+  let closedWindowData = SessionStore.getClosedWindowData();
   for (let window of closedWindowData) {
     recentlyClosed.push({
       lastModified: window.closedAt,
@@ -41,7 +41,7 @@ const getRecentlyClosed = (maxResults, extension) => {
     if (!extension.canAccessWindow(window)) {
       continue;
     }
-    let closedTabData = SessionStore.getClosedTabData(window, false);
+    let closedTabData = SessionStore.getClosedTabData(window);
     for (let tab of closedTabData) {
       recentlyClosed.push({
         lastModified: tab.closedAt,
@@ -125,7 +125,7 @@ this.sessions = class extends ExtensionAPI {
         async forgetClosedTab(windowId, sessionId) {
           await SessionStore.promiseInitialized;
           let window = windowTracker.getWindow(windowId, context);
-          let closedTabData = SessionStore.getClosedTabData(window, false);
+          let closedTabData = SessionStore.getClosedTabData(window);
 
           let closedTabIndex = closedTabData.findIndex(closedTab => {
             return closedTab.closedId === parseInt(sessionId, 10);
@@ -142,7 +142,7 @@ this.sessions = class extends ExtensionAPI {
 
         async forgetClosedWindow(sessionId) {
           await SessionStore.promiseInitialized;
-          let closedWindowData = SessionStore.getClosedWindowData(false);
+          let closedWindowData = SessionStore.getClosedWindowData();
 
           let closedWindowIndex = closedWindowData.findIndex(closedWindow => {
             return closedWindow.closedId === parseInt(sessionId, 10);
@@ -174,7 +174,7 @@ this.sessions = class extends ExtensionAPI {
             // so we must find the tab in which case we can just use its closedId.
             let recentlyClosedTabs = [];
             for (let window of windowTracker.browserWindows()) {
-              let closedTabData = SessionStore.getClosedTabData(window, false);
+              let closedTabData = SessionStore.getClosedTabData(window);
               for (let tab of closedTabData) {
                 recentlyClosedTabs.push(tab);
               }

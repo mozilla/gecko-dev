@@ -31,9 +31,7 @@ namespace js {
 class ObjectWrapperMap {
   static const size_t InitialInnerMapSize = 4;
 
-  using InnerMap =
-      NurseryAwareHashMap<JSObject*, JSObject*, DefaultHasher<JSObject*>,
-                          ZoneAllocPolicy>;
+  using InnerMap = NurseryAwareHashMap<JSObject*, JSObject*, ZoneAllocPolicy>;
   using OuterMap = GCHashMap<JS::Compartment*, InnerMap,
                              DefaultHasher<JS::Compartment*>, ZoneAllocPolicy>;
 
@@ -235,10 +233,10 @@ class ObjectWrapperMap {
     }
   }
 
-  void sweep() {
+  void traceWeak(JSTracer* trc) {
     for (OuterMap::Enum e(map); !e.empty(); e.popFront()) {
       InnerMap& m = e.front().value();
-      m.sweep();
+      m.traceWeak(trc);
       if (m.empty()) {
         e.removeFront();
       }
@@ -247,8 +245,8 @@ class ObjectWrapperMap {
 };
 
 using StringWrapperMap =
-    NurseryAwareHashMap<JSString*, JSString*, DefaultHasher<JSString*>,
-                        ZoneAllocPolicy, DuplicatesPossible>;
+    NurseryAwareHashMap<JSString*, JSString*, ZoneAllocPolicy,
+                        DuplicatesPossible>;
 
 }  // namespace js
 
@@ -424,7 +422,7 @@ class JS::Compartment {
 
   void sweepRealms(JSFreeOp* fop, bool keepAtleastOne, bool destroyingRuntime);
   void sweepAfterMinorGC(JSTracer* trc);
-  void sweepCrossCompartmentObjectWrappers();
+  void traceCrossCompartmentObjectWrapperEdges(JSTracer* trc);
 
   void fixupCrossCompartmentObjectWrappersAfterMovingGC(JSTracer* trc);
   void fixupAfterMovingGC(JSTracer* trc);

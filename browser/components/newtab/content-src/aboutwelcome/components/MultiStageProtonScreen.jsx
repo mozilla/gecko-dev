@@ -4,6 +4,7 @@
 
 import React from "react";
 import { Localized } from "./MSLocalized";
+import { Colorways } from "./Colorways";
 import { Themes } from "./Themes";
 import { SecondaryCTA, StepsIndicator } from "./MultiStageAboutWelcome";
 
@@ -13,8 +14,11 @@ export class MultiStageProtonScreen extends React.PureComponent {
   }
 
   render() {
-    const { content, totalNumberOfScreens: total } = this.props;
+    const { autoClose, content, totalNumberOfScreens: total } = this.props;
+    const windowObj = this.props.windowObj || window;
     const isWelcomeScreen = this.props.order === 0;
+    const isLastScreen = this.props.order === total;
+    const autoCloseTime = 20000;
     // Assign proton screen style 'screen-1' or 'screen-2' by checking
     // if screen order is even or odd.
     const screenClassName = isWelcomeScreen
@@ -22,6 +26,20 @@ export class MultiStageProtonScreen extends React.PureComponent {
       : `${this.props.order === 1 ? `dialog-initial` : ``} ${
           this.props.order === total ? `dialog-last` : ``
         } screen-${this.props.order % 2 !== 0 ? 1 : 2}`;
+
+    if (isLastScreen && autoClose) {
+      let currentURL = windowObj.location.href;
+      setTimeout(function() {
+        // set the timer to close last screen and redirect to about:home after 20 seconds
+        const screenEl = windowObj.document.querySelector(".screen");
+        if (
+          windowObj.location.href === currentURL &&
+          screenEl.className.includes("dialog-last")
+        ) {
+          windowObj.location.href = "about:home";
+        }
+      }, autoCloseTime);
+    }
 
     return (
       <main className={`screen ${this.props.id} ${screenClassName}`}>
@@ -54,10 +72,21 @@ export class MultiStageProtonScreen extends React.PureComponent {
           {isWelcomeScreen ? <div className={`noodle solid-L`} /> : null}
           <div className={`noodle outline-L`} />
           <div className={`noodle yellow-circle`} />
-          <div className="main-content">
-            <div className="brand-logo" />
+          <div
+            className={`main-content ${
+              isLastScreen && autoClose ? "no-steps" : ""
+            }`}
+          >
+            <div className={`brand-logo ${content.hideLogo ? "hide" : ""}`} />
+            {isLastScreen && content.hasFancyTitle ? (
+              <div className="confetti" />
+            ) : null}
             <div className="main-content-inner">
-              <div className="welcome-text">
+              <div
+                className={`welcome-text ${
+                  content.hasFancyTitle ? "fancy-headings" : ""
+                }`}
+              >
                 <Localized text={content.title}>
                   <h1
                     tabIndex="-1"
@@ -72,6 +101,15 @@ export class MultiStageProtonScreen extends React.PureComponent {
                   </Localized>
                 ) : null}
               </div>
+              {content.tiles &&
+              content.tiles.type === "colorway" &&
+              content.tiles.colorways ? (
+                <Colorways
+                  content={content}
+                  activeTheme={this.props.activeTheme}
+                  handleAction={this.props.handleAction}
+                />
+              ) : null}
               {content.tiles &&
               content.tiles.type === "theme" &&
               content.tiles.data ? (
@@ -101,7 +139,7 @@ export class MultiStageProtonScreen extends React.PureComponent {
                 ) : null}
               </div>
             </div>
-            {!isWelcomeScreen ? (
+            {!(isWelcomeScreen || (autoClose && isLastScreen)) ? (
               <nav
                 className="steps"
                 data-l10n-id={"onboarding-welcome-steps-indicator"}

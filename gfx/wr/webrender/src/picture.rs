@@ -102,7 +102,7 @@ use api::units::*;
 use crate::batch::BatchFilter;
 use crate::box_shadow::BLUR_SAMPLE_SCALE;
 use crate::clip::{ClipStore, ClipChainInstance, ClipChainId, ClipInstance};
-use crate::spatial_tree::{SpatialTree, CoordinateSpaceMapping, SpatialNodeIndex, VisibleFace, SpatialNodeContainer};
+use crate::spatial_tree::{SpatialTree, CoordinateSpaceMapping, SpatialNodeIndex, VisibleFace};
 use crate::composite::{CompositorKind, CompositeState, NativeSurfaceId, NativeTileId, CompositeTileSurface, tile_kind};
 use crate::composite::{ExternalSurfaceDescriptor, ExternalSurfaceDependency, CompositeTileDescriptor, CompositeTile};
 use crate::composite::{CompositorTransformIndex};
@@ -111,7 +111,7 @@ use euclid::{vec2, vec3, Point2D, Scale, Vector2D, Box2D, Transform3D, SideOffse
 use euclid::approxeq::ApproxEq;
 use crate::filterdata::SFilterData;
 use crate::intern::ItemUid;
-use crate::internal_types::{FastHashMap, FastHashSet, PlaneSplitter, Filter};
+use crate::internal_types::{FastHashMap, FastHashSet, PlaneSplitter, Filter, FrameId};
 use crate::internal_types::{PlaneSplitterIndex, PlaneSplitAnchor, TextureSource};
 use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureState, PictureContext};
 use crate::gpu_cache::{GpuCache, GpuCacheAddress, GpuCacheHandle};
@@ -120,7 +120,7 @@ use plane_split::{Clipper, Polygon, Splitter};
 use crate::prim_store::{PrimitiveTemplateKind, PictureIndex, PrimitiveInstance, PrimitiveInstanceKind};
 use crate::prim_store::{ColorBindingStorage, ColorBindingIndex, PrimitiveScratchBuffer};
 use crate::print_tree::{PrintTree, PrintTreePrinter};
-use crate::render_backend::{DataStores, FrameId};
+use crate::render_backend::DataStores;
 use crate::render_task_graph::RenderTaskId;
 use crate::render_target::RenderTargetKind;
 use crate::render_task::{BlurTask, RenderTask, RenderTaskLocation, BlurTaskCache};
@@ -134,7 +134,7 @@ use std::{mem, u8, marker, u32};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::hash_map::Entry;
 use std::ops::Range;
-use crate::texture_cache::TextureCacheHandle;
+use crate::picture_textures::PictureCacheTextureHandle;
 use crate::util::{MaxRect, VecHelper, MatrixHelpers, Recycler, raster_rect_to_device_pixels, ScaleOffset};
 use crate::filterdata::{FilterDataHandle};
 use crate::tile_cache::{SliceDebugInfo, TileDebugInfo, DirtyTileDebugInfo};
@@ -617,7 +617,7 @@ pub enum SurfaceTextureDescriptor {
     /// When using the WR compositor, the tile is drawn into an entry
     /// in the WR texture cache.
     TextureCache {
-        handle: TextureCacheHandle
+        handle: Option<PictureCacheTextureHandle>,
     },
     /// When using an OS compositor, the tile is drawn into a native
     /// surface identified by arbitrary id.
@@ -655,11 +655,11 @@ impl SurfaceTextureDescriptor {
     ) -> ResolvedSurfaceTexture {
         match self {
             SurfaceTextureDescriptor::TextureCache { handle } => {
-                let cache_item = resource_cache.texture_cache.get(handle);
+                let texture = resource_cache
+                    .picture_textures
+                    .get_texture_source(handle.as_ref().unwrap());
 
-                ResolvedSurfaceTexture::TextureCache {
-                    texture: cache_item.texture_id,
-                }
+                ResolvedSurfaceTexture::TextureCache { texture }
             }
             SurfaceTextureDescriptor::Native { id } => {
                 ResolvedSurfaceTexture::Native {
@@ -1295,7 +1295,7 @@ impl Tile {
         //           native compositors that don't support dirty rects.
         if supports_dirty_rects {
             // Only allow splitting for normal content sized tiles
-            if ctx.current_tile_size == state.resource_cache.texture_cache.default_picture_tile_size() {
+            if ctx.current_tile_size == state.resource_cache.picture_textures.default_tile_size() {
                 let max_split_level = 3;
 
                 // Consider splitting / merging dirty regions
@@ -1366,7 +1366,7 @@ impl Tile {
                             // For a texture cache entry, create an invalid handle that
                             // will be allocated when update_picture_cache is called.
                             SurfaceTextureDescriptor::TextureCache {
-                                handle: TextureCacheHandle::invalid(),
+                                handle: None,
                             }
                         }
                         CompositorKind::Native { .. } => {
@@ -2599,7 +2599,7 @@ impl TileCacheInstance {
                             TILE_SIZE_SCROLLBAR_HORIZONTAL
                         }
                     } else {
-                        frame_state.resource_cache.texture_cache.default_picture_tile_size()
+                        frame_state.resource_cache.picture_textures.default_tile_size()
                     }
                 }
             };
@@ -3706,7 +3706,7 @@ impl TileCacheInstance {
 
         let sub_slice = &mut self.sub_slices[sub_slice_index];
 
-        if let Some(backdrop_candidate) = backdrop_candidate {
+        if let Some(mut backdrop_candidate) = backdrop_candidate {
             let is_suitable_backdrop = match backdrop_candidate.kind {
                 Some(BackdropKind::Clear) => {
                     // Clear prims are special - they always end up in their own slice,
@@ -3739,8 +3739,19 @@ impl TileCacheInstance {
 
             if sub_slice_index == 0 &&
                is_suitable_backdrop &&
-               sub_slice.compositor_surfaces.is_empty() &&
-               !prim_clip_chain.needs_mask {
+               sub_slice.compositor_surfaces.is_empty() {
+
+                // If the backdrop candidate has a clip-mask, try to extract an opaque inner
+                // rect that is safe to use for subpixel rendering
+                if prim_clip_chain.needs_mask {
+                    backdrop_candidate.opaque_rect = clip_store
+                        .get_inner_rect_for_clip_chain(
+                            prim_clip_chain,
+                            &data_stores.clip,
+                            frame_context.spatial_tree,
+                        )
+                        .unwrap_or(PictureRect::zero());
+                }
 
                 if backdrop_candidate.opaque_rect.contains_box(&self.backdrop.opaque_rect) {
                     self.backdrop.opaque_rect = backdrop_candidate.opaque_rect;
@@ -4814,11 +4825,9 @@ impl PicturePrimitive {
                         // This ensures that we retain valid tiles that are off-screen, but still in the
                         // display port of this tile cache instance.
                         if let Some(TileSurface::Texture { descriptor, .. }) = tile.surface.as_ref() {
-                            if let SurfaceTextureDescriptor::TextureCache { ref handle, .. } = descriptor {
-                                frame_state.resource_cache.texture_cache.request(
-                                    handle,
-                                    frame_state.gpu_cache,
-                                );
+                            if let SurfaceTextureDescriptor::TextureCache { handle: Some(handle), .. } = descriptor {
+                                frame_state.resource_cache
+                                    .picture_textures.request(handle, frame_state.gpu_cache);
                             }
                         }
 
@@ -4868,8 +4877,11 @@ impl PicturePrimitive {
                         if let TileSurface::Texture { descriptor, .. } = tile.surface.as_mut().unwrap() {
                             match descriptor {
                                 SurfaceTextureDescriptor::TextureCache { ref handle, .. } => {
+                                    let exists = handle.as_ref().map_or(false,
+                                        |handle| frame_state.resource_cache.picture_textures.entry_exists(handle)
+                                    );
                                     // Invalidate if the backing texture was evicted.
-                                    if frame_state.resource_cache.texture_cache.is_allocated(handle) {
+                                    if exists {
                                         // Request the backing texture so it won't get evicted this frame.
                                         // We specifically want to mark the tile texture as used, even
                                         // if it's detected not visible below and skipped. This is because
@@ -4878,7 +4890,9 @@ impl PicturePrimitive {
                                         // assuming that it's either visible or we want to retain it for
                                         // a while in case it gets scrolled back onto screen soon.
                                         // TODO(gw): Consider switching to manual eviction policy?
-                                        frame_state.resource_cache.texture_cache.request(handle, frame_state.gpu_cache);
+                                        frame_state.resource_cache
+                                            .picture_textures
+                                            .request(handle.as_ref().unwrap(), frame_state.gpu_cache);
                                     } else {
                                         // If the texture was evicted on a previous frame, we need to assume
                                         // that the entire tile rect is dirty.
@@ -4929,13 +4943,14 @@ impl PicturePrimitive {
                             if let TileSurface::Texture { ref mut descriptor } = tile.surface.as_mut().unwrap() {
                                 match descriptor {
                                     SurfaceTextureDescriptor::TextureCache { ref mut handle } => {
-                                        if !frame_state.resource_cache.texture_cache.is_allocated(handle) {
-                                            frame_state.resource_cache.texture_cache.update_picture_cache(
-                                                tile_cache.current_tile_size,
-                                                handle,
-                                                frame_state.gpu_cache,
-                                            );
-                                        }
+
+                                        frame_state.resource_cache.picture_textures.update(
+                                            tile_cache.current_tile_size,
+                                            handle,
+                                            frame_state.gpu_cache,
+                                            &mut frame_state.resource_cache.texture_cache.next_id,
+                                            &mut frame_state.resource_cache.texture_cache.pending_updates,
+                                        );
                                     }
                                     SurfaceTextureDescriptor::Native { id } => {
                                         if id.is_none() {
@@ -6159,13 +6174,13 @@ impl PicturePrimitive {
                     // on whether we want to zoom in high-performance or high-quality mode.
                     true
                 }
+                PictureCompositeMode::MixBlend(..) |
+                PictureCompositeMode::ComponentTransferFilter(..) |
                 PictureCompositeMode::SvgFilter(..) => {
                     // Filters must be applied before transforms, to do this, we can mark this picture as establishing a raster root.
                     true
                 }
-                PictureCompositeMode::MixBlend(..) |
                 PictureCompositeMode::Filter(..) |
-                PictureCompositeMode::ComponentTransferFilter(..) |
                 PictureCompositeMode::Blit(..) => {
                     // TODO(gw): As follow ups, individually move each of these composite modes to create raster roots.
                     surface_to_parent_transform.is_perspective()

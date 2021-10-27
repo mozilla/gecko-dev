@@ -11,13 +11,19 @@
 #include <queue>
 
 #include "AllocationPolicy.h"
+#ifdef MOZ_AV1
+#  include "AOMDecoder.h"
+#endif
 #include "DecoderBenchmark.h"
 #include "MediaData.h"
 #include "MediaDataDecoderProxy.h"
 #include "MediaInfo.h"
+#include "MP4Decoder.h"
 #include "PDMFactory.h"
+#include "PerformanceRecorder.h"
 #include "VideoFrameContainer.h"
 #include "VideoUtils.h"
+#include "VPXDecoder.h"
 #include "mozilla/AbstractThread.h"
 #include "mozilla/CDMProxy.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -131,6 +137,7 @@ void MediaFormatReader::DecoderData::ShutdownDecoder() {
   // we can forget mDecoder and be ready to create a new one.
   mDecoder = nullptr;
   mDescription = "shutdown"_ns;
+  mHasReportedVideoHardwareSupportTelemtry = false;
   mOwner->ScheduleUpdate(mType == MediaData::Type::AUDIO_DATA
                              ? TrackType::kAudioTrack
                              : TrackType::kVideoTrack);
@@ -1455,10 +1462,14 @@ void MediaFormatReader::DoDemuxVideo() {
   using SamplesPromise = MediaTrackDemuxer::SamplesPromise;
 
   DDLOG(DDLogCategory::Log, "video_demuxing", DDNoValue{});
+  PerformanceRecorder perfRecorder(
+      PerformanceRecorder::Stage::RequestDemux,
+      mVideo.GetCurrentInfo()->GetAsVideoInfo()->mImage.height);
+  perfRecorder.Start();
   auto p = mVideo.mTrackDemuxer->GetSamples(1);
 
+  RefPtr<MediaFormatReader> self = this;
   if (mVideo.mFirstDemuxedSampleTime.isNothing()) {
-    RefPtr<MediaFormatReader> self = this;
     p = p->Then(
         OwnerThread(), __func__,
         [self](RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples) {
@@ -1479,9 +1490,14 @@ void MediaFormatReader::DoDemuxVideo() {
         });
   }
 
-  p->Then(OwnerThread(), __func__, this,
-          &MediaFormatReader::OnVideoDemuxCompleted,
-          &MediaFormatReader::OnVideoDemuxFailed)
+  p->Then(
+       OwnerThread(), __func__,
+       [self, perfRecorder(std::move(perfRecorder))](
+           RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples) mutable {
+         perfRecorder.End();
+         self->OnVideoDemuxCompleted(std::move(aSamples));
+       },
+       [self](const MediaResult& aError) { self->OnVideoDemuxFailed(aError); })
       ->Track(mVideo.mDemuxRequest);
 }
 
@@ -1540,10 +1556,12 @@ void MediaFormatReader::DoDemuxAudio() {
   using SamplesPromise = MediaTrackDemuxer::SamplesPromise;
 
   DDLOG(DDLogCategory::Log, "audio_demuxing", DDNoValue{});
+  PerformanceRecorder perfRecorder(PerformanceRecorder::Stage::RequestDemux);
+  perfRecorder.Start();
   auto p = mAudio.mTrackDemuxer->GetSamples(1);
 
+  RefPtr<MediaFormatReader> self = this;
   if (mAudio.mFirstDemuxedSampleTime.isNothing()) {
-    RefPtr<MediaFormatReader> self = this;
     p = p->Then(
         OwnerThread(), __func__,
         [self](RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples) {
@@ -1564,9 +1582,14 @@ void MediaFormatReader::DoDemuxAudio() {
         });
   }
 
-  p->Then(OwnerThread(), __func__, this,
-          &MediaFormatReader::OnAudioDemuxCompleted,
-          &MediaFormatReader::OnAudioDemuxFailed)
+  p->Then(
+       OwnerThread(), __func__,
+       [self, perfRecorder(std::move(perfRecorder))](
+           RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples) mutable {
+         perfRecorder.End();
+         self->OnAudioDemuxCompleted(std::move(aSamples));
+       },
+       [self](const MediaResult& aError) { self->OnAudioDemuxFailed(aError); })
       ->Track(mAudio.mDemuxRequest);
 }
 
@@ -1865,10 +1888,40 @@ void MediaFormatReader::DecodeDemuxedSamples(TrackType aTrack,
           aSample->mTimecode.ToMicroseconds(),
           aSample->mDuration.ToMicroseconds(), aSample->mKeyframe ? " kf" : "",
           aSample->mEOS ? " eos" : "");
+
+  const int32_t height =
+      aTrack == TrackInfo::kVideoTrack
+          ? decoder.GetCurrentInfo()->GetAsVideoInfo()->mImage.height
+          : 0;
+  MediaInfoFlag flag = MediaInfoFlag::None;
+  flag |=
+      aSample->mKeyframe ? MediaInfoFlag::KeyFrame : MediaInfoFlag::NonKeyFrame;
+  if (aTrack == TrackInfo::kVideoTrack) {
+    flag |= VideoIsHardwareAccelerated() ? MediaInfoFlag::HardwareDecoding
+                                         : MediaInfoFlag::SoftwareDecoding;
+    const nsCString& mimeType = decoder.GetCurrentInfo()->mMimeType;
+    if (MP4Decoder::IsH264(mimeType)) {
+      flag |= MediaInfoFlag::VIDEO_H264;
+    } else if (VPXDecoder::IsVPX(mimeType, VPXDecoder::VP8)) {
+      flag |= MediaInfoFlag::VIDEO_VP8;
+    } else if (VPXDecoder::IsVPX(mimeType, VPXDecoder::VP9)) {
+      flag |= MediaInfoFlag::VIDEO_VP9;
+    }
+#ifdef MOZ_AV1
+    else if (AOMDecoder::IsAV1(mimeType)) {
+      flag |= MediaInfoFlag::VIDEO_AV1;
+    }
+#endif
+  }
+  PerformanceRecorder perfRecorder(PerformanceRecorder::Stage::RequestDecode,
+                                   height, flag);
+  perfRecorder.Start();
   decoder.mDecoder->Decode(aSample)
       ->Then(
           mTaskQueue, __func__,
-          [self, aTrack, &decoder](MediaDataDecoder::DecodedData&& aResults) {
+          [self, aTrack, &decoder, perfRecorder(std::move(perfRecorder))](
+              MediaDataDecoder::DecodedData&& aResults) mutable {
+            perfRecorder.End();
             decoder.mDecodeRequest.Complete();
             self->NotifyNewOutput(aTrack, std::move(aResults));
           },
@@ -2203,9 +2256,18 @@ void MediaFormatReader::Update(TrackType aTrack) {
           }
           mPreviousDecodedKeyframeTime_us = output->mTime.ToMicroseconds();
         }
+        bool wasHardwareAccelerated = mVideo.mIsHardwareAccelerated;
         nsCString error;
         mVideo.mIsHardwareAccelerated =
             mVideo.mDecoder && mVideo.mDecoder->IsHardwareAccelerated(error);
+        if (!mVideo.mHasReportedVideoHardwareSupportTelemtry ||
+            wasHardwareAccelerated != mVideo.mIsHardwareAccelerated) {
+          mVideo.mHasReportedVideoHardwareSupportTelemtry = true;
+          Telemetry::ScalarSet(
+              Telemetry::ScalarID::MEDIA_VIDEO_HARDWARE_DECODING_SUPPORT,
+              NS_ConvertUTF8toUTF16(mVideo.GetCurrentInfo()->mMimeType),
+              !!mVideo.mIsHardwareAccelerated);
+        }
 #ifdef XP_WIN
         // D3D11_YCBCR_IMAGE images are GPU based, we try to limit the amount
         // of GPU RAM used.

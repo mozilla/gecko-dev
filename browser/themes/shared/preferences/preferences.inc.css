@@ -209,7 +209,7 @@ checkbox {
 }
 
 #category-experimental > .category-icon {
-  list-style-image: url("chrome://browser/skin/preferences/category-experiments.svg");
+  list-style-image: url("chrome://global/skin/icons/experiments.svg");
 }
 
 /* All panes */
@@ -568,7 +568,7 @@ richlistitem[selected] .actionsMenu:focus-visible {
   overflow-x: auto;
 }
 
-@media (-moz-toolbar-prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark) {
   @media not (prefers-contrast) {
     .dialogBox {
       --in-content-page-background: #42414d;

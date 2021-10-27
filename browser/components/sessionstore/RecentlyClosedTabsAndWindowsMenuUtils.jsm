@@ -44,7 +44,7 @@ var RecentlyClosedTabsAndWindowsMenuUtils = {
     let doc = aWindow.document;
     let fragment = doc.createDocumentFragment();
     if (SessionStore.getClosedTabCount(aWindow) != 0) {
-      let closedTabs = SessionStore.getClosedTabData(aWindow, false);
+      let closedTabs = SessionStore.getClosedTabData(aWindow);
       for (let i = 0; i < closedTabs.length; i++) {
         createEntry(
           aTagName,
@@ -89,7 +89,7 @@ var RecentlyClosedTabsAndWindowsMenuUtils = {
     aPrefixRestoreAll = false,
     aRestoreAllLabel = "appmenu-reopen-all-windows"
   ) {
-    let closedWindowData = SessionStore.getClosedWindowData(false);
+    let closedWindowData = SessionStore.getClosedWindowData();
     let doc = aWindow.document;
     let fragment = doc.createDocumentFragment();
     if (closedWindowData.length) {

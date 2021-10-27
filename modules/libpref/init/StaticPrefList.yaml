@@ -289,16 +289,6 @@
   value: true
   mirror: always
 
-- name: apz.nonwr.activate_all_scroll_frames
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
-- name: apz.nonwr.activate_all_scroll_frames_when_fission
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 - name: apz.prefer_jank_minimal_displayports
   type: RelaxedAtomicBool
   value: true
@@ -635,11 +625,6 @@
   mirror: always
 
 - name: apz.paint_skipping.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
-- name: apz.peek_messages.enabled
   type: RelaxedAtomicBool
   value: true
   mirror: always
@@ -1116,7 +1101,7 @@
 # See bug 1710926
 - name: browser.download.improvements_to_download_panel
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # See bug 1731668
@@ -1217,12 +1202,23 @@
   value: false
   mirror: always
 
-# Controls @media -moz-toolbar-prefers-color-scheme.
+# Communicates the toolbar color to platform (for e.g., prefers-color-scheme).
 #
 # Returns whether the toolbar is dark (0), light (1), or system (2).
 #
 # Default to "system", the theming code sets it appropriately.
 - name: browser.theme.toolbar-theme
+  type: RelaxedAtomicUint32
+  value: 2
+  mirror: always
+
+# Communicates the preferred content theme color to platform (for e.g.,
+# prefers-color-scheme).
+#
+# dark (0), light (1), or toolbar (2).
+#
+# Default to "toolbar", the theming code sets it appropriately.
+- name: browser.theme.content-theme
   type: RelaxedAtomicUint32
   value: 2
   mirror: always
@@ -1304,6 +1300,14 @@
   value: false
   mirror: always
 
+# Whether we should draw the tabs on top of the titlebar.
+#
+# no (0), yes (1), or default (2), which is true everywhere except Linux.
+- name: browser.tabs.drawInTitlebar
+  type: int32_t
+  value: 2
+  mirror: always
+
 # If set, use DocumentChannel to directly initiate loads entirely
 # from parent-process BrowsingContexts
 - name: browser.tabs.documentchannel.parent-controlled
@@ -1323,6 +1327,13 @@
 # about:blank document between navigations for historical reasons to avoid
 # unnecessary process switches.
 - name: browser.tabs.remote.systemTriggeredAboutBlankAnywhere
+  type: bool
+  value: false
+  mirror: always
+
+# Testing-only pref to cause PBrowser creation for a specific BrowsingContext to
+# fail, to test the errored codepath.
+- name: browser.tabs.remote.testOnly.failPBrowserCreation.enabled
   type: bool
   value: false
   mirror: always
@@ -1490,6 +1501,15 @@
   value: false
 #endif
   mirror: always
+
+#ifdef XP_WIN
+  # allow to copy clipboard data to Clipboard History/Cloud
+  # (used on sensitive data in about:logins and Private Browsing)
+-   name: clipboard.copyPrivateDataToClipboardCloudOrHistory
+    type: bool
+    value: false
+    mirror: always
+#endif
 
 #---------------------------------------------------------------------------
 # Prefs starting with "consoleservice."
@@ -1870,6 +1890,11 @@
 - name: dom.compositionevent.allow_control_characters
   type: bool
   value: false
+  mirror: always
+
+- name: dom.crypto.randomUUID.enabled
+  type: RelaxedAtomicBool
+  value: true
   mirror: always
 
 # Is support for CSSPseudoElement enabled?
@@ -2505,11 +2530,7 @@
 # Is support for HTMLElement.inputMode enabled?
 - name: dom.forms.inputmode
   type: bool
-#if defined(ANDROID)
   value: true
-#else
-  value: @IS_NOT_RELEASE_OR_BETA@
-#endif
   mirror: always
 
 # Enable Directory API. By default, disabled.
@@ -3014,10 +3035,17 @@
   value: 0
   mirror: always
 
-# Force full parse on any external JS scripts that is being compiled off thread.
-- name: dom.script_loader.full_parse
-  type: bool
-  value: false
+# Maximum total size for all full parsed scripts in each ScriptLoader instance.
+# -1 implies full parse everything.  Default value is 10MB for utf8 scripts.
+- name: dom.script_loader.full_parse_max_size
+  type: int32_t
+  value: 10485760
+  mirror: always
+
+# Minimum memory, in GB, required to enable full parsing.
+- name: dom.script_loader.full_parse_min_mem
+  type: int32_t
+  value: 2
   mirror: always
 
 # Is support for decoding external (non-inline) classic or module DOM scripts
@@ -3754,6 +3782,14 @@
   value: false
   mirror: always
 
+# Points in the native bounds geometry are required to be quantized
+# sufficiently to prevent fingerprinting. The WebXR spec suggests 
+# quantizing to the nearest 5 centimeters.
+- name: dom.vr.webxr.quantization
+  type: AtomicFloat
+  value: 0.05f
+  mirror: always
+
 #ifdef XP_WIN
   # Control firing WidgetMouseEvent by handling Windows pointer messages or
   # mouse messages.
@@ -4182,6 +4218,12 @@
   value: false
   mirror: always
 
+# Legacy behavior on filterResponse calls on intercepted sw script requests.
+- name: extensions.filterResponseServiceWorkerScript.disabled
+  type: bool
+  value: false
+  mirror: always
+
 # This pref governs whether we run webextensions in a separate process (true)
 # or the parent/main process (false)
 - name: extensions.webextensions.remote
@@ -4260,10 +4302,19 @@
   mirror: always
   do_not_use_directly: true
 
-# Allow renaming of process names to the origin on nightly
+# Allow renaming of processes from Private Windows to the eTLD+1 on nightly
+# Setting this pref creates a privacy leak, but helps greatly with
+# debugging.
+- name: fission.processPrivateWindowSiteNames
+  type: bool
+  value: false
+  mirror: always
+
+# Allow renaming of process names to the eTLD+1 on all versions, NOT
+# including processes from Private Windows
 # Setting this pref creates a privacy leak, but helps greatly with
 # debugging
-- name: fission.processOriginNames
+- name: fission.processSiteNames
   type: bool
   value: false
   mirror: always
@@ -4908,6 +4959,13 @@
   value: true
   mirror: once
 
+#if !defined(MOZ_WIDGET_ANDROID)
+- name: gfx.egl.prefer-gles.enabled
+  type: bool
+  value: false
+  mirror: once
+#endif
+
 # [Windows] Whether registry FontSubstitutes entries are used unconditionally,
 # or only if the original font is not available.
 #if defined(XP_WIN)
@@ -5033,6 +5091,22 @@
   type: RelaxedAtomicInt32
   value: 0
   mirror: always
+
+# SwapInterval
+- name: gfx.swap-interval.glx
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: gfx.swap-interval.egl
+  type: RelaxedAtomicBool
+  mirror: always
+#ifdef MOZ_WIDGET_ANDROID
+  value: true
+#else
+  value: false
+#endif
+
 
 # Log severe performance warnings to the error console and profiles.
 # This should be use to quickly find which slow paths are used by test cases.
@@ -5835,6 +5909,16 @@
     type: bool
     value: @IS_NOT_EARLY_BETA_OR_EARLIER@
     mirror: always
+
+#if defined(ENABLE_TESTS)
+  # If true, NS_GetComplexLineBreaks compares the line breaks produced in the
+  # content process using the Uniscribe line breaker, with those from a
+  # brokered call to the parent.
+-   name: intl.compare_against_brokered_complex_line_breaks
+    type: bool
+    value: false
+    mirror: always
+#endif
 #endif
 
 # If you use legacy Chinese IME which puts an ideographic space to composition
@@ -6023,11 +6107,22 @@
   value: true
   mirror: always
 
+  # Experimental support for change-array-by-copy methods
+- name: javascript.options.experimental.enable_change_array_by_copy
+  type: bool
+  value: false
+  mirror: always
+
   # Experimental support for Top-level Await in JavaScript.
 -   name: javascript.options.experimental.top_level_await
     type: bool
     value: true
     mirror: always
+
+- name: javascript.options.wasm_caching
+  type: bool
+  value: true
+  mirror: always
 
 # The amount of time we wait between a request to GC (due to leaving a page) and doing the actual GC, in ms.
 - name: javascript.options.gc_delay
@@ -6191,7 +6286,7 @@
 #if defined(ENABLE_WASM_MEMORY64)
 -   name: javascript.options.wasm_memory64
     type: bool
-    value: true
+    value: false
     mirror: always
 #endif  // defined(ENABLE_WASM_MEMORY64)
 
@@ -6329,15 +6424,6 @@
 #endif
   mirror: always
 
-- name: layers.enable-tiles
-  type: bool
-#if defined(XP_MACOSX) || defined (XP_OPENBSD)
-  value: true
-#else
-  value: false
-#endif
-  mirror: once
-
 # Force all possible layers to be always active layers.
 - name: layers.force-active
   type: bool
@@ -6356,7 +6442,12 @@
 
 - name: layers.force-synchronous-resize
   type: RelaxedAtomicBool
+#ifdef MOZ_WAYLAND
+  # We want to control it by nsWindow::SynchronouslyRepaintOnResize() on Linux/Wayland.
+  value: false
+#else
   value: true
+#endif
   mirror: always
 
 - name: layers.gpu-process.allow-software
@@ -6481,30 +6572,6 @@
   value: true
   mirror: always
 
-# We allow for configurable and rectangular tile size to avoid wasting memory
-# on devices whose screen size does not align nicely to the default tile size.
-# Although layers can be any size, they are often the same size as the screen,
-# especially for width.
-- name: layers.tile-width
-  type: int32_t
-  value: 512
-  mirror: once
-
-- name: layers.tile-height
-  type: int32_t
-  value: 512
-  mirror: once
-
-# If this is set the tile size will only be treated as a suggestion.
-# On B2G we will round this to the stride of the underlying allocation.
-# On any platform we may later use the screen size and ignore
-# tile-width/tile-height entirely. Its recommended to turn this off
-# if you change the tile size.
-- name: layers.tiles.adjust
-  type: bool
-  value: true
-  mirror: once
-
 - name: layers.recycle-allocator-rdd
   type: bool
   value: true
@@ -6514,6 +6581,11 @@
   type: RelaxedAtomicUint32
   value: 15
   mirror: always
+
+- name: layers.iosurfaceimage.use-nv12
+  type: bool
+  value: true
+  mirror: once
 
 #---------------------------------------------------------------------------
 # Prefs starting with "layout."
@@ -6832,7 +6904,7 @@
 # Is support for CSS backdrop-filter enabled?
 - name: layout.css.backdrop-filter.enabled
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: false
   mirror: always
 
 # Should stray control characters be rendered visibly?
@@ -7075,10 +7147,10 @@
   value: true
   mirror: always
 
-# Enables parsing size properties in page at-rules
+# Enables support for the size property inside of CSS @page rules.
 - name: layout.css.page-size.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
   rust: true
 
@@ -7095,10 +7167,10 @@
 
 # An override for prefers-color-scheme for content documents.
 #
-# Dark (0), light (1), or system (2).
+# Dark (0), light (1), system (2) or browser (3).
 - name: layout.css.prefers-color-scheme.content-override
   type: RelaxedAtomicInt32
-  value: 2
+  value: 3
   mirror: always
 
 # Dictates whether or not the forced-colors media query is enabled.
@@ -8319,6 +8391,20 @@
   value: true
   mirror: always
 
+# When video continues later than the current media time for this period of
+# time, then it will trigger skip-to-next-keyframe mechanism. As this aims to
+# solve the drop frames issue where video decoding too slow for high
+# resolution videos. eg. 4k+. Therefore, the value is is determined by the
+# telemetry probe `video_inter_keyframe_max_ms` in the key of `AV,h>2160` which
+# shows that 95% video's key frame interval are less than ~5000. We use its
+# half value as a threashold to decide whether we should keep decoding in the
+# current video position or jump to the next keyframe in order to decode future
+# frames in advance.
+- name: media.decoder.skip_when_video_too_slow_ms
+  type: RelaxedAtomicInt32
+  value: 2500
+  mirror: always
+
 - name: media.gmp.decoder.enabled
   type: RelaxedAtomicBool
   value: false
@@ -8520,6 +8606,11 @@
 #else
   value: false
 #endif
+  mirror: always
+
+- name: media.mp4.sniff_iso_brand
+  type: RelaxedAtomicBool
+  value: true
   mirror: always
 
 # Error/warning handling, Decoder Doctor.
@@ -8787,7 +8878,9 @@
 
 - name: media.webrtc.platformencoder
   type: bool
-#if defined(MOZ_WIDGET_ANDROID) || defined(NIGHTLY_BUILD)
+#if defined(MOZ_WIDGET_ANDROID)
+  value: true
+#elif defined(NIGHTLY_BUILD) && !defined(MOZ_WIDGET_GTK)
   value: true
 #else
   value: false
@@ -9280,7 +9373,7 @@
 
 - name: network.predictor.enable-prefetch
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 - name: network.predictor.page-degradation.day
@@ -9490,6 +9583,11 @@
   value: true
   mirror: always
 #endif
+
+- name: network.proxy.parse_pac_on_socket_process
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
 
 # Some requests during a page load are marked as "tail", mainly trackers, but not only.
 # This pref controls whether such requests are put to the tail, behind other requests
@@ -9720,6 +9818,20 @@
   value: ""
   mirror: never
 
+# Whether to add padding in the doh dns queries (rfc 7830)
+- name: network.trr.padding
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# The block size to pad to. Capped at 1024 bytes.
+# Setting it to 0 doesn't add additional padding, but allows the server to
+# respond with padding (RFC7930 Sec 4)
+- name: network.trr.padding.length
+  type: RelaxedAtomicUint32
+  value: 128
+  mirror: always
+
 # Whether to skip the NS check for the blocked host.
 # Note this is used for test only.
 - name: network.trr.skip-check-for-blocked-host
@@ -9781,6 +9893,17 @@
 - name: network.url.useDefaultURI
   type: RelaxedAtomicBool
   value: false
+  mirror: always
+
+# The maximum allowed length for a URL - 32MB default.
+# If 0 that means no limit.
+- name: network.url.max-length
+  type: RelaxedAtomicUint32
+#if defined(EARLY_BETA_OR_EARLIER)
+  value: 32 * 1024 * 1024
+#else
+  value: 0
+#endif
   mirror: always
 
 # Force remapping of remote port numbers to allow reaching local testing
@@ -9930,7 +10053,7 @@
 # If no regressions occur this pref should be removed.
 - name: network.cache.bug1708673
   type: RelaxedAtomicBool
-  value: true
+  value: false
   mirror: always
 
 #  This is used for a temporary workaround for a web-compat issue. If pref is
@@ -9946,10 +10069,32 @@
   value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
+# When this pref is true we clear the Content-Encoding header for
+# application/x-gzip Content-Type responses, see bug 1030660.
+#
+# Assuming there are no regressions, this pref and related code should be
+# removed.
+- name: network.http.clear_bogus_content_encoding
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Support http3 version1
 - name: network.http.http3.support_version1
   type: RelaxedAtomicBool
   value: true
+  mirror: always
+
+# Disable early data on an origin if SSL_ERROR_PROTOCOL_VERSION_ALERT is received
+- name: network.http.early_data_disable_on_error
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# Disable early data if it fails for more than this number of origins
+- name: network.http.early_data_max_error
+  type: RelaxedAtomicUint32
+  value: 5
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -9966,6 +10111,11 @@
 # BasicLayers (other layer managers always update the entire widget area).
 - name: nglayout.debug.widget_update_flashing
   type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: nglayout.debug.disable_xul_cache
+  type: bool
   value: false
   mirror: always
 
@@ -10172,11 +10322,6 @@
 # Prefs starting with "privacy."
 #---------------------------------------------------------------------------
 
-- name: privacy.file_unique_origin
-  type: bool
-  value: true
-  mirror: always
-
 - name: privacy.fuzzyfox.clockgrainus
   type: RelaxedAtomicUint32
   value: 100
@@ -10287,6 +10432,25 @@
 
 # Send "do not track" HTTP header, disabled by default.
 - name: privacy.donottrackheader.enabled
+  type: bool
+  value: false
+  mirror: always
+
+# Potentially send "global privacy control" HTTP header and set navigator
+# property accordingly. Communicates user's desire to opt-out/in of
+# websites or services selling or sharing the user's information, false by
+# default.
+# true - Send the header with a value of 1 to indicate opting-out
+# false - Do not send header to indicate opting-in
+- name: privacy.globalprivacycontrol.enabled
+  type: bool
+  value: false
+  mirror: always
+
+# Controls whether or not GPC signals are sent. Meant to act as a third option
+# of 'undecided' by leaving the navigator property undefined and not attaching
+# the Sec-GPC HTTP header.
+- name: privacy.globalprivacycontrol.functionality.enabled
   type: bool
   value: false
   mirror: always
@@ -10844,6 +11008,13 @@
   value: true
   mirror: always
 
+# Cancel outgoing requests from SystemPrincipal:
+# but only with scheme http(s) and contentpolicytype stylesheet
+- name: security.disallow_privileged_https_stylesheet_loads
+  type: bool
+  value: true
+  mirror: always
+
 # Disable preloaded static key pins by default.
 - name: security.cert_pinning.enforcement_level
   type: ReleaseAcquireAtomicUint32
@@ -10856,7 +11027,7 @@
 #---------------------------------------------------------------------------
 - name: signon.usernameOnlyForm.enabled
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -11647,7 +11818,7 @@
 
 # Whether the non-native theme should always use system colors. Useful mostly
 # for testing forced colors mode.
-- name: widget.non-native-theme.always-use-system-colors
+- name: widget.non-native-theme.always-high-contrast
   type: RelaxedAtomicBool
   value: false
   mirror: always
@@ -11657,6 +11828,8 @@
   type: uint32_t
 #if defined(MOZ_WIDGET_GTK)
   value: 12
+#elif defined(ANDROID)
+  value: 6
 #else
   value: 17
 #endif
@@ -11751,24 +11924,12 @@
   type: RelaxedAtomicBool
   value: true
   mirror: always
-
-- name: widget.macos.support-dark-appearance
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
 #endif
 
 # Whether to allow gtk dark themes in content.
 - name: widget.content.allow-gtk-dark-theme
   type: RelaxedAtomicBool
   value: false
-  mirror: always
-
-# Whether widget follows the firefox theme in order to choose a light / dark
-# appearance.
-- name: widget.gtk.follow-firefox-theme
-  type: RelaxedAtomicBool
-  value: true
   mirror: always
 
 # Whether we try to extract dark theme GTK colors.
@@ -11891,7 +12052,23 @@
   type: bool
   value: false
   mirror: always
+
+- name: widget.windows.window_occlusion_tracking.enabled
+  type: bool
+  value: false
+  mirror: always
+
+- name: widget.windows.window_occlusion_tracking_display_state.enabled
+  type: bool
+  value: false
+  mirror: always
+
+- name: widget.windows.window_occlusion_tracking_session_lock.enabled
+  type: bool
+  value: false
+  mirror: always
 #endif
+
 
 #---------------------------------------------------------------------------
 # Prefs starting with "xul."

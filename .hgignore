@@ -7,12 +7,15 @@
 (^|/)ID$
 (^|/)\.DS_Store$
 \.pdb
-\.egg-info
 \.eslintcache
 \.gcda
 \.gcno
 \.gcov
 compile_commands\.json
+
+# Ignore Python .egg-info directories for first-party modules (but,
+# still add vendored packages' .egg-info directories)
+^(?=.*\.egg-info/)(?!^third_party/python/)(?!^testing/web-platform/tests/tools/third_party/)
 
 # Vim swap files.
 ^\.sw.$
@@ -188,7 +191,8 @@ _OPT\.OBJ/
 tps\.log
 tps_result\.json
 
-# Ignore Visual Studio Code workspace files.
+# Ignore Visual Studio/Visual Studio Code workspace files.
+\.vs/
 \.vscode/(?!extensions\.json|tasks\.json)
 
 # https://bz.mercurial-scm.org/show_bug.cgi?id=5322

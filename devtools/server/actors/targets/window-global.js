@@ -278,6 +278,9 @@ const windowGlobalTargetPrototype = {
     }
     this.docShell = docShell;
 
+    // Save references to the original document we attached to
+    this._originalWindow = this.window;
+
     this.followWindowGlobalLifeCycle = followWindowGlobalLifeCycle;
     this.isTopLevelTarget = !!isTopLevelTarget;
     this.ignoreSubFrames = ignoreSubFrames;
@@ -553,14 +556,23 @@ const windowGlobalTargetPrototype = {
     );
     assert(this.actorID, "Actor should have an actorID.");
 
-    const innerWindowId = this.window ? getInnerId(this.window) : null;
+    // Note that we don't want the iframe dropdown to change our BrowsingContext.id/innerWindowId
+    // We only want to refer to the topmost original window we attached to
+    // as that's the one top document this target actor really represent.
+    // The iframe dropdown is just a hack that temporarily focus the scope
+    // of the target actor to a children iframe document.
+    const browsingContextID = this.originalDocShell.browsingContext.id;
+    const innerWindowId = this._originalWindow
+      ? getInnerId(this._originalWindow)
+      : null;
 
     const response = {
       actor: this.actorID,
-      browsingContextID: this.browsingContextID,
+      browsingContextID,
       // True for targets created by JSWindowActors, see constructor JSDoc.
       followWindowGlobalLifeCycle: this.followWindowGlobalLifeCycle,
       innerWindowId,
+      topInnerWindowId: this.browsingContext.topWindowContext.innerWindowId,
       isTopLevelTarget: this.isTopLevelTarget,
       traits: {
         // @backward-compat { version 64 } Exposes a new trait to help identify
@@ -682,9 +694,6 @@ const windowGlobalTargetPrototype = {
     this._createThreadActor();
 
     this._progressListener = new DebuggerProgressListener(this);
-
-    // Save references to the original document we attached to
-    this._originalWindow = this.window;
 
     this._docShellsObserved = false;
 

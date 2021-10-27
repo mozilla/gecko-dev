@@ -179,8 +179,10 @@ void js::CheckTracedThing(JSTracer* trc, T* thing) {
   MOZ_ASSERT(thing);
 
   if (IsForwarded(thing)) {
-    MOZ_ASSERT(IsTracerKind(trc, JS::TracerKind::Moving) ||
-               trc->isTenuringTracer());
+    JS::TracerKind kind = trc->kind();
+    MOZ_ASSERT(kind == JS::TracerKind::Tenuring ||
+               kind == JS::TracerKind::MinorSweeping ||
+               kind == JS::TracerKind::Moving);
     thing = Forwarded(thing);
   }
 
@@ -194,6 +196,7 @@ void js::CheckTracedThing(JSTracer* trc, T* thing) {
    * with this runtime, but will be ignored during marking.
    */
   if (IsOwnedByOtherRuntime(trc->runtime(), thing)) {
+    MOZ_ASSERT(thing->isMarkedBlack());
     return;
   }
 
@@ -360,21 +363,12 @@ static bool ShouldTraceCrossCompartment(JSTracer* trc, JSObject* src,
          ShouldTraceCrossCompartment(trc, src, val.toGCThing());
 }
 
-static void AssertShouldMarkInZone(Cell* thing) {
-  MOZ_ASSERT(thing->asTenured().zone()->shouldMarkInZone());
-}
-
-static void AssertShouldMarkInZone(JSString* str) {
+static inline void AssertShouldMarkInZone(Cell* thing) {
 #ifdef DEBUG
-  Zone* zone = str->zone();
-  MOZ_ASSERT(zone->shouldMarkInZone() || zone->isAtomsZone());
-#endif
-}
-
-static void AssertShouldMarkInZone(JS::Symbol* sym) {
-#ifdef DEBUG
-  Zone* zone = sym->asTenured().zone();
-  MOZ_ASSERT(zone->shouldMarkInZone() || zone->isAtomsZone());
+  if (!thing->isMarkedBlack()) {
+    Zone* zone = thing->zone();
+    MOZ_ASSERT(zone->isAtomsZone() || zone->shouldMarkInZone());
+  }
 #endif
 }
 
@@ -971,12 +965,14 @@ JS_PUBLIC_API void js::gc::PerformIncrementalReadBarrier(JS::GCCellPtr thing) {
   // Optimized marking for read barriers. This is called from
   // ExposeGCThingToActiveJS which has already checked the prerequisites for
   // performing a read barrier. This means we can skip a bunch of checks and
-  // call info the tracer directly.
+  // call into the tracer directly.
 
   MOZ_ASSERT(thing);
   MOZ_ASSERT(!JS::RuntimeHeapIsMajorCollecting());
 
   TenuredCell* cell = &thing.asCell()->asTenured();
+  MOZ_ASSERT(!cell->isMarkedBlack());
+
   Zone* zone = cell->zone();
   MOZ_ASSERT(zone->needsIncrementalBarrier());
 
@@ -991,6 +987,10 @@ void js::gc::PerformIncrementalBarrier(TenuredCell* cell) {
 
   MOZ_ASSERT(cell);
   MOZ_ASSERT(!JS::RuntimeHeapIsMajorCollecting());
+
+  if (cell->isMarkedBlack()) {
+    return;
+  }
 
   Zone* zone = cell->zone();
   MOZ_ASSERT(zone->needsIncrementalBarrier());
@@ -1018,11 +1018,11 @@ void js::gc::PerformIncrementalBarrierDuringFlattening(JSString* str) {
 
 template <typename T>
 void js::GCMarker::markAndTraverse(T* thing) {
-  if (thing->isPermanentAndMayBeShared()) {
-    return;
-  }
-
   if (mark(thing)) {
+    // We only mark permanent things during initialization.
+    MOZ_ASSERT_IF(thing->isPermanentAndMayBeShared(),
+                  !runtime()->permanentAtomsPopulated());
+
     traverse(thing);
   }
 }
@@ -1165,9 +1165,7 @@ inline void GCMarker::checkTraversedEdge(S source, T* target) {
 template <typename S, typename T>
 void js::GCMarker::markAndTraverseEdge(S source, T* target) {
   checkTraversedEdge(source, target);
-  if (!target->isPermanentAndMayBeShared()) {
-    markAndTraverse(target);
-  }
+  markAndTraverse(target);
 }
 
 template <typename S, typename T>
@@ -1208,11 +1206,10 @@ bool js::GCMarker::mark(T* thing) {
   }
 
   AssertShouldMarkInZone(thing);
-  TenuredCell* cell = &thing->asTenured();
 
   MarkColor color =
       TraceKindCanBeGray<T>::value ? markColor() : MarkColor::Black;
-  bool marked = cell->markIfUnmarked(color);
+  bool marked = thing->asTenured().markIfUnmarked(color);
   if (marked) {
     markCount++;
   }
@@ -1227,7 +1224,7 @@ bool js::GCMarker::mark(T* thing) {
 // traversing equivalent subgraphs.
 
 void BaseScript::traceChildren(JSTracer* trc) {
-  TraceEdge(trc, &functionOrGlobal_, "function");
+  TraceNullableEdge(trc, &function_, "function");
   TraceEdge(trc, &sourceObject_, "sourceObject");
 
   warmUpData_.trace(trc);
@@ -2741,6 +2738,7 @@ static inline void CheckIsMarkedThing(T* thing) {
 
   // Allow any thread access to uncollected things.
   if (thing->isPermanentAndMayBeShared()) {
+    MOZ_ASSERT(thing->isMarkedBlack());
     return;
   }
 
@@ -2790,9 +2788,11 @@ bool js::gc::IsMarkedInternal(JSRuntime* rt, T** thingp) {
   MOZ_ASSERT(!CurrentThreadIsGCFinalizing());
 
   T* thing = *thingp;
-  if (IsOwnedByOtherRuntime(rt, thing)) {
-    return true;
-  }
+  // Permanent things are never marked by non-owning runtimes. Zone state is
+  // unknown in this case.
+#ifdef DEBUG
+  MOZ_ASSERT_IF(IsOwnedByOtherRuntime(rt, thing), thing->isMarkedBlack());
+#endif
 
   if (!thing->isTenured()) {
     MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
@@ -2815,12 +2815,13 @@ bool js::gc::IsAboutToBeFinalizedInternal(T** thingp) {
   MOZ_ASSERT(thingp);
   T* thing = *thingp;
   CheckIsMarkedThing(thing);
-  JSRuntime* rt = thing->runtimeFromAnyThread();
 
-  /* Permanent atoms are never finalized by non-owning runtimes. */
-  if (thing->isPermanentAndMayBeShared() && TlsContext.get()->runtime() != rt) {
-    return false;
-  }
+  // Permanent things are never finalized by non-owning runtimes. Zone state is
+  // unknown in this case.
+#ifdef DEBUG
+  JSRuntime* rt = TlsContext.get()->runtime();
+  MOZ_ASSERT_IF(IsOwnedByOtherRuntime(rt, thing), thing->isMarkedBlack());
+#endif
 
   if (!thing->isTenured()) {
     return JS::RuntimeHeapIsMinorCollecting() &&
@@ -2861,18 +2862,17 @@ template <typename T>
 inline T* SweepingTracer::onEdge(T* thing) {
   CheckIsMarkedThing(thing);
 
-  JSRuntime* rt = thing->runtimeFromAnyThread();
+  // Permanent things are never finalized by non-owning runtimes. Zone state is
+  // unknown in this case.
+  MOZ_ASSERT_IF(IsOwnedByOtherRuntime(runtime(), thing),
+                thing->isMarkedBlack());
 
-  if (thing->isPermanentAndMayBeShared() && runtime() != rt) {
-    return thing;
-  }
-
-  // TODO: We should assert the zone of the tenured cell is in Sweeping state,
-  // however we need to fix atoms and JitcodeGlobalTable first.
-  // Bug 1501334 : IsAboutToBeFinalized doesn't work for atoms
-  // Bug 1071218 : Refactor Debugger::sweepAll and
-  //               JitRuntime::SweepJitcodeGlobalTable to work per sweep group
-  if (!thing->isMarkedAny()) {
+  // It would be nice if we could assert that the zone of the tenured cell is in
+  // the Sweeping state, but that isn't always true for:
+  //  - atoms
+  //  - the jitcode map
+  //  - the mark queue
+  if (thing->zoneFromAnyThread()->isGCSweeping() && !thing->isMarkedAny()) {
     return nullptr;
   }
 
@@ -2883,8 +2883,9 @@ namespace js {
 namespace gc {
 
 template <typename T>
-JS_PUBLIC_API bool EdgeNeedsSweep(JS::Heap<T>* thingp) {
-  return IsAboutToBeFinalizedInternal(ConvertToBase(thingp->unsafeGet()));
+JS_PUBLIC_API bool TraceWeakEdge(JSTracer* trc, JS::Heap<T>* thingp) {
+  return TraceEdgeInternal(trc, gc::ConvertToBase(thingp->unsafeGet()),
+                           "JS::Heap edge");
 }
 
 template <typename T>
@@ -2893,8 +2894,9 @@ JS_PUBLIC_API bool EdgeNeedsSweepUnbarrieredSlow(T* thingp) {
 }
 
 // Instantiate a copy of the Tracing templates for each public GC type.
-#define INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS(type)             \
-  template JS_PUBLIC_API bool EdgeNeedsSweep<type>(JS::Heap<type>*); \
+#define INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS(type)            \
+  template JS_PUBLIC_API bool TraceWeakEdge<type>(JSTracer * trc,   \
+                                                  JS::Heap<type>*); \
   template JS_PUBLIC_API bool EdgeNeedsSweepUnbarrieredSlow<type>(type*);
 JS_FOR_EACH_PUBLIC_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
 JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(
@@ -3163,11 +3165,10 @@ void BarrierTracer::performBarrier(JS::GCCellPtr cell) {
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime()));
   MOZ_ASSERT(!runtime()->gc.isBackgroundMarking());
   MOZ_ASSERT(!cell.asCell()->isForwarded());
+  MOZ_ASSERT(!cell.asCell()->asTenured().isMarkedBlack());
 
   // Mark the cell here to prevent us recording it again.
-  if (!cell.asCell()->asTenured().markIfUnmarked()) {
-    return;
-  }
+  cell.asCell()->asTenured().markBlack();
 
   // NOTE: This assumes that cells that don't have children do not require their
   // traceChildren method to be called.

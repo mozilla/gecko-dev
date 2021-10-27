@@ -386,7 +386,6 @@ impl<T> Drop for VBO<T> {
 pub struct ExternalTexture {
     id: gl::GLuint,
     target: gl::GLuint,
-    swizzle: Swizzle,
     uv_rect: TexelRect,
 }
 
@@ -394,13 +393,11 @@ impl ExternalTexture {
     pub fn new(
         id: u32,
         target: ImageBufferKind,
-        swizzle: Swizzle,
         uv_rect: TexelRect,
     ) -> Self {
         ExternalTexture {
             id,
             target: get_gl_target(target),
-            swizzle,
             uv_rect,
         }
     }
@@ -526,7 +523,6 @@ impl Texture {
         let ext = ExternalTexture {
             id: self.id,
             target: self.target,
-            swizzle: Swizzle::default(),
             // TODO(gw): Support custom UV rect for external textures during captures
             uv_rect: TexelRect::new(
                 0.0,
@@ -1401,6 +1397,8 @@ impl Device {
 
         let renderer_name = gl.get_string(gl::RENDERER);
         info!("Renderer: {}", renderer_name);
+        let version_string = gl.get_string(gl::VERSION);
+        info!("Version: {}", version_string);
         info!("Max texture size: {}", max_texture_size);
 
         let mut extension_count = [0];
@@ -1707,7 +1705,27 @@ impl Device {
         // As above, this allows bypassing certain alpha-pass variants.
         let uses_native_antialiasing = is_software_webrender;
 
-        let supports_image_external_essl3 = supports_extension(&extensions, "GL_OES_EGL_image_external_essl3");
+        // If running on android with a mesa driver (eg intel chromebooks), parse the mesa version.
+        let mut android_mesa_version = None;
+        if cfg!(target_os = "android") && renderer_name.starts_with("Mesa") {
+            if let Some((_, mesa_version)) = version_string.split_once("Mesa ") {
+                if let Some((major_str, _)) = mesa_version.split_once(".") {
+                    if let Ok(major) = major_str.parse::<i32>() {
+                        android_mesa_version = Some(major);
+                    }
+                }
+            }
+        }
+
+        // If the device supports OES_EGL_image_external_essl3 we can use it to render
+        // external images. If not, we must use the ESSL 1.0 OES_EGL_image_external
+        // extension instead.
+        // Mesa versions prior to 20.0 do not implement textureSize(samplerExternalOES),
+        // so we must use the fallback path.
+        let supports_image_external_essl3 = match android_mesa_version {
+            Some(major) if major < 20 => false,
+            _ => supports_extension(&extensions, "GL_OES_EGL_image_external_essl3"),
+        };
 
         let mut requires_batched_texture_uploads = None;
         if is_software_webrender {
@@ -2027,7 +2045,7 @@ impl Device {
             && !using_wrapper
         {
             fn note(name: &str, duration: Duration) {
-                profiler::add_text_marker(cstr!("OpenGL Calls"), name, duration);
+                profiler::add_text_marker("OpenGL Calls", name, duration);
             }
             let threshold = Duration::from_millis(1);
             let wrapped = gl::ProfilingGl::wrap(self.gl.clone(), threshold, note);

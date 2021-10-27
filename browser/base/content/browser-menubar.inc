@@ -46,7 +46,7 @@
                 <menuitem id="menu_close"
                           class="show-only-for-keyboard"
                           key="key_close"
-                          command="cmd_close" data-l10n-id="menu-file-close"/>
+                          command="cmd_close" data-l10n-id="menu-file-close-tab" data-l10n-args='{"tabCount": 1}'/>
                 <menuitem id="menu_closeWindow"
                           class="show-only-for-keyboard"
                           hidden="true"
@@ -237,7 +237,7 @@
             </menu>
 
             <menu id="history-menu" data-l10n-id="menu-history">
-              <menupopup id="goPopup"
+              <menupopup id="historyMenuPopup"
 #ifndef XP_MACOSX
                          placespopup="true"
                          is="places-popup"
@@ -406,7 +406,7 @@
                         hidden="true"
                         oncommand="gSync.openSignInAgainPage('menubar');" data-l10n-id="menu-tools-fxa-re-auth"/>
               <menuseparator id="devToolsSeparator"/>
-              <menu id="webDeveloperMenu" data-l10n-id="menu-tools-browser-tools">
+              <menu id="browserToolsMenu" data-l10n-id="menu-tools-browser-tools">
                 <menupopup id="menuWebDeveloperPopup">
                   <menuitem id="menu_taskManager"
                             oncommand="switchToTabHavingURI('about:performance', true)"

@@ -43,12 +43,6 @@ if CONFIG["CC_TYPE"] != "clang-cl":
         "-fno-eliminate-unused-debug-types"
     ]
 
-if CONFIG["CC_TYPE"] == "clang":
-    # clang has poor debuginfo when optimized. Some of the test files have
-    # unrecoverable values even with -Og. gcc is far better about making
-    # optimized code debuggable.
-    CXXFLAGS += ["-O0"]
-
 DEFINES["EXPORT_JS_API"] = True
 
 LOCAL_INCLUDES += [
@@ -63,5 +57,3 @@ USE_LIBS += [
 DEFINES["topsrcdir"] = "%s/js/src" % TOPSRCDIR
 FINAL_TARGET_PP_FILES += ["gdb-tests-gdb.py.in"]
 OBJDIR_FILES.js.src.gdb += ["!/dist/bin/gdb-tests-gdb.py"]
-
-REQUIRES_UNIFIED_BUILD = True

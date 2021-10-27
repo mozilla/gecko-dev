@@ -33,7 +33,6 @@ headers = [
     "mozilla/ServoTraversalStatistics.h",
     "mozilla/SizeOfState.h",
     "nsCSSProps.h",
-    "nsContentUtils.h",
     "nsMappedAttributes.h",
     "nsNameSpaceManager.h",
 ]
@@ -72,6 +71,7 @@ rusty-enums = [
     "mozilla::dom::Document_DocumentTheme",
     "mozilla::dom::Document_Type",
     "mozilla::LookAndFeel_IntID",
+    "mozilla::LookAndFeel_FloatID",
     "nsCSSUnit",
     "nsCSSFontDesc",
     "nsCSSPropertyID",
@@ -179,7 +179,7 @@ whitelist-vars = [
     "kNameSpaceID_.*",
     "kGenericFont_.*",
     "kPresContext_.*",
-    "nsContentUtils_.*",
+    "nsNameSpaceManager_.*",
     "GECKO_IS_NIGHTLY",
     "NS_SAME_AS_FOREGROUND_COLOR",
     "mozilla::detail::gGkAtoms",
@@ -406,6 +406,7 @@ opaque-types = [
 # All cbindgen-types are in mod "structs::root::mozilla".
 # FIXME(emilio): We probably want to automate this somehow...
 cbindgen-types = [
+    { gecko = "StyleAnimationTimeline", servo = "crate::values::computed::box_::AnimationTimeline" },
     { gecko = "StyleAppearance", servo = "crate::values::specified::Appearance" },
     { gecko = "StyleAspectRatio", servo = "crate::values::computed::position::AspectRatio" },
     { gecko = "StyleComputedFontStretchRange", servo = "crate::font_face::ComputedFontStretchRange" },
@@ -507,7 +508,6 @@ cbindgen-types = [
     { gecko = "StyleFontFamilyNameSyntax", servo = "crate::values::computed::font::FontFamilyNameSyntax" },
     { gecko = "StyleGenericColor", servo = "crate::values::generics::color::Color" },
     { gecko = "StyleSystemColor", servo = "crate::values::specified::color::SystemColor" },
-    { gecko = "StyleSystemColorScheme", servo = "crate::values::specified::color::SystemColorScheme" },
     { gecko = "StyleSystemFont", servo = "crate::values::specified::font::SystemFont" },
     { gecko = "StyleGenericColorOrAuto", servo = "crate::values::generics::color::ColorOrAuto" },
     { gecko = "StyleGenericScrollbarColor", servo = "crate::values::generics::ui::ScrollbarColor" },

@@ -20,8 +20,10 @@
 #include "nsIDOMXULContainerElement.h"
 #include "nsISimpleEnumerator.h"
 #include "mozilla/a11y/PDocAccessibleChild.h"
+#include "mozilla/a11y/RemoteAccessible.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/StaticPrefs_accessibility.h"
 #include "nsAccessibilityService.h"
 
 using namespace mozilla;
@@ -104,7 +106,8 @@ void nsAccUtils::SetLiveContainerAttributes(AccAttributes* aAttributes,
         HasDefinedARIAToken(ancestor, nsGkAtoms::aria_relevant) &&
         ancestor->AsElement()->GetAttr(kNameSpaceID_None,
                                        nsGkAtoms::aria_relevant, relevant)) {
-      aAttributes->SetAttribute(nsGkAtoms::containerRelevant, relevant);
+      aAttributes->SetAttributeStringCopy(nsGkAtoms::containerRelevant,
+                                          relevant);
     }
 
     // container-live, and container-live-role attributes
@@ -124,10 +127,10 @@ void nsAccUtils::SetLiveContainerAttributes(AccAttributes* aAttributes,
       }
 
       if (!live.IsEmpty()) {
-        aAttributes->SetAttribute(nsGkAtoms::containerLive, live);
+        aAttributes->SetAttributeStringCopy(nsGkAtoms::containerLive, live);
         if (role) {
           aAttributes->SetAttribute(nsGkAtoms::containerLiveRole,
-                                    role->ARIARoleString());
+                                    role->roleAtom);
         }
       }
     }
@@ -143,7 +146,7 @@ void nsAccUtils::SetLiveContainerAttributes(AccAttributes* aAttributes,
     if (busy.IsEmpty() && HasDefinedARIAToken(ancestor, nsGkAtoms::aria_busy) &&
         ancestor->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::aria_busy,
                                        busy)) {
-      aAttributes->SetAttribute(nsGkAtoms::containerBusy, busy);
+      aAttributes->SetAttributeStringCopy(nsGkAtoms::containerBusy, busy);
     }
 
     if (ancestor == topEl) {
@@ -368,13 +371,24 @@ bool nsAccUtils::IsTextInterfaceSupportCorrect(LocalAccessible* aAccessible) {
 }
 #endif
 
-uint32_t nsAccUtils::TextLength(LocalAccessible* aAccessible) {
+uint32_t nsAccUtils::TextLength(Accessible* aAccessible) {
   if (!aAccessible->IsText()) {
     return 1;
   }
 
-  TextLeafAccessible* textLeaf = aAccessible->AsTextLeaf();
-  if (textLeaf) return textLeaf->Text().Length();
+  if (LocalAccessible* localAcc = aAccessible->AsLocal()) {
+    TextLeafAccessible* textLeaf = localAcc->AsTextLeaf();
+    if (textLeaf) {
+      return textLeaf->Text().Length();
+    }
+  } else if (aAccessible->IsText()) {
+    MOZ_ASSERT(StaticPrefs::accessibility_cache_enabled_AtStartup(),
+               "Shouldn't be called on a RemoteAccessible unless the cache is "
+               "enabled");
+    RemoteAccessible* remoteAcc = aAccessible->AsRemote();
+    MOZ_ASSERT(remoteAcc);
+    return remoteAcc->GetCachedTextLength();
+  }
 
   // For list bullets (or anything other accessible which would compute its own
   // text. They don't have their own frame.

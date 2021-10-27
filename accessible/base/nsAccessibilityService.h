@@ -221,14 +221,11 @@ class nsAccessibilityService final : public mozilla::a11y::DocManager,
 
   void FireAccessibleEvent(uint32_t aEvent, LocalAccessible* aTarget);
 
-  /**
-   * Notify accessibility that the size has become available for an image.
-   * This occurs when the size of an image is initially not known, but we've
-   * now loaded enough data to know the size.
-   * Called by layout.
-   */
-  void NotifyOfImageSizeAvailable(mozilla::PresShell* aPresShell,
-                                  nsIContent* aContent);
+  void NotifyOfPossibleBoundsChange(mozilla::PresShell* aPresShell,
+                                    nsIContent* aContent);
+
+  void NotifyOfResolutionChange(mozilla::PresShell* aPresShell,
+                                float aResolution);
 
   // nsAccessibiltiyService
 

@@ -257,6 +257,10 @@ select:-moz-select-list-box {
   vertical-align: text-bottom;
   appearance: auto;
   -moz-default-appearance: listbox;
+%ifdef XP_MACOSX
+  /* TODO(emilio): See if this is still necessary with the non-native theme */
+  scrollbar-width: thin;
+%endif
 }
 
 select > button {
@@ -415,7 +419,7 @@ option:disabled,
 optgroup:disabled,
 select:disabled {
   color: GrayText;
-  background-color: ThreeDLightShadow;
+  background-color: -moz-DisabledField;
   cursor: unset;
 }
 
@@ -615,29 +619,16 @@ button,
 ::file-selector-button:hover,
 button:hover,
 input:is([type=reset], [type=button], [type=submit], [type=color]):hover {
-  background-color: -moz-buttonhoverface;
-}
-
-::file-selector-button:hover,
-button:hover,
-input:is([type=reset], [type=button], [type=submit]):hover {
   color: -moz-buttonhovertext;
+  background-color: -moz-buttonhoverface;
 }
 
 ::file-selector-button:active:hover,
 button:active:hover,
 input:is([type=reset], [type=button], [type=submit], [type=color]):active:hover {
   border-style: inset;
-}
-
-::file-selector-button:active:hover,
-button:active:hover,
-input:is([type=reset], [type=button], [type=submit]):active:hover {
-%ifdef MOZ_WIDGET_GTK
-  color: -moz-gtk-buttonactivetext;
-%else
-  color: ButtonText;
-%endif
+  color: -moz-buttonactivetext;
+  background-color: -moz-buttonactiveface;
 }
 
 ::-moz-focus-inner {
@@ -664,6 +655,7 @@ button:is(:disabled, :disabled:active),
 input:is([type=reset], [type=button], [type=submit]):is(:disabled, :disabled:active),
 select:is(:disabled, :disabled:active) > button {
   color: GrayText;
+  background-color: -moz-ButtonDisabledFace;
 }
 
 /* file selector */

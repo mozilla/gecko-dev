@@ -1199,13 +1199,6 @@
     "n_values":  10,
     "description": "Count how often we use different fallbacks when the GPU process crashes: None=0, GPUProcessDecodingDisabled=1, GPUProcessDisabled=2"
   },
-  "XUL_CACHE_DISABLED": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "default",
-    "kind": "flag",
-    "description": "XUL cache was disabled"
-  },
   "MEMORY_RESIDENT_FAST": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
@@ -4842,17 +4835,6 @@
     "high": 1000,
     "n_buckets": 50
   },
-  "PAINT_BUILD_LAYERS_TIME" : {
-    "record_in_processes": ["content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "mwoodrow@mozilla.com"],
-    "bug_numbers": [1473908],
-    "expires_in_version": "never",
-    "description": "Time spent in building layers in milliseconds",
-    "kind": "exponential",
-    "high": 1000,
-    "n_buckets": 50
-  },
   "PAINT_RASTERIZE_TIME" : {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
@@ -4962,16 +4944,15 @@
     "n_buckets": 50,
     "description": "How many actual prefetches happen"
   },
-  "PREDICTOR_TOTAL_PREFETCHES_USED": {
+  "PREDICTOR_PREFETCH_USE_STATUS": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],
     "expires_in_version": "never",
     "alert_emails": ["necko@mozilla.com"],
-    "bug_numbers": [1016628],
-    "kind": "exponential",
-    "high": 1000000,
-    "n_buckets": 50,
-    "description": "How many prefetches are actually used by a channel"
+    "bug_numbers": [1016628, 1312057],
+    "kind": "categorical",
+    "labels": ["Used", "Not200", "Expired", "WouldVary", "WaitedTooLong", "Etag", "Auth", "Redirect"],
+    "description": "If and why prefetches are used/unused."
   },
   "PREDICTOR_PREFETCH_TIME": {
     "record_in_processes": ["main"],
@@ -5119,21 +5100,21 @@
   "PREDICTOR_PREFETCH_DECISION_REASON": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],
-    "expires_in_version": "65",
+    "expires_in_version": "never",
     "kind": "enumerated",
     "n_values": 15,
     "alert_emails": ["necko@mozilla.com"],
-    "bug_numbers": [1409542, 1430322],
+    "bug_numbers": [1409542, 1430322, 1312057],
     "description": "Why the predictor determined a particular resource was eligible for future prefetch (or not). See PrefetchDecisionReason in Predictor.cpp for value meanings"
   },
   "PREDICTOR_PREFETCH_IGNORE_REASON": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],
-    "expires_in_version": "65",
+    "expires_in_version": "never",
     "kind": "enumerated",
     "n_values": 15,
     "alert_emails": ["necko@mozilla.com"],
-    "bug_numbers": [1409542, 1430322],
+    "bug_numbers": [1409542, 1430322, 1312057],
     "description": "Why the predictor determined a particular resource that was marked eligible for prefetch should not be prefetched. See PrefetchIgnoreReason in Predictor.cpp for value meanings"
   },
   "HTTPCONNMGR_TOTAL_SPECULATIVE_CONN": {
@@ -6639,20 +6620,6 @@
     "high": 524288,
     "n_buckets" : 100,
     "description": "PLACES: Size of favicon files without a specific file type probe, loaded from the web (Bytes)"
-  },
-  "PLACES_BOOKMARKS_TOOLBAR_RENDER_DELAY_MS": {
-    "alert_emails": ["gkruitbosch@mozilla.com", "esmyth@mozilla.com"],
-    "bug_numbers": [1680216],
-    "releaseChannelCollection": "opt-out",
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "expires_in_version": "95",
-    "keyed": true,
-    "kind": "exponential",
-    "low": 1,
-    "high": 60000,
-    "n_buckets": 30,
-    "description": "Number of ms between initial rendering and when we show the bookmarks toolbar items. Will record once per window opened (so may never record in a given subsession, or multiple times). Keyed by whether we waited for idle or not."
   },
   "LINK_ICON_SIZES_ATTR_USAGE": {
     "record_in_processes": ["main", "content"],
@@ -9565,6 +9532,18 @@
     "bug_numbers": [1288745, 1685406],
     "description": "a testing histogram; not meant to be touched"
   },
+  "TELEMETRY_TEST_MIRROR_FOR_CUSTOM": {
+    "record_in_processes": ["main"],
+    "products": ["firefox"],
+    "alert_emails": ["chutten@mozilla.com"],
+    "expires_in_version": "never",
+    "kind": "linear",
+    "low": 1,
+    "high": 2147483646,
+    "n_buckets": 10,
+    "bug_numbers": [1716340],
+    "description": "a testing histogram; not meant to be touched"
+  },
   "TELEMETRY_TEST_BOOLEAN": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "thunderbird"],
@@ -10590,6 +10569,29 @@
     ],
     "description": "The operating system audio backend",
     "bug_numbers": [1671714, 1679745]
+  },
+  "MEDIA_SNIFFER_MP4_BRAND_PATTERN": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "geckoview_streaming"],
+    "alert_emails": ["jolin@mozilla.com", "jbauman@mozilla.com"],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "categorical",
+    "labels": [
+      "ftyp_mp4",
+      "ftyp_avc",
+      "ftyp_3gp4",
+      "ftyp_3gp",
+      "ftyp_M4V",
+      "ftyp_M4A",
+      "ftyp_M4P",
+      "ftyp_qt",
+      "ftyp_iso",
+      "ftyp_mmp4",
+      "ftyp_avif"
+    ],
+    "description": "ISOBMFF brand pattern used to identify MP4 in media sniffer",
+    "bug_numbers": [1725190]
   },
   "WEBRTC_DTLS_CIPHER": {
     "record_in_processes": ["content", "socket"],
@@ -11923,12 +11925,12 @@
     "record_in_processes": ["main"],
     "products": ["firefox"],
     "operating_systems": ["windows"],
-    "expires_in_version": "96",
+    "expires_in_version": "108",
     "kind": "categorical",
     "labels": ["Success", "ErrProgID", "ErrHash", "ErrLaunchExe", "ErrExeTimeout", "ErrExeProgID", "ErrExeHash", "ErrExeRejected", "ErrExeOther", "ErrOther", "ErrBuild"],
     "releaseChannelCollection": "opt-out",
-    "bug_numbers": [1703578],
-    "alert_emails": ["application-update-telemetry-alerts@mozilla.com", "agashlin@mozilla.com"],
+    "bug_numbers": [1703578, 1736631],
+    "alert_emails": ["application-update-telemetry-alerts@mozilla.com"],
     "description": "Result of each attempt to set the default browser with SetDefaultBrowserUserChoice()"
   },
   "BROWSER_IS_ASSIST_DEFAULT": {
@@ -12025,16 +12027,6 @@
     "high": 3000,
     "n_buckets": 20,
     "description": "Time spent moving the cookies from one memory location to another (ms)"
-  },
-  "COOKIE_SAMESITE_SET_VS_UNSET": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "bug_numbers": [1612476],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "86",
-    "kind": "boolean",
-    "alert_emails": ["amarchesini@mozilla.com"],
-    "description": "Cookies with SameSite attribute set vs unset"
   },
   "NTLM_MODULE_USED_2": {
     "record_in_processes": ["main", "content"],
@@ -13288,11 +13280,50 @@
     "products": ["firefox"],
     "alert_emails": ["alwu@mozilla.com", "padenot@mozilla.com"],
     "expires_in_version": "never",
-    "description": "Total time spent playing video in milliseconds. This reports the total play time for a video element whenever the decoder stops. (eg. pausing media, encountering an error, changing to a new resource, page goes to the bf-cached or page gets discarded)",
+    "description": "Total time spent playing video in milliseconds.",
     "kind": "exponential",
-    "high": 7200000,
+    "high": 14400000,
     "n_buckets": 100,
     "bug_numbers": [1261955, 1127646, 1570634, 1567604, 1685399],
+    "releaseChannelCollection": "opt-out"
+  },
+  "MEDIA_PLAY_TIME_MS": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox"],
+    "alert_emails": ["alwu@mozilla.com", "padenot@mozilla.com"],
+    "expires_in_version": "never",
+    "description": "Total time spent playing media in milliseconds, keyed by its content (Audio and video, audio only, video only, audio and video but audio inaudible, audio and video but audio muted).",
+    "keyed": true,
+    "kind": "exponential",
+    "high": 14400000,
+    "n_buckets": 100,
+    "bug_numbers": [1678373],
+    "releaseChannelCollection": "opt-out"
+  },
+  "AUDIBLE_PLAY_TIME_PERCENT": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox"],
+    "alert_emails": ["alwu@mozilla.com", "padenot@mozilla.com"],
+    "expires_in_version": "never",
+    "description": "Percentage of time spent playing media with an audible audio track, regardless of the volume. Keyed by audio-only or video presence.",
+    "keyed": true,
+    "kind": "linear",
+    "high": 100,
+    "n_buckets": 50,
+    "bug_numbers": [1678373],
+    "releaseChannelCollection": "opt-out"
+  },
+  "MUTED_PLAY_TIME_PERCENT": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox"],
+    "alert_emails": ["alwu@mozilla.com", "padenot@mozilla.com"],
+    "expires_in_version": "never",
+    "description": "Percentage of time spent playing media that has an audio track, with the audio muted. Keyed by audio-only or video presence.",
+    "keyed": true,
+    "kind": "linear",
+    "high": 100,
+    "n_buckets": 50,
+    "bug_numbers": [1678373],
     "releaseChannelCollection": "opt-out"
   },
   "VIDEO_VISIBLE_PLAY_TIME_MS" : {
@@ -13300,7 +13331,7 @@
     "products": ["firefox"],
     "alert_emails": ["alwu@mozilla.com", "padenot@mozilla.com"],
     "expires_in_version": "never",
-    "description": "Total time spent playing visible video in milliseconds. This reports the total play time for a video element whenever the decoder stops. (eg. pausing media, encountering an error, changing to a new resource, page goes to the bf-cached or page gets discarded)",
+    "description": "Total time spent playing visible video in milliseconds.",
     "keyed": true,
     "kind": "exponential",
     "high": 7200000,
@@ -13313,7 +13344,7 @@
     "products": ["firefox"],
     "alert_emails": ["alwu@mozilla.com", "padenot@mozilla.com"],
     "expires_in_version": "never",
-    "description": "Total time spent playing video while element is hidden, in milliseconds. This reports the total hidden play time for a video element whenever the decoder stops. (eg. pausing media, encountering an error, changing to a new resource, page goes to the bf-cached or page gets discarded)",
+    "description": "Total time spent playing video while element is hidden, in milliseconds.",
     "kind": "exponential",
     "high": 7200000,
     "n_buckets": 100,
@@ -13338,7 +13369,7 @@
     "products": ["firefox"],
     "alert_emails": ["bvandyk@mozilla.com", "padenot@mozilla.com", "alwu@mozilla.com"],
     "expires_in_version": "never",
-    "description": "Total time spent playing encrypted video in milliseconds. This reports the total play time for a video element playing encrypted content whenever the decoder stops. (eg. pausing media, encountering an error, changing to a new resource, page goes to the bf-cached or page gets discarded)",
+    "description": "Total time spent playing encrypted video in milliseconds.",
     "kind": "exponential",
     "high": 7200000,
     "n_buckets": 100,
@@ -13350,7 +13381,7 @@
     "products": ["firefox"],
     "alert_emails": ["bvandyk@mozilla.com", "alwu@mozilla.com", "padenot@mozilla.com"],
     "expires_in_version": "never",
-    "description": "Total time spent playing Clearkey encrypted video in milliseconds. This reports the total play time for a video lement playing Clearkey encrypted content whenever the decoder stops. (eg. pausing media, encountering an error, changing to a new resource, page goes to the bf-cached or page gets discarded)",
+    "description": "Total time spent playing Clearkey encrypted video in milliseconds.",
     "kind": "exponential",
     "high": 7200000,
     "n_buckets": 100,
@@ -13362,7 +13393,7 @@
     "products": ["firefox"],
     "alert_emails": ["bvandyk@mozilla.com", "alwu@mozilla.com"],
     "expires_in_version": "never",
-    "description": "Total time spent playing Widevine encrypted video in milliseconds. This reports the total play time for a video element playing Widevine encrypted content whenever the decoder stops. (eg. pausing media, encountering an error, changing to a new resource, page goes to the bf-cached or page gets discarded)",
+    "description": "Total time spent playing Widevine encrypted video in milliseconds.",
     "kind": "exponential",
     "high": 7200000,
     "n_buckets": 100,
@@ -13374,7 +13405,7 @@
     "products": ["firefox"],
     "alert_emails": ["alwu@mozilla.com", "padenot@mozilla.com"],
     "expires_in_version": "100",
-    "description": "Percentage of total time spent *not* fully decoding video while element is hidden (simulated, even when feature is not enabled). Keyed by audio presence and by height ranges (boundaries: 240. 480, 576, 720, 1080, 2160), e.g.: 'V,0<h<=240', 'AV,h>2160'; and 'All' will accumulate all percentages. This is reported whenever the decoder stops. (eg. pausing media, encountering an error, changing to a new resource, page goes to the bf-cached or page gets discarded)",
+    "description": "Percentage of total time spent *not* fully decoding video while element is hidden (simulated, even when feature is not enabled). Keyed by audio presence and by height ranges (boundaries: 240. 480, 576, 720, 1080, 2160), e.g.: 'V,0<h<=240', 'AV,h>2160'; and 'All' will accumulate all percentages.",
     "keyed": true,
     "kind": "linear",
     "high": 100,
@@ -13387,7 +13418,7 @@
     "products": ["firefox"],
     "alert_emails": ["alwu@mozilla.com", "padenot@mozilla.com"],
     "expires_in_version": "100",
-    "description": "Average interval between video keyframes in played videos, in milliseconds. Keyed by audio presence and by height ranges (boundaries: 240. 480, 576, 720, 1080, 2160), e.g.: 'V,0<h<=240', 'AV,h>2160'; and 'All' will accumulate all percentages. This is reported whenever the decoder stops. (eg. pausing media, encountering an error, changing to a new resource, page goes to the bf-cached or page gets discarded)",
+    "description": "Average interval between video keyframes in played videos, in milliseconds. Keyed by audio presence and by height ranges (boundaries: 240. 480, 576, 720, 1080, 2160), e.g.: 'V,0<h<=240', 'AV,h>2160'; and 'All' will accumulate all percentages.",
     "keyed": true,
     "kind": "exponential",
     "high": 60000,
@@ -13616,7 +13647,7 @@
   "PWMGR_NUM_FORM_HAS_POSSIBLE_USERNAME_EVENT_PER_DOC": {
     "record_in_processes": ["content"],
     "products": ["firefox", "fennec"],
-    "expires_in_version": "96",
+    "expires_in_version": "108",
     "kind": "linear",
     "high": 21,
     "n_buckets" : 20,
@@ -15845,6 +15876,7 @@
       "Unload_Req_MSE",
       "SPD_Unload_Req_Peer",
       "Remote_Subframes",
+      "Beforeunload",
       "Other"
     ],
     "description": "The common combinations of BFCacheStatus when we determine whether the page can be BFCached or not; If it's BFCached, we record BFCache_Success; Success_Not_Toplevel represents the number of not the only top level document in BrowsingContextGroup's documents that are BFCached, and BFCache_Success includes Success_Not_Toplevel; If it's not and it falls under common failure reasons combinations, we record the corresponding combination; Otherwise, we record Other to indicate this is not a common failure"

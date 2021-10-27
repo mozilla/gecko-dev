@@ -69,6 +69,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.jsm",
   Sanitizer: "resource:///modules/Sanitizer.jsm",
   SaveToPocket: "chrome://pocket/content/SaveToPocket.jsm",
+  ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.jsm",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.jsm",
   SessionStore: "resource:///modules/sessionstore/SessionStore.jsm",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.jsm",
@@ -490,12 +491,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   }
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "gBookmarksToolbar2h2020",
-  "browser.toolbars.bookmarks.2h2020",
-  false
-);
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
   "gBookmarksToolbarVisibility",
@@ -1602,9 +1597,7 @@ var gBrowserInit = {
     BookmarkingUI.updateEmptyToolbarMessage();
     setToolbarVisibility(
       BookmarkingUI.toolbar,
-      gBookmarksToolbar2h2020
-        ? gBookmarksToolbarVisibility
-        : gBookmarksToolbarVisibility == "always",
+      gBookmarksToolbarVisibility,
       false,
       false
     );
@@ -1741,9 +1734,6 @@ var gBrowserInit = {
     // the listener is registered.
     CaptivePortalWatcher.init();
     ZoomUI.init(window);
-
-    let mm = window.getGroupMessageManager("browsers");
-    mm.loadFrameScript("chrome://browser/content/tab-content.js", true, true);
 
     if (!gMultiProcessBrowser) {
       // There is a Content:Click message manually sent from content.
@@ -4829,6 +4819,18 @@ let gFileMenu = {
     }
   },
 
+  /**
+   * Updates the "Close tab" command to reflect the number of selected tabs,
+   * when applicable.
+   */
+  updateTabCloseCountState() {
+    document.l10n.setAttributes(
+      document.getElementById("menu_close"),
+      "menu-file-close-tab",
+      { tabCount: gBrowser.selectedTabs.length }
+    );
+  },
+
   onPopupShowing(event) {
     // We don't care about submenus:
     if (event.target.id != "menu_FilePopup") {
@@ -4836,6 +4838,7 @@ let gFileMenu = {
     }
     this.updateUserContextUIVisibility();
     this.updateImportCommandEnabledState();
+    this.updateTabCloseCountState();
     if (AppConstants.platform == "macosx") {
       gShareUtils.updateShareURLMenuItem(
         gBrowser.selectedBrowser,
@@ -5406,7 +5409,7 @@ var XULBrowserWindow = {
 
     BookmarkingUI.onLocationChange();
     // If we've actually changed document, update the toolbar visibility.
-    if (gBookmarksToolbar2h2020 && !isSameDocument) {
+    if (!isSameDocument) {
       let bookmarksToolbar = gNavToolbox.querySelector("#PersonalToolbar");
       setToolbarVisibility(
         bookmarksToolbar,
@@ -6475,7 +6478,7 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
       continue;
     }
 
-    if (toolbar.id == "PersonalToolbar" && gBookmarksToolbar2h2020) {
+    if (toolbar.id == "PersonalToolbar") {
       let menu = BookmarkingUI.buildBookmarksToolbarSubmenu(toolbar);
       popup.insertBefore(menu, firstMenuItem);
     } else {
@@ -9188,16 +9191,17 @@ class TabDialogBox {
       modalType === Ci.nsIPrompt.MODAL_TYPE_CONTENT
         ? this.getContentDialogManager()
         : this._tabDialogManager;
-    let hasDialogs =
+
+    let hasDialogs = () =>
       this._tabDialogManager.hasDialogs ||
       this._contentDialogManager?.hasDialogs;
 
-    if (!hasDialogs) {
+    if (!hasDialogs()) {
       this._onFirstDialogOpen();
     }
 
     let closingCallback = event => {
-      if (!hasDialogs) {
+      if (!hasDialogs()) {
         this._onLastDialogClose();
       }
 
@@ -9617,6 +9621,10 @@ var gDialogBox = {
   // Used to avoid waiting for the above callback in case
   // of an error opening the dialog.
   _didOpenHTMLDialog: false,
+
+  get dialog() {
+    return this._dialog;
+  },
 
   get isOpen() {
     return !!this._dialog;

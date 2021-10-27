@@ -77,6 +77,8 @@ static void settings_changed_cb(GtkSettings*, GParamSpec*, void*) {
   widget::IMContextWrapper::OnThemeChanged();
 }
 
+static bool sCSDAvailable;
+
 nsLookAndFeel::nsLookAndFeel() {
   static constexpr nsLiteralCString kObservedSettings[] = {
       // Affects system font sizes.
@@ -111,21 +113,13 @@ nsLookAndFeel::nsLookAndFeel() {
                            G_CALLBACK(settings_changed_cb), nullptr);
   }
 
-  Preferences::RegisterCallback(
-      FirefoxThemeChanged,
-      nsDependentCString(
-          StaticPrefs::GetPrefName_widget_gtk_follow_firefox_theme()),
-      this);
+  sCSDAvailable =
+      nsWindow::GetSystemGtkWindowDecoration() != nsWindow::GTK_DECORATION_NONE;
 }
 
 nsLookAndFeel::~nsLookAndFeel() {
   g_signal_handlers_disconnect_by_func(
       gtk_settings_get_default(), FuncToGpointer(settings_changed_cb), nullptr);
-  Preferences::UnregisterCallback(
-      FirefoxThemeChanged,
-      nsDependentCString(
-          StaticPrefs::GetPrefName_widget_gtk_follow_firefox_theme()),
-      this);
 }
 
 // Modifies color |*aDest| as if a pattern of color |aSource| was painted with
@@ -373,10 +367,10 @@ void nsLookAndFeel::PerThemeData::InitCellHighlightColors() {
 void nsLookAndFeel::NativeInit() { EnsureInit(); }
 
 void nsLookAndFeel::RefreshImpl() {
-  nsXPLookAndFeel::RefreshImpl();
+  mInitialized = false;
   moz_gtk_refresh();
 
-  mInitialized = false;
+  nsXPLookAndFeel::RefreshImpl();
 }
 
 nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
@@ -397,9 +391,8 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
     case ColorID::WindowBackground:
     case ColorID::WidgetBackground:
     case ColorID::TextBackground:
-    case ColorID::Activecaption:  // active window caption background
-    case ColorID::Appworkspace:   // MDI background color
-    case ColorID::Background:     // desktop background
+    case ColorID::Appworkspace:  // MDI background color
+    case ColorID::Background:    // desktop background
     case ColorID::Window:
     case ColorID::Windowframe:
     case ColorID::MozDialog:
@@ -409,8 +402,6 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
     case ColorID::WindowForeground:
     case ColorID::WidgetForeground:
     case ColorID::TextForeground:
-    case ColorID::Captiontext:  // text in active window caption, size box, and
-                                // scrollbar arrow box (!)
     case ColorID::Windowtext:
     case ColorID::MozDialogtext:
       aColor = mMozWindowText;
@@ -500,19 +491,22 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       // inactive window border
       aColor = mMozWindowInactiveBorder;
       break;
-    case ColorID::MozGtkTitlebarText:
-      aColor = mTitlebarText;
-      break;
-    case ColorID::MozGtkTitlebarInactiveText:
-      aColor = mTitlebarInactiveText;
-      break;
-    case ColorID::Graytext:             // disabled text in windows, menus, etc.
-    case ColorID::Inactivecaptiontext:  // text in inactive window caption
+    case ColorID::Graytext:  // disabled text in windows, menus, etc.
       aColor = mMenuTextInactive;
+      break;
+    case ColorID::Activecaption:
+      aColor = mTitlebarBackground;
+      break;
+    case ColorID::Captiontext:  // text in active window caption (titlebar)
+      aColor = mTitlebarText;
       break;
     case ColorID::Inactivecaption:
       // inactive window caption
-      aColor = mMozWindowInactiveCaption;
+      aColor = mTitlebarInactiveBackground;
+      break;
+    case ColorID::Inactivecaptiontext:  // text in active window caption
+                                        // (titlebar)
+      aColor = mTitlebarInactiveText;
       break;
     case ColorID::Infobackground:
       // tooltip background color
@@ -537,6 +531,7 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
 
     case ColorID::Threedface:
     case ColorID::Buttonface:
+    case ColorID::MozButtondisabledface:
       // 3-D face color
       aColor = mMozWindowBackground;
       break;
@@ -561,6 +556,7 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       break;
 
     case ColorID::Threedlightshadow:
+    case ColorID::MozDisabledfield:
       aColor = NS_RGB(0xE0, 0xE0, 0xE0);
       break;
     case ColorID::Threeddarkshadow:
@@ -579,12 +575,13 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       aColor = mButtonDefault;
       break;
     case ColorID::MozButtonhoverface:
+    case ColorID::MozButtonactiveface:
       aColor = mButtonHoverFace;
       break;
     case ColorID::MozButtonhovertext:
       aColor = mButtonHoverText;
       break;
-    case ColorID::MozGtkButtonactivetext:
+    case ColorID::MozButtonactivetext:
       aColor = mButtonActiveText;
       break;
     case ColorID::MozMenuhover:
@@ -761,7 +758,6 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::DWMCompositor:
     case IntID::WindowsClassic:
     case IntID::WindowsDefaultTheme:
-    case IntID::WindowsThemeIdentifier:
     case IntID::OperatingSystemVersionIdentifier:
       aResult = 0;
       res = NS_ERROR_NOT_IMPLEMENTED;
@@ -795,12 +791,7 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       aResult = 2;
       break;
     case IntID::GTKCSDAvailable:
-      EnsureInit();
-      aResult = mCSDAvailable;
-      break;
-    case IntID::GTKCSDHideTitlebarByDefault:
-      EnsureInit();
-      aResult = mCSDHideTitlebarByDefault;
+      aResult = sCSDAvailable;
       break;
     case IntID::GTKCSDMaximizeButton:
       EnsureInit();
@@ -814,15 +805,6 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       EnsureInit();
       aResult = mCSDCloseButton;
       break;
-    case IntID::GTKCSDTransparentBackground: {
-      // Enable transparent titlebar corners for titlebar mode.
-      GdkScreen* screen = gdk_screen_get_default();
-      aResult = gdk_screen_is_composited(screen)
-                    ? (nsWindow::GtkWindowDecoration() !=
-                       nsWindow::GTK_DECORATION_NONE)
-                    : false;
-      break;
-    }
     case IntID::GTKCSDReversedPlacement:
       EnsureInit();
       aResult = mCSDReversedPlacement;
@@ -848,6 +830,11 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::UseAccessibilityTheme: {
       EnsureInit();
       aResult = mSystemTheme.mHighContrast;
+      break;
+    }
+    case IntID::TitlebarRadius: {
+      EnsureInit();
+      aResult = EffectiveTheme().mTitlebarRadius;
       break;
     }
     case IntID::AllowOverlayScrollbarsOverlap: {
@@ -1257,10 +1244,6 @@ void nsLookAndFeel::EnsureInit() {
     mCaretBlinkCount = -1;
   }
 
-  mCSDAvailable =
-      nsWindow::GtkWindowDecoration() != nsWindow::GTK_DECORATION_NONE;
-  mCSDHideTitlebarByDefault = nsWindow::HideTitlebarByDefault();
-
   mSystemTheme.Init();
 
   mCSDCloseButton = false;
@@ -1327,12 +1310,20 @@ bool nsLookAndFeel::MatchFirefoxThemeIfNeeded() {
   AutoRestore<bool> restoreIgnoreSettings(sIgnoreChangedSettings);
   sIgnoreChangedSettings = true;
 
-  if (!StaticPrefs::widget_gtk_follow_firefox_theme()) {
-    return false;
-  }
+  const bool matchesSystem = [&] {
+    // NOTE: We can't call ColorSchemeForChrome directly because this might run
+    // while we're computing it.
+    switch (ColorSchemeSettingForChrome()) {
+      case ChromeColorSchemeSetting::Light:
+        return !mSystemTheme.mIsDark;
+      case ChromeColorSchemeSetting::Dark:
+        return mSystemTheme.mIsDark;
+      case ChromeColorSchemeSetting::System:
+        break;
+    };
+    return true;
+  }();
 
-  const bool matchesSystem =
-      (ColorSchemeForChrome() == ColorScheme::Dark) == mSystemTheme.mIsDark;
   const bool usingSystem = !mSystemThemeOverridden;
 
   LOGLNF("MatchFirefoxThemeIfNeeded(matchesSystem=%d, usingSystem=%d)\n",
@@ -1363,14 +1354,6 @@ bool nsLookAndFeel::MatchFirefoxThemeIfNeeded() {
     moz_gtk_refresh();
   }
   return true;
-}
-
-void nsLookAndFeel::FirefoxThemeChanged(const char*, void* aInstance) {
-  auto* lnf = static_cast<nsLookAndFeel*>(aInstance);
-  if (lnf->MatchFirefoxThemeIfNeeded()) {
-    LookAndFeel::NotifyChangedAllWindows(
-        widget::ThemeChangeKind::StyleAndLayout);
-  }
 }
 
 void nsLookAndFeel::GetGtkContentTheme(LookAndFeelTheme& aTheme) {
@@ -1511,9 +1494,6 @@ void nsLookAndFeel::PerThemeData::Init() {
   gtk_style_context_get_border_color(style, GTK_STATE_FLAG_INSENSITIVE, &color);
   mMozWindowInactiveBorder = GDK_RGBA_TO_NS_RGBA(color);
 
-  mMozWindowInactiveCaption =
-      GetBackgroundColor(style, mMozWindowText, GTK_STATE_FLAG_INSENSITIVE);
-
   style = GetStyleContext(MOZ_GTK_WINDOW_CONTAINER);
   {
     GtkStyleContext* labelStyle = CreateStyleForWidget(labelWidget, style);
@@ -1547,9 +1527,42 @@ void nsLookAndFeel::PerThemeData::Init() {
   {
     gtk_style_context_get_color(style, GTK_STATE_FLAG_NORMAL, &color);
     mTitlebarText = GDK_RGBA_TO_NS_RGBA(color);
+    mTitlebarBackground = GetBackgroundColor(style, mTitlebarText);
 
     gtk_style_context_get_color(style, GTK_STATE_FLAG_BACKDROP, &color);
     mTitlebarInactiveText = GDK_RGBA_TO_NS_RGBA(color);
+    mTitlebarInactiveBackground =
+        GetBackgroundColor(style, mTitlebarText, GTK_STATE_FLAG_BACKDROP);
+
+    GValue value = G_VALUE_INIT;
+    // NOTE(emilio): In an ideal world, we'd query the two longhands
+    // (border-top-left-radius and border-top-right-radius) separately. However,
+    // that doesn't work (GTK rejects the query with:
+    //
+    //   Style property "border-top-left-radius" is not gettable
+    //
+    // However! Getting border-radius does work, and it does return the
+    // border-top-left-radius as a gint:
+    //
+    //   https://docs.gtk.org/gtk3/const.STYLE_PROPERTY_BORDER_RADIUS.html
+    //   https://gitlab.gnome.org/GNOME/gtk/-/blob/gtk-3-20/gtk/gtkcssshorthandpropertyimpl.c#L961-977
+    //
+    // So we abuse this fact, and make the assumption here that the
+    // border-top-{left,right}-radius are the same, and roll with it.
+    gtk_style_context_get_property(style, "border-radius",
+                                   GTK_STATE_FLAG_NORMAL, &value);
+
+    mTitlebarRadius = [&]() -> int {
+      auto type = G_VALUE_TYPE(&value);
+      if (type == G_TYPE_INT) {
+        return g_value_get_int(&value);
+      }
+      NS_WARNING(
+          nsPrintfCString("Unknown value type %lu for titlebar radius", type)
+              .get());
+      return 0;
+    }();
+    g_value_unset(&value);
   }
 
   style = GetStyleContext(MOZ_GTK_MENUPOPUP);
@@ -1811,6 +1824,7 @@ void nsLookAndFeel::PerThemeData::Init() {
              GetColorPrefName(id), NS_SUCCEEDED(rv),
              NS_SUCCEEDED(rv) ? color : 0);
     }
+    LOGLNF(" * titlebar-radius: %d\n", mTitlebarRadius);
   }
 }
 
@@ -1821,6 +1835,28 @@ char16_t nsLookAndFeel::GetPasswordCharacterImpl() {
 }
 
 bool nsLookAndFeel::GetEchoPasswordImpl() { return false; }
+
+bool nsLookAndFeel::GetDefaultDrawInTitlebar() {
+  static bool drawInTitlebar = []() {
+    // When user defined widget.default-hidden-titlebar don't do any
+    // heuristics and just follow it.
+    if (Preferences::HasUserValue("widget.default-hidden-titlebar")) {
+      return Preferences::GetBool("widget.default-hidden-titlebar", false);
+    }
+
+    // Don't hide titlebar when it's disabled on current desktop.
+    const char* currentDesktop = getenv("XDG_CURRENT_DESKTOP");
+    if (!currentDesktop || !sCSDAvailable) {
+      return false;
+    }
+
+    // We hide system titlebar on Gnome/ElementaryOS without any restriction.
+    return strstr(currentDesktop, "GNOME-Flashback:GNOME") ||
+           strstr(currentDesktop, "GNOME") ||
+           strstr(currentDesktop, "Pantheon");
+  }();
+  return drawInTitlebar;
+}
 
 void nsLookAndFeel::GetThemeInfo(nsACString& aInfo) {
   aInfo.Append(mSystemTheme.mName);

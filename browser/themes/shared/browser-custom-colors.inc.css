@@ -15,7 +15,6 @@
     --button-color: rgb(21,20,26);
 
     --focus-outline-color: var(--button-primary-bgcolor);
-    --focus-outline-offset: 2px;
 
     --checkbox-border-color: var(--input-border-color);
     --checkbox-unchecked-bgcolor: var(--button-bgcolor);
@@ -29,7 +28,6 @@
 
     --arrowpanel-dimmed: color-mix(in srgb, currentColor 12%, transparent);
     --arrowpanel-dimmed-further: color-mix(in srgb, currentColor 20%, transparent);
-    --arrowpanel-dimmed-even-further: color-mix(in srgb, currentColor 27%, transparent);
     --panel-disabled-color: color-mix(in srgb, currentColor 40%, transparent);
     --panel-shortcut-color: rgb(91,91,102);
 

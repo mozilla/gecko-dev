@@ -22,8 +22,24 @@ module.exports = async function(context, commands) {
     if (count !== 0 && secondary_url !== undefined) {
       context.log.info("Navigating to secondary url:" + secondary_url);
       await commands.navigate(secondary_url);
+      await commands.wait.byTime(1000);
+      await commands.js.runAndWait(`
+      (function() {
+        const white = document.createElement('div');
+        white.id = 'raptor-white';
+        white.style.position = 'absolute';
+        white.style.top = '0';
+        white.style.left = '0';
+        white.style.width = Math.max(document.documentElement.clientWidth, document.body.clientWidth) + 'px';
+        white.style.height = Math.max(document.documentElement.clientHeight,document.body.clientHeight) + 'px';
+        white.style.backgroundColor = 'white';
+        white.style.zIndex = '2147483647';
+        document.body.appendChild(white);
+        document.body.style.display = '';
+      })();`);
+      await commands.wait.byTime(1000);
     } else {
-      context.log.info("Navigating to about:blank");
+      context.log.info("Navigating to about:blank, count: " + count);
       await commands.navigate("about:blank");
     }
 
@@ -34,6 +50,7 @@ module.exports = async function(context, commands) {
     context.log.info("Cycle %d, starting the measure", count);
     await commands.measure.start(test_url);
   }
+
   context.log.info("Browsertime pageload ended.");
   return true;
 };

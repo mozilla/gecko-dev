@@ -770,11 +770,7 @@ var Policies = {
         // declaratively open the bookmarks toolbar. Otherwise, default
         // to showing it on the New Tab Page.
         let visibilityPref = "browser.toolbars.bookmarks.visibility";
-        let bookmarksFeaturePref = "browser.toolbars.bookmarks.2h2020";
-        let visibility = param ? "always" : "never";
-        if (Services.prefs.getBoolPref(bookmarksFeaturePref, false)) {
-          visibility = param ? "always" : "newtab";
-        }
+        let visibility = param ? "always" : "newtab";
         Services.prefs.setCharPref(visibilityPref, visibility);
         gXulStore.setValue(
           BROWSER_DOCUMENT_URL,
@@ -1123,6 +1119,13 @@ var Policies = {
           locked
         );
       }
+      if ("SponsoredTopSites" in param) {
+        setDefaultPref(
+          "browser.newtabpage.activity-stream.showSponsoredTopSites",
+          param.SponsoredTopSites,
+          locked
+        );
+      }
       if ("Highlights" in param) {
         setDefaultPref(
           "browser.newtabpage.activity-stream.feeds.section.highlights",
@@ -1139,6 +1142,13 @@ var Policies = {
         setDefaultPref(
           "browser.newtabpage.activity-stream.feeds.section.topstories",
           param.Pocket,
+          locked
+        );
+      }
+      if ("SponsoredPocket" in param) {
+        setDefaultPref(
+          "browser.newtabpage.activity-stream.showSponsored",
+          param.SponsoredPocket,
           locked
         );
       }

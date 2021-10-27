@@ -5,10 +5,15 @@ import { mount } from "enzyme";
 
 describe("MultiStageAboutWelcomeProton module", () => {
   let sandbox;
+  let clock;
   beforeEach(() => {
+    clock = sinon.useFakeTimers();
     sandbox = sinon.createSandbox();
   });
-  afterEach(() => sandbox.restore());
+  afterEach(() => {
+    clock.restore();
+    sandbox.restore();
+  });
 
   describe("MultiStageAWProton component", () => {
     it("should render MultiStageProton Screen", () => {
@@ -34,6 +39,35 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.ok(wrapper.exists());
       assert.equal(wrapper.find(".welcome-text h1").text(), "test title");
       assert.equal(wrapper.find(".section-left h1").text(), "test subtitle");
+    });
+
+    it("should autoClose on last screen", () => {
+      const fakeWindow = {
+        location: {
+          href: "test",
+        },
+        document: {
+          querySelector: () => {
+            return { className: "dialog-last" };
+          },
+        },
+      };
+      const SCREEN_PROPS = {
+        order: 1,
+        autoClose: true,
+        totalNumberOfScreens: 1,
+        content: {
+          title: "test title",
+          subtitle: "test subtitle",
+        },
+        windowObj: fakeWindow,
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(fakeWindow.location.href, "test");
+
+      clock.tick(20001);
+      assert.equal(fakeWindow.location.href, "about:home");
     });
   });
 
@@ -67,28 +101,28 @@ describe("MultiStageAboutWelcomeProton module", () => {
       );
       assert.propertyVal(data.screens[0], "id", "AW_PIN_FIREFOX");
       assert.propertyVal(data.screens[1], "id", "AW_SET_DEFAULT");
-      assert.lengthOf(data.screens, 4);
+      assert.lengthOf(data.screens, 5);
     });
     it("should keep 'pin' and remove 'default' if already default", async () => {
       const data = await prepConfig({ needPin: true });
 
       assert.propertyVal(data.screens[0], "id", "AW_PIN_FIREFOX");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, 3);
+      assert.lengthOf(data.screens, 4);
     });
     it("should switch to 'default' if already pinned", async () => {
       const data = await prepConfig({ needDefault: true });
 
       assert.propertyVal(data.screens[0], "id", "AW_ONLY_DEFAULT");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, 3);
+      assert.lengthOf(data.screens, 4);
     });
     it("should switch to 'start' if already pinned and default", async () => {
       const data = await prepConfig();
 
       assert.propertyVal(data.screens[0], "id", "AW_GET_STARTED");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, 3);
+      assert.lengthOf(data.screens, 4);
     });
     it("should have a FxA button", async () => {
       const data = await prepConfig();
@@ -223,6 +257,39 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.deepEqual(screens, [
         { id: "hello", order: 0 },
         { id: "world", order: 1 },
+      ]);
+    });
+    it("shouldn't remove colorway screens on win7", async () => {
+      sandbox.stub(AppConstants, "isPlatformAndVersionAtMost").returns(true);
+
+      const { screens } = await AboutWelcomeDefaults.prepareContentForReact({
+        screens: [
+          {
+            order: 0,
+            content: {
+              tiles: { type: "colorway" },
+            },
+          },
+          { id: "hello", order: 1 },
+          {
+            order: 2,
+            content: {
+              tiles: { type: "theme" },
+            },
+          },
+          { id: "world", order: 3 },
+        ],
+      });
+
+      assert.deepEqual(screens, [
+        {
+          order: 0,
+          content: {
+            tiles: { type: "colorway" },
+          },
+        },
+        { id: "hello", order: 1 },
+        { id: "world", order: 2 },
       ]);
     });
   });

@@ -125,7 +125,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
       nsDocShellLoadState* aLoadState, nsIChannel* aChannel);
 
   UniquePtr<LoadingSessionHistoryInfo> ReplaceLoadingSessionHistoryEntryForLoad(
-      LoadingSessionHistoryInfo* aInfo, nsIChannel* aChannel);
+      LoadingSessionHistoryInfo* aInfo, nsIChannel* aOldChannel,
+      nsIChannel* aNewChannel);
 
   already_AddRefed<Promise> Print(nsIPrintSettings* aPrintSettings,
                                   ErrorResult& aRv);
@@ -139,7 +140,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   void SessionHistoryCommit(uint64_t aLoadId, const nsID& aChangeID,
                             uint32_t aLoadType, bool aPersist,
-                            bool aCloneEntryChildren);
+                            bool aCloneEntryChildren, bool aChannelExpired);
 
   // Calls the session history listeners' OnHistoryReload, storing the result in
   // aCanReload. If aCanReload is set to true and we have an active or a loading
@@ -273,8 +274,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
                                      SessionHistoryEntry* aEntry);
 
   void GetLoadingSessionHistoryInfoFromParent(
-      Maybe<LoadingSessionHistoryInfo>& aLoadingInfo, int32_t* aRequestedIndex,
-      int32_t* aLength);
+      Maybe<LoadingSessionHistoryInfo>& aLoadingInfo);
 
   void HistoryCommitIndexAndLength();
 

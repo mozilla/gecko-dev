@@ -77,25 +77,6 @@ class DateTimePatternGenerator final {
   }
 
   /**
-   * Given a skeleton (a string with unordered datetime fields), get a best
-   * pattern that will fit for that locale. This pattern will be filled into the
-   * buffer. e.g. The skeleton "yMd" would return the pattern "M/d/y" for en-US,
-   * or "dd/MM/y" for en-GB.
-   */
-  template <size_t S>
-  ICUResult GetBestPattern(Span<const char16_t> aSkeleton,
-                           Vector<char16_t, S>& aVector,
-                           EnumSet<PatternMatchOption> options = {}) {
-    return FillVectorWithICUCall(
-        aVector, [&](UChar* target, int32_t length, UErrorCode* status) {
-          return udatpg_getBestPatternWithOptions(
-              mGenerator.GetMut(), aSkeleton.data(),
-              static_cast<int32_t>(aSkeleton.Length()),
-              toUDateTimePatternMatchOptions(options), target, length, status);
-        });
-  }
-
-  /**
    * Get a skeleton (a string with unordered datetime fields) from a pattern.
    * For example, both "MMM-dd" and "dd/MMM" produce the skeleton "MMMdd".
    */
@@ -112,20 +93,25 @@ class DateTimePatternGenerator final {
   }
 
   /**
-   * Get a skeleton (a string with unordered datetime fields) from a pattern.
-   * For example, both "MMM-dd" and "dd/MMM" produce the skeleton "MMMdd".
+   * Get a pattern of the form "{1} {0}" to combine separate date and time
+   * patterns into a single pattern. The "{0}" part is the placeholder for the
+   * time pattern and "{1}" is the placeholder for the date pattern.
+   *
+   * See dateTimeFormat from
+   * https://unicode.org/reports/tr35/tr35-dates.html#dateTimeFormat
+   *
+   * Note:
+   * In CLDR, it's called Date-Time Combined Format
+   * https://cldr.unicode.org/translation/date-time/datetime-patterns#h.x7ca7qwzh4m
+   *
+   * The naming 'placeholder pattern' is from ICU4X.
+   * https://unicode-org.github.io/icu4x-docs/doc/icu_pattern/index.html
    */
-  template <typename V, size_t N, typename A>
-  static ICUResult GetSkeleton(Span<const char16_t> aPattern,
-                               Vector<V, N, A>& aVector) {
-    // At one time udatpg_getSkeleton required a UDateTimePatternGenerator*, but
-    // now it is valid to pass in a nullptr.
-    return FillVectorWithICUCall(
-        aVector, [&](UChar* target, int32_t length, UErrorCode* status) {
-          return udatpg_getSkeleton(nullptr, aPattern.data(),
-                                    static_cast<int32_t>(aPattern.Length()),
-                                    target, length, status);
-        });
+  Span<const char16_t> GetPlaceholderPattern() const {
+    int32_t length;
+    const char16_t* combined =
+        udatpg_getDateTimeFormat(mGenerator.GetConst(), &length);
+    return Span{combined, static_cast<size_t>(length)};
   }
 
   /**

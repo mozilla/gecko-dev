@@ -116,12 +116,6 @@ class ComputedStyle {
     return mPseudoType != PseudoStyleType::NotPseudo;
   }
 
-  // Whether there are author-specified rules for padding properties.
-  // Only returns something meaningful if the appearance property is not `none`.
-  bool HasAuthorSpecifiedPadding() const {
-    return bool(Flags() & Flag::HAS_AUTHOR_SPECIFIED_PADDING);
-  }
-
   // Whether there are author-specified rules for border or background
   // properties.
   // Only returns something meaningful if the appearance property is not `none`.
@@ -227,6 +221,9 @@ class ComputedStyle {
   }
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
+
+  inline mozilla::StylePointerEvents PointerEvents() const;
+  inline mozilla::StyleUserSelect UserSelect() const;
 
   /**
    * Compute the style changes needed during restyling when this style

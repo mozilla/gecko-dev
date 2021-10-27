@@ -27,6 +27,7 @@
 #include "Relation.h"
 #include "sdnAccessible.h"
 #include "sdnTextAccessible.h"
+#include "HyperTextAccessible-inl.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
@@ -51,13 +52,14 @@ MsaaAccessible* MsaaAccessible::Create(Accessible* aAcc) {
   // The order of some of these is important! For example, when isRoot is true,
   // IsDoc will also be true, so we must check IsRoot first. IsTable/Cell and
   // IsHyperText are a similar case.
-  if (aAcc->IsLocal() && aAcc->IsRoot()) {
+  LocalAccessible* localAcc = aAcc->AsLocal();
+  if (localAcc && aAcc->IsRoot()) {
     return new MsaaRootAccessible(aAcc);
   }
   if (aAcc->IsDoc()) {
     return new MsaaDocAccessible(aAcc);
   }
-  if (aAcc->IsLocal()) {
+  if (localAcc) {
     // XXX These classes don't support RemoteAccessible yet.
     if (aAcc->IsTable()) {
       return new ia2AccessibleTable(aAcc);
@@ -68,16 +70,16 @@ MsaaAccessible* MsaaAccessible::Create(Accessible* aAcc) {
     if (aAcc->IsApplication()) {
       return new ia2AccessibleApplication(aAcc);
     }
-    if (aAcc->IsHyperText()) {
-      return new ia2AccessibleHypertext(aAcc);
-    }
     if (aAcc->IsImage()) {
       return new ia2AccessibleImage(aAcc);
     }
-    if (aAcc->AsLocal()->GetContent() &&
-        aAcc->AsLocal()->GetContent()->IsXULElement(nsGkAtoms::menuitem)) {
+    if (localAcc->GetContent() &&
+        localAcc->GetContent()->IsXULElement(nsGkAtoms::menuitem)) {
       return new MsaaXULMenuitemAccessible(aAcc);
     }
+  }
+  if (aAcc->IsHyperText()) {
+    return new ia2AccessibleHypertext(aAcc);
   }
   return new MsaaAccessible(aAcc);
 }
@@ -251,8 +253,7 @@ HWND MsaaAccessible::GetHWNDFor(Accessible* aAccessible) {
     nsIWidget* widget = frame->GetNearestWidget();
     if (widget && widget->IsVisible()) {
       if (nsViewManager* vm = document->PresShellPtr()->GetViewManager()) {
-        nsCOMPtr<nsIWidget> rootWidget;
-        vm->GetRootWidget(getter_AddRefs(rootWidget));
+        nsCOMPtr<nsIWidget> rootWidget = vm->GetRootWidget();
         // Make sure the accessible belongs to popup. If not then use
         // document HWND (which might be different from root widget in the
         // case of window emulation).
@@ -859,12 +860,12 @@ MsaaAccessible::QueryInterface(REFIID iid, void** ppv) {
     if (SUCCEEDED(hr)) return hr;
   }
 
-  if (!*ppv && localAcc) {
+  if (!*ppv) {
     HRESULT hr = ia2AccessibleHyperlink::QueryInterface(iid, ppv);
     if (SUCCEEDED(hr)) return hr;
   }
 
-  if (!*ppv && localAcc) {
+  if (!*ppv) {
     HRESULT hr = ia2AccessibleValue::QueryInterface(iid, ppv);
     if (SUCCEEDED(hr)) return hr;
   }
@@ -1160,8 +1161,16 @@ MsaaAccessible::get_accState(
   if (accessible) {
     return accessible->get_accState(kVarChildIdSelf, pvarState);
   }
+
   if (mAcc->IsRemote()) {
-    return E_NOTIMPL;  // XXX Not supported for RemoteAccessible yet.
+    // XXX Not supported for RemoteAccessible yet.
+    if (mAcc->IsDoc()) {
+      // XXX We don't cache whether a document is editable yet. Most documents
+      // aren't. To facilitate testing of the cache with screen readers, always
+      // expose READONLY here.
+      pvarState->lVal |= STATE_SYSTEM_READONLY;
+    }
+    return S_OK;
   }
 
   // MSAA only has 31 states and the lowest 31 bits of our state bit mask
@@ -1522,13 +1531,7 @@ MsaaAccessible::accLocation(
                                    kVarChildIdSelf);
   }
 
-  LocalAccessible* localAcc = LocalAcc();
-  if (!localAcc) {
-    return E_NOTIMPL;  // XXX Not supported for RemoteAccessible yet.
-  }
-
-  nsIntRect rect = localAcc->Bounds();
-
+  nsIntRect rect = Acc()->Bounds();
   *pxLeft = rect.X();
   *pyTop = rect.Y();
   *pcxWidth = rect.Width();

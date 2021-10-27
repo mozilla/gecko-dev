@@ -14,7 +14,19 @@ button {
   margin: 1px 5px 2px;
   min-width: 6.3em;
   color: ButtonText;
+  background-color: ButtonFace;
   text-shadow: none;
+  border: 1px solid ThreeDLightShadow;
+  padding: 2px 3px;
+  /* TODO: In Windows 11 perhaps we want some border-radius */
+}
+
+button:where(:hover) {
+  background-color: -moz-ButtonHoverFace;
+}
+
+button:where(:hover:active) {
+  background-color: -moz-ButtonActiveFace;
 }
 
 .button-text {
@@ -24,7 +36,7 @@ button {
 
 /* .......... focused state .......... */
 
-button:-moz-focusring {
+button:focus-visible {
   outline: 1px dotted;
   outline-offset: -3px;
 }
@@ -38,7 +50,7 @@ button:-moz-focusring {
      default, hovered or focused state. However, if these states overlap with
      the active, disabled, open or checked state, the appearance reverts back
      to the default background. */
-  button:where([default="true"],:hover,:focus):not(:active,[disabled="true"],[open="true"],[checked="true"]) {
+  button:where([default="true"],:hover,:focus):where(:not(:active,[disabled="true"],[open="true"],[checked="true"])) {
     color: HighlightText;
   }
 }
@@ -47,6 +59,7 @@ button:-moz-focusring {
 
 button:where([disabled="true"]) {
   color: GrayText;
+  background-color: ButtonFace;
 }
 
 @media (-moz-windows-classic) {

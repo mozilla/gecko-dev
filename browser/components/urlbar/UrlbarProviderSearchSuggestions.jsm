@@ -343,7 +343,7 @@ class ProviderSearchSuggestions extends UrlbarProvider {
     // maxHistoricalSearchSuggestions used to determine the initial number of
     // form history results, with the special case where zero means to never
     // show form history at all.  With the introduction of flexed result
-    // buckets, we now use it only as a boolean: Zero means don't show form
+    // groups, we now use it only as a boolean: Zero means don't show form
     // history at all (as before), non-zero means show it.
     if (UrlbarPrefs.get("maxHistoricalSearchSuggestions")) {
       for (let entry of fetchData.local) {
@@ -378,7 +378,7 @@ class ProviderSearchSuggestions extends UrlbarProvider {
       }
 
       if (entry.tail && entry.tailOffsetIndex < 0) {
-        Cu.reportError(
+        this.logger.error(
           `Error in tail suggestion parsing. Value: ${entry.value}, tail: ${entry.tail}.`
         );
         continue;
@@ -393,7 +393,7 @@ class ProviderSearchSuggestions extends UrlbarProvider {
       }
 
       if (!tail) {
-        await tailTimer.fire().catch(Cu.reportError);
+        await tailTimer.fire().catch(ex => this.logger.error(ex));
       }
 
       try {
@@ -415,7 +415,7 @@ class ProviderSearchSuggestions extends UrlbarProvider {
           )
         );
       } catch (err) {
-        Cu.reportError(err);
+        this.logger.error(err);
         continue;
       }
     }

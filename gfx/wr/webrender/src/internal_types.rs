@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, DocumentId, ExternalImageId, PrimitiveFlags, Parameter};
+use api::{ColorF, DocumentId, ExternalImageId, PrimitiveFlags, Parameter, RenderReasons};
 use api::{ImageFormat, NotificationRequest, Shadow, FilterOp, ImageBufferKind};
 use api::units::*;
 use api;
@@ -22,6 +22,7 @@ use std::f32;
 use std::hash::BuildHasherDefault;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{UNIX_EPOCH, SystemTime};
 
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::capture::CaptureConfig;
@@ -32,6 +33,137 @@ use crate::capture::PlainExternalImage;
 
 pub type FastHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FxHasher>>;
 pub type FastHashSet<K> = HashSet<K, BuildHasherDefault<FxHasher>>;
+
+#[derive(Copy, Clone, Hash, MallocSizeOf, PartialEq, PartialOrd, Debug, Eq, Ord)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct FrameId(usize);
+
+impl FrameId {
+    /// Returns a FrameId corresponding to the first frame.
+    ///
+    /// Note that we use 0 as the internal id here because the current code
+    /// increments the frame id at the beginning of the frame, rather than
+    /// at the end, and we want the first frame to be 1. It would probably
+    /// be sensible to move the advance() call to after frame-building, and
+    /// then make this method return FrameId(1).
+    pub fn first() -> Self {
+        FrameId(0)
+    }
+
+    /// Returns the backing usize for this FrameId.
+    pub fn as_usize(&self) -> usize {
+        self.0
+    }
+
+    /// Advances this FrameId to the next frame.
+    pub fn advance(&mut self) {
+        self.0 += 1;
+    }
+
+    /// An invalid sentinel FrameId, which will always compare less than
+    /// any valid FrameId.
+    pub const INVALID: FrameId = FrameId(0);
+}
+
+impl Default for FrameId {
+    fn default() -> Self {
+        FrameId::INVALID
+    }
+}
+
+impl ::std::ops::Add<usize> for FrameId {
+    type Output = Self;
+    fn add(self, other: usize) -> FrameId {
+        FrameId(self.0 + other)
+    }
+}
+
+impl ::std::ops::Sub<usize> for FrameId {
+    type Output = Self;
+    fn sub(self, other: usize) -> FrameId {
+        assert!(self.0 >= other, "Underflow subtracting FrameIds");
+        FrameId(self.0 - other)
+    }
+}
+
+/// Identifier to track a sequence of frames.
+///
+/// This is effectively a `FrameId` with a ridealong timestamp corresponding
+/// to when advance() was called, which allows for more nuanced cache eviction
+/// decisions. As such, we use the `FrameId` for equality and comparison, since
+/// we should never have two `FrameStamps` with the same id but different
+/// timestamps.
+#[derive(Copy, Clone, Debug, MallocSizeOf)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct FrameStamp {
+    id: FrameId,
+    time: SystemTime,
+    document_id: DocumentId,
+}
+
+impl Eq for FrameStamp {}
+
+impl PartialEq for FrameStamp {
+    fn eq(&self, other: &Self) -> bool {
+        // We should not be checking equality unless the documents are the same
+        debug_assert!(self.document_id == other.document_id);
+        self.id == other.id
+    }
+}
+
+impl PartialOrd for FrameStamp {
+    fn partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
+        self.id.partial_cmp(&other.id)
+    }
+}
+
+impl FrameStamp {
+    /// Gets the FrameId in this stamp.
+    pub fn frame_id(&self) -> FrameId {
+        self.id
+    }
+
+    /// Gets the time associated with this FrameStamp.
+    pub fn time(&self) -> SystemTime {
+        self.time
+    }
+
+    /// Gets the DocumentId in this stamp.
+    pub fn document_id(&self) -> DocumentId {
+        self.document_id
+    }
+
+    pub fn is_valid(&self) -> bool {
+        // If any fields are their default values, the whole struct should equal INVALID
+        debug_assert!((self.time != UNIX_EPOCH && self.id != FrameId(0) && self.document_id != DocumentId::INVALID) ||
+                      *self == Self::INVALID);
+        self.document_id != DocumentId::INVALID
+    }
+
+    /// Returns a FrameStamp corresponding to the first frame.
+    pub fn first(document_id: DocumentId) -> Self {
+        FrameStamp {
+            id: FrameId::first(),
+            time: SystemTime::now(),
+            document_id,
+        }
+    }
+
+    /// Advances to a new frame.
+    pub fn advance(&mut self) {
+        self.id.advance();
+        self.time = SystemTime::now();
+    }
+
+    /// An invalid sentinel FrameStamp.
+    pub const INVALID: FrameStamp = FrameStamp {
+        id: FrameId(0),
+        time: UNIX_EPOCH,
+        document_id: DocumentId::INVALID,
+    };
+}
 
 /// Custom field embedded inside the Polygon struct of the plane-split crate.
 #[derive(Copy, Clone, Debug)]
@@ -365,6 +497,13 @@ pub struct TextureCacheUpdate {
     pub source: TextureUpdateSource,
 }
 
+/// Command to update the contents of the texture cache.
+#[derive(Debug)]
+pub struct TextureCacheCopy {
+    pub src_rect: DeviceIntRect,
+    pub dst_rect: DeviceIntRect,
+}
+
 /// Atomic set of commands to manipulate the texture cache, generated on the
 /// RenderBackend thread and executed on the Renderer thread.
 ///
@@ -379,6 +518,9 @@ pub struct TextureUpdateList {
     pub allocations: Vec<TextureCacheAllocation>,
     /// Commands to update the contents of the textures. Processed second.
     pub updates: FastHashMap<CacheTextureId, Vec<TextureCacheUpdate>>,
+    /// Commands to move items within the cache, these are applied before everything
+    /// else in the update list.
+    pub copies: FastHashMap<(CacheTextureId, CacheTextureId), Vec<TextureCacheCopy>>,
 }
 
 impl TextureUpdateList {
@@ -388,6 +530,7 @@ impl TextureUpdateList {
             clears_shared_cache: false,
             allocations: Vec::new(),
             updates: FastHashMap::default(),
+            copies: FastHashMap::default(),
         }
     }
 
@@ -491,6 +634,25 @@ impl TextureUpdateList {
         };
     }
 
+    /// Push a copy operation from a texture to another.
+    ///
+    /// The source and destination rectangles must have the same size.
+    /// The copies are applied before every other operations in the
+    /// texture update list.
+    pub fn push_copy(
+        &mut self,
+        src_id: CacheTextureId, src_rect: &DeviceIntRect,
+        dst_id: CacheTextureId, dst_rect: &DeviceIntRect,
+    ) {
+        debug_assert_eq!(src_rect.size(), dst_rect.size());
+        self.copies.entry((src_id, dst_id))
+            .or_insert_with(Vec::new)
+            .push(TextureCacheCopy {
+                src_rect: *src_rect,
+                dst_rect: *dst_rect,
+            });
+    }
+
     fn debug_assert_coalesced(&self, id: CacheTextureId) {
         debug_assert!(
             self.allocations.iter().filter(|x| x.id == id).count() <= 1,
@@ -521,6 +683,7 @@ pub struct RenderedDocument {
     pub frame: Frame,
     pub is_new_scene: bool,
     pub profile: TransactionProfile,
+    pub render_reasons: RenderReasons,
     pub frame_stats: Option<FullFrameStats>
 }
 
@@ -553,17 +716,7 @@ pub enum ResultMsg {
 }
 
 #[derive(Clone, Debug)]
-pub struct ResourceCacheError {
-    description: String,
-}
-
-impl ResourceCacheError {
-    pub fn new(description: String) -> ResourceCacheError {
-        ResourceCacheError {
-            description,
-        }
-    }
-}
+pub struct ResourceCacheError;
 
 /// Primitive metadata we pass around in a bunch of places
 #[derive(Copy, Clone, Debug)]

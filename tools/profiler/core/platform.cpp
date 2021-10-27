@@ -2476,8 +2476,11 @@ static void StreamMarkerSchema(SpliceableJSONWriter& aWriter) {
     }
   }
 
-  // Now stream the Rust marker schemas.
-  profiler::ffi::gecko_profiler_stream_marker_schemas(&aWriter);
+  // Now stream the Rust marker schemas. Passing the names set as a void pointer
+  // as well, so we can continue checking if the schemes are added already in
+  // the Rust side.
+  profiler::ffi::gecko_profiler_stream_marker_schemas(
+      &aWriter, static_cast<void*>(&names));
 }
 
 // Some meta information that is better recorded before streaming the profile.
@@ -2982,11 +2985,29 @@ static void locked_profiler_stream_json_for_this_process(
     ThreadRegistry::LockedRegistry lockedRegistry;
     ActivePS::ProfiledThreadList threads =
         ActivePS::ProfiledThreads(lockedRegistry, aLock);
+
+    // Prepare the streaming context for each thread.
+    ProcessStreamingContext processStreamingContext(
+        threads.length(), CorePS::ProcessStartTime(), aSinceTime);
     for (ActivePS::ProfiledThreadListElement& thread : threads) {
-      thread.mProfiledThreadData->StreamJSON(
-          buffer, thread.mJSContext, aWriter, CorePS::ProcessName(aLock),
-          CorePS::ETLDplus1(aLock), CorePS::ProcessStartTime(), aSinceTime,
-          ActivePS::FeatureJSTracer(aLock), aService);
+      MOZ_RELEASE_ASSERT(thread.mProfiledThreadData);
+      processStreamingContext.AddThreadStreamingContext(
+          *thread.mProfiledThreadData, buffer, thread.mJSContext, aService);
+    }
+
+    // Read the buffer once, and extract all samples and markers that the
+    // context expects.
+    buffer.StreamSamplesAndMarkersToJSON(processStreamingContext);
+
+    // Stream each thread from the pre-filled context.
+    for (ThreadStreamingContext& threadStreamingContext :
+         std::move(processStreamingContext)) {
+      threadStreamingContext.FinalizeWriter();
+      threadStreamingContext.mProfiledThreadData.StreamJSON(
+          std::move(threadStreamingContext), aWriter,
+          CorePS::ProcessName(aLock), CorePS::ETLDplus1(aLock),
+          CorePS::ProcessStartTime(), ActivePS::FeatureJSTracer(aLock),
+          aService);
     }
 
 #if defined(GP_OS_android)
@@ -4444,7 +4465,7 @@ void profiler_shutdown(IsFastShutdown aIsFastShutdown) {
     // Save the profile on shutdown if requested.
     if (ActivePS::Exists(lock)) {
       const char* filename = getenv("MOZ_PROFILER_SHUTDOWN");
-      if (filename) {
+      if (filename && filename[0] != '\0') {
         locked_profiler_save_profile_to_file(lock, filename,
                                              preRecordedMetaInformation,
                                              /* aIsShuttingDown */ true);
@@ -4599,6 +4620,12 @@ void GetProfilerEnvVarsForChildProcess(
   }
 
   aSetEnv("MOZ_PROFILER_STARTUP", "1");
+
+  // If MOZ_PROFILER_SHUTDOWN is defined, make sure it's empty in children, so
+  // that they don't attempt to write over that file.
+  if (getenv("MOZ_PROFILER_SHUTDOWN")) {
+    aSetEnv("MOZ_PROFILER_SHUTDOWN", "");
+  }
 
   // Hidden option to stop Base Profiler, mostly due to Talos intermittents,
   // see https://bugzilla.mozilla.org/show_bug.cgi?id=1638851#c3

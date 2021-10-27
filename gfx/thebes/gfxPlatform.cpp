@@ -27,6 +27,7 @@
 #include "mozilla/StaticPrefs_layers.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPrefs_webgl.h"
+#include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Unused.h"
@@ -65,6 +66,7 @@
 
 #if defined(XP_WIN)
 #  include "gfxWindowsPlatform.h"
+#  include "mozilla/widget/WinWindowOcclusionTracker.h"
 #elif defined(XP_MACOSX)
 #  include "gfxPlatformMac.h"
 #  include "gfxQuartzSurface.h"
@@ -80,6 +82,7 @@
 
 #ifdef XP_WIN
 #  include "mozilla/WindowsVersion.h"
+#  include "WinUtils.h"
 #endif
 
 #include "nsGkAtoms.h"
@@ -435,7 +438,6 @@ gfxPlatform::gfxPlatform()
     : mHasVariationFontSupport(false),
       mAzureCanvasBackendCollector(this, &gfxPlatform::GetAzureBackendInfo),
       mApzSupportCollector(this, &gfxPlatform::GetApzSupportInfo),
-      mTilesInfoCollector(this, &gfxPlatform::GetTilesSupportInfo),
       mFrameStatsCollector(this, &gfxPlatform::GetFrameStats),
       mCMSInfoCollector(this, &gfxPlatform::GetCMSSupportInfo),
       mDisplayInfoCollector(this, &gfxPlatform::GetDisplayInfo),
@@ -479,6 +481,13 @@ void gfxPlatform::InitChild(const ContentDeviceData& aData) {
 }
 
 #define WR_DEBUG_PREF "gfx.webrender.debug"
+
+static void SwapIntervalPrefChangeCallback(const char* aPrefName, void*) {
+  bool egl = Preferences::GetBool("gfx.swap-interval.egl", false);
+  bool glx = Preferences::GetBool("gfx.swap-interval.glx", false);
+  gfxVars::SetSwapIntervalEGL(egl);
+  gfxVars::SetSwapIntervalGLX(glx);
+}
 
 static void WebRendeProfilerUIPrefChangeCallback(const char* aPrefName, void*) {
   nsCString uiString;
@@ -898,6 +907,7 @@ void gfxPlatform::Init() {
 
   gPlatform->InitWebGLConfig();
   gPlatform->InitWebGPUConfig();
+  gPlatform->InitWindowOcclusionConfig();
 
   // When using WebRender, we defer initialization of the D3D11 devices until
   // the (rare) cases where they're used. Note that the GPU process where
@@ -936,8 +946,6 @@ void gfxPlatform::Init() {
 #endif
 
   InitLayersIPC();
-
-  gPlatform->ComputeTileSize();
 
   gPlatform->mHasVariationFontSupport = gPlatform->CheckVariationFontSupport();
 
@@ -1265,6 +1273,11 @@ void gfxPlatform::InitLayersIPC() {
   sLayersIPCIsUp = true;
 
   if (XRE_IsParentProcess()) {
+#if defined(XP_WIN)
+    if (gfxConfig::IsEnabled(gfx::Feature::WINDOW_OCCLUSION)) {
+      widget::WinWindowOcclusionTracker::Ensure();
+    }
+#endif
     if (!gfxConfig::IsEnabled(Feature::GPU_PROCESS) && UseWebRender()) {
       wr::RenderThread::Start();
       image::ImageMemoryReporter::InitForWebRender();
@@ -1310,7 +1323,9 @@ void gfxPlatform::ShutdownLayersIPC() {
           nsDependentCString(
               StaticPrefs::GetPrefName_gfx_webrender_blob_tile_size()));
     }
-
+#if defined(XP_WIN)
+    widget::WinWindowOcclusionTracker::ShutDown();
+#endif
   } else {
     // TODO: There are other kind of processes and we should make sure gfx
     // stuff is either not created there or shut down properly.
@@ -1533,34 +1548,6 @@ already_AddRefed<DataSourceSurface> gfxPlatform::GetWrappedDataSourceSurface(
   result->AddUserData(&kThebesSurface, srcSurfUD, SourceSurfaceDestroyed);
 
   return result.forget();
-}
-
-void gfxPlatform::ComputeTileSize() {
-  // The tile size should be picked in the parent processes
-  // and sent to the child processes over IPDL GetTileSize.
-  if (!XRE_IsParentProcess()) {
-    return;
-  }
-
-  int32_t w = StaticPrefs::layers_tile_width_AtStartup();
-  int32_t h = StaticPrefs::layers_tile_height_AtStartup();
-
-  if (StaticPrefs::layers_tiles_adjust_AtStartup()) {
-    gfx::IntSize screenSize = GetScreenSize();
-    if (screenSize.width > 0) {
-      // Choose a size so that there are between 2 and 4 tiles per screen width.
-      // FIXME: we should probably make sure this is within the max texture
-      // size, but I think everything should at least support 1024
-      w = h = clamped(int32_t(RoundUpPow2(screenSize.width)) / 4, 256, 1024);
-    }
-  }
-
-  // Don't allow changing the tile size after we've set it.
-  // Right now the code assumes that the tile size doesn't change.
-  MOZ_ASSERT(gfxVars::TileSize().width == -1 &&
-             gfxVars::TileSize().height == -1);
-
-  gfxVars::SetTileSize(IntSize(w, h));
 }
 
 void gfxPlatform::PopulateScreenInfo() {
@@ -2592,6 +2579,9 @@ void gfxPlatform::InitWebRenderConfig() {
 
   gfxVars::SetUseSoftwareWebRender(!hasHardware && hasSoftware);
 
+  Preferences::RegisterPrefixCallbackAndCall(SwapIntervalPrefChangeCallback,
+                                             "gfx.swap-interval");
+
   // gfxFeature is not usable in the GPU process, so we use gfxVars to transmit
   // this feature
   if (hasWebRender) {
@@ -2752,6 +2742,62 @@ void gfxPlatform::InitWebGPUConfig() {
   }
 }
 
+#ifdef XP_WIN
+static void WindowOcclusionPrefChangeCallback(const char* aPref, void*) {
+  const char* env = PR_GetEnv("MOZ_WINDOW_OCCLUSION");
+  if (env) {
+    // env has a higher priority than pref.
+    return;
+  }
+
+  FeatureState& feature = gfxConfig::GetFeature(Feature::WINDOW_OCCLUSION);
+  bool enabled =
+      StaticPrefs::widget_windows_window_occlusion_tracking_enabled();
+
+  printf_stderr("Dynamically enable window occlusion %d\n", enabled);
+
+  // Update feature before calling WinUtils::EnableWindowOcclusion()
+  if (enabled) {
+    feature.UserEnable("User enabled by pref");
+  } else {
+    feature.UserDisable("User disabled via pref",
+                        "FEATURE_FAILURE_PREF_DISABLED"_ns);
+  }
+  widget::WinUtils::EnableWindowOcclusion(enabled);
+}
+#endif
+
+void gfxPlatform::InitWindowOcclusionConfig() {
+  if (!XRE_IsParentProcess()) {
+    return;
+  }
+#ifdef XP_WIN
+  FeatureState& feature = gfxConfig::GetFeature(Feature::WINDOW_OCCLUSION);
+  feature.SetDefaultFromPref(
+      StaticPrefs::
+          GetPrefName_widget_windows_window_occlusion_tracking_enabled(),
+      true,
+      StaticPrefs::
+          GetPrefDefault_widget_windows_window_occlusion_tracking_enabled());
+
+  const char* env = PR_GetEnv("MOZ_WINDOW_OCCLUSION");
+  if (env) {
+    if (*env == '1') {
+      feature.UserForceEnable("Force enabled by envvar");
+    } else {
+      feature.UserDisable("Force disabled by envvar",
+                          "FEATURE_FAILURE_OCCL_ENV"_ns);
+    }
+  }
+
+  Preferences::RegisterCallback(
+      WindowOcclusionPrefChangeCallback,
+      nsDependentCString(
+          StaticPrefs::
+              GetPrefName_widget_windows_window_occlusion_tracking_enabled()));
+#endif
+}
+
 bool gfxPlatform::CanUseHardwareVideoDecoding() {
   // this function is called from the compositor thread, so it is not
   // safe to init the prefs etc. from here.
@@ -2792,10 +2838,6 @@ bool gfxPlatform::UsesOffMainThreadCompositing() {
   }
 
   return result;
-}
-
-bool gfxPlatform::UsesTiling() const {
-  return StaticPrefs::layers_enable_tiles_AtStartup();
 }
 
 /***
@@ -2939,16 +2981,6 @@ void gfxPlatform::GetApzSupportInfo(mozilla::widget::InfoObject& aObj) {
   if (SupportsApzZooming()) {
     aObj.DefineProperty("ApzZoomingInput", 1);
   }
-}
-
-void gfxPlatform::GetTilesSupportInfo(mozilla::widget::InfoObject& aObj) {
-  if (!StaticPrefs::layers_enable_tiles_AtStartup()) {
-    return;
-  }
-
-  IntSize tileSize = gfxVars::TileSize();
-  aObj.DefineProperty("TileHeight", tileSize.height);
-  aObj.DefineProperty("TileWidth", tileSize.width);
 }
 
 void gfxPlatform::GetFrameStats(mozilla::widget::InfoObject& aObj) {

@@ -6443,6 +6443,7 @@ class IDLConstructor(IDLMethod):
             or identifier == "Throws"
             or identifier == "Func"
             or identifier == "Pref"
+            or identifier == "UseCounter"
         ):
             IDLMethod.handleExtendedAttribute(self, attr)
         elif identifier == "HTMLConstructor":
@@ -6610,6 +6611,9 @@ class Tokenizer(object):
     def t_IDENTIFIER(self, t):
         r"[_-]?[A-Za-z][0-9A-Z_a-z-]*"
         t.type = self.keywords.get(t.value, "IDENTIFIER")
+        # If Builtin readable streams are disabled, mark ReadableStream as an identifier.
+        if t.type == "READABLESTREAM" and not self._use_builtin_readable_streams:
+            t.type = "IDENTIFIER"
         return t
 
     def t_STRING(self, t):
@@ -6719,7 +6723,8 @@ class Tokenizer(object):
             ],
         )
 
-    def __init__(self, outputdir, lexer=None):
+    def __init__(self, outputdir, lexer=None, use_builtin_readable_streams=True):
+        self._use_builtin_readable_streams = use_builtin_readable_streams
         if lexer:
             self.lexer = lexer
         else:
@@ -8512,8 +8517,8 @@ class Parser(Tokenizer):
                 [Location(self.lexer, p.lineno, p.lexpos, self._filename)],
             )
 
-    def __init__(self, outputdir="", lexer=None):
-        Tokenizer.__init__(self, outputdir, lexer)
+    def __init__(self, outputdir="", lexer=None, use_builtin_readable_stream=True):
+        Tokenizer.__init__(self, outputdir, lexer, use_builtin_readable_stream)
 
         logger = SqueakyCleanLogger()
         try:
@@ -8533,7 +8538,6 @@ class Parser(Tokenizer):
             logger.reportGrammarErrors()
 
         self._globalScope = IDLScope(BuiltinLocation("<Global Scope>"), None, None)
-
         self._installBuiltins(self._globalScope)
         self._productions = []
 

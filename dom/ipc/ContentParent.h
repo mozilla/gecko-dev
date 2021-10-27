@@ -1286,6 +1286,11 @@ class ContentParent final
   mozilla::ipc::IPCResult RecvStoreUserInteractionAsPermission(
       const Principal& aPrincipal);
 
+  mozilla::ipc::IPCResult RecvAsyncShouldAllowAccessFor(
+      const MaybeDiscarded<BrowsingContext>& aTopContext,
+      const Principal& aPrincipal,
+      const AsyncShouldAllowAccessForResolver&& aResolver);
+
   mozilla::ipc::IPCResult RecvNotifyMediaPlaybackChanged(
       const MaybeDiscarded<BrowsingContext>& aContext,
       MediaPlaybackState aState);
@@ -1347,7 +1352,7 @@ class ContentParent final
   mozilla::ipc::IPCResult RecvHistoryCommit(
       const MaybeDiscarded<BrowsingContext>& aContext, const uint64_t& aLoadID,
       const nsID& aChangeID, const uint32_t& aLoadType, const bool& aPersist,
-      const bool& aCloneEntryChildren);
+      const bool& aCloneEntryChildren, const bool& aChannelExpired);
 
   mozilla::ipc::IPCResult RecvHistoryGo(
       const MaybeDiscarded<BrowsingContext>& aContext, int32_t aOffset,
@@ -1445,6 +1450,9 @@ class ContentParent final
                                         const nsACString& aName,
                                         ErrorResult& aRv) override;
   mozilla::ipc::IProtocol* AsNativeActor() override { return this; }
+
+  static already_AddRefed<nsIPrincipal> CreateRemoteTypeIsolationPrincipal(
+      const nsACString& aRemoteType);
 
  private:
   // Return an existing ContentParent if possible. Otherwise, `nullptr`.

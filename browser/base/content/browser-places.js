@@ -363,7 +363,7 @@ var StarUI = {
     }
 
     // If we're changing where a bookmark gets saved, persist that location.
-    if (didChangeFolder && gBookmarksToolbar2h2020) {
+    if (didChangeFolder) {
       Services.prefs.setCharPref(
         "browser.bookmarks.defaultLocation",
         selectedFolderGuid
@@ -1081,6 +1081,7 @@ var PlacesMenuDNDHandler = {
    *          The DragOver event.
    */
   onDragOver: function PMDH_onDragOver(event) {
+    PlacesControllerDragHelper.currentDropTarget = event.target;
     let ip = new PlacesInsertionPoint({
       parentId: PlacesUtils.bookmarksMenuFolderId,
       parentGuid: PlacesUtils.bookmarks.menuGuid,
@@ -1123,19 +1124,17 @@ var PlacesToolbarHelper = {
    * show toolbars.
    */
   async init() {
-    let telemetryKey = await PlacesUIUtils.canLoadToolbarContentPromise;
-    let didCreate = this._realInit();
-    this._measureToolbarPaintDelay(telemetryKey, didCreate);
+    await PlacesUIUtils.canLoadToolbarContentPromise;
+    this._realInit();
   },
 
   /**
-   * @return whether we actually initialized the places view (and
-   * aren't collapsed).
+   * Actually initialize the places view (if needed; we might still no-op).
    */
   _realInit() {
     let viewElt = this._viewElt;
     if (!viewElt || viewElt._placesView || window.closed) {
-      return false;
+      return;
     }
 
     // CustomizableUI.addListener is idempotent, so we can safely
@@ -1160,7 +1159,7 @@ var PlacesToolbarHelper = {
       this._isCustomizing ||
       getComputedStyle(toolbar, "").display == "none"
     ) {
-      return false;
+      return;
     }
 
     if (
@@ -1172,52 +1171,6 @@ var PlacesToolbarHelper = {
     }
 
     new PlacesToolbar(`place:parent=${PlacesUtils.bookmarks.toolbarGuid}`);
-    return true;
-  },
-
-  // Only measure once per window:
-  _shouldMeasure: true,
-  _measureToolbarPaintDelay(telemetryKey, didCreate) {
-    if (!this._shouldMeasure) {
-      return;
-    }
-    this._shouldMeasure = false;
-    // If we create and show the toolbar later, we don't want to measure how
-    // long it took, so it's important this check happens after setting
-    // _shouldMeasure.
-    if (!didCreate) {
-      return;
-    }
-
-    let recordDelay = time => {
-      let entries = window.performance.getEntriesByType("paint");
-      let timeEntry = entries.find(e => e.name == "first-contentful-paint");
-      let histogram = Services.telemetry.getKeyedHistogramById(
-        "PLACES_BOOKMARKS_TOOLBAR_RENDER_DELAY_MS"
-      );
-      if (timeEntry) {
-        let delay = time - timeEntry.startTime - timeEntry.duration;
-        histogram.add(telemetryKey, Math.round(delay));
-      } else {
-        // If there is no base time, we haven't painted yet, so we rendered
-        // before paint:
-        histogram.add(telemetryKey, 0);
-      }
-    };
-    if (!window.windowUtils.isMozAfterPaintPending) {
-      recordDelay(performance.now());
-      return;
-    }
-    let removeListeners = () => {
-      window.removeEventListener("unload", removeListeners);
-      window.removeEventListener("MozAfterPaint", paintHandler);
-    };
-    let paintHandler = ev => {
-      removeListeners();
-      recordDelay(ev.paintTimeStamp);
-    };
-    window.addEventListener("MozAfterPaint", paintHandler);
-    window.addEventListener("unload", removeListeners);
   },
 
   handleEvent(event) {
@@ -1713,10 +1666,6 @@ var BookmarkingUI = {
 
       this.updateEmptyToolbarMessage();
 
-      if (!gBookmarksToolbar2h2020) {
-        return;
-      }
-
       let isVisible =
         Services.prefs.getCharPref(
           "browser.toolbars.bookmarks.visibility",
@@ -1789,9 +1738,13 @@ var BookmarkingUI = {
     this._uninitView();
 
     if (this._hasBookmarksObserver) {
-      PlacesUtils.bookmarks.removeObserver(this);
       PlacesUtils.observers.removeListener(
-        ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+        [
+          "bookmark-added",
+          "bookmark-removed",
+          "bookmark-moved",
+          "bookmark-url-changed",
+        ],
         this.handlePlacesEvents
       );
     }
@@ -1839,10 +1792,14 @@ var BookmarkingUI = {
         // Start observing bookmarks if needed.
         if (!this._hasBookmarksObserver) {
           try {
-            PlacesUtils.bookmarks.addObserver(this);
             this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
             PlacesUtils.observers.addListener(
-              ["bookmark-added", "bookmark-removed", "bookmark-moved"],
+              [
+                "bookmark-added",
+                "bookmark-removed",
+                "bookmark-moved",
+                "bookmark-url-changed",
+              ],
               this.handlePlacesEvents
             );
             this._hasBookmarksObserver = true;
@@ -2196,6 +2153,28 @@ var BookmarkingUI = {
           }
 
           break;
+        case "bookmark-url-changed":
+          // If the changed bookmark was tracked, check if it is now pointing to
+          // a different uri and unregister it.
+          if (this._itemGuids.has(ev.guid) && ev.url != this._uri.spec) {
+            this._itemGuids.delete(ev.guid);
+            // Only need to update the UI if the page is no longer starred
+            if (this._itemGuids.size == 0) {
+              this._updateStar();
+            }
+          } else if (
+            !this._itemGuids.has(ev.guid) &&
+            ev.url == this._uri.spec
+          ) {
+            // If another bookmark is now pointing to the tracked uri, register it.
+            this._itemGuids.add(ev.guid);
+            // Only need to update the UI if it wasn't marked as starred before:
+            if (this._itemGuids.size == 1) {
+              this._updateStar();
+            }
+          }
+
+          break;
       }
 
       if (ev.parentGuid === PlacesUtils.bookmarks.unfiledGuid) {
@@ -2212,36 +2191,6 @@ var BookmarkingUI = {
     }
 
     this.updateEmptyToolbarMessage();
-  },
-
-  onItemChanged(
-    aItemId,
-    aProperty,
-    aIsAnnotationProperty,
-    aNewValue,
-    aLastModified,
-    aItemType,
-    aParentId,
-    aGuid
-  ) {
-    if (aProperty == "uri") {
-      // If the changed bookmark was tracked, check if it is now pointing to
-      // a different uri and unregister it.
-      if (this._itemGuids.has(aGuid) && aNewValue != this._uri.spec) {
-        this._itemGuids.delete(aGuid);
-        // Only need to update the UI if the page is no longer starred
-        if (this._itemGuids.size == 0) {
-          this._updateStar();
-        }
-      } else if (!this._itemGuids.has(aGuid) && aNewValue == this._uri.spec) {
-        // If another bookmark is now pointing to the tracked uri, register it.
-        this._itemGuids.add(aGuid);
-        // Only need to update the UI if it wasn't marked as starred before:
-        if (this._itemGuids.size == 1) {
-          this._updateStar();
-        }
-      }
-    }
   },
 
   onItemMoved(
@@ -2284,8 +2233,7 @@ var BookmarkingUI = {
     // collapsed, or hidden in some other way.
     let toolbar = document.getElementById("PlacesToolbar");
 
-    // Only show the "Other Bookmarks" folder in the toolbar if pref is enabled.
-    if (!gBookmarksToolbar2h2020 || !toolbar?._placesView) {
+    if (!toolbar?._placesView) {
       return;
     }
 
@@ -2317,7 +2265,7 @@ var BookmarkingUI = {
     let unfiledGuid = PlacesUtils.bookmarks.unfiledGuid;
     let numberOfBookmarks = PlacesUtils.getChildCountForFolder(unfiledGuid);
 
-    if (!gBookmarksToolbar2h2020 || numberOfBookmarks < 1) {
+    if (numberOfBookmarks < 1) {
       return null;
     }
 
@@ -2378,6 +2326,4 @@ var BookmarkingUI = {
     placesToolbar._placesView._otherBookmarks = otherBookmarksButton;
     placesToolbar._placesView._otherBookmarksPopup = otherBookmarksPopup;
   },
-
-  QueryInterface: ChromeUtils.generateQI(["nsINavBookmarkObserver"]),
 };

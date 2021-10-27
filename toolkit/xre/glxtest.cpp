@@ -36,6 +36,7 @@
 #ifdef MOZ_X11
 #  include "X11/Xlib.h"
 #  include "X11/Xutil.h"
+#  include <X11/extensions/Xrandr.h>
 #endif
 
 #ifdef MOZ_WAYLAND
@@ -59,71 +60,6 @@ typedef XID GLXPbuffer;
 #  define GLX_GREEN_SIZE 9
 #  define GLX_BLUE_SIZE 10
 #  define GLX_DOUBLEBUFFER 5
-
-// xrandr.h
-typedef XID RRMode;
-typedef XID RRProvider;
-typedef unsigned long XRRModeFlags;
-typedef struct _provider provider_t;
-
-typedef struct _XRRModeInfo {
-  RRMode id;
-  unsigned int width;
-  unsigned int height;
-  unsigned long dotClock;
-  unsigned int hSyncStart;
-  unsigned int hSyncEnd;
-  unsigned int hTotal;
-  unsigned int hSkew;
-  unsigned int vSyncStart;
-  unsigned int vSyncEnd;
-  unsigned int vTotal;
-  char* name;
-  unsigned int nameLength;
-  XRRModeFlags modeFlags;
-} XRRModeInfo;
-
-typedef struct _XRRScreenResources {
-  Time timestamp;
-  Time configTimestamp;
-  int ncrtc;
-  void* crtcs;
-  int noutput;
-  void* outputs;
-  int nmode;
-  XRRModeInfo* modes;
-} XRRScreenResources;
-
-typedef struct _XRRProviderInfo {
-  unsigned int capabilities;
-  int ncrtcs;
-  void* crtcs;
-  int noutputs;
-  void* outputs;
-  char* name;
-  int nassociatedproviders;
-  RRProvider* associated_providers;
-  unsigned int* associated_capability;
-  int nameLen;
-} XRRProviderInfo;
-
-typedef struct {
-  unsigned int kind;
-  char* string;
-  XID xid;
-  int index;
-} name_t;
-
-struct _provider {
-  name_t provider;
-  XRRProviderInfo* info;
-};
-
-typedef struct _XRRProviderResources {
-  Time timestamp;
-  int nproviders;
-  RRProvider* providers;
-} XRRProviderResources;
 #endif
 
 // stuff from gl.h
@@ -211,13 +147,11 @@ typedef struct _drmDevice {
 #  define LIBGLES_FILENAME "libGLESv2.so"
 #  define LIBEGL_FILENAME "libEGL.so"
 #  define LIBDRM_FILENAME "libdrm.so"
-#  define LIBXRANDR_FILENAME "libXrandr.so"
 #else
 #  define LIBGL_FILENAME "libGL.so.1"
 #  define LIBGLES_FILENAME "libGLESv2.so.2"
 #  define LIBEGL_FILENAME "libEGL.so.1"
 #  define LIBDRM_FILENAME "libdrm.so.2"
-#  define LIBXRANDR_FILENAME "libXrandr.so.2"
 #endif
 
 #define EXIT_FAILURE_BUFFER_TOO_SMALL 2
@@ -703,64 +637,43 @@ static bool get_egl_status(EGLNativeDisplayType native_dpy, bool gles_test,
 }
 
 #ifdef MOZ_X11
-static void get_x11_screen_info(Display* dpy) {
-  int screenCount = ScreenCount(dpy);
-  int defaultScreen = DefaultScreen(dpy);
-  if (screenCount != 0) {
-    record_value("SCREEN_INFO\n");
-    for (int idx = 0; idx < screenCount; idx++) {
-      Screen* scrn = ScreenOfDisplay(dpy, idx);
-      int current_height = scrn->height;
-      int current_width = scrn->width;
-
-      record_value("%dx%d:%d%s", current_width, current_height,
-                   idx == defaultScreen ? 1 : 0,
-                   idx == screenCount - 1 ? ";\n" : ";");
-    }
-  }
-}
-
-static void get_x11_ddx_info(Display* dpy) {
-  void* libXrandr = dlopen(LIBXRANDR_FILENAME, RTLD_LAZY);
-  if (!libXrandr) {
-    return;
-  }
-
-  typedef XRRProviderResources* (*XRRGETPROVIDERRESOURCES)(Display*, Window);
-  XRRGETPROVIDERRESOURCES XRRGetProviderResources =
-      cast<XRRGETPROVIDERRESOURCES>(
-          dlsym(libXrandr, "XRRGetProviderResources"));
-
-  typedef XRRScreenResources* (*XRRGETSCREENRESOURCESCURRENT)(Display*, Window);
-  XRRGETSCREENRESOURCESCURRENT XRRGetScreenResourcesCurrent =
-      cast<XRRGETSCREENRESOURCESCURRENT>(
-          dlsym(libXrandr, "XRRGetScreenResourcesCurrent"));
-
-  typedef XRRProviderInfo* (*XRRGETPROVIDERINFO)(Display*, XRRScreenResources*,
-                                                 RRProvider);
-  XRRGETPROVIDERINFO XRRGetProviderInfo =
-      cast<XRRGETPROVIDERINFO>(dlsym(libXrandr, "XRRGetProviderInfo"));
-
-  if (!XRRGetProviderResources || !XRRGetScreenResourcesCurrent ||
-      !XRRGetProviderInfo) {
-    dlclose(libXrandr);
-    return;
-  }
-
+static void get_xrandr_info(Display* dpy) {
   Window root = RootWindow(dpy, DefaultScreen(dpy));
   XRRProviderResources* pr = XRRGetProviderResources(dpy, root);
   XRRScreenResources* res = XRRGetScreenResourcesCurrent(dpy, root);
-  int nProviders = pr->nproviders;
+  RROutput primary = XRRGetOutputPrimary(dpy, root);
 
-  if (nProviders != 0) {
-    record_value("DDX_DRIVER\n");
-    for (int i = 0; i < nProviders; i++) {
-      XRRProviderInfo* info = XRRGetProviderInfo(dpy, res, pr->providers[i]);
-      record_value("%s%s", info->name, i == nProviders - 1 ? ";\n" : ";");
+  if (res->noutput != 0) {
+    bool foundCRTC = false;
+
+    for (int i = 0; i < res->noutput; i++) {
+      XRROutputInfo* outputInfo = XRRGetOutputInfo(dpy, res, res->outputs[i]);
+      if (!outputInfo->crtc) {
+        continue;
+      }
+
+      if (!foundCRTC) {
+        record_value("SCREEN_INFO\n");
+        foundCRTC = true;
+      }
+
+      XRRCrtcInfo* crtcInfo = XRRGetCrtcInfo(dpy, res, outputInfo->crtc);
+      record_value("%dx%d:%d;", crtcInfo->width, crtcInfo->height,
+                   res->outputs[i] == primary ? 1 : 0);
+    }
+
+    if (foundCRTC) {
+      record_value("\n");
     }
   }
 
-  dlclose(libXrandr);
+  if (pr->nproviders != 0) {
+    record_value("DDX_DRIVER\n");
+    for (int i = 0; i < pr->nproviders; i++) {
+      XRRProviderInfo* info = XRRGetProviderInfo(dpy, res, pr->providers[i]);
+      record_value("%s%s", info->name, i == pr->nproviders - 1 ? ";\n" : ";");
+    }
+  }
 }
 
 static void get_glx_status(int* gotGlxInfo, int* gotDriDriver) {
@@ -920,11 +833,8 @@ static void get_glx_status(int* gotGlxInfo, int* gotDriDriver) {
     }
   }
 
-  // Get monitor information
-  get_x11_screen_info(dpy);
-
-  // Get DDX driver information
-  get_x11_ddx_info(dpy);
+  // Get monitor and DDX driver information
+  get_xrandr_info(dpy);
 
   ///// Clean up. Indeed, the parent process might fail to kill us (e.g. if it
   ///// doesn't need to check GL info) so we might be staying alive for longer
@@ -958,17 +868,23 @@ static bool x11_egltest(int pci_count) {
   }
   XSetErrorHandler(x_error_handler);
 
+  // Bug 1667621: 30bit "Deep Color" is broken on EGL on Mesa (as of 2021/10).
+  // Disable all non-standard depths for the initial EGL roleout.
+  int screenCount = ScreenCount(dpy);
+  for (int idx = 0; idx < screenCount; idx++) {
+    if (DefaultDepth(dpy, idx) != 24) {
+      return false;
+    }
+  }
+
   // On at least amdgpu open source driver, eglInitialize fails unless
   // a valid XDisplay pointer is passed as the native display.
   if (!get_egl_status(dpy, true, pci_count != 1)) {
     return false;
   }
 
-  // Get monitor information
-  get_x11_screen_info(dpy);
-
-  // Get DDX driver information
-  get_x11_ddx_info(dpy);
+  // Get monitor and DDX driver information
+  get_xrandr_info(dpy);
 
   // Bug 1715245: Closing the display connection here crashes on NV prop.
   // drivers. Just leave it open, the process will exit shortly after anyway.

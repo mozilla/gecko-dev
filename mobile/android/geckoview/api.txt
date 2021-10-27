@@ -22,6 +22,7 @@ import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.PointerIcon;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewStructure;
@@ -41,6 +42,7 @@ import java.io.InputStream;
 import java.lang.Boolean;
 import java.lang.CharSequence;
 import java.lang.Class;
+import java.lang.Deprecated;
 import java.lang.Double;
 import java.lang.Exception;
 import java.lang.Float;
@@ -186,6 +188,10 @@ package org.mozilla.geckoview {
     method @AnyThread @NonNull public Autocomplete.CreditCard.Builder number(@Nullable String);
   }
 
+  public static class Autocomplete.CreditCardSaveOption extends Autocomplete.SaveOption {
+    ctor public CreditCardSaveOption(@NonNull Autocomplete.CreditCard);
+  }
+
   public static class Autocomplete.CreditCardSelectOption extends Autocomplete.SelectOption {
     ctor public CreditCardSelectOption(@NonNull Autocomplete.CreditCard);
   }
@@ -259,6 +265,7 @@ package org.mozilla.geckoview {
     method @Nullable @UiThread default public GeckoResult<Autocomplete.Address[]> onAddressFetch();
     method @UiThread default public void onAddressSave(@NonNull Autocomplete.Address);
     method @Nullable @UiThread default public GeckoResult<Autocomplete.CreditCard[]> onCreditCardFetch();
+    method @UiThread default public void onCreditCardSave(@NonNull Autocomplete.CreditCard);
     method @Nullable @UiThread default public GeckoResult<Autocomplete.LoginEntry[]> onLoginFetch(@NonNull String);
     method @UiThread default public void onLoginSave(@NonNull Autocomplete.LoginEntry);
     method @UiThread default public void onLoginUsed(@NonNull Autocomplete.LoginEntry, int);
@@ -509,17 +516,17 @@ package org.mozilla.geckoview {
 
   @AnyThread public class ContentBlockingController {
     ctor public ContentBlockingController();
-    method @UiThread public void addException(@NonNull GeckoSession);
-    method @DeprecationSchedule(version=93,id="content-blocking-exception") @NonNull @UiThread public GeckoResult<Boolean> checkException(@NonNull GeckoSession);
-    method @DeprecationSchedule(version=93,id="content-blocking-exception") @UiThread public void clearExceptionList();
+    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @UiThread public void addException(@NonNull GeckoSession);
+    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @NonNull @UiThread public GeckoResult<Boolean> checkException(@NonNull GeckoSession);
+    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @UiThread public void clearExceptionList();
     method @NonNull @UiThread public GeckoResult<List<ContentBlockingController.LogEntry>> getLog(@NonNull GeckoSession);
-    method @DeprecationSchedule(version=93,id="content-blocking-exception") @UiThread public void removeException(@NonNull GeckoSession);
-    method @AnyThread @DeprecationSchedule(version=93,id="content-blocking-exception") public void removeException(@NonNull ContentBlockingController.ContentBlockingException);
-    method @AnyThread @DeprecationSchedule(version=93,id="content-blocking-exception") public void restoreExceptionList(@NonNull List<ContentBlockingController.ContentBlockingException>);
-    method @DeprecationSchedule(version=93,id="content-blocking-exception") @NonNull @UiThread public GeckoResult<List<ContentBlockingController.ContentBlockingException>> saveExceptionList();
+    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @UiThread public void removeException(@NonNull GeckoSession);
+    method @AnyThread @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") public void removeException(@NonNull ContentBlockingController.ContentBlockingException);
+    method @AnyThread @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") public void restoreExceptionList(@NonNull List<ContentBlockingController.ContentBlockingException>);
+    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @NonNull @UiThread public GeckoResult<List<ContentBlockingController.ContentBlockingException>> saveExceptionList();
   }
 
-  @DeprecationSchedule(version=93,id="content-blocking-exception") @AnyThread public static class ContentBlockingController.ContentBlockingException {
+  @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @AnyThread public static class ContentBlockingController.ContentBlockingException {
     method @NonNull public static ContentBlockingController.ContentBlockingException fromJson(@NonNull JSONObject);
     method @NonNull public JSONObject toJson();
     field @NonNull public final String uri;
@@ -775,7 +782,8 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings.Builder displayDensityOverride(float);
     method @NonNull public GeckoRuntimeSettings.Builder displayDpiOverride(int);
     method @NonNull public GeckoRuntimeSettings.Builder doubleTapZoomingEnabled(boolean);
-    method @NonNull public GeckoRuntimeSettings.Builder enterpiseRootsEnabled(boolean);
+    method @Deprecated @DeprecationSchedule(version=98,id="runtime-settings-typo") @NonNull public GeckoRuntimeSettings.Builder enterpiseRootsEnabled(boolean);
+    method @NonNull public GeckoRuntimeSettings.Builder enterpriseRootsEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder extras(@NonNull Bundle);
     method @NonNull public GeckoRuntimeSettings.Builder fontInflation(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder fontSizeFactor(float);
@@ -892,6 +900,8 @@ package org.mozilla.geckoview {
     method @UiThread default public void onKill(@NonNull GeckoSession);
     method @UiThread default public void onMetaViewportFitChange(@NonNull GeckoSession, @NonNull String);
     method @UiThread default public void onPaintStatusReset(@NonNull GeckoSession);
+    method @UiThread default public void onPointerIconChange(@NonNull GeckoSession, @NonNull PointerIcon);
+    method @UiThread default public void onPreviewImage(@NonNull GeckoSession, @NonNull String);
     method @UiThread default public void onShowDynamicToolbar(@NonNull GeckoSession);
     method @Nullable @UiThread default public GeckoResult<SlowScriptResponse> onSlowScript(@NonNull GeckoSession, @NonNull String);
     method @UiThread default public void onTitleChange(@NonNull GeckoSession, @Nullable String);
@@ -1098,6 +1108,7 @@ package org.mozilla.geckoview {
     method @Nullable @UiThread default public GeckoResult<GeckoSession.PromptDelegate.PromptResponse> onButtonPrompt(@NonNull GeckoSession, @NonNull GeckoSession.PromptDelegate.ButtonPrompt);
     method @Nullable @UiThread default public GeckoResult<GeckoSession.PromptDelegate.PromptResponse> onChoicePrompt(@NonNull GeckoSession, @NonNull GeckoSession.PromptDelegate.ChoicePrompt);
     method @Nullable @UiThread default public GeckoResult<GeckoSession.PromptDelegate.PromptResponse> onColorPrompt(@NonNull GeckoSession, @NonNull GeckoSession.PromptDelegate.ColorPrompt);
+    method @Nullable @UiThread default public GeckoResult<GeckoSession.PromptDelegate.PromptResponse> onCreditCardSave(@NonNull GeckoSession, @NonNull GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.CreditCardSaveOption>);
     method @Nullable @UiThread default public GeckoResult<GeckoSession.PromptDelegate.PromptResponse> onCreditCardSelect(@NonNull GeckoSession, @NonNull GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.CreditCardSelectOption>);
     method @Nullable @UiThread default public GeckoResult<GeckoSession.PromptDelegate.PromptResponse> onDateTimePrompt(@NonNull GeckoSession, @NonNull GeckoSession.PromptDelegate.DateTimePrompt);
     method @Nullable @UiThread default public GeckoResult<GeckoSession.PromptDelegate.PromptResponse> onFilePrompt(@NonNull GeckoSession, @NonNull GeckoSession.PromptDelegate.FilePrompt);
@@ -1690,6 +1701,7 @@ package org.mozilla.geckoview {
     method @AnyThread public void setPermission(@NonNull GeckoSession.PermissionDelegate.ContentPermission, int);
     method @AnyThread @DeprecationSchedule(id="setpermission-string",version=93) public void setPermission(@NonNull String, int, int);
     method @AnyThread @DeprecationSchedule(id="setpermission-string",version=93) public void setPermission(@NonNull String, @Nullable String, boolean, int, int);
+    method @AnyThread public void setPrivateBrowsingPermanentPermission(@NonNull GeckoSession.PermissionDelegate.ContentPermission, int);
   }
 
   public static class StorageController.ClearFlags {

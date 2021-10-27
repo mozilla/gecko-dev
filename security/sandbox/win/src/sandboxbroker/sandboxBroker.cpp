@@ -19,6 +19,7 @@
 #include "mozilla/NSPRLogModulesParser.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/SandboxSettings.h"
+#include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Telemetry.h"
@@ -782,6 +783,13 @@ void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
       sandbox::SBOX_ALL_OK == result,
       "With these static arguments AddRule should never fail, what happened?");
 
+  // Allow content processes to use complex line breaking brokering.
+  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_LINE_BREAK,
+                            sandbox::TargetPolicy::LINE_BREAK_ALLOW, nullptr);
+  MOZ_RELEASE_ASSERT(
+      sandbox::SBOX_ALL_OK == result,
+      "With these static arguments AddRule should never fail, what happened?");
+
   if (aSandboxLevel >= 20) {
     // Content process still needs to be able to read fonts.
     wchar_t* fontsPath;
@@ -1065,14 +1073,6 @@ bool SandboxBroker::SetSecurityLevelForRDDProcess() {
       result,
       "With these static arguments AddRule should never fail, what happened?");
 
-  // Add rule to allow process to create the server side of our IPC pipes.
-  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_NAMED_PIPES,
-                            sandbox::TargetPolicy::NAMEDPIPES_ALLOW_ANY,
-                            L"\\\\.\\pipe\\chrome.*");
-  MOZ_RELEASE_ASSERT(
-      sandbox::SBOX_ALL_OK == result,
-      "With these static arguments AddRule should never fail, what happened?");
-
   // Add the policy for the client side of the crash server pipe.
   result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
                             sandbox::TargetPolicy::FILES_ALLOW_ANY,
@@ -1158,9 +1158,14 @@ bool SandboxBroker::SetSecurityLevelForSocketProcess() {
   }
 
   mitigations = sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
-                sandbox::MITIGATION_DYNAMIC_CODE_DISABLE |
                 sandbox::MITIGATION_DLL_SEARCH_ORDER |
                 sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
+
+  // TODO: MITIGATION_DYNAMIC_CODE_DISABLE will be always added to mitigations
+  // in bug 1734470.
+  if (!StaticPrefs::network_proxy_parse_pac_on_socket_process()) {
+    mitigations |= sandbox::MITIGATION_DYNAMIC_CODE_DISABLE;
+  }
 
   result = mPolicy->SetDelayedProcessMitigations(mitigations);
   SANDBOX_ENSURE_SUCCESS(result,

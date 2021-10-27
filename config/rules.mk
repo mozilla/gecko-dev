@@ -172,7 +172,7 @@ endif
 
 ifdef COMPILE_ENVIRONMENT
 ifndef TARGETS
-TARGETS			= $(LIBRARY) $(SHARED_LIBRARY) $(PROGRAM) $(SIMPLE_PROGRAMS) $(HOST_PROGRAM) $(HOST_SIMPLE_PROGRAMS) $(HOST_SHARED_LIBRARY) $(WASM_LIBRARY)
+TARGETS			= $(LIBRARY) $(SHARED_LIBRARY) $(PROGRAM) $(SIMPLE_PROGRAMS) $(HOST_PROGRAM) $(HOST_SIMPLE_PROGRAMS) $(HOST_SHARED_LIBRARY)
 endif
 
 COBJS = $(notdir $(CSRCS:.c=.$(OBJ_SUFFIX)))
@@ -210,12 +210,6 @@ SIMPLE_PROGRAMS :=
 HOST_SHARED_LIBRARY :=
 HOST_PROGRAM :=
 HOST_SIMPLE_PROGRAMS :=
-WASM_LIBRARY :=
-endif
-
-WASM_ARCHIVE = $(addsuffix .$(WASM_OBJ_SUFFIX),$(WASM_LIBRARY))
-ifneq (,$(WASM_ARCHIVE))
-CSRCS += $(addsuffix .c,$(WASM_ARCHIVE))
 endif
 
 ifdef MACH
@@ -274,7 +268,7 @@ endif
 #
 
 ifeq ($(OS_ARCH),Darwin)
-ifneq (,$(SHARED_LIBRARY)$(WASM_LIBRARY))
+ifneq (,$(SHARED_LIBRARY))
 _LOADER_PATH := @executable_path
 EXTRA_DSO_LDOPTS	+= -dynamiclib -install_name $(_LOADER_PATH)/$@ -compatibility_version 1 -current_version 1 -single_module
 endif
@@ -390,7 +384,7 @@ compile:: host target
 
 host:: $(HOST_OBJS) $(HOST_PROGRAM) $(HOST_SIMPLE_PROGRAMS) $(HOST_RUST_PROGRAMS) $(HOST_RUST_LIBRARY_FILE) $(HOST_SHARED_LIBRARY)
 
-target:: $(filter-out $(MOZBUILD_NON_DEFAULT_TARGETS),$(LIBRARY) $(SHARED_LIBRARY) $(PROGRAM) $(SIMPLE_PROGRAMS) $(RUST_LIBRARY_FILE) $(RUST_PROGRAMS) $(WASM_LIBRARY))
+target:: $(filter-out $(MOZBUILD_NON_DEFAULT_TARGETS),$(LIBRARY) $(SHARED_LIBRARY) $(PROGRAM) $(SIMPLE_PROGRAMS) $(RUST_LIBRARY_FILE) $(RUST_PROGRAMS))
 
 ifndef LIBRARY
 ifdef OBJS
@@ -503,16 +497,8 @@ $(WASM_ARCHIVE): $(CWASMOBJS) $(CPPWASMOBJS) $(STATIC_LIBS) $(EXTRA_DEPS) $(GLOB
 	$(RM) $(WASM_ARCHIVE)
 	$(WASM_CXX) -o $@ -Wl,--export-all -Wl,--stack-first -Wl,-z,stack-size=$(if $(MOZ_OPTIMIZE),262144,1048576) -Wl,--no-entry -Wl,--growable-table $(CWASMOBJS) $(CPPWASMOBJS) -lwasi-emulated-process-clocks
 
-$(addsuffix .c,$(WASM_ARCHIVE)): $(WASM_ARCHIVE)
-	$(DIST)/host/bin/wasm2c -o $@ $<
-
-$(WASM_LIBRARY): DSO_SONAME=$@
-$(WASM_LIBRARY): IMPORT_LIBRARY=$(WASM_LIBRARY:$(DLL_PREFIX)%$(DLL_SUFFIX)=$(IMPORT_LIB_PREFIX)%$(IMPORT_LIB_SUFFIX))
-$(WASM_LIBRARY): $(filter %.$(OBJ_SUFFIX),$(OBJS))
-	$(REPORT_BUILD)
-	$(RM) $(WASM_LIBRARY)
-	$(MKCSHLIB) $(filter %.$(OBJ_SUFFIX),$(OBJS)) $(LDFLAGS) $(STATIC_LIBS) $(SHARED_LIBS) $(EXTRA_DSO_LDOPTS) $(MOZ_GLUE_LDFLAGS) $(OS_LIBS)
-	$(call py_action,check_binary,--target $@)
+$(addsuffix .c,$(WASM_ARCHIVE)): $(WASM_ARCHIVE) $(DIST)/host/bin/wasm2c$(HOST_BIN_SUFFIX)
+	$(DIST)/host/bin/wasm2c$(HOST_BIN_SUFFIX) -o $@ $<
 
 ifeq ($(OS_ARCH),WINNT)
 # Import libraries are created by the rules creating shared libraries.
@@ -636,7 +622,7 @@ endif
 endef
 
 ifneq (,$(filter $(DIST)/bin%,$(FINAL_TARGET)))
-DUMP_SYMS_TARGETS := $(SHARED_LIBRARY) $(PROGRAM) $(SIMPLE_PROGRAMS) $(WASM_LIBRARY)
+DUMP_SYMS_TARGETS := $(SHARED_LIBRARY) $(PROGRAM) $(SIMPLE_PROGRAMS)
 endif
 
 ifdef MOZ_AUTOMATION
@@ -885,19 +871,6 @@ tools realchrome::
 	$(call py_action,zip,-C $(FINAL_TARGET) ../$(XPI_PKGNAME).xpi '*')
 endif
 
-# See comment above about moving this out of the tools tier.
-ifdef INSTALL_EXTENSION_ID
-ifndef XPI_NAME
-$(error XPI_NAME must be set for INSTALL_EXTENSION_ID)
-endif
-
-tools::
-	$(RM) -r '$(DIST)/bin/distribution$(DIST_SUBDIR:%=/%)/extensions/$(INSTALL_EXTENSION_ID)'
-	$(NSINSTALL) -D '$(DIST)/bin/distribution$(DIST_SUBDIR:%=/%)/extensions/$(INSTALL_EXTENSION_ID)'
-	$(call copy_dir,$(FINAL_TARGET),$(DIST)/bin/distribution$(DIST_SUBDIR:%=/%)/extensions/$(INSTALL_EXTENSION_ID))
-
-endif
-
 #############################################################################
 # MDDEPDIR is the subdirectory where all the dependency files are placed.
 #   This uses a make rule (instead of a macro) to support parallel
@@ -1140,7 +1113,6 @@ FREEZE_VARIABLES = \
   EXPORTS \
   DIRS \
   LIBRARY \
-  WASM_LIBRARY \
   MODULE \
   $(NULL)
 

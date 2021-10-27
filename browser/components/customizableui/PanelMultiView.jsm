@@ -1216,7 +1216,11 @@ var PanelMultiView = class extends AssociatedToNode {
         currentView.keyNavigation(aEvent);
         break;
       case "mousemove":
-        this.openViews.forEach(panelView => panelView.clearNavigation());
+        this.openViews.forEach(panelView => {
+          if (!panelView.ignoreMouseMove) {
+            panelView.clearNavigation();
+          }
+        });
         break;
       case "popupshowing": {
         this._viewContainer.setAttribute("panelopen", "true");
@@ -1467,6 +1471,8 @@ var PanelView = class extends AssociatedToNode {
       return;
     }
 
+    const profilerMarkerStartTime = Cu.now();
+
     // We batch DOM changes together in order to reduce synchronous layouts.
     // First we reset any change we may have made previously. The first time
     // this is called, and in the best case scenario, this has no effect.
@@ -1556,6 +1562,12 @@ var PanelView = class extends AssociatedToNode {
       });
       element.style.height = bounds.height + "px";
     }
+
+    ChromeUtils.addProfilerMarker(
+      "PMV.descriptionHeightWorkaround()",
+      profilerMarkerStartTime,
+      `<${this.node.tagName} id="${this.node.id}">`
+    );
   }
 
   /**
@@ -1798,6 +1810,8 @@ var PanelView = class extends AssociatedToNode {
       let popup = this.document.getElementById(context);
       return popup && popup.state == "open";
     };
+
+    this.ignoreMouseMove = false;
 
     let keyCode = event.code;
     switch (keyCode) {

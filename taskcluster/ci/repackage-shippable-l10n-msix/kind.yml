@@ -2,13 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-loader: taskgraph.loader.single_dep:loader
+loader: gecko_taskgraph.loader.single_dep:loader
 
 transforms:
-    - taskgraph.transforms.name_sanity:transforms
-    - taskgraph.transforms.repackage:transforms
-    - taskgraph.transforms.job:transforms
-    - taskgraph.transforms.task:transforms
+    - gecko_taskgraph.transforms.name_sanity:transforms
+    - gecko_taskgraph.transforms.repackage:transforms
+    - gecko_taskgraph.transforms.job:transforms
+    - gecko_taskgraph.transforms.task:transforms
 
 kind-dependencies:
     # We're going to generate tasks based on this.  We `depend` on and fetch the package from this.
@@ -48,22 +48,48 @@ job-template:
                     - repackage/base.py
                     - repackage/win64-aarch64_sfx_stub.py
                     - repackage/win64_signed.py
-    package-formats: [msix]
+    package-formats: [msix, msix-store]
     fetches:
         toolchain:
             - linux64-msix-packaging
     msix:
         channel:
-            by-release-type:
-                nightly.*: nightly
-                beta.*:
-                    by-shipping-product:
-                        devedition: aurora
-                        default: beta
-                release.*: official
-                esr.*: official
-                default: nightly
+            by-shipping-product:
+                devedition: aurora
+                default:
+                    by-release-type:
+                        beta.*: beta
+                        release.*: official
+                        esr.*: official
+                        default: nightly
+        identity-name:
+            by-shipping-product:
+                devedition:
+                    by-package-format:
+                        msix: MozillaFirefoxDevedition
+                        msix-store: FirefoxDevedition
+                default:
+                    by-package-format:
+                        msix:
+                            by-release-type:
+                                beta.*: MozillaFirefoxBeta
+                                release.*: MozillaFirefox
+                                esr.*: MozillaFirefox
+                                default: MozillaFirefoxNightly
+                        msix-store:
+                            by-release-type:
+                                beta.*: FirefoxBeta
+                                release.*: Firefox
+                                esr.*: Firefox
+                                default: FirefoxNightly
         publisher:
-            by-level:
-                "3": "CN=Mozilla Corporation, OU=Firefox Engineering Operations, O=Mozilla Corporation, L=Mountain View, S=California, C=US"
-                default: "CN=Mozilla Fake SPC"
+            by-package-format:
+                msix:
+                    by-level:
+                        "3": "CN=Mozilla Corporation, OU=Firefox Engineering Operations, O=Mozilla Corporation, L=Mountain View, S=California, C=US"
+                        default: "CN=Mozilla Fake SPC"
+                msix-store: "CN=082E9164-EE6C-4EC8-B62C-441FAE7BEFA1"
+        publisher-display-name:
+            by-package-format:
+                msix: "Mozilla Corporation"
+                msix-store: "Mozilla"

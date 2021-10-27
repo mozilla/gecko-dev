@@ -355,9 +355,6 @@ with modules["NETWORK"]:
     # a type expected by the channel (for nested channels such as the JAR
     # channel).
     errors["NS_ERROR_UNSAFE_CONTENT_TYPE"] = FAILURE(74)
-    # The request failed because the user tried to access to a remote XUL
-    # document from a website that is not in its white-list.
-    errors["NS_ERROR_REMOTE_XUL"] = FAILURE(75)
     # The request resulted in an error page being displayed.
     errors["NS_ERROR_LOAD_SHOWED_ERRORPAGE"] = FAILURE(77)
     # The request occurred in docshell that lacks a treeowner, so it is
@@ -872,7 +869,6 @@ with modules["PROFILE"]:
     errors["NS_ERROR_LAUNCHED_CHILD_PROCESS"] = FAILURE(200)
     errors["NS_ERROR_SHOW_PROFILE_MANAGER"] = FAILURE(201)
     errors["NS_ERROR_DATABASE_CHANGED"] = FAILURE(202)
-    errors["NS_MIGRATE_INTO_PACKAGE"] = SUCCESS(203)
 
 
 # =======================================================================

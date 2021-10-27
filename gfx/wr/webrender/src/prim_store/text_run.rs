@@ -17,7 +17,7 @@ use crate::renderer::{MAX_VERTEX_TEXTURE_WIDTH};
 use crate::resource_cache::{ResourceCache};
 use crate::util::{MatrixHelpers};
 use crate::prim_store::{InternablePrimitive, PrimitiveInstanceKind};
-use crate::spatial_tree::{SpatialTree, SpatialNodeIndex, SpatialNodeContainer};
+use crate::spatial_tree::{SpatialTree, SpatialNodeIndex};
 use crate::space::SpaceSnapper;
 use crate::util::PrimaryArc;
 
@@ -425,7 +425,12 @@ impl TextRunPrimitive {
                 RasterSpace::Local(rounded_up / device_pixel_scale.0)
             }
         } else {
-            self.requested_raster_space
+            // Assume that if we have a RasterSpace::Local, it is frequently changing, in which
+            // case we want to undo the device-pixel scale, as we do above.
+            match self.requested_raster_space {
+                RasterSpace::Local(scale) => RasterSpace::Local(scale / device_pixel_scale.0),
+                RasterSpace::Screen => RasterSpace::Screen,
+            }
         }
     }
 

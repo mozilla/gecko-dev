@@ -136,8 +136,8 @@ struct ObjectEntry {
   HeapPtr<JSObject*> obj;
   explicit ObjectEntry(JSObject* o) : obj(o) {}
   bool operator==(const ObjectEntry& other) const { return obj == other.obj; }
-  bool needsSweep() {
-    return JS::GCPolicy<HeapPtr<JSObject*>>::needsSweep(&obj);
+  bool traceWeak(JSTracer* trc) {
+    return TraceWeakEdge(trc, &obj, "ObjectEntry::obj");
   }
 };
 
@@ -173,8 +173,8 @@ struct NumberAndObjectEntry {
   bool operator==(const NumberAndObjectEntry& other) const {
     return number == other.number && obj == other.obj;
   }
-  bool needsSweep() {
-    return JS::GCPolicy<HeapPtr<JSObject*>>::needsSweep(&obj);
+  bool traceWeak(JSTracer* trc) {
+    return TraceWeakEdge(trc, &obj, "NumberAndObjectEntry::obj");
   }
 };
 

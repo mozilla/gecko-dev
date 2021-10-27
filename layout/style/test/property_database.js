@@ -13402,6 +13402,58 @@ if (IsCSSPropertyPrefEnabled("layout.css.color-scheme.enabled")) {
   };
 }
 
+if (IsCSSPropertyPrefEnabled("layout.css.scroll-linked-animations.enabled")) {
+  // Basically, web-platform-tests should cover most cases, so here we only
+  // put some basic test cases.
+  gCSSProperties["animation"].subproperties.push("animation-timeline");
+  gCSSProperties["animation"].initial_values.push(
+    "none none 0s 0s ease normal running 1.0 auto",
+    "auto"
+  );
+  gCSSProperties["animation"].other_values.push(
+    "none none 0s 0s cubic-bezier(0.25, 0.1, 0.25, 1.0) normal running 1.0 auto",
+    "bounce 1s linear 2s timeline",
+    "bounce 1s 2s linear none",
+    "bounce timeline",
+    "2s, 1s bounce timeline",
+    "1s bounce timeline, 2s",
+    "1s bounce none, 2s none auto"
+  );
+
+  gCSSProperties["animation-timeline"] = {
+    domProp: "animationTimeline",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    applies_to_marker: true,
+    initial_values: ["auto"],
+    other_values: [
+      "none",
+      "all",
+      "ball",
+      "mall",
+      "color",
+      "bounce, bubble, opacity",
+      "foobar",
+      "auto",
+      "\\32bounce",
+      "-bounce",
+      "-\\32bounce",
+      "\\32 0bounce",
+      "-\\32 0bounce",
+      "\\2bounce",
+      "-\\2bounce",
+    ],
+    invalid_values: [
+      "bounce, initial",
+      "initial, bounce",
+      "bounce, inherit",
+      "inherit, bounce",
+      "bounce, unset",
+      "unset, bounce",
+    ],
+  };
+}
+
 // Copy aliased properties' fields from their alias targets. Keep this logic
 // at the bottom of this file to ensure all the aliased properties are
 // processed.

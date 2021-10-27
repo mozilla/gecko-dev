@@ -22,27 +22,30 @@
 pub extern crate fog;
 
 use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
-use nsstring::nsACString;
+use nsstring::{nsACString, nsCString};
+use thin_vec::ThinVec;
 
-#[cfg(not(target_os = "android"))]
+// Needed for re-export.
+#[cfg(target_os = "android")]
+pub use glean_ffi;
+
 #[macro_use]
 extern crate cstr;
-#[cfg(not(target_os = "android"))]
-#[macro_use]
+#[cfg_attr(not(target_os = "android"), macro_use)]
 extern crate xpcom;
 
-#[cfg(not(target_os = "android"))]
-mod init;
-
-#[cfg(target_os = "android")]
-#[path = "android_init.rs"]
 mod init;
 
 pub use init::fog_init;
 
 #[no_mangle]
-pub unsafe extern "C" fn fog_shutdown() {
+pub extern "C" fn fog_shutdown() {
     glean::shutdown();
+}
+
+#[no_mangle]
+pub extern "C" fn fog_register_pings() {
+    fog::pings::register_pings();
 }
 
 static mut PENDING_BUF: Vec<u8> = Vec::new();
@@ -93,7 +96,7 @@ pub unsafe extern "C" fn fog_use_ipc_buf(buf: *const u8, buf_len: usize) {
 /// Sets the debug tag for pings assembled in the future.
 /// Returns an error result if the provided value is not a valid tag.
 #[no_mangle]
-pub unsafe extern "C" fn fog_set_debug_view_tag(value: &nsACString) -> nsresult {
+pub extern "C" fn fog_set_debug_view_tag(value: &nsACString) -> nsresult {
     let result = glean::set_debug_view_tag(&value.to_string());
     if result {
         return NS_OK;
@@ -104,7 +107,7 @@ pub unsafe extern "C" fn fog_set_debug_view_tag(value: &nsACString) -> nsresult 
 
 /// Submits a ping by name.
 #[no_mangle]
-pub unsafe extern "C" fn fog_submit_ping(ping_name: &nsACString) -> nsresult {
+pub extern "C" fn fog_submit_ping(ping_name: &nsACString) -> nsresult {
     glean::submit_ping_by_name(&ping_name.to_string(), None);
     NS_OK
 }
@@ -112,16 +115,81 @@ pub unsafe extern "C" fn fog_submit_ping(ping_name: &nsACString) -> nsresult {
 /// Turns ping logging on or off.
 /// Returns an error if the logging failed to be configured.
 #[no_mangle]
-pub unsafe extern "C" fn fog_set_log_pings(value: bool) -> nsresult {
+pub extern "C" fn fog_set_log_pings(value: bool) -> nsresult {
     glean::set_log_pings(value);
     NS_OK
 }
 
 /// Flushes ping-lifetime data to the db when delay_ping_lifetime_io is true.
 #[no_mangle]
-pub unsafe extern "C" fn fog_persist_ping_lifetime_data() -> nsresult {
-    if glean::persist_ping_lifetime_data().is_err() {
-        return NS_ERROR_FAILURE;
-    }
+pub extern "C" fn fog_persist_ping_lifetime_data() -> nsresult {
+    glean::persist_ping_lifetime_data();
     NS_OK
+}
+
+/// Indicate that an experiment is running.
+/// Glean will add an experiment annotation which is sent with pings.
+/// This information is not persisted between runs.
+///
+/// See [`glean_core::Glean::set_experiment_active`].
+#[no_mangle]
+pub extern "C" fn fog_set_experiment_active(
+    experiment_id: &nsACString,
+    branch: &nsACString,
+    extra_keys: &ThinVec<nsCString>,
+    extra_values: &ThinVec<nsCString>,
+) {
+    assert_eq!(
+        extra_keys.len(),
+        extra_values.len(),
+        "Experiment extra keys and values differ in length."
+    );
+    let extra = if extra_keys.len() == 0 {
+        None
+    } else {
+        Some(
+            extra_keys
+                .iter()
+                .zip(extra_values.iter())
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+        )
+    };
+    glean::set_experiment_active(experiment_id.to_string(), branch.to_string(), extra);
+}
+
+/// Indicate that an experiment is no longer running.
+///
+/// See [`glean_core::Glean::set_experiment_inactive`].
+#[no_mangle]
+pub extern "C" fn fog_set_experiment_inactive(experiment_id: &nsACString) {
+    glean::set_experiment_inactive(experiment_id.to_string());
+}
+
+/// TEST ONLY FUNCTION
+///
+/// Returns true if the identified experiment is active.
+#[no_mangle]
+pub extern "C" fn fog_test_is_experiment_active(experiment_id: &nsACString) -> bool {
+    glean::test_is_experiment_active(experiment_id.to_string())
+}
+
+/// TEST ONLY FUNCTION
+///
+/// Fills `branch`, `extra_keys`, and `extra_values` with the identified experiment's data.
+/// Panics if the identified experiment isn't active.
+#[no_mangle]
+pub extern "C" fn fog_test_get_experiment_data(
+    experiment_id: &nsACString,
+    branch: &mut nsACString,
+    extra_keys: &mut ThinVec<nsCString>,
+    extra_values: &mut ThinVec<nsCString>,
+) {
+    let data = glean::test_get_experiment_data(experiment_id.to_string());
+    branch.assign(&data.branch);
+    if let Some(extra) = data.extra {
+        let (data_keys, data_values): (Vec<_>, Vec<_>) = extra.iter().unzip();
+        extra_keys.extend(data_keys.into_iter().map(|key| key.into()));
+        extra_values.extend(data_values.into_iter().map(|value| value.into()));
+    }
 }

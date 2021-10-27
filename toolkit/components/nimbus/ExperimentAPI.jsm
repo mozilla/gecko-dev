@@ -291,11 +291,9 @@ const ExperimentAPI = {
  */
 const NimbusFeatures = {};
 for (let feature in FeatureManifest) {
-  XPCOMUtils.defineLazyGetter(
-    NimbusFeatures,
-    feature,
-    () => new _ExperimentFeature(feature)
-  );
+  XPCOMUtils.defineLazyGetter(NimbusFeatures, feature, () => {
+    return new _ExperimentFeature(feature);
+  });
 }
 
 class _ExperimentFeature {

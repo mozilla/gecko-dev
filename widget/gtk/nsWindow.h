@@ -51,23 +51,25 @@ extern mozilla::LazyLogModule gWidgetLog;
 extern mozilla::LazyLogModule gWidgetDragLog;
 extern mozilla::LazyLogModule gWidgetPopupLog;
 
-#  define LOG(args)                                   \
+#  define LOG(str, ...)                               \
     MOZ_LOG(IsPopup() ? gWidgetPopupLog : gWidgetLog, \
-            mozilla::LogLevel::Debug, args)
-#  define LOGW(args) MOZ_LOG(gWidgetLog, mozilla::LogLevel::Debug, args)
-#  define LOGDRAG(args) MOZ_LOG(gWidgetDragLog, mozilla::LogLevel::Debug, args)
-#  define LOG_POPUP(args) \
-    MOZ_LOG(gWidgetPopupLog, mozilla::LogLevel::Debug, args)
+            mozilla::LogLevel::Debug,                 \
+            ("%s: " str, GetDebugTag().get(), ##__VA_ARGS__))
+#  define LOGW(...) MOZ_LOG(gWidgetLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
+#  define LOGDRAG(...) \
+    MOZ_LOG(gWidgetDragLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
+#  define LOG_POPUP(...) \
+    MOZ_LOG(gWidgetPopupLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 #  define LOG_ENABLED()                                         \
     (MOZ_LOG_TEST(gWidgetPopupLog, mozilla::LogLevel::Debug) || \
      MOZ_LOG_TEST(gWidgetLog, mozilla::LogLevel::Debug))
 
 #else
 
-#  define LOG(args)
-#  define LOGW(args)
-#  define LOGDRAG(args)
-#  define LOG_POPUP(args)
+#  define LOG(...)
+#  define LOGW(...)
+#  define LOGDRAG(...)
+#  define LOG_POPUP(...)
 #  define LOG_ENABLED() false
 
 #endif /* MOZ_LOGGING */
@@ -111,8 +113,6 @@ class nsWindow final : public nsBaseWidget {
 
   NS_INLINE_DECL_REFCOUNTING_INHERITED(nsWindow, nsBaseWidget)
 
-  void CommonCreate(nsIWidget* aParent, bool aListenForResizes);
-
   virtual nsresult DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
                                  nsEventStatus& aStatus) override;
 
@@ -135,7 +135,6 @@ class nsWindow final : public nsBaseWidget {
   mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() override;
   mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScaleByScreen()
       override;
-  virtual void SetParent(nsIWidget* aNewParent) override;
   virtual void SetModal(bool aModal) override;
   virtual bool IsVisible() const override;
   virtual void ConstrainPosition(bool aAllowSlop, int32_t* aX,
@@ -170,9 +169,6 @@ class nsWindow final : public nsBaseWidget {
   virtual void CaptureRollupEvents(nsIRollupListener* aListener,
                                    bool aDoCapture) override;
   [[nodiscard]] virtual nsresult GetAttention(int32_t aCycleCount) override;
-  virtual nsresult SetWindowClipRegion(
-      const nsTArray<LayoutDeviceIntRect>& aRects,
-      bool aIntersectWithExisting) override;
   virtual bool HasPendingInputEvent() override;
 
   virtual bool PrepareForFullscreenTransition(nsISupports** aData) override;
@@ -205,7 +201,8 @@ class nsWindow final : public nsBaseWidget {
   // event callbacks
   gboolean OnExposeEvent(cairo_t* cr);
   gboolean OnConfigureEvent(GtkWidget* aWidget, GdkEventConfigure* aEvent);
-  void OnContainerUnrealize();
+  void OnMap();
+  void OnUnrealize();
   void OnSizeAllocate(GtkAllocation* aAllocation);
   void OnDeleteEvent();
   void OnEnterNotifyEvent(GdkEventCrossing* aEvent);
@@ -241,6 +238,7 @@ class nsWindow final : public nsBaseWidget {
   void SetProgress(unsigned long progressPercent);
 
   RefPtr<mozilla::gfx::VsyncSource> GetVsyncSource() override;
+  bool SynchronouslyRepaintOnResize() override;
 
   void OnDPIChanged(void);
   void OnCheckResize(void);
@@ -261,11 +259,14 @@ class nsWindow final : public nsBaseWidget {
   GtkWidget* GetMozContainerWidget();
   GdkWindow* GetGdkWindow() { return mGdkWindow; }
   GtkWidget* GetGtkWidget() { return mShell; }
-  nsIFrame* GetFrame();
-  bool IsDestroyed() { return mIsDestroyed; }
-  bool IsPopup();
-  bool IsWaylandPopup();
-  bool IsPIPWindow() { return mIsPIPWindow; };
+  nsIFrame* GetFrame() const;
+  bool IsDestroyed() const { return mIsDestroyed; }
+  bool IsPopup() const;
+  bool IsWaylandPopup() const;
+  bool IsPIPWindow() const { return mIsPIPWindow; };
+  bool IsDragPopup() { return mIsDragPopup; };
+
+  nsAutoCString GetDebugTag() const;
 
   void DispatchDragEvent(mozilla::EventMessage aMsg,
                          const LayoutDeviceIntPoint& aRefPoint, guint aTime);
@@ -293,14 +294,10 @@ class nsWindow final : public nsBaseWidget {
   virtual void SetTransparencyMode(nsTransparencyMode aMode) override;
   virtual nsTransparencyMode GetTransparencyMode() override;
   virtual void SetWindowMouseTransparent(bool aIsTransparent) override;
-  virtual nsresult ConfigureChildren(
-      const nsTArray<Configuration>& aConfigurations) override;
   nsresult UpdateTranslucentWindowAlphaInternal(const nsIntRect& aRect,
                                                 uint8_t* aAlphas,
                                                 int32_t aStride);
   void UpdateTitlebarTransparencyBitmap();
-
-  virtual void ReparentNativeWidget(nsIWidget* aNewParent) override;
 
   virtual nsresult SynthesizeNativeMouseEvent(
       LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
@@ -336,6 +333,7 @@ class nsWindow final : public nsBaseWidget {
   virtual nsresult SetNonClientMargins(
       LayoutDeviceIntMargin& aMargins) override;
   void SetDrawsInTitlebar(bool aState) override;
+  mozilla::LayoutDeviceIntCoord GetTitlebarRadius();
   LayoutDeviceIntRect GetTitlebarRect();
   virtual void UpdateWindowDraggingRegion(
       const LayoutDeviceIntRegion& aRegion) override;
@@ -366,7 +364,6 @@ class nsWindow final : public nsBaseWidget {
     GTK_DECORATION_SYSTEM,  // CSD including shadows
     GTK_DECORATION_CLIENT,  // CSD without shadows
     GTK_DECORATION_NONE,    // WM does not support CSD at all
-    GTK_DECORATION_UNKNOWN
   } GtkWindowDecoration;
   /**
    * Get the support of Client Side Decoration by checking
@@ -374,7 +371,6 @@ class nsWindow final : public nsBaseWidget {
    */
   static GtkWindowDecoration GetSystemGtkWindowDecoration();
 
-  static bool HideTitlebarByDefault();
   static bool GetTopLevelWindowActiveState(nsIFrame* aFrame);
   static bool TitlebarUseShapeMask();
   bool IsRemoteContent() { return HasRemoteContent(); }
@@ -413,8 +409,8 @@ class nsWindow final : public nsBaseWidget {
     // WebRender compositor is paused after window creation.
     COMPOSITOR_PAUSED_INITIALLY,
     // WebRender compositor is paused because GtkWindow is hidden,
-    // we can't draw into EGLSurface.
-    COMPOSITOR_PAUSED_MISSING_EGL_WINDOW,
+    // we can't draw into GL context.
+    COMPOSITOR_PAUSED_MISSING_WINDOW,
     // WebRender compositor is paused as we're repainting whole window and
     // we're waiting for content process to update page content.
     COMPOSITOR_PAUSED_FLICKERING
@@ -436,25 +432,25 @@ class nsWindow final : public nsBaseWidget {
 
   virtual void RegisterTouchWindow() override;
   virtual bool CompositorInitiallyPaused() override {
-#ifdef MOZ_WAYLAND
     return mCompositorState == COMPOSITOR_PAUSED_INITIALLY;
-#else
-    return false;
-#endif
   }
   nsCOMPtr<nsIWidget> mParent;
-  // Is this a toplevel window?
-  bool mIsTopLevel;
   // Has this widget been destroyed yet?
   bool mIsDestroyed;
-
-  // Should we send resize events on all resizes?
-  bool mListenForResizes;
   // Does WindowResized need to be called on listeners?
   bool mNeedsDispatchResized;
-  // This flag tracks if we're hidden or shown.
+  // mIsShown tracks requested visible status from browser perspective, i.e.
+  // if the window should be visible or now.
   bool mIsShown;
+  // mNeedsShow is set when browser requested to show this window but we failed
+  // to do so for some reason (wrong window size for instance).
+  // In such case we set mIsShown = true and mNeedsShow = true to indicate
+  // that the window is not actually visible but we report to browser that
+  // it is visible (mIsShown == true).
   bool mNeedsShow;
+  // This track real window visibility from OS perspective.
+  // It's set by OnMap/OnUnrealize which is based on Gtk events.
+  bool mIsMapped;
   // is this widget enabled?
   bool mEnabled;
   // has the native window for this been created yet?
@@ -473,9 +469,7 @@ class nsWindow final : public nsBaseWidget {
   void UpdateAlpha(mozilla::gfx::SourceSurface* aSourceSurface,
                    nsIntRect aBoundsRect);
 
-  void NativeMove();
-  void NativeResize();
-  void NativeMoveResize();
+  void NativeMoveResize(bool aMoved, bool aResized);
 
   void NativeShow(bool aAction);
   void SetHasMappedToplevel(bool aState);
@@ -495,7 +489,6 @@ class nsWindow final : public nsBaseWidget {
 
   void WaylandStartVsync();
   void WaylandStopVsync();
-  void DestroyChildWindows();
   GtkWidget* GetToplevelWidget();
   nsWindow* GetContainerWindow();
   void SetUrgencyHint(GtkWidget* top_window, bool state);
@@ -516,7 +509,7 @@ class nsWindow final : public nsBaseWidget {
 
   void ResizeInt(int aX, int aY, int aWidth, int aHeight, bool aMove,
                  bool aRepaint);
-  void NativeMoveResizeWaylandPopup(GdkPoint* aPosition, GdkRectangle* aSize);
+  void NativeMoveResizeWaylandPopup(bool aMove, bool aResize);
 
   // Returns true if the given point (in device pixels) is within a resizer
   // region of the window. Only used when drawing decorations client side.
@@ -577,6 +570,8 @@ class nsWindow final : public nsBaseWidget {
   // parent (for instance WebRTC sharing indicator).
   bool mIsWaylandPanelWindow;
   bool mAlwaysOnTop;
+  bool mNoAutoHide;
+  bool mMouseTransparent;
 
   // The cursor cache
   static GdkCursor* gsGtkCursorCache[eCursorCount];
@@ -613,6 +608,12 @@ class nsWindow final : public nsBaseWidget {
   static bool DragInProgress(void);
 
   void DispatchMissedButtonReleases(GdkEventCrossing* aGdkEvent);
+
+  // When window widget gets mapped/unmapped we need to configure
+  // underlying GdkWindow properly. Otherwise we'll end up with
+  // rendering to released window.
+  void ConfigureGdkWindow();
+  void ReleaseGdkWindow();
 
   // nsBaseWidget
   virtual WindowRenderer* GetWindowRenderer() override;
@@ -668,11 +669,11 @@ class nsWindow final : public nsBaseWidget {
                                  bool aMustMatchParent);
   void WaylandPopupMarkAsClosed();
   void WaylandPopupRemoveClosedPopups();
-  void WaylandPopupSetDirectPosition(GdkPoint* aPosition, GdkRectangle* aSize);
+  void WaylandPopupSetDirectPosition();
   bool WaylandPopupFitsParentWindow(GdkRectangle* aSize);
   nsWindow* WaylandPopupFindLast(nsWindow* aPopup);
   GtkWindow* GetCurrentTopmostWindow();
-  nsCString GetWindowNodeName();
+  nsAutoCString GetFrameTag() const;
   nsCString GetPopupTypeName();
   bool IsPopupDirectionRTL();
 
@@ -786,11 +787,11 @@ class nsWindow final : public nsBaseWidget {
   /* mWaitingForMoveToRectCallback is set when move-to-rect is called
    * and we're waiting for move-to-rect callback.
    *
-   * If another resize request comes between move-to-rect call and
-   * move-to-rect callback we store it to mNewSizeAfterMoveToRect.
+   * If another position/resize request comes between move-to-rect call and
+   * move-to-rect callback we set mNewBoundsAfterMoveToRect.
    */
   bool mWaitingForMoveToRectCallback;
-  LayoutDeviceIntRect mNewSizeAfterMoveToRect;
+  LayoutDeviceIntRect mNewBoundsAfterMoveToRect;
 
   /**
    * |mIMContext| takes all IME related stuff.
@@ -863,13 +864,12 @@ class nsWindow final : public nsBaseWidget {
                 GTK_WIDGET_COMPOSIDED_DISABLED = 1,
                 GTK_WIDGET_COMPOSIDED_ENABLED = 2} WindowComposeRequest;
   void SetCompositorHint(WindowComposeRequest aState);
+  bool ConfigureX11GLVisual();
 
   Window mXWindow;
   Visual* mXVisual;
   int mXDepth;
-  mozilla::widget::WindowSurfaceProvider mSurfaceProvider;
-
-  bool ConfigureX11GLVisual(bool aUseAlpha);
+  bool mIsShaped;
 #endif
 #ifdef MOZ_WAYLAND
   RefPtr<mozilla::gfx::VsyncSource> mWaylandVsyncSource;
@@ -877,6 +877,7 @@ class nsWindow final : public nsBaseWidget {
   zwp_locked_pointer_v1* mLockedPointer;
   zwp_relative_pointer_v1* mRelativePointer;
 #endif
+  mozilla::widget::WindowSurfaceProvider mSurfaceProvider;
 };
 
 #endif /* __nsWindow_h__ */

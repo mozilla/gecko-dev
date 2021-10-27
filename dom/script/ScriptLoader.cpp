@@ -227,6 +227,8 @@ ScriptLoader::ScriptLoader(Document* aDocument)
       mParserBlockingBlockerCount(0),
       mBlockerCount(0),
       mNumberOfProcessors(0),
+      mTotalFullParseSize(0),
+      mPhysicalSizeOfMemory(-1),
       mEnabled(true),
       mDeferEnabled(false),
       mSpeculativeOMTParsingEnabled(false),
@@ -687,8 +689,10 @@ nsresult ScriptLoader::CreateModuleScript(ModuleLoadRequest* aRequest) {
     if (module) {
       JS::RootedValue privateValue(cx);
       JS::RootedScript moduleScript(cx, JS::GetModuleScript(module));
-      if (!JS::UpdateDebugMetadata(cx, moduleScript, options, privateValue,
-                                   nullptr, introductionScript, nullptr)) {
+      JS::InstantiateOptions instantiateOptions(options);
+      if (!JS::UpdateDebugMetadata(cx, moduleScript, instantiateOptions,
+                                   privateValue, nullptr, introductionScript,
+                                   nullptr)) {
         return NS_ERROR_OUT_OF_MEMORY;
       }
     }
@@ -1594,8 +1598,9 @@ nsresult ScriptLoader::StartLoad(ScriptLoadRequest* aRequest) {
       // the bytecode cache instead of the sources, if such entry is already
       // registered.
       LOG(("ScriptLoadRequest (%p): Maybe request bytecode", aRequest));
-      cic->PreferAlternativeDataType(nsContentUtils::JSBytecodeMimeType(),
-                                     ""_ns, true);
+      cic->PreferAlternativeDataType(
+          nsContentUtils::JSBytecodeMimeType(), ""_ns,
+          nsICacheInfoChannel::PreferredAlternativeDataDeliveryType::ASYNC);
     } else {
       // If we are explicitly loading from the sources, such as after a
       // restarted request, we might still want to save the bytecode after.
@@ -1604,7 +1609,9 @@ nsresult ScriptLoader::StartLoad(ScriptLoadRequest* aRequest) {
       // does not exist, such that we can later save the bytecode with a
       // different alternative data type.
       LOG(("ScriptLoadRequest (%p): Request saving bytecode later", aRequest));
-      cic->PreferAlternativeDataType(kNullMimeType, ""_ns, true);
+      cic->PreferAlternativeDataType(
+          kNullMimeType, ""_ns,
+          nsICacheInfoChannel::PreferredAlternativeDataDeliveryType::ASYNC);
     }
   }
 
@@ -2577,13 +2584,24 @@ nsresult ScriptLoader::AttemptAsyncScriptCompile(ScriptLoadRequest* aRequest,
     }
   } else {
     MOZ_ASSERT(aRequest->IsTextSource());
+
+    if (ShouldFullParse(aRequest)) {
+      options.setForceFullParse();
+      mTotalFullParseSize +=
+          aRequest->ScriptTextLength() > 0
+              ? static_cast<uint32_t>(aRequest->ScriptTextLength())
+              : 0;
+
+      LOG(
+          ("ScriptLoadRequest (%p): Full Parsing Enabled for url=%s "
+           "mTotalFullParseSize=%u",
+           aRequest, aRequest->mURI->GetSpecOrDefault().get(),
+           mTotalFullParseSize));
+    }
+
     MaybeSourceText maybeSource;
     nsresult rv = GetScriptSource(cx, aRequest, &maybeSource);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    if (StaticPrefs::dom_script_loader_full_parse()) {
-      options.setForceFullParse();
-    }
 
     aRequest->mOffThreadToken =
         maybeSource.constructed<SourceText<char16_t>>()
@@ -2932,10 +2950,10 @@ nsresult ScriptLoader::FillCompileOptionsForRequest(
   }
 
   if (aRequest->IsModuleRequest()) {
-    aOptions->hideScriptFromDebugger = true;
+    aOptions->setHideScriptFromDebugger(true);
   }
 
-  aOptions->setdeferDebugMetadata(true);
+  aOptions->setDeferDebugMetadata(true);
 
   aOptions->borrowBuffer = true;
 
@@ -3706,8 +3724,7 @@ static nsresult ConvertToUnicode(nsIChannel* aChannel, const uint8_t* aData,
   UniquePtr<Decoder> unicodeDecoder;
 
   const Encoding* encoding;
-  size_t bomLength;
-  Tie(encoding, bomLength) = Encoding::ForBOM(data);
+  Tie(encoding, Ignore) = Encoding::ForBOM(data);
   if (encoding) {
     unicodeDecoder = encoding->NewDecoderWithBOMRemoval();
   }
@@ -4079,16 +4096,67 @@ void ScriptLoader::ContinueParserAsync(
 }
 
 uint32_t ScriptLoader::NumberOfProcessors() {
-  if (mNumberOfProcessors > 0) return mNumberOfProcessors;
+  if (mNumberOfProcessors > 0) {
+    return mNumberOfProcessors;
+  }
 
   int32_t numProcs = PR_GetNumberOfProcessors();
-  if (numProcs > 0) mNumberOfProcessors = numProcs;
+  if (numProcs > 0) {
+    mNumberOfProcessors = numProcs;
+  }
   return mNumberOfProcessors;
+}
+
+int32_t ScriptLoader::PhysicalSizeOfMemoryInGB() {
+  // 0 is a valid result from PR_GetPhysicalMemorySize() which
+  // means a failure occured.
+  if (mPhysicalSizeOfMemory >= 0) {
+    return mPhysicalSizeOfMemory;
+  }
+
+  // Save the size in GB.
+  mPhysicalSizeOfMemory =
+      static_cast<int32_t>(PR_GetPhysicalMemorySize() >> 30);
+  return mPhysicalSizeOfMemory;
 }
 
 static bool IsInternalURIScheme(nsIURI* uri) {
   return uri->SchemeIs("moz-extension") || uri->SchemeIs("resource") ||
          uri->SchemeIs("chrome");
+}
+
+bool ScriptLoader::ShouldFullParse(ScriptLoadRequest* aRequest) {
+  // Full parse everything if negative.
+  if (StaticPrefs::dom_script_loader_full_parse_max_size() < 0) {
+    return true;
+  }
+
+  // Be conservative on machines with 2GB or less of memory.
+  if (PhysicalSizeOfMemoryInGB() <=
+      StaticPrefs::dom_script_loader_full_parse_min_mem()) {
+    return false;
+  }
+
+  uint32_t max_size = static_cast<uint32_t>(
+      StaticPrefs::dom_script_loader_full_parse_max_size());
+  uint32_t script_size =
+      aRequest->ScriptTextLength() > 0
+          ? static_cast<uint32_t>(aRequest->ScriptTextLength())
+          : 0;
+
+  if (mTotalFullParseSize + script_size < max_size) {
+    return true;
+  }
+
+  if (LOG_ENABLED()) {
+    nsCString url = aRequest->mURI->GetSpecOrDefault();
+    LOG(
+        ("ScriptLoadRequest (%p): Full Parsing Disabled for (%s) with size=%u"
+         " because mTotalFullParseSize=%u would exceed max_size=%u",
+         aRequest, url.get(), script_size, mTotalFullParseSize, max_size));
+  }
+
+  return false;
 }
 
 bool ScriptLoader::ShouldCompileOffThread(ScriptLoadRequest* aRequest) {

@@ -188,7 +188,7 @@ impl ExternalEvent {
 }
 
 /// Describe whether or not scrolling should be clamped by the content bounds.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Copy, Clone, Deserialize, Serialize)]
 pub enum ScrollClamping {
     ///
     ToContentBounds,
@@ -277,11 +277,9 @@ impl NotificationRequest {
 /// the RenderBackendThread.
 pub trait ApiHitTester: Send + Sync {
     /// Does a hit test on display items in the specified document, at the given
-    /// point. If a pipeline_id is specified, it is used to further restrict the
-    /// hit results so that only items inside that pipeline are matched. The vector
-    /// of hit results will contain all display items that match, ordered from
-    /// front to back.
-    fn hit_test(&self, pipeline_id: Option<PipelineId>, point: WorldPoint) -> HitTestResult;
+    /// point. The vector of hit results will contain all display items that match,
+    /// ordered from front to back.
+    fn hit_test(&self, point: WorldPoint) -> HitTestResult;
 }
 
 /// A hit tester requested to the render backend thread but not necessarily ready yet.
@@ -524,6 +522,42 @@ pub enum BoolParameter {
     DrawCallsForTextureCopy = 3,
 }
 
+bitflags! {
+    /// Flags to track why we are rendering.
+    #[repr(C)]
+    #[derive(Default, Deserialize, MallocSizeOf, Serialize)]
+    pub struct RenderReasons: u32 {
+        /// Equivalent of empty() for the C++ side.
+        const NONE                          = 0;
+        const SCENE                         = 1 << 0;
+        const ANIMATED_PROPERTY             = 1 << 1;
+        const RESOURCE_UPDATE               = 1 << 2;
+        const ASYNC_IMAGE                   = 1 << 3;
+        const CLEAR_RESOURCES               = 1 << 4;
+        const APZ                           = 1 << 5;
+        /// Window resize
+        const RESIZE                        = 1 << 6;
+        /// Various widget-related reasons
+        const WIDGET                        = 1 << 7;
+        /// See Frame::must_be_drawn
+        const TEXTURE_CACHE_FLUSH           = 1 << 8;
+        const SNAPSHOT                      = 1 << 9;
+        const POST_RESOURCE_UPDATES_HOOK    = 1 << 10;
+        const CONFIG_CHANGE                 = 1 << 11;
+        const CONTENT_SYNC                  = 1 << 12;
+        const FLUSH                         = 1 << 13;
+        const TESTING                       = 1 << 14;
+        const OTHER                         = 1 << 15;
+        /// Vsync isn't actually "why" we render but it can be useful
+        /// to see which frames were driven by the vsync scheduler so
+        /// we store a bit for it.
+        const VSYNC                         = 1 << 16;
+    }
+}
+
+impl RenderReasons {
+    pub const NUM_BITS: u32 = 17;
+}
 
 bitflags! {
     /// Flags to enable/disable various builtin debugging tools.
@@ -607,15 +641,6 @@ pub enum PrimitiveKeyKind {
         ///
         color: PropertyBinding<ColorU>,
     },
-}
-
-///
-#[derive(Clone)]
-pub struct ScrollNodeState {
-    ///
-    pub id: ExternalScrollId,
-    ///
-    pub scroll_offset: LayoutVector2D,
 }
 
 ///

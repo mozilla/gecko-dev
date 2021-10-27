@@ -5,6 +5,7 @@
 
 #include "mozilla/intl/Calendar.h"
 #include "mozilla/intl/DateTimeFormat.h"
+#include "mozilla/intl/DateTimePart.h"
 #include "mozilla/intl/DateTimePatternGenerator.h"
 #include "mozilla/Span.h"
 #include "TestBuffer.h"
@@ -96,8 +97,9 @@ TEST(IntlDateTimeFormat, Skeleton_enUS_utf8_in)
 
   UniquePtr<DateTimeFormat> dtFormat =
       DateTimeFormat::TryCreateFromSkeleton(
-          "en-US", MakeStringSpan("yMdhhmmss"), dateTimePatternGenerator.get(),
-          Nothing(), Some(MakeStringSpan("GMT+3")))
+          MakeStringSpan("en-US"), MakeStringSpan("yMdhhmmss"),
+          dateTimePatternGenerator.get(), Nothing(),
+          Some(MakeStringSpan("GMT+3")))
           .unwrap();
   TestBuffer<char> buffer;
   dtFormat->TryFormat(DATE, buffer).unwrap();
@@ -113,8 +115,9 @@ TEST(IntlDateTimeFormat, Skeleton_enUS_utf16_in)
 
   UniquePtr<DateTimeFormat> dtFormat =
       DateTimeFormat::TryCreateFromSkeleton(
-          "en-US", MakeStringSpan(u"yMdhhmmss"), dateTimePatternGenerator.get(),
-          Nothing(), Some(MakeStringSpan(u"GMT+3")))
+          MakeStringSpan("en-US"), MakeStringSpan(u"yMdhhmmss"),
+          dateTimePatternGenerator.get(), Nothing(),
+          Some(MakeStringSpan(u"GMT+3")))
           .unwrap();
   TestBuffer<char> buffer;
   dtFormat->TryFormat(DATE, buffer).unwrap();
@@ -177,10 +180,18 @@ TEST(IntlDateTimePatternGenerator, GetSkeleton)
   ASSERT_TRUE(buffer.verboseMatches(u"yMd"));
 }
 
+TEST(IntlDateTimePatternGenerator, GetPlaceholderPattern)
+{
+  auto gen = DateTimePatternGenerator::TryCreate("en").unwrap();
+  auto span = gen->GetPlaceholderPattern();
+  // The default date-time pattern for 'en' locale is u"{1}, {0}".
+  ASSERT_EQ(span, MakeStringSpan(u"{1}, {0}"));
+}
+
 // A utility function to help test the DateTimeFormat::ComponentsBag.
-[[nodiscard]] bool FormatComponents(TestBuffer<char16_t>& aBuffer,
-                                    DateTimeFormat::ComponentsBag& aComponents,
-                                    Span<const char> aLocale = "en-US") {
+[[nodiscard]] bool FormatComponents(
+    TestBuffer<char16_t>& aBuffer, DateTimeFormat::ComponentsBag& aComponents,
+    Span<const char> aLocale = MakeStringSpan("en-US")) {
   UniquePtr<DateTimePatternGenerator> gen = nullptr;
   auto dateTimePatternGenerator =
       DateTimePatternGenerator::TryCreate(aLocale.data()).unwrap();
@@ -232,7 +243,7 @@ TEST(IntlDateTimeFormat, Components_es_ES)
   components.second = Some(DateTimeFormat::Numeric::TwoDigit);
 
   TestBuffer<char16_t> buffer;
-  ASSERT_TRUE(FormatComponents(buffer, components, "es-ES"));
+  ASSERT_TRUE(FormatComponents(buffer, components, MakeStringSpan("es-ES")));
   ASSERT_TRUE(buffer.verboseMatches(u"23/9/2002 20:07:30"));
 }
 
@@ -352,7 +363,7 @@ template <typename T>
 [[nodiscard]] bool ResolveComponentsBag(
     DateTimeFormat::ComponentsBag& aComponentsIn,
     DateTimeFormat::ComponentsBag* aComponentsOut,
-    Span<const char> aLocale = "en-US") {
+    Span<const char> aLocale = MakeStringSpan("en-US")) {
   UniquePtr<DateTimePatternGenerator> gen = nullptr;
   auto dateTimePatternGenerator =
       DateTimePatternGenerator::TryCreate("en").unwrap();
@@ -527,4 +538,59 @@ TEST(IntlDateTimeFormat, GetAvailableLocales)
   ASSERT_EQ(chinese, 1);
 }
 
+TEST(IntlDateTimeFormat, TryFormatToParts)
+{
+  auto dateTimePatternGenerator =
+      DateTimePatternGenerator::TryCreate("en").unwrap();
+
+  UniquePtr<DateTimeFormat> dtFormat =
+      DateTimeFormat::TryCreateFromSkeleton(
+          MakeStringSpan("en-US"), MakeStringSpan(u"yMMddHHmm"),
+          dateTimePatternGenerator.get(), Nothing(),
+          Some(MakeStringSpan(u"GMT")))
+          .unwrap();
+
+  TestBuffer<char16_t> buffer;
+  mozilla::intl::DateTimePartVector parts;
+  auto result = dtFormat->TryFormatToParts(DATE, buffer, parts);
+  ASSERT_TRUE(result.isOk());
+
+  std::u16string_view strView = buffer.get_string_view();
+  ASSERT_EQ(strView, u"09/23/2002, 17:07");
+
+  auto getSubStringView = [strView, &parts](size_t index) {
+    size_t pos = index == 0 ? 0 : parts[index - 1].mEndIndex;
+    size_t count = parts[index].mEndIndex - pos;
+    return strView.substr(pos, count);
+  };
+
+  ASSERT_EQ(parts[0].mType, DateTimePartType::Month);
+  ASSERT_EQ(getSubStringView(0), u"09");
+
+  ASSERT_EQ(parts[1].mType, DateTimePartType::Literal);
+  ASSERT_EQ(getSubStringView(1), u"/");
+
+  ASSERT_EQ(parts[2].mType, DateTimePartType::Day);
+  ASSERT_EQ(getSubStringView(2), u"23");
+
+  ASSERT_EQ(parts[3].mType, DateTimePartType::Literal);
+  ASSERT_EQ(getSubStringView(3), u"/");
+
+  ASSERT_EQ(parts[4].mType, DateTimePartType::Year);
+  ASSERT_EQ(getSubStringView(4), u"2002");
+
+  ASSERT_EQ(parts[5].mType, DateTimePartType::Literal);
+  ASSERT_EQ(getSubStringView(5), u", ");
+
+  ASSERT_EQ(parts[6].mType, DateTimePartType::Hour);
+  ASSERT_EQ(getSubStringView(6), u"17");
+
+  ASSERT_EQ(parts[7].mType, DateTimePartType::Literal);
+  ASSERT_EQ(getSubStringView(7), u":");
+
+  ASSERT_EQ(parts[8].mType, DateTimePartType::Minute);
+  ASSERT_EQ(getSubStringView(8), u"07");
+
+  ASSERT_EQ(parts.length(), 9u);
+}
 }  // namespace mozilla::intl

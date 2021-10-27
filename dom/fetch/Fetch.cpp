@@ -1154,6 +1154,10 @@ bool FetchBody<Derived>::CheckBodyUsed() const {
   return bodyUsed;
 }
 
+template bool FetchBody<Request>::CheckBodyUsed() const;
+
+template bool FetchBody<Response>::CheckBodyUsed() const;
+
 template <class Derived>
 void FetchBody<Derived>::SetBodyUsed(JSContext* aCx, ErrorResult& aRv) {
   MOZ_ASSERT(aCx);
@@ -1367,6 +1371,7 @@ template void FetchBody<Request>::SetReadableStreamBody(JSContext* aCx,
 template void FetchBody<Response>::SetReadableStreamBody(JSContext* aCx,
                                                          JSObject* aBody);
 
+#ifndef MOZ_DOM_STREAMS
 template <class Derived>
 void FetchBody<Derived>::GetBody(JSContext* aCx,
                                  JS::MutableHandle<JSObject*> aBodyOut,
@@ -1427,6 +1432,7 @@ template void FetchBody<Request>::GetBody(JSContext* aCx,
 
 template void FetchBody<Response>::GetBody(
     JSContext* aCx, JS::MutableHandle<JSObject*> aMessage, ErrorResult& aRv);
+#endif
 
 template <class Derived>
 void FetchBody<Derived>::LockStream(JSContext* aCx, JS::HandleObject aStream,

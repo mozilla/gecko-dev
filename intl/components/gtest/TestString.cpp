@@ -5,6 +5,9 @@
 
 #include "mozilla/intl/String.h"
 #include "mozilla/Span.h"
+#include "mozilla/TextUtils.h"
+
+#include <algorithm>
 
 #include "TestBuffer.h"
 
@@ -118,6 +121,13 @@ TEST(IntlString, NormalizeNFD)
   alreadyNormalized = String::Normalize(NormalizationForm::NFD, u"½"sv, buf);
   ASSERT_EQ(alreadyNormalized.unwrap(), AlreadyNormalized::Yes);
   ASSERT_EQ(buf.get_string_view(), u"");
+
+  // Test with inline capacity.
+  TestBuffer<char16_t, 2> buf2;
+
+  alreadyNormalized = String::Normalize(NormalizationForm::NFD, u" ç"sv, buf2);
+  ASSERT_EQ(alreadyNormalized.unwrap(), AlreadyNormalized::No);
+  ASSERT_EQ(buf2.get_string_view(), u" c\u0327");
 }
 
 TEST(IntlString, NormalizeNFKC)
@@ -234,6 +244,15 @@ TEST(IntlString, IsCaseIgnorable)
 {
   ASSERT_FALSE(String::IsCaseIgnorable(U'a'));
   ASSERT_TRUE(String::IsCaseIgnorable(U'.'));
+}
+
+TEST(IntlString, GetUnicodeVersion)
+{
+  auto version = String::GetUnicodeVersion();
+
+  ASSERT_TRUE(std::all_of(version.begin(), version.end(), [](char ch) {
+    return IsAsciiDigit(ch) || ch == '.';
+  }));
 }
 
 }  // namespace mozilla::intl

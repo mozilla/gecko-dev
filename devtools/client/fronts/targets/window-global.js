@@ -34,6 +34,7 @@ class WindowGlobalTargetFront extends TargetMixin(
   form(json) {
     this.actorID = json.actor;
     this.browsingContextID = json.browsingContextID;
+    this.innerWindowId = json.innerWindowId;
 
     // Save the full form for Target class usage.
     // Do not use `form` name to avoid colliding with protocol.js's `form` method
@@ -120,16 +121,6 @@ class WindowGlobalTargetFront extends TargetMixin(
       const response = await super.attach();
 
       this.targetForm.threadActor = response.threadActor;
-
-      // @backward-compat { version 93 } Remove this. All the traits are on form and can be accessed
-      // using getTraits.
-      this.traits = response.traits || {};
-
-      // xpcshell tests from devtools/server/tests/xpcshell/ are implementing
-      // fake WindowGlobalTargetActor which do not expose any console actor.
-      if (this.targetForm.consoleActor) {
-        await this.attachConsole();
-      }
     })();
     return this._attach;
   }

@@ -20,6 +20,10 @@ struct nsRect;
 
 namespace mozilla {
 
+namespace dom {
+class Text;
+}  // namespace dom
+
 enum LineBreakType { LINE_BREAK_TYPE_NATIVE, LINE_BREAK_TYPE_XP };
 
 /*
@@ -161,7 +165,8 @@ class MOZ_STACK_CLASS ContentEventHandler {
    * @param aNormalSelection    This must be a Selection instance whose type is
    *                            SelectionType::eNormal.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult InitRootContent(Selection* aNormalSelection);
+  MOZ_CAN_RUN_SCRIPT nsresult
+  InitRootContent(const Selection& aNormalSelection);
 
  public:
   // FlatText means the text that is generated from DOM tree. The BR elements
@@ -243,26 +248,22 @@ class MOZ_STACK_CLASS ContentEventHandler {
                                            LineBreakType aLineBreakType,
                                            bool aIsRemovingNode = false);
   // Computes the native text length between aStartOffset and aEndOffset of
-  // aContent.  aContent must be a text node.
-  static uint32_t GetNativeTextLength(nsIContent* aContent,
+  // aTextNode.
+  static uint32_t GetNativeTextLength(const dom::Text& aTextNode,
                                       uint32_t aStartOffset,
                                       uint32_t aEndOffset);
-  // Get the native text length of aContent.  aContent must be a text node.
-  static uint32_t GetNativeTextLength(nsIContent* aContent,
+  // Get the native text length of aTextNode.
+  static uint32_t GetNativeTextLength(const dom::Text& aTextNode,
                                       uint32_t aMaxLength = UINT32_MAX);
-  // Get the native text length which is inserted before aContent.
-  // aContent should be an element.
-  static uint32_t GetNativeTextLengthBefore(nsIContent* aContent,
-                                            nsINode* aRootNode);
 
  protected:
-  // Get the text length of aContent.  aContent must be a text node.
-  static uint32_t GetTextLength(nsIContent* aContent,
+  // Get the text length of aTextNode.
+  static uint32_t GetTextLength(const dom::Text& aTextNode,
                                 LineBreakType aLineBreakType,
                                 uint32_t aMaxLength = UINT32_MAX);
   // Get the text length of a given range of a content node in
   // the given line break type.
-  static uint32_t GetTextLengthInRange(nsIContent* aContent,
+  static uint32_t GetTextLengthInRange(const dom::Text& aTextNode,
                                        uint32_t aXPStartOffset,
                                        uint32_t aXPEndOffset,
                                        LineBreakType aLineBreakType);
@@ -284,7 +285,8 @@ class MOZ_STACK_CLASS ContentEventHandler {
   // Check if we should insert a line break before aContent.
   // This should return false only when aContent is an html element which
   // is typically used in a paragraph like <em>.
-  static bool ShouldBreakLineBefore(nsIContent* aContent, nsINode* aRootNode);
+  static bool ShouldBreakLineBefore(const nsIContent& aContent,
+                                    const nsINode* aRootNode = nullptr);
   // Get the line breaker length.
   static inline uint32_t GetBRLength(LineBreakType aLineBreakType);
   static LineBreakType GetLineBreakType(WidgetQueryContentEvent* aEvent);
@@ -303,7 +305,7 @@ class MOZ_STACK_CLASS ContentEventHandler {
                                          LineBreakType aLineBreakType,
                                          bool aExpandToClusterBoundaries,
                                          uint32_t* aNewOffset = nullptr,
-                                         nsIContent** aLastTextNode = nullptr);
+                                         dom::Text** aLastTextNode = nullptr);
   // If the aCollapsedRawRange isn't in text node but next to a text node,
   // this method modifies it in the text node.  Otherwise, not modified.
   nsresult AdjustCollapsedRangeMaybeIntoTextNode(RawRange& aCollapsedRawRange);
@@ -312,12 +314,14 @@ class MOZ_STACK_CLASS ContentEventHandler {
   nsresult ConvertToRootRelativeOffset(nsIFrame* aFrame, nsRect& aRect);
   // Expand aXPOffset to the nearest offset in cluster boundary. aForward is
   // true, it is expanded to forward.
-  nsresult ExpandToClusterBoundary(nsIContent* aContent, bool aForward,
-                                   uint32_t* aXPOffset);
+  // FYI: Due to `nsFrameSelection::GetFrameForNodeOffset()`, this cannot
+  //      take `const dom::Text&`.
+  nsresult ExpandToClusterBoundary(dom::Text& aTextNode, bool aForward,
+                                   uint32_t* aXPOffset) const;
 
   using FontRangeArray = nsTArray<mozilla::FontRange>;
   static void AppendFontRanges(FontRangeArray& aFontRanges,
-                               nsIContent* aContent, uint32_t aBaseOffset,
+                               const dom::Text& aTextNode, uint32_t aBaseOffset,
                                uint32_t aXPStartOffset, uint32_t aXPEndOffset,
                                LineBreakType aLineBreakType);
   nsresult GenerateFlatFontRanges(const RawRange& aRawRange,
@@ -385,14 +389,14 @@ class MOZ_STACK_CLASS ContentEventHandler {
   // doesn't check if aFrame should cause line break in non-debug build.
   FrameRelativeRect GetLineBreakerRectBefore(nsIFrame* aFrame);
 
-  // Returns a line breaker rect after aTextContent as there is a line breaker
-  // immediately after aTextContent.  This is useful when following block
+  // Returns a line breaker rect after aTextNode as there is a line breaker
+  // immediately after aTextNode.  This is useful when following block
   // element causes a line break before it and it needs to compute the line
   // breaker's rect.  For example, if there is |<p>abc</p><p>def</p>|, the
   // rect of 2nd <p>'s line breaker should be at right of "c" in the first
   // <p>, not the start of 2nd <p>.  The result is relative to the last text
-  // frame which represents the last character of aTextContent.
-  FrameRelativeRect GuessLineBreakerRectAfter(nsIContent* aTextContent);
+  // frame which represents the last character of aTextNode.
+  FrameRelativeRect GuessLineBreakerRectAfter(const dom::Text& aTextNode);
 
   // Returns a guessed first rect.  I.e., it may be different from actual
   // caret when selection is collapsed at start of aFrame.  For example, this

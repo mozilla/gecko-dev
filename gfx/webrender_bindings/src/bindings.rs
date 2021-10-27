@@ -530,7 +530,7 @@ extern "C" {
     fn wr_notifier_new_frame_ready(window_id: WrWindowId);
     fn wr_notifier_nop_frame_done(window_id: WrWindowId);
     fn wr_notifier_external_event(window_id: WrWindowId, raw_event: usize);
-    fn wr_schedule_render(window_id: WrWindowId);
+    fn wr_schedule_render(window_id: WrWindowId, reasons: RenderReasons);
     // NOTE: This moves away from pipeline_info.
     fn wr_finished_scene_build(window_id: WrWindowId, pipeline_info: &mut WrPipelineInfo);
 
@@ -856,16 +856,61 @@ pub unsafe extern "C" fn wr_renderer_flush_pipeline_info(renderer: &mut Renderer
 }
 
 extern "C" {
-    pub fn gecko_profiler_start_marker(name: *const c_char);
-    pub fn gecko_profiler_end_marker(name: *const c_char);
-    pub fn gecko_profiler_event_marker(name: *const c_char);
-    pub fn gecko_profiler_add_text_marker(
-        name: *const c_char,
-        text_bytes: *const c_char,
-        text_len: usize,
-        microseconds: u64,
-    );
     pub fn gecko_profiler_thread_is_being_profiled() -> bool;
+}
+
+pub fn gecko_profiler_start_marker(name: &str) {
+    use gecko_profiler::{gecko_profiler_category, MarkerOptions, MarkerTiming, ProfilerTime, Tracing};
+    gecko_profiler::add_marker(
+        name,
+        gecko_profiler_category!(Graphics),
+        MarkerOptions {
+            timing: MarkerTiming::interval_start(ProfilerTime::now()),
+            ..Default::default()
+        },
+        Tracing("Webrender".to_string()),
+    );
+}
+pub fn gecko_profiler_end_marker(name: &str) {
+    use gecko_profiler::{gecko_profiler_category, MarkerOptions, MarkerTiming, ProfilerTime, Tracing};
+    gecko_profiler::add_marker(
+        name,
+        gecko_profiler_category!(Graphics),
+        MarkerOptions {
+            timing: MarkerTiming::interval_end(ProfilerTime::now()),
+            ..Default::default()
+        },
+        Tracing("Webrender".to_string()),
+    );
+}
+
+pub fn gecko_profiler_event_marker(name: &str) {
+    use gecko_profiler::{gecko_profiler_category, Tracing};
+    gecko_profiler::add_marker(
+        name,
+        gecko_profiler_category!(Graphics),
+        Default::default(),
+        Tracing("Webrender".to_string()),
+    );
+}
+
+pub fn gecko_profiler_add_text_marker(name: &str, text: &str, microseconds: f64) {
+    use gecko_profiler::{gecko_profiler_category, MarkerOptions, MarkerTiming, ProfilerTime};
+    if !gecko_profiler::can_accept_markers() {
+        return;
+    }
+
+    let now = ProfilerTime::now();
+    let start = now.clone().subtract_microseconds(microseconds);
+    gecko_profiler::add_text_marker(
+        name,
+        gecko_profiler_category!(Graphics),
+        MarkerOptions {
+            timing: MarkerTiming::interval(start, now),
+            ..Default::default()
+        },
+        text,
+    );
 }
 
 /// Simple implementation of the WR ProfilerHooks trait to allow profile
@@ -881,36 +926,21 @@ impl ProfilerHooks for GeckoProfilerHooks {
         gecko_profiler::unregister_thread();
     }
 
-    fn begin_marker(&self, label: &CStr) {
-        unsafe {
-            gecko_profiler_start_marker(label.as_ptr());
-        }
+    fn begin_marker(&self, label: &str) {
+        gecko_profiler_start_marker(label);
     }
 
-    fn end_marker(&self, label: &CStr) {
-        unsafe {
-            gecko_profiler_end_marker(label.as_ptr());
-        }
+    fn end_marker(&self, label: &str) {
+        gecko_profiler_end_marker(label);
     }
 
-    fn event_marker(&self, label: &CStr) {
-        unsafe {
-            gecko_profiler_event_marker(label.as_ptr());
-        }
+    fn event_marker(&self, label: &str) {
+        gecko_profiler_event_marker(label);
     }
 
-    fn add_text_marker(&self, label: &CStr, text: &str, duration: Duration) {
-        unsafe {
-            // NB: This can be as_micros() once we require Rust 1.33.
-            let micros = duration.subsec_micros() as u64 + duration.as_secs() * 1000 * 1000;
-            let text_bytes = text.as_bytes();
-            gecko_profiler_add_text_marker(
-                label.as_ptr(),
-                text_bytes.as_ptr() as *const c_char,
-                text_bytes.len(),
-                micros,
-            );
-        }
+    fn add_text_marker(&self, label: &str, text: &str, duration: Duration) {
+        let micros = duration.as_micros() as f64;
+        gecko_profiler_add_text_marker(label, text, micros);
     }
 
     fn thread_is_being_profiled(&self) -> bool {
@@ -957,9 +987,7 @@ impl SceneBuilderHooks for APZCallbacks {
     }
 
     fn pre_scene_build(&self) {
-        unsafe {
-            gecko_profiler_start_marker(b"SceneBuilding\0".as_ptr() as *const c_char);
-        }
+        gecko_profiler_start_marker("SceneBuilding");
     }
 
     fn pre_scene_swap(&self, scenebuild_time: u64) {
@@ -980,22 +1008,16 @@ impl SceneBuilderHooks for APZCallbacks {
         // otherwise there's no guarantee that the new scene will get rendered
         // anytime soon
         unsafe { wr_finished_scene_build(self.window_id, &mut info) }
-        unsafe {
-            gecko_profiler_end_marker(b"SceneBuilding\0".as_ptr() as *const c_char);
-        }
+        gecko_profiler_end_marker("SceneBuilding");
     }
 
     fn post_resource_update(&self, _document_ids: &Vec<DocumentId>) {
-        unsafe { wr_schedule_render(self.window_id) }
-        unsafe {
-            gecko_profiler_end_marker(b"SceneBuilding\0".as_ptr() as *const c_char);
-        }
+        unsafe { wr_schedule_render(self.window_id, RenderReasons::POST_RESOURCE_UPDATES_HOOK) }
+        gecko_profiler_end_marker("SceneBuilding");
     }
 
     fn post_empty_scene_build(&self) {
-        unsafe {
-            gecko_profiler_end_marker(b"SceneBuilding\0".as_ptr() as *const c_char);
-        }
+        gecko_profiler_end_marker("SceneBuilding");
     }
 
     fn poke(&self) {
@@ -1684,7 +1706,7 @@ pub extern "C" fn wr_window_new(
 #[no_mangle]
 pub unsafe extern "C" fn wr_api_free_error_msg(msg: *mut c_char) {
     if !msg.is_null() {
-        CString::from_raw(msg);
+        drop(CString::from_raw(msg));
     }
 }
 
@@ -1855,11 +1877,6 @@ pub extern "C" fn wr_transaction_set_display_list(
 ) {
     let color = if background.a == 0.0 { None } else { Some(background) };
 
-    // See the documentation of set_display_list in api.rs. I don't think
-    // it makes a difference in gecko at the moment(until APZ is figured out)
-    // but I suppose it is a good default.
-    let preserve_frame_state = true;
-
     let payload = DisplayListPayload {
         items_data: dl_items_data.flush_into_vec(),
         cache_data: dl_cache_data.flush_into_vec(),
@@ -1868,7 +1885,7 @@ pub extern "C" fn wr_transaction_set_display_list(
 
     let dl = BuiltDisplayList::from_data(payload, dl_descriptor);
 
-    txn.set_display_list(epoch, color, viewport_size, (pipeline_id, dl), preserve_frame_state);
+    txn.set_display_list(epoch, color, viewport_size, (pipeline_id, dl));
 }
 
 #[no_mangle]
@@ -1877,13 +1894,13 @@ pub extern "C" fn wr_transaction_set_document_view(txn: &mut Transaction, doc_re
 }
 
 #[no_mangle]
-pub extern "C" fn wr_transaction_generate_frame(txn: &mut Transaction, id: u64) {
-    txn.generate_frame(id);
+pub extern "C" fn wr_transaction_generate_frame(txn: &mut Transaction, id: u64, reasons: RenderReasons) {
+    txn.generate_frame(id, reasons);
 }
 
 #[no_mangle]
-pub extern "C" fn wr_transaction_invalidate_rendered_frame(txn: &mut Transaction) {
-    txn.invalidate_rendered_frame();
+pub extern "C" fn wr_transaction_invalidate_rendered_frame(txn: &mut Transaction, reasons: RenderReasons) {
+    txn.invalidate_rendered_frame(reasons);
 }
 
 fn wr_animation_properties_into_vec<T>(
@@ -2152,7 +2169,6 @@ pub unsafe extern "C" fn wr_transaction_clear_display_list(
     epoch: WrEpoch,
     pipeline_id: WrPipelineId,
 ) {
-    let preserve_frame_state = true;
     let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
     frame_builder.dl_builder.begin();
 
@@ -2161,7 +2177,6 @@ pub unsafe extern "C" fn wr_transaction_clear_display_list(
         None,
         LayoutSize::new(0.0, 0.0),
         frame_builder.dl_builder.end(),
-        preserve_frame_state,
     );
 }
 
@@ -2783,7 +2798,6 @@ pub extern "C" fn wr_dp_define_scroll_layer(
         ExternalScrollId(external_scroll_id, state.pipeline_id),
         content_rect,
         clip_rect,
-        ScrollSensitivity::Script,
         // TODO(gw): We should also update the Gecko-side APIs to provide
         //           this as a vector rather than a point.
         scroll_offset.to_vector(),
@@ -3826,7 +3840,7 @@ pub struct HitResult {
 pub extern "C" fn wr_api_hit_test(dh: &mut DocumentHandle, point: WorldPoint, out_results: &mut ThinVec<HitResult>) {
     dh.ensure_hit_tester();
 
-    let result = dh.hit_tester.as_ref().unwrap().hit_test(None, point);
+    let result = dh.hit_tester.as_ref().unwrap().hit_test(point);
 
     for item in &result.items {
         out_results.push(HitResult {

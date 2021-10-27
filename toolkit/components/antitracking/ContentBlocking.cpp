@@ -31,6 +31,8 @@
 #include "nsIPermission.h"
 #include "nsIPrincipal.h"
 #include "nsIURI.h"
+#include "nsIURIClassifier.h"
+#include "nsIUrlClassifierFeature.h"
 #include "nsIOService.h"
 #include "nsIWebProgressListener.h"
 #include "nsScriptSecurityManager.h"
@@ -297,11 +299,16 @@ ContentBlocking::AllowAccessFor(
   // so we need to determine whether we can run it in the current process (in
   // most of cases it should be a child process).
   //
-  // If the following two cases are both true, we can continue to run in
+  // We will follow below algorithm to decide if we can continue to run in
   // the current process, otherwise, we need to ask the parent to continue
   // the work.
-  // 1. aParentContext is an in-process browsing contex because we need the
-  //    principal of the parent window.
+  // 1. Check if aParentContext is an in-process browsing context. If it isn't,
+  //    we cannot proceed in the content process because we need the
+  //    principal of the parent window. Otherwise, we go to step 2.
+  // 2. Check if the grant reason is ePrivilegeStorageAccessForOriginAPI. In
+  //    this case, we don't need to check the user interaction of the tracking
+  //    origin. So, we can proceed in the content process. Otherwise, go to
+  //    step 3.
   // 2. tracking origin is not third-party with respect to the parent window
   //    (aParentContext). This is because we need to test whether the user
   //    has interacted with the tracking origin before, and this info is
@@ -315,12 +322,13 @@ ContentBlocking::AllowAccessFor(
 
   bool runInSameProcess;
   if (XRE_IsParentProcess()) {
-    // If we are already in the parent, then continue run in the parent.
+    // If we are already in the parent, then continue to run in the parent.
     runInSameProcess = true;
   } else {
-    // Only continue to run in child processes when aParentContext is
-    // in-process and tracking origin is not third-party with respect to
-    // the parent window.
+    // We should run in the parent process when the tracking origin is
+    // third-party with respect to it's parent window. This is because we can't
+    // test if the user has interacted with the third-party origin in the child
+    // process.
     if (aParentContext->IsInProcess()) {
       bool isThirdParty;
       nsCOMPtr<nsIPrincipal> principal =
@@ -332,7 +340,10 @@ ContentBlocking::AllowAccessFor(
       }
       Unused << trackingPrincipal->IsThirdPartyPrincipal(principal,
                                                          &isThirdParty);
-      runInSameProcess = !isThirdParty;
+      runInSameProcess =
+          aReason ==
+              ContentBlockingNotifier::ePrivilegeStorageAccessForOriginAPI ||
+          !isThirdParty;
     } else {
       runInSameProcess = false;
     }
@@ -405,6 +416,12 @@ ContentBlocking::AllowAccessFor(
 //    aParentContext is the browsing context of the opener window, but
 //    AllowAccessFor is called by the opened window. So as long as
 //    aParentContext is not in-process, we should run in the parent.
+//
+// 4. ePrivilegeStorageAccessForOriginAPI
+//    aParentContext is the browsing context of the top window which calls the
+//    privilege API. So, it is always in-process. And we don't need to check the
+//    user interaction permission for the tracking origin in this case. We can
+//    run in the same process.
 /* static */ RefPtr<ContentBlocking::StorageAccessPermissionGrantPromise>
 ContentBlocking::CompleteAllowAccessFor(
     dom::BrowsingContext* aParentContext, uint64_t aTopLevelWindowId,
@@ -446,13 +463,17 @@ ContentBlocking::CompleteAllowAccessFor(
   // user-interaction state, because it could be that the current process has
   // just sent the request to store the user-interaction permission into the
   // parent, without having received the permission itself yet.
+  //
+  // For ePrivilegeStorageAccessForOriginAPI, we explicitly don't check the user
+  // interaction for the tracking origin.
 
   bool isInPrefList = false;
   trackingPrincipal->IsURIInPrefList(
       "privacy.restrict3rdpartystorage."
       "userInteractionRequiredForHosts",
       &isInPrefList);
-  if (isInPrefList &&
+  if (aReason != ContentBlockingNotifier::ePrivilegeStorageAccessForOriginAPI &&
+      isInPrefList &&
       !ContentBlockingUserInteraction::Exists(trackingPrincipal)) {
     LOG_PRIN(("Tracking principal (%s) hasn't been interacted with before, "
               "refusing to add a first-party storage permission to access it",
@@ -585,7 +606,7 @@ ContentBlocking::CompleteAllowAccessFor(
   MOZ_ASSERT(aParentContext->IsInProcess());
 
   // Let's inform the parent window and the other windows having the
-  // same tracking origin about the stroage permission is granted.
+  // same tracking origin about the storage permission is granted.
   ContentBlocking::UpdateAllowAccessOnCurrentProcess(aParentContext,
                                                      aTrackingOrigin);
 
@@ -740,7 +761,7 @@ ContentBlocking::SaveAccessForOriginOnParentProcess(
   return ParentAccessGrantPromise::CreateAndResolve(rv, __func__);
 }
 
-// There are two methods to handle permisson update:
+// There are two methods to handle permission update:
 // 1. UpdateAllowAccessOnCurrentProcess
 // 2. UpdateAllowAccessOnParentProcess
 //
@@ -815,7 +836,7 @@ void ContentBlocking::UpdateAllowAccessOnParentProcess(
   for (const auto& topContext : aParentContext->Group()->Toplevels()) {
     if (topContext == aParentContext->Top()) {
       // In non-fission mode, storage permission is stored in the top-level,
-      // don't need to propagtes it to tracker frames.
+      // don't need to propagate it to tracker frames.
       bool useRemoteSubframes;
       aParentContext->GetUseRemoteSubframes(&useRemoteSubframes);
       if (!useRemoteSubframes) {
@@ -1248,6 +1269,211 @@ bool ContentBlocking::ShouldAllowAccessFor(
 }
 
 /* static */
+RefPtr<ContentBlocking::AsyncShouldAllowAccessForPromise>
+ContentBlocking::AsyncShouldAllowAccessFor(
+    dom::BrowsingContext* aBrowsingContext, nsIPrincipal* aPrincipal) {
+  MOZ_ASSERT(aBrowsingContext);
+  MOZ_ASSERT(aPrincipal);
+
+  if (XRE_IsContentProcess()) {
+    ContentChild* cc = ContentChild::GetSingleton();
+    MOZ_ASSERT(cc);
+
+    // The API should only be called from a first-party context.
+    MOZ_ASSERT(aBrowsingContext->SameOriginWithTop());
+
+    if (!aBrowsingContext->SameOriginWithTop()) {
+      return AsyncShouldAllowAccessForPromise::CreateAndResolve(
+          NS_ERROR_INVALID_ARG, __func__);
+    }
+
+    return cc
+        ->SendAsyncShouldAllowAccessFor(aBrowsingContext,
+                                        IPC::Principal(aPrincipal))
+        ->Then(GetCurrentSerialEventTarget(), __func__,
+               [](const ContentChild::AsyncShouldAllowAccessForPromise::
+                      ResolveOrRejectValue& aValue) {
+                 if (aValue.IsResolve()) {
+                   bool allowed;
+                   uint32_t blockReason;
+
+                   Tie(allowed, blockReason) = aValue.ResolveValue();
+
+                   if (allowed) {
+                     return AsyncShouldAllowAccessForPromise::CreateAndResolve(
+                         NS_OK, __func__);
+                   }
+
+                   return AsyncShouldAllowAccessForPromise::CreateAndReject(
+                       blockReason, __func__);
+                 }
+                 return AsyncShouldAllowAccessForPromise::CreateAndResolve(
+                     NS_ERROR_UNEXPECTED, __func__);
+               });
+  }
+
+  MOZ_ASSERT(XRE_IsParentProcess());
+
+  LOG(
+      ("Computing whether principal %p has storage access in the browsing "
+       "context %p",
+       aPrincipal, aBrowsingContext));
+
+  RefPtr<dom::BrowsingContext> topBC = aBrowsingContext->Top();
+
+  RefPtr<WindowGlobalParent> wgp = topBC->Canonical()->GetCurrentWindowGlobal();
+  nsCOMPtr<nsICookieJarSettings> cjs = wgp->CookieJarSettings();
+
+  uint32_t cookiePermission =
+      CheckCookiePermissionForPrincipal(cjs, aPrincipal);
+
+  if (cookiePermission != nsICookiePermission::ACCESS_DEFAULT) {
+    LOG(
+        ("CheckCookiePermissionForPrincipal() returned a non-default access "
+         "code (%d) for the principal, returning %s",
+         int(cookiePermission),
+         cookiePermission != nsICookiePermission::ACCESS_DENY ? "success"
+                                                              : "failure"));
+    if (cookiePermission != nsICookiePermission::ACCESS_DENY) {
+      return AsyncShouldAllowAccessForPromise::CreateAndResolve(NS_OK,
+                                                                __func__);
+    }
+
+    return AsyncShouldAllowAccessForPromise::CreateAndReject(
+        nsIWebProgressListener::STATE_COOKIES_BLOCKED_BY_PERMISSION, __func__);
+  }
+
+  uint32_t behavior = cjs->GetCookieBehavior();
+
+  if (behavior == nsICookieService::BEHAVIOR_ACCEPT) {
+    LOG(("The cookie behavior pref mandates accepting all cookies!"));
+    return AsyncShouldAllowAccessForPromise::CreateAndResolve(NS_OK, __func__);
+  }
+
+  if (ContentBlockingAllowList::Check(cjs)) {
+    return AsyncShouldAllowAccessForPromise::CreateAndResolve(NS_OK, __func__);
+  }
+
+  if (behavior == nsICookieService::BEHAVIOR_REJECT) {
+    LOG(("The cookie behavior pref mandates rejecting all cookies!"));
+    return AsyncShouldAllowAccessForPromise::CreateAndReject(
+        nsIWebProgressListener::STATE_COOKIES_BLOCKED_ALL, __func__);
+  }
+
+  bool isThirdParty = true;
+  wgp->DocumentPrincipal()->IsThirdPartyPrincipal(aPrincipal, &isThirdParty);
+
+  if (!isThirdParty) {
+    LOG(("Our principal isn't a third-party principal"));
+    return AsyncShouldAllowAccessForPromise::CreateAndResolve(NS_OK, __func__);
+  }
+
+  if ((behavior == nsICookieService::BEHAVIOR_REJECT_FOREIGN &&
+       !CookieJarSettings::IsRejectThirdPartyWithExceptions(behavior)) ||
+      behavior == nsICookieService::BEHAVIOR_LIMIT_FOREIGN) {
+    LOG(("Nothing more to do due to the behavior code %d", int(behavior)));
+    return AsyncShouldAllowAccessForPromise::CreateAndReject(
+        nsIWebProgressListener::STATE_COOKIES_BLOCKED_FOREIGN, __func__);
+  }
+
+  MOZ_ASSERT(
+      CookieJarSettings::IsRejectThirdPartyWithExceptions(behavior) ||
+      behavior == nsICookieService::BEHAVIOR_REJECT_TRACKER ||
+      behavior ==
+          nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN);
+
+  // To capture the principal in case it has been released.
+  RefPtr<nsIPrincipal> principal = aPrincipal;
+
+  auto checkPermission = [principal, wgp](uint32_t blockedReason) {
+    nsCOMPtr<nsIURI> uri = principal->GetURI();
+
+    if (!uri) {
+      LOG(("Cannot get uri from the principal."));
+      return AsyncShouldAllowAccessForPromise::CreateAndReject(blockedReason,
+                                                               __func__);
+    }
+
+    nsAutoCString origin;
+    nsresult rv = nsContentUtils::GetASCIIOrigin(uri, origin);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      LOG(("Cannot get origin from the uri."));
+      return AsyncShouldAllowAccessForPromise::CreateAndReject(blockedReason,
+                                                               __func__);
+    }
+
+    nsAutoCString type;
+    AntiTrackingUtils::CreateStoragePermissionKey(origin, type);
+
+    bool usePrivateBrowsing =
+        wgp->DocumentPrincipal()->OriginAttributesRef().mPrivateBrowsingId > 0;
+
+    uint32_t unused = 0;
+    bool allowed = AntiTrackingUtils::CheckStoragePermission(
+        wgp->DocumentPrincipal(), type, usePrivateBrowsing, &unused, unused);
+
+    return allowed ? AsyncShouldAllowAccessForPromise::CreateAndResolve(
+                         NS_OK, __func__)
+                   : AsyncShouldAllowAccessForPromise::CreateAndReject(
+                         blockedReason, __func__);
+  };
+
+  if (CookieJarSettings::IsRejectThirdPartyWithExceptions(behavior)) {
+    if (RejectForeignAllowList::Check(aPrincipal)) {
+      LOG(("This principal is exception listed for reject foreign"));
+      return AsyncShouldAllowAccessForPromise::CreateAndResolve(NS_OK,
+                                                                __func__);
+    }
+
+    return checkPermission(
+        nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN);
+  }
+
+  // For BEHAVIOR_REJECT_TRACKER and STATE_COOKIES_PARTITIONED_FOREIGN, we need
+  // to know if the principal belongs to a tracker before we check the storage
+  // permission to get a correct block reason.
+
+  return CheckTrackerForPrincipal(aPrincipal)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [checkPermission, behavior, isThirdParty](
+              CheckTrackerForPrincipalPromise::ResolveOrRejectValue&& aValue) {
+            bool isTracker = aValue.IsResolve();
+            uint32_t blockedReason =
+                nsIWebProgressListener::STATE_COOKIES_BLOCKED_TRACKER;
+
+            if (behavior == nsICookieService::BEHAVIOR_REJECT_TRACKER) {
+              if (!isTracker) {
+                LOG(("Our window isn't a third-party tracking window"));
+                return AsyncShouldAllowAccessForPromise::CreateAndResolve(
+                    NS_OK, __func__);
+              }
+
+              blockedReason = aValue.ResolveValue();
+            } else {
+              if (isTracker) {
+                // fall through
+              } else if (isThirdParty) {
+                LOG(
+                    ("We're in the third-party context, storage should be "
+                     "partitioned"));
+                // fall through, but remember that we're partitioning.
+                blockedReason =
+                    nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN;
+              } else {
+                LOG(
+                    ("Our window isn't a third-party window, storage is "
+                     "allowed"));
+                return AsyncShouldAllowAccessForPromise::CreateAndResolve(
+                    NS_OK, __func__);
+              }
+            }
+
+            return checkPermission(blockedReason);
+          });
+}
+
+/* static */
 bool ContentBlocking::ApproximateAllowAccessForWithoutChannel(
     nsPIDOMWindowInner* aFirstPartyWindow, nsIURI* aURI) {
   MOZ_ASSERT(aFirstPartyWindow);
@@ -1307,4 +1533,105 @@ bool ContentBlocking::ApproximateAllowAccessForWithoutChannel(
   return AntiTrackingUtils::CheckStoragePermission(
       parentPrincipal, type,
       nsContentUtils::IsInPrivateBrowsing(parentDocument), nullptr, 0);
+}
+
+NS_IMPL_ISUPPORTS(ContentBlocking::TrackerClassifierFeatureCallback,
+                  nsIUrlClassifierFeatureCallback)
+
+NS_IMETHODIMP
+ContentBlocking::TrackerClassifierFeatureCallback::OnClassifyComplete(
+    const nsTArray<RefPtr<nsIUrlClassifierFeatureResult>>& aResults) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (aResults.IsEmpty()) {
+    // Reject if we can not find url in tracker list.
+    mHolder.RejectIfExists(NS_OK, __func__);
+    return NS_OK;
+  }
+
+  bool isSocialTracker = false;
+
+  // Check if the principal is listed in the social tracking list to report
+  // different tracker type.
+  for (const auto& result : aResults) {
+    nsCOMPtr<nsIUrlClassifierFeature> feature;
+    result->GetFeature(getter_AddRefs(feature));
+
+    if (!feature) {
+      continue;
+    }
+
+    nsAutoCString name;
+    feature->GetName(name);
+
+    if (name.EqualsLiteral("socialtracking-annotation")) {
+      isSocialTracker = true;
+      break;
+    }
+  }
+
+  mHolder.ResolveIfExists(
+      isSocialTracker
+          ? nsIWebProgressListener::STATE_COOKIES_BLOCKED_SOCIALTRACKER
+          : nsIWebProgressListener::STATE_COOKIES_BLOCKED_TRACKER,
+      __func__);
+
+  return NS_OK;
+}
+
+/* static */
+RefPtr<ContentBlocking::CheckTrackerForPrincipalPromise>
+ContentBlocking::CheckTrackerForPrincipal(nsIPrincipal* aPrincipal) {
+  MOZ_ASSERT(aPrincipal);
+  MOZ_ASSERT(XRE_IsParentProcess());
+
+  nsCOMPtr<nsIURI> uri;
+  auto* basePrincipal = BasePrincipal::Cast(aPrincipal);
+  basePrincipal->GetURI(getter_AddRefs(uri));
+
+  if (!uri) {
+    LOG(("Cannot get uri from the principal."));
+    return CheckTrackerForPrincipalPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                            __func__);
+  }
+
+  nsresult rv;
+  nsCOMPtr<nsIURIClassifier> uriClassifier =
+      mozilla::components::UrlClassifierDB::Service(&rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    LOG(("Cannot get the uri classifier."));
+    return CheckTrackerForPrincipalPromise::CreateAndReject(rv, __func__);
+  }
+
+  // Check the uri of the principal with the tracking annotation features
+  // including the social tracker.
+  nsTArray<nsCString> featureNames = {"tracking-annotation"_ns,
+                                      "socialtracking-annotation"_ns};
+  nsTArray<RefPtr<nsIUrlClassifierFeature>> features;
+
+  for (auto& name : featureNames) {
+    nsCOMPtr<nsIUrlClassifierFeature> feature;
+    uriClassifier->GetFeatureByName(name, getter_AddRefs(feature));
+    MOZ_ASSERT(feature);
+
+    if (!feature) {
+      LOG(("Cannot get feature for feature name(%s)", name.get()));
+      return CheckTrackerForPrincipalPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                              __func__);
+    }
+    features.AppendElement(feature);
+  }
+
+  auto callback = MakeRefPtr<TrackerClassifierFeatureCallback>();
+
+  RefPtr<CheckTrackerForPrincipalPromise> promise = callback->Promise();
+
+  rv = uriClassifier->AsyncClassifyLocalWithFeatures(
+      uri, features, nsIUrlClassifierFeature::blocklist, callback);
+  if (NS_FAILED(rv)) {
+    LOG(("Fail on classifying the url."));
+    callback->Reject(rv);
+  }
+
+  return promise;
 }

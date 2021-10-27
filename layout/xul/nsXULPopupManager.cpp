@@ -555,10 +555,16 @@ static nsMenuPopupFrame* GetPopupToMoveOrResize(nsIFrame* aFrame) {
 
 void nsXULPopupManager::PopupMoved(nsIFrame* aFrame, nsIntPoint aPnt) {
   nsMenuPopupFrame* menuPopupFrame = GetPopupToMoveOrResize(aFrame);
-  if (!menuPopupFrame) return;
+  if (!menuPopupFrame) {
+    return;
+  }
 
   nsView* view = menuPopupFrame->GetView();
-  if (!view) return;
+  if (!view) {
+    return;
+  }
+
+  menuPopupFrame->WidgetPositionOrSizeDidChange();
 
   // Don't do anything if the popup is already at the specified location. This
   // prevents recursive calls when a popup is positioned.
@@ -587,15 +593,22 @@ void nsXULPopupManager::PopupMoved(nsIFrame* aFrame, nsIntPoint aPnt) {
 void nsXULPopupManager::PopupResized(nsIFrame* aFrame,
                                      LayoutDeviceIntSize aSize) {
   nsMenuPopupFrame* menuPopupFrame = GetPopupToMoveOrResize(aFrame);
-  if (!menuPopupFrame) return;
+  if (!menuPopupFrame) {
+    return;
+  }
+
+  menuPopupFrame->WidgetPositionOrSizeDidChange();
 
   nsView* view = menuPopupFrame->GetView();
-  if (!view) return;
+  if (!view) {
+    return;
+  }
 
   LayoutDeviceIntRect curDevSize = view->CalcWidgetBounds(eWindowType_popup);
   // If the size is what we think it is, we have nothing to do.
-  if (curDevSize.width == aSize.width && curDevSize.height == aSize.height)
+  if (curDevSize.width == aSize.width && curDevSize.height == aSize.height) {
     return;
+  }
 
   Element* popup = menuPopupFrame->GetContent()->AsElement();
 
@@ -966,7 +979,7 @@ void nsXULPopupManager::ShowTooltipAtScreen(nsIContent* aPopup,
   // coordinates are relative to the root widget
   nsPresContext* rootPresContext = pc->GetRootPresContext();
   if (rootPresContext) {
-    nsIWidget* rootWidget = rootPresContext->GetRootWidget();
+    nsCOMPtr<nsIWidget> rootWidget = rootPresContext->GetRootWidget();
     if (rootWidget) {
       mousePoint -= rootWidget->WidgetToScreenOffset();
     }
@@ -1527,8 +1540,8 @@ nsEventStatus nsXULPopupManager::FirePopupShowingEvent(
   // coordinates are relative to the root widget
   nsPresContext* rootPresContext = aPresContext->GetRootPresContext();
   if (rootPresContext) {
-    rootPresContext->PresShell()->GetViewManager()->GetRootWidget(
-        getter_AddRefs(event.mWidget));
+    event.mWidget =
+        rootPresContext->PresShell()->GetViewManager()->GetRootWidget();
   } else {
     event.mWidget = nullptr;
   }
@@ -1595,9 +1608,11 @@ void nsXULPopupManager::BeginShowingPopup(const PendingPopup& aPendingPopup,
   // get the frame again in case it went away
   popupFrame = do_QueryFrame(popup->GetPrimaryFrame());
   if (popupFrame) {
-    // if the event was cancelled, don't open the popup, reset its state back
-    // to closed and clear its trigger content.
-    if (status == nsEventStatus_eConsumeNoDefault) {
+    // if the event was cancelled or the popup was closed in the mean time,
+    // don't open the popup, reset its state back to closed and clear its
+    // trigger content.
+    if (popupFrame->PopupState() == ePopupClosed ||
+        status == nsEventStatus_eConsumeNoDefault) {
       popupFrame->SetPopupState(ePopupClosed);
       popupFrame->ClearTriggerContent();
     } else {

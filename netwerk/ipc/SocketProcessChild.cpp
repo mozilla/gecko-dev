@@ -12,6 +12,7 @@
 #include "HttpTransactionChild.h"
 #include "HttpConnectionMgrChild.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/Components.h"
 #include "mozilla/dom/MemoryReportRequest.h"
 #include "mozilla/ipc/CrashReporterClient.h"
@@ -25,12 +26,14 @@
 #include "mozilla/net/DNSRequestChild.h"
 #include "mozilla/net/DNSRequestParent.h"
 #include "mozilla/net/NativeDNSResolverOverrideChild.h"
+#include "mozilla/net/ProxyAutoConfigChild.h"
 #include "mozilla/net/TRRServiceChild.h"
 #include "mozilla/ipc/PChildToParentStreamChild.h"
 #include "mozilla/ipc/PParentToChildStreamChild.h"
 #include "mozilla/ipc/ProcessUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RemoteLazyInputStreamChild.h"
+#include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
 #include "nsDebugImpl.h"
 #include "nsHttpConnectionInfo.h"
@@ -42,6 +45,9 @@
 #include "nsSocketTransportService2.h"
 #include "nsThreadManager.h"
 #include "SocketProcessBridgeParent.h"
+#include "jsapi.h"
+#include "js/Initialization.h"
+#include "XPCSelfHostedShmem.h"
 
 #if defined(XP_WIN)
 #  include <process.h>
@@ -68,7 +74,9 @@ namespace net {
 
 using namespace ipc;
 
-SocketProcessChild* sSocketProcessChild;
+static bool sInitializedJS = false;
+
+static Atomic<SocketProcessChild*> sSocketProcessChild;
 
 SocketProcessChild::SocketProcessChild() {
   LOG(("CONSTRUCT SocketProcessChild::SocketProcessChild\n"));
@@ -119,6 +127,17 @@ bool SocketProcessChild::Init(base::ProcessId aParentPid,
 
   if (NS_FAILED(NS_InitMinimalXPCOM())) {
     return false;
+  }
+
+  if (StaticPrefs::network_proxy_parse_pac_on_socket_process()) {
+    // For parsing PAC.
+    const char* jsInitFailureReason = JS_InitWithFailureDiagnostic();
+    if (jsInitFailureReason) {
+      MOZ_CRASH_UNSAFE(jsInitFailureReason);
+    }
+    sInitializedJS = true;
+
+    xpc::SelfHostedShmem::GetSingleton();
   }
 
   BackgroundChild::Startup();
@@ -181,6 +200,10 @@ void SocketProcessChild::CleanUp() {
     mBackgroundDataBridgeMap.Clear();
   }
   NS_ShutdownXPCOM(nullptr);
+
+  if (sInitializedJS) {
+    JS_ShutDown();
+  }
 }
 
 mozilla::ipc::IPCResult SocketProcessChild::RecvInit(
@@ -615,6 +638,12 @@ mozilla::ipc::IPCResult SocketProcessChild::RecvGetHttpConnectionData(
             resolver->OnResolve(std::move(data));
           }),
       NS_DISPATCH_NORMAL);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult SocketProcessChild::RecvInitProxyAutoConfigChild(
+    Endpoint<PProxyAutoConfigChild>&& aEndpoint) {
+  Unused << ProxyAutoConfigChild::Create(std::move(aEndpoint));
   return IPC_OK();
 }
 

@@ -139,8 +139,6 @@ class nsWindow final : public nsBaseWidget {
                                         const LayoutDeviceIntRect& aRect,
                                         nsWidgetInitData* aInitData) override;
   virtual void Destroy() override;
-  virtual nsresult ConfigureChildren(
-      const nsTArray<nsIWidget::Configuration>&) override;
   virtual void SetParent(nsIWidget* aNewParent) override;
   virtual nsIWidget* GetParent(void) override;
   virtual float GetDPI() override;
@@ -167,7 +165,7 @@ class nsWindow final : public nsBaseWidget {
   virtual already_AddRefed<nsIScreen> GetWidgetScreen() override;
   virtual nsresult MakeFullScreen(bool aFullScreen,
                                   nsIScreen* aTargetScreen = nullptr) override;
-  void SetCursor(const Cursor&) override {}
+  void SetCursor(const Cursor& aDefaultCursor) override;
   void* GetNativeData(uint32_t aDataType) override;
   void SetNativeData(uint32_t aDataType, uintptr_t aVal) override;
   virtual nsresult SetTitle(const nsAString& aTitle) override { return NS_OK; }

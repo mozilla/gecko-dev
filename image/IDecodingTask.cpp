@@ -65,8 +65,7 @@ void IDecodingTask::NotifyProgress(NotNull<RasterImage*> aImage,
   // calls we make off-main-thread and the notifications that RasterImage
   // actually receives, which would cause bugs.
   Progress progress = aDecoder->TakeProgress();
-  UnorientedIntRect invalidRect =
-      UnorientedIntRect::FromUnknownRect(aDecoder->TakeInvalidRect());
+  OrientedIntRect invalidRect = aDecoder->TakeInvalidRect();
   Maybe<uint32_t> frameCount = aDecoder->TakeCompleteFrameCount();
   DecoderFlags decoderFlags = aDecoder->GetDecoderFlags();
   SurfaceFlags surfaceFlags = aDecoder->GetSurfaceFlags();
@@ -85,7 +84,7 @@ void IDecodingTask::NotifyProgress(NotNull<RasterImage*> aImage,
 
   // We're forced to notify asynchronously.
   NotNull<RefPtr<RasterImage>> image = aImage;
-  mEventTarget->Dispatch(CreateMediumHighRunnable(NS_NewRunnableFunction(
+  mEventTarget->Dispatch(CreateRenderBlockingRunnable(NS_NewRunnableFunction(
                              "IDecodingTask::NotifyProgress",
                              [=]() -> void {
                                image->NotifyProgress(progress, invalidRect,
@@ -106,8 +105,7 @@ void IDecodingTask::NotifyDecodeComplete(NotNull<RasterImage*> aImage,
   ImageMetadata metadata = aDecoder->GetImageMetadata();
   DecoderTelemetry telemetry = aDecoder->Telemetry();
   Progress progress = aDecoder->TakeProgress();
-  UnorientedIntRect invalidRect =
-      UnorientedIntRect::FromUnknownRect(aDecoder->TakeInvalidRect());
+  OrientedIntRect invalidRect = aDecoder->TakeInvalidRect();
   Maybe<uint32_t> frameCount = aDecoder->TakeCompleteFrameCount();
   DecoderFlags decoderFlags = aDecoder->GetDecoderFlags();
   SurfaceFlags surfaceFlags = aDecoder->GetSurfaceFlags();
@@ -127,7 +125,7 @@ void IDecodingTask::NotifyDecodeComplete(NotNull<RasterImage*> aImage,
 
   // We're forced to notify asynchronously.
   NotNull<RefPtr<RasterImage>> image = aImage;
-  mEventTarget->Dispatch(CreateMediumHighRunnable(NS_NewRunnableFunction(
+  mEventTarget->Dispatch(CreateRenderBlockingRunnable(NS_NewRunnableFunction(
                              "IDecodingTask::NotifyDecodeComplete",
                              [=]() -> void {
                                image->NotifyDecodeComplete(

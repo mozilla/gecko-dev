@@ -22,6 +22,7 @@
 #include "nsICacheEntry.h"
 #include "nsIRequest.h"
 #include "nsJSUtils.h"
+#include "sslerr.h"
 #include <errno.h>
 #include <functional>
 #include "nsLiteralString.h"
@@ -49,44 +50,8 @@ enum {
 };
 #undef HTTP_ATOM
 
-class nsCaseInsentitiveHashKey : public PLDHashEntryHdr {
- public:
-  using KeyType = const nsACString&;
-  using KeyTypePointer = const nsACString*;
-
-  explicit nsCaseInsentitiveHashKey(KeyTypePointer aStr) : mStr(*aStr) {
-    // take it easy just deal HashKey
-  }
-
-  nsCaseInsentitiveHashKey(const nsCaseInsentitiveHashKey&) = delete;
-  nsCaseInsentitiveHashKey(nsCaseInsentitiveHashKey&& aToMove) noexcept
-      : PLDHashEntryHdr(std::move(aToMove)), mStr(aToMove.mStr) {}
-  ~nsCaseInsentitiveHashKey() = default;
-
-  KeyType GetKey() const { return mStr; }
-  bool KeyEquals(const KeyTypePointer aKey) const {
-    return mStr.Equals(*aKey, nsCaseInsensitiveCStringComparator);
-  }
-
-  static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
-  static PLDHashNumber HashKey(const KeyTypePointer aKey) {
-    nsAutoCString tmKey(*aKey);
-    ToLowerCase(tmKey);
-    return mozilla::HashString(tmKey);
-  }
-  enum { ALLOW_MEMMOVE = false };
-
-  // To avoid double-counting, only measure the string if it is unshared.
-  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
-    return GetKey().SizeOfExcludingThisIfUnshared(aMallocSizeOf);
-  }
-
- private:
-  const nsCString mStr;
-};
-
-static StaticDataMutex<nsTHashtable<nsCaseInsentitiveHashKey>> sAtomTable(
-    "nsHttp::sAtomTable");
+static StaticDataMutex<nsTHashtable<nsCStringASCIICaseInsensitiveHashKey>>
+    sAtomTable("nsHttp::sAtomTable");
 
 // This is set to true in DestroyAtomTable so we don't try to repopulate the
 // table if ResolveAtom gets called during shutdown for some reason.
@@ -95,7 +60,8 @@ static Atomic<bool> sTableDestroyed{false};
 // We put the atoms in a hash table for speedy lookup.. see ResolveAtom.
 namespace nsHttp {
 
-nsresult CreateAtomTable(nsTHashtable<nsCaseInsentitiveHashKey>& base) {
+nsresult CreateAtomTable(
+    nsTHashtable<nsCStringASCIICaseInsensitiveHashKey>& base) {
   if (sTableDestroyed) {
     return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
   }
@@ -1002,15 +968,18 @@ nsresult HttpProxyResponseToErrorCode(uint32_t aStatusCode) {
 }
 
 SupportedAlpnType IsAlpnSupported(const nsACString& aAlpn) {
-  if (gHttpHandler->IsHttp3VersionSupported(aAlpn)) {
+  if (gHttpHandler->IsHttp3Enabled() &&
+      gHttpHandler->IsHttp3VersionSupported(aAlpn)) {
     return SupportedAlpnType::HTTP_3;
   }
 
-  uint32_t spdyIndex;
-  SpdyInformation* spdyInfo = gHttpHandler->SpdyInfo();
-  if (NS_SUCCEEDED(spdyInfo->GetNPNIndex(aAlpn, &spdyIndex)) &&
-      spdyInfo->ProtocolEnabled(spdyIndex)) {
-    return SupportedAlpnType::HTTP_2;
+  if (gHttpHandler->IsSpdyEnabled()) {
+    uint32_t spdyIndex;
+    SpdyInformation* spdyInfo = gHttpHandler->SpdyInfo();
+    if (NS_SUCCEEDED(spdyInfo->GetNPNIndex(aAlpn, &spdyIndex)) &&
+        spdyInfo->ProtocolEnabled(spdyIndex)) {
+      return SupportedAlpnType::HTTP_2;
+    }
   }
 
   if (aAlpn.LowerCaseEqualsASCII("http/1.1")) {
@@ -1018,6 +987,12 @@ SupportedAlpnType IsAlpnSupported(const nsACString& aAlpn) {
   }
 
   return SupportedAlpnType::NOT_SUPPORTED;
+}
+
+bool SecurityErrorToBeHandledByTransaction(nsresult aReason) {
+  return (aReason ==
+          psm::GetXPCOMFromNSSError(SSL_ERROR_PROTOCOL_VERSION_ALERT)) ||
+         (aReason == psm::GetXPCOMFromNSSError(SSL_ERROR_BAD_MAC_ALERT));
 }
 
 }  // namespace net

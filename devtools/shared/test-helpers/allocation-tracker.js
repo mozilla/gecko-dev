@@ -146,7 +146,15 @@ exports.allocationTracker = function({
     async startRecordingAllocations(debug_allocations) {
       // Do a first pass of GC, to ensure all to-be-freed objects from the first run
       // are really freed.
+      // We have to temporarily disable allocation-site recording in order to ensure
+      // freeing everything and especially avoid retaining objects in the allocation-log
+      // related to `drainAllocationLog` feature.
+      dbg.memory.allocationSamplingProbability = 0.0;
+      // Also force clearing the allocation log in order to prevent holding alive globals
+      // which have been destroyed before we start recording
+      this.flushAllocations();
       await this.doGC();
+      dbg.memory.allocationSamplingProbability = 1.0;
 
       // Measure the current process memory usage
       const memory = this.getAllocatedMemory();
@@ -172,16 +180,45 @@ exports.allocationTracker = function({
     },
 
     async stopRecordingAllocations(debug_allocations) {
+      // We have to flush the allocation log in order to prevent leaking some objects
+      // being hold in memory solely by their allocation-site (i.e. `SavedFrame` in `Debugger::allocationsLog`)
+      if (debug_allocations != "allocations") {
+        this.flushAllocations();
+      }
+
+      // In the content process we watch for all globals.
+      // Disable allocation record immediately, as we get some allocation reported by the allocation-tracker itself.
+      if (watchAllGlobals) {
+        dbg.memory.allocationSamplingProbability = 0.0;
+      }
+
       // Before computing allocations, re-do some GCs in order to free all what is to-be-freed.
       await this.doGC();
+
+      // If we are in the parent process, we watch only for devtools globals.
+      // So we can more safely assert that no allocation occured while doing the GCs.
+      // If means that the test we are recording is having pending operation which aren't properly recorded.
+      if (!watchAllGlobals) {
+        const allocations = dbg.memory.drainAllocationsLog();
+        if (allocations.length > 0) {
+          this.logAllocationLog(
+            allocations,
+            "Allocation that happened during the GC"
+          );
+          console.error(
+            "Allocation happened during the GC. Are you waiting correctly before calling stopRecordingAllocations?"
+          );
+        }
+      }
 
       const memory = this.getAllocatedMemory();
       const objects = this.stillAllocatedObjects();
 
+      let leaks;
       if (debug_allocations == "allocations") {
         this.logAllocationLog();
       } else if (debug_allocations == "leaks") {
-        this.logAllocationSitesDiff(this.data.allocations);
+        leaks = this.logAllocationSitesDiff(this.data.allocations);
       }
 
       return {
@@ -190,6 +227,7 @@ exports.allocationTracker = function({
         objectsWithStack:
           objects.objectsWithStack - this.data.objects.objectsWithStack,
         memory: memory - this.data.memory,
+        leaks,
       };
     },
 
@@ -307,6 +345,7 @@ exports.allocationTracker = function({
           JSON.stringify(allocationList, null, 2) +
           "\n"
       );
+      return allocationList;
     },
 
     /**
@@ -362,11 +401,15 @@ exports.allocationTracker = function({
      * Reported allocations may have been freed.
      * Use `logAllocationSitesDiff` to know what hasn't been freed.
      */
-    logAllocationLog() {
-      const allocations = dbg.memory.drainAllocationsLog();
+    logAllocationLog(allocations, msg = "") {
+      if (!allocations) {
+        allocations = dbg.memory.drainAllocationsLog();
+      }
       const sources = this.allocationsToSources(allocations);
       return this.logAllocationSites(
-        "all allocations (which may be freed or are still allocated)",
+        msg
+          ? msg
+          : "all allocations (which may be freed or are still allocated)",
         sources
       );
     },
@@ -436,6 +479,15 @@ exports.allocationTracker = function({
         // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
+
+      // Also call minimizeMemoryUsage as that's the only way to purge JIT cache.
+      // CachedIR objects (JIT related objects) are ultimately leading to keep
+      // all transient globals in memory. For some reason, when enabling trackingAllocationSites=true
+      // we compute stack traces (SavedFrame) for each object being allocated.
+      // This either create new CachedIR -or- force holding alive existing CachedIR
+      // and CachedIR itself hold strong references to the transient globals.
+      // See bug 1733480.
+      await new Promise(resolve => MemoryReporter.minimizeMemoryUsage(resolve));
     },
 
     /**

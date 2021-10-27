@@ -35,47 +35,64 @@ promise_test(async t => {
   }));
 
   // Ping each worker telling him which iframe it belongs to.
-  iframes.forEach((iframe, i) => {
-    iframe.sw.port.postMessage({ action: 'record', from: iframe.name });
-  });
-
-  let msg_promises = iframes.map(iframe => new Promise(resolve => {
-    iframe.sw.port.onmessage = event => resolve(event.data);
+  await Promise.all(iframes.map(iframe => {
+    iframe.sw.port.postMessage({ action: 'record', from: iframe.name});
+    return new Promise(resolve => {
+      iframe.sw.port.onmessage = event => {
+        if (event.data.ack === iframe.name) resolve();
+      }
+    });
   }));
 
   // Ping each (iframe, sharedworker) asking for which messages it got.
-  iframes.map(iframe => iframe.sw.port.postMessage({ action: 'retrieve' }));
-
-  // Collect all replies.
-  let msgs = await Promise.all(msg_promises);
+  let msgs = await Promise.all(iframes.map(iframe => {
+    iframe.sw.port.postMessage({ action: 'retrieve', from: iframe.name });
+    return new Promise(resolve => {
+      iframe.sw.port.onmessage = event => {
+        if (event.data.ack === iframe.name) resolve(event.data.messages);
+      }
+    });
+  }));
 
   // The "normal" iframe sharedworker belongs to the "normal" and the
   // "normal_control" iframes.
-  assert_true(!!msgs[0]["normal"]);
-  assert_true(!!msgs[0]["normal_control"]);
-  assert_false(!!msgs[0]["anonymous"]);
-  assert_false(!!msgs[0]["anonymous_control"]);
+  assert_true(!!msgs[0]["normal"] &&
+              !!msgs[0]["normal_control"] &&
+              !msgs[0]["anonymous"] &&
+              !msgs[0]["anonymous_control"],
+              'The "normal" iframe\'s sharedworker should return ' +
+              '{"normal": true, "normal_control": true}, ' +
+              'but instead returned ' + JSON.stringify(msgs[0]));
 
   // The "normal_control" iframe shares the same sharedworker as the "normal"
   // iframe.
-  assert_true(!!msgs[1]["normal"]);
-  assert_true(!!msgs[1]["normal_control"]);
-  assert_false(!!msgs[1]["anonymous"]);
-  assert_false(!!msgs[1]["anonymous_control"]);
+  assert_true(!!msgs[1]["normal"] &&
+              !!msgs[1]["normal_control"] &&
+              !msgs[1]["anonymous"] &&
+              !msgs[1]["anonymous_control"],
+              'The "normal_control" iframe\'s sharedworker should return ' +
+              '{"normal": true, "normal_control": true}, ' +
+              'but instead returned ' + JSON.stringify(msgs[1]));
 
   // The "anonymous" iframe sharedworker belongs to the "anonymous" and the
   // "anonymous_control" iframes.
-  assert_false(!!msgs[2]["normal"]);
-  assert_false(!!msgs[2]["normal_control"]);
-  assert_true(!!msgs[2]["anonymous"]);
-  assert_true(!!msgs[2]["anonymous_control"]);
+  assert_true(!msgs[2]["normal"] &&
+              !msgs[2]["normal_control"] &&
+              !!msgs[2]["anonymous"] &&
+              !!msgs[2]["anonymous_control"],
+              'The "anonymous" iframe\'s sharedworker should return ' +
+              '{"anonymous": true, "anonymous_control": true}, ' +
+              'but instead returned ' + JSON.stringify(msgs[2]));
 
   // The "anonymous_control" iframe shares the same sharedworker as
   // the "anonymous" iframe.
-  assert_false(!!msgs[3]["normal"]);
-  assert_false(!!msgs[3]["normal_control"]);
-  assert_true(!!msgs[3]["anonymous"]);
-  assert_true(!!msgs[3]["anonymous_control"]);
+  assert_true(!msgs[3]["normal"] &&
+              !msgs[3]["normal_control"] &&
+              !!msgs[3]["anonymous"] &&
+              !!msgs[3]["anonymous_control"],
+              'The "anonymous_control" iframe\'s sharedworker should return ' +
+              '{"anonymous": true, "anonymous_control": true}, ' +
+              'but instead returned ' + JSON.stringify(msgs[3]));
 
 }, "Anonymous iframes get partitioned shared workers.");
 

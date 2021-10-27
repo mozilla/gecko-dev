@@ -3,10 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 mod guillotine;
-mod slab;
-
+use crate::texture_cache::TextureCacheHandle;
+use crate::internal_types::FastHashMap;
 pub use guillotine::*;
-pub use slab::*;
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -56,19 +55,27 @@ pub trait AtlasAllocatorList<TextureParameters> {
         texture_alloc_cb: &mut dyn FnMut(DeviceIntSize, &TextureParameters) -> CacheTextureId,
     ) -> (CacheTextureId, AllocId, DeviceIntRect);
 
+    fn set_handle(&mut self, texture_id: CacheTextureId, alloc_id: AllocId, handle: &TextureCacheHandle);
+
+    fn remove_handle(&mut self, texture_id: CacheTextureId, alloc_id: AllocId);
+
     /// Deallocate a rectangle and return its size.
     fn deallocate(&mut self, texture_id: CacheTextureId, alloc_id: AllocId);
 
     fn texture_parameters(&self) -> &TextureParameters;
 }
 
-/// A number of 2D textures (single layer), each with a number of
-/// regions that can act as a slab allocator.
+/// A number of 2D textures (single layer), with their own atlas allocator.
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 struct TextureUnit<Allocator> {
     allocator: Allocator,
+    handles: FastHashMap<AllocId, TextureCacheHandle>,
     texture_id: CacheTextureId,
+    // The texture might become empty during a frame where we copy items out
+    // of it, in which case we want to postpone deleting the texture to the
+    // next frame.
+    delay_deallocation: bool,
 }
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -112,7 +119,9 @@ impl<Allocator: AtlasAllocator, TextureParameters> AllocatorList<Allocator, Text
 
         self.units.push(TextureUnit {
             allocator: Allocator::new(self.size, &self.atlas_parameters),
+            handles: FastHashMap::default(),
             texture_id,
+            delay_deallocation: false,
         });
 
         let (alloc_id, rect) = self.units[unit_index]
@@ -129,16 +138,18 @@ impl<Allocator: AtlasAllocator, TextureParameters> AllocatorList<Allocator, Text
             .find(|unit| unit.texture_id == texture_id)
             .expect("Unable to find the associated texture array unit");
 
+        unit.handles.remove(&alloc_id);
         unit.allocator.deallocate(alloc_id);
     }
 
     pub fn release_empty_textures<'l>(&mut self, texture_dealloc_cb: &'l mut dyn FnMut(CacheTextureId)) {
         self.units.retain(|unit| {
-            if unit.allocator.is_empty() {
+            if unit.allocator.is_empty() && !unit.delay_deallocation {
                 texture_dealloc_cb(unit.texture_id);
 
                 false
             } else{
+                unit.delay_deallocation = false;
                 true
             }
         });
@@ -216,6 +227,22 @@ for AllocatorList<Allocator, TextureParameters> {
         self.allocate(requested_size, texture_alloc_cb)
     }
 
+    fn set_handle(&mut self, texture_id: CacheTextureId, alloc_id: AllocId, handle: &TextureCacheHandle) {
+        let unit = self.units
+            .iter_mut()
+            .find(|unit| unit.texture_id == texture_id)
+            .expect("Unable to find the associated texture array unit");
+        unit.handles.insert(alloc_id, handle.clone());
+    }
+
+    fn remove_handle(&mut self, texture_id: CacheTextureId, alloc_id: AllocId) {
+        let unit = self.units
+            .iter_mut()
+            .find(|unit| unit.texture_id == texture_id)
+            .expect("Unable to find the associated texture array unit");
+        unit.handles.remove(&alloc_id);
+    }
+
     fn deallocate(&mut self, texture_id: CacheTextureId, alloc_id: AllocId) {
         self.deallocate(texture_id, alloc_id);
     }
@@ -285,6 +312,87 @@ impl AtlasAllocator for ShelfAllocator {
     }
 }
 
+pub struct CompactionChange {
+    pub handle: TextureCacheHandle,
+    pub old_id: AllocId,
+    pub old_tex: CacheTextureId,
+    pub old_rect: DeviceIntRect,
+    pub new_id: AllocId,
+    pub new_tex: CacheTextureId,
+    pub new_rect: DeviceIntRect,
+}
+
+impl<P> AllocatorList<ShelfAllocator, P> {
+    /// Attempt to move some allocations from a texture to another to reduce the number of textures.
+    pub fn try_compaction(
+        &mut self,
+        max_pixels: i32,
+        changes: &mut Vec<CompactionChange>,
+    ) {
+        // The goal here is to consolidate items in the first texture by moving them from the last.
+
+        if self.units.len() < 2 {
+            // Nothing to do we are already "compact".
+            return;
+        }
+
+        let last_unit = self.units.len() - 1;
+        let mut pixels = 0;
+        while let Some(alloc) = self.units[last_unit].allocator.iter().next() {
+            // For each allocation in the last texture, try to allocate it in the first one.
+            let new_alloc = match self.units[0].allocator.allocate(alloc.rectangle.size()) {
+                Some(new_alloc) => new_alloc,
+                None => {
+                    // Stop when we fail to fit an item into the first texture.
+                    // We could potentially fit another smaller item in there but we take it as
+                    // an indication that the texture is more or less full, and we'll eventually
+                    // manage to move the items later if they still exist as other items expire,
+                    // which is what matters.
+                    break;
+                }
+            };
+
+            // The item was successfully reallocated in the first texture, we can proceed
+            // with removing it from the last.
+
+            // We keep track of the texture cache handle for each allocation, make sure
+            // the new allocation has the proper handle.
+            let alloc_id = AllocId(alloc.id.serialize());
+            let new_alloc_id = AllocId(new_alloc.id.serialize());
+            let handle = self.units[last_unit].handles.get(&alloc_id).unwrap().clone();
+            self.units[0].handles.insert(new_alloc_id, handle.clone());
+
+            // Remove the allocation for the last texture.
+            self.units[last_unit].handles.remove(&alloc_id);
+            self.units[last_unit].allocator.deallocate(alloc.id);
+
+            // Prevent the texture from being deleted on the same frame.
+            self.units[last_unit].delay_deallocation = true;
+
+            // Record the change so that the texture cache can do additional bookkeeping.
+            changes.push(CompactionChange {
+                handle,
+                old_id: AllocId(alloc.id.serialize()),
+                old_tex: self.units[last_unit].texture_id,
+                old_rect: alloc.rectangle.cast_unit(),
+                new_id: AllocId(new_alloc.id.serialize()),
+                new_tex: self.units[0].texture_id,
+                new_rect: new_alloc.rectangle.cast_unit(),
+            });
+
+            // We are not in a hurry to move all allocations we can in one go, as long as we
+            // eventually have a chance to move them all within a reasonable amount of time.
+            // It's best to spread the load over multiple frames to avoid sudden spikes, so we
+            // stop after we have passed a certain threshold.
+            pixels += alloc.rectangle.area();
+            if pixels > max_pixels {
+                break;
+            }
+        }
+    }
+
+}
+
 #[test]
 fn bug_1680769() {
     let mut allocators: AllocatorList<ShelfAllocator, ()> = AllocatorList::new(
@@ -304,7 +412,9 @@ fn bug_1680769() {
 
     // Make some allocations, forcing the the creation of multiple textures.
     for _ in 0..50 {
-        allocations.push(allocators.allocate(size2(256, 256), alloc_cb));
+        let alloc = allocators.allocate(size2(256, 256), alloc_cb);
+        allocators.set_handle(alloc.0, alloc.1, &TextureCacheHandle::Empty);
+        allocations.push(alloc);
     }
 
     // Deallocate everything.

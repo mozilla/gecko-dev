@@ -1448,7 +1448,7 @@ pref("network.http.http3.alt-svc-mapping-for-testing", "");
 // alt-svc allows separation of transport routing from
 // the origin host without using a proxy.
 pref("network.http.altsvc.enabled", true);
-pref("network.http.altsvc.oe", true);
+pref("network.http.altsvc.oe", false);
 
 // Turn on 0RTT data for TLS 1.3
 pref("security.tls.enable_0rtt_data", true);
@@ -1899,7 +1899,7 @@ pref("network.online",                      true); //online/offline
 
 // The interval in seconds to move the cookies in the child process.
 // Set to 0 to disable moving the cookies.
-pref("network.cookie.move.interval_sec",    10);
+pref("network.cookie.move.interval_sec",    0);
 
 // This pref contains the list of hostnames (such as
 // "mozilla.org,example.net"). For these hosts, firefox will treat
@@ -3680,9 +3680,6 @@ pref("image.http.accept", "");
 // Image memory management prefs
 //
 
-// Allows image locking of decoded image data in content processes.
-pref("image.mem.allow_locking_in_content_processes", true);
-
 pref("webgl.renderer-string-override", "");
 pref("webgl.vendor-string-override", "");
 
@@ -4493,12 +4490,11 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
 // Enable the JSON View tool (an inspector for application/json documents).
 pref("devtools.jsonview.enabled", true);
 
-// Default theme ("dark" or "light").
-#ifdef MOZ_DEV_EDITION
-  pref("devtools.theme", "dark", sticky);
-#else
-  pref("devtools.theme", "light", sticky);
-#endif
+// Default theme ("auto", "dark" or "light").
+pref("devtools.theme", "auto", sticky);
+
+// Display a notification about the new default DevTools theme "auto".
+pref("devtools.theme.show-auto-theme-info", true);
 
 // Completely disable DevTools entry points, as well as all DevTools command
 // line arguments This should be merged with devtools.enabled, see Bug 1440675.

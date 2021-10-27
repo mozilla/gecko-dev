@@ -28,14 +28,11 @@ js::GlobalObject* JS::Realm::maybeGlobal() const {
   return global_;
 }
 
-inline bool JS::Realm::globalIsAboutToBeFinalized() {
-  MOZ_ASSERT(zone_->isGCSweeping());
-  return global_ && js::gc::IsAboutToBeFinalized(&global_);
-}
-
 inline bool JS::Realm::hasLiveGlobal() const {
-  js::GlobalObject* global = unsafeUnbarrieredMaybeGlobal();
-  return global && !js::gc::IsAboutToBeFinalizedUnbarriered(&global);
+  // The global is swept by traceWeakGlobalEdge when we start sweeping a zone
+  // group.
+  MOZ_ASSERT_IF(global_, !js::gc::IsAboutToBeFinalized(&global_));
+  return bool(global_);
 }
 
 inline bool JS::Realm::marked() const {

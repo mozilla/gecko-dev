@@ -38,7 +38,7 @@ class HTMLEditUtils final {
 
  public:
   static constexpr char16_t kNewLine = '\n';
-  static constexpr char16_t kCarridgeReturn = '\r';
+  static constexpr char16_t kCarriageReturn = '\r';
   static constexpr char16_t kTab = '\t';
   static constexpr char16_t kSpace = ' ';
   static constexpr char16_t kNBSP = 0x00A0;
@@ -1593,9 +1593,9 @@ class HTMLEditUtils final {
       // TODO: Perhaps, nsTextFragment should have scanner methods because
       //       the text may be in per-one-byte storage or per-two-byte storage,
       //       and `CharAt` needs to check it everytime.
-      switch (textFragment.CharAt(AssertedCast<int32_t>(i - 1))) {
+      switch (textFragment.CharAt(i - 1)) {
         case HTMLEditUtils::kSpace:
-        case HTMLEditUtils::kCarridgeReturn:
+        case HTMLEditUtils::kCarriageReturn:
         case HTMLEditUtils::kTab:
           if (!isWhiteSpaceCollapsible) {
             return Some(i - 1);
@@ -1612,8 +1612,7 @@ class HTMLEditUtils final {
           }
           break;
         default:
-          MOZ_ASSERT(!nsCRT::IsAsciiSpace(
-              textFragment.CharAt(AssertedCast<int32_t>(i - 1))));
+          MOZ_ASSERT(!nsCRT::IsAsciiSpace(textFragment.CharAt(i - 1)));
           return Some(i - 1);
       }
     }
@@ -1665,9 +1664,9 @@ class HTMLEditUtils final {
       // TODO: Perhaps, nsTextFragment should have scanner methods because
       //       the text may be in per-one-byte storage or per-two-byte storage,
       //       and `CharAt` needs to check it everytime.
-      switch (textFragment.CharAt(AssertedCast<int32_t>(i))) {
+      switch (textFragment.CharAt(i)) {
         case HTMLEditUtils::kSpace:
-        case HTMLEditUtils::kCarridgeReturn:
+        case HTMLEditUtils::kCarriageReturn:
         case HTMLEditUtils::kTab:
           if (!isWhiteSpaceCollapsible) {
             return Some(i);
@@ -1684,8 +1683,7 @@ class HTMLEditUtils final {
           }
           break;
         default:
-          MOZ_ASSERT(!nsCRT::IsAsciiSpace(
-              textFragment.CharAt(AssertedCast<int32_t>(i))));
+          MOZ_ASSERT(!nsCRT::IsAsciiSpace(textFragment.CharAt(i)));
           return Some(i);
       }
     }
@@ -1751,8 +1749,7 @@ class HTMLEditUtils final {
     const nsTextFragment& textFragment = textNode->TextFragment();
     MOZ_ASSERT(aPoint.Offset() <= textFragment.GetLength());
     for (uint32_t offset = aPoint.Offset(); offset; --offset) {
-      if (textFragment.CharAt(AssertedCast<int32_t>(offset - 1)) ==
-          HTMLEditUtils::kNewLine) {
+      if (textFragment.CharAt(offset - 1) == HTMLEditUtils::kNewLine) {
         return EditorDOMPointType(textNode, offset - 1);
       }
     }
@@ -1776,8 +1773,7 @@ class HTMLEditUtils final {
     const nsTextFragment& textFragment = textNode->TextFragment();
     for (uint32_t offset = aPoint.Offset(); offset < textFragment.GetLength();
          ++offset) {
-      if (textFragment.CharAt(AssertedCast<int32_t>(offset)) ==
-          HTMLEditUtils::kNewLine) {
+      if (textFragment.CharAt(offset) == HTMLEditUtils::kNewLine) {
         return EditorDOMPointType(textNode, offset);
       }
     }

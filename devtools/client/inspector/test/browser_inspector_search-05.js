@@ -9,7 +9,7 @@ requestLongerTimeout(2);
 
 add_task(async function() {
   const { inspector } = await openInspectorForURL(
-    `${URL_ROOT_ORG}doc_inspector_search-iframes.html`
+    `${URL_ROOT_ORG_SSL}doc_inspector_search-iframes.html`
   );
 
   info("Focus the search box");
@@ -18,10 +18,9 @@ add_task(async function() {
   info("Enter # to search for all ids");
   let processingDone = once(inspector.searchSuggestions, "processing-done");
   EventUtils.synthesizeKey("#", {}, inspector.panelWin);
-  await processingDone;
 
   info("Wait for search query to complete");
-  await inspector.searchSuggestions._lastQuery;
+  await processingDone;
 
   info("Press tab to fill the search input with the first suggestion");
   processingDone = once(inspector.searchSuggestions, "processing-done");

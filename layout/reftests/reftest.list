@@ -20,6 +20,9 @@ include apng-mime/reftest.list
 
 skip-if(unsupportedWithDrawSnapshot) include async-scrolling/reftest.list
 
+# backgrounds/
+include backgrounds/reftest.list
+
 # bidi/
 include bidi/reftest.list
 
@@ -152,6 +155,9 @@ include css-variables/reftest.list
 # harness.
 
 include cssom/reftest.list
+
+# color-scheme
+include color-scheme/reftest.list
 
 # columns/
 include columns/reftest.list

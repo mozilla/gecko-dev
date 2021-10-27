@@ -775,35 +775,22 @@ async function injectScript(aScript, aWindow = window) {
 // each time this function is called.
 // The computed information is an object with three fields:
 //   utils: the nsIDOMWindowUtils instance for this window
-//   isWebRender: true if WebRender is enabled
 //   isWindow: true if the platform is Windows
 //   activateAllScrollFrames: true if prefs indicate all scroll frames are
 //                            activated with at least a minimal display port
 function getHitTestConfig() {
   if (!("hitTestConfig" in window)) {
     var utils = SpecialPowers.getDOMWindowUtils(window);
-    var isWebRender = utils.layerManagerType.startsWith("WebRender");
     var isWindows = getPlatform() == "windows";
-    let activateAllScrollFrames = false;
-    if (isWebRender) {
-      activateAllScrollFrames =
-        SpecialPowers.getBoolPref("apz.wr.activate_all_scroll_frames") ||
-        (SpecialPowers.getBoolPref(
-          "apz.wr.activate_all_scroll_frames_when_fission"
-        ) &&
-          SpecialPowers.getBoolPref("fission.autostart"));
-    } else {
-      activateAllScrollFrames =
-        SpecialPowers.getBoolPref("apz.nonwr.activate_all_scroll_frames") ||
-        (SpecialPowers.getBoolPref(
-          "apz.nonwr.activate_all_scroll_frames_when_fission"
-        ) &&
-          SpecialPowers.getBoolPref("fission.autostart"));
-    }
+    let activateAllScrollFrames =
+      SpecialPowers.getBoolPref("apz.wr.activate_all_scroll_frames") ||
+      (SpecialPowers.getBoolPref(
+        "apz.wr.activate_all_scroll_frames_when_fission"
+      ) &&
+        SpecialPowers.Services.appinfo.fissionAutostart);
 
     window.hitTestConfig = {
       utils,
-      isWebRender,
       isWindows,
       activateAllScrollFrames,
     };
@@ -951,27 +938,15 @@ function hitTestScrollbar(params) {
   // behaviour on different platforms which makes testing harder.
   var expectedHitInfo = APZHitResultFlags.VISIBLE | APZHitResultFlags.SCROLLBAR;
   if (params.expectThumb) {
-    // The thumb has listeners which are APZ-aware. With WebRender we are able
-    // to losslessly propagate this flag to APZ, but with non-WebRender the area
-    // ends up in the mDispatchToContentRegion which we then convert back to
-    // a IRREGULAR_AREA flag. This still works correctly since IRREGULAR_AREA
-    // will fall back to the main thread for everything.
-    if (config.isWebRender) {
-      expectedHitInfo |= APZHitResultFlags.APZ_AWARE_LISTENERS;
-      if (
-        !config.activateAllScrollFrames &&
-        params.layerState == LayerState.INACTIVE
-      ) {
-        expectedHitInfo |= APZHitResultFlags.INACTIVE_SCROLLFRAME;
-      }
-    } else {
-      expectedHitInfo |= APZHitResultFlags.IRREGULAR_AREA;
+    // The thumb has listeners which are APZ-aware.
+    expectedHitInfo |= APZHitResultFlags.APZ_AWARE_LISTENERS;
+    var expectActive =
+      config.activateAllScrollFrames || params.layerState == LayerState.ACTIVE;
+    if (!expectActive) {
+      expectedHitInfo |= APZHitResultFlags.INACTIVE_SCROLLFRAME;
     }
     // We do not generate the layers for thumbs on inactive scrollframes.
-    if (
-      params.layerState == LayerState.ACTIVE ||
-      config.activateAllScrollFrames
-    ) {
+    if (expectActive) {
       expectedHitInfo |= APZHitResultFlags.SCROLLBAR_THUMB;
     }
   }
@@ -1194,37 +1169,49 @@ function waitForScrollEvent(target) {
   });
 }
 
-// This is a simplified/combined version of promiseOnlyApzControllerFlushed and
-// promiseAllPaintsDone.  We need this function because, unfortunately, there is
-// no easy way to use paint_listeners.js' functions and apz_test_utils.js'
-// functions in popup contents opened by extensions either as scripts in the
-// popup contents or scripts inside SpecialPowers.spawn because we can't use
-// privileged functions in the popup contents' script, we can't use functions
-// basically as it as in the sandboxed context either.
-async function flushApzRepaintsInPopup(popup) {
+// This is another variant of promiseApzFlushedRepaints.
+// We need this function because, unfortunately, there is no easy way to use
+// paint_listeners.js' functions and apz_test_utils.js' functions in popup
+// contents opened by extensions either as scripts in the popup contents or
+// scripts inside SpecialPowers.spawn because we can't use privileged functions
+// in the popup contents' script, we can't use functions basically as it as in
+// the sandboxed context either.
+async function promiseApzFlushedRepaintsInPopup(popup) {
   // Flush APZ repaints and waits for MozAfterPaint.
   await SpecialPowers.spawn(popup, [], async () => {
-    return new Promise(resolve => {
-      const utils = SpecialPowers.getDOMWindowUtils(content.window);
+    const utils = SpecialPowers.getDOMWindowUtils(content.window);
+
+    async function promiseAllPaintsDone() {
+      return new Promise(resolve => {
+        function waitForPaints() {
+          if (utils.isMozAfterPaintPending) {
+            dump("Waits for a MozAfterPaint event\n");
+            content.window.addEventListener(
+              "MozAfterPaint",
+              () => {
+                dump("Got a MozAfterPaint event\n");
+                waitForPaints();
+              },
+              { once: true }
+            );
+          } else {
+            dump("No more pending MozAfterPaint\n");
+            content.window.setTimeout(resolve, 0);
+          }
+        }
+        waitForPaints();
+      });
+    }
+    await promiseAllPaintsDone();
+
+    await new Promise(resolve => {
       var repaintDone = function() {
         dump("APZ flush done\n");
         SpecialPowers.Services.obs.removeObserver(
           repaintDone,
           "apz-repaints-flushed"
         );
-        if (utils.isMozAfterPaintPending) {
-          dump("Waits for a MozAfterPaint event\n");
-          content.window.addEventListener(
-            "MozAfterPaint",
-            () => {
-              dump("Got a MozAfterPaint event\n");
-              resolve();
-            },
-            { once: true }
-          );
-        } else {
-          content.window.setTimeout(resolve, 0);
-        }
+        content.window.setTimeout(resolve, 0);
       };
       SpecialPowers.Services.obs.addObserver(
         repaintDone,
@@ -1239,5 +1226,7 @@ async function flushApzRepaintsInPopup(popup) {
         repaintDone();
       }
     });
+
+    await promiseAllPaintsDone();
   });
 }

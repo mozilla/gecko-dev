@@ -10,13 +10,18 @@
 </head>
 <body>
 <script>
-const wasmIsSupported = SpecialPowers.Cu.getJSTestingFunctions().wasmIsSupported;
+const testingFunctions = SpecialPowers.Cu.getJSTestingFunctions();
+const wasmIsSupported = SpecialPowers.unwrap(testingFunctions.wasmIsSupported);
+const wasmHasTier2CompilationCompleted = SpecialPowers.unwrap(testingFunctions.wasmHasTier2CompilationCompleted);
+const wasmLoadedFromCache = SpecialPowers.unwrap(testingFunctions.wasmLoadedFromCache);
 
 // The test_webassembly_compile_sample.wasm is a medium-sized module with 100
 // functions that call each other recursively, returning a computed sum.
 // Any other non-trivial module could be generated and used.
 var sampleCode;
 const sampleURL = "test_webassembly_compile_sample.wasm";
+const sampleFileSize = 16053;
+const sampleURLWithRandomQuery = () => sampleURL + "?id=" + String(Math.ceil(Math.random()*100000));
 const sampleExportName = "run";
 const sampleResult = 1275;
 
@@ -219,6 +224,134 @@ function compileStreamingFetch() {
   .catch(err => { ok(false, String(err)); });
 }
 
+function compileCachedBasic() {
+  const url = sampleURLWithRandomQuery();
+  WebAssembly.compileStreaming(fetch(url))
+  .then(module => {
+    checkSampleModule(module);
+    ok(!wasmLoadedFromCache(module), "not cached yet");
+    while(!wasmHasTier2CompilationCompleted(module));
+    return WebAssembly.compileStreaming(fetch(url));
+  })
+  .then(module => {
+    checkSampleModule(module);
+    ok(wasmLoadedFromCache(module), "loaded from cache");
+  })
+  .then(() => runTest())
+  .catch(err => { ok(false, String(err)) });
+}
+
+function compileCachedCompressed() {
+  const url = sampleURLWithRandomQuery();
+
+  // It is a rough estimate that compilation code is about
+  // 2-4 times of the wasm file size. After it compression
+  // it will be less (about 60% ?)
+  const EstimatedCompilationArtifactSize = 2 * sampleFileSize;
+  const EstimatedCompressedArtifactSize = 0.6 * EstimatedCompilationArtifactSize;
+
+  // Set limit on cache entry so it will fail if it is not
+  // compressed.
+  const cleanup = () => {
+    SpecialPowers.clearUserPref("browser.cache.disk.max_entry_size")
+  };
+  Promise.resolve(SpecialPowers.setIntPref("browser.cache.disk.max_entry_size",
+    Math.round(EstimatedCompressedArtifactSize / 1024) /* kb */))
+  .then(() => WebAssembly.compileStreaming(fetch(url)))
+  .then(module => {
+    checkSampleModule(module);
+    ok(!wasmLoadedFromCache(module), "not cached yet");
+    while(!wasmHasTier2CompilationCompleted(module));
+    return WebAssembly.compileStreaming(fetch(url));
+  })
+  .then(module => {
+    checkSampleModule(module);
+    ok(wasmLoadedFromCache(module), "loaded from cache");
+  })
+  .then(() => { cleanup(); runTest() })
+  .catch(err => { cleanup(); ok(false, String(err)) });
+}
+
+function compileCachedTooLargeForCache() {
+  const url = sampleURLWithRandomQuery();
+  // Set unreasonable limit, caching will fail.
+  // Bug 1719508 can change name of pref, this and
+  // compileCachedCompressed tests will become invalid.
+  const cleanup = () => {
+    SpecialPowers.clearUserPref("browser.cache.disk.max_entry_size")
+  };
+  Promise.resolve(SpecialPowers.setIntPref("browser.cache.disk.max_entry_size", 1 /* kb */))
+  .then(() => WebAssembly.compileStreaming(fetch(url)))
+  .then(module => {
+    console.log(module)
+    checkSampleModule(module);
+    ok(!wasmLoadedFromCache(module), "not cached yet");
+    while(!wasmHasTier2CompilationCompleted(module));
+    return WebAssembly.compileStreaming(fetch(url));
+  })
+  .then(module => {
+    checkSampleModule(module);
+    ok(!wasmLoadedFromCache(module), "not cached (size limit)");
+  })
+  .then(() => { cleanup(); runTest() })
+  .catch(err => { cleanup(); ok(false, String(err)) });
+}
+
+const Original = "original";
+const Clone = "clone";
+
+function compileCachedBothClonesHitCache(which) {
+  const url = sampleURLWithRandomQuery();
+  WebAssembly.compileStreaming(fetch(url))
+  .then(module => {
+    checkSampleModule(module);
+    ok(!wasmLoadedFromCache(module), "not cached yet");
+    while(!wasmHasTier2CompilationCompleted(module));
+    return fetch(url);
+  })
+  .then(original => {
+    let clone = original.clone();
+    if (which === Clone) [clone, original] = [original, clone];
+    return Promise.all([
+      WebAssembly.compileStreaming(original),
+      WebAssembly.compileStreaming(clone)
+    ]);
+  })
+  .then(([m1, m2]) => {
+    checkSampleModule(m1);
+    ok(wasmLoadedFromCache(m1), "clone loaded from cache");
+    checkSampleModule(m2);
+    ok(wasmLoadedFromCache(m2), "original loaded from cache");
+  })
+  .then(() => runTest())
+  .catch(err => { ok(false, String(err)) });
+}
+
+function compileCachedCacheThroughClone(which) {
+  const url = sampleURLWithRandomQuery();
+  fetch(url)
+  .then(original => {
+    ok(true, "fun time");
+    let clone = original.clone();
+    if (which === Clone) [clone, original] = [original, clone];
+    return Promise.all([
+      WebAssembly.compileStreaming(original),
+      clone.arrayBuffer()
+    ]);
+  })
+  .then(([module, buffer]) => {
+    ok(!wasmLoadedFromCache(module), "not cached yet");
+    ok(buffer instanceof ArrayBuffer);
+    while(!wasmHasTier2CompilationCompleted(module));
+    return WebAssembly.compileStreaming(fetch(url));
+  })
+  .then(m => {
+    ok(wasmLoadedFromCache(m), "cache hit of " + which);
+  })
+  .then(() => runTest())
+  .catch(err => { ok(false, String(err)) });
+}
+
 function instantiateStreamingFetch() {
   WebAssembly.instantiateStreaming(fetch(sampleURL))
   .then(({module, instance}) => { checkSampleModule(module); checkSampleInstance(instance); runTest(); })
@@ -277,6 +410,13 @@ var tests = [ propertiesExist,
               compileStreamingDoubleUseFail,
               compileStreamingNullBody,
               compileStreamingFetch,
+              compileCachedBasic,
+              compileCachedCompressed,
+              compileCachedTooLargeForCache,
+              compileCachedBothClonesHitCache.bind(Original),
+              compileCachedBothClonesHitCache.bind(Clone),
+              compileCachedCacheThroughClone.bind(Original),
+              compileCachedCacheThroughClone.bind(Clone),
               instantiateStreamingFetch,
               compileManyStreamingFetch,
               runWorkerTests,

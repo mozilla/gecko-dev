@@ -301,7 +301,7 @@ static bool EvalKernel(JSContext* cx, HandleValue v, EvalType evalType,
     options.setIsRunOnce(true)
         .setNoScriptRval(false)
         .setMutedErrors(mutedErrors)
-        .setdeferDebugMetadata();
+        .setDeferDebugMetadata();
 
     RootedScript introScript(cx);
 
@@ -342,8 +342,9 @@ static bool EvalKernel(JSContext* cx, HandleValue v, EvalType evalType,
     }
 
     RootedValue undefValue(cx);
-    if (!JS::UpdateDebugMetadata(cx, script, options, undefValue, nullptr,
-                                 introScript, maybeScript)) {
+    JS::InstantiateOptions instantiateOptions(options);
+    if (!JS::UpdateDebugMetadata(cx, script, instantiateOptions, undefValue,
+                                 nullptr, introScript, maybeScript)) {
       return false;
     }
 
@@ -535,3 +536,19 @@ JS_PUBLIC_API bool JS::IsJSMEnvironment(JSObject* obj) {
   // created for reasons other than the JSM loader.
   return obj->is<NonSyntacticVariablesObject>();
 }
+
+#ifdef JSGC_HASH_TABLE_CHECKS
+void RuntimeCaches::checkEvalCacheAfterMinorGC() {
+  JSContext* cx = TlsContext.get();
+  for (auto r = evalCache.all(); !r.empty(); r.popFront()) {
+    const EvalCacheEntry& entry = r.front();
+    CheckGCThingAfterMovingGC(entry.str);
+    EvalCacheLookup lookup(cx);
+    lookup.str = entry.str;
+    lookup.callerScript = entry.callerScript;
+    lookup.pc = entry.pc;
+    auto ptr = evalCache.lookup(lookup);
+    MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &r.front());
+  }
+}
+#endif

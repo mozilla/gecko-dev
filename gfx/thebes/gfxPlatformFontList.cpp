@@ -50,8 +50,8 @@
 #include <numeric>
 
 using namespace mozilla;
-using mozilla::intl::Locale;
 using mozilla::intl::LocaleService;
+using mozilla::intl::MozLocale;
 using mozilla::intl::OSPreferences;
 
 #define LOG_FONTLIST(args) \
@@ -480,8 +480,9 @@ bool gfxPlatformFontList::InitFontList() {
     } else {
       NS_DispatchToMainThread(
           NS_NewRunnableFunction("font-info-updated notification callback", [] {
-            gfxPlatform::ForceGlobalReflow(gfxPlatform::NeedsReframe::Yes,
-                                           gfxPlatform::BroadcastToChildren::No);
+            gfxPlatform::ForceGlobalReflow(
+                gfxPlatform::NeedsReframe::Yes,
+                gfxPlatform::BroadcastToChildren::No);
           }));
     }
 
@@ -503,6 +504,11 @@ bool gfxPlatformFontList::InitFontList() {
     mFaceNameListsInitialized = false;
     ClearLangGroupPrefFonts();
     CancelLoader();
+
+    // Clear cached family records that will no longer be valid.
+    for (auto& f : mReplacementCharFallbackFamily) {
+      f = FontFamily();
+    }
 
     gfxFontUtils::GetPrefsFontList(kFontSystemWhitelistPref, mEnabledFontsList);
   }
@@ -2165,7 +2171,7 @@ void gfxPlatformFontList::AppendCJKPrefLangs(eFontPrefLang aPrefLangs[],
     LocaleService::GetInstance()->GetAppLocaleAsBCP47(localeStr);
 
     {
-      Locale locale(localeStr);
+      MozLocale locale(localeStr);
       if (locale.GetLanguage().Equals("ja")) {
         AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_Japanese);
       } else if (locale.GetLanguage().Equals("zh")) {
@@ -2197,7 +2203,7 @@ void gfxPlatformFontList::AppendCJKPrefLangs(eFontPrefLang aPrefLangs[],
           sysLocales, prefLocales, ""_ns,
           LocaleService::kLangNegStrategyFiltering, negLocales);
       for (const auto& localeStr : negLocales) {
-        Locale locale(localeStr);
+        MozLocale locale(localeStr);
 
         if (locale.GetLanguage().Equals("ja")) {
           AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_Japanese);

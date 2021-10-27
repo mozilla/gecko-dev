@@ -629,11 +629,6 @@ pref("browser.tabs.tabMinWidth", 76);
 // secondary text on tabs hidden due to size constraints and readability
 // of the text at small font sizes.
 pref("browser.tabs.secondaryTextUnsupportedLocales", "ar,bn,bo,ckb,fa,gu,he,hi,ja,km,kn,ko,lo,mr,my,ne,pa,si,ta,te,th,ur,zh");
-// Initial titlebar state is managed by -moz-gtk-csd-hide-titlebar-by-default
-// on Linux.
-#ifndef UNIX_BUT_NOT_MAC
-  pref("browser.tabs.drawInTitlebar", true);
-#endif
 
 //Control the visibility of Tab Manager Menu.
 pref("browser.tabs.tabmanager.enabled", false);
@@ -681,6 +676,40 @@ pref("security.allow_parent_unrestricted_js_loads", false);
 // Unload tabs when available memory is running low
 pref("browser.tabs.unloadOnLowMemory", true);
 
+#if defined(XP_MACOSX)
+  // During low memory periods, poll with this frequency (milliseconds)
+  // until memory is no longer low. Changes to the pref take effect immediately.
+  // Browser restart not required. Chosen to be consistent with the windows
+  // implementation, but otherwise the 10s value is arbitrary.
+  pref("browser.lowMemoryPollingIntervalMS", 10000);
+
+  // Pref to control the reponse taken on macOS when the OS is under memory
+  // pressure. Changes to the pref take effect immediately. Browser restart not
+  // required. The pref value is a bitmask:
+  // 0x0: No response (other than recording for telemetry, crash reporting)
+  // 0x1: Use the tab unloading feature to reduce memory use. Requires that
+  //      the above "browser.tabs.unloadOnLowMemory" pref be set to true for tab
+  //      unloading to occur.
+  // 0x2: Issue the internal "memory-pressure" notification to reduce memory use
+  // 0x3: Both 0x1 and 0x2.
+  #if defined(NIGHTLY_BUILD)
+  pref("browser.lowMemoryResponseMask", 3);
+  #else
+  pref("browser.lowMemoryResponseMask", 0);
+  #endif
+
+  // Controls which macOS memory-pressure level triggers the browser low memory
+  // response. Changes to the pref take effect immediately. Browser restart not
+  // required. By default, use the "critical" level as that occurs after "warn"
+  // and we only want to trigger the low memory reponse when necessary.
+  // The macOS system memory-pressure level is either none, "warn", or
+  // "critical". The OS notifies the browser when the level changes. A false
+  // value for the pref indicates the low memory response should occur when
+  // reaching the "critical" level. A true value indicates the response should
+  // occur when reaching the "warn" level.
+  pref("browser.lowMemoryResponseOnWarn", false);
+#endif
+
 pref("browser.ctrlTab.sortByRecentlyUsed", false);
 
 // By default, do not export HTML at shutdown.
@@ -700,8 +729,6 @@ pref("browser.bookmarks.openInTabClosesMenu", true);
 // Where new bookmarks go by default.
 // Use PlacesUIUtils.defaultParentGuid to read this; do NOT read the pref
 // directly.
-// The pref is ignored if the browser.toolbars.bookmarks.2h2020 pref is false,
-// in which case bookmarks always go in the "Other bookmarks" folder.
 // The value is one of:
 // - a bookmarks guid
 // - "toolbar", "menu" or "unfiled" for those folders.
@@ -1210,6 +1237,16 @@ pref("dom.ipc.shims.enabledWarnings", false);
   // content process is killed when all windows are closed, so a change will
   // take effect when the 1st window is opened.
   pref("security.sandbox.content.level", 3);
+
+  // Disconnect content processes from the window server. Depends on
+  // out-of-process WebGL and non-native theming. i.e., both in-process WebGL
+  // and native theming depend on content processes having a connection to the
+  // window server. Window server disconnection is automatically disabled (and
+  // this pref overridden) if OOP WebGL is disabled. OOP WebGL is disabled
+  // for some tests.
+  #if defined(NIGHTLY_BUILD)
+    pref("security.sandbox.content.mac.disconnect-windowserver", true);
+  #endif
 #endif
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
@@ -1458,7 +1495,7 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.message-groups", "{\
 // this page over http opens us up to a man-in-the-middle attack that we'd rather not face. If you are a downstream
 // repackager of this code using an alternate snippet url, please keep your users safe
 pref("browser.newtabpage.activity-stream.asrouter.providers.snippets", "{\"id\":\"snippets\",\"enabled\":false,\"type\":\"remote\",\"url\":\"https://snippets.cdn.mozilla.net/%STARTPAGE_VERSION%/%NAME%/%VERSION%/%APPBUILDID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/\",\"updateCycleInMs\":14400000}");
-pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments", "{\"id\":\"messaging-experiments\",\"enabled\":true,\"type\":\"remote-experiments\",\"messageGroups\":[\"cfr\",\"whats-new-panel\",\"moments-page\",\"aboutwelcome\",\"infobar\",\"spotlight\"],\"updateCycleInMs\":3600000}");
+pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments", "{\"id\":\"messaging-experiments\",\"enabled\":true,\"type\":\"remote-experiments\",\"messageGroups\":[\"cfr\",\"moments-page\",\"aboutwelcome\",\"infobar\",\"spotlight\"],\"updateCycleInMs\":3600000}");
 
 // ASRouter user prefs
 pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", true);
@@ -1480,6 +1517,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.compactLayout.enabled",
 pref("browser.newtabpage.activity-stream.discoverystream.loadMore.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.lastCardMessage.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.newFooterSection.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.saveToPocketCard.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,11,20");
 pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint", "");
 pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint-query", "");
@@ -2127,11 +2165,6 @@ pref("browser.toolbars.bookmarks.visibility", "newtab");
 // Visibility of the "Show Other Bookmarks" menuitem in the
 // bookmarks toolbar contextmenu.
 pref("browser.toolbars.bookmarks.showOtherBookmarks", true);
-
-// When true, this pref will always show the bookmarks bar on
-// the New Tab Page, and other functionality to improve the usage of the
-// Bookmarks Toolbar.
-pref("browser.toolbars.bookmarks.2h2020", true);
 
 // Prefs to control the Firefox Account toolbar menu.
 // This pref will surface existing Firefox Account information

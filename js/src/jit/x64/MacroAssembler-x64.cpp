@@ -957,22 +957,22 @@ void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
         vmovddup(srcAddr, out.fpu());
       } else if (access.isWidenSimd128Load()) {
         switch (access.widenSimdOp()) {
-          case wasm::SimdOp::I16x8LoadS8x8:
+          case wasm::SimdOp::V128Load8x8S:
             vpmovsxbw(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I16x8LoadU8x8:
+          case wasm::SimdOp::V128Load8x8U:
             vpmovzxbw(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I32x4LoadS16x4:
+          case wasm::SimdOp::V128Load16x4S:
             vpmovsxwd(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I32x4LoadU16x4:
+          case wasm::SimdOp::V128Load16x4U:
             vpmovzxwd(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I64x2LoadS32x2:
+          case wasm::SimdOp::V128Load32x2S:
             vpmovsxdq(srcAddr, out.fpu());
             break;
-          case wasm::SimdOp::I64x2LoadU32x2:
+          case wasm::SimdOp::V128Load32x2U:
             vpmovzxdq(srcAddr, out.fpu());
             break;
           default:
@@ -1180,6 +1180,10 @@ void MacroAssembler::wasmTruncateFloat32ToUInt64(
   or64(Imm64(0x8000000000000000), output);
 
   bind(oolRejoin);
+}
+
+void MacroAssembler::widenInt32(Register r) {
+  move32To64ZeroExtend(r, Register64(r));
 }
 
 // ========================================================================
@@ -1494,19 +1498,18 @@ void MacroAssembler::patchNearAddressMove(CodeLocationLabel loc,
 }
 
 void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
-                                       Register64 boundsCheckLimit,
-                                       Label* label) {
+                                       Register64 boundsCheckLimit, Label* ok) {
   cmpPtr(index.reg, boundsCheckLimit.reg);
-  j(cond, label);
+  j(cond, ok);
   if (JitOptions.spectreIndexMasking) {
     cmovCCq(cond, Operand(boundsCheckLimit.reg), index.reg);
   }
 }
 
 void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
-                                       Address boundsCheckLimit, Label* label) {
+                                       Address boundsCheckLimit, Label* ok) {
   cmpPtr(index.reg, Operand(boundsCheckLimit));
-  j(cond, label);
+  j(cond, ok);
   if (JitOptions.spectreIndexMasking) {
     cmovCCq(cond, Operand(boundsCheckLimit), index.reg);
   }

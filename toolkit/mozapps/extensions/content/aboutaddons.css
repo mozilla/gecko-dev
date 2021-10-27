@@ -193,6 +193,12 @@ message-bar-stack > * {
   margin-bottom: 16px;
 }
 
+.list-section-subheading {
+  font-size: 0.9em;
+  font-weight: 400;
+  margin-block-start: 0.5em;
+}
+
 .section {
   margin-bottom: 32px;
 }
@@ -329,7 +335,7 @@ addon-card[expanded] .update-postponed-bar + .addon-card-message {
 }
 
 .addon-badge-private-browsing-allowed {
-  background-image: url("chrome://browser/skin/indicator-private-browsing.svg");
+  background-image: url("chrome://global/skin/icons/indicator-private-browsing.svg");
 }
 
 .addon-badge-recommended {
@@ -751,4 +757,54 @@ section:not(:empty) ~ #empty-addons-message {
     /* move the badged dot into the top-end (right in ltr, left in rtl) corner. */
     margin-top: -20px;
   }
+}
+
+/* Colorways Section */
+
+.monochromatic-addon-list section {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+}
+
+.monochromatic-addon-list .header-name,
+.monochromatic-addon-list .list-section-subheading {
+  flex-basis: 100%;
+}
+
+.monochromatic-addon-list addon-card .card {
+  box-sizing: border-box;
+  height: calc(100% - 16px);
+  overflow: clip;
+  width: calc((var(--section-width) / 3) - 16px);
+}
+
+.monochromatic-addon-list addon-card .card .card-contents {
+  white-space: normal;
+}
+
+/* Remove disabled add-on fade */
+.monochromatic-addon-list addon-card:not([expanded]) > .addon.card[active="false"] {
+  opacity: unset;
+}
+
+.monochromatic-addon-list .addon-name-container {
+  align-items: start;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 3em 1fr;
+  row-gap: 16px;
+}
+
+.monochromatic-addon-list .addon-name-container .addon-name {
+  grid-column-end: span 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.monochromatic-addon-list .addon-name-container .spacer {
+  display: none;
 }

@@ -581,6 +581,7 @@ class Dav1dDecoder final : AVIFDecoderInterface {
     Dav1dSettings settings;
     dav1d_default_settings(&settings);
     settings.all_layers = 0;
+    settings.max_frame_delay = 1;
     // TODO: tune settings a la DAV1DDecoder for AV1 (Bug 1681816)
 
     return dav1d_open(&mContext, &settings);
@@ -1376,8 +1377,10 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::Decode(
     AccumulateCategorical(LABELS_AVIF_ALPHA::absent);
   }
 
-  IntSize rgbSize = Size();
-  MOZ_ASSERT(rgbSize == decodedData.mPicSize);
+  IntSize rgbSize = decodedData.mPicSize;
+  MOZ_ASSERT(
+      rgbSize ==
+      GetImageMetadata().GetOrientation().ToUnoriented(Size()).ToUnknownSize());
 
   if (parsedImg.nclx_colour_information &&
       parsedImg.icc_colour_information.data) {
@@ -1552,9 +1555,8 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::Decode(
 
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
           ("[this=%p] calling SurfacePipeFactory::CreateSurfacePipe", this));
-  Maybe<SurfacePipe> pipe = SurfacePipeFactory::CreateSurfacePipe(
-      this, rgbSize, OutputSize(), FullFrame(), format, format, Nothing(),
-      mTransform, SurfacePipeFlags());
+  Maybe<SurfacePipe> pipe = SurfacePipeFactory::CreateReorientSurfacePipe(
+      this, Size(), OutputSize(), format, mTransform, GetOrientation());
 
   if (!pipe) {
     MOZ_LOG(sAVIFLog, LogLevel::Debug,

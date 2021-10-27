@@ -95,6 +95,7 @@ class HTMLTextFieldAccessible : public HyperTextAccessibleWrap {
   virtual mozilla::a11y::role NativeRole() const override;
   virtual uint64_t NativeState() const override;
   virtual already_AddRefed<AccAttributes> NativeAttributes() override;
+  virtual bool AttributeChangesState(nsAtom* aAttribute) override;
 
   // ActionAccessible
   virtual uint8_t ActionCount() const override;
@@ -110,19 +111,6 @@ class HTMLTextFieldAccessible : public HyperTextAccessibleWrap {
 
   // LocalAccessible
   virtual ENameValueFlag NativeName(nsString& aName) const override;
-
-  /**
-   * Return a widget element this input is part of, for example, search-textbox.
-   *
-   * FIXME: This should probably be renamed.
-   */
-  nsIContent* BindingOrWidgetParent() const {
-    if (auto* el = mContent->GetClosestNativeAnonymousSubtreeRootParent()) {
-      return el;
-    }
-    // XUL search-textbox custom element
-    return Elm()->Closest("search-textbox"_ns, IgnoreErrors());
-  }
 };
 
 /**
@@ -259,6 +247,11 @@ class HTMLFormAccessible : public HyperTextAccessibleWrap {
   virtual a11y::role NativeRole() const override;
 
  protected:
+  virtual void DOMAttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
+                                   int32_t aModType,
+                                   const nsAttrValue* aOldValue,
+                                   uint64_t aOldState) override;
+
   virtual ~HTMLFormAccessible() = default;
 };
 
@@ -355,10 +348,10 @@ class HTMLDateTimeAccessible : public AccessibleWrap {
     RefPtr<AccAttributes> attributes = AccessibleWrap::NativeAttributes();
     // Unfortunately, an nsStaticAtom can't be passed as a
     // template argument, so fetch the type from the DOM.
-    nsAutoString type;
+    nsString type;
     if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::type,
                                        type)) {
-      attributes->SetAttribute(nsGkAtoms::textInputType, type);
+      attributes->SetAttribute(nsGkAtoms::textInputType, std::move(type));
     }
     return attributes.forget();
   }

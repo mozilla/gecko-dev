@@ -21,7 +21,6 @@
 
   --arrowpanel-dimmed: color-mix(in srgb, currentColor 17%, transparent);
   --arrowpanel-dimmed-further: color-mix(in srgb, currentColor 30%, transparent);
-  --arrowpanel-dimmed-even-further: color-mix(in srgb, currentColor 35%, transparent);
 
   --panel-description-color: GrayText;
   --panel-disabled-color: GrayText;
@@ -140,6 +139,11 @@ xul|label[disabled="true"] {
 }
 
 .text-link:hover {
+  text-decoration: underline;
+}
+
+.text-link:-moz-lwtheme {
+  color: inherit;
   text-decoration: underline;
 }
 

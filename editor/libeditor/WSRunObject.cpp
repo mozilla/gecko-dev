@@ -1525,9 +1525,9 @@ Maybe<WSRunScanner::TextFragmentData::BoundaryData> WSRunScanner::
   for (uint32_t i = std::min(aPoint.Offset(), textFragment.GetLength()); i;
        i--) {
     WSType wsTypeOfNonCollapsibleChar;
-    switch (textFragment.CharAt(AssertedCast<int32_t>(i - 1))) {
+    switch (textFragment.CharAt(i - 1)) {
       case HTMLEditUtils::kSpace:
-      case HTMLEditUtils::kCarridgeReturn:
+      case HTMLEditUtils::kCarriageReturn:
       case HTMLEditUtils::kTab:
         if (isWhiteSpaceCollapsible) {
           continue;  // collapsible white-space or invisible white-space.
@@ -1664,9 +1664,9 @@ Maybe<WSRunScanner::TextFragmentData::BoundaryData> WSRunScanner::
   const nsTextFragment& textFragment = aPoint.ContainerAsText()->TextFragment();
   for (uint32_t i = aPoint.Offset(); i < textFragment.GetLength(); i++) {
     WSType wsTypeOfNonCollapsibleChar;
-    switch (textFragment.CharAt(AssertedCast<int32_t>(i))) {
+    switch (textFragment.CharAt(i)) {
       case HTMLEditUtils::kSpace:
-      case HTMLEditUtils::kCarridgeReturn:
+      case HTMLEditUtils::kCarriageReturn:
       case HTMLEditUtils::kTab:
         if (isWhiteSpaceCollapsible) {
           continue;  // collapsible white-space or invisible white-space.

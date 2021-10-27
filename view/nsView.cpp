@@ -36,7 +36,6 @@ nsView::nsView(nsViewManager* aViewManager, nsViewVisibility aVisibility)
       mNextSibling(nullptr),
       mFirstChild(nullptr),
       mFrame(nullptr),
-      mDirtyRegion(nullptr),
       mZIndex(0),
       mVis(aVisibility),
       mPosX(0),
@@ -104,8 +103,6 @@ nsView::~nsView() {
   DestroyWidget();
 
   MOZ_RELEASE_ASSERT(!mFrame);
-
-  delete mDirtyRegion;
 }
 
 class DestroyWidgetRunnable : public Runnable {
@@ -151,13 +148,14 @@ void nsView::DestroyWidget() {
   }
 }
 
-nsView* nsView::GetViewFor(nsIWidget* aWidget) {
-  MOZ_ASSERT(nullptr != aWidget, "null widget ptr");
+nsView* nsView::GetViewFor(const nsIWidget* aWidget) {
+  MOZ_ASSERT(aWidget, "null widget ptr");
 
   nsIWidgetListener* listener = aWidget->GetWidgetListener();
   if (listener) {
-    nsView* view = listener->GetView();
-    if (view) return view;
+    if (nsView* view = listener->GetView()) {
+      return view;
+    }
   }
 
   listener = aWidget->GetAttachedWidgetListener();
@@ -532,12 +530,7 @@ nsresult nsView::CreateWidget(nsWidgetInitData* aWidgetInitData,
       "Use CreateWidgetForPopup");
 
   DefaultWidgetInitData defaultInitData;
-  bool initDataPassedIn = !!aWidgetInitData;
   aWidgetInitData = aWidgetInitData ? aWidgetInitData : &defaultInitData;
-  defaultInitData.mListenForResizes =
-      (!initDataPassedIn && GetParent() &&
-       GetParent()->GetViewManager() != mViewManager);
-
   LayoutDeviceIntRect trect = CalcWidgetBounds(aWidgetInitData->mWindowType);
 
   nsIWidget* parentWidget =

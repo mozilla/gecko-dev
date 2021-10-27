@@ -11,7 +11,7 @@ loadRelativeToScript('annotations.js');
 loadRelativeToScript('CFG.js');
 loadRelativeToScript('dumpCFG.js');
 
-var sourceRoot = (os.getenv('SOURCE') || '') + '/'
+var sourceRoot = (os.getenv('SOURCE') || '') + '/';
 
 var functionName;
 var functionBodies;
@@ -37,17 +37,10 @@ var tmpfile = scriptArgs[7] || "tmp.txt";
 var gcFunctions = {};
 var text = snarf("gcFunctions.lst").split("\n");
 assert(text.pop().length == 0);
-for (var line of text)
-    gcFunctions[mangled(line)] = true;
+for (const line of text)
+    gcFunctions[mangled(line)] = readable(line);
 
-var limitedFunctions = {};
-var text = snarf(limitedFunctionsFile).split("\n");
-assert(text.pop().length == 0);
-for (var line of text) {
-    const [_, limits, func] = line.match(/(.*?) (.*)/);
-    assert(limits !== undefined);
-    limitedFunctions[func] = limits | 0;
-}
+var limitedFunctions = JSON.parse(snarf(limitedFunctionsFile));
 text = null;
 
 var typeInfo = loadTypeInfo(typeInfoFile);
@@ -55,7 +48,7 @@ var typeInfo = loadTypeInfo(typeInfoFile);
 var gcEdges = {};
 text = snarf(gcEdgesFile).split('\n');
 assert(text.pop().length == 0);
-for (var line of text) {
+for (const line of text) {
     var [ block, edge, func ] = line.split(" || ");
     if (!(block in gcEdges))
         gcEdges[block] = {}
@@ -537,26 +530,24 @@ function edgeCanGC(edge)
         if (variable.Kind == "Func") {
             var func = mangled(variable.Name[0]);
             if ((func in gcFunctions) || ((func + internalMarker) in gcFunctions))
-                return "'" + variable.Name[0] + "'";
-            return null;
+                return `'${func}$${gcFunctions[func]}'`;
+            return false;
         }
 
         var varName = variable.Name[0];
-        return indirectCallCannotGC(functionName, varName) ? null : "'*" + varName + "'";
+        return indirectCallCannotGC(functionName, varName) ? false : "'*" + varName + "'";
     }
 
-    if (callee.Kind == "Fld") {
-        var field = callee.Field;
-        var csuName = field.FieldCSU.Type.Name;
-        var fullFieldName = csuName + "." + field.Name[0];
-        if (fieldCallCannotGC(csuName, fullFieldName))
-            return null;
+    assert(callee.Kind == "Fld");
+    const staticCSU = getFieldCallInstanceCSU(edge, callee.Field);
 
-        if (fullFieldName in gcFunctions)
-            return "'" + fullFieldName + "'";
+    if (fieldCallCannotGC(staticCSU, callee.Field.Name[0]))
+        return false;
 
-        return null;
-    }
+    const fieldkey = fieldKey(staticCSU, callee.Field);
+    if (fieldkey in gcFunctions)
+        return `'${fieldkey}'`;
+    return false;
 }
 
 // Search recursively through predecessors from the use of a variable's value,
@@ -701,7 +692,7 @@ function findGCBeforeValueUse(start_body, start_point, suppressed, variable)
 
             var src_gcInfo = gcInfo;
             var src_preGCLive = preGCLive;
-            if (!gcInfo && !(body.limits[source] & LIMIT_CANNOT_GC) && !suppressed) {
+            if (!gcInfo && !(body.attrs[source] & ATTR_GC_SUPPRESSED) && !(suppressed & ATTR_GC_SUPPRESSED)) {
                 var gcName = edgeCanGC(edge, body);
                 if (gcName)
                     src_gcInfo = {name:gcName, body:body, ppoint:source};
@@ -839,7 +830,7 @@ function unsafeVariableAddressTaken(suppressed, variable)
             continue;
         for (var edge of body.PEdge) {
             if (edgeTakesVariableAddress(edge, variable, body)) {
-                if (edge.Kind == "Assign" || (!suppressed && edgeCanGC(edge)))
+                if (edge.Kind == "Assign" || (!(suppressed & ATTR_GC_SUPPRESSED) && edgeCanGC(edge)))
                     return {body:body, ppoint:edge.Index[0]};
             }
         }
@@ -983,11 +974,12 @@ function typeDesc(type)
     }
 }
 
-function processBodies(functionName)
+function processBodies(functionName, wholeBodyAttrs)
 {
     if (!("DefineVariable" in functionBodies[0]))
-        return;
-    var suppressed = Boolean(limitedFunctions[mangled(functionName)] & LIMIT_CANNOT_GC);
+      return;
+    const funcInfo = limitedFunctions[mangled(functionName)] || { attributes: 0 };
+    const suppressed = funcInfo.attributes | wholeBodyAttrs;
 
     // Look for the JS_EXPECT_HAZARDS annotation, and output a different
     // message in that case that won't be counted as a hazard.
@@ -1122,10 +1114,8 @@ xdb.open("src_body.xdb");
 var minStream = xdb.min_data_stream()|0;
 var maxStream = xdb.max_data_stream()|0;
 
-var N = (maxStream - minStream) + 1;
-var start = Math.floor((batch - 1) / numBatches * N) + minStream;
-var start_next = Math.floor(batch / numBatches * N) + minStream;
-var end = start_next - 1;
+var start = batchStart(batch, numBatches, minStream, maxStream);
+var end = batchLast(batch, numBatches, minStream, maxStream);
 
 function process(name, json) {
     functionName = name;
@@ -1133,24 +1123,35 @@ function process(name, json) {
 
     // Annotate body with a table of all points within the body that may be in
     // a limited scope (eg within the scope of a GC suppression RAII class.)
-    // body.limits is a plain object indexed by point, with the value being a
-    // bit set stored in an integer of the limit bits.
+    // body.attrs is a plain object indexed by point, with the value being a
+    // bit set stored in an integer.
     for (var body of functionBodies)
-        body.limits = [];
+        body.attrs = [];
 
     for (var body of functionBodies) {
-        for (var [pbody, id, limits] of allRAIIGuardedCallPoints(typeInfo, functionBodies, body, isLimitConstructor))
+        for (var [pbody, id, attrs] of allRAIIGuardedCallPoints(typeInfo, functionBodies, body, isLimitConstructor))
         {
-            if (limits)
-                pbody.limits[id] = limits;
+            if (attrs)
+                pbody.attrs[id] = attrs;
         }
     }
-    processBodies(functionName);
+
+    // Special case: std::swap of two refcounted values thinks it can drop the
+    // ref count to zero. Or rather, it just calls operator=() in a context
+    // where the refcount will never drop to zero. Limit all calls within the
+    // body with LIMIT_CANNOT_GC.
+    let wholeBodyAttrs = 0;
+    if (functionName.includes("std::swap") || functionName.includes("mozilla::Swap")) {
+        wholeBodyAttrs = ATTR_GC_SUPPRESSED;
+    }
+
+    processBodies(functionName, wholeBodyAttrs);
 }
 
 if (theFunctionNameToFind) {
     var data = xdb.read_entry(theFunctionNameToFind);
     var json = data.readString();
+    debugger;
     process(theFunctionNameToFind, json);
     xdb.free_string(data);
     quit(0);

@@ -52,7 +52,7 @@ pub use glean_core::{
     metrics::{Datetime, DistributionData, MemoryUnit, RecordedEvent, TimeUnit, TimerId},
     traits, CommonMetricData, Error, ErrorType, Glean, HistogramType, Lifetime, Result,
 };
-use private::RecordedExperimentData;
+pub use private::RecordedExperimentData;
 
 mod configuration;
 mod core_metrics;
@@ -424,7 +424,7 @@ fn block_on_dispatcher() {
         was_initialize_called(),
         "initialize was never called. Can't block on the dispatcher queue."
     );
-    dispatcher::block_on_queue()
+    dispatcher::block_on_queue().unwrap();
 }
 
 /// Checks if [`initialize`] was ever called.
@@ -646,8 +646,7 @@ pub fn handle_client_inactive() {
 
 /// TEST ONLY FUNCTION.
 /// Checks if an experiment is currently active.
-#[allow(dead_code)]
-pub(crate) fn test_is_experiment_active(experiment_id: String) -> bool {
+pub fn test_is_experiment_active(experiment_id: String) -> bool {
     block_on_dispatcher();
     with_glean(|glean| glean.test_is_experiment_active(experiment_id.to_owned()))
 }
@@ -655,8 +654,7 @@ pub(crate) fn test_is_experiment_active(experiment_id: String) -> bool {
 /// TEST ONLY FUNCTION.
 /// Returns the [`RecordedExperimentData`] for the given `experiment_id` or panics if
 /// the id isn't found.
-#[allow(dead_code)]
-pub(crate) fn test_get_experiment_data(experiment_id: String) -> RecordedExperimentData {
+pub fn test_get_experiment_data(experiment_id: String) -> RecordedExperimentData {
     block_on_dispatcher();
     with_glean(|glean| {
         let json_data = glean
@@ -788,21 +786,12 @@ pub fn get_timestamp_ms() -> u64 {
     glean_core::get_timestamp_ms()
 }
 
-/// Asks the database to persist ping-lifetime data to disk. Probably expensive to call.
-/// Only has effect when Glean is configured with `delay_ping_lifetime_io: true`.
-/// If Glean hasn't been initialized this will dispatch and return Ok(()),
-/// otherwise it will block until the persist is done and return its Result.
-pub fn persist_ping_lifetime_data() -> Result<()> {
-    if !was_initialize_called() {
-        crate::launch_with_glean(|glean| {
-            // This is async, we can't get the Error back to the caller.
-            let _ = glean.persist_ping_lifetime_data();
-        });
-        Ok(())
-    } else {
-        block_on_dispatcher();
-        with_glean(|glean| glean.persist_ping_lifetime_data())
-    }
+/// Dispatches a request to the database to persist ping-lifetime data to disk.
+pub fn persist_ping_lifetime_data() {
+    crate::launch_with_glean(|glean| {
+        // This is async, we can't get the Error back to the caller.
+        let _ = glean.persist_ping_lifetime_data();
+    });
 }
 
 #[cfg(test)]

@@ -3,6 +3,7 @@
 // Check for windows (non cygwin) environment
 #if defined(_WIN32)
 
+#include "wasm-rt.h"
 #include "wasm-rt-os.h"
 
 #include <errno.h>
@@ -175,8 +176,9 @@ void* os_mmap_aligned(void* addr,
     }
 
     // Round up the next address that has addr % alignment = 0
+    const size_t alignment_corrected = alignment == 0? 1 : alignment;
     uintptr_t aligned_nonoffset =
-        (unaligned + (alignment - 1)) & ~(alignment - 1);
+        (unaligned + (alignment_corrected - 1)) & ~(alignment_corrected - 1);
 
     // Currently offset 0 is aligned according to alignment
     // Alignment needs to be enforced at the given offset
@@ -195,7 +197,7 @@ void* os_mmap_aligned(void* addr,
     if (aligned < unaligned ||
         (aligned + (requested_length - 1)) >
             (unaligned + (padded_length - 1)) ||
-        (aligned + alignment_offset) % alignment != 0) {
+        (aligned + alignment_offset) % alignment_corrected != 0) {
       VERBOSE_LOG("os_mmap_aligned: sanity check fail. aligned: %p\n", (void*) aligned);
       os_munmap((void*)unaligned, padded_length);
       return NULL;
@@ -226,7 +228,7 @@ static int g_os_data_initialized = 0;
 void os_init() {
   // From here: https://stackoverflow.com/questions/5404277/porting-clock-gettime-to-windows/38212960#38212960
   if (QueryPerformanceFrequency(&g_wasi_win_clock_info.counts_per_sec) == 0) {
-    abort();
+    wasm_rt_trap(WASM_RT_TRAP_WASI);
   }
   g_os_data_initialized = 1;
 }
@@ -238,7 +240,7 @@ void os_clock_init(void** clock_data_pointer) {
 
   wasi_win_clock_info_t* alloc = (wasi_win_clock_info_t*) malloc(sizeof(wasi_win_clock_info_t));
   if (!alloc) {
-    abort();
+    wasm_rt_trap(WASM_RT_TRAP_WASI);
   }
   memcpy(alloc, &g_wasi_win_clock_info, sizeof(wasi_win_clock_info_t));
   *clock_data_pointer = alloc;

@@ -68,6 +68,17 @@ struct TlsData {
   // The class_ of WasmValueBox, this is a per-process value.
   const JSClass* valueBoxClass;
 
+#ifdef ENABLE_WASM_EXCEPTIONS
+  // The pending exception that was found during stack unwinding after a throw.
+  //
+  //   - Only non-null while unwinding the control stack from a wasm-exit stub.
+  //     until the nearest enclosing Wasm try-catch or try-delegate block.
+  //   - Set by wasm::HandleThrow, unset by Instance::consumePendingException.
+  //   - If the unwind target is a `try-delegate`, it is unset by the delegated
+  //     try-catch block or function body block.
+  GCPtrObject pendingException;
+#endif
+
   // Usually equal to cx->stackLimitForJitCode(JS::StackForUntrustedScript),
   // but can be racily set to trigger immediate trap as an opportunity to
   // CheckForInterrupt without an additional branch.
@@ -76,7 +87,7 @@ struct TlsData {
   // Set to 1 when wasm should call CheckForInterrupt.
   Atomic<uint32_t, mozilla::Relaxed> interrupt;
 
-  uint8_t* addressOfNeedsIncrementalBarrier;
+  const uint32_t* addressOfNeedsIncrementalBarrier;
 
   // Methods to set, test and clear the above two fields. Both interrupt
   // fields are Relaxed and so no consistency/ordering can be assumed.
@@ -90,6 +101,10 @@ struct TlsData {
   // When compiling with tiering, the jumpTable has one entry for each
   // baseline-compiled function.
   void** jumpTable;
+
+  // General scratch storage for the baseline compiler, which can't always use
+  // the stack for this.
+  uint32_t baselineScratch[2];
 
   // The globalArea must be the last field.  Globals for the module start here
   // and are inline in this structure.  16-byte alignment is required for SIMD

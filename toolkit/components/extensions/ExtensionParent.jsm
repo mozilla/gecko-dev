@@ -93,6 +93,19 @@ let StartupCache;
 
 const global = this;
 
+function verifyActorForContext(actor, context) {
+  if (actor instanceof JSWindowActorParent) {
+    let target = actor.browsingContext.top.embedderElement;
+    if (context.parentMessageManager !== target.messageManager) {
+      throw new Error("Got message on unexpected message manager");
+    }
+  } else if (actor instanceof JSProcessActorParent) {
+    if (actor.manager.remoteType !== context.extension.remoteType) {
+      throw new Error("Got message from unexpected process");
+    }
+  }
+}
+
 // This object loads the ext-*.js scripts that define the extension API.
 let apiManager = new (class extends SchemaAPIManager {
   constructor() {
@@ -205,28 +218,16 @@ let apiManager = new (class extends SchemaAPIManager {
       });
     })();
 
-    /* eslint-disable mozilla/balanced-listeners */
-    Services.mm.addMessageListener("Extension:GetTabAndWindowId", this);
-    /* eslint-enable mozilla/balanced-listeners */
+    Services.mm.addMessageListener("Extension:GetFrameData", this);
 
     this.initialized = promise;
     return this.initialized;
   }
 
-  receiveMessage({ name, target, sync }) {
-    if (name === "Extension:GetTabAndWindowId") {
-      let result = this.global.tabTracker.getBrowserData(target);
-
-      if (result.tabId) {
-        if (sync) {
-          return result;
-        }
-        target.messageManager.sendAsyncMessage(
-          "Extension:SetFrameData",
-          result
-        );
-      }
-    }
+  receiveMessage({ target }) {
+    let data = GlobalManager.frameData.get(target) || {};
+    Object.assign(data, this.global.tabTracker.getBrowserData(target));
+    return data;
   }
 
   // Call static handlers for the given event on the given extension ids,
@@ -300,10 +301,13 @@ const ProxyMessenger = {
       url: source.url,
     };
 
-    let browser = source.actor.browsingContext.top.embedderElement;
-    let data = browser && apiManager.global.tabTracker.getBrowserData(browser);
-    if (data?.tabId > 0) {
-      sender.tab = extension.tabManager.get(data.tabId, null)?.convert();
+    if (source.actor instanceof JSWindowActorParent) {
+      let browser = source.actor.browsingContext.top.embedderElement;
+      let data =
+        browser && apiManager.global.tabTracker.getBrowserData(browser);
+      if (data?.tabId > 0) {
+        sender.tab = extension.tabManager.get(data.tabId, null)?.convert();
+      }
     }
 
     return sender;
@@ -402,6 +406,9 @@ GlobalManager = {
   extensionMap: new Map(),
   initialized: false,
 
+  /** @type {WeakMap<Browser, object>} Extension Context init data. */
+  frameData: new WeakMap(),
+
   init(extension) {
     if (this.extensionMap.size == 0) {
       apiManager.on("extension-browser-inserted", this._onExtensionBrowser);
@@ -435,21 +442,10 @@ GlobalManager = {
     }
   },
 
-  _onExtensionBrowser(type, browser, additionalData = {}) {
-    browser.messageManager.loadFrameScript(
-      "resource://gre/modules/onExtensionBrowser.js",
-      false,
-      true
-    );
-
-    let viewType = browser.getAttribute("webextension-view-type");
-    if (viewType) {
-      let data = { viewType };
-
-      let { tabTracker } = apiManager.global;
-      Object.assign(data, tabTracker.getBrowserData(browser), additionalData);
-
-      browser.messageManager.sendAsyncMessage("Extension:SetFrameData", data);
+  _onExtensionBrowser(type, browser, data = {}) {
+    data.viewType = browser.getAttribute("webextension-view-type");
+    if (data.viewType) {
+      GlobalManager.frameData.set(browser, data);
     }
   },
 
@@ -476,7 +472,8 @@ class ProxyContextParent extends BaseContext {
     // close the ProxyContext if the underlying message manager closes. This
     // message manager object may change when `xulBrowser` swaps docshells, e.g.
     // when a tab is moved to a different window.
-    this.messageManagerProxy = new MessageManagerProxy(xulBrowser);
+    this.messageManagerProxy =
+      xulBrowser && new MessageManagerProxy(xulBrowser);
 
     Object.defineProperty(this, "principal", {
       value: principal,
@@ -518,11 +515,11 @@ class ProxyContextParent extends BaseContext {
   }
 
   get xulBrowser() {
-    return this.messageManagerProxy.eventTarget;
+    return this.messageManagerProxy?.eventTarget;
   }
 
   get parentMessageManager() {
-    return this.messageManagerProxy.messageManager;
+    return this.messageManagerProxy?.messageManager;
   }
 
   shutdown() {
@@ -533,7 +530,9 @@ class ProxyContextParent extends BaseContext {
     if (this.unloaded) {
       return;
     }
-    this.messageManagerProxy.dispose();
+
+    this.messageManagerProxy?.dispose();
+
     super.unload();
     apiManager.emit("proxy-context-unload", this);
   }
@@ -790,7 +789,7 @@ ParentAPIManager = {
 
   recvCreateProxyContext(data, { actor, sender }) {
     let { envType, extensionId, childId, principal } = data;
-    let target = actor.browsingContext.top.embedderElement;
+    let target = actor.browsingContext?.top.embedderElement;
 
     if (this.proxyContexts.has(childId)) {
       throw new Error(
@@ -809,20 +808,34 @@ ParentAPIManager = {
         throw new Error(`Bad sender context envType: ${sender.envType}`);
       }
 
-      let processMessageManager =
-        target.messageManager.processMessageManager ||
-        Services.ppmm.getChildAt(0);
+      if (actor instanceof JSWindowActorParent) {
+        let processMessageManager =
+          target.messageManager.processMessageManager ||
+          Services.ppmm.getChildAt(0);
 
-      if (!extension.parentMessageManager) {
-        if (target.remoteType === extension.remoteType) {
-          this.attachMessageManager(extension, processMessageManager);
+        if (!extension.parentMessageManager) {
+          if (target.remoteType === extension.remoteType) {
+            this.attachMessageManager(extension, processMessageManager);
+          }
         }
-      }
 
-      if (processMessageManager !== extension.parentMessageManager) {
-        throw new Error(
-          "Attempt to create privileged extension parent from incorrect child process"
-        );
+        if (processMessageManager !== extension.parentMessageManager) {
+          throw new Error(
+            "Attempt to create privileged extension parent from incorrect child process"
+          );
+        }
+      } else if (actor instanceof JSProcessActorParent) {
+        if (actor.manager.remoteType !== extension.remoteType) {
+          throw new Error(
+            "Attempt to create privileged extension parent from incorrect child process"
+          );
+        }
+
+        if (envType !== "addon_parent") {
+          throw new Error(
+            `Unexpected envType ${envType} on an extension process actor`
+          );
+        }
       }
 
       if (envType == "addon_parent") {
@@ -912,13 +925,12 @@ ParentAPIManager = {
 
   async recvAPICall(data, { actor }) {
     let context = this.getContextById(data.childId);
-    let target = actor.browsingContext.top.embedderElement;
-    if (context.parentMessageManager !== target.messageManager) {
-      throw new Error("Got message on unexpected message manager");
-    }
+    let target = actor.browsingContext?.top.embedderElement;
+
+    verifyActorForContext(actor, context);
 
     let reply = result => {
-      if (!context.parentMessageManager) {
+      if (target && !context.parentMessageManager) {
         Services.console.logStringMessage(
           "Cannot send function call result: other side closed connection " +
             `(call data: ${uneval({ path: data.path, args: data.args })})`
@@ -973,10 +985,8 @@ ParentAPIManager = {
 
   async recvAddListener(data, { actor }) {
     let context = this.getContextById(data.childId);
-    let target = actor.browsingContext.top.embedderElement;
-    if (context.parentMessageManager !== target.messageManager) {
-      throw new Error("Got message on unexpected message manager");
-    }
+
+    verifyActorForContext(actor, context);
 
     let { childId, alreadyLogged = false } = data;
     let handlingUserInput = false;

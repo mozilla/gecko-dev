@@ -25,6 +25,7 @@
 #include "Image.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerLabels.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/SVGObserverUtils.h"
 #include "mozilla/layers/WebRenderUserData.h"
 #include "nsTHashSet.h"
@@ -72,7 +73,7 @@ using GlobalRequestTable =
 // We use the load id as the key since we can only access sImages on the
 // main thread, but LoadData objects might be destroyed from other threads,
 // and we don't want to leave dangling pointers around.
-static GlobalRequestTable* sImages = nullptr;
+static StaticAutoPtr<GlobalRequestTable> sImages;
 static StaticRefPtr<GlobalImageObserver> sImageObserver;
 
 /* static */
@@ -87,7 +88,6 @@ void ImageLoader::Shutdown() {
     entry.GetKey()->CancelAndForgetObserver(NS_BINDING_ABORTED);
   }
 
-  delete sImages;
   sImages = nullptr;
   sImageObserver = nullptr;
 }
@@ -540,9 +540,9 @@ static void InvalidateImages(nsIFrame* aFrame, imgIRequest* aRequest,
           static_cast<layers::WebRenderMaskData*>(data.get())->Invalidate();
           invalidateFrame = true;
           break;
-        case layers::WebRenderUserData::UserDataType::eImage:
-          if (static_cast<layers::WebRenderImageData*>(data.get())
-                  ->UsingSharedSurface(aRequest->GetProducerId())) {
+        case layers::WebRenderUserData::UserDataType::eImageProvider:
+          if (static_cast<layers::WebRenderImageProviderData*>(data.get())
+                  ->Invalidate(aRequest->GetProviderId())) {
             break;
           }
           [[fallthrough]];

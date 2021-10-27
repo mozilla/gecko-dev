@@ -180,8 +180,7 @@ size_t GlobalDesc::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
   return initial_.sizeOfExcludingThis(mallocSizeOf);
 }
 
-#ifdef ENABLE_WASM_EXCEPTIONS
-bool TagDesc::computeLayout() {
+bool TagType::computeLayout() {
   StructLayout layout;
   int32_t refCount = 0;
   for (const ValType argType : argTypes) {
@@ -216,7 +215,6 @@ bool TagDesc::computeLayout() {
 
   return true;
 }
-#endif
 
 size_t ElemSegment::serializedSize() const {
   return sizeof(kind) + sizeof(tableIndex) + sizeof(elemType) +

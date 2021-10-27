@@ -99,6 +99,7 @@ js/src/vtune/jitprofiling.c
 js/src/vtune/jitprofiling.h
 js/src/vtune/legacy/
 js/src/zydis/
+layout/docs/css-gap-decorations/
 media/ffvpx/
 media/kiss_fft/
 media/libaom/
@@ -150,7 +151,7 @@ testing/gtest/gtest/
 testing/mochitest/MochiKit/
 testing/mochitest/pywebsocket3/
 testing/mochitest/tests/MochiKit-1.4.2/
-testing/modules/ajv-4.1.1.js
+testing/modules/ajv-6.12.6.js
 testing/modules/sinon-7.2.7.js
 testing/mozbase/mozproxy/mozproxy/backends/mitm/scripts/catapult/
 testing/talos/talos/tests/dromaeo/
