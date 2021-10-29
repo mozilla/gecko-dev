@@ -146,9 +146,20 @@
     }                                     \
   } while (0)
 
-// Only for "debug" builds
-#if !defined(NDEBUG) || defined(ADDRESS_SANITIZER) || \
-    defined(MEMORY_SANITIZER) || defined(THREAD_SANITIZER)
+// For enabling HWY_DASSERT and shortening tests in slower debug builds
+#if !defined(HWY_IS_DEBUG_BUILD)
+// Clang does not define NDEBUG, but it and GCC define __OPTIMIZE__, and recent
+// MSVC defines NDEBUG (if not, could instead check _DEBUG).
+#if (!defined(__OPTIMIZE__) && !defined(NDEBUG)) ||            \
+    defined(ADDRESS_SANITIZER) || defined(MEMORY_SANITIZER) || \
+    defined(THREAD_SANITIZER) || defined(__clang_analyzer__)
+#define HWY_IS_DEBUG_BUILD 1
+#else
+#define HWY_IS_DEBUG_BUILD 0
+#endif
+#endif  // HWY_IS_DEBUG_BUILD
+
+#if HWY_IS_DEBUG_BUILD
 #define HWY_DASSERT(condition) HWY_ASSERT(condition)
 #else
 #define HWY_DASSERT(condition) \
@@ -539,9 +550,23 @@ HWY_API size_t Num0BitsBelowLS1Bit_Nonzero32(const uint32_t x) {
 
 HWY_API size_t Num0BitsBelowLS1Bit_Nonzero64(const uint64_t x) {
 #if HWY_COMPILER_MSVC
+#if HWY_ARCH_X86_64
   unsigned long index;  // NOLINT
   _BitScanForward64(&index, x);
   return index;
+#else   // HWY_ARCH_X86_64
+  // _BitScanForward64 not available
+  uint32_t lsb = static_cast<uint32_t>(x & 0xFFFFFFFF);
+  unsigned long index;
+  if (lsb == 0) {
+    uint32_t msb = static_cast<uint32_t>(x >> 32u);
+    _BitScanForward(&index, msb);
+    return 32 + index;
+  } else {
+    _BitScanForward(&index, lsb);
+    return index;
+  }
+#endif  // HWY_ARCH_X86_64
 #else   // HWY_COMPILER_MSVC
   return static_cast<size_t>(__builtin_ctzll(x));
 #endif  // HWY_COMPILER_MSVC

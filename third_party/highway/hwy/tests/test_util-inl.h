@@ -294,14 +294,14 @@ HWY_NOINLINE void PrintValue(T value) {
 }
 
 // Prints lanes around `lane`, in memory order.
-template <class D>
-HWY_NOINLINE void Print(const D d, const char* caption,
-                        const decltype(Zero(d)) v, intptr_t lane = 0,
-                        size_t max_lanes = 7) {
+template <class D, class V = Vec<D>>
+HWY_NOINLINE void Print(const D d, const char* caption, VecArg<V> v,
+                        size_t lane_u = 0, size_t max_lanes = 7) {
   using T = TFromD<D>;
   const size_t N = Lanes(d);
   auto lanes = AllocateAligned<T>(N);
   Store(v, d, lanes.get());
+  const intptr_t lane = intptr_t(lane_u);
   const size_t begin = static_cast<size_t>(HWY_MAX(0, lane - 2));
   const size_t end = HWY_MIN(begin + max_lanes, N);
   fprintf(stderr, "%s %s [%zu+ ->]:\n  ", TypeName(T(), N).c_str(), caption,
@@ -387,7 +387,7 @@ static HWY_NOINLINE HWY_MAYBE_UNUSED void AssertStringEqual(
 
 // Compare expected vector to vector.
 template <class D, class V>
-HWY_NOINLINE void AssertVecEqual(D d, const V expected, const V actual,
+HWY_NOINLINE void AssertVecEqual(D d, VecArg<V> expected, VecArg<V> actual,
                                  const char* filename, const int line) {
   using T = TFromD<D>;
   const size_t N = Lanes(d);
@@ -415,14 +415,15 @@ HWY_NOINLINE void AssertVecEqual(D d, const V expected, const V actual,
 
 // Compare expected lanes to vector.
 template <class D>
-HWY_NOINLINE void AssertVecEqual(D d, const TFromD<D>* expected, Vec<D> actual,
-                                 const char* filename, int line) {
+HWY_NOINLINE void AssertVecEqual(D d, const TFromD<D>* expected,
+                                 VecArg<Vec<D>> actual, const char* filename,
+                                 int line) {
   AssertVecEqual(d, LoadU(d, expected), actual, filename, line);
 }
 
 // Only checks the valid mask elements (those whose index < Lanes(d)).
 template <class D>
-HWY_NOINLINE void AssertMaskEqual(D d, Mask<D> a, Mask<D> b,
+HWY_NOINLINE void AssertMaskEqual(D d, VecArg<Mask<D>> a, VecArg<Mask<D>> b,
                                   const char* filename, int line) {
   AssertVecEqual(d, VecFromMask(d, a), VecFromMask(d, b), filename, line);
 
@@ -436,8 +437,8 @@ HWY_NOINLINE void AssertMaskEqual(D d, Mask<D> a, Mask<D> b,
   const size_t N = Lanes(d);
   const Repartition<uint8_t, D> d8;
   const size_t N8 = Lanes(d8);
-  auto bits_a = AllocateAligned<uint8_t>(N8);
-  auto bits_b = AllocateAligned<uint8_t>(N8);
+  auto bits_a = AllocateAligned<uint8_t>(HWY_MAX(8, N8));
+  auto bits_b = AllocateAligned<uint8_t>(HWY_MAX(8, N8));
   memset(bits_a.get(), 0, N8);
   memset(bits_b.get(), 0, N8);
   const size_t num_bytes_a = StoreMaskBits(d, a, bits_a.get());
@@ -473,13 +474,15 @@ HWY_NOINLINE void AssertMaskEqual(D d, Mask<D> a, Mask<D> b,
 
 // Only sets valid elements (those whose index < Lanes(d)). This helps catch
 // tests that are not masking off the (undefined) upper mask elements.
+//
+// TODO(janwas): with HWY_NOINLINE GCC zeros the upper half of AVX2 masks.
 template <class D>
-HWY_NOINLINE Mask<D> MaskTrue(const D d) {
+HWY_INLINE Mask<D> MaskTrue(const D d) {
   return FirstN(d, Lanes(d));
 }
 
 template <class D>
-HWY_NOINLINE Mask<D> MaskFalse(const D d) {
+HWY_INLINE Mask<D> MaskFalse(const D d) {
   const auto zero = Zero(RebindToSigned<D>());
   return RebindMask(d, Lt(zero, zero));
 }
@@ -502,61 +505,92 @@ HWY_NOINLINE Mask<D> MaskFalse(const D d) {
 
 // Helpers for instantiating tests with combinations of lane types / counts.
 
-template <bool valid>
-struct CallTestIf {
-  template <typename T, size_t N, class Test>
-  static void Do() {
-    const Simd<T, N> d;
-    // Skip invalid fractions (e.g. 1/8th of u32x4).
-    if (Lanes(d) == 0) return;
-    Test()(T(), d);
-  }
-};
-// Avoids instantiating tests for invalid N (a smaller fraction than 1/8th).
-template <>
-struct CallTestIf<false> {
-  template <typename T, size_t N, class Test>
-  static void Do() {
-    // Should only happen with scalable vectors.
-    HWY_ASSERT(HWY_TARGET == HWY_RVV || HWY_TARGET == HWY_SVE ||
-               HWY_TARGET == HWY_SVE2);
-  }
-};
+// For ensuring we do not call tests with D such that widening D results in 0
+// lanes. Example: assume T=u32, VLEN=256, and fraction=1/8: there is no 1/8th
+// of a u64 vector in this case.
+template <class D, HWY_IF_NOT_LANE_SIZE_D(D, 8)>
+HWY_INLINE size_t PromotedLanes(const D d) {
+  return Lanes(RepartitionToWide<decltype(d)>());
+}
+// Already the widest possible T, cannot widen.
+template <class D, HWY_IF_LANE_SIZE_D(D, 8)>
+HWY_INLINE size_t PromotedLanes(const D d) {
+  return Lanes(d);
+}
 
-// For all powers of two in [kMinLanes, kMul * kMinLanes] (so that recursion
-// stops at kMul == 0)
-template <typename T, size_t kMul, size_t kMinLanes, class Test>
+// For all power of two N in [kMinLanes, kMul * kMinLanes] (so that recursion
+// stops at kMul == 0). Note that N may be capped or a fraction.
+template <typename T, size_t kMul, size_t kMinLanes, class Test,
+          bool kPromote = false>
 struct ForeachSizeR {
   static void Do() {
-    static_assert(kMul != 0, "End of recursion");
-    constexpr size_t N = kMul * kMinLanes;
-    constexpr bool kIsExact = N * sizeof(T) <= 16;
-    constexpr bool kIsRatio = N >= HWY_LANES(T) / 8;
-    CallTestIf<kIsExact || kIsRatio>::template Do<T, N, Test>();
+    const Simd<T, kMul * kMinLanes> d;
 
-    ForeachSizeR<T, kMul / 2, kMinLanes, Test>::Do();
+    // Skip invalid fractions (e.g. 1/8th of u32x4).
+    const size_t lanes = kPromote ? PromotedLanes(d) : Lanes(d);
+    if (lanes == 0) return;
+
+    Test()(T(), d);
+
+    static_assert(kMul != 0, "Recursion should have ended already");
+    ForeachSizeR<T, kMul / 2, kMinLanes, Test, kPromote>::Do();
   }
 };
 
 // Base case to stop the recursion.
-template <typename T, size_t kMinLanes, class Test>
-struct ForeachSizeR<T, 0, kMinLanes, Test> {
+template <typename T, size_t kMinLanes, class Test, bool kPromote>
+struct ForeachSizeR<T, 0, kMinLanes, Test, kPromote> {
   static void Do() {}
 };
 
 // These adapters may be called directly, or via For*Types:
 
-// Calls Test for all power of two N in [1, Lanes(d)]. This is the default
-// for ops that do not narrow nor widen their input, nor require 128 bits.
-template <class Test>
-struct ForPartialVectors {
+// Calls Test for all power of two N in [1, Lanes(d) / kFactor]. This is for
+// ops that widen their input, e.g. Combine (not supported by HWY_SCALAR).
+template <class Test, size_t kFactor = 2>
+struct ForExtendableVectors {
   template <typename T>
   void operator()(T /*unused*/) const {
-#if HWY_TARGET == HWY_RVV
-    // Only m1..8 until we support fractional LMUL.
-    ForeachSizeR<T, 8, HWY_LANES(T), Test>::Do();
+#if HWY_TARGET == HWY_SCALAR
+    // not supported
 #else
-    ForeachSizeR<T, HWY_LANES(T), 1, Test>::Do();
+    constexpr bool kPromote = true;
+#if HWY_TARGET == HWY_RVV
+    ForeachSizeR<T, 8 / kFactor, HWY_LANES(T), Test, kPromote>::Do();
+    // TODO(janwas): also capped
+    // ForeachSizeR<T, (16 / sizeof(T)) / kFactor, 1, Test, kPromote>::Do();
+#elif HWY_TARGET == HWY_SVE || HWY_TARGET == HWY_SVE2
+    // Capped
+    ForeachSizeR<T, (16 / sizeof(T)) / kFactor, 1, Test, kPromote>::Do();
+    // Fractions
+    ForeachSizeR<T, 8 / kFactor, HWY_LANES(T) / 8, Test, kPromote>::Do();
+#else
+    ForeachSizeR<T, HWY_LANES(T) / kFactor, 1, Test, kPromote>::Do();
+#endif
+#endif  // HWY_SCALAR
+  }
+};
+
+// Calls Test for all power of two N in [kFactor, Lanes(d)]. This is for ops
+// that narrow their input, e.g. UpperHalf.
+template <class Test, size_t kFactor = 2>
+struct ForShrinkableVectors {
+  template <typename T>
+  void operator()(T /*unused*/) const {
+#if HWY_TARGET == HWY_SCALAR
+    // not supported
+#elif HWY_TARGET == HWY_RVV
+    ForeachSizeR<T, 8 / kFactor, kFactor * HWY_LANES(T), Test>::Do();
+    // TODO(janwas): also capped
+#elif HWY_TARGET == HWY_SVE || HWY_TARGET == HWY_SVE2
+    // Capped
+    ForeachSizeR<T, (16 / sizeof(T)) / kFactor, kFactor, Test>::Do();
+    // Fractions
+    ForeachSizeR<T, 8 / kFactor, kFactor * HWY_LANES(T) / 8, Test>::Do();
+#elif HWY_TARGET == HWY_SCALAR
+    // not supported
+#else
+    ForeachSizeR<T, HWY_LANES(T) / kFactor, kFactor, Test>::Do();
 #endif
   }
 };
@@ -567,8 +601,17 @@ template <class Test>
 struct ForGE128Vectors {
   template <typename T>
   void operator()(T /*unused*/) const {
-#if HWY_TARGET == HWY_RVV
+#if HWY_TARGET == HWY_SCALAR
+    // not supported
+#elif HWY_TARGET == HWY_RVV
     ForeachSizeR<T, 8, HWY_LANES(T), Test>::Do();
+    // TODO(janwas): also capped
+    // ForeachSizeR<T, 1, (16 / sizeof(T)), Test>::Do();
+#elif HWY_TARGET == HWY_SVE || HWY_TARGET == HWY_SVE2
+    // Capped
+    ForeachSizeR<T, 1, 16 / sizeof(T), Test>::Do();
+    // Fractions
+    ForeachSizeR<T, 8, HWY_LANES(T) / 8, Test>::Do();
 #else
     ForeachSizeR<T, HWY_LANES(T) / (16 / sizeof(T)), (16 / sizeof(T)),
                  Test>::Do();
@@ -582,34 +625,20 @@ template <class Test>
 struct ForGE64Vectors {
   template <typename T>
   void operator()(T /*unused*/) const {
-#if HWY_TARGET == HWY_RVV
-    ForeachSizeR<T, 8, HWY_LANES(T), Test>::Do();
-#else
-    ForeachSizeR<T, HWY_LANES(T) / (8 / sizeof(T)), (8 / sizeof(T)),
-                 Test>::Do();
-#endif
-  }
-};
-
-// Calls Test for all power of two N in [1, Lanes(d) / kFactor]. This is for
-// ops that widen their input, e.g. Combine (not supported by HWY_SCALAR).
-template <class Test, size_t kFactor = 2>
-struct ForExtendableVectors {
-  template <typename T>
-  void operator()(T /*unused*/) const {
 #if HWY_TARGET == HWY_SCALAR
     // not supported
 #elif HWY_TARGET == HWY_RVV
-    ForeachSizeR<T, 8 / kFactor, HWY_LANES(T), Test>::Do();
+    ForeachSizeR<T, 8, HWY_LANES(T), Test>::Do();
     // TODO(janwas): also capped
-    // ForeachSizeR<T, (16 / sizeof(T)) / kFactor, 1, Test>::Do();
+    // ForeachSizeR<T, 1, (8 / sizeof(T)), Test>::Do();
 #elif HWY_TARGET == HWY_SVE || HWY_TARGET == HWY_SVE2
     // Capped
-    ForeachSizeR<T, (16 / sizeof(T)) / kFactor, 1, Test>::Do();
+    ForeachSizeR<T, 1, 8 / sizeof(T), Test>::Do();
     // Fractions
-    ForeachSizeR<T, 8 / kFactor, HWY_LANES(T) / 8, Test>::Do();
+    ForeachSizeR<T, 8, HWY_LANES(T) / 8, Test>::Do();
 #else
-    ForeachSizeR<T, HWY_LANES(T) / kFactor, 1, Test>::Do();
+    ForeachSizeR<T, HWY_LANES(T) / (8 / sizeof(T)), (8 / sizeof(T)),
+                 Test>::Do();
 #endif
   }
 };
@@ -621,28 +650,9 @@ struct ForPromoteVectors {
   template <typename T>
   void operator()(T /*unused*/) const {
 #if HWY_TARGET == HWY_SCALAR
-    ForeachSizeR<T, 1, 1, Test>::Do();
+    ForeachSizeR<T, 1, 1, Test, /*kPromote=*/true>::Do();
 #else
     return ForExtendableVectors<Test, kFactor>()(T());
-#endif
-  }
-};
-
-// Calls Test for all power of two N in [kFactor, Lanes(d)]. This is for ops
-// that narrow their input, e.g. UpperHalf.
-template <class Test, size_t kFactor = 2>
-struct ForShrinkableVectors {
-  template <typename T>
-  void operator()(T /*unused*/) const {
-#if HWY_TARGET == HWY_RVV
-    // Only m1..8 until we support fractional LMUL.
-    ForeachSizeR<T, 8 / kFactor, kFactor * HWY_LANES(T), Test>::Do();
-#elif HWY_TARGET == HWY_SVE || HWY_TARGET == HWY_SVE2
-    ForeachSizeR<T, 8 / kFactor, kFactor * HWY_LANES(T) / 8, Test>::Do();
-#elif HWY_TARGET == HWY_SCALAR
-    // not supported
-#else
-    ForeachSizeR<T, HWY_LANES(T) / kFactor, kFactor, Test>::Do();
 #endif
   }
 };
@@ -653,16 +663,21 @@ template <class Test, size_t kFactor = 2>
 struct ForDemoteVectors {
   template <typename T>
   void operator()(T /*unused*/) const {
-#if HWY_TARGET == HWY_RVV
-    // Only m1..8 until we support fractional LMUL.
-    ForeachSizeR<T, 8 / kFactor, kFactor * HWY_LANES(T), Test>::Do();
-#elif HWY_TARGET == HWY_SVE || HWY_TARGET == HWY_SVE2
-    ForeachSizeR<T, 8 / kFactor, kFactor * HWY_LANES(T) / 8, Test>::Do();
-#elif HWY_TARGET == HWY_SCALAR
+#if HWY_TARGET == HWY_SCALAR
     ForeachSizeR<T, 1, 1, Test>::Do();
 #else
-    ForeachSizeR<T, HWY_LANES(T) / kFactor, kFactor, Test>::Do();
+    return ForShrinkableVectors<Test, kFactor>()(T());
 #endif
+  }
+};
+
+// Calls Test for all power of two N in [1, Lanes(d)]. This is the default
+// for ops that do not narrow nor widen their input, nor require 128 bits.
+template <class Test>
+struct ForPartialVectors {
+  template <typename T>
+  void operator()(T t) const {
+    ForExtendableVectors<Test, 1>()(t);
   }
 };
 

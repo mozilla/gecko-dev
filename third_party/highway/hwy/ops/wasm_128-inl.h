@@ -178,19 +178,19 @@ using VFromD = decltype(Zero(D()));
 // Returns a vector/part with all lanes set to "t".
 template <size_t N, HWY_IF_LE128(uint8_t, N)>
 HWY_API Vec128<uint8_t, N> Set(Simd<uint8_t, N> /* tag */, const uint8_t t) {
-  return Vec128<uint8_t, N>{wasm_i8x16_splat(t)};
+  return Vec128<uint8_t, N>{wasm_i8x16_splat(static_cast<int8_t>(t))};
 }
 template <size_t N, HWY_IF_LE128(uint16_t, N)>
 HWY_API Vec128<uint16_t, N> Set(Simd<uint16_t, N> /* tag */, const uint16_t t) {
-  return Vec128<uint16_t, N>{wasm_i16x8_splat(t)};
+  return Vec128<uint16_t, N>{wasm_i16x8_splat(static_cast<int16_t>(t))};
 }
 template <size_t N, HWY_IF_LE128(uint32_t, N)>
 HWY_API Vec128<uint32_t, N> Set(Simd<uint32_t, N> /* tag */, const uint32_t t) {
-  return Vec128<uint32_t, N>{wasm_i32x4_splat(t)};
+  return Vec128<uint32_t, N>{wasm_i32x4_splat(static_cast<int32_t>(t))};
 }
 template <size_t N, HWY_IF_LE128(uint64_t, N)>
 HWY_API Vec128<uint64_t, N> Set(Simd<uint64_t, N> /* tag */, const uint64_t t) {
-  return Vec128<uint64_t, N>{wasm_i64x2_splat(t)};
+  return Vec128<uint64_t, N>{wasm_i64x2_splat(static_cast<int64_t>(t))};
 }
 
 template <size_t N, HWY_IF_LE128(int8_t, N)>
@@ -750,7 +750,7 @@ template <size_t N>
 HWY_API Vec128<int64_t, (N + 1) / 2> MulEven(const Vec128<int32_t, N> a,
                                              const Vec128<int32_t, N> b) {
   // TODO(eustas): replace, when implemented in WASM.
-  const auto kEvenMask = wasm_i32x4_make(0xFFFFFFFF, 0, 0xFFFFFFFF, 0);
+  const auto kEvenMask = wasm_i32x4_make(-1, 0, -1, 0);
   const auto ae = wasm_v128_and(a.raw, kEvenMask);
   const auto be = wasm_v128_and(b.raw, kEvenMask);
   return Vec128<int64_t, (N + 1) / 2>{wasm_i64x2_mul(ae, be)};
@@ -759,7 +759,7 @@ template <size_t N>
 HWY_API Vec128<uint64_t, (N + 1) / 2> MulEven(const Vec128<uint32_t, N> a,
                                               const Vec128<uint32_t, N> b) {
   // TODO(eustas): replace, when implemented in WASM.
-  const auto kEvenMask = wasm_i32x4_make(0xFFFFFFFF, 0, 0xFFFFFFFF, 0);
+  const auto kEvenMask = wasm_i32x4_make(-1, 0, -1, 0);
   const auto ae = wasm_v128_and(a.raw, kEvenMask);
   const auto be = wasm_v128_and(b.raw, kEvenMask);
   return Vec128<uint64_t, (N + 1) / 2>{wasm_i64x2_mul(ae, be)};
@@ -1356,6 +1356,12 @@ HWY_API Vec128<T, N> operator>>(Vec128<T, N> v, const Vec128<T, N> bits) {
 template <typename T>
 HWY_API Vec128<T> Load(Full128<T> /* tag */, const T* HWY_RESTRICT aligned) {
   return Vec128<T>{wasm_v128_load(aligned)};
+}
+
+template <typename T, size_t N>
+HWY_API Vec128<T, N> MaskedLoad(Mask128<T, N> m, Simd<T, N> d,
+                                const T* HWY_RESTRICT aligned) {
+  return IfThenElseZero(m, Load(d, aligned));
 }
 
 // Partial load.
@@ -1990,7 +1996,7 @@ struct Indices128 {
 
 template <typename T, size_t N, HWY_IF_LE128(T, N)>
 HWY_API Indices128<T, N> SetTableIndices(Simd<T, N> d, const int32_t* idx) {
-#if !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
+#if HWY_IS_DEBUG_BUILD
   for (size_t i = 0; i < N; ++i) {
     HWY_DASSERT(0 <= idx[i] && idx[i] < static_cast<int32_t>(N));
   }
@@ -2486,6 +2492,59 @@ HWY_API Vec128<int32_t, N> NearestInt(const Vec128<float, N> v) {
 
 // ================================================== MISC
 
+// ------------------------------ LoadMaskBits (TestBit)
+
+namespace detail {
+
+template <typename T, size_t N, HWY_IF_LANE_SIZE(T, 1)>
+HWY_INLINE Mask128<T, N> LoadMaskBits(Simd<T, N> d, uint64_t bits) {
+  const RebindToUnsigned<decltype(d)> du;
+  // Easier than Set(), which would require an >8-bit type, which would not
+  // compile for T=uint8_t, N=1.
+  const Vec128<T, N> vbits{wasm_i32x4_splat(static_cast<int32_t>(bits))};
+
+  // Replicate bytes 8x such that each byte contains the bit that governs it.
+  alignas(16) constexpr uint8_t kRep8[16] = {0, 0, 0, 0, 0, 0, 0, 0,
+                                             1, 1, 1, 1, 1, 1, 1, 1};
+  const auto rep8 = TableLookupBytes(vbits, Load(du, kRep8));
+
+  alignas(16) constexpr uint8_t kBit[16] = {1, 2, 4, 8, 16, 32, 64, 128,
+                                            1, 2, 4, 8, 16, 32, 64, 128};
+  return RebindMask(d, TestBit(rep8, LoadDup128(du, kBit)));
+}
+
+template <typename T, size_t N, HWY_IF_LANE_SIZE(T, 2)>
+HWY_INLINE Mask128<T, N> LoadMaskBits(Simd<T, N> d, uint64_t bits) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(16) constexpr uint16_t kBit[8] = {1, 2, 4, 8, 16, 32, 64, 128};
+  return RebindMask(d, TestBit(Set(du, bits), Load(du, kBit)));
+}
+
+template <typename T, size_t N, HWY_IF_LANE_SIZE(T, 4)>
+HWY_INLINE Mask128<T, N> LoadMaskBits(Simd<T, N> d, uint64_t bits) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(16) constexpr uint32_t kBit[8] = {1, 2, 4, 8};
+  return RebindMask(d, TestBit(Set(du, bits), Load(du, kBit)));
+}
+
+template <typename T, size_t N, HWY_IF_LANE_SIZE(T, 8)>
+HWY_INLINE Mask128<T, N> LoadMaskBits(Simd<T, N> d, uint64_t bits) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(16) constexpr uint64_t kBit[8] = {1, 2};
+  return RebindMask(d, TestBit(Set(du, bits), Load(du, kBit)));
+}
+
+}  // namespace detail
+
+// `p` points to at least 8 readable bytes, not all of which need be valid.
+template <typename T, size_t N, HWY_IF_LE128(T, N)>
+HWY_API Mask128<T, N> LoadMaskBits(Simd<T, N> d,
+                                   const uint8_t* HWY_RESTRICT bits) {
+  uint64_t mask_bits = 0;
+  CopyBytes<(N + 7) / 8>(bits, &mask_bits);
+  return detail::LoadMaskBits(d, mask_bits);
+}
+
 // ------------------------------ Mask
 
 namespace detail {
@@ -2604,12 +2663,13 @@ HWY_INLINE size_t CountTrue(hwy::SizeTag<4> /*tag*/, const Mask128<T> m) {
 
 }  // namespace detail
 
+// `p` points to at least 8 writable bytes.
 template <typename T, size_t N>
 HWY_API size_t StoreMaskBits(const Simd<T, N> /* tag */,
-                             const Mask128<T, N> mask, uint8_t* p) {
-  const uint64_t bits = detail::BitsFromMask(mask);
+                             const Mask128<T, N> mask, uint8_t* bits) {
+  const uint64_t mask_bits = detail::BitsFromMask(mask);
   const size_t kNumBytes = (N + 7) / 8;
-  CopyBytes<kNumBytes>(&bits, p);
+  CopyBytes<kNumBytes>(&mask_bits, bits);
   return kNumBytes;
 }
 
@@ -2910,17 +2970,51 @@ HWY_INLINE Vec128<uint64_t, N> Compress(hwy::SizeTag<8> /*tag*/,
 
 template <typename T, size_t N>
 HWY_API Vec128<T, N> Compress(Vec128<T, N> v, const Mask128<T, N> mask) {
-  return detail::Compress(hwy::SizeTag<sizeof(T)>(), v,
-                          detail::BitsFromMask(mask));
+  const uint64_t mask_bits = detail::BitsFromMask(mask);
+  return detail::Compress(hwy::SizeTag<sizeof(T)>(), v, mask_bits);
+}
+
+// ------------------------------ CompressBits
+
+template <typename T, size_t N>
+HWY_API Vec128<T, N> CompressBits(Vec128<T, N> v,
+                                  const uint8_t* HWY_RESTRICT bits) {
+  uint64_t mask_bits = 0;
+  constexpr size_t kNumBytes = (N + 7) / 8;
+  CopyBytes<kNumBytes>(bits, &mask_bits);
+  if (N < 8) {
+    mask_bits &= (1ull << N) - 1;
+  }
+
+  return detail::Compress(hwy::SizeTag<sizeof(T)>(), v, mask_bits);
 }
 
 // ------------------------------ CompressStore
 
 template <typename T, size_t N>
 HWY_API size_t CompressStore(Vec128<T, N> v, const Mask128<T, N> mask,
-                             Simd<T, N> d, T* HWY_RESTRICT aligned) {
+                             Simd<T, N> d, T* HWY_RESTRICT unaligned) {
   const uint64_t mask_bits = detail::BitsFromMask(mask);
-  Store(detail::Compress(hwy::SizeTag<sizeof(T)>(), v, mask_bits), d, aligned);
+  const auto c = detail::Compress(hwy::SizeTag<sizeof(T)>(), v, mask_bits);
+  StoreU(c, d, unaligned);
+  return PopCount(mask_bits);
+}
+
+// ------------------------------ CompressBitsStore
+
+template <typename T, size_t N>
+HWY_API size_t CompressBitsStore(Vec128<T, N> v,
+                                 const uint8_t* HWY_RESTRICT bits, Simd<T, N> d,
+                                 T* HWY_RESTRICT unaligned) {
+  uint64_t mask_bits = 0;
+  constexpr size_t kNumBytes = (N + 7) / 8;
+  CopyBytes<kNumBytes>(bits, &mask_bits);
+  if (N < 8) {
+    mask_bits &= (1ull << N) - 1;
+  }
+
+  const auto c = detail::Compress(hwy::SizeTag<sizeof(T)>(), v, mask_bits);
+  StoreU(c, d, unaligned);
   return PopCount(mask_bits);
 }
 
@@ -3124,16 +3218,18 @@ HWY_API void StoreInterleaved4(const Vec128<uint8_t, N> in0,
 HWY_INLINE Vec128<uint64_t> MulEven(const Vec128<uint64_t> a,
                                     const Vec128<uint64_t> b) {
   alignas(16) uint64_t mul[2];
-  mul[0] = Mul128(wasm_i64x2_extract_lane(a.raw, 0),
-                  wasm_i64x2_extract_lane(b.raw, 0), &mul[1]);
+  mul[0] =
+      Mul128(static_cast<uint64_t>(wasm_i64x2_extract_lane(a.raw, 0)),
+             static_cast<uint64_t>(wasm_i64x2_extract_lane(b.raw, 0)), &mul[1]);
   return Load(Full128<uint64_t>(), mul);
 }
 
 HWY_INLINE Vec128<uint64_t> MulOdd(const Vec128<uint64_t> a,
                                    const Vec128<uint64_t> b) {
   alignas(16) uint64_t mul[2];
-  mul[0] = Mul128(wasm_i64x2_extract_lane(a.raw, 1),
-                  wasm_i64x2_extract_lane(b.raw, 1), &mul[1]);
+  mul[0] =
+      Mul128(static_cast<uint64_t>(wasm_i64x2_extract_lane(a.raw, 1)),
+             static_cast<uint64_t>(wasm_i64x2_extract_lane(b.raw, 1)), &mul[1]);
   return Load(Full128<uint64_t>(), mul);
 }
 
@@ -3244,8 +3340,8 @@ HWY_API Vec128<T, N> MaxOfLanes(Simd<T, N> /* tag */, const Vec128<T, N> v) {
 // ================================================== DEPRECATED
 
 template <typename T, size_t N>
-HWY_API size_t StoreMaskBits(const Mask128<T, N> mask, uint8_t* p) {
-  return StoreMaskBits(Simd<T, N>(), mask, p);
+HWY_API size_t StoreMaskBits(const Mask128<T, N> mask, uint8_t* bits) {
+  return StoreMaskBits(Simd<T, N>(), mask, bits);
 }
 
 template <typename T, size_t N>

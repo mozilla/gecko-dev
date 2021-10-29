@@ -762,7 +762,7 @@ HWY_API VFromD<D> VecFromMask(const D d, svbool_t mask) {
 
 // ================================================== MEMORY
 
-// ------------------------------ Load/Store/Stream
+// ------------------------------ Load/MaskedLoad/LoadDup128/Store/Stream
 
 #define HWY_SVE_LOAD(BASE, CHAR, BITS, NAME, OP)           \
   template <size_t N>                                      \
@@ -770,6 +770,14 @@ HWY_API VFromD<D> VecFromMask(const D d, svbool_t mask) {
       NAME(HWY_SVE_D(BASE, BITS, N) d,                     \
            const HWY_SVE_T(BASE, BITS) * HWY_RESTRICT p) { \
     return sv##OP##_##CHAR##BITS(detail::Mask(d), p);      \
+  }
+
+#define HWY_SVE_MASKED_LOAD(BASE, CHAR, BITS, NAME, OP)    \
+  template <size_t N>                                      \
+  HWY_API HWY_SVE_V(BASE, BITS)                            \
+      NAME(svbool_t m, HWY_SVE_D(BASE, BITS, N) d,         \
+           const HWY_SVE_T(BASE, BITS) * HWY_RESTRICT p) { \
+    return sv##OP##_##CHAR##BITS(m, p);                    \
   }
 
 #define HWY_SVE_LOAD_DUP128(BASE, CHAR, BITS, NAME, OP)    \
@@ -789,11 +797,13 @@ HWY_API VFromD<D> VecFromMask(const D d, svbool_t mask) {
   }
 
 HWY_SVE_FOREACH(HWY_SVE_LOAD, Load, ld1)
+HWY_SVE_FOREACH(HWY_SVE_MASKED_LOAD, MaskedLoad, ld1)
 HWY_SVE_FOREACH(HWY_SVE_LOAD_DUP128, LoadDup128, ld1rq)
 HWY_SVE_FOREACH(HWY_SVE_STORE, Store, st1)
 HWY_SVE_FOREACH(HWY_SVE_STORE, Stream, stnt1)
 
 #undef HWY_SVE_LOAD
+#undef HWY_SVE_MASKED_LOAD
 #undef HWY_SVE_LOAD_DUP128
 #undef HWY_SVE_STORE
 
@@ -1266,11 +1276,13 @@ HWY_API V OddEven(const V odd, const V even) {
 
 template <class D, class DI = RebindToSigned<D>>
 HWY_API VFromD<DI> SetTableIndices(D d, const TFromD<DI>* idx) {
-#if !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
+#if HWY_IS_DEBUG_BUILD
   const size_t N = Lanes(d);
   for (size_t i = 0; i < N; ++i) {
     HWY_DASSERT(0 <= idx[i] && idx[i] < static_cast<TFromD<DI>>(N));
   }
+#else
+  (void)d;
 #endif
   return Load(DI(), idx);
 }
@@ -1349,8 +1361,8 @@ HWY_API svfloat16_t Compress(svfloat16_t v, svbool_t mask16) {
 
 template <class V, class M, class D>
 HWY_API size_t CompressStore(const V v, const M mask, const D d,
-                             TFromD<D>* HWY_RESTRICT aligned) {
-  Store(Compress(v, mask), d, aligned);
+                             TFromD<D>* HWY_RESTRICT unaligned) {
+  StoreU(Compress(v, mask), d, unaligned);
   return CountTrue(d, mask);
 }
 
@@ -1683,6 +1695,79 @@ V AverageRound(const V a, const V b) {
 }
 #endif  // HWY_TARGET == HWY_SVE2
 
+// ------------------------------ LoadMaskBits (TestBit)
+
+// `p` points to at least 8 readable bytes, not all of which need be valid.
+template <class D, HWY_IF_LANE_SIZE_D(D, 1)>
+HWY_INLINE svbool_t LoadMaskBits(D d, const uint8_t* HWY_RESTRICT bits) {
+  const RebindToUnsigned<D> du;
+  const svuint8_t iota = Iota(du, 0);
+
+  // Load correct number of bytes (bits/8) with 7 zeros after each.
+  const svuint8_t bytes = BitCast(du, svld1ub_u64(detail::PTrue(d), bits));
+  // Replicate bytes 8x such that each byte contains the bit that governs it.
+  const svuint8_t rep8 = svtbl_u8(bytes, detail::AndNotN(7, iota));
+
+  // 1, 2, 4, 8, 16, 32, 64, 128,  1, 2 ..
+  const svuint8_t bit = Shl(Set(du, 1), detail::AndN(iota, 7));
+
+  return TestBit(rep8, bit);
+}
+
+template <class D, HWY_IF_LANE_SIZE_D(D, 2)>
+HWY_INLINE svbool_t LoadMaskBits(D /* tag */,
+                                 const uint8_t* HWY_RESTRICT bits) {
+  const RebindToUnsigned<D> du;
+  const Repartition<uint8_t, D> du8;
+
+  // There may be up to 128 bits; avoid reading past the end.
+  const svuint8_t bytes = svld1(FirstN(du8, (Lanes(du) + 7) / 8), bits);
+
+  // Replicate bytes 16x such that each lane contains the bit that governs it.
+  const svuint8_t rep16 = svtbl_u8(bytes, ShiftRight<4>(Iota(du8, 0)));
+
+  // 1, 2, 4, 8, 16, 32, 64, 128,  1, 2 ..
+  const svuint16_t bit = Shl(Set(du, 1), detail::AndN(Iota(du, 0), 7));
+
+  return TestBit(BitCast(du, rep16), bit);
+}
+
+template <class D, HWY_IF_LANE_SIZE_D(D, 4)>
+HWY_INLINE svbool_t LoadMaskBits(D /* tag */,
+                                 const uint8_t* HWY_RESTRICT bits) {
+  const RebindToUnsigned<D> du;
+  const Repartition<uint8_t, D> du8;
+
+  // Upper bound = 2048 bits / 32 bit = 64 bits; at least 8 bytes are readable,
+  // so we can skip computing the actual length (Lanes(du)+7)/8.
+  const svuint8_t bytes = svld1(FirstN(du8, 8), bits);
+
+  // Replicate bytes 32x such that each lane contains the bit that governs it.
+  const svuint8_t rep32 = svtbl_u8(bytes, ShiftRight<5>(Iota(du8, 0)));
+
+  // 1, 2, 4, 8, 16, 32, 64, 128,  1, 2 ..
+  const svuint32_t bit = Shl(Set(du, 1), detail::AndN(Iota(du, 0), 7));
+
+  return TestBit(BitCast(du, rep32), bit);
+}
+
+template <class D, HWY_IF_LANE_SIZE_D(D, 8)>
+HWY_INLINE svbool_t LoadMaskBits(D /* tag */,
+                                 const uint8_t* HWY_RESTRICT bits) {
+  const RebindToUnsigned<D> du;
+
+  // Max 2048 bits = 32 lanes = 32 input bits; replicate those into each lane.
+  // The "at least 8 byte" guarantee in quick_reference ensures this is safe.
+  uint32_t mask_bits;
+  CopyBytes<4>(bits, &mask_bits);
+  const auto vbits = Set(du, mask_bits);
+
+  // 2 ^ {0,1, .., 31}, will not have more lanes than that.
+  const svuint64_t bit = Shl(Set(du, 1), Iota(du, 0));
+
+  return TestBit(vbits, bit);
+}
+
 // ------------------------------ StoreMaskBits
 
 namespace detail {
@@ -1711,8 +1796,9 @@ HWY_API svuint8_t BoolFromMask(Simd<T, N> d, svbool_t m) {
 
 }  // namespace detail
 
+// `p` points to at least 8 writable bytes.
 template <typename T, size_t N>
-HWY_API size_t StoreMaskBits(Simd<T, N> d, svbool_t m, uint8_t* p) {
+HWY_API size_t StoreMaskBits(Simd<T, N> d, svbool_t m, uint8_t* bits) {
   const Repartition<uint8_t, decltype(d)> d8;
   const Repartition<uint16_t, decltype(d)> d16;
   const Repartition<uint32_t, decltype(d)> d32;
@@ -1727,17 +1813,30 @@ HWY_API size_t StoreMaskBits(Simd<T, N> d, svbool_t m, uint8_t* p) {
   const size_t num_bytes = (num_bits + 8 - 1) / 8;  // Round up, see below
 
   // Truncate to 8 bits and store.
-  svst1b_u64(FirstN(d64, num_bytes), p, BitCast(d64, x));
+  svst1b_u64(FirstN(d64, num_bytes), bits, BitCast(d64, x));
 
   // Non-full byte, need to clear the undefined upper bits. Can happen for
   // capped/partial vectors or large T and small hardware vectors.
   if (num_bits < 8) {
     const int mask = (1 << num_bits) - 1;
-    p[num_bytes - 1] = static_cast<uint8_t>(p[num_bytes - 1] & mask);
+    bits[0] = static_cast<uint8_t>(bits[0] & mask);
   }
   // Else: we wrote full bytes because num_bits is a power of two >= 8.
 
   return num_bytes;
+}
+
+// ------------------------------ CompressBits, CompressBitsStore (LoadMaskBits)
+
+template <class V>
+HWY_INLINE V CompressBits(V v, const uint8_t* HWY_RESTRICT bits) {
+  return Compress(v, LoadMaskBits(DFromV<V>(), bits));
+}
+
+template <class D>
+HWY_API size_t CompressBitsStore(VFromD<D> v, const uint8_t* HWY_RESTRICT bits,
+                                 D d, TFromD<D>* HWY_RESTRICT unaligned) {
+  return CompressStore(v, LoadMaskBits(d, bits), d, unaligned);
 }
 
 // ------------------------------ MulEven (InterleaveEven)

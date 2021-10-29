@@ -868,6 +868,18 @@ HWY_API VFromD<Simd<T, N>> Load(Simd<T, N> d, const T* HWY_RESTRICT p) {
   return Load(d, p);
 }
 
+// ------------------------------ MaskedLoad
+
+#define HWY_RVV_MASKED_LOAD(BASE, CHAR, SEW, LMUL, SHIFT, MLEN, NAME, OP) \
+  HWY_API HWY_RVV_V(BASE, SEW, LMUL)                                      \
+      NAME(HWY_RVV_M(MLEN) m, HWY_RVV_D(CHAR, SEW, LMUL) d,               \
+           const HWY_RVV_T(BASE, SEW) * HWY_RESTRICT p) {                 \
+    (void)Lanes(d);                                                       \
+    return v##OP##SEW##_v_##CHAR##SEW##LMUL##_m(m, Zero(d), p);           \
+  }
+HWY_RVV_FOREACH(HWY_RVV_MASKED_LOAD, MaskedLoad, le)
+#undef HWY_RVV_MASKED_LOAD
+
 // ------------------------------ LoadU
 
 // RVV only requires lane alignment, not natural alignment of the entire vector.
@@ -1327,11 +1339,13 @@ HWY_API V OddEven(const V a, const V b) {
 
 template <class D, class DU = RebindToUnsigned<D>>
 HWY_API VFromD<DU> SetTableIndices(D d, const TFromD<DU>* idx) {
-#if !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
+#if HWY_IS_DEBUG_BUILD
   const size_t N = Lanes(d);
   for (size_t i = 0; i < N; ++i) {
     HWY_DASSERT(0 <= idx[i] && idx[i] < static_cast<TFromD<DU>>(N));
   }
+  #else
+  (void)d;
 #endif
   return Load(DU(), idx);
 }
@@ -1352,6 +1366,7 @@ HWY_RVV_FOREACH(HWY_RVV_TABLE, TableLookupLanes, rgather)
 #define HWY_RVV_COMPRESS(BASE, CHAR, SEW, LMUL, SHIFT, MLEN, NAME, OP) \
   HWY_API HWY_RVV_V(BASE, SEW, LMUL)                                   \
       NAME(HWY_RVV_V(BASE, SEW, LMUL) v, HWY_RVV_M(MLEN) mask) {       \
+    Lanes(HWY_RVV_D(CHAR, SEW, LMUL)());                               \
     return v##OP##_vm_##CHAR##SEW##LMUL(mask, v, v);                   \
   }
 
@@ -1364,8 +1379,8 @@ HWY_RVV_FOREACH_F(HWY_RVV_COMPRESS, Compress, compress)
 // ------------------------------ CompressStore
 template <class V, class M, class D>
 HWY_API size_t CompressStore(const V v, const M mask, const D d,
-                             TFromD<D>* HWY_RESTRICT aligned) {
-  Store(Compress(v, mask), d, aligned);
+                             TFromD<D>* HWY_RESTRICT unaligned) {
+  StoreU(Compress(v, mask), d, unaligned);
   return CountTrue(d, mask);
 }
 
@@ -1682,21 +1697,22 @@ HWY_API VFromD<D> LoadDup128(D d, const TFromD<D>* const HWY_RESTRICT p) {
 }
 
 // ------------------------------ StoreMaskBits
-#define HWY_RVV_STORE_MASK_BITS(MLEN, NAME, OP)                              \
-  /* DEPRECATED */                                                           \
-  HWY_API size_t StoreMaskBits(HWY_RVV_M(MLEN) m, uint8_t* p) {              \
-    /* LMUL=1 is always enough */                                            \
-    Full<uint8_t> d8;                                                        \
-    const size_t num_bytes = (Lanes(d8) + MLEN - 1) / MLEN;                  \
-    /* TODO(janwas): how to convert vbool* to vuint?*/                       \
-    /*Store(m, d8, p);*/                                                     \
-    (void)m;                                                                 \
-    (void)p;                                                                 \
-    return num_bytes;                                                        \
-  }                                                                          \
-  template <class D>                                                         \
-  HWY_API size_t StoreMaskBits(D /* tag */, HWY_RVV_M(MLEN) m, uint8_t* p) { \
-    return StoreMaskBits(m, p);                                              \
+#define HWY_RVV_STORE_MASK_BITS(MLEN, NAME, OP)                    \
+  /* DEPRECATED */                                                 \
+  HWY_API size_t StoreMaskBits(HWY_RVV_M(MLEN) m, uint8_t* bits) { \
+    /* LMUL=1 is always enough */                                  \
+    Full<uint8_t> d8;                                              \
+    const size_t num_bytes = (Lanes(d8) + MLEN - 1) / MLEN;        \
+    /* TODO(janwas): how to convert vbool* to vuint?*/             \
+    /*Store(m, d8, bits);*/                                        \
+    (void)m;                                                       \
+    (void)bits;                                                    \
+    return num_bytes;                                              \
+  }                                                                \
+  template <class D>                                               \
+  HWY_API size_t StoreMaskBits(D /* tag */, HWY_RVV_M(MLEN) m,     \
+                               uint8_t* bits) {                    \
+    return StoreMaskBits(m, bits);                                 \
   }
 HWY_RVV_FOREACH_B(HWY_RVV_STORE_MASK_BITS, _, _)
 #undef HWY_RVV_STORE_MASK_BITS

@@ -132,7 +132,7 @@ template <typename T>
 HWY_API Vec1<T> Not(const Vec1<T> v) {
   using TU = MakeUnsigned<T>;
   const Sisd<TU> du;
-  return BitCast(Sisd<T>(), Vec1<TU>(~BitCast(du, v).raw));
+  return BitCast(Sisd<T>(), Vec1<TU>(static_cast<TU>(~BitCast(du, v).raw)));
 }
 
 // ------------------------------ And
@@ -154,7 +154,8 @@ template <typename T>
 HWY_API Vec1<T> AndNot(const Vec1<T> a, const Vec1<T> b) {
   using TU = MakeUnsigned<T>;
   const Sisd<TU> du;
-  return BitCast(Sisd<T>(), Vec1<TU>(~BitCast(du, a).raw & BitCast(du, b).raw));
+  return BitCast(Sisd<T>(), Vec1<TU>(static_cast<TU>(~BitCast(du, a).raw &
+                                                     BitCast(du, b).raw)));
 }
 
 // ------------------------------ Or
@@ -812,6 +813,12 @@ HWY_API Vec1<T> Load(Sisd<T> /* tag */, const T* HWY_RESTRICT aligned) {
 }
 
 template <typename T>
+HWY_API Vec1<T> MaskedLoad(Mask1<T> m, Sisd<T> d,
+                           const T* HWY_RESTRICT aligned) {
+  return IfThenElseZero(m, Load(d, aligned));
+}
+
+template <typename T>
 HWY_API Vec1<T> LoadU(Sisd<T> d, const T* HWY_RESTRICT p) {
   return Load(d, p);
 }
@@ -937,7 +944,7 @@ HWY_API Vec1<float> PromoteTo(Sisd<float> /* tag */, const Vec1<float16_t> v) {
 #else
   const uint16_t bits16 = v.raw.bits;
 #endif
-  const uint32_t sign = bits16 >> 15;
+  const uint32_t sign = static_cast<uint32_t>(bits16 >> 15);
   const uint32_t biased_exp = (bits16 >> 10) & 0x1F;
   const uint32_t mantissa = bits16 & 0x3FF;
 
@@ -986,7 +993,8 @@ HWY_API Vec1<float16_t> DemoteTo(Sisd<float16_t> /* tag */,
     biased_exp16 = 0;
     const uint32_t sub_exp = static_cast<uint32_t>(-14 - exp);
     HWY_DASSERT(1 <= sub_exp && sub_exp < 11);
-    mantissa16 = (1 << (10 - sub_exp)) + (mantissa32 >> (13 + sub_exp));
+    mantissa16 = static_cast<uint32_t>((1u << (10 - sub_exp)) +
+                                       (mantissa32 >> (13 + sub_exp)));
   } else {
     // exp = [-14, 15]
     biased_exp16 = static_cast<uint32_t>(exp + 15);
@@ -1062,9 +1070,7 @@ struct Indices1 {
 
 template <typename T>
 HWY_API Indices1<T> SetTableIndices(Sisd<T>, const int32_t* idx) {
-#if !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
   HWY_DASSERT(idx[0] == 0);
-#endif
   return Indices1<T>{idx[0]};
 }
 
@@ -1143,7 +1149,7 @@ HWY_API Vec1<int64_t> ZipLower(const Vec1<int32_t> a, const Vec1<int32_t> b) {
 
 template <typename T, typename TW = MakeWide<T>, class VW = Vec1<TW>>
 HWY_API VW ZipLower(Sisd<TW> /* tag */, Vec1<T> a, Vec1<T> b) {
-  return VW((TW(b.raw) << (sizeof(T) * 8)) + a.raw);
+  return VW(static_cast<TW>((TW{b.raw} << (sizeof(T) * 8)) + a.raw));
 }
 
 // ================================================== MASK
@@ -1158,9 +1164,17 @@ HWY_API bool AllTrue(Sisd<T> /* tag */, const Mask1<T> mask) {
   return mask.bits != 0;
 }
 
+// `p` points to at least 8 readable bytes, not all of which need be valid.
 template <typename T>
-HWY_API size_t StoreMaskBits(Sisd<T> d, const Mask1<T> mask, uint8_t* p) {
-  *p = AllTrue(d, mask);
+HWY_API Mask1<T> LoadMaskBits(Sisd<T> /* tag */,
+                              const uint8_t* HWY_RESTRICT bits) {
+  return Mask1<T>::FromBool((bits[0] & 1) != 0);
+}
+
+// `p` points to at least 8 writable bytes.
+template <typename T>
+HWY_API size_t StoreMaskBits(Sisd<T> d, const Mask1<T> mask, uint8_t* bits) {
+  *bits = AllTrue(d, mask);
   return 1;
 }
 
@@ -1174,9 +1188,16 @@ HWY_API intptr_t FindFirstTrue(Sisd<T> /* tag */, const Mask1<T> mask) {
   return mask.bits == 0 ? -1 : 0;
 }
 
+// ------------------------------ Compress, CompressBits
+
 template <typename T>
 HWY_API Vec1<T> Compress(Vec1<T> v, const Mask1<T> /* mask */) {
   // Upper lanes are undefined, so result is the same independent of mask.
+  return v;
+}
+
+template <typename T>
+HWY_API Vec1<T> Compress(Vec1<T> v, const uint8_t* HWY_RESTRICT /* bits */) {
   return v;
 }
 
@@ -1184,8 +1205,18 @@ HWY_API Vec1<T> Compress(Vec1<T> v, const Mask1<T> /* mask */) {
 
 template <typename T>
 HWY_API size_t CompressStore(Vec1<T> v, const Mask1<T> mask, Sisd<T> d,
-                             T* HWY_RESTRICT aligned) {
-  Store(Compress(v, mask), d, aligned);
+                             T* HWY_RESTRICT unaligned) {
+  StoreU(Compress(v, mask), d, unaligned);
+  return CountTrue(d, mask);
+}
+
+// ------------------------------ CompressBitsStore
+
+template <typename T>
+HWY_API size_t CompressBitsStore(Vec1<T> v, const uint8_t* HWY_RESTRICT bits,
+                                 Sisd<T> d, T* HWY_RESTRICT unaligned) {
+  const Mask1<T> mask = LoadMaskBits(d, bits);
+  StoreU(Compress(v, mask), d, unaligned);
   return CountTrue(d, mask);
 }
 
@@ -1208,8 +1239,8 @@ HWY_API Vec1<T> MaxOfLanes(Sisd<T> /* tag */, const Vec1<T> v) {
 // ================================================== DEPRECATED
 
 template <typename T>
-HWY_API size_t StoreMaskBits(const Mask1<T> mask, uint8_t* p) {
-  return StoreMaskBits(Sisd<T>(), mask, p);
+HWY_API size_t StoreMaskBits(const Mask1<T> mask, uint8_t* bits) {
+  return StoreMaskBits(Sisd<T>(), mask, bits);
 }
 
 template <typename T>

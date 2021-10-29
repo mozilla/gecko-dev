@@ -169,6 +169,37 @@ HWY_NOINLINE void TestAllMaskVec() {
 #endif
 }
 
+struct TestMaskedLoad {
+  template <class T, class D>
+  HWY_NOINLINE void operator()(T /*unused*/, D d) {
+    RandomState rng;
+
+    using TI = MakeSigned<T>;  // For mask > 0 comparison
+    const Rebind<TI, D> di;
+    const size_t N = Lanes(d);
+    auto bool_lanes = AllocateAligned<TI>(N);
+
+    auto lanes = AllocateAligned<T>(N);
+    Store(Iota(d, T{1}), d, lanes.get());
+
+    // Each lane should have a chance of having mask=true.
+    for (size_t rep = 0; rep < 100; ++rep) {
+      for (size_t i = 0; i < N; ++i) {
+        bool_lanes[i] = (Random32(&rng) & 1024) ? TI(1) : TI(0);
+      }
+
+      const auto mask = RebindMask(d, Gt(Load(di, bool_lanes.get()), Zero(di)));
+      const auto expected = IfThenElseZero(mask, Load(d, lanes.get()));
+      const auto actual = MaskedLoad(mask, d, lanes.get());
+      HWY_ASSERT_VEC_EQ(d, expected, actual);
+    }
+  }
+};
+
+HWY_NOINLINE void TestAllMaskedLoad() {
+  ForAllTypes(ForPartialVectors<TestMaskedLoad>());
+}
+
 struct TestAllTrueFalse {
   template <class T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
@@ -234,7 +265,7 @@ class TestStoreMaskBits {
     const Half<Half<Half<HWY_FULL(uint8_t)>>> d_bits;
     const size_t expected_num_bytes = (N + 7) / 8;
     auto expected = AllocateAligned<uint8_t>(expected_num_bytes);
-    auto actual = AllocateAligned<uint8_t>(expected_num_bytes);
+    auto actual = AllocateAligned<uint8_t>(HWY_MAX(8, expected_num_bytes));
 
     for (size_t rep = 0; rep < 100; ++rep) {
       // Generate random mask pattern.
@@ -244,6 +275,7 @@ class TestStoreMaskBits {
       const auto bools = Load(di, bool_lanes.get());
       const auto mask = Gt(bools, Zero(di));
 
+      // Requires at least 8 bytes, ensured above.
       const size_t bytes_written = StoreMaskBits(di, mask, actual.get());
       if (bytes_written != expected_num_bytes) {
         fprintf(stderr, "%s expected %zu bytes, actual %zu\n",
@@ -252,9 +284,16 @@ class TestStoreMaskBits {
         HWY_ASSERT(false);
       }
 
+// TODO(janwas): enable after implemented
+#if HWY_TARGET != HWY_RVV
+      // Requires at least 8 bytes, ensured above.
+      const auto mask2 = LoadMaskBits(di, actual.get());
+      HWY_ASSERT_MASK_EQ(di, mask, mask2);
+#endif
+
       memset(expected.get(), 0, expected_num_bytes);
       for (size_t i = 0; i < N; ++i) {
-        expected[i / 8] |= bool_lanes[i] << (i % 8);
+        expected[i / 8] = uint8_t(expected[i / 8] | (bool_lanes[i] << (i % 8)));
       }
 
       size_t i = 0;
@@ -350,7 +389,7 @@ struct TestFindFirstTrue {
       }
 
       const intptr_t expected =
-          static_cast<intptr_t>(Num0BitsBelowLS1Bit_Nonzero32(code));
+          static_cast<intptr_t>(Num0BitsBelowLS1Bit_Nonzero32(uint32_t(code)));
       const auto mask = RebindMask(d, Gt(Load(di, bool_lanes.get()), Zero(di)));
       const intptr_t actual = FindFirstTrue(d, mask);
       HWY_ASSERT_EQ(expected, actual);
@@ -419,6 +458,7 @@ HWY_EXPORT_AND_TEST_P(HwyMaskTest, TestAllFromVec);
 HWY_EXPORT_AND_TEST_P(HwyMaskTest, TestAllFirstN);
 HWY_EXPORT_AND_TEST_P(HwyMaskTest, TestAllIfThenElse);
 HWY_EXPORT_AND_TEST_P(HwyMaskTest, TestAllMaskVec);
+HWY_EXPORT_AND_TEST_P(HwyMaskTest, TestAllMaskedLoad);
 HWY_EXPORT_AND_TEST_P(HwyMaskTest, TestAllAllTrueFalse);
 HWY_EXPORT_AND_TEST_P(HwyMaskTest, TestAllStoreMaskBits);
 HWY_EXPORT_AND_TEST_P(HwyMaskTest, TestAllCountTrue);
