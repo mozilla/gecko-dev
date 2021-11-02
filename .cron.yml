@@ -140,7 +140,6 @@ jobs:
           - mozilla-central
           - mozilla-beta
           - mozilla-release
-          - mozilla-esr78
       when:
           - {hour: 10, minute: 0}
 
@@ -177,7 +176,6 @@ jobs:
           - mozilla-central
           - mozilla-beta
           - mozilla-release
-          - mozilla-esr78
       when:
           by-project:
               # No default branch
@@ -188,9 +186,6 @@ jobs:
                   - {hour: 7, minute: 0}
                   - {hour: 19, minute: 0}
               mozilla-release:
-                  - {hour: 7, minute: 0}
-                  - {hour: 19, minute: 0}
-              mozilla-esr78:
                   - {hour: 7, minute: 0}
                   - {hour: 19, minute: 0}
 
