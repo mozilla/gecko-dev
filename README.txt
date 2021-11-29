@@ -1,21 +1,38 @@
-An explanation of the Firefox Source Code Directory Structure and links to
-project pages with documentation can be found at:
+## Floorp ブラウザ 利用規約
 
-    https://firefox-source-docs.mozilla.org/contributing/directory_structure.html
+Floorp ブラウザ 利用規約
 
-For information on how to build Firefox from the source code and create the patch see:
+### FloorpはMozillaが開発するFirefoxをベースに沢山のボランティアによって支えられています。ボランティアの方、Mozilla の開発者、Floorpを選んでくださった方に感謝します。
 
-    https://firefox-source-docs.mozilla.org/contributing/contribution_quickref.html
+#### 1.ソースコード
 
-If you have a question about developing Firefox, and can't find the solution
-on https://firefox-source-docs.mozilla.org/, you can try asking your question on Matrix at chat.mozilla.org in `Introduction` (https://chat.mozilla.org/#/room/#introduction:mozilla.org) channel.
+　Floorpは、Mozilla Public License 2.0 (以後 MPL2.0) の条件の下で利用可能になります。これは、Floorpを使用、コピー、および他の人に配布できることを意味します。ニーズに合わせて、Floorpのソースコードを変更することもできます。Mozilla Public License 2.0は、変更されたバージョンを配布する権利も与えまられます。
 
+#### 2.アイコンの著作権と使用権
+ 
+Floorp の名前やロゴはMPL2.0ではライセンスされていません。また、Floorpはオープンソースソフトウェアですが、Floorp を改造せずにアイコンのみ変更して再配布するすることは認めていません。悪用も禁じます。また、ブラウザ管理、セキュリティー的な問題からFloorp 公式の許可がなくLinuxなどのOS等に本製品をプリインストールすることも禁止します。
 
-Nightly development builds can be downloaded from:
+#### 3.プライバシー
 
-    https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/
-            - or -
-    https://www.mozilla.org/firefox/channel/desktop/#nightly
+　Floorpを通じて送信されたあなたの個人情報とフィードバックの使用方法は、Ablazeプライバシーポリシーに記載されており、これが適用されます。
 
-Keep in mind that nightly builds, which are used by Firefox developers for
-testing, may be buggy.
+####4.あなたの個人情報の取り扱いについて
+
+Floorp ではあなたの個人情報を最小限のみ収集することを努力しています。
+一部のFloorpブラウザの機能はあなたの個人情報を利用します。Floorp開発者側はあなたの個人情報をプライバシーポリシーに記載されている以外では調査しません。具体的には、フィードバック、Ablaze サポートサービス、Ablaze サイトへのアクセス時に匿名の形で利用する場合があります。これは利用規約の改定、プライバシポリシーの改定によって変更されることがあります。また、ブラウザの機能向上のために Floorp は他の第三者の検索エンジンサービス（Google、Bing、Startpage 等）や、Firefox 提供元のMozilla にブラウザに入力した情報を送信します。これらは第三者のプライバシーポリシーによって処理されます。
+
+例：検索バーに入力したワード・ウェブサイトからの通知を送信するためにMozillaのサーバに接続する。
+
+5.Floorpの提供方法、サポート終了について
+以下は Floorpの利用に関しての規約です。
+
+・機能の正確性
+Floorpとその開発者、ライセンサー、およびパートナーは、正確で最新のサービスを提供するために開発を進めています。ただし、この情報が包括的でエラーがないことを保証することはできません。たとえば、セーフブラウジングサービスは一部の危険なサイトを特定せず、一部の安全なサイトを誤って特定する場合があります。また、サービスプロバイダーから返されるすべての場所は推定値であり、当社もサービスプロバイダーも提供された場所の正確性を保証しません。 
+Floorpは、その裁量によりサービスを中止または変更する場合があります。
+
+・Floorp ブラウザのサービスについて
+サードパーティーのサービスとFloorpを一緒に使用することを歓迎し、Floorpはその権利を付与します。Floorpとそのライセンサーは、本サービスにおけるその他すべての権利を留保します。これらの条件は、Floorpおよび対応するFloorpのソースコードバージョンに適用されるオープンソースライセンスの下で付与される権利を制限することを意図したものではありません。
+・本サービスは「現状有姿」で提供されます。Floorp、その寄稿者、ライセンサー、およびディストリビューターは、明示または黙示を問わず、本サービスが商品性を有し、お客様の特定の目的に適合することを含むがこれに限定されない、すべての保証を否認します。これは、Mozilla Public Licenseで明記されています。お客様は、お客様の目的のためにサービスを選択すること、およびサービスの品質とパフォーマンスに関して、すべてのリスクを負います。一部の法域では、黙示の保証の除外または制限が許可されていないため、この免責事項がお客様に適用されない場合があります。 
+・Floorpは、必要に応じてこれらの条件を随時更新する場合があります。これらの条件は、
+Floorpの書面による同意なしに変更またはキャンセルすることはできません。
+1つ以上のサービスを使用したくない場合、または上記の条件が受け入れられない場合は、機能またはサービスを無効にしてください。アンインストールまたはFloorpを利用することはできません。
