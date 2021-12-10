@@ -92,6 +92,9 @@ struct Deduce1 {
 template <class V>
 using DFromV = decltype(detail::Deduce1()(V()));
 
+template <class V>
+using TFromV = TFromD<DFromV<V>>;
+
 // ------------------------------ BitCast
 
 template <typename T, typename FromT>
@@ -310,7 +313,7 @@ HWY_API Mask1<T> Xor(const Mask1<T> a, Mask1<T> b) {
 
 // ================================================== SHIFTS
 
-// ------------------------------ ShiftLeft (BroadcastSignBit)
+// ------------------------------ ShiftLeft/ShiftRight (BroadcastSignBit)
 
 template <int kBits, typename T>
 HWY_API Vec1<T> ShiftLeft(const Vec1<T> v) {
@@ -339,6 +342,15 @@ HWY_API Vec1<T> ShiftRight(const Vec1<T> v) {
     return Vec1<T>(v.raw >> kBits);  // unsigned, logical shift
   }
 #endif
+}
+
+// ------------------------------ RotateRight (ShiftRight)
+
+template <int kBits, typename T>
+HWY_API Vec1<T> RotateRight(const Vec1<T> v) {
+  static_assert(0 <= kBits && kBits < sizeof(T) * 8, "Invalid shift");
+  if (kBits == 0) return v;
+  return Or(ShiftRight<kBits>(v), ShiftLeft<sizeof(T) * 8 - kBits>(v));
 }
 
 // ------------------------------ ShiftLeftSame (BroadcastSignBit)
@@ -532,15 +544,19 @@ HWY_API Vec1<T> Neg(const Vec1<T> v) {
 
 // ------------------------------ mul/div
 
-template <typename T>
+template <typename T, HWY_IF_FLOAT(T)>
 HWY_API Vec1<T> operator*(const Vec1<T> a, const Vec1<T> b) {
-  if (hwy::IsFloat<T>()) {
-    return Vec1<T>(static_cast<T>(double(a.raw) * b.raw));
-  } else if (hwy::IsSigned<T>()) {
-    return Vec1<T>(static_cast<T>(int64_t(a.raw) * b.raw));
-  } else {
-    return Vec1<T>(static_cast<T>(uint64_t(a.raw) * b.raw));
-  }
+  return Vec1<T>(static_cast<T>(double(a.raw) * b.raw));
+}
+
+template <typename T, HWY_IF_SIGNED(T)>
+HWY_API Vec1<T> operator*(const Vec1<T> a, const Vec1<T> b) {
+  return Vec1<T>(static_cast<T>(int64_t(a.raw) * b.raw));
+}
+
+template <typename T, HWY_IF_UNSIGNED(T)>
+HWY_API Vec1<T> operator*(const Vec1<T> a, const Vec1<T> b) {
+  return Vec1<T>(static_cast<T>(uint64_t(a.raw) * b.raw));
 }
 
 template <typename T>
@@ -964,6 +980,10 @@ HWY_API Vec1<float> PromoteTo(Sisd<float> /* tag */, const Vec1<float16_t> v) {
   return Vec1<float>(out);
 }
 
+HWY_API Vec1<float> PromoteTo(Sisd<float> d, const Vec1<bfloat16_t> v) {
+  return Set(d, F32FromBF16(v.raw));
+}
+
 HWY_API Vec1<float16_t> DemoteTo(Sisd<float16_t> /* tag */,
                                  const Vec1<float> v) {
   uint32_t bits32;
@@ -1014,6 +1034,10 @@ HWY_API Vec1<float16_t> DemoteTo(Sisd<float16_t> /* tag */,
   return out;
 }
 
+HWY_API Vec1<bfloat16_t> DemoteTo(Sisd<bfloat16_t> d, const Vec1<float> v) {
+  return Set(d, BF16FromF32(v.raw));
+}
+
 template <typename FromT, typename ToT, HWY_IF_FLOAT(FromT)>
 HWY_API Vec1<ToT> ConvertTo(Sisd<ToT> /* tag */, Vec1<FromT> from) {
   static_assert(sizeof(ToT) == sizeof(FromT), "Should have same size");
@@ -1053,11 +1077,27 @@ HWY_API Vec1<T> LowerHalf(Sisd<T> /* tag */, Vec1<T> v) {
 }
 
 // ================================================== SWIZZLE
-// OddEven is unsupported.
 
 template <typename T>
 HWY_API T GetLane(const Vec1<T> v) {
   return v.raw;
+}
+
+template <typename T>
+HWY_API Vec1<T> OddEven(Vec1<T> /* odd */, Vec1<T> even) {
+  return even;
+}
+
+template <typename T>
+HWY_API Vec1<T> OddEvenBlocks(Vec1<T> /* odd */, Vec1<T> even) {
+  return even;
+}
+
+// ------------------------------ SwapAdjacentBlocks
+
+template <typename T>
+HWY_API Vec1<T> SwapAdjacentBlocks(Vec1<T> v) {
+  return v;
 }
 
 // ------------------------------ TableLookupLanes
@@ -1065,17 +1105,30 @@ HWY_API T GetLane(const Vec1<T> v) {
 // Returned by SetTableIndices for use by TableLookupLanes.
 template <typename T>
 struct Indices1 {
-  int raw;
+  MakeSigned<T> raw;
 };
 
-template <typename T>
-HWY_API Indices1<T> SetTableIndices(Sisd<T>, const int32_t* idx) {
-  HWY_DASSERT(idx[0] == 0);
-  return Indices1<T>{idx[0]};
+template <typename T, typename TI>
+HWY_API Indices1<T> IndicesFromVec(Sisd<T>, Vec1<TI> vec) {
+  static_assert(sizeof(T) == sizeof(TI), "Index size must match lane size");
+  HWY_DASSERT(vec.raw == 0);
+  return Indices1<T>{vec.raw};
+}
+
+template <typename T, typename TI>
+HWY_API Indices1<T> SetTableIndices(Sisd<T> d, const TI* idx) {
+  return IndicesFromVec(d, LoadU(idx));
 }
 
 template <typename T>
 HWY_API Vec1<T> TableLookupLanes(const Vec1<T> v, const Indices1<T> /* idx */) {
+  return v;
+}
+
+// ------------------------------ Reverse
+
+template <typename T>
+HWY_API Vec1<T> Reverse(Sisd<T> /* tag */, const Vec1<T> v) {
   return v;
 }
 
@@ -1090,38 +1143,36 @@ HWY_API Vec1<T> Broadcast(const Vec1<T> v) {
   return v;
 }
 
-// ------------------------------ Shuffle bytes with variable indices
+// ------------------------------ TableLookupBytes, TableLookupBytesOr0
 
-// Returns vector of bytes[from[i]]. "from" is also interpreted as bytes, i.e.
-// indices in [0, sizeof(T)).
-template <typename T>
-HWY_API Vec1<T> TableLookupBytes(const Vec1<T> in, const Vec1<T> from) {
+template <typename T, typename TI>
+HWY_API Vec1<TI> TableLookupBytes(const Vec1<T> in, const Vec1<TI> indices) {
   uint8_t in_bytes[sizeof(T)];
-  uint8_t from_bytes[sizeof(T)];
+  uint8_t idx_bytes[sizeof(T)];
   uint8_t out_bytes[sizeof(T)];
   CopyBytes<sizeof(T)>(&in, &in_bytes);
-  CopyBytes<sizeof(T)>(&from, &from_bytes);
+  CopyBytes<sizeof(T)>(&indices, &idx_bytes);
   for (size_t i = 0; i < sizeof(T); ++i) {
-    out_bytes[i] = in_bytes[from_bytes[i]];
+    out_bytes[i] = in_bytes[idx_bytes[i]];
   }
-  T out;
-  CopyBytes<sizeof(T)>(&out_bytes, &out);
-  return Vec1<T>{out};
+  TI out;
+  CopyBytes<sizeof(TI)>(&out_bytes, &out);
+  return Vec1<TI>{out};
 }
 
-template <typename T>
-HWY_API Vec1<T> TableLookupBytesOr0(const Vec1<T> in, const Vec1<T> from) {
+template <typename T, typename TI>
+HWY_API Vec1<TI> TableLookupBytesOr0(const Vec1<T> in, const Vec1<TI> indices) {
   uint8_t in_bytes[sizeof(T)];
-  uint8_t from_bytes[sizeof(T)];
+  uint8_t idx_bytes[sizeof(T)];
   uint8_t out_bytes[sizeof(T)];
   CopyBytes<sizeof(T)>(&in, &in_bytes);
-  CopyBytes<sizeof(T)>(&from, &from_bytes);
+  CopyBytes<sizeof(T)>(&indices, &idx_bytes);
   for (size_t i = 0; i < sizeof(T); ++i) {
-    out_bytes[i] = from_bytes[i] & 0x80 ? 0 : in_bytes[from_bytes[i]];
+    out_bytes[i] = idx_bytes[i] & 0x80 ? 0 : in_bytes[idx_bytes[i]];
   }
-  T out;
-  CopyBytes<sizeof(T)>(&out_bytes, &out);
-  return Vec1<T>{out};
+  TI out;
+  CopyBytes<sizeof(TI)>(&out_bytes, &out);
+  return Vec1<TI>{out};
 }
 
 // ------------------------------ ZipLower
@@ -1210,6 +1261,16 @@ HWY_API size_t CompressStore(Vec1<T> v, const Mask1<T> mask, Sisd<T> d,
   return CountTrue(d, mask);
 }
 
+// ------------------------------ CompressBlendedStore
+
+template <typename T>
+HWY_API size_t CompressBlendedStore(Vec1<T> v, const Mask1<T> mask, Sisd<T> d,
+                                    T* HWY_RESTRICT unaligned) {
+  if (!mask.bits) return 0;
+  StoreU(v, d, unaligned);
+  return 1;
+}
+
 // ------------------------------ CompressBitsStore
 
 template <typename T>
@@ -1218,6 +1279,17 @@ HWY_API size_t CompressBitsStore(Vec1<T> v, const uint8_t* HWY_RESTRICT bits,
   const Mask1<T> mask = LoadMaskBits(d, bits);
   StoreU(Compress(v, mask), d, unaligned);
   return CountTrue(d, mask);
+}
+
+// ------------------------------ ReorderWidenMulAccumulate (MulAdd, ZipLower)
+
+HWY_API Vec1<float> ReorderWidenMulAccumulate(Sisd<float> /* tag */,
+                                              Vec1<bfloat16_t> a,
+                                              Vec1<bfloat16_t> b,
+                                              const Vec1<float> sum0,
+                                              Vec1<float>& /* sum1 */) {
+  return MulAdd(Vec1<float>(F32FromBF16(a.raw)),
+                Vec1<float>(F32FromBF16(b.raw)), sum0);
 }
 
 // ================================================== REDUCTIONS

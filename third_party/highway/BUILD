@@ -50,7 +50,6 @@ config_setting(
 
 # Additional warnings for Clang OR GCC (skip for MSVC)
 CLANG_GCC_COPTS = [
-    "-Werror",
     "-Wunused-parameter",
     "-Wunused-variable",
     "-Wextra-semi",
@@ -81,6 +80,13 @@ COPTS = select({
     ":compiler_gcc": CLANG_GCC_COPTS,
     # Default to clang because compiler detection only works in Bazel
     "//conditions:default": CLANG_GCC_COPTS + CLANG_ONLY_COPTS,
+}) + select({
+    "@platforms//cpu:riscv64": [
+        "-march=rv64gcv0p10",
+        "-menable-experimental-extensions",
+    ],
+    "//conditions:default": [
+    ],
 })
 
 # Unused on Bazel builds, where this is not defined/known; Copybara replaces
@@ -133,6 +139,15 @@ cc_library(
 )
 
 cc_library(
+    name = "dot",
+    compatible_with = [],
+    textual_hdrs = [
+        "hwy/contrib/dot/dot-inl.h",
+    ],
+    deps = [":hwy"],
+)
+
+cc_library(
     name = "image",
     srcs = [
         "hwy/contrib/image/image.cc",
@@ -154,8 +169,25 @@ cc_library(
 )
 
 cc_library(
+    name = "sort",
+    compatible_with = [],
+    textual_hdrs = [
+        "hwy/contrib/sort/sort-inl.h",
+    ],
+    deps = [":hwy"],
+)
+
+# Everything required for tests that use Highway.
+cc_library(
     name = "hwy_test_util",
-    textual_hdrs = ["hwy/tests/test_util-inl.h"],
+    srcs = ["hwy/tests/test_util.cc"],
+    hdrs = ["hwy/tests/test_util.h"],
+    textual_hdrs = [
+        "hwy/tests/test_util-inl.h",
+        "hwy/tests/hwy_gtest.h",
+    ],
+    # Must not depend on a gtest variant, which can conflict with the
+    # GUNIT_INTERNAL_BUILD_MODE defined by the test.
     deps = [":hwy"],
 )
 
@@ -191,8 +223,10 @@ cc_binary(
 
 # path, name
 HWY_TESTS = [
+    ("hwy/contrib/dot/", "dot_test"),
     ("hwy/contrib/image/", "image_test"),
     ("hwy/contrib/math/", "math_test"),
+    ("hwy/contrib/sort/", "sort_test"),
     ("hwy/examples/", "skeleton_test"),
     ("hwy/", "nanobenchmark_test"),
     ("hwy/", "aligned_allocator_test"),
@@ -227,15 +261,26 @@ HWY_TESTS = [
                 # but it's still enabled for :hwy.
                 "-Wno-c++98-compat-extra-semi",
             ],
+            features = select({
+                "@platforms//cpu:riscv64": ["fully_static_link"],
+                "//conditions:default": [],
+            }),
+            linkstatic = select({
+                "@platforms//cpu:riscv64": True,
+                "//conditions:default": False,
+            }),
+            local_defines = ["HWY_IS_TEST"],
             # for test_suite.
             tags = ["hwy_ops_test"],
             deps = [
+                ":dot",
                 ":hwy",
                 ":hwy_test_util",
                 ":image",
                 ":math",
                 ":nanobenchmark",
                 ":skeleton",
+                ":sort",
                 "@com_google_googletest//:gtest_main",
             ],
         ),

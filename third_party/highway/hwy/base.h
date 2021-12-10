@@ -146,13 +146,30 @@
     }                                     \
   } while (0)
 
+#if HWY_HAS_FEATURE(memory_sanitizer) || defined(MEMORY_SANITIZER)
+#define HWY_IS_MSAN 1
+#else
+#define HWY_IS_MSAN 0
+#endif
+
+#if HWY_HAS_FEATURE(address_sanitizer) || defined(ADDRESS_SANITIZER)
+#define HWY_IS_ASAN 1
+#else
+#define HWY_IS_ASAN 0
+#endif
+
+#if HWY_HAS_FEATURE(thread_sanitizer) || defined(THREAD_SANITIZER)
+#define HWY_IS_TSAN 1
+#else
+#define HWY_IS_TSAN 0
+#endif
+
 // For enabling HWY_DASSERT and shortening tests in slower debug builds
 #if !defined(HWY_IS_DEBUG_BUILD)
 // Clang does not define NDEBUG, but it and GCC define __OPTIMIZE__, and recent
 // MSVC defines NDEBUG (if not, could instead check _DEBUG).
-#if (!defined(__OPTIMIZE__) && !defined(NDEBUG)) ||            \
-    defined(ADDRESS_SANITIZER) || defined(MEMORY_SANITIZER) || \
-    defined(THREAD_SANITIZER) || defined(__clang_analyzer__)
+#if (!defined(__OPTIMIZE__) && !defined(NDEBUG)) || HWY_IS_ASAN || \
+    HWY_IS_MSAN || HWY_IS_TSAN || defined(__clang_analyzer__)
 #define HWY_IS_DEBUG_BUILD 1
 #else
 #define HWY_IS_DEBUG_BUILD 0
@@ -203,13 +220,13 @@ static constexpr HWY_MAYBE_UNUSED size_t kMaxVectorSize = 16;
 // Match [u]int##_t naming scheme so rvv-inl.h macros can obtain the type name
 // by concatenating base type and bits.
 
-// RVV already has a builtin type and the GCC intrinsics require it.
-#if (HWY_ARCH_RVV && HWY_COMPILER_GCC && defined(__riscv_vector)) || \
-    (HWY_ARCH_ARM && (__ARM_FP & 2))
+#if HWY_ARCH_ARM && (__ARM_FP & 2)
 #define HWY_NATIVE_FLOAT16 1
 #else
 #define HWY_NATIVE_FLOAT16 0
 #endif
+
+#pragma pack(push, 1)
 
 #if defined(HWY_EMULATE_SVE)
 using float16_t = FarmFloat16;
@@ -219,12 +236,16 @@ using float16_t = __fp16;
 // arguments, so use a wrapper.
 // TODO(janwas): replace with _Float16 when that is supported?
 #else
-#pragma pack(push, 1)
 struct float16_t {
   uint16_t bits;
 };
-#pragma pack(pop)
 #endif
+
+struct bfloat16_t {
+  uint16_t bits;
+};
+
+#pragma pack(pop)
 
 using float32_t = float;
 using float64_t = double;
@@ -261,11 +282,12 @@ HWY_API constexpr bool IsSame() {
 // vectors of AT MOST this many bits.
 //
 // Note that enabling for exactly 128 bits is unnecessary because a function can
-// simply be overloaded with Vec128<T> and Full128<T> descriptor. Enabling for
-// other sizes (e.g. 64 bit) can be achieved with Simd<T, 8 / sizeof(T)>.
+// simply be overloaded with Vec128<T> and/or Full128<T> tag. Enabling for other
+// sizes (e.g. 64 bit) can be achieved via Simd<T, 8 / sizeof(T)>.
 #define HWY_IF_LE128(T, N) hwy::EnableIf<N * sizeof(T) <= 16>* = nullptr
 #define HWY_IF_LE64(T, N) hwy::EnableIf<N * sizeof(T) <= 8>* = nullptr
 #define HWY_IF_LE32(T, N) hwy::EnableIf<N * sizeof(T) <= 4>* = nullptr
+#define HWY_IF_GE32(T, N) hwy::EnableIf<N * sizeof(T) >= 4>* = nullptr
 #define HWY_IF_GE64(T, N) hwy::EnableIf<N * sizeof(T) >= 8>* = nullptr
 #define HWY_IF_GE128(T, N) hwy::EnableIf<N * sizeof(T) >= 16>* = nullptr
 #define HWY_IF_GT128(T, N) hwy::EnableIf<(N * sizeof(T) > 16)>* = nullptr
@@ -301,30 +323,34 @@ using RemoveConst = typename RemoveConstT<T>::type;
 // Type traits
 
 template <typename T>
-constexpr bool IsFloat() {
+HWY_API constexpr bool IsFloat() {
   // Cannot use T(1.25) != T(1) for float16_t, which can only be converted to or
   // from a float, not compared.
   return IsSame<T, float>() || IsSame<T, double>();
 }
 
 template <typename T>
-constexpr bool IsSigned() {
+HWY_API constexpr bool IsSigned() {
   return T(0) > T(-1);
 }
 template <>
 constexpr bool IsSigned<float16_t>() {
   return true;
 }
+template <>
+constexpr bool IsSigned<bfloat16_t>() {
+  return true;
+}
 
 // Largest/smallest representable integer values.
 template <typename T>
-constexpr T LimitsMax() {
+HWY_API constexpr T LimitsMax() {
   static_assert(!IsFloat<T>(), "Only for integer types");
   return IsSigned<T>() ? T((1ULL << (sizeof(T) * 8 - 1)) - 1)
                        : static_cast<T>(~0ull);
 }
 template <typename T>
-constexpr T LimitsMin() {
+HWY_API constexpr T LimitsMin() {
   static_assert(!IsFloat<T>(), "Only for integer types");
   return IsSigned<T>() ? T(-1) - LimitsMax<T>() : T(0);
 }
@@ -332,7 +358,7 @@ constexpr T LimitsMin() {
 // Largest/smallest representable value (integer or float). This naming avoids
 // confusion with numeric_limits<float>::min() (the smallest positive value).
 template <typename T>
-constexpr T LowestValue() {
+HWY_API constexpr T LowestValue() {
   return LimitsMin<T>();
 }
 template <>
@@ -345,7 +371,7 @@ constexpr double LowestValue<double>() {
 }
 
 template <typename T>
-constexpr T HighestValue() {
+HWY_API constexpr T HighestValue() {
   return LimitsMax<T>();
 }
 template <>
@@ -457,6 +483,12 @@ struct Relations<float16_t> {
   using Unsigned = uint16_t;
   using Signed = int16_t;
   using Float = float16_t;
+  using Wide = float;
+};
+template <>
+struct Relations<bfloat16_t> {
+  using Unsigned = uint16_t;
+  using Signed = int16_t;
   using Wide = float;
 };
 template <>
@@ -572,23 +604,71 @@ HWY_API size_t Num0BitsBelowLS1Bit_Nonzero64(const uint64_t x) {
 #endif  // HWY_COMPILER_MSVC
 }
 
+// Undefined results for x == 0.
+HWY_API size_t Num0BitsAboveMS1Bit_Nonzero32(const uint32_t x) {
+#if HWY_COMPILER_MSVC
+  unsigned long index;  // NOLINT
+  _BitScanReverse(&index, x);
+  return 31 - index;
+#else   // HWY_COMPILER_MSVC
+  return static_cast<size_t>(__builtin_clz(x));
+#endif  // HWY_COMPILER_MSVC
+}
+
+HWY_API size_t Num0BitsAboveMS1Bit_Nonzero64(const uint64_t x) {
+#if HWY_COMPILER_MSVC
+#if HWY_ARCH_X86_64
+  unsigned long index;  // NOLINT
+  _BitScanReverse64(&index, x);
+  return 63 - index;
+#else   // HWY_ARCH_X86_64
+  // _BitScanReverse64 not available
+  const uint32_t msb = static_cast<uint32_t>(x >> 32u);
+  unsigned long index;
+  if (msb == 0) {
+    const uint32_t lsb = static_cast<uint32_t>(x & 0xFFFFFFFF);
+    _BitScanReverse(&index, lsb);
+    return 63 - index;
+  } else {
+    _BitScanReverse(&index, msb);
+    return 31 - index;
+  }
+#endif  // HWY_ARCH_X86_64
+#else   // HWY_COMPILER_MSVC
+  return static_cast<size_t>(__builtin_clzll(x));
+#endif  // HWY_COMPILER_MSVC
+}
+
 HWY_API size_t PopCount(uint64_t x) {
 #if HWY_COMPILER_CLANG || HWY_COMPILER_GCC
   return static_cast<size_t>(__builtin_popcountll(x));
-#elif HWY_COMPILER_MSVC && HWY_ARCH_X86_64
+  // This instruction has a separate feature flag, but is often called from
+  // non-SIMD code, so we don't want to require dynamic dispatch. It was first
+  // supported by Intel in Nehalem (SSE4.2), but MSVC only predefines a macro
+  // for AVX, so check for that.
+#elif HWY_COMPILER_MSVC && HWY_ARCH_X86_64 && defined(__AVX__)
   return _mm_popcnt_u64(x);
-#elif HWY_COMPILER_MSVC && HWY_ARCH_X86_32
+#elif HWY_COMPILER_MSVC && HWY_ARCH_X86_32 && defined(__AVX__)
   return _mm_popcnt_u32(uint32_t(x)) + _mm_popcnt_u32(uint32_t(x >> 32));
 #else
-  x -= ((x >> 1) & 0x55555555U);
-  x = (((x >> 2) & 0x33333333U) + (x & 0x33333333U));
-  x = (((x >> 4) + x) & 0x0F0F0F0FU);
+  x -= ((x >> 1) & 0x5555555555555555ULL);
+  x = (((x >> 2) & 0x3333333333333333ULL) + (x & 0x3333333333333333ULL));
+  x = (((x >> 4) + x) & 0x0F0F0F0F0F0F0F0FULL);
   x += (x >> 8);
   x += (x >> 16);
   x += (x >> 32);
-  x = x & 0x0000007FU;
-  return (unsigned int)x;
+  return static_cast<size_t>(x & 0x7Fu);
 #endif
+}
+
+template <typename TI>
+HWY_API constexpr size_t FloorLog2(TI x) {
+  return x == 1 ? 0 : FloorLog2(x >> 1) + 1;
+}
+
+template <typename TI>
+HWY_API constexpr size_t CeilLog2(TI x) {
+  return x == 1 ? 0 : FloorLog2(x - 1) + 1;
 }
 
 #if HWY_COMPILER_MSVC && HWY_ARCH_X86_64
@@ -629,6 +709,22 @@ HWY_API void CopyBytes(const From* from, To* to) {
   // Avoids horrible codegen on Clang (series of PINSRB)
   __builtin_memcpy(to, from, kBytes);
 #endif
+}
+
+HWY_API float F32FromBF16(bfloat16_t bf) {
+  uint32_t bits = bf.bits;
+  bits <<= 16;
+  float f;
+  CopyBytes<4>(&bits, &f);
+  return f;
+}
+
+HWY_API bfloat16_t BF16FromF32(float f) {
+  uint32_t bits;
+  CopyBytes<4>(&f, &bits);
+  bfloat16_t bf;
+  bf.bits = static_cast<uint16_t>(bits >> 16);
+  return bf;
 }
 
 HWY_NORETURN void HWY_FORMAT(3, 4)

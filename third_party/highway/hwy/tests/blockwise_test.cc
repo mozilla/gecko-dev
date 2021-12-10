@@ -162,21 +162,10 @@ struct TestBroadcast {
 
 HWY_NOINLINE void TestAllBroadcast() {
   const ForPartialVectors<TestBroadcast> test;
-  // No u8.
+  // No u/i8.
   test(uint16_t());
-  test(uint32_t());
-#if HWY_CAP_INTEGER64
-  test(uint64_t());
-#endif
-
-  // No i8.
   test(int16_t());
-  test(int32_t());
-#if HWY_CAP_INTEGER64
-  test(int64_t());
-#endif
-
-  ForFloatTypes(test);
+  ForUIF3264(test);
 }
 
 template <bool kFull>
@@ -187,7 +176,7 @@ struct ChooseTableSize {
 template <>
 struct ChooseTableSize<true> {
   template <typename T, typename DIdx>
-  using type = HWY_FULL(T);
+  using type = ScalableTag<T>;
 };
 
 template <bool kFull>
@@ -456,7 +445,7 @@ struct TestCombineShiftRightBytesR {
 
     // Random inputs in each lane
     RandomState rng;
-    for (size_t rep = 0; rep < 100; ++rep) {
+    for (size_t rep = 0; rep < AdjustedReps(100); ++rep) {
       for (size_t i = 0; i < N8; ++i) {
         hi_bytes[i] = static_cast<uint8_t>(Random64(&rng) & 0xFF);
         lo_bytes[i] = static_cast<uint8_t>(Random64(&rng) & 0xFF);
@@ -499,7 +488,7 @@ struct TestCombineShiftRightLanesR {
 
     // Random inputs in each lane
     RandomState rng;
-    for (size_t rep = 0; rep < 100; ++rep) {
+    for (size_t rep = 0; rep < AdjustedReps(100); ++rep) {
       for (size_t i = 0; i < N8; ++i) {
         hi_bytes[i] = static_cast<uint8_t>(Random64(&rng) & 0xFF);
         lo_bytes[i] = static_cast<uint8_t>(Random64(&rng) & 0xFF);

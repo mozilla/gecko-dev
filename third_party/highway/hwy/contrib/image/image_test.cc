@@ -42,7 +42,7 @@ struct TestAlignedT {
   void operator()(T /*unused*/) const {
     std::mt19937 rng(129);
     std::uniform_int_distribution<int> dist(0, 16);
-    const HWY_FULL(T) d;
+    const ScalableTag<T> d;
 
     for (size_t ysize = 1; ysize < 4; ++ysize) {
       for (size_t xsize = 1; xsize < 64; ++xsize) {
@@ -73,7 +73,7 @@ struct TestUnalignedT {
   void operator()(T /*unused*/) const {
     std::mt19937 rng(129);
     std::uniform_int_distribution<int> dist(0, 3);
-    const HWY_FULL(T) d;
+    const ScalableTag<T> d;
 
     for (size_t ysize = 1; ysize < 4; ++ysize) {
       for (size_t xsize = 1; xsize < 128; ++xsize) {
@@ -87,7 +87,7 @@ struct TestUnalignedT {
         for (size_t y = 0; y < ysize; ++y) {
           T* HWY_RESTRICT row = img.MutableRow(y);
           for (size_t x = 0; x < xsize; ++x) {
-            row[x] = 1 << dist(rng);
+            row[x] = static_cast<T>(1u << dist(rng));
           }
         }
 

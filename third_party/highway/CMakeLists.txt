@@ -19,7 +19,7 @@ if(POLICY CMP0083)
   cmake_policy(SET CMP0083 NEW)
 endif()
 
-project(hwy VERSION 0.14.2)  # Keep in sync with highway.h version
+project(hwy VERSION 0.15.0)  # Keep in sync with highway.h version
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -46,6 +46,8 @@ set(HWY_CMAKE_ARM7 OFF CACHE BOOL "Set copts for ARMv7 with NEON?")
 # arise due to compiler/platform changes. Enable this in CI/tests.
 set(HWY_WARNINGS_ARE_ERRORS OFF CACHE BOOL "Add -Werror flag?")
 
+set(HWY_EXAMPLES_TESTS_INSTALL ON CACHE BOOL "Build examples, tests, install?")
+
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles(
    "int main() {
@@ -58,9 +60,11 @@ check_cxx_source_compiles(
 )
 
 set(HWY_CONTRIB_SOURCES
+    hwy/contrib/dot/dot-inl.h
     hwy/contrib/image/image.cc
     hwy/contrib/image/image.h
     hwy/contrib/math/math-inl.h
+    hwy/contrib/sort/sort-inl.h
 )
 
 set(HWY_SOURCES
@@ -86,7 +90,13 @@ set(HWY_SOURCES
     hwy/ops/x86_512-inl.h
     hwy/targets.cc
     hwy/targets.h
+)
+
+set(HWY_TEST_SOURCES
+    hwy/tests/hwy_gtest.h
     hwy/tests/test_util-inl.h
+    hwy/tests/test_util.cc
+    hwy/tests/test_util.h
 )
 
 if (MSVC)
@@ -192,6 +202,11 @@ target_compile_options(hwy_contrib PRIVATE ${HWY_FLAGS})
 set_property(TARGET hwy_contrib PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(hwy_contrib PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
+add_library(hwy_test STATIC ${HWY_TEST_SOURCES})
+target_compile_options(hwy_test PRIVATE ${HWY_FLAGS})
+set_property(TARGET hwy_test PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(hwy_test PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+
 # -------------------------------------------------------- hwy_list_targets
 # Generate a tool to print the compiled-in targets as defined by the current
 # flags. This tool will print to stderr at build time, after building hwy.
@@ -208,12 +223,9 @@ add_custom_command(TARGET hwy_list_targets POST_BUILD
     COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:hwy_list_targets> || (exit 0))
 
 # --------------------------------------------------------
-# The following sections are skipped if this project is added via
-# add_subdirectory into parent project (i.e. used as library).
-# Those sections contain artifacts that are not required for building
-# parent project: tests, examples, benchmarks and installation.
-# --------------------------------------------------------
-if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+# Allow skipping the following sections for projects that do not need them:
+# tests, examples, benchmarks and installation.
+if (HWY_EXAMPLES_TESTS_INSTALL)
 
 # -------------------------------------------------------- install library
 install(TARGETS hwy
@@ -233,6 +245,18 @@ install(TARGETS hwy_contrib
 # Install all the headers keeping the relative path to the current directory
 # when installing them.
 foreach (source ${HWY_CONTRIB_SOURCES})
+  if ("${source}" MATCHES "\.h$")
+    get_filename_component(dirname "${source}" DIRECTORY)
+    install(FILES "${source}"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${dirname}")
+  endif()
+endforeach()
+
+install(TARGETS hwy_test
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+# Install all the headers keeping the relative path to the current directory
+# when installing them.
+foreach (source ${HWY_TEST_SOURCES})
   if ("${source}" MATCHES "\.h$")
     get_filename_component(dirname "${source}" DIRECTORY)
     install(FILES "${source}"
@@ -311,8 +335,12 @@ endif()
 endif() # HWY_SYSTEM_GTEST
 
 set(HWY_TEST_FILES
+  hwy/contrib/dot/dot_test.cc
   hwy/contrib/image/image_test.cc
+  # Disabled due to SIGILL in clang7 debug build during gtest discovery phase,
+  # not reproducible locally. Still tested via bazel build.
   # hwy/contrib/math/math_test.cc
+  hwy/contrib/sort/sort_test.cc
   hwy/aligned_allocator_test.cc
   hwy/base_test.cc
   hwy/highway_test.cc
@@ -344,9 +372,9 @@ foreach (TESTFILE IN LISTS HWY_TEST_FILES)
   target_compile_options(${TESTNAME} PRIVATE -DHWY_IS_TEST=1)
 
   if(HWY_SYSTEM_GTEST)
-    target_link_libraries(${TESTNAME} hwy hwy_contrib GTest::GTest GTest::Main)
+    target_link_libraries(${TESTNAME} hwy hwy_contrib hwy_test GTest::GTest GTest::Main)
   else()
-    target_link_libraries(${TESTNAME} hwy hwy_contrib gtest gtest_main)
+    target_link_libraries(${TESTNAME} hwy hwy_contrib hwy_test gtest gtest_main)
   endif()
   # Output test targets in the test directory.
   set_target_properties(${TESTNAME} PROPERTIES PREFIX "tests/")
@@ -367,4 +395,4 @@ target_sources(skeleton_test PRIVATE hwy/examples/skeleton.cc)
 
 endif() # BUILD_TESTING
 
-endif() # CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
+endif() # HWY_EXAMPLES_TESTS_INSTALL

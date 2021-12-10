@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -301,6 +302,43 @@ struct TestUnsignedRightShifts {
   }
 };
 
+struct TestRotateRight {
+  template <typename T, class D>
+  HWY_NOINLINE void operator()(T /*unused*/, D d) {
+    const size_t N = Lanes(d);
+    auto expected = AllocateAligned<T>(N);
+
+    constexpr size_t kBits = sizeof(T) * 8;
+    const auto mask_shift = Set(d, T{kBits});
+    // Cover as many bit positions as possible to test shifting out
+    const auto values = Shl(Set(d, T{1}), And(Iota(d, 0), mask_shift));
+
+    // Rotate by 0
+    HWY_ASSERT_VEC_EQ(d, values, RotateRight<0>(values));
+
+    // Rotate by 1
+    Store(values, d, expected.get());
+    for (size_t i = 0; i < N; ++i) {
+      expected[i] = (expected[i] >> 1) | (expected[i] << (kBits - 1));
+    }
+    HWY_ASSERT_VEC_EQ(d, expected.get(), RotateRight<1>(values));
+
+    // Rotate by half
+    Store(values, d, expected.get());
+    for (size_t i = 0; i < N; ++i) {
+      expected[i] = (expected[i] >> (kBits / 2)) | (expected[i] << (kBits / 2));
+    }
+    HWY_ASSERT_VEC_EQ(d, expected.get(), RotateRight<kBits / 2>(values));
+
+    // Rotate by max
+    Store(values, d, expected.get());
+    for (size_t i = 0; i < N; ++i) {
+      expected[i] = (expected[i] >> (kBits - 1)) | (expected[i] << 1);
+    }
+    HWY_ASSERT_VEC_EQ(d, expected.get(), RotateRight<kBits - 1>(values));
+  }
+};
+
 struct TestVariableUnsignedRightShifts {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
@@ -509,6 +547,14 @@ HWY_NOINLINE void TestAllVariableShifts() {
 
   shl_s(int64_t());
   shr_s(int64_t());
+#endif
+}
+
+HWY_NOINLINE void TestAllRotateRight() {
+  const ForPartialVectors<TestRotateRight> test;
+  test(uint32_t());
+#if HWY_CAP_INTEGER64
+  test(uint64_t());
 #endif
 }
 
@@ -765,7 +811,7 @@ struct TestMulEvenOdd64 {
 
     // Random inputs in each lane
     RandomState rng;
-    for (size_t rep = 0; rep < 1000; ++rep) {
+    for (size_t rep = 0; rep < AdjustedReps(1000); ++rep) {
       for (size_t i = 0; i < N; ++i) {
         in1[i] = Random64(&rng);
         in2[i] = Random64(&rng);
@@ -862,6 +908,78 @@ HWY_NOINLINE void TestAllMulAdd() {
   ForFloatTypes(ForPartialVectors<TestMulAdd>());
 }
 
+struct TestReorderWidenMulAccumulate {
+  template <typename TN, class DN>
+  HWY_NOINLINE void operator()(TN /*unused*/, DN dn) {
+    using TW = MakeWide<TN>;
+    const RepartitionToWide<DN> dw;
+    const auto f0 = Zero(dw);
+    const auto f1 = Set(dw, 1.0f);
+    const auto fi = Iota(dw, 1);
+    const auto bf0 = ReorderDemote2To(dn, f0, f0);
+    const auto bf1 = ReorderDemote2To(dn, f1, f1);
+    const auto bfi = ReorderDemote2To(dn, fi, fi);
+    const size_t NW = Lanes(dw);
+    auto delta = AllocateAligned<TW>(2 * NW);
+    for (size_t i = 0; i < 2 * NW; ++i) {
+      delta[i] = 0.0f;
+    }
+
+    // Any input zero => both outputs zero
+    auto sum1 = f0;
+    HWY_ASSERT_VEC_EQ(dw, f0,
+                      ReorderWidenMulAccumulate(dw, bf0, bf0, f0, sum1));
+    HWY_ASSERT_VEC_EQ(dw, f0, sum1);
+    HWY_ASSERT_VEC_EQ(dw, f0,
+                      ReorderWidenMulAccumulate(dw, bf0, bfi, f0, sum1));
+    HWY_ASSERT_VEC_EQ(dw, f0, sum1);
+    HWY_ASSERT_VEC_EQ(dw, f0,
+                      ReorderWidenMulAccumulate(dw, bfi, bf0, f0, sum1));
+    HWY_ASSERT_VEC_EQ(dw, f0, sum1);
+
+    // delta[p] := 1.0, all others zero. For each p: Dot(delta, all-ones) == 1.
+    for (size_t p = 0; p < 2 * NW; ++p) {
+      delta[p] = 1.0f;
+      const auto delta0 = Load(dw, delta.get() + 0);
+      const auto delta1 = Load(dw, delta.get() + NW);
+      delta[p] = 0.0f;
+      const auto bf_delta = ReorderDemote2To(dn, delta0, delta1);
+
+      {
+        sum1 = f0;
+        const auto sum0 =
+            ReorderWidenMulAccumulate(dw, bf_delta, bf1, f0, sum1);
+        HWY_ASSERT_EQ(1.0f, GetLane(SumOfLanes(dw, Add(sum0, sum1))));
+      }
+      // Swapped arg order
+      {
+        sum1 = f0;
+        const auto sum0 =
+            ReorderWidenMulAccumulate(dw, bf1, bf_delta, f0, sum1);
+        HWY_ASSERT_EQ(1.0f, GetLane(SumOfLanes(dw, Add(sum0, sum1))));
+      }
+      // Start with nonzero sum0 or sum1
+      {
+        sum1 = delta1;
+        const auto sum0 =
+            ReorderWidenMulAccumulate(dw, bf_delta, bf1, delta0, sum1);
+        HWY_ASSERT_EQ(2.0f, GetLane(SumOfLanes(dw, Add(sum0, sum1))));
+      }
+      // Start with nonzero sum0 or sum1, and swap arg order
+      {
+        sum1 = delta1;
+        const auto sum0 =
+            ReorderWidenMulAccumulate(dw, bf1, bf_delta, delta0, sum1);
+        HWY_ASSERT_EQ(2.0f, GetLane(SumOfLanes(dw, Add(sum0, sum1))));
+      }
+    }
+  }
+};
+
+HWY_NOINLINE void TestAllReorderWidenMulAccumulate() {
+  ForShrinkableVectors<TestReorderWidenMulAccumulate>()(bfloat16_t());
+}
+
 struct TestDiv {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
@@ -895,13 +1013,24 @@ struct TestApproximateReciprocal {
     Store(ApproximateReciprocal(nonzero), d, actual.get());
 
     double max_l1 = 0.0;
+    double worst_expected = 0.0;
+    double worst_actual = 0.0;
     for (size_t i = 0; i < N; ++i) {
-      max_l1 = HWY_MAX(max_l1, std::abs((1.0 / input[i]) - actual[i]));
+      const double expected = 1.0 / input[i];
+      const double l1 = std::abs(expected - actual[i]);
+      if (l1 > max_l1) {
+        max_l1 = l1;
+        worst_expected = expected;
+        worst_actual = actual[i];
+      }
     }
-    const double max_rel = max_l1 / std::abs(1.0 / input[N - 1]);
-    printf("max err %f\n", max_rel);
-
-    HWY_ASSERT(max_rel < 0.002);
+    const double abs_worst_expected = std::abs(worst_expected);
+    if (abs_worst_expected > 1E-5) {
+      const double max_rel = max_l1 / abs_worst_expected;
+      fprintf(stderr, "max l1 %f rel %f (%f vs %f)\n", max_l1, max_rel,
+              worst_expected, worst_actual);
+      HWY_ASSERT(max_rel < 0.004);
+    }
   }
 };
 
@@ -931,7 +1060,11 @@ struct TestReciprocalSquareRoot {
     for (size_t i = 0; i < N; ++i) {
       float err = lanes[i] - 0.090166f;
       if (err < 0.0f) err = -err;
-      HWY_ASSERT(err < 1E-4f);
+      if (err >= 4E-4f) {
+        HWY_ABORT("Lane %" PRIu64 "(%" PRIu64 "): actual %f err %f\n",
+                  static_cast<uint64_t>(i), static_cast<uint64_t>(N), lanes[i],
+                  err);
+      }
     }
   }
 };
@@ -1147,18 +1280,7 @@ struct TestSumOfLanes {
 };
 
 HWY_NOINLINE void TestAllSumOfLanes() {
-  const ForPartialVectors<TestSumOfLanes> test;
-
-  // No u8/u16/i8/i16.
-  test(uint32_t());
-  test(int32_t());
-
-#if HWY_CAP_INTEGER64
-  test(uint64_t());
-  test(int64_t());
-#endif
-
-  ForFloatTypes(test);
+  ForUIF3264(ForPartialVectors<TestSumOfLanes>());
 }
 
 struct TestMinOfLanes {
@@ -1213,24 +1335,14 @@ struct TestMaxOfLanes {
 };
 
 HWY_NOINLINE void TestAllMinMaxOfLanes() {
-  const ForPartialVectors<TestMinOfLanes> min;
-  const ForPartialVectors<TestMaxOfLanes> max;
-
-  // No u8/u16/i8/i16.
-  min(uint32_t());
-  max(uint32_t());
-  min(int32_t());
-  max(int32_t());
-
-#if HWY_CAP_INTEGER64
-  min(uint64_t());
-  max(uint64_t());
-  min(int64_t());
-  max(int64_t());
-#endif
-
-  ForFloatTypes(min);
-  ForFloatTypes(max);
+  const ForPartialVectors<TestMinOfLanes> test_min;
+  const ForPartialVectors<TestMaxOfLanes> test_max;
+  ForUIF3264(test_min);
+  ForUIF3264(test_max);
+  test_min(uint16_t());
+  test_max(uint16_t());
+  test_min(int16_t());
+  test_max(int16_t());
 }
 
 struct TestAbsDiff {
@@ -1287,6 +1399,7 @@ HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllPlusMinus);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllSaturatingArithmetic);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllShifts);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllVariableShifts);
+HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllRotateRight);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllMinMax);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllAverage);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllAbs);
@@ -1294,6 +1407,7 @@ HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllMul);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllMulHigh);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllMulEven);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllMulAdd);
+HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllReorderWidenMulAccumulate);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllDiv);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllApproximateReciprocal);
 HWY_EXPORT_AND_TEST_P(HwyArithmeticTest, TestAllSquareRoot);

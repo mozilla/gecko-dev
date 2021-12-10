@@ -20,6 +20,8 @@
 
 #include <immintrin.h>  // AVX2+
 
+#include "hwy/base.h"
+
 #if defined(_MSC_VER) && defined(__clang__)
 // Including <immintrin.h> should be enough, but Clang's headers helpfully skip
 // including these headers when _MSC_VER is defined, like when using clang-cl.
@@ -418,7 +420,9 @@ namespace detail {
 template <typename T, HWY_IF_NOT_LANE_SIZE(T, 1)>
 HWY_INLINE Mask512<T> FirstN(size_t n) {
   Mask512<T> m;
-  m.raw = static_cast<decltype(m.raw)>(_bzhi_u32(~uint32_t(0), n));
+  const uint32_t all = ~uint32_t(0);
+  // BZHI only looks at the lower 8 bits of n!
+  m.raw = static_cast<decltype(m.raw)>((n > 255) ? all : _bzhi_u32(all, n));
   return m;
 }
 
@@ -435,7 +439,9 @@ template <typename T>
 HWY_API Mask512<T> FirstN(const Full512<T> /*tag*/, size_t n) {
 #if HWY_ARCH_X86_64
   Mask512<T> m;
-  m.raw = static_cast<decltype(m.raw)>(_bzhi_u64(~uint64_t(0), n));
+  const uint64_t all = ~uint64_t(0);
+  // BZHI only looks at the lower 8 bits of n!
+  m.raw = static_cast<decltype(m.raw)>((n > 255) ? all : _bzhi_u64(all, n));
   return m;
 #else
   return detail::FirstN<T>(n);
@@ -855,6 +861,20 @@ HWY_API Vec512<int8_t> ShiftRight(const Vec512<int8_t> v) {
   const auto shifted = BitCast(di, ShiftRight<kBits>(BitCast(du, v)));
   const auto shifted_sign = BitCast(di, Set(du, 0x80 >> kBits));
   return (shifted ^ shifted_sign) - shifted_sign;
+}
+
+// ------------------------------ RotateRight
+
+template <int kBits>
+HWY_API Vec512<uint32_t> RotateRight(const Vec512<uint32_t> v) {
+  static_assert(0 <= kBits && kBits < 32, "Invalid shift count");
+  return Vec512<uint32_t>{_mm512_ror_epi32(v.raw, kBits)};
+}
+
+template <int kBits>
+HWY_API Vec512<uint64_t> RotateRight(const Vec512<uint64_t> v) {
+  static_assert(0 <= kBits && kBits < 64, "Invalid shift count");
+  return Vec512<uint64_t>{_mm512_ror_epi64(v.raw, kBits)};
 }
 
 // ------------------------------ ShiftLeftSame
@@ -1363,6 +1383,19 @@ HWY_API Mask512<double> operator!=(Vec512<double> a, Vec512<double> b) {
 
 // ------------------------------ Strict inequality
 
+HWY_API Mask512<uint8_t> operator>(Vec512<uint8_t> a, Vec512<uint8_t> b) {
+  return Mask512<uint8_t>{_mm512_cmpgt_epu8_mask(a.raw, b.raw)};
+}
+HWY_API Mask512<uint16_t> operator>(Vec512<uint16_t> a, Vec512<uint16_t> b) {
+  return Mask512<uint16_t>{_mm512_cmpgt_epu16_mask(a.raw, b.raw)};
+}
+HWY_API Mask512<uint32_t> operator>(Vec512<uint32_t> a, Vec512<uint32_t> b) {
+  return Mask512<uint32_t>{_mm512_cmpgt_epu32_mask(a.raw, b.raw)};
+}
+HWY_API Mask512<uint64_t> operator>(Vec512<uint64_t> a, Vec512<uint64_t> b) {
+  return Mask512<uint64_t>{_mm512_cmpgt_epu64_mask(a.raw, b.raw)};
+}
+
 HWY_API Mask512<int8_t> operator>(Vec512<int8_t> a, Vec512<int8_t> b) {
   return Mask512<int8_t>{_mm512_cmpgt_epi8_mask(a.raw, b.raw)};
 }
@@ -1375,6 +1408,7 @@ HWY_API Mask512<int32_t> operator>(Vec512<int32_t> a, Vec512<int32_t> b) {
 HWY_API Mask512<int64_t> operator>(Vec512<int64_t> a, Vec512<int64_t> b) {
   return Mask512<int64_t>{_mm512_cmpgt_epi64_mask(a.raw, b.raw)};
 }
+
 HWY_API Mask512<float> operator>(Vec512<float> a, Vec512<float> b) {
   return Mask512<float>{_mm512_cmp_ps_mask(a.raw, b.raw, _CMP_GT_OQ)};
 }
@@ -2294,34 +2328,72 @@ HWY_API Vec512<float> Shuffle0123(const Vec512<float> v) {
 
 // ------------------------------ TableLookupLanes
 
-// Returned by SetTableIndices for use by TableLookupLanes.
+// Returned by SetTableIndices/IndicesFromVec for use by TableLookupLanes.
 template <typename T>
 struct Indices512 {
   __m512i raw;
 };
 
-template <typename T>
-HWY_API Indices512<T> SetTableIndices(const Full512<T>, const int32_t* idx) {
+template <typename T, typename TI>
+HWY_API Indices512<T> IndicesFromVec(Full512<T> /* tag */, Vec512<TI> vec) {
+  static_assert(sizeof(T) == sizeof(TI), "Index size must match lane");
 #if HWY_IS_DEBUG_BUILD
-  const size_t N = 64 / sizeof(T);
-  for (size_t i = 0; i < N; ++i) {
-    HWY_DASSERT(0 <= idx[i] && idx[i] < static_cast<int32_t>(N));
-  }
+  const Full512<TI> di;
+  HWY_DASSERT(AllFalse(di, Lt(vec, Zero(di))) &&
+              AllTrue(di, Lt(vec, Set(di, static_cast<TI>(64 / sizeof(T))))));
 #endif
-  return Indices512<T>{LoadU(Full512<int32_t>(), idx).raw};
+  return Indices512<T>{vec.raw};
 }
 
-HWY_API Vec512<uint32_t> TableLookupLanes(const Vec512<uint32_t> v,
-                                          const Indices512<uint32_t> idx) {
-  return Vec512<uint32_t>{_mm512_permutexvar_epi32(idx.raw, v.raw)};
+template <typename T, typename TI>
+HWY_API Indices512<T> SetTableIndices(const Full512<T> d, const TI* idx) {
+  const Rebind<TI, decltype(d)> di;
+  return IndicesFromVec(d, LoadU(di, idx));
 }
-HWY_API Vec512<int32_t> TableLookupLanes(const Vec512<int32_t> v,
-                                         const Indices512<int32_t> idx) {
-  return Vec512<int32_t>{_mm512_permutexvar_epi32(idx.raw, v.raw)};
+
+template <typename T, HWY_IF_LANE_SIZE(T, 4)>
+HWY_API Vec512<T> TableLookupLanes(Vec512<T> v, Indices512<T> idx) {
+  return Vec512<T>{_mm512_permutexvar_epi32(idx.raw, v.raw)};
 }
-HWY_API Vec512<float> TableLookupLanes(const Vec512<float> v,
-                                       const Indices512<float> idx) {
+
+template <typename T, HWY_IF_LANE_SIZE(T, 8)>
+HWY_API Vec512<T> TableLookupLanes(Vec512<T> v, Indices512<T> idx) {
+  return Vec512<T>{_mm512_permutexvar_epi64(idx.raw, v.raw)};
+}
+
+HWY_API Vec512<float> TableLookupLanes(Vec512<float> v, Indices512<float> idx) {
   return Vec512<float>{_mm512_permutexvar_ps(idx.raw, v.raw)};
+}
+
+HWY_API Vec512<double> TableLookupLanes(Vec512<double> v,
+                                        Indices512<double> idx) {
+  return Vec512<double>{_mm512_permutexvar_pd(idx.raw, v.raw)};
+}
+
+// ------------------------------ Reverse
+
+template <typename T, HWY_IF_LANE_SIZE(T, 2)>
+HWY_API Vec512<T> Reverse(Full512<T> d, const Vec512<T> v) {
+  const RebindToSigned<decltype(d)> di;
+  alignas(64) constexpr int16_t kReverse[32] = {
+      31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
+      15, 14, 13, 12, 11, 10, 9,  8,  7,  6,  5,  4,  3,  2,  1,  0};
+  const Vec512<int16_t> idx = Load(di, kReverse);
+  return BitCast(d, Vec512<int16_t>{
+                        _mm512_permutexvar_epi16(idx.raw, BitCast(di, v).raw)});
+}
+
+template <typename T, HWY_IF_LANE_SIZE(T, 4)>
+HWY_API Vec512<T> Reverse(Full512<T> d, const Vec512<T> v) {
+  alignas(64) constexpr int32_t kReverse[16] = {15, 14, 13, 12, 11, 10, 9, 8,
+                                                7,  6,  5,  4,  3,  2,  1, 0};
+  return TableLookupLanes(v, SetTableIndices(d, kReverse));
+}
+
+template <typename T, HWY_IF_LANE_SIZE(T, 8)>
+HWY_API Vec512<T> Reverse(Full512<T> d, const Vec512<T> v) {
+  alignas(64) constexpr int64_t kReverse[8] = {7, 6, 5, 4, 3, 2, 1, 0};
+  return TableLookupLanes(v, SetTableIndices(d, kReverse));
 }
 
 // ------------------------------ InterleaveLower
@@ -2527,7 +2599,83 @@ HWY_API Vec512<double> ConcatUpperLower(Full512<double> /* tag */,
   return Vec512<double>{_mm512_mask_blend_pd(mask, hi.raw, lo.raw)};
 }
 
-// ------------------------------ Odd/even lanes
+// ------------------------------ ConcatOdd
+
+template <typename T, HWY_IF_LANE_SIZE(T, 4)>
+HWY_API Vec512<T> ConcatOdd(Full512<T> d, Vec512<T> hi, Vec512<T> lo) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(64) constexpr uint32_t kIdx[16] = {1,  3,  5,  7,  9,  11, 13, 15,
+                                             17, 19, 21, 23, 25, 27, 29, 31};
+  return BitCast(d, Vec512<uint32_t>{_mm512_mask2_permutex2var_epi32(
+                        BitCast(du, lo).raw, Load(du, kIdx).raw,
+                        __mmask16{0xFFFF}, BitCast(du, hi).raw)});
+}
+
+HWY_API Vec512<float> ConcatOdd(Full512<float> d, Vec512<float> hi,
+                                Vec512<float> lo) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(64) constexpr uint32_t kIdx[16] = {1,  3,  5,  7,  9,  11, 13, 15,
+                                             17, 19, 21, 23, 25, 27, 29, 31};
+  return Vec512<float>{_mm512_mask2_permutex2var_ps(lo.raw, Load(du, kIdx).raw,
+                                                    __mmask16{0xFFFF}, hi.raw)};
+}
+
+template <typename T, HWY_IF_LANE_SIZE(T, 8)>
+HWY_API Vec512<T> ConcatOdd(Full512<T> d, Vec512<T> hi, Vec512<T> lo) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(64) constexpr uint64_t kIdx[8] = {1, 3, 5, 7, 9, 11, 13, 15};
+  return BitCast(d, Vec512<uint64_t>{_mm512_mask2_permutex2var_epi64(
+                        BitCast(du, lo).raw, Load(du, kIdx).raw, __mmask8{0xFF},
+                        BitCast(du, hi).raw)});
+}
+
+HWY_API Vec512<double> ConcatOdd(Full512<double> d, Vec512<double> hi,
+                                 Vec512<double> lo) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(64) constexpr uint64_t kIdx[8] = {1, 3, 5, 7, 9, 11, 13, 15};
+  return Vec512<double>{_mm512_mask2_permutex2var_pd(lo.raw, Load(du, kIdx).raw,
+                                                     __mmask8{0xFF}, hi.raw)};
+}
+
+// ------------------------------ ConcatEven
+
+template <typename T, HWY_IF_LANE_SIZE(T, 4)>
+HWY_API Vec512<T> ConcatEven(Full512<T> d, Vec512<T> hi, Vec512<T> lo) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(64) constexpr uint32_t kIdx[16] = {0,  2,  4,  6,  8,  10, 12, 14,
+                                             16, 18, 20, 22, 24, 26, 28, 30};
+  return BitCast(d, Vec512<uint32_t>{_mm512_mask2_permutex2var_epi32(
+                        BitCast(du, lo).raw, Load(du, kIdx).raw,
+                        __mmask16{0xFFFF}, BitCast(du, hi).raw)});
+}
+
+HWY_API Vec512<float> ConcatEven(Full512<float> d, Vec512<float> hi,
+                                 Vec512<float> lo) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(64) constexpr uint32_t kIdx[16] = {0,  2,  4,  6,  8,  10, 12, 14,
+                                             16, 18, 20, 22, 24, 26, 28, 30};
+  return Vec512<float>{_mm512_mask2_permutex2var_ps(lo.raw, Load(du, kIdx).raw,
+                                                    __mmask16{0xFFFF}, hi.raw)};
+}
+
+template <typename T, HWY_IF_LANE_SIZE(T, 8)>
+HWY_API Vec512<T> ConcatEven(Full512<T> d, Vec512<T> hi, Vec512<T> lo) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(64) constexpr uint64_t kIdx[8] = {0, 2, 4, 6, 8, 10, 12, 14};
+  return BitCast(d, Vec512<uint64_t>{_mm512_mask2_permutex2var_epi64(
+                        BitCast(du, lo).raw, Load(du, kIdx).raw, __mmask8{0xFF},
+                        BitCast(du, hi).raw)});
+}
+
+HWY_API Vec512<double> ConcatEven(Full512<double> d, Vec512<double> hi,
+                                  Vec512<double> lo) {
+  const RebindToUnsigned<decltype(d)> du;
+  alignas(64) constexpr uint64_t kIdx[8] = {0, 2, 4, 6, 8, 10, 12, 14};
+  return Vec512<double>{_mm512_mask2_permutex2var_pd(lo.raw, Load(du, kIdx).raw,
+                                                     __mmask8{0xFF}, hi.raw)};
+}
+
+// ------------------------------ OddEven
 
 template <typename T>
 HWY_API Vec512<T> OddEven(const Vec512<T> a, const Vec512<T> b) {
@@ -2536,12 +2684,46 @@ HWY_API Vec512<T> OddEven(const Vec512<T> a, const Vec512<T> b) {
   return IfThenElse(Mask512<T>{0x5555555555555555ull >> shift}, b, a);
 }
 
+// ------------------------------ OddEvenBlocks
+
+template <typename T>
+HWY_API Vec512<T> OddEvenBlocks(Vec512<T> odd, Vec512<T> even) {
+  return Vec512<T>{_mm512_mask_blend_epi64(__mmask8{0x33u}, odd.raw, even.raw)};
+}
+
+HWY_API Vec512<float> OddEvenBlocks(Vec512<float> odd, Vec512<float> even) {
+  return Vec512<float>{
+      _mm512_mask_blend_ps(__mmask16{0x0F0Fu}, odd.raw, even.raw)};
+}
+
+HWY_API Vec512<double> OddEvenBlocks(Vec512<double> odd, Vec512<double> even) {
+  return Vec512<double>{
+      _mm512_mask_blend_pd(__mmask8{0x33u}, odd.raw, even.raw)};
+}
+
+// ------------------------------ SwapAdjacentBlocks
+
+template <typename T>
+HWY_API Vec512<T> SwapAdjacentBlocks(Vec512<T> v) {
+  return Vec512<T>{_mm512_shuffle_i32x4(v.raw, v.raw, _MM_SHUFFLE(2, 3, 0, 1))};
+}
+
+HWY_API Vec512<float> SwapAdjacentBlocks(Vec512<float> v) {
+  return Vec512<float>{
+      _mm512_shuffle_f32x4(v.raw, v.raw, _MM_SHUFFLE(2, 3, 0, 1))};
+}
+
+HWY_API Vec512<double> SwapAdjacentBlocks(Vec512<double> v) {
+  return Vec512<double>{
+      _mm512_shuffle_f64x2(v.raw, v.raw, _MM_SHUFFLE(2, 3, 0, 1))};
+}
+
 // ------------------------------ TableLookupBytes (ZeroExtendVector)
 
 // Both full
-template <typename T>
-HWY_API Vec512<T> TableLookupBytes(Vec512<T> bytes, Vec512<T> from) {
-  return Vec512<T>{_mm512_shuffle_epi8(bytes.raw, from.raw)};
+template <typename T, typename TI>
+HWY_API Vec512<TI> TableLookupBytes(Vec512<T> bytes, Vec512<TI> indices) {
+  return Vec512<TI>{_mm512_shuffle_epi8(bytes.raw, indices.raw)};
 }
 
 // Partial index vector
@@ -2587,19 +2769,6 @@ HWY_API Vec512<TI> TableLookupBytes(Vec256<T> bytes, Vec512<TI> from) {
 // ================================================== CONVERT
 
 // ------------------------------ Promotions (part w/ narrow lanes -> full)
-
-HWY_API Vec512<float> PromoteTo(Full512<float> /* tag */,
-                                const Vec256<float16_t> v) {
-  return Vec512<float>{_mm512_cvtph_ps(v.raw)};
-}
-
-HWY_API Vec512<double> PromoteTo(Full512<double> /* tag */, Vec256<float> v) {
-  return Vec512<double>{_mm512_cvtps_pd(v.raw)};
-}
-
-HWY_API Vec512<double> PromoteTo(Full512<double> /* tag */, Vec256<int32_t> v) {
-  return Vec512<double>{_mm512_cvtepi32_pd(v.raw)};
-}
 
 // Unsigned: zero-extend.
 // Note: these have 3 cycle latency; if inputs are already split across the
@@ -2652,6 +2821,27 @@ HWY_API Vec512<int32_t> PromoteTo(Full512<int32_t> /* tag */,
 HWY_API Vec512<int64_t> PromoteTo(Full512<int64_t> /* tag */,
                                   Vec256<int32_t> v) {
   return Vec512<int64_t>{_mm512_cvtepi32_epi64(v.raw)};
+}
+
+// Float
+HWY_API Vec512<float> PromoteTo(Full512<float> /* tag */,
+                                const Vec256<float16_t> v) {
+  return Vec512<float>{_mm512_cvtph_ps(v.raw)};
+}
+
+HWY_API Vec512<float> PromoteTo(Full512<float> df32,
+                                const Vec256<bfloat16_t> v) {
+  const Rebind<uint16_t, decltype(df32)> du16;
+  const RebindToSigned<decltype(df32)> di32;
+  return BitCast(df32, ShiftLeft<16>(PromoteTo(di32, BitCast(du16, v))));
+}
+
+HWY_API Vec512<double> PromoteTo(Full512<double> /* tag */, Vec256<float> v) {
+  return Vec512<double>{_mm512_cvtps_pd(v.raw)};
+}
+
+HWY_API Vec512<double> PromoteTo(Full512<double> /* tag */, Vec256<int32_t> v) {
+  return Vec512<double>{_mm512_cvtepi32_pd(v.raw)};
 }
 
 // ------------------------------ Demotions (full -> part w/ narrow lanes)
@@ -2734,6 +2924,25 @@ HWY_API Vec256<float16_t> DemoteTo(Full256<float16_t> /* tag */,
   HWY_DIAGNOSTICS_OFF(disable : 4245 4365, ignored "-Wsign-conversion")
   return Vec256<float16_t>{_mm512_cvtps_ph(v.raw, _MM_FROUND_NO_EXC)};
   HWY_DIAGNOSTICS(pop)
+}
+
+HWY_API Vec256<bfloat16_t> DemoteTo(Full256<bfloat16_t> dbf16,
+                                    const Vec512<float> v) {
+  // TODO(janwas): _mm512_cvtneps_pbh once we have avx512bf16.
+  const Rebind<int32_t, decltype(dbf16)> di32;
+  const Rebind<uint32_t, decltype(dbf16)> du32;  // for logical shift right
+  const Rebind<uint16_t, decltype(dbf16)> du16;
+  const auto bits_in_32 = BitCast(di32, ShiftRight<16>(BitCast(du32, v)));
+  return BitCast(dbf16, DemoteTo(du16, bits_in_32));
+}
+
+HWY_API Vec512<bfloat16_t> ReorderDemote2To(Full512<bfloat16_t> dbf16,
+                                            Vec512<float> a, Vec512<float> b) {
+  // TODO(janwas): _mm512_cvtne2ps_pbh once we have avx512bf16.
+  const RebindToUnsigned<decltype(dbf16)> du16;
+  const Repartition<uint32_t, decltype(dbf16)> du32;
+  const Vec512<uint32_t> b_in_even = ShiftRight<16>(BitCast(du32, b));
+  return BitCast(dbf16, OddEven(BitCast(du16, a), BitCast(du16, b_in_even)));
 }
 
 HWY_API Vec256<float> DemoteTo(Full256<float> /* tag */,
@@ -3145,6 +3354,23 @@ HWY_API size_t CompressStore(Vec512<double> v, Mask512<double> mask,
   return PopCount(uint64_t{mask.raw});
 }
 
+// ------------------------------ CompressBlendedStore
+template <typename T>
+HWY_API size_t CompressBlendedStore(Vec512<T> v, Mask512<T> m, Full512<T> d,
+                                    T* HWY_RESTRICT unaligned) {
+  // AVX-512 already does the blending at no extra cost (latency 11,
+  // rthroughput 2 - same as compress plus store).
+  if (HWY_TARGET == HWY_AVX3_DL || sizeof(T) != 2) {
+    return CompressStore(v, m, d, unaligned);
+  } else {
+    const size_t count = CountTrue(m);
+    const Vec512<T> compressed = Compress(v, m);
+    const Vec512<T> prev = LoadU(d, unaligned);
+    StoreU(IfThenElse(FirstN(d, count), compressed, prev), d, unaligned);
+    return count;
+  }
+}
+
 // ------------------------------ CompressBitsStore
 template <typename T>
 HWY_API size_t CompressBitsStore(Vec512<T> v, const uint8_t* HWY_RESTRICT bits,
@@ -3304,6 +3530,27 @@ HWY_INLINE Vec512<uint64_t> MulOdd(const Vec512<uint64_t> a,
   return InterleaveUpper(du64, mulL, mulH);
 }
 
+// ------------------------------ ReorderWidenMulAccumulate (MulAdd, ZipLower)
+
+HWY_API Vec512<float> ReorderWidenMulAccumulate(Full512<float> df32,
+                                                Vec512<bfloat16_t> a,
+                                                Vec512<bfloat16_t> b,
+                                                const Vec512<float> sum0,
+                                                Vec512<float>& sum1) {
+  // TODO(janwas): _mm512_dpbf16_ps when available
+  const Repartition<uint16_t, decltype(df32)> du16;
+  const RebindToUnsigned<decltype(df32)> du32;
+  const Vec512<uint16_t> zero = Zero(du16);
+  // Lane order within sum0/1 is undefined, hence we can avoid the
+  // longer-latency lane-crossing PromoteTo.
+  const Vec512<uint32_t> a0 = ZipLower(du32, zero, BitCast(du16, a));
+  const Vec512<uint32_t> a1 = ZipUpper(du32, zero, BitCast(du16, a));
+  const Vec512<uint32_t> b0 = ZipLower(du32, zero, BitCast(du16, b));
+  const Vec512<uint32_t> b1 = ZipUpper(du32, zero, BitCast(du16, b));
+  sum1 = MulAdd(BitCast(df32, a1), BitCast(df32, b1), sum1);
+  return MulAdd(BitCast(df32, a0), BitCast(df32, b0), sum0);
+}
+
 // ------------------------------ Reductions
 
 // Returns the sum in each lane.
@@ -3345,6 +3592,15 @@ HWY_API Vec512<float> MinOfLanes(Full512<float> d, Vec512<float> v) {
 HWY_API Vec512<double> MinOfLanes(Full512<double> d, Vec512<double> v) {
   return Set(d, _mm512_reduce_min_pd(v.raw));
 }
+template <typename T, HWY_IF_LANE_SIZE(T, 2)>
+HWY_API Vec512<T> MinOfLanes(Full512<T> d, Vec512<T> v) {
+  const Repartition<int32_t, decltype(d)> d32;
+  const auto even = And(BitCast(d32, v), Set(d32, 0xFFFF));
+  const auto odd = ShiftRight<16>(BitCast(d32, v));
+  const auto min = MinOfLanes(d32, Min(even, odd));
+  // Also broadcast into odd lanes.
+  return BitCast(d, Or(min, ShiftLeft<16>(min)));
+}
 
 // Returns the maximum in each lane.
 HWY_API Vec512<int32_t> MaxOfLanes(Full512<int32_t> d, Vec512<int32_t> v) {
@@ -3364,6 +3620,15 @@ HWY_API Vec512<float> MaxOfLanes(Full512<float> d, Vec512<float> v) {
 }
 HWY_API Vec512<double> MaxOfLanes(Full512<double> d, Vec512<double> v) {
   return Set(d, _mm512_reduce_max_pd(v.raw));
+}
+template <typename T, HWY_IF_LANE_SIZE(T, 2)>
+HWY_API Vec512<T> MaxOfLanes(Full512<T> d, Vec512<T> v) {
+  const Repartition<int32_t, decltype(d)> d32;
+  const auto even = And(BitCast(d32, v), Set(d32, 0xFFFF));
+  const auto odd = ShiftRight<16>(BitCast(d32, v));
+  const auto min = MaxOfLanes(d32, Max(even, odd));
+  // Also broadcast into odd lanes.
+  return BitCast(d, Or(min, ShiftLeft<16>(min)));
 }
 
 // ================================================== DEPRECATED

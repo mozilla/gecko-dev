@@ -27,11 +27,13 @@ namespace hwy {
 
 // API version (https://semver.org/); keep in sync with CMakeLists.txt.
 #define HWY_MAJOR 0
-#define HWY_MINOR 14
-#define HWY_PATCH 2
+#define HWY_MINOR 15
+#define HWY_PATCH 0
 
 //------------------------------------------------------------------------------
-// Shorthand for descriptors (defined in shared-inl.h) used to select overloads.
+// Shorthand for tags (defined in shared-inl.h) used to select overloads.
+// Note that ScalableTag<T> is preferred over HWY_FULL, and CappedTag<T, N> over
+// HWY_CAPPED(T, N).
 
 // HWY_FULL(T[,LMUL=1]) is a native vector/group. LMUL is the number of
 // registers in the group, and is ignored on targets that do not support groups.
@@ -66,6 +68,8 @@ namespace hwy {
 #define HWY_STATIC_DISPATCH(FUNC_NAME) N_SCALAR::FUNC_NAME
 #elif HWY_STATIC_TARGET == HWY_RVV
 #define HWY_STATIC_DISPATCH(FUNC_NAME) N_RVV::FUNC_NAME
+#elif HWY_STATIC_TARGET == HWY_WASM2
+#define HWY_STATIC_DISPATCH(FUNC_NAME) N_WASM2::FUNC_NAME
 #elif HWY_STATIC_TARGET == HWY_WASM
 #define HWY_STATIC_DISPATCH(FUNC_NAME) N_WASM::FUNC_NAME
 #elif HWY_STATIC_TARGET == HWY_NEON
@@ -126,6 +130,12 @@ FunctionCache<RetType, Args...> FunctionCacheFactory(RetType (*)(Args...)) {
 // were disabled at runtime we fall back to the baseline with
 // HWY_STATIC_DISPATCH()
 #define HWY_CHOOSE_SCALAR(FUNC_NAME) &HWY_STATIC_DISPATCH(FUNC_NAME)
+#endif
+
+#if HWY_TARGETS & HWY_WASM2
+#define HWY_CHOOSE_WASM2(FUNC_NAME) &N_WASM2::FUNC_NAME
+#else
+#define HWY_CHOOSE_WASM2(FUNC_NAME) nullptr
 #endif
 
 #if HWY_TARGETS & HWY_WASM
@@ -293,6 +303,8 @@ FunctionCache<RetType, Args...> FunctionCacheFactory(RetType (*)(Args...)) {
 #include "hwy/ops/arm_neon-inl.h"
 #elif HWY_TARGET == HWY_SVE || HWY_TARGET == HWY_SVE2
 #include "hwy/ops/arm_sve-inl.h"
+#elif HWY_TARGET == HWY_WASM2
+#include "hwy/ops/wasm_256-inl.h"
 #elif HWY_TARGET == HWY_WASM
 #include "hwy/ops/wasm_128-inl.h"
 #elif HWY_TARGET == HWY_RVV

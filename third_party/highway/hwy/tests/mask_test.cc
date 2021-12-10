@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>  // memcmp
@@ -54,25 +55,21 @@ struct TestFirstN {
   template <class T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
     const size_t N = Lanes(d);
-    auto mask_lanes = AllocateAligned<T>(N);
 
-    // GCC workaround: we previously used zero to indicate true because we can
-    // safely compare with that value. However, that hits an ICE for u64x1 on
-    // GCC 8.3 but not 8.4, even if the implementation of operator== is
-    // simplified to return zero. Using MaskFromVec avoids this, and requires
-    // FF..FF and 0 constants.
-    T on;
-    memset(&on, 0xFF, sizeof(on));
-    const T off = 0;
+    const RebindToSigned<D> di;
+    using TI = TFromD<decltype(di)>;
+    using TN = SignedFromSize<HWY_MIN(sizeof(size_t), sizeof(TI))>;
+    const size_t max_len = static_cast<size_t>(LimitsMax<TN>());
 
-    for (size_t len = 0; len <= N; ++len) {
-      for (size_t i = 0; i < N; ++i) {
-        mask_lanes[i] = i < len ? on : off;
-      }
-      const auto mask_vals = Load(d, mask_lanes.get());
-      const auto mask = MaskFromVec(mask_vals);
-      HWY_ASSERT_MASK_EQ(d, mask, FirstN(d, len));
+    for (size_t len = 0; len <= HWY_MIN(2 * N, max_len); ++len) {
+      const auto expected =
+          RebindMask(d, Lt(Iota(di, 0), Set(di, static_cast<TI>(len))));
+      const auto actual = FirstN(d, len);
+      HWY_ASSERT_MASK_EQ(d, expected, actual);
     }
+
+    // Also ensure huge values yield all-true.
+    HWY_ASSERT_MASK_EQ(d, MaskTrue(d), FirstN(d, max_len));
   }
 };
 
@@ -94,7 +91,7 @@ struct TestIfThenElse {
     auto expected = AllocateAligned<T>(N);
 
     // Each lane should have a chance of having mask=true.
-    for (size_t rep = 0; rep < 50; ++rep) {
+    for (size_t rep = 0; rep < AdjustedReps(200); ++rep) {
       for (size_t i = 0; i < N; ++i) {
         in1[i] = static_cast<T>(Random32(&rng));
         in2[i] = static_cast<T>(Random32(&rng));
@@ -138,7 +135,7 @@ struct TestMaskVec {
     auto bool_lanes = AllocateAligned<TI>(N);
 
     // Each lane should have a chance of having mask=true.
-    for (size_t rep = 0; rep < 100; ++rep) {
+    for (size_t rep = 0; rep < AdjustedReps(200); ++rep) {
       for (size_t i = 0; i < N; ++i) {
         bool_lanes[i] = (Random32(&rng) & 1024) ? TI(1) : TI(0);
       }
@@ -156,17 +153,7 @@ HWY_NOINLINE void TestAllMaskVec() {
   test(int16_t());
   // TODO(janwas): float16_t - cannot compare yet
 
-  test(uint32_t());
-  test(int32_t());
-  test(float());
-
-#if HWY_CAP_INTEGER64
-  test(uint64_t());
-  test(int64_t());
-#endif
-#if HWY_CAP_FLOAT64
-  test(double());
-#endif
+  ForUIF3264(test);
 }
 
 struct TestMaskedLoad {
@@ -183,7 +170,7 @@ struct TestMaskedLoad {
     Store(Iota(d, T{1}), d, lanes.get());
 
     // Each lane should have a chance of having mask=true.
-    for (size_t rep = 0; rep < 100; ++rep) {
+    for (size_t rep = 0; rep < AdjustedReps(200); ++rep) {
       for (size_t i = 0; i < N; ++i) {
         bool_lanes[i] = (Random32(&rng) & 1024) ? TI(1) : TI(0);
       }
@@ -262,12 +249,12 @@ class TestStoreMaskBits {
     const size_t N = Lanes(di);
     auto bool_lanes = AllocateAligned<TI>(N);
 
-    const Half<Half<Half<HWY_FULL(uint8_t)>>> d_bits;
+    const ScalableTag<uint8_t, -3> d_bits;
     const size_t expected_num_bytes = (N + 7) / 8;
     auto expected = AllocateAligned<uint8_t>(expected_num_bytes);
     auto actual = AllocateAligned<uint8_t>(HWY_MAX(8, expected_num_bytes));
 
-    for (size_t rep = 0; rep < 100; ++rep) {
+    for (size_t rep = 0; rep < AdjustedReps(200); ++rep) {
       // Generate random mask pattern.
       for (size_t i = 0; i < N; ++i) {
         bool_lanes[i] = static_cast<TI>((rng() & 1024) ? 1 : 0);
@@ -278,8 +265,10 @@ class TestStoreMaskBits {
       // Requires at least 8 bytes, ensured above.
       const size_t bytes_written = StoreMaskBits(di, mask, actual.get());
       if (bytes_written != expected_num_bytes) {
-        fprintf(stderr, "%s expected %zu bytes, actual %zu\n",
-                TypeName(T(), N).c_str(), expected_num_bytes, bytes_written);
+        fprintf(stderr, "%s expected %" PRIu64 " bytes, actual %" PRIu64 "\n",
+                TypeName(T(), N).c_str(),
+                static_cast<uint64_t>(expected_num_bytes),
+                static_cast<uint64_t>(bytes_written));
 
         HWY_ASSERT(false);
       }
@@ -301,8 +290,9 @@ class TestStoreMaskBits {
       for (; i < N; ++i) {
         const TI is_set = (actual[i / 8] & (1 << (i % 8))) ? 1 : 0;
         if (is_set != bool_lanes[i]) {
-          fprintf(stderr, "%s lane %zu: expected %d, actual %d\n",
-                  TypeName(T(), N).c_str(), i, int(bool_lanes[i]), int(is_set));
+          fprintf(stderr, "%s lane %" PRIu64 ": expected %d, actual %d\n",
+                  TypeName(T(), N).c_str(), static_cast<uint64_t>(i),
+                  int(bool_lanes[i]), int(is_set));
           Print(di, "bools", bools, 0, N);
           Print(d_bits, "expected bytes", Load(d_bits, expected.get()), 0,
                 expected_num_bytes);
@@ -316,8 +306,8 @@ class TestStoreMaskBits {
       for (; i < 8 * bytes_written; ++i) {
         const int bit = (actual[i / 8] & (1 << (i % 8)));
         if (bit != 0) {
-          fprintf(stderr, "%s: bit #%zu should be zero\n",
-                  TypeName(T(), N).c_str(), i);
+          fprintf(stderr, "%s: bit #%" PRIu64 " should be zero\n",
+                  TypeName(T(), N).c_str(), static_cast<uint64_t>(i));
           Print(di, "bools", bools, 0, N);
           Print(d_bits, "expected bytes", Load(d_bits, expected.get()), 0,
                 expected_num_bytes);

@@ -16,7 +16,9 @@
 #define HWY_TARGET_INCLUDE "hwy/examples/benchmark.cc"
 #include "hwy/foreach_target.h"
 
+#include <inttypes.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include <memory>
@@ -79,14 +81,15 @@ void RunBenchmark(const char* caption) {
   for (size_t i = 0; i < num_results; ++i) {
     const double cycles_per_item = results[i].ticks / double(results[i].input);
     const double mad = results[i].variability * cycles_per_item;
-    printf("%6zu: %6.3f (+/- %5.3f)\n", results[i].input, cycles_per_item, mad);
+    printf("%6" PRIu64 ": %6.3f (+/- %5.3f)\n",
+           static_cast<uint64_t>(results[i].input), cycles_per_item, mad);
   }
 }
 
 void Intro() {
   HWY_ALIGN const float in[16] = {1, 2, 3, 4, 5, 6};
   HWY_ALIGN float out[16];
-  HWY_FULL(float) d;  // largest possible vector
+  const ScalableTag<float> d;  // largest possible vector
   for (size_t i = 0; i < 16; i += Lanes(d)) {
     const auto vec = Load(d, in + i);  // aligned!
     auto result = vec * vec;
@@ -103,7 +106,7 @@ class BenchmarkDot : public TwoArray {
   BenchmarkDot() : dot_{-1.0f} {}
 
   FuncOutput operator()(const size_t num_items) {
-    HWY_FULL(float) d;
+    const ScalableTag<float> d;
     const size_t N = Lanes(d);
     using V = decltype(Zero(d));
     constexpr size_t unroll = 8;
@@ -166,7 +169,7 @@ struct BenchmarkDelta : public TwoArray {
 #elif HWY_CAP_GE256
     // Larger vectors are split into 128-bit blocks, easiest to use the
     // unaligned load support to shift between them.
-    const HWY_FULL(float) df;
+    const ScalableTag<float> df;
     const size_t N = Lanes(df);
     size_t i;
     b_[0] = a_[0];

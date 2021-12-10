@@ -191,6 +191,20 @@ HWY_SVE_FOREACH(HWY_SPECIALIZE, _, _)
 
 namespace detail {
 
+// Returns actual lanes of a hardware vector without rounding to a power of two.
+HWY_INLINE size_t AllHardwareLanes(hwy::SizeTag<1> /* tag */) {
+  return svcntb_pat(SV_ALL);
+}
+HWY_INLINE size_t AllHardwareLanes(hwy::SizeTag<2> /* tag */) {
+  return svcnth_pat(SV_ALL);
+}
+HWY_INLINE size_t AllHardwareLanes(hwy::SizeTag<4> /* tag */) {
+  return svcntw_pat(SV_ALL);
+}
+HWY_INLINE size_t AllHardwareLanes(hwy::SizeTag<8> /* tag */) {
+  return svcntd_pat(SV_ALL);
+}
+
 // Returns actual lanes of a hardware vector, rounded down to a power of two.
 HWY_INLINE size_t HardwareLanes(hwy::SizeTag<1> /* tag */) {
   return svcntb_pat(SV_POW2);
@@ -198,11 +212,11 @@ HWY_INLINE size_t HardwareLanes(hwy::SizeTag<1> /* tag */) {
 HWY_INLINE size_t HardwareLanes(hwy::SizeTag<2> /* tag */) {
   return svcnth_pat(SV_POW2);
 }
-HWY_INLINE size_t HardwareLanes(hwy::SizeTag<8> /* tag */) {
-  return svcntd_pat(SV_POW2);
-}
 HWY_INLINE size_t HardwareLanes(hwy::SizeTag<4> /* tag */) {
   return svcntw_pat(SV_POW2);
+}
+HWY_INLINE size_t HardwareLanes(hwy::SizeTag<8> /* tag */) {
+  return svcntd_pat(SV_POW2);
 }
 
 }  // namespace detail
@@ -222,8 +236,7 @@ HWY_API size_t Lanes(Simd<T, N> /* tag */) {
 
   const size_t actual = detail::HardwareLanes(hwy::SizeTag<sizeof(T)>());
   const size_t div = HWY_LANES(T) / N;
-  static_assert(div <= 8, "Invalid N - must be <=128 bit, or >=1/8th");
-  return actual / div;
+  return (div <= 8) ? actual / div : HWY_MIN(actual, N);
 }
 
 // ================================================== MASK INIT
@@ -231,10 +244,10 @@ HWY_API size_t Lanes(Simd<T, N> /* tag */) {
 // One mask bit per byte; only the one belonging to the lowest byte is valid.
 
 // ------------------------------ FirstN
-#define HWY_SVE_FIRSTN(BASE, CHAR, BITS, NAME, OP)                       \
-  template <size_t KN>                                                   \
-  HWY_API svbool_t NAME(HWY_SVE_D(BASE, BITS, KN) /* d */, uint32_t N) { \
-    return sv##OP##_b##BITS##_u32(uint32_t(0), N);                       \
+#define HWY_SVE_FIRSTN(BASE, CHAR, BITS, NAME, OP)                        \
+  template <size_t KN>                                                    \
+  HWY_API svbool_t NAME(HWY_SVE_D(BASE, BITS, KN) /* d */, size_t N) {    \
+    return sv##OP##_b##BITS##_u32(uint32_t{0}, static_cast<uint32_t>(N)); \
   }
 HWY_SVE_FOREACH(HWY_SVE_FIRSTN, FirstN, whilelt)
 #undef HWY_SVE_FIRSTN
@@ -280,8 +293,14 @@ svbool_t Mask(Simd<T, N> d) {
 HWY_SVE_FOREACH(HWY_SVE_SET, Set, dup_n)
 #undef HWY_SVE_SET
 
+// Required for Zero and VFromD
+template <size_t N>
+svuint16_t Set(Simd<bfloat16_t, N> d, bfloat16_t arg) {
+  return Set(RebindToUnsigned<decltype(d)>(), arg.bits);
+}
+
 template <class D>
-using VFromD = decltype(Set(D(), 0));
+using VFromD = decltype(Set(D(), TFromD<D>()));
 
 // ------------------------------ Zero
 
@@ -336,6 +355,12 @@ HWY_SVE_FOREACH_F(HWY_SVE_CAST, _, reinterpret)
 
 #undef HWY_SVE_CAST_NOP
 #undef HWY_SVE_CAST
+
+template <size_t N>
+HWY_INLINE svuint16_t BitCastFromByte(Simd<bfloat16_t, N> /* d */,
+                                      svuint8_t v) {
+  return BitCastFromByte(Simd<uint16_t, N>(), v);
+}
 
 }  // namespace detail
 
@@ -519,6 +544,17 @@ HWY_SVE_FOREACH_U(HWY_SVE_SHIFT_N, ShiftRight, lsr_n)
 HWY_SVE_FOREACH_I(HWY_SVE_SHIFT_N, ShiftRight, asr_n)
 
 #undef HWY_SVE_SHIFT_N
+
+// ------------------------------ RotateRight
+
+// TODO(janwas): svxar on SVE2
+template <int kBits, class V>
+HWY_API V RotateRight(const V v) {
+  constexpr size_t kSizeInBits = sizeof(TFromV<V>) * 8;
+  static_assert(0 <= kBits && kBits < kSizeInBits, "Invalid shift count");
+  if (kBits == 0) return v;
+  return Or(ShiftRight<kBits>(v), ShiftLeft<kSizeInBits - kBits>(v));
+}
 
 // ------------------------------ Shl/r
 
@@ -713,7 +749,7 @@ HWY_SVE_FOREACH(HWY_SVE_COMPARE, Eq, cmpeq)
 HWY_SVE_FOREACH(HWY_SVE_COMPARE, Ne, cmpne)
 
 // ------------------------------ Lt
-HWY_SVE_FOREACH_IF(HWY_SVE_COMPARE, Lt, cmplt)
+HWY_SVE_FOREACH(HWY_SVE_COMPARE, Lt, cmplt)
 namespace detail {
 HWY_SVE_FOREACH_IF(HWY_SVE_COMPARE_N, LtN, cmplt_n)
 }  // namespace detail
@@ -796,16 +832,41 @@ HWY_API VFromD<D> VecFromMask(const D d, svbool_t mask) {
     sv##OP##_##CHAR##BITS(detail::Mask(d), p, v);                        \
   }
 
+#define HWY_SVE_MASKED_STORE(BASE, CHAR, BITS, NAME, OP)      \
+  template <size_t N>                                         \
+  HWY_API void NAME(svbool_t m, HWY_SVE_V(BASE, BITS) v,      \
+                    HWY_SVE_D(BASE, BITS, N) d,               \
+                    HWY_SVE_T(BASE, BITS) * HWY_RESTRICT p) { \
+    sv##OP##_##CHAR##BITS(m, p, v);                           \
+  }
+
 HWY_SVE_FOREACH(HWY_SVE_LOAD, Load, ld1)
 HWY_SVE_FOREACH(HWY_SVE_MASKED_LOAD, MaskedLoad, ld1)
 HWY_SVE_FOREACH(HWY_SVE_LOAD_DUP128, LoadDup128, ld1rq)
 HWY_SVE_FOREACH(HWY_SVE_STORE, Store, st1)
 HWY_SVE_FOREACH(HWY_SVE_STORE, Stream, stnt1)
+HWY_SVE_FOREACH(HWY_SVE_MASKED_STORE, MaskedStore, st1)
 
 #undef HWY_SVE_LOAD
 #undef HWY_SVE_MASKED_LOAD
 #undef HWY_SVE_LOAD_DUP128
 #undef HWY_SVE_STORE
+#undef HWY_SVE_MASKED_STORE
+
+// BF16 is the same as svuint16_t because BF16 is optional before v8.6.
+template <size_t N>
+HWY_API svuint16_t Load(Simd<bfloat16_t, N> d,
+                        const bfloat16_t* HWY_RESTRICT p) {
+  return Load(RebindToUnsigned<decltype(d)>(),
+              reinterpret_cast<const uint16_t * HWY_RESTRICT>(p));
+}
+
+template <size_t N>
+HWY_API void Store(svuint16_t v, Simd<bfloat16_t, N> d,
+                   bfloat16_t* HWY_RESTRICT p) {
+  Store(v, RebindToUnsigned<decltype(d)>(),
+        reinterpret_cast<uint16_t * HWY_RESTRICT>(p));
+}
 
 // ------------------------------ Load/StoreU
 
@@ -1091,11 +1152,66 @@ HWY_API svint8_t DemoteTo(Simd<int8_t, N> dn, const svint32_t v) {
   return BitCast(dn, svuzp1_s8(v2, v2));
 }
 
+// ------------------------------ ConcatEven/ConcatOdd
+
+// WARNING: the upper half of these needs fixing up (uzp1/uzp2 use the
+// full vector length, not rounded down to a power of two as we require).
+namespace detail {
+
+#define HWY_SVE_CONCAT_EVERY_SECOND(BASE, CHAR, BITS, NAME, OP)  \
+  HWY_INLINE HWY_SVE_V(BASE, BITS)                               \
+      NAME(HWY_SVE_V(BASE, BITS) hi, HWY_SVE_V(BASE, BITS) lo) { \
+    return sv##OP##_##CHAR##BITS(lo, hi);                        \
+  }
+HWY_SVE_FOREACH(HWY_SVE_CONCAT_EVERY_SECOND, ConcatEven, uzp1)
+HWY_SVE_FOREACH(HWY_SVE_CONCAT_EVERY_SECOND, ConcatOdd, uzp2)
+#undef HWY_SVE_CONCAT_EVERY_SECOND
+
+// Used to slide up / shift whole register left; mask indicates which range
+// to take from lo, and the rest is filled from hi starting at its lowest.
+#define HWY_SVE_SPLICE(BASE, CHAR, BITS, NAME, OP)                         \
+  HWY_API HWY_SVE_V(BASE, BITS) NAME(                                      \
+      HWY_SVE_V(BASE, BITS) hi, HWY_SVE_V(BASE, BITS) lo, svbool_t mask) { \
+    return sv##OP##_##CHAR##BITS(mask, lo, hi);                            \
+  }
+HWY_SVE_FOREACH(HWY_SVE_SPLICE, Splice, splice)
+#undef HWY_SVE_SPLICE
+
+}  // namespace detail
+
+template <class D>
+HWY_API VFromD<D> ConcatOdd(D d, VFromD<D> hi, VFromD<D> lo) {
+#if 0  // if we could assume VL is a power of two
+  return detail::ConcatOdd(hi, lo);
+#else
+  const VFromD<D> hi_odd = detail::ConcatOdd(hi, hi);
+  const VFromD<D> lo_odd = detail::ConcatOdd(lo, lo);
+  return detail::Splice(hi_odd, lo_odd, FirstN(d, Lanes(d) / 2));
+#endif
+}
+
+template <class D>
+HWY_API VFromD<D> ConcatEven(D d, VFromD<D> hi, VFromD<D> lo) {
+#if 0  // if we could assume VL is a power of two
+  return detail::ConcatEven(hi, lo);
+#else
+  const VFromD<D> hi_odd = detail::ConcatEven(hi, hi);
+  const VFromD<D> lo_odd = detail::ConcatEven(lo, lo);
+  return detail::Splice(hi_odd, lo_odd, FirstN(d, Lanes(d) / 2));
+#endif
+}
+
 // ------------------------------ DemoteTo F
 
 template <size_t N>
 HWY_API svfloat16_t DemoteTo(Simd<float16_t, N> d, const svfloat32_t v) {
   return svcvt_f16_f32_x(detail::PTrue(d), v);
+}
+
+template <size_t N>
+HWY_API svuint16_t DemoteTo(Simd<bfloat16_t, N> d, const svfloat32_t v) {
+  const svuint16_t halves = BitCast(Full<uint16_t>(), v);
+  return detail::ConcatOdd(halves, halves);  // can ignore upper half of vec
 }
 
 template <size_t N>
@@ -1177,16 +1293,6 @@ svbool_t MaskUpperHalf(Simd<T, N> d) {
   }
 HWY_SVE_FOREACH(HWY_SVE_EXT, Ext, ext)
 #undef HWY_SVE_EXT
-
-// Used to slide up / shift whole register left; mask indicates which range
-// to take from lo, and the rest is filled from hi starting at its lowest.
-#define HWY_SVE_SPLICE(BASE, CHAR, BITS, NAME, OP)                         \
-  HWY_API HWY_SVE_V(BASE, BITS) NAME(                                      \
-      HWY_SVE_V(BASE, BITS) hi, HWY_SVE_V(BASE, BITS) lo, svbool_t mask) { \
-    return sv##OP##_##CHAR##BITS(mask, lo, hi);                            \
-  }
-HWY_SVE_FOREACH(HWY_SVE_SPLICE, Splice, splice)
-#undef HWY_SVE_SPLICE
 
 }  // namespace detail
 
@@ -1272,46 +1378,88 @@ HWY_API V OddEven(const V odd, const V even) {
   return detail::InterleaveOdd(even_in_odd, odd);
 }
 
+// ------------------------------ OddEvenBlocks
+template <class V>
+HWY_API V OddEvenBlocks(const V odd, const V even) {
+  const RebindToUnsigned<DFromV<V>> du;
+  constexpr size_t kShift = CeilLog2(16 / sizeof(TFromV<V>));
+  const auto idx_block = ShiftRight<kShift>(Iota(du, 0));
+  const svbool_t is_even = Eq(detail::AndN(idx_block, 1), Zero(du));
+  return IfThenElse(is_even, even, odd);
+}
+
+// ------------------------------ SwapAdjacentBlocks
+
+namespace detail {
+
+template <typename T, size_t N>
+constexpr size_t LanesPerBlock(Simd<T, N> /* tag */) {
+  // We might have a capped vector smaller than a block, so honor that.
+  return HWY_MIN(16 / sizeof(T), N);
+}
+
+}  // namespace detail
+
+template <class V>
+HWY_API V SwapAdjacentBlocks(const V v) {
+  const DFromV<V> d;
+  constexpr size_t kLanesPerBlock = detail::LanesPerBlock(d);
+  const V down = detail::Ext<kLanesPerBlock>(v, v);
+  const V up = detail::Splice(v, v, FirstN(d, kLanesPerBlock));
+  return OddEvenBlocks(up, down);
+}
+
 // ------------------------------ TableLookupLanes
 
-template <class D, class DI = RebindToSigned<D>>
-HWY_API VFromD<DI> SetTableIndices(D d, const TFromD<DI>* idx) {
+template <class D, class VI>
+HWY_API VFromD<RebindToUnsigned<D>> IndicesFromVec(D d, VI vec) {
+  static_assert(sizeof(TFromD<D>) == sizeof(TFromV<VI>), "Index != lane");
+  const RebindToUnsigned<D> du;
+  const auto indices = BitCast(du, vec);
 #if HWY_IS_DEBUG_BUILD
-  const size_t N = Lanes(d);
-  for (size_t i = 0; i < N; ++i) {
-    HWY_DASSERT(0 <= idx[i] && idx[i] < static_cast<TFromD<DI>>(N));
-  }
-#else
-  (void)d;
+  HWY_DASSERT(AllTrue(du, Lt(indices, Set(du, Lanes(d)))));
 #endif
-  return Load(DI(), idx);
+  return indices;
+}
+
+template <class D, typename TI>
+HWY_API VFromD<RebindToUnsigned<D>> SetTableIndices(D d, const TI* idx) {
+  static_assert(sizeof(TFromD<D>) == sizeof(TI), "Index size must match lane");
+  return IndicesFromVec(d, LoadU(Rebind<TI, D>(), idx));
 }
 
 // <32bit are not part of Highway API, but used in Broadcast.
-#define HWY_SVE_TABLE(BASE, CHAR, BITS, NAME, OP)                             \
-  HWY_API HWY_SVE_V(BASE, BITS)                                               \
-      NAME(HWY_SVE_V(BASE, BITS) v, HWY_SVE_V(int, BITS) idx) {               \
-    const auto idx_u = BitCast(RebindToUnsigned<DFromV<decltype(v)>>(), idx); \
-    return sv##OP##_##CHAR##BITS(v, idx_u);                                   \
+#define HWY_SVE_TABLE(BASE, CHAR, BITS, NAME, OP)                \
+  HWY_API HWY_SVE_V(BASE, BITS)                                  \
+      NAME(HWY_SVE_V(BASE, BITS) v, HWY_SVE_V(uint, BITS) idx) { \
+    return sv##OP##_##CHAR##BITS(v, idx);                        \
   }
 
 HWY_SVE_FOREACH(HWY_SVE_TABLE, TableLookupLanes, tbl)
 #undef HWY_SVE_TABLE
 
-// ------------------------------ Compress (PromoteTo)
+// ------------------------------ Reverse
 
-namespace detail {
-
-#define HWY_SVE_CONCAT_EVERY_SECOND(BASE, CHAR, BITS, NAME, OP)  \
-  HWY_API HWY_SVE_V(BASE, BITS)                                  \
-      NAME(HWY_SVE_V(BASE, BITS) hi, HWY_SVE_V(BASE, BITS) lo) { \
-    return sv##OP##_##CHAR##BITS(lo, hi);                        \
+#if 0  // if we could assume VL is a power of two
+#error "Update macro"
+#endif
+#define HWY_SVE_REVERSE(BASE, CHAR, BITS, NAME, OP)                     \
+  template <size_t N>                                                   \
+  HWY_API HWY_SVE_V(BASE, BITS)                                         \
+      NAME(Simd<HWY_SVE_T(BASE, BITS), N> d, HWY_SVE_V(BASE, BITS) v) { \
+    const auto reversed = sv##OP##_##CHAR##BITS(v);                     \
+    /* Shift right to remove extra (non-pow2 and remainder) lanes. */   \
+    const size_t all_lanes =                                            \
+        detail::AllHardwareLanes(hwy::SizeTag<BITS / 8>());             \
+    /* TODO(janwas): on SVE2, use whilege. */                           \
+    const svbool_t mask = Not(FirstN(d, all_lanes - Lanes(d)));         \
+    return detail::Splice(reversed, reversed, mask);                    \
   }
-HWY_SVE_FOREACH(HWY_SVE_CONCAT_EVERY_SECOND, ConcatEven, uzp1)
-HWY_SVE_FOREACH(HWY_SVE_CONCAT_EVERY_SECOND, ConcatOdd, uzp2)
-#undef HWY_SVE_CONCAT_EVERY_SECOND
 
-}  // namespace detail
+HWY_SVE_FOREACH(HWY_SVE_REVERSE, Reverse, rev)
+#undef HWY_SVE_REVERSE
+
+// ------------------------------ Compress (PromoteTo)
 
 #define HWY_SVE_COMPRESS(BASE, CHAR, BITS, NAME, OP)                           \
   HWY_API HWY_SVE_V(BASE, BITS) NAME(HWY_SVE_V(BASE, BITS) v, svbool_t mask) { \
@@ -1339,7 +1487,7 @@ HWY_API V Compress(V v, svbool_t mask16) {
   // Demote to 16-bit (already in range) - separately so we can splice
   const V evenL = BitCast(d16, compressedL);
   const V evenH = BitCast(d16, compressedH);
-  const V v16L = detail::ConcatEven(evenL, evenL);
+  const V v16L = detail::ConcatEven(evenL, evenL);  // only lower half needed
   const V v16H = detail::ConcatEven(evenH, evenH);
 
   // We need to combine two vectors of non-constexpr length, so the only option
@@ -1366,6 +1514,17 @@ HWY_API size_t CompressStore(const V v, const M mask, const D d,
   return CountTrue(d, mask);
 }
 
+// ------------------------------ CompressBlendedStore
+
+template <class V, class M, class D>
+HWY_API size_t CompressBlendedStore(const V v, const M mask, const D d,
+                                    TFromD<D>* HWY_RESTRICT unaligned) {
+  const size_t count = CountTrue(d, mask);
+  const svbool_t store_mask = FirstN(d, count);
+  MaskedStore(store_mask, Compress(v, mask), d, unaligned);
+  return count;
+}
+
 // ================================================== BLOCKWISE
 
 // ------------------------------ CombineShiftRightBytes
@@ -1374,12 +1533,6 @@ namespace detail {
 
 // For x86-compatible behaviour mandated by Highway API: TableLookupBytes
 // offsets are implicitly relative to the start of their 128-bit block.
-template <typename T, size_t N>
-constexpr size_t LanesPerBlock(Simd<T, N> /* tag */) {
-  // We might have a capped vector smaller than a block, so honor that.
-  return HWY_MIN(16 / sizeof(T), N);
-}
-
 template <class D, class V>
 HWY_INLINE V OffsetsOf128BitBlocks(const D d, const V iota0) {
   using T = MakeUnsigned<TFromD<D>>;
@@ -1478,9 +1631,8 @@ template <class V, class VI>
 HWY_API VI TableLookupBytes(const V v, const VI idx) {
   const DFromV<VI> d;
   const Repartition<uint8_t, decltype(d)> du8;
-  const Repartition<int8_t, decltype(d)> di8;
   const auto offsets128 = detail::OffsetsOf128BitBlocks(du8, Iota(du8, 0));
-  const auto idx8 = BitCast(di8, Add(BitCast(du8, idx), offsets128));
+  const auto idx8 = Add(BitCast(du8, idx), offsets128);
   return BitCast(d, TableLookupLanes(BitCast(du8, v), idx8));
 }
 
@@ -1506,10 +1658,10 @@ HWY_API VI TableLookupBytesOr0(const V v, const VI idx) {
 template <int kLane, class V>
 HWY_API V Broadcast(const V v) {
   const DFromV<V> d;
-  const RebindToSigned<decltype(d)> di;
-  constexpr size_t kLanesPerBlock = detail::LanesPerBlock(di);
+  const RebindToUnsigned<decltype(d)> du;
+  constexpr size_t kLanesPerBlock = detail::LanesPerBlock(du);
   static_assert(0 <= kLane && kLane < kLanesPerBlock, "Invalid lane");
-  auto idx = detail::OffsetsOf128BitBlocks(di, Iota(di, 0));
+  auto idx = detail::OffsetsOf128BitBlocks(du, Iota(du, 0));
   if (kLane != 0) {
     idx = detail::AddN(idx, kLane);
   }
@@ -1572,6 +1724,8 @@ HWY_API V ShiftRightBytes(const D d, const V v) {
 
 namespace detail {
 HWY_SVE_FOREACH(HWY_SVE_RETV_ARGVV, ZipLower, zip1)
+// Do not use zip2 to implement PromoteUpperTo or similar because vectors may be
+// non-powers of two, so getting the actual "upper half" requires MaskUpperHalf.
 }  // namespace detail
 
 template <class D, class V>
@@ -1581,7 +1735,7 @@ HWY_API V InterleaveLower(D d, const V a, const V b) {
   const Repartition<uint64_t, decltype(d)> d64;
   const auto a64 = BitCast(d64, a);
   const auto b64 = BitCast(d64, b);
-  const auto a_blocks = detail::ConcatEven(a64, a64);
+  const auto a_blocks = detail::ConcatEven(a64, a64);  // only lower half needed
   const auto b_blocks = detail::ConcatEven(b64, b64);
 
   return detail::ZipLower(BitCast(d, a_blocks), BitCast(d, b_blocks));
@@ -1601,7 +1755,7 @@ HWY_API V InterleaveUpper(Simd<T, HWY_LANES(T)> d, const V a, const V b) {
   const Repartition<uint64_t, decltype(d)> d64;
   const auto a64 = BitCast(d64, a);
   const auto b64 = BitCast(d64, b);
-  const auto a_blocks = detail::ConcatOdd(a64, a64);
+  const auto a_blocks = detail::ConcatOdd(a64, a64);  // only lower half needed
   const auto b_blocks = detail::ConcatOdd(b64, b64);
   return detail::ZipLower(BitCast(d, a_blocks), BitCast(d, b_blocks));
 }
@@ -1668,6 +1822,24 @@ HWY_SVE_FOREACH_F(HWY_SVE_REDUCE, MaxOfLanes, maxnmv)
 #undef HWY_SVE_REDUCE
 
 // ================================================== Ops with dependencies
+
+// ------------------------------ PromoteTo bfloat16 (ZipLower)
+
+template <size_t N>
+HWY_API svfloat32_t PromoteTo(Simd<float32_t, N> df32, const svuint16_t v) {
+  return BitCast(df32, detail::ZipLower(svdup_n_u16(0), v));
+}
+
+// ------------------------------ ReorderDemote2To (OddEven)
+
+template <size_t N>
+HWY_API svuint16_t ReorderDemote2To(Simd<bfloat16_t, N> dbf16, svfloat32_t a,
+                                    svfloat32_t b) {
+  const RebindToUnsigned<decltype(dbf16)> du16;
+  const Repartition<uint32_t, decltype(dbf16)> du32;
+  const svuint32_t b_in_even = ShiftRight<16>(BitCast(du32, b));
+  return BitCast(dbf16, OddEven(BitCast(du16, a), BitCast(du16, b_in_even)));
+}
 
 // ------------------------------ ZeroIfNegative (Lt, IfThenElse)
 template <class V>
@@ -1781,7 +1953,7 @@ template <typename T, size_t N, HWY_IF_LANE_SIZE(T, 2)>
 HWY_API svuint8_t BoolFromMask(Simd<T, N> d, svbool_t m) {
   const Repartition<uint8_t, decltype(d)> d8;
   const svuint8_t b16 = BitCast(d8, svdup_n_u16_z(m, 1));
-  return detail::ConcatEven(b16, b16);
+  return detail::ConcatEven(b16, b16);  // only lower half needed
 }
 template <typename T, size_t N, HWY_IF_LANE_SIZE(T, 4)>
 HWY_API svuint8_t BoolFromMask(Simd<T, N> d, svbool_t m) {
@@ -1791,7 +1963,7 @@ template <typename T, size_t N, HWY_IF_LANE_SIZE(T, 8)>
 HWY_API svuint8_t BoolFromMask(Simd<T, N> d, svbool_t m) {
   const Repartition<uint32_t, decltype(d)> d32;
   const svuint32_t b64 = BitCast(d32, svdup_n_u64_z(m, 1));
-  return U8FromU32(detail::ConcatEven(b64, b64));
+  return U8FromU32(detail::ConcatEven(b64, b64));  // only lower half needed
 }
 
 }  // namespace detail
@@ -1870,6 +2042,25 @@ HWY_API svuint64_t MulOdd(const svuint64_t a, const svuint64_t b) {
   return detail::InterleaveOdd(lo, hi);
 }
 
+// ------------------------------ ReorderWidenMulAccumulate (MulAdd, ZipLower)
+
+template <size_t N>
+HWY_API svfloat32_t ReorderWidenMulAccumulate(Simd<float, N> df32, svuint16_t a,
+                                              svuint16_t b,
+                                              const svfloat32_t sum0,
+                                              svfloat32_t& sum1) {
+  // TODO(janwas): svbfmlalb_f32 if __ARM_FEATURE_SVE_BF16.
+  const Repartition<uint16_t, decltype(df32)> du16;
+  const RebindToUnsigned<decltype(df32)> du32;
+  const svuint16_t zero = Zero(du16);
+  const svuint32_t a0 = ZipLower(du32, zero, BitCast(du16, a));
+  const svuint32_t a1 = ZipUpper(du32, zero, BitCast(du16, a));
+  const svuint32_t b0 = ZipLower(du32, zero, BitCast(du16, b));
+  const svuint32_t b1 = ZipUpper(du32, zero, BitCast(du16, b));
+  sum1 = MulAdd(BitCast(df32, a1), BitCast(df32, b1), sum1);
+  return MulAdd(BitCast(df32, a0), BitCast(df32, b0), sum0);
+}
+
 // ------------------------------ AESRound / CLMul
 
 #if defined(__ARM_FEATURE_SVE2_AES)
@@ -1886,7 +2077,7 @@ HWY_API svuint8_t AESRound(svuint8_t state, svuint8_t round_key) {
   // they can be fused. AESE includes AddRoundKey, which is a different ordering
   // than the AES-NI semantics we adopted, so XOR by 0 and later with the actual
   // round key (the compiler will hopefully optimize this for multiple rounds).
-  const svuint8_t zero = Zero(HWY_FULL(uint8_t)());
+  const svuint8_t zero = svdup_n_u8(0);
   return Xor(vaesmcq_u8(vaeseq_u8(state, zero), round_key));
 }
 
