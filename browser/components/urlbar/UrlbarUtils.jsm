@@ -1314,8 +1314,14 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       qsSuggestion: {
         type: "string",
       },
+      requestId: {
+        type: "string",
+      },
       sendAttributionRequest: {
         type: "boolean",
+      },
+      source: {
+        type: "string",
       },
       sponsoredAdvertiser: {
         type: "string",
@@ -1343,6 +1349,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       },
       url: {
         type: "string",
+      },
+      urlTimestampIndex: {
+        type: "number",
       },
     },
   },
@@ -2002,6 +2011,7 @@ class SkippableTimer {
       this._timer.initWithCallback(
         () => {
           this._log(`Timed out!`, reportErrorOnTimeout);
+          this._timer = null;
           resolve();
         },
         time,
@@ -2011,16 +2021,22 @@ class SkippableTimer {
     });
 
     let firePromise = new Promise(resolve => {
-      this.fire = () => {
-        this._log(`Skipped`);
-        resolve();
-        return this.promise;
+      this.fire = async () => {
+        if (this._timer) {
+          if (!this._canceled) {
+            this._log(`Skipped`);
+          }
+          this._timer.cancel();
+          this._timer = null;
+          resolve();
+        }
+        await this.promise;
       };
     });
 
     this.promise = Promise.race([timerPromise, firePromise]).then(() => {
       // If we've been canceled, don't call back.
-      if (this._timer && callback) {
+      if (callback && !this._canceled) {
         callback();
       }
     });
@@ -2030,13 +2046,13 @@ class SkippableTimer {
    * Allows to cancel the timer and the callback won't be invoked.
    * It is not strictly necessary to await for this, the promise can just be
    * used to ensure all the internal work is complete.
-   * @returns {promise} Resolved once all the cancelation work is complete.
    */
-  cancel() {
-    this._log(`Canceling`);
-    this._timer.cancel();
-    delete this._timer;
-    return this.fire();
+  async cancel() {
+    if (this._timer) {
+      this._log(`Canceling`);
+      this._canceled = true;
+    }
+    await this.fire();
   }
 
   _log(msg, isError = false) {

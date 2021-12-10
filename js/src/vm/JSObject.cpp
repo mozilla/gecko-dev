@@ -32,7 +32,6 @@
 #include "builtin/Symbol.h"
 #include "builtin/WeakSetObject.h"
 #include "ds/IdValuePair.h"  // js::IdValuePair
-#include "frontend/BytecodeCompiler.h"
 #include "gc/Policy.h"
 #include "js/CallAndConstruct.h"  // JS::IsCallable, JS::IsConstructor
 #include "js/CharacterEncoding.h"
@@ -1411,71 +1410,6 @@ NativeObject* js::InitClass(JSContext* cx, HandleObject obj,
                                        static_fs, ctorp);
 }
 
-static bool ReshapeForProtoMutation(JSContext* cx, HandleObject obj) {
-  // To avoid the JIT guarding on each prototype in chain to detect prototype
-  // mutation, we can instead reshape the rest of the proto chain such that a
-  // guard on any of them is sufficient. To avoid excessive reshaping and
-  // invalidation, we apply heuristics to decide when to apply this and when
-  // to require a guard.
-  //
-  // There are two cases:
-  //
-  // (1) The object is not marked IsUsedAsPrototype. This is the common case.
-  //     Because shape implies proto, we rely on the caller changing the
-  //     object's shape. The JIT guards on this object's shape or prototype so
-  //     there's nothing we have to do here for objects on the proto chain.
-  //
-  // (2) The object is marked IsUsedAsPrototype. This implies the object may be
-  //     participating in shape teleporting. To invalidate JIT ICs depending on
-  //     the proto chain being unchanged, set the InvalidatedTeleporting shape
-  //     flag for this object and objects on its proto chain.
-  //
-  //     This flag disables future shape teleporting attempts, so next time this
-  //     happens the loop below will be a no-op.
-  //
-  // NOTE: We only handle NativeObjects and don't propagate reshapes through
-  //       any non-native objects on the chain.
-  //
-  // See Also:
-  //  - GeneratePrototypeGuards
-  //  - GeneratePrototypeHoleGuards
-
-  if (!obj->isUsedAsPrototype()) {
-    return true;
-  }
-
-  RootedObject pobj(cx, obj);
-
-  while (pobj && pobj->is<NativeObject>()) {
-    if (!pobj->hasInvalidatedTeleporting()) {
-      if (!JSObject::setInvalidatedTeleporting(cx, pobj)) {
-        return false;
-      }
-    }
-    pobj = pobj->staticPrototype();
-  }
-
-  return true;
-}
-
-static bool SetProto(JSContext* cx, HandleObject obj,
-                     Handle<js::TaggedProto> proto) {
-  // Update prototype shapes if needed to invalidate JIT code that is affected
-  // by a prototype mutation.
-  if (!ReshapeForProtoMutation(cx, obj)) {
-    return false;
-  }
-
-  if (proto.isObject()) {
-    RootedObject protoObj(cx, proto.toObject());
-    if (!JSObject::setIsUsedAsPrototype(cx, protoObj)) {
-      return false;
-    }
-  }
-
-  return JSObject::setProtoUnchecked(cx, obj, proto);
-}
-
 /**
  * Returns the original Object.prototype from the embedding-provided incumbent
  * global.
@@ -1983,7 +1917,7 @@ bool js::SetPrototype(JSContext* cx, HandleObject obj, HandleObject proto,
   }
 
   Rooted<TaggedProto> taggedProto(cx, TaggedProto(proto));
-  if (!SetProto(cx, obj, taggedProto)) {
+  if (!JSObject::setProtoUnchecked(cx, obj, taggedProto)) {
     return false;
   }
 
@@ -2199,8 +2133,7 @@ bool js::GetPropertyDescriptor(
 /* * */
 
 extern bool PropertySpecNameToId(JSContext* cx, JSPropertySpec::Name name,
-                                 MutableHandleId id,
-                                 js::PinningBehavior pin = js::DoNotPinAtom);
+                                 MutableHandleId id);
 
 // If a property or method is part of an experimental feature that can be
 // disabled at run-time by a preference, we keep it in the JSFunctionSpec /
@@ -2219,6 +2152,30 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
       id == NameToId(cx->names().cleanupSome)) {
     return true;
   }
+
+#ifdef ENABLE_CHANGE_ARRAY_BY_COPY
+  if (key == JSProto_Array && !cx->options().changeArrayByCopy() &&
+      (id == NameToId(cx->names().withAt) ||
+       id == NameToId(cx->names().withReversed) ||
+       id == NameToId(cx->names().withSorted) ||
+       id == NameToId(cx->names().withSpliced))) {
+    return true;
+  }
+#endif
+
+#ifdef ENABLE_NEW_SET_METHODS
+  if (key == JSProto_Set &&
+      !cx->realm()->creationOptions().getNewSetMethodsEnabled() &&
+      (id == NameToId(cx->names().union_) ||
+       id == NameToId(cx->names().difference) ||
+       id == NameToId(cx->names().intersection) ||
+       id == NameToId(cx->names().isSubsetOf) ||
+       id == NameToId(cx->names().isSupersetOf) ||
+       id == NameToId(cx->names().isDisjointFrom) ||
+       id == NameToId(cx->names().symmetricDifference))) {
+    return true;
+  }
+#endif
 
   return false;
 }
@@ -2289,7 +2246,7 @@ static bool ReportCantConvert(JSContext* cx, unsigned errorNumber,
   // Avoid recursive death when decompiling in ReportValueError.
   RootedString str(cx);
   if (hint == JSTYPE_STRING) {
-    str = JS_AtomizeAndPinString(cx, clasp->name);
+    str = JS_AtomizeString(cx, clasp->name);
     if (!str) {
       return false;
     }

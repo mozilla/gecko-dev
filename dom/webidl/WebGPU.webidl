@@ -82,6 +82,7 @@ enum GPUPowerPreference {
 
 dictionary GPURequestAdapterOptions {
     GPUPowerPreference powerPreference;
+    boolean forceFallbackAdapter = false;
 };
 
 [Pref="dom.webgpu.enabled",
@@ -132,7 +133,7 @@ interface GPUAdapter {
     readonly attribute DOMString name;
     [SameObject] readonly attribute GPUAdapterFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
-    readonly attribute boolean isSoftware;
+    readonly attribute boolean isFallbackAdapter;
 
     [NewObject]
     Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
@@ -362,8 +363,8 @@ typedef [EnforceRange] unsigned long GPUTextureUsageFlags;
 interface GPUTextureUsage {
     const GPUTextureUsageFlags COPY_SRC          = 0x01;
     const GPUTextureUsageFlags COPY_DST          = 0x02;
-    const GPUTextureUsageFlags SAMPLED           = 0x04;
-    const GPUTextureUsageFlags STORAGE           = 0x08;
+    const GPUTextureUsageFlags TEXTURE_BINDING   = 0x04;
+    const GPUTextureUsageFlags STORAGE_BINDING   = 0x08;
     const GPUTextureUsageFlags RENDER_ATTACHMENT = 0x10;
 };
 
@@ -1171,5 +1172,6 @@ interface GPUCanvasContext {
     void unconfigure();
 
     GPUTextureFormat getPreferredFormat(GPUAdapter adapter);
+    [Throws]
     GPUTexture getCurrentTexture();
 };

@@ -1098,10 +1098,48 @@ bool js::jit::DeadIfUnused(const MDefinition* def) {
   return true;
 }
 
+// Similar to DeadIfUnused(), but additionally allows effectful instructions.
+bool js::jit::DeadIfUnusedAllowEffectful(const MDefinition* def) {
+  // Never eliminate guard instructions.
+  if (def->isGuard()) {
+    return false;
+  }
+
+  // Required to be preserved, as the type guard related to this instruction
+  // is part of the semantics of a transformation.
+  if (def->isGuardRangeBailouts()) {
+    return false;
+  }
+
+  // Control instructions have no uses, but also shouldn't be optimized out
+  if (def->isControlInstruction()) {
+    return false;
+  }
+
+  // Used when lowering to generate the corresponding snapshots and aggregate
+  // the list of recover instructions to be repeated.
+  if (def->isInstruction() && def->toInstruction()->resumePoint()) {
+    // All effectful instructions must have a resume point attached. We're
+    // allowing effectful instructions here, so we have to ignore any resume
+    // points if we want to consider effectful instructions as dead.
+    if (!def->isEffectful()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // Test whether |def| may be safely discarded, due to being dead or due to being
 // located in a basic block which has itself been marked for discarding.
 bool js::jit::IsDiscardable(const MDefinition* def) {
   return !def->hasUses() && (DeadIfUnused(def) || def->block()->isMarked());
+}
+
+// Similar to IsDiscardable(), but additionally allows effectful instructions.
+bool js::jit::IsDiscardableAllowEffectful(const MDefinition* def) {
+  return !def->hasUses() &&
+         (DeadIfUnusedAllowEffectful(def) || def->block()->isMarked());
 }
 
 // Instructions are useless if they are unused and have no side effects.
@@ -3378,6 +3416,149 @@ bool jit::EliminateRedundantChecks(MIRGraph& graph) {
   return true;
 }
 
+static MDefinition* SkipObjectGuards(MDefinition* ins) {
+  // These instructions don't modify the object and just guard specific
+  // properties.
+  while (true) {
+    if (ins->isGuardShape()) {
+      ins = ins->toGuardShape()->object();
+      continue;
+    }
+    if (ins->isGuardNullProto()) {
+      ins = ins->toGuardNullProto()->object();
+      continue;
+    }
+    if (ins->isGuardProto()) {
+      ins = ins->toGuardProto()->object();
+      continue;
+    }
+
+    break;
+  }
+
+  return ins;
+}
+
+static bool ShapeGuardIsRedundant(MGuardShape* guard, MDefinition* storeObject,
+                                  const Shape* storeShape) {
+  MDefinition* guardObject = SkipObjectGuards(guard->object());
+  if (guardObject != storeObject) {
+    JitSpew(JitSpew_RedundantShapeGuards, "SKIP: different objects (%d vs %d)",
+            guardObject->id(), storeObject->id());
+    return false;
+  }
+
+  const Shape* guardShape = guard->shape();
+  if (guardShape != storeShape) {
+    JitSpew(JitSpew_RedundantShapeGuards, "SKIP: different shapes");
+    return false;
+  }
+
+  return true;
+}
+
+// Eliminate shape guards which are redundant given other instructions.
+//
+// A shape guard is redundant if we can prove that the object being
+// guarded already has the correct shape. The conditions for doing so
+// are as follows:
+//
+// 1. We can see the most recent change to the shape of this object.
+//    (This can be an AddAndStoreSlot, an AllocateAndStoreSlot, or the
+//    creation of the object itself.
+// 2. That mutation dominates the shape guard.
+// 3. The shape that was assigned at that point matches the shape
+//    we expect.
+//
+// If all of these conditions hold, then we can remove the shape guard.
+// In debug, we replace it with an AssertShape to help verify correctness.
+bool jit::EliminateRedundantShapeGuards(MIRGraph& graph) {
+  JitSpew(JitSpew_RedundantShapeGuards, "Begin");
+
+  for (ReversePostorderIterator block = graph.rpoBegin();
+       block != graph.rpoEnd(); block++) {
+    for (MInstructionIterator insIter(block->begin());
+         insIter != block->end();) {
+      MInstruction* ins = *insIter;
+      insIter++;
+
+      // Skip instructions that aren't shape guards.
+      if (!ins->isGuardShape()) {
+        continue;
+      }
+      MGuardShape* guard = ins->toGuardShape();
+      MDefinition* lastStore = guard->dependency();
+
+      JitSpew(JitSpew_RedundantShapeGuards, "Visit shape guard %d",
+              guard->id());
+      JitSpewIndent spewIndent(JitSpew_RedundantShapeGuards);
+
+      if (lastStore->isDiscarded() || lastStore->block()->isDead() ||
+          !lastStore->block()->dominates(guard->block())) {
+        JitSpew(JitSpew_RedundantShapeGuards,
+                "SKIP: ins %d does not dominate block %d", lastStore->id(),
+                guard->block()->id());
+        continue;
+      }
+
+      if (lastStore->isAddAndStoreSlot()) {
+        auto* add = lastStore->toAddAndStoreSlot();
+        auto* addObject = SkipObjectGuards(add->object());
+        if (!ShapeGuardIsRedundant(guard, addObject, add->shape())) {
+          continue;
+        }
+      } else if (lastStore->isAllocateAndStoreSlot()) {
+        auto* allocate = lastStore->toAllocateAndStoreSlot();
+        auto* allocateObject = SkipObjectGuards(allocate->object());
+        if (!ShapeGuardIsRedundant(guard, allocateObject, allocate->shape())) {
+          continue;
+        }
+      } else if (lastStore->isStart()) {
+        // The guard doesn't depend on any other instruction that is modifying
+        // the object operand, so we check the object operand directly.
+        auto* obj = SkipObjectGuards(guard->object());
+
+        const Shape* initialShape = nullptr;
+        if (obj->isNewObject()) {
+          auto* templateObject = obj->toNewObject()->templateObject();
+          if (!templateObject) {
+            JitSpew(JitSpew_RedundantShapeGuards, "SKIP: no template");
+            continue;
+          }
+          initialShape = templateObject->shape();
+        } else if (obj->isNewPlainObject()) {
+          initialShape = obj->toNewPlainObject()->shape();
+        } else {
+          JitSpew(JitSpew_RedundantShapeGuards,
+                  "SKIP: not NewObject or NewPlainObject (%d)", obj->id());
+          continue;
+        }
+        if (initialShape != guard->shape()) {
+          JitSpew(JitSpew_RedundantShapeGuards, "SKIP: shapes don't match");
+          continue;
+        }
+      } else {
+        JitSpew(JitSpew_RedundantShapeGuards,
+                "SKIP: Last store not supported (%d)", lastStore->id());
+        continue;
+      }
+
+#ifdef DEBUG
+      auto* assert = MAssertShape::New(graph.alloc(), guard->object(),
+                                       const_cast<Shape*>(guard->shape()));
+      guard->block()->insertBefore(guard, assert);
+#endif
+
+      JitSpew(JitSpew_RedundantShapeGuards, "SUCCESS: Removing shape guard %d",
+              guard->id());
+      guard->replaceAllUsesWith(guard->input());
+      guard->block()->discard(guard);
+    }
+  }
+
+  return true;
+}
+
 static bool NeedsKeepAlive(MInstruction* slotsOrElements, MInstruction* use) {
   MOZ_ASSERT(slotsOrElements->type() == MIRType::Elements ||
              slotsOrElements->type() == MIRType::Slots);
@@ -3843,11 +4024,9 @@ bool jit::FoldLoadsWithUnbox(MIRGenerator* mir, MIRGraph& graph) {
 
       MOZ_ASSERT(!IsMagicType(unbox->type()));
 
-      // If this is a LoadElement that needs a hole check, we only support
-      // folding it with a fallible unbox so that we can eliminate the hole
-      // check.
-      if (load->isLoadElement() && load->toLoadElement()->needsHoleCheck() &&
-          !unbox->fallible()) {
+      // If this is a LoadElement, we only support folding it with a fallible
+      // unbox so that we can eliminate the hole check.
+      if (load->isLoadElement() && !unbox->fallible()) {
         continue;
       }
 
@@ -3875,7 +4054,7 @@ bool jit::FoldLoadsWithUnbox(MIRGenerator* mir, MIRGraph& graph) {
         }
         case MDefinition::Opcode::LoadElement: {
           auto* loadIns = load->toLoadElement();
-          MOZ_ASSERT_IF(loadIns->needsHoleCheck(), unbox->fallible());
+          MOZ_ASSERT(unbox->fallible());
           replacement = MLoadElementAndUnbox::New(
               graph.alloc(), loadIns->elements(), loadIns->index(), mode, type);
           break;

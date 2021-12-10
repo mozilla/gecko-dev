@@ -156,6 +156,7 @@ EXPORTS.mozilla += [
     "public/ProfilerMarkersDetail.h",
     "public/ProfilerMarkersPrerequisites.h",
     "public/ProfilerMarkerTypes.h",
+    "public/ProfilerRunnable.h",
     "public/ProfilerState.h",
     "public/ProfilerThreadPlatformData.h",
     "public/ProfilerThreadRegistration.h",
@@ -192,7 +193,6 @@ if CONFIG["ENABLE_TESTS"]:
 
 if CONFIG["CC_TYPE"] in ("clang", "gcc"):
     CXXFLAGS += [
-        "-Wno-error=shadow",
         "-Wno-error=stack-protector",
         "-Wno-ignored-qualifiers",  # due to use of breakpad headers
     ]

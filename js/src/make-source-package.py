@@ -197,6 +197,8 @@ rsync_filter_list = """
 + /toolkit/crashreporter/tools/symbolstore.py
 + /toolkit/mozapps/installer/package-name.mk
 
++ /xpcom/geckoprocesstypes_generator/**
+
 # SpiderMonkey itself
 
 + /js/src/**
@@ -224,7 +226,6 @@ be run over the binaries before deploying them.
 
 Building with default options may be performed as follows:
 
-  ./mach create-mach-environment
   ./mach build
 
 This will produce a debug build (much more suitable for developing against the

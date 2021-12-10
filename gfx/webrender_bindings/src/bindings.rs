@@ -41,7 +41,7 @@ use webrender::{
     CompositorCapabilities, CompositorConfig, CompositorSurfaceTransform, DebugFlags, Device, MappableCompositor,
     MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor, PipelineInfo,
     ProfilerHooks, RecordedFrameHandle, Renderer, RendererOptions, RendererStats, SWGLCompositeSurfaceInfo,
-    SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig, UploadMethod,
+    SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig, UploadMethod, WindowVisibility,
     ONE_TIME_USAGE_HINT,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
@@ -1202,6 +1202,7 @@ fn wr_device_new(gl_context: *mut c_void, pc: Option<&mut WrProgramCache>) -> De
         resource_override_path,
         use_optimized_shaders,
         upload_method,
+        512 * 512,
         cached_programs,
         true,
         true,
@@ -1257,6 +1258,7 @@ extern "C" {
     fn wr_compositor_enable_native_compositor(compositor: *mut c_void, enable: bool);
     fn wr_compositor_deinit(compositor: *mut c_void);
     fn wr_compositor_get_capabilities(compositor: *mut c_void, caps: *mut CompositorCapabilities);
+    fn wr_compositor_get_window_visibility(compositor: *mut c_void, caps: *mut WindowVisibility);
     fn wr_compositor_map_tile(
         compositor: *mut c_void,
         id: NativeTileId,
@@ -1404,6 +1406,14 @@ impl Compositor for WrCompositor {
             let mut caps: CompositorCapabilities = Default::default();
             wr_compositor_get_capabilities(self.0, &mut caps);
             caps
+        }
+    }
+
+    fn get_window_visibility(&self) -> WindowVisibility {
+        unsafe {
+            let mut visibility: WindowVisibility = Default::default();
+            wr_compositor_get_window_visibility(self.0, &mut visibility);
+            visibility
         }
     }
 }
@@ -1761,6 +1771,11 @@ pub extern "C" fn wr_api_set_bool(dh: &mut DocumentHandle, param_name: BoolParam
 }
 
 #[no_mangle]
+pub extern "C" fn wr_api_set_int(dh: &mut DocumentHandle, param_name: IntParameter, val: i32) {
+    dh.api.set_parameter(Parameter::Int(param_name, val));
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn wr_api_accumulate_memory_report(
     dh: &mut DocumentHandle,
     report: &mut MemoryReport,
@@ -1978,10 +1993,10 @@ pub extern "C" fn wr_transaction_scroll_layer(
     txn: &mut Transaction,
     pipeline_id: WrPipelineId,
     scroll_id: u64,
-    new_scroll_origin: LayoutPoint,
+    new_scroll_offset: LayoutVector2D,
 ) {
     let scroll_id = ExternalScrollId(scroll_id, pipeline_id);
-    txn.scroll_node_with_id(new_scroll_origin, scroll_id, ScrollClamping::NoClamping);
+    txn.set_scroll_offset(scroll_id, new_scroll_offset);
 }
 
 #[no_mangle]
@@ -2172,12 +2187,7 @@ pub unsafe extern "C" fn wr_transaction_clear_display_list(
     let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
     frame_builder.dl_builder.begin();
 
-    txn.set_display_list(
-        epoch,
-        None,
-        LayoutSize::new(0.0, 0.0),
-        frame_builder.dl_builder.end(),
-    );
+    txn.set_display_list(epoch, None, LayoutSize::new(0.0, 0.0), frame_builder.dl_builder.end());
 }
 
 #[no_mangle]
@@ -2505,9 +2515,7 @@ pub extern "C" fn wr_dp_push_stacking_context(
         .collect();
 
     let transform_ref = unsafe { transform.as_ref() };
-    let mut transform_binding = transform_ref.map(|info| {
-        (PropertyBinding::Value(info.transform), info.key)
-    });
+    let mut transform_binding = transform_ref.map(|info| (PropertyBinding::Value(info.transform), info.key));
 
     let computed_ref = unsafe { params.computed_transform.as_ref() };
     let opacity_ref = unsafe { params.opacity.as_ref() };
@@ -2531,16 +2539,16 @@ pub extern "C" fn wr_dp_push_stacking_context(
                 has_opacity_animation = true;
             }
             WrAnimationType::Transform => {
-                transform_binding = Some(
-                    (
-                        PropertyBinding::Binding(
-                            PropertyBindingKey::new(anim.id),
-                            // Same as above opacity case.
-                            transform_ref.map(|info| info.transform).unwrap_or_else(LayoutTransform::identity),
-                        ),
-                        anim.key,
-                    )
-                );
+                transform_binding = Some((
+                    PropertyBinding::Binding(
+                        PropertyBindingKey::new(anim.id),
+                        // Same as above opacity case.
+                        transform_ref
+                            .map(|info| info.transform)
+                            .unwrap_or_else(LayoutTransform::identity),
+                    ),
+                    anim.key,
+                ));
             }
             _ => unreachable!("{:?} should not create a stacking context", anim.effect_type),
         }
@@ -2788,7 +2796,7 @@ pub extern "C" fn wr_dp_define_scroll_layer(
     parent: &WrSpatialId,
     content_rect: LayoutRect,
     clip_rect: LayoutRect,
-    scroll_offset: LayoutPoint,
+    scroll_offset: LayoutVector2D,
     key: SpatialTreeItemKey,
 ) -> WrSpatialId {
     assert!(unsafe { is_in_main_thread() });
@@ -2798,9 +2806,7 @@ pub extern "C" fn wr_dp_define_scroll_layer(
         ExternalScrollId(external_scroll_id, state.pipeline_id),
         content_rect,
         clip_rect,
-        // TODO(gw): We should also update the Gecko-side APIs to provide
-        //           this as a vector rather than a point.
-        scroll_offset.to_vector(),
+        scroll_offset,
         key,
     );
 
@@ -3807,9 +3813,7 @@ pub extern "C" fn wr_dump_serialized_display_list(state: &mut WrState) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn wr_api_begin_builder(
-    state: &mut WrState,
-) {
+pub unsafe extern "C" fn wr_api_begin_builder(state: &mut WrState) {
     state.frame_builder.dl_builder.begin();
 }
 

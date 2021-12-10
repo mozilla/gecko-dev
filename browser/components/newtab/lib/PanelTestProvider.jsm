@@ -213,6 +213,7 @@ const MESSAGES = () => [
   {
     id: "SPOTLIGHT_MESSAGE_93",
     template: "spotlight",
+    groups: ["panel-test-provider"],
     content: {
       template: "logo-and-content",
       logoImageURL: "chrome://browser/content/logos/vpn-promo-logo.svg",
@@ -250,6 +251,59 @@ const MESSAGES = () => [
       },
     },
     frequency: { lifetime: 3 },
+    trigger: { id: "defaultBrowserCheck" },
+  },
+  {
+    id: "TCP_SPOTLIGHT_MESSAGE_95",
+    groups: ["panel-test-provider"],
+    template: "spotlight",
+    content: {
+      template: "logo-and-content",
+      logo: {
+        imageURL: "chrome://branding/content/about-logo@2x.png",
+        size: "64px",
+      },
+      body: {
+        title: {
+          label: {
+            string_id: "spotlight-total-cookie-protection-header",
+          },
+          size: "24px",
+        },
+        text: {
+          label: {
+            string_id: "spotlight-total-cookie-protection-body",
+          },
+          size: "20px",
+        },
+        primary: {
+          label: {
+            string_id: "spotlight-total-cookie-protection-primary-button",
+          },
+          action: {
+            type: "ENABLE_TOTAL_COOKIE_PROTECTION",
+          },
+        },
+        secondary: {
+          label: {
+            string_id: "spotlight-total-cookie-protection-secondary-button",
+          },
+          action: {
+            type: "ENABLE_TOTAL_COOKIE_PROTECTION_SECTION_AND_OPT_OUT",
+          },
+        },
+      },
+      extra: {
+        expanded: {
+          label: {
+            string_id: "spotlight-total-cookie-protection-expanded",
+          },
+          size: "13px",
+        },
+      },
+    },
+    frequency: { lifetime: 3 },
+    trigger: { id: "defaultBrowserCheck" },
   },
 ];
 

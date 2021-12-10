@@ -35,6 +35,13 @@ class GPUChild final : public ipc::CrashReporterHelper<GeckoProcessType_GPU>,
   bool EnsureGPUReady();
   base::ProcessHandle GetChildProcessHandle();
 
+  // Notifies that an unexpected GPU process shutdown has been noticed by a
+  // different IPDL actor, and the GPU process is being torn down as a result.
+  // ActorDestroy may receive either NormalShutdown or AbnormalShutdown as a
+  // reason, depending on timings, but either way we treat the shutdown as
+  // abnormal.
+  void OnUnexpectedShutdown();
+
   // gfxVarReceiver overrides.
   void OnVarChanged(const GfxVarUpdate& aVar) override;
 
@@ -72,6 +79,7 @@ class GPUChild final : public ipc::CrashReporterHelper<GeckoProcessType_GPU>,
   mozilla::ipc::IPCResult RecvBHRThreadHang(const HangDetails& aDetails);
   mozilla::ipc::IPCResult RecvUpdateMediaCodecsSupported(
       const PDMFactory::MediaCodecsSupported& aSupported);
+  mozilla::ipc::IPCResult RecvFOGData(ByteBuf&& aBuf);
 
   bool SendRequestMemoryReport(const uint32_t& aGeneration,
                                const bool& aAnonymize,
@@ -84,6 +92,7 @@ class GPUChild final : public ipc::CrashReporterHelper<GeckoProcessType_GPU>,
   GPUProcessHost* mHost;
   UniquePtr<MemoryReportRequestHost> mMemoryReportRequest;
   bool mGPUReady;
+  bool mUnexpectedShutdown = false;
 };
 
 }  // namespace gfx

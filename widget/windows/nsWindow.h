@@ -246,12 +246,10 @@ class nsWindow final : public nsWindowBase {
   virtual InputContext GetInputContext() override;
   virtual TextEventDispatcherListener* GetNativeTextEventDispatcherListener()
       override;
-#ifdef MOZ_XUL
   virtual void SetTransparencyMode(nsTransparencyMode aMode) override;
   virtual nsTransparencyMode GetTransparencyMode() override;
   virtual void UpdateOpaqueRegion(
       const LayoutDeviceIntRegion& aOpaqueRegion) override;
-#endif  // MOZ_XUL
   virtual nsresult SetNonClientMargins(
       LayoutDeviceIntMargin& aMargins) override;
   void SetDrawsInTitlebar(bool aState) override;
@@ -368,6 +366,13 @@ class nsWindow final : public nsWindowBase {
   void MaybeEnableWindowOcclusion(bool aEnable);
 
  protected:
+  struct Desktop {
+    // Cached GUID of the virtual desktop this window should be on.
+    // This value may be stale.
+    nsString mID;
+    bool mUpdateIsQueued = false;
+  };
+
   virtual ~nsWindow();
 
   virtual void WindowUsesOMTC() override;
@@ -463,7 +468,6 @@ class nsWindow final : public nsWindowBase {
   TimeStamp GetMessageTimeStamp(LONG aEventTime) const;
   static void UpdateFirstEventTime(DWORD aEventTime);
   void FinishLiveResizing(ResizeState aNewState);
-  LayoutDeviceIntPoint GetTouchCoordinates(WPARAM wParam, LPARAM lParam);
   mozilla::Maybe<mozilla::PanGestureInput> ConvertTouchToPanGesture(
       const mozilla::MultiTouchInput& aTouchInput, PTOUCHINPUT aOriginalEvent);
   void DispatchTouchOrPanGestureInput(mozilla::MultiTouchInput& aTouchInput,
@@ -523,7 +527,6 @@ class nsWindow final : public nsWindowBase {
   /**
    * Window transparency helpers
    */
-#ifdef MOZ_XUL
  private:
   void SetWindowTranslucencyInner(nsTransparencyMode aMode);
   nsTransparencyMode GetWindowTranslucencyInner() const {
@@ -538,8 +541,6 @@ class nsWindow final : public nsWindowBase {
                                        mozilla::MouseButton aButton);
 
  protected:
-#endif  // MOZ_XUL
-
   static bool IsAsyncResponseEvent(UINT aMsg, LRESULT& aResult);
   void IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam);
 
@@ -567,6 +568,8 @@ class nsWindow final : public nsWindowBase {
   void DestroyDirectManipulation();
 
   bool NeedsToTrackWindowOcclusionState();
+
+  void AsyncUpdateWorkspaceID(Desktop& aDesktop);
 
  protected:
   nsCOMPtr<nsIWidget> mParent;
@@ -681,11 +684,9 @@ class nsWindow final : public nsWindowBase {
   ResizeState mResizeState;
 
   // Transparency
-#ifdef MOZ_XUL
   nsTransparencyMode mTransparencyMode;
   nsIntRegion mPossiblyTransparentRegion;
   MARGINS mGlassMargins;
-#endif  // MOZ_XUL
 
   // Win7 Gesture processing and management
   nsWinGesture mGesture;
@@ -742,6 +743,8 @@ class nsWindow final : public nsWindowBase {
   mozilla::EnumeratedArray<WindowButtonType, WindowButtonType::Count,
                            LayoutDeviceIntRect>
       mWindowBtnRect;
+
+  mozilla::DataMutex<Desktop> mDesktopId;
 };
 
 #endif  // Window_h__

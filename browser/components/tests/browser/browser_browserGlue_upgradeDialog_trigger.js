@@ -24,12 +24,10 @@ add_task(async function not_major_upgrade() {
 
 add_task(async function remote_disabled() {
   await ExperimentAPI.ready();
-  await ExperimentFakes.remoteDefaultsHelper({
-    feature: NimbusFeatures.upgradeDialog,
-    configuration: {
-      slug: "upgradeDialog_remoteDisabled",
-      variables: { enabled: false },
-      targeting: "true",
+  let doCleanup = await ExperimentFakes.enrollWithRollout({
+    featureId: NimbusFeatures.upgradeDialog.featureId,
+    value: {
+      enabled: false,
     },
   });
 
@@ -47,15 +45,7 @@ add_task(async function remote_disabled() {
     "disabled",
   ]);
 
-  // Re-enable back
-  await ExperimentFakes.remoteDefaultsHelper({
-    feature: NimbusFeatures.upgradeDialog,
-    configuration: {
-      slug: "upgradeDialog_remoteEnabled",
-      variables: { enabled: true },
-      targeting: "true",
-    },
-  });
+  await doCleanup();
 });
 
 add_task(async function enterprise_disabled() {
@@ -75,6 +65,11 @@ add_task(async function enterprise_disabled() {
 });
 
 add_task(async function show_major_upgrade() {
+  const defaultPrefs = Services.prefs.getDefaultBranch("");
+  const pref = "browser.startup.upgradeDialog.enabled";
+  const orig = defaultPrefs.getBoolPref(pref, true);
+  defaultPrefs.setBoolPref(pref, true);
+
   const promise = waitForDialog(async win => {
     await BrowserTestUtils.waitForEvent(win, "ready");
     win.close();
@@ -85,12 +80,14 @@ add_task(async function show_major_upgrade() {
   AssertEvents(
     "Upgrade dialog opened and closed from major upgrade",
     ["trigger", "reason", "satisfied"],
-    ["content", "show", "3-screens"],
-    ["content", "show", "upgrade-dialog-start-primary-button"],
+    ["content", "show", "2-screens"],
+    ["content", "show", "random-1"],
+    ["content", "show", "upgrade-dialog-colorway-primary-button"],
     ["content", "close", "external"]
   );
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  defaultPrefs.setBoolPref(pref, orig);
 });
 
 add_task(async function dont_reshow() {

@@ -10,12 +10,13 @@
 
 #include "nsFrameSelection.h"
 
-#include "mozilla/intl/Bidi.h"
+#include "mozilla/intl/BidiEmbeddingLevel.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
+#include "mozilla/IntegerRange.h"
 #include "mozilla/Logging.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ScrollTypes.h"
@@ -600,7 +601,7 @@ nsresult nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(
 }
 
 void nsFrameSelection::SetCaretBidiLevelAndMaybeSchedulePaint(
-    mozilla::intl::Bidi::EmbeddingLevel aLevel) {
+    mozilla::intl::BidiEmbeddingLevel aLevel) {
   // If the current level is undefined, we have just inserted new text.
   // In this case, we don't want to reset the keyboard language
   mCaret.mBidiLevel = aLevel;
@@ -611,14 +612,13 @@ void nsFrameSelection::SetCaretBidiLevelAndMaybeSchedulePaint(
   }
 }
 
-mozilla::intl::Bidi::EmbeddingLevel nsFrameSelection::GetCaretBidiLevel()
-    const {
+mozilla::intl::BidiEmbeddingLevel nsFrameSelection::GetCaretBidiLevel() const {
   return mCaret.mBidiLevel;
 }
 
 void nsFrameSelection::UndefineCaretBidiLevel() {
-  mCaret.mBidiLevel = mozilla::intl::Bidi::EmbeddingLevel(mCaret.mBidiLevel |
-                                                          BIDI_LEVEL_UNDEFINED);
+  mCaret.mBidiLevel = mozilla::intl::BidiEmbeddingLevel(mCaret.mBidiLevel |
+                                                        BIDI_LEVEL_UNDEFINED);
 }
 
 #ifdef PRINT_RANGE
@@ -665,10 +665,10 @@ static nsINode* GetClosestInclusiveTableCellAncestor(nsINode* aDomNode) {
 static nsDirection GetCaretDirection(const nsIFrame& aFrame,
                                      nsDirection aDirection,
                                      bool aVisualMovement) {
-  const mozilla::intl::Bidi::Direction paragraphDirection =
+  const mozilla::intl::BidiDirection paragraphDirection =
       nsBidiPresUtils::ParagraphDirection(&aFrame);
   return (aVisualMovement &&
-          paragraphDirection == mozilla::intl::Bidi::Direction::RTL)
+          paragraphDirection == mozilla::intl::BidiDirection::RTL)
              ? nsDirection(1 - aDirection)
              : aDirection;
 }
@@ -932,8 +932,8 @@ nsPrevNextBidiLevels nsFrameSelection::GetPrevNextBidiLevels(
   nsDirection direction;
 
   nsPrevNextBidiLevels levels{};
-  levels.SetData(nullptr, nullptr, mozilla::intl::Bidi::EmbeddingLevel::LTR(),
-                 mozilla::intl::Bidi::EmbeddingLevel::LTR());
+  levels.SetData(nullptr, nullptr, mozilla::intl::BidiEmbeddingLevel::LTR(),
+                 mozilla::intl::BidiEmbeddingLevel::LTR());
 
   currentFrame = GetFrameForNodeOffset(
       aNode, static_cast<int32_t>(aContentOffset), aHint, &currentOffset);
@@ -952,7 +952,7 @@ nsPrevNextBidiLevels nsFrameSelection::GetPrevNextBidiLevels(
   } else {
     // we are neither at the beginning nor at the end of the frame, so we have
     // no worries
-    mozilla::intl::Bidi::EmbeddingLevel currentLevel =
+    mozilla::intl::BidiEmbeddingLevel currentLevel =
         currentFrame->GetEmbeddingLevel();
     levels.SetData(currentFrame, currentFrame, currentLevel, currentLevel);
     return levels;
@@ -964,8 +964,8 @@ nsPrevNextBidiLevels nsFrameSelection::GetPrevNextBidiLevels(
           .mFrame;
 
   FrameBidiData currentBidi = currentFrame->GetBidiData();
-  mozilla::intl::Bidi::EmbeddingLevel currentLevel = currentBidi.embeddingLevel;
-  mozilla::intl::Bidi::EmbeddingLevel newLevel =
+  mozilla::intl::BidiEmbeddingLevel currentLevel = currentBidi.embeddingLevel;
+  mozilla::intl::BidiEmbeddingLevel newLevel =
       newFrame ? newFrame->GetEmbeddingLevel() : currentBidi.baseLevel;
 
   // If not jumping lines, disregard br frames, since they might be positioned
@@ -992,11 +992,10 @@ nsPrevNextBidiLevels nsFrameSelection::GetPrevNextBidiLevels(
 
 nsresult nsFrameSelection::GetFrameFromLevel(
     nsIFrame* aFrameIn, nsDirection aDirection,
-    mozilla::intl::Bidi::EmbeddingLevel aBidiLevel,
-    nsIFrame** aFrameOut) const {
+    mozilla::intl::BidiEmbeddingLevel aBidiLevel, nsIFrame** aFrameOut) const {
   NS_ENSURE_STATE(mPresShell);
-  mozilla::intl::Bidi::EmbeddingLevel foundLevel =
-      mozilla::intl::Bidi::EmbeddingLevel::LTR();
+  mozilla::intl::BidiEmbeddingLevel foundLevel =
+      mozilla::intl::BidiEmbeddingLevel::LTR();
   nsIFrame* foundFrame = aFrameIn;
 
   nsCOMPtr<nsIFrameEnumerator> frameTraversal;
@@ -1097,11 +1096,13 @@ void nsFrameSelection::MaintainedRange::AdjustNormalSelection(
 
   nsINode* rangeStartNode = mRange->GetStartContainer();
   nsINode* rangeEndNode = mRange->GetEndContainer();
-  int32_t rangeStartOffset = mRange->StartOffset();
-  int32_t rangeEndOffset = mRange->EndOffset();
+  const uint32_t rangeStartOffset = mRange->StartOffset();
+  const uint32_t rangeEndOffset = mRange->EndOffset();
 
-  const Maybe<int32_t> relToStart = nsContentUtils::ComparePoints(
-      rangeStartNode, rangeStartOffset, aContent, aOffset);
+  NS_ASSERTION(aOffset >= 0, "aOffset should not be negative");
+  const Maybe<int32_t> relToStart =
+      nsContentUtils::ComparePoints_AllowNegativeOffsets(
+          rangeStartNode, rangeStartOffset, aContent, aOffset);
   if (NS_WARN_IF(!relToStart)) {
     // Potentially handle this properly when Selection across Shadow DOM
     // boundary is implemented
@@ -1109,8 +1110,9 @@ void nsFrameSelection::MaintainedRange::AdjustNormalSelection(
     return;
   }
 
-  const Maybe<int32_t> relToEnd = nsContentUtils::ComparePoints(
-      rangeEndNode, rangeEndOffset, aContent, aOffset);
+  const Maybe<int32_t> relToEnd =
+      nsContentUtils::ComparePoints_AllowNegativeOffsets(
+          rangeEndNode, rangeEndOffset, aContent, aOffset);
   if (NS_WARN_IF(!relToEnd)) {
     // Potentially handle this properly when Selection across Shadow DOM
     // boundary is implemented
@@ -1332,7 +1334,7 @@ namespace {
 struct ParentAndOffset {
   explicit ParentAndOffset(const nsINode& aNode)
       : mParent{aNode.GetParent()},
-        mOffset{mParent ? mParent->ComputeIndexOf(&aNode) : 0} {}
+        mOffset{mParent ? mParent->ComputeIndexOf_Deprecated(&aNode) : 0} {}
 
   nsINode* mParent;
 
@@ -1516,12 +1518,21 @@ UniquePtr<SelectionDetails> nsFrameSelection::LookUpSelection(
     return nullptr;
   }
 
+  // TODO: Layout should use `uint32_t` for handling offset in DOM nodes
+  //       (for example: bug 1735262)
+  MOZ_ASSERT(aContentOffset >= 0);
+  MOZ_ASSERT(aContentLength >= 0);
+  if (MOZ_UNLIKELY(aContentOffset < 0) || MOZ_UNLIKELY(aContentLength < 0)) {
+    return nullptr;
+  }
+
   UniquePtr<SelectionDetails> details;
 
   for (size_t j = 0; j < ArrayLength(mDomSelections); j++) {
     if (mDomSelections[j]) {
       details = mDomSelections[j]->LookUpSelection(
-          aContent, aContentOffset, aContentLength, std::move(details),
+          aContent, static_cast<uint32_t>(aContentOffset),
+          static_cast<uint32_t>(aContentLength), std::move(details),
           kPresentSelectionTypes[j], aSlowCheck);
     }
   }
@@ -2481,7 +2492,7 @@ nsresult nsFrameSelection::TableSelection::HandleMouseUpOrDown(
         mDragSelectingCells, mStartSelectedCell.get());
 #endif
     // First check if we are extending a block selection
-    uint32_t rangeCount = aNormalSelection.RangeCount();
+    const uint32_t rangeCount = aNormalSelection.RangeCount();
 
     if (rangeCount > 0 && aMouseEvent->IsShift() && mAppendStartSelectedCell &&
         mAppendStartSelectedCell != aChildContent) {
@@ -2532,11 +2543,12 @@ nsresult nsFrameSelection::TableSelection::HandleMouseUpOrDown(
           "rangeCount=%d\n",
           rangeCount);
 #endif
-      for (uint32_t i = 0; i < rangeCount; i++) {
+      for (const uint32_t i : IntegerRange(rangeCount)) {
+        MOZ_ASSERT(aNormalSelection.RangeCount() == rangeCount);
         // Strong reference, because sometimes we want to remove
         // this range, and then we might be the only owner.
         RefPtr<nsRange> range = aNormalSelection.GetRangeAt(i);
-        if (!range) {
+        if (MOZ_UNLIKELY(!range)) {
           return NS_ERROR_NULL_POINTER;
         }
 
@@ -2714,7 +2726,7 @@ nsresult SelectCellElement(nsIContent* aCellElement,
   nsIContent* parent = aCellElement->GetParent();
 
   // Get child offset
-  int32_t offset = parent->ComputeIndexOf(aCellElement);
+  const int32_t offset = parent->ComputeIndexOf_Deprecated(aCellElement);
 
   return CreateAndAddRange(parent, offset, aNormalSelection);
 }
@@ -2977,7 +2989,8 @@ nsRange* nsFrameSelection::TableSelection::GetNextCellRange(
     const mozilla::dom::Selection& aNormalSelection) {
   MOZ_ASSERT(aNormalSelection.Type() == SelectionType::eNormal);
 
-  nsRange* range = aNormalSelection.GetRangeAt(mSelectedCellIndex);
+  nsRange* range =
+      aNormalSelection.GetRangeAt(AssertedCast<uint32_t>(mSelectedCellIndex));
 
   // Get first node in next range of selection - test if it's a cell
   if (!GetFirstCellNodeInRange(range)) {

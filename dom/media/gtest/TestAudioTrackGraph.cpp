@@ -74,6 +74,22 @@ struct SetPassThrough : public ControlMessage {
     mInputProcessing->SetPassThrough(mTrack->GraphImpl(), mPassThrough);
   }
 };
+
+struct SetRequestedInputChannelCount : public ControlMessage {
+  const RefPtr<AudioInputProcessing> mInputProcessing;
+  const uint32_t mChannelCount;
+
+  SetRequestedInputChannelCount(MediaTrack* aTrack,
+                                AudioInputProcessing* aInputProcessing,
+                                uint32_t aChannelCount)
+      : ControlMessage(aTrack),
+        mInputProcessing(aInputProcessing),
+        mChannelCount(aChannelCount) {}
+  void Run() override {
+    mInputProcessing->SetRequestedInputChannelCount(mTrack->GraphImpl(),
+                                                    mChannelCount);
+  }
+};
 #endif  // MOZ_WEBRTC
 
 class GoFaster : public ControlMessage {
@@ -622,6 +638,292 @@ TEST(TestAudioTrackGraph, AudioInputTrackDisabling)
     uint32_t startIdx = time * rate * 2 /* stereo */;
     EXPECT_EQ(rmsf32(&(data[startIdx]), 2, rate / 10), 0.0);
   }
+}
+
+// AudioTrackSet is a test helper, usually used with MediaTrackGraph and
+// MockCubeb. The typical use case is:
+//
+// MockCubeb* cubeb = new MockCubeb();
+// MediaTrackGraph* graph = MediaTrackGraph::GetInstance(..);
+//
+// auto started = Invoke([&] {
+//   set.Init(graph);
+//   return set.NotifyWhenDeviceStarted();
+// });
+//
+// RefPtr<SmartMockCubebStream> stream = WaitFor(cubeb->StreamInitEvent());
+// Unused << WaitFor(started);
+//
+// ... Do other checks
+//
+// DispatchFunction([&] { set.Uninit(); });
+// Unused << WaitFor(cubeb->StreamDestroyEvent());
+struct AudioTrackSet {
+ public:
+  explicit AudioTrackSet(CubebUtils::AudioDeviceID aInputDeviceId)
+      : mInputDeviceID(aInputDeviceId), mOutputTrackKey(nullptr) {}
+
+  ~AudioTrackSet() = default;
+
+  void Init(MediaTrackGraph* aGraph, uint32_t aInputChannelCount) {
+    mInputTrack = AudioInputTrack::Create(aGraph);
+    mOutputTrack = aGraph->CreateForwardedInputTrack(MediaSegment::AUDIO);
+    mOutputTrack->QueueSetAutoend(false);
+    mOutputTrack->AddAudioOutput(OutputTrackKey());
+    mPort = mOutputTrack->AllocateInputPort(mInputTrack);
+    mListener =
+        new AudioInputProcessing(aInputChannelCount, PRINCIPAL_HANDLE_NONE);
+    mInputTrack->GraphImpl()->AppendMessage(
+        MakeUnique<SetPassThrough>(mInputTrack, mListener, true));
+    mInputTrack->SetInputProcessing(mListener);
+    mInputTrack->GraphImpl()->AppendMessage(
+        MakeUnique<StartInputProcessing>(mInputTrack, mListener));
+    mInputTrack->OpenAudioInput(mInputDeviceID, mListener);
+  }
+
+  void Uninit() {
+    mOutputTrack->RemoveAudioOutput(OutputTrackKey());
+    mOutputTrack->Destroy();
+    mPort->Destroy();
+    mInputTrack->GraphImpl()->AppendMessage(
+        MakeUnique<StopInputProcessing>(mListener));
+    mInputTrack->CloseAudioInput();
+    mInputTrack->Destroy();
+
+    mPort = nullptr;
+    mOutputTrack = nullptr;
+    mListener = nullptr;
+    mInputTrack = nullptr;
+  }
+
+  AudioInputTrack* InputTrack() { return mInputTrack; }
+  AudioInputProcessing* InputProcessing() { return mListener; }
+
+  void AppendMessage(UniquePtr<ControlMessage>&& aMessage) {
+    mInputTrack->GraphImpl()->AppendMessage(std::move(aMessage));
+  }
+
+  RefPtr<MediaTrackGraph::GraphStartedPromise> NotifyWhenDeviceStarted() {
+    return mInputTrack->GraphImpl()->NotifyWhenDeviceStarted(mInputTrack);
+  }
+
+ private:
+  void* OutputTrackKey() { return const_cast<void*>(mOutputTrackKey); }
+
+  // Const member values set in ctor
+  const CubebUtils::AudioDeviceID mInputDeviceID;
+  const void* mOutputTrackKey;
+
+  // Member set in Init() and unset in Uninit()
+  RefPtr<AudioInputTrack> mInputTrack;
+  RefPtr<AudioInputProcessing> mListener;
+  RefPtr<ProcessedMediaTrack> mOutputTrack;
+  RefPtr<MediaInputPort> mPort;
+};
+
+TEST(TestAudioTrackGraph, SetRequestedInputChannelCount)
+{
+  MockCubeb* cubeb = new MockCubeb();
+  CubebUtils::ForceSetCubebContext(cubeb->AsCubebContext());
+
+  MediaTrackGraph* graph = MediaTrackGraph::GetInstance(
+      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*window*/ nullptr,
+      MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr);
+
+  const CubebUtils::AudioDeviceID deviceId = (void*)1;
+
+  RefPtr<SmartMockCubebStream> stream;
+
+  // Open a 2-channel input stream.
+  AudioTrackSet set(deviceId);
+  {
+    auto started = Invoke([&] {
+      set.Init(graph, 2);
+      return set.NotifyWhenDeviceStarted();
+    });
+
+    stream = WaitFor(cubeb->StreamInitEvent());
+    Unused << WaitFor(started);
+
+    EXPECT_TRUE(stream->mHasInput);
+    EXPECT_EQ(stream->InputChannels(), 2U);
+  }
+
+  // Request an input channel count of 1. This should re-create the input stream
+  // accordingly.
+  {
+    bool destroyed = false;
+    MediaEventListener destroyListener = cubeb->StreamDestroyEvent().Connect(
+        AbstractThread::GetCurrent(),
+        [&](const RefPtr<SmartMockCubebStream>& aDestroyed) {
+          destroyed = aDestroyed.get() == stream.get();
+        });
+
+    RefPtr<SmartMockCubebStream> newStream;
+    MediaEventListener restartListener = cubeb->StreamInitEvent().Connect(
+        AbstractThread::GetCurrent(),
+        [&](const RefPtr<SmartMockCubebStream>& aCreated) {
+          newStream = aCreated;
+        });
+
+    DispatchFunction([&] {
+      set.AppendMessage(MakeUnique<SetRequestedInputChannelCount>(
+          set.InputTrack(), set.InputProcessing(), 1));
+    });
+
+    SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
+        "TEST(TestAudioTrackGraph, SwitchingDriverIfMaxChannelChanged)"_ns,
+        [&] { return destroyed && newStream; });
+
+    destroyListener.Disconnect();
+    restartListener.Disconnect();
+
+    stream = newStream;
+
+    EXPECT_TRUE(stream->mHasInput);
+    EXPECT_EQ(stream->InputChannels(), 1U);
+  }
+
+  // Clean up.
+  DispatchFunction([&] { set.Uninit(); });
+  WaitFor(cubeb->StreamDestroyEvent());
+}
+
+// The GraphDriver's input channel count is always the same as the max input
+// channel among the GraphDriver's AudioInputTracks. This test checks if the
+// GraphDriver is switched when the max input channel among the AudioInputTracks
+// change.
+TEST(TestAudioTrackGraph, SwitchingDriverIfMaxChannelCountChanged)
+{
+  MockCubeb* cubeb = new MockCubeb();
+  CubebUtils::ForceSetCubebContext(cubeb->AsCubebContext());
+  auto unforcer = WaitFor(cubeb->ForceAudioThread()).unwrap();
+  Unused << unforcer;
+
+  MediaTrackGraph* graph = MediaTrackGraph::GetInstance(
+      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*window*/ nullptr,
+      MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr);
+
+  const CubebUtils::AudioDeviceID deviceId = (void*)1;
+
+  RefPtr<SmartMockCubebStream> stream;
+
+  // Open a 2-channel AudioTrackSet.
+  AudioTrackSet set1(deviceId);
+  {
+    auto started = Invoke([&] {
+      set1.Init(graph, 2);
+      return set1.NotifyWhenDeviceStarted();
+    });
+
+    stream = WaitFor(cubeb->StreamInitEvent());
+    EXPECT_TRUE(stream->mHasInput);
+    Unused << WaitFor(started);
+  }
+  EXPECT_EQ(stream->InputChannels(), 2U);
+
+  // Open a 1-channel AudioTrackSet and make sure we don't create another driver
+  // since the max-channel is still 2.
+  AudioTrackSet set2(deviceId);
+  {
+    bool destroyed = false;
+    MediaEventListener destroyListener = cubeb->StreamDestroyEvent().Connect(
+        AbstractThread::GetCurrent(), [&]() { destroyed = true; });
+
+    bool created = false;
+    MediaEventListener restartListener = cubeb->StreamInitEvent().Connect(
+        AbstractThread::GetCurrent(),
+        [&](const RefPtr<SmartMockCubebStream>& /* aCreated */) {
+          created = true;
+        });
+
+    Unused << WaitFor(Invoke([&] {
+      set2.Init(graph, 1);
+      return set2.NotifyWhenDeviceStarted();
+    }));
+
+    // Wait for a second to see if driver changes.
+    DispatchFunction([&] { set2.AppendMessage(MakeUnique<GoFaster>(cubeb)); });
+    uint32_t totalFrames = 0;
+    WaitUntil(stream->FramesVerifiedEvent(), [&](uint32_t aFrames) {
+      totalFrames += aFrames;
+      return totalFrames > static_cast<uint32_t>(graph->GraphRate());
+    });
+    cubeb->DontGoFaster();
+
+    destroyListener.Disconnect();
+    restartListener.Disconnect();
+
+    EXPECT_FALSE(destroyed);
+    EXPECT_FALSE(created);
+  }
+
+  // Close the 2-channel AudioTrackSet and wait to a new driver.
+  {
+    bool destroyed = false;
+    MediaEventListener destroyListener = cubeb->StreamDestroyEvent().Connect(
+        AbstractThread::GetCurrent(),
+        [&](const RefPtr<SmartMockCubebStream>& aDestroyed) {
+          destroyed = aDestroyed.get() == stream.get();
+        });
+
+    RefPtr<SmartMockCubebStream> newStream;
+    MediaEventListener restartListener = cubeb->StreamInitEvent().Connect(
+        AbstractThread::GetCurrent(),
+        [&](const RefPtr<SmartMockCubebStream>& aCreated) {
+          newStream = aCreated;
+        });
+
+    DispatchFunction([&] { set1.Uninit(); });
+
+    SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
+        "TEST(TestAudioTrackGraph, SwitchingDriverIfMaxChannelChanged)"_ns,
+        [&] { return destroyed && newStream; });
+
+    destroyListener.Disconnect();
+    restartListener.Disconnect();
+
+    stream = newStream;
+  }
+
+  EXPECT_EQ(stream->InputChannels(), 1U);
+
+  // Re-open the first AudioTrackSet, set it to 2-channel, and make sure we
+  // create a new driver since the max-channel becomes 2 now.
+  {
+    bool destroyed = false;
+    MediaEventListener destroyListener = cubeb->StreamDestroyEvent().Connect(
+        AbstractThread::GetCurrent(),
+        [&](const RefPtr<SmartMockCubebStream>& aDestroyed) {
+          destroyed = aDestroyed.get() == stream.get();
+        });
+
+    RefPtr<SmartMockCubebStream> newStream;
+    MediaEventListener restartListener = cubeb->StreamInitEvent().Connect(
+        AbstractThread::GetCurrent(),
+        [&](const RefPtr<SmartMockCubebStream>& aCreated) {
+          newStream = aCreated;
+        });
+
+    DispatchFunction([&] { set1.Init(graph, 2); });
+
+    SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
+        "TEST(TestAudioTrackGraph, SwitchingDriverIfMaxChannelChanged)"_ns,
+        [&] { return destroyed && newStream; });
+
+    destroyListener.Disconnect();
+    restartListener.Disconnect();
+
+    stream = newStream;
+  }
+  EXPECT_EQ(stream->InputChannels(), 2U);
+
+  // Clean up
+  DispatchFunction([&] { set2.Uninit(); });
+  DispatchFunction([&] { set1.Uninit(); });
+  RefPtr<SmartMockCubebStream> destroyedStream =
+      WaitFor(cubeb->StreamDestroyEvent());
+  EXPECT_EQ(destroyedStream.get(), stream.get());
 }
 
 void TestCrossGraphPort(uint32_t aInputRate, uint32_t aOutputRate,

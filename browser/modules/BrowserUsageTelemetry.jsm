@@ -37,6 +37,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "browser.engagement.recent_visited_origins.expiry"
 );
 
+Cu.importGlobalProperties(["Glean"]);
+
 // The upper bound for the count of the visited unique domain names.
 const MAX_UNIQUE_VISITED_DOMAINS = 100;
 
@@ -116,6 +118,7 @@ const PREFERENCES_PANES = [
   "paneSync",
   "paneContainers",
   "paneExperimental",
+  "paneMoreFromMozilla",
 ];
 
 const IGNORABLE_EVENTS = new WeakMap();
@@ -340,6 +343,7 @@ let URICountListener = {
       TOTAL_URI_COUNT_NORMAL_AND_PRIVATE_MODE_SCALAR_NAME,
       1
     );
+    Glean.browserEngagement.uriCount.add(1);
 
     if (!shouldCountURI) {
       return;
@@ -431,7 +435,7 @@ let BrowserUsageTelemetry = {
     this._setupAfterRestore();
     this._inited = true;
 
-    Services.prefs.addObserver("browser.tabs.drawInTitlebar", this);
+    Services.prefs.addObserver("browser.tabs.inTitlebar", this);
 
     this._recordUITelemetry();
 
@@ -494,7 +498,7 @@ let BrowserUsageTelemetry = {
         break;
       case "nsPref:changed":
         switch (data) {
-          case "browser.tabs.drawInTitlebar":
+          case "browser.tabs.inTitlebar":
             this._recordWidgetChange(
               "titlebar",
               Services.appinfo.drawInTitlebar ? "off" : "on",
@@ -810,7 +814,10 @@ let BrowserUsageTelemetry = {
 
     // Find the actual element we're interested in.
     let node = sourceEvent.target;
-    while (!UI_TARGET_ELEMENTS.includes(node.localName)) {
+    while (
+      !UI_TARGET_ELEMENTS.includes(node.localName) &&
+      !node.classList?.contains("wants-telemetry")
+    ) {
       node = node.parentNode;
       if (!node) {
         // A click on a space or label or something we're not interested in.
@@ -822,7 +829,7 @@ let BrowserUsageTelemetry = {
     let source = this._getWidgetContainer(node);
 
     if (item && source) {
-      let scalar = `browser.ui.interaction.${source.replace("-", "_")}`;
+      let scalar = `browser.ui.interaction.${source.replace(/-/g, "_")}`;
       Services.telemetry.keyedScalarAdd(scalar, telemetryId(item), 1);
       if (SET_USAGECOUNT_PREF_BUTTONS.includes(item)) {
         let pref = `browser.engagement.${item}.used-count`;

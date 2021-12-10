@@ -16,6 +16,7 @@
 
 #include "mozilla/Base64.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/ErrorNames.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/IntentionalCrash.h"
 #include "mozilla/PerformanceMetricsCollector.h"
@@ -193,7 +194,7 @@ void ChromeUtils::AddProfilerMarker(
     GlobalObject& aGlobal, const nsACString& aName,
     const ProfilerMarkerOptionsOrDouble& aOptions,
     const Optional<nsACString>& aText) {
-  if (!profiler_thread_is_being_profiled()) {
+  if (!profiler_thread_is_being_profiled_for_markers()) {
     return;
   }
 
@@ -288,6 +289,12 @@ void ChromeUtils::AddProfilerMarker(
       profiler_add_marker(aName, category, std::move(options));
     }
   }
+}
+
+/* static */
+void ChromeUtils::GetXPCOMErrorName(GlobalObject& aGlobal, uint32_t aErrorCode,
+                                    nsACString& aRetval) {
+  GetErrorName((nsresult)aErrorCode, aRetval);
 }
 
 /* static */
@@ -852,6 +859,8 @@ static WebIDLProcType ProcTypeToWebIDL(mozilla::ProcType aType) {
       "In order for this static cast to be okay, "
       "WebIDLProcType must match ProcType exactly");
 
+  // These must match the similar ones in E10SUtils.jsm, RemoteTypes.h,
+  // ProcInfo.h and ChromeUtils.webidl
   switch (aType) {
     PROCTYPE_TO_WEBIDL_CASE(Web, Web);
     PROCTYPE_TO_WEBIDL_CASE(WebIsolated, WebIsolated);
@@ -860,18 +869,22 @@ static WebIDLProcType ProcTypeToWebIDL(mozilla::ProcType aType) {
     PROCTYPE_TO_WEBIDL_CASE(PrivilegedAbout, Privilegedabout);
     PROCTYPE_TO_WEBIDL_CASE(PrivilegedMozilla, Privilegedmozilla);
     PROCTYPE_TO_WEBIDL_CASE(WebCOOPCOEP, WithCoopCoep);
+    PROCTYPE_TO_WEBIDL_CASE(WebServiceWorker, WebServiceWorker);
     PROCTYPE_TO_WEBIDL_CASE(WebLargeAllocation, WebLargeAllocation);
-    PROCTYPE_TO_WEBIDL_CASE(Browser, Browser);
-    PROCTYPE_TO_WEBIDL_CASE(IPDLUnitTest, IpdlUnitTest);
-    PROCTYPE_TO_WEBIDL_CASE(GMPlugin, GmpPlugin);
-    PROCTYPE_TO_WEBIDL_CASE(GPU, Gpu);
-    PROCTYPE_TO_WEBIDL_CASE(VR, Vr);
-    PROCTYPE_TO_WEBIDL_CASE(RDD, Rdd);
-    PROCTYPE_TO_WEBIDL_CASE(Socket, Socket);
-    PROCTYPE_TO_WEBIDL_CASE(RemoteSandboxBroker, RemoteSandboxBroker);
-#ifdef MOZ_ENABLE_FORKSERVER
-    PROCTYPE_TO_WEBIDL_CASE(ForkServer, ForkServer);
-#endif
+#define GECKO_PROCESS_TYPE(enum_value, enum_name, string_name, proc_typename, \
+                           process_bin_type, procinfo_typename,               \
+                           webidl_typename, allcaps_name)                     \
+  PROCTYPE_TO_WEBIDL_CASE(procinfo_typename, webidl_typename);
+#define SKIP_PROCESS_TYPE_CONTENT
+#ifndef MOZ_ENABLE_FORKSERVER
+#  define SKIP_PROCESS_TYPE_FORKSERVER
+#endif  // MOZ_ENABLE_FORKSERVER
+#include "mozilla/GeckoProcessTypes.h"
+#undef SKIP_PROCESS_TYPE_CONTENT
+#ifndef MOZ_ENABLE_FORKSERVER
+#  undef SKIP_PROCESS_TYPE_FORKSERVER
+#endif  // MOZ_ENABLE_FORKSERVER
+#undef GECKO_PROCESS_TYPE
     PROCTYPE_TO_WEBIDL_CASE(Preallocated, Preallocated);
     PROCTYPE_TO_WEBIDL_CASE(Unknown, Unknown);
   }
@@ -942,36 +955,28 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
             // These processes are handled separately.
             return;
           }
-          case GeckoProcessType::GeckoProcessType_Default:
-            type = mozilla::ProcType::Browser;
-            break;
-          case GeckoProcessType::GeckoProcessType_GMPlugin:
-            type = mozilla::ProcType::GMPlugin;
-            break;
-          case GeckoProcessType::GeckoProcessType_GPU:
-            type = mozilla::ProcType::GPU;
-            break;
-          case GeckoProcessType::GeckoProcessType_VR:
-            type = mozilla::ProcType::VR;
-            break;
-          case GeckoProcessType::GeckoProcessType_RDD:
-            type = mozilla::ProcType::RDD;
-            break;
-          case GeckoProcessType::GeckoProcessType_Socket:
-            type = mozilla::ProcType::Socket;
-            break;
-          case GeckoProcessType::GeckoProcessType_RemoteSandboxBroker:
-            type = mozilla::ProcType::RemoteSandboxBroker;
-            break;
-#ifdef MOZ_ENABLE_FORKSERVER
-          case GeckoProcessType::GeckoProcessType_ForkServer:
-            type = mozilla::ProcType::ForkServer;
-            break;
-#endif
+#define GECKO_PROCESS_TYPE(enum_value, enum_name, string_name, proc_typename, \
+                           process_bin_type, procinfo_typename,               \
+                           webidl_typename, allcaps_name)                     \
+  case GeckoProcessType::GeckoProcessType_##enum_name: {                      \
+    type = mozilla::ProcType::procinfo_typename;                              \
+    break;                                                                    \
+  }
+#define SKIP_PROCESS_TYPE_CONTENT
+#ifndef MOZ_ENABLE_FORKSERVER
+#  define SKIP_PROCESS_TYPE_FORKSERVER
+#endif  // MOZ_ENABLE_FORKSERVER
+#include "mozilla/GeckoProcessTypes.h"
+#ifndef MOZ_ENABLE_FORKSERVER
+#  undef SKIP_PROCESS_TYPE_FORKSERVER
+#endif  // MOZ_ENABLE_FORKSERVER
+#undef SKIP_PROCESS_TYPE_CONTENT
+#undef GECKO_PROCESS_TYPE
           default:
             // Leave the default Unknown value in |type|.
             break;
         }
+
         requests.EmplaceBack(
             /* aPid = */ childPid,
             /* aProcessType = */ type,
@@ -1018,6 +1023,8 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
       // `DEFAULT_REMOTE_TYPE` is a prefix of
       // `FISSION_WEB_REMOTE_TYPE`.
       type = mozilla::ProcType::WebIsolated;
+    } else if (StringBeginsWith(remoteType, SERVICEWORKER_REMOTE_TYPE)) {
+      type = mozilla::ProcType::WebServiceWorker;
     } else if (StringBeginsWith(remoteType,
                                 WITH_COOP_COEP_REMOTE_TYPE_PREFIX)) {
       type = mozilla::ProcType::WebCOOPCOEP;
@@ -1161,6 +1168,15 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
 
   // sending back the promise instance
   return domPromise.forget();
+}
+
+/* static */
+bool ChromeUtils::VsyncEnabled(GlobalObject& aGlobal) {
+  mozilla::gfx::VsyncSource* vsyncSource =
+      gfxPlatform::GetPlatform()->GetHardwareVsync();
+  MOZ_ASSERT(vsyncSource != nullptr);
+
+  return vsyncSource->GetGlobalDisplay().IsVsyncEnabled();
 }
 
 /* static */

@@ -192,7 +192,7 @@ nsCertOverrideService::nsCertOverrideService()
       do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
   MOZ_ASSERT(target);
 
-  mWriterTaskQueue = new TaskQueue(target.forget());
+  mWriterTaskQueue = new TaskQueue(target.forget(), "CertOverrideService");
 }
 
 nsCertOverrideService::~nsCertOverrideService() = default;
@@ -741,48 +741,6 @@ void nsCertOverrideService::CountPermanentOverrideTelemetry(
   }
   Telemetry::Accumulate(Telemetry::SSL_PERMANENT_CERT_ERROR_OVERRIDES,
                         overrideCount);
-}
-
-static bool matchesDBKey(nsIX509Cert* cert, const nsCString& matchDbKey) {
-  nsAutoCString dbKey;
-  nsresult rv = cert->GetDbKey(dbKey);
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  return dbKey.Equals(matchDbKey);
-}
-
-NS_IMETHODIMP
-nsCertOverrideService::IsCertUsedForOverrides(nsIX509Cert* aCert,
-                                              bool aCheckTemporaries,
-                                              bool aCheckPermanents,
-                                              uint32_t* aRetval) {
-  NS_ENSURE_ARG(aCert);
-  NS_ENSURE_ARG(aRetval);
-
-  uint32_t counter = 0;
-  {
-    MutexAutoLock lock(mMutex);
-    for (auto iter = mSettingsTable.Iter(); !iter.Done(); iter.Next()) {
-      RefPtr<nsCertOverride> settings = iter.Get()->mSettings;
-
-      if ((settings->mIsTemporary && !aCheckTemporaries) ||
-          (!settings->mIsTemporary && !aCheckPermanents)) {
-        continue;
-      }
-
-      if (matchesDBKey(aCert, settings->mDBKey)) {
-        nsAutoCString certFingerprint;
-        nsresult rv = GetCertSha256Fingerprint(aCert, certFingerprint);
-        if (NS_SUCCEEDED(rv) &&
-            settings->mFingerprint.Equals(certFingerprint)) {
-          counter++;
-        }
-      }
-    }
-  }
-  *aRetval = counter;
-  return NS_OK;
 }
 
 static bool IsDebugger() {

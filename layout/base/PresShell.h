@@ -369,6 +369,8 @@ class PresShell final : public nsStubDocumentObserver,
   void MaybeNotifyShowDynamicToolbar();
 #endif  // defined(MOZ_WIDGET_ANDROID)
 
+  void RefreshZoomConstraintsForScreenSizeChange();
+
  private:
   /**
    * This is what ResizeReflowIgnoreOverride does when not shrink-wrapping (that
@@ -485,9 +487,16 @@ class PresShell final : public nsStubDocumentObserver,
    * Destroy the frames for aElement, and reconstruct them asynchronously if
    * needed.
    *
-   * Note that this may destroy frames for an ancestor instead.
+   * Note that this may destroy frames for an arbitrary ancestor, depending on
+   * the frame tree structure.
    */
   void DestroyFramesForAndRestyle(Element* aElement);
+
+  /**
+   * Called when a ShadowRoot will be attached to an element (and thus the flat
+   * tree children will go away).
+   */
+  void ShadowRootWillBeAttached(Element& aElement);
 
   /**
    * Handles all the layout stuff needed when the slot assignment for an element
@@ -2742,10 +2751,6 @@ class PresShell final : public nsStubDocumentObserver,
     already_AddRefed<PresShell> GetParentPresShellForEventHandling() {
       return mPresShell->GetParentPresShellForEventHandling();
     }
-    void PushDelayedEventIntoQueue(UniquePtr<DelayedEvent>&& aDelayedEvent) {
-      mPresShell->mDelayedEvents.AppendElement(std::move(aDelayedEvent));
-    }
-
     OwningNonNull<PresShell> mPresShell;
     AutoCurrentEventInfoSetter* mCurrentEventInfoSetter;
     static TimeStamp sLastInputCreated;

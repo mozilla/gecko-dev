@@ -2797,6 +2797,8 @@ nsresult Http2Session::ReadSegmentsAgain(nsAHttpSegmentReader* reader,
     if (mAttemptingEarlyData) {
       // We can still try to send our preamble as early-data
       *countRead = mOutputQueueUsed - mOutputQueueSent;
+      LOG(("Http2Session %p nothing to send because of 0RTT failed", this));
+      Unused << ResumeRecv();
     }
     return *countRead ? NS_OK : NS_BASE_STREAM_WOULD_BLOCK;
   }
@@ -4432,7 +4434,13 @@ nsresult Http2Session::OnHeadersAvailable(nsAHttpTransaction* transaction,
                                          reset);
 }
 
-bool Http2Session::IsReused() { return mConnection->IsReused(); }
+bool Http2Session::IsReused() {
+  if (!mConnection) {
+    return false;
+  }
+
+  return mConnection->IsReused();
+}
 
 nsresult Http2Session::PushBack(const char* buf, uint32_t len) {
   return mConnection->PushBack(buf, len);
@@ -4662,6 +4670,8 @@ bool Http2Session::CanAcceptWebsocket() {
   return mEnableWebsockets &&
          (mPeerAllowsWebsockets || !mProcessedWaitingWebsockets);
 }
+
+void Http2Session::SanityCheck() { MOZ_DIAGNOSTIC_ASSERT(mConnection); }
 
 }  // namespace net
 }  // namespace mozilla

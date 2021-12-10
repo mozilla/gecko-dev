@@ -20,6 +20,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/GeckoMVMContext.h"
 #include "mozilla/IMEStateManager.h"
+#include "mozilla/IntegerRange.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/Likely.h"
@@ -146,17 +147,15 @@
 // For style data reconstruction
 #include "nsStyleChangeList.h"
 #include "nsCSSFrameConstructor.h"
-#ifdef MOZ_XUL
-#  include "nsMenuFrame.h"
-#  include "nsTreeBodyFrame.h"
-#  include "XULTreeElement.h"
-#  include "nsMenuPopupFrame.h"
-#  include "nsTreeColumns.h"
-#  include "nsIDOMXULMultSelectCntrlEl.h"
-#  include "nsIDOMXULSelectCntrlItemEl.h"
-#  include "nsIDOMXULMenuListElement.h"
-#  include "nsXULElement.h"
-#endif  // MOZ_XUL
+#include "nsMenuFrame.h"
+#include "nsTreeBodyFrame.h"
+#include "XULTreeElement.h"
+#include "nsMenuPopupFrame.h"
+#include "nsTreeColumns.h"
+#include "nsIDOMXULMultSelectCntrlEl.h"
+#include "nsIDOMXULSelectCntrlItemEl.h"
+#include "nsIDOMXULMenuListElement.h"
+#include "nsXULElement.h"
 
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "gfxPlatform.h"
@@ -1956,6 +1955,12 @@ void PresShell::TryUnsuppressPaintingSoon() {
   }
 }
 
+void PresShell::RefreshZoomConstraintsForScreenSizeChange() {
+  if (mZoomConstraintsClient) {
+    mZoomConstraintsClient->ScreenSizeChanged();
+  }
+}
+
 nsresult PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight,
                                  ResizeReflowOptions aOptions) {
   if (mZoomConstraintsClient) {
@@ -2978,47 +2983,82 @@ void PresShell::SlotAssignmentWillChange(Element& aElement,
 }
 
 #ifdef DEBUG
-static void AssertNoFramesInSubtree(nsIContent* aContent) {
-  for (nsINode* node : ShadowIncludingTreeIterator(*aContent)) {
+static void AssertNoFramesOrStyleDataInDescendants(Element& aElement) {
+  for (nsINode* node : ShadowIncludingTreeIterator(aElement)) {
     nsIContent* c = nsIContent::FromNode(node);
+    if (c == &aElement) {
+      continue;
+    }
     MOZ_ASSERT(!c->GetPrimaryFrame());
+    MOZ_ASSERT(!c->IsElement() || !c->AsElement()->HasServoData());
   }
 }
 #endif
 
 void PresShell::DestroyFramesForAndRestyle(Element* aElement) {
 #ifdef DEBUG
-  auto postCondition =
-      mozilla::MakeScopeExit([&]() { AssertNoFramesInSubtree(aElement); });
+  auto postCondition = MakeScopeExit([&]() {
+    MOZ_ASSERT(!aElement->GetPrimaryFrame());
+    AssertNoFramesOrStyleDataInDescendants(*aElement);
+  });
 #endif
 
   MOZ_ASSERT(aElement);
-  if (MOZ_UNLIKELY(!mDidInitialize)) {
+  if (!aElement->HasServoData()) {
+    // Nothing to do here, the element already is out of the flat tree or is not
+    // styled.
     return;
   }
-
-  if (!aElement->GetFlattenedTreeParentNode()) {
-    // Nothing to do here, the element already is out of the frame tree.
-    return;
-  }
-
-  nsAutoScriptBlocker scriptBlocker;
 
   // Mark ourselves as not safe to flush while we're doing frame destruction.
+  nsAutoScriptBlocker scriptBlocker;
   ++mChangeNestCount;
 
   const bool didReconstruct = FrameConstructor()->DestroyFramesFor(aElement);
-
   // Clear the style data from all the flattened tree descendants, but _not_
   // from us, since otherwise we wouldn't see the reframe.
   RestyleManager::ClearServoDataFromSubtree(aElement,
                                             RestyleManager::IncludeRoot::No);
-
   auto changeHint =
       didReconstruct ? nsChangeHint(0) : nsChangeHint_ReconstructFrame;
-
   mPresContext->RestyleManager()->PostRestyleEvent(
       aElement, RestyleHint::RestyleSubtree(), changeHint);
+
+  --mChangeNestCount;
+}
+
+void PresShell::ShadowRootWillBeAttached(Element& aElement) {
+#ifdef DEBUG
+  auto postCondition = MakeScopeExit(
+      [&]() { AssertNoFramesOrStyleDataInDescendants(aElement); });
+#endif
+
+  if (!aElement.HasServoData()) {
+    // Nothing to do here, the element already is out of the flat tree or is not
+    // styled.
+    return;
+  }
+
+  if (!aElement.HasChildren()) {
+    // The element has no children, just avoid the work.
+    return;
+  }
+
+  // Mark ourselves as not safe to flush while we're doing frame destruction.
+  nsAutoScriptBlocker scriptBlocker;
+  ++mChangeNestCount;
+
+  // NOTE(emilio): We use FlattenedChildIterator intentionally here (rather than
+  // StyleChildrenIterator), since we don't want to remove ::before / ::after
+  // content.
+  FlattenedChildIterator iter(&aElement);
+  nsCSSFrameConstructor* fc = FrameConstructor();
+  for (nsIContent* c = iter.GetNextChild(); c; c = iter.GetNextChild()) {
+    fc->DestroyFramesFor(c);
+    if (c->IsElement()) {
+      RestyleManager::ClearServoDataFromSubtree(c->AsElement());
+    }
+  }
 
   --mChangeNestCount;
 }
@@ -3477,7 +3517,7 @@ static void ScrollToShowRect(nsIScrollableFrame* aFrameAsScrollable,
   bool smoothScroll =
       (aScrollFlags & ScrollFlags::ScrollSmooth) ||
       ((aScrollFlags & ScrollFlags::ScrollSmoothAuto) && autoBehaviorIsSmooth);
-  if (StaticPrefs::layout_css_scroll_behavior_enabled() && smoothScroll) {
+  if (smoothScroll) {
     scrollMode = ScrollMode::SmoothMsd;
   }
   nsIFrame* frame = do_QueryFrame(aFrameAsScrollable);
@@ -3485,7 +3525,10 @@ static void ScrollToShowRect(nsIScrollableFrame* aFrameAsScrollable,
   aFrameAsScrollable->ScrollTo(scrollPt, scrollMode, &allowedRange,
                                aScrollFlags & ScrollFlags::ScrollSnap
                                    ? nsIScrollbarMediator::ENABLE_SNAP
-                                   : nsIScrollbarMediator::DISABLE_SNAP);
+                                   : nsIScrollbarMediator::DISABLE_SNAP,
+                               aScrollFlags & ScrollFlags::TriggeredByScript
+                                   ? ScrollTriggeredByScript::Yes
+                                   : ScrollTriggeredByScript::No);
   if (!weakFrame.IsAlive()) {
     return;
   }
@@ -3615,17 +3658,19 @@ void PresShell::DoScrollContentIntoView() {
   bool haveRect = false;
   bool useWholeLineHeightForInlines = data->mContentScrollVAxis.mWhenToScroll !=
                                       WhenToScroll::IfNotFullyVisible;
-  // Reuse the same line iterator across calls to AccumulateFrameBounds.  We set
-  // it every time we detect a new block (stored in prevBlock).
-  nsIFrame* prevBlock = nullptr;
-  nsAutoLineIterator lines;
-  // The last line we found a continuation on in |lines|.  We assume that later
-  // continuations cannot come on earlier lines.
-  int32_t curLine = 0;
-  do {
-    AccumulateFrameBounds(container, frame, useWholeLineHeightForInlines,
-                          frameBounds, haveRect, prevBlock, lines, curLine);
-  } while ((frame = frame->GetNextContinuation()));
+  {
+    nsIFrame* prevBlock = nullptr;
+    // Reuse the same line iterator across calls to AccumulateFrameBounds.
+    // We set it every time we detect a new block (stored in prevBlock).
+    nsAutoLineIterator lines;
+    // The last line we found a continuation on in |lines|.  We assume that
+    // later continuations cannot come on earlier lines.
+    int32_t curLine = 0;
+    do {
+      AccumulateFrameBounds(container, frame, useWholeLineHeightForInlines,
+                            frameBounds, haveRect, prevBlock, lines, curLine);
+    } while ((frame = frame->GetNextContinuation()));
+  }
 
   ScrollFrameRectIntoView(container, frameBounds, scrollMargin,
                           data->mContentScrollVAxis, data->mContentScrollHAxis,
@@ -5157,10 +5202,10 @@ already_AddRefed<SourceSurface> PresShell::RenderSelection(
   // iterate over each range and collect them into the rangeItems array.
   // This is done so that the size of selection can be determined so as
   // to allocate a surface area
-  uint32_t numRanges = aSelection->RangeCount();
-  NS_ASSERTION(numRanges > 0, "RenderSelection called with no selection");
-
-  for (uint32_t r = 0; r < numRanges; r++) {
+  const uint32_t rangeCount = aSelection->RangeCount();
+  NS_ASSERTION(rangeCount > 0, "RenderSelection called with no selection");
+  for (const uint32_t r : IntegerRange(rangeCount)) {
+    MOZ_ASSERT(aSelection->RangeCount() == rangeCount);
     RefPtr<nsRange> range = aSelection->GetRangeAt(r);
 
     UniquePtr<RangePaintInfo> info = CreateRangePaintInfo(range, area, true);
@@ -5293,29 +5338,29 @@ nscolor PresShell::GetDefaultBackgroundColorToDraw() {
     return NS_RGB(255, 255, 255);
   }
 
-  nscolor backgroundColor = mPresContext->DefaultBackgroundColor();
-  if (backgroundColor != NS_RGB(255, 255, 255)) {
-    // Return non-default color.
-    return backgroundColor;
-  }
-
-  // Use a dark background for top-level about:blank that is inaccessible to
-  // content JS.
-  //
-  // TODO(emilio): We should make this work for content-accessible documents
-  // based on the `<meta name=color-scheme>` meta tag.
   Document* doc = GetDocument();
-  BrowsingContext* bc = doc->GetBrowsingContext();
-  if (bc && bc->IsTop() && !bc->HasOpener() && doc->GetDocumentURI() &&
-      NS_IsAboutBlank(doc->GetDocumentURI()) &&
-      doc->PreferredColorScheme(Document::IgnoreRFP::Yes) ==
-          ColorScheme::Dark) {
-    auto color = LookAndFeel::ColorID::WindowBackground;
-    return LookAndFeel::Color(color, ColorScheme::Dark,
-                              LookAndFeel::ShouldUseStandins(*doc, color));
-  }
+  auto colorScheme = [&] {
+    // Use a dark background for top-level about:blank that is inaccessible to
+    // content JS.
+    {
+      BrowsingContext* bc = doc->GetBrowsingContext();
+      if (bc && bc->IsTop() && !bc->HasOpener() && doc->GetDocumentURI() &&
+          NS_IsAboutBlank(doc->GetDocumentURI())) {
+        return doc->PreferredColorScheme(Document::IgnoreRFP::Yes);
+      }
+    }
+    // Prefer the root color-scheme (since generally the default canvas
+    // background comes from the root element's background-color), and fall back
+    // to the default color-scheme if not available.
+    if (auto* frame = mFrameConstructor->GetRootElementStyleFrame()) {
+      return LookAndFeel::ColorSchemeForFrame(frame);
+    }
+    return doc->DefaultColorScheme();
+  }();
 
-  return backgroundColor;
+  return mPresContext->PrefSheetPrefs()
+      .ColorsFor(colorScheme)
+      .mDefaultBackground;
 }
 
 void PresShell::UpdateCanvasBackground() {
@@ -7598,7 +7643,7 @@ bool PresShell::EventHandler::MaybeDiscardOrDelayKeyboardEvent(
   } else if (!mPresShell->mNoDelayedKeyEvents) {
     UniquePtr<DelayedKeyEvent> delayedKeyEvent =
         MakeUnique<DelayedKeyEvent>(aGUIEvent->AsKeyboardEvent());
-    PushDelayedEventIntoQueue(std::move(delayedKeyEvent));
+    mPresShell->mDelayedEvents.AppendElement(std::move(delayedKeyEvent));
   }
   aGUIEvent->mFlags.mIsSuppressedOrDelayed = true;
   return true;
@@ -7623,9 +7668,11 @@ bool PresShell::EventHandler::MaybeDiscardOrDelayMouseEvent(
                     aGUIEvent->mMessage != eMouseMove,
                 !InputTaskManager::Get()->IsSuspended());
 
+  RefPtr<PresShell> ps = aFrameToHandleEvent->PresShell();
+
   if (aGUIEvent->mMessage == eMouseDown) {
-    mPresShell->mNoDelayedMouseEvents = true;
-  } else if (!mPresShell->mNoDelayedMouseEvents &&
+    ps->mNoDelayedMouseEvents = true;
+  } else if (!ps->mNoDelayedMouseEvents &&
              (aGUIEvent->mMessage == eMouseUp ||
               // contextmenu is triggered after right mouseup on Windows and
               // right mousedown on other platforms.
@@ -7633,7 +7680,7 @@ bool PresShell::EventHandler::MaybeDiscardOrDelayMouseEvent(
               aGUIEvent->mMessage == eMouseExitFromWidget)) {
     UniquePtr<DelayedMouseEvent> delayedMouseEvent =
         MakeUnique<DelayedMouseEvent>(aGUIEvent->AsMouseEvent());
-    PushDelayedEventIntoQueue(std::move(delayedMouseEvent));
+    ps->mDelayedEvents.AppendElement(std::move(delayedMouseEvent));
   }
 
   // If there is a suppressed event listener associated with the document,
@@ -8805,7 +8852,6 @@ nsresult PresShell::HandleDOMEventWithTarget(nsIContent* aTargetContent,
 
 bool PresShell::EventHandler::AdjustContextMenuKeyEvent(
     WidgetMouseEvent* aMouseEvent) {
-#ifdef MOZ_XUL
   // if a menu is open, open the context menu relative to the active item on the
   // menu.
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
@@ -8831,7 +8877,6 @@ bool PresShell::EventHandler::AdjustContextMenuKeyEvent(
       return true;
     }
   }
-#endif
 
   // If we're here because of the key-equiv for showing context menus, we
   // have to twiddle with the NS event to make sure the context menu comes
@@ -9028,7 +9073,6 @@ void PresShell::EventHandler::GetCurrentItemAndPositionForElement(
   bool istree = false, checkLineHeight = true;
   nscoord extraTreeY = 0;
 
-#ifdef MOZ_XUL
   // Set the position to just underneath the current item for multi-select
   // lists or just underneath the selected item for single-select lists. If
   // the element is not a list, or there is no selection, leave the position
@@ -9090,7 +9134,6 @@ void PresShell::EventHandler::GetCurrentItemAndPositionForElement(
   if (item) {
     focusedContent = item;
   }
-#endif
 
   nsIFrame* frame = focusedContent->GetPrimaryFrame();
   if (frame) {

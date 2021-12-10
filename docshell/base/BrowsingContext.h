@@ -121,6 +121,10 @@ enum class ExplicitActiveStatus : uint8_t {
   /* Hold the audio muted state and should be used on top level browsing      \
    * contexts only */                                                         \
   FIELD(Muted, bool)                                                          \
+  /* Indicate that whether we should delay media playback, which would only   \
+     be done on an unvisited tab. And this should only be used on the top     \
+     level browsing contexts */                                               \
+  FIELD(ShouldDelayMediaFromStart, bool)                                      \
   /* See nsSandboxFlags.h for the possible flags. */                          \
   FIELD(SandboxFlags, uint32_t)                                               \
   FIELD(InitialSandboxFlags, uint32_t)                                        \
@@ -152,6 +156,14 @@ enum class ExplicitActiveStatus : uint8_t {
   FIELD(ForceEnableTrackingProtection, bool)                                  \
   FIELD(UseGlobalHistory, bool)                                               \
   FIELD(FullscreenAllowedByOwner, bool)                                       \
+  /*                                                                          \
+   * "is popup" in the spec.                                                  \
+   * Set only on top browsing contexts.                                       \
+   * This doesn't indicate whether this is actually a popup or not,           \
+   * but whether this browsing context is created by requesting popup or not. \
+   * See also: nsWindowWatcher::ShouldOpenPopup.                              \
+   */                                                                         \
+  FIELD(IsPopupRequested, bool)                                               \
   /* These field are used to store the states of autoplay media request on    \
    * GeckoView only, and it would only be modified on the top level browsing  \
    * context. */                                                              \
@@ -279,7 +291,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   static already_AddRefed<BrowsingContext> CreateDetached(
       nsGlobalWindowInner* aParent, BrowsingContext* aOpener,
       BrowsingContextGroup* aSpecificGroup, const nsAString& aName, Type aType,
-      bool aCreatedDynamically = false);
+      bool aIsPopupRequested, bool aCreatedDynamically = false);
 
   void EnsureAttached();
 
@@ -1022,6 +1034,10 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   // And then, we do a pre-order walk in the tree to refresh the
   // volume of all media elements.
   void DidSet(FieldIndex<IDX_Muted>);
+
+  bool CanSet(FieldIndex<IDX_ShouldDelayMediaFromStart>, const bool& aValue,
+              ContentParent* aSource);
+  void DidSet(FieldIndex<IDX_ShouldDelayMediaFromStart>, bool aOldValue);
 
   bool CanSet(FieldIndex<IDX_OverrideDPPX>, const float& aValue,
               ContentParent* aSource);

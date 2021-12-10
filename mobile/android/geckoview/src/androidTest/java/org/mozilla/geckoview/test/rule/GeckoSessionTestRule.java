@@ -55,6 +55,7 @@ import org.junit.rules.ErrorCollector;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.mozilla.gecko.MultiMap;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.Autocomplete;
 import org.mozilla.geckoview.Autofill;
@@ -77,6 +78,7 @@ import org.mozilla.geckoview.GeckoSession.SelectionActionDelegate;
 import org.mozilla.geckoview.GeckoSession.TextInputDelegate;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.geckoview.MediaSession;
+import org.mozilla.geckoview.OrientationController;
 import org.mozilla.geckoview.RuntimeTelemetry;
 import org.mozilla.geckoview.SessionTextInput;
 import org.mozilla.geckoview.WebExtension;
@@ -97,7 +99,7 @@ import org.mozilla.geckoview.test.util.UiThreadUtils;
 public class GeckoSessionTestRule implements TestRule {
   private static final String LOGTAG = "GeckoSessionTestRule";
 
-  private static final int TEST_PORT = 4245;
+  public static final int TEST_PORT = 4245;
   public static final String TEST_HOST = "localhost";
   public static final String TEST_ENDPOINT = "http://" + TEST_HOST + ":" + TEST_PORT;
 
@@ -768,6 +770,7 @@ public class GeckoSessionTestRule implements TestRule {
     DEFAULT_RUNTIME_DELEGATES.add(Autocomplete.StorageDelegate.class);
     DEFAULT_RUNTIME_DELEGATES.add(ActivityDelegate.class);
     DEFAULT_RUNTIME_DELEGATES.add(GeckoRuntime.Delegate.class);
+    DEFAULT_RUNTIME_DELEGATES.add(OrientationController.OrientationDelegate.class);
     DEFAULT_RUNTIME_DELEGATES.add(ServiceWorkerDelegate.class);
     DEFAULT_RUNTIME_DELEGATES.add(WebNotificationDelegate.class);
     DEFAULT_RUNTIME_DELEGATES.add(WebExtensionController.PromptDelegate.class);
@@ -794,6 +797,7 @@ public class GeckoSessionTestRule implements TestRule {
           ActivityDelegate,
           Autocomplete.StorageDelegate,
           GeckoRuntime.Delegate,
+          OrientationController.OrientationDelegate,
           ServiceWorkerDelegate,
           WebExtensionController.PromptDelegate,
           WebNotificationDelegate,
@@ -977,6 +981,10 @@ public class GeckoSessionTestRule implements TestRule {
       runtime.setActivityDelegate((ActivityDelegate) delegate);
     } else if (cls == GeckoRuntime.Delegate.class) {
       runtime.setDelegate((GeckoRuntime.Delegate) delegate);
+    } else if (cls == OrientationController.OrientationDelegate.class) {
+      runtime
+          .getOrientationController()
+          .setDelegate((OrientationController.OrientationDelegate) delegate);
     } else if (cls == ServiceWorkerDelegate.class) {
       runtime.setServiceWorkerDelegate((ServiceWorkerDelegate) delegate);
     } else if (cls == WebNotificationDelegate.class) {
@@ -1000,6 +1008,8 @@ public class GeckoSessionTestRule implements TestRule {
       return runtime.getActivityDelegate();
     } else if (cls == GeckoRuntime.Delegate.class) {
       return runtime.getDelegate();
+    } else if (cls == OrientationController.OrientationDelegate.class) {
+      return runtime.getOrientationController().getDelegate();
     } else if (cls == ServiceWorkerDelegate.class) {
       return runtime.getServiceWorkerDelegate();
     } else if (cls == WebNotificationDelegate.class) {
@@ -1415,7 +1425,7 @@ public class GeckoSessionTestRule implements TestRule {
         try {
           mServer.start(TEST_PORT);
 
-          RuntimeCreator.setPortDelegate(mPortDelegate);
+          RuntimeCreator.setPortDelegate(mMessageDelegate);
           getRuntime();
 
           Log.e(LOGTAG, TEST_START_MARKER + " " + description);
@@ -2005,48 +2015,78 @@ public class GeckoSessionTestRule implements TestRule {
 
   Map<GeckoSession, WebExtension.Port> mPorts = new HashMap<>();
 
-  private WebExtension.MessageDelegate mMessageDelegate =
-      new WebExtension.MessageDelegate() {
-        @Override
-        public void onConnect(final @NonNull WebExtension.Port port) {
-          mPorts.put(port.sender.session, port);
-          port.setDelegate(mPortDelegate);
+  private class MessageDelegate implements WebExtension.MessageDelegate, WebExtension.PortDelegate {
+    @Override
+    public void onConnect(final @NonNull WebExtension.Port port) {
+      // Sometimes we get a new onConnect call _before_ onDisconnect, so we might
+      // have to detach the port here before we attach to a new one
+      detach(mPorts.remove(port.sender.session));
+      attach(port);
+    }
+
+    private void attach(WebExtension.Port port) {
+      mPorts.put(port.sender.session, port);
+      port.setDelegate(mMessageDelegate);
+    }
+
+    private void detach(WebExtension.Port port) {
+      // If there are pending messages for this port we need to resolve them with an exception
+      // otherwise the test will wait for them indefinitely.
+      for (final String id : mPendingResponses.get(port)) {
+        final EvalJSResult result = new EvalJSResult();
+        result.exception = new PortDisconnectException();
+        mPendingMessages.put(id, result);
+      }
+      mPendingResponses.remove(port);
+    }
+
+    @Override
+    public void onPortMessage(
+        @NonNull final Object message, @NonNull final WebExtension.Port port) {
+      final JSONObject response = (JSONObject) message;
+
+      final String id;
+      try {
+        id = response.getString("id");
+        final EvalJSResult result = new EvalJSResult();
+
+        final Object exception = response.get("exception");
+        if (exception != JSONObject.NULL) {
+          result.exception = exception;
         }
-      };
 
-  private WebExtension.PortDelegate mPortDelegate =
-      new WebExtension.PortDelegate() {
-        @Override
-        public void onPortMessage(
-            @NonNull final Object message, @NonNull final WebExtension.Port port) {
-          final JSONObject response = (JSONObject) message;
-
-          final String id;
-          try {
-            id = response.getString("id");
-            final EvalJSResult result = new EvalJSResult();
-
-            final Object exception = response.get("exception");
-            if (exception != JSONObject.NULL) {
-              result.exception = exception;
-            }
-
-            final Object value = response.get("response");
-            if (value != JSONObject.NULL) {
-              result.value = value;
-            }
-
-            mPendingMessages.put(id, result);
-          } catch (final JSONException ex) {
-            throw new RuntimeException(ex);
-          }
+        final Object value = response.get("response");
+        if (value != JSONObject.NULL) {
+          result.value = value;
         }
 
-        @Override
-        public void onDisconnect(final @NonNull WebExtension.Port port) {
-          mPorts.remove(port.sender.session);
-        }
-      };
+        mPendingMessages.put(id, result);
+      } catch (final JSONException ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+
+    @Override
+    public void onDisconnect(final @NonNull WebExtension.Port port) {
+      detach(port);
+      // Sometimes the onDisconnect call comes _after_ the new onConnect so we need to check
+      // here whether this port is still in use.
+      if (mPorts.get(port.sender.session) == port) {
+        mPorts.remove(port.sender.session);
+      }
+    }
+
+    public class PortDisconnectException extends RuntimeException {
+      public PortDisconnectException() {
+        super(
+            "The port disconnected before a message could be received."
+                + "Usually this happens when the page navigates away while "
+                + "waiting for a message.");
+      }
+    }
+  }
+
+  private MessageDelegate mMessageDelegate = new MessageDelegate();
 
   private static class EvalJSResult {
     Object value;
@@ -2054,6 +2094,7 @@ public class GeckoSessionTestRule implements TestRule {
   }
 
   Map<String, EvalJSResult> mPendingMessages = new HashMap<>();
+  MultiMap<WebExtension.Port, String> mPendingResponses = new MultiMap<>();
 
   public class ExtensionPromise {
     private UUID mUuid;
@@ -2096,9 +2137,10 @@ public class GeckoSessionTestRule implements TestRule {
       throw new RuntimeException(ex);
     }
 
-    mPorts.get(session).postMessage(message);
+    final WebExtension.Port port = mPorts.get(session);
+    port.postMessage(message);
 
-    return waitForMessage(id);
+    return waitForMessage(port, id);
   }
 
   public int getSessionPid(final @NonNull GeckoSession session) {
@@ -2136,8 +2178,10 @@ public class GeckoSessionTestRule implements TestRule {
     return isActive;
   }
 
-  private Object waitForMessage(final String id) {
+  private Object waitForMessage(final WebExtension.Port port, final String id) {
+    mPendingResponses.add(port, id);
     UiThreadUtils.waitForCondition(() -> mPendingMessages.containsKey(id), mTimeoutMillis);
+    mPendingResponses.remove(port);
 
     final EvalJSResult result = mPendingMessages.get(id);
     mPendingMessages.remove(id);
@@ -2373,6 +2417,16 @@ public class GeckoSessionTestRule implements TestRule {
     webExtensionApiCall(session, "PromiseAllPaintsDone", null);
   }
 
+  /** Returns true if Gecko is using a GPU process. */
+  public boolean usingGpuProcess() {
+    return (Boolean) webExtensionApiCall("UsingGpuProcess", null);
+  }
+
+  /** Causes the GPU process to crash. */
+  public void crashGpuProcess() {
+    webExtensionApiCall("CrashGpuProcess", null);
+  }
+
   private Object webExtensionApiCall(
       final @NonNull String apiName, final @NonNull SetArgs argsSetter) {
     return webExtensionApiCall(null, apiName, argsSetter);
@@ -2407,16 +2461,18 @@ public class GeckoSessionTestRule implements TestRule {
       throw new RuntimeException(ex);
     }
 
+    final WebExtension.Port port;
     if (session == null) {
-      RuntimeCreator.backgroundPort().postMessage(message);
+      port = RuntimeCreator.backgroundPort();
     } else {
       // We post the message using session's port instead of the background port. By routing
       // the message through the extension's content script, we are able to obtain and attach
       // the session's WebExtension tab as a `tab` argument to the API.
-      mPorts.get(session).postMessage(message);
+      port = mPorts.get(session);
     }
 
-    return waitForMessage(id);
+    port.postMessage(message);
+    return waitForMessage(port, id);
   }
 
   /**

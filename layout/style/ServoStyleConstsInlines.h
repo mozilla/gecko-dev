@@ -1052,16 +1052,8 @@ inline AspectRatio StyleAspectRatio::ToLayoutRatio() const {
                     : AspectRatio();
 }
 
-inline bool StyleFontFamilyList::ContainsFallback() const {
-  if (fallback == StyleGenericFontFamily::None) {
-    return false;
-  }
-  for (const auto& family : list.AsSpan()) {
-    if (family.IsGeneric() && family.AsGeneric() == fallback) {
-      return true;
-    }
-  }
-  return false;
+inline nsAtom* StyleTimelineOrKeyframesName::AsAtom() const {
+  return IsIdent() ? AsIdent().AsAtom() : AsQuotedString().AsAtom();
 }
 
 }  // namespace mozilla

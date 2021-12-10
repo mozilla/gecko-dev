@@ -19,6 +19,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/FetchService.h"
 #include "mozilla/dom/RemoteWorkerController.h"
 #include "mozilla/dom/RemoteWorkerTypes.h"
 #include "mozilla/dom/ServiceWorkerOpArgs.h"
@@ -49,10 +50,22 @@ class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
 
   RefPtr<GenericPromise> SetSkipWaitingFlag();
 
+  static void ReportRunning();
+
+  static void CheckRunningShutdown() {
+    MOZ_ASSERT(sRunningServiceWorkers == 0);
+    MOZ_ASSERT(sRunningServiceWorkersFetch == 0);
+  }
+
  private:
   class RAIIActorPtrHolder;
 
   ~ServiceWorkerPrivateImpl();
+
+  /**
+   * Update Telemetry for # of running ServiceWorkers
+   */
+  void UpdateRunning(int32_t aDelta, int32_t aFetchDelta);
 
   /**
    * ServiceWorkerPrivate::Inner
@@ -107,6 +120,10 @@ class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
 
   void ErrorReceived(const ErrorValue& aError) override;
 
+  void LockNotified(bool aCreated) final {
+    // no-op for service workers
+  }
+
   void Terminated() override;
 
   // Refreshes only the parts of mRemoteWorkerData that may change over time.
@@ -119,8 +136,9 @@ class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
 
   nsresult SendFetchEventInternal(
       RefPtr<ServiceWorkerRegistrationInfo>&& aRegistration,
-      ServiceWorkerFetchEventOpArgs&& aArgs,
-      nsCOMPtr<nsIInterceptedChannel>&& aChannel);
+      ParentToParentServiceWorkerFetchEventOpArgs&& aArgs,
+      nsCOMPtr<nsIInterceptedChannel>&& aChannel,
+      RefPtr<FetchServiceResponsePromise>&& aPreloadResponseReadyPromise);
 
   void Shutdown();
 
@@ -161,18 +179,27 @@ class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
 
   class PendingFetchEvent final : public PendingFunctionalEvent {
    public:
-    PendingFetchEvent(ServiceWorkerPrivateImpl* aOwner,
-                      RefPtr<ServiceWorkerRegistrationInfo>&& aRegistration,
-                      ServiceWorkerFetchEventOpArgs&& aArgs,
-                      nsCOMPtr<nsIInterceptedChannel>&& aChannel);
+    PendingFetchEvent(
+        ServiceWorkerPrivateImpl* aOwner,
+        RefPtr<ServiceWorkerRegistrationInfo>&& aRegistration,
+        ParentToParentServiceWorkerFetchEventOpArgs&& aArgs,
+        nsCOMPtr<nsIInterceptedChannel>&& aChannel,
+        RefPtr<FetchServiceResponsePromise>&& aPreloadResponseReadyPromise);
 
     nsresult Send() override;
 
     ~PendingFetchEvent();
 
    private:
-    ServiceWorkerFetchEventOpArgs mArgs;
+    ParentToParentServiceWorkerFetchEventOpArgs mArgs;
     nsCOMPtr<nsIInterceptedChannel> mChannel;
+    // The promise from FetchService. It indicates if the preload response is
+    // ready or not. The promise's resolve/reject value should be handled in
+    // FetchEventOpChild, such that the preload result can be propagated to the
+    // ServiceWorker through IPC. However, FetchEventOpChild creation could be
+    // pending here, so this member is needed. And it will be forwarded to
+    // FetchEventOpChild when crearting the FetchEventOpChild.
+    RefPtr<FetchServiceResponsePromise> mPreloadResponseReadyPromise;
   };
 
   nsTArray<UniquePtr<PendingFunctionalEvent>> mPendingFunctionalEvents;
@@ -228,6 +255,18 @@ class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
   RemoteWorkerData mRemoteWorkerData;
 
   TimeStamp mServiceWorkerLaunchTimeStart;
+
+  // Counters for Telemetry - totals running simultaneously, and those that
+  // handle Fetch, plus Max values for each
+  static uint32_t sRunningServiceWorkers;
+  static uint32_t sRunningServiceWorkersFetch;
+  static uint32_t sRunningServiceWorkersMax;
+  static uint32_t sRunningServiceWorkersFetchMax;
+
+  // We know the state after we've evaluated the worker, and we then store
+  // it in the registration.  The only valid state transition should be
+  // from Unknown to Enabled or Disabled.
+  enum { Unknown, Enabled, Disabled } mHandlesFetch{Unknown};
 };
 
 }  // namespace dom

@@ -84,7 +84,7 @@
     },
 
     "AutoLaunchProtocolsFromOrigins": {
-      "type": ["JSON", "array"],
+      "type": "array",
       "items": {
         "type": "object",
         "properties": {
@@ -217,7 +217,18 @@
 
         "Locked": {
           "type": "boolean"
+        },
+
+        "Behavior": {
+          "type": "string",
+          "enum": ["accept", "reject-foreign", "reject", "limit-foreign", "reject-tracker", "reject-tracker-and-partition-foreign"]
+        },
+
+        "BehaviorPrivateBrowsing": {
+          "type": "string",
+          "enum": ["accept", "reject-foreign", "reject", "limit-foreign", "reject-tracker", "reject-tracker-and-partition-foreign"]
         }
+
       }
     },
 
@@ -457,7 +468,7 @@
     },
 
     "ExtensionSettings": {
-      "type": ["JSON", "object"],
+      "type": "object",
       "properties": {
         "*": {
           "type": "object",
@@ -577,7 +588,7 @@
     },
 
     "Handlers": {
-      "type": ["JSON", "object"],
+      "type": "object",
       "patternProperties": {
         "^(mimeTypes|extensions|schemes)$": {
           "type": "object",
@@ -719,7 +730,7 @@
         },
         "type": "object"
       },
-      "type": ["JSON", "array"]
+      "type": "array"
     },
 
     "ManualAppUpdateOnly": {
@@ -984,7 +995,7 @@
     },
 
     "Preferences": {
-      "type": ["JSON", "object"],
+      "type": "object",
       "patternProperties": {
         "^.*$": {
           "type": ["number", "boolean", "string", "object"],

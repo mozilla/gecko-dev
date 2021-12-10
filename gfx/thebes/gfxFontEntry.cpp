@@ -814,7 +814,7 @@ tainted_boolean_hint gfxFontEntry::HasGraphiteSpaceContextuals() {
 
 #define FEATURE_SCRIPT_MASK 0x000000ff  // script index replaces low byte of tag
 
-static_assert(int(Script::NUM_SCRIPT_CODES) <= FEATURE_SCRIPT_MASK,
+static_assert(int(intl::Script::NUM_SCRIPT_CODES) <= FEATURE_SCRIPT_MASK,
               "Too many script codes");
 
 // high-order three bytes of tag with script in low-order byte
@@ -1750,7 +1750,9 @@ void gfxFontFamily::FindFontForChar(GlobalFontMatch* aMatchData) {
   }
 
   nsCString charAndName;
-  if (profiler_thread_is_being_profiled()) {
+  if (profiler_thread_is_being_profiled(
+          Combine(ThreadProfilingFeatures::Sampling,
+                  ThreadProfilingFeatures::Markers))) {
     charAndName = nsPrintfCString("\\u%x %s", aMatchData->mCh, mName.get());
   }
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("gfxFontFamily::FindFontForChar",
@@ -1778,7 +1780,8 @@ void gfxFontFamily::FindFontForChar(GlobalFontMatch* aMatchData) {
       LogModule* log = gfxPlatform::GetLog(eGfxLog_textrun);
 
       if (MOZ_UNLIKELY(MOZ_LOG_TEST(log, LogLevel::Debug))) {
-        Script script = GetScriptCode(aMatchData->mCh);
+        intl::Script script =
+            intl::UnicodeProperties::GetScriptCode(aMatchData->mCh);
         MOZ_LOG(log, LogLevel::Debug,
                 ("(textrun-systemfallback-fonts) char: u+%6.6x "
                  "script: %d match: [%s]\n",

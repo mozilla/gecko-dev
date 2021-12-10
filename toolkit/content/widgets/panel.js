@@ -9,19 +9,10 @@
 {
   class MozPanel extends MozElements.MozElementMixin(XULPopupElement) {
     static get markup() {
-      return `
-      <vbox class="panel-arrowcontainer" flex="1">
-        <box class="panel-arrowbox" part="arrowbox">
-          <image class="panel-arrow" part="arrow"/>
-        </box>
-        <html:slot part="content" style="display: none" />
-      </vbox>
-      `;
+      return `<html:slot part="content" style="display: none !important"/>`;
     }
     constructor() {
       super();
-
-      this.attachShadow({ mode: "open" });
 
       this._prevFocus = 0;
       this._fadeTimer = null;
@@ -59,25 +50,23 @@
     initialize() {
       // As an optimization, we don't slot contents if the panel is [hidden] in
       // connectedCallback this means we can avoid running this code at startup
-      // and only need to do it when a panel is about to be shown.
-      // We then override the `hidden` setter and `removeAttribute` and call this
+      // and only need to do it when a panel is about to be shown.  We then
+      // override the `hidden` setter and `removeAttribute` and call this
       // function if the node is about to be shown.
-      if (this.shadowRoot.firstChild) {
+      if (this.shadowRoot) {
         return;
       }
 
-      if (!this.isArrowPanel) {
-        let slot = document.createElement("slot");
-        slot.part = "content";
-        slot.style.display = "none";
-        this.shadowRoot.appendChild(slot);
-      } else {
-        this.shadowRoot.appendChild(this.constructor.fragment);
+      this.attachShadow({ mode: "open" });
+
+      this.shadowRoot.appendChild(this.constructor.fragment);
+      if (this.hasAttribute("neverhidden")) {
+        this.panelContent.style.display = "";
       }
     }
 
     get panelContent() {
-      return this.shadowRoot.querySelector("[part=content]");
+      return this.shadowRoot?.querySelector("[part=content]");
     }
 
     get hidden() {
@@ -102,57 +91,28 @@
       return this.getAttribute("type") == "arrow";
     }
 
-    adjustArrowPosition(event) {
+    _setSideAttribute(event) {
       if (!this.isArrowPanel || !this.isAnchored) {
         return;
       }
 
-      var container = this.shadowRoot.querySelector(".panel-arrowcontainer");
-      var arrowbox = this.shadowRoot.querySelector(".panel-arrowbox");
-
-      var position = event.alignmentPosition;
-      var offset = event.alignmentOffset;
-
-      this.setAttribute("arrowposition", position);
-
+      let position = event.alignmentPosition;
       if (position.indexOf("start_") == 0 || position.indexOf("end_") == 0) {
-        container.setAttribute("orient", "horizontal");
-        arrowbox.setAttribute("orient", "vertical");
-        if (position.indexOf("_after") > 0) {
-          arrowbox.setAttribute("pack", "end");
-        } else {
-          arrowbox.setAttribute("pack", "start");
-        }
-        arrowbox.style.transform = "translate(0, " + -offset + "px)";
-
         // The assigned side stays the same regardless of direction.
-        var isRTL = window.getComputedStyle(this).direction == "rtl";
+        let isRTL = window.getComputedStyle(this).direction == "rtl";
 
         if (position.indexOf("start_") == 0) {
-          container.style.MozBoxDirection = "reverse";
           this.setAttribute("side", isRTL ? "left" : "right");
         } else {
-          container.style.removeProperty("-moz-box-direction");
           this.setAttribute("side", isRTL ? "right" : "left");
         }
       } else if (
         position.indexOf("before_") == 0 ||
         position.indexOf("after_") == 0
       ) {
-        container.removeAttribute("orient");
-        arrowbox.removeAttribute("orient");
-        if (position.indexOf("_end") > 0) {
-          arrowbox.setAttribute("pack", "end");
-        } else {
-          arrowbox.setAttribute("pack", "start");
-        }
-        arrowbox.style.transform = "translate(" + -offset + "px, 0)";
-
         if (position.indexOf("before_") == 0) {
-          container.style.MozBoxDirection = "reverse";
           this.setAttribute("side", "bottom");
         } else {
-          container.style.removeProperty("-moz-box-direction");
           this.setAttribute("side", "top");
         }
       }
@@ -169,12 +129,6 @@
             this.anchorNode;
           anchorRoot.setAttribute("open", "true");
         }
-
-        var arrow = this.shadowRoot.querySelector(".panel-arrow");
-        arrow.hidden = !this.isAnchored;
-        this.shadowRoot
-          .querySelector(".panel-arrowbox")
-          .style.removeProperty("transform");
 
         if (this.getAttribute("animate") != "false") {
           this.setAttribute("animate", "open");
@@ -256,8 +210,8 @@
     }
 
     on_popuphidden(event) {
-      if (event.target == this) {
-        this.panelContent.style.display = "none";
+      if (event.target == this && !this.hasAttribute("neverhidden")) {
+        this.panelContent.style.setProperty("display", "none", "important");
       }
       if (this.isArrowPanel && event.target == this) {
         this.removeAttribute("panelopen");
@@ -323,7 +277,7 @@
 
     on_popuppositioned(event) {
       if (event.target == this) {
-        this.adjustArrowPosition(event);
+        this._setSideAttribute(event);
       }
     }
   }

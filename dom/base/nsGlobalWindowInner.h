@@ -201,6 +201,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   }
 #endif
 
+  bool IsInnerWindow() const final { return true; }  // Overriding EventTarget
+
   static nsGlobalWindowInner* Cast(nsPIDOMWindowInner* aPIWin) {
     return static_cast<nsGlobalWindowInner*>(aPIWin);
   }
@@ -247,6 +249,9 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   }
 
   // nsIGlobalObject
+  bool ShouldResistFingerprinting() const final;
+  uint32_t GetPrincipalHashValue() const final;
+
   JSObject* GetGlobalJSObject() final { return GetWrapper(); }
   JSObject* GetGlobalJSObjectPreserveColor() const final {
     return GetWrapperPreserveColor();
@@ -301,9 +306,10 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   EventTarget* GetTargetForDOMEvent() override;
 
   using mozilla::dom::EventTarget::DispatchEvent;
-  bool DispatchEvent(mozilla::dom::Event& aEvent,
-                     mozilla::dom::CallerType aCallerType,
-                     mozilla::ErrorResult& aRv) override;
+  // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY bool DispatchEvent(
+      mozilla::dom::Event& aEvent, mozilla::dom::CallerType aCallerType,
+      mozilla::ErrorResult& aRv) override;
 
   void GetEventTargetParent(mozilla::EventChainPreVisitor& aVisitor) override;
 
@@ -874,8 +880,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
             bool aWrapAround, bool aWholeWord, bool aSearchInFrames,
             bool aShowDialog, mozilla::ErrorResult& aError);
   uint64_t GetMozPaintCount(mozilla::ErrorResult& aError);
-
-  bool ShouldResistFingerprinting();
 
   bool DidFireDocElemInserted() const { return mDidFireDocElemInserted; }
   void SetDidFireDocElemInserted() { mDidFireDocElemInserted = true; }

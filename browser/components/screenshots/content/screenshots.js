@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* eslint-env mozilla/browser-window */
 
 "use strict";
 
@@ -21,8 +22,6 @@ class ScreenshotsUI extends HTMLElement {
   }
   async connectedCallback() {
     this.initialize();
-
-    await this.takeScreenshot();
   }
 
   initialize() {
@@ -36,6 +35,8 @@ class ScreenshotsUI extends HTMLElement {
     let templateContent = template.content;
     this.appendChild(templateContent.cloneNode(true));
 
+    this._retryButton = this.querySelector(".highlight-button-retry");
+    this._retryButton.addEventListener("click", this);
     this._cancelButton = this.querySelector(".highlight-button-cancel");
     this._cancelButton.addEventListener("click", this);
     this._copyButton = this.querySelector(".highlight-button-copy");
@@ -59,6 +60,12 @@ class ScreenshotsUI extends HTMLElement {
     } else if (event.type == "click" && event.target == this._downloadButton) {
       await this.saveToFile(
         this.ownerDocument.getElementById("placeholder-image").src
+      );
+    } else if (event.type == "click" && event.target == this._retryButton) {
+      Services.obs.notifyObservers(
+        window.parent.ownerGlobal,
+        "menuitem-screenshot",
+        "retry"
       );
     }
   }
@@ -178,7 +185,7 @@ class ScreenshotsUI extends HTMLElement {
     return clipFilename + extension;
   }
 
-  async takeScreenshot() {
+  async takeVisibleScreenshot() {
     let params = new URLSearchParams(location.search);
     let browsingContextId = parseInt(params.get("browsingContextId"), 10);
     let browsingContext = BrowsingContext.get(browsingContextId);

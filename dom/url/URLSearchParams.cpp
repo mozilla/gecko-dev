@@ -134,7 +134,7 @@ void URLSearchParams::Delete(const nsAString& aName) {
 void URLSearchParams::DeleteAll() { mParams->DeleteAll(); }
 
 void URLSearchParams::Serialize(nsAString& aValue) const {
-  mParams->Serialize(aValue);
+  mParams->Serialize(aValue, true);
 }
 
 void URLSearchParams::NotifyObserver() {
@@ -184,10 +184,10 @@ bool URLSearchParams::ReadStructuredClone(JSStructuredCloneReader* aReader) {
 
   uint32_t nParams, zero;
   nsAutoString key, value;
-  if (!JS_ReadUint32Pair(aReader, &nParams, &zero)) {
+  if (!JS_ReadUint32Pair(aReader, &nParams, &zero) || zero != 0) {
     return false;
   }
-  MOZ_ASSERT(zero == 0);
+
   for (uint32_t i = 0; i < nParams; ++i) {
     if (!StructuredCloneHolder::ReadString(aReader, key) ||
         !StructuredCloneHolder::ReadString(aReader, value)) {

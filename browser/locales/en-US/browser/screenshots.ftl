@@ -17,6 +17,14 @@ screenshots-download-button = Download
 screenshots-download-button-tooltip = Download screenshot
 screenshots-copy-button = Copy
 screenshots-copy-button-tooltip = Copy screenshot to clipboard
+screenshots-download-button-title =
+  .title = Download screenshot
+screenshots-copy-button-title =
+  .title = Copy screenshot to clipboard
+screenshots-cancel-button-title =
+  .title = Cancel
+screenshots-retry-button-title =
+  .title = Retry screenshot
 
 screenshots-meta-key = {
   PLATFORM() ->

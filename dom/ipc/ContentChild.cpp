@@ -677,7 +677,7 @@ NS_INTERFACE_MAP_END
 mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
     XPCOMInitData&& aXPCOMInit, const StructuredCloneData& aInitialData,
     FullLookAndFeel&& aLookAndFeelData, dom::SystemFontList&& aFontList,
-    const Maybe<SharedMemoryHandle>& aSharedUASheetHandle,
+    Maybe<SharedMemoryHandle>&& aSharedUASheetHandle,
     const uintptr_t& aSharedUASheetAddress,
     nsTArray<SharedMemoryHandle>&& aSharedFontListBlocks) {
   if (!sShutdownCanary) {
@@ -693,7 +693,7 @@ mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
 #endif
 
   gfx::gfxVars::SetValuesForInitialize(aXPCOMInit.gfxNonDefaultVarUpdates());
-  InitSharedUASheets(aSharedUASheetHandle, aSharedUASheetAddress);
+  InitSharedUASheets(std::move(aSharedUASheetHandle), aSharedUASheetAddress);
   InitXPCOM(std::move(aXPCOMInit), aInitialData);
   InitGraphicsDeviceData(aXPCOMInit.contentDeviceData());
 
@@ -710,7 +710,7 @@ class nsGtkNativeInitRunnable : public Runnable {
   }
 };
 
-bool ContentChild::Init(base::ProcessId aParentPid, const char* aParentBuildID,
+void ContentChild::Init(base::ProcessId aParentPid, const char* aParentBuildID,
                         mozilla::ipc::ScopedPort aPort, uint64_t aChildID,
                         bool aIsForBrowser) {
 #ifdef MOZ_WIDGET_GTK
@@ -755,18 +755,18 @@ bool ContentChild::Init(base::ProcessId aParentPid, const char* aParentBuildID,
   }
 #endif
 
-  NS_ASSERTION(!sSingleton, "only one ContentChild per child");
+  MOZ_ASSERT(!sSingleton, "only one ContentChild per child");
 
   // Once we start sending IPC messages, we need the thread manager to be
   // initialized so we can deal with the responses. Do that here before we
   // try to construct the crash reporter.
   nsresult rv = nsThreadManager::get().Init();
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    return false;
+    MOZ_CRASH("Failed to initialize the thread manager in ContentChild::Init");
   }
 
   if (!Open(std::move(aPort), aParentPid)) {
-    return false;
+    MOZ_CRASH("Open failed in ContentChild::Init");
   }
   sSingleton = this;
 
@@ -825,8 +825,6 @@ bool ContentChild::Init(base::ProcessId aParentPid, const char* aParentBuildID,
             PendingInputEventHangAnnotator::sSingleton);
       }));
 #endif
-
-  return true;
 }
 
 void ContentChild::SetProcessName(const nsACString& aName,
@@ -968,10 +966,11 @@ static nsresult GetCreateWindowParams(nsIOpenWindowInfo* aOpenWindowInfo,
 
 nsresult ContentChild::ProvideWindowCommon(
     BrowserChild* aTabOpener, nsIOpenWindowInfo* aOpenWindowInfo,
-    uint32_t aChromeFlags, bool aCalledFromJS, bool aWidthSpecified,
-    nsIURI* aURI, const nsAString& aName, const nsACString& aFeatures,
-    bool aForceNoOpener, bool aForceNoReferrer, nsDocShellLoadState* aLoadState,
-    bool* aWindowIsNew, BrowsingContext** aReturn) {
+    uint32_t aChromeFlags, bool aCalledFromJS, nsIURI* aURI,
+    const nsAString& aName, const nsACString& aFeatures, bool aForceNoOpener,
+    bool aForceNoReferrer, bool aIsPopupRequested,
+    nsDocShellLoadState* aLoadState, bool* aWindowIsNew,
+    BrowsingContext** aReturn) {
   MOZ_DIAGNOSTIC_ASSERT(aTabOpener, "We must have a tab opener");
 
   *aReturn = nullptr;
@@ -1039,9 +1038,9 @@ nsresult ContentChild::ProvideWindowCommon(
       MOZ_DIAGNOSTIC_ASSERT(!nsContentUtils::IsSpecialName(name));
 
       Unused << SendCreateWindowInDifferentProcess(
-          aTabOpener, parent, aChromeFlags, aCalledFromJS, aWidthSpecified,
-          aURI, features, fullZoom, name, triggeringPrincipal, csp,
-          referrerInfo, aOpenWindowInfo->GetOriginAttributes());
+          aTabOpener, parent, aChromeFlags, aCalledFromJS, aURI, features,
+          fullZoom, name, triggeringPrincipal, csp, referrerInfo,
+          aOpenWindowInfo->GetOriginAttributes());
 
       // We return NS_ERROR_ABORT, so that the caller knows that we've abandoned
       // the window open as far as it is concerned.
@@ -1060,7 +1059,8 @@ nsresult ContentChild::ProvideWindowCommon(
   }
 
   RefPtr<BrowsingContext> browsingContext = BrowsingContext::CreateDetached(
-      nullptr, openerBC, nullptr, aName, BrowsingContext::Type::Content);
+      nullptr, openerBC, nullptr, aName, BrowsingContext::Type::Content,
+      aIsPopupRequested);
   MOZ_ALWAYS_SUCCEEDS(browsingContext->SetRemoteTabs(true));
   MOZ_ALWAYS_SUCCEEDS(browsingContext->SetRemoteSubframes(useRemoteSubframes));
   MOZ_ALWAYS_SUCCEEDS(browsingContext->SetOriginAttributes(
@@ -1241,7 +1241,7 @@ nsresult ContentChild::ProvideWindowCommon(
   }
 
   SendCreateWindow(aTabOpener, parent, newChild, aChromeFlags, aCalledFromJS,
-                   aWidthSpecified, aOpenWindowInfo->GetIsForPrinting(),
+                   aOpenWindowInfo->GetIsForPrinting(),
                    aOpenWindowInfo->GetIsForWindowDotPrint(), aURI, features,
                    fullZoom, Principal(triggeringPrincipal), csp, referrerInfo,
                    aOpenWindowInfo->GetOriginAttributes(), std::move(resolve),
@@ -1315,7 +1315,7 @@ void ContentChild::InitGraphicsDeviceData(const ContentDeviceData& aData) {
   gfxPlatform::InitChild(aData);
 }
 
-void ContentChild::InitSharedUASheets(const Maybe<SharedMemoryHandle>& aHandle,
+void ContentChild::InitSharedUASheets(Maybe<SharedMemoryHandle>&& aHandle,
                                       uintptr_t aAddress) {
   MOZ_ASSERT_IF(!aHandle, !aAddress);
 
@@ -1326,7 +1326,7 @@ void ContentChild::InitSharedUASheets(const Maybe<SharedMemoryHandle>& aHandle,
   // Map the shared memory storing the user agent style sheets.  Do this as
   // early as possible to maximize the chance of being able to map at the
   // address we want.
-  GlobalStyleSheetCache::SetSharedMemory(*aHandle, aAddress);
+  GlobalStyleSheetCache::SetSharedMemory(std::move(*aHandle), aAddress);
 }
 
 void ContentChild::InitXPCOM(
@@ -2084,23 +2084,17 @@ bool ContentChild::DeallocPSpeechSynthesisChild(PSpeechSynthesisChild* aActor) {
 }
 #endif
 
-PWebrtcGlobalChild* ContentChild::AllocPWebrtcGlobalChild() {
 #ifdef MOZ_WEBRTC
+PWebrtcGlobalChild* ContentChild::AllocPWebrtcGlobalChild() {
   auto* child = new WebrtcGlobalChild();
   return child;
-#else
-  return nullptr;
-#endif
 }
 
 bool ContentChild::DeallocPWebrtcGlobalChild(PWebrtcGlobalChild* aActor) {
-#ifdef MOZ_WEBRTC
   delete static_cast<WebrtcGlobalChild*>(aActor);
   return true;
-#else
-  return false;
-#endif
 }
+#endif
 
 mozilla::ipc::IPCResult ContentChild::RecvRegisterChrome(
     nsTArray<ChromePackage>&& packages,
@@ -2522,10 +2516,10 @@ mozilla::ipc::IPCResult ContentChild::RecvRebuildFontList(
 
 mozilla::ipc::IPCResult ContentChild::RecvFontListShmBlockAdded(
     const uint32_t& aGeneration, const uint32_t& aIndex,
-    const base::SharedMemoryHandle& aHandle) {
+    base::SharedMemoryHandle&& aHandle) {
   if (gfxPlatform::Initialized()) {
     gfxPlatformFontList::PlatformFontList()->ShmBlockAdded(aGeneration, aIndex,
-                                                           aHandle);
+                                                           std::move(aHandle));
   }
   return IPC_OK();
 }
@@ -2739,6 +2733,11 @@ mozilla::ipc::IPCResult ContentChild::RecvRemoteType(
     nsDependentCSubstring etld =
         Substring(aRemoteType, FISSION_WEB_REMOTE_TYPE.Length() + 1);
     SetProcessName("Isolated Web Content"_ns, &etld);
+  } else if (remoteTypePrefix == SERVICEWORKER_REMOTE_TYPE) {
+    // The profiler can sanitize out the eTLD+1
+    nsDependentCSubstring etld =
+        Substring(aRemoteType, SERVICEWORKER_REMOTE_TYPE.Length() + 1);
+    SetProcessName("Isolated Service Worker"_ns, &etld);
   }
   // else "prealloc" or "web" type -> "Web Content" already set
 
@@ -3488,9 +3487,9 @@ mozilla::ipc::IPCResult ContentChild::RecvRefreshScreens(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvShareCodeCoverageMutex(
-    const CrossProcessMutexHandle& aHandle) {
+    CrossProcessMutexHandle aHandle) {
 #ifdef MOZ_CODE_COVERAGE
-  CodeCoverageHandler::Init(aHandle);
+  CodeCoverageHandler::Init(std::move(aHandle));
   return IPC_OK();
 #else
   MOZ_CRASH("Shouldn't receive this message in non-code coverage builds!");
@@ -4457,7 +4456,7 @@ mozilla::ipc::IPCResult ContentChild::RecvCanSavePresentation(
 
   bool canSave = true;
   // XXXBFCache pass the flags to telemetry.
-  uint16_t flags = 0;
+  uint32_t flags = 0;
   BrowsingContext* browsingContext = aTopLevelContext.get();
   browsingContext->PreOrderWalk([&](BrowsingContext* aContext) {
     Document* doc = aContext->GetDocument();

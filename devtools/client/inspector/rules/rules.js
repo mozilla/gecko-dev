@@ -22,6 +22,7 @@ const {
 } = require("devtools/client/inspector/shared/utils");
 const { debounce } = require("devtools/shared/debounce");
 const EventEmitter = require("devtools/shared/event-emitter");
+const DOUBLESPACE = "  ";
 
 loader.lazyRequireGetter(
   this,
@@ -625,6 +626,9 @@ CssRuleView.prototype = {
 
         // Remove any double newlines.
         text = text.replace(/(\r?\n)\r?\n/g, "$1");
+
+        // Replace 4 space indentation with 2 Spaces.
+        text = text.replace(/\ {4}/g, DOUBLESPACE);
       }
 
       clipboardHelper.copyString(text);
@@ -2015,7 +2019,9 @@ function RuleViewTool(inspector, window) {
     }
   );
 
-  this.onSelected();
+  // At the moment `readyPromise` is only consumed in tests (see `openRuleView`) to be
+  // notified when the ruleview was first populated to match the initial selected node.
+  this.readyPromise = this.onSelected();
 }
 
 RuleViewTool.prototype = {
@@ -2036,29 +2042,30 @@ RuleViewTool.prototype = {
     // let the update go through as this is needed to empty the view on
     // navigation.
     if (!this.view) {
-      return;
+      return null;
     }
 
     const isInactive =
       !this.isPanelVisible() && this.inspector.selection.nodeFront;
     if (isInactive) {
-      return;
+      return null;
     }
 
     if (
       !this.inspector.selection.isConnected() ||
       !this.inspector.selection.isElementNode()
     ) {
-      this.view.selectElement(null);
-      return;
+      return this.view.selectElement(null);
     }
 
-    if (selectElement) {
-      const done = this.inspector.updating("rule-view");
-      this.view
-        .selectElement(this.inspector.selection.nodeFront)
-        .then(done, done);
+    if (!selectElement) {
+      return null;
     }
+
+    const done = this.inspector.updating("rule-view");
+    return this.view
+      .selectElement(this.inspector.selection.nodeFront)
+      .then(done, done);
   },
 
   refresh: function() {
@@ -2117,7 +2124,7 @@ RuleViewTool.prototype = {
 
     this.view.destroy();
 
-    this.view = this.document = this.inspector = null;
+    this.view = this.document = this.inspector = this.readyPromise = null;
   },
 };
 

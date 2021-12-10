@@ -46,15 +46,16 @@ class ScrollbarActivity;
 
 class ScrollFrameHelper : public nsIReflowCallback {
  public:
-  typedef nsIFrame::Sides Sides;
-  typedef mozilla::CSSIntPoint CSSIntPoint;
-  typedef mozilla::layout::ScrollbarActivity ScrollbarActivity;
-  typedef mozilla::layers::FrameMetrics FrameMetrics;
-  typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
-  typedef mozilla::layers::ScrollSnapInfo ScrollSnapInfo;
-  typedef mozilla::layers::Layer Layer;
-  typedef mozilla::layers::WebRenderLayerManager WebRenderLayerManager;
-  typedef mozilla::layout::ScrollAnchorContainer ScrollAnchorContainer;
+  using Sides = nsIFrame::Sides;
+  using CSSIntPoint = mozilla::CSSIntPoint;
+  using ScrollbarActivity = mozilla::layout::ScrollbarActivity;
+  using FrameMetrics = mozilla::layers::FrameMetrics;
+  using ScrollableLayerGuid = mozilla::layers::ScrollableLayerGuid;
+  using ScrollSnapInfo = mozilla::layers::ScrollSnapInfo;
+  using Layer = mozilla::layers::Layer;
+  using WebRenderLayerManager = mozilla::layers::WebRenderLayerManager;
+  using ScrollAnchorContainer = mozilla::layout::ScrollAnchorContainer;
+  using APZScrollAnimationType = mozilla::APZScrollAnimationType;
   using Element = mozilla::dom::Element;
 
   class AsyncScroll;
@@ -203,6 +204,14 @@ class ScrollFrameHelper : public nsIReflowCallback {
   nsRect GetVisualScrollRange() const;
   nsRect GetScrollRangeForUserInputEvents() const;
 
+  const nsRect& ScrollPort() const { return mScrollPort; }
+  void SetScrollPort(const nsRect& aNewScrollPort) {
+    if (!mScrollPort.IsEqualEdges(aNewScrollPort)) {
+      mMayScheduleScrollAnimations = true;
+    }
+    mScrollPort = aNewScrollPort;
+  }
+
   /**
    * Return the 'optimal viewing region' as a rect suitable for use by
    * scroll anchoring. This rect is in the same coordinate space as
@@ -245,32 +254,31 @@ class ScrollFrameHelper : public nsIReflowCallback {
    * aScrollPosition. Null means only aScrollPosition is allowed.
    * This is a closed-ended range --- aRange.XMost()/aRange.YMost() are allowed.
    */
-  void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                ScrollOrigin aOrigin = ScrollOrigin::NotSpecified,
-                const nsRect* aRange = nullptr,
-                nsIScrollbarMediator::ScrollSnapMode aSnap =
-                    nsIScrollbarMediator::DISABLE_SNAP);
+  void ScrollTo(
+      nsPoint aScrollPosition, ScrollMode aMode,
+      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified,
+      const nsRect* aRange = nullptr,
+      nsIScrollbarMediator::ScrollSnapMode aSnap =
+          nsIScrollbarMediator::DISABLE_SNAP,
+      ScrollTriggeredByScript aTriggeredByScript = ScrollTriggeredByScript::No);
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
   void ScrollToCSSPixels(const CSSIntPoint& aScrollPosition,
-                         ScrollMode aMode = ScrollMode::Instant,
-                         nsIScrollbarMediator::ScrollSnapMode aSnap =
-                             nsIScrollbarMediator::DEFAULT,
-                         ScrollOrigin aOrigin = ScrollOrigin::NotSpecified);
+                         ScrollMode aMode = ScrollMode::Instant);
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
-  void ScrollToCSSPixelsApproximate(
-      const mozilla::CSSPoint& aScrollPosition,
-      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified);
+  void ScrollToCSSPixelsForApz(const mozilla::CSSPoint& aScrollPosition);
 
   CSSIntPoint GetScrollPositionCSSPixels();
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
-  void ScrollToImpl(nsPoint aScrollPosition, const nsRect& aRange,
-                    ScrollOrigin aOrigin = ScrollOrigin::NotSpecified);
+  void ScrollToImpl(
+      nsPoint aPt, const nsRect& aRange,
+      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified,
+      ScrollTriggeredByScript aTriggeredByScript = ScrollTriggeredByScript::No);
   void ScrollVisual();
   /**
    * @note This method might destroy the frame, pres shell and other objects.
@@ -283,10 +291,7 @@ class ScrollFrameHelper : public nsIReflowCallback {
                 nsIScrollbarMediator::ScrollSnapMode aSnap =
                     nsIScrollbarMediator::DISABLE_SNAP);
   void ScrollByCSSPixels(const CSSIntPoint& aDelta,
-                         ScrollMode aMode = ScrollMode::Instant,
-                         ScrollOrigin aOrigin = ScrollOrigin::NotSpecified,
-                         nsIScrollbarMediator::ScrollSnapMode aSnap =
-                             nsIScrollbarMediator::DEFAULT);
+                         ScrollMode aMode = ScrollMode::Instant);
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
@@ -397,6 +402,16 @@ class ScrollFrameHelper : public nsIReflowCallback {
 
   bool NeedsScrollSnap() const;
 
+  // Schedule the scroll-linked animations.
+  void ScheduleScrollAnimations();
+  void TryScheduleScrollAnimations() {
+    if (!mMayScheduleScrollAnimations) {
+      return;
+    }
+    ScheduleScrollAnimations();
+    mMayScheduleScrollAnimations = false;
+  }
+
  public:
   bool IsScrollbarOnRight() const;
   bool IsScrollingActive() const;
@@ -424,8 +439,9 @@ class ScrollFrameHelper : public nsIReflowCallback {
       bool aHasResizer, mozilla::layers::ScrollDirection aDirection);
   // returns true if a resizer should be visible
   bool HasResizer() { return mResizerBox; }
-  void LayoutScrollbars(nsBoxLayoutState& aState, const nsRect& aContentArea,
-                        const nsRect& aOldScrollArea);
+  void LayoutScrollbars(nsBoxLayoutState& aState,
+                        const nsRect& aInsideBorderArea,
+                        const nsRect& aOldScrollPort);
 
   void MarkScrollbarsDirtyForReflow() const;
   void InvalidateVerticalScrollbar() const;
@@ -482,7 +498,9 @@ class ScrollFrameHelper : public nsIReflowCallback {
   void HandleScrollbarStyleSwitching();
 
   ScrollOrigin LastScrollOrigin() const { return mLastScrollOrigin; }
-  bool IsApzAnimationInProgress() const { return mApzAnimationInProgress; }
+  bool IsApzAnimationInProgress() const {
+    return mCurrentAPZScrollAnimationType != APZScrollAnimationType::No;
+  }
   ScrollGeneration CurrentScrollGeneration() const { return mScrollGeneration; }
   nsPoint LastScrollDestination() const { return mDestination; }
   nsTArray<ScrollPositionUpdate> GetScrollUpdates() const;
@@ -493,7 +511,7 @@ class ScrollFrameHelper : public nsIReflowCallback {
   bool IsScrollAnimating(IncludeApzAnimation = IncludeApzAnimation::Yes) const;
 
   void ResetScrollInfoIfNeeded(const ScrollGeneration& aGeneration,
-                               bool aApzAnimationInProgress);
+                               APZScrollAnimationType aAPZScrollAnimationType);
   bool WantAsyncScroll() const;
   Maybe<mozilla::layers::ScrollMetadata> ComputeScrollMetadata(
       WebRenderLayerManager* aLayerManager, const nsIFrame* aItemFrame,
@@ -583,9 +601,6 @@ class ScrollFrameHelper : public nsIReflowCallback {
 
   nsTArray<ScrollPositionUpdate> mScrollUpdates;
 
-  // NOTE: On mobile this value might be factoring into overflow:hidden region
-  // in the case of the top level document.
-  nsRect mScrollPort;
   nsSize mMinimumScaleSize;
 
   // Stores the ICB size for the root document if this frame is using the
@@ -635,10 +650,24 @@ class ScrollFrameHelper : public nsIReflowCallback {
 
   ScrollAnchorContainer mAnchor;
 
+  // Representing there's an APZ animation is in progress and what caused the
+  // animation. Note that this is only set when repainted via APZ, which means
+  // that there may be a request for an APZ animation in flight for example,
+  // while this is still `No`. In order to answer "is an APZ animation in the
+  // process of starting or in progress" you need to check mScrollUpdates,
+  // mApzAnimationRequested, and this type.
+  APZScrollAnimationType mCurrentAPZScrollAnimationType;
+
   bool mAllowScrollOriginDowngrade : 1;
   bool mHadDisplayPortAtLastFrameUpdate : 1;
+
+  // True if the most recent reflow of the scroll container frame (mOuter) has
+  // the vertical scrollbar shown.
   bool mHasVerticalScrollbar : 1;
+  // True if the most recent reflow of the scroll container frame (mOuter) has
+  // the horizontal scrollbar shown.
   bool mHasHorizontalScrollbar : 1;
+
   // If mHas(Vertical|Horizontal)Scrollbar is true then
   // mOnlyNeed(V|H)ScrollbarToScrollVVInsideLV indicates if the only reason we
   // need that scrollbar is to scroll the visual viewport inside the layout
@@ -724,12 +753,6 @@ class ScrollFrameHelper : public nsIReflowCallback {
   // True if we're processing an scroll event.
   bool mProcessingScrollEvent : 1;
 
-  // Whether an APZ animation is in progress. Note that this is only set to true
-  // when repainted via APZ, which means that there may be a request for an APZ
-  // animation in flight for example, while this is still false. In order to
-  // answer "is an APZ animation in the process of starting or in progress" you
-  // need to check mScrollUpdates, mApzAnimationRequested, and this bit.
-  bool mApzAnimationInProgress : 1;
   // This is true from the time a scroll animation is requested of APZ to the
   // time that APZ responds with an up-to-date repaint request. More precisely,
   // this is flipped to true if a repaint request is dispatched to APZ where
@@ -739,6 +762,9 @@ class ScrollFrameHelper : public nsIReflowCallback {
 
   // Whether we need to reclamp the visual viewport offset in ReflowFinished.
   bool mReclampVVOffsetInReflowFinished : 1;
+
+  // Whether we need to schedule the scroll-linked animations.
+  bool mMayScheduleScrollAnimations : 1;
 
   mozilla::layout::ScrollVelocityQueue mVelocityQueue;
 
@@ -770,10 +796,12 @@ class ScrollFrameHelper : public nsIReflowCallback {
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
-  void ScrollToWithOrigin(nsPoint aScrollPosition, ScrollMode aMode,
-                          ScrollOrigin aOrigin, const nsRect* aRange,
-                          nsIScrollbarMediator::ScrollSnapMode aSnap =
-                              nsIScrollbarMediator::DISABLE_SNAP);
+  void ScrollToWithOrigin(
+      nsPoint aScrollPosition, ScrollMode aMode, ScrollOrigin aOrigin,
+      const nsRect* aRange,
+      nsIScrollbarMediator::ScrollSnapMode aSnap =
+          nsIScrollbarMediator::DISABLE_SNAP,
+      ScrollTriggeredByScript aTriggeredByScript = ScrollTriggeredByScript::No);
 
   void CompleteAsyncScroll(const nsRect& aRange,
                            ScrollOrigin aOrigin = ScrollOrigin::NotSpecified);
@@ -786,10 +814,16 @@ class ScrollFrameHelper : public nsIReflowCallback {
   // This method does not clamp the destination; callers should clamp it to
   // either the layout or the visual scroll range (APZ will happily smooth
   // scroll to either).
-  void ApzSmoothScrollTo(const nsPoint& aDestination, ScrollOrigin aOrigin);
+  void ApzSmoothScrollTo(const nsPoint& aDestination, ScrollOrigin aOrigin,
+                         ScrollTriggeredByScript aTriggeredByScript);
 
   // Removes any RefreshDriver observers we might have registered.
   void RemoveObservers();
+
+ private:
+  // NOTE: On mobile this value might be factoring into overflow:hidden region
+  // in the case of the top level document.
+  nsRect mScrollPort;
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(ScrollFrameHelper::OverflowState)
@@ -810,10 +844,10 @@ class nsHTMLScrollFrame : public nsContainerFrame,
                           public nsIAnonymousContentCreator,
                           public nsIStatefulFrame {
  public:
-  typedef mozilla::ScrollFrameHelper ScrollFrameHelper;
-  typedef mozilla::CSSIntPoint CSSIntPoint;
-  typedef mozilla::ScrollReflowInput ScrollReflowInput;
-  typedef mozilla::layout::ScrollAnchorContainer ScrollAnchorContainer;
+  using ScrollFrameHelper = mozilla::ScrollFrameHelper;
+  using CSSIntPoint = mozilla::CSSIntPoint;
+  using ScrollReflowInput = mozilla::ScrollReflowInput;
+  using ScrollAnchorContainer = mozilla::layout::ScrollAnchorContainer;
   friend nsHTMLScrollFrame* NS_NewHTMLScrollFrame(
       mozilla::PresShell* aPresShell, ComputedStyle* aStyle, bool aIsRoot);
 
@@ -825,12 +859,17 @@ class nsHTMLScrollFrame : public nsContainerFrame,
     mHelper.BuildDisplayList(aBuilder, aLists);
   }
 
-  bool TryLayout(ScrollReflowInput* aState, ReflowOutput* aKidMetrics,
-                 bool aAssumeVScroll, bool aAssumeHScroll, bool aForce);
-  bool ScrolledContentDependsOnHeight(ScrollReflowInput* aState);
-  void ReflowScrolledFrame(ScrollReflowInput* aState, bool aAssumeHScroll,
+  bool TryLayout(ScrollReflowInput& aState, ReflowOutput* aKidMetrics,
+                 bool aAssumeHScroll, bool aAssumeVScroll, bool aForce);
+
+  // Return true if ReflowScrolledFrame is going to do something different based
+  // on the presence of a horizontal scrollbar in a horizontal writing mode or a
+  // vertical scrollbar in a vertical writing mode.
+  bool ScrolledContentDependsOnBSize(const ScrollReflowInput& aState) const;
+
+  void ReflowScrolledFrame(ScrollReflowInput& aState, bool aAssumeHScroll,
                            bool aAssumeVScroll, ReflowOutput* aMetrics);
-  void ReflowContents(ScrollReflowInput* aState,
+  void ReflowContents(ScrollReflowInput& aState,
                       const ReflowOutput& aDesiredSize);
   void PlaceScrollArea(ScrollReflowInput& aState,
                        const nsPoint& aScrollPosition);
@@ -985,25 +1024,21 @@ class nsHTMLScrollFrame : public nsContainerFrame,
   void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
                 const nsRect* aRange = nullptr,
                 nsIScrollbarMediator::ScrollSnapMode aSnap =
-                    nsIScrollbarMediator::DISABLE_SNAP) final {
+                    nsIScrollbarMediator::DISABLE_SNAP,
+                mozilla::ScrollTriggeredByScript aTriggeredByScript =
+                    mozilla::ScrollTriggeredByScript::No) final {
     mHelper.ScrollTo(aScrollPosition, aMode, ScrollOrigin::Other, aRange,
                      aSnap);
   }
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
-  void ScrollToCSSPixels(
-      const CSSIntPoint& aScrollPosition,
-      ScrollMode aMode = ScrollMode::Instant,
-      nsIScrollbarMediator::ScrollSnapMode aSnap =
-          nsIScrollbarMediator::DEFAULT,
-      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified) final {
-    mHelper.ScrollToCSSPixels(aScrollPosition, aMode, aSnap, aOrigin);
+  void ScrollToCSSPixels(const CSSIntPoint& aScrollPosition,
+                         ScrollMode aMode = ScrollMode::Instant) final {
+    mHelper.ScrollToCSSPixels(aScrollPosition, aMode);
   }
-  void ScrollToCSSPixelsApproximate(
-      const mozilla::CSSPoint& aScrollPosition,
-      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified) final {
-    mHelper.ScrollToCSSPixelsApproximate(aScrollPosition, aOrigin);
+  void ScrollToCSSPixelsForApz(const mozilla::CSSPoint& aScrollPosition) final {
+    mHelper.ScrollToCSSPixelsForApz(aScrollPosition);
   }
   /**
    * @note This method might destroy the frame, pres shell and other objects.
@@ -1025,11 +1060,8 @@ class nsHTMLScrollFrame : public nsContainerFrame,
                      aSnap);
   }
   void ScrollByCSSPixels(const CSSIntPoint& aDelta,
-                         ScrollMode aMode = ScrollMode::Instant,
-                         ScrollOrigin aOrigin = ScrollOrigin::NotSpecified,
-                         nsIScrollbarMediator::ScrollSnapMode aSnap =
-                             nsIScrollbarMediator::DEFAULT) final {
-    mHelper.ScrollByCSSPixels(aDelta, aMode, aOrigin, aSnap);
+                         ScrollMode aMode = ScrollMode::Instant) final {
+    mHelper.ScrollByCSSPixels(aDelta, aMode);
   }
   void ScrollSnap() final { mHelper.ScrollSnap(); }
   /**
@@ -1083,9 +1115,10 @@ class nsHTMLScrollFrame : public nsContainerFrame,
     return mHelper.GetScrollUpdates();
   }
   bool HasScrollUpdates() const final { return mHelper.HasScrollUpdates(); }
-  void ResetScrollInfoIfNeeded(const mozilla::ScrollGeneration& aGeneration,
-                               bool aApzAnimationInProgress) final {
-    mHelper.ResetScrollInfoIfNeeded(aGeneration, aApzAnimationInProgress);
+  void ResetScrollInfoIfNeeded(
+      const mozilla::ScrollGeneration& aGeneration,
+      mozilla::APZScrollAnimationType aAPZScrollAnimationType) final {
+    mHelper.ResetScrollInfoIfNeeded(aGeneration, aAPZScrollAnimationType);
   }
   bool WantAsyncScroll() const final { return mHelper.WantAsyncScroll(); }
   mozilla::Maybe<mozilla::layers::ScrollMetadata> ComputeScrollMetadata(
@@ -1290,9 +1323,9 @@ class nsXULScrollFrame final : public nsBoxFrame,
                                public nsIAnonymousContentCreator,
                                public nsIStatefulFrame {
  public:
-  typedef mozilla::ScrollFrameHelper ScrollFrameHelper;
-  typedef mozilla::CSSIntPoint CSSIntPoint;
-  typedef mozilla::layout::ScrollAnchorContainer ScrollAnchorContainer;
+  using ScrollFrameHelper = mozilla::ScrollFrameHelper;
+  using CSSIntPoint = mozilla::CSSIntPoint;
+  using ScrollAnchorContainer = mozilla::layout::ScrollAnchorContainer;
 
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsXULScrollFrame)
@@ -1371,10 +1404,6 @@ class nsXULScrollFrame final : public nsBoxFrame,
   nsresult XULLayout(nsBoxLayoutState& aState);
   void LayoutScrollArea(nsBoxLayoutState& aState,
                         const nsPoint& aScrollPosition);
-
-  static bool AddRemoveScrollbar(bool& aHasScrollbar, nscoord& aXY,
-                                 nscoord& aSize, nscoord aSbSize,
-                                 bool aOnRightOrBottom, bool aAdd);
 
   bool AddRemoveScrollbar(nsBoxLayoutState& aState, bool aOnRightOrBottom,
                           bool aHorizontal, bool aAdd);
@@ -1466,27 +1495,23 @@ class nsXULScrollFrame final : public nsBoxFrame,
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
-  void ScrollTo(
-      nsPoint aScrollPosition, ScrollMode aMode, const nsRect* aRange = nullptr,
-      ScrollSnapMode aSnap = nsIScrollbarMediator::DISABLE_SNAP) final {
+  void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
+                const nsRect* aRange = nullptr,
+                ScrollSnapMode aSnap = nsIScrollbarMediator::DISABLE_SNAP,
+                mozilla::ScrollTriggeredByScript aTriggeredByScript =
+                    mozilla::ScrollTriggeredByScript::No) final {
     mHelper.ScrollTo(aScrollPosition, aMode, ScrollOrigin::Other, aRange,
                      aSnap);
   }
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
-  void ScrollToCSSPixels(
-      const CSSIntPoint& aScrollPosition,
-      ScrollMode aMode = ScrollMode::Instant,
-      nsIScrollbarMediator::ScrollSnapMode aSnap =
-          nsIScrollbarMediator::DISABLE_SNAP,
-      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified) final {
-    mHelper.ScrollToCSSPixels(aScrollPosition, aMode, aSnap, aOrigin);
+  void ScrollToCSSPixels(const CSSIntPoint& aScrollPosition,
+                         ScrollMode aMode = ScrollMode::Instant) final {
+    mHelper.ScrollToCSSPixels(aScrollPosition, aMode);
   }
-  void ScrollToCSSPixelsApproximate(
-      const mozilla::CSSPoint& aScrollPosition,
-      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified) final {
-    mHelper.ScrollToCSSPixelsApproximate(aScrollPosition, aOrigin);
+  void ScrollToCSSPixelsForApz(const mozilla::CSSPoint& aScrollPosition) final {
+    mHelper.ScrollToCSSPixelsForApz(aScrollPosition);
   }
   CSSIntPoint GetScrollPositionCSSPixels() final {
     return mHelper.GetScrollPositionCSSPixels();
@@ -1505,11 +1530,8 @@ class nsXULScrollFrame final : public nsBoxFrame,
                      aSnap);
   }
   void ScrollByCSSPixels(const CSSIntPoint& aDelta,
-                         ScrollMode aMode = ScrollMode::Instant,
-                         ScrollOrigin aOrigin = ScrollOrigin::NotSpecified,
-                         nsIScrollbarMediator::ScrollSnapMode aSnap =
-                             nsIScrollbarMediator::DEFAULT) final {
-    mHelper.ScrollByCSSPixels(aDelta, aMode, aOrigin, aSnap);
+                         ScrollMode aMode = ScrollMode::Instant) final {
+    mHelper.ScrollByCSSPixels(aDelta, aMode);
   }
   void ScrollSnap() final { mHelper.ScrollSnap(); }
   /**
@@ -1563,9 +1585,10 @@ class nsXULScrollFrame final : public nsBoxFrame,
     return mHelper.GetScrollUpdates();
   }
   bool HasScrollUpdates() const final { return mHelper.HasScrollUpdates(); }
-  void ResetScrollInfoIfNeeded(const mozilla::ScrollGeneration& aGeneration,
-                               bool aApzAnimationInProgress) final {
-    mHelper.ResetScrollInfoIfNeeded(aGeneration, aApzAnimationInProgress);
+  void ResetScrollInfoIfNeeded(
+      const mozilla::ScrollGeneration& aGeneration,
+      mozilla::APZScrollAnimationType aAPZScrollAnimationType) final {
+    mHelper.ResetScrollInfoIfNeeded(aGeneration, aAPZScrollAnimationType);
   }
   bool WantAsyncScroll() const final { return mHelper.WantAsyncScroll(); }
   mozilla::Maybe<mozilla::layers::ScrollMetadata> ComputeScrollMetadata(
@@ -1734,7 +1757,7 @@ class nsXULScrollFrame final : public nsBoxFrame,
      * edge, then subtract the current width to find the physical position.
      */
     if (!mHelper.IsPhysicalLTR()) {
-      aRect.x = mHelper.mScrollPort.XMost() - aScrollPosition.x - aRect.width;
+      aRect.x = mHelper.ScrollPort().XMost() - aScrollPosition.x - aRect.width;
     }
     mHelper.mScrolledFrame->SetXULBounds(aState, aRect, aRemoveOverflowAreas);
   }

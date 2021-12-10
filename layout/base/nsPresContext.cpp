@@ -214,8 +214,9 @@ void nsPresContext::ForceReflowForFontInfoUpdate(bool aNeedsReframe) {
 
   // We also need to trigger restyling for ex/ch units changes to take effect,
   // if needed.
-  auto restyleHint =
-      UsesExChUnits() ? RestyleHint::RecascadeSubtree() : RestyleHint{0};
+  auto restyleHint = UsesFontMetricDependentFontUnits()
+                         ? RestyleHint::RecascadeSubtree()
+                         : RestyleHint{0};
 
   RebuildAllStyleData(changeHint, restyleHint);
 }
@@ -271,13 +272,11 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
       mPendingUIResolutionChanged(false),
       mPendingFontInfoUpdateReflowFromStyle(false),
       mIsGlyph(false),
-      mUsesExChUnits(false),
+      mUsesFontMetricDependentFontUnits(false),
       mCounterStylesDirty(true),
       mFontFeatureValuesDirty(true),
       mSuppressResizeReflow(false),
       mIsVisual(false),
-      mPaintFlashing(false),
-      mPaintFlashingInitialized(false),
       mHasWarnedAboutPositionedTableParts(false),
       mHasWarnedAboutTooLargeDashedOrDottedRadius(false),
       mQuirkSheetAdded(false),
@@ -331,8 +330,6 @@ static const char* gExactCallbackPrefs[] = {
     "intl.accept_languages",
     "layout.css.devPixelsPerPx",
     "layout.css.dpi",
-    "nglayout.debug.paint_flashing_chrome",
-    "nglayout.debug.paint_flashing",
     "privacy.resistFingerprinting",
     "privacy.trackingprotection.enabled",
     nullptr,
@@ -662,15 +659,9 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
       // Changes to font_rendering prefs need to trigger a reflow
       StringBeginsWith(prefName, "gfx.font_rendering."_ns)) {
     changeHint |= NS_STYLE_HINT_REFLOW;
-    if (UsesExChUnits()) {
+    if (UsesFontMetricDependentFontUnits()) {
       restyleHint |= RestyleHint::RecascadeSubtree();
     }
-  }
-
-  if (prefName.EqualsLiteral("nglayout.debug.paint_flashing") ||
-      prefName.EqualsLiteral("nglayout.debug.paint_flashing_chrome")) {
-    mPaintFlashingInitialized = false;
-    return;
   }
 
   // We will end up calling InvalidatePreferenceSheets one from each pres
@@ -1435,6 +1426,12 @@ nsISupports* nsPresContext::GetContainerWeak() const {
   return mDocument->GetDocShell();
 }
 
+nscolor nsPresContext::DefaultBackgroundColor() const {
+  return PrefSheetPrefs()
+      .ColorsFor(mDocument->DefaultColorScheme())
+      .mDefaultBackground;
+}
+
 nsDocShell* nsPresContext::GetDocShell() const {
   return nsDocShell::Cast(mDocument->GetDocShell());
 }
@@ -1547,7 +1544,7 @@ nsITheme* nsPresContext::EnsureTheme() {
   if (Document()->ShouldAvoidNativeTheme()) {
     BrowsingContext* bc = Document()->GetBrowsingContext();
     if (bc && bc->Top()->InRDMPane()) {
-      mTheme = do_GetAndroidNonNativeThemeDoNotUseDirectly();
+      mTheme = do_GetRDMThemeDoNotUseDirectly();
     } else {
       mTheme = do_GetBasicNativeThemeDoNotUseDirectly();
     }
@@ -1627,6 +1624,14 @@ void nsPresContext::ThemeChangedInternal() {
   MediaFeatureValuesChanged(
       {restyleHint, changeHint, MediaFeatureChangeReason::SystemMetricsChange},
       MediaFeatureChangePropagation::All);
+
+  if (Document()->IsInChromeDocShell()) {
+    if (RefPtr<nsPIDOMWindowInner> win = Document()->GetInnerWindow()) {
+      nsContentUtils::DispatchEventOnlyToChrome(
+          Document(), win, u"nativethemechange"_ns, CanBubble::eYes,
+          Cancelable::eYes, nullptr);
+    }
+  }
 }
 
 void nsPresContext::UIResolutionChanged() {
@@ -1671,6 +1676,10 @@ void nsPresContext::UIResolutionChangedInternalScale(double aScale) {
   mDeviceContext->CheckDPIChange(&aScale);
   if (mCurAppUnitsPerDevPixel != mDeviceContext->AppUnitsPerDevPixel()) {
     AppUnitsPerDevPixelChanged();
+  }
+
+  if (GetPresShell()) {
+    GetPresShell()->RefreshZoomConstraintsForScreenSizeChange();
   }
 
   // Recursively notify all remote leaf descendants of the change.
@@ -1768,7 +1777,7 @@ void nsPresContext::PostRebuildAllStyleDataEvent(
     return;
   }
   if (aRestyleHint.DefinitelyRecascadesAllSubtree()) {
-    mUsesExChUnits = false;
+    mUsesFontMetricDependentFontUnits = false;
   }
   RestyleManager()->RebuildAllStyleData(aExtraHint, aRestyleHint);
 }
@@ -1966,8 +1975,9 @@ void nsPresContext::UserFontSetUpdated(gfxUserFontEntry* aUpdatedFont) {
   // TODO(emilio): We could be more granular if we knew which families have
   // potentially changed.
   if (!aUpdatedFont) {
-    auto hint =
-        UsesExChUnits() ? RestyleHint::RecascadeSubtree() : RestyleHint{0};
+    auto hint = UsesFontMetricDependentFontUnits()
+                    ? RestyleHint::RecascadeSubtree()
+                    : RestyleHint{0};
     PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW, hint);
     return;
   }
@@ -2119,19 +2129,26 @@ static bool MayHavePaintEventListener(nsPIDOMWindowInner* aInnerWindow) {
   }
 
   if (!node) {
-    node = do_QueryInterface(parentTarget);
+    node = nsINode::FromEventTarget(parentTarget);
   }
-  if (node)
+  if (node) {
     return MayHavePaintEventListener(node->OwnerDoc()->GetInnerWindow());
+  }
 
-  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(parentTarget);
-  if (window) return MayHavePaintEventListener(window);
+  if (nsCOMPtr<nsPIDOMWindowInner> window =
+          nsPIDOMWindowInner::FromEventTarget(parentTarget)) {
+    return MayHavePaintEventListener(window);
+  }
 
-  nsCOMPtr<nsPIWindowRoot> root = do_QueryInterface(parentTarget);
-  EventTarget* browserChildGlobal;
-  return root && (browserChildGlobal = root->GetParentTarget()) &&
-         (manager = browserChildGlobal->GetExistingListenerManager()) &&
-         manager->MayHavePaintEventListener();
+  if (nsCOMPtr<nsPIWindowRoot> root =
+          nsPIWindowRoot::FromEventTarget(parentTarget)) {
+    EventTarget* browserChildGlobal;
+    return root && (browserChildGlobal = root->GetParentTarget()) &&
+           (manager = browserChildGlobal->GetExistingListenerManager()) &&
+           manager->MayHavePaintEventListener();
+  }
+
+  return false;
 }
 
 bool nsPresContext::MayHavePaintEventListener() {
@@ -2634,18 +2651,6 @@ void nsPresContext::NotifyDOMContentFlushed() {
       timing->NotifyDOMContentFlushedForRootContentDocument();
     }
   }
-}
-
-bool nsPresContext::GetPaintFlashing() const {
-  if (!mPaintFlashingInitialized) {
-    bool pref = Preferences::GetBool("nglayout.debug.paint_flashing");
-    if (!pref && IsChrome()) {
-      pref = Preferences::GetBool("nglayout.debug.paint_flashing_chrome");
-    }
-    mPaintFlashing = pref;
-    mPaintFlashingInitialized = true;
-  }
-  return mPaintFlashing;
 }
 
 nscoord nsPresContext::GfxUnitsToAppUnits(gfxFloat aGfxUnits) const {

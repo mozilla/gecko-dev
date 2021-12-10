@@ -70,7 +70,8 @@
 #include "nsLineBreaker.h"
 #include "nsIFrameInlines.h"
 #include "mozilla/intl/Bidi.h"
-#include "mozilla/intl/WordBreaker.h"
+#include "mozilla/intl/Segmenter.h"
+#include "mozilla/intl/UnicodeProperties.h"
 #include "mozilla/ServoStyleSet.h"
 
 #include <algorithm>
@@ -110,7 +111,14 @@ typedef mozilla::layout::TextDrawTarget TextDrawTarget;
 static bool NeedsToMaskPassword(nsTextFrame* aFrame) {
   MOZ_ASSERT(aFrame);
   MOZ_ASSERT(aFrame->GetContent());
-  return aFrame->GetContent()->HasFlag(NS_MAYBE_MASKED);
+  if (!aFrame->GetContent()->HasFlag(NS_MAYBE_MASKED)) {
+    return false;
+  }
+  nsIFrame* frame =
+      nsLayoutUtils::GetClosestFrameOfType(aFrame, LayoutFrameType::TextInput);
+  MOZ_ASSERT(frame, "How do we have a masked text node without a text input?");
+  return !frame || !frame->GetContent()->AsElement()->State().HasState(
+                       NS_EVENT_STATE_REVEALED);
 }
 
 struct TabWidth {
@@ -2535,12 +2543,6 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
       textRun = transformingFactory->MakeTextRun(
           text, transformedLength, &params, fontGroup, flags, flags2,
           std::move(styles), true);
-      if (textRun) {
-        // ownership of the factory has passed to the textrun
-        // TODO: bug 1285316: clean up ownership transfer from the factory to
-        // the textrun
-        Unused << transformingFactory.release();
-      }
     } else {
       textRun = fontGroup->MakeTextRun(text, transformedLength, &params, flags,
                                        flags2, mMissingFonts);
@@ -2552,12 +2554,6 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
       textRun = transformingFactory->MakeTextRun(
           text, transformedLength, &params, fontGroup, flags, flags2,
           std::move(styles), true);
-      if (textRun) {
-        // ownership of the factory has passed to the textrun
-        // TODO: bug 1285316: clean up ownership transfer from the factory to
-        // the textrun
-        Unused << transformingFactory.release();
-      }
     } else {
       textRun = fontGroup->MakeTextRun(text, transformedLength, &params, flags,
                                        flags2, mMissingFonts);
@@ -2572,9 +2568,17 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
   // the breaks may be stored in the textrun during this very call.
   // This is a bit annoying because it requires another loop over the frames
   // making up the textrun, but I don't see a way to avoid this.
-  if (mDoLineBreaking) {
+  // We have to do this if line-breaking is required OR if a text-transform
+  // is in effect, because we depend on the line-breaker's scanner (via
+  // BreakSink::Finish) to finish building transformed textruns.
+  if (mDoLineBreaking || transformingFactory) {
     SetupBreakSinksForTextRun(textRun.get(), textPtr);
   }
+
+  // Ownership of the factory has passed to the textrun
+  // TODO: bug 1285316: clean up ownership transfer from the factory to
+  // the textrun
+  Unused << transformingFactory.release();
 
   if (anyTextEmphasis) {
     SetupTextEmphasisForTextRun(textRun.get(), textPtr);
@@ -2692,7 +2696,8 @@ static bool HasCompressedLeadingWhitespace(
 
 void BuildTextRunsScanner::SetupBreakSinksForTextRun(gfxTextRun* aTextRun,
                                                      const void* aTextPtr) {
-  using mozilla::intl::LineBreaker;
+  using mozilla::intl::LineBreakRule;
+  using mozilla::intl::WordBreakRule;
 
   // textruns have uniform language
   const nsStyleFont* styleFont = mMappedFlows[0].mStartFrame->StyleFont();
@@ -2714,32 +2719,32 @@ void BuildTextRunsScanner::SetupBreakSinksForTextRun(gfxTextRun* aTextRun,
     auto wordBreak = styleText->EffectiveWordBreak();
     switch (wordBreak) {
       case StyleWordBreak::BreakAll:
-        mLineBreaker.SetWordBreak(LineBreaker::WordBreak::BreakAll);
+        mLineBreaker.SetWordBreak(WordBreakRule::BreakAll);
         break;
       case StyleWordBreak::KeepAll:
-        mLineBreaker.SetWordBreak(LineBreaker::WordBreak::KeepAll);
+        mLineBreaker.SetWordBreak(WordBreakRule::KeepAll);
         break;
       case StyleWordBreak::Normal:
       default:
         MOZ_ASSERT(wordBreak == StyleWordBreak::Normal);
-        mLineBreaker.SetWordBreak(LineBreaker::WordBreak::Normal);
+        mLineBreaker.SetWordBreak(WordBreakRule::Normal);
         break;
     }
     switch (styleText->mLineBreak) {
       case StyleLineBreak::Auto:
-        mLineBreaker.SetStrictness(LineBreaker::Strictness::Auto);
+        mLineBreaker.SetStrictness(LineBreakRule::Auto);
         break;
       case StyleLineBreak::Normal:
-        mLineBreaker.SetStrictness(LineBreaker::Strictness::Normal);
+        mLineBreaker.SetStrictness(LineBreakRule::Normal);
         break;
       case StyleLineBreak::Loose:
-        mLineBreaker.SetStrictness(LineBreaker::Strictness::Loose);
+        mLineBreaker.SetStrictness(LineBreakRule::Loose);
         break;
       case StyleLineBreak::Strict:
-        mLineBreaker.SetStrictness(LineBreaker::Strictness::Strict);
+        mLineBreaker.SetStrictness(LineBreakRule::Strict);
         break;
       case StyleLineBreak::Anywhere:
-        mLineBreaker.SetStrictness(LineBreaker::Strictness::Anywhere);
+        mLineBreaker.SetStrictness(LineBreakRule::Anywhere);
         break;
     }
 
@@ -4082,7 +4087,7 @@ void nsTextPaintStyle::InitCommonColors() {
                "default background color is not opaque");
 
   nscolor defaultWindowBackgroundColor =
-      LookAndFeel::Color(LookAndFeel::ColorID::WindowBackground, mFrame);
+      LookAndFeel::Color(LookAndFeel::ColorID::Window, mFrame);
   nscolor selectionTextColor =
       LookAndFeel::Color(LookAndFeel::ColorID::Highlighttext, mFrame);
   nscolor selectionBGColor =
@@ -4133,13 +4138,18 @@ bool nsTextPaintStyle::InitSelectionColorsAndShadow() {
     return true;
   }
 
+  mSelectionTextColor =
+      LookAndFeel::Color(LookAndFeel::ColorID::Highlighttext, mFrame);
+
   nscolor selectionBGColor =
       LookAndFeel::Color(LookAndFeel::ColorID::Highlight, mFrame);
 
   switch (selectionStatus) {
     case nsISelectionController::SELECTION_ATTENTION: {
+      mSelectionTextColor = LookAndFeel::Color(
+          LookAndFeel::ColorID::TextSelectAttentionForeground, mFrame);
       mSelectionBGColor = LookAndFeel::Color(
-          LookAndFeel::ColorID::TextSelectBackgroundAttention, mFrame);
+          LookAndFeel::ColorID::TextSelectAttentionBackground, mFrame);
       mSelectionBGColor =
           EnsureDifferentColors(mSelectionBGColor, selectionBGColor);
       break;
@@ -4150,15 +4160,12 @@ bool nsTextPaintStyle::InitSelectionColorsAndShadow() {
     }
     default: {
       mSelectionBGColor = LookAndFeel::Color(
-          LookAndFeel::ColorID::TextSelectBackgroundDisabled, mFrame);
+          LookAndFeel::ColorID::TextSelectDisabledBackground, mFrame);
       mSelectionBGColor =
           EnsureDifferentColors(mSelectionBGColor, selectionBGColor);
       break;
     }
   }
-
-  mSelectionTextColor =
-      LookAndFeel::Color(LookAndFeel::ColorID::Highlighttext, mFrame);
 
   if (mResolveColors) {
     EnsureSufficientContrast(&mSelectionTextColor, &mSelectionBGColor);
@@ -8176,19 +8183,17 @@ ClusterIterator::ClusterIterator(nsTextFrame* aTextFrame, int32_t aPosition,
     mFrag->AppendTo(str, textOffset, textLen);
     aContext.Insert(str, 0);
   }
-  uint32_t nextWord = textStart > 0 ? textStart - 1 : textStart;
-  while (true) {
-    const int32_t scanResult =
-        intl::WordBreaker::Next(aContext.get(), aContext.Length(), nextWord);
-    if (NS_WORDBREAKER_NEED_MORE_TEXT == scanResult ||
-        AssertedCast<uint32_t>(scanResult) > textStart + textLen) {
-      break;
-    }
-    nextWord = AssertedCast<uint32_t>(scanResult);
-    mWordBreaks[nextWord - textStart] = true;
+
+  const uint32_t textEnd = textStart + textLen;
+  intl::WordBreakIteratorUtf16 wordBreakIter(aContext);
+  Maybe<uint32_t> nextBreak =
+      wordBreakIter.Seek(textStart > 0 ? textStart - 1 : textStart);
+  while (nextBreak && *nextBreak <= textEnd) {
+    mWordBreaks[*nextBreak - textStart] = true;
+    nextBreak = wordBreakIter.Next();
   }
 
-  MOZ_ASSERT(textStart + textLen != aContext.Length() || mWordBreaks[textLen],
+  MOZ_ASSERT(textEnd != aContext.Length() || mWordBreaks[textLen],
              "There should be a word break at the end of a line or text run!");
 }
 
@@ -8365,9 +8370,10 @@ static bool FindFirstLetterRange(const nsTextFragment* aFrag,
   // should extend to entire orthographic "syllable" clusters, we don't
   // want to allow this to split a ligature.
   bool allowSplitLigature;
+  bool usesIndicHalfForms = false;
 
-  typedef unicode::Script Script;
-  Script script = unicode::GetScriptCode(usv);
+  typedef intl::Script Script;
+  Script script = intl::UnicodeProperties::GetScriptCode(usv);
   switch (script) {
     default:
       allowSplitLigature = true;
@@ -8388,6 +8394,9 @@ static bool FindFirstLetterRange(const nsTextFragment* aFrag,
     case Script::BENGALI:
     case Script::DEVANAGARI:
     case Script::GUJARATI:
+      usesIndicHalfForms = true;
+      [[fallthrough]];
+
     case Script::GURMUKHI:
     case Script::KANNADA:
     case Script::MALAYALAM:
@@ -8430,6 +8439,33 @@ static bool FindFirstLetterRange(const nsTextFragment* aFrag,
   FindClusterEnd(aTextRun, endOffset, &iter, allowSplitLigature);
 
   i = iter.GetOriginalOffset() - aOffset;
+
+  // Heuristic for Indic scripts that like to form conjuncts:
+  // If we ended at a virama that is ligated with the preceding character
+  // (e.g. creating a half-form), then don't stop here; include the next
+  // cluster as well so that we don't break a conjunct.
+  //
+  // Unfortunately this cannot distinguish between a letter+virama that ligate
+  // to create a half-form (in which case we have a conjunct that should not
+  // be broken) and a letter+virama that ligate purely for presentational
+  // reasons to position the (visible) virama component (in which case breaking
+  // after the virama would be acceptable). So results may be imperfect,
+  // depending how the font has chosen to implement visible viramas.
+  if (usesIndicHalfForms) {
+    while (i + 1 < length &&
+           !aTextRun->IsLigatureGroupStart(iter.GetSkippedOffset())) {
+      char32_t c = aFrag->ScalarValueAt(AssertedCast<uint32_t>(aOffset + i));
+      if (intl::UnicodeProperties::GetCombiningClass(c) ==
+          HB_UNICODE_COMBINING_CLASS_VIRAMA) {
+        iter.AdvanceOriginal(1);
+        FindClusterEnd(aTextRun, endOffset, &iter, allowSplitLigature);
+        i = iter.GetOriginalOffset() - aOffset;
+      } else {
+        break;
+      }
+    }
+  }
+
   if (i + 1 == length) {
     return true;
   }
@@ -9981,7 +10017,7 @@ static void TransformChars(nsTextFrame* aFrame, const nsStyleText* aStyle,
       AutoTArray<bool, 50> charsToMergeArray;
       AutoTArray<bool, 50> deletedCharsArray;
       nsCaseTransformTextRunFactory::TransformString(
-          fragString, convertedString, /* aAllUppercase = */ false,
+          fragString, convertedString, /* aGlobalTransform = */ Nothing(),
           /* aCaseTransformsOnly = */ true, nullptr, charsToMergeArray,
           deletedCharsArray, transformedTextRun, aSkippedOffset);
       aOut.Append(convertedString);
@@ -10234,25 +10270,25 @@ bool nsTextFrame::IsEmpty() {
 
 #ifdef DEBUG_FRAME_DUMP
 // Translate the mapped content into a string that's printable
-void nsTextFrame::ToCString(nsCString& aBuf,
-                            int32_t* aTotalContentLength) const {
+void nsTextFrame::ToCString(nsCString& aBuf) const {
   // Get the frames text content
   const nsTextFragment* frag = TextFragment();
   if (!frag) {
     return;
   }
 
-  // Compute the total length of the text content.
-  *aTotalContentLength = frag->GetLength();
-
   const uint32_t contentLength = AssertedCast<uint32_t>(GetContentLength());
-  // Set current fragment and current fragment offset
   if (0 == contentLength) {
     return;
   }
+
+  // Limit the length to fragment length in case the text has not been reflowed.
+  const uint32_t fragLength =
+      std::min(frag->GetLength(), AssertedCast<uint32_t>(GetContentEnd()));
+
   uint32_t fragOffset = AssertedCast<uint32_t>(GetContentOffset());
-  const uint32_t n = fragOffset + contentLength;
-  while (fragOffset < n) {
+
+  while (fragOffset < fragLength) {
     char16_t ch = frag->CharAt(fragOffset++);
     if (ch == '\r') {
       aBuf.AppendLiteral("\\r");
@@ -10270,9 +10306,8 @@ void nsTextFrame::ToCString(nsCString& aBuf,
 
 nsresult nsTextFrame::GetFrameName(nsAString& aResult) const {
   MakeFrameName(u"Text"_ns, aResult);
-  int32_t totalContentLength;
   nsAutoCString tmp;
-  ToCString(tmp, &totalContentLength);
+  ToCString(tmp);
   tmp.SetLength(std::min(tmp.Length(), 50u));
   aResult += u"\""_ns + NS_ConvertASCIItoUTF16(tmp) + u"\""_ns;
   return NS_OK;

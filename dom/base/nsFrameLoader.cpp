@@ -131,9 +131,7 @@
 
 #include "mozilla/ContentPrincipal.h"
 
-#ifdef MOZ_XUL
-#  include "nsXULPopupManager.h"
-#endif
+#include "nsXULPopupManager.h"
 
 #ifdef NS_PRINTING
 #  include "mozilla/embedding/printingui/PrintingParent.h"
@@ -345,9 +343,9 @@ static already_AddRefed<BrowsingContext> CreateBrowsingContext(
   // for the BrowsingContext, and cause no end of trouble.
   if (IsTopContent(parentBC, aOwner)) {
     // Create toplevel context without a parent & as Type::Content.
-    return BrowsingContext::CreateDetached(nullptr, opener, aSpecificGroup,
-                                           frameName,
-                                           BrowsingContext::Type::Content);
+    return BrowsingContext::CreateDetached(
+        nullptr, opener, aSpecificGroup, frameName,
+        BrowsingContext::Type::Content, false);
   }
 
   MOZ_ASSERT(!aOpenWindowInfo,
@@ -356,7 +354,7 @@ static already_AddRefed<BrowsingContext> CreateBrowsingContext(
   MOZ_ASSERT(!aSpecificGroup,
              "Can't force BrowsingContextGroup for non-toplevel context");
   return BrowsingContext::CreateDetached(parentInner, nullptr, nullptr,
-                                         frameName, parentBC->GetType(),
+                                         frameName, parentBC->GetType(), false,
                                          !aNetworkCreated);
 }
 
@@ -1988,10 +1986,12 @@ nsresult nsFrameLoaderDestroyRunnable::Run() {
 
       // In the out-of-process case, BrowserParent will eventually call
       // DestroyComplete once it receives a __delete__ message from the child.
-      // In the in-process case, we dispatch a series of runnables to ensure
-      // that DestroyComplete gets called at the right time. The frame loader is
-      // kept alive by mFrameLoader during this time.
-      if (mFrameLoader->mChildMessageManager) {
+      // In the in-process case, or if the BrowserParent was already destroyed,
+      // we dispatch a series of runnables to ensure that DestroyComplete gets
+      // called at the right time. The frame loader is kept alive by
+      // mFrameLoader during this time.
+      if (!mFrameLoader->GetRemoteBrowser() ||
+          !mFrameLoader->GetRemoteBrowser()->CanRecv()) {
         // When the docshell is destroyed, NotifyWindowIDDestroyed is called to
         // asynchronously notify {outer,inner}-window-destroyed via a runnable.
         // We don't want DestroyComplete to run until after those runnables have
@@ -2611,6 +2611,16 @@ bool nsFrameLoader::TryRemoteBrowserInternal() {
     return false;
   }
 
+  if (RefPtr<nsFrameLoaderOwner> flo = do_QueryObject(mOwnerContent)) {
+    RefPtr<nsFrameLoader> fl = flo->GetFrameLoader();
+    if (fl != this) {
+      MOZ_ASSERT_UNREACHABLE(
+          "Got TryRemoteBrowserInternal but mOwnerContent already has a "
+          "different frameloader?");
+      return false;
+    }
+  }
+
   if (!doc->IsActive()) {
     // Don't allow subframe loads in non-active documents.
     // (See bug 610571 comment 5.)
@@ -2734,6 +2744,8 @@ bool nsFrameLoader::TryRemoteBrowserInternal() {
 
   // Grab the reference to the actor
   RefPtr<BrowserParent> browserParent = GetBrowserParent();
+
+  MOZ_ASSERT(browserParent->CanSend(), "BrowserParent cannot send?");
 
   // We no longer need the remoteType attribute on the frame element.
   // The remoteType can be queried by asking the message manager instead.
@@ -3193,7 +3205,6 @@ void nsFrameLoader::AttributeChanged(mozilla::dom::Element* aElement,
   bool is_primary = aElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::primary,
                                           nsGkAtoms::_true, eIgnoreCase);
 
-#ifdef MOZ_XUL
   // when a content panel is no longer primary, hide any open popups it may have
   if (!is_primary) {
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
@@ -3201,7 +3212,6 @@ void nsFrameLoader::AttributeChanged(mozilla::dom::Element* aElement,
       pm->HidePopupsInDocShell(GetDocShell());
     }
   }
-#endif
 
   parentTreeOwner->ContentShellRemoved(GetDocShell());
   if (aElement->AttrValueIs(kNameSpaceID_None, TypeAttrName(aElement),
@@ -3848,7 +3858,9 @@ void nsFrameLoader::MaybeNotifyCrashed(BrowsingContext* aBrowsingContext,
   RefPtr<FrameCrashedEvent> event = FrameCrashedEvent::Constructor(
       mOwnerContent->OwnerDoc(), eventName, init);
   event->SetTrusted(true);
-  EventDispatcher::DispatchDOMEvent(mOwnerContent, nullptr, event, nullptr,
+
+  RefPtr<Element> ownerContent = mOwnerContent;
+  EventDispatcher::DispatchDOMEvent(ownerContent, nullptr, event, nullptr,
                                     nullptr);
 }
 

@@ -52,7 +52,7 @@
 #include "mozilla/dom/KeyframeEffect.h"
 #include "mozilla/dom/SVGViewportElement.h"
 #include "mozilla/dom/UIEvent.h"
-#include "mozilla/intl/Bidi.h"
+#include "mozilla/intl/BidiEmbeddingLevel.h"
 #include "mozilla/EffectCompositor.h"
 #include "mozilla/EffectSet.h"
 #include "mozilla/EventDispatcher.h"
@@ -61,6 +61,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/PathHelpers.h"
+#include "mozilla/IntegerRange.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/layers/APZPublicUtils.h"  // for apz::CalculatePendingDisplayPort
 #include "mozilla/layers/CompositorBridgeChild.h"
@@ -160,9 +161,7 @@
 #include "UnitTransforms.h"
 #include "ViewportFrame.h"
 
-#ifdef MOZ_XUL
-#  include "nsXULPopupManager.h"
-#endif
+#include "nsXULPopupManager.h"
 
 // Make sure getpid() works.
 #ifdef XP_WIN
@@ -1181,19 +1180,20 @@ int32_t nsLayoutUtils::DoCompareTreePosition(
     return 0;
   }
 
-  int32_t index1 = parent->ComputeIndexOf(content1Ancestor);
-  int32_t index2 = parent->ComputeIndexOf(content2Ancestor);
+  const Maybe<uint32_t> index1 = parent->ComputeIndexOf(content1Ancestor);
+  const Maybe<uint32_t> index2 = parent->ComputeIndexOf(content2Ancestor);
 
   // None of the nodes are anonymous, just do a regular comparison.
-  if (index1 >= 0 && index2 >= 0) {
-    return index1 - index2;
+  if (index1.isSome() && index2.isSome()) {
+    return static_cast<int32_t>(static_cast<int64_t>(*index1) - *index2);
   }
 
   // Otherwise handle pseudo-element and anonymous content ordering.
   //
   // ::marker -> ::before -> anon siblings -> regular siblings -> ::after
-  auto PseudoIndex = [](const nsINode* aNode, int32_t aNodeIndex) -> int32_t {
-    if (aNodeIndex >= 0) {
+  auto PseudoIndex = [](const nsINode* aNode,
+                        const Maybe<uint32_t>& aNodeIndex) -> int32_t {
+    if (aNodeIndex.isSome()) {
       return 1;  // Not a pseudo.
     }
     if (aNode->IsContent()) {
@@ -1365,45 +1365,19 @@ nsIScrollableFrame* nsLayoutUtils::GetScrollableFrameFor(
 /* static */
 SideBits nsLayoutUtils::GetSideBitsForFixedPositionContent(
     const nsIFrame* aFixedPosFrame) {
-  return GetSideBitsAndAdjustAnchorForFixedPositionContent(
-      nullptr, aFixedPosFrame, nullptr, nullptr);
-}
-
-/* static */
-SideBits nsLayoutUtils::GetSideBitsAndAdjustAnchorForFixedPositionContent(
-    const nsIFrame* aViewportFrame, const nsIFrame* aFixedPosFrame,
-    LayerPoint* aAnchor, const Rect* aAnchorRect) {
   SideBits sides = SideBits::eNone;
-  if (aFixedPosFrame != aViewportFrame) {
+  if (aFixedPosFrame) {
     const nsStylePosition* position = aFixedPosFrame->StylePosition();
     if (!position->mOffset.Get(eSideRight).IsAuto()) {
       sides |= SideBits::eRight;
-      if (!position->mOffset.Get(eSideLeft).IsAuto()) {
-        sides |= SideBits::eLeft;
-        if (aAnchor) {
-          aAnchor->x = aAnchorRect->x + aAnchorRect->width / 2.f;
-        }
-      } else {
-        if (aAnchor) {
-          aAnchor->x = aAnchorRect->XMost();
-        }
-      }
-    } else if (!position->mOffset.Get(eSideLeft).IsAuto()) {
+    }
+    if (!position->mOffset.Get(eSideLeft).IsAuto()) {
       sides |= SideBits::eLeft;
     }
     if (!position->mOffset.Get(eSideBottom).IsAuto()) {
       sides |= SideBits::eBottom;
-      if (!position->mOffset.Get(eSideTop).IsAuto()) {
-        sides |= SideBits::eTop;
-        if (aAnchor) {
-          aAnchor->y = aAnchorRect->y + aAnchorRect->height / 2.f;
-        }
-      } else {
-        if (aAnchor) {
-          aAnchor->y = aAnchorRect->YMost();
-        }
-      }
-    } else if (!position->mOffset.Get(eSideTop).IsAuto()) {
+    }
+    if (!position->mOffset.Get(eSideTop).IsAuto()) {
       sides |= SideBits::eTop;
     }
   }
@@ -1543,10 +1517,9 @@ nsRect nsLayoutUtils::GetScrolledRect(nsIFrame* aScrolledFrame,
   WritingMode wm = aScrolledFrame->GetWritingMode();
   // Potentially override the frame's direction to use the direction found
   // by ScrollFrameHelper::GetScrolledFrameDir()
-  wm.SetDirectionFromBidiLevel(
-      aDirection == StyleDirection::Rtl
-          ? mozilla::intl::Bidi::EmbeddingLevel::RTL()
-          : mozilla::intl::Bidi::EmbeddingLevel::LTR());
+  wm.SetDirectionFromBidiLevel(aDirection == StyleDirection::Rtl
+                                   ? mozilla::intl::BidiEmbeddingLevel::RTL()
+                                   : mozilla::intl::BidiEmbeddingLevel::LTR());
 
   nscoord x1 = aScrolledFrameOverflowArea.x,
           x2 = aScrolledFrameOverflowArea.XMost(),
@@ -1761,7 +1734,6 @@ nsPoint nsLayoutUtils::GetEventCoordinatesRelativeTo(
 
 nsIFrame* nsLayoutUtils::GetPopupFrameForEventCoordinates(
     nsPresContext* aPresContext, const WidgetEvent* aEvent) {
-#ifdef MOZ_XUL
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
   if (!pm) {
     return nullptr;
@@ -1778,7 +1750,6 @@ nsIFrame* nsLayoutUtils::GetPopupFrameForEventCoordinates(
       return popup;
     }
   }
-#endif
   return nullptr;
 }
 
@@ -3362,6 +3333,7 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
         metrics->EndPartialBuild(updateState);
       } else {
         // Partial updates are disabled.
+        DL_LOGI("Partial updates are disabled");
         metrics->mPartialUpdateResult = PartialUpdateResult::Failed;
         metrics->mPartialUpdateFailReason = PartialUpdateFailReason::Disabled;
       }
@@ -3377,6 +3349,8 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
       }
 
       if (doFullRebuild) {
+        DL_LOGI("Starting full display list build, root frame: %p",
+                builder->RootReferenceFrame());
         list->DeleteAll(builder);
         list->RestoreState();
 
@@ -3392,6 +3366,7 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
         builder->LeavePresShell(aFrame, list);
         metrics->EndFullBuild();
 
+        DL_LOGI("Finished full display list build");
         updateState = PartialUpdateResult::Updated;
       }
     }
@@ -5556,7 +5531,7 @@ nscoord nsLayoutUtils::AppUnitWidthOfStringBidi(const char16_t* aString,
                                                 gfxContext& aContext) {
   nsPresContext* presContext = aFrame->PresContext();
   if (presContext->BidiEnabled()) {
-    mozilla::intl::Bidi::EmbeddingLevel level =
+    mozilla::intl::BidiEmbeddingLevel level =
         nsBidiPresUtils::BidiLevelFromStyle(aFrame->Style());
     return nsBidiPresUtils::MeasureTextWidth(
         aString, aLength, level, presContext, aContext, aFontMetrics);
@@ -5636,7 +5611,7 @@ void nsLayoutUtils::DrawString(const nsIFrame* aFrame,
 
   nsPresContext* presContext = aFrame->PresContext();
   if (presContext->BidiEnabled()) {
-    mozilla::intl::Bidi::EmbeddingLevel level =
+    mozilla::intl::BidiEmbeddingLevel level =
         nsBidiPresUtils::BidiLevelFromStyle(aComputedStyle);
     rv = nsBidiPresUtils::RenderText(aString, aLength, level, presContext,
                                      *aContext, aContext->GetDrawTarget(),
@@ -9089,9 +9064,10 @@ nsRect nsLayoutUtils::GetSelectionBoundingRect(const Selection* aSel) {
       res = TransformFrameRectToAncestor(frame, res, relativeTo);
     }
   } else {
-    int32_t rangeCount = aSel->RangeCount();
     RectAccumulator accumulator;
-    for (int32_t idx = 0; idx < rangeCount; ++idx) {
+    const uint32_t rangeCount = aSel->RangeCount();
+    for (const uint32_t idx : IntegerRange(rangeCount)) {
+      MOZ_ASSERT(aSel->RangeCount() == rangeCount);
       nsRange* range = aSel->GetRangeAt(idx);
       nsRange::CollectClientRectsAndText(
           &accumulator, nullptr, range, range->GetStartContainer(),
@@ -9586,7 +9562,7 @@ already_AddRefed<nsFontMetrics> nsLayoutUtils::GetMetricsFor(
 /* static */
 void nsLayoutUtils::ComputeSystemFont(nsFont* aSystemFont,
                                       LookAndFeel::FontID aFontID,
-                                      const nsFont* aDefaultVariableFont,
+                                      const nsFont& aDefaultVariableFont,
                                       const Document* aDocument) {
   gfxFontStyle fontStyle;
   nsAutoString systemFontName;
@@ -9646,7 +9622,7 @@ void nsLayoutUtils::ComputeSystemFont(nsFont* aSystemFont,
       //
       // This matches historical Windows behavior and other browsers.
       auto newSize =
-          aDefaultVariableFont->size.ToCSSPixels() - CSSPixel::FromPoints(2.0f);
+          aDefaultVariableFont.size.ToCSSPixels() - CSSPixel::FromPoints(2.0f);
       aSystemFont->size = Length::FromPixels(std::max(float(newSize), 0.0f));
     }
   }

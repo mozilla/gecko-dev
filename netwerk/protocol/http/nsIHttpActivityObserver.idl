@@ -162,4 +162,10 @@ interface nsIHttpActivityDistributor : nsIHttpActivityObserver
 {
     void addObserver(in nsIHttpActivityObserver aObserver);
     void removeObserver(in nsIHttpActivityObserver aObserver);
+
+    /**
+     * When true, the ACTIVITY_SUBTYPE_PROXY_RESPONSE_HEADER will be sent to
+     * the observers.
+     */
+    [must_use] attribute boolean observeProxyResponse;
 };

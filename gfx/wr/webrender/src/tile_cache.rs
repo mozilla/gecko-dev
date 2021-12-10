@@ -124,6 +124,7 @@ impl TileCacheBuilder {
         config: &FrameBuilderConfig,
         iframe_clip: Option<ClipChainId>,
         slice_flags: SliceFlags,
+        prim_instances: &[PrimitiveInstance],
     ) {
         assert!(self.can_add_container_tile_cache());
 
@@ -184,7 +185,7 @@ impl TileCacheBuilder {
         // during initial scene build which are the relevant compositor clips, but for now
         // this is unlikely to be a significant cost.
         for cluster in &prim_list.clusters {
-            for prim_instance in &prim_list.prim_instances[cluster.prim_range()] {
+            for prim_instance in &prim_instances[cluster.prim_range()] {
                 if first {
                     add_clips(
                         scroll_root,
@@ -213,8 +214,7 @@ impl TileCacheBuilder {
                         shared_clips.retain(|h1: &ClipInstance| {
                             let uid = h1.handle.uid();
                             prim_clips_buffer.iter().any(|h2| {
-                                uid == h2.handle.uid() &&
-                                h1.spatial_node_index == h2.spatial_node_index
+                                uid == h2.handle.uid()
                             })
                         });
 
@@ -234,7 +234,7 @@ impl TileCacheBuilder {
 
             let clip_node_data = &interners.clip[clip_chain_node.handle];
             if let ClipNodeKind::Rectangle = clip_node_data.clip_node_kind {
-                shared_clips.push(ClipInstance::new(clip_chain_node.handle, clip_chain_node.spatial_node_index));
+                shared_clips.push(ClipInstance::new(clip_chain_node.handle));
             }
 
             current_clip_chain_id = clip_chain_node.parent_clip_chain_id;
@@ -278,6 +278,7 @@ impl TileCacheBuilder {
         config: &FrameBuilderConfig,
         quality_settings: &QualitySettings,
         iframe_clip: Option<ClipChainId>,
+        prim_instances: &mut Vec<PrimitiveInstance>,
     ) {
         // Check if we want to create a new slice based on the current / next scroll root
         let scroll_root = self.find_scroll_root(spatial_node_index, spatial_tree);
@@ -319,7 +320,8 @@ impl TileCacheBuilder {
 
                         while current_clip_chain_id != ClipChainId::NONE {
                             let clip_chain_node = &clip_store.clip_chain_nodes[current_clip_chain_id.0 as usize];
-                            let spatial_root = self.find_scroll_root(clip_chain_node.spatial_node_index, spatial_tree);
+                            let clip_node_data = &interners.clip[clip_chain_node.handle];
+                            let spatial_root = self.find_scroll_root(clip_node_data.spatial_node_index, spatial_tree);
                             if spatial_root != self.root_spatial_node_index {
                                 create_slice = false;
                                 break;
@@ -448,6 +450,7 @@ impl TileCacheBuilder {
                 prim_rect,
                 spatial_node_index,
                 prim_flags,
+                prim_instances,
             );
     }
 
@@ -485,6 +488,7 @@ impl TileCacheBuilder {
                 clip_store,
                 &mut result.picture_cache_spatial_nodes,
                 config,
+                interners,
                 &mut result.tile_caches,
             );
 
@@ -529,10 +533,10 @@ fn add_clips(
         let clip_node_data = &interners.clip[clip_chain_node.handle];
         if let ClipNodeKind::Rectangle = clip_node_data.clip_node_kind {
             if spatial_tree.is_ancestor(
-                clip_chain_node.spatial_node_index,
+                clip_node_data.spatial_node_index,
                 scroll_root,
             ) {
-                prim_clips.push(ClipInstance::new(clip_chain_node.handle, clip_chain_node.spatial_node_index));
+                prim_clips.push(ClipInstance::new(clip_chain_node.handle));
             }
         }
 
@@ -555,7 +559,7 @@ fn add_all_rect_clips(
 
         let clip_node_data = &interners.clip[clip_chain_node.handle];
         if let ClipNodeKind::Rectangle = clip_node_data.clip_node_kind {
-            prim_clips.push(ClipInstance::new(clip_chain_node.handle, clip_chain_node.spatial_node_index));
+            prim_clips.push(ClipInstance::new(clip_chain_node.handle));
         }
 
         current_clip_chain_id = clip_chain_node.parent_clip_chain_id;
@@ -575,6 +579,7 @@ fn create_tile_cache(
     clip_store: &mut ClipStore,
     picture_cache_spatial_nodes: &mut FastHashSet<SpatialNodeIndex>,
     frame_builder_config: &FrameBuilderConfig,
+    interners: &Interners,
     tile_caches: &mut FastHashMap<SliceId, TileCacheParams>,
 ) -> PictureIndex {
     // Add this spatial node to the list to check for complex transforms
@@ -590,13 +595,14 @@ fn create_tile_cache(
 
     let mut parent_clip_chain_id = ClipChainId::NONE;
     for clip_instance in &shared_clips {
+        let clip_node_data = &interners.clip[clip_instance.handle];
+
         // Add this spatial node to the list to check for complex transforms
         // at the start of a frame build.
-        picture_cache_spatial_nodes.insert(clip_instance.spatial_node_index);
+        picture_cache_spatial_nodes.insert(clip_node_data.spatial_node_index);
 
         parent_clip_chain_id = clip_store.add_clip_chain_node(
             clip_instance.handle,
-            clip_instance.spatial_node_index,
             parent_clip_chain_id,
         );
     }

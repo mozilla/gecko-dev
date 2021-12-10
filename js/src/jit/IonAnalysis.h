@@ -87,6 +87,8 @@ void AssertExtendedGraphCoherency(MIRGraph& graph,
 
 [[nodiscard]] bool EliminateRedundantChecks(MIRGraph& graph);
 
+[[nodiscard]] bool EliminateRedundantShapeGuards(MIRGraph& graph);
+
 [[nodiscard]] bool AddKeepAliveInstructions(MIRGraph& graph);
 
 // Simple linear sum of the form 'n' or 'x + n'.
@@ -168,8 +170,10 @@ MDefinition* ConvertLinearSum(TempAllocator& alloc, MBasicBlock* block,
                               const LinearSum& sum, BailoutKind bailoutKind);
 
 bool DeadIfUnused(const MDefinition* def);
+bool DeadIfUnusedAllowEffectful(const MDefinition* def);
 
 bool IsDiscardable(const MDefinition* def);
+bool IsDiscardableAllowEffectful(const MDefinition* def);
 
 class CompileInfo;
 void DumpMIRExpressions(MIRGraph& graph, const CompileInfo& info,

@@ -78,7 +78,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/CompositorHitTestInfo.h"
 #include "mozilla/gfx/MatrixFwd.h"
-#include "mozilla/intl/Bidi.h"
+#include "mozilla/intl/BidiEmbeddingLevel.h"
 #include "nsDisplayItemTypes.h"
 #include "nsPresContext.h"
 #include "nsTHashSet.h"
@@ -404,16 +404,16 @@ struct IntrinsicSize {
 };
 
 // Pseudo bidi embedding level indicating nonexistence.
-static const mozilla::intl::Bidi::EmbeddingLevel kBidiLevelNone =
-    mozilla::intl::Bidi::EmbeddingLevel(0xff);
+static const mozilla::intl::BidiEmbeddingLevel kBidiLevelNone =
+    mozilla::intl::BidiEmbeddingLevel(0xff);
 
 struct FrameBidiData {
-  mozilla::intl::Bidi::EmbeddingLevel baseLevel;
-  mozilla::intl::Bidi::EmbeddingLevel embeddingLevel;
+  mozilla::intl::BidiEmbeddingLevel baseLevel;
+  mozilla::intl::BidiEmbeddingLevel embeddingLevel;
   // The embedding level of virtual bidi formatting character before
   // this frame if any. kBidiLevelNone is used to indicate nonexistence
   // or unnecessity of such virtual character.
-  mozilla::intl::Bidi::EmbeddingLevel precedingControl;
+  mozilla::intl::BidiEmbeddingLevel precedingControl;
 };
 
 }  // namespace mozilla
@@ -1330,11 +1330,11 @@ class nsIFrame : public nsQueryFrame {
     return bidiData;
   }
 
-  mozilla::intl::Bidi::EmbeddingLevel GetBaseLevel() const {
+  mozilla::intl::BidiEmbeddingLevel GetBaseLevel() const {
     return GetBidiData().baseLevel;
   }
 
-  mozilla::intl::Bidi::EmbeddingLevel GetEmbeddingLevel() const {
+  mozilla::intl::BidiEmbeddingLevel GetEmbeddingLevel() const {
     return GetBidiData().embeddingLevel;
   }
 
@@ -1991,8 +1991,7 @@ class nsIFrame : public nsQueryFrame {
     return IsPreserve3DLeaf(StyleDisplay(), aEffectSet);
   }
 
-  bool HasPerspective(const nsStyleDisplay* aStyleDisplay) const;
-  bool HasPerspective() const { return HasPerspective(StyleDisplay()); }
+  bool HasPerspective() const;
 
   bool ChildrenHavePerspective(const nsStyleDisplay* aStyleDisplay) const;
   bool ChildrenHavePerspective() const {
@@ -5453,8 +5452,10 @@ class nsIFrame : public nsQueryFrame {
   virtual nsresult GetFrameName(nsAString& aResult) const;
   nsresult MakeFrameName(const nsAString& aType, nsAString& aResult) const;
   // Helper function to return the index in parent of the frame's content
-  // object. Returns -1 on error or if the frame doesn't have a content object
-  static int32_t ContentIndexInContainer(const nsIFrame* aFrame);
+  // object. Returns Nothing on error or if the frame doesn't have a content
+  // object
+  static mozilla::Maybe<uint32_t> ContentIndexInContainer(
+      const nsIFrame* aFrame);
 #endif
 
 #ifdef DEBUG

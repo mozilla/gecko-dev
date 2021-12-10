@@ -31,7 +31,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/WidgetUtilsGtk.h"
 #include "ScreenHelperGTK.h"
-#include "nsNativeBasicThemeGTK.h"
+#include "ScrollbarDrawing.h"
 
 #include "gtkdrawing.h"
 #include "nsStyleConsts.h"
@@ -47,6 +47,7 @@
 #include "nsCSSColorUtils.h"
 
 using namespace mozilla;
+using namespace mozilla::widget;
 
 #ifdef MOZ_LOGGING
 #  include "mozilla/Logging.h"
@@ -121,6 +122,20 @@ nsLookAndFeel::~nsLookAndFeel() {
   g_signal_handlers_disconnect_by_func(
       gtk_settings_get_default(), FuncToGpointer(settings_changed_cb), nullptr);
 }
+
+#if 0
+static void DumpStyleContext(GtkStyleContext* aStyle) {
+  static auto sGtkStyleContextToString =
+      reinterpret_cast<char* (*)(GtkStyleContext*, gint)>(
+          dlsym(RTLD_DEFAULT, "gtk_style_context_to_string"));
+  char* str = sGtkStyleContextToString(aStyle, ~0);
+  printf("%s\n", str);
+  g_free(str);
+  str = gtk_widget_path_to_string(gtk_style_context_get_path(aStyle));
+  printf("%s\n", str);
+  g_free(str);
+}
+#endif
 
 // Modifies color |*aDest| as if a pattern of color |aSource| was painted with
 // CAIRO_OPERATOR_OVER to a surface with color |*aDest|.
@@ -388,9 +403,6 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
   switch (aID) {
       // These colors don't seem to be used for anything anymore in Mozilla
       // The CSS2 colors below are used.
-    case ColorID::WindowBackground:
-    case ColorID::WidgetBackground:
-    case ColorID::TextBackground:
     case ColorID::Appworkspace:  // MDI background color
     case ColorID::Background:    // desktop background
     case ColorID::Window:
@@ -399,14 +411,10 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
     case ColorID::MozCombobox:
       aColor = mMozWindowBackground;
       break;
-    case ColorID::WindowForeground:
-    case ColorID::WidgetForeground:
-    case ColorID::TextForeground:
     case ColorID::Windowtext:
     case ColorID::MozDialogtext:
       aColor = mMozWindowText;
       break;
-    case ColorID::WidgetSelectBackground:
     case ColorID::IMESelectedRawTextBackground:
     case ColorID::IMESelectedConvertedTextBackground:
     case ColorID::MozDragtargetzone:
@@ -419,7 +427,6 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
         break;
       }
       [[fallthrough]];
-    case ColorID::WidgetSelectForeground:
     case ColorID::IMESelectedRawTextForeground:
     case ColorID::IMESelectedConvertedTextForeground:
       aColor = mTextSelectedText;
@@ -437,12 +444,6 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       break;
     case ColorID::MozCellhighlighttext:
       aColor = mMozCellHighlightText;
-      break;
-    case ColorID::Widget3DHighlight:
-      aColor = NS_RGB(0xa0, 0xa0, 0xa0);
-      break;
-    case ColorID::Widget3DShadow:
-      aColor = NS_RGB(0x40, 0x40, 0x40);
       break;
     case ColorID::IMERawInputBackground:
     case ColorID::IMEConvertedTextBackground:
@@ -595,6 +596,9 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       break;
     case ColorID::MozNativehyperlinktext:
       aColor = mNativeHyperLinkText;
+      break;
+    case ColorID::MozNativevisitedhyperlinktext:
+      aColor = mNativeVisitedHyperLinkText;
       break;
     case ColorID::MozComboboxtext:
       aColor = mComboBoxText;
@@ -793,6 +797,10 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::GTKCSDAvailable:
       aResult = sCSDAvailable;
       break;
+    case IntID::GTKWayland:
+      EnsureInit();
+      aResult = mIsWayland;
+      break;
     case IntID::GTKCSDMaximizeButton:
       EnsureInit();
       aResult = mCSDMaximizeButton;
@@ -835,6 +843,11 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::TitlebarRadius: {
       EnsureInit();
       aResult = EffectiveTheme().mTitlebarRadius;
+      break;
+    }
+    case IntID::GtkMenuRadius: {
+      EnsureInit();
+      aResult = EffectiveTheme().mMenuRadius;
       break;
     }
     case IntID::AllowOverlayScrollbarsOverlap: {
@@ -1216,6 +1229,7 @@ void nsLookAndFeel::EnsureInit() {
 
   // gtk does non threadsafe refcounting
   MOZ_ASSERT(NS_IsMainThread());
+  mIsWayland = widget::GdkIsWaylandDisplay();
 
   gboolean enableAnimations = false;
   g_object_get(settings, "gtk-enable-animations", &enableAnimations, nullptr);
@@ -1284,9 +1298,6 @@ void nsLookAndFeel::EnsureInit() {
 
     if (pos) {
       *pos = i;
-      if (layout.mAtRight) {
-        *pos += TOOLBAR_BUTTONS;
-      }
     }
   }
 
@@ -1406,6 +1417,35 @@ static nscolor GetBackgroundColor(
   return NS_TRANSPARENT;
 }
 
+static int32_t GetBorderRadius(GtkStyleContext* aStyle) {
+  GValue value = G_VALUE_INIT;
+  // NOTE(emilio): In an ideal world, we'd query the two longhands
+  // (border-top-left-radius and border-top-right-radius) separately. However,
+  // that doesn't work (GTK rejects the query with:
+  //
+  //   Style property "border-top-left-radius" is not gettable
+  //
+  // However! Getting border-radius does work, and it does return the
+  // border-top-left-radius as a gint:
+  //
+  //   https://docs.gtk.org/gtk3/const.STYLE_PROPERTY_BORDER_RADIUS.html
+  //   https://gitlab.gnome.org/GNOME/gtk/-/blob/gtk-3-20/gtk/gtkcssshorthandpropertyimpl.c#L961-977
+  //
+  // So we abuse this fact, and make the assumption here that the
+  // border-top-{left,right}-radius are the same, and roll with it.
+  gtk_style_context_get_property(aStyle, "border-radius", GTK_STATE_FLAG_NORMAL,
+                                 &value);
+  auto unset = MakeScopeExit([&] { g_value_unset(&value); });
+
+  auto type = G_VALUE_TYPE(&value);
+  if (type == G_TYPE_INT) {
+    return g_value_get_int(&value);
+  }
+  NS_WARNING(nsPrintfCString("Unknown value type %lu for titlebar radius", type)
+                 .get());
+  return 0;
+}
+
 void nsLookAndFeel::PerThemeData::Init() {
   mName = GetGtkTheme();
 
@@ -1457,20 +1497,35 @@ void nsLookAndFeel::PerThemeData::Init() {
   mThemedScrollbarThumbInactive = GDK_RGBA_TO_NS_RGBA(color);
 
   // Make sure that the thumb is visible, at least.
-  const bool fallbackToUnthemedColors = !ShouldHonorThemeScrollbarColors() ||
-                                        !NS_GET_A(mThemedScrollbarThumb) ||
-                                        !NS_GET_A(mThemedScrollbarThumbHover) ||
-                                        !NS_GET_A(mThemedScrollbarThumbActive);
+  const bool fallbackToUnthemedColors = [&] {
+    if (!ShouldHonorThemeScrollbarColors()) {
+      return true;
+    }
+    // If any of the scrollbar thumb colors are fully transparent, fall back to
+    // non-native ones.
+    if (!NS_GET_A(mThemedScrollbarThumb) ||
+        !NS_GET_A(mThemedScrollbarThumbHover) ||
+        !NS_GET_A(mThemedScrollbarThumbActive)) {
+      return true;
+    }
+    // If the thumb and track are the same color and opaque, fall back to
+    // non-native colors as well.
+    if (mThemedScrollbar == mThemedScrollbarThumb &&
+        NS_GET_A(mThemedScrollbar) == 0xff) {
+      return true;
+    }
+    return false;
+  }();
+
   if (fallbackToUnthemedColors) {
     mMozScrollbar = mThemedScrollbar = widget::sScrollbarColor.ToABGR();
     mThemedScrollbarInactive = widget::sScrollbarColor.ToABGR();
     mThemedScrollbarThumb = widget::sScrollbarThumbColor.ToABGR();
-    mThemedScrollbarThumbHover =
-        nsNativeBasicTheme::AdjustUnthemedScrollbarThumbColor(
-            mThemedScrollbarThumb, NS_EVENT_STATE_HOVER);
+    mThemedScrollbarThumbHover = ThemeColors::AdjustUnthemedScrollbarThumbColor(
+        mThemedScrollbarThumb, NS_EVENT_STATE_HOVER);
     mThemedScrollbarThumbActive =
-        nsNativeBasicTheme::AdjustUnthemedScrollbarThumbColor(
-            mThemedScrollbarThumb, NS_EVENT_STATE_ACTIVE);
+        ThemeColors::AdjustUnthemedScrollbarThumbColor(mThemedScrollbarThumb,
+                                                       NS_EVENT_STATE_ACTIVE);
     mThemedScrollbarThumbInactive = mThemedScrollbarThumb;
   }
 
@@ -1533,36 +1588,7 @@ void nsLookAndFeel::PerThemeData::Init() {
     mTitlebarInactiveText = GDK_RGBA_TO_NS_RGBA(color);
     mTitlebarInactiveBackground =
         GetBackgroundColor(style, mTitlebarText, GTK_STATE_FLAG_BACKDROP);
-
-    GValue value = G_VALUE_INIT;
-    // NOTE(emilio): In an ideal world, we'd query the two longhands
-    // (border-top-left-radius and border-top-right-radius) separately. However,
-    // that doesn't work (GTK rejects the query with:
-    //
-    //   Style property "border-top-left-radius" is not gettable
-    //
-    // However! Getting border-radius does work, and it does return the
-    // border-top-left-radius as a gint:
-    //
-    //   https://docs.gtk.org/gtk3/const.STYLE_PROPERTY_BORDER_RADIUS.html
-    //   https://gitlab.gnome.org/GNOME/gtk/-/blob/gtk-3-20/gtk/gtkcssshorthandpropertyimpl.c#L961-977
-    //
-    // So we abuse this fact, and make the assumption here that the
-    // border-top-{left,right}-radius are the same, and roll with it.
-    gtk_style_context_get_property(style, "border-radius",
-                                   GTK_STATE_FLAG_NORMAL, &value);
-
-    mTitlebarRadius = [&]() -> int {
-      auto type = G_VALUE_TYPE(&value);
-      if (type == G_TYPE_INT) {
-        return g_value_get_int(&value);
-      }
-      NS_WARNING(
-          nsPrintfCString("Unknown value type %lu for titlebar radius", type)
-              .get());
-      return 0;
-    }();
-    g_value_unset(&value);
+    mTitlebarRadius = IsSolidCSDStyleUsed() ? 0 : GetBorderRadius(style);
   }
 
   style = GetStyleContext(MOZ_GTK_MENUPOPUP);
@@ -1585,6 +1611,14 @@ void nsLookAndFeel::PerThemeData::Init() {
         "background");
     return mMozWindowBackground;
   }();
+  mMenuRadius = 0;
+  if (!IsSolidCSDStyleUsed()) {
+    mMenuRadius = GetBorderRadius(style);
+    if (!mMenuRadius) {
+      mMenuRadius =
+          GetBorderRadius(GetStyleContext(MOZ_GTK_MENUPOPUP_DECORATION));
+    }
+  }
 
   style = GetStyleContext(MOZ_GTK_MENUITEM);
   gtk_style_context_get_color(style, GTK_STATE_FLAG_PRELIGHT, &color);
@@ -1801,6 +1835,9 @@ void nsLookAndFeel::PerThemeData::Init() {
   gtk_style_context_get_color(style, GTK_STATE_FLAG_LINK, &color);
   mNativeHyperLinkText = GDK_RGBA_TO_NS_RGBA(color);
 
+  gtk_style_context_get_color(style, GTK_STATE_FLAG_VISITED, &color);
+  mNativeVisitedHyperLinkText = GDK_RGBA_TO_NS_RGBA(color);
+
   // invisible character styles
   guint value;
   g_object_get(entry, "invisible-char", &value, nullptr);
@@ -1825,6 +1862,7 @@ void nsLookAndFeel::PerThemeData::Init() {
              NS_SUCCEEDED(rv) ? color : 0);
     }
     LOGLNF(" * titlebar-radius: %d\n", mTitlebarRadius);
+    LOGLNF(" * menu-radius: %d\n", mMenuRadius);
   }
 }
 

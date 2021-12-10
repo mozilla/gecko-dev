@@ -382,11 +382,27 @@ pref("browser.urlbar.suggest.openpage",             true);
 pref("browser.urlbar.suggest.searches",             true);
 pref("browser.urlbar.suggest.topsites",             true);
 pref("browser.urlbar.suggest.engines",              true);
-pref("browser.urlbar.suggest.quicksuggest",         false);
-pref("browser.urlbar.suggest.quicksuggest.sponsored", false);
 pref("browser.urlbar.suggest.calculator",           false);
 
-// Whether the QuickSuggest experiment is enabled.
+// Whether non-sponsored quick suggest results are shown in the urlbar. This
+// pref is exposed to the user in the UI, and it's sticky so that its
+// user-branch value persists regardless of whatever Firefox Suggest scenarios,
+// with their various default-branch values, the user is enrolled in over time.
+pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false, sticky);
+
+// Whether sponsored quick suggest results are shown in the urlbar. This pref is
+// exposed to the user in the UI, and it's sticky so that its user-branch value
+// persists regardless of whatever Firefox Suggest scenarios, with their various
+// default-branch values, the user is enrolled in over time.
+pref("browser.urlbar.suggest.quicksuggest.sponsored", false, sticky);
+
+// Whether data collection is enabled for quick suggest results in the urlbar.
+// This pref is exposed to the user in the UI, and it's sticky so that its
+// user-branch value persists regardless of whatever Firefox Suggest scenarios,
+// with their various default-branch values, the user is enrolled in over time.
+pref("browser.urlbar.quicksuggest.dataCollection.enabled", false, sticky);
+
+// Whether the quick suggest feature in the urlbar is enabled.
 pref("browser.urlbar.quicksuggest.enabled", false);
 
 // Whether to show the QuickSuggest onboarding dialog.
@@ -403,9 +419,9 @@ pref("browser.urlbar.quicksuggest.nonSponsoredIndex", -1);
 // Whether Remote Settings is enabled as a quick suggest source.
 pref("browser.urlbar.quicksuggest.remoteSettings.enabled", true);
 
-// The Firefox Suggest scenario in which the user is enrolled, one of:
-// "history", "offline", "online"
-pref("browser.urlbar.quicksuggest.scenario", "history");
+// Whether quick suggest results can be shown in position specified in the
+// suggestions.
+pref("browser.urlbar.quicksuggest.allowPositionInSuggestions", true);
 
 // Whether unit conversion is enabled.
 #ifdef NIGHTLY_BUILD
@@ -477,10 +493,19 @@ pref("browser.urlbar.keepPanelOpenDuringImeComposition", false);
 pref("browser.urlbar.groupLabels.enabled", true);
 
 // Whether Merino is enabled as a quick suggest source in the urlbar.
-pref("browser.urlbar.merino.enabled", false);
+pref("browser.urlbar.merino.enabled", true);
 
 // The Merino endpoint URL, not including parameters.
 pref("browser.urlbar.merino.endpointURL", "https://merino.services.mozilla.com/api/v1/suggest");
+
+// Timeout for Merino fetches (ms).
+pref("browser.urlbar.merino.timeoutMs", 200);
+
+// Comma-separated list of providers to request from Merino
+pref("browser.urlbar.merino.providers", "");
+
+// Comma-separated list of client variants to send to Merino
+pref("browser.urlbar.merino.clientVariants", "");
 
 pref("browser.altClickSave", false);
 
@@ -520,6 +545,10 @@ pref("browser.download.viewableInternally.enabledTypes", "xml,svg,webp,avif,jxl"
 // This controls whether the button is automatically shown/hidden depending
 // on whether there are downloads to show.
 pref("browser.download.autohideButton", true);
+
+// Controls whether to open the downloads panel every time a download begins.
+// The first download ever run in a new profile will still open the panel.
+pref("browser.download.alwaysOpenPanel", true);
 
 #ifndef XP_MACOSX
   pref("browser.helperApps.deleteTempFileOnExit", true);
@@ -675,6 +704,10 @@ pref("security.allow_parent_unrestricted_js_loads", false);
 
 // Unload tabs when available memory is running low
 pref("browser.tabs.unloadOnLowMemory", true);
+
+// Tab Unloader does not unload tabs whose last inactive period is longer than
+// this value (in milliseconds).
+pref("browser.tabs.min_inactive_duration_before_unload", 600000);
 
 #if defined(XP_MACOSX)
   // During low memory periods, poll with this frequency (milliseconds)
@@ -943,6 +976,7 @@ pref("browser.preferences.experimental", true);
 #else
 pref("browser.preferences.experimental", false);
 #endif
+pref("browser.preferences.moreFromMozilla", false);
 pref("browser.preferences.experimental.hidden", false);
 pref("browser.preferences.defaultPerformanceSettings.enabled", true);
 
@@ -1244,9 +1278,7 @@ pref("dom.ipc.shims.enabledWarnings", false);
   // window server. Window server disconnection is automatically disabled (and
   // this pref overridden) if OOP WebGL is disabled. OOP WebGL is disabled
   // for some tests.
-  #if defined(NIGHTLY_BUILD)
-    pref("security.sandbox.content.mac.disconnect-windowserver", true);
-  #endif
+  pref("security.sandbox.content.mac.disconnect-windowserver", true);
 #endif
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
@@ -1495,7 +1527,7 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.message-groups", "{\
 // this page over http opens us up to a man-in-the-middle attack that we'd rather not face. If you are a downstream
 // repackager of this code using an alternate snippet url, please keep your users safe
 pref("browser.newtabpage.activity-stream.asrouter.providers.snippets", "{\"id\":\"snippets\",\"enabled\":false,\"type\":\"remote\",\"url\":\"https://snippets.cdn.mozilla.net/%STARTPAGE_VERSION%/%NAME%/%VERSION%/%APPBUILDID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/\",\"updateCycleInMs\":14400000}");
-pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments", "{\"id\":\"messaging-experiments\",\"enabled\":true,\"type\":\"remote-experiments\",\"messageGroups\":[\"cfr\",\"moments-page\",\"aboutwelcome\",\"infobar\",\"spotlight\"],\"updateCycleInMs\":3600000}");
+pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments", "{\"id\":\"messaging-experiments\",\"enabled\":true,\"type\":\"remote-experiments\",\"messageGroups\":[\"cfr\",\"aboutwelcome\",\"infobar\",\"spotlight\",\"moments-page\"],\"updateCycleInMs\":3600000}");
 
 // ASRouter user prefs
 pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", true);
@@ -1776,6 +1808,13 @@ pref("network.cookie.cookieBehavior", 5 /* BEHAVIOR_REJECT_TRACKER_AND_PARTITION
 pref("network.cookie.cookieBehavior", 4 /* BEHAVIOR_REJECT_TRACKER */);
 #endif
 
+// Whether to show the section in preferences which allows users to opt-in to
+// Total Cookie Protection (dFPI) in standard mode.
+pref("privacy.restrict3rdpartystorage.rollout.preferences.TCPToggleInStandard", false);
+
+// Target URL for the learn more link of the TCP in standard mode section.
+pref("privacy.restrict3rdpartystorage.rollout.preferences.learnMoreURLSuffix", "total-cookie-protection");
+
 // Enable Dynamic First-Party Isolation in the private browsing mode.
 pref("network.cookie.cookieBehavior.pbmode", 5 /* BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN */);
 
@@ -1788,6 +1827,12 @@ pref("privacy.trackingprotection.cryptomining.enabled", true);
 pref("browser.contentblocking.database.enabled", true);
 
 pref("dom.storage_access.enabled", true);
+
+// Enable URL query stripping in Nightly.
+#ifdef NIGHTLY_BUILD
+pref("privacy.query_stripping.enabled", true);
+pref("privacy.query_stripping.strip_list", "mc_eid oly_anon_id oly_enc_id __s vero_id _hsenc mkt_tok fbclid");
+#endif
 
 pref("browser.contentblocking.cryptomining.preferences.ui.enabled", true);
 pref("browser.contentblocking.fingerprinting.preferences.ui.enabled", true);
@@ -2205,13 +2250,16 @@ pref("devtools.target-switching.server.enabled", true);
 
 // Setting this preference to true will result in DevTools creating a target for each frame
 // (i.e. not only for top-level document and remote frames).
+#if defined(NIGHTLY_BUILD)
+pref("devtools.every-frame-target.enabled", true);
+#else
 pref("devtools.every-frame-target.enabled", false);
+#endif
 
 // Toolbox Button preferences
 pref("devtools.command-button-pick.enabled", true);
 pref("devtools.command-button-frames.enabled", true);
 pref("devtools.command-button-splitconsole.enabled", true);
-pref("devtools.command-button-paintflashing.enabled", false);
 pref("devtools.command-button-responsive.enabled", true);
 pref("devtools.command-button-screenshot.enabled", false);
 pref("devtools.command-button-rulers.enabled", false);
@@ -2397,6 +2445,9 @@ pref("devtools.netmonitor.audits.slow", 500);
 // Enable the EventSource Inspector
 pref("devtools.netmonitor.features.serverSentEvents", true);
 
+// Enable the new Edit and Resend panel
+pref("devtools.netmonitor.features.newEditAndResend", false);
+
 // Enable the Storage Inspector
 pref("devtools.storage.enabled", true);
 
@@ -2431,15 +2482,12 @@ pref("devtools.webconsole.filter.netxhr", false);
 // Webconsole autocomplete preference
 pref("devtools.webconsole.input.autocomplete",true);
 
-// Show context selector in console input, in the browser toolbox
+// Show context selector in console input
 #if defined(NIGHTLY_BUILD)
   pref("devtools.webconsole.input.context", true);
 #else
   pref("devtools.webconsole.input.context", false);
 #endif
-
-// Show context selector in console input, in the content toolbox
-pref("devtools.contenttoolbox.webconsole.input.context", false);
 
 // Set to true to eagerly show the results of webconsole terminal evaluations
 // when they don't have side effects.
@@ -2623,3 +2671,13 @@ pref("svg.context-properties.content.allowed-domains", "profile.accounts.firefox
 #ifdef NIGHTLY_BUILD
   pref("extensions.translations.disabled", true);
 #endif
+
+// A set of scores for rating the relevancy of snapshots. The suffixes after the
+// last decimal are prefixed by `_score` and reference the functions called in
+// SnapshotScorer.
+pref("browser.snapshots.score.Visit", 1);
+pref("browser.snapshots.score.CurrentSession", 1);
+pref("browser.snapshots.score.InNavigation", 3);
+pref("browser.snapshots.score.IsOverlappingVisit", 3);
+pref("browser.snapshots.score.IsUserPersisted", 1);
+pref("browser.snapshots.score.IsUsedRemoved", -10);

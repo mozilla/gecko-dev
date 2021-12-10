@@ -16,6 +16,7 @@
 #include "nsTArray.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/widget/ThemeChangeKind.h"
+#include "mozilla/ColorScheme.h"
 
 struct gfxFontStyle;
 
@@ -24,9 +25,6 @@ class nsIFrame;
 namespace mozilla {
 
 struct StyleColorSchemeFlags;
-
-// Whether we should use a light or dark appearance.
-enum class ColorScheme : uint8_t { Light, Dark };
 
 namespace dom {
 class Document;
@@ -240,6 +238,9 @@ class LookAndFeel {
     ContextMenuOffsetVertical,
     ContextMenuOffsetHorizontal,
 
+    /* A boolean value that tells us whether we're running on Wayland */
+    GTKWayland,
+
     /*
      * A boolean value indicating whether client-side decorations are
      * supported by the user's GTK version.
@@ -266,25 +267,19 @@ class LookAndFeel {
 
     /**
      * An Integer value that will represent the position of the Minimize button
-     * in GTK Client side decoration header. Its value will be between 0 and 2
-     * if it is on the left side of the tabbar, otherwise it will be between
-     * 3 and 5.
+     * in GTK Client side decoration header.
      */
     GTKCSDMinimizeButtonPosition,
 
     /**
      * An Integer value that will represent the position of the Maximize button
-     * in GTK Client side decoration header. Its value will be between 0 and 2
-     * if it is on the left side of the tabbar, otherwise it will be between
-     * 3 and 5.
+     * in GTK Client side decoration header.
      */
     GTKCSDMaximizeButtonPosition,
 
     /**
      * An Integer value that will represent the position of the Close button
-     * in GTK Client side decoration header. Its value will be between 0 and 2
-     * if it is on the left side of the tabbar, otherwise it will be between
-     * 3 and 5.
+     * in GTK Client side decoration header.
      */
     GTKCSDCloseButtonPosition,
 
@@ -333,6 +328,9 @@ class LookAndFeel {
 
     /** GTK titlebar radius */
     TitlebarRadius,
+
+    /** GTK menu radius */
+    GtkMenuRadius,
 
     /*
      * Not an ID; used to define the range of valid IDs.  Must be last.
@@ -394,6 +392,9 @@ class LookAndFeel {
     // GTK text scale factor.
     TextScaleFactor,
 
+    // Mouse pointer scaling factor.
+    CursorScale,
+
     // Not an ID; used to define the range of valid IDs.  Must be last.
     End,
   };
@@ -408,8 +409,12 @@ class LookAndFeel {
   enum class ChromeColorSchemeSetting { Light, Dark, System };
   static ChromeColorSchemeSetting ColorSchemeSettingForChrome();
 
-  static ColorScheme ColorSchemeForChrome() { return sChromeColorScheme; }
+  static ColorScheme ColorSchemeForChrome() {
+    MOZ_ASSERT(sColorSchemeInitialized);
+    return sChromeColorScheme;
+  }
   static ColorScheme PreferredColorSchemeForContent() {
+    MOZ_ASSERT(sColorSchemeInitialized);
     return sContentColorScheme;
   }
 
@@ -536,9 +541,19 @@ class LookAndFeel {
   static void SetData(widget::FullLookAndFeel&& aTables);
   static void NotifyChangedAllWindows(widget::ThemeChangeKind);
 
-  static void RecomputeColorSchemes();
+  static void EnsureColorSchemesInitialized() {
+    if (!sColorSchemeInitialized) {
+      RecomputeColorSchemes();
+    }
+    MOZ_ASSERT(sColorSchemeInitialized);
+  }
+
   static ColorScheme sChromeColorScheme;
   static ColorScheme sContentColorScheme;
+
+ protected:
+  static void RecomputeColorSchemes();
+  static bool sColorSchemeInitialized;
 };
 
 }  // namespace mozilla

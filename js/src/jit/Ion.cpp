@@ -393,8 +393,7 @@ uint8_t* jit::LazyLinkTopActivation(JSContext* cx,
 }
 
 /* static */
-void JitRuntime::TraceAtomZoneRoots(JSTracer* trc,
-                                    const AutoAccessAtomsZone& access) {
+void JitRuntime::TraceAtomZoneRoots(JSTracer* trc) {
   MOZ_ASSERT(!JS::RuntimeHeapIsMinorCollecting());
 
   // Shared stubs are allocated in the atoms zone, so do not iterate
@@ -403,7 +402,7 @@ void JitRuntime::TraceAtomZoneRoots(JSTracer* trc,
     return;
   }
 
-  Zone* zone = trc->runtime()->atomsZone(access);
+  Zone* zone = trc->runtime()->atomsZone();
   for (auto i = zone->cellIterUnsafe<JitCode>(); !i.done(); i.next()) {
     JitCode* code = i;
     TraceRoot(trc, &code, "wrapper");
@@ -1443,6 +1442,14 @@ bool OptimizeMIR(MIRGenerator* mir) {
     AssertGraphCoherency(graph);
   }
 
+  if (mir->optimizationInfo().eliminateRedundantShapeGuardsEnabled()) {
+    if (!EliminateRedundantShapeGuards(graph)) {
+      return false;
+    }
+    gs.spewPass("Shape Guard Elimination");
+    AssertGraphCoherency(graph);
+  }
+
   if (!mir->compilingWasm() && !mir->outerInfo().hadUnboxFoldingBailout()) {
     AutoTraceLog log(logger, TraceLogger_FoldLoadsWithUnbox);
     if (!FoldLoadsWithUnbox(mir, graph)) {
@@ -1686,7 +1693,7 @@ static AbortReason IonCompile(JSContext* cx, HandleScript script,
             ". (Compiled on background thread.)",
             script->filename(), script->lineno(), script->column());
 
-    IonCompileTask* task = alloc->new_<IonCompileTask>(*mirGen, snapshot);
+    IonCompileTask* task = alloc->new_<IonCompileTask>(cx, *mirGen, snapshot);
     if (!task) {
       return AbortReason::Alloc;
     }

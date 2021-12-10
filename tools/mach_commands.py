@@ -5,6 +5,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
+import subprocess
 from datetime import datetime, timedelta
 import logging
 from operator import itemgetter
@@ -394,8 +395,14 @@ class PypiBasedTool:
                 print(release)
                 # there is one, so install it. Note that install_pip_package
                 # does not work here, so just run pip directly.
-                cmd.virtualenv_manager._run_pip(
-                    ["install", "%s==%s" % (self.pypi_name, release)]
+                subprocess.check_call(
+                    [
+                        cmd.virtualenv_manager.python_path,
+                        "-m",
+                        "pip",
+                        "install",
+                        f"{self.pypi_name}=={release}",
+                    ]
                 )
                 print(
                     "%s was updated to version %s. please"
@@ -483,6 +490,11 @@ def npm(command_context, args):
         exit(-1, "could not find npm executable")
     path = os.path.abspath(os.path.dirname(npm_path))
     os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
+
+    # karma-firefox-launcher needs the path to firefox binary.
+    firefox_bin = command_context.get_binary_path(validate_exists=False)
+    if os.path.exists(firefox_bin):
+        os.environ["FIREFOX_BIN"] = firefox_bin
 
     return command_context.run_process(
         [npm_path, "--scripts-prepend-node-path=auto"] + args,

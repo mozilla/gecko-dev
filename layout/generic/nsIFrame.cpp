@@ -25,7 +25,8 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/PathHelpers.h"
-#include "mozilla/intl/Bidi.h"
+#include "mozilla/intl/BidiEmbeddingLevel.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/PresShellInlines.h"
 #include "mozilla/ResultExtensions.h"
@@ -1036,6 +1037,15 @@ static void DiscardOldItems(nsIFrame* aFrame) {
 }
 
 void nsIFrame::RemoveDisplayItemDataForDeletion() {
+  nsAutoString name;
+#ifdef DEBUG_FRAME_DUMP
+  if (DL_LOG_TEST(LogLevel::Debug)) {
+    GetFrameName(name);
+  }
+#endif
+  DL_LOGD("Removing display item data for frame %p (%s)", this,
+          NS_ConvertUTF16toUTF8(name).get());
+
   // Destroying a WebRenderUserDataTable can cause destruction of other objects
   // which can remove frame properties in their destructor. If we delete a frame
   // property it runs the destructor of the stored object in the middle of
@@ -1125,6 +1135,15 @@ void nsIFrame::MarkNeedsDisplayItemRebuild() {
   if (!nsLayoutUtils::DisplayRootHasRetainedDisplayListBuilder(this)) {
     return;
   }
+
+  nsAutoString name;
+#ifdef DEBUG_FRAME_DUMP
+  if (DL_LOG_TEST(LogLevel::Debug)) {
+    GetFrameName(name);
+  }
+#endif
+  DL_LOGD("RDL - Rebuilding display items for frame %p (%s)", this,
+          NS_ConvertUTF16toUTF8(name).get());
 
   nsIFrame* rootFrame = PresShell()->GetRootFrame();
   MOZ_ASSERT(rootFrame);
@@ -1435,12 +1454,10 @@ void nsIFrame::ReparentFrameViewTo(nsViewManager* aViewManager,
                                    nsView* aNewParentView,
                                    nsView* aOldParentView) {
   if (HasView()) {
-#ifdef MOZ_XUL
     if (IsMenuPopupFrame()) {
       // This view must be parented by the root view, don't reparent it.
       return;
     }
-#endif
     nsView* view = GetView();
     // Verify that the current parent view is what we think it is
     // nsView*  parentView;
@@ -1698,7 +1715,7 @@ WritingMode nsIFrame::WritingModeForLine(WritingMode aSelfWM,
   WritingMode writingMode = aSelfWM;
 
   if (StyleTextReset()->mUnicodeBidi & NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
-    mozilla::intl::Bidi::EmbeddingLevel frameLevel =
+    mozilla::intl::BidiEmbeddingLevel frameLevel =
         nsBidiPresUtils::GetFrameBaseLevel(aSubFrame);
     writingMode.SetDirectionFromBidiLevel(frameLevel);
   }
@@ -1817,9 +1834,8 @@ bool nsIFrame::In3DContextAndBackfaceIsHidden() const {
   return BackfaceIsHidden() && Combines3DTransformWithAncestors();
 }
 
-bool nsIFrame::HasPerspective(const nsStyleDisplay* aStyleDisplay) const {
-  MOZ_ASSERT(aStyleDisplay == StyleDisplay());
-  if (!IsTransformed()) {
+bool nsIFrame::HasPerspective() const {
+  if (!IsCSSTransformed()) {
     return false;
   }
   nsIFrame* parent = GetClosestFlattenedTreeAncestorPrimaryFrame();
@@ -2329,7 +2345,7 @@ already_AddRefed<ComputedStyle> nsIFrame::ComputeSelectionStyle(
   // When in high-contrast mode, the style system ends up ignoring the color
   // declarations, which means that the ::selection style becomes the inherited
   // color, and default background. That's no good.
-  if (!PresContext()->PrefSheetPrefs().mUseDocumentColors) {
+  if (PresContext()->ForcingColors()) {
     return nullptr;
   }
   Element* element = FindElementAncestorForMozSelection(GetContent());
@@ -2472,7 +2488,7 @@ void nsIFrame::DisplayOutlineUnconditional(nsDisplayListBuilder* aBuilder,
   if (outline.mOutlineStyle.IsAuto()) {
     auto* disp = StyleDisplay();
     if (IsThemed(disp) && PresContext()->Theme()->ThemeDrawsFocusForWidget(
-                              disp->EffectiveAppearance())) {
+                              this, disp->EffectiveAppearance())) {
       return;
     }
   }
@@ -3086,12 +3102,18 @@ struct ContainerTracker {
 void nsIFrame::BuildDisplayListForStackingContext(
     nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
     bool* aCreatedContainerItem) {
+  if (aBuilder->IsForContent()) {
+    DL_LOGV("BuildDisplayListForStackingContext (%p) <", this);
+  }
+
+  ScopeExit e([this, aBuilder]() {
+    if (aBuilder->IsForContent()) {
+      DL_LOGV("> BuildDisplayListForStackingContext (%p)", this);
+    }
+  });
+
   AutoCheckBuilder check(aBuilder);
   if (HasAnyStateBits(NS_FRAME_TOO_DEEP_IN_FRAME_TREE)) return;
-
-  // Replaced elements have their visibility handled here, because
-  // they're visually atomic
-  if (IsFrameOfType(eReplaced) && !IsVisibleForPainting()) return;
 
   const nsStyleDisplay* disp = StyleDisplay();
   const nsStyleEffects* effects = StyleEffects();
@@ -3137,7 +3159,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
       !SVGUtils::CanOptimizeOpacity(this);
 
   const bool isTransformed = IsTransformed();
-  const bool hasPerspective = isTransformed && HasPerspective(disp);
+  const bool hasPerspective = isTransformed && HasPerspective();
   const bool extend3DContext =
       Extend3DContext(disp, effects, effectSetForOpacity);
   const bool combines3DTransformWithAncestors =
@@ -3945,6 +3967,7 @@ void nsIFrame::BuildDisplayListForSimpleChild(nsDisplayListBuilder* aBuilder,
   const nsRect dirty = aBuilder->GetDirtyRect() - offset;
 
   if (!DescendIntoChild(aBuilder, aChild, visible, dirty)) {
+    DL_LOGV("Skipped frame %p", aChild);
     return;
   }
 
@@ -4001,6 +4024,14 @@ void nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder* aBuilder,
                                         const nsDisplayListSet& aLists,
                                         DisplayChildFlags aFlags) {
   AutoCheckBuilder check(aBuilder);
+  if (aBuilder->IsForContent()) {
+    DL_LOGV("BuildDisplayListForChild (%p) <", aChild);
+  }
+  ScopeExit e([aChild, aBuilder]() {
+    if (aBuilder->IsForContent()) {
+      DL_LOGV("> BuildDisplayListForChild (%p)", aChild);
+    }
+  });
 
   if (ShouldSkipFrame(aBuilder, aChild)) {
     return;
@@ -4120,6 +4151,7 @@ void nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder* aBuilder,
                "Should have dealt with placeholders already");
 
   if (!DescendIntoChild(aBuilder, child, visible, dirty)) {
+    DL_LOGV("Skipped frame %p", child);
     return;
   }
 
@@ -4495,9 +4527,12 @@ nsresult nsIFrame::GetDataForTableSelection(
   nsCOMPtr<nsIContent> parentContent = tableOrCellContent->GetParent();
   if (!parentContent) return NS_ERROR_FAILURE;
 
-  int32_t offset = parentContent->ComputeIndexOf(tableOrCellContent);
+  const int32_t offset =
+      parentContent->ComputeIndexOf_Deprecated(tableOrCellContent);
   // Not likely?
-  if (offset < 0) return NS_ERROR_FAILURE;
+  if (offset < 0) {
+    return NS_ERROR_FAILURE;
+  }
 
   // Everything is OK -- set the return values
   parentContent.forget(aParentContent);
@@ -5261,7 +5296,7 @@ static FrameContentRange GetRangeForFrame(const nsIFrame* aFrame) {
 
   if (type == LayoutFrameType::Br) {
     nsIContent* parent = content->GetParent();
-    int32_t beginOffset = parent->ComputeIndexOf(content);
+    const int32_t beginOffset = parent->ComputeIndexOf_Deprecated(content);
     return FrameContentRange(parent, beginOffset, beginOffset);
   }
 
@@ -5277,7 +5312,7 @@ static FrameContentRange GetRangeForFrame(const nsIFrame* aFrame) {
   // TODO(emilio): Revise this in presence of Shadow DOM / display: contents,
   // it's likely that we don't want to just walk the light tree, and we need to
   // change the representation of FrameContentRange.
-  int32_t index = parent->ComputeIndexOf(content);
+  const int32_t index = parent->ComputeIndexOf_Deprecated(content);
   MOZ_ASSERT(index >= 0);
   return FrameContentRange(parent, index, index + 1);
 }
@@ -7790,18 +7825,11 @@ nsIFrame* nsIFrame::GetContainingBlock(
 
 #ifdef DEBUG_FRAME_DUMP
 
-int32_t nsIFrame::ContentIndexInContainer(const nsIFrame* aFrame) {
-  int32_t result = -1;
-
-  nsIContent* content = aFrame->GetContent();
-  if (content) {
-    nsIContent* parentContent = content->GetParent();
-    if (parentContent) {
-      result = parentContent->ComputeIndexOf(content);
-    }
+Maybe<uint32_t> nsIFrame::ContentIndexInContainer(const nsIFrame* aFrame) {
+  if (nsIContent* content = aFrame->GetContent()) {
+    return content->ComputeIndexInParentContent();
   }
-
-  return result;
+  return Nothing();
 }
 
 nsAutoCString nsIFrame::ListTag() const {
@@ -8015,7 +8043,12 @@ nsresult nsIFrame::MakeFrameName(const nsAString& aType,
     aResult.Append(')');
   }
   aResult.Append('(');
-  aResult.AppendInt(ContentIndexInContainer(this));
+  Maybe<uint32_t> index = ContentIndexInContainer(this);
+  if (index.isSome()) {
+    aResult.AppendInt(*index);
+  } else {
+    aResult.AppendInt(-1);
+  }
   aResult.Append(')');
   return NS_OK;
 }
@@ -8102,7 +8135,7 @@ nsresult nsIFrame::GetPointFromOffset(int32_t inOffset, nsPoint* outPoint) {
   if (mContent) {
     nsIContent* newContent = mContent->GetParent();
     if (newContent) {
-      int32_t newOffset = newContent->ComputeIndexOf(mContent);
+      const int32_t newOffset = newContent->ComputeIndexOf_Deprecated(mContent);
 
       // Find the direction of the frame from the EmbeddingLevelProperty,
       // which is the resolved bidi level set in
@@ -8174,7 +8207,7 @@ nsresult nsIFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
   aPos->mAttach = aPos->mDirection == eDirNext ? CARET_ASSOCIATE_AFTER
                                                : CARET_ASSOCIATE_BEFORE;
 
-  const nsAutoLineIterator it = aBlockFrame->GetLineIterator();
+  nsAutoLineIterator it = aBlockFrame->GetLineIterator();
   if (!it) {
     return NS_ERROR_FAILURE;
   }
@@ -8317,7 +8350,8 @@ nsresult nsIFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
                 nsIContent* parent = content->GetParent();
                 if (parent) {
                   aPos->mResultContent = parent;
-                  aPos->mContentOffset = parent->ComputeIndexOf(content);
+                  aPos->mContentOffset =
+                      parent->ComputeIndexOf_Deprecated(content);
                   aPos->mAttach = CARET_ASSOCIATE_BEFORE;
                   if ((point.x - offset.x + tempRect.x) > tempRect.width) {
                     aPos->mContentOffset++;  // go to end of this frame
@@ -8468,9 +8502,10 @@ static nsContentAndOffset FindLineBreakingFrame(nsIFrame* aFrame,
     // content. This probably shouldn't ever happen, but since it sometimes
     // does, we want to avoid crashing here.
     NS_ASSERTION(result.mContent, "Unexpected orphan content");
-    if (result.mContent)
-      result.mOffset = result.mContent->ComputeIndexOf(content) +
+    if (result.mContent) {
+      result.mOffset = result.mContent->ComputeIndexOf_Deprecated(content) +
                        (aDirection == eDirPrevious ? 1 : 0);
+    }
     return result;
   }
 
@@ -9110,7 +9145,7 @@ Result<bool, nsresult> nsIFrame::IsVisuallyAtLineEdge(
   }
 
   bool frameIsRTL = (nsBidiPresUtils::FrameDirection(*framePtr) ==
-                     mozilla::intl::Bidi::Direction::RTL);
+                     mozilla::intl::BidiDirection::RTL);
   if ((frameIsRTL == lineIsRTL) == (aDirection == eDirPrevious)) {
     nsIFrame::GetFirstLeaf(framePtr);
   } else {
@@ -9342,13 +9377,15 @@ bool nsIFrame::SetOverflowAreas(const OverflowAreas& aOverflowAreas) {
   }
 }
 
+enum class ApplyTransform : bool { No, Yes };
+
 /**
- * Compute the union of the border boxes of aFrame and its descendants,
- * in aFrame's coordinate space (if aApplyTransform is false) or its
- * post-transform coordinate space (if aApplyTransform is true).
+ * Compute the outline inner rect (so without outline-width and outline-offset)
+ * of aFrame, maybe iterating over its descendants, in aFrame's coordinate space
+ * or its post-transform coordinate space (depending on aApplyTransform).
  */
-static nsRect UnionBorderBoxes(
-    nsIFrame* aFrame, bool aApplyTransform, bool& aOutValid,
+static nsRect ComputeOutlineInnerRect(
+    nsIFrame* aFrame, ApplyTransform aApplyTransform, bool& aOutValid,
     const nsSize* aSizeOverride = nullptr,
     const OverflowAreas* aOverflowOverride = nullptr) {
   const nsRect bounds(nsPoint(0, 0),
@@ -9371,12 +9408,17 @@ static nsRect UnionBorderBoxes(
 
   // Start from our border-box, transformed.  See comment below about
   // transform of children.
-  bool doTransform = aApplyTransform && aFrame->IsTransformed();
+  bool doTransform =
+      aApplyTransform == ApplyTransform::Yes && aFrame->IsTransformed();
   TransformReferenceBox boundsRefBox(nullptr, bounds);
   if (doTransform) {
     u = nsDisplayTransform::TransformRect(bounds, aFrame, boundsRefBox);
   } else {
     u = bounds;
+  }
+
+  if (aOutValid && !StaticPrefs::layout_outline_include_overflow()) {
+    return u;
   }
 
   // Only iterate through the children if the overflow areas suggest
@@ -9423,18 +9465,18 @@ static nsRect UnionBorderBoxes(
         continue;
       }
 
-      // Note that passing |true| for aApplyTransform when
-      // child->Combines3DTransformWithAncestors() is incorrect if our
-      // aApplyTransform is false... but the opposite would be as
-      // well.  This is because elements within a preserve-3d scene
-      // are always transformed up to the top of the scene.  This
-      // means we don't have a mechanism for getting a transform up to
-      // an intermediate point within the scene.  We choose to
-      // over-transform rather than under-transform because this is
-      // consistent with other overflow areas.
+      // Note that passing ApplyTransform::Yes when
+      // child->Combines3DTransformWithAncestors() returns true is incorrect if
+      // our aApplyTransform is No... but the opposite would be as well.
+      // This is because elements within a preserve-3d scene are always
+      // transformed up to the top of the scene.  This means we don't have a
+      // mechanism for getting a transform up to an intermediate point within
+      // the scene.  We choose to over-transform rather than under-transform
+      // because this is consistent with other overflow areas.
       bool validRect = true;
       nsRect childRect =
-          UnionBorderBoxes(child, true, validRect) + child->GetPosition();
+          ComputeOutlineInnerRect(child, ApplyTransform::Yes, validRect) +
+          child->GetPosition();
 
       if (!validRect) {
         continue;
@@ -9509,13 +9551,14 @@ static void ComputeAndIncludeOutlineArea(nsIFrame* aFrame,
   // calling FinishAndStoreOverflow again, which in turn calls this
   // function again.  We still need to deal with preserve-3d a bit.
   nsRect innerRect;
-  bool validRect;
+  bool validRect = false;
   if (frameForArea == aFrame) {
-    innerRect =
-        UnionBorderBoxes(aFrame, false, validRect, &aNewSize, &aOverflowAreas);
+    innerRect = ComputeOutlineInnerRect(aFrame, ApplyTransform::No, validRect,
+                                        &aNewSize, &aOverflowAreas);
   } else {
     for (; frameForArea; frameForArea = frameForArea->GetNextSibling()) {
-      nsRect r(UnionBorderBoxes(frameForArea, true, validRect));
+      nsRect r =
+          ComputeOutlineInnerRect(frameForArea, ApplyTransform::Yes, validRect);
 
       // Adjust for offsets transforms up to aFrame's pre-transform
       // (i.e., normal) coordinate space; see comments in
@@ -12093,11 +12136,9 @@ void DR_State::InitFrameTypeTable() {
   AddFrameTypeInfo(LayoutFrameType::TextInput, "textCtl", "textInput");
   AddFrameTypeInfo(LayoutFrameType::Text, "text", "text");
   AddFrameTypeInfo(LayoutFrameType::Viewport, "VP", "viewport");
-#  ifdef MOZ_XUL
   AddFrameTypeInfo(LayoutFrameType::Box, "Box", "Box");
   AddFrameTypeInfo(LayoutFrameType::Slider, "Slider", "Slider");
   AddFrameTypeInfo(LayoutFrameType::PopupSet, "PopupSet", "PopupSet");
-#  endif
   AddFrameTypeInfo(LayoutFrameType::None, "unknown", "unknown");
 }
 

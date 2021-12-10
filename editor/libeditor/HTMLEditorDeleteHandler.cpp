@@ -9,15 +9,16 @@
 #include <algorithm>
 #include <utility>
 
+#include "EditAction.h"
+#include "EditorDOMPoint.h"
+#include "EditorUtils.h"
+#include "HTMLEditHelpers.h"
 #include "HTMLEditUtils.h"
 #include "WSRunObject.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/ContentIterator.h"
-#include "mozilla/EditAction.h"
-#include "mozilla/EditorDOMPoint.h"
-#include "mozilla/EditorUtils.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/StaticPrefs_editor.h"  // for StaticPrefs::editor_*
@@ -3124,12 +3125,22 @@ bool HTMLEditor::AutoDeleteRangesHandler::AutoBlockElementsJoiner::
   mRightContent = HTMLEditUtils::GetInclusiveAncestorElement(
       *aRangesToDelete.FirstRangeRef()->GetEndContainer()->AsContent(),
       HTMLEditUtils::ClosestEditableBlockElement);
-  if (NS_WARN_IF(!mLeftContent) || NS_WARN_IF(!mRightContent)) {
-    return false;
-  }
+  // Note that mLeftContent and mRightContent can be nullptr if editing host
+  // is an inline element.
   if (mLeftContent == mRightContent) {
+    MOZ_ASSERT_IF(!mLeftContent,
+                  aRangesToDelete.FirstRangeRef()
+                          ->GetStartContainer()
+                          ->AsContent()
+                          ->GetEditingHost() == aRangesToDelete.FirstRangeRef()
+                                                    ->GetEndContainer()
+                                                    ->AsContent()
+                                                    ->GetEditingHost());
     mMode = Mode::DeleteContentInRanges;
     return true;
+  }
+  if (NS_WARN_IF(!mLeftContent) || NS_WARN_IF(!mRightContent)) {
+    return false;
   }
   NS_ASSERTION(
       mLeftContent->GetEditingHost() == mRightContent->GetEditingHost(),
@@ -3163,16 +3174,31 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::AutoBlockElementsJoiner::
   MOZ_ASSERT(aHTMLEditor.IsEditActionDataAvailable());
   MOZ_ASSERT(!aRangesToDelete.IsCollapsed());
   MOZ_ASSERT(mMode == Mode::DeleteContentInRanges);
-  MOZ_ASSERT(mLeftContent);
-  MOZ_ASSERT(mLeftContent->IsElement());
   MOZ_ASSERT(aRangesToDelete.FirstRangeRef()
                  ->GetStartContainer()
-                 ->IsInclusiveDescendantOf(mLeftContent));
-  MOZ_ASSERT(mRightContent);
-  MOZ_ASSERT(mRightContent->IsElement());
+                 ->AsContent()
+                 ->GetEditingHost());
   MOZ_ASSERT(aRangesToDelete.FirstRangeRef()
-                 ->GetEndContainer()
-                 ->IsInclusiveDescendantOf(mRightContent));
+                 ->GetStartContainer()
+                 ->AsContent()
+                 ->GetEditingHost() == aRangesToDelete.FirstRangeRef()
+                                           ->GetEndContainer()
+                                           ->AsContent()
+                                           ->GetEditingHost());
+  MOZ_ASSERT(!mLeftContent == !mRightContent);
+  MOZ_ASSERT_IF(mLeftContent, mLeftContent->IsElement());
+  MOZ_ASSERT_IF(mLeftContent, aRangesToDelete.FirstRangeRef()
+                                  ->GetStartContainer()
+                                  ->IsInclusiveDescendantOf(mLeftContent));
+  MOZ_ASSERT_IF(mRightContent, mRightContent->IsElement());
+  MOZ_ASSERT_IF(mRightContent, aRangesToDelete.FirstRangeRef()
+                                   ->GetEndContainer()
+                                   ->IsInclusiveDescendantOf(mRightContent));
+  MOZ_ASSERT_IF(!mLeftContent,
+                HTMLEditUtils::IsInlineElement(*aRangesToDelete.FirstRangeRef()
+                                                    ->GetStartContainer()
+                                                    ->AsContent()
+                                                    ->GetEditingHost()));
 
   nsresult rv =
       mDeleteRangesHandlerConst.ComputeRangesToDeleteRangesWithTransaction(
@@ -3192,21 +3218,35 @@ EditActionResult HTMLEditor::AutoDeleteRangesHandler::AutoBlockElementsJoiner::
   MOZ_ASSERT(!aRangesToDelete.IsCollapsed());
   MOZ_ASSERT(mMode == Mode::DeleteContentInRanges);
   MOZ_ASSERT(mDeleteRangesHandler);
-  MOZ_ASSERT(mLeftContent);
-  MOZ_ASSERT(mLeftContent->IsElement());
   MOZ_ASSERT(aRangesToDelete.FirstRangeRef()
                  ->GetStartContainer()
-                 ->IsInclusiveDescendantOf(mLeftContent));
-  MOZ_ASSERT(mRightContent);
-  MOZ_ASSERT(mRightContent->IsElement());
+                 ->AsContent()
+                 ->GetEditingHost());
   MOZ_ASSERT(aRangesToDelete.FirstRangeRef()
-                 ->GetEndContainer()
-                 ->IsInclusiveDescendantOf(mRightContent));
+                 ->GetStartContainer()
+                 ->AsContent()
+                 ->GetEditingHost() == aRangesToDelete.FirstRangeRef()
+                                           ->GetEndContainer()
+                                           ->AsContent()
+                                           ->GetEditingHost());
+  MOZ_ASSERT(mLeftContent == mRightContent);
+  MOZ_ASSERT_IF(mLeftContent, mLeftContent->IsElement());
+  MOZ_ASSERT_IF(mLeftContent, aRangesToDelete.FirstRangeRef()
+                                  ->GetStartContainer()
+                                  ->IsInclusiveDescendantOf(mLeftContent));
+  MOZ_ASSERT_IF(mRightContent, mRightContent->IsElement());
+  MOZ_ASSERT_IF(mRightContent, aRangesToDelete.FirstRangeRef()
+                                   ->GetEndContainer()
+                                   ->IsInclusiveDescendantOf(mRightContent));
+  MOZ_ASSERT_IF(!mLeftContent,
+                HTMLEditUtils::IsInlineElement(*aRangesToDelete.FirstRangeRef()
+                                                    ->GetStartContainer()
+                                                    ->AsContent()
+                                                    ->GetEditingHost()));
 
   // XXX This is also odd.  We do we simply use
   //     `DeleteRangesWithTransaction()` only when **first** range is in
   //     same block?
-  MOZ_ASSERT(mLeftContent == mRightContent);
   {
     AutoTrackDOMRange firstRangeTracker(aHTMLEditor.RangeUpdaterRef(),
                                         &aRangesToDelete.FirstRangeRef());
@@ -4214,23 +4254,16 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
   while (leftContentToJoin && rightContentToJoin && parentNode &&
          HTMLEditUtils::CanContentsBeJoined(
              *leftContentToJoin, *rightContentToJoin, kCompareStyle)) {
-    uint32_t length = leftContentToJoin->Length();
-
     // Do the join
-    nsresult rv = aHTMLEditor.JoinNodesWithTransaction(*leftContentToJoin,
-                                                       *rightContentToJoin);
-    if (NS_WARN_IF(aHTMLEditor.Destroyed())) {
-      return Err(NS_ERROR_EDITOR_DESTROYED);
-    }
-    if (NS_FAILED(rv)) {
+    JoinNodesResult joinNodesResult = aHTMLEditor.JoinNodesWithTransaction(
+        *leftContentToJoin, *rightContentToJoin);
+    if (MOZ_UNLIKELY(joinNodesResult.Failed())) {
       NS_WARNING("HTMLEditor::JoinNodesWithTransaction() failed");
-      return Err(rv);
+      return Err(joinNodesResult.Rv());
     }
 
-    // XXX rightContentToJoin may have fewer children or shorter length text.
-    //     So, we need some adjustment here.
-    ret.Set(rightContentToJoin, length);
-    if (NS_WARN_IF(!ret.IsSet())) {
+    ret = joinNodesResult.AtJoinedPoint<EditorDOMPoint>();
+    if (MOZ_UNLIKELY(NS_WARN_IF(!ret.IsSet()))) {
       return Err(NS_ERROR_FAILURE);
     }
 
@@ -4240,8 +4273,7 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     }
 
     // Get new left and right nodes, and begin anew
-    parentNode = rightContentToJoin;
-    rightContentToJoin = parentNode->GetChildAt_Deprecated(length);
+    rightContentToJoin = ret.GetCurrentChildAtOffset();
     if (rightContentToJoin) {
       leftContentToJoin = rightContentToJoin->GetPreviousSibling();
     } else {

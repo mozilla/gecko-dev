@@ -20,11 +20,18 @@ class LockManagerChild final : public PLockManagerChild {
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(LockManagerChild)
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(LockManagerChild)
 
+  static void NotifyBFCacheOnMainThread(nsPIDOMWindowInner* aInner,
+                                        bool aCreated);
+
   explicit LockManagerChild(nsIGlobalObject* aOwner) : mOwner(aOwner){};
 
   nsIGlobalObject* GetParentObject() const { return mOwner; };
 
   void RequestLock(const LockRequest& aRequest, const LockOptions& aOptions);
+
+  void NotifyRequestDestroy() const;
+
+  void NotifyToWindow(bool aCreated) const;
 
  private:
   ~LockManagerChild() = default;

@@ -633,7 +633,8 @@ class InitializeVirtualDesktopManagerTask : public Task {
 nsWindow::nsWindow(bool aIsChildWindow)
     : nsWindowBase(),
       mResizeState(NOT_RESIZING),
-      mIsChildWindow(aIsChildWindow) {
+      mIsChildWindow(aIsChildWindow),
+      mDesktopId("DesktopIdMutex") {
   if (!gInitializedVirtualDesktopManager) {
     TaskController::Get()->AddTask(
         MakeAndAddRef<InitializeVirtualDesktopManagerTask>());
@@ -682,10 +683,8 @@ nsWindow::nsWindow(bool aIsChildWindow)
   mCachedHitTestPoint.y = 0;
   mCachedHitTestTime = TimeStamp::Now();
   mCachedHitTestResult = 0;
-#ifdef MOZ_XUL
   mTransparencyMode = eTransparencyOpaque;
   memset(&mGlassMargins, 0, sizeof mGlassMargins);
-#endif
   DWORD background = ::GetSysColor(COLOR_BTNFACE);
   mBrush = ::CreateSolidBrush(NSRGB_2_COLOREF(background));
   mSendingSetText = false;
@@ -700,7 +699,11 @@ nsWindow::nsWindow(bool aIsChildWindow)
   if (!sInstanceCount) {
     // Global app registration id for Win7 and up. See
     // WinTaskbar.cpp for details.
-    mozilla::widget::WinTaskbar::RegisterAppUserModelID();
+    // MSIX packages explicitly do not support setting the appid from within
+    // the app, as it is set in the package manifest instead.
+    if (!WinUtils::HasPackageIdentity()) {
+      mozilla::widget::WinTaskbar::RegisterAppUserModelID();
+    }
     KeyboardLayout::GetInstance()->OnLayoutChange(::GetKeyboardLayout(0));
 #if defined(ACCESSIBILITY)
     mozilla::TIPMessageHandler::Initialize();
@@ -1551,6 +1554,18 @@ void nsWindow::Show(bool bState) {
     // we're actually already showing, we won't hit it in the normal way.
     ::SendMessageW(mWnd, WM_CHANGEUISTATE,
                    MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS | UISF_HIDEACCEL), 0);
+#if defined(ACCESSIBILITY)
+    // If our HWND has focus and the a11y engine hasn't started yet, fire a
+    // focus win event. Windows already did this when the skeleton UI appeared,
+    // but a11y wouldn't have been able to start at that point even if a client
+    // responded. Firing this now gives clients the chance to respond with
+    // WM_GETOBJECT, which will trigger the a11y engine. We don't want to do
+    // this if the a11y engine has already started because it has probably
+    // already fired focus on a descendant.
+    if (::GetFocus() == mWnd && !GetAccService()) {
+      ::NotifyWinEvent(EVENT_OBJECT_FOCUS, mWnd, OBJID_CLIENT, CHILDID_SELF);
+    }
+#endif  // defined(ACCESSIBILITY)
   }
 
   if (mWindowType == eWindowType_popup) {
@@ -1640,7 +1655,20 @@ void nsWindow::Show(bool bState) {
           // the popup.
           flags |= SWP_NOACTIVATE;
           HWND owner = ::GetWindow(mWnd, GW_OWNER);
-          ::SetWindowPos(mWnd, owner ? 0 : HWND_TOPMOST, 0, 0, 0, 0, flags);
+          if (owner) {
+            // ePopupLevelTop popups should be above all else.  All other
+            // types should be placed in front of their owner, without
+            // changing the owner's z-level relative to other windows.
+            if (PopupLevel() != ePopupLevelTop) {
+              ::SetWindowPos(mWnd, owner, 0, 0, 0, 0, flags);
+              ::SetWindowPos(owner, mWnd, 0, 0, 0, 0,
+                             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            } else {
+              ::SetWindowPos(mWnd, HWND_TOP, 0, 0, 0, 0, flags);
+            }
+          } else {
+            ::SetWindowPos(mWnd, HWND_TOPMOST, 0, 0, 0, 0, flags);
+          }
         } else {
           if (mWindowType == eWindowType_dialog && !CanTakeFocus())
             flags |= SWP_NOACTIVATE;
@@ -1673,14 +1701,12 @@ void nsWindow::Show(bool bState) {
     }
   }
 
-#ifdef MOZ_XUL
   if (!wasVisible && bState) {
     Invalidate();
     if (syncInvalidate && !mInDtor && !mOnDestroyCalled) {
       ::UpdateWindow(mWnd);
     }
   }
-#endif
 
   if (mOpeningAnimationSuppressed) {
     SuppressAnimation(false);
@@ -2297,23 +2323,71 @@ void nsWindow::SetSizeMode(nsSizeMode aMode) {
   }
 }
 
-void nsWindow::GetWorkspaceID(nsAString& workspaceID) {
+void DoGetWorkspaceID(HWND aWnd, nsAString* aWorkspaceID) {
   RefPtr<IVirtualDesktopManager> desktopManager = gVirtualDesktopManager;
-  if (!desktopManager) {
+  if (!desktopManager || !aWnd) {
     return;
   }
 
   GUID desktop;
-  HRESULT hr = desktopManager->GetWindowDesktopId(mWnd, &desktop);
+  HRESULT hr = desktopManager->GetWindowDesktopId(aWnd, &desktop);
   if (FAILED(hr)) {
     return;
   }
 
   RPC_WSTR workspaceIDStr = nullptr;
   if (UuidToStringW(&desktop, &workspaceIDStr) == RPC_S_OK) {
-    workspaceID.Assign((wchar_t*)workspaceIDStr);
+    aWorkspaceID->Assign((wchar_t*)workspaceIDStr);
     RpcStringFreeW(&workspaceIDStr);
   }
+}
+
+void nsWindow::GetWorkspaceID(nsAString& workspaceID) {
+  // If we have a value cached, use that, but also make sure it is
+  // scheduled to be updated.  If we don't yet have a value, get
+  // one synchronously.
+  auto desktop = mDesktopId.Lock();
+  if (desktop->mID.IsEmpty()) {
+    DoGetWorkspaceID(mWnd, &desktop->mID);
+    desktop->mUpdateIsQueued = false;
+  } else {
+    AsyncUpdateWorkspaceID(*desktop);
+  }
+
+  workspaceID = desktop->mID;
+}
+
+void nsWindow::AsyncUpdateWorkspaceID(Desktop& aDesktop) {
+  struct UpdateWorkspaceIdTask : public Task {
+    explicit UpdateWorkspaceIdTask(nsWindow* aSelf)
+        : Task(false /* mainThread */, EventQueuePriority::Normal),
+          mSelf(aSelf) {}
+
+    bool Run() override {
+      auto desktop = mSelf->mDesktopId.Lock();
+      if (desktop->mUpdateIsQueued) {
+        DoGetWorkspaceID(mSelf->mWnd, &desktop->mID);
+        desktop->mUpdateIsQueued = false;
+      }
+      return true;
+    }
+
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+    bool GetName(nsACString& aName) override {
+      aName.AssignLiteral("UpdateWorkspaceIdTask");
+      return true;
+    }
+#endif
+
+    RefPtr<nsWindow> mSelf;
+  };
+
+  if (aDesktop.mUpdateIsQueued) {
+    return;
+  }
+
+  aDesktop.mUpdateIsQueued = true;
+  TaskController::Get()->AddTask(MakeAndAddRef<UpdateWorkspaceIdTask>(this));
 }
 
 void nsWindow::MoveToWorkspace(const nsAString& workspaceID) {
@@ -2323,10 +2397,13 @@ void nsWindow::MoveToWorkspace(const nsAString& workspaceID) {
   }
 
   GUID desktop;
-  const nsString& flat = PromiseFlatString(workspaceID);
+  const nsString flat = PromiseFlatString(workspaceID);
   RPC_WSTR workspaceIDStr = reinterpret_cast<RPC_WSTR>((wchar_t*)flat.get());
   if (UuidFromStringW(workspaceIDStr, &desktop) == RPC_S_OK) {
-    desktopManager->MoveWindowToDesktop(mWnd, desktop);
+    if (SUCCEEDED(desktopManager->MoveWindowToDesktop(mWnd, desktop))) {
+      auto desktop = mDesktopId.Lock();
+      desktop->mID = workspaceID;
+    }
   }
 }
 
@@ -2690,8 +2767,8 @@ void nsWindow::UpdateDarkModeToolbar() {
   if (!IsWin10OrLater()) {
     return;
   }
-  BOOL dark =
-      LookAndFeel::ColorSchemeForChrome() == LookAndFeel::ColorScheme::Dark;
+  LookAndFeel::EnsureColorSchemesInitialized();
+  BOOL dark = LookAndFeel::ColorSchemeForChrome() == ColorScheme::Dark;
   DwmSetWindowAttribute(mWnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &dark,
                         sizeof dark);
   DwmSetWindowAttribute(mWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark,
@@ -3183,7 +3260,6 @@ void nsWindow::SetCursor(const Cursor& aCursor) {
  *
  **************************************************************/
 
-#ifdef MOZ_XUL
 nsTransparencyMode nsWindow::GetTransparencyMode() {
   return GetTopLevelWindow(true)->GetWindowTranslucencyInner();
 }
@@ -3289,7 +3365,6 @@ void nsWindow::UpdateGlass() {
                           sizeof policy);
   }
 }
-#endif
 
 /**************************************************************
  *
@@ -3588,7 +3663,6 @@ nsresult nsWindow::MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen) {
       taskbarInfo->PrepareFullScreenHWND(mWnd, TRUE);
     }
   } else {
-    if (mSizeMode != nsSizeMode_Fullscreen) return NS_OK;
     SetSizeMode(mOldSizeMode);
   }
 
@@ -4329,7 +4403,7 @@ bool nsWindow::TouchEventShouldStartDrag(EventMessage aEventMessage,
     DispatchInputEvent(&hittest);
 
     if (EventTarget* target = hittest.GetDOMEventTarget()) {
-      if (nsCOMPtr<nsIContent> content = do_QueryInterface(target)) {
+      if (nsIContent* content = nsIContent::FromEventTarget(target)) {
         // Check if the element or any parent element has the
         // attribute we're looking for.
         for (Element* element = content->GetAsElementOrParentElement(); element;
@@ -5107,15 +5181,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
           NotifyThemeChanged(widget::ThemeChangeKind::Style);
           break;
         }
-        if (IsWin10OrLater() && mWindowType == eWindowType_invisible) {
-          if (!wcscmp(lParamString, L"UserInteractionMode")) {
-            nsCOMPtr<nsIWindowsUIUtils> uiUtils(
-                do_GetService("@mozilla.org/windows-ui-utils;1"));
-            if (uiUtils) {
-              uiUtils->UpdateTabletModeState();
-            }
-          }
-        }
 
         // UserInteractionMode, ConvertibleSlateMode, SystemDockMode may cause
         // @media(pointer) queries to change, which layout needs to know about
@@ -5129,6 +5194,14 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
               !wcscmp(lParamString, L"ConvertibleSlateMode") ||
               !wcscmp(lParamString, L"SystemDockMode")) {
             NotifyThemeChanged(widget::ThemeChangeKind::MediaQueriesOnly);
+
+            if (IsWin10OrLater()) {
+              nsCOMPtr<nsIWindowsUIUtils> uiUtils(
+                  do_GetService("@mozilla.org/windows-ui-utils;1"));
+              if (uiUtils) {
+                uiUtils->UpdateTabletModeState();
+              }
+            }
           }
         }
       }
@@ -6649,6 +6722,12 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp) {
     if (mSizeMode == nsSizeMode_Minimized) return;
   }
 
+  // Notify visibility change when window is activated.
+  if (!(wp->flags & SWP_NOACTIVATE) && NeedsToTrackWindowOcclusionState()) {
+    WinWindowOcclusionTracker::Get()->OnWindowVisibilityChanged(
+        this, mSizeMode != nsSizeMode_Minimized);
+  }
+
   // Handle window position changes
   if (!(wp->flags & SWP_NOMOVE)) {
     mBounds.MoveTo(wp->x, wp->y);
@@ -6862,26 +6941,6 @@ void nsWindow::UserActivity() {
   if (mIdleService) {
     mIdleService->ResetIdleTimeOut(0);
   }
-}
-
-LayoutDeviceIntPoint nsWindow::GetTouchCoordinates(WPARAM wParam,
-                                                   LPARAM lParam) {
-  LayoutDeviceIntPoint ret;
-  uint32_t cInputs = LOWORD(wParam);
-  if (cInputs != 1) {
-    // Just return 0,0 if there isn't exactly one touch point active
-    return ret;
-  }
-  PTOUCHINPUT pInputs = new TOUCHINPUT[cInputs];
-  if (GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs,
-                        sizeof(TOUCHINPUT))) {
-    ret.x = TOUCH_COORD_TO_PIXEL(pInputs[0].x);
-    ret.y = TOUCH_COORD_TO_PIXEL(pInputs[0].y);
-  }
-  delete[] pInputs;
-  // Note that we don't call CloseTouchInputHandle here because we need
-  // to read the touch input info again in OnTouch later.
-  return ret;
 }
 
 // Helper function for TouchDeviceNeedsPanGestureConversion(PTOUCHINPUT,
@@ -7295,6 +7354,14 @@ void nsWindow::OnSizeModeChange(nsSizeMode aSizeMode) {
   if (NeedsToTrackWindowOcclusionState()) {
     WinWindowOcclusionTracker::Get()->OnWindowVisibilityChanged(
         this, aSizeMode != nsSizeMode_Minimized);
+
+    wr::DebugFlags flags{0};
+    flags.bits = gfx::gfxVars::WebRenderDebugFlags();
+    bool debugEnabled = bool(flags & wr::DebugFlags::WINDOW_VISIBILITY_DBG);
+    if (debugEnabled && mCompositorWidgetDelegate) {
+      mCompositorWidgetDelegate->NotifyVisibilityUpdated(aSizeMode,
+                                                         mIsFullyOccluded);
+    }
   }
 
   if (mCompositorWidgetDelegate) {
@@ -7315,6 +7382,13 @@ bool nsWindow::IsPopup() { return mWindowType == eWindowType_popup; }
 
 bool nsWindow::ShouldUseOffMainThreadCompositing() {
   if (mWindowType == eWindowType_popup && mPopupType == ePopupTypeTooltip) {
+    return false;
+  }
+
+  // Content rendering of popup is always done by child window.
+  // See nsDocumentViewer::ShouldAttachToTopLevel().
+  if (mWindowType == eWindowType_popup && !mIsChildWindow) {
+    MOZ_ASSERT(!mParent);
     return false;
   }
 
@@ -7497,8 +7571,6 @@ a11y::LocalAccessible* nsWindow::GetAccessible() {
  **************************************************************
  **************************************************************/
 
-#ifdef MOZ_XUL
-
 void nsWindow::SetWindowTranslucencyInner(nsTransparencyMode aMode) {
   if (aMode == mTransparencyMode) return;
 
@@ -7577,8 +7649,6 @@ void nsWindow::SetWindowTranslucencyInner(nsTransparencyMode aMode) {
     GPUProcessManager::Get()->ResetCompositors();
   }
 }
-
-#endif  // MOZ_XUL
 
 /**************************************************************
  **************************************************************
@@ -7873,6 +7943,24 @@ static bool IsTouchSupportEnabled(HWND aWnd) {
   return topWindow ? topWindow->IsTouchWindow() : false;
 }
 
+static Maybe<POINT> GetSingleTouch(WPARAM wParam, LPARAM lParam) {
+  Maybe<POINT> ret;
+  uint32_t cInputs = LOWORD(wParam);
+  if (cInputs != 1) {
+    return ret;
+  }
+  TOUCHINPUT input;
+  if (GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, &input,
+                        sizeof(TOUCHINPUT))) {
+    ret.emplace();
+    ret->x = TOUCH_COORD_TO_PIXEL(input.x);
+    ret->y = TOUCH_COORD_TO_PIXEL(input.y);
+  }
+  // Note that we don't call CloseTouchInputHandle here because we need
+  // to read the touch input info again in OnTouch later.
+  return ret;
+}
+
 // static
 bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
                               LPARAM aLParam, LRESULT* aResult) {
@@ -7898,6 +7986,7 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
   uint32_t popupsToRollup = UINT32_MAX;
 
   bool consumeRollupEvent = false;
+  Maybe<POINT> touchPoint;  // In screen coords.
 
   nsWindow* popupWindow = static_cast<nsWindow*>(popup.get());
   UINT nativeMessage = WinUtils::GetNativeMessage(aMessage);
@@ -7906,6 +7995,10 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
       if (!IsTouchSupportEnabled(aWnd)) {
         // If APZ is disabled, don't allow touch inputs to dismiss popups. The
         // compatibility mouse events will do it instead.
+        return false;
+      }
+      touchPoint = GetSingleTouch(aWParam, aLParam);
+      if (!touchPoint) {
         return false;
       }
       [[fallthrough]];
@@ -7927,8 +8020,8 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
         // handling the long-tap-up.
         return false;
       }
-      if (!EventIsInsideWindow(popupWindow) &&
-          GetPopupsToRollup(rollupListener, &popupsToRollup)) {
+      if (!EventIsInsideWindow(popupWindow, touchPoint) &&
+          GetPopupsToRollup(rollupListener, &popupsToRollup, touchPoint)) {
         break;
       }
       return false;
@@ -8129,14 +8222,16 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
       nativeMessage == WM_POINTERDOWN) {
     LayoutDeviceIntPoint pos;
     if (nativeMessage == WM_TOUCH) {
-      if (nsWindow* win = WinUtils::GetNSWindowPtr(aWnd)) {
-        pos = win->GetTouchCoordinates(aWParam, aLParam);
-      }
+      pos.x = touchPoint->x;
+      pos.y = touchPoint->y;
     } else {
       POINT pt;
       pt.x = GET_X_LPARAM(aLParam);
       pt.y = GET_Y_LPARAM(aLParam);
-      ::ClientToScreen(aWnd, &pt);
+      // POINTERDOWN is already in screen coords.
+      if (nativeMessage == WM_LBUTTONDOWN) {
+        ::ClientToScreen(aWnd, &pt);
+      }
       pos = LayoutDeviceIntPoint(pt.x, pt.y);
     }
 

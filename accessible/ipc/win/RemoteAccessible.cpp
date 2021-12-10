@@ -205,7 +205,11 @@ void RemoteAccessible::Description(nsString& aDesc) const {
   aDesc = (wchar_t*)resultWrap;
 }
 
-uint64_t RemoteAccessible::State() const {
+uint64_t RemoteAccessible::State() {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::State();
+  }
+
   RefPtr<IGeckoCustom> custom = QueryInterface<IGeckoCustom>(this);
   if (!custom) {
     return 0;
@@ -349,28 +353,32 @@ static bool ConvertBSTRAttributesToAccAttributes(
   return true;
 }
 
-void RemoteAccessible::Attributes(RefPtr<AccAttributes>* aAttrs) const {
+already_AddRefed<AccAttributes> RemoteAccessible::Attributes() {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::Attributes();
+  }
+  RefPtr<AccAttributes> attrsObj = new AccAttributes();
   RefPtr<IAccessible> acc;
   if (!GetCOMInterface((void**)getter_AddRefs(acc))) {
-    return;
+    return attrsObj.forget();
   }
 
   RefPtr<IAccessible2> acc2;
   if (FAILED(acc->QueryInterface(IID_IAccessible2,
                                  (void**)getter_AddRefs(acc2)))) {
-    return;
+    return attrsObj.forget();
   }
 
   BSTR attrs;
   HRESULT hr = acc2->get_attributes(&attrs);
   _bstr_t attrsWrap(attrs, false);
   if (FAILED(hr)) {
-    return;
+    return attrsObj.forget();
   }
 
-  *aAttrs = new AccAttributes();
   ConvertBSTRAttributesToAccAttributes(
-      nsDependentString((wchar_t*)attrs, attrsWrap.length()), *aAttrs);
+      nsDependentString((wchar_t*)attrs, attrsWrap.length()), attrsObj);
+  return attrsObj.forget();
 }
 
 nsTArray<RemoteAccessible*> RemoteAccessible::RelationByType(
@@ -716,18 +724,6 @@ void RemoteAccessible::ScrollSubstringToPoint(int32_t aStartOffset,
                               static_cast<long>(aX), static_cast<long>(aY));
 }
 
-uint32_t RemoteAccessible::StartOffset(bool* aOk) {
-  RefPtr<IAccessibleHyperlink> acc = QueryInterface<IAccessibleHyperlink>(this);
-  if (!acc) {
-    *aOk = false;
-    return 0;
-  }
-
-  long startOffset;
-  *aOk = SUCCEEDED(acc->get_startIndex(&startOffset));
-  return static_cast<uint32_t>(startOffset);
-}
-
 uint32_t RemoteAccessible::EndOffset(bool* aOk) {
   RefPtr<IAccessibleHyperlink> acc = QueryInterface<IAccessibleHyperlink>(this);
   if (!acc) {
@@ -808,7 +804,10 @@ void RemoteAccessible::DOMNodeID(nsString& aID) const {
   aID = (wchar_t*)resultWrap;
 }
 
-void RemoteAccessible::TakeFocus() {
+void RemoteAccessible::TakeFocus() const {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::TakeFocus();
+  }
   RefPtr<IAccessible> acc;
   if (!GetCOMInterface((void**)getter_AddRefs(acc))) {
     return;

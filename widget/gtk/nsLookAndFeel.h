@@ -94,6 +94,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
     nscolor mFrameInnerDarkBorder = kBlack;
     nscolor mOddCellBackground = kWhite;
     nscolor mNativeHyperLinkText = kBlack;
+    nscolor mNativeVisitedHyperLinkText = kBlack;
     nscolor mComboBoxText = kBlack;
     nscolor mComboBoxBackground = kWhite;
     nscolor mFieldText = kBlack;
@@ -124,6 +125,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
 
     float mCaretRatio = 0.0f;
     int32_t mTitlebarRadius = 0;
+    int32_t mMenuRadius = 0;
     char16_t mInvisibleCharacter = 0;
     bool mMenuSupportsDrag = false;
 
@@ -161,6 +163,8 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   bool mPrefersReducedMotion = false;
   bool mInitialized = false;
   bool mSystemThemeOverridden = false;
+  // We need to have this because NativeGet* can be called off-main-thread.
+  bool mIsWayland = false;
   int32_t mCSDMaximizeButtonPosition = 0;
   int32_t mCSDMinimizeButtonPosition = 0;
   int32_t mCSDCloseButtonPosition = 0;

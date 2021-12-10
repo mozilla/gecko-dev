@@ -6,7 +6,6 @@
 
 #include "nsThreadPool.h"
 
-#include "GeckoProfiler.h"
 #include "nsCOMArray.h"
 #include "ThreadDelay.h"
 #include "nsThreadManager.h"
@@ -15,6 +14,7 @@
 #include "prinrval.h"
 #include "mozilla/Logging.h"
 #include "mozilla/ProfilerLabels.h"
+#include "mozilla/ProfilerRunnable.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/SpinEventLoopUntil.h"
@@ -386,6 +386,9 @@ nsThreadPool::Shutdown() {
   nsCOMPtr<nsIThreadPoolListener> listener;
   {
     MutexAutoLock lock(mMutex);
+    if (mShutdown) {
+      return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
+    }
     mShutdown = true;
     mEventsAvailable.NotifyAll();
 
@@ -437,6 +440,9 @@ nsThreadPool::ShutdownWithTimeout(int32_t aTimeoutMs) {
   nsCOMPtr<nsIThreadPoolListener> listener;
   {
     MutexAutoLock lock(mMutex);
+    if (mShutdown) {
+      return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
+    }
     mShutdown = true;
     mEventsAvailable.NotifyAll();
 

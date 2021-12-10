@@ -52,6 +52,7 @@ struct DefaultJitOptions {
   bool disableScalarReplacement;
   bool disableCacheIR;
   bool disableSink;
+  bool disableRedundantShapeGuards;
   bool disableBailoutLoopCheck;
   bool baselineInterpreter;
   bool baselineJit;
@@ -74,6 +75,7 @@ struct DefaultJitOptions {
   bool traceRegExpAssembler;
   bool traceRegExpInterpreter;
   bool traceRegExpPeephole;
+  bool lessDebugCode;
   bool enableWasmJitExit;
   bool enableWasmJitEntry;
   bool enableWasmIonFastCalls;

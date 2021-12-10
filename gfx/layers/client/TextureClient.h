@@ -62,15 +62,12 @@ class PTextureChild;
 class TextureChild;
 class TextureData;
 class GPUVideoTextureData;
-struct RawTextureBuffer;
-class RawYCbCrTextureBuffer;
 class TextureClient;
 class ITextureClientRecycleAllocator;
 #ifdef GFX_DEBUG_TRACK_CLIENTS_IN_POOL
 class TextureClientPool;
 #endif
 class TextureForwarder;
-class KeepAlive;
 
 /**
  * TextureClient is the abstraction that allows us to share data between the
@@ -97,30 +94,6 @@ enum TextureAllocationFlags {
   // The texture is going to be updated using UpdateFromSurface and needs to
   // support that call.
   ALLOC_UPDATE_FROM_SURFACE = 1 << 7,
-
-  // In practice, this means we support the APPLE_client_storage extension,
-  // meaning the buffer will not be internally copied by the graphics driver.
-  ALLOC_ALLOW_DIRECT_MAPPING = 1 << 8,
-};
-
-/**
- * This class may be used to asynchronously receive an update when the content
- * drawn to this texture client is available for reading in CPU memory. This
- * can only be used on texture clients that support draw target creation.
- */
-class TextureReadbackSink {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TextureReadbackSink)
- public:
-  /**
-   * Callback function to implement in order to receive a DataSourceSurface
-   * containing the data read back from the texture client. This will always
-   * be called on the main thread, and this may not hold on to the
-   * DataSourceSurface beyond the execution of this function.
-   */
-  virtual void ProcessReadback(gfx::DataSourceSurface* aSourceSurface) = 0;
-
- protected:
-  virtual ~TextureReadbackSink() = default;
 };
 
 enum class BackendSelector { Content, Canvas };
@@ -195,7 +168,7 @@ class TextureReadLock {
   virtual bool IsValid() const = 0;
 
   static already_AddRefed<TextureReadLock> Deserialize(
-      const ReadLockDescriptor& aDescriptor, ISurfaceAllocator* aAllocator);
+      ReadLockDescriptor&& aDescriptor, ISurfaceAllocator* aAllocator);
 
   virtual bool Serialize(ReadLockDescriptor& aOutput,
                          base::ProcessId aOther) = 0;
@@ -232,7 +205,6 @@ class TextureData {
   struct Info {
     gfx::IntSize size;
     gfx::SurfaceFormat format;
-    bool hasIntermediateBuffer;
     bool hasSynchronization;
     bool supportsMoz2D;
     bool canExposeMappedData;
@@ -240,7 +212,6 @@ class TextureData {
 
     Info()
         : format(gfx::SurfaceFormat::UNKNOWN),
-          hasIntermediateBuffer(false),
           hasSynchronization(false),
           supportsMoz2D(false),
           canExposeMappedData(false),
@@ -303,8 +274,6 @@ class TextureData {
   virtual bool UpdateFromSurface(gfx::SourceSurface* aSurface) {
     return false;
   };
-
-  virtual bool ReadBack(TextureReadbackSink* aReadbackSink) { return false; }
 
   virtual void SyncWithObject(RefPtr<SyncObjectClient> aSyncObject){};
 
@@ -432,13 +401,6 @@ class TextureClient : public AtomicRefCountedWithFinalize<TextureClient> {
    * to be used appropriately since the latter are also there to map/numap data.
    */
   bool HasSynchronization() const { return mInfo.hasSynchronization; }
-
-  /**
-   * Indicates whether the TextureClient implementation is backed by an
-   * in-memory buffer. The consequence of this is that locking the
-   * TextureClient does not contend with locking the texture on the host side.
-   */
-  bool HasIntermediateBuffer() const { return mInfo.hasIntermediateBuffer; }
 
   bool CanExposeDrawTarget() const { return mInfo.supportsMoz2D; }
 
@@ -616,15 +578,6 @@ class TextureClient : public AtomicRefCountedWithFinalize<TextureClient> {
     mWasteTracker.Update(aWasteArea, BytesPerPixel(GetFormat()));
   }
 
-  /**
-   * This sets the readback sink that this texture is to use. This will
-   * receive the data for this texture as soon as it becomes available after
-   * texture unlock.
-   */
-  virtual void SetReadbackSink(TextureReadbackSink* aReadbackSink) {
-    mReadbackSink = aReadbackSink;
-  }
-
   void SyncWithObject(RefPtr<SyncObjectClient> aSyncObject) {
     mData->SyncWithObject(aSyncObject);
   }
@@ -763,8 +716,6 @@ class TextureClient : public AtomicRefCountedWithFinalize<TextureClient> {
   // Used when TextureClient is recycled with TextureFlags::RECYCLE flag.
   bool mAddedToCompositableClient;
 
-  RefPtr<TextureReadbackSink> mReadbackSink;
-
   uint64_t mFwdTransactionId;
 
   // Serial id of TextureClient. It is unique in current process.
@@ -843,20 +794,6 @@ class MOZ_RAII TextureClientAutoLock {
   bool mChecked;
 #endif
   bool mSucceeded;
-};
-
-class KeepAlive {
- public:
-  virtual ~KeepAlive() = default;
-};
-
-template <typename T>
-class TKeepAlive : public KeepAlive {
- public:
-  explicit TKeepAlive(T* aData) : mData(aData) {}
-
- protected:
-  RefPtr<T> mData;
 };
 
 /// Convenience function to set the content of ycbcr texture.

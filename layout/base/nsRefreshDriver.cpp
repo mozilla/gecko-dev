@@ -93,9 +93,7 @@
 #  include "VRManagerChild.h"
 #endif  // defined(MOZ_WIDGET_ANDROID)
 
-#ifdef MOZ_XUL
-#  include "nsXULPopupManager.h"
-#endif
+#include "nsXULPopupManager.h"
 
 #include <numeric>
 
@@ -1254,7 +1252,7 @@ bool nsRefreshDriver::RemoveRefreshObserver(nsARefreshObserver* aObserver,
     return false;
   }
 
-  if (profiler_thread_is_being_profiled()) {
+  if (profiler_thread_is_being_profiled_for_markers()) {
     auto& data = array.ElementAt(index);
     nsPrintfCString str("%s [%s]", data.mDescription,
                         kFlushTypeNames[aFlushType]);
@@ -1362,7 +1360,7 @@ void nsRefreshDriver::AddImageRequest(imgIRequest* aRequest) {
 
   EnsureTimerStarted();
 
-  if (profiler_thread_is_being_profiled()) {
+  if (profiler_thread_is_being_profiled_for_markers()) {
     nsCOMPtr<nsIURI> uri;
     aRequest->GetURI(getter_AddRefs(uri));
     nsAutoCString uristr;
@@ -1387,7 +1385,7 @@ void nsRefreshDriver::RemoveImageRequest(imgIRequest* aRequest) {
     }
   }
 
-  if (removed && profiler_thread_is_being_profiled()) {
+  if (removed && profiler_thread_is_being_profiled_for_markers()) {
     nsCOMPtr<nsIURI> uri;
     aRequest->GetURI(getter_AddRefs(uri));
     nsAutoCString uristr;
@@ -1574,7 +1572,7 @@ void nsRefreshDriver::EnsureTimerStarted(EnsureTimerStartedFlags aFlags) {
 
     if (!mHasStartedTimerAtLeastOnce) {
       mHasStartedTimerAtLeastOnce = true;
-      if (profiler_thread_is_being_profiled()) {
+      if (profiler_thread_is_being_profiled_for_markers()) {
         nsCString text = "initial timer start "_ns;
         if (mPresContext->Document()->GetDocumentURI()) {
           text.Append(
@@ -2234,7 +2232,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
   AUTO_PROFILER_LABEL("nsRefreshDriver::Tick", LAYOUT);
 
   nsAutoCString profilerStr;
-  if (profiler_thread_is_being_profiled()) {
+  if (profiler_thread_is_being_profiled_for_markers()) {
     profilerStr.AppendLiteral("Tick reasons:");
     AppendTickReasonsToString(tickReasons, profilerStr);
   }
@@ -2425,13 +2423,11 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
     presShell->ScheduleApproximateFrameVisibilityUpdateNow();
   }
 
-#ifdef MOZ_XUL
   // Update any popups that may need to be moved or hidden due to their
   // anchor changing.
   if (nsXULPopupManager* pm = nsXULPopupManager::GetInstance()) {
     pm->UpdatePopupPositions(this);
   }
-#endif
 
   UpdateIntersectionObservations(aNowTime);
 
@@ -2493,7 +2489,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
   if (mViewManagerFlushIsPending) {
     AutoRecordPhase paintRecord(&phasePaint);
     nsCString transactionId;
-    if (profiler_thread_is_being_profiled()) {
+    if (profiler_thread_is_being_profiled_for_markers()) {
       transactionId.AppendLiteral("Transaction ID: ");
       transactionId.AppendInt((uint64_t)mNextTransactionId);
     }

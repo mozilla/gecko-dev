@@ -84,6 +84,8 @@ CR AT EOL: html/semantics/forms/the-input-element/multiline-placeholder-cr.html
 CR AT EOL: html/semantics/forms/the-input-element/multiline-placeholder-crlf.html
 CR AT EOL: webvtt/parsing/file-parsing/tests/support/newlines.vtt
 CR AT EOL: css/css-text/ellisize-rtl-text-crash.html
+CR AT EOL: html/syntax/charset/after-head-after-1kb-crlf.html
+CR AT EOL: html/syntax/charset/after-head-in-1kb-crlf.html
 
 # Intentional use of tabs
 INDENT TABS: html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
@@ -159,6 +161,7 @@ SET TIMEOUT: html/browsers/history/the-location-interface/*
 SET TIMEOUT: html/browsers/history/the-session-history-of-browsing-contexts/*
 SET TIMEOUT: html/browsers/offline/*
 SET TIMEOUT: html/browsers/the-window-object/*
+SET TIMEOUT: html/cross-origin-opener-policy/resources/fully-loaded.js
 SET TIMEOUT: html/editing/dnd/*
 SET TIMEOUT: html/semantics/embedded-content/the-iframe-element/*
 SET TIMEOUT: html/semantics/embedded-content/the-img-element/*
@@ -209,6 +212,7 @@ SET TIMEOUT: trusted-types/block-string-assignment-to-DOMWindowTimers-setTimeout
 SET TIMEOUT: trusted-types/DOMWindowTimers-setTimeout-setInterval.tentative.html
 SET TIMEOUT: user-timing/*
 SET TIMEOUT: web-animations/timing-model/animations/*
+SET TIMEOUT: web-locks/crashtests/after-worker-termination.https.html
 SET TIMEOUT: webaudio/the-audio-api/the-mediaelementaudiosourcenode-interface/mediaElementAudioSourceToScriptProcessorTest.html
 SET TIMEOUT: webauthn/*timeout.https.html
 SET TIMEOUT: webdriver/*
@@ -334,6 +338,8 @@ SET TIMEOUT: resources/test/tests/unit/promise_setup.html
 SET TIMEOUT: resources/testharness.js
 SET TIMEOUT: scheduler/tentative/current-task-signal-async-abort.any.js
 SET TIMEOUT: scheduler/tentative/current-task-signal-async-priority.any.js
+SET TIMEOUT: speculation-rules/prerender/resources/activation-start.html
+SET TIMEOUT: speculation-rules/prerender/resources/deferred-promise-utils.js
 SET TIMEOUT: speculation-rules/prerender/resources/utils.js
 
 # setTimeout use in reftests
@@ -717,7 +723,6 @@ LAYOUTTESTS APIS: webxr/resources/webxr_util.js
 
 # Signed Exchange files have hard-coded URLs in the certUrl field
 WEB-PLATFORM.TEST:signed-exchange/resources/*.sxg
-WEB-PLATFORM.TEST:signed-exchange/appcache/resources/*.sxg
 WEB-PLATFORM.TEST:signed-exchange/resources/generate-test-sxgs.sh
 
 # Web Bundle files have hard-coded URLs
@@ -732,6 +737,7 @@ WEB-PLATFORM.TEST:web-bundle/subresource-loading/resources/*.js
 # https://github.com/web-platform-tests/wpt/issues/16455
 # Please consult with ecosystem-infra@chromium.org before adding more.
 MISSING DEPENDENCY: credential-management/support/otpcredential-helper.js
+MISSING DEPENDENCY: credential-management/support/fedcm-mock.js
 MISSING DEPENDENCY: resources/chromium/content-index-helpers.js
 MISSING DEPENDENCY: resources/chromium/contacts_manager_mock.js
 MISSING DEPENDENCY: resources/chromium/web-bluetooth-test.js
@@ -822,6 +828,8 @@ CSS-COLLIDING-REF-NAME: css/css-break/background-image-001-ref.html
 
 # Ported crashtests from Mozilla
 SET TIMEOUT: editing/crashtests/backcolor-in-nested-editing-host-td-from-DOMAttrModified.html
+SET TIMEOUT: editing/crashtests/inserthtml-after-temporarily-removing-document-element.html
 SET TIMEOUT: editing/crashtests/inserthtml-in-text-adopted-to-other-document.html
 SET TIMEOUT: editing/crashtests/insertorderedlist-in-text-adopted-to-other-document.html
+SET TIMEOUT: editing/crashtests/make-editable-div-inline-and-set-contenteditable-of-input-to-false.html
 SET TIMEOUT: editing/crashtests/outdent-across-svg-boundary.html

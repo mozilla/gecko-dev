@@ -502,15 +502,18 @@ nsUnknownContentTypeDialog.prototype = {
     this.mDialog.document.addEventListener("dialogaccept", this);
     this.mDialog.document.addEventListener("dialogcancel", this);
 
-    // Some URIs do not implement nsIURL, so we can't just QI.
     var url = this.mLauncher.source;
     if (url instanceof Ci.nsINestedURI) {
       url = url.innermostURI;
+    }
+    if (url.scheme == "blob") {
+      url = Services.io.newURI(new URL(url.spec).origin);
     }
 
     var fname = "";
     var iconPath = "goat";
     this.mSourcePath = url.prePath;
+    // Some URIs do not implement nsIURL, so we can't just QI.
     if (url instanceof Ci.nsIURL) {
       // A url, use file name from it.
       fname = iconPath = url.fileName;
@@ -1066,7 +1069,7 @@ nsUnknownContentTypeDialog.prototype = {
     // taking over).
     this.mLauncher.setWebProgressListener(null);
 
-    // saveToDisk and launchWithApplication can return errors in
+    // saveToDisk and setDownloadToLaunch can return errors in
     // certain circumstances (e.g. The user clicks cancel in the
     // "Save to Disk" dialog. In those cases, we don't want to
     // update the helper application preferences in the RDF file.
@@ -1081,7 +1084,7 @@ nsUnknownContentTypeDialog.prototype = {
         );
         this._saveToDiskTimer.initWithCallback(this, 0, nsITimer.TYPE_ONE_SHOT);
       } else {
-        this.mLauncher.launchWithApplication(this.handleInternally, null);
+        this.mLauncher.setDownloadToLaunch(this.handleInternally, null);
       }
 
       // Update user pref for this mime type (if necessary). We do not

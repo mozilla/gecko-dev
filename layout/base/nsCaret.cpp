@@ -12,7 +12,7 @@
 
 #include "gfxUtils.h"
 #include "mozilla/gfx/2D.h"
-#include "mozilla/intl/Bidi.h"
+#include "mozilla/intl/BidiEmbeddingLevel.h"
 #include "nsCOMPtr.h"
 #include "nsFontMetrics.h"
 #include "nsITimer.h"
@@ -40,15 +40,12 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
-using EmbeddingLevel = mozilla::intl::Bidi::EmbeddingLevel;
+using BidiEmbeddingLevel = mozilla::intl::BidiEmbeddingLevel;
 
 // The bidi indicator hangs off the caret to one side, to show which
-// direction the typing is in. It needs to be at least 2x2 to avoid looking like
-// an insignificant dot
+// direction the typing is in. It needs to be at least 2x2 to avoid looking
+// like an insignificant dot
 static const int32_t kMinBidiIndicatorPixels = 2;
-
-// The default caret blinking rate (in ms of blinking interval)
-static const uint32_t kDefaultCaretBlinkRate = 500;
 
 /**
  * Find the first frame in an in-order traversal of the frame subtree rooted
@@ -392,8 +389,7 @@ nsIFrame* nsCaret::GetFrameAndOffset(const Selection* aSelection,
 
   nsIContent* contentNode = focusNode->AsContent();
   nsFrameSelection* frameSelection = aSelection->GetFrameSelection();
-  mozilla::intl::Bidi::EmbeddingLevel bidiLevel =
-      frameSelection->GetCaretBidiLevel();
+  BidiEmbeddingLevel bidiLevel = frameSelection->GetCaretBidiLevel();
 
   return nsCaret::GetCaretFrameForNodeOffset(
       frameSelection, contentNode, focusOffset, frameSelection->GetHint(),
@@ -600,6 +596,13 @@ nsCaret::NotifySelectionChanged(Document*, Selection* aDomSel,
 }
 
 void nsCaret::ResetBlinking() {
+  using IntID = LookAndFeel::IntID;
+
+  // The default caret blinking rate (in ms of blinking interval)
+  constexpr uint32_t kDefaultBlinkRate = 500;
+  // The default caret blinking count (-1 for "never stop blinking")
+  constexpr int32_t kDefaultBlinkCount = -1;
+
   mIsBlinkOn = true;
 
   if (mReadOnly || !mVisible || mHideCount) {
@@ -607,12 +610,21 @@ void nsCaret::ResetBlinking() {
     return;
   }
 
-  uint32_t blinkRate = static_cast<uint32_t>(LookAndFeel::GetInt(
-      LookAndFeel::IntID::CaretBlinkTime, kDefaultCaretBlinkRate));
+  auto blinkRate =
+      uint32_t(LookAndFeel::GetInt(IntID::CaretBlinkTime, kDefaultBlinkRate));
+
+  if (blinkRate > 0) {
+    // Make sure to reset the remaining blink count even if the blink rate
+    // hasn't changed.
+    mBlinkCount =
+        LookAndFeel::GetInt(IntID::CaretBlinkCount, kDefaultBlinkCount);
+  }
+
   if (mBlinkRate == blinkRate) {
-    // If the rate hasn't changed, then there is nothing to do.
+    // If the rate hasn't changed, then there is nothing else to do.
     return;
   }
+
   mBlinkRate = blinkRate;
 
   if (mBlinkTimer) {
@@ -632,7 +644,6 @@ void nsCaret::ResetBlinking() {
   }
 
   if (blinkRate > 0) {
-    mBlinkCount = LookAndFeel::GetInt(LookAndFeel::IntID::CaretBlinkCount, -1);
     mBlinkTimer->InitWithNamedFuncCallback(CaretBlinkCallback, this, blinkRate,
                                            nsITimer::TYPE_REPEATING_SLACK,
                                            "nsCaret::CaretBlinkCallback_timer");
@@ -646,11 +657,13 @@ void nsCaret::StopBlinking() {
   }
 }
 
-nsIFrame* nsCaret::GetCaretFrameForNodeOffset(
-    nsFrameSelection* aFrameSelection, nsIContent* aContentNode,
-    int32_t aOffset, CaretAssociationHint aFrameHint,
-    mozilla::intl::Bidi::EmbeddingLevel aBidiLevel,
-    nsIFrame** aReturnUnadjustedFrame, int32_t* aReturnOffset) {
+nsIFrame* nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection* aFrameSelection,
+                                              nsIContent* aContentNode,
+                                              int32_t aOffset,
+                                              CaretAssociationHint aFrameHint,
+                                              BidiEmbeddingLevel aBidiLevel,
+                                              nsIFrame** aReturnUnadjustedFrame,
+                                              int32_t* aReturnOffset) {
   if (!aFrameSelection) {
     return nullptr;
   }
@@ -701,9 +714,9 @@ nsIFrame* nsCaret::GetCaretFrameForNodeOffset(
 
     nsIFrame* frameBefore;
     nsIFrame* frameAfter;
-    mozilla::intl::Bidi::EmbeddingLevel
+    BidiEmbeddingLevel
         levelBefore;  // Bidi level of the character before the caret
-    mozilla::intl::Bidi::EmbeddingLevel
+    BidiEmbeddingLevel
         levelAfter;  // Bidi level of the character after the caret
 
     auto [start, end] = theFrame->GetOffsets();
@@ -742,8 +755,7 @@ nsIFrame* nsCaret::GetCaretFrameForNodeOffset(
                 // the first frame on the line has a different Bidi level from
                 // the paragraph level, there is no real frame for the caret to
                 // be in. We have to find the visually first frame on the line.
-                mozilla::intl::Bidi::EmbeddingLevel baseLevel =
-                    frameAfter->GetBaseLevel();
+                BidiEmbeddingLevel baseLevel = frameAfter->GetBaseLevel();
                 if (baseLevel != levelAfter) {
                   nsPeekOffsetStruct pos(eSelectBeginLine, eDirPrevious, 0,
                                          nsPoint(0, 0), false, true, false,
@@ -774,8 +786,7 @@ nsIFrame* nsCaret::GetCaretFrameForNodeOffset(
                 // Bidi level from the paragraph level, there is no real frame
                 // for the caret to be in. We have to find the visually last
                 // frame on the line.
-                mozilla::intl::Bidi::EmbeddingLevel baseLevel =
-                    frameBefore->GetBaseLevel();
+                BidiEmbeddingLevel baseLevel = frameBefore->GetBaseLevel();
                 if (baseLevel != levelBefore) {
                   nsPeekOffsetStruct pos(eSelectEndLine, eDirNext, 0,
                                          nsPoint(0, 0), false, true, false,
@@ -847,7 +858,6 @@ size_t nsCaret::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
 }
 
 bool nsCaret::IsMenuPopupHidingCaret() {
-#ifdef MOZ_XUL
   // Check if there are open popups.
   nsXULPopupManager* popMgr = nsXULPopupManager::GetInstance();
   nsTArray<nsIFrame*> popups;
@@ -885,7 +895,6 @@ bool nsCaret::IsMenuPopupHidingCaret() {
       return true;
     }
   }
-#endif
 
   // There are no open menu popups, no need to hide the caret.
   return false;

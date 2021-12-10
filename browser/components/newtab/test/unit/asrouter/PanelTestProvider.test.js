@@ -11,14 +11,14 @@ describe("PanelTestProvider", () => {
   it("should have a message", () => {
     // Careful: when changing this number make sure that new messages also go
     // through schema verifications.
-    assert.lengthOf(messages, 10);
+    assert.lengthOf(messages, 11);
   });
   it("should be a valid message", () => {
     const updateMessages = messages.filter(
       ({ template }) => template === "update_action"
     );
     for (let message of updateMessages) {
-      assert.jsonSchema(message.content, update_schema);
+      assert.jsonSchema(message, update_schema);
     }
   });
   it("should be a valid message", () => {
@@ -36,7 +36,7 @@ describe("PanelTestProvider", () => {
       ({ template }) => template === "spotlight"
     );
     for (let message of spotlightMessages) {
-      assert.jsonSchema(message.content, spotlight_schema);
+      assert.jsonSchema(message, spotlight_schema);
     }
   });
 });

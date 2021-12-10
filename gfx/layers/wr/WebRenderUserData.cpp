@@ -51,6 +51,7 @@ bool WebRenderUserData::ProcessInvalidateForImage(nsIFrame* aFrame,
   MOZ_ASSERT(aFrame);
 
   if (!aFrame->HasProperty(WebRenderUserDataProperty::Key())) {
+    aFrame->SchedulePaint();
     return false;
   }
 
@@ -250,12 +251,14 @@ WebRenderImageProviderData::WebRenderImageProviderData(
 WebRenderImageProviderData::WebRenderImageProviderData(
     RenderRootStateManager* aManager, uint32_t aDisplayItemKey,
     nsIFrame* aFrame)
-    : WebRenderUserData(aManager, aDisplayItemKey, aFrame) {}
+    : WebRenderUserData(aManager, aDisplayItemKey, aFrame),
+      mDrawResult(ImgDrawResult::NOT_READY) {}
 
 WebRenderImageProviderData::~WebRenderImageProviderData() = default;
 
 Maybe<wr::ImageKey> WebRenderImageProviderData::UpdateImageKey(
-    WebRenderImageProvider* aProvider, wr::IpcResourceUpdateQueue& aResources) {
+    WebRenderImageProvider* aProvider, ImgDrawResult aDrawResult,
+    wr::IpcResourceUpdateQueue& aResources) {
   MOZ_ASSERT(aProvider);
 
   if (mProvider != aProvider) {
@@ -264,22 +267,25 @@ Maybe<wr::ImageKey> WebRenderImageProviderData::UpdateImageKey(
 
   wr::ImageKey key = {};
   nsresult rv = mProvider->UpdateKey(mManager, aResources, key);
-  if (NS_FAILED(rv)) {
-    return Nothing();
-  }
-
-  return Some(key);
+  mKey = NS_SUCCEEDED(rv) ? Some(key) : Nothing();
+  mDrawResult = aDrawResult;
+  return mKey;
 }
 
 bool WebRenderImageProviderData::Invalidate(ImageProviderId aProviderId) const {
-  if (!aProviderId || mProvider->GetProviderId() != aProviderId) {
+  if (!aProviderId || mProvider->GetProviderId() != aProviderId || !mKey) {
+    return false;
+  }
+
+  if (mDrawResult != ImgDrawResult::SUCCESS &&
+      mDrawResult != ImgDrawResult::BAD_IMAGE) {
     return false;
   }
 
   wr::ImageKey key = {};
   nsresult rv =
       mProvider->UpdateKey(mManager, mManager->AsyncResourceUpdates(), key);
-  return NS_SUCCEEDED(rv);
+  return NS_SUCCEEDED(rv) && mKey.ref() == key;
 }
 
 WebRenderFallbackData::WebRenderFallbackData(RenderRootStateManager* aManager,

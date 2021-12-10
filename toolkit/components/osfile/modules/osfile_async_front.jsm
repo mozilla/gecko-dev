@@ -19,7 +19,8 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["OS"];
+// Scheduler is exported for test-only usage.
+var EXPORTED_SYMBOLS = ["OS", "Scheduler"];
 
 var SharedAll = {};
 ChromeUtils.import(
@@ -71,8 +72,7 @@ const { AsyncShutdown } = ChromeUtils.import(
   "resource://gre/modules/AsyncShutdown.jsm"
 );
 var Native = ChromeUtils.import(
-  "resource://gre/modules/osfile/osfile_native.jsm",
-  null
+  "resource://gre/modules/osfile/osfile_native.jsm"
 );
 
 // It's possible for osfile.jsm to get imported before the profile is
@@ -166,10 +166,7 @@ function summarizeObject(obj) {
   return obj;
 }
 
-// In order to expose Scheduler to the unfiltered Cu.import return value variant
-// on B2G we need to save it to `this`.  This does not make it public;
-// EXPORTED_SYMBOLS still controls that in all cases.
-var Scheduler = (this.Scheduler = {
+var Scheduler = {
   /**
    * |true| once we have sent at least one message to the worker.
    * This field is unaffected by resetting the worker.
@@ -555,7 +552,7 @@ var Scheduler = (this.Scheduler = {
       worker.workerTimeStamps.loaded - worker.launchTimeStamp
     );
   },
-});
+};
 
 const PREF_OSFILE_LOG = "toolkit.osfile.log";
 const PREF_OSFILE_LOG_REDIRECT = "toolkit.osfile.log.redirect";
@@ -1374,29 +1371,10 @@ File.Info = function Info(value) {
   // Note that we can't just do this[k] = value[k] because our
   // prototype defines getters for all of these fields.
   for (let k in value) {
-    if (k != "creationDate") {
-      Object.defineProperty(this, k, { value: value[k] });
-    }
+    Object.defineProperty(this, k, { value: value[k] });
   }
-  Object.defineProperty(this, "_deprecatedCreationDate", {
-    value: value.creationDate,
-  });
 };
 File.Info.prototype = SysAll.AbstractInfo.prototype;
-
-// Deprecated
-Object.defineProperty(File.Info.prototype, "creationDate", {
-  get: function creationDate() {
-    let { Deprecated } = ChromeUtils.import(
-      "resource://gre/modules/Deprecated.jsm"
-    );
-    Deprecated.warning(
-      "Field 'creationDate' is deprecated.",
-      "https://developer.mozilla.org/en-US/docs/JavaScript_OS.File/OS.File.Info#Cross-platform_Attributes"
-    );
-    return this._deprecatedCreationDate;
-  },
-});
 
 File.Info.fromMsg = function fromMsg(value) {
   return new File.Info(value);

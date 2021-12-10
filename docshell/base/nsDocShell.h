@@ -867,7 +867,7 @@ class nsDocShell final : public nsDocLoader,
   bool CanSavePresentation(uint32_t aLoadType, nsIRequest* aNewRequest,
                            mozilla::dom::Document* aNewDocument);
 
-  static void ReportBFCacheComboTelemetry(uint16_t aCombo);
+  static void ReportBFCacheComboTelemetry(uint32_t aCombo);
 
   // Captures the state of the supporting elements of the presentation
   // (the "window" object, docshell tree, meta-refresh loads, and security
@@ -946,6 +946,7 @@ class nsDocShell final : public nsDocLoader,
   void FirePageHideNotificationInternal(bool aIsUnload,
                                         bool aSkipCheckingDynEntries);
 
+  void ThawFreezeNonRecursive(bool aThaw);
   void FirePageHideShowNonRecursive(bool aShow);
 
   nsresult Dispatch(mozilla::TaskCategory aCategory,

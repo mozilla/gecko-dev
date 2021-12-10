@@ -651,9 +651,9 @@ bool AntiTrackingUtils::IsThirdPartyWindow(nsPIDOMWindowInner* aWindow,
   }
 
   RefPtr<Document> doc = aWindow->GetDoc();
-  if (!doc || !doc->GetChannel()) {
-    // If we can't get channel from the window, ex, about:blank, fallback to use
-    // IsThirdPartyWindow check that examine the whole hierarchy.
+  if (!doc) {
+    // If we can't get the document from the window, ex, about:blank, fallback
+    // to use IsThirdPartyWindow check that examine the whole hierarchy.
     nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
         components::ThirdPartyUtil::Service();
     Unused << thirdPartyUtil->IsThirdPartyWindow(aWindow->GetOuterWindow(),
@@ -661,10 +661,61 @@ bool AntiTrackingUtils::IsThirdPartyWindow(nsPIDOMWindowInner* aWindow,
     return thirdParty;
   }
 
+  if (!doc->GetChannel()) {
+    // If we can't get the channel from the document, i.e. initial about:blank
+    // page, we use the browsingContext of the document to check if it's in the
+    // third-party context. If the browsing context is still not available, we
+    // will treat the window as third-party.
+    RefPtr<BrowsingContext> bc = doc->GetBrowsingContext();
+    return bc ? IsThirdPartyContext(bc) : true;
+  }
+
   // We only care whether the channel is 3rd-party with respect to
   // the top-level.
   nsCOMPtr<nsILoadInfo> loadInfo = doc->GetChannel()->LoadInfo();
   return loadInfo->GetIsThirdPartyContextToTopWindow();
+}
+
+/* static */
+bool AntiTrackingUtils::IsThirdPartyContext(BrowsingContext* aBrowsingContext) {
+  MOZ_ASSERT(aBrowsingContext);
+  MOZ_ASSERT(aBrowsingContext->IsInProcess());
+
+  if (aBrowsingContext->IsTopContent()) {
+    return false;
+  }
+
+  // If the top browsing context is not in the same process, it's cross-origin.
+  if (!aBrowsingContext->Top()->IsInProcess()) {
+    return true;
+  }
+
+  nsIDocShell* docShell = aBrowsingContext->GetDocShell();
+  if (!docShell) {
+    return true;
+  }
+  Document* doc = docShell->GetExtantDocument();
+  if (!doc) {
+    return true;
+  }
+  nsIPrincipal* principal = doc->NodePrincipal();
+
+  nsIDocShell* topDocShell = aBrowsingContext->Top()->GetDocShell();
+  if (!topDocShell) {
+    return true;
+  }
+  Document* topDoc = topDocShell->GetDocument();
+  if (!topDoc) {
+    return true;
+  }
+  nsIPrincipal* topPrincipal = topDoc->NodePrincipal();
+
+  auto* topBasePrin = BasePrincipal::Cast(topPrincipal);
+  bool isThirdParty = true;
+
+  topBasePrin->IsThirdPartyPrincipal(principal, &isThirdParty);
+
+  return isThirdParty;
 }
 
 /* static */

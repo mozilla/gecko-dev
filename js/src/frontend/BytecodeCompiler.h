@@ -13,10 +13,9 @@
 #include "NamespaceImports.h"
 
 #include "frontend/FunctionSyntaxKind.h"
-#include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions
+#include "gc/Rooting.h"
 #include "js/SourceText.h"
 #include "js/UniquePtr.h"  // js::UniquePtr
-#include "vm/Scope.h"
 #include "vm/TraceLogging.h"
 
 /*
@@ -98,6 +97,10 @@
 
 class JSLinearString;
 
+namespace JS {
+class JS_PUBLIC_API ReadOnlyCompileOptions;
+}
+
 namespace js {
 
 class ModuleObject;
@@ -112,6 +115,7 @@ struct CompilationGCOutput;
 class ErrorReporter;
 class FunctionBox;
 class ParseNode;
+class TaggedParserAtomIndex;
 
 // Compile a module of the given source using the given options.
 ModuleObject* CompileModule(JSContext* cx,
@@ -123,9 +127,9 @@ ModuleObject* CompileModule(JSContext* cx,
 
 // Parse a module of the given source.  This is an internal API; if you want to
 // compile a module as a user, use CompileModule above.
-UniquePtr<CompilationStencil> ParseModuleToStencil(
+already_AddRefed<CompilationStencil> ParseModuleToStencil(
     JSContext* cx, CompilationInput& input, JS::SourceText<char16_t>& srcBuf);
-UniquePtr<CompilationStencil> ParseModuleToStencil(
+already_AddRefed<CompilationStencil> ParseModuleToStencil(
     JSContext* cx, CompilationInput& input,
     JS::SourceText<mozilla::Utf8Unit>& srcBuf);
 

@@ -78,6 +78,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MacroForEach.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MediaFeatureChange.h"
 #include "mozilla/MediaManager.h"
 #include "mozilla/MemoryReporting.h"
@@ -220,7 +221,6 @@
 #include "mozilla/dom/TimeoutManager.h"
 #include "mozilla/dom/Touch.h"
 #include "mozilla/dom/TouchEvent.h"
-#include "mozilla/dom/TreeOrderedArray.h"
 #include "mozilla/dom/TreeOrderedArrayInlines.h"
 #include "mozilla/dom/TreeWalker.h"
 #include "mozilla/dom/URL.h"
@@ -415,15 +415,13 @@
 // XXX Must be included after mozilla/Encoding.h
 #include "encoding_rs.h"
 
-#ifdef MOZ_XUL
-#  include "mozilla/dom/XULBroadcastManager.h"
-#  include "mozilla/dom/XULPersist.h"
-#  include "nsIAppWindow.h"
-#  include "nsXULPrototypeDocument.h"
-#  include "nsXULCommandDispatcher.h"
-#  include "nsXULPopupManager.h"
-#  include "nsIDocShellTreeOwner.h"
-#endif
+#include "mozilla/dom/XULBroadcastManager.h"
+#include "mozilla/dom/XULPersist.h"
+#include "nsIAppWindow.h"
+#include "nsXULPrototypeDocument.h"
+#include "nsXULCommandDispatcher.h"
+#include "nsXULPopupManager.h"
+#include "nsIDocShellTreeOwner.h"
 
 #define XML_DECLARATION_BITS_DECLARATION_EXISTS (1 << 0)
 #define XML_DECLARATION_BITS_ENCODING_EXISTS (1 << 1)
@@ -1436,7 +1434,6 @@ Document::Document(const char* aContentType)
       mServoRestyleRootDirtyBits(0),
       mThrowOnDynamicMarkupInsertionCounter(0),
       mIgnoreOpensDuringUnloadCounter(0),
-      mDocLWTheme(Doc_Theme_Uninitialized),
       mSavedResolution(1.0f),
       mSavedResolutionBeforeMVM(1.0f),
       mGeneration(0),
@@ -1455,7 +1452,7 @@ Document::Document(const char* aContentType)
   // property, even if use counters are disabled.
   mStyleUseCounters = Servo_UseCounters_Create().Consume();
 
-  SetContentTypeInternal(nsDependentCString(aContentType));
+  SetContentType(nsDependentCString(aContentType));
 
   // Start out mLastStyleSheetSet as null, per spec
   SetDOMStringToNull(mLastStyleSheetSet);
@@ -2021,6 +2018,7 @@ void Document::AccumulatePageLoadTelemetry() {
   }
 
   nsCString http3Key;
+  nsCString http3WithPriorityKey;
   nsCOMPtr<nsIHttpChannelInternal> httpChannel =
       do_QueryInterface(GetChannel());
   if (httpChannel) {
@@ -2029,6 +2027,16 @@ void Document::AccumulatePageLoadTelemetry() {
     if (NS_SUCCEEDED(httpChannel->GetResponseVersion(&major, &minor))) {
       if (major == 3) {
         http3Key = "http3"_ns;
+        nsCOMPtr<nsIHttpChannel> httpChannel2 = do_QueryInterface(GetChannel());
+        nsCString header;
+        if (httpChannel2 &&
+            NS_SUCCEEDED(
+                httpChannel2->GetResponseHeader("priority"_ns, header)) &&
+            !header.IsEmpty()) {
+          http3WithPriorityKey = "with_priority"_ns;
+        } else {
+          http3WithPriorityKey = "without_priority"_ns;
+        }
       } else if (major == 2) {
         bool supportHttp3 = false;
         if (NS_FAILED(httpChannel->GetSupportsHTTP3(&supportHttp3))) {
@@ -2050,6 +2058,12 @@ void Document::AccumulatePageLoadTelemetry() {
     if (!http3Key.IsEmpty()) {
       Telemetry::AccumulateTimeDelta(
           Telemetry::HTTP3_PERF_FIRST_CONTENTFUL_PAINT_MS, http3Key,
+          navigationStart, firstContentfulComposite);
+    }
+
+    if (!http3WithPriorityKey.IsEmpty()) {
+      Telemetry::AccumulateTimeDelta(
+          Telemetry::H3P_PERF_FIRST_CONTENTFUL_PAINT_MS, http3WithPriorityKey,
           navigationStart, firstContentfulComposite);
     }
 
@@ -2076,6 +2090,12 @@ void Document::AccumulatePageLoadTelemetry() {
     if (!http3Key.IsEmpty()) {
       Telemetry::AccumulateTimeDelta(Telemetry::HTTP3_PERF_PAGE_LOAD_TIME_MS,
                                      http3Key, navigationStart, loadEventStart);
+    }
+
+    if (!http3WithPriorityKey.IsEmpty()) {
+      Telemetry::AccumulateTimeDelta(Telemetry::H3P_PERF_PAGE_LOAD_TIME_MS,
+                                     http3WithPriorityKey, navigationStart,
+                                     loadEventStart);
     }
 
     Telemetry::AccumulateTimeDelta(
@@ -2846,7 +2866,7 @@ void Document::ResetToURI(nsIURI* aURI, nsILoadGroup* aLoadGroup,
   mLastModified.Truncate();
   // XXXbz I guess we're assuming that the caller will either pass in
   // a channel with a useful type or call SetContentType?
-  SetContentTypeInternal(""_ns);
+  SetContentType(""_ns);
   mContentLanguage.Truncate();
   mBaseTarget.Truncate();
 
@@ -3339,7 +3359,7 @@ nsresult Document::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
     contentType.EndReading(end);
     semicolon = start;
     FindCharInReadable(';', semicolon, end);
-    SetContentTypeInternal(Substring(start, semicolon));
+    SetContentType(Substring(start, semicolon));
   }
 
   RetrieveRelevantHeaders(aChannel);
@@ -4143,8 +4163,14 @@ void Document::GetContentType(nsAString& aContentType) {
   CopyUTF8toUTF16(GetContentTypeInternal(), aContentType);
 }
 
-void Document::SetContentType(const nsAString& aContentType) {
-  SetContentTypeInternal(NS_ConvertUTF16toUTF8(aContentType));
+void Document::SetContentType(const nsACString& aContentType) {
+  if (!IsHTMLOrXHTML() && mDefaultElementType == kNameSpaceID_None &&
+      aContentType.EqualsLiteral("application/xhtml+xml")) {
+    mDefaultElementType = kNameSpaceID_XHTML;
+  }
+
+  mCachedEncoder = nullptr;
+  mContentType = aContentType;
 }
 
 bool Document::GetAllowPlugins() {
@@ -4895,6 +4921,55 @@ Document::InternalCommandData Document::ConvertToInternalCommand(
   InternalCommandData commandData;
   if (!sInternalCommandDataHashtable->Get(aHTMLCommandName, &commandData)) {
     return InternalCommandData();
+  }
+  // Ignore if the command is disabled by a corresponding pref due to Gecko
+  // specific.
+  switch (commandData.mCommand) {
+    case Command::FormatIncreaseFontSize:
+      MOZ_DIAGNOSTIC_ASSERT(
+          aHTMLCommandName.LowerCaseEqualsLiteral("increasefontsize"));
+      if (!StaticPrefs::dom_document_edit_command_increasefontsize_enabled()) {
+        return InternalCommandData();
+      }
+      break;
+    case Command::FormatDecreaseFontSize:
+      MOZ_DIAGNOSTIC_ASSERT(
+          aHTMLCommandName.LowerCaseEqualsLiteral("decreasefontsize"));
+      if (!StaticPrefs::dom_document_edit_command_decreasefontsize_enabled()) {
+        return InternalCommandData();
+      }
+      break;
+    case Command::GetHTML:
+      MOZ_DIAGNOSTIC_ASSERT(aHTMLCommandName.LowerCaseEqualsLiteral("gethtml"));
+      if (!StaticPrefs::dom_document_edit_command_gethtml_enabled()) {
+        return InternalCommandData();
+      }
+      break;
+    case Command::FormatBlock:
+      if (!StaticPrefs::dom_document_edit_command_heading_enabled() &&
+          aHTMLCommandName.LowerCaseEqualsLiteral("heading")) {
+        return InternalCommandData();
+      }
+      break;
+    case Command::SetDocumentReadOnly:
+      if (!StaticPrefs::dom_document_edit_command_contentReadOnly_enabled() &&
+          aHTMLCommandName.LowerCaseEqualsLiteral("contentreadonly")) {
+        return InternalCommandData();
+      }
+      if (!StaticPrefs::dom_document_edit_command_readonly_enabled() &&
+          aHTMLCommandName.LowerCaseEqualsLiteral("readonly")) {
+        return InternalCommandData();
+      }
+      break;
+    case Command::SetDocumentInsertBROnEnterKeyPress:
+      MOZ_DIAGNOSTIC_ASSERT(
+          aHTMLCommandName.LowerCaseEqualsLiteral("insertbronreturn"));
+      if (!StaticPrefs::dom_document_edit_command_insertBrOnReturn_enabled()) {
+        return InternalCommandData();
+      }
+      break;
+    default:
+      break;
   }
   if (!aAdjustedValue) {
     // No further work to do
@@ -6092,29 +6167,22 @@ nsresult Document::EditingStateChanged() {
   }
 
   if (makeWindowEditable) {
-    // Set the editor to not insert br's on return when in p
-    // elements by default.
-    // XXX Do we only want to do this for designMode?
-    // Note that it doesn't matter what CallerType we pass, because the callee
-    // doesn't use it for this command.  Play it safe and pass the more
-    // restricted one.
-    ErrorResult errorResult;
-    nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
-    Unused << ExecCommand(u"insertBrOnReturn"_ns, false, u"false"_ns,
-                          // Principal doesn't matter here, because the
-                          // insertBrOnReturn command doesn't use it.   Still
-                          // it's too bad we can't easily grab a nullprincipal
-                          // from somewhere without allocating one..
-                          *principal, errorResult);
-
-    if (errorResult.Failed()) {
+    // TODO: We should do this earlier in this method.
+    //       Previously, we called `ExecCommand` with `insertBrOnReturn` command
+    //       whose argument is false here.  Then, if it returns error, we
+    //       stopped making it editable.  However, after bug 1697078 fixed,
+    //       `ExecCommand` returns error only when the document is not XHTML's
+    //       nor HTML's.  Therefore, we use same error handling for now.
+    if (MOZ_UNLIKELY(NS_WARN_IF(!IsHTMLOrXHTML()))) {
       // Editor setup failed. Editing is not on after all.
       // XXX Should we reset the editable flag on nodes?
       editSession->TearDownEditorOnWindow(window);
       mEditingState = EditingState::eOff;
-
-      return errorResult.StealNSResult();
+      return NS_ERROR_DOM_INVALID_STATE_ERR;
     }
+    // Set the editor to not insert <br> elements on return when in <p> elements
+    // by default.
+    htmlEditor->SetReturnInParagraphCreatesNewParagraph(true);
   }
 
   // Resync the editor's spellcheck state.
@@ -6729,11 +6797,14 @@ void Document::TryChannelCharset(nsIChannel* aChannel, int32_t& aCharsetSource,
     if (NS_SUCCEEDED(rv)) {
       const Encoding* preferred = Encoding::ForLabel(charsetVal);
       if (preferred) {
+        if (aExecutor && preferred == REPLACEMENT_ENCODING) {
+          aExecutor->ComplainAboutBogusProtocolCharset(this, false);
+        }
         aEncoding = WrapNotNull(preferred);
         aCharsetSource = kCharsetFromChannel;
         return;
       } else if (aExecutor && !charsetVal.IsEmpty()) {
-        aExecutor->ComplainAboutBogusProtocolCharset(this);
+        aExecutor->ComplainAboutBogusProtocolCharset(this, true);
       }
     }
   }
@@ -6930,7 +7001,7 @@ void Document::DeletePresShell() {
   mDesignModeSheetAdded = false;
 }
 
-void Document::DisallowBFCaching(uint16_t aStatus) {
+void Document::DisallowBFCaching(uint32_t aStatus) {
   NS_ASSERTION(!mBFCacheEntry, "We're already in the bfcache!");
   if (!mBFCacheDisallowed) {
     WindowGlobalChild* wgc = GetWindowGlobalChild();
@@ -8084,37 +8155,31 @@ static Element* GetCustomContentContainer(PresShell* aPresShell) {
   return aPresShell->GetCanvasFrame()->GetCustomContentContainer();
 }
 
-static void InsertAnonContentIntoCanvas(AnonymousContent& aAnonContent,
-                                        PresShell* aPresShell) {
-  Element* container = GetCustomContentContainer(aPresShell);
-  if (!container) {
-    return;
-  }
-
-  IgnoredErrorResult rv;
-  container->AppendChildTo(&aAnonContent.ContentNode(), true, rv);
-  if (rv.Failed()) {
-    return;
-  }
-
-  aPresShell->GetCanvasFrame()->ShowCustomContentContainer();
-}
-
 already_AddRefed<AnonymousContent> Document::InsertAnonymousContent(
-    Element& aElement, ErrorResult& aRv) {
-  nsAutoScriptBlocker scriptBlocker;
-
+    Element& aElement, bool aForce, ErrorResult& aRv) {
   // Clone the node to avoid returning a direct reference.
   nsCOMPtr<nsINode> clone = aElement.CloneNode(true, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
 
+  PresShell* shell = GetPresShell();
+  if (aForce && !GetCustomContentContainer(shell)) {
+    FlushPendingNotifications(FlushType::Layout);
+    shell = GetPresShell();
+  }
+
+  nsAutoScriptBlocker scriptBlocker;
+
   auto anonContent =
       MakeRefPtr<AnonymousContent>(clone.forget().downcast<Element>());
+
   mAnonymousContents.AppendElement(anonContent);
 
-  InsertAnonContentIntoCanvas(*anonContent, GetPresShell());
+  if (Element* container = GetCustomContentContainer(shell)) {
+    container->AppendChildTo(&anonContent->ContentNode(), true, IgnoreErrors());
+    shell->GetCanvasFrame()->ShowCustomContentContainer();
+  }
 
   return anonContent.forget();
 }
@@ -8954,12 +9019,9 @@ void Document::GetTitle(nsAString& aTitle) {
 
   nsAutoString tmp;
 
-#ifdef MOZ_XUL
   if (rootElement->IsXULElement()) {
     rootElement->GetAttr(kNameSpaceID_None, nsGkAtoms::title, tmp);
-  } else
-#endif
-  {
+  } else {
     Element* title = GetTitleElement();
     if (!title) {
       return;
@@ -8977,13 +9039,11 @@ void Document::SetTitle(const nsAString& aTitle, ErrorResult& aRv) {
     return;
   }
 
-#ifdef MOZ_XUL
   if (rootElement->IsXULElement()) {
     aRv =
         rootElement->SetAttr(kNameSpaceID_None, nsGkAtoms::title, aTitle, true);
     return;
   }
-#endif
 
   Maybe<mozAutoDocUpdate> updateBatch;
   nsCOMPtr<Element> title = GetTitleElement();
@@ -10768,6 +10828,45 @@ void Document::GetXMLDeclaration(nsAString& aVersion, nsAString& aEncoding,
   }
 }
 
+void Document::AddColorSchemeMeta(HTMLMetaElement& aMeta) {
+  mColorSchemeMetaTags.Insert(aMeta);
+  RecomputeColorScheme();
+}
+
+void Document::RemoveColorSchemeMeta(HTMLMetaElement& aMeta) {
+  mColorSchemeMetaTags.RemoveElement(aMeta);
+  RecomputeColorScheme();
+}
+
+void Document::RecomputeColorScheme() {
+  if (!StaticPrefs::layout_css_color_scheme_enabled()) {
+    return;
+  }
+  auto oldColorScheme = mColorSchemeBits;
+  mColorSchemeBits = 0;
+  const nsTArray<HTMLMetaElement*>& elements = mColorSchemeMetaTags;
+  for (const HTMLMetaElement* el : elements) {
+    nsAutoString content;
+    if (!el->GetAttr(nsGkAtoms::content, content)) {
+      continue;
+    }
+
+    NS_ConvertUTF16toUTF8 contentU8(content);
+    if (Servo_ColorScheme_Parse(&contentU8, &mColorSchemeBits)) {
+      break;
+    }
+  }
+
+  if (mColorSchemeBits == oldColorScheme) {
+    return;
+  }
+
+  if (nsPresContext* pc = GetPresContext()) {
+    // This affects system colors, which are inherited, so we need to recascade.
+    pc->RebuildAllStyleData(nsChangeHint(0), RestyleHint::RecascadeSubtree());
+  }
+}
+
 bool Document::IsScriptEnabled() {
   // If this document is sandboxed without 'allow-scripts'
   // script is not enabled
@@ -11009,7 +11108,7 @@ void Document::CollectDescendantDocuments(
 }
 
 bool Document::CanSavePresentation(nsIRequest* aNewRequest,
-                                   uint16_t& aBFCacheCombo,
+                                   uint32_t& aBFCacheCombo,
                                    bool aIncludeSubdocuments,
                                    bool aAllowUnloadListeners) {
   bool ret = true;
@@ -11164,7 +11263,7 @@ bool Document::CanSavePresentation(nsIRequest* aNewRequest,
       auto entry = static_cast<SubDocMapEntry*>(iter.Get());
       Document* subdoc = entry->mSubDocument;
 
-      uint16_t subDocBFCacheCombo = 0;
+      uint32_t subDocBFCacheCombo = 0;
       // The aIgnoreRequest we were passed is only for us, so don't pass it on.
       bool canCache =
           subdoc ? subdoc->CanSavePresentation(nullptr, subDocBFCacheCombo,
@@ -11206,6 +11305,14 @@ bool Document::CanSavePresentation(nsIRequest* aNewRequest,
       MOZ_LOG(gPageCacheLog, mozilla::LogLevel::Verbose,
               ("Save of %s blocked due to having used VR", uri.get()));
       aBFCacheCombo |= BFCacheStatus::HAS_USED_VR;
+      ret = false;
+    }
+
+    if (win->HasActiveLocks()) {
+      MOZ_LOG(
+          gPageCacheLog, mozilla::LogLevel::Verbose,
+          ("Save of %s blocked due to having active lock requests", uri.get()));
+      aBFCacheCombo |= BFCacheStatus::ACTIVE_LOCK;
       ret = false;
     }
   }
@@ -11737,8 +11844,7 @@ void Document::MutationEventDispatched(nsINode* aTarget) {
     nsCOMArray<nsINode> realTargets;
     for (int32_t i = 0; i < count; ++i) {
       nsINode* possibleTarget = mSubtreeModifiedTargets[i];
-      nsCOMPtr<nsIContent> content = do_QueryInterface(possibleTarget);
-      if (content && content->ChromeOnlyAccess()) {
+      if (possibleTarget && possibleTarget->ChromeOnlyAccess()) {
         continue;
       }
 
@@ -11892,7 +11998,7 @@ nsresult Document::CloneDocHelper(Document* clone) const {
   clone->SetCompatibilityMode(mCompatMode);
   clone->mBidiOptions = mBidiOptions;
   clone->mContentLanguage = mContentLanguage;
-  clone->SetContentTypeInternal(GetContentTypeInternal());
+  clone->SetContentType(GetContentTypeInternal());
   clone->mSecurityInfo = mSecurityInfo;
 
   // State from Document
@@ -12285,12 +12391,34 @@ void Document::ForgetImagePreload(nsIURI* aURI) {
 
 void Document::UpdateDocumentStates(EventStates aMaybeChangedStates,
                                     bool aNotify) {
-  EventStates oldStates = mDocumentState;
-  if (aMaybeChangedStates.HasState(NS_DOCUMENT_STATE_RTL_LOCALE)) {
+  const EventStates oldStates = mDocumentState;
+  if (aMaybeChangedStates.HasAtLeastOneOfStates(
+          NS_DOCUMENT_STATE_ALL_LOCALEDIR_BITS)) {
+    mDocumentState &= ~NS_DOCUMENT_STATE_ALL_LOCALEDIR_BITS;
     if (IsDocumentRightToLeft()) {
       mDocumentState |= NS_DOCUMENT_STATE_RTL_LOCALE;
     } else {
-      mDocumentState &= ~NS_DOCUMENT_STATE_RTL_LOCALE;
+      mDocumentState |= NS_DOCUMENT_STATE_LTR_LOCALE;
+    }
+  }
+
+  if (aMaybeChangedStates.HasAtLeastOneOfStates(
+          NS_DOCUMENT_STATE_ALL_LWTHEME_BITS)) {
+    mDocumentState &= ~NS_DOCUMENT_STATE_ALL_LWTHEME_BITS;
+    switch (GetDocumentLWTheme()) {
+      case DocumentTheme::None:
+        break;
+      case DocumentTheme::Bright:
+        mDocumentState |=
+            NS_DOCUMENT_STATE_LWTHEME | NS_DOCUMENT_STATE_LWTHEME_BRIGHTTEXT;
+        break;
+      case DocumentTheme::Dark:
+        mDocumentState |=
+            NS_DOCUMENT_STATE_LWTHEME | NS_DOCUMENT_STATE_LWTHEME_DARKTEXT;
+        break;
+      case DocumentTheme::Neutral:
+        mDocumentState |= NS_DOCUMENT_STATE_LWTHEME;
+        break;
     }
   }
 
@@ -12364,7 +12492,7 @@ void Document::ResetDocumentDirection() {
   if (!nsContentUtils::IsChromeDoc(this)) {
     return;
   }
-  UpdateDocumentStates(NS_DOCUMENT_STATE_RTL_LOCALE, true);
+  UpdateDocumentStates(NS_DOCUMENT_STATE_ALL_LOCALEDIR_BITS, true);
 }
 
 bool Document::IsDocumentRightToLeft() {
@@ -12853,12 +12981,12 @@ static nsINode* GetCorrespondingNodeInDocument(const nsINode* aOrigNode,
     return nullptr;
   }
 
-  nsTArray<int32_t> indexArray;
+  AutoTArray<Maybe<uint32_t>, 32> indexArray;
   const nsINode* current = aOrigNode;
   while (const nsINode* parent = current->GetParentNode()) {
-    int32_t index = parent->ComputeIndexOf(current);
-    MOZ_ASSERT(index >= 0);
-    indexArray.AppendElement(index);
+    Maybe<uint32_t> index = parent->ComputeIndexOf(current);
+    NS_ENSURE_TRUE(index.isSome(), nullptr);
+    indexArray.AppendElement(std::move(index));
     current = parent;
   }
   MOZ_ASSERT(current->IsDocument() || current->IsShadowRoot());
@@ -12881,8 +13009,8 @@ static nsINode* GetCorrespondingNodeInDocument(const nsINode* aOrigNode,
   if (NS_WARN_IF(!correspondingNode)) {
     return nullptr;
   }
-  for (int32_t i : Reversed(indexArray)) {
-    correspondingNode = correspondingNode->GetChildAt_Deprecated(i);
+  for (const Maybe<uint32_t>& index : Reversed(indexArray)) {
+    correspondingNode = correspondingNode->GetChildAt_Deprecated(*index);
     NS_ENSURE_TRUE(correspondingNode, nullptr);
   }
   return correspondingNode;
@@ -12927,13 +13055,16 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
     return;
   }
 
-  size_t rangeCount =
+  const uint32_t rangeCount =
       sourceDocIsStatic ? origRanges->Length() : origSelection->RangeCount();
   auto printRanges = MakeUnique<nsTArray<RefPtr<nsRange>>>(rangeCount);
 
-  for (size_t i = 0; i < rangeCount; ++i) {
+  for (const uint32_t i : IntegerRange(rangeCount)) {
+    MOZ_ASSERT_IF(!sourceDocIsStatic,
+                  origSelection->RangeCount() == rangeCount);
     const nsRange* range = sourceDocIsStatic ? origRanges->ElementAt(i).get()
                                              : origSelection->GetRangeAt(i);
+    MOZ_ASSERT(range);
     nsINode* startContainer = range->GetStartContainer();
     nsINode* endContainer = range->GetEndContainer();
 
@@ -15045,11 +15176,11 @@ void Document::PostVisibilityUpdateEvent() {
 }
 
 void Document::MaybeActiveMediaComponents() {
-  if (!mWindow) {
+  auto* window = GetWindow();
+  if (!window || !window->ShouldDelayMediaFromStart()) {
     return;
   }
-
-  GetWindow()->MaybeActiveMediaComponents();
+  window->ActivateMediaComponents();
 }
 
 void Document::DocAddSizeOfExcludingThis(nsWindowSizes& aWindowSizes) const {
@@ -15681,16 +15812,6 @@ void Document::SetCachedEncoder(already_AddRefed<nsIDocumentEncoder> aEncoder) {
   mCachedEncoder = aEncoder;
 }
 
-void Document::SetContentTypeInternal(const nsACString& aType) {
-  if (!IsHTMLOrXHTML() && mDefaultElementType == kNameSpaceID_None &&
-      aType.EqualsLiteral("application/xhtml+xml")) {
-    mDefaultElementType = kNameSpaceID_XHTML;
-  }
-
-  mCachedEncoder = nullptr;
-  mContentType = aType;
-}
-
 nsILoadContext* Document::GetLoadContext() const { return mDocumentContainer; }
 
 nsIDocShell* Document::GetDocShell() const { return mDocumentContainer; }
@@ -15700,33 +15821,22 @@ void Document::SetStateObject(nsIStructuredCloneContainer* scContainer) {
   mStateObjectCached = nullptr;
 }
 
-Document::DocumentTheme Document::GetDocumentLWTheme() {
-  if (mDocLWTheme == Doc_Theme_Uninitialized) {
-    mDocLWTheme = ThreadSafeGetDocumentLWTheme();
-  }
-  return mDocLWTheme;
-}
-
-Document::DocumentTheme Document::ThreadSafeGetDocumentLWTheme() const {
+Document::DocumentTheme Document::GetDocumentLWTheme() const {
   if (!NodePrincipal()->IsSystemPrincipal()) {
-    return Doc_Theme_None;
+    return DocumentTheme::None;
   }
 
-  if (mDocLWTheme != Doc_Theme_Uninitialized) {
-    return mDocLWTheme;
-  }
-
-  DocumentTheme theme = Doc_Theme_None;  // No lightweight theme by default
+  auto theme = DocumentTheme::None;  // No lightweight theme by default
   Element* element = GetRootElement();
   if (element && element->AttrValueIs(kNameSpaceID_None, nsGkAtoms::lwtheme,
                                       nsGkAtoms::_true, eCaseMatters)) {
-    theme = Doc_Theme_Neutral;
+    theme = DocumentTheme::Neutral;
     nsAutoString lwTheme;
     element->GetAttr(kNameSpaceID_None, nsGkAtoms::lwthemetextcolor, lwTheme);
     if (lwTheme.EqualsLiteral("dark")) {
-      theme = Doc_Theme_Dark;
+      theme = DocumentTheme::Dark;
     } else if (lwTheme.EqualsLiteral("bright")) {
-      theme = Doc_Theme_Bright;
+      theme = DocumentTheme::Bright;
     }
   }
 
@@ -16272,9 +16382,14 @@ NS_IMPL_ISUPPORTS_INHERITED(UserInteractionTimer, Runnable, nsITimerCallback,
 }  // namespace
 
 void Document::MaybeStoreUserInteractionAsPermission() {
-  // We care about user-interaction stored only for top-level documents.
+  // We care about user-interaction stored only for top-level documents
+  // and documents with access to the Storage Access API
   if (!IsTopLevelContentDocument()) {
-    return;
+    bool hasSA;
+    nsresult rv = HasStorageAccessSync(hasSA);
+    if (NS_FAILED(rv) || !hasSA) {
+      return;
+    }
   }
 
   if (!mUserHasInteracted) {
@@ -16527,39 +16642,26 @@ Selection* Document::GetSelection(ErrorResult& aRv) {
   return nsGlobalWindowInner::Cast(window)->GetSelection(aRv);
 }
 
-already_AddRefed<mozilla::dom::Promise> Document::HasStorageAccess(
-    mozilla::ErrorResult& aRv) {
-  nsIGlobalObject* global = GetScopeObject();
-  if (!global) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-    return nullptr;
-  }
-
-  RefPtr<Promise> promise =
-      Promise::Create(global, aRv, Promise::ePropagateUserInteraction);
-  if (aRv.Failed()) {
-    return nullptr;
-  }
-
+nsresult Document::HasStorageAccessSync(bool& aHasStorageAccess) {
   if (NodePrincipal()->GetIsNullPrincipal()) {
-    promise->MaybeResolve(false);
-    return promise.forget();
+    aHasStorageAccess = false;
+    return NS_OK;
   }
 
   if (CookieJarSettings()->GetBlockingAllContexts()) {
-    promise->MaybeResolve(false);
-    return promise.forget();
+    aHasStorageAccess = false;
+    return NS_OK;
   }
 
   if (IsTopLevelContentDocument()) {
-    promise->MaybeResolve(true);
-    return promise.forget();
+    aHasStorageAccess = true;
+    return NS_OK;
   }
 
   RefPtr<BrowsingContext> bc = GetBrowsingContext();
   if (!bc) {
-    promise->MaybeResolve(false);
-    return promise.forget();
+    aHasStorageAccess = false;
+    return NS_OK;
   }
 
   RefPtr<BrowsingContext> topBC = bc->Top();
@@ -16575,19 +16677,42 @@ already_AddRefed<mozilla::dom::Promise> Document::HasStorageAccess(
     if (nsGlobalWindowOuter::Cast(topOuterWindow)
             ->GetPrincipal()
             ->Equals(NodePrincipal())) {
-      promise->MaybeResolve(true);
-      return promise.forget();
+      aHasStorageAccess = true;
+      return NS_OK;
     }
   }
 
   nsPIDOMWindowInner* inner = GetInnerWindow();
   nsGlobalWindowOuter* outer = nullptr;
-  if (inner) {
-    outer = nsGlobalWindowOuter::Cast(inner->GetOuterWindow());
-    promise->MaybeResolve(outer->IsStorageAccessPermissionGranted());
-  } else {
-    promise->MaybeRejectWithUndefined();
+  NS_ENSURE_TRUE(inner, NS_ERROR_FAILURE);
+  outer = nsGlobalWindowOuter::Cast(inner->GetOuterWindow());
+  NS_ENSURE_TRUE(outer, NS_ERROR_FAILURE);
+  aHasStorageAccess = outer->IsStorageAccessPermissionGranted();
+  return NS_OK;
+}
+
+already_AddRefed<mozilla::dom::Promise> Document::HasStorageAccess(
+    mozilla::ErrorResult& aRv) {
+  nsIGlobalObject* global = GetScopeObject();
+  if (!global) {
+    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+    return nullptr;
   }
+
+  RefPtr<Promise> promise =
+      Promise::Create(global, aRv, Promise::ePropagateUserInteraction);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  bool hasStorageAccess;
+  nsresult rv = HasStorageAccessSync(hasStorageAccess);
+  if (NS_FAILED(rv)) {
+    promise->MaybeRejectWithUndefined();
+  } else {
+    promise->MaybeResolve(hasStorageAccess);
+  }
+
   return promise.forget();
 }
 
@@ -16808,7 +16933,7 @@ already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccess(
               Telemetry::LABELS_STORAGE_ACCESS_API_UI::Request);
         }
 
-        self->AutomaticStorageAccessPermissionCanBeGranted()->Then(
+        self->AutomaticStorageAccessPermissionCanBeGranted(true)->Then(
             GetCurrentSerialEventTarget(), __func__,
             [p, pr, sapr,
              inner](const AutomaticStorageAccessPermissionGrantPromise::
@@ -16895,7 +17020,8 @@ already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccess(
 }
 
 already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccessForOrigin(
-    const nsAString& aThirdPartyOrigin, mozilla::ErrorResult& aRv) {
+    const nsAString& aThirdPartyOrigin, const bool aRequireUserActivation,
+    mozilla::ErrorResult& aRv) {
   nsIGlobalObject* global = GetScopeObject();
   if (!global) {
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
@@ -16908,7 +17034,8 @@ already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccessForOrigin(
   }
 
   // Window doesn't have user activation, reject.
-  if (!this->HasValidTransientUserGestureActivation()) {
+  bool hasUserActivation = this->HasValidTransientUserGestureActivation();
+  if (aRequireUserActivation && !hasUserActivation) {
     nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
                                     nsLiteralCString("requestStorageAccess"),
                                     this, nsContentUtils::eDOM_PROPERTIES,
@@ -17001,7 +17128,7 @@ already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccessForOrigin(
     // This prevents usage of other transient activation-gated APIs.
     this->ConsumeTransientUserGestureActivation();
 
-    auto performFinalChecks = [inner, self, principal]() {
+    auto performFinalChecks = [inner, self, principal, hasUserActivation]() {
       RefPtr<ContentBlocking::StorageAccessFinalCheckPromise::Private> p =
           new ContentBlocking::StorageAccessFinalCheckPromise::Private(
               __func__);
@@ -17030,55 +17157,56 @@ already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccessForOrigin(
             Telemetry::LABELS_STORAGE_ACCESS_API_UI::Request);
       }
 
-      self->AutomaticStorageAccessPermissionCanBeGranted()->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [p, pr, sapr,
-           inner](const AutomaticStorageAccessPermissionGrantPromise::
-                      ResolveOrRejectValue& aValue) -> void {
-            // Make a copy because we can't modified copy-captured lambda
-            // variables.
-            PromptResult pr2 = pr;
+      self->AutomaticStorageAccessPermissionCanBeGranted(hasUserActivation)
+          ->Then(GetCurrentSerialEventTarget(), __func__,
+                 [p, pr, sapr,
+                  inner](const AutomaticStorageAccessPermissionGrantPromise::
+                             ResolveOrRejectValue& aValue) -> void {
+                   // Make a copy because we can't modified copy-captured lambda
+                   // variables.
+                   PromptResult pr2 = pr;
 
-            bool storageAccessCanBeGrantedAutomatically =
-                aValue.IsResolve() && aValue.ResolveValue();
+                   bool storageAccessCanBeGrantedAutomatically =
+                       aValue.IsResolve() && aValue.ResolveValue();
 
-            bool autoGrant = false;
-            if (pr2 == PromptResult::Pending &&
-                storageAccessCanBeGrantedAutomatically) {
-              pr2 = PromptResult::Granted;
-              autoGrant = true;
+                   bool autoGrant = false;
+                   if (pr2 == PromptResult::Pending &&
+                       storageAccessCanBeGrantedAutomatically) {
+                     pr2 = PromptResult::Granted;
+                     autoGrant = true;
 
-              Telemetry::AccumulateCategorical(
-                  Telemetry::LABELS_STORAGE_ACCESS_API_UI::AllowAutomatically);
-            }
+                     Telemetry::AccumulateCategorical(
+                         Telemetry::LABELS_STORAGE_ACCESS_API_UI::
+                             AllowAutomatically);
+                   }
 
-            if (pr2 != PromptResult::Pending) {
-              MOZ_ASSERT_IF(pr2 != PromptResult::Granted,
-                            pr2 == PromptResult::Denied);
-              if (pr2 == PromptResult::Granted) {
-                ContentBlocking::StorageAccessPromptChoices choice =
-                    ContentBlocking::eAllow;
-                if (autoGrant) {
-                  choice = ContentBlocking::eAllowAutoGrant;
-                }
-                if (!autoGrant) {
-                  p->Resolve(choice, __func__);
-                } else {
-                  sapr->MaybeDelayAutomaticGrants()->Then(
-                      GetCurrentSerialEventTarget(), __func__,
-                      [p, choice] { p->Resolve(choice, __func__); },
-                      [p] { p->Reject(false, __func__); });
-                }
-                return;
-              }
-              p->Reject(false, __func__);
-              return;
-            }
+                   if (pr2 != PromptResult::Pending) {
+                     MOZ_ASSERT_IF(pr2 != PromptResult::Granted,
+                                   pr2 == PromptResult::Denied);
+                     if (pr2 == PromptResult::Granted) {
+                       ContentBlocking::StorageAccessPromptChoices choice =
+                           ContentBlocking::eAllow;
+                       if (autoGrant) {
+                         choice = ContentBlocking::eAllowAutoGrant;
+                       }
+                       if (!autoGrant) {
+                         p->Resolve(choice, __func__);
+                       } else {
+                         sapr->MaybeDelayAutomaticGrants()->Then(
+                             GetCurrentSerialEventTarget(), __func__,
+                             [p, choice] { p->Resolve(choice, __func__); },
+                             [p] { p->Reject(false, __func__); });
+                       }
+                       return;
+                     }
+                     p->Reject(false, __func__);
+                     return;
+                   }
 
-            sapr->RequestDelayedTask(
-                inner->EventTargetFor(TaskCategory::Other),
-                ContentPermissionRequestBase::DelayedTaskType::Request);
-          });
+                   sapr->RequestDelayedTask(
+                       inner->EventTargetFor(TaskCategory::Other),
+                       ContentPermissionRequestBase::DelayedTaskType::Request);
+                 });
 
       return p;
     };
@@ -17134,8 +17262,11 @@ already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccessForOrigin(
 }
 
 RefPtr<Document::AutomaticStorageAccessPermissionGrantPromise>
-Document::AutomaticStorageAccessPermissionCanBeGranted() {
-  if (!StaticPrefs::privacy_antitracking_enableWebcompat()) {
+Document::AutomaticStorageAccessPermissionCanBeGranted(bool hasUserActivation) {
+  // requestStorageAccessForOrigin may not require user activation. If we don't
+  // have user activation at this point we should always show the prompt.
+  if (!hasUserActivation ||
+      !StaticPrefs::privacy_antitracking_enableWebcompat()) {
     return AutomaticStorageAccessPermissionGrantPromise::CreateAndResolve(
         false, __func__);
   }
@@ -17178,6 +17309,10 @@ bool Document::AutomaticStorageAccessPermissionCanBeGranted(
     nsIPrincipal* aPrincipal) {
   nsAutoCString prefix;
   AntiTrackingUtils::CreateStoragePermissionKey(aPrincipal, prefix);
+
+  if (!ContentBlockingUserInteraction::Exists(aPrincipal)) {
+    return false;
+  }
 
   PermissionManager* permManager = PermissionManager::GetInstance();
   if (NS_WARN_IF(!permManager)) {
@@ -17573,6 +17708,10 @@ void Document::RemoveToplevelLoadingDocument(Document* aDoc) {
       }
     }
   }
+}
+
+ColorScheme Document::DefaultColorScheme() const {
+  return LookAndFeel::ColorSchemeForStyle(*this, {GetColorSchemeBits()});
 }
 
 ColorScheme Document::PreferredColorScheme(IgnoreRFP aIgnoreRFP) const {

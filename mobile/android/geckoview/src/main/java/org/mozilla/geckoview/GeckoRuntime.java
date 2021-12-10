@@ -12,11 +12,13 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.content.res.Configuration;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.Process;
@@ -25,6 +27,7 @@ import android.util.Log;
 import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringDef;
 import androidx.annotation.UiThread;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleObserver;
@@ -32,12 +35,15 @@ import androidx.lifecycle.OnLifecycleEvent;
 import androidx.lifecycle.ProcessLifecycleOwner;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.List;
+import java.util.Map;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoNetworkManager;
 import org.mozilla.gecko.GeckoScreenOrientation;
+import org.mozilla.gecko.GeckoScreenOrientation.ScreenOrientation;
 import org.mozilla.gecko.GeckoSystemStateListener;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.annotation.WrapForJNI;
@@ -94,8 +100,49 @@ public final class GeckoRuntime implements Parcelable {
    * application may be able to recover.
    *
    * @see GeckoSession.ContentDelegate#onCrash(GeckoSession)
+   * @deprecated use {@link #EXTRA_CRASH_PROCESS_TYPE} instead.
    */
+  @Deprecated
+  @DeprecationSchedule(id = "crashreporter-fatal", version = 100)
   public static final String EXTRA_CRASH_FATAL = "fatal";
+
+  /**
+   * This is a key for extra data sent with {@link #ACTION_CRASHED}. The value is a String matching
+   * one of the `CRASHED_PROCESS_TYPE_*` constants, describing what type of process the crash
+   * occurred in.
+   *
+   * @see GeckoSession.ContentDelegate#onCrash(GeckoSession)
+   */
+  public static final String EXTRA_CRASH_PROCESS_TYPE = "processType";
+
+  /**
+   * Value for {@link #EXTRA_CRASH_PROCESS_TYPE} indicating the main application process was
+   * affected by the crash, which is therefore fatal.
+   */
+  public static final String CRASHED_PROCESS_TYPE_MAIN = "MAIN";
+
+  /**
+   * Value for {@link #EXTRA_CRASH_PROCESS_TYPE} indicating a foreground child process, such as a
+   * content process, crashed. The application may be able to recover from this crash, but it was
+   * likely noticable to the user.
+   */
+  public static final String CRASHED_PROCESS_TYPE_FOREGROUND_CHILD = "FOREGROUND_CHILD";
+
+  /**
+   * Value for {@link #EXTRA_CRASH_PROCESS_TYPE} indicating a background child process crashed. This
+   * should have been recovered from automatically, and will have had minimal impact to the user, if
+   * any.
+   */
+  public static final String CRASHED_PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD";
+
+  @Retention(RetentionPolicy.SOURCE)
+  @StringDef(
+      value = {
+        CRASHED_PROCESS_TYPE_MAIN,
+        CRASHED_PROCESS_TYPE_FOREGROUND_CHILD,
+        CRASHED_PROCESS_TYPE_BACKGROUND_CHILD
+      })
+  /* package */ @interface CrashedProcessType {}
 
   private final class LifecycleListener implements LifecycleObserver {
     private boolean mPaused = false;
@@ -168,6 +215,7 @@ public final class GeckoRuntime implements Parcelable {
   private ServiceWorkerDelegate mServiceWorkerDelegate;
   private WebNotificationDelegate mNotificationDelegate;
   private ActivityDelegate mActivityDelegate;
+  private OrientationController mOrientationController;
   private StorageController mStorageController;
   private final WebExtensionController mWebExtensionController;
   private WebPushController mPushController;
@@ -261,12 +309,13 @@ public final class GeckoRuntime implements Parcelable {
             mDelegate.onShutdown();
             EventDispatcher.getInstance()
                 .unregisterUiThreadListener(mEventListener, "Gecko:Exited");
-          } else if ("GeckoView:ContentCrashReport".equals(event) && crashHandler != null) {
+          } else if ("GeckoView:ChildCrashReport".equals(event) && crashHandler != null) {
             final Context context = GeckoAppShell.getApplicationContext();
             final Intent i = new Intent(ACTION_CRASHED, null, context, crashHandler);
             i.putExtra(EXTRA_MINIDUMP_PATH, message.getString(EXTRA_MINIDUMP_PATH));
             i.putExtra(EXTRA_EXTRAS_PATH, message.getString(EXTRA_EXTRAS_PATH));
             i.putExtra(EXTRA_CRASH_FATAL, message.getBoolean(EXTRA_CRASH_FATAL, true));
+            i.putExtra(EXTRA_CRASH_PROCESS_TYPE, message.getString(EXTRA_CRASH_PROCESS_TYPE));
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
               context.startForegroundService(i);
@@ -293,27 +342,6 @@ public final class GeckoRuntime implements Parcelable {
     return null;
   }
 
-  private void setArguments(
-      final Context context, final GeckoThread.InitInfo initInfo, final String[] arguments) {
-    final List<String> result = new ArrayList<>(arguments.length);
-    for (final String argument : arguments) {
-      if ("-xpcshell".equals(argument)) {
-        // Only debug builds of the test app can run an xpcshell
-        if (!BuildConfig.DEBUG
-            || !"org.mozilla.geckoview.test"
-                .equals(context.getApplicationContext().getPackageName())) {
-          throw new IllegalArgumentException("Only the test app can run -xpcshell.");
-        }
-
-        initInfo.xpcshell = true;
-      } else {
-        result.add(argument);
-      }
-    }
-
-    initInfo.args = result.toArray(new String[] {});
-  }
-
   /* package */ boolean init(
       final @NonNull Context context, final @NonNull GeckoRuntimeSettings settings) {
     if (DEBUG) {
@@ -336,7 +364,7 @@ public final class GeckoRuntime implements Parcelable {
         }
 
         EventDispatcher.getInstance()
-            .registerUiThreadListener(mEventListener, "GeckoView:ContentCrashReport");
+            .registerUiThreadListener(mEventListener, "GeckoView:ChildCrashReport");
 
         flags |= GeckoThread.FLAG_ENABLE_NATIVE_CRASHREPORTER;
       } catch (final PackageManager.NameNotFoundException e) {
@@ -351,16 +379,9 @@ public final class GeckoRuntime implements Parcelable {
     GeckoAppShell.setCrashHandlerService(settings.getCrashHandler());
     GeckoFontScaleListener.getInstance().attachToContext(context, settings);
 
-    final GeckoThread.InitInfo info = new GeckoThread.InitInfo();
-    setArguments(context, info, settings.getArguments());
-    if (info.xpcshell) {
-      info.outFilePath = settings.getExtras().getString("out_file");
-      // Xpcshell tests need multi-e10s to work properly
-      settings.setProcessCount(BuildConfig.MOZ_ANDROID_CONTENT_SERVICE_COUNT);
-    }
-    info.extras = settings.getExtras();
-    info.flags = flags;
-    info.prefs = settings.getPrefsMap();
+    Bundle extras = settings.getExtras();
+    String[] args = settings.getArguments();
+    Map<String, Object> prefs = settings.getPrefsMap();
 
     // Older versions have problems with SnakeYaml
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -379,12 +400,35 @@ public final class GeckoRuntime implements Parcelable {
         try {
           final DebugConfig debugConfig = DebugConfig.fromFile(new File(configFilePath));
           Log.i(LOGTAG, "Adding debug configuration from: " + configFilePath);
-          debugConfig.mergeIntoInitInfo(info);
+          prefs = debugConfig.mergeIntoPrefs(prefs);
+          args = debugConfig.mergeIntoArgs(args);
+          extras = debugConfig.mergeIntoExtras(extras);
         } catch (final DebugConfig.ConfigException e) {
           Log.w(LOGTAG, "Failed to add debug configuration from: " + configFilePath, e);
         } catch (final FileNotFoundException e) {
         }
       }
+    }
+
+    final GeckoThread.InitInfo info =
+        GeckoThread.InitInfo.builder()
+            .args(args)
+            .extras(extras)
+            .flags(flags)
+            .prefs(prefs)
+            .outFilePath(extras != null ? extras.getString("out_file") : null)
+            .build();
+
+    if (info.xpcshell
+        && (!BuildConfig.DEBUG
+            || !"org.mozilla.geckoview.test_runner"
+                .equals(context.getApplicationContext().getPackageName()))) {
+      throw new IllegalArgumentException("Only the test app can run -xpcshell.");
+    }
+
+    if (info.xpcshell) {
+      // Xpcshell tests need multi-e10s to work properly
+      settings.setProcessCount(BuildConfig.MOZ_ANDROID_CONTENT_SERVICE_COUNT);
     }
 
     if (!GeckoThread.init(info)) {
@@ -794,6 +838,68 @@ public final class GeckoRuntime implements Parcelable {
   public void orientationChanged(final int newOrientation) {
     ThreadUtils.assertOnUiThread();
     GeckoScreenOrientation.getInstance().update(newOrientation);
+  }
+
+  /**
+   * Get the orientation controller for this runtime. The orientation controller can be used to
+   * manage changes to and locking of the screen orientation.
+   *
+   * @return The {@link OrientationController} for this instance.
+   */
+  @UiThread
+  public @NonNull OrientationController getOrientationController() {
+    ThreadUtils.assertOnUiThread();
+
+    if (mOrientationController == null) {
+      mOrientationController = new OrientationController();
+    }
+    return mOrientationController;
+  }
+
+  /**
+   * Converts GeckoScreenOrientation to ActivityInfo orientation
+   *
+   * @return A {@link ActivityInfo} orientation.
+   */
+  @AnyThread
+  private int toAndroidOrientation(final int geckoOrientation) {
+    if (geckoOrientation == ScreenOrientation.PORTRAIT_PRIMARY.value) {
+      return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+    } else if (geckoOrientation == ScreenOrientation.PORTRAIT_SECONDARY.value) {
+      return ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+    } else if (geckoOrientation == ScreenOrientation.LANDSCAPE_PRIMARY.value) {
+      return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+    } else if (geckoOrientation == ScreenOrientation.LANDSCAPE_SECONDARY.value) {
+      return ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+    }
+    return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+  }
+
+  /**
+   * Lock screen orientation using OrientationController's onOrientationLock.
+   *
+   * @return A {@link GeckoResult} that resolves an orientation lock.
+   */
+  @WrapForJNI(calledFrom = "gecko")
+  private @NonNull GeckoResult<Boolean> lockScreenOrientation(final int aOrientation) {
+    final GeckoResult<Boolean> res = new GeckoResult<>();
+    ThreadUtils.runOnUiThread(
+        () -> {
+          final OrientationController.OrientationDelegate delegate =
+              getOrientationController().getDelegate();
+          if (delegate == null) {
+            res.complete(false);
+          } else {
+            final GeckoResult<AllowOrDeny> response =
+                delegate.onOrientationLock(toAndroidOrientation(aOrientation));
+            if (response == null) {
+              res.complete(false);
+            } else {
+              res.completeFrom(response.map(v -> v == AllowOrDeny.ALLOW));
+            }
+          }
+        });
+    return res;
   }
 
   /**

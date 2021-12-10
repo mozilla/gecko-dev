@@ -631,7 +631,13 @@ RasterImage::GetImageProvider(WindowRenderer* aRenderer,
   }
 
   result.Surface().TakeProvider(aProvider);
-  return ImgDrawResult::SUCCESS;
+  switch (result.Type()) {
+    case MatchType::SUBSTITUTE_BECAUSE_NOT_FOUND:
+    case MatchType::SUBSTITUTE_BECAUSE_PENDING:
+      return ImgDrawResult::WRONG_SIZE;
+    default:
+      return ImgDrawResult::SUCCESS;
+  }
 }
 
 size_t RasterImage::SizeOfSourceWithComputedFallback(
@@ -844,8 +850,8 @@ RasterImage::GetImageSpaceInvalidationRect(const IntRect& aRect) {
   return aRect;
 }
 
-nsresult RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*,
-                                          nsresult aStatus, bool aLastPart) {
+nsresult RasterImage::OnImageDataComplete(nsIRequest*, nsresult aStatus,
+                                          bool aLastPart) {
   MOZ_ASSERT(NS_IsMainThread());
 
   // Record that we have all the data we're going to get now.
@@ -911,7 +917,7 @@ void RasterImage::NotifyForLoadEvent(Progress aProgress) {
   NotifyProgress(aProgress);
 }
 
-nsresult RasterImage::OnImageDataAvailable(nsIRequest*, nsISupports*,
+nsresult RasterImage::OnImageDataAvailable(nsIRequest*,
                                            nsIInputStream* aInputStream,
                                            uint64_t, uint32_t aCount) {
   nsresult rv = mSourceBuffer->AppendFromInputStream(aInputStream, aCount);

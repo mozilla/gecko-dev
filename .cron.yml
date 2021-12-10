@@ -120,7 +120,6 @@ jobs:
           - mozilla-central
           - mozilla-beta
           - mozilla-release
-          - mozilla-esr78
           - mozilla-esr91
           - elm
       when:
@@ -141,19 +140,8 @@ jobs:
               # this.
               mozilla-beta: [{hour: 10, minute: 0}]
               mozilla-release: [{hour: 10, minute: 0}]
-              mozilla-esr78: [{hour: 10, minute: 0}]
               mozilla-esr91: [{hour: 10, minute: 0}]
               elm: [{hour: 10, minute: 0}]
-
-    - name: coverity-tree-analysis
-      job:
-          type: decision-task
-          treeherder-symbol: CoverityTA
-          target-tasks-method: coverity_static_analysis_full
-      run-on-projects:
-          - mozilla-central
-      when:
-          - {hour: 10, minute: 0}
 
     - name: linux64-clang-trunk-perf
       job:
@@ -211,7 +199,6 @@ jobs:
           - mozilla-central
           - mozilla-beta
           - mozilla-release
-          - mozilla-esr78
           - mozilla-esr91
       when:
           by-project:
@@ -223,9 +210,6 @@ jobs:
                   - {hour: 7, minute: 0}
                   - {hour: 19, minute: 0}
               mozilla-release:
-                  - {hour: 7, minute: 0}
-                  - {hour: 19, minute: 0}
-              mozilla-esr78:
                   - {hour: 7, minute: 0}
                   - {hour: 19, minute: 0}
               mozilla-esr91:

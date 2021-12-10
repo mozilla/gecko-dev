@@ -1359,7 +1359,7 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvRequestRestoreTabContent() {
   return IPC_OK();
 }
 
-nsCString BFCacheStatusToString(uint16_t aFlags) {
+nsCString BFCacheStatusToString(uint32_t aFlags) {
   if (aFlags == 0) {
     return "0"_ns;
   }
@@ -1387,6 +1387,7 @@ nsCString BFCacheStatusToString(uint16_t aFlags) {
   ADD_BFCACHESTATUS_TO_STRING(HAS_USED_VR);
   ADD_BFCACHESTATUS_TO_STRING(CONTAINS_REMOTE_SUBFRAMES);
   ADD_BFCACHESTATUS_TO_STRING(NOT_ONLY_TOPLEVEL_IN_BCG);
+  ADD_BFCACHESTATUS_TO_STRING(ACTIVE_LOCK);
 
 #undef ADD_BFCACHESTATUS_TO_STRING
 
@@ -1396,7 +1397,7 @@ nsCString BFCacheStatusToString(uint16_t aFlags) {
 }
 
 mozilla::ipc::IPCResult WindowGlobalParent::RecvUpdateBFCacheStatus(
-    const uint16_t& aOnFlags, const uint16_t& aOffFlags) {
+    const uint32_t& aOnFlags, const uint32_t& aOffFlags) {
   if (MOZ_UNLIKELY(MOZ_LOG_TEST(gSHIPBFCacheLog, LogLevel::Debug))) {
     nsAutoCString uri("[no uri]");
     if (mDocumentURI) {
@@ -1409,6 +1410,33 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvUpdateBFCacheStatus(
   }
   mBFCacheStatus |= aOnFlags;
   mBFCacheStatus &= ~aOffFlags;
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+WindowGlobalParent::RecvUpdateActivePeerConnectionStatus(bool aIsAdded) {
+  if (aIsAdded) {
+    RecvUpdateBFCacheStatus(BFCacheStatus::ACTIVE_PEER_CONNECTION, 0);
+  } else {
+    RecvUpdateBFCacheStatus(0, BFCacheStatus::ACTIVE_PEER_CONNECTION);
+  }
+
+  if (WindowGlobalParent* top = TopWindowContext()) {
+    CheckedUint32 newValue(top->mNumOfProcessesWithActivePeerConnections);
+    if (aIsAdded) {
+      ++newValue;
+    } else {
+      --newValue;
+    }
+    if (!newValue.isValid()) {
+      return IPC_FAIL(this,
+                      "mNumOfProcessesWithActivePeerConnections overflowed");
+    }
+
+    top->mNumOfProcessesWithActivePeerConnections = newValue.value();
+    Unused << top->SetHasActivePeerConnections(newValue.value() > 0);
+  }
+
   return IPC_OK();
 }
 
@@ -1689,6 +1717,13 @@ void WindowGlobalParent::AddSecurityState(uint32_t aStateFlags) {
   if (GetBrowsingContext()->GetCurrentWindowGlobal() == this) {
     GetBrowsingContext()->UpdateSecurityState();
   }
+}
+
+bool WindowGlobalParent::HasActivePeerConnections() {
+  MOZ_ASSERT(TopWindowContext() == this,
+             "mNumOfProcessesWithActivePeerConnections is set only "
+             "in the top window context");
+  return mNumOfProcessesWithActivePeerConnections > 0;
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(WindowGlobalParent, WindowContext,

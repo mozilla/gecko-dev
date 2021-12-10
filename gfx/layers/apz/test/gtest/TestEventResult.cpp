@@ -77,9 +77,6 @@ class APZEventResultTester : public APZCTreeManagerTester {
 
   void OverscrollDirectionsWithEventHandlerTest(
       PreventDefaultFlag aPreventDefaultFlag) {
-    EventRegions regions(nsIntRegion(IntRect(0, 0, 100, 100)));
-    regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 0, 100, 100));
-    APZTestAccess::SetEventRegions(*root, regions);
     UpdateHitTestingTree();
 
     APZHandledPlace expectedPlace =
@@ -87,6 +84,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
             ? APZHandledPlace::HandledByRoot
             : APZHandledPlace::HandledByContent;
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -100,6 +100,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
     UpdateOverscrollBehavior(OverscrollBehavior::Contain,
                              OverscrollBehavior::Contain);
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -113,6 +116,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
     UpdateOverscrollBehavior(OverscrollBehavior::None,
                              OverscrollBehavior::None);
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -126,6 +132,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
     UpdateOverscrollBehavior(OverscrollBehavior::Auto,
                              OverscrollBehavior::None);
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -139,6 +148,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
     UpdateOverscrollBehavior(OverscrollBehavior::None,
                              OverscrollBehavior::Auto);
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -151,9 +163,6 @@ class APZEventResultTester : public APZCTreeManagerTester {
 
   void ScrollableDirectionsWithEventHandlerTest(
       PreventDefaultFlag aPreventDefaultFlag) {
-    EventRegions regions(nsIntRegion(IntRect(0, 0, 100, 100)));
-    regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 0, 100, 100));
-    APZTestAccess::SetEventRegions(*root, regions);
     UpdateHitTestingTree();
 
     APZHandledPlace expectedPlace =
@@ -161,6 +170,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
             ? APZHandledPlace::HandledByRoot
             : APZHandledPlace::HandledByContent;
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -173,6 +185,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
     // scroll down a bit.
     SetScrollOffsetOnMainThread(CSSPoint(0, 10));
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -186,6 +201,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
     // scroll to the bottom edge
     SetScrollOffsetOnMainThread(CSSPoint(0, 100));
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -198,6 +216,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
     // scroll to right a bit.
     SetScrollOffsetOnMainThread(CSSPoint(10, 100));
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -211,6 +232,9 @@ class APZEventResultTester : public APZCTreeManagerTester {
     // scroll to the right edge.
     SetScrollOffsetOnMainThread(CSSPoint(100, 100));
     {
+      QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                         {CompositorHitTestFlags::eVisibleToHitTest,
+                          CompositorHitTestFlags::eIrregularArea});
       auto [result, delayedHandledResult] =
           TapDispatchToContent(ScreenIntPoint(50, 50), aPreventDefaultFlag);
       EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -294,33 +318,31 @@ TEST_F(APZEventResultTester, ScrollableDirections) {
             SideBits::eLeft | SideBits::eTop);
 }
 
-class APZEventResultTesterInternal : public APZEventResultTester {
+class APZEventResultTesterMock : public APZEventResultTester {
  public:
-  APZEventResultTesterInternal() {
-    mHitTester = MakeUnique<InternalHitTester>();
-  }
+  APZEventResultTesterMock() { CreateMockHitTester(); }
 };
 
-TEST_F(APZEventResultTesterInternal, OverscrollDirectionsWithEventHandler) {
+TEST_F(APZEventResultTesterMock, OverscrollDirectionsWithEventHandler) {
   CreateScrollableRootLayer();
 
   OverscrollDirectionsWithEventHandlerTest(PreventDefaultFlag::No);
 }
 
-TEST_F(APZEventResultTesterInternal,
+TEST_F(APZEventResultTesterMock,
        OverscrollDirectionsWithPreventDefaultEventHandler) {
   CreateScrollableRootLayer();
 
   OverscrollDirectionsWithEventHandlerTest(PreventDefaultFlag::Yes);
 }
 
-TEST_F(APZEventResultTesterInternal, ScrollableDirectionsWithEventHandler) {
+TEST_F(APZEventResultTesterMock, ScrollableDirectionsWithEventHandler) {
   CreateScrollableRootLayer();
 
   ScrollableDirectionsWithEventHandlerTest(PreventDefaultFlag::No);
 }
 
-TEST_F(APZEventResultTesterInternal,
+TEST_F(APZEventResultTesterMock,
        ScrollableDirectionsWithPreventDefaultEventHandler) {
   CreateScrollableRootLayer();
 
@@ -329,7 +351,7 @@ TEST_F(APZEventResultTesterInternal,
 
 // Test that APZEventResult::GetHandledResult() is correctly
 // populated.
-TEST_F(APZEventResultTesterInternal, HandledByRootApzcFlag) {
+TEST_F(APZEventResultTesterMock, HandledByRootApzcFlag) {
   // Create simple layer tree containing a dispatch-to-content region
   // that covers part but not all of its area.
   const char* treeShape = "x";
@@ -343,15 +365,12 @@ TEST_F(APZEventResultTesterInternal, HandledByRootApzcFlag) {
     metrics.SetIsRootContent(true);
   });
   // away from the scrolling container layer.
-  EventRegions regions(nsIntRegion(IntRect(0, 0, 100, 100)));
-  // bottom half is dispatch-to-content
-  regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 50, 100, 50));
-  APZTestAccess::SetEventRegions(*root, regions);
   registration = MakeUnique<ScopedLayerTreeRegistration>(LayersId{0}, mcc);
   UpdateHitTestingTree();
 
   // Tap the top half and check that we report that the event was
   // handled by the root APZC.
+  QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID);
   APZEventResult result =
       TouchDown(manager, ScreenIntPoint(50, 25), mcc->Time());
   TouchUp(manager, ScreenIntPoint(50, 25), mcc->Time());
@@ -361,6 +380,9 @@ TEST_F(APZEventResultTesterInternal, HandledByRootApzcFlag) {
 
   // Tap the bottom half and check that we report that we're not
   // sure whether the event was handled by the root APZC.
+  QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                     {CompositorHitTestFlags::eVisibleToHitTest,
+                      CompositorHitTestFlags::eIrregularArea});
   result = TouchDown(manager, ScreenIntPoint(50, 75), mcc->Time());
   TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
   EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -390,6 +412,9 @@ TEST_F(APZEventResultTesterInternal, HandledByRootApzcFlag) {
 
   // Now repeat the tap on the bottom half, but simulate a prevent-default.
   // This time, we expect a delayed answer of `HandledByContent`.
+  QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                     {CompositorHitTestFlags::eVisibleToHitTest,
+                      CompositorHitTestFlags::eIrregularArea});
   result = TouchDown(manager, ScreenIntPoint(50, 75), mcc->Time());
   TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
   EXPECT_EQ(result.GetHandledResult(), Nothing());
@@ -414,6 +439,9 @@ TEST_F(APZEventResultTesterInternal, HandledByRootApzcFlag) {
   UpdateHitTestingTree();
   // Now repeat the tap on the bottom half with an event handler.
   // This time, we expect a delayed answer of `Unhandled`.
+  QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID,
+                     {CompositorHitTestFlags::eVisibleToHitTest,
+                      CompositorHitTestFlags::eIrregularArea});
   result = TouchDown(manager, ScreenIntPoint(50, 75), mcc->Time());
   TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
   EXPECT_EQ(result.GetHandledResult(), Nothing());

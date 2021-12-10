@@ -274,7 +274,6 @@
 ; Remote Settings JSON dumps
 @RESPATH@/browser/defaults/settings/last_modified.json
 @RESPATH@/browser/defaults/settings/blocklists
-@RESPATH@/browser/defaults/settings/pinning
 @RESPATH@/browser/defaults/settings/main
 @RESPATH@/browser/defaults/settings/security-state
 
@@ -372,6 +371,8 @@ bin/libfreebl_64int_3.so
 @BINPATH@/@DLL_PREFIX@osclientcerts@DLL_SUFFIX@
 #endif
 #endif
+
+@BINPATH@/@DLL_PREFIX@ipcclientcerts@DLL_SUFFIX@
 
 ; For process sandboxing
 #if defined(MOZ_SANDBOX)

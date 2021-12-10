@@ -181,15 +181,6 @@ namespace JS {
 // We always guarantee that a zone has at least one live compartment by refusing
 // to delete the last compartment in a live zone.
 class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
- private:
-  enum class HelperThreadUse : uint32_t { None, Pending, Active };
-  mozilla::Atomic<HelperThreadUse, mozilla::SequentiallyConsistent>
-      helperThreadUse_;
-
-  // The helper thread context with exclusive access to this zone, if
-  // usedByHelperThread(), or nullptr when on the main thread.
-  js::UnprotectedData<JSContext*> helperThreadOwnerContext_;
-
  public:
   js::gc::ArenaLists arenas;
 
@@ -271,9 +262,9 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   // This is used by the GC to trace them all first when compacting, since the
   // TypedObject trace hook may access these objects.
   //
-  // (Although this uses HeapPtrObject, the set contains only tenured objects so no
-  // post-barrier is required, and these are weak references so no pre-barrier
-  // is required.)
+  // (Although this uses HeapPtrObject, the set contains only tenured objects so
+  // no post-barrier is required, and these are weak references so no
+  // pre-barrier is required.)
   using RttValueObjectSet =
       js::GCHashSet<js::HeapPtrObject, js::MovableCellHasher<js::HeapPtrObject>,
                     js::SystemAllocPolicy>;
@@ -348,31 +339,6 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
 
   void destroy(JSFreeOp* fop);
 
-  bool ownedByCurrentHelperThread();
-  void setHelperThreadOwnerContext(JSContext* cx);
-
-  // Whether this zone was created for use by a helper thread.
-  bool createdForHelperThread() const {
-    return helperThreadUse_ != HelperThreadUse::None;
-  }
-  // Whether this zone is currently in use by a helper thread.
-  bool usedByHelperThread() {
-    MOZ_ASSERT_IF(isAtomsZone(), helperThreadUse_ == HelperThreadUse::None);
-    return helperThreadUse_ == HelperThreadUse::Active;
-  }
-  void setCreatedForHelperThread() {
-    MOZ_ASSERT(helperThreadUse_ == HelperThreadUse::None);
-    helperThreadUse_ = HelperThreadUse::Pending;
-  }
-  void setUsedByHelperThread() {
-    MOZ_ASSERT(helperThreadUse_ == HelperThreadUse::Pending);
-    helperThreadUse_ = HelperThreadUse::Active;
-  }
-  void clearUsedByHelperThread() {
-    MOZ_ASSERT(helperThreadUse_ != HelperThreadUse::None);
-    helperThreadUse_ = HelperThreadUse::None;
-  }
-
   [[nodiscard]] bool findSweepGroupEdges(Zone* atomsZone);
 
   struct DiscardOptions {
@@ -430,9 +396,6 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
     return lastDiscardedCodeTime_;
   }
 
-  // Whether this zone can currently be collected.
-  bool canCollect();
-
   void changeGCState(GCState prev, GCState next);
 
   bool isCollecting() const {
@@ -463,7 +426,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   uint64_t gcNumber();
 
   void setNeedsIncrementalBarrier(bool needs);
-  const uint32_t* addressOfNeedsIncrementalBarrier() const {
+  const BarrierState* addressOfNeedsIncrementalBarrier() const {
     return &needsIncrementalBarrier_;
   }
 
@@ -492,8 +455,6 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   js::gc::UniqueIdMap& uniqueIds() { return uniqueIds_.ref(); }
 
   void notifyObservingDebuggers();
-
-  void clearTables();
 
   void addTenuredAllocsSinceMinorGC(uint32_t allocs) {
     tenuredAllocsSinceMinorGC_ += allocs;
@@ -624,15 +585,8 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   // Remove any unique id associated with this Cell.
   void removeUniqueId(js::gc::Cell* cell);
 
-  // When finished parsing off-thread, transfer any UIDs we created in the
-  // off-thread zone into the target zone.
-  void adoptUniqueIds(JS::Zone* source);
-
   bool keepPropMapTables() const { return keepPropMapTables_; }
   void setKeepPropMapTables(bool b) { keepPropMapTables_ = b; }
-
-  // Delete an empty compartment after its contents have been merged.
-  void deleteEmptyCompartment(JS::Compartment* comp);
 
   void clearRootsForShutdownGC();
   void finishRoots();

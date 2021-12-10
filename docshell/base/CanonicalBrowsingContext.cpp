@@ -7,6 +7,7 @@
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 
 #include "mozilla/CheckedInt.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/dom/BrowserParent.h"
@@ -304,6 +305,7 @@ void CanonicalBrowsingContext::ReplacedBy(
   txn.SetHistoryID(GetHistoryID());
   txn.SetExplicitActive(GetExplicitActive());
   txn.SetHasRestoreData(GetHasRestoreData());
+  txn.SetShouldDelayMediaFromStart(GetShouldDelayMediaFromStart());
   if (aNewContext->EverAttached()) {
     MOZ_ALWAYS_SUCCEEDS(txn.Commit(aNewContext));
   } else {
@@ -2142,6 +2144,8 @@ void CanonicalBrowsingContext::HistoryCommitIndexAndLength(
 
   GetChildSessionHistory()->SetIndexAndLength(index, length, aChangeID);
 
+  shistory->EvictOutOfRangeContentViewers(index);
+
   Group()->EachParent([&](ContentParent* aParent) {
     Unused << aParent->SendHistoryCommitIndexAndLength(this, index, length,
                                                        aChangeID);
@@ -2458,7 +2462,7 @@ void CanonicalBrowsingContext::ShowSubframeCrashedUI(
 }
 
 static void LogBFCacheBlockingForDoc(BrowsingContext* aBrowsingContext,
-                                     uint16_t aBFCacheCombo, bool aIsSubDoc) {
+                                     uint32_t aBFCacheCombo, bool aIsSubDoc) {
   if (aIsSubDoc) {
     nsAutoCString uri("[no uri]");
     nsCOMPtr<nsIURI> currentURI =
@@ -2503,6 +2507,9 @@ static void LogBFCacheBlockingForDoc(BrowsingContext* aBrowsingContext,
   if (aBFCacheCombo & BFCacheStatus::BEFOREUNLOAD_LISTENER) {
     MOZ_LOG(gSHIPBFCacheLog, LogLevel::Debug, (" * beforeunload listener"));
   }
+  if (aBFCacheCombo & BFCacheStatus::ACTIVE_LOCK) {
+    MOZ_LOG(gSHIPBFCacheLog, LogLevel::Debug, (" * has active Web Locks"));
+  }
 }
 
 bool CanonicalBrowsingContext::AllowedInBFCache(
@@ -2520,7 +2527,13 @@ bool CanonicalBrowsingContext::AllowedInBFCache(
     return false;
   }
 
-  uint16_t bfcacheCombo = 0;
+  nsAutoCString remoteType;
+  GetCurrentRemoteType(remoteType, IgnoredErrorResult());
+  if (remoteType == LARGE_ALLOCATION_REMOTE_TYPE) {
+    return false;
+  }
+
+  uint32_t bfcacheCombo = 0;
   if (mRestoreState) {
     bfcacheCombo |= BFCacheStatus::RESTORING;
     MOZ_LOG(gSHIPBFCacheLog, LogLevel::Debug, (" * during session restore"));
@@ -2552,7 +2565,7 @@ bool CanonicalBrowsingContext::AllowedInBFCache(
   PreOrderWalk([&](BrowsingContext* aBrowsingContext) {
     WindowGlobalParent* wgp =
         aBrowsingContext->Canonical()->GetCurrentWindowGlobal();
-    uint16_t subDocBFCacheCombo = wgp ? wgp->GetBFCacheStatus() : 0;
+    uint32_t subDocBFCacheCombo = wgp ? wgp->GetBFCacheStatus() : 0;
     if (wgp) {
       const Maybe<uint64_t>& singleChannelId = wgp->GetSingleChannelId();
       if (singleChannelId.isSome()) {

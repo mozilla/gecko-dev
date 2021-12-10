@@ -82,6 +82,7 @@ import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.geckoview.GeckoView;
 import org.mozilla.geckoview.Image;
 import org.mozilla.geckoview.MediaSession;
+import org.mozilla.geckoview.OrientationController;
 import org.mozilla.geckoview.OverscrollEdgeEffect;
 import org.mozilla.geckoview.PanZoomController;
 import org.mozilla.geckoview.ProfilerController;
@@ -267,6 +268,7 @@ package org.mozilla.geckoview {
     method @Nullable @UiThread default public GeckoResult<Autocomplete.CreditCard[]> onCreditCardFetch();
     method @UiThread default public void onCreditCardSave(@NonNull Autocomplete.CreditCard);
     method @Nullable @UiThread default public GeckoResult<Autocomplete.LoginEntry[]> onLoginFetch(@NonNull String);
+    method @Nullable @UiThread default public GeckoResult<Autocomplete.LoginEntry[]> onLoginFetch();
     method @UiThread default public void onLoginSave(@NonNull Autocomplete.LoginEntry);
     method @UiThread default public void onLoginUsed(@NonNull Autocomplete.LoginEntry, int);
   }
@@ -516,20 +518,7 @@ package org.mozilla.geckoview {
 
   @AnyThread public class ContentBlockingController {
     ctor public ContentBlockingController();
-    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @UiThread public void addException(@NonNull GeckoSession);
-    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @NonNull @UiThread public GeckoResult<Boolean> checkException(@NonNull GeckoSession);
-    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @UiThread public void clearExceptionList();
     method @NonNull @UiThread public GeckoResult<List<ContentBlockingController.LogEntry>> getLog(@NonNull GeckoSession);
-    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @UiThread public void removeException(@NonNull GeckoSession);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") public void removeException(@NonNull ContentBlockingController.ContentBlockingException);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") public void restoreExceptionList(@NonNull List<ContentBlockingController.ContentBlockingException>);
-    method @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @NonNull @UiThread public GeckoResult<List<ContentBlockingController.ContentBlockingException>> saveExceptionList();
-  }
-
-  @Deprecated @DeprecationSchedule(version=96,id="content-blocking-exception") @AnyThread public static class ContentBlockingController.ContentBlockingException {
-    method @NonNull public static ContentBlockingController.ContentBlockingException fromJson(@NonNull JSONObject);
-    method @NonNull public JSONObject toJson();
-    field @NonNull public final String uri;
   }
 
   public static class ContentBlockingController.Event {
@@ -619,8 +608,10 @@ package org.mozilla.geckoview {
     method @NonNull public synchronized GeckoResult<Boolean> cancel();
     method public synchronized void complete(@Nullable T);
     method public synchronized void completeExceptionally(@NonNull Throwable);
+    method public void completeFrom(@Nullable GeckoResult<T>);
     method @AnyThread @NonNull public static GeckoResult<AllowOrDeny> deny();
     method @NonNull public <U> GeckoResult<U> exceptionally(@NonNull GeckoResult.OnExceptionListener<U>);
+    method @NonNull public GeckoResult<Void> finally_(@NonNull Runnable);
     method @NonNull public static <T> GeckoResult<T> fromException(@NonNull Throwable);
     method @NonNull public static <U> GeckoResult<U> fromValue(@Nullable U);
     method @Nullable public Looper getLooper();
@@ -673,6 +664,7 @@ package org.mozilla.geckoview {
     method @NonNull @UiThread public ContentBlockingController getContentBlockingController();
     method @NonNull @UiThread public static synchronized GeckoRuntime getDefault(@NonNull Context);
     method @Nullable @UiThread public GeckoRuntime.Delegate getDelegate();
+    method @NonNull @UiThread public OrientationController getOrientationController();
     method @NonNull @UiThread public ProfilerController getProfilerController();
     method @Nullable @UiThread public GeckoRuntime.ServiceWorkerDelegate getServiceWorkerDelegate();
     method @AnyThread @NonNull public GeckoRuntimeSettings getSettings();
@@ -690,8 +682,12 @@ package org.mozilla.geckoview {
     method @UiThread public void setWebNotificationDelegate(@Nullable WebNotificationDelegate);
     method @AnyThread public void shutdown();
     field public static final String ACTION_CRASHED = "org.mozilla.gecko.ACTION_CRASHED";
+    field public static final String CRASHED_PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD";
+    field public static final String CRASHED_PROCESS_TYPE_FOREGROUND_CHILD = "FOREGROUND_CHILD";
+    field public static final String CRASHED_PROCESS_TYPE_MAIN = "MAIN";
     field public static final Parcelable.Creator<GeckoRuntime> CREATOR;
-    field public static final String EXTRA_CRASH_FATAL = "fatal";
+    field @Deprecated @DeprecationSchedule(id="crashreporter-fatal",version=100) public static final String EXTRA_CRASH_FATAL = "fatal";
+    field public static final String EXTRA_CRASH_PROCESS_TYPE = "processType";
     field public static final String EXTRA_EXTRAS_PATH = "extrasPath";
     field public static final String EXTRA_MINIDUMP_PATH = "minidumpPath";
   }
@@ -1068,7 +1064,7 @@ package org.mozilla.geckoview {
     field public static final int TYPE_VIDEO = 0;
     field @NonNull public final String id;
     field @Nullable public final String name;
-    field @NonNull public final String rawId;
+    field @Deprecated @DeprecationSchedule(id="media-source-rawId",version=100) @NonNull public final String rawId;
     field public final int source;
     field public final int type;
   }
@@ -1319,6 +1315,7 @@ package org.mozilla.geckoview {
     field public static final String ACTION_DELETE = "org.mozilla.geckoview.DELETE";
     field public static final String ACTION_HIDE = "org.mozilla.geckoview.HIDE";
     field public static final String ACTION_PASTE = "org.mozilla.geckoview.PASTE";
+    field public static final String ACTION_PASTE_AS_PLAIN_TEXT = "org.mozilla.geckoview.PASTE_AS_PLAIN_TEXT";
     field public static final String ACTION_SELECT_ALL = "org.mozilla.geckoview.SELECT_ALL";
     field public static final String ACTION_UNSELECT = "org.mozilla.geckoview.UNSELECT";
     field public static final int FLAG_IS_COLLAPSED = 1;
@@ -1341,6 +1338,7 @@ package org.mozilla.geckoview {
     method @AnyThread public void hide();
     method @AnyThread public boolean isActionAvailable(@NonNull String);
     method @AnyThread public void paste();
+    method @AnyThread public void pasteAsPlainText();
     method @AnyThread public void selectAll();
     method @AnyThread public void unselect();
     field @NonNull public final Collection<String> availableActions;
@@ -1545,6 +1543,16 @@ package org.mozilla.geckoview {
     field public final double duration;
     field public final double playbackRate;
     field public final double position;
+  }
+
+  public class OrientationController {
+    method @Nullable @UiThread public OrientationController.OrientationDelegate getDelegate();
+    method @UiThread public void setDelegate(@Nullable OrientationController.OrientationDelegate);
+  }
+
+  @UiThread public static interface OrientationController.OrientationDelegate {
+    method @Nullable default public GeckoResult<AllowOrDeny> onOrientationLock(@NonNull int);
+    method @Nullable default public void onOrientationUnlock();
   }
 
   @UiThread public final class OverscrollEdgeEffect {
@@ -1904,6 +1912,7 @@ package org.mozilla.geckoview {
     field public static final int ERROR_FILE_ACCESS = -4;
     field public static final int ERROR_INCORRECT_HASH = -2;
     field public static final int ERROR_INCORRECT_ID = -7;
+    field public static final int ERROR_INVALID_DOMAIN = -8;
     field public static final int ERROR_NETWORK_FAILURE = -1;
     field public static final int ERROR_POSTPONED = -101;
     field public static final int ERROR_SIGNEDSTATE_REQUIRED = -5;

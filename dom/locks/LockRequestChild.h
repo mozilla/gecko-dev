@@ -7,6 +7,7 @@
 #ifndef DOM_LOCKS_LOCKREQUESTCHILD_H_
 #define DOM_LOCKS_LOCKREQUESTCHILD_H_
 
+#include "LockManagerChild.h"
 #include "mozilla/dom/locks/PLockRequestChild.h"
 #include "mozilla/dom/Lock.h"
 #include "mozilla/dom/WorkerRef.h"
@@ -32,13 +33,19 @@ class LockRequestChild final : public PLockRequestChild,
       const LockRequest& aRequest,
       const Optional<OwningNonNull<AbortSignal>>& aSignal);
 
+  void MaybeSetWorkerRef();
+
   IPCResult RecvResolve(const LockMode& aLockMode, bool aIsAvailable);
-  IPCResult RecvAbort();
+  IPCResult Recv__delete__(bool aAborted);
+
+  void ActorDestroy(ActorDestroyReason aReason) final;
 
   void RunAbortAlgorithm() final;
 
  private:
   ~LockRequestChild() = default;
+
+  LockManagerChild* CastedManager() const;
 
   LockRequest mRequest;
   RefPtr<StrongWorkerRef> mWorkerRef;

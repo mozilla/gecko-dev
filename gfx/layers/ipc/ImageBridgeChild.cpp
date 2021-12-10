@@ -133,12 +133,6 @@ void ImageBridgeChild::UseTextures(
                                             OpUseTexture(textures)));
 }
 
-void ImageBridgeChild::UseComponentAlphaTextures(
-    CompositableClient* aCompositable, TextureClient* aTextureOnBlack,
-    TextureClient* aTextureOnWhite) {
-  MOZ_CRASH("should not be called");
-}
-
 void ImageBridgeChild::HoldUntilCompositableRefReleasedIfNecessary(
     TextureClient* aClient) {
   if (!aClient) {
@@ -596,58 +590,7 @@ void ImageBridgeChild::IdentifyCompositorTextureHost(
 
 void ImageBridgeChild::UpdateTextureFactoryIdentifier(
     const TextureFactoryIdentifier& aIdentifier) {
-  // ImageHost is incompatible between WebRender enabled and WebRender disabled.
-  // Then drop all ImageContainers' ImageClients during disabling WebRender.
-  bool disablingWebRender =
-      GetCompositorBackendType() == LayersBackend::LAYERS_WR &&
-      aIdentifier.mParentBackend != LayersBackend::LAYERS_WR;
-
-  // Do not update TextureFactoryIdentifier if aIdentifier is going to disable
-  // WebRender, but gecko is still using WebRender. Since gecko uses different
-  // incompatible ImageHost and TextureHost between WebRender and non-WebRender.
-  //
-  // Even when WebRender is still in use, if non-accelerated widget is opened,
-  // aIdentifier disables WebRender at ImageBridgeChild.
-  if (disablingWebRender && gfxVars::UseWebRender()) {
-    return;
-  }
-
-  // D3DTexture might become obsolte. To prevent to use obsoleted D3DTexture,
-  // drop all ImageContainers' ImageClients.
-
-  // During re-creating GPU process, there was a period that ImageBridgeChild
-  // was re-created, but ImageBridgeChild::UpdateTextureFactoryIdentifier() was
-  // not called yet. In the period, if ImageBridgeChild::CreateImageClient() is
-  // called, ImageBridgeParent creates incompatible ImageHost than
-  // WebRenderImageHost.
-  bool initializingWebRender =
-      GetCompositorBackendType() != LayersBackend::LAYERS_WR &&
-      aIdentifier.mParentBackend == LayersBackend::LAYERS_WR;
-
-  bool needsDrop = disablingWebRender || initializingWebRender;
-
-#if defined(XP_WIN)
-  RefPtr<ID3D11Device> device = gfx::DeviceManagerDx::Get()->GetImageDevice();
-  needsDrop |= !!mImageDevice && mImageDevice != device &&
-               GetCompositorBackendType() == LayersBackend::LAYERS_D3D11;
-  mImageDevice = device;
-#endif
-
   IdentifyTextureHost(aIdentifier);
-  if (needsDrop) {
-    nsTArray<RefPtr<ImageContainerListener> > listeners;
-    {
-      MutexAutoLock lock(mContainerMapLock);
-      for (const auto& entry : mImageContainerListeners) {
-        listeners.AppendElement(entry.second);
-      }
-    }
-    // Drop ImageContainer's ImageClient whithout holding mContainerMapLock to
-    // avoid deadlock.
-    for (auto container : listeners) {
-      container->DropImageClient();
-    }
-  }
 }
 
 RefPtr<ImageClient> ImageBridgeChild::CreateImageClient(
@@ -786,7 +729,7 @@ bool ImageBridgeChild::DeallocShmem(ipc::Shmem& aShmem) {
 }
 
 PTextureChild* ImageBridgeChild::AllocPTextureChild(
-    const SurfaceDescriptor&, const ReadLockDescriptor&, const LayersBackend&,
+    const SurfaceDescriptor&, ReadLockDescriptor&, const LayersBackend&,
     const TextureFlags&, const uint64_t& aSerial,
     const wr::MaybeExternalImageId& aExternalImageId) {
   MOZ_ASSERT(CanSend());
@@ -877,12 +820,13 @@ mozilla::ipc::IPCResult ImageBridgeChild::RecvReportFramesDropped(
 }
 
 PTextureChild* ImageBridgeChild::CreateTexture(
-    const SurfaceDescriptor& aSharedData, const ReadLockDescriptor& aReadLock,
+    const SurfaceDescriptor& aSharedData, ReadLockDescriptor&& aReadLock,
     LayersBackend aLayersBackend, TextureFlags aFlags, uint64_t aSerial,
     wr::MaybeExternalImageId& aExternalImageId, nsISerialEventTarget* aTarget) {
   MOZ_ASSERT(CanSend());
-  return SendPTextureConstructor(aSharedData, aReadLock, aLayersBackend, aFlags,
-                                 aSerial, aExternalImageId);
+  return SendPTextureConstructor(aSharedData, std::move(aReadLock),
+                                 aLayersBackend, aFlags, aSerial,
+                                 aExternalImageId);
 }
 
 static bool IBCAddOpDestroy(CompositableTransaction* aTxn,

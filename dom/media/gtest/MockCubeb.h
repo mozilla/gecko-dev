@@ -18,7 +18,8 @@
 #include <chrono>
 
 namespace mozilla {
-const uint32_t NUM_OF_CHANNELS = 2;
+const uint32_t MAX_OUTPUT_CHANNELS = 2;
+const uint32_t MAX_INPUT_CHANNELS = 2;
 
 struct cubeb_ops {
   int (*init)(cubeb** context, char const* context_name);
@@ -192,8 +193,8 @@ class MockCubebStream {
   // available via `GetRecordedOutput`.
   std::atomic_bool mOutputRecordingEnabled{false};
   // The audio buffer used on data callback.
-  AudioDataValue mOutputBuffer[NUM_OF_CHANNELS * 1920] = {};
-  AudioDataValue mInputBuffer[NUM_OF_CHANNELS * 1920] = {};
+  AudioDataValue mOutputBuffer[MAX_OUTPUT_CHANNELS * 1920] = {};
+  AudioDataValue mInputBuffer[MAX_INPUT_CHANNELS * 1920] = {};
   // The audio callback
   cubeb_data_callback mDataCallback = nullptr;
   // The stream state callback
@@ -324,7 +325,7 @@ class MockCubeb {
   void DontGoFaster();
 
   MediaEventSource<RefPtr<SmartMockCubebStream>>& StreamInitEvent();
-  MediaEventSource<void>& StreamDestroyEvent();
+  MediaEventSource<RefPtr<SmartMockCubebStream>>& StreamDestroyEvent();
 
   // MockCubeb specific API
   void StartStream(MockCubebStream* aStream);
@@ -380,7 +381,7 @@ class MockCubeb {
   std::atomic<bool> mFastMode{false};
 
   MediaEventProducer<RefPtr<SmartMockCubebStream>> mStreamInitEvent;
-  MediaEventProducer<void> mStreamDestroyEvent;
+  MediaEventProducer<RefPtr<SmartMockCubebStream>> mStreamDestroyEvent;
 };
 
 int cubeb_mock_enumerate_devices(cubeb* context, cubeb_device_type type,
@@ -456,7 +457,7 @@ int cubeb_mock_get_min_latency(cubeb* context, cubeb_stream_params params,
 }
 
 int cubeb_mock_get_max_channel_count(cubeb* context, uint32_t* max_channels) {
-  *max_channels = NUM_OF_CHANNELS;
+  *max_channels = MAX_OUTPUT_CHANNELS;
   return CUBEB_OK;
 }
 

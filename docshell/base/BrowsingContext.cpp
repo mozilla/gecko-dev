@@ -58,6 +58,7 @@
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_fission.h"
+#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPrefs_page_load.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/URLQueryStringStripper.h"
@@ -293,7 +294,7 @@ bool BrowsingContext::SameOriginWithTop() {
 already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
     nsGlobalWindowInner* aParent, BrowsingContext* aOpener,
     BrowsingContextGroup* aSpecificGroup, const nsAString& aName, Type aType,
-    bool aCreatedDynamically) {
+    bool aIsPopupRequested, bool aCreatedDynamically) {
   if (aParent) {
     MOZ_DIAGNOSTIC_ASSERT(aParent->GetWindowContext());
     MOZ_DIAGNOSTIC_ASSERT(aParent->GetBrowsingContext()->mType == aType);
@@ -409,6 +410,13 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
 
   fields.mAllowJavascript = inherit ? inherit->GetAllowJavascript() : true;
 
+  fields.mIsPopupRequested = aIsPopupRequested;
+
+  if (!parentBC) {
+    fields.mShouldDelayMediaFromStart =
+        StaticPrefs::media_block_autoplay_until_in_foreground();
+  }
+
   RefPtr<BrowsingContext> context;
   if (XRE_IsParentProcess()) {
     context = new CanonicalBrowsingContext(parentWC, group, id,
@@ -448,7 +456,7 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateIndependent(
                         "BCs created in the content process must be related to "
                         "some BrowserChild");
   RefPtr<BrowsingContext> bc(
-      CreateDetached(nullptr, nullptr, nullptr, u""_ns, aType));
+      CreateDetached(nullptr, nullptr, nullptr, u""_ns, aType, false));
   bc->mWindowless = bc->IsContent();
   bc->mEmbeddedByThisProcess = true;
   bc->EnsureAttached();
@@ -2818,6 +2826,26 @@ void BrowsingContext::DidSet(FieldIndex<IDX_Muted>) {
   });
 }
 
+bool BrowsingContext::CanSet(FieldIndex<IDX_ShouldDelayMediaFromStart>,
+                             const bool& aValue, ContentParent* aSource) {
+  return IsTop();
+}
+
+void BrowsingContext::DidSet(FieldIndex<IDX_ShouldDelayMediaFromStart>,
+                             bool aOldValue) {
+  MOZ_ASSERT(IsTop(), "Set attribute on non top-level context!");
+  if (aOldValue == GetShouldDelayMediaFromStart()) {
+    return;
+  }
+  if (!GetShouldDelayMediaFromStart()) {
+    PreOrderWalk([&](BrowsingContext* aContext) {
+      if (nsPIDOMWindowOuter* win = aContext->GetDOMWindow()) {
+        win->ActivateMediaComponents();
+      }
+    });
+  }
+}
+
 bool BrowsingContext::CanSet(FieldIndex<IDX_OverrideDPPX>, const float& aValue,
                              ContentParent* aSource) {
   return XRE_IsParentProcess() && !aSource && IsTop();
@@ -2869,24 +2897,41 @@ void BrowsingContext::DidSet(FieldIndex<IDX_IsInBFCache>) {
 
   const bool isInBFCache = GetIsInBFCache();
   if (!isInBFCache) {
-    PreOrderWalk(
-        [&](BrowsingContext* aContext) { aContext->mIsInBFCache = false; });
+    PreOrderWalk([&](BrowsingContext* aContext) {
+      aContext->mIsInBFCache = false;
+      nsCOMPtr<nsIDocShell> shell = aContext->GetDocShell();
+      if (shell) {
+        nsDocShell::Cast(shell)->ThawFreezeNonRecursive(true);
+      }
+    });
   }
 
   if (isInBFCache && XRE_IsContentProcess() && mDocShell) {
     nsDocShell::Cast(mDocShell)->MaybeDisconnectChildListenersOnPageHide();
   }
 
-  PreOrderWalk([&](BrowsingContext* aContext) {
-    nsCOMPtr<nsIDocShell> shell = aContext->GetDocShell();
-    if (shell) {
-      static_cast<nsDocShell*>(shell.get())
-          ->FirePageHideShowNonRecursive(!isInBFCache);
-    }
-  });
+  if (isInBFCache) {
+    PreOrderWalk([&](BrowsingContext* aContext) {
+      nsCOMPtr<nsIDocShell> shell = aContext->GetDocShell();
+      if (shell) {
+        nsDocShell::Cast(shell)->FirePageHideShowNonRecursive(false);
+      }
+    });
+  } else {
+    PostOrderWalk([&](BrowsingContext* aContext) {
+      nsCOMPtr<nsIDocShell> shell = aContext->GetDocShell();
+      if (shell) {
+        nsDocShell::Cast(shell)->FirePageHideShowNonRecursive(true);
+      }
+    });
+  }
 
   if (isInBFCache) {
     PreOrderWalk([&](BrowsingContext* aContext) {
+      nsCOMPtr<nsIDocShell> shell = aContext->GetDocShell();
+      if (shell) {
+        nsDocShell::Cast(shell)->ThawFreezeNonRecursive(false);
+      }
       aContext->mIsInBFCache = true;
       Document* doc = aContext->GetDocument();
       if (doc) {

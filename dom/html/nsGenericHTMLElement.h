@@ -262,6 +262,10 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   virtual already_AddRefed<mozilla::dom::ElementInternals> AttachInternals(
       ErrorResult& aRv);
 
+  mozilla::dom::ElementInternals* GetInternals() const;
+
+  bool IsFormAssociatedCustomElements() const;
+
   // Returns true if the event should not be handled from GetEventTargetParent.
   virtual bool IsDisabledForEvents(mozilla::WidgetEvent* aEvent) {
     return false;
@@ -608,8 +612,6 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
    */
   mozilla::dom::HTMLFormElement* FindAncestorForm(
       mozilla::dom::HTMLFormElement* aCurrentForm = nullptr);
-
-  virtual void RecompileScriptEventListeners() override;
 
   /**
    * See if the document being tested has nav-quirks mode enabled.
@@ -1040,7 +1042,7 @@ class nsGenericHTMLFormElement : public nsGenericHTMLElement {
    * @note Callers of UpdateFormOwner have to be sure the element is in a
    * document (GetUncomposedDoc() != nullptr).
    */
-  void UpdateFormOwner(bool aBindToTree, Element* aFormIdElement);
+  virtual void UpdateFormOwner(bool aBindToTree, Element* aFormIdElement);
 
   /**
    * This method will update mFieldset and set it to the first fieldset parent.

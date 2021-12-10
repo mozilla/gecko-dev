@@ -21,8 +21,8 @@ module.exports = {
   extends: ["eslint:recommended", "plugin:prettier/recommended"],
 
   globals: {
+    // These are all specific to Firefox unless otherwise stated.
     Cc: false,
-    // Specific to Firefox (Chrome code only).
     ChromeUtils: false,
     Ci: false,
     Components: false,
@@ -30,22 +30,22 @@ module.exports = {
     Cu: false,
     Debugger: false,
     InstallTrigger: false,
-    // Specific to Firefox
     // https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/InternalError
     InternalError: true,
-    Intl: false,
-    SharedArrayBuffer: false,
-    StopIteration: false,
+    // https://developer.mozilla.org/docs/Web/API/Window/dump
     dump: true,
     // Override the "browser" env definition of "location" to allow writing as it
     // is a writeable property.
     // See https://bugzilla.mozilla.org/show_bug.cgi?id=1509270#c1 for more information.
     location: true,
     openDialog: false,
-    saveStack: false,
+    // https://developer.mozilla.org/docs/Web/API/Window/sizeToContent
     sizeToContent: false,
-    // Specific to Firefox
-    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/uneval
+    // structuredClone is a new global that only Firefox has currently and so isn't
+    // in ESLint's globals yet.
+    // https://developer.mozilla.org/docs/Web/API/structuredClone
+    structuredClone: false,
+    // https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/uneval
     uneval: false,
   },
 
@@ -58,6 +58,11 @@ module.exports = {
         "mozilla/jsm": true,
       },
       files: ["**/*.jsm", "**/*.jsm.js"],
+      globals: {
+        // Intl is defined in the browser environment, but that's disabled
+        // for jsms, add it here manually.
+        Intl: false,
+      },
       rules: {
         "mozilla/mark-exported-symbols-as-used": "error",
         // TODO: Bug 1575506 turn `builtinGlobals` on here.
@@ -72,6 +77,15 @@ module.exports = {
             vars: "all",
           },
         ],
+      },
+    },
+    {
+      // TODO Bug 1501127: sjs files have their own sandbox, and do not inherit
+      // the Window backstage pass directly. Turn this rule off for sjs files for
+      // now until we develop a solution.
+      files: ["**/*.sjs"],
+      rules: {
+        "mozilla/reject-importGlobalProperties": "off",
       },
     },
   ],
@@ -133,6 +147,7 @@ module.exports = {
     "mozilla/reject-chromeutils-import-params": "error",
     "mozilla/reject-importGlobalProperties": ["error", "allownonwebidl"],
     "mozilla/reject-osfile": "warn",
+    "mozilla/reject-scriptableunicodeconverter": "warn",
     "mozilla/rejects-requires-await": "error",
     "mozilla/use-cc-etc": "error",
     "mozilla/use-chromeutils-generateqi": "error",
@@ -210,6 +225,9 @@ module.exports = {
 
     // No single if block inside an else block
     "no-lonely-if": "error",
+
+    // Disallow the use of number literals that immediately lose precision at runtime when converted to JS Number
+    "no-loss-of-precision": "error",
 
     // Nested ternary statements are confusing
     "no-nested-ternary": "error",

@@ -373,7 +373,6 @@ size_t VectorImage::SizeOfSourceWithComputedFallback(
 }
 
 nsresult VectorImage::OnImageDataComplete(nsIRequest* aRequest,
-                                          nsISupports* aContext,
                                           nsresult aStatus, bool aLastPart) {
   // Call our internal OnStopRequest method, which only talks to our embedded
   // SVG document. This won't have any effect on our ProgressTracker.
@@ -399,7 +398,6 @@ nsresult VectorImage::OnImageDataComplete(nsIRequest* aRequest,
 }
 
 nsresult VectorImage::OnImageDataAvailable(nsIRequest* aRequest,
-                                           nsISupports* aContext,
                                            nsIInputStream* aInStr,
                                            uint64_t aSourceOffset,
                                            uint32_t aCount) {
@@ -483,8 +481,13 @@ VectorImage::RequestRefresh(const TimeStamp& aTime) {
     return;
   }
 
-  PendingAnimationTracker* tracker =
-      mSVGDocumentWrapper->GetDocument()->GetPendingAnimationTracker();
+  Document* doc = mSVGDocumentWrapper->GetDocument();
+  if (!doc) {
+    // We are racing between shutdown and a refresh.
+    return;
+  }
+
+  PendingAnimationTracker* tracker = doc->GetPendingAnimationTracker();
   if (tracker && ShouldAnimate()) {
     tracker->TriggerPendingAnimationsOnNextTick(aTime);
   }
@@ -1137,6 +1140,12 @@ already_AddRefed<SourceSurface> VectorImage::CreateSurface(
   BackendType backend =
       aParams.context ? aParams.context->GetDrawTarget()->GetBackendType()
                       : gfxPlatform::GetPlatform()->GetDefaultContentBackend();
+
+  if (backend == BackendType::DIRECT2D1_1) {
+    // We don't want to draw arbitrary content with D2D anymore
+    // because it doesn't support PushLayerWithBlend so switch to skia
+    backend = BackendType::SKIA;
+  }
 
   // Try to create an imgFrame, initializing the surface it contains by drawing
   // our gfxDrawable into it. (We use FILTER_NEAREST since we never scale here.)

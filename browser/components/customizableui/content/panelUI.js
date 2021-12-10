@@ -463,9 +463,8 @@ const PanelUI = {
       let tempPanel = document.createXULElement("panel");
       tempPanel.setAttribute("type", "arrow");
       tempPanel.setAttribute("id", "customizationui-widget-panel");
-
-      if (viewNode.getAttribute("remote") == "true") {
-        tempPanel.setAttribute("remote", "true");
+      if (viewNode.hasAttribute("neverhidden")) {
+        tempPanel.setAttribute("neverhidden", "true");
       }
 
       tempPanel.setAttribute("class", "cui-widget-panel panel-no-padding");

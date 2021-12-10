@@ -66,6 +66,7 @@
 #include "mozilla/net/SocketProcessParent.h"
 #include "mozilla/net/SocketProcessChild.h"
 #include "mozilla/ipc/URIUtils.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/AntiTrackingRedirectHeuristic.h"
@@ -1358,10 +1359,10 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
   }
 
   if (PREF_CHANGED(HTTP_PREF("spdy.chunk-size"))) {
-    // keep this within http/2 ranges of 1 to 2^14-1
+    // keep this within http/2 ranges of 1 to 2^24-1
     rv = Preferences::GetInt(HTTP_PREF("spdy.chunk-size"), &val);
     if (NS_SUCCEEDED(rv)) {
-      mSpdySendingChunkSize = (uint32_t)clamped(val, 1, 0x3fff);
+      mSpdySendingChunkSize = (uint32_t)clamped(val, 1, 0xffffff);
     }
   }
 
@@ -2047,6 +2048,11 @@ NS_IMETHODIMP
 nsHttpHandler::NewProxiedChannel(nsIURI* uri, nsIProxyInfo* givenProxyInfo,
                                  uint32_t proxyResolveFlags, nsIURI* proxyURI,
                                  nsILoadInfo* aLoadInfo, nsIChannel** result) {
+  // Avoid a late initialization
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownNetTeardown)) {
+    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
+  }
+
   HttpBaseChannel* httpChannel;
 
   LOG(("nsHttpHandler::NewProxiedChannel [proxyInfo=%p]\n", givenProxyInfo));

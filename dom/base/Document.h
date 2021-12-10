@@ -50,6 +50,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/dom/Nullable.h"
+#include "mozilla/dom/TreeOrderedArray.h"
 #include "mozilla/dom/ViewportMetaData.h"
 #include "nsAtom.h"
 #include "nsCOMArray.h"
@@ -305,6 +306,7 @@ enum BFCacheStatus {
   ABOUT_PAGE = 1 << 13,                  // Status 13
   RESTORING = 1 << 14,                   // Status 14
   BEFOREUNLOAD_LISTENER = 1 << 15,       // Status 15
+  ACTIVE_LOCK = 1 << 16,                 // Status 16
 };
 
 }  // namespace dom
@@ -342,10 +344,24 @@ enum class DeprecatedOperations : uint16_t {
 
 // Document states
 
-// RTL locale: specific to the XUL localedir attribute
-#define NS_DOCUMENT_STATE_RTL_LOCALE NS_DEFINE_EVENT_STATE_MACRO(0)
 // Window activation status
-#define NS_DOCUMENT_STATE_WINDOW_INACTIVE NS_DEFINE_EVENT_STATE_MACRO(1)
+#define NS_DOCUMENT_STATE_WINDOW_INACTIVE NS_DEFINE_EVENT_STATE_MACRO(0)
+// RTL locale: specific to the XUL localedir attribute.
+#define NS_DOCUMENT_STATE_RTL_LOCALE NS_DEFINE_EVENT_STATE_MACRO(1)
+// LTR locale: specific to the XUL localedir attribute. This is mutually
+// exclusive with the RTL bit, but the style system invalidation code is simpler
+// if we differentiate between the two states.
+#define NS_DOCUMENT_STATE_LTR_LOCALE NS_DEFINE_EVENT_STATE_MACRO(2)
+// Lightweight-theme status.
+#define NS_DOCUMENT_STATE_LWTHEME NS_DEFINE_EVENT_STATE_MACRO(3)
+#define NS_DOCUMENT_STATE_LWTHEME_BRIGHTTEXT NS_DEFINE_EVENT_STATE_MACRO(4)
+#define NS_DOCUMENT_STATE_LWTHEME_DARKTEXT NS_DEFINE_EVENT_STATE_MACRO(5)
+
+#define NS_DOCUMENT_STATE_ALL_LOCALEDIR_BITS \
+  (NS_DOCUMENT_STATE_RTL_LOCALE | NS_DOCUMENT_STATE_LTR_LOCALE)
+#define NS_DOCUMENT_STATE_ALL_LWTHEME_BITS                            \
+  (NS_DOCUMENT_STATE_LWTHEME | NS_DOCUMENT_STATE_LWTHEME_BRIGHTTEXT | \
+   NS_DOCUMENT_STATE_LWTHEME_DARKTEXT)
 
 class DocHeaderData {
  public:
@@ -1012,7 +1028,7 @@ class Document : public nsINode,
   /**
    * Set the Content-Type of this document.
    */
-  virtual void SetContentType(const nsAString& aContentType);
+  void SetContentType(const nsACString& aContentType);
 
   /**
    * Return the language of this document.
@@ -1198,7 +1214,7 @@ class Document : public nsINode,
 
   // Instead using this method, what you probably want is
   // RemoveFromBFCacheSync() as we do in MessagePort and BroadcastChannel.
-  void DisallowBFCaching(uint16_t aStatus = BFCacheStatus::NOT_ALLOWED);
+  void DisallowBFCaching(uint32_t aStatus = BFCacheStatus::NOT_ALLOWED);
 
   bool IsBFCachingAllowed() const { return !mBFCacheDisallowed; }
 
@@ -1263,11 +1279,13 @@ class Document : public nsINode,
 
   Selection* GetSelection(ErrorResult& aRv);
 
+  nsresult HasStorageAccessSync(bool& aHasStorageAccess);
   already_AddRefed<Promise> HasStorageAccess(ErrorResult& aRv);
   already_AddRefed<Promise> RequestStorageAccess(ErrorResult& aRv);
 
   already_AddRefed<Promise> RequestStorageAccessForOrigin(
-      const nsAString& aThirdPartyOrigin, ErrorResult& aRv);
+      const nsAString& aThirdPartyOrigin, const bool aRequireUserInteraction,
+      ErrorResult& aRv);
 
   bool UseRegularPrincipal() const;
 
@@ -1322,7 +1340,7 @@ class Document : public nsINode,
   nsresult GetSrcdocData(nsAString& aSrcdocData);
 
   already_AddRefed<AnonymousContent> InsertAnonymousContent(
-      Element& aElement, ErrorResult& aError);
+      Element& aElement, bool aForce, ErrorResult& aError);
   void RemoveAnonymousContent(AnonymousContent& aContent, ErrorResult& aError);
   /**
    * If aNode is a descendant of anonymous content inserted by
@@ -1546,9 +1564,10 @@ class Document : public nsINode,
 
   void DispatchContentLoadedEvents();
 
-  void DispatchPageTransition(EventTarget* aDispatchTarget,
-                              const nsAString& aType, bool aInFrameSwap,
-                              bool aPersisted, bool aOnlySystemGroup);
+  // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void DispatchPageTransition(
+      EventTarget* aDispatchTarget, const nsAString& aType, bool aInFrameSwap,
+      bool aPersisted, bool aOnlySystemGroup);
 
   // Call this before the document does something that will unbind all content.
   // That will stop us from doing a lot of work as each element is removed.
@@ -2073,7 +2092,7 @@ class Document : public nsINode,
   // implementation of Document::GetDocumentState.
   //
   // aNotify controls whether we notify our DocumentStatesChanged observers.
-  void UpdateDocumentStates(EventStates aStateMask, bool aNotify);
+  void UpdateDocumentStates(EventStates aMaybeChangedStates, bool aNotify);
 
   void ResetDocumentDirection();
 
@@ -2173,10 +2192,16 @@ class Document : public nsINode,
   /**
    * Returns the bits for the color-scheme specified by the
    * <meta name="color-scheme">.
-   *
-   * TODO(emilio): Actually process the meta tag.
    */
   uint8_t GetColorSchemeBits() const { return mColorSchemeBits; }
+
+  /**
+   * Traverses the DOM and computes the supported color schemes as per
+   * https://html.spec.whatwg.org/#meta-color-scheme
+   */
+  void RecomputeColorScheme();
+  void AddColorSchemeMeta(HTMLMetaElement&);
+  void RemoveColorSchemeMeta(HTMLMetaElement&);
 
   /**
    * Returns true if this is what HTML 5 calls an "HTML document" (for example
@@ -2359,7 +2384,7 @@ class Document : public nsINode,
    * combination is when we try to BFCache aNewRequest
    */
   virtual bool CanSavePresentation(nsIRequest* aNewRequest,
-                                   uint16_t& aBFCacheCombo,
+                                   uint32_t& aBFCacheCombo,
                                    bool aIncludeSubdocuments,
                                    bool aAllowUnloadListeners = true);
 
@@ -3007,14 +3032,6 @@ class Document : public nsINode,
    */
   void MaybePreconnect(nsIURI* uri, CORSMode aCORSMode);
 
-  enum DocumentTheme {
-    Doc_Theme_Uninitialized,  // not determined yet
-    Doc_Theme_None,
-    Doc_Theme_Neutral,
-    Doc_Theme_Dark,
-    Doc_Theme_Bright
-  };
-
   /**
    * Set the document's pending state object (as serialized using structured
    * clone).
@@ -3029,15 +3046,18 @@ class Document : public nsINode,
     SetStateObject(aDocument->mStateObjectContainer);
   }
 
+  enum class DocumentTheme { None, Neutral, Dark, Bright };
+
   /**
-   * Returns Doc_Theme_None if there is no lightweight theme specified,
-   * Doc_Theme_Dark for a dark theme, Doc_Theme_Bright for a light theme, and
-   * Doc_Theme_Neutral for any other theme. This is used to determine the state
-   * of the pseudoclasses :-moz-lwtheme and :-moz-lwtheme-text.
+   * Returns DocumentTheme::None if there is no lightweight theme specified,
+   * Dark for a dark theme, Bright for a light theme, and Neutral for any other
+   * theme. This is used to determine the state of the pseudoclasses
+   * :-moz-lwtheme and :-moz-lwtheme-*text.
    */
-  DocumentTheme GetDocumentLWTheme();
-  DocumentTheme ThreadSafeGetDocumentLWTheme() const;
-  void ResetDocumentLWTheme() { mDocLWTheme = Doc_Theme_Uninitialized; }
+  DocumentTheme GetDocumentLWTheme() const;
+  void ResetDocumentLWTheme() {
+    UpdateDocumentStates(NS_DOCUMENT_STATE_ALL_LWTHEME_BITS, true);
+  }
 
   // Whether we're a media document or not.
   enum class MediaDocumentKind {
@@ -4009,6 +4029,9 @@ class Document : public nsINode,
   // CSS prefers-color-scheme media feature for this document.
   enum class IgnoreRFP { No, Yes };
   ColorScheme PreferredColorScheme(IgnoreRFP = IgnoreRFP::No) const;
+  // Returns the initial color-scheme used for this document based on the
+  // color-scheme meta tag.
+  ColorScheme DefaultColorScheme() const;
 
   static bool HasRecentlyStartedForegroundLoads();
 
@@ -4350,8 +4373,6 @@ class Document : public nsINode,
 
   virtual Element* GetNameSpaceElement() override { return GetRootElement(); }
 
-  void SetContentTypeInternal(const nsACString& aType);
-
   nsCString GetContentTypeInternal() const { return mContentType; }
 
   // Update our frame request callback scheduling state, if needed.  This will
@@ -4379,7 +4400,7 @@ class Document : public nsINode,
   using AutomaticStorageAccessPermissionGrantPromise =
       MozPromise<bool, bool, true>;
   [[nodiscard]] RefPtr<AutomaticStorageAccessPermissionGrantPromise>
-  AutomaticStorageAccessPermissionCanBeGranted();
+  AutomaticStorageAccessPermissionCanBeGranted(bool hasUserActivation);
 
   static void AddToplevelLoadingDocument(Document* aDoc);
   static void RemoveToplevelLoadingDocument(Document* aDoc);
@@ -4491,7 +4512,7 @@ class Document : public nsINode,
   // focus has never occurred then mLastFocusTime.IsNull() will be true.
   TimeStamp mLastFocusTime;
 
-  EventStates mDocumentState;
+  EventStates mDocumentState{NS_DOCUMENT_STATE_LTR_LOCALE};
 
   RefPtr<Promise> mReadyForIdle;
 
@@ -5181,6 +5202,13 @@ class Document : public nsINode,
   // element.
   UniquePtr<ViewportMetaData> mLastModifiedViewportMetaData;
 
+  // A tree ordered list of all color-scheme meta tags in this document.
+  //
+  // TODO(emilio): There are other meta tags in the spec that have a similar
+  // processing model to color-scheme. We could store all in-document meta tags
+  // here to get sane and fast <meta> element processing.
+  TreeOrderedArray<HTMLMetaElement> mColorSchemeMetaTags;
+
   // These member variables cache information about the viewport so we don't
   // have to recalculate it each time.
   LayoutDeviceToScreenScale mScaleMinFloat;
@@ -5244,10 +5272,6 @@ class Document : public nsINode,
   RefPtr<ChromeObserver> mChromeObserver;
 
   RefPtr<HTMLAllCollection> mAll;
-
-  // document lightweight theme for use with :-moz-lwtheme,
-  // :-moz-lwtheme-brighttext and :-moz-lwtheme-darktext
-  DocumentTheme mDocLWTheme;
 
   // Pres shell resolution saved before entering fullscreen mode.
   float mSavedResolution;

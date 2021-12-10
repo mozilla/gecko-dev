@@ -84,21 +84,23 @@ var openInspectorSidebarTab = async function(id) {
  * @return a promise that resolves when the inspector is ready and the rule view
  * is visible and ready
  */
-function openRuleView() {
-  return openInspector().then(data => {
-    const view = data.inspector.getPanel("ruleview").view;
+async function openRuleView() {
+  const { inspector, toolbox, highlighterTestFront } = await openInspector();
 
-    // Replace the view to use a custom debounce function that can be triggered manually
-    // through an additional ".flush()" property.
-    view.debounce = manualDebounce();
+  const ruleViewPanel = inspector.getPanel("ruleview");
+  await ruleViewPanel.readyPromise;
+  const view = ruleViewPanel.view;
 
-    return {
-      toolbox: data.toolbox,
-      inspector: data.inspector,
-      highlighterTestFront: data.highlighterTestFront,
-      view,
-    };
-  });
+  // Replace the view to use a custom debounce function that can be triggered manually
+  // through an additional ".flush()" property.
+  view.debounce = manualDebounce();
+
+  return {
+    toolbox,
+    inspector,
+    highlighterTestFront,
+    view,
+  };
 }
 
 /**
@@ -244,8 +246,16 @@ var selectNode = async function(
   info("Selecting the node for '" + selector + "'");
   const nodeFront = await getNodeFront(selector, inspector);
   const updated = inspector.once("inspector-updated");
+
+  const { ELEMENT_NODE } = require("devtools/shared/dom-node-constants");
+  const onSelectionCssSelectorsUpdated =
+    nodeFront?.nodeType == ELEMENT_NODE
+      ? inspector.once("selection-css-selectors-updated")
+      : null;
+
   inspector.selection.setNodeFront(nodeFront, { reason, isSlotted });
   await updated;
+  await onSelectionCssSelectorsUpdated;
 };
 
 /**

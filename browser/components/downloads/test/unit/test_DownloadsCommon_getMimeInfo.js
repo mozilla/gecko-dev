@@ -28,13 +28,11 @@ const TESTFILES = {
 let gPublicList;
 
 add_task(async function test_setup() {
-  Assert.ok(
-    OS.Constants.Path.profileDir,
-    "profileDir: " + OS.Constants.Path.profileDir
-  );
+  let profileDir = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
+  Assert.ok(profileDir, "profileDir: " + profileDir);
   for (let [filename, contents] of Object.entries(TESTFILES)) {
     TESTFILES[filename] = await createDownloadedFile(
-      OS.Path.join(gDownloadDir, filename),
+      PathUtils.join(gDownloadDir, filename),
       contents
     );
   }
@@ -155,7 +153,7 @@ async function test_getMimeInfo_basic_function(testData) {
   await download.refresh();
 
   Assert.ok(
-    await OS.File.exists(download.target.path),
+    await IOUtils.exists(download.target.path),
     "The file should actually exist."
   );
   let result = await DownloadsCommon.getMimeInfo(download);

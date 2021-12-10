@@ -40,6 +40,7 @@
 #include "mozilla/EditorBase.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
+#include "mozilla/IntegerRange.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_accessibility.h"
@@ -438,7 +439,8 @@ DOMPoint HyperTextAccessible::OffsetToDOMPoint(int32_t aOffset) const {
   nsINode* node = child->GetNode();
   nsINode* parentNode = node->GetParentNode();
   return parentNode ? DOMPoint(parentNode,
-                               parentNode->ComputeIndexOf(node) + innerOffset)
+                               parentNode->ComputeIndexOf_Deprecated(node) +
+                                   innerOffset)
                     : DOMPoint();
 }
 
@@ -1165,6 +1167,14 @@ void HyperTextAccessible::TextAfterOffset(int32_t aOffset,
 already_AddRefed<AccAttributes> HyperTextAccessible::TextAttributes(
     bool aIncludeDefAttrs, int32_t aOffset, int32_t* aStartOffset,
     int32_t* aEndOffset) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    // This isn't strictly related to caching, but this new text implementation
+    // is being developed to make caching feasible. We put it behind this pref
+    // to make it easy to test while it's still under development.
+    return HyperTextAccessibleBase::TextAttributes(aIncludeDefAttrs, aOffset,
+                                                   aStartOffset, aEndOffset);
+  }
+
   // 1. Get each attribute and its ranges one after another.
   // 2. As we get each new attribute, we pass the current start and end offsets
   //    as in/out parameters. In other words, as attributes are collected,
@@ -1207,8 +1217,13 @@ already_AddRefed<AccAttributes> HyperTextAccessible::TextAttributes(
     RenderedToContentOffset(offsetFrame, offsetInAcc, &nodeOffset);
 
     // Set 'misspelled' text attribute.
-    GetSpellTextAttr(accAtOffset->GetNode(), nodeOffset, &startOffset,
-                     &endOffset, attributes);
+    // FYI: Max length of text in a text node is less than INT32_MAX (see
+    //      NS_MAX_TEXT_FRAGMENT_LENGTH) so that nodeOffset should always
+    //      be 0 or greater.
+    MOZ_DIAGNOSTIC_ASSERT(accAtOffset->GetNode()->IsText());
+    MOZ_DIAGNOSTIC_ASSERT(nodeOffset >= 0);
+    GetSpellTextAttr(accAtOffset->GetNode(), static_cast<uint32_t>(nodeOffset),
+                     &startOffset, &endOffset, attributes);
   }
 
   *aStartOffset = startOffset;
@@ -1602,8 +1617,12 @@ nsresult HyperTextAccessible::SetSelectionRange(int32_t aStartPos,
   NS_ENSURE_STATE(domSel);
 
   // Set up the selection.
-  for (int32_t idx = domSel->RangeCount() - 1; idx > 0; idx--) {
+  for (const uint32_t idx : Reversed(IntegerRange(1u, domSel->RangeCount()))) {
+    MOZ_ASSERT(domSel->RangeCount() == idx + 1);
     RefPtr<nsRange> range{domSel->GetRangeAt(idx)};
+    if (!range) {
+      break;  // The range count has been changed by somebody else.
+    }
     domSel->RemoveRangeAndUnselectFramesAndNotifyListeners(*range,
                                                            IgnoreErrors());
   }
@@ -1854,7 +1873,8 @@ bool HyperTextAccessible::SelectionBoundsAt(int32_t aSelectionNum,
   // Get start and end points.
   nsINode* startNode = range->GetStartContainer();
   nsINode* endNode = range->GetEndContainer();
-  int32_t startOffset = range->StartOffset(), endOffset = range->EndOffset();
+  uint32_t startOffset = range->StartOffset();
+  uint32_t endOffset = range->EndOffset();
 
   // Make sure start is before end, by swapping DOM points.  This occurs when
   // the user selects backwards in the text.
@@ -1867,24 +1887,22 @@ bool HyperTextAccessible::SelectionBoundsAt(int32_t aSelectionNum,
   }
 
   if (*order < 0) {
-    nsINode* tempNode = startNode;
-    startNode = endNode;
-    endNode = tempNode;
-    int32_t tempOffset = startOffset;
-    startOffset = endOffset;
-    endOffset = tempOffset;
+    std::swap(startNode, endNode);
+    std::swap(startOffset, endOffset);
   }
 
   if (!startNode->IsInclusiveDescendantOf(mContent)) {
     *aStartOffset = 0;
   } else {
-    *aStartOffset = DOMPointToOffset(startNode, startOffset);
+    *aStartOffset =
+        DOMPointToOffset(startNode, AssertedCast<int32_t>(startOffset));
   }
 
   if (!endNode->IsInclusiveDescendantOf(mContent)) {
     *aEndOffset = CharacterCount();
   } else {
-    *aEndOffset = DOMPointToOffset(endNode, endOffset, true);
+    *aEndOffset =
+        DOMPointToOffset(endNode, AssertedCast<int32_t>(endOffset), true);
   }
   return true;
 }
@@ -1913,7 +1931,8 @@ bool HyperTextAccessible::RemoveFromSelection(int32_t aSelectionNum) {
     return false;
   }
 
-  const RefPtr<nsRange> range{domSel->GetRangeAt(aSelectionNum)};
+  const RefPtr<nsRange> range{
+      domSel->GetRangeAt(static_cast<uint32_t>(aSelectionNum))};
   domSel->RemoveRangeAndUnselectFramesAndNotifyListeners(*range,
                                                          IgnoreErrors());
   return true;
@@ -2268,7 +2287,7 @@ nsresult HyperTextAccessible::GetDOMPointByFrameOffset(
 
     nsIContent* parent = content->GetParent();
 
-    aPoint->idx = parent->ComputeIndexOf(content) + 1;
+    aPoint->idx = parent->ComputeIndexOf_Deprecated(content) + 1;
     aPoint->node = parent;
 
   } else if (aFrame->IsTextFrame()) {
@@ -2289,7 +2308,7 @@ nsresult HyperTextAccessible::GetDOMPointByFrameOffset(
     nsIContent* parent = content->GetParent();
     NS_ENSURE_STATE(parent);
 
-    aPoint->idx = parent->ComputeIndexOf(content);
+    aPoint->idx = parent->ComputeIndexOf_Deprecated(content);
     aPoint->node = parent;
   }
 
@@ -2297,7 +2316,7 @@ nsresult HyperTextAccessible::GetDOMPointByFrameOffset(
 }
 
 // HyperTextAccessible
-void HyperTextAccessible::GetSpellTextAttr(nsINode* aNode, int32_t aNodeOffset,
+void HyperTextAccessible::GetSpellTextAttr(nsINode* aNode, uint32_t aNodeOffset,
                                            uint32_t* aStartOffset,
                                            uint32_t* aEndOffset,
                                            AccAttributes* aAttributes) {
@@ -2307,18 +2326,22 @@ void HyperTextAccessible::GetSpellTextAttr(nsINode* aNode, int32_t aNodeOffset,
   dom::Selection* domSel = fs->GetSelection(SelectionType::eSpellCheck);
   if (!domSel) return;
 
-  int32_t rangeCount = domSel->RangeCount();
-  if (rangeCount <= 0) return;
+  const uint32_t rangeCount = domSel->RangeCount();
+  if (!rangeCount) {
+    return;
+  }
 
   uint32_t startOffset = 0, endOffset = 0;
-  for (int32_t idx = 0; idx < rangeCount; idx++) {
+  for (const uint32_t idx : IntegerRange(rangeCount)) {
+    MOZ_ASSERT(domSel->RangeCount() == rangeCount);
     const nsRange* range = domSel->GetRangeAt(idx);
+    MOZ_ASSERT(range);
     if (range->Collapsed()) continue;
 
     // See if the point comes after the range in which case we must continue in
     // case there is another range after this one.
     nsINode* endNode = range->GetEndContainer();
-    int32_t endNodeOffset = range->EndOffset();
+    uint32_t endNodeOffset = range->EndOffset();
     Maybe<int32_t> order = nsContentUtils::ComparePoints(
         aNode, aNodeOffset, endNode, endNodeOffset);
     if (NS_WARN_IF(!order)) {

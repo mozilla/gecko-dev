@@ -28,6 +28,9 @@ const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 
 const Targets = require("devtools/server/actors/targets/index");
 const TargetActorMixin = require("devtools/server/actors/targets/target-actor-mixin");
+const {
+  getChildDocShells,
+} = require("devtools/server/actors/targets/window-global");
 
 loader.lazyRequireGetter(
   this,
@@ -81,6 +84,7 @@ const webExtensionTargetPrototype = extend({}, parentProcessTargetPrototype);
  *        frame-connector.js connectToFrame method.
  * @param {Object} options
  *        - addonId: {String} the addonId of the target WebExtension.
+ *        - addonBrowsingContextGroupId: {String} the BrowsingContextGroupId used by this addon.
  *        - chromeGlobal: {nsIMessageSender} The chromeGlobal where this actor
  *          has been injected by the frame-connector.js connectToFrame method.
  *        - isTopLevelTarget: {Boolean} flag to indicate if this is the top
@@ -89,10 +93,24 @@ const webExtensionTargetPrototype = extend({}, parentProcessTargetPrototype);
  */
 webExtensionTargetPrototype.initialize = function(
   conn,
-  { addonId, chromeGlobal, isTopLevelTarget, prefix }
+  {
+    addonId,
+    addonBrowsingContextGroupId,
+    chromeGlobal,
+    isTopLevelTarget,
+    prefix,
+  }
 ) {
   this.addonId = addonId;
+  this.addonBrowsingContextGroupId = addonBrowsingContextGroupId;
   this.chromeGlobal = chromeGlobal;
+
+  // Expose the BrowsingContext of the fallback document,
+  // which is the one this target actor will always refer to via its form()
+  // and all resources should be related to this one as we currently spawn
+  // only just this one target actor to debug all webextension documents.
+  this.devtoolsSpawnedBrowsingContextForWebExtension =
+    chromeGlobal.browsingContext;
 
   // Try to discovery an existent extension page to attach (which will provide the initial
   // URL shown in the window tittle when the addon debugger is opened).
@@ -151,6 +169,22 @@ webExtensionTargetPrototype.initialize = function(
 // associated with any window.
 webExtensionTargetPrototype.isRootActor = true;
 
+// Override the ParentProcessTargetActor's override in order to only iterate
+// over the docshells specific to this add-on
+Object.defineProperty(webExtensionTargetPrototype, "docShells", {
+  get: function() {
+    // Iterate over all top-level windows and all their docshells.
+    let docShells = [];
+    for (const window of Services.ww.getWindowEnumerator(null)) {
+      docShells = docShells.concat(getChildDocShells(window.docShell));
+    }
+    // Then filter out the ones specific to the add-on
+    return docShells.filter(docShell => {
+      return this.isExtensionWindowDescendent(docShell.domWindow);
+    });
+  },
+});
+
 /**
  * Called when the actor is removed from the connection.
  */
@@ -167,6 +201,10 @@ webExtensionTargetPrototype.destroy = function() {
     chromeGlobal.sendAsyncMessage("debug:webext_child_exit", {
       actor: this.actorID,
     });
+  }
+
+  if (this.fallbackWindow) {
+    this.fallbackWindow = null;
   }
 
   this.addon = null;
@@ -193,21 +231,18 @@ webExtensionTargetPrototype._searchFallbackWindow = function() {
   return this.fallbackWindow;
 };
 
-webExtensionTargetPrototype._destroyFallbackWindow = function() {
-  if (this.fallbackWindow) {
-    this.fallbackWindow = null;
-  }
-};
-
 // Discovery an extension page to use as a default target window.
 // NOTE: This currently fail to discovery an extension page running in a
 // windowless browser when running in non-oop mode, and the background page
 // is set later using _onNewExtensionWindow.
 webExtensionTargetPrototype._searchForExtensionWindow = function() {
-  for (const window of Services.ww.getWindowEnumerator(null)) {
-    if (window.document.nodePrincipal.addonId == this.addonId) {
-      return window;
-    }
+  // Looks if there is any top level add-on document:
+  // (we do not want to pass any nested add-on iframe)
+  const docShell = this.docShells.find(d =>
+    this.isTopLevelExtensionWindow(d.domWindow)
+  );
+  if (docShell) {
+    return docShell.domWindow;
   }
 
   return this._searchFallbackWindow();
@@ -215,7 +250,20 @@ webExtensionTargetPrototype._searchForExtensionWindow = function() {
 
 // Customized ParentProcessTargetActor/WindowGlobalTargetActor hooks.
 
+webExtensionTargetPrototype._onDocShellCreated = function(docShell) {
+  // Compare against the BrowsingContext's group ID as the document's principal addonId
+  // won't be set yet for freshly created docshells. It will be later set, when loading the addon URL.
+  // But right now, it is still on the initial about:blank document and the principal isn't related to the add-on.
+  if (docShell.browsingContext.group.id != this.addonBrowsingContextGroupId) {
+    return;
+  }
+  ParentProcessTargetActor.prototype._onDocShellCreated.call(this, docShell);
+};
+
 webExtensionTargetPrototype._onDocShellDestroy = function(docShell) {
+  if (docShell.browsingContext.group.id != this.addonBrowsingContextGroupId) {
+    return;
+  }
   // Stop watching this docshell (the unwatch() method will check if we
   // started watching it before).
   this._unwatchDocShell(docShell);
@@ -227,8 +275,8 @@ webExtensionTargetPrototype._onDocShellDestroy = function(docShell) {
   this._notifyDocShellDestroy(webProgress);
 
   // If the destroyed docShell was the current docShell and the actor is
-  // currently attached, switch to the fallback window
-  if (this.attached && docShell == this.docShell) {
+  // not destroyed, switch to the fallback window
+  if (!this.isDestroyed() && docShell == this.docShell) {
     this._changeTopLevelDocument(this._searchForExtensionWindow());
   }
 };
@@ -239,83 +287,17 @@ webExtensionTargetPrototype._onNewExtensionWindow = function(window) {
   }
 };
 
-webExtensionTargetPrototype._attach = function() {
-  // NOTE: we need to be sure that `this.window` can return a window before calling the
-  // ParentProcessTargetActor.onAttach, or the WindowGlobalTargetActor will not be
-  // subscribed to the child doc shell updates.
-
-  if (
-    !this.window ||
-    this.window.document.nodePrincipal.addonId !== this.addonId
-  ) {
-    // Discovery an existent extension page (or fallback window) to attach.
-    this._setWindow(this._searchForExtensionWindow());
-  }
-
-  // Call ParentProcessTargetActor's _attach to listen for any new/destroyed chrome
-  // docshell.
-  ParentProcessTargetActor.prototype._attach.apply(this);
-};
-
-webExtensionTargetPrototype._detach = function() {
-  // Call ParentProcessTargetActor's _detach to unsubscribe new/destroyed chrome docshell
-  // listeners.
-  ParentProcessTargetActor.prototype._detach.apply(this);
-
-  // Stop watching for new extension windows.
-  this._destroyFallbackWindow();
-};
-
-/**
- * Return the json details related to a docShell.
- */
-webExtensionTargetPrototype._docShellToWindow = function(docShell) {
-  const baseWindowDetails = ParentProcessTargetActor.prototype._docShellToWindow.call(
-    this,
-    docShell
-  );
-
-  const webProgress = docShell
-    .QueryInterface(Ci.nsIInterfaceRequestor)
-    .getInterface(Ci.nsIWebProgress);
-  const window = webProgress.DOMWindow;
-
-  // Collect the addonID from the document origin attributes and its sameType top level
-  // frame.
-  const addonID = window.document.nodePrincipal.addonId;
-  const sameTypeRootAddonID =
-    docShell.sameTypeRootTreeItem.domWindow.document.nodePrincipal.addonId;
-
-  return Object.assign(baseWindowDetails, {
-    addonID,
-    sameTypeRootAddonID,
-  });
-};
-
-/**
- * Return an array of the json details related to an array/iterator of docShells.
- */
-webExtensionTargetPrototype._docShellsToWindows = function(docshells) {
-  return ParentProcessTargetActor.prototype._docShellsToWindows
-    .call(this, docshells)
-    .filter(windowDetails => {
-      // Filter the docShells based on the addon id of the window or
-      // its sameType top level frame.
-      return (
-        windowDetails.addonID === this.addonId ||
-        windowDetails.sameTypeRootAddonID === this.addonId
-      );
-    });
-};
-
-webExtensionTargetPrototype.isExtensionWindow = function(window) {
-  return window.document.nodePrincipal.addonId == this.addonId;
+webExtensionTargetPrototype.isTopLevelExtensionWindow = function(window) {
+  const { docShell } = window;
+  const isTopLevel = docShell.sameTypeRootTreeItem == docShell;
+  return isTopLevel && window.document.nodePrincipal.addonId == this.addonId;
 };
 
 webExtensionTargetPrototype.isExtensionWindowDescendent = function(window) {
   // Check if the source is coming from a descendant docShell of an extension window.
+  // We may have an iframe that loads http content which won't use the add-on principal.
   const rootWin = window.docShell.sameTypeRootTreeItem.domWindow;
-  return this.isExtensionWindow(rootWin);
+  return rootWin.document.nodePrincipal.addonId == this.addonId;
 };
 
 /**
@@ -327,10 +309,7 @@ webExtensionTargetPrototype._allowSource = function(source) {
   if (source.element) {
     try {
       const domEl = unwrapDebuggerObjectGlobal(source.element);
-      return (
-        this.isExtensionWindow(domEl.ownerGlobal) ||
-        this.isExtensionWindowDescendent(domEl.ownerGlobal)
-      );
+      return this.isExtensionWindowDescendent(domEl.ownerGlobal);
     } catch (e) {
       // If the source's window is dead then the above will throw.
       DevToolsUtils.reportException("WebExtensionTarget.allowSource", e);
@@ -392,16 +371,19 @@ webExtensionTargetPrototype._shouldAddNewGlobalAsDebuggee = function(
       // its own proto.
       return false;
     }
-
-    // Change top level document as a simulated frame switching.
-    if (global.document.ownerGlobal && this.isExtensionWindow(global)) {
-      this._onNewExtensionWindow(global.document.ownerGlobal);
+    // When `global` is a sandbox it may be a nsIDOMWindow object,
+    // but won't be the real Window object. Retrieve it via document's ownerGlobal.
+    const window = global.document.ownerGlobal;
+    if (!window) {
+      return false;
     }
 
-    return (
-      global.document.ownerGlobal &&
-      this.isExtensionWindowDescendent(global.document.ownerGlobal)
-    );
+    // Change top level document as a simulated frame switching.
+    if (this.isTopLevelExtensionWindow(window)) {
+      this._onNewExtensionWindow(window);
+    }
+
+    return this.isExtensionWindowDescendent(window);
   }
 
   try {

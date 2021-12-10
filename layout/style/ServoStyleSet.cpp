@@ -549,7 +549,6 @@ ServoStyleSet::ResolveNonInheritingAnonymousBoxStyle(PseudoStyleType aType) {
   return computedValues.forget();
 }
 
-#ifdef MOZ_XUL
 already_AddRefed<ComputedStyle> ServoStyleSet::ResolveXULTreePseudoStyle(
     dom::Element* aParentElement, nsCSSAnonBoxPseudoStaticAtom* aPseudoTag,
     ComputedStyle* aParentStyle, const AtomArray& aInputWord) {
@@ -562,7 +561,6 @@ already_AddRefed<ComputedStyle> ServoStyleSet::ResolveXULTreePseudoStyle(
              mRawSet.get())
       .Consume();
 }
-#endif
 
 // manage the set of style sheets in the style set
 void ServoStyleSet::AppendStyleSheet(StyleSheet& aSheet) {
@@ -1188,6 +1186,12 @@ const RawServoCounterStyleRule* ServoStyleSet::CounterStyleRuleForName(
     nsAtom* aName) {
   MOZ_ASSERT(!StylistNeedsUpdate());
   return Servo_StyleSet_GetCounterStyleRule(mRawSet.get(), aName);
+}
+
+const RawServoScrollTimelineRule* ServoStyleSet::ScrollTimelineRuleForName(
+    nsAtom* aName) {
+  MOZ_ASSERT(!StylistNeedsUpdate());
+  return Servo_StyleSet_GetScrollTimelineRule(mRawSet.get(), aName);
 }
 
 already_AddRefed<gfxFontFeatureValueSet>

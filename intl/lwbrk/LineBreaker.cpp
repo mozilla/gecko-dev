@@ -10,6 +10,8 @@
 #include "nsTArray.h"
 #include "nsUnicodeProperties.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/intl/Segmenter.h"
+#include "mozilla/intl/UnicodeProperties.h"
 
 using namespace mozilla::unicode;
 using namespace mozilla::intl;
@@ -377,7 +379,7 @@ static inline bool IS_HYPHEN(char16_t u) {
           u == 0x058A);  // ARMENIAN HYPHEN
 }
 
-static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
+static int8_t GetClass(uint32_t u, LineBreakRule aLevel,
                        bool aIsChineseOrJapanese) {
   // Mapping for Unicode LineBreak.txt classes to the (simplified) set of
   // character classes used here.
@@ -394,7 +396,7 @@ static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
       /* AMBIGUOUS = 1,                     [AI] */ CLASS_CHARACTER,
       /* ALPHABETIC = 2,                    [AL] */ CLASS_CHARACTER,
       /* BREAK_BOTH = 3,                    [B2] */ CLASS_CHARACTER,
-      /* BREAK_AFTER = 4,                   [BA] */ CLASS_CHARACTER,
+      /* BREAK_AFTER = 4,                   [BA] */ CLASS_BREAKABLE,
       /* BREAK_BEFORE = 5,                  [BB] */ CLASS_OPEN_LIKE_CHARACTER,
       /* MANDATORY_BREAK = 6,               [BK] */ CLASS_CHARACTER,
       /* CONTINGENT_BREAK = 7,              [CB] */ CLASS_CHARACTER,
@@ -443,12 +445,12 @@ static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
   // Overrides based on rules for the different line-break values given in
   // https://drafts.csswg.org/css-text-3/#line-break-property
   switch (aLevel) {
-    case LineBreaker::Strictness::Auto:
+    case LineBreakRule::Auto:
       // For now, just use legacy Gecko behavior.
       // XXX Possible enhancement - vary strictness according to line width
       // or other criteria.
       break;
-    case LineBreaker::Strictness::Strict:
+    case LineBreakRule::Strict:
       if (cls == U_LB_CONDITIONAL_JAPANESE_STARTER ||
           (u == 0x3095 || u == 0x3096 || u == 0x30f5 || u == 0x30f6)) {
         return CLASS_CLOSE;
@@ -461,10 +463,12 @@ static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
         return CLASS_CLOSE_LIKE_CHARACTER;
       }
       if (aIsChineseOrJapanese) {
-        if (cls == U_LB_POSTFIX_NUMERIC && IsEastAsianWidthAFW(u)) {
+        if (cls == U_LB_POSTFIX_NUMERIC &&
+            UnicodeProperties::IsEastAsianWidthAFW(u)) {
           return CLASS_CLOSE_LIKE_CHARACTER;
         }
-        if (cls == U_LB_PREFIX_NUMERIC && IsEastAsianWidthAFW(u)) {
+        if (cls == U_LB_PREFIX_NUMERIC &&
+            UnicodeProperties::IsEastAsianWidthAFW(u)) {
           return CLASS_OPEN_LIKE_CHARACTER;
         }
         if (u == 0x2010 || u == 0x2013 || u == 0x301C || u == 0x30A0) {
@@ -472,7 +476,7 @@ static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
         }
       }
       break;
-    case LineBreaker::Strictness::Normal:
+    case LineBreakRule::Normal:
       if (cls == U_LB_CONDITIONAL_JAPANESE_STARTER) {
         return CLASS_BREAKABLE;
       }
@@ -484,10 +488,12 @@ static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
         return CLASS_CLOSE_LIKE_CHARACTER;
       }
       if (aIsChineseOrJapanese) {
-        if (cls == U_LB_POSTFIX_NUMERIC && IsEastAsianWidthAFW(u)) {
+        if (cls == U_LB_POSTFIX_NUMERIC &&
+            UnicodeProperties::IsEastAsianWidthAFW(u)) {
           return CLASS_CLOSE_LIKE_CHARACTER;
         }
-        if (cls == U_LB_PREFIX_NUMERIC && IsEastAsianWidthAFW(u)) {
+        if (cls == U_LB_PREFIX_NUMERIC &&
+            UnicodeProperties::IsEastAsianWidthAFW(u)) {
           return CLASS_OPEN_LIKE_CHARACTER;
         }
         if (u == 0x2010 || u == 0x2013 || u == 0x301C || u == 0x30A0) {
@@ -495,7 +501,7 @@ static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
         }
       }
       break;
-    case LineBreaker::Strictness::Loose:
+    case LineBreakRule::Loose:
       if (cls == U_LB_CONDITIONAL_JAPANESE_STARTER) {
         return CLASS_BREAKABLE;
       }
@@ -512,10 +518,12 @@ static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
             u == 0xFF01 || u == 0xFF1F) {
           return CLASS_BREAKABLE;
         }
-        if (cls == U_LB_POSTFIX_NUMERIC && IsEastAsianWidthAFW(u)) {
+        if (cls == U_LB_POSTFIX_NUMERIC &&
+            UnicodeProperties::IsEastAsianWidthAFW(u)) {
           return CLASS_BREAKABLE;
         }
-        if (cls == U_LB_PREFIX_NUMERIC && IsEastAsianWidthAFW(u)) {
+        if (cls == U_LB_PREFIX_NUMERIC &&
+            UnicodeProperties::IsEastAsianWidthAFW(u)) {
           return CLASS_BREAKABLE;
         }
         if (u == 0x2010 || u == 0x2013 || u == 0x301C || u == 0x30A0) {
@@ -523,7 +531,7 @@ static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
         }
       }
       break;
-    case LineBreaker::Strictness::Anywhere:
+    case LineBreakRule::Anywhere:
       MOZ_ASSERT_UNREACHABLE("should have been handled already");
       break;
   }
@@ -622,10 +630,11 @@ static int8_t GetClass(uint32_t u, LineBreaker::Strictness aLevel,
         return GETCLASSFROMTABLE(gLBClass00, uint16_t(U_HYPHEN));
       }
     } else if (0x0F00 == h) {
-      // Tibetan chars with class = BA
-      if (0x34 == l || 0x7f == l || 0x85 == l || 0xbe == l || 0xbf == l ||
-          0xd2 == l) {
-        return CLASS_BREAKABLE;
+      // We treat Tibetan TSHEG as a hyphen (when not using platform breaker);
+      // other Tibetan chars with LineBreak class=BA will be handled by the
+      // default sUnicodeLineBreakToClass mapping below.
+      if (l == 0x0B) {
+        return GETCLASSFROMTABLE(gLBClass00, uint16_t(U_HYPHEN));
       }
     } else if (0x1800 == h) {
       if (0x0E == l) {
@@ -825,8 +834,7 @@ class ContextState {
 };
 
 static int8_t ContextualAnalysis(char32_t prev, char32_t cur, char32_t next,
-                                 ContextState& aState,
-                                 LineBreaker::Strictness aLevel,
+                                 ContextState& aState, LineBreakRule aLevel,
                                  bool aIsChineseOrJapanese) {
   // Don't return CLASS_OPEN/CLASS_CLOSE if aState.UseJISX4051 is FALSE.
 
@@ -940,8 +948,8 @@ int32_t LineBreaker::Next(const char16_t* aText, uint32_t aLen, uint32_t aPos) {
     // XXX(Bug 1631371) Check if this should use a fallible operation as it
     // pretended earlier.
     breakState.AppendElements(end - begin);
-    ComputeBreakPositions(aText + begin, end - begin, WordBreak::Normal,
-                          Strictness::Auto, false, breakState.Elements());
+    ComputeBreakPositions(aText + begin, end - begin, WordBreakRule::Normal,
+                          LineBreakRule::Auto, false, breakState.Elements());
 
     ret = aPos;
     do {
@@ -980,11 +988,9 @@ static bool SuppressBreakForKeepAll(uint32_t aPrev, uint32_t aCh) {
          affectedByKeepAll(GetLineBreakClass(aCh));
 }
 
-void LineBreaker::ComputeBreakPositions(const char16_t* aChars,
-                                        uint32_t aLength, WordBreak aWordBreak,
-                                        Strictness aLevel,
-                                        bool aIsChineseOrJapanese,
-                                        uint8_t* aBreakBefore) {
+void LineBreaker::ComputeBreakPositions(
+    const char16_t* aChars, uint32_t aLength, WordBreakRule aWordBreak,
+    LineBreakRule aLevel, bool aIsChineseOrJapanese, uint8_t* aBreakBefore) {
   uint32_t cur;
   int8_t lastClass = CLASS_NONE;
   ContextState state(aChars, aLength);
@@ -1026,7 +1032,7 @@ void LineBreaker::ComputeBreakPositions(const char16_t* aChars,
     // _CLOSE_LIKE_CHARACTER, or _NUMERIC by GetClass(), but those classes also
     // include others that we don't want to touch here, so we re-check the
     // Unicode line-break class to determine which ones to modify.
-    if (aWordBreak == WordBreak::BreakAll &&
+    if (aWordBreak == WordBreakRule::BreakAll &&
         (cl == CLASS_CHARACTER || cl == CLASS_CLOSE ||
          cl == CLASS_CLOSE_LIKE_CHARACTER || cl == CLASS_NUMERIC)) {
       auto cls = GetLineBreakClass(ch);
@@ -1052,14 +1058,14 @@ void LineBreaker::ComputeBreakPositions(const char16_t* aChars,
       if (allowBreak) {
         // word-break:keep-all suppresses breaks between certain line-break
         // classes.
-        if (aWordBreak == WordBreak::KeepAll &&
+        if (aWordBreak == WordBreakRule::KeepAll &&
             SuppressBreakForKeepAll(prev(), ch)) {
           allowBreak = false;
         }
         // We also don't allow a break within a run of U+3000 chars unless
         // word-break:break-all is in effect.
         if (ch == 0x3000 && prev() == 0x3000 &&
-            aWordBreak != WordBreak::BreakAll) {
+            aWordBreak != WordBreakRule::BreakAll) {
           allowBreak = false;
         }
       }
@@ -1081,7 +1087,7 @@ void LineBreaker::ComputeBreakPositions(const char16_t* aChars,
         }
       }
 
-      if (aWordBreak == WordBreak::BreakAll) {
+      if (aWordBreak == WordBreakRule::BreakAll) {
         // For break-all, we don't need to run a dictionary-based breaking
         // algorithm, we just allow breaks between all grapheme clusters.
         ClusterIterator ci(aChars + cur, end - cur);
@@ -1110,7 +1116,8 @@ void LineBreaker::ComputeBreakPositions(const char16_t* aChars,
 }
 
 void LineBreaker::ComputeBreakPositions(const uint8_t* aChars, uint32_t aLength,
-                                        WordBreak aWordBreak, Strictness aLevel,
+                                        WordBreakRule aWordBreak,
+                                        LineBreakRule aLevel,
                                         bool aIsChineseOrJapanese,
                                         uint8_t* aBreakBefore) {
   uint32_t cur;
@@ -1130,7 +1137,7 @@ void LineBreaker::ComputeBreakPositions(const uint8_t* aChars, uint32_t aLength,
       state.NotifyNonHyphenCharacter(ch);
       cl = GetClass(ch, aLevel, aIsChineseOrJapanese);
     }
-    if (aWordBreak == WordBreak::BreakAll &&
+    if (aWordBreak == WordBreakRule::BreakAll &&
         (cl == CLASS_CHARACTER || cl == CLASS_CLOSE ||
          cl == CLASS_CLOSE_LIKE_CHARACTER || cl == CLASS_NUMERIC)) {
       auto cls = GetLineBreakClass(ch);
@@ -1146,7 +1153,7 @@ void LineBreaker::ComputeBreakPositions(const uint8_t* aChars, uint32_t aLength,
       allowBreak =
           (state.UseConservativeBreaking() ? GetPairConservative(lastClass, cl)
                                            : GetPair(lastClass, cl)) &&
-          (aWordBreak != WordBreak::KeepAll ||
+          (aWordBreak != WordBreakRule::KeepAll ||
            !SuppressBreakForKeepAll(aChars[cur - 1], ch));
     }
     aBreakBefore[cur] = allowBreak;

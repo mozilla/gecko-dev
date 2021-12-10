@@ -15,6 +15,7 @@
 #include "mozilla/IMEContentObserver.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/MappedDeclarations.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/PresShell.h"
@@ -526,7 +527,7 @@ HTMLFormElement* nsGenericHTMLElement::FindAncestorForm(
         // anonymous.  Check for this the hard way.
         for (nsIContent* child = this; child != content;
              child = child->GetParent()) {
-          NS_ASSERTION(child->GetParent()->ComputeIndexOf(child) != -1,
+          NS_ASSERTION(child->ComputeIndexInParentContent().isSome(),
                        "Walked too far?");
         }
       }
@@ -2303,27 +2304,6 @@ void nsGenericHTMLElement::SyncEditorsOnSubtree(nsIContent* content) {
   }
 }
 
-void nsGenericHTMLElement::RecompileScriptEventListeners() {
-  int32_t i, count = mAttrs.AttrCount();
-  for (i = 0; i < count; ++i) {
-    const nsAttrName* name = mAttrs.AttrNameAt(i);
-
-    // Eventlistenener-attributes are always in the null namespace
-    if (!name->IsAtom()) {
-      continue;
-    }
-
-    nsAtom* attr = name->Atom();
-    if (!IsEventAttributeName(attr)) {
-      continue;
-    }
-
-    nsAutoString value;
-    GetAttr(kNameSpaceID_None, attr, value);
-    SetEventHandler(GetEventNameForAttr(attr), value, true);
-  }
-}
-
 bool nsGenericHTMLElement::IsEditableRoot() const {
   if (!IsInComposedDoc()) {
     return false;
@@ -2998,6 +2978,20 @@ already_AddRefed<ElementInternals> nsGenericHTMLElement::AttachInternals(
       "'%s'",
       NS_ConvertUTF16toUTF8(NodeInfo()->NameAtom()->GetUTF16String()).get()));
   return nullptr;
+}
+
+ElementInternals* nsGenericHTMLElement::GetInternals() const {
+  if (CustomElementData* data = GetCustomElementData()) {
+    return data->GetElementInternals();
+  }
+  return nullptr;
+}
+
+bool nsGenericHTMLElement::IsFormAssociatedCustomElements() const {
+  if (CustomElementData* data = GetCustomElementData()) {
+    return data->IsFormAssociated();
+  }
+  return false;
 }
 
 void nsGenericHTMLElement::GetAutocapitalize(nsAString& aValue) const {

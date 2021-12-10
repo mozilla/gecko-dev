@@ -2,9 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-<!-- Temporary wrapper until we move away from XUL flex to allow a negative
-     margin-top to slide the toolbox off screen in fullscreen layout.-->
-<box>
+<!--
+  GTK needs to draw behind the lightweight theme toolbox backgrounds, thus the extra box.
+  Also this box allows a negative margin-top to slide the toolbox off screen in
+  fullscreen layout.
+-->
+<box id="navigator-toolbox-background">
 <toolbox id="navigator-toolbox" flex="1">
 
   <vbox id="titlebar">
@@ -253,7 +256,7 @@
                        data-l10n-id="urlbar-canvas-notification-anchor"/>
                 <image id="indexedDB-notification-icon" class="notification-anchor-icon indexedDB-icon" role="button"
                        data-l10n-id="urlbar-indexed-db-notification-anchor"/>
-                <image id="password-notification-icon" class="notification-anchor-icon login-icon" role="button"
+                <image id="password-notification-icon" class="notification-anchor-icon" role="button"
                        data-l10n-id="urlbar-password-notification-anchor"/>
                 <stack id="plugins-notification-icon" class="notification-anchor-icon" role="button" align="center" data-l10n-id="urlbar-plugins-notification-anchor">
                   <image class="plugin-icon" />

@@ -1,17 +1,13 @@
 "use strict";
 
-const {
-  ExperimentAPI,
-  _ExperimentFeature: ExperimentFeature,
-} = ChromeUtils.import("resource://nimbus/ExperimentAPI.jsm");
+const { ExperimentAPI } = ChromeUtils.import(
+  "resource://nimbus/ExperimentAPI.jsm"
+);
 const { ExperimentFakes } = ChromeUtils.import(
   "resource://testing-common/NimbusTestUtils.jsm"
 );
 const { TestUtils } = ChromeUtils.import(
   "resource://testing-common/TestUtils.jsm"
-);
-const { TelemetryTestUtils } = ChromeUtils.import(
-  "resource://testing-common/TelemetryTestUtils.jsm"
 );
 const COLLECTION_ID_PREF = "messaging-system.rsexperimentloader.collection_id";
 
@@ -27,7 +23,7 @@ add_task(async function test_getExperiment_fromChild_slug() {
 
   sandbox.stub(ExperimentAPI, "_store").get(() => ExperimentFakes.childStore());
 
-  await manager.store.addExperiment(expected);
+  await manager.store.addEnrollment(expected);
 
   // Wait to sync to child
   await TestUtils.waitForCondition(
@@ -59,7 +55,7 @@ add_task(async function test_getExperiment_fromParent_slug() {
   sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   await ExperimentAPI.ready();
 
-  await manager.store.addExperiment(expected);
+  await manager.store.addEnrollment(expected);
 
   Assert.equal(
     ExperimentAPI.getExperiment({ slug: "foo" }).slug,
@@ -80,7 +76,37 @@ add_task(async function test_getExperimentMetaData() {
   sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
   await ExperimentAPI.ready();
 
-  await manager.store.addExperiment(expected);
+  await manager.store.addEnrollment(expected);
+
+  let metadata = ExperimentAPI.getExperimentMetaData({ slug: expected.slug });
+
+  Assert.equal(
+    Object.keys(metadata.branch).length,
+    1,
+    "Should only expose one property"
+  );
+  Assert.equal(
+    metadata.branch.slug,
+    expected.branch.slug,
+    "Should have the slug prop"
+  );
+
+  Assert.ok(exposureStub.notCalled, "Not called for this method");
+
+  sandbox.restore();
+});
+
+add_task(async function test_getRolloutMetaData() {
+  const sandbox = sinon.createSandbox();
+  const manager = ExperimentFakes.manager();
+  const expected = ExperimentFakes.rollout("foo");
+  let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
+
+  await manager.onStartup();
+  sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
+  await ExperimentAPI.ready();
+
+  await manager.store.addEnrollment(expected);
 
   let metadata = ExperimentAPI.getExperimentMetaData({ slug: expected.slug });
 
@@ -149,7 +175,7 @@ add_task(async function test_getExperiment_feature() {
   sandbox.stub(ExperimentAPI, "_store").get(() => ExperimentFakes.childStore());
   let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
-  await manager.store.addExperiment(expected);
+  await manager.store.addEnrollment(expected);
 
   // Wait to sync to child
   await TestUtils.waitForCondition(
@@ -189,6 +215,51 @@ add_task(async function test_getExperiment_safe() {
   }
 
   sandbox.restore();
+});
+
+add_task(async function test_getExperiment_featureAccess() {
+  const sandbox = sinon.createSandbox();
+  const expected = ExperimentFakes.experiment("foo", {
+    branch: {
+      slug: "treatment",
+      value: { title: "hi" },
+      features: [{ featureId: "cfr", value: { message: "content" } }],
+    },
+  });
+  const stub = sandbox
+    .stub(ExperimentAPI._store, "getExperimentForFeature")
+    .returns(expected);
+
+  let { branch } = ExperimentAPI.getExperiment({ featureId: "cfr" });
+
+  Assert.equal(branch.slug, "treatment");
+  let feature = branch.cfr;
+  Assert.ok(feature, "Should allow to access by featureId");
+  Assert.equal(feature.value.message, "content");
+
+  stub.restore();
+});
+
+add_task(async function test_getExperiment_featureAccess_backwardsCompat() {
+  const sandbox = sinon.createSandbox();
+  const expected = ExperimentFakes.experiment("foo", {
+    branch: {
+      slug: "treatment",
+      feature: { featureId: "cfr", value: { message: "content" } },
+    },
+  });
+  const stub = sandbox
+    .stub(ExperimentAPI._store, "getExperimentForFeature")
+    .returns(expected);
+
+  let { branch } = ExperimentAPI.getExperiment({ featureId: "cfr" });
+
+  Assert.equal(branch.slug, "treatment");
+  let feature = branch.cfr;
+  Assert.ok(feature, "Should allow to access by featureId");
+  Assert.equal(feature.value.message, "content");
+
+  stub.restore();
 });
 
 /**
@@ -243,6 +314,62 @@ add_task(async function test_getAllBranches() {
   sandbox.restore();
 });
 
+// API used by Messaging System
+add_task(async function test_getAllBranches_featureIdAccessor() {
+  const sandbox = sinon.createSandbox();
+  const RECIPE = ExperimentFakes.recipe("foo");
+  sandbox.stub(ExperimentAPI._remoteSettingsClient, "get").resolves([RECIPE]);
+
+  const branches = await ExperimentAPI.getAllBranches("foo");
+  Assert.deepEqual(
+    branches,
+    RECIPE.branches,
+    "should return all branches if found a recipe"
+  );
+  branches.forEach(branch => {
+    Assert.equal(
+      branch["test-feature"].featureId,
+      "test-feature",
+      "Should use the experimentBranchAccessor proxy getter"
+    );
+  });
+
+  sandbox.restore();
+});
+
+// For schema version before 1.6.2 branch.feature was accessed
+// instead of branch.features
+add_task(async function test_getAllBranches_backwardsCompat() {
+  const sandbox = sinon.createSandbox();
+  const RECIPE = ExperimentFakes.recipe("foo");
+  delete RECIPE.branches[0].features;
+  delete RECIPE.branches[1].features;
+  let feature = {
+    featureId: "backwardsCompat",
+    enabled: true,
+    value: null,
+  };
+  RECIPE.branches[0].feature = feature;
+  RECIPE.branches[1].feature = feature;
+  sandbox.stub(ExperimentAPI._remoteSettingsClient, "get").resolves([RECIPE]);
+
+  const branches = await ExperimentAPI.getAllBranches("foo");
+  Assert.deepEqual(
+    branches,
+    RECIPE.branches,
+    "should return all branches if found a recipe"
+  );
+  branches.forEach(branch => {
+    Assert.equal(
+      branch.backwardsCompat.featureId,
+      "backwardsCompat",
+      "Should use the experimentBranchAccessor proxy getter"
+    );
+  });
+
+  sandbox.restore();
+});
+
 add_task(async function test_getAllBranches_Failure() {
   const sandbox = sinon.createSandbox();
   sandbox.stub(ExperimentAPI._remoteSettingsClient, "get").throws();
@@ -257,7 +384,7 @@ add_task(async function test_getAllBranches_Failure() {
  * #on
  * #off
  */
-add_task(async function test_addExperiment_eventEmit_add() {
+add_task(async function test_addEnrollment_eventEmit_add() {
   const sandbox = sinon.createSandbox();
   const slugStub = sandbox.stub();
   const featureStub = sandbox.stub();
@@ -276,7 +403,7 @@ add_task(async function test_addExperiment_eventEmit_add() {
   ExperimentAPI.on("update", { slug: "foo" }, slugStub);
   ExperimentAPI.on("update", { featureId: "purple" }, featureStub);
 
-  await store.addExperiment(experiment);
+  await store.addEnrollment(experiment);
 
   Assert.equal(
     slugStub.callCount,
@@ -308,7 +435,7 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
   await store.init();
   await ExperimentAPI.ready();
 
-  await store.addExperiment(experiment);
+  await store.addEnrollment(experiment);
 
   ExperimentAPI.on("update", { slug: "foo" }, slugStub);
   ExperimentAPI.on("update", { featureId: "purple" }, featureStub);
@@ -345,7 +472,7 @@ add_task(async function test_updateExperiment_eventEmit_off() {
   ExperimentAPI.on("update", { slug: "foo" }, slugStub);
   ExperimentAPI.on("update", { featureId: "purple" }, featureStub);
 
-  await store.addExperiment(experiment);
+  await store.addEnrollment(experiment);
 
   ExperimentAPI.off("update:foo", slugStub);
   ExperimentAPI.off("update:purple", featureStub);
@@ -368,7 +495,7 @@ add_task(async function test_activateBranch() {
   });
 
   await store.init();
-  await store.addExperiment(experiment);
+  await store.addEnrollment(experiment);
 
   Assert.deepEqual(
     ExperimentAPI.activateBranch({ featureId: "green" }),
@@ -408,8 +535,8 @@ add_task(async function test_activateBranch_storeFailure() {
   });
 
   await store.init();
-  await store.addExperiment(experiment);
-  // Adding stub later because `addExperiment` emits update events
+  await store.addEnrollment(experiment);
+  // Adding stub later because `addEnrollment` emits update events
   const stub = sandbox.stub(store, "emit");
   // Call activateBranch to trigger an activation event
   sandbox.stub(store, "getAllActive").throws();
@@ -435,8 +562,8 @@ add_task(async function test_activateBranch_noActivationEvent() {
   });
 
   await store.init();
-  await store.addExperiment(experiment);
-  // Adding stub later because `addExperiment` emits update events
+  await store.addEnrollment(experiment);
+  // Adding stub later because `addEnrollment` emits update events
   const stub = sandbox.stub(store, "emit");
   // Call activateBranch to trigger an activation event
   ExperimentAPI.activateBranch({ featureId: "green" });

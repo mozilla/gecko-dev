@@ -33,6 +33,10 @@ const MULTI_PIP_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.allow-multiple";
 const TOGGLE_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.enabled";
+const TOGGLE_POSITION_PREF =
+  "media.videocontrols.picture-in-picture.video-toggle.position";
+const TOGGLE_POSITION_RIGHT = "right";
+const TOGGLE_POSITION_LEFT = "left";
 
 /**
  * If closing the Picture-in-Picture player window occurred for a reason that
@@ -203,6 +207,24 @@ var PictureInPicture = {
     actor.sendAsyncMessage("PictureInPicture:KeyToggle");
   },
 
+  _focusPipBrowserWindow(win) {
+    let browser = this.weakWinToBrowser.get(win);
+    let gBrowser = browser?.ownerGlobal?.gBrowser;
+
+    // In some cases, gBrowser can be null. One example is if the parent browser
+    // was already closed.
+    if (!gBrowser) {
+      return;
+    }
+
+    let tab = gBrowser.getTabForBrowser(browser);
+
+    // focus the tab's window
+    if (tab) {
+      tab.ownerGlobal.focus();
+    }
+  },
+
   async focusTabAndClosePip(window, pipActor) {
     let browser = this.weakWinToBrowser.get(window);
     if (!browser) {
@@ -211,6 +233,9 @@ var PictureInPicture = {
 
     let gBrowser = browser.ownerGlobal.gBrowser;
     let tab = gBrowser.getTabForBrowser(browser);
+
+    // focus the tab's window
+    tab.ownerGlobal.focus();
 
     gBrowser.selectedTab = tab;
     await this.closeSinglePipWindow({ reason: "unpip", actorRef: pipActor });
@@ -281,7 +306,7 @@ var PictureInPicture = {
     if (!win) {
       return;
     }
-
+    this._focusPipBrowserWindow(win);
     await this.closePipWindow(win);
     gCloseReasons.set(win, reason);
   },
@@ -305,6 +330,7 @@ var PictureInPicture = {
       if (win.closed) {
         continue;
       }
+      this._focusPipBrowserWindow(win);
       let closedPromise = new Promise(resolve => {
         win.addEventListener("unload", resolve, { once: true });
       });
@@ -674,6 +700,29 @@ var PictureInPicture = {
   openToggleContextMenu(window, data) {
     let document = window.document;
     let popup = document.getElementById("pictureInPictureToggleContextMenu");
+    let contextMoveToggle = document.getElementById(
+      "context_MovePictureInPictureToggle"
+    );
+
+    // Set directional string for toggle position
+    let position = Services.prefs.getStringPref(
+      TOGGLE_POSITION_PREF,
+      TOGGLE_POSITION_RIGHT
+    );
+    switch (position) {
+      case TOGGLE_POSITION_RIGHT:
+        document.l10n.setAttributes(
+          contextMoveToggle,
+          "picture-in-picture-move-toggle-left"
+        );
+        break;
+      case TOGGLE_POSITION_LEFT:
+        document.l10n.setAttributes(
+          contextMoveToggle,
+          "picture-in-picture-move-toggle-right"
+        );
+        break;
+    }
 
     // We synthesize a new MouseEvent to propagate the inputSource to the
     // subsequently triggered popupshowing event.
@@ -702,6 +751,27 @@ var PictureInPicture = {
 
   hideToggle() {
     Services.prefs.setBoolPref(TOGGLE_ENABLED_PREF, false);
+  },
+
+  moveToggle() {
+    // Get the current position
+    let position = Services.prefs.getStringPref(
+      TOGGLE_POSITION_PREF,
+      TOGGLE_POSITION_RIGHT
+    );
+    let newPosition = "";
+    // Determine what the opposite position would be for that preference
+    switch (position) {
+      case TOGGLE_POSITION_RIGHT:
+        newPosition = TOGGLE_POSITION_LEFT;
+        break;
+      case TOGGLE_POSITION_LEFT:
+        newPosition = TOGGLE_POSITION_RIGHT;
+        break;
+    }
+    if (newPosition) {
+      Services.prefs.setStringPref(TOGGLE_POSITION_PREF, newPosition);
+    }
   },
 
   /**

@@ -49,6 +49,7 @@
 #include "lib/jxl/enc_noise.h"
 #include "lib/jxl/enc_params.h"
 #include "lib/jxl/enc_patch_dictionary.h"
+#include "lib/jxl/enc_photon_noise.h"
 #include "lib/jxl/enc_quant_weights.h"
 #include "lib/jxl/enc_splines.h"
 #include "lib/jxl/enc_toc.h"
@@ -302,8 +303,9 @@ Status MakeFrameHeader(const CompressParams& cparams,
   }
 
   frame_header->flags = FrameFlagsFromParams(cparams);
-  // Noise is not supported in the Modular encoder for now.
-  if (frame_header->encoding != FrameEncoding::kVarDCT) {
+  // Non-photon noise is not supported in the Modular encoder for now.
+  if (frame_header->encoding != FrameEncoding::kVarDCT &&
+      cparams.photon_noise_iso == 0) {
     frame_header->UpdateFlag(false, FrameHeader::Flags::kNoise);
   }
 
@@ -332,6 +334,15 @@ Status MakeFrameHeader(const CompressParams& cparams,
     frame_header->frame_origin = ib.origin;
     size_t ups = 1;
     if (cparams.already_downsampled) ups = cparams.resampling;
+
+    // TODO(lode): this is not correct in case of odd original image sizes in
+    // combination with cparams.already_downsampled. Likely these values should
+    // be set to respectively frame_header->default_xsize() and
+    // frame_header->default_ysize() instead, the original (non downsampled)
+    // intended decoded image dimensions. But it may be more subtle than that
+    // if combined with crop. This issue causes custom_size_or_origin to be
+    // incorrectly set to true in case of already_downsampled with odd output
+    // image size when no cropping is used.
     frame_header->frame_size.xsize = ib.xsize() * ups;
     frame_header->frame_size.ysize = ib.ysize() * ups;
     if (ib.origin.x0 != 0 || ib.origin.y0 != 0 ||
@@ -794,10 +805,10 @@ class LossyFrameEncoder {
 
     auto& dct = enc_state_->shared.block_ctx_map.dc_thresholds;
     auto& num_dc_ctxs = enc_state_->shared.block_ctx_map.num_dc_ctxs;
-    enc_state_->shared.block_ctx_map.num_dc_ctxs = 1;
+    num_dc_ctxs = 1;
     for (size_t i = 0; i < 3; i++) {
       dct[i].clear();
-      int num_thresholds = (CeilLog2Nonzero(total_dc[i]) - 10) / 2;
+      int num_thresholds = (CeilLog2Nonzero(total_dc[i]) - 12) / 2;
       // up to 3 buckets per channel:
       // dark/medium/bright, yellow/unsat/blue, green/unsat/red
       num_thresholds = std::min(std::max(num_thresholds, 0), 2);
@@ -823,9 +834,8 @@ class LossyFrameEncoder {
       ctx_map[i] = i / lbuckets;
       // up to 3 contexts for chroma
       ctx_map[kNumOrders * num_dc_ctxs + i] =
-          num_dc_ctxs / lbuckets + (i % lbuckets);
-      ctx_map[2 * kNumOrders * num_dc_ctxs + i] =
-          num_dc_ctxs / lbuckets + (i % lbuckets);
+          ctx_map[2 * kNumOrders * num_dc_ctxs + i] =
+              num_dc_ctxs / lbuckets + (i % lbuckets);
     }
     enc_state_->shared.block_ctx_map.num_ctxs =
         *std::max_element(ctx_map.begin(), ctx_map.end()) + 1;
@@ -836,7 +846,7 @@ class LossyFrameEncoder {
     shared.frame_header.UpdateFlag(false, FrameHeader::kUseDcFrame);
     auto compute_dc_coeffs = [&](int group_index, int /* thread */) {
       modular_frame_encoder->AddVarDCTDC(dc, group_index, /*nl_dc=*/false,
-                                         enc_state_);
+                                         enc_state_, /*jpeg_transcode=*/true);
       modular_frame_encoder->AddACMetadata(group_index, /*jpeg_transcode=*/true,
                                            enc_state_);
     };
@@ -886,6 +896,7 @@ class LossyFrameEncoder {
     RunOnPool(pool_, 0, shared.frame_dim.num_groups, tokenize_group_init,
               tokenize_group, "TokenizeGroup");
     *frame_header = shared.frame_header;
+    doing_jpeg_recompression = true;
     return true;
   }
 
@@ -906,7 +917,7 @@ class LossyFrameEncoder {
                                               writer, kLayerDequantTables,
                                               aux_out_, modular_frame_encoder));
     if (enc_state_->cparams.speed_tier <= SpeedTier::kTortoise) {
-      ClusterGroups(enc_state_);
+      if (!doing_jpeg_recompression) ClusterGroups(enc_state_);
     }
     size_t num_histo_bits =
         CeilLog2Nonzero(enc_state_->shared.frame_dim.num_groups);
@@ -1004,6 +1015,7 @@ class LossyFrameEncoder {
   ThreadPool* pool_;
   AuxOut* aux_out_;
   std::vector<EncCache> group_caches_;
+  bool doing_jpeg_recompression = false;
 };
 
 Status EncodeFrame(const CompressParams& cparams_orig,
@@ -1249,6 +1261,10 @@ Status EncodeFrame(const CompressParams& cparams_orig,
                   get_output(0), kLayerSplines, HistogramParams(), aux_out);
   }
 
+  if (cparams.photon_noise_iso > 0) {
+    lossy_frame_encoder.State()->shared.image_features.noise_params =
+        SimulatePhotonNoise(ib.xsize(), ib.ysize(), cparams.photon_noise_iso);
+  }
   if (frame_header->flags & FrameHeader::kNoise) {
     EncodeNoise(lossy_frame_encoder.State()->shared.image_features.noise_params,
                 get_output(0), kLayerNoise, aux_out);

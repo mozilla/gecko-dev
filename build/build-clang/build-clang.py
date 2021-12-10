@@ -264,6 +264,7 @@ def build_one_stage(
             "-DLLVM_ENABLE_ASSERTIONS=%s" % ("ON" if assertions else "OFF"),
             "-DLLVM_TOOL_LIBCXX_BUILD=%s" % ("ON" if build_libcxx else "OFF"),
             "-DLLVM_ENABLE_BINDINGS=OFF",
+            "-DLLVM_ENABLE_CURL=OFF",
         ]
         if "TASK_ID" in os.environ:
             cmake_args += [
@@ -598,6 +599,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c",
         "--config",
+        action="append",
         required=True,
         type=argparse.FileType("r"),
         help="Clang configuration file",
@@ -649,10 +651,37 @@ if __name__ == "__main__":
         cc_name = "clang-cl"
         cxx_name = "clang-cl"
 
-    config_dir = os.path.dirname(args.config.name)
-    config = json.load(args.config)
+    config = {}
+    # Merge all the configs we got from the command line.
+    for c in args.config:
+        this_config_dir = os.path.dirname(c.name)
+        this_config = json.load(c)
+        patches = this_config.get("patches")
+        if patches:
+            this_config["patches"] = [os.path.join(this_config_dir, p) for p in patches]
+        for key, value in this_config.items():
+            old_value = config.get(key)
+            if old_value is None:
+                config[key] = value
+            elif value is None:
+                if key in config:
+                    del config[key]
+            elif type(old_value) != type(value):
+                raise Exception(
+                    "{} is overriding `{}` with a value of the wrong type".format(
+                        c.name, key
+                    )
+                )
+            elif isinstance(old_value, list):
+                for v in value:
+                    if v not in old_value:
+                        old_value.append(v)
+            elif isinstance(old_value, dict):
+                raise Exception("{} is setting `{}` to a dict?".format(c.name, key))
+            else:
+                config[key] = value
 
-    stages = 3
+    stages = 2
     if "stages" in config:
         stages = int(config["stages"])
         if stages not in (1, 2, 3, 4):
@@ -672,7 +701,7 @@ if __name__ == "__main__":
                 "We only know how to do Release, Debug, RelWithDebInfo or "
                 "MinSizeRel builds"
             )
-    build_libcxx = False
+    build_libcxx = not is_windows()
     if "build_libcxx" in config:
         build_libcxx = config["build_libcxx"]
         if build_libcxx not in (True, False):
@@ -754,7 +783,7 @@ if __name__ == "__main__":
 
     if not args.skip_patch:
         for p in config.get("patches", []):
-            patch(os.path.join(config_dir, p), source_dir)
+            patch(p, source_dir)
 
     compiler_rt_source_link = llvm_source_dir + "/projects/compiler-rt"
 
@@ -765,6 +794,7 @@ if __name__ == "__main__":
         (compiler_rt_source_dir, compiler_rt_source_link),
         (libcxx_source_dir, llvm_source_dir + "/projects/libcxx"),
         (libcxxabi_source_dir, llvm_source_dir + "/projects/libcxxabi"),
+        (source_dir + "/cmake", llvm_source_dir + "/projects/cmake"),
     ]
     for l in symlinks:
         # On Windows, we have to re-copy the whole directory every time.

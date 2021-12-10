@@ -55,9 +55,7 @@
 #include "nsUnicharUtils.h"
 #include "nsViewManager.h"
 #include "nsStyleConsts.h"
-#ifdef MOZ_XUL
-#  include "nsXULElement.h"
-#endif  // MOZ_XUL
+#include "nsXULElement.h"
 #include "nsContainerFrame.h"
 #include "nsNameSpaceManager.h"
 #include "nsComboboxControlFrame.h"
@@ -112,9 +110,7 @@
 #include "nsTransitionManager.h"
 #include "DetailsFrame.h"
 
-#ifdef MOZ_XUL
-#  include "nsIPopupContainer.h"
-#endif
+#include "nsIPopupContainer.h"
 #ifdef ACCESSIBILITY
 #  include "nsAccessibilityService.h"
 #endif
@@ -207,10 +203,9 @@ static FrameCtorDebugFlags gFlags[] = {
 #  define NUM_DEBUG_FLAGS (sizeof(gFlags) / sizeof(gFlags[0]))
 #endif
 
-#ifdef MOZ_XUL
-#  include "nsMenuFrame.h"
-#  include "nsPopupSetFrame.h"
-#  include "nsTreeColFrame.h"
+#include "nsMenuFrame.h"
+#include "nsPopupSetFrame.h"
+#include "nsTreeColFrame.h"
 
 //------------------------------------------------------------------
 
@@ -248,8 +243,6 @@ nsIFrame* NS_NewTreeBodyFrame(PresShell* aPresShell, ComputedStyle* aStyle);
 nsIFrame* NS_NewTitleBarFrame(PresShell* aPresShell, ComputedStyle* aStyle);
 
 nsIFrame* NS_NewResizerFrame(PresShell* aPresShell, ComputedStyle* aStyle);
-
-#endif
 
 nsHTMLScrollFrame* NS_NewHTMLScrollFrame(PresShell* aPresShell,
                                          ComputedStyle* aStyle, bool aIsRoot);
@@ -650,10 +643,8 @@ class MOZ_STACK_CLASS nsFrameConstructorState {
   PresShell* mPresShell;
   nsFrameManager* mFrameManager;
 
-#ifdef MOZ_XUL
   // Frames destined for the kPopupList.
   AbsoluteFrameList mPopupList;
-#endif
 
   // Containing block information for out-of-flow frames.
   AbsoluteFrameList mFixedList;
@@ -847,9 +838,7 @@ nsFrameConstructorState::nsFrameConstructorState(
     : mPresContext(aPresShell->GetPresContext()),
       mPresShell(aPresShell),
       mFrameManager(aPresShell->FrameConstructor()),
-#ifdef MOZ_XUL
       mPopupList(nullptr),
-#endif
       mFixedList(aFixedContainingBlock),
       mAbsoluteList(aAbsoluteContainingBlock),
       mFloatedList(aFloatContainingBlock),
@@ -867,13 +856,11 @@ nsFrameConstructorState::nsFrameConstructorState(
       mHavePendingPopupgroup(false),
       mCreatingExtraFrames(false),
       mHasRenderedLegend(false) {
-#ifdef MOZ_XUL
   nsIPopupContainer* popupContainer =
       nsIPopupContainer::GetPopupContainer(aPresShell);
   if (popupContainer) {
     mPopupList.containingBlock = popupContainer->GetPopupSetFrame();
   }
-#endif
   MOZ_COUNT_CTOR(nsFrameConstructorState);
 }
 
@@ -900,9 +887,7 @@ void nsFrameConstructorState::ProcessFrameInsertionsForAllLists() {
   ProcessFrameInsertions(mFloatedList, nsIFrame::kFloatList);
   ProcessFrameInsertions(mAbsoluteList, nsIFrame::kAbsoluteList);
   ProcessFrameInsertions(mFixedList, nsIFrame::kFixedList);
-#ifdef MOZ_XUL
   ProcessFrameInsertions(mPopupList, nsIFrame::kPopupList);
-#endif
 }
 
 void nsFrameConstructorState::PushAbsoluteContainingBlock(
@@ -1101,13 +1086,11 @@ void nsFrameConstructorState::ReparentFloats(nsContainerFrame* aNewParent) {
 AbsoluteFrameList* nsFrameConstructorState::GetOutOfFlowFrameList(
     nsIFrame* aNewFrame, bool aCanBePositioned, bool aCanBeFloated,
     bool aIsOutOfFlowPopup, nsFrameState* aPlaceholderType) {
-#ifdef MOZ_XUL
   if (MOZ_UNLIKELY(aIsOutOfFlowPopup)) {
     MOZ_ASSERT(mPopupList.containingBlock, "Must have a popup set frame!");
     *aPlaceholderType = PLACEHOLDER_FOR_POPUP;
     return &mPopupList;
   }
-#endif  // MOZ_XUL
   const nsStyleDisplay* disp = aNewFrame->StyleDisplay();
   if (aCanBeFloated && disp->IsFloatingStyle()) {
     *aPlaceholderType = PLACEHOLDER_FOR_FLOAT;
@@ -1236,14 +1219,9 @@ MOZ_NEVER_INLINE void nsFrameConstructorState::ProcessFrameInsertions(
        aChildListID == nsIFrame::kAbsoluteList) ||                           \
       ((&aFrameList == &mFixedList || &aFrameList == &mTopLayerFixedList) && \
        aChildListID == nsIFrame::kFixedList)
-#ifdef MOZ_XUL
   MOZ_ASSERT(NS_NONXUL_LIST_TEST || (&aFrameList == &mPopupList &&
                                      aChildListID == nsIFrame::kPopupList),
              "Unexpected aFrameList/aChildListID combination");
-#else
-  MOZ_ASSERT(NS_NONXUL_LIST_TEST,
-             "Unexpected aFrameList/aChildListID combination");
-#endif
 
   if (aFrameList.IsEmpty()) {
     return;
@@ -1430,19 +1408,6 @@ static void MoveChildrenTo(nsIFrame* aOldParent, nsContainerFrame* aNewParent,
   } else {
     aNewParent->AppendFrames(kPrincipalList, aFrameList);
   }
-}
-
-static bool ShouldCreateImageFrameForContent(const Element& aElement,
-                                             ComputedStyle& aStyle) {
-  if (aElement.IsRootOfNativeAnonymousSubtree()) {
-    return false;
-  }
-  auto& content = aStyle.StyleContent()->mContent;
-  if (!content.IsItems()) {
-    return false;
-  }
-  Span<const StyleContentItem> items = content.AsItems().AsSpan();
-  return items.Length() == 1 && items[0].IsImage();
 }
 
 //----------------------------------------------------------------------
@@ -2397,16 +2362,13 @@ nsIFrame* nsCSSFrameConstructor::ConstructDocElementFrame(
   nsFrameConstructorSaveState absoluteSaveState;
 
   // Check whether we need to build a XUL box or SVG root frame
-#ifdef MOZ_XUL
   if (aDocElement->IsXULElement()) {
     contentFrame = NS_NewDocElementBoxFrame(mPresShell, computedStyle);
     InitAndRestoreFrame(state, aDocElement, mDocElementContainingBlock,
                         contentFrame);
     frameList = {contentFrame, contentFrame};
     processChildren = true;
-  } else
-#endif
-      if (aDocElement->IsSVGElement()) {
+  } else if (aDocElement->IsSVGElement()) {
     if (!aDocElement->IsSVGElement(nsGkAtoms::svg)) {
       return nullptr;
     }
@@ -2674,13 +2636,10 @@ void nsCSSFrameConstructor::SetUpDocElementContainingBlock(
 
   nsContainerFrame* rootFrame = nullptr;
 
-#ifdef MOZ_XUL
   if (aDocElement->IsXULElement()) {
     // pass a temporary stylecontext, the correct one will be set later
     rootFrame = NS_NewRootBoxFrame(mPresShell, viewportPseudoStyle);
-  } else
-#endif
-  {
+  } else {
     // pass a temporary stylecontext, the correct one will be set later
     rootFrame = NS_NewCanvasFrame(mPresShell, viewportPseudoStyle);
     mHasRootAbsPosContainingBlock = true;
@@ -3833,7 +3792,6 @@ void nsCSSFrameConstructor::ConstructFrameFromItemInternal(
 
     nsContainerFrame* newFrameAsContainer = do_QueryFrame(newFrame);
     if (newFrameAsContainer) {
-#ifdef MOZ_XUL
       // Icky XUL stuff, sadly
 
       if (aItem.mIsRootPopupgroup) {
@@ -3844,7 +3802,6 @@ void nsCSSFrameConstructor::ConstructFrameFromItemInternal(
         aState.mPopupList.containingBlock = newFrameAsContainer;
         aState.mHavePendingPopupgroup = false;
       }
-#endif /* MOZ_XUL */
 
       // Process the child content if requested
       nsFrameList childList;
@@ -4123,7 +4080,6 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
   MOZ_ASSERT(aElement.IsXULElement());
 
   static const FrameConstructionDataByTag sXULTagData[] = {
-#ifdef MOZ_XUL
       SCROLLABLE_XUL_CREATE(thumb, NS_NewButtonBoxFrame),
       SCROLLABLE_XUL_CREATE(checkbox, NS_NewButtonBoxFrame),
       SCROLLABLE_XUL_CREATE(radio, NS_NewButtonBoxFrame),
@@ -4144,17 +4100,16 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
       SIMPLE_XUL_CREATE(menu, NS_NewMenuFrame),
       SIMPLE_XUL_CREATE(menulist, NS_NewMenuFrame),
       SIMPLE_XUL_CREATE(menuitem, NS_NewMenuItemFrame),
-#  ifdef XP_MACOSX
+#ifdef XP_MACOSX
       SIMPLE_TAG_CHAIN(menubar, nsCSSFrameConstructor::FindXULMenubarData),
-#  else
+#else
       SIMPLE_XUL_CREATE(menubar, NS_NewMenuBarFrame),
-#  endif /* XP_MACOSX */
+#endif /* XP_MACOSX */
       SIMPLE_TAG_CHAIN(popupgroup, nsCSSFrameConstructor::FindPopupGroupData),
       SIMPLE_XUL_CREATE(iframe, NS_NewSubDocumentFrame),
       SIMPLE_XUL_CREATE(editor, NS_NewSubDocumentFrame),
       SIMPLE_XUL_CREATE(browser, NS_NewSubDocumentFrame),
       SIMPLE_XUL_CREATE(splitter, NS_NewSplitterFrame),
-#endif /* MOZ_XUL */
       SIMPLE_XUL_CREATE(slider, NS_NewSliderFrame),
       SIMPLE_XUL_CREATE(scrollbar, NS_NewScrollbarFrame),
       SIMPLE_XUL_CREATE(scrollbarbutton, NS_NewScrollbarButtonFrame)};
@@ -4162,7 +4117,6 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
   return FindDataByTag(aElement, aStyle, sXULTagData, ArrayLength(sXULTagData));
 }
 
-#ifdef MOZ_XUL
 /* static */
 const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindPopupGroupData(const Element& aElement,
@@ -4187,12 +4141,12 @@ nsCSSFrameConstructor::FindXULButtonData(const Element& aElement,
     return &sXULMenuData;
   }
 
-#  ifdef MOZ_THUNDERBIRD
+#ifdef MOZ_THUNDERBIRD
   if (aElement.AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                            u"menu-button"_ns, eCaseMatters)) {
     return &sXULMenuData;
   }
-#  endif
+#endif
 
   static const FrameConstructionData sXULButtonData =
       SCROLLABLE_XUL_FCDATA(NS_NewButtonBoxFrame);
@@ -4213,7 +4167,7 @@ nsCSSFrameConstructor::FindXULLabelOrDescriptionData(const Element& aElement,
   return &sXULTextBoxData;
 }
 
-#  ifdef XP_MACOSX
+#ifdef XP_MACOSX
 /* static */
 const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindXULMenubarData(const Element& aElement,
@@ -4233,9 +4187,7 @@ nsCSSFrameConstructor::FindXULMenubarData(const Element& aElement,
       SIMPLE_XUL_FCDATA(NS_NewMenuBarFrame);
   return &sMenubarData;
 }
-#  endif /* XP_MACOSX */
-
-#endif /* MOZ_XUL */
+#endif /* XP_MACOSX */
 
 already_AddRefed<ComputedStyle> nsCSSFrameConstructor::BeginBuildingScrollFrame(
     nsFrameConstructorState& aState, nsIContent* aContent,
@@ -4573,7 +4525,6 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay& aDisplay,
                       NS_NewRubyTextContainerFrame);
       return &data;
     }
-#ifdef MOZ_XUL
     case StyleDisplayInside::MozDeck: {
       static const FrameConstructionData data =
           SIMPLE_XUL_FCDATA(NS_NewDeckFrame);
@@ -4586,7 +4537,6 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay& aDisplay,
                       NS_NewMenuPopupFrame);
       return &data;
     }
-#endif /* MOZ_XUL */
     default:
       MOZ_ASSERT_UNREACHABLE("unknown 'display' value");
       return nullptr;
@@ -5341,7 +5291,7 @@ nsCSSFrameConstructor::FindElementData(const Element& aElement,
 
   // Check for 'content: <image-url>' on the element (which makes us ignore
   // 'display' values other than 'none' or 'contents').
-  if (ShouldCreateImageFrameForContent(aElement, aStyle)) {
+  if (nsImageFrame::ShouldCreateImageFrameForContent(aElement, aStyle)) {
     static const FrameConstructionData sImgData =
         SIMPLE_FCDATA(NS_NewImageFrameForContentProperty);
     return &sImgData;
@@ -5478,7 +5428,6 @@ void nsCSSFrameConstructor::AddFrameConstructionItemsInternal(
 
   bool isPopup = false;
 
-#ifdef MOZ_XUL
   if ((data->mBits & FCDATA_IS_POPUP) && (!aParentFrame ||  // Parent is inline
                                           !aParentFrame->IsMenuFrame())) {
     if (!aState.mPopupList.containingBlock && !aState.mHavePendingPopupgroup) {
@@ -5487,7 +5436,6 @@ void nsCSSFrameConstructor::AddFrameConstructionItemsInternal(
 
     isPopup = true;
   }
-#endif /* MOZ_XUL */
 
   uint32_t bits = data->mBits;
 
@@ -8519,7 +8467,6 @@ bool nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(
     return true;
   }
 
-#ifdef MOZ_XUL
   if (aFrame->IsPopupSetFrame()) {
     nsIPopupContainer* popupContainer =
         nsIPopupContainer::GetPopupContainer(mPresShell);
@@ -8529,7 +8476,6 @@ bool nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(
       return true;
     }
   }
-#endif
 
   // Reconstruct if inflowFrame is parent's only child, and parent is, or has,
   // a non-fluid continuation, i.e. it was split by bidi resolution
@@ -8686,14 +8632,14 @@ void nsCSSFrameConstructor::RecreateFramesForContent(
   }
 }
 
-bool nsCSSFrameConstructor::DestroyFramesFor(Element* aElement) {
-  MOZ_ASSERT(aElement && aElement->GetParentNode());
+bool nsCSSFrameConstructor::DestroyFramesFor(nsIContent* aContent) {
+  MOZ_ASSERT(aContent && aContent->GetParentNode());
 
-  nsIContent* nextSibling = aElement->IsRootOfNativeAnonymousSubtree()
+  nsIContent* nextSibling = aContent->IsRootOfNativeAnonymousSubtree()
                                 ? nullptr
-                                : aElement->GetNextSibling();
+                                : aContent->GetNextSibling();
 
-  return ContentRemoved(aElement, nextSibling, REMOVE_FOR_RECONSTRUCTION);
+  return ContentRemoved(aContent, nextSibling, REMOVE_FOR_RECONSTRUCTION);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -9566,25 +9512,12 @@ inline void nsCSSFrameConstructor::ConstructFramesFromItemList(
   CreateNeededPseudoInternalRubyBoxes(aState, aItems, aParentFrame);
   CreateNeededPseudoSiblings(aState, aItems, aParentFrame);
 
-  bool listItemListIsDirty = false;
   for (FCItemIterator iter(aItems); !iter.IsDone(); iter.Next()) {
     MOZ_ASSERT(!iter.item().mIsRenderedLegend,
                "Only one item can be the rendered legend, "
                "and it should've been handled above");
     NS_ASSERTION(iter.item().DesiredParentType() == GetParentType(aParentFrame),
                  "Needed pseudos didn't get created; expect bad things");
-    // display:list-item boxes affects the start value of the "list-item"
-    // counter when an <ol reversed> element doesn't have an explicit start
-    // value.
-    if (!listItemListIsDirty &&
-        iter.item().mComputedStyle->StyleList()->mMozListReversed ==
-            StyleMozListReversed::True &&
-        iter.item().mComputedStyle->StyleDisplay()->IsListItem()) {
-      auto* list = mCounterManager.CounterListFor(nsGkAtoms::list_item);
-      list->SetDirty();
-      CountersDirty();
-      listItemListIsDirty = true;
-    }
     ConstructFramesFromItem(aState, iter, aParentFrame, aFrameList);
   }
 

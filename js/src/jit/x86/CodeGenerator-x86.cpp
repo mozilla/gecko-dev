@@ -1456,6 +1456,14 @@ void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
   }
 }
 
+void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
+  const LInt64Allocation input = ins->getInt64Operand(0);
+  Register64 inputR = ToRegister64(input);
+  MOZ_ASSERT(inputR == ToOutRegister64(ins));
+  masm.notl(inputR.high);
+  masm.notl(inputR.low);
+}
+
 void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
   Register64 input = ToRegister64(lir->getInt64Operand(0));
 
@@ -1463,4 +1471,17 @@ void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
   jumpToBlock(lir->ifTrue(), Assembler::NonZero);
   masm.testl(input.low, input.low);
   emitBranch(Assembler::NonZero, lir->ifTrue(), lir->ifFalse());
+}
+
+void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* baab) {
+  // LBitAndAndBranch only represents single-word ANDs, hence it can't be
+  // 64-bit here.
+  MOZ_ASSERT(!baab->is64());
+  Register regL = ToRegister(baab->left());
+  if (baab->right()->isConstant()) {
+    masm.test32(regL, Imm32(ToInt32(baab->right())));
+  } else {
+    masm.test32(regL, ToRegister(baab->right()));
+  }
+  emitBranch(baab->cond(), baab->ifTrue(), baab->ifFalse());
 }

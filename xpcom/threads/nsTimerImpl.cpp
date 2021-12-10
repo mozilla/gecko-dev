@@ -262,6 +262,28 @@ nsresult NS_NewTimerWithFuncCallback(nsITimer** aTimer,
   return NS_OK;
 }
 
+mozilla::Result<nsCOMPtr<nsITimer>, nsresult> NS_NewTimerWithFuncCallback(
+    nsTimerCallbackFunc aCallback, void* aClosure, const TimeDuration& aDelay,
+    uint32_t aType, const char* aNameString, nsIEventTarget* aTarget) {
+  nsCOMPtr<nsITimer> timer;
+  MOZ_TRY(NS_NewTimerWithFuncCallback(getter_AddRefs(timer), aCallback,
+                                      aClosure, aDelay, aType, aNameString,
+                                      aTarget));
+  return std::move(timer);
+}
+nsresult NS_NewTimerWithFuncCallback(nsITimer** aTimer,
+                                     nsTimerCallbackFunc aCallback,
+                                     void* aClosure, const TimeDuration& aDelay,
+                                     uint32_t aType, const char* aNameString,
+                                     nsIEventTarget* aTarget) {
+  auto timer = nsTimer::WithEventTarget(aTarget);
+
+  MOZ_TRY(timer->InitHighResolutionWithNamedFuncCallback(
+      aCallback, aClosure, aDelay, aType, aNameString));
+  timer.forget(aTimer);
+  return NS_OK;
+}
+
 // This module prints info about which timers are firing, which is useful for
 // wakeups for the purposes of power profiling. Set the following environment
 // variable before starting the browser.
@@ -366,13 +388,6 @@ void nsTimerImpl::Shutdown() {
   gThreadWrapper.Shutdown();
 }
 
-nsresult nsTimerImpl::InitCommon(uint32_t aDelayMS, uint32_t aType,
-                                 Callback&& aNewCallback,
-                                 const MutexAutoLock& aProofOfLock) {
-  return InitCommon(TimeDuration::FromMilliseconds(aDelayMS), aType,
-                    std::move(aNewCallback), aProofOfLock);
-}
-
 nsresult nsTimerImpl::InitCommon(const TimeDuration& aDelay, uint32_t aType,
                                  Callback&& newCallback,
                                  const MutexAutoLock& aProofOfLock) {
@@ -399,6 +414,13 @@ nsresult nsTimerImpl::InitWithNamedFuncCallback(nsTimerCallbackFunc aFunc,
                                                 void* aClosure, uint32_t aDelay,
                                                 uint32_t aType,
                                                 const char* aName) {
+  return InitHighResolutionWithNamedFuncCallback(
+      aFunc, aClosure, TimeDuration::FromMilliseconds(aDelay), aType, aName);
+}
+
+nsresult nsTimerImpl::InitHighResolutionWithNamedFuncCallback(
+    nsTimerCallbackFunc aFunc, void* aClosure, const TimeDuration& aDelay,
+    uint32_t aType, const char* aName) {
   if (NS_WARN_IF(!aFunc)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -437,7 +459,8 @@ nsresult nsTimerImpl::Init(nsIObserver* aObserver, uint32_t aDelayInMs,
   Callback cb{nsCOMPtr{aObserver}};
 
   MutexAutoLock lock(mMutex);
-  return InitCommon(aDelayInMs, aType, std::move(cb), lock);
+  return InitCommon(TimeDuration::FromMilliseconds(aDelayInMs), aType,
+                    std::move(cb), lock);
 }
 
 nsresult nsTimerImpl::InitWithClosureCallback(
@@ -578,7 +601,7 @@ void nsTimerImpl::Fire(int32_t aGeneration) {
   uint32_t oldDelay;
   TimeStamp oldTimeout;
   Callback callbackDuringFire{UnknownCallback{}};
-  nsCOMPtr<nsITimer> kungFuDeathGrip;
+  nsCOMPtr<nsITimer> timer;
 
   {
     // Don't fire callbacks or fiddle with refcounts when the mutex is locked.
@@ -596,7 +619,7 @@ void nsTimerImpl::Fire(int32_t aGeneration) {
     // Ensure that the nsITimer does not unhook from the nsTimerImpl during
     // Fire; this will cause null pointer crashes if the user of the timer drops
     // its reference, and then uses the nsITimer* passed in the callback.
-    kungFuDeathGrip = mITimer;
+    timer = mITimer;
   }
 
   AUTO_PROFILER_LABEL("nsTimerImpl::Fire", OTHER);
@@ -628,12 +651,12 @@ void nsTimerImpl::Fire(int32_t aGeneration) {
 
   callbackDuringFire.match(
       [](const UnknownCallback&) {},
-      [&](const InterfaceCallback& i) { i->Notify(mITimer); },
+      [&](const InterfaceCallback& i) { i->Notify(timer); },
       [&](const ObserverCallback& o) {
-        o->Observe(mITimer, NS_TIMER_CALLBACK_TOPIC, nullptr);
+        o->Observe(timer, NS_TIMER_CALLBACK_TOPIC, nullptr);
       },
-      [&](const FuncCallback& f) { f.mFunc(mITimer, f.mClosure); },
-      [&](const ClosureCallback& c) { c.mFunc(mITimer); });
+      [&](const FuncCallback& f) { f.mFunc(timer, f.mClosure); },
+      [&](const ClosureCallback& c) { c.mFunc(timer); });
 
   TimeStamp now = TimeStamp::Now();
 

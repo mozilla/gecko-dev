@@ -1121,6 +1121,25 @@ browser.ui.interaction:
     record_in_processes:
       - 'main'
 
+  preferences_paneMoreFromMozilla:
+    bug_numbers:
+      - 1738187
+    description: >
+      Records the items interacted with in the More From Mozilla section of
+      preferences.
+      See https://firefox-source-docs.mozilla.org/browser/BrowserUsageTelemetry.html
+    expires: never
+    kind: uint
+    keyed: true
+    notification_emails:
+      - shong@mozilla.com
+      - pdahiya@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
   preferences_paneUnknown:
     bug_numbers:
       - 1620358
@@ -1353,6 +1372,24 @@ contentblocking:
     record_in_processes:
       - main
 
+privacy:
+  dfpi_rollout_enabledByDefault:
+    bug_numbers:
+      - 1740232
+    description: >
+      Records if a client is opted into dFPI in standard ETP mode as part of the
+      rollout experiment. 0: opted out, 1: opted in, 2: not part of the
+      experiment
+    expires: "101"
+    kind: uint
+    notification_emails:
+      - pbz@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+
 datasanitization:
   network_cookie_lifetimePolicy:
     bug_numbers:
@@ -1365,9 +1402,9 @@ datasanitization:
     expires: never
     kind: uint
     notification_emails:
-      - ewright@mozilla.com
+      - pbz@mozilla.com
       - seceng-telemetry@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     products:
       - 'firefox'
     record_in_processes:
@@ -1558,14 +1595,15 @@ datasanitization:
       - 1617241
       - 1645089
       - 1678210
+      - 1744559
     description: >
       A count of how many "session" cookie exceptions a user has set.
     expires: never
     kind: uint
     notification_emails:
-      - ewright@mozilla.com
+      - pbz@mozilla.com
       - seceng-telemetry@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     products:
       - 'firefox'
     record_in_processes:
@@ -1919,9 +1957,10 @@ pictureinpicture:
     bug_numbers:
       - 1677107
       - 1706843
+      - 1736690
     description:
       The most concurrent Picture-in-Picture players the user had open at any one time.
-    expires: "96"
+    expires: "never"
     kind: uint
     notification_emails:
       - mconley@mozilla.com
@@ -3399,10 +3438,11 @@ gfx.canvas.remote:
       - 1641722
       - 1672582
       - 1706844
+      - 1739290
     description: >
       Number of times remote canvas 2D has been activated.
     kind: uint
-    expires: "97"
+    expires: "103"
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
       - bowen@mozilla.com
@@ -3417,10 +3457,11 @@ gfx.canvas.remote:
       - 1641722
       - 1672582
       - 1706844
+      - 1739290
     description: >
       Number of times remote canvas 2D has been deactivated due to device creation failure.
     kind: uint
-    expires: "97"
+    expires: "103"
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
       - bowen@mozilla.com
@@ -3435,10 +3476,11 @@ gfx.canvas.remote:
       - 1641722
       - 1672582
       - 1706844
+      - 1739290
     description: >
       Number of times remote canvas 2D has been deactivated due to a stream read failure.
     kind: uint
-    expires: "97"
+    expires: "103"
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
       - bowen@mozilla.com
@@ -3985,9 +4027,7 @@ screenshots:
     expires: never
     kind: uint
     notification_emails:
-      - jhirsch@mozilla.com
-      - ibicking@mozilla.com
-      - clouserw@mozilla.com
+      - screenshots-dev@mozilla.org
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -4005,9 +4045,7 @@ screenshots:
     expires: never
     kind: uint
     notification_emails:
-      - jhirsch@mozilla.com
-      - ibicking@mozilla.com
-      - clouserw@mozilla.com
+      - screenshots-dev@mozilla.org
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -4024,9 +4062,7 @@ screenshots:
     expires: never
     kind: uint
     notification_emails:
-      - jhirsch@mozilla.com
-      - ibicking@mozilla.com
-      - clouserw@mozilla.com
+      - screenshots-dev@mozilla.org
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -4162,6 +4198,21 @@ pdf.viewer:
     kind: uint
     notification_emails:
       - bdahl@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+      - 'content'
+  is_attachment:
+    bug_numbers:
+      - 1736864
+    description: >
+      How many times a PDF that sends Content-Disposition: attachment is opened.
+    expires: "100"
+    kind: uint
+    notification_emails:
+      - rtestard@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -4570,25 +4621,6 @@ browser.timings:
 
 # The following section contains the service worker scalars.
 sw:
-  synthesized_res_count:
-    bug_numbers:
-      - 1416629
-      - 1433916
-    description: >
-      The count of number of synthesize response made by service workers.
-    expires: "68"
-    kind: uint
-    notification_emails:
-      - sw-telemetry@mozilla.com
-      - ttung@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-      - 'content'
-
   cors_res_for_so_req_count:
     bug_numbers:
       - 1416629
@@ -4626,6 +4658,51 @@ sw:
     record_in_processes:
       - 'main'
       - 'content'
+
+serviceworker:
+  registrations:
+    description: >
+      Count how many registrations occur. File bugs in Core::DOM in case of a Telemetry regression.
+
+    record_in_processes:
+      - 'main'
+    products:
+      - 'firefox'
+      - 'fennec'
+    expires: "102"
+    kind: uint
+    bug_numbers:
+      - 1740335
+    notification_emails:
+      - sw-telemetry@mozilla.com
+      - rjesup@mozilla.com
+      - echuang@mozilla.com
+    keyed: true
+    keys:
+      - All
+      - Fetch
+
+  running_max:
+    description: >
+      The maximum number of simultaneous running ServiceWorkers in a session.
+
+    record_in_processes:
+      - 'main'
+    products:
+      - 'firefox'
+      - 'fennec'
+    expires: "102"
+    kind: uint
+    bug_numbers:
+      - 1740335
+    notification_emails:
+      - sw-telemetry@mozilla.com
+      - rjesup@mozilla.com
+      - echuang@mozilla.com
+    keyed: true
+    keys:
+      - All
+      - Fetch
 
 widget:
   ime_name_on_windows:
@@ -4909,6 +4986,7 @@ browser.search:
       - 1619954
       - 1656135
       - 1694852
+      - 1736658
     description: >
       Records bytes that have been transferred for search requests, including
       top-level documents, sub-resources, iframes and search suggestions.
@@ -4917,7 +4995,7 @@ browser.search:
         <search-provider-name>-pb
         sggt-<search-engine-id>
         sggt-<search-engine-id>-pb
-    expires: "96"
+    expires: never
     keyed: true
     kind: uint
     notification_emails:
@@ -5973,6 +6051,7 @@ networking:
       - 'fennec'
     record_in_processes:
       - 'main'
+      - 'socket'
 
   http_transactions_captive_portal:
     bug_numbers:
@@ -5989,6 +6068,7 @@ networking:
       - 'fennec'
     record_in_processes:
       - 'main'
+      - 'socket'
 
   http_connections_captive_portal:
     bug_numbers:
@@ -6005,6 +6085,7 @@ networking:
       - 'fennec'
     record_in_processes:
       - 'main'
+      - 'socket'
 
   http3_enabled:
     bug_numbers:
@@ -6042,6 +6123,25 @@ networking:
       - 'firefox'
     record_in_processes:
       - 'main'
+
+  trr_connection_cycle_count:
+    bug_numbers:
+      - 1737198
+    description: >
+      Number of times we cycled the TRR connection during a subsession.
+      Keyed by TRR provider URL.
+    expires: never
+    keyed: true
+    kind: uint
+    release_channel_collection: opt-out
+    notification_emails:
+      - necko@mozilla.com
+      - nhnt11@mozilla.com
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+      - 'socket'
 
 blocklist:
   lastModified_rs_addons:
@@ -7818,6 +7918,26 @@ cache:
       - 'firefox'
     record_in_processes:
       - 'main'
+
+content:
+  process_max_precise:
+    bug_numbers:
+      - 1741759
+    description: >
+      The maximum number of content processes, submitted when a
+      new maximum is reached.  Replaces CONTENT_PROCESS_MAX and
+      CONTENT_PROCESS_PRECISE_MAX.
+
+    notification_emails:
+      - kmadan@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+    expires: "98"
+    kind: uint
 
 opaque.response.blocking:
   parsing_size_kb:

@@ -234,6 +234,7 @@ pub struct ClipMaskInstance {
 }
 
 // 16 bytes per instance should be enough for anyone!
+#[repr(C)]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]

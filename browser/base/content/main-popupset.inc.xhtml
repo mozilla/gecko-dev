@@ -164,6 +164,19 @@
     </stack>
   </html:template>
 
+  <html:template id="screenshotsPagePanelTemplate">
+    <panel id="screenshotsPagePanel"
+           type="arrow"
+           orient="vertical"
+           noautofocus="true"
+           norolluponanchor="true"
+           consumeoutsideclicks="never"
+           level="parent"
+           tabspecific="true">
+           <screenshots-buttons></screenshots-buttons>
+    </panel>
+  </html:template>
+
   <html:template id="invalidFormTemplate">
     <!-- for invalid form error message -->
     <panel id="invalid-form-popup" type="arrow" orient="vertical" noautofocus="true" level="parent" locationspecific="true">
@@ -423,6 +436,9 @@
   <menupopup id="pictureInPictureToggleContextMenu">
     <menuitem data-l10n-id="picture-in-picture-hide-toggle"
               oncommand="PictureInPicture.hideToggle();" />
+    <menuitem id="context_MovePictureInPictureToggle"
+              data-l10n-id="picture-in-picture-move-toggle-left"
+              oncommand="PictureInPicture.moveToggle();" />
   </menupopup>
 
 #include ../../components/places/content/placesContextMenu.inc.xhtml

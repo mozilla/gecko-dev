@@ -6,6 +6,7 @@
 <?xml-stylesheet href="chrome://global/skin/global.css"?>
 
 <?xml-stylesheet href="chrome://global/skin/in-content/common.css"?>
+<?xml-stylesheet href="chrome://global/skin/in-content/toggle-button.css"?>
 <?xml-stylesheet href="chrome://browser/skin/preferences/preferences.css"?>
 <?xml-stylesheet href="chrome://browser/content/preferences/dialogs/handlers.css"?>
 <?xml-stylesheet href="chrome://browser/skin/preferences/applications.css"?>
@@ -29,11 +30,13 @@
 
   <title data-l10n-id="settings-page-title"></title>
 
+  <meta name="color-scheme" content="light dark" />
   <link rel="localization" href="branding/brand.ftl"/>
   <link rel="localization" href="browser/branding/brandings.ftl"/>
   <link rel="localization" href="browser/branding/sync-brand.ftl"/>
   <link rel="localization" href="browser/browser.ftl"/>
   <link rel="localization" href="browser/preferences/preferences.ftl"/>
+  <link rel="localization" href="preview/moreFromMozilla.ftl"/>
   <!-- Used by fontbuilder.js -->
   <link rel="localization" href="browser/preferences/fonts.ftl"/>
   <link rel="localization" href="toolkit/featuregates/features.ftl"/>
@@ -152,6 +155,16 @@
           <image class="category-icon"/>
           <label class="category-name" flex="1" data-l10n-id="pane-experimental-title"></label>
         </richlistitem>
+        <richlistitem id="category-more-from-mozilla"
+                      class="category"
+                      hidden="true"
+                      data-l10n-id="category-more-from-mozilla"
+                      data-l10n-attrs="tooltiptext"
+                      value="paneMoreFromMozilla"
+                      align="center">
+          <image class="category-icon"/>
+          <label class="category-name" flex="1" data-l10n-id="pane-more-from-mozilla-title"></label>
+        </richlistitem>
       </richlistbox>
 
       <spacer flex="1"/>
@@ -176,24 +189,26 @@
 
     <vbox class="main-content" flex="1" align="start">
       <vbox class="pane-container">
-        <hbox class="sticky-container" pack="end" align="start">
-          <hbox id="policies-container" class="info-box-container smaller-font-size" flex="1" hidden="true">
-            <hbox class="info-icon-container">
-              <image class="info-icon"></image>
+        <hbox class="sticky-container">
+          <hbox class="sticky-inner-container" pack="end" align="start">
+            <hbox id="policies-container" class="info-box-container smaller-font-size" flex="1" hidden="true">
+              <hbox class="info-icon-container">
+                <image class="info-icon"></image>
+              </hbox>
+              <hbox align="center" flex="1">
+                <label flex="1"
+                       href="about:policies"
+                       useoriginprincipal="true"
+                       is="text-link"
+                       data-l10n-id="managed-notice"/>
+              </hbox>
             </hbox>
-            <hbox align="center" flex="1">
-              <label flex="1"
-                     href="about:policies"
-                     useoriginprincipal="true"
-                     is="text-link"
-                     data-l10n-id="managed-notice"/>
-            </hbox>
+            <search-textbox
+              id="searchInput"
+              data-l10n-id="search-input-box2"
+              data-l10n-attrs="placeholder, style"
+              hidden="true"/>
           </hbox>
-          <search-textbox
-            id="searchInput"
-            data-l10n-id="search-input-box2"
-            data-l10n-attrs="placeholder, style"
-            hidden="true"/>
         </hbox>
         <vbox id="mainPrefPane">
 #include searchResults.inc.xhtml
@@ -204,6 +219,7 @@
 #include containers.inc.xhtml
 #include sync.inc.xhtml
 #include experimental.inc.xhtml
+#include moreFromMozilla.inc.xhtml
         </vbox>
       </vbox>
     </vbox>

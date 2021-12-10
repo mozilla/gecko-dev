@@ -590,7 +590,6 @@ already_AddRefed<SourceSurface> ImageBitmap::PrepareForDrawTarget(
     }
   }
 
-  RefPtr<DrawTarget> target = aTarget;
   IntRect surfRect(0, 0, mSurface->GetSize().width, mSurface->GetSize().height);
 
   // Check if we still need to crop our surface
@@ -600,8 +599,7 @@ already_AddRefed<SourceSurface> ImageBitmap::PrepareForDrawTarget(
     // the crop lies entirely outside the surface area, nothing to draw
     if (surfPortion.IsEmpty()) {
       mSurface = nullptr;
-      RefPtr<gfx::SourceSurface> surface(mSurface);
-      return surface.forget();
+      return nullptr;
     }
 
     IntPoint dest(std::max(0, surfPortion.X() - mPictureRect.X()),
@@ -609,18 +607,28 @@ already_AddRefed<SourceSurface> ImageBitmap::PrepareForDrawTarget(
 
     // We must initialize this target with mPictureRect.Size() because the
     // specification states that if the cropping area is given, then return an
-    // ImageBitmap with the size equals to the cropping area.
-    target = target->CreateSimilarDrawTarget(mPictureRect.Size(),
-                                             target->GetFormat());
-
-    if (!target) {
+    // ImageBitmap with the size equals to the cropping area. Ensure that the
+    // format matches the surface, even though the DT type is similar to the
+    // destination, i.e. blending an alpha surface to an opaque DT. However,
+    // any pixels outside the surface portion must be filled with transparent
+    // black, even if the surface is opaque, so force to an alpha format in
+    // that case.
+    SurfaceFormat format = mSurface->GetFormat();
+    if (!surfPortion.IsEqualEdges(mPictureRect) && IsOpaque(format)) {
+      format = SurfaceFormat::B8G8R8A8;
+    }
+    RefPtr<DrawTarget> cropped =
+        aTarget->CreateSimilarDrawTarget(mPictureRect.Size(), format);
+    if (!cropped) {
       mSurface = nullptr;
-      RefPtr<gfx::SourceSurface> surface(mSurface);
-      return surface.forget();
+      return nullptr;
     }
 
-    target->CopySurface(mSurface, surfPortion, dest);
-    mSurface = target->Snapshot();
+    cropped->CopySurface(mSurface, surfPortion, dest);
+    mSurface = cropped->Snapshot();
+    if (!mSurface) {
+      return nullptr;
+    }
 
     // Make mCropRect match new surface we've cropped to
     mPictureRect.MoveTo(0, 0);
@@ -635,43 +643,33 @@ already_AddRefed<SourceSurface> ImageBitmap::PrepareForDrawTarget(
                mSurface->GetFormat() == SurfaceFormat::B8G8R8A8 ||
                mSurface->GetFormat() == SurfaceFormat::A8R8G8B8);
 
-    RefPtr<DataSourceSurface> dstSurface = mSurface->GetDataSurface();
-    MOZ_ASSERT(dstSurface);
-
-    RefPtr<DataSourceSurface> srcSurface;
-    DataSourceSurface::MappedSurface srcMap;
-    DataSourceSurface::MappedSurface dstMap;
-
-    if (dstSurface->Map(DataSourceSurface::MapType::READ_WRITE, &dstMap)) {
-      srcMap = dstMap;
-    } else {
-      srcSurface = dstSurface;
-      if (!srcSurface->Map(DataSourceSurface::READ, &srcMap)) {
-        gfxCriticalError()
-            << "Failed to map source surface for premultiplying alpha.";
-        return nullptr;
-      }
-
-      dstSurface = Factory::CreateDataSourceSurface(srcSurface->GetSize(),
-                                                    srcSurface->GetFormat());
-
-      if (!dstSurface ||
-          !dstSurface->Map(DataSourceSurface::MapType::WRITE, &dstMap)) {
-        gfxCriticalError()
-            << "Failed to map destination surface for premultiplying alpha.";
-        srcSurface->Unmap();
-        return nullptr;
-      }
+    RefPtr<DataSourceSurface> srcSurface = mSurface->GetDataSurface();
+    if (NS_WARN_IF(!srcSurface)) {
+      return nullptr;
+    }
+    RefPtr<DataSourceSurface> dstSurface = Factory::CreateDataSourceSurface(
+        srcSurface->GetSize(), srcSurface->GetFormat());
+    if (NS_WARN_IF(!dstSurface)) {
+      return nullptr;
     }
 
-    PremultiplyData(srcMap.mData, srcMap.mStride, mSurface->GetFormat(),
-                    dstMap.mData, dstMap.mStride, mSurface->GetFormat(),
+    DataSourceSurface::ScopedMap srcMap(srcSurface, DataSourceSurface::READ);
+    if (!srcMap.IsMapped()) {
+      gfxCriticalError()
+          << "Failed to map source surface for premultiplying alpha.";
+      return nullptr;
+    }
+
+    DataSourceSurface::ScopedMap dstMap(dstSurface, DataSourceSurface::WRITE);
+    if (!dstMap.IsMapped()) {
+      gfxCriticalError()
+          << "Failed to map destination surface for premultiplying alpha.";
+      return nullptr;
+    }
+
+    PremultiplyData(srcMap.GetData(), srcMap.GetStride(), mSurface->GetFormat(),
+                    dstMap.GetData(), dstMap.GetStride(), mSurface->GetFormat(),
                     dstSurface->GetSize());
-
-    dstSurface->Unmap();
-    if (srcSurface) {
-      srcSurface->Unmap();
-    }
 
     mAlphaType = gfxAlphaType::Premult;
     mSurface = dstSurface;
@@ -680,10 +678,8 @@ already_AddRefed<SourceSurface> ImageBitmap::PrepareForDrawTarget(
   // Replace our surface with one optimized for the target we're about to draw
   // to, under the assumption it'll likely be drawn again to that target.
   // This call should be a no-op for already-optimized surfaces
-  mSurface = target->OptimizeSourceSurface(mSurface);
-
-  RefPtr<gfx::SourceSurface> surface(mSurface);
-  return surface.forget();
+  mSurface = aTarget->OptimizeSourceSurface(mSurface);
+  return do_AddRef(mSurface);
 }
 
 already_AddRefed<layers::Image> ImageBitmap::TransferAsImage() {
@@ -819,6 +815,7 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateImageBitmapInternal(
 
     dataSurface = CropAndCopyDataSourceSurface(dataSurface, cropRect);
     if (NS_WARN_IF(!dataSurface)) {
+      aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
       return nullptr;
     }
 
@@ -1139,14 +1136,48 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
     return nullptr;
   }
 
-  RefPtr<layers::Image> data = aImageBitmap.mData;
-
-  RefPtr<SourceSurface> surface = data->GetAsSourceSurface();
+  IntRect cropRect = aImageBitmap.mPictureRect;
+  RefPtr<SourceSurface> surface;
 
   bool needToReportMemoryAllocation = false;
 
+  if (aImageBitmap.mSurface) {
+    // the source imageBitmap already has a cropped surface, just use this
+    surface = aImageBitmap.mSurface;
+    cropRect = aCropRect.valueOr(cropRect);
+  } else {
+    RefPtr<layers::Image> data = aImageBitmap.mData;
+    surface = data->GetAsSourceSurface();
+
+    if (aCropRect.isSome()) {
+      // get new crop rect relative to original uncropped surface
+      IntRect newCropRect = aCropRect.ref();
+      newCropRect = FixUpNegativeDimension(newCropRect, aRv);
+
+      newCropRect.MoveBy(cropRect.X(), cropRect.Y());
+
+      if (cropRect.Contains(newCropRect)) {
+        // new crop region within existing surface
+        // safe to just crop this with new rect
+        cropRect = newCropRect;
+      } else {
+        // crop includes area outside original cropped region
+        // create new surface cropped by original bitmap crop rect
+        RefPtr<DataSourceSurface> dataSurface = surface->GetDataSurface();
+
+        surface = CropAndCopyDataSourceSurface(dataSurface, cropRect);
+        if (NS_WARN_IF(!surface)) {
+          aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+          return nullptr;
+        }
+        needToReportMemoryAllocation = true;
+        cropRect = aCropRect.ref();
+      }
+    }
+  }
+
   return CreateImageBitmapInternal(
-      aGlobal, surface, aCropRect, aOptions, aImageBitmap.mWriteOnly,
+      aGlobal, surface, Some(cropRect), aOptions, aImageBitmap.mWriteOnly,
       needToReportMemoryAllocation, false, aImageBitmap.mAlphaType, aRv);
 }
 
@@ -1760,15 +1791,10 @@ CreateImageBitmapFromBlob::OnImageReady(imgIContainer* aImgContainer,
   RefPtr<SourceSurface> croppedSurface = surface;
   RefPtr<DataSourceSurface> dataSurface = surface->GetDataSurface();
 
-#ifdef DEBUG
-  // the returned dataSurface image memory is write protected in debug mode
   // force a copy into unprotected memory as a side effect of
   // CropAndCopyDataSourceSurface
   bool copyRequired = mCropRect.isSome() ||
                       mOptions.mImageOrientation == ImageOrientation::FlipY;
-#else
-  bool copyRequired = mCropRect.isSome();
-#endif
 
   if (copyRequired) {
     // The blob is just decoded into a RasterImage and not optimized yet, so the

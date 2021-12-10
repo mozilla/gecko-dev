@@ -409,6 +409,17 @@ GeckoDriver.prototype.newSession = async function(cmd) {
   const { parameters: capabilities } = cmd;
 
   try {
+    // If the WebDriver BiDi protocol is active always use the Remote Agent
+    // to handle the WebDriver session. If it's not the case then Marionette
+    // itself needs to handle it, and has to nullify the "webSocketUrl"
+    // capability.
+    if (RemoteAgent.webDriverBiDi) {
+      RemoteAgent.webDriverBiDi.createSession(capabilities);
+    } else {
+      this._currentSession = new WebDriverSession(capabilities);
+      this._currentSession.capabilities.delete("webSocketUrl");
+    }
+
     const win = await windowManager.waitForInitialApplicationWindow();
 
     if (MarionettePrefs.clickToStart) {
@@ -422,19 +433,12 @@ GeckoDriver.prototype.newSession = async function(cmd) {
     this.addBrowser(win);
     this.mainFrame = win;
 
-    // If the WebDriver BiDi protocol is active always use the Remote Agent
-    // to handle the WebDriver session. If it's not the case then Marionette
-    // itself needs to handle it, and has to nullify the "webSocketUrl"
-    // capability.
-    if (RemoteAgent.webDriverBiDi) {
-      RemoteAgent.webDriverBiDi.createSession(capabilities);
-    } else {
-      this._currentSession = new WebDriverSession(capabilities);
-      this._currentSession.capabilities.delete("webSocketUrl");
-    }
-
     registerCommandsActor();
     enableEventsActor();
+
+    // Setup observer for modal dialogs
+    this.dialogObserver = new modal.DialogObserver(() => this.curBrowser);
+    this.dialogObserver.add(this.handleModalDialog.bind(this));
 
     for (let win of windowManager.windows) {
       const tabBrowser = browser.getTabBrowser(win);
@@ -455,13 +459,52 @@ GeckoDriver.prototype.newSession = async function(cmd) {
     }
 
     if (this.curBrowser.tab) {
-      this.currentSession.contentBrowsingContext = this.curBrowser.contentBrowser.browsingContext;
+      const browsingContext = this.curBrowser.contentBrowser.browsingContext;
+      this.currentSession.contentBrowsingContext = browsingContext;
+
+      let resolveNavigation;
+
+      // Prepare a promise that will resolve upon a navigation.
+      const onProgressListenerNavigation = new Promise(
+        resolve => (resolveNavigation = resolve)
+      );
+
+      // Create a basic webprogress listener which will check if the browsing
+      // context is ready for the new session on every state change.
+      const navigationListener = {
+        onStateChange: (progress, request, flag, status) => {
+          const isStop = flag & Ci.nsIWebProgressListener.STATE_STOP;
+          if (isStop) {
+            resolveNavigation();
+          }
+        },
+
+        QueryInterface: ChromeUtils.generateQI([
+          "nsIWebProgressListener",
+          "nsISupportsWeakReference",
+        ]),
+      };
+
+      // Monitor the webprogress listener before checking isLoadingDocument to
+      // avoid race conditions.
+      browsingContext.webProgress.addProgressListener(
+        navigationListener,
+        Ci.nsIWebProgress.NOTIFY_STATE_WINDOW |
+          Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT
+      );
+
+      if (browsingContext.webProgress.isLoadingDocument) {
+        await onProgressListenerNavigation;
+      }
+
+      browsingContext.webProgress.removeProgressListener(
+        navigationListener,
+        Ci.nsIWebProgress.NOTIFY_STATE_WINDOW |
+          Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT
+      );
+
       this.curBrowser.contentBrowser.focus();
     }
-
-    // Setup observer for modal dialogs
-    this.dialogObserver = new modal.DialogObserver(() => this.curBrowser);
-    this.dialogObserver.add(this.handleModalDialog.bind(this));
 
     // Check if there is already an open dialog for the selected browser window.
     this.dialog = modal.findModalDialogs(this.curBrowser);
@@ -1420,6 +1463,42 @@ GeckoDriver.prototype.findElements = async function(cmd) {
   };
 
   return this.getActor().findElements(using, value, opts);
+};
+
+/**
+ * Return the shadow root of an element in the document.
+ *
+ * @param {id}
+ *     A web element id reference.
+ * @return {ShadowRoot}
+ *     ShadowRoot of the element.
+ *
+ * @throws {InvalidArgumentError}
+ *     If element <var>id</var> is not a string.
+ * @throws {NoSuchElementError}
+ *     If element represented by reference <var>id</var> is unknown.
+ * @throws {NoSuchShadowRoot}
+ *     Element does not have a shadow root attached.
+ * @throws {NoSuchWindowError}
+ *     Browsing context has been discarded.
+ * @throws {UnexpectedAlertOpenError}
+ *     A modal dialog is open, blocking this operation.
+ * @throws {UnsupportedOperationError}
+ *     Not available in chrome current context.
+ */
+GeckoDriver.prototype.getShadowRoot = async function(cmd) {
+  // Bug 1743541: Add support for chrome scope.
+  assert.content(this.context);
+  assert.open(this.getBrowsingContext());
+  await this._handleUserPrompts();
+
+  let id = assert.string(
+    cmd.parameters.id,
+    pprint`Expected "id" to be a string, got ${cmd.parameters.id}`
+  );
+  let webEl = WebElement.fromUUID(id, this.context);
+
+  return this.getActor().getShadowRoot(webEl);
 };
 
 /**
@@ -2820,9 +2899,9 @@ GeckoDriver.prototype.teardownReftest = function() {
  *     Right margin in cm. Defaults to 1cm (~0.4 inches).
  * @param {number=} margin.top
  *     Top margin in cm. Defaults to 1cm (~0.4 inches).
- * @param {string=} pageRanges (not supported)
- *     Paper ranges to print, e.g., '1-5, 8, 11-13'.
- *     Defaults to the empty string, which means print all pages.
+ * @param {Array.<string|number>=} pageRanges
+ *     Paper ranges to print, e.g., ['1-5', 8, '11-13'].
+ *     Defaults to the empty array, which means print all pages.
  * @param {number=} page.height
  *     Paper height in cm. Defaults to US letter height (11 inches / 27.94cm)
  * @param {number=} page.width
@@ -2871,6 +2950,7 @@ GeckoDriver.prototype.print = async function(cmd) {
   assert.boolean(settings.shrinkToFit);
   assert.boolean(settings.landscape);
   assert.boolean(settings.printBackground);
+  assert.array(settings.pageRanges);
 
   const linkedBrowser = this.curBrowser.tab.linkedBrowser;
   const filePath = await print.printToFile(linkedBrowser, settings);
@@ -2971,6 +3051,7 @@ GeckoDriver.prototype.commands = {
   "WebDriver:GetElementTagName": GeckoDriver.prototype.getElementTagName,
   "WebDriver:GetElementText": GeckoDriver.prototype.getElementText,
   "WebDriver:GetPageSource": GeckoDriver.prototype.getPageSource,
+  "WebDriver:GetShadowRoot": GeckoDriver.prototype.getShadowRoot,
   "WebDriver:GetTimeouts": GeckoDriver.prototype.getTimeouts,
   "WebDriver:GetTitle": GeckoDriver.prototype.getTitle,
   "WebDriver:GetWindowHandle": GeckoDriver.prototype.getWindowHandle,

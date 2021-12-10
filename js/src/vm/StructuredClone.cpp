@@ -491,13 +491,13 @@ struct JSStructuredCloneWriter {
       : out(cx, scope),
         callbacks(cb),
         closure(cbClosure),
-        objs(out.context()),
-        counts(out.context()),
-        objectEntries(out.context()),
-        otherEntries(out.context()),
-        memory(out.context()),
-        transferable(out.context(), tVal),
-        transferableObjects(out.context(), TransferableObjectsSet(cx)),
+        objs(cx),
+        counts(cx),
+        objectEntries(cx),
+        otherEntries(cx),
+        memory(cx),
+        transferable(cx, tVal),
+        transferableObjects(cx, TransferableObjectsList(cx)),
         cloneDataPolicy(cloneDataPolicy) {
     out.setCallbacks(cb, cbClosure, OwnTransferablePolicy::NoTransferables);
   }
@@ -582,17 +582,10 @@ struct JSStructuredCloneWriter {
                 SystemAllocPolicy>;
   Rooted<CloneMemory> memory;
 
-  struct TransferableObjectsHasher : public DefaultHasher<JSObject*> {
-    static inline HashNumber hash(const Lookup& l) {
-      return DefaultHasher<JSObject*>::hash(l);
-    }
-  };
-
   // Set of transferable objects
   RootedValue transferable;
-  typedef GCHashSet<JSObject*, TransferableObjectsHasher>
-      TransferableObjectsSet;
-  Rooted<TransferableObjectsSet> transferableObjects;
+  using TransferableObjectsList = GCVector<JSObject*>;
+  Rooted<TransferableObjectsList> transferableObjects;
 
   const JS::CloneDataPolicy cloneDataPolicy;
 
@@ -700,6 +693,11 @@ bool ReadStructuredClone(JSContext* cx, const JSStructuredCloneData& data,
                          const JS::CloneDataPolicy& cloneDataPolicy,
                          const JSStructuredCloneCallbacks* cb,
                          void* cbClosure) {
+  if (data.Size() % 8) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_SC_BAD_SERIALIZED_DATA, "misaligned");
+    return false;
+  }
   SCInput in(cx, data);
   JSStructuredCloneReader r(in, scope, cloneDataPolicy, cb, cbClosure);
   return r.read(vp, data.Size());
@@ -1171,12 +1169,12 @@ bool JSStructuredCloneWriter::parseTransferable() {
     }
 
     // No duplicates allowed
-    auto p = transferableObjects.lookupForAdd(tObj);
-    if (p) {
+    if (std::find(transferableObjects.begin(), transferableObjects.end(),
+                  tObj) != transferableObjects.end()) {
       return reportDataCloneError(JS_SCERR_DUP_TRANSFERABLE);
     }
 
-    if (!transferableObjects.add(p, tObj)) {
+    if (!transferableObjects.append(tObj)) {
       return false;
     }
   }
@@ -1898,13 +1896,13 @@ bool JSStructuredCloneWriter::writeTransferMap() {
     return false;
   }
 
-  if (!out.write(transferableObjects.count())) {
+  if (!out.write(transferableObjects.length())) {
     return false;
   }
 
   RootedObject obj(context());
-  for (auto tr = transferableObjects.all(); !tr.empty(); tr.popFront()) {
-    obj = tr.front();
+  for (auto* o : transferableObjects) {
+    obj = o;
     if (!memory.put(obj, memory.count())) {
       ReportOutOfMemory(context());
       return false;
@@ -1946,14 +1944,14 @@ bool JSStructuredCloneWriter::transferOwnership() {
   point++;
   MOZ_RELEASE_ASSERT(point.canPeek());
   MOZ_ASSERT(NativeEndian::swapFromLittleEndian(point.peek()) ==
-             transferableObjects.count());
+             transferableObjects.length());
   point++;
 
   JSContext* cx = context();
   RootedObject obj(cx);
   JS::StructuredCloneScope scope = output().scope();
-  for (auto tr = transferableObjects.all(); !tr.empty(); tr.popFront()) {
-    obj = tr.front();
+  for (auto* o : transferableObjects) {
+    obj = o;
 
     uint32_t tag;
     JS::TransferableOwnership ownership;

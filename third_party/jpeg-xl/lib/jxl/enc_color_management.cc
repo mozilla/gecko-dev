@@ -31,6 +31,7 @@
 
 #include "lib/jxl/base/compiler_specific.h"
 #include "lib/jxl/base/data_parallel.h"
+#include "lib/jxl/base/printf_macros.h"
 #include "lib/jxl/base/status.h"
 #include "lib/jxl/field_encodings.h"
 #include "lib/jxl/linalg.h"
@@ -310,7 +311,7 @@ Status CreateProfileXYZ(const cmsContext context,
 // IMPORTANT: icc must outlive profile.
 Status DecodeProfile(const PaddedBytes& icc, skcms_ICCProfile* const profile) {
   if (!skcms_Parse(icc.data(), icc.size(), profile)) {
-    return JXL_FAILURE("Failed to parse ICC profile with %zu bytes",
+    return JXL_FAILURE("Failed to parse ICC profile with %" PRIuS " bytes",
                        icc.size());
   }
   return true;
@@ -775,13 +776,12 @@ Status ColorSpaceTransform::Init(const ColorEncoding& c_src,
 #endif
   }
 
-  // Special-case for BT.2100 HLG/PQ and SRGB <=> linear:
+  // Special-case SRGB <=> linear and when PQ or HLG is involved:
   const bool src_linear = c_src.tf.IsLinear();
   const bool dst_linear = c_dst.tf.IsLinear();
-  if (((c_src.tf.IsPQ() || c_src.tf.IsHLG()) && dst_linear) ||
-      ((c_dst.tf.IsPQ() || c_dst.tf.IsHLG()) && src_linear) ||
-      ((c_src.tf.IsPQ() != c_dst.tf.IsPQ()) && intensity_target_ != 10000) ||
-      (c_src.tf.IsSRGB() && dst_linear) || (c_dst.tf.IsSRGB() && src_linear)) {
+  if (c_src.tf.IsPQ() || c_src.tf.IsHLG() || c_dst.tf.IsPQ() ||
+      c_dst.tf.IsHLG() || (c_src.tf.IsSRGB() && dst_linear) ||
+      (c_dst.tf.IsSRGB() && src_linear)) {
     // Construct new profiles as if the data were already/still linear.
     ColorEncoding c_linear_src = c_src;
     ColorEncoding c_linear_dst = c_dst;
@@ -845,7 +845,8 @@ Status ColorSpaceTransform::Init(const ColorEncoding& c_src,
   const size_t channels_dst = c_dst.Channels();
   JXL_CHECK(channels_src == channels_dst);
 #if JXL_CMS_VERBOSE
-  printf("Channels: %zu; Threads: %zu\n", channels_src, num_threads);
+  printf("Channels: %" PRIuS "; Threads: %" PRIuS "\n", channels_src,
+         num_threads);
 #endif
 
 #if !JPEGXL_ENABLE_SKCMS

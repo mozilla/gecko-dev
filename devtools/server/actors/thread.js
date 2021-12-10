@@ -28,9 +28,6 @@ const {
 const {
   WatchpointMap,
 } = require("devtools/server/actors/utils/watchpoint-map");
-const {
-  getDebuggerSourceURL,
-} = require("devtools/server/actors/utils/source-url");
 
 const { logEvent } = require("devtools/server/actors/utils/logEvent");
 
@@ -460,16 +457,22 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   _canShowOverlay() {
+    const { window } = this._parent;
+
     // The CanvasFrameAnonymousContentHelper class we're using to create the paused overlay
     // need to have access to a documentElement.
-    // Accept only browsing context target which exposes such element, but ignore
-    // privileged document (top level window, special about:* pages, …).
-    return (
-      // We might have access to a non-chrome window getter that is a Sandox (e.g. in the
-      // case of ContentProcessTargetActor).
-      this._parent.window?.document?.documentElement &&
-      !this._parent.window.isChromeWindow
-    );
+    // We might have access to a non-chrome window getter that is a Sandox (e.g. in the
+    // case of ContentProcessTargetActor).
+    if (!window?.document?.documentElement) {
+      return false;
+    }
+
+    // Ignore privileged document (top level window, special about:* pages, …).
+    if (window.isChromeWindow) {
+      return false;
+    }
+
+    return true;
   },
 
   async showOverlay() {
@@ -1434,9 +1437,16 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     for (const source of sources) {
       this._addSource(source);
 
-      const url = getDebuggerSourceURL(source);
-      if (url) {
-        urlMap[url]--;
+      // The following check should match the filtering done by `findSourceURLs`:
+      // https://searchfox.org/mozilla-central/rev/ac7a567f036e1954542763f4722fbfce041fb752/js/src/debugger/Debugger.cpp#2406-2409
+      // Otherwise we may populate `urlMap` incorrectly and resurrect sources that weren't GCed,
+      // and spawn duplicated SourceActors/Debugger.Source for the same actual source.
+      // `findSourceURLs` uses !introductionScript check as that allows to identify <script>'s
+      // loaded from the HTML page. This boolean will be defined only when the <script> tag
+      // is added by Javascript code at runtime.
+      // https://searchfox.org/mozilla-central/rev/3d03a3ca09f03f06ef46a511446537563f62a0c6/devtools/docs/user/debugger-api/debugger.source/index.rst#113
+      if (!source.introductionScript) {
+        urlMap[source.url]--;
       }
     }
 

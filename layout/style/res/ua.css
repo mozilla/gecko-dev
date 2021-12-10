@@ -195,6 +195,7 @@
   -moz-box-ordinal-group: inherit;
   overflow-clip-box: inherit;
   unicode-bidi: inherit;
+  user-select: inherit;
   text-overflow: inherit;
   /* The properties below here don't apply if our position is static,
      and we do want them to have an effect if it's not, so it's fine
@@ -374,6 +375,21 @@ xul|*:fullscreen:not(:root, [hidden="true"]) {
    * maintain the old behaviour. We should probably not do this, but we don't
    * fullscreen XUL element that frequently either. */
   display: block;
+}
+
+/**
+ * Ensure we recompute the default color for the root based on its
+ * computed color-scheme. This matches other browsers.
+ *
+ * For the default background, we look at the root
+ * element style frame in
+ * PresShell::GetDefaultBackgroundColorToDraw, however we
+ * can't make the initial style (the style the root element
+ * inherits from) depend on the root element's style, as that
+ * is trivially cyclic.
+ */
+:root {
+  color: CanvasText;
 }
 
 /* Selectors here should match the check in

@@ -30,10 +30,12 @@ URLQueryStringStripper* URLQueryStringStripper::GetOrCreate() {
     gQueryStringStripper = new URLQueryStringStripper();
     gQueryStringStripper->Init();
 
-    RunOnShutdown([&] {
-      gQueryStringStripper->Shutdown();
-      gQueryStringStripper = nullptr;
-    });
+    RunOnShutdown(
+        [&] {
+          gQueryStringStripper->Shutdown();
+          gQueryStringStripper = nullptr;
+        },
+        ShutdownPhase::XPCOMShutdown);
   }
 
   return gQueryStringStripper;
@@ -108,7 +110,7 @@ bool URLQueryStringStripper::StripQueryString(nsIURI* aURI,
   }
 
   nsAutoString newQuery;
-  params.Serialize(newQuery);
+  params.Serialize(newQuery, false);
 
   Unused << NS_MutateURI(uri)
                 .SetQuery(NS_ConvertUTF16toUTF8(newQuery))

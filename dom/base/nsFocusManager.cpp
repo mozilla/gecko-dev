@@ -62,6 +62,7 @@
 #include "mozilla/HTMLEditor.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/LookAndFeel.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/PointerLockManager.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
@@ -70,9 +71,7 @@
 #include "mozilla/StaticPrefs_full_screen_api.h"
 #include <algorithm>
 
-#ifdef MOZ_XUL
-#  include "nsIDOMXULMenuListElement.h"
-#endif
+#include "nsIDOMXULMenuListElement.h"
 
 #ifdef ACCESSIBILITY
 #  include "nsAccessibilityService.h"
@@ -348,7 +347,6 @@ Element* nsFocusManager::GetFocusedDescendant(
 
 // static
 Element* nsFocusManager::GetRedirectedFocus(nsIContent* aContent) {
-#ifdef MOZ_XUL
   if (aContent->IsXULElement()) {
     nsCOMPtr<nsIDOMXULMenuListElement> menulist =
         aContent->AsElement()->AsXULMenuList();
@@ -358,7 +356,6 @@ Element* nsFocusManager::GetRedirectedFocus(nsIContent* aContent) {
       return inputField;
     }
   }
-#endif
 
   return nullptr;
 }
@@ -2772,13 +2769,14 @@ class FocusInOutEvent : public Runnable {
 };
 
 static Document* GetDocumentHelper(EventTarget* aTarget) {
-  nsCOMPtr<nsINode> node = do_QueryInterface(aTarget);
-  if (!node) {
-    nsCOMPtr<nsPIDOMWindowInner> win = do_QueryInterface(aTarget);
-    return win ? win->GetExtantDoc() : nullptr;
+  if (!aTarget) {
+    return nullptr;
   }
-
-  return node->OwnerDoc();
+  if (const nsINode* node = nsINode::FromEventTarget(aTarget)) {
+    return node->OwnerDoc();
+  }
+  nsPIDOMWindowInner* win = nsPIDOMWindowInner::FromEventTarget(aTarget);
+  return win ? win->GetExtantDoc() : nullptr;
 }
 
 void nsFocusManager::FireFocusInOrOutEvent(
@@ -3430,7 +3428,6 @@ nsresult nsFocusManager::DetermineElementToMoveFocus(
       }
     }
   } else {
-#ifdef MOZ_XUL
     if (aType != MOVEFOCUS_CARET) {
       // if there is no focus, yet a panel is open, focus the first item in
       // the panel
@@ -3439,7 +3436,6 @@ nsresult nsFocusManager::DetermineElementToMoveFocus(
         popupFrame = pm->GetTopPopup(ePopupTypePanel);
       }
     }
-#endif
     if (popupFrame) {
       // When there is a popup open, and no starting content, start the search
       // at the topmost popup.
@@ -4519,25 +4515,28 @@ nsIContent* nsFocusManager::GetNextTabbableMapArea(bool aForward,
     if (!mapContent) {
       return nullptr;
     }
-    uint32_t count = mapContent->GetChildCount();
     // First see if the the start content is in this map
-
-    int32_t index = mapContent->ComputeIndexOf(aStartContent);
+    Maybe<uint32_t> indexOfStartContent =
+        mapContent->ComputeIndexOf(aStartContent);
     int32_t tabIndex;
-    if (index < 0 || (aStartContent->IsFocusable(&tabIndex) &&
-                      tabIndex != aCurrentTabIndex)) {
+    nsIContent* scanStartContent;
+    if (indexOfStartContent.isNothing() ||
+        (aStartContent->IsFocusable(&tabIndex) &&
+         tabIndex != aCurrentTabIndex)) {
       // If aStartContent is in this map we must start iterating past it.
       // We skip the case where aStartContent has tabindex == aStartContent
       // since the next tab ordered element might be before it
       // (or after for backwards) in the child list.
-      index = aForward ? -1 : (int32_t)count;
+      scanStartContent =
+          aForward ? mapContent->GetFirstChild() : mapContent->GetLastChild();
+    } else {
+      scanStartContent = aForward ? aStartContent->GetNextSibling()
+                                  : aStartContent->GetPreviousSibling();
     }
 
-    // GetChildAt_Deprecated will return nullptr if our index < 0 or index >=
-    // count
-    nsCOMPtr<nsIContent> areaContent;
-    while ((areaContent = mapContent->GetChildAt_Deprecated(
-                aForward ? ++index : --index)) != nullptr) {
+    for (nsCOMPtr<nsIContent> areaContent = scanStartContent; areaContent;
+         areaContent = aForward ? areaContent->GetNextSibling()
+                                : areaContent->GetPreviousSibling()) {
       if (areaContent->IsFocusable(&tabIndex) && tabIndex == aCurrentTabIndex) {
         return areaContent;
       }

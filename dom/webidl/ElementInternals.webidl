@@ -21,5 +21,38 @@ interface ElementInternals {
   readonly attribute HTMLFormElement? form;
 
   [Pref="dom.webcomponents.formAssociatedCustomElement.enabled", Throws]
+  void setValidity(optional ValidityStateFlags flags = {},
+                   optional DOMString message,
+                   optional HTMLElement anchor);
+  [Pref="dom.webcomponents.formAssociatedCustomElement.enabled", Throws]
+  readonly attribute boolean willValidate;
+  [Pref="dom.webcomponents.formAssociatedCustomElement.enabled", Throws]
+  readonly attribute ValidityState validity;
+  [Pref="dom.webcomponents.formAssociatedCustomElement.enabled", Throws]
+  readonly attribute DOMString validationMessage;
+  [Pref="dom.webcomponents.formAssociatedCustomElement.enabled", Throws]
+  boolean checkValidity();
+  [Pref="dom.webcomponents.formAssociatedCustomElement.enabled", Throws]
+  boolean reportValidity();
+
+  [Pref="dom.webcomponents.formAssociatedCustomElement.enabled", Throws]
   readonly attribute NodeList labels;
+};
+
+partial interface ElementInternals {
+  [ChromeOnly, Throws]
+  readonly attribute HTMLElement? validationAnchor;
+};
+
+dictionary ValidityStateFlags {
+  boolean valueMissing = false;
+  boolean typeMismatch = false;
+  boolean patternMismatch = false;
+  boolean tooLong = false;
+  boolean tooShort = false;
+  boolean rangeUnderflow = false;
+  boolean rangeOverflow = false;
+  boolean stepMismatch = false;
+  boolean badInput = false;
+  boolean customError = false;
 };

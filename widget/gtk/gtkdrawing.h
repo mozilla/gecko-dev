@@ -347,6 +347,8 @@ enum WidgetNodeType : int {
   MOZ_GTK_WINDOW_DECORATION,
   MOZ_GTK_WINDOW_DECORATION_SOLID,
 
+  MOZ_GTK_MENUPOPUP_DECORATION,
+
   MOZ_GTK_WIDGET_NODE_COUNT
 };
 
@@ -354,7 +356,6 @@ enum WidgetNodeType : int {
  * right side of the tab bar */
 struct ButtonLayout {
   WidgetNodeType mType;
-  bool mAtRight;
 };
 
 /*** General library functions ***/

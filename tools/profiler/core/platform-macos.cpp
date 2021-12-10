@@ -55,6 +55,11 @@ static void StreamMetaPlatformSampleUnits(PSLockRef aLock,
   aWriter.StringProperty("threadCPUDelta", "\u00B5s");
 }
 
+/* static */
+uint64_t RunningTimes::ConvertRawToJson(uint64_t aRawValue) {
+  return aRawValue;
+}
+
 static RunningTimes GetThreadRunningTimesDiff(
     PSLockRef aLock,
     ThreadRegistration::UnlockedRWForLockedProfiler& aThreadData) {
@@ -94,6 +99,13 @@ static RunningTimes GetThreadRunningTimesDiff(
   const RunningTimes diff = newRunningTimes - previousRunningTimes;
   previousRunningTimes = newRunningTimes;
   return diff;
+}
+
+static void DiscardSuspendedThreadRunningTimes(
+    PSLockRef aLock,
+    ThreadRegistration::UnlockedRWForLockedProfiler& aThreadData) {
+  // Nothing to do!
+  // On macOS, suspending a thread doesn't make that thread work.
 }
 
 template <typename Func>
@@ -191,9 +203,7 @@ static void* ThreadEntry(void* aArg) {
 }
 
 SamplerThread::SamplerThread(PSLockRef aLock, uint32_t aActivityGeneration,
-                             double aIntervalMilliseconds,
-                             bool aStackWalkEnabled,
-                             bool aNoTimerResolutionChange)
+                             double aIntervalMilliseconds, uint32_t aFeatures)
     : mSampler(aLock),
       mActivityGeneration(aActivityGeneration),
       mIntervalMicroseconds(

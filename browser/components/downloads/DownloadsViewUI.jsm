@@ -15,8 +15,6 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-
 XPCOMUtils.defineLazyModuleGetters(this, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   Downloads: "resource://gre/modules/Downloads.jsm",
@@ -24,6 +22,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   DownloadsCommon: "resource:///modules/DownloadsCommon.jsm",
   FileUtils: "resource://gre/modules/FileUtils.jsm",
   OS: "resource://gre/modules/osfile.jsm",
+  UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -120,12 +119,32 @@ var DownloadsViewUI = {
   },
 
   /**
+   * Get source url of the download without'http' or'https' prefix.
+   */
+  getStrippedUrl(download) {
+    return UrlbarUtils.stripPrefixAndTrim(download?.source?.url, {
+      stripHttp: true,
+      stripHttps: true,
+    })[0];
+  },
+
+  /**
    * Returns the user-facing label for the given Download object. This is
    * normally the leaf name of the download target file. In case this is a very
    * old history download for which the target file is unknown, the download
    * source URI is displayed.
    */
   getDisplayName(download) {
+    if (
+      download.error?.reputationCheckVerdict ==
+      Downloads.Error.BLOCK_VERDICT_DOWNLOAD_SPAM
+    ) {
+      let l10n = {
+        id: "downloads-blocked-from-url",
+        args: { url: DownloadsViewUI.getStrippedUrl(download) },
+      };
+      return { l10n };
+    }
     return download.target.path
       ? OS.Path.basename(download.target.path)
       : download.source.url;
@@ -227,23 +246,32 @@ var DownloadsViewUI = {
     // "always open similar files" item instead so that users can add a new
     // mimetype to about:preferences table and set to open with system default.
     // Only appear if browser.download.improvements_to_download_panel is enabled.
-    let improvementsOn = Services.prefs.getBoolPref(
-      "browser.download.improvements_to_download_panel"
-    );
     let alwaysOpenSimilarFilesItem = contextMenu.querySelector(
       ".downloadAlwaysOpenSimilarFilesMenuItem"
     );
 
-    // In HelperAppDlg.jsm, we determine whether or not an "always open..." checkbox
-    // should appear in the unknownContentType window. Here, we use similar checks to
-    // determine if we should show the "always open similar files" context menu item.
+    /**
+     * In HelperAppDlg.jsm, we determine whether or not an "always open..." checkbox
+     * should appear in the unknownContentType window. Here, we use similar checks to
+     * determine if we should show the "always open similar files" context menu item.
+     *
+     * Note that we also read the content type using mimeInfo to detect better and available
+     * mime types, given a file extension. Some sites default to "application/octet-stream",
+     * further limiting what file types can be added to about:preferences, even for file types
+     * that are in fact capable of being handled with a default application.
+     *
+     * There are also cases where download.contentType is undefined (ex. when opening
+     * the context menu on a previously downloaded item via download history).
+     * Using mimeInfo ensures that content type exists and prevents intermittence.
+     */
     let shouldNotRememberChoice =
-      download.contentType === "application/octet-stream" ||
-      download.contentType === "application/x-msdownload" ||
-      (download.contentType === "text/plain" &&
+      !mimeInfo?.type ||
+      mimeInfo.type === "application/octet-stream" ||
+      mimeInfo.type === "application/x-msdownload" ||
+      (mimeInfo.type === "text/plain" &&
         gReputationService.isBinary(download.target.path));
 
-    if (improvementsOn && !canViewInternally) {
+    if (DownloadsViewUI.improvementsIsOn && !canViewInternally) {
       alwaysOpenSimilarFilesItem.hidden =
         state !== DOWNLOAD_FINISHED || shouldNotRememberChoice;
     } else {
@@ -260,6 +288,13 @@ var DownloadsViewUI = {
     }
   },
 };
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  DownloadsViewUI,
+  "improvementsIsOn",
+  "browser.download.improvements_to_download_panel",
+  false
+);
 
 DownloadsViewUI.BaseView = class {
   canClearDownloads(nodeContainer) {
@@ -409,8 +444,17 @@ DownloadsViewUI.DownloadElementShell.prototype = {
    *        URL of the icon to load, generally from the "image" property.
    */
   showDisplayNameAndIcon(displayName, icon) {
-    this._downloadTarget.setAttribute("value", displayName);
-    this._downloadTarget.setAttribute("tooltiptext", displayName);
+    if (displayName.l10n) {
+      let document = this.element.ownerDocument;
+      document.l10n.setAttributes(
+        this._downloadTarget,
+        displayName.l10n.id,
+        displayName.l10n.args
+      );
+    } else {
+      this._downloadTarget.setAttribute("value", displayName);
+      this._downloadTarget.setAttribute("tooltiptext", displayName);
+    }
     this._downloadTypeIcon.setAttribute("src", icon);
   },
 
@@ -490,6 +534,10 @@ DownloadsViewUI.DownloadElementShell.prototype = {
    *        Downloads View. Type is either l10n object or string literal.
    */
   showStatusWithDetails(stateLabel, hoverStatus) {
+    if (stateLabel.l10n) {
+      this.showStatus(stateLabel, hoverStatus);
+      return;
+    }
     let [displayHost] = DownloadUtils.getURIHost(this.download.source.url);
     let [displayDate] = DownloadUtils.getReadableDates(
       new Date(this.download.endTime)
@@ -586,13 +634,9 @@ DownloadsViewUI.DownloadElementShell.prototype = {
   _updateStateInner() {
     let progressPaused = false;
 
-    let improvementsOn = Services.prefs.getBoolPref(
-      "browser.download.improvements_to_download_panel"
-    );
-
     this.element.classList.toggle(
       "openWhenFinished",
-      improvementsOn && !this.download.stopped
+      DownloadsViewUI.improvementsIsOn && !this.download.stopped
     );
 
     if (!this.download.stopped) {
@@ -610,11 +654,18 @@ DownloadsViewUI.DownloadElementShell.prototype = {
       );
       this.lastEstimatedSecondsLeft = newEstimatedSecondsLeft;
 
-      if (improvementsOn && this.download.launchWhenSucceeded) {
+      if (
+        DownloadsViewUI.improvementsIsOn &&
+        this.download.launchWhenSucceeded
+      ) {
         status = DownloadUtils.getFormattedTimeStatus(newEstimatedSecondsLeft);
       }
-
-      this.showStatus(status);
+      let hoverStatus = DownloadsViewUI.improvementsIsOn
+        ? {
+            l10n: "downloading-file-click-to-open",
+          }
+        : undefined;
+      this.showStatus(status, hoverStatus);
     } else {
       let verdict = "";
 
@@ -701,6 +752,9 @@ DownloadsViewUI.DownloadElementShell.prototype = {
                   this.showButton("askRemoveFileOrAllow");
                 }
                 break;
+              case Downloads.Error.BLOCK_VERDICT_DOWNLOAD_SPAM:
+                this.showButton("askRemoveFileOrAllow");
+                break;
               default:
                 // Assume Downloads.Error.BLOCK_VERDICT_MALWARE
                 this.showButton("removeFile");
@@ -773,6 +827,7 @@ DownloadsViewUI.DownloadElementShell.prototype = {
 
   /**
    * Returns [title, [details1, details2]] for blocked downloads.
+   * The title or details could be raw strings or l10n objects.
    */
   get rawBlockedTitleAndDetails() {
     let s = DownloadsCommon.strings;
@@ -797,6 +852,19 @@ DownloadsViewUI.DownloadElementShell.prototype = {
         ];
       case Downloads.Error.BLOCK_VERDICT_MALWARE:
         return [s.blockedMalware, [s.unblockTypeMalware, s.unblockTip2]];
+
+      case Downloads.Error.BLOCK_VERDICT_DOWNLOAD_SPAM:
+        let title = {
+          id: "downloads-files-not-downloaded",
+          args: {
+            num: this.download.blockedDownloadsCount,
+          },
+        };
+        let details = {
+          id: "downloads-blocked-download-detailed-info",
+          args: { url: DownloadsViewUI.getStrippedUrl(this.download) },
+        };
+        return [{ l10n: title }, [{ l10n: details }, null]];
     }
     throw new Error(
       "Unexpected reputationCheckVerdict: " +

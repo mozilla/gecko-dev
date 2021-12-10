@@ -40,6 +40,7 @@ JSObject* js::AllocateObject(JSContext* cx, AllocKind kind,
                              size_t nDynamicSlots, gc::InitialHeap heap,
                              const JSClass* clasp,
                              AllocSite* site /* = nullptr */) {
+  MOZ_ASSERT(!cx->isHelperThreadContext());
   MOZ_ASSERT(IsObjectAllocKind(kind));
   size_t thingSize = Arena::thingSize(kind);
 
@@ -113,8 +114,6 @@ JSObject* GCRuntime::tryNewNurseryObject(JSContext* cx, size_t thingSize,
                                          size_t nDynamicSlots,
                                          const JSClass* clasp,
                                          AllocSite* site) {
-  MOZ_RELEASE_ASSERT(!cx->isHelperThreadContext());
-
   MOZ_ASSERT(cx->isNurseryAllocAllowed());
   MOZ_ASSERT(!cx->isNurseryAllocSuppressed());
   MOZ_ASSERT(!cx->zone()->isAtomsZone());
@@ -178,7 +177,6 @@ JSString* GCRuntime::tryNewNurseryString(JSContext* cx, size_t thingSize,
                                          AllocKind kind) {
   MOZ_ASSERT(IsNurseryAllocable(kind));
   MOZ_ASSERT(cx->isNurseryAllocAllowed());
-  MOZ_ASSERT(!cx->isHelperThreadContext());
   MOZ_ASSERT(!cx->isNurseryAllocSuppressed());
   MOZ_ASSERT(!cx->zone()->isAtomsZone());
 
@@ -204,6 +202,7 @@ JSString* GCRuntime::tryNewNurseryString(JSContext* cx, size_t thingSize,
 template <AllowGC allowGC /* = CanGC */>
 JSString* js::AllocateStringImpl(JSContext* cx, AllocKind kind, size_t size,
                                  InitialHeap heap) {
+  MOZ_ASSERT(!cx->isHelperThreadContext());
   MOZ_ASSERT(size == Arena::thingSize(kind));
   MOZ_ASSERT(size == sizeof(JSString) || size == sizeof(JSFatInlineString));
   MOZ_ASSERT(
@@ -257,7 +256,6 @@ JS::BigInt* GCRuntime::tryNewNurseryBigInt(JSContext* cx, size_t thingSize,
                                            AllocKind kind) {
   MOZ_ASSERT(IsNurseryAllocable(kind));
   MOZ_ASSERT(cx->isNurseryAllocAllowed());
-  MOZ_ASSERT(!cx->isHelperThreadContext());
   MOZ_ASSERT(!cx->isNurseryAllocSuppressed());
   MOZ_ASSERT(!cx->zone()->isAtomsZone());
 
@@ -282,6 +280,8 @@ JS::BigInt* GCRuntime::tryNewNurseryBigInt(JSContext* cx, size_t thingSize,
 
 template <AllowGC allowGC /* = CanGC */>
 JS::BigInt* js::AllocateBigInt(JSContext* cx, InitialHeap heap) {
+  MOZ_ASSERT(!cx->isHelperThreadContext());
+
   AllocKind kind = MapTypeToAllocKind<JS::BigInt>::kind;
   size_t size = sizeof(JS::BigInt);
   MOZ_ASSERT(size == Arena::thingSize(kind));
@@ -328,16 +328,15 @@ template JS::BigInt* js::AllocateBigInt<CanGC>(JSContext* cx,
 
 template <AllowGC allowGC /* = CanGC */>
 Cell* js::AllocateTenuredImpl(JSContext* cx, gc::AllocKind kind, size_t size) {
+  MOZ_ASSERT(!cx->isHelperThreadContext());
   MOZ_ASSERT(!IsNurseryAllocable(kind));
   MOZ_ASSERT(size == Arena::thingSize(kind));
   MOZ_ASSERT(
       size >= gc::MinCellSize,
       "All allocations must be at least the allocator-imposed minimum size.");
 
-  if (!cx->isHelperThreadContext()) {
-    if (!cx->runtime()->gc.checkAllocatorState<allowGC>(cx, kind)) {
-      return nullptr;
-    }
+  if (!cx->runtime()->gc.checkAllocatorState<allowGC>(cx, kind)) {
+    return nullptr;
   }
 
   return GCRuntime::tryNewTenuredThing<Cell, allowGC>(cx, kind, size);
@@ -356,7 +355,7 @@ T* GCRuntime::tryNewTenuredThing(JSContext* cx, AllocKind kind,
     // Get the next available free list and allocate out of it. This may
     // acquire a new arena, which will lock the chunk list. If there are no
     // chunks available it may also allocate new memory directly.
-    t = reinterpret_cast<T*>(refillFreeListFromAnyThread(cx, kind));
+    t = reinterpret_cast<T*>(refillFreeList(cx, kind));
 
     if (MOZ_UNLIKELY(!t)) {
       if (allowGC) {
@@ -385,10 +384,6 @@ void GCRuntime::attemptLastDitchGC(JSContext* cx) {
   // Either there was no memory available for a new chunk or the heap hit its
   // size limit. Try to perform an all-compartments, non-incremental, shrinking
   // GC and wait for it to finish.
-
-  if (cx->isHelperThreadContext()) {
-    return;
-  }
 
   if (!lastLastDitchTime.IsNull() &&
       TimeStamp::Now() - lastLastDitchTime <= tunables.minLastDitchGCPeriod()) {
@@ -459,10 +454,7 @@ template <typename T>
 /* static */
 void GCRuntime::checkIncrementalZoneState(JSContext* cx, T* t) {
 #ifdef DEBUG
-  if (cx->isHelperThreadContext() || !t) {
-    return;
-  }
-
+  MOZ_ASSERT(t);
   TenuredCell* cell = &t->asTenured();
   Zone* zone = cell->zone();
   if (zone->isGCMarkingOrSweeping()) {
@@ -498,37 +490,15 @@ void GCRuntime::startBackgroundAllocTaskIfIdle() {
 }
 
 /* static */
-TenuredCell* GCRuntime::refillFreeListFromAnyThread(JSContext* cx,
-                                                    AllocKind thingKind) {
+TenuredCell* GCRuntime::refillFreeList(JSContext* cx, AllocKind thingKind) {
   MOZ_ASSERT(cx->freeLists().isEmpty(thingKind));
+  MOZ_ASSERT(!cx->isHelperThreadContext());
 
-  if (!cx->isHelperThreadContext()) {
-    return refillFreeListFromMainThread(cx, thingKind);
-  }
-
-  return refillFreeListFromHelperThread(cx, thingKind);
-}
-
-/* static */
-TenuredCell* GCRuntime::refillFreeListFromMainThread(JSContext* cx,
-                                                     AllocKind thingKind) {
   // It should not be possible to allocate on the main thread while we are
   // inside a GC.
   MOZ_ASSERT(!JS::RuntimeHeapIsBusy(), "allocating while under GC");
 
   return cx->zone()->arenas.refillFreeListAndAllocate(
-      cx->freeLists(), thingKind, ShouldCheckThresholds::CheckThresholds);
-}
-
-/* static */
-TenuredCell* GCRuntime::refillFreeListFromHelperThread(JSContext* cx,
-                                                       AllocKind thingKind) {
-  // A GC may be happening on the main thread, but zones used by off thread
-  // tasks are never collected.
-  Zone* zone = cx->zone();
-  MOZ_ASSERT(!zone->wasGCStarted());
-
-  return zone->arenas.refillFreeListAndAllocate(
       cx->freeLists(), thingKind, ShouldCheckThresholds::CheckThresholds);
 }
 
@@ -585,17 +555,11 @@ TenuredCell* ArenaLists::refillFreeListAndAllocate(
     return nullptr;
   }
 
-  addNewArena(arena, thingKind);
-
-  return freeLists.setArenaAndAllocate(arena, thingKind);
-}
-
-inline void ArenaLists::addNewArena(Arena* arena, AllocKind thingKind) {
-  ArenaList& al = zone_->isGCMarking() ? newArenasInMarkPhase(thingKind)
-                                       : arenaList(thingKind);
-
+  ArenaList& al = arenaList(thingKind);
   MOZ_ASSERT(al.isCursorAtEnd());
   al.insertBeforeCursor(arena);
+
+  return freeLists.setArenaAndAllocate(arena, thingKind);
 }
 
 inline TenuredCell* FreeLists::setArenaAndAllocate(Arena* arena,
@@ -630,45 +594,6 @@ void Arena::arenaAllocatedDuringGC() {
   for (ArenaFreeCellIter cell(this); !cell.done(); cell.next()) {
     MOZ_ASSERT(!cell->isMarkedAny());
     cell->markBlack();
-  }
-}
-
-void GCRuntime::setParallelAtomsAllocEnabled(bool enabled) {
-  // This can only be changed on the main thread otherwise we could race.
-  MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
-  MOZ_ASSERT(enabled == rt->hasHelperThreadZones());
-
-  atomsZone->arenas.setParallelAllocEnabled(enabled);
-}
-
-void ArenaLists::setParallelAllocEnabled(bool enabled) {
-  MOZ_ASSERT(zone_->isAtomsZone());
-
-  static const ConcurrentUse states[2] = {ConcurrentUse::None,
-                                          ConcurrentUse::ParallelAlloc};
-
-  for (auto kind : AllAllocKinds()) {
-    MOZ_ASSERT(concurrentUse(kind) == states[!enabled]);
-    concurrentUse(kind) = states[enabled];
-  }
-}
-
-void GCRuntime::setParallelUnmarkEnabled(bool enabled) {
-  // This can only be changed on the main thread otherwise we could race.
-  MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
-  MOZ_ASSERT(JS::RuntimeHeapIsMajorCollecting());
-  for (GCZonesIter zone(this); !zone.done(); zone.next()) {
-    zone->arenas.setParallelUnmarkEnabled(enabled);
-  }
-}
-
-void ArenaLists::setParallelUnmarkEnabled(bool enabled) {
-  static const ConcurrentUse states[2] = {ConcurrentUse::None,
-                                          ConcurrentUse::ParallelUnmark};
-
-  for (auto kind : AllAllocKinds()) {
-    MOZ_ASSERT(concurrentUse(kind) == states[!enabled]);
-    concurrentUse(kind) = states[enabled];
   }
 }
 
@@ -712,37 +637,57 @@ Arena* TenuredChunk::allocateArena(GCRuntime* gc, Zone* zone,
     commitOnePage(gc);
     MOZ_ASSERT(info.numArenasFreeCommitted == ArenasPerPage);
   }
+
   MOZ_ASSERT(info.numArenasFreeCommitted > 0);
   Arena* arena = fetchNextFreeArena(gc);
 
   arena->init(zone, thingKind, lock);
   updateChunkListAfterAlloc(gc, lock);
+
+  verify();
+
   return arena;
+}
+
+template <size_t N>
+static inline size_t FindFirstBitSet(
+    const mozilla::BitSet<N, uint32_t>& bitset) {
+  MOZ_ASSERT(!bitset.IsEmpty());
+
+  const auto& words = bitset.Storage();
+  for (size_t i = 0; i < words.Length(); i++) {
+    uint32_t word = words[i];
+    if (word) {
+      return i * 32 + mozilla::CountTrailingZeroes32(word);
+    }
+  }
+
+  MOZ_CRASH("No bits found");
 }
 
 void TenuredChunk::commitOnePage(GCRuntime* gc) {
   MOZ_ASSERT(info.numArenasFreeCommitted == 0);
-  MOZ_ASSERT(!info.freeArenasHead);
-  MOZ_ASSERT(info.numArenasFree > 0);
+  MOZ_ASSERT(info.numArenasFree >= ArenasPerPage);
 
-  unsigned offset = findDecommittedPageOffset();
-  info.lastDecommittedPageOffset = offset + 1;
+  uint32_t pageIndex = FindFirstBitSet(decommittedPages);
+  MOZ_ASSERT(decommittedPages[pageIndex]);
 
   if (DecommitEnabled()) {
-    MarkPagesInUseSoft(pageAddress(offset), PageSize);
+    MarkPagesInUseSoft(pageAddress(pageIndex), PageSize);
   }
 
-  size_t arenaIndex = offset * ArenasPerPage;
-  decommittedPages[offset] = false;
+  decommittedPages[pageIndex] = false;
+
   for (size_t i = 0; i < ArenasPerPage; i++) {
-    arenas[arenaIndex + i].setAsNotAllocated();
+    size_t arenaIndex = pageIndex * ArenasPerPage + i;
+    MOZ_ASSERT(!freeCommittedArenas[arenaIndex]);
+    freeCommittedArenas[arenaIndex] = true;
+    arenas[arenaIndex].setAsNotAllocated();
+    ++info.numArenasFreeCommitted;
+    gc->updateOnArenaFree();
   }
 
-  // numArenasFreeCommitted will be updated in addArenasInPageToFreeList.
-  // No need to update numArenasFree, as the arena is still free, it just
-  // changes from decommitted to committed free. Later fetchNextFreeArena should
-  // update the numArenasFree.
-  addArenasInPageToFreeList(gc, offset);
+  verify();
 }
 
 inline void GCRuntime::updateOnFreeArenaAlloc(const TenuredChunkInfo& info) {
@@ -753,47 +698,35 @@ inline void GCRuntime::updateOnFreeArenaAlloc(const TenuredChunkInfo& info) {
 Arena* TenuredChunk::fetchNextFreeArena(GCRuntime* gc) {
   MOZ_ASSERT(info.numArenasFreeCommitted > 0);
   MOZ_ASSERT(info.numArenasFreeCommitted <= info.numArenasFree);
-  MOZ_ASSERT(info.freeArenasHead);
 
-  Arena* arena = info.freeArenasHead;
-  info.freeArenasHead = arena->next;
+  size_t index = FindFirstBitSet(freeCommittedArenas);
+  MOZ_ASSERT(freeCommittedArenas[index]);
+
+  freeCommittedArenas[index] = false;
   --info.numArenasFreeCommitted;
   --info.numArenasFree;
   gc->updateOnFreeArenaAlloc(info);
 
-  return arena;
-}
-
-/*
- * Search for and return the next decommitted page. Our goal is to keep
- * lastDecommittedPageOffset "close" to a free page. We do this by setting
- * it to the most recently freed page when we free, and forcing it to
- * the last alloc + 1 when we allocate.
- */
-uint32_t TenuredChunk::findDecommittedPageOffset() {
-  /* Note: lastFreeArenaOffset can be past the end of the list. */
-  for (unsigned i = info.lastDecommittedPageOffset; i < PagesPerChunk; i++) {
-    if (decommittedPages[i]) {
-      return i;
-    }
-  }
-  for (unsigned i = 0; i < info.lastDecommittedPageOffset; i++) {
-    if (decommittedPages[i]) {
-      return i;
-    }
-  }
-  MOZ_CRASH("No decommitted arenas found.");
+  return &arenas[index];
 }
 
 // ///////////  System -> TenuredChunk Allocator  //////////////////////////////
 
 TenuredChunk* GCRuntime::getOrAllocChunk(AutoLockGCBgAlloc& lock) {
   TenuredChunk* chunk = emptyChunks(lock).pop();
-  if (!chunk) {
+  if (chunk) {
+    // Reinitialize ChunkBase; arenas are all free and may or may not be
+    // committed.
+    SetMemCheckKind(chunk, sizeof(ChunkBase), MemCheckKind::MakeUndefined);
+    chunk->initBase(rt, nullptr);
+    MOZ_ASSERT(chunk->unused());
+  } else {
     chunk = TenuredChunk::allocate(this);
     if (!chunk) {
       return nullptr;
     }
+
+    chunk->init(this, /* allMemoryCommitted = */ true);
     MOZ_ASSERT(chunk->info.numArenasFreeCommitted == 0);
   }
 
@@ -805,8 +738,15 @@ TenuredChunk* GCRuntime::getOrAllocChunk(AutoLockGCBgAlloc& lock) {
 }
 
 void GCRuntime::recycleChunk(TenuredChunk* chunk, const AutoLockGC& lock) {
+#ifdef DEBUG
+  MOZ_ASSERT(chunk->unused());
+  chunk->verify();
+#endif
+
+  // Poison ChunkBase to catch use after free.
   AlwaysPoison(chunk, JS_FREED_CHUNK_PATTERN, sizeof(ChunkBase),
                MemCheckKind::MakeNoAccess);
+
   emptyChunks(lock).push(chunk);
 }
 
@@ -820,11 +760,12 @@ TenuredChunk* GCRuntime::pickChunk(AutoLockGCBgAlloc& lock) {
     return nullptr;
   }
 
-  chunk->init(this);
-  MOZ_ASSERT(chunk->info.numArenasFreeCommitted == 0);
+#ifdef DEBUG
+  chunk->verify();
   MOZ_ASSERT(chunk->unused());
   MOZ_ASSERT(!fullChunks(lock).contains(chunk));
   MOZ_ASSERT(!availableChunks(lock).contains(chunk));
+#endif
 
   availableChunks(lock).push(chunk);
 
@@ -853,7 +794,7 @@ void BackgroundAllocTask::run(AutoLockHelperThreadState& lock) {
       if (!chunk) {
         break;
       }
-      chunk->init(gc);
+      chunk->init(gc, /* allMemoryCommitted = */ true);
     }
     chunkPool_.ref().push(chunk);
   }
@@ -870,7 +811,16 @@ TenuredChunk* TenuredChunk::allocate(GCRuntime* gc) {
   return static_cast<TenuredChunk*>(chunk);
 }
 
-void TenuredChunk::init(GCRuntime* gc) {
+static inline bool ShouldDecommitNewChunk(bool allMemoryCommitted,
+                                          const GCSchedulingState& state) {
+  if (!DecommitEnabled()) {
+    return false;
+  }
+
+  return !allMemoryCommitted || !state.inHighFrequencyGCMode();
+}
+
+void TenuredChunk::init(GCRuntime* gc, bool allMemoryCommitted) {
   /* The chunk may still have some regions marked as no-access. */
   MOZ_MAKE_MEM_UNDEFINED(this, ChunkSize);
 
@@ -883,27 +833,31 @@ void TenuredChunk::init(GCRuntime* gc) {
 
   new (this) TenuredChunk(gc->rt);
 
-  /*
-   * Decommit the arenas. We do this after poisoning so that if the OS does
-   * not have to recycle the pages, we still get the benefit of poisoning.
-   */
-  decommitAllArenas();
+  if (ShouldDecommitNewChunk(allMemoryCommitted, gc->schedulingState)) {
+    // Decommit the arenas. We do this after poisoning so that if the OS does
+    // not have to recycle the pages, we still get the benefit of poisoning.
+    decommitAllArenas();
+  } else {
+    // The chunk metadata is initialized as decommitted regardless, to avoid
+    // having to initialize the arenas at this time.
+    initAsDecommitted();
+  }
 
-#ifdef DEBUG
   verify();
-#endif
-
-  /* The rest of info fields are initialized in pickChunk. */
 }
 
 void TenuredChunk::decommitAllArenas() {
-  decommittedPages.SetAll();
-  if (DecommitEnabled()) {
-    MarkPagesUnusedSoft(&arenas[0], ArenasPerChunk * ArenaSize);
-  }
+  MOZ_ASSERT(unused());
+  MarkPagesUnusedSoft(&arenas[0], ArenasPerChunk * ArenaSize);
+  initAsDecommitted();
+}
 
-  info.freeArenasHead = nullptr;
-  info.lastDecommittedPageOffset = 0;
+void TenuredChunkBase::initAsDecommitted() {
+  // Set the state of all arenas to free and decommitted. They might not
+  // actually be decommitted, but in that case the re-commit operation is a
+  // no-op so it doesn't matter.
+  decommittedPages.SetAll();
+  freeCommittedArenas.ResetAll();
   info.numArenasFree = ArenasPerChunk;
   info.numArenasFreeCommitted = 0;
 }

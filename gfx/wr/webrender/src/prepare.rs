@@ -21,7 +21,7 @@ use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureCont
 use crate::gpu_cache::{GpuCacheHandle, GpuDataRequest};
 use crate::gpu_types::{BrushFlags};
 use crate::internal_types::{FastHashMap, PlaneSplitAnchor};
-use crate::picture::{PicturePrimitive, SliceId, TileCacheLogger, ClusterFlags, SurfaceRenderTasks};
+use crate::picture::{PicturePrimitive, SliceId, ClusterFlags, SurfaceRenderTasks};
 use crate::picture::{PrimitiveList, PrimitiveCluster, SurfaceIndex, TileCacheInstance, SubpixelMode, Picture3DContext};
 use crate::prim_store::line_dec::MAX_LINE_DECORATION_RESOLUTION;
 use crate::prim_store::*;
@@ -50,8 +50,8 @@ pub fn prepare_primitives(
     frame_state: &mut FrameBuildingState,
     data_stores: &mut DataStores,
     scratch: &mut PrimitiveScratchBuffer,
-    tile_cache_log: &mut TileCacheLogger,
     tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
+    prim_instances: &mut Vec<PrimitiveInstance>,
 ) {
     profile_scope!("prepare_primitives");
     for (cluster_index, cluster) in prim_list.clusters.iter_mut().enumerate() {
@@ -64,12 +64,9 @@ pub fn prepare_primitives(
             frame_context.spatial_tree,
         );
 
-        frame_state.surfaces[pic_context.surface_index.0].opaque_rect = PictureRect::zero();
-
-        for (idx, prim_instance) in (&mut prim_list.prim_instances[cluster.prim_range()]).iter_mut().enumerate() {
-            let prim_instance_index = cluster.prim_range.start + idx;
-
+        for prim_instance_index in cluster.prim_range() {
             // First check for coarse visibility (if this primitive was completely off-screen)
+            let prim_instance = &mut prim_instances[prim_instance_index];
             match prim_instance.vis.state {
                 VisibilityState::Unset => {
                     panic!("bug: invalid vis state");
@@ -111,7 +108,7 @@ pub fn prepare_primitives(
 
             if prepare_prim_for_render(
                 store,
-                prim_instance,
+                prim_instance_index,
                 cluster,
                 pic_context,
                 pic_state,
@@ -120,20 +117,12 @@ pub fn prepare_primitives(
                 plane_split_anchor,
                 data_stores,
                 scratch,
-                tile_cache_log,
                 tile_caches,
+                prim_instances,
             ) {
                 frame_state.num_visible_primitives += 1;
             } else {
-                prim_instance.clear_visibility();
-            }
-        }
-
-        if !cluster.opaque_rect.is_empty() {
-            let surface = &mut frame_state.surfaces[pic_context.surface_index.0];
-
-            if let Some(cluster_opaque_rect) = surface.map_local_to_surface.map_inner_bounds(&cluster.opaque_rect) {
-                surface.opaque_rect = crate::util::conservative_union_rect(&surface.opaque_rect, &cluster_opaque_rect);
+                prim_instances[prim_instance_index].clear_visibility();
             }
         }
     }
@@ -141,7 +130,7 @@ pub fn prepare_primitives(
 
 fn prepare_prim_for_render(
     store: &mut PrimitiveStore,
-    prim_instance: &mut PrimitiveInstance,
+    prim_instance_index: usize,
     cluster: &mut PrimitiveCluster,
     pic_context: &PictureContext,
     pic_state: &mut PictureState,
@@ -150,8 +139,8 @@ fn prepare_prim_for_render(
     plane_split_anchor: PlaneSplitAnchor,
     data_stores: &mut DataStores,
     scratch: &mut PrimitiveScratchBuffer,
-    tile_cache_log: &mut TileCacheLogger,
     tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
+    prim_instances: &mut Vec<PrimitiveInstance>,
 ) -> bool {
     profile_scope!("prepare_prim_for_render");
 
@@ -160,7 +149,7 @@ fn prepare_prim_for_render(
     // For example, scrolling may affect the location of an item in
     // local space, which may force us to render this item on a larger
     // picture target, if being composited.
-    if let PrimitiveInstanceKind::Picture { pic_index, .. } = prim_instance.kind {
+    if let PrimitiveInstanceKind::Picture { pic_index, .. } = prim_instances[prim_instance_index].kind {
         let pic = &mut store.pictures[pic_index.0];
 
         match pic.take_context(
@@ -172,7 +161,6 @@ fn prepare_prim_for_render(
             frame_state,
             frame_context,
             scratch,
-            tile_cache_log,
             tile_caches,
         ) {
             Some((pic_context_for_children, mut pic_state_for_children, mut prim_list)) => {
@@ -185,8 +173,8 @@ fn prepare_prim_for_render(
                     frame_state,
                     data_stores,
                     scratch,
-                    tile_cache_log,
                     tile_caches,
+                    prim_instances,
                 );
 
                 // Restore the dependencies (borrow check dance)
@@ -198,14 +186,12 @@ fn prepare_prim_for_render(
                     );
             }
             None => {
-                if prim_instance.is_chased() {
-                    println!("\tculled for carrying an invisible composite filter");
-                }
-
                 return false;
             }
         }
     }
+
+    let prim_instance = &mut prim_instances[prim_instance_index];
 
     let prim_rect = data_stores.get_local_prim_rect(
         prim_instance,
@@ -272,7 +258,6 @@ fn prepare_interned_prim_for_render(
     let prim_spatial_node_index = cluster.spatial_node_index;
     let is_chased = prim_instance.is_chased();
     let device_pixel_scale = frame_state.surfaces[pic_context.surface_index.0].device_pixel_scale;
-    let mut is_opaque = false;
 
     match &mut prim_instance.kind {
         PrimitiveInstanceKind::LineDecoration { data_handle, ref mut render_task, .. } => {
@@ -548,8 +533,6 @@ fn prepare_interned_prim_for_render(
                 frame_context.scene_properties,
             );
 
-            is_opaque = prim_data.common.opacity.is_opaque;
-
             write_segment(
                 *segment_instance_index,
                 frame_state,
@@ -568,7 +551,6 @@ fn prepare_interned_prim_for_render(
             let prim_data = &mut data_stores.yuv_image[*data_handle];
             let common_data = &mut prim_data.common;
             let yuv_image_data = &mut prim_data.kind;
-            is_opaque = true;
 
             common_data.may_need_repetition = false;
 
@@ -605,9 +587,6 @@ fn prepare_interned_prim_for_render(
                 frame_context,
                 &mut prim_instance.vis,
             );
-
-            // common_data.opacity.is_opaque is computed in the above update call.
-            is_opaque = common_data.opacity.is_opaque;
 
             write_segment(
                 image_instance.segment_instance_index,
@@ -846,26 +825,6 @@ fn prepare_interned_prim_for_render(
             }
         }
     };
-
-    // If the primitive is opaque, see if it can contribut to it's picture surface's opaque rect.
-
-    is_opaque = is_opaque && {
-        let clip = prim_instance.vis.clip_task_index;
-        clip == ClipTaskIndex::INVALID
-    };
-
-    is_opaque = is_opaque && !frame_context.spatial_tree.is_relative_transform_complex(
-        prim_spatial_node_index,
-        pic_context.raster_spatial_node_index,
-    );
-
-    if is_opaque {
-        let prim_local_rect = data_stores.get_local_prim_rect(
-            prim_instance,
-            store,
-        );
-        cluster.opaque_rect = crate::util::conservative_union_rect(&cluster.opaque_rect, &prim_local_rect);
-    }
 }
 
 
@@ -1109,6 +1068,7 @@ fn update_clip_task_for_brush(
                 &instance.vis.clip_chain,
                 prim_spatial_node_index,
                 &frame_context.spatial_tree,
+                &data_stores.clip,
             );
 
             let segment_clip_chain = frame_state

@@ -12,6 +12,7 @@
 #include "jsapi.h"
 #include "NamespaceImports.h"
 
+#include "builtin/TestingUtility.h"  // js::CreateScriptPrivate
 #include "js/MapAndSet.h"
 #include "js/Modules.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty
@@ -43,8 +44,8 @@ static JSString* ExtractJavaScriptURLSource(JSContext* cx,
 }
 
 bool ModuleLoader::init(JSContext* cx, HandleString loadPath) {
-  loadPathStr = AtomizeString(cx, loadPath, PinAtom);
-  if (!loadPathStr) {
+  loadPathStr = AtomizeString(cx, loadPath);
+  if (!loadPathStr || !PinAtom(cx, loadPathStr)) {
     return false;
   }
 
@@ -52,7 +53,7 @@ bool ModuleLoader::init(JSContext* cx, HandleString loadPath) {
 
   char16_t sep = PathSeparator;
   pathSeparatorStr = AtomizeChars(cx, &sep, 1);
-  if (!pathSeparatorStr) {
+  if (!pathSeparatorStr || !PinAtom(cx, pathSeparatorStr)) {
     return false;
   }
 
@@ -60,6 +61,8 @@ bool ModuleLoader::init(JSContext* cx, HandleString loadPath) {
   JS::SetModuleResolveHook(rt, ModuleLoader::ResolveImportedModule);
   JS::SetModuleMetadataHook(rt, ModuleLoader::GetImportMetaProperties);
   JS::SetModuleDynamicImportHook(rt, ModuleLoader::ImportModuleDynamically);
+  JS::SetSupportedAssertionsHook(rt,
+                                 ModuleLoader::GetSupportedImportAssertions);
 
   return true;
 }
@@ -89,6 +92,21 @@ bool ModuleLoader::ImportModuleDynamically(JSContext* cx,
   ShellContext* scx = GetShellContext(cx);
   return scx->moduleLoader->dynamicImport(cx, referencingPrivate, moduleRequest,
                                           promise);
+}
+
+// static
+bool ModuleLoader::GetSupportedImportAssertions(
+    JSContext* cx, JS::ImportAssertionVector& values) {
+  MOZ_ASSERT(values.empty());
+
+  if (!values.reserve(1)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  values.infallibleAppend(JS::ImportAssertion::Type);
+
+  return true;
 }
 
 bool ModuleLoader::loadRootModule(JSContext* cx, HandleString path) {
@@ -389,7 +407,7 @@ JSObject* ModuleLoader::loadAndParse(JSContext* cx, HandleString pathArg) {
     return nullptr;
   }
 
-  RootedObject info(cx, CreateScriptPrivate(cx, path));
+  RootedObject info(cx, js::CreateScriptPrivate(cx, path));
   if (!info) {
     return nullptr;
   }

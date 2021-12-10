@@ -201,6 +201,7 @@ enum class DeviceFamily : uint8_t {
   NvidiaRolloutWebRender,
   IntelRolloutWebRender,
   IntelModernRolloutWebRender,
+  IntelWebRenderBlocked,
   AtiRolloutWebRender,
 
   Max
@@ -268,6 +269,7 @@ enum class DesktopEnvironment : uint8_t {
   Deepin,
   Dwm,
   Budgie,
+  Sway,
   Unknown,
   Max
 };

@@ -225,13 +225,11 @@ NS_IMETHODIMP
 xpcAccessible::GetState(uint32_t* aState, uint32_t* aExtraState) {
   NS_ENSURE_ARG_POINTER(aState);
 
-  if (!IntlGeneric()) {
-    nsAccUtils::To32States(states::DEFUNCT, aState, aExtraState);
-  } else if (Intl()) {
-    nsAccUtils::To32States(Intl()->State(), aState, aExtraState);
+  Accessible* acc = IntlGeneric();
+  if (acc) {
+    nsAccUtils::To32States(acc->State(), aState, aExtraState);
   } else {
-    nsAccUtils::To32States(IntlGeneric()->AsRemote()->State(), aState,
-                           aExtraState);
+    nsAccUtils::To32States(states::DEFUNCT, aState, aExtraState);
   }
 
   return NS_OK;
@@ -361,13 +359,7 @@ xpcAccessible::GetAttributes(nsIPersistentProperties** aAttributes) {
 
   RefPtr<nsPersistentProperties> props = new nsPersistentProperties();
 
-  RefPtr<AccAttributes> attributes;
-  if (LocalAccessible* acc = Intl()) {
-    attributes = acc->Attributes();
-  } else {
-    RemoteAccessible* proxy = IntlGeneric()->AsRemote();
-    proxy->Attributes(&attributes);
-  }
+  RefPtr<AccAttributes> attributes = IntlGeneric()->Attributes();
 
   nsAutoString unused;
   for (auto iter : *attributes) {
@@ -659,12 +651,7 @@ NS_IMETHODIMP
 xpcAccessible::TakeFocus() {
   if (!IntlGeneric()) return NS_ERROR_FAILURE;
 
-  if (RemoteAccessible* proxy = IntlGeneric()->AsRemote()) {
-    proxy->TakeFocus();
-  } else {
-    Intl()->TakeFocus();
-  }
-
+  IntlGeneric()->TakeFocus();
   return NS_OK;
 }
 

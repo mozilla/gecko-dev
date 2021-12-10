@@ -48,10 +48,33 @@ const dumpn = msg => {
  * @param {String} actorID
  */
 function getHighlighterCanvasFrameHelper(conn, actorID) {
+  // Retrieve the CustomHighlighterActor by its actorID:
   const actor = conn.getActor(actorID);
-  if (actor && actor._highlighter) {
-    return actor._highlighter.markup;
+  if (!actor) {
+    return null;
   }
+
+  // Retrieve the sub class instance specific to each highlighter type:
+  let highlighter = actor.instance;
+
+  // SelectorHighlighter and TabbingOrderHighlighter can hold multiple highlighters.
+  // For now, only retrieve the first highlighter.
+  if (
+    highlighter._highlighters &&
+    Array.isArray(highlighter._highlighters) &&
+    highlighter._highlighters.length > 0
+  ) {
+    highlighter = highlighter._highlighters[0];
+  }
+
+  // Now, `highlighter` should be a final highlighter class, exposing
+  // `CanvasFrameAnonymousContentHelper` via a `markup` attribute.
+  if (highlighter.markup) {
+    return highlighter.markup;
+  }
+
+  // Here we didn't find any highlighter; it can happen if the actor is a
+  // FontsHighlighter (which does not use a CanvasFrameAnonymousContentHelper).
   return null;
 }
 
@@ -154,11 +177,11 @@ var highlighterTestSpec = protocol.generateActorSpec({
         value: RetVal("string"),
       },
     },
-    setInspectorActorID: {
-      request: {
-        inspectorActorID: Arg(0, "string"),
+    getTabbingOrderHighlighterData: {
+      request: {},
+      response: {
+        value: RetVal("json"),
       },
-      response: {},
     },
   },
 });
@@ -232,10 +255,12 @@ var HighlighterTestActor = protocol.ActorClassWithSpec(highlighterTestSpec, {
    */
   getHighlighterAttribute: function(nodeID, name, actorID) {
     const helper = getHighlighterCanvasFrameHelper(this.conn, actorID);
-    if (helper) {
-      return helper.getAttributeForElement(nodeID, name);
+
+    if (!helper) {
+      throw new Error(`Highlighter not found`);
     }
-    return null;
+
+    return helper.getAttributeForElement(nodeID, name);
   },
 
   /**
@@ -330,7 +355,14 @@ var HighlighterTestActor = protocol.ActorClassWithSpec(highlighterTestSpec, {
     }
 
     const root = pauseOverlay.getElement("root");
-    return root.getAttribute("hidden") !== "true";
+    const toolbar = pauseOverlay.getElement("toolbar");
+
+    return (
+      root.getAttribute("hidden") !== "true" &&
+      root.getAttribute("overlay") == "true" &&
+      toolbar.getAttribute("hidden") !== "true" &&
+      !!toolbar.getTextContent()
+    );
   },
 
   /**
@@ -356,12 +388,8 @@ var HighlighterTestActor = protocol.ActorClassWithSpec(highlighterTestSpec, {
    * @returns {EyeDropper}
    */
   _getEyeDropper() {
-    if (!this._inspectorActorID) {
-      console.error(
-        "_inspectorActorID is not set, make sure setInspectorActorID was called"
-      );
-    }
-    const inspectorActor = this.conn.getActor(this._inspectorActorID);
+    const form = this.targetActor.form();
+    const inspectorActor = this.conn._getOrCreateActor(form.inspectorActor);
     return inspectorActor?._eyeDropper;
   },
 
@@ -400,10 +428,58 @@ var HighlighterTestActor = protocol.ActorClassWithSpec(highlighterTestSpec, {
     return color;
   },
 
-  // This will be automatically called as part of the initialization of the
-  // HighlighterTestActor.
-  setInspectorActorID(inspectorActorID) {
-    this._inspectorActorID = inspectorActorID;
+  /**
+   * Get the TabbingOrderHighlighter for the associated targetActor
+   *
+   * @returns {TabbingOrderHighlighter}
+   */
+  _getTabbingOrderHighlighter() {
+    const form = this.targetActor.form();
+    const accessibilityActor = this.conn._getOrCreateActor(
+      form.accessibilityActor
+    );
+
+    if (!accessibilityActor) {
+      return null;
+    }
+    // We use `_tabbingOrderHighlighter` since it's the cached value; `tabbingOrderHighlighter`
+    // is a getter that will create the highlighter when called (if it does not exist yet).
+    return accessibilityActor.walker?._tabbingOrderHighlighter;
+  },
+
+  /**
+   * Get a representation of the NodeTabbingOrderHighlighters created by the
+   * TabbingOrderHighlighter of a given targetActor.
+   *
+   * @returns {Array<String>} An array which will contain as many entry as they are
+   *          NodeTabbingOrderHighlighters displayed.
+   *          Each item will be of the form `nodename[#id]: index`.
+   *          For example:
+   *          [
+   *            `button#top-btn-1 : 1`,
+   *            `html : 2`,
+   *            `button#iframe-btn-1 : 3`,
+   *            `button#iframe-btn-2 : 4`,
+   *            `button#top-btn-2 : 5`,
+   *          ]
+   */
+  getTabbingOrderHighlighterData() {
+    const highlighter = this._getTabbingOrderHighlighter();
+    if (!highlighter) {
+      return [];
+    }
+
+    const nodeTabbingOrderHighlighters = [
+      ...highlighter._highlighter._highlighters.values(),
+    ].filter(h => h.getElement("root").getAttribute("hidden") !== "true");
+
+    return nodeTabbingOrderHighlighters.map(h => {
+      let nodeStr = h.currentNode.nodeName.toLowerCase();
+      if (h.currentNode.id) {
+        nodeStr = `${nodeStr}#${h.currentNode.id}`;
+      }
+      return `${nodeStr} : ${h.getElement("root").getTextContent()}`;
+    });
   },
 });
 exports.HighlighterTestActor = HighlighterTestActor;
@@ -417,11 +493,6 @@ class HighlighterTestFront extends protocol.FrontClassWithSpec(
     // The currently active highlighter is obtained by calling a custom getter
     // provided manually after requesting TestFront. See `getHighlighterTestFront(toolbox)`
     this._highlighter = null;
-  }
-
-  async initialize() {
-    const inspectorFront = await this.targetFront.getFront("inspector");
-    await this.setInspectorActorID(inspectorFront.actorID);
   }
 
   /**
@@ -481,17 +552,25 @@ class HighlighterTestFront extends protocol.FrontClassWithSpec(
   /**
    * Is the highlighter currently visible on the page?
    */
-  isHighlighting() {
+  async isHighlighting() {
     // Once the highlighter is hidden, the reference to it is lost.
     // Assume it is not highlighting.
     if (!this.highlighter) {
       return false;
     }
 
-    return this.getHighlighterNodeAttribute(
-      "box-model-elements",
-      "hidden"
-    ).then(value => value === null);
+    try {
+      const hidden = await this.getHighlighterNodeAttribute(
+        "box-model-elements",
+        "hidden"
+      );
+      return hidden === null;
+    } catch (e) {
+      if (e.message.match(/Highlighter not found/)) {
+        return false;
+      }
+      throw e;
+    }
   }
 
   /**
@@ -600,6 +679,10 @@ class HighlighterTestFront extends protocol.FrontClassWithSpec(
       "box-model-" + region,
       "d"
     );
+
+    if (!d) {
+      return null;
+    }
 
     const polygons = d.match(/M[^M]+/g);
     if (!polygons) {

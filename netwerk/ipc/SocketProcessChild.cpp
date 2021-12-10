@@ -35,6 +35,7 @@
 #include "mozilla/RemoteLazyInputStreamChild.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
+#include "NetworkConnectivityService.h"
 #include "nsDebugImpl.h"
 #include "nsHttpConnectionInfo.h"
 #include "nsHttpHandler.h"
@@ -164,7 +165,15 @@ bool SocketProcessChild::Init(base::ProcessId aParentPid,
   // Initialize DNS Service here, since it needs to be done in main thread.
   nsCOMPtr<nsIDNSService> dns =
       do_GetService("@mozilla.org/network/dns-service;1", &rv);
-  return NS_SUCCEEDED(rv);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  if (!EnsureNSSInitializedChromeOrContent()) {
+    return false;
+  }
+
+  return true;
 }
 
 void SocketProcessChild::ActorDestroy(ActorDestroyReason aWhy) {
@@ -213,6 +222,7 @@ mozilla::ipc::IPCResult SocketProcessChild::RecvInit(
   if (aAttributes.mInitSandbox()) {
     Unused << RecvInitLinuxSandbox(aAttributes.mSandboxBroker());
   }
+
   return IPC_OK();
 }
 
@@ -471,9 +481,7 @@ SocketProcessChild::GetAndRemoveDataBridge(uint64_t aChannelId) {
 }
 
 mozilla::ipc::IPCResult SocketProcessChild::RecvClearSessionCache() {
-  if (EnsureNSSInitializedChromeOrContent()) {
-    nsNSSComponent::DoClearSSLExternalAndInternalSessionCache();
-  }
+  nsNSSComponent::DoClearSSLExternalAndInternalSessionCache();
   return IPC_OK();
 }
 
@@ -644,6 +652,24 @@ mozilla::ipc::IPCResult SocketProcessChild::RecvGetHttpConnectionData(
 mozilla::ipc::IPCResult SocketProcessChild::RecvInitProxyAutoConfigChild(
     Endpoint<PProxyAutoConfigChild>&& aEndpoint) {
   Unused << ProxyAutoConfigChild::Create(std::move(aEndpoint));
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult SocketProcessChild::RecvRecheckIPConnectivity() {
+  RefPtr<NetworkConnectivityService> ncs =
+      NetworkConnectivityService::GetSingleton();
+  if (ncs) {
+    ncs->RecheckIPConnectivity();
+  }
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult SocketProcessChild::RecvRecheckDNS() {
+  RefPtr<NetworkConnectivityService> ncs =
+      NetworkConnectivityService::GetSingleton();
+  if (ncs) {
+    ncs->RecheckDNS();
+  }
   return IPC_OK();
 }
 

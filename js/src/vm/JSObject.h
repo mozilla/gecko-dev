@@ -19,7 +19,6 @@
 #include "js/HeapAPI.h"
 #include "js/shadow/Zone.h"  // JS::shadow::Zone
 #include "js/Wrapper.h"
-#include "vm/BytecodeUtil.h"
 #include "vm/Printer.h"
 #include "vm/PropertyResult.h"
 #include "vm/Shape.h"
@@ -173,8 +172,8 @@ class JSObject
 
   // Change this object's shape for a prototype mutation.
   //
-  // Note: this does not reshape the proto chain to invalidate shape
-  // teleporting, check for an immutable proto, etc.
+  // Note: the caller must ensure the object has a mutable proto, is extensible,
+  // etc.
   static bool setProtoUnchecked(JSContext* cx, JS::HandleObject obj,
                                 js::Handle<js::TaggedProto> proto);
 

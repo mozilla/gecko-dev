@@ -4,6 +4,9 @@ Telemetry
 This section describes existing telemetry probes measuring interaction with the
 Address Bar.
 
+For telemetry specific to Firefox Suggest, see the
+:doc:`firefox-suggest-telemetry` document.
+
 .. toctree::
    :caption: Table of Contents
 
@@ -19,12 +22,6 @@ PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS
 PLACES_AUTOCOMPLETE_6_FIRST_RESULTS_TIME_MS
   This probe tracks the amount of time it takes to get the first six results.
   It is an exponential histogram with values between 50 and 1000.
-
-FX_URLBAR_MERINO_LATENCY_MS
-  This probe is related to the Firefox Suggest (quick suggest) feature. It
-  records the time (ms) from the request to the Merino server to its
-  response. It is an exponential histogram with values between 0 and 30000 (0s
-  and 30s).
 
 FX_URLBAR_SELECTED_RESULT_METHOD
   This probe tracks how a result was picked by the user from the list.
@@ -267,8 +264,6 @@ urlbar.tabtosearch.*
     Due to the potentially sensitive nature of these data, they are currently
     collected only on pre-release version of Firefox. See bug 1686330.
 
-
-
 Event Telemetry
 ---------------
 
@@ -368,105 +363,65 @@ Event Extra
 
     .. _URLBar provider experiments: experiments.html#developing-address-bar-extensions
 
-
 Custom pings for Contextual Services
 ------------------------------------
 
-Contextual Services currently has two features running within the Urlbar: TopSites
-and QuickSuggest. We send various pings as the `custom pings`_ to record the impressions
-and clicks of these two features.
+Contextual Services currently has two features involving the address bar, top
+sites and Firefox Suggest. Top sites telemetry is described below. For Firefox
+Suggest, see the :doc:`firefox-suggest-telemetry` document.
+
+Firefox sends the following `custom pings`_ to record impressions and clicks of
+the top sites feature.
 
     .. _custom pings: https://docs.telemetry.mozilla.org/cookbooks/new_ping.html#sending-a-custom-ping
 
-TopSites Impression
-  This records an impression when a sponsored TopSite is shown.
-
-  - ``context_id``
-    A UUID representing this user. Note that it's not client_id, nor can it be used to link to a client_id.
-  - ``tile_id``
-    A unique identifier for the sponsored TopSite.
-  - ``source``
-    The browser location where the impression was displayed.
-  - ``position``
-    The placement of the TopSite (1-based).
-  - ``advertiser``
-    The Name of the advertiser.
-  - ``reporting_url``
-    The reporting URL of the sponsored TopSite, normally pointing to the ad partner's reporting endpoint.
-  - ``version``
-    Firefox version.
-  - ``release_channel``
-    Firefox release channel.
-  - ``locale``
-    User's current locale.
-
-TopSites Click
-  This records a click ping when a sponsored TopSite is clicked by the user.
-
-  - ``context_id``
-    A UUID representing this user. Note that it's not client_id, nor can it be used to link to a client_id.
-  - ``tile_id``
-    A unique identifier for the sponsored TopSite.
-  - ``source``
-    The browser location where the click was tirggered.
-  - ``position``
-    The placement of the TopSite (1-based).
-  - ``advertiser``
-    The Name of the advertiser.
-  - ``reporting_url``
-    The reporting URL of the sponsored TopSite, normally pointing to the ad partner's reporting endpoint.
-  - ``version``
-    Firefox version.
-  - ``release_channel``
-    Firefox release channel.
-  - ``locale``
-    User's current locale.
-
-QuickSuggest Impression
-  This records an impression when the following two conditions hold:
-    - A user needs to complete the search action by picking a result from the Urlbar
-    - There must be a QuickSuggest link shown at the end of that search action.
-      No impression will be recorded for any QuickSuggest links that are shown
-      during the user typing, only the last one (if any) counts
-
-  Payload:
-
-  - ``context_id``
-    A UUID representing this user. Note that it's not client_id, nor can it be used to link to a client_id.
-  - ``search_query``
-    The exact search query typed in by the user.
-  - ``matched_keywords``
-    The matched keywords that leads to the QuickSuggest link.
-  - ``is_clicked``
-    Whether or not the use has clicked on the QuickSuggest link.
-  - ``block_id``
-    A unique identifier for a QuickSuggest link (a.k.a a keywords block).
-  - ``position``
-    The placement of the QuickSuggest link in the Urlbar (1-based).
-  - ``advertiser``
-    The Name of the advertiser.
-  - ``reporting_url``
-    The reporting URL of the QuickSuggest link, normally pointing to the ad partner's reporting endpoint.
-  - ``scenario``
-    The scenario of the QuickSuggest, could be one of "history", "offline", and "online".
-
-QuickSuggest Click
-  This records a click ping when a QuickSuggest link is clicked by the user.
+Top Sites Impression
+  This records an impression when a sponsored top site is shown.
 
   - ``context_id``
     A UUID representing this user. Note that it's not client_id, nor can it be
     used to link to a client_id.
+  - ``tile_id``
+    A unique identifier for the sponsored top site.
+  - ``source``
+    The browser location where the impression was displayed.
+  - ``position``
+    The placement of the top site (1-based).
   - ``advertiser``
     The Name of the advertiser.
-  - ``block_id``
-    A unique identifier for a QuickSuggest link (a.k.a a keywords block).
-  - ``position``
-    The placement of the QuickSuggest link in the Urlbar (1-based).
   - ``reporting_url``
-    The reporting URL of the QuickSuggest link, normally pointing to the ad partner's reporting endpoint.
-  - ``scenario``
-    The scenario of the QuickSuggest, could be one of "history", "offline", and "online".
+    The reporting URL of the sponsored top site, normally pointing to the ad
+    partner's reporting endpoint.
+  - ``version``
+    Firefox version.
+  - ``release_channel``
+    Firefox release channel.
+  - ``locale``
+    User's current locale.
 
+Top Sites Click
+  This records a click ping when a sponsored top site is clicked by the user.
+
+  - ``context_id``
+    A UUID representing this user. Note that it's not client_id, nor can it be
+    used to link to a client_id.
+  - ``tile_id``
+    A unique identifier for the sponsored top site.
+  - ``source``
+    The browser location where the click was tirggered.
+  - ``position``
+    The placement of the top site (1-based).
+  - ``advertiser``
+    The Name of the advertiser.
+  - ``reporting_url``
+    The reporting URL of the sponsored top site, normally pointing to the ad
+    partner's reporting endpoint.
+  - ``version``
+    Firefox version.
+  - ``release_channel``
+    Firefox release channel.
+  - ``locale``
+    User's current locale.
 
 Other telemetry relevant to the Address Bar
 -------------------------------------------
@@ -475,87 +430,12 @@ Search Telemetry
   Some of the `search telemetry`_ is also relevant to the address bar.
 
 contextual.services.topsites.*
-  These keyed scalars instrument the impressions and clicks for sponsored TopSites
-  in the urlbar.
-  The key is a combination of the source and the placement of the TopSites link
+  These keyed scalars instrument the impressions and clicks for sponsored top
+  sites in the urlbar.
+  The key is a combination of the source and the placement of the top sites link
   (1-based) such as 'urlbar_1'. For each key, it records the counter of the
   impression or click.
-  Note that these scalars are shared with the TopSites on the newtab page.
-
-contextual.services.quicksuggest.*
-  These keyed scalars record impressions and clicks on Quick Suggest results,
-  also called Firefox Suggest results, in the address bar. The keys for each
-  scalar are the 1-based indexes of the Quick Suggest results, and the values
-  are the number of impressions or clicks for the corresponding indexes. For
-  example, for a Quick Suggest impression at 0-based index 9, the value for key
-  ``10`` will be incremented in the
-  ``contextual.services.quicksuggest.impression`` scalar.
-
-  The keyed scalars are:
-
-    - ``contextual.services.quicksuggest.impression``
-      Incremented when a Quick Suggest result is shown in an address bar
-      engagement where the user picks any result. The particular picked result
-      doesn't matter, and it doesn't need to be the Quick Suggest result.
-    - ``contextual.services.quicksuggest.click``
-      Incremented when the user picks a Quick Suggest result (not including the
-      help button).
-    - ``contextual.services.quicksuggest.help``
-      Incremented when the user picks the onboarding help button in a Quick
-      Suggest result.
-
-contextservices.quicksuggest
-  This is event telemetry under the ``contextservices.quicksuggest`` category.
-  It's enabled only when the ``browser.urlbar.quicksuggest.enabled`` pref is
-  true.
-
-  The following event is recorded when the
-  ``browser.urlbar.suggest.quicksuggest`` pref is toggled:
-
-    - Category: ``contextservices.quicksuggest``
-    - Method: ``enable_toggled``
-    - Objects: ``enabled``, ``disabled`` -- ``enabled`` is recorded when the
-      pref is flipped from false to true, and ``disabled`` is recorded when the
-      pref is flipped from true to false.
-    - Value: Not used
-    - Extra: Not used
-
-  The following event is recorded when the
-  ``browser.urlbar.suggest.quicksuggest.sponsored`` pref is toggled:
-
-    - Category: ``contextservices.quicksuggest``
-    - Method: ``sponsored_toggled``
-    - Objects: ``enabled``, ``disabled`` -- ``enabled`` is recorded when the
-      pref is flipped from false to true, and ``disabled`` is recorded when the
-      pref is flipped from true to false.
-    - Value: Not used
-    - Extra: Not used
-
-  The following event is recorded when the user responds to the Firefox Suggest
-  opt-in onboarding dialog:
-
-    - Category: ``contextservices.quicksuggest``
-    - Method: ``opt_in_dialog``
-    - Objects: ``accept``, ``dismissed_escape_key``, ``dismissed_other``,
-      ``learn_more``, ``not_now_link``, ``settings`` --
-      ``accept`` is recorded when the user accepts the dialog and opts in,
-      ``settings`` is recorded when the user clicks in the "Customize" button
-      (the user remains opted out in this case),
-      ``learn_more`` is recorded when the user clicks "Learn more" (the user
-      remains opted out),
-      ``not_now_link`` is recorded when the user clicks "Not now" (the user
-      remains opted out),
-      ``dismissed_escape_key`` is recorded when the user dismisses the dialog by
-      pressing the Escape key (the user remains opted out),
-      ``dismissed_other`` is recorded when the dialog is dismissed in some other
-      unknown way, for example when the dialog is replaced with another higher
-      priority dialog like the one shown when quitting the app (the user remains
-      opted out).
-      Note: In older versions of Firefox, ``not_now_link``,
-      ``dismissed_escape_key``, ``dismissed_other`` did not exist; instead, all
-      three of these cases were represented by a single ``not_now`` object.
-    - Value: Not used
-    - Extra: Not used
+  Note that these scalars are shared with the top sites on the newtab page.
 
 Telemetry Environment
   The following preferences relevant to the address bar are recorded in
@@ -564,31 +444,12 @@ Telemetry Environment
     - ``browser.search.suggest.enabled``: The global toggle for search
       suggestions everywhere in Firefox (search bar, urlbar, etc.). Defaults to
       true.
-    - ``browser.urlbar.quicksuggest.onboardingDialogChoice``: The user's choice
-      in the Firefox Suggest onboarding dialog. If the dialog was shown multiple
-      times, this records the user's most recent choice. Values are the
-      following.
-      Empty string: The user has not made a choice (e.g., because the
-      dialog hasn't been shown).
-      ``accept``: The user accepted the dialog and opted in.
-      ``settings``: The user clicked in the "Customize" button (the user remains
-      opted out in this case).
-      ``learn_more``: The user clicked "Learn more" (the user remains opted
-      out).
-      ``not_now_link``: The user clicked "Not now" (the user remains opted
-      out).
-      ``dismissed_escape_key``: The user dismissed the dialog by pressing the
-      Escape key (the user remains opted out).
-      ``dismissed_other``: The dialog was dismissed in some other unknown way,
-      for example when the dialog is replaced with another higher priority
-      dialog like the one shown when quitting the app (the user remains opted
-      out).
-    - ``browser.urlbar.suggest.quicksuggest``: True if Firefox Suggest
-      suggestions in general are enabled in the urlbar.
-    - ``browser.urlbar.suggest.quicksuggest.sponsored``: True if sponsored
-      Firefox Suggest suggestions in particular are enabled in the urlbar.
     - ``browser.urlbar.suggest.searches``: True if search suggestions are
       enabled in the urlbar. Defaults to false.
+
+Firefox Suggest
+  Telemetry specific to Firefox Suggest is described in the
+  :doc:`firefox-suggest-telemetry` document.
 
 Obsolete probes
 ---------------

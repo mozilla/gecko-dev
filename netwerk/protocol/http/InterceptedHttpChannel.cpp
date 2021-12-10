@@ -92,7 +92,7 @@ void InterceptedHttpChannel::AsyncOpenInternal() {
   // We save this timestamp from outside of the if block in case we enable the
   // profiler after AsyncOpen().
   mLastStatusReported = TimeStamp::Now();
-  if (profiler_thread_is_being_profiled()) {
+  if (profiler_thread_is_being_profiled_for_markers()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
 
@@ -505,7 +505,7 @@ InterceptedHttpChannel::Cancel(nsresult aStatus) {
 
   mCanceled = true;
 
-  if (mLastStatusReported && profiler_thread_is_being_profiled()) {
+  if (mLastStatusReported && profiler_thread_is_being_profiled_for_markers()) {
     // These do allocations/frees/etc; avoid if not active
     // mLastStatusReported can be null if Cancel is called before we added the
     // start marker.
@@ -675,7 +675,7 @@ InterceptedHttpChannel::ResetInterception(bool aBypass) {
                             mLoadFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (profiler_thread_is_being_profiled()) {
+  if (profiler_thread_is_being_profiled_for_markers()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
 
@@ -1043,7 +1043,7 @@ InterceptedHttpChannel::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   // Register entry to the PerformanceStorage resource timing
   MaybeReportTimingData();
 
-  if (profiler_thread_is_being_profiled()) {
+  if (profiler_thread_is_being_profiled_for_markers()) {
     // These do allocations/frees/etc; avoid if not active
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
@@ -1211,6 +1211,38 @@ InterceptedHttpChannel::GetAllowStaleCacheContent(
         aAllowStaleCacheContent);
   }
   return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+InterceptedHttpChannel::SetForceValidateCacheContent(
+    bool aForceValidateCacheContent) {
+  // We store aForceValidateCacheContent locally because
+  // mSynthesizedCacheInfo isn't present until a response
+  // is actually synthesized, which is too late for the value
+  // to be forwarded during the redirect to the intercepted
+  // channel.
+  StoreForceValidateCacheContent(aForceValidateCacheContent);
+
+  if (mSynthesizedCacheInfo) {
+    return mSynthesizedCacheInfo->SetForceValidateCacheContent(
+        aForceValidateCacheContent);
+  }
+  return NS_OK;
+}
+NS_IMETHODIMP
+InterceptedHttpChannel::GetForceValidateCacheContent(
+    bool* aForceValidateCacheContent) {
+  *aForceValidateCacheContent = LoadForceValidateCacheContent();
+#ifdef DEBUG
+  if (mSynthesizedCacheInfo) {
+    bool synthesizedForceValidateCacheContent;
+    mSynthesizedCacheInfo->GetForceValidateCacheContent(
+        &synthesizedForceValidateCacheContent);
+    MOZ_ASSERT(*aForceValidateCacheContent ==
+               synthesizedForceValidateCacheContent);
+  }
+#endif
+  return NS_OK;
 }
 
 NS_IMETHODIMP

@@ -144,6 +144,8 @@ downloading-file-opens-in-minutes = Opening in { $minutes }m…
 downloading-file-opens-in-minutes-and-seconds = Opening in { $minutes }m { $seconds }s…
 downloading-file-opens-in-seconds = Opening in { $seconds }s…
 downloading-file-opens-in-some-time = Opening when completed…
+downloading-file-click-to-open =
+  .value = Open when completed
 
 ##
 
@@ -168,6 +170,20 @@ downloads-history =
 # that we are showing the details of a single download.
 downloads-details =
     .title = Download Details
+
+## Displayed when a site attempts to automatically download many files.
+## Variables:
+##   $num (number) - Number of blocked downloads.
+##   $url (string) - The url of the suspicious site, stripped of http, https and www prefix.
+
+downloads-files-not-downloaded = { $num ->
+    [one] File not downloaded.
+   *[other] {$num} files not downloaded.
+}
+downloads-blocked-from-url = Downloads blocked from { $url }.
+downloads-blocked-download-detailed-info = { $url } attempted to automatically download multiple files. The site could be broken or trying to store spam files on your device.
+
+##
 
 downloads-clear-downloads-button =
     .label = Clear Downloads

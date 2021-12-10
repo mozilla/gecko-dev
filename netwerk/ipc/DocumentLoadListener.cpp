@@ -809,7 +809,7 @@ auto DocumentLoadListener::OpenObject(
 
   MOZ_ASSERT(!mIsDocumentLoad);
 
-  auto sandboxFlags = GetLoadingBrowsingContext()->GetSandboxFlags();
+  auto sandboxFlags = aLoadState->TriggeringSandboxFlags();
 
   RefPtr<LoadInfo> loadInfo = CreateObjectLoadInfo(
       aLoadState, aInnerWindowId, aContentPolicyType, sandboxFlags);
@@ -1915,7 +1915,7 @@ void DocumentLoadListener::TriggerRedirectToRealChannel(
       }
       ParentEndpoint parent;
       nsresult rv = extensions::PStreamFilter::CreateEndpoints(
-          pid, request.mChildProcessId, &parent, &request.mChildEndpoint);
+          &parent, &request.mChildEndpoint);
 
       if (NS_FAILED(rv)) {
         request.mPromise->Reject(false, __func__);
@@ -2571,13 +2571,12 @@ bool DocumentLoadListener::HasCrossOriginOpenerPolicyMismatch() const {
   return isCOOPMismatch;
 }
 
-auto DocumentLoadListener::AttachStreamFilter(base::ProcessId aChildProcessId)
+auto DocumentLoadListener::AttachStreamFilter()
     -> RefPtr<ChildEndpointPromise> {
   LOG(("DocumentLoadListener AttachStreamFilter [this=%p]", this));
 
   StreamFilterRequest* request = mStreamFilterRequests.AppendElement();
   request->mPromise = new ChildEndpointPromise::Private(__func__);
-  request->mChildProcessId = aChildProcessId;
   return request->mPromise;
 }
 

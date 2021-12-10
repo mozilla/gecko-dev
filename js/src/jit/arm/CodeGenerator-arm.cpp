@@ -1483,12 +1483,15 @@ void CodeGenerator::visitCompareFAndBranch(LCompareFAndBranch* comp) {
 }
 
 void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* baab) {
-  ScratchRegisterScope scratch(masm);
+  // LBitAndAndBranch only represents single-word ANDs, hence it can't be
+  // 64-bit here.
+  MOZ_ASSERT(!baab->is64());
+  Register regL = ToRegister(baab->left());
   if (baab->right()->isConstant()) {
-    masm.ma_tst(ToRegister(baab->left()), Imm32(ToInt32(baab->right())),
-                scratch);
+    ScratchRegisterScope scratch(masm);
+    masm.ma_tst(regL, Imm32(ToInt32(baab->right())), scratch);
   } else {
-    masm.ma_tst(ToRegister(baab->left()), ToRegister(baab->right()));
+    masm.ma_tst(regL, ToRegister(baab->right()));
   }
   emitBranch(baab->cond(), baab->ifTrue(), baab->ifFalse());
 }
@@ -3026,6 +3029,13 @@ void CodeGenerator::visitCtzI64(LCtzI64* lir) {
 
   masm.ctz64(input, output.low);
   masm.move32(Imm32(0), output.high);
+}
+
+void CodeGenerator::visitBitNotI64(LBitNotI64* lir) {
+  Register64 input = ToRegister64(lir->getInt64Operand(0));
+  MOZ_ASSERT(input == ToOutRegister64(lir));
+  masm.ma_mvn(input.high, input.high);
+  masm.ma_mvn(input.low, input.low);
 }
 
 void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {

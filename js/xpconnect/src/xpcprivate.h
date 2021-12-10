@@ -992,6 +992,14 @@ class XPCNativeMember final {
   MOZ_COUNTED_DEFAULT_CTOR(XPCNativeMember)
   MOZ_COUNTED_DTOR(XPCNativeMember)
 
+  XPCNativeMember(const XPCNativeMember& other)
+      : mName(other.mName),
+        mIndex(other.mIndex),
+        mFlags(other.mFlags),
+        mIndexInInterface(other.mIndexInInterface) {
+    MOZ_COUNT_CTOR(XPCNativeMember);
+  }
+
  private:
   bool Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
                JS::HandleObject parent, JS::Value* vp);
@@ -1019,7 +1027,7 @@ class XPCNativeMember final {
   // creation of XPCNativeInterfaces which have more than 2^12 members.
   // If the width of this field changes, update GetMaxIndexInInterface.
   uint16_t mIndexInInterface : 12;
-} JS_HAZ_NON_GC_POINTER;  // Only stores a pinned string
+};
 
 /***************************************************************************/
 // XPCNativeInterface represents a single idl declared interface. This is
@@ -1059,9 +1067,12 @@ class XPCNativeInterface final {
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
+  void Trace(JSTracer* trc);
+
  protected:
   static already_AddRefed<XPCNativeInterface> NewInstance(
-      JSContext* cx, const nsXPTInterfaceInfo* aInfo);
+      JSContext* cx, IID2NativeInterfaceMap* aMap,
+      const nsXPTInterfaceInfo* aInfo);
 
   XPCNativeInterface() = delete;
   XPCNativeInterface(const nsXPTInterfaceInfo* aInfo, jsid aName)
@@ -1646,9 +1657,9 @@ class nsXPCWrappedJS final : protected nsAutoXPTCStub,
   // XPCWrappedJS.cpp for more details.
   bool IsSubjectToFinalization() const { return IsValid() && mRefCnt == 1; }
 
-  void UpdateObjectPointerAfterGC() {
+  void UpdateObjectPointerAfterGC(JSTracer* trc) {
     MOZ_ASSERT(IsRootWrapper());
-    JS_UpdateWeakPointerAfterGC(&mJSObj);
+    JS_UpdateWeakPointerAfterGC(trc, &mJSObj);
   }
 
   bool IsAggregatedToNative() const { return mRoot->mOuter != nullptr; }

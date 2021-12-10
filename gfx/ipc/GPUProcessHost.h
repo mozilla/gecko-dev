@@ -13,6 +13,10 @@
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/ipc/TaskFactory.h"
 
+#ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/java/CompositorSurfaceManagerWrappers.h"
+#endif
+
 namespace mozilla {
 namespace ipc {
 class SharedPreferenceSerializer;
@@ -73,7 +77,11 @@ class GPUProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
   // GPUProcessHost.
   //
   // After this returns, the attached Listener is no longer used.
-  void Shutdown();
+  //
+  // Setting aUnexpectedShutdown = true indicates that this is being called to
+  // clean up resources in response to an unexpected shutdown having been
+  // detected.
+  void Shutdown(bool aUnexpectedShutdown = false);
 
   // Return the actor for the top-level actor of the process. If the process
   // has not connected yet, this returns null.
@@ -97,8 +105,15 @@ class GPUProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
 
   void SetListener(Listener* aListener);
 
-  // Used for tests and diagnostics
+  // Kills the GPU process. Used for tests and diagnostics
   void KillProcess();
+
+  // Causes the GPU process to crash. Used for tests and diagnostics
+  void CrashProcess();
+
+#ifdef MOZ_WIDGET_ANDROID
+  java::CompositorSurfaceManager::Param GetCompositorSurfaceManager();
+#endif
 
  private:
   ~GPUProcessHost();
@@ -135,6 +150,13 @@ class GPUProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
   bool mChannelClosed;
 
   TimeStamp mLaunchTime;
+
+#ifdef MOZ_WIDGET_ANDROID
+  // Binder interface used to send compositor surfaces to GPU process. There is
+  // one instance per GPU process which gets initialized after launch, then
+  // multiple compositors can take a reference to it.
+  java::CompositorSurfaceManager::GlobalRef mCompositorSurfaceManager;
+#endif
 };
 
 }  // namespace gfx

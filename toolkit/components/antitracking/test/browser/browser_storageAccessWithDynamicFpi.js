@@ -51,6 +51,8 @@ add_task(async function setup() {
       ["privacy.trackingprotection.enabled", false],
       ["privacy.trackingprotection.pbmode.enabled", false],
       ["privacy.trackingprotection.annotate_channels", true],
+      // Bug 1617611: Fix all the tests broken by "cookies SameSite=lax by default"
+      ["network.cookie.sameSite.laxByDefault", false],
     ],
   });
   registerCleanupFunction(cleanup);
@@ -456,7 +458,7 @@ add_task(async function testExceptionListRemoteSettings() {
       current: [
         {
           id: "1",
-          last_modified: 100000000000000000001,
+          last_modified: 1000000000000001,
           firstPartyOrigin: TEST_DOMAIN,
           thirdPartyOrigin: TEST_3RD_PARTY_DOMAIN,
         },

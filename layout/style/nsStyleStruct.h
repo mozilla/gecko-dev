@@ -685,22 +685,23 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleList {
 
   // the rect to use within an image.
   mozilla::StyleClipRectOrAuto mImageRegion;
-  // true in an <ol reversed> scope.
-  mozilla::StyleMozListReversed mMozListReversed;
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePage {
   using StylePageSize = mozilla::StylePageSize;
+  using StylePageName = mozilla::StylePageName;
   nsStylePage(const nsStylePage& aOther) = default;
   nsStylePage& operator=(const nsStylePage& aOther) = default;
   explicit nsStylePage(const mozilla::dom::Document&)
-      : mSize(StylePageSize::Auto()) {}
+      : mSize(StylePageSize::Auto()), mPage(StylePageName::Auto()) {}
 
   static constexpr bool kHasTriggerImageLoads = false;
   nsChangeHint CalcDifference(const nsStylePage& aNewData) const;
 
   // page-size property.
   StylePageSize mSize;
+  // page-name property.
+  StylePageName mPage;
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
@@ -1150,6 +1151,7 @@ struct StyleAnimation {
   dom::FillMode GetFillMode() const { return mFillMode; }
   StyleAnimationPlayState GetPlayState() const { return mPlayState; }
   float GetIterationCount() const { return mIterationCount; }
+  const StyleAnimationTimeline& GetTimeline() const { return mTimeline; }
 
   void SetName(already_AddRefed<nsAtom> aName) { mName = aName; }
   void SetName(nsAtom* aName) { mName = aName; }
@@ -1231,6 +1233,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   mozilla::StyleOverflow mOverflowY;
   mozilla::StyleOverflowClipBox mOverflowClipBoxBlock;
   mozilla::StyleOverflowClipBox mOverflowClipBoxInline;
+  mozilla::StyleScrollbarGutter mScrollbarGutter;
   mozilla::StyleResize mResize;
   mozilla::StyleOrient mOrient;
   mozilla::StyleIsolation mIsolation;
@@ -1312,6 +1315,9 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   const nsTimingFunction& GetAnimationTimingFunction(uint32_t aIndex) const {
     return mAnimations[aIndex % mAnimationTimingFunctionCount]
         .GetTimingFunction();
+  }
+  const mozilla::StyleAnimationTimeline& GetTimeline(uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationTimelineCount].GetTimeline();
   }
 
   // The threshold used for extracting a shape from shape-outside: <image>.
@@ -1452,11 +1458,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
       return true;
     }
 
-#ifdef MOZ_XUL
     return DisplayOutside() == mozilla::StyleDisplayOutside::XUL;
-#else
-    return false;
-#endif
   }
 
   bool IsFloatingStyle() const { return mozilla::StyleFloat::None != mFloat; }
@@ -1704,8 +1706,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleContent {
 
   mozilla::StyleContent mContent;
   mozilla::StyleCounterIncrement mCounterIncrement;
-  mozilla::StyleCounterSetOrReset mCounterReset;
-  mozilla::StyleCounterSetOrReset mCounterSet;
+  mozilla::StyleCounterReset mCounterReset;
+  mozilla::StyleCounterSet mCounterSet;
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUIReset {

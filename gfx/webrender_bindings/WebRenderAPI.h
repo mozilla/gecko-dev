@@ -127,11 +127,6 @@ class TransactionBuilder final {
 
   void SetDocumentView(const LayoutDeviceIntRect& aDocRect);
 
-  void UpdateScrollPosition(
-      const wr::WrPipelineId& aPipelineId,
-      const layers::ScrollableLayerGuid::ViewID& aScrollId,
-      const wr::LayoutPoint& aScrollPosition);
-
   bool IsEmpty() const;
 
   bool IsResourceUpdatesEmpty() const;
@@ -225,7 +220,7 @@ class TransactionWrapper final {
   void UpdateScrollPosition(
       const wr::WrPipelineId& aPipelineId,
       const layers::ScrollableLayerGuid::ViewID& aScrollId,
-      const wr::LayoutPoint& aScrollPosition);
+      const wr::LayoutVector2D& aScrollOffset);
   void UpdateIsTransformAsyncZooming(uint64_t aAnimationId, bool aIsZooming);
 
  private:
@@ -267,6 +262,7 @@ class WebRenderAPI final {
   void EnableNativeCompositor(bool aEnable);
   void SetBatchingLookback(uint32_t aCount);
   void SetBool(wr::BoolParameter, bool value);
+  void SetInt(wr::IntParameter, int32_t value);
 
   void SetClearColor(const gfx::DeviceColor& aColor);
   void SetProfilerUI(const nsCString& aUIString);
@@ -477,7 +473,7 @@ class DisplayListBuilder final {
   wr::WrSpatialId DefineScrollLayer(
       const layers::ScrollableLayerGuid::ViewID& aViewId,
       const Maybe<wr::WrSpatialId>& aParent, const wr::LayoutRect& aContentRect,
-      const wr::LayoutRect& aClipRect, const wr::LayoutPoint& aScrollOffset,
+      const wr::LayoutRect& aClipRect, const wr::LayoutVector2D& aScrollOffset,
       wr::SpatialTreeItemKey aKey);
 
   void PushRect(const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,

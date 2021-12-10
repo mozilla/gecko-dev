@@ -17,6 +17,7 @@
 #include "nsRefPtrHashtable.h"
 #include "nsTHashSet.h"
 #include "ImageTypes.h"
+#include "ImgDrawResult.h"
 #include "DisplayItemClip.h"
 
 namespace mozilla {
@@ -197,12 +198,15 @@ class WebRenderImageProviderData final : public WebRenderUserData {
   static UserDataType Type() { return UserDataType::eImageProvider; }
 
   Maybe<wr::ImageKey> UpdateImageKey(image::WebRenderImageProvider* aProvider,
+                                     image::ImgDrawResult aDrawResult,
                                      wr::IpcResourceUpdateQueue& aResources);
 
   bool Invalidate(image::ImageProviderId aProviderId) const;
 
  protected:
   RefPtr<image::WebRenderImageProvider> mProvider;
+  Maybe<wr::ImageKey> mKey;
+  image::ImgDrawResult mDrawResult;
 };
 
 /// Used for fallback rendering.

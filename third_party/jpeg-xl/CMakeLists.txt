@@ -5,6 +5,7 @@
 
 # Ubuntu bionic ships with cmake 3.10.
 cmake_minimum_required(VERSION 3.10)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Honor VISIBILITY_INLINES_HIDDEN on all types of targets.
 if(POLICY CMP0063)
@@ -37,6 +38,7 @@ message(STATUS "CMAKE_SYSTEM_PROCESSOR is ${CMAKE_SYSTEM_PROCESSOR}")
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-fsanitize=fuzzer-no-link" CXX_FUZZERS_SUPPORTED)
 check_cxx_compiler_flag("-Xclang -mconstructor-aliases" CXX_CONSTRUCTOR_ALIASES_SUPPORTED)
+check_cxx_compiler_flag("-fmacro-prefix-map=OLD=NEW" CXX_MACRO_PREFIX_MAP)
 
 # Enabled PIE binaries by default if supported.
 include(CheckPIESupported OPTIONAL RESULT_VARIABLE CHECK_PIE_SUPPORTED)
@@ -121,10 +123,12 @@ set(JPEGXL_FORCE_NEON false CACHE BOOL
 
 
 # Force system dependencies.
-set(JPEGXL_FORCE_SYSTEM_GTEST false CACHE BOOL
-    "Force using system installed googletest (gtest/gmock) instead of third_party/googletest source.")
 set(JPEGXL_FORCE_SYSTEM_BROTLI false CACHE BOOL
     "Force using system installed brotli instead of third_party/brotli source.")
+set(JPEGXL_FORCE_SYSTEM_GTEST false CACHE BOOL
+    "Force using system installed googletest (gtest/gmock) instead of third_party/googletest source.")
+set(JPEGXL_FORCE_SYSTEM_LCMS2 false CACHE BOOL
+    "Force using system installed lcms2 instead of third_party/lcms source.")
 set(JPEGXL_FORCE_SYSTEM_HWY false CACHE BOOL
     "Force using system installed highway (libhwy-dev) instead of third_party/highway source.")
 
@@ -157,12 +161,12 @@ message(STATUS
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(JPEGXL_STATIC)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
   set(BUILD_SHARED_LIBS 0)
   # Clang developers say that in case to use "static" we have to build stdlib
   # ourselves; for real use case we don't care about stdlib, as it is "granted",
   # so just linking all other libraries is fine.
-  if (NOT APPLE)
+  if (NOT MSVC AND NOT APPLE)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
     set(CMAKE_EXE_LINKER_FLAGS
         "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
   endif()
@@ -205,6 +209,10 @@ if(JPEGXL_STATIC)
     endif()
   endif()
 endif()  # JPEGXL_STATIC
+
+if ("${CXX_MACRO_PREFIX_MAP}")
+  add_compile_options(-fmacro-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=.)
+endif()
 
 if (MSVC)
 # TODO(janwas): add flags
@@ -350,7 +358,12 @@ if(JPEGXL_ENABLE_MANPAGES)
 find_program(ASCIIDOC a2x)
 if(NOT "${ASCIIDOC}" STREQUAL "ASCIIDOC-NOTFOUND")
 file(STRINGS "${ASCIIDOC}" ASCIIDOC_SHEBANG LIMIT_COUNT 1)
-if(ASCIIDOC_SHEBANG MATCHES "python2")
+if(ASCIIDOC_SHEBANG MATCHES "/sh")
+  set(ASCIIDOC_PY_FOUND ON)
+  # Run the program directly and set ASCIIDOC as empty.
+  set(ASCIIDOC_PY "${ASCIIDOC}")
+  set(ASCIIDOC "")
+elseif(ASCIIDOC_SHEBANG MATCHES "python2")
   find_package(Python2 COMPONENTS Interpreter)
   set(ASCIIDOC_PY_FOUND "${Python2_Interpreter_FOUND}")
   set(ASCIIDOC_PY Python2::Interpreter)
@@ -381,7 +394,7 @@ if (ASCIIDOC_PY_FOUND)
     add_custom_command(
       OUTPUT "${PAGE}.1"
       COMMAND "${ASCIIDOC_PY}"
-      ARGS "${ASCIIDOC}"
+      ARGS ${ASCIIDOC}
         --format manpage --destination-dir="${CMAKE_CURRENT_BINARY_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/doc/man/${PAGE}.txt"
       MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/doc/man/${PAGE}.txt")

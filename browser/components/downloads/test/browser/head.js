@@ -109,7 +109,7 @@ function promiseInterruptibleDownload() {
   );
 
   registerCleanupFunction(async () => {
-    if (IOUtils.exists(interruptibleFile.path)) {
+    if (await IOUtils.exists(interruptibleFile.path)) {
       if (Services.appinfo.OS === "WINNT") {
         // We need to make the file writable to delete it on Windows.
         await IOUtils.setPermissions(interruptibleFile.path, 0o600);
@@ -127,13 +127,12 @@ function promiseInterruptibleDownload() {
 // Asynchronous support subroutines
 
 async function createDownloadedFile(pathname, contents) {
-  let encoder = new TextEncoder();
   let file = new FileUtils.File(pathname);
   if (file.exists()) {
     info(`File at ${pathname} already exists`);
   }
   // No post-test cleanup necessary; tmp downloads directory is already removed after each test
-  await OS.File.writeAtomic(pathname, encoder.encode(contents));
+  await IOUtils.writeUTF8(pathname, contents);
   ok(file.exists(), `Created ${pathname}`);
   return file;
 }

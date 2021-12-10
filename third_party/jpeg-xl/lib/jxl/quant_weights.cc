@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "lib/jxl/base/bits.h"
+#include "lib/jxl/base/printf_macros.h"
 #include "lib/jxl/base/status.h"
 #include "lib/jxl/common.h"
 #include "lib/jxl/dct_scales.h"
@@ -99,7 +100,7 @@ Status GetQuantWeights(
     size_t num_bands, float* out) {
   for (size_t c = 0; c < 3; c++) {
     if (print_mode) {
-      fprintf(stderr, "Channel %zu\n", c);
+      fprintf(stderr, "Channel %" PRIuS "\n", c);
     }
     float bands[DctQuantWeightParams::kMaxDistanceBands] = {
         distance_bands[c][0]};
@@ -122,7 +123,7 @@ Status GetQuantWeights(
           fprintf(stderr, "%15.12f, ", weight);
         }
         if (print_mode == 2) {
-          fprintf(stderr, "%zu %zu %15.12f\n", x, y, weight);
+          fprintf(stderr, "%" PRIuS " %" PRIuS " %15.12f\n", x, y, weight);
         }
         out[c * COLS * ROWS + y * COLS + x] = weight;
       }
@@ -467,6 +468,7 @@ Status DequantMatrices::Decode(BitReader* br,
 
 Status DequantMatrices::DecodeDC(BitReader* br) {
   bool all_default = br->ReadBits(1);
+  if (!br->AllReadsWithinBounds()) return JXL_FAILURE("EOS during DecodeDC");
   if (!all_default) {
     for (size_t c = 0; c < 3; c++) {
       JXL_RETURN_IF_ERROR(F16Coder::Read(br, &dc_quant_[c]));

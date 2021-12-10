@@ -46,11 +46,18 @@ LockRequestChild::LockRequestChild(
   if (aSignal.WasPassed()) {
     Follow(&aSignal.Value());
   }
+}
+
+void LockRequestChild::MaybeSetWorkerRef() {
   if (!NS_IsMainThread()) {
     mWorkerRef = StrongWorkerRef::Create(
         GetCurrentThreadWorkerPrivate(), "LockManager",
         [self = RefPtr(this)]() { self->mWorkerRef = nullptr; });
   }
+}
+
+void LockRequestChild::ActorDestroy(ActorDestroyReason aReason) {
+  CastedManager()->NotifyRequestDestroy();
 }
 
 IPCResult LockRequestChild::RecvResolve(const LockMode& aLockMode,
@@ -61,9 +68,8 @@ IPCResult LockRequestChild::RecvResolve(const LockMode& aLockMode,
   RefPtr<Promise> promise;
   if (aIsAvailable) {
     IgnoredErrorResult err;
-    lock =
-        new Lock(static_cast<LockManagerChild*>(Manager())->GetParentObject(),
-                 this, mRequest.mName, aLockMode, mRequest.mPromise, err);
+    lock = new Lock(CastedManager()->GetParentObject(), this, mRequest.mName,
+                    aLockMode, mRequest.mPromise, err);
     if (MOZ_UNLIKELY(err.Failed())) {
       mRequest.mPromise->MaybeRejectWithUnknownError(
           "Failed to allocate a lock");
@@ -83,15 +89,20 @@ IPCResult LockRequestChild::RecvResolve(const LockMode& aLockMode,
   return IPC_OK();
 }
 
-IPCResult LockRequestChild::RecvAbort() {
+IPCResult LockRequestChild::Recv__delete__(bool aAborted) {
+  MOZ_ASSERT(aAborted, "__delete__ is currently only for abort");
   Unfollow();
   mRequest.mPromise->MaybeRejectWithAbortError("The lock request is aborted");
   return IPC_OK();
 }
 
 void LockRequestChild::RunAbortAlgorithm() {
-  RecvAbort();
+  Recv__delete__(true);
   Send__delete__(this, true);
 }
+
+inline LockManagerChild* LockRequestChild::CastedManager() const {
+  return static_cast<LockManagerChild*>(Manager());
+};
 
 }  // namespace mozilla::dom::locks

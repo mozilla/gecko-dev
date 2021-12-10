@@ -38,6 +38,15 @@ const JSWINDOWACTORS = {
     },
     allFrames: true,
   },
+  GeckoViewFormValidation: {
+    child: {
+      moduleURI: "resource:///actors/GeckoViewFormValidationChild.jsm",
+      events: {
+        MozInvalidForm: {},
+      },
+    },
+    allFrames: true,
+  },
 };
 
 class GeckoViewStartup {
@@ -114,24 +123,6 @@ class GeckoViewStartup {
           ged: ["GeckoView:PushEvent", "GeckoView:PushSubscriptionChanged"],
         });
 
-        GeckoViewUtils.addLazyGetter(
-          this,
-          "GeckoViewContentBlockingController",
-          {
-            module:
-              "resource://gre/modules/GeckoViewContentBlockingController.jsm",
-            ged: [
-              "ContentBlocking:AddException",
-              "ContentBlocking:RemoveException",
-              "ContentBlocking:RemoveExceptionByPrincipal",
-              "ContentBlocking:CheckException",
-              "ContentBlocking:SaveList",
-              "ContentBlocking:RestoreList",
-              "ContentBlocking:ClearList",
-            ],
-          }
-        );
-
         GeckoViewUtils.addLazyPrefObserver(
           {
             name: "geckoview.console.enabled",
@@ -142,29 +133,14 @@ class GeckoViewStartup {
           }
         );
 
-        // Handle invalid form submission. If we don't hook up to this,
-        // invalid forms are allowed to be submitted!
-        Services.obs.addObserver(
-          {
-            QueryInterface: ChromeUtils.generateQI([
-              "nsIObserver",
-              "nsIFormSubmitObserver",
-            ]),
-            notifyInvalidSubmit: (form, element) => {
-              // We should show the validation message here, bug 1510450.
-            },
-          },
-          "invalidformsubmit"
-        );
-
         if (
           Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_DEFAULT
         ) {
           ActorManagerParent.addJSWindowActors(JSWINDOWACTORS);
 
-          GeckoViewUtils.addLazyGetter(this, "ContentCrashHandler", {
-            module: "resource://gre/modules/ContentCrashHandler.jsm",
-            observers: ["ipc:content-shutdown"],
+          GeckoViewUtils.addLazyGetter(this, "ChildCrashHandler", {
+            module: "resource://gre/modules/ChildCrashHandler.jsm",
+            observers: ["ipc:content-shutdown", "compositor:process-aborted"],
           });
         }
         break;

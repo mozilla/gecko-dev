@@ -3,6 +3,402 @@
     {
       "stash": {
         "blocked": [
+          "{a429d8a4-2625-49af-b123-31a212ea37fa}:1.0.0",
+          "{6d73693b-0b6e-4490-84a2-343452c14e84}:1.2.4",
+          "{201f0e07-69be-4cc3-bbf7-c095b9d06096}:1.2.1",
+          "{c89b2328-5750-4acf-9e70-2256af1119b2}:1.0.0.0",
+          "{a8b6843d-3cf4-4591-9853-6577c844e951}:1.2.4",
+          "{5ee07636-d704-4853-b5f4-598b355dc0f8}:1.2.4",
+          "{d36a5bab-b0c5-4d55-86ba-cd24c4d1c5b6}:2.18.4",
+          "{ead42d59-5b4a-4f48-a522-f61772afdf11}:1.5",
+          "{88e11351-ae39-4798-962b-363e7965a813}:1.1.0",
+          "{5c964575-2c47-46f2-b6be-07ad660874e2}:1.0.0",
+          "{cd4099aa-7a2a-450b-8ec5-05e94f52d0a8}:2.2.4",
+          "{095b4be8-7b75-45c1-a256-d64e565fbdb2}:0.0.1",
+          "{ead42d59-5b4a-4f48-a522-f61772afdf11}:1.6",
+          "{b18f6e6d-6dff-4190-92a4-643d52c1e6e4}:1.0.0",
+          "{fc34b7ee-cec3-448f-a9a3-233f674601f9}:1.3.1"
+        ],
+        "unblocked": []
+      },
+      "schema": 1638464125746,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1638470108620,
+      "id": "e1b14f47-b405-4137-83ad-2557822a2d8d",
+      "last_modified": 1638470268997
+    },
+    {
+      "stash": {
+        "blocked": [
+          "search@goodshop.com:1.4.2"
+        ],
+        "unblocked": []
+      },
+      "schema": 1638297473914,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1638383708683,
+      "id": "a67786cb-f298-499c-ad23-3897b9149a8f",
+      "last_modified": 1638383878130
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{cdca5dd7-377f-44f1-a37c-4d9380d4a37a}:1.1.0",
+          "{93e6e47c-6fba-48ac-b811-e8859d903a41}:1.2.1",
+          "{cdca5dd7-377f-44f1-a37c-4d9380d4a37a}:1.1.1",
+          "{61fcbd20-64e7-4078-a4c1-d494e326a548}:2.1.0",
+          "{cdca5dd7-377f-44f1-a37c-4d9380d4a37a}:1.1.2",
+          "{cdca5dd7-377f-44f1-a37c-4d9380d4a37a}:1.2.0",
+          "{cdca5dd7-377f-44f1-a37c-4d9380d4a37a}:1.0.1",
+          "{cdca5dd7-377f-44f1-a37c-4d9380d4a37a}:1.0.0",
+          "{cdca5dd7-377f-44f1-a37c-4d9380d4a37a}:2.0.0",
+          "{cdca5dd7-377f-44f1-a37c-4d9380d4a37a}:1.2.1"
+        ],
+        "unblocked": []
+      },
+      "schema": 1638269626443,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1638297309383,
+      "id": "cd2699fe-222d-4709-ae2c-209b665304d2",
+      "last_modified": 1638297473834
+    },
+    {
+      "stash": {
+        "blocked": [
+          "@easy-tabs:1.1.5",
+          "@easy-tabs:1.2.2",
+          "@easy-tabs:1.1.1",
+          "@easy-tabs:1.1.4",
+          "@easy-tabs:1.1.9",
+          "@easy-tabs:1.2.0",
+          "@easy-tabs:1.2.1",
+          "@easy-tabs:1.1.2",
+          "@speed-dial-fast1:1.1.1",
+          "@easy-tabs:1.2.3",
+          "@easy-tabs:1.1.8",
+          "@easy-tabs:1.1.7",
+          "@easy-tabs:1.1.3",
+          "@easy-tabs:1.1.6"
+        ],
+        "unblocked": []
+      },
+      "schema": 1637692674312,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1637865308773,
+      "id": "9787185c-a27c-4389-b6fc-fd1b51eceab8",
+      "last_modified": 1637865474270
+    },
+    {
+      "stash": {
+        "blocked": [
+          "SimilarDomain@ext:1.0",
+          "Security_Test@ext:1.0",
+          "pavel.sherbakov@gmail.com:68.7.3",
+          "pavel.sherbakov@gmail.com:67.6.9",
+          "pavel.sherbakov@gmail.com:69.4.5",
+          "pavel.sherbakov@gmail.com:66.5.1",
+          "pavel.sherbakov@gmail.com:64.1.3",
+          "pavel.sherbakov@gmail.com:72.1.5",
+          "pavel.sherbakov@gmail.com:67.5.7",
+          "pavel.sherbakov@gmail.com:68.5.8",
+          "pavel.sherbakov@gmail.com:66.2.3",
+          "URLThreatCheck@ext:1.0",
+          "pavel.sherbakov@gmail.com:67.4.3",
+          "pavel.sherbakov@gmail.com:68.7.5",
+          "Malware_Finder@ext:1.0",
+          "pavel.sherbakov@gmail.com:69.5.1",
+          "EsperantoDictionary@ext:1.0",
+          "pavel.sherbakov@gmail.com:77.5.7",
+          "pavel.sherbakov@gmail.com:65.5.5",
+          "pavel.sherbakov@gmail.com:65.4.3",
+          "PetrolAddicts@ext:1.0",
+          "pavel.sherbakov@gmail.com:67.4.1",
+          "pavel.sherbakov@gmail.com:72.1.9",
+          "pavel.sherbakov@gmail.com:73.2.7",
+          "pavel.sherbakov@gmail.com:65.6.7",
+          "pavel.sherbakov@gmail.com:67.4.7",
+          "pavel.sherbakov@gmail.com:68.9.7",
+          "Speed_Check@ext:1.0",
+          "pavel.sherbakov@gmail.com:65.3.7",
+          "pavel.sherbakov@gmail.com:69.2.5",
+          "pavel.sherbakov@gmail.com:68.6.3",
+          "pavel.sherbakov@gmail.com:76.8.7",
+          "pavel.sherbakov@gmail.com:70.1.1",
+          "Analyze_URL@ext:1.0",
+          "Test_Certificate@ext:1.0",
+          "pavel.sherbakov@gmail.com:68.9.8",
+          "LinkGraphAnalysis@ext:1.0",
+          "pavel.sherbakov@gmail.com:76.9.5",
+          "pavel.sherbakov@gmail.com:69.1.3",
+          "pavel.sherbakov@gmail.com:67.5.9",
+          "pavel.sherbakov@gmail.com:65.6.5",
+          "BackLinksMonitor@ext:1.0",
+          "pavel.sherbakov@gmail.com:67.5.5",
+          "pavel.sherbakov@gmail.com:68.5.1",
+          "pavel.sherbakov@gmail.com:66.5.5",
+          "pavel.sherbakov@gmail.com:69.1.1",
+          "pavel.sherbakov@gmail.com:66.3.1",
+          "pavel.sherbakov@gmail.com:65.3.6",
+          "pavel.sherbakov@gmail.com:71.1.1",
+          "pavel.sherbakov@gmail.com:69.2.3",
+          "pavel.sherbakov@gmail.com:69.3.9",
+          "pavel.sherbakov@gmail.com:68.6.7",
+          "pavel.sherbakov@gmail.com:69.2.1",
+          "reddit_search@ext:1.0",
+          "pavel.sherbakov@gmail.com:72.2.1",
+          "pavel.sherbakov@gmail.com:64.3.5",
+          "pavel.sherbakov@gmail.com:67.6.5",
+          "pavel.sherbakov@gmail.com:67.1.5",
+          "pavel.sherbakov@gmail.com:66.1.8",
+          "SEO_Analyzer@ext:1.0",
+          "pavel.sherbakov@gmail.com:76.9.3",
+          "pavel.sherbakov@gmail.com:77.3.3",
+          "Domain_Info@ext:1.0",
+          "pavel.sherbakov@gmail.com:73.2.9"
+        ],
+        "unblocked": []
+      },
+      "schema": 1637682694770,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1637692508451,
+      "id": "228b14ae-9432-4698-87ff-5c8225c93c3e",
+      "last_modified": 1637692674236
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{02ddc323-3339-44ea-a24d-f65bc41e1094}:1.1.0",
+          "wallet@m-etamask.com:1.3.0",
+          "wallet@m-etamask.com:1.2.0",
+          "wallet@m-etamask.com:1.4.0"
+        ],
+        "unblocked": []
+      },
+      "schema": 1637282275455,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1637606109327,
+      "id": "b1e6285c-5079-467a-9023-43d3bbfb1325",
+      "last_modified": 1637606282788
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.18",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.20",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.6",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.13",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.19",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.17",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.16",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.11",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.12",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.21",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.9",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.5",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.10",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.14",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.8",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.4",
+          "{00360816-3389-4e1d-9f8e-c0479a87dc8b}:1.0.3"
+        ],
+        "unblocked": []
+      },
+      "schema": 1637260675554,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1637282109144,
+      "id": "b9aaf5ad-920a-4756-bae2-33181d65dc4c",
+      "last_modified": 1637282275381
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{a02abdbd-67f1-4a34-8618-542ea0403c49}:1.0"
+        ],
+        "unblocked": []
+      },
+      "schema": 1637166846121,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1637260508809,
+      "id": "323ddd82-1478-4bb9-be8c-afdbaaae01a3",
+      "last_modified": 1637260675473
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{39a81ad1-e825-4bd5-9b02-0c55d5f66fe4}:4.2.1"
+        ],
+        "unblocked": []
+      },
+      "schema": 1636547865524,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1637022908726,
+      "id": "5ca37f37-8332-43e0-8791-f8371578a98b",
+      "last_modified": 1637023071663
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{0df4ccde-744e-445e-a22a-84378af3b002}:1.91",
+          "{0df4ccde-744e-445e-a22a-84378af3b002}:1.0",
+          "{b9e8c781-75c2-443e-aca3-ffa68e8c49b8}:1.0",
+          "{6505668d-8d72-4964-a1f8-d1789d0b4827}:1.0",
+          "{0df4ccde-744e-445e-a22a-84378af3b002}:1.92"
+        ],
+        "unblocked": []
+      },
+      "schema": 1636483097941,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1636547707420,
+      "id": "efdfe866-4d35-42e4-bfca-694ed3dc101d",
+      "last_modified": 1636547865447
+    },
+    {
+      "stash": {
+        "blocked": [
+          "bacnt2412@gmail.com:1.1",
+          "undervpn_store@undervpn.digital:2.0.0.63",
+          "undervpn_store@undervpn.digital:2.0.0.61",
+          "bacnt2412@gmail.com:1.0",
+          "undervpn@undervpn.digital:2.0.0.63",
+          "undervpn@undervpn.digital:2.0.0.61"
+        ],
+        "unblocked": []
+      },
+      "schema": 1636137470705,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1636482908521,
+      "id": "0358385f-270e-49d9-9898-b646ce5ba657",
+      "last_modified": 1636483097867
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{c9837f45-c18f-4c32-bfd3-0b1ca1e394fb}:1.92",
+          "{c9837f45-c18f-4c32-bfd3-0b1ca1e394fb}:1.0",
+          "{c9837f45-c18f-4c32-bfd3-0b1ca1e394fb}:1.91"
+        ],
+        "unblocked": []
+      },
+      "schema": 1636115876356,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1636137307675,
+      "id": "0e086673-25b2-4f5b-9080-863cbcecb623",
+      "last_modified": 1636137470605
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{52671a2e-41cb-431a-96ed-f8898c829303}:1.0"
+        ],
+        "unblocked": []
+      },
+      "schema": 1635964681183,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1636115707921,
+      "id": "cdb720f4-7668-4148-835f-b29e46778fb2",
+      "last_modified": 1636115876268
+    },
+    {
+      "stash": {
+        "blocked": [],
+        "unblocked": []
+      },
+      "schema": 1635856675788,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1635964509453,
+      "id": "a984cfd8-c8f7-41c8-8091-421ed066ef4b",
+      "last_modified": 1635964681037
+    },
+    {
+      "stash": {
+        "blocked": [
+          "SSLInfo@ext:1.0"
+        ],
+        "unblocked": []
+      },
+      "schema": 1635791882453,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1635856508979,
+      "id": "02919eee-9d52-487c-a580-5103990faf10",
+      "last_modified": 1635856675708
+    },
+    {
+      "stash": {
+        "blocked": [
+          "lansvans63@gmail.com:1.0",
+          "lansvans63@gmail.com:1.5",
+          "lansvans63@gmail.com:1.3",
+          "lansvans63@gmail.com:1.1",
+          "lansvans63@gmail.com:1.2",
+          "lansvans63@gmail.com:1.4"
+        ],
+        "unblocked": []
+      },
+      "schema": 1635416185225,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1635791709561,
+      "id": "5c71a3af-3b18-4cc9-b49e-dfc69fde0bfb",
+      "last_modified": 1635791882379
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{604c5a78-dd2e-418d-b91e-7162104693ca}:1.9.2",
+          "{604c5a78-dd2e-418d-b91e-7162104693ca}:1.0.0",
+          "{604c5a78-dd2e-418d-b91e-7162104693ca}:1.9.1",
+          "{604c5a78-dd2e-418d-b91e-7162104693ca}:1.0.1"
+        ],
+        "unblocked": []
+      },
+      "schema": 1635342839122,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1635359710516,
+      "id": "dcc1da68-f227-447d-a0fc-4768f9774cd8",
+      "last_modified": 1635359893623
+    },
+    {
+      "stash": {
+        "blocked": [
+          "manish.p05@gmail.com:13.1",
+          "manish.p05@gmail.com:13.0"
+        ],
+        "unblocked": []
+      },
+      "schema": 1635256072199,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1635273312739,
+      "id": "9c06f574-1e62-4985-b9b5-c71ec78f7946",
+      "last_modified": 1635273500357
+    },
+    {
+      "stash": {
+        "blocked": [],
+        "unblocked": []
+      },
+      "schema": 1635165482446,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1635251711882,
+      "id": "684343e4-508e-4229-88f4-3b712f74c76d",
+      "last_modified": 1635251898806
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{9f4f69ba-0892-4bab-8423-4c238be9468d}:2.0",
+          "{f96294e7-aa39-48a2-b121-f1b886c0c474}:1.0.2",
+          "{a0d57b7a-69c3-4066-b8f7-b278dd1158c3}:1.0.2"
+        ],
+        "unblocked": []
+      },
+      "schema": 1634830567822,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1635165308377,
+      "id": "06d7f1a4-9910-482f-ba0e-f7dacb8d1425",
+      "last_modified": 1635165482366
+    },
+    {
+      "stash": {
+        "blocked": [
           "{2e8bdeb1-d8d8-4bb8-b5c3-030da169d279}:1.0"
         ],
         "unblocked": []

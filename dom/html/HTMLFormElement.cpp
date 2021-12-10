@@ -51,8 +51,6 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_prompts.h"
 #include "mozilla/StaticPrefs_signon.h"
-#include "nsIFormSubmitObserver.h"
-#include "nsIObserverService.h"
 #include "nsCategoryManagerUtils.h"
 #include "nsIContentInlines.h"
 #include "nsISimpleEnumerator.h"
@@ -1038,8 +1036,9 @@ nsresult HTMLFormElement::ConstructEntryList(FormData* aFormData) {
       FormDataEvent::Constructor(this, u"formdata"_ns, init);
   event->SetTrusted(true);
 
-  EventDispatcher::DispatchDOMEvent(ToSupports(this), nullptr, event, nullptr,
-                                    nullptr);
+  // TODO: Bug 1506441
+  EventDispatcher::DispatchDOMEvent(MOZ_KnownLive(ToSupports(this)), nullptr,
+                                    event, nullptr, nullptr);
 
   return NS_OK;
 }
@@ -1855,14 +1854,9 @@ bool HTMLFormElement::CheckFormValidity(
   for (uint32_t i = 0; i < len; ++i) {
     nsCOMPtr<nsIConstraintValidation> cvElmt =
         do_QueryObject(sortedControls[i]);
-    if (cvElmt && cvElmt->IsCandidateForConstraintValidation() &&
-        !cvElmt->IsValid()) {
+    bool defaultAction = true;
+    if (cvElmt && !cvElmt->CheckValidity(*sortedControls[i], &defaultAction)) {
       ret = false;
-      bool defaultAction = true;
-      nsContentUtils::DispatchTrustedEvent(
-          sortedControls[i]->OwnerDoc(),
-          static_cast<nsIContent*>(sortedControls[i]), u"invalid"_ns,
-          CanBubble::eNo, Cancelable::eYes, &defaultAction);
 
       // Add all unhandled invalid controls to aInvalidElements if the caller
       // requested them.
@@ -1881,26 +1875,17 @@ bool HTMLFormElement::CheckValidFormSubmission() {
    * invalid controls in the form.
    * This should not be done if the form has been submitted with .submit().
    *
-   * NOTE: for the moment, we are also checking that there is an observer for
-   * NS_INVALIDFORMSUBMIT_SUBJECT so it will prevent blocking form submission
-   * if the browser does not have implemented a UI yet.
+   * NOTE: for the moment, we are also checking that whether the MozInvalidForm
+   * event gets prevented default so it will prevent blocking form submission if
+   * the browser does not have implemented a UI yet.
    *
-   * TODO: the check for observer should be removed later when HTML5 Forms will
-   * be spread enough and authors will assume forms can't be submitted when
-   * invalid. See bug 587671.
+   * TODO: the check for MozInvalidForm event should be removed later when HTML5
+   * Forms will be spread enough and authors will assume forms can't be
+   * submitted when invalid. See bug 587671.
    */
 
   NS_ASSERTION(!HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate),
                "We shouldn't be there if novalidate is set!");
-
-  // When .submit() is called aEvent = nullptr so we can rely on that to know if
-  // we have to check the validity of the form.
-  nsCOMPtr<nsIObserverService> service =
-      mozilla::services::GetObserverService();
-  if (!service) {
-    NS_WARNING("No observer service available!");
-    return true;
-  }
 
   AutoTArray<RefPtr<Element>, 32> invalidElements;
   if (CheckFormValidity(&invalidElements)) {
@@ -1967,39 +1952,7 @@ bool HTMLFormElement::CheckValidFormSubmission() {
 
   DispatchEvent(*event);
 
-  bool result = !event->DefaultPrevented();
-
-  nsCOMPtr<nsISimpleEnumerator> theEnum;
-  nsresult rv = service->EnumerateObservers(NS_INVALIDFORMSUBMIT_SUBJECT,
-                                            getter_AddRefs(theEnum));
-  NS_ENSURE_SUCCESS(rv, result);
-
-  bool hasObserver = false;
-  rv = theEnum->HasMoreElements(&hasObserver);
-
-  if (NS_SUCCEEDED(rv) && hasObserver) {
-    result = false;
-
-    nsCOMPtr<nsISupports> inst;
-    nsCOMPtr<nsIFormSubmitObserver> observer;
-    bool more = true;
-    while (NS_SUCCEEDED(theEnum->HasMoreElements(&more)) && more) {
-      theEnum->GetNext(getter_AddRefs(inst));
-      observer = do_QueryInterface(inst);
-
-      if (observer) {
-        observer->NotifyInvalidSubmit(this, invalidElements);
-      }
-    }
-  }
-
-  if (result) {
-    NS_WARNING(
-        "There is no observer for \"invalidformsubmit\". \
-One should be implemented!");
-  }
-
-  return result;
+  return !event->DefaultPrevented();
 }
 
 void HTMLFormElement::UpdateValidity(bool aElementValidity) {
@@ -2018,37 +1971,6 @@ void HTMLFormElement::UpdateValidity(bool aElementValidity) {
   if (mInvalidElementsCount &&
       (mInvalidElementsCount != 1 || aElementValidity)) {
     return;
-  }
-
-  /*
-   * We are going to update states assuming submit controls want to
-   * be notified because we can't know.
-   * UpdateValidity shouldn't be called so much during parsing so it _should_
-   * be safe.
-   */
-
-  nsAutoScriptBlocker scriptBlocker;
-
-  // Inform submit controls that the form validity has changed.
-  for (uint32_t i = 0, length = mControls->mElements.Length(); i < length;
-       ++i) {
-    nsCOMPtr<nsIFormControl> fc = do_QueryInterface(mControls->mElements[i]);
-    MOZ_ASSERT(fc);
-    if (fc->IsSubmitControl()) {
-      mControls->mElements[i]->UpdateState(true);
-    }
-  }
-
-  // Because of backward compatibility, <input type='image'> is not in elements
-  // so we have to check for controls not in elements too.
-  uint32_t length = mControls->mNotInElements.Length();
-  for (uint32_t i = 0; i < length; ++i) {
-    nsCOMPtr<nsIFormControl> fc =
-        do_QueryInterface(mControls->mNotInElements[i]);
-    MOZ_ASSERT(fc);
-    if (fc->IsSubmitControl()) {
-      mControls->mNotInElements[i]->UpdateState(true);
-    }
   }
 
   UpdateState(true);

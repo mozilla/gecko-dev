@@ -8,6 +8,8 @@ const {
   TYPES: { SOURCE },
 } = require("devtools/server/actors/resources/index");
 
+const { STATES: THREAD_STATES } = require("devtools/server/actors/thread");
+
 /**
  * Start watching for all JS sources related to a given Target Actor.
  * This will notify about existing sources, but also the ones created in future.
@@ -25,17 +27,25 @@ class SourceWatcher {
   }
 
   async watch(targetActor, { onAvailable }) {
-    // Force attaching the target in order to ensure it instantiates the ThreadActor
-    targetActor.attach();
-
     const { threadActor } = targetActor;
-    this.threadActor = threadActor;
+    this.sourcesManager = targetActor.sourcesManager;
     this.onAvailable = onAvailable;
 
     // Disable `ThreadActor.newSource` RDP event in order to avoid unnecessary traffic
     threadActor.disableNewSourceEvents();
 
     threadActor.sourcesManager.on("newSource", this.onNewSource);
+
+    // If the thread actors isn't bootstraped yet,
+    // (this might be the case when this watcher is created on target creation)
+    // attach the thread actor automatically.
+    // Otherwise it would not notify about future sources.
+    // However, do not attach the thread actor for Workers. They use a codepath
+    // which releases the worker on `attach`. For them, the client will call `attach`. (bug 1691986)
+    const isTargetCreation = threadActor.state == THREAD_STATES.DETACHED;
+    if (isTargetCreation && !targetActor.targetType.endsWith("worker")) {
+      await threadActor.attach({});
+    }
 
     // Before fetching all sources, process existing ones.
     // The ThreadActor is already up and running before this code runs
@@ -56,7 +66,7 @@ class SourceWatcher {
    * Stop watching for sources
    */
   destroy() {
-    this.threadActor.sourcesManager.off("newSource", this.onNewSource);
+    this.sourcesManager.off("newSource", this.onNewSource);
   }
 
   onNewSource(source) {

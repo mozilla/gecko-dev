@@ -114,6 +114,9 @@ DefaultJitOptions::DefaultJitOptions() {
   // Toggles whether sink code motion is globally disabled.
   SET_DEFAULT(disableSink, true);
 
+  // Toggles whether redundant shape guard elimination is globally disabled.
+  SET_DEFAULT(disableRedundantShapeGuards, false);
+
   // Toggles whether we verify that we don't recompile with the same CacheIR.
   SET_DEFAULT(disableBailoutLoopCheck, false);
 
@@ -300,6 +303,9 @@ DefaultJitOptions::DefaultJitOptions() {
   SET_DEFAULT(traceRegExpInterpreter, false);
   // Dumps the changes made by the regexp peephole optimizer to stderr
   SET_DEFAULT(traceRegExpPeephole, false);
+
+  // Controls how much assertion checking code is emitted
+  SET_DEFAULT(lessDebugCode, false);
 
   SET_DEFAULT(enableWasmJitExit, true);
   SET_DEFAULT(enableWasmJitEntry, true);

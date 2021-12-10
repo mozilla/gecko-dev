@@ -111,13 +111,17 @@
   --card-shadow-hover: var(--card-shadow), 0 0 0 5px var(--card-outline-color);
 
   accent-color: var(--in-content-accent-color);
+  color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :host,
   :root {
-    /* Keep these in sync with layout/base/PresShell.cpp, plaintext.css,
-     * and nsXPLookAndFeel::GenericDarkColor
+    /* Keep these in sync with:
+     *
+     *  * nsXPLookAndFeel::GenericDarkColor
+     *  * The default value of browser.display.foreground_color.dark and
+     *    browser.display.background_color.dark
      *
      * TODO (emilio): Once color-scheme support is complete, perhaps we can
      * just replace most of these for system colors and remove all this
@@ -189,7 +193,7 @@
 
     --in-content-box-background: -moz-Dialog;
     --in-content-box-background-odd: -moz-Dialog;
-    --in-content-box-border-color: ThreeDShadow;
+    --in-content-box-border-color: -moz-DialogText;
     --in-content-box-info-background: -moz-Dialog;
 
     --in-content-item-hover: SelectedItem;
@@ -213,19 +217,19 @@
     --in-content-link-color-active: -moz-nativehyperlinktext;
     --in-content-link-color-visited: -moz-nativehyperlinktext;
 
-    --in-content-button-text-color-hover: SelectedItemText;
+    --in-content-button-text-color-hover: ButtonFace;
     --in-content-button-background: ButtonFace;
     --in-content-button-text-color: ButtonText;
-    --in-content-button-background-hover: SelectedItem;
-    --in-content-button-background-active: SelectedItem;
-    --in-content-button-border-color: ThreeDShadow;
+    --in-content-button-background-hover: ButtonText;
+    --in-content-button-background-active: ButtonText;
+    --in-content-button-border-color: ButtonText;
 
-    --in-content-primary-button-text-color: SelectedItemText;
-    --in-content-primary-button-text-color-hover: SelectedItem;
-    --in-content-primary-button-background: SelectedItem;
+    --in-content-primary-button-text-color: ButtonFace;
+    --in-content-primary-button-text-color-hover: ButtonText;
+    --in-content-primary-button-background: ButtonText;
     --in-content-primary-button-background-hover: ButtonFace;
     --in-content-primary-button-background-active: ButtonFace;
-    --in-content-primary-button-border-hover: SelectedItem;
+    --in-content-primary-button-border-hover: ButtonText;
 
     --in-content-danger-button-background: var(--in-content-primary-button-background);
     --in-content-danger-button-background-hover: var(--in-content-primary-button-background-hover);
@@ -245,7 +249,6 @@
     --checkbox-checked-bgcolor: SelectedItem;
     --checkbox-checked-color: SelectedItemText;
     --checkbox-checked-border-color: SelectedItem;
-    --checkbox-checked-border-color-hover: SelectedItem;
     --checkbox-checked-hover-bgcolor: -moz-Field;
     --checkbox-checked-active-bgcolor: -moz-Field;
   }
@@ -358,7 +361,7 @@ button {
 }
 
 /* Small buttons get sized to 6/12px padding (when adding the 1px border) */
-.small-button {
+button.small-button {
   padding: 5px 11px;
   min-height: 24px;
   font-size: 0.9em;

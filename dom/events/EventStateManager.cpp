@@ -107,9 +107,7 @@
 #include "nsIDragSession.h"
 #include "mozilla/dom/DataTransfer.h"
 #include "nsContentAreaDragDrop.h"
-#ifdef MOZ_XUL
-#  include "nsTreeBodyFrame.h"
-#endif
+#include "nsTreeBodyFrame.h"
 #include "nsIController.h"
 #include "mozilla/Services.h"
 #include "mozilla/dom/ContentParent.h"
@@ -3067,7 +3065,6 @@ void EventStateManager::DecideGestureEvent(WidgetGestureNotifyEvent* aEvent,
       break;
     }
 
-#ifdef MOZ_XUL
     // Special check for trees
     nsTreeBodyFrame* treeFrame = do_QueryFrame(current);
     if (treeFrame) {
@@ -3079,7 +3076,6 @@ void EventStateManager::DecideGestureEvent(WidgetGestureNotifyEvent* aEvent,
       }
       break;
     }
-#endif
 
     nsIScrollableFrame* scrollableFrame = do_QueryFrame(current);
     if (scrollableFrame) {
@@ -3387,14 +3383,15 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
           suppressBlur =
               mCurrentTarget->StyleUI()->UserFocus() == StyleUserFocus::Ignore;
 
-          nsCOMPtr<Element> element = do_QueryInterface(aEvent->mTarget);
-          if (!suppressBlur && element) {
-            nsCOMPtr<nsIDOMXULControlElement> xulControl =
-                element->AsXULControl();
-            if (xulControl) {
-              bool disabled = false;
-              xulControl->GetDisabled(&disabled);
-              suppressBlur = disabled;
+          if (!suppressBlur) {
+            if (Element* element =
+                    Element::FromEventTargetOrNull(aEvent->mTarget)) {
+              if (nsCOMPtr<nsIDOMXULControlElement> xulControl =
+                      element->AsXULControl()) {
+                bool disabled = false;
+                xulControl->GetDisabled(&disabled);
+                suppressBlur = disabled;
+              }
             }
           }
         }
@@ -4027,6 +4024,10 @@ static bool ShouldBlockCustomCursor(nsPresContext* aPresContext,
   // The cursor size won't be affected by our full zoom in the parent process,
   // so undo that before checking the rect.
   float zoom = topLevel->GetFullZoom();
+
+  // Also adjust for accessibility cursor scaling factor.
+  zoom /= LookAndFeel::GetFloat(LookAndFeel::FloatID::CursorScale, 1.0f);
+
   nsSize size(CSSPixel::ToAppUnits(width / zoom),
               CSSPixel::ToAppUnits(height / zoom));
   nsPoint hotspot(CSSPixel::ToAppUnits(aCursor.mHotspot.x / zoom),
@@ -5253,7 +5254,7 @@ nsresult EventStateManager::PostHandleMouseUp(
   }
 
   nsCOMPtr<nsIContent> clickTarget =
-      do_QueryInterface(aMouseUpEvent->mClickTarget);
+      nsIContent::FromEventTargetOrNull(aMouseUpEvent->mClickTarget);
   NS_ENSURE_STATE(clickTarget);
 
   // Fire click events if the event target is still available.

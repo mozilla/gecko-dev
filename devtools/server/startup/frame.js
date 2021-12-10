@@ -27,7 +27,7 @@ try {
       customLoader = false;
     if (content.document.nodePrincipal.isSystemPrincipal) {
       const { DevToolsLoader } = ChromeUtils.import(
-        "resource://devtools/shared/Loader.jsm"
+        "resource://devtools/shared/loader/Loader.jsm"
       );
       loader = new DevToolsLoader({
         invisibleToDebugger: true,
@@ -35,7 +35,9 @@ try {
       customLoader = true;
     } else {
       // Otherwise, use the shared loader.
-      loader = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
+      loader = ChromeUtils.import(
+        "resource://devtools/shared/loader/Loader.jsm"
+      );
     }
     const { require } = loader;
 
@@ -54,6 +56,7 @@ try {
       const mm = msg.target;
       const prefix = msg.data.prefix;
       const addonId = msg.data.addonId;
+      const addonBrowsingContextGroupId = msg.data.addonBrowsingContextGroupId;
 
       // If we try to create several frame targets simultaneously, the frame script will be loaded several times.
       // In this case a single "debug:connect" message might be received by all the already loaded frame scripts.
@@ -78,6 +81,7 @@ try {
         } = require("devtools/server/actors/targets/webextension");
         actor = new WebExtensionTargetActor(conn, {
           addonId,
+          addonBrowsingContextGroupId,
           chromeGlobal,
           isTopLevelTarget: true,
           prefix,

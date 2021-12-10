@@ -18,6 +18,7 @@
 
 #include "lib/jxl/alpha.h"
 #include "lib/jxl/base/compiler_specific.h"
+#include "lib/jxl/base/printf_macros.h"
 #include "lib/jxl/base/span.h"
 #include "lib/jxl/base/status.h"
 #include "lib/jxl/compressed_dc.h"
@@ -158,17 +159,22 @@ Status ModularFrameDecoder::DecodeGlobalInfo(BitReader* reader,
   if (is_gray && frame_header.color_transform == ColorTransform::kNone) {
     nb_chans = 1;
   }
-  bool has_tree = reader->ReadBits(1);
-  if (has_tree) {
-    size_t tree_size_limit =
-        1024 + frame_dim.xsize * frame_dim.ysize * nb_chans / 16;
-    JXL_RETURN_IF_ERROR(DecodeTree(reader, &tree, tree_size_limit));
-    JXL_RETURN_IF_ERROR(
-        DecodeHistograms(reader, (tree.size() + 1) / 2, &code, &context_map));
-  }
   do_color = decode_color;
-  if (!do_color) nb_chans = 0;
   size_t nb_extra = metadata.extra_channel_info.size();
+  bool has_tree = reader->ReadBits(1);
+  if (!allow_truncated_group ||
+      reader->TotalBitsConsumed() < reader->TotalBytes() * kBitsPerByte) {
+    if (has_tree) {
+      size_t tree_size_limit =
+          std::min(static_cast<size_t>(1 << 22),
+                   1024 + frame_dim.xsize * frame_dim.ysize *
+                              (nb_chans + nb_extra) / 16);
+      JXL_RETURN_IF_ERROR(DecodeTree(reader, &tree, tree_size_limit));
+      JXL_RETURN_IF_ERROR(
+          DecodeHistograms(reader, (tree.size() + 1) / 2, &code, &context_map));
+    }
+  }
+  if (!do_color) nb_chans = 0;
 
   bool fp = metadata.bit_depth.floating_point_sample;
 
@@ -255,12 +261,10 @@ void ModularFrameDecoder::MaybeDropFullImage() {
   }
 }
 
-Status ModularFrameDecoder::DecodeGroup(const Rect& rect, BitReader* reader,
-                                        int minShift, int maxShift,
-                                        const ModularStreamId& stream,
-                                        bool zerofill,
-                                        PassesDecoderState* dec_state,
-                                        ImageBundle* output) {
+Status ModularFrameDecoder::DecodeGroup(
+    const Rect& rect, BitReader* reader, int minShift, int maxShift,
+    const ModularStreamId& stream, bool zerofill, PassesDecoderState* dec_state,
+    ImageBundle* output, bool allow_truncated) {
   JXL_DASSERT(stream.kind == ModularStreamId::kModularDC ||
               stream.kind == ModularStreamId::kModularAC);
   const size_t xsize = rect.xsize();
@@ -300,9 +304,11 @@ Status ModularFrameDecoder::DecodeGroup(const Rect& rect, BitReader* reader,
   if (gi.channel.empty()) return true;
   ModularOptions options;
   if (!zerofill) {
-    if (!ModularGenericDecompress(
-            reader, gi, /*header=*/nullptr, stream.ID(frame_dim), &options,
-            /*undo_transforms=*/true, &tree, &code, &context_map)) {
+    if (!ModularGenericDecompress(reader, gi, /*header=*/nullptr,
+                                  stream.ID(frame_dim), &options,
+                                  /*undo_transforms=*/true, &tree, &code,
+                                  &context_map, allow_truncated) &&
+        !allow_truncated) {
       return JXL_FAILURE("Failed to decode modular group");
     }
   }
@@ -497,10 +503,11 @@ Status ModularFrameDecoder::ModularImageToDecodedRect(
              DivCeil(decoded.xsize(), 1 << ch_in.hshift),
              DivCeil(decoded.ysize(), 1 << ch_in.vshift));
       if (r.ysize() != ch_in.h || r.xsize() != ch_in.w) {
-        return JXL_FAILURE(
-            "Dimension mismatch: trying to fit a %zux%zu modular channel into "
-            "a %zux%zu rect",
-            ch_in.w, ch_in.h, r.xsize(), r.ysize());
+        return JXL_FAILURE("Dimension mismatch: trying to fit a %" PRIuS
+                           "x%" PRIuS
+                           " modular channel into "
+                           "a %" PRIuS "x%" PRIuS " rect",
+                           ch_in.w, ch_in.h, r.xsize(), r.ysize());
       }
       if (frame_header.color_transform == ColorTransform::kXYB && c == 2) {
         JXL_ASSERT(!fp);

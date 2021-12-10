@@ -73,9 +73,7 @@
 #include "mozilla/ReflowInput.h"
 #include "nsIImageLoadingContent.h"
 #include "nsCopySupport.h"
-#ifdef MOZ_XUL
-#  include "nsXULPopupManager.h"
-#endif
+#include "nsXULPopupManager.h"
 
 #include "nsIClipboardHelper.h"
 
@@ -1283,7 +1281,8 @@ nsDocumentViewer::PermitUnload(PermitUnloadAction aAction,
   return NS_OK;
 }
 
-PermitUnloadResult nsDocumentViewer::DispatchBeforeUnload() {
+MOZ_CAN_RUN_SCRIPT_BOUNDARY PermitUnloadResult
+nsDocumentViewer::DispatchBeforeUnload() {
   AutoDontWarnAboutSyncXHR disableSyncXHRWarning;
 
   if (!mDocument || mInPermitUnload || mInPermitUnloadPrompt) {
@@ -1291,7 +1290,8 @@ PermitUnloadResult nsDocumentViewer::DispatchBeforeUnload() {
   }
 
   // First, get the script global object from the document...
-  auto* window = nsGlobalWindowOuter::Cast(mDocument->GetWindow());
+  RefPtr<nsGlobalWindowOuter> window =
+      nsGlobalWindowOuter::Cast(mDocument->GetWindow());
   if (!window) {
     // This is odd, but not fatal
     NS_WARNING("window not set for document!");
@@ -1336,8 +1336,10 @@ PermitUnloadResult nsDocumentViewer::DispatchBeforeUnload() {
     Document::PageUnloadingEventTimeStamp timestamp(mDocument);
 
     mInPermitUnload = true;
-    EventDispatcher::DispatchDOMEvent(ToSupports(window), nullptr, event,
-                                      mPresContext, nullptr);
+    RefPtr<nsPresContext> presContext = mPresContext;
+    // TODO: Bug 1506441
+    EventDispatcher::DispatchDOMEvent(MOZ_KnownLive(ToSupports(window)),
+                                      nullptr, event, presContext, nullptr);
     mInPermitUnload = false;
   }
 
@@ -1428,11 +1430,9 @@ nsDocumentViewer::PageHide(bool aIsUnload) {
     EventDispatcher::Dispatch(window, mPresContext, &event, nullptr, &status);
   }
 
-#ifdef MOZ_XUL
   // look for open menupopups and close them after the unload event, in case
   // the unload event listeners open any new popups
   nsContentUtils::HidePopupsInDocument(mDocument);
-#endif
 
   return NS_OK;
 }
@@ -1597,8 +1597,6 @@ static void DetachContainerRecurse(nsIDocShell* aShell) {
 
 NS_IMETHODIMP
 nsDocumentViewer::Destroy() {
-  NS_ASSERTION(mDocument, "No document in Destroy()!");
-
   // Don't let the document get unloaded while we are printing.
   // this could happen if we hit the back button during printing.
   // We also keep the viewer from being cached in session history, since
@@ -2587,6 +2585,12 @@ nsDocumentViewer::GetReloadEncodingAndSource(int32_t* aSource) {
 NS_IMETHODIMP_(void)
 nsDocumentViewer::SetReloadEncodingAndSource(const Encoding* aEncoding,
                                              int32_t aSource) {
+  MOZ_ASSERT(
+      aSource == kCharsetUninitialized ||
+      (aSource >= kCharsetFromFinalAutoDetectionWouldHaveBeenUTF8 &&
+       aSource <=
+           kCharsetFromFinalAutoDetectionWouldNotHaveBeenUTF8DependedOnTLD) ||
+      aSource == kCharsetFromFinalUserForcedAutoDetection);
   mReloadEncoding = aEncoding;
   mReloadEncodingSource = aSource;
 }
@@ -2710,7 +2714,6 @@ already_AddRefed<nsINode> nsDocumentViewer::GetPopupNode() {
 
     // get the popup node
     nsCOMPtr<nsINode> node = root->GetPopupNode();
-#ifdef MOZ_XUL
     if (!node) {
       nsPIDOMWindowOuter* rootWindow = root->GetWindow();
       if (rootWindow) {
@@ -2723,7 +2726,6 @@ already_AddRefed<nsINode> nsDocumentViewer::GetPopupNode() {
         }
       }
     }
-#endif
     return node.forget();
   }
 

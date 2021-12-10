@@ -120,7 +120,6 @@ class NativeLayerRootCA : public NativeLayerRoot {
       bool aIsOpaque) override;
 
   void SetWindowIsFullscreen(bool aFullscreen);
-  void NoteMouseMove();
   void NoteMouseMoveAtTime(const TimeStamp& aTime);
 
  protected:
@@ -145,7 +144,7 @@ class NativeLayerRootCA : public NativeLayerRoot {
   template <typename F>
   void ForAllRepresentations(F aFn);
 
-  void UpdateMouseMovedRecently();
+  void UpdateMouseMovedRecently(const MutexAutoLock& aProofOfLock);
 
   Mutex mMutex;  // protects all other fields
   Representation mOnscreenRepresentation;
@@ -275,8 +274,17 @@ class NativeLayerCA : public NativeLayer {
   // To be called by NativeLayerRootCA:
   typedef NativeLayerRootCA::WhichRepresentation WhichRepresentation;
   CALayer* UnderlyingCALayer(WhichRepresentation aRepresentation);
-  void ApplyChanges(WhichRepresentation aRepresentation);
-  bool HasUpdate(WhichRepresentation aRepresentation);
+
+  enum class UpdateType {
+    None,       // Order is important. Each enum must fully encompass the
+    OnlyVideo,  // work implied by the previous enums.
+    All,
+  };
+
+  UpdateType HasUpdate(WhichRepresentation aRepresentation);
+  bool WillUpdateAffectLayers(WhichRepresentation aRepresentation);
+  bool ApplyChanges(WhichRepresentation aRepresentation, UpdateType aUpdate);
+
   void SetBackingScale(float aBackingScale);
 
   // Invalidates the specified region in all surfaces that are tracked by this
@@ -324,9 +332,14 @@ class NativeLayerCA : public NativeLayer {
     // Applies buffered changes to the native CALayers. The contract with the
     // caller is as follows: If any of these values have changed since the last
     // call to ApplyChanges, mMutated[Field] needs to have been set to true
-    // before the call.
-    void ApplyChanges(const gfx::IntSize& aSize, bool aIsOpaque,
-                      const gfx::IntPoint& aPosition,
+    // before the call. If aUpdate is not All, then a partial update will be
+    // applied. In such a case, ApplyChanges may not make any changes that
+    // require a CATransacation, because no transaction will be created. In a
+    // a partial update, the return value will indicate if all the needed
+    // changes were able to be applied under these restrictions. A false return
+    // value indicates an All update is necessary.
+    bool ApplyChanges(UpdateType aUpdate, const gfx::IntSize& aSize,
+                      bool aIsOpaque, const gfx::IntPoint& aPosition,
                       const gfx::Matrix4x4& aTransform,
                       const gfx::IntRect& aDisplayRect,
                       const Maybe<gfx::IntRect>& aClipRect, float aBackingScale,
@@ -340,7 +353,7 @@ class NativeLayerCA : public NativeLayer {
     // be called.
     // This is used to optimize away a CATransaction commit if no layers have
     // changed.
-    bool HasUpdate();
+    UpdateType HasUpdate(bool aIsVideo);
 
     bool CanSpecializeSurface(IOSurfaceRef surface);
 
@@ -436,6 +449,7 @@ class NativeLayerCA : public NativeLayer {
   bool mSurfaceIsFlipped = false;
   const bool mIsOpaque = false;
   bool mRootWindowIsFullscreen = false;
+  bool mSpecializeVideo = false;
 };
 
 }  // namespace layers

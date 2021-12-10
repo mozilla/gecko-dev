@@ -108,6 +108,7 @@ StreamFilterParent::~StreamFilterParent() {
   NS_ReleaseOnMainThread("StreamFilterParent::mOrigListener",
                          mOrigListener.forget());
   NS_ReleaseOnMainThread("StreamFilterParent::mContext", mContext.forget());
+  mQueue->NotifyReleasingOwner();
 }
 
 auto StreamFilterParent::Create(dom::ContentParent* aContentParent,
@@ -143,8 +144,7 @@ auto StreamFilterParent::Create(dom::ContentParent* aContentParent,
   nsCOMPtr<nsIHttpChannelInternal> internal(do_QueryObject(channel));
   internal->DisableAltDataCache();
 
-  return chan->AttachStreamFilter(aContentParent ? aContentParent->OtherPid()
-                                                 : base::GetCurrentProcId());
+  return chan->AttachStreamFilter();
 }
 
 /* static */

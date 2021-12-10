@@ -132,6 +132,19 @@ add_task(async function test_open_managedbookmark() {
   await openContextMenuPromise;
   info("Opened context menu");
 
+  ok(
+    document.getElementById("placesContext_open:newprivatewindow").hidden,
+    "Private Browsing menu should be hidden"
+  );
+  ok(
+    document.getElementById("placesContext_openContainer:tabs").hidden,
+    "Open in Tabs should be hidden"
+  );
+  ok(
+    document.getElementById("placesContext_delete").hidden,
+    "Delete should be hidden"
+  );
+
   let tabCreatedPromise = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
 
   let openInNewTabOption = document.getElementById("placesContext_open:newtab");
@@ -190,4 +203,11 @@ add_task(async function test_copy_managedbookmark() {
       }
     );
   });
+
+  let popupHidden = BrowserTestUtils.waitForEvent(
+    managedBookmarksMenu.menupopup,
+    "popuphidden"
+  );
+  managedBookmarksMenu.menupopup.hidePopup();
+  await popupHidden;
 });

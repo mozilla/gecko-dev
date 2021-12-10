@@ -31,7 +31,9 @@ const NEVER_DISCARD = 100000;
 
 // Default minimum inactive duration.  Tabs that were accessed in the last
 // period of this duration are not unloaded.
-const kMinInactiveDurationInMs = 600000; // ten minutes
+const kMinInactiveDurationInMs = Services.prefs.getIntPref(
+  "browser.tabs.min_inactive_duration_before_unload"
+);
 
 let criteriaTypes = [
   ["isNonDiscardable", NEVER_DISCARD],
@@ -79,7 +81,17 @@ let DefaultTabUnloaderMethods = {
   },
 
   usingWebRTC(tab, weight) {
-    return webrtcUI.browserHasStreams(tab.linkedBrowser) ? weight : 0;
+    const browser = tab.linkedBrowser;
+    if (!browser) {
+      return 0;
+    }
+
+    // No need to iterate browser contexts for hasActivePeerConnection
+    // because hasActivePeerConnection is set only in the top window.
+    return webrtcUI.browserHasStreams(browser) ||
+      browser.browsingContext?.topWindowContext?.hasActivePeerConnections
+      ? weight
+      : 0;
   },
 
   getMinTabCount() {

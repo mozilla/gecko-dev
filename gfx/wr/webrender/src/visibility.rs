@@ -19,9 +19,8 @@ use crate::clip::{ClipInstance, ClipChainInstance};
 use crate::debug_colors;
 use crate::frame_builder::FrameBuilderConfig;
 use crate::gpu_cache::GpuCache;
-use crate::internal_types::FastHashMap;
 use crate::picture::{PictureCompositeMode, ClusterFlags, SurfaceInfo, TileCacheInstance};
-use crate::picture::{PrimitiveList, SurfaceIndex, RasterConfig, SliceId};
+use crate::picture::{PrimitiveList, SurfaceIndex, RasterConfig};
 use crate::prim_store::{ClipTaskIndex, PictureIndex, PrimitiveInstanceKind};
 use crate::prim_store::{PrimitiveStore, PrimitiveInstance};
 use crate::render_backend::{DataStores, ScratchBuffer};
@@ -35,7 +34,6 @@ pub struct FrameVisibilityContext<'a> {
     pub spatial_tree: &'a SpatialTree,
     pub global_screen_world_rect: WorldRect,
     pub global_device_pixel_scale: DevicePixelScale,
-    pub surfaces: &'a [SurfaceInfo],
     pub debug_flags: DebugFlags,
     pub scene_properties: &'a SceneProperties,
     pub config: FrameBuilderConfig,
@@ -47,7 +45,6 @@ pub struct FrameVisibilityState<'a> {
     pub resource_cache: &'a mut ResourceCache,
     pub gpu_cache: &'a mut GpuCache,
     pub scratch: &'a mut ScratchBuffer,
-    pub tile_cache: Option<Box<TileCacheInstance>>,
     pub data_stores: &'a mut DataStores,
     pub clip_chain_stack: ClipChainStack,
     pub composite_state: &'a mut CompositeState,
@@ -64,7 +61,11 @@ impl<'a> FrameVisibilityState<'a> {
         spatial_tree: &SpatialTree,
     ) {
         self.surface_stack.push(surface_index);
-        self.clip_chain_stack.push_surface(shared_clips, spatial_tree);
+        self.clip_chain_stack.push_surface(
+            shared_clips,
+            spatial_tree,
+            &self.data_stores.clip,
+        );
     }
 
     pub fn pop_surface(&mut self) {
@@ -171,101 +172,91 @@ pub fn update_primitive_visibility(
     world_culling_rect: &WorldRect,
     frame_context: &FrameVisibilityContext,
     frame_state: &mut FrameVisibilityState,
-    tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
+    tile_cache: &mut TileCacheInstance,
     is_root_tile_cache: bool,
+    prim_instances: &mut Vec<PrimitiveInstance>,
+    surfaces: &mut [SurfaceInfo],
 ) -> Option<PictureRect> {
     profile_scope!("update_visibility");
-    let (mut prim_list, surface_index, apply_local_clip_rect, world_culling_rect, is_composite) = {
+    let (mut prim_list, surface_index, apply_local_clip_rect, world_culling_rect, pop_surface) = {
         let pic = &mut store.pictures[pic_index.0];
-        let mut world_culling_rect = *world_culling_rect;
 
         let prim_list = mem::replace(&mut pic.prim_list, PrimitiveList::empty());
-        let (surface_index, is_composite) = match pic.raster_config {
-            Some(ref raster_config) => (raster_config.surface_index, true),
-            None => (parent_surface_index, false)
-        };
-
-        match pic.raster_config {
-            Some(RasterConfig { composite_mode: PictureCompositeMode::TileCache { slice_id }, .. }) => {
-                let mut tile_cache = tile_caches
-                    .remove(&slice_id)
-                    .expect("bug: non-existent tile cache");
-
-                // If we have a tile cache for this picture, see if any of the
-                // relative transforms have changed, which means we need to
-                // re-map the dependencies of any child primitives.
-                world_culling_rect = tile_cache.pre_update(
-                    layout_rect_as_picture_rect(&pic.estimated_local_rect),
-                    surface_index,
-                    frame_context,
-                    frame_state,
-                );
-
-                // Push a new surface, supplying the list of clips that should be
-                // ignored, since they are handled by clipping when drawing this surface.
+        let (surface_index, pop_surface) = match pic.raster_config {
+            Some(RasterConfig { surface_index, composite_mode: PictureCompositeMode::TileCache { .. }, .. }) => {
+                (surface_index, false)
+            }
+            Some(ref raster_config) => {
                 frame_state.push_surface(
-                    surface_index,
-                    &tile_cache.shared_clips,
+                    raster_config.surface_index,
+                    &[],
                     frame_context.spatial_tree,
                 );
-                frame_state.tile_cache = Some(tile_cache);
-            }
-            _ => {
-                if is_composite {
-                    frame_state.push_surface(
-                        surface_index,
-                        &[],
-                        frame_context.spatial_tree,
-                    );
 
-                    // Let the picture cache know that we are pushing an off-screen
-                    // surface, so it can treat dependencies of surface atomically.
-                    frame_state.tile_cache.as_mut().unwrap().push_surface(
-                        pic.estimated_local_rect,
-                        pic.spatial_node_index,
-                        frame_context.spatial_tree,
-                    );
-                }
-            }
-        }
+                // Let the picture cache know that we are pushing an off-screen
+                // surface, so it can treat dependencies of surface atomically.
+                tile_cache.push_surface(
+                    pic.estimated_local_rect,
+                    pic.spatial_node_index,
+                    frame_context.spatial_tree,
+                );
 
-        (prim_list, surface_index, pic.apply_local_clip_rect, world_culling_rect, is_composite)
+                (raster_config.surface_index, true)
+            }
+            None => {
+                (parent_surface_index, false)
+            }
+        };
+
+        (prim_list, surface_index, pic.apply_local_clip_rect, world_culling_rect, pop_surface)
     };
 
-    let surface = &frame_context.surfaces[surface_index.0 as usize];
+    // Do a borrow-check hack here to extract the info from the surface info since we
+    // need to pass it mutably to update_prim_dependencies. Once we complete refactoring
+    // of this pass, there will be no recursion so this should be a lot tidier!
+    let (mut map_local_to_surface, map_surface_to_world, inflation_factor, device_pixel_scale, scale_factors, surface_spatial_node_index) = {
+        let surface = &surfaces[surface_index.0 as usize];
 
-    let mut map_local_to_surface = surface
-        .map_local_to_surface
-        .clone();
+        let map_local_to_surface = surface.map_local_to_surface.clone();
 
-    let map_surface_to_world = SpaceMapper::new_with_target(
-        frame_context.root_spatial_node_index,
-        surface.surface_spatial_node_index,
-        frame_context.global_screen_world_rect,
-        frame_context.spatial_tree,
-    );
+        let map_surface_to_world = SpaceMapper::new_with_target(
+            frame_context.root_spatial_node_index,
+            surface.surface_spatial_node_index,
+            frame_context.global_screen_world_rect,
+            frame_context.spatial_tree,
+        );
+
+        let inflation_factor = surface.inflation_factor;
+        let device_pixel_scale = surface.device_pixel_scale;
+        let scale_factors = surface.scale_factors;
+        let surface_spatial_node_index = surface.surface_spatial_node_index;
+
+        (map_local_to_surface, map_surface_to_world, inflation_factor, device_pixel_scale, scale_factors, surface_spatial_node_index)
+    };
 
     let mut surface_rect = PictureRect::zero();
 
     for cluster in &mut prim_list.clusters {
         profile_scope!("cluster");
+
+        // Each prim instance must have reset called each frame, to clear
+        // indices into various scratch buffers. If this doesn't occur,
+        // the primitive may incorrectly be considered visible, which can
+        // cause unexpected conditions to occur later during the frame.
+        // Primitive instances are normally reset in the main loop below,
+        // but we must also reset them in the rare case that the cluster
+        // visibility has changed (due to an invalid transform and/or
+        // backface visibility changing for this cluster).
+        // TODO(gw): This is difficult to test for in CI - as a follow up,
+        //           we should add a debug flag that validates the prim
+        //           instance is always reset every frame to catch similar
+        //           issues in future.
+        for prim_instance in &mut prim_instances[cluster.prim_range()] {
+            prim_instance.reset();
+        }
+
         // Get the cluster and see if is visible
         if !cluster.flags.contains(ClusterFlags::IS_VISIBLE) {
-            // Each prim instance must have reset called each frame, to clear
-            // indices into various scratch buffers. If this doesn't occur,
-            // the primitive may incorrectly be considered visible, which can
-            // cause unexpected conditions to occur later during the frame.
-            // Primitive instances are normally reset in the main loop below,
-            // but we must also reset them in the rare case that the cluster
-            // visibility has changed (due to an invalid transform and/or
-            // backface visibility changing for this cluster).
-            // TODO(gw): This is difficult to test for in CI - as a follow up,
-            //           we should add a debug flag that validates the prim
-            //           instance is always reset every frame to catch similar
-            //           issues in future.
-            for prim_instance in &mut prim_list.prim_instances[cluster.prim_range()] {
-                prim_instance.reset();
-            }
             continue;
         }
 
@@ -274,16 +265,8 @@ pub fn update_primitive_visibility(
             frame_context.spatial_tree,
         );
 
-        for prim_instance in &mut prim_list.prim_instances[cluster.prim_range()] {
-            prim_instance.reset();
-
-            if prim_instance.is_chased() {
-                #[cfg(debug_assertions)] // needed for ".id" part
-                println!("\tpreparing {:?} in {:?}", prim_instance.id, pic_index);
-                println!("\t{:?}", prim_instance.kind);
-            }
-
-            let (is_passthrough, prim_local_rect, prim_shadowed_rect) = match prim_instance.kind {
+        for prim_instance_index in cluster.prim_range() {
+            let (is_passthrough, prim_local_rect, prim_shadowed_rect) = match prim_instances[prim_instance_index].kind {
                 PrimitiveInstanceKind::Picture { pic_index, .. } => {
                     let (is_visible, is_passthrough) = {
                         let pic = &store.pictures[pic_index.0];
@@ -296,7 +279,7 @@ pub fn update_primitive_visibility(
 
                     if is_passthrough {
                         frame_state.clip_chain_stack.push_clip(
-                            prim_instance.clip_set.clip_chain_id,
+                            prim_instances[prim_instance_index].clip_set.clip_chain_id,
                             frame_state.clip_store,
                         );
                     }
@@ -305,11 +288,13 @@ pub fn update_primitive_visibility(
                         store,
                         pic_index,
                         surface_index,
-                        &world_culling_rect,
+                        world_culling_rect,
                         frame_context,
                         frame_state,
-                        tile_caches,
+                        tile_cache,
                         false,
+                        prim_instances,
+                        surfaces,
                     );
 
                     if is_passthrough {
@@ -317,10 +302,6 @@ pub fn update_primitive_visibility(
                     }
 
                     let pic = &store.pictures[pic_index.0];
-
-                    if prim_instance.is_chased() && pic.estimated_local_rect != pic.precise_local_rect {
-                        println!("\testimate {:?} adjusted to {:?}", pic.estimated_local_rect, pic.precise_local_rect);
-                    }
 
                     let mut shadow_rect = pic.precise_local_rect;
                     match pic.raster_config {
@@ -347,11 +328,14 @@ pub fn update_primitive_visibility(
                     (is_passthrough, pic.precise_local_rect, shadow_rect)
                 }
                 _ => {
+                    let prim_instance = &prim_instances[prim_instance_index];
                     let prim_data = &frame_state.data_stores.as_common_data(&prim_instance);
 
                     (false, prim_data.prim_rect, prim_data.prim_rect)
                 }
             };
+
+            let prim_instance = &mut prim_instances[prim_instance_index];
 
             if is_passthrough {
                 // Pass through pictures are always considered visible in all dirty tiles.
@@ -368,7 +352,6 @@ pub fn update_primitive_visibility(
                 // the picture context and include the shadow offset. This ensures that
                 // even if the primitive itstore is not visible, any effects from the
                 // blur radius or shadow will be correctly taken into account.
-                let inflation_factor = surface.inflation_factor;
                 let local_rect = prim_shadowed_rect
                     .inflate(inflation_factor, inflation_factor)
                     .intersection(&prim_instance.clip_set.local_clip_rect);
@@ -407,7 +390,7 @@ pub fn update_primitive_visibility(
                         &frame_context.spatial_tree,
                         frame_state.gpu_cache,
                         frame_state.resource_cache,
-                        surface.device_pixel_scale,
+                        device_pixel_scale,
                         &world_culling_rect,
                         &mut frame_state.data_stores.clip,
                         true,
@@ -467,23 +450,21 @@ pub fn update_primitive_visibility(
                     }
                 }
 
-                frame_state.tile_cache
-                    .as_mut()
-                    .unwrap()
-                    .update_prim_dependencies(
-                        prim_instance,
-                        cluster.spatial_node_index,
-                        prim_local_rect,
-                        frame_context,
-                        frame_state.data_stores,
-                        frame_state.clip_store,
-                        &store.pictures,
-                        frame_state.resource_cache,
-                        &store.color_bindings,
-                        &frame_state.surface_stack,
-                        &mut frame_state.composite_state,
-                        &mut frame_state.gpu_cache,
-                        is_root_tile_cache,
+                tile_cache.update_prim_dependencies(
+                    prim_instance,
+                    cluster.spatial_node_index,
+                    prim_local_rect,
+                    frame_context,
+                    frame_state.data_stores,
+                    frame_state.clip_store,
+                    &store.pictures,
+                    frame_state.resource_cache,
+                    &store.color_bindings,
+                    &frame_state.surface_stack,
+                    &mut frame_state.composite_state,
+                    &mut frame_state.gpu_cache,
+                    is_root_tile_cache,
+                    surfaces,
                 );
 
                 // Skip post visibility prim update if this primitive was culled above.
@@ -558,7 +539,7 @@ pub fn update_primitive_visibility(
     }
 
     // Similar to above, pop either the clip chain or root entry off the current clip stack.
-    if is_composite {
+    if pop_surface {
         frame_state.pop_surface();
     }
 
@@ -575,7 +556,7 @@ pub fn update_primitive_visibility(
     if let Some(ref rc) = pic.raster_config {
         // Inflate the local bounding rect if required by the filter effect.
         if pic.options.inflate_if_required {
-            surface_rect = rc.composite_mode.inflate_picture_rect(surface_rect, surface.scale_factors);
+            surface_rect = rc.composite_mode.inflate_picture_rect(surface_rect, scale_factors);
         }
 
         // Layout space for the picture is picture space from the
@@ -606,29 +587,19 @@ pub fn update_primitive_visibility(
         }
 
         match rc.composite_mode {
-            PictureCompositeMode::TileCache { .. } => {
-                let mut tile_cache = frame_state.tile_cache.take().unwrap();
-
-                // Build the dirty region(s) for this tile cache.
-                tile_cache.post_update(
-                    frame_context,
-                    frame_state,
-                );
-
-                tile_caches.insert(SliceId::new(tile_cache.slice), tile_cache);
-            }
+            PictureCompositeMode::TileCache { .. } => {}
             _ => {
                 // Pop the off-screen surface from the picture cache stack
-                frame_state.tile_cache.as_mut().unwrap().pop_surface();
+                tile_cache.pop_surface();
             }
         }
 
         None
     } else {
-        let parent_surface = &frame_context.surfaces[parent_surface_index.0 as usize];
+        let parent_surface = &surfaces[parent_surface_index.0 as usize];
         let map_surface_to_parent_surface = SpaceMapper::new_with_target(
             parent_surface.surface_spatial_node_index,
-            surface.surface_spatial_node_index,
+            surface_spatial_node_index,
             PictureRect::max_rect(),
             frame_context.spatial_tree,
         );
@@ -640,7 +611,7 @@ pub fn update_primitive_visibility(
 fn update_prim_post_visibility(
     store: &mut PrimitiveStore,
     prim_instance: &mut PrimitiveInstance,
-    world_culling_rect: WorldRect,
+    world_culling_rect: &WorldRect,
     map_surface_to_world: &SpaceMapper<PicturePixel, WorldPixel>,
 ) {
     profile_scope!("update_prim_post_visibility");
@@ -653,7 +624,7 @@ fn update_prim_post_visibility(
                 raster_config.clipped_bounding_rect = map_surface_to_world
                     .map(&prim_instance.vis.clip_chain.pic_clip_rect)
                     .and_then(|rect| {
-                        rect.intersection(&world_culling_rect)
+                        rect.intersection(world_culling_rect)
                     })
                     .unwrap_or(WorldRect::zero());
             }

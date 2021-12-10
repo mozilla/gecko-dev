@@ -69,8 +69,7 @@ enum : bool { DuplicatesNotPossible, DuplicatesPossible };
 // values contain a strong reference to the key. This limits its usefulness to
 // the CrossCompartmentMap at the moment, but might serve as a useful base for
 // other tables in future.
-template <typename Key, typename Value,
-          typename AllocPolicy = TempAllocPolicy,
+template <typename Key, typename Value, typename AllocPolicy = TempAllocPolicy,
           bool AllowDuplicates = DuplicatesNotPossible>
 class NurseryAwareHashMap {
   using MapKey = UnsafeBarePtr<Key>;
@@ -205,8 +204,6 @@ struct GCPolicy<js::detail::UnsafeBareWeakHeapPtr<T>> {
 
 }  // namespace JS
 
-namespace mozilla {
-
-}  // namespace mozilla
+namespace mozilla {}  // namespace mozilla
 
 #endif  // gc_NurseryAwareHashMap_h

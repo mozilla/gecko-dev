@@ -379,9 +379,13 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   const mozilla::PreferenceSheet::Prefs& PrefSheetPrefs() const {
     return mozilla::PreferenceSheet::PrefsFor(*mDocument);
   }
-  nscolor DefaultBackgroundColor() const {
-    return PrefSheetPrefs().mColors.mDefaultBackground;
+
+  bool ForcingColors() const {
+    return mozilla::PreferenceSheet::MayForceColors() &&
+           !PrefSheetPrefs().mUseDocumentColors;
   }
+
+  nscolor DefaultBackgroundColor() const;
 
   nsISupports* GetContainerWeak() const;
 
@@ -895,16 +899,6 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   // Is this presentation in a chrome docshell?
   bool IsChrome() const;
 
-  // Explicitly enable and disable paint flashing.
-  void SetPaintFlashing(bool aPaintFlashing) {
-    mPaintFlashing = aPaintFlashing;
-    mPaintFlashingInitialized = true;
-  }
-
-  // This method should be used instead of directly accessing mPaintFlashing,
-  // as that value may be out of date when mPaintFlashingInitialized is false.
-  bool GetPaintFlashing() const;
-
   bool SuppressingResizeReflow() const { return mSuppressResizeReflow; }
 
   gfxUserFontSet* GetUserFontSet();
@@ -940,8 +934,10 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
       TransactionId aTransactionId = TransactionId{0},
       const mozilla::TimeStamp& aTimeStamp = mozilla::TimeStamp());
   void NotifyRevokingDidPaint(TransactionId aTransactionId);
-  void FireDOMPaintEvent(nsTArray<nsRect>* aList, TransactionId aTransactionId,
-                         mozilla::TimeStamp aTimeStamp = mozilla::TimeStamp());
+  // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void FireDOMPaintEvent(
+      nsTArray<nsRect>* aList, TransactionId aTransactionId,
+      mozilla::TimeStamp aTimeStamp = mozilla::TimeStamp());
 
   bool IsDOMPaintEventPending();
 
@@ -1057,9 +1053,13 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   bool HasEverBuiltInvisibleText() const { return mHasEverBuiltInvisibleText; }
   void SetBuiltInvisibleText() { mHasEverBuiltInvisibleText = true; }
 
-  bool UsesExChUnits() const { return mUsesExChUnits; }
+  bool UsesFontMetricDependentFontUnits() const {
+    return mUsesFontMetricDependentFontUnits;
+  }
 
-  void SetUsesExChUnits(bool aValue) { mUsesExChUnits = aValue; }
+  void SetUsesFontMetricDependentFontUnits(bool aValue) {
+    mUsesFontMetricDependentFontUnits = aValue;
+  }
 
   bool IsDeviceSizePageSize();
 
@@ -1336,7 +1336,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   //
   // TODO(emilio): It's a bit weird that this lives here but all the other
   // relevant bits live in Device on the rust side.
-  unsigned mUsesExChUnits : 1;
+  unsigned mUsesFontMetricDependentFontUnits : 1;
 
   // Is the current mCounterStyleManager valid?
   unsigned mCounterStylesDirty : 1;
@@ -1349,11 +1349,6 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   unsigned mSuppressResizeReflow : 1;
 
   unsigned mIsVisual : 1;
-
-  // Should we paint flash in this context? Do not use this variable directly.
-  // Use GetPaintFlashing() method instead.
-  mutable unsigned mPaintFlashing : 1;
-  mutable unsigned mPaintFlashingInitialized : 1;
 
   unsigned mHasWarnedAboutPositionedTableParts : 1;
 

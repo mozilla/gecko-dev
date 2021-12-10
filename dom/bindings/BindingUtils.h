@@ -621,7 +621,7 @@ struct VerifyTraceProtoAndIfaceCacheCalledTracer : public JS::CallbackTracer {
       : JS::CallbackTracer(cx, JS::TracerKind::VerifyTraceProtoAndIface),
         ok(false) {}
 
-  void onChild(const JS::GCCellPtr&) override {
+  void onChild(JS::GCCellPtr) override {
     // We don't do anything here, we only want to verify that
     // TraceProtoAndIfaceCache was called.
   }
@@ -1936,7 +1936,7 @@ class SequenceTracer<JSObject*, false, false, false> {
  public:
   static void TraceSequence(JSTracer* trc, JSObject** objp, JSObject** end) {
     for (; objp != end; ++objp) {
-      JS::UnsafeTraceRoot(trc, objp, "sequence<object>");
+      JS::TraceRoot(trc, objp, "sequence<object>");
     }
   }
 };
@@ -1949,7 +1949,7 @@ class SequenceTracer<JS::Value, false, false, false> {
  public:
   static void TraceSequence(JSTracer* trc, JS::Value* valp, JS::Value* end) {
     for (; valp != end; ++valp) {
-      JS::UnsafeTraceRoot(trc, valp, "sequence<any>");
+      JS::TraceRoot(trc, valp, "sequence<any>");
     }
   }
 };

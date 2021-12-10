@@ -381,7 +381,9 @@ class PeerConnectionImpl final
 
   void Close(ErrorResult& rv) { rv = Close(); }
 
-  bool PluginCrash(uint32_t aPluginID, const nsAString& aPluginName);
+  // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY bool PluginCrash(uint32_t aPluginID,
+                                               const nsAString& aPluginName);
 
   void RecordEndOfCallTelemetry();
 
@@ -412,7 +414,7 @@ class PeerConnectionImpl final
   RefPtr<dom::RTCStatsReportPromise> GetStats(dom::MediaStreamTrack* aSelector,
                                               bool aInternalStats);
 
-  void RecordConduitTelemetry();
+  void CollectConduitTelemetryData();
 
   // for monitoring changes in track ownership
   // PeerConnectionMedia can't do it because it doesn't know about principals
@@ -448,9 +450,7 @@ class PeerConnectionImpl final
   PeerConnectionImpl(const PeerConnectionImpl& rhs);
   PeerConnectionImpl& operator=(PeerConnectionImpl);
 
-  RefPtr<dom::RTCStatsPromise> GetReceiverStats(
-      const RefPtr<MediaPipelineReceive>& aPipeline);
-  RefPtr<dom::RTCStatsPromise> GetSenderStats(
+  nsTArray<RefPtr<dom::RTCStatsPromise>> GetSenderStats(
       const RefPtr<MediaPipelineTransmit>& aPipeline);
   RefPtr<dom::RTCStatsPromise> GetDataChannelStats(
       const RefPtr<DataChannelConnection>& aDataChannelConnection,

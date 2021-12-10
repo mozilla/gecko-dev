@@ -221,6 +221,18 @@ describe("ASRouter", () => {
       combineContexts: sandbox.stub(),
       evalWithDefault: sandbox.stub().resolves(),
     };
+    let fakeNimbusFeatures = [
+      "cfr",
+      "moments-page",
+      "infobar",
+      "spotlight",
+    ].reduce((features, featureId) => {
+      features[featureId] = {
+        getAllVariables: sandbox.stub().returns(null),
+        recordExposureEvent: sandbox.stub(),
+      };
+      return features;
+    }, {});
     globals.set({
       // Testing framework doesn't know how to `defineLazyModuleGetter` so we're
       // importing these modules into the global scope ourselves.
@@ -255,30 +267,23 @@ describe("ASRouter", () => {
           return Promise.resolve("/path/to/download");
         }
       },
+      NimbusFeatures: fakeNimbusFeatures,
       ExperimentAPI: {
+        getExperimentMetaData: sandbox.stub().returns({
+          slug: "experiment-slug",
+          active: true,
+          branch: { slug: "experiment-branch-slug" },
+        }),
         getExperiment: sandbox.stub().returns({
           branch: {
             slug: "unit-slug",
             feature: {
               featureId: "foo",
-              enabled: true,
               value: { id: "test-message" },
             },
           },
         }),
-        recordExposureEvent: sandbox.stub(),
-        getAllBranches: sandbox.stub().resolves([
-          {
-            branch: {
-              slug: "unit-slug",
-              feature: {
-                featureId: "bar",
-                enabled: true,
-                value: { id: "test-message" },
-              },
-            },
-          },
-        ]),
+        getAllBranches: sandbox.stub().resolves([]),
         ready: sandbox.stub().resolves(),
       },
       SpecialMessageActions: {
@@ -1731,26 +1736,27 @@ describe("ASRouter", () => {
     let experimentAPIStub;
     let messageGroups = ["cfr", "moments-page", "infobar", "spotlight"];
     beforeEach(() => {
-      let getExperimentStub = sandbox.stub();
+      let getExperimentMetaDataStub = sandbox.stub();
       let getAllBranchesStub = sandbox.stub();
       messageGroups.forEach(feature => {
-        getExperimentStub.withArgs({ featureId: feature }).returns({
+        global.NimbusFeatures[feature].getAllVariables.returns({
+          id: `message-${feature}`,
+        });
+        getExperimentMetaDataStub.withArgs({ featureId: feature }).returns({
           slug: `slug-${feature}`,
           branch: {
             slug: `branch-${feature}`,
-            feature: { value: null, enabled: true },
           },
         });
         getAllBranchesStub.withArgs(`slug-${feature}`).resolves([
           {
             slug: `other-branch-${feature}`,
-            feature: { value: { trigger: "unit-test" }, enabled: true },
+            [feature]: { value: { trigger: "unit-test" } },
           },
         ]);
       });
       experimentAPIStub = {
-        ready: sandbox.stub().resolves(),
-        getExperiment: getExperimentStub,
+        getExperimentMetaData: getExperimentMetaDataStub,
         getAllBranches: getAllBranchesStub,
       };
       globals.set("ExperimentAPI", experimentAPIStub);
@@ -1758,23 +1764,18 @@ describe("ASRouter", () => {
     afterEach(() => {
       sandbox.restore();
     });
-    it("should tag `forReachEvent`/`forExposureEvent` for all the expected message types", async () => {
+    it("should tag `forReachEvent` for all the expected message types", async () => {
       // This should match the `providers.messaging-experiments`
       let response = await MessageLoaderUtils.loadMessagesForProvider({
         type: "remote-experiments",
         messageGroups,
       });
 
-      assert.calledOnce(experimentAPIStub.ready);
       // 1 message for reach 1 for expose
       assert.property(response, "messages");
       assert.lengthOf(response.messages, messageGroups.length * 2);
       assert.lengthOf(
         response.messages.filter(m => m.forReachEvent),
-        messageGroups.length
-      );
-      assert.lengthOf(
-        response.messages.filter(m => m.forExposureEvent),
         messageGroups.length
       );
     });
@@ -1914,36 +1915,40 @@ describe("ASRouter", () => {
       });
       assert.notCalled(Services.telemetry.recordEvent);
     });
-    it("should record the Exposure event if found any", async () => {
-      let messages = [
-        {
-          id: "foo1",
-          forExposureEvent: {
-            sent: false,
-            experimentSlug: "foo",
-            branchSlug: "bar",
-          },
-          experimentSlug: "exp01",
-          branchSlug: "branch01",
-          template: "simple_template",
-          trigger: { id: "foo" },
-          content: { title: "Foo1", body: "Foo123-1" },
-        },
-      ];
-      sandbox.stub(Router, "handleMessageRequest").resolves(messages);
-      sandbox.spy(Services.telemetry, "recordEvent");
+    it("should record the Exposure event for each valid feature", async () => {
+      ["cfr_doorhanger", "update_action", "infobar", "spotlight"].forEach(
+        async template => {
+          let featureMap = {
+            cfr_doorhanger: "cfr",
+            spotlight: "spotlight",
+            infobar: "infobar",
+            update_action: "moments-page",
+          };
+          assert.notCalled(
+            global.NimbusFeatures[featureMap[template]].recordExposureEvent
+          );
 
-      await Router.sendTriggerMessage({
-        tabId: 0,
-        browser: {},
-        id: "foo",
-      });
+          let messages = [
+            {
+              id: "foo1",
+              template,
+              trigger: { id: "foo" },
+              content: { title: "Foo1", body: "Foo123-1" },
+            },
+          ];
+          sandbox.stub(Router, "handleMessageRequest").resolves(messages);
 
-      assert.calledOnce(global.ExperimentAPI.recordExposureEvent);
-      assert.calledWithExactly(global.ExperimentAPI.recordExposureEvent, {
-        featureId: "cfr",
-        ...messages[0].forExposureEvent,
-      });
+          await Router.sendTriggerMessage({
+            tabId: 0,
+            browser: {},
+            id: "foo",
+          });
+
+          assert.calledOnce(
+            global.NimbusFeatures[featureMap[template]].recordExposureEvent
+          );
+        }
+      );
     });
   });
 
@@ -2614,20 +2619,21 @@ describe("ASRouter", () => {
     it("should fetch messages from the ExperimentAPI", async () => {
       const args = {
         type: "remote-experiments",
-        messageGroups: ["asrouter"],
+        messageGroups: ["spotlight"],
       };
 
       await MessageLoaderUtils.loadMessagesForProvider(args);
 
-      assert.calledOnce(global.ExperimentAPI.getExperiment);
-      assert.calledWithExactly(global.ExperimentAPI.getExperiment, {
-        featureId: "asrouter",
+      assert.calledOnce(global.NimbusFeatures.spotlight.getAllVariables);
+      assert.calledOnce(global.ExperimentAPI.getExperimentMetaData);
+      assert.calledWithExactly(global.ExperimentAPI.getExperimentMetaData, {
+        featureId: "spotlight",
       });
     });
     it("should handle the case of no experiments in the ExperimentAPI", async () => {
       const args = {
         type: "remote-experiments",
-        messageGroups: ["asrouter"],
+        messageGroups: ["infobar"],
       };
 
       global.ExperimentAPI.getExperiment.returns(null);
@@ -2639,20 +2645,34 @@ describe("ASRouter", () => {
     it("should normally load ExperimentAPI messages", async () => {
       const args = {
         type: "remote-experiments",
-        messageGroups: ["asrouter"],
+        messageGroups: ["infobar"],
       };
       const enrollment = {
         branch: {
           slug: "branch01",
-          feature: {
-            featureId: "asrouter",
-            enabled: true,
+          infobar: {
+            featureId: "infobar",
             value: { id: "id01", trigger: { id: "openURL" } },
           },
         },
       };
 
-      global.ExperimentAPI.getExperiment.returns(enrollment);
+      global.NimbusFeatures.infobar.getAllVariables.returns(
+        enrollment.branch.infobar.value
+      );
+      global.ExperimentAPI.getExperimentMetaData.returns({
+        branch: { slug: enrollment.branch.slug },
+      });
+      global.ExperimentAPI.getAllBranches.returns([
+        enrollment.branch,
+        {
+          slug: "control",
+          infobar: {
+            featureId: "infobar",
+            value: null,
+          },
+        },
+      ]);
 
       const result = await MessageLoaderUtils.loadMessagesForProvider(args);
 
@@ -2661,20 +2681,10 @@ describe("ASRouter", () => {
     it("should skip disabled features and not load the messages", async () => {
       const args = {
         type: "remote-experiments",
-        messageGroups: ["asrouter"],
-      };
-      const enrollment = {
-        branch: {
-          slug: "branch01",
-          feature: {
-            featureId: "asrouter",
-            enabled: false,
-            value: { id: "id01", trigger: { id: "openURL" } },
-          },
-        },
+        messageGroups: ["cfr"],
       };
 
-      global.ExperimentAPI.getExperiment.returns(enrollment);
+      global.NimbusFeatures.cfr.getAllVariables.returns(null);
 
       const result = await MessageLoaderUtils.loadMessagesForProvider(args);
 
@@ -2689,31 +2699,35 @@ describe("ASRouter", () => {
         slug: "exp01",
         branch: {
           slug: "branch01",
-          feature: {
+          cfr: {
             featureId: "cfr",
-            enabled: true,
             value: { id: "id01", trigger: { id: "openURL" } },
           },
         },
       };
 
-      global.ExperimentAPI.getExperiment.returns(enrollment);
+      global.NimbusFeatures.cfr.getAllVariables.returns(
+        enrollment.branch.cfr.value
+      );
+      global.ExperimentAPI.getExperimentMetaData.returns({
+        slug: enrollment.slug,
+        active: true,
+        branch: { slug: enrollment.branch.slug },
+      });
       global.ExperimentAPI.getAllBranches.resolves([
         enrollment.branch,
         {
           slug: "branch02",
-          feature: {
+          cfr: {
             featureId: "cfr",
-            enabled: true,
             value: { id: "id02", trigger: { id: "openURL" } },
           },
         },
         {
           // This branch should not be loaded as it doesn't have the trigger
           slug: "branch03",
-          feature: {
+          cfr: {
             featureId: "cfr",
-            enabled: true,
             value: { id: "id03" },
           },
         },
@@ -2740,31 +2754,37 @@ describe("ASRouter", () => {
         slug: "exp01",
         branch: {
           slug: "branch01",
-          feature: {
+          cfr: {
             featureId: "cfr",
-            enabled: false,
-            value: { id: "id01", trigger: { id: "openURL" } },
+            value: {},
           },
         },
       };
 
-      global.ExperimentAPI.getExperiment.returns(enrollment);
+      // Nedds to match the `messageGroups` value to return an enrollment
+      // for that feature
+      global.NimbusFeatures.cfr.getAllVariables.returns(
+        enrollment.branch.cfr.value
+      );
+      global.ExperimentAPI.getExperimentMetaData.returns({
+        slug: enrollment.slug,
+        active: true,
+        branch: { slug: enrollment.branch.slug },
+      });
       global.ExperimentAPI.getAllBranches.resolves([
         enrollment.branch,
         {
           slug: "branch02",
-          feature: {
+          cfr: {
             featureId: "cfr",
-            enabled: true,
             value: { id: "id02", trigger: { id: "openURL" } },
           },
         },
         {
           // This branch should not be loaded as it doesn't have the trigger
           slug: "branch03",
-          feature: {
+          cfr: {
             featureId: "cfr",
-            enabled: true,
             value: { id: "id03" },
           },
         },

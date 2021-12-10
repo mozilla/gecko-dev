@@ -4,64 +4,32 @@
 "use strict";
 
 // Test the ResourceCommand API around SOURCE.
+//
+// We cover each Spidermonkey Debugger Source's `introductionType`:
+// https://searchfox.org/mozilla-central/rev/4c184ca81b28f1ccffbfd08f465709b95bcb4aa1/js/src/doc/Debugger/Debugger.Source.md#172-213
+//
+// And especially cover sources being GC-ed before DevTools are opened
+// which are later recreated by `ThreadActor.resurrectSource`.
 
 const ResourceCommand = require("devtools/shared/commands/resource/resource-command");
 
 const TEST_URL = URL_ROOT_SSL + "sources.html";
 
-add_task(async function() {
-  const tab = await addTab(TEST_URL);
+const TEST_JS_URL = URL_ROOT_SSL + "sources.js";
+const TEST_WORKER_URL = URL_ROOT_SSL + "worker-sources.js";
+const TEST_SW_URL = URL_ROOT_SSL + "service-worker-sources.js";
 
+async function getExpectedResources(ignoreUnresurrectedSources = false) {
   const htmlRequest = await fetch(TEST_URL);
   const htmlContent = await htmlRequest.text();
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
-
-  // Force the target list to cover workers
-  targetCommand.listenForWorkers = true;
-  targetCommand.listenForServiceWorkers = true;
-  await targetCommand.startListening();
-
-  const targets = [];
-  await targetCommand.watchTargets(targetCommand.ALL_TYPES, async function({
-    targetFront,
-  }) {
-    targets.push(targetFront);
-  });
-  is(targets.length, 3, "Got expected number of targets");
-
-  info("Check already available resources");
-  const availableResources = [];
-  await resourceCommand.watchResources([resourceCommand.TYPES.SOURCE], {
-    onAvailable: resources => availableResources.push(...resources),
-  });
-
-  const expectedExistingResources = [
-    {
-      description: "independent js file",
-      sourceForm: {
-        introductionType: "scriptElement",
-        sourceMapBaseURL:
-          "https://example.com/browser/devtools/shared/commands/resource/tests/sources.js",
-        url:
-          "https://example.com/browser/devtools/shared/commands/resource/tests/sources.js",
-        isBlackBoxed: false,
-        sourceMapURL: null,
-        extensionName: null,
-      },
-      sourceContent: {
-        contentType: "text/javascript",
-        source: "/* eslint-disable */\nfunction scriptSource() {}\n",
-      },
-    },
+  // First list sources that aren't GC-ed, or that the thread actor is able to resurrect
+  const expectedSources = [
     {
       description: "eval",
       sourceForm: {
         introductionType: "eval",
-        sourceMapBaseURL:
-          "https://example.com/browser/devtools/shared/commands/resource/tests/sources.html",
+        sourceMapBaseURL: TEST_URL,
         url: null,
         isBlackBoxed: false,
         sourceMapURL: null,
@@ -73,13 +41,56 @@ add_task(async function() {
       },
     },
     {
+      description: "new Function()",
+      sourceForm: {
+        introductionType: "Function",
+        sourceMapBaseURL: TEST_URL,
+        url: null,
+        isBlackBoxed: false,
+        sourceMapURL: null,
+        extensionName: null,
+      },
+      sourceContent: {
+        contentType: "text/javascript",
+        source: "return 42;",
+      },
+    },
+    {
+      description: "Event Handler",
+      sourceForm: {
+        introductionType: "eventHandler",
+        sourceMapBaseURL: TEST_URL,
+        url: null,
+        isBlackBoxed: false,
+        sourceMapURL: null,
+        extensionName: null,
+      },
+      sourceContent: {
+        contentType: "text/javascript",
+        source: "console.log('link')",
+      },
+    },
+    {
+      description: "inline JS inserted at runtime",
+      sourceForm: {
+        introductionType: "scriptElement", // This is an injectedScript at SpiderMonkey level, but is translated into scriptElement by SourceActor.form()
+        sourceMapBaseURL: TEST_URL,
+        url: null,
+        isBlackBoxed: false,
+        sourceMapURL: null,
+        extensionName: null,
+      },
+      sourceContent: {
+        contentType: "text/javascript",
+        source: "console.log('inline-script')",
+      },
+    },
+    {
       description: "inline JS",
       sourceForm: {
-        introductionType: "scriptElement",
-        sourceMapBaseURL:
-          "https://example.com/browser/devtools/shared/commands/resource/tests/sources.html",
-        url:
-          "https://example.com/browser/devtools/shared/commands/resource/tests/sources.html",
+        introductionType: "scriptElement", // This is an inlineScript at SpiderMonkey level, but is translated into scriptElement by SourceActor.form()
+        sourceMapBaseURL: TEST_URL,
+        url: TEST_URL,
         isBlackBoxed: false,
         sourceMapURL: null,
         extensionName: null,
@@ -93,10 +104,8 @@ add_task(async function() {
       description: "worker script",
       sourceForm: {
         introductionType: undefined,
-        sourceMapBaseURL:
-          "https://example.com/browser/devtools/shared/commands/resource/tests/worker-sources.js",
-        url:
-          "https://example.com/browser/devtools/shared/commands/resource/tests/worker-sources.js",
+        sourceMapBaseURL: TEST_WORKER_URL,
+        url: TEST_WORKER_URL,
         isBlackBoxed: false,
         sourceMapURL: null,
         extensionName: null,
@@ -110,10 +119,8 @@ add_task(async function() {
       description: "service worker script",
       sourceForm: {
         introductionType: undefined,
-        sourceMapBaseURL:
-          "https://example.com/browser/devtools/shared/commands/resource/tests/service-worker-sources.js",
-        url:
-          "https://example.com/browser/devtools/shared/commands/resource/tests/service-worker-sources.js",
+        sourceMapBaseURL: TEST_SW_URL,
+        url: TEST_SW_URL,
         isBlackBoxed: false,
         sourceMapURL: null,
         extensionName: null,
@@ -123,11 +130,147 @@ add_task(async function() {
         source: "/* eslint-disable */\nfunction serviceWorkerSource() {}\n",
       },
     },
+    {
+      description: "independent js file",
+      sourceForm: {
+        introductionType: "scriptElement", // This is an srcScript at SpiderMonkey level, but is translated into scriptElement by SourceActor.form()
+        sourceMapBaseURL: TEST_JS_URL,
+        url: TEST_JS_URL,
+        isBlackBoxed: false,
+        sourceMapURL: null,
+        extensionName: null,
+      },
+      sourceContent: {
+        contentType: "text/javascript",
+        source: "/* eslint-disable */\nfunction scriptSource() {}\n",
+      },
+    },
   ];
-  await assertResources(availableResources, expectedExistingResources);
 
-  await targetCommand.stopListening();
-  await client.close();
+  // Now list the sources that could be GC-ed for which the thread actor isn't able to resurrect.
+  // This is the sources that we can't assert when we fetch sources after the page is already loaded.
+  const unresurrectedSources = [
+    {
+      description: "DOM Timer",
+      sourceForm: {
+        introductionType: "domTimer",
+        sourceMapBaseURL: TEST_URL,
+        url: null,
+        isBlackBoxed: false,
+        sourceMapURL: null,
+        extensionName: null,
+      },
+      sourceContent: {
+        contentType: "text/javascript",
+        /* the domTimer is prefixed by many empty lines in order to be positioned at the same line
+           as in the HTML file where setTimeout is called.
+           This is probably done by SourceActor.actualText().
+           So the array size here, should be updated to match the line number of setTimeout call */
+        source: new Array(39).join("\n") + `console.log("timeout")`,
+      },
+    },
+    {
+      description: "javascript URL",
+      sourceForm: {
+        introductionType: "javascriptURL",
+        sourceMapBaseURL: isEveryFrameTargetEnabled()
+          ? "about:blank"
+          : TEST_URL,
+        url: null,
+        isBlackBoxed: false,
+        sourceMapURL: null,
+        extensionName: null,
+      },
+      sourceContent: {
+        contentType: "text/javascript",
+        source: "666",
+      },
+    },
+  ];
+
+  if (ignoreUnresurrectedSources) {
+    return expectedSources;
+  }
+  return expectedSources.concat(unresurrectedSources);
+}
+
+add_task(async function testSourcesOnload() {
+  // Load an blank document first, in order to load the test page only once we already
+  // started watching for sources
+  const tab = await addTab("about:blank");
+
+  const commands = await CommandsFactory.forTab(tab);
+  const { targetCommand, resourceCommand } = commands;
+
+  // Force the target list to cover workers and debug all the targets
+  targetCommand.listenForWorkers = true;
+  targetCommand.listenForServiceWorkers = true;
+  await targetCommand.startListening();
+
+  info("Check already available resources");
+  const availableResources = [];
+  await resourceCommand.watchResources([resourceCommand.TYPES.SOURCE], {
+    onAvailable: resources => availableResources.push(...resources),
+  });
+
+  await BrowserTestUtils.loadURI(tab.linkedBrowser, TEST_URL);
+
+  // Some sources may be created after the document is done loading (like eventHandler usecase)
+  // so we may be received *after* watchResource resolved
+  const expectedResources = await getExpectedResources();
+  await waitFor(
+    () => availableResources.length >= expectedResources.length,
+    "Got all the sources"
+  );
+
+  await assertResources(availableResources, expectedResources);
+
+  await commands.destroy();
+
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    // registrationPromise is set by the test page.
+    const registration = await content.wrappedJSObject.registrationPromise;
+    registration.unregister();
+  });
+});
+
+add_task(async function testGarbagedCollectedSources() {
+  info(
+    "Assert SOURCES on an already loaded page with some sources that have been GC-ed"
+  );
+  const tab = await addTab(TEST_URL);
+
+  info("Force some GC to free some sources");
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    Cu.forceGC();
+    Cu.forceCC();
+  });
+
+  const commands = await CommandsFactory.forTab(tab);
+  const { targetCommand, resourceCommand } = commands;
+
+  // Force the target list to cover workers and debug all the targets
+  targetCommand.listenForWorkers = true;
+  targetCommand.listenForServiceWorkers = true;
+  await targetCommand.startListening();
+
+  info("Check already available resources");
+  const availableResources = [];
+  await resourceCommand.watchResources([resourceCommand.TYPES.SOURCE], {
+    onAvailable: resources => availableResources.push(...resources),
+  });
+
+  // Some sources may be created after the document is done loading (like eventHandler usecase)
+  // so we may be received *after* watchResource resolved
+  const expectedResources = await getExpectedResources(true);
+  await waitFor(
+    () => availableResources.length >= expectedResources.length,
+    "Got all the sources"
+  );
+
+  await assertResources(availableResources, expectedResources);
+
+  await commands.destroy();
 
   await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
     // registrationPromise is set by the test page.
@@ -148,8 +291,6 @@ async function assertResources(resources, expected) {
 }
 
 async function assertResource(source, expected) {
-  info(`Checking resource "#${expected.description}"`);
-
   is(
     source.resourceType,
     ResourceCommand.TYPES.SOURCE,
@@ -172,6 +313,7 @@ async function assertResource(source, expected) {
     matchingExpected,
     `This source was expected with source content being "${sourceContent.source}"`
   );
+  info(`Found "#${matchingExpected.description}"`);
   assertObject(
     sourceContent,
     matchingExpected.sourceContent,

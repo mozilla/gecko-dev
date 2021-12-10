@@ -864,12 +864,13 @@ impl BatchBuilder {
         surface_spatial_node_index: SpatialNodeIndex,
         z_generator: &mut ZBufferIdGenerator,
         composite_state: &mut CompositeState,
+        prim_instances: &[PrimitiveInstance],
     ) {
         for cluster in &pic.prim_list.clusters {
             if !cluster.flags.contains(ClusterFlags::IS_VISIBLE) {
                 continue;
             }
-            for prim_instance in &pic.prim_list.prim_instances[cluster.prim_range()] {
+            for prim_instance in &prim_instances[cluster.prim_range()] {
                 // Add each run in this picture to the batch.
                 self.add_prim_to_batch(
                     prim_instance,
@@ -884,6 +885,7 @@ impl BatchBuilder {
                     surface_spatial_node_index,
                     z_generator,
                     composite_state,
+                    prim_instances,
                 );
             }
         }
@@ -907,6 +909,7 @@ impl BatchBuilder {
         surface_spatial_node_index: SpatialNodeIndex,
         z_generator: &mut ZBufferIdGenerator,
         composite_state: &mut CompositeState,
+        prim_instances: &[PrimitiveInstance],
     ) {
         let (batch_filter, vis_flags) = match prim_instance.vis.state {
             VisibilityState::Culled => {
@@ -929,7 +932,7 @@ impl BatchBuilder {
                     // Convert all children of the 3D hierarchy root into batches.
                     Picture3DContext::In { root_data: Some(ref list), .. } => {
                         for child in list {
-                            let child_prim_instance = &picture.prim_list.prim_instances[child.anchor.instance_index];
+                            let child_prim_instance = &prim_instances[child.anchor.instance_index];
                             let child_prim_info = &child_prim_instance.vis;
 
                             let child_pic_index = match child_prim_instance.kind {
@@ -1028,6 +1031,7 @@ impl BatchBuilder {
                             surface_spatial_node_index,
                             z_generator,
                             composite_state,
+                            prim_instances,
                         );
                     }
                 }
@@ -1566,7 +1570,7 @@ impl BatchBuilder {
                         let surface = &ctx.surfaces[raster_config.surface_index.0];
 
                         let mut is_opaque = prim_info.clip_task_index == ClipTaskIndex::INVALID
-                            && surface.opaque_rect.contains_box(&surface.rect)
+                            && surface.is_opaque
                             && transform_kind == TransformedRectKind::AxisAligned;
 
                         let pic_task_id = picture.primary_render_task_id.unwrap();
@@ -3501,7 +3505,7 @@ impl ClipBatcher {
             let clip_node = &ctx.data_stores.clip[clip_instance.handle];
 
             let clip_transform_id = transforms.get_id(
-                clip_instance.spatial_node_index,
+                clip_node.item.spatial_node_index,
                 ctx.root_spatial_node_index,
                 ctx.spatial_tree,
             );
@@ -3513,7 +3517,7 @@ impl ClipBatcher {
             let prim_transform_id = match clip_node.item.kind {
                 ClipItemKind::Image { .. } => {
                     transforms.get_id(
-                        clip_instance.spatial_node_index,
+                        clip_node.item.spatial_node_index,
                         root_spatial_node_index,
                         ctx.spatial_tree,
                     )
@@ -3546,7 +3550,7 @@ impl ClipBatcher {
 
                     let map_local_to_raster = SpaceMapper::new_with_target(
                         root_spatial_node_index,
-                        clip_instance.spatial_node_index,
+                        clip_node.item.spatial_node_index,
                         WorldRect::max_rect(),
                         ctx.spatial_tree,
                     );
@@ -3606,7 +3610,7 @@ impl ClipBatcher {
                             });
                     };
 
-                    let clip_spatial_node = ctx.spatial_tree.get_spatial_node(clip_instance.spatial_node_index);
+                    let clip_spatial_node = ctx.spatial_tree.get_spatial_node(clip_node.item.spatial_node_index);
                     let clip_is_axis_aligned = clip_spatial_node.coordinate_system_id == CoordinateSystemId::root();
 
                     if clip_instance.has_visible_tiles() {
@@ -3648,6 +3652,7 @@ impl ClipBatcher {
                             * surface_device_pixel_scale).contains_box(&actual_rect)) {
                         clear_to_one = true;
                     }
+
                     true
                 }
                 ClipItemKind::BoxShadow { ref source }  => {
@@ -3692,7 +3697,7 @@ impl ClipBatcher {
                         if self.add_tiled_clip_mask(
                             actual_rect,
                             rect,
-                            clip_instance.spatial_node_index,
+                            clip_node.item.spatial_node_index,
                             ctx.spatial_tree,
                             &ctx.screen_world_rect,
                             ctx.global_device_pixel_scale,

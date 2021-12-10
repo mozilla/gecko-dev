@@ -9,13 +9,16 @@
 #include "mozilla/Assertions.h"       // for MOZ_ASSERT, etc
 #include "mozilla/EditorBase.h"       // for EditorBase
 #include "mozilla/EditorUtils.h"      // for AutoTransactionBatchExternal
+#include "mozilla/HTMLEditHelpers.h"  // for JoinNodesDirection
 #include "mozilla/HTMLEditUtils.h"    // for HTMLEditUtils
+#include "mozilla/IntegerRange.h"     // for IntegerRange
 #include "mozilla/mozalloc.h"         // for operator new, etc
 #include "mozilla/OwningNonNull.h"
-#include "mozilla/UniquePtr.h"  // for UniquePtr
-#include "mozilla/dom/AbstractRange.h"
+#include "mozilla/UniquePtr.h"          // for UniquePtr
+#include "mozilla/dom/AbstractRange.h"  // for AbstractRange
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Selection.h"
+#include "mozilla/dom/StaticRange.h"  // for StaticRange
 #include "mozilla/dom/Text.h"
 #include "mozilla/intl/WordBreaker.h"  // for WordRange, WordBreaker
 #include "nsAString.h"                 // for nsAString::Length, etc
@@ -586,9 +589,10 @@ nsresult TextServicesDocument::LastSelectedBlock(
   // XXX: We may need to add some code here to make sure
   //      the ranges are sorted in document appearance order!
 
-  for (uint32_t i = rangeCount; i > 0; i--) {
-    range = selection->GetRangeAt(i - 1, IgnoreErrors());
-    if (!range) {
+  for (const uint32_t i : Reversed(IntegerRange(rangeCount))) {
+    MOZ_ASSERT(selection->RangeCount() == rangeCount);
+    range = selection->GetRangeAt(i);
+    if (MOZ_UNLIKELY(!range)) {
       return NS_OK;  // XXX Really?
     }
 
@@ -641,9 +645,7 @@ nsresult TextServicesDocument::LastSelectedBlock(
   // Create a range that extends from the end of the selection,
   // to the end of the document, then iterate forwards through
   // it till you find a text node!
-
-  range = selection->GetRangeAt(rangeCount - 1, IgnoreErrors());
-
+  range = rangeCount > 0 ? selection->GetRangeAt(rangeCount - 1) : nullptr;
   if (!range) {
     return NS_ERROR_FAILURE;
   }
@@ -1331,75 +1333,95 @@ void TextServicesDocument::DidDeleteContent(const nsIContent& aChildContent) {
   }
 }
 
-void TextServicesDocument::DidJoinNodes(const nsIContent& aLeftContent,
-                                        const nsIContent& aRightContent) {
+void TextServicesDocument::DidJoinContents(
+    const EditorRawDOMPoint& aJoinedPoint, const nsIContent& aRemovedContent,
+    JoinNodesDirection aJoinNodesDirection) {
   // Make sure that both nodes are text nodes -- otherwise we don't care.
-  if (!aLeftContent.IsText() || !aRightContent.IsText()) {
+  if (!aJoinedPoint.IsInTextNode() || !aRemovedContent.IsText()) {
     return;
   }
 
   // Note: The editor merges the contents of the left node into the
   //       contents of the right.
 
-  Maybe<size_t> maybeLeftIndex =
-      mOffsetTable.FirstIndexOf(*aLeftContent.AsText());
-  if (maybeLeftIndex.isNothing()) {
+  Maybe<size_t> maybeRemovedIndex =
+      mOffsetTable.FirstIndexOf(*aRemovedContent.AsText());
+  if (maybeRemovedIndex.isNothing()) {
     // It's okay if the node isn't in the offset table, the
     // editor could be cleaning house.
     return;
   }
 
-  Maybe<size_t> maybeRightIndex =
-      mOffsetTable.FirstIndexOf(*aRightContent.AsText());
-  if (maybeRightIndex.isNothing()) {
+  Maybe<size_t> maybeJoinedIndex =
+      mOffsetTable.FirstIndexOf(*aJoinedPoint.ContainerAsText());
+  if (maybeJoinedIndex.isNothing()) {
     // It's okay if the node isn't in the offset table, the
     // editor could be cleaning house.
     return;
   }
 
-  const size_t leftIndex = *maybeLeftIndex;
-  const size_t rightIndex = *maybeRightIndex;
-  NS_ASSERTION(leftIndex < rightIndex, "Indexes out of order.");
+  const size_t removedIndex = *maybeRemovedIndex;
+  const size_t joinedIndex = *maybeJoinedIndex;
 
-  if (leftIndex > rightIndex) {
-    // Don't know how to handle this situation.
-    return;
+  if (aJoinNodesDirection == JoinNodesDirection::LeftNodeIntoRightNode) {
+    if (MOZ_UNLIKELY(removedIndex > joinedIndex)) {
+      NS_ASSERTION(removedIndex < joinedIndex, "Indexes out of order.");
+      return;
+    }
+    NS_ASSERTION(mOffsetTable[joinedIndex]->mOffsetInTextNode == 0,
+                 "Unexpected offset value for joinedIndex.");
+  } else {
+    if (MOZ_UNLIKELY(joinedIndex > removedIndex)) {
+      NS_ASSERTION(joinedIndex < removedIndex, "Indexes out of order.");
+      return;
+    }
+    NS_ASSERTION(mOffsetTable[removedIndex]->mOffsetInTextNode == 0,
+                 "Unexpected offset value for rightIndex.");
   }
-
-  NS_ASSERTION(mOffsetTable[rightIndex]->mOffsetInTextNode == 0,
-               "Unexpected offset value for rightIndex.");
 
   // Run through the table and change all entries referring to
-  // the left node so that they now refer to the right node:
-  uint32_t nodeLength = aLeftContent.AsText()->Length();
-  for (uint32_t i = leftIndex; i < rightIndex; i++) {
+  // the removed node so that they now refer to the joined node,
+  // and adjust offsets if necessary.
+  const uint32_t movedTextDataLength =
+      aJoinNodesDirection == JoinNodesDirection::LeftNodeIntoRightNode
+          ? aJoinedPoint.Offset()
+          : aJoinedPoint.ContainerAsText()->TextDataLength() -
+                aJoinedPoint.Offset();
+  for (uint32_t i = removedIndex; i < mOffsetTable.Length(); i++) {
     const UniquePtr<OffsetEntry>& entry = mOffsetTable[i];
     LockOffsetEntryArrayLengthInDebugBuild(observer, mOffsetTable);
-    if (entry->mTextNode != aLeftContent.AsText()) {
+    if (entry->mTextNode != aRemovedContent.AsText()) {
       break;
     }
     if (entry->mIsValid) {
-      entry->mTextNode = const_cast<Text*>(aRightContent.AsText());
+      entry->mTextNode = aJoinedPoint.ContainerAsText();
+      if (aJoinNodesDirection == JoinNodesDirection::RightNodeIntoLeftNode) {
+        // The text was moved from aRemovedContent to end of the container of
+        // aJoinedPoint.
+        entry->mOffsetInTextNode += movedTextDataLength;
+      }
     }
   }
 
-  // Run through the table and adjust the node offsets
-  // for all entries referring to the right node.
-  for (uint32_t i = rightIndex; i < mOffsetTable.Length(); i++) {
-    const UniquePtr<OffsetEntry>& entry = mOffsetTable[i];
-    LockOffsetEntryArrayLengthInDebugBuild(observer, mOffsetTable);
-    if (entry->mTextNode != aRightContent.AsText()) {
-      break;
-    }
-    if (entry->mIsValid) {
-      entry->mOffsetInTextNode += nodeLength;
+  if (aJoinNodesDirection == JoinNodesDirection::LeftNodeIntoRightNode) {
+    // The text was moved from aRemovedContent to start of the container of
+    // aJoinedPoint.
+    for (uint32_t i = joinedIndex; i < mOffsetTable.Length(); i++) {
+      const UniquePtr<OffsetEntry>& entry = mOffsetTable[i];
+      LockOffsetEntryArrayLengthInDebugBuild(observer, mOffsetTable);
+      if (entry->mTextNode != aJoinedPoint.ContainerAsText()) {
+        break;
+      }
+      if (entry->mIsValid) {
+        entry->mOffsetInTextNode += movedTextDataLength;
+      }
     }
   }
 
   // Now check to see if the iterator is pointing to the
-  // left node. If it is, make it point to the right node!
-  if (mFilteredIter->GetCurrentNode() == aLeftContent.AsText()) {
-    mFilteredIter->PositionAt(const_cast<Text*>(aRightContent.AsText()));
+  // left node. If it is, make it point to the joined node!
+  if (mFilteredIter->GetCurrentNode() == aRemovedContent.AsText()) {
+    mFilteredIter->PositionAt(aJoinedPoint.ContainerAsText());
   }
 }
 
@@ -1836,13 +1858,11 @@ nsresult TextServicesDocument::GetCollapsedSelection(
   uint32_t offset = range->StartOffset();
 
   const Maybe<int32_t> e1s1 = nsContentUtils::ComparePoints(
-      eStart->mTextNode, AssertedCast<int32_t>(eStartOffset), parent,
-      AssertedCast<int32_t>(offset));
+      eStart->mTextNode, eStartOffset, parent, offset);
   const Maybe<int32_t> e2s1 = nsContentUtils::ComparePoints(
-      eEnd->mTextNode, AssertedCast<int32_t>(eEndOffset), parent,
-      AssertedCast<int32_t>(offset));
+      eEnd->mTextNode, eEndOffset, parent, offset);
 
-  if (NS_WARN_IF(!e1s1) || NS_WARN_IF(!e2s1)) {
+  if (MOZ_UNLIKELY(NS_WARN_IF(!e1s1) || NS_WARN_IF(!e2s1))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -2021,9 +2041,12 @@ nsresult TextServicesDocument::GetUncollapsedSelection(
   Maybe<int32_t> e1s2;
   Maybe<int32_t> e2s1;
   uint32_t startOffset, endOffset;
-  for (uint32_t i = 0; i < rangeCount; i++) {
-    range = selection->GetRangeAt(i, IgnoreErrors());
-    NS_ENSURE_STATE(range);
+  for (const uint32_t i : IntegerRange(rangeCount)) {
+    MOZ_ASSERT(selection->RangeCount() == rangeCount);
+    range = selection->GetRangeAt(i);
+    if (MOZ_UNLIKELY(NS_WARN_IF(!range))) {
+      return NS_ERROR_FAILURE;
+    }
 
     nsresult rv =
         GetRangeEndPoints(range, getter_AddRefs(startContainer), &startOffset,
@@ -2031,16 +2054,14 @@ nsresult TextServicesDocument::GetUncollapsedSelection(
 
     NS_ENSURE_SUCCESS(rv, rv);
 
-    e1s2 = nsContentUtils::ComparePoints(
-        eStart->mTextNode, AssertedCast<int32_t>(eStartOffset), endContainer,
-        AssertedCast<int32_t>(endOffset));
+    e1s2 = nsContentUtils::ComparePoints(eStart->mTextNode, eStartOffset,
+                                         endContainer, endOffset);
     if (NS_WARN_IF(!e1s2)) {
       return NS_ERROR_FAILURE;
     }
 
-    e2s1 = nsContentUtils::ComparePoints(
-        eEnd->mTextNode, AssertedCast<int32_t>(eEndOffset), startContainer,
-        AssertedCast<int32_t>(startOffset));
+    e2s1 = nsContentUtils::ComparePoints(eEnd->mTextNode, eEndOffset,
+                                         startContainer, startOffset);
     if (NS_WARN_IF(!e2s1)) {
       return NS_ERROR_FAILURE;
     }
@@ -2062,15 +2083,13 @@ nsresult TextServicesDocument::GetUncollapsedSelection(
 
   // Now that we have an intersecting range, find out more info:
   const Maybe<int32_t> e1s1 = nsContentUtils::ComparePoints(
-      eStart->mTextNode, AssertedCast<int32_t>(eStartOffset), startContainer,
-      AssertedCast<int32_t>(startOffset));
+      eStart->mTextNode, eStartOffset, startContainer, startOffset);
   if (NS_WARN_IF(!e1s1)) {
     return NS_ERROR_FAILURE;
   }
 
   const Maybe<int32_t> e2s2 = nsContentUtils::ComparePoints(
-      eEnd->mTextNode, AssertedCast<int32_t>(eEndOffset), endContainer,
-      AssertedCast<int32_t>(endOffset));
+      eEnd->mTextNode, eEndOffset, endContainer, endOffset);
   if (NS_WARN_IF(!e2s2)) {
     return NS_ERROR_FAILURE;
   }
@@ -2750,17 +2769,17 @@ TextServicesDocument::DidDeleteNode(nsINode* aChild, nsresult aResult) {
   return NS_OK;
 }
 
-NS_IMETHODIMP
-TextServicesDocument::DidJoinNodes(nsINode* aLeftNode, nsINode* aRightNode,
-                                   nsINode* aParent, nsresult aResult) {
-  if (NS_WARN_IF(NS_FAILED(aResult))) {
+NS_IMETHODIMP TextServicesDocument::DidJoinContents(
+    const EditorRawDOMPoint& aJoinedPoint, const nsINode* aRemovedNode,
+    bool aLeftNodeWasRemoved) {
+  if (MOZ_UNLIKELY(NS_WARN_IF(!aJoinedPoint.IsSetAndValid()) ||
+                   NS_WARN_IF(!aRemovedNode->IsContent()))) {
     return NS_OK;
   }
-  if (NS_WARN_IF(!aLeftNode) || !aLeftNode->IsContent() ||
-      NS_WARN_IF(!aRightNode) || !aRightNode->IsContent()) {
-    return NS_OK;
-  }
-  DidJoinNodes(*aLeftNode->AsContent(), *aRightNode->AsContent());
+  DidJoinContents(aJoinedPoint, *aRemovedNode->AsContent(),
+                  aLeftNodeWasRemoved
+                      ? JoinNodesDirection::LeftNodeIntoRightNode
+                      : JoinNodesDirection::RightNodeIntoLeftNode);
   return NS_OK;
 }
 

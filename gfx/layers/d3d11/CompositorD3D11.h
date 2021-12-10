@@ -23,7 +23,6 @@ namespace layers {
 #define LOGD3D11(param)
 
 class DeviceAttachmentsD3D11;
-class DiagnosticsD3D11;
 
 class CompositorD3D11 : public Compositor {
  public:
@@ -96,10 +95,6 @@ class CompositorD3D11 : public Compositor {
   const char* Name() const override { return "Direct3D 11"; }
 #endif
 
-  LayersBackend GetBackendType() const override {
-    return LayersBackend::LAYERS_D3D11;
-  }
-
   // For TextureSourceProvider.
   ID3D11Device* GetD3D11Device() const override { return mDevice; }
 
@@ -119,8 +114,6 @@ class CompositorD3D11 : public Compositor {
   }
 
   SyncObjectHost* GetSyncObject();
-
-  void UseForSoftwareWebRender() { mUseForSoftwareWebRender = true; }
 
  private:
   enum Severity {
@@ -191,7 +184,6 @@ class CompositorD3D11 : public Compositor {
   RefPtr<ID3D11Query> mRecycledQuery;
 
   RefPtr<DeviceAttachmentsD3D11> mAttachments;
-  UniquePtr<DiagnosticsD3D11> mDiagnostics;
 
   LayoutDeviceIntSize mSize;
 
@@ -217,8 +209,6 @@ class CompositorD3D11 : public Compositor {
   bool mVerifyBuffersFailed;
   bool mUseMutexOnPresent;
   bool mAllowFrameRecording;
-
-  bool mUseForSoftwareWebRender;
 };
 
 namespace TexSlot {

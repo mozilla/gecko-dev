@@ -158,7 +158,7 @@ static inline gfxRect ScaleGlyphBounds(const IntRect& aBounds,
  * exists.  aWidth/aBounds is only set when this returns a non-zero glyph id.
  * This is just for use during initialization, and doesn't use the width cache.
  */
-uint32_t gfxFT2FontBase::GetCharExtents(char aChar, gfxFloat* aWidth,
+uint32_t gfxFT2FontBase::GetCharExtents(uint32_t aChar, gfxFloat* aWidth,
                                         gfxRect* aBounds) {
   FT_UInt gid = GetGlyph(aChar);
   int32_t width;
@@ -249,7 +249,7 @@ void gfxFT2FontBase::InitMetrics() {
       case FontSizeAdjust::Tag::IcHeight: {
         bool vertical = FontSizeAdjust::Tag(mStyle.sizeAdjustBasis) ==
                         FontSizeAdjust::Tag::IcHeight;
-        gfxFloat advance = GetCharAdvance(0x6C34, vertical);
+        gfxFloat advance = GetCharAdvance(kWaterIdeograph, vertical);
         aspect = advance > 0.0 ? advance / mAdjustedSize : 1.0;
         break;
       }
@@ -294,6 +294,7 @@ void gfxFT2FontBase::InitMetrics() {
     mMetrics.maxAdvance = spaceWidth;
     mMetrics.aveCharWidth = spaceWidth;
     mMetrics.zeroWidth = spaceWidth;
+    mMetrics.ideographicWidth = emHeight;
     const gfxFloat xHeight = 0.5 * emHeight;
     mMetrics.xHeight = xHeight;
     mMetrics.capHeight = mMetrics.maxAscent;
@@ -304,6 +305,7 @@ void gfxFT2FontBase::InitMetrics() {
     mMetrics.strikeoutSize = underlineSize;
 
     SanitizeMetrics(&mMetrics, false);
+    UnlockFTFace();
     return;
   }
 
@@ -468,6 +470,12 @@ void gfxFT2FontBase::InitMetrics() {
     mMetrics.zeroWidth = -1.0;  // indicates not found
   }
 
+  if (GetCharExtents(kWaterIdeograph, &width)) {
+    mMetrics.ideographicWidth = width;
+  } else {
+    mMetrics.ideographicWidth = -1.0;
+  }
+
   // If we didn't get a usable x-height or cap-height above, try measuring
   // specific glyphs. This can be affected by hinting, leading to erratic
   // behavior across font sizes and system configuration, so we prefer to
@@ -531,11 +539,12 @@ void gfxFT2FontBase::InitMetrics() {
     //    printf("font name: %s %f\n", NS_ConvertUTF16toUTF8(GetName()).get(), GetStyle()->size);
     //    printf ("pango font %s\n", pango_font_description_to_string (pango_font_describe (font)));
 
-    fprintf (stderr, "Font: %s\n", NS_ConvertUTF16toUTF8(GetName()).get());
+    fprintf (stderr, "Font: %s\n", GetName().get());
     fprintf (stderr, "    emHeight: %f emAscent: %f emDescent: %f\n", mMetrics.emHeight, mMetrics.emAscent, mMetrics.emDescent);
     fprintf (stderr, "    maxAscent: %f maxDescent: %f\n", mMetrics.maxAscent, mMetrics.maxDescent);
     fprintf (stderr, "    internalLeading: %f externalLeading: %f\n", mMetrics.externalLeading, mMetrics.internalLeading);
     fprintf (stderr, "    spaceWidth: %f aveCharWidth: %f xHeight: %f\n", mMetrics.spaceWidth, mMetrics.aveCharWidth, mMetrics.xHeight);
+    fprintf (stderr, "    ideographicWidth: %f\n", mMetrics.ideographicWidth);
     fprintf (stderr, "    uOff: %f uSize: %f stOff: %f stSize: %f\n", mMetrics.underlineOffset, mMetrics.underlineSize, mMetrics.strikeoutOffset, mMetrics.strikeoutSize);
 #endif
 }
@@ -635,7 +644,14 @@ bool gfxFT2FontBase::GetFTGlyphExtents(uint16_t aGID, int32_t* aAdvance,
     return false;
   }
 
+  // Whether to interpret hinting settings (i.e. not printing)
   bool hintMetrics = ShouldHintMetrics();
+  // Whether to disable subpixel positioning
+  bool roundX = ShouldRoundXOffset(nullptr);
+  // No hinting disables X and Y hinting. Light disables only X hinting.
+  bool unhintedY = (mFTLoadFlags & FT_LOAD_NO_HINTING) != 0;
+  bool unhintedX =
+      unhintedY || FT_LOAD_TARGET_MODE(mFTLoadFlags) == FT_RENDER_MODE_LIGHT;
 
   // Normalize out the loaded FT glyph size and then scale to the actually
   // desired size, in case these two sizes differ.
@@ -648,7 +664,7 @@ bool gfxFT2FontBase::GetFTGlyphExtents(uint16_t aGID, int32_t* aAdvance,
   // applying hinting. Otherwise, prefer hinted width from glyph->advance.x.
   if (aAdvance) {
     FT_Fixed advance;
-    if (!ShouldRoundXOffset(nullptr) || FT_HAS_MULTIPLE_MASTERS(face.get())) {
+    if (!roundX || FT_HAS_MULTIPLE_MASTERS(face.get())) {
       advance = face.get()->glyph->linearHoriAdvance;
     } else {
       advance = face.get()->glyph->advance.x << 10;  // convert 26.6 to 16.16
@@ -660,7 +676,7 @@ bool gfxFT2FontBase::GetFTGlyphExtents(uint16_t aGID, int32_t* aAdvance,
     // Round the advance here to approximate hinting as Cairo does. This must
     // happen BEFORE we apply the glyph extents scale, just like FT hinting
     // would.
-    if (hintMetrics && (mFTLoadFlags & FT_LOAD_NO_HINTING)) {
+    if (hintMetrics && roundX && unhintedX) {
       advance = (advance + 0x8000) & 0xffff0000u;
     }
     *aAdvance = NS_lround(advance * extentsScale);
@@ -675,11 +691,15 @@ bool gfxFT2FontBase::GetFTGlyphExtents(uint16_t aGID, int32_t* aAdvance,
     // Synthetic bold moves the glyph top and right boundaries.
     y -= bold.y;
     x2 += bold.x;
-    if (hintMetrics && (mFTLoadFlags & FT_LOAD_NO_HINTING)) {
-      x &= -64;
-      y &= -64;
-      x2 = (x2 + 63) & -64;
-      y2 = (y2 + 63) & -64;
+    if (hintMetrics) {
+      if (roundX && unhintedX) {
+        x &= -64;
+        x2 = (x2 + 63) & -64;
+      }
+      if (unhintedY) {
+        y &= -64;
+        y2 = (y2 + 63) & -64;
+      }
     }
     *aBounds = IntRect(x, y, x2 - x, y2 - y);
   }

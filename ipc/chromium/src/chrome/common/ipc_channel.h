@@ -67,11 +67,18 @@ class Channel {
   enum Mode { MODE_SERVER, MODE_CLIENT };
 
   enum {
-    // The maximum message size in bytes. Attempting to receive a
-    // message of this size or bigger results in a channel error.
-    kMaximumMessageSize = 256 * 1024 * 1024,
 
-    // Ammount of data to read at once from the pipe.
+  // The maximum message size in bytes. Attempting to receive a
+  // message of this size or bigger results in a channel error.
+  // This is larger in fuzzing builds to allow the fuzzing of passing
+  // large data structures into DOM methods without crashing.
+#ifndef FUZZING
+    kMaximumMessageSize = 256 * 1024 * 1024,
+#else
+    kMaximumMessageSize = 1792 * 1024 * 1024,  // 1.75GB
+#endif
+
+    // Amount of data to read at once from the pipe.
     kReadBufferSize = 4 * 1024,
 
     // Maximum size of a message that we allow to be copied (rather than moved).
@@ -156,9 +163,24 @@ class Channel {
   // Close the client side of the socketpair.
   void CloseClientFileDescriptor();
 
+#  if defined(OS_MACOSX)
+  // Configure the mach task_t for the peer task.
+  void SetOtherMachTask(task_t task);
+
+  // Tell this pipe to accept mach ports. Exactly one side of the IPC connection
+  // must be set as `MODE_SERVER` and that side will be responsible for
+  // transferring the rights between processes.
+  void StartAcceptingMachPorts(Mode mode);
+#  endif
+
 #elif defined(OS_WIN)
   // Return the server pipe handle.
   void* GetServerPipeHandle() const;
+
+  // Tell this pipe to accept handles. Exactly one side of the IPC connection
+  // must be set as `MODE_SERVER`, and that side will be responsible for calling
+  // `DuplicateHandle` to transfer the handle between processes.
+  void StartAcceptingHandles(Mode mode);
 #endif  // defined(OS_POSIX)
 
   // On Windows: Generates a channel ID that, if passed to the client

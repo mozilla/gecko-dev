@@ -25,6 +25,7 @@ include protocol PFileSystemRequest;
 include protocol PGamepadEventChannel;
 include protocol PGamepadTestChannel;
 include protocol PHttpBackgroundChannel;
+include protocol PIPCClientCerts;
 include protocol PIdleScheduler;
 include protocol PRemoteLazyInputStream;
 include protocol PMediaTransport;
@@ -79,7 +80,8 @@ using class mozilla::dom::SSCacheCopy from "mozilla/dom/PBackgroundSessionStorag
 namespace mozilla {
 namespace ipc {
 
-[RefCounted] sync protocol PBackground
+[RefCounted, NeedsOtherPid]
+sync protocol PBackground
 {
   manages PBackgroundDataBridge;
   manages PBackgroundIDBFactory;
@@ -104,6 +106,7 @@ namespace ipc {
   manages PGamepadEventChannel;
   manages PGamepadTestChannel;
   manages PHttpBackgroundChannel;
+  manages PIPCClientCerts;
   manages PIdleScheduler;
   manages PRemoteLazyInputStream;
   manages PLockManager;
@@ -285,6 +288,8 @@ parent:
   async PWebSocketConnection(uint32_t aListenerId);
 
   async PLockManager(ContentPrincipalInfo aPrincipalInfo, nsID aClientId);
+
+  async PIPCClientCerts();
 
 child:
   async PCache();

@@ -9,7 +9,7 @@
 #include "nsLayoutStatics.h"
 #include "nscore.h"
 
-#include "DateTimeFormat.h"
+#include "mozilla/intl/AppDateTimeFormat.h"
 #include "MediaManager.h"
 #include "mozilla/dom/ServiceWorkerRegistrar.h"
 #include "nsAttrValue.h"
@@ -68,13 +68,10 @@
 #include "mozilla/dom/PromiseDebugging.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 
-#ifdef MOZ_XUL
-#  include "nsXULPopupManager.h"
-#  include "nsXULContentUtils.h"
-#  include "nsXULPrototypeCache.h"
-#  include "nsXULTooltipListener.h"
-
-#endif
+#include "nsXULPopupManager.h"
+#include "nsXULContentUtils.h"
+#include "nsXULPrototypeCache.h"
+#include "nsXULTooltipListener.h"
 
 #include "mozilla/dom/UIDirectionManager.h"
 
@@ -127,6 +124,9 @@
 #include "gfxUserFontSet.h"
 #include "RestoreTabContentObserver.h"
 #include "mozilla/intl/nsComplexBreaker.h"
+
+#include "nsRLBoxExpatDriver.h"
+#include "RLBoxWOFF2Types.h"
 
 using namespace mozilla;
 using namespace mozilla::net;
@@ -214,13 +214,11 @@ nsresult nsLayoutStatics::Initialize() {
     return rv;
   }
 
-#ifdef MOZ_XUL
   rv = nsXULPopupManager::Init();
   if (NS_FAILED(rv)) {
     NS_ERROR("Could not initialize nsXULPopupManager");
     return rv;
   }
-#endif
 
   rv = nsFocusManager::Init();
   if (NS_FAILED(rv)) {
@@ -294,6 +292,10 @@ nsresult nsLayoutStatics::Initialize() {
 
   ComplexBreaker::Initialize();
 
+  RLBoxExpatSandboxPool::Initialize();
+
+  RLBoxWOFF2SandboxPool::Initalize();
+
   return NS_OK;
 }
 
@@ -309,9 +311,7 @@ void nsLayoutStatics::Shutdown() {
   Document::Shutdown();
   nsMessageManagerScriptExecutor::Shutdown();
   nsFocusManager::Shutdown();
-#ifdef MOZ_XUL
   nsXULPopupManager::Shutdown();
-#endif
   UIDirectionManager::Shutdown();
   StorageObserver::Shutdown();
   txMozillaXSLTProcessor::Shutdown();
@@ -336,11 +336,9 @@ void nsLayoutStatics::Shutdown() {
   nsRepeatService::Shutdown();
   nsStackLayout::Shutdown();
 
-#ifdef MOZ_XUL
   nsXULContentUtils::Finish();
   nsXULPrototypeCache::ReleaseGlobals();
   nsSprocketLayout::Shutdown();
-#endif
 
   SVGElementFactory::Shutdown();
   nsMathMLOperators::ReleaseTable();
@@ -384,7 +382,7 @@ void nsLayoutStatics::Shutdown() {
   nsHyphenationManager::Shutdown();
   nsDOMMutationObserver::Shutdown();
 
-  DateTimeFormat::Shutdown();
+  mozilla::intl::AppDateTimeFormat::Shutdown();
 
   ContentParent::ShutDown();
 

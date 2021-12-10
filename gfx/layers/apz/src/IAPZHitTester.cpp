@@ -44,6 +44,9 @@ AsyncPanZoomController* IAPZHitTester::FindRootApzcForLayersId(
 already_AddRefed<HitTestingTreeNode> IAPZHitTester::GetTargetNode(
     const ScrollableLayerGuid& aGuid,
     ScrollableLayerGuid::Comparator aComparator) {
+  // Acquire the tree lock so that derived classes can call this from
+  // methods other than GetAPZCAtPoint().
+  RecursiveMutexAutoLock lock(mTreeManager->mTreeLock);
   return mTreeManager->GetTargetNode(aGuid, aComparator);
 }
 
@@ -53,22 +56,6 @@ void IAPZHitTester::InitializeHitTestingTreeNodeAutoLock(
     RefPtr<HitTestingTreeNode>& aNode) {
   aAutoLock.Initialize(aProofOfTreeLock, aNode.forget(),
                        mTreeManager->mTreeLock);
-}
-
-AsyncPanZoomController* IAPZHitTester::GetTargetApzcForNode(
-    const HitTestingTreeNode* aNode) {
-  return mTreeManager->GetTargetApzcForNode(aNode);
-}
-
-bool IAPZHitTester::IsFixedToRootContent(const HitTestingTreeNode* aNode) {
-  return mTreeManager->IsFixedToRootContent(aNode);
-}
-
-LayerToParentLayerMatrix4x4 IAPZHitTester::ComputeTransformForNode(
-    const HitTestingTreeNode* aNode,
-    const AsyncPanZoomController** aOutSourceOfOverscrollTransform) const {
-  return mTreeManager->ComputeTransformForNode(aNode,
-                                               aOutSourceOfOverscrollTransform);
 }
 
 }  // namespace layers

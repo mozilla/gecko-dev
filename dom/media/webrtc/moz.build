@@ -55,6 +55,9 @@ if CONFIG["MOZ_WEBRTC"]:
     SOURCES += [
         "MediaEngineWebRTC.cpp",
     ]
+    PREPROCESSED_IPDL_SOURCES += [
+        "PWebrtcGlobal.ipdl",
+    ]
     LOCAL_INCLUDES += [
         "..",
         "/dom/base",
@@ -63,7 +66,7 @@ if CONFIG["MOZ_WEBRTC"]:
         "/dom/media/webrtc/common/browser_logging",
         "/media/libyuv/libyuv/include",
         "/third_party/libwebrtc",
-        "/third_party/libwebrtc/webrtc",
+        "/third_party/libwebrtc/third_party/abseil-cpp",
     ]
 
 if CONFIG["MOZ_WEBRTC_SIGNALING"]:
@@ -84,7 +87,6 @@ if CONFIG["MOZ_WEBRTC_SIGNALING"]:
 
 PREPROCESSED_IPDL_SOURCES += [
     "PMediaTransport.ipdl",
-    "PWebrtcGlobal.ipdl",
 ]
 
 UNIFIED_SOURCES += [
@@ -109,8 +111,10 @@ include("/ipc/chromium/chromium-config.mozbuild")
 #    android API types
 CXXFLAGS += [
     "-Wno-error=attributes",
-    "-Wno-error=shadow",
 ]
 
 DEFINES["TRACING"] = True
 FINAL_LIBRARY = "xul"
+
+# Add libFuzzer configuration directives
+include("/tools/fuzzing/libfuzzer-config.mozbuild")

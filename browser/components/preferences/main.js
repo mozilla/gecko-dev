@@ -8,57 +8,6 @@
 /* import-globals-from ../../base/content/aboutDialog-appUpdater.js */
 /* global MozXULElement */
 
-var { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-var { Downloads } = ChromeUtils.import("resource://gre/modules/Downloads.jsm");
-var { FileUtils } = ChromeUtils.import("resource://gre/modules/FileUtils.jsm");
-var { ShortcutUtils } = ChromeUtils.import(
-  "resource://gre/modules/ShortcutUtils.jsm"
-);
-
-var { TransientPrefs } = ChromeUtils.import(
-  "resource:///modules/TransientPrefs.jsm"
-);
-var { AppConstants } = ChromeUtils.import(
-  "resource://gre/modules/AppConstants.jsm"
-);
-var { HomePage } = ChromeUtils.import("resource:///modules/HomePage.jsm");
-ChromeUtils.defineModuleGetter(
-  this,
-  "CloudStorage",
-  "resource://gre/modules/CloudStorage.jsm"
-);
-var { Integration } = ChromeUtils.import(
-  "resource://gre/modules/Integration.jsm"
-);
-/* global DownloadIntegration */
-Integration.downloads.defineModuleGetter(
-  this,
-  "DownloadIntegration",
-  "resource://gre/modules/DownloadIntegration.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "SelectionChangedMenulist",
-  "resource:///modules/SelectionChangedMenulist.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "UpdateUtils",
-  "resource://gre/modules/UpdateUtils.jsm"
-);
-
-XPCOMUtils.defineLazyServiceGetters(this, {
-  gApplicationUpdateService: [
-    "@mozilla.org/updates/update-service;1",
-    "nsIApplicationUpdateService",
-  ],
-  gHandlerService: [
-    "@mozilla.org/uriloader/handler-service;1",
-    "nsIHandlerService",
-  ],
-  gMIMEService: ["@mozilla.org/mime;1", "nsIMIMEService"],
-});
-
 // Constants & Enumeration Values
 const TYPE_PDF = "application/pdf";
 
@@ -84,21 +33,6 @@ const ICON_URL_APP =
 // For CSS. Can be one of "ask", "save" or "handleInternally". If absent, the icon URL
 // was set by us to a custom handler icon and CSS should not try to override it.
 const APP_ICON_ATTR_NAME = "appHandlerIcon";
-
-ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
-
-if (AppConstants.MOZ_DEV_EDITION) {
-  ChromeUtils.defineModuleGetter(
-    this,
-    "fxAccounts",
-    "resource://gre/modules/FxAccounts.jsm"
-  );
-  ChromeUtils.defineModuleGetter(
-    this,
-    "FxAccounts",
-    "resource://gre/modules/FxAccounts.jsm"
-  );
-}
 
 Preferences.addAll([
   // Startup
@@ -3051,6 +2985,18 @@ var gMainPane = {
   },
 
   async displayDownloadDirPrefTask() {
+    // We're async for localization reasons, and we can get called several
+    // times in the same turn of the event loop (!) because of how the
+    // preferences bindings work... but the speed of localization
+    // shouldn't impact what gets displayed to the user in the end - the
+    // last call should always win.
+    // To accomplish this, store a unique object when we enter this function,
+    // and if by the end of the function that stored object has been
+    // overwritten, don't update the UI but leave it to the last
+    // caller to this function to do.
+    let token = {};
+    this._downloadDisplayToken = token;
+
     var folderListPref = Preferences.get("browser.download.folderList");
     var downloadFolder = document.getElementById("downloadFolder");
     var currentDirPref = Preferences.get("browser.download.dir");
@@ -3073,28 +3019,35 @@ var gMainPane = {
     }
 
     // Display a 'pretty' label or the path in the UI.
-    // note: downloadFolder.value is not read elsewhere in the code, its only purpose is to display to the user
+    let folderValue;
     if (folderIndex == 2) {
       // Force the left-to-right direction when displaying a custom path.
-      downloadFolder.value = currentDirPref.value
+      folderValue = currentDirPref.value
         ? `\u2066${currentDirPref.value.path}\u2069`
         : "";
       iconUrlSpec = fph.getURLSpecFromDir(currentDirPref.value);
     } else if (folderIndex == 1) {
       // 'Downloads'
-      [downloadFolder.value] = await document.l10n.formatValues([
+      [folderValue] = await document.l10n.formatValues([
         { id: "downloads-folder-name" },
       ]);
       iconUrlSpec = fph.getURLSpecFromDir(await this._indexToFolder(1));
     } else {
       // 'Desktop'
-      [downloadFolder.value] = await document.l10n.formatValues([
+      [folderValue] = await document.l10n.formatValues([
         { id: "desktop-folder-name" },
       ]);
       iconUrlSpec = fph.getURLSpecFromDir(
         await this._getDownloadsFolder("Desktop")
       );
     }
+    // Ensure that the last entry to this function always wins
+    // (see comment at the start of this method):
+    if (this._downloadDisplayToken != token) {
+      return;
+    }
+    // note: downloadFolder.value is not read elsewhere in the code, its only purpose is to display to the user
+    downloadFolder.value = folderValue;
     downloadFolder.style.backgroundImage =
       "url(moz-icon://" + iconUrlSpec + "?size=16)";
   },
