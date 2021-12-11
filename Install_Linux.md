@@ -3,7 +3,7 @@
 #### (y/n)の選択が出てきた場合、y を選択してください
 
 
-```sudo apt install flatpak && sudo apt install curl```
+`sudo apt install flatpak && sudo apt install curl`
 
 ```sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo```
 
