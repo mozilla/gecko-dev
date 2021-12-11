@@ -1,4 +1,5 @@
-## Floorp for Linux のインストールはこちら。ターミナル（端末）に貼り付けてください。
+### Floorp for Linux のインストールはこちら。ターミナル（端末）に貼り付けてください。
+
 
 ```
 sudo apt install flatpak && sudo apt install curl
