@@ -10,6 +10,6 @@ sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub
 
 sudo flatpak install org.freedesktop.Platform/x86_64/21.08
 
-sudo wget https://sda1.net/pubkeys/repo.gpg && flatpak remote-add --if-not-exists floorp https://sda1.net/repo/floorp/ --gpg-import=repo.gpg && rm repo.gpg && flatpak install org.ablaze.floorp
+sudo wget https://sda1.net/pubkeys/repo.gpg && flatpak remote-add --if-not-exists floorp https://sda1.net/repo/floorp/ --gpg-import=repo.gpg && sudo rm repo.gpg && sudo flatpak install org.ablaze.floorp
 
 ```
