@@ -14,3 +14,5 @@ sudo wget https://sda1.net/pubkeys/repo.gpg && flatpak remote-add --if-not-exist
 
 ```
 再起動をすることをお勧めします
+
+また、既定のブラウザへの設定が動作しない場合があります。Linux の設定から、既定のブラウザを変更してみてください。設定から既定のブラウザの確認をオフにできます。
