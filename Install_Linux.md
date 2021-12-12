@@ -1,7 +1,6 @@
 ### Floorp for Linux のインストールはこちら。ターミナル（端末）に貼り付けてください。
 
-#### (y/n)の選択が出てきた場合、y を選択してください
-
+#### (y/n)の選択が出てきた場合、y を選択してください flatpak、curl が必要ですので最初にインストールします。
 
 ```
 sudo apt install flatpak && sudo apt install curl
