@@ -1,0 +1,8 @@
+C:/mozilla-source/gecko-dev/modules/freetype2/out/build/x64-Debug/CMakeFiles/package.dir
+C:/mozilla-source/gecko-dev/modules/freetype2/out/build/x64-Debug/CMakeFiles/freetype.dir
+C:/mozilla-source/gecko-dev/modules/freetype2/out/build/x64-Debug/CMakeFiles/package_source.dir
+C:/mozilla-source/gecko-dev/modules/freetype2/out/build/x64-Debug/CMakeFiles/install/local.dir
+C:/mozilla-source/gecko-dev/modules/freetype2/out/build/x64-Debug/CMakeFiles/install.dir
+C:/mozilla-source/gecko-dev/modules/freetype2/out/build/x64-Debug/CMakeFiles/edit_cache.dir
+C:/mozilla-source/gecko-dev/modules/freetype2/out/build/x64-Debug/CMakeFiles/rebuild_cache.dir
+C:/mozilla-source/gecko-dev/modules/freetype2/out/build/x64-Debug/CMakeFiles/list_install_components.dir

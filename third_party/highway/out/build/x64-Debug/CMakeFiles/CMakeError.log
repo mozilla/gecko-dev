@@ -1,0 +1,17 @@
+Performing C++ SOURCE FILE Test HWY_EMSCRIPTEN failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_366c2 && [1/2] Building CXX object CMakeFiles\cmTC_366c2.dir\src.cxx.obj
+FAILED: CMakeFiles/cmTC_366c2.dir/src.cxx.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo /TP -DHWY_EMSCRIPTEN  /DWIN32 /D_WINDOWS /W3 /GR /EHsc  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_366c2.dir\src.cxx.obj /FdCMakeFiles\cmTC_366c2.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\highway\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx
+C:\mozilla-source\gecko-dev\third_party\highway\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx(3): error C2338: __EMSCRIPTEN__ is not defined
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+int main() {
+      #if !defined(__EMSCRIPTEN__)
+      static_assert(false, "__EMSCRIPTEN__ is not defined");
+      #endif
+      return 0;
+    }

@@ -1,0 +1,10 @@
+prefix=C:/mozilla-source/gecko-dev/third_party/highway/out/install/x64-Debug
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libhwy-test
+Description: Efficient and performance-portable SIMD wrapper, test helpers.
+Requires: gtest
+Version: 0.15.0
+Libs: -L${libdir} -lhwy_test
+Cflags: -I${includedir}

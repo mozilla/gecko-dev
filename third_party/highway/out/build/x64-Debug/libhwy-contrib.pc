@@ -1,0 +1,10 @@
+prefix=C:/mozilla-source/gecko-dev/third_party/highway/out/install/x64-Debug
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libhwy-contrib
+Description: Additions to Highway: image and math library
+Version: 0.15.0
+Libs: -L${libdir} -lhwy_contrib
+Cflags: -I${includedir}

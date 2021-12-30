@@ -1,0 +1,579 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 152,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 162,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 180,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/absl",
+			"exportName" : "abslTargets",
+			"exportTargets" : 
+			[
+				{
+					"id" : "atomic_hook::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "errno_saver::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "log_severity::@a1c6d5f169e5498974ce",
+					"index" : 30
+				},
+				{
+					"id" : "raw_logging_internal::@a1c6d5f169e5498974ce",
+					"index" : 45
+				},
+				{
+					"id" : "spinlock_wait::@a1c6d5f169e5498974ce",
+					"index" : 47
+				},
+				{
+					"id" : "config::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "dynamic_annotations::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "core_headers::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "malloc_internal::@a1c6d5f169e5498974ce",
+					"index" : 31
+				},
+				{
+					"id" : "base_internal::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "base::@a1c6d5f169e5498974ce",
+					"index" : 3
+				},
+				{
+					"id" : "throw_delegate::@a1c6d5f169e5498974ce",
+					"index" : 57
+				},
+				{
+					"id" : "pretty_function::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "endian::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "bits::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "exponential_biased::@a1c6d5f169e5498974ce",
+					"index" : 10
+				},
+				{
+					"id" : "periodic_sampler::@a1c6d5f169e5498974ce",
+					"index" : 32
+				},
+				{
+					"id" : "scoped_set_env::@a1c6d5f169e5498974ce",
+					"index" : 46
+				},
+				{
+					"id" : "strerror::@a1c6d5f169e5498974ce",
+					"index" : 52
+				},
+				{
+					"id" : "fast_type_id::@a1c6d5f169e5498974ce",
+					"index" : 0
+				},
+				{
+					"id" : "algorithm::@059343f5808727cb9e20",
+					"index" : 0
+				},
+				{
+					"id" : "algorithm_container::@059343f5808727cb9e20",
+					"index" : 0
+				},
+				{
+					"id" : "container::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "btree::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "compressed_tuple::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "fixed_array::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "inlined_vector_internal::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "inlined_vector::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "counting_allocator::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "flat_hash_map::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "flat_hash_set::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "node_hash_map::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "node_hash_set::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "container_memory::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "hash_function_defaults::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "hash_policy_traits::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "hashtablez_sampler::@9796c355f0bb156fbaf1",
+					"index" : 26
+				},
+				{
+					"id" : "hashtable_debug::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "hashtable_debug_hooks::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "have_sse::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "node_hash_policy::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "raw_hash_map::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "container_common::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "raw_hash_set::@9796c355f0bb156fbaf1",
+					"index" : 44
+				},
+				{
+					"id" : "layout::@9796c355f0bb156fbaf1",
+					"index" : 0
+				},
+				{
+					"id" : "stacktrace::@69b4c309ef8f29eb0f74",
+					"index" : 48
+				},
+				{
+					"id" : "symbolize::@69b4c309ef8f29eb0f74",
+					"index" : 55
+				},
+				{
+					"id" : "examine_stack::@69b4c309ef8f29eb0f74",
+					"index" : 9
+				},
+				{
+					"id" : "failure_signal_handler::@69b4c309ef8f29eb0f74",
+					"index" : 11
+				},
+				{
+					"id" : "debugging_internal::@69b4c309ef8f29eb0f74",
+					"index" : 7
+				},
+				{
+					"id" : "demangle_internal::@69b4c309ef8f29eb0f74",
+					"index" : 8
+				},
+				{
+					"id" : "leak_check::@69b4c309ef8f29eb0f74",
+					"index" : 28
+				},
+				{
+					"id" : "leak_check_disable::@69b4c309ef8f29eb0f74",
+					"index" : 29
+				},
+				{
+					"id" : "debugging::@69b4c309ef8f29eb0f74",
+					"index" : 0
+				},
+				{
+					"id" : "flags_path_util::@fbdfa058450ae6f36719",
+					"index" : 0
+				},
+				{
+					"id" : "flags_program_name::@fbdfa058450ae6f36719",
+					"index" : 20
+				},
+				{
+					"id" : "flags_config::@fbdfa058450ae6f36719",
+					"index" : 15
+				},
+				{
+					"id" : "flags_marshalling::@fbdfa058450ae6f36719",
+					"index" : 17
+				},
+				{
+					"id" : "flags_commandlineflag_internal::@fbdfa058450ae6f36719",
+					"index" : 14
+				},
+				{
+					"id" : "flags_commandlineflag::@fbdfa058450ae6f36719",
+					"index" : 13
+				},
+				{
+					"id" : "flags_private_handle_accessor::@fbdfa058450ae6f36719",
+					"index" : 19
+				},
+				{
+					"id" : "flags_reflection::@fbdfa058450ae6f36719",
+					"index" : 21
+				},
+				{
+					"id" : "flags_internal::@fbdfa058450ae6f36719",
+					"index" : 16
+				},
+				{
+					"id" : "flags::@fbdfa058450ae6f36719",
+					"index" : 12
+				},
+				{
+					"id" : "flags_usage_internal::@fbdfa058450ae6f36719",
+					"index" : 23
+				},
+				{
+					"id" : "flags_usage::@fbdfa058450ae6f36719",
+					"index" : 22
+				},
+				{
+					"id" : "flags_parse::@fbdfa058450ae6f36719",
+					"index" : 18
+				},
+				{
+					"id" : "bind_front::@cb7147f0a9a637ac75aa",
+					"index" : 0
+				},
+				{
+					"id" : "function_ref::@cb7147f0a9a637ac75aa",
+					"index" : 0
+				},
+				{
+					"id" : "hash::@9fec41fea6c0e2e7dc9c",
+					"index" : 25
+				},
+				{
+					"id" : "city::@9fec41fea6c0e2e7dc9c",
+					"index" : 4
+				},
+				{
+					"id" : "memory::@929588bcdf78e01482a6",
+					"index" : 0
+				},
+				{
+					"id" : "type_traits::@6114a0e09cf398387e5e",
+					"index" : 0
+				},
+				{
+					"id" : "meta::@6114a0e09cf398387e5e",
+					"index" : 0
+				},
+				{
+					"id" : "int128::@dcb7e45220fc7d35b91b",
+					"index" : 27
+				},
+				{
+					"id" : "numeric::@dcb7e45220fc7d35b91b",
+					"index" : 0
+				},
+				{
+					"id" : "random_random::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_bit_gen_ref::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_mock_helpers::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_distributions::@235b76015dd28177abd0",
+					"index" : 33
+				},
+				{
+					"id" : "random_seed_gen_exception::@235b76015dd28177abd0",
+					"index" : 42
+				},
+				{
+					"id" : "random_seed_sequences::@235b76015dd28177abd0",
+					"index" : 43
+				},
+				{
+					"id" : "random_internal_traits::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_distribution_caller::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_fast_uniform_bits::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_seed_material::@235b76015dd28177abd0",
+					"index" : 41
+				},
+				{
+					"id" : "random_internal_pool_urbg::@235b76015dd28177abd0",
+					"index" : 36
+				},
+				{
+					"id" : "random_internal_salted_seed_seq::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_iostream_state_saver::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_generate_real::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_wide_multiply::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_fastmath::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_nonsecure_base::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_pcg_engine::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_randen_engine::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "random_internal_platform::@235b76015dd28177abd0",
+					"index" : 35
+				},
+				{
+					"id" : "random_internal_randen::@235b76015dd28177abd0",
+					"index" : 37
+				},
+				{
+					"id" : "random_internal_randen_slow::@235b76015dd28177abd0",
+					"index" : 40
+				},
+				{
+					"id" : "random_internal_randen_hwaes::@235b76015dd28177abd0",
+					"index" : 38
+				},
+				{
+					"id" : "random_internal_randen_hwaes_impl::@235b76015dd28177abd0",
+					"index" : 39
+				},
+				{
+					"id" : "random_internal_distribution_test_util::@235b76015dd28177abd0",
+					"index" : 34
+				},
+				{
+					"id" : "random_internal_uniform_helper::@235b76015dd28177abd0",
+					"index" : 0
+				},
+				{
+					"id" : "status::@0512d7b065aa219fc3f4",
+					"index" : 49
+				},
+				{
+					"id" : "statusor::@0512d7b065aa219fc3f4",
+					"index" : 50
+				},
+				{
+					"id" : "strings::@8d717e75181b99a3c248",
+					"index" : 53
+				},
+				{
+					"id" : "strings_internal::@8d717e75181b99a3c248",
+					"index" : 54
+				},
+				{
+					"id" : "str_format::@8d717e75181b99a3c248",
+					"index" : 0
+				},
+				{
+					"id" : "str_format_internal::@8d717e75181b99a3c248",
+					"index" : 51
+				},
+				{
+					"id" : "cord::@8d717e75181b99a3c248",
+					"index" : 6
+				},
+				{
+					"id" : "graphcycles_internal::@84838b6066b9f5b52f81",
+					"index" : 24
+				},
+				{
+					"id" : "kernel_timeout_internal::@84838b6066b9f5b52f81",
+					"index" : 0
+				},
+				{
+					"id" : "synchronization::@84838b6066b9f5b52f81",
+					"index" : 56
+				},
+				{
+					"id" : "time::@d4d8613525d808e032f6",
+					"index" : 58
+				},
+				{
+					"id" : "civil_time::@d4d8613525d808e032f6",
+					"index" : 5
+				},
+				{
+					"id" : "time_zone::@d4d8613525d808e032f6",
+					"index" : 59
+				},
+				{
+					"id" : "any::@fcc8acbddb087972f1a3",
+					"index" : 0
+				},
+				{
+					"id" : "bad_any_cast::@fcc8acbddb087972f1a3",
+					"index" : 0
+				},
+				{
+					"id" : "bad_any_cast_impl::@fcc8acbddb087972f1a3",
+					"index" : 0
+				},
+				{
+					"id" : "span::@fcc8acbddb087972f1a3",
+					"index" : 0
+				},
+				{
+					"id" : "optional::@fcc8acbddb087972f1a3",
+					"index" : 0
+				},
+				{
+					"id" : "bad_optional_access::@fcc8acbddb087972f1a3",
+					"index" : 1
+				},
+				{
+					"id" : "bad_variant_access::@fcc8acbddb087972f1a3",
+					"index" : 2
+				},
+				{
+					"id" : "variant::@fcc8acbddb087972f1a3",
+					"index" : 0
+				},
+				{
+					"id" : "compare::@fcc8acbddb087972f1a3",
+					"index" : 0
+				},
+				{
+					"id" : "utility::@34b02a57a009f9f28e35",
+					"index" : 0
+				}
+			],
+			"paths" : 
+			[
+				"CMakeFiles/Export/lib/cmake/absl/abslTargets.cmake"
+			],
+			"type" : "export"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/absl",
+			"paths" : 
+			[
+				"out/build/x64-Debug/abslConfig.cmake"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"absl"
+			],
+			"type" : "directory"
+		}
+	],
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	}
+}

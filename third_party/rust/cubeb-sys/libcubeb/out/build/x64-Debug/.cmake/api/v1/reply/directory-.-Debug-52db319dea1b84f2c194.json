@@ -1,0 +1,494 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install",
+			"cubeb_add_test"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 104,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 105,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 119,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 127,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 131,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 329,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 6
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 330,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 8
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 331,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 10
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 332,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 12
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 333,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 14
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 334,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 16
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 346,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 348,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 19
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 351,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 21
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 352,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 23
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 355,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 25
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 356,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 27
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 358,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 29
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 359,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 31
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 360,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 33
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 368,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"include/cubeb"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "include/cubeb",
+			"paths" : 
+			[
+				{
+					"from" : "out/build/x64-Debug/exports",
+					"to" : "."
+				}
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"cubeb.lib"
+			],
+			"targetId" : "cubeb::@6890427a1f51a3e7e1df",
+			"targetIndex" : 0,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/cubeb",
+			"paths" : 
+			[
+				"out/build/x64-Debug/cubebConfig.cmake",
+				"out/build/x64-Debug/cubebConfigVersion.cmake"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 5,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/cubeb",
+			"exportName" : "cubebTargets",
+			"exportTargets" : 
+			[
+				{
+					"id" : "cubeb::@6890427a1f51a3e7e1df",
+					"index" : 0
+				}
+			],
+			"paths" : 
+			[
+				"CMakeFiles/Export/lib/cmake/cubeb/cubebTargets.cmake"
+			],
+			"type" : "export"
+		},
+		{
+			"backtrace" : 7,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_sanity.exe"
+			],
+			"targetId" : "test_sanity::@6890427a1f51a3e7e1df",
+			"targetIndex" : 17,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 9,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_tone.exe"
+			],
+			"targetId" : "test_tone::@6890427a1f51a3e7e1df",
+			"targetIndex" : 18,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 11,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_audio.exe"
+			],
+			"targetId" : "test_audio::@6890427a1f51a3e7e1df",
+			"targetIndex" : 5,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 13,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_record.exe"
+			],
+			"targetId" : "test_record::@6890427a1f51a3e7e1df",
+			"targetIndex" : 13,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 15,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_devices.exe"
+			],
+			"targetId" : "test_devices::@6890427a1f51a3e7e1df",
+			"targetIndex" : 8,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 17,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_callback_ret.exe"
+			],
+			"targetId" : "test_callback_ret::@6890427a1f51a3e7e1df",
+			"targetIndex" : 6,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 18,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_resampler.exe"
+			],
+			"targetId" : "test_resampler::@6890427a1f51a3e7e1df",
+			"targetIndex" : 14,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 20,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_duplex.exe"
+			],
+			"targetId" : "test_duplex::@6890427a1f51a3e7e1df",
+			"targetIndex" : 9,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 22,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_overload_callback.exe"
+			],
+			"targetId" : "test_overload_callback::@6890427a1f51a3e7e1df",
+			"targetIndex" : 12,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 24,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_loopback.exe"
+			],
+			"targetId" : "test_loopback::@6890427a1f51a3e7e1df",
+			"targetIndex" : 11,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 26,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_latency.exe"
+			],
+			"targetId" : "test_latency::@6890427a1f51a3e7e1df",
+			"targetIndex" : 10,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 28,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_ring_array.exe"
+			],
+			"targetId" : "test_ring_array::@6890427a1f51a3e7e1df",
+			"targetIndex" : 15,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 30,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_utils.exe"
+			],
+			"targetId" : "test_utils::@6890427a1f51a3e7e1df",
+			"targetIndex" : 19,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 32,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_ring_buffer.exe"
+			],
+			"targetId" : "test_ring_buffer::@6890427a1f51a3e7e1df",
+			"targetIndex" : 16,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 34,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"test_device_changed_callback.exe"
+			],
+			"targetId" : "test_device_changed_callback::@6890427a1f51a3e7e1df",
+			"targetIndex" : 7,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 35,
+			"component" : "Unspecified",
+			"destination" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/install/x64-Debug/bin",
+			"paths" : 
+			[
+				"cubeb-test.exe"
+			],
+			"targetId" : "cubeb-test::@6890427a1f51a3e7e1df",
+			"targetIndex" : 1,
+			"type" : "target"
+		}
+	],
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	}
+}

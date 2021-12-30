@@ -1,0 +1,269 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install",
+			"absl_cc_library"
+		],
+		"files" : 
+		[
+			"CMake/AbseilHelpers.cmake",
+			"absl/base/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 42,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 55,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 3
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 71,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 5
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 134,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 7
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 170,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 9
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 210,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 11
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 545,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 13
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 572,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 15
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 599,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 17
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 650,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 19
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_log_severity.lib"
+			],
+			"targetId" : "log_severity::@a1c6d5f169e5498974ce",
+			"targetIndex" : 30,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_raw_logging_internal.lib"
+			],
+			"targetId" : "raw_logging_internal::@a1c6d5f169e5498974ce",
+			"targetIndex" : 45,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_spinlock_wait.lib"
+			],
+			"targetId" : "spinlock_wait::@a1c6d5f169e5498974ce",
+			"targetIndex" : 47,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 8,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_malloc_internal.lib"
+			],
+			"targetId" : "malloc_internal::@a1c6d5f169e5498974ce",
+			"targetIndex" : 31,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 10,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_base.lib"
+			],
+			"targetId" : "base::@a1c6d5f169e5498974ce",
+			"targetIndex" : 3,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 12,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_throw_delegate.lib"
+			],
+			"targetId" : "throw_delegate::@a1c6d5f169e5498974ce",
+			"targetIndex" : 57,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 14,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_exponential_biased.lib"
+			],
+			"targetId" : "exponential_biased::@a1c6d5f169e5498974ce",
+			"targetIndex" : 10,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 16,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_periodic_sampler.lib"
+			],
+			"targetId" : "periodic_sampler::@a1c6d5f169e5498974ce",
+			"targetIndex" : 32,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 18,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_scoped_set_env.lib"
+			],
+			"targetId" : "scoped_set_env::@a1c6d5f169e5498974ce",
+			"targetIndex" : 46,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 20,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/base/absl_strerror.lib"
+			],
+			"targetId" : "strerror::@a1c6d5f169e5498974ce",
+			"targetIndex" : 52,
+			"type" : "target"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "absl/base",
+		"source" : "absl/base"
+	}
+}

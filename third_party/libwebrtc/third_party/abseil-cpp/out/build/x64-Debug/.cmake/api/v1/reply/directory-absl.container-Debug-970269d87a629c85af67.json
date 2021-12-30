@@ -1,0 +1,77 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install",
+			"absl_cc_library"
+		],
+		"files" : 
+		[
+			"CMake/AbseilHelpers.cmake",
+			"absl/container/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 546,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 658,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 3
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/container/absl_hashtablez_sampler.lib"
+			],
+			"targetId" : "hashtablez_sampler::@9796c355f0bb156fbaf1",
+			"targetIndex" : 26,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"absl/container/absl_raw_hash_set.lib"
+			],
+			"targetId" : "raw_hash_set::@9796c355f0bb156fbaf1",
+			"targetIndex" : 44,
+			"type" : "target"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "absl/container",
+		"source" : "absl/container"
+	}
+}

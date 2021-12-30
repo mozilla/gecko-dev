@@ -1,0 +1,228 @@
+{
+	"archive" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "/machine:x64",
+				"role" : "flags"
+			}
+		]
+	},
+	"artifacts" : 
+	[
+		{
+			"path" : "mesa.lib"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"_add_library",
+			"add_library",
+			"add_definitions",
+			"include_directories"
+		],
+		"files" : 
+		[
+			"C:/Users/bururaku/vcpkg/scripts/buildsystems/vcpkg.cmake",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 49,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 578,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 25,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 19,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 9,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 10,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 11,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 12,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 13,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 14,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 15,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 16,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 17,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/DWIN32 /D_WINDOWS /W3 /MDd /Zi /Ob0 /Od /RTC1"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "_USE_MATH_DEFINES"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "__STDC_FORMAT_MACROS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 5,
+					"path" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/include"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/src/mesa"
+				},
+				{
+					"backtrace" : 7,
+					"path" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/src/mapi"
+				},
+				{
+					"backtrace" : 8,
+					"path" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/src/compiler"
+				},
+				{
+					"backtrace" : 9,
+					"path" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/src/compiler/glsl"
+				},
+				{
+					"backtrace" : 10,
+					"path" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/src/gallium/auxiliary"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/src/gallium/include"
+				},
+				{
+					"backtrace" : 12,
+					"path" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/src"
+				},
+				{
+					"backtrace" : 13,
+					"path" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/src/util"
+				}
+			],
+			"language" : "C",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2
+			]
+		}
+	],
+	"id" : "mesa::@6890427a1f51a3e7e1df",
+	"name" : "mesa",
+	"nameOnDisk" : "mesa.lib",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "src/mesa/program/dummy_errors.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "src/mesa/program/symbol_table.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "src/mesa/main/extensions_table.c",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

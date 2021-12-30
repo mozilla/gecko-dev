@@ -1,0 +1,37 @@
+# CMake generated Testfile for 
+# Source directory: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb
+# Build directory: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug
+# 
+# This file includes the relevant testing commands required for 
+# testing this directory and lists subdirectories to be tested as well.
+add_test(sanity "test_sanity")
+set_tests_properties(sanity PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;329;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(tone "test_tone")
+set_tests_properties(tone PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;330;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(audio "test_audio")
+set_tests_properties(audio PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;331;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(record "test_record")
+set_tests_properties(record PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;332;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(devices "test_devices")
+set_tests_properties(devices PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;333;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(callback_ret "test_callback_ret")
+set_tests_properties(callback_ret PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;334;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(resampler "test_resampler")
+set_tests_properties(resampler PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;344;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(duplex "test_duplex")
+set_tests_properties(duplex PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;348;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(overload_callback "test_overload_callback")
+set_tests_properties(overload_callback PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;351;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(loopback "test_loopback")
+set_tests_properties(loopback PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;352;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(latency "test_latency")
+set_tests_properties(latency PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;355;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(ring_array "test_ring_array")
+set_tests_properties(ring_array PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;356;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(utils "test_utils")
+set_tests_properties(utils PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;358;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(ring_buffer "test_ring_buffer")
+set_tests_properties(ring_buffer PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;359;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+add_test(device_changed_callback "test_device_changed_callback")
+set_tests_properties(device_changed_callback PROPERTIES  _BACKTRACE_TRIPLES "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;324;add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;360;cubeb_add_test;C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/CMakeLists.txt;0;")
+subdirs("googletest")

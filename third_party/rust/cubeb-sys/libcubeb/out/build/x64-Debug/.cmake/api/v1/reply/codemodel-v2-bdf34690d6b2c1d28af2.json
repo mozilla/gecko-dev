@@ -1,0 +1,265 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-52db319dea1b84f2c194.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19
+					]
+				},
+				{
+					"build" : "googletest",
+					"jsonFile" : "directory-googletest-Debug-294c64d4885f2a55f3f7.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.6.2"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "googletest",
+					"targetIndexes" : 
+					[
+						2,
+						3
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "cubeb",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1
+					],
+					"name" : "gtest",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2,
+						3
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "cubeb::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-cubeb-Debug-eadfc2cfa5bf973e6c20.json",
+					"name" : "cubeb",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "cubeb-test::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-cubeb-test-Debug-bbc33bc6e5cea5c6f7c8.json",
+					"name" : "cubeb-test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "gtest::@b3026ea3adfb7c2366ee",
+					"jsonFile" : "target-gtest-Debug-d12ebd018c6dcf638be0.json",
+					"name" : "gtest",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "gtest_main::@b3026ea3adfb7c2366ee",
+					"jsonFile" : "target-gtest_main-Debug-4a65328644b42d6de5d5.json",
+					"name" : "gtest_main",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "speex::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-speex-Debug-2f427ae57e0402d869dd.json",
+					"name" : "speex",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_audio::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_audio-Debug-e7543187ae2de867ccf7.json",
+					"name" : "test_audio",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_callback_ret::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_callback_ret-Debug-30e0fa00c6685c96f46d.json",
+					"name" : "test_callback_ret",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_device_changed_callback::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_device_changed_callback-Debug-4f582e229582f1d8312c.json",
+					"name" : "test_device_changed_callback",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_devices::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_devices-Debug-8767247ba617b97ac73d.json",
+					"name" : "test_devices",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_duplex::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_duplex-Debug-28635d0f9a2805669355.json",
+					"name" : "test_duplex",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_latency::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_latency-Debug-4982012c91a5d46b9ce6.json",
+					"name" : "test_latency",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_loopback::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_loopback-Debug-0766750f09b4444f94f5.json",
+					"name" : "test_loopback",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_overload_callback::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_overload_callback-Debug-874c7357678741db8f73.json",
+					"name" : "test_overload_callback",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_record::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_record-Debug-58115100e31c07f99cca.json",
+					"name" : "test_record",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_resampler::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_resampler-Debug-0e81d646ad49458d05ea.json",
+					"name" : "test_resampler",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_ring_array::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_ring_array-Debug-08ff753d6c2acc78a3eb.json",
+					"name" : "test_ring_array",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_ring_buffer::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_ring_buffer-Debug-c6999e4c70d087482a52.json",
+					"name" : "test_ring_buffer",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_sanity::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_sanity-Debug-62ab15e0b684a67de7bd.json",
+					"name" : "test_sanity",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_tone::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_tone-Debug-1a01d61c18a5ebcc37e4.json",
+					"name" : "test_tone",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_utils::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_utils-Debug-57e2928d683bc6483e7c.json",
+					"name" : "test_utils",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug",
+		"source" : "C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

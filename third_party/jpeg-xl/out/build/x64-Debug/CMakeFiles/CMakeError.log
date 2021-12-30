@@ -1,0 +1,59 @@
+Performing C++ SOURCE FILE Test JPEGXL_EMSCRIPTEN failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/jpeg-xl/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_e6e26 && [1/2] Building CXX object CMakeFiles\cmTC_e6e26.dir\src.cxx.obj
+FAILED: CMakeFiles/cmTC_e6e26.dir/src.cxx.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo /TP -DJPEGXL_EMSCRIPTEN  /DWIN32 /D_WINDOWS /W3 /GR /EHsc  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_e6e26.dir\src.cxx.obj /FdCMakeFiles\cmTC_e6e26.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\jpeg-xl\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx
+C:\mozilla-source\gecko-dev\third_party\jpeg-xl\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx(3): error C2338: __EMSCRIPTEN__ is not defined
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+int main() {
+      #if !defined(__EMSCRIPTEN__)
+      static_assert(false, "__EMSCRIPTEN__ is not defined");
+      #endif
+      return 0;
+    }
+Performing C++ SOURCE FILE Test CXX_FUZZERS_SUPPORTED failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/jpeg-xl/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_bda7d && [1/2] Building CXX object CMakeFiles\cmTC_bda7d.dir\src.cxx.obj
+cl : コマンド ライン warning D9002 : 不明なオプション '-fsanitize=fuzzer-no-link' を無視します。
+[2/2] Linking CXX executable cmTC_bda7d.exe
+
+
+Source file was:
+int main() { return 0; }
+Performing C++ SOURCE FILE Test CXX_CONSTRUCTOR_ALIASES_SUPPORTED failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/jpeg-xl/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_596c1 && [1/2] Building CXX object CMakeFiles\cmTC_596c1.dir\src.cxx.obj
+cl : コマンド ライン warning D9002 : 不明なオプション '-Xclang' を無視します。
+cl : コマンド ライン warning D9002 : 不明なオプション '-mconstructor-aliases' を無視します。
+[2/2] Linking CXX executable cmTC_596c1.exe
+
+
+Source file was:
+int main() { return 0; }
+Performing C++ SOURCE FILE Test CXX_MACRO_PREFIX_MAP failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/jpeg-xl/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_bc5fe && [1/2] Building CXX object CMakeFiles\cmTC_bc5fe.dir\src.cxx.obj
+cl : コマンド ライン warning D9002 : 不明なオプション '-fmacro-prefix-map=OLD=NEW' を無視します。
+[2/2] Linking CXX executable cmTC_bc5fe.exe
+
+
+Source file was:
+int main() { return 0; }
+Determining if the include file pthread.h exists failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/jpeg-xl/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_fc10d && [1/2] Building C object CMakeFiles\cmTC_fc10d.dir\CheckIncludeFile.c.obj
+FAILED: CMakeFiles/cmTC_fc10d.dir/CheckIncludeFile.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_fc10d.dir\CheckIncludeFile.c.obj /FdCMakeFiles\cmTC_fc10d.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\jpeg-xl\out\build\x64-Debug\CMakeFiles\CMakeTmp\CheckIncludeFile.c
+C:\mozilla-source\gecko-dev\third_party\jpeg-xl\out\build\x64-Debug\CMakeFiles\CMakeTmp\CheckIncludeFile.c(1): fatal error C1083: include ファイルを開けません。'pthread.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+

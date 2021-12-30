@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/CMakeFiles/googletest"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/CMakeFiles/googletest.rule"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/CMakeFiles/googletest-complete.rule"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-build.rule"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-configure.rule"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-download.rule"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-install.rule"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-mkdir.rule"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-patch.rule"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-test.rule"
+		},
+		{
+			"file" : "C:/mozilla-source/gecko-dev/third_party/highway/out/build/x64-Debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"googletest"
+		],
+		"name" : "googletest"
+	}
+}

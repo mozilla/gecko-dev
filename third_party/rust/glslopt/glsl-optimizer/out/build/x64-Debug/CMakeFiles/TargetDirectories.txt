@@ -1,0 +1,6 @@
+C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/out/build/x64-Debug/CMakeFiles/mesa.dir
+C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/out/build/x64-Debug/CMakeFiles/glcpp.dir
+C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/out/build/x64-Debug/CMakeFiles/glsl_optimizer.dir
+C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/out/build/x64-Debug/CMakeFiles/glslopt.dir
+C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/out/build/x64-Debug/CMakeFiles/edit_cache.dir
+C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/out/build/x64-Debug/CMakeFiles/rebuild_cache.dir

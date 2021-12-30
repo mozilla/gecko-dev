@@ -1,0 +1,87 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "glsl_optimizer",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "glcpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-glcpp-Debug-1a6a0428f19bee21052b.json",
+					"name" : "glcpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "glsl_optimizer::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-glsl_optimizer-Debug-34131b1ad60123d5c804.json",
+					"name" : "glsl_optimizer",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "glslopt::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-glslopt-Debug-6ceacbc36db3953d7f0b.json",
+					"name" : "glslopt",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mesa::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mesa-Debug-efa6b3872cd98e1be3de.json",
+					"name" : "mesa",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer/out/build/x64-Debug",
+		"source" : "C:/mozilla-source/gecko-dev/third_party/rust/glslopt/glsl-optimizer"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

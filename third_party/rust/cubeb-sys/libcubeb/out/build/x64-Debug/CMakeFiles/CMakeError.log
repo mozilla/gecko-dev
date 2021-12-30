@@ -1,0 +1,216 @@
+Determining if the include file pthread.h exists failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_b0726 && [1/2] Building C object CMakeFiles\cmTC_b0726.dir\CheckIncludeFile.c.obj
+FAILED: CMakeFiles/cmTC_b0726.dir/CheckIncludeFile.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_b0726.dir\CheckIncludeFile.c.obj /FdCMakeFiles\cmTC_b0726.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CMakeTmp\CheckIncludeFile.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CMakeTmp\CheckIncludeFile.c(1): fatal error C1083: include ファイルを開けません。'pthread.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+
+Performing C++ SOURCE FILE Test COMPILER_HAS_DEPRECATED_ATTR failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_936c1 && [1/2] Building CXX object CMakeFiles\cmTC_936c1.dir\src.cxx.obj
+FAILED: CMakeFiles/cmTC_936c1.dir/src.cxx.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo /TP -DCOMPILER_HAS_DEPRECATED_ATTR  /DWIN32 /D_WINDOWS /W3    /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_936c1.dir\src.cxx.obj /FdCMakeFiles\cmTC_936c1.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx(1): error C2065: '__deprecated__': 定義されていない識別子です。
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx(1): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx(1): error C2062: 型 'int' は不要です。
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx(1): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx(1): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CMakeTmp\src.cxx(2): error C3861: 'somefunc': 識別子が見つかりませんでした
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+__attribute__((__deprecated__)) int somefunc() { return 0; }
+    int main() { return somefunc();}
+Determining if files AudioUnit/AudioUnit.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_5711a && [1/2] Building C object CMakeFiles\cmTC_5711a.dir\USE_AUDIOUNIT.c.obj
+FAILED: CMakeFiles/cmTC_5711a.dir/USE_AUDIOUNIT.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_5711a.dir\USE_AUDIOUNIT.c.obj /FdCMakeFiles\cmTC_5711a.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_AUDIOUNIT.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_AUDIOUNIT.c(2): fatal error C1083: include ファイルを開けません。'AudioUnit/AudioUnit.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <AudioUnit/AudioUnit.h>
+
+
+int main(void){return 0;}
+
+Determining if files pulse/pulseaudio.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_4f231 && [1/2] Building C object CMakeFiles\cmTC_4f231.dir\USE_PULSE.c.obj
+FAILED: CMakeFiles/cmTC_4f231.dir/USE_PULSE.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_4f231.dir\USE_PULSE.c.obj /FdCMakeFiles\cmTC_4f231.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_PULSE.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_PULSE.c(2): fatal error C1083: include ファイルを開けません。'pulse/pulseaudio.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <pulse/pulseaudio.h>
+
+
+int main(void){return 0;}
+
+Determining if files alsa/asoundlib.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_86a74 && [1/2] Building C object CMakeFiles\cmTC_86a74.dir\USE_ALSA.c.obj
+FAILED: CMakeFiles/cmTC_86a74.dir/USE_ALSA.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_86a74.dir\USE_ALSA.c.obj /FdCMakeFiles\cmTC_86a74.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_ALSA.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_ALSA.c(2): fatal error C1083: include ファイルを開けません。'alsa/asoundlib.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <alsa/asoundlib.h>
+
+
+int main(void){return 0;}
+
+Determining if files jack/jack.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_f2f32 && [1/2] Building C object CMakeFiles\cmTC_f2f32.dir\USE_JACK.c.obj
+FAILED: CMakeFiles/cmTC_f2f32.dir/USE_JACK.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_f2f32.dir\USE_JACK.c.obj /FdCMakeFiles\cmTC_f2f32.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_JACK.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_JACK.c(2): fatal error C1083: include ファイルを開けません。'jack/jack.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <jack/jack.h>
+
+
+int main(void){return 0;}
+
+Determining if files SLES/OpenSLES.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_a7f0a && [1/2] Building C object CMakeFiles\cmTC_a7f0a.dir\USE_OPENSL.c.obj
+FAILED: CMakeFiles/cmTC_a7f0a.dir/USE_OPENSL.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_a7f0a.dir\USE_OPENSL.c.obj /FdCMakeFiles\cmTC_a7f0a.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_OPENSL.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_OPENSL.c(2): fatal error C1083: include ファイルを開けません。'SLES/OpenSLES.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <SLES/OpenSLES.h>
+
+
+int main(void){return 0;}
+
+Determining if files sys/soundcard.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_e24a0 && [1/2] Building C object CMakeFiles\cmTC_e24a0.dir\HAVE_SYS_SOUNDCARD_H.c.obj
+FAILED: CMakeFiles/cmTC_e24a0.dir/HAVE_SYS_SOUNDCARD_H.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_e24a0.dir\HAVE_SYS_SOUNDCARD_H.c.obj /FdCMakeFiles\cmTC_e24a0.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\HAVE_SYS_SOUNDCARD_H.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\HAVE_SYS_SOUNDCARD_H.c(2): fatal error C1083: include ファイルを開けません。'sys/soundcard.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <sys/soundcard.h>
+
+
+int main(void){return 0;}
+
+Determining if files aaudio/AAudio.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_a50fa && [1/2] Building C object CMakeFiles\cmTC_a50fa.dir\USE_AAUDIO.c.obj
+FAILED: CMakeFiles/cmTC_a50fa.dir/USE_AAUDIO.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_a50fa.dir\USE_AAUDIO.c.obj /FdCMakeFiles\cmTC_a50fa.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_AAUDIO.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_AAUDIO.c(2): fatal error C1083: include ファイルを開けません。'aaudio/AAudio.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <aaudio/AAudio.h>
+
+
+int main(void){return 0;}
+
+Determining if files android/log.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_bc468 && [1/2] Building C object CMakeFiles\cmTC_bc468.dir\USE_AUDIOTRACK.c.obj
+FAILED: CMakeFiles/cmTC_bc468.dir/USE_AUDIOTRACK.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_bc468.dir\USE_AUDIOTRACK.c.obj /FdCMakeFiles\cmTC_bc468.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_AUDIOTRACK.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_AUDIOTRACK.c(2): fatal error C1083: include ファイルを開けません。'android/log.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <android/log.h>
+
+
+int main(void){return 0;}
+
+Determining if files sndio.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_5aedd && [1/2] Building C object CMakeFiles\cmTC_5aedd.dir\USE_SNDIO.c.obj
+FAILED: CMakeFiles/cmTC_5aedd.dir/USE_SNDIO.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_5aedd.dir\USE_SNDIO.c.obj /FdCMakeFiles\cmTC_5aedd.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_SNDIO.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_SNDIO.c(2): fatal error C1083: include ファイルを開けません。'sndio.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <sndio.h>
+
+
+int main(void){return 0;}
+
+Determining if files sys/audioio.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_44fa6 && [1/2] Building C object CMakeFiles\cmTC_44fa6.dir\USE_SUN.c.obj
+FAILED: CMakeFiles/cmTC_44fa6.dir/USE_SUN.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_44fa6.dir\USE_SUN.c.obj /FdCMakeFiles\cmTC_44fa6.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_SUN.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_SUN.c(2): fatal error C1083: include ファイルを開けません。'sys/audioio.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <sys/audioio.h>
+
+
+int main(void){return 0;}
+
+Determining if files kai.h exist failed with the following output:
+Change Dir: C:/mozilla-source/gecko-dev/third_party/rust/cubeb-sys/libcubeb/out/build/x64-Debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe cmTC_a0580 && [1/2] Building C object CMakeFiles\cmTC_a0580.dir\USE_KAI.c.obj
+FAILED: CMakeFiles/cmTC_a0580.dir/USE_KAI.c.obj 
+C:\PROGRA~1\MICROS~3\2022\COMMUN~1\VC\Tools\MSVC\1430~1.307\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_a0580.dir\USE_KAI.c.obj /FdCMakeFiles\cmTC_a0580.dir\ /FS -c C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_KAI.c
+C:\mozilla-source\gecko-dev\third_party\rust\cubeb-sys\libcubeb\out\build\x64-Debug\CMakeFiles\CheckIncludeFiles\USE_KAI.c(2): fatal error C1083: include ファイルを開けません。'kai.h':No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source:
+/* */
+#include <kai.h>
+
+
+int main(void){return 0;}
+
