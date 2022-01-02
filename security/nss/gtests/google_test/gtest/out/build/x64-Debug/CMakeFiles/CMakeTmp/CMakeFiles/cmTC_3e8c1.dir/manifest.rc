@@ -1,2 +1,0 @@
-#pragma code_page(65001)
-1 /* CREATEPROCESS_MANIFEST_RESOURCE_ID */ 24 /* RT_MANIFEST */ "C:/mozilla-source/gecko-dev/security/nss/gtests/google_test/gtest/out/build/x64-Debug/CMakeFiles/CMakeTmp/CMakeFiles/cmTC_3e8c1.dir/embed.manifest"

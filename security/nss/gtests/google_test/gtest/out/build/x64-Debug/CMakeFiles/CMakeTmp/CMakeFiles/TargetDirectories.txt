@@ -1,3 +1,0 @@
-C:/mozilla-source/gecko-dev/security/nss/gtests/google_test/gtest/out/build/x64-Debug/CMakeFiles/CMakeTmp/CMakeFiles/cmTC_3e8c1.dir
-C:/mozilla-source/gecko-dev/security/nss/gtests/google_test/gtest/out/build/x64-Debug/CMakeFiles/CMakeTmp/CMakeFiles/edit_cache.dir
-C:/mozilla-source/gecko-dev/security/nss/gtests/google_test/gtest/out/build/x64-Debug/CMakeFiles/CMakeTmp/CMakeFiles/rebuild_cache.dir

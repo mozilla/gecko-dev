@@ -8,22 +8,21 @@
 
 # BrandFullNameInternal is used for some registry and file system values
 # instead of BrandFullName and typically should not be modified.
-!define BrandFullNameInternal "Mozilla Developer Preview"
-!define BrandFullName         "Mozilla Developer Preview"
-!define CompanyName           "mozilla.org"
-!define URLInfoAbout          "https://www.mozilla.org"
-!define HelpLink              "https://support.mozilla.org"
+!define BrandFullNameInternal "FireDown Beta"
+!define BrandShortName        "FireDown Beta"
+!define BrandFullName         "FireDown Beta"
+!define CompanyName           "xpadev.net"
+!define URLInfoAbout          "https://xpadev.net/firedown"
+!define HelpLink              "https://xpadev.net/firedown/support"
 
-!define URLStubDownloadX86 "https://download.mozilla.org/?os=win&lang=${AB_CD}&product=firefox-latest"
-!define URLStubDownloadAMD64 "https://download.mozilla.org/?os=win64&lang=${AB_CD}&product=firefox-latest"
-!define URLStubDownloadAArch64 "https://download.mozilla.org/?os=win64-aarch64&lang=${AB_CD}&product=firefox-latest"
-!define URLManualDownload "https://www.mozilla.org/${AB_CD}/firefox/installer-help/?channel=release&installer_lang=${AB_CD}"
-!define URLSystemRequirements "https://www.mozilla.org/firefox/system-requirements/"
-!define Channel "unofficial"
+!define URLStubDownloadX86 "https://xpadev.net/firedown/download/?os=win&lang=${AB_CD}&product=firedown-beta"
+!define URLStubDownloadAMD64 "https://xpadev.net/firedown/download/?os=win64&lang=${AB_CD}&product=firedown-beta"
+!define URLStubDownloadAArch64 "https://xpadev.net/firedown/download/?os=win64-aarch64&lang=${AB_CD}&product=firedown-beta"
+!define URLManualDownload "https://xpadev.net/firedown/download/"
+!define URLSystemRequirements "https://xpadev.net/firedown/system-requirements/"
+!define Channel "beta"
 
 # The installer's certificate name and issuer expected by the stub installer
-!define CertNameDownload   "Mozilla Corporation"
-!define CertIssuerDownload "DigiCert SHA2 Assured ID Code Signing CA"
 
 # Dialog units are used so the UI displays correctly with the system's DPI
 # settings.
@@ -62,3 +61,6 @@
 !define COMMON_TEXT_COLOR 0xFFFFFF
 !define COMMON_BACKGROUND_COLOR 0x000000
 !define INSTALL_INSTALLING_TEXT_COLOR 0xFFFFFF
+
+# Enable DeveloperEdition-specific behavior
+!define DEV_EDITION

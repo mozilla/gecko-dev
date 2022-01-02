@@ -19,6 +19,16 @@
   #endif
 #endif
 
+pref("extensions.getAddons.showPane", false);
+pref ("datareporting.policy.dataSubmissionEnabled",false);
+pref("datareporting.healthreport.uploadEnabled", false);
+pref("datareporting.policy.dataSubmissionEnabled", false);
+pref("app.shield.optoutstudies.enabled", false);
+ref("extensions.pocket.enabled", false);
+pref("extensions.pocket.api", "");
+pref("extensions.pocket.site", "");
+pref("reader.parse-on-load.enabled", false);
+
 pref("browser.hiddenWindowChromeURL", "chrome://browser/content/hiddenWindowMac.xhtml");
 
 // Enables some extra Extension System Logging (can reduce performance)
@@ -367,24 +377,6 @@ pref("browser.urlbar.suggest.topsites",             true);
 pref("browser.urlbar.suggest.engines",              true);
 pref("browser.urlbar.suggest.calculator",           false);
 
-// Whether non-sponsored quick suggest results are shown in the urlbar. This
-// pref is exposed to the user in the UI, and it's sticky so that its
-// user-branch value persists regardless of whatever Firefox Suggest scenarios,
-// with their various default-branch values, the user is enrolled in over time.
-pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false, sticky);
-
-// Whether sponsored quick suggest results are shown in the urlbar. This pref is
-// exposed to the user in the UI, and it's sticky so that its user-branch value
-// persists regardless of whatever Firefox Suggest scenarios, with their various
-// default-branch values, the user is enrolled in over time.
-pref("browser.urlbar.suggest.quicksuggest.sponsored", false, sticky);
-
-// Whether data collection is enabled for quick suggest results in the urlbar.
-// This pref is exposed to the user in the UI, and it's sticky so that its
-// user-branch value persists regardless of whatever Firefox Suggest scenarios,
-// with their various default-branch values, the user is enrolled in over time.
-pref("browser.urlbar.quicksuggest.dataCollection.enabled", false, sticky);
-
 // Whether the quick suggest feature in the urlbar is enabled.
 pref("browser.urlbar.quicksuggest.enabled", false);
 
@@ -401,6 +393,10 @@ pref("browser.urlbar.quicksuggest.nonSponsoredIndex", -1);
 
 // Whether Remote Settings is enabled as a quick suggest source.
 pref("browser.urlbar.quicksuggest.remoteSettings.enabled", true);
+
+// The Firefox Suggest scenario in which the user is enrolled, one of:
+// "history", "offline", "online"
+pref("browser.urlbar.quicksuggest.scenario", "history");
 
 // Whether quick suggest results can be shown in position specified in the
 // suggestions.
@@ -480,9 +476,6 @@ pref("browser.urlbar.merino.enabled", true);
 
 // The Merino endpoint URL, not including parameters.
 pref("browser.urlbar.merino.endpointURL", "https://merino.services.mozilla.com/api/v1/suggest");
-
-// Timeout for Merino fetches (ms).
-pref("browser.urlbar.merino.timeoutMs", 200);
 
 // Comma-separated list of providers to request from Merino
 pref("browser.urlbar.merino.providers", "");
@@ -642,6 +635,10 @@ pref("browser.tabs.tabMinWidth", 76);
 // of the text at small font sizes.
 pref("browser.tabs.secondaryTextUnsupportedLocales", "ar,bn,bo,ckb,fa,gu,he,hi,ja,km,kn,ko,lo,mr,my,ne,pa,si,ta,te,th,ur,zh");
 
+#ifndef UNIX_BUT_NOT_MAC
+  pref("browser.tabs.drawInTitlebar", true);
+#endif
+
 //Control the visibility of Tab Manager Menu.
 pref("browser.tabs.tabmanager.enabled", false);
 
@@ -687,44 +684,6 @@ pref("security.allow_parent_unrestricted_js_loads", false);
 
 // Unload tabs when available memory is running low
 pref("browser.tabs.unloadOnLowMemory", true);
-
-// Tab Unloader does not unload tabs whose last inactive period is longer than
-// this value (in milliseconds).
-pref("browser.tabs.min_inactive_duration_before_unload", 600000);
-
-#if defined(XP_MACOSX)
-  // During low memory periods, poll with this frequency (milliseconds)
-  // until memory is no longer low. Changes to the pref take effect immediately.
-  // Browser restart not required. Chosen to be consistent with the windows
-  // implementation, but otherwise the 10s value is arbitrary.
-  pref("browser.lowMemoryPollingIntervalMS", 10000);
-
-  // Pref to control the reponse taken on macOS when the OS is under memory
-  // pressure. Changes to the pref take effect immediately. Browser restart not
-  // required. The pref value is a bitmask:
-  // 0x0: No response (other than recording for telemetry, crash reporting)
-  // 0x1: Use the tab unloading feature to reduce memory use. Requires that
-  //      the above "browser.tabs.unloadOnLowMemory" pref be set to true for tab
-  //      unloading to occur.
-  // 0x2: Issue the internal "memory-pressure" notification to reduce memory use
-  // 0x3: Both 0x1 and 0x2.
-  #if defined(NIGHTLY_BUILD)
-  pref("browser.lowMemoryResponseMask", 3);
-  #else
-  pref("browser.lowMemoryResponseMask", 0);
-  #endif
-
-  // Controls which macOS memory-pressure level triggers the browser low memory
-  // response. Changes to the pref take effect immediately. Browser restart not
-  // required. By default, use the "critical" level as that occurs after "warn"
-  // and we only want to trigger the low memory reponse when necessary.
-  // The macOS system memory-pressure level is either none, "warn", or
-  // "critical". The OS notifies the browser when the level changes. A false
-  // value for the pref indicates the low memory response should occur when
-  // reaching the "critical" level. A true value indicates the response should
-  // occur when reaching the "warn" level.
-  pref("browser.lowMemoryResponseOnWarn", false);
-#endif
 
 pref("browser.ctrlTab.sortByRecentlyUsed", false);
 
@@ -2166,6 +2125,8 @@ pref("fission.frontend.simulate-messages", false);
 pref("toolkit.coverage.enabled", false);
 pref("toolkit.coverage.endpoint.base", "https://coverage.mozilla.org");
 
+pref("privacy.resistFingerprinting.block_mozAddonManager",true);
+
 // Discovery prefs
 pref("browser.discovery.enabled", true);
 pref("browser.discovery.containers.enabled", true);
@@ -2232,7 +2193,7 @@ pref("devtools.target-switching.server.enabled", true);
 
 // In DevTools, create a target for each frame (i.e. not only for top-level document and
 // remote frames).
-pref("devtools.every-frame-target.enabled", true);
+pref("devtools.every-frame-target.enabled", false);
 
 // Toolbox Button preferences
 pref("devtools.command-button-pick.enabled", true);
@@ -2463,6 +2424,8 @@ pref("devtools.webconsole.input.autocomplete",true);
 // Show context selector in console input
 pref("devtools.webconsole.input.context", true);
 
+pref("devtools.contenttoolbox.webconsole.input.context", false);
+
 // Set to true to eagerly show the results of webconsole terminal evaluations
 // when they don't have side effects.
 pref("devtools.webconsole.input.eagerEvaluation", true);
@@ -2645,13 +2608,3 @@ pref("svg.context-properties.content.allowed-domains", "profile.accounts.firefox
 #ifdef NIGHTLY_BUILD
   pref("extensions.translations.disabled", true);
 #endif
-
-// A set of scores for rating the relevancy of snapshots. The suffixes after the
-// last decimal are prefixed by `_score` and reference the functions called in
-// SnapshotScorer.
-pref("browser.snapshots.score.Visit", 1);
-pref("browser.snapshots.score.CurrentSession", 1);
-pref("browser.snapshots.score.InNavigation", 3);
-pref("browser.snapshots.score.IsOverlappingVisit", 3);
-pref("browser.snapshots.score.IsUserPersisted", 1);
-pref("browser.snapshots.score.IsUsedRemoved", -10);
