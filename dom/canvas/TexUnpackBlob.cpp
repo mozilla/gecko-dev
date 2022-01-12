@@ -714,7 +714,7 @@ Maybe<std::string> BlitPreventReason(const int32_t level, const ivec3& offset,
     if (premultReason) return premultReason;
 
     if (pi.format != LOCAL_GL_RGBA) {
-      return "`format` is not RGBA";
+      //return "`format` is not RGBA";
     }
 
     if (pi.type != LOCAL_GL_UNSIGNED_BYTE) {

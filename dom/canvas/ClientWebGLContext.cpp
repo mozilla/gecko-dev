@@ -4015,6 +4015,7 @@ void ClientWebGLContext::TexImage(uint8_t funcDims, GLenum imageTarget,
 
   // -
   bool isDataUpload = false;
+  bool isAndroidVideo = false;
   auto desc = [&]() -> Maybe<webgl::TexUnpackBlobDesc> {
     if (src.mPboOffset) {
       isDataUpload = true;
@@ -4068,6 +4069,7 @@ void ClientWebGLContext::TexImage(uint8_t funcDims, GLenum imageTarget,
     }
 
     if (src.mDomElem) {
+      isAndroidVideo = src.mDomElem->IsHTMLElement(nsGkAtoms::video);
       return webgl::FromDomElem(*this, imageTarget, explicitSize,
                                 *(src.mDomElem), src.mOut_error);
     }
@@ -4098,7 +4100,10 @@ void ClientWebGLContext::TexImage(uint8_t funcDims, GLenum imageTarget,
     }
   }
 
-  const auto& rawUnpacking = State().mPixelUnpackState;
+  auto rawUnpacking = State().mPixelUnpackState;
+  if (isAndroidVideo) {
+    rawUnpacking.mFlipY = !rawUnpacking.mFlipY;
+  }
   const bool isSubrect =
       (rawUnpacking.mUnpackImageHeight || rawUnpacking.mUnpackSkipImages ||
        rawUnpacking.mUnpackRowLength || rawUnpacking.mUnpackSkipRows ||
