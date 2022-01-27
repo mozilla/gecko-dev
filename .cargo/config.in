@@ -37,6 +37,11 @@ git = "https://github.com/mozilla/cubeb-coreaudio-rs"
 replace-with = "vendored-sources"
 rev = "dea28d0c7d9952bbf430701ee244f6a4349c98f1"
 
+[source."https://github.com/mozilla/authenticator-rs"]
+git = "https://github.com/mozilla/authenticator-rs"
+replace-with = "vendored-sources"
+rev = "35168459db3b4d617df3779ff7e016553eb17d42"
+
 [source."https://github.com/mozilla/audioipc-2"]
 git = "https://github.com/mozilla/audioipc-2"
 replace-with = "vendored-sources"
