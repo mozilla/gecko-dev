@@ -28,7 +28,7 @@ audioipc2-server = { git = "https://github.com/kinetiknz/audioipc-2", rev = "f04
 audioipc-client = { git = "https://github.com/mozilla/audioipc-2", rev = "515bb210a93f520642fd3a60f391652680b3e988", optional = true }
 audioipc-server = { git = "https://github.com/mozilla/audioipc-2", rev = "515bb210a93f520642fd3a60f391652680b3e988", optional = true }
 encoding_glue = { path = "../../../../intl/encoding_glue" }
-authenticator = { git = "https://github.com/mozilla/authenticator-rs", rev = "35168459db3b4d617df3779ff7e016553eb17d42" }
+authenticator = "0.3.1"
 gkrust_utils = { path = "../../../../xpcom/rust/gkrust_utils" }
 gecko_logger = { path = "../../../../xpcom/rust/gecko_logger" }
 rsdparsa_capi = { path = "../../../../dom/media/webrtc/sdp/rsdparsa_capi" }
