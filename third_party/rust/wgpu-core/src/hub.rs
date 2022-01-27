@@ -5,7 +5,7 @@ use crate::{
     id,
     instance::{Adapter, HalSurface, Instance, Surface},
     pipeline::{ComputePipeline, RenderPipeline, ShaderModule},
-    resource::{Buffer, QuerySet, Sampler, Texture, TextureView},
+    resource::{Buffer, QuerySet, Sampler, Texture, TextureClearMode, TextureView},
     Epoch, Index,
 };
 
@@ -649,6 +649,13 @@ impl<A: HalApi, F: GlobalIdentityHandlerFactory> Hub<A, F> {
                         device.raw.destroy_texture(raw);
                     }
                 }
+                if let TextureClearMode::RenderPass { clear_views, .. } = texture.clear_mode {
+                    for view in clear_views {
+                        unsafe {
+                            device.raw.destroy_texture_view(view);
+                        }
+                    }
+                }
             }
         }
         for element in self.buffers.data.write().map.drain(..) {
@@ -964,6 +971,7 @@ impl HalApi for hal::api::Metal {
         Instance {
             name: name.to_owned(),
             metal: Some(hal_instance),
+            ..Default::default()
         }
     }
     fn hub<G: GlobalIdentityHandlerFactory>(global: &Global<G>) -> &Hub<Self, G> {

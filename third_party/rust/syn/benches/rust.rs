@@ -5,6 +5,7 @@
 
 #![cfg_attr(not(syn_only), feature(rustc_private))]
 #![recursion_limit = "1024"]
+#![allow(clippy::cast_lossless, clippy::unnecessary_wraps)]
 
 #[macro_use]
 #[path = "../tests/macros/mod.rs"]
@@ -58,7 +59,7 @@ mod librustc_parse {
             }
         }
 
-        rustc_span::with_session_globals(Edition::Edition2018, || {
+        rustc_span::create_session_if_not_set_then(Edition::Edition2018, |_| {
             let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
             let emitter = Box::new(SilentEmitter);
             let handler = Handler::with_emitter(false, None, emitter);
@@ -116,7 +117,7 @@ fn main() {
 
     macro_rules! testcases {
         ($($(#[$cfg:meta])* $name:ident,)*) => {
-            vec![
+            [
                 $(
                     $(#[$cfg])*
                     (stringify!($name), $name::bench as fn(&str) -> Result<(), ()>),

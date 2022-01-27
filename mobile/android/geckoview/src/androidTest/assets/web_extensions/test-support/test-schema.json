@@ -54,11 +54,11 @@
         "name": "getLinkColor",
         "type": "function",
         "async": true,
-        "description": "Get resolved color for link for a given page and selector.",
+        "description": "Get resolved color for the link resolved by a given selector.",
         "parameters": [
           {
-            "type": "string",
-            "name": "uri"
+            "type": "number",
+            "name": "tabId"
           },
           {
             "type": "string",
@@ -118,6 +118,10 @@
         "async": true,
         "description": "Invokes nsIDOMWindowUtils.setResolutionAndScaleTo.",
         "parameters": [
+          {
+            "type": "number",
+            "name": "tabId"
+          },
           {
             "type": "number",
             "name": "resolution"
@@ -203,6 +207,14 @@
         "type": "function",
         "async": true,
         "description": "Returns true if Gecko is using a GPU process.",
+        "parameters": []
+      },
+
+      {
+        "name": "killGpuProcess",
+        "type": "function",
+        "async": true,
+        "description": "Kills the GPU process cleanly without generating a crash report.",
         "parameters": []
       },
 

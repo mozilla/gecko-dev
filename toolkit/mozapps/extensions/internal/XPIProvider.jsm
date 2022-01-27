@@ -34,6 +34,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Dictionary: "resource://gre/modules/Extension.jsm",
   Extension: "resource://gre/modules/Extension.jsm",
   Langpack: "resource://gre/modules/Extension.jsm",
+  SitePermission: "resource://gre/modules/Extension.jsm",
   FileUtils: "resource://gre/modules/FileUtils.jsm",
   JSONFile: "resource://gre/modules/JSONFile.jsm",
   TelemetrySession: "resource://gre/modules/TelemetrySession.jsm",
@@ -86,9 +87,6 @@ const PREF_EM_LAST_APP_BUILD_ID = "extensions.lastAppBuildId";
 // Specify a list of valid built-in add-ons to load.
 const BUILT_IN_ADDONS_URI = "chrome://browser/content/built_in_addons.json";
 
-const URI_EXTENSION_STRINGS =
-  "chrome://mozapps/locale/extensions/extensions.properties";
-
 const DIR_EXTENSIONS = "extensions";
 const DIR_SYSTEM_ADDONS = "features";
 const DIR_APP_SYSTEM_PROFILE = "system-extensions";
@@ -127,7 +125,7 @@ const XPI_PERMISSION = "install";
 
 const XPI_SIGNATURE_CHECK_PERIOD = 24 * 60 * 60;
 
-const DB_SCHEMA = 34;
+const DB_SCHEMA = 35;
 
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
@@ -167,10 +165,16 @@ const BOOTSTRAP_REASONS = {
   ADDON_DOWNGRADE: 8,
 };
 
-const ALL_EXTERNAL_TYPES = new Set([
+// All addonTypes supported by the XPIProvider. These values can be passed to
+// AddonManager.getAddonsByTypes in order to get XPIProvider.getAddonsByTypes
+// to return only supported add-ons. Without these, it is possible for
+// AddonManager.getAddonsByTypes to return addons from other providers, or even
+// add-on types that are no longer supported by XPIProvider.
+const ALL_XPI_TYPES = new Set([
   "dictionary",
   "extension",
   "locale",
+  "sitepermission",
   "theme",
 ]);
 
@@ -1883,6 +1887,10 @@ class BootstrapScope {
           this.scope = Extension.getBootstrapScope();
           break;
 
+        case "sitepermission":
+          this.scope = SitePermission.getBootstrapScope();
+          break;
+
         case "locale":
           this.scope = Langpack.getBootstrapScope();
           break;
@@ -3165,7 +3173,7 @@ var XPIProvider = {
   },
 
   async getAddonsByTypes(aTypes) {
-    if (aTypes && !aTypes.some(type => ALL_EXTERNAL_TYPES.has(type))) {
+    if (aTypes && !aTypes.some(type => ALL_XPI_TYPES.has(type))) {
       return [];
     }
     return XPIDatabase.getAddonsByTypes(aTypes);
@@ -3276,7 +3284,6 @@ var XPIInternal = {
   KEY_APP_SYSTEM_PROFILE,
   KEY_APP_SYSTEM_ADDONS,
   KEY_APP_SYSTEM_DEFAULTS,
-  KEY_PROFILEDIR,
   PREF_BRANCH_INSTALLED_ADDON,
   PREF_SYSTEM_ADDON_SET,
   SystemAddonLocation,
@@ -3294,35 +3301,4 @@ var XPIInternal = {
   resolveDBReady,
 };
 
-var addonTypes = [
-  new AddonManagerPrivate.AddonType(
-    "extension",
-    URI_EXTENSION_STRINGS,
-    "type.extension.name",
-    AddonManager.VIEW_TYPE_LIST,
-    4000
-  ),
-  new AddonManagerPrivate.AddonType(
-    "theme",
-    URI_EXTENSION_STRINGS,
-    "type.themes.name",
-    AddonManager.VIEW_TYPE_LIST,
-    5000
-  ),
-  new AddonManagerPrivate.AddonType(
-    "dictionary",
-    URI_EXTENSION_STRINGS,
-    "type.dictionary.name",
-    AddonManager.VIEW_TYPE_LIST,
-    7000
-  ),
-  new AddonManagerPrivate.AddonType(
-    "locale",
-    URI_EXTENSION_STRINGS,
-    "type.locale.name",
-    AddonManager.VIEW_TYPE_LIST,
-    8000
-  ),
-];
-
-AddonManagerPrivate.registerProvider(XPIProvider, addonTypes);
+AddonManagerPrivate.registerProvider(XPIProvider, Array.from(ALL_XPI_TYPES));

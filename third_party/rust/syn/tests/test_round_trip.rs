@@ -1,6 +1,8 @@
 #![cfg(not(syn_disable_nightly_tests))]
+#![cfg(not(miri))]
 #![recursion_limit = "1024"]
 #![feature(rustc_private)]
+#![allow(clippy::manual_assert)]
 
 extern crate rustc_ast;
 extern crate rustc_errors;
@@ -14,6 +16,7 @@ use quote::quote;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_ast::ast::{
     AngleBracketedArg, AngleBracketedArgs, Crate, GenericArg, GenericParamKind, Generics,
+    WhereClause,
 };
 use rustc_ast::mut_visit::{self, MutVisitor};
 use rustc_errors::PResult;
@@ -61,7 +64,7 @@ fn test_round_trip() {
             }
         });
 
-    let failed = failed.load(Ordering::SeqCst);
+    let failed = failed.load(Ordering::Relaxed);
     if failed > 0 {
         panic!("{} failures", failed);
     }
@@ -75,7 +78,7 @@ fn test(path: &Path, failed: &AtomicUsize, abort_after: usize) {
         Ok(krate) => (krate, start.elapsed()),
         Err(msg) => {
             errorf!("=== {}: syn failed to parse\n{:?}\n", path.display(), msg);
-            let prev_failed = failed.fetch_add(1, Ordering::SeqCst);
+            let prev_failed = failed.fetch_add(1, Ordering::Relaxed);
             if prev_failed + 1 >= abort_after {
                 process::exit(1);
             }
@@ -85,7 +88,7 @@ fn test(path: &Path, failed: &AtomicUsize, abort_after: usize) {
     let back = quote!(#krate).to_string();
     let edition = repo::edition(path).parse().unwrap();
 
-    rustc_span::with_session_globals(edition, || {
+    rustc_span::create_session_if_not_set_then(edition, |_| {
         let equal = match panic::catch_unwind(|| {
             let sess = ParseSess::new(FilePathMapping::empty());
             let before = match librustc_parse(content, &sess) {
@@ -144,7 +147,7 @@ fn test(path: &Path, failed: &AtomicUsize, abort_after: usize) {
             }
         };
         if !equal {
-            let prev_failed = failed.fetch_add(1, Ordering::SeqCst);
+            let prev_failed = failed.fetch_add(1, Ordering::Relaxed);
             if prev_failed + 1 >= abort_after {
                 process::exit(1);
             }
@@ -193,6 +196,12 @@ fn normalize(krate: &mut Crate) {
                 }
             });
             mut_visit::noop_visit_generics(e, self);
+        }
+
+        fn visit_where_clause(&mut self, e: &mut WhereClause) {
+            if e.predicates.is_empty() {
+                e.has_where_token = false;
+            }
         }
     }
 

@@ -164,6 +164,7 @@
 #include "mozilla/dom/StorageNotifierService.h"
 #include "mozilla/dom/StorageUtils.h"
 #include "mozilla/dom/TabMessageTypes.h"
+#include "mozilla/dom/TestUtils.h"
 #include "mozilla/dom/Timeout.h"
 #include "mozilla/dom/TimeoutHandler.h"
 #include "mozilla/dom/TimeoutManager.h"
@@ -317,7 +318,6 @@
 #ifdef NS_PRINTING
 #  include "nsIPrintSettings.h"
 #  include "nsIPrintSettingsService.h"
-#  include "nsIWebBrowserPrint.h"
 #endif
 
 #ifdef MOZ_WEBSPEECH
@@ -4176,7 +4176,7 @@ void nsGlobalWindowInner::ReportError(JSContext* aCx,
 
   JS::ErrorReportBuilder jsReport(aCx);
   JS::ExceptionStack exnStack(aCx, aError, nullptr);
-  if (!jsReport.init(aCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+  if (!jsReport.init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
     return aRv.NoteJSContextException(aCx);
   }
 
@@ -6029,6 +6029,10 @@ nsIPrincipal* nsGlobalWindowInner::GetTopLevelAntiTrackingPrincipal() {
   }
 
   return topLevelPrincipal;
+}
+
+nsIPrincipal* nsGlobalWindowInner::GetClientPrincipal() {
+  return mClientSource ? mClientSource->GetPrincipal() : nullptr;
 }
 
 //*****************************************************************************

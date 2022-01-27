@@ -26,6 +26,7 @@ const actionTypes = {
   DISABLE_BROWSER_CACHE: "DISABLE_BROWSER_CACHE",
   OPEN_STATISTICS: "OPEN_STATISTICS",
   PERSIST_CHANGED: "PERSIST_CHANGED",
+  PRESELECT_REQUEST: "PRESELECT_REQUEST",
   REMOVE_SELECTED_CUSTOM_REQUEST: "REMOVE_SELECTED_CUSTOM_REQUEST",
   RESET_COLUMNS: "RESET_COLUMNS",
   SELECT_REQUEST: "SELECT_REQUEST",
@@ -242,6 +243,7 @@ const PANELS = {
   SECURITY: "security",
   STACK_TRACE: "stack-trace",
   TIMINGS: "timings",
+  HTTP_CUSTOM_REQUEST: "network-action-bar-HTTP-custom-request",
   SEARCH: "network-action-bar-search",
   BLOCKING: "network-action-bar-blocked",
 };

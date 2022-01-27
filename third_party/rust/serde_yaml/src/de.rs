@@ -4,7 +4,6 @@ use serde::de::{
     self, Deserialize, DeserializeOwned, DeserializeSeed, Expected, IgnoredAny as Ignore,
     IntoDeserializer, Unexpected, Visitor,
 };
-use serde::serde_if_integer128;
 use std::collections::BTreeMap;
 use std::f64;
 use std::fmt;
@@ -261,13 +260,11 @@ impl<'de> de::Deserializer<'de> for Deserializer<'de> {
         self.de(|state| state.deserialize_i64(visitor))
     }
 
-    serde_if_integer128! {
-        fn deserialize_i128<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
-        {
-            self.de(|state| state.deserialize_i128(visitor))
-        }
+    fn deserialize_i128<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        self.de(|state| state.deserialize_i128(visitor))
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
@@ -298,13 +295,11 @@ impl<'de> de::Deserializer<'de> for Deserializer<'de> {
         self.de(|state| state.deserialize_u64(visitor))
     }
 
-    serde_if_integer128! {
-        fn deserialize_u128<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
-        {
-            self.de(|state| state.deserialize_u128(visitor))
-        }
+    fn deserialize_u128<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        self.de(|state| state.deserialize_u128(visitor))
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
@@ -687,9 +682,7 @@ fn visit_scalar<'de, V>(
 where
     V: Visitor<'de>,
 {
-    if style != TScalarStyle::Plain {
-        visitor.visit_str(v)
-    } else if let Some(TokenType::Tag(handle, suffix)) = tag {
+    if let Some(TokenType::Tag(handle, suffix)) = tag {
         if handle == "!!" {
             match suffix.as_ref() {
                 "bool" => match v.parse::<bool>() {
@@ -713,8 +706,10 @@ where
         } else {
             visitor.visit_str(v)
         }
-    } else {
+    } else if style == TScalarStyle::Plain {
         visit_untagged_str(visitor, v)
+    } else {
+        visitor.visit_str(v)
     }
 }
 
@@ -992,7 +987,10 @@ where
             return visitor.visit_i64(n);
         }
     }
-    if v.len() > 1 && v.starts_with('0') && v.bytes().all(|b| b.is_ascii_digit()) {
+    if {
+        let v = v.trim_start_matches(&['-', '+'][..]);
+        v.len() > 1 && v.starts_with('0') && v[1..].bytes().all(|b| b.is_ascii_digit())
+    } {
         // After handling the different number encodings above if we are left
         // with leading zero(s) followed by numeric characters this is in fact a
         // string according to the YAML 1.2 spec.
@@ -1002,18 +1000,14 @@ where
     if let Ok(n) = v.parse() {
         return visitor.visit_u64(n);
     }
-    serde_if_integer128! {
-        if let Ok(n) = v.parse() {
-            return visitor.visit_u128(n);
-        }
+    if let Ok(n) = v.parse() {
+        return visitor.visit_u128(n);
     }
     if let Ok(n) = v.parse() {
         return visitor.visit_i64(n);
     }
-    serde_if_integer128! {
-        if let Ok(n) = v.parse() {
-            return visitor.visit_i128(n);
-        }
+    if let Ok(n) = v.parse() {
+        return visitor.visit_i128(n);
     }
     match trim_start_matches(v, '+') {
         ".inf" | ".Inf" | ".INF" => return visitor.visit_f64(f64::INFINITY),
@@ -1143,13 +1137,11 @@ impl<'de, 'a, 'r> de::Deserializer<'de> for &'r mut DeserializerFromEvents<'a> {
         self.deserialize_scalar(visitor)
     }
 
-    serde_if_integer128! {
-        fn deserialize_i128<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
-        {
-            self.deserialize_scalar(visitor)
-        }
+    fn deserialize_i128<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        self.deserialize_scalar(visitor)
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
@@ -1180,13 +1172,11 @@ impl<'de, 'a, 'r> de::Deserializer<'de> for &'r mut DeserializerFromEvents<'a> {
         self.deserialize_scalar(visitor)
     }
 
-    serde_if_integer128! {
-        fn deserialize_u128<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
-        {
-            self.deserialize_scalar(visitor)
-        }
+    fn deserialize_u128<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        self.deserialize_scalar(visitor)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>

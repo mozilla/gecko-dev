@@ -22,11 +22,8 @@
         id="preferences-root">
 
 <head>
-  <!-- @CSP: The 'oncommand' handler for 'focusSearch1' can not easily be rewritten (see Bug 371900)
-       hence we are allowing the inline handler in the script-src directive using the hash
-       sha512-X8+p/CqXeMdssOoFOf5RV+RpkvnN9pukQ20acGc7LqMgfYLW+lR0WAYT66OtSTpFHE/Qgx/ZCBs2RMc4QrA8FQ==
-       Additionally we should remove 'unsafe-inline' from style-src, see Bug 1579160 -->
-  <meta http-equiv="Content-Security-Policy" content="default-src chrome:; script-src chrome: 'sha512-X8+p/CqXeMdssOoFOf5RV+RpkvnN9pukQ20acGc7LqMgfYLW+lR0WAYT66OtSTpFHE/Qgx/ZCBs2RMc4QrA8FQ=='; img-src chrome: moz-icon: https: data:; style-src chrome: data: 'unsafe-inline'; object-src 'none'" />
+  <!-- @CSP: We should remove 'unsafe-inline' from style-src, see Bug 1579160 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src chrome:; img-src chrome: moz-icon: https: data:; style-src chrome: data: 'unsafe-inline'; object-src 'none'" />
 
   <title data-l10n-id="settings-page-title"></title>
 
@@ -36,7 +33,7 @@
   <link rel="localization" href="browser/branding/sync-brand.ftl"/>
   <link rel="localization" href="browser/browser.ftl"/>
   <link rel="localization" href="browser/preferences/preferences.ftl"/>
-  <link rel="localization" href="preview/moreFromMozilla.ftl"/>
+  <link rel="localization" href="browser/preferences/moreFromMozilla.ftl"/>
   <!-- Used by fontbuilder.js -->
   <link rel="localization" href="browser/preferences/fonts.ftl"/>
   <link rel="localization" href="toolkit/featuregates/features.ftl"/>
@@ -158,12 +155,12 @@
         <richlistitem id="category-more-from-mozilla"
                       class="category"
                       hidden="true"
-                      data-l10n-id="category-more-from-mozilla"
+                      data-l10n-id="more-from-moz-category"
                       data-l10n-attrs="tooltiptext"
                       value="paneMoreFromMozilla"
                       align="center">
           <image class="category-icon"/>
-          <label class="category-name" flex="1" data-l10n-id="pane-more-from-mozilla-title"></label>
+          <label class="category-name" flex="1" data-l10n-id="more-from-moz-title"></label>
         </richlistitem>
       </richlistbox>
 
@@ -182,9 +179,7 @@
     </vbox>
 
     <keyset>
-      <!-- If you change the code within the oncommand handler of 'focusSearch1' you have to update the current hash of
-           sha512-X8+p/CqXeMdssOoFOf5RV+RpkvnN9pukQ20acGc7LqMgfYLW+lR0WAYT66OtSTpFHE/Qgx/ZCBs2RMc4QrA8FQ== within the CSP above. -->
-      <key data-l10n-id="focus-search" key="" modifiers="accel" id="focusSearch1" oncommand="gSearchResultsPane.searchInput.focus();"/>
+      <key data-l10n-id="focus-search" key="" modifiers="accel" id="focusSearch1"/>
     </keyset>
 
     <vbox class="main-content" flex="1" align="start">

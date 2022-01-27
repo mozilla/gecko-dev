@@ -69,6 +69,12 @@ void ConvertTextAttributeToAtkAttribute(const nsACString& aName,
 
 static AtkAttributeSet* ConvertToAtkTextAttributeSet(
     AccAttributes* aAttributes) {
+  if (!aAttributes) {
+    // This can happen if an Accessible dies in the content process, but the
+    // parent hasn't been udpated yet.
+    return nullptr;
+  }
+
   AtkAttributeSet* objAttributeSet = nullptr;
 
   for (auto iter : *aAttributes) {
@@ -317,7 +323,7 @@ static void getCharacterExtentsCB(AtkText* aText, gint aOffset, gint* aX,
   }
   *aX = *aY = *aWidth = *aHeight = -1;
 
-  nsIntRect rect;
+  LayoutDeviceIntRect rect;
   uint32_t geckoCoordType;
   if (aCoords == ATK_XY_SCREEN) {
     geckoCoordType = nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE;
@@ -353,7 +359,7 @@ static void getRangeExtentsCB(AtkText* aText, gint aStartOffset,
   }
   aRect->x = aRect->y = aRect->width = aRect->height = -1;
 
-  nsIntRect rect;
+  LayoutDeviceIntRect rect;
   uint32_t geckoCoordType;
   if (aCoords == ATK_XY_SCREEN) {
     geckoCoordType = nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE;

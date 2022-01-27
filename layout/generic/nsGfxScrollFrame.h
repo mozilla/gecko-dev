@@ -99,7 +99,7 @@ class ScrollFrameHelper : public nsIReflowCallback {
 
   OverflowState GetOverflowState() const;
 
-  nsresult FireScrollPortEvent();
+  MOZ_CAN_RUN_SCRIPT nsresult FireScrollPortEvent();
   void PostScrollEndEvent();
   void FireScrollEndEvent();
   void PostOverflowEvent();
@@ -139,9 +139,9 @@ class ScrollFrameHelper : public nsIReflowCallback {
   void CurPosAttributeChanged(nsIContent* aChild, bool aDoScroll = true);
 
   void PostScrollEvent(bool aDelayed = false);
-  void FireScrollEvent();
+  MOZ_CAN_RUN_SCRIPT void FireScrollEvent();
   void PostScrolledAreaEvent();
-  void FireScrolledAreaEvent();
+  MOZ_CAN_RUN_SCRIPT void FireScrolledAreaEvent();
 
   bool IsSmoothScrollingEnabled();
 
@@ -382,8 +382,6 @@ class ScrollFrameHelper : public nsIReflowCallback {
       nsIScrollableFrame::ScrollbarSizesOptions aOptions =
           nsIScrollableFrame::ScrollbarSizesOptions::NONE) const;
   nsMargin GetDesiredScrollbarSizes(nsBoxLayoutState* aState);
-  nscoord GetNondisappearingScrollbarWidth(nsBoxLayoutState* aState,
-                                           mozilla::WritingMode aVerticalWM);
   bool IsPhysicalLTR() const {
     return mOuter->GetWritingMode().IsPhysicalLTR();
   }
@@ -437,8 +435,6 @@ class ScrollFrameHelper : public nsIReflowCallback {
   void AdjustScrollbarRectForResizer(
       nsIFrame* aFrame, nsPresContext* aPresContext, nsRect& aRect,
       bool aHasResizer, mozilla::layers::ScrollDirection aDirection);
-  // returns true if a resizer should be visible
-  bool HasResizer() { return mResizerBox; }
   void LayoutScrollbars(nsBoxLayoutState& aState,
                         const nsRect& aInsideBorderArea,
                         const nsRect& aOldScrollPort);
@@ -766,6 +762,11 @@ class ScrollFrameHelper : public nsIReflowCallback {
   // Whether we need to schedule the scroll-linked animations.
   bool mMayScheduleScrollAnimations : 1;
 
+#ifdef MOZ_WIDGET_ANDROID
+  // True if this scrollable frame was vertically overflowed on the last reflow.
+  bool mHasVerticalOverflowForDynamicToolbar : 1;
+#endif
+
   mozilla::layout::ScrollVelocityQueue mVelocityQueue;
 
  protected:
@@ -873,7 +874,12 @@ class nsHTMLScrollFrame : public nsContainerFrame,
                       const ReflowOutput& aDesiredSize);
   void PlaceScrollArea(ScrollReflowInput& aState,
                        const nsPoint& aScrollPosition);
-  nscoord GetIntrinsicVScrollbarWidth(gfxContext* aRenderingContext);
+
+  // Return the sum of inline-size of the scrollbar gutters (if any) at the
+  // inline-start and inline-end edges of the scroll frame (for a potential
+  // scrollbar that scrolls in the block axis).
+  nscoord IntrinsicScrollbarGutterSizeAtInlineEdges(
+      gfxContext* aRenderingContext);
 
   bool GetBorderRadii(const nsSize& aFrameSize, const nsSize& aBorderArea,
                       Sides aSkipSides, nscoord aRadii[8]) const final {
@@ -979,12 +985,6 @@ class nsHTMLScrollFrame : public nsContainerFrame,
                                     gfxContext* aRC) final {
     nsBoxLayoutState bls(aPresContext, aRC, 0);
     return GetDesiredScrollbarSizes(&bls);
-  }
-  nscoord GetNondisappearingScrollbarWidth(nsPresContext* aPresContext,
-                                           gfxContext* aRC,
-                                           mozilla::WritingMode aWM) final {
-    nsBoxLayoutState bls(aPresContext, aRC, 0);
-    return mHelper.GetNondisappearingScrollbarWidth(&bls, aWM);
   }
   nsSize GetLayoutSize() const final { return mHelper.GetLayoutSize(); }
   nsRect GetScrolledRect() const final { return mHelper.GetScrolledRect(); }
@@ -1453,12 +1453,6 @@ class nsXULScrollFrame final : public nsBoxFrame,
                                     gfxContext* aRC) final {
     nsBoxLayoutState bls(aPresContext, aRC, 0);
     return GetDesiredScrollbarSizes(&bls);
-  }
-  nscoord GetNondisappearingScrollbarWidth(nsPresContext* aPresContext,
-                                           gfxContext* aRC,
-                                           mozilla::WritingMode aWM) final {
-    nsBoxLayoutState bls(aPresContext, aRC, 0);
-    return mHelper.GetNondisappearingScrollbarWidth(&bls, aWM);
   }
   nsSize GetLayoutSize() const final { return mHelper.GetLayoutSize(); }
   nsRect GetScrolledRect() const final { return mHelper.GetScrolledRect(); }

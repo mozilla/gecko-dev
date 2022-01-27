@@ -30,7 +30,7 @@
 #include "mozilla/dom/CoalescedTouchData.h"
 #include "mozilla/dom/CoalescedWheelData.h"
 #include "mozilla/dom/MessageManagerCallback.h"
-#include "mozilla/dom/VsyncChild.h"
+#include "mozilla/dom/VsyncMainChild.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventForwards.h"
@@ -45,6 +45,7 @@
 #include "PuppetWidget.h"
 #include "nsDeque.h"
 #include "nsIRemoteTab.h"
+#include "nsTHashSet.h"
 
 class nsBrowserStatusFilter;
 class nsIDOMWindow;
@@ -169,8 +170,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   using CoalescedMouseData = mozilla::dom::CoalescedMouseData;
   using CoalescedWheelData = mozilla::dom::CoalescedWheelData;
   using APZEventState = mozilla::layers::APZEventState;
-  using SetAllowedTouchBehaviorCallback =
-      mozilla::layers::SetAllowedTouchBehaviorCallback;
   using TouchBehaviorFlags = mozilla::layers::TouchBehaviorFlags;
 
   friend class PBrowserChild;
@@ -460,11 +459,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   PFilePickerChild* AllocPFilePickerChild(const nsString& aTitle,
                                           const int16_t& aMode);
 
-  virtual PVsyncChild* AllocPVsyncChild();
-
-  virtual bool DeallocPVsyncChild(PVsyncChild* aActor);
-
-  RefPtr<VsyncChild> GetVsyncChild();
+  RefPtr<VsyncMainChild> GetVsyncChild();
 
   bool DeallocPFilePickerChild(PFilePickerChild* aActor);
 
@@ -475,8 +470,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   bool IsTransparent() const { return mIsTransparent; }
 
   const EffectsInfo& GetEffectsInfo() const { return mEffectsInfo; }
-
-  hal::ScreenOrientation GetOrientation() const { return mOrientation; }
 
   void SetBackgroundColor(const nscolor& aColor);
 
@@ -610,9 +603,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
       const layers::GeckoContentController_TapType& aType,
       const LayoutDevicePoint& aPoint, const Modifiers& aModifiers,
       const ScrollableLayerGuid& aGuid, const uint64_t& aInputBlockId);
-
-  void SetAllowedTouchBehavior(
-      uint64_t aInputBlockId, const nsTArray<TouchBehaviorFlags>& aFlags) const;
 
   bool UpdateFrame(const layers::RepaintRequest& aRequest);
   bool NotifyAPZStateChange(
@@ -814,12 +804,10 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   CSSRect mUnscaledOuterRect;
   Maybe<bool> mLayersConnected;
   EffectsInfo mEffectsInfo;
-  hal::ScreenOrientation mOrientation;
 
-  RefPtr<VsyncChild> mVsyncChild;
+  RefPtr<VsyncMainChild> mVsyncChild;
 
   RefPtr<APZEventState> mAPZEventState;
-  SetAllowedTouchBehaviorCallback mSetAllowedTouchBehaviorCallback;
 
   // Position of client area relative to the outer window
   LayoutDeviceIntPoint mClientOffset;

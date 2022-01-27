@@ -221,7 +221,11 @@ enum class ExplicitActiveStatus : uint8_t {
   /* The count of request that are used to prevent the browsing context tree  \
    * from being suspended, which would ONLY be modified on the top level      \
    * context in the chrome process because that's a non-atomic counter */     \
-  FIELD(PageAwakeRequestCount, uint32_t)
+  FIELD(PageAwakeRequestCount, uint32_t)                                      \
+  /* This field only gets incrememented when we start navigations in the      \
+   * parent process. This is used for keeping track of the racing navigations \
+   * between the parent and content processes. */                             \
+  FIELD(ParentInitiatedNavigationEpoch, uint64_t)
 
 // BrowsingContext, in this context, is the cross process replicated
 // environment in which information about documents is stored. In
@@ -791,10 +795,13 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   // context or any of its ancestors.
   bool IsPopupAllowed();
 
+  // aCurrentURI is only required to be non-null if the load type contains the
+  // nsIWebNavigation::LOAD_FLAGS_IS_REFRESH flag and aInfo is for a refresh to
+  // the current URI.
   void SessionHistoryCommit(const LoadingSessionHistoryInfo& aInfo,
-                            uint32_t aLoadType, bool aHadActiveEntry,
-                            bool aPersist, bool aCloneEntryChildren,
-                            bool aChannelExpired);
+                            uint32_t aLoadType, nsIURI* aCurrentURI,
+                            bool aHadActiveEntry, bool aPersist,
+                            bool aCloneEntryChildren, bool aChannelExpired);
 
   // Set a new active entry on this browsing context. This is used for
   // implementing history.pushState/replaceState and same document navigations.
@@ -897,6 +904,9 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
     // FIXME Do we need to unset mHasSessionHistory?
     return mChildSessionHistory.forget();
   }
+
+  static bool ShouldAddEntryForRefresh(nsIURI* aCurrentURI,
+                                       const SessionHistoryInfo& aInfo);
 
  private:
   void Attach(bool aFromIPC, ContentParent* aOriginProcess);
@@ -1050,6 +1060,9 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
                       const uint64_t& aValue, ContentParent* aSource);
 
   void DidSet(FieldIndex<IDX_CurrentInnerWindowId>);
+
+  bool CanSet(FieldIndex<IDX_ParentInitiatedNavigationEpoch>,
+              const uint64_t& aValue, ContentParent* aSource);
 
   bool CanSet(FieldIndex<IDX_IsPopupSpam>, const bool& aValue,
               ContentParent* aSource);

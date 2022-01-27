@@ -2,7 +2,7 @@ use glow::HasContext;
 use parking_lot::{Mutex, MutexGuard};
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
-use std::{ffi::CStr, os::raw, ptr, sync::Arc, time::Duration};
+use std::{ffi, os::raw, ptr, sync::Arc, time::Duration};
 
 /// The amount of time to wait while trying to obtain a lock to the adapter context
 const CONTEXT_LOCK_TIMEOUT_SECS: u64 = 1;
@@ -12,6 +12,9 @@ const EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR: i32 = 0x0001;
 const EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT: i32 = 0x30BF;
 const EGL_PLATFORM_WAYLAND_KHR: u32 = 0x31D8;
 const EGL_PLATFORM_X11_KHR: u32 = 0x31D5;
+const EGL_PLATFORM_ANGLE_ANGLE: u32 = 0x3202;
+const EGL_PLATFORM_ANGLE_NATIVE_PLATFORM_TYPE_ANGLE: u32 = 0x348F;
+const EGL_PLATFORM_ANGLE_DEBUG_LAYERS_ENABLED: u32 = 0x3451;
 const EGL_GL_COLORSPACE_KHR: u32 = 0x309D;
 const EGL_GL_COLORSPACE_SRGB_KHR: u32 = 0x3089;
 
@@ -23,14 +26,12 @@ type WlDisplayConnectFun =
 
 type WlDisplayDisconnectFun = unsafe extern "system" fn(display: *const raw::c_void);
 
-#[cfg(not(any(target_os = "android", target_os = "macos")))]
 type WlEglWindowCreateFun = unsafe extern "system" fn(
     surface: *const raw::c_void,
     width: raw::c_int,
     height: raw::c_int,
 ) -> *mut raw::c_void;
 
-#[cfg(not(any(target_os = "android", target_os = "macos")))]
 type WlEglWindowResizeFun = unsafe extern "system" fn(
     window: *const raw::c_void,
     width: raw::c_int,
@@ -87,11 +88,11 @@ unsafe extern "system" fn egl_debug_proc(
         EGL_DEBUG_MSG_INFO_KHR => log::Level::Info,
         _ => log::Level::Debug,
     };
-    let command = CStr::from_ptr(command_raw).to_string_lossy();
+    let command = ffi::CStr::from_ptr(command_raw).to_string_lossy();
     let message = if message_raw.is_null() {
         "".into()
     } else {
-        CStr::from_ptr(message_raw).to_string_lossy()
+        ffi::CStr::from_ptr(message_raw).to_string_lossy()
     };
 
     log::log!(
@@ -113,20 +114,30 @@ fn open_x_display() -> Option<(ptr::NonNull<raw::c_void>, libloading::Library)> 
     }
 }
 
+unsafe fn find_library(paths: &[&str]) -> Option<libloading::Library> {
+    for path in paths {
+        match libloading::Library::new(path) {
+            Ok(lib) => return Some(lib),
+            _ => continue,
+        };
+    }
+    None
+}
+
 fn test_wayland_display() -> Option<libloading::Library> {
     /* We try to connect and disconnect here to simply ensure there
      * is an active wayland display available.
      */
     log::info!("Loading Wayland library to get the current display");
     let library = unsafe {
-        let client_library = libloading::Library::new("libwayland-client.so").ok()?;
+        let client_library = find_library(&["libwayland-client.so.0", "libwayland-client.so"])?;
         let wl_display_connect: libloading::Symbol<WlDisplayConnectFun> =
             client_library.get(b"wl_display_connect").unwrap();
         let wl_display_disconnect: libloading::Symbol<WlDisplayDisconnectFun> =
             client_library.get(b"wl_display_disconnect").unwrap();
         let display = ptr::NonNull::new(wl_display_connect(ptr::null()))?;
         wl_display_disconnect(display.as_ptr());
-        libloading::Library::new("libwayland-egl.so").ok()?
+        find_library(&["libwayland-egl.so.1", "libwayland-egl.so"])?
     };
     Some(library)
 }
@@ -180,13 +191,16 @@ fn choose_config(
         match egl.choose_first_config(display, &attributes) {
             Ok(Some(config)) => {
                 if tier_max == 1 {
-                    log::warn!(
-                        "EGL says it can present to the window but not natively. {}.",
-                        "This has been confirmed to malfunction on Intel+NV laptops",
-                    );
+                    //Note: this has been confirmed to malfunction on Intel+NV laptops,
+                    // but also on Angle.
+                    log::warn!("EGL says it can present to the window but not natively",);
                 }
                 // Android emulator can't natively present either.
-                let tier_threshold = if cfg!(target_os = "android") { 1 } else { 2 };
+                let tier_threshold = if cfg!(target_os = "android") || cfg!(windows) {
+                    1
+                } else {
+                    2
+                };
                 return Ok((config, tier_max >= tier_threshold));
             }
             Ok(None) => {
@@ -247,40 +261,77 @@ fn gl_debug_message_callback(source: u32, gltype: u32, id: u32, severity: u32, m
     }
 }
 
+#[derive(Clone, Debug)]
+struct EglContext {
+    instance: Arc<egl::DynamicInstance<egl::EGL1_4>>,
+    display: egl::Display,
+    raw: egl::Context,
+    pbuffer: Option<egl::Surface>,
+}
+
+impl EglContext {
+    fn make_current(&self) {
+        self.instance
+            .make_current(self.display, self.pbuffer, self.pbuffer, Some(self.raw))
+            .unwrap();
+    }
+    fn unmake_current(&self) {
+        self.instance
+            .make_current(self.display, None, None, None)
+            .unwrap();
+    }
+}
+
 /// A wrapper around a [`glow::Context`] and the required EGL context that uses locking to guarantee
 /// exclusive access when shared with multiple threads.
 pub struct AdapterContext {
-    glow_context: Mutex<glow::Context>,
-    egl: Arc<egl::DynamicInstance<egl::EGL1_4>>,
-    egl_display: egl::Display,
-    pub(super) egl_context: egl::Context,
-    egl_pbuffer: Option<egl::Surface>,
+    glow: Mutex<glow::Context>,
+    egl: Option<EglContext>,
 }
 
 unsafe impl Sync for AdapterContext {}
 unsafe impl Send for AdapterContext {}
 
+impl AdapterContext {
+    pub fn is_owned(&self) -> bool {
+        self.egl.is_some()
+    }
+
+    #[cfg(feature = "renderdoc")]
+    pub fn raw_context(&self) -> *mut raw::c_void {
+        match self.egl {
+            Some(ref egl) => egl.raw.as_ptr(),
+            None => ptr::null_mut(),
+        }
+    }
+}
+
+struct EglContextLock<'a> {
+    instance: &'a Arc<egl::DynamicInstance<egl::EGL1_4>>,
+    display: egl::Display,
+}
+
 /// A guard containing a lock to an [`AdapterContext`]
 pub struct AdapterContextLock<'a> {
-    glow_context: MutexGuard<'a, glow::Context>,
-    egl: &'a Arc<egl::DynamicInstance<egl::EGL1_4>>,
-    egl_display: egl::Display,
+    glow: MutexGuard<'a, glow::Context>,
+    egl: Option<EglContextLock<'a>>,
 }
 
 impl<'a> std::ops::Deref for AdapterContextLock<'a> {
     type Target = glow::Context;
 
     fn deref(&self) -> &Self::Target {
-        &self.glow_context
+        &self.glow
     }
 }
 
 impl<'a> Drop for AdapterContextLock<'a> {
     fn drop(&mut self) {
-        // Make the EGL context *not* current on this thread
-        self.egl
-            .make_current(self.egl_display, None, None, None)
-            .expect("Cannot make EGL context not current");
+        if let Some(egl) = self.egl.take() {
+            egl.instance
+                .make_current(egl.display, None, None, None)
+                .unwrap();
+        }
     }
 }
 
@@ -297,7 +348,7 @@ impl AdapterContext {
     /// > **Note:** Calling this function **will** still lock the [`glow::Context`] which adds an
     /// > extra safe-guard against accidental concurrent access to the context.
     pub unsafe fn get_without_egl_lock(&self) -> MutexGuard<glow::Context> {
-        self.glow_context
+        self.glow
             .try_lock_for(Duration::from_secs(CONTEXT_LOCK_TIMEOUT_SECS))
             .expect("Could not lock adapter context. This is most-likely a deadlcok.")
     }
@@ -306,43 +357,34 @@ impl AdapterContext {
     /// do rendering.
     #[track_caller]
     pub fn lock<'a>(&'a self) -> AdapterContextLock<'a> {
-        let glow_context = self
-            .glow_context
+        let glow = self
+            .glow
             // Don't lock forever. If it takes longer than 1 second to get the lock we've got a
             // deadlock and should panic to show where we got stuck
             .try_lock_for(Duration::from_secs(CONTEXT_LOCK_TIMEOUT_SECS))
             .expect("Could not lock adapter context. This is most-likely a deadlcok.");
 
-        // Make the EGL context current on this thread
-        self.egl
-            .make_current(
-                self.egl_display,
-                self.egl_pbuffer,
-                self.egl_pbuffer,
-                Some(self.egl_context),
-            )
-            .expect("Cannot make EGL context current");
+        let egl = self.egl.as_ref().map(|egl| {
+            egl.make_current();
+            EglContextLock {
+                instance: &egl.instance,
+                display: egl.display,
+            }
+        });
 
-        AdapterContextLock {
-            glow_context,
-            egl: &self.egl,
-            egl_display: self.egl_display,
-        }
+        AdapterContextLock { glow, egl }
     }
 }
 
 #[derive(Debug)]
 struct Inner {
-    egl: Arc<egl::DynamicInstance<egl::EGL1_4>>,
+    /// Note: the context contains a dummy pbuffer (1x1).
+    /// Required for `eglMakeCurrent` on platforms that doesn't supports `EGL_KHR_surfaceless_context`.
+    egl: EglContext,
     #[allow(unused)]
     version: (i32, i32),
     supports_native_window: bool,
-    display: egl::Display,
     config: egl::Config,
-    context: egl::Context,
-    /// Dummy pbuffer (1x1).
-    /// Required for `eglMakeCurrent` on platforms that doesn't supports `EGL_KHR_surfaceless_context`.
-    pbuffer: Option<egl::Surface>,
     wl_display: Option<*mut raw::c_void>,
     /// Method by which the framebuffer should support srgb
     srgb_kind: SrgbFrameBufferKind,
@@ -418,7 +460,10 @@ impl Inner {
             }
         }
         if needs_robustness {
-            if version >= (1, 5) {
+            //Note: the core version can fail if robustness is not supported
+            // (regardless of whether the extension is supported!).
+            // In fact, Angle does precisely that awful behavior, so we don't try it there.
+            if version >= (1, 5) && !display_extensions.contains("EGL_ANGLE_") {
                 log::info!("\tEGL context: +robust access");
                 context_attributes.push(egl::CONTEXT_OPENGL_ROBUST_ACCESS);
                 context_attributes.push(egl::TRUE as _);
@@ -427,6 +472,8 @@ impl Inner {
                 context_attributes.push(EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT);
                 context_attributes.push(egl::TRUE as _);
             } else {
+                //Note: we aren't trying `EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR`
+                // because it's for desktop GL only, not GLES.
                 log::warn!("\tEGL context: -robust access");
             }
 
@@ -462,13 +509,15 @@ impl Inner {
             };
 
         Ok(Self {
-            egl,
-            display,
+            egl: EglContext {
+                instance: egl,
+                display,
+                raw: context,
+                pbuffer,
+            },
             version,
             supports_native_window,
             config,
-            context,
-            pbuffer,
             wl_display: None,
             srgb_kind,
         })
@@ -477,17 +526,35 @@ impl Inner {
 
 impl Drop for Inner {
     fn drop(&mut self) {
-        if let Err(e) = self.egl.destroy_context(self.display, self.context) {
+        if let Err(e) = self
+            .egl
+            .instance
+            .destroy_context(self.egl.display, self.egl.raw)
+        {
             log::warn!("Error in destroy_context: {:?}", e);
         }
-        if let Err(e) = self.egl.terminate(self.display) {
+        if let Err(e) = self.egl.instance.terminate(self.egl.display) {
             log::warn!("Error in terminate: {:?}", e);
         }
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum WindowKind {
+    Wayland,
+    X11,
+    AngleX11,
+    Unknown,
+}
+
+#[derive(Clone, Debug)]
+struct WindowSystemInterface {
+    library: Option<Arc<libloading::Library>>,
+    kind: WindowKind,
+}
+
 pub struct Instance {
-    wsi_library: Option<Arc<libloading::Library>>,
+    wsi: WindowSystemInterface,
     flags: crate::InstanceFlags,
     inner: Mutex<Inner>,
 }
@@ -497,10 +564,17 @@ unsafe impl Sync for Instance {}
 
 impl crate::Instance<super::Api> for Instance {
     unsafe fn init(desc: &crate::InstanceDescriptor) -> Result<Self, crate::InstanceError> {
-        let egl = match egl::DynamicInstance::<egl::EGL1_4>::load_required() {
+        let egl_result = if cfg!(windows) {
+            egl::DynamicInstance::<egl::EGL1_4>::load_required_from_filename("libEGL.dll")
+        } else if cfg!(any(target_os = "macos", target_os = "ios")) {
+            egl::DynamicInstance::<egl::EGL1_4>::load_required_from_filename("libEGL.dylib")
+        } else {
+            egl::DynamicInstance::<egl::EGL1_4>::load_required()
+        };
+        let egl = match egl_result {
             Ok(egl) => Arc::new(egl),
             Err(e) => {
-                log::warn!("Unable to open libEGL.so: {:?}", e);
+                log::info!("Unable to open libEGL: {:?}", e);
                 return Err(crate::InstanceError);
             }
         };
@@ -516,43 +590,71 @@ impl crate::Instance<super::Api> for Instance {
             client_ext_str.split_whitespace().collect::<Vec<_>>()
         );
 
-        let mut wsi_library = None;
-
         let wayland_library = if client_ext_str.contains(&"EGL_EXT_platform_wayland") {
             test_wayland_display()
         } else {
             None
         };
-
         let x11_display_library = if client_ext_str.contains(&"EGL_EXT_platform_x11") {
             open_x_display()
         } else {
             None
         };
+        let angle_x11_display_library = if client_ext_str.contains(&"EGL_ANGLE_platform_angle") {
+            open_x_display()
+        } else {
+            None
+        };
 
-        let display = if let (Some(library), Some(egl)) =
+        let (display, wsi_library, wsi_kind) = if let (Some(library), Some(egl)) =
             (wayland_library, egl.upcast::<egl::EGL1_5>())
         {
             log::info!("Using Wayland platform");
             let display_attributes = [egl::ATTRIB_NONE];
-            wsi_library = Some(Arc::new(library));
-            egl.get_platform_display(
-                EGL_PLATFORM_WAYLAND_KHR,
-                egl::DEFAULT_DISPLAY,
-                &display_attributes,
-            )
-            .unwrap()
+            let display = egl
+                .get_platform_display(
+                    EGL_PLATFORM_WAYLAND_KHR,
+                    egl::DEFAULT_DISPLAY,
+                    &display_attributes,
+                )
+                .unwrap();
+            (display, Some(Arc::new(library)), WindowKind::Wayland)
         } else if let (Some((display, library)), Some(egl)) =
             (x11_display_library, egl.upcast::<egl::EGL1_5>())
         {
             log::info!("Using X11 platform");
             let display_attributes = [egl::ATTRIB_NONE];
-            wsi_library = Some(Arc::new(library));
-            egl.get_platform_display(EGL_PLATFORM_X11_KHR, display.as_ptr(), &display_attributes)
-                .unwrap()
+            let display = egl
+                .get_platform_display(EGL_PLATFORM_X11_KHR, display.as_ptr(), &display_attributes)
+                .unwrap();
+            (display, Some(Arc::new(library)), WindowKind::X11)
+        } else if let (Some((display, library)), Some(egl)) =
+            (angle_x11_display_library, egl.upcast::<egl::EGL1_5>())
+        {
+            log::info!("Using Angle platform with X11");
+            let display_attributes = [
+                EGL_PLATFORM_ANGLE_NATIVE_PLATFORM_TYPE_ANGLE as egl::Attrib,
+                EGL_PLATFORM_X11_KHR as egl::Attrib,
+                EGL_PLATFORM_ANGLE_DEBUG_LAYERS_ENABLED as egl::Attrib,
+                if desc.flags.contains(crate::InstanceFlags::VALIDATION) {
+                    1
+                } else {
+                    0
+                },
+                egl::ATTRIB_NONE,
+            ];
+            let display = egl
+                .get_platform_display(
+                    EGL_PLATFORM_ANGLE_ANGLE,
+                    display.as_ptr(),
+                    &display_attributes,
+                )
+                .unwrap();
+            (display, Some(Arc::new(library)), WindowKind::AngleX11)
         } else {
             log::info!("Using default platform");
-            egl.get_display(egl::DEFAULT_DISPLAY).unwrap()
+            let display = egl.get_display(egl::DEFAULT_DISPLAY).unwrap();
+            (display, None, WindowKind::Unknown)
         };
 
         if desc.flags.contains(crate::InstanceFlags::VALIDATION)
@@ -578,7 +680,10 @@ impl crate::Instance<super::Api> for Instance {
         let inner = Inner::create(desc.flags, egl, display)?;
 
         Ok(Instance {
-            wsi_library,
+            wsi: WindowSystemInterface {
+                library: wsi_library,
+                kind: wsi_kind,
+            },
             flags: desc.flags,
             inner: Mutex::new(inner),
         })
@@ -597,15 +702,16 @@ impl crate::Instance<super::Api> for Instance {
         let mut inner = self.inner.lock();
 
         match raw_window_handle {
-            #[cfg(not(any(target_os = "android", target_os = "macos")))]
             Rwh::Xlib(_) => {}
-            #[cfg(not(any(target_os = "android", target_os = "macos")))]
             Rwh::Xcb(_) => {}
+            Rwh::Win32(_) => {}
+            Rwh::AppKit(_) => {}
             #[cfg(target_os = "android")]
-            Rwh::Android(handle) => {
+            Rwh::AndroidNdk(handle) => {
                 let format = inner
                     .egl
-                    .get_config_attrib(inner.display, inner.config, egl::NATIVE_VISUAL_ID)
+                    .instance
+                    .get_config_attrib(inner.egl.display, inner.config, egl::NATIVE_VISUAL_ID)
                     .unwrap();
 
                 let ret = ANativeWindow_setBuffersGeometry(handle.a_native_window, 0, 0, format);
@@ -615,7 +721,6 @@ impl crate::Instance<super::Api> for Instance {
                     return Err(crate::InstanceError);
                 }
             }
-            #[cfg(not(any(target_os = "android", target_os = "macos", target_os = "solaris")))]
             Rwh::Wayland(handle) => {
                 /* Wayland displays are not sharable between surfaces so if the
                  * surface we receive from this handle is from a different
@@ -633,6 +738,7 @@ impl crate::Instance<super::Api> for Instance {
                     let display_attributes = [egl::ATTRIB_NONE];
                     let display = inner
                         .egl
+                        .instance
                         .upcast::<egl::EGL1_5>()
                         .unwrap()
                         .get_platform_display(
@@ -642,8 +748,9 @@ impl crate::Instance<super::Api> for Instance {
                         )
                         .unwrap();
 
-                    let new_inner = Inner::create(self.flags, inner.egl.clone(), display)
-                        .map_err(|_| crate::InstanceError)?;
+                    let new_inner =
+                        Inner::create(self.flags, Arc::clone(&inner.egl.instance), display)
+                            .map_err(|_| crate::InstanceError)?;
 
                     let old_inner = std::mem::replace(inner.deref_mut(), new_inner);
                     inner.wl_display = Some(handle.display);
@@ -656,19 +763,13 @@ impl crate::Instance<super::Api> for Instance {
             }
         };
 
-        inner
-            .egl
-            .make_current(inner.display, None, None, None)
-            .unwrap();
+        inner.egl.unmake_current();
 
         Ok(Surface {
-            egl: Arc::clone(&inner.egl),
-            wsi_library: self.wsi_library.clone(),
+            egl: inner.egl.clone(),
+            wsi: self.wsi.clone(),
             config: inner.config,
-            display: inner.display,
-            context: inner.context,
             presentable: inner.supports_native_window,
-            pbuffer: inner.pbuffer,
             raw_window_handle,
             swapchain: None,
             srgb_kind: inner.srgb_kind,
@@ -678,19 +779,12 @@ impl crate::Instance<super::Api> for Instance {
 
     unsafe fn enumerate_adapters(&self) -> Vec<crate::ExposedAdapter<super::Api>> {
         let inner = self.inner.lock();
-        inner
-            .egl
-            .make_current(
-                inner.display,
-                inner.pbuffer,
-                inner.pbuffer,
-                Some(inner.context),
-            )
-            .unwrap();
+        inner.egl.make_current();
 
         let gl = glow::Context::from_loader_function(|name| {
             inner
                 .egl
+                .instance
                 .get_proc_address(name)
                 .map_or(ptr::null(), |p| p as *const _)
         });
@@ -708,20 +802,25 @@ impl crate::Instance<super::Api> for Instance {
             gl.debug_message_callback(gl_debug_message_callback);
         }
 
-        inner
-            .egl
-            .make_current(inner.display, None, None, None)
-            .unwrap();
+        inner.egl.unmake_current();
 
         super::Adapter::expose(AdapterContext {
-            glow_context: Mutex::new(gl),
-            egl: inner.egl.clone(),
-            egl_display: inner.display,
-            egl_context: inner.context,
-            egl_pbuffer: inner.pbuffer,
+            glow: Mutex::new(gl),
+            egl: Some(inner.egl.clone()),
         })
         .into_iter()
         .collect()
+    }
+}
+
+impl super::Adapter {
+    pub unsafe fn new_external(
+        fun: impl FnMut(&str) -> *const ffi::c_void,
+    ) -> Option<crate::ExposedAdapter<super::Api>> {
+        Self::expose(AdapterContext {
+            glow: Mutex::new(glow::Context::from_loader_function(fun)),
+            egl: None,
+        })
     }
 }
 
@@ -741,13 +840,9 @@ pub struct Swapchain {
 
 #[derive(Debug)]
 pub struct Surface {
-    egl: Arc<egl::DynamicInstance<egl::EGL1_4>>,
-    wsi_library: Option<Arc<libloading::Library>>,
+    egl: EglContext,
+    wsi: WindowSystemInterface,
     config: egl::Config,
-    display: egl::Display,
-    context: egl::Context,
-    #[allow(unused)]
-    pbuffer: Option<egl::Surface>,
     pub(super) presentable: bool,
     raw_window_handle: RawWindowHandle,
     swapchain: Option<Swapchain>,
@@ -766,11 +861,12 @@ impl Surface {
         let sc = self.swapchain.as_ref().unwrap();
 
         self.egl
+            .instance
             .make_current(
-                self.display,
+                self.egl.display,
                 Some(sc.surface),
                 Some(sc.surface),
-                Some(self.context),
+                Some(self.egl.raw),
             )
             .map_err(|e| {
                 log::error!("make_current(surface) failed: {}", e);
@@ -800,13 +896,15 @@ impl Surface {
         gl.bind_framebuffer(glow::READ_FRAMEBUFFER, None);
 
         self.egl
-            .swap_buffers(self.display, sc.surface)
+            .instance
+            .swap_buffers(self.egl.display, sc.surface)
             .map_err(|e| {
                 log::error!("swap_buffers failed: {}", e);
                 crate::SurfaceError::Lost
             })?;
         self.egl
-            .make_current(self.display, None, None, None)
+            .instance
+            .make_current(self.egl.display, None, None, None)
             .map_err(|e| {
                 log::error!("make_current(null) failed: {}", e);
                 crate::SurfaceError::Lost
@@ -849,53 +947,55 @@ impl crate::Surface<super::Api> for Surface {
         let (surface, wl_window) = match self.unconfigure_impl(device) {
             Some(pair) => pair,
             None => {
-                #[cfg_attr(any(target_os = "android", target_os = "macos"), allow(unused_mut))]
                 let mut wl_window = None;
-                #[cfg(not(any(target_os = "android", target_os = "macos")))]
                 let (mut temp_xlib_handle, mut temp_xcb_handle);
                 #[allow(trivial_casts)]
-                let native_window_ptr = match self.raw_window_handle {
-                    #[cfg(not(any(target_os = "android", target_os = "macos")))]
-                    Rwh::Xlib(handle) => {
+                let native_window_ptr = match (self.wsi.kind, self.raw_window_handle) {
+                    (WindowKind::Unknown | WindowKind::X11, Rwh::Xlib(handle)) => {
                         temp_xlib_handle = handle.window;
                         &mut temp_xlib_handle as *mut _ as *mut std::ffi::c_void
                     }
-                    #[cfg(not(any(target_os = "android", target_os = "macos")))]
-                    Rwh::Xcb(handle) => {
+                    (WindowKind::AngleX11, Rwh::Xlib(handle)) => {
+                        handle.window as *mut std::ffi::c_void
+                    }
+                    (WindowKind::Unknown | WindowKind::X11, Rwh::Xcb(handle)) => {
                         temp_xcb_handle = handle.window;
                         &mut temp_xcb_handle as *mut _ as *mut std::ffi::c_void
                     }
-                    #[cfg(target_os = "android")]
-                    Rwh::Android(handle) => handle.a_native_window,
-                    #[cfg(not(any(
-                        target_os = "android",
-                        target_os = "macos",
-                        target_os = "solaris"
-                    )))]
-                    Rwh::Wayland(handle) => {
-                        let library = self.wsi_library.as_ref().expect("unsupported window");
+                    (WindowKind::AngleX11, Rwh::Xcb(handle)) => {
+                        handle.window as *mut std::ffi::c_void
+                    }
+                    (WindowKind::Unknown, Rwh::AndroidNdk(handle)) => handle.a_native_window,
+                    (WindowKind::Wayland, Rwh::Wayland(handle)) => {
+                        let library = self.wsi.library.as_ref().unwrap();
                         let wl_egl_window_create: libloading::Symbol<WlEglWindowCreateFun> =
                             library.get(b"wl_egl_window_create").unwrap();
                         let window = wl_egl_window_create(handle.surface, 640, 480) as *mut _
                             as *mut std::ffi::c_void;
-                        let wl_egl_window_resize: libloading::Symbol<WlEglWindowResizeFun> =
-                            library.get(b"wl_egl_window_resize").unwrap();
-                        wl_egl_window_resize(
-                            window,
-                            config.extent.width as i32,
-                            config.extent.height as i32,
-                            0,
-                            0,
-                        );
                         wl_window = Some(window);
                         window
                     }
-                    _ => unreachable!(),
+                    (WindowKind::Unknown, Rwh::Win32(handle)) => handle.hwnd,
+                    (WindowKind::Unknown, Rwh::AppKit(handle)) => handle.ns_view,
+                    _ => {
+                        log::warn!(
+                            "Initialized platform {:?} doesn't work with window {:?}",
+                            self.wsi.kind,
+                            self.raw_window_handle
+                        );
+                        return Err(crate::SurfaceError::Other("incompatible window kind"));
+                    }
                 };
 
                 let mut attributes = vec![
                     egl::RENDER_BUFFER,
-                    if cfg!(target_os = "android") {
+                    // We don't want any of the buffering done by the driver, because we
+                    // manage a swapchain on our side.
+                    // Some drivers just fail on surface creation seeing `EGL_SINGLE_BUFFER`.
+                    if cfg!(target_os = "android")
+                        || cfg!(windows)
+                        || self.wsi.kind == WindowKind::AngleX11
+                    {
                         egl::BACK_BUFFER
                     } else {
                         egl::SINGLE_BUFFER
@@ -915,35 +1015,49 @@ impl crate::Surface<super::Api> for Surface {
                 attributes.push(egl::ATTRIB_NONE as i32);
 
                 // Careful, we can still be in 1.4 version even if `upcast` succeeds
-                let raw_result = if let Some(egl) = self.egl.upcast::<egl::EGL1_5>() {
-                    let attributes_usize = attributes
-                        .into_iter()
-                        .map(|v| v as usize)
-                        .collect::<Vec<_>>();
-                    egl.create_platform_window_surface(
-                        self.display,
-                        self.config,
-                        native_window_ptr,
-                        &attributes_usize,
-                    )
-                } else {
-                    self.egl.create_window_surface(
-                        self.display,
+                let raw_result = match self.egl.instance.upcast::<egl::EGL1_5>() {
+                    Some(egl) if self.wsi.kind != WindowKind::Unknown => {
+                        let attributes_usize = attributes
+                            .into_iter()
+                            .map(|v| v as usize)
+                            .collect::<Vec<_>>();
+                        egl.create_platform_window_surface(
+                            self.egl.display,
+                            self.config,
+                            native_window_ptr,
+                            &attributes_usize,
+                        )
+                    }
+                    _ => self.egl.instance.create_window_surface(
+                        self.egl.display,
                         self.config,
                         native_window_ptr,
                         Some(&attributes),
-                    )
+                    ),
                 };
 
                 match raw_result {
                     Ok(raw) => (raw, wl_window),
                     Err(e) => {
-                        log::warn!("Error in create_platform_window_surface: {:?}", e);
+                        log::warn!("Error in create_window_surface: {:?}", e);
                         return Err(crate::SurfaceError::Lost);
                     }
                 }
             }
         };
+
+        if let Some(window) = wl_window {
+            let library = self.wsi.library.as_ref().unwrap();
+            let wl_egl_window_resize: libloading::Symbol<WlEglWindowResizeFun> =
+                library.get(b"wl_egl_window_resize").unwrap();
+            wl_egl_window_resize(
+                window,
+                config.extent.width as i32,
+                config.extent.height as i32,
+                0,
+                0,
+            );
+        }
 
         let format_desc = device.shared.describe_texture_format(config.format);
         let gl = &device.shared.context.lock();
@@ -982,10 +1096,14 @@ impl crate::Surface<super::Api> for Surface {
 
     unsafe fn unconfigure(&mut self, device: &super::Device) {
         if let Some((surface, wl_window)) = self.unconfigure_impl(device) {
-            self.egl.destroy_surface(self.display, surface).unwrap();
+            self.egl
+                .instance
+                .destroy_surface(self.egl.display, surface)
+                .unwrap();
             if let Some(window) = wl_window {
                 let wl_egl_window_destroy: libloading::Symbol<WlEglWindowDestroyFun> = self
-                    .wsi_library
+                    .wsi
+                    .library
                     .as_ref()
                     .expect("unsupported window")
                     .get(b"wl_egl_window_destroy")

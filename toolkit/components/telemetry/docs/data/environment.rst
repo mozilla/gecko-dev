@@ -269,7 +269,7 @@ Structure:
             appDisabled: <bool>,
             version: <string>,
             scope: <integer>,
-            type: <string>, // "extension", "service", ...
+            type: <string>, // "extension", "locale", ...
             foreignInstall: <bool>,
             hasBinaryComponents: <bool>,
             installDay: <number>, // days since UNIX epoch, 0 on failure
@@ -380,7 +380,7 @@ The following is a partial list of `collected preferences <https://searchfox.org
 
 - ``browser.search.suggest.enabled``: The "master switch" for search suggestions everywhere in Firefox (search bar, urlbar, etc.). Defaults to true.
 
-- ``browser.urlbar.quicksuggest.onboardingDialogChoice``: The user's choice in the Firefox Suggest onboarding dialog. If the dialog was shown multiple times, this records the user's most recent choice. Values are the following. Empty string: The user has not made a choice (e.g., because the dialog hasn't been shown). ``accept``: The user accepted the dialog and opted in. ``settings``: The user clicked in the "Customize" button (the user remains opted out in this case). ``learn_more``: The user clicked "Learn more" (the user remains opted out). ``not_now_link``: The user clicked "Not now" (the user remains opted out). ``dismissed_escape_key``: The user dismissed the dialog by pressing the Escape key (the user remains opted out). ``dismissed_other``: The dialog was dismissed in some other unknown way, for example when the dialog is replaced with another higher priority dialog like the one shown when quitting the app (the user remains opted out).
+- ``browser.urlbar.quicksuggest.onboardingDialogChoice``: The user's choice in the Firefox Suggest onboarding dialog. If the dialog was shown multiple times, this records the user's most recent choice. Values are the following. Empty string: The user has not made a choice (e.g., because the dialog hasn't been shown). ``accept_2`` is recorded when the user accepts the dialog and opts in, ``reject_2`` is recorded when the user rejects the dialog and opts out, ``learn_more_2`` is recorded when the user clicks "Learn more" (the user remains opted out), ``close_1`` is recorded when the user clicks close button on introduction section (the user remains opted out), ``not_now_2`` is recorded when the user clicks "Not now" link on main section (the user remains opted out), ``dismiss_1`` recorded when the user dismisses the dialog on introduction section (the user remains opted out), ``dismiss_2`` recorded when the user dismisses the dialog on main (the user remains opted out).
 
 - ``browser.urlbar.quicksuggest.dataCollection.enabled``: Whether the user has opted in to data collection for Firefox Suggest. This pref is set to true when the user opts in to the Firefox Suggest onboarding dialog modal. The user can also toggle the pref using a toggle switch in the Firefox Suggest preferences UI.
 
@@ -406,6 +406,10 @@ The following is a partial list of `collected preferences <https://searchfox.org
 
 - ``app.normandy.test-prefs.string``: Test pref that will help troubleshoot uneven unenrollment in experiments. Defaults to "".
 
+- ``network.trr.mode``: User-set DNS over HTTPS mode. Defaults to 0.
+
+- ``network.trr.strict_native_fallback``: Whether strict fallback mode is enabled for DoH mode 2. Defaults to true on Nightly, false elsewhere.
+
 attribution
 ~~~~~~~~~~~
 
@@ -423,7 +427,7 @@ This object contains data about the state of Firefox's sandbox.
 Specific keys are:
 
 - ``effectiveContentProcessLevel``: The meanings of the values are OS dependent. Details of the meanings can be found in the `Firefox prefs file <https://hg.mozilla.org/mozilla-central/file/tip/browser/app/profile/firefox.js>`_. The value here is the effective value, not the raw value, some platforms enforce a minimum sandbox level. If there is an error calculating this, it will be ``null``.
-- ``contentWin32kLockdownState``: The status of Win32k Lockdown for Content process. 1 = "Lockdown enabled", 2 = "Lockdown disabled -- Missing WebRender", 3 = "Lockdown disabled -- Unsupported OS", 4 = "Lockdown disabled -- User pref not set". If there is an error calculating this, it will be ``null``.
+- ``contentWin32kLockdownState``: The status of Win32k Lockdown for Content process. 1 = "Lockdown enabled", 2 = "Lockdown disabled -- Missing WebRender", 3 = "Lockdown disabled -- Unsupported OS", 4 = "Lockdown disabled -- User pref not set", 5 = "Lockdown disabled -- Missing Remote WebGL". If there is an error calculating this, it will be ``null``.
 
 profile
 -------

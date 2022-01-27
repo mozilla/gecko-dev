@@ -16,7 +16,9 @@
 #include "nsFont.h"
 #include "nsIFrame.h"
 #include "nsIXULRuntime.h"
-#include "nsNativeBasicTheme.h"
+#include "Theme.h"
+#include "SurfaceCacheUtils.h"
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -24,7 +26,6 @@
 #include "mozilla/ServoCSSParser.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_editor.h"
-#include "mozilla/StaticPrefs_findbar.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/dom/Document.h"
@@ -167,7 +168,6 @@ static const char sIntPrefs[][43] = {
     "ui.GtkCSDMaximizeButtonPosition",
     "ui.GtkCSDCloseButtonPosition",
     "ui.GtkCSDReversedPlacement",
-    "ui.GtkWayland",
     "ui.systemUsesDarkTheme",
     "ui.prefersReducedMotion",
     "ui.primaryPointerCapabilities",
@@ -356,7 +356,7 @@ nsXPLookAndFeel* nsXPLookAndFeel::GetInstance() {
     *lnf = {};
   }
 
-  nsNativeBasicTheme::Init();
+  widget::Theme::Init();
   return sInstance;
 }
 
@@ -373,7 +373,7 @@ void nsXPLookAndFeel::Shutdown() {
   // This keeps strings alive, so need to clear to make leak checking happy.
   sFontCache.Clear();
 
-  nsNativeBasicTheme::Shutdown();
+  widget::Theme::Shutdown();
 }
 
 static void IntPrefChanged() {
@@ -678,6 +678,7 @@ Maybe<nscolor> nsXPLookAndFeel::GenericDarkColor(ColorID aID) {
       break;
     case ColorID::Field:
     case ColorID::Buttonface:  // --in-content-button-background
+    case ColorID::Threedface:
     case ColorID::MozCombobox:
     case ColorID::MozCellhighlighttext:
     case ColorID::Selecteditemtext:  // --in-content-primary-button-text-color /
@@ -1039,12 +1040,60 @@ void nsXPLookAndFeel::RecordTelemetry() {
 
 namespace mozilla {
 
-// static
+static widget::ThemeChangeKind sGlobalThemeChangeKind{0};
+
 void LookAndFeel::NotifyChangedAllWindows(widget::ThemeChangeKind aKind) {
+  sGlobalThemeChanged = true;
+  sGlobalThemeChangeKind |= aKind;
+
   if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
     const char16_t kind[] = {char16_t(aKind), 0};
     obs->NotifyObservers(nullptr, "internal-look-and-feel-changed", kind);
   }
+}
+
+void LookAndFeel::DoHandleGlobalThemeChange() {
+  MOZ_ASSERT(sGlobalThemeChanged);
+  sGlobalThemeChanged = false;
+  auto kind = std::exchange(sGlobalThemeChangeKind, widget::ThemeChangeKind(0));
+
+  // Tell the theme that it changed, so it can flush any handles to stale theme
+  // data.
+  //
+  // We can use the *DoNotUseDirectly functions directly here, because we want
+  // to notify all possible themes in a given process (but just once).
+  if (XRE_IsParentProcess() ||
+      !StaticPrefs::widget_non_native_theme_enabled()) {
+    if (nsCOMPtr<nsITheme> theme = do_GetNativeThemeDoNotUseDirectly()) {
+      theme->ThemeChanged();
+    }
+  }
+  if (nsCOMPtr<nsITheme> theme = do_GetBasicNativeThemeDoNotUseDirectly()) {
+    theme->ThemeChanged();
+  }
+
+  // Clear all cached LookAndFeel colors.
+  LookAndFeel::Refresh();
+
+  // Reset default background and foreground colors for the document since they
+  // may be using system colors.
+  PreferenceSheet::Refresh();
+
+  // Vector images (SVG) may be using theme colors so we discard all cached
+  // surfaces. (We could add a vector image only version of DiscardAll, but
+  // in bug 940625 we decided theme changes are rare enough not to bother.)
+  image::SurfaceCacheUtils::DiscardAll();
+
+  if (XRE_IsParentProcess()) {
+    dom::ContentParent::BroadcastThemeUpdate(kind);
+  }
+
+  nsContentUtils::AddScriptRunner(
+      NS_NewRunnableFunction("HandleGlobalThemeChange", [] {
+        if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
+          obs->NotifyObservers(nullptr, "look-and-feel-changed", nullptr);
+        }
+      }));
 }
 
 static bool ShouldUseStandinsForNativeColorForNonNativeTheme(
@@ -1092,6 +1141,7 @@ static bool ShouldUseStandinsForNativeColorForNonNativeTheme(
 ColorScheme LookAndFeel::sChromeColorScheme;
 ColorScheme LookAndFeel::sContentColorScheme;
 bool LookAndFeel::sColorSchemeInitialized;
+bool LookAndFeel::sGlobalThemeChanged;
 
 auto LookAndFeel::ColorSchemeSettingForChrome() -> ChromeColorSchemeSetting {
   switch (StaticPrefs::browser_theme_toolbar_theme()) {
@@ -1322,7 +1372,7 @@ void LookAndFeel::GetThemeInfo(nsACString& aOut) {
 // static
 void LookAndFeel::Refresh() {
   nsLookAndFeel::GetInstance()->RefreshImpl();
-  nsNativeBasicTheme::LookAndFeelChanged();
+  widget::Theme::LookAndFeelChanged();
 }
 
 // static

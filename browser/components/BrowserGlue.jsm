@@ -82,6 +82,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.jsm",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.jsm",
   SessionStore: "resource:///modules/sessionstore/SessionStore.jsm",
+  ShellService: "resource:///modules/ShellService.jsm",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.jsm",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.jsm",
   TabUnloader: "resource:///modules/TabUnloader.jsm",
@@ -268,6 +269,7 @@ let JSWINDOWACTORS = {
       "about:pocket-saved*",
       "about:pocket-signup*",
       "about:pocket-home*",
+      "about:pocket-style-guide*",
     ],
   },
 
@@ -391,10 +393,30 @@ let JSWINDOWACTORS = {
     child: {
       moduleURI: "resource:///actors/ClickHandlerChild.jsm",
       events: {
-        click: { capture: true, mozSystemGroup: true, wantUntrusted: true },
-        auxclick: { capture: true, mozSystemGroup: true, wantUntrusted: true },
+        chromelinkclick: { capture: true, mozSystemGroup: true },
       },
     },
+
+    allFrames: true,
+  },
+
+  /* Note: this uses the same JSMs as ClickHandler, but because it
+   * relies on "normal" click events anywhere on the page (not just
+   * links) and is expensive, and only does something for the
+   * small group of people who have the feature enabled, it is its
+   * own actor which is only registered if the pref is enabled.
+   */
+  MiddleMousePasteHandler: {
+    parent: {
+      moduleURI: "resource:///actors/ClickHandlerParent.jsm",
+    },
+    child: {
+      moduleURI: "resource:///actors/ClickHandlerChild.jsm",
+      events: {
+        auxclick: { capture: true, mozSystemGroup: true },
+      },
+    },
+    enablePreference: "middlemouse.contentLoadURL",
 
     allFrames: true,
   },
@@ -644,6 +666,9 @@ let JSWINDOWACTORS = {
   },
 
   ScreenshotsComponent: {
+    parent: {
+      moduleURI: "resource:///modules/ScreenshotsUtils.jsm",
+    },
     child: {
       moduleURI: "resource:///actors/ScreenshotsComponentChild.jsm",
     },
@@ -693,7 +718,12 @@ let JSWINDOWACTORS = {
         DOMDocElementInserted: {},
       },
     },
-    matches: ["about:home*", "about:newtab*", "about:welcome*"],
+    matches: [
+      "about:home*",
+      "about:newtab*",
+      "about:welcome*",
+      "about:privatebrowsing",
+    ],
     remoteTypes: ["privilegedabout"],
   },
 
@@ -1569,7 +1599,7 @@ BrowserGlue.prototype = {
 
     ProcessHangMonitor.init();
 
-    UrlbarPrefs.updateFirefoxSuggestScenario(true);
+    UrlbarPrefs.updateFirefoxSuggestScenario();
 
     // A channel for "remote troubleshooting" code...
     let channel = new WebChannel(
@@ -1981,18 +2011,32 @@ BrowserGlue.prototype = {
   // Set up a listener to enable/disable the screenshots extension
   // based on its preference.
   _monitorScreenshotsPref() {
-    const PREF = "extensions.screenshots.disabled";
+    const SCREENSHOTS_PREF = "extensions.screenshots.disabled";
+    const COMPONENT_PREF = "screenshots.browser.component.enabled";
     const ID = "screenshots@mozilla.org";
     const _checkScreenshotsPref = async () => {
       let addon = await AddonManager.getAddonByID(ID);
-      let disabled = Services.prefs.getBoolPref(PREF, false);
-      if (disabled) {
+      let screenshotsDisabled = Services.prefs.getBoolPref(
+        SCREENSHOTS_PREF,
+        false
+      );
+      let componentEnabled = Services.prefs.getBoolPref(COMPONENT_PREF, false);
+      if (screenshotsDisabled) {
+        if (componentEnabled) {
+          ScreenshotsUtils.uninitialize();
+        } else {
+          await addon.disable({ allowSystemAddons: true });
+        }
+      } else if (componentEnabled) {
+        ScreenshotsUtils.initialize();
         await addon.disable({ allowSystemAddons: true });
       } else {
         await addon.enable({ allowSystemAddons: true });
+        ScreenshotsUtils.uninitialize();
       }
     };
-    Services.prefs.addObserver(PREF, _checkScreenshotsPref);
+    Services.prefs.addObserver(SCREENSHOTS_PREF, _checkScreenshotsPref);
+    Services.prefs.addObserver(COMPONENT_PREF, _checkScreenshotsPref);
     _checkScreenshotsPref();
   },
 
@@ -2226,6 +2270,23 @@ BrowserGlue.prototype = {
     _checkGPCPref();
   },
 
+  _monitorPrivacySegmentationPref() {
+    const PREF_ENABLED = "browser.privacySegmentation.enabled";
+    const EVENT_CATEGORY = "privacy_segmentation";
+
+    let checkPrivacySegmentationPref = () => {
+      let isEnabled = Services.prefs.getBoolPref(PREF_ENABLED, false);
+      Services.telemetry.recordEvent(
+        EVENT_CATEGORY,
+        isEnabled ? "enable" : "disable",
+        "pref"
+      );
+    };
+
+    Services.telemetry.setEventRecordingEnabled(EVENT_CATEGORY, true);
+    Services.prefs.addObserver(PREF_ENABLED, checkPrivacySegmentationPref);
+  },
+
   // All initial windows have opened.
   _onWindowsRestored: function BG__onWindowsRestored() {
     if (this._windowsWereRestored) {
@@ -2306,6 +2367,7 @@ BrowserGlue.prototype = {
       this._monitorTranslationsPref();
     }
     this._monitorGPCPref();
+    this._monitorPrivacySegmentationPref();
   },
 
   /**
@@ -2465,6 +2527,19 @@ BrowserGlue.prototype = {
         },
       },
 
+      // Report whether Firefox is the default handler for various files types,
+      // in particular, ".pdf".
+      {
+        condition: AppConstants.platform == "win",
+        task: () => {
+          Services.telemetry.keyedScalarSet(
+            "os.environment.is_default_handler",
+            ".pdf",
+            ShellService.isDefaultHandlerFor(".pdf")
+          );
+        },
+      },
+
       // Install built-in themes. We already installed the active built-in
       // theme, if any, before UI startup.
       {
@@ -2522,12 +2597,6 @@ BrowserGlue.prototype = {
           ) {
             ScreenshotsUtils.initialize();
           }
-        },
-      },
-
-      {
-        task: () => {
-          UrlbarQuickSuggest.maybeShowOnboardingDialog();
         },
       },
 
@@ -2661,12 +2730,6 @@ BrowserGlue.prototype = {
       },
 
       {
-        task: () => {
-          PlacesUIUtils.ensureBookmarkToolbarTelemetryListening();
-        },
-      },
-
-      {
         condition: AppConstants.MOZ_UPDATE_AGENT,
         task: () => {
           // Never in automation!  This is close to
@@ -2691,6 +2754,12 @@ BrowserGlue.prototype = {
             "@mozilla.org/login-detection-service;1"
           ].createInstance(Ci.nsILoginDetectionService);
           loginDetection.init();
+        },
+      },
+
+      {
+        task: () => {
+          this._collectTelemetryPiPEnabled();
         },
       },
 
@@ -3159,8 +3228,9 @@ BrowserGlue.prototype = {
         // An import operation is about to run.
         let bookmarksUrl = null;
         if (restoreDefaultBookmarks) {
-          // User wants to restore bookmarks.html file from default profile folder
-          bookmarksUrl = "chrome://browser/locale/bookmarks.html";
+          // User wants to restore the default set of bookmarks shipped with the
+          // browser, those that new profiles start with.
+          bookmarksUrl = "chrome://browser/content/default-bookmarks.html";
         } else if (await IOUtils.exists(BookmarkHTMLUtils.defaultPath)) {
           bookmarksUrl = PathUtils.toFileURI(BookmarkHTMLUtils.defaultPath);
         }
@@ -3331,7 +3401,7 @@ BrowserGlue.prototype = {
   _migrateUI: function BG__migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 121;
+    const UI_VERSION = 122;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     const PROFILE_DIR = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
@@ -3922,7 +3992,6 @@ BrowserGlue.prototype = {
           defaultValue
         );
       }
-      Services.prefs.clearUserPref(oldPrefName);
     }
 
     if (currentUIVersion < 109) {
@@ -4033,6 +4102,24 @@ BrowserGlue.prototype = {
       );
     }
 
+    if (currentUIVersion < 122) {
+      // Migrate xdg-desktop-portal pref from old to new prefs.
+      try {
+        const oldPref = "widget.use-xdg-desktop-portal";
+        if (Services.prefs.getBoolPref(oldPref)) {
+          Services.prefs.setIntPref(
+            "widget.use-xdg-desktop-portal.file-picker",
+            1
+          );
+          Services.prefs.setIntPref(
+            "widget.use-xdg-desktop-portal.mime-handler",
+            1
+          );
+        }
+        Services.prefs.clearUserPref(oldPref);
+      } catch (ex) {}
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
@@ -4106,7 +4193,10 @@ BrowserGlue.prototype = {
     if (willPrompt) {
       let win = BrowserWindowTracker.getTopWindow();
       DefaultBrowserCheck.prompt(win);
+    } else if (await UrlbarQuickSuggest.maybeShowOnboardingDialog()) {
+      return;
     }
+
     await ASRouter.waitForInitialized;
     ASRouter.sendTriggerMessage({
       browser: BrowserWindowTracker.getTopWindow()?.gBrowser.selectedBrowser,
@@ -4520,6 +4610,41 @@ BrowserGlue.prototype = {
       badge?.classList.remove("feature-callout");
       AppMenuNotifications.removeNotification("fxa-needs-authentication");
     }
+  },
+
+  _collectTelemetryPiPEnabled() {
+    Services.telemetry.setEventRecordingEnabled(
+      "pictureinpicture.settings",
+      true
+    );
+
+    const TOGGLE_ENABLED_PREF =
+      "media.videocontrols.picture-in-picture.video-toggle.enabled";
+
+    const observe = (subject, topic, data) => {
+      const enabled = Services.prefs.getBoolPref(TOGGLE_ENABLED_PREF, false);
+      Services.telemetry.scalarSet("pictureinpicture.toggle_enabled", enabled);
+
+      // Record events when preferences change
+      if (topic === "nsPref:changed") {
+        if (enabled) {
+          Services.telemetry.recordEvent(
+            "pictureinpicture.settings",
+            "enable",
+            "player"
+          );
+        } else {
+          Services.telemetry.recordEvent(
+            "pictureinpicture.settings",
+            "disable",
+            "player"
+          );
+        }
+      }
+    };
+
+    Services.prefs.addObserver(TOGGLE_ENABLED_PREF, observe);
+    observe();
   },
 
   QueryInterface: ChromeUtils.generateQI([

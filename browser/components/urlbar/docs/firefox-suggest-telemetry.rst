@@ -177,12 +177,6 @@ can be toggled in the following ways:
 - The user can toggle it in the preferences UI.
 - The user can toggle it in about:config.
 
-The event is also recorded when the user opts in to the online modal dialog,
-with one exception: If the user has at all toggled non-sponsored suggestions
-using the preferences UI or about:config and they are enabled at the time the
-user opts in to the modal, then the pref's user value is already true. Opting in
-doesn't change the user value, so no event is recorded.
-
 The event's objects are the following:
 
 :enabled:
@@ -200,8 +194,14 @@ Changelog
     ``browser.urlbar.suggest.quicksuggest.nonsponsored``, and this event now
     corresponds to the latter pref. [Bug 1735976_]
 
+  Firefox 96.0:
+    The event is no longer recorded when the user interacts with the online
+    modal dialog since the ``browser.urlbar.suggest.quicksuggest.nonsponsored``
+    pref is no longer set when the user opts in or out. [Bug 1740965_]
+
 .. _1693126: https://bugzilla.mozilla.org/show_bug.cgi?id=1693126
 .. _1735976: https://bugzilla.mozilla.org/show_bug.cgi?id=1735976
+.. _1740965: https://bugzilla.mozilla.org/show_bug.cgi?id=1740965
 
 contextservices.quicksuggest.opt_in_dialog
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -210,21 +210,46 @@ This event is recorded when the user interacts with the online modal dialog.
 The event's objects are the following:
 
 :accept:
+  The user accepted the dialog and opted in. This object was removed in Firefox
+  96.0.2.
+:accept_2:
   The user accepted the dialog and opted in.
+:close_1:
+  The user clicked close button or something similar link on introduction
+  section. The user remains opted out in this case.
+:dismiss_1:
+  The user dismissed the dialog by pressing the Escape key or some unknown way
+  on introduction section. The user remains opted out in this case.
+:dismiss_2:
+  The user dismissed the dialog by pressing the Escape key or some unknown way
+  on main section. The user remains opted out in this case.
 :dismissed_escape_key:
   The user dismissed the dialog by pressing the Escape key. The user remains
-  opted out in this case.
+  opted out in this case. This object was removed in Firefox 96.0.2.
 :dismissed_other:
   The dialog was dismissed in some unknown way. One case where this can happen
   is when the dialog is replaced with another higher priority dialog like the
   one shown when quitting the app. The user remains opted out in this case.
+  This object was removed in Firefox 96.0.2.
 :learn_more:
+  The user clicked "Learn more". The user remains opted out in this case. This
+  object was removed in Firefox 96.0.2.
+:learn_more_2:
   The user clicked "Learn more". The user remains opted out in this case.
+:not_now:
+  The dialog was dismissed in some way without opting in. This object was
+  removed in Firefox 94.0.
+:not_now_2:
+  The user clicked "Not now" link on main section. The user remains opted out in
+  this case.
 :not_now_link:
-  The user clicked "Not now". The user remains opted out in this case.
+  The user clicked "Not now". The user remains opted out in this case. This
+  object was removed in Firefox 96.0.2.
+:reject_2:
+  The user rejected the dialog and opted out.
 :settings:
   The user clicked the "Customize" button. The user remains opted out in this
-  case.
+  case. This object was removed in Firefox 96.0.2.
 
 Changelog
   Firefox 92.0.1
@@ -237,8 +262,14 @@ Changelog
     ``dismissed_other``, ``learn_more``, ``not_now_link``, and ``settings``.
     [Bug 1733687_]
 
+  Firefox 96.0.2
+    Objects changed to: ``accept_2``, ``reject_2``, ``learn_more_2``,
+    ``close_1``, ``not_now_2``, ``dismiss_1`` and ``dismiss_2``.
+    [Bug 1745026_]
+
 .. _1723860: https://bugzilla.mozilla.org/show_bug.cgi?id=1723860
 .. _1733687: https://bugzilla.mozilla.org/show_bug.cgi?id=1733687
+.. _1745026: https://bugzilla.mozilla.org/show_bug.cgi?id=1745026
 
 contextservices.quicksuggest.sponsored_toggled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -249,12 +280,6 @@ be toggled in the following ways:
 
 - The user can toggle it in the preferences UI.
 - The user can toggle it in about:config.
-
-The event is also recorded when the user opts in to the online modal dialog,
-with one exception: If the user has at all toggled sponsored suggestions using
-the preferences UI or about:config and they are enabled at the time the user
-opts in to the modal, then the pref's user value is already true. Opting in
-doesn't change the user value, so no event is recorded.
 
 The event's objects are the following:
 
@@ -267,7 +292,13 @@ Changelog
   Firefox 92.0.1
     Introduced. [Bug 1728430_]
 
+  Firefox 96.0:
+    The event is no longer recorded when the user interacts with the online
+    modal dialog since the ``browser.urlbar.suggest.quicksuggest.sponsored``
+    pref is no longer set when the user opts in or out. [Bug 1740965_]
+
 .. _1728430: https://bugzilla.mozilla.org/show_bug.cgi?id=1728430
+.. _1740965: https://bugzilla.mozilla.org/show_bug.cgi?id=1740965
 
 Environment
 -----------
@@ -286,27 +317,56 @@ string-valued pref with the following possible values:
 :<empty string>:
   The user has not made a choice (e.g., because the dialog hasn't been shown).
 :accept:
+  The user accepted the dialog and opted in. This object was removed in Firefox
+  96.0.2.
+:accept_2:
   The user accepted the dialog and opted in.
+:close_1:
+  The user clicked close button or something similar link on introduction
+  section. The user remains opted out in this case.
+:dismiss_1:
+  The user dismissed the dialog by pressing the Escape key or some unknown way
+  on introduction section. The user remains opted out in this case.
+:dismiss_2:
+  The user dismissed the dialog by pressing the Escape key or some unknown way
+  on main section. The user remains opted out in this case.
 :dismissed_escape_key:
   The user dismissed the dialog by pressing the Escape key. The user remains
-  opted out in this case.
+  opted out in this case. This object was removed in Firefox 96.0.2.
 :dismissed_other:
   The dialog was dismissed in some unknown way. One case where this can happen
   is when the dialog is replaced with another higher priority dialog like the
-  one shown when quitting the app. The user remains opted out in this case.
+  one shown when quitting the app. The user remains opted out in this case. This
+  object was removed in Firefox 96.0.2.
 :learn_more:
+  The user clicked "Learn more". The user remains opted out in this case. This
+  object was removed in Firefox 96.0.2.
+:learn_more_2:
   The user clicked "Learn more". The user remains opted out in this case.
+:not_now_2:
+  The user clicked "Not now" link on main section. The user remains opted out in
+  this case.
 :not_now_link:
-  The user clicked "Not now". The user remains opted out in this case.
+  The user clicked "Not now". The user remains opted out in this case. This
+  object was removed in Firefox 96.0.2.
+:reject_2:
+  The user rejected the dialog and opted out.
 :settings:
   The user clicked the "Customize" button. The user remains opted out in this
-  case.
+  case. This object was removed in Firefox 96.0.2.
 
 Changelog
   Firefox 94.0
     Introduced. [Bug 1734447_]
 
+  Firefox 96.0.2
+    Added ``accept_2``, ``reject_2``, ``learn_more_2``, ``close_1``,
+    ``not_now_2``, ``dismiss_1``, ``dismiss_2`` and removed ``accept``,
+    ``dismissed_escape_key``, ``dismissed_other``, ``learn_more``,
+    ``not_now_link``, ``settings``. [Bug 1745026_]
+
 .. _1734447: https://bugzilla.mozilla.org/show_bug.cgi?id=1734447
+.. _1745026: https://bugzilla.mozilla.org/show_bug.cgi?id=1745026
 
 browser.urlbar.quicksuggest.dataCollection.enabled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -343,31 +403,47 @@ Changelog
 browser.urlbar.suggest.quicksuggest.nonsponsored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This boolean pref records whether non-sponsored suggestions are enabled. In the
-offline scenario, it is true by default. In the online scenario, it is false by
-default and set to true when the user opts in. The user can also toggle it in
-the preferences UI and about:config.
+This boolean pref records whether non-sponsored suggestions are enabled. In both
+the offline and online scenarios it is true by default. The user can also toggle
+it in the preferences UI and about:config.
 
 Changelog
   Firefox 94.0.2
     Introduced. It replaces ``browser.urlbar.suggest.quicksuggest``. [Bug
     1735976_]
 
+  Firefox 96.0:
+    The pref is now true by default in the online scenario. Previously it was
+    false by default in online. For users who were enrolled in the online
+    scenario in older versions and who did not opt in or otherwise enable
+    non-sponsored suggestions, the pref will remain false when upgrading. For
+    all other users, it will default to true when/if they are enrolled in
+    online. [Bug 1740965_]
+
 .. _1735976: https://bugzilla.mozilla.org/show_bug.cgi?id=1735976
+.. _1740965: https://bugzilla.mozilla.org/show_bug.cgi?id=1740965
 
 browser.urlbar.suggest.quicksuggest.sponsored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This boolean pref records whether sponsored suggestions are enabled. In the
-offline scenario, it is true by default. In the online scenario, it is false by
-default and set to true when the user opts in. The user can also toggle it in
-the preferences UI and about:config.
+This boolean pref records whether sponsored suggestions are enabled. In both the
+offline and online scenarios it is true by default. The user can also toggle it
+in the preferences UI and about:config.
 
 Changelog
   Firefox 92.0.1
     Introduced. [Bug 1730721_]
 
+  Firefox 96.0:
+    The pref is now true by default in the online scenario. Previously it was
+    false by default in online. For users who were enrolled in the online
+    scenario in older versions and who did not opt in or otherwise enable
+    sponsored suggestions, the pref will remain false when upgrading. For all
+    other users, it will default to true when/if they are enrolled in
+    online. [Bug 1740965_]
+
 .. _1730721: https://bugzilla.mozilla.org/show_bug.cgi?id=1730721
+.. _1740965: https://bugzilla.mozilla.org/show_bug.cgi?id=1740965
 
 Contextual Services Pings
 -------------------------
@@ -439,7 +515,7 @@ The impression ping payload contains the following:
   used to link to a client_id.
 :is_clicked:
   Whether or not the user also clicked the suggestion.
-:matched_keywords:
+:matched_keywords (**Removed from Firefox 97**):
   The matched keywords that lead to the suggestion. This is only included when
   the user has opted in to data collection and the suggestion is provided by
   remote settings.
@@ -453,7 +529,7 @@ The impression ping payload contains the following:
   suggestions provided by Merino.
 :scenario:
   The user's Suggest scenario, either "offline" or "online".
-:search_query:
+:search_query (**Removed from Firefox 97**):
   The exact search query typed by the user. This is only included when the user
   has opted in to data collection and the suggestion is provided by remote
   settings.
@@ -485,12 +561,17 @@ Changelog
       [Bug 1736117_, 1735976_]
     - ``request_id`` is added to the payload. [Bug 1736117_]
 
+  Firefox 97.0
+    - Stop sending ``search_query`` and ``matched_keywords`` in the custom
+      impression ping for Firefox Suggest. [Bug 1748348_]
+
 .. _1689365: https://bugzilla.mozilla.org/show_bug.cgi?id=1689365
 .. _1725492: https://bugzilla.mozilla.org/show_bug.cgi?id=1725492
 .. _1728188: https://bugzilla.mozilla.org/show_bug.cgi?id=1728188
 .. _1729576: https://bugzilla.mozilla.org/show_bug.cgi?id=1729576
 .. _1736117: https://bugzilla.mozilla.org/show_bug.cgi?id=1736117
 .. _1735976: https://bugzilla.mozilla.org/show_bug.cgi?id=1735976
+.. _1748348: https://bugzilla.mozilla.org/show_bug.cgi?id=1748348
 
 Nimbus Exposure Event
 ---------------------

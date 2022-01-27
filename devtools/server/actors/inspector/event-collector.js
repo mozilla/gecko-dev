@@ -385,9 +385,11 @@ class DOMEventCollector extends MainEventCollector {
       }
 
       const eventInfo = {
+        nsIEventListenerInfo: listener,
         capturing: listener.capturing,
         type: listener.type,
         handler: handler,
+        enabled: listener.enabled,
       };
 
       handlers.push(eventInfo);
@@ -484,7 +486,6 @@ class JQueryEventCollector extends MainEventCollector {
               tags: "jQuery",
               hide: {
                 capturing: true,
-                dom0: true,
               },
             };
 
@@ -577,7 +578,6 @@ class JQueryLiveEventCollector extends MainEventCollector {
                 handler: handler,
                 tags: "jQuery,Live",
                 hide: {
-                  dom0: true,
                   capturing: true,
                 },
               };
@@ -688,9 +688,6 @@ class ReactEventCollector extends MainEventCollector {
             type: name,
             handler: listener,
             tags: "React",
-            hide: {
-              dom0: true,
-            },
             override: {
               capturing: name.endsWith("Capture"),
             },
@@ -825,17 +822,20 @@ class EventCollector {
    *
    * @param  {DOMNode} node
    *         The node for which events are to be gathered.
-   * @return {Array}
+   * @return {Array<Object>}
    *         An array containing objects in the following format:
    *         {
-   *           type: type,        // e.g. "click"
-   *           handler: handler,  // The function called when event is triggered.
-   *           tags: "jQuery",    // Comma separated list of tags displayed
-   *                              // inside event bubble.
-   *           hide: {            // Flags for hiding certain properties.
-   *             capturing: true,
-   *             dom0: true,
+   *           {String} type: The event type, e.g. "click"
+   *           {Function} handler: The function called when event is triggered.
+   *           {Boolean} enabled: Whether the listener is enabled or not (event listeners can
+   *                     be disabled via the inspector)
+   *           {String} tags: Comma separated list of tags displayed inside event bubble (e.g. "JQuery")
+   *           {Object} hide: Flags for hiding certain properties.
+   *             {Boolean} capturing
    *           }
+   *           {Boolean} native
+   *           {String|undefined} sourceActor: The sourceActor id of the event listener
+   *           {nsIEventListenerInfo|undefined} nsIEventListenerInfo
    *         }
    */
   getEventListeners(node) {
@@ -861,10 +861,14 @@ class EventCollector {
       }
 
       for (const listener of listeners) {
-        if (collector.normalizeListener) {
-          listener.normalizeListener = collector.normalizeListener;
+        const eventObj = this.processHandlerForEvent(
+          listener,
+          dbg,
+          collector.normalizeListener
+        );
+        if (eventObj) {
+          listenerArray.push(eventObj);
         }
-        this.processHandlerForEvent(listenerArray, listener, dbg);
       }
     }
 
@@ -878,13 +882,13 @@ class EventCollector {
   /**
    * Process an event listener.
    *
-   * @param  {Array} listenerArray
-   *         listenerArray contains all event objects that we have gathered
-   *         so far.
    * @param  {EventListener} listener
    *         The event listener to process.
    * @param  {Debugger} dbg
    *         Debugger instance.
+   * @param  {Function|null} normalizeListener
+   *         An optional function that will be called to retrieve data about the listener.
+   *         It should be a *Collector method.
    *
    * @return {Array}
    *         An array of objects where a typical object looks like this:
@@ -893,17 +897,20 @@ class EventCollector {
    *             handler: function() { doSomething() },
    *             origin: "http://www.mozilla.com",
    *             tags: tags,
-   *             DOM0: true,
    *             capturing: true,
    *             hide: {
-   *               DOM0: true
+   *               capturing: true
    *             },
-   *             native: false
+   *             native: false,
+   *             enabled: true
+   *             sourceActor: "sourceActor.1234",
+   *             nsIEventListenerInfo: nsIEventListenerInfo {…},
    *           }
    */
   // eslint-disable-next-line complexity
-  processHandlerForEvent(listenerArray, listener, dbg) {
+  processHandlerForEvent(listener, dbg, normalizeListener) {
     let globalDO;
+    let eventObj;
 
     try {
       const { capturing, handler } = listener;
@@ -916,8 +923,6 @@ class EventCollector {
       globalDO = dbg.addDebuggee(global);
       let listenerDO = globalDO.makeDebuggeeValue(handler);
 
-      const { normalizeListener } = listener;
-
       if (normalizeListener) {
         listenerDO = normalizeListener(listenerDO, listener);
       }
@@ -926,7 +931,7 @@ class EventCollector {
       const override = listener.override || {};
       const tags = listener.tags || "";
       const type = listener.type || "";
-      let dom0 = false;
+      const enabled = !!listener.enabled;
       let functionSource = handler.toString();
       let line = 0;
       let column = null;
@@ -962,13 +967,6 @@ class EventCollector {
       if (script) {
         const scriptSource = script.source.text;
 
-        // Scripts are provided via script tags. If it wasn't provided by a
-        // script tag it must be a DOM0 event.
-        if (script.source.element) {
-          dom0 = script.source.element.class !== "HTMLScriptElement";
-        } else {
-          dom0 = false;
-        }
         line = script.startLine;
         column = script.startColumn;
         url = script.url;
@@ -1026,17 +1024,14 @@ class EventCollector {
       } else {
         origin =
           url +
-          (dom0 || line === 0
-            ? ""
-            : ":" + line + (column === null ? "" : ":" + column));
+          (line ? ":" + line + (column === null ? "" : ":" + column) : "");
       }
 
-      const eventObj = {
+      eventObj = {
         type: override.type || type,
         handler: override.handler || functionSource.trim(),
         origin: override.origin || origin,
         tags: override.tags || tags,
-        DOM0: typeof override.dom0 !== "undefined" ? override.dom0 : dom0,
         capturing:
           typeof override.capturing !== "undefined"
             ? override.capturing
@@ -1044,21 +1039,24 @@ class EventCollector {
         hide: typeof override.hide !== "undefined" ? override.hide : hide,
         native,
         sourceActor,
+        nsIEventListenerInfo: listener.nsIEventListenerInfo,
+        enabled,
       };
 
       // Hide the debugger icon for DOM0 and native listeners. DOM0 listeners are
       // generated dynamically from e.g. an onclick="" attribute so the script
       // doesn't actually exist.
-      if (native || dom0) {
+      if (!sourceActor) {
         eventObj.hide.debugger = true;
       }
-      listenerArray.push(eventObj);
     } finally {
       // Ensure that we always remove the debuggee.
       if (globalDO) {
         dbg.removeDebuggee(globalDO);
       }
     }
+
+    return eventObj;
   }
 }
 

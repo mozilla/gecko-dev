@@ -21,6 +21,14 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 
 const { debug, warn } = GeckoViewUtils.initLogging("Startup");
 
+var { DelayedInit } = ChromeUtils.import(
+  "resource://gre/modules/DelayedInit.jsm"
+);
+
+function InitLater(fn, object, name) {
+  return DelayedInit.schedule(fn, object, name, 15000 /* 15s max wait */);
+}
+
 const JSWINDOWACTORS = {
   LoadURIDelegate: {
     child: {
@@ -33,6 +41,8 @@ const JSWINDOWACTORS = {
       events: {
         click: { capture: false, mozSystemGroup: true },
         contextmenu: { capture: false, mozSystemGroup: true },
+        mozshowdropdown: {},
+        "mozshowdropdown-sourcetouch": {},
         DOMPopupBlocked: { capture: false, mozSystemGroup: true },
       },
     },
@@ -133,6 +143,7 @@ class GeckoViewStartup {
           }
         );
 
+        // Parent process only
         if (
           Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_DEFAULT
         ) {
@@ -142,6 +153,10 @@ class GeckoViewStartup {
             module: "resource://gre/modules/ChildCrashHandler.jsm",
             observers: ["ipc:content-shutdown", "compositor:process-aborted"],
           });
+
+          EventDispatcher.instance.registerListener(this, [
+            "GeckoView:StorageDelegate:Attached",
+          ]);
         }
         break;
       }
@@ -239,6 +254,15 @@ class GeckoViewStartup {
           Ci.nsIPrefLocalizedString,
           pls
         );
+        break;
+
+      case "GeckoView:StorageDelegate:Attached":
+        InitLater(() => {
+          const loginDetection = Cc[
+            "@mozilla.org/login-detection-service;1"
+          ].createInstance(Ci.nsILoginDetectionService);
+          loginDetection.init();
+        });
         break;
     }
   }

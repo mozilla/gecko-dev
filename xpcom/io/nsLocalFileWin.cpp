@@ -10,6 +10,7 @@
 #include "mozilla/TextUtils.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/Utf8.h"
+#include "mozilla/WinHeaderOnlyUtils.h"
 
 #include "nsCOMPtr.h"
 #include "nsMemory.h"
@@ -28,6 +29,7 @@
 #include "nsReadableUtils.h"
 
 #include <direct.h>
+#include <fileapi.h>
 #include <windows.h>
 #include <shlwapi.h>
 #include <aclapi.h>
@@ -1052,7 +1054,7 @@ nsLocalFile::InitWithPath(const nsAString& aFilePath) {
   if (secondChar == L':') {
     // Make sure we have a valid drive, later code assumes the drive letter
     // is a single char a-z or A-Z.
-    if (PathGetDriveNumberW(aFilePath.Data()) == -1) {
+    if (MozPathGetDriveNumber<wchar_t>(aFilePath.Data()) == -1) {
       return NS_ERROR_FILE_UNRECOGNIZED_PATH;
     }
   }
@@ -3122,43 +3124,36 @@ nsLocalFile::SetPersistentDescriptor(const nsACString& aPersistentDescriptor) {
 }
 
 NS_IMETHODIMP
-nsLocalFile::GetFileAttributesWin(uint32_t* aAttribs) {
-  *aAttribs = 0;
+nsLocalFile::GetReadOnly(bool* aReadOnly) {
+  NS_ENSURE_ARG_POINTER(aReadOnly);
+
   DWORD dwAttrs = GetFileAttributesW(mWorkingPath.get());
   if (dwAttrs == INVALID_FILE_ATTRIBUTES) {
     return NS_ERROR_FILE_INVALID_PATH;
   }
 
-  if (!(dwAttrs & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED)) {
-    *aAttribs |= WFA_SEARCH_INDEXED;
-  }
+  *aReadOnly = dwAttrs & FILE_ATTRIBUTE_READONLY;
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsLocalFile::SetFileAttributesWin(uint32_t aAttribs) {
+nsLocalFile::SetReadOnly(bool aReadOnly) {
   DWORD dwAttrs = GetFileAttributesW(mWorkingPath.get());
   if (dwAttrs == INVALID_FILE_ATTRIBUTES) {
     return NS_ERROR_FILE_INVALID_PATH;
   }
 
-  if (aAttribs & WFA_SEARCH_INDEXED) {
-    dwAttrs &= ~FILE_ATTRIBUTE_NOT_CONTENT_INDEXED;
-  } else {
-    dwAttrs |= FILE_ATTRIBUTE_NOT_CONTENT_INDEXED;
-  }
-
-  if (aAttribs & WFA_READONLY) {
+  if (aReadOnly) {
     dwAttrs |= FILE_ATTRIBUTE_READONLY;
-  } else if ((aAttribs & WFA_READWRITE) &&
-             (dwAttrs & FILE_ATTRIBUTE_READONLY)) {
+  } else {
     dwAttrs &= ~FILE_ATTRIBUTE_READONLY;
   }
 
   if (SetFileAttributesW(mWorkingPath.get(), dwAttrs) == 0) {
     return NS_ERROR_FAILURE;
   }
+
   return NS_OK;
 }
 
@@ -3219,6 +3214,36 @@ nsLocalFile::Reveal() {
 
   return NS_DispatchBackgroundTask(task,
                                    nsIEventTarget::DISPATCH_EVENT_MAY_BLOCK);
+}
+
+NS_IMETHODIMP
+nsLocalFile::GetWindowsFileAttributes(uint32_t* aAttrs) {
+  NS_ENSURE_ARG_POINTER(aAttrs);
+
+  DWORD dwAttrs = ::GetFileAttributesW(mWorkingPath.get());
+  if (dwAttrs == INVALID_FILE_ATTRIBUTES) {
+    return ConvertWinError(GetLastError());
+  }
+
+  *aAttrs = dwAttrs;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsLocalFile::SetWindowsFileAttributes(uint32_t aSetAttrs,
+                                      uint32_t aClearAttrs) {
+  DWORD dwAttrs = ::GetFileAttributesW(mWorkingPath.get());
+  if (dwAttrs == INVALID_FILE_ATTRIBUTES) {
+    return ConvertWinError(GetLastError());
+  }
+
+  dwAttrs = (dwAttrs & ~aClearAttrs) | aSetAttrs;
+
+  if (::SetFileAttributesW(mWorkingPath.get(), dwAttrs) == 0) {
+    return ConvertWinError(GetLastError());
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP

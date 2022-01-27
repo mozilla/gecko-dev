@@ -59,6 +59,7 @@
     )
 )]
 #![cfg_attr(feature = "cargo-clippy", deny(clippy::missing_inline_in_public_items))]
+#![doc(html_root_url = "https://docs.rs/typenum/1.15.0")]
 
 // For debugging macros:
 // #![feature(trace_macros)]
@@ -102,16 +103,19 @@ pub use crate::{
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
 /// `core::cmp::Ordering::Greater`.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
+#[cfg_attr(feature = "scale_info", derive(scale_info::TypeInfo))]
 pub struct Greater;
 
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
 /// `core::cmp::Ordering::Less`.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
+#[cfg_attr(feature = "scale_info", derive(scale_info::TypeInfo))]
 pub struct Less;
 
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
 /// `core::cmp::Ordering::Equal`.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
+#[cfg_attr(feature = "scale_info", derive(scale_info::TypeInfo))]
 pub struct Equal;
 
 /// Returns `core::cmp::Ordering::Greater`
@@ -154,4 +158,30 @@ macro_rules! assert_type {
         const _: core::marker::PhantomData<<$a as $crate::Same<True>>::Output> =
             core::marker::PhantomData;
     };
+}
+
+mod sealed {
+    use crate::{
+        ATerm, Bit, Equal, Greater, Less, NInt, NonZero, PInt, TArr, UInt, UTerm, Unsigned, B0, B1,
+        Z0,
+    };
+
+    pub trait Sealed {}
+
+    impl Sealed for B0 {}
+    impl Sealed for B1 {}
+
+    impl Sealed for UTerm {}
+    impl<U: Unsigned, B: Bit> Sealed for UInt<U, B> {}
+
+    impl Sealed for Z0 {}
+    impl<U: Unsigned + NonZero> Sealed for PInt<U> {}
+    impl<U: Unsigned + NonZero> Sealed for NInt<U> {}
+
+    impl Sealed for Less {}
+    impl Sealed for Equal {}
+    impl Sealed for Greater {}
+
+    impl Sealed for ATerm {}
+    impl<V, A> Sealed for TArr<V, A> {}
 }

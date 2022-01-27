@@ -53,7 +53,8 @@ class Http3Stream final : public nsAHttpSegmentReader,
 
   void StopSending();
 
-  void SetResponseHeaders(nsTArray<uint8_t>& aResponseHeaders, bool fin);
+  void SetResponseHeaders(nsTArray<uint8_t>& aResponseHeaders, bool fin,
+                          bool interim);
 
   // Mirrors nsAHttpTransaction
   bool Do0RTT();
@@ -67,7 +68,6 @@ class Http3Stream final : public nsAHttpSegmentReader,
 
   bool GetHeadersString(const char* buf, uint32_t avail, uint32_t* countUsed);
   nsresult StartRequest();
-  void FindRequestContentLength();
 
   void SetPriority(uint32_t aCos);
 
@@ -106,14 +106,19 @@ class Http3Stream final : public nsAHttpSegmentReader,
    * RecvStreamState:
    *  - BEFORE_HEADERS:
    *      The stream has not received headers yet.
-   *  - READING_HEADERS:
-   *      In this state Http3Session::ReadResponseHeaders will be called to read
-   *      the response headers. All headers will be read at once into
+   *  - READING_HEADERS and READING_INTERIM_HEADERS:
+   *      In this state Http3Session::ReadResponseHeaders will be called to
+   *      read the response headers. All headers will be read at once into
    *      mFlatResponseHeaders. The stream will be in this state until all
    *      headers are given to the transaction.
-   *      If the stream has been closed by the server after sending headers the
-   *      stream will transit into RECEIVED_FIN state, otherwise it transits to
-   *      READING_DATA state.
+   *      If the steam was in the READING_INTERIM_HEADERS state it will
+   *      change back to the  BEFORE_HEADERS  state. If the stream has been
+   *      in the READING_HEADERS state it will  change to the READING_DATA
+   *      state. If the stream was closed by the server after sending headers
+   *      the stream will transit into RECEIVED_FIN state. neqo makes sure
+   *      that response headers and data are received in the right order,
+   *      e.g. 1xx cannot be received after a non-1xx response, fin cannot
+   *      follow 1xx response, etc.
    *  - READING_DATA:
    *      In this state Http3Session::ReadResponseData will be called and the
    *      response body will be given to the transaction.
@@ -124,6 +129,7 @@ class Http3Stream final : public nsAHttpSegmentReader,
   enum RecvStreamState {
     BEFORE_HEADERS,
     READING_HEADERS,
+    READING_INTERIM_HEADERS,
     READING_DATA,
     RECEIVED_FIN,
     RECV_DONE
@@ -137,7 +143,6 @@ class Http3Stream final : public nsAHttpSegmentReader,
   bool mDataReceived{false};
   bool mResetRecv{false};
   nsTArray<uint8_t> mFlatResponseHeaders;
-  uint32_t mRequestBodyLenRemaining{0};
   uint64_t mTransactionTabId{0};
   uint64_t mCurrentTopBrowsingContextId;
   uint8_t mPriorityUrgency{3};  // urgency field of http priority

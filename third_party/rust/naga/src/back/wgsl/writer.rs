@@ -12,7 +12,6 @@ type BackendResult = Result<(), Error>;
 /// WGSL [attribute](https://gpuweb.github.io/gpuweb/wgsl/#attributes)
 enum Attribute {
     Binding(u32),
-    Block,
     BuiltIn(crate::BuiltIn),
     Group(u32),
     Interpolate(Option<crate::Interpolation>, Option<crate::Sampling>),
@@ -51,8 +50,18 @@ enum Indirection {
     Reference,
 }
 
+bitflags::bitflags! {
+    #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+    #[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+    pub struct WriterFlags: u32 {
+        /// Always annotate the type information instead of inferring.
+        const EXPLICIT_TYPES = 0x1;
+    }
+}
+
 pub struct Writer<W> {
     out: W,
+    flags: WriterFlags,
     names: crate::FastHashMap<NameKey, String>,
     namer: proc::Namer,
     named_expressions: crate::NamedExpressions,
@@ -60,9 +69,10 @@ pub struct Writer<W> {
 }
 
 impl<W: Write> Writer<W> {
-    pub fn new(out: W) -> Self {
+    pub fn new(out: W, flags: WriterFlags) -> Self {
         Writer {
             out,
+            flags,
             names: crate::FastHashMap::default(),
             namer: proc::Namer::default(),
             named_expressions: crate::NamedExpressions::default(),
@@ -72,8 +82,13 @@ impl<W: Write> Writer<W> {
 
     fn reset(&mut self, module: &Module) {
         self.names.clear();
-        self.namer
-            .reset(module, super::keywords::RESERVED, &[], &mut self.names);
+        self.namer.reset(
+            module,
+            crate::keywords::wgsl::RESERVED,
+            // an identifier must not start with two underscore
+            &["__"],
+            &mut self.names,
+        );
         self.named_expressions.clear();
         self.ep_results.clear();
     }
@@ -91,12 +106,11 @@ impl<W: Write> Writer<W> {
         // Write all structs
         for (handle, ty) in module.types.iter() {
             if let TypeInner::Struct {
-                top_level,
                 ref members,
-                ..
+                span: _,
             } = ty.inner
             {
-                self.write_struct(module, handle, top_level, members)?;
+                self.write_struct(module, handle, members)?;
                 writeln!(self.out)?;
             }
         }
@@ -342,7 +356,6 @@ impl<W: Write> Writer<W> {
 
         for (index, attribute) in attributes.iter().enumerate() {
             match *attribute {
-                Attribute::Block => write!(self.out, "block")?,
                 Attribute::Location(id) => write!(self.out, "location({})", id)?,
                 Attribute::BuiltIn(builtin_attrib) => {
                     if let Some(builtin) = builtin_str(builtin_attrib) {
@@ -416,14 +429,8 @@ impl<W: Write> Writer<W> {
         &mut self,
         module: &Module,
         handle: Handle<crate::Type>,
-        block: bool,
         members: &[crate::StructMember],
     ) -> BackendResult {
-        if block {
-            self.write_attributes(&[Attribute::Block], false)?;
-            writeln!(self.out)?;
-        }
-
         write!(self.out, "struct ")?;
         self.write_struct_name(module, handle)?;
         write!(self.out, " {{")?;
@@ -704,7 +711,7 @@ impl<W: Write> Writer<W> {
                                 }
                             }
 
-                            Some(format!("{}{}", super::BAKE_PREFIX, handle.index()))
+                            Some(format!("{}{}", back::BAKE_PREFIX, handle.index()))
                         } else {
                             None
                         }
@@ -807,7 +814,7 @@ impl<W: Write> Writer<W> {
             } => {
                 write!(self.out, "{}", level)?;
                 if let Some(expr) = result {
-                    let name = format!("{}{}", super::BAKE_PREFIX, expr.index());
+                    let name = format!("{}{}", back::BAKE_PREFIX, expr.index());
                     self.start_named_expr(module, expr, func_ctx, &name)?;
                     self.named_expressions.insert(expr, name);
                 }
@@ -830,7 +837,7 @@ impl<W: Write> Writer<W> {
                 result,
             } => {
                 write!(self.out, "{}", level)?;
-                let res_name = format!("{}{}", super::BAKE_PREFIX, result.index());
+                let res_name = format!("{}{}", back::BAKE_PREFIX, result.index());
                 self.start_named_expr(module, result, func_ctx, &res_name)?;
                 self.named_expressions.insert(result, res_name);
 
@@ -1027,15 +1034,18 @@ impl<W: Write> Writer<W> {
         name: &str,
     ) -> BackendResult {
         // Write variable name
-        write!(self.out, "let {}: ", name)?;
-        let ty = &func_ctx.info[handle].ty;
-        // Write variable type
-        match *ty {
-            proc::TypeResolution::Handle(handle) => {
-                self.write_type(module, handle)?;
-            }
-            proc::TypeResolution::Value(ref inner) => {
-                self.write_value_type(module, inner)?;
+        write!(self.out, "let {}", name)?;
+        if self.flags.contains(WriterFlags::EXPLICIT_TYPES) {
+            write!(self.out, ": ")?;
+            let ty = &func_ctx.info[handle].ty;
+            // Write variable type
+            match *ty {
+                proc::TypeResolution::Handle(handle) => {
+                    self.write_type(module, handle)?;
+                }
+                proc::TypeResolution::Value(ref inner) => {
+                    self.write_value_type(module, inner)?;
+                }
             }
         }
 
@@ -1229,6 +1239,7 @@ impl<W: Write> Writer<W> {
             Expression::ImageSample {
                 image,
                 sampler,
+                gather: None,
                 coordinate,
                 array_index,
                 offset,
@@ -1287,6 +1298,54 @@ impl<W: Write> Writer<W> {
                         write!(self.out, ", ")?;
                         self.write_expr(module, y, func_ctx)?;
                     }
+                }
+
+                if let Some(offset) = offset {
+                    write!(self.out, ", ")?;
+                    self.write_constant(module, offset)?;
+                }
+
+                write!(self.out, ")")?;
+            }
+            Expression::ImageSample {
+                image,
+                sampler,
+                gather: Some(component),
+                coordinate,
+                array_index,
+                offset,
+                level: _,
+                depth_ref,
+            } => {
+                let suffix_cmp = match depth_ref {
+                    Some(_) => "Compare",
+                    None => "",
+                };
+
+                write!(self.out, "textureGather{}(", suffix_cmp)?;
+                match *func_ctx.info[image].ty.inner_with(&module.types) {
+                    TypeInner::Image {
+                        class: crate::ImageClass::Depth { multi: _ },
+                        ..
+                    } => {}
+                    _ => {
+                        write!(self.out, "{}, ", component as u8)?;
+                    }
+                }
+                self.write_expr(module, image, func_ctx)?;
+                write!(self.out, ", ")?;
+                self.write_expr(module, sampler, func_ctx)?;
+                write!(self.out, ", ")?;
+                self.write_expr(module, coordinate, func_ctx)?;
+
+                if let Some(array_index) = array_index {
+                    write!(self.out, ", ")?;
+                    self.write_expr(module, array_index, func_ctx)?;
+                }
+
+                if let Some(depth_ref) = depth_ref {
+                    write!(self.out, ", ")?;
+                    self.write_expr(module, depth_ref, func_ctx)?;
                 }
 
                 if let Some(offset) = offset {
@@ -1468,6 +1527,8 @@ impl<W: Write> Writer<W> {
                     Mf::Asinh => Function::Asincosh { is_sin: true },
                     Mf::Acosh => Function::Asincosh { is_sin: false },
                     Mf::Atanh => Function::Atanh,
+                    Mf::Radians => Function::Regular("radians"),
+                    Mf::Degrees => Function::Regular("degrees"),
                     // decomposition
                     Mf::Ceil => Function::Regular("ceil"),
                     Mf::Floor => Function::Regular("floor"),
@@ -1507,6 +1568,8 @@ impl<W: Write> Writer<W> {
                     Mf::ReverseBits => Function::Regular("reverseBits"),
                     Mf::ExtractBits => Function::Regular("extractBits"),
                     Mf::InsertBits => Function::Regular("insertBits"),
+                    Mf::FindLsb => Function::Regular("findLsb"),
+                    Mf::FindMsb => Function::Regular("findMsb"),
                     // data packing
                     Mf::Pack4x8snorm => Function::Regular("pack4x8snorm"),
                     Mf::Pack4x8unorm => Function::Regular("pack4x8unorm"),
@@ -1624,11 +1687,10 @@ impl<W: Write> Writer<W> {
 
                 let fun_name = match fun {
                     Rf::IsFinite => "isFinite",
-                    Rf::IsInf => "isInf",
-                    Rf::IsNan => "isNan",
                     Rf::IsNormal => "isNormal",
                     Rf::All => "all",
                     Rf::Any => "any",
+                    _ => return Err(Error::UnsupportedRelationalFunction(fun)),
                 };
                 write!(self.out, "{}(", fun_name)?;
 

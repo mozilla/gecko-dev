@@ -1,6 +1,6 @@
 [package]
 name = "wgpu-core"
-version = "0.11.0"
+version = "0.12.0"
 authors = ["wgpu developers"]
 edition = "2018"
 description = "WebGPU core logic on wgpu-hal"
@@ -13,6 +13,7 @@ license = "MIT OR Apache-2.0"
 
 [features]
 default = []
+angle = ["hal/gles"]
 # Enable API tracing
 trace = ["ron", "serde", "wgt/trace", "arrayvec/serde", "naga/serialize"]
 # Enable API replaying
@@ -29,7 +30,7 @@ fxhash = "0.2"
 log = "0.4"
 parking_lot = "0.11"
 profiling = { version = "1", default-features = false }
-raw-window-handle = { version = "0.3", optional = true }
+raw-window-handle = { version = "0.4", optional = true }
 ron = { version = "0.7", optional = true }
 serde = { version = "1.0", features = ["serde_derive"], optional = true }
 smallvec = "1"
@@ -37,32 +38,32 @@ thiserror = "1"
 
 [dependencies.naga]
 git = "https://github.com/gfx-rs/naga"
-rev = "29571cc"
-#version = "0.7"
+rev = "c0b7ac7"
+#version = "0.8"
 features = ["span", "validate", "wgsl-in"]
 
 [dependencies.wgt]
 path = "../wgpu-types"
 package = "wgpu-types"
-version = "0.11"
+version = "0.12"
 
 [dependencies.hal]
 path = "../wgpu-hal"
 package = "wgpu-hal"
-version = "0.11"
+version = "0.12"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-hal = { path = "../wgpu-hal", package = "wgpu-hal", version = "0.11", features = ["gles"] }
+hal = { path = "../wgpu-hal", package = "wgpu-hal", version = "0.12", features = ["gles"] }
 
 [target.'cfg(all(not(target_arch = "wasm32"), any(target_os = "ios", target_os = "macos")))'.dependencies]
-hal = { path = "../wgpu-hal", package = "wgpu-hal", version = "0.11", features = ["metal"] }
+hal = { path = "../wgpu-hal", package = "wgpu-hal", version = "0.12", features = ["metal"] }
 #Note: could also enable "vulkan" for Vulkan Portability
 
 [target.'cfg(all(not(target_arch = "wasm32"), unix, not(target_os = "ios"), not(target_os = "macos")))'.dependencies]
-hal = { path = "../wgpu-hal", package = "wgpu-hal", version = "0.11", features = ["vulkan", "gles", "renderdoc"] }
+hal = { path = "../wgpu-hal", package = "wgpu-hal", version = "0.12", features = ["vulkan", "gles", "renderdoc"] }
 
 [target.'cfg(all(not(target_arch = "wasm32"), windows))'.dependencies]
-hal = { path = "../wgpu-hal", package = "wgpu-hal", version = "0.11", features = ["vulkan", "dx12", "renderdoc"] }
+hal = { path = "../wgpu-hal", package = "wgpu-hal", version = "0.12", features = ["vulkan", "dx12", "renderdoc"] }
 
 [build-dependencies]
 cfg_aliases = "0.1"

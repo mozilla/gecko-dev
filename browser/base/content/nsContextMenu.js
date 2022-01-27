@@ -139,6 +139,7 @@ class nsContextMenu {
         pageUrl: this.browser ? this.browser.currentURI.spec : undefined,
         linkText: this.linkTextStr,
         linkUrl: this.linkURL,
+        linkURI: this.linkURI,
         selectionText: this.isTextSelected
           ? this.selectionInfo.fullText
           : undefined,
@@ -380,9 +381,7 @@ class nsContextMenu {
       this.selectionInfo.linkURL
     ) {
       this.linkURL = this.selectionInfo.linkURL;
-      try {
-        this.linkURI = makeURI(this.linkURL);
-      } catch (ex) {}
+      this.linkURI = this.getLinkURI();
 
       this.linkTextStr = this.selectionInfo.linkText;
       this.onPlainTextLink = true;
@@ -1158,23 +1157,20 @@ class nsContextMenu {
   }
 
   initPasswordControlItems() {
-    let shouldShow = this.onPassword && SHOW_PASSWORD_ENABLED;
+    let shouldShow = this.onPassword && REVEAL_PASSWORD_ENABLED;
     if (shouldShow) {
-      let checked = this.passwordRevealed;
-      let showPasswordMenuItem = document.getElementById(
-        "context-toggle-show-password"
-      );
-      if (checked) {
-        showPasswordMenuItem.setAttribute("checked", "true");
+      let revealPassword = document.getElementById("context-reveal-password");
+      if (this.passwordRevealed) {
+        revealPassword.setAttribute("checked", "true");
       } else {
-        showPasswordMenuItem.removeAttribute("checked");
+        revealPassword.removeAttribute("checked");
       }
     }
-    this.showItem("context-toggle-show-password", shouldShow);
+    this.showItem("context-reveal-password", shouldShow);
   }
 
-  toggleShowPassword() {
-    this.actor.toggleShowPassword(this.targetIdentifier);
+  toggleRevealPassword() {
+    this.actor.toggleRevealPassword(this.targetIdentifier);
   }
 
   openPasswordManager() {
@@ -2267,7 +2263,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
-  "SHOW_PASSWORD_ENABLED",
-  "layout.forms.input-type-show-password-button.enabled",
+  "REVEAL_PASSWORD_ENABLED",
+  "layout.forms.reveal-password-context-menu.enabled",
   false
 );

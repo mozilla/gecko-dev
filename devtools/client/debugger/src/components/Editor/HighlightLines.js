@@ -3,7 +3,6 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import { Component } from "react";
-import { range, isEmpty } from "lodash";
 import { connect } from "../../utils/connect";
 import { getHighlightedLineRange } from "../../selectors";
 
@@ -29,15 +28,15 @@ class HighlightLines extends Component {
 
     const { codeMirror } = editor;
 
-    if (isEmpty(highlightedLineRange) || !codeMirror) {
+    if (!highlightedLineRange || !codeMirror) {
       return;
     }
 
     const { start, end } = highlightedLineRange;
     codeMirror.operation(() => {
-      range(start - 1, end).forEach(line => {
+      for (let line = start - 1; line < end; line++) {
         codeMirror.removeLineClass(line, "wrapClass", "highlight-lines");
-      });
+      }
     });
   }
 
@@ -46,7 +45,7 @@ class HighlightLines extends Component {
 
     const { codeMirror } = editor;
 
-    if (isEmpty(highlightedLineRange) || !codeMirror) {
+    if (!highlightedLineRange || !codeMirror) {
       return;
     }
 
@@ -54,10 +53,9 @@ class HighlightLines extends Component {
 
     codeMirror.operation(() => {
       editor.alignLine(start);
-
-      range(start - 1, end).forEach(line => {
+      for (let line = start - 1; line < end; line++) {
         codeMirror.addLineClass(line, "wrapClass", "highlight-lines");
-      });
+      }
     });
   };
 

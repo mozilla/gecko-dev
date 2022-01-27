@@ -39,7 +39,7 @@ XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
  *     Unique id of a given context for the provided type.
  *     For CONTEXT_DESCRIPTOR_TYPES.ALL, id can be ommitted.
  *     For CONTEXT_DESCRIPTOR_TYPES.TOP_BROWSING_CONTEXT, the id should be a
- *     browserId.
+ *     WindowManager UUID created by `getIdForBrowser`.
  */
 
 // Enum of ContextDescriptor types.
@@ -102,32 +102,6 @@ class MessageHandler extends EventEmitter {
     return this._sessionId;
   }
 
-  /**
-   * Check if the command can be handled from this MessageHandler node.
-   *
-   * @param {Command} command
-   *     The command to check. See type definition in MessageHandler.js
-   * @throws {Error}
-   *     Throws if there is no module supporting the provided command on the
-   *     path to the command's destination
-   */
-  checkCommand(command) {
-    const { commandName, destination, moduleName } = command;
-
-    // Retrieve all the modules classes which can be used to reach the
-    // command's destination.
-    const moduleClasses = this._moduleCache.getAllModuleClasses(
-      moduleName,
-      destination
-    );
-
-    if (!moduleClasses.some(cls => cls.supportsMethod(commandName))) {
-      throw new error.UnsupportedCommandError(
-        `${moduleName}.${commandName} not supported for destination ${destination?.type}`
-      );
-    }
-  }
-
   destroy() {
     logger.trace(
       `MessageHandler ${this.constructor.type} for session ${this.sessionId} is being destroyed`
@@ -140,19 +114,27 @@ class MessageHandler extends EventEmitter {
   }
 
   /**
-   * Emit a message-handler-event. Such events should bubble up to the root of
-   * a MessageHandler network.
+   * Emit a message handler event.
    *
-   * @param {String} method
-   *     A string literal of the form [module name].[event name]. This is the
-   *     event name.
-   * @param {Object} params
-   *     The event parameters.
+   * Such events should bubble up to the root of a MessageHandler network.
+   *
+   * @param {String} name
+   *     Name of the event. Protocol level events should be of the
+   *     form [module name].[event name].
+   * @param {Object} data
+   *     The event's data.
+   * @param {Object=} options
+   * @param {boolean=} options.isProtocolEvent
+   *     Flag that indicates if it is a protocol or internal event.
+   *     Defaults to `false`.
    */
-  emitMessageHandlerEvent(method, params) {
+  emitEvent(name, data, options = {}) {
+    const { isProtocolEvent = false } = options;
+
     this.emit("message-handler-event", {
-      method,
-      params,
+      name,
+      data,
+      isProtocolEvent,
       sessionId: this.sessionId,
     });
   }
@@ -184,6 +166,21 @@ class MessageHandler extends EventEmitter {
    */
 
   /**
+   * Retrieve all module classes matching the moduleName and destination.
+   * See `getAllModuleClasses` (ModuleCache.jsm) for more details.
+   *
+   * @param {String} moduleName
+   *     The name of the module.
+   * @param {Destination} destination
+   *     The destination.
+   * @return {Array.<class<Module>=>}
+   *     An array of Module classes.
+   */
+  getAllModuleClasses(moduleName, destination) {
+    return this._moduleCache.getAllModuleClasses(moduleName, destination);
+  }
+
+  /**
    * Handle a command, either in one of the modules owned by this MessageHandler
    * or in a another MessageHandler after forwarding the command.
    *
@@ -199,7 +196,16 @@ class MessageHandler extends EventEmitter {
       `Received command ${moduleName}.${commandName} for destination ${destination.type}`
     );
 
-    this.checkCommand(command);
+    const supportsCommand = this.getAllModuleClasses(
+      moduleName,
+      destination
+    ).some(cls => cls.supportsMethod(commandName));
+
+    if (!supportsCommand) {
+      throw new error.UnsupportedCommandError(
+        `${moduleName}.${commandName} not supported for destination ${destination?.type}`
+      );
+    }
 
     const module = this._moduleCache.getModuleInstance(moduleName, destination);
     if (module && module.supportsMethod(commandName)) {

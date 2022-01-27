@@ -15,9 +15,12 @@
 #include "mozilla/NotNull.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/TimeStamp.h"
+#include "mozilla/dom/AnimationFrameProvider.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageBitmapSource.h"
 #include "mozilla/dom/SafeRefPtr.h"
+#include "mozilla/dom/WorkerPrivate.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIGlobalObject.h"
@@ -34,6 +37,7 @@ class nsISerialEventTarget;
 
 namespace mozilla {
 class ErrorResult;
+struct VsyncEvent;
 
 namespace extensions {
 
@@ -68,9 +72,11 @@ class ServiceWorkerDescriptor;
 class ServiceWorkerRegistration;
 class ServiceWorkerRegistrationDescriptor;
 struct StructuredSerializeOptions;
+class WorkerDocumentListener;
 class WorkerLocation;
 class WorkerNavigator;
 class WorkerPrivate;
+class VsyncWorkerChild;
 struct RequestInit;
 
 namespace cache {
@@ -88,7 +94,7 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(WorkerGlobalScopeBase,
                                                          DOMEventTargetHelper)
 
-  WorkerGlobalScopeBase(NotNull<WorkerPrivate*> aWorkerPrivate,
+  WorkerGlobalScopeBase(WorkerPrivate* aWorkerPrivate,
                         UniquePtr<ClientSource> aClientSource);
 
   virtual bool WrapGlobalObject(JSContext* aCx,
@@ -157,7 +163,7 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
  protected:
   ~WorkerGlobalScopeBase();
 
-  const NotNull<WorkerPrivate*> mWorkerPrivate;
+  CheckedUnsafePtr<WorkerPrivate> mWorkerPrivate;
 
  private:
   RefPtr<Console> mConsole;
@@ -301,6 +307,11 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase,
 
   void StorageAccessPermissionGranted();
 
+  virtual void OnDocumentVisible(bool aVisible) {}
+
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  virtual void OnVsync(const VsyncEvent& aVsync) {}
+
  protected:
   ~WorkerGlobalScope();
 
@@ -330,7 +341,11 @@ class DedicatedWorkerGlobalScope final
     : public WorkerGlobalScope,
       public workerinternals::NamedWorkerGlobalScopeMixin {
  public:
-  DedicatedWorkerGlobalScope(NotNull<WorkerPrivate*> aWorkerPrivate,
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(
+      DedicatedWorkerGlobalScope, WorkerGlobalScope)
+
+  DedicatedWorkerGlobalScope(WorkerPrivate* aWorkerPrivate,
                              UniquePtr<ClientSource> aClientSource,
                              const nsString& aName);
 
@@ -346,18 +361,35 @@ class DedicatedWorkerGlobalScope final
 
   void Close();
 
+  MOZ_CAN_RUN_SCRIPT
+  int32_t RequestAnimationFrame(FrameRequestCallback& aCallback,
+                                ErrorResult& aError);
+
+  MOZ_CAN_RUN_SCRIPT
+  void CancelAnimationFrame(int32_t aHandle, ErrorResult& aError);
+
+  void OnDocumentVisible(bool aVisible) override;
+
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  void OnVsync(const VsyncEvent& aVsync) override;
+
   IMPL_EVENT_HANDLER(message)
   IMPL_EVENT_HANDLER(messageerror)
 
  private:
   ~DedicatedWorkerGlobalScope() = default;
+
+  FrameRequestManager mFrameRequestManager;
+  RefPtr<VsyncWorkerChild> mVsyncChild;
+  RefPtr<WorkerDocumentListener> mDocListener;
+  bool mDocumentVisible = false;
 };
 
 class SharedWorkerGlobalScope final
     : public WorkerGlobalScope,
       public workerinternals::NamedWorkerGlobalScopeMixin {
  public:
-  SharedWorkerGlobalScope(NotNull<WorkerPrivate*> aWorkerPrivate,
+  SharedWorkerGlobalScope(WorkerPrivate* aWorkerPrivate,
                           UniquePtr<ClientSource> aClientSource,
                           const nsString& aName);
 
@@ -379,8 +411,7 @@ class ServiceWorkerGlobalScope final : public WorkerGlobalScope {
                                            WorkerGlobalScope)
 
   ServiceWorkerGlobalScope(
-      NotNull<WorkerPrivate*> aWorkerPrivate,
-      UniquePtr<ClientSource> aClientSource,
+      WorkerPrivate* aWorkerPrivate, UniquePtr<ClientSource> aClientSource,
       const ServiceWorkerRegistrationDescriptor& aRegistrationDescriptor);
 
   bool WrapGlobalObject(JSContext* aCx,

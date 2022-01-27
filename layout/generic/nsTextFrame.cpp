@@ -2158,8 +2158,19 @@ static already_AddRefed<gfxTextRun> GetHyphenTextRun(nsTextFrame* aTextFrame,
 
   RefPtr<nsFontMetrics> fm =
       nsLayoutUtils::GetInflatedFontMetricsForFrame(aTextFrame);
-  return fm->GetThebesFontGroup()->MakeHyphenTextRun(
-      dt, aTextFrame->PresContext()->AppUnitsPerDevPixel());
+  auto* fontGroup = fm->GetThebesFontGroup();
+  auto appPerDev = aTextFrame->PresContext()->AppUnitsPerDevPixel();
+  const auto& hyphenateChar = aTextFrame->StyleText()->mHyphenateCharacter;
+  gfx::ShapedTextFlags flags =
+      nsLayoutUtils::GetTextRunOrientFlagsForStyle(aTextFrame->Style());
+  if (hyphenateChar.IsAuto()) {
+    return fontGroup->MakeHyphenTextRun(dt, flags, appPerDev);
+  }
+  auto* missingFonts = aTextFrame->PresContext()->MissingFontRecorder();
+  const NS_ConvertUTF8toUTF16 hyphenStr(hyphenateChar.AsString().AsString());
+  return fontGroup->MakeTextRun(hyphenStr.BeginReading(), hyphenStr.Length(),
+                                dt, appPerDev, flags, nsTextFrameUtils::Flags(),
+                                missingFonts);
 }
 
 already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
@@ -2241,8 +2252,8 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
     }
     fontStyle = f->StyleFont();
     nsIFrame* parent = mLineContainer->GetParent();
-    if (NS_MATHML_MATHVARIANT_NONE != fontStyle->mMathVariant) {
-      if (NS_MATHML_MATHVARIANT_NORMAL != fontStyle->mMathVariant) {
+    if (StyleMathVariant::None != fontStyle->mMathVariant) {
+      if (StyleMathVariant::Normal != fontStyle->mMathVariant) {
         anyMathMLStyling = true;
       }
     } else if (mLineContainer->HasAnyStateBits(NS_FRAME_IS_IN_SINGLE_CHAR_MI)) {
@@ -3293,6 +3304,10 @@ nsTextFrame::PropertyProvider::PropertyProvider(
   NS_ASSERTION(mTextRun, "Textrun not initialized!");
 }
 
+gfx::ShapedTextFlags nsTextFrame::PropertyProvider::GetShapedTextFlags() const {
+  return nsLayoutUtils::GetTextRunOrientFlagsForStyle(mFrame->Style());
+}
+
 already_AddRefed<DrawTarget> nsTextFrame::PropertyProvider::GetDrawTarget()
     const {
   return CreateReferenceDrawTarget(GetFrame());
@@ -3554,7 +3569,8 @@ static gfxFloat AdvanceToNextTab(gfxFloat aX, gfxFloat aTabWidth,
                                  gfxFloat aMinAdvance) {
   // Advance aX to the next multiple of aTabWidth. We must advance
   // by at least aMinAdvance.
-  return ceil((aX + aMinAdvance) / aTabWidth) * aTabWidth;
+  gfxFloat nextPos = aX + aMinAdvance;
+  return aTabWidth > 0.0 ? ceil(nextPos / aTabWidth) * aTabWidth : nextPos;
 }
 
 void nsTextFrame::PropertyProvider::CalcTabWidths(Range aRange,
@@ -3641,7 +3657,13 @@ void nsTextFrame::PropertyProvider::CalcTabWidths(Range aRange,
 
 gfxFloat nsTextFrame::PropertyProvider::GetHyphenWidth() const {
   if (mHyphenWidth < 0) {
-    mHyphenWidth = GetFontGroup()->GetHyphenWidth(this);
+    const auto& hyphenateChar = mTextStyle->mHyphenateCharacter;
+    if (hyphenateChar.IsAuto()) {
+      mHyphenWidth = GetFontGroup()->GetHyphenWidth(this);
+    } else {
+      RefPtr<gfxTextRun> hyphRun = GetHyphenTextRun(mFrame, nullptr);
+      mHyphenWidth = hyphRun ? hyphRun->GetAdvanceWidth() : 0;
+    }
   }
   return mHyphenWidth + mLetterSpacing;
 }
@@ -7032,20 +7054,25 @@ void nsTextFrame::DrawTextRun(Range aRange, const gfx::Point& aTextBaselinePt,
   if (aParams.drawSoftHyphen) {
     // Don't use ctx as the context, because we need a reference context here,
     // ctx may be transformed.
+    DrawTextRunParams params = aParams;
+    params.provider = nullptr;
+    params.advanceWidth = nullptr;
     RefPtr<gfxTextRun> hyphenTextRun = GetHyphenTextRun(this, nullptr);
     if (hyphenTextRun) {
+      gfx::Point p(aTextBaselinePt);
+      bool vertical = GetWritingMode().IsVertical();
       // For right-to-left text runs, the soft-hyphen is positioned at the left
       // of the text, minus its own width
-      float hyphenBaselineX =
-          aTextBaselinePt.x +
+      float shift =
           mTextRun->GetDirection() * (*aParams.advanceWidth) -
           (mTextRun->IsRightToLeft() ? hyphenTextRun->GetAdvanceWidth() : 0);
-      DrawTextRunParams params = aParams;
-      params.provider = nullptr;
-      params.advanceWidth = nullptr;
-      ::DrawTextRun(hyphenTextRun.get(),
-                    gfx::Point(hyphenBaselineX, aTextBaselinePt.y),
-                    Range(hyphenTextRun.get()), params, this);
+      if (vertical) {
+        p.y += shift;
+      } else {
+        p.x += shift;
+      }
+      ::DrawTextRun(hyphenTextRun.get(), p, Range(hyphenTextRun.get()), params,
+                    this);
     }
   }
 }
@@ -10277,8 +10304,9 @@ void nsTextFrame::ToCString(nsCString& aBuf) const {
     return;
   }
 
-  const uint32_t contentLength = AssertedCast<uint32_t>(GetContentLength());
-  if (0 == contentLength) {
+  const int32_t length = GetContentEnd() - mContentOffset;
+  if (length <= 0) {
+    // Negative lengths are possible during invalidation.
     return;
   }
 
@@ -10308,7 +10336,7 @@ nsresult nsTextFrame::GetFrameName(nsAString& aResult) const {
   MakeFrameName(u"Text"_ns, aResult);
   nsAutoCString tmp;
   ToCString(tmp);
-  tmp.SetLength(std::min(tmp.Length(), 50u));
+  tmp.SetLength(std::min<size_t>(tmp.Length(), 50u));
   aResult += u"\""_ns + NS_ConvertASCIItoUTF16(tmp) + u"\""_ns;
   return NS_OK;
 }
@@ -10466,7 +10494,7 @@ uint32_t nsTextFrame::CountGraphemeClusters() const {
   nsAutoString content;
   frag->AppendTo(content, AssertedCast<uint32_t>(GetContentOffset()),
                  AssertedCast<uint32_t>(GetContentLength()));
-  return unicode::CountGraphemeClusters(content.Data(), content.Length());
+  return unicode::CountGraphemeClusters(content);
 }
 
 bool nsTextFrame::HasNonSuppressedText() const {

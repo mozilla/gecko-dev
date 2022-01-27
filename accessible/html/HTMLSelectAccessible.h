@@ -67,7 +67,6 @@ class HTMLSelectOptionAccessible : public HyperTextAccessibleWrap {
   virtual uint64_t NativeState() const override;
   virtual uint64_t NativeInteractiveState() const override;
 
-  virtual int32_t GetLevelInternal() override;
   virtual nsRect RelativeBounds(nsIFrame** aBoundingFrame) const override;
   virtual void SetSelected(bool aSelect) override;
 
@@ -206,7 +205,6 @@ class HTMLComboboxListAccessible : public HTMLSelectListAccessible {
   virtual ~HTMLComboboxListAccessible() {}
 
   // LocalAccessible
-  virtual nsIFrame* GetFrame() const override;
   virtual a11y::role NativeRole() const override;
   virtual uint64_t NativeState() const override;
   virtual nsRect RelativeBounds(nsIFrame** aBoundingFrame) const override;

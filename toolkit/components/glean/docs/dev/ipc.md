@@ -109,6 +109,15 @@ We will make a best effort during an orderly shutdown to flush all pending data 
 This means a disorderly shutdown (usually a crash)
 may result in child process data being lost.
 
+#### Size
+
+We don't measure or keep an up-to-date calculation of the size of the IPC Payload.
+We do, however, keep a count of the number of times the IPC Payload has been accessed.
+This is used as a (very) conservative estimate of the size of the IPC Payload so we do not exceed the
+[IPC message size limit](https://searchfox.org/mozilla-central/search?q=kMaximumMessageSize).
+
+See [bug 1745660](https://bugzilla.mozilla.org/show_bug.cgi?id=1745660).
+
 ### Mechanics
 
 The rough design is that the parent process can request an immediate flush of pending data,
@@ -127,10 +136,13 @@ Rust is then responsible for turning the pending data into
 FOG supports messaging between the following types of child process and the parent process:
 * content children (via `PContent`
   (for now. See [bug 1641989](https://bugzilla.mozilla.org/show_bug.cgi?id=1641989))
+* gmp children (via `PGMP`)
 * gpu children (via `PGPU`)
+* rdd children (via `PRDD`)
+* socket children (via `PSocketProcess`)
 
 See
-[the process model docs](../../../../dom/ipc/process_model.html)
+[the process model docs](/dom/ipc/process_model.rst)
 for more information about what that means.
 
 ### Adding Support for a new Process Type
@@ -164,3 +176,5 @@ mentioned above in "Mechanics" to another process type's protocol (ipdl file).
       (like how `PROCESS_TYPE_DEFAULT` is handled)
     * Or it might be custom code
       (like `PROCESS_TYPE_CONTENT`'s)
+6. Add to the documented [list of supported process types](#supported-process-types)
+   the process type you added support for.

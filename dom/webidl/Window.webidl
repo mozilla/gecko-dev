@@ -19,6 +19,7 @@
  * https://wicg.github.io/visual-viewport/#the-visualviewport-interface
  */
 
+interface Principal;
 interface nsIBrowserDOMWindow;
 interface XULControllers;
 interface nsIDOMWindowUtils;
@@ -386,12 +387,8 @@ partial interface Window {
   [Throws, NeedsCallerType] attribute any outerHeight;
 };
 
-// https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/RequestAnimationFrame/Overview.html
-partial interface Window {
-  [Throws] long requestAnimationFrame(FrameRequestCallback callback);
-  [Throws] void cancelAnimationFrame(long handle);
-};
-callback FrameRequestCallback = void (DOMHighResTimeStamp time);
+// https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#animation-frames
+Window includes AnimationFrameProvider;
 
 // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html
 partial interface Window {
@@ -552,6 +549,23 @@ partial interface Window {
 
   [Pure, ChromeOnly]
   readonly attribute WindowGlobalChild? windowGlobalChild;
+
+  /**
+   * The principal of the client source of the window. This is supposed to be
+   * used for the service worker.
+   *
+   * This is used for APIs like https://w3c.github.io/push-api/ that extend
+   * ServiceWorkerRegistration and therefore need to operate consistently with
+   * ServiceWorkers and its Clients API. The client principal is the appropriate
+   * principal to pass to all nsIServiceWorkerManager APIs.
+   *
+   * Note that the client principal will be different from the node principal of
+   * the window's document if the window is in a third-party context when dFPI
+   * is enabled. In this case, the client principal will be the partitioned
+   * principal to support the service worker partitioning.
+   */
+  [ChromeOnly]
+  readonly attribute Principal? clientPrincipal;
 };
 
 Window includes TouchEventHandlers;

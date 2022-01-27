@@ -702,13 +702,23 @@ class nsContentUtils {
     eParseHTMLInteger_Negative = 1 << 5,
   };
   static int32_t ParseHTMLInteger(const nsAString& aValue,
+                                  ParseHTMLIntegerResultFlags* aResult) {
+    return ParseHTMLInteger(aValue.BeginReading(), aValue.EndReading(),
+                            aResult);
+  }
+  static int32_t ParseHTMLInteger(const char16_t* aStart, const char16_t* aEnd,
                                   ParseHTMLIntegerResultFlags* aResult);
   static int32_t ParseHTMLInteger(const nsACString& aValue,
+                                  ParseHTMLIntegerResultFlags* aResult) {
+    return ParseHTMLInteger(aValue.BeginReading(), aValue.EndReading(),
+                            aResult);
+  }
+  static int32_t ParseHTMLInteger(const char* aStart, const char* aEnd,
                                   ParseHTMLIntegerResultFlags* aResult);
 
  private:
-  template <class StringT>
-  static int32_t ParseHTMLIntegerImpl(const StringT& aValue,
+  template <class CharT>
+  static int32_t ParseHTMLIntegerImpl(const CharT* aStart, const CharT* aEnd,
                                       ParseHTMLIntegerResultFlags* aResult);
 
  public:
@@ -889,6 +899,10 @@ class nsContentUtils {
   // the principal
   static bool IsExactSitePermDeny(nsIPrincipal* aPrincipal,
                                   const nsACString& aType);
+
+  // Returns true if the pref exists and is not UNKNOWN_ACTION.
+  static bool HasExactSitePerm(nsIPrincipal* aPrincipal,
+                               const nsACString& aType);
 
   // Returns true if aDoc1 and aDoc2 have equal NodePrincipal()s.
   static bool HaveEqualPrincipals(Document* aDoc1, Document* aDoc2);
@@ -1443,7 +1457,8 @@ class nsContentUtils {
    * @param aChild    The node to fire DOMNodeRemoved at.
    * @param aParent   The parent of aChild.
    */
-  static void MaybeFireNodeRemoved(nsINode* aChild, nsINode* aParent);
+  MOZ_CAN_RUN_SCRIPT static void MaybeFireNodeRemoved(nsINode* aChild,
+                                                      nsINode* aParent);
 
   /**
    * These methods create and dispatch a trusted event.
@@ -1898,13 +1913,15 @@ class nsContentUtils {
    * Will reuse the first text child if one is available. Will not reuse
    * existing cdata children.
    *
+   * TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
+   *
    * @param aContent Node to set contents of.
    * @param aValue   Value to set contents to.
    * @param aTryReuse When true, the function will try to reuse an existing
    *                  textnodes rather than always creating a new one.
    */
-  static nsresult SetNodeTextContent(nsIContent* aContent,
-                                     const nsAString& aValue, bool aTryReuse);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY static nsresult SetNodeTextContent(
+      nsIContent* aContent, const nsAString& aValue, bool aTryReuse);
 
   /**
    * Get the textual contents of a node. This is a concatenation of all
@@ -2098,15 +2115,6 @@ class nsContentUtils {
    * Check whether an application should be allowed to use offline APIs.
    */
   static bool OfflineAppAllowed(nsIPrincipal* aPrincipal);
-
-  /**
-   * Determine whether the principal or document is allowed access to the
-   * localization system. We don't want the web to ever see this but all our UI
-   * including in content pages should pass this test.  aDocumentURI may be
-   * null.
-   */
-  static bool PrincipalAllowsL10n(nsIPrincipal& aPrincipal,
-                                  nsIURI* aDocumentURI);
 
   /**
    * Increases the count of blockers preventing scripts from running.
@@ -3310,7 +3318,7 @@ class nsContentUtils {
    *
    * Returns an empty string if aURL is null.
    */
-  static nsCString TruncatedURLForDisplay(nsIURI* aURL, uint32_t aMaxLen = 128);
+  static nsCString TruncatedURLForDisplay(nsIURI* aURL, size_t aMaxLen = 128);
 
  private:
   static bool InitializeEventTable();

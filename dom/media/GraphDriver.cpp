@@ -508,7 +508,10 @@ AudioCallbackDriver::AudioCallbackDriver(
       mAudioStreamState(AudioStreamState::None),
       mFallback("AudioCallbackDriver::mFallback"),
       mSandboxed(CubebUtils::SandboxEnabled()) {
-  LOG(LogLevel::Debug, ("%p: AudioCallbackDriver ctor", Graph()));
+  LOG(LogLevel::Debug, ("%p: AudioCallbackDriver %p ctor - input: device %p, "
+                        "channel %d, output: device %p, channel %d",
+                        Graph(), this, mInputDeviceID, mInputChannelCount,
+                        mOutputDeviceID, mOutputChannelCount));
 
   NS_WARNING_ASSERTION(mOutputChannelCount != 0,
                        "Invalid output channel count");
@@ -543,7 +546,6 @@ bool IsMacbookOrMacbookAir() {
     UniquePtr<char[]> model(new char[len]);
     // This string can be
     // MacBook%d,%d for a normal MacBook
-    // MacBookPro%d,%d for a MacBook Pro
     // MacBookAir%d,%d for a Macbook Air
     sysctlbyname("hw.model", model.get(), &len, NULL, 0);
     char* substring = strstr(model.get(), "MacBook");

@@ -2243,10 +2243,12 @@ struct GlobalProperties {
   bool FileReader : 1;
   bool FormData : 1;
   bool Headers : 1;
+  bool IOUtils : 1;
   bool InspectorUtils : 1;
   bool MessageChannel : 1;
   bool Node : 1;
   bool NodeFilter : 1;
+  bool PathUtils : 1;
   bool Performance : 1;
   bool PromiseDebugging : 1;
   bool Range : 1;
@@ -2259,6 +2261,9 @@ struct GlobalProperties {
   bool WebSocket : 1;
   bool Window : 1;
   bool XMLSerializer : 1;
+#ifdef MOZ_DOM_STREAMS
+  bool ReadableStream : 1;
+#endif
 
   // Ad-hoc property names we implement.
   bool atob : 1;
@@ -2270,8 +2275,6 @@ struct GlobalProperties {
   bool indexedDB : 1;
   bool isSecureContext : 1;
   bool rtcIdentityProvider : 1;
-  bool glean : 1;
-  bool gleanPings : 1;
 
  private:
   bool Define(JSContext* cx, JS::HandleObject obj);

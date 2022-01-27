@@ -74,7 +74,9 @@ void RemoteAccessibleWrap::Value(nsString& aValue) const {
 
 uint64_t RemoteAccessibleWrap::State() { return Proxy()->State(); }
 
-nsIntRect RemoteAccessibleWrap::Bounds() const { return Proxy()->Bounds(); }
+mozilla::LayoutDeviceIntRect RemoteAccessibleWrap::Bounds() const {
+  return Proxy()->Bounds();
+}
 
 void RemoteAccessibleWrap::ScrollTo(uint32_t aHow) const {
   Proxy()->ScrollTo(aHow);
@@ -110,11 +112,6 @@ void RemoteAccessibleWrap::PivotTo(int32_t aGranularity, bool aForward,
                                    bool aInclusive) {
   Unused << Proxy()->Document()->GetPlatformExtension()->SendPivot(
       Proxy()->ID(), aGranularity, aForward, aInclusive);
-}
-
-void RemoteAccessibleWrap::ExploreByTouch(float aX, float aY) {
-  Unused << Proxy()->Document()->GetPlatformExtension()->SendExploreByTouch(
-      Proxy()->ID(), aX, aY);
 }
 
 void RemoteAccessibleWrap::NavigateText(int32_t aGranularity,

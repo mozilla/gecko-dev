@@ -53,16 +53,20 @@ fn main() {
     // 128-bit integers stabilized in Rust 1.26:
     // https://blog.rust-lang.org/2018/05/10/Rust-1.26.html
     //
-    // Disabled on Emscripten targets as Emscripten doesn't
-    // currently support integers larger than 64 bits.
-    if minor >= 26 && !emscripten {
+    // Disabled on Emscripten targets before Rust 1.40 since
+    // Emscripten did not support 128-bit integers until Rust 1.40
+    // (https://github.com/rust-lang/rust/pull/65251)
+    if minor >= 26 && (!emscripten || minor >= 40) {
         println!("cargo:rustc-cfg=integer128");
     }
 
     // Inclusive ranges methods stabilized in Rust 1.27:
     // https://github.com/rust-lang/rust/pull/50758
+    // Also Iterator::try_for_each:
+    // https://blog.rust-lang.org/2018/06/21/Rust-1.27.html#library-stabilizations
     if minor >= 27 {
         println!("cargo:rustc-cfg=range_inclusive");
+        println!("cargo:rustc-cfg=iterator_try_fold");
     }
 
     // Non-zero integers stabilized in Rust 1.28:
@@ -87,13 +91,14 @@ fn main() {
 
         // Whitelist of archs that support std::sync::atomic module. Ideally we
         // would use #[cfg(target_has_atomic = "...")] but it is not stable yet.
-        // Instead this is based on rustc's src/librustc_target/spec/*.rs.
+        // Instead this is based on rustc's compiler/rustc_target/src/spec/*.rs.
         let has_atomic64 = target.starts_with("x86_64")
             || target.starts_with("i686")
             || target.starts_with("aarch64")
             || target.starts_with("powerpc64")
             || target.starts_with("sparc64")
-            || target.starts_with("mips64el");
+            || target.starts_with("mips64el")
+            || target.starts_with("riscv64");
         let has_atomic32 = has_atomic64 || emscripten;
         if has_atomic64 {
             println!("cargo:rustc-cfg=std_atomic64");

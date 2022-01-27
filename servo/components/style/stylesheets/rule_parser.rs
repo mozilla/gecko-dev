@@ -17,13 +17,13 @@ use crate::stylesheets::document_rule::DocumentCondition;
 use crate::stylesheets::font_feature_values_rule::parse_family_name_list;
 use crate::stylesheets::import_rule::ImportLayer;
 use crate::stylesheets::keyframes_rule::parse_keyframe_list;
-use crate::stylesheets::layer_rule::{LayerName, LayerRuleKind};
+use crate::stylesheets::layer_rule::{LayerBlockRule, LayerName, LayerStatementRule};
 use crate::stylesheets::scroll_timeline_rule::ScrollTimelineDescriptors;
 use crate::stylesheets::stylesheet::Namespaces;
 use crate::stylesheets::supports_rule::SupportsCondition;
 use crate::stylesheets::{
     viewport_rule, AllowImportRules, CorsMode, CssRule, CssRuleType, CssRules, DocumentRule,
-    FontFeatureValuesRule, KeyframesRule, LayerRule, MediaRule, NamespaceRule, PageRule,
+    FontFeatureValuesRule, KeyframesRule, MediaRule, NamespaceRule, PageRule, PageSelectors,
     RulesMutateError, ScrollTimelineRule, StyleRule, StylesheetLoader, SupportsRule, ViewportRule,
 };
 use crate::values::computed::font::FamilyName;
@@ -168,8 +168,8 @@ pub enum AtRulePrelude {
     Viewport,
     /// A @keyframes rule, with its animation name and vendor prefix if exists.
     Keyframes(KeyframesName, Option<VendorPrefix>),
-    /// A @page rule prelude.
-    Page,
+    /// A @page rule prelude, with its page name if it exists.
+    Page(PageSelectors),
     /// A @document rule, with its conditional.
     Document(DocumentCondition),
     /// A @import rule prelude.
@@ -464,7 +464,11 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 AtRulePrelude::Keyframes(name, prefix)
             },
             "page" if cfg!(feature = "gecko") => {
-                AtRulePrelude::Page
+                AtRulePrelude::Page(if static_prefs::pref!("layout.css.named-pages.enabled") {
+                    input.try_parse(|i| PageSelectors::parse(self.context, i)).unwrap_or_default()
+                } else {
+                    PageSelectors::default()
+                })
             },
             "-moz-document" if cfg!(feature = "gecko") => {
                 let cond = DocumentCondition::parse(self.context, input)?;
@@ -577,7 +581,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     },
                 ))))
             },
-            AtRulePrelude::Page => {
+            AtRulePrelude::Page(selectors) => {
                 let context = ParserContext::new_with_rule_type(
                     self.context,
                     CssRuleType::Page,
@@ -586,6 +590,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
 
                 let declarations = parse_property_declaration_list(&context, input, None);
                 Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule {
+                    selectors,
                     block: Arc::new(self.shared_lock.wrap(declarations)),
                     source_location: start.source_location(),
                 }))))
@@ -607,13 +612,13 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     0 | 1 => names.into_iter().next(),
                     _ => return Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 };
-                Ok(CssRule::Layer(Arc::new(self.shared_lock.wrap(LayerRule {
-                    kind: LayerRuleKind::Block {
+                Ok(CssRule::LayerBlock(Arc::new(self.shared_lock.wrap(
+                    LayerBlockRule {
                         name,
-                        rules: self.parse_nested_rules(input, CssRuleType::Layer),
+                        rules: self.parse_nested_rules(input, CssRuleType::LayerBlock),
+                        source_location: start.source_location(),
                     },
-                    source_location: start.source_location(),
-                }))))
+                ))))
             },
             AtRulePrelude::Import(..) | AtRulePrelude::Namespace(..) => {
                 // These rules don't have blocks.
@@ -648,8 +653,8 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 if names.is_empty() {
                     return Err(());
                 }
-                CssRule::Layer(Arc::new(self.shared_lock.wrap(LayerRule {
-                    kind: LayerRuleKind::Statement { names },
+                CssRule::LayerStatement(Arc::new(self.shared_lock.wrap(LayerStatementRule {
+                    names,
                     source_location: start.source_location(),
                 })))
             },

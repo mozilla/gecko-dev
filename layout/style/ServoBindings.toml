@@ -131,11 +131,11 @@ rusty-enums = [
     "mozilla::StyleScrollbarWidth",
     "mozilla::StyleWhiteSpace",
     "mozilla::StyleTextRendering",
-    "mozilla::StyleColorAdjust",
     "mozilla::StyleFlexDirection",
     "mozilla::StyleStrokeLinecap",
     "mozilla::StyleStrokeLinejoin",
     "mozilla::StyleFlexWrap",
+    "mozilla::StyleMathVariant",
     "mozilla::StyleTextDecorationSkipInk",
     "mozilla::StyleTextDecorationLength",
     "mozilla::StyleMaskType",
@@ -588,7 +588,9 @@ cbindgen-types = [
     { gecko = "StylePageSize", servo = "crate::values::computed::page::PageSize" },
     { gecko = "StyleDProperty", servo = "crate::values::specified::svg::DProperty" },
     { gecko = "StyleImageRendering", servo = "crate::values::computed::ImageRendering" },
+    { gecko = "StylePrintColorAdjust", servo = "crate::values::computed::PrintColorAdjust" },
     { gecko = "StyleScrollbarGutter", servo = "crate::values::computed::ScrollbarGutter" },
+    { gecko = "StyleHyphenateCharacter", servo = "crate::values::computed::HyphenateCharacter" },
 ]
 
 mapped-generic-types = [

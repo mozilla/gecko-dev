@@ -1,11 +1,8 @@
 //! Implementations for `BlockContext` methods.
 
 use super::{
-    index::{BoundsCheckResult, ExpressionPointer},
-    make_local,
-    selection::Selection,
-    Block, BlockContext, Dimension, Error, Instruction, LocalType, LookupType, LoopContext,
-    ResultMember, Writer, WriterFlags,
+    index::BoundsCheckResult, make_local, selection::Selection, Block, BlockContext, Dimension,
+    Error, Instruction, LocalType, LookupType, LoopContext, ResultMember, Writer, WriterFlags,
 };
 use crate::{arena::Handle, proc::TypeResolution};
 use spirv::Word;
@@ -17,6 +14,25 @@ fn get_dimension(type_inner: &crate::TypeInner) -> Dimension {
         crate::TypeInner::Matrix { .. } => Dimension::Matrix,
         _ => unreachable!(),
     }
+}
+
+/// The results of emitting code for a left-hand-side expression.
+///
+/// On success, `write_expression_pointer` returns one of these.
+enum ExpressionPointer {
+    /// The pointer to the expression's value is available, as the value of the
+    /// expression with the given id.
+    Ready { pointer_id: Word },
+
+    /// The access expression must be conditional on the value of `condition`, a boolean
+    /// expression that is true if all indices are in bounds. If `condition` is true, then
+    /// `access` is an `OpAccessChain` instruction that will compute a pointer to the
+    /// expression's value. If `condition` is false, then executing `access` would be
+    /// undefined behavior.
+    Conditional {
+        condition: Word,
+        access: Instruction,
+    },
 }
 
 impl Writer {
@@ -210,6 +226,10 @@ impl<'w> BlockContext<'w> {
                     | crate::TypeInner::Matrix { .. }
                     | crate::TypeInner::Array { .. }
                     | crate::TypeInner::Struct { .. } => {
+                        // We never need bounds checks here: dynamically sized arrays can
+                        // only appear behind pointers, and are thus handled by the
+                        // `is_intermediate` case above. Everything else's size is
+                        // statically known and checked in validation.
                         let id = self.gen_id();
                         let base_id = self.cached[base];
                         block.body.push(Instruction::composite_extract(
@@ -227,7 +247,7 @@ impl<'w> BlockContext<'w> {
                 }
             }
             crate::Expression::GlobalVariable(handle) => {
-                self.writer.global_variables[handle.index()].id
+                self.writer.global_variables[handle.index()].access_id
             }
             crate::Expression::Constant(handle) => self.writer.constant_ids[handle.index()],
             crate::Expression::Splat { size, value } => {
@@ -370,7 +390,7 @@ impl<'w> BlockContext<'w> {
                     crate::BinaryOperator::Modulo => match left_ty_inner.scalar_kind() {
                         Some(crate::ScalarKind::Sint) => spirv::Op::SMod,
                         Some(crate::ScalarKind::Uint) => spirv::Op::UMod,
-                        Some(crate::ScalarKind::Float) => spirv::Op::FMod,
+                        Some(crate::ScalarKind::Float) => spirv::Op::FRem,
                         _ => unimplemented!(),
                     },
                     crate::BinaryOperator::Equal => match left_ty_inner.scalar_kind() {
@@ -413,9 +433,15 @@ impl<'w> BlockContext<'w> {
                         Some(crate::ScalarKind::Float) => spirv::Op::FOrdGreaterThanEqual,
                         _ => unimplemented!(),
                     },
-                    crate::BinaryOperator::And => spirv::Op::BitwiseAnd,
+                    crate::BinaryOperator::And => match left_ty_inner.scalar_kind() {
+                        Some(crate::ScalarKind::Bool) => spirv::Op::LogicalAnd,
+                        _ => spirv::Op::BitwiseAnd,
+                    },
                     crate::BinaryOperator::ExclusiveOr => spirv::Op::BitwiseXor,
-                    crate::BinaryOperator::InclusiveOr => spirv::Op::BitwiseOr,
+                    crate::BinaryOperator::InclusiveOr => match left_ty_inner.scalar_kind() {
+                        Some(crate::ScalarKind::Bool) => spirv::Op::LogicalOr,
+                        _ => spirv::Op::BitwiseOr,
+                    },
                     crate::BinaryOperator::LogicalAnd => spirv::Op::LogicalAnd,
                     crate::BinaryOperator::LogicalOr => spirv::Op::LogicalOr,
                     crate::BinaryOperator::ShiftLeft => spirv::Op::ShiftLeftLogical,
@@ -514,6 +540,8 @@ impl<'w> BlockContext<'w> {
                     Mf::Asinh => MathOp::Ext(spirv::GLOp::Asinh),
                     Mf::Acosh => MathOp::Ext(spirv::GLOp::Acosh),
                     Mf::Atanh => MathOp::Ext(spirv::GLOp::Atanh),
+                    Mf::Radians => MathOp::Ext(spirv::GLOp::Radians),
+                    Mf::Degrees => MathOp::Ext(spirv::GLOp::Degrees),
                     // decomposition
                     Mf::Ceil => MathOp::Ext(spirv::GLOp::Ceil),
                     Mf::Round => MathOp::Ext(spirv::GLOp::RoundEven),
@@ -636,15 +664,21 @@ impl<'w> BlockContext<'w> {
                         arg2_id,
                         arg3_id,
                     )),
+                    Mf::FindLsb => MathOp::Ext(spirv::GLOp::FindILsb),
+                    Mf::FindMsb => MathOp::Ext(match arg_scalar_kind {
+                        Some(crate::ScalarKind::Uint) => spirv::GLOp::FindUMsb,
+                        Some(crate::ScalarKind::Sint) => spirv::GLOp::FindSMsb,
+                        other => unimplemented!("Unexpected findMSB({:?})", other),
+                    }),
                     Mf::Pack4x8unorm => MathOp::Ext(spirv::GLOp::PackUnorm4x8),
                     Mf::Pack4x8snorm => MathOp::Ext(spirv::GLOp::PackSnorm4x8),
                     Mf::Pack2x16float => MathOp::Ext(spirv::GLOp::PackHalf2x16),
-                    Mf::Pack2x16unorm => MathOp::Ext(spirv::GLOp::PackSnorm2x16),
+                    Mf::Pack2x16unorm => MathOp::Ext(spirv::GLOp::PackUnorm2x16),
                     Mf::Pack2x16snorm => MathOp::Ext(spirv::GLOp::PackSnorm2x16),
                     Mf::Unpack4x8unorm => MathOp::Ext(spirv::GLOp::UnpackUnorm4x8),
                     Mf::Unpack4x8snorm => MathOp::Ext(spirv::GLOp::UnpackSnorm4x8),
                     Mf::Unpack2x16float => MathOp::Ext(spirv::GLOp::UnpackHalf2x16),
-                    Mf::Unpack2x16unorm => MathOp::Ext(spirv::GLOp::UnpackSnorm2x16),
+                    Mf::Unpack2x16unorm => MathOp::Ext(spirv::GLOp::UnpackUnorm2x16),
                     Mf::Unpack2x16snorm => MathOp::Ext(spirv::GLOp::UnpackSnorm2x16),
                 };
 
@@ -865,6 +899,7 @@ impl<'w> BlockContext<'w> {
             crate::Expression::ImageSample {
                 image,
                 sampler,
+                gather,
                 coordinate,
                 array_index,
                 offset,
@@ -874,6 +909,7 @@ impl<'w> BlockContext<'w> {
                 result_type_id,
                 image,
                 sampler,
+                gather,
                 coordinate,
                 array_index,
                 offset,
@@ -973,7 +1009,7 @@ impl<'w> BlockContext<'w> {
         Ok(())
     }
 
-    /// Build an `OpAccessChain` instruction for a left-hand-side expression.
+    /// Build an `OpAccessChain` instruction.
     ///
     /// Emit any needed bounds-checking expressions to `block`.
     ///
@@ -1045,7 +1081,7 @@ impl<'w> BlockContext<'w> {
                 }
                 crate::Expression::GlobalVariable(handle) => {
                     let gv = &self.writer.global_variables[handle.index()];
-                    break gv.id;
+                    break gv.access_id;
                 }
                 crate::Expression::LocalVariable(variable) => {
                     let local_var = &self.function.variables[&variable];

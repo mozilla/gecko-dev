@@ -57,7 +57,7 @@ use crate::hit_test::HitTestingScene;
 use crate::intern::Interner;
 use crate::internal_types::{FastHashMap, LayoutPrimitiveInfo, Filter, PlaneSplitter, PlaneSplitterIndex, PipelineInstanceId};
 use crate::picture::{Picture3DContext, PictureCompositeMode, PicturePrimitive, PictureOptions};
-use crate::picture::{BlitReason, OrderedPictureChild, PrimitiveList};
+use crate::picture::{BlitReason, OrderedPictureChild, PrimitiveList, SurfaceInfo};
 use crate::picture_graph::PictureGraph;
 use crate::prim_store::{PrimitiveInstance, register_prim_chase_id};
 use crate::prim_store::{PrimitiveInstanceKind, NinePatchDescriptor, PrimitiveStore};
@@ -463,6 +463,11 @@ pub struct SceneBuilder<'a> {
     /// A map of pipeline ids encountered during scene build - used to create unique
     /// pipeline instance ids as they are encountered.
     pipeline_instance_ids: FastHashMap<PipelineId, u32>,
+
+    /// A list of surfaces (backing textures) that are relevant for this scene.
+    /// Every picture is assigned to a surface (either a new surface if the picture
+    /// has a composite mode, or the parent surface if it's a pass-through).
+    surfaces: Vec<SurfaceInfo>,
 }
 
 impl<'a> SceneBuilder<'a> {
@@ -518,6 +523,7 @@ impl<'a> SceneBuilder<'a> {
             plane_splitters: Vec::new(),
             prim_instances: Vec::new(),
             pipeline_instance_ids: FastHashMap::default(),
+            surfaces: Vec::new(),
         };
 
         builder.build_all(&root_pipeline);
@@ -549,6 +555,7 @@ impl<'a> SceneBuilder<'a> {
             picture_graph: builder.picture_graph,
             plane_splitters: builder.plane_splitters,
             prim_instances: builder.prim_instances,
+            surfaces: builder.surfaces,
         }
     }
 
@@ -779,16 +786,16 @@ impl<'a> SceneBuilder<'a> {
             if cfg!(feature = "display_list_stats") {
                 let stats = traversal.debug_stats();
                 let total_bytes: usize = stats.iter().map(|(_, stats)| stats.num_bytes).sum();
-                println!("item, total count, total bytes, % of DL bytes, bytes per item");
+                debug!("item, total count, total bytes, % of DL bytes, bytes per item");
                 for (label, stats) in stats {
-                    println!("{}, {}, {}kb, {}%, {}",
+                    debug!("{}, {}, {}kb, {}%, {}",
                         label,
                         stats.total_count,
                         stats.num_bytes / 1000,
                         ((stats.num_bytes as f32 / total_bytes.max(1) as f32) * 100.0) as usize,
                         stats.num_bytes / stats.total_count.max(1));
                 }
-                println!();
+                debug!("");
             }
         }
 
@@ -971,6 +978,7 @@ impl<'a> SceneBuilder<'a> {
             ReferenceFrameKind::Transform {
                 is_2d_scale_translation: true,
                 should_snap: true,
+                paired_with_perspective: false,
             },
             bounds.min.to_vector(),
             SpatialNodeUid::root_reference_frame(iframe_pipeline_id, instance_id),
@@ -1714,7 +1722,7 @@ impl<'a> SceneBuilder<'a> {
     ) {
         // Add primitive to the top-most stacking context on the stack.
         if prim_instance.is_chased() {
-            println!("\tadded to stacking context at {}", self.sc_stack.len());
+            info!("\tadded to stacking context at {}", self.sc_stack.len());
         }
 
         // If we have a valid stacking context, the primitive gets added to that.
@@ -2401,7 +2409,7 @@ impl<'a> SceneBuilder<'a> {
         instance: PipelineInstanceId,
     ) {
         if let ChasePrimitive::Id(id) = self.config.chase_primitive {
-            println!("Chasing {:?} by index", id);
+            debug!("Chasing {:?} by index", id);
             register_prim_chase_id(id);
         }
 
@@ -2414,6 +2422,7 @@ impl<'a> SceneBuilder<'a> {
             ReferenceFrameKind::Transform {
                 is_2d_scale_translation: true,
                 should_snap: true,
+                paired_with_perspective: false,
             },
             LayoutVector2D::zero(),
             SpatialNodeUid::root_reference_frame(pipeline_id, instance),
@@ -2866,7 +2875,7 @@ impl<'a> SceneBuilder<'a> {
         prim_instance: &PrimitiveInstance,
     ) {
         if ChasePrimitive::LocalRect(*rect) == self.config.chase_primitive {
-            println!("Chasing {:?} by local rect", prim_instance.id);
+            debug!("Chasing {:?} by local rect", prim_instance.id);
             register_prim_chase_id(prim_instance.id);
         }
     }
@@ -2913,8 +2922,6 @@ impl<'a> SceneBuilder<'a> {
         // For line decorations, we can construct the render task cache key
         // here during scene building, since it doesn't depend on device
         // pixel ratio or transform.
-        let mut info = info.clone();
-
         let size = get_line_decoration_size(
             &info.rect.size(),
             orientation,
@@ -2923,32 +2930,6 @@ impl<'a> SceneBuilder<'a> {
         );
 
         let cache_key = size.map(|size| {
-            // If dotted, adjust the clip rect to ensure we don't draw a final
-            // partial dot.
-            if style == LineStyle::Dotted {
-                let clip_size = match orientation {
-                    LineOrientation::Horizontal => {
-                        LayoutSize::new(
-                            size.width * (info.rect.width() / size.width).floor(),
-                            info.rect.height(),
-                        )
-                    }
-                    LineOrientation::Vertical => {
-                        LayoutSize::new(
-                            info.rect.width(),
-                            size.height * (info.rect.height() / size.height).floor(),
-                        )
-                    }
-                };
-                let clip_rect = LayoutRect::from_origin_and_size(
-                    info.rect.min,
-                    clip_size,
-                );
-                info.clip_rect = clip_rect
-                    .intersection(&info.clip_rect)
-                    .unwrap_or_else(LayoutRect::zero);
-            }
-
             LineDecorationCacheKey {
                 style,
                 orientation,
@@ -2991,11 +2972,11 @@ impl<'a> SceneBuilder<'a> {
                 };
 
                 match border.source {
-                    NinePatchBorderSource::Image(image_key) => {
+                    NinePatchBorderSource::Image(key, rendering) => {
                         let prim = ImageBorder {
                             request: ImageRequest {
-                                key: image_key,
-                                rendering: ImageRendering::Auto,
+                                key,
+                                rendering,
                                 tile: None,
                             },
                             nine_patch,

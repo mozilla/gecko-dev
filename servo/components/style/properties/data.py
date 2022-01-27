@@ -501,6 +501,7 @@ class Longhand(Property):
                 "OverscrollBehavior",
                 "Percentage",
                 "PositiveIntegerOrNone",
+                "PrintColorAdjust",
                 "Resize",
                 "RubyPosition",
                 "SVGOpacity",
@@ -888,6 +889,7 @@ class PropertyRestrictions:
                 "unicode-bidi",
                 "direction",
                 "content",
+                "line-height",
                 "-moz-osx-font-smoothing",
             ]
             + PropertyRestrictions.spec(data, "css-fonts")

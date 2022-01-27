@@ -135,13 +135,14 @@ static constexpr uint32_t kVoidStringLength = ~0;
 static bool WriteStringPair(JSStructuredCloneWriter* aWriter,
                             const nsACString& aString1,
                             const nsACString& aString2) {
-  auto StringLength = [](const nsACString& aStr) {
-    MOZ_DIAGNOSTIC_ASSERT(uint32_t(aStr.Length()) != kVoidStringLength,
+  auto StringLength = [](const nsACString& aStr) -> uint32_t {
+    auto length = uint32_t(aStr.Length());
+    MOZ_DIAGNOSTIC_ASSERT(length != kVoidStringLength,
                           "We should not be serializing a 4GiB string");
     if (aStr.IsVoid()) {
       return kVoidStringLength;
     }
-    return aStr.Length();
+    return length;
   };
 
   return JS_WriteUint32Pair(aWriter, StringLength(aString1),
@@ -294,7 +295,7 @@ bool ClonedErrorHolder::ToErrorValue(JSContext* aCx,
       return false;
     }
     if (!JS::CreateError(aCx, mExnType, stack, filename, mLineNumber, mColumn,
-                         nullptr, message, aResult)) {
+                         nullptr, message, JS::NothingHandleValue, aResult)) {
       return false;
     }
 
@@ -307,8 +308,10 @@ bool ClonedErrorHolder::ToErrorValue(JSContext* aCx,
         // terminated string.
         //
         // See Bug 1699569.
-        if (JS::UniqueTwoByteChars buffer =
-                ToNullTerminatedJSStringBuffer(aCx, sourceLine)) {
+        if (mTokenOffset >= sourceLine.Length()) {
+          // Corrupt data, leave linebuf unset.
+        } else if (JS::UniqueTwoByteChars buffer =
+                       ToNullTerminatedJSStringBuffer(aCx, sourceLine)) {
           err->initOwnedLinebuf(buffer.release(), sourceLine.Length(),
                                 mTokenOffset);
         } else {

@@ -53,7 +53,6 @@
 
 #ifdef NS_PRINTING
 #  include "mozilla/embedding/printingui/PrintingParent.h"
-#  include "nsIWebBrowserPrint.h"
 #endif
 
 using namespace mozilla::ipc;
@@ -69,6 +68,9 @@ static mozilla::LazyLogModule sPBContext("PBContext");
 
 // Global count of canonical browsing contexts with the private attribute set
 static uint32_t gNumberOfPrivateContexts = 0;
+
+// Current parent process epoch for parent initiated navigations
+static uint64_t gParentInitiatedNavigationEpoch = 0;
 
 static void IncreasePrivateCount() {
   gNumberOfPrivateContexts++;
@@ -797,7 +799,6 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
             RemoveDynEntriesFromActiveSessionHistoryEntry();
           }
         }
-        mActiveEntry = newActiveEntry;
 
         if (LOAD_TYPE_HAS_FLAGS(aLoadType,
                                 nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY)) {
@@ -808,8 +809,16 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
           // should append instead.
           addEntry = index < 0;
           if (!addEntry) {
-            shistory->ReplaceEntry(index, mActiveEntry);
+            shistory->ReplaceEntry(index, newActiveEntry);
           }
+          mActiveEntry = newActiveEntry;
+        } else if (LOAD_TYPE_HAS_FLAGS(
+                       aLoadType, nsIWebNavigation::LOAD_FLAGS_IS_REFRESH) &&
+                   !ShouldAddEntryForRefresh(newActiveEntry)) {
+          addEntry = false;
+          mActiveEntry->ReplaceWith(*newActiveEntry);
+        } else {
+          mActiveEntry = newActiveEntry;
         }
 
         if (loadFromSessionHistory) {
@@ -841,7 +850,10 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
         } else if (addEntry) {
           if (mActiveEntry) {
             if (LOAD_TYPE_HAS_FLAGS(
-                    aLoadType, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY)) {
+                    aLoadType, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY) ||
+                (LOAD_TYPE_HAS_FLAGS(aLoadType,
+                                     nsIWebNavigation::LOAD_FLAGS_IS_REFRESH) &&
+                 !ShouldAddEntryForRefresh(newActiveEntry))) {
               // FIXME We need to make sure that when we create the info we
               //       make a copy of the shared state.
               mActiveEntry->ReplaceWith(*newActiveEntry);
@@ -1028,9 +1040,9 @@ void CanonicalBrowsingContext::RemoveFromSessionHistory(const nsID& aChangeID) {
       BrowsingContext* rootBC = shistory->GetBrowsingContext();
       if (rootBC) {
         if (!rootBC->IsInProcess()) {
-          Unused << rootBC->Canonical()
-                        ->GetContentParent()
-                        ->SendDispatchLocationChangeEvent(rootBC);
+          if (ContentParent* cp = rootBC->Canonical()->GetContentParent()) {
+            Unused << cp->SendDispatchLocationChangeEvent(rootBC);
+          }
         } else if (rootBC->GetDocShell()) {
           rootBC->GetDocShell()->DispatchLocationChangeEvent();
         }
@@ -1134,6 +1146,10 @@ void CanonicalBrowsingContext::CanonicalDiscard() {
   if (mTabMediaController) {
     mTabMediaController->Shutdown();
     mTabMediaController = nullptr;
+  }
+
+  if (mCurrentLoad) {
+    mCurrentLoad->Cancel(NS_BINDING_ABORTED);
   }
 
   if (mWebProgress) {
@@ -1291,7 +1307,7 @@ void CanonicalBrowsingContext::GoBack(
 
   // Stop any known network loads if necessary.
   if (mCurrentLoad) {
-    mCurrentLoad->Cancel(NS_BINDING_ABORTED);
+    mCurrentLoad->Cancel(NS_BINDING_CANCELLED_OLD_LOAD);
   }
 
   if (nsDocShell* docShell = nsDocShell::Cast(GetDocShell())) {
@@ -1317,7 +1333,7 @@ void CanonicalBrowsingContext::GoForward(
 
   // Stop any known network loads if necessary.
   if (mCurrentLoad) {
-    mCurrentLoad->Cancel(NS_BINDING_ABORTED);
+    mCurrentLoad->Cancel(NS_BINDING_CANCELLED_OLD_LOAD);
   }
 
   if (auto* docShell = nsDocShell::Cast(GetDocShell())) {
@@ -1343,7 +1359,7 @@ void CanonicalBrowsingContext::GoToIndex(
 
   // Stop any known network loads if necessary.
   if (mCurrentLoad) {
-    mCurrentLoad->Cancel(NS_BINDING_ABORTED);
+    mCurrentLoad->Cancel(NS_BINDING_CANCELLED_OLD_LOAD);
   }
 
   if (auto* docShell = nsDocShell::Cast(GetDocShell())) {
@@ -1367,7 +1383,7 @@ void CanonicalBrowsingContext::Reload(uint32_t aReloadFlags) {
 
   // Stop any known network loads if necessary.
   if (mCurrentLoad) {
-    mCurrentLoad->Cancel(NS_BINDING_ABORTED);
+    mCurrentLoad->Cancel(NS_BINDING_CANCELLED_OLD_LOAD);
   }
 
   if (auto* docShell = nsDocShell::Cast(GetDocShell())) {
@@ -2040,6 +2056,10 @@ bool CanonicalBrowsingContext::LoadInParent(nsDocShellLoadState* aLoadState,
     return false;
   }
 
+  MOZ_ASSERT(!net::SchemeIsJavascript(aLoadState->URI()));
+
+  MOZ_ALWAYS_SUCCEEDS(
+      SetParentInitiatedNavigationEpoch(++gParentInitiatedNavigationEpoch));
   // Note: If successful, this will recurse into StartDocumentLoad and
   // set mCurrentLoad to the DocumentLoadListener instance created.
   // Ideally in the future we will only start loads from here, and we can
@@ -2055,7 +2075,7 @@ bool CanonicalBrowsingContext::AttemptSpeculativeLoadInParent(
   // We currently only support starting loads directly from the
   // CanonicalBrowsingContext for top-level BCs.
   if (!IsTopContent() || !GetContentParent() ||
-      StaticPrefs::browser_tabs_documentchannel_parent_controlled()) {
+      (StaticPrefs::browser_tabs_documentchannel_parent_controlled())) {
     return false;
   }
 
@@ -2076,7 +2096,13 @@ bool CanonicalBrowsingContext::StartDocumentLoad(
   // that we need to cancel any existing ones.
   if (StaticPrefs::browser_tabs_documentchannel_parent_controlled() &&
       mCurrentLoad) {
-    mCurrentLoad->Cancel(NS_BINDING_ABORTED);
+    // Make sure we are not loading a javascript URI.
+    MOZ_ASSERT(!aLoad->IsLoadingJSURI());
+
+    // If we want to do a download, don't cancel the current navigation.
+    if (!aLoad->IsDownload()) {
+      mCurrentLoad->Cancel(NS_BINDING_CANCELLED_OLD_LOAD);
+    }
   }
   mCurrentLoad = aLoad;
 
@@ -2397,6 +2423,21 @@ void CanonicalBrowsingContext::SetCrossGroupOpenerId(uint64_t aOpenerId) {
   mCrossGroupOpenerId = aOpenerId;
 }
 
+void CanonicalBrowsingContext::SetCrossGroupOpener(
+    CanonicalBrowsingContext& aCrossGroupOpener, ErrorResult& aRv) {
+  if (!IsTopContent()) {
+    aRv.ThrowNotAllowedError(
+        "Can only set crossGroupOpener on toplevel content");
+    return;
+  }
+  if (mCrossGroupOpenerId != 0) {
+    aRv.ThrowNotAllowedError("Can only set crossGroupOpener once");
+    return;
+  }
+
+  SetCrossGroupOpenerId(aCrossGroupOpener.Id());
+}
+
 auto CanonicalBrowsingContext::FindUnloadingHost(uint64_t aChildID)
     -> nsTArray<UnloadingHost>::iterator {
   return std::find_if(
@@ -2513,7 +2554,7 @@ static void LogBFCacheBlockingForDoc(BrowsingContext* aBrowsingContext,
 }
 
 bool CanonicalBrowsingContext::AllowedInBFCache(
-    const Maybe<uint64_t>& aChannelId) {
+    const Maybe<uint64_t>& aChannelId, nsIURI* aNewURI) {
   if (MOZ_UNLIKELY(MOZ_LOG_TEST(gSHIPBFCacheLog, LogLevel::Debug))) {
     nsAutoCString uri("[no uri]");
     nsCOMPtr<nsIURI> currentURI = GetCurrentURI();
@@ -2557,6 +2598,16 @@ bool CanonicalBrowsingContext::AllowedInBFCache(
         !currentURI->GetSpecOrDefault().EqualsLiteral("about:blank")) {
       bfcacheCombo |= BFCacheStatus::ABOUT_PAGE;
       MOZ_LOG(gSHIPBFCacheLog, LogLevel::Debug, (" * about:* page"));
+    }
+
+    if (aNewURI) {
+      bool equalUri = false;
+      aNewURI->Equals(currentURI, &equalUri);
+      if (equalUri) {
+        // When loading the same uri, disable bfcache so that
+        // nsDocShell::OnNewURI transforms the load to LOAD_NORMAL_REPLACE.
+        return false;
+      }
     }
   }
 

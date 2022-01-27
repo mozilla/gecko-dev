@@ -20,8 +20,8 @@ const APIS = {
   GetRequestedLocales() {
     return browser.test.getRequestedLocales();
   },
-  GetLinkColor({ uri, selector }) {
-    return browser.test.getLinkColor(uri, selector);
+  GetLinkColor({ tab, selector }) {
+    return browser.test.getLinkColor(tab.id, selector);
   },
   GetPidForTab({ tab }) {
     return browser.test.getPidForTab(tab.id);
@@ -50,8 +50,8 @@ const APIS = {
   SetPrefs({ oldPrefs, newPrefs }) {
     return browser.test.setPrefs(oldPrefs, newPrefs);
   },
-  SetResolutionAndScaleTo({ resolution }) {
-    return browser.test.setResolutionAndScaleTo(resolution);
+  SetResolutionAndScaleTo({ tab, resolution }) {
+    return browser.test.setResolutionAndScaleTo(tab.id, resolution);
   },
   FlushApzRepaints({ tab }) {
     return browser.test.flushApzRepaints(tab.id);
@@ -61,6 +61,9 @@ const APIS = {
   },
   UsingGpuProcess() {
     return browser.test.usingGpuProcess();
+  },
+  KillGpuProcess() {
+    return browser.test.killGpuProcess();
   },
   CrashGpuProcess() {
     return browser.test.crashGpuProcess();

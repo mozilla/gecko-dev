@@ -431,21 +431,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1714612",
-    platform: "all",
-    domain: "www.rfi.it",
-    bug: "1714612",
-    contentScripts: {
-      matches: ["*://www.rfi.it/*"],
-      js: [
-        {
-          file: "injections/js/bug1714612-www.rfi.it-outertext.js",
-        },
-      ],
-      allFrames: true,
-    },
-  },
-  {
     id: "bug1719870",
     platform: "desktop",
     domain: "lcbo.com",
@@ -532,24 +517,6 @@ const AVAILABLE_INJECTIONS = [
           file: "injections/css/bug1728140-map-size-fix.css",
         },
       ],
-    },
-  },
-  {
-    id: "bug1727100",
-    platform: "desktop",
-    domain: "slack.com",
-    bug: "1727100",
-    contentScripts: {
-      matches: ["*://app.slack.com/*"],
-      js: [
-        {
-          file: "lib/ua_helpers.js",
-        },
-        {
-          file: "injections/js/bug1727100-slack.com-ua-override.js",
-        },
-      ],
-      allFrames: true,
     },
   },
   {

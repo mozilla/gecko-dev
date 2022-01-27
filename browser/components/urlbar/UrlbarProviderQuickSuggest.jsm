@@ -296,37 +296,21 @@ class ProviderQuickSuggest extends UrlbarProvider {
       let isQuickSuggestLinkClicked =
         details.selIndex == resultIndex && details.selType !== "help";
       let {
-        qsSuggestion, // The full keyword
         sponsoredAdvertiser,
         sponsoredImpressionUrl,
         sponsoredClickUrl,
         sponsoredBlockId,
-        source,
         requestId,
       } = result.payload;
+      // Always use lowercase to make the reporting consistent
+      let advertiser = sponsoredAdvertiser.toLocaleLowerCase();
 
       let scenario = UrlbarPrefs.get("quicksuggest.scenario");
-
-      // Collect the search query and matched keywords only when the user has
-      // opted in to data collection and only for remote settings suggestions.
-      // Otherwise record those fields as undefined.
-      let matchedKeywords;
-      let searchQuery;
-      if (
-        UrlbarPrefs.get("quicksuggest.dataCollection.enabled") &&
-        source === QUICK_SUGGEST_SOURCE.REMOTE_SETTINGS
-      ) {
-        matchedKeywords = qsSuggestion || details.searchString;
-        searchQuery = details.searchString;
-      }
-
       // impression
       PartnerLinkAttribution.sendContextualServicesPing(
         {
           scenario,
-          search_query: searchQuery,
-          matched_keywords: matchedKeywords,
-          advertiser: sponsoredAdvertiser,
+          advertiser,
           block_id: sponsoredBlockId,
           position: telemetryResultIndex,
           reporting_url: sponsoredImpressionUrl,
@@ -340,7 +324,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
         PartnerLinkAttribution.sendContextualServicesPing(
           {
             scenario,
-            advertiser: sponsoredAdvertiser,
+            advertiser,
             block_id: sponsoredBlockId,
             position: telemetryResultIndex,
             reporting_url: sponsoredClickUrl,

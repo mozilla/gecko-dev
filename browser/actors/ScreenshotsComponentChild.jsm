@@ -7,6 +7,14 @@
 
 var EXPORTED_SYMBOLS = ["ScreenshotsComponentChild"];
 
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  ScreenshotsOverlayChild: "resource:///modules/ScreenshotsOverlayChild.jsm",
+});
+
 class ScreenshotsComponentChild extends JSWindowActorChild {
   receiveMessage(message) {
     switch (message.name) {
@@ -20,6 +28,13 @@ class ScreenshotsComponentChild extends JSWindowActorChild {
         return this.getVisibleBounds();
     }
     return null;
+  }
+
+  /**
+   * Send a request to cancel the screenshot to the parent process
+   */
+  requestCancelScreenshot() {
+    this.sendAsyncMessage("Screenshots:CancelScreenshot", null);
   }
 
   /**
@@ -64,15 +79,34 @@ class ScreenshotsComponentChild extends JSWindowActorChild {
    * @returns {Boolean} true when document is ready and the overlay is shown
    * otherwise false
    */
-  async startScreenshotsOverlay(details = {}) {
+  async startScreenshotsOverlay() {
     try {
       await this.documentIsReady();
     } catch (ex) {
       console.warn(`ScreenshotsComponentChild: ${ex.message}`);
       return false;
     }
+    await this.documentIsReady();
+    let overlay =
+      this._overlay ||
+      (this._overlay = new ScreenshotsOverlayChild.AnonymousContentOverlay(
+        this.document,
+        this
+      ));
+    this.document.addEventListener("keydown", this.handler);
+    overlay.initialize();
     return true;
   }
+
+  /**
+   * Function to handle the escape key press to cancel screenshots overlay
+   * @param event The keydown event
+   */
+  handler = event => {
+    if (event.key === "Escape") {
+      this.requestCancelScreenshot();
+    }
+  };
 
   /**
    * Remove the screenshots overlay.
@@ -81,7 +115,8 @@ class ScreenshotsComponentChild extends JSWindowActorChild {
    *   true when the overlay has been removed otherwise false
    */
   endScreenshotsOverlay() {
-    // this function will be implemented soon
+    this.document.removeEventListener("keydown", this.handler);
+    this._overlay?.tearDown();
     return true;
   }
 
@@ -110,8 +145,8 @@ class ScreenshotsComponentChild extends JSWindowActorChild {
   getFullPageBounds() {
     let doc = this.document.documentElement;
     let rect = new DOMRect(
-      doc.scrollTop,
-      doc.scrollLeft,
+      doc.clientLeft,
+      doc.clientTop,
       doc.scrollWidth,
       doc.scrollHeight
     );
@@ -145,8 +180,8 @@ class ScreenshotsComponentChild extends JSWindowActorChild {
   getVisibleBounds() {
     let doc = this.document.documentElement;
     let rect = new DOMRect(
-      doc.clientTop,
-      doc.clientLeft,
+      doc.scrollLeft,
+      doc.scrollTop,
       doc.clientWidth,
       doc.clientHeight
     );

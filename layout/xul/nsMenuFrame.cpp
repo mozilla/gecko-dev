@@ -614,12 +614,18 @@ nsresult nsMenuFrame::AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
 void nsMenuFrame::OpenMenu(bool aSelectFirstItem) {
   if (!mContent) return;
 
-  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  if (pm) {
+  if (nsXULPopupManager* pm = nsXULPopupManager::GetInstance()) {
     pm->KillMenuTimer();
-    // This opens the menu asynchronously
-    pm->ShowMenu(mContent, aSelectFirstItem, true);
   }
+  // Open the menu asynchronously.
+  mContent->OwnerDoc()->Dispatch(
+      TaskCategory::Other,
+      NS_NewRunnableFunction(
+          "AsyncOpenMenu", [content = RefPtr{mContent.get()}, aSelectFirstItem] {
+            if (nsXULPopupManager* pm = nsXULPopupManager::GetInstance()) {
+              pm->ShowMenu(content, aSelectFirstItem);
+            }
+          }));
 }
 
 void nsMenuFrame::CloseMenu(bool aDeselectMenu) {
@@ -867,7 +873,7 @@ void nsMenuFrame::UpdateMenuSpecialState() {
 }
 
 void nsMenuFrame::Execute(WidgetGUIEvent* aEvent) {
-  nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
+  nsCOMPtr<nsISound> sound(do_GetService("@mozilla.org/sound;1"));
   if (sound) sound->PlayEventSound(nsISound::EVENT_MENU_EXECUTE);
 
   // Create a trusted event if the triggering event was trusted, or if
@@ -1096,13 +1102,8 @@ nsMenuFrame::GetActiveChild(dom::Element** aResult) {
 NS_IMETHODIMP
 nsMenuFrame::SetActiveChild(dom::Element* aChild) {
   nsMenuPopupFrame* popupFrame = GetPopup();
-  if (!popupFrame) return NS_ERROR_FAILURE;
-
-  // Force the child frames within the popup to be generated.
-  AutoWeakFrame weakFrame(popupFrame);
-  popupFrame->GenerateFrames();
-  if (!weakFrame.IsAlive()) {
-    return NS_OK;
+  if (!popupFrame) {
+    return NS_ERROR_FAILURE;
   }
 
   if (!aChild) {
@@ -1112,7 +1113,9 @@ nsMenuFrame::SetActiveChild(dom::Element* aChild) {
   }
 
   nsMenuFrame* menu = do_QueryFrame(aChild->GetPrimaryFrame());
-  if (menu) popupFrame->ChangeMenuItem(menu, false, false);
+  if (menu) {
+    popupFrame->ChangeMenuItem(menu, false, false);
+  }
   return NS_OK;
 }
 

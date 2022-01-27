@@ -977,7 +977,7 @@ nsDocumentViewer::LoadComplete(nsresult aStatus) {
     // onload to the document content since that would likely confuse scripts
     // on the page.
 
-    nsIDocShell* docShell = window->GetDocShell();
+    RefPtr<nsDocShell> docShell = nsDocShell::Cast(window->GetDocShell());
     NS_ENSURE_TRUE(docShell, NS_ERROR_UNEXPECTED);
 
     // Unfortunately, docShell->GetRestoringDocument() might no longer be set
@@ -1082,12 +1082,12 @@ nsDocumentViewer::LoadComplete(nsresult aStatus) {
       }
 
       d->SetLoadEventFiring(true);
-      EventDispatcher::Dispatch(window, mPresContext, &event, nullptr, &status);
+      RefPtr<nsPresContext> presContext = mPresContext;
+      EventDispatcher::Dispatch(window, presContext, &event, nullptr, &status);
       d->SetLoadEventFiring(false);
 
-      RefPtr<nsDocShell> dShell = nsDocShell::Cast(docShell);
-      if (docGroup && dShell->TreatAsBackgroundLoad()) {
-        docGroup->TryFlushIframePostMessages(dShell->GetOuterWindowID());
+      if (docGroup && docShell->TreatAsBackgroundLoad()) {
+        docGroup->TryFlushIframePostMessages(docShell->GetOuterWindowID());
       }
 
       if (timing) {
@@ -1400,7 +1400,7 @@ nsDocumentViewer::PageHide(bool aIsUnload) {
     NS_ENSURE_STATE(mDocument);
 
     // First, get the window from the document...
-    nsPIDOMWindowOuter* window = mDocument->GetWindow();
+    RefPtr<nsPIDOMWindowOuter> window = mDocument->GetWindow();
 
     if (!window) {
       // Fail if no window is available...
@@ -1427,7 +1427,8 @@ nsDocumentViewer::PageHide(bool aIsUnload) {
 
     Document::PageUnloadingEventTimeStamp timestamp(mDocument);
 
-    EventDispatcher::Dispatch(window, mPresContext, &event, nullptr, &status);
+    RefPtr<nsPresContext> presContext = mPresContext;
+    EventDispatcher::Dispatch(window, presContext, &event, nullptr, &status);
   }
 
   // look for open menupopups and close them after the unload event, in case
@@ -2950,7 +2951,6 @@ nsDocumentViewer::PrintPreview(nsIPrintSettings* aPrintSettings,
   NS_ENSURE_STATE(doc);
 
   if (NS_WARN_IF(GetIsPrinting())) {
-    nsPrintJob::CloseProgressDialog(aWebProgressListener);
     return NS_ERROR_FAILURE;
   }
 
@@ -2983,7 +2983,8 @@ nsDocumentViewer::PrintPreview(nsIPrintSettings* aPrintSettings,
   }
   mPrintJob = printJob;
 
-  if (!hadPrintJob && !StaticPrefs::print_tab_modal_enabled()) {
+  bool print_tab_modal_enabled = true;
+  if (!hadPrintJob && !print_tab_modal_enabled) {
     Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_PREVIEW_OPENED, 1);
   }
   rv = printJob->PrintPreview(doc, aPrintSettings, aWebProgressListener,
@@ -3110,7 +3111,8 @@ nsDocumentViewer::PrintPreviewScrollToPage(int16_t aType, int32_t aPageNum) {
   if (!GetIsPrintPreview() || mPrintJob->GetIsCreatingPrintPreview())
     return NS_ERROR_FAILURE;
 
-  if (!StaticPrefs::print_tab_modal_enabled()) {
+  bool print_tab_modal_enabled = true;
+  if (!print_tab_modal_enabled) {
     return PrintPreviewScrollToPageForOldUI(aType, aPageNum);
   }
 
@@ -3315,7 +3317,8 @@ nsDocumentViewer::ExitPrintPreview() {
     return NS_OK;
   }
 
-  if (!mPrintJob->HasEverPrinted() && !StaticPrefs::print_tab_modal_enabled()) {
+  bool print_tab_modal_enabled = true;
+  if (!mPrintJob->HasEverPrinted() && !print_tab_modal_enabled) {
     Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_PREVIEW_CANCELLED, 1);
   }
 

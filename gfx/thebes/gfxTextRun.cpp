@@ -2403,20 +2403,21 @@ already_AddRefed<gfxTextRun> gfxFontGroup::MakeBlankTextRun(
 }
 
 already_AddRefed<gfxTextRun> gfxFontGroup::MakeHyphenTextRun(
-    DrawTarget* aDrawTarget, uint32_t aAppUnitsPerDevUnit) {
+    DrawTarget* aDrawTarget, gfx::ShapedTextFlags aFlags,
+    uint32_t aAppUnitsPerDevUnit) {
   // only use U+2010 if it is supported by the first font in the group;
   // it's better to use ASCII '-' from the primary font than to fall back to
   // U+2010 from some other, possibly poorly-matching face
   static const char16_t hyphen = 0x2010;
   gfxFont* font = GetFirstValidFont(uint32_t(hyphen));
   if (font->HasCharacter(hyphen)) {
-    return MakeTextRun(&hyphen, 1, aDrawTarget, aAppUnitsPerDevUnit,
-                       ShapedTextFlags(), nsTextFrameUtils::Flags(), nullptr);
+    return MakeTextRun(&hyphen, 1, aDrawTarget, aAppUnitsPerDevUnit, aFlags,
+                       nsTextFrameUtils::Flags(), nullptr);
   }
 
   static const uint8_t dash = '-';
-  return MakeTextRun(&dash, 1, aDrawTarget, aAppUnitsPerDevUnit,
-                     ShapedTextFlags(), nsTextFrameUtils::Flags(), nullptr);
+  return MakeTextRun(&dash, 1, aDrawTarget, aAppUnitsPerDevUnit, aFlags,
+                     nsTextFrameUtils::Flags(), nullptr);
 }
 
 gfxFloat gfxFontGroup::GetHyphenWidth(
@@ -2425,7 +2426,8 @@ gfxFloat gfxFontGroup::GetHyphenWidth(
     RefPtr<DrawTarget> dt(aProvider->GetDrawTarget());
     if (dt) {
       RefPtr<gfxTextRun> hyphRun(
-          MakeHyphenTextRun(dt, aProvider->GetAppUnitsPerDevUnit()));
+          MakeHyphenTextRun(dt, aProvider->GetShapedTextFlags(),
+                            aProvider->GetAppUnitsPerDevUnit()));
       mHyphenWidth = hyphRun.get() ? hyphRun->GetAdvanceWidth() : 0;
     }
   }
@@ -2514,7 +2516,7 @@ void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
       if (newCh != origCh) {
         if (!transformedString) {
           transformedString = MakeUnique<char16_t[]>(aLength);
-          if (sizeof(T) == sizeof(char16_t)) {
+          if constexpr (sizeof(T) == sizeof(char16_t)) {
             memcpy(transformedString.get(), aString, i * sizeof(char16_t));
           } else {
             for (uint32_t j = 0; j < i; ++j) {
@@ -2815,7 +2817,7 @@ void gfxFontGroup::InitScriptRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
 
         // for 16-bit textruns only, check for surrogate pairs and
         // special Unicode spaces; omit these checks in 8-bit runs
-        if (sizeof(T) == sizeof(char16_t)) {
+        if constexpr (sizeof(T) == sizeof(char16_t)) {
           if (index + 1 < aLength &&
               NS_IS_SURROGATE_PAIR(ch, aString[index + 1])) {
             uint32_t usv = SURROGATE_TO_UCS4(ch, aString[index + 1]);
@@ -3394,7 +3396,7 @@ void gfxFontGroup::ComputeRanges(nsTArray<TextRange>& aRanges, const T* aString,
 
   uint32_t prevCh = 0;
   uint32_t nextCh = aString[0];
-  if (sizeof(T) == sizeof(char16_t)) {
+  if constexpr (sizeof(T) == sizeof(char16_t)) {
     if (aLength > 1 && NS_IS_SURROGATE_PAIR(nextCh, aString[1])) {
       nextCh = SURROGATE_TO_UCS4(nextCh, aString[1]);
     }
@@ -3420,7 +3422,7 @@ void gfxFontGroup::ComputeRanges(nsTArray<TextRange>& aRanges, const T* aString,
     // Get next char (if any) so that FindFontForChar can look ahead
     // for a possible variation selector.
 
-    if (sizeof(T) == sizeof(char16_t)) {
+    if constexpr (sizeof(T) == sizeof(char16_t)) {
       // In 16-bit case only, check for surrogate pairs.
       if (ch > 0xffffu) {
         i++;

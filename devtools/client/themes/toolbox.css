@@ -384,6 +384,14 @@
   --menuitem-icon-image: url("chrome://devtools/skin/images/command-noautohide.svg");
 }
 
+#toolbox-meatball-menu-pseudo-locale-accented {
+  --menuitem-icon-image: url("chrome://devtools/skin/images/command-accented.svg");
+}
+
+#toolbox-meatball-menu-pseudo-locale-bidi {
+  --menuitem-icon-image: url("chrome://devtools/skin/images/command-bidi.svg");
+}
+
 #toolbox-meatball-menu-settings {
   --menuitem-icon-image: url("chrome://devtools/skin/images/settings.svg");
 }
@@ -409,11 +417,15 @@
 }
 
 #command-button-pick::before {
-  background-image: url("chrome://devtools/skin/images/command-pick.svg");
+  background-image: url("chrome://devtools/content/shared/images/command-pick.svg");
 }
 
 #command-button-pick.accessibility::before {
   background-image: url("chrome://devtools/skin/images/command-pick-accessibility.svg");
+}
+
+#command-button-pick.remote-fenix::before {
+  background-image: url("chrome://devtools/content/shared/images/command-pick-remote-touch.svg");
 }
 
 /* Command button images */

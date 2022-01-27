@@ -21,6 +21,7 @@ return-to-amo-subtitle = Great, you’ve got { -brand-short-name }
 #   $addon-name (String) - Name of the add-on
 return-to-amo-addon-title = Now let’s get you <img data-l10n-name="icon"/> <b>{ $addon-name }</b>.
 return-to-amo-add-extension-label = Add the Extension
+return-to-amo-add-theme-label = Add the Theme
 
 ## Multistage onboarding strings (about:welcome pages)
 
@@ -207,16 +208,14 @@ mr2-onboarding-colorway-tooltip =
 # Selector description for colorway
 # Variables:
 #   $colorwayName (String) - Name of colorway
-mr2-onboarding-colorway-description =
-  .aria-description = Explore { $colorwayName } colorways.
+mr2-onboarding-colorway-label = Explore { $colorwayName } colorways.
 
 # Tooltip displayed on hover of default themes
 mr2-onboarding-default-theme-tooltip =
   .title = Explore default themes.
 
 # Selector description for default themes
-mr2-onboarding-default-theme-description =
-  .aria-description = Explore default themes.
+mr2-onboarding-default-theme-label = Explore default themes.
 
 ## Strings for Thank You page
 

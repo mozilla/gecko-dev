@@ -462,22 +462,17 @@ nsFocusManager::GetFocusedElement(Element** aFocusedElement) {
   return NS_OK;
 }
 
+uint32_t nsFocusManager::GetLastFocusMethod(nsPIDOMWindowOuter* aWindow) const {
+  nsPIDOMWindowOuter* window = aWindow ? aWindow : mFocusedWindow.get();
+  uint32_t method = window ? window->GetFocusMethod() : 0;
+  NS_ASSERTION((method & METHOD_MASK) == method, "invalid focus method");
+  return method;
+}
+
 NS_IMETHODIMP
 nsFocusManager::GetLastFocusMethod(mozIDOMWindowProxy* aWindow,
                                    uint32_t* aLastFocusMethod) {
-  // the focus method is stored on the inner window
-  nsCOMPtr<nsPIDOMWindowOuter> window;
-  if (aWindow) {
-    window = nsPIDOMWindowOuter::From(aWindow);
-  }
-  if (!window) {
-    window = mFocusedWindow;
-  }
-
-  *aLastFocusMethod = window ? window->GetFocusMethod() : 0;
-
-  NS_ASSERTION((*aLastFocusMethod & METHOD_MASK) == *aLastFocusMethod,
-               "invalid focus method");
+  *aLastFocusMethod = GetLastFocusMethod(nsPIDOMWindowOuter::From(aWindow));
   return NS_OK;
 }
 
@@ -1764,11 +1759,11 @@ void nsFocusManager::SetFocusInner(Element* aNewContent, int32_t aFlags,
                             (aFlags & (FLAG_SHOWRING | FLAG_NOSHOWRING));
     newWindow->SetFocusedElement(elementToFocus, focusMethod);
     if (aFocusChanged) {
-      nsCOMPtr<nsIDocShell> docShell = newWindow->GetDocShell();
-
-      RefPtr<PresShell> presShell = docShell->GetPresShell();
-      if (presShell && presShell->DidInitialize()) {
-        ScrollIntoView(presShell, elementToFocus, aFlags);
+      if (nsCOMPtr<nsIDocShell> docShell = newWindow->GetDocShell()) {
+        RefPtr<PresShell> presShell = docShell->GetPresShell();
+        if (presShell && presShell->DidInitialize()) {
+          ScrollIntoView(presShell, elementToFocus, aFlags);
+        }
       }
     }
 
@@ -2710,7 +2705,8 @@ class FocusBlurEvent : public Runnable {
         mIsRefocus(aIsRefocus),
         mRelatedTarget(aRelatedTarget) {}
 
-  NS_IMETHOD Run() override {
+  // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230, bug 1535398)
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override {
     InternalFocusEvent event(true, mEventMessage);
     event.mFlags.mBubbles = false;
     event.mFlags.mCancelable = false;
@@ -2720,8 +2716,8 @@ class FocusBlurEvent : public Runnable {
     return EventDispatcher::Dispatch(mTarget, mContext, &event);
   }
 
-  nsCOMPtr<nsISupports> mTarget;
-  RefPtr<nsPresContext> mContext;
+  const nsCOMPtr<nsISupports> mTarget;
+  const RefPtr<nsPresContext> mContext;
   EventMessage mEventMessage;
   bool mWindowRaised;
   bool mIsRefocus;
@@ -2743,7 +2739,8 @@ class FocusInOutEvent : public Runnable {
         mOriginalFocusedContent(aOriginalFocusedContent),
         mRelatedTarget(aRelatedTarget) {}
 
-  NS_IMETHOD Run() override {
+  // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230, bug 1535398)
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override {
     nsCOMPtr<nsIContent> originalWindowFocus =
         mOriginalFocusedWindow ? mOriginalFocusedWindow->GetFocusedElement()
                                : nullptr;
@@ -2760,8 +2757,8 @@ class FocusInOutEvent : public Runnable {
     return NS_OK;
   }
 
-  nsCOMPtr<nsISupports> mTarget;
-  RefPtr<nsPresContext> mContext;
+  const nsCOMPtr<nsISupports> mTarget;
+  const RefPtr<nsPresContext> mContext;
   EventMessage mEventMessage;
   nsCOMPtr<nsPIDOMWindowOuter> mOriginalFocusedWindow;
   nsCOMPtr<nsIContent> mOriginalFocusedContent;

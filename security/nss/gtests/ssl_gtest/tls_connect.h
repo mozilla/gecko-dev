@@ -11,6 +11,7 @@
 
 #include "sslproto.h"
 #include "sslt.h"
+#include "nss.h"
 
 #include "tls_agent.h"
 #include "tls_filter.h"
@@ -155,7 +156,7 @@ class TlsConnectTestBase : public ::testing::Test {
                 std::shared_ptr<TlsAgent>& server,
                 HpkeKemId kem_id = HpkeDhKemX25519Sha256,
                 bool expect_ech = true, bool set_client_config = true,
-                bool set_server_config = true);
+                bool set_server_config = true, int maxConfigSize = 100);
 
  protected:
   SSLProtocolVariant variant_;
@@ -182,6 +183,10 @@ class TlsConnectTestBase : public ::testing::Test {
                                               SEC_OID_ANSIX9_DSA_SIGNATURE,
                                               SEC_OID_CURVE25519, SEC_OID_SHA1};
   std::vector<std::tuple<SECOidTag, uint32_t>> saved_policies_;
+  const std::vector<PRInt32> options_ = {
+      NSS_RSA_MIN_KEY_SIZE, NSS_DH_MIN_KEY_SIZE, NSS_DSA_MIN_KEY_SIZE,
+      NSS_TLS_VERSION_MIN_POLICY, NSS_TLS_VERSION_MAX_POLICY};
+  std::vector<std::tuple<PRInt32, uint32_t>> saved_options_;
 
  private:
   void CheckResumption(SessionResumptionMode expected);

@@ -315,7 +315,10 @@ bool CCGCScheduler::GCRunnerFiredDoGC(TimeStamp aDeadline,
     if (!aDeadline.IsNull()) {
       if (aDeadline < now) {
         // This slice overflowed the idle period.
-        idleDuration = aDeadline - startTimeStamp;
+        if (aDeadline > startTimeStamp) {
+          idleDuration = aDeadline - startTimeStamp;
+        }
+        // Otherwise the whole slice was done outside the idle period.
       } else {
         // Note, we don't want to use duration here, since it may contain
         // data also from JS engine triggered GC slices.
@@ -486,7 +489,8 @@ void CCGCScheduler::EnsureGCRunner(TimeDuration aDelay) {
       "CCGCScheduler::EnsureGCRunner", aDelay,
       TimeDuration::FromMilliseconds(
           StaticPrefs::javascript_options_gc_delay_interslice()),
-      mActiveIntersliceGCBudget, true, [this] { return mDidShutdown; });
+      mActiveIntersliceGCBudget, true, [this] { return mDidShutdown; },
+      [this](uint32_t) { mInterruptRequested = true; });
 }
 
 // nsJSEnvironmentObserver observes the user-interaction-inactive notifications
@@ -594,8 +598,7 @@ js::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
 
   if (aCCBeginTime.IsNull()) {
     // If no CC is in progress, use the standard slice time.
-    return js::SliceBudget(js::TimeBudget(baseBudget),
-                           kNumCCNodesBetweenTimeChecks);
+    return js::SliceBudget(js::TimeBudget(baseBudget));
   }
 
   // Only run a limited slice if we're within the max running time.
@@ -624,9 +627,8 @@ js::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
   // Note: We may have already overshot the deadline, in which case
   // baseBudget will be negative and we will end up returning
   // laterSliceBudget.
-  return js::SliceBudget(js::TimeBudget(std::max(
-                             {delaySliceBudget, laterSliceBudget, baseBudget})),
-                         kNumCCNodesBetweenTimeChecks);
+  return js::SliceBudget(js::TimeBudget(
+      std::max({delaySliceBudget, laterSliceBudget, baseBudget})));
 }
 
 TimeDuration CCGCScheduler::ComputeInterSliceGCBudget(TimeStamp aDeadline,

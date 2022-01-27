@@ -3,6 +3,9 @@
  */
 "use strict";
 
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 const { BrowserUsageTelemetry } = ChromeUtils.import(
   "resource:///modules/BrowserUsageTelemetry.jsm"
 );
@@ -28,15 +31,15 @@ function encodeUtf16(str) {
 }
 
 // Returns Promise
-function writeJsonUtf16(file, obj) {
+function writeJsonUtf16(fileName, obj) {
   const str = JSON.stringify(obj);
-  return IOUtils.write(file.path, encodeUtf16(str));
+  return IOUtils.write(fileName, encodeUtf16(str));
 }
 
 async function runReport(
-  dataFilePath,
+  dataFile,
   installType,
-  { clearTS, setTS, assertRejects, expectExtra, expectTS }
+  { clearTS, setTS, assertRejects, expectExtra, expectTS, msixPrefixes }
 ) {
   // Setup timestamp
   if (clearTS) {
@@ -52,11 +55,16 @@ async function runReport(
   // Exercise reportInstallationTelemetry
   if (typeof assertRejects != "undefined") {
     await Assert.rejects(
-      BrowserUsageTelemetry.reportInstallationTelemetry(dataFilePath),
+      BrowserUsageTelemetry.reportInstallationTelemetry(dataFile),
       assertRejects
     );
+  } else if (!msixPrefixes) {
+    await BrowserUsageTelemetry.reportInstallationTelemetry(dataFile);
   } else {
-    await BrowserUsageTelemetry.reportInstallationTelemetry(dataFilePath);
+    await BrowserUsageTelemetry.reportInstallationTelemetry(
+      dataFile,
+      msixPrefixes
+    );
   }
 
   // Check events
@@ -74,14 +82,15 @@ async function runReport(
 }
 
 add_task(async function testInstallationTelemetry() {
-  let dataFile = FileUtils.getFile("TmpD", [
-    "installation-telemetry-test-data" + Math.random() + ".json",
-  ]);
-  dataFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+  let dataFilePath = await IOUtils.createUniqueFile(
+    Services.dirsvc.get("TmpD", Ci.nsIFile).path,
+    "installation-telemetry-test-data" + Math.random() + ".json"
+  );
+  let dataFile = new FileUtils.File(dataFilePath);
 
   registerCleanupFunction(async () => {
     try {
-      await IOUtils.remove(dataFile.path);
+      await IOUtils.remove(dataFilePath);
     } catch (ex) {
       // Ignore remove failure, file may not exist by now
     }
@@ -104,10 +113,12 @@ add_task(async function testInstallationTelemetry() {
     build_id: "123",
     admin_user: "true",
     install_existed: "false",
+    other_inst: "false",
+    other_msix_inst: "false",
     profdir_existed: "false",
   };
 
-  await writeJsonUtf16(dataFile, stubData);
+  await writeJsonUtf16(dataFilePath, stubData);
   await runReport(dataFile, "stub", {
     clearTS: true,
     expectExtra: stubExtra,
@@ -119,8 +130,11 @@ add_task(async function testInstallationTelemetry() {
 
   // New timestamp
   stubData.install_timestamp = "1";
-  await writeJsonUtf16(dataFile, stubData);
-  await runReport(dataFile, "stub", { expectExtra: stubExtra, expectTS: "1" });
+  await writeJsonUtf16(dataFilePath, stubData);
+  await runReport(dataFile, "stub", {
+    expectExtra: stubExtra,
+    expectTS: "1",
+  });
 
   // Test with normal full data
   let fullData = {
@@ -141,13 +155,15 @@ add_task(async function testInstallationTelemetry() {
     build_id: "123",
     admin_user: "false",
     install_existed: "true",
+    other_inst: "false",
+    other_msix_inst: "false",
     profdir_existed: "true",
     silent: "false",
     from_msi: "false",
     default_path: "true",
   };
 
-  await writeJsonUtf16(dataFile, fullData);
+  await writeJsonUtf16(dataFilePath, fullData);
   await runReport(dataFile, "full", {
     clearTS: true,
     expectExtra: fullExtra,
@@ -157,22 +173,36 @@ add_task(async function testInstallationTelemetry() {
   // Check that it doesn't generate another event when the timestamp is unchanged
   await runReport(dataFile, "full", { expectTS: "1" });
 
-  // New timestamp
+  // New timestamp and a check to make sure we can find installed MSIX packages
+  // by overriding the prefixes a bit further down.
   fullData.install_timestamp = "2";
-  await writeJsonUtf16(dataFile, fullData);
-  await runReport(dataFile, "full", { expectExtra: fullExtra, expectTS: "2" });
+  // This check only works on Windows 10 and above
+  if (AppConstants.isPlatformAndVersionAtLeast("win", "10")) {
+    fullExtra.other_msix_inst = "true";
+  }
+  await writeJsonUtf16(dataFilePath, fullData);
+  await runReport(dataFile, "full", {
+    expectExtra: fullExtra,
+    expectTS: "2",
+    msixPrefixes: ["Microsoft"],
+  });
 
   // Missing field
   delete fullData.install_existed;
   fullData.install_timestamp = "3";
-  await writeJsonUtf16(dataFile, fullData);
+  await writeJsonUtf16(dataFilePath, fullData);
   await runReport(dataFile, "full", { assertRejects: /install_existed/ });
 
   // Malformed JSON
-  await IOUtils.write(dataFile.path, encodeUtf16("hello"));
-  await runReport(dataFile, "stub", { assertRejects: /unexpected character/ });
+  await IOUtils.write(dataFilePath, encodeUtf16("hello"));
+  await runReport(dataFile, "stub", {
+    assertRejects: /unexpected character/,
+  });
 
   // Missing file, should return with no exception
-  await IOUtils.remove(dataFile.path);
+  await IOUtils.remove(dataFilePath);
   await runReport(dataFile, "stub", { setTS: "3", expectTS: "3" });
+
+  // bug 1750581 tracks testing this when we're able to run tests in
+  // an MSIX package environment
 });

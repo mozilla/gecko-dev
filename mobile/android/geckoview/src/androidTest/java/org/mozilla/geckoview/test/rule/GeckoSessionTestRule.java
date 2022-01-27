@@ -2328,18 +2328,17 @@ public class GeckoSessionTestRule implements TestRule {
   }
 
   /**
-   * Gets the color of a link for a given URI and selector.
+   * Gets the color of a link for a given selector.
    *
-   * @param uri Page where the link is present.
    * @param selector Selector that matches the link
    * @return String representing the color, e.g. rgb(0, 0, 255)
    */
-  public String getLinkColor(final String uri, final String selector) {
+  public String getLinkColor(final GeckoSession session, final String selector) {
     return (String)
         webExtensionApiCall(
+            session,
             "GetLinkColor",
             args -> {
-              args.put("uri", uri);
               args.put("selector", selector);
             });
   }
@@ -2399,8 +2398,9 @@ public class GeckoSessionTestRule implements TestRule {
   }
 
   /** Invokes nsIDOMWindowUtils.setResolutionAndScaleTo. */
-  public void setResolutionAndScaleTo(final float resolution) {
+  public void setResolutionAndScaleTo(final GeckoSession session, final float resolution) {
     webExtensionApiCall(
+        session,
         "SetResolutionAndScaleTo",
         args -> {
           args.put("resolution", resolution);
@@ -2420,6 +2420,11 @@ public class GeckoSessionTestRule implements TestRule {
   /** Returns true if Gecko is using a GPU process. */
   public boolean usingGpuProcess() {
     return (Boolean) webExtensionApiCall("UsingGpuProcess", null);
+  }
+
+  /** Kills the GPU process cleanly with generating a crash report. */
+  public void killGpuProcess() {
+    webExtensionApiCall("KillGpuProcess", null);
   }
 
   /** Causes the GPU process to crash. */

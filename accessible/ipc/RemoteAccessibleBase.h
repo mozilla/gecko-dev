@@ -176,11 +176,13 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
   virtual double MaxValue() const override;
   virtual double Step() const override;
 
-  virtual nsIntRect Bounds() const override;
+  virtual LayoutDeviceIntRect Bounds() const override;
 
   virtual uint64_t State() override;
 
   virtual already_AddRefed<AccAttributes> Attributes() override;
+
+  virtual nsAtom* TagName() const override;
 
   // Methods that interact with content.
 
@@ -241,6 +243,8 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
     mCachedFields->SetAttribute(nsGkAtoms::state, state);
   }
 
+  void InvalidateGroupInfo();
+
   virtual void AppendTextTo(nsAString& aText, uint32_t aStartOffset = 0,
                             uint32_t aLength = UINT32_MAX) override;
 
@@ -289,11 +293,19 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
   void SetParent(Derived* aParent);
   Maybe<nsRect> RetrieveCachedBounds() const;
 
+  virtual void ARIAGroupPosition(int32_t* aLevel, int32_t* aSetSize,
+                                 int32_t* aPosInSet) const override;
+
+  virtual AccGroupInfo* GetGroupInfo() const override;
+
+  virtual AccGroupInfo* GetOrCreateGroupInfo() override;
+
  private:
   uintptr_t mParent;
   static const uintptr_t kNoParent = UINTPTR_MAX;
 
   friend Derived;
+  friend DocAccessibleParent;
 
   nsTArray<Derived*> mChildren;
   DocAccessibleParent* mDoc;

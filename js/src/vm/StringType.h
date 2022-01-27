@@ -355,6 +355,9 @@ class JSString : public js::gc::CellWithLengthAndFlags {
    */
   static inline bool validateLength(JSContext* maybecx, size_t length);
 
+  template <js::AllowGC allowGC>
+  static inline bool validateLengthInternal(JSContext* maybecx, size_t length);
+
   static constexpr size_t offsetOfFlags() { return offsetOfHeaderFlags(); }
   static constexpr size_t offsetOfLength() { return offsetOfHeaderLength(); }
 
@@ -787,6 +790,16 @@ class JSRope : public JSString {
 static_assert(sizeof(JSRope) == sizeof(JSString),
               "string subclasses must be binary-compatible with JSString");
 
+/*
+ * There are optimized entry points for some string allocation functions.
+ *
+ * The meaning of suffix:
+ *   * "MaybeDeflate": for char16_t variant, characters can fit Latin1
+ *   * "DontDeflate": for char16_t variant, characters don't fit Latin1
+ *   * "NonStatic": characters don't match StaticStrings
+ *   * "ValidLength": length fits JSString::MAX_LENGTH
+ */
+
 class JSLinearString : public JSString {
   friend class JSString;
   friend class JS::AutoStableStringChars;
@@ -820,6 +833,16 @@ class JSLinearString : public JSString {
   static inline JSLinearString* new_(
       JSContext* cx, js::UniquePtr<CharT[], JS::FreePolicy> chars,
       size_t length, js::gc::InitialHeap heap);
+
+  template <js::AllowGC allowGC, typename CharT>
+  static inline JSLinearString* newValidLength(
+      JSContext* cx, js::UniquePtr<CharT[], JS::FreePolicy> chars,
+      size_t length, js::gc::InitialHeap heap);
+
+  template <typename CharT>
+  static inline JSLinearString* newForAtomValidLength(
+      JSContext* cx, js::UniquePtr<CharT[], JS::FreePolicy> chars,
+      size_t length);
 
   template <typename CharT>
   MOZ_ALWAYS_INLINE const CharT* nonInlineChars(
@@ -1060,6 +1083,8 @@ class JSThinInlineString : public JSInlineString {
   static inline JSThinInlineString* new_(JSContext* cx,
                                          js::gc::InitialHeap heap);
 
+  static inline JSThinInlineString* newForAtom(JSContext* cx);
+
   template <typename CharT>
   inline CharT* init(size_t length);
 
@@ -1098,6 +1123,8 @@ class JSFatInlineString : public JSInlineString {
   template <js::AllowGC allowGC>
   static inline JSFatInlineString* new_(JSContext* cx,
                                         js::gc::InitialHeap heap);
+
+  static inline JSFatInlineString* newForAtom(JSContext* cx);
 
   static const size_t MAX_LENGTH_LATIN1 =
       JSString::NUM_INLINE_CHARS_LATIN1 + INLINE_EXTENSION_CHARS_LATIN1;
@@ -1165,13 +1192,6 @@ class JSAtom : public JSLinearString {
 
   MOZ_ALWAYS_INLINE
   bool isPermanent() const { return JSString::isPermanentAtom(); }
-
-  // Transform this atom into a permanent atom. This is only done during
-  // initialization of the runtime. Permanent atoms are always pinned.
-  MOZ_ALWAYS_INLINE void morphIntoPermanentAtom() {
-    MOZ_ASSERT(static_cast<JSString*>(this)->isAtom());
-    setFlagBit(PERMANENT_ATOM_MASK);
-  }
 
   MOZ_ALWAYS_INLINE bool isIndex() const {
     MOZ_ASSERT(JSString::isAtom());
@@ -1374,6 +1394,14 @@ inline JSLinearString* NewStringCopyN(
                                  heap);
 }
 
+template <typename CharT>
+extern JSLinearString* NewStringForAtomCopyNMaybeDeflateValidLength(
+    JSContext* cx, const CharT* s, size_t n);
+
+template <typename CharT>
+extern JSLinearString* NewStringForAtomCopyNDontDeflateValidLength(
+    JSContext* cx, const CharT* s, size_t n);
+
 /* Copy a counted string and GC-allocate a descriptor for it. */
 template <js::AllowGC allowGC, typename CharT>
 inline JSLinearString* NewStringCopy(
@@ -1396,6 +1424,11 @@ extern JSLinearString* NewStringCopyNDontDeflate(
     JSContext* cx, const CharT* s, size_t n,
     js::gc::InitialHeap heap = js::gc::DefaultHeap);
 
+template <js::AllowGC allowGC, typename CharT>
+extern JSLinearString* NewStringCopyNDontDeflateNonStaticValidLength(
+    JSContext* cx, const CharT* s, size_t n,
+    js::gc::InitialHeap heap = js::gc::DefaultHeap);
+
 /* Copy a C string and GC-allocate a descriptor for it. */
 template <js::AllowGC allowGC>
 inline JSLinearString* NewStringCopyZ(
@@ -1411,16 +1444,14 @@ inline JSLinearString* NewStringCopyZ(
   return NewStringCopyN<allowGC>(cx, s, strlen(s), heap);
 }
 
-template <js::AllowGC allowGC>
 extern JSLinearString* NewStringCopyUTF8N(
     JSContext* cx, const JS::UTF8Chars utf8,
     js::gc::InitialHeap heap = js::gc::DefaultHeap);
 
-template <js::AllowGC allowGC>
 inline JSLinearString* NewStringCopyUTF8Z(
     JSContext* cx, const JS::ConstUTF8CharsZ utf8,
     js::gc::InitialHeap heap = js::gc::DefaultHeap) {
-  return NewStringCopyUTF8N<allowGC>(
+  return NewStringCopyUTF8N(
       cx, JS::UTF8Chars(utf8.c_str(), strlen(utf8.c_str())), heap);
 }
 

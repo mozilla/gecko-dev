@@ -109,6 +109,12 @@ var DownloadsPanel = {
   // Initialization and termination
 
   /**
+   * Timeout that re-enables previously disabled download items in the downloads panel
+   * after some time has passed.
+   */
+  _delayTimeout: null,
+
+  /**
    * Internal state of the downloads panel, based on one of the kState
    * constants.  This is not the same state as the XUL panel element.
    */
@@ -239,7 +245,7 @@ var DownloadsPanel = {
    * initialized the first time this method is called, and the panel is shown
    * only when data is ready.
    */
-  showPanel() {
+  showPanel(openedManually = false) {
     Services.telemetry.scalarAdd("downloads.panel_shown", 1);
     DownloadsCommon.log("Opening the downloads panel.");
 
@@ -257,7 +263,7 @@ var DownloadsPanel = {
     // called while another window is closing (like the window for selecting
     // whether to save or open the file), and that would cause the panel to
     // close immediately.
-    setTimeout(() => this._openPopupIfDataReady(), 0);
+    setTimeout(() => this._openPopupIfDataReady(openedManually), 0);
 
     DownloadsCommon.log("Waiting for the downloads panel to appear.");
     this._state = this.kStateWaitingData;
@@ -330,6 +336,10 @@ var DownloadsPanel = {
       case "keypress":
         this._onKeyPress(aEvent);
         break;
+      case "focus":
+      case "select":
+        this._onSelect(aEvent);
+        break;
     }
   },
 
@@ -359,13 +369,11 @@ var DownloadsPanel = {
     this._state = this.kStateShown;
 
     // Since at most one popup is open at any given time, we can set globally.
-    DownloadsCommon.getIndicatorData(window).attentionSuppressed = true;
+    DownloadsCommon.getIndicatorData(window).attentionSuppressed |=
+      DownloadsCommon.SUPPRESS_PANEL_OPEN;
 
     // Ensure that the first item is selected when the panel is focused.
-    if (
-      DownloadsView.richListBox.itemCount > 0 &&
-      DownloadsView.richListBox.selectedIndex == -1
-    ) {
+    if (DownloadsView.richListBox.itemCount > 0) {
       DownloadsView.richListBox.selectedIndex = 0;
     }
 
@@ -380,12 +388,21 @@ var DownloadsPanel = {
 
     DownloadsCommon.log("Downloads panel has hidden.");
 
+    if (this._delayTimeout) {
+      DownloadsView.richListBox.removeAttribute("disabled");
+      clearTimeout(this._delayTimeout);
+      this._stopWatchingForSpammyDownloadActivation();
+      this._delayTimeout = null;
+    }
+
     // Removes the keyfocus attribute so that we stop handling keyboard
     // navigation.
     this.keyFocusing = false;
 
     // Since at most one popup is open at any given time, we can set globally.
-    DownloadsCommon.getIndicatorData(window).attentionSuppressed = false;
+    DownloadsCommon.getIndicatorData(
+      window
+    ).attentionSuppressed &= ~DownloadsCommon.SUPPRESS_PANEL_OPEN;
 
     // Allow the anchor to be hidden.
     DownloadsButton.releaseAnchor();
@@ -421,6 +438,8 @@ var DownloadsPanel = {
     // Handle keypress to be able to preventDefault() events before they reach
     // the richlistbox, for keyboard navigation.
     this.panel.addEventListener("keypress", this);
+    DownloadsView.richListBox.addEventListener("focus", this);
+    DownloadsView.richListBox.addEventListener("select", this);
   },
 
   /**
@@ -430,6 +449,8 @@ var DownloadsPanel = {
   _unattachEventListeners() {
     this.panel.removeEventListener("keydown", this);
     this.panel.removeEventListener("keypress", this);
+    DownloadsView.richListBox.removeEventListener("focus", this);
+    DownloadsView.richListBox.removeEventListener("select", this);
   },
 
   _onKeyPress(aEvent) {
@@ -438,8 +459,22 @@ var DownloadsPanel = {
       return;
     }
 
-    let richListBox = DownloadsView.richListBox;
+    // Pass keypress events to the richlistbox view when it's focused.
+    if (document.activeElement === DownloadsView.richListBox) {
+      DownloadsView.onDownloadKeyPress(aEvent);
+    }
+  },
 
+  /**
+   * Keydown listener that listens for the keys to start key focusing, as well
+   * as the the accel-V "paste" event, which initiates a file download if the
+   * pasted item can be resolved to a URI.
+   */
+  _onKeyDown(aEvent) {
+    if (DownloadsView.richListBox.hasAttribute("disabled")) {
+      this._handlePotentiallySpammyDownloadActivation(aEvent);
+      return;
+    }
     // If the user has pressed the tab, up, or down cursor key, start keyboard
     // navigation, thus enabling focusrings in the panel.  Keyboard navigation
     // is automatically disabled if the user moves the mouse on the panel, or
@@ -451,13 +486,22 @@ var DownloadsPanel = {
       !this.keyFocusing
     ) {
       this.keyFocusing = true;
-      // Ensure there's a selection, we will show the focus ring around it and
-      // prevent the richlistbox from changing the selection.
-      if (DownloadsView.richListBox.selectedIndex == -1) {
-        DownloadsView.richListBox.selectedIndex = 0;
+    }
+
+    let richListBox = DownloadsView.richListBox;
+    // If the footer is focused and the downloads list has at least 1 element
+    // in it, focus the last element in the list when going up.
+    if (aEvent.keyCode == aEvent.DOM_VK_UP && richListBox.firstElementChild) {
+      if (
+        document
+          .getElementById("downloadsFooter")
+          .contains(document.activeElement)
+      ) {
+        richListBox.selectedItem = richListBox.lastElementChild;
+        richListBox.focus();
+        aEvent.preventDefault();
+        return;
       }
-      aEvent.preventDefault();
-      return;
     }
 
     if (aEvent.keyCode == aEvent.DOM_VK_DOWN) {
@@ -465,38 +509,15 @@ var DownloadsPanel = {
       // focused, focus the footer.
       if (
         richListBox.selectedItem === richListBox.lastElementChild ||
-        document.activeElement.parentNode.id === "downloadsFooter"
+        document
+          .getElementById("downloadsFooter")
+          .contains(document.activeElement)
       ) {
+        richListBox.selectedIndex = -1;
         DownloadsFooter.focus();
         aEvent.preventDefault();
         return;
       }
-    }
-
-    // Pass keypress events to the richlistbox view when it's focused.
-    if (document.activeElement === richListBox) {
-      DownloadsView.onDownloadKeyPress(aEvent);
-    }
-  },
-
-  /**
-   * Keydown listener that listens for the keys to start key focusing, as well
-   * as the the accel-V "paste" event, which initiates a file download if the
-   * pasted item can be resolved to a URI.
-   */
-  _onKeyDown(aEvent) {
-    // If the footer is focused and the downloads list has at least 1 element
-    // in it, focus the last element in the list when going up.
-    if (
-      aEvent.keyCode == aEvent.DOM_VK_UP &&
-      document.activeElement.parentNode.id === "downloadsFooter" &&
-      DownloadsView.richListBox.firstElementChild
-    ) {
-      DownloadsView.richListBox.focus();
-      DownloadsView.richListBox.selectedItem =
-        DownloadsView.richListBox.lastElementChild;
-      aEvent.preventDefault();
-      return;
     }
 
     let pasting =
@@ -532,6 +553,18 @@ var DownloadsPanel = {
     } catch (ex) {}
   },
 
+  _onSelect() {
+    let richlistbox = DownloadsView.richListBox;
+    richlistbox.itemChildren.forEach(item => {
+      let button = item.querySelector("button");
+      if (item.selected) {
+        button.removeAttribute("tabindex");
+      } else {
+        button.setAttribute("tabindex", -1);
+      }
+    });
+  },
+
   /**
    * Move focus to the main element in the downloads panel, unless another
    * element in the panel is already focused.
@@ -548,6 +581,7 @@ var DownloadsPanel = {
     }
     if (!element) {
       if (DownloadsView.richListBox.itemCount > 0) {
+        DownloadsView.richListBox.selectedIndex = 0;
         DownloadsView.richListBox.focus();
       } else {
         DownloadsFooter.focus();
@@ -555,10 +589,54 @@ var DownloadsPanel = {
     }
   },
 
+  _delayPopupItems() {
+    DownloadsView.richListBox.setAttribute("disabled", true);
+    this._startWatchingForSpammyDownloadActivation();
+
+    this._refreshDelayTimer();
+  },
+
+  _refreshDelayTimer() {
+    // If timeout already exists, overwrite it to avoid multiple timeouts.
+    if (this._delayTimeout) {
+      clearTimeout(this._delayTimeout);
+    }
+
+    let delay = Services.prefs.getIntPref("security.dialog_enable_delay");
+    this._delayTimeout = setTimeout(() => {
+      DownloadsView.richListBox.removeAttribute("disabled");
+      this._stopWatchingForSpammyDownloadActivation();
+      this._focusPanel();
+      this._delayTimeout = null;
+    }, delay);
+  },
+
+  _startWatchingForSpammyDownloadActivation() {
+    Services.els.addSystemEventListener(window, "keydown", this, true);
+  },
+
+  _lastBeepTime: 0,
+  _handlePotentiallySpammyDownloadActivation(aEvent) {
+    if (aEvent.key == "Enter" || aEvent.key == " ") {
+      // Throttle our beeping to a maximum of once per second, otherwise it
+      // appears on Win10 that beeps never make it through at all.
+      if (Date.now() - this._lastBeepTime > 1000) {
+        Cc["@mozilla.org/sound;1"].getService(Ci.nsISound).beep();
+        this._lastBeepTime = Date.now();
+      }
+
+      this._refreshDelayTimer();
+    }
+  },
+
+  _stopWatchingForSpammyDownloadActivation() {
+    Services.els.removeSystemEventListener(window, "keydown", this, true);
+  },
+
   /**
    * Opens the downloads panel when data is ready to be displayed.
    */
-  _openPopupIfDataReady() {
+  _openPopupIfDataReady(openedManually) {
     // We don't want to open the popup if we already displayed it, or if we are
     // still loading data.
     if (this._state != this.kStateWaitingData || DownloadsView.loading) {
@@ -580,6 +658,7 @@ var DownloadsPanel = {
 
     if (!anchor) {
       DownloadsCommon.error("Downloads button cannot be found.");
+      this._state = this.kStateHidden;
       return;
     }
 
@@ -600,19 +679,24 @@ var DownloadsPanel = {
     // called while another window is closing (like the window for selecting
     // whether to save or open the file), and that would cause the panel to
     // close immediately.
-    setTimeout(
-      () =>
-        PanelMultiView.openPopup(
-          this.panel,
-          anchor,
-          "bottomcenter topright",
-          0,
-          0,
-          false,
-          null
-        ).catch(Cu.reportError),
-      0
-    );
+    setTimeout(() => {
+      PanelMultiView.openPopup(
+        this.panel,
+        anchor,
+        "bottomcenter topright",
+        0,
+        0,
+        false,
+        null
+      ).catch(e => {
+        Cu.reportError(e);
+        this._state = this.kStateHidden;
+      });
+
+      if (!openedManually) {
+        this._delayPopupItems();
+      }
+    }, 0);
   },
 };
 
@@ -914,7 +998,10 @@ var DownloadsView = {
     }
 
     if (aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
-      goDoCommand("downloadsCmd_doDefault");
+      let readyToDownload = !DownloadsView.richListBox.disabled;
+      if (readyToDownload) {
+        goDoCommand("downloadsCmd_doDefault");
+      }
     }
   },
 
@@ -987,6 +1074,13 @@ var DownloadsView = {
     DownloadsViewController.updateCommands();
 
     DownloadsViewUI.updateContextMenuForElement(this.contextMenu, element);
+    // Hide the copy location item if there is somehow no URL. We have to do
+    // this here instead of in DownloadsViewUI because DownloadsPlacesView
+    // allows selecting multiple downloads, so in that view the menuitem will be
+    // shown according to whether at least one of the selected items has a URL.
+    this.contextMenu.querySelector(
+      ".downloadCopyLocationMenuItem"
+    ).hidden = !element._shell.download.source?.url;
   },
 
   onDownloadDragStart(aEvent) {
@@ -1082,8 +1176,13 @@ class DownloadsViewItem extends DownloadsViewUI.DownloadElementShell {
         let partFile = new FileUtils.File(this.download.target.partFilePath);
         return partFile.exists();
       }
-      case "cmd_delete":
+      case "downloadsCmd_deleteFile": {
+        let { target } = this.download;
+        return target.exists || target.partFileExists;
+      }
       case "downloadsCmd_copyLocation":
+        return !!this.download.source?.url;
+      case "cmd_delete":
       case "downloadsCmd_doDefault":
         return true;
       case "downloadsCmd_showBlockedInfo":
@@ -1170,6 +1269,22 @@ class DownloadsViewItem extends DownloadsViewUI.DownloadElementShell {
     // window to open before the panel closed. This also helps to prevent the
     // user from opening the containing folder several times.
     DownloadsPanel.hidePanel();
+  }
+
+  async downloadsCmd_deleteFile() {
+    await super.downloadsCmd_deleteFile();
+    // Protects against an unusual edge case where the user:
+    // 1) downloads a file with Firefox; 2) deletes the file from outside of Firefox, e.g., a file manager;
+    // 3) downloads the same file from the same source; 4) opens the downloads panel and uses the menuitem to delete one of those 2 files;
+    // Under those conditions, Firefox will make 2 view items even though there's only 1 file.
+    // Using this method will only delete the view item it was called on, because this instance is not aware of other view items with identical targets.
+    // So the remaining view item needs to be refreshed to hide the "Delete" option.
+    // That example only concerns 2 duplicate view items but you can have an arbitrary number, so iterate over all items...
+    for (let viewItem of DownloadsView._visibleViewItems.values()) {
+      viewItem.download.refresh().catch(Cu.reportError);
+    }
+    // Don't use DownloadsPanel.hidePanel for this method because it will remove
+    // the view item from the list, which is already sufficient feedback.
   }
 
   downloadsCmd_showBlockedInfo() {

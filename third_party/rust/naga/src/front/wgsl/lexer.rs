@@ -322,7 +322,12 @@ fn consume_token(mut input: &str, generic: bool) -> (Token<'_>, &str) {
             if next == Some('=') && !generic {
                 (Token::LogicalOperation(cur), chars.as_str())
             } else if next == Some(cur) && !generic {
-                (Token::ShiftOperation(cur), chars.as_str())
+                input = chars.as_str();
+                if chars.next() == Some('=') {
+                    (Token::AssignmentOperation(cur), chars.as_str())
+                } else {
+                    (Token::ShiftOperation(cur), input)
+                }
             } else {
                 (Token::Paren(cur), input)
             }
@@ -336,7 +341,7 @@ fn consume_token(mut input: &str, generic: bool) -> (Token<'_>, &str) {
             }
         }
         '0'..='9' => consume_number(input),
-        'a'..='z' | 'A'..='Z' => {
+        '_' | 'a'..='z' | 'A'..='Z' => {
             let (word, rest) = consume_any(input, |c| c.is_ascii_alphanumeric() || c == '_');
             (Token::Word(word), rest)
         }
@@ -356,14 +361,22 @@ fn consume_token(mut input: &str, generic: bool) -> (Token<'_>, &str) {
             (Token::Trivia, chars.as_str())
         }
         '-' => {
-            let og_chars = chars.as_str();
+            let sub_input = chars.as_str();
             match chars.next() {
                 Some('>') => (Token::Arrow, chars.as_str()),
                 Some('0'..='9') | Some('.') => consume_number(input),
-                _ => (Token::Operation(cur), og_chars),
+                Some('=') => (Token::AssignmentOperation(cur), chars.as_str()),
+                _ => (Token::Operation(cur), sub_input),
             }
         }
-        '+' | '*' | '/' | '%' | '^' => (Token::Operation(cur), chars.as_str()),
+        '+' | '*' | '/' | '%' | '^' => {
+            input = chars.as_str();
+            if chars.next() == Some('=') {
+                (Token::AssignmentOperation(cur), chars.as_str())
+            } else {
+                (Token::Operation(cur), input)
+            }
+        }
         '!' | '~' => {
             input = chars.as_str();
             if chars.next() == Some('=') {
@@ -374,8 +387,11 @@ fn consume_token(mut input: &str, generic: bool) -> (Token<'_>, &str) {
         }
         '=' | '&' | '|' => {
             input = chars.as_str();
-            if chars.next() == Some(cur) {
+            let next = chars.next();
+            if next == Some(cur) {
                 (Token::LogicalOperation(cur), chars.as_str())
+            } else if next == Some('=') {
+                (Token::AssignmentOperation(cur), chars.as_str())
             } else {
                 (Token::Operation(cur), input)
             }
@@ -514,16 +530,16 @@ impl<'a> Lexer<'a> {
 
     pub(super) fn next_ident_with_span(&mut self) -> Result<(&'a str, Span), Error<'a>> {
         match self.next() {
+            (Token::Word(word), span) if word.starts_with("__") => {
+                Err(Error::ReservedIdentifierPrefix(span))
+            }
             (Token::Word(word), span) => Ok((word, span)),
             other => Err(Error::Unexpected(other, ExpectedToken::Identifier)),
         }
     }
 
     pub(super) fn next_ident(&mut self) -> Result<&'a str, Error<'a>> {
-        match self.next() {
-            (Token::Word(word), _) => Ok(word),
-            other => Err(Error::Unexpected(other, ExpectedToken::Identifier)),
-        }
+        self.next_ident_with_span().map(|(word, _)| word)
     }
 
     /// Parses a generic scalar type, for example `<f32>`.
@@ -655,7 +671,7 @@ fn test_tokens() {
     );
     sub_test("No¾", &[Token::Word("No"), Token::Unknown('¾')]);
     sub_test("No好", &[Token::Word("No"), Token::Unknown('好')]);
-    sub_test("_No", &[Token::Unknown('_'), Token::Word("No")]);
+    sub_test("_No", &[Token::Word("_No")]);
     sub_test("\"\u{2}ПЀ\u{0}\"", &[Token::String("\u{2}ПЀ\u{0}")]); // https://github.com/gfx-rs/naga/issues/90
 }
 

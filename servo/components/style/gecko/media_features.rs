@@ -396,14 +396,29 @@ fn eval_overflow_inline(device: &Device, query_value: Option<OverflowInline>) ->
     }
 }
 
-/// https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme
-fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorScheme>) -> bool {
+fn do_eval_prefers_color_scheme(
+    device: &Device,
+    use_content: bool,
+    query_value: Option<PrefersColorScheme>,
+) -> bool {
     let prefers_color_scheme =
-        unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(device.document()) };
+        unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(device.document(), use_content) };
     match query_value {
         Some(v) => prefers_color_scheme == v,
         None => true,
     }
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme
+fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorScheme>) -> bool {
+    do_eval_prefers_color_scheme(device, /* use_content = */ false, query_value)
+}
+
+fn eval_content_prefers_color_scheme(
+    device: &Device,
+    query_value: Option<PrefersColorScheme>,
+) -> bool {
+    do_eval_prefers_color_scheme(device, /* use_content = */ true, query_value)
 }
 
 bitflags! {
@@ -805,6 +820,15 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
         keyword_evaluator!(eval_prefers_color_scheme, PrefersColorScheme),
         ParsingRequirements::empty(),
     ),
+    // Evaluates to the preferred color scheme for content. Only useful in
+    // chrome context, where the chrome color-scheme and the content
+    // color-scheme might differ.
+    feature!(
+        atom!("-moz-content-prefers-color-scheme"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_content_prefers_color_scheme, PrefersColorScheme),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
+    ),
     feature!(
         atom!("pointer"),
         AllowsRanges::No,
@@ -919,7 +943,6 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
         atom!("-moz-gtk-csd-reversed-placement"),
         GTKCSDReversedPlacement
     ),
-    lnf_int_feature!(atom!("-moz-gtk-wayland"), GTKWayland),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
     bool_pref_feature!(
         atom!("-moz-proton-places-tooltip"),

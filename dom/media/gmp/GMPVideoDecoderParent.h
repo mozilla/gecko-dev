@@ -56,11 +56,7 @@ class GMPVideoDecoderParent final : public PGMPVideoDecoderParent,
   // GMPSharedMemManager
   bool Alloc(size_t aSize, Shmem::SharedMemory::SharedMemoryType aType,
              Shmem* aMem) override {
-#ifdef GMP_SAFE_SHMEM
     return AllocShmem(aSize, aType, aMem);
-#else
-    return AllocUnsafeShmem(aSize, aType, aMem);
-#endif
   }
   void Dealloc(Shmem&& aMem) override { DeallocShmem(aMem); }
 
@@ -82,8 +78,8 @@ class GMPVideoDecoderParent final : public PGMPVideoDecoderParent,
   mozilla::ipc::IPCResult RecvShutdown() override;
   mozilla::ipc::IPCResult RecvParentShmemForPool(
       Shmem&& aEncodedBuffer) override;
-  mozilla::ipc::IPCResult AnswerNeedShmem(const uint32_t& aFrameBufferSize,
-                                          Shmem* aMem) override;
+  mozilla::ipc::IPCResult RecvNeedShmem(const uint32_t& aFrameBufferSize,
+                                        Shmem* aMem) override;
   mozilla::ipc::IPCResult Recv__delete__() override;
 
   void UnblockResetAndDrain();

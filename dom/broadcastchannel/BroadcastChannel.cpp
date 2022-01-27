@@ -15,7 +15,6 @@
 #include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "mozilla/dom/RefMessageBodyService.h"
 #include "mozilla/dom/SharedMessageBody.h"
-#include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WorkerRunnable.h"
@@ -127,7 +126,7 @@ BroadcastChannel::BroadcastChannel(nsIGlobalObject* aGlobal,
       mState(StateActive),
       mPortUUID(aPortUUID) {
   MOZ_ASSERT(aGlobal);
-  KeepAliveIfHasListenersFor(u"message"_ns);
+  KeepAliveIfHasListenersFor(nsGkAtoms::onmessage);
 }
 
 BroadcastChannel::~BroadcastChannel() {
@@ -342,7 +341,7 @@ void BroadcastChannel::Shutdown() {
     mActor = nullptr;
   }
 
-  IgnoreKeepAliveIfHasListenersFor(u"message"_ns);
+  IgnoreKeepAliveIfHasListenersFor(nsGkAtoms::onmessage);
 }
 
 void BroadcastChannel::RemoveDocFromBFCache() {

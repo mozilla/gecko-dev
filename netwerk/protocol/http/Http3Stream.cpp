@@ -58,7 +58,7 @@ bool Http3Stream::GetHeadersString(const char* buf, uint32_t avail,
     // We don't have all the headers yet
     LOG3(
         ("Http3Stream::GetHeadersString %p "
-         "Need more header bytes. Len = %u",
+         "Need more header bytes. Len = %zu",
          this, mFlatHttpRequestHeaders.Length()));
     *countUsed = avail;
     return false;
@@ -68,50 +68,7 @@ bool Http3Stream::GetHeadersString(const char* buf, uint32_t avail,
   mFlatHttpRequestHeaders.SetLength(endHeader + 2);
   *countUsed = avail - (oldLen - endHeader) + 4;
 
-  FindRequestContentLength();
   return true;
-}
-
-void Http3Stream::FindRequestContentLength() {
-  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
-  // Look for Content-Length header to find out if we have request body and
-  // how long it is.
-  int32_t contentLengthStart = mFlatHttpRequestHeaders.Find("Content-Length:");
-  if (contentLengthStart == -1) {
-    // There is no content-Length.
-    return;
-  }
-
-  // We have Content-Length header, find the end of it.
-  int32_t crlfIndex =
-      mFlatHttpRequestHeaders.Find("\r\n", false, contentLengthStart);
-  if (crlfIndex == -1) {
-    MOZ_ASSERT(false, "We must have \\r\\n at the end of the headers string.");
-    return;
-  }
-
-  // Find the beginning.
-  int32_t valueIndex =
-      mFlatHttpRequestHeaders.Find(":", false, contentLengthStart) + 1;
-  if (valueIndex > crlfIndex) {
-    // Content-Length headers is empty.
-    MOZ_ASSERT(false, "Content-Length must have a value.");
-    return;
-  }
-
-  const char* beginBuffer = mFlatHttpRequestHeaders.BeginReading();
-  while (valueIndex < crlfIndex && beginBuffer[valueIndex] == ' ') {
-    ++valueIndex;
-  }
-
-  nsDependentCSubstring value =
-      Substring(beginBuffer + valueIndex, beginBuffer + crlfIndex);
-
-  int64_t len;
-  nsCString tmp(value);
-  if (nsHttp::ParseInt64(tmp.get(), nullptr, &len)) {
-    mRequestBodyLenRemaining = len;
-  }
 }
 
 void Http3Stream::SetPriority(uint32_t aCos) {
@@ -169,7 +126,8 @@ void Http3Stream::TopBrowsingContextIdChanged(uint64_t id) {
   mCurrentTopBrowsingContextId = id;
   bool nowFocused = (mCurrentTopBrowsingContextId == mTransactionTabId);
 
-  if (!StaticPrefs::network_http_http3_send_background_tabs_depriorization() ||
+  if (!StaticPrefs::
+          network_http_http3_send_background_tabs_deprioritization() ||
       previouslyFocused == nowFocused) {
     return;
   }
@@ -220,24 +178,14 @@ nsresult Http3Stream::OnReadSegment(const char* buf, uint32_t count,
       mTransaction->OnTransportStatus(nullptr, NS_NET_STATUS_SENDING_TO,
                                       mTotalSent);
 
-      if (mRequestBodyLenRemaining) {
-        mSendState = SENDING_BODY;
-      } else {
-        mTransaction->OnTransportStatus(nullptr, NS_NET_STATUS_WAITING_FOR, 0);
-        mSession->CloseSendingSide(mStreamId);
-        mSendState = SEND_DONE;
-      }
+      mSendState = SENDING_BODY;
       break;
     case SENDING_BODY: {
       rv = mSession->SendRequestBody(mStreamId, buf, count, countRead);
       if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
         mSendingBlockedByFlowControlCount++;
       }
-      MOZ_ASSERT(mRequestBodyLenRemaining >= *countRead,
-                 "We cannot send more that than we promised.");
-      if (mRequestBodyLenRemaining < *countRead) {
-        rv = NS_ERROR_UNEXPECTED;
-      }
+
       if (NS_FAILED(rv)) {
         LOG3(
             ("Http3Stream::OnReadSegment %p sending body returns "
@@ -249,28 +197,14 @@ nsresult Http3Stream::OnReadSegment(const char* buf, uint32_t count,
       mTotalSent += *countRead;
       mTransaction->OnTransportStatus(nullptr, NS_NET_STATUS_SENDING_TO,
                                       mTotalSent);
-
-      mRequestBodyLenRemaining -= *countRead;
-      if (!mRequestBodyLenRemaining) {
-        mTransaction->OnTransportStatus(nullptr, NS_NET_STATUS_WAITING_FOR, 0);
-        mSession->CloseSendingSide(mStreamId);
-        mSendState = SEND_DONE;
-        Telemetry::Accumulate(
-            Telemetry::HTTP3_SENDING_BLOCKED_BY_FLOW_CONTROL_PER_TRANS,
-            mSendingBlockedByFlowControlCount);
-      }
     } break;
     case EARLY_RESPONSE:
       // We do not need to send the rest of the request, so just ignore it.
       *countRead = count;
-      mRequestBodyLenRemaining -= count;
-      if (!mRequestBodyLenRemaining) {
-        mTransaction->OnTransportStatus(nullptr, NS_NET_STATUS_WAITING_FOR, 0);
-        mSendState = SEND_DONE;
-      }
       break;
     default:
       MOZ_ASSERT(false, "We are done sending this request!");
+      rv = NS_ERROR_UNEXPECTED;
       break;
   }
 
@@ -280,12 +214,11 @@ nsresult Http3Stream::OnReadSegment(const char* buf, uint32_t count,
 }
 
 void Http3Stream::SetResponseHeaders(nsTArray<uint8_t>& aResponseHeaders,
-                                     bool aFin) {
-  MOZ_ASSERT(mRecvState == BEFORE_HEADERS);
-  MOZ_ASSERT(mFlatResponseHeaders.IsEmpty(),
-             "Cannot set response headers more than once");
-  mFlatResponseHeaders = std::move(aResponseHeaders);
-  mRecvState = READING_HEADERS;
+                                     bool aFin, bool interim) {
+  MOZ_ASSERT(mRecvState == BEFORE_HEADERS ||
+             mRecvState == READING_INTERIM_HEADERS);
+  mFlatResponseHeaders.AppendElements(aResponseHeaders);
+  mRecvState = (interim) ? READING_INTERIM_HEADERS : READING_HEADERS;
   mDataReceived = true;
   mFin = aFin;
 }
@@ -308,7 +241,8 @@ nsresult Http3Stream::OnWriteSegment(char* buf, uint32_t count,
       *countWritten = 0;
       rv = NS_BASE_STREAM_WOULD_BLOCK;
     } break;
-    case READING_HEADERS: {
+    case READING_HEADERS:
+    case READING_INTERIM_HEADERS: {
       // SetResponseHeaders should have been previously called.
       MOZ_ASSERT(!mFlatResponseHeaders.IsEmpty(), "Headers empty!");
       *countWritten = (mFlatResponseHeaders.Length() > count)
@@ -318,7 +252,14 @@ nsresult Http3Stream::OnWriteSegment(char* buf, uint32_t count,
 
       mFlatResponseHeaders.RemoveElementsAt(0, *countWritten);
       if (mFlatResponseHeaders.Length() == 0) {
-        mRecvState = mFin ? RECEIVED_FIN : READING_DATA;
+        if (mRecvState == READING_INTERIM_HEADERS) {
+          // neqo makes sure that fin cannot be received before the final
+          // headers are received.
+          MOZ_ASSERT(!mFin);
+          mRecvState = BEFORE_HEADERS;
+        } else {
+          mRecvState = mFin ? RECEIVED_FIN : READING_DATA;
+        }
       }
 
       if (*countWritten == 0) {
@@ -440,6 +381,12 @@ nsresult Http3Stream::ReadSegments(nsAHttpSegmentReader* reader) {
       }
       again = false;
     } else if (!transactionBytes) {
+      mTransaction->OnTransportStatus(nullptr, NS_NET_STATUS_WAITING_FOR, 0);
+      mSession->CloseSendingSide(mStreamId);
+      mSendState = SEND_DONE;
+      Telemetry::Accumulate(
+          Telemetry::HTTP3_SENDING_BLOCKED_BY_FLOW_CONTROL_PER_TRANS,
+          mSendingBlockedByFlowControlCount);
       rv = NS_OK;
       again = false;
     }
@@ -517,7 +464,6 @@ nsresult Http3Stream::Finish0RTT(bool aRestart) {
     mDataReceived = false;
     mResetRecv = false;
     mFlatResponseHeaders.TruncateLength(0);
-    mRequestBodyLenRemaining = 0;
     mTotalSent = 0;
     mTotalRead = 0;
     mFin = false;
@@ -530,12 +476,12 @@ nsresult Http3Stream::Finish0RTT(bool aRestart) {
 }
 
 uint8_t Http3Stream::PriorityUrgency() {
-  if (!StaticPrefs::network_http_http3_priorization()) {
-    // send default priorization which is equivalent to sending no priorization
+  if (!StaticPrefs::network_http_http3_priority()) {
+    // send default priority which is equivalent to sending no priority
     return 3;
   }
 
-  if (StaticPrefs::network_http_http3_send_background_tabs_depriorization() &&
+  if (StaticPrefs::network_http_http3_send_background_tabs_deprioritization() &&
       mCurrentTopBrowsingContextId != mTransactionTabId) {
     // Low priority
     return 6;
@@ -544,8 +490,8 @@ uint8_t Http3Stream::PriorityUrgency() {
 }
 
 bool Http3Stream::PriorityIncremental() {
-  if (!StaticPrefs::network_http_http3_priorization()) {
-    // send default priorization which is equivalent to sending no priorization
+  if (!StaticPrefs::network_http_http3_priority()) {
+    // send default priority which is equivalent to sending no priority
     return false;
   }
   return mPriorityIncremental;

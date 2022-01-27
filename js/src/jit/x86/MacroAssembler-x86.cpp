@@ -952,9 +952,14 @@ void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
   MOZ_ASSERT_IF(
       access.isZeroExtendSimd128Load(),
       access.type() == Scalar::Float32 || access.type() == Scalar::Float64);
-  MOZ_ASSERT_IF(access.isSplatSimd128Load(), access.type() == Scalar::Float64);
+  MOZ_ASSERT_IF(
+      access.isSplatSimd128Load(),
+      access.type() == Scalar::Uint8 || access.type() == Scalar::Uint16 ||
+          access.type() == Scalar::Float32 || access.type() == Scalar::Float64);
   MOZ_ASSERT_IF(access.isWidenSimd128Load(), access.type() == Scalar::Float64);
 
+  // NOTE: the generated code must match the assembly code in gen_load in
+  // GenerateAtomicOperations.py
   memoryBarrierBefore(access.sync());
 
   append(access, size());
@@ -963,21 +968,33 @@ void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
       movsbl(srcAddr, out.gpr());
       break;
     case Scalar::Uint8:
-      movzbl(srcAddr, out.gpr());
+      if (access.isSplatSimd128Load()) {
+        vbroadcastb(srcAddr, out.fpu());
+      } else {
+        movzbl(srcAddr, out.gpr());
+      }
       break;
     case Scalar::Int16:
       movswl(srcAddr, out.gpr());
       break;
     case Scalar::Uint16:
-      movzwl(srcAddr, out.gpr());
+      if (access.isSplatSimd128Load()) {
+        vbroadcastw(srcAddr, out.fpu());
+      } else {
+        movzwl(srcAddr, out.gpr());
+      }
       break;
     case Scalar::Int32:
     case Scalar::Uint32:
       movl(srcAddr, out.gpr());
       break;
     case Scalar::Float32:
-      // vmovss does the right thing also for access.isZeroExtendSimd128Load()
-      vmovss(srcAddr, out.fpu());
+      if (access.isSplatSimd128Load()) {
+        vbroadcastss(srcAddr, out.fpu());
+      } else {
+        // vmovss does the right thing also for access.isZeroExtendSimd128Load()
+        vmovss(srcAddr, out.fpu());
+      }
       break;
     case Scalar::Float64:
       if (access.isSplatSimd128Load()) {
@@ -1106,6 +1123,8 @@ void MacroAssembler::wasmStore(const wasm::MemoryAccessDesc& access,
   MOZ_ASSERT(dstAddr.kind() == Operand::MEM_REG_DISP ||
              dstAddr.kind() == Operand::MEM_SCALE);
 
+  // NOTE: the generated code must match the assembly code in gen_store in
+  // GenerateAtomicOperations.py
   memoryBarrierBefore(access.sync());
 
   append(access, size());
@@ -1202,6 +1221,8 @@ static void CompareExchange64(MacroAssembler& masm,
   MOZ_ASSERT(replacement.high == ecx);
   MOZ_ASSERT(replacement.low == ebx);
 
+  // NOTE: the generated code must match the assembly code in gen_cmpxchg in
+  // GenerateAtomicOperations.py
   if (access) {
     masm.append(*access, masm.size());
   }

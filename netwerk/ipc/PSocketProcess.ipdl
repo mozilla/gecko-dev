@@ -13,7 +13,7 @@ include protocol PFileDescriptorSet;
 include protocol PChildToParentStream;
 include protocol PParentToChildStream;
 include protocol PInputChannelThrottleQueue;
-include protocol PBackground;
+include protocol PBackgroundStarter;
 include protocol PAltService;
 include protocol PAltSvcTransaction;
 include protocol PTRRService;
@@ -31,6 +31,8 @@ include NeckoChannelParams;
 include PrefsTypes;
 include PSMIPCTypes;
 
+include "mozilla/ipc/ByteBufUtils.h";
+
 using mozilla::dom::NativeThreadId from "mozilla/dom/NativeThreadId.h";
 using mozilla::dom::TabId from "mozilla/dom/ipc/IdType.h";
 using mozilla::Telemetry::HistogramAccumulation from "mozilla/TelemetryComms.h";
@@ -47,6 +49,12 @@ using struct nsID from "nsID.h";
 using mozilla::net::SocketInfo from "mozilla/net/DashboardTypes.h";
 using mozilla::net::DNSCacheEntries from "mozilla/net/DashboardTypes.h";
 using mozilla::net::HttpRetParams from "mozilla/net/DashboardTypes.h";
+
+#if defined(XP_WIN)
+[MoveOnly] using mozilla::UntrustedModulesData from "mozilla/UntrustedModulesData.h";
+[MoveOnly] using mozilla::ModulePaths from "mozilla/UntrustedModulesData.h";
+[MoveOnly] using mozilla::ModulesMapResult from "mozilla/UntrustedModulesData.h";
+#endif  // defined(XP_WIN)
 
 namespace mozilla {
 namespace net {
@@ -118,7 +126,7 @@ parent:
                             PRTime   aTimestamp,
                             uint64_t aExtraSizeData,
                             nsCString aExtraStringData);
-  async InitBackground(Endpoint<PBackgroundParent> aEndpoint);
+  async InitBackground(Endpoint<PBackgroundStarterParent> aEndpoint);
   async PAltService();
   sync GetTLSClientCert(nsCString aHostName,
                         OriginAttributes aOriginAttributes,
@@ -139,6 +147,16 @@ parent:
   async ExcludeHttp2OrHttp3(HttpConnectionInfoCloneArgs aArgs);
 
   async OnConsoleMessage(nsString aMessage);
+
+  // Sent from time-to-time to limit the amount of telemetry vulnerable to loss
+  // Buffer contains bincoded Rust structs.
+  // https://firefox-source-docs.mozilla.org/toolkit/components/glean/dev/ipc.html
+  async FOGData(ByteBuf buf);
+
+#if defined(XP_WIN)
+  async GetModulesTrust(ModulePaths aModPaths, bool aRunAtNormalPriority)
+      returns (ModulesMapResult? modMapResult);
+#endif  // defined(XP_WIN)
 
 child:
   async Init(SocketPorcessInitAttributes aAttributes);
@@ -189,6 +207,20 @@ child:
 
   async RecheckIPConnectivity();
   async RecheckDNS();
+
+  // Tells the Socket process to flush any pending telemetry.
+  // Used in tests and ping assembly. Buffer contains bincoded Rust structs.
+  // https://firefox-source-docs.mozilla.org/toolkit/components/glean/dev/ipc.html
+  async FlushFOGData() returns (ByteBuf buf);
+
+  // Test-only method.
+  // Asks the Socket process to trigger test-only instrumentation.
+  // The unused returned value is to have a promise we can await.
+  async TestTriggerMetrics() returns (bool unused);
+
+#if defined(XP_WIN)
+  async GetUntrustedModulesData() returns (UntrustedModulesData? data);
+#endif  // defined(XP_WIN)
 
 both:
   async PFileDescriptorSet(FileDescriptor fd);

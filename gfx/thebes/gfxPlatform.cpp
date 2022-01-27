@@ -24,6 +24,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/StaticPrefs_apz.h"
+#include "mozilla/StaticPrefs_canvas.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/StaticPrefs_layers.h"
@@ -935,6 +936,12 @@ void gfxPlatform::Init() {
   if (gfxConfig::IsEnabled(Feature::GPU_PROCESS)) {
     GPUProcessManager* gpu = GPUProcessManager::Get();
     gpu->LaunchGPUProcess();
+  }
+
+  if (XRE_IsParentProcess()) {
+    nsAutoCString allowlist;
+    Preferences::GetCString("gfx.offscreencavas.domain-allowlist", allowlist);
+    gfxVars::SetOffscreenCanvasDomainAllowlist(allowlist);
   }
 
   gLastUsedFrameRate = ForceSoftwareVsync() ? GetSoftwareVsyncRate() : -1;
@@ -2445,6 +2452,15 @@ void gfxPlatform::InitGPUProcessPrefs() {
 
   FeatureState& gpuProc = gfxConfig::GetFeature(Feature::GPU_PROCESS);
 
+  nsCString message;
+  nsCString failureId;
+  if (!gfxPlatform::IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_GPU_PROCESS,
+                                        &message, failureId)) {
+    gpuProc.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
+    // Don't return early here. We must continue the checks below in case
+    // the user has force-enabled the GPU process.
+  }
+
   // We require E10S - otherwise, there is very little benefit to the GPU
   // process, since the UI process must still use acceleration for
   // performance.
@@ -2645,7 +2661,7 @@ void gfxPlatform::InitWebRenderConfig() {
   if (StaticPrefs::gfx_webrender_software_d3d11_AtStartup()) {
     gfxVars::SetAllowSoftwareWebRenderD3D11(true);
   }
-  if (Preferences::GetBool("gfx.webrender.dcomp-video-overlay-win", false)) {
+  if (StaticPrefs::gfx_webrender_dcomp_video_overlay_win_AtStartup()) {
     if (IsWin10AnniversaryUpdateOrLater() &&
         gfxConfig::IsEnabled(Feature::WEBRENDER_COMPOSITOR)) {
       MOZ_ASSERT(gfxConfig::IsEnabled(Feature::WEBRENDER_DCOMP_PRESENT));

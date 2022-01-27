@@ -3,12 +3,9 @@ use crate::lookahead;
 #[cfg(feature = "parsing")]
 use crate::parse::{Parse, Parser};
 use crate::{Error, Result};
-#[cfg(feature = "printing")]
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Literal, Span};
 #[cfg(feature = "parsing")]
-use proc_macro2::TokenStream;
-use proc_macro2::TokenTree;
-use proc_macro2::{Literal, Span};
+use proc_macro2::{TokenStream, TokenTree};
 use std::fmt::{self, Display};
 #[cfg(feature = "extra-traits")]
 use std::hash::{Hash, Hasher};
@@ -244,6 +241,10 @@ impl LitStr {
     pub fn suffix(&self) -> &str {
         &self.repr.suffix
     }
+
+    pub fn token(&self) -> Literal {
+        self.repr.token.clone()
+    }
 }
 
 impl LitByteStr {
@@ -274,6 +275,10 @@ impl LitByteStr {
 
     pub fn suffix(&self) -> &str {
         &self.repr.suffix
+    }
+
+    pub fn token(&self) -> Literal {
+        self.repr.token.clone()
     }
 }
 
@@ -306,6 +311,10 @@ impl LitByte {
     pub fn suffix(&self) -> &str {
         &self.repr.suffix
     }
+
+    pub fn token(&self) -> Literal {
+        self.repr.token.clone()
+    }
 }
 
 impl LitChar {
@@ -336,6 +345,10 @@ impl LitChar {
 
     pub fn suffix(&self) -> &str {
         &self.repr.suffix
+    }
+
+    pub fn token(&self) -> Literal {
+        self.repr.token.clone()
     }
 }
 
@@ -407,6 +420,10 @@ impl LitInt {
 
     pub fn set_span(&mut self, span: Span) {
         self.repr.token.set_span(span);
+    }
+
+    pub fn token(&self) -> Literal {
+        self.repr.token.clone()
     }
 }
 
@@ -480,6 +497,10 @@ impl LitFloat {
     pub fn set_span(&mut self, span: Span) {
         self.repr.token.set_span(span);
     }
+
+    pub fn token(&self) -> Literal {
+        self.repr.token.clone()
+    }
 }
 
 impl From<Literal> for LitFloat {
@@ -520,6 +541,11 @@ impl LitBool {
 
     pub fn set_span(&mut self, span: Span) {
         self.span = span;
+    }
+
+    pub fn token(&self) -> Ident {
+        let s = if self.value { "true" } else { "false" };
+        Ident::new(s, self.span)
     }
 }
 
@@ -916,8 +942,7 @@ mod printing {
     #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
     impl ToTokens for LitBool {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            let s = if self.value { "true" } else { "false" };
-            tokens.append(Ident::new(s, self.span));
+            tokens.append(self.token());
         }
     }
 }
@@ -925,7 +950,6 @@ mod printing {
 mod value {
     use super::*;
     use crate::bigint::BigInt;
-    use proc_macro2::TokenStream;
     use std::char;
     use std::ops::{Index, RangeFrom};
 
@@ -1540,35 +1564,37 @@ mod value {
         }
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn to_literal(repr: &str, digits: &str, suffix: &str) -> Option<Literal> {
-        if repr.starts_with('-') {
-            let f64_parse_finite = || digits.parse().ok().filter(|x: &f64| x.is_finite());
-            let f32_parse_finite = || digits.parse().ok().filter(|x: &f32| x.is_finite());
-            if suffix == "f64" {
-                f64_parse_finite().map(Literal::f64_suffixed)
-            } else if suffix == "f32" {
-                f32_parse_finite().map(Literal::f32_suffixed)
-            } else if suffix == "i64" {
-                digits.parse().ok().map(Literal::i64_suffixed)
-            } else if suffix == "i32" {
-                digits.parse().ok().map(Literal::i32_suffixed)
-            } else if suffix == "i16" {
-                digits.parse().ok().map(Literal::i16_suffixed)
-            } else if suffix == "i8" {
-                digits.parse().ok().map(Literal::i8_suffixed)
-            } else if !suffix.is_empty() {
-                None
-            } else if digits.contains('.') {
-                f64_parse_finite().map(Literal::f64_unsuffixed)
-            } else {
-                digits.parse().ok().map(Literal::i64_unsuffixed)
-            }
-        } else {
-            let stream = repr.parse::<TokenStream>().unwrap();
-            match stream.into_iter().next().unwrap() {
-                TokenTree::Literal(l) => Some(l),
-                _ => unreachable!(),
+        #[cfg(syn_no_negative_literal_parse)]
+        {
+            // Rustc older than https://github.com/rust-lang/rust/pull/87262.
+            if repr.starts_with('-') {
+                let f64_parse_finite = || digits.parse().ok().filter(|x: &f64| x.is_finite());
+                let f32_parse_finite = || digits.parse().ok().filter(|x: &f32| x.is_finite());
+                return if suffix == "f64" {
+                    f64_parse_finite().map(Literal::f64_suffixed)
+                } else if suffix == "f32" {
+                    f32_parse_finite().map(Literal::f32_suffixed)
+                } else if suffix == "i64" {
+                    digits.parse().ok().map(Literal::i64_suffixed)
+                } else if suffix == "i32" {
+                    digits.parse().ok().map(Literal::i32_suffixed)
+                } else if suffix == "i16" {
+                    digits.parse().ok().map(Literal::i16_suffixed)
+                } else if suffix == "i8" {
+                    digits.parse().ok().map(Literal::i8_suffixed)
+                } else if !suffix.is_empty() {
+                    None
+                } else if digits.contains('.') {
+                    f64_parse_finite().map(Literal::f64_unsuffixed)
+                } else {
+                    digits.parse().ok().map(Literal::i64_unsuffixed)
+                };
             }
         }
+        let _ = digits;
+        let _ = suffix;
+        Some(repr.parse::<Literal>().unwrap())
     }
 }

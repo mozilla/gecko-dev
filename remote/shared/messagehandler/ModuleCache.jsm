@@ -101,8 +101,7 @@ class ModuleCache {
    * @param {Destination} destination
    *     The destination.
    * @return {Array.<class<Module>=>}
-   *     An array of Module classes. Will contain `null` items if the module
-   *     name is not implemented in a given layer.
+   *     An array of Module classes.
    */
   getAllModuleClasses(moduleName, destination) {
     const destinationType = destination.type;
@@ -167,6 +166,21 @@ class ModuleCache {
 
     this._modules.set(key, module);
     return module;
+  }
+
+  /**
+   * Check if the given module exists for the destination.
+   *
+   * @param {String} moduleName
+   *     The name of the module.
+   * @param {Destination} destination
+   *     The destination.
+   * @returns {Boolean}
+   *     True if the module exists.
+   */
+  hasModule(moduleName, destination) {
+    const classes = this.getAllModuleClasses(moduleName, destination);
+    return classes.length != 0;
   }
 
   toString() {

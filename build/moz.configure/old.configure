@@ -30,6 +30,9 @@ def prepare_mozconfig(mozconfig):
 
 @depends("OLD_CONFIGURE", build_project)
 def old_configure(old_configure, build_project):
+    if not old_configure:
+        die("The OLD_CONFIGURE environment variable must be set")
+
     # os.path.abspath in the sandbox will ensure forward slashes on Windows,
     # which is actually necessary because this path actually ends up literally
     # as $0, and backslashes there breaks autoconf's detection of the source
@@ -91,34 +94,13 @@ def old_configure_options(*options):
 @old_configure_options(
     "--cache-file",
     "--datadir",
-    "--enable-crashreporter",
-    "--enable-dbus",
-    "--enable-debug-js-modules",
-    "--enable-dump-painting",
-    "--enable-extensions",
-    "--enable-libproxy",
-    "--enable-logrefcnt",
-    "--enable-necko-wifi",
-    "--enable-negotiateauth",
     "--enable-official-branding",
-    "--enable-parental-controls",
-    "--enable-sandbox",
-    "--enable-system-extension-dirs",
-    "--enable-system-pixman",
-    "--enable-universalchardet",
-    "--enable-updater",
-    "--enable-zipwriter",
     "--includedir",
     "--libdir",
     "--prefix",
-    "--with-android-max-sdk",
-    "--with-android-min-sdk",
     "--with-branding",
     "--with-distribution-id",
     "--with-macbundlename-prefix",
-    "--with-system-libevent",
-    "--with-system-png",
-    "--with-user-appdir",
     "--x-includes",
     "--x-libraries",
 )
@@ -145,7 +127,7 @@ def old_configure_for(old_configure_path, extra_env=None):
         prepare_configure_options,
         altered_path,
         extra_env,
-        check_build_environment,
+        build_environment,
         old_configure_path,
         "MOZILLABUILD",
         awk,
@@ -165,9 +147,7 @@ def old_configure_for(old_configure_path, extra_env=None):
     @imports(_from="mozbuild.shellutil", _import="split")
     @imports(_from="tempfile", _import="NamedTemporaryFile")
     @imports(_from="subprocess", _import="CalledProcessError")
-    @imports(_from="six", _import="exec_")
-    @imports(_from="six", _import="iteritems")
-    @imports(_from="six", _import="string_types")
+    @imports(_from="__builtin__", _import="exec")
     def old_configure(
         prepare_configure,
         prepare_configure_options,
@@ -324,7 +304,7 @@ def old_configure_for(old_configure_path, extra_env=None):
         }
         with open("config.data", "r") as fh:
             code = compile(fh.read(), "config.data", "exec")
-            exec_(code, raw_config)
+            exec(code, raw_config)
 
         # Ensure all the flags known to old-configure appear in the
         # @old_configure_options above.
@@ -344,7 +324,7 @@ def old_configure_for(old_configure_path, extra_env=None):
         return namespace(
             **{
                 c: [
-                    (k[1:-1], v[1:-1] if isinstance(v, string_types) else v)
+                    (k[1:-1], v[1:-1] if isinstance(v, str) else v)
                     for k, v in raw_config[c]
                 ]
                 for c in ("substs", "defines")

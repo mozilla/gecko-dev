@@ -64,6 +64,8 @@ pub fn prepare_primitives(
             frame_context.spatial_tree,
         );
 
+        frame_state.surfaces[pic_context.surface_index.0].opaque_rect = PictureRect::zero();
+
         for prim_instance_index in cluster.prim_range() {
             // First check for coarse visibility (if this primitive was completely off-screen)
             let prim_instance = &mut prim_instances[prim_instance_index];
@@ -125,6 +127,14 @@ pub fn prepare_primitives(
                 prim_instances[prim_instance_index].clear_visibility();
             }
         }
+
+        if !cluster.opaque_rect.is_empty() {
+            let surface = &mut frame_state.surfaces[pic_context.surface_index.0];
+
+            if let Some(cluster_opaque_rect) = surface.map_local_to_surface.map_inner_bounds(&cluster.opaque_rect) {
+                surface.opaque_rect = crate::util::conservative_union_rect(&surface.opaque_rect, &cluster_opaque_rect);
+            }
+        }
     }
 }
 
@@ -156,7 +166,7 @@ fn prepare_prim_for_render(
             pic_index,
             pic_context.surface_spatial_node_index,
             pic_context.raster_spatial_node_index,
-            pic_context.surface_index,
+            Some(pic_context.surface_index),
             pic_context.subpixel_mode,
             frame_state,
             frame_context,
@@ -212,13 +222,13 @@ fn prepare_prim_for_render(
         scratch,
     ) {
         if prim_instance.is_chased() {
-            println!("\tconsidered invisible");
+            info!("\tconsidered invisible");
         }
         return false;
     }
 
     if prim_instance.is_chased() {
-        println!("\tconsidered visible and ready with local pos {:?}", prim_rect.min);
+        info!("\tconsidered visible and ready with local pos {:?}", prim_rect.min);
     }
 
     #[cfg(debug_assertions)]
@@ -258,6 +268,7 @@ fn prepare_interned_prim_for_render(
     let prim_spatial_node_index = cluster.spatial_node_index;
     let is_chased = prim_instance.is_chased();
     let device_pixel_scale = frame_state.surfaces[pic_context.surface_index.0].device_pixel_scale;
+    let mut is_opaque = false;
 
     match &mut prim_instance.kind {
         PrimitiveInstanceKind::LineDecoration { data_handle, ref mut render_task, .. } => {
@@ -272,7 +283,7 @@ fn prepare_interned_prim_for_render(
 
             // Work out the device pixel size to be used to cache this line decoration.
             if is_chased {
-                println!("\tline decoration key={:?}", line_dec_data.cache_key);
+                info!("\tline decoration key={:?}", line_dec_data.cache_key);
             }
 
             // If we have a cache key, it's a wavy / dashed / dotted line. Otherwise, it's
@@ -533,6 +544,8 @@ fn prepare_interned_prim_for_render(
                 frame_context.scene_properties,
             );
 
+            is_opaque = prim_data.common.opacity.is_opaque;
+
             write_segment(
                 *segment_instance_index,
                 frame_state,
@@ -551,6 +564,7 @@ fn prepare_interned_prim_for_render(
             let prim_data = &mut data_stores.yuv_image[*data_handle];
             let common_data = &mut prim_data.common;
             let yuv_image_data = &mut prim_data.kind;
+            is_opaque = true;
 
             common_data.may_need_repetition = false;
 
@@ -587,6 +601,9 @@ fn prepare_interned_prim_for_render(
                 frame_context,
                 &mut prim_instance.vis,
             );
+
+            // common_data.opacity.is_opaque is computed in the above update call.
+            is_opaque = common_data.opacity.is_opaque;
 
             write_segment(
                 image_instance.segment_instance_index,
@@ -819,12 +836,32 @@ fn prepare_interned_prim_for_render(
                 );
             } else {
                 if prim_instance.is_chased() {
-                    println!("\tBackdrop primitive culled because backdrop task was not assigned render tasks");
+                    info!("\tBackdrop primitive culled because backdrop task was not assigned render tasks");
                 }
                 prim_instance.clear_visibility();
             }
         }
     };
+
+    // If the primitive is opaque, see if it can contribut to it's picture surface's opaque rect.
+
+    is_opaque = is_opaque && {
+        let clip = prim_instance.vis.clip_task_index;
+        clip == ClipTaskIndex::INVALID
+    };
+
+    is_opaque = is_opaque && !frame_context.spatial_tree.is_relative_transform_complex(
+        prim_spatial_node_index,
+        pic_context.raster_spatial_node_index,
+    );
+
+    if is_opaque {
+        let prim_local_rect = data_stores.get_local_prim_rect(
+            prim_instance,
+            store,
+        );
+        cluster.opaque_rect = crate::util::conservative_union_rect(&cluster.opaque_rect, &prim_local_rect);
+    }
 }
 
 
@@ -865,54 +902,49 @@ fn decompose_repeated_gradient(
     spatial_tree: &SpatialTree,
     mut callback: Option<&mut dyn FnMut(&LayoutRect, GpuDataRequest)>,
 ) -> GradientTileRange {
-    let mut visible_tiles = Vec::new();
+    let tile_range = gradient_tiles.open_range();
 
     // Tighten the clip rect because decomposing the repeated image can
     // produce primitives that are partially covering the original image
     // rect and we want to clip these extra parts out.
-    let tight_clip_rect = prim_vis
+    if let Some(tight_clip_rect) = prim_vis
         .combined_local_clip_rect
-        .intersection(prim_local_rect).unwrap();
+        .intersection(prim_local_rect) {
 
-    let visible_rect = compute_conservative_visible_rect(
-        &prim_vis.clip_chain,
-        frame_state.current_dirty_region().combined,
-        prim_spatial_node_index,
-        spatial_tree,
-    );
-    let stride = *stretch_size + *tile_spacing;
-
-    let repetitions = image_tiling::repetitions(prim_local_rect, &visible_rect, stride);
-    for Repetition { origin, .. } in repetitions {
-        let mut handle = GpuCacheHandle::new();
-        let rect = LayoutRect::from_origin_and_size(
-            origin,
-            *stretch_size,
+        let visible_rect = compute_conservative_visible_rect(
+            &prim_vis.clip_chain,
+            frame_state.current_dirty_region().combined,
+            prim_spatial_node_index,
+            spatial_tree,
         );
+        let stride = *stretch_size + *tile_spacing;
 
-        if let Some(callback) = &mut callback {
-            if let Some(request) = frame_state.gpu_cache.request(&mut handle) {
-                callback(&rect, request);
+        let repetitions = image_tiling::repetitions(prim_local_rect, &visible_rect, stride);
+        gradient_tiles.reserve(repetitions.num_repetitions());
+        for Repetition { origin, .. } in repetitions {
+            let mut handle = GpuCacheHandle::new();
+            let rect = LayoutRect::from_origin_and_size(
+                origin,
+                *stretch_size,
+            );
+
+            if let Some(callback) = &mut callback {
+                if let Some(request) = frame_state.gpu_cache.request(&mut handle) {
+                    callback(&rect, request);
+                }
             }
-        }
 
-        visible_tiles.push(VisibleGradientTile {
-            local_rect: rect,
-            local_clip_rect: tight_clip_rect,
-            handle
-        });
+            gradient_tiles.push(VisibleGradientTile {
+                local_rect: rect,
+                local_clip_rect: tight_clip_rect,
+                handle
+            });
+        }
     }
 
     // At this point if we don't have tiles to show it means we could probably
     // have done a better a job at culling during an earlier stage.
-    // Clearing the screen rect has the effect of "culling out" the primitive
-    // from the point of view of the batch builder, and ensures we don't hit
-    // assertions later on because we didn't request any image.
-    if visible_tiles.is_empty() {
-        GradientTileRange::empty()
-    } else {
-        gradient_tiles.extend(visible_tiles)
-    }
+    gradient_tiles.close_range(tile_range)
 }
 
 
@@ -1123,7 +1155,7 @@ pub fn update_clip_task(
     let device_pixel_scale = frame_state.surfaces[pic_context.surface_index.0].device_pixel_scale;
 
     if instance.is_chased() {
-        println!("\tupdating clip task with pic rect {:?}", instance.vis.clip_chain.pic_clip_rect);
+        info!("\tupdating clip task with pic rect {:?}", instance.vis.clip_chain.pic_clip_rect);
     }
 
     // Get the device space rect for the primitive if it was unclipped.
@@ -1164,7 +1196,7 @@ pub fn update_clip_task(
         device_pixel_scale,
     ) {
         if instance.is_chased() {
-            println!("\tsegment tasks have been created for clipping: {:?}", clip_task_index);
+            info!("\tsegment tasks have been created for clipping: {:?}", clip_task_index);
         }
         clip_task_index
     } else if instance.vis.clip_chain.needs_mask {
@@ -1199,7 +1231,7 @@ pub fn update_clip_task(
             frame_state.surfaces,
         );
         if instance.is_chased() {
-            println!("\tcreated task {:?} with device rect {:?}",
+            info!("\tcreated task {:?} with device rect {:?}",
                 clip_task_id, device_rect);
         }
         // Set the global clip mask instance for this primitive.
@@ -1213,7 +1245,7 @@ pub fn update_clip_task(
         clip_task_index
     } else {
         if instance.is_chased() {
-            println!("\tno mask is needed");
+            info!("\tno mask is needed");
         }
         ClipTaskIndex::INVALID
     };

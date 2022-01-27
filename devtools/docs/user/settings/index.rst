@@ -2,6 +2,8 @@
 Settings
 ========
 
+.. _tool-toolbox-settings:
+
 Opening Settings
 ****************
 
@@ -106,6 +108,7 @@ Inspector
    - Hex
    - HSL(A)
    - RGB(A)
+   - HWB
    - color name
    - As authored.
 

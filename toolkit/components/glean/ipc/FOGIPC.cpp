@@ -5,16 +5,26 @@
 
 #include "FOGIPC.h"
 
+#include <limits>
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/gfx/GPUChild.h"
 #include "mozilla/gfx/GPUParent.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/MozPromise.h"
+#include "mozilla/net/SocketProcessChild.h"
+#include "mozilla/net/SocketProcessParent.h"
 #include "mozilla/ProcInfo.h"
+#include "mozilla/RDDChild.h"
+#include "mozilla/RDDParent.h"
+#include "mozilla/RDDProcessManager.h"
 #include "mozilla/Unused.h"
+#include "GMPPlatform.h"
+#include "GMPServiceParent.h"
+#include "nsIXULRuntime.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 
@@ -31,28 +41,33 @@ static void RecordPowerMetrics() {
   static uint64_t previousCpuTime = 0, previousGpuTime = 0;
 
   uint64_t cpuTime;
-  if (NS_FAILED(GetCpuTimeSinceProcessStartInMs(&cpuTime))) {
-    return;
-  }
+  if (NS_SUCCEEDED(GetCpuTimeSinceProcessStartInMs(&cpuTime)) &&
+      cpuTime > previousCpuTime) {
+    uint64_t newCpuTime = cpuTime - previousCpuTime;
+    previousCpuTime += newCpuTime;
 
-  uint64_t newCpuTime = cpuTime - previousCpuTime;
-  previousCpuTime += newCpuTime;
-
-  if (newCpuTime) {
     // The counters are reset at least once a day. Assuming all cores are used
     // continuously, an int32 can hold the data for 24.85 cores.
     // This should be fine for now, but may overflow in the future.
-    power::total_cpu_time_ms.Add(int32_t(newCpuTime));
+    // Bug 1751277 tracks a newer, bigger counter.
+    int32_t nNewCpuTime = int32_t(newCpuTime);
+    if (newCpuTime > std::numeric_limits<int32_t>::max()) {
+      nNewCpuTime = std::numeric_limits<int32_t>::max();
+    }
+    power::total_cpu_time_ms.Add(nNewCpuTime);
   }
 
   uint64_t gpuTime;
-  if (NS_SUCCEEDED(GetGpuTimeSinceProcessStartInMs(&gpuTime))) {
+  if (NS_SUCCEEDED(GetGpuTimeSinceProcessStartInMs(&gpuTime)) &&
+      gpuTime > previousGpuTime) {
     uint64_t newGpuTime = gpuTime - previousGpuTime;
     previousGpuTime += newGpuTime;
 
-    if (newGpuTime) {
-      power::total_gpu_time_ms.Add(int32_t(newGpuTime));
+    int32_t nNewGpuTime = int32_t(newGpuTime);
+    if (newGpuTime > std::numeric_limits<int32_t>::max()) {
+      nNewGpuTime = std::numeric_limits<int32_t>::max();
     }
+    power::total_gpu_time_ms.Add(int32_t(nNewGpuTime));
   }
 }
 
@@ -96,13 +111,31 @@ void FlushAllChildData(
     promises.EmplaceBack(parent->SendFlushFOGData());
   }
 
-  GPUProcessManager* gpuManager = GPUProcessManager::Get();
-  GPUChild* gpuChild = nullptr;
-  if (gpuManager) {
-    gpuChild = gpuManager->GetGPUChild();
-    if (gpuChild) {
+  if (GPUProcessManager* gpuManager = GPUProcessManager::Get()) {
+    if (GPUChild* gpuChild = gpuManager->GetGPUChild()) {
       promises.EmplaceBack(gpuChild->SendFlushFOGData());
     }
+  }
+
+  if (RDDProcessManager* rddManager = RDDProcessManager::Get()) {
+    if (RDDChild* rddChild = rddManager->GetRDDChild()) {
+      promises.EmplaceBack(rddChild->SendFlushFOGData());
+    }
+  }
+
+  if (net::SocketProcessParent* socketParent =
+          net::SocketProcessParent::GetSingleton()) {
+    promises.EmplaceBack(socketParent->SendFlushFOGData());
+  }
+
+  {
+    RefPtr<gmp::GeckoMediaPluginServiceParent> gmps(
+        gmp::GeckoMediaPluginServiceParent::GetSingleton());
+    // There can be multiple Gecko Media Plugin processes, but iterating
+    // through them requires locking a mutex and the IPCs need to be sent
+    // from a different thread, so it's better to let the
+    // GeckoMediaPluginServiceParent code do it for us.
+    gmps->SendFlushFOGData(promises);
   }
 
   if (promises.Length() == 0) {
@@ -151,8 +184,18 @@ void SendFOGData(ipc::ByteBuf&& buf) {
     case GeckoProcessType_Content:
       mozilla::dom::ContentChild::GetSingleton()->SendFOGData(std::move(buf));
       break;
+    case GeckoProcessType_GMPlugin: {
+      gmp::SendFOGData(std::move(buf));
+    } break;
     case GeckoProcessType_GPU:
       Unused << mozilla::gfx::GPUParent::GetSingleton()->SendFOGData(
+          std::move(buf));
+      break;
+    case GeckoProcessType_RDD:
+      Unused << mozilla::RDDParent::GetSingleton()->SendFOGData(std::move(buf));
+      break;
+    case GeckoProcessType_Socket:
+      Unused << net::SocketProcessChild::GetSingleton()->SendFOGData(
           std::move(buf));
       break;
     default:
@@ -181,8 +224,41 @@ RefPtr<GenericPromise> FlushAndUseFOGData() {
   return ret;
 }
 
-void TestTriggerGPUMetrics() {
-  gfx::GPUProcessManager::Get()->TestTriggerMetrics();
+void TestTriggerMetrics(uint32_t aProcessType,
+                        const RefPtr<dom::Promise>& promise) {
+  switch (aProcessType) {
+    case nsIXULRuntime::PROCESS_TYPE_GMPLUGIN: {
+      RefPtr<gmp::GeckoMediaPluginServiceParent> gmps(
+          gmp::GeckoMediaPluginServiceParent::GetSingleton());
+      gmps->TestTriggerMetrics()->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [promise]() { promise->MaybeResolveWithUndefined(); },
+          [promise]() { promise->MaybeRejectWithUndefined(); });
+    } break;
+    case nsIXULRuntime::PROCESS_TYPE_GPU:
+      gfx::GPUProcessManager::Get()->TestTriggerMetrics()->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [promise]() { promise->MaybeResolveWithUndefined(); },
+          [promise]() { promise->MaybeRejectWithUndefined(); });
+      break;
+    case nsIXULRuntime::PROCESS_TYPE_RDD:
+      RDDProcessManager::Get()->TestTriggerMetrics()->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [promise]() { promise->MaybeResolveWithUndefined(); },
+          [promise]() { promise->MaybeRejectWithUndefined(); });
+      break;
+    case nsIXULRuntime::PROCESS_TYPE_SOCKET:
+      Unused << net::SocketProcessParent::GetSingleton()
+                    ->SendTestTriggerMetrics()
+                    ->Then(
+                        GetCurrentSerialEventTarget(), __func__,
+                        [promise]() { promise->MaybeResolveWithUndefined(); },
+                        [promise]() { promise->MaybeRejectWithUndefined(); });
+      break;
+    default:
+      promise->MaybeRejectWithUndefined();
+      break;
+  }
 }
 
 }  // namespace glean

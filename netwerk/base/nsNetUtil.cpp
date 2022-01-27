@@ -9,7 +9,6 @@
 
 #include "nsNetUtil.h"
 
-#include "mozilla/AppShutdown.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Components.h"
@@ -2696,7 +2695,7 @@ nsresult NS_GetFilenameFromDisposition(nsAString& aFilename,
     if (NS_SUCCEEDED(rv)) {
       nsAutoString unescaped;
       textToSubURI->UnEscapeURIForUI(NS_ConvertUTF16toUTF8(aFilename),
-                                     unescaped);
+                                     /* dontEscape = */ true, unescaped);
       aFilename.Assign(unescaped);
     }
   }
@@ -2707,11 +2706,6 @@ nsresult NS_GetFilenameFromDisposition(nsAString& aFilename,
 void net_EnsurePSMInit() {
   if (XRE_IsSocketProcess()) {
     EnsureNSSInitializedChromeOrContent();
-    return;
-  }
-
-  // Avoid a late initialization
-  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownNetTeardown)) {
     return;
   }
 

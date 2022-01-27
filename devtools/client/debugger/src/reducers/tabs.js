@@ -7,20 +7,11 @@
  * @module reducers/tabs
  */
 
-import { createSelector } from "reselect";
 import { isOriginalId } from "devtools-source-map";
-import move from "lodash-move";
 
 import { isSimilarTab, persistTabs } from "../utils/tabs";
-import { makeShallowQuery } from "../utils/resource";
-import { getPrettySourceURL } from "../utils/source";
 
-import {
-  getSource,
-  getSpecificSourceByURL,
-  getSources,
-  resourceAsSourceBase,
-} from "./sources";
+import { getSource, getSpecificSourceByURL } from "./sources";
 
 export function initialTabState() {
   return { tabs: [] };
@@ -227,47 +218,27 @@ function updateTabList(
 }
 
 function moveTabInList(state, { url, tabIndex: newIndex }) {
-  let { tabs } = state;
+  const { tabs } = state;
   const currentIndex = tabs.findIndex(tab => tab.url == url);
-  tabs = move(tabs, currentIndex, newIndex);
-  return { tabs };
+  return moveTab(tabs, currentIndex, newIndex);
 }
 
 function moveTabInListBySourceId(state, { sourceId, tabIndex: newIndex }) {
-  let { tabs } = state;
+  const { tabs } = state;
   const currentIndex = tabs.findIndex(tab => tab.sourceId == sourceId);
-  tabs = move(tabs, currentIndex, newIndex);
-  return { tabs };
+  return moveTab(tabs, currentIndex, newIndex);
 }
 
-// Selectors
+function moveTab(tabs, currentIndex, newIndex) {
+  const item = tabs[currentIndex];
 
-export const getTabs = state => state.tabs.tabs;
+  const newTabs = Array.from(tabs);
+  // Remove the item from its current location
+  newTabs.splice(currentIndex, 1);
+  // And add it to the new one
+  newTabs.splice(newIndex, 0, item);
 
-export const getSourceTabs = createSelector(
-  state => state.tabs,
-  ({ tabs }) => tabs.filter(tab => tab.sourceId)
-);
-
-export const getSourcesForTabs = state => {
-  const tabs = getSourceTabs(state);
-  const sources = getSources(state);
-  return querySourcesForTabs(sources, tabs);
-};
-
-const querySourcesForTabs = makeShallowQuery({
-  filter: (_, tabs) => tabs.map(({ sourceId }) => sourceId),
-  map: resourceAsSourceBase,
-  reduce: items => items,
-});
-
-export function tabExists(state, sourceId) {
-  return !!getSourceTabs(state).find(tab => tab.sourceId == sourceId);
-}
-
-export function hasPrettyTab(state, sourceUrl) {
-  const prettyUrl = getPrettySourceURL(sourceUrl);
-  return !!getSourceTabs(state).find(tab => tab.url === prettyUrl);
+  return { tabs: newTabs };
 }
 
 export default update;

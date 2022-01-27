@@ -250,7 +250,16 @@ nsresult ModuleLoader::CreateModuleScript(ModuleLoadRequest* aRequest) {
 
     if (NS_SUCCEEDED(rv)) {
       if (aRequest->mWasCompiledOMT) {
-        module = JS::FinishOffThreadModule(cx, aRequest->mOffThreadToken);
+        JS::Rooted<JS::InstantiationStorage> storage(cx);
+
+        RefPtr<JS::Stencil> stencil = JS::FinishCompileModuleToStencilOffThread(
+            cx, aRequest->mOffThreadToken, storage.address());
+        if (stencil) {
+          JS::InstantiateOptions instantiateOptions(options);
+          module = JS::InstantiateModuleStencil(cx, instantiateOptions, stencil,
+                                                storage.address());
+        }
+
         aRequest->mOffThreadToken = nullptr;
         rv = module ? NS_OK : NS_ERROR_FAILURE;
       } else {
@@ -350,7 +359,8 @@ nsresult ModuleLoader::HandleResolveFailure(
   }
 
   if (!JS::CreateError(aCx, JSEXN_TYPEERR, nullptr, filename, aLineNumber,
-                       aColumnNumber, nullptr, string, errorOut)) {
+                       aColumnNumber, nullptr, string, JS::NothingHandleValue,
+                       errorOut)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -606,9 +616,6 @@ void ModuleLoader::FinishDynamicImport(
 
   JS::Rooted<JSObject*> moduleRequest(aCx,
                                       JS::CreateModuleRequest(aCx, specifier));
-  if (!moduleRequest) {
-    JS_ReportOutOfMemory(aCx);
-  }
 
   JS::FinishDynamicModuleImport(aCx, aEvaluationPromise, referencingScript,
                                 moduleRequest, promise);
@@ -631,14 +638,7 @@ ModuleLoader::~ModuleLoader() {
 
 void ModuleLoader::ProcessLoadedModuleTree(ModuleLoadRequest* aRequest) {
   MOZ_ASSERT(aRequest->IsReadyToRun());
-
-  if (aRequest->IsDynamicImport()) {
-    MOZ_ASSERT(aRequest->isInList());
-    RefPtr<ScriptLoadRequest> req = mDynamicImportRequests.Steal(aRequest);
-    mLoader->RunScriptWhenSafe(aRequest);
-  } else {
-    mLoader->ProcessLoadedModuleTree(aRequest);
-  }
+  mLoader->ProcessLoadedModuleTree(aRequest);
 }
 
 JS::Value ModuleLoader::FindFirstParseError(ModuleLoadRequest* aRequest) {

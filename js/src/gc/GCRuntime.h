@@ -285,6 +285,10 @@ class GCRuntime {
   void finishRoots();
   void finish();
 
+#ifdef DEBUG
+  void assertNoPermanentSharedThings();
+#endif
+
   void freezePermanentSharedThings();
   template <typename T>
   void freezeAtomsZoneArenas(AllocKind kind, ArenaList& arenaList);
@@ -311,6 +315,7 @@ class GCRuntime {
   uint32_t getParameter(JSGCParamKey key, const AutoLockGC& lock);
 
   void setPerformanceHint(PerformanceHint hint);
+  bool isInPageLoad() const { return inPageLoadCount != 0; }
 
   [[nodiscard]] bool triggerGC(JS::GCReason reason);
   // Check whether to trigger a zone GC after allocating GC cells.
@@ -921,6 +926,12 @@ class GCRuntime {
 
   // State used for managing atom mark bitmaps in each zone.
   AtomMarkingRuntime atomMarking;
+
+  /*
+   * Pointer to a callback that, if set, will be used to create a
+   * budget for internally-triggered GCs.
+   */
+  MainThreadData<JS::CreateSliceBudgetCallback> createBudgetCallback;
 
  private:
   // Arenas used for permanent things created at startup and shared by child

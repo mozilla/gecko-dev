@@ -40,20 +40,23 @@ const NONSPONSORED_IAB_CATEGORIES = new Set(["5 - Education"]);
 const FEATURE_AVAILABLE = "quickSuggestEnabled";
 const SEEN_DIALOG_PREF = "quicksuggest.showedOnboardingDialog";
 const RESTARTS_PREF = "quicksuggest.seenRestarts";
+const DIALOG_VERSION_PREF = "quicksuggest.onboardingDialogVersion";
+const DIALOG_VARIATION_PREF = "quickSuggestOnboardingDialogVariation";
 
 // Values returned by the onboarding dialog depending on the user's response.
 // These values are used in telemetry events, so be careful about changing them.
 const ONBOARDING_CHOICE = {
-  ACCEPT: "accept",
-  DISMISSED_ESCAPE_KEY: "dismissed_escape_key",
-  DISMISSED_OTHER: "dismissed_other",
-  LEARN_MORE: "learn_more",
-  NOT_NOW: "not_now_link",
-  SETTINGS: "settings",
+  ACCEPT_2: "accept_2",
+  CLOSE_1: "close_1",
+  DISMISS_1: "dismiss_1",
+  DISMISS_2: "dismiss_2",
+  LEARN_MORE_2: "learn_more_2",
+  NOT_NOW_2: "not_now_2",
+  REJECT_2: "reject_2",
 };
 
 const ONBOARDING_URI =
-  "chrome://browser/content/urlbar/quicksuggestOnboarding.xhtml";
+  "chrome://browser/content/urlbar/quicksuggestOnboarding.html";
 
 // This is a score in the range [0, 1] used by the provider to compare
 // suggestions from remote settings to suggestions from Merino. Remote settings
@@ -127,7 +130,7 @@ class Suggestions {
       click_url: result.click_url,
       impression_url: result.impression_url,
       block_id: result.id,
-      advertiser: result.advertiser.toLocaleLowerCase(),
+      advertiser: result.advertiser,
       is_sponsored: !NONSPONSORED_IAB_CATEGORIES.has(result.iab_category),
       score: SUGGESTION_SCORE,
       source: QUICK_SUGGEST_SOURCE.REMOTE_SETTINGS,
@@ -188,7 +191,7 @@ class Suggestions {
     return longerPhrase || trimmedQuery;
   }
 
-  /*
+  /**
    * An onboarding dialog can be shown to the users who are enrolled into
    * the QuickSuggest experiments or rollouts. This behavior is controlled
    * by the pref `browser.urlbar.quicksuggest.shouldShowOnboardingDialog`
@@ -198,8 +201,16 @@ class Suggestions {
    * wait for a few restarts before showing the QuickSuggest dialog. This can
    * be remotely configured by Nimbus through
    * `quickSuggestShowOnboardingDialogAfterNRestarts`, the default is 0.
+   *
+   * @returns {boolean}
+   *   True if the dialog was shown and false if not.
    */
   async maybeShowOnboardingDialog() {
+    // The call to this method races scenario initialization on startup, and the
+    // Nimbus variables we rely on below depend on the scenario, so wait for it
+    // to be initialized.
+    await UrlbarPrefs.firefoxSuggestScenarioStartupPromise;
+
     // If quicksuggest is not available, the onboarding dialog is configured to
     // be skipped, the user has already seen the dialog, or has otherwise opted
     // in already, then we won't show the quicksuggest onboarding.
@@ -207,89 +218,65 @@ class Suggestions {
       !UrlbarPrefs.get(FEATURE_AVAILABLE) ||
       !UrlbarPrefs.get("quickSuggestShouldShowOnboardingDialog") ||
       UrlbarPrefs.get(SEEN_DIALOG_PREF) ||
-      UrlbarPrefs.get("suggest.quicksuggest.nonsponsored") ||
-      UrlbarPrefs.get("suggest.quicksuggest.sponsored")
+      UrlbarPrefs.get("quicksuggest.dataCollection.enabled")
     ) {
-      return;
+      return false;
     }
 
-    // Wait a number of restarts after the user will have seen the mr1 onboarding dialog
-    // before showing the quicksuggest one.
+    // Wait a number of restarts before showing the dialog.
     let restartsSeen = UrlbarPrefs.get(RESTARTS_PREF);
     if (
       restartsSeen <
       UrlbarPrefs.get("quickSuggestShowOnboardingDialogAfterNRestarts")
     ) {
       UrlbarPrefs.set(RESTARTS_PREF, restartsSeen + 1);
-      return;
+      return false;
     }
 
     let win = BrowserWindowTracker.getTopWindow();
 
-    // Set up a key listener so we can tell when the dialog is dismissed with
-    // the Escape key. There are a few reasons this is so complicated:
-    //
-    // (1) Key events are not dispatched to the dialog content when the focus is
-    //     not in the dialog. The focus is in the dialog initially, but all it
-    //     takes to move out of the dialog is for the user to click outside it,
-    //     as they might when they're trying to dismiss it. Therefore we add our
-    //     key listener here, to the browser window.
-    // (2) `keypress` is not dispatched to the browser window when the focus is
-    //     inside the dialog but `keydown` is, so we listen for `keydown`.
-    // (3) Our dialog will be queued and deferred if other dialogs are currently
-    //     shown, so don't assume the first Escape key is related to ours.
-    let escapeKeyPressed = false;
-    let keyListener = keyEvent => {
-      if (
-        keyEvent.keyCode == keyEvent.DOM_VK_ESCAPE &&
-        win.gDialogBox.dialog?.frameContentWindow?.document?.documentURI ==
-          ONBOARDING_URI
-      ) {
-        escapeKeyPressed = true;
-      }
-    };
-    win.addEventListener("keydown", keyListener, true);
+    // Don't show the dialog on top of about:welcome for new users.
+    if (win.gBrowser?.currentURI?.spec == "about:welcome") {
+      return false;
+    }
 
-    let params = { choice: undefined };
+    let variationType;
+    try {
+      // An error happens if the pref is not in user prefs.
+      variationType = UrlbarPrefs.get(DIALOG_VARIATION_PREF).toLowerCase();
+    } catch (e) {}
+
+    let params = { choice: undefined, variationType, visitedMain: false };
     await win.gDialogBox.open(ONBOARDING_URI, params);
 
-    win.removeEventListener("keydown", keyListener, true);
-
     UrlbarPrefs.set(SEEN_DIALOG_PREF, true);
+    UrlbarPrefs.set(
+      DIALOG_VERSION_PREF,
+      JSON.stringify({ version: 1, variation: variationType })
+    );
 
-    // Record the user's opt-in choice on the user prefs branch regardless of
-    // what it was. These prefs are sticky, so they'll retain their user-branch
-    // values regardless of what the particular defaults were at the time. See
-    // UrlbarPrefs for details.
-    //
-    // Opting in enables both kinds of results and data collection.
-    let optedIn = params.choice == ONBOARDING_CHOICE.ACCEPT;
-    UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", optedIn);
-    UrlbarPrefs.set("suggest.quicksuggest.sponsored", optedIn);
+    // Record the user's opt-in choice on the user branch. This pref is sticky,
+    // so it will retain its user-branch value regardless of what the particular
+    // default was at the time.
+    let optedIn = params.choice == ONBOARDING_CHOICE.ACCEPT_2;
     UrlbarPrefs.set("quicksuggest.dataCollection.enabled", optedIn);
 
     switch (params.choice) {
-      case ONBOARDING_CHOICE.LEARN_MORE:
+      case ONBOARDING_CHOICE.LEARN_MORE_2:
         win.openTrustedLinkIn(UrlbarProviderQuickSuggest.helpUrl, "tab", {
           fromChrome: true,
         });
         break;
-      case ONBOARDING_CHOICE.SETTINGS:
-        win.openPreferences("privacy-locationBar");
-        break;
-      case ONBOARDING_CHOICE.ACCEPT:
-      case ONBOARDING_CHOICE.NOT_NOW:
+      case ONBOARDING_CHOICE.ACCEPT_2:
+      case ONBOARDING_CHOICE.REJECT_2:
+      case ONBOARDING_CHOICE.NOT_NOW_2:
+      case ONBOARDING_CHOICE.CLOSE_1:
         // No other action required.
         break;
       default:
-        if (escapeKeyPressed) {
-          params.choice = ONBOARDING_CHOICE.DISMISSED_ESCAPE_KEY;
-          break;
-        }
-        // Catch-all for other cases. Typically this should not happen, but one
-        // case where it does is when the dialog is replaced by another higher
-        // priority dialog like the one that's shown when quitting the app.
-        params.choice = ONBOARDING_CHOICE.DISMISSED_OTHER;
+        params.choice = params.visitedMain
+          ? ONBOARDING_CHOICE.DISMISS_2
+          : ONBOARDING_CHOICE.DISMISS_1;
         break;
     }
 
@@ -300,6 +287,8 @@ class Suggestions {
       "opt_in_dialog",
       params.choice
     );
+
+    return true;
   }
 
   /**
@@ -458,7 +447,7 @@ class Suggestions {
    *   The icon's remote settings path.
    */
   async _fetchIcon(path) {
-    if (!path) {
+    if (!path || !this._rs) {
       return null;
     }
     let record = (

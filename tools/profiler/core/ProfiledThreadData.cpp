@@ -18,10 +18,15 @@
 #endif
 
 ProfiledThreadData::ProfiledThreadData(
-    const mozilla::profiler::ThreadRegistrationInfo& aThreadInfo,
-    nsIEventTarget* aEventTarget)
+    const mozilla::profiler::ThreadRegistrationInfo& aThreadInfo)
     : mThreadInfo(aThreadInfo.Name(), aThreadInfo.ThreadId(),
                   aThreadInfo.IsMainThread(), aThreadInfo.RegisterTime()) {
+  MOZ_COUNT_CTOR(ProfiledThreadData);
+}
+
+ProfiledThreadData::ProfiledThreadData(
+    mozilla::profiler::ThreadRegistrationInfo&& aThreadInfo)
+    : mThreadInfo(std::move(aThreadInfo)) {
   MOZ_COUNT_CTOR(ProfiledThreadData);
 }
 

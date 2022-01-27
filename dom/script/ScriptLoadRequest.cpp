@@ -171,12 +171,12 @@ void ScriptLoadRequest::MaybeCancelOffThreadScript() {
   JSContext* cx = danger::GetJSContext();
   // Follow the same conditions as ScriptLoader::AttemptAsyncScriptCompile
   if (IsModuleRequest()) {
-    JS::CancelOffThreadModule(cx, mOffThreadToken);
+    JS::CancelCompileModuleToStencilOffThread(cx, mOffThreadToken);
   } else if (IsSource()) {
-    JS::CancelOffThreadScript(cx, mOffThreadToken);
+    JS::CancelCompileToStencilOffThread(cx, mOffThreadToken);
   } else {
     MOZ_ASSERT(IsBytecode());
-    JS::CancelOffThreadScriptDecoder(cx, mOffThreadToken);
+    JS::CancelDecodeStencilOffThread(cx, mOffThreadToken);
   }
 
   // Cancellation request above should guarantee removal of the parse task, so

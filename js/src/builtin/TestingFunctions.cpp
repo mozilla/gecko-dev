@@ -52,9 +52,7 @@
 #include "builtin/Promise.h"
 #include "builtin/SelfHostingDefines.h"
 #include "builtin/TestingUtility.h"  // js::ParseCompileOptions, js::ParseDebugMetadata
-#include "frontend/BytecodeCompilation.h"  // frontend::CanLazilyParse,
-// frontend::CompileGlobalScriptToExtensibleStencil,
-// frontend::DelazifyCanonicalScriptedFunction
+#include "frontend/BytecodeCompilation.h"  // frontend::CompileGlobalScriptToExtensibleStencil, frontend::DelazifyCanonicalScriptedFunction
 #include "frontend/BytecodeCompiler.h"  // frontend::ParseModuleToExtensibleStencil
 #include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
 #include "gc/Allocator.h"
@@ -2854,13 +2852,14 @@ static bool SetTestFilenameValidationCallback(JSContext* cx, unsigned argc,
 
   // Accept all filenames that start with "safe". In system code also accept
   // filenames starting with "system".
-  auto testCb = [](const char* filename, bool isSystemRealm) -> bool {
+  auto testCb = [](JSContext* cx, const char* filename) -> bool {
     if (strstr(filename, "safe") == filename) {
       return true;
     }
-    if (isSystemRealm && strstr(filename, "system") == filename) {
+    if (cx->realm()->isSystem() && strstr(filename, "system") == filename) {
       return true;
     }
+
     return false;
   };
   JS::SetFilenameValidationCallback(testCb);
@@ -4033,6 +4032,26 @@ static bool DisplayName(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+static bool IsAvxPresent(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
+  int minVersion = 1;
+  if (argc > 0 && args.get(0).isNumber()) {
+    minVersion = std::max(1, int(args[0].toNumber()));
+  }
+  switch (minVersion) {
+    case 1:
+      args.rval().setBoolean(jit::Assembler::HasAVX());
+      return true;
+    case 2:
+      args.rval().setBoolean(jit::Assembler::HasAVX2());
+      return true;
+  }
+#endif
+  args.rval().setBoolean(false);
+  return true;
+}
+
 class ShellAllocationMetadataBuilder : public AllocationMetadataBuilder {
  public:
   ShellAllocationMetadataBuilder() : AllocationMetadataBuilder() {}
@@ -4073,7 +4092,7 @@ JSObject* ShellAllocationMetadataBuilder::build(
     if (iter.isFunctionFrame() && iter.compartment() == cx->compartment()) {
       id = INT_TO_JSID(stackIndex);
       RootedObject callee(cx, iter.callee(cx));
-      if (!JS_DefinePropertyById(cx, stack, id, callee, 0)) {
+      if (!JS_DefinePropertyById(cx, stack, id, callee, JSPROP_ENUMERATE)) {
         oomUnsafe.crash("ShellAllocationMetadataBuilder::build");
       }
       stackIndex++;
@@ -5324,7 +5343,7 @@ static bool GetBacktrace(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   JS::ConstUTF8CharsZ utf8chars(buf.get(), strlen(buf.get()));
-  JSString* str = NewStringCopyUTF8Z<CanGC>(cx, utf8chars);
+  JSString* str = NewStringCopyUTF8Z(cx, utf8chars);
   if (!str) {
     return false;
   }
@@ -5693,21 +5712,21 @@ static bool ShortestPaths(JSContext* cx, unsigned argc, Value* vp) {
   Vector<Vector<Vector<JS::ubi::EdgeName>>> names(cx);
 
   {
-    mozilla::Maybe<JS::AutoCheckCannotGC> maybeNoGC;
     JS::ubi::Node root;
 
-    JS::ubi::RootList rootList(cx, maybeNoGC, true);
+    JS::ubi::RootList rootList(cx, true);
     if (start.isNull()) {
-      if (!rootList.init()) {
+      auto [ok, nogc] = rootList.init();
+      (void)nogc;  // Old compilers get anxious about nogc being unused.
+      if (!ok) {
         ReportOutOfMemory(cx);
         return false;
       }
       root = JS::ubi::Node(&rootList);
     } else {
-      maybeNoGC.emplace(cx);
       root = JS::ubi::Node(start);
     }
-    JS::AutoCheckCannotGC& noGC = maybeNoGC.ref();
+    JS::AutoCheckCannotGC noGC(cx);
 
     JS::ubi::NodeSet targets;
 
@@ -6277,13 +6296,6 @@ static bool EvalStencil(JSContext* cx, uint32_t argc, Value* vp) {
                                 &elementAttributeName)) {
       return false;
     }
-  }
-
-  if (stencilObj->stencil()->canLazilyParse !=
-      frontend::CanLazilyParse(options)) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_STENCIL_OPTIONS_MISMATCH);
-    return false;
   }
 
   bool useDebugMetadata = !privateValue.isUndefined() || elementAttributeName;
@@ -7835,6 +7847,21 @@ static bool PCCountProfiling_ScriptContents(JSContext* cx, unsigned argc,
   return true;
 }
 
+static bool NukeCCW(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  if (args.length() != 1 || !args[0].isObject() ||
+      !IsCrossCompartmentWrapper(&args[0].toObject())) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_INVALID_ARGS,
+                              "nukeCCW");
+    return false;
+  }
+
+  NukeCrossCompartmentWrapper(cx, &args[0].toObject());
+  args.rval().setUndefined();
+  return true;
+}
+
 // clang-format off
 static const JSFunctionSpecWithHelp TestingFunctions[] = {
     JS_FN_HELP("gc", ::GC, 0, 0,
@@ -8228,6 +8255,11 @@ gc::ZealModeHelpText),
 "isAsmJSFunction(fn)",
 "  Returns whether the given value is a nested function in an asm.js module that has been\n"
 "  both compile- and link-time validated."),
+
+    JS_FN_HELP("isAvxPresent", IsAvxPresent, 0, 0,
+"isAvxPresent([minVersion])",
+"  Returns whether AVX is present and enabled. If minVersion specified,\n"
+"  use 1 - to check if AVX is enabled (default), 2 - if AVX2 is enabled."),
 
     JS_FN_HELP("wasmIsSupported", WasmIsSupported, 0, 0,
 "wasmIsSupported()",
@@ -8828,6 +8860,10 @@ JS_FN_HELP("isSmallFunction", IsSmallFunction, 1, 0,
 "getExceptionInfo(fun)",
 "  Calls the given function and returns information about the exception it"
 "  throws. Returns null if the function didn't throw an exception."),
+
+    JS_FN_HELP("nukeCCW", NukeCCW, 1, 0,
+"nukeCCW(wrapper)",
+"  Nuke a CrossCompartmentWrapper, which turns it into a DeadProxyObject."),
 
     JS_FS_HELP_END
 };

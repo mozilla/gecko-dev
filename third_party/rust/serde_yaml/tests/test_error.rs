@@ -17,13 +17,14 @@ fn test_incorrect_type() {
         str
     "};
     let expected = "invalid type: string \"str\", expected i16 at line 2 column 1";
-    test_error::<i16>(&yaml, expected);
+    test_error::<i16>(yaml, expected);
 }
 
 #[test]
 fn test_incorrect_nested_type() {
     #[derive(Deserialize, Debug)]
     struct A {
+        #[allow(dead_code)]
         b: Vec<B>,
     }
     #[derive(Deserialize, Debug)]
@@ -32,6 +33,7 @@ fn test_incorrect_nested_type() {
     }
     #[derive(Deserialize, Debug)]
     struct C {
+        #[allow(dead_code)]
         d: bool,
     }
     let yaml = indoc! {"
@@ -42,7 +44,7 @@ fn test_incorrect_nested_type() {
     "};
     let expected =
         "b[0].C.d: invalid type: string \"fase\", expected a boolean at line 4 column 10";
-    test_error::<A>(&yaml, expected);
+    test_error::<A>(yaml, expected);
 }
 
 #[test]
@@ -55,7 +57,9 @@ fn test_empty() {
 fn test_missing_field() {
     #[derive(Deserialize, Debug)]
     struct Basic {
+        #[allow(dead_code)]
         v: bool,
+        #[allow(dead_code)]
         w: bool,
     }
     let yaml = indoc! {"
@@ -63,7 +67,7 @@ fn test_missing_field() {
         v: true
     "};
     let expected = "missing field `w` at line 2 column 2";
-    test_error::<Basic>(&yaml, expected);
+    test_error::<Basic>(yaml, expected);
 }
 
 #[test]
@@ -73,13 +77,14 @@ fn test_unknown_anchor() {
         *some
     "};
     let expected = "while parsing node, found unknown anchor at line 2 column 1";
-    test_error::<String>(&yaml, expected);
+    test_error::<String>(yaml, expected);
 }
 
 #[test]
 fn test_ignored_unknown_anchor() {
     #[derive(Deserialize, Debug)]
     struct Wrapper {
+        #[allow(dead_code)]
         c: (),
     }
     let yaml = indoc! {"
@@ -88,7 +93,7 @@ fn test_ignored_unknown_anchor() {
         c: ~
     "};
     let expected = "while parsing node, found unknown anchor at line 2 column 5";
-    test_error::<Wrapper>(&yaml, expected);
+    test_error::<Wrapper>(yaml, expected);
 }
 
 #[test]
@@ -100,7 +105,7 @@ fn test_two_documents() {
         1
     "};
     let expected = "deserializing from YAML containing more than one document is not supported";
-    test_error::<usize>(&yaml, expected);
+    test_error::<usize>(yaml, expected);
 }
 
 #[test]
@@ -115,7 +120,7 @@ fn test_variant_map_wrong_size() {
         "other": 32
     "#};
     let expected = "invalid length 2, expected map containing 1 entry";
-    test_error::<E>(&yaml, expected);
+    test_error::<E>(yaml, expected);
 }
 
 #[test]
@@ -129,7 +134,7 @@ fn test_variant_not_a_map() {
         - "V"
     "#};
     let expected = "invalid type: sequence, expected string or singleton map at line 2 column 1";
-    test_error::<E>(&yaml, expected);
+    test_error::<E>(yaml, expected);
 }
 
 #[test]
@@ -143,7 +148,7 @@ fn test_variant_not_string() {
         {}: true
     "#};
     let expected = "invalid type: map, expected variant of enum `E` at line 2 column 1";
-    test_error::<E>(&yaml, expected);
+    test_error::<E>(yaml, expected);
 }
 
 #[test]
@@ -153,7 +158,7 @@ fn test_bad_bool() {
         !!bool str
     "};
     let expected = "invalid value: string \"str\", expected a boolean at line 2 column 8";
-    test_error::<bool>(&yaml, expected);
+    test_error::<bool>(yaml, expected);
 }
 
 #[test]
@@ -163,7 +168,7 @@ fn test_bad_int() {
         !!int str
     "};
     let expected = "invalid value: string \"str\", expected an integer at line 2 column 7";
-    test_error::<i64>(&yaml, expected);
+    test_error::<i64>(yaml, expected);
 }
 
 #[test]
@@ -173,7 +178,7 @@ fn test_bad_float() {
         !!float str
     "};
     let expected = "invalid value: string \"str\", expected a float at line 2 column 9";
-    test_error::<f64>(&yaml, expected);
+    test_error::<f64>(yaml, expected);
 }
 
 #[test]
@@ -183,7 +188,7 @@ fn test_bad_null() {
         !!null str
     "};
     let expected = "invalid value: string \"str\", expected null at line 2 column 8";
-    test_error::<()>(&yaml, expected);
+    test_error::<()>(yaml, expected);
 }
 
 #[test]
@@ -193,7 +198,7 @@ fn test_short_tuple() {
         [0, 0]
     "};
     let expected = "invalid length 2, expected a tuple of size 3 at line 2 column 1";
-    test_error::<(u8, u8, u8)>(&yaml, expected);
+    test_error::<(u8, u8, u8)>(yaml, expected);
 }
 
 #[test]
@@ -203,7 +208,7 @@ fn test_long_tuple() {
         [0, 0, 0]
     "};
     let expected = "invalid length 3, expected sequence of 2 elements at line 2 column 1";
-    test_error::<(u8, u8)>(&yaml, expected);
+    test_error::<(u8, u8)>(yaml, expected);
 }
 
 #[test]
@@ -213,13 +218,14 @@ fn test_no_location() {
 
     let utf8_location = invalid_utf8.unwrap_err().location();
 
-    assert_eq!(utf8_location.is_none(), true);
+    assert!(utf8_location.is_none());
 }
 
 #[test]
 fn test_invalid_scalar_type() {
     #[derive(Deserialize, Debug)]
     struct S {
+        #[allow(dead_code)]
         x: [(); 1],
     }
 
@@ -232,6 +238,7 @@ fn test_invalid_scalar_type() {
 fn test_infinite_recursion_objects() {
     #[derive(Deserialize, Debug)]
     struct S {
+        #[allow(dead_code)]
         x: Option<Box<S>>,
     }
 
@@ -244,6 +251,7 @@ fn test_infinite_recursion_objects() {
 fn test_infinite_recursion_arrays() {
     #[derive(Deserialize, Debug)]
     struct S {
+        #[allow(dead_code)]
         x: Option<Box<S>>,
     }
 
@@ -256,6 +264,7 @@ fn test_infinite_recursion_arrays() {
 fn test_finite_recursion_objects() {
     #[derive(Deserialize, Debug)]
     struct S {
+        #[allow(dead_code)]
         x: Option<Box<S>>,
     }
 
@@ -268,6 +277,7 @@ fn test_finite_recursion_objects() {
 fn test_finite_recursion_arrays() {
     #[derive(Deserialize, Debug)]
     struct S {
+        #[allow(dead_code)]
         x: Option<Box<S>>,
     }
 

@@ -312,6 +312,9 @@ MouseInput::MouseInput(const WidgetMouseEventBase& aMouseEvent)
     case eMouseExitFromWidget:
       mType = MOUSE_WIDGET_EXIT;
       break;
+    case eMouseExploreByTouch:
+      mType = MOUSE_EXPLORE_BY_TOUCH;
+      break;
     case eMouseHitTest:
       mType = MOUSE_HITTEST;
       break;
@@ -369,6 +372,9 @@ WidgetMouseEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
     case MOUSE_WIDGET_EXIT:
       msg = eMouseExitFromWidget;
       exitFrom = Some(WidgetMouseEvent::ePlatformChild);
+      break;
+    case MOUSE_EXPLORE_BY_TOUCH:
+      msg = eMouseExploreByTouch;
       break;
     case MOUSE_HITTEST:
       msg = eMouseHitTest;
@@ -495,7 +501,7 @@ WidgetWheelEvent PanGestureInput::ToWidgetEvent(nsIWidget* aWidget) const {
     // PANDELTA_PAGE
     // Emulate legacy widget/gtk behavior
     wheelEvent.mDeltaMode = WheelEvent_Binding::DOM_DELTA_LINE;
-    wheelEvent.mScrollType = WidgetWheelEvent::SCROLL_ASYNCHRONOUSELY;
+    wheelEvent.mScrollType = WidgetWheelEvent::SCROLL_ASYNCHRONOUSLY;
     wheelEvent.mDeltaX *= 3;
     wheelEvent.mDeltaY *= 3;
   } else {

@@ -432,9 +432,11 @@ class RespondWithHandler final : public PromiseNativeHandler {
         mRequestWasHandled(false) {
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override;
+  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                        ErrorResult& aRv) override;
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override;
+  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                        ErrorResult& aRv) override;
 
   void CancelRequest(nsresult aStatus);
 
@@ -561,7 +563,8 @@ class MOZ_STACK_CLASS AutoCancel {
 NS_IMPL_ISUPPORTS0(RespondWithHandler)
 
 void RespondWithHandler::ResolvedCallback(JSContext* aCx,
-                                          JS::Handle<JS::Value> aValue) {
+                                          JS::Handle<JS::Value> aValue,
+                                          ErrorResult& aRv) {
   AutoCancel autoCancel(this, mRequestURL);
 
   if (!aValue.isObject()) {
@@ -735,7 +738,8 @@ void RespondWithHandler::ResolvedCallback(JSContext* aCx,
 }
 
 void RespondWithHandler::RejectedCallback(JSContext* aCx,
-                                          JS::Handle<JS::Value> aValue) {
+                                          JS::Handle<JS::Value> aValue,
+                                          ErrorResult& aRv) {
   nsCString sourceSpec = mRespondWithScriptSpec;
   uint32_t line = mRespondWithLineNumber;
   uint32_t column = mRespondWithColumnNumber;
@@ -795,9 +799,8 @@ void FetchEvent::RespondWith(JSContext* aCx, Promise& aArg, ErrorResult& aRv) {
         ir->GetFragment(), spec, line, column);
 
     aArg.AppendNativeHandler(handler);
-  } else {
-    MOZ_ASSERT(mRespondWithHandler);
-
+    // mRespondWithHandler can be nullptr for self-dispatched FetchEvent.
+  } else if (mRespondWithHandler) {
     mRespondWithHandler->RespondWithCalledAt(spec, line, column);
     aArg.AppendNativeHandler(mRespondWithHandler);
     mRespondWithHandler = nullptr;
@@ -844,7 +847,8 @@ void FetchEvent::ReportCanceled() {
     ::AsyncLog(mChannel.get(), mPreventDefaultScriptSpec,
                mPreventDefaultLineNumber, mPreventDefaultColumnNumber,
                "InterceptionCanceledWithURL"_ns, requestURL);
-  } else {
+    // mRespondWithHandler could be nullptr for self-dispatched FetchEvent.
+  } else if (mRespondWithHandler) {
     mRespondWithHandler->ReportCanceled(mPreventDefaultScriptSpec,
                                         mPreventDefaultLineNumber,
                                         mPreventDefaultColumnNumber);
@@ -879,11 +883,13 @@ class WaitUntilHandler final : public PromiseNativeHandler {
     nsJSUtils::GetCallingLocation(aCx, mSourceSpec, &mLine, &mColumn);
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override {
+  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu,
+                        ErrorResult& aRve) override {
     // do nothing, we are only here to report errors
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override {
+  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                        ErrorResult& aRv) override {
     mWorkerPrivate->AssertIsOnWorkerThread();
 
     nsString spec;
@@ -963,7 +969,8 @@ NS_IMPL_RELEASE_INHERITED(FetchEvent, ExtendableEvent)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FetchEvent)
 NS_INTERFACE_MAP_END_INHERITING(ExtendableEvent)
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(FetchEvent, ExtendableEvent, mRequest)
+NS_IMPL_CYCLE_COLLECTION_INHERITED(FetchEvent, ExtendableEvent, mRequest,
+                                   mHandled, mPreloadResponse)
 
 ExtendableEvent::ExtendableEvent(EventTarget* aOwner)
     : Event(aOwner, nullptr, nullptr) {}

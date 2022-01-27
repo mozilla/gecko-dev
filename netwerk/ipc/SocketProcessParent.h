@@ -90,7 +90,7 @@ class SocketProcessParent final
       const uint64_t& aExtraSizeData, const nsCString& aExtraStringData);
 
   mozilla::ipc::IPCResult RecvInitBackground(
-      Endpoint<PBackgroundParent>&& aEndpoint);
+      Endpoint<PBackgroundStarterParent>&& aEndpoint);
 
   already_AddRefed<PAltServiceParent> AllocPAltServiceParent();
 
@@ -130,6 +130,14 @@ class SocketProcessParent final
   mozilla::ipc::IPCResult RecvExcludeHttp2OrHttp3(
       const HttpConnectionInfoCloneArgs& aArgs);
   mozilla::ipc::IPCResult RecvOnConsoleMessage(const nsString& aMessage);
+
+  mozilla::ipc::IPCResult RecvFOGData(ByteBuf&& aBuf);
+
+#if defined(XP_WIN)
+  mozilla::ipc::IPCResult RecvGetModulesTrust(
+      ModulePaths&& aModPaths, bool aRunAtNormalPriority,
+      GetModulesTrustResolver&& aResolver);
+#endif  // defined(XP_WIN)
 
  private:
   SocketProcessHost* mHost;

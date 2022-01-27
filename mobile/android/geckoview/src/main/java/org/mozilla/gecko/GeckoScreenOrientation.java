@@ -36,6 +36,11 @@ public class GeckoScreenOrientation {
     LANDSCAPE_PRIMARY(1 << 2),
     LANDSCAPE_SECONDARY(1 << 3),
     LANDSCAPE(LANDSCAPE_PRIMARY.value | LANDSCAPE_SECONDARY.value),
+    ANY(
+        PORTRAIT_PRIMARY.value
+            | PORTRAIT_SECONDARY.value
+            | LANDSCAPE_PRIMARY.value
+            | LANDSCAPE_SECONDARY.value),
     DEFAULT(1 << 4);
 
     public final short value;
@@ -99,8 +104,10 @@ public class GeckoScreenOrientation {
    * Enable Gecko screen orientation events on update.
    */
   public void enableNotifications() {
-    update();
+    // We should notify Gecko of current orientation information at force.
+    mScreenOrientation = ScreenOrientation.NONE;
     mShouldNotify = true;
+    update();
   }
 
   /*

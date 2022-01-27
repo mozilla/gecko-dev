@@ -172,6 +172,9 @@ bitflags::bitflags!(
     pub struct Workarounds: u32 {
         /// Only generate SPIR-V for one entry point at a time.
         const SEPARATE_ENTRY_POINTS = 0x1;
+        /// Qualcomm OOMs when there are zero color attachments but a non-null pointer
+        /// to a subpass resolve attachment array. This nulls out that pointer in that case.
+        const EMPTY_RESOLVE_ATTACHMENT_LISTS = 0x2;
     }
 );
 
@@ -511,9 +514,7 @@ impl Fence {
         match *self {
             Self::TimelineSemaphore(raw) => unsafe {
                 Ok(match *extension.unwrap() {
-                    ExtensionFn::Extension(ref ext) => {
-                        ext.get_semaphore_counter_value(device.handle(), raw)?
-                    }
+                    ExtensionFn::Extension(ref ext) => ext.get_semaphore_counter_value(raw)?,
                     ExtensionFn::Promoted => device.get_semaphore_counter_value(raw)?,
                 })
             },

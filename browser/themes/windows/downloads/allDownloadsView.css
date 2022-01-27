@@ -32,7 +32,7 @@
 
   This styling should be kept in sync with the style from the above file.
   */
-  @itemFocused@ {
+  #downloadsListBox:focus > richlistitem[selected] {
     color: inherit;
     background-color: transparent;
     /* four gradients for the bevel highlights on each edge, one for blue background */
@@ -46,5 +46,22 @@
     border-radius: 6px;
     outline: 1px solid rgb(124,163,206);
     outline-offset: -2px;
+  }
+}
+
+/*** Progress bars ***/
+
+@media (prefers-contrast) {
+  .downloadProgress {
+    background-color: -moz-Dialog;
+    border: 1px solid ButtonText;
+  }
+
+  .downloadProgress::-moz-progress-bar {
+    --download-progress-fill-color: SelectedItem;
+  }
+
+  #downloadsListBox richlistitem[selected] .downloadProgress::-moz-progress-bar {
+    --download-progress-fill-color: ButtonText;
   }
 }

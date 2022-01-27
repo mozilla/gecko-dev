@@ -6,12 +6,25 @@
 
 USE_LIBS += ["ipcclientcerts-static"]
 
-SOURCES += [
-    "stub.cpp",
-]
+# On Linux (but not when building for Android), this needs to use the C++
+# version to avoid linking against the wrong libc symbols.
+# On Android, this needs to use the C version to avoid multiple definitions
+# of symbols caused by their presence in libgcc and ipcclientcerts-static.
+if CONFIG["OS_ARCH"] == "Linux" and CONFIG["OS_TARGET"] != "Android":
+    SOURCES += [
+        "stub.cpp",
+    ]
+else:
+    SOURCES += [
+        "stub.c",
+    ]
+
+if CONFIG["OS_TARGET"] == "Android":
+    OS_LIBS += ["m"]
 
 if CONFIG["OS_ARCH"] == "WINNT":
     OS_LIBS += [
+        "advapi32",
         "userenv",
         "ws2_32",
     ]

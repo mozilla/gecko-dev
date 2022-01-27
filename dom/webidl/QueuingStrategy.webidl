@@ -16,8 +16,16 @@ interface CountQueuingStrategy {
 
   readonly attribute unrestricted double highWaterMark;
 
-  // This is currently inlined, but will need to be implemented
-  // See Bug 1734239
-  //
-  // readonly attribute Function size;
+  [Throws]
+  readonly attribute Function size;
+};
+
+[Exposed=(Window,Worker,Worklet)]
+interface ByteLengthQueuingStrategy {
+  constructor(QueuingStrategyInit init);
+
+  readonly attribute unrestricted double highWaterMark;
+
+  [Throws]
+  readonly attribute Function size;
 };

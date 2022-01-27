@@ -8,7 +8,10 @@ Transform the signing task into an actual task description.
 
 from gecko_taskgraph.loader.single_dep import schema
 from gecko_taskgraph.transforms.base import TransformSequence
-from gecko_taskgraph.util.attributes import copy_attributes_from_dependent_job
+from gecko_taskgraph.util.attributes import (
+    copy_attributes_from_dependent_job,
+    release_level,
+)
 from gecko_taskgraph.util.keyed_by import evaluate_keyed_by
 from gecko_taskgraph.util.schema import taskref_or_string
 from gecko_taskgraph.util.scriptworker import get_signing_cert_scope_per_platform
@@ -80,12 +83,29 @@ def add_entitlements_link(config, jobs):
             "mac entitlements",
             {
                 "platform": job["primary-dependency"].attributes.get("build_platform"),
-                "release-level": config.params.release_level(),
+                "release-level": release_level(config.params["project"]),
             },
         )
         if entitlements_path:
             job["entitlements-url"] = config.params.file_url(
                 entitlements_path,
+            )
+        yield job
+
+
+@transforms.add
+def add_requirements_link(config, jobs):
+    for job in jobs:
+        requirements_path = evaluate_keyed_by(
+            config.graph_config["mac-notarization"]["mac-requirements"],
+            "mac requirements",
+            {
+                "platform": job["primary-dependency"].attributes.get("build_platform"),
+            },
+        )
+        if requirements_path:
+            job["requirements-plist-url"] = config.params.file_url(
+                requirements_path,
             )
         yield job
 
@@ -219,8 +239,9 @@ def make_task_description(config, jobs):
                 " ({} not found in mapping)".format(worker_type_alias)
             )
             worker_type_alias = worker_type_alias_map[worker_type_alias]
-            if job.get("entitlements-url"):
-                task["worker"]["entitlements-url"] = job["entitlements-url"]
+            for attr in ("entitlements-url", "requirements-plist-url"):
+                if job.get(attr):
+                    task["worker"][attr] = job[attr]
 
         task["worker-type"] = worker_type_alias
         if treeherder:

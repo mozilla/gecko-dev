@@ -325,15 +325,6 @@
 // For VP9Benchmark::sBenchmarkFpsPref
 #include "Benchmark.h"
 
-// XXX need another bug to move this to a common header.
-#ifdef DISABLE_ASSERTS_FOR_FUZZING
-#  define ASSERT_UNLESS_FUZZING(...) \
-    do {                             \
-    } while (0)
-#else
-#  define ASSERT_UNLESS_FUZZING(...) MOZ_ASSERT(false, __VA_ARGS__)
-#endif
-
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 
 using base::KillProcess;
@@ -3747,8 +3738,8 @@ ContentParent::GetInterface(const nsIID& aIID, void** aResult) {
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvInitBackground(
-    Endpoint<PBackgroundParent>&& aEndpoint) {
-  if (!BackgroundParent::Alloc(this, std::move(aEndpoint))) {
+    Endpoint<PBackgroundStarterParent>&& aEndpoint) {
+  if (!BackgroundParent::AllocStarter(this, std::move(aEndpoint))) {
     NS_WARNING("BackgroundParent::Alloc failed");
   }
 
@@ -3761,7 +3752,7 @@ bool ContentParent::CanOpenBrowser(const IPCTabContext& aContext) {
   // On e10s we also allow UnsafeTabContext to allow service workers to open
   // windows. This is enforced in MaybeInvalidTabContext.
   if (aContext.type() != IPCTabContext::TPopupIPCTabContext) {
-    ASSERT_UNLESS_FUZZING(
+    MOZ_CRASH_UNLESS_FUZZING(
         "Unexpected IPCTabContext type.  Aborting AllocPBrowserParent.");
     return false;
   }
@@ -3771,7 +3762,7 @@ bool ContentParent::CanOpenBrowser(const IPCTabContext& aContext) {
 
     auto opener = BrowserParent::GetFrom(popupContext.openerParent());
     if (!opener) {
-      ASSERT_UNLESS_FUZZING(
+      MOZ_CRASH_UNLESS_FUZZING(
           "Got null opener from child; aborting AllocPBrowserParent.");
       return false;
     }
@@ -6812,7 +6803,7 @@ mozilla::ipc::IPCResult ContentParent::RecvAdjustWindowFocus(
     CanonicalBrowsingContext* canonicalParent = parent->Canonical();
     ContentParent* cp = cpm->GetContentProcessById(
         ContentParentId(canonicalParent->OwnerProcessId()));
-    if (!processes.Get(cp)) {
+    if (cp && !processes.Get(cp)) {
       Unused << cp->SendAdjustWindowFocus(context, aIsVisible, aActionId);
       processes.InsertOrUpdate(cp, true);
     }

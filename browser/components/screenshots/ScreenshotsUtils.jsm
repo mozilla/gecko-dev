@@ -4,7 +4,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["ScreenshotsUtils"];
+var EXPORTED_SYMBOLS = ["ScreenshotsUtils", "ScreenshotsComponentParent"];
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
@@ -12,18 +12,42 @@ const PanelPosition = "bottomright topright";
 const PanelOffsetX = -33;
 const PanelOffsetY = -8;
 
-var ScreenshotsUtils = {
-  initialize() {
-    if (
-      !Services.prefs.getBoolPref(
-        "screenshots.browser.component.enabled",
-        false
-      )
-    ) {
-      return;
+class ScreenshotsComponentParent extends JSWindowActorParent {
+  receiveMessage(message) {
+    switch (message.name) {
+      case "Screenshots:CancelScreenshot":
+        let browser = message.target.browsingContext.topFrameElement;
+        ScreenshotsUtils.closePanel(browser);
     }
-    Services.obs.addObserver(this, "menuitem-screenshot");
-    Services.obs.addObserver(this, "screenshots-take-screenshot");
+  }
+}
+
+var ScreenshotsUtils = {
+  initialized: false,
+  initialize() {
+    if (!this.initialized) {
+      if (
+        !Services.prefs.getBoolPref(
+          "screenshots.browser.component.enabled",
+          false
+        )
+      ) {
+        return;
+      }
+      Services.obs.addObserver(this, "menuitem-screenshot");
+      Services.obs.addObserver(this, "screenshots-take-screenshot");
+      this.initialized = true;
+      if (Cu.isInAutomation) {
+        Services.obs.notifyObservers(null, "screenshots-component-initialized");
+      }
+    }
+  },
+  uninitialize() {
+    if (this.initialized) {
+      Services.obs.removeObserver(this, "menuitem-screenshot");
+      Services.obs.removeObserver(this, "screenshots-take-screenshot");
+      this.initialized = false;
+    }
   },
   observe(subj, topic, data) {
     let { gBrowser } = subj;
@@ -43,9 +67,8 @@ var ScreenshotsUtils = {
         }
         break;
       case "screenshots-take-screenshot":
-        // need to toggle because panel button was clicked
-        // and we need to hide the buttons
-        this.togglePreview(browser);
+        // need to close the preview because screenshot was taken
+        this.closePanel(browser);
 
         // init UI as a tab dialog box
         let dialogBox = gBrowser.getTabDialogBox(browser);
@@ -89,8 +112,31 @@ var ScreenshotsUtils = {
     return actor;
   },
   /**
-   * If the buttons panel exists and the panel is open we will hipe the panel
-   * popup and hide the screenshot overlay.
+   * Open the panel buttons and call child actor to open the overlay
+   * @param browser The current browser
+   */
+  openPanel(browser) {
+    let actor = this.getActor(browser);
+    actor.sendQuery("Screenshots:ShowOverlay");
+    this.createOrDisplayButtons(browser);
+  },
+  /**
+   * Close the panel and call child actor to close the overlay
+   * @param browser The current browser
+   */
+  closePanel(browser) {
+    let buttonsPanel = browser.ownerDocument.querySelector(
+      "#screenshotsPagePanel"
+    );
+    if (buttonsPanel && buttonsPanel.state !== "closed") {
+      buttonsPanel.hidePopup();
+    }
+    let actor = this.getActor(browser);
+    actor.sendQuery("Screenshots:HideOverlay");
+  },
+  /**
+   * If the buttons panel exists and is open we will hide both the panel
+   * popup and the overlay.
    * Otherwise create or display the buttons.
    * @param browser The current browser.
    */
@@ -103,6 +149,8 @@ var ScreenshotsUtils = {
       let actor = this.getActor(browser);
       return actor.sendQuery("Screenshots:HideOverlay");
     }
+    let actor = this.getActor(browser);
+    actor.sendQuery("Screenshots:ShowOverlay");
     return this.createOrDisplayButtons(browser);
   },
   /**
@@ -159,10 +207,9 @@ var ScreenshotsUtils = {
       template.replaceWith(clone);
       buttonsPanel = doc.querySelector("#screenshotsPagePanel");
     }
+
     let anchor = doc.querySelector("#navigator-toolbox");
     buttonsPanel.openPopup(anchor, PanelPosition, PanelOffsetX, PanelOffsetY);
-    let actor = this.getActor(browser);
-    return actor.sendQuery("Screenshots:ShowOverlay");
   },
   /**
    * Gets the full page bounds from the screenshots child actor.
@@ -243,6 +290,10 @@ var ScreenshotsUtils = {
       dialog._frame.contentDocument
         .getElementById("preview-image-div")
         .appendChild(newImg);
+
+      if (Cu.isInAutomation) {
+        Services.obs.notifyObservers(null, "screenshots-preview-ready");
+      }
     });
 
     snapshot.close();

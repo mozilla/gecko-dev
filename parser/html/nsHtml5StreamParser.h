@@ -219,9 +219,16 @@ class nsHtml5StreamParser final : public nsISupports {
 
   void RememberGt(int32_t aPos);
 
-  void PostEncodingCommitter();
-
   // Not from an external interface
+
+  /**
+   * Post a runnable to the main thread to perform the speculative load
+   * operations without performing the tree operations.
+   *
+   * This should be called at the end of each data available or stop
+   * request runnable running on the parser thread.
+   */
+  void PostLoadFlusher();
 
   /**
    * Pass a buffer to chardetng.
@@ -274,10 +281,7 @@ class nsHtml5StreamParser final : public nsISupports {
    */
   void ContinueAfterFailedCharsetSwitch();
 
-  void Terminate() {
-    mozilla::MutexAutoLock autoLock(mTerminatedMutex);
-    mTerminated = true;
-  }
+  void Terminate() { mTerminated = true; }
 
   void DropTimer();
 
@@ -304,15 +308,13 @@ class nsHtml5StreamParser final : public nsISupports {
    * call on the other thread too soon.
    */
   void Interrupt() {
-    mozilla::MutexAutoLock autoLock(mTerminatedMutex);
+    MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
     mInterrupted = true;
   }
 
   void Uninterrupt() {
-    NS_ASSERTION(IsParserThread(), "Wrong thread!");
+    MOZ_ASSERT(IsParserThread(), "Wrong thread!");
     mTokenizerMutex.AssertCurrentThreadOwns();
-    // Not acquiring mTerminatedMutex because mTokenizerMutex is already
-    // held at this point and is already stronger.
     mInterrupted = false;
   }
 
@@ -343,15 +345,9 @@ class nsHtml5StreamParser final : public nsISupports {
                                        uint32_t aToOffset, uint32_t aCount,
                                        uint32_t* aWriteCount);
 
-  bool IsTerminatedOrInterrupted() {
-    mozilla::MutexAutoLock autoLock(mTerminatedMutex);
-    return mTerminated || mInterrupted;
-  }
+  bool IsTerminatedOrInterrupted() { return mTerminated || mInterrupted; }
 
-  bool IsTerminated() {
-    mozilla::MutexAutoLock autoLock(mTerminatedMutex);
-    return mTerminated;
-  }
+  bool IsTerminated() { return mTerminated; }
 
   /**
    * True when there is a Unicode decoder already
@@ -654,7 +650,7 @@ class nsHtml5StreamParser final : public nsISupports {
   /**
    * Number of times speculation has failed for this parser.
    */
-  uint32_t mSpeculationFailureCount;
+  mozilla::Atomic<uint32_t> mSpeculationFailureCount;
 
   /**
    * Number of bytes already buffered into mBufferedBytes.
@@ -664,11 +660,14 @@ class nsHtml5StreamParser final : public nsISupports {
   nsTArray<mozilla::Buffer<uint8_t>> mBufferedBytes;
 
   /**
-   * True to terminate early; protected by mTerminatedMutex
+   * True to terminate early.
    */
-  bool mTerminated;
-  bool mInterrupted;
-  mozilla::Mutex mTerminatedMutex;
+  mozilla::Atomic<bool> mTerminated;
+
+  /**
+   * True to release mTokenizerMutex early.
+   */
+  mozilla::Atomic<bool> mInterrupted;
 
   /**
    * The thread this stream parser runs on.

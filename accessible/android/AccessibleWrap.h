@@ -38,8 +38,6 @@ class AccessibleWrap : public LocalAccessible {
 
   virtual void PivotTo(int32_t aGranularity, bool aForward, bool aInclusive);
 
-  virtual void ExploreByTouch(float aX, float aY);
-
   virtual void NavigateText(int32_t aGranularity, int32_t aStartOffset,
                             int32_t aEndOffset, bool aForward, bool aSelect);
 
@@ -52,10 +50,12 @@ class AccessibleWrap : public LocalAccessible {
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   virtual void Paste();
 
+  void ExploreByTouch(float aX, float aY);
+
   mozilla::java::GeckoBundle::LocalRef ToBundle(bool aSmall = false);
 
   mozilla::java::GeckoBundle::LocalRef ToBundle(
-      const uint64_t aState, const nsIntRect& aBounds,
+      const uint64_t aState, const LayoutDeviceIntRect& aBounds,
       const uint8_t aActionCount, const nsString& aName,
       const nsString& aTextValue, const nsString& aDOMNodeID,
       const nsString& aDescription,

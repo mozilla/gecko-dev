@@ -232,7 +232,7 @@ void Promise::Then(JSContext* aCx,
 }
 
 void PromiseNativeThenHandlerBase::ResolvedCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aValue) {
+    JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   RefPtr<Promise> promise = CallResolveCallback(aCx, aValue);
   if (promise) {
     mPromise->MaybeResolve(promise);
@@ -242,7 +242,7 @@ void PromiseNativeThenHandlerBase::ResolvedCallback(
 }
 
 void PromiseNativeThenHandlerBase::RejectedCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aValue) {
+    JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   mPromise->MaybeReject(aValue);
 }
 
@@ -333,16 +333,17 @@ static bool NativeHandlerCallback(JSContext* aCx, unsigned aArgc,
   v = js::GetFunctionNativeReserved(&args.callee(), SLOT_NATIVEHANDLER_TASK);
   NativeHandlerTask task = static_cast<NativeHandlerTask>(v.toInt32());
 
+  ErrorResult rv;
   if (task == NativeHandlerTask::Resolve) {
     // handler is kept alive by "obj" on the stack.
-    MOZ_KnownLive(handler)->ResolvedCallback(aCx, args.get(0));
+    MOZ_KnownLive(handler)->ResolvedCallback(aCx, args.get(0), rv);
   } else {
     MOZ_ASSERT(task == NativeHandlerTask::Reject);
     // handler is kept alive by "obj" on the stack.
-    MOZ_KnownLive(handler)->RejectedCallback(aCx, args.get(0));
+    MOZ_KnownLive(handler)->RejectedCallback(aCx, args.get(0), rv);
   }
 
-  return true;
+  return !rv.MaybeSetPendingException(aCx);
 }
 
 static JSObject* CreateNativeHandlerFunction(JSContext* aCx,
@@ -380,16 +381,18 @@ class PromiseNativeHandlerShim final : public PromiseNativeHandler {
   }
 
   MOZ_CAN_RUN_SCRIPT
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override {
+  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                        ErrorResult& aRv) override {
     RefPtr<PromiseNativeHandler> inner = std::move(mInner);
-    inner->ResolvedCallback(aCx, aValue);
+    inner->ResolvedCallback(aCx, aValue, aRv);
     MOZ_ASSERT(!mInner);
   }
 
   MOZ_CAN_RUN_SCRIPT
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override {
+  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                        ErrorResult& aRv) override {
     RefPtr<PromiseNativeHandler> inner = std::move(mInner);
-    inner->RejectedCallback(aCx, aValue);
+    inner->RejectedCallback(aCx, aValue, aRv);
     MOZ_ASSERT(!mInner);
   }
 
@@ -687,6 +690,10 @@ already_AddRefed<PromiseWorkerProxy> PromiseWorkerProxy::Create(
   RefPtr<PromiseWorkerProxy> proxy =
       new PromiseWorkerProxy(aWorkerPromise, aCb);
 
+  // Maintain a reference so that we have a valid object to clean up when
+  // removing the feature.
+  proxy.get()->AddRef();
+
   // We do this to make sure the worker thread won't shut down before the
   // promise is resolved/rejected on the worker thread.
   RefPtr<StrongWorkerRef> workerRef = StrongWorkerRef::Create(
@@ -694,16 +701,13 @@ already_AddRefed<PromiseWorkerProxy> PromiseWorkerProxy::Create(
 
   if (NS_WARN_IF(!workerRef)) {
     // Probably the worker is terminating. We cannot complete the operation
-    // and we have to release all the resources.
-    proxy->CleanProperties();
+    // and we have to release all the resources.  CleanUp releases the extra
+    // ref, too
+    proxy->CleanUp();
     return nullptr;
   }
 
   proxy->mWorkerRef = new ThreadSafeWorkerRef(workerRef);
-
-  // Maintain a reference so that we have a valid object to clean up when
-  // removing the feature.
-  proxy.get()->AddRef();
 
   return proxy.forget();
 }
@@ -722,19 +726,6 @@ PromiseWorkerProxy::~PromiseWorkerProxy() {
   MOZ_ASSERT(mCleanedUp);
   MOZ_ASSERT(!mWorkerPromise);
   MOZ_ASSERT(!mWorkerRef);
-}
-
-void PromiseWorkerProxy::CleanProperties() {
-  MOZ_ASSERT(IsCurrentThreadRunningWorker());
-
-  // Ok to do this unprotected from Create().
-  // CleanUp() holds the lock before calling this.
-  mCleanedUp = true;
-  mWorkerPromise = nullptr;
-  mWorkerRef = nullptr;
-
-  // Clear the StructuredCloneHolderBase class.
-  Clear();
 }
 
 WorkerPrivate* PromiseWorkerProxy::GetWorkerPrivate() const {
@@ -782,12 +773,14 @@ void PromiseWorkerProxy::RunCallback(JSContext* aCx,
 }
 
 void PromiseWorkerProxy::ResolvedCallback(JSContext* aCx,
-                                          JS::Handle<JS::Value> aValue) {
+                                          JS::Handle<JS::Value> aValue,
+                                          ErrorResult& aRv) {
   RunCallback(aCx, aValue, &Promise::MaybeResolve);
 }
 
 void PromiseWorkerProxy::RejectedCallback(JSContext* aCx,
-                                          JS::Handle<JS::Value> aValue) {
+                                          JS::Handle<JS::Value> aValue,
+                                          ErrorResult& aRv) {
   RunCallback(aCx, aValue, &Promise::MaybeReject);
 }
 
@@ -800,13 +793,20 @@ void PromiseWorkerProxy::CleanUp() {
       return;
     }
 
-    MOZ_ASSERT(mWorkerRef);
-    mWorkerRef->Private()->AssertIsOnWorkerThread();
+    // We can be called if we failed to get a WorkerRef
+    if (mWorkerRef) {
+      mWorkerRef->Private()->AssertIsOnWorkerThread();
+    }
 
     // Release the Promise and remove the PromiseWorkerProxy from the holders of
     // the worker thread since the Promise has been resolved/rejected or the
     // worker thread has been cancelled.
-    CleanProperties();
+    mCleanedUp = true;
+    mWorkerPromise = nullptr;
+    mWorkerRef = nullptr;
+
+    // Clear the StructuredCloneHolderBase class.
+    Clear();
   }
   Release();
 }

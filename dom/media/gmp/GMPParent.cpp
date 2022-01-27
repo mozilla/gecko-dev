@@ -14,6 +14,7 @@
 #include "mozIGeckoMediaPluginService.h"
 #include "mozilla/dom/KeySystemNames.h"
 #include "mozilla/dom/WidevineCDMManifestBinding.h"
+#include "mozilla/FOGIPC.h"
 #include "mozilla/ipc/CrashReporterHost.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
@@ -31,6 +32,7 @@
 #include "nsIWritablePropertyBag2.h"
 #include "nsPrintfCString.h"
 #include "nsThreadUtils.h"
+#include "ProfilerParent.h"
 #include "runnable_utils.h"
 #ifdef XP_WIN
 #  include "WMFDecoderModule.h"
@@ -247,6 +249,38 @@ void GMPParent::Crash() {
   }
 }
 
+class NotifyGMPProcessLoadedTask : public Runnable {
+ public:
+  explicit NotifyGMPProcessLoadedTask(const ::base::ProcessId aProcessId,
+                                      GMPParent* aGMPParent)
+      : Runnable("NotifyGMPProcessLoadedTask"),
+        mProcessId(aProcessId),
+        mGMPParent(aGMPParent) {}
+
+  NS_IMETHOD Run() override {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsCOMPtr<nsISerialEventTarget> gmpEventTarget =
+        mGMPParent->GMPEventTarget();
+    if (!gmpEventTarget) {
+      return NS_ERROR_FAILURE;
+    }
+
+    ipc::Endpoint<PProfilerChild> profilerParent(
+        ProfilerParent::CreateForProcess(mProcessId));
+
+    gmpEventTarget->Dispatch(
+        NewRunnableMethod<ipc::Endpoint<mozilla::PProfilerChild>&&>(
+            "GMPParent::SendInitProfiler", mGMPParent,
+            &GMPParent::SendInitProfiler, std::move(profilerParent)));
+
+    return NS_OK;
+  }
+
+  ::base::ProcessId mProcessId;
+  const RefPtr<GMPParent> mGMPParent;
+};
+
 nsresult GMPParent::LoadProcess() {
   MOZ_ASSERT(mDirectory, "Plugin directory cannot be NULL!");
   MOZ_ASSERT(GMPEventTarget()->IsOnCurrentThread());
@@ -317,8 +351,10 @@ nsresult GMPParent::LoadProcess() {
     }
 #endif
 
+    NS_DispatchToMainThread(new NotifyGMPProcessLoadedTask(OtherPid(), this));
+
     // Intr call to block initialization on plugin load.
-    if (!CallStartPlugin(mAdapter)) {
+    if (!SendStartPlugin(mAdapter)) {
       GMP_PARENT_LOG_DEBUG("%s: Failed to send start to child process",
                            __FUNCTION__);
       return NS_ERROR_FAILURE;
@@ -343,6 +379,12 @@ mozilla::ipc::IPCResult GMPParent::RecvPGMPContentChildDestroyed() {
   if (!IsUsed()) {
     CloseIfUnused();
   }
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult GMPParent::RecvFOGData(ByteBuf&& aBuf) {
+  GMP_PARENT_LOG_DEBUG("GMPParent RecvFOGData");
+  glean::FOGData(std::move(aBuf));
   return IPC_OK();
 }
 
@@ -659,8 +701,11 @@ bool GMPParent::DeallocPGMPStorageParent(PGMPStorageParent* aActor) {
 mozilla::ipc::IPCResult GMPParent::RecvPGMPStorageConstructor(
     PGMPStorageParent* aActor) {
   GMPStorageParent* p = (GMPStorageParent*)aActor;
-  if (NS_WARN_IF(NS_FAILED(p->Init()))) {
-    return IPC_FAIL_NO_REASON(this);
+  if (NS_FAILED(p->Init())) {
+    // TODO: Verify if this is really a good reason to IPC_FAIL.
+    // There might be shutdown edge cases here.
+    return IPC_FAIL(this,
+                    "GMPParent::RecvPGMPStorageConstructor: p->Init() failed.");
   }
   return IPC_OK();
 }

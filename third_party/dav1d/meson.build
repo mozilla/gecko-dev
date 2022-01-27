@@ -1,4 +1,4 @@
-# Copyright © 2018-2021, VideoLAN and dav1d authors
+# Copyright © 2018-2022, VideoLAN and dav1d authors
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ project('dav1d', ['c'],
                       'b_ndebug=if-release'],
     meson_version: '>= 0.49.0')
 
-dav1d_soname_version       = '6.0.0'
+dav1d_soname_version       = '6.3.0'
 dav1d_api_version_array    = dav1d_soname_version.split('.')
 dav1d_api_version_major    = dav1d_api_version_array[0]
 dav1d_api_version_minor    = dav1d_api_version_array[1]
@@ -128,7 +128,7 @@ if host_machine.system() == 'windows'
     rc_data.set('API_VERSION_MAJOR', dav1d_api_version_major)
     rc_data.set('API_VERSION_MINOR', dav1d_api_version_minor)
     rc_data.set('API_VERSION_REVISION', dav1d_api_version_revision)
-    rc_data.set('COPYRIGHT_YEARS', '2021')
+    rc_data.set('COPYRIGHT_YEARS', '2022')
 else
     thread_dependency = dependency('threads')
     thread_compat_dep = []
@@ -203,6 +203,11 @@ if cc.check_header('io.h')
     cdata.set('HAVE_IO_H', 1)
 endif
 
+if cc.check_header('pthread_np.h')
+    cdata.set('HAVE_PTHREAD_NP_H', 1)
+    test_args += '-DHAVE_PTHREAD_NP_H'
+endif
+
 
 # Function checks
 
@@ -232,6 +237,16 @@ if (host_machine.cpu_family() == 'aarch64' or
     if cc.has_function('elf_aux_info', prefix : '#include <sys/auxv.h>', args : test_args)
         cdata.set('HAVE_ELF_AUX_INFO', 1)
     endif
+endif
+
+pthread_np_prefix = '''
+#include <pthread.h>
+#ifdef HAVE_PTHREAD_NP_H
+#include <pthread_np.h>
+#endif
+'''
+if cc.has_function('pthread_getaffinity_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency)
+    cdata.set('HAVE_PTHREAD_GETAFFINITY_NP', 1)
 endif
 
 # Compiler flag tests
@@ -410,14 +425,9 @@ if is_asm_enabled and host_machine.cpu_family().startswith('x86')
 
         out = nasm_r.stdout().strip().split()
         if out[1].to_lower() == 'version'
-            if out[2].version_compare('<2.13.02')
-                error('nasm 2.13.02 or later is required, found nasm @0@'.format(out[2]))
-            elif out[2].version_compare('<2.14') and get_option('enable_avx512')
-                error('nasm 2.14 or later is required for AVX-512 asm.\n' +
-                       'AVX-512 asm can be disabled with \'-Denable_avx512=false\'')
+            if out[2].version_compare('<2.14')
+                error('nasm 2.14 or later is required, found nasm @0@'.format(out[2]))
             endif
-            cdata.set10('HAVE_AVX512ICL', get_option('enable_avx512'))
-            cdata_asm.set10('HAVE_AVX512ICL', get_option('enable_avx512'))
         else
             error('unexpected nasm version string: @0@'.format(nasm_r.stdout()))
         endif

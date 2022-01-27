@@ -29,6 +29,7 @@
 #include "RTCDtlsTransport.h"
 #include "RTCRtpReceiver.h"
 #include "RTCDTMFSender.h"
+#include "libwebrtcglue/WebrtcCallWrapper.h"
 #include "libwebrtcglue/WebrtcGmpVideoCodec.h"
 
 namespace mozilla {
@@ -144,7 +145,7 @@ TransceiverImpl::TransceiverImpl(
     const std::string& aPCHandle, MediaTransportHandler* aTransportHandler,
     JsepTransceiver* aJsepTransceiver, nsISerialEventTarget* aMainThread,
     nsISerialEventTarget* aStsThread, dom::MediaStreamTrack* aSendTrack,
-    WebrtcCallWrapper* aCallWrapper)
+    WebrtcCallWrapper* aCallWrapper, RTCStatsIdGenerator* aIdGenerator)
     : mWindow(aWindow),
       mPCHandle(aPCHandle),
       mTransportHandler(aTransportHandler),
@@ -176,9 +177,10 @@ TransceiverImpl::TransceiverImpl(
     return;
   }
 
-  mReceiver = new RTCRtpReceiver(
-      aWindow, aPrivacyNeeded, aPCHandle, aTransportHandler, aJsepTransceiver,
-      aMainThread, mCallWrapper->mCallThread, aStsThread, mConduit, this);
+  mReceiver = new RTCRtpReceiver(aWindow, aPrivacyNeeded, aPCHandle,
+                                 aTransportHandler, aJsepTransceiver,
+                                 aMainThread, mCallWrapper->mCallThread,
+                                 aStsThread, mConduit, aIdGenerator, this);
 
   if (!IsVideo()) {
     mDtmf = new RTCDTMFSender(aWindow, this);
@@ -1042,14 +1044,9 @@ void TransceiverImpl::Stop() {
   }
 
   if (mCallWrapper) {
-    InvokeAsync(mCallWrapper->mCallThread, __func__,
-                [conduit = std::move(mConduit)]() mutable {
-                  if (conduit) {
-                    conduit->Shutdown();
-                  }
-                  return GenericPromise::CreateAndResolve(
-                      true, "TransceiverImpl conduit stopped");
-                })
+    auto conduit = std::move(mConduit);
+    (conduit ? conduit->Shutdown()
+             : GenericPromise::CreateAndResolve(true, __func__))
         ->Then(mMainThread, __func__,
                [pipeline = mTransmitPipeline, receiver = mReceiver]() mutable {
                  // Shutdown pipelines when conduits are guaranteed shut down,

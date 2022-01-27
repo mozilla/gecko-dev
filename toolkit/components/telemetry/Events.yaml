@@ -186,7 +186,7 @@ addonsManager:
       These events are recorded during the install and update flow for extensions and themes,
       the value of the event is an install_id shared by the events related to the same install
       or update flow.
-    objects: ["extension", "theme", "locale", "dictionary", "other", "unknown"]
+    objects: ["extension", "theme", "locale", "dictionary", "sitepermission", "other", "unknown"]
     methods: ["install", "update"]
     extra_keys:
       addon_id: A string which identify the extension (when available)
@@ -228,7 +228,7 @@ addonsManager:
       These events are recorded at the end of the install flow, but only when
       the source that originally triggered the add-on installation is "amo" or
       "disco". The value of an event is the SHA256 hash of the addon_id.
-    objects: ["extension", "theme", "locale", "dictionary", "other", "unknown"]
+    objects: ["extension", "theme", "locale", "dictionary", "sitepermission", "other", "unknown"]
     extra_keys:
       addon_id: >
         A string which identifies the add-on. This value might be trimmed.
@@ -259,7 +259,7 @@ addonsManager:
       This events are recorded when an installed add-ons is being disable/enabled/uninstalled,
       the value of the event is the addon_id (which also allow to correlate multiple events
       related to each other).
-    objects: ["extension", "theme", "locale", "dictionary", "other"]
+    objects: ["extension", "theme", "locale", "dictionary", "sitepermission", "other"]
     methods: ["disable", "enable", "sideload_prompt", "uninstall"]
     extra_keys:
       source: >
@@ -2551,6 +2551,32 @@ pictureinpicture:
     expiry_version: "never"
     release_channel_collection: opt-out
 
+pictureinpicture.settings:
+  enable:
+    objects: ["player"]
+    description: Recorded when Picture-in-Picture is enabled.
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes:
+      - main
+    bug_numbers:
+      - 1639774
+    expiry_version: "never"
+  disable:
+    objects: ["player"]
+    description: Recorded when Picture-in-Picture is disabled.
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes:
+      - main
+    bug_numbers:
+      - 1639774
+    expiry_version: "never"
+
 doh:
   evaluate_v2:
     methods: ["evaluate_v2"]
@@ -2938,6 +2964,7 @@ installation:
     objects:
       - full # if the full installer was run directly
       - stub # if the stub installer was used
+      - msix # if the installation was done through an MSIX package
     release_channel_collection: opt-out
     record_in_processes: ["main"]
     products: ["firefox"]
@@ -2947,11 +2974,13 @@ installation:
       build_id: The build ID of the application installed by the installer (not necessarily the current version)
       admin_user: Whether the installer is running from an elevated admin user
       install_existed: Whether there was already an install in this location
+      other_inst: Whether there was already any non-MSIX install on this system
+      other_msix_inst: Whether there was already any MSIX install on this system
       profdir_existed: Whether the top-level profile directory existed
       silent: '(optional, present if object is "full") Whether this was a silent install'
       from_msi: '(optional, present if object is "full") Whether this was an MSI install'
       default_path: '(optional, present if object is "full") Whether the default path was used'
-    bug_numbers: [1660198, 1725295]
+    bug_numbers: [1660198, 1725295, 1743465]
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
       - rtestard@mozilla.com
@@ -3003,25 +3032,24 @@ contextservices.quicksuggest:
       - adw@mozilla.com
     expiry_version: never
   opt_in_dialog:
-    objects: ["accept", "dismissed_escape_key", "dismissed_other", "learn_more", "not_now_link", "settings"]
+    objects: ["accept_2", "reject_2", "learn_more_2", "close_1", "not_now_2", "dismiss_1", "dismiss_2"]
     release_channel_collection: opt-out
     products:
       - "firefox"
     record_in_processes: ["main"]
     description: >
       This is recorded when the user responds to the Firefox Suggest opt-in
-      onboarding dialog. 'accept' is recorded when the user accepts the dialog
-      and opts in, 'settings' is recorded when the user clicks in the
-      "Customize" button (the user remains opted out in this case), 'learn_more'
-      is recorded when the user clicks "Learn more" (the user remains opted
-      out), 'not_now_link' is recorded when the user clicks "Not now" (the user
-      remains opted out), 'dismissed_escape_key' is recorded when the user
-      dismisses the dialog by pressing the Escape key (the user remains opted
-      out), 'dismissed_other' is recorded when the dialog is dismissed in some
-      other unknown way, for example when the dialog is replaced with another
-      higher priority dialog like the one shown when quitting the app (the user
-      remains opted out)
-    bug_numbers: [1723860]
+      onboarding dialog. 'accept_2' is recorded when the user accepts the dialog
+      and opts in, 'reject_2' is recorded when the user rejects the dialog and
+      opts out, 'learn_more_2' is recorded when the user clicks "Learn more"
+      (the user remains opted out), 'close_1' is recorded when the user clicks
+      close button on introduction section (the user remains opted out),
+      'not_now_2' is recorded when the user clicks "Not now" link on main section
+      (the user remains opted out), 'dismiss_1' recorded when the user dismisses
+      the dialog on introduction section (the user remains opted out),
+      'dismiss_2' recorded when the user dismisses the dialog on main (the user
+      remains opted out),
+    bug_numbers: [1723860, 1745026]
     notification_emails:
       - fx-search@mozilla.com
       - adw@mozilla.com
@@ -3065,3 +3093,40 @@ memory_watcher:
     bug_numbers: [1715858]
     notification_emails:
       - tkikuchi@mozilla.com
+
+service_request:
+  bypass:
+    description: >
+      This event is recorded by a small set of services when a proxy failure
+      causes a service to re-request with a proxy bypass.  It records some
+      basic information such as the type of proxy configuration, and the source
+      of the proxy configuration.  The value of the event is the name of the
+      service that triggers the event (e.g. telemetry, remote-settings).
+    methods: ["bypass"]
+    objects: ["proxy_info"]
+    release_channel_collection: opt-out
+    expiry_version: never
+    record_in_processes: ["main"]
+    products: ["firefox"]
+    bug_numbers: [1732792, 1732793, 1733481, 1733994, 1732388]
+    notification_emails:
+      - scaraveo@mozilla.com
+    extra_keys:
+      source: the source of the proxy configuration.  e.g. policy, prefs or extension_id
+      type: the type for the proxy configuration source.  e.g. api or string version of nsIProtocolProxyService.proxyConfigType
+
+privacy_segmentation:
+  status:
+    description: >
+      Records value changes of the browser.privacySegmentation.enabled pref.
+      Does not record an event for the initial pref state at startup.
+    objects: ["pref"]
+    methods: ["enable", "disable"]
+    release_channel_collection: opt-out
+    record_in_processes: ["main"]
+    bug_numbers: [1748877]
+    notification_emails:
+      - pbz@mozilla.com
+      - rtestard@mozilla.com
+    expiry_version: "106"
+    products: ["firefox"]

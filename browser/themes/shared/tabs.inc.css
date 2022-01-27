@@ -20,7 +20,7 @@
   --tabpanel-background-color: #F9F9FB;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (-moz-content-prefers-color-scheme: dark) {
   :root {
     /* --tabpanel-background-color matches $in-content-page-background in newtab
        (browser/components/newtab/content-src/styles/_variables.scss) */
@@ -468,6 +468,10 @@
   display: none;
 }
 
+#tabbrowser-tabs:not([secondarytext-unsupported]) .tab-label-container {
+  height: 2.7em;
+}
+
 .tab-secondary-label {
   font-size: .75em;
   opacity: .8;
@@ -542,7 +546,7 @@
 /* Selected tab */
 
 #tabbrowser-tabs:not([noshadowfortests]) .tab-background:is([selected], [multiselected]) {
-  box-shadow: 0 0 4px rgba(0,0,0,.6);
+  box-shadow: 0 0 4px rgba(0,0,0,.4);
 }
 
 .tab-background:is([selected], [multiselected]) {
@@ -718,7 +722,11 @@
 }
 
 .all-tabs-item:hover {
-  background-color: var(--button-hover-bgcolor);
+  background-color: var(--panel-item-hover-bgcolor);
+}
+
+.all-tabs-item:hover:active {
+  background-color: var(--panel-item-active-bgcolor);
 }
 
 .all-tabs-item:hover > .all-tabs-button,

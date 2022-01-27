@@ -829,7 +829,6 @@
     separator: String
   result_type: Object
   possibly_calls: true
-  congruent_to: if_operands_equal
   # Although this instruction returns a new array, we don't have to mark
   # it as store instruction, see also MNewArray.
   alias_set: none
@@ -2727,4 +2726,19 @@
   gen_boilerplate: false
 
 - name: IonToWasmCall
+  gen_boilerplate: false
+
+- name: WasmExceptionDataPointer
+  gen_boilerplate: false
+
+- name: WasmLoadExceptionDataValue
+  gen_boilerplate: false
+
+- name: WasmStoreExceptionDataValue
+  gen_boilerplate: false
+
+- name: WasmExceptionRefsPointer
+  gen_boilerplate: false
+
+- name: WasmLoadExceptionRefsValue
   gen_boilerplate: false

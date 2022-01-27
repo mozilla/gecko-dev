@@ -41,6 +41,9 @@ class ServiceWorkerRegistrationInfo;
 
 class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
                                        public RemoteWorkerObserver {
+  using PromiseExtensionWorkerHasListener =
+      ServiceWorkerPrivate::PromiseExtensionWorkerHasListener;
+
  public:
   NS_INLINE_DECL_REFCOUNTING(ServiceWorkerPrivateImpl, override);
 
@@ -101,6 +104,10 @@ class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
                           const nsAString& aClientId,
                           const nsAString& aResultingClientId) override;
 
+  RefPtr<PromiseExtensionWorkerHasListener> WakeForExtensionAPIEvent(
+      const nsAString& aExtensionAPINamespace,
+      const nsAString& aExtensionAPIEventName) override;
+
   nsresult SpawnWorkerIfNeeded() override;
 
   void TerminateWorker() override;
@@ -133,6 +140,12 @@ class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
   nsresult SendPushEventInternal(
       RefPtr<ServiceWorkerRegistrationInfo>&& aRegistration,
       ServiceWorkerPushEventOpArgs&& aArgs);
+
+  // Setup the navigation preload by the intercepted channel and the
+  // RegistrationInfo.
+  RefPtr<FetchServiceResponsePromise> SetupNavigationPreload(
+      nsCOMPtr<nsIInterceptedChannel>& aChannel,
+      const RefPtr<ServiceWorkerRegistrationInfo>& aRegistration);
 
   nsresult SendFetchEventInternal(
       RefPtr<ServiceWorkerRegistrationInfo>&& aRegistration,

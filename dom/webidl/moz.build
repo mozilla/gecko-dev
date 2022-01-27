@@ -388,6 +388,7 @@ GENERATED_WEBIDL_FILES = [
 
 PREPROCESSED_WEBIDL_FILES = [
     "Animation.webidl",
+    "FileSystemFileHandle.webidl",
     "Node.webidl",
     "Window.webidl",
 ]
@@ -403,6 +404,7 @@ WEBIDL_FILES = [
     "Animatable.webidl",
     "AnimationEffect.webidl",
     "AnimationEvent.webidl",
+    "AnimationFrameProvider.webidl",
     "AnimationTimeline.webidl",
     "AnonymousContent.webidl",
     "AppInfo.webidl",
@@ -477,7 +479,8 @@ WEBIDL_FILES = [
     "CSSImportRule.webidl",
     "CSSKeyframeRule.webidl",
     "CSSKeyframesRule.webidl",
-    "CSSLayerRule.webidl",
+    "CSSLayerBlockRule.webidl",
+    "CSSLayerStatementRule.webidl",
     "CSSMediaRule.webidl",
     "CSSMozDocumentRule.webidl",
     "CSSNamespaceRule.webidl",
@@ -543,9 +546,13 @@ WEBIDL_FILES = [
     "FileReaderSync.webidl",
     "FileSystem.webidl",
     "FileSystemDirectoryEntry.webidl",
+    "FileSystemDirectoryHandle.webidl",
+    "FileSystemDirectoryIterator.webidl",
     "FileSystemDirectoryReader.webidl",
     "FileSystemEntry.webidl",
     "FileSystemFileEntry.webidl",
+    "FileSystemHandle.webidl",
+    "FileSystemSyncAccessHandle.webidl",
     "FinalizationRegistry.webidl",
     "FocusEvent.webidl",
     "FontFace.webidl",
@@ -931,6 +938,7 @@ WEBIDL_FILES = [
     "TCPSocket.webidl",
     "TCPSocketErrorEvent.webidl",
     "TCPSocketEvent.webidl",
+    "TestUtils.webidl",
     "Text.webidl",
     "TextClause.webidl",
     "TextDecoder.webidl",
@@ -1002,11 +1010,19 @@ WEBIDL_FILES = [
 
 if CONFIG["MOZ_DOM_STREAMS"]:
     WEBIDL_FILES += [
+        "FileSystemWritableFileStream.webidl",
         "QueuingStrategy.webidl",
+        "ReadableByteStreamController.webidl",
         "ReadableStream.webidl",
+        "ReadableStreamBYOBReader.webidl",
+        "ReadableStreamBYOBRequest.webidl",
         "ReadableStreamDefaultController.webidl",
         "ReadableStreamDefaultReader.webidl",
+        "UnderlyingSink.webidl",
         "UnderlyingSource.webidl",
+        "WritableStream.webidl",
+        "WritableStreamDefaultController.webidl",
+        "WritableStreamDefaultWriter.webidl",
     ]
 
 if CONFIG["MOZ_WEBRTC"]:

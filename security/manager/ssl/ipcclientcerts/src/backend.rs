@@ -305,7 +305,7 @@ unsafe extern "C" fn find_objects_callback(
     match typ {
         1 => match Cert::new(data, slot_type) {
             Ok(cert) => find_objects_context.certs.push(cert),
-            Err(_) => {},
+            Err(_) => {}
         },
         2 => match Key::new(
             Some(data),
@@ -315,7 +315,7 @@ unsafe extern "C" fn find_objects_callback(
             find_objects_context.sign,
         ) {
             Ok(key) => find_objects_context.keys.push(key),
-            Err(_) => {},
+            Err(_) => {}
         },
         3 => match Key::new(
             None,
@@ -325,9 +325,9 @@ unsafe extern "C" fn find_objects_callback(
             find_objects_context.sign,
         ) {
             Ok(key) => find_objects_context.keys.push(key),
-            Err(_) => {},
+            Err(_) => {}
         },
-        _ => {},
+        _ => {}
     }
 }
 

@@ -39,7 +39,6 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/GPUProcessManager.h"
-#include "mozilla/Hal.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/layers/AsyncDragMetrics.h"
@@ -216,7 +215,6 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
       mChildToParentConversionMatrix{},
       mRect(0, 0, 0, 0),
       mDimensions(0, 0),
-      mOrientation(0),
       mDPI(0),
       mRounding(0),
       mDefaultScale(0),
@@ -1093,21 +1091,16 @@ void BrowserParent::UpdateDimensions(const nsIntRect& rect,
     return;
   }
 
-  hal::ScreenConfiguration config;
-  hal::GetCurrentScreenConfiguration(&config);
-  hal::ScreenOrientation orientation = config.orientation();
   LayoutDeviceIntPoint clientOffset = GetClientOffset();
   LayoutDeviceIntPoint chromeOffset = !GetBrowserBridgeParent()
                                           ? -GetChildProcessOffset()
                                           : LayoutDeviceIntPoint();
 
-  if (!mUpdatedDimensions || mOrientation != orientation ||
-      mDimensions != size || !mRect.IsEqualEdges(rect) ||
+  if (!mUpdatedDimensions || mDimensions != size || !mRect.IsEqualEdges(rect) ||
       clientOffset != mClientOffset || chromeOffset != mChromeOffset) {
     mUpdatedDimensions = true;
     mRect = rect;
     mDimensions = size;
-    mOrientation = orientation;
     mClientOffset = clientOffset;
     mChromeOffset = chromeOffset;
 
@@ -1128,8 +1121,7 @@ DimensionInfo BrowserParent::GetDimensionInfo() {
 
   CSSRect unscaledRect = devicePixelRect / widgetScale;
   CSSSize unscaledSize = devicePixelSize / widgetScale;
-  DimensionInfo di(unscaledRect, unscaledSize, mOrientation, mClientOffset,
-                   mChromeOffset);
+  DimensionInfo di(unscaledRect, unscaledSize, mClientOffset, mChromeOffset);
   return di;
 }
 
@@ -2658,8 +2650,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvReplyKeyEvent(
 
   // Here we convert the WidgetEvent that we received to an Event
   // to be able to dispatch it to the <browser> element as the target element.
-  Document* doc = mFrameElement->OwnerDoc();
-  nsPresContext* presContext = doc->GetPresContext();
+  RefPtr<nsPresContext> presContext =
+      mFrameElement->OwnerDoc()->GetPresContext();
   NS_ENSURE_TRUE(presContext, IPC_OK());
 
   AutoHandlingUserInputStatePusher userInpStatePusher(localEvent.IsTrusted(),
@@ -2680,7 +2672,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvReplyKeyEvent(
     }
   }
 
-  EventDispatcher::Dispatch(mFrameElement, presContext, &localEvent, nullptr,
+  RefPtr<Element> frameElement = mFrameElement;
+  EventDispatcher::Dispatch(frameElement, presContext, &localEvent, nullptr,
                             &status);
 
   if (!localEvent.DefaultPrevented() &&
@@ -2718,10 +2711,11 @@ mozilla::ipc::IPCResult BrowserParent::RecvAccessKeyNotHandled(
   NS_ENSURE_TRUE(presShell, IPC_OK());
 
   if (presShell->CanDispatchEvent()) {
-    nsPresContext* presContext = presShell->GetPresContext();
+    RefPtr<nsPresContext> presContext = presShell->GetPresContext();
     NS_ENSURE_TRUE(presContext, IPC_OK());
 
-    EventDispatcher::Dispatch(mFrameElement, presContext, &localEvent);
+    RefPtr<Element> frameElement = mFrameElement;
+    EventDispatcher::Dispatch(frameElement, presContext, &localEvent);
   }
 
   return IPC_OK();

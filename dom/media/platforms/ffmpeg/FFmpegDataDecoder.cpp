@@ -17,7 +17,7 @@
 
 namespace mozilla {
 
-StaticMutex FFmpegDataDecoder<LIBAV_VER>::sMonitor;
+StaticMutex FFmpegDataDecoder<LIBAV_VER>::sMutex;
 
 FFmpegDataDecoder<LIBAV_VER>::FFmpegDataDecoder(FFmpegLibWrapper* aLib,
                                                 AVCodecID aCodecID)
@@ -69,18 +69,23 @@ MediaResult FFmpegDataDecoder<LIBAV_VER>::AllocateExtraData() {
   return NS_OK;
 }
 
+// Note: This doesn't run on the ffmpeg TaskQueue, it runs on some other media
+// taskqueue
 MediaResult FFmpegDataDecoder<LIBAV_VER>::InitDecoder() {
-  FFMPEG_LOG("Initialising FFmpeg decoder.");
+  FFMPEG_LOG("Initialising FFmpeg decoder");
 
   AVCodec* codec = FindAVCodec(mLib, mCodecID);
   if (!codec) {
+    FFMPEG_LOG("  unable to find codec");
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                       RESULT_DETAIL("Couldn't find ffmpeg decoder"));
+                       RESULT_DETAIL("unable to find codec"));
   }
+  FFMPEG_LOG("  codec %s : %s", codec->name, codec->long_name);
 
-  StaticMutexAutoLock mon(sMonitor);
+  StaticMutexAutoLock mon(sMutex);
 
   if (!(mCodecContext = mLib->avcodec_alloc_context3(codec))) {
+    FFMPEG_LOG("  couldn't init ffmpeg context");
     return MediaResult(NS_ERROR_OUT_OF_MEMORY,
                        RESULT_DETAIL("Couldn't init ffmpeg context"));
   }
@@ -97,6 +102,7 @@ MediaResult FFmpegDataDecoder<LIBAV_VER>::InitDecoder() {
   InitCodecContext();
   MediaResult ret = AllocateExtraData();
   if (NS_FAILED(ret)) {
+    FFMPEG_LOG("  failed to allocate extra data");
     mLib->av_freep(&mCodecContext);
     return ret;
   }
@@ -109,11 +115,12 @@ MediaResult FFmpegDataDecoder<LIBAV_VER>::InitDecoder() {
 
   if (mLib->avcodec_open2(mCodecContext, codec, nullptr) < 0) {
     mLib->av_freep(&mCodecContext);
+    FFMPEG_LOG("  Couldn't open avcodec");
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                       RESULT_DETAIL("Couldn't initialise ffmpeg decoder"));
+                       RESULT_DETAIL("Couldn't open avcodec"));
   }
 
-  FFMPEG_LOG("FFmpeg init successful.");
+  FFMPEG_LOG("  FFmpeg decoder init successful.");
   return NS_OK;
 }
 
@@ -133,6 +140,7 @@ RefPtr<MediaDataDecoder::DecodePromise> FFmpegDataDecoder<LIBAV_VER>::Decode(
 
 RefPtr<MediaDataDecoder::DecodePromise>
 FFmpegDataDecoder<LIBAV_VER>::ProcessDecode(MediaRawData* aSample) {
+  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
   bool gotFrame = false;
   DecodedData results;
   MediaResult rv = DoDecode(aSample, &gotFrame, results);
@@ -145,6 +153,8 @@ FFmpegDataDecoder<LIBAV_VER>::ProcessDecode(MediaRawData* aSample) {
 MediaResult FFmpegDataDecoder<LIBAV_VER>::DoDecode(
     MediaRawData* aSample, bool* aGotFrame,
     MediaDataDecoder::DecodedData& aResults) {
+  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+
   uint8_t* inputData = const_cast<uint8_t*>(aSample->Data());
   size_t inputSize = aSample->Size();
 
@@ -194,6 +204,7 @@ RefPtr<MediaDataDecoder::DecodePromise> FFmpegDataDecoder<LIBAV_VER>::Drain() {
 
 RefPtr<MediaDataDecoder::DecodePromise>
 FFmpegDataDecoder<LIBAV_VER>::ProcessDrain() {
+  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
   RefPtr<MediaRawData> empty(new MediaRawData());
   empty->mTimecode = mLastInputDts;
   bool gotFrame = false;
@@ -220,7 +231,8 @@ FFmpegDataDecoder<LIBAV_VER>::ProcessFlush() {
 }
 
 void FFmpegDataDecoder<LIBAV_VER>::ProcessShutdown() {
-  StaticMutexAutoLock mon(sMonitor);
+  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+  StaticMutexAutoLock mon(sMutex);
 
   if (mCodecContext) {
     if (mCodecContext->extradata) {
@@ -263,5 +275,19 @@ AVFrame* FFmpegDataDecoder<LIBAV_VER>::PrepareFrame() {
     FFmpegLibWrapper* aLib, AVCodecID aCodec) {
   return aLib->avcodec_find_decoder(aCodec);
 }
+
+#ifdef MOZ_WAYLAND
+/* static */ AVCodec* FFmpegDataDecoder<LIBAV_VER>::FindHardwareAVCodec(
+    FFmpegLibWrapper* aLib, AVCodecID aCodec) {
+  void* opaque = nullptr;
+  while (AVCodec* codec = aLib->av_codec_iterate(&opaque)) {
+    if (codec->id == aCodec && aLib->av_codec_is_decoder(codec) &&
+        aLib->avcodec_get_hw_config(codec, 0)) {
+      return codec;
+    }
+  }
+  return nullptr;
+}
+#endif
 
 }  // namespace mozilla

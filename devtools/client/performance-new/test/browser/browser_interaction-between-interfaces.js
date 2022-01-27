@@ -304,6 +304,8 @@ add_task(async function test_change_in_about_profiling() {
           Native Stacks
           CPU Utilization
           Audio Callback Tracing
+          IPC Messages
+          Process CPU Utilization
         `
       );
     }

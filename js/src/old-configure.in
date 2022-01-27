@@ -125,15 +125,10 @@ case "$target" in
             AC_MSG_ERROR([\$(CXX) test failed.  You must have MS VC++ in your path to build.]) )
         AC_LANG_RESTORE
 
-        changequote(,)
-        _MSVC_VER_FILTER='s|.*[^!-~]([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?).*|\1|p'
-        changequote([,])
-
         AC_DEFINE(_CRT_SECURE_NO_WARNINGS)
         AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS)
         AC_DEFINE(_USE_MATH_DEFINES) # Otherwise MSVC's math.h doesn't #define M_PI.
 
-        _CC_SUITE=14
         MSVC_C_RUNTIME_DLL=vcruntime140.dll
         MSVC_CXX_RUNTIME_DLL=msvcp140.dll
 
@@ -142,23 +137,6 @@ case "$target" in
 
         AC_SUBST(MSVC_C_RUNTIME_DLL)
         AC_SUBST(MSVC_CXX_RUNTIME_DLL)
-
-        # Check linker version, except in lld builds
-        case "$LINKER" in
-        *lld*)
-            ;;
-        *)
-            _LD_FULL_VERSION=`"${LINKER}" -v 2>&1 | sed -nre "$_MSVC_VER_FILTER"`
-            _LD_MAJOR_VERSION=`echo ${_LD_FULL_VERSION} | $AWK -F\. '{ print $1 }'`
-            if test "$_LD_MAJOR_VERSION" != "$_CC_SUITE"; then
-                AC_MSG_ERROR([The linker major version, $_LD_FULL_VERSION,  does not match the compiler suite version, $_CC_SUITE.])
-            fi
-            ;;
-        esac
-
-        INCREMENTAL_LINKER=1
-
-        unset _MSVC_VER_FILTER
 
         CFLAGS="$CFLAGS -D_HAS_EXCEPTIONS=0"
         CXXFLAGS="$CXXFLAGS -D_HAS_EXCEPTIONS=0"
@@ -192,14 +170,6 @@ if test -n "$_WIN32_MSVC"; then
     SKIP_PATH_CHECKS=1
     SKIP_COMPILER_CHECKS=1
     SKIP_LIBRARY_CHECKS=1
-
-    # Since we're skipping compiler and library checks, hard-code
-    # some facts here.
-
-    # Common to all MSVC environments:
-
-    AC_DEFINE(HAVE_LOCALECONV)
-    AC_CHECK_FUNCS([_getc_nolock])
 fi
 
 fi # COMPILE_ENVIRONMENT
@@ -207,45 +177,9 @@ fi # COMPILE_ENVIRONMENT
 AC_SUBST(GNU_CC)
 AC_SUBST(GNU_CXX)
 
-# Separate version into components for use in shared object naming etc
-changequote(,)
-MOZJS_MAJOR_VERSION=`echo $MOZILLA_VERSION | sed "s|\(^[0-9]*\)\.[0-9]*.*|\1|"`
-MOZJS_MINOR_VERSION=`echo $MOZILLA_VERSION | sed "s|^[0-9]*\.\([0-9]*\).*|\1|"`
-MOZJS_PATCH_VERSION=`echo $MOZILLA_VERSION | sed "s|^[0-9]*\.[0-9]*[^0-9]*||"`
-IS_ALPHA=`echo $MOZILLA_VERSION | grep '[ab]'`
-
-dnl XXX in a temporary bid to avoid developer anger at renaming files
-dnl XXX before "js" symlinks exist, don't change names.
-dnl
-dnl if test -n "$JS_STANDALONE"; then
-dnl JS_SHELL_NAME=js$MOZJS_MAJOR_VERSION
-dnl JS_CONFIG_NAME=js$MOZJS_MAJOR_VERSION-config
-dnl else
-JS_SHELL_NAME=js
-JS_CONFIG_NAME=js-config
-dnl fi
-
-changequote([,])
-if test -n "$IS_ALPHA"; then
-  changequote(,)
-  MOZJS_ALPHA=`echo $MOZILLA_VERSION | sed "s|^[0-9]*\.[0-9\.]*\([^0-9]\).*|\1|"`
-  changequote([,])
-fi
-AC_DEFINE_UNQUOTED(MOZJS_MAJOR_VERSION,$MOZJS_MAJOR_VERSION)
-AC_DEFINE_UNQUOTED(MOZJS_MINOR_VERSION,$MOZJS_MINOR_VERSION)
-AC_SUBST(JS_SHELL_NAME)
-AC_SUBST(JS_CONFIG_NAME)
-AC_SUBST(MOZJS_MAJOR_VERSION)
-AC_SUBST(MOZJS_MINOR_VERSION)
-AC_SUBST(MOZJS_PATCH_VERSION)
-AC_SUBST(MOZJS_ALPHA)
-
-
 dnl ========================================================
 dnl set the defaults first
 dnl ========================================================
-MOZ_USER_DIR=".mozilla"
-
 MOZ_FIX_LINK_PATHS="-Wl,-rpath-link,${DIST}/bin -Wl,-rpath-link,${prefix}/lib"
 
 dnl Configure platform-specific CPU architecture compiler options.
@@ -461,8 +395,6 @@ case "$target" in
         fi
 
         DSO_LDOPTS='-shared'
-        # mingw doesn't require kernel32, user32, and advapi32 explicitly
-        LIBS="$LIBS -lusp10 -lgdi32 -lwinmm -lwsock32"
         MOZ_FIX_LINK_PATHS=
 
         # Silence problematic clang warnings
@@ -578,7 +510,6 @@ case "$target" in
         # warning insists on complaining about the latter case, which
         # is annoying, and rather noisy.
         CXXFLAGS="$CXXFLAGS -Wno-used-but-marked-unused"
-        LIBS="$LIBS kernel32.lib user32.lib gdi32.lib winmm.lib wsock32.lib advapi32.lib"
         MOZ_DEBUG_LDFLAGS='-DEBUG'
         if test "$HOST_OS_ARCH" != "WINNT"; then
           # %_PDB% is a special signal to emit only the PDB basename. This
@@ -594,7 +525,6 @@ case "$target" in
     dnl See http://support.microsoft.com/kb/143208 to use STL
     AC_DEFINE(NOMINMAX)
     BIN_SUFFIX='.exe'
-    MOZ_USER_DIR="Mozilla"
 
     case "$host_os" in
     cygwin*|msvc*|mks*)
@@ -855,7 +785,6 @@ fi
 
 dnl Checks for library functions.
 dnl ========================================================
-AC_CHECK_FUNCS([getc_unlocked _getc_nolock gmtime_r localtime_r pthread_getname_np pthread_get_name_np])
 
 dnl check for clock_gettime(), the CLOCK_MONOTONIC clock
 AC_CACHE_CHECK(for clock_gettime(CLOCK_MONOTONIC),
@@ -922,52 +851,6 @@ AM_LANGINFO_CODESET
 
 AC_LANG_C
 
-dnl **********************
-dnl *** va_copy checks ***
-dnl **********************
-AC_CACHE_CHECK([for an implementation of va_copy()],
-               ac_cv_va_copy,
-    [AC_TRY_COMPILE([#include <stdarg.h>
-                     #include <stdlib.h>
-        void f (int i, ...) {
-            va_list args1, args2;
-            va_start (args1, i);
-            va_copy (args2, args1);
-            if (va_arg (args2, int) != 42 || va_arg (args1, int) != 42)
-                exit (1);
-            va_end (args1); va_end (args2);
-        }],
-        [f(0, 42); return 0],
-        [ac_cv_va_copy=yes],
-        [ac_cv_va_copy=no]
-    )]
-)
-AC_CACHE_CHECK([whether va_list can be copied by value],
-               ac_cv_va_val_copy,
-    [AC_TRY_COMPILE([#include <stdarg.h>
-                     #include <stdlib.h>
-        void f (int i, ...) {
-            va_list args1, args2;
-            va_start (args1, i);
-            args2 = args1;
-            if (va_arg (args2, int) != 42 || va_arg (args1, int) != 42)
-                exit (1);
-            va_end (args1); va_end (args2);
-        }],
-        [f(0, 42); return 0],
-        [ac_cv_va_val_copy=yes],
-        [ac_cv_va_val_copy=no],
-    )]
-)
-if test "x$ac_cv_va_copy" = "xyes"; then
-    AC_DEFINE(VA_COPY, va_copy)
-    AC_DEFINE(HAVE_VA_COPY)
-fi
-
-if test "x$ac_cv_va_val_copy" = "xno"; then
-   AC_DEFINE(HAVE_VA_LIST_AS_ARRAY)
-fi
-
 dnl ===================================================================
 dnl ========================================================
 dnl Put your C++ language/feature checks below
@@ -1032,15 +915,6 @@ fi
 dnl End of C++ language/feature checks
 AC_LANG_C
 
-dnl ========================================================
-dnl =  Internationalization checks
-dnl ========================================================
-dnl
-dnl Internationalization and Locale support is different
-dnl on various UNIX platforms.  Checks for specific i18n
-dnl features go here.
-
-AC_HAVE_FUNCS(localeconv)
 fi # ! SKIP_COMPILER_CHECKS
 
 TARGET_XPCOM_ABI=
@@ -1055,54 +929,12 @@ if test -n "$SKIP_COMPILER_CHECKS"; then
    dnl Windows has malloc.h
    AC_DEFINE(MALLOC_H, [<malloc.h>])
    AC_DEFINE(HAVE_FORCEINLINE)
-   AC_DEFINE(HAVE_LOCALECONV)
 fi # SKIP_COMPILER_CHECKS
 
 dnl Mozilla specific options
 dnl ========================================================
 dnl The macros used for command line options
 dnl are defined in build/autoconf/altoptions.m4.
-
-dnl ========================================================
-dnl =
-dnl = Check for external package dependencies
-dnl =
-dnl ========================================================
-MOZ_ARG_HEADER(External Packages)
-
-if test -n "$ZLIB_IN_MOZGLUE"; then
-    AC_DEFINE(ZLIB_IN_MOZGLUE)
-fi
-AC_SUBST(ZLIB_IN_MOZGLUE)
-
-dnl ========================================================
-dnl =
-dnl = Application
-dnl =
-dnl ========================================================
-
-MOZ_ARG_HEADER(Application)
-
-dnl ========================================================
-dnl =
-dnl = Components & Features
-dnl =
-dnl ========================================================
-MOZ_ARG_HEADER(Components and Features)
-
-dnl ========================================================
-dnl =
-dnl = Module specific options
-dnl =
-dnl ========================================================
-MOZ_ARG_HEADER(Individual module options)
-
-dnl ========================================================
-dnl =
-dnl = Debugging Options
-dnl =
-dnl ========================================================
-MOZ_ARG_HEADER(Debugging and Optimizations)
 
 dnl ========================================================
 dnl = Enable code optimization. ON by default.
@@ -1199,38 +1031,7 @@ if test -n "$COMPILE_ENVIRONMENT"; then
 MOZ_CONFIG_CLANG_PLUGIN
 fi # COMPILE_ENVIRONMENT
 
-dnl ========================================================
-dnl =
-dnl = Profiling and Instrumenting
-dnl =
-dnl ========================================================
-MOZ_ARG_HEADER(Profiling and Instrumenting)
-
-dnl ========================================================
-dnl = Support for demangling undefined symbols
-dnl ========================================================
-if test -z "$SKIP_LIBRARY_CHECKS"; then
-    AC_LANG_SAVE
-    AC_LANG_CPLUSPLUS
-    AC_CHECK_FUNCS(__cxa_demangle, HAVE_DEMANGLE=1, HAVE_DEMANGLE=)
-    AC_LANG_RESTORE
-fi
-
-dnl ========================================================
-dnl =
-dnl = Misc. Options
-dnl =
-dnl ========================================================
-MOZ_ARG_HEADER(Misc. Options)
-
 if test -z "$SKIP_COMPILER_CHECKS"; then
-
-dnl ========================================================
-dnl =
-dnl = Compiler Options
-dnl =
-dnl ========================================================
-MOZ_ARG_HEADER(Compiler Options)
 
 dnl ========================================================
 dnl Check for gcc -pipe support
@@ -1245,32 +1046,9 @@ else
     AC_MSG_RESULT([no])
 fi
 
-AC_LANG_CPLUSPLUS
-
-dnl ========================================================
-dnl Check for tm_zone, tm_gmtoff in struct tm
-dnl ========================================================
-AC_CACHE_CHECK(for tm_zone tm_gmtoff in struct tm,
-    ac_cv_struct_tm_zone_tm_gmtoff,
-    [AC_TRY_COMPILE([#include <time.h>],
-                    [struct tm tm; tm.tm_zone = 0; tm.tm_gmtoff = 1;],
-                    [ac_cv_struct_tm_zone_tm_gmtoff="yes"],
-                    [ac_cv_struct_tm_zone_tm_gmtoff="no"])])
-if test "$ac_cv_struct_tm_zone_tm_gmtoff" = "yes" ; then
-    AC_DEFINE(HAVE_TM_ZONE_TM_GMTOFF)
-fi
 fi # ! SKIP_COMPILER_CHECKS
 
-AC_LANG_C
-
 MOZ_EXPAND_LIBS
-
-dnl ========================================================
-dnl =
-dnl = Standalone module options
-dnl =
-dnl ========================================================
-MOZ_ARG_HEADER(Standalone module options (Not for building Mozilla))
 
 dnl ========================================================
 dnl =
@@ -1279,13 +1057,8 @@ dnl =
 dnl ========================================================
 
 AC_SUBST_LIST(ASFLAGS)
-AC_SUBST(IMPLIB)
-AC_SUBST(FILTER)
 AC_SUBST_LIST(MOZ_DEBUG_LDFLAGS)
 AC_SUBST_LIST(WARNINGS_CFLAGS)
-AC_SUBST(LIBICONV)
-
-AC_SUBST(INCREMENTAL_LINKER)
 
 AC_SUBST_LIST(MOZ_FIX_LINK_PATHS)
 
@@ -1352,11 +1125,8 @@ AC_SUBST(TARGET_XPCOM_ABI)
 AC_SUBST(DSO_LDOPTS)
 AC_SUBST(BIN_SUFFIX)
 AC_SUBST(USE_N32)
-AC_SUBST(MOZ_LINKER)
 AC_SUBST(WIN32_CONSOLE_EXE_LDFLAGS)
 AC_SUBST(WIN32_GUI_EXE_LDFLAGS)
-
-AC_CHECK_FUNCS(posix_fadvise posix_fallocate)
 
 dnl Set various defines and substitutions
 dnl ========================================================

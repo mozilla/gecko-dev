@@ -105,6 +105,9 @@ const PREFS_FOR_DISPLAY = [
   "webgl.",
   "widget.dmabuf",
   "widget.use-xdg-desktop-portal",
+  "widget.use-xdg-desktop-portal.file-picker",
+  "widget.use-xdg-desktop-portal.mime-handler",
+  "widget.use-xdg-desktop-portal.print",
   "widget.wayland",
 ];
 
@@ -198,7 +201,7 @@ var Troubleshoot = {
 // when done, it must pass its data to the callback.  The resulting snapshot
 // object will contain a name => data entry for each provider.
 var dataProviders = {
-  application: function application(done) {
+  application: async function application(done) {
     let data = {
       name: Services.appinfo.name,
       osVersion:
@@ -219,7 +222,7 @@ var dataProviders = {
     };
 
     if (Services.sysinfo.getProperty("name") == "Windows_NT") {
-      if (Services.sysinfo.processInfo.isWindowsSMode) {
+      if ((await Services.sysinfo.processInfo).isWindowsSMode) {
         data.osVersion += " S";
       }
     }
@@ -303,6 +306,7 @@ var dataProviders = {
       "extension",
       "locale",
       "dictionary",
+      "sitepermission",
     ]);
     addons = addons.filter(e => !e.isSystem);
     addons.sort(function(a, b) {

@@ -79,7 +79,7 @@ where
     type u64x2 = sse2::u64x2_sse2<YesS3, YesS4, NI>;
     type u128x1 = sse2::u128x1_sse2<YesS3, YesS4, NI>;
 
-    type u32x4x2 = sse2::u32x4x2_sse2<YesS3, YesS4, NI>;
+    type u32x4x2 = sse2::avx2::u32x4x2_avx2<NI>;
     type u64x2x2 = sse2::u64x2x2_sse2<YesS3, YesS4, NI>;
     type u64x4 = sse2::u64x4_sse2<YesS3, YesS4, NI>;
     type u128x2 = sse2::u128x2_sse2<YesS3, YesS4, NI>;
@@ -119,16 +119,16 @@ impl Store<vec128_storage> for vec128_storage {
         p
     }
 }
-impl<'a> Into<&'a [u32; 4]> for &'a vec128_storage {
+impl<'a> From<&'a vec128_storage> for &'a [u32; 4] {
     #[inline(always)]
-    fn into(self) -> &'a [u32; 4] {
-        unsafe { &self.u32x4 }
+    fn from(x: &'a vec128_storage) -> Self {
+        unsafe { &x.u32x4 }
     }
 }
-impl Into<vec128_storage> for [u32; 4] {
+impl From<[u32; 4]> for vec128_storage {
     #[inline(always)]
-    fn into(self) -> vec128_storage {
-        vec128_storage { u32x4: self }
+    fn from(u32x4: [u32; 4]) -> Self {
+        vec128_storage { u32x4 }
     }
 }
 impl Default for vec128_storage {
@@ -154,10 +154,10 @@ pub union vec256_storage {
     sse2: [vec128_storage; 2],
     avx: __m256i,
 }
-impl Into<vec256_storage> for [u64; 4] {
+impl From<[u64; 4]> for vec256_storage {
     #[inline(always)]
-    fn into(self) -> vec256_storage {
-        vec256_storage { u64x4: self }
+    fn from(u64x4: [u64; 4]) -> Self {
+        vec256_storage { u64x4 }
     }
 }
 impl Default for vec256_storage {
@@ -167,9 +167,11 @@ impl Default for vec256_storage {
     }
 }
 impl vec256_storage {
+    #[inline(always)]
     pub fn new128(xs: [vec128_storage; 2]) -> Self {
         Self { sse2: xs }
     }
+    #[inline(always)]
     pub fn split128(self) -> [vec128_storage; 2] {
         unsafe { self.sse2 }
     }
@@ -200,9 +202,11 @@ impl Default for vec512_storage {
     }
 }
 impl vec512_storage {
+    #[inline(always)]
     pub fn new128(xs: [vec128_storage; 4]) -> Self {
         Self { sse2: xs }
     }
+    #[inline(always)]
     pub fn split128(self) -> [vec128_storage; 4] {
         unsafe { self.sse2 }
     }
@@ -217,10 +221,10 @@ impl PartialEq for vec512_storage {
 
 macro_rules! impl_into {
     ($storage:ident, $array:ty, $name:ident) => {
-        impl Into<$array> for $storage {
+        impl From<$storage> for $array {
             #[inline(always)]
-            fn into(self) -> $array {
-                unsafe { self.$name }
+            fn from(vec: $storage) -> Self {
+                unsafe { vec.$name }
             }
         }
     };

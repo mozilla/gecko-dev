@@ -1108,6 +1108,8 @@ static void CompareExchange(MacroAssembler& masm,
     masm.append(*access, masm.size());
   }
 
+  // NOTE: the generated code must match the assembly code in gen_cmpxchg in
+  // GenerateAtomicOperations.py
   switch (Scalar::byteSize(type)) {
     case 1:
       CheckBytereg(newval);
@@ -1153,7 +1155,8 @@ static void AtomicExchange(MacroAssembler& masm,
                            const wasm::MemoryAccessDesc* access,
                            Scalar::Type type, const T& mem, Register value,
                            Register output)
-
+// NOTE: the generated code must match the assembly code in gen_exchange in
+// GenerateAtomicOperations.py
 {
   if (value != output) {
     masm.movl(value, output);
@@ -1230,6 +1233,8 @@ static void AtomicFetchOp(MacroAssembler& masm,
                           const T& mem, Register temp, Register output) {
   // Note value can be an Imm or a Register.
 
+  // NOTE: the generated code must match the assembly code in gen_fetchop in
+  // GenerateAtomicOperations.py
 #define ATOMIC_BITOP_BODY(LOAD, OP, LOCK_CMPXCHG)  \
   do {                                             \
     MOZ_ASSERT(output != temp);                    \
@@ -2073,13 +2078,25 @@ void MacroAssembler::copySignDouble(FloatRegister lhs, FloatRegister rhs,
                                     FloatRegister output) {
   ScratchDoubleScope scratch(*this);
 
-  double clearSignMask = mozilla::BitwiseCast<double>(INT64_MAX);
-  loadConstantDouble(clearSignMask, scratch);
-  vandpd(scratch, lhs, output);
+  // TODO Support AVX2
+  if (rhs == output) {
+    MOZ_ASSERT(lhs != rhs);
+    double keepSignMask = mozilla::BitwiseCast<double>(INT64_MIN);
+    loadConstantDouble(keepSignMask, scratch);
+    vandpd(scratch, rhs, output);
 
-  double keepSignMask = mozilla::BitwiseCast<double>(INT64_MIN);
-  loadConstantDouble(keepSignMask, scratch);
-  vandpd(rhs, scratch, scratch);
+    double clearSignMask = mozilla::BitwiseCast<double>(INT64_MAX);
+    loadConstantDouble(clearSignMask, scratch);
+    vandpd(lhs, scratch, scratch);
+  } else {
+    double clearSignMask = mozilla::BitwiseCast<double>(INT64_MAX);
+    loadConstantDouble(clearSignMask, scratch);
+    vandpd(scratch, lhs, output);
+
+    double keepSignMask = mozilla::BitwiseCast<double>(INT64_MIN);
+    loadConstantDouble(keepSignMask, scratch);
+    vandpd(rhs, scratch, scratch);
+  }
 
   vorpd(scratch, output, output);
 }
@@ -2088,13 +2105,25 @@ void MacroAssembler::copySignFloat32(FloatRegister lhs, FloatRegister rhs,
                                      FloatRegister output) {
   ScratchFloat32Scope scratch(*this);
 
-  float clearSignMask = mozilla::BitwiseCast<float>(INT32_MAX);
-  loadConstantFloat32(clearSignMask, scratch);
-  vandps(scratch, lhs, output);
+  // TODO Support AVX2
+  if (rhs == output) {
+    MOZ_ASSERT(lhs != rhs);
+    float keepSignMask = mozilla::BitwiseCast<float>(INT32_MIN);
+    loadConstantFloat32(keepSignMask, scratch);
+    vandps(scratch, output, output);
 
-  float keepSignMask = mozilla::BitwiseCast<float>(INT32_MIN);
-  loadConstantFloat32(keepSignMask, scratch);
-  vandps(rhs, scratch, scratch);
+    float clearSignMask = mozilla::BitwiseCast<float>(INT32_MAX);
+    loadConstantFloat32(clearSignMask, scratch);
+    vandps(lhs, scratch, scratch);
+  } else {
+    float clearSignMask = mozilla::BitwiseCast<float>(INT32_MAX);
+    loadConstantFloat32(clearSignMask, scratch);
+    vandps(scratch, lhs, output);
+
+    float keepSignMask = mozilla::BitwiseCast<float>(INT32_MIN);
+    loadConstantFloat32(keepSignMask, scratch);
+    vandps(rhs, scratch, scratch);
+  }
 
   vorps(scratch, output, output);
 }

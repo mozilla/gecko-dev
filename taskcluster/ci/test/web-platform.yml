@@ -30,7 +30,6 @@ job-defaults:
             android-em-7.0-x86_64(-lite)?-qr/opt: geckoview-test_runner.apk
             android-em-7.0-x86_64(-lite)?-qr/debug(-isolated-process)?: geckoview-test_runner.apk
             default: null
-    python-3: true
 
 web-platform-tests:
     description: "Web platform test run"
@@ -69,21 +68,32 @@ web-platform-tests:
             macosx.*/debug: 10800
             android-em.*/.*: 10800
             default: 7200
-    e10s: true
     variants:
+        - dynamic-first-party-isolation+fission
         - fission
         - webrender-sw
+        - webrender-sw+fission
     run-on-projects:
         by-variant:
+            dynamic-first-party-isolation+fission:
+                by-test-platform:
+                    (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['mozilla-central']
+                    default: []
             fission:
                 by-test-platform:
-                    (linux.*64|windows10-64-2004)-qr/debug: ['trunk']
-                    (linux.*64|windows10-64-2004)(-shippable)?-qr/opt: ['trunk']
-                    linux.*64-(asan|tsan)(-qr)?/opt: ['trunk']
-                    linux.*64-ccov-qr/opt: ['mozilla-central']
+                    linux.*: ['trunk']
+                    windows.*: ['trunk']
+                    macosx.*: ['trunk']
+                    default: []
+            webrender-sw+fission:
+                by-test-platform:
+                    (linux1804|windows10)-32.*/.*: []
+                    linux.*64-qr/debug: built-projects
+                    windows10-64-2004-qr/debug: built-projects
                     default: []
             webrender-sw:
                 by-test-platform:
+                    (linux1804|windows10)-32.*/.*: []
                     android-em-7.0-x86_64-qr/debug: built-projects
                     linux.*64-qr/debug: built-projects
                     windows10-64-2004-qr/debug: built-projects
@@ -112,9 +122,14 @@ web-platform-tests-backlog:
         by-test-platform:
             android.*/opt: 7200
             default: 3600
-    variants: []
-    e10s: true
-    run-on-projects: ['mozilla-central']
+    variants: [fission]
+    run-on-projects:
+        by-variant:
+            fission:
+                by-test-platform:
+                    android.*: []
+                    default: ['mozilla-central']
+            default: ['mozilla-central']
     test-manifest-loader: null  # don't load tests in the taskgraph
     tier: 2
     mozharness:
@@ -143,20 +158,32 @@ web-platform-tests-reftest:
             windows.*-(32|64)(-qr)?/debug: 5
             android.*: 6
             default: 4
-    e10s: true
     variants:
+        - dynamic-first-party-isolation+fission
         - fission
         - webrender-sw
+        - webrender-sw+fission
     run-on-projects:
         by-variant:
+            dynamic-first-party-isolation+fission:
+                by-test-platform:
+                    (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['mozilla-central']
+                    default: []
             fission:
                 by-test-platform:
-                    (linux.*64|windows10-64-2004)-qr/debug: ['trunk']
-                    (linux.*64|windows10-64-2004)(-shippable)?-qr/opt: ['trunk']
-                    linux.*64-(asan|tsan)(-qr)?/opt: ['trunk']
+                    linux.*: ['trunk']
+                    windows.*: ['trunk']
+                    macosx.*: ['trunk']
+                    default: []
+            webrender-sw+fission:
+                by-test-platform:
+                    (linux1804|windows10)-32.*/.*: []
+                    linux.*64-qr/debug: built-projects
+                    windows10-64-2004-qr/debug: built-projects
                     default: []
             webrender-sw:
                 by-test-platform:
+                    (linux1804|windows10)-32.*/.*: []
                     android-em-7.0-x86_64-qr/debug: built-projects
                     linux.*64-qr/debug: built-projects
                     windows10-64-2004-qr/debug: built-projects
@@ -191,9 +218,14 @@ web-platform-tests-reftest-backlog:
     treeherder-symbol: W-b(Wr)
     virtualization: virtual
     chunks: 1
-    variants: []
-    e10s: true
-    run-on-projects: ['mozilla-central']
+    variants: [fission]
+    run-on-projects:
+        by-variant:
+            fission:
+                by-test-platform:
+                    android.*: []
+                    default: ['mozilla-central']
+            default: ['mozilla-central']
     test-manifest-loader: null  # don't load tests in the taskgraph
     tier: 2
     mozharness:
@@ -215,22 +247,40 @@ web-platform-tests-wdspec:
         extra-options:
             - --test-type=wdspec
     variants:
+        - dynamic-first-party-isolation+fission
         - fission
         - webrender-sw
+        - webrender-sw+fission
+        - headless
+        - headless+fission
     run-on-projects:
         by-variant:
+            dynamic-first-party-isolation+fission:
+                by-test-platform:
+                    (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['mozilla-central']
+                    default: []
             fission:
                 by-test-platform:
-                    (linux.*64|windows10-64-2004)-qr/debug: ['trunk']
-                    (linux.*64|windows10-64-2004)(-shippable)?-qr/opt: ['trunk']
-                    linux.*64-asan(-qr)?/opt: ['trunk']
-                    default: []
+                    android.*: []
+                    default: built-projects
             webrender-sw:
                 by-test-platform:
+                    (linux1804|windows10)-32.*/.*: []
                     android-em-7.0-x86_64-qr/debug: built-projects
                     linux.*64-qr/debug: built-projects
                     windows10-64-2004-qr/debug: built-projects
                     default: []
+            webrender-sw+fission:
+                by-test-platform:
+                    (linux1804|windows10)-32.*/.*: []
+                    linux.*64-qr/debug: built-projects
+                    windows10-64-2004-qr/debug: built-projects
+                    default: []
+            headless: built-projects
+            headless+fission:
+                by-test-platform:
+                    android.*: []
+                    default: built-projects
             default: built-projects
     tier:
         by-variant:
@@ -272,75 +322,6 @@ web-platform-tests-wdspec:
                     - linux64-fix-stacks
                     - linux64-geckodriver
 
-
-web-platform-tests-wdspec-headless:
-    description: "Web platform webdriver-spec headless run"
-    suite:
-        name: web-platform-tests-wdspec
-    schedules-component: web-platform-tests-wdspec
-    treeherder-symbol: W(WdH)
-    chunks: 2
-    variants:
-        - fission
-        - webrender-sw
-    run-on-projects:
-        by-variant:
-            fission:
-                by-test-platform:
-                    (linux.*64|windows10-64-2004)-qr/debug: ['trunk']
-                    (linux.*64|windows10-64-2004)(-shippable)?-qr/opt: ['trunk']
-                    linux.*64-asan(-qr)?/opt: ['trunk']
-                    default: []
-            webrender-sw: []
-            default: built-projects
-    tier:
-        by-variant:
-            fission:
-                by-test-platform:
-                    linux.*64-qr/debug: 1
-                    linux.*64(-shippable)?-qr/opt: 1
-                    windows10-64-2004(-shippable)?-qr/opt: 1
-                    default: 2
-            default: default
-    mozharness:
-        extra-options:
-            by-test-platform:
-                windows.*:
-                    - --test-type=wdspec
-                    - --headless
-                    - --headless-width=1600
-                    - --headless-height=1200
-                default:
-                    - --test-type=wdspec
-                    - --headless
-    fetches:
-        toolchain:
-            by-test-platform:
-                linux.*64.*:
-                    - linux64-geckodriver
-                    - linux64-minidump-stackwalk
-                    - linux64-fix-stacks
-                linux.*32.*:
-                    - linux32-geckodriver
-                    - linux64-minidump-stackwalk
-                    - linux64-fix-stacks
-                macosx.*:
-                    - macosx64-geckodriver
-                    - macosx64-minidump-stackwalk
-                    - macosx64-fix-stacks
-                win.*-32.*:
-                    - win32-geckodriver
-                    - win32-minidump-stackwalk
-                    - win32-fix-stacks
-                win.*-64.*:
-                    - win64-geckodriver
-                    - win32-minidump-stackwalk
-                    - win32-fix-stacks
-                default:
-                    - linux64-minidump-stackwalk
-                    - linux64-fix-stacks
-                    - linux64-geckodriver
-
 web-platform-tests-crashtest:
     description: "Web platform crashtests run"
     schedules-component: web-platform-tests-crashtest
@@ -350,18 +331,30 @@ web-platform-tests-crashtest:
         extra-options:
             - --test-type=crashtest
     variants:
+        - dynamic-first-party-isolation+fission
         - fission
+        - webrender-sw+fission
         - webrender-sw
     run-on-projects:
         by-variant:
+            dynamic-first-party-isolation+fission:
+                by-test-platform:
+                    (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['mozilla-central']
+                    default: []
             fission:
                 by-test-platform:
-                    (linux.*64|windows10-64-2004)-qr/debug: ['trunk']
-                    (linux.*64|windows10-64-2004)(-shippable)?-qr/opt: ['trunk']
-                    linux.*64-asan(-qr)?/opt: ['trunk']
+                    android.*: []
+                    default: built-projects
+            webrender-sw+fission:
+                by-test-platform:
+                    (linux1804|windows10)-32.*/.*: []
+                    linux.*64-qr/debug: built-projects
+                    macosx101.*64-qr/debug: built-projects
+                    windows10-64-2004-qr/debug: built-projects
                     default: []
             webrender-sw:
                 by-test-platform:
+                    (linux1804|windows10)-32.*/.*: []
                     android-em-7.0-x86_64-qr/debug: built-projects
                     linux.*64-qr/debug: built-projects
                     macosx101.*64-qr/debug: built-projects
@@ -394,18 +387,30 @@ web-platform-tests-print-reftest:
                     default: 2
             default: default
     variants:
+        - dynamic-first-party-isolation+fission
         - fission
+        - webrender-sw+fission
         - webrender-sw
     run-on-projects:
         by-variant:
+            dynamic-first-party-isolation+fission:
+                by-test-platform:
+                    (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['mozilla-central']
+                    default: []
             fission:
                 by-test-platform:
-                    (linux.*64|windows10-64-2004)-qr/debug: ['trunk']
-                    (linux.*64|windows10-64-2004)(-shippable)?-qr/opt: ['trunk']
-                    linux.*64-asan(-qr)?/opt: ['trunk']
+                    android.*: []
+                    default: built-projects
+            webrender-sw+fission:
+                by-test-platform:
+                    android.*: []
+                    (linux1804|windows10)-32.*/.*: []
+                    linux.*64-qr/debug: built-projects
+                    windows10-64-2004-qr/debug: built-projects
                     default: []
             webrender-sw:
                 by-test-platform:
+                    (linux1804|windows10)-32.*/.*: []
                     android-em-7.0-x86_64-qr/debug: built-projects
                     linux.*64-qr/debug: built-projects
                     windows10-64-2004-qr/debug: built-projects
@@ -420,7 +425,7 @@ test-verify-wpt:
     suite:
         category: test-verify
         name: test-verify-wpt
-    variants: []
+    variants: [fission]
     treeherder-symbol: TVw
     max-run-time: 10800
     run-on-projects:
@@ -449,10 +454,15 @@ test-coverage-wpt:
     treeherder-symbol: TCw
     max-run-time: 10800
     variants:
+        - dynamic-first-party-isolation+fission
         - fission
         - webrender-sw
     run-on-projects:
         by-variant:
+            dynamic-first-party-isolation+fission:
+                by-test-platform:
+                    (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['mozilla-central']
+                    default: []
             fission:
                 by-test-platform:
                     linux.*64-qr/debug: ['trunk']

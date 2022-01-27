@@ -23,9 +23,7 @@
 
 #ifdef MOZ_WIDGET_ANDROID
 #  include "AndroidSurfaceTexture.h"
-#  include "GLImages.h"
 #  include "GLLibraryEGL.h"
-#  include "mozilla/java/GeckoSurfaceTextureWrappers.h"
 #endif
 
 #ifdef XP_MACOSX
@@ -697,6 +695,16 @@ bool GLBlitHelper::BlitSdToFramebuffer(const layers::SurfaceDescriptor& asd,
                                        const OriginPos destOrigin) {
   const auto sdType = asd.type();
   switch (sdType) {
+    case layers::SurfaceDescriptor::TSurfaceDescriptorBuffer: {
+      const auto& sd = asd.get_SurfaceDescriptorBuffer();
+      const auto yuvData = PlanarYCbCrData::From(sd);
+      if (!yuvData) {
+        gfxCriticalNote << "[GLBlitHelper::BlitSdToFramebuffer] "
+                           "PlanarYCbCrData::From failed";
+        return false;
+      }
+      return BlitPlanarYCbCr(*yuvData, destSize, destOrigin);
+    }
 #ifdef XP_WIN
     case layers::SurfaceDescriptor::TSurfaceDescriptorD3D10: {
       const auto& sd = asd.get_SurfaceDescriptorD3D10();
@@ -720,6 +728,13 @@ bool GLBlitHelper::BlitSdToFramebuffer(const layers::SurfaceDescriptor& asd,
       return BlitImage(surf, destSize, destOrigin);
     }
 #endif
+#ifdef MOZ_WIDGET_ANDROID
+    case layers::SurfaceDescriptor::TSurfaceTextureDescriptor: {
+      const auto& sd = asd.get_SurfaceTextureDescriptor();
+      auto surfaceTexture = java::GeckoSurfaceTexture::Lookup(sd.handle());
+      return Blit(surfaceTexture, destSize, destOrigin);
+    }
+#endif
     default:
       return false;
   }
@@ -729,19 +744,24 @@ bool GLBlitHelper::BlitImageToFramebuffer(layers::Image* const srcImage,
                                           const gfx::IntSize& destSize,
                                           const OriginPos destOrigin) {
   switch (srcImage->GetFormat()) {
-    case ImageFormat::PLANAR_YCBCR:
-      return BlitImage(static_cast<PlanarYCbCrImage*>(srcImage), destSize,
-                       destOrigin);
+    case ImageFormat::PLANAR_YCBCR: {
+      const auto srcImage2 = static_cast<PlanarYCbCrImage*>(srcImage);
+      const auto data = srcImage2->GetData();
+      return BlitPlanarYCbCr(*data, destSize, destOrigin);
+    }
 
-    case ImageFormat::SURFACE_TEXTURE:
+    case ImageFormat::SURFACE_TEXTURE: {
 #ifdef MOZ_WIDGET_ANDROID
-      return BlitImage(static_cast<layers::SurfaceTextureImage*>(srcImage),
-                       destSize, destOrigin);
+      auto* image = srcImage->AsSurfaceTextureImage();
+      MOZ_ASSERT(image);
+      auto surfaceTexture =
+          java::GeckoSurfaceTexture::Lookup(image->GetHandle());
+      return Blit(surfaceTexture, destSize, destOrigin);
 #else
       MOZ_ASSERT(false);
       return false;
 #endif
-
+    }
     case ImageFormat::MAC_IOSURFACE:
 #ifdef XP_MACOSX
       return BlitImage(srcImage->AsMacIOSurfaceImage(), destSize, destOrigin);
@@ -789,12 +809,9 @@ bool GLBlitHelper::BlitImageToFramebuffer(layers::Image* const srcImage,
 // -------------------------------------
 
 #ifdef MOZ_WIDGET_ANDROID
-bool GLBlitHelper::BlitImage(layers::SurfaceTextureImage* srcImage,
-                             const gfx::IntSize& destSize,
-                             const OriginPos destOrigin) const {
-  AndroidSurfaceTextureHandle handle = srcImage->GetHandle();
-  const auto& surfaceTexture = java::GeckoSurfaceTexture::Lookup(handle);
-
+bool GLBlitHelper::Blit(const java::GeckoSurfaceTexture::Ref& surfaceTexture,
+                        const gfx::IntSize& destSize,
+                        const OriginPos destOrigin) const {
   if (!surfaceTexture) {
     return false;
   }
@@ -815,38 +832,10 @@ bool GLBlitHelper::BlitImage(layers::SurfaceTextureImage* srcImage,
   const ScopedBindTexture savedTex(mGL, surfaceTexture->GetTexName(),
                                    LOCAL_GL_TEXTURE_EXTERNAL);
   surfaceTexture->UpdateTexImage();
-
-  gfx::Matrix4x4 transform4;
-  AndroidSurfaceTexture::GetTransformMatrix(
-      java::sdk::SurfaceTexture::Ref::From(surfaceTexture), &transform4);
-  Mat3 transform3;
-  transform3.at(0, 0) = transform4._11;
-  transform3.at(0, 1) = transform4._12;
-  transform3.at(0, 2) = transform4._14;
-  transform3.at(1, 0) = transform4._21;
-  transform3.at(1, 1) = transform4._22;
-  transform3.at(1, 2) = transform4._24;
-  transform3.at(2, 0) = transform4._41;
-  transform3.at(2, 1) = transform4._42;
-  transform3.at(2, 2) = transform4._44;
-
-  // We don't do w-divison, so if these aren't what we expect, we're probably
-  // doing something wrong.
-  MOZ_ASSERT(transform3.at(0, 2) == 0);
-  MOZ_ASSERT(transform3.at(1, 2) == 0);
-  MOZ_ASSERT(transform3.at(2, 2) == 1);
-
-  const auto& srcOrigin = srcImage->GetOriginPos();
-
-  // I honestly have no idea why this logic is flipped, but changing the
-  // source origin would mean we'd have to flip it in the compositor
-  // which makes just as little sense as this.
-  const bool yFlip = (srcOrigin == destOrigin);
-
+  const auto transform3 = Mat3::I();
+  const auto srcOrigin = OriginPos::TopLeft;
+  const bool yFlip = (srcOrigin != destOrigin);
   const auto& prog = GetDrawBlitProg({kFragHeader_TexExt, kFragBody_RGBA});
-
-  // There is no padding on these images, so we can use the GetTransformMatrix
-  // directly.
   const DrawBlitProg::BaseArgs baseArgs = {transform3, yFlip, destSize,
                                            Nothing()};
   prog->Draw(baseArgs, nullptr);
@@ -873,9 +862,9 @@ bool GuessDivisors(const gfx::IntSize& ySize, const gfx::IntSize& uvSize,
   return true;
 }
 
-bool GLBlitHelper::BlitImage(layers::PlanarYCbCrImage* const yuvImage,
-                             const gfx::IntSize& destSize,
-                             const OriginPos destOrigin) {
+bool GLBlitHelper::BlitPlanarYCbCr(const PlanarYCbCrData& yuvData,
+                                   const gfx::IntSize& destSize,
+                                   const OriginPos destOrigin) {
   const auto& prog = GetDrawBlitProg({kFragHeader_Tex2D, kFragBody_PlanarYUV});
 
   if (!mYuvUploads[0]) {
@@ -890,27 +879,25 @@ bool GLBlitHelper::BlitImage(layers::PlanarYCbCrImage* const yuvImage,
 
   // --
 
-  const PlanarYCbCrData* const yuvData = yuvImage->GetData();
-
-  if (yuvData->mYSkip || yuvData->mCbSkip || yuvData->mCrSkip ||
-      yuvData->mYSize.width < 0 || yuvData->mYSize.height < 0 ||
-      yuvData->mCbCrSize.width < 0 || yuvData->mCbCrSize.height < 0 ||
-      yuvData->mYStride < 0 || yuvData->mCbCrStride < 0) {
-    gfxCriticalError() << "Unusual PlanarYCbCrData: " << yuvData->mYSkip << ","
-                       << yuvData->mCbSkip << "," << yuvData->mCrSkip << ", "
-                       << yuvData->mYSize.width << "," << yuvData->mYSize.height
-                       << ", " << yuvData->mCbCrSize.width << ","
-                       << yuvData->mCbCrSize.height << ", " << yuvData->mYStride
-                       << "," << yuvData->mCbCrStride;
+  if (yuvData.mYSkip || yuvData.mCbSkip || yuvData.mCrSkip ||
+      yuvData.mYSize.width < 0 || yuvData.mYSize.height < 0 ||
+      yuvData.mCbCrSize.width < 0 || yuvData.mCbCrSize.height < 0 ||
+      yuvData.mYStride < 0 || yuvData.mCbCrStride < 0) {
+    gfxCriticalError() << "Unusual PlanarYCbCrData: " << yuvData.mYSkip << ","
+                       << yuvData.mCbSkip << "," << yuvData.mCrSkip << ", "
+                       << yuvData.mYSize.width << "," << yuvData.mYSize.height
+                       << ", " << yuvData.mCbCrSize.width << ","
+                       << yuvData.mCbCrSize.height << ", " << yuvData.mYStride
+                       << "," << yuvData.mCbCrStride;
     return false;
   }
 
   gfx::IntSize divisors;
-  if (!GuessDivisors(yuvData->mYSize, yuvData->mCbCrSize, &divisors)) {
-    gfxCriticalError() << "GuessDivisors failed:" << yuvData->mYSize.width
-                       << "," << yuvData->mYSize.height << ", "
-                       << yuvData->mCbCrSize.width << ","
-                       << yuvData->mCbCrSize.height;
+  if (!GuessDivisors(yuvData.mYSize, yuvData.mCbCrSize, &divisors)) {
+    gfxCriticalError() << "GuessDivisors failed:" << yuvData.mYSize.width << ","
+                       << yuvData.mYSize.height << ", "
+                       << yuvData.mCbCrSize.width << ","
+                       << yuvData.mCbCrSize.height;
     return false;
   }
 
@@ -934,8 +921,8 @@ bool GLBlitHelper::BlitImage(layers::PlanarYCbCrImage* const yuvImage,
 
   const ScopedSaveMultiTex saveTex(mGL, 3, LOCAL_GL_TEXTURE_2D);
   const ResetUnpackState reset(mGL);
-  const gfx::IntSize yTexSize(yuvData->mYStride, yuvData->mYSize.height);
-  const gfx::IntSize uvTexSize(yuvData->mCbCrStride, yuvData->mCbCrSize.height);
+  const gfx::IntSize yTexSize(yuvData.mYStride, yuvData.mYSize.height);
+  const gfx::IntSize uvTexSize(yuvData.mCbCrStride, yuvData.mCbCrSize.height);
 
   if (yTexSize != mYuvUploads_YSize || uvTexSize != mYuvUploads_UVSize) {
     mYuvUploads_YSize = yTexSize;
@@ -961,28 +948,28 @@ bool GLBlitHelper::BlitImage(layers::PlanarYCbCrImage* const yuvImage,
   mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[0]);
   mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, yTexSize.width,
                       yTexSize.height, unpackFormat, LOCAL_GL_UNSIGNED_BYTE,
-                      yuvData->mYChannel);
+                      yuvData.mYChannel);
   mGL->fActiveTexture(LOCAL_GL_TEXTURE1);
   mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[1]);
   mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, uvTexSize.width,
                       uvTexSize.height, unpackFormat, LOCAL_GL_UNSIGNED_BYTE,
-                      yuvData->mCbChannel);
+                      yuvData.mCbChannel);
   mGL->fActiveTexture(LOCAL_GL_TEXTURE2);
   mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[2]);
   mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, uvTexSize.width,
                       uvTexSize.height, unpackFormat, LOCAL_GL_UNSIGNED_BYTE,
-                      yuvData->mCrChannel);
+                      yuvData.mCrChannel);
 
   // --
 
-  const auto& clipRect = yuvData->GetPictureRect();
+  const auto& clipRect = yuvData.GetPictureRect();
   const auto srcOrigin = OriginPos::BottomLeft;
   const bool yFlip = (destOrigin != srcOrigin);
 
   const DrawBlitProg::BaseArgs baseArgs = {SubRectMat3(clipRect, yTexSize),
                                            yFlip, destSize, Nothing()};
   const DrawBlitProg::YUVArgs yuvArgs = {
-      SubRectMat3(clipRect, uvTexSize, divisors), yuvData->mYUVColorSpace};
+      SubRectMat3(clipRect, uvTexSize, divisors), yuvData.mYUVColorSpace};
   prog->Draw(baseArgs, &yuvArgs);
   return true;
 }

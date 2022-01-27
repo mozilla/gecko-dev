@@ -771,6 +771,11 @@ void BrowsingContext::Attach(bool aFromIPC, ContentParent* aOriginProcess) {
     CreateChildSHistory();
   }
 
+  // Why the context is being attached. This will always be "attach" in the
+  // content process, but may be "replace" if it's known the context being
+  // replaced in the parent process.
+  const char16_t* why = u"attach";
+
   if (XRE_IsContentProcess() && !aFromIPC) {
     // Send attach to our parent if we need to.
     ContentChild::GetSingleton()->SendCreateBrowsingContext(
@@ -797,6 +802,10 @@ void BrowsingContext::Attach(bool aFromIPC, ContentParent* aOriginProcess) {
       }
     });
 
+    if (IsTop() && IsContent() && Canonical()->GetWebProgress()) {
+      why = u"replace";
+    }
+
     // We want to create a BrowsingContextWebProgress for all content
     // BrowsingContexts.
     if (IsContent() && !Canonical()->mWebProgress) {
@@ -806,7 +815,7 @@ void BrowsingContext::Attach(bool aFromIPC, ContentParent* aOriginProcess) {
 
   if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
     obs->NotifyWhenScriptSafe(ToSupports(this), "browsing-context-attached",
-                              nullptr);
+                              why);
   }
 
   if (XRE_IsParentProcess()) {
@@ -1354,10 +1363,14 @@ bool BrowsingContext::IsSandboxedFrom(BrowsingContext* aTarget) {
   }
 
   // If SANDBOXED_TOPLEVEL_NAVIGATION_USER_ACTIVATION flag is not on, we are not
-  // sandboxed from our top if we have user interaction.
+  // sandboxed from our top if we have user interaction. We assume there is a
+  // valid transient user gesture interaction if this check happens in the
+  // target process given that we have checked in the triggering process
+  // already.
   if (!(sandboxFlags & SANDBOXED_TOPLEVEL_NAVIGATION_USER_ACTIVATION) &&
       mCurrentWindowContext &&
-      mCurrentWindowContext->HasValidTransientUserGestureActivation() &&
+      (!mCurrentWindowContext->IsInProcess() ||
+       mCurrentWindowContext->HasValidTransientUserGestureActivation()) &&
       aTarget == Top()) {
     return false;
   }
@@ -3182,6 +3195,11 @@ auto BrowsingContext::CanSet(FieldIndex<IDX_CurrentInnerWindowId>,
   return CanSetResult::Allow;
 }
 
+bool BrowsingContext::CanSet(FieldIndex<IDX_ParentInitiatedNavigationEpoch>,
+                             const uint64_t& aValue, ContentParent* aSource) {
+  return XRE_IsParentProcess() && !aSource;
+}
+
 void BrowsingContext::DidSet(FieldIndex<IDX_CurrentInnerWindowId>) {
   RefPtr<WindowContext> prevWindowContext = mCurrentWindowContext.forget();
   mCurrentWindowContext = WindowContext::GetById(GetCurrentInnerWindowId());
@@ -3478,10 +3496,24 @@ bool BrowsingContext::IsPopupAllowed() {
   return false;
 }
 
+/* static */
+bool BrowsingContext::ShouldAddEntryForRefresh(
+    nsIURI* aCurrentURI, const SessionHistoryInfo& aInfo) {
+  if (aInfo.GetPostData()) {
+    return true;
+  }
+
+  bool equalsURI = false;
+  if (aCurrentURI) {
+    aCurrentURI->Equals(aInfo.GetURI(), &equalsURI);
+  }
+  return !equalsURI;
+}
+
 void BrowsingContext::SessionHistoryCommit(
     const LoadingSessionHistoryInfo& aInfo, uint32_t aLoadType,
-    bool aHadActiveEntry, bool aPersist, bool aCloneEntryChildren,
-    bool aChannelExpired) {
+    nsIURI* aCurrentURI, bool aHadActiveEntry, bool aPersist,
+    bool aCloneEntryChildren, bool aChannelExpired) {
   nsID changeID = {};
   if (XRE_IsContentProcess()) {
     RefPtr<ChildSHistory> rootSH = Top()->GetChildSessionHistory();
@@ -3491,13 +3523,17 @@ void BrowsingContext::SessionHistoryCommit(
         // CanonicalBrowsingContext::SessionHistoryCommit. We'll be
         // incrementing the session history length if we're not replacing,
         // this is a top-level load or it's not the initial load in an iframe,
-        // and ShouldUpdateSessionHistory(loadType) returns true.
+        // ShouldUpdateSessionHistory(loadType) returns true and it's not a
+        // refresh for which ShouldAddEntryForRefresh returns false.
         // It is possible that this leads to wrong length temporarily, but
         // so would not having the check for replace.
         if (!LOAD_TYPE_HAS_FLAGS(
                 aLoadType, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY) &&
             (IsTop() || aHadActiveEntry) &&
-            ShouldUpdateSessionHistory(aLoadType)) {
+            ShouldUpdateSessionHistory(aLoadType) &&
+            (!LOAD_TYPE_HAS_FLAGS(aLoadType,
+                                  nsIWebNavigation::LOAD_FLAGS_IS_REFRESH) ||
+             ShouldAddEntryForRefresh(aCurrentURI, aInfo.mInfo))) {
           changeID = rootSH->AddPendingHistoryChange();
         }
       } else {

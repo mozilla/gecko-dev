@@ -19,7 +19,11 @@ import {
   breakpointItemActions,
 } from "./menus/breakpoints";
 
-import { continueToHereItem, editorItemActions } from "./menus/editor";
+import {
+  continueToHereItem,
+  editorItemActions,
+  blackBoxLineMenuItem,
+} from "./menus/editor";
 
 import {
   getActiveSearch,
@@ -34,6 +38,7 @@ import {
   getInlinePreview,
   getEditorWrapping,
   getHighlightedCalls,
+  getBlackBoxRanges,
 } from "../../selectors";
 
 // Redux actions
@@ -52,6 +57,7 @@ import ConditionalPanel from "./ConditionalPanel";
 import InlinePreviews from "./InlinePreviews";
 import HighlightCalls from "./HighlightCalls";
 import Exceptions from "./Exceptions";
+import BlackboxLines from "./BlackboxLines";
 
 import {
   showSourceText,
@@ -98,6 +104,38 @@ const cssVars = {
 };
 
 class Editor extends PureComponent {
+  static get propTypes() {
+    return {
+      selectedSource: PropTypes.object,
+      cx: PropTypes.object,
+      closeTab: PropTypes.func,
+      toggleBreakpointAtLine: PropTypes.func,
+      conditionalPanelLocation: PropTypes.object,
+      closeConditionalPanel: PropTypes.func,
+      openConditionalPanel: PropTypes.func,
+      updateViewport: PropTypes.func,
+      isPaused: PropTypes.bool,
+      highlightCalls: PropTypes.func,
+      unhighlightCalls: PropTypes.func,
+      breakpointActions: PropTypes.object,
+      editorActions: PropTypes.object,
+      addBreakpointAtLine: PropTypes.func,
+      continueToHere: PropTypes.func,
+      toggleBlackBox: PropTypes.func,
+      updateCursorPosition: PropTypes.func,
+      jumpToMappedLocation: PropTypes.func,
+      selectedLocation: PropTypes.object,
+      symbols: PropTypes.object,
+      startPanelSize: PropTypes.number,
+      endPanelSize: PropTypes.number,
+      searchOn: PropTypes.bool,
+      inlinePreviewEnabled: PropTypes.bool,
+      editorWrappingEnabled: PropTypes.bool,
+      skipPausing: PropTypes.bool,
+      blackboxedRanges: PropTypes.object,
+    };
+  }
+
   $editorWrapper;
   constructor(props) {
     super(props);
@@ -349,6 +387,7 @@ class Editor extends PureComponent {
       isPaused,
       conditionalPanelLocation,
       closeConditionalPanel,
+      blackboxedRanges,
     } = this.props;
     const { editor } = this.state;
     if (!selectedSource || !editor) {
@@ -381,6 +420,15 @@ class Editor extends PureComponent {
         ...createBreakpointItems(cx, location, breakpointActions, lineText),
         { type: "separator" },
         continueToHereItem(cx, location, isPaused, editorActions),
+        { type: "separator" },
+        blackBoxLineMenuItem(
+          cx,
+          selectedSource,
+          editorActions,
+          editor,
+          blackboxedRanges,
+          line
+        ),
       ]);
     }
 
@@ -606,6 +654,7 @@ class Editor extends PureComponent {
         <Breakpoints editor={editor} cx={cx} />
         <Preview editor={editor} editorRef={this.$editorWrapper} />
         <HighlightLines editor={editor} />
+        {features.blackboxLines ? <BlackboxLines editor={editor} /> : null}
         <Exceptions />
         {
           <EditorMenu
@@ -677,6 +726,7 @@ const mapStateToProps = state => {
     inlinePreviewEnabled: getInlinePreview(state),
     editorWrappingEnabled: getEditorWrapping(state),
     highlightedCalls: getHighlightedCalls(state, getCurrentThread(state)),
+    blackboxedRanges: getBlackBoxRanges(state),
   };
 };
 

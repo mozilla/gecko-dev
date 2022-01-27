@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-include protocol PBackground;
+include protocol PBackgroundStarter;
 include protocol PBrowser;
 include protocol PCompositorManager;
 include protocol PContentPermissionRequest;
@@ -983,9 +983,6 @@ child:
   async DispatchBeforeUnloadToSubtree(MaybeDiscardedBrowsingContext aStartingAt)
       returns (PermitUnloadResult result);
 
-  async CanSavePresentation(MaybeDiscardedBrowsingContext aTopLevelContext,
-      uint64_t? aDocumentChannelId) returns (bool success);
-
   // Update the cached list of codec supported in the given process.
   async UpdateMediaCodecsSupported(RemoteDecodeIn aLocation, MediaCodecsSupported aSupported);
 
@@ -1024,7 +1021,7 @@ parent:
 
     async RemoveFromBFCache(MaybeDiscardedBrowsingContext aContext);
 
-    async InitBackground(Endpoint<PBackgroundParent> aEndpoint);
+    async InitBackground(Endpoint<PBackgroundStarterParent> aEndpoint);
 
     async CreateGMPService();
 

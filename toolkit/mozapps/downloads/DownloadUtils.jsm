@@ -429,7 +429,18 @@ var DownloadUtils = {
     }
 
     if (uri.scheme == "blob") {
-      uri = Services.io.newURI(new URL(uri.spec).origin);
+      let origin = new URL(uri.spec).origin;
+      // Origin can be "null" for blob URIs from a sandbox.
+      if (origin != "null") {
+        // `newURI` can throw (like for null) and throwing here breaks...
+        // a lot of stuff. So let's avoid doing that in case there are other
+        // edgecases we're missing here.
+        try {
+          uri = Services.io.newURI(origin);
+        } catch (ex) {
+          Cu.reportError(ex);
+        }
+      }
     }
 
     let fullHost;
@@ -561,7 +572,7 @@ var DownloadUtils = {
   getFormattedTimeStatus: function DU_getFormattedTimeStatus(aSeconds) {
     aSeconds = Math.floor(aSeconds);
     let l10n;
-    if (!isFinite(aSeconds)) {
+    if (!isFinite(aSeconds) || aSeconds < 0) {
       l10n = {
         id: "downloading-file-opens-in-some-time",
       };

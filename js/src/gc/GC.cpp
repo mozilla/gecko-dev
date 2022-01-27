@@ -375,6 +375,7 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       helperThreadRatio(TuningDefaults::HelperThreadRatio),
       maxHelperThreads(TuningDefaults::MaxHelperThreads),
       helperThreadCount(1),
+      createBudgetCallback(nullptr),
       rootsHash(256),
       nextCellUniqueId_(LargestTaggedNullCellPointer +
                         1),  // Ensure disjoint from null tagged pointers.
@@ -386,7 +387,7 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       perZoneGCEnabled(TuningDefaults::PerZoneGCEnabled),
       numActiveZoneIters(0),
       cleanUpEverything(false),
-      grayBitsValid(false),
+      grayBitsValid(true),
       majorGCTriggerReason(JS::GCReason::NO_REASON),
       minorGCNumber(0),
       majorGCNumber(0),
@@ -883,6 +884,15 @@ void GCRuntime::finish() {
   nursery().printTotalProfileTimes();
   stats().printTotalProfileTimes();
 }
+
+#ifdef DEBUG
+void GCRuntime::assertNoPermanentSharedThings() {
+  MOZ_ASSERT(atomsZone->cellIterUnsafe<JSAtom>(AllocKind::ATOM).done());
+  MOZ_ASSERT(
+      atomsZone->cellIterUnsafe<JSAtom>(AllocKind::FAT_INLINE_ATOM).done());
+  MOZ_ASSERT(atomsZone->cellIterUnsafe<JS::Symbol>(AllocKind::SYMBOL).done());
+}
+#endif
 
 void GCRuntime::freezePermanentSharedThings() {
   // This is called just after permanent atoms and well-known symbols have been
@@ -1402,16 +1412,22 @@ bool GCRuntime::isCompactingGCEnabled() const {
          rt->mainContextFromOwnThread()->compactingDisabledCount == 0;
 }
 
-SliceBudget::SliceBudget(TimeBudget time, int64_t stepsPerTimeCheckArg)
+JS_PUBLIC_API void JS::SetCreateGCSliceBudgetCallback(
+    JSContext* cx, JS::CreateSliceBudgetCallback cb) {
+  cx->runtime()->gc.createBudgetCallback = cb;
+}
+
+void TimeBudget::setDeadlineFromNow() { deadline = ReallyNow() + budget; }
+
+SliceBudget::SliceBudget(TimeBudget time, InterruptRequestFlag* interrupt)
     : budget(TimeBudget(time)),
-      stepsPerTimeCheck(stepsPerTimeCheckArg),
-      counter(stepsPerTimeCheckArg) {
-  budget.as<TimeBudget>().deadline =
-      ReallyNow() + TimeDuration::FromMilliseconds(timeBudget());
+      interruptRequested(interrupt),
+      counter(StepsPerExpensiveCheck) {
+  budget.as<TimeBudget>().setDeadlineFromNow();
 }
 
 SliceBudget::SliceBudget(WorkBudget work)
-    : budget(work), counter(work.budget) {}
+    : budget(work), interruptRequested(nullptr), counter(work.budget) {}
 
 int SliceBudget::describe(char* buffer, size_t maxlen) const {
   if (isUnlimited()) {
@@ -1419,7 +1435,8 @@ int SliceBudget::describe(char* buffer, size_t maxlen) const {
   } else if (isWorkBudget()) {
     return snprintf(buffer, maxlen, "work(%" PRId64 ")", workBudget());
   } else {
-    return snprintf(buffer, maxlen, "%" PRId64 "ms", timeBudget());
+    return snprintf(buffer, maxlen, "%" PRId64 "ms%s", timeBudget(),
+                    interruptRequested ? ", interruptible" : "");
   }
 }
 
@@ -1431,11 +1448,20 @@ bool SliceBudget::checkOverBudget() {
     return true;
   }
 
+  if (interruptRequested && *interruptRequested) {
+    *interruptRequested = false;
+    interrupted = true;
+  }
+
+  if (interrupted) {
+    return true;
+  }
+
   if (ReallyNow() >= budget.as<TimeBudget>().deadline) {
     return true;
   }
 
-  counter = stepsPerTimeCheck;
+  counter = StepsPerExpensiveCheck;
   return false;
 }
 
@@ -3882,6 +3908,9 @@ void GCRuntime::collect(bool nonincrementalByAPI, const SliceBudget& budget,
 }
 
 SliceBudget GCRuntime::defaultBudget(JS::GCReason reason, int64_t millis) {
+  // millis == 0 means use internal GC scheduling logic to come up with
+  // a duration for the slice budget. This may end up still being zero
+  // based on preferences.
   if (millis == 0) {
     if (reason == JS::GCReason::ALLOC_TRIGGER) {
       millis = defaultSliceBudgetMS();
@@ -3892,6 +3921,13 @@ SliceBudget GCRuntime::defaultBudget(JS::GCReason reason, int64_t millis) {
     }
   }
 
+  // If the embedding has registered a callback for creating SliceBudgets,
+  // then use it.
+  if (createBudgetCallback) {
+    return createBudgetCallback(reason, millis);
+  }
+
+  // Otherwise, the preference can request an unlimited duration slice.
   if (millis == 0) {
     return SliceBudget::unlimited();
   }

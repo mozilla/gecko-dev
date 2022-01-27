@@ -172,7 +172,8 @@ class CertVerifier {
       /*optional out*/ KeySizeStatus* keySizeStatus = nullptr,
       /*optional out*/ SHA1ModeResult* sha1ModeResult = nullptr,
       /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr,
-      /*optional out*/ CertificateTransparencyInfo* ctInfo = nullptr);
+      /*optional out*/ CertificateTransparencyInfo* ctInfo = nullptr,
+      /*optional out*/ bool* isBuiltChainRootBuiltInRoot = nullptr);
 
   mozilla::pkix::Result VerifySSLServerCert(
       const nsTArray<uint8_t>& peerCert, mozilla::pkix::Time time, void* pinarg,
@@ -193,7 +194,7 @@ class CertVerifier {
       /*optional out*/ SHA1ModeResult* sha1ModeResult = nullptr,
       /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr,
       /*optional out*/ CertificateTransparencyInfo* ctInfo = nullptr,
-      /*optional out*/ bool* isBuiltCertChainRootBuiltInRoot = nullptr);
+      /*optional out*/ bool* isBuiltChainRootBuiltInRoot = nullptr);
 
   enum class SHA1Mode {
     Allowed = 0,
@@ -221,7 +222,6 @@ class CertVerifier {
                BRNameMatchingPolicy::Mode nameMatchingMode,
                NetscapeStepUpPolicy netscapeStepUpPolicy,
                CertificateTransparencyMode ctMode, CRLiteMode crliteMode,
-               uint64_t crliteCTMergeDelaySeconds,
                const Vector<EnterpriseCert>& thirdPartyCerts);
   ~CertVerifier();
 
@@ -237,7 +237,6 @@ class CertVerifier {
   const NetscapeStepUpPolicy mNetscapeStepUpPolicy;
   const CertificateTransparencyMode mCTMode;
   const CRLiteMode mCRLiteMode;
-  const uint64_t mCRLiteCTMergeDelaySeconds;
 
  private:
   OCSPCache mOCSPCache;

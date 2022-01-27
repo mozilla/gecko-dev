@@ -16,22 +16,25 @@
 
 namespace mozilla {
 
+class VideoFramePool;
+class VideoFrameSurfaceDMABuf;
+class VideoFrameSurfaceVAAPI;
+
 class VideoFrameSurface {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VideoFrameSurface)
 
-  VideoFrameSurface(){};
+  VideoFrameSurface() = default;
 
-  virtual void LockVAAPIData(AVCodecContext* aAVCodecContext, AVFrame* aAVFrame,
-                             FFmpegLibWrapper* aLib){};
-  virtual void ReleaseVAAPIData(bool aForFrameRecycle = true){};
-  virtual bool IsUsed() const = 0;
+  virtual VideoFrameSurfaceDMABuf* AsVideoFrameSurfaceDMABuf() {
+    return nullptr;
+  }
+  virtual VideoFrameSurfaceVAAPI* AsVideoFrameSurfaceVAAPI() { return nullptr; }
 
-  virtual void SetYUVColorSpace(mozilla::gfx::YUVColorSpace aColorSpace) = 0;
-  virtual void SetColorRange(mozilla::gfx::ColorRange aColorRange) = 0;
+  virtual void SetYUVColorSpace(gfx::YUVColorSpace aColorSpace) = 0;
+  virtual void SetColorRange(gfx::ColorRange aColorRange) = 0;
 
   virtual RefPtr<DMABufSurfaceYUV> GetDMABufSurface() { return nullptr; };
-
   virtual RefPtr<layers::Image> GetAsImage() = 0;
 
   // Don't allow VideoFrameSurface plain copy as it leads to
@@ -47,32 +50,36 @@ class VideoFrameSurface {
 // VideoFrameSurfaceDMABuf is YUV dmabuf surface used for SW video decoding.
 // Stores decoded video data in GPU memory.
 class VideoFrameSurfaceDMABuf : public VideoFrameSurface {
+  friend class VideoFramePool;
+
  public:
   explicit VideoFrameSurfaceDMABuf(DMABufSurface* aSurface);
 
-  // Check if DMABufSurface is used by any gecko rendering process
-  // (WebRender or GL compositor) or by DMABUFSurfaceImage/VideoData.
-  bool IsUsed() const { return mSurface->IsGlobalRefSet(); }
+  VideoFrameSurfaceDMABuf* AsVideoFrameSurfaceDMABuf() final { return this; }
 
-  void SetYUVColorSpace(mozilla::gfx::YUVColorSpace aColorSpace) {
+  void SetYUVColorSpace(gfx::YUVColorSpace aColorSpace) final {
     mSurface->GetAsDMABufSurfaceYUV()->SetYUVColorSpace(aColorSpace);
   }
-
-  void SetColorRange(mozilla::gfx::ColorRange aColorRange) {
+  void SetColorRange(gfx::ColorRange aColorRange) final {
     mSurface->GetAsDMABufSurfaceYUV()->SetColorRange(aColorRange);
   }
 
-  RefPtr<DMABufSurfaceYUV> GetDMABufSurface() {
+  RefPtr<DMABufSurfaceYUV> GetDMABufSurface() final {
     return mSurface->GetAsDMABufSurfaceYUV();
   };
 
-  RefPtr<layers::Image> GetAsImage();
+  RefPtr<layers::Image> GetAsImage() final;
+
+ protected:
+  // Check if DMABufSurface is used by any gecko rendering process
+  // (WebRender or GL compositor) or by DMABUFSurfaceImage/VideoData.
+  bool IsUsed() const { return mSurface->IsGlobalRefSet(); }
+  void MarkAsUsed() { mSurface->GlobalRefAdd(); }
 
  protected:
   const RefPtr<DMABufSurface> mSurface;
 
- protected:
-  ~VideoFrameSurfaceDMABuf(){};
+  virtual ~VideoFrameSurfaceDMABuf() = default;
 };
 
 // VideoFrameSurfaceVAAPI holds a reference to GPU data with a video frame.
@@ -104,34 +111,39 @@ class VideoFrameSurfaceDMABuf : public VideoFrameSurface {
 // Unfortunately there isn't any obvious way how to mark particular VASurface
 // as used. The best we can do is to hold a reference to particular AVBuffer
 // from decoded AVFrame and AVHWFramesContext which owns the AVBuffer.
+class VideoFrameSurfaceVAAPI final : public VideoFrameSurfaceDMABuf {
+  friend class VideoFramePool;
 
-class VideoFrameSurfaceVAAPI : public VideoFrameSurfaceDMABuf {
  public:
   explicit VideoFrameSurfaceVAAPI(DMABufSurface* aSurface);
 
+  VideoFrameSurfaceVAAPI* AsVideoFrameSurfaceVAAPI() final { return this; }
+
+ protected:
   // Lock VAAPI related data
   void LockVAAPIData(AVCodecContext* aAVCodecContext, AVFrame* aAVFrame,
                      FFmpegLibWrapper* aLib);
-
   // Release VAAPI related data, DMABufSurface can be reused
   // for another frame.
-  void ReleaseVAAPIData(bool aForFrameRecycle);
+  void ReleaseVAAPIData(bool aForFrameRecycle = true);
 
  private:
-  ~VideoFrameSurfaceVAAPI();
+  virtual ~VideoFrameSurfaceVAAPI();
 
   const FFmpegLibWrapper* mLib;
   AVBufferRef* mAVHWFramesContext;
   AVBufferRef* mHWAVBuffer;
 };
 
+// VideoFramePool class is thread-safe.
 class VideoFramePool final {
  public:
   explicit VideoFramePool(bool aUseVAAPI);
   ~VideoFramePool();
 
   RefPtr<VideoFrameSurface> GetVideoFrameSurface(
-      VADRMPRIMESurfaceDescriptor& aVaDesc);
+      VADRMPRIMESurfaceDescriptor& aVaDesc, AVCodecContext* aAVCodecContext,
+      AVFrame* aAVFrame, FFmpegLibWrapper* aLib);
   RefPtr<VideoFrameSurface> GetVideoFrameSurface(AVPixelFormat aPixelFormat,
                                                  AVFrame* aFrame);
   void ReleaseUnusedVAAPIFrames();
@@ -141,7 +153,12 @@ class VideoFramePool final {
 
  private:
   const bool mUseVAAPI;
-  nsTArray<RefPtr<VideoFrameSurface>> mDMABufSurfaces;
+  // Protect mDMABufSurfaces pool access
+  Mutex mSurfaceLock;
+  nsTArray<RefPtr<VideoFrameSurfaceDMABuf>> mDMABufSurfaces;
+  // We may fail to create texture over DMABuf memory due to driver bugs so
+  // check that before we export first DMABuf video frame.
+  Maybe<bool> mTextureCreationWorks;
 };
 
 }  // namespace mozilla

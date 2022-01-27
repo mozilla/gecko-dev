@@ -1304,8 +1304,7 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(
       }
 
       MOZ_ASSERT(GetCurrentTouchBlock());
-      if (StaticPrefs::layout_css_touch_action_enabled() &&
-          GetCurrentTouchBlock()->TouchActionAllowsPanningXY()) {
+      if (GetCurrentTouchBlock()->TouchActionAllowsPanningXY()) {
         // User tries to trigger a touch behavior. If allowed touch behavior is
         // vertical pan
         // + horizontal pan (touch-action value is equal to AUTO) we can return
@@ -2129,12 +2128,13 @@ bool AsyncPanZoomController::CanScroll(const InputData& aEvent) const {
     //    to checking if it is scrollable without adjusting its delta.
     // 2. For a non-auto-dir scroll, simply check if it is scrollable without
     //    adjusting its delta.
-    if (scrollWheelInput.IsAutoDir()) {
+    if (scrollWheelInput.IsAutoDir(mScrollMetadata.ForceMousewheelAutodir())) {
       RecursiveMutexAutoLock lock(mRecursiveMutex);
       auto deltaX = scrollWheelInput.mDeltaX;
       auto deltaY = scrollWheelInput.mDeltaY;
       bool isRTL =
-          IsContentOfHonouredTargetRightToLeft(scrollWheelInput.HonoursRoot());
+          IsContentOfHonouredTargetRightToLeft(scrollWheelInput.HonoursRoot(
+              mScrollMetadata.ForceMousewheelAutodirHonourRoot()));
       APZAutoDirWheelDeltaAdjuster adjuster(deltaX, deltaY, mX, mY, isRTL);
       if (adjuster.ShouldBeAdjusted()) {
         // If we detect that the delta values should be adjusted for an auto-dir
@@ -2289,11 +2289,12 @@ nsEventStatus AsyncPanZoomController::OnScrollWheel(
   auto deltaX = aEvent.mDeltaX;
   auto deltaY = aEvent.mDeltaY;
   ParentLayerPoint delta;
-  if (aEvent.IsAutoDir()) {
+  if (aEvent.IsAutoDir(mScrollMetadata.ForceMousewheelAutodir())) {
     // It's an auto-dir scroll, so check if its delta should be adjusted, if so,
     // adjust it.
     RecursiveMutexAutoLock lock(mRecursiveMutex);
-    bool isRTL = IsContentOfHonouredTargetRightToLeft(aEvent.HonoursRoot());
+    bool isRTL = IsContentOfHonouredTargetRightToLeft(
+        aEvent.HonoursRoot(mScrollMetadata.ForceMousewheelAutodirHonourRoot()));
     APZAutoDirWheelDeltaAdjuster adjuster(deltaX, deltaY, mX, mY, isRTL);
     if (adjuster.ShouldBeAdjusted()) {
       adjuster.Adjust();
@@ -3272,15 +3273,7 @@ nsEventStatus AsyncPanZoomController::StartPanning(
   angle = fabs(angle);                       // range [0, pi]
 
   RecursiveMutexAutoLock lock(mRecursiveMutex);
-  if (StaticPrefs::layout_css_touch_action_enabled()) {
-    HandlePanningWithTouchAction(angle);
-  } else {
-    if (GetAxisLockMode() == FREE) {
-      SetState(PANNING);
-    } else {
-      HandlePanning(angle);
-    }
-  }
+  HandlePanningWithTouchAction(angle);
 
   if (IsInPanningState()) {
     mTouchStartRestingTimeBeforePan = aEventTime - mTouchStartTime;
@@ -4897,12 +4890,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(
       mCheckerboardEvent->UpdateRendertraceProperty(
           CheckerboardEvent::PaintedDisplayPort, GetPaintedRect(aLayerMetrics),
           str);
-      if (!aLayerMetrics.GetCriticalDisplayPort().IsEmpty()) {
-        mCheckerboardEvent->UpdateRendertraceProperty(
-            CheckerboardEvent::PaintedCriticalDisplayPort,
-            aLayerMetrics.GetCriticalDisplayPort() +
-                aLayerMetrics.GetLayoutScrollOffset());
-      }
     }
   }
 
@@ -5063,6 +5050,10 @@ void AsyncPanZoomController::NotifyLayersUpdated(
         aScrollMetadata.GetIsRDMTouchSimulationActive());
     mScrollMetadata.SetPrefersReducedMotion(
         aScrollMetadata.PrefersReducedMotion());
+    mScrollMetadata.SetForceMousewheelAutodir(
+        aScrollMetadata.ForceMousewheelAutodir());
+    mScrollMetadata.SetForceMousewheelAutodirHonourRoot(
+        aScrollMetadata.ForceMousewheelAutodirHonourRoot());
     mScrollMetadata.SetDisregardedDirection(
         aScrollMetadata.GetDisregardedDirection());
     mScrollMetadata.SetOverscrollBehavior(

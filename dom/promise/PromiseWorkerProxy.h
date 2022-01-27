@@ -174,11 +174,11 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
                           bool* aSameProcessScopeRequired) override;
 
  protected:
-  virtual void ResolvedCallback(JSContext* aCx,
-                                JS::Handle<JS::Value> aValue) override;
+  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                                ErrorResult& aRv) override;
 
-  virtual void RejectedCallback(JSContext* aCx,
-                                JS::Handle<JS::Value> aValue) override;
+  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                                ErrorResult& aRv) override;
 
  private:
   explicit PromiseWorkerProxy(
@@ -186,9 +186,6 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
       const PromiseWorkerProxyStructuredCloneCallbacks* aCallbacks = nullptr);
 
   virtual ~PromiseWorkerProxy();
-
-  // If not called from Create(), be sure to hold Lock().
-  void CleanProperties();
 
   // Function pointer for calling Promise::{ResolveInternal,RejectInternal}.
   typedef void (Promise::*RunCallbackFunc)(JSContext*, JS::Handle<JS::Value>);

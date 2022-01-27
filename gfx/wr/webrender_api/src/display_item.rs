@@ -485,7 +485,7 @@ pub enum RepeatMode {
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub enum NinePatchBorderSource {
-    Image(ImageKey),
+    Image(ImageKey, ImageRendering),
     Gradient(Gradient),
     RadialGradient(RadialGradient),
     ConicGradient(ConicGradient),
@@ -774,6 +774,10 @@ pub enum ReferenceFrameKind {
         /// Marks that the transform should be snapped. Used for transforms which animate in
         /// response to scrolling, eg for zooming or dynamic toolbar fixed-positioning.
         should_snap: bool,
+        /// Marks the transform being a part of the CSS stacking context that also has
+        /// a perspective. In this case, backface visibility takes this perspective into
+        /// account.
+        paired_with_perspective: bool,
     },
     /// A perspective transform, that optionally scrolls relative to a specific scroll node
     Perspective {
@@ -825,6 +829,11 @@ pub enum ReferenceTransformBinding {
     /// Computed reference frame which dynamically calculates the transform
     /// based on the given parameters. The reference is the content size of
     /// the parent iframe, which is affected by snapping.
+    ///
+    /// This is used when a transform depends on the layout size of an
+    /// element, otherwise the difference between the unsnapped size
+    /// used in the transform, and the snapped size calculated during scene
+    /// building can cause seaming.
     Computed {
         scale_from: Option<LayoutSize>,
         vertical_flip: bool,
@@ -1758,7 +1767,7 @@ impl_default_for_enums! {
     LineOrientation => Vertical,
     LineStyle => Solid,
     RepeatMode => Stretch,
-    NinePatchBorderSource => Image(ImageKey::default()),
+    NinePatchBorderSource => Image(ImageKey::default(), ImageRendering::Auto),
     BorderDetails => Normal(NormalBorder::default()),
     BorderRadiusKind => Uniform,
     BorderStyle => None,
@@ -1772,6 +1781,7 @@ impl_default_for_enums! {
     ReferenceFrameKind => Transform {
         is_2d_scale_translation: false,
         should_snap: false,
+        paired_with_perspective: false,
     },
     Rotation => Degree0,
     TransformStyle => Flat,

@@ -3,21 +3,28 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! IPC Implementation, Rust part
+//!
+//! ## Implementation note
+//!
+//! We can't rely on a system-provided random number generator here,
+//! as the sandbox a child process runs in might be severely restricted
+//! (see [bug 1746254] for details).
+//! That means avoiding the default `RandomState` on hash maps and use `HashState` instead.
+//!
+//! [bug 1746254]: https://bugzilla.mozilla.org/show_bug.cgi?id=1746254
 
 use crate::private::MetricId;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 #[cfg(not(feature = "with_gecko"))]
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 #[cfg(feature = "with_gecko")]
-use {
-    std::convert::TryInto,
-    std::sync::atomic::{AtomicU32, Ordering},
-    xpcom::interfaces::nsIXULRuntime,
-};
+use {std::convert::TryInto, std::sync::atomic::AtomicU32, xpcom::interfaces::nsIXULRuntime};
 
+use super::HashState;
 use super::metrics::__glean_metric_maps;
 
 type EventRecord = (u64, HashMap<i32, String>);
@@ -26,25 +33,47 @@ type EventRecord = (u64, HashMap<i32, String>);
 /// process.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct IPCPayload {
-    pub counters: HashMap<MetricId, i32>,
-    pub custom_samples: HashMap<MetricId, Vec<i64>>,
-    pub denominators: HashMap<MetricId, i32>,
-    pub events: HashMap<MetricId, Vec<EventRecord>>,
-    pub labeled_counters: HashMap<MetricId, HashMap<String, i32>>,
-    pub memory_samples: HashMap<MetricId, Vec<u64>>,
-    pub numerators: HashMap<MetricId, i32>,
-    pub rates: HashMap<MetricId, (i32, i32)>,
-    pub string_lists: HashMap<MetricId, Vec<String>>,
-    pub timing_samples: HashMap<MetricId, Vec<u64>>,
+    pub counters: HashMap<MetricId, i32, HashState>,
+    pub custom_samples: HashMap<MetricId, Vec<i64>, HashState>,
+    pub denominators: HashMap<MetricId, i32, HashState>,
+    pub events: HashMap<MetricId, Vec<EventRecord>, HashState>,
+    pub labeled_counters: HashMap<MetricId, HashMap<String, i32>, HashState>,
+    pub memory_samples: HashMap<MetricId, Vec<u64>, HashState>,
+    pub numerators: HashMap<MetricId, i32, HashState>,
+    pub rates: HashMap<MetricId, (i32, i32), HashState>,
+    pub string_lists: HashMap<MetricId, Vec<String>, HashState>,
+    pub timing_samples: HashMap<MetricId, Vec<u64>, HashState>,
 }
 
 /// Global singleton: pending IPC payload.
 static PAYLOAD: Lazy<Mutex<IPCPayload>> = Lazy::new(|| Mutex::new(IPCPayload::default()));
+/// Global singleton: number of times the IPC payload was accessed.
+static PAYLOAD_ACCESS_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+// The maximum size of an IPC message in Firefox Desktop is 256MB.
+// (See IPC::Channel::kMaximumMessageSize)
+// In `IPCPayload` the largest size can be attained in the fewest accesses via events.
+// Each event could be its own u64 id, u64 timestamp, and HashMap of ten i32 to ten 100-byte strings.
+// That's 1056B = 8 + 8 + 10(4 + 100)
+// In 256MB we can fit 254200 or so of these, not counting overhead.
+// Let's take a conservative estimate of 100000 to
+// 0) Account for overhead
+// 1) Not be greedy
+// 2) Allow time for the dispatch to main thread which will actually perform the flush
+// "Why the -1?" Because fetch_add returns the value before the addition.
+const PAYLOAD_ACCESS_WATERMARK: usize = 100000 - 1;
 
 pub fn with_ipc_payload<F, R>(f: F) -> R
 where
     F: FnOnce(&mut IPCPayload) -> R,
 {
+    if PAYLOAD_ACCESS_COUNT.fetch_add(1, Ordering::SeqCst) > PAYLOAD_ACCESS_WATERMARK {
+        // We reset this before the actual flush to keep all the logic together.
+        // Otherwise the count reset would need to happen down in take_buf().
+        // This may overcount (resulting in undersized payloads) which is okay.
+        PAYLOAD_ACCESS_COUNT.store(0, Ordering::SeqCst);
+        handle_payload_filling();
+    }
     let mut payload = PAYLOAD.lock().unwrap();
     f(&mut payload)
 }
@@ -63,7 +92,7 @@ static PROCESS_TYPE: Lazy<AtomicU32> = Lazy::new(|| {
     // and introduced a negative process type constant. Default to parent.
     let process_type = process_type
         .try_into()
-        .unwrap_or(nsIXULRuntime::PROCESS_TYPE_DEFAULT as u32);
+        .unwrap_or(nsIXULRuntime::PROCESS_TYPE_DEFAULT);
     // We don't have process-specific init locations outside of the main
     // process, so we introduce this side-effect to a global static init.
     // This is the absolute first time we decide which process type we're
@@ -74,7 +103,7 @@ static PROCESS_TYPE: Lazy<AtomicU32> = Lazy::new(|| {
 
 #[cfg(feature = "with_gecko")]
 pub fn need_ipc() -> bool {
-    PROCESS_TYPE.load(Ordering::Relaxed) != nsIXULRuntime::PROCESS_TYPE_DEFAULT as u32
+    PROCESS_TYPE.load(Ordering::Relaxed) != nsIXULRuntime::PROCESS_TYPE_DEFAULT
 }
 
 /// The first time we're used in a process,
@@ -84,7 +113,7 @@ pub fn need_ipc() -> bool {
 /// Multiple calls may register multiple handlers.
 #[cfg(feature = "with_gecko")]
 fn register_process_shutdown(process_type: u32) {
-    match process_type as i64 {
+    match process_type {
         nsIXULRuntime::PROCESS_TYPE_DEFAULT => {
             // Parent process shutdown is handled by the FOG XPCOM Singleton.
         }
@@ -97,8 +126,17 @@ fn register_process_shutdown(process_type: u32) {
                 FOG_RegisterContentChildShutdown();
             };
         }
+        nsIXULRuntime::PROCESS_TYPE_GMPLUGIN => {
+            // GMP process shutdown is handled in GMPChild::ActorDestroy.
+        }
         nsIXULRuntime::PROCESS_TYPE_GPU => {
             // GPU process shutdown is handled in GPUParent::ActorDestroy.
+        }
+        nsIXULRuntime::PROCESS_TYPE_RDD => {
+            // RDD process shutdown is handled in RDDParent::ActorDestroy.
+        }
+        nsIXULRuntime::PROCESS_TYPE_SOCKET => {
+            // Socket process shutdown is handled in SocketProcessChild::ActorDestroy.
         }
         _ => {
             // We don't yet support other process types.
@@ -157,6 +195,21 @@ pub fn take_buf() -> Option<Vec<u8>> {
         };
         buf
     })
+}
+
+#[cfg(not(feature = "with_gecko"))]
+fn handle_payload_filling() {
+    // Space intentionally left blank.
+    // Without Gecko IPC to drain the buffer, there's nothing we can do.
+}
+
+#[cfg(feature = "with_gecko")]
+fn handle_payload_filling() {
+    extern "C" {
+        fn FOG_IPCPayloadFull();
+    }
+    // SAFETY NOTE: Safe because it doesn't take or return values.
+    unsafe { FOG_IPCPayloadFull() };
 }
 
 // Reason: We instrument the error counts,

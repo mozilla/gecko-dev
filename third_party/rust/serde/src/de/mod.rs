@@ -1007,7 +1007,7 @@ pub trait Deserializer<'de>: Sized {
     /// `Deserializer`.
     ///
     /// If the `Visitor` would benefit from taking ownership of `String` data,
-    /// indiciate this to the `Deserializer` by using `deserialize_string`
+    /// indicate this to the `Deserializer` by using `deserialize_string`
     /// instead.
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
@@ -1212,6 +1212,20 @@ pub trait Deserializer<'de>: Sized {
     #[inline]
     fn is_human_readable(&self) -> bool {
         true
+    }
+
+    // Not public API.
+    #[cfg(all(serde_derive, any(feature = "std", feature = "alloc")))]
+    #[doc(hidden)]
+    fn __deserialize_content<V>(
+        self,
+        _: ::actually_private::T,
+        visitor: V,
+    ) -> Result<::private::de::Content<'de>, Self::Error>
+    where
+        V: Visitor<'de, Value = ::private::de::Content<'de>>,
+    {
+        self.deserialize_any(visitor)
     }
 }
 
@@ -1714,7 +1728,7 @@ pub trait SeqAccess<'de> {
     }
 }
 
-impl<'de, 'a, A> SeqAccess<'de> for &'a mut A
+impl<'de, 'a, A: ?Sized> SeqAccess<'de> for &'a mut A
 where
     A: SeqAccess<'de>,
 {
@@ -1867,7 +1881,7 @@ pub trait MapAccess<'de> {
     }
 }
 
-impl<'de, 'a, A> MapAccess<'de> for &'a mut A
+impl<'de, 'a, A: ?Sized> MapAccess<'de> for &'a mut A
 where
     A: MapAccess<'de>,
 {

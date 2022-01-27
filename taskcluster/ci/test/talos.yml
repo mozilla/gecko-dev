@@ -24,7 +24,6 @@ job-defaults:
                 default:
                     - talos/linux_config.py
     test-manifest-loader: null  # don't load tests in the taskgraph
-    python-3: true
 
 talos-bcv:
     description: Talos basic compositor video
@@ -32,10 +31,11 @@ talos-bcv:
     treeherder-symbol: T(bcv)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|macosx1015|windows10)-64-shippable-qr/opt: [mozilla-beta, trunk]
                     (windows10-64|macosx1015-64).*-qr.*: [trunk]
@@ -57,6 +57,7 @@ talos-bcv-profiling:
     treeherder-symbol: T-Prof(bcv)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time: 1800
     mozharness:
@@ -70,7 +71,8 @@ talos-chrome:
     treeherder-symbol: T(c)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
@@ -89,6 +91,7 @@ talos-chrome-profiling:
     tier: 2
     max-run-time: 1200
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     mozharness:
         extra-options:
@@ -102,15 +105,11 @@ talos-damp:
     max-run-time: 5400
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804-64|windows10-64)-shippable-qr/opt: [mozilla-central, autoland]
-                    # Bug 1657864 - Disabled on macos for high frequency intermittents
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx1015)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
@@ -119,7 +118,6 @@ talos-damp:
                     windows.*-32-shippable.*/.*: []
                     (linux|windows|macos)(?!.*shippable).*: []
                     (linux|windows10-64|macos)(?!.*-qr).*: []
-                    macosx1014.*: []
                     default: [mozilla-beta, trunk]
     mozharness:
         extra-options:
@@ -132,6 +130,7 @@ talos-damp-profiling:
     tier: 2
     max-run-time: 5400
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     mozharness:
         extra-options:
@@ -144,6 +143,7 @@ talos-dromaeojs:
     treeherder-symbol: T(d)
     max-run-time: 2100
     variants: [fission]
+    run-without-variant: false
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
@@ -161,6 +161,7 @@ talos-dromaeojs-profiling:
     tier: 2
     max-run-time: 2100
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     mozharness:
         extra-options:
@@ -171,20 +172,15 @@ talos-flex:
     description: Talos XUL flexbox emulation enabled
     try-name: flex
     treeherder-symbol: T(f)
-    tier:
-        by-variant:
-            fission: 2
-            default: 3
+    tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects:
-        by-variant:
-            fission: []
-            default:
-                by-test-platform:
-                    windows.*-32.*: []
-                    (linux|windows10-64|macos)(?!.*shippable).*: []
-                    (linux|windows10-64|macos)(?!.*-qr).*: []
-                    default: [mozilla-central]
+        by-test-platform:
+            windows.*-32.*: []
+            (linux|windows10-64|macos)(?!.*shippable).*: []
+            (linux|windows10-64|macos)(?!.*-qr).*: []
+            default: [mozilla-central]
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -196,14 +192,12 @@ talos-flex-profiling:
     treeherder-symbol: T-Prof(f)
     tier: 3
     variants: [fission]
+    run-without-variant: false
     run-on-projects:
-        by-variant:
-            fission: []
-            default:
-                by-test-platform:
-                    windows.*-32.*: []
-                    (linux|windows10-64|macos)(?!.*shippable).*: []
-                    default: [mozilla-central]
+        by-test-platform:
+            windows.*-32.*: []
+            (linux|windows10-64|macos)(?!.*shippable).*: []
+            default: [mozilla-central]
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -216,14 +210,11 @@ talos-g1:
     treeherder-symbol: T(g1)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
@@ -247,6 +238,7 @@ talos-g1-profiling:
     treeherder-symbol: T-Prof(g1)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time:
         by-test-platform:
@@ -263,14 +255,11 @@ talos-g3:
     treeherder-symbol: T(g3)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
@@ -292,6 +281,7 @@ talos-g3-profiling:
     tier: 2
     max-run-time: 900
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     mozharness:
         extra-options:
@@ -304,14 +294,11 @@ talos-g4:
     treeherder-symbol: T(g4)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804-64|windows10-64)-shippable-qr/opt: [mozilla-central, autoland]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx1015)-64-shippable-qr/opt: [mozilla-beta, trunk]
                     default: []
@@ -339,6 +326,7 @@ talos-g4-profiling:
             linux1804-64.*: 1500
             default: 1800
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     mozharness:
         extra-options:
@@ -354,14 +342,11 @@ talos-g5:
             - --suite=g5
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
@@ -383,6 +368,7 @@ talos-g5-profiling:
     treeherder-symbol: T-Prof(g5)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     mozharness:
         extra-options:
@@ -398,6 +384,7 @@ talos-h1:
     try-name: h1
     treeherder-symbol: T(h1)
     variants: [fission]
+    run-without-variant: false
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
@@ -417,6 +404,7 @@ talos-h2:
     try-name: h2
     treeherder-symbol: T(h2)
     variants: [fission]
+    run-without-variant: false
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
@@ -436,6 +424,7 @@ talos-motionmark:
     try-name: motionmark
     treeherder-symbol: T(mm)
     variants: [fission]
+    run-without-variant: false
     run-on-projects:
         by-test-platform:
             (linux|windows10-64|macos)(?!.*shippable).*: []
@@ -452,6 +441,7 @@ talos-motionmark-profiling:
     try-name: motionmark-prof
     treeherder-symbol: T-Prof(mm)
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time: 3600
     tier: 2
@@ -466,14 +456,11 @@ talos-other:
     treeherder-symbol: T(o)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
@@ -493,6 +480,7 @@ talos-other-profiling:
     try-name: other-prof
     treeherder-symbol: T-Prof(o)
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     tier: 2
     max-run-time: 1500
@@ -507,14 +495,11 @@ talos-sessionrestore-many-windows:
     treeherder-symbol: T(smw)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-central, autoland]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-central, autoland]
                     default: []
@@ -535,6 +520,7 @@ talos-sessionrestore-many-windows-profiling:
     treeherder-symbol: T-Prof(smw)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time: 1500
     mozharness:
@@ -548,14 +534,11 @@ talos-perf-reftest:
     treeherder-symbol: T(p)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
@@ -576,6 +559,7 @@ talos-perf-reftest-profiling:
     treeherder-symbol: T-Prof(p)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time: 1200
     mozharness:
@@ -588,6 +572,7 @@ talos-perf-reftest-singletons:
     try-name: perf-reftest-singletons
     treeherder-symbol: T(ps)
     variants: [fission]
+    run-without-variant: false
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
@@ -605,6 +590,7 @@ talos-perf-reftest-singletons-profiling:
     treeherder-symbol: T-Prof(ps)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time: 1500
     mozharness:
@@ -618,14 +604,11 @@ talos-svgr:
     treeherder-symbol: T(s)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
@@ -646,6 +629,7 @@ talos-svgr-profiling:
     treeherder-symbol: T-Prof(s)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time: 1800
     mozharness:
@@ -659,14 +643,11 @@ talos-tp5o:
     treeherder-symbol: T(tp)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
@@ -687,6 +668,7 @@ talos-tp5o-profiling:
     treeherder-symbol: T-Prof(tp)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time: 1800
     mozharness:
@@ -700,14 +682,11 @@ talos-tabswitch:
     treeherder-symbol: T(tabswitch)
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            fission:
-                by-test-platform:
-                    (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
-                    default: []
-            webrender-sw:
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx.*)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
@@ -728,6 +707,7 @@ talos-tabswitch-profiling:
     treeherder-symbol: T-Prof(tabswitch)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time: 1200
     mozharness:
@@ -740,22 +720,27 @@ talos-webgl:
     try-name: webgl
     treeherder-symbol: T(webgl)
     variants:
+        - fission
+        - fission-webrender-sw
         - webgl-ipc
-        - webrender-sw
+        - webgl-ipc+fission
     run-on-projects:
         by-variant:
             webgl-ipc:
                 by-test-platform:
                     (linux1804|windows10|macosx1015)-64.*: [trunk]
                     default: []
-            webrender-sw:
+            webgl-ipc+fission:
+                by-test-platform:
+                    (linux1804|windows10|macosx1015)-64.*: [trunk]
+                    default: []
+            fission-webrender-sw:
                 by-test-platform:
                     (linux1804|windows10|macosx1015)-64-shippable-qr.*: [mozilla-beta, trunk]
                     default: []
             default:
                 by-test-platform:
                     windows.*-32.*: []
-                    macosx1014.*: []
                     (linux|windows10-64|macos)(?!.*shippable).*: []
                     (linux|windows10-64|macos)(?!.*-qr).*: []
                     default: [mozilla-beta, trunk]
@@ -776,6 +761,7 @@ talos-webgl-profiling:
     tier: 2
     variants:
         - webgl-ipc
+        - webgl-ipc+fission
     run-on-projects: []
     max-run-time: 1800
     mozharness:
@@ -795,11 +781,12 @@ talos-xperf:
             windows10-64.*: true
     variants:
         - fission
-        - webrender-sw
+        - fission-webrender-sw
+    run-without-variant: false
     run-on-projects:
         by-test-platform:
             windows.*-32-shippable(?:-qr)?/.*: []
-            windows10-64-shippable-qr/.*: [mozilla-beta, trunk]
+            windows10-64.*-shippable-qr/.*: [mozilla-beta, trunk]
             default: []
     mozharness:
         extra-options:
@@ -808,13 +795,13 @@ talos-xperf:
             by-test-platform:
                 windows.*:
                     - talos/windows_vm_config.py
-    python-3: false
 
 talos-realworld-webextensions:
     description: Talos tests with realworld WebExtensions
     try-name: realworld-webextensions
     treeherder-symbol: T(realwebext)
     variants: [fission]
+    run-without-variant: false
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
@@ -832,6 +819,7 @@ talos-realworld-webextensions-profiling:
     treeherder-symbol: T-Prof(realwebext)
     tier: 2
     variants: [fission]
+    run-without-variant: false
     run-on-projects: []
     max-run-time: 1500
     mozharness:

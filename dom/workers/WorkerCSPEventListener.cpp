@@ -5,9 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WorkerCSPEventListener.h"
-#include "WorkerPrivate.h"
 #include "WorkerRef.h"
 #include "WorkerRunnable.h"
+#include "WorkerScope.h"
 #include "mozilla/dom/SecurityPolicyViolationEvent.h"
 #include "mozilla/dom/SecurityPolicyViolationEventBinding.h"
 #include "mozilla/dom/WorkerRunnable.h"
@@ -53,6 +53,7 @@ already_AddRefed<WorkerCSPEventListener> WorkerCSPEventListener::Create(
 
   RefPtr<WorkerCSPEventListener> listener = new WorkerCSPEventListener();
 
+  MutexAutoLock lock(listener->mMutex);
   listener->mWorkerRef = WeakWorkerRef::Create(aWorkerPrivate, [listener]() {
     MutexAutoLock lock(listener->mMutex);
     listener->mWorkerRef = nullptr;

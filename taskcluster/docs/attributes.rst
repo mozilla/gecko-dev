@@ -172,12 +172,6 @@ test_manifests
 
 A list of the test manifests that run in this task.
 
-e10s
-====
-
-For test suites which distinguish whether they run with or without e10s, this
-boolean value identifies this particular run.
-
 image_name
 ==========
 
@@ -438,6 +432,10 @@ This build is an artifact build.
 This deliberately excludes builds that are implemented using the artifact build
 machinery, but are not primarily intended to short-circuit build time. In
 particular the Windows aarch64 builds are not marked this way.
+
+maven_packages
+===============
+List of maven packages produced by the build.
 
 supports-artifact-builds
 ========================

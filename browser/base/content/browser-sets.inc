@@ -29,7 +29,7 @@
 
     <command id="cmd_pageSetup" oncommand="PrintUtils.showPageSetup();"/>
     <command id="cmd_print" oncommand="PrintUtils.startPrintWindow(gBrowser.selectedBrowser.browsingContext);"/>
-    <command id="cmd_printPreview" oncommand="PrintUtils.printPreview(PrintPreviewListener).catch(() => {});"/>
+    <command id="cmd_printPreviewToggle" oncommand="PrintUtils.togglePrintPreview(gBrowser.selectedBrowser.browsingContext);"/>
     <command id="cmd_file_importFromAnotherBrowser" oncommand="MigrationUtils.showMigrationWizard(window, [MigrationUtils.MIGRATION_ENTRYPOINT_FILE_MENU]);"/>
     <command id="cmd_help_importFromAnotherBrowser" oncommand="MigrationUtils.showMigrationWizard(window, [MigrationUtils.MIGRATION_ENTRYPOINT_HELP_MENU]);"/>
     <command id="cmd_close" oncommand="BrowserCloseTabOrWindow(event);"/>
@@ -92,15 +92,6 @@
     <command id="Tools:PrivateBrowsing"
       oncommand="OpenBrowserWindow({private: true});"/>
     <command id="Browser:Screenshot" oncommand="ScreenshotsUtils.notify(window, 'shortcut')"/>
-    
-#ifdef NIGHTLY_BUILD
-    <command id="Tools:FissionWindow"
-      oncommand="OpenBrowserWindow({fission: true, private: !!window?.browsingContext?.usePrivateBrowsing});"
-      hidden="true"/>
-    <command id="Tools:NonFissionWindow"
-      oncommand="OpenBrowserWindow({fission: false, private: !!window?.browsingContext?.usePrivateBrowsing});"
-      hidden="true"/>
-#endif
     <command id="History:UndoCloseTab" oncommand="undoCloseTab();" data-l10n-args='{"tabCount": 1}'/>
     <command id="History:UndoCloseWindow" oncommand="undoCloseWindow();"/>
 
@@ -179,7 +170,8 @@
     <key id="key_toggleMute" data-l10n-id="mute-toggle-shortcut" command="cmd_toggleMute" modifiers="control"/>
     <key id="key_undo"
          data-l10n-id="text-action-undo-shortcut"
-         modifiers="accel"/>
+         modifiers="accel"
+         internal="true"/>
     <key id="key_redo"
 #ifdef XP_UNIX
          data-l10n-id="text-action-undo-shortcut"
@@ -188,18 +180,21 @@
          data-l10n-id="text-action-redo-shortcut"
          modifiers="accel"
 #endif
-         />
+         internal="true"/>
     <key id="key_cut"
          data-l10n-id="text-action-cut-shortcut"
-         modifiers="accel"/>
+         modifiers="accel"
+         internal="true"/>
     <key id="key_copy"
          data-l10n-id="text-action-copy-shortcut"
-         modifiers="accel"/>
+         modifiers="accel"
+         internal="true"/>
     <key id="key_paste"
          data-l10n-id="text-action-paste-shortcut"
-         modifiers="accel"/>
+         modifiers="accel"
+         internal="true"/>
     <key id="key_delete" keycode="VK_DELETE" command="cmd_delete" reserved="false"/>
-    <key id="key_selectAll" data-l10n-id="text-action-select-all-shortcut" modifiers="accel"/>
+    <key id="key_selectAll" data-l10n-id="text-action-select-all-shortcut" modifiers="accel" internal="true"/>
 
     <key keycode="VK_BACK" command="cmd_handleBackspace" reserved="false"/>
     <key keycode="VK_BACK" command="cmd_handleShiftBackspace" modifiers="shift" reserved="false"/>
@@ -319,7 +314,9 @@
 # On OS X, dark voodoo magic invokes the quit code for this key.
 # So we're not adding the attribute on OSX because of backwards/add-on compat.
 # See bug 1369909 for background on this.
-#ifndef XP_MACOSX
+#ifdef XP_MACOSX
+         internal="true"
+#else
          command="cmd_quitApplication"
 #endif
          reserved="true"/>
@@ -370,20 +367,25 @@
     <key id="key_minimizeWindow"
          command="minimizeWindow"
          data-l10n-id="window-minimize-shortcut"
-         modifiers="accel"/>
+         modifiers="accel"
+         internal="true"/>
     <key id="key_openHelpMac"
          oncommand="openHelpLink('firefox-osxkey');"
          data-l10n-id="help-shortcut"
-         modifiers="accel"/>
+         modifiers="accel"
+         internal="true"/>
     <!-- These are used to build the Application menu -->
     <key id="key_preferencesCmdMac"
          data-l10n-id="preferences-shortcut"
-         modifiers="accel"/>
+         modifiers="accel"
+         internal="true"/>
     <key id="key_hideThisAppCmdMac"
          data-l10n-id="hide-app-shortcut"
-         modifiers="accel"/>
+         modifiers="accel"
+         internal="true"/>
     <key id="key_hideOtherAppsCmdMac"
          data-l10n-id="hide-other-apps-shortcut"
-         modifiers="accel,alt"/>
+         modifiers="accel,alt"
+         internal="true"/>
 #endif
   </keyset>

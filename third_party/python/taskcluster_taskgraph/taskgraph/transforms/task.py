@@ -698,6 +698,63 @@ def build_generic_worker_payload(config, task, task_def):
 
 
 @payload_builder(
+    "beetmover",
+    schema={
+        # the maximum time to run, in seconds
+        Required("max-run-time"): int,
+        # locale key, if this is a locale beetmover job
+        Optional("locale"): str,
+        Optional("partner-public"): bool,
+        Required("release-properties"): {
+            "app-name": str,
+            "app-version": str,
+            "branch": str,
+            "build-id": str,
+            "hash-type": str,
+            "platform": str,
+        },
+        # list of artifact URLs for the artifacts that should be beetmoved
+        Required("upstream-artifacts"): [
+            {
+                # taskId of the task with the artifact
+                Required("taskId"): taskref_or_string,
+                # type of signing task (for CoT)
+                Required("taskType"): str,
+                # Paths to the artifacts to sign
+                Required("paths"): [str],
+                # locale is used to map upload path and allow for duplicate simple names
+                Required("locale"): str,
+            }
+        ],
+        Optional("artifact-map"): object,
+    },
+)
+def build_beetmover_payload(config, task, task_def):
+    worker = task["worker"]
+    release_properties = worker["release-properties"]
+
+    task_def["payload"] = {
+        "maxRunTime": worker["max-run-time"],
+        "releaseProperties": {
+            "appName": release_properties["app-name"],
+            "appVersion": release_properties["app-version"],
+            "branch": release_properties["branch"],
+            "buildid": release_properties["build-id"],
+            "hashType": release_properties["hash-type"],
+            "platform": release_properties["platform"],
+        },
+        "upload_date": config.params["build_date"],
+        "upstreamArtifacts": worker["upstream-artifacts"],
+    }
+    if worker.get("locale"):
+        task_def["payload"]["locale"] = worker["locale"]
+    if worker.get("artifact-map"):
+        task_def["payload"]["artifactMap"] = worker["artifact-map"]
+    if worker.get("partner-public"):
+        task_def["payload"]["is_partner_repack_public"] = worker["partner-public"]
+
+
+@payload_builder(
     "invalid",
     schema={
         # an invalid task is one which should never actually be created; this is used in
@@ -1075,7 +1132,7 @@ def chain_of_trust(config, tasks):
 @transforms.add
 def check_task_identifiers(config, tasks):
     """Ensures that all tasks have well defined identifiers:
-    ^[a-zA-Z0-9_-]{1,38}$
+    ``^[a-zA-Z0-9_-]{1,38}$``
     """
     e = re.compile("^[a-zA-Z0-9_-]{1,38}$")
     for task in tasks:

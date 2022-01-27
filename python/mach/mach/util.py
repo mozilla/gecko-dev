@@ -8,6 +8,9 @@ import hashlib
 import os
 import sys
 
+from pathlib import Path, PurePosixPath
+from typing import Optional
+
 
 class UserError(Exception):
     """Represents an error caused by something the user did wrong rather than
@@ -60,6 +63,10 @@ def get_state_dir(specific_to_topsrcdir=False, topsrcdir=None):
         topsrcdir = os.path.abspath(
             MozbuildObject.from_environment(cwd=os.path.dirname(__file__)).topsrcdir
         )
+
+    # Ensure that the topsrcdir is a consistent string before hashing it.
+    topsrcdir = os.path.normcase(os.path.normpath(topsrcdir))
+
     # Shortening to 12 characters makes these directories a bit more manageable
     # in a terminal and is more than good enough for this purpose.
     srcdir_hash = hashlib.sha256(topsrcdir.encode("utf-8")).hexdigest()[:12]
@@ -79,3 +86,28 @@ def get_state_dir(specific_to_topsrcdir=False, topsrcdir=None):
             fh.write(topsrcdir)
 
     return state_dir
+
+
+def win_to_msys_path(path: Path):
+    """Convert a windows-style path to msys-style."""
+    drive, path = os.path.splitdrive(path)
+    path = "/".join(path.split("\\"))
+    if drive:
+        if path[0] == "/":
+            path = path[1:]
+        path = f"/{drive[:-1]}/{path}"
+    return PurePosixPath(path)
+
+
+def to_optional_path(path: Optional[Path]):
+    if path:
+        return Path(path)
+    else:
+        return None
+
+
+def to_optional_str(path: Optional[Path]):
+    if path:
+        return str(path)
+    else:
+        return None

@@ -503,11 +503,8 @@ function BuildConditionSandbox(aURL) {
       g.windowUtils.layerManagerType == "OpenGL";
     sandbox.swgl =
       g.windowUtils.layerManagerType.startsWith("WebRender (Software");
-    sandbox.webrender =
-      g.windowUtils.layerManagerType.startsWith("WebRender");
     sandbox.layersOMTC =
       g.windowUtils.layerManagerRemote == true;
-    sandbox.layerChecksEnabled = !sandbox.webrender;
 
     // Shortcuts for widget toolkits.
     sandbox.Android = xr.OS == "Android";
@@ -528,6 +525,10 @@ function BuildConditionSandbox(aURL) {
 
     sandbox.retainedDisplayList =
       prefs.getBoolPref("layout.display-list.retain") && !sandbox.useDrawSnapshot;
+
+    // Needed to specifically test the new and old behavior. This will eventually be removed.
+    sandbox.retainedDisplayListNew =
+        sandbox.retainedDisplayList && prefs.getBoolPref("layout.display-list.retain.sc");
 
     // GeckoView is currently uniquely identified by "android + e10s" but
     // we might want to make this condition more precise in the future.
@@ -553,8 +554,6 @@ function BuildConditionSandbox(aURL) {
     sandbox.webrtc = AppConstants.MOZ_WEBRTC;
     sandbox.jxl = AppConstants.MOZ_JXL;
 
-    let retainedDisplayListsEnabled = prefs.getBoolPref("layout.display-list.retain", false);
-    sandbox.retainedDisplayLists = retainedDisplayListsEnabled && !g.compareRetainedDisplayLists && !sandbox.useDrawSnapshot;
     sandbox.compareRetainedDisplayLists = g.compareRetainedDisplayLists;
 
     sandbox.release_or_beta = AppConstants.RELEASE_OR_BETA;

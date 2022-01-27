@@ -716,6 +716,7 @@ class BaseContent extends react__WEBPACK_IMPORTED_MODULE_8___default.a.PureCompo
     const noSectionsEnabled = !prefs["feeds.topsites"] && !pocketEnabled && filteredSections.filter(section => section.enabled).length === 0;
     const searchHandoffEnabled = prefs["improvesearch.handoffToAwesomebar"];
     const showCustomizationMenu = this.state.customizeMenuVisible;
+    const showColorwayCloset = prefs["colorway-closet.enabled"];
     const enabledSections = {
       topSitesEnabled: prefs["feeds.topsites"],
       pocketEnabled: prefs["feeds.section.topstories"],
@@ -738,7 +739,8 @@ class BaseContent extends react__WEBPACK_IMPORTED_MODULE_8___default.a.PureCompo
       enabledSections: enabledSections,
       pocketRegion: pocketRegion,
       mayHaveSponsoredTopSites: mayHaveSponsoredTopSites,
-      showing: showCustomizationMenu
+      showing: showCustomizationMenu,
+      showColorwayCloset: showColorwayCloset
     }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_8___default.a.createElement("div", {
       className: outerClassName,
       onClick: this.closeCustomizationMenu
@@ -2135,7 +2137,7 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_3___default.a.Pu
       className: "icon icon-small-spacer icon-info"
     }), " ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_3___default.a.createElement("span", null, "Need help using these tools? Check out our", " ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_3___default.a.createElement("a", {
       target: "blank",
-      href: "https://github.com/mozilla/activity-stream/blob/master/content-src/asrouter/docs/debugging-docs.md"
+      href: "https://firefox-source-docs.mozilla.org/browser/components/newtab/content-src/asrouter/docs/index.html"
     }, "documentation"))), this.getSection()));
   }
 
@@ -2363,7 +2365,8 @@ __webpack_require__.r(__webpack_exports__);
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-const MESSAGE_TYPE_LIST = ["BLOCK_MESSAGE_BY_ID", "USER_ACTION", "IMPRESSION", "TRIGGER", "NEWTAB_MESSAGE_REQUEST", "DOORHANGER_TELEMETRY", "TOOLBAR_BADGE_TELEMETRY", "TOOLBAR_PANEL_TELEMETRY", "MOMENTS_PAGE_TELEMETRY", "INFOBAR_TELEMETRY", "SPOTLIGHT_TELEMETRY", "AS_ROUTER_TELEMETRY_USER_EVENT", // Admin types
+const MESSAGE_TYPE_LIST = ["BLOCK_MESSAGE_BY_ID", "USER_ACTION", "IMPRESSION", "TRIGGER", "NEWTAB_MESSAGE_REQUEST", // PB is Private Browsing
+"PBNEWTAB_MESSAGE_REQUEST", "DOORHANGER_TELEMETRY", "TOOLBAR_BADGE_TELEMETRY", "TOOLBAR_PANEL_TELEMETRY", "MOMENTS_PAGE_TELEMETRY", "INFOBAR_TELEMETRY", "SPOTLIGHT_TELEMETRY", "AS_ROUTER_TELEMETRY_USER_EVENT", // Admin types
 "ADMIN_CONNECT_STATE", "UNBLOCK_MESSAGE_BY_ID", "UNBLOCK_ALL", "BLOCK_BUNDLE", "UNBLOCK_BUNDLE", "DISABLE_PROVIDER", "ENABLE_PROVIDER", "EVALUATE_JEXL_EXPRESSION", "EXPIRE_QUERY_CACHE", "FORCE_ATTRIBUTION", "FORCE_WHATSNEW_PANEL", "CLOSE_WHATSNEW_PANEL", "OVERRIDE_MESSAGE", "MODIFY_MESSAGE_JSON", "RESET_PROVIDER_PREF", "SET_PROVIDER_USER_PREF", "RESET_GROUPS_STATE"];
 const MESSAGE_TYPE_HASH = MESSAGE_TYPE_LIST.reduce((hash, value) => {
   hash[value] = value;
@@ -3237,7 +3240,9 @@ class _DiscoveryStreamBase extends react__WEBPACK_IMPORTED_MODULE_12___default.a
           subtitle: component.header && component.header.subtitle,
           link_text: component.header && component.header.link_text,
           link_url: component.header && component.header.link_url,
-          icon: component.header && component.header.icon
+          icon: component.header && component.header.icon,
+          essentialReadsHeader: component.essentialReadsHeader,
+          editorsPicksHeader: component.editorsPicksHeader
         });
 
       case "SectionTitle":
@@ -3288,9 +3293,19 @@ class _DiscoveryStreamBase extends react__WEBPACK_IMPORTED_MODULE_12___default.a
           type: component.type,
           dispatch: this.props.dispatch,
           items: component.properties.items,
-          compact: component.properties.compact,
-          include_descriptions: !component.properties.compact,
-          loadMoreEnabled: component.loadMoreEnabled,
+          hideCardBackground: component.properties.hideCardBackground,
+          fourCardLayout: component.properties.fourCardLayout,
+          hideDescriptions: component.properties.hideDescriptions,
+          compactGrid: component.properties.compactGrid,
+          compactImages: component.properties.compactImages,
+          imageGradient: component.properties.imageGradient,
+          newSponsoredLabel: component.properties.newSponsoredLabel,
+          titleLines: component.properties.titleLines,
+          descLines: component.properties.descLines,
+          essentialReadsHeader: component.properties.essentialReadsHeader,
+          editorsPicksHeader: component.properties.editorsPicksHeader,
+          readTime: component.properties.readTime,
+          loadMore: component.loadMore,
           lastCardMessageEnabled: component.lastCardMessageEnabled,
           saveToPocketCard: component.saveToPocketCard,
           cta_variant: component.cta_variant,
@@ -3322,13 +3337,16 @@ class _DiscoveryStreamBase extends react__WEBPACK_IMPORTED_MODULE_12___default.a
   }
 
   render() {
-    // Select layout render data by adding spocs and position to recommendations
+    const {
+      locale
+    } = this.props; // Select layout render data by adding spocs and position to recommendations
+
     const {
       layoutRender
     } = Object(content_src_lib_selectLayoutRender__WEBPACK_IMPORTED_MODULE_14__["selectLayoutRender"])({
       state: this.props.DiscoveryStream,
       prefs: this.props.Prefs.values,
-      locale: this.props.locale
+      locale
     });
     const {
       config
@@ -3375,7 +3393,28 @@ class _DiscoveryStreamBase extends react__WEBPACK_IMPORTED_MODULE_12___default.a
         title: topStories.title
       }
     };
-    const privacyLinkComponent = extractComponent("PrivacyLink"); // Render a DS-style TopSites then the rest if any in a collapsible section
+    const privacyLinkComponent = extractComponent("PrivacyLink");
+    let learnMore = {
+      link: {
+        href: message.header.link_url,
+        message: message.header.link_text
+      }
+    };
+    let sectionTitle = message.header.title;
+    let subTitle = ""; // If we're in one of these experiments, override the default message.
+    // For now this is English only.
+
+    if (message.essentialReadsHeader || message.editorsPicksHeader) {
+      learnMore = null;
+      subTitle = "Recommended By Pocket";
+
+      if (message.essentialReadsHeader) {
+        sectionTitle = "Today’s Essential Reads";
+      } else if (message.editorsPicksHeader) {
+        sectionTitle = "Editor’s Picks";
+      }
+    } // Render a DS-style TopSites then the rest if any in a collapsible section
+
 
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_12___default.a.createElement(react__WEBPACK_IMPORTED_MODULE_12___default.a.Fragment, null, this.props.DiscoveryStream.isPrivacyInfoModalVisible && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_12___default.a.createElement(content_src_components_DiscoveryStreamComponents_DSPrivacyModal_DSPrivacyModal__WEBPACK_IMPORTED_MODULE_5__["DSPrivacyModal"], {
       dispatch: this.props.dispatch
@@ -3391,15 +3430,11 @@ class _DiscoveryStreamBase extends react__WEBPACK_IMPORTED_MODULE_12___default.a
       dispatch: this.props.dispatch,
       id: topStories.id,
       isFixed: true,
-      learnMore: {
-        link: {
-          href: message.header.link_url,
-          message: message.header.link_text
-        }
-      },
+      learnMore: learnMore,
       privacyNoticeURL: topStories.privacyNoticeURL,
       showPrefName: topStories.pref.feed,
-      title: message.header.title,
+      title: sectionTitle,
+      subTitle: subTitle,
       eventSource: "CARDGRID"
     }, this.renderLayout(layoutRender)), this.renderLayout([{
       width: 12,
@@ -4982,7 +5017,8 @@ class _CollapsibleSection extends react__WEBPACK_IMPORTED_MODULE_2___default.a.P
       id,
       collapsed,
       learnMore,
-      title
+      title,
+      subTitle
     } = this.props;
     const active = menuButtonHover || showContextMenu;
     let bodyStyle;
@@ -5005,6 +5041,7 @@ class _CollapsibleSection extends react__WEBPACK_IMPORTED_MODULE_2___default.a.P
       };
     }
 
+    const hasSubtitleClassName = subTitle ? `has-subtitle` : ``;
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement("section", {
       className: `collapsible-section ${this.props.className}${active ? " active" : ""}` // Note: data-section-id is used for web extension api tests in mozilla central
       ,
@@ -5012,7 +5049,7 @@ class _CollapsibleSection extends react__WEBPACK_IMPORTED_MODULE_2___default.a.P
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement("div", {
       className: "section-top-bar"
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement("h3", {
-      className: "section-title-container",
+      className: `section-title-container ${hasSubtitleClassName}`,
       style: titleStyle
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement("span", {
       className: "section-title"
@@ -5026,7 +5063,11 @@ class _CollapsibleSection extends react__WEBPACK_IMPORTED_MODULE_2___default.a.P
       message: learnMore.link.message
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement("a", {
       href: learnMore.link.href
-    })))))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement(content_src_components_ErrorBoundary_ErrorBoundary__WEBPACK_IMPORTED_MODULE_0__["ErrorBoundary"], {
+    })))), subTitle && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement("span", {
+      className: "section-sub-title"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement(content_src_components_FluentOrText_FluentOrText__WEBPACK_IMPORTED_MODULE_1__["FluentOrText"], {
+      message: subTitle
+    })))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement(content_src_components_ErrorBoundary_ErrorBoundary__WEBPACK_IMPORTED_MODULE_0__["ErrorBoundary"], {
       className: "section-body-fallback"
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement("div", {
       ref: this.onBodyMount,
@@ -12972,35 +13013,34 @@ var FluentOrText = __webpack_require__(26);
  // Animation time is mirrored in DSContextFooter.scss
 
 const ANIMATION_DURATION = 3000;
-const DSMessageFooter = props => {
+const DSMessageLabel = props => {
   const {
     context,
     context_type,
     display_engagement_labels,
-    engagement,
-    saveToPocketCard
+    engagement
   } = props;
   const {
     icon,
     fluentID
-  } = types["cardContextTypes"][context_type] || {}; // This case is specific and already displayed to the user elsewhere.
+  } = types["cardContextTypes"][context_type] || {};
 
-  if (saveToPocketCard && context_type === "pocket") {
-    return null;
+  if (!context && (context_type || display_engagement_labels && engagement)) {
+    return /*#__PURE__*/external_React_default.a.createElement(external_ReactTransitionGroup_["TransitionGroup"], {
+      component: null
+    }, /*#__PURE__*/external_React_default.a.createElement(external_ReactTransitionGroup_["CSSTransition"], {
+      key: fluentID,
+      timeout: ANIMATION_DURATION,
+      classNames: "story-animate"
+    }, engagement && !context_type ? /*#__PURE__*/external_React_default.a.createElement("div", {
+      className: "story-view-count"
+    }, engagement) : /*#__PURE__*/external_React_default.a.createElement(StatusMessage, {
+      icon: icon,
+      fluentID: fluentID
+    })));
   }
 
-  return /*#__PURE__*/external_React_default.a.createElement(external_ReactTransitionGroup_["TransitionGroup"], {
-    component: null
-  }, !context && (context_type || display_engagement_labels && engagement) && /*#__PURE__*/external_React_default.a.createElement(external_ReactTransitionGroup_["CSSTransition"], {
-    key: fluentID,
-    timeout: ANIMATION_DURATION,
-    classNames: "story-animate"
-  }, engagement && !context_type ? /*#__PURE__*/external_React_default.a.createElement("div", {
-    className: "story-view-count"
-  }, engagement) : /*#__PURE__*/external_React_default.a.createElement(StatusMessage, {
-    icon: icon,
-    fluentID: fluentID
-  })));
+  return null;
 };
 const StatusMessage = ({
   icon,
@@ -13017,9 +13057,10 @@ const StatusMessage = ({
 const SponsorLabel = ({
   sponsored_by_override,
   sponsor,
-  context
+  context,
+  newSponsoredLabel
 }) => {
-  const classList = "story-sponsored-label clamp"; // If override is not false or an empty string.
+  const classList = `story-sponsored-label ${newSponsoredLabel || ""} clamp`; // If override is not false or an empty string.
 
   if (sponsored_by_override) {
     return /*#__PURE__*/external_React_default.a.createElement("p", {
@@ -13060,21 +13101,51 @@ class DSContextFooter_DSContextFooter extends external_React_default.a.PureCompo
       sponsor,
       sponsored_by_override
     } = this.props;
-    return /*#__PURE__*/external_React_default.a.createElement("div", {
-      className: "story-footer"
-    }, SponsorLabel({
+    const sponsorLabel = SponsorLabel({
       sponsored_by_override,
       sponsor,
       context
-    }), DSMessageFooter({
+    });
+    const dsMessageLabel = DSMessageLabel({
       context,
       context_type,
       display_engagement_labels,
       engagement
-    }));
+    });
+
+    if (sponsorLabel || dsMessageLabel) {
+      return /*#__PURE__*/external_React_default.a.createElement("div", {
+        className: "story-footer"
+      }, sponsorLabel, dsMessageLabel);
+    }
+
+    return null;
   }
 
 }
+const DSMessageFooter = props => {
+  const {
+    context,
+    context_type,
+    engagement,
+    display_engagement_labels,
+    saveToPocketCard
+  } = props;
+  const dsMessageLabel = DSMessageLabel({
+    context,
+    context_type,
+    engagement,
+    display_engagement_labels
+  }); // This case is specific and already displayed to the user elsewhere.
+
+  if (!dsMessageLabel || saveToPocketCard && context_type === "pocket") {
+    return null;
+  }
+
+  return /*#__PURE__*/external_React_default.a.createElement("div", {
+    className: "story-footer"
+  }, dsMessageLabel);
+};
 // EXTERNAL MODULE: external "ReactRedux"
 var external_ReactRedux_ = __webpack_require__(7);
 
@@ -13105,36 +13176,37 @@ function readTimeFromWordCount(wordCount) {
 const DSSource = ({
   source,
   timeToRead,
-  compact,
+  newSponsoredLabel,
   context,
   sponsor,
   sponsored_by_override
 }) => {
-  // If we are compact, try to display sponsored label or time to read here.
-  if (compact) {
+  // First try to display sponsored label or time to read here.
+  if (newSponsoredLabel) {
     // If we can display something for spocs, do so.
     if (sponsored_by_override || sponsor || context) {
       return /*#__PURE__*/external_React_default.a.createElement(SponsorLabel, {
         context: context,
         sponsor: sponsor,
-        sponsored_by_override: sponsored_by_override
+        sponsored_by_override: sponsored_by_override,
+        newSponsoredLabel: "new-sponsored-label"
       });
-    } // If we are not a spoc, and can display a time to read value.
-
-
-    if (timeToRead) {
-      return /*#__PURE__*/external_React_default.a.createElement("p", {
-        className: "source clamp time-to-read"
-      }, /*#__PURE__*/external_React_default.a.createElement(FluentOrText["FluentOrText"], {
-        message: {
-          id: `newtab-label-source-read-time`,
-          values: {
-            source,
-            timeToRead
-          }
-        }
-      }));
     }
+  } // If we are not a spoc, and can display a time to read value.
+
+
+  if (timeToRead) {
+    return /*#__PURE__*/external_React_default.a.createElement("p", {
+      className: "source clamp time-to-read"
+    }, /*#__PURE__*/external_React_default.a.createElement(FluentOrText["FluentOrText"], {
+      message: {
+        id: `newtab-label-source-read-time`,
+        values: {
+          source,
+          timeToRead
+        }
+      }
+    }));
   } // Otherwise display a default source.
 
 
@@ -13149,7 +13221,7 @@ const DefaultMeta = ({
   title,
   excerpt,
   timeToRead,
-  compact,
+  newSponsoredLabel,
   context,
   context_type,
   cta,
@@ -13164,8 +13236,8 @@ const DefaultMeta = ({
   className: "info-wrap"
 }, /*#__PURE__*/external_React_default.a.createElement(DSSource, {
   source: source,
-  compact: compact,
   timeToRead: timeToRead,
+  newSponsoredLabel: newSponsoredLabel,
   context: context,
   sponsor: sponsor,
   sponsored_by_override: sponsored_by_override
@@ -13178,22 +13250,20 @@ const DefaultMeta = ({
   role: "link",
   className: "cta-link icon icon-arrow",
   tabIndex: "0"
-}, cta)), !compact && /*#__PURE__*/external_React_default.a.createElement(DSContextFooter_DSContextFooter, {
+}, cta)), !newSponsoredLabel && /*#__PURE__*/external_React_default.a.createElement(DSContextFooter_DSContextFooter, {
   context_type: context_type,
   context: context,
   sponsor: sponsor,
   sponsored_by_override: sponsored_by_override,
   display_engagement_labels: display_engagement_labels,
   engagement: engagement
-}), compact && /*#__PURE__*/external_React_default.a.createElement("div", {
-  className: "story-footer"
-}, /*#__PURE__*/external_React_default.a.createElement(DSMessageFooter, {
+}), newSponsoredLabel && /*#__PURE__*/external_React_default.a.createElement(DSMessageFooter, {
   context_type: context_type,
   context: null,
   display_engagement_labels: display_engagement_labels,
   engagement: engagement,
   saveToPocketCard: saveToPocketCard
-})));
+}));
 const CTAButtonMeta = ({
   display_engagement_labels,
   source,
@@ -13443,15 +13513,30 @@ class DSCard_DSCard extends external_React_default.a.PureComponent {
     }
 
     const isButtonCTA = this.props.cta_variant === "button";
-    const includeDescriptions = this.props.include_descriptions;
     const {
-      saveToPocketCard
+      is_video,
+      saveToPocketCard,
+      hideDescriptions,
+      compactImages,
+      imageGradient,
+      titleLines = 3,
+      descLines = 3,
+      displayReadTime
     } = this.props;
-    const baseClass = `ds-card ${this.props.is_video ? `video-card` : ``}`;
-    const excerpt = includeDescriptions ? this.props.excerpt : "";
-    const timeToRead = this.props.time_to_read || readTimeFromWordCount(this.props.word_count);
+    const excerpt = !hideDescriptions ? this.props.excerpt : "";
+    let timeToRead;
+
+    if (displayReadTime) {
+      timeToRead = this.props.time_to_read || readTimeFromWordCount(this.props.word_count);
+    }
+
+    const videoCardClassName = is_video ? `video-card` : ``;
+    const compactImagesClassName = compactImages ? `ds-card-compact-image` : ``;
+    const imageGradientClassName = imageGradient ? `ds-card-image-gradient` : ``;
+    const titleLinesName = `ds-card-title-lines-${titleLines}`;
+    const descLinesClassName = `ds-card-desc-lines-${descLines}`;
     return /*#__PURE__*/external_React_default.a.createElement("div", {
-      className: baseClass,
+      className: `ds-card ${videoCardClassName} ${videoCardClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName}`,
       ref: this.setContextMenuButtonHostRef
     }, /*#__PURE__*/external_React_default.a.createElement(SafeAnchor["SafeAnchor"], {
       className: "ds-card-link",
@@ -13475,7 +13560,6 @@ class DSCard_DSCard extends external_React_default.a.PureComponent {
       timeToRead: timeToRead,
       context: this.props.context,
       context_type: this.props.context_type,
-      compact: this.props.compact,
       engagement: this.props.engagement,
       cta: this.props.cta,
       sponsor: this.props.sponsor,
@@ -13485,11 +13569,11 @@ class DSCard_DSCard extends external_React_default.a.PureComponent {
       source: this.props.source,
       title: this.props.title,
       excerpt: excerpt,
+      newSponsoredLabel: this.props.newSponsoredLabel,
       timeToRead: timeToRead,
       context: this.props.context,
       engagement: this.props.engagement,
       context_type: this.props.context_type,
-      compact: this.props.compact,
       cta: this.props.cta,
       cta_variant: this.props.cta_variant,
       sponsor: this.props.sponsor,
@@ -13695,11 +13779,23 @@ class CardGrid_CardGrid extends external_React_default.a.PureComponent {
 
   get showLoadMore() {
     const {
-      loadMoreEnabled,
+      loadMore,
       data,
       loadMoreThreshold
     } = this.props;
-    return loadMoreEnabled && data.recommendations.length > loadMoreThreshold && !this.state.moreLoaded;
+    return loadMore && data.recommendations.length > loadMoreThreshold && !this.state.moreLoaded;
+  }
+
+  renderDSSubHeader(title) {
+    return /*#__PURE__*/external_React_default.a.createElement("div", {
+      className: "section-top-bar ds-sub-header"
+    }, /*#__PURE__*/external_React_default.a.createElement("h3", {
+      className: "section-title-container"
+    }, /*#__PURE__*/external_React_default.a.createElement("span", {
+      className: "section-title"
+    }, /*#__PURE__*/external_React_default.a.createElement(FluentOrText["FluentOrText"], {
+      message: title
+    }))));
   }
 
   renderCards() {
@@ -13707,8 +13803,21 @@ class CardGrid_CardGrid extends external_React_default.a.PureComponent {
       items
     } = this.props;
     const {
+      hideCardBackground,
+      fourCardLayout,
+      hideDescriptions,
       lastCardMessageEnabled,
-      loadMoreThreshold
+      saveToPocketCard,
+      loadMoreThreshold,
+      compactGrid,
+      compactImages,
+      imageGradient,
+      newSponsoredLabel,
+      titleLines,
+      descLines,
+      readTime,
+      essentialReadsHeader,
+      editorsPicksHeader
     } = this.props;
     let showLastCardMessage = lastCardMessageEnabled;
 
@@ -13733,6 +13842,7 @@ class CardGrid_CardGrid extends external_React_default.a.PureComponent {
         raw_image_src: rec.raw_image_src,
         word_count: rec.word_count,
         time_to_read: rec.time_to_read,
+        displayReadTime: readTime,
         title: rec.title,
         excerpt: rec.excerpt,
         url: rec.url,
@@ -13740,7 +13850,6 @@ class CardGrid_CardGrid extends external_React_default.a.PureComponent {
         shim: rec.shim,
         type: this.props.type,
         context: rec.context,
-        compact: this.props.compact,
         sponsor: rec.sponsor,
         sponsored_by_override: rec.sponsored_by_override,
         dispatch: this.props.dispatch,
@@ -13750,13 +13859,29 @@ class CardGrid_CardGrid extends external_React_default.a.PureComponent {
         bookmarkGuid: rec.bookmarkGuid,
         engagement: rec.engagement,
         display_engagement_labels: this.props.display_engagement_labels,
-        include_descriptions: this.props.include_descriptions,
-        saveToPocketCard: this.props.saveToPocketCard,
+        hideDescriptions: hideDescriptions,
+        saveToPocketCard: saveToPocketCard,
+        compactImages: compactImages,
+        imageGradient: imageGradient,
+        newSponsoredLabel: newSponsoredLabel,
+        titleLines: titleLines,
+        descLines: descLines,
         cta: rec.cta,
         cta_variant: this.props.cta_variant,
         is_video: this.props.enable_video_playheads && rec.is_video,
         is_collection: this.props.is_collection
       }));
+    } // If we have both header, inject the second one after the second row.
+    // For now this is English only.
+
+
+    if (essentialReadsHeader && editorsPicksHeader) {
+      // For 4 card row layouts, second row is 8 cards, and regular it is 6 cards.
+      if (fourCardLayout) {
+        cards.splice(8, 0, this.renderDSSubHeader("Editor’s Picks"));
+      } else {
+        cards.splice(6, 0, this.renderDSSubHeader("Editor’s Picks"));
+      }
     } // Replace last card with "you are all caught up card"
 
 
@@ -13768,10 +13893,12 @@ class CardGrid_CardGrid extends external_React_default.a.PureComponent {
 
 
     const variantClass = this.props.display_variant ? `ds-card-grid-${this.props.display_variant}` : ``;
-    const compactClass = this.props.compact ? `ds-card-grid-compact-variant` : ``;
-    const includeDescriptions = this.props.include_descriptions ? `ds-card-grid-include-descriptions` : ``;
+    const hideCardBackgroundClass = hideCardBackground ? `ds-card-grid-hide-background` : ``;
+    const fourCardLayoutClass = fourCardLayout ? `ds-card-grid-four-card-variant` : ``;
+    const hideDescriptionsClassName = !hideDescriptions ? `ds-card-grid-include-descriptions` : ``;
+    const compactGridClassName = compactGrid ? `ds-card-grid-compact` : ``;
     return /*#__PURE__*/external_React_default.a.createElement("div", {
-      className: `ds-card-grid ds-card-grid-${this.props.border} ${variantClass} ${compactClass} ${includeDescriptions}`
+      className: `ds-card-grid ds-card-grid-${this.props.border} ${variantClass} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName}`
     }, cards);
   }
 
@@ -13829,17 +13956,6 @@ __webpack_require__.r(__webpack_exports__);
 var external_React_ = __webpack_require__(8);
 var external_React_default = /*#__PURE__*/__webpack_require__.n(external_React_);
 
-// CONCATENATED MODULE: ./content-src/components/CustomizeMenu/ThemesSection/ThemesSection.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-class ThemesSection_ThemesSection extends external_React_default.a.PureComponent {
-  render() {
-    return /*#__PURE__*/external_React_default.a.createElement("div", null);
-  }
-
-}
 // CONCATENATED MODULE: ./content-src/components/CustomizeMenu/BackgroundsSection/BackgroundsSection.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -14070,6 +14186,16 @@ var external_ReactRedux_ = __webpack_require__(7);
 // EXTERNAL MODULE: external "ReactTransitionGroup"
 var external_ReactTransitionGroup_ = __webpack_require__(25);
 
+// CONCATENATED MODULE: ./content-src/components/CustomizeMenu/ColorwayCloset/ColorwayCloset.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+const ColorwayCloset = ({
+  dispatch
+}) => /*#__PURE__*/external_React_default.a.createElement("div", {
+  id: "colorway-closet"
+}, "Colorway Closet Placeholder");
 // CONCATENATED MODULE: ./content-src/components/CustomizeMenu/CustomizeMenu.jsx
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "_CustomizeMenu", function() { return CustomizeMenu_CustomizeMenu; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CustomizeMenu", function() { return CustomizeMenu; });
@@ -14128,7 +14254,9 @@ class CustomizeMenu_CustomizeMenu extends external_React_default.a.PureComponent
       className: "close-button",
       "data-l10n-id": "newtab-custom-close-button",
       ref: c => this.closeButton = c
-    }), /*#__PURE__*/external_React_default.a.createElement(ThemesSection_ThemesSection, null), /*#__PURE__*/external_React_default.a.createElement(BackgroundsSection_BackgroundsSection, null), /*#__PURE__*/external_React_default.a.createElement(ContentSection_ContentSection, {
+    }), this.props.showColorwayCloset ? /*#__PURE__*/external_React_default.a.createElement(ColorwayCloset, {
+      dispatch: this.props.dispatch
+    }) : /*#__PURE__*/external_React_default.a.createElement(external_React_default.a.Fragment, null), /*#__PURE__*/external_React_default.a.createElement(BackgroundsSection_BackgroundsSection, null), /*#__PURE__*/external_React_default.a.createElement(ContentSection_ContentSection, {
       openPreferences: this.props.openPreferences,
       setPref: this.props.setPref,
       enabledSections: this.props.enabledSections,

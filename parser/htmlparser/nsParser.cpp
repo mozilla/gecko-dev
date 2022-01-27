@@ -391,8 +391,14 @@ nsParser::CancelParsingEvents() {
  * can delay until the last moment the resolution of
  * which DTD to use (unless of course we're assigned one).
  */
-nsresult nsParser::WillBuildModel(nsString& aFilename) {
+nsresult nsParser::WillBuildModel() {
   if (!mParserContext) return NS_ERROR_HTMLPARSER_INVALIDPARSERCONTEXT;
+
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
 
   if (eUnknownDetect != mParserContext->mAutoDetectStatus) return NS_OK;
 
@@ -562,6 +568,12 @@ nsParser::Terminate(void) {
 
 NS_IMETHODIMP
 nsParser::ContinueInterruptedParsing() {
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
+
   // If there are scripts executing, then the content sink is jumping the gun
   // (probably due to a synchronous XMLHttpRequest) and will re-enable us
   // later, see bug 460706.
@@ -680,17 +692,16 @@ NS_IMETHODIMP
 nsParser::Parse(nsIURI* aURL, void* aKey) {
   MOZ_ASSERT(aURL, "Error: Null URL given");
 
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
+
   nsresult result = NS_ERROR_HTMLPARSER_BADURL;
 
   if (aURL) {
-    nsAutoCString spec;
-    nsresult rv = aURL->GetSpec(spec);
-    if (rv != NS_OK) {
-      return rv;
-    }
-    NS_ConvertUTF8toUTF16 theName(spec);
-
-    nsScanner* theScanner = new nsScanner(theName, false);
+    nsScanner* theScanner = new nsScanner(aURL, false);
     CParserContext* pc =
         new CParserContext(mParserContext, theScanner, aKey, mCommand);
     if (pc && theScanner) {
@@ -715,6 +726,12 @@ nsParser::Parse(nsIURI* aURL, void* aKey) {
 nsresult nsParser::Parse(const nsAString& aSourceBuffer, void* aKey,
                          bool aLastCall) {
   nsresult result = NS_OK;
+
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
 
   // Don't bother if we're never going to parse this.
   if (mInternalState == NS_ERROR_HTMLPARSER_STOPPARSING) {
@@ -823,6 +840,12 @@ nsresult nsParser::Parse(const nsAString& aSourceBuffer, void* aKey,
 NS_IMETHODIMP
 nsParser::ParseFragment(const nsAString& aSourceBuffer,
                         nsTArray<nsString>& aTagStack) {
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
+
   nsresult result = NS_OK;
   nsAutoString theContext;
   uint32_t theCount = aTagStack.Length();
@@ -926,10 +949,16 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
  */
 nsresult nsParser::ResumeParse(bool allowIteration, bool aIsFinalChunk,
                                bool aCanInterrupt) {
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
+
   nsresult result = NS_OK;
 
   if (!mBlocked && mInternalState != NS_ERROR_HTMLPARSER_STOPPARSING) {
-    result = WillBuildModel(mParserContext->mScanner->GetFilename());
+    result = WillBuildModel();
     if (NS_FAILED(result)) {
       mFlags &= ~NS_PARSER_FLAG_CAN_TOKENIZE;
       return result;
@@ -1040,6 +1069,12 @@ nsresult nsParser::ResumeParse(bool allowIteration, bool aIsFinalChunk,
  *  tokenization phase, and try to make sense out of them.
  */
 nsresult nsParser::BuildModel() {
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
+
   nsITokenizer* theTokenizer = nullptr;
 
   nsresult result = NS_OK;
@@ -1062,6 +1097,12 @@ nsresult nsParser::BuildModel() {
  *******************************************************************/
 
 nsresult nsParser::OnStartRequest(nsIRequest* request) {
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
+
   MOZ_ASSERT(eNone == mParserContext->mStreamListenerState,
              "Parser's nsIStreamListener API was not setup "
              "correctly in constructor.");
@@ -1249,6 +1290,12 @@ static nsresult ParserWriteFunc(nsIInputStream* in, void* closure,
 nsresult nsParser::OnDataAvailable(nsIRequest* request,
                                    nsIInputStream* pIStream,
                                    uint64_t sourceOffset, uint32_t aLength) {
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
+
   MOZ_ASSERT((eOnStart == mParserContext->mStreamListenerState ||
               eOnDataAvail == mParserContext->mStreamListenerState),
              "Error: OnStartRequest() must be called before OnDataAvailable()");
@@ -1318,6 +1365,12 @@ nsresult nsParser::OnDataAvailable(nsIRequest* request,
  *  has been collected from the net.
  */
 nsresult nsParser::OnStopRequest(nsIRequest* request, nsresult status) {
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
+
   nsresult rv = NS_OK;
 
   CParserContext* pc = mParserContext;
@@ -1374,6 +1427,12 @@ bool nsParser::WillTokenize(bool aIsFinalChunk) {
  * you run out of data.
  */
 nsresult nsParser::Tokenize(bool aIsFinalChunk) {
+  if (mInternalState == NS_ERROR_OUT_OF_MEMORY) {
+    // Checking NS_ERROR_OUT_OF_MEMORY instead of NS_FAILED
+    // to avoid introducing unintentional changes to behavior.
+    return mInternalState;
+  }
+
   nsITokenizer* theTokenizer;
 
   nsresult result = NS_ERROR_NOT_AVAILABLE;

@@ -13,6 +13,7 @@ var { XPCOMUtils } = ChromeUtils.import(
 var { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
+  Blocklist: "resource://gre/modules/Blocklist.jsm",
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
   GeckoViewActorManager: "resource://gre/modules/GeckoViewActorManager.jsm",
@@ -701,7 +702,18 @@ function startup() {
       name: "GeckoViewMediaControl",
       onEnable: {
         resource: "resource://gre/modules/GeckoViewMediaControl.jsm",
-        frameScript: "chrome://geckoview/content/GeckoViewMediaControlChild.js",
+        actors: {
+          MediaControlDelegate: {
+            child: {
+              moduleURI: "resource:///actors/MediaControlDelegateChild.jsm",
+              events: {
+                "MozDOMFullscreen:Entered": {},
+                "MozDOMFullscreen:Exited": {},
+              },
+            },
+            allFrames: true,
+          },
+        },
       },
     },
     {
@@ -778,6 +790,12 @@ function startup() {
       // It's enough to run this once to set up FOG.
       // (See also bug 1730026.)
       Services.fog.registerCustomPings();
+    });
+
+    InitLater(() => {
+      // Initialize the blocklist module.
+      // TODO bug 1730026: this runs too often. It should run once.
+      Blocklist.loadBlocklistAsync();
     });
 
     // This should always go last, since the idle tasks (except for the ones with

@@ -81,15 +81,6 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
                 },
             ],
             [
-                ["--enable-webrender"],
-                {
-                    "action": "store_true",
-                    "dest": "enable_webrender",
-                    "default": False,
-                    "help": "Enable the WebRender compositor in Gecko.",
-                },
-            ],
-            [
                 ["--headless"],
                 {
                     "action": "store_true",
@@ -236,10 +227,9 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
             dirs["abs_sdk_dir"] = os.path.join(work_dir, "android-sdk-linux")
             dirs["abs_avds_dir"] = os.path.join(work_dir, "android-device")
             dirs["abs_bundletool_path"] = os.path.join(work_dir, "bundletool.jar")
-            if self.config["enable_webrender"]:
-                # AndroidMixin uses this when launching the emulator. We only want
-                # GLES3 if we're running WebRender
-                self.use_gles3 = True
+            # AndroidMixin uses this when launching the emulator. We only want
+            # GLES3 if we're running WebRender (default)
+            self.use_gles3 = True
 
         abs_dirs.update(dirs)
         self.abs_dirs = abs_dirs
@@ -304,7 +294,6 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
             "--log-wptreport=%s"
             % os.path.join(dirs["abs_blob_upload_dir"], "wptreport.json"),
             "--log-errorsummary=%s" % error_summary_file,
-            "--binary=%s" % self.binary_path,
             "--symbols-path=%s" % self.symbols_path,
             "--stackwalk-binary=%s" % self.query_minidump_stackwalk(),
             "--stackfix-dir=%s" % os.path.join(dirs["abs_test_install_dir"], "bin"),
@@ -340,6 +329,8 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
                 "--device-serial=%s" % self.device_serial,
                 "--package-name=%s" % self.query_package_name(),
             ]
+        else:
+            cmd.append("--binary=%s" % self.binary_path)
 
         if is_windows_7:
             # On Windows 7 --install-fonts fails, so fall back to a Firefox-specific codepath
@@ -358,9 +349,6 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
 
         if not c["e10s"]:
             cmd.append("--disable-e10s")
-
-        if c["enable_webrender"]:
-            cmd.append("--enable-webrender")
 
         if c["skip_timeout"]:
             cmd.append("--skip-timeout")

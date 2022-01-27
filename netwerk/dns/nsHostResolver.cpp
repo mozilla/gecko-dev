@@ -317,6 +317,7 @@ void nsHostResolver::Shutdown() {
 
     mQueue.ClearAll(
         [&](nsHostRecord* aRec) {
+          mLock.AssertCurrentThreadOwns();
           if (aRec->IsAddrRecord()) {
             CompleteLookupLocked(aRec, NS_ERROR_ABORT, nullptr, aRec->pb,
                                  aRec->originSuffix, aRec->mTRRSkippedReason,
@@ -857,6 +858,7 @@ bool nsHostResolver::TRRServiceEnabledForRecord(nsHostRecord* aRec) {
   }
 
   auto hasConnectivity = [this]() -> bool {
+    mLock.AssertCurrentThreadOwns();
     if (!mNCS) {
       return true;
     }
@@ -1321,8 +1323,7 @@ bool nsHostResolver::MaybeRetryTRRLookup(
   MOZ_ASSERT(!aAddrRec->mResolving);
   if (!StaticPrefs::network_trr_strict_native_fallback()) {
     LOG(("nsHostResolver::MaybeRetryTRRLookup retrying with native"));
-    NativeLookup(aAddrRec, aLock);
-    return true;
+    return NS_SUCCEEDED(NativeLookup(aAddrRec, aLock));
   }
 
   if (aFirstAttemptSkipReason == TRRSkippedReason::TRR_NXDOMAIN ||
@@ -1332,8 +1333,7 @@ bool nsHostResolver::MaybeRetryTRRLookup(
         ("nsHostResolver::MaybeRetryTRRLookup retrying with native in strict "
          "mode, skip reason was %d",
          static_cast<uint32_t>(aFirstAttemptSkipReason)));
-    NativeLookup(aAddrRec, aLock);
-    return true;
+    return NS_SUCCEEDED(NativeLookup(aAddrRec, aLock));
   }
 
   if (aAddrRec->mTrrAttempts > 1) {
@@ -1352,9 +1352,13 @@ bool nsHostResolver::MaybeRetryTRRLookup(
     auto trrQuery = aAddrRec->mTRRQuery.Lock();
     trrQuery.ref() = nullptr;
   }
-  aAddrRec->NotifyRetryingTrr();
-  TrrLookup(aAddrRec, aLock, nullptr /* pushedTRR */);
-  return true;
+
+  if (NS_SUCCEEDED(TrrLookup(aAddrRec, aLock, nullptr /* pushedTRR */))) {
+    aAddrRec->NotifyRetryingTrr();
+    return true;
+  }
+
+  return false;
 }
 
 //
@@ -1749,6 +1753,7 @@ void nsHostResolver::ThreadFunc() {
     }
   } while (true);
 
+  MutexAutoLock lock(mLock);
   mActiveTaskCount--;
   LOG(("DNS lookup thread - queue empty, task finished.\n"));
 }

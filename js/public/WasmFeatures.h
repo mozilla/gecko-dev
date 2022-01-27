@@ -117,8 +117,8 @@
       /* capitalized name   */ Exceptions,                                    \
       /* lower case name    */ exceptions,                                    \
       /* compile predicate  */ WASM_EXCEPTIONS_ENABLED,                       \
-      /* compiler predicate */ BaselineAvailable(cx),                         \
-      /* flag predicate     */ !IsFuzzingIon(cx) && !IsFuzzingCranelift(cx),  \
+      /* compiler predicate */ BaselineAvailable(cx) || IonAvailable(cx),     \
+      /* flag predicate     */ !IsFuzzingCranelift(cx),                       \
       /* shell flag         */ "exceptions",                                  \
       /* preference name    */ "exceptions")                                  \
   EXPERIMENTAL(/* capitalized name   */ FunctionReferences,                   \
@@ -136,13 +136,13 @@
                /* flag predicate     */ WasmFunctionReferencesFlag(cx),       \
                /* shell flag         */ "gc",                                 \
                /* preference name    */ "gc")                                 \
-  EXPERIMENTAL(/* capitalized name   */ RelaxedSimd,                          \
-               /* lower case name    */ v128Relaxed,                          \
-               /* compile predicate  */ WASM_RELAXED_SIMD_ENABLED,            \
-               /* compiler predicate */ AnyCompilerAvailable(cx),             \
-               /* flag predicate     */ WasmSimdFlag(cx),                     \
-               /* shell flag         */ "relaxed-simd",                       \
-               /* preference name    */ "relaxed_simd")                       \
+  TENTATIVE(/* capitalized name   */ RelaxedSimd,                             \
+            /* lower case name    */ v128Relaxed,                             \
+            /* compile predicate  */ WASM_RELAXED_SIMD_ENABLED,               \
+            /* compiler predicate */ AnyCompilerAvailable(cx),                \
+            /* flag predicate     */ WasmSimdFlag(cx),                        \
+            /* shell flag         */ "relaxed-simd",                          \
+            /* preference name    */ "relaxed_simd")                          \
   TENTATIVE(/* capitalized name   */ Memory64,                                \
             /* lower case name    */ memory64,                                \
             /* compile predicate  */ WASM_MEMORY64_ENABLED,                   \

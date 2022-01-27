@@ -47,6 +47,7 @@ import org.mozilla.gecko.GeckoScreenOrientation.ScreenOrientation;
 import org.mozilla.gecko.GeckoSystemStateListener;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.annotation.WrapForJNI;
+import org.mozilla.gecko.process.MemoryController;
 import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.DebugConfig;
 import org.mozilla.gecko.util.EventCallback;
@@ -135,6 +136,8 @@ public final class GeckoRuntime implements Parcelable {
    */
   public static final String CRASHED_PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD";
 
+  private final MemoryController mMemoryController = new MemoryController();
+
   @Retention(RetentionPolicy.SOURCE)
   @StringDef(
       value = {
@@ -142,7 +145,7 @@ public final class GeckoRuntime implements Parcelable {
         CRASHED_PROCESS_TYPE_FOREGROUND_CHILD,
         CRASHED_PROCESS_TYPE_BACKGROUND_CHILD
       })
-  /* package */ @interface CrashedProcessType {}
+  public @interface CrashedProcessType {}
 
   private final class LifecycleListener implements LifecycleObserver {
     private boolean mPaused = false;
@@ -552,6 +555,8 @@ public final class GeckoRuntime implements Parcelable {
       throw new IllegalStateException("Failed to initialize GeckoRuntime");
     }
 
+    context.registerComponentCallbacks(runtime.mMemoryController);
+
     return runtime;
   }
 
@@ -871,6 +876,14 @@ public final class GeckoRuntime implements Parcelable {
       return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
     } else if (geckoOrientation == ScreenOrientation.LANDSCAPE_SECONDARY.value) {
       return ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+    } else if (geckoOrientation == ScreenOrientation.DEFAULT.value) {
+      return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+    } else if (geckoOrientation == ScreenOrientation.PORTRAIT.value) {
+      return ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT;
+    } else if (geckoOrientation == ScreenOrientation.LANDSCAPE.value) {
+      return ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+    } else if (geckoOrientation == ScreenOrientation.ANY.value) {
+      return ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR;
     }
     return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
   }
@@ -900,6 +913,19 @@ public final class GeckoRuntime implements Parcelable {
           }
         });
     return res;
+  }
+
+  /** Unlock screen orientation using OrientationController's onOrientationUnlock. */
+  @WrapForJNI(calledFrom = "gecko")
+  private void unlockScreenOrientation() {
+    ThreadUtils.runOnUiThread(
+        () -> {
+          final OrientationController.OrientationDelegate delegate =
+              getOrientationController().getDelegate();
+          if (delegate != null) {
+            delegate.onOrientationUnlock();
+          }
+        });
   }
 
   /**

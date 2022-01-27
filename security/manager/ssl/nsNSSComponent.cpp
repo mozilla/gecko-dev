@@ -134,6 +134,40 @@ void TruncateFromLastDirectorySeparator(nsCString& path) {
   path.Truncate(index);
 }
 
+bool LoadIPCClientCerts() {
+  // This returns the path to the binary currently running, which in most
+  // cases is "plugin-container".
+  UniqueFreePtr<char> pluginContainerPath(BinaryPath::Get());
+  if (!pluginContainerPath) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("failed to get get plugin-container path"));
+    return false;
+  }
+  nsAutoCString ipcClientCertsDirString(pluginContainerPath.get());
+  // On most platforms, ipcclientcerts is in the same directory as
+  // plugin-container. To obtain the path to that directory, truncate from
+  // the last directory separator.
+  // On macOS, plugin-container is in
+  // Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/,
+  // whereas ipcclientcerts is in Firefox.app/Contents/MacOS/. Consequently,
+  // this truncation from the last directory separator has to happen 4 times
+  // total. Normally this would be done using nsIFile APIs, but due to when
+  // this is initialized in the socket process, those aren't available.
+  TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
+#ifdef XP_MACOSX
+  TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
+  TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
+  TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
+#endif
+  if (!LoadIPCClientCertsModule(ipcClientCertsDirString)) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("failed to load ipcclientcerts from '%s'",
+             ipcClientCertsDirString.get()));
+    return false;
+  }
+  return true;
+}
+
 // This function can be called from chrome or content or socket processes
 // to ensure that NSS is initialized.
 bool EnsureNSSInitializedChromeOrContent() {
@@ -183,36 +217,10 @@ bool EnsureNSSInitializedChromeOrContent() {
     if (NS_FAILED(CommonInit())) {
       return false;
     }
-    // This returns the path to the binary currently running, which in most
-    // cases is "plugin-container".
-    UniqueFreePtr<char> pluginContainerPath(BinaryPath::Get());
-    if (!pluginContainerPath) {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("failed to get get plugin-container path"));
-      return false;
-    }
-    nsAutoCString ipcClientCertsDirString(pluginContainerPath.get());
-    // On most platforms, ipcclientcerts is in the same directory as
-    // plugin-container. To obtain the path to that directory, truncate from
-    // the last directory separator.
-    // On macOS, plugin-container is in
-    // Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/,
-    // whereas ipcclientcerts is in Firefox.app/Contents/MacOS/. Consequently,
-    // this truncation from the last directory separator has to happen 4 times
-    // total. Normally this would be done using nsIFile APIs, but due to when
-    // this is initialized in the socket process, those aren't available.
-    TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
-#ifdef XP_MACOSX
-    TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
-    TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
-    TruncateFromLastDirectorySeparator(ipcClientCertsDirString);
-#endif
-    if (!LoadIPCClientCertsModule(ipcClientCertsDirString)) {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("failed to load ipcclientcerts from '%s'",
-               ipcClientCertsDirString.get()));
-      return false;
-    }
+    // If ipcclientcerts fails to load, client certificate authentication won't
+    // work (if networking is done on the socket process). This is preferable
+    // to stopping the program entirely, so treat this as best-effort.
+    Unused << NS_WARN_IF(!LoadIPCClientCerts());
     initialized = true;
     return true;
   }
@@ -282,8 +290,6 @@ void nsNSSComponent::GetRevocationBehaviorFromPrefs(
   hardTimeoutMillis =
       std::min(hardTimeoutMillis, OCSP_TIMEOUT_MILLISECONDS_HARD_MAX);
   hardTimeout = TimeDuration::FromMilliseconds(hardTimeoutMillis);
-
-  ClearSSLExternalAndInternalSessionCache();
 }
 
 nsNSSComponent::nsNSSComponent()
@@ -571,6 +577,7 @@ void nsNSSComponent::UnloadEnterpriseRoots() {
   MutexAutoLock lock(mMutex);
   mEnterpriseCerts.clear();
   setValidationOptions(false, lock);
+  ClearSSLExternalAndInternalSessionCache();
 }
 
 static const char* kEnterpriseRootModePref =
@@ -1539,16 +1546,6 @@ void nsNSSComponent::setValidationOptions(
       break;
   }
 
-  uint32_t defaultCRLiteCTMergeDelaySeconds =
-      60 * 60 * 28;  // 28 hours in seconds
-  uint64_t maxCRLiteCTMergeDelaySeconds = 60 * 60 * 24 * 365;
-  uint64_t crliteCTMergeDelaySeconds =
-      Preferences::GetUint("security.pki.crlite_ct_merge_delay_seconds",
-                           defaultCRLiteCTMergeDelaySeconds);
-  if (crliteCTMergeDelaySeconds > maxCRLiteCTMergeDelaySeconds) {
-    crliteCTMergeDelaySeconds = maxCRLiteCTMergeDelaySeconds;
-  }
-
   CertVerifier::OcspDownloadConfig odc;
   CertVerifier::OcspStrictConfig osc;
   uint32_t certShortLifetimeInDays;
@@ -1561,7 +1558,7 @@ void nsNSSComponent::setValidationOptions(
   mDefaultCertVerifier = new SharedCertVerifier(
       odc, osc, softTimeout, hardTimeout, certShortLifetimeInDays, sha1Mode,
       PublicSSLState()->NameMatchingMode(), netscapeStepUpPolicy, ctMode,
-      crliteMode, crliteCTMergeDelaySeconds, mEnterpriseCerts);
+      crliteMode, mEnterpriseCerts);
 }
 
 void nsNSSComponent::UpdateCertVerifierWithEnterpriseRoots() {
@@ -1580,8 +1577,7 @@ void nsNSSComponent::UpdateCertVerifierWithEnterpriseRoots() {
       oldCertVerifier->mCertShortLifetimeInDays, oldCertVerifier->mSHA1Mode,
       oldCertVerifier->mNameMatchingMode,
       oldCertVerifier->mNetscapeStepUpPolicy, oldCertVerifier->mCTMode,
-      oldCertVerifier->mCRLiteMode, oldCertVerifier->mCRLiteCTMergeDelaySeconds,
-      mEnterpriseCerts);
+      oldCertVerifier->mCRLiteMode, mEnterpriseCerts);
 }
 
 // Enable the TLS versions given in the prefs, defaulting to TLS 1.0 (min) and
@@ -2286,11 +2282,6 @@ nsresult nsNSSComponent::Init() {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  // Avoid a late initialization
-  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownNetTeardown)) {
-    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
-  }
-
   Telemetry::AutoScalarTimer<Telemetry::ScalarID::NETWORKING_NSS_INITIALIZATION>
       timer;
 
@@ -2398,9 +2389,7 @@ nsNSSComponent::Observe(nsISupports* aSubject, const char* aTopic,
                    "security.OCSP.timeoutMilliseconds.soft") ||
                prefName.EqualsLiteral(
                    "security.OCSP.timeoutMilliseconds.hard") ||
-               prefName.EqualsLiteral("security.pki.crlite_mode") ||
-               prefName.EqualsLiteral(
-                   "security.pki.crlite_ct_merge_delay_seconds")) {
+               prefName.EqualsLiteral("security.pki.crlite_mode")) {
       MutexAutoLock lock(mMutex);
       setValidationOptions(false, lock);
 #ifdef DEBUG
@@ -2516,10 +2505,7 @@ nsNSSComponent::IsCertTestBuiltInRoot(CERTCertificate* cert, bool* result) {
   *result = false;
 
 #ifdef DEBUG
-  RefPtr<nsNSSCertificate> nsc = nsNSSCertificate::Create(cert);
-  if (!nsc) {
-    return NS_ERROR_FAILURE;
-  }
+  RefPtr<nsNSSCertificate> nsc = new nsNSSCertificate(cert);
   nsAutoString certHash;
   nsresult rv = nsc->GetSha256Fingerprint(certHash);
   if (NS_FAILED(rv)) {

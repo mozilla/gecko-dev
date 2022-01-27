@@ -470,22 +470,10 @@ static nsresult OverrideAllowedForHost(
 // in order to support SPDY's cross-origin connection pooling.
 static SECStatus BlockServerCertChangeForSpdy(
     nsNSSSocketInfo* infoObject, const UniqueCERTCertificate& serverCert) {
-  // Get the existing cert. If there isn't one, then there is
-  // no cert change to worry about.
-  nsCOMPtr<nsIX509Cert> cert;
-
   if (!infoObject->IsHandshakeCompleted()) {
     // first handshake on this connection, not a
     // renegotiation.
     return SECSuccess;
-  }
-
-  infoObject->GetServerCert(getter_AddRefs(cert));
-  if (!cert) {
-    MOZ_ASSERT_UNREACHABLE(
-        "TransportSecurityInfo must have a cert implementing nsIX509Cert");
-    PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
-    return SECFailure;
   }
 
   // Filter out sockets that did not neogtiate SPDY via NPN
@@ -501,20 +489,30 @@ static SECStatus BlockServerCertChangeForSpdy(
   if (NS_FAILED(rv)) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("BlockServerCertChangeForSpdy failed GetNegotiatedNPN() call."
-             " Assuming spdy.\n"));
+             " Assuming spdy."));
   }
 
   // Check to see if the cert has actually changed
-  UniqueCERTCertificate c(cert->GetCert());
-  MOZ_ASSERT(c, "Somehow couldn't get underlying cert from nsIX509Cert");
-  bool sameCert = CERT_CompareCerts(c.get(), serverCert.get());
-  if (sameCert) {
+  nsCOMPtr<nsIX509Cert> cert;
+  infoObject->GetServerCert(getter_AddRefs(cert));
+  if (!cert) {
+    PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
+    return SECFailure;
+  }
+  nsTArray<uint8_t> certDER;
+  if (NS_FAILED(cert->GetRawDER(certDER))) {
+    PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
+    return SECFailure;
+  }
+  if (certDER.Length() == serverCert->derCert.len &&
+      memcmp(certDER.Elements(), serverCert->derCert.data, certDER.Length()) ==
+          0) {
     return SECSuccess;
   }
 
   // Report an error - changed cert is confirmed
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-          ("SPDY Refused to allow new cert during renegotiation\n"));
+          ("SPDY refused to allow new cert during renegotiation"));
   PR_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED, 0);
   return SECFailure;
 }
@@ -522,34 +520,18 @@ static SECStatus BlockServerCertChangeForSpdy(
 // Gather telemetry on whether the end-entity cert for a server has the
 // required TLS Server Authentication EKU, or any others
 void GatherEKUTelemetry(const UniqueCERTCertList& certList) {
+  MOZ_ASSERT(!CERT_LIST_EMPTY(certList));
+  if (CERT_LIST_EMPTY(certList)) {
+    return;
+  }
   CERTCertListNode* endEntityNode = CERT_LIST_HEAD(certList);
-  CERTCertListNode* rootNode = CERT_LIST_TAIL(certList);
-  MOZ_ASSERT(!(CERT_LIST_END(endEntityNode, certList) ||
-               CERT_LIST_END(rootNode, certList)));
-  if (CERT_LIST_END(endEntityNode, certList) ||
-      CERT_LIST_END(rootNode, certList)) {
+  MOZ_ASSERT(endEntityNode);
+  if (!endEntityNode) {
     return;
   }
   CERTCertificate* endEntityCert = endEntityNode->cert;
   MOZ_ASSERT(endEntityCert);
   if (!endEntityCert) {
-    return;
-  }
-
-  // Only log telemetry if the root CA is built-in
-  CERTCertificate* rootCert = rootNode->cert;
-  MOZ_ASSERT(rootCert);
-  if (!rootCert) {
-    return;
-  }
-  bool isBuiltIn = false;
-  Input rootInput;
-  Result rv = rootInput.Init(rootCert->derCert.data, rootCert->derCert.len);
-  if (rv != Result::Success) {
-    return;
-  }
-  rv = IsCertBuiltInRoot(rootInput, isBuiltIn);
-  if (rv != Success || !isBuiltIn) {
     return;
   }
 
@@ -628,8 +610,12 @@ void GatherRootCATelemetry(const UniqueCERTCertList& certList) {
 
 // There are various things that we want to measure about certificate
 // chains that we accept.  This is a single entry point for all of them.
-void GatherSuccessfulValidationTelemetry(const UniqueCERTCertList& certList) {
-  GatherEKUTelemetry(certList);
+void GatherSuccessfulValidationTelemetry(const UniqueCERTCertList& certList,
+                                         bool isCertListRootBuiltInRoot) {
+  if (isCertListRootBuiltInRoot) {
+    // Only gather this telemetry if the root CA is built-in
+    GatherEKUTelemetry(certList);
+  }
   GatherRootCATelemetry(certList);
 }
 
@@ -765,6 +751,7 @@ static void CollectCertTelemetry(
     KeySizeStatus aKeySizeStatus, SHA1ModeResult aSha1ModeResult,
     const PinningTelemetryInfo& aPinningTelemetryInfo,
     const nsTArray<nsTArray<uint8_t>>& aBuiltCertChain,
+    bool aIsBuiltCertChainRootBuiltInRoot,
     const CertificateTransparencyInfo& aCertificateTransparencyInfo) {
   UniqueCERTCertList builtCertChainList(CERT_NewCertList());
   if (!builtCertChainList) {
@@ -818,7 +805,8 @@ static void CollectCertTelemetry(
   }
 
   if (aCertVerificationResult == Success) {
-    GatherSuccessfulValidationTelemetry(builtCertChainList);
+    GatherSuccessfulValidationTelemetry(builtCertChainList,
+                                        aIsBuiltCertChainRootBuiltInRoot);
     GatherCertificateTransparencyTelemetry(builtCertChainList,
                                            aEVStatus == EVStatus::EV,
                                            aCertificateTransparencyInfo);
@@ -830,7 +818,7 @@ static void AuthCertificateSetResults(
     nsTArray<nsTArray<uint8_t>>&& aBuiltCertChain,
     nsTArray<nsTArray<uint8_t>>&& aPeerCertChain,
     uint16_t aCertificateTransparencyStatus, EVStatus aEvStatus,
-    bool aSucceeded, bool aIsCertChainRootBuiltInRoot) {
+    bool aSucceeded, bool aIsBuiltCertChainRootBuiltInRoot) {
   MOZ_ASSERT(aInfoObject);
   if (aSucceeded) {
     // Certificate verification succeeded. Delete any potential record of
@@ -844,7 +832,7 @@ static void AuthCertificateSetResults(
             ("AuthCertificate setting NEW cert %p", aCert));
 
     aInfoObject->SetIsBuiltCertChainRootBuiltInRoot(
-        aIsCertChainRootBuiltInRoot);
+        aIsBuiltCertChainRootBuiltInRoot);
     aInfoObject->SetCertificateTransparencyStatus(
         aCertificateTransparencyStatus);
   } else {
@@ -867,7 +855,7 @@ Result AuthCertificate(
     /*out*/ nsTArray<nsTArray<uint8_t>>& builtCertChain,
     /*out*/ EVStatus& evStatus,
     /*out*/ CertificateTransparencyInfo& certificateTransparencyInfo,
-    /*out*/ bool& aIsCertChainRootBuiltInRoot) {
+    /*out*/ bool& aIsBuiltCertChainRootBuiltInRoot) {
   CertVerifier::OCSPStaplingStatus ocspStaplingStatus =
       CertVerifier::OCSP_STAPLING_NEVER_CHECKED;
   KeySizeStatus keySizeStatus = KeySizeStatus::NeverChecked;
@@ -889,10 +877,11 @@ Result AuthCertificate(
       sctsFromTLSExtension, dcInfo, aOriginAttributes, &evStatus,
       &ocspStaplingStatus, &keySizeStatus, &sha1ModeResult,
       &pinningTelemetryInfo, &certificateTransparencyInfo,
-      &aIsCertChainRootBuiltInRoot);
+      &aIsBuiltCertChainRootBuiltInRoot);
 
   CollectCertTelemetry(rv, evStatus, ocspStaplingStatus, keySizeStatus,
                        sha1ModeResult, pinningTelemetryInfo, builtCertChain,
+                       aIsBuiltCertChainRootBuiltInRoot,
                        certificateTransparencyInfo);
 
   return rv;
@@ -957,11 +946,7 @@ PRErrorCode AuthCertificateParseResults(
     if (overrideService) {
       bool haveOverride;
       bool isTemporaryOverride;  // we don't care
-      RefPtr<nsIX509Cert> nssCert(nsNSSCertificate::Create(aCert.get()));
-      if (!nssCert) {
-        MOZ_ASSERT(false, "nsNSSCertificate::Create failed");
-        return SEC_ERROR_NO_MEMORY;
-      }
+      RefPtr<nsIX509Cert> nssCert(new nsNSSCertificate(aCert.get()));
       nsresult rv = overrideService->HasMatchingOverride(
           aHostName, aPort, aOriginAttributes, nssCert, &overrideBits,
           &isTemporaryOverride, &haveOverride);
@@ -1099,7 +1084,7 @@ SSLServerCertVerificationJob::Run() {
       mProviderFlags, mTime, mCertVerifierFlags, builtChainBytesArray, evStatus,
       certificateTransparencyInfo, isCertChainRootBuiltInRoot);
 
-  RefPtr<nsNSSCertificate> nsc = nsNSSCertificate::Create(mCert.get());
+  RefPtr<nsNSSCertificate> nsc = new nsNSSCertificate(mCert.get());
   if (rv == Success) {
     Telemetry::AccumulateTimeDelta(
         Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_MOZILLAPKIX, jobStartTime,
@@ -1368,7 +1353,7 @@ void SSLServerCertVerificationResult::Dispatch(
     nsTArray<nsTArray<uint8_t>>&& aPeerCertChain,
     uint16_t aCertificateTransparencyStatus, EVStatus aEVStatus,
     bool aSucceeded, PRErrorCode aFinalError, uint32_t aCollectedErrors,
-    bool aIsCertChainRootBuiltInRoot, uint32_t aProviderFlags) {
+    bool aIsBuiltCertChainRootBuiltInRoot, uint32_t aProviderFlags) {
   mCert = aCert;
   mBuiltChain = std::move(aBuiltChain);
   mPeerCertChain = std::move(aPeerCertChain);
@@ -1377,7 +1362,7 @@ void SSLServerCertVerificationResult::Dispatch(
   mSucceeded = aSucceeded;
   mFinalError = aFinalError;
   mCollectedErrors = aCollectedErrors;
-  mIsBuiltCertChainRootBuiltInRoot = aIsCertChainRootBuiltInRoot;
+  mIsBuiltCertChainRootBuiltInRoot = aIsBuiltCertChainRootBuiltInRoot;
   mProviderFlags = aProviderFlags;
 
   nsresult rv;

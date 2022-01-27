@@ -55,10 +55,11 @@
 #include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/SafeRefPtr.h"
 #include "mozilla/dom/ServiceWorkerBinding.h"
+#include "mozilla/dom/ServiceWorkerGlobalScopeBinding.h"
 #include "mozilla/dom/WorkerCommon.h"
-#include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WorkerScope.h"
+#include "mozilla/extensions/ExtensionBrowser.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/net/MozURL.h"
 
@@ -115,11 +116,13 @@ class ExtendableEventKeepAliveHandler final
   /**
    * PromiseNativeHandler interface
    */
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override {
+  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                        ErrorResult& aRv) override {
     RemovePromise(Resolved);
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override {
+  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                        ErrorResult& aRv) override {
     RemovePromise(Rejected);
   }
 
@@ -298,12 +301,16 @@ class ServiceWorkerOp::ServiceWorkerOpRunnable : public WorkerDebuggeeRunnable {
   }
 
   nsresult Cancel() override {
+    // We need to check first if cancel is permitted
+    nsresult rv = WorkerRunnable::Cancel();
+    NS_ENSURE_SUCCESS(rv, rv);
+
     MOZ_ASSERT(mOwner);
 
     mOwner->RejectAll(NS_ERROR_DOM_ABORT_ERR);
     mOwner = nullptr;
 
-    return WorkerRunnable::Cancel();
+    return NS_OK;
   }
 
   RefPtr<ServiceWorkerOp> mOwner;
@@ -1338,7 +1345,8 @@ void FetchEventOp::GetRequestURL(nsAString& aOutRequestURL) {
 }
 
 void FetchEventOp::ResolvedCallback(JSContext* aCx,
-                                    JS::Handle<JS::Value> aValue) {
+                                    JS::Handle<JS::Value> aValue,
+                                    ErrorResult& aRv) {
   MOZ_ASSERT(IsCurrentThreadRunningWorker());
   MOZ_ASSERT(mRespondWithClosure);
   MOZ_ASSERT(!mRespondWithPromiseHolder.IsEmpty());
@@ -1517,7 +1525,8 @@ void FetchEventOp::ResolvedCallback(JSContext* aCx,
 }
 
 void FetchEventOp::RejectedCallback(JSContext* aCx,
-                                    JS::Handle<JS::Value> aValue) {
+                                    JS::Handle<JS::Value> aValue,
+                                    ErrorResult& aRv) {
   MOZ_ASSERT(IsCurrentThreadRunningWorker());
   MOZ_ASSERT(mRespondWithClosure);
   MOZ_ASSERT(!mRespondWithPromiseHolder.IsEmpty());
@@ -1771,6 +1780,54 @@ nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
   return NS_OK;
 }
 
+class ExtensionAPIEventOp final : public ServiceWorkerOp {
+  using ServiceWorkerOp::ServiceWorkerOp;
+
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ExtensionAPIEventOp, override)
+
+ private:
+  ~ExtensionAPIEventOp() = default;
+
+  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+    MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
+    MOZ_ASSERT(aWorkerPrivate->ExtensionAPIAllowed());
+    MOZ_ASSERT(!mPromiseHolder.IsEmpty());
+
+    ServiceWorkerExtensionAPIEventOpArgs& args =
+        mArgs.get_ServiceWorkerExtensionAPIEventOpArgs();
+
+    ServiceWorkerExtensionAPIEventOpResult result;
+    result.extensionAPIEventListenerWasAdded() = false;
+
+    if (aWorkerPrivate->WorkerScriptExecutedSuccessfully()) {
+      GlobalObject globalObj(aCx, aWorkerPrivate->GlobalScope()->GetWrapper());
+      RefPtr<ServiceWorkerGlobalScope> scope;
+      UNWRAP_OBJECT(ServiceWorkerGlobalScope, globalObj.Get(), scope);
+      SafeRefPtr<extensions::ExtensionBrowser> extensionAPI =
+          scope->AcquireExtensionBrowser();
+      if (!extensionAPI) {
+        // If the worker script did never access the WebExtension APIs
+        // then we can return earlier, no event listener could have been added.
+        mPromiseHolder.Resolve(result, __func__);
+        return true;
+      }
+      // Check if a listener has been subscribed on the expected WebExtensions
+      // API event.
+      bool hasWakeupListener = extensionAPI->HasWakeupEventListener(
+          args.apiNamespace(), args.apiEventName());
+      result.extensionAPIEventListenerWasAdded() = hasWakeupListener;
+      mPromiseHolder.Resolve(result, __func__);
+    } else {
+      mPromiseHolder.Resolve(result, __func__);
+    }
+
+    return true;
+  }
+};
+
 /* static */ already_AddRefed<ServiceWorkerOp> ServiceWorkerOp::Create(
     ServiceWorkerOpArgs&& aArgs,
     std::function<void(const ServiceWorkerOpResult&)>&& aCallback) {
@@ -1810,6 +1867,10 @@ nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
       break;
     case ServiceWorkerOpArgs::TParentToChildServiceWorkerFetchEventOpArgs:
       op = MakeRefPtr<FetchEventOp>(std::move(aArgs), std::move(aCallback));
+      break;
+    case ServiceWorkerOpArgs::TServiceWorkerExtensionAPIEventOpArgs:
+      op = MakeRefPtr<ExtensionAPIEventOp>(std::move(aArgs),
+                                           std::move(aCallback));
       break;
     default:
       MOZ_CRASH("Unknown Service Worker operation!");

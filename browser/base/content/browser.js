@@ -223,11 +223,25 @@ XPCOMUtils.defineLazyScriptGetter(
   ["DownloadsButton", "DownloadsIndicatorView"],
   "chrome://browser/content/downloads/indicator.js"
 );
-XPCOMUtils.defineLazyScriptGetter(
-  this,
-  "gEditItemOverlay",
-  "chrome://browser/content/places/editBookmark.js"
-);
+if (
+  Services.prefs.getBoolPref(
+    "browser.bookmarks.editDialog.delayedApply.enabled",
+    false
+  )
+) {
+  XPCOMUtils.defineLazyScriptGetter(
+    this,
+    "gEditItemOverlay",
+    "chrome://browser/content/places/editBookmark.js"
+  );
+} else {
+  XPCOMUtils.defineLazyScriptGetter(
+    this,
+    "gEditItemOverlay",
+    "chrome://browser/content/places/instantEditBookmark.js"
+  );
+}
+
 XPCOMUtils.defineLazyScriptGetter(
   this,
   "gGfxUtils",
@@ -534,8 +548,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 /* Temporary pref while the dust settles around the updated tooltip design
-   for tabs and bookmarks toolbar. This will eventually be removed and
-   browser.proton.enabled will be used instead. */
+   for tabs and bookmarks toolbar. This is a bit of an orphan from the
+   proton project. We should figure out what happens with this in
+   bug 1746909. */
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
   "gProtonPlacesTooltip",
@@ -558,7 +573,6 @@ customElements.setElementCreationCallback("screenshots-buttons", () => {
 });
 
 var gBrowser;
-var gInPrintPreviewMode = false;
 var gContextMenu = null; // nsContextMenu instance
 var gMultiProcessBrowser = window.docShell.QueryInterface(Ci.nsILoadContext)
   .useRemoteTabs;
@@ -2347,12 +2361,6 @@ var gBrowserInit = {
 
     scheduleIdleTask(reportRemoteSubframesEnabledTelemetry);
 
-    if (AppConstants.NIGHTLY_BUILD) {
-      scheduleIdleTask(() => {
-        FissionTestingUI.init();
-      });
-    }
-
     scheduleIdleTask(() => {
       gGfxUtils.init();
     });
@@ -3539,144 +3547,6 @@ function getPEMString(cert) {
   );
 }
 
-var PrintPreviewListener = {
-  _printPreviewTab: null,
-  _simplifiedPrintPreviewTab: null,
-  _tabBeforePrintPreview: null,
-  _simplifyPageTab: null,
-  _lastRequestedPrintPreviewTab: null,
-
-  _createPPBrowser() {
-    let browser = this.getSourceBrowser();
-    let preferredRemoteType = browser.remoteType;
-    let initialBrowsingContextGroupId = browser.browsingContext.group.id;
-    let userContextId = browser.browsingContext.originAttributes.userContextId;
-    return gBrowser.loadOneTab("about:printpreview", {
-      inBackground: true,
-      preferredRemoteType,
-      initialBrowsingContextGroupId,
-      userContextId,
-      triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-    });
-  },
-  getPrintPreviewBrowser() {
-    if (!this._printPreviewTab) {
-      this._printPreviewTab = this._createPPBrowser();
-    }
-    gBrowser._allowTabChange = true;
-    this._lastRequestedPrintPreviewTab = gBrowser.selectedTab = this._printPreviewTab;
-    gBrowser._allowTabChange = false;
-    return gBrowser.getBrowserForTab(this._printPreviewTab);
-  },
-  getSimplifiedPrintPreviewBrowser() {
-    if (!this._simplifiedPrintPreviewTab) {
-      this._simplifiedPrintPreviewTab = this._createPPBrowser();
-    }
-    gBrowser._allowTabChange = true;
-    this._lastRequestedPrintPreviewTab = gBrowser.selectedTab = this._simplifiedPrintPreviewTab;
-    gBrowser._allowTabChange = false;
-    return gBrowser.getBrowserForTab(this._simplifiedPrintPreviewTab);
-  },
-  createSimplifiedBrowser() {
-    let browser = this.getSourceBrowser();
-    let preferredRemoteType = browser.remoteType;
-    let initialBrowsingContextGroupId = browser.browsingContext.group.id;
-    this._simplifyPageTab = gBrowser.loadOneTab("about:printpreview", {
-      inBackground: true,
-      preferredRemoteType,
-      initialBrowsingContextGroupId,
-      triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-    });
-    return this.getSimplifiedSourceBrowser();
-  },
-  getSourceBrowser() {
-    if (!this._tabBeforePrintPreview) {
-      this._tabBeforePrintPreview = gBrowser.selectedTab;
-    }
-    return this._tabBeforePrintPreview.linkedBrowser;
-  },
-  getSimplifiedSourceBrowser() {
-    return this._simplifyPageTab
-      ? gBrowser.getBrowserForTab(this._simplifyPageTab)
-      : null;
-  },
-  getNavToolbox() {
-    return gNavToolbox;
-  },
-  onEnter() {
-    // We might have accidentally switched tabs since the user invoked print
-    // preview
-    if (gBrowser.selectedTab != this._lastRequestedPrintPreviewTab) {
-      gBrowser.selectedTab = this._lastRequestedPrintPreviewTab;
-    }
-    gInPrintPreviewMode = true;
-    this._toggleAffectedChrome();
-  },
-  onExit() {
-    gBrowser._allowTabChange = true;
-    gBrowser.selectedTab = this._tabBeforePrintPreview;
-    gBrowser._allowTabChange = false;
-    this._tabBeforePrintPreview = null;
-    gInPrintPreviewMode = false;
-    this._toggleAffectedChrome();
-    let tabsToRemove = [
-      "_simplifyPageTab",
-      "_printPreviewTab",
-      "_simplifiedPrintPreviewTab",
-    ];
-    for (let tabProp of tabsToRemove) {
-      if (this[tabProp]) {
-        gBrowser.removeTab(this[tabProp]);
-        this[tabProp] = null;
-      }
-    }
-    gBrowser.deactivatePrintPreviewBrowsers();
-    this._lastRequestedPrintPreviewTab = null;
-  },
-  _toggleAffectedChrome() {
-    gNavToolbox.collapsed = gInPrintPreviewMode;
-
-    if (gInPrintPreviewMode) {
-      this._hideChrome();
-    } else {
-      this._showChrome();
-    }
-
-    TabsInTitlebar.allowedBy("print-preview", !gInPrintPreviewMode);
-  },
-  _hideChrome() {
-    this._chromeState = {};
-
-    this._chromeState.sidebarOpen = SidebarUI.isOpen;
-    this._sidebarCommand = SidebarUI.currentID;
-    SidebarUI.hide();
-
-    this._chromeState.findOpen = gFindBarInitialized && !gFindBar.hidden;
-    if (gFindBarInitialized) {
-      gFindBar.close();
-    }
-
-    gBrowser.getNotificationBox().stack.hidden = true;
-    gNotificationBox.stack.hidden = true;
-  },
-  _showChrome() {
-    gNotificationBox.stack.hidden = false;
-    gBrowser.getNotificationBox().stack.hidden = false;
-
-    if (this._chromeState.findOpen) {
-      gLazyFindCommand("open");
-    }
-
-    if (this._chromeState.sidebarOpen) {
-      SidebarUI.show(this._sidebarCommand);
-    }
-  },
-
-  activateBrowser(browser) {
-    gBrowser.activateBrowserForPrintPreview(browser);
-  },
-};
-
 var browserDragAndDrop = {
   canDropLink: aEvent => Services.droppedLinkHandler.canDropLink(aEvent, true),
 
@@ -4853,7 +4723,7 @@ let gFileMenu = {
         document.getElementById("menu_savePage")
       );
     }
-    PrintUtils.updatePrintPreviewMenuHiddenState();
+    PrintUtils.updatePrintSetupMenuHiddenState();
   },
 };
 
@@ -5451,8 +5321,9 @@ var XULBrowserWindow = {
     Services.obs.notifyObservers(
       window,
       "toggle-screenshot-disable",
-      aLocationURI.scheme == "about" &&
-        !aLocationURI.spec.startsWith("about:reader")
+      (aLocationURI.scheme == "about" &&
+        !aLocationURI.spec.startsWith("about:reader")) ||
+        Services.prefs.getBoolPref("extensions.screenshots.disabled")
     );
 
     gPermissionPanel.onLocationChange();
@@ -6496,6 +6367,16 @@ nsBrowserAccess.prototype = {
   },
 };
 
+function showFullScreenViewContextMenuItems(popup) {
+  for (let node of popup.querySelectorAll('[contexttype="fullscreen"]')) {
+    node.hidden = !window.fullScreen;
+  }
+  let autoHide = popup.querySelector(".fullscreen-context-autohide");
+  if (autoHide) {
+    FullScreen.getAutohide(autoHide);
+  }
+}
+
 function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
   var popup = aEvent.target;
   if (popup != aEvent.currentTarget) {
@@ -6547,6 +6428,9 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
   let removeFromToolbar = popup.querySelector(
     ".customize-context-removeFromToolbar"
   );
+  // Show/hide fullscreen context menu items and set the
+  // autohide item's checked state to mirror the autohide pref.
+  showFullScreenViewContextMenuItems(popup);
   // View -> Toolbars menu doesn't have the moveToPanel or removeFromToolbar items.
   if (!moveToPanel || !removeFromToolbar) {
     return;
@@ -9996,31 +9880,4 @@ function reportRemoteSubframesEnabledTelemetry() {
   Services.telemetry
     .getHistogramById("WINDOW_REMOTE_SUBFRAMES_ENABLED_STATUS")
     .add(categoryLabel);
-}
-
-if (AppConstants.NIGHTLY_BUILD) {
-  var FissionTestingUI = {
-    init() {
-      // Handle the Fission/Non-Fission testing UI.
-      if (!Services.appinfo.fissionAutostart) {
-        return;
-      }
-
-      const openNonFissionWindowOption = Services.prefs.getBoolPref(
-        "fission.openNonFissionWindowOption",
-        false
-      );
-      if (!openNonFissionWindowOption) {
-        return;
-      }
-
-      let newFissionWindow = document.getElementById("Tools:FissionWindow");
-      let newNonFissionWindow = document.getElementById(
-        "Tools:NonFissionWindow"
-      );
-
-      newFissionWindow.hidden = gFissionBrowser;
-      newNonFissionWindow.hidden = !gFissionBrowser;
-    },
-  };
 }

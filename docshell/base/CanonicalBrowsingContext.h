@@ -91,6 +91,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   // BrowsingContextGroup.
   uint64_t GetCrossGroupOpenerId() const { return mCrossGroupOpenerId; }
   void SetCrossGroupOpenerId(uint64_t aOpenerId);
+  void SetCrossGroupOpener(CanonicalBrowsingContext& aCrossGroupOpener,
+                           ErrorResult& aRv);
 
   void GetWindowGlobals(nsTArray<RefPtr<WindowGlobalParent>>& aWindows);
 
@@ -287,7 +289,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   void SetRestoreData(SessionStoreRestoreData* aData, ErrorResult& aError);
   void ClearRestoreState();
-  void RequestRestoreTabContent(WindowGlobalParent* aWindow);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void RequestRestoreTabContent(
+      WindowGlobalParent* aWindow);
   already_AddRefed<Promise> GetRestorePromise();
 
   nsresult WriteSessionStorageToSessionStore(
@@ -305,7 +308,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   void StartUnloadingHost(uint64_t aChildID);
   void ClearUnloadingHost(uint64_t aChildID);
 
-  bool AllowedInBFCache(const Maybe<uint64_t>& aChannelId);
+  bool AllowedInBFCache(const Maybe<uint64_t>& aChannelId, nsIURI* aNewURI);
 
   // Methods for getting and setting the active state for top level
   // browsing contexts, for the process priority manager.
@@ -458,6 +461,12 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   void AddPendingDiscard();
 
   void RemovePendingDiscard();
+
+  bool ShouldAddEntryForRefresh(const SessionHistoryEntry* aEntry) {
+    nsCOMPtr<nsIURI> currentURI = GetCurrentURI();
+    return BrowsingContext::ShouldAddEntryForRefresh(currentURI,
+                                                     aEntry->Info());
+  }
 
   // XXX(farre): Store a ContentParent pointer here rather than mProcessId?
   // Indicates which process owns the docshell.

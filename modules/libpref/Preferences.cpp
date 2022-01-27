@@ -14,6 +14,7 @@
 
 #include "base/basictypes.h"
 #include "MainThreadUtils.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/ArenaAllocatorExtensions.h"
 #include "mozilla/ArenaAllocator.h"
 #include "mozilla/ArrayUtils.h"
@@ -143,7 +144,7 @@ static const uint32_t MAX_ADVISABLE_PREF_LENGTH = 4 * 1024;
 // length, then a '/', then the string chars. This encoding means there are no
 // special chars that are forbidden or require escaping.
 static void SerializeAndAppendString(const nsCString& aChars, nsCString& aStr) {
-  aStr.AppendInt(aChars.Length());
+  aStr.AppendInt(uint64_t(aChars.Length()));
   aStr.Append('/');
   aStr.Append(aChars);
 }
@@ -1583,6 +1584,13 @@ static nsresult pref_SetPref(const nsCString& aPrefName, PrefType aType,
                              bool aIsSticky, bool aIsLocked, bool aFromInit) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
+
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::XPCOMShutdownThreads)) {
+    MOZ_ASSERT(
+        false,
+        "!AppShutdown::IsInOrBeyond(ShutdownPhase::XPCOMShutdownThreads)");
+    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
+  }
 
   if (!HashTable()) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -3722,8 +3730,7 @@ Preferences::ResetPrefs() {
   return InitInitialObjects(/* isStartup */ false);
 }
 
-NS_IMETHODIMP
-Preferences::ResetUserPrefs() {
+nsresult Preferences::ResetUserPrefs() {
   ENSURE_PARENT_PROCESS("Preferences::ResetUserPrefs", "all prefs");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
   MOZ_ASSERT(NS_IsMainThread());
@@ -4157,10 +4164,10 @@ nsresult Preferences::WritePrefFile(nsIFile* aFile, SaveMethod aSaveMethod) {
 
       // Increment sPendingWriteCount, even though it's redundant to track this
       // in the case of a sync runnable; it just makes it easier to simply
-      // decrement this inside PWRunnable. We could alternatively increment
-      // sPendingWriteCount in PWRunnable's constructor, but if for any reason
-      // in future code we create a PWRunnable without dispatching it, we would
-      // get stuck in an infinite SpinEventLoopUntil inside
+      // decrement this inside PWRunnable. We cannot use the constructor /
+      // destructor for increment/decrement, as on dispatch failure we might
+      // leak the runnable in order to not destroy it on the wrong thread, which
+      // would make us get stuck in an infinite SpinEventLoopUntil inside
       // PreferencesWriter::Flush. Better that in future code we miss an
       // increment of sPendingWriteCount and cause a simple crash due to it
       // ending up negative.
@@ -4169,8 +4176,13 @@ nsresult Preferences::WritePrefFile(nsIFile* aFile, SaveMethod aSaveMethod) {
         rv = target->Dispatch(new PWRunnable(aFile),
                               nsIEventTarget::DISPATCH_NORMAL);
       } else {
-        // Note that we don't get the nsresult return value here.
-        SyncRunnable::DispatchToThread(target, new PWRunnable(aFile), true);
+        rv =
+            SyncRunnable::DispatchToThread(target, new PWRunnable(aFile), true);
+      }
+      if (NS_FAILED(rv)) {
+        // If our dispatch failed, we should correct our bookkeeping to
+        // avoid shutdown hangs.
+        PreferencesWriter::sPendingWriteCount--;
       }
       return rv;
     }

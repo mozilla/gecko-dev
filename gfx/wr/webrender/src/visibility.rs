@@ -34,6 +34,7 @@ pub struct FrameVisibilityContext<'a> {
     pub spatial_tree: &'a SpatialTree,
     pub global_screen_world_rect: WorldRect,
     pub global_device_pixel_scale: DevicePixelScale,
+    pub surfaces: &'a [SurfaceInfo],
     pub debug_flags: DebugFlags,
     pub scene_properties: &'a SceneProperties,
     pub config: FrameBuilderConfig,
@@ -168,14 +169,13 @@ impl PrimitiveVisibility {
 pub fn update_primitive_visibility(
     store: &mut PrimitiveStore,
     pic_index: PictureIndex,
-    parent_surface_index: SurfaceIndex,
+    parent_surface_index: Option<SurfaceIndex>,
     world_culling_rect: &WorldRect,
     frame_context: &FrameVisibilityContext,
     frame_state: &mut FrameVisibilityState,
     tile_cache: &mut TileCacheInstance,
     is_root_tile_cache: bool,
     prim_instances: &mut Vec<PrimitiveInstance>,
-    surfaces: &mut [SurfaceInfo],
 ) -> Option<PictureRect> {
     profile_scope!("update_visibility");
     let (mut prim_list, surface_index, apply_local_clip_rect, world_culling_rect, pop_surface) = {
@@ -204,35 +204,25 @@ pub fn update_primitive_visibility(
                 (raster_config.surface_index, true)
             }
             None => {
-                (parent_surface_index, false)
+                (parent_surface_index.expect("bug: pass-through with no parent"), false)
             }
         };
 
         (prim_list, surface_index, pic.apply_local_clip_rect, world_culling_rect, pop_surface)
     };
 
-    // Do a borrow-check hack here to extract the info from the surface info since we
-    // need to pass it mutably to update_prim_dependencies. Once we complete refactoring
-    // of this pass, there will be no recursion so this should be a lot tidier!
-    let (mut map_local_to_surface, map_surface_to_world, inflation_factor, device_pixel_scale, scale_factors, surface_spatial_node_index) = {
-        let surface = &surfaces[surface_index.0 as usize];
+    let surface = &frame_context.surfaces[surface_index.0 as usize];
 
-        let map_local_to_surface = surface.map_local_to_surface.clone();
+    let mut map_local_to_surface = surface
+        .map_local_to_surface
+        .clone();
 
-        let map_surface_to_world = SpaceMapper::new_with_target(
-            frame_context.root_spatial_node_index,
-            surface.surface_spatial_node_index,
-            frame_context.global_screen_world_rect,
-            frame_context.spatial_tree,
-        );
-
-        let inflation_factor = surface.inflation_factor;
-        let device_pixel_scale = surface.device_pixel_scale;
-        let scale_factors = surface.scale_factors;
-        let surface_spatial_node_index = surface.surface_spatial_node_index;
-
-        (map_local_to_surface, map_surface_to_world, inflation_factor, device_pixel_scale, scale_factors, surface_spatial_node_index)
-    };
+    let map_surface_to_world = SpaceMapper::new_with_target(
+        frame_context.root_spatial_node_index,
+        surface.surface_spatial_node_index,
+        frame_context.global_screen_world_rect,
+        frame_context.spatial_tree,
+    );
 
     let mut surface_rect = PictureRect::zero();
 
@@ -270,7 +260,7 @@ pub fn update_primitive_visibility(
                 PrimitiveInstanceKind::Picture { pic_index, .. } => {
                     let (is_visible, is_passthrough) = {
                         let pic = &store.pictures[pic_index.0];
-                        (pic.is_visible(), pic.raster_config.is_none())
+                        (pic.is_visible(frame_context.spatial_tree), pic.raster_config.is_none())
                     };
 
                     if !is_visible {
@@ -287,14 +277,13 @@ pub fn update_primitive_visibility(
                     let pic_surface_rect = update_primitive_visibility(
                         store,
                         pic_index,
-                        surface_index,
+                        Some(surface_index),
                         world_culling_rect,
                         frame_context,
                         frame_state,
                         tile_cache,
                         false,
                         prim_instances,
-                        surfaces,
                     );
 
                     if is_passthrough {
@@ -343,7 +332,7 @@ pub fn update_primitive_visibility(
             } else {
                 if prim_local_rect.width() <= 0.0 || prim_local_rect.height() <= 0.0 {
                     if prim_instance.is_chased() {
-                        println!("\tculled for zero local rectangle");
+                        info!("\tculled for zero local rectangle");
                     }
                     continue;
                 }
@@ -352,6 +341,7 @@ pub fn update_primitive_visibility(
                 // the picture context and include the shadow offset. This ensures that
                 // even if the primitive itstore is not visible, any effects from the
                 // blur radius or shadow will be correctly taken into account.
+                let inflation_factor = surface.inflation_factor;
                 let local_rect = prim_shadowed_rect
                     .inflate(inflation_factor, inflation_factor)
                     .intersection(&prim_instance.clip_set.local_clip_rect);
@@ -359,7 +349,7 @@ pub fn update_primitive_visibility(
                     Some(local_rect) => local_rect,
                     None => {
                         if prim_instance.is_chased() {
-                            println!("\tculled for being out of the local clip rectangle: {:?}",
+                            info!("\tculled for being out of the local clip rectangle: {:?}",
                                      prim_instance.clip_set.local_clip_rect);
                         }
                         continue;
@@ -390,7 +380,7 @@ pub fn update_primitive_visibility(
                         &frame_context.spatial_tree,
                         frame_state.gpu_cache,
                         frame_state.resource_cache,
-                        device_pixel_scale,
+                        surface.device_pixel_scale,
                         &world_culling_rect,
                         &mut frame_state.data_stores.clip,
                         true,
@@ -404,18 +394,18 @@ pub fn update_primitive_visibility(
                     Some(clip_chain) => clip_chain,
                     None => {
                         if prim_instance.is_chased() {
-                            println!("\tunable to build the clip chain, skipping");
+                            info!("\tunable to build the clip chain, skipping");
                         }
                         continue;
                     }
                 };
 
                 if prim_instance.is_chased() {
-                    println!("\teffective clip chain from {:?} {}",
+                    info!("\teffective clip chain from {:?} {}",
                              prim_instance.vis.clip_chain.clips_range,
                              if apply_local_clip_rect { "(applied)" } else { "" },
                     );
-                    println!("\tpicture rect {:?} @{:?}",
+                    info!("\tpicture rect {:?} @{:?}",
                              prim_instance.vis.clip_chain.pic_clip_rect,
                              prim_instance.vis.clip_chain.pic_spatial_node_index,
                     );
@@ -429,7 +419,7 @@ pub fn update_primitive_visibility(
 
                 if prim_instance.vis.combined_local_clip_rect.is_empty() {
                     if prim_instance.is_chased() {
-                        println!("\tculled for zero local clip rectangle");
+                        info!("\tculled for zero local clip rectangle");
                     }
                     continue;
                 }
@@ -444,7 +434,7 @@ pub fn update_primitive_visibility(
                     }
                     None => {
                         if prim_instance.is_chased() {
-                            println!("\tculled for zero visible rectangle");
+                            info!("\tculled for zero visible rectangle");
                         }
                         continue;
                     }
@@ -464,7 +454,6 @@ pub fn update_primitive_visibility(
                     &mut frame_state.composite_state,
                     &mut frame_state.gpu_cache,
                     is_root_tile_cache,
-                    surfaces,
                 );
 
                 // Skip post visibility prim update if this primitive was culled above.
@@ -524,7 +513,7 @@ pub fn update_primitive_visibility(
                 }
 
                 if prim_instance.is_chased() {
-                    println!("\tvisible with {:?}", prim_instance.vis.combined_local_clip_rect);
+                    info!("\tvisible with {:?}", prim_instance.vis.combined_local_clip_rect);
                 }
 
                 // TODO(gw): This should probably be an instance method on PrimitiveInstance?
@@ -556,7 +545,7 @@ pub fn update_primitive_visibility(
     if let Some(ref rc) = pic.raster_config {
         // Inflate the local bounding rect if required by the filter effect.
         if pic.options.inflate_if_required {
-            surface_rect = rc.composite_mode.inflate_picture_rect(surface_rect, scale_factors);
+            surface_rect = rc.composite_mode.inflate_picture_rect(surface_rect, surface.scale_factors);
         }
 
         // Layout space for the picture is picture space from the
@@ -596,10 +585,10 @@ pub fn update_primitive_visibility(
 
         None
     } else {
-        let parent_surface = &surfaces[parent_surface_index.0 as usize];
+        let parent_surface = &frame_context.surfaces[parent_surface_index.expect("bug: no parent").0 as usize];
         let map_surface_to_parent_surface = SpaceMapper::new_with_target(
             parent_surface.surface_spatial_node_index,
-            surface_spatial_node_index,
+            surface.surface_spatial_node_index,
             PictureRect::max_rect(),
             frame_context.spatial_tree,
         );

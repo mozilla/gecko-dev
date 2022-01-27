@@ -28,6 +28,8 @@
 #include "nsXPCOMCIDInternal.h"
 #include "nsUnicharInputStream.h"
 #include "nsContentUtils.h"
+#include "mozilla/Array.h"
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/IntegerTypeTraits.h"
 #include "mozilla/NullPrincipal.h"
@@ -45,6 +47,18 @@ using mozilla::fallible;
 using mozilla::LogLevel;
 using mozilla::MakeStringSpan;
 using mozilla::dom::Document;
+
+// We only pass chunks of length sMaxChunkLength to Expat in the RLBOX sandbox.
+// The RLBOX sandbox has a limited amount of memory, and we have to account for
+// other memory use by Expat (including the buffering it does).
+// Note that sMaxChunkLength is in number of characters.
+#ifdef DEBUG
+// On debug builds we set a much lower limit (1kB) to try to hit boundary
+// conditions more frequently.
+static const uint32_t sMaxChunkLength = 1024 / sizeof(char16_t);
+#else
+static const uint32_t sMaxChunkLength = (128 * 1024) / sizeof(char16_t);
+#endif
 
 #define kExpatSeparatorChar 0xFFFF
 
@@ -368,6 +382,7 @@ void nsExpatDriver::Destroy() {
     }
   }
   mSandboxPoolData.reset();
+  mURIs.Clear();
   mExpatParser = nullptr;
 }
 
@@ -755,11 +770,14 @@ int nsExpatDriver::HandleExternalEntityRef(const char16_t* openEntityNames,
     mInternalSubset.Append(char16_t(';'));
   }
 
+  nsCOMPtr<nsIURI> baseURI = GetBaseURI(base);
+  NS_ENSURE_TRUE(baseURI, 1);
+
   // Load the external entity into a buffer.
   nsCOMPtr<nsIInputStream> in;
-  nsAutoString absURL;
-  nsresult rv = OpenInputStreamFromExternalDTD(publicId, systemId, base,
-                                               getter_AddRefs(in), absURL);
+  nsCOMPtr<nsIURI> absURI;
+  nsresult rv = OpenInputStreamFromExternalDTD(
+      publicId, systemId, baseURI, getter_AddRefs(in), getter_AddRefs(absURI));
   if (NS_FAILED(rv)) {
 #ifdef DEBUG
     nsCString message("Failed to open external DTD: publicId \"");
@@ -767,9 +785,11 @@ int nsExpatDriver::HandleExternalEntityRef(const char16_t* openEntityNames,
     message += "\" systemId \"";
     AppendUTF16toUTF8(MakeStringSpan(systemId), message);
     message += "\" base \"";
-    AppendUTF16toUTF8(MakeStringSpan(base), message);
+    message.Append(baseURI->GetSpecOrDefault());
     message += "\" URL \"";
-    AppendUTF16toUTF8(absURL, message);
+    if (absURI) {
+      message.Append(absURI->GetSpecOrDefault());
+    }
     message += "\"";
     NS_WARNING(message.get());
 #endif
@@ -784,12 +804,15 @@ int nsExpatDriver::HandleExternalEntityRef(const char16_t* openEntityNames,
   if (uniIn) {
     auto utf16 = TransferBuffer<char16_t>(
         Sandbox(), kUTF16, nsCharTraits<char16_t>::length(kUTF16) + 1);
+    NS_ENSURE_TRUE(*utf16, 1);
     tainted_expat<XML_Parser> entParser;
     entParser =
         RLBOX_EXPAT_MCALL(MOZ_XML_ExternalEntityParserCreate, nullptr, *utf16);
     if (entParser) {
-      auto url = TransferBuffer<XML_Char>(Sandbox(), (XML_Char*)absURL.get(),
-                                          absURL.Length() + 1);
+      auto baseURI = GetExpatBaseURI(absURI);
+      auto url = TransferBuffer<XML_Char>(Sandbox(), &baseURI[0],
+                                          ArrayLength(baseURI));
+      NS_ENSURE_TRUE(*url, 1);
       Sandbox()->invoke_sandbox_function(MOZ_XML_SetBase, entParser, *url);
 
       mInExternalDTD = true;
@@ -821,17 +844,12 @@ int nsExpatDriver::HandleExternalEntityRef(const char16_t* openEntityNames,
 
 nsresult nsExpatDriver::OpenInputStreamFromExternalDTD(const char16_t* aFPIStr,
                                                        const char16_t* aURLStr,
-                                                       const char16_t* aBaseURL,
+                                                       nsIURI* aBaseURI,
                                                        nsIInputStream** aStream,
-                                                       nsAString& aAbsURL) {
-  nsCOMPtr<nsIURI> baseURI;
-  nsresult rv =
-      NS_NewURI(getter_AddRefs(baseURI), NS_ConvertUTF16toUTF8(aBaseURL));
-  NS_ENSURE_SUCCESS(rv, rv);
-
+                                                       nsIURI** aAbsURI) {
   nsCOMPtr<nsIURI> uri;
-  rv = NS_NewURI(getter_AddRefs(uri), NS_ConvertUTF16toUTF8(aURLStr), nullptr,
-                 baseURI);
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), NS_ConvertUTF16toUTF8(aURLStr),
+                          nullptr, aBaseURI);
   // Even if the URI is malformed (most likely because we have a
   // non-hierarchical base URI and a relative DTD URI, with the latter
   // being the normal XHTML DTD case), we can try to see whether we
@@ -903,10 +921,7 @@ nsresult nsExpatDriver::OpenInputStreamFromExternalDTD(const char16_t* aFPIStr,
     }
   }
 
-  nsAutoCString absURL;
-  rv = uri->GetSpec(absURL);
-  NS_ENSURE_SUCCESS(rv, rv);
-  CopyUTF8toUTF16(absURL, aAbsURL);
+  uri.forget(aAbsURI);
 
   channel->SetContentType("application/xml"_ns);
   return channel->Open(aStream);
@@ -1056,7 +1071,7 @@ nsresult nsExpatDriver::HandleError() {
             mozilla::Telemetry::EventExtraEntry{
                 "last_line"_ns, NS_ConvertUTF16toUTF8(mLastLine)},
             mozilla::Telemetry::EventExtraEntry{
-                "last_line_len"_ns, nsPrintfCString("%u", mLastLine.Length())},
+                "last_line_len"_ns, nsPrintfCString("%zu", mLastLine.Length())},
             mozilla::Telemetry::EventExtraEntry{
                 "hidden"_ns, doc->Hidden() ? "true"_ns : "false"_ns},
             mozilla::Telemetry::EventExtraEntry{"destroyed"_ns,
@@ -1073,9 +1088,9 @@ nsresult nsExpatDriver::HandleError() {
   nsCOMPtr<nsIScriptError> serr(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
   nsresult rv = NS_ERROR_FAILURE;
   if (serr) {
-    rv = serr->InitWithWindowID(errorText, mURISpec, mLastLine, lineNumber,
-                                colNumber, nsIScriptError::errorFlag,
-                                "malformed-xml", mInnerWindowID);
+    rv = serr->InitWithSourceURI(
+        errorText, mURIs.SafeElementAt(0), mLastLine, lineNumber, colNumber,
+        nsIScriptError::errorFlag, "malformed-xml", mInnerWindowID);
   }
 
   // If it didn't initialize, we can't do any logging.
@@ -1108,6 +1123,39 @@ nsresult nsExpatDriver::HandleError() {
   return NS_ERROR_HTMLPARSER_STOPPARSING;
 }
 
+// Because we need to allocate a buffer in the RLBOX sandbox, and copy the data
+// to it for Expat to parse, we are limited in size by the memory available in
+// the RLBOX sandbox. nsExpatDriver::ChunkAndParseBuffer divides the buffer into
+// chunks of sMaxChunkLength characters or less, and passes them to
+// nsExpatDriver::ParseBuffer. That should ensure that we almost never run out
+// of memory in the sandbox.
+void nsExpatDriver::ChunkAndParseBuffer(const char16_t* aBuffer,
+                                        uint32_t aLength, bool aIsFinal,
+                                        uint32_t* aPassedToExpat,
+                                        uint32_t* aConsumed) {
+  *aConsumed = 0;
+
+  uint32_t remainder = aLength;
+  while (remainder > sMaxChunkLength) {
+    uint32_t consumed = 0;
+    ParseBuffer(aBuffer, sMaxChunkLength, /* aIsFinal = */ false, &consumed);
+    aBuffer += sMaxChunkLength;
+    remainder -= sMaxChunkLength;
+    *aConsumed += consumed;
+    if (NS_FAILED(mInternalState)) {
+      // Stop parsing if there's an error (including if we're blocked or
+      // interrupted).
+      *aPassedToExpat = aLength - remainder;
+      return;
+    }
+  }
+
+  uint32_t consumed = 0;
+  ParseBuffer(aBuffer, remainder, aIsFinal, &consumed);
+  *aConsumed += consumed;
+  *aPassedToExpat = aLength;
+}
+
 void nsExpatDriver::ParseBuffer(const char16_t* aBuffer, uint32_t aLength,
                                 bool aIsFinal, uint32_t* aConsumed) {
   NS_ASSERTION((aBuffer && aLength != 0) || (!aBuffer && aLength == 0), "?");
@@ -1135,6 +1183,8 @@ void nsExpatDriver::ParseBuffer(const char16_t* aBuffer, uint32_t aLength,
       status = RLBOX_EXPAT_SAFE_MCALL(MOZ_XML_ResumeParser, status_verifier);
     } else {
       auto buffer = TransferBuffer<char16_t>(Sandbox(), aBuffer, aLength);
+      MOZ_RELEASE_ASSERT(!aBuffer || !!*buffer,
+                         "Chunking should avoid OOM in ParseBuffer");
 
       status = RLBOX_EXPAT_SAFE_MCALL(
           MOZ_XML_Parse, status_verifier,
@@ -1156,8 +1206,6 @@ void nsExpatDriver::ParseBuffer(const char16_t* aBuffer, uint32_t aLength,
 
     // Consumed something.
     *aConsumed = (parserBytesConsumed - parserBytesBefore) / sizeof(char16_t);
-    NS_ASSERTION(*aConsumed <= aLength + mExpatBuffered,
-                 "Too many bytes consumed?");
 
     NS_ASSERTION(status != XML_STATUS_SUSPENDED || BlockedOrInterrupted(),
                  "Inconsistent expat suspension state.");
@@ -1236,8 +1284,12 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens) {
                NS_ConvertUTF16toUTF8(start.get(), length).get()));
     }
 
+    uint32_t passedToExpat;
     uint32_t consumed;
-    ParseBuffer(buffer, length, noMoreBuffers, &consumed);
+    ChunkAndParseBuffer(buffer, length, noMoreBuffers, &passedToExpat,
+                        &consumed);
+    MOZ_ASSERT_IF(passedToExpat != length, NS_FAILED(mInternalState));
+    MOZ_ASSERT(consumed <= passedToExpat + mExpatBuffered);
     if (consumed > 0) {
       nsScannerIterator oldExpatPosition = currentExpatPosition;
       currentExpatPosition.advance(consumed);
@@ -1269,7 +1321,7 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens) {
       }
     }
 
-    mExpatBuffered += length - consumed;
+    mExpatBuffered += passedToExpat - consumed;
 
     if (BlockedOrInterrupted()) {
       MOZ_LOG(gExpatDriverLog, LogLevel::Debug,
@@ -1478,8 +1530,14 @@ nsExpatDriver::WillBuildModel(const CParserContext& aParserContext,
   }
 
   // Create sandbox
+  //
+  // We have to make sure the sandbox is large enough. We unscientifically
+  // request two MB. Note that the parsing itself is chunked so as not to
+  // require a large sandbox.
+  static const uint64_t minSandboxSize = 2 * 1024 * 1024;
   MOZ_ASSERT(!mSandboxPoolData);
-  mSandboxPoolData = RLBoxExpatSandboxPool::sSingleton->PopOrCreate();
+  mSandboxPoolData =
+      RLBoxExpatSandboxPool::sSingleton->PopOrCreate(minSandboxSize);
   NS_ENSURE_TRUE(mSandboxPoolData, NS_ERROR_OUT_OF_MEMORY);
 
   MOZ_ASSERT(SandboxData());
@@ -1494,8 +1552,10 @@ nsExpatDriver::WillBuildModel(const CParserContext& aParserContext,
   auto expatSeparator = TransferBuffer<char16_t>(
       Sandbox(), kExpatSeparator,
       nsCharTraits<char16_t>::length(kExpatSeparator) + 1);
+  MOZ_RELEASE_ASSERT(*expatSeparator);
   auto utf16 = TransferBuffer<char16_t>(
       Sandbox(), kUTF16, nsCharTraits<char16_t>::length(kUTF16) + 1);
+  MOZ_RELEASE_ASSERT(*utf16);
   mExpatParser = Sandbox()->invoke_sandbox_function(
       MOZ_XML_ParserCreate_MM, *utf16, nullptr, *expatSeparator);
   NS_ENSURE_TRUE(mExpatParser, NS_ERROR_FAILURE);
@@ -1507,10 +1567,9 @@ nsExpatDriver::WillBuildModel(const CParserContext& aParserContext,
                     XML_PARAM_ENTITY_PARSING_ALWAYS);
 #endif
 
-  mURISpec = aParserContext.mScanner->GetFilename();
-
-  const XML_Char* uriStr = mURISpec.get();
-  auto uri = TransferBuffer<XML_Char>(Sandbox(), uriStr, mURISpec.Length() + 1);
+  auto baseURI = GetExpatBaseURI(aParserContext.mScanner->GetURI());
+  auto uri =
+      TransferBuffer<XML_Char>(Sandbox(), &baseURI[0], ArrayLength(baseURI));
   RLBOX_EXPAT_MCALL(MOZ_XML_SetBase, *uri);
 
   // Set up the callbacks
@@ -1620,6 +1679,27 @@ void nsExpatDriver::MaybeStopParser(nsresult aState) {
     // interrupt before.
     mInternalState = aState;
   }
+}
+
+nsExpatDriver::ExpatBaseURI nsExpatDriver::GetExpatBaseURI(nsIURI* aURI) {
+  mURIs.AppendElement(aURI);
+
+  MOZ_RELEASE_ASSERT(mURIs.Length() <= std::numeric_limits<XML_Char>::max());
+
+  return ExpatBaseURI(static_cast<XML_Char>(mURIs.Length()), XML_T('\0'));
+}
+
+nsIURI* nsExpatDriver::GetBaseURI(const XML_Char* aBase) const {
+  MOZ_ASSERT(aBase[0] != '\0' && aBase[1] == '\0');
+
+  if (aBase[0] == '\0' || aBase[1] != '\0') {
+    return nullptr;
+  }
+
+  uint32_t index = aBase[0] - 1;
+  MOZ_ASSERT(index < mURIs.Length());
+
+  return mURIs.SafeElementAt(index);
 }
 
 inline RLBoxExpatSandboxData* nsExpatDriver::SandboxData() const {

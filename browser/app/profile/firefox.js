@@ -167,27 +167,6 @@ pref("app.update.langpack.enabled", true);
 #if defined(MOZ_UPDATE_AGENT)
   pref("app.update.background.loglevel", "error");
   pref("app.update.background.timeoutSec", 600);
-  // If set to true, on Windows, the browser will attempt to schedule OS-level
-  // background tasks to update itself even when it is not running.  This pref
-  // is special: any profile that believes itself the default profile will
-  // mirror this pref's default value to the per-installation pref
-  // `app.update.background.enabled`.  This pref will be used to stage the roll
-  // out of the background update feature via Normandy.  (The per-installation
-  // pref allows profiles beyond the default profile to enable and disable the
-  // background update feature manually.)
-  //
-  // This preprocessor if statement is a bit ugly because the preprocessor does
-  // not currently support using parentheses for grouping. If it did, this could
-  // be more cleanly expressed as
-  // (defined(EARLY_BETA_OR_EARLIER) || defined(MOZ_DEV_EDITION)) && defined(XP_WIN)
-  // Since it does not, however, we must rely on the order of operations that it
-  // implements, which evaluates && operations before || operations
-#if defined(EARLY_BETA_OR_EARLIER) && defined(XP_WIN) || defined(MOZ_DEV_EDITION) && defined(XP_WIN)
-  pref("app.update.background.scheduling.enabled", true);
-  pref("app.update.background.experimental", true);
-#else
-  pref("app.update.background.scheduling.enabled", false);
-#endif
   // By default, check for updates when the browser is not running every 7 hours.
   pref("app.update.background.interval", 25200);
 #endif
@@ -282,6 +261,9 @@ pref("browser.shell.defaultBrowserCheckCount", 0);
 // Attempt to set the default browser on Windows 10 using the UserChoice registry keys,
 // before falling back to launching the modern Settings dialog.
 pref("browser.shell.setDefaultBrowserUserChoice", true);
+// When setting the default browser on Windows 10 using the UserChoice
+// registry keys, also try to set Firefox as the default PDF handler.
+pref("browser.shell.setDefaultPDFHandler", false);
 #endif
 
 
@@ -318,7 +300,7 @@ pref("browser.startup.preXulSkeletonUI", true);
 #endif
 
 // Show an upgrade dialog on major upgrades.
-pref("browser.startup.upgradeDialog.enabled", true);
+pref("browser.startup.upgradeDialog.enabled", false);
 
 // Don't create the hidden window during startup on
 // platforms that don't always need it (Win/Linux).
@@ -379,6 +361,7 @@ pref("browser.urlbar.maxHistoricalSearchSuggestions", 2);
 pref("browser.urlbar.suggest.bookmark",             true);
 pref("browser.urlbar.suggest.history",              true);
 pref("browser.urlbar.suggest.openpage",             true);
+pref("browser.urlbar.suggest.remotetab",            true);
 pref("browser.urlbar.suggest.searches",             true);
 pref("browser.urlbar.suggest.topsites",             true);
 pref("browser.urlbar.suggest.engines",              true);
@@ -550,6 +533,13 @@ pref("browser.download.autohideButton", true);
 // The first download ever run in a new profile will still open the panel.
 pref("browser.download.alwaysOpenPanel", true);
 
+// Determines the behavior of the "Delete" item in the downloads context menu.
+// Valid values are 0, 1, and 2.
+//   0 - Don't remove the download from session list or history.
+//   1 - Remove the download from session list, but not history.
+//   2 - Remove the download from both session list and history.
+pref("browser.download.clearHistoryOnDelete", 0);
+
 #ifndef XP_MACOSX
   pref("browser.helperApps.deleteTempFileOnExit", true);
 #endif
@@ -585,6 +575,13 @@ pref("browser.search.separatePrivateDefault.ui.banner.max", 0);
 
 // Enables the display of the Mozilla VPN banner in private browsing windows
 pref("browser.privatebrowsing.vpnpromourl", "https://vpn.mozilla.org/?utm_source=firefox-browser&utm_medium=firefox-%CHANNEL%-browser&utm_campaign=private-browsing-vpn-link");
+
+// Whether the user is opted-in to privacy segmentation.
+pref("browser.privacySegmentation.enabled", false);
+
+// Use dark theme variant for PBM windows. This is only supported if the theme
+// sets darkTheme data.
+pref("browser.theme.dark-private-windows", false);
 
 pref("browser.sessionhistory.max_entries", 50);
 
@@ -999,57 +996,6 @@ pref("layout.spellcheckDefault", 1);
 
 pref("browser.send_pings", false);
 
-// At startup, if the handler service notices that the version number in the
-// region.properties file is newer than the version number in the handler
-// service datastore, it will add any new handlers it finds in the prefs (as
-// seeded by this file) to its datastore.
-pref("gecko.handlerService.defaultHandlersVersion", "chrome://browser-region/locale/region.properties");
-
-// The default set of web-based protocol handlers shown in the application
-// selection dialog for webcal: ; I've arbitrarily picked 4 default handlers
-// per protocol, but if some locale wants more than that (or defaults for some
-// protocol not currently listed here), we should go ahead and add those.
-
-// webcal
-pref("gecko.handlerService.schemes.webcal.0.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.webcal.0.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.webcal.1.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.webcal.1.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.webcal.2.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.webcal.2.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.webcal.3.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.webcal.3.uriTemplate", "chrome://browser-region/locale/region.properties");
-
-// mailto
-pref("gecko.handlerService.schemes.mailto.0.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.mailto.0.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.mailto.1.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.mailto.1.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.mailto.2.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.mailto.2.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.mailto.3.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.mailto.3.uriTemplate", "chrome://browser-region/locale/region.properties");
-
-// irc
-pref("gecko.handlerService.schemes.irc.0.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.irc.0.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.irc.1.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.irc.1.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.irc.2.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.irc.2.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.irc.3.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.irc.3.uriTemplate", "chrome://browser-region/locale/region.properties");
-
-// ircs
-pref("gecko.handlerService.schemes.ircs.0.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.ircs.0.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.ircs.1.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.ircs.1.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.ircs.2.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.ircs.2.uriTemplate", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.ircs.3.name", "chrome://browser-region/locale/region.properties");
-pref("gecko.handlerService.schemes.ircs.3.uriTemplate", "chrome://browser-region/locale/region.properties");
-
 pref("browser.geolocation.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/geolocation/");
 pref("browser.xr.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/xr/");
 
@@ -1159,6 +1105,9 @@ pref("places.frecency.unvisitedTypedBonus", 200);
 // selects "Forget About This Site".
 pref("places.forgetThisSite.clearByBaseDomain", true);
 
+// Whether to warm up network connections for places: menus and places: toolbar.
+pref("browser.places.speculativeConnect.enabled", true);
+
 // Controls behavior of the "Add Exception" dialog launched from SSL error pages
 // 0 - don't pre-populate anything
 // 1 - pre-populate site URL, but don't fetch certificate
@@ -1210,6 +1159,10 @@ pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
 // The number of recently selected folders in the edit bookmarks dialog.
 pref("browser.bookmarks.editDialog.maxRecentFolders", 7);
 
+// By default the Edit Bookmark dialog is instant-apply. This feature pref will allow to
+// just save on Accept, once the project is complete.
+pref("browser.bookmarks.editDialog.delayedApply.enabled", false);
+
 pref("dom.ipc.plugins.flash.disable-protected-mode", false);
 
 // Feature-disable the protected-mode auto-flip
@@ -1221,25 +1174,6 @@ pref("browser.flash-protected-mode-flip.done", false);
 pref("dom.ipc.shims.enabledWarnings", false);
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
-  // Controls whether and how the Windows NPAPI plugin process is sandboxed.
-  // To get a different setting for a particular plugin replace "default", with
-  // the plugin's nice file name, see: nsPluginTag::GetNiceFileName.
-  // On windows these levels are:
-  // 0 - no sandbox
-  // 1 - sandbox with USER_NON_ADMIN access token level
-  // 2 - a more strict sandbox, which might cause functionality issues. This now
-  //     includes running at low integrity.
-  // 3 - the strongest settings we seem to be able to use without breaking
-  //     everything, but will probably cause some functionality restrictions
-  pref("dom.ipc.plugins.sandbox-level.default", 0);
-  #if defined(_AMD64_)
-    // The base sandbox level in nsPluginTag::InitSandboxLevel must be
-    // updated to keep in sync with this value.
-    pref("dom.ipc.plugins.sandbox-level.flash", 3);
-  #else
-    pref("dom.ipc.plugins.sandbox-level.flash", 0);
-  #endif
-
   // This controls the strength of the Windows content process sandbox for
   // testing purposes. This will require a restart.
   // On windows these levels are:
@@ -1527,7 +1461,7 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.message-groups", "{\
 // this page over http opens us up to a man-in-the-middle attack that we'd rather not face. If you are a downstream
 // repackager of this code using an alternate snippet url, please keep your users safe
 pref("browser.newtabpage.activity-stream.asrouter.providers.snippets", "{\"id\":\"snippets\",\"enabled\":false,\"type\":\"remote\",\"url\":\"https://snippets.cdn.mozilla.net/%STARTPAGE_VERSION%/%NAME%/%VERSION%/%APPBUILDID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/\",\"updateCycleInMs\":14400000}");
-pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments", "{\"id\":\"messaging-experiments\",\"enabled\":true,\"type\":\"remote-experiments\",\"messageGroups\":[\"cfr\",\"aboutwelcome\",\"infobar\",\"spotlight\",\"moments-page\"],\"updateCycleInMs\":3600000}");
+pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments", "{\"id\":\"messaging-experiments\",\"enabled\":true,\"type\":\"remote-experiments\",\"messageGroups\":[\"cfr\",\"aboutwelcome\",\"infobar\",\"spotlight\",\"moments-page\",\"pbNewtab\"],\"updateCycleInMs\":3600000}");
 
 // ASRouter user prefs
 pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", true);
@@ -1545,12 +1479,26 @@ pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
 // These prefs control if Discovery Stream is enabled.
 pref("browser.newtabpage.activity-stream.discoverystream.enabled", true);
 pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
+// A preset compact layout, similar to setting a collection of prefs to build a complete layout.
 pref("browser.newtabpage.activity-stream.discoverystream.compactLayout.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.hideCardBackground.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.fourCardLayout.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.loadMore.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.lastCardMessage.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.newFooterSection.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.saveToPocketCard.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.hideDescriptions.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.compactGrid.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.compactImages.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.imageGradient.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.titleLines", 3);
+pref("browser.newtabpage.activity-stream.discoverystream.descLines", 3);
+pref("browser.newtabpage.activity-stream.discoverystream.readTime.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.newSponsoredLabel.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.essentialReadsHeader.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.editorsPicksHeader.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,11,20");
+
 pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint", "");
 pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint-query", "");
 pref("browser.newtabpage.activity-stream.discoverystream.sponsored-collections.enabled", false);
@@ -1586,6 +1534,9 @@ pref("browser.newtabpage.activity-stream.feeds.section.topstories", true);
 
 // The pref controls if search hand-off is enabled for Activity Stream.
 pref("browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar", true);
+
+// This pref controls the visibility of Colorway Closet settings in the customize panel
+pref("browser.newtabpage.activity-stream.colorway-closet.enabled", false);
 
 pref("browser.newtabpage.activity-stream.logowordmark.alwaysVisible", true);
 
@@ -1760,6 +1711,7 @@ pref("media.autoplay.default", 1); // 0=Allowed, 1=Blocked, 5=All Blocked
 
 pref("media.videocontrols.picture-in-picture.enabled", true);
 pref("media.videocontrols.picture-in-picture.video-toggle.enabled", true);
+pref("media.videocontrols.picture-in-picture.video-toggle.visibility-threshold", "0.9");
 pref("media.videocontrols.picture-in-picture.keyboard-controls.enabled", true);
 
 #ifdef NIGHTLY_BUILD
@@ -1902,6 +1854,13 @@ pref("browser.contentblocking.report.proxy.enabled", false);
 
 // Disable the mobile promotion by default.
 pref("browser.contentblocking.report.show_mobile_app", true);
+
+// Avoid advertising in certain regions. Comma separated string of two letter ISO 3166-1 country codes.
+// We're currently blocking all of Ukraine (ua), but would prefer to block just Crimea (ua-43). Currently, the Mozilla Location Service APIs used by Region.jsm only exposes the country, not the subdivision.
+pref("browser.vpn_promo.disallowed_regions", "ae,by,cn,cu,iq,ir,kp,om,ru,sd,sy,tm,tr,ua");
+
+// Default to enabling VPN promo messages to be shown when specified and allowed
+pref("browser.vpn_promo.enabled", true);
 
 // Enable the vpn card by default.
 pref("browser.contentblocking.report.vpn.enabled", true);
@@ -2075,6 +2034,11 @@ pref("extensions.pocket.showHome", true);
 // Possibilities are: `control`, `control-one-button`, `variant_a`, `variant_b`, `variant_c`
 pref("extensions.pocket.loggedOutVariant", "control");
 
+// Enable the new Pocket panels.
+pref("extensions.pocket.refresh.layout.enabled", false);
+// Just for the new Pocket panels, enables the email signup button.
+pref("extensions.pocket.refresh.emailButton.enabled", false);
+
 pref("signon.management.page.fileImport.enabled", false);
 
 #ifdef NIGHTLY_BUILD
@@ -2169,6 +2133,12 @@ pref("app.normandy.onsync_skew_sec", 600);
   // AMO only serves language packs for release and beta versions.
   pref("intl.multilingual.downloadEnabled", false);
 #endif
+// With the preference enabled below, switching the browser language will do a live
+// reload rather than requiring a restart. Enable bidirectional below as well to allow
+// live reloading when switching between LTR and RTL languages.
+pref("intl.multilingual.liveReload", false);
+pref("intl.multilingual.liveReloadBidirectional", false);
+
 
 // Simulate conditions that will happen when the browser
 // is running with Fission enabled. This is meant to assist
@@ -2248,13 +2218,13 @@ pref("devtools.browsertoolbox.fission", false);
 // This preference will enable watching top-level targets from the server side.
 pref("devtools.target-switching.server.enabled", true);
 
-// Setting this preference to true will result in DevTools creating a target for each frame
-// (i.e. not only for top-level document and remote frames).
-#if defined(NIGHTLY_BUILD)
+// In DevTools, create a target for each frame (i.e. not only for top-level document and
+// remote frames).
 pref("devtools.every-frame-target.enabled", true);
-#else
-pref("devtools.every-frame-target.enabled", false);
-#endif
+
+// Controls the hability to debug popups from the same DevTools
+// of the original tab the popups are coming from
+pref("devtools.popups.debug", false);
 
 // Toolbox Button preferences
 pref("devtools.command-button-pick.enabled", true);
@@ -2292,11 +2262,7 @@ pref("devtools.inspector.showAllAnonymousContent", false);
 // Enable the inline CSS compatiblity warning in inspector rule view
 pref("devtools.inspector.ruleview.inline-compatibility-warning.enabled", false);
 // Enable the compatibility tool in the inspector.
-#if defined(NIGHTLY_BUILD) || defined(MOZ_DEV_EDITION)
 pref("devtools.inspector.compatibility.enabled", true);
-#else
-pref("devtools.inspector.compatibility.enabled", false);
-#endif
 // Enable overflow debugging in the inspector.
 pref("devtools.overflow.debugging.enabled", true);
 
@@ -2404,6 +2370,10 @@ pref("devtools.netmonitor.features.requestBlocking", true);
 // Enable the Application panel
 pref("devtools.application.enabled", true);
 
+// Enable the custom formatters feature
+// TODO remove once the custom formatters feature is stable (see bug 1734614)
+pref("devtools.custom-formatters", false);
+
 // The default Network Monitor UI settings
 pref("devtools.netmonitor.panes-network-details-width", 550);
 pref("devtools.netmonitor.panes-network-details-height", 450);
@@ -2483,11 +2453,7 @@ pref("devtools.webconsole.filter.netxhr", false);
 pref("devtools.webconsole.input.autocomplete",true);
 
 // Show context selector in console input
-#if defined(NIGHTLY_BUILD)
-  pref("devtools.webconsole.input.context", true);
-#else
-  pref("devtools.webconsole.input.context", false);
-#endif
+pref("devtools.webconsole.input.context", true);
 
 // Set to true to eagerly show the results of webconsole terminal evaluations
 // when they don't have side effects.

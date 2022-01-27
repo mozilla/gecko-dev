@@ -7,6 +7,7 @@
 #ifndef jit_shared_LIR_shared_h
 #define jit_shared_LIR_shared_h
 
+#include "mozilla/Maybe.h"
 #include "jit/AtomicOp.h"
 #include "jit/shared/Assembler-shared.h"
 #include "util/Memory.h"
@@ -3165,13 +3166,16 @@ class LWasmParameterI64 : public LInstructionHelper<INT64_PIECES, 0, 0> {
 
 class LWasmCall : public LVariadicInstruction<0, 0> {
   bool needsBoundsCheck_;
+  mozilla::Maybe<uint32_t> tableSize_;
 
  public:
   LIR_HEADER(WasmCall);
 
-  LWasmCall(uint32_t numOperands, bool needsBoundsCheck)
+  LWasmCall(uint32_t numOperands, bool needsBoundsCheck,
+            mozilla::Maybe<uint32_t> tableSize = mozilla::Nothing())
       : LVariadicInstruction(classOpcode, numOperands),
-        needsBoundsCheck_(needsBoundsCheck) {
+        needsBoundsCheck_(needsBoundsCheck),
+        tableSize_(tableSize) {
     this->setIsCall();
   }
 
@@ -3187,6 +3191,7 @@ class LWasmCall : public LVariadicInstruction<0, 0> {
   }
 
   bool needsBoundsCheck() const { return needsBoundsCheck_; }
+  mozilla::Maybe<uint32_t> tableSize() const { return tableSize_; }
 };
 
 class LWasmRegisterResult : public LInstructionHelper<1, 0, 0> {
@@ -3765,6 +3770,7 @@ class LWasmReplaceInt64LaneSimd128
   const LAllocation* lhs() { return getOperand(Lhs); }
   const LAllocation* lhsDest() { return getOperand(LhsDest); }
   const LInt64Allocation rhs() { return getInt64Operand(Rhs); }
+  const LDefinition* output() { return this->getDef(0); }
   uint32_t laneIndex() const {
     return mir_->toWasmReplaceLaneSimd128()->laneIndex();
   }
@@ -3949,6 +3955,56 @@ class LWasmStoreLaneSimd128 : public LInstructionHelper<1, 3, 1> {
 };
 
 // End Wasm SIMD
+
+// Wasm Exception Handling
+
+class LWasmExceptionDataPointer : public LInstructionHelper<1, 1, 0> {
+ public:
+  LIR_HEADER(WasmExceptionDataPointer);
+
+  explicit LWasmExceptionDataPointer(const LAllocation& exn)
+      : LInstructionHelper(classOpcode) {
+    setOperand(0, exn);
+  }
+
+  const LAllocation* exn() { return getOperand(0); }
+  MWasmExceptionDataPointer* mir() const {
+    return mir_->toWasmExceptionDataPointer();
+  }
+};
+
+class LWasmExceptionRefsPointer : public LInstructionHelper<1, 1, 1> {
+ public:
+  LIR_HEADER(WasmExceptionRefsPointer);
+
+  LWasmExceptionRefsPointer(const LAllocation& exn, const LDefinition& temp)
+      : LInstructionHelper(classOpcode) {
+    setOperand(0, exn);
+    setTemp(0, temp);
+  }
+
+  const LAllocation* exn() { return getOperand(0); }
+  const LDefinition* temp() { return getTemp(0); }
+  MWasmExceptionRefsPointer* mir() const {
+    return mir_->toWasmExceptionRefsPointer();
+  }
+};
+
+class LWasmLoadExceptionRefsValue : public LInstructionHelper<1, 1, 0> {
+ public:
+  LIR_HEADER(WasmLoadExceptionRefsValue);
+  explicit LWasmLoadExceptionRefsValue(const LAllocation& refsPtr)
+      : LInstructionHelper(classOpcode) {
+    setOperand(0, refsPtr);
+  }
+
+  const LAllocation* refsPtr() { return getOperand(0); }
+  MWasmLoadExceptionRefsValue* mir() const {
+    return mir_->toWasmLoadExceptionRefsValue();
+  }
+};
+
+// End Wasm Exception Handling
 
 }  // namespace jit
 }  // namespace js

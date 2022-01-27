@@ -9,7 +9,7 @@
 
 #include "nsISupportsImpl.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/WindowBinding.h"  // For FrameRequestCallback
+#include "mozilla/dom/AnimationFrameProviderBinding.h"
 #include "mozilla/dom/WebXRBinding.h"
 #include "mozilla/dom/XRFrame.h"
 #include "mozilla/gfx/PVRManagerChild.h"
@@ -80,8 +80,7 @@ class VRManagerChild : public PVRManagerChild {
   static bool IsPresenting();
   static TimeStamp GetIdleDeadlineHint(TimeStamp aDefault);
 
-  PVRLayerChild* CreateVRLayer(uint32_t aDisplayID,
-                               nsISerialEventTarget* aTarget, uint32_t aGroup);
+  PVRLayerChild* CreateVRLayer(uint32_t aDisplayID, uint32_t aGroup);
 
   static void IdentifyTextureHost(
       const layers::TextureFactoryIdentifier& aIdentifier);

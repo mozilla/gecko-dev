@@ -100,13 +100,8 @@ PeerConnectionMedia::PeerConnectionMedia(PeerConnectionImpl* parent)
       mTargetForDefaultLocalAddressLookupIsSet(false),
       mDestroyed(false) {
   if (XRE_IsContentProcess()) {
-    nsCOMPtr<nsISerialEventTarget> target =
-        mParent->GetWindow()
-            ? mParent->GetWindow()->EventTargetFor(TaskCategory::Other)
-            : nullptr;
-
     mStunAddrsRequest =
-        new net::StunAddrsRequestChild(new StunAddrsHandler(this), target);
+        new net::StunAddrsRequestChild(new StunAddrsHandler(this));
   }
 }
 
@@ -650,7 +645,7 @@ void PeerConnectionMedia::Shutdown() {
 
 nsresult PeerConnectionMedia::AddTransceiver(
     JsepTransceiver* aJsepTransceiver, dom::MediaStreamTrack* aSendTrack,
-    SharedWebrtcState* aSharedWebrtcState,
+    SharedWebrtcState* aSharedWebrtcState, RTCStatsIdGenerator* aIdGenerator,
     RefPtr<TransceiverImpl>* aTransceiverImpl) {
   if (!mCall) {
     mCall = WebrtcCallWrapper::Create(
@@ -664,7 +659,7 @@ nsresult PeerConnectionMedia::AddTransceiver(
   RefPtr<TransceiverImpl> transceiver = new TransceiverImpl(
       mParent->GetWindow(), mParent->PrivacyNeeded(), mParent->GetHandle(),
       mTransportHandler, aJsepTransceiver, mMainThread.get(), mSTSThread.get(),
-      aSendTrack, mCall.get());
+      aSendTrack, mCall.get(), aIdGenerator);
 
   if (!transceiver->IsValid()) {
     return NS_ERROR_FAILURE;

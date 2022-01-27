@@ -180,6 +180,7 @@ class CPUInfo {
     SSE4_1 = 6,
     SSE4_2 = 7
   };
+  static const int AVX_PRESENT_BIT = 8;
 
   static SSEVersion GetSSEVersion() {
     if (maxSSEVersion == UnknownSSE) {
@@ -201,6 +202,10 @@ class CPUInfo {
     return avxPresent;
   }
 
+  static inline uint32_t GetFingerprint() {
+    return GetSSEVersion() | (IsAVXPresent() ? AVX_PRESENT_BIT : 0);
+  }
+
  private:
   static SSEVersion maxSSEVersion;
   static SSEVersion maxEnabledSSEVersion;
@@ -210,6 +215,7 @@ class CPUInfo {
   static bool bmi1Present;
   static bool bmi2Present;
   static bool lzcntPresent;
+  static bool avx2Present;
 
   static void SetSSEVersion();
 
@@ -237,6 +243,7 @@ class CPUInfo {
   static bool IsBMI1Present() { return bmi1Present; }
   static bool IsBMI2Present() { return bmi2Present; }
   static bool IsLZCNTPresent() { return lzcntPresent; }
+  static bool IsAVX2Present() { return avx2Present; }
 
   // The SSE flags can become set at startup when we JIT non-JS code eagerly;
   // thus we must reset the flags before setting any flags explicitly during
@@ -1175,6 +1182,7 @@ class AssemblerX86Shared : public AssemblerShared {
   static bool SupportsFastUnalignedFPAccesses() { return true; }
   static bool SupportsWasmSimd() { return CPUInfo::IsSSE41Present(); }
   static bool HasAVX() { return CPUInfo::IsAVXPresent(); }
+  static bool HasAVX2() { return CPUInfo::IsAVX2Present(); }
 
   static bool HasRoundInstruction(RoundingMode mode) {
     switch (mode) {
@@ -2693,42 +2701,41 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  void vcmpps(uint8_t order, Operand rhs, FloatRegister srcDest) {
+  void vcmpps(uint8_t order, Operand rhs, FloatRegister lhs,
+              FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
     switch (rhs.kind()) {
       case Operand::FPREG:
-        masm.vcmpps_rr(order, rhs.fpu(), srcDest.encoding(),
-                       srcDest.encoding());
+        masm.vcmpps_rr(order, rhs.fpu(), lhs.encoding(), dest.encoding());
         break;
       case Operand::MEM_REG_DISP:
-        masm.vcmpps_mr(order, rhs.disp(), rhs.base(), srcDest.encoding(),
-                       srcDest.encoding());
+        masm.vcmpps_mr(order, rhs.disp(), rhs.base(), lhs.encoding(),
+                       dest.encoding());
         break;
       case Operand::MEM_ADDRESS32:
-        masm.vcmpps_mr(order, rhs.address(), srcDest.encoding(),
-                       srcDest.encoding());
+        masm.vcmpps_mr(order, rhs.address(), lhs.encoding(), dest.encoding());
         break;
       default:
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vcmpeqps(const Operand& rhs, FloatRegister srcDest) {
-    vcmpps(X86Encoding::ConditionCmp_EQ, rhs, srcDest);
+  void vcmpeqps(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmpps(X86Encoding::ConditionCmp_EQ, rhs, lhs, dest);
   }
-  void vcmpltps(const Operand& rhs, FloatRegister srcDest) {
-    vcmpps(X86Encoding::ConditionCmp_LT, rhs, srcDest);
+  void vcmpltps(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmpps(X86Encoding::ConditionCmp_LT, rhs, lhs, dest);
   }
-  void vcmpleps(const Operand& rhs, FloatRegister srcDest) {
-    vcmpps(X86Encoding::ConditionCmp_LE, rhs, srcDest);
+  void vcmpleps(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmpps(X86Encoding::ConditionCmp_LE, rhs, lhs, dest);
   }
-  void vcmpunordps(const Operand& rhs, FloatRegister srcDest) {
-    vcmpps(X86Encoding::ConditionCmp_UNORD, rhs, srcDest);
+  void vcmpunordps(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmpps(X86Encoding::ConditionCmp_UNORD, rhs, lhs, dest);
   }
-  void vcmpneqps(const Operand& rhs, FloatRegister srcDest) {
-    vcmpps(X86Encoding::ConditionCmp_NEQ, rhs, srcDest);
+  void vcmpneqps(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmpps(X86Encoding::ConditionCmp_NEQ, rhs, lhs, dest);
   }
-  void vcmpordps(const Operand& rhs, FloatRegister srcDest) {
-    vcmpps(X86Encoding::ConditionCmp_ORD, rhs, srcDest);
+  void vcmpordps(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmpps(X86Encoding::ConditionCmp_ORD, rhs, lhs, dest);
   }
   void vcmppd(uint8_t order, Operand rhs, FloatRegister srcDest) {
     switch (rhs.kind()) {
@@ -3727,11 +3734,12 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vpalignr(const Operand& src, FloatRegister dest, uint8_t shift) {
+  void vpalignr(const Operand& src1, FloatRegister src0, FloatRegister dest,
+                uint8_t shift) {
     MOZ_ASSERT(HasSSE3());
-    switch (src.kind()) {
+    switch (src1.kind()) {
       case Operand::FPREG:
-        masm.vpalignr_irr(shift, src.fpu(), dest.encoding());
+        masm.vpalignr_irr(shift, src1.fpu(), src0.encoding(), dest.encoding());
         break;
       default:
         MOZ_CRASH("unexpected operand kind");
@@ -4664,6 +4672,92 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fstp32_m(src.disp(), src.base());
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+
+  void vbroadcastb(const Operand& src, FloatRegister dest) {
+    MOZ_ASSERT(HasAVX2());
+    switch (src.kind()) {
+      case Operand::FPREG:
+        masm.vbroadcastb_rr(src.fpu(), dest.encoding());
+        break;
+      case Operand::MEM_REG_DISP:
+        masm.vbroadcastb_mr(src.disp(), src.base(), dest.encoding());
+        break;
+      case Operand::MEM_SCALE:
+        masm.vbroadcastb_mr(src.disp(), src.base(), src.index(), src.scale(),
+                            dest.encoding());
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+  void vbroadcastw(const Operand& src, FloatRegister dest) {
+    MOZ_ASSERT(HasAVX2());
+    switch (src.kind()) {
+      case Operand::FPREG:
+        masm.vbroadcastw_rr(src.fpu(), dest.encoding());
+        break;
+      case Operand::MEM_REG_DISP:
+        masm.vbroadcastw_mr(src.disp(), src.base(), dest.encoding());
+        break;
+      case Operand::MEM_SCALE:
+        masm.vbroadcastw_mr(src.disp(), src.base(), src.index(), src.scale(),
+                            dest.encoding());
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+  void vbroadcastd(const Operand& src, FloatRegister dest) {
+    MOZ_ASSERT(HasAVX2());
+    switch (src.kind()) {
+      case Operand::FPREG:
+        masm.vbroadcastd_rr(src.fpu(), dest.encoding());
+        break;
+      case Operand::MEM_REG_DISP:
+        masm.vbroadcastd_mr(src.disp(), src.base(), dest.encoding());
+        break;
+      case Operand::MEM_SCALE:
+        masm.vbroadcastd_mr(src.disp(), src.base(), src.index(), src.scale(),
+                            dest.encoding());
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+  void vbroadcastq(const Operand& src, FloatRegister dest) {
+    MOZ_ASSERT(HasAVX2());
+    switch (src.kind()) {
+      case Operand::FPREG:
+        masm.vbroadcastq_rr(src.fpu(), dest.encoding());
+        break;
+      case Operand::MEM_REG_DISP:
+        masm.vbroadcastq_mr(src.disp(), src.base(), dest.encoding());
+        break;
+      case Operand::MEM_SCALE:
+        masm.vbroadcastq_mr(src.disp(), src.base(), src.index(), src.scale(),
+                            dest.encoding());
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+  void vbroadcastss(const Operand& src, FloatRegister dest) {
+    MOZ_ASSERT(HasAVX2());
+    switch (src.kind()) {
+      case Operand::FPREG:
+        masm.vbroadcastss_rr(src.fpu(), dest.encoding());
+        break;
+      case Operand::MEM_REG_DISP:
+        masm.vbroadcastss_mr(src.disp(), src.base(), dest.encoding());
+        break;
+      case Operand::MEM_SCALE:
+        masm.vbroadcastss_mr(src.disp(), src.base(), src.index(), src.scale(),
+                             dest.encoding());
         break;
       default:
         MOZ_CRASH("unexpected operand kind");

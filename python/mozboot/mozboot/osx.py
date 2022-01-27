@@ -15,10 +15,12 @@ try:
 except ImportError:
     from urllib.request import urlopen
 
+from pathlib import Path
 from distutils.version import StrictVersion
 
 from mozboot.base import BaseBootstrapper
 from mozfile import which
+from mach.util import to_optional_path, to_optional_str
 
 HOMEBREW_BOOTSTRAP = (
     "https://raw.githubusercontent.com/Homebrew/install/master/install.sh"
@@ -100,24 +102,18 @@ class OSXAndroidBootstrapper(object):
                 avd_manifest_path=android.AVD_MANIFEST_ARM64,
             )
 
-    def ensure_mobile_android_packages(self, state_dir, checkout_root):
+    def ensure_mobile_android_packages(self):
         from mozboot import android
 
         arch = platform.machine()
         android.ensure_java("macosx", arch)
 
         if arch == "x86_64" or arch == "x86":
-            self.install_toolchain_artifact(
-                state_dir, checkout_root, android.MACOS_X86_64_ANDROID_AVD
-            )
-            self.install_toolchain_artifact(
-                state_dir, checkout_root, android.MACOS_ARM_ANDROID_AVD
-            )
+            self.install_toolchain_artifact(android.MACOS_X86_64_ANDROID_AVD)
+            self.install_toolchain_artifact(android.MACOS_ARM_ANDROID_AVD)
         elif arch == "arm64":
             # The only emulator supported on Apple Silicon is the Arm64 one.
-            self.install_toolchain_artifact(
-                state_dir, checkout_root, android.MACOS_ARM64_ANDROID_AVD
-            )
+            self.install_toolchain_artifact(android.MACOS_ARM64_ANDROID_AVD)
 
     def install_mobile_android_artifact_mode_packages(self, mozconfig_builder):
         self.install_mobile_android_packages(mozconfig_builder, artifact_mode=True)
@@ -187,16 +183,16 @@ class OSXBootstrapperLight(OSXAndroidBootstrapper, BaseBootstrapper):
     def install_browser_artifact_mode_packages(self, mozconfig_builder):
         pass
 
-    def ensure_node_packages(self, state_dir, checkout_root):
+    def ensure_node_packages(self):
         pass
 
-    def ensure_stylo_packages(self, state_dir, checkout_root):
+    def ensure_stylo_packages(self):
         pass
 
-    def ensure_clang_static_analysis_package(self, state_dir, checkout_root):
+    def ensure_clang_static_analysis_package(self):
         pass
 
-    def ensure_nasm_packages(self, state_dir, checkout_root):
+    def ensure_nasm_packages(self):
         pass
 
 
@@ -234,7 +230,7 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
         pass
 
     def _ensure_homebrew_found(self):
-        self.brew = which("brew")
+        self.brew = to_optional_path(which("brew"))
 
         return self.brew is not None
 
@@ -243,7 +239,7 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
         self.ensure_homebrew_installed()
 
         def create_homebrew_cmd(*parameters):
-            base_cmd = [self.brew]
+            base_cmd = [to_optional_str(self.brew)]
             base_cmd.extend(parameters)
             return base_cmd + [package_type_flag]
 
@@ -271,18 +267,22 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
     def _ensure_homebrew_casks(self, casks):
         self._ensure_homebrew_found()
 
-        known_taps = subprocess.check_output([self.brew, "tap"])
+        known_taps = subprocess.check_output([to_optional_str(self.brew), "tap"])
 
         # Ensure that we can access old versions of packages.
         if b"homebrew/cask-versions" not in known_taps:
-            subprocess.check_output([self.brew, "tap", "homebrew/cask-versions"])
+            subprocess.check_output(
+                [to_optional_str(self.brew), "tap", "homebrew/cask-versions"]
+            )
 
         # "caskroom/versions" has been renamed to "homebrew/cask-versions", so
         # it is safe to remove the old tap. Removing the old tap is necessary
         # to avoid the error "Cask [name of cask] exists in multiple taps".
         # See https://bugzilla.mozilla.org/show_bug.cgi?id=1544981
         if b"caskroom/versions" in known_taps:
-            subprocess.check_output([self.brew, "untap", "caskroom/versions"])
+            subprocess.check_output(
+                [to_optional_str(self.brew), "untap", "caskroom/versions"]
+            )
 
         self._ensure_homebrew_packages(casks, is_for_cask=True)
 
@@ -301,9 +301,9 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
             self.install_homebrew()
 
         # Check for correct $PATH ordering.
-        brew_dir = os.path.dirname(self.brew)
+        brew_dir = self.brew.resolve().parent
         for path in os.environ["PATH"].split(os.pathsep):
-            if path == brew_dir:
+            if Path(path) == brew_dir:
                 break
 
             for check in ("/bin", "/usr/bin"):
@@ -311,54 +311,33 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
                     print(BAD_PATH_ORDER % (check, brew_dir, brew_dir, check, brew_dir))
                     sys.exit(1)
 
-    def ensure_clang_static_analysis_package(self, state_dir, checkout_root):
+    def ensure_clang_static_analysis_package(self):
         from mozboot import static_analysis
 
-        self.install_toolchain_static_analysis(
-            state_dir, checkout_root, static_analysis.MACOS_CLANG_TIDY
-        )
+        self.install_toolchain_static_analysis(static_analysis.MACOS_CLANG_TIDY)
 
-    def ensure_sccache_packages(self, state_dir, checkout_root):
+    def ensure_sccache_packages(self):
         from mozboot import sccache
 
-        self.install_toolchain_artifact(state_dir, checkout_root, sccache.MACOS_SCCACHE)
-        self.install_toolchain_artifact(
-            state_dir, checkout_root, sccache.RUSTC_DIST_TOOLCHAIN, no_unpack=True
-        )
-        self.install_toolchain_artifact(
-            state_dir, checkout_root, sccache.CLANG_DIST_TOOLCHAIN, no_unpack=True
-        )
+        self.install_toolchain_artifact("sccache")
+        self.install_toolchain_artifact(sccache.RUSTC_DIST_TOOLCHAIN, no_unpack=True)
+        self.install_toolchain_artifact(sccache.CLANG_DIST_TOOLCHAIN, no_unpack=True)
 
-    def ensure_fix_stacks_packages(self, state_dir, checkout_root):
-        from mozboot import fix_stacks
+    def ensure_fix_stacks_packages(self):
+        self.install_toolchain_artifact("fix-stacks")
 
-        self.install_toolchain_artifact(
-            state_dir, checkout_root, fix_stacks.MACOS_FIX_STACKS
-        )
+    def ensure_stylo_packages(self):
+        self.install_toolchain_artifact("clang")
+        self.install_toolchain_artifact("cbindgen")
 
-    def ensure_stylo_packages(self, state_dir, checkout_root):
-        from mozboot import stylo
+    def ensure_nasm_packages(self):
+        self.install_toolchain_artifact("nasm")
 
-        self.install_toolchain_artifact(state_dir, checkout_root, stylo.MACOS_CLANG)
-        self.install_toolchain_artifact(state_dir, checkout_root, stylo.MACOS_CBINDGEN)
+    def ensure_node_packages(self):
+        self.install_toolchain_artifact("node")
 
-    def ensure_nasm_packages(self, state_dir, checkout_root):
-        from mozboot import nasm
-
-        self.install_toolchain_artifact(state_dir, checkout_root, nasm.MACOS_NASM)
-
-    def ensure_node_packages(self, state_dir, checkout_root):
-        # XXX from necessary?
-        from mozboot import node
-
-        self.install_toolchain_artifact(state_dir, checkout_root, node.OSX)
-
-    def ensure_minidump_stackwalk_packages(self, state_dir, checkout_root):
-        from mozboot import minidump_stackwalk
-
-        self.install_toolchain_artifact(
-            state_dir, checkout_root, minidump_stackwalk.MACOS_MINIDUMP_STACKWALK
-        )
+    def ensure_minidump_stackwalk_packages(self):
+        self.install_toolchain_artifact("minidump_stackwalk")
 
     def install_homebrew(self):
         print(BREW_INSTALL)
@@ -378,14 +357,15 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
             sys.exit(1)
 
     def _update_package_manager(self):
-        subprocess.check_call([self.brew, "-v", "update"])
+        subprocess.check_call([to_optional_str(self.brew), "-v", "update"])
 
     def _upgrade_package(self, package):
         self._ensure_homebrew_installed()
 
         try:
             subprocess.check_output(
-                [self.brew, "-v", "upgrade", package], stderr=subprocess.STDOUT
+                [to_optional_str(self.brew), "-v", "upgrade", package],
+                stderr=subprocess.STDOUT,
             )
         except subprocess.CalledProcessError as e:
             if b"already installed" not in e.output:

@@ -298,11 +298,7 @@ impl VaryingContext<'_> {
             None => {
                 match self.types[self.ty].inner {
                     //TODO: check the member types
-                    crate::TypeInner::Struct {
-                        top_level: false,
-                        ref members,
-                        ..
-                    } => {
+                    crate::TypeInner::Struct { ref members, .. } => {
                         for (index, member) in members.iter().enumerate() {
                             self.ty = member.ty;
                             let span_context = self.types.get_span_context(self.ty);
@@ -346,10 +342,7 @@ impl super::Validator {
                         return Err(GlobalVariableError::Alignment(ty_handle, disalignment));
                     }
                 }
-                (
-                    TypeFlags::DATA | TypeFlags::HOST_SHARED | TypeFlags::TOP_LEVEL,
-                    true,
-                )
+                (TypeFlags::DATA | TypeFlags::HOST_SHARED, true)
             }
             crate::StorageClass::Uniform => {
                 if let Err((ty_handle, disalignment)) = type_info.uniform_layout {
@@ -358,21 +351,11 @@ impl super::Validator {
                     }
                 }
                 (
-                    TypeFlags::DATA
-                        | TypeFlags::COPY
-                        | TypeFlags::SIZED
-                        | TypeFlags::HOST_SHARED
-                        | TypeFlags::TOP_LEVEL,
+                    TypeFlags::DATA | TypeFlags::COPY | TypeFlags::SIZED | TypeFlags::HOST_SHARED,
                     true,
                 )
             }
-            crate::StorageClass::Handle => {
-                match types[var.ty].inner {
-                    crate::TypeInner::Image { .. } | crate::TypeInner::Sampler { .. } => {}
-                    _ => return Err(GlobalVariableError::InvalidType),
-                };
-                (TypeFlags::empty(), true)
-            }
+            crate::StorageClass::Handle => (TypeFlags::empty(), true),
             crate::StorageClass::Private | crate::StorageClass::WorkGroup => {
                 (TypeFlags::DATA | TypeFlags::SIZED, false)
             }
@@ -388,6 +371,16 @@ impl super::Validator {
                 )
             }
         };
+
+        let is_handle = var.class == crate::StorageClass::Handle;
+        let good_type = match types[var.ty].inner {
+            crate::TypeInner::Struct { .. } => !is_handle,
+            crate::TypeInner::Image { .. } | crate::TypeInner::Sampler { .. } => is_handle,
+            _ => false,
+        };
+        if is_resource && !good_type {
+            return Err(GlobalVariableError::InvalidType);
+        }
 
         if !type_info.flags.contains(required_type_flags) {
             return Err(GlobalVariableError::MissingTypeFlags {

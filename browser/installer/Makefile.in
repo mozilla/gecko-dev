@@ -120,7 +120,7 @@ MOZ_PACKAGER_MINIFY=1
 
 include $(topsrcdir)/toolkit/mozapps/installer/packager.mk
 
-ifeq (bundle, $(MOZ_FS_LAYOUT))
+ifeq (Darwin,$(OS_TARGET))
 BINPATH = $(_BINPATH)
 DEFINES += -DAPPNAME='$(_APPNAME)'
 else
@@ -130,7 +130,7 @@ endif
 DEFINES += -DBINPATH='$(BINPATH)'
 
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-RESPATH = $(_APPNAME)/Contents/Resources
+RESPATH = $(_RESPATH)
 else
 RESPATH = $(BINPATH)
 endif
@@ -156,9 +156,6 @@ DEFINES += -DLLVM_SYMBOLIZER=$(notdir $(LLVM_SYMBOLIZER))
 endif
 ifdef MOZ_CLANG_RT_ASAN_LIB_PATH
 DEFINES += -DMOZ_CLANG_RT_ASAN_LIB=$(notdir $(MOZ_CLANG_RT_ASAN_LIB_PATH))
-endif
-ifdef WIN_DIA_SDK_BIN_DIR
-DEFINES += -DWIN_DIA_SDK_BIN_DIR=1
 endif
 
 # Builds using the hybrid FasterMake/RecursiveMake backend will

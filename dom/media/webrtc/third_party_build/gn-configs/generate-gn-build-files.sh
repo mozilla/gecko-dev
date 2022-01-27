@@ -8,33 +8,15 @@ if [ ! "x$DEBUG_GEN" = "x" ]; then
   set -x
 fi
 
-if [ "x$MOZ_LIBWEBRTC" = "x" ]; then
-  echo "MOZ_LIBWEBRTC is not defined, see README.md"
+if [ "x$GN" = "x" ]; then
+  echo "GN is not defined, see README.md"
   exit
 fi
 
-if [ -d $MOZ_LIBWEBRTC ]; then
-  echo "MOZ_LIBWEBRTC is $MOZ_LIBWEBRTC"
+if [ -f $GN ]; then
+  echo "GN is $GN"
 else
-  echo "Path $MOZ_LIBWEBRTC is not found, see README.md"
-  exit
-fi
-
-# git clone and gclient checkout may be in different places 
-if [ "x$MOZ_LIBWEBRTC_GIT" = "x" ]; then
-  MOZ_LIBWEBRTC_GIT=$MOZ_LIBWEBRTC
-fi
-
-if [ ! -d $MOZ_LIBWEBRTC_GIT/.git ]; then
-  echo "No .git directory is found in the libwebrtc checkout, see README.md"
-  exit
-fi
-
-if [ ! -d $MOZ_LIBWEBRTC/src/buildtools ]; then
-  echo "Path $MOZ_LIBWEBRTC/src/buildtools is not found, see README.md"
-  echo "Please run the following commands from inside $MOZ_LIBWEBRTC:"
-  echo "\tgclient config https://github.com/mozilla/libwebrtc"
-  echo "\tgclient sync -D --force --reset --with_branch_heads # this make take a while"
+  echo "Path $GN is not found, see README.md"
   exit
 fi
 
@@ -92,6 +74,8 @@ elif [ "x$SYS_NAME" = "xMINGW32_NT-6.2" ]; then
   CONFIGS="$CONFIGS x64_True_x64_win x64_False_x64_win"
   CONFIGS="$CONFIGS x64_True_x86_win x64_False_x86_win"
   IS_WIN=1
+elif [ "x$SYS_NAME" = "xOpenBSD" ]; then
+  CONFIGS="x64_False_x64_openbsd x64_True_x64_openbsd"
 else
   # Ensure rust has the correct targets for building x86 and arm64.  These
   # operations succeed quickly if previously completed.
@@ -112,21 +96,6 @@ fi
 # auto-update.
 export PATH=$DEPOT_TOOLS:$PATH
 export DEPOT_TOOLS_UPDATE=0
-
-# Symlink in the buildtools and .git directories from our copy of libwebrtc.
-if [ -L ./third_party/libwebrtc/buildtools ]; then
-  rm ./third_party/libwebrtc/buildtools
-elif [ -d ./third_party/libwebrtc/buildtools ]; then
-  rm -rf ./third_party/libwebrtc/buildtools
-fi
-ln -s $MOZ_LIBWEBRTC/src/buildtools ./third_party/libwebrtc/
-
-if [ -L ./third_party/libwebrtc/.git ]; then
-  rm ./third_party/libwebrtc/.git
-elif [ -d ./third_party/libwebrtc/.git ]; then
-  rm -rf ./third_party/libwebrtc/.git
-fi
-ln -s $MOZ_LIBWEBRTC_GIT/.git ./third_party/libwebrtc/
 
 CONFIG_DIR=dom/media/webrtc/third_party_build/gn-configs
 echo "CONFIG_DIR is $CONFIG_DIR"

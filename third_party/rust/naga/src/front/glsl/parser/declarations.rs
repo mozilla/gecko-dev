@@ -292,6 +292,7 @@ impl<'source> ParsingContext<'source> {
                                         parser,
                                         &mut context,
                                         &mut body,
+                                        &mut None,
                                     )?;
 
                                     parser.add_function(context, name, result, body, meta);
@@ -501,7 +502,6 @@ impl<'source> ParsingContext<'source> {
             Type {
                 name: Some(ty_name),
                 inner: TypeInner::Struct {
-                    top_level: true,
                     members: members.clone(),
                     span,
                 },

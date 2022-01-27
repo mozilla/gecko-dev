@@ -16,6 +16,10 @@
 #include "mozilla/ProfilerUtils.h"
 #include "mozilla/UniquePtrExtensions.h"
 
+#include "nsIThread.h"
+#include "nsThreadUtils.h"
+#include "prthread.h"
+
 #include "gtest/gtest.h"
 
 #include <thread>
@@ -655,6 +659,31 @@ static const char* GetThreadName() {
       nullptr);
 }
 
+// Get the thread name, as registered in the PRThread, nullptr on failure.
+static const char* GetPRThreadName() {
+  nsIThread* nsThread = NS_GetCurrentThread();
+  if (!nsThread) {
+    return nullptr;
+  }
+  PRThread* prThread = nullptr;
+  if (NS_FAILED(nsThread->GetPRThread(&prThread))) {
+    return nullptr;
+  }
+  if (!prThread) {
+    return nullptr;
+  }
+  return PR_GetThreadName(prThread);
+}
+
+TEST(GeckoProfiler, ThreadRegistration_MainThreadName)
+{
+  EXPECT_TRUE(profiler::ThreadRegistration::IsRegistered());
+  EXPECT_STREQ(GetThreadName(), "GeckoMain");
+
+  // Check that the real thread name (outside the profiler) is *not* GeckoMain.
+  EXPECT_STRNE(GetPRThreadName(), "GeckoMain");
+}
+
 TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
 {
   using TR = profiler::ThreadRegistration;
@@ -680,6 +709,7 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       TR rt{"Test thread #1", &onStackChar};
       ASSERT_TRUE(TR::IsRegistered());
       EXPECT_STREQ(GetThreadName(), "Test thread #1");
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #1");
     }
     ASSERT_FALSE(TR::IsRegistered());
 
@@ -688,6 +718,7 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       TR::RegisterThread("Test thread #2", &onStackChar);
       ASSERT_TRUE(TR::IsRegistered());
       EXPECT_STREQ(GetThreadName(), "Test thread #2");
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #2");
 
       TR::UnregisterThread();
       ASSERT_FALSE(TR::IsRegistered());
@@ -702,17 +733,21 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       TR rt2{"Test thread #3", &onStackChar};
       ASSERT_TRUE(TR::IsRegistered());
       EXPECT_STREQ(GetThreadName(), "Test thread #3");
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #3");
 
       {
         TR rt3{"Test thread #4", &onStackChar};
         ASSERT_TRUE(TR::IsRegistered());
         EXPECT_STREQ(GetThreadName(), "Test thread #3")
             << "Nested registration shouldn't change the name";
+        EXPECT_STREQ(GetPRThreadName(), "Test thread #3")
+            << "Nested registration shouldn't change the PRThread name";
       }
       ASSERT_TRUE(TR::IsRegistered())
       << "Thread should still be registered after nested un-registration";
       EXPECT_STREQ(GetThreadName(), "Test thread #3")
           << "Thread should still be registered after nested un-registration";
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #3");
     }
     ASSERT_FALSE(TR::IsRegistered());
 
@@ -721,18 +756,22 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       TR::RegisterThread("Test thread #5", &onStackChar);
       ASSERT_TRUE(TR::IsRegistered());
       EXPECT_STREQ(GetThreadName(), "Test thread #5");
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #5");
 
       {
         TR::RegisterThread("Test thread #6", &onStackChar);
         ASSERT_TRUE(TR::IsRegistered());
         EXPECT_STREQ(GetThreadName(), "Test thread #5")
             << "Nested registration shouldn't change the name";
+        EXPECT_STREQ(GetPRThreadName(), "Test thread #5")
+            << "Nested registration shouldn't change the PRThread name";
 
         TR::UnregisterThread();
         ASSERT_TRUE(TR::IsRegistered())
         << "Thread should still be registered after nested un-registration";
         EXPECT_STREQ(GetThreadName(), "Test thread #5")
             << "Thread should still be registered after nested un-registration";
+        EXPECT_STREQ(GetPRThreadName(), "Test thread #5");
       }
 
       TR::UnregisterThread();
@@ -744,18 +783,22 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       TR rt2{"Test thread #7", &onStackChar};
       ASSERT_TRUE(TR::IsRegistered());
       EXPECT_STREQ(GetThreadName(), "Test thread #7");
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #7");
 
       {
         TR::RegisterThread("Test thread #8", &onStackChar);
         ASSERT_TRUE(TR::IsRegistered());
         EXPECT_STREQ(GetThreadName(), "Test thread #7")
             << "Nested registration shouldn't change the name";
+        EXPECT_STREQ(GetPRThreadName(), "Test thread #7")
+            << "Nested registration shouldn't change the PRThread name";
 
         TR::UnregisterThread();
         ASSERT_TRUE(TR::IsRegistered())
         << "Thread should still be registered after nested un-registration";
         EXPECT_STREQ(GetThreadName(), "Test thread #7")
             << "Thread should still be registered after nested un-registration";
+        EXPECT_STREQ(GetPRThreadName(), "Test thread #7");
       }
     }
     ASSERT_FALSE(TR::IsRegistered());
@@ -765,17 +808,21 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       TR::RegisterThread("Test thread #9", &onStackChar);
       ASSERT_TRUE(TR::IsRegistered());
       EXPECT_STREQ(GetThreadName(), "Test thread #9");
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #9");
 
       {
         TR rt3{"Test thread #10", &onStackChar};
         ASSERT_TRUE(TR::IsRegistered());
         EXPECT_STREQ(GetThreadName(), "Test thread #9")
             << "Nested registration shouldn't change the name";
+        EXPECT_STREQ(GetPRThreadName(), "Test thread #9")
+            << "Nested registration shouldn't change the PRThread name";
       }
       ASSERT_TRUE(TR::IsRegistered())
       << "Thread should still be registered after nested un-registration";
       EXPECT_STREQ(GetThreadName(), "Test thread #9")
           << "Thread should still be registered after nested un-registration";
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #9");
 
       TR::UnregisterThread();
       ASSERT_FALSE(TR::IsRegistered());
@@ -786,6 +833,7 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       TR rt2{"Test thread #11", &onStackChar};
       ASSERT_TRUE(TR::IsRegistered());
       EXPECT_STREQ(GetThreadName(), "Test thread #11");
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #11");
 
       TR::UnregisterThread();
       ASSERT_TRUE(TR::IsRegistered())
@@ -794,6 +842,7 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       EXPECT_STREQ(GetThreadName(), "Test thread #11")
           << "On-stack thread should still be registered after off-stack "
              "un-registration";
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #11");
     }
     ASSERT_FALSE(TR::IsRegistered());
 
@@ -803,12 +852,15 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       TR::RegisterThread("Test thread #12", &onStackChar);
       ASSERT_TRUE(TR::IsRegistered());
       EXPECT_STREQ(GetThreadName(), "Test thread #12");
+      EXPECT_STREQ(GetPRThreadName(), "Test thread #12");
 
       {
         TR rt3{"Test thread #13", &onStackChar};
         ASSERT_TRUE(TR::IsRegistered());
         EXPECT_STREQ(GetThreadName(), "Test thread #12")
             << "Nested registration shouldn't change the name";
+        EXPECT_STREQ(GetPRThreadName(), "Test thread #12")
+            << "Nested registration shouldn't change the PRThread name";
 
         // Note that we unregister the root registration, while nested `rt3` is
         // still alive.
@@ -1509,7 +1561,7 @@ TEST(GeckoProfiler, FeaturesAndParams)
 
   // Try a couple of features and filters.
   {
-    uint32_t features = ProfilerFeature::JS | ProfilerFeature::Threads;
+    uint32_t features = ProfilerFeature::JS;
     const char* filters[] = {"GeckoMain", "Compositor"};
 
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
@@ -1545,9 +1597,7 @@ TEST(GeckoProfiler, FeaturesAndParams)
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::MainThreadIO));
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::IPCMessages));
 
-    // Profiler::Threads is added because filters has multiple entries.
-    ActiveParamsCheck(PowerOfTwo32(999999).Value(), 3,
-                      features | ProfilerFeature::Threads, filters,
+    ActiveParamsCheck(int(PowerOfTwo32(999999).Value()), 3, features, filters,
                       MOZ_ARRAY_LENGTH(filters), 123, Some(25.0));
 
     profiler_stop();
@@ -1568,9 +1618,7 @@ TEST(GeckoProfiler, FeaturesAndParams)
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::MainThreadIO));
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::IPCMessages));
 
-    // Profiler::Threads is added because filters has multiple entries.
-    ActiveParamsCheck(PowerOfTwo32(999999).Value(), 3,
-                      features | ProfilerFeature::Threads, filters,
+    ActiveParamsCheck(int(PowerOfTwo32(999999).Value()), 3, features, filters,
                       MOZ_ARRAY_LENGTH(filters), 0, Nothing());
 
     profiler_stop();
@@ -1612,8 +1660,7 @@ TEST(GeckoProfiler, FeaturesAndParams)
 
     // Entries and intervals go to defaults if 0 is specified.
     ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES.Value(),
-                      PROFILER_DEFAULT_INTERVAL,
-                      features | ProfilerFeature::Threads, filters,
+                      PROFILER_DEFAULT_INTERVAL, features, filters,
                       MOZ_ARRAY_LENGTH(filters), 0, Nothing());
 
     profiler_stop();
@@ -1632,7 +1679,7 @@ TEST(GeckoProfiler, EnsureStarted)
 {
   InactiveFeaturesAndParamsCheck();
 
-  uint32_t features = ProfilerFeature::JS | ProfilerFeature::Threads;
+  uint32_t features = ProfilerFeature::JS;
   const char* filters[] = {"GeckoMain", "Compositor"};
   {
     // Inactive -> Active
@@ -1770,7 +1817,7 @@ TEST(GeckoProfiler, DifferentThreads)
   // Control the profiler on a background thread and verify flags on the
   // main thread.
   {
-    uint32_t features = ProfilerFeature::JS | ProfilerFeature::Threads;
+    uint32_t features = ProfilerFeature::JS;
     const char* filters[] = {"GeckoMain", "Compositor"};
 
     thread->Dispatch(
@@ -1802,7 +1849,7 @@ TEST(GeckoProfiler, DifferentThreads)
   // Control the profiler on the main thread and verify flags on a
   // background thread.
   {
-    uint32_t features = ProfilerFeature::JS | ProfilerFeature::Threads;
+    uint32_t features = ProfilerFeature::JS;
     const char* filters[] = {"GeckoMain", "Compositor"};
 
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
@@ -3348,7 +3395,7 @@ PROFILER_DEFINE_COUNT_TOTAL(TestCounter2, COUNTER_NAME2, COUNTER_DESCRIPTION2);
 
 TEST(GeckoProfiler, Counters)
 {
-  uint32_t features = ProfilerFeature::Threads;
+  uint32_t features = 0;
   const char* filters[] = {"GeckoMain"};
 
   // We will record some counter values, and check that they're present (and no
@@ -3514,8 +3561,6 @@ TEST(GeckoProfiler, GetProfile)
   ASSERT_TRUE(activeFeatures.isSome());
   // Not all platforms support stack-walking.
   const bool hasStackWalk = ProfilerFeature::HasStackWalk(*activeFeatures);
-  // "threads" may automatically be added when `filters` is not empty.
-  const bool hasThreads = ProfilerFeature::HasThreads(*activeFeatures);
 
   UniquePtr<char[]> profile = profiler_get_profile();
   JSONOutputCheck(profile.get(), [&](const Json::Value& aRoot) {
@@ -3525,13 +3570,9 @@ TEST(GeckoProfiler, GetProfile)
       {
         GET_JSON(features, configuration["features"], Array);
         {
-          EXPECT_EQ(features.size(),
-                    (hasStackWalk ? 1u : 0u) + (hasThreads ? 1u : 0u));
+          EXPECT_EQ(features.size(), (hasStackWalk ? 1u : 0u));
           if (hasStackWalk) {
             EXPECT_JSON_ARRAY_CONTAINS(features, String, "stackwalk");
-          }
-          if (hasThreads) {
-            EXPECT_JSON_ARRAY_CONTAINS(features, String, "threads");
           }
         }
         GET_JSON(threads, configuration["threads"], Array);
@@ -3572,6 +3613,13 @@ TEST(GeckoProfiler, StreamJSONForThisProcess)
   ASSERT_TRUE(!::profiler_stream_json_for_this_process(w));
 }
 
+// Internal version of profiler_stream_json_for_this_process, which allows being
+// called from a non-main thread of the parent process, at the risk of getting
+// an incomplete profile.
+bool do_profiler_stream_json_for_this_process(
+    SpliceableJSONWriter& aWriter, double aSinceTime, bool aIsShuttingDown,
+    ProfilerCodeAddressService* aService);
+
 TEST(GeckoProfiler, StreamJSONForThisProcessThreaded)
 {
   // Same as the previous test, but calling some things on background threads.
@@ -3595,7 +3643,10 @@ TEST(GeckoProfiler, StreamJSONForThisProcessThreaded)
           "GeckoProfiler_StreamJSONForThisProcessThreaded_Test::TestBody",
           [&]() {
             w.Start();
-            ASSERT_TRUE(::profiler_stream_json_for_this_process(w));
+            ASSERT_TRUE(::do_profiler_stream_json_for_this_process(
+                w, /* double aSinceTime */ 0.0,
+                /* bool aIsShuttingDown */ false,
+                /* ProfilerCodeAddressService* aService */ nullptr));
             w.End();
           }),
       NS_DISPATCH_SYNC);
@@ -3611,7 +3662,10 @@ TEST(GeckoProfiler, StreamJSONForThisProcessThreaded)
           "GeckoProfiler_StreamJSONForThisProcessThreaded_Test::TestBody",
           [&]() {
             profiler_stop();
-            ASSERT_TRUE(!::profiler_stream_json_for_this_process(w));
+            ASSERT_TRUE(!::do_profiler_stream_json_for_this_process(
+                w, /* double aSinceTime */ 0.0,
+                /* bool aIsShuttingDown */ false,
+                /* ProfilerCodeAddressService* aService */ nullptr));
           }),
       NS_DISPATCH_SYNC);
   thread->Shutdown();
@@ -3722,7 +3776,7 @@ TEST(GeckoProfiler, SuspendAndSample)
 
   DoSuspendAndSample(ProfilerThreadId{}, thread);
 
-  uint32_t features = ProfilerFeature::JS | ProfilerFeature::Threads;
+  uint32_t features = ProfilerFeature::JS;
   const char* filters[] = {"GeckoMain", "Compositor"};
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
@@ -4389,7 +4443,7 @@ TEST(GeckoProfiler, AllThreads)
 
     ASSERT_TRUE(!profiler_is_active());
 
-    uint32_t features = ProfilerFeature::StackWalk | ProfilerFeature::Threads;
+    uint32_t features = ProfilerFeature::StackWalk;
     std::string featuresString = "Features: StackWalk Threads";
     if (threadCPU) {
       features |= ProfilerFeature::CPUAllThreads;

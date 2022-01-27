@@ -182,25 +182,18 @@ js::Scope* js::BaseScript::releaseEnclosingScope() {
 }
 
 void js::BaseScript::swapData(UniquePtr<PrivateScriptData>& other) {
-  PrivateScriptData* tmp = other.release();
-
   if (data_) {
-    // When disconnecting script data from the BaseScript, we must pre-barrier
-    // all edges contained in it. Those edges are no longer reachable from
-    // current location in the graph.
-    PreWriteBarrier(zone(), data_);
-
     RemoveCellMemory(this, data_->allocationSize(),
                      MemoryUse::ScriptPrivateData);
   }
 
-  std::swap(tmp, data_);
+  PrivateScriptData* old = data_;
+  data_.set(zone(), other.release());
+  other.reset(old);
 
   if (data_) {
     AddCellMemory(this, data_->allocationSize(), MemoryUse::ScriptPrivateData);
   }
-
-  other.reset(tmp);
 }
 
 js::Scope* js::BaseScript::enclosingScope() const {
@@ -419,7 +412,7 @@ void js::FillImmutableFlagsFromCompileOptionsForFunction(
 // FillImmutableFlagsFromCompileOptionsForTopLevel above.
 //
 // If isMultiDecode is true, this check minimal set of CompileOptions that is
-// shared across multiple scripts in JS::DecodeMultiOffThreadStencils.
+// shared across multiple scripts in JS::DecodeMultiStencilsOffThread.
 // Other options should be checked when getting the decoded script from the
 // cache.
 bool js::CheckCompileOptionsMatch(const ReadOnlyCompileOptions& options,
@@ -763,7 +756,7 @@ ScriptSourceObject* ScriptSourceObject::create(JSContext* cx,
     return true;
   }
 
-  if (gFilenameValidationCallback(filename, cx->realm()->isSystem())) {
+  if (gFilenameValidationCallback(cx, filename)) {
     return true;
   }
 
@@ -1258,7 +1251,7 @@ JSLinearString* ScriptSource::substring(JSContext* cx, size_t start,
     }
 
     const char* str = units.asChars();
-    return NewStringCopyUTF8N<CanGC>(cx, JS::UTF8Chars(str, len));
+    return NewStringCopyUTF8N(cx, JS::UTF8Chars(str, len));
   }
 
   // UTF-16 source text.
@@ -1292,7 +1285,7 @@ JSLinearString* ScriptSource::substringDontDeflate(JSContext* cx, size_t start,
     // There doesn't appear to be a non-deflating UTF-8 string creation
     // function -- but then again, it's not entirely clear how current
     // callers benefit from non-deflation.
-    return NewStringCopyUTF8N<CanGC>(cx, JS::UTF8Chars(str, len));
+    return NewStringCopyUTF8N(cx, JS::UTF8Chars(str, len));
   }
 
   // UTF-16 source text.
@@ -2119,11 +2112,9 @@ void JSScript::relazify(JSRuntime* rt) {
   js::Scope* scope = enclosingScope();
   UniquePtr<PrivateScriptData> scriptData;
 
-#ifndef JS_CODEGEN_NONE
   // Any JIT compiles should have been released, so we already point to the
   // interpreter trampoline which supports lazy scripts.
-  MOZ_ASSERT(isUsingInterpreterTrampoline(rt));
-#endif
+  MOZ_ASSERT_IF(jit::HasJitBackend(), isUsingInterpreterTrampoline(rt));
 
   // Without bytecode, the script counts are invalid so destroy them if they
   // still exist.
@@ -2370,11 +2361,10 @@ bool JSScript::fullyInitFromStencil(
   // here will be released by the UniquePtr.
   Rooted<UniquePtr<PrivateScriptData>> lazyData(cx);
 
-#ifndef JS_CODEGEN_NONE
   // Whether we are a newborn script or an existing lazy script, we should
   // already be pointing to the interpreter trampoline.
-  MOZ_ASSERT(script->isUsingInterpreterTrampoline(cx->runtime()));
-#endif
+  MOZ_ASSERT_IF(jit::HasJitBackend(),
+                script->isUsingInterpreterTrampoline(cx->runtime()));
 
   // If we are using an existing lazy script, record enough info to be able to
   // rollback on failure.
@@ -3138,11 +3128,10 @@ BaseScript* BaseScript::New(JSContext* cx, JS::Handle<JSFunction*> function,
     return nullptr;
   }
 
-#ifndef JS_CODEGEN_NONE
-  uint8_t* stubEntry = cx->runtime()->jitRuntime()->interpreterStub().value;
-#else
   uint8_t* stubEntry = nullptr;
-#endif
+  if (jit::HasJitBackend()) {
+    stubEntry = cx->runtime()->jitRuntime()->interpreterStub().value;
+  }
 
   MOZ_ASSERT_IF(function,
                 function->compartment() == sourceObject->compartment());

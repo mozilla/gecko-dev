@@ -26,6 +26,8 @@
  */
 namespace mozilla::dom {
 
+class BodyStreamHolder;
+
 // Note: Until we need to be able to provide a native implementation of start,
 // I don't distinguish between UnderlyingSourceStartCallbackHelper and  a
 // hypothetical IDLUnderlingSourceStartCallbackHelper
@@ -43,8 +45,7 @@ class UnderlyingSourceStartCallbackHelper : public nsISupports {
 
   // The fundamental Call Primitive
   MOZ_CAN_RUN_SCRIPT
-  void StartCallback(JSContext* aCx,
-                     ReadableStreamDefaultController& aController,
+  void StartCallback(JSContext* aCx, ReadableStreamController& aController,
                      JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv);
 
  protected:
@@ -67,7 +68,7 @@ class UnderlyingSourcePullCallbackHelper : public nsISupports {
   // The fundamental Call Primitive
   MOZ_CAN_RUN_SCRIPT
   virtual already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamDefaultController& aController,
+      JSContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) = 0;
 
  protected:
@@ -91,7 +92,7 @@ class IDLUnderlyingSourcePullCallbackHelper final
 
   MOZ_CAN_RUN_SCRIPT
   virtual already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamDefaultController& aController,
+      JSContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) override;
 
  protected:
@@ -102,6 +103,29 @@ class IDLUnderlyingSourcePullCallbackHelper final
  private:
   JS::Heap<JSObject*> mThisObj;
   RefPtr<UnderlyingSourcePullCallback> mCallback;
+};
+
+class BodyStreamUnderlyingSourcePullCallbackHelper final
+    : public UnderlyingSourcePullCallbackHelper {
+ public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(
+      BodyStreamUnderlyingSourcePullCallbackHelper,
+      UnderlyingSourcePullCallbackHelper)
+
+  explicit BodyStreamUnderlyingSourcePullCallbackHelper(
+      BodyStreamHolder* underlyingSource);
+
+  MOZ_CAN_RUN_SCRIPT
+  virtual already_AddRefed<Promise> PullCallback(
+      JSContext* aCx, ReadableStreamController& aController,
+      ErrorResult& aRv) override;
+
+ protected:
+  virtual ~BodyStreamUnderlyingSourcePullCallbackHelper() = default;
+
+ private:
+  RefPtr<BodyStreamHolder> mUnderlyingSource;
 };
 
 class UnderlyingSourceCancelCallbackHelper : public nsISupports {
@@ -148,6 +172,61 @@ class IDLUnderlyingSourceCancelCallbackHelper final
  private:
   JS::Heap<JSObject*> mThisObj;
   RefPtr<UnderlyingSourceCancelCallback> mCallback;
+};
+
+class BodyStreamUnderlyingSourceCancelCallbackHelper final
+    : public UnderlyingSourceCancelCallbackHelper {
+ public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(
+      BodyStreamUnderlyingSourceCancelCallbackHelper,
+      UnderlyingSourceCancelCallbackHelper)
+
+  explicit BodyStreamUnderlyingSourceCancelCallbackHelper(
+      BodyStreamHolder* aUnderlyingSource);
+
+  MOZ_CAN_RUN_SCRIPT
+  virtual already_AddRefed<Promise> CancelCallback(
+      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      ErrorResult& aRv) override;
+
+ protected:
+  virtual ~BodyStreamUnderlyingSourceCancelCallbackHelper() = default;
+
+ private:
+  RefPtr<BodyStreamHolder> mUnderlyingSource;
+};
+
+// Callback called when erroring a stream.
+class UnderlyingSourceErrorCallbackHelper : public nsISupports {
+ public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS(UnderlyingSourceErrorCallbackHelper)
+
+  virtual void Call() = 0;
+
+ protected:
+  virtual ~UnderlyingSourceErrorCallbackHelper() = default;
+};
+
+class BodyStreamUnderlyingSourceErrorCallbackHelper final
+    : public UnderlyingSourceErrorCallbackHelper {
+ public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(
+      BodyStreamUnderlyingSourceErrorCallbackHelper,
+      UnderlyingSourceErrorCallbackHelper)
+
+  explicit BodyStreamUnderlyingSourceErrorCallbackHelper(
+      BodyStreamHolder* aUnderlyingSource);
+
+  virtual void Call() override;
+
+ protected:
+  virtual ~BodyStreamUnderlyingSourceErrorCallbackHelper() = default;
+
+ private:
+  RefPtr<BodyStreamHolder> mUnderlyingSource;
 };
 
 }  // namespace mozilla::dom

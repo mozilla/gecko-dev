@@ -50,7 +50,6 @@
 #include "mozilla/StoragePrincipalHelper.h"
 #include "SerializedLoadContext.h"
 #include "nsInputStreamPump.h"
-#include "InterceptedChannel.h"
 #include "nsContentSecurityManager.h"
 #include "nsICompressConvStats.h"
 #include "mozilla/dom/Document.h"
@@ -2035,8 +2034,6 @@ void HttpChannelChild::SetEventTarget() {
     return;
   }
 
-  gNeckoChild->SetEventTargetForActor(this, target);
-
   {
     MutexAutoLock lock(mEventTargetMutex);
     mNeckoTarget = target;
@@ -2150,7 +2147,7 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
   openArgs.allowHttp3() = LoadAllowHttp3();
   openArgs.allowAltSvc() = LoadAllowAltSvc();
   openArgs.beConservative() = LoadBeConservative();
-  openArgs.bypassProxy() = LoadBypassProxy();
+  openArgs.bypassProxy() = BypassProxy();
   openArgs.tlsFlags() = mTlsFlags;
   openArgs.initialRwin() = mInitialRwin;
 
@@ -2480,8 +2477,6 @@ HttpChannelChild::OpenAlternativeOutputStream(const nsACString& aType,
 
   RefPtr<AltDataOutputStreamChild> stream = new AltDataOutputStreamChild();
   stream->AddIPDLReference();
-
-  gNeckoChild->SetEventTargetForActor(stream, neckoTarget);
 
   if (!gNeckoChild->SendPAltDataOutputStreamConstructor(
           stream, nsCString(aType), aPredictedSize, this)) {

@@ -152,6 +152,7 @@ EXPORTS.mozilla += [
     "LookAndFeel.h",
     "MiscEvents.h",
     "MouseEvents.h",
+    "SwipeTracker.h",
     "TextEventDispatcher.h",
     "TextEventDispatcherListener.h",
     "TextEvents.h",
@@ -200,8 +201,6 @@ UNIFIED_SOURCES += [
     "nsFilePickerProxy.cpp",
     "nsHTMLFormatConverter.cpp",
     "nsIWidgetListener.cpp",
-    "nsNativeBasicTheme.cpp",
-    "nsNativeBasicThemeCocoa.cpp",
     "nsPrimitiveHelpers.cpp",
     "nsPrintSettingsImpl.cpp",
     "nsSoundProxy.cpp",
@@ -217,8 +216,12 @@ UNIFIED_SOURCES += [
     "ScrollbarDrawingCocoa.cpp",
     "ScrollbarDrawingGTK.cpp",
     "ScrollbarDrawingWin.cpp",
+    "ScrollbarDrawingWin11.cpp",
     "SharedWidgetUtils.cpp",
+    "SwipeTracker.cpp",
     "TextEventDispatcher.cpp",
+    "Theme.cpp",
+    "ThemeCocoa.cpp",
     "ThemeColors.cpp",
     "ThemeDrawing.cpp",
     "TouchResampler.cpp",
@@ -346,7 +349,8 @@ FINAL_LIBRARY = "xul"
 if CONFIG["MOZ_ENABLE_D3D10_LAYER"]:
     DEFINES["MOZ_ENABLE_D3D10_LAYER"] = True
 
-CXXFLAGS += CONFIG["TK_CFLAGS"]
+if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
+    CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]
 if CONFIG["MOZ_WAYLAND"]:
     CXXFLAGS += CONFIG["MOZ_WAYLAND_CFLAGS"]
 

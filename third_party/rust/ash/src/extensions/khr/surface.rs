@@ -1,30 +1,23 @@
 use crate::prelude::*;
 use crate::vk;
 use crate::RawPtr;
-use crate::{EntryCustom, Instance};
+use crate::{Entry, Instance};
 use std::ffi::CStr;
 use std::mem;
-use std::ptr;
 
 #[derive(Clone)]
 pub struct Surface {
     handle: vk::Instance,
-    surface_fn: vk::KhrSurfaceFn,
+    fp: vk::KhrSurfaceFn,
 }
 
 impl Surface {
-    pub fn new<L>(entry: &EntryCustom<L>, instance: &Instance) -> Self {
-        let surface_fn = vk::KhrSurfaceFn::load(|name| unsafe {
-            mem::transmute(entry.get_instance_proc_addr(instance.handle(), name.as_ptr()))
+    pub fn new(entry: &Entry, instance: &Instance) -> Self {
+        let handle = instance.handle();
+        let fp = vk::KhrSurfaceFn::load(|name| unsafe {
+            mem::transmute(entry.get_instance_proc_addr(handle, name.as_ptr()))
         });
-        Self {
-            handle: instance.handle(),
-            surface_fn,
-        }
-    }
-
-    pub fn name() -> &'static CStr {
-        vk::KhrSurfaceFn::name()
+        Self { handle, fp }
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkGetPhysicalDeviceSurfaceSupportKHR.html>"]
@@ -35,7 +28,7 @@ impl Surface {
         surface: vk::SurfaceKHR,
     ) -> VkResult<bool> {
         let mut b = 0;
-        self.surface_fn
+        self.fp
             .get_physical_device_surface_support_khr(
                 physical_device,
                 queue_family_index,
@@ -51,26 +44,14 @@ impl Surface {
         physical_device: vk::PhysicalDevice,
         surface: vk::SurfaceKHR,
     ) -> VkResult<Vec<vk::PresentModeKHR>> {
-        let mut count = 0;
-        self.surface_fn
-            .get_physical_device_surface_present_modes_khr(
+        read_into_uninitialized_vector(|count, data| {
+            self.fp.get_physical_device_surface_present_modes_khr(
                 physical_device,
                 surface,
-                &mut count,
-                ptr::null_mut(),
+                count,
+                data,
             )
-            .result()?;
-        let mut v = Vec::with_capacity(count as usize);
-        let err_code = self
-            .surface_fn
-            .get_physical_device_surface_present_modes_khr(
-                physical_device,
-                surface,
-                &mut count,
-                v.as_mut_ptr(),
-            );
-        v.set_len(count as usize);
-        err_code.result_with_success(v)
+        })
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkGetPhysicalDeviceSurfaceCapabilitiesKHR.html>"]
@@ -80,7 +61,7 @@ impl Surface {
         surface: vk::SurfaceKHR,
     ) -> VkResult<vk::SurfaceCapabilitiesKHR> {
         let mut surface_capabilities = mem::zeroed();
-        self.surface_fn
+        self.fp
             .get_physical_device_surface_capabilities_khr(
                 physical_device,
                 surface,
@@ -95,24 +76,10 @@ impl Surface {
         physical_device: vk::PhysicalDevice,
         surface: vk::SurfaceKHR,
     ) -> VkResult<Vec<vk::SurfaceFormatKHR>> {
-        let mut count = 0;
-        self.surface_fn
-            .get_physical_device_surface_formats_khr(
-                physical_device,
-                surface,
-                &mut count,
-                ptr::null_mut(),
-            )
-            .result()?;
-        let mut v = Vec::with_capacity(count as usize);
-        let err_code = self.surface_fn.get_physical_device_surface_formats_khr(
-            physical_device,
-            surface,
-            &mut count,
-            v.as_mut_ptr(),
-        );
-        v.set_len(count as usize);
-        err_code.result_with_success(v)
+        read_into_uninitialized_vector(|count, data| {
+            self.fp
+                .get_physical_device_surface_formats_khr(physical_device, surface, count, data)
+        })
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkDestroySurfaceKHR.html>"]
@@ -121,15 +88,16 @@ impl Surface {
         surface: vk::SurfaceKHR,
         allocation_callbacks: Option<&vk::AllocationCallbacks>,
     ) {
-        self.surface_fn.destroy_surface_khr(
-            self.handle,
-            surface,
-            allocation_callbacks.as_raw_ptr(),
-        );
+        self.fp
+            .destroy_surface_khr(self.handle, surface, allocation_callbacks.as_raw_ptr());
+    }
+
+    pub fn name() -> &'static CStr {
+        vk::KhrSurfaceFn::name()
     }
 
     pub fn fp(&self) -> &vk::KhrSurfaceFn {
-        &self.surface_fn
+        &self.fp
     }
 
     pub fn instance(&self) -> vk::Instance {

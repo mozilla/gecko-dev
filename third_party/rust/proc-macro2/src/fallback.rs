@@ -31,7 +31,7 @@ pub fn unforce() {
 
 #[derive(Clone)]
 pub(crate) struct TokenStream {
-    pub(crate) inner: Vec<TokenTree>,
+    inner: Vec<TokenTree>,
 }
 
 #[derive(Debug)]
@@ -52,7 +52,7 @@ impl LexError {
 }
 
 impl TokenStream {
-    pub fn new() -> TokenStream {
+    pub fn new() -> Self {
         TokenStream { inner: Vec::new() }
     }
 
@@ -65,7 +65,7 @@ impl TokenStream {
     }
 
     fn push_token(&mut self, token: TokenTree) {
-        // https://github.com/alexcrichton/proc-macro2/issues/235
+        // https://github.com/dtolnay/proc-macro2/issues/235
         match token {
             #[cfg(not(no_bind_by_move_pattern_guard))]
             TokenTree::Literal(crate::Literal {
@@ -74,7 +74,7 @@ impl TokenStream {
                 #[cfg(not(wrap_proc_macro))]
                     inner: literal,
                 ..
-            }) if literal.text.starts_with('-') => {
+            }) if literal.repr.starts_with('-') => {
                 push_negative_literal(self, literal);
             }
             #[cfg(no_bind_by_move_pattern_guard)]
@@ -85,7 +85,7 @@ impl TokenStream {
                     inner: literal,
                 ..
             }) => {
-                if literal.text.starts_with('-') {
+                if literal.repr.starts_with('-') {
                     push_negative_literal(self, literal);
                 } else {
                     self.inner
@@ -97,7 +97,7 @@ impl TokenStream {
 
         #[cold]
         fn push_negative_literal(stream: &mut TokenStream, mut literal: Literal) {
-            literal.text.remove(0);
+            literal.repr.remove(0);
             let mut punct = crate::Punct::new('-', Spacing::Alone);
             punct.set_span(crate::Span::_new_stable(literal.span));
             stream.inner.push(TokenTree::Punct(punct));
@@ -105,6 +105,12 @@ impl TokenStream {
                 .inner
                 .push(TokenTree::Literal(crate::Literal::_new_stable(literal)));
         }
+    }
+}
+
+impl From<Vec<TokenTree>> for TokenStream {
+    fn from(inner: Vec<TokenTree>) -> Self {
+        TokenStream { inner }
     }
 }
 
@@ -119,7 +125,7 @@ impl Drop for TokenStream {
             #[cfg(wrap_proc_macro)]
             let group = match group {
                 crate::imp::Group::Fallback(group) => group,
-                _ => continue,
+                crate::imp::Group::Compiler(_) => continue,
             };
             let mut group = group;
             self.inner.extend(group.stream.take_inner());
@@ -179,7 +185,7 @@ impl Display for TokenStream {
                     Display::fmt(tt, f)
                 }
                 TokenTree::Literal(tt) => Display::fmt(tt, f),
-            }?
+            }?;
         }
 
         Ok(())
@@ -417,22 +423,22 @@ pub(crate) struct Span {
 
 impl Span {
     #[cfg(not(span_locations))]
-    pub fn call_site() -> Span {
+    pub fn call_site() -> Self {
         Span {}
     }
 
     #[cfg(span_locations)]
-    pub fn call_site() -> Span {
+    pub fn call_site() -> Self {
         Span { lo: 0, hi: 0 }
     }
 
-    #[cfg(hygiene)]
-    pub fn mixed_site() -> Span {
+    #[cfg(not(no_hygiene))]
+    pub fn mixed_site() -> Self {
         Span::call_site()
     }
 
     #[cfg(procmacro2_semver_exempt)]
-    pub fn def_site() -> Span {
+    pub fn def_site() -> Self {
         Span::call_site()
     }
 
@@ -554,7 +560,7 @@ pub(crate) struct Group {
 }
 
 impl Group {
-    pub fn new(delimiter: Delimiter, stream: TokenStream) -> Group {
+    pub fn new(delimiter: Delimiter, stream: TokenStream) -> Self {
         Group {
             delimiter,
             stream,
@@ -632,7 +638,7 @@ pub(crate) struct Ident {
 }
 
 impl Ident {
-    fn _new(string: &str, raw: bool, span: Span) -> Ident {
+    fn _new(string: &str, raw: bool, span: Span) -> Self {
         validate_ident(string);
 
         Ident {
@@ -642,11 +648,11 @@ impl Ident {
         }
     }
 
-    pub fn new(string: &str, span: Span) -> Ident {
+    pub fn new(string: &str, span: Span) -> Self {
         Ident::_new(string, false, span)
     }
 
-    pub fn new_raw(string: &str, span: Span) -> Ident {
+    pub fn new_raw(string: &str, span: Span) -> Self {
         Ident::_new(string, true, span)
     }
 
@@ -756,7 +762,7 @@ impl Debug for Ident {
 
 #[derive(Clone)]
 pub(crate) struct Literal {
-    text: String,
+    repr: String,
     span: Span,
 }
 
@@ -777,11 +783,15 @@ macro_rules! unsuffixed_numbers {
 }
 
 impl Literal {
-    pub(crate) fn _new(text: String) -> Literal {
+    pub(crate) fn _new(repr: String) -> Self {
         Literal {
-            text,
+            repr,
             span: Span::call_site(),
         }
+    }
+
+    pub(crate) unsafe fn from_str_unchecked(repr: &str) -> Self {
+        Literal::_new(repr.to_owned())
     }
 
     suffixed_numbers! {
@@ -834,31 +844,31 @@ impl Literal {
     }
 
     pub fn string(t: &str) -> Literal {
-        let mut text = String::with_capacity(t.len() + 2);
-        text.push('"');
+        let mut repr = String::with_capacity(t.len() + 2);
+        repr.push('"');
         for c in t.chars() {
             if c == '\'' {
                 // escape_debug turns this into "\'" which is unnecessary.
-                text.push(c);
+                repr.push(c);
             } else {
-                text.extend(c.escape_debug());
+                repr.extend(c.escape_debug());
             }
         }
-        text.push('"');
-        Literal::_new(text)
+        repr.push('"');
+        Literal::_new(repr)
     }
 
     pub fn character(t: char) -> Literal {
-        let mut text = String::new();
-        text.push('\'');
+        let mut repr = String::new();
+        repr.push('\'');
         if t == '"' {
             // escape_debug turns this into '\"' which is unnecessary.
-            text.push(t);
+            repr.push(t);
         } else {
-            text.extend(t.escape_debug());
+            repr.extend(t.escape_debug());
         }
-        text.push('\'');
-        Literal::_new(text)
+        repr.push('\'');
+        Literal::_new(repr)
     }
 
     pub fn byte_string(bytes: &[u8]) -> Literal {
@@ -896,10 +906,20 @@ impl Literal {
 impl FromStr for Literal {
     type Err = LexError;
 
-    fn from_str(repr: &str) -> Result<Self, Self::Err> {
+    fn from_str(mut repr: &str) -> Result<Self, Self::Err> {
+        let negative = repr.starts_with('-');
+        if negative {
+            repr = &repr[1..];
+            if !repr.starts_with(|ch: char| ch.is_ascii_digit()) {
+                return Err(LexError::call_site());
+            }
+        }
         let cursor = get_cursor(repr);
-        if let Ok((_rest, literal)) = parse::literal(cursor) {
-            if literal.text.len() == repr.len() {
+        if let Ok((_rest, mut literal)) = parse::literal(cursor) {
+            if literal.repr.len() == repr.len() {
+                if negative {
+                    literal.repr.insert(0, '-');
+                }
                 return Ok(literal);
             }
         }
@@ -909,14 +929,14 @@ impl FromStr for Literal {
 
 impl Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        Display::fmt(&self.text, f)
+        Display::fmt(&self.repr, f)
     }
 }
 
 impl Debug for Literal {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let mut debug = fmt.debug_struct("Literal");
-        debug.field("lit", &format_args!("{}", self.text));
+        debug.field("lit", &format_args!("{}", self.repr));
         debug_span_field_if_nontrivial(&mut debug, self.span);
         debug.finish()
     }

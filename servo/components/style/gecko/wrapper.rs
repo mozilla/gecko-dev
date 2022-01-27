@@ -55,7 +55,6 @@ use crate::gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
 use crate::gecko_bindings::structs::{nsINode as RawGeckoNode, Element as RawGeckoElement};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use crate::global_style_data::GLOBAL_STYLE_DATA;
-use crate::hash::FxHashMap;
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::media_queries::Device;
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
@@ -73,6 +72,7 @@ use crate::values::{AtomIdent, AtomString};
 use crate::CaseSensitivityExt;
 use crate::LocalName;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use fxhash::FxHashMap;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::matching::VisitedHandlingMode;
@@ -991,8 +991,12 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         };
 
         let vertical_metrics = match orientation {
-            FontMetricsOrientation::MatchContextPreferHorizontal => wm.is_vertical() && wm.is_upright(),
-            FontMetricsOrientation::MatchContextPreferVertical => wm.is_vertical() && !wm.is_sideways(),
+            FontMetricsOrientation::MatchContextPreferHorizontal => {
+                wm.is_vertical() && wm.is_upright()
+            },
+            FontMetricsOrientation::MatchContextPreferVertical => {
+                wm.is_vertical() && !wm.is_sideways()
+            },
             FontMetricsOrientation::Horizontal => false,
         };
         let gecko_metrics = unsafe {
@@ -1709,6 +1713,7 @@ impl<'le> TElement for GeckoElement<'le> {
         use crate::properties::longhands::_x_text_zoom::SpecifiedValue as SpecifiedZoom;
         use crate::properties::longhands::color::SpecifiedValue as SpecifiedColor;
         use crate::properties::longhands::text_align::SpecifiedValue as SpecifiedTextAlign;
+        use crate::stylesheets::layer_rule::LayerOrder;
         use crate::values::specified::color::Color;
         lazy_static! {
             static ref TH_RULE: ApplicableDeclarationBlock = {
@@ -1718,7 +1723,11 @@ impl<'le> TElement for GeckoElement<'le> {
                     Importance::Normal,
                 );
                 let arc = Arc::new_leaked(global_style_data.shared_lock.wrap(pdb));
-                ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
+                ApplicableDeclarationBlock::from_declarations(
+                    arc,
+                    ServoCascadeLevel::PresHints,
+                    LayerOrder::root(),
+                )
             };
             static ref TABLE_COLOR_RULE: ApplicableDeclarationBlock = {
                 let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -1727,7 +1736,11 @@ impl<'le> TElement for GeckoElement<'le> {
                     Importance::Normal,
                 );
                 let arc = Arc::new_leaked(global_style_data.shared_lock.wrap(pdb));
-                ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
+                ApplicableDeclarationBlock::from_declarations(
+                    arc,
+                    ServoCascadeLevel::PresHints,
+                    LayerOrder::root(),
+                )
             };
             static ref MATHML_LANG_RULE: ApplicableDeclarationBlock = {
                 let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -1736,7 +1749,11 @@ impl<'le> TElement for GeckoElement<'le> {
                     Importance::Normal,
                 );
                 let arc = Arc::new_leaked(global_style_data.shared_lock.wrap(pdb));
-                ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
+                ApplicableDeclarationBlock::from_declarations(
+                    arc,
+                    ServoCascadeLevel::PresHints,
+                    LayerOrder::root(),
+                )
             };
             static ref SVG_TEXT_DISABLE_ZOOM_RULE: ApplicableDeclarationBlock = {
                 let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -1745,7 +1762,11 @@ impl<'le> TElement for GeckoElement<'le> {
                     Importance::Normal,
                 );
                 let arc = Arc::new_leaked(global_style_data.shared_lock.wrap(pdb));
-                ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
+                ApplicableDeclarationBlock::from_declarations(
+                    arc,
+                    ServoCascadeLevel::PresHints,
+                    LayerOrder::root(),
+                )
             };
         };
 
@@ -1773,6 +1794,7 @@ impl<'le> TElement for GeckoElement<'le> {
             hints.push(ApplicableDeclarationBlock::from_declarations(
                 decl.clone_arc(),
                 ServoCascadeLevel::PresHints,
+                LayerOrder::root(),
             ));
         }
         let declarations = unsafe { Gecko_GetExtraContentStyleDeclarations(self.0).as_ref() };
@@ -1782,6 +1804,7 @@ impl<'le> TElement for GeckoElement<'le> {
             hints.push(ApplicableDeclarationBlock::from_declarations(
                 decl.clone_arc(),
                 ServoCascadeLevel::PresHints,
+                LayerOrder::root(),
             ));
         }
 
@@ -1809,6 +1832,7 @@ impl<'le> TElement for GeckoElement<'le> {
                 hints.push(ApplicableDeclarationBlock::from_declarations(
                     decl.clone_arc(),
                     ServoCascadeLevel::PresHints,
+                    LayerOrder::root(),
                 ));
             }
 
@@ -1824,6 +1848,7 @@ impl<'le> TElement for GeckoElement<'le> {
                     hints.push(ApplicableDeclarationBlock::from_declarations(
                         decl.clone_arc(),
                         ServoCascadeLevel::PresHints,
+                        LayerOrder::root(),
                     ));
                 }
             }
@@ -1845,6 +1870,7 @@ impl<'le> TElement for GeckoElement<'le> {
             hints.push(ApplicableDeclarationBlock::from_declarations(
                 arc,
                 ServoCascadeLevel::PresHints,
+                LayerOrder::root(),
             ))
         }
         // MathML's default lang has precedence over both `lang` and `xml:lang`

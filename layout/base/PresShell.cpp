@@ -664,7 +664,7 @@ bool PresShell::GetVerifyReflowEnable() {
         const VerifyReflowFlagData* flag = gFlags;
         const VerifyReflowFlagData* limit = gFlags + NUM_VERIFY_REFLOW_FLAGS;
         while (flag < limit) {
-          if (PL_strcasecmp(flag->name, flags) == 0) {
+          if (nsCRT::strcasecmp(flag->name, flags) == 0) {
             gVerifyReflowFlags |= flag->bit;
             found = true;
             break;
@@ -814,6 +814,7 @@ PresShell::PresShell(Document* aDocument)
       mShouldUnsuppressPainting(false),
       mIgnoreFrameDestruction(false),
       mIsActive(true),
+      mIsInActiveTab(true),
       mFrozen(false),
       mIsFirstPaint(true),
       mObservesMutationsForPrint(false),
@@ -1241,7 +1242,6 @@ void PresShell::Destroy() {
       Telemetry::Accumulate(Telemetry::WEBFONT_PER_PAGE, 0);
       Telemetry::Accumulate(Telemetry::WEBFONT_SIZE_PER_PAGE, 0);
     }
-    mPresContext->CancelManagedPostRefreshObservers();
   }
 
 #ifdef MOZ_REFLOW_PERF
@@ -1310,11 +1310,6 @@ void PresShell::Destroy() {
   if (mReflowContinueTimer) {
     mReflowContinueTimer->Cancel();
     mReflowContinueTimer = nullptr;
-  }
-
-  if (mDelayedPaintTimer) {
-    mDelayedPaintTimer->Cancel();
-    mDelayedPaintTimer = nullptr;
   }
 
   mSynthMouseMoveEvent.Revoke();
@@ -2161,7 +2156,7 @@ void PresShell::FireResizeEvent() {
   WidgetEvent event(true, mozilla::eResize);
   nsEventStatus status = nsEventStatus_eIgnore;
 
-  if (nsPIDOMWindowOuter* window = mDocument->GetWindow()) {
+  if (RefPtr<nsPIDOMWindowOuter> window = mDocument->GetWindow()) {
     EventDispatcher::Dispatch(window, mPresContext, &event, nullptr, &status);
   }
 }
@@ -5310,30 +5305,27 @@ void PresShell::AddCanvasBackgroundColorItem(
 }
 
 static bool IsTransparentContainerElement(nsPresContext* aPresContext) {
-  nsCOMPtr<nsIDocShell> docShell = aPresContext->GetDocShell();
+  nsIDocShell* docShell = aPresContext->GetDocShell();
   if (!docShell) {
     return false;
   }
-
-  nsCOMPtr<nsPIDOMWindowOuter> pwin = docShell->GetWindow();
-  if (!pwin) return false;
-  nsCOMPtr<Element> containerElement = pwin->GetFrameElementInternal();
-
-  BrowserChild* tab = BrowserChild::GetFrom(docShell);
-  if (tab) {
-    // Check if presShell is the top PresShell. Only the top can
-    // influence the canvas background color.
-    if (aPresContext->GetPresShell() != tab->GetTopLevelPresShell()) {
-      tab = nullptr;
-    }
+  nsPIDOMWindowOuter* pwin = docShell->GetWindow();
+  if (!pwin) {
+    return false;
   }
-
-  return (containerElement && containerElement->HasAttr(
-                                  kNameSpaceID_None, nsGkAtoms::transparent)) ||
-         (tab && tab->IsTransparent());
+  if (Element* containerElement = pwin->GetFrameElementInternal()) {
+    return containerElement->HasAttr(nsGkAtoms::transparent);
+  }
+  if (BrowserChild* tab = BrowserChild::GetFrom(docShell)) {
+    // Check if presShell is the top PresShell. Only the top can influence the
+    // canvas background color.
+    return aPresContext->GetPresShell() == tab->GetTopLevelPresShell() &&
+           tab->IsTransparent();
+  }
+  return false;
 }
 
-nscolor PresShell::GetDefaultBackgroundColorToDraw() {
+nscolor PresShell::GetDefaultBackgroundColorToDraw() const {
   if (!mPresContext || !mPresContext->GetBackgroundColorDraw()) {
     return NS_RGB(255, 255, 255);
   }
@@ -5364,47 +5356,50 @@ nscolor PresShell::GetDefaultBackgroundColorToDraw() {
 }
 
 void PresShell::UpdateCanvasBackground() {
+  auto canvasBg = ComputeCanvasBackground();
+  mCanvasBackgroundColor = canvasBg.mColor;
+  mHasCSSBackgroundColor = canvasBg.mCSSSpecified;
+}
+
+PresShell::CanvasBackground PresShell::ComputeCanvasBackground() const {
   // If we have a frame tree and it has style information that
   // specifies the background color of the canvas, update our local
   // cache of that color.
   nsIFrame* rootStyleFrame = FrameConstructor()->GetRootElementStyleFrame();
-  if (rootStyleFrame) {
-    ComputedStyle* bgStyle =
-        nsCSSRendering::FindRootFrameBackground(rootStyleFrame);
-    // XXX We should really be passing the canvasframe, not the root element
-    // style frame but we don't have access to the canvasframe here. It isn't
-    // a problem because only a few frames can return something other than true
-    // and none of them would be a canvas frame or root element style frame.
-    bool drawBackgroundImage = false;
-    bool drawBackgroundColor = false;
-    const nsStyleDisplay* disp = rootStyleFrame->StyleDisplay();
-    StyleAppearance appearance = disp->EffectiveAppearance();
-    if (rootStyleFrame->IsThemed(disp) &&
-        appearance != StyleAppearance::MozWinGlass &&
-        appearance != StyleAppearance::MozWinBorderlessGlass) {
-      // Ignore the CSS background-color if -moz-appearance is used and it is
-      // not one of the glass values. (Windows 7 Glass has traditionally not
-      // overridden background colors, so we preserve that behavior for now.)
-      mCanvasBackgroundColor = NS_RGBA(0, 0, 0, 0);
-    } else {
-      mCanvasBackgroundColor = nsCSSRendering::DetermineBackgroundColor(
-          mPresContext, bgStyle, rootStyleFrame, drawBackgroundImage,
-          drawBackgroundColor);
-    }
-    mHasCSSBackgroundColor = drawBackgroundColor;
-    if (mPresContext->IsRootContentDocumentCrossProcess() &&
-        !IsTransparentContainerElement(mPresContext)) {
-      mCanvasBackgroundColor = NS_ComposeColors(
-          GetDefaultBackgroundColorToDraw(), mCanvasBackgroundColor);
-    }
+  if (!rootStyleFrame) {
+    // If the root element of the document (ie html) has style 'display: none'
+    // then the document's background color does not get drawn; return the color
+    // we actually draw.
+    return {GetDefaultBackgroundColorToDraw(), false};
   }
 
-  // If the root element of the document (ie html) has style 'display: none'
-  // then the document's background color does not get drawn; cache the
-  // color we actually draw.
-  if (!FrameConstructor()->GetRootElementFrame()) {
-    mCanvasBackgroundColor = GetDefaultBackgroundColorToDraw();
+  ComputedStyle* bgStyle =
+      nsCSSRendering::FindRootFrameBackground(rootStyleFrame);
+  // XXX We should really be passing the canvasframe, not the root element
+  // style frame but we don't have access to the canvasframe here. It isn't
+  // a problem because only a few frames can return something other than true
+  // and none of them would be a canvas frame or root element style frame.
+  nscolor color = NS_RGBA(0, 0, 0, 0);
+  bool drawBackgroundImage = false;
+  bool drawBackgroundColor = false;
+  const nsStyleDisplay* disp = rootStyleFrame->StyleDisplay();
+  StyleAppearance appearance = disp->EffectiveAppearance();
+  if (rootStyleFrame->IsThemed(disp) &&
+      appearance != StyleAppearance::MozWinGlass &&
+      appearance != StyleAppearance::MozWinBorderlessGlass) {
+    // Ignore the CSS background-color if -moz-appearance is used and it is
+    // not one of the glass values. (Windows 7 Glass has traditionally not
+    // overridden background colors, so we preserve that behavior for now.)
+  } else {
+    color = nsCSSRendering::DetermineBackgroundColor(
+        mPresContext, bgStyle, rootStyleFrame, drawBackgroundImage,
+        drawBackgroundColor);
   }
+  if (mPresContext->IsRootContentDocumentCrossProcess() &&
+      !IsTransparentContainerElement(mPresContext)) {
+    color = NS_ComposeColors(GetDefaultBackgroundColorToDraw(), color);
+  }
+  return {color, drawBackgroundColor};
 }
 
 nscolor PresShell::ComputeBackstopColor(nsView* aDisplayRoot) {
@@ -8776,8 +8771,8 @@ void PresShell::EventHandler::DispatchTouchEventToDOM(
       }
     }
 
-    nsPresContext* context = doc->GetPresContext();
-    if (!context) {
+    RefPtr<nsPresContext> presContext = doc->GetPresContext();
+    if (!presContext) {
       if (contentPresShell) {
         contentPresShell->PopCurrentEventInfo();
       }
@@ -8785,7 +8780,7 @@ void PresShell::EventHandler::DispatchTouchEventToDOM(
     }
 
     tmpStatus = nsEventStatus_eIgnore;
-    EventDispatcher::Dispatch(targetPtr, context, &newEvent, nullptr,
+    EventDispatcher::Dispatch(targetPtr, presContext, &newEvent, nullptr,
                               &tmpStatus, aEventCB);
     if (nsEventStatus_eConsumeNoDefault == tmpStatus ||
         newEvent.mFlags.mMultipleActionsPrevented) {
@@ -9930,7 +9925,7 @@ PresShell::Observe(nsISupports* aSubject, const char* aTopic,
   if (!nsCRT::strcmp(aTopic, "internal-look-and-feel-changed")) {
     // See how LookAndFeel::NotifyChangedAllWindows encodes this.
     auto kind = widget::ThemeChangeKind(aData[0]);
-    ThemeChanged(kind);
+    mPresContext->ThemeChanged(kind);
     return NS_OK;
   }
 
@@ -10846,16 +10841,30 @@ void PresShell::ActivenessMaybeChanged() {
   if (!mDocument) {
     return;
   }
-  SetIsActive(ShouldBeActive());
+  auto activeness = ComputeActiveness();
+  SetIsActive(activeness.mShouldBeActive, activeness.mIsInActiveTab);
 }
 
-bool PresShell::ShouldBeActive() const {
+// A PresShell being active means that it is visible (or close to be visible, if
+// the front-end is warming it). That means that when it is active we always
+// tick its refresh driver at full speed if needed.
+//
+// However we also want to track whether we're in the active tab (represented by
+// the browsing context activeness) for the refresh driver to be able to treat
+// invisible-but-in-the-active-tab frames slightly differently in some
+// circumstances (give them a throttled or unthrottled refresh driver after a
+// while). mIsInActiveTab should ~always be GetBrowsingContext()->IsActive().
+//
+// Image documents behave specially in the sense that they are always "active"
+// and never "in the active tab". However these documents tick manually so
+// there's not much to worry about there.
+auto PresShell::ComputeActiveness() const -> Activeness {
   MOZ_LOG(gLog, LogLevel::Debug,
-          ("PresShell::ShouldBeActive(%s, %d)\n",
+          ("PresShell::ShouldBeActive(%s, %d, %d)\n",
            mDocument->GetDocumentURI()
                ? mDocument->GetDocumentURI()->GetSpecOrDefault().get()
                : "(no uri)",
-           mIsActive));
+           mIsActive, mIsInActiveTab));
 
   Document* doc = mDocument;
 
@@ -10863,7 +10872,10 @@ bool PresShell::ShouldBeActive() const {
     // Documents used as an image can remain active. They do not tick their
     // refresh driver if not painted, and they can't run script or such so they
     // can't really observe much else.
-    return true;
+    //
+    // Image docs can be displayed in multiple docs at the same time so the "in
+    // active tab" bool doesn't make much sense for them.
+    return {true, false};
   }
 
   if (Document* displayDoc = doc->GetDisplayDocument()) {
@@ -10874,6 +10886,12 @@ bool PresShell::ShouldBeActive() const {
                "external resource doc shouldn't have its own BC");
     doc = displayDoc;
   }
+
+  BrowsingContext* bc = doc->GetBrowsingContext();
+  const bool inActiveTab = bc && bc->IsActive();
+
+  MOZ_LOG(gLog, LogLevel::Debug,
+          (" > BrowsingContext %p  active: %d", bc, inActiveTab));
 
   Document* root = nsContentUtils::GetInProcessSubtreeRootDocument(doc);
   if (auto* browserChild = BrowserChild::GetFrom(root->GetDocShell())) {
@@ -10894,7 +10912,7 @@ bool PresShell::ShouldBeActive() const {
     if (!browserChild->IsVisible()) {
       MOZ_LOG(gLog, LogLevel::Debug,
               (" > BrowserChild %p is not visible", browserChild));
-      return false;
+      return {false, inActiveTab};
     }
 
     // If the browser is visible but just due to be preserving layers
@@ -10904,42 +10922,40 @@ bool PresShell::ShouldBeActive() const {
       MOZ_LOG(gLog, LogLevel::Debug,
               (" > BrowserChild %p is visible and not preserving layers",
                browserChild));
-      return true;
+      return {true, inActiveTab};
     }
     MOZ_LOG(
         gLog, LogLevel::Debug,
         (" > BrowserChild %p is visible and preserving layers", browserChild));
   }
-
-  BrowsingContext* bc = doc->GetBrowsingContext();
-  MOZ_LOG(gLog, LogLevel::Debug,
-          (" > BrowsingContext %p  active: %d", bc, bc && bc->IsActive()));
-  return bc && bc->IsActive();
+  return {inActiveTab, inActiveTab};
 }
 
-void PresShell::SetIsActive(bool aIsActive) {
+void PresShell::SetIsActive(bool aIsActive, bool aIsInActiveTab) {
   MOZ_ASSERT(mDocument, "should only be called with a document");
 
-  const bool changed = mIsActive != aIsActive;
+  const bool activityChanged = mIsActive != aIsActive;
+  const bool inActiveTabChanged = mIsInActiveTab != aIsInActiveTab;
 
   mIsActive = aIsActive;
+  mIsInActiveTab = aIsInActiveTab;
 
   nsPresContext* presContext = GetPresContext();
   if (presContext &&
       presContext->RefreshDriver()->GetPresContext() == presContext) {
-    presContext->RefreshDriver()->SetThrottled(!mIsActive);
+    presContext->RefreshDriver()->SetActivity(aIsActive, aIsInActiveTab);
   }
 
-  if (changed) {
+  if (activityChanged || inActiveTabChanged) {
     // Propagate state-change to my resource documents' PresShells and other
     // subdocuments.
     //
     // Note that it is fine to not propagate to fission iframes. Those will
     // become active / inactive as needed as a result of they getting painted /
     // not painted eventually.
-    auto recurse = [aIsActive](Document& aSubDoc) {
+    auto recurse = [aIsActive, aIsInActiveTab](Document& aSubDoc) {
       if (PresShell* presShell = aSubDoc.GetPresShell()) {
-        presShell->SetIsActive(aIsActive);
+        presShell->SetIsActive(aIsActive, aIsInActiveTab);
       }
       return CallState::Continue;
     };
@@ -10948,26 +10964,25 @@ void PresShell::SetIsActive(bool aIsActive) {
   }
 
   UpdateImageLockingState();
-#ifdef ACCESSIBILITY
+
+  if (activityChanged) {
+#if defined(MOZ_WIDGET_ANDROID)
+    if (!aIsActive && presContext &&
+        presContext->IsRootContentDocumentCrossProcess()) {
+      if (BrowserChild* browserChild = BrowserChild::GetFrom(this)) {
+        // Reset the dynamic toolbar offset state.
+        presContext->UpdateDynamicToolbarOffset(0);
+      }
+    }
+#endif
+  }
+
   if (aIsActive) {
-    if (nsAccessibilityService* accService =
-            PresShell::GetAccessibilityService()) {
+#ifdef ACCESSIBILITY
+    if (nsAccessibilityService* accService = GetAccessibilityService()) {
       accService->PresShellActivated(this);
     }
-  }
-#endif  // #ifdef ACCESSIBILITY
-
-#if defined(MOZ_WIDGET_ANDROID)
-  if (changed && !aIsActive && presContext &&
-      presContext->IsRootContentDocumentCrossProcess()) {
-    if (BrowserChild* browserChild = BrowserChild::GetFrom(this)) {
-      // Reset the dynamic toolbar offset state.
-      presContext->UpdateDynamicToolbarOffset(0);
-    }
-  }
 #endif
-
-  if (aIsActive) {
     if (nsIFrame* rootFrame = GetRootFrame()) {
       rootFrame->SchedulePaint();
     }
@@ -11084,10 +11099,13 @@ bool PresShell::UsesMobileViewportSizing() const {
  */
 void PresShell::UpdateImageLockingState() {
   // We're locked if we're both thawed and active.
-  bool locked = !mFrozen && mIsActive;
+  const bool locked = !mFrozen && mIsActive;
+  auto* tracker = mDocument->ImageTracker();
+  if (locked == tracker->GetLockingState()) {
+    return;
+  }
 
-  mDocument->ImageTracker()->SetLockingState(locked);
-
+  tracker->SetLockingState(locked);
   if (locked) {
     // Request decodes for visible image frames; we want to start decoding as
     // quickly as possible when we get foregrounded to minimize flashing.

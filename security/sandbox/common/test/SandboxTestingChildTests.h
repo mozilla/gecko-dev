@@ -6,6 +6,7 @@
 
 #include "SandboxTestingChild.h"
 
+#include "mozilla/StaticPrefs_security.h"
 #include "nsXULAppAPI.h"
 
 #ifdef XP_UNIX
@@ -21,6 +22,7 @@
 #    include <sched.h>
 #    include <sys/syscall.h>
 #    include <sys/un.h>
+#    include "mozilla/ProcInfo_linux.h"
 #  endif  // XP_LINUX
 #  include <sys/socket.h>
 #  include <sys/stat.h>
@@ -33,7 +35,29 @@
 #  include <CoreGraphics/CoreGraphics.h>
 #endif
 
+#ifdef XP_WIN
+#  include <stdio.h>
+#endif
+
 namespace mozilla {
+
+#ifdef XP_LINUX
+static void RunTestsSched(SandboxTestingChild* child) {
+  struct sched_param param_pid_0 = {};
+  child->ErrnoTest("sched_getparam(0)"_ns, true,
+                   [&] { return sched_getparam(0, &param_pid_0); });
+
+  struct sched_param param_pid_tid = {};
+  child->ErrnoTest("sched_getparam(tid)"_ns, true, [&] {
+    return sched_getparam((pid_t)syscall(__NR_gettid), &param_pid_tid);
+  });
+
+  struct sched_param param_pid_Ntid = {};
+  child->ErrnoValueTest("sched_getparam(Ntid)"_ns, EPERM, [&] {
+    return sched_getparam((pid_t)(syscall(__NR_gettid) - 1), &param_pid_Ntid);
+  });
+}
+#endif  // XP_LINUX
 
 void RunTestsContent(SandboxTestingChild* child) {
   MOZ_ASSERT(child, "No SandboxTestingChild*?");
@@ -60,11 +84,31 @@ void RunTestsContent(SandboxTestingChild* child) {
   child->ErrnoTest("clock_getres"_ns, true,
                    [&] { return clock_getres(CLOCK_REALTIME, &res); });
 
+  // same process is allowed
+  struct timespec tproc = {0, 0};
+  clockid_t same_process = MAKE_PROCESS_CPUCLOCK(getpid(), CPUCLOCK_SCHED);
+  child->ErrnoTest("clock_gettime_same_process"_ns, true,
+                   [&] { return clock_gettime(same_process, &tproc); });
+
+  // different process is blocked by sandbox (SIGSYS, kernel would return
+  // EINVAL)
+  struct timespec tprocd = {0, 0};
+  clockid_t diff_process = MAKE_PROCESS_CPUCLOCK(1, CPUCLOCK_SCHED);
+  child->ErrnoValueTest("clock_gettime_diff_process"_ns, ENOSYS,
+                        [&] { return clock_gettime(diff_process, &tprocd); });
+
+  // thread is allowed
+  struct timespec tthread = {0, 0};
+  clockid_t thread =
+      MAKE_THREAD_CPUCLOCK((pid_t)syscall(__NR_gettid), CPUCLOCK_SCHED);
+  child->ErrnoTest("clock_gettime_thread"_ns, true,
+                   [&] { return clock_gettime(thread, &tthread); });
+
   // An abstract socket that does not starts with '/', so we don't want it to
   // work.
   // Checking ENETUNREACH should be thrown by SandboxBrokerClient::Connect()
   // when it detects it does not starts with a '/'
-  child->ErrnoValueTest("connect_abstract_blocked"_ns, false, ENETUNREACH, [&] {
+  child->ErrnoValueTest("connect_abstract_blocked"_ns, ENETUNREACH, [&] {
     int sockfd;
     struct sockaddr_un addr;
     char str[] = "\0xyz";  // Abstract socket requires first byte to be NULL
@@ -85,14 +129,22 @@ void RunTestsContent(SandboxTestingChild* child) {
   });
 
   // An abstract socket that does starts with /, so we do want it to work.
-  // Checking ECONNREFUSED because this is what the broker should get when
-  // trying to establish the connect call for us.
-  child->ErrnoValueTest("connect_abstract_permit"_ns, false, ECONNREFUSED, [&] {
+  // Checking ECONNREFUSED because this is what the broker should get
+  // when trying to establish the connect call for us if it's allowed;
+  // otherwise we get EACCES, meaning that it was passed to the broker
+  // (unlike the previous test) but rejected.
+  const int errorForX =
+      StaticPrefs::security_sandbox_content_headless_AtStartup() ? EACCES
+                                                                 : ECONNREFUSED;
+  child->ErrnoValueTest("connect_abstract_permit"_ns, errorForX, [&] {
     int sockfd;
     struct sockaddr_un addr;
     // we re-use actual X path, because this is what is allowed within
     // SandboxBrokerPolicyFactory::InitContentPolicy()
     // We can't just use any random path allowed, but one with CONNECT allowed.
+
+    // (Note that the real X11 sockets have names like `X0` for
+    // display `:0`; there shouldn't be anything named just `X`.)
 
     // Abstract socket requires first byte to be NULL
     char str[] = "\0/tmp/.X11-unix/X";
@@ -140,7 +192,7 @@ void RunTestsContent(SandboxTestingChild* child) {
   CFDictionaryRef windowServerDict = CGSessionCopyCurrentDictionary();
   bool gotWindowServerDetails = (windowServerDict != nullptr);
   child->SendReportTestResults(
-      "CGSessionCopyCurrentDictionary"_ns, false, gotWindowServerDetails,
+      "CGSessionCopyCurrentDictionary"_ns, !gotWindowServerDetails,
       gotWindowServerDetails ? "Failed: dictionary unexpectedly returned"_ns
                              : "Succeeded: no dictionary returned"_ns);
   if (windowServerDict != nullptr) {
@@ -209,16 +261,43 @@ void RunTestsRDD(SandboxTestingChild* child) {
 
 #ifdef XP_UNIX
 #  ifdef XP_LINUX
-  child->ErrnoValueTest("ioctl_tiocsti"_ns, false, ENOSYS, [&] {
+  child->ErrnoValueTest("ioctl_tiocsti"_ns, ENOSYS, [&] {
     int rv = ioctl(1, TIOCSTI, "x");
     return rv;
   });
 
-  struct rusage res;
+  struct rusage res = {};
   child->ErrnoTest("getrusage"_ns, true, [&] {
     int rv = getrusage(RUSAGE_SELF, &res);
     return rv;
   });
+
+  child->ErrnoValueTest("unlink"_ns, ENOENT, [&] {
+    int rv = unlink("");
+    return rv;
+  });
+
+  child->ErrnoValueTest("unlinkat"_ns, ENOENT, [&] {
+    int rv = unlinkat(AT_FDCWD, "", 0);
+    return rv;
+  });
+
+  RunTestsSched(child);
+
+  child->ErrnoTest("socket"_ns, false,
+                   [] { return socket(AF_UNIX, SOCK_STREAM, 0); });
+
+  child->ErrnoTest("uname"_ns, true, [] {
+    struct utsname uts;
+    return uname(&uts);
+  });
+
+  child->ErrnoValueTest("ioctl_dma_buf"_ns, ENOTTY, [] {
+    // Apply the ioctl to the wrong kind of fd; it should fail with
+    // ENOTTY (rather than ENOSYS if it were blocked).
+    return ioctl(0, _IOW('b', 0, uint64_t), nullptr);
+  });
+
 #  endif  // XP_LINUX
 #else     // XP_UNIX
   child->ReportNoTests();
@@ -230,7 +309,7 @@ void RunTestsGMPlugin(SandboxTestingChild* child) {
 #ifdef XP_UNIX
 #  ifdef XP_LINUX
   struct utsname utsname_res = {};
-  child->ErrnoTest("uname"_ns, true, [&] {
+  child->ErrnoTest("uname_restricted"_ns, true, [&] {
     int rv = uname(&utsname_res);
 
     nsCString expectedSysname("Linux"_ns);
@@ -249,19 +328,7 @@ void RunTestsGMPlugin(SandboxTestingChild* child) {
   child->ErrnoTest("geteuid"_ns, true, [&] { return geteuid(); });
   child->ErrnoTest("getegid"_ns, true, [&] { return getegid(); });
 
-  struct sched_param param_pid_0 = {};
-  child->ErrnoTest("sched_getparam(0)"_ns, true,
-                   [&] { return sched_getparam(0, &param_pid_0); });
-
-  struct sched_param param_pid_tid = {};
-  child->ErrnoTest("sched_getparam(tid)"_ns, true, [&] {
-    return sched_getparam((pid_t)syscall(__NR_gettid), &param_pid_tid);
-  });
-
-  struct sched_param param_pid_Ntid = {};
-  child->ErrnoTest("sched_getparam(Ntid)"_ns, false, [&] {
-    return sched_getparam((pid_t)(syscall(__NR_gettid) - 1), &param_pid_Ntid);
-  });
+  RunTestsSched(child);
 
   std::vector<std::pair<const char*, bool>> open_tests = {
       {"/etc/ld.so.cache", true},
@@ -281,6 +348,38 @@ void RunTestsGMPlugin(SandboxTestingChild* child) {
 #  endif  // XP_LINUX
 #else     // XP_UNIX
   child->ReportNoTests();
+#endif
+}
+
+void RunTestsUtility(SandboxTestingChild* child) {
+  MOZ_ASSERT(child, "No SandboxTestingChild*?");
+
+#ifdef XP_UNIX
+#  ifdef XP_LINUX
+  child->ErrnoValueTest("ioctl_tiocsti"_ns, ENOSYS, [&] {
+    int rv = ioctl(1, TIOCSTI, "x");
+    return rv;
+  });
+
+  struct rusage res;
+  child->ErrnoTest("getrusage"_ns, true, [&] {
+    int rv = getrusage(RUSAGE_SELF, &res);
+    return rv;
+  });
+#  endif  // XP_LINUX
+#else     // XP_UNIX
+#  ifdef XP_WIN
+  child->ErrnoValueTest("write_only"_ns, EACCES, [&] {
+    FILE* rv = fopen("test_sandbox.txt", "w");
+    if (rv != nullptr) {
+      fclose(rv);
+      return 0;
+    }
+    return -1;
+  });
+#  else   // XP_WIN
+  child->ReportNoTests();
+#  endif  // XP_WIN
 #endif
 }
 

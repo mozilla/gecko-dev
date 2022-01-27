@@ -36,13 +36,19 @@ struct ID3D11Texture2D;
 class MacIOSurface;
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/java/GeckoSurfaceTextureWrappers.h"
+#endif
+
 namespace mozilla {
 
 namespace layers {
 class Image;
 class GPUVideoImage;
+struct PlanarYCbCrData;
 class PlanarYCbCrImage;
 class SurfaceDescriptor;
+class SurfaceDescriptorBuffer;
 
 #ifdef XP_WIN
 class D3D11ShareHandleImage;
@@ -52,7 +58,7 @@ class SurfaceDescriptorDXGIYCbCr;
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID
-class SurfaceTextureImage;
+class SurfaceTextureDescriptor;
 #endif
 
 #ifdef XP_MACOSX
@@ -172,12 +178,11 @@ class GLBlitHelper final {
   const DrawBlitProg* CreateDrawBlitProg(const DrawBlitProg::Key& key) const;
 
  public:
-  bool BlitImage(layers::PlanarYCbCrImage* yuvImage,
-                 const gfx::IntSize& destSize, OriginPos destOrigin);
+  bool BlitPlanarYCbCr(const layers::PlanarYCbCrData&,
+                       const gfx::IntSize& destSize, OriginPos destOrigin);
 #ifdef MOZ_WIDGET_ANDROID
-  // Blit onto the current FB.
-  bool BlitImage(layers::SurfaceTextureImage* stImage,
-                 const gfx::IntSize& destSize, OriginPos destOrigin) const;
+  bool Blit(const java::GeckoSurfaceTexture::Ref& surfaceTexture,
+            const gfx::IntSize& destSize, const OriginPos destOrigin) const;
 #endif
 #ifdef XP_MACOSX
   bool BlitImage(layers::MacIOSurfaceImage* srcImage,

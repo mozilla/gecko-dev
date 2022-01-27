@@ -64,6 +64,9 @@
 // variable is intentionally named something scary to help prevent someone
 // from thinking it is a useful performance optimization they should enable.
 #define PREF_DISABLE_DURABILITY "places.database.disableDurability"
+
+#define PREF_PREVIEWS_ENABLED "places.previews.enabled"
+
 #define ENV_ALLOW_CORRUPTION \
   "ALLOW_PLACES_DATABASE_TO_LOSE_DATA_AND_BECOME_CORRUPT"
 
@@ -1217,6 +1220,25 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
 
       // Firefox 96 uses schema version 60
 
+      if (currentSchemaVersion < 61) {
+        rv = MigrateV61Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      if (currentSchemaVersion < 62) {
+        rv = MigrateV62Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      // Firefox 97 uses schema version 62
+
+      if (currentSchemaVersion < 63) {
+        rv = MigrateV63Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      // Firefox 98 uses schema version 63
+
       // Schema Upgrades must add migration code here.
       // >>> IMPORTANT! <<<
       // NEVER MIX UP SYNC AND ASYNC EXECUTION IN MIGRATORS, YOU MAY LOCK THE
@@ -1312,6 +1334,8 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
     rv = mMainConn->ExecuteSimpleSQL(
         CREATE_IDX_MOZ_PLACES_METADATA_PLACECREATED);
     NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_METADATA_REFERRER);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     // moz_places_metadata_search_queries
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_PLACES_METADATA_SEARCH_QUERIES);
@@ -1320,10 +1344,16 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
     // moz_places_metadata_snapshots
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_PLACES_METADATA_SNAPSHOTS);
     NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(
+        CREATE_IDX_MOZ_PLACES_METADATA_SNAPSHOTS_PINNNED);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     // moz_places_metadata_snapshots_extra
     rv =
         mMainConn->ExecuteSimpleSQL(CREATE_MOZ_PLACES_METADATA_SNAPSHOTS_EXTRA);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(
+        CREATE_IDX_MOZ_PLACES_METADATA_SNAPSHOTS_EXTRA_TYPE);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // moz_places_metadata_snapshots_groups
@@ -1341,6 +1371,10 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
 
     // moz_session_to_places
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_SESSION_TO_PLACES);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    // moz_previews_tombstones
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_PREVIEWS_TOMBSTONES);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // The bookmarks roots get initialized in CheckRoots().
@@ -1585,6 +1619,8 @@ nsresult Database::InitFunctions() {
   NS_ENSURE_SUCCESS(rv, rv);
   rv = InvalidateDaysOfHistoryFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
+  rv = MD5HexFunction::create(mMainConn);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -1611,8 +1647,16 @@ nsresult Database::InitTempEntities() {
   rv = mMainConn->ExecuteSimpleSQL(
       CREATE_UPDATEORIGINSDELETE_AFTERDELETE_TRIGGER);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_AFTERDELETE_TRIGGER);
-  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (Preferences::GetBool(PREF_PREVIEWS_ENABLED, false)) {
+    rv = mMainConn->ExecuteSimpleSQL(
+        CREATE_PLACES_AFTERDELETE_WPREVIEWS_TRIGGER);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_AFTERDELETE_TRIGGER);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   rv = mMainConn->ExecuteSimpleSQL(CREATE_UPDATEORIGINSUPDATE_TEMP);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mMainConn->ExecuteSimpleSQL(
@@ -2327,6 +2371,64 @@ nsresult Database::MigrateV60Up() {
         "ALTER TABLE moz_places ADD COLUMN site_name TEXT"_ns);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+  return NS_OK;
+}
+
+nsresult Database::MigrateV61Up() {
+  // Add previews tombstones table if necessary.
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->CreateStatement(
+      "SELECT hash FROM moz_previews_tombstones"_ns, getter_AddRefs(stmt));
+  if (NS_FAILED(rv)) {
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_PREVIEWS_TOMBSTONES);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
+nsresult Database::MigrateV62Up() {
+  // Add builder columns if necessary.
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->CreateStatement(
+      "SELECT builder FROM moz_places_metadata_snapshots_groups"_ns,
+      getter_AddRefs(stmt));
+  if (NS_FAILED(rv)) {
+    rv = mMainConn->ExecuteSimpleSQL(
+        "ALTER TABLE moz_places_metadata_snapshots_groups "
+        "ADD COLUMN builder TEXT NOT NULL "_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(
+        "ALTER TABLE moz_places_metadata_snapshots_groups "
+        "ADD COLUMN builder_data TEXT "_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  // Add indexes if necessary.
+  rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_METADATA_REFERRER);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mMainConn->ExecuteSimpleSQL(
+      CREATE_IDX_MOZ_PLACES_METADATA_SNAPSHOTS_PINNNED);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mMainConn->ExecuteSimpleSQL(
+      CREATE_IDX_MOZ_PLACES_METADATA_SNAPSHOTS_EXTRA_TYPE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult Database::MigrateV63Up() {
+  // Add title column to snapshots if necessary.
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->CreateStatement(
+      "SELECT title FROM moz_places_metadata_snapshots"_ns,
+      getter_AddRefs(stmt));
+  if (NS_FAILED(rv)) {
+    rv = mMainConn->ExecuteSimpleSQL(
+        "ALTER TABLE moz_places_metadata_snapshots "
+        "ADD COLUMN title TEXT "_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   return NS_OK;
 }
 

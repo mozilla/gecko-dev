@@ -4,7 +4,6 @@
 
 "use strict";
 
-/* global XPCNativeWrapper */
 const { ActorClassWithSpec, Actor } = require("devtools/shared/protocol");
 const { webconsoleSpec } = require("devtools/shared/specs/webconsole");
 
@@ -375,28 +374,6 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
 
   grip: function() {
     return { actor: this.actorID };
-  },
-
-  hasNativeConsoleAPI: function(window) {
-    if (isWorker || !(window instanceof Ci.nsIDOMWindow)) {
-      // We can only use XPCNativeWrapper on non-worker nsIDOMWindow.
-      return true;
-    }
-
-    let isNative = false;
-    try {
-      // We are very explicitly examining the "console" property of
-      // the non-Xrayed object here.
-      const console = window.wrappedJSObject.console;
-      // In xpcshell tests, console ends up being undefined and XPCNativeWrapper
-      // crashes in debug builds.
-      if (console) {
-        isNative = new XPCNativeWrapper(console).IS_NATIVE_CONSOLE;
-      }
-    } catch (ex) {
-      // ignored
-    }
-    return isNative;
   },
 
   _findProtoChain: ThreadActor.prototype._findProtoChain,
@@ -789,8 +766,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     startedListeners.forEach(this._listeners.add, this._listeners);
 
     return {
-      startedListeners: startedListeners,
-      nativeConsoleAPI: this.hasNativeConsoleAPI(this.global),
+      startedListeners,
     };
   },
 
@@ -1818,8 +1794,11 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    *        - dom-complete
    * @param {Number} time
    *        The time that the event is fired.
+   * @param {Boolean} hasNativeConsoleAPI
+   *        Tells if the window.console object is native or overwritten by script in the page.
+   *        Only passed when `name` is "dom-complete" (see devtools/server/actors/webconsole/listeners/document-events.js).
    */
-  onDocumentEvent: function(name, { time }) {
+  onDocumentEvent: function(name, { time, hasNativeConsoleAPI }) {
     // will-navigate event has been added in Fx91 and is only expected to be used
     // by DOCUMENT_EVENT watcher. For toolbox still not using watcher actor and DOCUMENT_EVENT watcher
     // will-navigate will be emitted based on target actor's will-navigate events.
@@ -1829,6 +1808,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     this.emit("documentEvent", {
       name,
       time,
+      hasNativeConsoleAPI,
     });
   },
 

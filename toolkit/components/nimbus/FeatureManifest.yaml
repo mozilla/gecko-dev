@@ -60,6 +60,10 @@ urlbar:
       description: >-
         The index of non-sponsored QuickSuggest results within the general
         group. A negative index is relative to the end of the group
+    quickSuggestOnboardingDialogVariation:
+      type: string
+      description: >-
+        Specify the messages/UI variation for QuickSuggest onboarding dialog. This should be a single letter from A to H inclusive. This value is case insensitive.
     quickSuggestRemoteSettingsEnabled:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.remoteSettings.enabled
@@ -183,6 +187,14 @@ pocketNewtab:
       type: boolean
       fallbackPref: browser.newtabpage.activity-stream.discoverystream.compactLayout.enabled
       description: Enable compact cards on newtab grid
+    hideCardBackground:
+      type: boolean
+      fallbackPref: browser.newtabpage.activity-stream.discoverystream.hideCardBackground.enabled
+      description: Removes Pocket card background and borders.
+    fourCardLayout:
+      type: boolean
+      fallbackPref: browser.newtabpage.activity-stream.discoverystream.fourCardLayout.enabled
+      description: Enable four Pocket cards per row.
     loadMore:
       type: boolean
       fallbackPref: browser.newtabpage.activity-stream.discoverystream.loadMore.enabled
@@ -206,6 +218,82 @@ pocketNewtab:
       description: >-
         A save to Pocket button inside the card, shown on the card thumbnail, on
         hover.
+    hideDescriptions:
+      type: boolean
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.hideDescriptions.enabled
+      description: >-
+        Hide or display descriptions for Pocket stories on newtab.
+    compactGrid:
+      type: boolean
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.compactGrid.enabled
+      description: >-
+        Reduce the number of pixels between the Pocket cards on newtab.
+    compactImages:
+      type: boolean
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.compactImages.enabled
+      description: >-
+        Reduce the height on Pocket card images on newtab.
+    imageGradient:
+      type: boolean
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.imageGradient.enabled
+      description: >-
+        Add a gradient to the bottom of Pocket card images on newtab to blend the
+        image in with the card.
+    titleLines:
+      type: int
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.titleLines
+      description: >-
+        Changes the maximum number of lines a title can be for Pocket cards on newtab.
+    descLines:
+      type: int
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.descLines
+      description: >-
+        Changes the maximum number of lines a description can be for Pocket cards on newtab.
+    essentialReadsHeader:
+      type: boolean
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.essentialReadsHeader.enabled
+      description: >-
+        Updates the Pocket section header and title to say "Today’s Essential Reads",
+        moves the "Recommended by Pocket" header to the right side.
+    editorsPicksHeader:
+      type: boolean
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.editorsPicksHeader.enabled
+      description: >-
+        Updates the Pocket section header and title to say "Editor’s Picks", if used with
+        essentialReadsHeader, creates a second section 2 rows down for editorsPicksHeader.
+    readTime:
+      type: boolean
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.readTime.enabled
+      description: >-
+        Displays an estimated read time for Pocket cards on newtab.
+    newSponsoredLabel:
+      type: boolean
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.newSponsoredLabel.enabled
+      description: >-
+        Updates the sponsored label position to below the image for Pocket cards on newtab.
+saveToPocket:
+  description: The save to Pocket feature
+  hasExposure: false
+  isEarlyStartup: true
+  variables:
+    layoutRefresh:
+      type: boolean
+      fallbackPref: extensions.pocket.refresh.layout.enabled
+      description: Enable the new Pocket panels.
+    emailButton:
+      type: boolean
+      fallbackPref: extensions.pocket.refresh.emailButton.enabled
+      description: Just for the new Pocket panels, enables the email signup button.
 password-autocomplete:
   description: A special autocomplete UI for password fields.
   hasExposure: false
@@ -225,6 +313,10 @@ shellService:
       type: boolean
       fallbackPref: browser.shell.setDefaultBrowserUserChoice
       description: Should it set as default browser
+    setDefaultPDFHandler:
+      type: boolean
+      fallbackPref: browser.shell.setDefaultPDFHandler
+      description: Should setting it as the default browser set it as the default PDF handler.
 upgradeDialog:
   description: The dialog shown for major upgrades
   hasExposure: false
@@ -359,4 +451,13 @@ spotlight:
   isEarlyStartup: false
   schema: >-
     "browser/components/newtab/content-src/asrouter/templates/OnboardingMessage/Spotlight.schema.json"
+  variables: {}
+pbNewtab:
+  description: Message shown on the PB newtab for Messaging System
+  hasExposure: true
+  exposureDescription: >-
+    Exposure is sent if the message is about to be shown after trigger and targeting conditions on the message matched.
+  isEarlyStartup: false
+  schema: >-
+    browser/components/newtab/content-src/asrouter/templates/PBNewtab/NewtabPromoMessage.schema.json
   variables: {}

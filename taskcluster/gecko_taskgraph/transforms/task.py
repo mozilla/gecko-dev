@@ -18,7 +18,7 @@ from copy import deepcopy
 import attr
 
 from mozbuild.util import memoize
-from gecko_taskgraph.util.attributes import TRUNK_PROJECTS
+from gecko_taskgraph.util.attributes import TRUNK_PROJECTS, is_try, release_level
 from gecko_taskgraph.util.hash import hash_path
 from gecko_taskgraph.util.treeherder import split_symbol
 from gecko_taskgraph.transforms.base import TransformSequence
@@ -577,7 +577,7 @@ def build_docker_worker_payload(config, task, task_def):
         else:
             suffix = cache_version
 
-        skip_untrusted = config.params.is_try() or level == 1
+        skip_untrusted = is_try(config.params) or level == 1
 
         for cache in worker["caches"]:
             # Some caches aren't enabled in environments where we can't
@@ -836,6 +836,7 @@ def build_generic_worker_payload(config, task, task_def):
             "mac_single_file",
         ),
         Optional("entitlements-url"): str,
+        Optional("requirements-plist-url"): str,
     },
 )
 def build_scriptworker_signing_payload(config, task, task_def):
@@ -847,8 +848,9 @@ def build_scriptworker_signing_payload(config, task, task_def):
     }
     if worker.get("mac-behavior"):
         task_def["payload"]["behavior"] = worker["mac-behavior"]
-        if worker.get("entitlements-url"):
-            task_def["payload"]["entitlements-url"] = worker["entitlements-url"]
+        for attribute in ("entitlements-url", "requirements-plist-url"):
+            if worker.get(attribute):
+                task_def["payload"][attribute] = worker[attribute]
     artifacts = set(task.get("release-artifacts", []))
     for upstream_artifact in worker["upstream-artifacts"]:
         for path in upstream_artifact["paths"]:
@@ -1080,7 +1082,7 @@ def build_balrog_payload(config, task, task_def):
                     task["description"],
                     **{
                         "release-type": config.params["release_type"],
-                        "release-level": config.params.release_level(),
+                        "release-level": release_level(config.params["project"]),
                         "beta-number": beta_number,
                     },
                 )
@@ -1193,6 +1195,28 @@ def build_bouncer_submission_payload(config, task, task_def):
     },
 )
 def build_push_flatpak_payload(config, task, task_def):
+    worker = task["worker"]
+
+    task_def["payload"] = {
+        "channel": worker["channel"],
+        "upstreamArtifacts": worker["upstream-artifacts"],
+    }
+
+
+@payload_builder(
+    "push-msix",
+    schema={
+        Required("channel"): str,
+        Required("upstream-artifacts"): [
+            {
+                Required("taskId"): taskref_or_string,
+                Required("taskType"): str,
+                Required("paths"): [str],
+            }
+        ],
+    },
+)
+def build_push_msix_payload(config, task, task_def):
     worker = task["worker"]
 
     task_def["payload"] = {
@@ -1459,6 +1483,26 @@ def set_defaults(config, tasks):
             worker.setdefault("commit", False)
 
         yield task
+
+
+@transforms.add
+def setup_raptor(config, tasks):
+    """Add options that are specific to raptor jobs (identified by suite=raptor).
+
+    This variant uses a separate set of transforms for manipulating the tests at the
+    task-level. Currently only used for setting the taskcluster proxy setting and
+    the scopes required for perftest secrets.
+    """
+    from gecko_taskgraph.transforms.test.raptor import (
+        task_transforms as raptor_transforms,
+    )
+
+    for task in tasks:
+        if task.get("extra", {}).get("suite", "") != "raptor":
+            yield task
+            continue
+
+        yield from raptor_transforms(config, [task])
 
 
 @transforms.add
@@ -1773,7 +1817,7 @@ def build_task(config, tasks):
                 config.graph_config,
                 task["worker-type"],
                 level=level,
-                release_level=config.params.release_level(),
+                release_level=release_level(config.params["project"]),
             )
         task["worker-type"] = "/".join([provisioner_id, worker_type])
         project = config.params["project"]
@@ -1826,12 +1870,12 @@ def build_task(config, tasks):
             )
 
         if "expires-after" in task:
-            if config.params.is_try():
+            if is_try(config.params):
                 delta = value_of(task["expires-after"])
                 if delta.days >= 28:
                     task["expires-after"] = "28 days"
         else:
-            task["expires-after"] = "28 days" if config.params.is_try() else "1 year"
+            task["expires-after"] = "28 days" if is_try(config.params) else "1 year"
 
         if "deadline-after" not in task:
             task["deadline-after"] = "1 day"

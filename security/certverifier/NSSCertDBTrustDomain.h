@@ -8,6 +8,7 @@
 #define NSSCertDBTrustDomain_h
 
 #include "CertVerifier.h"
+#include "CRLiteTimestamp.h"
 #include "ScopedNSSTypes.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/TimeStamp.h"
@@ -143,7 +144,6 @@ class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain {
       unsigned int minRSABits, ValidityCheckingMode validityCheckingMode,
       CertVerifier::SHA1Mode sha1Mode,
       NetscapeStepUpPolicy netscapeStepUpPolicy, CRLiteMode crliteMode,
-      uint64_t crliteCTMergeDelaySeconds,
       const OriginAttributes& originAttributes,
       const Vector<mozilla::pkix::Input>& thirdPartyRootInputs,
       const Vector<mozilla::pkix::Input>& thirdPartyIntermediateInputs,
@@ -229,17 +229,20 @@ class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain {
   mozilla::pkix::Input GetSCTListFromCertificate() const;
   mozilla::pkix::Input GetSCTListFromOCSPStapling() const;
 
+  bool GetIsBuiltChainRootBuiltInRoot() const;
+
   bool GetIsErrorDueToDistrustedCAPolicy() const;
 
  private:
   Result CheckCRLiteStash(
       const nsTArray<uint8_t>& issuerSubjectPublicKeyInfoBytes,
       const nsTArray<uint8_t>& serialNumberBytes);
-  Result CheckCRLite(const nsTArray<uint8_t>& issuerBytes,
-                     const nsTArray<uint8_t>& issuerSubjectPublicKeyInfoBytes,
-                     const nsTArray<uint8_t>& serialNumberBytes,
-                     uint64_t earliestSCTTimestamp,
-                     bool& filterCoversCertificate);
+  Result CheckCRLite(
+      const nsTArray<uint8_t>& issuerBytes,
+      const nsTArray<uint8_t>& issuerSubjectPublicKeyInfoBytes,
+      const nsTArray<uint8_t>& serialNumberBytes,
+      const nsTArray<RefPtr<nsICRLiteTimestamp>>& crliteTimestamps,
+      bool& filterCoversCertificate);
 
   enum EncodedResponseSource {
     ResponseIsFromNetwork = 1,
@@ -272,7 +275,6 @@ class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain {
   CertVerifier::SHA1Mode mSHA1Mode;
   NetscapeStepUpPolicy mNetscapeStepUpPolicy;
   CRLiteMode mCRLiteMode;
-  uint64_t mCRLiteCTMergeDelaySeconds;
   bool mSawDistrustedCAByPolicyError;
   const OriginAttributes& mOriginAttributes;
   const Vector<mozilla::pkix::Input>& mThirdPartyRootInputs;  // non-owning
@@ -280,6 +282,7 @@ class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain {
       mThirdPartyIntermediateInputs;                             // non-owning
   const Maybe<nsTArray<nsTArray<uint8_t>>>& mExtraCertificates;  // non-owning
   nsTArray<nsTArray<uint8_t>>& mBuiltChain;                      // non-owning
+  bool mIsBuiltChainRootBuiltInRoot;
   PinningTelemetryInfo* mPinningTelemetryInfo;
   const char* mHostname;  // non-owning - only used for pinning checks
   nsCOMPtr<nsICertStorage> mCertStorage;

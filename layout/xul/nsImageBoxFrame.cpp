@@ -82,14 +82,14 @@ class nsImageBoxFrameEvent : public Runnable {
   NS_IMETHOD Run() override;
 
  private:
-  nsCOMPtr<nsIContent> mContent;
+  const nsCOMPtr<nsIContent> mContent;
   EventMessage mMessage;
 };
 
-NS_IMETHODIMP
-nsImageBoxFrameEvent::Run() {
-  RefPtr<nsPresContext> pres_context = mContent->OwnerDoc()->GetPresContext();
-  if (!pres_context) {
+// TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230, bug 1535398)
+MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP nsImageBoxFrameEvent::Run() {
+  RefPtr<nsPresContext> presContext = mContent->OwnerDoc()->GetPresContext();
+  if (!presContext) {
     return NS_OK;
   }
 
@@ -97,7 +97,7 @@ nsImageBoxFrameEvent::Run() {
   WidgetEvent event(true, mMessage);
 
   event.mFlags.mBubbles = false;
-  EventDispatcher::Dispatch(mContent, pres_context, &event, nullptr, &status);
+  EventDispatcher::Dispatch(mContent, presContext, &event, nullptr, &status);
   return NS_OK;
 }
 
@@ -433,19 +433,15 @@ ImgDrawResult nsImageBoxFrame::CreateWebRenderCommands(
   result =
       imgCon->GetImageProvider(aManager->LayerManager(), decodeSize, svgContext,
                                region, aFlags, getter_AddRefs(provider));
-  if (!provider) {
-    NS_WARNING("Failed to get image provider");
-    return result;
-  }
-
-  auto rendering = wr::ToImageRendering(aItem->Frame()->UsedImageRendering());
-  wr::LayoutRect fill = wr::ToLayoutRect(fillRect);
 
   Maybe<wr::ImageKey> key = aManager->CommandBuilder().CreateImageProviderKey(
       aItem, provider, result, aResources);
   if (key.isNothing()) {
     return result;
   }
+
+  auto rendering = wr::ToImageRendering(aItem->Frame()->UsedImageRendering());
+  wr::LayoutRect fill = wr::ToLayoutRect(fillRect);
 
   aBuilder.PushImage(fill, fill, !BackfaceIsHidden(), rendering, key.value());
   return result;

@@ -6,7 +6,6 @@
 import React, { Component } from "react";
 import classnames from "classnames";
 import { connect } from "../../utils/connect";
-import { difference } from "lodash";
 
 // Selectors
 import {
@@ -190,7 +189,9 @@ class SourcesTree extends Component {
   getSourcesGroups = item => {
     const sourcesAll = getAllSources(this.props);
     const sourcesInside = getSourcesInsideGroup(item, this.props);
-    const sourcesOuside = difference(sourcesAll, sourcesInside);
+    const sourcesOuside = sourcesAll.filter(
+      source => !sourcesInside.includes(source)
+    );
 
     return { sourcesInside, sourcesOuside };
   };
@@ -220,7 +221,7 @@ class SourcesTree extends Component {
   renderTree() {
     const { expanded, focused, projectRoot } = this.props;
 
-    const { highlightItems, listItems, parentMap, sourceTree } = this.state;
+    const { highlightItems, listItems, getParent, sourceTree } = this.state;
 
     const treeProps = {
       autoExpandAll: false,
@@ -228,7 +229,7 @@ class SourcesTree extends Component {
       expanded,
       focused,
       getChildren: getChildren,
-      getParent: item => parentMap.get(item),
+      getParent,
       getPath: this.getPath,
       getRoots: () => this.getRoots(sourceTree, projectRoot),
       highlightItems,

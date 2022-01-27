@@ -12,6 +12,7 @@ UNIFIED_SOURCES += [
 ]
 LOCAL_INCLUDES += [
     '..',
+    '/media/mozva',
     'include',
 ]
 
@@ -26,10 +27,13 @@ if CONFIG['CC_TYPE'] == 'gcc':
     '-Wno-attributes',
   ]
 if CONFIG['MOZ_WAYLAND']:
-  CXXFLAGS += CONFIG['TK_CFLAGS']
+  CXXFLAGS += CONFIG['MOZ_GTK3_CFLAGS']
   DEFINES['MOZ_WAYLAND_USE_VAAPI'] = 1
   UNIFIED_SOURCES += [
     '../FFmpegVideoFramePool.cpp',
   ]
+  USE_LIBS += ['mozva']
+
+include("/ipc/chromium/chromium-config.mozbuild")
 
 FINAL_LIBRARY = 'xul'

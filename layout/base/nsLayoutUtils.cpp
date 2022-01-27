@@ -3130,15 +3130,6 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
 
   MOZ_ASSERT(builder && list && metrics);
 
-  // Retained builder exists, but display list retaining is disabled.
-  if (!useRetainedBuilder && retainedBuilder) {
-    // Clear the modified frames lists and frame properties.
-    retainedBuilder->ClearFramesWithProps();
-
-    // Clear the retained display list.
-    retainedBuilder->List()->DeleteAll(retainedBuilder->Builder());
-  }
-
   metrics->Reset();
   metrics->StartBuild();
 
@@ -3320,15 +3311,11 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
       // If a pref is toggled that adds or removes display list items,
       // we need to rebuild the display list. The pref may be toggled
       // manually by the user, or during test setup.
-      bool shouldAttemptPartialUpdate = useRetainedBuilder;
-      if (builder->ShouldRebuildDisplayListDueToPrefChange()) {
-        shouldAttemptPartialUpdate = false;
-      }
-
-      // Attempt to do a partial build and merge into the existing list.
-      // This calls BuildDisplayListForStacking context on a subset of the
-      // viewport.
-      if (shouldAttemptPartialUpdate) {
+      if (useRetainedBuilder &&
+          !builder->ShouldRebuildDisplayListDueToPrefChange()) {
+        // Attempt to do a partial build and merge into the existing list.
+        // This calls BuildDisplayListForStacking context on a subset of the
+        // viewport.
         updateState = retainedBuilder->AttemptPartialUpdate(aBackstop);
         metrics->EndPartialBuild(updateState);
       } else {
@@ -3349,16 +3336,25 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
       }
 
       if (doFullRebuild) {
-        DL_LOGI("Starting full display list build, root frame: %p",
-                builder->RootReferenceFrame());
         list->DeleteAll(builder);
         list->RestoreState();
+
+        if (useRetainedBuilder) {
+          retainedBuilder->ClearFramesWithProps();
+          mozilla::RDLUtils::AssertFrameSubtreeUnmodified(
+              builder->RootReferenceFrame());
+          MOZ_ASSERT(retainedBuilder->List()->IsEmpty());
+        }
 
         builder->ClearRetainedWindowRegions();
         builder->ClearWillChangeBudgets();
 
         builder->EnterPresShell(aFrame);
         builder->SetDirtyRect(visibleRect);
+
+        DL_LOGI("Starting full display list build, root frame: %p",
+                builder->RootReferenceFrame());
+
         aFrame->BuildDisplayListForStackingContext(builder, list);
         AddExtraBackgroundItems(builder, list, aFrame, canvasArea,
                                 visibleRegion, aBackstop);
@@ -5447,7 +5443,8 @@ static bool ShouldDarkenColors(nsIFrame* aFrame) {
   if (pc->GetBackgroundColorDraw() || pc->GetBackgroundImageDraw()) {
     return false;
   }
-  return aFrame->StyleVisibility()->mColorAdjust != StyleColorAdjust::Exact;
+  return aFrame->StyleVisibility()->mPrintColorAdjust !=
+         StylePrintColorAdjust::Exact;
 }
 
 nscolor nsLayoutUtils::DarkenColorIfNeeded(nsIFrame* aFrame, nscolor aColor) {
@@ -6849,27 +6846,14 @@ nsTransparencyMode nsLayoutUtils::GetFrameTransparency(
   return eTransparencyOpaque;
 }
 
-static bool IsPopupFrame(const nsIFrame* aFrame) {
-  // aFrame is a popup it's the list control frame dropdown for a combobox.
-  LayoutFrameType frameType = aFrame->Type();
-  if (frameType == LayoutFrameType::ListControl) {
-    const nsListControlFrame* lcf =
-        static_cast<const nsListControlFrame*>(aFrame);
-    return lcf->IsInDropDownMode();
-  }
-
-  // ... or if it's a XUL menupopup frame.
-  return frameType == LayoutFrameType::MenuPopup;
-}
-
 /* static */
 bool nsLayoutUtils::IsPopup(const nsIFrame* aFrame) {
   // Optimization: the frame can't possibly be a popup if it has no view.
   if (!aFrame->HasView()) {
-    NS_ASSERTION(!IsPopupFrame(aFrame), "popup frame must have a view");
+    NS_ASSERTION(!aFrame->IsMenuPopupFrame(), "popup frame must have a view");
     return false;
   }
-  return IsPopupFrame(aFrame);
+  return aFrame->IsMenuPopupFrame();
 }
 
 /* static */
@@ -8498,13 +8482,17 @@ void nsLayoutUtils::SetBSizeFromFontMetrics(const nsIFrame* aFrame,
 }
 
 /* static */
-bool nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(
+// _BOUNDARY because Dispatch() with `targets` must not handle the event.
+MOZ_CAN_RUN_SCRIPT_BOUNDARY bool
+nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(
     PresShell* aPresShell) {
   if (Document* doc = aPresShell->GetDocument()) {
     WidgetEvent event(true, eVoidEvent);
     nsTArray<EventTarget*> targets;
-    nsresult rv = EventDispatcher::Dispatch(
-        ToSupports(doc), nullptr, &event, nullptr, nullptr, nullptr, &targets);
+    // TODO: Bug 1506441
+    nsresult rv =
+        EventDispatcher::Dispatch(MOZ_KnownLive(ToSupports(doc)), nullptr,
+                                  &event, nullptr, nullptr, nullptr, &targets);
     NS_ENSURE_SUCCESS(rv, false);
     for (size_t i = 0; i < targets.Length(); i++) {
       if (targets[i]->IsApzAware()) {
@@ -8568,9 +8556,6 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
       metrics.SetDisplayPort(CSSRect::FromAppUnits(dp));
       DisplayPortUtils::MarkDisplayPortAsPainted(aContent);
     }
-    if (DisplayPortUtils::GetCriticalDisplayPort(aContent, &dp)) {
-      metrics.SetCriticalDisplayPort(CSSRect::FromAppUnits(dp));
-    }
 
     metrics.SetHasNonZeroDisplayPortMargins(false);
     if (DisplayPortMarginsPropertyData* currentData =
@@ -8581,13 +8566,21 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
       }
     }
 
-    // Log the high-resolution display port (which is either the displayport
-    // or the critical displayport) for test purposes.
+    // Note: GetProperty() will return nullptr both in the case where
+    // the property hasn't been set, and in the case where the property
+    // has been set to false (in which case the property value is
+    // `reinterpret_cast<void*>(false)` which is nullptr.
+    if (aContent->GetProperty(nsGkAtoms::forceMousewheelAutodir)) {
+      metadata.SetForceMousewheelAutodir(true);
+    }
+
+    if (aContent->GetProperty(nsGkAtoms::forceMousewheelAutodirHonourRoot)) {
+      metadata.SetForceMousewheelAutodirHonourRoot(true);
+    }
+
     if (IsAPZTestLoggingEnabled()) {
       LogTestDataForPaint(aLayerManager, scrollId, "displayport",
-                          StaticPrefs::layers_low_precision_buffer()
-                              ? metrics.GetCriticalDisplayPort()
-                              : metrics.GetDisplayPort());
+                          metrics.GetDisplayPort());
     }
 
     metrics.SetMinimalDisplayPort(
@@ -8948,30 +8941,6 @@ Maybe<ScrollMetadata> nsLayoutUtils::GetRootMetadata(
   }
 
   return Nothing();
-}
-
-/* static */
-StyleTouchAction nsLayoutUtils::GetTouchActionFromFrame(nsIFrame* aFrame) {
-  if (!aFrame) {
-    return StyleTouchAction::AUTO;
-  }
-
-  // The touch-action CSS property applies to: all elements except:
-  // non-replaced inline elements, table rows, row groups, table columns, and
-  // column groups
-  bool isNonReplacedInlineElement =
-      aFrame->IsFrameOfType(nsIFrame::eLineParticipant);
-  if (isNonReplacedInlineElement) {
-    return StyleTouchAction::AUTO;
-  }
-
-  const nsStyleDisplay* disp = aFrame->StyleDisplay();
-  bool isTableElement = disp->IsInternalTableStyleExceptCell();
-  if (isTableElement) {
-    return StyleTouchAction::AUTO;
-  }
-
-  return disp->mTouchAction;
 }
 
 /* static */

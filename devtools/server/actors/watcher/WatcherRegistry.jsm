@@ -41,8 +41,8 @@ const { SUPPORTED_DATA } = SessionDataHelpers;
 // It is keyed by WatcherActor ID and values contains following attributes:
 // - targets: Set of strings, refering to target types to be listened to
 // - resources: Set of strings, refering to resource types to be observed
-// - context: WatcherActor's context. Describe what the watcher should be debugging.
-//            See watcher actor constructor for more info.
+// - sessionContext Object, The Session Context to help know what is debugged.
+//     See devtools/server/actors/watcher/session-context.js
 // - connectionPrefix: The DevToolsConnection prefix of the watcher actor. Used to compute new actor ID in the content processes.
 //
 // Unfortunately, `sharedData` is subject to race condition and may have side effect
@@ -109,16 +109,14 @@ const WatcherRegistry = {
     let sessionData = sessionDataByWatcherActor.get(watcherActorID);
     if (!sessionData && createData) {
       sessionData = {
-        // The "context" object help understand what should be debugged and which target should be created.
+        // The "session context" object help understand what should be debugged and which target should be created.
         // See WatcherActor constructor for more info.
-        context: watcher.context,
+        sessionContext: watcher.sessionContext,
         // The DevToolsServerConnection prefix will be used to compute actor IDs created in the content process
         connectionPrefix: watcher.conn.prefix,
         // Expose watcher traits so we can retrieve them in content process.
         // This should be removed as part of Bug 1700092.
         watcherTraits: watcher.form().traits,
-        // Expose to the content process if we should create top level targets from the server side
-        isServerTargetSwitchingEnabled: watcher.isServerTargetSwitchingEnabled,
       };
       // Define empty default array for all data
       for (const name of Object.values(SUPPORTED_DATA)) {
@@ -152,8 +150,8 @@ const WatcherRegistry = {
     const watchers = [];
     for (const watcherActor of watcherActors.values()) {
       if (
-        watcherActor.context.type == "browser-element" &&
-        watcherActor.context.browserId === browserId
+        watcherActor.sessionContext.type == "browser-element" &&
+        watcherActor.sessionContext.browserId === browserId
       ) {
         watchers.push(watcherActor);
       }

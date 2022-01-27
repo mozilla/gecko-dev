@@ -13,6 +13,8 @@
 interface nsISupports;
 interface Variant;
 
+typedef (HTMLCanvasElement or OffscreenCanvas) CanvasSource;
+
 [Exposed=Window]
 interface HTMLCanvasElement : HTMLElement {
   [HTMLConstructor] constructor();
@@ -54,7 +56,7 @@ partial interface HTMLCanvasElement {
 // For OffscreenCanvas
 // Reference: https://wiki.whatwg.org/wiki/OffscreenCanvas
 partial interface HTMLCanvasElement {
-  [Pref="gfx.offscreencanvas.enabled", Throws]
+  [Func="CanvasUtils::IsOffscreenCanvasEnabled", Throws]
   OffscreenCanvas transferControlToOffscreen();
 };
 

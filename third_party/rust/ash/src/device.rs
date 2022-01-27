@@ -22,7 +22,7 @@ impl Device {
             mem::transmute(instance_fn.get_device_proc_addr(device, name.as_ptr()))
         };
 
-        Device {
+        Self {
             handle: device,
 
             device_fn_1_0: vk::DeviceFnV1_0::load(load_fn),
@@ -166,14 +166,14 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_2
             .wait_semaphores(self.handle(), wait_info, timeout)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkSignalSemaphore.html>"]
     pub unsafe fn signal_semaphore(&self, signal_info: &vk::SemaphoreSignalInfo) -> VkResult<()> {
         self.device_fn_1_2
             .signal_semaphore(self.handle(), signal_info)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkGetBufferDeviceAddress.html>"]
@@ -218,7 +218,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_1
             .bind_buffer_memory2(self.handle(), bind_infos.len() as _, bind_infos.as_ptr())
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkBindImageMemory2.html>"]
@@ -228,7 +228,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_1
             .bind_image_memory2(self.handle(), bind_infos.len() as _, bind_infos.as_ptr())
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkGetDeviceGroupPeerMemoryFeatures.html>"]
@@ -297,6 +297,7 @@ impl Device {
             .get_buffer_memory_requirements2(self.handle(), info, out);
     }
 
+    /// Retrieve the number of elements to pass to [`Self::get_image_sparse_memory_requirements2()`]
     pub unsafe fn get_image_sparse_memory_requirements2_len(
         &self,
         info: &vk::ImageSparseMemoryRequirementsInfo2,
@@ -312,6 +313,9 @@ impl Device {
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkGetImageSparseMemoryRequirements2.html>"]
+    ///
+    /// Call [`Self::get_image_sparse_memory_requirements2_len()`] to query the number of elements to pass to `out`.
+    /// Be sure to [`Default::default()`]-initialize these elements and optionally set their `p_next` pointer.
     pub unsafe fn get_image_sparse_memory_requirements2(
         &self,
         info: &vk::ImageSparseMemoryRequirementsInfo2,
@@ -503,12 +507,14 @@ impl Device {
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkSetEvent.html>"]
     pub unsafe fn set_event(&self, event: vk::Event) -> VkResult<()> {
-        self.device_fn_1_0.set_event(self.handle(), event).into()
+        self.device_fn_1_0.set_event(self.handle(), event).result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkResetEvent.html>"]
     pub unsafe fn reset_event(&self, event: vk::Event) -> VkResult<()> {
-        self.device_fn_1_0.reset_event(self.handle(), event).into()
+        self.device_fn_1_0
+            .reset_event(self.handle(), event)
+            .result()
     }
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCmdSetEvent.html>"]
     pub unsafe fn cmd_set_event(
@@ -766,7 +772,7 @@ impl Device {
                 descriptor_sets.len() as u32,
                 descriptor_sets.as_ptr(),
             )
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkUpdateDescriptorSets.html>"]
@@ -986,7 +992,7 @@ impl Device {
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkDeviceWaitIdle.html>"]
     pub unsafe fn device_wait_idle(&self) -> VkResult<()> {
-        self.device_fn_1_0.device_wait_idle(self.handle()).into()
+        self.device_fn_1_0.device_wait_idle(self.handle()).result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCreateDescriptorPool.html>"]
@@ -1014,7 +1020,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .reset_descriptor_pool(self.handle(), pool, flags)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkResetCommandPool.html>"]
@@ -1025,7 +1031,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .reset_command_pool(self.handle(), command_pool, flags)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkResetCommandBuffer.html>"]
@@ -1036,14 +1042,14 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .reset_command_buffer(command_buffer, flags)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkResetFences.html>"]
     pub unsafe fn reset_fences(&self, fences: &[vk::Fence]) -> VkResult<()> {
         self.device_fn_1_0
             .reset_fences(self.handle(), fences.len() as u32, fences.as_ptr())
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCmdBindIndexBuffer.html>"]
@@ -1469,7 +1475,7 @@ impl Device {
                 mem::size_of::<T>() as _,
                 flags,
             )
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCmdBeginQuery.html>"]
@@ -1638,24 +1644,14 @@ impl Device {
         &self,
         pipeline_cache: vk::PipelineCache,
     ) -> VkResult<Vec<u8>> {
-        let mut data_size: usize = 0;
-        self.device_fn_1_0
-            .get_pipeline_cache_data(
+        read_into_uninitialized_vector(|count, data| {
+            self.device_fn_1_0.get_pipeline_cache_data(
                 self.handle(),
                 pipeline_cache,
-                &mut data_size,
-                ptr::null_mut(),
+                count,
+                data as _,
             )
-            .result()?;
-        let mut data: Vec<u8> = Vec::with_capacity(data_size);
-        let err_code = self.device_fn_1_0.get_pipeline_cache_data(
-            self.handle(),
-            pipeline_cache,
-            &mut data_size,
-            data.as_mut_ptr() as _,
-        );
-        data.set_len(data_size);
-        err_code.result_with_success(data)
+        })
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkMergePipelineCaches.html>"]
@@ -1671,7 +1667,7 @@ impl Device {
                 src_caches.len() as u32,
                 src_caches.as_ptr(),
             )
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkMapMemory.html>"]
@@ -1700,7 +1696,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .invalidate_mapped_memory_ranges(self.handle(), ranges.len() as u32, ranges.as_ptr())
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkFlushMappedMemoryRanges.html>"]
@@ -1710,7 +1706,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .flush_mapped_memory_ranges(self.handle(), ranges.len() as u32, ranges.as_ptr())
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCreateFramebuffer.html>"]
@@ -1792,12 +1788,14 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .begin_command_buffer(command_buffer, begin_info)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkEndCommandBuffer.html>"]
     pub unsafe fn end_command_buffer(&self, command_buffer: vk::CommandBuffer) -> VkResult<()> {
-        self.device_fn_1_0.end_command_buffer(command_buffer).into()
+        self.device_fn_1_0
+            .end_command_buffer(command_buffer)
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkWaitForFences.html>"]
@@ -1815,7 +1813,7 @@ impl Device {
                 wait_all as u32,
                 timeout,
             )
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkGetFenceStatus.html>"]
@@ -1830,7 +1828,7 @@ impl Device {
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkQueueWaitIdle.html>"]
     pub unsafe fn queue_wait_idle(&self, queue: vk::Queue) -> VkResult<()> {
-        self.device_fn_1_0.queue_wait_idle(queue).into()
+        self.device_fn_1_0.queue_wait_idle(queue).result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkQueueSubmit.html>"]
@@ -1842,7 +1840,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .queue_submit(queue, submits.len() as u32, submits.as_ptr(), fence)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkQueueBindSparse.html>"]
@@ -1854,7 +1852,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .queue_bind_sparse(queue, bind_info.len() as u32, bind_info.as_ptr(), fence)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCreateBufferView.html>"]
@@ -2065,7 +2063,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .bind_buffer_memory(self.handle(), buffer, device_memory, offset)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkBindImageMemory.html>"]
@@ -2077,7 +2075,7 @@ impl Device {
     ) -> VkResult<()> {
         self.device_fn_1_0
             .bind_image_memory(self.handle(), image, device_memory, offset)
-            .into()
+            .result()
     }
 
     #[doc = "<https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkGetRenderAreaGranularity.html>"]
@@ -2107,21 +2105,16 @@ impl Device {
         &self,
         image: vk::Image,
     ) -> Vec<vk::SparseImageMemoryRequirements> {
-        let mut count = 0;
-        self.device_fn_1_0.get_image_sparse_memory_requirements(
-            self.handle(),
-            image,
-            &mut count,
-            ptr::null_mut(),
-        );
-        let mut data = Vec::with_capacity(count as usize);
-        self.device_fn_1_0.get_image_sparse_memory_requirements(
-            self.handle(),
-            image,
-            &mut count,
-            data.as_mut_ptr(),
-        );
-        data.set_len(count as usize);
-        data
+        read_into_uninitialized_vector(|count, data| {
+            self.device_fn_1_0.get_image_sparse_memory_requirements(
+                self.handle(),
+                image,
+                count,
+                data,
+            );
+            vk::Result::SUCCESS
+        })
+        // The closure always returns SUCCESS
+        .unwrap()
     }
 }

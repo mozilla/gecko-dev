@@ -110,7 +110,8 @@ extern "C" fn C_Initialize(pInitArgs: CK_C_INITIALIZE_ARGS_PTR) -> CK_RV {
     let find_objects: FindObjectsFunction = unsafe { std::mem::transmute(function_addresses[0]) };
     let sign: SignFunction = unsafe { std::mem::transmute(function_addresses[1]) };
     let mut manager_guard = try_to_get_manager_guard!();
-    let _unexpected_previous_manager = manager_guard.replace(Manager::new(Backend::new(find_objects, sign)));
+    let _unexpected_previous_manager =
+        manager_guard.replace(Manager::new(Backend::new(find_objects, sign)));
     CKR_OK
 }
 

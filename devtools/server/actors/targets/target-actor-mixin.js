@@ -13,6 +13,7 @@ const {
 const { STATES: THREAD_STATES } = require("devtools/server/actors/thread");
 const {
   RESOURCES,
+  BLACKBOXING,
   BREAKPOINTS,
   TARGET_CONFIGURATION,
   THREAD_CONFIGURATION,
@@ -50,6 +51,10 @@ module.exports = function(targetType, targetActorSpec, implementation) {
     async addSessionDataEntry(type, entries, isDocumentCreation = false) {
       if (type == RESOURCES) {
         await this._watchTargetResources(entries);
+      } else if (type == BLACKBOXING) {
+        for (const { url, range } of entries) {
+          this.sourcesManager.blackBox(url, range);
+        }
       } else if (type == BREAKPOINTS) {
         const isTargetCreation =
           this.threadActor.state == THREAD_STATES.DETACHED;
@@ -116,13 +121,17 @@ module.exports = function(targetType, targetActorSpec, implementation) {
         ) {
           this.threadActor.attach();
         }
-        await this.threadActor.setActiveEventBreakpoints(entries);
+        this.threadActor.addEventBreakpoints(entries);
       }
     },
 
     removeSessionDataEntry(type, entries) {
       if (type == RESOURCES) {
         return this._unwatchTargetResources(entries);
+      } else if (type == BLACKBOXING) {
+        for (const { url, range } of entries) {
+          this.sourcesManager.unblackBox(url, range);
+        }
       } else if (type == BREAKPOINTS) {
         for (const { location } of entries) {
           this.threadActor.removeBreakpoint(location);
@@ -133,6 +142,8 @@ module.exports = function(targetType, targetActorSpec, implementation) {
         for (const { path, method } of entries) {
           this.threadActor.removeXHRBreakpoint(path, method);
         }
+      } else if (type == EVENT_BREAKPOINTS) {
+        this.threadActor.removeEventBreakpoints(entries);
       }
 
       return Promise.resolve();

@@ -753,8 +753,13 @@ void ScriptLoader::ProcessLoadedModuleTree(ModuleLoadRequest* aRequest) {
   MOZ_ASSERT(aRequest->IsReadyToRun());
 
   if (aRequest->IsTopLevel()) {
-    if (aRequest->mIsInline &&
-        aRequest->GetParserCreated() == NOT_FROM_PARSER) {
+    if (aRequest->IsDynamicImport()) {
+      MOZ_ASSERT(aRequest->isInList());
+      RefPtr<ScriptLoadRequest> req =
+          mModuleLoader->mDynamicImportRequests.Steal(aRequest);
+      RunScriptWhenSafe(aRequest);
+    } else if (aRequest->mIsInline &&
+               aRequest->GetParserCreated() == NOT_FROM_PARSER) {
       MOZ_ASSERT(!aRequest->isInList());
       RunScriptWhenSafe(aRequest);
     } else {
@@ -1840,7 +1845,8 @@ nsresult ScriptLoader::AttemptAsyncScriptCompile(ScriptLoadRequest* aRequest,
 
     size_t length =
         aRequest->mScriptBytecode.length() - aRequest->mBytecodeOffset;
-    if (!JS::CanDecodeOffThread(cx, options, length)) {
+    JS::DecodeOptions decodeOptions(options);
+    if (!JS::CanDecodeOffThread(cx, decodeOptions, length)) {
       return NS_OK;
     }
   }
@@ -1867,18 +1873,19 @@ nsresult ScriptLoader::AttemptAsyncScriptCompile(ScriptLoadRequest* aRequest,
 
     aRequest->mOffThreadToken =
         maybeSource.constructed<SourceText<char16_t>>()
-            ? JS::CompileOffThreadModule(
+            ? JS::CompileModuleToStencilOffThread(
                   cx, options, maybeSource.ref<SourceText<char16_t>>(),
                   OffThreadScriptLoaderCallback, static_cast<void*>(runnable))
-            : JS::CompileOffThreadModule(
+            : JS::CompileModuleToStencilOffThread(
                   cx, options, maybeSource.ref<SourceText<Utf8Unit>>(),
                   OffThreadScriptLoaderCallback, static_cast<void*>(runnable));
     if (!aRequest->mOffThreadToken) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
   } else if (aRequest->IsBytecode()) {
-    aRequest->mOffThreadToken = JS::DecodeOffThreadScript(
-        cx, options, aRequest->mScriptBytecode, aRequest->mBytecodeOffset,
+    JS::DecodeOptions decodeOptions(options);
+    aRequest->mOffThreadToken = JS::DecodeStencilOffThread(
+        cx, decodeOptions, aRequest->mScriptBytecode, aRequest->mBytecodeOffset,
         OffThreadScriptLoaderCallback, static_cast<void*>(runnable));
     if (!aRequest->mOffThreadToken) {
       return NS_ERROR_OUT_OF_MEMORY;
@@ -1906,10 +1913,10 @@ nsresult ScriptLoader::AttemptAsyncScriptCompile(ScriptLoadRequest* aRequest,
 
     aRequest->mOffThreadToken =
         maybeSource.constructed<SourceText<char16_t>>()
-            ? JS::CompileOffThread(
+            ? JS::CompileToStencilOffThread(
                   cx, options, maybeSource.ref<SourceText<char16_t>>(),
                   OffThreadScriptLoaderCallback, static_cast<void*>(runnable))
-            : JS::CompileOffThread(
+            : JS::CompileToStencilOffThread(
                   cx, options, maybeSource.ref<SourceText<Utf8Unit>>(),
                   OffThreadScriptLoaderCallback, static_cast<void*>(runnable));
     if (!aRequest->mOffThreadToken) {
@@ -2092,8 +2099,8 @@ void ScriptLoader::FireScriptEvaluated(nsresult aResult,
                                        ScriptLoadRequest* aRequest) {
   for (int32_t i = 0; i < mObservers.Count(); i++) {
     nsCOMPtr<nsIScriptLoaderObserver> obs = mObservers[i];
-    obs->ScriptEvaluated(aResult, aRequest->GetScriptElement(),
-                         aRequest->mIsInline);
+    RefPtr<nsIScriptElement> scriptElement = aRequest->GetScriptElement();
+    obs->ScriptEvaluated(aResult, scriptElement, aRequest->mIsInline);
   }
 
   aRequest->FireScriptEvaluated(aResult);
@@ -2179,6 +2186,8 @@ nsresult ScriptLoader::FillCompileOptionsForRequest(
   aOptions->setDeferDebugMetadata(true);
 
   aOptions->borrowBuffer = true;
+
+  aOptions->allocateInstantiationStorage = true;
 
   return NS_OK;
 }

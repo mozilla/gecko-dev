@@ -965,8 +965,11 @@ void KeymapWrapper::OnDirectionChanged(GdkKeymap* aGdkKeymap,
 /* static */
 guint KeymapWrapper::GetCurrentModifierState() {
   GdkModifierType modifiers;
-  gdk_display_get_pointer(gdk_display_get_default(), nullptr, nullptr, nullptr,
-                          &modifiers);
+  GdkDisplay* display = gdk_display_get_default();
+  GdkScreen* screen = gdk_display_get_default_screen(display);
+  GdkWindow* window = gdk_screen_get_root_window(screen);
+  gdk_window_get_device_position(window, GdkGetPointer(), nullptr, nullptr,
+                                 &modifiers);
   return static_cast<guint>(modifiers);
 }
 
@@ -2424,17 +2427,23 @@ void KeymapWrapper::WillDispatchKeyboardEventInternal(
 #ifdef MOZ_WAYLAND
 void KeymapWrapper::SetFocusIn(wl_surface* aFocusSurface,
                                uint32_t aFocusSerial) {
+  LOGW("KeymapWrapper::SetFocusIn() surface %p ID %d serial %d", aFocusSurface,
+       aFocusSurface ? wl_proxy_get_id((struct wl_proxy*)aFocusSurface) : 0,
+       aFocusSerial);
+
   KeymapWrapper* keymapWrapper = KeymapWrapper::GetInstance();
   keymapWrapper->mFocusSurface = aFocusSurface;
   keymapWrapper->mFocusSerial = aFocusSerial;
 }
 
+// aFocusSurface can be null in case that focused surface is already destroyed.
 void KeymapWrapper::SetFocusOut(wl_surface* aFocusSurface) {
   KeymapWrapper* keymapWrapper = KeymapWrapper::GetInstance();
-  if (aFocusSurface == keymapWrapper->mFocusSurface) {
-    keymapWrapper->mFocusSurface = nullptr;
-    keymapWrapper->mFocusSerial = 0;
-  }
+  LOGW("KeymapWrapper::SetFocusOut surface %p ID %d", aFocusSurface,
+       aFocusSurface ? wl_proxy_get_id((struct wl_proxy*)aFocusSurface) : 0);
+
+  keymapWrapper->mFocusSurface = nullptr;
+  keymapWrapper->mFocusSerial = 0;
 }
 
 void KeymapWrapper::GetFocusInfo(wl_surface** aFocusSurface,
@@ -2453,7 +2462,6 @@ wl_seat* KeymapWrapper::GetSeat() {
   KeymapWrapper* keymapWrapper = KeymapWrapper::GetInstance();
   return keymapWrapper->mSeat;
 }
-
 #endif
 
 }  // namespace widget

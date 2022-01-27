@@ -278,7 +278,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["devtools.debugger.remote-enabled", { what: RECORD_PREF_VALUE }],
   ["doh-rollout.doorhanger-decision", { what: RECORD_PREF_VALUE }],
   ["dom.ipc.plugins.enabled", { what: RECORD_PREF_VALUE }],
-  ["dom.ipc.plugins.sandbox-level.flash", { what: RECORD_PREF_VALUE }],
   ["dom.ipc.processCount", { what: RECORD_PREF_VALUE }],
   ["dom.max_script_run_time", { what: RECORD_PREF_VALUE }],
   ["extensions.autoDisableScopes", { what: RECORD_PREF_VALUE }],
@@ -325,7 +324,7 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["network.proxy.http", { what: RECORD_PREF_STATE }],
   ["network.proxy.ssl", { what: RECORD_PREF_STATE }],
   ["network.trr.mode", { what: RECORD_PREF_VALUE }],
-  ["network.trr.strict_native_fallback", { what: RECORD_PREF_VALUE }],
+  ["network.trr.strict_native_fallback", { what: RECORD_DEFAULTPREF_VALUE }],
   ["pdfjs.disabled", { what: RECORD_PREF_VALUE }],
   ["places.history.enabled", { what: RECORD_PREF_VALUE }],
   ["plugins.show_infobar", { what: RECORD_PREF_VALUE }],
@@ -769,10 +768,12 @@ EnvironmentAddonBuilder.prototype = {
    */
   async _getActiveAddons() {
     // Request addons, asynchronously.
-    let { addons: allAddons, fullData } = await AddonManager.getActiveAddons([
-      "extension",
-      "service",
-    ]);
+    // "theme" is excluded because it is already handled by _getActiveTheme.
+    let { addons: allAddons, fullData } = await AddonManager.getActiveAddons(
+      AddonManagerPrivate.getAddonTypesByProvider("XPIProvider").filter(
+        addonType => addonType != "theme"
+      )
+    );
 
     this._environment._addonsAreFull = fullData;
     let activeAddons = {};
@@ -1627,14 +1628,8 @@ EnvironmentCache.prototype = {
       effectiveContentProcessLevel =
         sandboxSettings.effectiveContentSandboxLevel;
 
-      // See `ContentWin32kLockdownState` in
-      // <security/sandbox/common/SandboxSettings.h>
-      //
-      // Values:
-      // 1 = LockdownEnabled
-      // 2 = MissingWebRender
-      // 3 = OperatingSystemNotSupported
-      // 4 = PrefNotSet
+      // The possible values for this are defined in the ContentWin32kLockdownState
+      // enum in security/sandbox/common/SandboxSettings.h
       contentWin32kLockdownState = sandboxSettings.contentWin32kLockdownState;
     } catch (e) {}
     return {
@@ -1807,22 +1802,22 @@ EnvironmentCache.prototype = {
    * @return Object containing the partner data.
    */
   _getPartner() {
+    let defaults = Services.prefs.getDefaultBranch(null);
     let partnerData = {
-      distributionId: Services.prefs.getStringPref(PREF_DISTRIBUTION_ID, null),
-      distributionVersion: Services.prefs.getStringPref(
+      distributionId: defaults.getStringPref(PREF_DISTRIBUTION_ID, null),
+      distributionVersion: defaults.getCharPref(
         PREF_DISTRIBUTION_VERSION,
         null
       ),
-      partnerId: Services.prefs.getStringPref(PREF_PARTNER_ID, null),
-      distributor: Services.prefs.getStringPref(PREF_DISTRIBUTOR, null),
-      distributorChannel: Services.prefs.getStringPref(
-        PREF_DISTRIBUTOR_CHANNEL,
-        null
-      ),
+      partnerId: defaults.getCharPref(PREF_PARTNER_ID, null),
+      distributor: defaults.getCharPref(PREF_DISTRIBUTOR, null),
+      distributorChannel: defaults.getCharPref(PREF_DISTRIBUTOR_CHANNEL, null),
     };
 
     // Get the PREF_APP_PARTNER_BRANCH branch and append its children to partner data.
-    let partnerBranch = Services.prefs.getBranch(PREF_APP_PARTNER_BRANCH);
+    let partnerBranch = Services.prefs.getDefaultBranch(
+      PREF_APP_PARTNER_BRANCH
+    );
     partnerData.partnerNames = partnerBranch.getChildList("");
 
     return partnerData;

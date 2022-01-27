@@ -2216,7 +2216,7 @@ class EventManager {
    */
   static _initPersistentListeners(extension) {
     if (extension.persistentListeners) {
-      return false;
+      return !!extension.persistentListeners.size;
     }
 
     let listeners = new DefaultMap(() => new DefaultMap(() => new Map()));
@@ -2266,7 +2266,7 @@ class EventManager {
   // in an extension's startup data.
   // This function is only called during browser startup, it stores details
   // about all primed listeners in the extension's persistentListeners Map.
-  static primeListeners(extension) {
+  static primeListeners(extension, isInStartup = false) {
     if (!EventManager._initPersistentListeners(extension)) {
       return;
     }
@@ -2284,7 +2284,6 @@ class EventManager {
       for (let [event, eventEntry] of moduleEntry) {
         for (let listener of eventEntry.values()) {
           let primed = { pendingEvents: [] };
-          listener.primed = primed;
 
           let fireEvent = (...args) =>
             new Promise((resolve, reject) => {
@@ -2302,13 +2301,17 @@ class EventManager {
             async: fireEvent,
           };
 
-          let { unregister, convert } = api.primeListener(
+          let handler = api.primeListener(
             extension,
             event,
             fire,
-            listener.params
+            listener.params,
+            isInStartup
           );
-          Object.assign(primed, { unregister, convert });
+          if (handler) {
+            listener.primed = primed;
+            Object.assign(primed, handler);
+          }
         }
       }
     }
@@ -2320,6 +2323,10 @@ class EventManager {
   // `clearPersistent` is false. If false, the listeners are cleared from
   // memory, but not removed from the extension's startup data.
   static clearPrimedListeners(extension, clearPersistent = true) {
+    if (!extension.persistentListeners) {
+      return;
+    }
+
     for (let [module, moduleEntry] of extension.persistentListeners) {
       for (let [event, listeners] of moduleEntry) {
         for (let [key, listener] of listeners) {
@@ -2446,10 +2453,10 @@ class EventManager {
         .get(key);
 
       if (listener) {
-        // If extensions.webextensions.background-delayed-startup is disabled,
-        // we can have stored info here but no primed listener.  This check
-        // can be removed if/when we make delayed background startup the only
-        // supported setting.
+        // During startup only a subset of persisted listeners are primed.  As
+        // well, each API determines whether to prime a specific listener.
+        // Additionally, if extensions.webextensions.background-delayed-startup
+        // is disabled we may not have primed listeners.
         let { primed } = listener;
         if (primed) {
           listener.primed = null;

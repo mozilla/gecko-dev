@@ -16,6 +16,7 @@
 
 #include "js/GCAnnotations.h"
 #include "js/shadow/Zone.h"
+#include "js/SliceBudget.h"
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
 #include "js/Utility.h"
@@ -585,6 +586,7 @@ namespace JS {
   D(XPCONNECT_SHUTDOWN, 53)                                            \
   D(DOCSHELL, 54)                                                      \
   D(HTML_PARSER, 55)                                                   \
+  D(DOM_TESTUTILS, 56)                                                 \
                                                                        \
   /* Reasons reserved for embeddings. */                               \
   D(RESERVED1, FIRST_RESERVED_REASON)                                  \
@@ -888,6 +890,20 @@ typedef void (*DoCycleCollectionCallback)(JSContext* cx);
 extern JS_PUBLIC_API DoCycleCollectionCallback
 SetDoCycleCollectionCallback(JSContext* cx, DoCycleCollectionCallback callback);
 
+using CreateSliceBudgetCallback = js::SliceBudget (*)(JS::GCReason reason,
+                                                      int64_t millis);
+
+/**
+ * Called when generating a GC slice budget. It allows the embedding to control
+ * the duration of slices and potentially check an interrupt flag as well. For
+ * internally triggered GCs, the given millis parameter is the JS engine's
+ * internal scheduling decision, which the embedding can choose to ignore.
+ * (Otherwise, it will be the value that was passed to eg
+ * JS::IncrementalGCSlice()).
+ */
+extern JS_PUBLIC_API void SetCreateGCSliceBudgetCallback(
+    JSContext* cx, CreateSliceBudgetCallback cb);
+
 /**
  * Incremental GC defaults to enabled, but may be disabled for testing or in
  * embeddings that have not yet implemented barriers on their native classes.
@@ -973,6 +989,7 @@ class JS_PUBLIC_API AutoRequireNoGC {
  */
 class JS_PUBLIC_API AutoAssertNoGC : public AutoRequireNoGC {
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+ protected:
   JSContext* cx_;
 
  public:
@@ -1047,13 +1064,19 @@ class JS_PUBLIC_API AutoAssertGCCallback : public AutoSuppressGCAnalysis {
 class JS_PUBLIC_API AutoCheckCannotGC : public AutoAssertNoGC {
  public:
   explicit AutoCheckCannotGC(JSContext* cx = nullptr) : AutoAssertNoGC(cx) {}
-} JS_HAZ_GC_INVALIDATED;
+#  ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  AutoCheckCannotGC(const AutoCheckCannotGC& other)
+      : AutoCheckCannotGC(other.cx_) {}
+#  else
+  AutoCheckCannotGC(const AutoCheckCannotGC& other) : AutoCheckCannotGC() {}
+#  endif
 #else
-class JS_PUBLIC_API AutoCheckCannotGC : public AutoRequireNoGC {
- public:
-  explicit AutoCheckCannotGC(JSContext* cx = nullptr) {}
-} JS_HAZ_GC_INVALIDATED;
+class JS_PUBLIC_API AutoCheckCannotGC : public AutoRequireNoGC{
+  public :
+      explicit AutoCheckCannotGC(JSContext* cx = nullptr){} AutoCheckCannotGC(
+          const AutoCheckCannotGC& other) : AutoCheckCannotGC(){}
 #endif
+} JS_HAZ_GC_INVALIDATED;
 
 extern JS_PUBLIC_API void SetLowMemoryState(JSContext* cx, bool newState);
 

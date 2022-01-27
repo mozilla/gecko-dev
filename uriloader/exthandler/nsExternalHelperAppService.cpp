@@ -96,6 +96,8 @@
 #include "nsPIDOMWindow.h"
 #include "ExternalHelperAppChild.h"
 
+#include "mozilla/dom/nsHTTPSOnlyUtils.h"
+
 #ifdef XP_WIN
 #  include "nsWindowsHelpers.h"
 #endif
@@ -153,7 +155,8 @@ static nsresult UnescapeFragment(const nsACString& aFragment, nsIURI* aURI,
       do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return textToSubURI->UnEscapeURIForUI(aFragment, aResult);
+  return textToSubURI->UnEscapeURIForUI(aFragment, /* aDontEscape = */ true,
+                                        aResult);
 }
 
 /**
@@ -1740,6 +1743,17 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest* request) {
   // Now get the URI
   if (aChannel) {
     aChannel->GetURI(getter_AddRefs(mSourceUrl));
+    // HTTPS-Only/HTTPS-FirstMode tries to upgrade connections to https. Once
+    // the download is in progress we set that flag so that timeout counter
+    // measures do not kick in.
+    nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
+    bool isPrivateWin = loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
+    if (nsHTTPSOnlyUtils::IsHttpsOnlyModeEnabled(isPrivateWin) ||
+        nsHTTPSOnlyUtils::IsHttpsFirstModeEnabled(isPrivateWin)) {
+      uint32_t httpsOnlyStatus = loadInfo->GetHttpsOnlyStatus();
+      httpsOnlyStatus |= nsILoadInfo::HTTPS_ONLY_DOWNLOAD_IN_PROGRESS;
+      loadInfo->SetHttpsOnlyStatus(httpsOnlyStatus);
+    }
   }
 
   if (!mForceSave && StaticPrefs::browser_download_enable_spam_prevention() &&
@@ -2016,14 +2030,10 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest* request) {
     }
 
 #endif
-    bool alwaysAskWhereToSave =
-        !Preferences::GetBool("browser.download.useDownloadDir") &&
-        StaticPrefs::browser_download_improvements_to_download_panel();
 
-    if ((action == nsIMIMEInfo::useHelperApp ||
-         action == nsIMIMEInfo::useSystemDefault ||
-         shouldAutomaticallyHandleInternally) &&
-        !alwaysAskWhereToSave) {
+    if (action == nsIMIMEInfo::useHelperApp ||
+        action == nsIMIMEInfo::useSystemDefault ||
+        shouldAutomaticallyHandleInternally) {
       // Check if the file is local, in which case just launch it from where it
       // is. Otherwise, set the file to launch once it's finished downloading.
       rv = mIsFileChannel ? LaunchLocalFile()
@@ -2669,7 +2679,8 @@ void nsExternalAppHandler::RequestSaveDestination(
 NS_IMETHODIMP nsExternalAppHandler::PromptForSaveDestination() {
   if (mCanceled) return NS_OK;
 
-  if (!StaticPrefs::browser_download_improvements_to_download_panel()) {
+  if (!StaticPrefs::browser_download_improvements_to_download_panel() ||
+      mForceSave) {
     mMimeInfo->SetPreferredAction(nsIMIMEInfo::saveToDisk);
   }
 
@@ -2802,6 +2813,9 @@ NS_IMETHODIMP nsExternalAppHandler::SetDownloadToLaunch(
 
 nsresult nsExternalAppHandler::LaunchLocalFile() {
   nsCOMPtr<nsIFileURL> fileUrl(do_QueryInterface(mSourceUrl));
+  if (!fileUrl) {
+    return NS_OK;
+  }
   Cancel(NS_BINDING_ABORTED);
   nsCOMPtr<nsIFile> file;
   nsresult rv = fileUrl->GetFile(getter_AddRefs(file));

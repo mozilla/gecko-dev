@@ -3633,9 +3633,6 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
       drawResult = img->GetImageProvider(aManager->LayerManager(), decodeSize,
                                          svgContext, region, flags,
                                          getter_AddRefs(provider));
-      if (!provider) {
-        break;
-      }
 
       Maybe<wr::ImageKey> key =
           aManager->CommandBuilder().CreateImageProviderKey(
@@ -3644,6 +3641,8 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
         break;
       }
 
+      auto rendering =
+          wr::ToImageRendering(aItem->Frame()->UsedImageRendering());
       if (mFill) {
         float epsilon = 0.0001;
         bool noVerticalBorders = widths[0] <= epsilon && widths[2] < epsilon;
@@ -3654,8 +3653,6 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
         // but there are reftests that are sensible to the test going through a
         // blob while the reference doesn't.
         if (noVerticalBorders && noHorizontalBorders) {
-          auto rendering =
-              wr::ToImageRendering(aItem->Frame()->UsedImageRendering());
           aBuilder.PushImage(dest, clip, !aItem->BackfaceIsHidden(), rendering,
                              key.value());
           break;
@@ -3674,6 +3671,7 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
       wr::WrBorderImage params{
           wr::ToBorderWidths(widths[0], widths[1], widths[2], widths[3]),
           key.value(),
+          rendering,
           mImageSize.width / appUnitsPerDevPixel,
           mImageSize.height / appUnitsPerDevPixel,
           mFill,

@@ -922,12 +922,17 @@ void MacroAssembler::PushBoxed(FloatRegister reg) {
 
 void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
                               Operand srcAddr, AnyRegister out) {
+  // NOTE: the generated code must match the assembly code in gen_load in
+  // GenerateAtomicOperations.py
   memoryBarrierBefore(access.sync());
 
   MOZ_ASSERT_IF(
       access.isZeroExtendSimd128Load(),
       access.type() == Scalar::Float32 || access.type() == Scalar::Float64);
-  MOZ_ASSERT_IF(access.isSplatSimd128Load(), access.type() == Scalar::Float64);
+  MOZ_ASSERT_IF(
+      access.isSplatSimd128Load(),
+      access.type() == Scalar::Uint8 || access.type() == Scalar::Uint16 ||
+          access.type() == Scalar::Float32 || access.type() == Scalar::Float64);
   MOZ_ASSERT_IF(access.isWidenSimd128Load(), access.type() == Scalar::Float64);
 
   append(access, size());
@@ -936,21 +941,33 @@ void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
       movsbl(srcAddr, out.gpr());
       break;
     case Scalar::Uint8:
-      movzbl(srcAddr, out.gpr());
+      if (access.isSplatSimd128Load()) {
+        vbroadcastb(srcAddr, out.fpu());
+      } else {
+        movzbl(srcAddr, out.gpr());
+      }
       break;
     case Scalar::Int16:
       movswl(srcAddr, out.gpr());
       break;
     case Scalar::Uint16:
-      movzwl(srcAddr, out.gpr());
+      if (access.isSplatSimd128Load()) {
+        vbroadcastw(srcAddr, out.fpu());
+      } else {
+        movzwl(srcAddr, out.gpr());
+      }
       break;
     case Scalar::Int32:
     case Scalar::Uint32:
       movl(srcAddr, out.gpr());
       break;
     case Scalar::Float32:
-      // vmovss does the right thing also for access.isZeroExtendSimd128Load()
-      vmovss(srcAddr, out.fpu());
+      if (access.isSplatSimd128Load()) {
+        vbroadcastss(srcAddr, out.fpu());
+      } else {
+        // vmovss does the right thing also for access.isZeroExtendSimd128Load()
+        vmovss(srcAddr, out.fpu());
+      }
       break;
     case Scalar::Float64:
       if (access.isSplatSimd128Load()) {
@@ -1000,6 +1017,8 @@ void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
 
 void MacroAssembler::wasmLoadI64(const wasm::MemoryAccessDesc& access,
                                  Operand srcAddr, Register64 out) {
+  // NOTE: the generated code must match the assembly code in gen_load in
+  // GenerateAtomicOperations.py
   memoryBarrierBefore(access.sync());
 
   append(access, size());
@@ -1042,6 +1061,8 @@ void MacroAssembler::wasmLoadI64(const wasm::MemoryAccessDesc& access,
 
 void MacroAssembler::wasmStore(const wasm::MemoryAccessDesc& access,
                                AnyRegister value, Operand dstAddr) {
+  // NOTE: the generated code must match the assembly code in gen_store in
+  // GenerateAtomicOperations.py
   memoryBarrierBefore(access.sync());
 
   append(access, masm.size());
@@ -1327,6 +1348,8 @@ static void AtomicFetchOp64(MacroAssembler& masm,
                             const wasm::MemoryAccessDesc* access, AtomicOp op,
                             Register value, const T& mem, Register temp,
                             Register output) {
+  // NOTE: the generated code must match the assembly code in gen_fetchop in
+  // GenerateAtomicOperations.py
   if (op == AtomicFetchAddOp) {
     if (value != output) {
       masm.movq(value, output);
@@ -1426,6 +1449,8 @@ void MacroAssembler::compareExchange64(const Synchronization&,
                                        const Address& mem, Register64 expected,
                                        Register64 replacement,
                                        Register64 output) {
+  // NOTE: the generated code must match the assembly code in gen_cmpxchg in
+  // GenerateAtomicOperations.py
   MOZ_ASSERT(output.reg == rax);
   if (expected != output) {
     movq(expected.reg, output.reg);
@@ -1448,6 +1473,8 @@ void MacroAssembler::compareExchange64(const Synchronization&,
 void MacroAssembler::atomicExchange64(const Synchronization&,
                                       const Address& mem, Register64 value,
                                       Register64 output) {
+  // NOTE: the generated code must match the assembly code in gen_exchange in
+  // GenerateAtomicOperations.py
   if (value != output) {
     movq(value.reg, output.reg);
   }
@@ -1513,6 +1540,137 @@ void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
   if (JitOptions.spectreIndexMasking) {
     cmovCCq(cond, Operand(boundsCheckLimit), index.reg);
   }
+}
+
+// ========================================================================
+// Integer compare-then-conditionally-load/move operations.
+
+// cmpMove, Cond-Reg-Reg-Reg-Reg cases
+
+template <>
+void MacroAssemblerX64::cmpMove<32, 32>(Condition cond, Register lhs,
+                                        Register rhs, Register falseVal,
+                                        Register trueValAndDest) {
+  cmp32(lhs, rhs);
+  cmovCCl(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpMove<32, 64>(Condition cond, Register lhs,
+                                        Register rhs, Register falseVal,
+                                        Register trueValAndDest) {
+  cmp32(lhs, rhs);
+  cmovCCq(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpMove<64, 32>(Condition cond, Register lhs,
+                                        Register rhs, Register falseVal,
+                                        Register trueValAndDest) {
+  cmpPtr(lhs, rhs);
+  cmovCCl(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpMove<64, 64>(Condition cond, Register lhs,
+                                        Register rhs, Register falseVal,
+                                        Register trueValAndDest) {
+  cmpPtr(lhs, rhs);
+  cmovCCq(cond, Operand(falseVal), trueValAndDest);
+}
+
+// cmpMove, Cond-Reg-Addr-Reg-Reg cases
+
+template <>
+void MacroAssemblerX64::cmpMove<32, 32>(Condition cond, Register lhs,
+                                        const Address& rhs, Register falseVal,
+                                        Register trueValAndDest) {
+  cmp32(lhs, Operand(rhs));
+  cmovCCl(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpMove<32, 64>(Condition cond, Register lhs,
+                                        const Address& rhs, Register falseVal,
+                                        Register trueValAndDest) {
+  cmp32(lhs, Operand(rhs));
+  cmovCCq(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpMove<64, 32>(Condition cond, Register lhs,
+                                        const Address& rhs, Register falseVal,
+                                        Register trueValAndDest) {
+  cmpPtr(lhs, Operand(rhs));
+  cmovCCl(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpMove<64, 64>(Condition cond, Register lhs,
+                                        const Address& rhs, Register falseVal,
+                                        Register trueValAndDest) {
+  cmpPtr(lhs, Operand(rhs));
+  cmovCCq(cond, Operand(falseVal), trueValAndDest);
+}
+
+// cmpLoad, Cond-Reg-Reg-Addr-Reg cases
+
+template <>
+void MacroAssemblerX64::cmpLoad<32, 32>(Condition cond, Register lhs,
+                                        Register rhs, const Address& falseVal,
+                                        Register trueValAndDest) {
+  cmp32(lhs, rhs);
+  cmovCCl(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpLoad<32, 64>(Condition cond, Register lhs,
+                                        Register rhs, const Address& falseVal,
+                                        Register trueValAndDest) {
+  cmp32(lhs, rhs);
+  cmovCCq(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpLoad<64, 32>(Condition cond, Register lhs,
+                                        Register rhs, const Address& falseVal,
+                                        Register trueValAndDest) {
+  cmpPtr(lhs, rhs);
+  cmovCCl(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpLoad<64, 64>(Condition cond, Register lhs,
+                                        Register rhs, const Address& falseVal,
+                                        Register trueValAndDest) {
+  cmpPtr(lhs, rhs);
+  cmovCCq(cond, Operand(falseVal), trueValAndDest);
+}
+
+// cmpLoad, Cond-Reg-Addr-Addr-Reg cases
+
+template <>
+void MacroAssemblerX64::cmpLoad<32, 32>(Condition cond, Register lhs,
+                                        const Address& rhs,
+                                        const Address& falseVal,
+                                        Register trueValAndDest) {
+  cmp32(lhs, Operand(rhs));
+  cmovCCl(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpLoad<32, 64>(Condition cond, Register lhs,
+                                        const Address& rhs,
+                                        const Address& falseVal,
+                                        Register trueValAndDest) {
+  cmp32(lhs, Operand(rhs));
+  cmovCCq(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpLoad<64, 32>(Condition cond, Register lhs,
+                                        const Address& rhs,
+                                        const Address& falseVal,
+                                        Register trueValAndDest) {
+  cmpPtr(lhs, Operand(rhs));
+  cmovCCl(cond, Operand(falseVal), trueValAndDest);
+}
+template <>
+void MacroAssemblerX64::cmpLoad<64, 64>(Condition cond, Register lhs,
+                                        const Address& rhs,
+                                        const Address& falseVal,
+                                        Register trueValAndDest) {
+  cmpPtr(lhs, Operand(rhs));
+  cmovCCq(cond, Operand(falseVal), trueValAndDest);
 }
 
 //}}} check_macroassembler_style

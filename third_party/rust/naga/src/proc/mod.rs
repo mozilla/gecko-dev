@@ -1,6 +1,6 @@
 //! Module processing functionality.
 
-mod index;
+pub mod index;
 mod layouter;
 mod namer;
 mod terminator;
@@ -221,6 +221,8 @@ impl super::MathFunction {
             Self::Asinh => 1,
             Self::Acosh => 1,
             Self::Atanh => 1,
+            Self::Radians => 1,
+            Self::Degrees => 1,
             // decomposition
             Self::Ceil => 1,
             Self::Floor => 1,
@@ -262,6 +264,8 @@ impl super::MathFunction {
             Self::ReverseBits => 1,
             Self::ExtractBits => 3,
             Self::InsertBits => 4,
+            Self::FindLsb => 1,
+            Self::FindMsb => 1,
             // data packing
             Self::Pack4x8snorm => 1,
             Self::Pack4x8unorm => 1,
@@ -309,6 +313,33 @@ impl crate::Expression {
             constant.specialization.is_some()
         } else {
             true
+        }
+    }
+}
+
+impl crate::Function {
+    /// Return the global variable being accessed by the expression `pointer`.
+    ///
+    /// Assuming that `pointer` is a series of `Access` and `AccessIndex`
+    /// expressions that ultimately access some part of a `GlobalVariable`,
+    /// return a handle for that global.
+    ///
+    /// If the expression does not ultimately access a global variable, return
+    /// `None`.
+    pub fn originating_global(
+        &self,
+        mut pointer: crate::Handle<crate::Expression>,
+    ) -> Option<crate::Handle<crate::GlobalVariable>> {
+        loop {
+            pointer = match self.expressions[pointer] {
+                crate::Expression::Access { base, .. } => base,
+                crate::Expression::AccessIndex { base, .. } => base,
+                crate::Expression::GlobalVariable(handle) => return Some(handle),
+                crate::Expression::LocalVariable(_) => return None,
+                crate::Expression::FunctionArgument(_) => return None,
+                // There are no other expressions that produce pointer values.
+                _ => unreachable!(),
+            }
         }
     }
 }

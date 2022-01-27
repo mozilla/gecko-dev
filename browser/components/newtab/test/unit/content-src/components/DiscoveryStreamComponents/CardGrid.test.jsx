@@ -42,22 +42,53 @@ describe("<CardGrid>", () => {
     assert.ok(wrapper.find(".ds-card-grid-hero").exists());
   });
 
-  it("should add compact classname to card grid", () => {
+  it("should add 4 card classname to card grid", () => {
     wrapper.setProps({
-      compact: true,
+      fourCardLayout: true,
       data: { recommendations: [{}, {}] },
     });
 
-    assert.ok(wrapper.find(".ds-card-grid-compact-variant").exists());
+    assert.ok(wrapper.find(".ds-card-grid-four-card-variant").exists());
   });
 
-  it("should add description classname to card grid", () => {
+  it("should add no description classname to card grid", () => {
     wrapper.setProps({
-      include_descriptions: true,
+      hideCardBackground: true,
+      data: { recommendations: [{}, {}] },
+    });
+
+    assert.ok(wrapper.find(".ds-card-grid-hide-background").exists());
+  });
+
+  it("should render sub header in the middle of the card grid for both regular and compact", () => {
+    wrapper.setProps({
+      essentialReadsHeader: true,
+      editorsPicksHeader: true,
+      data: { recommendations: [{}, {}] },
+    });
+
+    assert.ok(wrapper.find(".ds-sub-header").exists());
+
+    wrapper.setProps({
+      compact: true,
+    });
+
+    assert.ok(wrapper.find(".ds-sub-header").exists());
+  });
+
+  it("should add/hide description classname to card grid", () => {
+    wrapper.setProps({
       data: { recommendations: [{}, {}] },
     });
 
     assert.ok(wrapper.find(".ds-card-grid-include-descriptions").exists());
+
+    wrapper.setProps({
+      hideDescriptions: true,
+      data: { recommendations: [{}, {}] },
+    });
+
+    assert.ok(!wrapper.find(".ds-card-grid-include-descriptions").exists());
   });
 
   it("should show last card and more loaded state", () => {
@@ -65,7 +96,7 @@ describe("<CardGrid>", () => {
     wrapper.setProps({
       dispatch,
       compact: true,
-      loadMoreEnabled: true,
+      loadMore: true,
       lastCardMessageEnabled: true,
       loadMoreThreshold: 2,
       data: {
@@ -92,7 +123,7 @@ describe("<CardGrid>", () => {
 
   it("should only show load more with more than threshold number of stories", () => {
     wrapper.setProps({
-      loadMoreEnabled: true,
+      loadMore: true,
       loadMoreThreshold: 2,
       data: {
         recommendations: [{}, {}, {}],

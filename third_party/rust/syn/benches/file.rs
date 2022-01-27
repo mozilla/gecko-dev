@@ -2,6 +2,7 @@
 
 #![feature(rustc_private, test)]
 #![recursion_limit = "1024"]
+#![allow(clippy::missing_panics_doc, clippy::must_use_candidate)]
 
 extern crate test;
 
@@ -19,7 +20,7 @@ use std::fs;
 use std::str::FromStr;
 use test::Bencher;
 
-const FILE: &str = "tests/rust/src/libcore/str/mod.rs";
+const FILE: &str = "tests/rust/library/core/src/str/mod.rs";
 
 #[bench]
 fn parse_file(b: &mut Bencher) {

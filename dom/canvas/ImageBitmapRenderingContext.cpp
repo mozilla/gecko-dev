@@ -14,7 +14,10 @@
 namespace mozilla::dom {
 
 ImageBitmapRenderingContext::ImageBitmapRenderingContext()
-    : mWidth(0), mHeight(0), mIsCapturedFrameInvalid(false) {}
+    : mWidth(0),
+      mHeight(0),
+      mFrameCaptureState(FrameCaptureState::CLEAN,
+                         "ImageBitmapRenderingContext::mFrameCaptureState") {}
 
 ImageBitmapRenderingContext::~ImageBitmapRenderingContext() {
   RemovePostRefreshObserver();
@@ -48,22 +51,36 @@ ImageBitmapRenderingContext::ClipToIntrinsicSize() {
   return result.forget();
 }
 
+void ImageBitmapRenderingContext::GetCanvas(
+    Nullable<OwningHTMLCanvasElementOrOffscreenCanvas>& retval) const {
+  if (mCanvasElement && !mCanvasElement->IsInNativeAnonymousSubtree()) {
+    retval.SetValue().SetAsHTMLCanvasElement() = mCanvasElement;
+  } else if (mOffscreenCanvas) {
+    retval.SetValue().SetAsOffscreenCanvas() = mOffscreenCanvas;
+  } else {
+    retval.SetNull();
+  }
+}
+
 void ImageBitmapRenderingContext::TransferImageBitmap(
     ImageBitmap& aImageBitmap) {
-  TransferFromImageBitmap(aImageBitmap);
+  TransferFromImageBitmap(&aImageBitmap);
 }
 
 void ImageBitmapRenderingContext::TransferFromImageBitmap(
-    ImageBitmap& aImageBitmap) {
+    ImageBitmap* aImageBitmap) {
   Reset();
-  mImage = aImageBitmap.TransferAsImage();
 
-  if (!mImage) {
-    return;
-  }
+  if (aImageBitmap) {
+    mImage = aImageBitmap->TransferAsImage();
 
-  if (aImageBitmap.IsWriteOnly() && mCanvasElement) {
-    mCanvasElement->SetWriteOnly();
+    if (aImageBitmap->IsWriteOnly()) {
+      if (mCanvasElement) {
+        mCanvasElement->SetWriteOnly();
+      } else if (mOffscreenCanvas) {
+        mOffscreenCanvas->SetWriteOnly();
+      }
+    }
   }
 
   Redraw(gfxRect(0, 0, mWidth, mHeight));
@@ -124,6 +141,9 @@ mozilla::UniquePtr<uint8_t[]> ImageBitmapRenderingContext::GetImageBuffer(
   }
 
   RefPtr<gfx::SourceSurface> surface = mImage->GetAsSourceSurface();
+  if (!surface) {
+    return nullptr;
+  }
   RefPtr<gfx::DataSourceSurface> data = surface->GetDataSurface();
   if (!data) {
     return nullptr;
@@ -196,7 +216,7 @@ ImageBitmapRenderingContext::Reset() {
   }
 
   mImage = nullptr;
-  mIsCapturedFrameInvalid = false;
+  mFrameCaptureState = FrameCaptureState::CLEAN;
   return NS_OK;
 }
 
@@ -226,30 +246,15 @@ void ImageBitmapRenderingContext::MarkContextClean() {}
 
 NS_IMETHODIMP
 ImageBitmapRenderingContext::Redraw(const gfxRect& aDirty) {
-  mIsCapturedFrameInvalid = true;
+  mFrameCaptureState = FrameCaptureState::DIRTY;
 
   if (mOffscreenCanvas) {
-    RefPtr<layers::ImageContainer> imageContainer =
-        mOffscreenCanvas->GetImageContainer();
-    if (imageContainer) {
-      RefPtr<layers::Image> image = ClipToIntrinsicSize();
-      if (image) {
-        AutoTArray<layers::ImageContainer::NonOwningImage, 1> imageList;
-        imageList.AppendElement(layers::ImageContainer::NonOwningImage(image));
-        imageContainer->SetCurrentImages(imageList);
-      } else {
-        imageContainer->ClearAllImages();
-      }
-    }
     mOffscreenCanvas->CommitFrameToCompositor();
+  } else if (mCanvasElement) {
+    mozilla::gfx::Rect rect = ToRect(aDirty);
+    mCanvasElement->InvalidateCanvasContent(&rect);
   }
 
-  if (!mCanvasElement) {
-    return NS_OK;
-  }
-
-  mozilla::gfx::Rect rect = ToRect(aDirty);
-  mCanvasElement->InvalidateCanvasContent(&rect);
   return NS_OK;
 }
 
@@ -258,19 +263,11 @@ ImageBitmapRenderingContext::SetIsIPC(bool aIsIPC) { return NS_OK; }
 
 void ImageBitmapRenderingContext::DidRefresh() {}
 
-void ImageBitmapRenderingContext::MarkContextCleanForFrameCapture() {
-  mIsCapturedFrameInvalid = false;
-}
-
-bool ImageBitmapRenderingContext::IsContextCleanForFrameCapture() {
-  return !mIsCapturedFrameInvalid;
-}
-
 NS_IMPL_CYCLE_COLLECTING_ADDREF(ImageBitmapRenderingContext)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(ImageBitmapRenderingContext)
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(ImageBitmapRenderingContext,
-                                      mCanvasElement, mOffscreenCanvas)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_WEAK_PTR(ImageBitmapRenderingContext,
+                                               mCanvasElement, mOffscreenCanvas)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ImageBitmapRenderingContext)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY

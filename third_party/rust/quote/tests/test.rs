@@ -1,4 +1,10 @@
-#![cfg_attr(feature = "cargo-clippy", allow(blacklisted_name))]
+#![allow(
+    clippy::blacklisted_name,
+    clippy::let_underscore_drop,
+    clippy::shadow_unrelated,
+    clippy::unseparated_literal_suffix,
+    clippy::used_underscore_binding
+)]
 
 use std::borrow::Cow;
 use std::collections::BTreeSet;
@@ -79,6 +85,27 @@ fn test_iter() {
 }
 
 #[test]
+fn test_array() {
+    let array: [u8; 40] = [0; 40];
+    let _ = quote!(#(#array #array)*);
+
+    let ref_array: &[u8; 40] = &[0; 40];
+    let _ = quote!(#(#ref_array #ref_array)*);
+
+    let ref_slice: &[u8] = &[0; 40];
+    let _ = quote!(#(#ref_slice #ref_slice)*);
+
+    let array: [X; 2] = [X, X]; // !Copy
+    let _ = quote!(#(#array #array)*);
+
+    let ref_array: &[X; 2] = &[X, X];
+    let _ = quote!(#(#ref_array #ref_array)*);
+
+    let ref_slice: &[X] = &[X, X];
+    let _ = quote!(#(#ref_slice #ref_slice)*);
+}
+
+#[test]
 fn test_advanced() {
     let generics = quote!( <'a, T> );
 
@@ -149,10 +176,11 @@ fn test_integer() {
     let uusize = 1usize;
 
     let tokens = quote! {
+        1 1i32 1u256
         #ii8 #ii16 #ii32 #ii64 #ii128 #iisize
         #uu8 #uu16 #uu32 #uu64 #uu128 #uusize
     };
-    let expected = "- 1i8 - 1i16 - 1i32 - 1i64 - 1i128 - 1isize 1u8 1u16 1u32 1u64 1u128 1usize";
+    let expected = "1 1i32 1u256 - 1i8 - 1i16 - 1i32 - 1i64 - 1i128 - 1isize 1u8 1u16 1u32 1u64 1u128 1usize";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -203,11 +231,43 @@ fn test_string() {
 }
 
 #[test]
+fn test_interpolated_literal() {
+    macro_rules! m {
+        ($literal:literal) => {
+            quote!($literal)
+        };
+    }
+
+    let tokens = m!(1);
+    let expected = "1";
+    assert_eq!(expected, tokens.to_string());
+
+    let tokens = m!(-1);
+    let expected = "- 1";
+    assert_eq!(expected, tokens.to_string());
+
+    let tokens = m!(true);
+    let expected = "true";
+    assert_eq!(expected, tokens.to_string());
+
+    let tokens = m!(-true);
+    let expected = "- true";
+    assert_eq!(expected, tokens.to_string());
+}
+
+#[test]
 fn test_ident() {
     let foo = Ident::new("Foo", Span::call_site());
     let bar = Ident::new(&format!("Bar{}", 7), Span::call_site());
     let tokens = quote!(struct #foo; enum #bar {});
     let expected = "struct Foo ; enum Bar7 { }";
+    assert_eq!(expected, tokens.to_string());
+}
+
+#[test]
+fn test_underscore() {
+    let tokens = quote!(let _;);
+    let expected = "let _ ;";
     assert_eq!(expected, tokens.to_string());
 }
 

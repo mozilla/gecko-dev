@@ -103,7 +103,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleFont {
   // math-depth support (used for MathML scriptlevel)
   int8_t mMathDepth;
   // MathML  mathvariant support
-  uint8_t mMathVariant;
+  mozilla::StyleMathVariant mMathVariant;
   // math-style support (used for MathML displaystyle)
   uint8_t mMathStyle;
 
@@ -927,6 +927,9 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleText {
   mozilla::StyleArcSlice<mozilla::StyleSimpleShadow> mTextShadow;
   mozilla::StyleTextEmphasisStyle mTextEmphasisStyle;
 
+  mozilla::StyleHyphenateCharacter mHyphenateCharacter =
+      mozilla::StyleHyphenateCharacter::Auto();
+
   mozilla::StyleWordBreak EffectiveWordBreak() const {
     if (mWordBreak == mozilla::StyleWordBreak::BreakWord) {
       return mozilla::StyleWordBreak::Normal;
@@ -1064,7 +1067,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleVisibility {
   mozilla::StyleImageRendering mImageRendering;
   mozilla::StyleWritingModeProperty mWritingMode;
   mozilla::StyleTextOrientation mTextOrientation;
-  mozilla::StyleColorAdjust mColorAdjust;
+  mozilla::StylePrintColorAdjust mPrintColorAdjust;
 
   bool IsVisible() const {
     return mVisible == mozilla::StyleVisibility::Visible;
