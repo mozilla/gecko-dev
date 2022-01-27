@@ -317,7 +317,7 @@ dependencies = [
 [[package]]
 name = "authenticator"
 version = "0.3.1"
-source = "git+https://github.com/makotokato/authenticator-rs?rev=eed8919d50559f4959e2d7d2af7b4d48869b5366#eed8919d50559f4959e2d7d2af7b4d48869b5366"
+source = "git+https://github.com/mozilla/authenticator-rs?rev=35168459db3b4d617df3779ff7e016553eb17d42#35168459db3b4d617df3779ff7e016553eb17d42"
 dependencies = [
  "bitflags",
  "core-foundation",

@@ -13,14 +13,12 @@ LOCAL_INCLUDES += [
     "/dom/media/systemservices",
     "/dom/media/webrtc",
     "/dom/media/webrtc/common",
-    "/third_party/libwebrtc",
-    "/third_party/libwebrtc/third_party/abseil-cpp",
 ]
 
 if CONFIG["MOZ_WEBRTC"]:
     LOCAL_INCLUDES += [
         "/third_party/libwebrtc",
-        "/third_party/libwebrtc/webrtc",
+        "/third_party/libwebrtc/third_party/abseil-cpp",
     ]
 
 UNIFIED_SOURCES += [

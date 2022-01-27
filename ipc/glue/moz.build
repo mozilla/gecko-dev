@@ -229,15 +229,13 @@ LOCAL_INCLUDES += [
     "/dom/indexedDB",
     "/dom/storage",
     "/netwerk/base",
-    "/third_party/libwebrtc",
-    "/third_party/libwebrtc/third_party/abseil-cpp",
     "/xpcom/build",
 ]
 
 if CONFIG["MOZ_WEBRTC"]:
     LOCAL_INCLUDES += [
         "/third_party/libwebrtc",
-        "/third_party/libwebrtc/webrtc",
+        "/third_party/libwebrtc/third_party/abseil-cpp",
     ]
 
 PREPROCESSED_IPDL_SOURCES = [
