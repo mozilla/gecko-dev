@@ -22,33 +22,7 @@ async function setupRegions(home, current) {
   Region._setCurrentRegion(current || "");
 }
 
-/**
- * Test that we don't show moreFromMozilla pane when it's disabled.
- */
-add_task(async function testwhenPrefDisabled() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.preferences.moreFromMozilla", false]],
-  });
-
-  await openPreferencesViaOpenPreferencesAPI("paneGeneral", {
-    leaveOpen: true,
-  });
-  let doc = gBrowser.contentDocument;
-
-  let moreFromMozillaCategory = doc.getElementById(
-    "category-more-from-mozilla"
-  );
-  ok(moreFromMozillaCategory, "The category exists");
-  ok(moreFromMozillaCategory.hidden, "The category is hidden");
-
-  BrowserTestUtils.removeTab(gBrowser.selectedTab);
-});
-
 add_task(async function testDefaultUIWithoutTemplatePref() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.preferences.moreFromMozilla", true]],
-  });
-
   await openPreferencesViaOpenPreferencesAPI("paneGeneral", {
     leaveOpen: true,
   });
@@ -61,14 +35,9 @@ add_task(async function testDefaultUIWithoutTemplatePref() {
   ok(moreFromMozillaCategory, "The category exists");
   ok(!moreFromMozillaCategory.hidden, "The category is not hidden");
 
-  let clickedPromise = ContentTaskUtils.waitForEvent(
-    moreFromMozillaCategory,
-    "click"
-  );
   moreFromMozillaCategory.click();
-  await clickedPromise;
 
-  let productCards = doc.querySelectorAll("div.simple");
+  let productCards = doc.querySelectorAll(".mozilla-product-item.simple");
   Assert.ok(productCards, "Default UI uses simple template");
   Assert.equal(productCards.length, 3, "3 product cards displayed");
 
@@ -98,6 +67,11 @@ add_task(async function testDefaultUIWithoutTemplatePref() {
     "firefox-desktop",
     "utm_medium set"
   );
+  Assert.equal(
+    searchParams.get("utm_content"),
+    "default-global",
+    "default utm_content set"
+  );
   Assert.ok(
     !searchParams.has("entrypoint_variation"),
     "entrypoint_variation should not be set"
@@ -108,6 +82,28 @@ add_task(async function testDefaultUIWithoutTemplatePref() {
   );
   BrowserTestUtils.removeTab(openedTab);
   BrowserTestUtils.removeTab(tab);
+});
+
+/**
+ * Test that we don't show moreFromMozilla pane when it's disabled.
+ */
+add_task(async function testwhenPrefDisabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.preferences.moreFromMozilla", false]],
+  });
+
+  await openPreferencesViaOpenPreferencesAPI("paneGeneral", {
+    leaveOpen: true,
+  });
+  let doc = gBrowser.contentDocument;
+
+  let moreFromMozillaCategory = doc.getElementById(
+    "category-more-from-mozilla"
+  );
+  ok(moreFromMozillaCategory, "The category exists");
+  ok(moreFromMozillaCategory.hidden, "The category is hidden");
+
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 
 add_task(async function test_aboutpreferences_event_telemetry() {
@@ -163,14 +159,9 @@ add_task(async function test_aboutpreferences_simple_template() {
     "category-more-from-mozilla"
   );
 
-  let clickedPromise = ContentTaskUtils.waitForEvent(
-    moreFromMozillaCategory,
-    "click"
-  );
   moreFromMozillaCategory.click();
-  await clickedPromise;
 
-  let productCards = doc.querySelectorAll("div.simple");
+  let productCards = doc.querySelectorAll(".mozilla-product-item");
   Assert.ok(productCards, "The product cards from simple template found");
   Assert.equal(productCards.length, 3, "3 product cards displayed");
 
@@ -197,14 +188,9 @@ add_task(async function test_aboutpreferences_advanced_template() {
     "category-more-from-mozilla"
   );
 
-  let clickedPromise = ContentTaskUtils.waitForEvent(
-    moreFromMozillaCategory,
-    "click"
-  );
   moreFromMozillaCategory.click();
-  await clickedPromise;
 
-  let productCards = doc.querySelectorAll("vbox.advanced");
+  let productCards = doc.querySelectorAll(".mozilla-product-item.advanced");
   Assert.ok(productCards, "The product cards from advanced template found");
   Assert.equal(productCards.length, 3, "3 product cards displayed");
   Assert.deepEqual(
@@ -235,15 +221,17 @@ add_task(async function test_aboutpreferences_clickBtnVPN() {
   let doc = gBrowser.contentDocument;
   let tab = gBrowser.selectedTab;
 
-  let productCards = doc.querySelectorAll("vbox.simple");
+  let productCards = doc.querySelectorAll(".mozilla-product-item.simple");
   Assert.ok(productCards, "Simple template loaded");
 
   const expectedUrl = "https://www.mozilla.org/products/vpn/";
   let tabOpened = BrowserTestUtils.waitForNewTab(gBrowser, url =>
     url.startsWith(expectedUrl)
   );
+
   let vpnButton = doc.getElementById("simple-mozillaVPN");
-  vpnButton.doCommand();
+  vpnButton.click();
+
   let openedTab = await tabOpened;
   Assert.ok(gBrowser.selectedBrowser.documentURI.spec.startsWith(expectedUrl));
 

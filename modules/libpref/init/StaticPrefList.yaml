@@ -1185,6 +1185,12 @@
   value: 16777216
   mirror: always
 
+# True to collect wireframes upon navigations / pushState
+- name: browser.history.collectWireframes
+  type: bool
+  value: false
+  mirror: always
+
 #if defined(XP_WIN) || defined(XP_LINUX)
   # Notify TabUnloader or send the memory pressure if the memory resource
   # notification is signaled AND the available commit space is lower than
@@ -1474,7 +1480,11 @@
 # be loaded normally as-if users normally navigated to the page.
 - name: browser.soft_reload.only_force_validate_top_level_document
   type: bool
+#if defined(EARLY_BETA_OR_EARLIER)
   value: true
+#else
+  value: false
+#endif
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -9661,7 +9671,7 @@
 
 - name: network.cookie.sameSite.laxByDefault
   type: bool
-  value: true
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 # lax-by-default 2 minutes tollerance for unsafe methods. The value is in seconds.
@@ -9672,12 +9682,12 @@
 
 - name: network.cookie.sameSite.noneRequiresSecure
   type: bool
-  value: true
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 - name: network.cookie.sameSite.schemeful
   type: bool
-  value: true
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 - name: network.cookie.thirdparty.sessionOnly

@@ -2849,20 +2849,6 @@ def nm_names(toolchain_prefix, c_compiler):
 check_prog("NM", nm_names, paths=clang_search_path, when=target_is_linux)
 
 
-@depends(toolchain_prefix)
-def strip_names(toolchain_prefix):
-    return tuple('%s%s' % (p, "strip") for p in (toolchain_prefix or ()) + ('',))
-
-
-option(env='STRIP', nargs=1, help='Path to the strip program', when=target_is_unix)
-
-strip = check_prog('STRIP', strip_names,
-                   input='STRIP', paths=clang_search_path,
-                   allow_missing=True, when=target_is_unix)
-
-add_old_configure_assignment('STRIP', strip)
-
-
 option("--enable-cpp-rtti", help="Enable C++ RTTI")
 
 add_old_configure_assignment("_MOZ_USE_RTTI", "1", when="--enable-cpp-rtti")

@@ -63,16 +63,6 @@ if test "$COMPILE_ENVIRONMENT"; then
     MOZ_ANDROID_NDK
 fi # COMPILE_ENVIRONMENT
 
-case "$target" in
-*-android*|*-linuxandroid*)
-    ;;
-*-linux*)
-    AC_PATH_PROG(OBJCOPY,objcopy)
-    ;;
-esac
-
-AC_SUBST(OBJCOPY)
-
 dnl ========================================================
 dnl Checks for compilers.
 dnl ========================================================
@@ -221,7 +211,6 @@ dnl ========================================================
 dnl Android libstdc++
 dnl ========================================================
 
-MOZ_ANDROID_CPU_ARCH
 if test "$COMPILE_ENVIRONMENT"; then
     MOZ_ANDROID_STLPORT
 fi # COMPILE_ENVIRONMENT
@@ -246,8 +235,6 @@ dnl ========================================================
 dnl GNU specific defaults
 dnl ========================================================
 if test "$GNU_CC"; then
-    CFLAGS="$CFLAGS -fno-strict-aliasing"
-
     if test "$OS_ARCH" != "WINNT" -o -z "$CLANG_CC"; then
         DSO_PIC_CFLAGS='-fPIC'
         ASFLAGS="$ASFLAGS -fPIC"
@@ -339,7 +326,7 @@ if test "$GNU_CC"; then
 fi
 
 if test "$GNU_CXX"; then
-    CXXFLAGS="$CXXFLAGS -fno-exceptions -fno-strict-aliasing"
+    CXXFLAGS="$CXXFLAGS -fno-exceptions"
 
     _DEFINES_CXXFLAGS="-DMOZILLA_CLIENT -include $_objdir/mozilla-config.h"
 fi
@@ -723,9 +710,6 @@ Darwin)
   ;;
 esac
 
-if test "$MOZ_BUILD_APP" = "tools/crashreporter"; then
-    WRAP_STL_INCLUDES=
-fi
 if test "$MOZ_BUILD_APP" = "tools/crashreporter/injector"; then
     WRAP_STL_INCLUDES=
 fi

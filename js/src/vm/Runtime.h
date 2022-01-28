@@ -60,7 +60,7 @@
 #include "js/WrapperCallbacks.h"
 #include "js/Zone.h"
 #include "threading/Thread.h"
-#include "vm/Caches.h"
+#include "vm/Caches.h"  // js::RuntimeCaches
 #include "vm/CodeCoverage.h"
 #include "vm/CommonPropertyNames.h"
 #include "vm/GeckoProfiler.h"
@@ -995,7 +995,7 @@ struct JSRuntime {
   }
 
  private:
-  js::MainThreadData<js::RuntimeCaches> caches_;
+  js::MainThreadOrParseData<js::RuntimeCaches> caches_;
 
  public:
   js::RuntimeCaches& caches() { return caches_.ref(); }
