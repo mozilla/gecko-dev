@@ -110,6 +110,10 @@ gfx::PointDouble3D XRRigidTransform::RawPosition() const {
   return mRawPosition;
 }
 
+gfx::Matrix4x4Double XRRigidTransform::RawTransform() const {
+  return mRawTransformMatrix;
+}
+
 void XRRigidTransform::Update(const gfx::PointDouble3D& aPosition,
                               const gfx::QuaternionDouble& aOrientation) {
   mNeedsUpdate = true;

@@ -29,9 +29,7 @@ XRSpace::XRSpace(nsIGlobalObject* aParent, XRSession* aSession,
                  XRNativeOrigin* aNativeOrigin)
     : DOMEventTargetHelper(aParent),
       mSession(aSession),
-      mNativeOrigin(aNativeOrigin),
-      mOriginOffsetPosition(0.0f, 0.0f, 0.0f),
-      mOriginOffsetOrientation(0.0f, 0.0f, 0.0f, 1.0f) {}
+      mNativeOrigin(aNativeOrigin) {}
 
 JSObject* XRSpace::WrapObject(JSContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
@@ -40,25 +38,18 @@ JSObject* XRSpace::WrapObject(JSContext* aCx,
 
 XRSession* XRSpace::GetSession() const { return mSession; }
 
-gfx::QuaternionDouble XRSpace::GetEffectiveOriginOrientation() const {
-  gfx::QuaternionDouble orientation =
-      mNativeOrigin->GetOrientation() * mOriginOffsetOrientation;
-  return orientation;
-}
-
-gfx::PointDouble3D XRSpace::GetEffectiveOriginPosition() const {
-  gfx::PointDouble3D position;
-  position = mNativeOrigin->GetPosition();
-  position = mOriginOffsetOrientation.RotatePoint(position);
-  position += mOriginOffsetPosition;
-  return position;
+gfx::Matrix4x4Double XRSpace::GetNativeOriginTransform() const {
+  if (!mNativeOrigin) {
+    return {};
+  }
+  gfx::Matrix4x4Double transform;
+  transform.SetRotationFromQuaternion(mNativeOrigin->GetOrientation());
+  transform.PostTranslate(mNativeOrigin->GetPosition());
+  return transform;
 }
 
 gfx::Matrix4x4Double XRSpace::GetEffectiveOriginTransform() const {
-  gfx::Matrix4x4Double transform;
-  transform.SetRotationFromQuaternion(GetEffectiveOriginOrientation());
-  transform.PostTranslate(GetEffectiveOriginPosition());
-  return transform;
+  return GetNativeOriginTransform() * mOriginOffset;
 }
 
 bool XRSpace::IsPositionEmulated() const {

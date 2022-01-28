@@ -18,22 +18,14 @@ XRReferenceSpace::XRReferenceSpace(nsIGlobalObject* aParent,
     : XRSpace(aParent, aSession, aNativeOrigin), mType(aType) {}
 
 already_AddRefed<XRReferenceSpace> XRReferenceSpace::GetOffsetReferenceSpace(
-    const XRRigidTransform& aOriginOffset) {
+    const XRRigidTransform& aOffsetTransform) {
   RefPtr<XRReferenceSpace> offsetReferenceSpace =
       new XRReferenceSpace(GetParentObject(), mSession, mNativeOrigin, mType);
 
-  // https://immersive-web.github.io/webxr/#multiply-transforms
-  // An XRRigidTransform is essentially a rotation followed by a translation
-  gfx::QuaternionDouble otherOrientation = aOriginOffset.RawOrientation();
-  // The resulting rotation is the two combined
-  offsetReferenceSpace->mOriginOffsetOrientation =
-      mOriginOffsetOrientation * otherOrientation;
-  // We first apply the rotation of aOriginOffset to
-  // mOriginOffsetPosition offset, then translate by the offset of
-  // aOriginOffset
-  offsetReferenceSpace->mOriginOffsetPosition =
-      otherOrientation.RotatePoint(mOriginOffsetPosition) +
-      aOriginOffset.RawPosition();
+  // https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace
+  // Set offsetSpace’s origin offset to the result of multiplying base’s origin offset by
+  // originOffset in the relevant realm of base.
+  offsetReferenceSpace->mOriginOffset = mOriginOffset * aOffsetTransform.RawTransform();
 
   return offsetReferenceSpace.forget();
 }

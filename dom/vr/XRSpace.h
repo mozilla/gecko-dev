@@ -35,8 +35,7 @@ class XRSpace : public DOMEventTargetHelper {
   XRNativeOrigin* GetNativeOrigin() const;
 
   // Non webIDL Members
-  gfx::QuaternionDouble GetEffectiveOriginOrientation() const;
-  gfx::PointDouble3D GetEffectiveOriginPosition() const;
+  gfx::Matrix4x4Double GetNativeOriginTransform() const;
   gfx::Matrix4x4Double GetEffectiveOriginTransform() const;
   virtual bool IsPositionEmulated() const;
 
@@ -48,8 +47,7 @@ class XRSpace : public DOMEventTargetHelper {
 
   // https://immersive-web.github.io/webxr/#xrspace-origin-offset
   // Origin Offset, represented as a rigid transform
-  gfx::PointDouble3D mOriginOffsetPosition;
-  gfx::QuaternionDouble mOriginOffsetOrientation;
+  gfx::Matrix4x4Double mOriginOffset;
 };
 
 }  // namespace dom

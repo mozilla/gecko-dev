@@ -16,20 +16,7 @@ XRNativeOriginLocal::XRNativeOriginLocal(gfx::VRDisplayClient* aDisplay)
 }
 
 gfx::PointDouble3D XRNativeOriginLocal::GetPosition() {
-  // Keep returning {0,0,0} until a position can be found
-  if (!mInitialPositionValid) {
-    const gfx::VRHMDSensorState& sensorState = mDisplay->GetSensorState();
-    gfx::PointDouble3D origin;
-    if (sensorState.flags & gfx::VRDisplayCapabilityFlags::Cap_Position ||
-        sensorState.flags &
-            gfx::VRDisplayCapabilityFlags::Cap_PositionEmulated) {
-      mInitialPosition.x = sensorState.pose.position[0];
-      mInitialPosition.y = sensorState.pose.position[1];
-      mInitialPosition.z = sensorState.pose.position[2];
-      mInitialPositionValid = true;
-    }
-  }
-  return mInitialPosition;
+  return { };
 }
 
 }  // namespace dom

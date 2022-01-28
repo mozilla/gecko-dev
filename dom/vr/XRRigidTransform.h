@@ -33,6 +33,7 @@ class XRRigidTransform final : public nsWrapperCache {
   XRRigidTransform& operator=(const XRRigidTransform& aOther);
   gfx::QuaternionDouble RawOrientation() const;
   gfx::PointDouble3D RawPosition() const;
+  gfx::Matrix4x4Double RawTransform() const;
   void Update(const gfx::PointDouble3D& aPosition,
               const gfx::QuaternionDouble& aOrientation);
   void Update(const gfx::Matrix4x4Double& aTransform);

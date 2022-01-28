@@ -30,9 +30,9 @@ gfx::PointDouble3D XRNativeOriginLocalFloor::GetPosition() {
       mDisplay->GetDisplayInfo().GetSittingToStandingTransform();
   if (!mInitialPositionValid || standing != mStandingTransform) {
     const gfx::VRHMDSensorState& sensorState = mDisplay->GetSensorState();
-    mInitialPosition.x = sensorState.pose.position[0];
+    mInitialPosition.x = 0;
     mInitialPosition.y = -mFloorRandom - standing._42;
-    mInitialPosition.z = sensorState.pose.position[2];
+    mInitialPosition.z = 0;
     mInitialPositionValid = true;
     mStandingTransform = standing;
   }
