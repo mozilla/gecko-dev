@@ -2198,7 +2198,6 @@ set_define("MOZ_HAS_REMOTE", has_remote)
 def wasm_sandboxing_libraries():
     return (
         "graphite",
-        "ogg",
         "hunspell",
         "expat",
         "woff2",
