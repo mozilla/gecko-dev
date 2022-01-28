@@ -23,19 +23,19 @@
 //! }
 //! ```
 
-use libc;
 use libc::{
     c_char,
     c_int,
 };
 use std::ffi::{OsString,OsStr,CStr};
 use std::os::unix::ffi::OsStrExt;
-use std::mem::size_of;
+use std::mem::{MaybeUninit, size_of};
 use std::os::unix::io::{RawFd,AsRawFd,FromRawFd};
-use unistd::read;
-use Result;
-use NixPath;
-use errno::Errno;
+use std::ptr;
+use crate::unistd::read;
+use crate::Result;
+use crate::NixPath;
+use crate::errno::Errno;
 
 libc_bitflags! {
     /// Configuration options for [`inotify_add_watch`](fn.inotify_add_watch.html).
@@ -131,7 +131,7 @@ impl Inotify {
     /// Returns a watch descriptor. This is not a File Descriptor! 
     ///
     /// For more information see, [inotify_add_watch(2)](http://man7.org/linux/man-pages/man2/inotify_add_watch.2.html).
-    pub fn add_watch<P: ?Sized + NixPath>(&self,
+    pub fn add_watch<P: ?Sized + NixPath>(self,
                                           path: &P,
                                           mask: AddWatchFlags) 
                                             -> Result<WatchDescriptor>
@@ -152,14 +152,14 @@ impl Inotify {
     ///
     /// For more information see, [inotify_rm_watch(2)](http://man7.org/linux/man-pages/man2/inotify_rm_watch.2.html).
     #[cfg(target_os = "linux")]
-    pub fn rm_watch(&self, wd: WatchDescriptor) -> Result<()> {
+    pub fn rm_watch(self, wd: WatchDescriptor) -> Result<()> {
         let res = unsafe { libc::inotify_rm_watch(self.fd, wd.wd) };
 
         Errno::result(res).map(drop)
     }
 
     #[cfg(target_os = "android")]
-    pub fn rm_watch(&self, wd: WatchDescriptor) -> Result<()> {
+    pub fn rm_watch(self, wd: WatchDescriptor) -> Result<()> {
         let res = unsafe { libc::inotify_rm_watch(self.fd, wd.wd as u32) };
 
         Errno::result(res).map(drop)
@@ -171,9 +171,10 @@ impl Inotify {
     /// 
     /// Returns as many events as available. If the call was non blocking and no
     /// events could be read then the EAGAIN error is returned.
-    pub fn read_events(&self) -> Result<Vec<InotifyEvent>> {
+    pub fn read_events(self) -> Result<Vec<InotifyEvent>> {
         let header_size = size_of::<libc::inotify_event>();
-        let mut buffer = [0u8; 4096];
+        const BUFSIZ: usize = 4096;
+        let mut buffer = [0u8; BUFSIZ];
         let mut events = Vec::new();
         let mut offset = 0;
 
@@ -181,11 +182,13 @@ impl Inotify {
 
         while (nread - offset) >= header_size {
             let event = unsafe {
-                &*(
-                    buffer
-                        .as_ptr()
-                        .offset(offset as isize) as *const libc::inotify_event
-                )
+                let mut event = MaybeUninit::<libc::inotify_event>::uninit();
+                ptr::copy_nonoverlapping(
+                    buffer.as_ptr().add(offset),
+                    event.as_mut_ptr() as *mut u8,
+                    (BUFSIZ - offset).min(header_size)
+                );
+                event.assume_init()
             };
 
             let name = match event.len {
@@ -194,7 +197,7 @@ impl Inotify {
                     let ptr = unsafe { 
                         buffer
                             .as_ptr()
-                            .offset(offset as isize + header_size as isize)
+                            .add(offset + header_size)
                             as *const c_char
                     };
                     let cstr = unsafe { CStr::from_ptr(ptr) };

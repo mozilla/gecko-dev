@@ -1,11 +1,8 @@
-extern crate nix;
-extern crate tempfile;
-
 use nix::dir::{Dir, Type};
 use nix::fcntl::OFlag;
 use nix::sys::stat::Mode;
 use std::fs::File;
-use self::tempfile::tempdir;
+use tempfile::tempdir;
 
 #[test]
 fn read() {
@@ -37,7 +34,9 @@ fn rewind() {
                             Mode::empty()).unwrap();
     let entries1: Vec<_> = dir.iter().map(|e| e.unwrap().file_name().to_owned()).collect();
     let entries2: Vec<_> = dir.iter().map(|e| e.unwrap().file_name().to_owned()).collect();
+    let entries3: Vec<_> = dir.into_iter().map(|e| e.unwrap().file_name().to_owned()).collect();
     assert_eq!(entries1, entries2);
+    assert_eq!(entries2, entries3);
 }
 
 #[test]

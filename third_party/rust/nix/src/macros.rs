@@ -48,7 +48,7 @@ macro_rules! libc_bitflags {
             )+
         }
     ) => {
-        bitflags! {
+        ::bitflags::bitflags! {
             $(#[$outer])*
             pub struct $BitFlags: $T {
                 $(
@@ -81,9 +81,10 @@ macro_rules! libc_bitflags {
 /// }
 /// ```
 macro_rules! libc_enum {
-    // (non-pub) Exit rule.
+    // Exit rule.
     (@make_enum
         {
+            $v:vis
             name: $BitFlags:ident,
             attrs: [$($attrs:tt)*],
             entries: [$($entries:tt)*],
@@ -91,30 +92,15 @@ macro_rules! libc_enum {
     ) => {
         $($attrs)*
         #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-        enum $BitFlags {
+        $v enum $BitFlags {
             $($entries)*
         }
     };
 
-    // (pub) Exit rule.
-    (@make_enum
-        {
-            pub,
-            name: $BitFlags:ident,
-            attrs: [$($attrs:tt)*],
-            entries: [$($entries:tt)*],
-        }
-    ) => {
-        $($attrs)*
-        #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-        pub enum $BitFlags {
-            $($entries)*
-        }
-    };
-
-    // (non-pub) Done accumulating.
+    // Done accumulating.
     (@accumulate_entries
         {
+            $v:vis
             name: $BitFlags:ident,
             attrs: $attrs:tt,
         },
@@ -123,26 +109,7 @@ macro_rules! libc_enum {
         libc_enum! {
             @make_enum
             {
-                name: $BitFlags,
-                attrs: $attrs,
-                entries: $entries,
-            }
-        }
-    };
-
-    // (pub) Done accumulating.
-    (@accumulate_entries
-        {
-            pub,
-            name: $BitFlags:ident,
-            attrs: $attrs:tt,
-        },
-        $entries:tt;
-    ) => {
-        libc_enum! {
-            @make_enum
-            {
-                pub,
+                $v
                 name: $BitFlags,
                 attrs: $attrs,
                 entries: $entries,
@@ -217,16 +184,17 @@ macro_rules! libc_enum {
         }
     };
 
-    // (non-pub) Entry rule.
+    // Entry rule.
     (
         $(#[$attr:meta])*
-        enum $BitFlags:ident {
+        $v:vis enum $BitFlags:ident {
             $($vals:tt)*
         }
     ) => {
         libc_enum! {
             @accumulate_entries
             {
+                $v
                 name: $BitFlags,
                 attrs: [$(#[$attr])*],
             },
@@ -234,31 +202,4 @@ macro_rules! libc_enum {
             $($vals)*
         }
     };
-
-    // (pub) Entry rule.
-    (
-        $(#[$attr:meta])*
-        pub enum $BitFlags:ident {
-            $($vals:tt)*
-        }
-    ) => {
-        libc_enum! {
-            @accumulate_entries
-            {
-                pub,
-                name: $BitFlags,
-                attrs: [$(#[$attr])*],
-            },
-            [];
-            $($vals)*
-        }
-    };
-}
-
-/// A Rust version of the familiar C `offset_of` macro.  It returns the byte
-/// offset of `field` within struct `ty`
-macro_rules! offset_of {
-    ($ty:ty, $field:ident) => {
-        &(*(0 as *const $ty)).$field as *const _ as usize
-    }
 }

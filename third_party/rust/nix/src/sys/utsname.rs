@@ -3,8 +3,8 @@ use libc::{self, c_char};
 use std::ffi::CStr;
 use std::str::from_utf8_unchecked;
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[repr(transparent)]
 pub struct UtsName(libc::utsname);
 
 impl UtsName {
@@ -31,9 +31,9 @@ impl UtsName {
 
 pub fn uname() -> UtsName {
     unsafe {
-        let mut ret: UtsName = mem::uninitialized();
-        libc::uname(&mut ret.0);
-        ret
+        let mut ret = mem::MaybeUninit::uninit();
+        libc::uname(ret.as_mut_ptr());
+        UtsName(ret.assume_init())
     }
 }
 

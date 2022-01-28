@@ -1,12 +1,12 @@
-use {Error, Result};
+use crate::{Error, Result};
 #[cfg(not(target_os = "android"))]
-use NixPath;
-use errno::Errno;
+use crate::NixPath;
+use crate::errno::Errno;
 #[cfg(not(target_os = "android"))]
-use fcntl::OFlag;
+use crate::fcntl::OFlag;
 use libc::{self, c_int, c_void, size_t, off_t};
 #[cfg(not(target_os = "android"))]
-use sys::stat::Mode;
+use crate::sys::stat::Mode;
 use std::os::unix::io::RawFd;
 
 libc_bitflags!{
@@ -77,6 +77,43 @@ libc_bitflags!{
         /// Allocate the mapping using "huge pages."
         #[cfg(any(target_os = "android", target_os = "linux"))]
         MAP_HUGETLB;
+        /// Make use of 64KB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_64KB;
+        /// Make use of 512KB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_512KB;
+        /// Make use of 1MB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_1MB;
+        /// Make use of 2MB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_2MB;
+        /// Make use of 8MB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_8MB;
+        /// Make use of 16MB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_16MB;
+        /// Make use of 32MB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_32MB;
+        /// Make use of 256MB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_256MB;
+        /// Make use of 512MB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_512MB;
+        /// Make use of 1GB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_1GB;
+        /// Make use of 2GB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_2GB;
+        /// Make use of 16GB huge page (must be supported by the system)
+        #[cfg(target_os = "linux")]
+        MAP_HUGE_16GB;
+
         /// Lock the mapped region into memory as with `mlock(2)`.
         #[cfg(target_os = "netbsd")]
         MAP_WIRED;
@@ -99,6 +136,17 @@ libc_bitflags!{
         MAP_NOCACHE;
         #[cfg(any(target_os = "ios", target_os = "macos"))]
         MAP_JIT;
+    }
+}
+
+#[cfg(target_os = "linux")]
+libc_bitflags!{
+    /// Options for `mremap()`.
+    pub struct MRemapFlags: c_int {
+        /// Permit the kernel to relocate the mapping to a new virtual address, if necessary.
+        MREMAP_MAYMOVE;
+        /// Place the mapping at exactly the address specified in `new_address`.
+        MREMAP_FIXED;
     }
 }
 
@@ -223,20 +271,37 @@ libc_bitflags!{
     }
 }
 
-/// Locks all memory pages that contain part of the address range with `length` bytes starting at
-/// `addr`. Locked pages never move to the swap area.
+/// Locks all memory pages that contain part of the address range with `length`
+/// bytes starting at `addr`.
+///
+/// Locked pages never move to the swap area.
+///
+/// # Safety
+///
+/// `addr` must meet all the requirements described in the `mlock(2)` man page.
 pub unsafe fn mlock(addr: *const c_void, length: size_t) -> Result<()> {
     Errno::result(libc::mlock(addr, length)).map(drop)
 }
 
-/// Unlocks all memory pages that contain part of the address range with `length` bytes starting at
-/// `addr`.
+/// Unlocks all memory pages that contain part of the address range with
+/// `length` bytes starting at `addr`.
+///
+/// # Safety
+///
+/// `addr` must meet all the requirements described in the `munlock(2)` man
+/// page.
 pub unsafe fn munlock(addr: *const c_void, length: size_t) -> Result<()> {
     Errno::result(libc::munlock(addr, length)).map(drop)
 }
 
-/// Locks all memory pages mapped into this process' address space. Locked pages never move to the
-/// swap area.
+/// Locks all memory pages mapped into this process' address space.
+///
+/// Locked pages never move to the swap area.
+///
+/// # Safety
+///
+/// `addr` must meet all the requirements described in the `mlockall(2)` man
+/// page.
 pub fn mlockall(flags: MlockAllFlags) -> Result<()> {
     unsafe { Errno::result(libc::mlockall(flags.bits())) }.map(drop)
 }
@@ -246,8 +311,11 @@ pub fn munlockall() -> Result<()> {
     unsafe { Errno::result(libc::munlockall()) }.map(drop)
 }
 
-/// Calls to mmap are inherently unsafe, so they must be made in an unsafe block. Typically
-/// a higher-level abstraction will hide the unsafe interactions with the mmap'd region.
+/// allocate memory, or map files or devices into memory
+///
+/// # Safety
+///
+/// See the `mmap(2)` man page for detailed requirements.
 pub unsafe fn mmap(addr: *mut c_void, length: size_t, prot: ProtFlags, flags: MapFlags, fd: RawFd, offset: off_t) -> Result<*mut c_void> {
     let ret = libc::mmap(addr, length, prot.bits(), flags.bits(), fd, offset);
 
@@ -258,10 +326,46 @@ pub unsafe fn mmap(addr: *mut c_void, length: size_t, prot: ProtFlags, flags: Ma
     }
 }
 
+/// Expands (or shrinks) an existing memory mapping, potentially moving it at
+/// the same time.
+///
+/// # Safety
+///
+/// See the `mremap(2)` [man page](https://man7.org/linux/man-pages/man2/mremap.2.html) for
+/// detailed requirements.
+#[cfg(target_os = "linux")]
+pub unsafe fn mremap(
+    addr: *mut c_void,
+    old_size: size_t,
+    new_size: size_t,
+    flags: MRemapFlags,
+    new_address: Option<* mut c_void>,
+) -> Result<*mut c_void> {
+    let ret = libc::mremap(addr, old_size, new_size, flags.bits(), new_address.unwrap_or(std::ptr::null_mut()));
+
+    if ret == libc::MAP_FAILED {
+        Err(Error::Sys(Errno::last()))
+    } else {
+        Ok(ret)
+    }
+}
+
+/// remove a mapping
+///
+/// # Safety
+///
+/// `addr` must meet all the requirements described in the `munmap(2)` man
+/// page.
 pub unsafe fn munmap(addr: *mut c_void, len: size_t) -> Result<()> {
     Errno::result(libc::munmap(addr, len)).map(drop)
 }
 
+/// give advice about use of memory
+///
+/// # Safety
+///
+/// See the `madvise(2)` man page.  Take special care when using
+/// `MmapAdvise::MADV_FREE`.
 pub unsafe fn madvise(addr: *mut c_void, length: size_t, advise: MmapAdvise) -> Result<()> {
     Errno::result(libc::madvise(addr, length, advise as i32)).map(drop)
 }
@@ -295,6 +399,12 @@ pub unsafe fn mprotect(addr: *mut c_void, length: size_t, prot: ProtFlags) -> Re
     Errno::result(libc::mprotect(addr, length, prot.bits())).map(drop)
 }
 
+/// synchronize a mapped region
+///
+/// # Safety
+///
+/// `addr` must meet all the requirements described in the `msync(2)` man
+/// page.
 pub unsafe fn msync(addr: *mut c_void, length: size_t, flags: MsFlags) -> Result<()> {
     Errno::result(libc::msync(addr, length, flags.bits())).map(drop)
 }

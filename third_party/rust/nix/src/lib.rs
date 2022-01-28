@@ -14,24 +14,17 @@
 #![deny(unstable_features)]
 #![deny(missing_copy_implementations)]
 #![deny(missing_debug_implementations)]
-// XXX Allow deprecated items until release 0.16.0.  See issue #1096.
-#![allow(deprecated)]
-
-// External crates
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate cfg_if;
-extern crate void;
 
 // Re-exported external crates
-pub extern crate libc;
+pub use libc;
 
 // Private internal modules
 #[macro_use] mod macros;
 
 // Public crates
+#[cfg(not(target_os = "redox"))]
 pub mod dir;
+pub mod env;
 pub mod errno;
 #[deny(missing_docs)]
 pub mod features;
@@ -59,13 +52,16 @@ pub mod mount;
           target_os = "netbsd"))]
 pub mod mqueue;
 #[deny(missing_docs)]
+#[cfg(not(target_os = "redox"))]
 pub mod net;
 #[deny(missing_docs)]
 pub mod poll;
 #[deny(missing_docs)]
+#[cfg(not(any(target_os = "redox", target_os = "fuchsia")))]
 pub mod pty;
 pub mod sched;
 pub mod sys;
+pub mod time;
 // This can be implemented for other platforms as soon as libc
 // provides bindings for them.
 #[cfg(all(target_os = "linux",
@@ -121,9 +117,9 @@ impl Error {
     /// let e = Error::from(Errno::EPERM);
     /// assert_eq!(Some(Errno::EPERM), e.as_errno());
     /// ```
-    pub fn as_errno(&self) -> Option<Errno> {
-        if let &Error::Sys(ref e) = self {
-            Some(*e)
+    pub fn as_errno(self) -> Option<Errno> {
+        if let Error::Sys(e) = self {
+            Some(e)
         } else {
             None
         }
@@ -154,16 +150,7 @@ impl From<std::string::FromUtf8Error> for Error {
     fn from(_: std::string::FromUtf8Error) -> Error { Error::InvalidUtf8 }
 }
 
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::InvalidPath => "Invalid path",
-            Error::InvalidUtf8 => "Invalid UTF-8 string",
-            Error::UnsupportedOperation => "Unsupported Operation",
-            Error::Sys(ref errno) => errno.desc(),
-        }
-    }
-}
+impl error::Error for Error {}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -177,6 +164,8 @@ impl fmt::Display for Error {
 }
 
 pub trait NixPath {
+    fn is_empty(&self) -> bool;
+
     fn len(&self) -> usize;
 
     fn with_nix_path<T, F>(&self, f: F) -> Result<T>
@@ -184,6 +173,10 @@ pub trait NixPath {
 }
 
 impl NixPath for str {
+    fn is_empty(&self) -> bool {
+        NixPath::is_empty(OsStr::new(self))
+    }
+
     fn len(&self) -> usize {
         NixPath::len(OsStr::new(self))
     }
@@ -195,6 +188,10 @@ impl NixPath for str {
 }
 
 impl NixPath for OsStr {
+    fn is_empty(&self) -> bool {
+        self.as_bytes().is_empty()
+    }
+
     fn len(&self) -> usize {
         self.as_bytes().len()
     }
@@ -206,6 +203,10 @@ impl NixPath for OsStr {
 }
 
 impl NixPath for CStr {
+    fn is_empty(&self) -> bool {
+        self.to_bytes().is_empty()
+    }
+
     fn len(&self) -> usize {
         self.to_bytes().len()
     }
@@ -222,6 +223,10 @@ impl NixPath for CStr {
 }
 
 impl NixPath for [u8] {
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+
     fn len(&self) -> usize {
         self.len()
     }
@@ -249,6 +254,10 @@ impl NixPath for [u8] {
 }
 
 impl NixPath for Path {
+    fn is_empty(&self) -> bool {
+        NixPath::is_empty(self.as_os_str())
+    }
+
     fn len(&self) -> usize {
         NixPath::len(self.as_os_str())
     }
@@ -259,26 +268,15 @@ impl NixPath for Path {
 }
 
 impl NixPath for PathBuf {
+    fn is_empty(&self) -> bool {
+        NixPath::is_empty(self.as_os_str())
+    }
+
     fn len(&self) -> usize {
         NixPath::len(self.as_os_str())
     }
 
     fn with_nix_path<T, F>(&self, f: F) -> Result<T> where F: FnOnce(&CStr) -> T {
         self.as_os_str().with_nix_path(f)
-    }
-}
-
-/// Treats `None` as an empty string.
-impl<'a, NP: ?Sized + NixPath>  NixPath for Option<&'a NP> {
-    fn len(&self) -> usize {
-        self.map_or(0, NixPath::len)
-    }
-
-    fn with_nix_path<T, F>(&self, f: F) -> Result<T> where F: FnOnce(&CStr) -> T {
-        if let Some(nix_path) = *self {
-            nix_path.with_nix_path(f)
-        } else {
-            unsafe { CStr::from_ptr("\0".as_ptr() as *const _).with_nix_path(f) }
-        }
     }
 }

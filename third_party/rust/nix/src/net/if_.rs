@@ -3,9 +3,8 @@
 //! Uses Linux and/or POSIX functions to resolve interface names like "eth0"
 //! or "socan1" into device numbers.
 
-use libc;
 use libc::c_uint;
-use {Result, Error, NixPath};
+use crate::{Result, Error, NixPath};
 
 /// Resolve an interface into a interface number.
 pub fn if_nametoindex<P: ?Sized + NixPath>(name: &P) -> Result<c_uint> {

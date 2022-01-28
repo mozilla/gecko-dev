@@ -4,10 +4,7 @@ use std::os::unix::io::AsRawFd;
 #[cfg(not(any(target_os = "linux", target_os = "android")))]
 use std::ffi::CStr;
 
-use libc;
-
-use {NixPath, Result};
-use errno::Errno;
+use crate::{NixPath, Result, errno::Errno};
 
 #[cfg(target_os = "android")]
 pub type fsid_t = libc::__fsid_t;
@@ -15,81 +12,95 @@ pub type fsid_t = libc::__fsid_t;
 pub type fsid_t = libc::fsid_t;
 
 #[derive(Clone, Copy)]
+#[repr(transparent)]
 pub struct Statfs(libc::statfs);
 
 #[cfg(target_os = "freebsd")]
-#[derive(Eq, Copy, Clone, PartialEq, Debug)]
-pub struct FsType(u32);
+type fs_type_t = u32;
 #[cfg(target_os = "android")]
-#[derive(Eq, Copy, Clone, PartialEq, Debug)]
-pub struct FsType(libc::c_ulong);
+type fs_type_t = libc::c_ulong;
 #[cfg(all(target_os = "linux", target_arch = "s390x"))]
-#[derive(Eq, Copy, Clone, PartialEq, Debug)]
-pub struct FsType(u32);
+type fs_type_t = libc::c_uint;
 #[cfg(all(target_os = "linux", target_env = "musl"))]
-#[derive(Eq, Copy, Clone, PartialEq, Debug)]
-pub struct FsType(libc::c_ulong);
+type fs_type_t = libc::c_ulong;
 #[cfg(all(target_os = "linux", not(any(target_arch = "s390x", target_env = "musl"))))]
-#[derive(Eq, Copy, Clone, PartialEq, Debug)]
-pub struct FsType(libc::c_long);
+type fs_type_t = libc::__fsword_t;
 
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const ADFS_SUPER_MAGIC: FsType = FsType(libc::ADFS_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const AFFS_SUPER_MAGIC: FsType = FsType(libc::AFFS_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const CODA_SUPER_MAGIC: FsType = FsType(libc::CODA_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const CRAMFS_MAGIC: FsType = FsType(libc::CRAMFS_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const EFS_SUPER_MAGIC: FsType = FsType(libc::EFS_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const EXT2_SUPER_MAGIC: FsType = FsType(libc::EXT2_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const EXT3_SUPER_MAGIC: FsType = FsType(libc::EXT3_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const EXT4_SUPER_MAGIC: FsType = FsType(libc::EXT4_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const HPFS_SUPER_MAGIC: FsType = FsType(libc::HPFS_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const HUGETLBFS_MAGIC: FsType = FsType(libc::HUGETLBFS_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const ISOFS_SUPER_MAGIC: FsType = FsType(libc::ISOFS_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const JFFS2_SUPER_MAGIC: FsType = FsType(libc::JFFS2_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const MINIX_SUPER_MAGIC: FsType = FsType(libc::MINIX_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const MINIX_SUPER_MAGIC2: FsType = FsType(libc::MINIX_SUPER_MAGIC2);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const MINIX2_SUPER_MAGIC: FsType = FsType(libc::MINIX2_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const MINIX2_SUPER_MAGIC2: FsType = FsType(libc::MINIX2_SUPER_MAGIC2);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const MSDOS_SUPER_MAGIC: FsType = FsType(libc::MSDOS_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const NCP_SUPER_MAGIC: FsType = FsType(libc::NCP_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const NFS_SUPER_MAGIC: FsType = FsType(libc::NFS_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const OPENPROM_SUPER_MAGIC: FsType = FsType(libc::OPENPROM_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const PROC_SUPER_MAGIC: FsType = FsType(libc::PROC_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const QNX4_SUPER_MAGIC: FsType = FsType(libc::QNX4_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const REISERFS_SUPER_MAGIC: FsType = FsType(libc::REISERFS_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const SMB_SUPER_MAGIC: FsType = FsType(libc::SMB_SUPER_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const TMPFS_MAGIC: FsType = FsType(libc::TMPFS_MAGIC);
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(target_arch = "s390x")))]
-pub const USBDEVICE_SUPER_MAGIC: FsType = FsType(libc::USBDEVICE_SUPER_MAGIC);
+#[cfg(any(
+    target_os = "freebsd",
+    target_os = "android",
+    all(target_os = "linux", target_arch = "s390x"),
+    all(target_os = "linux", target_env = "musl"),
+    all(target_os = "linux", not(any(target_arch = "s390x", target_env = "musl"))),
+))]
+#[derive(Eq, Copy, Clone, PartialEq, Debug)]
+pub struct FsType(pub fs_type_t);
+
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const ADFS_SUPER_MAGIC: FsType = FsType(libc::ADFS_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const AFFS_SUPER_MAGIC: FsType = FsType(libc::AFFS_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const CODA_SUPER_MAGIC: FsType = FsType(libc::CODA_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const CRAMFS_MAGIC: FsType = FsType(libc::CRAMFS_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const EFS_SUPER_MAGIC: FsType = FsType(libc::EFS_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const EXT2_SUPER_MAGIC: FsType = FsType(libc::EXT2_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const EXT3_SUPER_MAGIC: FsType = FsType(libc::EXT3_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const EXT4_SUPER_MAGIC: FsType = FsType(libc::EXT4_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const HPFS_SUPER_MAGIC: FsType = FsType(libc::HPFS_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const HUGETLBFS_MAGIC: FsType = FsType(libc::HUGETLBFS_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const ISOFS_SUPER_MAGIC: FsType = FsType(libc::ISOFS_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const JFFS2_SUPER_MAGIC: FsType = FsType(libc::JFFS2_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const MINIX_SUPER_MAGIC: FsType = FsType(libc::MINIX_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const MINIX_SUPER_MAGIC2: FsType = FsType(libc::MINIX_SUPER_MAGIC2 as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const MINIX2_SUPER_MAGIC: FsType = FsType(libc::MINIX2_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const MINIX2_SUPER_MAGIC2: FsType = FsType(libc::MINIX2_SUPER_MAGIC2 as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const MSDOS_SUPER_MAGIC: FsType = FsType(libc::MSDOS_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const NCP_SUPER_MAGIC: FsType = FsType(libc::NCP_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const NFS_SUPER_MAGIC: FsType = FsType(libc::NFS_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const OPENPROM_SUPER_MAGIC: FsType = FsType(libc::OPENPROM_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const OVERLAYFS_SUPER_MAGIC: FsType = FsType(libc::OVERLAYFS_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const PROC_SUPER_MAGIC: FsType = FsType(libc::PROC_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const QNX4_SUPER_MAGIC: FsType = FsType(libc::QNX4_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const REISERFS_SUPER_MAGIC: FsType = FsType(libc::REISERFS_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const SMB_SUPER_MAGIC: FsType = FsType(libc::SMB_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const TMPFS_MAGIC: FsType = FsType(libc::TMPFS_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const USBDEVICE_SUPER_MAGIC: FsType = FsType(libc::USBDEVICE_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const CGROUP_SUPER_MAGIC: FsType = FsType(libc::CGROUP_SUPER_MAGIC as fs_type_t);
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+pub const CGROUP2_SUPER_MAGIC: FsType = FsType(libc::CGROUP2_SUPER_MAGIC as fs_type_t);
+
 
 impl Statfs {
     /// Magic code defining system type
     #[cfg(not(any(
         target_os = "openbsd",
+        target_os = "dragonfly",
         target_os = "ios",
         target_os = "macos"
     )))]
@@ -105,8 +116,14 @@ impl Statfs {
     }
 
     /// Optimal transfer block size
-    #[cfg(any(target_os = "ios", target_os = "macos", target_os = "openbsd"))]
+    #[cfg(any(target_os = "ios", target_os = "macos"))]
     pub fn optimal_transfer_size(&self) -> i32 {
+        self.0.f_iosize
+    }
+
+    /// Optimal transfer block size
+    #[cfg(target_os = "openbsd")]
+    pub fn optimal_transfer_size(&self) -> u32 {
         self.0.f_iosize
     }
 
@@ -117,20 +134,17 @@ impl Statfs {
     }
 
     /// Optimal transfer block size
-    #[cfg(all(target_os = "linux", target_env = "musl"))]
+    #[cfg(any(
+        target_os = "android",
+        all(target_os = "linux", target_env = "musl")
+    ))]
     pub fn optimal_transfer_size(&self) -> libc::c_ulong {
         self.0.f_bsize
     }
 
     /// Optimal transfer block size
     #[cfg(all(target_os = "linux", not(any(target_arch = "s390x", target_env = "musl"))))]
-    pub fn optimal_transfer_size(&self) -> libc::c_long {
-        self.0.f_bsize
-    }
-
-    /// Optimal transfer block size
-    #[cfg(target_os = "android")]
-    pub fn optimal_transfer_size(&self) -> libc::c_ulong {
+    pub fn optimal_transfer_size(&self) -> libc::__fsword_t {
         self.0.f_bsize
     }
 
@@ -169,7 +183,7 @@ impl Statfs {
     /// Size of a block
     // f_bsize on linux: https://github.com/torvalds/linux/blob/master/fs/nfs/super.c#L471
     #[cfg(all(target_os = "linux", not(any(target_arch = "s390x", target_env = "musl"))))]
-    pub fn block_size(&self) -> libc::c_long {
+    pub fn block_size(&self) -> libc::__fsword_t {
         self.0.f_bsize
     }
 
@@ -211,7 +225,7 @@ impl Statfs {
 
     /// Maximum length of filenames
     #[cfg(all(target_os = "linux", not(any(target_arch = "s390x", target_env = "musl"))))]
-    pub fn maximum_name_length(&self) -> libc::c_long {
+    pub fn maximum_name_length(&self) -> libc::__fsword_t {
         self.0.f_namelen
     }
 
@@ -240,7 +254,7 @@ impl Statfs {
     }
 
     /// Total data blocks in filesystem
-    #[cfg(all(target_os = "linux", target_env = "musl"))]
+    #[cfg(all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32"))))]
     pub fn blocks(&self) -> u64 {
         self.0.f_blocks
     }
@@ -253,7 +267,7 @@ impl Statfs {
         target_os = "freebsd",
         target_os = "openbsd",
         target_os = "dragonfly",
-        all(target_os = "linux", target_env = "musl")
+        all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32")))
     )))]
     pub fn blocks(&self) -> libc::c_ulong {
         self.0.f_blocks
@@ -278,7 +292,7 @@ impl Statfs {
     }
 
     /// Free blocks in filesystem
-    #[cfg(all(target_os = "linux", target_env = "musl"))]
+    #[cfg(all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32"))))]
     pub fn blocks_free(&self) -> u64 {
         self.0.f_bfree
     }
@@ -291,7 +305,7 @@ impl Statfs {
         target_os = "freebsd",
         target_os = "openbsd",
         target_os = "dragonfly",
-        all(target_os = "linux", target_env = "musl")
+        all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32")))
     )))]
     pub fn blocks_free(&self) -> libc::c_ulong {
         self.0.f_bfree
@@ -316,7 +330,7 @@ impl Statfs {
     }
 
     /// Free blocks available to unprivileged user
-    #[cfg(all(target_os = "linux", target_env = "musl"))]
+    #[cfg(all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32"))))]
     pub fn blocks_available(&self) -> u64 {
         self.0.f_bavail
     }
@@ -329,7 +343,7 @@ impl Statfs {
         target_os = "freebsd",
         target_os = "openbsd",
         target_os = "dragonfly",
-        all(target_os = "linux", target_env = "musl")
+        all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32")))
     )))]
     pub fn blocks_available(&self) -> libc::c_ulong {
         self.0.f_bavail
@@ -354,8 +368,8 @@ impl Statfs {
     }
 
     /// Total file nodes in filesystem
-    #[cfg(all(target_os = "linux", target_env = "musl"))]
-    pub fn files(&self) -> u64 {
+    #[cfg(all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32"))))]
+    pub fn files(&self) -> libc::fsfilcnt_t {
         self.0.f_files
     }
 
@@ -367,14 +381,19 @@ impl Statfs {
         target_os = "freebsd",
         target_os = "openbsd",
         target_os = "dragonfly",
-        all(target_os = "linux", target_env = "musl")
+        all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32")))
     )))]
     pub fn files(&self) -> libc::c_ulong {
         self.0.f_files
     }
 
     /// Free file nodes in filesystem
-    #[cfg(any(target_os = "ios", target_os = "macos", target_os = "android"))]
+    #[cfg(any(
+            target_os = "android",
+            target_os = "ios",
+            target_os = "macos",
+            target_os = "openbsd"
+    ))]
     pub fn files_free(&self) -> u64 {
         self.0.f_ffree
     }
@@ -386,14 +405,14 @@ impl Statfs {
     }
 
     /// Free file nodes in filesystem
-    #[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
+    #[cfg(target_os = "freebsd")]
     pub fn files_free(&self) -> i64 {
         self.0.f_ffree
     }
 
     /// Free file nodes in filesystem
-    #[cfg(all(target_os = "linux", target_env = "musl"))]
-    pub fn files_free(&self) -> u64 {
+    #[cfg(all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32"))))]
+    pub fn files_free(&self) -> libc::fsfilcnt_t {
         self.0.f_ffree
     }
 
@@ -405,7 +424,7 @@ impl Statfs {
         target_os = "freebsd",
         target_os = "openbsd",
         target_os = "dragonfly",
-        all(target_os = "linux", target_env = "musl")
+        all(target_os = "linux", any(target_env = "musl", all(target_arch = "x86_64", target_pointer_width = "32")))
     )))]
     pub fn files_free(&self) -> libc::c_ulong {
         self.0.f_ffree
@@ -434,16 +453,17 @@ impl Debug for Statfs {
 
 pub fn statfs<P: ?Sized + NixPath>(path: &P) -> Result<Statfs> {
     unsafe {
-        let mut stat: Statfs = mem::uninitialized();
-        let res = path.with_nix_path(|path| libc::statfs(path.as_ptr(), &mut stat.0))?;
-        Errno::result(res).map(|_| stat)
+        let mut stat = mem::MaybeUninit::<libc::statfs>::uninit();
+        let res = path.with_nix_path(|path| libc::statfs(path.as_ptr(), stat.as_mut_ptr()))?;
+        Errno::result(res).map(|_| Statfs(stat.assume_init()))
     }
 }
 
 pub fn fstatfs<T: AsRawFd>(fd: &T) -> Result<Statfs> {
     unsafe {
-        let mut stat: Statfs = mem::uninitialized();
-        Errno::result(libc::fstatfs(fd.as_raw_fd(), &mut stat.0)).map(|_| stat)
+        let mut stat = mem::MaybeUninit::<libc::statfs>::uninit();
+        Errno::result(libc::fstatfs(fd.as_raw_fd(), stat.as_mut_ptr()))
+            .map(|_| Statfs(stat.assume_init()))
     }
 }
 
@@ -451,8 +471,8 @@ pub fn fstatfs<T: AsRawFd>(fd: &T) -> Result<Statfs> {
 mod test {
     use std::fs::File;
 
-    use sys::statfs::*;
-    use sys::statvfs::*;
+    use crate::sys::statfs::*;
+    use crate::sys::statvfs::*;
     use std::path::Path;
 
     #[test]

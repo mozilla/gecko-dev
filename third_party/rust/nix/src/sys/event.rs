@@ -1,12 +1,11 @@
 /* TOOD: Implement for other kqueue based systems
  */
 
-use {Errno, Result};
+use crate::{Errno, Result};
 #[cfg(not(target_os = "netbsd"))]
 use libc::{timespec, time_t, c_int, c_long, intptr_t, uintptr_t};
 #[cfg(target_os = "netbsd")]
 use libc::{timespec, time_t, c_long, intptr_t, uintptr_t, size_t};
-use libc;
 use std::os::unix::io::RawFd;
 use std::ptr;
 use std::mem;
@@ -28,7 +27,7 @@ type type_of_data = intptr_t;
 #[cfg(any(target_os = "netbsd"))]
 type type_of_udata = intptr_t;
 #[cfg(any(target_os = "netbsd", target_os = "openbsd"))]
-type type_of_data = libc::int64_t;
+type type_of_data = i64;
 
 #[cfg(target_os = "netbsd")]
 type type_of_event_filter = u32;
@@ -90,14 +89,9 @@ libc_bitflags!{
         EV_CLEAR;
         EV_DELETE;
         EV_DISABLE;
-        // No released version of OpenBSD supports EV_DISPATCH or EV_RECEIPT.
-        // These have been commited to the -current branch though and are
-        // expected to be part of the OpenBSD 6.2 release in Nov 2017.
-        // See: https://marc.info/?l=openbsd-tech&m=149621427511219&w=2
-        // https://github.com/rust-lang/libc/pull/613
         #[cfg(any(target_os = "dragonfly", target_os = "freebsd",
                   target_os = "ios", target_os = "macos",
-                  target_os = "netbsd"))]
+                  target_os = "netbsd", target_os = "openbsd"))]
         EV_DISPATCH;
         #[cfg(target_os = "freebsd")]
         EV_DROP;
@@ -116,7 +110,7 @@ libc_bitflags!{
         EV_POLL;
         #[cfg(any(target_os = "dragonfly", target_os = "freebsd",
                   target_os = "ios", target_os = "macos",
-                  target_os = "netbsd"))]
+                  target_os = "netbsd", target_os = "openbsd"))]
         EV_RECEIPT;
         EV_SYSFLAGS;
     }
@@ -133,10 +127,6 @@ libc_bitflags!(
         NOTE_EOF;
         NOTE_EXEC;
         NOTE_EXIT;
-        #[cfg(any(target_os = "macos", target_os = "ios"))]
-        #[deprecated( since="0.14.0", note="Deprecated since OSX 10.9")]
-        #[allow(deprecated)]
-        NOTE_EXIT_REPARENTED;
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         NOTE_EXITSTATUS;
         NOTE_EXTEND;
@@ -183,11 +173,6 @@ libc_bitflags!(
         NOTE_OOB;
         NOTE_PCTRLMASK;
         NOTE_PDATAMASK;
-        #[cfg(any(target_os = "macos", target_os = "ios"))]
-        #[cfg(any(target_os = "macos", target_os = "ios"))]
-        #[deprecated( since="0.14.0", note="Deprecated since OSX 10.9")]
-        #[allow(deprecated)]
-        NOTE_REAP;
         NOTE_RENAME;
         NOTE_REVOKE;
         #[cfg(any(target_os = "macos", target_os = "ios", target_os = "freebsd"))]
@@ -234,7 +219,7 @@ impl KEvent {
     pub fn new(ident: uintptr_t, filter: EventFilter, flags: EventFlag,
                fflags:FilterFlag, data: intptr_t, udata: intptr_t) -> KEvent {
         KEvent { kevent: libc::kevent {
-            ident: ident,
+            ident,
             filter: filter as type_of_event_filter,
             flags: flags.bits(),
             fflags: fflags.bits(),
@@ -329,23 +314,17 @@ pub fn ev_set(ev: &mut KEvent,
 fn test_struct_kevent() {
     let udata : intptr_t = 12345;
 
-    let expected = libc::kevent{ident: 0xdead_beef,
-                                filter: libc::EVFILT_READ,
-                                flags: libc::EV_ONESHOT | libc::EV_ADD,
-                                fflags: libc::NOTE_CHILD | libc::NOTE_EXIT,
-                                data: 0x1337,
-                                udata: udata as type_of_udata};
     let actual = KEvent::new(0xdead_beef,
                              EventFilter::EVFILT_READ,
                              EventFlag::EV_ONESHOT | EventFlag::EV_ADD,
                              FilterFlag::NOTE_CHILD | FilterFlag::NOTE_EXIT,
                              0x1337,
                              udata);
-    assert!(expected.ident == actual.ident());
-    assert!(expected.filter == actual.filter() as type_of_event_filter);
-    assert!(expected.flags == actual.flags().bits());
-    assert!(expected.fflags == actual.fflags().bits());
-    assert!(expected.data == actual.data() as type_of_data);
-    assert!(expected.udata == actual.udata() as type_of_udata);
-    assert!(mem::size_of::<libc::kevent>() == mem::size_of::<KEvent>());
+    assert_eq!(0xdead_beef, actual.ident());
+    assert_eq!(libc::EVFILT_READ, actual.filter() as type_of_event_filter);
+    assert_eq!(libc::EV_ONESHOT | libc::EV_ADD, actual.flags().bits());
+    assert_eq!(libc::NOTE_CHILD | libc::NOTE_EXIT, actual.fflags().bits());
+    assert_eq!(0x1337, actual.data() as type_of_data);
+    assert_eq!(udata as type_of_udata, actual.udata() as type_of_udata);
+    assert_eq!(mem::size_of::<libc::kevent>(), mem::size_of::<KEvent>());
 }

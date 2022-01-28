@@ -33,7 +33,8 @@ mod consts {
           target_arch = "arm",
           target_arch = "s390x",
           target_arch = "x86_64",
-          target_arch = "aarch64"))]
+          target_arch = "aarch64",
+          target_arch = "riscv64"))]
 mod consts {
     #[doc(hidden)]
     pub const NONE: u8 = 0;

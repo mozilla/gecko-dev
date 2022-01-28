@@ -19,7 +19,7 @@ don't expect it to work with, e g, the PulseAudio plugin or so.
 For an example of how to use this mode, look in the "synth-example" directory.
 */
 
-use {libc, nix};
+use libc;
 use std::{mem, ptr, fmt, cmp};
 use crate::error::{Error, Result};
 use std::os::unix::io::RawFd;

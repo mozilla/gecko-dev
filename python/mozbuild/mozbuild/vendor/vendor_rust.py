@@ -87,6 +87,7 @@ TOLERATED_DUPES = {
     "memmap2": 2,
     "memoffset": 2,
     "mio": 2,
+    "nix": 2,
     "pin-project-lite": 2,
     "sfv": 2,
     "target-lexicon": 2,

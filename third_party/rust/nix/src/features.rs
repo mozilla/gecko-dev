@@ -3,7 +3,7 @@ pub use self::os::*;
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 mod os {
-    use sys::utsname::uname;
+    use crate::sys::utsname::uname;
 
     // Features:
     // * atomic cloexec on socket: 2.6.27
@@ -94,7 +94,10 @@ mod os {
     }
 }
 
-#[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "ios", target_os = "openbsd", target_os = "netbsd"))]
+#[cfg(any(target_os = "macos", target_os = "freebsd",
+          target_os = "dragonfly", target_os = "ios",
+          target_os = "openbsd", target_os = "netbsd",
+          target_os = "redox", target_os = "fuchsia"))]
 mod os {
     /// Check if the OS supports atomic close-on-exec for sockets
     pub fn socket_atomic_cloexec() -> bool {

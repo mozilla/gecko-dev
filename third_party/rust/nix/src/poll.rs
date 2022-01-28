@@ -1,13 +1,12 @@
 //! Wait for events to trigger on specific file descriptors
 #[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd", target_os = "linux"))]
-use sys::time::TimeSpec;
+use crate::sys::time::TimeSpec;
 #[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd", target_os = "linux"))]
-use sys::signal::SigSet;
+use crate::sys::signal::SigSet;
 use std::os::unix::io::RawFd;
 
-use libc;
-use Result;
-use errno::Errno;
+use crate::Result;
+use crate::errno::Errno;
 
 /// This is a wrapper around `libc::pollfd`.
 ///
@@ -17,7 +16,7 @@ use errno::Errno;
 ///
 /// After a call to `poll` or `ppoll`, the events that occured can be
 /// retrieved by calling [`revents()`](#method.revents) on the `PollFd`.
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct PollFd {
     pollfd: libc::pollfd,
@@ -29,7 +28,7 @@ impl PollFd {
     pub fn new(fd: RawFd, events: PollFlags) -> PollFd {
         PollFd {
             pollfd: libc::pollfd {
-                fd: fd,
+                fd,
                 events: events.bits(),
                 revents: PollFlags::empty().bits(),
             },
@@ -37,7 +36,7 @@ impl PollFd {
     }
 
     /// Returns the events that occured in the last call to `poll` or `ppoll`.
-    pub fn revents(&self) -> Option<PollFlags> {
+    pub fn revents(self) -> Option<PollFlags> {
         PollFlags::from_bits(self.pollfd.revents)
     }
 }
@@ -64,12 +63,16 @@ libc_bitflags! {
         /// `O_NONBLOCK` is set).
         POLLOUT;
         /// Equivalent to [`POLLIN`](constant.POLLIN.html)
+        #[cfg(not(target_os = "redox"))]
         POLLRDNORM;
+        #[cfg(not(target_os = "redox"))]
         /// Equivalent to [`POLLOUT`](constant.POLLOUT.html)
         POLLWRNORM;
         /// Priority band data can be read (generally unused on Linux).
+        #[cfg(not(target_os = "redox"))]
         POLLRDBAND;
         /// Priority data may be written.
+        #[cfg(not(target_os = "redox"))]
         POLLWRBAND;
         /// Error condition (only returned in
         /// [`PollFd::revents`](struct.PollFd.html#method.revents);
@@ -127,16 +130,16 @@ pub fn poll(fds: &mut [PollFd], timeout: libc::c_int) -> Result<libc::c_int> {
 /// ([`poll(2)`](http://man7.org/linux/man-pages/man2/poll.2.html))
 ///
 /// `ppoll` behaves like `poll`, but let you specify what signals may interrupt it
-/// with the `sigmask` argument.
+/// with the `sigmask` argument. If you want `ppoll` to block indefinitely,
+/// specify `None` as `timeout` (it is like `timeout = -1` for `poll`).
 ///
 #[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd", target_os = "linux"))]
-pub fn ppoll(fds: &mut [PollFd], timeout: TimeSpec, sigmask: SigSet) -> Result<libc::c_int> {
-
-
+pub fn ppoll(fds: &mut [PollFd], timeout: Option<TimeSpec>, sigmask: SigSet) -> Result<libc::c_int> {
+    let timeout = timeout.as_ref().map_or(core::ptr::null(), |r| r.as_ref());
     let res = unsafe {
         libc::ppoll(fds.as_mut_ptr() as *mut libc::pollfd,
                     fds.len() as libc::nfds_t,
-                    timeout.as_ref(),
+                    timeout,
                     sigmask.as_ref())
     };
     Errno::result(res)

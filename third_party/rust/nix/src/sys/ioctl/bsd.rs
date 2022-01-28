@@ -6,7 +6,7 @@ pub type ioctl_num_type = ::libc::c_ulong;
 pub type ioctl_param_type = ::libc::c_int;
 
 mod consts {
-    use ::sys::ioctl::ioctl_num_type;
+    use crate::sys::ioctl::ioctl_num_type;
     #[doc(hidden)]
     pub const VOID: ioctl_num_type = 0x2000_0000;
     #[doc(hidden)]
@@ -14,7 +14,7 @@ mod consts {
     #[doc(hidden)]
     pub const IN: ioctl_num_type = 0x8000_0000;
     #[doc(hidden)]
-    pub const INOUT: ioctl_num_type = (IN|OUT);
+    pub const INOUT: ioctl_num_type = IN|OUT;
     #[doc(hidden)]
     pub const IOCPARM_MASK: ioctl_num_type = 0x1fff;
 }

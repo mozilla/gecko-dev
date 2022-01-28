@@ -4,10 +4,6 @@
 // we must disable the test here rather than in Cargo.toml
 #![cfg(target_os = "freebsd")]
 
-extern crate nix;
-extern crate sysctl;
-extern crate tempfile;
-
 use nix::Error;
 use nix::errno::*;
 use nix::libc::off_t;

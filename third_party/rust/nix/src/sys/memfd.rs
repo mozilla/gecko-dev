@@ -1,7 +1,7 @@
 use libc;
 use std::os::unix::io::RawFd;
-use Result;
-use errno::Errno;
+use crate::Result;
+use crate::errno::Errno;
 use std::ffi::CStr;
 
 libc_bitflags!(

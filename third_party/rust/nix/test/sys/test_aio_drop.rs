@@ -1,6 +1,3 @@
-extern crate nix;
-extern crate tempfile;
-
 // Test dropping an AioCb that hasn't yet finished.
 // This must happen in its own process, because on OSX this test seems to hose
 // the AIO subsystem and causes subsequent tests to fail
@@ -12,6 +9,7 @@ extern crate tempfile;
               target_os = "macos",
               target_os = "freebsd",
               target_os = "netbsd")))]
+#[cfg_attr(target_env = "gnu", ignore = "Occasionally fails in Travis; glibc bug suspected")]
 fn test_drop() {
     use nix::sys::aio::*;
     use nix::sys::signal::*;

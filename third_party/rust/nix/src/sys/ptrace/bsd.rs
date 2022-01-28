@@ -1,9 +1,10 @@
-use errno::Errno;
+use cfg_if::cfg_if;
+use crate::errno::Errno;
 use libc::{self, c_int};
 use std::ptr;
-use sys::signal::Signal;
-use unistd::Pid;
-use Result;
+use crate::sys::signal::Signal;
+use crate::unistd::Pid;
+use crate::Result;
 
 pub type RequestType = c_int;
 
@@ -77,16 +78,23 @@ pub fn traceme() -> Result<()> {
 
 /// Attach to a running process, as with `ptrace(PT_ATTACH, ...)`
 ///
-/// Attaches to the process specified in pid, making it a tracee of the calling process.
+/// Attaches to the process specified by `pid`, making it a tracee of the calling process.
 pub fn attach(pid: Pid) -> Result<()> {
     unsafe { ptrace_other(Request::PT_ATTACH, pid, ptr::null_mut(), 0).map(drop) }
 }
 
 /// Detaches the current running process, as with `ptrace(PT_DETACH, ...)`
 ///
-/// Detaches from the process specified in pid allowing it to run freely
-pub fn detach(pid: Pid) -> Result<()> {
-    unsafe { ptrace_other(Request::PT_DETACH, pid, ptr::null_mut(), 0).map(drop) }
+/// Detaches from the process specified by `pid` allowing it to run freely, optionally delivering a
+/// signal specified by `sig`.
+pub fn detach<T: Into<Option<Signal>>>(pid: Pid, sig: T) -> Result<()> {
+    let data = match sig.into() {
+        Some(s) => s as c_int,
+        None => 0,
+    };
+    unsafe {
+        ptrace_other(Request::PT_DETACH, pid, ptr::null_mut(), data).map(drop)
+    }
 }
 
 /// Restart the stopped tracee process, as with `ptrace(PTRACE_CONT, ...)`
@@ -121,7 +129,6 @@ pub fn kill(pid: Pid) -> Result<()> {
 ///
 /// # Example
 /// ```rust
-/// extern crate nix;
 /// use nix::sys::ptrace::step;
 /// use nix::unistd::Pid;
 /// use nix::sys::signal::Signal;

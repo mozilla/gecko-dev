@@ -6,8 +6,8 @@ use libc;
 use std::ffi::CStr;
 use std::os::unix::io::AsRawFd;
 
-use errno::Errno;
-use Result;
+use crate::errno::Errno;
+use crate::Result;
 
 /// Loads a kernel module from a buffer.
 ///

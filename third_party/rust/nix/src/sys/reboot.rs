@@ -1,9 +1,9 @@
 //! Reboot/shutdown or enable/disable Ctrl-Alt-Delete.
 
-use {Error, Result};
-use errno::Errno;
+use crate::{Error, Result};
+use crate::errno::Errno;
 use libc;
-use void::Void;
+use std::convert::Infallible;
 use std::mem::drop;
 
 libc_enum! {
@@ -22,7 +22,7 @@ libc_enum! {
     }
 }
 
-pub fn reboot(how: RebootMode) -> Result<Void> {
+pub fn reboot(how: RebootMode) -> Result<Infallible> {
     unsafe {
         libc::reboot(how as libc::c_int)
     };

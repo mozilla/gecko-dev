@@ -29,7 +29,7 @@
 //! Historically `ioctl` numbers were arbitrary hard-coded values. In Linux (before 2.6) and some
 //! unices this has changed to a more-ordered system where the ioctl numbers are partitioned into
 //! subcomponents (For linux this is documented in
-//! [`Documentation/ioctl/ioctl-number.txt`](http://elixir.free-electrons.com/linux/latest/source/Documentation/ioctl/ioctl-number.txt)):
+//! [`Documentation/ioctl/ioctl-number.rst`](https://elixir.bootlin.com/linux/latest/source/Documentation/userspace-api/ioctl/ioctl-number.rst)):
 //!
 //!   * Number: The actual ioctl ID
 //!   * Type: A grouping of ioctls for a common purpose or driver
@@ -221,11 +221,13 @@
 //!
 //! # fn main() {}
 //! ```
-#[cfg(any(target_os = "android", target_os = "linux"))]
+use cfg_if::cfg_if;
+
+#[cfg(any(target_os = "android", target_os = "linux", target_os = "redox"))]
 #[macro_use]
 mod linux;
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(any(target_os = "android", target_os = "linux", target_os = "redox"))]
 pub use self::linux::*;
 
 #[cfg(any(target_os = "dragonfly",
@@ -317,7 +319,6 @@ macro_rules! ioctl_none {
 ///
 /// ```no_run
 /// # #[macro_use] extern crate nix;
-/// # extern crate libc;
 /// # use libc::TIOCNXCL;
 /// # use std::fs::File;
 /// # use std::os::unix::io::AsRawFd;
@@ -396,7 +397,6 @@ macro_rules! ioctl_read {
 /// # Example
 ///
 /// ```
-/// # extern crate libc;
 /// # #[macro_use] extern crate nix;
 /// # #[cfg(any(target_os = "android", target_os = "linux"))]
 /// ioctl_read_bad!(tcgets, libc::TCGETS, libc::termios);
@@ -470,7 +470,6 @@ macro_rules! ioctl_write_ptr {
 /// # Example
 ///
 /// ```
-/// # extern crate libc;
 /// # #[macro_use] extern crate nix;
 /// # #[cfg(any(target_os = "android", target_os = "linux"))]
 /// ioctl_write_ptr_bad!(tcsets, libc::TCSETS, libc::termios);
@@ -590,7 +589,6 @@ cfg_if!{
 /// # Examples
 ///
 /// ```
-/// # extern crate libc;
 /// # #[macro_use] extern crate nix;
 /// # #[cfg(any(target_os = "android", target_os = "linux"))]
 /// ioctl_write_int_bad!(tcsbrk, libc::TCSBRK);

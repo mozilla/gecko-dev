@@ -1,5 +1,7 @@
 use rand::{thread_rng, Rng};
 use nix::sys::socket::{socket, sockopt, getsockopt, setsockopt, AddressFamily, SockType, SockFlag, SockProtocol};
+#[cfg(any(target_os = "android", target_os = "linux"))]
+use crate::*;
 
 #[cfg(target_os = "linux")]
 #[test]
@@ -50,4 +52,45 @@ fn test_tcp_congestion() {
         getsockopt(fd, sockopt::TcpCongestion).unwrap(),
         val
     );
+}
+
+#[test]
+#[cfg(any(target_os = "android", target_os = "linux"))]
+fn test_bindtodevice() {
+    skip_if_not_root!("test_bindtodevice");
+
+    let fd = socket(AddressFamily::Inet, SockType::Stream, SockFlag::empty(), None).unwrap();
+
+    let val = getsockopt(fd, sockopt::BindToDevice).unwrap();
+    setsockopt(fd, sockopt::BindToDevice, &val).unwrap();
+
+    assert_eq!(
+        getsockopt(fd, sockopt::BindToDevice).unwrap(),
+        val
+    );
+}
+
+#[test]
+fn test_so_tcp_keepalive() {
+    let fd = socket(AddressFamily::Inet, SockType::Stream, SockFlag::empty(), SockProtocol::Tcp).unwrap();
+    setsockopt(fd, sockopt::KeepAlive, &true).unwrap();
+    assert_eq!(getsockopt(fd, sockopt::KeepAlive).unwrap(), true);
+
+    #[cfg(any(target_os = "android",
+              target_os = "dragonfly",
+              target_os = "freebsd",
+              target_os = "linux",
+              target_os = "nacl"))] {
+        let x = getsockopt(fd, sockopt::TcpKeepIdle).unwrap();
+        setsockopt(fd, sockopt::TcpKeepIdle, &(x + 1)).unwrap();
+        assert_eq!(getsockopt(fd, sockopt::TcpKeepIdle).unwrap(), x + 1);
+
+        let x = getsockopt(fd, sockopt::TcpKeepCount).unwrap();
+        setsockopt(fd, sockopt::TcpKeepCount, &(x + 1)).unwrap();
+        assert_eq!(getsockopt(fd, sockopt::TcpKeepCount).unwrap(), x + 1);
+
+        let x = getsockopt(fd, sockopt::TcpKeepInterval).unwrap();
+        setsockopt(fd, sockopt::TcpKeepInterval, &(x + 1)).unwrap();
+        assert_eq!(getsockopt(fd, sockopt::TcpKeepInterval).unwrap(), x + 1);
+    }
 }

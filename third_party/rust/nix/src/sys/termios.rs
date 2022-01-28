@@ -25,7 +25,7 @@
 //! ```
 //! # use self::nix::sys::termios::SpecialCharacterIndices::VEOF;
 //! # use self::nix::sys::termios::{_POSIX_VDISABLE, Termios};
-//! # let mut termios = unsafe { Termios::default_uninit() };
+//! # let mut termios: Termios = unsafe { std::mem::zeroed() };
 //! termios.control_chars[VEOF as usize] = _POSIX_VDISABLE;
 //! ```
 //!
@@ -38,7 +38,7 @@
 //!
 //! ```
 //! # use self::nix::sys::termios::{ControlFlags, Termios};
-//! # let mut termios = unsafe { Termios::default_uninit() };
+//! # let mut termios: Termios = unsafe { std::mem::zeroed() };
 //! termios.control_flags & ControlFlags::CSIZE == ControlFlags::CS5;
 //! termios.control_flags |= ControlFlags::CS5;
 //! ```
@@ -61,10 +61,9 @@
 //! platforms:
 //!
 //! ```rust
-//! # #[macro_use] extern crate nix;
 //! # use nix::sys::termios::{BaudRate, cfsetispeed, cfsetospeed, cfsetspeed, Termios};
 //! # fn main() {
-//! # let mut t = unsafe { Termios::default_uninit() };
+//! # let mut t: Termios = unsafe { std::mem::zeroed() };
 //! cfsetispeed(&mut t, BaudRate::B9600);
 //! cfsetospeed(&mut t, BaudRate::B9600);
 //! cfsetspeed(&mut t, BaudRate::B9600);
@@ -74,102 +73,94 @@
 //! Additionally round-tripping baud rates is consistent across platforms:
 //!
 //! ```rust
-//! # extern crate nix;
 //! # use nix::sys::termios::{BaudRate, cfgetispeed, cfgetospeed, cfsetispeed, cfsetspeed, Termios};
 //! # fn main() {
-//! # let mut t = unsafe { Termios::default_uninit() };
+//! # let mut t: Termios = unsafe { std::mem::zeroed() };
 //! # cfsetspeed(&mut t, BaudRate::B9600);
 //! let speed = cfgetispeed(&t);
-//! assert!(speed == cfgetospeed(&t));
+//! assert_eq!(speed, cfgetospeed(&t));
 //! cfsetispeed(&mut t, speed);
 //! # }
 //! ```
 //!
 //! On non-BSDs, `cfgetispeed()` and `cfgetospeed()` both return a `BaudRate`:
 //!
-// FIXME: Replace `ignore` with `compile_fail` once 1.22 is the minimum support Rust version
 #![cfg_attr(any(target_os = "freebsd", target_os = "dragonfly", target_os = "ios",
                 target_os = "macos", target_os = "netbsd", target_os = "openbsd"),
             doc = " ```rust,ignore")]
 #![cfg_attr(not(any(target_os = "freebsd", target_os = "dragonfly", target_os = "ios",
                     target_os = "macos", target_os = "netbsd", target_os = "openbsd")),
             doc = " ```rust")]
-//! # extern crate nix;
 //! # use nix::sys::termios::{BaudRate, cfgetispeed, cfgetospeed, cfsetspeed, Termios};
 //! # fn main() {
-//! # let mut t = unsafe { Termios::default_uninit() };
+//! # let mut t: Termios = unsafe { std::mem::zeroed() };
 //! # cfsetspeed(&mut t, BaudRate::B9600);
-//! assert!(cfgetispeed(&t) == BaudRate::B9600);
-//! assert!(cfgetospeed(&t) == BaudRate::B9600);
+//! assert_eq!(cfgetispeed(&t), BaudRate::B9600);
+//! assert_eq!(cfgetospeed(&t), BaudRate::B9600);
 //! # }
 //! ```
 //!
 //! But on the BSDs, `cfgetispeed()` and `cfgetospeed()` both return `u32`s:
 //!
-// FIXME: Replace `ignore` with `compile_fail` once 1.22 is the minimum support Rust version
 #![cfg_attr(any(target_os = "freebsd", target_os = "dragonfly", target_os = "ios",
                 target_os = "macos", target_os = "netbsd", target_os = "openbsd"),
             doc = " ```rust")]
 #![cfg_attr(not(any(target_os = "freebsd", target_os = "dragonfly", target_os = "ios",
                     target_os = "macos", target_os = "netbsd", target_os = "openbsd")),
             doc = " ```rust,ignore")]
-//! # extern crate nix;
 //! # use nix::sys::termios::{BaudRate, cfgetispeed, cfgetospeed, cfsetspeed, Termios};
 //! # fn main() {
-//! # let mut t = unsafe { Termios::default_uninit() };
+//! # let mut t: Termios = unsafe { std::mem::zeroed() };
 //! # cfsetspeed(&mut t, 9600u32);
-//! assert!(cfgetispeed(&t) == 9600u32);
-//! assert!(cfgetospeed(&t) == 9600u32);
+//! assert_eq!(cfgetispeed(&t), 9600u32);
+//! assert_eq!(cfgetospeed(&t), 9600u32);
 //! # }
 //! ```
 //!
 //! It's trivial to convert from a `BaudRate` to a `u32` on BSDs:
 //!
-// FIXME: Replace `ignore` with `compile_fail` once 1.22 is the minimum support Rust version
 #![cfg_attr(any(target_os = "freebsd", target_os = "dragonfly", target_os = "ios",
                 target_os = "macos", target_os = "netbsd", target_os = "openbsd"),
             doc = " ```rust")]
 #![cfg_attr(not(any(target_os = "freebsd", target_os = "dragonfly", target_os = "ios",
                     target_os = "macos", target_os = "netbsd", target_os = "openbsd")),
             doc = " ```rust,ignore")]
-//! # extern crate nix;
 //! # use nix::sys::termios::{BaudRate, cfgetispeed, cfsetspeed, Termios};
 //! # fn main() {
-//! # let mut t = unsafe { Termios::default_uninit() };
+//! # let mut t: Termios = unsafe { std::mem::zeroed() };
 //! # cfsetspeed(&mut t, 9600u32);
-//! assert!(cfgetispeed(&t) == BaudRate::B9600.into());
-//! assert!(u32::from(BaudRate::B9600) == 9600u32);
+//! assert_eq!(cfgetispeed(&t), BaudRate::B9600.into());
+//! assert_eq!(u32::from(BaudRate::B9600), 9600u32);
 //! # }
 //! ```
 //!
 //! And on BSDs you can specify arbitrary baud rates (**note** this depends on hardware support)
 //! by specifying baud rates directly using `u32`s:
 //!
-// FIXME: Replace `ignore` with `compile_fail` once 1.22 is the minimum support Rust version
 #![cfg_attr(any(target_os = "freebsd", target_os = "dragonfly", target_os = "ios",
                 target_os = "macos", target_os = "netbsd", target_os = "openbsd"),
             doc = " ```rust")]
 #![cfg_attr(not(any(target_os = "freebsd", target_os = "dragonfly", target_os = "ios",
                     target_os = "macos", target_os = "netbsd", target_os = "openbsd")),
             doc = " ```rust,ignore")]
-//! # extern crate nix;
 //! # use nix::sys::termios::{cfsetispeed, cfsetospeed, cfsetspeed, Termios};
 //! # fn main() {
-//! # let mut t = unsafe { Termios::default_uninit() };
+//! # let mut t: Termios = unsafe { std::mem::zeroed() };
 //! cfsetispeed(&mut t, 9600u32);
 //! cfsetospeed(&mut t, 9600u32);
 //! cfsetspeed(&mut t, 9600u32);
 //! # }
 //! ```
-use Result;
-use errno::Errno;
+use cfg_if::cfg_if;
+use crate::{Error, Result};
+use crate::errno::Errno;
 use libc::{self, c_int, tcflag_t};
 use std::cell::{Ref, RefCell};
-use std::convert::From;
+use std::convert::{From, TryFrom};
 use std::mem;
 use std::os::unix::io::RawFd;
 
-use ::unistd::Pid;
+use crate::unistd::Pid;
 
 /// Stores settings for the termios API
 ///
@@ -194,24 +185,9 @@ pub struct Termios {
 impl Termios {
     /// Exposes an immutable reference to the underlying `libc::termios` data structure.
     ///
-    /// This can be used for interfacing with other FFI functions like:
-    ///
-    /// ```rust
-    /// # extern crate libc;
-    /// # extern crate nix;
-    /// # fn main() {
-    /// # use nix::sys::termios::Termios;
-    /// # let mut termios = unsafe { Termios::default_uninit() };
-    /// let inner_termios = termios.get_libc_termios();
-    /// unsafe { libc::cfgetispeed(&*inner_termios) };
-    /// # }
-    /// ```
-    ///
-    /// There is no public API exposed for functions that modify the underlying `libc::termios`
-    /// data because it requires additional work to maintain type safety.
-    // FIXME: Switch this over to use pub(crate)
-    #[doc(hidden)]
-    pub fn get_libc_termios(&self) -> Ref<libc::termios> {
+    /// This is not part of `nix`'s public API because it requires additional work to maintain type
+    /// safety.
+    pub(crate) fn get_libc_termios(&self) -> Ref<libc::termios> {
         {
             let mut termios = self.inner.borrow_mut();
             termios.c_iflag = self.input_flags.bits();
@@ -225,12 +201,11 @@ impl Termios {
 
     /// Exposes the inner `libc::termios` datastore within `Termios`.
     ///
-    /// This is unsafe because if this is used to modify the inner libc::termios struct, it will not
-    /// automatically update the safe wrapper type around it. Therefore we disable docs to
-    /// effectively limit its use to nix internals. In this case it should also be paired with a
-    /// call to `update_wrapper()` so that the wrapper-type and internal representation stay
-    /// consistent.
-    unsafe fn get_libc_termios_mut(&mut self) -> *mut libc::termios {
+    /// This is unsafe because if this is used to modify the inner `libc::termios` struct, it will
+    /// not automatically update the safe wrapper type around it. In this case it should also be
+    /// paired with a call to `update_wrapper()` so that the wrapper-type and internal
+    /// representation stay consistent.
+    pub(crate) unsafe fn get_libc_termios_mut(&mut self) -> *mut libc::termios {
         {
             let mut termios = self.inner.borrow_mut();
             termios.c_iflag = self.input_flags.bits();
@@ -242,26 +217,8 @@ impl Termios {
         self.inner.as_ptr()
     }
 
-    /// Allows for easily creating new `Termios` structs that will be overwritten with real data.
-    ///
-    /// This should only be used when the inner libc::termios struct will be overwritten before it's
-    /// read.
-    // FIXME: Switch this over to use pub(crate)
-    #[doc(hidden)]
-    pub unsafe fn default_uninit() -> Self {
-        Termios {
-            inner: RefCell::new(mem::uninitialized()),
-            input_flags: InputFlags::empty(),
-            output_flags: OutputFlags::empty(),
-            control_flags: ControlFlags::empty(),
-            local_flags: LocalFlags::empty(),
-            control_chars: [0 as libc::cc_t; NCCS],
-        }
-    }
-
     /// Updates the wrapper values from the internal `libc::termios` data structure.
-    #[doc(hidden)]
-    pub fn update_wrapper(&mut self) {
+    pub(crate) fn update_wrapper(&mut self) {
         let termios = *self.inner.borrow_mut();
         self.input_flags = InputFlags::from_bits_truncate(termios.c_iflag);
         self.output_flags = OutputFlags::from_bits_truncate(termios.c_oflag);
@@ -376,9 +333,10 @@ libc_enum!{
     }
 }
 
-impl From<libc::speed_t> for BaudRate {
-    fn from(s: libc::speed_t) -> BaudRate {
+impl TryFrom<libc::speed_t> for BaudRate {
+    type Error = Error;
 
+    fn try_from(s: libc::speed_t) -> Result<BaudRate> {
         use libc::{B0, B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400, B4800,
                    B9600, B19200, B38400, B57600, B115200, B230400};
         #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -398,85 +356,84 @@ impl From<libc::speed_t> for BaudRate {
         use libc::{B460800, B921600};
 
         match s {
-            B0 => BaudRate::B0,
-            B50 => BaudRate::B50,
-            B75 => BaudRate::B75,
-            B110 => BaudRate::B110,
-            B134 => BaudRate::B134,
-            B150 => BaudRate::B150,
-            B200 => BaudRate::B200,
-            B300 => BaudRate::B300,
-            B600 => BaudRate::B600,
-            B1200 => BaudRate::B1200,
-            B1800 => BaudRate::B1800,
-            B2400 => BaudRate::B2400,
-            B4800 => BaudRate::B4800,
+            B0 => Ok(BaudRate::B0),
+            B50 => Ok(BaudRate::B50),
+            B75 => Ok(BaudRate::B75),
+            B110 => Ok(BaudRate::B110),
+            B134 => Ok(BaudRate::B134),
+            B150 => Ok(BaudRate::B150),
+            B200 => Ok(BaudRate::B200),
+            B300 => Ok(BaudRate::B300),
+            B600 => Ok(BaudRate::B600),
+            B1200 => Ok(BaudRate::B1200),
+            B1800 => Ok(BaudRate::B1800),
+            B2400 => Ok(BaudRate::B2400),
+            B4800 => Ok(BaudRate::B4800),
             #[cfg(any(target_os = "dragonfly",
                       target_os = "freebsd",
                       target_os = "macos",
                       target_os = "netbsd",
                       target_os = "openbsd"))]
-            B7200 => BaudRate::B7200,
-            B9600 => BaudRate::B9600,
+            B7200 => Ok(BaudRate::B7200),
+            B9600 => Ok(BaudRate::B9600),
             #[cfg(any(target_os = "dragonfly",
                       target_os = "freebsd",
                       target_os = "macos",
                       target_os = "netbsd",
                       target_os = "openbsd"))]
-            B14400 => BaudRate::B14400,
-            B19200 => BaudRate::B19200,
+            B14400 => Ok(BaudRate::B14400),
+            B19200 => Ok(BaudRate::B19200),
             #[cfg(any(target_os = "dragonfly",
                       target_os = "freebsd",
                       target_os = "macos",
                       target_os = "netbsd",
                       target_os = "openbsd"))]
-            B28800 => BaudRate::B28800,
-            B38400 => BaudRate::B38400,
-            B57600 => BaudRate::B57600,
+            B28800 => Ok(BaudRate::B28800),
+            B38400 => Ok(BaudRate::B38400),
+            B57600 => Ok(BaudRate::B57600),
             #[cfg(any(target_os = "dragonfly",
                       target_os = "freebsd",
                       target_os = "macos",
                       target_os = "netbsd",
                       target_os = "openbsd"))]
-            B76800 => BaudRate::B76800,
-            B115200 => BaudRate::B115200,
-            B230400 => BaudRate::B230400,
+            B76800 => Ok(BaudRate::B76800),
+            B115200 => Ok(BaudRate::B115200),
+            B230400 => Ok(BaudRate::B230400),
             #[cfg(any(target_os = "android",
                       target_os = "freebsd",
                       target_os = "linux",
                       target_os = "netbsd"))]
-            B460800 => BaudRate::B460800,
+            B460800 => Ok(BaudRate::B460800),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B500000 => BaudRate::B500000,
+            B500000 => Ok(BaudRate::B500000),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B576000 => BaudRate::B576000,
+            B576000 => Ok(BaudRate::B576000),
             #[cfg(any(target_os = "android",
                       target_os = "freebsd",
                       target_os = "linux",
                       target_os = "netbsd"))]
-            B921600 => BaudRate::B921600,
+            B921600 => Ok(BaudRate::B921600),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1000000 => BaudRate::B1000000,
+            B1000000 => Ok(BaudRate::B1000000),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1152000 => BaudRate::B1152000,
+            B1152000 => Ok(BaudRate::B1152000),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1500000 => BaudRate::B1500000,
+            B1500000 => Ok(BaudRate::B1500000),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B2000000 => BaudRate::B2000000,
+            B2000000 => Ok(BaudRate::B2000000),
             #[cfg(any(target_os = "android", all(target_os = "linux", not(target_arch = "sparc64"))))]
-            B2500000 => BaudRate::B2500000,
+            B2500000 => Ok(BaudRate::B2500000),
             #[cfg(any(target_os = "android", all(target_os = "linux", not(target_arch = "sparc64"))))]
-            B3000000 => BaudRate::B3000000,
+            B3000000 => Ok(BaudRate::B3000000),
             #[cfg(any(target_os = "android", all(target_os = "linux", not(target_arch = "sparc64"))))]
-            B3500000 => BaudRate::B3500000,
+            B3500000 => Ok(BaudRate::B3500000),
             #[cfg(any(target_os = "android", all(target_os = "linux", not(target_arch = "sparc64"))))]
-            B4000000 => BaudRate::B4000000,
-            b => unreachable!("Invalid baud constant: {}", b),
+            B4000000 => Ok(BaudRate::B4000000),
+            _ => Err(Error::invalid_argument())
         }
     }
 }
 
-// TODO: Include `TryFrom<u32> for BaudRate` once that API stabilizes
 #[cfg(any(target_os = "freebsd",
           target_os = "dragonfly",
           target_os = "ios",
@@ -583,6 +540,12 @@ libc_enum! {
     }
 }
 
+#[cfg(all(target_os = "linux", target_arch = "sparc64"))]
+impl SpecialCharacterIndices {
+    pub const VMIN: SpecialCharacterIndices = SpecialCharacterIndices::VEOF;
+    pub const VTIME: SpecialCharacterIndices = SpecialCharacterIndices::VEOL;
+}
+
 pub use libc::NCCS;
 #[cfg(any(target_os = "dragonfly",
           target_os = "freebsd",
@@ -606,7 +569,9 @@ libc_bitflags! {
         ICRNL;
         IXON;
         IXOFF;
+        #[cfg(not(target_os = "redox"))]
         IXANY;
+        #[cfg(not(target_os = "redox"))]
         IMAXBEL;
         #[cfg(any(target_os = "android", target_os = "linux", target_os = "macos"))]
         IUTF8;
@@ -816,6 +781,7 @@ libc_bitflags! {
         PARODD;
         HUPCL;
         CLOCAL;
+        #[cfg(not(target_os = "redox"))]
         CRTSCTS;
         #[cfg(any(target_os = "android", target_os = "linux"))]
         CBAUD;
@@ -866,12 +832,15 @@ libc_bitflags! {
 libc_bitflags! {
     /// Flags for setting any local modes
     pub struct LocalFlags: tcflag_t {
+        #[cfg(not(target_os = "redox"))]
         ECHOKE;
         ECHOE;
         ECHOK;
         ECHO;
         ECHONL;
+        #[cfg(not(target_os = "redox"))]
         ECHOPRT;
+        #[cfg(not(target_os = "redox"))]
         ECHOCTL;
         ISIG;
         ICANON;
@@ -883,8 +852,10 @@ libc_bitflags! {
                   target_os = "openbsd"))]
         ALTWERASE;
         IEXTEN;
+        #[cfg(not(target_os = "redox"))]
         EXTPROC;
         TOSTOP;
+        #[cfg(not(target_os = "redox"))]
         FLUSHO;
         #[cfg(any(target_os = "freebsd",
                   target_os = "dragonfly",
@@ -893,6 +864,7 @@ libc_bitflags! {
                   target_os = "netbsd",
                   target_os = "openbsd"))]
         NOKERNINFO;
+        #[cfg(not(target_os = "redox"))]
         PENDIN;
         NOFLSH;
     }
@@ -957,13 +929,15 @@ cfg_if!{
             Errno::result(res).map(drop)
         }
     } else {
+        use std::convert::TryInto;
+
         /// Get input baud rate (see
         /// [cfgetispeed(3p)](http://pubs.opengroup.org/onlinepubs/9699919799/functions/cfgetispeed.html)).
         ///
         /// `cfgetispeed()` extracts the input baud rate from the given `Termios` structure.
         pub fn cfgetispeed(termios: &Termios) -> BaudRate {
             let inner_termios = termios.get_libc_termios();
-            unsafe { libc::cfgetispeed(&*inner_termios) }.into()
+            unsafe { libc::cfgetispeed(&*inner_termios) }.try_into().unwrap()
         }
 
         /// Get output baud rate (see
@@ -972,7 +946,7 @@ cfg_if!{
         /// `cfgetospeed()` extracts the output baud rate from the given `Termios` structure.
         pub fn cfgetospeed(termios: &Termios) -> BaudRate {
             let inner_termios = termios.get_libc_termios();
-            unsafe { libc::cfgetospeed(&*inner_termios) }.into()
+            unsafe { libc::cfgetospeed(&*inner_termios) }.try_into().unwrap()
         }
 
         /// Set input baud rate (see
@@ -1045,13 +1019,13 @@ pub fn cfmakesane(termios: &mut Termios) {
 /// this structure *will not* reconfigure the port, instead the modifications should be done to
 /// the `Termios` structure and then the port should be reconfigured using `tcsetattr()`.
 pub fn tcgetattr(fd: RawFd) -> Result<Termios> {
-    let mut termios: libc::termios = unsafe { mem::uninitialized() };
+    let mut termios = mem::MaybeUninit::uninit();
 
-    let res = unsafe { libc::tcgetattr(fd, &mut termios) };
+    let res = unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) };
 
     Errno::result(res)?;
 
-    Ok(termios.into())
+    unsafe { Ok(termios.assume_init().into()) }
 }
 
 /// Set the configuration for a terminal (see
@@ -1104,4 +1078,15 @@ pub fn tcgetsid(fd: RawFd) -> Result<Pid> {
     let res = unsafe { libc::tcgetsid(fd) };
 
     Errno::result(res).map(Pid::from_raw)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn try_from() {
+        assert_eq!(Ok(BaudRate::B0), BaudRate::try_from(libc::B0));
+        assert!(BaudRate::try_from(999999999).is_err());
+    }
 }

@@ -16,10 +16,10 @@
 //! Please note that signal discarding is not specific to `signalfd`, but also happens with regular
 //! signal handlers.
 use libc;
-use unistd;
-use {Error, Result};
-use errno::Errno;
-pub use sys::signal::{self, SigSet};
+use crate::unistd;
+use crate::{Error, Result};
+use crate::errno::Errno;
+pub use crate::sys::signal::{self, SigSet};
 pub use libc::signalfd_siginfo as siginfo;
 
 use std::os::unix::io::{RawFd, AsRawFd};
@@ -79,7 +79,7 @@ pub fn signalfd(fd: RawFd, mask: &SigSet, flags: SfdFlags) -> Result<RawFd> {
 ///     Err(err) => (), // some error happend
 /// }
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub struct SignalFd(RawFd);
 
 impl SignalFd {
@@ -98,10 +98,15 @@ impl SignalFd {
     }
 
     pub fn read_signal(&mut self) -> Result<Option<siginfo>> {
-        let mut buffer: [u8; SIGNALFD_SIGINFO_SIZE] = unsafe { mem::uninitialized() };
+        let mut buffer = mem::MaybeUninit::<[u8; SIGNALFD_SIGINFO_SIZE]>::uninit();
 
-        match unistd::read(self.0, &mut buffer) {
-            Ok(SIGNALFD_SIGINFO_SIZE) => Ok(Some(unsafe { mem::transmute(buffer) })),
+        let res = Errno::result(unsafe {
+            libc::read(self.0,
+                       buffer.as_mut_ptr() as *mut libc::c_void,
+                       SIGNALFD_SIGINFO_SIZE as libc::size_t)
+        }).map(|r| r as usize);
+        match res {
+            Ok(SIGNALFD_SIGINFO_SIZE) => Ok(Some(unsafe { mem::transmute(buffer.assume_init()) })),
             Ok(_) => unreachable!("partial read on signalfd"),
             Err(Error::Sys(Errno::EAGAIN)) => Ok(None),
             Err(error) => Err(error)
@@ -111,7 +116,10 @@ impl SignalFd {
 
 impl Drop for SignalFd {
     fn drop(&mut self) {
-        let _ = unistd::close(self.0);
+        let e = unistd::close(self.0);
+        if !std::thread::panicking() && e == Err(Error::Sys(Errno::EBADF)) {
+            panic!("Closing an invalid file descriptor!");
+        };
     }
 }
 

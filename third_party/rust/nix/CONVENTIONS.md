@@ -76,12 +76,11 @@ to parameters of functions by [enumerations][enum].
 
 Whenever we need to use a [libc][libc] function to properly initialize a
 variable and said function allows us to use uninitialized memory, we use
-[`std::mem::uninitialized`][std_uninitialized] (or [`core::mem::uninitialized`][core_uninitialized])
-when defining the variable. This allows us to avoid the overhead incurred by
-zeroing or otherwise initializing the variable.
+[`std::mem::MaybeUninit`][std_MaybeUninit] when defining the variable. This
+allows us to avoid the overhead incurred by zeroing or otherwise initializing
+the variable.
 
 [bitflags]: https://crates.io/crates/bitflags/
-[core_uninitialized]: https://doc.rust-lang.org/core/mem/fn.uninitialized.html
 [enum]: https://doc.rust-lang.org/reference.html#enumerations
 [libc]: https://crates.io/crates/libc/
-[std_uninitialized]: https://doc.rust-lang.org/std/mem/fn.uninitialized.html
+[std_MaybeUninit]: https://doc.rust-lang.org/stable/std/mem/union.MaybeUninit.html

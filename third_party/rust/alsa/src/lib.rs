@@ -18,7 +18,7 @@ extern crate libc;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
-extern crate nix;
+extern crate nix as nix_the_crate;
 
 macro_rules! alsa_enum {
  ($(#[$attr:meta])+ $name:ident, $static_name:ident [$count:expr], $( $a:ident = $b:ident),* ,) =>
@@ -125,3 +125,9 @@ pub use crate::io::Output;
 mod chmap;
 
 pub mod direct;
+
+/// Re-exports from the nix crate.
+pub mod nix {
+    pub use nix_the_crate::Error;
+    pub use nix_the_crate::errno;
+}

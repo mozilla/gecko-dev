@@ -1,15 +1,26 @@
-use std::fs::{self, File};
+#[cfg(not(target_os = "redox"))]
+use std::fs;
+use std::fs::File;
+#[cfg(not(target_os = "redox"))]
 use std::os::unix::fs::{symlink, PermissionsExt};
 use std::os::unix::prelude::AsRawFd;
+#[cfg(not(target_os = "redox"))]
 use std::time::{Duration, UNIX_EPOCH};
+#[cfg(not(target_os = "redox"))]
 use std::path::Path;
 
-#[cfg(not(any(target_os = "netbsd")))]
+#[cfg(not(any(target_os = "netbsd", target_os = "redox")))]
 use libc::{S_IFMT, S_IFLNK, mode_t};
 
+#[cfg(not(target_os = "redox"))]
 use nix::{fcntl, Error};
-use nix::errno::{Errno};
-use nix::sys::stat::{self, fchmod, fchmodat, futimens, stat, utimes, utimensat, mkdirat};
+#[cfg(not(target_os = "redox"))]
+use nix::errno::Errno;
+#[cfg(not(target_os = "redox"))]
+use nix::sys::stat::{self, futimens, utimes};
+use nix::sys::stat::{fchmod, stat};
+#[cfg(not(target_os = "redox"))]
+use nix::sys::stat::{fchmodat, utimensat, mkdirat};
 #[cfg(any(target_os = "linux",
           target_os = "haiku",
           target_os = "ios",
@@ -17,15 +28,19 @@ use nix::sys::stat::{self, fchmod, fchmodat, futimens, stat, utimes, utimensat, 
           target_os = "freebsd",
           target_os = "netbsd"))]
 use nix::sys::stat::lutimes;
-use nix::sys::stat::{Mode, FchmodatFlags, UtimensatFlags};
+#[cfg(not(target_os = "redox"))]
+use nix::sys::stat::{FchmodatFlags, UtimensatFlags};
+use nix::sys::stat::Mode;
 
-#[cfg(not(any(target_os = "netbsd")))]
+#[cfg(not(any(target_os = "netbsd", target_os = "redox")))]
 use nix::sys::stat::FileStat;
 
+#[cfg(not(target_os = "redox"))]
 use nix::sys::time::{TimeSpec, TimeVal, TimeValLike};
+#[cfg(not(target_os = "redox"))]
 use nix::unistd::chdir;
 
-#[cfg(not(any(target_os = "netbsd")))]
+#[cfg(not(any(target_os = "netbsd", target_os = "redox")))]
 use nix::Result;
 use tempfile;
 
@@ -33,27 +48,27 @@ use tempfile;
 // uid and gid are signed on Windows, but not on other platforms. This function
 // allows warning free compiles on all platforms, and can be removed when
 // expression-level #[allow] is available.
-#[cfg(not(any(target_os = "netbsd")))]
+#[cfg(not(any(target_os = "netbsd", target_os = "redox")))]
 fn valid_uid_gid(stat: FileStat) -> bool {
     // uid could be 0 for the `root` user. This quite possible when
     // the tests are being run on a rooted Android device.
     stat.st_uid >= 0 && stat.st_gid >= 0
 }
 
-#[cfg(not(any(target_os = "netbsd")))]
+#[cfg(not(any(target_os = "netbsd", target_os = "redox")))]
 fn assert_stat_results(stat_result: Result<FileStat>) {
     let stats = stat_result.expect("stat call failed");
     assert!(stats.st_dev > 0);      // must be positive integer, exact number machine dependent
     assert!(stats.st_ino > 0);      // inode is positive integer, exact number machine dependent
     assert!(stats.st_mode > 0);     // must be positive integer
-    assert!(stats.st_nlink == 1);   // there links created, must be 1
+    assert_eq!(stats.st_nlink, 1);   // there links created, must be 1
     assert!(valid_uid_gid(stats));  // must be positive integers
-    assert!(stats.st_size == 0);    // size is 0 because we did not write anything to the file
+    assert_eq!(stats.st_size, 0);    // size is 0 because we did not write anything to the file
     assert!(stats.st_blksize > 0);  // must be positive integer, exact number machine dependent
     assert!(stats.st_blocks <= 16);  // Up to 16 blocks can be allocated for a blank file
 }
 
-#[cfg(not(any(target_os = "netbsd")))]
+#[cfg(not(any(target_os = "netbsd", target_os = "redox")))]
 fn assert_lstat_results(stat_result: Result<FileStat>) {
     let stats = stat_result.expect("stat call failed");
     assert!(stats.st_dev > 0);      // must be positive integer, exact number machine dependent
@@ -63,8 +78,8 @@ fn assert_lstat_results(stat_result: Result<FileStat>) {
     // st_mode is c_uint (u32 on Android) while S_IFMT is mode_t
     // (u16 on Android), and that will be a compile error.
     // On other platforms they are the same (either both are u16 or u32).
-    assert!((stats.st_mode as usize) & (S_IFMT as usize) == S_IFLNK as usize); // should be a link
-    assert!(stats.st_nlink == 1);   // there links created, must be 1
+    assert_eq!((stats.st_mode as usize) & (S_IFMT as usize), S_IFLNK as usize); // should be a link
+    assert_eq!(stats.st_nlink, 1);   // there links created, must be 1
     assert!(valid_uid_gid(stats));  // must be positive integers
     assert!(stats.st_size > 0);    // size is > 0 because it points to another file
     assert!(stats.st_blksize > 0);  // must be positive integer, exact number machine dependent
@@ -76,7 +91,7 @@ fn assert_lstat_results(stat_result: Result<FileStat>) {
 }
 
 #[test]
-#[cfg(not(any(target_os = "netbsd")))]
+#[cfg(not(any(target_os = "netbsd", target_os = "redox")))]
 fn test_stat_and_fstat() {
     use nix::sys::stat::fstat;
 
@@ -92,7 +107,7 @@ fn test_stat_and_fstat() {
 }
 
 #[test]
-#[cfg(not(any(target_os = "netbsd")))]
+#[cfg(not(any(target_os = "netbsd", target_os = "redox")))]
 fn test_fstatat() {
     let tempdir = tempfile::tempdir().unwrap();
     let filename = tempdir.path().join("foo.txt");
@@ -108,7 +123,7 @@ fn test_fstatat() {
 }
 
 #[test]
-#[cfg(not(any(target_os = "netbsd")))]
+#[cfg(not(any(target_os = "netbsd", target_os = "redox")))]
 fn test_stat_fstat_lstat() {
     use nix::sys::stat::{fstat, lstat};
 
@@ -155,8 +170,9 @@ fn test_fchmod() {
 }
 
 #[test]
+#[cfg(not(target_os = "redox"))]
 fn test_fchmodat() {
-    let _dr = ::DirRestore::new();
+    let _dr = crate::DirRestore::new();
     let tempdir = tempfile::tempdir().unwrap();
     let filename = "foo.txt";
     let fullpath = tempdir.path().join(filename);
@@ -186,6 +202,7 @@ fn test_fchmodat() {
 ///
 /// The atime and mtime are expressed with a resolution of seconds because some file systems
 /// (like macOS's HFS+) do not have higher granularity.
+#[cfg(not(target_os = "redox"))]
 fn assert_times_eq(exp_atime_sec: u64, exp_mtime_sec: u64, attr: &fs::Metadata) {
     assert_eq!(
         Duration::new(exp_atime_sec, 0),
@@ -196,6 +213,7 @@ fn assert_times_eq(exp_atime_sec: u64, exp_mtime_sec: u64, attr: &fs::Metadata) 
 }
 
 #[test]
+#[cfg(not(target_os = "redox"))]
 fn test_utimes() {
     let tempdir = tempfile::tempdir().unwrap();
     let fullpath = tempdir.path().join("file");
@@ -231,6 +249,7 @@ fn test_lutimes() {
 }
 
 #[test]
+#[cfg(not(target_os = "redox"))]
 fn test_futimens() {
     let tempdir = tempfile::tempdir().unwrap();
     let fullpath = tempdir.path().join("file");
@@ -243,8 +262,9 @@ fn test_futimens() {
 }
 
 #[test]
+#[cfg(not(target_os = "redox"))]
 fn test_utimensat() {
-    let _dr = ::DirRestore::new();
+    let _dr = crate::DirRestore::new();
     let tempdir = tempfile::tempdir().unwrap();
     let filename = "foo.txt";
     let fullpath = tempdir.path().join(filename);
@@ -264,6 +284,7 @@ fn test_utimensat() {
 }
 
 #[test]
+#[cfg(not(target_os = "redox"))]
 fn test_mkdirat_success_path() {
     let tempdir = tempfile::tempdir().unwrap();
     let filename = "example_subdir";
@@ -273,6 +294,7 @@ fn test_mkdirat_success_path() {
 }
 
 #[test]
+#[cfg(not(target_os = "redox"))]
 fn test_mkdirat_success_mode() {
     let expected_bits = stat::SFlag::S_IFDIR.bits() | stat::Mode::S_IRWXU.bits();
     let tempdir = tempfile::tempdir().unwrap();
@@ -285,6 +307,7 @@ fn test_mkdirat_success_mode() {
 }
 
 #[test]
+#[cfg(not(target_os = "redox"))]
 fn test_mkdirat_fail() {
     let tempdir = tempfile::tempdir().unwrap();
     let not_dir_filename= "example_not_dir";

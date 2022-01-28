@@ -1,11 +1,9 @@
+mod common;
+
 // Impelmentation note: to allow unprivileged users to run it, this test makes
 // use of user and mount namespaces. On systems that allow unprivileged user
 // namespaces (Linux >= 3.8 compiled with CONFIG_USER_NS), the test should run
 // without root.
-
-extern crate libc;
-extern crate nix;
-extern crate tempfile;
 
 #[cfg(target_os = "linux")]
 mod test_mount {
@@ -226,6 +224,7 @@ fn main() {
     use test_mount::{setup_namespaces, test_mount_tmpfs_without_flags_allows_rwx,
                      test_mount_rdonly_disallows_write, test_mount_noexec_disallows_exec,
                      test_mount_bind};
+    skip_if_cirrus!("Fails for an unknown reason Cirrus CI.  Bug #1351");
     setup_namespaces();
 
     run_tests!(test_mount_tmpfs_without_flags_allows_rwx,

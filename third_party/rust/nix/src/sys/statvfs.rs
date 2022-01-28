@@ -7,9 +7,9 @@ use std::os::unix::io::AsRawFd;
 
 use libc::{self, c_ulong};
 
-use {Result, NixPath};
-use errno::Errno;
+use crate::{Result, NixPath, errno::Errno};
 
+#[cfg(not(target_os = "redox"))]
 libc_bitflags!(
     /// File system mount Flags
     #[repr(C)]
@@ -55,8 +55,7 @@ libc_bitflags!(
 /// Wrapper around the POSIX `statvfs` struct
 ///
 /// For more information see the [`statvfs(3)` man pages](http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_statvfs.h.html).
-// FIXME: Replace with repr(transparent)
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Statvfs(libc::statvfs);
 
@@ -109,6 +108,7 @@ impl Statvfs {
     }
 
     /// Get the mount flags
+    #[cfg(not(target_os = "redox"))]
     pub fn flags(&self) -> FsFlags {
         FsFlags::from_bits_truncate(self.0.f_flag)
     }
@@ -124,12 +124,12 @@ impl Statvfs {
 pub fn statvfs<P: ?Sized + NixPath>(path: &P) -> Result<Statvfs> {
     unsafe {
         Errno::clear();
-        let mut stat: Statvfs = mem::uninitialized();
+        let mut stat = mem::MaybeUninit::<libc::statvfs>::uninit();
         let res = path.with_nix_path(|path|
-            libc::statvfs(path.as_ptr(), &mut stat.0)
+            libc::statvfs(path.as_ptr(), stat.as_mut_ptr())
         )?;
 
-        Errno::result(res).map(|_| stat)
+        Errno::result(res).map(|_| Statvfs(stat.assume_init()))
     }
 }
 
@@ -137,15 +137,16 @@ pub fn statvfs<P: ?Sized + NixPath>(path: &P) -> Result<Statvfs> {
 pub fn fstatvfs<T: AsRawFd>(fd: &T) -> Result<Statvfs> {
     unsafe {
         Errno::clear();
-        let mut stat: Statvfs = mem::uninitialized();
-        Errno::result(libc::fstatvfs(fd.as_raw_fd(), &mut stat.0)).map(|_| stat)
+        let mut stat = mem::MaybeUninit::<libc::statvfs>::uninit();
+        Errno::result(libc::fstatvfs(fd.as_raw_fd(), stat.as_mut_ptr()))
+            .map(|_| Statvfs(stat.assume_init()))
     }
 }
 
 #[cfg(test)]
 mod test {
     use std::fs::File;
-    use sys::statvfs::*;
+    use crate::sys::statvfs::*;
 
     #[test]
     fn statvfs_call() {

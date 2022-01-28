@@ -3,7 +3,6 @@
 use libc::{c_void, c_int, c_char, free};
 use std::{fmt, ptr, str};
 use std::ffi::CStr;
-use nix;
 use std::error::Error as StdError;
 
 /// ALSA error

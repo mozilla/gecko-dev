@@ -1,18 +1,17 @@
 //! Create master and slave virtual pseudo-terminals (PTYs)
 
-use libc;
-
 pub use libc::pid_t as SessionId;
 pub use libc::winsize as Winsize;
 
 use std::ffi::CStr;
+use std::io;
 use std::mem;
 use std::os::unix::prelude::*;
 
-use sys::termios::Termios;
-use unistd::ForkResult;
-use {Result, Error, fcntl};
-use errno::Errno;
+use crate::sys::termios::Termios;
+use crate::unistd::{self, ForkResult, Pid};
+use crate::{Result, Error, fcntl};
+use crate::errno::Errno;
 
 /// Representation of a master/slave pty pair
 ///
@@ -44,7 +43,7 @@ pub struct ForkptyResult {
 /// While this datatype is a thin wrapper around `RawFd`, it enforces that the available PTY
 /// functions are given the correct file descriptor. Additionally this type implements `Drop`,
 /// so that when it's consumed or goes out of scope, it's automatically cleaned-up.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub struct PtyMaster(RawFd);
 
 impl AsRawFd for PtyMaster {
@@ -70,10 +69,25 @@ impl Drop for PtyMaster {
         // invalid file descriptor.  That frequently indicates a double-close
         // condition, which can cause confusing errors for future I/O
         // operations.
-        let e = ::unistd::close(self.0);
+        let e = unistd::close(self.0);
         if e == Err(Error::Sys(Errno::EBADF)) {
             panic!("Closing an invalid file descriptor!");
         };
+    }
+}
+
+impl io::Read for PtyMaster {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        unistd::read(self.0, buf).map_err(|e| e.as_errno().unwrap().into())
+    }
+}
+
+impl io::Write for PtyMaster {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        unistd::write(self.0, buf).map_err(|e| e.as_errno().unwrap().into())
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
     }
 }
 
@@ -218,16 +232,16 @@ pub fn unlockpt(fd: &PtyMaster) -> Result<()> {
 pub fn openpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>>>(winsize: T, termios: U) -> Result<OpenptyResult> {
     use std::ptr;
 
-    let mut slave: libc::c_int = unsafe { mem::uninitialized() };
-    let mut master: libc::c_int = unsafe { mem::uninitialized() };
+    let mut slave = mem::MaybeUninit::<libc::c_int>::uninit();
+    let mut master = mem::MaybeUninit::<libc::c_int>::uninit();
     let ret = {
         match (termios.into(), winsize.into()) {
             (Some(termios), Some(winsize)) => {
                 let inner_termios = termios.get_libc_termios();
                 unsafe {
                     libc::openpty(
-                        &mut master,
-                        &mut slave,
+                        master.as_mut_ptr(),
+                        slave.as_mut_ptr(),
                         ptr::null_mut(),
                         &*inner_termios as *const libc::termios as *mut _,
                         winsize as *const Winsize as *mut _,
@@ -237,8 +251,8 @@ pub fn openpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>
             (None, Some(winsize)) => {
                 unsafe {
                     libc::openpty(
-                        &mut master,
-                        &mut slave,
+                        master.as_mut_ptr(),
+                        slave.as_mut_ptr(),
                         ptr::null_mut(),
                         ptr::null_mut(),
                         winsize as *const Winsize as *mut _,
@@ -249,8 +263,8 @@ pub fn openpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>
                 let inner_termios = termios.get_libc_termios();
                 unsafe {
                     libc::openpty(
-                        &mut master,
-                        &mut slave,
+                        master.as_mut_ptr(),
+                        slave.as_mut_ptr(),
                         ptr::null_mut(),
                         &*inner_termios as *const libc::termios as *mut _,
                         ptr::null_mut(),
@@ -260,8 +274,8 @@ pub fn openpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>
             (None, None) => {
                 unsafe {
                     libc::openpty(
-                        &mut master,
-                        &mut slave,
+                        master.as_mut_ptr(),
+                        slave.as_mut_ptr(),
                         ptr::null_mut(),
                         ptr::null_mut(),
                         ptr::null_mut(),
@@ -273,10 +287,12 @@ pub fn openpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>
 
     Errno::result(ret)?;
 
-    Ok(OpenptyResult {
-        master: master,
-        slave: slave,
-    })
+    unsafe {
+        Ok(OpenptyResult {
+            master: master.assume_init(),
+            slave: slave.assume_init(),
+        })
+    }
 }
 
 /// Create a new pseudoterminal, returning the master file descriptor and forked pid.
@@ -291,10 +307,8 @@ pub fn forkpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>
     termios: U,
 ) -> Result<ForkptyResult> {
     use std::ptr;
-    use unistd::Pid;
-    use unistd::ForkResult::*;
 
-    let mut master: libc::c_int = unsafe { mem::uninitialized() };
+    let mut master = mem::MaybeUninit::<libc::c_int>::uninit();
 
     let term = match termios.into() {
         Some(termios) => {
@@ -310,17 +324,19 @@ pub fn forkpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>
         .unwrap_or(ptr::null_mut());
 
     let res = unsafe {
-        libc::forkpty(&mut master, ptr::null_mut(), term, win)
+        libc::forkpty(master.as_mut_ptr(), ptr::null_mut(), term, win)
     };
 
     let fork_result = Errno::result(res).map(|res| match res {
-        0 => Child,
-        res => Parent { child: Pid::from_raw(res) },
+        0 => ForkResult::Child,
+        res => ForkResult::Parent { child: Pid::from_raw(res) },
     })?;
 
-    Ok(ForkptyResult {
-        master: master,
-        fork_result: fork_result,
-    })
+    unsafe {
+        Ok(ForkptyResult {
+            master: master.assume_init(),
+            fork_result,
+        })
+    }
 }
 

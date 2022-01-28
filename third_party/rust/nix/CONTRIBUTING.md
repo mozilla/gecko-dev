@@ -76,21 +76,21 @@ add a test that would have failed without the fix.
 
 After you've made your change, make sure the tests pass in your development
 environment. We also have [continuous integration set up on
-Travis-CI][travis-ci], which might find some issues on other platforms. The CI
+Cirrus-CI][cirrus-ci], which might find some issues on other platforms. The CI
 will run once you open a pull request.
 
 There is also infrastructure for running tests for other targets
 locally.  More information is available in the [CI Readme][ci-readme].
 
-[travis-ci]: https://travis-ci.org/nix-rust/nix
+[cirrus-ci]: https://cirrus-ci.com/github/nix-rust/nix
 [ci-readme]: ci/README.md
 
 ### Disabling a test in the CI environment
 
 Sometimes there are features that cannot be tested in the CI environment.
-To stop a test from running under CI, add `#[cfg_attr(travis, ignore)]`
-to it. Please include a comment describing the reason it shouldn't run
-under CI, and a link to an upstream issue if possible!
+To stop a test from running under CI, add `skip_if_cirrus!()` to it. Please
+describe the reason it shouldn't run under CI, and a link to an issue if
+possible!
 
 ## bors, the bot who merges all the PRs
 

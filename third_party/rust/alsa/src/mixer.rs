@@ -112,9 +112,17 @@ impl ops::Add for MilliBel {
     fn add(self, rhs: Self) -> Self { MilliBel(self.0 + rhs.0) }
 }
 
+impl ops::AddAssign for MilliBel {
+    fn add_assign(&mut self, rhs: Self) { self.0 += rhs.0 }
+}
+
 impl ops::Sub for MilliBel {
     type Output = MilliBel;
     fn sub(self, rhs: Self) -> Self { MilliBel(self.0 - rhs.0) }
+}
+
+impl ops::SubAssign for MilliBel {
+    fn sub_assign(&mut self, rhs: Self) { self.0 -= rhs.0 }
 }
 
 /// Wraps [snd_mixer_elem_t](http://www.alsa-project.org/alsa-doc/alsa-lib/group___mixer.html)

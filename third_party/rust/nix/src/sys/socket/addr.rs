@@ -1,20 +1,20 @@
 use super::sa_family_t;
-use {Error, Result, NixPath};
-use errno::Errno;
-use libc;
+use crate::{Error, Result, NixPath};
+use crate::errno::Errno;
+use memoffset::offset_of;
 use std::{fmt, mem, net, ptr, slice};
 use std::ffi::OsStr;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::os::unix::ffi::OsStrExt;
 #[cfg(any(target_os = "android", target_os = "linux"))]
-use ::sys::socket::addr::netlink::NetlinkAddr;
+use crate::sys::socket::addr::netlink::NetlinkAddr;
 #[cfg(any(target_os = "android", target_os = "linux"))]
-use ::sys::socket::addr::alg::AlgAddr;
+use crate::sys::socket::addr::alg::AlgAddr;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 use std::os::unix::io::RawFd;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
-use ::sys::socket::addr::sys_control::SysControlAddr;
+use crate::sys::socket::addr::sys_control::SysControlAddr;
 #[cfg(any(target_os = "android",
           target_os = "dragonfly",
           target_os = "freebsd",
@@ -22,9 +22,10 @@ use ::sys::socket::addr::sys_control::SysControlAddr;
           target_os = "linux",
           target_os = "macos",
           target_os = "netbsd",
-          target_os = "openbsd"))]
+          target_os = "openbsd",
+          target_os = "fuchsia"))]
 pub use self::datalink::LinkAddr;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "android", target_os = "linux"))]
 pub use self::vsock::VsockAddr;
 
 /// These constants specify the protocol family to be used
@@ -42,7 +43,7 @@ pub enum AddressFamily {
     #[cfg(any(target_os = "android", target_os = "linux"))]
     Netlink = libc::AF_NETLINK,
     /// Low level packet interface (see [`packet(7)`](http://man7.org/linux/man-pages/man7/packet.7.html))
-    #[cfg(any(target_os = "android", target_os = "linux"))]
+    #[cfg(any(target_os = "android", target_os = "linux", target_os = "fuchsia"))]
     Packet = libc::AF_PACKET,
     /// KEXT Controls and Notifications
     #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -116,7 +117,7 @@ pub enum AddressFamily {
     Alg = libc::AF_ALG,
     #[cfg(target_os = "linux")]
     Nfc = libc::AF_NFC,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     Vsock = libc::AF_VSOCK,
     #[cfg(any(target_os = "dragonfly",
               target_os = "freebsd",
@@ -243,7 +244,7 @@ impl AddressFamily {
                       target_os = "netbsd",
                       target_os = "openbsd"))]
             libc::AF_LINK => Some(AddressFamily::Link),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             libc::AF_VSOCK => Some(AddressFamily::Vsock),
             _ => None
         }
@@ -367,6 +368,8 @@ impl IpAddr {
     /// Create a new IpAddr that contains an IPv6 address.
     ///
     /// The result will represent the IP address a:b:c:d:e:f
+    #[allow(clippy::many_single_char_names)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new_v6(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> IpAddr {
         IpAddr::V6(Ipv6Addr::new(a, b, c, d, e, f, g, h))
     }
@@ -405,15 +408,18 @@ impl fmt::Display for IpAddr {
 pub struct Ipv4Addr(pub libc::in_addr);
 
 impl Ipv4Addr {
+    #[allow(clippy::identity_op)]   // More readable this way
     pub fn new(a: u8, b: u8, c: u8, d: u8) -> Ipv4Addr {
-        let ip = (((a as u32) << 24) |
-                  ((b as u32) << 16) |
-                  ((c as u32) <<  8) |
-                  ((d as u32) <<  0)).to_be();
+        let ip = ((u32::from(a) << 24) |
+                  (u32::from(b) << 16) |
+                  (u32::from(c) <<  8) |
+                  (u32::from(d) <<  0)).to_be();
 
         Ipv4Addr(libc::in_addr { s_addr: ip })
     }
 
+    // Use pass by reference for symmetry with Ipv6Addr::from_std
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     pub fn from_std(std: &net::Ipv4Addr) -> Ipv4Addr {
         let bits = std.octets();
         Ipv4Addr::new(bits[0], bits[1], bits[2], bits[3])
@@ -423,12 +429,12 @@ impl Ipv4Addr {
         Ipv4Addr(libc::in_addr { s_addr: libc::INADDR_ANY })
     }
 
-    pub fn octets(&self) -> [u8; 4] {
+    pub fn octets(self) -> [u8; 4] {
         let bits = u32::from_be(self.0.s_addr);
         [(bits >> 24) as u8, (bits >> 16) as u8, (bits >> 8) as u8, bits as u8]
     }
 
-    pub fn to_std(&self) -> net::Ipv4Addr {
+    pub fn to_std(self) -> net::Ipv4Addr {
         let bits = self.octets();
         net::Ipv4Addr::new(bits[0], bits[1], bits[2], bits[3])
     }
@@ -467,10 +473,10 @@ macro_rules! to_u16_array {
 }
 
 impl Ipv6Addr {
+    #[allow(clippy::many_single_char_names)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> Ipv6Addr {
-        let mut in6_addr_var: libc::in6_addr = unsafe{mem::uninitialized()};
-        in6_addr_var.s6_addr = to_u8_array!(a,b,c,d,e,f,g,h);
-        Ipv6Addr(in6_addr_var)
+        Ipv6Addr(libc::in6_addr{s6_addr: to_u8_array!(a,b,c,d,e,f,g,h)})
     }
 
     pub fn from_std(std: &net::Ipv6Addr) -> Ipv6Addr {
@@ -555,7 +561,7 @@ impl UnixAddr {
                                      ret.sun_path.as_mut_ptr().offset(1) as *mut u8,
                                      path.len());
 
-            Ok(UnixAddr(ret, ret.sun_path.len()))
+            Ok(UnixAddr(ret, path.len() + 1))
         }
     }
 
@@ -643,7 +649,7 @@ pub enum SockAddr {
               target_os = "netbsd",
               target_os = "openbsd"))]
     Link(LinkAddr),
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     Vsock(VsockAddr),
 }
 
@@ -671,7 +677,7 @@ impl SockAddr {
         SysControlAddr::from_name(sockfd, name, unit).map(|a| SockAddr::SysControl(a))
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     pub fn new_vsock(cid: u32, port: u32) -> SockAddr {
         SockAddr::Vsock(VsockAddr::new(cid, port))
     }
@@ -696,7 +702,7 @@ impl SockAddr {
                       target_os = "netbsd",
                       target_os = "openbsd"))]
             SockAddr::Link(..) => AddressFamily::Link,
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             SockAddr::Vsock(..) => AddressFamily::Vsock,
         }
     }
@@ -709,11 +715,17 @@ impl SockAddr {
     ///
     /// Supports only the following address families: Unix, Inet (v4 & v6), Netlink and System.
     /// Returns None for unsupported families.
-    pub unsafe fn from_libc_sockaddr(addr: *const libc::sockaddr) -> Option<SockAddr> {
+    ///
+    /// # Safety
+    ///
+    /// unsafe because it takes a raw pointer as argument.  The caller must
+    /// ensure that the pointer is valid.
+    #[cfg(not(target_os = "fuchsia"))]
+    pub(crate) unsafe fn from_libc_sockaddr(addr: *const libc::sockaddr) -> Option<SockAddr> {
         if addr.is_null() {
             None
         } else {
-            match AddressFamily::from_i32((*addr).sa_family as i32) {
+            match AddressFamily::from_i32(i32::from((*addr).sa_family)) {
                 Some(AddressFamily::Unix) => None,
                 Some(AddressFamily::Inet) => Some(SockAddr::Inet(
                     InetAddr::V4(*(addr as *const libc::sockaddr_in)))),
@@ -742,7 +754,7 @@ impl SockAddr {
                         Some(SockAddr::Link(ether_addr))
                     }
                 },
-                #[cfg(target_os = "linux")]
+                #[cfg(any(target_os = "android", target_os = "linux"))]
                 Some(AddressFamily::Vsock) => Some(SockAddr::Vsock(
                     VsockAddr(*(addr as *const libc::sockaddr_vm)))),
                 // Other address families are currently not supported and simply yield a None
@@ -759,28 +771,83 @@ impl SockAddr {
     /// with the size of the actual data type. sockaddr is commonly used as a proxy for
     /// a superclass as C doesn't support inheritance, so many functions that take
     /// a sockaddr * need to take the size of the underlying type as well and then internally cast it back.
-    pub unsafe fn as_ffi_pair(&self) -> (&libc::sockaddr, libc::socklen_t) {
+    pub fn as_ffi_pair(&self) -> (&libc::sockaddr, libc::socklen_t) {
         match *self {
-            SockAddr::Inet(InetAddr::V4(ref addr)) => (mem::transmute(addr), mem::size_of::<libc::sockaddr_in>() as libc::socklen_t),
-            SockAddr::Inet(InetAddr::V6(ref addr)) => (mem::transmute(addr), mem::size_of::<libc::sockaddr_in6>() as libc::socklen_t),
-            SockAddr::Unix(UnixAddr(ref addr, len)) => (mem::transmute(addr), (len + offset_of!(libc::sockaddr_un, sun_path)) as libc::socklen_t),
+            SockAddr::Inet(InetAddr::V4(ref addr)) => (
+                // This cast is always allowed in C
+                unsafe {
+                    &*(addr as *const libc::sockaddr_in as *const libc::sockaddr)
+                },
+                mem::size_of_val(addr) as libc::socklen_t
+            ),
+            SockAddr::Inet(InetAddr::V6(ref addr)) => (
+                // This cast is always allowed in C
+                unsafe {
+                    &*(addr as *const libc::sockaddr_in6 as *const libc::sockaddr)
+                },
+                mem::size_of_val(addr) as libc::socklen_t
+            ),
+            SockAddr::Unix(UnixAddr(ref addr, len)) => (
+                // This cast is always allowed in C
+                unsafe {
+                    &*(addr as *const libc::sockaddr_un as *const libc::sockaddr)
+                },
+                (len + offset_of!(libc::sockaddr_un, sun_path)) as libc::socklen_t
+            ),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            SockAddr::Netlink(NetlinkAddr(ref sa)) => (mem::transmute(sa), mem::size_of::<libc::sockaddr_nl>() as libc::socklen_t),
+            SockAddr::Netlink(NetlinkAddr(ref sa)) => (
+                // This cast is always allowed in C
+                unsafe {
+                    &*(sa as *const libc::sockaddr_nl as *const libc::sockaddr)
+                },
+                mem::size_of_val(sa) as libc::socklen_t
+            ),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            SockAddr::Alg(AlgAddr(ref sa)) => (mem::transmute(sa), mem::size_of::<libc::sockaddr_alg>() as libc::socklen_t),
+            SockAddr::Alg(AlgAddr(ref sa)) => (
+                // This cast is always allowed in C
+                unsafe {
+                    &*(sa as *const libc::sockaddr_alg as *const libc::sockaddr)
+                },
+                mem::size_of_val(sa) as libc::socklen_t
+            ),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            SockAddr::SysControl(SysControlAddr(ref sa)) => (mem::transmute(sa), mem::size_of::<libc::sockaddr_ctl>() as libc::socklen_t),
+            SockAddr::SysControl(SysControlAddr(ref sa)) => (
+                // This cast is always allowed in C
+                unsafe {
+                    &*(sa as *const libc::sockaddr_ctl as *const libc::sockaddr)
+                },
+                mem::size_of_val(sa) as libc::socklen_t
+
+            ),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            SockAddr::Link(LinkAddr(ref ether_addr)) => (mem::transmute(ether_addr), mem::size_of::<libc::sockaddr_ll>() as libc::socklen_t),
+            SockAddr::Link(LinkAddr(ref addr)) => (
+                // This cast is always allowed in C
+                unsafe {
+                    &*(addr as *const libc::sockaddr_ll as *const libc::sockaddr)
+                },
+                mem::size_of_val(addr) as libc::socklen_t
+            ),
             #[cfg(any(target_os = "dragonfly",
                       target_os = "freebsd",
                       target_os = "ios",
                       target_os = "macos",
                       target_os = "netbsd",
                       target_os = "openbsd"))]
-            SockAddr::Link(LinkAddr(ref ether_addr)) => (mem::transmute(ether_addr), mem::size_of::<libc::sockaddr_dl>() as libc::socklen_t),
-            #[cfg(target_os = "linux")]
-            SockAddr::Vsock(VsockAddr(ref sa)) => (mem::transmute(sa), mem::size_of::<libc::sockaddr_vm>() as libc::socklen_t),
+            SockAddr::Link(LinkAddr(ref addr)) => (
+                // This cast is always allowed in C
+                unsafe {
+                    &*(addr as *const libc::sockaddr_dl as *const libc::sockaddr)
+                },
+                mem::size_of_val(addr) as libc::socklen_t
+            ),
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            SockAddr::Vsock(VsockAddr(ref sa)) => (
+                // This cast is always allowed in C
+                unsafe {
+                    &*(sa as *const libc::sockaddr_vm as *const libc::sockaddr)
+                },
+                mem::size_of_val(sa) as libc::socklen_t
+            ),
         }
     }
 }
@@ -805,7 +872,7 @@ impl fmt::Display for SockAddr {
                       target_os = "netbsd",
                       target_os = "openbsd"))]
             SockAddr::Link(ref ether_addr) => ether_addr.fmt(f),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             SockAddr::Vsock(ref svm) => svm.fmt(f),
         }
     }
@@ -813,7 +880,7 @@ impl fmt::Display for SockAddr {
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 pub mod netlink {
-    use ::sys::socket::addr::AddressFamily;
+    use crate::sys::socket::addr::AddressFamily;
     use libc::{sa_family_t, sockaddr_nl};
     use std::{fmt, mem};
 
@@ -911,11 +978,11 @@ pub mod alg {
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 pub mod sys_control {
-    use ::sys::socket::addr::AddressFamily;
+    use crate::sys::socket::addr::AddressFamily;
     use libc::{self, c_uchar};
     use std::{fmt, mem};
     use std::os::unix::io::RawFd;
-    use {Errno, Error, Result};
+    use crate::{Errno, Error, Result};
 
     // FIXME: Move type into `libc`
     #[repr(C)]
@@ -957,7 +1024,7 @@ pub mod sys_control {
 
             let mut ctl_name = [0; MAX_KCTL_NAME];
             ctl_name[..name.len()].clone_from_slice(name.as_bytes());
-            let mut info = ctl_ioc_info { ctl_id: 0, ctl_name: ctl_name };
+            let mut info = ctl_ioc_info { ctl_id: 0, ctl_name };
 
             unsafe { ctl_info(sockfd, &mut info)?; }
 
@@ -981,9 +1048,9 @@ pub mod sys_control {
 }
 
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(any(target_os = "android", target_os = "linux", target_os = "fuchsia"))]
 mod datalink {
-    use super::{libc, fmt, AddressFamily};
+    use super::{fmt, AddressFamily};
 
     /// Hardware Address
     #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -1023,14 +1090,14 @@ mod datalink {
 
         /// Physical-layer address (MAC)
         pub fn addr(&self) -> [u8; 6] {
-            let a = self.0.sll_addr[0] as u8;
-            let b = self.0.sll_addr[1] as u8;
-            let c = self.0.sll_addr[2] as u8;
-            let d = self.0.sll_addr[3] as u8;
-            let e = self.0.sll_addr[4] as u8;
-            let f = self.0.sll_addr[5] as u8;
-
-            [a, b, c, d, e, f]
+            [
+                self.0.sll_addr[0] as u8,
+                self.0.sll_addr[1] as u8,
+                self.0.sll_addr[2] as u8,
+                self.0.sll_addr[3] as u8,
+                self.0.sll_addr[4] as u8,
+                self.0.sll_addr[5] as u8,
+            ]
         }
     }
 
@@ -1055,7 +1122,7 @@ mod datalink {
           target_os = "netbsd",
           target_os = "openbsd"))]
 mod datalink {
-    use super::{libc, fmt, AddressFamily};
+    use super::{fmt, AddressFamily};
 
     /// Hardware Address
     #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -1069,7 +1136,7 @@ mod datalink {
 
         /// always == AF_LINK
         pub fn family(&self) -> AddressFamily {
-            assert_eq!(self.0.sdl_family as i32, libc::AF_LINK);
+            assert_eq!(i32::from(self.0.sdl_family), libc::AF_LINK);
             AddressFamily::Link
         }
 
@@ -1105,11 +1172,7 @@ mod datalink {
             let alen = self.alen();
             let data_len = self.0.sdl_data.len();
 
-            if alen > 0 && nlen + alen < data_len {
-                false
-            } else {
-                true
-            }
+            alen == 0 || nlen + alen >= data_len
         }
 
         /// Physical-layer address (MAC)
@@ -1119,14 +1182,14 @@ mod datalink {
 
             assert!(!self.is_empty());
 
-            let a = data[nlen] as u8;
-            let b = data[nlen + 1] as u8;
-            let c = data[nlen + 2] as u8;
-            let d = data[nlen + 3] as u8;
-            let e = data[nlen + 4] as u8;
-            let f = data[nlen + 5] as u8;
-
-            [a, b, c, d, e, f]
+            [
+                data[nlen] as u8,
+                data[nlen + 1] as u8,
+                data[nlen + 2] as u8,
+                data[nlen + 3] as u8,
+                data[nlen + 4] as u8,
+                data[nlen + 5] as u8,
+            ]
         }
     }
 
@@ -1144,9 +1207,9 @@ mod datalink {
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "android", target_os = "linux"))]
 pub mod vsock {
-    use ::sys::socket::addr::AddressFamily;
+    use crate::sys::socket::addr::AddressFamily;
     use libc::{sa_family_t, sockaddr_vm};
     use std::{fmt, mem};
     use std::hash::{Hash, Hasher};
@@ -1269,7 +1332,7 @@ mod tests {
         let addr = UnixAddr::new_abstract(name.as_bytes()).unwrap();
 
         let sun_path1 = addr.sun_path();
-        let sun_path2 = [0u8, 110, 105, 120, 0, 97, 98, 115, 116, 114, 97, 99, 116, 0, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let sun_path2 = [0u8, 110, 105, 120, 0, 97, 98, 115, 116, 114, 97, 99, 116, 0, 116, 101, 115, 116];
         assert_eq!(sun_path1.len(), sun_path2.len());
         for i in 0..sun_path1.len() {
             assert_eq!(sun_path1[i], sun_path2[i]);

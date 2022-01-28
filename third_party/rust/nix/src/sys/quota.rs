@@ -15,12 +15,13 @@
 use std::default::Default;
 use std::{mem, ptr};
 use libc::{self, c_int, c_char};
-use {Result, NixPath};
-use errno::Errno;
+use crate::{Result, NixPath};
+use crate::errno::Errno;
 
 struct QuotaCmd(QuotaSubCmd, QuotaType);
 
 impl QuotaCmd {
+    #[allow(unused_unsafe)]
     fn as_int(&self) -> c_int {
         unsafe { libc::QCMD(self.0 as i32, self.1 as i32) }
     }
@@ -94,8 +95,7 @@ libc_bitflags!(
 );
 
 /// Wrapper type for `if_dqblk`
-// FIXME: Change to repr(transparent)
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Dqblk(libc::dqblk);
 
@@ -254,15 +254,17 @@ pub fn quotactl_off<P: ?Sized + NixPath>(which: QuotaType, special: &P) -> Resul
 }
 
 /// Update the on-disk copy of quota usages for a filesystem.
+///
+/// If `special` is `None`, then all file systems with active quotas are sync'd.
 pub fn quotactl_sync<P: ?Sized + NixPath>(which: QuotaType, special: Option<&P>) -> Result<()> {
     quotactl(QuotaCmd(QuotaSubCmd::Q_SYNC, which), special, 0, ptr::null_mut())
 }
 
 /// Get disk quota limits and current usage for the given user/group id.
 pub fn quotactl_get<P: ?Sized + NixPath>(which: QuotaType, special: &P, id: c_int) -> Result<Dqblk> {
-    let mut dqblk = unsafe { mem::uninitialized() };
-    quotactl(QuotaCmd(QuotaSubCmd::Q_GETQUOTA, which), Some(special), id, &mut dqblk as *mut _ as *mut c_char)?;
-    dqblk
+    let mut dqblk = mem::MaybeUninit::uninit();
+    quotactl(QuotaCmd(QuotaSubCmd::Q_GETQUOTA, which), Some(special), id, dqblk.as_mut_ptr() as *mut c_char)?;
+    Ok(unsafe{ Dqblk(dqblk.assume_init())})
 }
 
 /// Configure quota values for the specified fields for a given user/group id.

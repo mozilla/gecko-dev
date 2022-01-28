@@ -3,16 +3,15 @@
 //! Uses the Linux and/or BSD specific function `getifaddrs` to query the list
 //! of interfaces and their associated addresses.
 
+use cfg_if::cfg_if;
 use std::ffi;
 use std::iter::Iterator;
 use std::mem;
 use std::option::Option;
 
-use libc;
-
-use {Result, Errno};
-use sys::socket::SockAddr;
-use net::if_::*;
+use crate::{Result, Errno};
+use crate::sys::socket::SockAddr;
+use crate::net::if_::*;
 
 /// Describes a single address for an interface as returned by `getifaddrs`.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -52,8 +51,8 @@ impl InterfaceAddress {
         let mut addr = InterfaceAddress {
             interface_name: ifname.to_string_lossy().to_string(),
             flags: InterfaceFlags::from_bits_truncate(info.ifa_flags as i32),
-            address: address,
-            netmask: netmask,
+            address,
+            netmask,
             broadcast: None,
             destination: None,
         };
@@ -125,13 +124,15 @@ impl Iterator for InterfaceAddressIterator {
 /// }
 /// ```
 pub fn getifaddrs() -> Result<InterfaceAddressIterator> {
-    let mut addrs: *mut libc::ifaddrs = unsafe { mem::uninitialized() };
-    Errno::result(unsafe { libc::getifaddrs(&mut addrs) }).map(|_| {
-        InterfaceAddressIterator {
-            base: addrs,
-            next: addrs,
-        }
-    })
+    let mut addrs = mem::MaybeUninit::<*mut libc::ifaddrs>::uninit();
+    unsafe {
+        Errno::result(libc::getifaddrs(addrs.as_mut_ptr())).map(|_| {
+            InterfaceAddressIterator {
+                base: addrs.assume_init(),
+                next: addrs.assume_init(),
+            }
+        })
+    }
 }
 
 #[cfg(test)]
