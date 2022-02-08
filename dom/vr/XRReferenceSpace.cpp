@@ -25,7 +25,7 @@ already_AddRefed<XRReferenceSpace> XRReferenceSpace::GetOffsetReferenceSpace(
   // https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace
   // Set offsetSpace’s origin offset to the result of multiplying base’s origin offset by
   // originOffset in the relevant realm of base.
-  offsetReferenceSpace->mOriginOffset = mOriginOffset * aOffsetTransform.RawTransform();
+  offsetReferenceSpace->mOriginOffset = aOffsetTransform.RawTransform() * mOriginOffset;
 
   return offsetReferenceSpace.forget();
 }
