@@ -69,7 +69,7 @@ class MacroAssemblerRiscv64 : public Assembler {
   void copyPreBarrierTable(uint8_t*) { MOZ_CRASH(); }
   void processCodeLabels(uint8_t*) { MOZ_CRASH(); }
 
-  void flushBuffer() { MOZ_CRASH(); }
+  void flushBuffer() { m_buffer.flushPool(); }
 
   template <typename T>
   void bind(T) {
@@ -83,11 +83,16 @@ class MacroAssemblerRiscv64 : public Assembler {
   void jump(T) {
     MOZ_CRASH();
   }
-  void writeCodePointer(CodeLabel* label) { MOZ_CRASH(); }
+  void writeCodePointer(CodeLabel* label) {
+    MOZ_ASSERT(hasCreator());
+    m_buffer.ensureSpace(sizeof(uintptr_t));
+    BufferOffset off = m_buffer.putInt64Unchecked(-1);
+    label->patchAt()->bind(off.getOffset());
+  }
   void haltingAlign(size_t) { MOZ_CRASH(); }
   void nopAlign(size_t) { MOZ_CRASH(); }
   void checkStackAlignment() { MOZ_CRASH(); }
-  uint32_t currentOffset() { MOZ_CRASH(); }
+  uint32_t currentOffset() { return nextOffset().getOffset(); }
 
   void nop() { MOZ_CRASH(); }
   void breakpoint() { MOZ_CRASH(); }
@@ -440,10 +445,6 @@ class MacroAssemblerRiscv64 : public Assembler {
   // Instrumentation for entering and leaving the profiler.
   void profilerEnterFrame(Register, Register) { MOZ_CRASH(); }
   void profilerExitFrame() { MOZ_CRASH(); }
-
-#ifdef JS_NUNBOX32
-  Address ToType(Address) { MOZ_CRASH(); }
-#endif
 };
 
 typedef MacroAssemblerRiscv64 MacroAssemblerSpecific;
