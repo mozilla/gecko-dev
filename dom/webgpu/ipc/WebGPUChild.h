@@ -28,6 +28,7 @@ using AdapterPromise =
     MozPromise<ipc::ByteBuf, Maybe<ipc::ResponseRejectReason>, true>;
 using PipelinePromise = MozPromise<RawId, ipc::ResponseRejectReason, true>;
 using DevicePromise = MozPromise<bool, ipc::ResponseRejectReason, true>;
+using SwapChainPromise = MozPromise<bool, ipc::ResponseRejectReason, true>;
 
 struct PipelineCreationContext {
   RawId mParentId = 0;
@@ -49,12 +50,12 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   friend class layers::CompositorBridgeChild;
 
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(WebGPUChild)
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGPUChild)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING_INHERITED(WebGPUChild)
 
  public:
   explicit WebGPUChild();
 
-  bool IsOpen() const { return mIPCOpen; }
+  bool IsOpen() const { return CanSend(); }
 
   RefPtr<AdapterPromise> InstanceRequestAdapter(
       const dom::GPURequestAdapterOptions& aOptions);
@@ -101,7 +102,8 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   void DeviceCreateSwapChain(RawId aSelfId, const RGBDescriptor& aRgbDesc,
                              size_t maxBufferCount,
                              wr::ExternalImageId aExternalImageId);
-  void SwapChainPresent(wr::ExternalImageId aExternalImageId, RawId aTextureId);
+  RefPtr<SwapChainPromise> SwapChainPresent(
+      wr::ExternalImageId aExternalImageId, RawId aTextureId);
 
   void RegisterDevice(Device* const aDevice);
   void UnregisterDevice(RawId aId);
@@ -124,24 +126,7 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
       const dom::GPURenderPipelineDescriptor& aDesc,
       ipc::ByteBuf* const aByteBuf);
 
-  // AddIPDLReference and ReleaseIPDLReference are only to be called by
-  // CompositorBridgeChild's AllocPWebGPUChild and DeallocPWebGPUChild methods
-  // respectively. We intentionally make them private to prevent misuse.
-  // The purpose of these methods is to be aware of when the IPC system around
-  // this actor goes down: mIPCOpen is then set to false.
-  void AddIPDLReference() {
-    MOZ_ASSERT(!mIPCOpen);
-    mIPCOpen = true;
-    AddRef();
-  }
-  void ReleaseIPDLReference() {
-    MOZ_ASSERT(mIPCOpen);
-    mIPCOpen = false;
-    Release();
-  }
-
   ffi::WGPUClient* const mClient;
-  bool mIPCOpen;
   std::unordered_map<RawId, WeakPtr<Device>> mDeviceMap;
 
  public:

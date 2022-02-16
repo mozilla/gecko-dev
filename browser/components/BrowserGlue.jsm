@@ -84,6 +84,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   SessionStore: "resource:///modules/sessionstore/SessionStore.jsm",
   ShellService: "resource:///modules/ShellService.jsm",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.jsm",
+  SnapshotMonitor: "resource:///modules/SnapshotMonitor.jsm",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.jsm",
   TabUnloader: "resource:///modules/TabUnloader.jsm",
   TelemetryUtils: "resource://gre/modules/TelemetryUtils.jsm",
@@ -1681,6 +1682,8 @@ BrowserGlue.prototype = {
     PageActions.init();
 
     DoHController.init();
+
+    SnapshotMonitor.init();
 
     this._firstWindowTelemetry(aWindow);
     this._firstWindowLoaded();
@@ -3401,7 +3404,7 @@ BrowserGlue.prototype = {
   _migrateUI: function BG__migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 123;
+    const UI_VERSION = 124;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     const PROFILE_DIR = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
@@ -4120,7 +4123,10 @@ BrowserGlue.prototype = {
       } catch (ex) {}
     }
 
-    if (currentUIVersion < 123) {
+    // Bug 1745248: Due to multiple backouts, do not use UI Version 123
+    // as this version is most likely set for the Nightly channel
+
+    if (currentUIVersion < 124) {
       // Migrate "extensions.formautofill.available" and
       // "extensions.formautofill.creditCards.available" from old to new prefs
       const oldFormAutofillModule = "extensions.formautofill.available";
@@ -4653,6 +4659,7 @@ BrowserGlue.prototype = {
       "pictureinpicture.settings",
       true
     );
+    Services.telemetry.setEventRecordingEnabled("pictureinpicture", true);
 
     const TOGGLE_ENABLED_PREF =
       "media.videocontrols.picture-in-picture.video-toggle.enabled";

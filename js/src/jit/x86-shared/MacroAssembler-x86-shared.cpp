@@ -169,6 +169,19 @@ void MacroAssemblerX86Shared::binarySimd128(
 }
 
 void MacroAssemblerX86Shared::binarySimd128(
+    FloatRegister lhs, const SimdConstant& rhs, FloatRegister dest,
+    void (MacroAssembler::*regOp)(const Operand&, FloatRegister, FloatRegister),
+    void (MacroAssembler::*constOp)(const SimdConstant&, FloatRegister,
+                                    FloatRegister)) {
+  ScratchSimd128Scope scratch(asMasm());
+  if (maybeInlineSimd128Int(rhs, scratch)) {
+    (asMasm().*regOp)(Operand(scratch), lhs, dest);
+  } else {
+    (asMasm().*constOp)(rhs, lhs, dest);
+  }
+}
+
+void MacroAssemblerX86Shared::binarySimd128(
     const SimdConstant& rhs, FloatRegister lhs,
     void (MacroAssembler::*regOp)(const Operand&, FloatRegister),
     void (MacroAssembler::*constOp)(const SimdConstant&, FloatRegister)) {
@@ -2126,6 +2139,17 @@ void MacroAssembler::copySignFloat32(FloatRegister lhs, FloatRegister rhs,
   }
 
   vorps(scratch, output, output);
+}
+
+void MacroAssembler::shiftIndex32AndAdd(Register indexTemp32, int shift,
+                                        Register pointer) {
+  if (IsShiftInScaleRange(shift)) {
+    computeEffectiveAddress(
+        BaseIndex(pointer, indexTemp32, ShiftToScale(shift)), pointer);
+    return;
+  }
+  lshift32(Imm32(shift), indexTemp32);
+  addPtr(indexTemp32, pointer);
 }
 
 //}}} check_macroassembler_style

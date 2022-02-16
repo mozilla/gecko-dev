@@ -920,6 +920,18 @@ void HyperTextAccessible::TextBeforeOffset(int32_t aOffset,
                                            int32_t* aStartOffset,
                                            int32_t* aEndOffset,
                                            nsAString& aText) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup() &&
+      (aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_START ||
+       aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_END ||
+       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_START ||
+       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_END)) {
+    // This isn't strictly related to caching, but this new text implementation
+    // is being developed to make caching feasible. We put it behind this pref
+    // to make it easy to test while it's still under development.
+    return HyperTextAccessibleBase::TextBeforeOffset(
+        aOffset, aBoundaryType, aStartOffset, aEndOffset, aText);
+  }
+
   *aStartOffset = *aEndOffset = 0;
   aText.Truncate();
 
@@ -1001,7 +1013,9 @@ void HyperTextAccessible::TextAtOffset(int32_t aOffset,
                                        int32_t* aEndOffset, nsAString& aText) {
   if (StaticPrefs::accessibility_cache_enabled_AtStartup() &&
       (aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_START ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_START)) {
+       aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_END ||
+       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_START ||
+       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_END)) {
     // This isn't strictly related to caching, but this new text implementation
     // is being developed to make caching feasible. We put it behind this pref
     // to make it easy to test while it's still under development.
@@ -1096,6 +1110,18 @@ void HyperTextAccessible::TextAfterOffset(int32_t aOffset,
                                           int32_t* aStartOffset,
                                           int32_t* aEndOffset,
                                           nsAString& aText) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup() &&
+      (aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_START ||
+       aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_END ||
+       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_START ||
+       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_END)) {
+    // This isn't strictly related to caching, but this new text implementation
+    // is being developed to make caching feasible. We put it behind this pref
+    // to make it easy to test while it's still under development.
+    return HyperTextAccessibleBase::TextAfterOffset(
+        aOffset, aBoundaryType, aStartOffset, aEndOffset, aText);
+  }
+
   *aStartOffset = *aEndOffset = 0;
   aText.Truncate();
 

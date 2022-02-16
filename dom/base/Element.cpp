@@ -75,7 +75,6 @@
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/ElementBinding.h"
-#include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/Flex.h"
 #include "mozilla/dom/FromParser.h"
 #include "mozilla/dom/Grid.h"
@@ -1029,7 +1028,7 @@ nsRect Element::GetClientAreaRect() {
 }
 
 already_AddRefed<DOMRect> Element::GetBoundingClientRect() {
-  RefPtr<DOMRect> rect = new DOMRect(this);
+  RefPtr<DOMRect> rect = new DOMRect(ToSupports(OwnerDoc()));
 
   nsIFrame* frame = GetPrimaryFrame(FlushType::Layout);
   if (!frame) {

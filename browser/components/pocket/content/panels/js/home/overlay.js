@@ -7,7 +7,7 @@ It does not contain any logic for saving or communication with the extension or 
 
 import React from "react";
 import ReactDOM from "react-dom";
-import PopularTopics from "../components/PopularTopics/PopularTopics";
+import PopularTopicsLegacy from "../components/PopularTopicsLegacy/PopularTopicsLegacy";
 import Home from "../components/Home/Home";
 import pktPanelMessaging from "../messages.js";
 
@@ -51,7 +51,17 @@ HomeOverlay.prototype = {
     if (layoutRefresh) {
       // Create actual content
       ReactDOM.render(
-        <Home pockethost={pockethost} />,
+        <Home
+          locale={locale}
+          articles={[]}
+          pockethost={pockethost}
+          topics={[
+            { title: "Self Improvement", topic: "self-improvement" },
+            { title: "Food", topic: "food" },
+            { title: "Entertainment", topic: "entertainment" },
+            { title: "Science", topic: "science" },
+          ]}
+        />,
         document.querySelector(`body`)
       );
     } else {
@@ -73,7 +83,7 @@ HomeOverlay.prototype = {
       // so ensure we only show a topics section for English browsers.
       if (locale.startsWith("en")) {
         ReactDOM.render(
-          <PopularTopics
+          <PopularTopicsLegacy
             pockethost={templateData.pockethost}
             utmsource={templateData.utmsource}
             topics={[

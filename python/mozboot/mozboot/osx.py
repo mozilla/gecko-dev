@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-import os
 import platform
 import subprocess
 import sys
@@ -15,8 +14,7 @@ try:
 except ImportError:
     from urllib.request import urlopen
 
-from pathlib import Path
-from distutils.version import StrictVersion
+from packaging.version import Version
 
 from mozboot.base import BaseBootstrapper
 from mozfile import which
@@ -40,21 +38,6 @@ output as packages are built.
 """
 
 NO_BREW_INSTALLED = "It seems you don't have Homebrew installed."
-
-BAD_PATH_ORDER = """
-Your environment's PATH variable lists a system path directory (%s)
-before the path to your package manager's binaries (%s).
-This means that the package manager's binaries likely won't be
-detected properly.
-
-Modify your shell's configuration (e.g. ~/.profile or
-~/.bash_profile) to have %s appear in $PATH before %s. e.g.
-
-    export PATH=%s:$PATH
-
-Once this is done, start a new shell (likely Command+T) and run
-this bootstrap again.
-"""
 
 
 class OSXAndroidBootstrapper(object):
@@ -200,9 +183,9 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
     def __init__(self, version, **kwargs):
         BaseBootstrapper.__init__(self, **kwargs)
 
-        self.os_version = StrictVersion(version)
+        self.os_version = Version(version)
 
-        if self.os_version < StrictVersion("10.6"):
+        if self.os_version < Version("10.6"):
             raise Exception("OS X 10.6 or above is required.")
 
         self.minor_version = version.split(".")[1]
@@ -299,17 +282,6 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
         homebrew_found = self._ensure_homebrew_found()
         if not homebrew_found:
             self.install_homebrew()
-
-        # Check for correct $PATH ordering.
-        brew_dir = self.brew.resolve().parent
-        for path in os.environ["PATH"].split(os.pathsep):
-            if Path(path) == brew_dir:
-                break
-
-            for check in ("/bin", "/usr/bin"):
-                if path == check:
-                    print(BAD_PATH_ORDER % (check, brew_dir, brew_dir, check, brew_dir))
-                    sys.exit(1)
 
     def ensure_clang_static_analysis_package(self):
         from mozboot import static_analysis

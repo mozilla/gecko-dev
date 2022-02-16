@@ -522,6 +522,81 @@ nsAtom* RemoteAccessibleBase<Derived>::TagName() const {
 }
 
 template <class Derived>
+nsAtom* RemoteAccessibleBase<Derived>::GetPrimaryAction() const {
+  if (mCachedFields) {
+    if (auto action =
+            mCachedFields->GetAttribute<RefPtr<nsAtom>>(nsGkAtoms::action)) {
+      return *action;
+    }
+  }
+
+  return nullptr;
+}
+
+template <class Derived>
+uint8_t RemoteAccessibleBase<Derived>::ActionCount() const {
+  uint8_t actionCount = 0;
+  if (mCachedFields) {
+    if (HasPrimaryAction() ||
+        ((IsTextLeaf() || IsImage()) && ActionAncestor())) {
+      actionCount++;
+    }
+
+    if (mCachedFields->HasAttribute(nsGkAtoms::longdesc)) {
+      actionCount++;
+    }
+    VERIFY_CACHE(CacheDomain::Actions);
+  }
+
+  return actionCount;
+}
+
+template <class Derived>
+void RemoteAccessibleBase<Derived>::ActionNameAt(uint8_t aIndex,
+                                                 nsAString& aName) {
+  if (mCachedFields) {
+    aName.Truncate();
+    nsAtom* action = GetPrimaryAction();
+    if (!action && (IsTextLeaf() || IsImage())) {
+      const Accessible* actionAcc = ActionAncestor();
+      Derived* acc =
+          actionAcc ? const_cast<Accessible*>(actionAcc)->AsRemote() : nullptr;
+      if (acc) {
+        action = acc->GetPrimaryAction();
+      }
+    }
+
+    switch (aIndex) {
+      case 0:
+        if (action) {
+          action->ToString(aName);
+        } else if (mCachedFields->HasAttribute(nsGkAtoms::longdesc)) {
+          aName.AssignLiteral("showlongdesc");
+        }
+        break;
+      case 1:
+        if (action && mCachedFields->HasAttribute(nsGkAtoms::longdesc)) {
+          aName.AssignLiteral("showlongdesc");
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  VERIFY_CACHE(CacheDomain::Actions);
+}
+
+template <class Derived>
+bool RemoteAccessibleBase<Derived>::DoAction(uint8_t aIndex) const {
+  if (ActionCount() < aIndex + 1) {
+    return false;
+  }
+
+  Unused << mDoc->SendDoActionAsync(mID, aIndex);
+  return true;
+}
+
+template <class Derived>
 void RemoteAccessibleBase<Derived>::ARIAGroupPosition(
     int32_t* aLevel, int32_t* aSetSize, int32_t* aPosInSet) const {
   if (!mCachedFields) {
@@ -586,6 +661,11 @@ void RemoteAccessibleBase<Derived>::InvalidateGroupInfo() {
   if (mCachedFields) {
     mCachedFields->Remove(nsGkAtoms::group);
   }
+}
+
+template <class Derived>
+bool RemoteAccessibleBase<Derived>::HasPrimaryAction() const {
+  return mCachedFields && mCachedFields->HasAttribute(nsGkAtoms::action);
 }
 
 template <class Derived>

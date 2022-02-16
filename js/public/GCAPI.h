@@ -43,12 +43,25 @@ enum class GCOptions : uint32_t {
   // collection because of internal references
   Normal = 0,
 
+  // A shrinking GC.
+  //
   // Try to release as much memory as possible by clearing internal caches,
   // aggressively discarding JIT code and decommitting unused chunks. This
   // ensures all unreferenced objects are removed from the system.
   //
   // Finally, compact the GC heap.
   Shrink = 1,
+
+  // A shutdown GC.
+  //
+  // This does more drastic cleanup as part of system shutdown, including:
+  //  - clearing WeakRef kept object sets
+  //  - not marking FinalizationRegistry roots
+  //  - repeating collection if JS::NotifyGCRootsRemoved was called
+  //  - skipping scheduling of various future work that won't be needed
+  //
+  // Note that this assumes that no JS will run after this point!
+  Shutdown = 2
 };
 
 }  // namespace JS
@@ -713,7 +726,7 @@ extern JS_PUBLIC_API void NonIncrementalGC(JSContext* cx, JS::GCOptions options,
 extern JS_PUBLIC_API void StartIncrementalGC(JSContext* cx,
                                              JS::GCOptions options,
                                              GCReason reason,
-                                             int64_t millis = 0);
+                                             const js::SliceBudget& budget);
 
 /**
  * Perform a slice of an ongoing incremental collection. When this function
@@ -724,7 +737,7 @@ extern JS_PUBLIC_API void StartIncrementalGC(JSContext* cx,
  *       shorter than the requested interval.
  */
 extern JS_PUBLIC_API void IncrementalGCSlice(JSContext* cx, GCReason reason,
-                                             int64_t millis = 0);
+                                             const js::SliceBudget& budget);
 
 /**
  * Return whether an incremental GC has work to do on the foreground thread and

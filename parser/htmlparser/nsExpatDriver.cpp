@@ -4,8 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsExpatDriver.h"
+#include "mozilla/fallible.h"
 #include "nsCOMPtr.h"
-#include "nsParserCIID.h"
 #include "CParserContext.h"
 #include "nsIExpatSink.h"
 #include "nsIContentSink.h"
@@ -15,6 +15,7 @@
 #include "nsIUnicharInputStream.h"
 #include "nsIProtocolHandler.h"
 #include "nsNetUtil.h"
+#include "nsString.h"
 #include "nsTextFormatter.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsCRT.h"
@@ -46,6 +47,7 @@
 using mozilla::fallible;
 using mozilla::LogLevel;
 using mozilla::MakeStringSpan;
+using mozilla::Unused;
 using mozilla::dom::Document;
 
 // We only pass chunks of length sMaxChunkLength to Expat in the RLBOX sandbox.
@@ -348,9 +350,8 @@ static void GetLocalDTDURI(const nsCatalogData* aCatalogData, nsIURI* aDTD,
 /***************************** END CATALOG UTILS *****************************/
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsExpatDriver)
-  NS_INTERFACE_MAP_ENTRY(nsITokenizer)
   NS_INTERFACE_MAP_ENTRY(nsIDTD)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDTD)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsExpatDriver)
@@ -365,7 +366,6 @@ nsExpatDriver::nsExpatDriver()
       mInExternalDTD(false),
       mMadeFinalCallToExpat(false),
       mInParser(false),
-      mIsFinalChunk(false),
       mInternalState(NS_OK),
       mExpatBuffered(0),
       mTagDepth(0),
@@ -1041,12 +1041,18 @@ nsresult nsExpatDriver::HandleError() {
                        1;
   uint32_t lineNumber = RLBOX_EXPAT_SAFE_MCALL(MOZ_XML_GetCurrentLineNumber,
                                                safe_unverified<XML_Size>);
-
+  const XML_Char* expatBase =
+      RLBOX_EXPAT_MCALL(MOZ_XML_GetBase)
+          .copy_and_verify_address(unverified_xml_string);
+  nsAutoString uri;
+  nsCOMPtr<nsIURI> baseURI;
+  if (expatBase && (baseURI = GetBaseURI(expatBase))) {
+    // Let's ignore if this fails, we're already reporting a parse error.
+    Unused << CopyUTF8toUTF16(baseURI->GetSpecOrDefault(), uri, fallible);
+  }
   nsAutoString errorText;
-  const auto* aBase = RLBOX_EXPAT_MCALL(MOZ_XML_GetBase)
-                          .copy_and_verify_address(unverified_xml_string);
-  CreateErrorText(description.get(), aBase, lineNumber, colNumber, errorText,
-                  spoofEnglish);
+  CreateErrorText(description.get(), uri.get(), lineNumber, colNumber,
+                  errorText, spoofEnglish);
 
   nsAutoString sourceText(mLastLine);
   AppendErrorPointer(colNumber, mLastLine.get(), sourceText);
@@ -1218,8 +1224,7 @@ void nsExpatDriver::ParseBuffer(const char16_t* aBuffer, uint32_t aLength,
   }
 }
 
-NS_IMETHODIMP
-nsExpatDriver::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens) {
+nsresult nsExpatDriver::ResumeParse(nsScanner& aScanner, bool aIsFinalChunk) {
   // We keep the scanner pointing to the position where Expat will start
   // parsing.
   nsScannerIterator currentExpatPosition;
@@ -1241,9 +1246,9 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens) {
   // We want to call Expat if we have more buffers, or if we know there won't
   // be more buffers (and so we want to flush the remaining data), or if we're
   // currently blocked and there's data in Expat's buffer.
-  while (start != end || (mIsFinalChunk && !mMadeFinalCallToExpat) ||
+  while (start != end || (aIsFinalChunk && !mMadeFinalCallToExpat) ||
          (BlockedOrInterrupted() && mExpatBuffered > 0)) {
-    bool noMoreBuffers = start == end && mIsFinalChunk;
+    bool noMoreBuffers = start == end && aIsFinalChunk;
     bool blocked = BlockedOrInterrupted();
 
     const char16_t* buffer;
@@ -1494,9 +1499,7 @@ RLBoxExpatSandboxData::~RLBoxExpatSandboxData() {
   MOZ_COUNT_DTOR(RLBoxExpatSandboxData);
 }
 
-NS_IMETHODIMP
-nsExpatDriver::WillBuildModel(const CParserContext& aParserContext,
-                              nsITokenizer* aTokenizer, nsIContentSink* aSink) {
+nsresult nsExpatDriver::Initialize(nsIURI* aURI, nsIContentSink* aSink) {
   mSink = do_QueryInterface(aSink);
   if (!mSink) {
     NS_ERROR("nsExpatDriver didn't get an nsIExpatSink");
@@ -1567,7 +1570,7 @@ nsExpatDriver::WillBuildModel(const CParserContext& aParserContext,
                     XML_PARAM_ENTITY_PARSING_ALWAYS);
 #endif
 
-  auto baseURI = GetExpatBaseURI(aParserContext.mScanner->GetURI());
+  auto baseURI = GetExpatBaseURI(aURI);
   auto uri =
       TransferBuffer<XML_Char>(Sandbox(), &baseURI[0], ArrayLength(baseURI));
   RLBOX_EXPAT_MCALL(MOZ_XML_SetBase, *uri);
@@ -1601,12 +1604,9 @@ nsExpatDriver::WillBuildModel(const CParserContext& aParserContext,
 }
 
 NS_IMETHODIMP
-nsExpatDriver::BuildModel(nsITokenizer* aTokenizer, nsIContentSink* aSink) {
-  return mInternalState;
-}
+nsExpatDriver::BuildModel(nsIContentSink* aSink) { return mInternalState; }
 
-NS_IMETHODIMP
-nsExpatDriver::DidBuildModel(nsresult anErrorCode) {
+void nsExpatDriver::DidBuildModel() {
   if (!mInParser) {
     // Because nsExpatDriver is cycle-collected, it gets destroyed
     // asynchronously. We want to eagerly release the sandbox back into the
@@ -1616,13 +1616,6 @@ nsExpatDriver::DidBuildModel(nsresult anErrorCode) {
   }
   mOriginalSink = nullptr;
   mSink = nullptr;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsExpatDriver::WillTokenize(bool aIsFinalChunk) {
-  mIsFinalChunk = aIsFinalChunk;
-  return NS_OK;
 }
 
 NS_IMETHODIMP_(void)
@@ -1634,21 +1627,7 @@ nsExpatDriver::Terminate() {
   mInternalState = NS_ERROR_HTMLPARSER_STOPPARSING;
 }
 
-NS_IMETHODIMP_(int32_t)
-nsExpatDriver::GetType() { return NS_IPARSER_FLAG_XML; }
-
-NS_IMETHODIMP_(nsDTDMode)
-nsExpatDriver::GetMode() const { return eDTDMode_full_standards; }
-
 /*************************** Unused methods **********************************/
-
-NS_IMETHODIMP_(bool)
-nsExpatDriver::IsContainer(int32_t aTag) const { return true; }
-
-NS_IMETHODIMP_(bool)
-nsExpatDriver::CanContain(int32_t aParent, int32_t aChild) const {
-  return true;
-}
 
 void nsExpatDriver::MaybeStopParser(nsresult aState) {
   if (NS_FAILED(aState)) {

@@ -6,6 +6,7 @@
 
 #include "UtilityProcessHost.h"
 
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/UtilityProcessManager.h"
 #include "mozilla/Telemetry.h"
@@ -59,7 +60,8 @@ bool UtilityProcessHost::Launch(StringVector aExtraOpts) {
   MOZ_ASSERT(mLaunchPhase == LaunchPhase::Unlaunched);
   MOZ_ASSERT(!mUtilityProcessParent);
 
-  mPrefSerializer = MakeUnique<ipc::SharedPreferenceSerializer>();
+  mPrefSerializer = MakeUnique<ipc::SharedPreferenceSerializer>(
+      dom::ContentParent::ShouldSyncPreference);
   if (!mPrefSerializer->SerializeToSharedMemory()) {
     return false;
   }
@@ -266,9 +268,9 @@ void UtilityProcessHost::OnChannelClosed() {
   if (!mShutdownRequested && mListener) {
     // This is an unclean shutdown. Notify our listener that we're going away.
     mListener->OnProcessUnexpectedShutdown(this);
-  } else {
-    DestroyProcess();
   }
+
+  DestroyProcess();
 
   // Release the actor.
   UtilityProcessParent::Destroy(std::move(mUtilityProcessParent));
@@ -278,7 +280,7 @@ void UtilityProcessHost::KillHard(const char* aReason) {
   MOZ_ASSERT(NS_IsMainThread());
 
   ProcessHandle handle = GetChildProcessHandle();
-  if (!base::KillProcess(handle, base::PROCESS_END_KILLED_BY_USER, false)) {
+  if (!base::KillProcess(handle, base::PROCESS_END_KILLED_BY_USER)) {
     NS_WARNING("failed to kill subprocess!");
   }
 

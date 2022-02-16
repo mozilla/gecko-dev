@@ -266,7 +266,7 @@ dependencies = [
 [[package]]
 name = "audioipc2"
 version = "0.5.0"
-source = "git+https://github.com/kinetiknz/audioipc-2?rev=f04cfa6a9463232e0468436b0482a698bb12b1ec#f04cfa6a9463232e0468436b0482a698bb12b1ec"
+source = "git+https://github.com/kinetiknz/audioipc-2?rev=8b5c7db0f0af54f25a2ee7f7aa55c2a0689c97fc#8b5c7db0f0af54f25a2ee7f7aa55c2a0689c97fc"
 dependencies = [
  "ashmem",
  "audio_thread_priority",
@@ -291,7 +291,7 @@ dependencies = [
 [[package]]
 name = "audioipc2-client"
 version = "0.5.0"
-source = "git+https://github.com/kinetiknz/audioipc-2?rev=f04cfa6a9463232e0468436b0482a698bb12b1ec#f04cfa6a9463232e0468436b0482a698bb12b1ec"
+source = "git+https://github.com/kinetiknz/audioipc-2?rev=8b5c7db0f0af54f25a2ee7f7aa55c2a0689c97fc#8b5c7db0f0af54f25a2ee7f7aa55c2a0689c97fc"
 dependencies = [
  "audio_thread_priority",
  "audioipc2",
@@ -302,7 +302,7 @@ dependencies = [
 [[package]]
 name = "audioipc2-server"
 version = "0.5.0"
-source = "git+https://github.com/kinetiknz/audioipc-2?rev=f04cfa6a9463232e0468436b0482a698bb12b1ec#f04cfa6a9463232e0468436b0482a698bb12b1ec"
+source = "git+https://github.com/kinetiknz/audioipc-2?rev=8b5c7db0f0af54f25a2ee7f7aa55c2a0689c97fc#8b5c7db0f0af54f25a2ee7f7aa55c2a0689c97fc"
 dependencies = [
  "audio_thread_priority",
  "audioipc2",
@@ -1216,6 +1216,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
+ "strsim",
  "syn",
 ]
 
@@ -1436,6 +1437,27 @@ checksum = "cd8d03faa7fe0c1431609dfad7bbe827af30f82e1e2ae6f7ee4fca6bd764bc28"
 dependencies = [
  "cfg-if 0.1.10",
  "packed_simd",
+]
+
+[[package]]
+name = "enumset"
+version = "1.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6216d2c19a6fb5f29d1ada1dc7bc4367a8cbf0fa4af5cf12e07b5bbdde6b5b2c"
+dependencies = [
+ "enumset_derive",
+]
+
+[[package]]
+name = "enumset_derive"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6451128aa6655d880755345d085494cf7561a6bee7c8dc821e5d77e6d267ecd4"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1961,6 +1983,7 @@ name = "gkrust"
 version = "0.1.0"
 dependencies = [
  "gkrust-shared",
+ "lmdb-rkv-sys",
  "mozglue-static",
  "mozilla-central-workspace-hack",
  "stylo_tests",
@@ -1976,6 +1999,7 @@ dependencies = [
  "gecko-fuzz-targets",
  "gkrust-shared",
  "l10nregistry-ffi-gtest",
+ "lmdb-rkv-sys",
  "moz_task-gtest",
  "mozglue-static",
  "mp4parse-gtest",
@@ -2082,9 +2106,9 @@ dependencies = [
 
 [[package]]
 name = "glean"
-version = "43.0.2"
+version = "44.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5eee21709bc0417a5e2b8ea436717bba01c6851111d3ac096994efa73bb79dab"
+checksum = "d39b68297fbdd3a9cf37243ab30913542cfce546b4c58a5cd7f4ee9cd9ab3d02"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -2102,9 +2126,9 @@ dependencies = [
 
 [[package]]
 name = "glean-core"
-version = "43.0.2"
+version = "44.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6078d68e763d57610d362f34223f856fff64d8d3b1c8974833c9fa02a971f59c"
+checksum = "7b26fe58cf3ba06a2902239e5c26511a1269e57d61214870837b0ac968332616"
 dependencies = [
  "bincode",
  "chrono",
@@ -2122,9 +2146,9 @@ dependencies = [
 
 [[package]]
 name = "glean-ffi"
-version = "43.0.2"
+version = "44.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a33681c61cb007b4d4c19b3cac1a8e74b211f7afe88f179328c04a3bc72ec466"
+checksum = "30511afa692ca3764711da025e0bcd8f07dd09271d9885ee70fa4c970fe91e41"
 dependencies = [
  "android_logger",
  "env_logger",
@@ -2875,9 +2899,9 @@ dependencies = [
 
 [[package]]
 name = "lmdb-rkv-sys"
-version = "0.11.0"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b27470ac25167b3afdfb6af8fcd3bc1be67de50ffbdaf4073378cfded6ae24a5"
+checksum = "61b9ce6b3be08acefa3003c57b7565377432a89ec24476bbe72e11d101f852fe"
 dependencies = [
  "cc",
  "libc",
@@ -3407,8 +3431,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-common"
-version = "0.5.6"
-source = "git+https://github.com/mozilla/neqo?tag=v0.5.6#b9b6e1d4f459b5fab2c59aa784639a3e9b18538e"
+version = "0.5.7"
+source = "git+https://github.com/mozilla/neqo?tag=v0.5.7#f3de275b12c40f45718ce43a0482e771ba6cd4b8"
 dependencies = [
  "chrono",
  "env_logger",
@@ -3420,11 +3444,12 @@ dependencies = [
 
 [[package]]
 name = "neqo-crypto"
-version = "0.5.6"
-source = "git+https://github.com/mozilla/neqo?tag=v0.5.6#b9b6e1d4f459b5fab2c59aa784639a3e9b18538e"
+version = "0.5.7"
+source = "git+https://github.com/mozilla/neqo?tag=v0.5.7#f3de275b12c40f45718ce43a0482e771ba6cd4b8"
 dependencies = [
  "bindgen",
  "log",
+ "mozbuild",
  "neqo-common",
  "serde",
  "serde_derive",
@@ -3433,9 +3458,10 @@ dependencies = [
 
 [[package]]
 name = "neqo-http3"
-version = "0.5.6"
-source = "git+https://github.com/mozilla/neqo?tag=v0.5.6#b9b6e1d4f459b5fab2c59aa784639a3e9b18538e"
+version = "0.5.7"
+source = "git+https://github.com/mozilla/neqo?tag=v0.5.7#f3de275b12c40f45718ce43a0482e771ba6cd4b8"
 dependencies = [
+ "enumset",
  "lazy_static",
  "log",
  "neqo-common",
@@ -3450,8 +3476,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-qpack"
-version = "0.5.6"
-source = "git+https://github.com/mozilla/neqo?tag=v0.5.6#b9b6e1d4f459b5fab2c59aa784639a3e9b18538e"
+version = "0.5.7"
+source = "git+https://github.com/mozilla/neqo?tag=v0.5.7#f3de275b12c40f45718ce43a0482e771ba6cd4b8"
 dependencies = [
  "lazy_static",
  "log",
@@ -3464,8 +3490,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-transport"
-version = "0.5.6"
-source = "git+https://github.com/mozilla/neqo?tag=v0.5.6#b9b6e1d4f459b5fab2c59aa784639a3e9b18538e"
+version = "0.5.7"
+source = "git+https://github.com/mozilla/neqo?tag=v0.5.7#f3de275b12c40f45718ce43a0482e771ba6cd4b8"
 dependencies = [
  "indexmap",
  "lazy_static",

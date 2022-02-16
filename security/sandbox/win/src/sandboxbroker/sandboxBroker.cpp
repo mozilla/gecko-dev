@@ -21,6 +21,7 @@
 #include "mozilla/SandboxSettings.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_security.h"
+#include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/WinDllServices.h"
@@ -31,6 +32,7 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsIFile.h"
 #include "nsIProperties.h"
+#include "nsIXULRuntime.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
 #include "nsTHashtable.h"
@@ -646,7 +648,10 @@ void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
   }
 
   if (aSandboxLevel > 4) {
-    result = mPolicy->SetAlternateDesktop(false);
+    // Alternate winstation breaks native theming.
+    bool useAlternateWinstation =
+        StaticPrefs::widget_non_native_theme_enabled();
+    result = mPolicy->SetAlternateDesktop(useAlternateWinstation);
     if (NS_WARN_IF(result != sandbox::SBOX_ALL_OK)) {
       LOG_W("SetAlternateDesktop failed, result: %i, last error: %x", result,
             ::GetLastError());
@@ -684,13 +689,13 @@ void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
   MOZ_RELEASE_ASSERT(sandbox::SBOX_ALL_OK == result,
                      "Invalid flags for SetProcessMitigations.");
 
-  ContentWin32kLockdownState win32kLockdownState =
+  nsIXULRuntime::ContentWin32kLockdownState win32kLockdownState =
       GetContentWin32kLockdownState();
 
   LOG_W("Win32k Lockdown State: '%s'",
         ContentWin32kLockdownStateToString(win32kLockdownState));
 
-  if (win32kLockdownState == ContentWin32kLockdownState::LockdownEnabled) {
+  if (GetContentWin32kLockdownEnabled()) {
     result = AddWin32kLockdownPolicy(mPolicy, false);
     MOZ_RELEASE_ASSERT(result == sandbox::SBOX_ALL_OK,
                        "Failed to add the win32k lockdown policy");
@@ -1191,16 +1196,11 @@ bool SandboxBroker::SetSecurityLevelForSocketProcess() {
   }
 
   mitigations = sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
-                sandbox::MITIGATION_DLL_SEARCH_ORDER;
+                sandbox::MITIGATION_DLL_SEARCH_ORDER |
+                sandbox::MITIGATION_DYNAMIC_CODE_DISABLE;
 
   if (exceptionModules.isNothing()) {
     mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-  }
-
-  // TODO: MITIGATION_DYNAMIC_CODE_DISABLE will be always added to mitigations
-  // in bug 1734470.
-  if (!StaticPrefs::network_proxy_parse_pac_on_socket_process()) {
-    mitigations |= sandbox::MITIGATION_DYNAMIC_CODE_DISABLE;
   }
 
   result = mPolicy->SetDelayedProcessMitigations(mitigations);

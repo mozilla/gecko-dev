@@ -6,6 +6,7 @@
 #ifndef _LocalAccessible_H_
 #define _LocalAccessible_H_
 
+#include "mozilla/ComputedStyle.h"
 #include "mozilla/a11y/Accessible.h"
 #include "mozilla/a11y/AccTypes.h"
 #include "mozilla/a11y/RelationType.h"
@@ -504,29 +505,11 @@ class LocalAccessible : public nsISupports, public Accessible {
   //////////////////////////////////////////////////////////////////////////////
   // ActionAccessible
 
-  /**
-   * Return the number of actions that can be performed on this accessible.
-   */
-  virtual uint8_t ActionCount() const;
+  virtual uint8_t ActionCount() const override;
 
-  /**
-   * Return action name at given index.
-   */
-  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName);
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
 
-  /**
-   * Default to localized action name.
-   */
-  void ActionDescriptionAt(uint8_t aIndex, nsAString& aDescription) {
-    nsAutoString name;
-    ActionNameAt(aIndex, name);
-    TranslateString(name, aDescription);
-  }
-
-  /**
-   * Invoke the accessible action.
-   */
-  virtual bool DoAction(uint8_t aIndex) const;
+  virtual bool DoAction(uint8_t aIndex) const override;
 
   /**
    * Return access key, such as Alt+D.
@@ -547,11 +530,6 @@ class LocalAccessible : public nsISupports, public Accessible {
    * Return true if the accessible is hyper link accessible.
    */
   virtual bool IsLink() const override;
-
-  /**
-   * Return the end offset of the link within the parent accessible.
-   */
-  virtual uint32_t EndOffset();
 
   /**
    * Return true if the link is valid (e. g. points to a valid URL).
@@ -679,11 +657,6 @@ class LocalAccessible : public nsISupports, public Accessible {
   bool IsActiveDescendant(LocalAccessible** aWidget = nullptr) const;
 
   /**
-   * Return the localized string for the given key.
-   */
-  static void TranslateString(const nsString& aKey, nsAString& aStringOut);
-
-  /**
    * Return true if the accessible is defunct.
    */
   bool IsDefunct() const;
@@ -805,6 +778,15 @@ class LocalAccessible : public nsISupports, public Accessible {
 
   already_AddRefed<AccAttributes> BundleFieldsForCache(
       uint64_t aCacheDomain, CacheUpdateType aUpdateType);
+
+  /**
+   * Push fields to cache.
+   * aCacheDomain - describes which fields to bundle and ultimately send
+   * aUpdate - describes whether this is an initial or subsequent update
+   */
+  void SendCache(uint64_t aCacheDomain, CacheUpdateType aUpdate);
+
+  void MaybeQueueCacheUpdateForStyleChanges();
 
   virtual nsAtom* TagName() const override;
 
@@ -990,17 +972,14 @@ class LocalAccessible : public nsISupports, public Accessible {
 
   virtual AccGroupInfo* GetOrCreateGroupInfo() override;
 
+  virtual bool HasPrimaryAction() const override;
+
   virtual void ARIAGroupPosition(int32_t* aLevel, int32_t* aSetSize,
                                  int32_t* aPosInSet) const override;
 
-  /**
-   * Push fields to cache.
-   * aCacheDomain - describes which fields to bundle and ultimately send
-   * aUpdate - describes whether this is an initial or subsequent update
-   */
-  void SendCache(uint64_t aCacheDomain, CacheUpdateType aUpdate);
-
   // Data Members
+  // mContent can be null in a DocAccessible if the document has no body or
+  // root element.
   nsCOMPtr<nsIContent> mContent;
   RefPtr<DocAccessible> mDoc;
 
@@ -1008,6 +987,25 @@ class LocalAccessible : public nsISupports, public Accessible {
   nsTArray<LocalAccessible*> mChildren;
   int32_t mIndexInParent;
   Maybe<nsRect> mBounds;
+
+  /**
+   * Maintain a reference to the ComputedStyle of our frame so we can
+   * send cache updates when style changes are observed.
+   *
+   * This RefPtr is initialised in BundleFieldsForCache to the ComputedStyle
+   * for our initial frame.
+   * Style changes are observed in one of two ways:
+   * 1. Style changes on the same frame are observed in
+   * nsIFrame::DidSetComputedStyle.
+   * 2. Style changes for reconstructed frames are handled in
+   * DocAccessible::PruneOrInsertSubtree.
+   * In both cases, we call into MaybeQueueCacheUpdateForStyleChanges. There, we
+   * compare a11y-relevant properties in mOldComputedStyle with the current
+   * ComputedStyle fetched from GetFrame()->Style(). Finally, we send cache
+   * updates for attributes affected by the style change and update
+   * mOldComputedStyle to the style of our current frame.
+   */
+  RefPtr<const ComputedStyle> mOldComputedStyle;
 
   static const uint8_t kStateFlagsBits = 11;
   static const uint8_t kContextFlagsBits = 3;

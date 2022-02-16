@@ -328,10 +328,6 @@
 #  include <android/log.h>
 #endif
 
-#ifdef MOZ_WIDGET_ANDROID
-#  include "mozilla/dom/WindowOrientationObserver.h"
-#endif
-
 #ifdef XP_WIN
 #  include "mozilla/Debug.h"
 #  include <process.h>
@@ -904,6 +900,7 @@ class PromiseDocumentFlushedResolver final {
 nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter* aOuterWindow,
                                          WindowGlobalChild* aActor)
     : nsPIDOMWindowInner(aOuterWindow, aActor),
+      mHasOrientationChangeListeners(false),
       mWasOffline(false),
       mHasHadSlowScript(false),
       mIsChrome(false),
@@ -949,13 +946,13 @@ nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter* aOuterWindow,
       *this, StaticPrefs::dom_timeout_max_idle_defer_ms());
 
   mObserver = new nsGlobalWindowObserver(this);
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (os) {
+  if (nsCOMPtr<nsIObserverService> os = services::GetObserverService()) {
     // Watch for online/offline status changes so we can fire events. Use
     // a strong reference.
     os->AddObserver(mObserver, NS_IOSERVICE_OFFLINE_STATUS_TOPIC, false);
     os->AddObserver(mObserver, MEMORY_PRESSURE_OBSERVER_TOPIC, false);
     os->AddObserver(mObserver, PERMISSION_CHANGED_TOPIC, false);
+    os->AddObserver(mObserver, "screen-information-changed", false);
   }
 
   Preferences::AddStrongObserver(mObserver, "intl.accept_languages");
@@ -1172,10 +1169,6 @@ void nsGlobalWindowInner::FreeInnerObjects() {
 
   mScreen = nullptr;
 
-#if defined(MOZ_WIDGET_ANDROID)
-  mOrientationChangeObserver = nullptr;
-#endif
-
   if (mDoc) {
     // Remember the document's principal, URI, and CSP.
     mDocumentPrincipal = mDoc->NodePrincipal();
@@ -1247,12 +1240,16 @@ void nsGlobalWindowInner::FreeInnerObjects() {
 
   DisconnectEventTargetObjects();
 
+#ifdef MOZ_WIDGET_ANDROID
+  DisableOrientationChangeListener();
+#endif
+
   if (mObserver) {
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (os) {
+    if (nsCOMPtr<nsIObserverService> os = services::GetObserverService()) {
       os->RemoveObserver(mObserver, NS_IOSERVICE_OFFLINE_STATUS_TOPIC);
       os->RemoveObserver(mObserver, MEMORY_PRESSURE_OBSERVER_TOPIC);
       os->RemoveObserver(mObserver, PERMISSION_CHANGED_TOPIC);
+      os->RemoveObserver(mObserver, "screen-information-changed");
     }
 
     RefPtr<StorageNotifierService> sns = StorageNotifierService::GetOrCreate();
@@ -3079,7 +3076,7 @@ bool nsGlobalWindowInner::DoResolve(
   // Note: Keep this in sync with MayResolve.
 
   // Note: The infallibleInit call in GlobalResolve depends on this check.
-  if (!JSID_IS_STRING(aId)) {
+  if (!aId.isString()) {
     return true;
   }
 
@@ -3143,7 +3140,7 @@ bool nsGlobalWindowInner::DoResolve(
 bool nsGlobalWindowInner::MayResolve(jsid aId) {
   // Note: This function does not fail and may not have any side-effects.
   // Note: Keep this in sync with DoResolve.
-  if (!JSID_IS_STRING(aId)) {
+  if (!aId.isString()) {
     return false;
   }
 
@@ -3521,8 +3518,50 @@ float nsGlobalWindowInner::GetMozInnerScreenY(CallerType aCallerType,
 
 double nsGlobalWindowInner::GetDevicePixelRatio(CallerType aCallerType,
                                                 ErrorResult& aError) {
-  FORWARD_TO_OUTER_OR_THROW(GetDevicePixelRatioOuter, (aCallerType), aError,
-                            0.0);
+  ENSURE_ACTIVE_DOCUMENT(aError, 0.0);
+
+  RefPtr<nsPresContext> presContext = mDoc->GetPresContext();
+  if (NS_WARN_IF(!presContext)) {
+    // We're in an undisplayed subdocument... There's not really an awesome way
+    // to tell what the right DPI is from here, so we try to walk up our parent
+    // document chain to the extent that the docs can observe each other.
+    Document* doc = mDoc;
+    while (doc->StyleOrLayoutObservablyDependsOnParentDocumentLayout()) {
+      doc = doc->GetInProcessParentDocument();
+      presContext = doc->GetPresContext();
+      if (presContext) {
+        break;
+      }
+    }
+
+    if (!presContext) {
+      // Still nothing, oh well.
+      return 1.0;
+    }
+  }
+
+  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+    // Spoofing the DevicePixelRatio causes blurriness in some situations
+    // on HiDPI displays. pdf.js is a non-system caller; but it can't
+    // expose the fingerprintable information, so we can safely disable
+    // spoofing in this situation. It doesn't address the issue for
+    // web-rendered content (including pdf.js instances on the web.)
+    // In the future we hope to have a better solution to fix all HiDPI
+    // blurriness...
+    nsAutoCString origin;
+    nsresult rv = this->GetPrincipal()->GetOrigin(origin);
+    if (NS_FAILED(rv) || origin != "resource://pdf.js"_ns) {
+      return 1.0;
+    }
+  }
+
+  float overrideDPPX = presContext->GetOverrideDPPX();
+  if (overrideDPPX > 0.0f) {
+    return overrideDPPX;
+  }
+
+  return double(AppUnitsPerCSSPixel()) /
+         double(presContext->AppUnitsPerDevPixel());
 }
 
 uint64_t nsGlobalWindowInner::GetMozPaintCount(ErrorResult& aError) {
@@ -5304,6 +5343,24 @@ nsresult nsGlobalWindowInner::Observe(nsISupports* aSubject, const char* aTopic,
     return NS_OK;
   }
 
+  if (!nsCRT::strcmp(aTopic, "screen-information-changed")) {
+    if (mScreen) {
+      if (RefPtr<ScreenOrientation> orientation =
+              mScreen->GetOrientationIfExists()) {
+        orientation->MaybeChanged();
+      }
+    }
+    if (mHasOrientationChangeListeners) {
+      int32_t oldAngle = mOrientationAngle;
+      mOrientationAngle = Orientation(CallerType::System);
+      if (mOrientationAngle != oldAngle && IsCurrentInnerWindow()) {
+        nsCOMPtr<nsPIDOMWindowOuter> outer = GetOuterWindow();
+        outer->DispatchCustomEvent(u"orientationchange"_ns);
+      }
+    }
+    return NS_OK;
+  }
+
   if (!nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     MOZ_ASSERT(!NS_strcmp(aData, u"intl.accept_languages"));
 
@@ -6402,14 +6459,14 @@ void nsGlobalWindowInner::DisableDeviceSensor(uint32_t aType) {
 
 #if defined(MOZ_WIDGET_ANDROID)
 void nsGlobalWindowInner::EnableOrientationChangeListener() {
-  if (!nsContentUtils::ShouldResistFingerprinting(GetDocShell()) &&
-      !mOrientationChangeObserver) {
-    mOrientationChangeObserver = MakeUnique<WindowOrientationObserver>(this);
+  if (!nsContentUtils::ShouldResistFingerprinting(GetDocShell())) {
+    mHasOrientationChangeListeners = true;
+    mOrientationAngle = Orientation(CallerType::System);
   }
 }
 
 void nsGlobalWindowInner::DisableOrientationChangeListener() {
-  mOrientationChangeObserver = nullptr;
+  mHasOrientationChangeListeners = false;
 }
 #endif
 
@@ -7247,13 +7304,19 @@ ChromeMessageBroadcaster* nsGlobalWindowInner::GetGroupMessageManager(
 
 void nsGlobalWindowInner::InitWasOffline() { mWasOffline = NS_IsOffline(); }
 
-#if defined(MOZ_WIDGET_ANDROID)
-int16_t nsGlobalWindowInner::Orientation(CallerType aCallerType) const {
-  return nsContentUtils::ResistFingerprinting(aCallerType)
-             ? 0
-             : WindowOrientationObserver::OrientationAngle();
+int16_t nsGlobalWindowInner::Orientation(CallerType aCallerType) {
+  // GetOrientationAngle() returns 0, 90, 180 or 270.
+  // window.orientation returns -90, 0, 90 or 180.
+  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+    return 0;
+  }
+  nsScreen* s = GetScreen(IgnoreErrors());
+  if (!s) {
+    return 0;
+  }
+  int16_t angle = AssertedCast<int16_t>(s->GetOrientationAngle());
+  return angle <= 180 ? angle : angle - 360;
 }
-#endif
 
 already_AddRefed<Console> nsGlobalWindowInner::GetConsole(JSContext* aCx,
                                                           ErrorResult& aRv) {

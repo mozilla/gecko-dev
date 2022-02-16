@@ -903,12 +903,10 @@ option(
 )
 
 
-@depends("--enable-wasm-moz-intgemm")
-def wasm_moz_intgemm(value):
-    if not value:
-        return
-
-    return True
+@depends("--enable-wasm-moz-intgemm", target)
+def wasm_moz_intgemm(value, target):
+    if value and target.cpu in ("x86", "x86_64"):
+        return True
 
 
 set_config("ENABLE_WASM_MOZ_INTGEMM", wasm_moz_intgemm)
@@ -959,46 +957,6 @@ def wasm_memory64(value, cranelift, simulator, target):
 
 set_config("ENABLE_WASM_MEMORY64", wasm_memory64)
 set_define("ENABLE_WASM_MEMORY64", wasm_memory64)
-
-# Support for checking for indirect call to null via traps
-# =====================================================
-
-
-@depends(milestone.is_nightly, "--enable-jit", "--enable-simulator")
-def default_wasm_call_indirect_null(is_nightly, enable_jit, simulator):
-    if not enable_jit:
-        return
-
-    if simulator:
-        return
-
-    if is_nightly:
-        return True
-
-
-option(
-    "--enable-wasm-call-indirect-null",
-    default=default_wasm_call_indirect_null,
-    help="{Enable|Disable} WebAssembly call-indirect-to-null optimization",
-)
-
-
-@depends("--enable-wasm-call-indirect-null", "--enable-jit", "--enable-simulator")
-def wasm_call_indirect_null(value, enable_jit, simulator):
-    if not value:
-        return
-
-    if not enable_jit:
-        return
-
-    if simulator:
-        return
-
-    return True
-
-
-set_config("ENABLE_WASM_CALL_INDIRECT_NULL", wasm_call_indirect_null)
-set_define("ENABLE_WASM_CALL_INDIRECT_NULL", wasm_call_indirect_null)
 
 # Options for generating the shell as a script
 # ============================================
@@ -1258,6 +1216,24 @@ set_config(
     ),
 )
 
+
+# Some platforms have HeapReg, some don't
+# =====================================================
+
+# The ARM simulator runs on x86 and might be excluded by the first test,
+# so we special-case it.
+
+
+@depends("--enable-simulator", target)
+def wasm_has_heapreg(simulator, target):
+    if target.cpu != "x86":
+        return True
+
+    if simulator and simulator[0] == "arm":
+        return True
+
+
+set_define("WASM_HAS_HEAPREG", wasm_has_heapreg)
 
 # Check for tm_zone, tm_gmtoff in struct tm
 # ===================================================

@@ -120,6 +120,7 @@ Preferences.addAll([
        page-down, and other such page movements */
   { id: "general.autoScroll", type: "bool" },
   { id: "general.smoothScroll", type: "bool" },
+  { id: "widget.gtk.overlay-scrollbars.enabled", type: "bool", inverted: true },
   { id: "layout.spellcheckDefault", type: "int" },
 
   {
@@ -174,6 +175,10 @@ if (AppConstants.MOZ_UPDATER) {
   Preferences.addAll([
     { id: "app.update.disable_button.showUpdateHistory", type: "bool" },
   ]);
+
+  if (AppConstants.NIGHTLY_BUILD) {
+    Preferences.addAll([{ id: "app.update.suppressPrompts", type: "bool" }]);
+  }
 
   if (AppConstants.MOZ_MAINTENANCE_SERVICE) {
     Preferences.addAll([{ id: "app.update.service.enabled", type: "bool" }]);

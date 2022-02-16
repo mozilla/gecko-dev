@@ -227,6 +227,7 @@ class Watchdog {
   }
   void Sleep(PRIntervalTime timeout) {
     MOZ_ASSERT(!NS_IsMainThread());
+    AUTO_PROFILER_THREAD_SLEEP;
     MOZ_ALWAYS_TRUE(PR_WaitCondVar(mWakeup, timeout) == PR_SUCCESS);
   }
   void Finished() {
@@ -774,6 +775,9 @@ static mozilla::Atomic<bool> sPropertyErrorMessageFixEnabled(false);
 static mozilla::Atomic<bool> sWeakRefsEnabled(false);
 static mozilla::Atomic<bool> sWeakRefsExposeCleanupSome(false);
 static mozilla::Atomic<bool> sIteratorHelpersEnabled(false);
+#ifdef NIGHTLY_BUILD
+static mozilla::Atomic<bool> sArrayGroupingEnabled(true);
+#endif
 
 static JS::WeakRefSpecifier GetWeakRefsEnabled() {
   if (!sWeakRefsEnabled) {
@@ -800,6 +804,9 @@ void xpc::SetPrefableRealmOptions(JS::RealmOptions& options) {
       .setPropertyErrorMessageFixEnabled(sPropertyErrorMessageFixEnabled)
       .setWeakRefsEnabled(GetWeakRefsEnabled())
       .setIteratorHelpersEnabled(sIteratorHelpersEnabled)
+#ifdef NIGHTLY_BUILD
+      .setArrayGroupingEnabled(sArrayGroupingEnabled)
+#endif
 #ifdef ENABLE_NEW_SET_METHODS
       .setNewSetMethodsEnabled(enableNewSetMethods)
 #endif
@@ -970,6 +977,11 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
           javascript_options_spectre_jit_to_cxx_calls_DoNotUseDirectly());
 #endif
 
+  JS_SetGlobalJitCompilerOption(
+      cx, JSJITCOMPILER_WATCHTOWER_MEGAMORPHIC,
+      StaticPrefs::
+          javascript_options_watchtower_megamorphic_DoNotUseDirectly());
+
   if (disableWasmHugeMemory) {
     bool disabledHugeMemory = JS::DisableWasmHugeMemory();
     MOZ_RELEASE_ASSERT(disabledHugeMemory);
@@ -1003,6 +1015,8 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
 #ifdef NIGHTLY_BUILD
   sIteratorHelpersEnabled =
       Preferences::GetBool(JS_OPTIONS_DOT_STR "experimental.iterator_helpers");
+  sArrayGroupingEnabled =
+      Preferences::GetBool(JS_OPTIONS_DOT_STR "experimental.array_grouping");
 #endif
 
 #ifdef ENABLE_NEW_SET_METHODS
@@ -1087,7 +1101,7 @@ XPCJSContext::~XPCJSContext() {
 XPCJSContext::XPCJSContext()
     : mCallContext(nullptr),
       mAutoRoots(nullptr),
-      mResolveName(JSID_VOID),
+      mResolveName(JS::PropertyKey::Void()),
       mResolvingWrapper(nullptr),
       mWatchdogManager(GetWatchdogManager()),
       mSlowScriptSecondHalf(false),

@@ -888,6 +888,14 @@ void gfxWindowsPlatform::GetCommonFallbackFonts(
   // Arial Unicode MS has lots of glyphs for obscure characters,
   // use it as a last resort
   aFontList.AppendElement(kFontArialUnicodeMS);
+
+  // If we didn't begin with the color-emoji fonts, include them here
+  // so that they'll be preferred over user-installed (and possibly
+  // broken) fonts in the global fallback path.
+  if (!PrefersColor(aPresentation)) {
+    aFontList.AppendElement(kFontSegoeUIEmoji);
+    aFontList.AppendElement(kFontTwemojiMozilla);
+  }
 }
 
 bool gfxWindowsPlatform::DidRenderingDeviceReset(
@@ -1678,7 +1686,10 @@ class D3DVsyncSource final : public VsyncSource {
           UpdateVBlankOutput();
           if (mWaitVBlankOutput) {
             const TimeStamp vblank_begin_wait = TimeStamp::Now();
-            hr = mWaitVBlankOutput->WaitForVBlank();
+            {
+              AUTO_PROFILER_THREAD_SLEEP;
+              hr = mWaitVBlankOutput->WaitForVBlank();
+            }
             if (SUCCEEDED(hr)) {
               // vblank might return instantly when running headless,
               // monitor powering off, etc.  Since we're on a dedicated

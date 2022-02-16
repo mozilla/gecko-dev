@@ -14,7 +14,7 @@ import subprocess
 import time
 from typing import Optional
 from pathlib import Path
-from distutils.version import LooseVersion
+from packaging.version import Version
 from mach.util import (
     get_state_dir,
     UserError,
@@ -128,7 +128,7 @@ Proceed at your own peril.
 
 
 # Version 2.24 changes the "core.commitGraph" setting to be "True" by default.
-MINIMUM_RECOMMENDED_GIT_VERSION = LooseVersion("2.24")
+MINIMUM_RECOMMENDED_GIT_VERSION = Version("2.24")
 OLD_GIT_WARNING = """
 You are running an older version of git ("{old_version}").
 We recommend upgrading to at least version "{minimum_recommended_version}" to improve
@@ -199,7 +199,7 @@ class Bootstrapper(object):
         elif sys.platform.startswith("darwin"):
             # TODO Support Darwin platforms that aren't OS X.
             osx_version = platform.mac_ver()[0]
-            if platform.machine() == "arm64":
+            if platform.machine() == "arm64" or _macos_is_running_under_rosetta():
                 cls = OSXBootstrapperLight
             else:
                 cls = OSXBootstrapper
@@ -296,15 +296,7 @@ class Bootstrapper(object):
         ):
             # If running on arm64 mac, check whether we're running under
             # Rosetta and advise against it.
-            proc = subprocess.run(
-                ["sysctl", "-n", "sysctl.proc_translated"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-            )
-            if (
-                proc.returncode == 0
-                and proc.stdout.decode("ascii", "replace").strip() == "1"
-            ):
+            if _macos_is_running_under_rosetta():
                 print(
                     "Python is being emulated under Rosetta. Please use a native "
                     "Python instead. If you still really want to go ahead, set "
@@ -624,7 +616,7 @@ def configure_git(
     )
     if not match:
         raise Exception("Could not find git version")
-    git_version = LooseVersion(match.group(1))
+    git_version = Version(match.group(1))
 
     if git_version < MINIMUM_RECOMMENDED_GIT_VERSION:
         print(
@@ -634,7 +626,7 @@ def configure_git(
             )
         )
 
-    if git_version >= LooseVersion("2.17"):
+    if git_version >= Version("2.17"):
         # "core.untrackedCache" has a bug before 2.17
         subprocess.check_call(
             [git_str, "config", "core.untrackedCache", "true"], cwd=str(top_src_dir)
@@ -668,3 +660,14 @@ def _warn_if_risky_revision(path: Path):
     repo = get_repository_object(path)
     if (time.time() - repo.get_commit_time()) >= NUM_SECONDS_IN_MONTH:
         print(OLD_REVISION_WARNING)
+
+
+def _macos_is_running_under_rosetta():
+    proc = subprocess.run(
+        ["sysctl", "-n", "sysctl.proc_translated"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    return (
+        proc.returncode == 0 and proc.stdout.decode("ascii", "replace").strip() == "1"
+    )

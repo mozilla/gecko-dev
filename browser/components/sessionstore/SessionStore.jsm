@@ -65,6 +65,48 @@ const OBSERVING = [
 // Restored in restoreDimensions()
 const WINDOW_ATTRIBUTES = ["width", "height", "screenX", "screenY", "sizemode"];
 
+const CHROME_FLAGS_MAP = [
+  [Ci.nsIWebBrowserChrome.CHROME_TITLEBAR, "titlebar"],
+  [Ci.nsIWebBrowserChrome.CHROME_WINDOW_CLOSE, "close"],
+  [Ci.nsIWebBrowserChrome.CHROME_TOOLBAR, "toolbar"],
+  [Ci.nsIWebBrowserChrome.CHROME_LOCATIONBAR, "location"],
+  [Ci.nsIWebBrowserChrome.CHROME_PERSONAL_TOOLBAR, "personalbar"],
+  [Ci.nsIWebBrowserChrome.CHROME_STATUSBAR, "status"],
+  [Ci.nsIWebBrowserChrome.CHROME_MENUBAR, "menubar"],
+  [Ci.nsIWebBrowserChrome.CHROME_WINDOW_RESIZE, "resizable"],
+  [Ci.nsIWebBrowserChrome.CHROME_WINDOW_MIN, "minimizable"],
+  [Ci.nsIWebBrowserChrome.CHROME_SCROLLBARS, "", "scrollbars=0"],
+  [Ci.nsIWebBrowserChrome.CHROME_PRIVATE_WINDOW, "private"],
+  [Ci.nsIWebBrowserChrome.CHROME_NON_PRIVATE_WINDOW, "non-private"],
+  // Do not inherit remoteness and fissionness from the previous session.
+  //[Ci.nsIWebBrowserChrome.CHROME_REMOTE_WINDOW, "remote", "non-remote"],
+  //[Ci.nsIWebBrowserChrome.CHROME_FISSION_WINDOW, "fission", "non-fission"],
+  [Ci.nsIWebBrowserChrome.CHROME_WINDOW_POPUP, "popup"],
+  [
+    Ci.nsIWebBrowserChrome.CHROME_WINDOW_POPUP |
+      Ci.nsIWebBrowserChrome.CHROME_TITLEBAR,
+    "",
+    "titlebar=0",
+  ],
+  [
+    Ci.nsIWebBrowserChrome.CHROME_WINDOW_POPUP |
+      Ci.nsIWebBrowserChrome.CHROME_WINDOW_CLOSE,
+    "",
+    "close=0",
+  ],
+  [Ci.nsIWebBrowserChrome.CHROME_WINDOW_LOWERED, "alwayslowered"],
+  [Ci.nsIWebBrowserChrome.HROME_WINDOW_RAISED, "alwaysraised"],
+  // "chrome" and "suppressanimation" are always set.
+  //[Ci.nsIWebBrowserChrome.CHROME_SUPPRESS_ANIMATION, "suppressanimation"],
+  [Ci.nsIWebBrowserChrome.CHROME_ALWAYS_ON_TOP, "alwaysontop"],
+  //[Ci.nsIWebBrowserChrome.CHROME_OPENAS_CHROME, "chrome", "chrome=0"],
+  [Ci.nsIWebBrowserChrome.CHROME_EXTRA, "extrachrome"],
+  [Ci.nsIWebBrowserChrome.CHROME_CENTER_SCREEN, "centerscreen"],
+  [Ci.nsIWebBrowserChrome.CHROME_DEPENDENT, "dependent"],
+  [Ci.nsIWebBrowserChrome.CHROME_MODAL, "modal"],
+  [Ci.nsIWebBrowserChrome.CHROME_OPENAS_DIALOG, "dialog", "dialog=0"],
+];
+
 // Hideable window features to (re)store
 // Restored in restoreWindowFeatures()
 const WINDOW_HIDEABLE_FEATURES = [
@@ -75,6 +117,11 @@ const WINDOW_HIDEABLE_FEATURES = [
   "statusbar",
   "scrollbars",
 ];
+
+const WINDOW_OPEN_FEATURES_MAP = {
+  locationbar: "location",
+  statusbar: "status",
+};
 
 // Messages that will be received via the Frame Message Manager.
 const MESSAGES = [
@@ -1476,6 +1523,9 @@ var SessionStoreInternal = {
       _closedTabs: [],
       _lastClosedTabGroupCount: -1,
       busy: false,
+      chromeFlags: aWindow.docShell.treeOwner
+        .QueryInterface(Ci.nsIInterfaceRequestor)
+        .getInterface(Ci.nsIAppWindow).chromeFlags,
     };
 
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
@@ -2521,6 +2571,7 @@ var SessionStoreInternal = {
    *        Tab reference
    */
   resetBrowserToLazyState(aTab) {
+    const gBrowser = aTab.ownerGlobal.gBrowser;
     let browser = aTab.linkedBrowser;
     // Browser is already lazy so don't do anything.
     if (!browser.isConnected) {
@@ -2534,6 +2585,7 @@ var SessionStoreInternal = {
     this._lastKnownFrameLoader.delete(browser.permanentKey);
     this._crashedBrowsers.delete(browser.permanentKey);
     aTab.removeAttribute("crashed");
+    gBrowser.tabContainer.updateTabIndicatorAttr(aTab);
 
     let { userTypedValue = null, userTypedClear = 0 } = browser;
 
@@ -3685,6 +3737,7 @@ var SessionStoreInternal = {
       );
     }
 
+    const gBrowser = aTab.ownerGlobal.gBrowser;
     let browser = aTab.linkedBrowser;
     if (!this._crashedBrowsers.has(browser.permanentKey)) {
       return;
@@ -3704,6 +3757,8 @@ var SessionStoreInternal = {
     // a flash of the about:tabcrashed page after selecting
     // the revived tab.
     aTab.removeAttribute("crashed");
+    gBrowser.tabContainer.updateTabIndicatorAttr(aTab);
+
     browser.loadURI("about:blank", {
       triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({
         userContextId: aTab.userContextId,
@@ -5141,24 +5196,56 @@ var SessionStoreInternal = {
     argString.data = "";
 
     // Build feature string
-    let features = "chrome,dialog=no,suppressanimation,all";
+    let features;
     let winState = aState.windows[0];
-    WINDOW_ATTRIBUTES.forEach(function(aFeature) {
+    if (winState.chromeFlags) {
+      features = ["chrome", "suppressanimation"];
+      let chromeFlags = winState.chromeFlags;
+      const allFlags = Ci.nsIWebBrowserChrome.CHROME_ALL;
+      const hasAll = (chromeFlags & allFlags) == allFlags;
+      if (hasAll) {
+        features.push("all");
+      }
+      for (let [flag, onValue, offValue] of CHROME_FLAGS_MAP) {
+        if (hasAll && allFlags & flag) {
+          continue;
+        }
+        let value = chromeFlags & flag ? onValue : offValue;
+        if (value) {
+          features.push(value);
+        }
+      }
+    } else {
+      // |chromeFlags| is not found. Fallbacks to the old method.
+      features = ["chrome", "dialog=no", "suppressanimation"];
+      let hidden = winState.hidden?.split(",") || [];
+      if (!hidden.length) {
+        features.push("all");
+      } else {
+        features.push("resizable");
+        WINDOW_HIDEABLE_FEATURES.forEach(aFeature => {
+          if (!hidden.includes(aFeature)) {
+            features.push(WINDOW_OPEN_FEATURES_MAP[aFeature] || aFeature);
+          }
+        });
+      }
+    }
+    WINDOW_ATTRIBUTES.forEach(aFeature => {
       // Use !isNaN as an easy way to ignore sizemode and check for numbers
       if (aFeature in winState && !isNaN(winState[aFeature])) {
-        features += "," + aFeature + "=" + winState[aFeature];
+        features.push(aFeature + "=" + winState[aFeature]);
       }
     });
 
     if (winState.isPrivate) {
-      features += ",private";
+      features.push("private");
     }
 
     var window = Services.ww.openWindow(
       null,
       AppConstants.BROWSER_CHROME_URL,
       "_blank",
-      features,
+      features.join(","),
       argString
     );
 

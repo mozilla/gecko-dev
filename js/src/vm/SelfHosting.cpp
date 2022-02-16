@@ -44,6 +44,9 @@
 #include "builtin/SelfHostingDefines.h"
 #include "builtin/String.h"
 #include "builtin/Symbol.h"
+#ifdef ENABLE_RECORD_TUPLE
+#  include "builtin/TupleObject.h"
+#endif
 #include "builtin/WeakMapObject.h"
 #include "frontend/BytecodeCompilation.h"  // CompileGlobalScriptToStencil
 #include "frontend/CompilationStencil.h"   // js::frontend::CompilationStencil
@@ -137,6 +140,31 @@ static bool intrinsic_ToObject(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+#ifdef ENABLE_RECORD_TUPLE
+
+bool intrinsic_ThisTupleValue(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+  mozilla::Maybe<TupleType&> result = js::ThisTupleValue(cx, args[0]);
+  if (!result) {
+    return false;
+  }
+  args.rval().setExtendedPrimitive(*result);
+  return true;
+}
+
+bool intrinsic_TupleLength(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+  mozilla::Maybe<TupleType&> result = js::ThisTupleValue(cx, args[0]);
+  if (!result) {
+    return false;
+  }
+  args.rval().setInt32((*result).getDenseInitializedLength());
+  return true;
+}
+#endif
+
 static bool intrinsic_IsObject(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   Value val = args[0];
@@ -161,6 +189,23 @@ static bool intrinsic_IsArray(JSContext* cx, unsigned argc, Value* vp) {
   }
   return true;
 }
+
+#ifdef ENABLE_RECORD_TUPLE
+// returns true for TupleTypes and TupleObjects
+bool js::IsTupleUnchecked(JSContext* cx, const CallArgs& args) {
+  args.rval().setBoolean(IsTuple(args.get(0)));
+  return true;
+}
+
+/* Identical to Tuple.prototype.isTuple, but with an
+ * added check that args.length() is 1
+ */
+bool js::intrinsic_IsTuple(JSContext* cx, unsigned argc, JS::Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+  return js::IsTupleUnchecked(cx, args);
+}
+#endif
 
 static bool intrinsic_IsCrossRealmArrayConstructor(JSContext* cx, unsigned argc,
                                                    Value* vp) {
@@ -776,8 +821,10 @@ static bool intrinsic_ThisTimeValue(JSContext* cx, unsigned argc, Value* vp) {
 static bool intrinsic_IsPackedArray(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   MOZ_ASSERT(args.length() == 1);
-  MOZ_ASSERT(args[0].isObject());
-  args.rval().setBoolean(IsPackedArray(&args[0].toObject()));
+  MOZ_ASSERT(args[0].hasObjectPayload());
+  args.rval().setBoolean(
+      (args[0].isObject() && IsPackedArray(&args[0].toObject())) ||
+      IF_RECORD_TUPLE(IsTuple(args[0]), false));
   return true;
 }
 
@@ -2235,6 +2282,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
                     IsRegExpObject),
     JS_INLINABLE_FN("IsSuspendedGenerator", intrinsic_IsSuspendedGenerator, 1,
                     0, IntrinsicIsSuspendedGenerator),
+#ifdef ENABLE_RECORD_TUPLE
+    JS_FN("IsTuple", intrinsic_IsTuple, 1, 0),
+#endif
     JS_INLINABLE_FN("IsTypedArray",
                     intrinsic_IsInstanceOfBuiltin<TypedArrayObject>, 1, 0,
                     IntrinsicIsTypedArray),
@@ -2306,6 +2356,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("ThisNumberValueForToLocaleString", ThisNumberValueForToLocaleString,
           0, 0),
     JS_FN("ThisTimeValue", intrinsic_ThisTimeValue, 1, 0),
+#ifdef ENABLE_RECORD_TUPLE
+    JS_FN("ThisTupleValue", intrinsic_ThisTupleValue, 1, 0),
+#endif
     JS_FN("ThrowAggregateError", intrinsic_ThrowAggregateError, 4, 0),
     JS_FN("ThrowArgTypeNotObject", intrinsic_ThrowArgTypeNotObject, 2, 0),
     JS_FN("ThrowInternalError", intrinsic_ThrowInternalError, 4, 0),
@@ -2318,6 +2371,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("ToObject", intrinsic_ToObject, 1, 0, IntrinsicToObject),
     JS_FN("ToPropertyKey", intrinsic_ToPropertyKey, 1, 0),
     JS_FN("ToSource", intrinsic_ToSource, 1, 0),
+#ifdef ENABLE_RECORD_TUPLE
+    JS_FN("TupleLength", intrinsic_TupleLength, 1, 0),
+#endif
     JS_FN("TypedArrayBitwiseSlice", intrinsic_TypedArrayBitwiseSlice, 4, 0),
     JS_FN("TypedArrayBuffer", intrinsic_TypedArrayBuffer, 1, 0),
     JS_INLINABLE_FN("TypedArrayByteOffset", intrinsic_TypedArrayByteOffset, 1,
@@ -2472,6 +2528,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("std_String_includes", str_includes, 1, 0),
     JS_FN("std_String_indexOf", str_indexOf, 1, 0),
     JS_FN("std_String_startsWith", str_startsWith, 1, 0),
+#ifdef ENABLE_RECORD_TUPLE
+    JS_FN("std_Tuple_unchecked", tuple_construct, 1, 0),
+#endif
     JS_FN("std_TypedArray_buffer", js::TypedArray_bufferGetter, 1, 0),
 
     JS_FS_END};

@@ -2522,15 +2522,18 @@ option(
     env="MOZ_APP_REMOTINGNAME",
     nargs=1,
     help="Used for the internal program name, which affects profile name "
-    "and remoting. If not set, defaults to MOZ_APP_NAME.",
+    "and remoting. If not set, defaults to MOZ_APP_NAME if the update channel "
+    "is release, and MOZ_APP_NAME-MOZ_UPDATE_CHANNEL otherwise.",
 )
 
 
-@depends("MOZ_APP_REMOTINGNAME", moz_app_name)
-def moz_app_remotingname(value, moz_app_name):
+@depends("MOZ_APP_REMOTINGNAME", moz_app_name, update_channel)
+def moz_app_remotingname(value, moz_app_name, update_channel):
     if value:
         return value[0]
-    return moz_app_name
+    if update_channel == "release":
+        return moz_app_name
+    return moz_app_name + "-" + update_channel
 
 
 set_config("MOZ_APP_REMOTINGNAME", moz_app_remotingname)
@@ -2605,8 +2608,8 @@ wine = check_prog(
 # DOM Streams
 # ==============================================================
 option(
-    "--enable-dom-streams",
-    help="Enable the DOM Streams prototype",
+    "--disable-dom-streams",
+    help="Disable DOM Streams (use JS Streams)",
 )
 
 set_config("MOZ_DOM_STREAMS", True, when="--enable-dom-streams")
@@ -2636,14 +2639,14 @@ with only_when(compile_environment):
 
 # Crash reporting
 # ==============================================================
-@depends(target, developer_options)
-def crashreporter_default(target, developer_options):
+@depends(target, developer_options, artifact_builds)
+def crashreporter_default(target, developer_options, artifacts):
     if target.kernel in ("WINNT", "Darwin"):
         return True
     if target.kernel == "Linux" and target.cpu in ("x86", "x86_64", "arm", "aarch64"):
         # The crash reporter prevents crash stacktraces to be logged in the
         # logs on Android, so we leave it out by default in developer builds.
-        return target.os != "Android" or not developer_options
+        return target.os != "Android" or not developer_options or artifacts
 
 
 option(

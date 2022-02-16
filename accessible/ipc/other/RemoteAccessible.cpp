@@ -200,13 +200,18 @@ void RemoteAccessible::TextSubstring(int32_t aStartOffset, int32_t aEndOfset,
   aText = std::move(text);
 }
 
-void RemoteAccessible::GetTextAfterOffset(int32_t aOffset,
-                                          AccessibleTextBoundary aBoundaryType,
-                                          nsString& aText,
-                                          int32_t* aStartOffset,
-                                          int32_t* aEndOffset) {
-  Unused << mDoc->SendGetTextAfterOffset(mID, aOffset, aBoundaryType, &aText,
+void RemoteAccessible::TextAfterOffset(int32_t aOffset,
+                                       AccessibleTextBoundary aBoundaryType,
+                                       int32_t* aStartOffset,
+                                       int32_t* aEndOffset, nsAString& aText) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::TextAfterOffset(
+        aOffset, aBoundaryType, aStartOffset, aEndOffset, aText);
+  }
+  nsString text;
+  Unused << mDoc->SendGetTextAfterOffset(mID, aOffset, aBoundaryType, &text,
                                          aStartOffset, aEndOffset);
+  aText = std::move(text);
 }
 
 void RemoteAccessible::TextAtOffset(int32_t aOffset,
@@ -223,13 +228,18 @@ void RemoteAccessible::TextAtOffset(int32_t aOffset,
   aText = std::move(text);
 }
 
-void RemoteAccessible::GetTextBeforeOffset(int32_t aOffset,
-                                           AccessibleTextBoundary aBoundaryType,
-                                           nsString& aText,
-                                           int32_t* aStartOffset,
-                                           int32_t* aEndOffset) {
-  Unused << mDoc->SendGetTextBeforeOffset(mID, aOffset, aBoundaryType, &aText,
+void RemoteAccessible::TextBeforeOffset(int32_t aOffset,
+                                        AccessibleTextBoundary aBoundaryType,
+                                        int32_t* aStartOffset,
+                                        int32_t* aEndOffset, nsAString& aText) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::TextBeforeOffset(
+        aOffset, aBoundaryType, aStartOffset, aEndOffset, aText);
+  }
+  nsString text;
+  Unused << mDoc->SendGetTextBeforeOffset(mID, aOffset, aBoundaryType, &text,
                                           aStartOffset, aEndOffset);
+  aText = std::move(text);
 }
 
 char16_t RemoteAccessible::CharAt(int32_t aOffset) {
@@ -389,9 +399,13 @@ uint32_t RemoteAccessible::StartOffset() {
   return retVal;
 }
 
-uint32_t RemoteAccessible::EndOffset(bool* aOk) {
+uint32_t RemoteAccessible::EndOffset() {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::EndOffset();
+  }
+  bool ok;
   uint32_t retVal = 0;
-  Unused << mDoc->SendEndOffset(mID, &retVal, aOk);
+  Unused << mDoc->SendEndOffset(mID, &retVal, &ok);
   return retVal;
 }
 
@@ -743,25 +757,36 @@ void RemoteAccessible::SetSelected(bool aSelect) {
   Unused << mDoc->SendSetSelected(mID, aSelect);
 }
 
-bool RemoteAccessible::DoAction(uint8_t aIndex) {
+bool RemoteAccessible::DoAction(uint8_t aIndex) const {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::DoAction(aIndex);
+  }
+
   bool success = false;
   Unused << mDoc->SendDoAction(mID, aIndex, &success);
   return success;
 }
 
-uint8_t RemoteAccessible::ActionCount() {
+uint8_t RemoteAccessible::ActionCount() const {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return RemoteAccessibleBase<RemoteAccessible>::ActionCount();
+  }
+
   uint8_t count = 0;
   Unused << mDoc->SendActionCount(mID, &count);
   return count;
 }
 
-void RemoteAccessible::ActionDescriptionAt(uint8_t aIndex,
-                                           nsString& aDescription) {
-  Unused << mDoc->SendActionDescriptionAt(mID, aIndex, &aDescription);
-}
+void RemoteAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    RemoteAccessibleBase<RemoteAccessible>::ActionNameAt(aIndex, aName);
+    return;
+  }
 
-void RemoteAccessible::ActionNameAt(uint8_t aIndex, nsString& aName) {
-  Unused << mDoc->SendActionNameAt(mID, aIndex, &aName);
+  nsAutoString name;
+  Unused << mDoc->SendActionNameAt(mID, aIndex, &name);
+
+  aName.Assign(name);
 }
 
 KeyBinding RemoteAccessible::AccessKey() {

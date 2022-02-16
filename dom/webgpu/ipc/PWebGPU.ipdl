@@ -16,7 +16,7 @@ using MaybeScopedError from "mozilla/webgpu/WebGPUTypes.h";
 include "mozilla/ipc/ByteBufUtils.h";
 include "mozilla/webgpu/WebGPUSerialize.h";
 include "mozilla/layers/WebRenderMessageUtils.h";
-include protocol PCompositorBridge;
+include protocol PCanvasManager;
 
 namespace mozilla {
 namespace webgpu {
@@ -28,7 +28,7 @@ namespace webgpu {
  */
 async protocol PWebGPU
 {
-  manager PCompositorBridge;
+  manager PCanvasManager;
 
 parent:
   async DeviceAction(RawId selfId, ByteBuf buf);
@@ -64,13 +64,11 @@ parent:
   async RenderPipelineDestroy(RawId selfId);
   async ImplicitLayoutDestroy(RawId implicitPlId, RawId[] implicitBglIds);
   async DeviceCreateSwapChain(RawId selfId, RawId queueId, RGBDescriptor desc, RawId[] bufferIds, ExternalImageId externalId);
-  async SwapChainPresent(ExternalImageId externalId, RawId textureId, RawId commandEncoderId);
+  async SwapChainPresent(ExternalImageId externalId, RawId textureId, RawId commandEncoderId) returns (bool success);
   async SwapChainDestroy(ExternalImageId externalId);
 
   async DevicePushErrorScope(RawId selfId);
   async DevicePopErrorScope(RawId selfId) returns (MaybeScopedError maybeError);
-
-  async Shutdown();
 
 child:
   async DeviceUncapturedError(RawId aDeviceId, nsCString message);

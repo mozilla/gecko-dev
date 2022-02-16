@@ -77,6 +77,7 @@ struct DefaultJitOptions {
   bool traceRegExpInterpreter;
   bool traceRegExpPeephole;
   bool lessDebugCode;
+  bool enableWatchtowerMegamorphic;
   bool enableWasmJitExit;
   bool enableWasmJitEntry;
   bool enableWasmIonFastCalls;
@@ -120,7 +121,6 @@ struct DefaultJitOptions {
   bool spectreValueMasking;
   bool spectreJitToCxxCalls;
 
-  bool supportsFloatingPoint;
   bool supportsUnalignedAccesses;
 
   DefaultJitOptions();
@@ -146,8 +146,7 @@ inline bool HasJitBackend() {
 }
 
 inline bool IsBaselineInterpreterEnabled() {
-  return HasJitBackend() && JitOptions.baselineInterpreter &&
-         JitOptions.supportsFloatingPoint;
+  return HasJitBackend() && JitOptions.baselineInterpreter;
 }
 
 }  // namespace jit

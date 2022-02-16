@@ -1083,7 +1083,7 @@ bool Theme::DoDrawWidgetBackground(PaintBackendData& aPaintData,
     }
   }
 
-  const Colors colors(aFrame);
+  const Colors colors(aFrame, aAppearance);
   DPIRatio dpiRatio = GetDPIRatio(aFrame, aAppearance);
 
   switch (aAppearance) {
@@ -1405,7 +1405,7 @@ UniquePtr<ScrollbarDrawing> Theme::ScrollbarStyle() {
     default:
       break;
   }
-  // Default to native scrollbar style for each platform.
+    // Default to native scrollbar style for each platform.
 #ifdef XP_WIN
   if (IsWin11OrLater()) {
     return MakeUnique<ScrollbarDrawingWin11>();

@@ -1159,6 +1159,7 @@ void CacheIRWriter::copyStubData(uint8_t* dest) const {
         AsGCPtr<jsid>(destWords)->init(jsid::fromRawBits(field.asWord()));
         break;
       case StubField::Type::RawInt64:
+      case StubField::Type::Double:
         *reinterpret_cast<uint64_t*>(destWords) = field.asInt64();
         break;
       case StubField::Type::Value:
@@ -1183,6 +1184,7 @@ void jit::TraceCacheIRStub(JSTracer* trc, T* stub,
       case StubField::Type::RawInt32:
       case StubField::Type::RawPointer:
       case StubField::Type::RawInt64:
+      case StubField::Type::Double:
         break;
       case StubField::Type::Shape: {
         // For CCW IC stubs, we can store same-zone but cross-compartment
@@ -7002,6 +7004,22 @@ void CacheIRCompiler::emitLoadValueStubField(StubFieldOffset val,
   }
 }
 
+void CacheIRCompiler::emitLoadDoubleValueStubField(StubFieldOffset val,
+                                                   ValueOperand dest,
+                                                   FloatRegister scratch) {
+  MOZ_ASSERT(val.getStubFieldType() == StubField::Type::Double);
+
+  if (stubFieldPolicy_ == StubFieldPolicy::Constant) {
+    MOZ_ASSERT(mode_ == Mode::Ion);
+    double d = doubleStubField(val.getOffset());
+    masm.moveValue(DoubleValue(d), dest);
+  } else {
+    Address addr(ICStubReg, stubDataOffset_ + val.getOffset());
+    masm.loadDouble(addr, scratch);
+    masm.boxDouble(scratch, dest, scratch);
+  }
+}
+
 bool CacheIRCompiler::emitLoadInstanceOfObjectResult(ValOperandId lhsId,
                                                      ObjOperandId protoId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
@@ -7259,6 +7277,19 @@ bool CacheIRCompiler::emitLoadBooleanConstant(bool val,
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   Register reg = allocator.defineRegister(masm, resultId);
   masm.move32(Imm32(val), reg);
+  return true;
+}
+
+bool CacheIRCompiler::emitLoadDoubleConstant(uint32_t valOffset,
+                                             NumberOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  ValueOperand output = allocator.defineValueRegister(masm, resultId);
+  StubFieldOffset val(valOffset, StubField::Type::Double);
+
+  AutoScratchFloatRegister floatReg(this);
+
+  emitLoadDoubleValueStubField(val, output, floatReg);
   return true;
 }
 

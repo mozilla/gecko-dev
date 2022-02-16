@@ -65,7 +65,6 @@
 #include "GeckoEditableSupport.h"
 #include "GeckoNetworkManager.h"
 #include "GeckoProcessManager.h"
-#include "GeckoScreenOrientation.h"
 #include "GeckoSystemStateListener.h"
 #include "GeckoTelemetryDelegate.h"
 #include "GeckoVRManager.h"
@@ -75,7 +74,6 @@
 #include "Telemetry.h"
 #include "WebExecutorSupport.h"
 #include "Base64UtilsSupport.h"
-#include "WebAuthnTokenManager.h"
 
 #ifdef DEBUG_ANDROID_EVENTS
 #  define EVLOG(args...) ALOG(args)
@@ -429,7 +427,6 @@ nsAppShell::nsAppShell()
     mozilla::GeckoBatteryManager::Init();
     mozilla::GeckoNetworkManager::Init();
     mozilla::GeckoProcessManager::Init();
-    mozilla::GeckoScreenOrientation::Init();
     mozilla::GeckoSystemStateListener::Init();
     mozilla::widget::Telemetry::Init();
     mozilla::widget::ImageDecoderSupport::Init();
@@ -437,7 +434,6 @@ nsAppShell::nsAppShell()
     mozilla::widget::Base64UtilsSupport::Init();
     nsWindow::InitNatives();
     mozilla::gl::AndroidSurfaceTexture::Init();
-    mozilla::WebAuthnTokenManager::Init();
     mozilla::widget::GeckoTelemetryDelegate::Init();
 
     java::GeckoThread::SetState(java::GeckoThread::State::JNI_READY());

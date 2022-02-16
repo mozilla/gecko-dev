@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{ExternalScrollId, PropertyBinding, ReferenceFrameKind, TransformStyle, PropertyBindingId};
-use api::{PipelineId, SpatialTreeItemKey};
+use api::{APZScrollGeneration, HasScrollLinkedEffect, PipelineId, SampledScrollOffset, SpatialTreeItemKey};
 use api::units::*;
 use euclid::Transform3D;
 use crate::gpu_types::TransformPalette;
@@ -532,6 +532,8 @@ impl SceneSpatialTree {
         content_size: &LayoutSize,
         frame_kind: ScrollFrameKind,
         external_scroll_offset: LayoutVector2D,
+        scroll_offset_generation: APZScrollGeneration,
+        has_scroll_linked_effect: HasScrollLinkedEffect,
         uid: SpatialNodeUid,
     ) -> SpatialNodeIndex {
         // Scroll frames are only 2d translations - they can't introduce a new static coord system
@@ -545,6 +547,8 @@ impl SceneSpatialTree {
             content_size,
             frame_kind,
             external_scroll_offset,
+            scroll_offset_generation,
+            has_scroll_linked_effect,
             is_root_coord_system,
         );
         self.add_spatial_node(node, uid)
@@ -886,7 +890,10 @@ impl SpatialTree {
         self.visit_nodes_mut(|_, node| {
             match node.node_type {
                 SpatialNodeType::ScrollFrame(ref mut info) => {
-                    info.offset = -info.external_scroll_offset;
+                    info.offsets = vec![SampledScrollOffset{
+                        offset: -info.external_scroll_offset,
+                        generation: info.offset_generation,
+                    }];
                 }
                 SpatialNodeType::StickyFrame(ref mut info) => {
                     info.current_offset = LayoutVector2D::zero();
@@ -1069,16 +1076,16 @@ impl SpatialTree {
         self.root_reference_frame_index
     }
 
-    pub fn set_scroll_offset(
+    pub fn set_scroll_offsets(
         &mut self,
         id: ExternalScrollId,
-        offset: LayoutVector2D,
+        offsets: Vec<SampledScrollOffset>,
     ) -> bool {
         let mut did_change = false;
 
         self.visit_nodes_mut(|_, node| {
             if node.matches_external_id(id) {
-                did_change |= node.set_scroll_offset(&offset);
+                did_change |= node.set_scroll_offsets(offsets.clone());
             }
         });
 
@@ -1185,12 +1192,16 @@ impl SpatialTree {
                 pt.new_level(format!("StickyFrame"));
                 pt.add_item(format!("sticky info: {:?}", sticky_frame_info));
             }
-            SpatialNodeType::ScrollFrame(scrolling_info) => {
+            SpatialNodeType::ScrollFrame(ref scrolling_info) => {
                 pt.new_level(format!("ScrollFrame"));
                 pt.add_item(format!("viewport: {:?}", scrolling_info.viewport_rect));
                 pt.add_item(format!("scrollable_size: {:?}", scrolling_info.scrollable_size));
-                pt.add_item(format!("scroll offset: {:?}", scrolling_info.offset));
+                pt.add_item(format!("scroll offset: {:?}", scrolling_info.offset()));
                 pt.add_item(format!("external_scroll_offset: {:?}", scrolling_info.external_scroll_offset));
+                pt.add_item(format!("offset generation: {:?}", scrolling_info.offset_generation));
+                if scrolling_info.has_scroll_linked_effect == HasScrollLinkedEffect::Yes {
+                    pt.add_item("has scroll-linked effect".to_string());
+                }
                 pt.add_item(format!("kind: {:?}", scrolling_info.frame_kind));
             }
             SpatialNodeType::ReferenceFrame(ref info) => {
@@ -1674,6 +1685,8 @@ fn test_find_scroll_root_simple() {
         &LayoutSize::new(800.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 1), PipelineId::dummy(), pid),
     );
 
@@ -1708,6 +1721,8 @@ fn test_find_scroll_root_sub_scroll_frame() {
         &LayoutSize::new(800.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 1), PipelineId::dummy(), pid),
     );
 
@@ -1719,6 +1734,8 @@ fn test_find_scroll_root_sub_scroll_frame() {
         &LayoutSize::new(800.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 2), PipelineId::dummy(), pid),
     );
 
@@ -1753,6 +1770,8 @@ fn test_find_scroll_root_not_scrollable() {
         &LayoutSize::new(400.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 1), PipelineId::dummy(), pid),
     );
 
@@ -1764,6 +1783,8 @@ fn test_find_scroll_root_not_scrollable() {
         &LayoutSize::new(800.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 2), PipelineId::dummy(), pid),
     );
 
@@ -1798,6 +1819,8 @@ fn test_find_scroll_root_too_small() {
         &LayoutSize::new(1000.0, 1000.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 1), PipelineId::dummy(), pid),
     );
 
@@ -1809,6 +1832,8 @@ fn test_find_scroll_root_too_small() {
         &LayoutSize::new(800.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 2), PipelineId::dummy(), pid),
     );
 
@@ -1844,6 +1869,8 @@ fn test_find_scroll_root_perspective() {
         &LayoutSize::new(400.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 1), PipelineId::dummy(), pid),
     );
 
@@ -1867,6 +1894,8 @@ fn test_find_scroll_root_perspective() {
         &LayoutSize::new(800.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 3), PipelineId::dummy(), pid),
     );
 
@@ -1902,6 +1931,8 @@ fn test_find_scroll_root_2d_scale() {
         &LayoutSize::new(400.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 1), PipelineId::dummy(), pid),
     );
 
@@ -1927,6 +1958,8 @@ fn test_find_scroll_root_2d_scale() {
         &LayoutSize::new(800.0, 400.0),
         ScrollFrameKind::Explicit,
         LayoutVector2D::new(0.0, 0.0),
+        APZScrollGeneration::default(),
+        HasScrollLinkedEffect::No,
         SpatialNodeUid::external(SpatialTreeItemKey::new(0, 3), PipelineId::dummy(), pid),
     );
 

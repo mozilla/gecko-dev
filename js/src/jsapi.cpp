@@ -1765,7 +1765,7 @@ JS_PUBLIC_API void JS_GlobalObjectTraceHook(JSTracer* trc, JSObject* global) {
   // know the global is live.
   globalRealm->traceGlobalData(trc);
 
-  globalObj->traceData(trc);
+  globalObj->traceData(trc, globalObj);
 
   if (JSTraceOp trace = globalRealm->creationOptions().getTrace()) {
     trace(trc, global);
@@ -1997,7 +1997,7 @@ JS_PUBLIC_API bool JSPropertySpec::getValue(JSContext* cx,
 bool PropertySpecNameToId(JSContext* cx, JSPropertySpec::Name name,
                           MutableHandleId id) {
   if (name.isSymbol()) {
-    id.set(SYMBOL_TO_JSID(cx->wellKnownSymbols().get(name.symbol())));
+    id.set(PropertyKey::Symbol(cx->wellKnownSymbols().get(name.symbol())));
   } else {
     JSAtom* atom = Atomize(cx, name.string(), strlen(name.string()));
     if (!atom) {
@@ -2178,11 +2178,11 @@ JS_PUBLIC_API JSFunction* JS::NewFunctionFromSpec(JSContext* cx,
 
 #ifdef DEBUG
   if (fs->name.isSymbol()) {
-    MOZ_ASSERT(SYMBOL_TO_JSID(cx->wellKnownSymbols().get(fs->name.symbol())) ==
-               id);
+    JS::Symbol* sym = cx->wellKnownSymbols().get(fs->name.symbol());
+    MOZ_ASSERT(PropertyKey::Symbol(sym) == id);
   } else {
-    MOZ_ASSERT(JSID_IS_STRING(id) &&
-               StringEqualsAscii(JSID_TO_LINEAR_STRING(id), fs->name.string()));
+    MOZ_ASSERT(id.isString() &&
+               StringEqualsAscii(id.toLinearString(), fs->name.string()));
   }
 #endif
 
@@ -3364,6 +3364,11 @@ JS_PUBLIC_API JS::Symbol* JS::GetWellKnownSymbol(JSContext* cx,
   return cx->wellKnownSymbols().get(which);
 }
 
+JS_PUBLIC_API JS::PropertyKey JS::GetWellKnownSymbolKey(JSContext* cx,
+                                                        JS::SymbolCode which) {
+  return PropertyKey::Symbol(cx->wellKnownSymbols().get(which));
+}
+
 #ifdef DEBUG
 static bool PropertySpecNameIsDigits(JSPropertySpec::Name name) {
   if (name.isSymbol()) {
@@ -4091,6 +4096,9 @@ JS_PUBLIC_API void JS_SetGlobalJitCompilerOption(JSContext* cx,
     case JSJITCOMPILER_SPECTRE_JIT_TO_CXX_CALLS:
       jit::JitOptions.spectreJitToCxxCalls = !!value;
       break;
+    case JSJITCOMPILER_WATCHTOWER_MEGAMORPHIC:
+      jit::JitOptions.enableWatchtowerMegamorphic = !!value;
+      break;
     case JSJITCOMPILER_WASM_FOLD_OFFSETS:
       jit::JitOptions.wasmFoldOffsets = !!value;
       break;
@@ -4164,6 +4172,9 @@ JS_PUBLIC_API bool JS_GetGlobalJitCompilerOption(JSContext* cx,
       break;
     case JSJITCOMPILER_OFFTHREAD_COMPILATION_ENABLE:
       *valueOut = rt->canUseOffthreadIonCompilation();
+      break;
+    case JSJITCOMPILER_WATCHTOWER_MEGAMORPHIC:
+      *valueOut = jit::JitOptions.enableWatchtowerMegamorphic ? 1 : 0;
       break;
     case JSJITCOMPILER_WASM_FOLD_OFFSETS:
       *valueOut = jit::JitOptions.wasmFoldOffsets ? 1 : 0;

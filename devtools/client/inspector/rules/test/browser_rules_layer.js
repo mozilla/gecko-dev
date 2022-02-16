@@ -9,19 +9,24 @@ const TEST_URI = `
   <style type="text/css">
     @import url(${URL_ROOT_COM_SSL}doc_imported_anonymous_layer.css) layer;
     @import url(${URL_ROOT_COM_SSL}doc_imported_named_layer.css) layer(importedLayer);
+    @import url(${URL_ROOT_COM_SSL}doc_imported_no_layer.css);
 
     @layer myLayer {
-      h1 {
+      h1, [test-hint=named-layer] {
         background-color: tomato;
         color: lightgreen;
       }
     }
 
     @layer {
-      h1 {
+      h1, [test-hint=anonymous-layer] {
         color: green;
         font-variant: small-caps
       }
+    }
+
+    h1, [test-hint=no-rule-layer] {
+      color: pink;
     }
   </style>
   <h1>Hello @layer!</h1>
@@ -36,46 +41,66 @@ add_task(async function() {
 
   await selectNode("h1", inspector);
 
+  const expectedRules = [
+    { selector: "element", ancestorRulesData: null },
+    { selector: `h1, [test-hint="no-rule-layer"]`, ancestorRulesData: null },
+    {
+      selector: `h1, [test-hint="imported-no-layer--no-rule-layer"]`,
+      ancestorRulesData: null,
+    },
+    {
+      selector: `h1, [test-hint="anonymous-layer"]`,
+      ancestorRulesData: ["@layer"],
+    },
+    {
+      selector: `h1, [test-hint="named-layer"]`,
+      ancestorRulesData: ["@layer myLayer"],
+    },
+    {
+      selector: `h1, [test-hint="imported-named-layer--no-rule-layer"]`,
+      ancestorRulesData: ["@layer importedLayer", "@media screen"],
+    },
+    {
+      selector: `h1, [test-hint="imported-named-layer--named-layer"]`,
+      ancestorRulesData: [
+        "@layer importedLayer",
+        "@media screen",
+        "@layer in-imported-stylesheet",
+      ],
+    },
+    {
+      selector: `h1, [test-hint="imported-anonymous-layer--no-rule-layer"]`,
+      ancestorRulesData: ["@layer"],
+    },
+  ];
+
+  const rulesInView = Array.from(view.element.children);
   is(
-    getRuleViewParentDataTextByIndex(view, 1),
-    "@layer",
-    "text at index 1 contains anonymous layer."
+    rulesInView.length,
+    expectedRules.length,
+    "All expected rules are displayed"
   );
 
-  is(
-    getRuleViewParentDataTextByIndex(view, 2),
-    "@layer myLayer",
-    "text at index 2 contains named layer."
-  );
+  for (let i = 0; i < expectedRules.length; i++) {
+    const expectedRule = expectedRules[i];
+    info(`Checking rule #${i}: ${expectedRule.selector}`);
 
-  is(
-    getRuleViewParentDataTextByIndex(view, 3),
-    "@layer importedLayer @media screen",
-    "text at index 3 contains imported stylesheet named layer."
-  );
+    const selector = rulesInView[i].querySelector(".ruleview-selectorcontainer")
+      .innerText;
+    is(selector, expectedRule.selector, `Expected selector for ${selector}`);
 
-  // XXX: This is highlighting an issue with nested layers/media queries, where only the
-  // last item is displayed. This should be fixed in Bug 1751417, and this test case should
-  // then have `@layer importedLayer @media screen @layer in-imported-stylesheet`
-  is(
-    getRuleViewParentDataTextByIndex(view, 4),
-    "@layer in-imported-stylesheet",
-    "text at index 4 only contains the last layer it's in."
-  );
-
-  is(
-    getRuleViewParentDataTextByIndex(view, 5),
-    "@layer",
-    "text at index 5 contains imported stylesheet anonymous layer."
-  );
+    if (expectedRule.ancestorRulesData == null) {
+      is(
+        getRuleViewAncestorRulesDataElementByIndex(view, i),
+        null,
+        `No ancestor rules data displayed for ${selector}`
+      );
+    } else {
+      is(
+        getRuleViewAncestorRulesDataTextByIndex(view, i),
+        expectedRule.ancestorRulesData.join("\n"),
+        `Expected ancestor rules data displayed for ${selector}`
+      );
+    }
+  }
 });
-
-function getRuleViewParentDataElementByIndex(view, ruleIndex) {
-  return view.styleDocument.querySelector(
-    `.ruleview-rule:nth-of-type(${ruleIndex + 1}) .ruleview-rule-parent-data`
-  );
-}
-
-function getRuleViewParentDataTextByIndex(view, ruleIndex) {
-  return getRuleViewParentDataElementByIndex(view, ruleIndex)?.textContent;
-}

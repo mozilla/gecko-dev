@@ -25,6 +25,9 @@
 #include "jsfriendapi.h"
 
 #include "builtin/Boolean.h"
+#ifdef ENABLE_RECORD_TUPLE
+#  include "builtin/RecordObject.h"
+#endif
 #include "frontend/BytecodeCompiler.h"
 #include "gc/MaybeRooted.h"
 #include "gc/Nursery.h"
@@ -2211,15 +2214,17 @@ JSString* js::ToStringSlow(
     str = BigInt::toString<CanGC>(cx, i, 10);
   }
 #ifdef ENABLE_RECORD_TUPLE
-  else if (arg.isExtendedPrimitive()) {
-    JSObject& obj = arg.toExtendedPrimitive();
-    if (obj.is<js::TupleType>()) {
-      str = js::TupleToSource(cx, &obj.as<js::TupleType>());
-    } else if (obj.is<js::RecordType>()) {
-      str = js::RecordToSource(cx, &obj.as<js::RecordType>());
-    } else {
-      MOZ_CRASH("Unsupported ExtendedPrimitive type");
+  else if (v.isExtendedPrimitive()) {
+    if (!allowGC) {
+      return nullptr;
     }
+    if (IsTuple(v)) {
+      Rooted<TupleType*> tup(cx, &TupleType::thisTupleValue(v));
+      return TupleToSource(cx, tup);
+    }
+    Rooted<RecordType*> rec(cx);
+    MOZ_ALWAYS_TRUE(RecordObject::maybeUnbox(&v.getObjectPayload(), &rec));
+    return RecordToSource(cx, rec);
   }
 #endif
   else {

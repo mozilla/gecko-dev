@@ -132,16 +132,12 @@ class FFmpegVideoDecoder<LIBAV_VER>
 
   MediaResult CreateImageVAAPI(int64_t aOffset, int64_t aPts, int64_t aDuration,
                                MediaDataDecoder::DecodedData& aResults);
-  MediaResult CreateImageDMABuf(int64_t aOffset, int64_t aPts,
-                                int64_t aDuration,
-                                MediaDataDecoder::DecodedData& aResults);
 #endif
 
 #ifdef MOZ_WAYLAND_USE_VAAPI
   AVBufferRef* mVAAPIDeviceContext;
   bool mEnableHardwareDecoding;
   VADisplay mDisplay;
-  bool mUseDMABufSurfaces;
   UniquePtr<VideoFramePool> mVideoFramePool;
   static nsTArray<AVCodecID> mAcceleratedFormats;
 #endif
@@ -193,8 +189,8 @@ class ImageBufferWrapper final {
     MOZ_ASSERT(mDecoder);
   }
 
-  PlanarYCbCrImage* AsPlanarYCbCrImage() {
-    return mImage->AsPlanarYCbCrImage();
+  Image* AsImage() {
+    return mImage;
   }
 
   void ReleaseBuffer() {
@@ -205,8 +201,7 @@ class ImageBufferWrapper final {
     if (!mImage) {
       return;
     }
-    PlanarYCbCrImage* image = mImage->AsPlanarYCbCrImage();
-    RefPtr<layers::TextureClient> texture = image->GetTextureClient(nullptr);
+    RefPtr<layers::TextureClient> texture = mImage->GetTextureClient(nullptr);
     // Usually the decoded video buffer would be locked when it is allocated,
     // and gets unlocked when we create the video data via `DoDecode`. However,
     // sometime the buffer won't be used for the decoded data (maybe just as

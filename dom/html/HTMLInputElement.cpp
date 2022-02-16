@@ -108,7 +108,6 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/TextUtils.h"
 
 #include <limits>
 
@@ -117,7 +116,6 @@
 #include "HTMLSplitOnSpacesTokenizer.h"
 #include "nsIMIMEInfo.h"
 #include "nsFrameSelection.h"
-#include "nsBaseCommandController.h"
 #include "nsXULControllers.h"
 
 // input type=date
@@ -1130,6 +1128,8 @@ nsresult HTMLInputElement::Clone(dom::NodeInfo* aNodeInfo,
     it->mShouldInitChecked = false;
   }
 
+  it->mIndeterminate = mIndeterminate;
+
   it->DoneCreatingElement();
 
   it->SetLastValueChangeWasInteractive(mLastValueChangeWasInteractive);
@@ -1445,8 +1445,9 @@ void HTMLInputElement::SetIndeterminateInternal(bool aValue,
 
   if (aShouldInvalidate) {
     // Repaint the frame
-    nsIFrame* frame = GetPrimaryFrame();
-    if (frame) frame->InvalidateFrameSubtree();
+    if (nsIFrame* frame = GetPrimaryFrame()) {
+      frame->InvalidateFrameSubtree();
+    }
   }
 
   UpdateState(true);

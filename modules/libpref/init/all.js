@@ -156,9 +156,10 @@ pref("security.webauth.webauthn_enable_softtoken", false);
 pref("security.xfocsp.errorReporting.enabled", true);
 pref("security.xfocsp.errorReporting.automatic", false);
 
-// 0: Disable CRLite entirely
-// 1: Enable and check revocations via CRLite, but only collect telemetry
-// 2: Enable and enforce revocations via CRLite
+// 0: Disable CRLite entirely.
+// 1: Consult CRLite but only collect telemetry.
+// 2: Consult CRLite and enforce both "Revoked" and "Not Revoked" results.
+// 3: Consult CRLite and enforce "Not Revoked" results, but defer to OCSP for "Revoked".
 pref("security.pki.crlite_mode", 1);
 
 // Issuer we use to detect MitM proxies. Set to the issuer of the cert of the
@@ -409,6 +410,7 @@ pref("media.decoder-doctor.verbose", false);
 pref("media.decoder-doctor.new-issue-endpoint", "https://webcompat.com/issues/new");
 
 pref("media.videocontrols.picture-in-picture.enabled", false);
+pref("media.videocontrols.picture-in-picture.display-text-tracks.enabled", false);
 pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);
 pref("media.videocontrols.picture-in-picture.video-toggle.always-show", false);
 pref("media.videocontrols.picture-in-picture.video-toggle.min-video-secs", 45);
@@ -879,6 +881,13 @@ pref("devtools.performance.recording.child.timeout_s", 0);
 #else
   pref("devtools.performance.recording.preset", "web-developer");
   pref("devtools.performance.recording.preset.remote", "web-developer");
+#endif
+// The profiler's active tab view has a few issues. Disable it in most
+// environments until the issues are ironed out.
+#if defined(NIGHTLY_BUILD)
+  pref("devtools.performance.recording.active-tab-view.enabled", true);
+#else
+  pref("devtools.performance.recording.active-tab-view.enabled", false);
 #endif
 // Profiler buffer size. It is the maximum number of 8-bytes entries in the
 // profiler's buffer. 10000000 is ~80mb.
@@ -1412,9 +1421,6 @@ pref("network.http.spdy.default-concurrent", 100);
 pref("network.http.spdy.default-hpack-buffer", 65536); // 64k
 pref("network.http.spdy.websockets", true);
 pref("network.http.spdy.enable-hpack-dump", false);
-
-// Http3 parameters
-pref("network.http.http3.enabled", true);
 
 // Http3 qpack table size.
 pref("network.http.http3.default-qpack-table-size", 65536); // 64k
@@ -3642,6 +3648,7 @@ pref("signon.passwordEditCapture.enabled",        false);
 pref("signon.privateBrowsingCapture.enabled",     true);
 pref("signon.storeWhenAutocompleteOff",     true);
 pref("signon.userInputRequiredToCapture.enabled", true);
+pref("signon.usernameOnlyForm.lookupThreshold",  5);
 pref("signon.debug",                        false);
 pref("signon.recipes.path", "resource://app/defaults/settings/main/password-recipes.json");
 pref("signon.recipes.remoteRecipes.enabled", true);
@@ -3898,9 +3905,6 @@ pref("dom.push.http2.reset_retry_count_after_ms", 60000);
 pref("dom.push.http2.maxRetries", 2);
 pref("dom.push.http2.retryInterval", 5000);
 
-// W3C MediaDevices devicechange fake event
-pref("media.ondevicechange.fakeDeviceChangeEvent.enabled", false);
-
 // How long must we wait before declaring that a window is a "ghost" (i.e., a
 // likely leak)?  This should be longer than it usually takes for an eligible
 // window to be collected via the GC/CC.
@@ -4112,11 +4116,6 @@ pref("browser.search.suggest.enabled.private", false);
 pref("browser.search.separatePrivateDefault", false);
 pref("browser.search.separatePrivateDefault.ui.enabled", false);
 
-#ifdef MOZ_OFFICIAL_BRANDING
-  // {moz:official} expands to "official"
-  pref("browser.search.official", true);
-#endif
-
 // GMPInstallManager prefs
 
 // User-settable override to media.gmp-manager.url for testing purposes.
@@ -4209,6 +4208,9 @@ pref("reader.has_used_toolbar", false);
 
 // Whether to use a vertical or horizontal toolbar.
 pref("reader.toolbar.vertical", true);
+
+// Whether or not we display additional UI (such as the full screen, reset to default, and browser theme buttons).
+pref("reader.improvements_H12022.enabled", false);
 
 #if !defined(ANDROID)
   pref("narrate.enabled", true);
@@ -4374,7 +4376,7 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   pref("services.sync.engine.passwords", true);
   pref("services.sync.engine.prefs", true);
   pref("services.sync.engine.tabs", true);
-  pref("services.sync.engine.tabs.filteredUrls", "^(about:.*|resource:.*|chrome:.*|file:.*|blob:.*|moz-extension:.*)$");
+  pref("services.sync.engine.tabs.filteredSchemes", "about|resource|chrome|file|blob|moz-extension");
 
   // The addresses and CC engines might not actually be available at all.
   pref("services.sync.engine.addresses.available", false);

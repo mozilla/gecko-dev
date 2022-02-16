@@ -1552,6 +1552,7 @@ const nsIFrame* nsDisplayListBuilder::FindReferenceFrameFor(
 
   if (aOffset) {
     *aOffset = aFrame->GetOffsetToCrossDoc(mReferenceFrame);
+    MaybeApplyAdditionalOffset();
   }
 
   return mReferenceFrame;
@@ -2006,6 +2007,32 @@ void nsDisplayListBuilder::BuildCompositorHitTestInfoIfNeeded(
   if (info != CompositorHitTestInvisibleToHit) {
     aList->AppendNewToTop<nsDisplayCompositorHitTestInfo>(this, aFrame);
   }
+}
+
+void nsDisplayListBuilder::AddReusableDisplayItem(nsDisplayItem* aItem) {
+  mReuseableItems.Insert(aItem);
+}
+
+void nsDisplayListBuilder::RemoveReusedDisplayItem(nsDisplayItem* aItem) {
+  MOZ_ASSERT(aItem->IsReusedItem());
+  mReuseableItems.Remove(aItem);
+}
+
+void nsDisplayListBuilder::ClearReuseableDisplayItems() {
+  const size_t total = mReuseableItems.Count();
+
+  size_t reused = 0;
+  for (auto* item : mReuseableItems) {
+    if (item->IsReusedItem()) {
+      reused++;
+      item->SetReusable();
+    } else {
+      item->Destroy(this);
+    }
+  }
+
+  DL_LOGI("RDL - Reused %zu of %zu SC display items", reused, total);
+  mReuseableItems.Clear();
 }
 
 void nsDisplayListBuilder::ReuseDisplayItem(nsDisplayItem* aItem) {
@@ -3365,6 +3392,20 @@ static void CheckForBorderItem(nsDisplayItem* aItem, uint32_t& aFlags) {
 
     break;
   }
+}
+
+bool nsDisplayBackgroundImage::CanApplyOpacity(
+    WebRenderLayerManager* aManager, nsDisplayListBuilder* aBuilder) const {
+  // Bug 1752919: WebRender does not properly handle opacity flattening for
+  // images larger than 4096 dest pixels.
+  static const nscoord WR_NSCOORD_LIMIT =
+      NSIntPixelsToAppUnits(4096, AppUnitsPerCSSPixel());
+  if MOZ_UNLIKELY (mDestRect.width > WR_NSCOORD_LIMIT ||
+                   mDestRect.height > WR_NSCOORD_LIMIT) {
+    return false;
+  }
+
+  return CanBuildWebRenderDisplayItems(aManager, aBuilder);
 }
 
 bool nsDisplayBackgroundImage::CanBuildWebRenderDisplayItems(
@@ -7780,40 +7821,45 @@ static void ComputeMaskGeometry(PaintFramesParams& aParams) {
   nsPoint offsetToUserSpace =
       nsLayoutUtils::ComputeOffsetToUserSpace(aParams.builder, aParams.frame);
 
+  auto cssToDevScale = frame->PresContext()->CSSToDevPixelScale();
+  int32_t appUnitsPerDevPixel = frame->PresContext()->AppUnitsPerDevPixel();
+
   gfxPoint devPixelOffsetToUserSpace = nsLayoutUtils::PointToGfxPoint(
-      offsetToUserSpace, frame->PresContext()->AppUnitsPerDevPixel());
+      offsetToUserSpace, appUnitsPerDevPixel);
 
   gfxContextMatrixAutoSaveRestore matSR(&ctx);
   ctx.SetMatrixDouble(
       ctx.CurrentMatrixDouble().PreTranslate(devPixelOffsetToUserSpace));
 
   // Convert boaderArea and dirtyRect to user space.
-  int32_t appUnitsPerDevPixel = frame->PresContext()->AppUnitsPerDevPixel();
   nsRect userSpaceBorderArea = aParams.borderArea - offsetToUserSpace;
   nsRect userSpaceDirtyRect = aParams.dirtyRect - offsetToUserSpace;
 
   // Union all mask layer rectangles in user space.
-  gfxRect maskInUserSpace;
+  LayoutDeviceRect maskInUserSpace;
   for (size_t i = 0; i < maskFrames.Length(); i++) {
     SVGMaskFrame* maskFrame = maskFrames[i];
-    gfxRect currentMaskSurfaceRect;
+    LayoutDeviceRect currentMaskSurfaceRect;
 
     if (maskFrame) {
-      currentMaskSurfaceRect = maskFrame->GetMaskArea(aParams.frame);
+      auto rect = maskFrame->GetMaskArea(aParams.frame);
+      currentMaskSurfaceRect =
+          CSSRect::FromUnknownRect(ToRect(rect)) * cssToDevScale;
     } else {
       nsCSSRendering::ImageLayerClipState clipState;
       nsCSSRendering::GetImageLayerClip(
           svgReset->mMask.mLayers[i], frame, *frame->StyleBorder(),
           userSpaceBorderArea, userSpaceDirtyRect, false, /* aWillPaintBorder */
           appUnitsPerDevPixel, &clipState);
-      currentMaskSurfaceRect = clipState.mDirtyRectInDevPx;
+      currentMaskSurfaceRect = LayoutDeviceRect::FromUnknownRect(
+          ToRect(clipState.mDirtyRectInDevPx));
     }
 
     maskInUserSpace = maskInUserSpace.Union(currentMaskSurfaceRect);
   }
 
   if (!maskInUserSpace.IsEmpty()) {
-    aParams.maskRect = Some(ToRect(maskInUserSpace));
+    aParams.maskRect = Some(maskInUserSpace);
   } else {
     aParams.maskRect = Nothing();
   }

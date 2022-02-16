@@ -8,13 +8,13 @@
 #include "nsScreen.h"
 #include "mozilla/dom/Document.h"
 #include "nsIDocShell.h"
-#include "mozilla/dom/Document.h"
 #include "nsPresContext.h"
 #include "nsCOMPtr.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsLayoutUtils.h"
 #include "nsJSUtils.h"
 #include "nsDeviceContext.h"
+#include "mozilla/widget/ScreenManager.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -121,6 +121,24 @@ nsresult nsScreen::GetRect(nsRect& aRect) {
   aRect.SetWidth(nsPresContext::AppUnitsToIntCSSPixels(aRect.Width()));
 
   return NS_OK;
+}
+
+uint16_t nsScreen::GetOrientationAngle() const {
+  // NOTE(emilio): This could be made screen-dependent with some minor effort /
+  // plumbing, but this will only ever differ on Android (where there's just one
+  // screen anyways).
+  RefPtr<widget::Screen> s =
+      widget::ScreenManager::GetSingleton().GetPrimaryScreen();
+  return s->GetOrientationAngle();
+}
+
+hal::ScreenOrientation nsScreen::GetOrientationType() const {
+  // NOTE(emilio): This could be made screen-dependent with some minor effort /
+  // plumbing, but this will only ever differ on android where there's just one
+  // screen anyways.
+  RefPtr<widget::Screen> s =
+      widget::ScreenManager::GetSingleton().GetPrimaryScreen();
+  return s->GetOrientationType();
 }
 
 nsresult nsScreen::GetAvailRect(nsRect& aRect) {

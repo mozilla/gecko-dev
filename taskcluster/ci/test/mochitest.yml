@@ -49,19 +49,21 @@ mochitest-plain:
     loopback-video: true
     virtualization: virtual
     variants:
-        - aab
+        - aab+no-fission
         - dynamic-first-party-isolation+fission
         - dynamic-first-party-isolation+fission-xorigin
         - fission
         - fission-xorigin
-        - socketprocess_networking
+        - no-fission
+        - socketprocess_networking+no-fission
         - socketprocess_networking+fission
         - wayland
-        - webrender-sw
+        - webrender-sw+no-fission
         - webrender-sw+fission
         - headless+fission
-        - headless+socketprocess_networking
+        - headless+socketprocess_networking+no-fission
         - headless+socketprocess_networking+fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -83,9 +85,10 @@ mochitest-plain:
                     windows.*64-ccov-qr/opt: ['mozilla-central']
                     linux.*64-ccov-qr/opt: ['mozilla-central']
                     default: []
-            socketprocess_networking:
+            socketprocess_networking+no-fission:
                 by-test-platform:
-                    (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central']
+                    linux.*asan.*: ['trunk']
+                    linux.*64(-shippable)?-qr/(opt|debug): ['trunk']
                     default: []
             socketprocess_networking+fission:
                 by-test-platform:
@@ -95,20 +98,21 @@ mochitest-plain:
                 by-test-platform:
                     linux1804-64-qr/debug: built-projects
                     default: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug: built-projects
-                    linux1804-64-qr/debug: built-projects
+                    linux.*asan.*: ['trunk']
+                    linux.*64(-shippable)?-qr/(opt|debug): ['trunk']
                     default: []
             webrender-sw+fission:
                 by-test-platform:
                     linux1804-64-qr/debug: built-projects
                     default: []
-            aab:
+            aab+no-fission:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug: built-projects
                     default: []
-            headless:
+            headless+no-fission:
                 by-test-platform:
                     linux.*64(-shippable)?-qr/opt: ['mozilla-central']
                     default: []
@@ -116,7 +120,7 @@ mochitest-plain:
                 by-test-platform:
                     linux.*64(-shippable)?-qr/opt: ['mozilla-central']
                     default: []
-            headless+socketprocess_networking:
+            headless+socketprocess_networking+no-fission:
                 by-test-platform:
                     linux.*64(-shippable)?-qr/opt: ['mozilla-central']
                     default: []
@@ -124,14 +128,12 @@ mochitest-plain:
                 by-test-platform:
                     linux.*64(-shippable)?-qr/opt: ['mozilla-central']
                     default: []
-            default:
+            no-fission:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug-isolated-process: []
-                    linux.*64-ccov-qr/opt: []
-                    linux1804-32.*: []
-                    .*-tsan-qr/opt: []
-                    linux.*: ['trunk']  # linux opt/debug/asan
                     android.*: built-projects
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
 
     chunks:
@@ -206,11 +208,14 @@ mochitest-browser-chrome:
     variants:
         - dynamic-first-party-isolation+fission
         - fission
-        - socketprocess_networking
-        - webrender-sw
-        - webrender-sw+a11y-checks
+        - webrender-sw+no-fission
         - webrender-sw+fission
+        - webrender-sw+a11y-checks+no-fission
+        - webrender-sw+a11y-checks+fission
         - webrender-sw+wayland
+        - socketprocess_networking+no-fission
+        - socketprocess_networking+fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -219,13 +224,15 @@ mochitest-browser-chrome:
                     default: []
             fission:
                 by-test-platform:
-                    (windows10-64-2004|macosx.*64)(-shippable)?-qr/(opt|debug): ['trunk']
-                    default: []
-            socketprocess_networking:
+                    android.*: []
+                    linux.*: []  # linux runs M-swr(bc), not M(bc)
+                    default: built-projects
+            webrender-sw+no-fission:
                 by-test-platform:
-                    (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central']
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
-            webrender-sw:
+            webrender-sw+fission:
                 by-test-platform:
                     linux.*64(-asan)?-qr/(opt|debug): ['all']
                     linux.*64-tsan-qr/opt: ['trunk']
@@ -234,35 +241,32 @@ mochitest-browser-chrome:
                     linux.*64-devedition-qr/opt: built-projects
                     windows10-64-2004-qr/debug: built-projects
                     default: []
-            webrender-sw+a11y-checks:
+            webrender-sw+a11y-checks+no-fission:
                 by-test-platform:
                     linux.*64(-shippable)?-qr/opt: ['trunk']
                     default: []
-            webrender-sw+fission:
+            webrender-sw+a11y-checks+fission:
                 by-test-platform:
-                    linux.*64(-asan|-shippable)?-qr/(opt|debug): ['trunk']
-                    linux.*64-ccov-qr/opt: ['mozilla-central']
+                    linux.*64(-shippable)?-qr/opt: ['trunk']
+                    default: []
+            socketprocess_networking+no-fission:
+                by-test-platform:
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable)?-qr/opt: ['trunk']
+                    default: []
+            socketprocess_networking+fission:
+                by-test-platform:
+                    (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): built-projects
                     default: []
             webrender-sw+wayland: []
-            default:
-                by-test-platform:
-                    linux.*-qr/.*: []
-                    linux.*64-ccov-qr/opt: []
-                    default: built-projects
+            default: []  # we don't run linux opt/debug/asan only with M-swr, now with fission this isn't needed
     tier:
         by-variant:
-            fission(-xorigin)?:
-                by-test-platform:
-                    linux.*64-qr/debug: 1
-                    default: 2
+            fission(-xorigin)?: default
             webrender-sw:
                 by-test-platform:
                     linux.*64(-asan|-shippable)?-qr/(opt|debug): 1
                     default: default
-            webrender-sw-fission:
-                by-test-platform:
-                    linux.*64-qr/debug: 1
-                    default: 2
             default: default
     chunks:
         by-test-platform:
@@ -292,6 +296,31 @@ mochitest-browser-chrome:
             linux.*64-tsan-qr/opt: xlarge  # runs out of memory on default/m3.large
             default: default
     allow-software-gl-layers: false
+
+mochitest-browser-a11y:
+    description: "Mochitest browser-a11y run"
+    suite:
+        name: mochitest-browser-a11y
+    treeherder-symbol: M(ba)
+    schedules-component: mochitest-browser-a11y
+    loopback-video: true
+    run-without-variant: false
+    variants:
+        - fission
+    run-on-projects:
+        by-variant:
+            fission:
+                by-test-platform:
+                    android.*: []
+                    default: built-projects
+            default: []
+    tier: default
+    max-run-time: 1800
+    mozharness:
+        mochitest-flavor: browser
+    instance-size: default
+    allow-software-gl-layers: false
+    virtualization: virtual
 
 mochitest-browser-chrome-failures:
     description: "Mochitest failures for browser chrome run"
@@ -364,14 +393,14 @@ mochitest-chrome:
     loopback-video: true
     run-without-variant: false
     variants:
-        - dynamic-first-party-isolation
+        - dynamic-first-party-isolation+1proc
         - 1proc
         - socketprocess_networking+1proc
         - wayland+1proc
         - webrender-sw+1proc
     run-on-projects:
         by-variant:
-            dynamic-first-party-isolation:
+            dynamic-first-party-isolation+1proc:
                 by-test-platform:
                     (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['mozilla-central']
                     default: []
@@ -417,20 +446,29 @@ mochitest-devtools-chrome:
     treeherder-symbol: M(dt)
     loopback-video: true
     variants:
-        - a11y-checks
+        - a11y-checks+no-fission
+        - a11y-checks+fission
         - dynamic-first-party-isolation+fission
+        - no-fission
         - fission
-        - socketprocess_networking
+        - socketprocess_networking+no-fission
+        - socketprocess_networking+fission
         - wayland
-        - webrender-sw
-        - devtools-no-eft-no-fission
+        - webrender-sw+no-fission
+        - webrender-sw+fission
+        - devtools-no-eft+no-fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
-            a11y-checks:
+            a11y-checks+no-fission:
                 by-test-platform:
                     linux.*64(-shippable)?-qr/opt: ['trunk']
                     default: []
-            devtools-no-eft-no-fission:
+            a11y-checks+fission:
+                by-test-platform:
+                    linux.*64(-shippable)?-qr/opt: ['trunk']
+                    default: []
+            devtools-no-eft+no-fission:
                 by-test-platform:
                     linux.*64(-shippable)?-qr/opt: ['trunk']
                     default: []
@@ -440,11 +478,16 @@ mochitest-devtools-chrome:
                     default: []
             fission:
                 by-test-platform:
-                    linux.*64(-shippable)?-qr/(opt|debug): ['trunk']
-                    windows10-64-2004(-shippable)?-qr/(opt|debug): ['trunk']
-                    linux.*64-ccov-qr/opt: ["mozilla-central"]
+                    android.*: []
+                    .*-tsan-qr/opt: ['trunk']
+                    linux.*64-ccov-qr/opt: []
+                    default: built-projects
+            socketprocess_networking+no-fission:
+                by-test-platform:
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable)?-qr/opt: ['trunk']
                     default: []
-            socketprocess_networking:
+            socketprocess_networking+fission:
                 by-test-platform:
                     (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central']
                     default: []
@@ -453,23 +496,20 @@ mochitest-devtools-chrome:
                     linux.*64-ccov-qr/opt: []
                     linux.*64(-shippable)?-qr/(opt|debug): built-projects
                     default: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            default:
+            webrender-sw+fission:
                 by-test-platform:
-                    .*-tsan-qr/opt: ['trunk']
-                    linux.*64-ccov-qr/opt: []
-                    default: built-projects
-    tier:
-        by-variant:
-            fission:
+                    linux.*64-qr/debug: built-projects
+                    default: []
+            no-fission:
                 by-test-platform:
-                    linux.*64(-shippable)?-qr/(opt|debug): 1
-                    windows10-64-2004(-shippable)?-qr/(opt|debug): 1
-                    default: 2
-            default: default
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
+                    default: []
+    tier: default
     max-run-time:
         by-test-platform:
             windows10-64-2004-ccov.*/.*: 10800
@@ -505,9 +545,11 @@ mochitest-plain-gpu:
     variants:
         - dynamic-first-party-isolation+fission
         - fission
+        - no-fission
         - wayland
-        - webrender-sw
+        - webrender-sw+no-fission
         - webrender-sw+fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -522,16 +564,17 @@ mochitest-plain-gpu:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug: built-projects
-                    linux.*64-qr/debug: built-projects
+                    linux.*asan.*: ['trunk']
+                    linux.*64(-shippable)?-qr/(opt|debug): ['trunk']
                     default: []
             webrender-sw+fission:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            default:
+            no-fission:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug-isolated-process: []
                     linux.*64-ccov-qr/opt: []
@@ -566,25 +609,25 @@ mochitest-chrome-gpu:
     treeherder-symbol: M(gpu-c)
     loopback-video: true
     virtualization: virtual-with-gpu
+    run-without-variant: false
     variants:
-        - dynamic-first-party-isolation+fission
-        - fission
-        - socketprocess_networking
-        - wayland
-        - webrender-sw
+        - 1proc
+        - dynamic-first-party-isolation+1proc
+        - socketprocess_networking+1proc
+        - wayland+1proc
+        - webrender-sw+1proc
     run-on-projects:
         by-variant:
-            dynamic-first-party-isolation+fission:
+            dynamic-first-party-isolation+1proc:
                 by-test-platform:
                     (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['mozilla-central']
                     default: []
-            fission: []
-            socketprocess_networking: []
-            wayland:
+            socketprocess_networking+1proc: []
+            wayland+1proc:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            webrender-sw:
+            webrender-sw+1proc:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug: built-projects
                     linux.*64-qr/debug: built-projects
@@ -625,13 +668,14 @@ mochitest-media:
     variants:
         - dynamic-first-party-isolation+fission
         - fission
-        - socketprocess
+        - no-fission
+        - socketprocess+no-fission
         - socketprocess+fission
         - wayland
-        - webgl-ipc
         - webgl-ipc+fission
-        - webrender-sw
+        - webrender-sw+no-fission
         - webrender-sw+fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -647,13 +691,6 @@ mochitest-media:
                     (android|linux|windows10-64-2004|macos)(?!.*-qr).*: []
                     windows10-aarch64-qr/.*: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
                     default: built-projects
-            webgl-ipc:
-                by-test-platform:
-                    linux.*64(-shippable|-asan|-tsan)?-qr/opt: ['autoland', 'mozilla-central']
-                    macosx.*64(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central']
-                    windows10-(32|64)-2004(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central']
-                    windows10-64-2004-asan-qr/opt: ['autoland', 'mozilla-central']
-                    default: []
             webgl-ipc+fission:
                 by-test-platform:
                     android.*: []
@@ -662,15 +699,12 @@ mochitest-media:
                     windows10-(32|64)-2004(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central']
                     windows10-64-2004-asan-qr/opt: ['autoland', 'mozilla-central']
                     default: []
-            socketprocess:
+            socketprocess+no-fission:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug: ['autoland', 'mozilla-central']
                     android-hw-.*-aarch64-qr/debug: built-projects
-                    linux.*64(-asan|-devedition|-shippable)?-qr/(opt|debug): built-projects
-                    linux.*64-tsan-qr/opt: ['autoland', 'mozilla-central']
-                    macosx.*-64(-devedition|-shippable)?-qr/(opt|debug): built-projects
-                    windows10-(32|64)-2004(-devedition|-shippable)?-qr/(opt|debug): built-projects
-                    windows10-64-2004-asan-qr/opt: ['autoland', 'mozilla-central']
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
             socketprocess+fission:
                 by-test-platform:
@@ -685,25 +719,25 @@ mochitest-media:
                 by-test-platform:
                     linux.*64-qr/debug: ['autoland', 'mozilla-central']
                     default: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug: ['autoland', 'mozilla-central']
-                    linux1804-64-qr/debug: ['autoland', 'mozilla-central']
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
             webrender-sw+fission:
                 by-test-platform:
                     android.*: []
                     linux1804-64-qr/debug: ['autoland', 'mozilla-central']
                     default: []
-            default:
+            no-fission:
                 by-test-platform:
                     android-hw-.*/opt: []
                     android-hw-.*-arm7.*/(?:debug)?: ['trunk', 'mozilla-beta', 'mozilla-release']
                     android-em-7.0-x86_64-qr/debug-isolated-process: []
                     android.*: built-projects
-                    .*-tsan-qr/opt: []
-                    linux.*(asan|ccov)/opt: []
-                    linux.*: ['trunk']  # opt / debug (asan doesn't run normally)
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
     loopback-video: true
     instance-size:
@@ -819,11 +853,13 @@ mochitest-webgl1-core:
     variants:
         - dynamic-first-party-isolation+fission
         - fission
-        - fission-webgl-ipc
+        - no-fission
         - wayland
-        - webgl-ipc
-        - webrender-sw
+        - webgl-ipc+no-fission
+        - webgl-ipc+fission
+        - webrender-sw+no-fission
         - webrender-sw+fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -835,40 +871,38 @@ mochitest-webgl1-core:
                     .*-tsan-qr/opt: ['trunk']
                     android.*: []
                     default: built-projects
-            fission-webgl-ipc:
+            webgl-ipc+fission:
                 by-test-platform:
                     .*-ccov.*: []
                     linux.*-64.*: ["trunk"]
                     mac.*: ["trunk"]
                     win.*: ["trunk"]
                     default: []
-            webgl-ipc:
+            webgl-ipc+no-fission:
                 by-test-platform:
                     .*-ccov.*: []
-                    linux.*-64.*: ["trunk"]
-                    mac.*: ["trunk"]
-                    win.*: ["trunk"]
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
             wayland:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
-                    linux.*64-qr/debug: built-projects
+                    linux.*64-qr/debug: ['trunk']
                     default: []
             webrender-sw+fission:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            default:
+            no-fission:
                 by-test-platform:
                     android-hw-.*(?<!-shippable)(-qr)?/opt: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
                     android-hw.*aarch.*-shippable-qr/opt: ['mozilla-central']
-                    .*-tsan-qr/opt: []
-                    .*ccov.*: []
-                    android.*: built-projects
-                    linux.*: ['trunk']
+                    android-hw.*aarch.*-qr/debug: ['mozilla-central']
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
     # Bug 1296733: llvmpipe with mesa 9.2.1 lacks thread safety
     allow-software-gl-layers: false
@@ -892,11 +926,13 @@ mochitest-webgl1-ext:
     variants:
         - dynamic-first-party-isolation+fission
         - fission
-        - fission-webgl-ipc
+        - no-fission
+        - webgl-ipc+fission
         - wayland
-        - webgl-ipc
-        - webrender-sw
+        - webgl-ipc+no-fission
+        - webrender-sw+no-fission
         - webrender-sw+fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -908,7 +944,7 @@ mochitest-webgl1-ext:
                     .*-tsan-qr/opt: ['trunk']
                     android.*: []
                     default: built-projects
-            fission-webgl-ipc:
+            webgl-ipc+fission:
                 by-test-platform:
                     .*-ccov.*: []
                     linux.*-64.*: built-projects
@@ -919,30 +955,27 @@ mochitest-webgl1-ext:
                 by-test-platform:
                     linux.*64(-shippable)?-qr/(opt|debug): built-projects
                     default: []
-            webgl-ipc:
+            webgl-ipc+no-fission:
                 by-test-platform:
                     .*-ccov.*: []
-                    linux.*-64.*: ["trunk"]
-                    mac.*: ["trunk"]
-                    windows10-64-2004-qr/(opt|debug): []
-                    win.*: ["trunk"]
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
-                    linux.*64-qr/debug: built-projects
+                    linux.*64-qr/debug: ['trunk']
                     default: []
             webrender-sw+fission:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            default:
+            no-fission:
                 by-test-platform:
                     android-hw-.*(?<!-shippable)(-qr)?/opt: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
                     android-hw.*aarch.*-shippable-qr/opt: ['mozilla-central']
-                    .*-tsan-qr/opt: []
-                    .*ccov.*: []
-                    android.*: built-projects
-                    linux.*: ['trunk']
+                    android-hw.*aarch.*-qr/debug: ['mozilla-central']
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
     # Bug 1296733: llvmpipe with mesa 9.2.1 lacks thread safety
     allow-software-gl-layers: false
@@ -967,11 +1000,13 @@ mochitest-webgl2-core:
     variants:
         - dynamic-first-party-isolation+fission
         - fission
-        - fission-webgl-ipc
+        - no-fission
+        - webgl-ipc+fission
         - wayland
-        - webgl-ipc
-        - webrender-sw
+        - webgl-ipc+no-fission
+        - webrender-sw+no-fission
         - webrender-sw+fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -983,7 +1018,7 @@ mochitest-webgl2-core:
                     .*-tsan-qr/opt: ['trunk']
                     android.*: []
                     default: built-projects
-            fission-webgl-ipc:
+            webgl-ipc+fission:
                 by-test-platform:
                     .*-ccov.*/.*: []
                     android.*: []
@@ -995,29 +1030,27 @@ mochitest-webgl2-core:
                 by-test-platform:
                     linux.*64(-shippable|-asan)?-qr/(opt|debug): built-projects
                     default: []
-            webgl-ipc:
+            webgl-ipc+no-fission:
                 by-test-platform:
                     .*-ccov.*/.*: []
-                    linux.*-64.*: ["trunk"]
-                    mac.*: ["trunk"]
-                    win.*: ["trunk"]
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
-                    linux.*64-qr/debug: built-projects
+                    linux.*64-qr/debug: ['trunk']
                     default: []
             webrender-sw+fission:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            default:
+            no-fission:
                 by-test-platform:
                     android-hw-.*(?<!-shippable)(-qr)?/opt: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
                     android-hw.*aarch.*-shippable-qr/opt: ['mozilla-central']
-                    .*-tsan-qr/opt: []
-                    .*ccov.*: []
-                    android.*: built-projects
-                    linux.*: ['trunk']
+                    android-hw.*aarch.*-qr/debug: ['mozilla-central']
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
     # Bug 1296733: llvmpipe with mesa 9.2.1 lacks thread safety
     allow-software-gl-layers: false
@@ -1033,11 +1066,13 @@ mochitest-webgl2-ext:
     variants:
         - dynamic-first-party-isolation+fission
         - fission
-        - fission-webgl-ipc
-        - webgl-ipc
-        - webrender-sw
+        - no-fission
+        - webgl-ipc+fission
+        - webgl-ipc+no-fission
+        - webrender-sw+no-fission
         - webrender-sw+fission
         - wayland
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -1048,7 +1083,7 @@ mochitest-webgl2-ext:
                 by-test-platform:
                     android.*: []
                     default: built-projects
-            fission-webgl-ipc:
+            webgl-ipc+fission:
                 by-test-platform:
                     .*ccov.*/.*: []
                     linux.*-64.*: ["trunk"]
@@ -1059,27 +1094,25 @@ mochitest-webgl2-ext:
                 by-test-platform:
                     linux.*64(-shippable|-asan)?-qr/(opt|debug): built-projects
                     default: []
-            webgl-ipc:
+            webgl-ipc+no-fission:
                 by-test-platform:
                     .*ccov.*/.*: []
-                    linux.*-64.*: ["trunk"]
-                    mac.*: ["trunk"]
-                    win.*: ["trunk"]
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
-                    linux.*64-qr/debug: built-projects
+                    linux.*64-qr/debug: ["trunk"]
                     default: []
             webrender-sw+fission:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            default:
+            no-fission:
                 by-test-platform:
-                    .*-tsan-qr/opt: []
-                    .*ccov.*: []
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     android.*: built-projects
-                    linux.*: ['trunk']
                     default: []
     chunks: 4
     test-manifest-loader: null  # don't load tests in the taskgraph
@@ -1123,9 +1156,11 @@ mochitest-webgpu:
     variants:
         - dynamic-first-party-isolation+fission
         - fission
-        - socketprocess_networking
+        - no-fission
+        - socketprocess_networking+no-fission
         - wayland
-        - webrender-sw
+        - webrender-sw+no-fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -1137,21 +1172,21 @@ mochitest-webgpu:
                     android.*: []
                     .*mingw.*: ["release"]
                     .*shippable.*: ["mozilla-central"]
+                    .*ccov.*: ['mozilla-central']
+                    .*tsan.*: ['trunk']
                     linux1804-64-qr/debug: ['trunk']
                     .*(!-shippable)-qr.*: ["trunk"]
                     default: []
-            socketprocess_networking: []
+            socketprocess_networking+no-fission: []
             wayland: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug: ["trunk"]
                     default: []
-            default:
+            no-fission:
                 by-test-platform:
-                    .*-tsan-qr/opt: []
-                    .*ccov.*: []
-                    linux.*/debug: []
-                    linux.*shippable.*: ['trunk']  # run on opt / asan; debug was not running originally
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
                     default: []
     max-run-time:
         by-test-platform:
@@ -1171,9 +1206,13 @@ mochitest-remote:
     variants:
         - dynamic-first-party-isolation+fission
         - fission
-        - socketprocess_networking
+        - no-fission
+        - socketprocess_networking+no-fission
+        - socketprocess_networking+fission
         - wayland
-        - webrender-sw
+        - webrender-sw+no-fission
+        - webrender-sw+fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             dynamic-first-party-isolation+fission:
@@ -1182,13 +1221,23 @@ mochitest-remote:
                     default: []
             fission:
                 by-test-platform:
-                    (windows10-64|macosx.*64)(-shippable)?-qr/(opt|debug): ['trunk']
+                    android.*: []
+                    .*-tsan-qr/opt: ['trunk']
+                    default: built-projects
+            socketprocess_networking+no-fission:
+                by-test-platform:
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable)?-qr/opt: ['trunk']
                     default: []
-            socketprocess_networking:
+            socketprocess_networking+fission:
                 by-test-platform:
                     (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central']
                     default: []
-            webrender-sw:
+            webrender-sw+no-fission:
+                by-test-platform:
+                    linux.*64-qr/debug: ['trunk']
+                    default: []
+            webrender-sw+fission:
                 by-test-platform:
                     linux.*64-qr/debug: ['all']
                     default: []
@@ -1196,14 +1245,12 @@ mochitest-remote:
                 by-test-platform:
                     linux.*64-qr/debug: built-projects
                     default: []
-            default:
+            no-fission:
                 by-test-platform:
-                    .*-tsan-qr/opt: ['trunk']
-                    default: built-projects
-    tier:
-        by-variant:
-            fission: 2
-            default: default
+                    linux1804-64-qr/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
+                    default: []
+    tier: default
     max-run-time: 5400
     mozharness:
         mochitest-flavor: browser

@@ -395,6 +395,40 @@ body {
   font: menu;
 }
 
+hr {
+  margin: 12px -8px;
+  background-color: #F0F0F4;
+  height: 1px;
+  border: none;
+}
+
+.header_large {
+  margin: 12px 0 8px;
+  font-size: 1.15em;
+  line-height: 1.53em;
+}
+
+.header_medium {
+  margin: 12px 0 8px;
+  font-size: 1em;
+  line-height: 1.23em;
+}
+
+p {
+  margin: 8px 0;
+  font-size: 0.84em;
+  line-height: 1.07em;
+}
+
+.stp_panel_container {
+  overflow: hidden;
+}
+
+.stp_panel {
+  padding: 0 16px;
+  margin: 16px 0 12px;
+}
+
 /*  saved.css
  *
  *  Description:
@@ -1953,6 +1987,28 @@ button {
   margin: 20px 0;
 }
 
+.stp_popular_topics {
+  padding: 0;
+}
+.stp_popular_topics .stp_popular_topic {
+  background: #F0F0F4;
+  border-radius: 4px;
+  display: inline-block;
+  font-size: 0.77em;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.2em;
+  margin-inline-end: 8px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+}
+.stp_popular_topics .stp_popular_topic .stp_popular_topic_link {
+  color: #000;
+}
+.stp_popular_topics .stp_popular_topic .stp_popular_topic_link::after {
+  content: " >";
+}
+
 .stp_article_list {
   padding: 0;
   list-style: none;
@@ -1993,8 +2049,7 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 16px;
-  padding: 10px 0;
+  margin: 16px 0 12px;
   font-size: 1em;
   font-weight: 600;
 }
@@ -2003,6 +2058,57 @@ button {
   background-size: contain;
   height: 32px;
   width: 121px;
+}
+
+.stp_button {
+  cursor: pointer;
+  display: inline-block;
+  margin: 0;
+}
+.stp_button.stp_button_text {
+  color: #0060DF;
+  font-size: 0.85em;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.27em;
+}
+.stp_button.stp_button_primary {
+  align-items: center;
+  background: #0060DF;
+  border-radius: 4px;
+  color: #FBFBFE;
+  font-size: 0.85em;
+  font-style: normal;
+  font-weight: 600;
+  justify-content: center;
+  line-height: 1.27em;
+  padding: 6px 12px;
+}
+.stp_button.stp_button_secondary {
+  align-items: center;
+  background: #F0F0F4;
+  border-radius: 4px;
+  color: #15141A;
+  font-size: 0.85em;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.27em;
+  padding: 6px 12px;
+}
+
+.stp_button_wide .stp_button {
+  display: block;
+  margin: 12px 0;
+  text-align: center;
+  padding: 8px 12px;
+}
+.stp_button_wide .stp_button.stp_button_primary {
+  font-size: 1em;
+  line-height: 1.22em;
+}
+.stp_button_wide .stp_button.stp_button_secondary {
+  font-size: 0.85em;
+  line-height: 1.07em;
 }
 
 /*# sourceMappingURL=main.compiled.css.map */

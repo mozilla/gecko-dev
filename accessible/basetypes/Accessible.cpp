@@ -8,6 +8,8 @@
 #include "ARIAMap.h"
 #include "States.h"
 #include "mozilla/a11y/HyperTextAccessibleBase.h"
+#include "mozilla/Components.h"
+#include "nsIStringBundle.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
@@ -78,6 +80,14 @@ uint32_t Accessible::StartOffset() {
   HyperTextAccessibleBase* hyperText =
       parent ? parent->AsHyperTextBase() : nullptr;
   return hyperText ? hyperText->GetChildOffset(this) : 0;
+}
+
+uint32_t Accessible::EndOffset() {
+  MOZ_ASSERT(IsLink(), "EndOffset is called on not hyper link!");
+  Accessible* parent = Parent();
+  HyperTextAccessibleBase* hyperText =
+      parent ? parent->AsHyperTextBase() : nullptr;
+  return hyperText ? (hyperText->GetChildOffset(this) + 1) : 0;
 }
 
 GroupPos Accessible::GroupPosition() {
@@ -247,4 +257,32 @@ void Accessible::GetPositionAndSetSize(int32_t* aPosInSet, int32_t* aSetSize) {
     *aPosInSet = groupInfo->PosInSet();
     *aSetSize = groupInfo->SetSize();
   }
+}
+
+void Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut) {
+  nsCOMPtr<nsIStringBundleService> stringBundleService =
+      components::StringBundle::Service();
+  if (!stringBundleService) return;
+
+  nsCOMPtr<nsIStringBundle> stringBundle;
+  stringBundleService->CreateBundle(
+      "chrome://global-platform/locale/accessible.properties",
+      getter_AddRefs(stringBundle));
+  if (!stringBundle) return;
+
+  nsAutoString xsValue;
+  nsresult rv = stringBundle->GetStringFromName(
+      NS_ConvertUTF16toUTF8(aKey).get(), xsValue);
+  if (NS_SUCCEEDED(rv)) aStringOut.Assign(xsValue);
+}
+
+const Accessible* Accessible::ActionAncestor() const {
+  for (Accessible* parent = Parent(); parent && !parent->IsDoc();
+       parent = parent->Parent()) {
+    if (parent->HasPrimaryAction()) {
+      return parent;
+    }
+  }
+
+  return nullptr;
 }

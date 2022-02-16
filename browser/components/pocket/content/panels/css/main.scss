@@ -1,5 +1,6 @@
 @import "./normalize";
 @import "./global";
+@import "./panel";
 @import "./saved";
 @import "./signup";
 @import "./home";
@@ -7,5 +8,7 @@
 
 // Components
 
+@import "../js/components/PopularTopics/PopularTopics";
 @import "../js/components/ArticleList/ArticleList";
 @import "../js/components/Header/Header";
+@import "../js/components/Button/Button";

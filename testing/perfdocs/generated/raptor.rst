@@ -728,6 +728,236 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 
 
 
+.. dropdown:: matrix-react-bench
+   :container: + anchor-id-matrix-react-bench-b
+
+   **Owner**: :jandem and SpiderMonkey Team
+
+   * **alert threshold**: 2.0
+   * **apps**: firefox, chrome, chromium
+   * **expected**: pass
+   * **fetch task**: matrix-react-bench
+   * **gecko profile entries**: 14000000
+   * **gecko profile interval**: 1
+   * **lower is better**: true
+   * **page cycles**: 30
+   * **page timeout**: 2000000
+   * **subtest lower is better**: true
+   * **subtest unit**: ms
+   * **test url**: `<http://\<host\>:\<port\>/matrix-react-bench/matrix_demo.html>`__
+   * **type**: benchmark
+   * **unit**: ms
+   * **Test Task**:
+
+   .. list-table:: **test-linux1804-64-clang-trunk-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-firefox-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-fis-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-firefox-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-fis-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-linux1804-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-chrome-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-chromium-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-fis-e10s**
+        - ✅
+        - ✅
+        - ❌
+        - ✅
+
+
+   .. list-table:: **test-macosx1015-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-chrome-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-chromium-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-fis-e10s**
+        - ✅
+        - ✅
+        - ❌
+        - ✅
+
+
+   .. list-table:: **test-windows10-32-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-firefox-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-fis-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-32-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-chrome-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-chromium-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-fis-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-firefox-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-fis-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-windows10-64-shippable-qr/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-chrome-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-chromium-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-e10s**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-firefox-matrix-react-bench-fis-e10s**
+        - ✅
+        - ✅
+        - ❌
+        - ✅
+
+
+
 .. dropdown:: motionmark-animometer
    :container: + anchor-id-motionmark-animometer-b
 
@@ -7830,7 +8060,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-amazon-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-amazon-e10s**
         - ❌
@@ -7891,7 +8121,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-amazon-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-amazon-e10s**
         - ❌
@@ -8065,7 +8295,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-amazon-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-amazon-e10s**
         - ❌
@@ -8204,7 +8434,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-bing-search-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-bing-search-e10s**
         - ❌
@@ -8255,7 +8485,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-bing-search-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-bing-search-e10s**
         - ❌
@@ -8419,7 +8649,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-bing-search-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-bing-search-e10s**
         - ❌
@@ -8539,7 +8769,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-buzzfeed-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -8570,7 +8800,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-buzzfeed-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -8674,7 +8904,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-buzzfeed-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -9122,7 +9352,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-cnn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-sheriffed-firefox-cnn-e10s**
         - ❌
@@ -9163,7 +9393,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-cnn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-sheriffed-firefox-cnn-e10s**
         - ❌
@@ -9307,7 +9537,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-cnn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-sheriffed-firefox-cnn-e10s**
         - ❌
@@ -9437,7 +9667,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-ebay-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-ebay-e10s**
         - ❌
@@ -9488,7 +9718,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-ebay-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-ebay-e10s**
         - ❌
@@ -9652,7 +9882,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-ebay-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-ebay-e10s**
         - ❌
@@ -10100,7 +10330,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-espn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -10131,7 +10361,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-espn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -10235,7 +10465,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-espn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -10523,7 +10753,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-expedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -10554,7 +10784,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-expedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -10658,7 +10888,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-expedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -11106,7 +11336,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-facebook-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-facebook-e10s**
         - ❌
@@ -11157,7 +11387,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-facebook-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-facebook-e10s**
         - ❌
@@ -11321,7 +11551,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-facebook-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-facebook-e10s**
         - ❌
@@ -11460,7 +11690,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-fandom-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-fandom-e10s**
         - ❌
@@ -11511,7 +11741,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-fandom-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-fandom-e10s**
         - ❌
@@ -11675,7 +11905,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-fandom-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-fandom-e10s**
         - ❌
@@ -11718,8 +11948,8 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm6-linux-firefox-google-docs.manifest
-   * **playback version**: 6.0.2
+   * **playback pageset manifest**: mitm7-linux-firefox-google-docs.manifest
+   * **playback version**: 7.0.4
    * **secondary url**: `<https://docs.google.com/document/d/1vUnn0ePU-ynArE1OdxyEHXR2G0sl74ja_st_4OOzlgE/preview>`__
    * **test url**: `<https://docs.google.com/document/d/1US-07msg12slQtI_xchzYxcKlTs6Fp7WqIc6W5GK5M8/edit?usp=sharing>`__
    * **type**: pageload
@@ -11816,7 +12046,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-docs-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-docs-e10s**
         - ❌
@@ -11867,7 +12097,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-docs-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-docs-e10s**
         - ❌
@@ -12031,7 +12261,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-docs-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-docs-e10s**
         - ❌
@@ -12150,7 +12380,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-docs-canvas-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -12181,7 +12411,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-docs-canvas-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -12285,7 +12515,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-docs-canvas-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -12404,7 +12634,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-mail-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-mail-e10s**
         - ❌
@@ -12455,7 +12685,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-mail-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-mail-e10s**
         - ❌
@@ -12619,7 +12849,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-mail-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-mail-e10s**
         - ❌
@@ -12758,7 +12988,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-search-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-search-e10s**
         - ❌
@@ -12809,7 +13039,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-search-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-search-e10s**
         - ❌
@@ -12973,7 +13203,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-google-search-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-search-e10s**
         - ❌
@@ -13113,7 +13343,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-google-slides-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-slides-e10s**
         - ❌
@@ -13164,7 +13394,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-google-slides-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-slides-e10s**
         - ❌
@@ -13328,7 +13558,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-google-slides-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-google-slides-e10s**
         - ❌
@@ -13795,7 +14025,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-imdb-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-imdb-e10s**
         - ❌
@@ -13846,7 +14076,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-imdb-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-imdb-e10s**
         - ❌
@@ -14010,7 +14240,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-imdb-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-imdb-e10s**
         - ❌
@@ -14151,7 +14381,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-imgur-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-imgur-e10s**
         - ❌
@@ -14202,7 +14432,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-imgur-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-imgur-e10s**
         - ❌
@@ -14366,7 +14596,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-imgur-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-imgur-e10s**
         - ❌
@@ -14814,7 +15044,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-instagram-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -14845,7 +15075,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-instagram-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -14949,7 +15179,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-instagram-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -15069,7 +15299,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-linkedin-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-linkedin-e10s**
         - ❌
@@ -15120,7 +15350,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-linkedin-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-linkedin-e10s**
         - ❌
@@ -15284,7 +15514,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-linkedin-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-linkedin-e10s**
         - ❌
@@ -15424,7 +15654,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-microsoft-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-microsoft-e10s**
         - ❌
@@ -15475,7 +15705,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-microsoft-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-microsoft-e10s**
         - ❌
@@ -15639,7 +15869,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-microsoft-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-microsoft-e10s**
         - ❌
@@ -15779,7 +16009,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-netflix-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-netflix-e10s**
         - ❌
@@ -15830,7 +16060,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-netflix-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-netflix-e10s**
         - ❌
@@ -15994,7 +16224,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-netflix-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-netflix-e10s**
         - ❌
@@ -16036,8 +16266,8 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm6-linux-firefox-nytimes.manifest
-   * **playback version**: 6.0.2
+   * **playback pageset manifest**: mitm7-linux-firefox-nytimes.manifest
+   * **playback version**: 7.0.4
    * **secondary url**: `<https://www.nytimes.com/section/opinion/columnists>`__
    * **test url**: `<https://www.nytimes.com/2020/02/19/opinion/surprise-medical-bill.html>`__
    * **type**: pageload
@@ -16302,7 +16532,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-nytimes-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -16333,7 +16563,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-nytimes-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -16437,7 +16667,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-nytimes-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -16537,7 +16767,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-office-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -16568,7 +16798,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-office-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -16672,7 +16902,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-office-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -16791,7 +17021,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-outlook-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-outlook-e10s**
         - ❌
@@ -16842,7 +17072,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-outlook-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-outlook-e10s**
         - ❌
@@ -17006,7 +17236,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-outlook-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-outlook-e10s**
         - ❌
@@ -17145,7 +17375,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-paypal-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-paypal-e10s**
         - ❌
@@ -17196,7 +17426,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-paypal-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-paypal-e10s**
         - ❌
@@ -17360,7 +17590,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-paypal-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-paypal-e10s**
         - ❌
@@ -17500,7 +17730,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-pinterest-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-pinterest-e10s**
         - ❌
@@ -17551,7 +17781,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-pinterest-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-pinterest-e10s**
         - ❌
@@ -17715,7 +17945,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-pinterest-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-pinterest-e10s**
         - ❌
@@ -18183,7 +18413,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-reddit-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-reddit-e10s**
         - ❌
@@ -18234,7 +18464,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-reddit-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-reddit-e10s**
         - ❌
@@ -18398,7 +18628,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-reddit-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-reddit-e10s**
         - ❌
@@ -18538,7 +18768,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-tumblr-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-tumblr-e10s**
         - ❌
@@ -18589,7 +18819,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-tumblr-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-tumblr-e10s**
         - ❌
@@ -18753,7 +18983,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-tumblr-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-tumblr-e10s**
         - ❌
@@ -18795,9 +19025,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm5-linux-firefox-twitch.manifest
-   * **playback version**: 5.1.1
-   * **test url**: `<https://www.twitch.tv/videos/326804629>`__
+   * **playback pageset manifest**: mitm7-linux-firefox-twitch.manifest
+   * **playback version**: 7.0.4
+   * **preferences**: {"media.autoplay.default": 5, "media.autoplay.ask-permission": true, "media.autoplay.blocking_policy": 1, "media.autoplay.block-webaudio": true, "media.allowed-to-play.enabled": false, "media.block-autoplay-until-in-foreground": true}
+   * **secondary url**: `<https://www.twitch.tv/gmashley>`__
+   * **test url**: `<https://www.twitch.tv/videos/894226211>`__
    * **type**: pageload
    * **unit**: ms
    * **use live sites**: false
@@ -18892,7 +19124,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-twitch-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-twitch-e10s**
         - ❌
@@ -18943,7 +19175,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-twitch-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-twitch-e10s**
         - ❌
@@ -19107,7 +19339,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-twitch-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-twitch-e10s**
         - ❌
@@ -19246,7 +19478,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-twitter-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-twitter-e10s**
         - ❌
@@ -19297,7 +19529,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-twitter-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-twitter-e10s**
         - ❌
@@ -19461,7 +19693,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-twitter-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-twitter-e10s**
         - ❌
@@ -19503,8 +19735,9 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm5-linux-firefox-wikia.manifest
-   * **playback version**: 5.1.1
+   * **playback pageset manifest**: mitm7-linux-firefox-wikia.manifest
+   * **playback version**: 7.0.4
+   * **secondary url**: `<https://marvel.fandom.com/wiki/Celestials>`__
    * **test url**: `<https://marvel.fandom.com/wiki/Black_Panther>`__
    * **type**: pageload
    * **unit**: ms
@@ -19580,7 +19813,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-wikia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -19611,7 +19844,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-wikia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -19715,7 +19948,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-wikia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -20163,7 +20396,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-wikipedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-wikipedia-e10s**
         - ❌
@@ -20214,7 +20447,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-wikipedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-wikipedia-e10s**
         - ❌
@@ -20378,7 +20611,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-wikipedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-wikipedia-e10s**
         - ❌
@@ -20517,7 +20750,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-yahoo-mail-e10s**
         - ❌
@@ -20568,7 +20801,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-yahoo-mail-e10s**
         - ❌
@@ -20732,7 +20965,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-yahoo-mail-e10s**
         - ❌
@@ -20774,8 +21007,8 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm6-linux-firefox-youtube.manifest
-   * **playback version**: 6.0.2
+   * **playback pageset manifest**: mitm7-linux-firefox-youtube.manifest
+   * **playback version**: 7.0.4
    * **secondary url**: `<https://www.youtube.com/watch?v=JrdEMERq8MA>`__
    * **test url**: `<https://www.youtube.com>`__
    * **type**: pageload
@@ -21205,7 +21438,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-youtube-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-youtube-e10s**
         - ❌
@@ -21256,7 +21489,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-youtube-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-youtube-e10s**
         - ❌
@@ -21420,7 +21653,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
       * - **browsertime-tp6-firefox-youtube-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-youtube-e10s**
         - ❌
@@ -23284,7 +23517,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
       * - **browsertime-tp6-essential-firefox-cnn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-sheriffed-firefox-cnn-e10s**
         - ❌
@@ -23325,7 +23558,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
       * - **browsertime-tp6-essential-firefox-cnn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-sheriffed-firefox-cnn-e10s**
         - ❌
@@ -23469,7 +23702,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
       * - **browsertime-tp6-essential-firefox-cnn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-sheriffed-firefox-cnn-e10s**
         - ❌
@@ -24316,7 +24549,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
       * - **browsertime-tp6-firefox-expedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -24347,7 +24580,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
       * - **browsertime-tp6-firefox-expedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -24451,7 +24684,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
       * - **browsertime-tp6-firefox-expedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -25564,7 +25797,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
       * - **browsertime-tp6-firefox-nytimes-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -25595,7 +25828,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
       * - **browsertime-tp6-firefox-nytimes-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -25699,7 +25932,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
       * - **browsertime-tp6-firefox-nytimes-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -27752,7 +27985,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-amazon-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-amazon-e10s**
         - ❌
@@ -27813,7 +28046,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-amazon-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-amazon-e10s**
         - ❌
@@ -27987,7 +28220,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-amazon-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-amazon-e10s**
         - ❌
@@ -29855,7 +30088,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-cnn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-sheriffed-firefox-cnn-e10s**
         - ❌
@@ -29896,7 +30129,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-cnn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-sheriffed-firefox-cnn-e10s**
         - ❌
@@ -30040,7 +30273,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-cnn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-sheriffed-firefox-cnn-e10s**
         - ❌
@@ -31878,7 +32111,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-espn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -31909,7 +32142,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-espn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -32013,7 +32246,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-espn-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -32458,7 +32691,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-facebook-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-facebook-e10s**
         - ❌
@@ -32509,7 +32742,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-facebook-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-facebook-e10s**
         - ❌
@@ -32673,7 +32906,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-facebook-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-facebook-e10s**
         - ❌
@@ -34543,7 +34776,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-imdb-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-imdb-e10s**
         - ❌
@@ -34594,7 +34827,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-imdb-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-imdb-e10s**
         - ❌
@@ -34758,7 +34991,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-imdb-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-imdb-e10s**
         - ❌
@@ -35203,7 +35436,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-instagram-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -35234,7 +35467,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-instagram-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -35338,7 +35571,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-instagram-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
 
 
@@ -36133,7 +36366,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-reddit-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-reddit-e10s**
         - ❌
@@ -36184,7 +36417,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-reddit-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-reddit-e10s**
         - ❌
@@ -36348,7 +36581,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-reddit-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-reddit-e10s**
         - ❌
@@ -37765,7 +37998,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-wikipedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-wikipedia-e10s**
         - ❌
@@ -37816,7 +38049,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-wikipedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-wikipedia-e10s**
         - ❌
@@ -37980,7 +38213,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-essential-firefox-wikipedia-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-wikipedia-e10s**
         - ❌
@@ -38449,7 +38682,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-youtube-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-youtube-e10s**
         - ❌
@@ -38500,7 +38733,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-youtube-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-youtube-e10s**
         - ❌
@@ -38664,7 +38897,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6-firefox-youtube-fis-e10s**
         - ✅
         - ✅
-        - ❌
+        - ✅
         - ✅
       * - **browsertime-tp6-live-chrome-youtube-e10s**
         - ❌

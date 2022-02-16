@@ -35,6 +35,12 @@ var gMoreFromMozillaPane = {
     return this._option;
   },
 
+  // Return true if Send to Device emails are supported for user's locale
+  sendToDeviceEmailsSupported() {
+    const userLocale = Services.locale.appLocaleAsBCP47.toLowerCase();
+    return this.emailSupportedLocales.includes(userLocale);
+  },
+
   getURL(url, region, option, hasEmail) {
     const URL_PARAMS = {
       utm_source: "about-prefs",
@@ -248,16 +254,22 @@ var gMoreFromMozillaPane = {
 
         // So the telemetry includes info about which option is being used
         qrc_link.id = `${this.option}-${product.qrcode.button.id}`;
-        qrc_link.setAttribute(
-          "data-l10n-id",
-          product.qrcode.button.label.string_id
-        );
-        qrc_link.href = this.getURL(
-          product.qrcode.button.actionURL,
-          product.region,
-          this.option,
-          true
-        );
+
+        // For supported locales, this link allows users to send themselves a download link by email. It should be hidden for unsupported locales.
+        if (!this.sendToDeviceEmailsSupported()) {
+          qrc_link.classList.add("hidden");
+        } else {
+          qrc_link.setAttribute(
+            "data-l10n-id",
+            product.qrcode.button.label.string_id
+          );
+          qrc_link.href = this.getURL(
+            product.qrcode.button.actionURL,
+            product.region,
+            this.option,
+            true
+          );
+        }
       }
 
       frag.appendChild(template);
@@ -280,3 +292,15 @@ var gMoreFromMozillaPane = {
     this.renderProducts();
   },
 };
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  gMoreFromMozillaPane,
+  "emailSupportedLocales",
+  "browser.send_to_device_locales",
+  "",
+  null,
+  prefVal => {
+    // split on commas, ignoring whitespace
+    return prefVal.toLowerCase().split(/\s*,\s*/g);
+  }
+);

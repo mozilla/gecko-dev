@@ -187,8 +187,7 @@ class nsWindow final : public nsWindowBase {
                                            nsISupports* aData,
                                            nsIRunnable* aCallback) override;
   virtual void CleanupFullscreenTransition() override;
-  virtual nsresult MakeFullScreen(bool aFullScreen,
-                                  nsIScreen* aScreen = nullptr) override;
+  virtual nsresult MakeFullScreen(bool aFullScreen) override;
   virtual void HideWindowChrome(bool aShouldHide) override;
   virtual void Invalidate(bool aEraseBackground = false,
                           bool aUpdateNCArea = false,
@@ -536,7 +535,8 @@ class nsWindow final : public nsWindowBase {
   bool DispatchTouchEventFromWMPointer(UINT msg, LPARAM aLParam,
                                        const WinPointerInfo& aPointerInfo,
                                        mozilla::MouseButton aButton);
-  void SetSizeModeInternal(nsSizeMode aMode, nsIScreen* aFullscreenTarget);
+
+  void SetSizeModeInternal(nsSizeMode aMode);
 
  protected:
   static bool IsAsyncResponseEvent(UINT aMsg, LRESULT& aResult);

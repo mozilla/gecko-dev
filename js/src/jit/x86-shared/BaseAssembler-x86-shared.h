@@ -578,6 +578,11 @@ class BaseAssembler : public GenericAssembler {
     threeByteOpSimd("vpmaddubsw", VEX_PD, OP3_PMADDUBSW_VdqWdq, ESCAPE_38, src1,
                     src0, dst);
   }
+  void vpmaddubsw_mr(const void* address, XMMRegisterID src0,
+                     XMMRegisterID dst) {
+    threeByteOpSimd("vpmaddubsw", VEX_PD, OP3_PMADDUBSW_VdqWdq, ESCAPE_38,
+                    address, src0, dst);
+  }
 
   void vpaddb_rr(XMMRegisterID src1, XMMRegisterID src0, XMMRegisterID dst) {
     twoByteOpSimd("vpaddb", VEX_PD, OP2_PADDB_VdqWdq, src1, src0, dst);
@@ -5328,7 +5333,8 @@ class BaseAssembler : public GenericAssembler {
 
     spew("%-11s$%d, %s, %s", name, int32_t(imm), XMMRegName(src),
          XMMRegName(dst));
-    m_formatter.twoByteOpVex(VEX_PD, opcode, (RegisterID)dst, src,
+    // For shift instructions, destination is stored in vvvv field.
+    m_formatter.twoByteOpVex(VEX_PD, opcode, (RegisterID)src, dst,
                              (int)shiftKind);
     m_formatter.immediate8u(imm);
   }
@@ -5708,6 +5714,27 @@ class BaseAssembler : public GenericAssembler {
       }
       threeOpVex(ty, r, x, b, m, w, v, l, opcode);
       memoryModRM(address, reg);
+    }
+
+    void threeByteRipOpVex(VexOperandType ty, ThreeByteOpcodeID opcode,
+                           ThreeByteEscape escape, int ripOffset,
+                           XMMRegisterID src0, int reg) {
+      int r = (reg >> 3), x = 0, b = 0;
+      int m = 0;
+      switch (escape) {
+        case ESCAPE_38:
+          m = 2;
+          break;
+        case ESCAPE_3A:
+          m = 3;
+          break;
+        default:
+          MOZ_CRASH("unexpected escape");
+      }
+      int w = 0, v = src0, l = 0;
+      threeOpVex(ty, r, x, b, m, w, v, l, opcode);
+      putModRm(ModRmMemoryNoDisp, noBase, reg);
+      m_buffer.putIntUnchecked(ripOffset);
     }
 
     void vblendvOpVex(VexOperandType ty, ThreeByteOpcodeID opcode,

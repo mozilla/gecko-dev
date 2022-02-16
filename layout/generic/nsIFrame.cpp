@@ -1179,6 +1179,18 @@ void nsIFrame::MarkNeedsDisplayItemRebuild() {
 // Subclass hook for style post processing
 /* virtual */
 void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
+#ifdef ACCESSIBILITY
+  // Don't notify for reconstructed frames here, since the frame is still being
+  // constructed at this point and so LocalAccessible::GetFrame() will return
+  // null. Style changes for reconstructed frames are handled in
+  // DocAccessible::PruneOrInsertSubtree.
+  if (aOldComputedStyle) {
+    if (nsAccessibilityService* accService = GetAccService()) {
+      accService->NotifyOfComputedStyleChange(PresShell(), mContent);
+    }
+  }
+#endif
+
   MaybeScheduleReflowSVGNonDisplayText(this);
 
   Document* doc = PresContext()->Document();
@@ -2963,7 +2975,8 @@ static Maybe<nsRect> ComputeClipForMaskItem(nsDisplayListBuilder* aBuilder,
   int32_t devPixelRatio = aMaskedFrame->PresContext()->AppUnitsPerDevPixel();
   gfxPoint devPixelOffsetToUserSpace =
       nsLayoutUtils::PointToGfxPoint(offsetToUserSpace, devPixelRatio);
-  gfxMatrix cssToDevMatrix = SVGUtils::GetCSSPxToDevPxMatrix(aMaskedFrame);
+  CSSToLayoutDeviceScale cssToDevScale =
+      aMaskedFrame->PresContext()->CSSToDevPixelScale();
 
   nsPoint toReferenceFrame;
   aBuilder->FindReferenceFrameFor(aMaskedFrame, &toReferenceFrame);
@@ -2982,7 +2995,9 @@ static Maybe<nsRect> ComputeClipForMaskItem(nsDisplayListBuilder* aBuilder,
         SVGUtils::eBBoxIncludeClipped | SVGUtils::eBBoxIncludeFill |
             SVGUtils::eBBoxIncludeMarkers | SVGUtils::eBBoxIncludeStroke |
             SVGUtils::eDoNotClipToBBoxOfContentInsideClipPath);
-    combinedClip = Some(cssToDevMatrix.TransformBounds(result));
+    combinedClip = Some(
+        ThebesRect((CSSRect::FromUnknownRect(ToRect(result)) * cssToDevScale)
+                       .ToUnknownRect()));
   } else {
     // The code for this case is adapted from ComputeMaskGeometry().
 
@@ -3007,7 +3022,9 @@ static Maybe<nsRect> ComputeClipForMaskItem(nsDisplayListBuilder* aBuilder,
       gfxRect clipArea;
       if (maskFrames[i]) {
         clipArea = maskFrames[i]->GetMaskArea(aMaskedFrame);
-        clipArea = cssToDevMatrix.TransformBounds(clipArea);
+        clipArea = ThebesRect(
+            (CSSRect::FromUnknownRect(ToRect(clipArea)) * cssToDevScale)
+                .ToUnknownRect());
       } else {
         const auto& layer = svgReset->mMask.mLayers[i];
         if (layer.mClip == StyleGeometryBox::NoClip) {

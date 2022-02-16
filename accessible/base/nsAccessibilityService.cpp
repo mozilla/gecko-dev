@@ -308,12 +308,17 @@ nsAccessibilityService::ListenersChanged(nsIArray* aEventChanges) {
           // Create an accessible for a inaccessible element having click event
           // handler.
           document->ContentInserted(content, content->GetNextSibling());
-        } else if (acc && acc->IsHTMLLink() && !acc->AsHTMLLink()->IsLinked()) {
-          // Notify of a LINKED state change if an HTML link gets a click
-          // listener but does not have an href attribute.
-          RefPtr<AccEvent> linkedChangeEvent =
-              new AccStateChangeEvent(acc, states::LINKED);
-          document->FireDelayedEvent(linkedChangeEvent);
+        } else if (acc) {
+          if (acc->IsHTMLLink() && !acc->AsHTMLLink()->IsLinked()) {
+            // Notify of a LINKED state change if an HTML link gets a click
+            // listener but does not have an href attribute.
+            RefPtr<AccEvent> linkedChangeEvent =
+                new AccStateChangeEvent(acc, states::LINKED);
+            document->FireDelayedEvent(linkedChangeEvent);
+          }
+
+          // A click listener change might mean losing or gaining an action.
+          acc->SendCache(CacheDomain::Actions, CacheUpdateType::Update);
         }
       }
     }
@@ -361,9 +366,23 @@ void nsAccessibilityService::NotifyOfPossibleBoundsChange(
     if (document) {
       LocalAccessible* accessible = document->GetAccessible(aContent);
       if (accessible) {
-        document->MarkForBoundsProcessing(accessible);
-        document->Controller()->ScheduleProcessing();
+        document->QueueCacheUpdate(accessible, CacheDomain::Bounds);
       }
+    }
+  }
+}
+
+void nsAccessibilityService::NotifyOfComputedStyleChange(
+    mozilla::PresShell* aPresShell, nsIContent* aContent) {
+  if (!StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return;
+  }
+
+  DocAccessible* document = GetDocAccessible(aPresShell);
+  if (document) {
+    LocalAccessible* accessible = document->GetAccessible(aContent);
+    if (accessible) {
+      accessible->MaybeQueueCacheUpdateForStyleChanges();
     }
   }
 }

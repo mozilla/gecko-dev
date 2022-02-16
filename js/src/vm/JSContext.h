@@ -295,9 +295,6 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   // Accessors for immutable runtime data.
   JSAtomState& names() { return *runtime_->commonNames; }
   js::StaticStrings& staticStrings() { return *runtime_->staticStrings; }
-  js::SharedImmutableStringsCache& sharedImmutableStrings() {
-    return runtime_->sharedImmutableStrings();
-  }
   bool permanentAtomsPopulated() { return runtime_->permanentAtomsPopulated(); }
   const js::FrozenAtomSet& permanentAtoms() {
     return *runtime_->permanentAtoms();
@@ -729,6 +726,17 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   }
   const js::AutoCycleDetector::Vector& cycleDetectorVector() const {
     return cycleDetectorVector_.ref();
+  }
+
+ private:
+  js::ContextData<JS::PersistentRooted<JSFunction*>> watchtowerTestingCallback_;
+
+ public:
+  JSFunction*& watchtowerTestingCallbackRef() {
+    if (!watchtowerTestingCallback_.ref().initialized()) {
+      watchtowerTestingCallback_.ref().init(this);
+    }
+    return watchtowerTestingCallback_.ref().get();
   }
 
   /* Client opaque pointer. */

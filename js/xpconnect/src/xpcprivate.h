@@ -678,7 +678,7 @@ class MOZ_STACK_CLASS XPCCallContext final {
 
   explicit XPCCallContext(JSContext* cx, JS::HandleObject obj = nullptr,
                           JS::HandleObject funobj = nullptr,
-                          JS::HandleId id = JSID_VOIDHANDLE,
+                          JS::HandleId id = JS::VoidHandlePropertyKey,
                           unsigned argc = NO_ARGS, JS::Value* argv = nullptr,
                           JS::Value* rval = nullptr);
 
@@ -2271,6 +2271,7 @@ struct GlobalProperties {
   bool caches : 1;
   bool crypto : 1;
   bool fetch : 1;
+  bool storage : 1;
   bool structuredClone : 1;
   bool indexedDB : 1;
   bool isSecureContext : 1;
@@ -2360,7 +2361,7 @@ class MOZ_STACK_CLASS CreateObjectInOptions : public OptionsBase {
  public:
   explicit CreateObjectInOptions(JSContext* cx = xpc_GetSafeJSContext(),
                                  JSObject* options = nullptr)
-      : OptionsBase(cx, options), defineAs(cx, JSID_VOID) {}
+      : OptionsBase(cx, options), defineAs(cx, JS::PropertyKey::Void()) {}
 
   virtual bool Parse() override { return ParseId("defineAs", &defineAs); }
 
@@ -2372,7 +2373,7 @@ class MOZ_STACK_CLASS ExportFunctionOptions : public OptionsBase {
   explicit ExportFunctionOptions(JSContext* cx = xpc_GetSafeJSContext(),
                                  JSObject* options = nullptr)
       : OptionsBase(cx, options),
-        defineAs(cx, JSID_VOID),
+        defineAs(cx, JS::PropertyKey::Void()),
         allowCrossOriginArguments(false) {}
 
   virtual bool Parse() override {

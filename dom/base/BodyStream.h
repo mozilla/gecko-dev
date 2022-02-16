@@ -154,7 +154,7 @@ class BodyStream final : public nsIInputStreamCallback,
  private:
   // Fills a buffer with bytes from the stream.
   void WriteIntoReadRequestBuffer(JSContext* aCx, ReadableStream* aStream,
-                                  void* aBuffer, size_t aLength,
+                                  JS::Handle<JSObject*> aBuffer, size_t aLength,
                                   size_t* aByteWritten);
 
   // This is a script boundary until Bug 1750605 is resolved and allows us
@@ -166,14 +166,16 @@ class BodyStream final : public nsIInputStreamCallback,
   void ErrorPropagation(JSContext* aCx, const MutexAutoLock& aProofOfLock,
                         ReadableStream* aStream, nsresult aRv);
 
-  void CloseAndReleaseObjects(JSContext* aCx, const MutexAutoLock& aProofOfLock,
-                              ReadableStream* aStream);
+  // TODO: convert this to MOZ_CAN_RUN_SCRIPT (bug 1750605)
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void CloseAndReleaseObjects(
+      JSContext* aCx, const MutexAutoLock& aProofOfLock,
+      ReadableStream* aStream);
 #else
   void requestData(JSContext* aCx, JS::HandleObject aStream,
                    size_t aDesiredSize) override;
 
   void writeIntoReadRequestBuffer(JSContext* aCx, JS::HandleObject aStream,
-                                  void* aBuffer, size_t aLength,
+                                  JS::Handle<JSObject*> aChunk, size_t aLength,
                                   size_t* aBytesWritten) override;
 
   JS::Value cancel(JSContext* aCx, JS::HandleObject aStream,

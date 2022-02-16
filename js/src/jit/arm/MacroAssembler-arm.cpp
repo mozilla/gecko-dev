@@ -5976,6 +5976,17 @@ void MacroAssembler::copySignDouble(FloatRegister lhs, FloatRegister rhs,
   MOZ_CRASH("not supported on this platform");
 }
 
+void MacroAssembler::shiftIndex32AndAdd(Register indexTemp32, int shift,
+                                        Register pointer) {
+  if (IsShiftInScaleRange(shift)) {
+    computeEffectiveAddress(
+        BaseIndex(pointer, indexTemp32, ShiftToScale(shift)), pointer);
+    return;
+  }
+  lshift32(Imm32(shift), indexTemp32);
+  addPtr(indexTemp32, pointer);
+}
+
 //}}} check_macroassembler_style
 
 void MacroAssemblerARM::wasmTruncateToInt32(FloatRegister input,
@@ -6279,7 +6290,7 @@ void MacroAssemblerARM::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
 
   // NOTE: the generated code must match the assembly code in gen_store in
   // GenerateAtomicOperations.py
-  asMasm().memoryBarrierAfter(access.sync());
+  asMasm().memoryBarrierBefore(access.sync());
 
   BufferOffset store;
   if (type == Scalar::Int64) {

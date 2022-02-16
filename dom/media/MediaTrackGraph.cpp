@@ -21,7 +21,9 @@
 #include "AudioCaptureTrack.h"
 #include "AudioNodeTrack.h"
 #include "AudioNodeExternalInputTrack.h"
-#include "MediaEngineWebRTCAudio.h"
+#if defined(MOZ_WEBRTC)
+#  include "MediaEngineWebRTCAudio.h"
+#endif  // MOZ_WEBRTC
 #include "MediaTrackListener.h"
 #include "mozilla/dom/BaseAudioContextBinding.h"
 #include "mozilla/dom/WorkletThread.h"
@@ -31,7 +33,6 @@
 #include "VideoFrameContainer.h"
 #include "mozilla/AbstractThread.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/Unused.h"
 #include "transport/runnable_utils.h"
 #include "VideoUtils.h"
 #include "GraphRunner.h"
@@ -788,11 +789,13 @@ void MediaTrackGraphImpl::NotifyOutputData(AudioDataValue* aBuffer,
   }
   MOZ_ASSERT(mNativeInputTrackOnGraph->mDeviceId == mInputDeviceID);
 
+#if defined(MOZ_WEBRTC)
   for (const auto& track : mTracks) {
-    if (const auto& t = track->AsAudioInputTrack(); t) {
+    if (const auto& t = track->AsAudioProcessingTrack()) {
       t->NotifyOutputData(this, aBuffer, aFrames, aRate, aChannels);
     }
   }
+#endif
 }
 
 void MediaTrackGraphImpl::NotifyInputStopped() {
@@ -913,9 +916,8 @@ void MediaTrackGraphImpl::ReevaluateInputDevice() {
   MOZ_ASSERT(OnGraphThread());
   bool needToSwitch = false;
 
-  if (CurrentDriver()->AsAudioCallbackDriver()) {
-    AudioCallbackDriver* audioCallbackDriver =
-        CurrentDriver()->AsAudioCallbackDriver();
+  if (AudioCallbackDriver* audioCallbackDriver =
+          CurrentDriver()->AsAudioCallbackDriver()) {
     if (audioCallbackDriver->InputChannelCount() != AudioInputChannelCount()) {
       LOG(LogLevel::Debug,
           ("%p: ReevaluateInputDevice: %u-channel AudioCallbackDriver %p is "
@@ -936,14 +938,14 @@ void MediaTrackGraphImpl::ReevaluateInputDevice() {
            GetAudioInputTypeString(AudioInputDevicePreference())));
       needToSwitch = true;
     }
-  } else {
+  } else if (Switching() && NextDriver()->AsAudioCallbackDriver()) {
     // We're already in the process of switching to a audio callback driver,
     // which will happen at the next iteration.
     // However, maybe it's not the correct number of channels. Re-query the
     // correct channel amount at this time.
-    MOZ_ASSERT(Switching());
     needToSwitch = true;
   }
+
   if (needToSwitch) {
     AudioCallbackDriver* newDriver = new AudioCallbackDriver(
         this, CurrentDriver(), mSampleRate, AudioOutputChannelCount(),

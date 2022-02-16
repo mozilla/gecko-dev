@@ -33,6 +33,7 @@
 #include "TableCellAccessible.h"
 #include "TreeWalker.h"
 #include "HTMLElementAccessibles.h"
+#include "ImageAccessible.h"
 
 #include "nsIDOMXULButtonElement.h"
 #include "nsIDOMXULSelectCntrlEl.h"
@@ -281,24 +282,6 @@ KeyBinding LocalAccessible::AccessKey() const {
 
 KeyBinding LocalAccessible::KeyboardShortcut() const { return KeyBinding(); }
 
-void LocalAccessible::TranslateString(const nsString& aKey,
-                                      nsAString& aStringOut) {
-  nsCOMPtr<nsIStringBundleService> stringBundleService =
-      components::StringBundle::Service();
-  if (!stringBundleService) return;
-
-  nsCOMPtr<nsIStringBundle> stringBundle;
-  stringBundleService->CreateBundle(
-      "chrome://global-platform/locale/accessible.properties",
-      getter_AddRefs(stringBundle));
-  if (!stringBundle) return;
-
-  nsAutoString xsValue;
-  nsresult rv = stringBundle->GetStringFromName(
-      NS_ConvertUTF16toUTF8(aKey).get(), xsValue);
-  if (NS_SUCCEEDED(rv)) aStringOut.Assign(xsValue);
-}
-
 uint64_t LocalAccessible::VisibilityState() const {
   if (IPCAccessibilityActive() &&
       StaticPrefs::accessibility_cache_enabled_AtStartup()) {
@@ -528,13 +511,10 @@ LocalAccessible* LocalAccessible::LocalChildAtPoint(
 
   LayoutDeviceIntRect rootRect = rootWidget->GetScreenBounds();
 
-  WidgetMouseEvent dummyEvent(true, eMouseMove, rootWidget,
-                              WidgetMouseEvent::eSynthesized);
-  dummyEvent.mRefPoint =
-      LayoutDeviceIntPoint(aX - rootRect.X(), aY - rootRect.Y());
+  auto point = LayoutDeviceIntPoint(aX - rootRect.X(), aY - rootRect.Y());
 
-  nsIFrame* popupFrame = nsLayoutUtils::GetPopupFrameForEventCoordinates(
-      accDocument->PresContext()->GetRootPresContext(), &dummyEvent);
+  nsIFrame* popupFrame = nsLayoutUtils::GetPopupFrameForPoint(
+      accDocument->PresContext()->GetRootPresContext(), rootWidget, point);
   if (popupFrame) {
     // If 'this' accessible is not inside the popup then ignore the popup when
     // searching an accessible at point.
@@ -1255,8 +1235,7 @@ bool LocalAccessible::AttributeChangesState(nsAtom* aAttribute) {
          aAttribute == nsGkAtoms::aria_busy ||
          aAttribute == nsGkAtoms::aria_multiline ||
          aAttribute == nsGkAtoms::aria_multiselectable ||
-         aAttribute == nsGkAtoms::contenteditable ||
-         (aAttribute == nsGkAtoms::href && IsHTMLLink());
+         aAttribute == nsGkAtoms::contenteditable;
 }
 
 void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
@@ -1399,6 +1378,14 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
       }
     }
     return;
+  }
+
+  if ((aAttribute == nsGkAtoms::aria_expanded ||
+       aAttribute == nsGkAtoms::href) &&
+      (aModType == dom::MutationEvent_Binding::ADDITION ||
+       aModType == dom::MutationEvent_Binding::REMOVAL)) {
+    // The presence of aria-expanded adds an expand/collapse action.
+    SendCache(CacheDomain::Actions, CacheUpdateType::Update);
   }
 
   if (aAttribute == nsGkAtoms::alt &&
@@ -1825,7 +1812,7 @@ nsAtom* LocalAccessible::LandmarkRole() const {
 role LocalAccessible::NativeRole() const { return roles::NOTHING; }
 
 uint8_t LocalAccessible::ActionCount() const {
-  return GetActionRule() == eNoAction ? 0 : 1;
+  return HasPrimaryAction() ? 1 : 0;
 }
 
 void LocalAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
@@ -1897,12 +1884,16 @@ void LocalAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
 bool LocalAccessible::DoAction(uint8_t aIndex) const {
   if (aIndex != 0) return false;
 
-  if (GetActionRule() != eNoAction) {
+  if (HasPrimaryAction()) {
     DoCommand();
     return true;
   }
 
   return false;
+}
+
+bool LocalAccessible::HasPrimaryAction() const {
+  return GetActionRule() != eNoAction;
 }
 
 nsIContent* LocalAccessible::GetAtomicRegion() const {
@@ -2742,13 +2733,6 @@ bool LocalAccessible::IsLink() const {
   return mParent && mParent->IsHyperText() && !IsText();
 }
 
-uint32_t LocalAccessible::EndOffset() {
-  MOZ_ASSERT(IsLink(), "EndOffset is called on not hyper link!");
-
-  HyperTextAccessible* hyperText = mParent ? mParent->AsHyperText() : nullptr;
-  return hyperText ? (hyperText->GetChildOffset(this) + 1) : 0;
-}
-
 uint32_t LocalAccessible::AnchorCount() {
   MOZ_ASSERT(IsLink(), "AnchorCount is called on not hyper link!");
   return 1;
@@ -3262,7 +3246,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     fields->SetAttribute(nsGkAtoms::state, state);
   }
 
-  if (aCacheDomain & CacheDomain::GroupInfo) {
+  if (aCacheDomain & CacheDomain::GroupInfo && mContent) {
     for (nsAtom* attr : {nsGkAtoms::aria_level, nsGkAtoms::aria_setsize,
                          nsGkAtoms::aria_posinset}) {
       int32_t value = 0;
@@ -3274,10 +3258,31 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     }
   }
 
+  if (aCacheDomain & CacheDomain::Actions) {
+    if (HasPrimaryAction()) {
+      // Here we cache the primary action.
+      nsAutoString actionName;
+      ActionNameAt(0, actionName);
+      RefPtr<nsAtom> actionAtom = NS_Atomize(actionName);
+      fields->SetAttribute(nsGkAtoms::action, actionAtom);
+    } else if (aUpdateType == CacheUpdateType::Update) {
+      fields->SetAttribute(nsGkAtoms::action, DeleteEntry());
+    }
+
+    if (ImageAccessible* imgAcc = AsImage()) {
+      // Here we cache the showlongdesc action.
+      if (imgAcc->HasLongDesc()) {
+        fields->SetAttribute(nsGkAtoms::longdesc, true);
+      } else if (aUpdateType == CacheUpdateType::Update) {
+        fields->SetAttribute(nsGkAtoms::longdesc, DeleteEntry());
+      }
+    }
+  }
+
   if (aUpdateType == CacheUpdateType::Initial) {
     // Add fields which never change and thus only need to be included in the
     // initial cache push.
-    if (mContent->IsElement()) {
+    if (mContent && mContent->IsElement()) {
       fields->SetAttribute(nsGkAtoms::tag, mContent->NodeInfo()->NameAtom());
 
       if (IsTextField() || IsDateTimeField()) {
@@ -3292,9 +3297,35 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
         }
       }
     }
+
+    if (nsIFrame* frame = GetFrame()) {
+      // Note our frame's current computed style so we can track style changes
+      // later on.
+      mOldComputedStyle = frame->Style();
+    }
   }
 
   return fields.forget();
+}
+
+void LocalAccessible::MaybeQueueCacheUpdateForStyleChanges() {
+  // mOldComputedStyle might be null if the initial cache hasn't been sent yet.
+  // In that case, there is nothing to do here.
+  if (!StaticPrefs::accessibility_cache_enabled_AtStartup() ||
+      !mOldComputedStyle) {
+    return;
+  }
+
+  if (nsIFrame* frame = GetFrame()) {
+    const ComputedStyle* newStyle = frame->Style();
+    MOZ_ASSERT(newStyle != mOldComputedStyle, "New style matches old style!");
+
+    // TODO: comparison on a11y-relevant style attributes
+
+    // TODO: Queue cache update, schedule processing on document
+
+    mOldComputedStyle = newStyle;
+  }
 }
 
 nsAtom* LocalAccessible::TagName() const {

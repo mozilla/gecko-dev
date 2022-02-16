@@ -44,7 +44,6 @@
 #include "nsCOMPtr.h"
 #include "nsHashtablesFwd.h"
 #include "nsIContentPolicy.h"
-#include "nsID.h"
 #include "nsINode.h"
 #include "nsIScriptError.h"
 #include "nsIThread.h"
@@ -95,7 +94,6 @@ class nsIInterfaceRequestor;
 class nsILoadGroup;
 class nsILoadInfo;
 class nsIObserver;
-class nsIParser;
 class nsIPluginTag;
 class nsIPrincipal;
 class nsIReferrerInfo;
@@ -110,10 +108,10 @@ class nsIStringBundleService;
 class nsISupports;
 class nsITransferable;
 class nsIURI;
-class nsIUUIDGenerator;
 class nsIWidget;
 class nsIXPConnect;
 class nsNodeInfoManager;
+class nsParser;
 class nsPIWindowRoot;
 class nsPresContext;
 class nsStringBuffer;
@@ -1269,16 +1267,6 @@ class nsContentUtils {
    *                  is zero)
    */
   static void SandboxFlagsToString(uint32_t aFlags, nsAString& aString);
-
-  /**
-   * Helper function that generates a UUID.
-   */
-  static nsresult GenerateUUIDInPlace(nsID& aUUID);
-
-  /**
-   * Infallable (with an assertion) helper function that generates a UUID.
-   */
-  static nsID GenerateUUID();
 
   static bool PrefetchPreloadEnabled(nsIDocShell* aDocShell);
 
@@ -3380,7 +3368,6 @@ class nsContentUtils {
   static nsIPrincipal* sNullSubjectPrincipal;
 
   static nsIIOService* sIOService;
-  static nsIUUIDGenerator* sUUIDGenerator;
 
   static nsIConsoleService* sConsoleService;
 
@@ -3417,7 +3404,7 @@ class nsContentUtils {
   static UserInteractionObserver* sUserInteractionObserver;
 
   static nsHtml5StringParser* sHTMLFragmentParser;
-  static nsIParser* sXMLFragmentParser;
+  static nsParser* sXMLFragmentParser;
   static nsIFragmentContentSink* sXMLFragmentSink;
 
   /**

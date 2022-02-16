@@ -529,7 +529,7 @@ nsresult nsIOService::LaunchSocketProcess() {
     return NS_OK;
   }
 
-  if (!Preferences::GetBool("network.process.enabled", true)) {
+  if (!StaticPrefs::network_process_enabled()) {
     LOG(("nsIOService skipping LaunchSocketProcess because of the pref"));
     return NS_OK;
   }
@@ -634,6 +634,7 @@ void nsIOService::OnProcessLaunchComplete(SocketProcessHost* aHost,
   mSocketProcessLaunchComplete = aSucceeded;
 
   if (mShutdown || !SocketProcessReady() || !aSucceeded) {
+    mPendingEvents.Clear();
     return;
   }
 
@@ -676,13 +677,13 @@ void nsIOService::OnProcessUnexpectedShutdown(SocketProcessHost* aHost) {
 
   LOG(("nsIOService::OnProcessUnexpectedShutdown\n"));
   DestroySocketProcess();
+  mPendingEvents.Clear();
 }
 
 RefPtr<MemoryReportingProcess> nsIOService::GetSocketProcessMemoryReporter() {
   // Check the prefs here again, since we don't want to create
   // SocketProcessMemoryReporter for some tests.
-  if (!Preferences::GetBool("network.process.enabled") ||
-      !SocketProcessReady()) {
+  if (!StaticPrefs::network_process_enabled() || !SocketProcessReady()) {
     return nullptr;
   }
 

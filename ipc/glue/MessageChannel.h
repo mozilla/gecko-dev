@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "MessageLink.h"  // for HasResultCodes
-#include "mozilla/ipc/Transport.h"
 #include "mozilla/ipc/ScopedPort.h"
 
 class MessageLoop;
@@ -144,7 +143,6 @@ class MessageChannel : HasResultCodes {
   static constexpr int32_t kNoTimeout = INT32_MIN;
 
   typedef IPC::Message Message;
-  typedef mozilla::ipc::Transport Transport;
   using ScopedPort = mozilla::ipc::ScopedPort;
 
   explicit MessageChannel(const char* aName, IToplevelProtocol* aListener);
@@ -290,17 +288,15 @@ class MessageChannel : HasResultCodes {
   // this, if needed, is to make B send a sync message.
   void StopPostponingSends();
 
-  // Unsound_IsClosed and Unsound_NumQueuedMessages are safe to call from any
-  // thread, but they make no guarantees about whether you'll get an
-  // up-to-date value; the values are written on one thread and read without
-  // locking, on potentially different threads.  Thus you should only use
-  // them when you don't particularly care about getting a recent value (e.g.
-  // in a memory report).
-  bool Unsound_IsClosed() const {
-    return mLink ? mLink->Unsound_IsClosed() : true;
+  // IsClosed and NumQueuedMessages are safe to call from any thread, but
+  // may provide an out-of-date value.
+  bool IsClosed() {
+    MonitorAutoLock lock(*mMonitor);
+    return IsClosedLocked();
   }
-  uint32_t Unsound_NumQueuedMessages() const {
-    return mLink ? mLink->Unsound_NumQueuedMessages() : 0;
+  bool IsClosedLocked() const {
+    mMonitor->AssertCurrentThreadOwns();
+    return mLink ? mLink->IsClosed() : true;
   }
 
   static bool IsPumpingMessages() { return sIsPumpingMessages; }
@@ -548,13 +544,16 @@ class MessageChannel : HasResultCodes {
   // NotifyMaybeChannelError runnable
   RefPtr<CancelableRunnable> mChannelErrorTask;
 
-  // Thread we are allowed to send and receive on.
+  // Thread we are allowed to send and receive on.  Set in Open(); never
+  // changed, and we can only call Open() once.  We shouldn't be accessing
+  // from multiple threads before Open().
   nsCOMPtr<nsISerialEventTarget> mWorkerThread;
 
   // Timeout periods are broken up in two to prevent system suspension from
   // triggering an abort. This method (called by WaitForEvent with a 'did
   // timeout' flag) decides if we should wait again for half of mTimeoutMs
   // or give up.
+  // only accessed on WorkerThread
   int32_t mTimeoutMs = kNoTimeout;
   bool mInTimeoutSecondHalf = false;
 

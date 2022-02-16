@@ -454,6 +454,10 @@ update-application-use-service =
     .label = Use a background service to install updates
     .accesskey = b
 
+update-application-suppress-prompts =
+    .label = Show fewer update notification prompts
+    .accesskey = n
+
 update-setting-write-failure-title2 = Error saving Update settings
 
 # Variables:
@@ -512,6 +516,10 @@ browsing-use-autoscroll =
 browsing-use-smooth-scrolling =
     .label = Use smooth scrolling
     .accesskey = m
+
+browsing-gtk-use-non-overlay-scrollbars =
+    .label = Always show scrollbars
+    .accesskey = o
 
 browsing-use-onscreen-keyboard =
     .label = Show a touch keyboard when necessary

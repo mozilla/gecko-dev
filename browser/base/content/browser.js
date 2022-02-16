@@ -223,25 +223,11 @@ XPCOMUtils.defineLazyScriptGetter(
   ["DownloadsButton", "DownloadsIndicatorView"],
   "chrome://browser/content/downloads/indicator.js"
 );
-if (
-  Services.prefs.getBoolPref(
-    "browser.bookmarks.editDialog.delayedApply.enabled",
-    false
-  )
-) {
-  XPCOMUtils.defineLazyScriptGetter(
-    this,
-    "gEditItemOverlay",
-    "chrome://browser/content/places/editBookmark.js"
-  );
-} else {
-  XPCOMUtils.defineLazyScriptGetter(
-    this,
-    "gEditItemOverlay",
-    "chrome://browser/content/places/instantEditBookmark.js"
-  );
-}
-
+XPCOMUtils.defineLazyScriptGetter(
+  this,
+  "gEditItemOverlay",
+  "chrome://browser/content/places/instantEditBookmark.js"
+);
 XPCOMUtils.defineLazyScriptGetter(
   this,
   "gGfxUtils",
@@ -1654,7 +1640,7 @@ var gBrowserInit = {
 
     if (AppConstants.platform == "win") {
       if (
-        window.matchMedia("(-moz-os-version: windows-win8)").matches &&
+        window.matchMedia("(-moz-platform: windows-win8)").matches &&
         window.matchMedia("(-moz-windows-default-theme)").matches
       ) {
         let windowFrameColor = new Color(
@@ -1820,14 +1806,24 @@ var gBrowserInit = {
       // Remove the speculative focus from the urlbar to let the url be formatted.
       gURLBar.removeAttribute("focused");
 
-      try {
-        gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, tabToAdopt);
-      } catch (e) {
-        Cu.reportError(e);
-      }
+      let swapBrowsers = () => {
+        try {
+          gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, tabToAdopt);
+        } catch (e) {
+          Cu.reportError(e);
+        }
 
-      // Clear the reference to the tab once its adoption has been completed.
-      this._clearTabToAdopt();
+        // Clear the reference to the tab once its adoption has been completed.
+        this._clearTabToAdopt();
+      };
+      if (tabToAdopt.linkedBrowser.isRemoteBrowser) {
+        // For remote browsers, wait for the paint event, otherwise the tabs
+        //  are not yet ready and focus gets confused because the browser swaps
+        // out while tabs are switching.
+        addEventListener("MozAfterPaint", swapBrowsers, { once: true });
+      } else {
+        swapBrowsers();
+      }
     }
 
     // Wait until chrome is painted before executing code not critical to making the window visible
@@ -1904,6 +1900,14 @@ var gBrowserInit = {
     Services.obs.addObserver(
       gXPInstallObserver,
       "addon-install-origin-blocked"
+    );
+    Services.obs.addObserver(
+      gXPInstallObserver,
+      "addon-install-webapi-blocked-policy"
+    );
+    Services.obs.addObserver(
+      gXPInstallObserver,
+      "addon-install-webapi-blocked"
     );
     Services.obs.addObserver(gXPInstallObserver, "addon-install-failed");
     Services.obs.addObserver(gXPInstallObserver, "addon-install-confirmation");
@@ -2359,8 +2363,6 @@ var gBrowserInit = {
       NewTabPagePreloading.maybeCreatePreloadedBrowser(window);
     });
 
-    scheduleIdleTask(reportRemoteSubframesEnabledTelemetry);
-
     scheduleIdleTask(() => {
       gGfxUtils.init();
     });
@@ -2528,6 +2530,14 @@ var gBrowserInit = {
       Services.obs.removeObserver(
         gXPInstallObserver,
         "addon-install-origin-blocked"
+      );
+      Services.obs.removeObserver(
+        gXPInstallObserver,
+        "addon-install-webapi-blocked-policy"
+      );
+      Services.obs.removeObserver(
+        gXPInstallObserver,
+        "addon-install-webapi-blocked"
       );
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
       Services.obs.removeObserver(
@@ -4277,6 +4287,57 @@ const BrowserSearch = {
     );
     var where = newWindowPref == 3 ? "tab" : "window";
     openTrustedLinkIn(this.searchEnginesURL, where);
+  },
+
+  /**
+   * Infobar to notify the user's search engine has been removed
+   * and replaced with an application default search engine.
+   *
+   * @param {string} oldEngine
+   *   name of the engine to be moved and replaced.
+   * @param {string} newEngine
+   *   name of the application default engine to replaced the removed engine.
+   */
+  removalOfSearchEngineNotificationBox(oldEngine, newEngine) {
+    let messageFragment = document.createDocumentFragment();
+    let message = document.createElement("span");
+    let link = document.createXULElement("label", {
+      is: "text-link",
+    });
+
+    link.href = Services.urlFormatter.formatURLPref(
+      "browser.search.searchEngineRemoval"
+    );
+    link.setAttribute("data-l10n-name", "remove-search-engine-article");
+    document.l10n.setAttributes(message, "remove-search-engine-message", {
+      oldEngine,
+      newEngine,
+    });
+
+    message.appendChild(link);
+    messageFragment.appendChild(message);
+
+    let button = [
+      {
+        "l10n-id": "remove-search-engine-button",
+        primary: true,
+        callback() {
+          const notificationBox = gNotificationBox.getNotificationWithValue(
+            "search-engine-removal"
+          );
+          gNotificationBox.removeNotification(notificationBox);
+        },
+      },
+    ];
+
+    gNotificationBox.appendNotification(
+      "search-engine-removal",
+      {
+        label: messageFragment,
+        priority: gNotificationBox.PRIORITY_SYSTEM,
+      },
+      button
+    );
   },
 };
 
@@ -9868,16 +9929,3 @@ var ConfirmationHint = {
     }
   },
 };
-
-function reportRemoteSubframesEnabledTelemetry() {
-  let categoryLabel = gFissionBrowser ? "Enabled" : "Disabled";
-  if (gFissionBrowser == Services.appinfo.fissionAutostart) {
-    categoryLabel += "ByAutostart";
-  } else {
-    categoryLabel += "ByUser";
-  }
-
-  Services.telemetry
-    .getHistogramById("WINDOW_REMOTE_SUBFRAMES_ENABLED_STATUS")
-    .add(categoryLabel);
-}

@@ -208,6 +208,14 @@ static bool GetRealmConfiguration(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+#ifdef NIGHTLY_BUILD
+  bool arrayGrouping = cx->options().arrayGrouping();
+  if (!JS_SetProperty(cx, info, "enableArrayGrouping",
+                      arrayGrouping ? TrueHandleValue : FalseHandleValue)) {
+    return false;
+  }
+#endif
+
 #ifdef ENABLE_CHANGE_ARRAY_BY_COPY
   bool changeArrayByCopy = cx->options().changeArrayByCopy();
   if (!JS_SetProperty(cx, info, "enableChangeArrayByCopy",
@@ -2416,7 +2424,7 @@ static bool CurrentGC(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  val = BooleanValue(gc.isShrinkingGC());
+  val = BooleanValue(gc.isIncrementalGCInProgress() && gc.isShrinkingGC());
   if (!JS_DefineProperty(cx, result, "isShrinking", val, JSPROP_ENUMERATE)) {
     return false;
   }
@@ -3016,6 +3024,38 @@ static bool NewObjectWithAddPropertyHook(JSContext* cx, unsigned argc,
   }
 
   args.rval().setObject(*obj);
+  return true;
+}
+
+static bool SetWatchtowerCallback(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  JSFunction* fun = nullptr;
+  if (args.length() != 1 || !IsFunctionObject(args[0], &fun)) {
+    JS_ReportErrorASCII(cx, "Expected a single function argument.");
+    return false;
+  }
+
+  cx->watchtowerTestingCallbackRef() = fun;
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool AddWatchtowerTarget(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  if (args.length() != 1 || !args[0].isObject()) {
+    JS_ReportErrorASCII(cx, "Expected a single object argument.");
+    return false;
+  }
+
+  RootedObject obj(cx, &args[0].toObject());
+  if (!JSObject::setUseWatchtowerTestingCallback(cx, obj)) {
+    return false;
+  }
+
+  args.rval().setUndefined();
   return true;
 }
 
@@ -4068,7 +4108,7 @@ static bool ReadGeckoProfilingStack(JSContext* cx, unsigned argc, Value* vp) {
         return false;
       }
 
-      idx = INT_TO_JSID(inlineFrameNo);
+      idx = PropertyKey::Int(inlineFrameNo);
       if (!JS_DefinePropertyById(cx, inlineStack, idx, inlineFrameInfo, 0)) {
         return false;
       }
@@ -4077,7 +4117,7 @@ static bool ReadGeckoProfilingStack(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     // Push inline array into main array.
-    idx = INT_TO_JSID(physicalFrameNo);
+    idx = PropertyKey::Int(physicalFrameNo);
     if (!JS_DefinePropertyById(cx, stack, idx, inlineStack, 0)) {
       return false;
     }
@@ -4170,7 +4210,7 @@ JSObject* ShellAllocationMetadataBuilder::build(
   RootedValue callee(cx);
   for (NonBuiltinScriptFrameIter iter(cx); !iter.done(); ++iter) {
     if (iter.isFunctionFrame() && iter.compartment() == cx->compartment()) {
-      id = INT_TO_JSID(stackIndex);
+      id = PropertyKey::Int(stackIndex);
       RootedObject callee(cx, iter.callee(cx));
       if (!JS_DefinePropertyById(cx, stack, id, callee, JSPROP_ENUMERATE)) {
         oomUnsafe.crash("ShellAllocationMetadataBuilder::build");
@@ -8115,6 +8155,18 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
 "  Returns a new object with an addProperty JSClass hook. This hook\n"
 "  increments the value of the _propertiesAdded data property on the object\n"
 "  when a new property is added."),
+
+    JS_FN_HELP("setWatchtowerCallback", SetWatchtowerCallback, 1, 0,
+"setWatchtowerCallback(function)",
+"  Use the given function as callback for objects added to Watchtower by\n"
+"  addWatchtowerTarget. The callback is called with the following arguments:\n"
+"  - kind: a string describing the kind of mutation, for example \"add-prop\"\n"
+"  - object: the object being mutated\n"
+"  - extra: an extra value, for example the name of the property being added"),
+
+    JS_FN_HELP("addWatchtowerTarget", AddWatchtowerTarget, 1, 0,
+"addWatchtowerTarget(object)",
+"  Invoke the watchtower callback for changes to this object."),
 
     JS_FN_HELP("newString", NewString, 2, 0,
 "newString(str[, options])",

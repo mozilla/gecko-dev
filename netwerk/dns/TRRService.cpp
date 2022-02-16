@@ -49,6 +49,7 @@ constexpr nsLiteralCString kTRRDomains[] = {
     "firefox.dns.nextdns.io"_ns,
     "private.canadianshield.cira.ca"_ns,
     "doh.xfinity.com"_ns,  // Steered clients
+    "dns.shaw.ca"_ns, // Steered clients
     // clang-format on
 };
 
@@ -445,6 +446,10 @@ nsresult TRRService::GetCredentials(nsCString& result) {
 uint32_t TRRService::GetRequestTimeout() {
   if (mMode == nsIDNSService::MODE_TRRONLY) {
     return StaticPrefs::network_trr_request_timeout_mode_trronly_ms();
+  }
+
+  if (StaticPrefs::network_trr_strict_native_fallback()) {
+    return StaticPrefs::network_trr_strict_fallback_request_timeout_ms();
   }
 
   return StaticPrefs::network_trr_request_timeout_ms();

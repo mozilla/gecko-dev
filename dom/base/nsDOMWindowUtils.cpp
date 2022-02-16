@@ -43,7 +43,6 @@
 
 #include "nsContentUtils.h"
 
-#include "nsIFrame.h"
 #include "nsIWidget.h"
 #include "nsCharsetSource.h"
 #include "nsJSEnvironment.h"
@@ -2190,14 +2189,6 @@ nsDOMWindowUtils::GetViewId(Element* aElement, nsViewID* aResult) {
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetScreenPixelsPerCSSPixel(float* aScreenPixels) {
-  nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
-  NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
-  *aScreenPixels = window->GetDevicePixelRatio(CallerType::System);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsDOMWindowUtils::GetScreenPixelsPerCSSPixelNoOverride(float* aScreenPixels) {
   nsPresContext* presContext = GetPresContext();
   if (!presContext) {
@@ -2387,11 +2378,8 @@ nsDOMWindowUtils::SendQueryContentEvent(uint32_t aType, int64_t aOffset,
 
   if (message == eQueryCharacterAtPoint) {
     // Looking for the widget at the point.
-    WidgetQueryContentEvent dummyEvent(true, eQueryContentState, widget);
-    dummyEvent.Init(options);
-    InitEvent(dummyEvent, &pt);
-    nsIFrame* popupFrame = nsLayoutUtils::GetPopupFrameForEventCoordinates(
-        presContext->GetRootPresContext(), &dummyEvent);
+    nsIFrame* popupFrame = nsLayoutUtils::GetPopupFrameForPoint(
+        presContext->GetRootPresContext(), widget, pt);
 
     LayoutDeviceIntRect widgetBounds = widget->GetClientBounds();
     widgetBounds.MoveTo(0, 0);

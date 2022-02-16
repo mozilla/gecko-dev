@@ -120,9 +120,7 @@ class LayerActivityTracker final
   explicit LayerActivityTracker(nsIEventTarget* aEventTarget)
       : nsExpirationTracker<LayerActivity, 4>(
             GENERATION_MS, "LayerActivityTracker", aEventTarget) {}
-  ~LayerActivityTracker() override {
-    AgeAllGenerations();
-  }
+  ~LayerActivityTracker() override { AgeAllGenerations(); }
 
   void NotifyExpired(LayerActivity* aObject) override;
 };
@@ -376,7 +374,7 @@ bool ActiveLayerTracker::IsStyleAnimated(
       aPropertySet.Intersects(nsCSSPropertyIDSet::OpacityProperties()) &&
       (!aBuilder ||
        aBuilder->IsInWillChangeBudget(aFrame, aFrame->GetSize()))) {
-    return true;
+    return !StaticPrefs::gfx_will_change_ignore_opacity();
   }
 
   LayerActivity* layerActivity = GetLayerActivity(aFrame);

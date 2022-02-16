@@ -188,6 +188,12 @@ class Accessible {
   virtual uint32_t StartOffset();
 
   /**
+   * Return the end offset of the link within the parent
+   * HyperTextAccessibleBase.
+   */
+  virtual uint32_t EndOffset();
+
+  /**
    * Return object attributes for the accessible.
    */
   virtual already_AddRefed<AccAttributes> Attributes() = 0;
@@ -200,6 +206,33 @@ class Accessible {
    * Return tag name of associated DOM node.
    */
   virtual nsAtom* TagName() const = 0;
+
+  //////////////////////////////////////////////////////////////////////////////
+  // ActionAccessible
+
+  /**
+   * Return the number of actions that can be performed on this accessible.
+   */
+  virtual uint8_t ActionCount() const = 0;
+
+  /**
+   * Return action name at given index.
+   */
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) = 0;
+
+  /**
+   * Default to localized action name.
+   */
+  void ActionDescriptionAt(uint8_t aIndex, nsAString& aDescription) {
+    nsAutoString name;
+    ActionNameAt(aIndex, name);
+    TranslateString(name, aDescription);
+  }
+
+  /**
+   * Invoke the accessible action.
+   */
+  virtual bool DoAction(uint8_t aIndex) const = 0;
 
   // Type "is" methods
 
@@ -311,10 +344,15 @@ class Accessible {
   virtual bool IsRemote() const = 0;
   RemoteAccessible* AsRemote();
 
-  bool IsLocal() { return !IsRemote(); }
+  bool IsLocal() const { return !IsRemote(); }
   LocalAccessible* AsLocal();
 
   virtual HyperTextAccessibleBase* AsHyperTextBase() { return nullptr; }
+
+  /**
+   * Return the localized string for the given key.
+   */
+  static void TranslateString(const nsString& aKey, nsAString& aStringOut);
 
  protected:
   // Some abstracted group utility methods.
@@ -351,6 +389,21 @@ class Accessible {
    * @param  aSetSize   [out] the group size
    */
   virtual void GetPositionAndSetSize(int32_t* aPosInSet, int32_t* aSetSize);
+
+
+  /**
+   * Return the nearest ancestor that has a primary action, or null.
+   */
+  const Accessible* ActionAncestor() const;
+
+  /**
+   * Return true if accessible has a primary action directly related to it, like
+   * "click", "activate", "press", "jump", "open", "close", etc. A non-primary
+   * action would be a complementary one like "showlongdesc".
+   * If an accessible has an action that is associated with an ancestor, it is
+   * not a primary action either.
+   */
+  virtual bool HasPrimaryAction() const = 0;
 
  private:
   static const uint8_t kTypeBits = 6;

@@ -199,23 +199,10 @@ bool FFmpegVideoDecoder<LIBAV_VER>::CreateVAAPIDeviceContext() {
   AVHWDeviceContext* hwctx = (AVHWDeviceContext*)mVAAPIDeviceContext->data;
   AVVAAPIDeviceContext* vactx = (AVVAAPIDeviceContext*)hwctx->hwctx;
 
-  if (StaticPrefs::media_ffmpeg_vaapi_drm_display_enabled()) {
-    mDisplay = mLib->vaGetDisplayDRM(widget::GetDMABufDevice()->GetDRMFd());
-    if (!mDisplay) {
-      FFMPEG_LOG("  Can't get DRM VA-API display.");
-      return false;
-    }
-  } else {
-    wl_display* display = widget::WaylandDisplayGetWLDisplay();
-    if (!display) {
-      FFMPEG_LOG("  Can't get default wayland display.");
-      return false;
-    }
-    mDisplay = mLib->vaGetDisplayWl(display);
-    if (!mDisplay) {
-      FFMPEG_LOG("  Can't get Wayland VA-API display.");
-      return false;
-    }
+  mDisplay = mLib->vaGetDisplayDRM(widget::GetDMABufDevice()->GetDRMFd());
+  if (!mDisplay) {
+    FFMPEG_LOG("  Can't get DRM VA-API display.");
+    return false;
   }
 
   hwctx->user_opaque = new VAAPIDisplayHolder<LIBAV_VER>(mLib, mDisplay);
@@ -373,13 +360,6 @@ void FFmpegVideoDecoder<LIBAV_VER>::InitHWDecodingPrefs() {
     mEnableHardwareDecoding = false;
     FFMPEG_LOG("VA-API is disabled by pref.");
   }
-
-  if (mEnableHardwareDecoding) {
-    mUseDMABufSurfaces = widget::GetDMABufDevice()->IsDMABufVideoEnabled();
-    if (!mUseDMABufSurfaces) {
-      FFMPEG_LOG("SW encoding to DMABuf textures is disabled by system/pref.");
-    }
-  }
 }
 #endif
 
@@ -392,7 +372,6 @@ FFmpegVideoDecoder<LIBAV_VER>::FFmpegVideoDecoder(
       mVAAPIDeviceContext(nullptr),
       mEnableHardwareDecoding(!aDisableHardwareDecoding),
       mDisplay(nullptr),
-      mUseDMABufSurfaces(false),
 #endif
       mImageAllocator(aAllocator),
       mImageContainer(aImageContainer),
@@ -636,14 +615,6 @@ int FFmpegVideoDecoder<LIBAV_VER>::GetVideoBuffer(
     return AVERROR(EINVAL);
   }
 
-#  ifdef MOZ_WAYLAND_USE_VAAPI
-  // For SW decoding + DMABuf case, it's the opposite from the above case, we
-  // don't want to access GPU data too frequently from CPU.
-  if (mUseDMABufSurfaces) {
-    return AVERROR(EINVAL);
-  }
-#  endif
-
   if (!IsColorFormatSupportedForUsingCustomizedBuffer(aCodecContext->pix_fmt)) {
     FFMPEG_LOG("Not support color format %d", aCodecContext->pix_fmt);
     return AVERROR(EINVAL);
@@ -726,7 +697,8 @@ int FFmpegVideoDecoder<LIBAV_VER>::GetVideoBuffer(
   }
 
   FFMPEG_LOG("Created av buffer, buf=%p, data=%p, image=%p, sz=%d",
-             aFrame->buf[0], aFrame->data[0], image.get(), dataSize.value());
+             aFrame->buf[0], aFrame->data[0], imageWrapper.get(),
+             dataSize.value());
   mAllocatedImages.Insert(imageWrapper.get());
   mIsUsingShmemBufferForDecode = Some(true);
   return 0;
@@ -830,8 +802,8 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
 
 #  ifdef MOZ_WAYLAND_USE_VAAPI
     // Create VideoFramePool in case we need it.
-    if (!mVideoFramePool && (mUseDMABufSurfaces || mEnableHardwareDecoding)) {
-      mVideoFramePool = MakeUnique<VideoFramePool>(mEnableHardwareDecoding);
+    if (!mVideoFramePool && mEnableHardwareDecoding) {
+      mVideoFramePool = MakeUnique<VideoFramePool>();
     }
 
     // Release unused VA-API surfaces before avcodec_receive_frame() as
@@ -867,14 +839,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
         // for VA-API support.
         mVideoFramePool = nullptr;
         return rv;
-      }
-    } else if (mUseDMABufSurfaces) {
-      rv = CreateImageDMABuf(mFrame->pkt_pos, mFrame->pkt_pts,
-                             mFrame->pkt_duration, aResults);
-      if (NS_FAILED(rv)) {
-        mUseDMABufSurfaces = false;
-        rv = CreateImage(mFrame->pkt_pos, mFrame->pkt_pts, mFrame->pkt_duration,
-                         aResults);
       }
     } else
 #  endif
@@ -1059,11 +1023,12 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImage(
     RefPtr<ImageBufferWrapper> wrapper = static_cast<ImageBufferWrapper*>(
         mLib->av_buffer_get_opaque(mFrame->buf[0]));
     MOZ_ASSERT(wrapper);
-    auto* image = wrapper->AsPlanarYCbCrImage();
+    auto* image = wrapper->AsImage();
     RefPtr<layers::TextureClient> texture = image->GetTextureClient(nullptr);
     if (!texture) {
       NS_WARNING("Failed to get the texture client!");
     } else {
+      FFMPEG_LOGV("Create a video data from a shmem image=%p", wrapper.get());
       // Texture was locked to ensure no one can modify or access texture's data
       // except ffmpeg decoder. After finisheing decoding, texture's data would
       // be avaliable for accessing for everyone so we unlock texture.
@@ -1146,43 +1111,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageVAAPI(
   if (!vp) {
     return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
                        RESULT_DETAIL("VAAPI image allocation error"));
-  }
-
-  aResults.AppendElement(std::move(vp));
-  return NS_OK;
-}
-
-MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageDMABuf(
-    int64_t aOffset, int64_t aPts, int64_t aDuration,
-    MediaDataDecoder::DecodedData& aResults) {
-  FFMPEG_LOG("DMABuf Got one frame output with pts=%" PRId64 "dts=%" PRId64
-             " duration=%" PRId64 " opaque=%" PRId64,
-             aPts, mFrame->pkt_dts, aDuration, mCodecContext->reordered_opaque);
-
-  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
-  auto surface =
-      mVideoFramePool->GetVideoFrameSurface(mCodecContext->pix_fmt, mFrame);
-  if (!surface) {
-    return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
-                       RESULT_DETAIL("dmabuf allocation error"));
-  }
-  surface->SetYUVColorSpace(GetFrameColorSpace());
-
-  if (mLib->av_frame_get_color_range) {
-    auto range = mLib->av_frame_get_color_range(mFrame);
-    surface->SetColorRange(range == AVCOL_RANGE_JPEG
-                               ? gfx::ColorRange::FULL
-                               : gfx::ColorRange::LIMITED);
-  }
-
-  RefPtr<VideoData> vp = VideoData::CreateFromImage(
-      mInfo.mDisplay, aOffset, TimeUnit::FromMicroseconds(aPts),
-      TimeUnit::FromMicroseconds(aDuration), surface->GetAsImage(),
-      !!mFrame->key_frame, TimeUnit::FromMicroseconds(-1));
-
-  if (!vp) {
-    return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
-                       RESULT_DETAIL("image allocation error"));
   }
 
   aResults.AppendElement(std::move(vp));

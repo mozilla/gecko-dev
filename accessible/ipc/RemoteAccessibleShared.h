@@ -80,17 +80,19 @@ int32_t SelectionCount();
 virtual void TextSubstring(int32_t aStartOffset, int32_t aEndOfset,
                            nsAString& aText) const override;
 
-void GetTextAfterOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
-                        nsString& aText, int32_t* aStartOffset,
-                        int32_t* aEndOffset);
+virtual void TextAfterOffset(int32_t aOffset,
+                             AccessibleTextBoundary aBoundaryType,
+                             int32_t* aStartOffset, int32_t* aEndOffset,
+                             nsAString& aText) override;
 
 virtual void TextAtOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
                           int32_t* aStartOffset, int32_t* aEndOffset,
                           nsAString& aText) override;
 
-void GetTextBeforeOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
-                         nsString& aText, int32_t* aStartOffset,
-                         int32_t* aEndOffset);
+virtual void TextBeforeOffset(int32_t aOffset,
+                              AccessibleTextBoundary aBoundaryType,
+                              int32_t* aStartOffset, int32_t* aEndOffset,
+                              nsAString& aText) override;
 
 char16_t CharAt(int32_t aOffset);
 
@@ -136,8 +138,6 @@ bool PasteText(int32_t aPosition);
 LayoutDeviceIntPoint ImagePosition(uint32_t aCoordType);
 
 LayoutDeviceIntSize ImageSize();
-
-uint32_t EndOffset(bool* aOk);
 
 bool IsLinkValid();
 
@@ -216,10 +216,6 @@ bool UnselectAll();
 void TakeSelection();
 void SetSelected(bool aSelect);
 
-bool DoAction(uint8_t aIndex);
-uint8_t ActionCount();
-void ActionDescriptionAt(uint8_t aIndex, nsString& aDescription);
-void ActionNameAt(uint8_t aIndex, nsString& aName);
 KeyBinding AccessKey();
 KeyBinding KeyboardShortcut();
 void AtkKeyBinding(nsString& aBinding);

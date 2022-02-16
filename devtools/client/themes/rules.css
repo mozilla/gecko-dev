@@ -679,7 +679,8 @@
 .ruleview-highlight > .ruleview-namecontainer,
 .ruleview-highlight > .ruleview-propertyvaluecontainer,
 .ruleview-highlight > .ruleview-rule-source-label,
-.ruleview-highlight > .ruleview-selector {
+.ruleview-highlight > .ruleview-selector,
+.ruleview-rule-ancestor-data li.ruleview-highlight {
   background-color: var(--rule-highlight-background-color);
 }
 
@@ -694,14 +695,21 @@
 }
 
 /* @media and @layer rule info element */
-.ruleview-rule-parent-data {
+ul.ruleview-rule-ancestor-data {
   max-width: 100%;
   display: inline-block;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ruleview-rule-ancestor-data li {
   overflow: hidden;
   text-overflow: ellipsis;
-  /* we only want to have it displayed on a single line. The whole string is available on
-     the title attribute of the element anyway */
   white-space: nowrap;
+  /* When there's a search and this element is highlighted, this prevents the background
+     color to be applied to the whole width of the parent ul block */
+  max-width: max-content;
 }
 
 .ruleview-selectorcontainer {
@@ -787,4 +795,12 @@
 
 .flash-out {
   transition: background 1s;
+}
+
+.ruleview-propertyvalue-draggable {
+  cursor: col-resize;
+}
+
+.ruleview-propertyvalue-dragging {
+  user-select: none;
 }

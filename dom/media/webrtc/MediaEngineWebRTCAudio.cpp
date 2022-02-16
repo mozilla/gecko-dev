@@ -15,7 +15,6 @@
 #include "MediaTrackConstraints.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorNames.h"
-#include "nsContentUtils.h"
 #include "nsIDUtils.h"
 #include "transport/runnable_utils.h"
 #include "Tracing.h"
@@ -245,14 +244,14 @@ void MediaEngineWebRTCMicrophoneSource::ApplySettings(
             mInputProcessing->ApplyConfig(mTrack->GraphImpl(),
                                           mAudioProcessingConfig);
             {
-              TRACE("SetPassThrough")
-              mInputProcessing->SetPassThrough(mTrack->GraphImpl(),
-                                               mPassThrough);
-            }
-            {
               TRACE("SetRequestedInputChannelCount");
               mInputProcessing->SetRequestedInputChannelCount(
                   mTrack->GraphImpl(), mRequestedInputChannelCount);
+            }
+            {
+              TRACE("SetPassThrough")
+              mInputProcessing->SetPassThrough(mTrack->GraphImpl(),
+                                               mPassThrough);
             }
           }
         };
@@ -350,11 +349,11 @@ void MediaEngineWebRTCMicrophoneSource::SetTrack(
     const RefPtr<MediaTrack>& aTrack, const PrincipalHandle& aPrincipal) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aTrack);
-  MOZ_ASSERT(aTrack->AsAudioInputTrack());
+  MOZ_ASSERT(aTrack->AsAudioProcessingTrack());
 
   MOZ_ASSERT(!mTrack);
   MOZ_ASSERT(mPrincipal == PRINCIPAL_HANDLE_NONE);
-  mTrack = aTrack->AsAudioInputTrack();
+  mTrack = aTrack->AsAudioProcessingTrack();
   mPrincipal = aPrincipal;
 
   mInputProcessing =
@@ -419,6 +418,8 @@ nsresult MediaEngineWebRTCMicrophoneSource::Start() {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  ApplySettings(mCurrentPrefs);
+
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       __func__, [inputProcessing = mInputProcessing, deviceID, track = mTrack,
                  principal = mPrincipal] {
@@ -430,8 +431,6 @@ nsresult MediaEngineWebRTCMicrophoneSource::Start() {
             track, inputProcessing, StartStopMessage::Start));
         track->ConnectDeviceInput(deviceID, inputProcessing, principal);
       }));
-
-  ApplySettings(mCurrentPrefs);
 
   MOZ_ASSERT(mState != kReleased);
   mState = kStarted;
@@ -457,10 +456,10 @@ nsresult MediaEngineWebRTCMicrophoneSource::Stop() {
           return;
         }
 
-        track->GraphImpl()->AppendMessage(MakeUnique<StartStopMessage>(
-            track, inputProcessing, StartStopMessage::Stop));
         MOZ_ASSERT(track->DeviceId().value() == deviceInfo->DeviceID());
         track->DisconnectDeviceInput();
+        track->GraphImpl()->AppendMessage(MakeUnique<StartStopMessage>(
+            track, inputProcessing, StartStopMessage::Stop));
       }));
 
   MOZ_ASSERT(mState == kStarted, "Should be started when stopping");
@@ -752,9 +751,8 @@ void AudioInputProcessing::ProcessOutputData(MediaTrackGraphImpl* aGraph,
                                              size_t aFrames, TrackRate aRate,
                                              uint32_t aChannels) {
   MOZ_ASSERT(aGraph->OnGraphThread());
-  MOZ_ASSERT(mEnabled);
 
-  if (PassThrough(aGraph)) {
+  if (!mEnabled || PassThrough(aGraph)) {
     return;
   }
 
@@ -1383,7 +1381,7 @@ nsString MediaEngineWebRTCAudioCaptureSource::GetUUID() {
   nsCString asciiString;
   ErrorResult rv;
 
-  rv = nsContentUtils::GenerateUUIDInPlace(uuid);
+  rv = nsID::GenerateUUIDInPlace(uuid);
   if (rv.Failed()) {
     return u""_ns;
   }

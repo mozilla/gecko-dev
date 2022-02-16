@@ -27,7 +27,7 @@ Informed by this history, there is some of non-obvious preparation that you shou
 Firefox Process Hierarchy
 -------------------------
 
-This diagram shows the primary process types in Firefox.  
+This diagram shows the primary process types in Firefox.
 
 .. mermaid::
 
@@ -129,6 +129,11 @@ Crash reporting
 
 - Add new ``Xxx*Status`` `annotations <https://searchfox.org/mozilla-central/rev/d4b9c457db637fde655592d9e2048939b7ab2854/toolkit/crashreporter/CrashAnnotations.yaml#968-971>`_ entry for your new process type description. The link here points to `UtilityProcessStatus` so you can see the similar description you have to write, but you might want to respect ordering in that file and put your new code at the appropriate place.
 - Add entry in `PROCESS_CRASH_SUBMIT_ATTEMPT <https://searchfox.org/mozilla-central/rev/d4b9c457db637fde655592d9e2048939b7ab2854/toolkit/components/telemetry/Histograms.json#13403-13422>`_
+
+Memory reporting
+#################
+
+- Add handling for your new process within `nsMemoryReporterManager::GetReportsExtended <https://searchfox.org/mozilla-central/rev/d4b9c457db637fde655592d9e2048939b7ab2854/xpcom/base/nsMemoryReporterManager.cpp#1786-1809>`
 
 Process reporting
 #################
@@ -372,7 +377,7 @@ Gecko processes have a clean way for clients to request that they shutdown.  Sim
 .. note::
     There is no need to consider the case where the parent (main) process crashed, because the Dummy process would be quickly terminated by Gecko.
 
-In cases where ``Close()`` is called, the shutdown procedure is fairly straightforward.  Once the call completes, the actor is no longer connected to a channel -- messages will not be sent or received, as is the case with a normal top-level actor (or any managed actor after calling ``Send__delete__()``).  In the sample code, we ``Close`` the ``DummyChild`` when some (as yet unwritten) dummy process code calls ``DummyChild::Shutdown``.  
+In cases where ``Close()`` is called, the shutdown procedure is fairly straightforward.  Once the call completes, the actor is no longer connected to a channel -- messages will not be sent or received, as is the case with a normal top-level actor (or any managed actor after calling ``Send__delete__()``).  In the sample code, we ``Close`` the ``DummyChild`` when some (as yet unwritten) dummy process code calls ``DummyChild::Shutdown``.
 
 .. code-block:: c++
 
@@ -734,5 +739,3 @@ Pausing for the debugger is not a panacea.  Since the environmental varaiables a
 
 .. _Child Process Debugging Tool: https://marketplace.visualstudio.com/items?itemName=vsdbgplat.MicrosoftChildProcessDebuggingPowerTool
 .. _.childdbg: https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/-childdbg--debug-child-processes-
-
-

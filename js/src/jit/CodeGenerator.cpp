@@ -1979,8 +1979,9 @@ static void UpdateRegExpStatics(MacroAssembler& masm, Register regexp,
                       temp1, JSVAL_TYPE_PRIVATE_GCTHING);
   masm.loadPtr(Address(temp1, RegExpShared::offsetOfSource()), temp2);
   masm.storePtr(temp2, lazySourceAddress);
-  masm.load32(Address(temp1, RegExpShared::offsetOfFlags()), temp2);
-  masm.store32(temp2, Address(staticsReg, RegExpStatics::offsetOfLazyFlags()));
+  static_assert(sizeof(JS::RegExpFlags) == 1, "load size must match flag size");
+  masm.load8ZeroExtend(Address(temp1, RegExpShared::offsetOfFlags()), temp2);
+  masm.store8(temp2, Address(staticsReg, RegExpStatics::offsetOfLazyFlags()));
 }
 
 // Prepare an InputOutputData and optional MatchPairs which space has been
@@ -8017,11 +8018,13 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
 #ifdef ENABLE_WASM_EXCEPTIONS
   // If this call is in Wasm try code block, initialise a WasmTryNote for this
   // call.
-  bool inTry_ = mir->inTry();
+  bool inTry = mir->inTry();
   size_t tryNoteIndex = 0;
-
-  if (inTry_) {
-    tryNoteIndex = masm.wasmStartTry();
+  if (inTry && !masm.wasmStartTry(&tryNoteIndex)) {
+    // Handle an OOM in allocating a try note by forcing inTry to false, this
+    // will skip the logic below that uses the try note. This is okay as
+    // compilation will be aborted after this.
+    inTry = false;
   }
 #endif
 
@@ -8040,38 +8043,46 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
 #endif
 
   // LWasmCallBase::isCallPreserved() assumes that all MWasmCalls preserve the
-  // TLS and pinned regs. The only case where where we have to reload
-  // the TLS and pinned regs is when we emit import or builtin instance calls.
-  bool reloadRegs = false;
-  bool switchRealm = false;
+  // TLS and pinned regs. The only case where where we don't have to reload
+  // the TLS and pinned regs is when the callee preserves them.
+  bool reloadRegs = true;
+  bool switchRealm = true;
 
   const wasm::CallSiteDesc& desc = mir->desc();
   const wasm::CalleeDesc& callee = mir->callee();
   CodeOffset retOffset;
+  CodeOffset secondRetOffset;
   switch (callee.which()) {
     case wasm::CalleeDesc::Func:
       retOffset = masm.call(desc, callee.funcIndex());
+      reloadRegs = false;
+      switchRealm = false;
       break;
     case wasm::CalleeDesc::Import:
       retOffset = masm.wasmCallImport(desc, callee);
-      reloadRegs = true;
-      switchRealm = true;
       break;
     case wasm::CalleeDesc::AsmJSTable:
       retOffset = masm.asmCallIndirect(desc, callee);
       break;
     case wasm::CalleeDesc::WasmTable:
-      retOffset = masm.wasmCallIndirect(desc, callee, lir->needsBoundsCheck(),
-                                        lir->tableSize());
+      masm.wasmCallIndirect(desc, callee, lir->needsBoundsCheck(),
+                            lir->tableSize(), &retOffset, &secondRetOffset);
+      // Register reloading and realm switching are handled dynamically inside
+      // wasmCallIndirect.  There are two return offsets, one for each call
+      // instruction (fast path and slow path).
+      reloadRegs = false;
+      switchRealm = false;
       break;
     case wasm::CalleeDesc::Builtin:
       retOffset = masm.call(desc, callee.builtin());
+      reloadRegs = false;
+      switchRealm = false;
       break;
     case wasm::CalleeDesc::BuiltinInstanceMethod:
       retOffset = masm.wasmCallBuiltinInstanceMethod(
           desc, mir->instanceArg(), callee.builtin(),
           mir->builtinMethodFailureMode());
-      reloadRegs = true;
+      switchRealm = false;
       break;
   }
 
@@ -8080,9 +8091,17 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
 
   // Now that all the outbound in-memory args are on the stack, note the
   // required lower boundary point of the associated StackMap.
-  lir->safepoint()->setFramePushedAtStackMapBase(
-      masm.framePushed() - mir->stackArgAreaSizeUnaligned());
+  uint32_t framePushedAtStackMapBase =
+      masm.framePushed() - mir->stackArgAreaSizeUnaligned();
+  lir->safepoint()->setFramePushedAtStackMapBase(framePushedAtStackMapBase);
   MOZ_ASSERT(!lir->safepoint()->isWasmTrap());
+
+  // Note the assembler offset and framePushed for use by the adjunct
+  // LSafePoint, see visitor for LWasmCallIndirectAdjunctSafepoint below.
+  if (callee.which() == wasm::CalleeDesc::WasmTable) {
+    lir->adjunctSafepoint()->recordSafepointInfo(secondRetOffset,
+                                                 framePushedAtStackMapBase);
+  }
 
   if (reloadRegs) {
     masm.loadPtr(Address(masm.getStackPointer(), WasmCallerTlsOffsetBeforeCall),
@@ -8096,7 +8115,7 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
   }
 
 #ifdef ENABLE_WASM_EXCEPTIONS
-  if (inTry_) {
+  if (inTry) {
     // A call that threw will not return here normally, but will jump to this
     // WasmCall's WasmTryNote entryPoint below. To make exceptional control flow
     // easier to track, we set the entry point in this very call. The exception
@@ -8115,6 +8134,13 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
     MOZ_ASSERT(tryNote.end > tryNote.begin);
   }
 #endif
+}
+
+void CodeGenerator::visitWasmCallIndirectAdjunctSafepoint(
+    LWasmCallIndirectAdjunctSafepoint* lir) {
+  markSafepointAt(lir->safepointLocation().offset(), lir);
+  lir->safepoint()->setFramePushedAtStackMapBase(
+      lir->framePushedAtStackMapBase());
 }
 
 void CodeGenerator::visitWasmLoadSlot(LWasmLoadSlot* ins) {

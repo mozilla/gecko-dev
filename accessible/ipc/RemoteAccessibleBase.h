@@ -137,11 +137,7 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
   /**
    * Return true if this is an embedded object.
    */
-  bool IsEmbeddedObject() const {
-    role role = Role();
-    return role != roles::TEXT_LEAF && role != roles::WHITESPACE &&
-           role != roles::STATICTEXT;
-  }
+  bool IsEmbeddedObject() const { return !IsText(); }
 
   virtual bool IsLink() const override {
     if (IsHTMLLink()) {
@@ -183,6 +179,12 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
   virtual already_AddRefed<AccAttributes> Attributes() override;
 
   virtual nsAtom* TagName() const override;
+
+  virtual uint8_t ActionCount() const override;
+
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+
+  virtual bool DoAction(uint8_t aIndex) const override;
 
   // Methods that interact with content.
 
@@ -299,6 +301,10 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
   virtual AccGroupInfo* GetGroupInfo() const override;
 
   virtual AccGroupInfo* GetOrCreateGroupInfo() override;
+
+  virtual bool HasPrimaryAction() const override;
+
+  nsAtom* GetPrimaryAction() const;
 
  private:
   uintptr_t mParent;

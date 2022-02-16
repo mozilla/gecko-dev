@@ -68,6 +68,16 @@ var wasmGlobalInterfaces = [
     insecureContext: true,
     nightly: true,
   },
+  {
+    name: "Exception",
+    insecureContext: true,
+    nightly: true,
+  },
+  {
+    name: "Tag",
+    insecureContext: true,
+    nightly: true,
+  },
 ];
 // IMPORTANT: Do not change this list without review from
 //            a JavaScript Engine peer!
@@ -787,9 +797,11 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "NamedNodeMap", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  "NavigationPreloadManager",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Navigator", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "NetworkInformation", insecureContext: true, desktop: false },
+  { name: "NetworkInformation", insecureContext: true, disabled: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Node", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!

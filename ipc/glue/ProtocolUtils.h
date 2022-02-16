@@ -34,9 +34,6 @@
 #include "nsTArrayForwardDeclare.h"
 #include "nsTHashSet.h"
 
-// XXX Things that could be replaced by a forward header
-#include "mozilla/ipc/Transport.h"  // for Transport
-
 // XXX Things that could be moved to ProtocolUtils.cpp
 #include "base/process_util.h"  // for CloseProcessHandle
 #include "prenv.h"              // for PR_GetEnv
@@ -58,6 +55,10 @@ namespace {
 // protocol 0.  Oops!  We can get away with this until protocol 0
 // starts approaching its 65,536th message.
 enum {
+  // Message types used by DataPipe
+  DATA_PIPE_CLOSED_MESSAGE_TYPE = kuint16max - 18,
+  DATA_PIPE_BYTES_CONSUMED_MESSAGE_TYPE = kuint16max - 17,
+
   // Message types used by NodeChannel
   ACCEPT_INVITE_MESSAGE_TYPE = kuint16max - 16,
   REQUEST_INTRODUCTION_MESSAGE_TYPE = kuint16max - 15,

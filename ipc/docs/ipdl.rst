@@ -91,7 +91,7 @@ Using The IPDL compiler
 To build IPDL files, list them (alphabetically sorted) in a ``moz.build`` file.  In this example, the ``.ipdl`` and ``.ipdlh`` files would be alongside a ``moz.build`` containing:
 
 .. code-block:: c++
-    
+
     IPDL_SOURCES += [
         "MyTypes.ipdlh",
         "PMyManaged.ipdl",
@@ -110,7 +110,7 @@ To build IPDL files, list them (alphabetically sorted) in a ``moz.build`` file. 
 ``chromium-config.mozbuild`` sets up paths so that generated IPDL header files are in the proper scope.  If it isn't included, the build will fail with ``#include`` errors in both your actor code and some internal ipc headers.  For example:
 
 .. code-block:: c++
-    
+
     c:/mozilla-src/mozilla-unified/obj-64/dist/include\ipc/IPCMessageUtils.h(13,10): fatal error: 'build/build_config.h' file not found
 
 ``.ipdl`` files are compiled to C++ files as one of the earliest post-configure build steps.  Those files are, in turn, referenced throughout the source code and build process.  From ``PMyManager.ipdl`` the compiler generates two header files added to the build context and exported globally: ``mozilla/myns/PMyManagerParent.h`` and ``mozilla/myns/PMyManagerChild.h``, as discussed in `Namespaces`_ below.  These files contain the base classes for the actors.  It also makes several other files, including C++ source files and another header, that are automatically included into the build and should not require attention.
@@ -174,7 +174,7 @@ Generating IPDL-Aware C++ Data Types: IPDL Structs and Unions
 .. code-block:: c++
 
     [Comparable] union MyUnion {
-        float; 
+        float;
         MyOtherData;
     };
 
@@ -196,17 +196,15 @@ The real point of any ``.ipdl`` file is that each defines exactly one actor prot
 
 .. code-block:: c++
 
-    [RefCounted] sync protocol PMyManager {
+    sync protocol PMyManager {
         manages PMyManaged;
 
         async PMyManaged();
         // ... more message declarations ...
     };
 
-The ``[RefCounted]`` annotation causes IPDL to generate reference counted C++ classes for these actors.  This should be considered the default (`Bug 1736371 <https://bugzilla.mozilla.org/show_bug.cgi?id=1736371>`_).
-
 .. important::
-    A form of reference counting is `always` used internally by IPDL to make sure that it and its clients never address an actor the other component deleted but this becomes fragile, and sometimes fails, when the client code does not respect the reference count.  For example, when IPDL detects that a connection died due to a crashed remote process, deleting the actor could leave dangling pointers, so IPDL `cannot` delete it.  On the other hand, there are many cases where IPDL is the only entity to have references to some actors (this is very common for one side of a managed actor) so IPDL `must` delete it.  If all of those objects were reference counted then there would be no complexity here.  Indeed, new actors that are not reference counted should not be approved without a very compelling reason.  New non-reference-counted actors may soon be forbidden.
+    A form of reference counting is `always` used internally by IPDL to make sure that it and its clients never address an actor the other component deleted but this becomes fragile, and sometimes fails, when the client code does not respect the reference count.  For example, when IPDL detects that a connection died due to a crashed remote process, deleting the actor could leave dangling pointers, so IPDL `cannot` delete it.  On the other hand, there are many cases where IPDL is the only entity to have references to some actors (this is very common for one side of a managed actor) so IPDL `must` delete it.  If all of those objects were reference counted then there would be no complexity here.  Indeed, new actors using ``[ManualDealloc]`` should not be approved without a very compelling reason.  New ``[ManualDealloc]`` actors may soon be forbidden.
 
 The ``sync`` keyword tells IPDL that the actor contains messages that block the sender using ``sync`` blocking, so the sending thread waits for a response to the message.  There is more on what it and the other blocking modes mean in `IPDL messages`_.  For now, just know that this is redundant information whose value is primarily in making it easy for other developers to know that there are ``sync`` messages defined here.  This list gives preliminary definitions of the options for the actor-blocking policy of messages:
 
@@ -233,7 +231,7 @@ The ``manages`` clause tells IPDL that ``PMyManager`` manages the ``PMyManaged``
     include protocol PMyManager;
     // ...
 
-    [RefCounted] protocol PMyManaged {
+    protocol PMyManaged {
       manager PMyManager;
       // ...
     };
@@ -253,7 +251,7 @@ The final part of the actor definition is the declaration of messages:
 
 .. code-block:: c++
 
-    [RefCounted] sync protocol PMyManager {
+    sync protocol PMyManager {
       // ...
       parent:
         async __delete__(nsString aNote);
@@ -339,9 +337,8 @@ The following is a list of the keywords and operators that have been introduced 
 ``include``                   Include a C++ header (quoted file name) or ``.ipdlh`` file (unquoted with no file suffix).
 ``using (class|struct) from`` Similar to ``include`` but imports only a specific data type.
 ``include protocol``          Include another actor for use in management statements, IPDL data types or as parameters to messages.
-``[RefCounted]``              Indicates that the actor's classes or the imported C++ data types are reference counted.
-                              IPDL will respect the ref count.  Refcounted imported types require a different ``ParamTraits`` interface
-                              than non-reference-counted types.
+``[RefCounted]``              Indicates that the imported C++ data types are reference counted. Refcounted types require a different ``ParamTraits`` interface than non-reference-counted types.
+``[ManualDealloc]``           Indicates that the IPDL interface uses the legacy manual allocation/deallocation interface, rather than modern reference counting.
 ``[MoveOnly]``                Indicates that an imported C++ data type should not be copied.  IPDL code will move it instead.
 ``namespace``                 Specifies the namespace for IPDL generated code.
 ``union``                     An IPDL union definition.
@@ -350,7 +347,7 @@ The following is a list of the keywords and operators that have been introduced 
 ``nullable``                  Indicates that an actor reference in an IPDL type may be null when sent over IPC.
 ``protocol``                  An IPDL protocol (actor) definition.
 ``sync/async``                These are used in two cases: (1) to indicate whether a message blocks as it waits for a result and
-                              (2) because an actor that contains ``sync`` messages must itself be labeled ``sync`` or ``intr``. 
+                              (2) because an actor that contains ``sync`` messages must itself be labeled ``sync`` or ``intr``.
 ``[NestedUpTo=inside_sync]``  Indicates that an actor contains [Nested=inside_sync] messages, in addition to normal messages.
 ``[NestedUpTo=inside_cpow]``  Indicates that an actor contains [Nested=inside_cpow] messages, in addition to normal messages.
 ``intr``                      Used to indicate either that (1) an actor contains ``sync``, ``async`` and (deprecated) ``intr`` messages,
@@ -371,7 +368,7 @@ The following is a list of the keywords and operators that have been introduced 
 ``String``                    Translated into ``nsString`` in C++.
 ``?``                         When following a type T in an IPDL data structure or message parameter,
                               the parameter is translated into ``Maybe<T>`` in C++.
-``[]``                        When following a type T in an IPDL data structure or message parameter, 
+``[]``                        When following a type T in an IPDL data structure or message parameter,
                               the parameter is translated into ``nsTArray<T>`` in C++.
 ``[Tainted]``                 Used to indicate that a message's handler should receive parameters that it
                               is required to manually validate.  Parameters of type ``T`` become ``Tainted<T>`` in C++.
@@ -380,6 +377,22 @@ The following is a list of the keywords and operators that have been introduced 
 ``[Compress=all]``            Like ``[Compress]`` but discards the older message regardless of whether they are adjacent in the message queue.
 ``[Priority=Foo]``            Priority of ``MessageTask`` that runs the C++ message handler.  ``Foo`` is one of:
                               ``normal``, ``input``, ``vsync``, ``mediumhigh``, or ``control``.
+``[ChildImpl="RemoteFoo"]``   Indicates that the child side implementation of the actor is a class
+                              named ``RemoteFoo``, and the definition is included by one of the
+                              ``include "...";`` statements in the file.
+                              *New uses of this attribute are discouraged.*
+``[ParentImpl="FooImpl"]``    Indicates that the parent side implementation of the actor is a class
+                              named ``FooImpl``, and the definition is included by one of the
+                              ``include "...";`` statements in the file.
+                              *New uses of this attribute are discouraged.*
+``[ChildImpl=virtual]``       Indicates that the child side implementation of the actor is not
+                              exported by a header, so virtual ``Recv`` methods should be
+                              used instead of direct function calls.
+                              *New uses of this attribute are discouraged.*
+``[ParentImpl=virtual]``      Indicates that the parent side implementation of the actor is not
+                              exported by a header, so virtual ``Recv`` methods should be
+                              used instead of direct function calls.
+                              *New uses of this attribute are discouraged.*
 ============================= ========================================================
 
 The C++ Interface
@@ -507,7 +520,7 @@ A special case worth mentioning is that of enums.  Enums are a common source of 
 
     enum MyActorEnum { e1, e2, e3, e4, e5 };
 
-    template<> 
+    template<>
     struct ParamTraits<MyActorEnum>
       : public ContiguousEnumSerializerInclusive<MyActorEnum, MyActorEnum::e1, MyActorEnum::e5> {};
 
@@ -519,7 +532,7 @@ IPDL structs and unions become C++ classes that provide interfaces that are fair
 .. code-block:: c++
 
     union MyUnion {
-        float; 
+        float;
         MyOtherData;
     };
 
@@ -541,7 +554,7 @@ These compile to:
         MyUnion& operator=(MyOtherData&& aOD);
         operator float&();
         operator MyOtherData&();
-    }; 
+    };
 
     class MyActorPair {
         MyActorPair(PMyManagedParent* actor1Parent, PMyManagedChild* actor1Child,
@@ -595,7 +608,7 @@ So ``MyManagerParent.h`` looks like this:
     };
 
     } // namespace myns
-    } // namespace mozilla 
+    } // namespace mozilla
 
 All messages that can be sent to the actor must be handled by ``Recv`` methods in the proper actor subclass.  They should return ``IPC_OK()`` on success and ``IPC_FAIL(actor, reason)`` if an error occurred (where ``actor`` is ``this`` and ``reason`` is a human text explanation) that should be considered a failure to process the message.  The handling of such a failure is specific to the process type.
 
@@ -628,7 +641,7 @@ Send methods that are not for async messages with return values follow a simpler
     bool SendSomeMsg(const Maybe<MyActorPair>& aActors, const nsTArray<MyData>& aMyData,
                      int32_t& x, int32_t& y, MyUnion& aUnion);
 
-Since it is sync, this method will not return to its caller until the response is received or an error is detected.  
+Since it is sync, this method will not return to its caller until the response is received or an error is detected.
 
 All calls to ``Send`` methods, like all messages handler ``Recv`` methods, must only be called on the worker thread for the actor.
 
@@ -736,7 +749,7 @@ The ``Send`` method for a constructor is similarly different from other ``Send``
 
 The method expects a ``PMyManagedChild`` that the caller will have constructed, presumably using ``new`` (this is why it does not require an ``Alloc`` method).  Once ``Send...Constructor`` is called, the actor can be used to send and receive messages.  It does not matter that the remote actor may not have been created yet due to asynchronicity.
 
-The destruction of actors is as unusual as their construction.  Unlike construction, it is the same for managed and top-level actors.  The use of ``[RefCounted]`` actors removes a lot of the complexity but there is still a process to understand.  Actor destruction begins when an ``__delete__`` message is sent.  In ``PMyManager``, this message is declared from child to parent.  The actor calling ``Send__delete__`` is no longer connected to anything when the method returns.  Future calls to ``Send`` return an error and no future messages will be received.  This is also the case for an actor that has run ``Recv__delete__``; it is no longer connected to the other endpoint.
+The destruction of actors is as unusual as their construction.  Unlike construction, it is the same for managed and top-level actors.  Avoiding ``[ManualDealloc]`` actors removes a lot of the complexity but there is still a process to understand.  Actor destruction begins when an ``__delete__`` message is sent.  In ``PMyManager``, this message is declared from child to parent.  The actor calling ``Send__delete__`` is no longer connected to anything when the method returns.  Future calls to ``Send`` return an error and no future messages will be received.  This is also the case for an actor that has run ``Recv__delete__``; it is no longer connected to the other endpoint.
 
 .. note::
     Since ``Send__delete__`` may release the final reference to itself, it cannot safely be a class instance method.  Instead, unlike other ``Send`` methods, it's a ``static`` class method and takes the actor as a parameter:
@@ -747,7 +760,7 @@ The destruction of actors is as unusual as their construction.  Unlike construct
 
     Additionally, the ``__delete__`` message tells IPDL to disconnect both the given actor *and all of its managed actors*.  So it is really deleting the actor subtree, although ``Recv__delete__`` is only called for the actor it was sent to.
 
-During the call to ``Send__delete__``, or after the call to ``Recv__delete__``, the actor's ``ActorDestroy`` method is called.  This method gives client code a chance to do any teardown that must happen in `all` circumstances were it is possible -- both expected and unexpected.  This means that ``ActorDestroy`` will also be called when, for example, IPDL detects that the other endpoint has terminated unexpectedly, so it is releasing its reference to the actor, or because an ancestral manager (manager or manager's manager...) received a ``__delete__``.  The only way for an actor to avoid ``ActorDestroy`` is for its process to crash first.  ``ActorDestroy`` is always run after its actor is disconnected so it is pointless to try to send messages from it. 
+During the call to ``Send__delete__``, or after the call to ``Recv__delete__``, the actor's ``ActorDestroy`` method is called.  This method gives client code a chance to do any teardown that must happen in `all` circumstances were it is possible -- both expected and unexpected.  This means that ``ActorDestroy`` will also be called when, for example, IPDL detects that the other endpoint has terminated unexpectedly, so it is releasing its reference to the actor, or because an ancestral manager (manager or manager's manager...) received a ``__delete__``.  The only way for an actor to avoid ``ActorDestroy`` is for its process to crash first.  ``ActorDestroy`` is always run after its actor is disconnected so it is pointless to try to send messages from it.
 
 Why use ``ActorDestroy`` instead of the actor's destructor?  ``ActorDestroy`` gives a chance to clean up things that are only used for communication and therefore don't need to live for however long the actor's (reference-counted) object does.  For example, you might have references to shared memory (Shmems) that are no longer valid.  Or perhaps the actor can now release a cache of data that was only needed for processing messages.  It is cleaner to deal with communication-related objects in ``ActorDestroy``, where they become invalid, than to leave them in limbo until the destructor is run.
 
@@ -898,7 +911,7 @@ A hypothetical layout of ``PBackground`` threads, demonstrating some of the proc
 
         stm --> mt1
         st1 --> mt1
-        st2 --> mt1        
+        st2 --> mt1
 
 Creating background actors is done a bit differently than normal managees.  The new managed type and constructor are still added to ``PBackground.ipdl`` as with normal managees but, instead of ``new``-ing the child actor and then passing it in a ``SendFooConstructor`` call, background actors issue the send call to the ``BackgroundChild`` manager, which returns the new child:
 
@@ -1038,4 +1051,3 @@ The environment variable ``MOZ_IPC_MESSAGE_LOG`` controls the logging of IPC mes
 
 .. important::
     The preceeding ``P`` and the ``Parent`` or ``Child`` suffix are required when listing individual protocols in ``MOZ_IPC_MESSAGE_LOG``.
-

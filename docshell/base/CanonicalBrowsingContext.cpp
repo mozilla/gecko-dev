@@ -308,6 +308,11 @@ void CanonicalBrowsingContext::ReplacedBy(
   txn.SetExplicitActive(GetExplicitActive());
   txn.SetHasRestoreData(GetHasRestoreData());
   txn.SetShouldDelayMediaFromStart(GetShouldDelayMediaFromStart());
+  // As this is a different BrowsingContext, set InitialSandboxFlags to the
+  // current flags in the new context so that they also apply to any initial
+  // about:blank documents created in it.
+  txn.SetSandboxFlags(GetSandboxFlags());
+  txn.SetInitialSandboxFlags(GetSandboxFlags());
   if (aNewContext->EverAttached()) {
     MOZ_ALWAYS_SUCCEEDS(txn.Commit(aNewContext));
   } else {
@@ -535,6 +540,11 @@ CanonicalBrowsingContext::CreateLoadingSessionHistoryEntryForLoad(
       return nullptr;
     }
     Unused << SetHistoryEntryCount(entry->BCHistoryLength());
+  } else if (aLoadState->LoadType() == LOAD_REFRESH &&
+             !ShouldAddEntryForRefresh(aLoadState->URI(),
+                                       aLoadState->PostDataStream()) &&
+             mActiveEntry) {
+    entry = mActiveEntry;
   } else {
     entry = new SessionHistoryEntry(aLoadState, aChannel);
     if (IsTop()) {
@@ -741,7 +751,7 @@ void CanonicalBrowsingContext::CallOnAllTopDescendants(
 
 void CanonicalBrowsingContext::SessionHistoryCommit(
     uint64_t aLoadId, const nsID& aChangeID, uint32_t aLoadType, bool aPersist,
-    bool aCloneEntryChildren, bool aChannelExpired) {
+    bool aCloneEntryChildren, bool aChannelExpired, uint32_t aCacheKey) {
   MOZ_LOG(gSHLog, LogLevel::Verbose,
           ("CanonicalBrowsingContext::SessionHistoryCommit %p %" PRIu64, this,
            aLoadId));
@@ -755,6 +765,9 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
       }
 
       RefPtr<SessionHistoryEntry> newActiveEntry = mLoadingEntries[i].mEntry;
+      if (aCacheKey != 0) {
+        newActiveEntry->SetCacheKey(aCacheKey);
+      }
 
       if (aChannelExpired) {
         newActiveEntry->SharedInfo()->mExpired = true;
@@ -814,7 +827,7 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
           mActiveEntry = newActiveEntry;
         } else if (LOAD_TYPE_HAS_FLAGS(
                        aLoadType, nsIWebNavigation::LOAD_FLAGS_IS_REFRESH) &&
-                   !ShouldAddEntryForRefresh(newActiveEntry)) {
+                   !ShouldAddEntryForRefresh(newActiveEntry) && mActiveEntry) {
           addEntry = false;
           mActiveEntry->ReplaceWith(*newActiveEntry);
         } else {

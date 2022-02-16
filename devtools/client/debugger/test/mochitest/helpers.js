@@ -262,11 +262,13 @@ function assertEmptyLines(dbg, lines) {
 }
 
 function getVisibleSelectedFrameLine(dbg) {
-  const {
-    selectors: { getVisibleSelectedFrame },
-  } = dbg;
-  const frame = getVisibleSelectedFrame();
-  return frame && frame.location.line;
+  const frame = dbg.selectors.getVisibleSelectedFrame();
+  return frame?.location.line;
+}
+
+function getVisibleSelectedFrameColumn(dbg) {
+  const frame = dbg.selectors.getVisibleSelectedFrame();
+  return frame?.location.column;
 }
 
 /**
@@ -281,7 +283,8 @@ function assertPausedLocation(dbg) {
 
   // Check the pause location
   const pauseLine = getVisibleSelectedFrameLine(dbg);
-  assertDebugLine(dbg, pauseLine);
+  const pauseColumn = getVisibleSelectedFrameColumn(dbg);
+  assertDebugLine(dbg, pauseLine, pauseColumn);
 
   ok(isVisibleInEditor(dbg, getCM(dbg).display.gutters), "gutter is visible");
 }
@@ -388,8 +391,16 @@ function isPaused(dbg) {
   return dbg.selectors.getIsCurrentThreadPaused();
 }
 
-// Make sure the debugger is paused at a certain source ID and line.
-function assertPausedAtSourceAndLine(dbg, expectedSourceId, expectedLine) {
+/**
+ * Make sure the debugger is paused at a certain source ID and line.
+ *
+ * @memberof mochitest/asserts
+ * @param {Object} dbg
+ * @param {String} expectedSourceId
+ * @param {Number} expectedLine
+ * @param {Number} [expectedColumn]
+ */
+function assertPausedAtSourceAndLine(dbg, expectedSourceId, expectedLine, expectedColumn) {
   // Check that the debugger is paused.
   assertPaused(dbg);
 
@@ -398,12 +409,21 @@ function assertPausedAtSourceAndLine(dbg, expectedSourceId, expectedLine) {
 
   const frames = dbg.selectors.getCurrentThreadFrames();
   ok(frames.length >= 1, "Got at least one frame");
-  const { sourceId, line } = frames[0].location;
+
+  // Lets make sure we can assert both original and generated file locations when needed
+  const { sourceId, line, column } =  isGeneratedId(expectedSourceId) ? frames[0].generatedLocation : frames[0].location;
   is(sourceId, expectedSourceId, "Frame has correct source");
   ok(
     line == expectedLine,
-    `Frame paused at ${line}, but expected ${expectedLine}`
+    `Frame paused at line ${line}, but expected line ${expectedLine}`
   );
+
+  if (expectedColumn) {
+    ok(
+      column == expectedColumn,
+      `Frame paused at column ${column}, but expected column ${expectedColumn}`
+    );
+  }
 }
 
 async function waitForThreadCount(dbg, count) {
@@ -806,9 +826,25 @@ async function reload(dbg, ...sources) {
  * @static
  */
 async function navigate(dbg, url, ...sources) {
-  await navigateTo(EXAMPLE_URL + url);
+  return navigateToAbsoluteURL(dbg, EXAMPLE_URL + url, ...sources);
+}
+
+/**
+ * Navigates the debuggee to another absolute url.
+ *
+ * @memberof mochitest/actions
+ * @param {Object} dbg
+ * @param {String} url
+ * @param {Array} sources
+ * @return {Promise}
+ * @static
+ */
+async function navigateToAbsoluteURL(dbg, url, ...sources) {
+  await navigateTo(url);
   return waitForSources(dbg, ...sources);
 }
+
+
 
 function getFirstBreakpointColumn(dbg, { line, sourceId }) {
   const { getSource, getFirstBreakpointPosition } = dbg.selectors;
@@ -1251,7 +1287,8 @@ async function getEditorLineEl(dbg, line) {
 }
 
 /*
- * Assert that no breakpoint is set on a given line.
+ * Assert that no breakpoint is set on a given line of
+ * the currently selected source in the editor.
  *
  * @memberof mochitest/helpers
  * @param {Object} dbg
@@ -1266,7 +1303,8 @@ async function assertNoBreakpoint(dbg, line) {
 }
 
 /*
- * Assert that a regular breakpoint is set. (no conditional, nor log breakpoint)
+ * Assert that a regular breakpoint is set in the currently
+ * selected source in the editor. (no conditional, nor log breakpoint)
  *
  * @memberof mochitest/helpers
  * @param {Object} dbg
@@ -2188,6 +2226,54 @@ async function setLogPoint(dbg, index, value) {
   const onBreakpointSet = waitForDispatch(dbg.store, "SET_BREAKPOINT");
   await typeInPanel(dbg, value);
   await onBreakpointSet;
+}
+
+/**
+ * Instantiate a HTTP Server that serves files from a given test folder.
+ * The test folder should be made of multiple sub folder named: v1, v2, v3,...
+ * We will serve the content from one of these sub folder
+ * and switch to the next one, each time `httpServer.switchToNextVersion()`
+ * is called.
+ *
+ * @return Object Test server with two functions:
+ *   - urlFor(path)
+ *     Returns the absolute url for a given file.
+ *   - switchToNextVersion()
+ *     Start serving files from the next available sub folder.
+ */
+function createVersionizedHttpTestServer(testFolderName) {
+  const httpServer = createTestHTTPServer();
+
+  let currentVersion = 1;
+
+  httpServer.registerPrefixHandler("/", async (request, response) => {
+    response.processAsync();
+    response.setStatusLine(request.httpVersion, 200, "OK");
+    if (request.path.endsWith(".js")) {
+      response.setHeader("Content-Type", "application/javascript");
+    } else if (request.path.endsWith(".js.map")) {
+      response.setHeader("Content-Type", "application/json");
+    }
+    if (request.path == "/" || request.path == "/index.html") {
+      response.setHeader("Content-Type", "text/html");
+    }
+    const url = URL_ROOT + `examples/${testFolderName}/v${currentVersion}${request.path}`;
+    info("[test-http-server] serving: " + url);
+    const content = await fetch(url);
+    const text = await content.text();
+    response.write(text);
+    response.finish();
+  });
+
+  return {
+    switchToNextVersion() {
+      currentVersion++;
+    },
+    urlFor(path) {
+      const port = httpServer.identity.primaryPort;
+      return `http://localhost:${port}/${path}`;
+    },
+  };
 }
 
 // This module is also loaded for Browser Toolbox tests, within the browser toolbox process

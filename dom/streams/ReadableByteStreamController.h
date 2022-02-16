@@ -29,7 +29,10 @@
 
 namespace mozilla::dom {
 
-enum ReaderType { Default, BYOB };
+// https://streams.spec.whatwg.org/#pull-into-descriptor-reader-type
+// Indicates what type of readable stream reader initiated this request,
+// or None if the initiating reader was released.
+enum ReaderType { Default, BYOB, None };
 
 struct PullIntoDescriptor;
 struct ReadableByteStreamQueueEntry;
@@ -62,7 +65,7 @@ class ReadableByteStreamController final : public ReadableStreamController,
 
   Nullable<double> GetDesiredSize() const;
 
-  void Close(JSContext* aCx, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void Close(JSContext* aCx, ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT void Enqueue(JSContext* aCx, const ArrayBufferView& aChunk,
                                   ErrorResult& aRv);
@@ -75,6 +78,7 @@ class ReadableByteStreamController final : public ReadableStreamController,
   MOZ_CAN_RUN_SCRIPT virtual void PullSteps(JSContext* aCx,
                                             ReadRequest* aReadRequest,
                                             ErrorResult& aRv) override;
+  virtual void ReleaseSteps() override;
 
   // Internal Slot Accessors
   Maybe<uint64_t> AutoAllocateChunkSize() { return mAutoAllocateChunkSize; }
@@ -364,7 +368,7 @@ ReadableByteStreamControllerGetBYOBRequest(
     JSContext* aCx, ReadableByteStreamController* aController,
     ErrorResult& aRv);
 
-extern void ReadableByteStreamControllerClose(
+MOZ_CAN_RUN_SCRIPT extern void ReadableByteStreamControllerClose(
     JSContext* aCx, ReadableByteStreamController* aController,
     ErrorResult& aRv);
 

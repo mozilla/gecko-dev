@@ -21,6 +21,7 @@
 #include "mozilla/dom/QueueWithSizes.h"
 #include "mozilla/dom/QueuingStrategyBinding.h"
 #include "mozilla/dom/ReadRequest.h"
+#include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/StreamUtils.h"
 #include "mozilla/dom/UnderlyingSinkBinding.h"
 #include "mozilla/dom/WritableStreamBinding.h"
@@ -483,7 +484,7 @@ already_AddRefed<WritableStream> WritableStream::Constructor(
 
   // Step 2. Let underlyingSinkDict be underlyingSink, converted to
   //         an IDL value of type UnderlyingSink.
-  UnderlyingSink underlyingSinkDict;
+  RootedDictionary<UnderlyingSink> underlyingSinkDict(aGlobal.Context());
   if (underlyingSinkObj) {
     JS::Rooted<JS::Value> objValue(aGlobal.Context(),
                                    JS::ObjectValue(*underlyingSinkObj));

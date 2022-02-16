@@ -82,6 +82,7 @@
 #  include "skia/include/ports/SkTypeface_cairo.h"
 #endif
 #ifdef ANDROID
+#  include "mozilla/layers/AndroidHardwareBuffer.h"
 #  include "skia/include/ports/SkTypeface_cairo.h"
 #endif
 #include "ChildProfilerController.h"
@@ -334,6 +335,13 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
   // false to match gfxAndroidPlatform::FontHintingEnabled(). We must
   // hardcode this value because we do not have a gfxPlatform instance.
   SkInitCairoFT(false);
+
+  if (gfxVars::UseAHardwareBufferContent() ||
+      gfxVars::UseAHardwareBufferSharedSurface()) {
+    layers::AndroidHardwareBufferApi::Init();
+    layers::AndroidHardwareBufferManager::Init();
+  }
+
 #endif
 
   // Make sure to do this *after* we update gfxVars above.
@@ -541,7 +549,7 @@ mozilla::ipc::IPCResult GPUParent::RecvNewContentVRManager(
 
 mozilla::ipc::IPCResult GPUParent::RecvNewContentRemoteDecoderManager(
     Endpoint<PRemoteDecoderManagerParent>&& aEndpoint) {
-  if (!RemoteDecoderManagerParent::CreateForContent(std::move(aEndpoint))) {
+  if (!RemoteDecoderManagerParent::CreateForContent(std::move(aEndpoint), /* AllowHardwareDecoding */ true)) {
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();

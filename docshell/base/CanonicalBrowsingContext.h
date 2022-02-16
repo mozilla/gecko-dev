@@ -142,7 +142,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   void SessionHistoryCommit(uint64_t aLoadId, const nsID& aChangeID,
                             uint32_t aLoadType, bool aPersist,
-                            bool aCloneEntryChildren, bool aChannelExpired);
+                            bool aCloneEntryChildren, bool aChannelExpired,
+                            uint32_t aCacheKey);
 
   // Calls the session history listeners' OnHistoryReload, storing the result in
   // aCanReload. If aCanReload is set to true and we have an active or a loading
@@ -463,9 +464,13 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   void RemovePendingDiscard();
 
   bool ShouldAddEntryForRefresh(const SessionHistoryEntry* aEntry) {
+    return ShouldAddEntryForRefresh(aEntry->Info().GetURI(),
+                                    aEntry->Info().GetPostData());
+  }
+  bool ShouldAddEntryForRefresh(nsIURI* aNewURI, bool aHasPostData) {
     nsCOMPtr<nsIURI> currentURI = GetCurrentURI();
-    return BrowsingContext::ShouldAddEntryForRefresh(currentURI,
-                                                     aEntry->Info());
+    return BrowsingContext::ShouldAddEntryForRefresh(currentURI, aNewURI,
+                                                     aHasPostData);
   }
 
   // XXX(farre): Store a ContentParent pointer here rather than mProcessId?

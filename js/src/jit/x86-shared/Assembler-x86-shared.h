@@ -183,21 +183,14 @@ class CPUInfo {
   static const int AVX_PRESENT_BIT = 8;
 
   static SSEVersion GetSSEVersion() {
-    if (maxSSEVersion == UnknownSSE) {
-      SetSSEVersion();
-    }
-
-    MOZ_ASSERT(maxSSEVersion != UnknownSSE);
+    MOZ_ASSERT(FlagsHaveBeenComputed());
     MOZ_ASSERT_IF(maxEnabledSSEVersion != UnknownSSE,
                   maxSSEVersion <= maxEnabledSSEVersion);
     return maxSSEVersion;
   }
 
   static bool IsAVXPresent() {
-    if (MOZ_UNLIKELY(maxSSEVersion == UnknownSSE)) {
-      SetSSEVersion();
-    }
-
+    MOZ_ASSERT(FlagsHaveBeenComputed());
     MOZ_ASSERT_IF(!avxEnabled, !avxPresent);
     return avxPresent;
   }
@@ -216,8 +209,6 @@ class CPUInfo {
   static bool bmi2Present;
   static bool lzcntPresent;
   static bool avx2Present;
-
-  static void SetSSEVersion();
 
   static void SetMaxEnabledSSEVersion(SSEVersion v) {
     if (maxEnabledSSEVersion == UnknownSSE) {
@@ -245,39 +236,37 @@ class CPUInfo {
   static bool IsLZCNTPresent() { return lzcntPresent; }
   static bool IsAVX2Present() { return avx2Present; }
 
-  // The SSE flags can become set at startup when we JIT non-JS code eagerly;
-  // thus we must reset the flags before setting any flags explicitly during
-  // testing, so that the flags can be in a consistent state.
-
-  static void ResetSSEFlagsForTesting() {
-    maxSSEVersion = UnknownSSE;
-    maxEnabledSSEVersion = UnknownSSE;
-    avxPresent = false;
-    avxEnabled = false;
-  }
-
   static bool FlagsHaveBeenComputed() { return maxSSEVersion != UnknownSSE; }
 
-  // The following should be called only after calling ResetSSEFlagsForTesting.
-  // If several are called, the most restrictive setting is kept.
+  static void ComputeFlags();
+
+  // The following should be called only before JS_Init (where the flags are
+  // computed). If several are called, the most restrictive setting is kept.
 
   static void SetSSE3Disabled() {
+    MOZ_ASSERT(!FlagsHaveBeenComputed());
     SetMaxEnabledSSEVersion(SSE2);
     avxEnabled = false;
   }
   static void SetSSSE3Disabled() {
+    MOZ_ASSERT(!FlagsHaveBeenComputed());
     SetMaxEnabledSSEVersion(SSE3);
     avxEnabled = false;
   }
   static void SetSSE41Disabled() {
+    MOZ_ASSERT(!FlagsHaveBeenComputed());
     SetMaxEnabledSSEVersion(SSSE3);
     avxEnabled = false;
   }
   static void SetSSE42Disabled() {
+    MOZ_ASSERT(!FlagsHaveBeenComputed());
     SetMaxEnabledSSEVersion(SSE4_1);
     avxEnabled = false;
   }
-  static void SetAVXEnabled() { avxEnabled = true; }
+  static void SetAVXEnabled() {
+    MOZ_ASSERT(!FlagsHaveBeenComputed());
+    avxEnabled = true;
+  }
 };
 
 class AssemblerX86Shared : public AssemblerShared {
@@ -2735,33 +2724,33 @@ class AssemblerX86Shared : public AssemblerShared {
   void vcmpordps(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
     vcmpps(X86Encoding::ConditionCmp_ORD, rhs, lhs, dest);
   }
-  void vcmppd(uint8_t order, Operand rhs, FloatRegister srcDest) {
+  void vcmppd(uint8_t order, Operand rhs, FloatRegister lhs,
+              FloatRegister dest) {
     switch (rhs.kind()) {
       case Operand::FPREG:
-        masm.vcmppd_rr(order, rhs.fpu(), srcDest.encoding(),
-                       srcDest.encoding());
+        masm.vcmppd_rr(order, rhs.fpu(), lhs.encoding(), dest.encoding());
         break;
       default:
         MOZ_CRASH("NYI");
     }
   }
-  void vcmpeqpd(const Operand& rhs, FloatRegister srcDest) {
-    vcmppd(X86Encoding::ConditionCmp_EQ, rhs, srcDest);
+  void vcmpeqpd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmppd(X86Encoding::ConditionCmp_EQ, rhs, lhs, dest);
   }
-  void vcmpltpd(const Operand& rhs, FloatRegister srcDest) {
-    vcmppd(X86Encoding::ConditionCmp_LT, rhs, srcDest);
+  void vcmpltpd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmppd(X86Encoding::ConditionCmp_LT, rhs, lhs, dest);
   }
-  void vcmplepd(const Operand& rhs, FloatRegister srcDest) {
-    vcmppd(X86Encoding::ConditionCmp_LE, rhs, srcDest);
+  void vcmplepd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmppd(X86Encoding::ConditionCmp_LE, rhs, lhs, dest);
   }
-  void vcmpneqpd(const Operand& rhs, FloatRegister srcDest) {
-    vcmppd(X86Encoding::ConditionCmp_NEQ, rhs, srcDest);
+  void vcmpneqpd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmppd(X86Encoding::ConditionCmp_NEQ, rhs, lhs, dest);
   }
-  void vcmpordpd(const Operand& rhs, FloatRegister srcDest) {
-    vcmppd(X86Encoding::ConditionCmp_ORD, rhs, srcDest);
+  void vcmpordpd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmppd(X86Encoding::ConditionCmp_ORD, rhs, lhs, dest);
   }
-  void vcmpunordpd(const Operand& rhs, FloatRegister srcDest) {
-    vcmppd(X86Encoding::ConditionCmp_UNORD, rhs, srcDest);
+  void vcmpunordpd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
+    vcmppd(X86Encoding::ConditionCmp_UNORD, rhs, lhs, dest);
   }
   void vrcpps(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());

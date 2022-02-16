@@ -41,6 +41,11 @@ RefPtr<UtilityProcessManager> UtilityProcessManager::GetSingleton() {
   return sSingleton;
 }
 
+RefPtr<UtilityProcessManager> UtilityProcessManager::GetIfExists() {
+  MOZ_ASSERT(NS_IsMainThread());
+  return sSingleton;
+}
+
 UtilityProcessManager::UtilityProcessManager() : mObserver(new Observer(this)) {
   // Start listening for pref changes so we can
   // forward them to the process once it is running.
@@ -84,13 +89,14 @@ void UtilityProcessManager::OnPreferenceChange(const char16_t* aData) {
     // Process hasn't been launched yet
     return;
   }
-  // A pref changed. If it is useful to do so, inform child processes.
-  if (!dom::ContentParent::ShouldSyncPreference(aData)) {
-    return;
-  }
 
   // We know prefs are ASCII here.
   NS_LossyConvertUTF16toASCII strData(aData);
+
+  // A pref changed. If it is useful to do so, inform child processes.
+  if (!dom::ContentParent::ShouldSyncPreference(strData.Data())) {
+    return;
+  }
 
   mozilla::dom::Pref pref(strData, /* isLocked */ false, Nothing(), Nothing());
   Preferences::GetPreference(&pref);

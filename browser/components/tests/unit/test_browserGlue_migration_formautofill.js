@@ -9,7 +9,7 @@ const TOPICDATA_BROWSERGLUE_TEST = "force-ui-migration";
 const gBrowserGlue = Cc["@mozilla.org/browser/browserglue;1"].getService(
   Ci.nsIObserver
 );
-const UI_VERSION = 123;
+const UI_VERSION = 124;
 
 function ensureOldPrefsAreCleared() {
   Assert.ok(

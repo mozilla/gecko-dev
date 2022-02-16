@@ -1997,6 +1997,9 @@
         // process so the browser can no longer be considered to be
         // crashed.
         tab.removeAttribute("crashed");
+        // we call updatetabIndicatorAttr here, rather than _tabAttrModified, so as
+        // to be consistent with how "crashed" attribute changes are handled elsewhere
+        this.tabContainer.updateTabIndicatorAttr(tab);
       } else {
         aBrowser.sendMessageToActor(
           "Browser:AppTab",
@@ -2541,6 +2544,12 @@
       return this.addTab(aURI, params);
     },
 
+    /**
+     * @returns {object}
+     *    The new tab. The return value will be null if the tab couldn't be
+     *    created; this shouldn't normally happen, and an error will be logged
+     *    to the console if it does.
+     */
     // eslint-disable-next-line complexity
     addTab(
       aURI,
@@ -2824,15 +2833,9 @@
           // but we were opened from another browser, set the cross group
           // opener ID:
           if (openerBrowser && !openWindowInfo) {
-            try {
-              b.browsingContext.setCrossGroupOpener(
-                openerBrowser.browsingContext
-              );
-            } catch (ex) {
-              // Shouldn't happen, but we shouldn't break tabbrowser if
-              // this failed.
-              Cu.reportError(ex);
-            }
+            b.browsingContext.setCrossGroupOpener(
+              openerBrowser.browsingContext
+            );
           }
         }
       } catch (e) {
@@ -2844,7 +2847,7 @@
           this._tabListeners.delete(t);
           this.getPanel(t.linkedBrowser).remove();
         }
-        throw e;
+        return null;
       }
 
       // Hack to ensure that the about:newtab, and about:welcome favicon is loaded
@@ -6208,6 +6211,7 @@
             // process so the browser can no longer be considered to be
             // crashed.
             tab.removeAttribute("crashed");
+            gBrowser.tabContainer.updateTabIndicatorAttr(tab);
           } else {
             browser.sendMessageToActor(
               "Browser:AppTab",
@@ -6491,6 +6495,7 @@
           delete this.mBrowser.initialPageLoadedFromUserAction;
           // If the browser is loading it must not be crashed anymore
           this.mTab.removeAttribute("crashed");
+          gBrowser.tabContainer.updateTabIndicatorAttr(this.mTab);
         }
 
         if (this._shouldShowProgress(aRequest)) {

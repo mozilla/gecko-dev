@@ -124,6 +124,18 @@ pref("app.update.download.promptMaxAttempts", 2);
 // download a fresh installer.
 pref("app.update.elevation.promptMaxAttempts", 2);
 
+#ifdef NIGHTLY_BUILD
+  // Whether to delay popup notifications when an update is available and
+  // suppress them when an update is installed and waiting for user to restart.
+  // If set to true, these notifications will immediately be shown as banners in
+  // the app menu and as badges on the app menu button. Update available
+  // notifications will not create popup prompts until a week has passed without
+  // the user installing the update. Update restart notifications will not
+  // create popup prompts at all. This doesn't affect update notifications
+  // triggered by errors/failures or manual install prompts.
+  pref("app.update.suppressPrompts", false);
+#endif
+
 // If set to true, a message will be displayed in the hamburger menu while
 // an update is being downloaded.
 pref("app.update.notifyDuringDownload", false);
@@ -490,6 +502,9 @@ pref("browser.urlbar.merino.providers", "");
 // Comma-separated list of client variants to send to Merino
 pref("browser.urlbar.merino.clientVariants", "");
 
+// Whether best match results are enabled in the urlbar.
+pref("browser.urlbar.bestMatch.enabled", true);
+
 pref("browser.altClickSave", false);
 
 // Enable logging downloads operations to the Console.
@@ -552,6 +567,9 @@ pref("browser.download.clearHistoryOnDelete", 0);
 pref("browser.helperApps.showOpenOptionForPdfJS", true);
 pref("browser.helperApps.showOpenOptionForViewableInternally", true);
 
+// search engine removal URL
+pref("browser.search.searchEngineRemoval", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/search-engine-removal");
+
 // search engines URL
 pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/firefox/search-engines/");
 
@@ -582,6 +600,12 @@ pref("browser.privacySegmentation.enabled", false);
 // Use dark theme variant for PBM windows. This is only supported if the theme
 // sets darkTheme data.
 pref("browser.theme.dark-private-windows", false);
+
+// Controls visibility of the privacy segmentation preferences section.
+pref("browser.privacySegmentation.preferences.show", false);
+
+// Suffix for the SUMO learn more link for the privacy segmentation checkbox.
+pref("browser.privacySegmentation.preferences.learnMoreURLSuffix", "data-features");
 
 pref("browser.sessionhistory.max_entries", 50);
 
@@ -1406,6 +1430,11 @@ pref("services.sync.prefs.dangerously_allow_arbitrary", false);
 // user's tabs and bookmarks. Note this pref is also synced.
 pref("services.sync.syncedTabs.showRemoteIcons", true);
 
+// A preference (in milliseconds) controlling if we sync after a tab change and
+// how long to delay before we schedule the sync
+// Anything <= 0 means disabled
+pref("services.sync.syncedTabs.syncDelayAfterTabChange", 0);
+
 // Whether the character encoding menu is under the main Firefox button. This
 // preference is a string so that localizers can alter it.
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
@@ -1466,11 +1495,6 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiment
 // ASRouter user prefs
 pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", true);
 pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", true);
-
-// Default to allowing the ASRouter captive portal VPN promo messages to be
-// shown when specified, but do so in a pref in case someone needs to override
-// it.
-pref("browser.newtabpage.activity-stream.asrouter.disable-captive-portal-vpn-promo", false);
 
 // The pref that controls if ASRouter uses the remote fluent files.
 // It's enabled by default, but could be disabled to force ASRouter to use the local files.
@@ -1712,7 +1736,7 @@ pref("media.autoplay.default", 1); // 0=Allowed, 1=Blocked, 5=All Blocked
 
 pref("media.videocontrols.picture-in-picture.enabled", true);
 pref("media.videocontrols.picture-in-picture.video-toggle.enabled", true);
-pref("media.videocontrols.picture-in-picture.video-toggle.visibility-threshold", "0.9");
+pref("media.videocontrols.picture-in-picture.video-toggle.visibility-threshold", "1.0");
 pref("media.videocontrols.picture-in-picture.keyboard-controls.enabled", true);
 
 #ifdef NIGHTLY_BUILD
@@ -1856,17 +1880,21 @@ pref("browser.contentblocking.report.proxy.enabled", false);
 // Disable the mobile promotion by default.
 pref("browser.contentblocking.report.show_mobile_app", true);
 
+// Locales in which Send to Device emails are supported
+// The most recent list of supported locales can be found at https://github.com/mozilla/bedrock/blob/6a08c876f65924651554decc57b849c00874b4e7/bedrock/settings/base.py#L963
+pref("browser.send_to_device_locales", "de,en-GB,en-US,es-AR,es-CL,es-ES,es-MX,fr,id,pl,pt-BR,ru,zh-TW");
+
 // Avoid advertising in certain regions. Comma separated string of two letter ISO 3166-1 country codes.
 // We're currently blocking all of Ukraine (ua), but would prefer to block just Crimea (ua-43). Currently, the Mozilla Location Service APIs used by Region.jsm only exposes the country, not the subdivision.
 pref("browser.vpn_promo.disallowed_regions", "ae,by,cn,cu,iq,ir,kp,om,ru,sd,sy,tm,tr,ua");
 
 // Default to enabling VPN promo messages to be shown when specified and allowed
 pref("browser.vpn_promo.enabled", true);
-
-// Enable the vpn card by default.
-pref("browser.contentblocking.report.vpn.enabled", true);
 // Only show vpn card to certain regions. Comma separated string of two letter ISO 3166-1 country codes.
-pref("browser.contentblocking.report.vpn_regions", "us,ca,nz,sg,my,gb,de,fr");
+// The most recent list of supported countries can be found at https://support.mozilla.org/en-US/kb/mozilla-vpn-countries-available-subscribe
+pref("browser.contentblocking.report.vpn_regions", "at,be,ca,ch,de,fr,ie,it,my,nl,nz,sg,es,gb,us"
+);
+
 // Comma separated string of mozilla vpn supported platforms.
 pref("browser.contentblocking.report.vpn_platforms", "win,mac,linux");
 pref("browser.contentblocking.report.hide_vpn_banner", false);
@@ -2245,6 +2273,7 @@ pref("devtools.command-button-errorcount.enabled", true);
 // Enable the Inspector
 pref("devtools.inspector.enabled", true);
 // What was the last active sidebar in the inspector
+pref("devtools.inspector.selectedSidebar", "layoutview");
 pref("devtools.inspector.activeSidebar", "layoutview");
 pref("devtools.inspector.remote", false);
 
@@ -2374,6 +2403,9 @@ pref("devtools.application.enabled", true);
 // Enable the custom formatters feature
 // TODO remove once the custom formatters feature is stable (see bug 1734614)
 pref("devtools.custom-formatters", false);
+// This preference represents the user's choice to enable the custom formatters feature.
+// While the preference above will be removed once the feature is stable, this one is menat to stay.
+pref("devtools.custom-formatters.enabled", false);
 
 // The default Network Monitor UI settings
 pref("devtools.netmonitor.panes-network-details-width", 550);
@@ -2416,8 +2448,12 @@ pref("devtools.netmonitor.audits.slow", 500);
 // Enable the EventSource Inspector
 pref("devtools.netmonitor.features.serverSentEvents", true);
 
+#if defined(NIGHTLY_BUILD)
 // Enable the new Edit and Resend panel
-pref("devtools.netmonitor.features.newEditAndResend", false);
+  pref("devtools.netmonitor.features.newEditAndResend", true);
+#else
+  pref("devtools.netmonitor.features.newEditAndResend", false);
+#endif
 
 // Enable the Storage Inspector
 pref("devtools.storage.enabled", true);
@@ -2502,12 +2538,8 @@ pref("devtools.browserconsole.input.editorWidth", 0);
 // Display an onboarding UI for the Editor mode.
 pref("devtools.webconsole.input.editorOnboarding", true);
 
-// Enable the new performance recording panel in Nightly and Beta/DevEdition builds.
-#if defined(NIGHTLY_BUILD) || defined(MOZ_DEV_EDITION)
-  pref("devtools.performance.new-panel-enabled", true);
-#else
-  pref("devtools.performance.new-panel-enabled", false);
-#endif
+// Enable the new performance panel in all channels of Firefox.
+pref("devtools.performance.new-panel-enabled", true);
 
 // Enable message grouping in the console, true by default
 pref("devtools.webconsole.groupWarningMessages", true);

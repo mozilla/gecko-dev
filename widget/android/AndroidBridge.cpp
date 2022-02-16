@@ -25,6 +25,7 @@
 #include "nsPresContext.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Mutex.h"
 #include "nsPrintfCString.h"
 #include "nsContentUtils.h"
 
@@ -426,12 +427,12 @@ nsAndroidBridge::GetDispatcherByName(const char* aName,
 
 nsAndroidBridge::~nsAndroidBridge() {}
 
-uint32_t AndroidBridge::GetScreenOrientation() {
+hal::ScreenOrientation AndroidBridge::GetScreenOrientation() {
   ALOG_BRIDGE("AndroidBridge::GetScreenOrientation");
 
   int16_t orientation = java::GeckoAppShell::GetScreenOrientation();
 
-  return static_cast<hal::ScreenOrientation>(orientation);
+  return hal::ScreenOrientation(orientation);
 }
 
 uint16_t AndroidBridge::GetScreenAngle() {

@@ -169,22 +169,6 @@ def install_import_library(build_dir, clang_dir):
     )
 
 
-def install_asan_symbols(build_dir, clang_dir):
-    lib_path_pattern = os.path.join("lib", "clang", "*.*.*", "lib", "windows")
-    src_path = glob.glob(
-        os.path.join(build_dir, lib_path_pattern, "clang_rt.asan_dynamic-*.pdb")
-    )
-    dst_path = glob.glob(os.path.join(clang_dir, lib_path_pattern))
-
-    if len(src_path) != 1:
-        raise Exception("Source path pattern did not resolve uniquely")
-
-    if len(src_path) != 1:
-        raise Exception("Destination path pattern did not resolve uniquely")
-
-    shutil.copy2(src_path[0], dst_path[0])
-
-
 def is_darwin():
     return platform.system() == "Darwin"
 
@@ -214,11 +198,8 @@ def build_one_stage(
     assertions,
     libcxx_include_dir,
     build_wasm,
-    compiler_rt_source_dir=None,
-    runtimes_source_link=None,
-    compiler_rt_source_link=None,
     is_final_stage=False,
-    pgo_phase=None,
+    profile=None,
 ):
     if not os.path.exists(stage_dir):
         os.mkdir(stage_dir)
@@ -251,13 +232,23 @@ def build_one_stage(
             "-DCMAKE_INSTALL_PREFIX=%s" % inst_dir,
             "-DLLVM_TARGETS_TO_BUILD=%s" % machine_targets,
             "-DLLVM_ENABLE_ASSERTIONS=%s" % ("ON" if assertions else "OFF"),
-            "-DLLVM_TOOL_LIBCXX_BUILD=%s" % ("ON" if build_libcxx else "OFF"),
             "-DLLVM_ENABLE_BINDINGS=OFF",
             "-DLLVM_ENABLE_CURL=OFF",
         ]
         if "TASK_ID" in os.environ:
             cmake_args += [
                 "-DCLANG_REPOSITORY_STRING=taskcluster-%s" % os.environ["TASK_ID"],
+            ]
+        # libc++ doesn't build with MSVC because of the use of #include_next.
+        if is_final_stage and os.path.basename(cc[0]).lower() != "cl.exe":
+            cmake_args += [
+                "-DLLVM_FORCE_BUILD_RUNTIME=ON",
+                "-DLLVM_TOOL_LIBCXX_BUILD=%s" % ("ON" if build_libcxx else "OFF"),
+                # libc++abi has conflicting definitions between the shared and static
+                # library on Windows because of the import library for the dll having
+                # the same name as the static library. libc++abi is not necessary on
+                # Windows anyways.
+                "-DLLVM_TOOL_LIBCXXABI_BUILD=%s" % ("OFF" if is_windows() else "ON"),
             ]
         if not is_final_stage:
             cmake_args += [
@@ -325,15 +316,15 @@ def build_one_stage(
                 "-DDARWIN_macosx_OVERRIDE_SDK_VERSION=%s"
                 % os.environ["MACOSX_DEPLOYMENT_TARGET"],
             ]
-        if pgo_phase == "gen":
+        if profile == "gen":
             # Per https://releases.llvm.org/10.0.0/docs/HowToBuildWithPGO.html
             cmake_args += [
                 "-DLLVM_BUILD_INSTRUMENTED=IR",
                 "-DLLVM_BUILD_RUNTIME=No",
             ]
-        if pgo_phase == "use":
+        elif profile:
             cmake_args += [
-                "-DLLVM_PROFDATA_FILE=%s/merged.profdata" % stage_dir,
+                "-DLLVM_PROFDATA_FILE=%s" % profile,
             ]
         return cmake_args
 
@@ -344,53 +335,8 @@ def build_one_stage(
 
     # For some reasons the import library clang.lib of clang.exe is not
     # installed, so we copy it by ourselves.
-    if is_windows():
-        # The compiler-rt cmake scripts don't allow to build it for multiple
-        # targets at once on Windows, so manually build the 32-bits compiler-rt
-        # during the final stage.
-        build_32_bit = False
-        if is_final_stage:
-            # Only build the 32-bits compiler-rt when we originally built for
-            # 64-bits, which we detect through the contents of the LIB
-            # environment variable, which we also adjust for a 32-bits build
-            # at the same time.
-            old_lib = os.environ["LIB"]
-            new_lib = []
-            for l in old_lib.split(os.pathsep):
-                if l.endswith("x64"):
-                    l = l[:-3] + "x86"
-                    build_32_bit = True
-                elif l.endswith("amd64"):
-                    l = l[:-5]
-                    build_32_bit = True
-                new_lib.append(l)
-        if build_32_bit:
-            os.environ["LIB"] = os.pathsep.join(new_lib)
-            compiler_rt_build_dir = stage_dir + "/compiler-rt"
-            compiler_rt_inst_dir = inst_dir + "/lib/clang/"
-            subdirs = os.listdir(compiler_rt_inst_dir)
-            assert len(subdirs) == 1
-            compiler_rt_inst_dir += subdirs[0]
-            cmake_args = cmake_base_args(
-                [os.path.join(inst_dir, "bin", "clang-cl.exe"), "-m32"] + cc[1:],
-                [os.path.join(inst_dir, "bin", "clang-cl.exe"), "-m32"] + cxx[1:],
-                [os.path.join(inst_dir, "bin", "clang-cl.exe"), "-m32"] + asm[1:],
-                ld,
-                ar,
-                ranlib,
-                libtool,
-                compiler_rt_inst_dir,
-            )
-            cmake_args += [
-                "-DLLVM_CONFIG_PATH=%s"
-                % slashify_path(os.path.join(inst_dir, "bin", "llvm-config")),
-                os.path.join(src_dir, "projects", "compiler-rt"),
-            ]
-            build_package(compiler_rt_build_dir, cmake_args)
-            os.environ["LIB"] = old_lib
-        if is_final_stage:
-            install_import_library(build_dir, inst_dir)
-            install_asan_symbols(build_dir, inst_dir)
+    if is_windows() and is_final_stage:
+        install_import_library(build_dir, inst_dir)
 
 
 # Return the absolute path of a build tool.  We first look to see if the
@@ -523,7 +469,7 @@ def prune_final_dir_for_clang_tidy(final_dir, osx_cross_compile):
             delete(f)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c",
@@ -627,8 +573,6 @@ if __name__ == "__main__":
         pgo = config["pgo"]
         if pgo not in (True, False):
             raise ValueError("Only boolean values are accepted for pgo.")
-        if pgo and stages != 4:
-            raise ValueError("PGO is only supported in 4-stage builds.")
     build_type = "Release"
     if "build_type" in config:
         build_type = config["build_type"]
@@ -775,8 +719,6 @@ if __name__ == "__main__":
         extra_cflags2 = []
         extra_cxxflags2 = [
             "-fms-compatibility-version=19.15.26726",
-            "-Xclang",
-            "-std=c++14",
         ]
         extra_asmflags = []
         extra_ldflags = []
@@ -838,14 +780,11 @@ if __name__ == "__main__":
             is_final_stage=(stages == 1),
         )
 
-    runtimes_source_link = llvm_source_dir + "/runtimes/compiler-rt"
-
     if stages >= 2 and skip_stages < 2:
         stage2_dir = build_dir + "/stage2"
         stage2_inst_dir = stage2_dir + "/" + package_name
         final_stage_dir = stage2_dir
         final_inst_dir = stage2_inst_dir
-        pgo_phase = "gen" if pgo else None
         if skip_stages < 1:
             cc = stage1_inst_dir + "/bin/%s%s" % (cc_name, exe_ext)
             cxx = stage1_inst_dir + "/bin/%s%s" % (cxx_name, exe_ext)
@@ -867,11 +806,8 @@ if __name__ == "__main__":
             assertions,
             libcxx_include_dir,
             build_wasm,
-            compiler_rt_source_dir,
-            runtimes_source_link,
-            compiler_rt_source_link,
             is_final_stage=(stages == 2),
-            pgo_phase=pgo_phase,
+            profile="gen" if pgo else None,
         )
 
     if stages >= 3 and skip_stages < 3:
@@ -900,28 +836,32 @@ if __name__ == "__main__":
             assertions,
             libcxx_include_dir,
             build_wasm,
-            compiler_rt_source_dir,
-            runtimes_source_link,
-            compiler_rt_source_link,
             (stages == 3),
         )
+        if pgo:
+            llvm_profdata = stage2_inst_dir + "/bin/llvm-profdata%s" % exe_ext
+            merge_cmd = [llvm_profdata, "merge", "-o", "merged.profdata"]
+            profraw_files = glob.glob(
+                os.path.join(stage2_dir, "build", "profiles", "*.profraw")
+            )
+            run_in(stage3_dir, merge_cmd + profraw_files)
+            if stages == 3:
+                mkdir_p(upload_dir)
+                shutil.copy2(os.path.join(stage3_dir, "merged.profdata"), upload_dir)
+                return
 
     if stages >= 4 and skip_stages < 4:
         stage4_dir = build_dir + "/stage4"
         stage4_inst_dir = stage4_dir + "/" + package_name
         final_stage_dir = stage4_dir
         final_inst_dir = stage4_inst_dir
-        pgo_phase = None
+        profile = None
         if pgo:
-            pgo_phase = "use"
-            llvm_profdata = stage3_inst_dir + "/bin/llvm-profdata%s" % exe_ext
-            merge_cmd = [llvm_profdata, "merge", "-o", "merged.profdata"]
-            profraw_files = glob.glob(
-                os.path.join(stage2_dir, "build", "profiles", "*.profraw")
-            )
-            if not os.path.exists(stage4_dir):
-                os.mkdir(stage4_dir)
-            run_in(stage4_dir, merge_cmd + profraw_files)
+            if skip_stages == 3:
+                profile_dir = os.environ.get("MOZ_FETCHES_DIR", "")
+            else:
+                profile_dir = stage3_dir
+            profile = os.path.join(profile_dir, "merged.profdata")
         if skip_stages < 3:
             cc = stage3_inst_dir + "/bin/%s%s" % (cc_name, exe_ext)
             cxx = stage3_inst_dir + "/bin/%s%s" % (cxx_name, exe_ext)
@@ -943,11 +883,8 @@ if __name__ == "__main__":
             assertions,
             libcxx_include_dir,
             build_wasm,
-            compiler_rt_source_dir,
-            runtimes_source_link,
-            compiler_rt_source_link,
             (stages == 4),
-            pgo_phase=pgo_phase,
+            profile=profile,
         )
 
     if build_clang_tidy:
@@ -972,3 +909,7 @@ if __name__ == "__main__":
 
     if not args.skip_tar:
         build_tar_package("%s.tar.zst" % package_name, final_stage_dir, package_name)
+
+
+if __name__ == "__main__":
+    main()

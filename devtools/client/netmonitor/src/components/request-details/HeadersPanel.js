@@ -23,7 +23,7 @@ const {
   getHeadersURL,
   getTrackingProtectionURL,
   getHTTPStatusCodeURL,
-} = require("devtools/client/netmonitor/src/utils/mdn-utils");
+} = require("devtools/client/netmonitor/src/utils/doc-utils");
 const {
   fetchNetworkUpdatePacket,
   writeHeaderText,
@@ -73,6 +73,12 @@ loader.lazyRequireGetter(
   "devtools/client/shared/components/menu/utils",
   true
 );
+loader.lazyRequireGetter(
+  this,
+  "openContentLink",
+  "devtools/client/shared/link",
+  true
+);
 
 const { div, input, label, span, textarea, tr, td, button } = dom;
 
@@ -104,7 +110,7 @@ const HEADERS_ETP = L10N.getStr(
  * Lists basic information about the request
  *
  * In http/2 all response headers are in small case.
- * See: https://developer.mozilla.org/en-US/docs/Tools/Network_Monitor/request_details#Headers
+ * See: https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/request_details/index.html#response-headers
  * RFC: https://tools.ietf.org/html/rfc7540#section-8.1.2
  */
 class HeadersPanel extends Component {
@@ -455,6 +461,7 @@ class HeadersPanel extends Component {
           member: Object.assign({}, member, { open: false }),
           mode: MODE.TINY,
           noGrip: true,
+          openLink: openContentLink,
         })
       ),
       headerDocURL ? MDNLink({ url: headerDocURL }) : null

@@ -27,16 +27,13 @@ using namespace mozilla::a11y;
     proxy->Title(title);
   }
 
+  title.CompressWhitespace();
+
   return nsCocoaUtils::ToNSString(title);
 }
 
 - (id)moxValue {
-  GroupPos groupPos;
-  if (LocalAccessible* acc = mGeckoAccessible->AsLocal()) {
-    groupPos = acc->GroupPosition();
-  } else if (RemoteAccessible* proxy = mGeckoAccessible->AsRemote()) {
-    groupPos = proxy->GroupPosition();
-  }
+  GroupPos groupPos = mGeckoAccessible->GroupPosition();
 
   return [NSNumber numberWithInt:groupPos.level];
 }

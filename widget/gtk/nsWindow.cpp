@@ -45,6 +45,7 @@
 #include "mozilla/Likely.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/NativeKeyBindingsType.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerLabels.h"
@@ -4612,13 +4613,25 @@ void nsWindow::OnScrollEvent(GdkEventScroll* aEvent) {
             mPanInProgress = true;
           }
 
+          const bool isPageMode =
+              StaticPrefs::apz_gtk_kinetic_scroll_delta_mode() != 2;
+          const double multiplier =
+              isPageMode
+                  ? StaticPrefs::
+                        apz_gtk_kinetic_scroll_page_delta_mode_multiplier()
+                  : StaticPrefs::
+                            apz_gtk_kinetic_scroll_pixel_delta_mode_multiplier() *
+                        FractionalScaleFactor();
+          ScreenPoint deltas(float(aEvent->delta_x * multiplier),
+                             float(aEvent->delta_y * multiplier));
+
           LayoutDeviceIntPoint touchPoint = GetRefPoint(this, aEvent);
           PanGestureInput panEvent(
               eventType, aEvent->time, GetEventTimeStamp(aEvent->time),
-              ScreenPoint(touchPoint.x, touchPoint.y),
-              ScreenPoint(aEvent->delta_x, aEvent->delta_y),
+              ScreenPoint(touchPoint.x, touchPoint.y), deltas,
               KeymapWrapper::ComputeKeyModifiers(aEvent->state));
-          panEvent.mDeltaType = PanGestureInput::PANDELTA_PAGE;
+          panEvent.mDeltaType = isPageMode ? PanGestureInput::PANDELTA_PAGE
+                                           : PanGestureInput::PANDELTA_PIXEL;
           panEvent.mSimulateMomentum = true;
 
           DispatchPanGestureInput(panEvent);
@@ -5241,7 +5254,8 @@ void nsWindow::DisableRenderingToWindow() {
 }
 
 Window nsWindow::GetX11Window() {
-  return GdkIsX11Display() ? gdk_x11_window_get_xid(mGdkWindow) : X11None;
+  return GdkIsX11Display() && mGdkWindow ? gdk_x11_window_get_xid(mGdkWindow)
+                                         : X11None;
 }
 
 void nsWindow::EnsureGdkWindow() {
@@ -5250,7 +5264,6 @@ void nsWindow::EnsureGdkWindow() {
                                                         : mShell);
     g_object_set_data(G_OBJECT(mGdkWindow), "nsWindow", this);
   }
-  MOZ_DIAGNOSTIC_ASSERT(mGdkWindow, "We're missing GdkWindow!");
 }
 
 bool nsWindow::GetShapedState() {
@@ -7024,7 +7037,7 @@ static bool IsFullscreenSupported(GtkWidget* aShell) {
 #endif
 }
 
-nsresult nsWindow::MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen) {
+nsresult nsWindow::MakeFullScreen(bool aFullScreen) {
   LOG("nsWindow::MakeFullScreen aFullScreen %d\n", aFullScreen);
 
   if (GdkIsX11Display() && !IsFullscreenSupported(mShell)) {
@@ -7972,8 +7985,7 @@ void nsWindow::InitDragEvent(WidgetDragEvent& aEvent) {
 }
 
 gboolean WindowDragMotionHandler(GtkWidget* aWidget,
-                                 GdkDragContext* aDragContext,
-                                 RefPtr<DataOffer> aDataOffer, gint aX, gint aY,
+                                 GdkDragContext* aDragContext, gint aX, gint aY,
                                  guint aTime) {
   RefPtr<nsWindow> window = get_window_for_gtk_widget(aWidget);
   if (!window) {
@@ -8005,8 +8017,8 @@ gboolean WindowDragMotionHandler(GtkWidget* aWidget,
           innerMostWindow.get(), retx, rety);
 
   RefPtr<nsDragService> dragService = nsDragService::GetInstance();
-  if (!dragService->ScheduleMotionEvent(innerMostWindow, aDragContext,
-                                        aDataOffer, point, aTime)) {
+  if (!dragService->ScheduleMotionEvent(innerMostWindow, aDragContext, point,
+                                        aTime)) {
     return FALSE;
   }
   // We need to reply to drag_motion event on Wayland immediately,
@@ -8020,7 +8032,7 @@ gboolean WindowDragMotionHandler(GtkWidget* aWidget,
 static gboolean drag_motion_event_cb(GtkWidget* aWidget,
                                      GdkDragContext* aDragContext, gint aX,
                                      gint aY, guint aTime, gpointer aData) {
-  return WindowDragMotionHandler(aWidget, aDragContext, nullptr, aX, aY, aTime);
+  return WindowDragMotionHandler(aWidget, aDragContext, aX, aY, aTime);
 }
 
 void WindowDragLeaveHandler(GtkWidget* aWidget) {
@@ -8063,8 +8075,7 @@ static void drag_leave_event_cb(GtkWidget* aWidget,
 }
 
 gboolean WindowDragDropHandler(GtkWidget* aWidget, GdkDragContext* aDragContext,
-                               RefPtr<DataOffer> aDataOffer, gint aX, gint aY,
-                               guint aTime) {
+                               gint aX, gint aY, guint aTime) {
   RefPtr<nsWindow> window = get_window_for_gtk_widget(aWidget);
   if (!window) return FALSE;
 
@@ -8093,14 +8104,14 @@ gboolean WindowDragDropHandler(GtkWidget* aWidget, GdkDragContext* aDragContext,
           innerMostWindow.get(), retx, rety);
 
   RefPtr<nsDragService> dragService = nsDragService::GetInstance();
-  return dragService->ScheduleDropEvent(innerMostWindow, aDragContext,
-                                        aDataOffer, point, aTime);
+  return dragService->ScheduleDropEvent(innerMostWindow, aDragContext, point,
+                                        aTime);
 }
 
 static gboolean drag_drop_event_cb(GtkWidget* aWidget,
                                    GdkDragContext* aDragContext, gint aX,
                                    gint aY, guint aTime, gpointer aData) {
-  return WindowDragDropHandler(aWidget, aDragContext, nullptr, aX, aY, aTime);
+  return WindowDragDropHandler(aWidget, aDragContext, aX, aY, aTime);
 }
 
 static void drag_data_received_event_cb(GtkWidget* aWidget,
@@ -8251,7 +8262,7 @@ bool nsWindow::GetEditCommands(NativeKeyBindingsType aType,
   Maybe<WritingMode> writingMode;
   if (aEvent.NeedsToRemapNavigationKey()) {
     if (RefPtr<TextEventDispatcher> dispatcher = GetTextEventDispatcher()) {
-      writingMode = dispatcher->MaybeWritingModeAtSelection();
+      writingMode = dispatcher->MaybeQueryWritingModeAtSelection();
     }
   }
 

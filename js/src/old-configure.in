@@ -91,7 +91,6 @@ if test "$target" != "$host"; then
 else
     AC_PROG_CC
     AC_PROG_CXX
-    MOZ_PATH_PROGS(AS, $AS as, $CC)
 fi
 
 MOZ_TOOL_VARIABLES
@@ -671,6 +670,11 @@ case $target in
         AC_DEFINE(HAVE_DLOPEN)))
     ;;
 esac
+
+_SAVE_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -D_GNU_SOURCE"
+AC_CHECK_FUNCS(dladdr)
+CFLAGS="$_SAVE_CFLAGS"
 
 if test ! "$GNU_CXX"; then
     AC_CHECK_LIB(C, demangle)

@@ -34,6 +34,7 @@ categories:
         - tools/profiler
         - performance
         - xpcom
+        - nspr
         - security/nss
     build_doc:
         - mach
@@ -46,6 +47,7 @@ categories:
         - testing/ci-configs
         - testing/marionette
         - testing/geckodriver
+        - testing/test-verification
         - testing/xpcshell
         - web-platform
         - gtest
