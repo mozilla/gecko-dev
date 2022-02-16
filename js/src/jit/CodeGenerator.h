@@ -24,6 +24,8 @@
 #  include "jit/mips32/CodeGenerator-mips32.h"
 #elif defined(JS_CODEGEN_MIPS64)
 #  include "jit/mips64/CodeGenerator-mips64.h"
+#elif defined(JS_CODEGEN_RISCV64)
+#  include "jit/riscv64/CodeGenerator-riscv64.h"
 #elif defined(JS_CODEGEN_NONE)
 #  include "jit/none/CodeGenerator-none.h"
 #else

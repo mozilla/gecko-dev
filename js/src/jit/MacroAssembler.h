@@ -25,6 +25,8 @@
 #  include "jit/mips32/MacroAssembler-mips32.h"
 #elif defined(JS_CODEGEN_MIPS64)
 #  include "jit/mips64/MacroAssembler-mips64.h"
+#elif defined(JS_CODEGEN_RISCV64)
+#  include "jit/riscv64/MacroAssembler-riscv64.h"
 #elif defined(JS_CODEGEN_NONE)
 #  include "jit/none/MacroAssembler-none.h"
 #else
