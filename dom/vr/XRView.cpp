@@ -36,8 +36,7 @@ NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(XRView, Release)
 XRView::XRView(nsISupports* aParent, const XREye& aEye)
     : mParent(aParent),
       mEye(aEye),
-      mPosition(gfx::PointDouble3D()),
-      mOrientation(gfx::QuaternionDouble()),
+      mEyeTransform(gfx::Matrix4x4Double()),
       mJSProjectionMatrix(nullptr) {
   mozilla::HoldJSObjects(this);
 }
@@ -49,14 +48,12 @@ JSObject* XRView::WrapObject(JSContext* aCx,
   return XRView_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void XRView::Update(const gfx::PointDouble3D& aPosition,
-                    const gfx::QuaternionDouble& aOrientation,
+void XRView::Update(const gfx::Matrix4x4Double& aEyeTransform,
                     const gfx::Matrix4x4& aProjectionMatrix) {
-  mPosition = aPosition;
-  mOrientation = aOrientation;
+  mEyeTransform = aEyeTransform;
   mProjectionMatrix = aProjectionMatrix;
   if (mTransform) {
-    mTransform->Update(aPosition, aOrientation);
+    mTransform->Update(mEyeTransform);
   }
   if (aProjectionMatrix != mProjectionMatrix) {
     mProjectionNeedsUpdate = true;
@@ -87,7 +84,7 @@ void XRView::GetProjectionMatrix(JSContext* aCx,
 
 already_AddRefed<XRRigidTransform> XRView::GetTransform(ErrorResult& aRv) {
   if (!mTransform) {
-    mTransform = new XRRigidTransform(mParent, mPosition, mOrientation);
+    mTransform = new XRRigidTransform(mParent, mEyeTransform);
   }
   RefPtr<XRRigidTransform> transform = mTransform;
   return transform.forget();

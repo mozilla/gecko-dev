@@ -65,6 +65,7 @@ struct VRDisplayInfo {
 
   const IntSize SuggestedEyeResolution() const;
   const Point3D GetEyeTranslation(uint32_t whichEye) const;
+  const Matrix4x4Double GetEyeTransform(uint32_t whichEye) const;
   const VRFieldOfView& GetEyeFOV(uint32_t whichEye) const {
     return mDisplayState.eyeFOV[whichEye];
   }

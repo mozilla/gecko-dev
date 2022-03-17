@@ -72,9 +72,17 @@ const IntSize VRDisplayInfo::SuggestedEyeResolution() const {
 }
 
 const Point3D VRDisplayInfo::GetEyeTranslation(uint32_t whichEye) const {
-  return Point3D(mDisplayState.eyeTranslation[whichEye].x,
-                 mDisplayState.eyeTranslation[whichEye].y,
-                 mDisplayState.eyeTranslation[whichEye].z);
+  return Point3D(mDisplayState.eyeTransform[whichEye][12],
+                 mDisplayState.eyeTransform[whichEye][13],
+                 mDisplayState.eyeTransform[whichEye][14]);
+}
+
+const Matrix4x4Double VRDisplayInfo::GetEyeTransform(uint32_t whichEye) const {
+  Matrix4x4Double m;
+  for (int i = 0; i < 16; ++i) {
+    m.components[i] = static_cast<double>(mDisplayState.eyeTransform[whichEye][i]);
+  }
+  return m;
 }
 
 const Size VRDisplayInfo::GetStageSize() const {

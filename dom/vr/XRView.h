@@ -25,8 +25,7 @@ class XRView final : public nsWrapperCache {
 
   explicit XRView(nsISupports* aParent, const XREye& aEye);
 
-  void Update(const gfx::PointDouble3D& aPosition,
-              const gfx::QuaternionDouble& aOrientation,
+  void Update(const gfx::Matrix4x4Double& aEyeTransform,
               const gfx::Matrix4x4& aProjectionMatrix);
   // WebIDL Boilerplate
   nsISupports* GetParentObject() const { return mParent; }
@@ -44,8 +43,7 @@ class XRView final : public nsWrapperCache {
 
   nsCOMPtr<nsISupports> mParent;
   XREye mEye;
-  gfx::PointDouble3D mPosition;
-  gfx::QuaternionDouble mOrientation;
+  gfx::Matrix4x4Double mEyeTransform;
   gfx::Matrix4x4 mProjectionMatrix;
   JS::Heap<JSObject*> mJSProjectionMatrix;
   bool mProjectionNeedsUpdate = true;

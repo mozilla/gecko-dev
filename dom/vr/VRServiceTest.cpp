@@ -95,10 +95,15 @@ void VRMockDisplay::Create() {
   state.eyeResolution.width = 1836;   // 1080 * 1.7
   state.eyeResolution.height = 2040;  // 1200 * 1.7
 
+  float identity[16] = { 
+      1.0f, 0.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f, 0.0f,
+      0.0f, 0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 1.0f
+  };
+
   for (uint32_t eye = 0; eye < VRDisplayState::NumEyes; ++eye) {
-    state.eyeTranslation[eye].x = 0.0f;
-    state.eyeTranslation[eye].y = 0.0f;
-    state.eyeTranslation[eye].z = 0.0f;
+    memcpy(state.eyeTransform[eye], identity, sizeof(identity));
     state.eyeFOV[eye] = gfx::VRFieldOfView(45.0, 45.0, 45.0, 45.0);
   }
 
@@ -106,25 +111,8 @@ void VRMockDisplay::Create() {
   state.stageSize.width = 1.0f;
   state.stageSize.height = 1.0f;
 
-  state.sittingToStandingTransform[0] = 1.0f;
-  state.sittingToStandingTransform[1] = 0.0f;
-  state.sittingToStandingTransform[2] = 0.0f;
-  state.sittingToStandingTransform[3] = 0.0f;
-
-  state.sittingToStandingTransform[4] = 0.0f;
-  state.sittingToStandingTransform[5] = 1.0f;
-  state.sittingToStandingTransform[6] = 0.0f;
-  state.sittingToStandingTransform[7] = 0.0f;
-
-  state.sittingToStandingTransform[8] = 0.0f;
-  state.sittingToStandingTransform[9] = 0.0f;
-  state.sittingToStandingTransform[10] = 1.0f;
-  state.sittingToStandingTransform[11] = 0.0f;
-
-  state.sittingToStandingTransform[12] = 0.0f;
+  memcpy(state.sittingToStandingTransform, identity, sizeof(identity));
   state.sittingToStandingTransform[13] = 0.75f;
-  state.sittingToStandingTransform[14] = 0.0f;
-  state.sittingToStandingTransform[15] = 1.0f;
 
   VRHMDSensorState& sensorState = SensorState();
   gfx::Quaternion rot;
@@ -221,9 +209,9 @@ void VRMockDisplay::SetEyeOffset(VREye aEye, double aOffsetX, double aOffsetY,
                                      ? gfx::VRDisplayState::Eye_Left
                                      : gfx::VRDisplayState::Eye_Right;
   VRDisplayState& state = DisplayState();
-  state.eyeTranslation[eye].x = (float)aOffsetX;
-  state.eyeTranslation[eye].y = (float)aOffsetY;
-  state.eyeTranslation[eye].z = (float)aOffsetZ;
+  state.eyeTransform[eye][12] = (float)aOffsetX;
+  state.eyeTransform[eye][13] = (float)aOffsetY;
+  state.eyeTransform[eye][14] = (float)aOffsetZ;
 }
 
 bool VRMockDisplay::CapPosition() const {
