@@ -4172,13 +4172,13 @@ public class GeckoSession {
           /** The auth prompt is for a network host. */
           public static final int HOST = 1;
           /** The auth prompt is for a proxy. */
-          public static final int PROXY = 2;
+          public static final int PROXY = 1 << 1; //2
           /** The auth prompt should only request a password. */
-          public static final int ONLY_PASSWORD = 8;
+          public static final int ONLY_PASSWORD = 1 << 3; //8
           /** The auth prompt is the result of a previous failed login. */
-          public static final int PREVIOUS_FAILED = 16;
+          public static final int PREVIOUS_FAILED = 1 << 4; //16
           /** The auth prompt is for a cross-origin sub-resource. */
-          public static final int CROSS_ORIGIN_SUB_RESOURCE = 32;
+          public static final int CROSS_ORIGIN_SUB_RESOURCE = 1 << 4; //32
 
           protected Flags() {}
         }
