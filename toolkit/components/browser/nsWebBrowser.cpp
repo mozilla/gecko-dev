@@ -810,6 +810,8 @@ nsWebBrowser::SaveDocument(nsISupports* aDocumentish, nsISupports* aFile,
   nsresult rv;
   mPersist = do_CreateInstance(NS_WEBBROWSERPERSIST_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
+  RefPtr<nsIWebBrowserPersist> localPersist(mPersist);
+  Unused << localPersist;
   mPersist->SetProgressListener(this);
   mPersist->SetPersistFlags(mPersistFlags);
   mPersist->GetCurrentState(&mPersistCurrentState);
@@ -1176,18 +1178,18 @@ bool nsWebBrowser::PaintWindow(nsIWidget* aWidget,
 }
 
 void nsWebBrowser::FocusActivate(uint64_t aActionId) {
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  nsCOMPtr<nsPIDOMWindowOuter> window = GetWindow();
-  if (fm && window) {
-    fm->WindowRaised(window, aActionId);
+  if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
+    if (nsCOMPtr<nsPIDOMWindowOuter> window = GetWindow()) {
+      fm->WindowRaised(window, aActionId);
+    }
   }
 }
 
 void nsWebBrowser::FocusDeactivate(uint64_t aActionId) {
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  nsCOMPtr<nsPIDOMWindowOuter> window = GetWindow();
-  if (fm && window) {
-    fm->WindowLowered(window, aActionId);
+  if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
+    if (nsCOMPtr<nsPIDOMWindowOuter> window = GetWindow()) {
+      fm->WindowLowered(window, aActionId);
+    }
   }
 }
 

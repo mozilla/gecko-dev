@@ -11,6 +11,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_privacy.h"
+#include "mozilla/intl/AppDateTimeFormat.h"
 #include "mozilla/intl/Locale.h"
 #include "mozilla/intl/OSPreferences.h"
 #include "nsDirectoryService.h"
@@ -25,11 +26,13 @@
 
 #define INTL_SYSTEM_LOCALES_CHANGED "intl:system-locales-changed"
 
+#define PSEUDO_LOCALE_PREF "intl.l10n.pseudo"
 #define REQUESTED_LOCALES_PREF "intl.locale.requested"
 #define WEB_EXPOSED_LOCALES_PREF "intl.locale.privacy.web_exposed"
 
 static const char* kObservedPrefs[] = {REQUESTED_LOCALES_PREF,
-                                       WEB_EXPOSED_LOCALES_PREF, nullptr};
+                                       WEB_EXPOSED_LOCALES_PREF,
+                                       PSEUDO_LOCALE_PREF, nullptr};
 
 using namespace mozilla::intl::ffi;
 using namespace mozilla::intl;
@@ -175,6 +178,15 @@ LocaleService* LocaleService::GetInstance() {
   return sInstance;
 }
 
+static void NotifyAppLocaleChanged() {
+  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+  if (obs) {
+    obs->NotifyObservers(nullptr, "intl:app-locales-changed", nullptr);
+  }
+  // The locale in AppDateTimeFormat is cached statically.
+  AppDateTimeFormat::ClearLocaleCache();
+}
+
 void LocaleService::RemoveObservers() {
   if (mIsServer) {
     Preferences::RemoveObservers(this, kObservedPrefs);
@@ -192,10 +204,7 @@ void LocaleService::AssignAppLocales(const nsTArray<nsCString>& aAppLocales) {
              "This should only be called for LocaleService in client mode.");
 
   mAppLocales = aAppLocales.Clone();
-  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-  if (obs) {
-    obs->NotifyObservers(nullptr, "intl:app-locales-changed", nullptr);
-  }
+  NotifyAppLocaleChanged();
 }
 
 void LocaleService::AssignRequestedLocales(
@@ -249,10 +258,7 @@ void LocaleService::LocalesChanged() {
 
   if (mAppLocales != newLocales) {
     mAppLocales = std::move(newLocales);
-    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-    if (obs) {
-      obs->NotifyObservers(nullptr, "intl:app-locales-changed", nullptr);
-    }
+    NotifyAppLocaleChanged();
   }
 }
 
@@ -295,6 +301,8 @@ LocaleService::Observe(nsISupports* aSubject, const char* aTopic,
       RequestedLocalesChanged();
     } else if (pref.EqualsLiteral(WEB_EXPOSED_LOCALES_PREF)) {
       WebExposedLocalesChanged();
+    } else if (pref.EqualsLiteral(PSEUDO_LOCALE_PREF)) {
+      NotifyAppLocaleChanged();
     }
   }
 

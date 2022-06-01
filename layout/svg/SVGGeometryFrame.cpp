@@ -733,6 +733,133 @@ void SVGGeometryFrame::Render(gfxContext* aContext, uint32_t aRenderComponents,
   }
 }
 
+bool SVGGeometryFrame::IsInvisible() const {
+  if (!StyleVisibility()->IsVisible()) {
+    return false;
+  }
+
+  const nsStyleSVG* style = StyleSVG();
+  SVGContextPaint* contextPaint =
+      SVGContextPaint::GetContextPaint(GetContent());
+
+  // Anything below will round to zero later down the pipeline.
+  float opacity_threshold = 1.0 / 128.0;
+
+  float elemOpacity = StyleEffects()->mOpacity;
+  if (elemOpacity <= opacity_threshold) {
+    return true;
+  }
+
+  if (IsSVGImageFrame()) {
+    return false;
+  }
+
+  if (!style->mFill.kind.IsNone()) {
+    float opacity = SVGUtils::GetOpacity(style->mFillOpacity, contextPaint);
+    if (opacity > opacity_threshold) {
+      return false;
+    }
+  }
+
+  if (!style->mStroke.kind.IsNone()) {
+    float opacity = SVGUtils::GetOpacity(style->mStrokeOpacity, contextPaint);
+    if (opacity > opacity_threshold) {
+      return false;
+    }
+  }
+
+  if (style->mMarkerStart.IsUrl() || style->mMarkerMid.IsUrl() ||
+      style->mMarkerEnd.IsUrl()) {
+    return false;
+  }
+
+  return true;
+}
+
+bool SVGGeometryFrame::CreateWebRenderCommands(
+    mozilla::wr::DisplayListBuilder& aBuilder,
+    mozilla::wr::IpcResourceUpdateQueue& aResources,
+    const mozilla::layers::StackingContextHelper& aSc,
+    mozilla::layers::RenderRootStateManager* aManager,
+    nsDisplayListBuilder* aDisplayListBuilder, DisplaySVGGeometry* aItem,
+    bool aDryRun) {
+  if (!StyleVisibility()->IsVisible()) {
+    return true;
+  }
+
+  SVGGeometryElement* element = static_cast<SVGGeometryElement*>(GetContent());
+
+  SVGGeometryElement::SimplePath simplePath;
+  element->GetAsSimplePath(&simplePath);
+
+  if (!simplePath.IsRect()) {
+    return false;
+  }
+
+  const nsStyleSVG* style = StyleSVG();
+  MOZ_ASSERT(style);
+
+  if (!style->mFill.kind.IsColor()) {
+    return false;
+  }
+
+  switch (style->mFill.kind.tag) {
+    case StyleSVGPaintKind::Tag::Color:
+      break;
+    default:
+      return false;
+  }
+
+  if (!style->mStroke.kind.IsNone()) {
+    return false;
+  }
+
+  if (StyleEffects()->mMixBlendMode != StyleBlend::Normal) {
+    // FIXME: not implemented
+    return false;
+  }
+
+  SVGMarkerFrame* markerFrames[SVGMark::eTypeCount];
+  if (element->IsMarkable() &&
+      SVGObserverUtils::GetAndObserveMarkers(this, &markerFrames)) {
+    // Markers aren't suppported yet.
+    return false;
+  }
+
+  if (!aDryRun) {
+    nscoord appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
+    int32_t appUnitsPerCSSPixel = AppUnitsPerCSSPixel();
+
+    auto rect = simplePath.AsRect();
+    auto appRect =
+        nsLayoutUtils::RoundGfxRectToAppRect(rect, appUnitsPerCSSPixel);
+    auto offset = aItem->ToReferenceFrame() - GetPosition();
+    appRect += offset;
+    auto destRect = LayoutDeviceRect::FromAppUnits(appRect, appUnitsPerDevPx);
+
+    auto wrRect = wr::ToLayoutRect(destRect);
+
+    SVGContextPaint* contextPaint =
+        SVGContextPaint::GetContextPaint(GetContent());
+    // At the moment this code path doesn't support strokes so it fine to
+    // combine the rectangle's opacity (which has to be applied on the result)
+    // of (filling + stroking) with the fill opacity.
+    float elemOpacity = StyleEffects()->mOpacity;
+    float fillOpacity = SVGUtils::GetOpacity(style->mFillOpacity, contextPaint);
+    float opacity = elemOpacity * fillOpacity;
+
+    auto c = nsLayoutUtils::GetColor(this, &nsStyleSVG::mFill);
+    wr::ColorF color{
+        ((float)NS_GET_R(c)) / 255.0f, ((float)NS_GET_G(c)) / 255.0f,
+        ((float)NS_GET_B(c)) / 255.0f, ((float)NS_GET_A(c)) / 255.0f * opacity};
+
+    aBuilder.PushRect(wrRect, wrRect, !aItem->BackfaceIsHidden(), true, false,
+                      color);
+  }
+
+  return true;
+}
+
 void SVGGeometryFrame::PaintMarkers(gfxContext& aContext,
                                     const gfxMatrix& aTransform,
                                     imgDrawingParams& aImgParams) {

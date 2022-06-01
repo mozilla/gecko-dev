@@ -54,7 +54,9 @@ extensions = [
 js_source_path = [
     "../browser/components/extensions",
     "../browser/components/uitour",
+    "../browser/components/urlbar",
     "../remote/marionette",
+    "../toolkit/actors",
     "../toolkit/components/extensions",
     "../toolkit/components/extensions/parent",
     "../toolkit/components/featuregates",
@@ -70,6 +72,13 @@ templates_path = ["_templates"]
 source_suffix = [".rst", ".md"]
 master_doc = "index"
 project = "Firefox Source Docs"
+# Override the search box to use Google instead of
+# sphinx search
+html_sidebars = {
+    "**": [
+        "searchbox.html",
+    ]
+}
 html_logo = os.path.join(
     topsrcdir, "browser/branding/nightly/content/firefox-wordmark.svg"
 )

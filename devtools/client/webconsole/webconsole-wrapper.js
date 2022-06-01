@@ -19,7 +19,7 @@ const {
   isPacketPrivate,
 } = require("devtools/client/webconsole/utils/messages");
 const {
-  getAllMessagesById,
+  getMutableMessagesById,
   getMessage,
 } = require("devtools/client/webconsole/selectors/messages");
 const Telemetry = require("devtools/client/shared/telemetry");
@@ -89,6 +89,8 @@ class WebConsoleWrapper {
     this.telemetry = new Telemetry();
   }
 
+  #serviceContainer;
+
   async init() {
     const { webConsoleUI } = this;
 
@@ -104,20 +106,13 @@ class WebConsoleWrapper {
         },
       });
 
-      const serviceContainer = setupServiceContainer({
-        webConsoleUI,
-        toolbox: this.toolbox,
-        hud: this.hud,
-        webConsoleWrapper: this,
-      });
-
       const app = AppErrorBoundary(
         {
           componentName: "Console",
           panel: L10N.getStr("ToolboxTabWebconsole.label"),
         },
         App({
-          serviceContainer,
+          serviceContainer: this.getServiceContainer(),
           webConsoleUI,
           onFirstMeaningfulPaint: resolve,
           closeSplitConsole: this.closeSplitConsole.bind(this),
@@ -181,7 +176,7 @@ class WebConsoleWrapper {
 
     // For (network) message updates, we need to check both messages queue and the state
     // since we can receive updates even if the message isn't rendered yet.
-    const messages = [...getAllMessagesById(store.getState()).values()];
+    const messages = [...getMutableMessagesById(store.getState()).values()];
     this.queuedMessageUpdates = this.queuedMessageUpdates.filter(
       ({ actor }) => {
         const queuedNetworkMessage = this.queuedMessageAdds.find(
@@ -290,6 +285,10 @@ class WebConsoleWrapper {
     store.dispatch(actions.evaluateExpression(expression));
   }
 
+  dispatchUpdateInstantEvaluationResultForCurrentExpression() {
+    store.dispatch(actions.updateInstantEvaluationResultForCurrentExpression());
+  }
+
   /**
    * Returns a Promise that resolves once any async dispatch is finally dispatched.
    */
@@ -369,6 +368,18 @@ class WebConsoleWrapper {
 
   getStore() {
     return store;
+  }
+
+  getServiceContainer() {
+    if (!this.#serviceContainer) {
+      this.#serviceContainer = setupServiceContainer({
+        webConsoleUI: this.webConsoleUI,
+        toolbox: this.toolbox,
+        hud: this.hud,
+        webConsoleWrapper: this,
+      });
+    }
+    return this.#serviceContainer;
   }
 
   subscribeToStore(callback) {

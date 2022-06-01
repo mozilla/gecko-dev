@@ -16,7 +16,7 @@ Linux)
 
     export PATH="$MOZ_FETCHES_DIR/clang/bin:$MOZ_FETCHES_DIR/binutils/bin:$PATH"
     ;;
-MINGW*)
+MINGW*|MSYS*)
     UPLOAD_DIR=$PWD/public/build
 
     . $GECKO_PATH/taskcluster/scripts/misc/vs-setup.sh
@@ -24,10 +24,6 @@ MINGW*)
 esac
 
 cd $GECKO_PATH
-
-if [ -n "$TOOLTOOL_MANIFEST" ]; then
-  . taskcluster/scripts/misc/tooltool-download.sh
-fi
 
 PATH="$(cd $MOZ_FETCHES_DIR && pwd)/rustc/bin:$PATH"
 

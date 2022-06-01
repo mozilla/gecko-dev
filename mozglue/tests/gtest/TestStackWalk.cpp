@@ -10,6 +10,8 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 
+#include <algorithm>
+
 #include "gtest/gtest.h"
 
 MOZ_EXPORT bool gStackWalkTesterDummy = true;
@@ -140,8 +142,12 @@ struct StackWalkTester {
     return 0;
   }
 
-  MOZ_NEVER_INLINE MOZ_EXPORT static void LeafCallback(
-      int aDepth, int aLastSkipped, int aIgnored, StackWalkTester& aTester) {
+#if defined(__clang__)
+  __attribute__((no_sanitize("function")))
+#endif
+  MOZ_NEVER_INLINE MOZ_EXPORT static void
+  LeafCallback(int aDepth, int aLastSkipped, int aIgnored,
+               StackWalkTester& aTester) {
     if (aDepth == aLastSkipped) {
       aTester.mFirstFramePC = CallerPC();
     }

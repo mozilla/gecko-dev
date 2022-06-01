@@ -79,10 +79,9 @@ class CamerasSingleton {
     Mutex().AssertCurrentThreadOwns();
     return singleton().mCamerasChildThread;
   }
-
-  static bool InShutdown() { return singleton().mInShutdown; }
-
-  static void StartShutdown() { singleton().mInShutdown = true; }
+  // The mutex is not held because mCameras is known not to be modified
+  // concurrently when this is asserted.
+  static void AssertNoChild() { MOZ_ASSERT(!singleton().mCameras); }
 
  private:
   CamerasSingleton();
@@ -106,7 +105,6 @@ class CamerasSingleton {
   // will be before actual destruction.
   CamerasChild* mCameras;
   nsCOMPtr<nsIThread> mCamerasChildThread;
-  Atomic<bool> mInShutdown;
 };
 
 // Get a pointer to a CamerasChild object we can use to do IPC with.
@@ -191,7 +189,6 @@ class CamerasChild final : public PCamerasChild {
                        char* unique_idUTF8,
                        const unsigned int unique_idUTF8Length,
                        bool* scary = nullptr);
-  void ShutdownAll();
   int EnsureInitialized(CaptureEngine aCapEngine);
 
   template <typename This>
@@ -226,12 +223,10 @@ class CamerasChild final : public PCamerasChild {
   void AddCallback(const CaptureEngine aCapEngine, const int capture_id,
                    FrameRelay* render);
   void RemoveCallback(const CaptureEngine aCapEngine, const int capture_id);
-  void ShutdownParent();
-  void ShutdownChild();
 
   nsTArray<CapturerElement> mCallbacks;
   // Protects the callback arrays
-  Mutex mCallbackMutex;
+  Mutex mCallbackMutex MOZ_UNANNOTATED;
 
   bool mIPCIsAlive;
 
@@ -243,11 +238,11 @@ class CamerasChild final : public PCamerasChild {
   // request. The Notify on receiving the response will then unblock
   // both waiters and one will be guaranteed to get the wrong result.
   // Take this one before taking mReplyMonitor.
-  Mutex mRequestMutex;
+  Mutex mRequestMutex MOZ_UNANNOTATED;
   // Hold to wait for an async response to our calls *and* until the
   // user of LockAndDispatch<> has read the data out. This is done by
   // keeping the LockAndDispatch object alive.
-  Monitor mReplyMonitor;
+  Monitor mReplyMonitor MOZ_UNANNOTATED;
   // Async response valid?
   bool mReceivedReply;
   // Async responses data contents;

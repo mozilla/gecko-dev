@@ -30,7 +30,6 @@ export const Themes = props => {
                       checked={theme === props.activeTheme}
                       className="sr-only input"
                       onClick={props.handleAction}
-                      data-l10n-attrs="aria-description"
                     />
                   </Localized>
                   <div
@@ -38,11 +37,9 @@ export const Themes = props => {
                       theme === props.activeTheme ? " selected" : ""
                     } ${theme}`}
                   />
-                  {label && (
-                    <Localized text={label}>
-                      <div className="text" />
-                    </Localized>
-                  )}
+                  <Localized text={label}>
+                    <div className="text" />
+                  </Localized>
                 </label>
               </Localized>
             )

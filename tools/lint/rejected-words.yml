@@ -10,6 +10,7 @@ avoid-blacklist-and-whitelist:
     extensions:
         - js
         - jsm
+        - mjs
         - jxs
         - xml
         - html
@@ -329,7 +330,7 @@ avoid-blacklist-and-whitelist:
         - toolkit/components/antitracking/test/browser/browser_siteSpecificWorkArounds.js
         - toolkit/components/antitracking/test/browser/browser_socialtracking_save_image.js
         - toolkit/components/antitracking/test/xpcshell/test_rejectForeignAllowList.js
-        - toolkit/components/crashes/CrashManager.jsm.in
+        - toolkit/components/crashes/CrashManager.in.jsm
         - toolkit/components/crashes/tests/xpcshell/test_crash_manager.js
         - toolkit/components/extensions/Extension.jsm
         - toolkit/components/extensions/test/xpcshell/test_WebExtensionPolicy.js
@@ -421,12 +422,10 @@ avoid-blacklist-and-whitelist:
         - toolkit/mozapps/extensions/test/xpinstall/browser_localfile3.js
         - toolkit/mozapps/extensions/test/xpinstall/browser_localfile4.js
         - toolkit/mozapps/extensions/test/xpinstall/browser_localfile4_postDownload.js
-        - toolkit/mozapps/extensions/test/xpinstall/browser_whitelist.js
         - toolkit/mozapps/extensions/test/xpinstall/head.js
         - toolkit/xre/nsAppRunner.cpp
         - toolkit/xre/nsEmbedFunctions.cpp
         - toolkit/xre/nsXREDirProvider.cpp
-        - tools/crashreporter/system-symbols/win/symsrv-fetch.py
         - tools/fuzzing/faulty/Faulty.cpp
         - tools/fuzzing/faulty/Faulty.h
         - tools/fuzzing/ipc/ProtocolFuzzer.cpp

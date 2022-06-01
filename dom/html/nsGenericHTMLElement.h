@@ -703,11 +703,12 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify) override;
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                bool aNotify) override;
+  // TODO: Convert AfterSetAttr to MOZ_CAN_RUN_SCRIPT and get rid of
+  // kungFuDeathGrip in it.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual nsresult AfterSetAttr(
+      int32_t aNamespaceID, nsAtom* aName, const nsAttrValue* aValue,
+      const nsAttrValue* aOldValue, nsIPrincipal* aMaybeScriptedPrincipal,
+      bool aNotify) override;
 
   virtual mozilla::EventListenerManager* GetEventListenerManagerForAttr(
       nsAtom* aAttrName, bool* aDefer) override;
@@ -916,11 +917,9 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   void ChangeEditableState(int32_t aChange);
 };
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 class HTMLFieldSetElement;
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #define HTML_ELEMENT_FLAG_BIT(n_) \
   NODE_FLAG_BIT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + (n_))
@@ -1261,15 +1260,13 @@ class nsGenericHTMLFormControlElementWithState
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(_interface,        \
                                      mNodeInfo->Equals(nsGkAtoms::_tag))
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 using HTMLContentCreatorFunction =
     nsGenericHTMLElement* (*)(already_AddRefed<mozilla::dom::NodeInfo>&&,
                               mozilla::dom::FromParser);
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 /**
  * A macro to declare the NS_NewHTMLXXXElement() functions.

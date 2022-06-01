@@ -17,7 +17,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   error: "chrome://remote/content/shared/webdriver/Errors.jsm",
   TabManager: "chrome://remote/content/shared/TabManager.jsm",
   TimedPromise: "chrome://remote/content/marionette/sync.js",
-  waitForEvent: "chrome://remote/content/marionette/sync.js",
+  EventPromise: "chrome://remote/content/shared/Sync.jsm",
   waitForObserverTopic: "chrome://remote/content/marionette/sync.js",
 });
 
@@ -108,7 +108,7 @@ class WindowManager {
    * @return {WindowProperties} A window properties object.
    */
   getWindowProperties(win, options = {}) {
-    if (!(win instanceof Window)) {
+    if (!Window.isInstance(win)) {
       throw new TypeError("Invalid argument, expected a Window object");
     }
 
@@ -164,8 +164,8 @@ class WindowManager {
    */
   async focusWindow(win) {
     if (Services.focus.activeWindow != win) {
-      let activated = waitForEvent(win, "activate");
-      let focused = waitForEvent(win, "focus", { capture: true });
+      let activated = new EventPromise(win, "activate");
+      let focused = new EventPromise(win, "focus", { capture: true });
 
       win.focus();
 
@@ -176,25 +176,40 @@ class WindowManager {
   /**
    * Open a new browser window.
    *
-   * @param {window} openerWindow
-   *     The window from which the new window should be opened.
-   * @param {Boolean} [focus=false]
-   *     If true, the opened window will receive the focus.
-   * @param {Boolean} [isPrivate=false]
-   *     If true, the opened window will be a private window.
+   * @param {Object=} options
+   * @param {Boolean=} options.focus
+   *     If true, the opened window will receive the focus. Defaults to false.
+   * @param {Boolean=} options.isPrivate
+   *     If true, the opened window will be a private window. Defaults to false.
+   * @param {ChromeWindow=} options.openerWindow
+   *     Use this window as the opener of the new window. Defaults to the
+   *     topmost window.
    * @return {Promise}
    *     A promise resolving to the newly created chrome window.
    */
-  async openBrowserWindow(openerWindow, focus = false, isPrivate = false) {
+  async openBrowserWindow(options = {}) {
+    let { focus = false, isPrivate = false, openerWindow = null } = options;
+
     switch (AppInfo.name) {
       case "Firefox":
+        if (openerWindow === null) {
+          // If no opener was provided, fallback to the topmost window.
+          openerWindow = Services.wm.getMostRecentBrowserWindow();
+        }
+
+        if (!openerWindow) {
+          throw new error.UnsupportedOperationError(
+            `openWindow() could not find a valid opener window`
+          );
+        }
+
         // Open new browser window, and wait until it is fully loaded.
         // Also wait for the window to be focused and activated to prevent a
         // race condition when promptly focusing to the original window again.
         const win = openerWindow.OpenBrowserWindow({ private: isPrivate });
 
-        const activated = waitForEvent(win, "activate");
-        const focused = waitForEvent(win, "focus", { capture: true });
+        const activated = new EventPromise(win, "activate");
+        const focused = new EventPromise(win, "focus", { capture: true });
         const startup = waitForObserverTopic(
           "browser-delayed-startup-finished",
           {
@@ -202,7 +217,11 @@ class WindowManager {
           }
         );
 
+        // TODO: Both for WebDriver BiDi and classic, opening a new window
+        // should not run the focus steps. When focus is false we should avoid
+        // focusing the new window completely. See Bug 1766329
         win.focus();
+
         await Promise.all([activated, focused, startup]);
 
         // The new window shouldn't get focused. As such set the
@@ -226,58 +245,32 @@ class WindowManager {
    * @return {Promise<WindowProxy>}
    *     A promise that resolved to the application window.
    */
-  waitForInitialApplicationWindow() {
+  waitForInitialApplicationWindowLoaded() {
     return new TimedPromise(
-      resolve => {
-        const waitForWindow = () => {
-          let windowTypes;
-          if (AppInfo.isThunderbird) {
-            windowTypes = ["mail:3pane"];
-          } else {
-            // We assume that an app either has GeckoView windows, or
-            // Firefox/Fennec windows, but not both.
-            windowTypes = ["navigator:browser", "navigator:geckoview"];
-          }
+      async resolve => {
+        const windowReadyTopic = AppInfo.isThunderbird
+          ? "mail-delayed-startup-finished"
+          : "browser-delayed-startup-finished";
 
-          let win;
-          for (const windowType of windowTypes) {
-            win = Services.wm.getMostRecentWindow(windowType);
-            if (win) {
-              break;
-            }
-          }
+        // This call includes a fallback to "mail3:pane" as well.
+        const win = Services.wm.getMostRecentBrowserWindow();
 
-          if (!win) {
-            // if the window isn't even created, just poll wait for it
-            let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(
-              Ci.nsITimer
-            );
-            checkTimer.initWithCallback(
-              waitForWindow,
-              100,
-              Ci.nsITimer.TYPE_ONE_SHOT
-            );
-          } else if (win.document.readyState != "complete") {
-            // otherwise, wait for it to be fully loaded before proceeding
-            let listener = ev => {
-              // ensure that we proceed, on the top level document load event
-              // (not an iframe one...)
-              if (ev.target != win.document) {
-                return;
-              }
-              win.removeEventListener("load", listener);
-              waitForWindow();
-            };
-            win.addEventListener("load", listener, true);
-          } else {
-            resolve(win);
-          }
-        };
+        const windowLoaded = waitForObserverTopic(windowReadyTopic, {
+          checkFn: subject => (win !== null ? subject == win : true),
+        });
 
-        waitForWindow();
+        // The current window has already been finished loading.
+        if (win && win.document.readyState == "complete") {
+          resolve(win);
+          return;
+        }
+
+        // Wait for the next browser/mail window to open and finished loading.
+        const { subject } = await windowLoaded;
+        resolve(subject);
       },
       {
-        errorMessage: "No applicable application windows found",
+        errorMessage: "No applicable application window found",
       }
     );
   }

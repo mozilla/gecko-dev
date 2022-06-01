@@ -4,19 +4,22 @@
 
 
 import copy
+from datetime import datetime, timedelta
 import os
 import re
 
 from redo import retry
 from taskgraph.parameters import Parameters
+from taskgraph.util.taskcluster import find_task_id
 
-from gecko_taskgraph import try_option_syntax
+from gecko_taskgraph import try_option_syntax, GECKO
 from gecko_taskgraph.util.attributes import (
     match_run_on_projects,
     match_run_on_hg_branches,
 )
 from gecko_taskgraph.util.platforms import platform_family
-from gecko_taskgraph.util.taskcluster import find_task_id
+from gecko_taskgraph.util.hg import find_hg_revision_push_info, get_hg_commit_message
+
 
 _target_task_methods = {}
 
@@ -559,6 +562,30 @@ def target_tasks_mozilla_esr91(full_task_graph, parameters, graph_config):
     return [l for l, t in full_task_graph.tasks.items() if filter(t)]
 
 
+@_target_task("mozilla_esr102_tasks")
+def target_tasks_mozilla_esr102(full_task_graph, parameters, graph_config):
+    """Select the set of tasks required for a promotable beta or release build
+    of desktop, without android CI. The candidates build process involves a pipeline
+    of builds and signing, but does not include beetmover or balrog jobs."""
+
+    def filter(task):
+        if not filter_release_tasks(task, parameters):
+            return False
+
+        if not standard_filter(task, parameters):
+            return False
+
+        platform = task.attributes.get("build_platform")
+
+        # Android is not built on esr102.
+        if platform and "android" in platform:
+            return False
+
+        return True
+
+    return [l for l, t in full_task_graph.tasks.items() if filter(t)]
+
+
 @_target_task("promote_desktop")
 def target_tasks_promote_desktop(full_task_graph, parameters, graph_config):
     """Select the superset of tasks required to promote a beta or release build
@@ -566,6 +593,12 @@ def target_tasks_promote_desktop(full_task_graph, parameters, graph_config):
     mozilla_{beta,release} tasks, plus l10n, beetmover, balrog, etc."""
 
     def filter(task):
+        # Bug 1758507 - geckoview ships in the promote phase
+        if "mozilla-esr" not in parameters["project"] and is_geckoview(
+            task, parameters
+        ):
+            return True
+
         if task.attributes.get("shipping_product") != parameters["release_product"]:
             return False
 
@@ -607,12 +640,6 @@ def target_tasks_push_desktop(full_task_graph, parameters, graph_config):
         # Include promotion tasks; these will be optimized out
         if task.label in filtered_for_candidates:
             return True
-        # XXX: Bug 1612540 - include beetmover jobs for publishing geckoview, along
-        # with the regular Firefox (not Devedition!) releases so that they are at sync
-        if "mozilla-esr" not in parameters["project"] and is_geckoview(
-            task, parameters
-        ):
-            return True
 
         if (
             task.attributes.get("shipping_product") == parameters["release_product"]
@@ -649,10 +676,6 @@ def target_tasks_ship_desktop(full_task_graph, parameters, graph_config):
             return False
         # Include promotion tasks; these will be optimized out
         if task.label in filtered_for_candidates:
-            return True
-
-        # XXX: Bug 1619603 - geckoview also ships alongside Firefox RC
-        if is_geckoview(task, parameters) and is_rc:
             return True
 
         if (
@@ -739,15 +762,10 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
     def filter(task):
         platform = task.attributes.get("test_platform")
         attributes = task.attributes
-        vismet = attributes.get("kind") == "visual-metrics-dep"
-        if attributes.get("unittest_suite") != "raptor" and not vismet:
+        if attributes.get("unittest_suite") != "raptor":
             return False
 
         try_name = attributes.get("raptor_try_name")
-        if vismet:
-            # Visual metric tasks are configured a bit differently
-            platform = task.task.get("extra").get("treeherder-platform")
-            try_name = task.label
 
         # Completely ignore all non-shippable platforms
         if "shippable" not in platform:
@@ -1090,6 +1108,7 @@ def target_tasks_release_simulation(full_task_graph, parameters, graph_config):
         "beta": "mozilla-beta",
         "release": "mozilla-release",
         "esr91": "mozilla-esr91",
+        "esr102": "mozilla-esr102",
     }
     target_project = project_by_release.get(parameters["release_type"])
     if target_project is None:
@@ -1169,40 +1188,75 @@ def target_tasks_raptor_tp6m(full_task_graph, parameters, graph_config):
     return [l for l, t in full_task_graph.tasks.items() if filter(t)]
 
 
-@_target_task("perftest_s7")
-def target_tasks_perftest_s7(full_task_graph, parameters, graph_config):
+@_target_task("backfill_all_browsertime")
+def target_tasks_backfill_all_browsertime(full_task_graph, parameters, graph_config):
     """
-    Select tasks required for running raptor page-load tests on geckoview against S7
+    Search for revisions that contains patches that were reviewed by perftest reviewers
+    and landed the day before the cron is running. Trigger backfill-all-browsertime action
+    task on each of them.
     """
+    from gecko_taskgraph.actions.util import (
+        get_decision_task_id,
+        get_pushes,
+    )
 
-    def filter(task):
-        build_platform = task.attributes.get("build_platform", "")
-        test_platform = task.attributes.get("test_platform", "")
-        attributes = task.attributes
-        vismet = attributes.get("kind") == "visual-metrics-dep"
-        try_name = attributes.get("raptor_try_name")
+    def date_is_yesterday(date):
+        yesterday = datetime.today() - timedelta(days=1)
+        date = datetime.fromtimestamp(date)
+        return date.date() == yesterday.date()
 
-        if vismet:
-            # Visual metric tasks are configured a bit differently
-            test_platform = task.task.get("extra").get("treeherder-platform")
-            try_name = task.label
-
-        if build_platform and "android" not in build_platform:
+    def reviewed_by_perftest(push):
+        try:
+            commit_message = get_hg_commit_message(
+                os.path.join(GECKO, graph_config["product-dir"]), rev=push
+            )
+        except Exception as e:
+            print(e)
             return False
-        if attributes.get("unittest_suite") != "raptor" and not vismet:
-            return False
-        if "s7" in test_platform and "-qr" in test_platform:
-            if "geckoview" in try_name and (
-                "unity-webgl" in try_name
-                or "speedometer" in try_name
-                or "tp6m-essential" in try_name
-            ):
-                if "power" in try_name:
-                    return False
-                else:
+
+        for line in commit_message.split("\n\n"):
+            if line.lower().startswith("bug ") and "r=" in line:
+                if "perftest-reviewers" in line.split("r=")[-1]:
+                    print(line)
                     return True
+        return False
 
-    return [l for l, t in full_task_graph.tasks.items() if filter(t)]
+    pushes = get_pushes(
+        project=parameters["head_repository"],
+        end_id=int(parameters["pushlog_id"]),
+        depth=200,
+        full_response=True,
+    )
+    for push_id in sorted([int(p) for p in pushes.keys()], reverse=True):
+        push_rev = pushes[str(push_id)]["changesets"][-1]
+        push_info = find_hg_revision_push_info(
+            "https://hg.mozilla.org/integration/" + parameters["project"], push_rev
+        )
+        pushdate = int(push_info["pushdate"])
+        if date_is_yesterday(pushdate) and reviewed_by_perftest(push_rev):
+            from gecko_taskgraph.actions.util import trigger_action
+
+            print(
+                f"Revision {push_rev} was created yesterday and was reviewed by "
+                f"#perftest-reviewers."
+            )
+            try:
+                push_decision_task_id = get_decision_task_id(
+                    parameters["project"], push_id
+                )
+            except Exception:
+                print(f"Could not find decision task for push {push_id}")
+                continue
+            try:
+                trigger_action(
+                    action_name="backfill-all-browsertime",
+                    # This lets the action know on which push we want to add a new task
+                    decision_task_id=push_decision_task_id,
+                )
+            except Exception as e:
+                print(f"Failed to trigger action for {push_rev}: {e}")
+
+    return []
 
 
 @_target_task("condprof")
@@ -1212,7 +1266,8 @@ def target_tasks_condprof(full_task_graph, parameters, graph_config):
     """
     for name, task in full_task_graph.tasks.items():
         if task.kind == "condprof":
-            yield name
+            if "a51" not in name:  # bug 1765348
+                yield name
 
 
 @_target_task("system_symbols")

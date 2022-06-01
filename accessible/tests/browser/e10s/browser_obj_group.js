@@ -7,11 +7,6 @@
 /* import-globals-from ../../mochitest/attributes.js */
 loadScripts({ name: "attributes.js", dir: MOCHITESTS_DIR });
 
-const isCacheEnabled = Services.prefs.getBoolPref(
-  "accessibility.cache.enabled",
-  false
-);
-
 /**
  * select elements
  */
@@ -403,7 +398,7 @@ addAccessibleTask(
     testGroupAttrs(getAcc("grid_row2"), 2, 2);
     testAbsentAttrs(getAcc("grid_cell3"), { posinset: "", setsize: "" });
     testAbsentAttrs(getAcc("grid_cell4"), { posinset: "", setsize: "" });
-    testGroupParentAttrs(getAcc("grid"), 2, false, isCacheEnabled);
+    testGroupParentAttrs(getAcc("grid"), 2, false, false);
   }
 );
 

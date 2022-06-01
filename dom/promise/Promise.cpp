@@ -38,6 +38,7 @@
 #include "js/Object.h"     // JS::GetCompartment
 #include "js/StructuredClone.h"
 #include "nsContentUtils.h"
+#include "nsCycleCollectionParticipant.h"
 #include "nsGlobalWindow.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsJSEnvironment.h"
@@ -51,8 +52,7 @@
 #include "xpcpublic.h"
 #include "xpcprivate.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 // Promise
 
@@ -231,19 +231,40 @@ void Promise::Then(JSContext* aCx,
   aRetval.setObject(*retval);
 }
 
+static void SettlePromise(Promise* aSettlingPromise, Promise* aCallbackPromise,
+                          ErrorResult& aRv) {
+  if (!aSettlingPromise) {
+    return;
+  }
+  if (aRv.Failed()) {
+    aSettlingPromise->MaybeReject(std::move(aRv));
+    return;
+  }
+  if (aCallbackPromise) {
+    aSettlingPromise->MaybeResolve(aCallbackPromise);
+  } else {
+    aSettlingPromise->MaybeResolveWithUndefined();
+  }
+}
+
 void PromiseNativeThenHandlerBase::ResolvedCallback(
     JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
-  RefPtr<Promise> promise = CallResolveCallback(aCx, aValue);
-  if (promise) {
-    mPromise->MaybeResolve(promise);
-  } else {
-    mPromise->MaybeResolveWithUndefined();
+  if (!HasResolvedCallback()) {
+    mPromise->MaybeResolve(aValue);
+    return;
   }
+  RefPtr<Promise> promise = CallResolveCallback(aCx, aValue, aRv);
+  SettlePromise(mPromise, promise, aRv);
 }
 
 void PromiseNativeThenHandlerBase::RejectedCallback(
     JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
-  mPromise->MaybeReject(aValue);
+  if (!HasRejectedCallback()) {
+    mPromise->MaybeReject(aValue);
+    return;
+  }
+  RefPtr<Promise> promise = CallRejectCallback(aCx, aValue, aRv);
+  SettlePromise(mPromise, promise, aRv);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(PromiseNativeThenHandlerBase)
@@ -262,12 +283,16 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PromiseNativeThenHandlerBase)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(PromiseNativeThenHandlerBase)
+  tmp->Trace(aCallbacks, aClosure);
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
+
 NS_IMPL_CYCLE_COLLECTING_ADDREF(PromiseNativeThenHandlerBase)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(PromiseNativeThenHandlerBase)
 
 Result<RefPtr<Promise>, nsresult> Promise::ThenWithoutCycleCollection(
     const std::function<already_AddRefed<Promise>(
-        JSContext* aCx, JS::HandleValue aValue)>& aCallback) {
+        JSContext* aCx, JS::HandleValue aValue, ErrorResult& aRv)>& aCallback) {
   return ThenWithCycleCollectedArgs(aCallback);
 }
 
@@ -371,29 +396,62 @@ namespace {
 
 class PromiseNativeHandlerShim final : public PromiseNativeHandler {
   RefPtr<PromiseNativeHandler> mInner;
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  enum InnerState{
+      NotCleared,
+      ClearedFromResolve,
+      ClearedFromReject,
+      ClearedFromCC,
+  };
+  InnerState mState = NotCleared;
+#endif
 
   ~PromiseNativeHandlerShim() = default;
 
  public:
   explicit PromiseNativeHandlerShim(PromiseNativeHandler* aInner)
       : mInner(aInner) {
-    MOZ_ASSERT(mInner);
+    MOZ_DIAGNOSTIC_ASSERT(mInner);
   }
 
   MOZ_CAN_RUN_SCRIPT
   void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    MOZ_DIAGNOSTIC_ASSERT(mState != ClearedFromResolve);
+    MOZ_DIAGNOSTIC_ASSERT(mState != ClearedFromReject);
+    MOZ_DIAGNOSTIC_ASSERT(mState != ClearedFromCC);
+#else
+    if (!mInner) {
+      return;
+    }
+#endif
     RefPtr<PromiseNativeHandler> inner = std::move(mInner);
     inner->ResolvedCallback(aCx, aValue, aRv);
     MOZ_ASSERT(!mInner);
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    mState = ClearedFromResolve;
+#endif
   }
 
   MOZ_CAN_RUN_SCRIPT
   void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    MOZ_DIAGNOSTIC_ASSERT(mState != ClearedFromResolve);
+    MOZ_DIAGNOSTIC_ASSERT(mState != ClearedFromReject);
+    MOZ_DIAGNOSTIC_ASSERT(mState != ClearedFromCC);
+#else
+    if (!mInner) {
+      return;
+    }
+#endif
     RefPtr<PromiseNativeHandler> inner = std::move(mInner);
     inner->RejectedCallback(aCx, aValue, aRv);
     MOZ_ASSERT(!mInner);
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    mState = ClearedFromReject;
+#endif
   }
 
   bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
@@ -405,7 +463,16 @@ class PromiseNativeHandlerShim final : public PromiseNativeHandler {
   NS_DECL_CYCLE_COLLECTION_CLASS(PromiseNativeHandlerShim)
 };
 
-NS_IMPL_CYCLE_COLLECTION(PromiseNativeHandlerShim, mInner)
+NS_IMPL_CYCLE_COLLECTION_CLASS(PromiseNativeHandlerShim)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(PromiseNativeHandlerShim)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mInner)
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  tmp->mState = ClearedFromCC;
+#endif
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(PromiseNativeHandlerShim)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mInner)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(PromiseNativeHandlerShim)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(PromiseNativeHandlerShim)
@@ -742,6 +809,10 @@ WorkerPrivate* PromiseWorkerProxy::GetWorkerPrivate() const {
   return mWorkerRef->Private();
 }
 
+bool PromiseWorkerProxy::OnWritingThread() const {
+  return IsCurrentThreadRunningWorker();
+}
+
 Promise* PromiseWorkerProxy::WorkerPromise() const {
   MOZ_ASSERT(IsCurrentThreadRunningWorker());
   MOZ_ASSERT(mWorkerPromise);
@@ -858,12 +929,20 @@ Promise::PromiseState Promise::State() const {
   return PromiseState::Pending;
 }
 
-void Promise::SetSettledPromiseIsHandled() {
+bool Promise::SetSettledPromiseIsHandled() {
   AutoAllowLegacyScriptExecution exemption;
   AutoEntryScript aes(mGlobal, "Set settled promise handled");
   JSContext* cx = aes.cx();
   JS::RootedObject promiseObj(cx, mPromiseObj);
-  JS::SetSettledPromiseIsHandled(cx, promiseObj);
+  return JS::SetSettledPromiseIsHandled(cx, promiseObj);
+}
+
+bool Promise::SetAnyPromiseIsHandled() {
+  AutoAllowLegacyScriptExecution exemption;
+  AutoEntryScript aes(mGlobal, "Set any promise handled");
+  JSContext* cx = aes.cx();
+  JS::RootedObject promiseObj(cx, mPromiseObj);
+  return JS::SetAnyPromiseIsHandled(cx, promiseObj);
 }
 
 /* static */
@@ -877,8 +956,7 @@ already_AddRefed<Promise> Promise::CreateResolvedWithUndefined(
   return returnPromise.forget();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 extern "C" {
 

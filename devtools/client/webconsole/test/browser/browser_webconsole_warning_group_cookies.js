@@ -38,10 +38,10 @@ add_task(async function testSameSiteCookieMessage() {
       groupLabel:
         "Some cookies are misusing the recommended “SameSite“ attribute",
       message1:
-        "Cookie “a” will be soon rejected because it has the “SameSite” attribute set to “None” or an invalid value, without the “secure” attribute.",
+        "Cookie “a” does not have a proper “SameSite” attribute value. Soon, cookies without the “SameSite” attribute or with an invalid value will be treated as “Lax”. This means that the cookie will no longer be sent in third-party contexts. If your application depends on this cookie being available in such contexts, please add the “SameSite=None“ attribute to it. To know more about the “SameSite“ attribute, read https://developer.mozilla.org/docs/Web/HTTP/Headers/Set-Cookie/SameSite",
       typeMessage1: ".warn",
       message2:
-        "Cookie “b” will be soon rejected because it has the “SameSite” attribute set to “None” or an invalid value, without the “secure” attribute.",
+        "Cookie “b” does not have a proper “SameSite” attribute value. Soon, cookies without the “SameSite” attribute or with an invalid value will be treated as “Lax”. This means that the cookie will no longer be sent in third-party contexts. If your application depends on this cookie being available in such contexts, please add the “SameSite=None“ attribute to it. To know more about the “SameSite“ attribute, read https://developer.mozilla.org/docs/Web/HTTP/Headers/Set-Cookie/SameSite",
     },
   ];
 
@@ -54,7 +54,7 @@ add_task(async function testSameSiteCookieMessage() {
     );
 
     info("Test cookie messages");
-    const onLaxMissingWarningMessage = waitForMessage(
+    const onLaxMissingWarningMessage = waitForMessageByType(
       hud,
       test.message1,
       test.typeMessage1
@@ -70,7 +70,7 @@ add_task(async function testSameSiteCookieMessage() {
 
     info("Emit a new cookie message to check that it causes a grouping");
 
-    const onCookieSameSiteWarningGroupMessage = waitForMessage(
+    const onCookieSameSiteWarningGroupMessage = waitForMessageByType(
       hud,
       test.groupLabel,
       ".warn"
@@ -87,13 +87,13 @@ add_task(async function testSameSiteCookieMessage() {
       "The badge has the expected text"
     );
 
-    checkConsoleOutputForWarningGroup(hud, [`▶︎⚠ ${test.groupLabel} 2`]);
+    await checkConsoleOutputForWarningGroup(hud, [`▶︎⚠ ${test.groupLabel} 2`]);
 
     info("Open the group");
     node.querySelector(".arrow").click();
-    await waitFor(() => findMessage(hud, "SameSite"));
+    await waitFor(() => findWarningMessage(hud, "SameSite"));
 
-    checkConsoleOutputForWarningGroup(hud, [
+    await checkConsoleOutputForWarningGroup(hud, [
       `▼︎⚠ ${test.groupLabel} 2`,
       `| ${test.message1}`,
       `| ${test.message2}`,
@@ -125,20 +125,20 @@ add_task(async function testInvalidSameSiteMessage() {
     content.wrappedJSObject.createCookie("a=1; sameSite=batman");
   });
 
-  const { node } = await waitForMessage(hud, groupLabel, ".warn");
+  const { node } = await waitForMessageByType(hud, groupLabel, ".warn");
   is(
     node.querySelector(".warning-group-badge").textContent,
     "2",
     "The badge has the expected text"
   );
 
-  checkConsoleOutputForWarningGroup(hud, [`▶︎⚠ ${groupLabel} 2`]);
+  await checkConsoleOutputForWarningGroup(hud, [`▶︎⚠ ${groupLabel} 2`]);
 
   info("Open the group");
   node.querySelector(".arrow").click();
-  await waitFor(() => findMessage(hud, "SameSite"));
+  await waitFor(() => findWarningMessage(hud, "SameSite"));
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▼︎⚠ ${groupLabel} 2`,
     `| ${message1}`,
     `| ${message2}`,

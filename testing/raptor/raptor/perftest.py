@@ -102,8 +102,10 @@ class Perftest(object):
         environment={},
         project="mozilla-central",
         verbose=False,
+        python=None,
         **kwargs
     ):
+        self._remote_test_root = None
         self._dirs_to_remove = []
         self.verbose = verbose
         self.page_count = []
@@ -219,6 +221,10 @@ class Perftest(object):
         return self.config.get("host") in ("localhost", "127.0.0.1")
 
     @property
+    def android_external_storage(self):
+        return "/sdcard/test_root/"
+
+    @property
     def conditioned_profile_copy(self):
         """Returns a copy of the original conditioned profile that was created."""
         condprof_copy = os.path.join(self._get_temp_dir(), "profile")
@@ -262,6 +268,7 @@ class Perftest(object):
             visible=True,
             force_new=True,
             skip_logs=True,
+            remote_test_root=self.android_external_storage,
         )
 
         if self.config.get("is_release_build", False):
@@ -387,6 +394,11 @@ class Perftest(object):
             self.profile.merge(path)
 
         if self.config["extra_prefs"].get("fission.autostart", True):
+            self.config["extra_prefs"].update(
+                {
+                    "fission.autostart": True,
+                }
+            )
             LOG.info("Enabling fission via browser preferences")
             LOG.info("Browser preferences: {}".format(self.config["extra_prefs"]))
         self.profile.set_preferences(self.config["extra_prefs"])

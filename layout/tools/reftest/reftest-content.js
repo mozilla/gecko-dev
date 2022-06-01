@@ -16,12 +16,16 @@ const IO_SERVICE_CONTRACTID = "@mozilla.org/network/io-service;1"
 // "<!--CLEAR-->"
 const BLANK_URL_FOR_CLEARING = "data:text/html;charset=UTF-8,%3C%21%2D%2DCLEAR%2D%2D%3E";
 
-Cu.import("resource://gre/modules/Timer.jsm");
-Cu.import("resource://reftest/AsyncSpellCheckTestHelper.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+const { setTimeout, clearTimeout } = ChromeUtils.import(
+    "resource://gre/modules/Timer.jsm"
+);
+const { onSpellCheck } = ChromeUtils.import(
+    "resource://reftest/AsyncSpellCheckTestHelper.jsm"
+);
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 // This will load chrome Custom Elements inside chrome documents:
-ChromeUtils.import("resource://gre/modules/CustomElementsListener.jsm", null);
+ChromeUtils.import("resource://gre/modules/CustomElementsListener.jsm");
 
 var gBrowserIsRemote;
 var gHaveCanvasSnapshot = false;
@@ -197,7 +201,7 @@ function doPrintMode(contentRootElement) {
 function setupPrintMode() {
     var PSSVC =
         Cc[PRINTSETTINGS_CONTRACTID].getService(Ci.nsIPrintSettingsService);
-    var ps = PSSVC.newPrintSettings;
+    var ps = PSSVC.createNewPrintSettings();
     ps.paperWidth = 5;
     ps.paperHeight = 3;
 
@@ -267,7 +271,7 @@ function setupViewport(contentRootElement) {
 
     // XXX support viewconfig when needed
 }
- 
+
 
 function setupDisplayport(contentRootElement) {
     let promise = content.windowGlobalChild.getActor("ReftestFission").SetupDisplayportRoot();
@@ -950,7 +954,7 @@ async function OnDocumentLoad(uri)
         // Ignore load events for previous documents.
         return;
     }
-    
+
     var currentDoc = content && content.document;
 
     // Collect all editable, spell-checked elements.  It may be the case that

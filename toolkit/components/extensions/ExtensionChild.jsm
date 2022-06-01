@@ -160,13 +160,14 @@ Services.obs.addObserver(StrongPromise, "extensions-onMessage-witness");
 // Simple single-event emitter-like helper, exposes the EventManager api.
 class SimpleEventAPI extends EventManager {
   constructor(context, name) {
-    super({ context, name });
-    this.fires = new Set();
-    this.register = fire => {
-      this.fires.add(fire);
+    let fires = new Set();
+    let register = fire => {
+      fires.add(fire);
       fire.location = context.getCaller();
-      return () => this.fires.delete(fire);
+      return () => fires.delete(fire);
     };
+    super({ context, name, register });
+    this.fires = fires;
   }
   emit(...args) {
     return [...this.fires].map(fire => fire.asyncWithoutClone(...args));
@@ -385,13 +386,18 @@ class BrowserExtensionContent extends EventEmitter {
     this.optionalPermissions = policy.optionalPermissions;
 
     if (WebExtensionPolicy.isExtensionProcess) {
-      Object.assign(this, this.getSharedData("extendedData"));
+      // Keep in sync with serializeExtended in Extension.jsm
+      let ed = this.getSharedData("extendedData");
+      this.backgroundScripts = ed.backgroundScripts;
+      this.backgroundWorkerScript = ed.backgroundWorkerScript;
+      this.childModules = ed.childModules;
+      this.dependencies = ed.dependencies;
+      this.persistentBackground = ed.persistentBackground;
+      this.schemaURLs = ed.schemaURLs;
     }
 
     this.MESSAGE_EMIT_EVENT = `Extension:EmitEvent:${this.instanceId}`;
     Services.cpmm.addMessageListener(this.MESSAGE_EMIT_EVENT, this);
-
-    let restrictSchemes = !this.hasPermission("mozillaAddons");
 
     this.apiManager = this.getAPIManager();
 
@@ -411,49 +417,6 @@ class BrowserExtensionContent extends EventEmitter {
 
     // Only used for devtools views.
     this.devtoolsViews = new Set();
-
-    /* eslint-disable mozilla/balanced-listeners */
-    this.on("add-permissions", (ignoreEvent, permissions) => {
-      if (permissions.permissions.length) {
-        let perms = new Set(this.policy.permissions);
-        for (let perm of permissions.permissions) {
-          perms.add(perm);
-        }
-        this.policy.permissions = perms;
-      }
-
-      if (permissions.origins.length) {
-        let patterns = this.allowedOrigins.patterns.map(host => host.pattern);
-
-        this.policy.allowedOrigins = new MatchPatternSet(
-          [...patterns, ...permissions.origins],
-          { restrictSchemes, ignorePath: true }
-        );
-      }
-    });
-
-    this.on("remove-permissions", (ignoreEvent, permissions) => {
-      if (permissions.permissions.length) {
-        let perms = new Set(this.policy.permissions);
-        for (let perm of permissions.permissions) {
-          perms.delete(perm);
-        }
-        this.policy.permissions = perms;
-      }
-
-      if (permissions.origins.length) {
-        let origins = permissions.origins.map(
-          origin => new MatchPattern(origin, { ignorePath: true }).pattern
-        );
-
-        this.policy.allowedOrigins = new MatchPatternSet(
-          this.allowedOrigins.patterns.filter(
-            host => !origins.includes(host.pattern)
-          )
-        );
-      }
-    });
-    /* eslint-enable mozilla/balanced-listeners */
 
     ExtensionManager.extensions.set(this.id, this);
   }
@@ -549,6 +512,12 @@ class BrowserExtensionContent extends EventEmitter {
     super.emit(event, ...args);
   }
 
+  // TODO(Bug 1768471): consider folding this back into emit if we will change it to
+  // return a value as EventEmitter and Extension emit methods do.
+  emitLocalWithResult(event, ...args) {
+    return super.emit(event, ...args);
+  }
+
   receiveMessage({ name, data }) {
     if (name === this.MESSAGE_EMIT_EVENT) {
       super.emit(data.event, ...data.args);
@@ -616,9 +585,11 @@ class ProxyAPIImplementation extends SchemaAPIInterface {
   }
 
   callAsyncFunction(args, callback, requireUserInput) {
+    const context = this.childApiManager.context;
+    const isHandlingUserInput =
+      context.contentWindow?.windowUtils?.isHandlingUserInput;
     if (requireUserInput) {
-      let context = this.childApiManager.context;
-      if (!context.contentWindow.windowUtils.isHandlingUserInput) {
+      if (!isHandlingUserInput) {
         let err = new context.cloneScope.Error(
           `${this.path} may only be called from a user input handler`
         );
@@ -629,7 +600,10 @@ class ProxyAPIImplementation extends SchemaAPIInterface {
       this.path,
       args,
       callback,
-      { alreadyLogged: this.alreadyLogged }
+      {
+        alreadyLogged: this.alreadyLogged,
+        isHandlingUserInput,
+      }
     );
   }
 
@@ -764,7 +738,7 @@ class ChildAPIManager {
         "AddListener",
         "RemoveListener",
       ],
-      recv: ["CallResult", "RunListener"],
+      recv: ["CallResult", "RunListener", "StreamFilterSuspendCancel"],
     });
 
     this.conduit.sendCreateProxyContext({
@@ -795,8 +769,7 @@ class ChildAPIManager {
           }
         }
       };
-      this.context.extension.on("add-permissions", this.updatePermissions);
-      this.context.extension.on("remove-permissions", this.updatePermissions);
+      this.context.extension.on("update-permissions", this.updatePermissions);
     }
   }
 
@@ -821,6 +794,13 @@ class ChildAPIManager {
     let listener = map.ids.get(data.listenerId);
 
     if (listener) {
+      if (!this.context.active) {
+        Services.console.logStringMessage(
+          `Ignored listener for inactive context at childId=${data.childId} path=${data.path} listenerId=${data.listenerId}\n`
+        );
+        return;
+      }
+
       let args = data.args.deserialize(this.context.cloneScope);
       let fire = () => this.context.applySafeWithoutClone(listener, args);
       return Promise.resolve(
@@ -839,6 +819,20 @@ class ChildAPIManager {
         `Unknown listener at childId=${data.childId} path=${data.path} listenerId=${data.listenerId}\n`
       );
     }
+  }
+
+  async recvStreamFilterSuspendCancel() {
+    const promise = this.context.extension.emitLocalWithResult(
+      "internal:stream-filter-suspend-cancel"
+    );
+    // if all listeners throws emitLocalWithResult returns undefined.
+    if (!promise) {
+      return false;
+    }
+
+    return promise.then(results =>
+      results.some(hasActiveStreamFilter => hasActiveStreamFilter === true)
+    );
   }
 
   /**
@@ -868,9 +862,14 @@ class ChildAPIManager {
     let deferred = PromiseUtils.defer();
     this.callPromises.set(callId, deferred);
 
-    // Any child api that calls into a parent function will have already
-    // logged the api_call.  Flag it so the parent doesn't log again.
-    let { alreadyLogged = true } = options;
+    let {
+      // Any child api that calls into a parent function will have already
+      // logged the api_call.  Flag it so the parent doesn't log again.
+      alreadyLogged = true,
+      // Propagating the isHAndlingUserInput flag to the API call handler
+      // executed on the parent process side.
+      isHandlingUserInput = false,
+    } = options;
 
     // TODO: conduit.queryAPICall()
     this.conduit.sendAPICall({
@@ -878,7 +877,7 @@ class ChildAPIManager {
       callId,
       path,
       args,
-      options: { alreadyLogged },
+      options: { alreadyLogged, isHandlingUserInput },
     });
     return this.context.wrapPromise(deferred.promise, callback);
   }
@@ -912,8 +911,7 @@ class ChildAPIManager {
     this.conduit.close();
 
     if (this.updatePermissions) {
-      this.context.extension.off("add-permissions", this.updatePermissions);
-      this.context.extension.off("remove-permissions", this.updatePermissions);
+      this.context.extension.off("update-permissions", this.updatePermissions);
     }
   }
 

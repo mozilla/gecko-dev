@@ -17,6 +17,7 @@ EXTRA_PATHS = (
     "python/mozversioncontrol",
     "testing/mozbase/mozfile",
     "third_party/python/jsmin",
+    "third_party/python/six",
 )
 sys.path[:0] = [os.path.join(topsrcdir, p) for p in EXTRA_PATHS]
 
@@ -52,7 +53,7 @@ def run_clang_format(hooktype, changedFiles):
     arguments = ["clang-format", "-p"] + path_list
     # On windows we need this to call the command in a shell, see Bug 1511594
     if os.name == "nt":
-        clang_format_cmd = ["sh", "mach"] + arguments
+        clang_format_cmd = [sys.executable, "mach"] + arguments
     else:
         clang_format_cmd = [os.path.join(topsrcdir, "mach")] + arguments
     if "commit" in hooktype:

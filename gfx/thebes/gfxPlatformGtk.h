@@ -55,10 +55,8 @@ class gfxPlatformGtk final : public gfxPlatform {
 
   bool AccelerateLayersByDefault() override;
 
-#ifdef MOZ_X11
-  already_AddRefed<mozilla::gfx::VsyncSource> CreateHardwareVsyncSource()
+  already_AddRefed<mozilla::gfx::VsyncSource> CreateGlobalHardwareVsyncSource()
       override;
-#endif
 
   bool IsX11Display() { return mIsX11Display; }
   bool IsWaylandDisplay() override {
@@ -68,6 +66,7 @@ class gfxPlatformGtk final : public gfxPlatform {
  protected:
   void InitX11EGLConfig();
   void InitDmabufConfig();
+  void InitVAAPIConfig();
   void InitPlatformGPUProcessPrefs() override;
   void InitWebRenderConfig() override;
   bool CheckVariationFontSupport() override;

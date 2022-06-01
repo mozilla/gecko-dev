@@ -60,135 +60,85 @@ using DefVector = Vector<MDefinition*, 8, SystemAllocPolicy>;
 using ControlInstructionVector =
     Vector<MControlInstruction*, 8, SystemAllocPolicy>;
 
-struct CatchInfo {
-  uint32_t tagIndex;
-  MBasicBlock* block;
-
-  CatchInfo(uint32_t tagIndex, MBasicBlock* block)
-      : tagIndex(tagIndex), block(block) {}
-};
-
-using CatchInfoVector = Vector<CatchInfo, 8, SystemAllocPolicy>;
-
 struct Control {
   MBasicBlock* block;
-  MBasicBlock* catchAllBlock;
   // For a try-catch ControlItem, when its block's Labelkind is Try, this
   // collects branches to later bind and create the try's landing pad.
   ControlInstructionVector tryPadPatches;
 
-  // For a try-catch ControlItem, when its block's Labelkind is Catch, this
-  // collects the first basic block of each handler and the handler's tag index
-  // immediate, both wrapped together into a CatchInfo.
-  CatchInfoVector tryCatches;
+  Control() : block(nullptr) {}
 
-  Control() : block(nullptr), catchAllBlock(nullptr) {}
-
-  explicit Control(MBasicBlock* block) : block(block), catchAllBlock(nullptr) {}
+  explicit Control(MBasicBlock* block) : block(block) {}
 
  public:
   void setBlock(MBasicBlock* newBlock) { block = newBlock; }
-
-  // We ignore handlers whose tag index already appeared.
-  bool tagAlreadyHandled(uint32_t tagIndex) {
-    for (CatchInfo& info : tryCatches) {
-      if (tagIndex == info.tagIndex) {
-        return true;
-      }
-    }
-    return false;
-  }
 };
 
-// [SMDOC] WebAssembly Exception Handling (Wasm-EH) in Ion
+// [SMDOC] WebAssembly Exception Handling in Ion
 // =======================================================
 //
-// Control struct as ControlItem for WebAssembly Exception Handling (Wasm-EH)
-// --------------------------------------------------------------------------
-//
-// Using the above "struct Control" as a ControlItem in IonCompilePolicy,
-// simplifies the compilation of Wasm-EH try-catch blocks in two ways.
-//
-// 1. By collecting any paths we create from throws or potential throws (Wasm
-//    function calls) in the vector tryPadPatches, so they can be bound to
-//    create the landing pad.
-// 2. By keeping track of each handler with its CatchInfo in the vector
-//    tryCatches, to simplify creating the landing pad's control instruction,
-//    after we read End. This control instruction, in general a table switch,
-//    will direct caught exceptions to the correct catch code.
-//
-// Without such a Control structure, we'd have to track the tryPadPatches of
-// potentially nested try blocks manually in the function compiler. Moreover,
-// the landing pad's control instruction, a table switch, would have to be
-// modified every time we read a new catch. With the above control structure,
-// that table switch is created after we read the last catch and know which
-// successors it should have, and whether it has a catch_all block or if it
-// rethrows unhandled exceptions.
-//
-//
-// Design and terminology around the Wasm-EH additions in Ion
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//
-// This documentation aims to explain the design and names used for the Wasm-EH
-// additions in Ion. We'll go through what happens while compiling a Wasm
-// try-catch/catch_all instruction.
-//
-// When we encounter a try Opcode, we immediately create a new basic block to
-// hold the instructions of the try-code, i.e., the Wasm code after "try" and
-// before the next "catch", "catch_all", or "end" Opcode appears in the OpIter
-// loop.
-//
-// Catching try control nodes
-// ..........................
+// ## Throwing instructions
 //
 // Wasm exceptions can be thrown by either a throw instruction (local throw),
-// or by a direct or indirect Wasm function call. On all these occassions, we
-// know we are in try-code, if there is a surrounding ControlItem with
-// LabelKind::Try. The innermost such control is called the "catching try
-// control". In all these occassions, we create a branch to a new block, which
-// contains the exception in its slots, and call this a pre-pad block.
+// or by a wasm call.
 //
-// Creating pre-pad blocks
-// .......................
+// ## The "catching try control"
+//
+// We know we are in try-code if there is a surrounding ControlItem with
+// LabelKind::Try. The innermost such control is called the
+// "catching try control".
+//
+// ## Throws without a catching try control
+//
+// Such throws are implemented with an instance call that triggers the exception
+// unwinding runtime. The exception unwinding runtime will not return to the
+// function.
+//
+// ## "landing pad" and "pre-pad" blocks
+//
+// When an exception is thrown, the unwinder will search for the nearest
+// enclosing try block and redirect control flow to it. The code that executes
+// before any catch blocks is called the 'landing pad'. The 'landing pad' is
+// responsible to:
+//   1. Consume the pending exception state from
+//      Instance::pendingException(Tag)
+//   2. Branch to the correct catch block, or else rethrow
+//
+// There is one landing pad for each try block. The immediate predecessors of
+// the landing pad are called 'pre-pad' blocks. There is one pre-pad block per
+// throwing instruction.
+//
+// ## Creating pre-pad blocks
 //
 // There are two possible sorts of pre-pad blocks, depending on whether we
-// are branching after a local throw instruction, or after a Wasm function
-// call:
+// are branching after a local throw instruction, or after a wasm call:
 //
-// - If we encounter a throw instruction while in try-code (a local throw), we
-//   create the exception and tag index MDefinitions, create and jump to a
-//   pre-pad block. The exception and tag index are pushed to the pre-pad
-//   block.
+// - If we encounter a local throw, we create the exception and tag objects,
+//   store them to Instance::pendingException(Tag), and then jump to the
+//   landing pad.
 //
-// - If we encounter a direct, indirect, or imported Wasm function call, then
-//   we set the WasmCall to initialise a WasmTryNote, whose "start", "end", and
-//   "entry point" offsets are all inside the WasmCall. After such a Wasm
-//   function call, we add an MWasmLoadTls instruction representing a possibly
-//   thrown exception, which the throw mechanism would have stored in
-//   wasm::TlsData::pendingException. We then add a test which branches to a new
-//   pre-pad block if there is a pending exception, or continues with the
-//   opcodes in the try-code, if there was no pending exception. During this
-//   branch, any found exception is pushed to the pre-pad block, and then an
-//   instance call is made from the pre-pad block to clear the pending exception
-//   from the TlsData, and retrieve its local tag index. This tag index is
-//   pushed to the pre-pad block as well.
+// - If we encounter a wasm call, we construct a MWasmCallCatchable which is a
+//   control instruction with either a branch to a fallthrough block or
+//   to a pre-pad block.
 //
-// We end each pre-pad block with a jump to a nullptr, as is done when using
-// ControlFlowPatches. However, we don't need to collect ControlFlowPatches
-// for our case, because we only have one successor to a pad patch's last
-// instruction. We collect all [1] these last instructíons (jumps-to-be-patched)
-// in the catching try control's  `tryPadPatches`.
+//   The pre-pad block for a wasm call is empty except for a jump to the
+//   landing pad. It only exists to avoid critical edges which when split would
+//   violate the invariants of MWasmCallCatchable. The pending exception state
+//   is taken care of by the unwinder.
 //
-// Creating the landing pad
-// ........................
+// Each pre-pad ends with a pending jump to the landing pad. The pending jumps
+// to the landing pad are tracked in `tryPadPatches`. These are called
+// "pad patches".
 //
-// When we exit try-code, i.e., when the next Opcode we read is "catch",
-// "catch_all", or "end", we check if tryPadPatches has captured any control
+// ## Creating the landing pad
+//
+// When we exit try-code, we check if tryPadPatches has captured any control
 // instructions (pad patches). If not, we don't compile any catches and we mark
-// the rest as dead code. If there are pre-pad blocks, we join them to
-// create a landing pad (or just "pad"), which becomes the ControlItem's block.
-// The pad's last two slots are the caught exception, and the exception's local
-// tag index.
+// the rest as dead code.
+//
+// If there are pre-pad blocks, we join them to create a landing pad (or just
+// "pad"). The pad's last two slots are the caught exception, and the
+// exception's tag object.
 //
 // There are three different forms of try-catch/catch_all Wasm instructions,
 // which result in different form of landing pad.
@@ -198,162 +148,23 @@ struct Control {
 //
 // 2. A single catch_all after a try.
 //    - If the first catch after a try is a catch_all, then there won't be
-//      any more catches, but we need the exception and its local tag index, in
+//      any more catches, but we need the exception and its tag object, in
 //      case the code in a catch_all contains "rethrow" instructions.
-//      - The Wasm instruction "rethrow", gets the exception and tag index to
+//      - The Wasm instruction "rethrow", gets the exception and tag object to
 //        rethrow from the last two slots of the landing pad which, due to
 //        validation, is the l'th surrounding ControlItem.
 //      - We immediately GoTo to a new block after the pad and pop both the
-//        exception and tag index, as we don't need them anymore in this case.
+//        exception and tag object, as we don't need them anymore in this case.
 //
 // 3. Otherwise, there is one or more catch code blocks following.
-//    - In this case, we leave the pad without a last instruction for now, and
-//      compile "catch" or "catch_all" each in a new block created [3] from the
-//      pad, collecting these blocks together with their tag index, into the
-//      ControlItem's CatchInfoVector. Any of these blocks which is not dead
-//      code is finished like a br 0 (including the last block of the end of the
-//      try code). When we finally reach "end" we use the exception's local tag
-//      index (last slot of the pad) to finish the pad with a tableswitch [2].
-//      The successors of the table switch and the case (tag index) they
-//      correspond to (they handle) are added with the help of the Control's
-//      `CatchInfoVector tryCatches`. If there was no catch_all found, the
-//      table's default case is a block which rethrows the exception.
-//
-//
-// Throws without a catching try control node
-// ..........................................
-//
-// Such throws finish their current basic block with an instance call that
-// triggers the exception throwing runtime. The runtime finds which surrounding
-// frame has a try note with matching offsets, or throws the exception to JS.
-// Code after a throw is always dead code.
-//
-//
-// Example control flow graph
-// --------------------------
-//
-// The following Wasm code does a conditional throw of an exception carrying the
-// f64 value 6. If the "f" called does nothing, then a function with just the
-// code below would return 10 if called with argument 0 or 2 otherwise.
-//
-//      (try (param i32) (result f64)
-//        (do
-//          (if (result f64)
-//            (then
-//              (f64.const 3))
-//            (else
-//              (throw $exn (f64.const 6))))
-//          (call $f)
-//          (f64.sub (f64.const 2)))
-//        (catch $exn
-//          (f64.add (f64.const 4)))
-//        (catch_all
-//          (f64.const 5)))
-//
-// The above Wasm code should result in roughly the following control flow
-// graph. "GoTo ??" indicates a control instruction that was patched later.
-// Test branches are marked with the value that would lead to that branch. The
-// definitions and the instructions are numbered in the order they were added or
-// pushed to a block. Some auxiliary definitions and instructions are not shown
-// in order to reduce clutter. You can use your favourite control flow graphing
-// tool (for example iongraph [4]) to get a graph with more details. For
-// convenience, there is a Wasm module using this code in the test file
-// "js/src/jit-test/test/wasm/exceptions/example.js".
-//
-//
-//   __block0__(control Try)__
-//  |                         |
-//  | v0 = local.get 0        |
-//  | v1 = GoTo block1        |
-//  |_________________________|
-//                 |
-//                 V
-//   __block1__(control If)______
-//  |                            |
-//  | v2 = Test v0 block2 block3 |
-//  |____________________________|    __block3________________________________
-//           1|              0\      |                                        |
-//            V                \     | v4 = f64.const 6                       |
-//   __block2___________        \--->| v5 = create a new exception (&v6) with |
-//  |                   |            |      tag $exn (v7), and store v4 in    |
-//  | v3 = f64.const 2  |            |      the exception's VALUES buffer)    |
-//  | v10 = GoTo block5 |            | v9 = GoTo block4 (local throw)         |
-//  |___________________|            |________________________________________|
-//            |                                       |
-//            |                                       |
-//            V                                       V__ block4__(pre-pad)____
-//   __block5_____________________________________    |                        |
-//  |                                             |   | v6 = the new exception |
-//  | v11 = call $f                               |   |      now carrying v4   |
-//  | v12 = load exception from TlsData           |   | v7 = tag index $exn    |
-//  | v13 = Test (v12 not nullref?) block7 block6 |   | v8 = GoTo ?? -> block8 |
-//  |_____________________________________________|   |________________________|
-//       0|              1\                                                |
-//        |                \                                               |
-//        |                 \                                              |
-//        |                  \     __ block7__(pre_pad)_______________     |
-//        V                   \-->|                                   |    |
-//  (last block in try code)      | v14 = clear the pending exception |    |
-//   __block6_________________    |       from TlsData and get v12's  |    |
-//  |                         |   |       local tag index &v15        |    |
-//  | v17 = f64.const 3       |   | v15 = tag index of v12            |    |
-//  | v18 = f64.sub v4 v17    |   | v16 = GoTo ?? -> block8           |    |
-//  | v19 GoTo ??? -> block11 |   |___________________________________|    |
-//  |_________________________|     |                                      |
-//             |                    |          (control Try)               |
-//             |                    V__block8__(landing_pad)_______________V
-//             |                    |                                      |
-//             |                    | v20 = Phi(v6, v12) exception         |
-//             |                    | v21 = Phi(v7, v15) tag index         |
-//             |                    | v27 = 1 + v21                        |
-//             |                    | v28 = TableSwitch v27 block10 block9 |
-//             |                    |______________________________________|
-//             |                      0|     $exn+1|
-//             |                default|           |
-//             |                       |           V__block9__(catch_$exn)_____
-//             |                       V           |                           |
-//             |      __block10__(catch_all)_      | v22 = load the first (and |
-//             |     |                       |     |       only) value in      |
-//             |     | v26 = f64.const 5     |     |       v20's VALUES buffer |
-//             |     | v30 = GoTo block11    |     | v23 = f64.const 4         |
-//             |     |_______________________|     | v24 = f64.add v22 v23     |
-//             |         |                         | v25 = GoTo ??? -> block11 |
-//             |         |                         |___________________________|
-//             V         V                           /
-//  __block11__(try_catch_join)__                   /
-// |                             |<----------------/
-// | v29 = Phi(v18, v24, v26)    |
-// | v31 = Return v29            |
-// |_____________________________|
-//
-//
-// Notes:
-// ------
-//
-// - By creating and branching to pre-pad blocks while compiling the try code
-//   we ensure that the landing pad will have the correct information with
-//   respect to any local wasm state changes, that may have occurred in the try
-//   code before an exception was thrown.
-//
-// Footnotes:
-// ----------
-//
-// [1] We could potentially optimise this by separately collecting any jumps
-//     from pre-pad blocks coming from Wasm function calls, not doing any
-//     instance calls in these pre-pad blocks, but join them to an intermediate
-//     basic block which only does the instance call to consume the pending
-//     exception and get the tag index once. // TODO: Is it worth it?
-//
-// [2] We could potentially optimise this by compiling the case of a single
-//     tagged catch into a plain MTest, although it's possible that in that case
-//     Ion automatically simplifies such a table switch to a test anyway.
-//
-// [3] Each new block created for a catch is "created from the pad block" in the
-//     sense of "newBlock(pad, catch)". This is done to make sure that the catch
-//     has the correct stack position and contents. Each catch block must hold
-//     the exception and tag index in its initial slots, and each must have the
-//     same stack position as the pad, because the pad is later added as a
-//     predecessor.
+//    - In this case, we construct the landing pad by creating a sequence
+//      of compare and branch blocks that compare the pending exception tag
+//      object to the tag object of the current tagged catch block. This is
+//      done incrementally as we visit each tagged catch block in the bytecode
+//      stream. At every step, we update the ControlItem's block to point to
+//      the next block to be created in the landing pad sequence. The final
+//      block will either be a rethrow, if there is no catch_all, or else a
+//      jump to a catch_all block.
 
 struct IonCompilePolicy {
   // We store SSA definitions in the value stack.
@@ -378,7 +189,7 @@ class CallCompileState {
   WasmABIArgGenerator abi_;
 
   // Accumulates the register arguments while compiling arguments.
-  MWasmCall::Args regArgs_;
+  MWasmCallBase::Args regArgs_;
 
   // Reserved argument for passing Instance* to builtin instance method calls.
   ABIArg instanceArg_;
@@ -424,14 +235,17 @@ class FunctionCompiler {
   uint32_t blockDepth_;
   ControlFlowPatchVectorVector blockPatches_;
 
-  // TLS pointer argument to the current function.
-  MWasmParameter* tlsPointer_;
+  // Instance pointer argument to the current function.
+  MWasmParameter* instancePointer_;
   MWasmParameter* stackResultPointer_;
+
+  // Reference to masm.tryNotes_
+  WasmTryNoteVector& tryNotes_;
 
  public:
   FunctionCompiler(const ModuleEnvironment& moduleEnv, Decoder& decoder,
                    const FuncCompileInput& func, const ValTypeVector& locals,
-                   MIRGenerator& mirGen)
+                   MIRGenerator& mirGen, WasmTryNoteVector& tryNotes)
       : moduleEnv_(moduleEnv),
         iter_(moduleEnv, decoder),
         func_(func),
@@ -445,8 +259,9 @@ class FunctionCompiler {
         maxStackArgBytes_(0),
         loopDepth_(0),
         blockDepth_(0),
-        tlsPointer_(nullptr),
-        stackResultPointer_(nullptr) {}
+        instancePointer_(nullptr),
+        stackResultPointer_(nullptr),
+        tryNotes_(tryNotes) {}
 
   const ModuleEnvironment& moduleEnv() const { return moduleEnv_; }
 
@@ -490,10 +305,10 @@ class FunctionCompiler {
       }
     }
 
-    // Set up a parameter that receives the hidden TLS pointer argument.
-    tlsPointer_ =
-        MWasmParameter::New(alloc(), ABIArg(WasmTlsReg), MIRType::Pointer);
-    curBlock_->add(tlsPointer_);
+    // Set up a parameter that receives the hidden instance pointer argument.
+    instancePointer_ =
+        MWasmParameter::New(alloc(), ABIArg(InstanceReg), MIRType::Pointer);
+    curBlock_->add(instancePointer_);
     if (!mirGen_.ensureBallast()) {
       return false;
     }
@@ -788,11 +603,11 @@ class FunctionCompiler {
     }
 
     // For x86 and arm we implement i64 div via c++ builtin.
-    // A call to c++ builtin requires tls pointer.
+    // A call to c++ builtin requires instance pointer.
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_ARM)
     if (type == MIRType::Int64) {
       auto* ins =
-          MWasmBuiltinDivI64::New(alloc(), lhs, rhs, tlsPointer_, unsignd,
+          MWasmBuiltinDivI64::New(alloc(), lhs, rhs, instancePointer_, unsignd,
                                   trapOnError, bytecodeOffset());
       curBlock_->add(ins);
       return ins;
@@ -807,7 +622,7 @@ class FunctionCompiler {
 
   MInstruction* createTruncateToInt32(MDefinition* op) {
     if (op->type() == MIRType::Double || op->type() == MIRType::Float32) {
-      return MWasmBuiltinTruncateToInt32::New(alloc(), op, tlsPointer_);
+      return MWasmBuiltinTruncateToInt32::New(alloc(), op, instancePointer_);
     }
 
     return MTruncateToInt32::New(alloc(), op);
@@ -830,11 +645,11 @@ class FunctionCompiler {
     }
 
     // For x86 and arm we implement i64 mod via c++ builtin.
-    // A call to c++ builtin requires tls pointer.
+    // A call to c++ builtin requires instance pointer.
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_ARM)
     if (type == MIRType::Int64) {
       auto* ins =
-          MWasmBuiltinModI64::New(alloc(), lhs, rhs, tlsPointer_, unsignd,
+          MWasmBuiltinModI64::New(alloc(), lhs, rhs, instancePointer_, unsignd,
                                   trapOnError, bytecodeOffset());
       curBlock_->add(ins);
       return ins;
@@ -842,10 +657,10 @@ class FunctionCompiler {
 #endif
 
     // Should be handled separately because we call BuiltinThunk for this case
-    // and so, need to add the dependency from tlsPointer.
+    // and so, need to add the dependency from instancePointer.
     if (type == MIRType::Double) {
-      auto* ins = MWasmBuiltinModD::New(alloc(), lhs, rhs, tlsPointer_, type,
-                                        bytecodeOffset());
+      auto* ins = MWasmBuiltinModD::New(alloc(), lhs, rhs, instancePointer_,
+                                        type, bytecodeOffset());
       curBlock_->add(ins);
       return ins;
     }
@@ -939,7 +754,7 @@ class FunctionCompiler {
     }
 #if defined(JS_CODEGEN_ARM)
     auto* ins = MBuiltinInt64ToFloatingPoint::New(
-        alloc(), op, tlsPointer_, type, bytecodeOffset(), isUnsigned);
+        alloc(), op, instancePointer_, type, bytecodeOffset(), isUnsigned);
 #else
     auto* ins = MInt64ToFloatingPoint::New(alloc(), op, type, bytecodeOffset(),
                                            isUnsigned);
@@ -969,11 +784,11 @@ class FunctionCompiler {
   }
 
 #if defined(JS_CODEGEN_ARM)
-  MDefinition* truncateWithTls(MDefinition* op, TruncFlags flags) {
+  MDefinition* truncateWithInstance(MDefinition* op, TruncFlags flags) {
     if (inDeadCode()) {
       return nullptr;
     }
-    auto* ins = MWasmBuiltinTruncateToInt64::New(alloc(), op, tlsPointer_,
+    auto* ins = MWasmBuiltinTruncateToInt64::New(alloc(), op, instancePointer_,
                                                  flags, bytecodeOffset());
     curBlock_->add(ins);
     return ins;
@@ -1146,16 +961,17 @@ class FunctionCompiler {
   // addresses and bounds checking" in WasmMemory.cpp.
 
  private:
-  // If the platform does not have a HeapReg, load the memory base from Tls.
-  MWasmLoadTls* maybeLoadMemoryBase() {
-    MWasmLoadTls* load = nullptr;
+  // If the platform does not have a HeapReg, load the memory base from
+  // instance.
+  MWasmLoadInstance* maybeLoadMemoryBase() {
+    MWasmLoadInstance* load = nullptr;
 #ifdef JS_CODEGEN_X86
     AliasSet aliases = !moduleEnv_.memory->canMovingGrow()
                            ? AliasSet::None()
                            : AliasSet::Load(AliasSet::WasmHeapMeta);
-    load = MWasmLoadTls::New(alloc(), tlsPointer_,
-                             offsetof(wasm::TlsData, memoryBase),
-                             MIRType::Pointer, aliases);
+    load = MWasmLoadInstance::New(alloc(), instancePointer_,
+                                  wasm::Instance::offsetOfMemoryBase(),
+                                  MIRType::Pointer, aliases);
     curBlock_->add(load);
 #endif
     return load;
@@ -1169,15 +985,15 @@ class FunctionCompiler {
     AliasSet aliases = !moduleEnv_.memory->canMovingGrow()
                            ? AliasSet::None()
                            : AliasSet::Load(AliasSet::WasmHeapMeta);
-    base = MWasmHeapBase::New(alloc(), tlsPointer_, aliases);
+    base = MWasmHeapBase::New(alloc(), instancePointer_, aliases);
     curBlock_->add(base);
     return base;
   }
 
  private:
   // If the bounds checking strategy requires it, load the bounds check limit
-  // from the Tls.
-  MWasmLoadTls* maybeLoadBoundsCheckLimit(MIRType type) {
+  // from the instance.
+  MWasmLoadInstance* maybeLoadBoundsCheckLimit(MIRType type) {
     MOZ_ASSERT(type == MIRType::Int32 || type == MIRType::Int64);
     if (moduleEnv_.hugeMemoryEnabled()) {
       return nullptr;
@@ -1185,9 +1001,9 @@ class FunctionCompiler {
     AliasSet aliases = !moduleEnv_.memory->canMovingGrow()
                            ? AliasSet::None()
                            : AliasSet::Load(AliasSet::WasmHeapMeta);
-    auto* load = MWasmLoadTls::New(alloc(), tlsPointer_,
-                                   offsetof(wasm::TlsData, boundsCheckLimit),
-                                   type, aliases);
+    auto* load = MWasmLoadInstance::New(
+        alloc(), instancePointer_, wasm::Instance::offsetOfBoundsCheckLimit(),
+        type, aliases);
     curBlock_->add(load);
     return load;
   }
@@ -1273,7 +1089,7 @@ class FunctionCompiler {
     }
   }
 
-  MWasmLoadTls* needBoundsCheck() {
+  MWasmLoadInstance* needBoundsCheck() {
 #ifdef JS_64BIT
     // For 32-bit base pointers:
     //
@@ -1298,7 +1114,8 @@ class FunctionCompiler {
         mem32LimitIs64Bits || isMem64() ? MIRType::Int64 : MIRType::Int32);
   }
 
-  void performBoundsCheck(MDefinition** base, MWasmLoadTls* boundsCheckLimit) {
+  void performBoundsCheck(MDefinition** base,
+                          MWasmLoadInstance* boundsCheckLimit) {
     // At the outset, actualBase could be the result of pretty much any integer
     // operation, or it could be the load of an integer constant.  If its type
     // is i32, we may assume the value has a canonical representation for the
@@ -1315,8 +1132,9 @@ class FunctionCompiler {
       actualBase = extended;
     }
 
-    auto* ins = MWasmBoundsCheck::New(alloc(), actualBase, boundsCheckLimit,
-                                      bytecodeOffset());
+    auto* ins =
+        MWasmBoundsCheck::New(alloc(), actualBase, boundsCheckLimit,
+                              bytecodeOffset(), MWasmBoundsCheck::Memory);
     curBlock_->add(ins);
     actualBase = ins;
 
@@ -1369,7 +1187,7 @@ class FunctionCompiler {
 
     // Emit the bounds check if necessary; it traps if it fails.  This may
     // update *base.
-    MWasmLoadTls* boundsCheckLimit = needBoundsCheck();
+    MWasmLoadInstance* boundsCheckLimit = needBoundsCheck();
     if (boundsCheckLimit) {
       performBoundsCheck(base, boundsCheckLimit);
     }
@@ -1433,11 +1251,11 @@ class FunctionCompiler {
       return nullptr;
     }
 
-    MWasmLoadTls* memoryBase = maybeLoadMemoryBase();
+    MWasmLoadInstance* memoryBase = maybeLoadMemoryBase();
     MInstruction* load = nullptr;
     if (moduleEnv_.isAsmJS()) {
       MOZ_ASSERT(access->offset64() == 0);
-      MWasmLoadTls* boundsCheckLimit =
+      MWasmLoadInstance* boundsCheckLimit =
           maybeLoadBoundsCheckLimit(MIRType::Int32);
       load = MAsmJSLoadHeap::New(alloc(), memoryBase, base, boundsCheckLimit,
                                  access->type());
@@ -1461,11 +1279,11 @@ class FunctionCompiler {
       return;
     }
 
-    MWasmLoadTls* memoryBase = maybeLoadMemoryBase();
+    MWasmLoadInstance* memoryBase = maybeLoadMemoryBase();
     MInstruction* store = nullptr;
     if (moduleEnv_.isAsmJS()) {
       MOZ_ASSERT(access->offset64() == 0);
-      MWasmLoadTls* boundsCheckLimit =
+      MWasmLoadInstance* boundsCheckLimit =
           maybeLoadBoundsCheckLimit(MIRType::Int32);
       store = MAsmJSStoreHeap::New(alloc(), memoryBase, base, boundsCheckLimit,
                                    access->type(), v);
@@ -1507,10 +1325,10 @@ class FunctionCompiler {
       newv = cvtNewv;
     }
 
-    MWasmLoadTls* memoryBase = maybeLoadMemoryBase();
-    MInstruction* cas =
-        MWasmCompareExchangeHeap::New(alloc(), bytecodeOffset(), memoryBase,
-                                      base, *access, oldv, newv, tlsPointer_);
+    MWasmLoadInstance* memoryBase = maybeLoadMemoryBase();
+    MInstruction* cas = MWasmCompareExchangeHeap::New(
+        alloc(), bytecodeOffset(), memoryBase, base, *access, oldv, newv,
+        instancePointer_);
     if (!cas) {
       return nullptr;
     }
@@ -1542,10 +1360,10 @@ class FunctionCompiler {
       value = cvtValue;
     }
 
-    MWasmLoadTls* memoryBase = maybeLoadMemoryBase();
+    MWasmLoadInstance* memoryBase = maybeLoadMemoryBase();
     MInstruction* xchg =
         MWasmAtomicExchangeHeap::New(alloc(), bytecodeOffset(), memoryBase,
-                                     base, *access, value, tlsPointer_);
+                                     base, *access, value, instancePointer_);
     if (!xchg) {
       return nullptr;
     }
@@ -1578,10 +1396,10 @@ class FunctionCompiler {
       value = cvtValue;
     }
 
-    MWasmLoadTls* memoryBase = maybeLoadMemoryBase();
+    MWasmLoadInstance* memoryBase = maybeLoadMemoryBase();
     MInstruction* binop =
         MWasmAtomicBinopHeap::New(alloc(), bytecodeOffset(), op, memoryBase,
-                                  base, *access, value, tlsPointer_);
+                                  base, *access, value, instancePointer_);
     if (!binop) {
       return nullptr;
     }
@@ -1666,7 +1484,7 @@ class FunctionCompiler {
 
     MemoryAccessDesc access(Scalar::Simd128, addr.align, addr.offset,
                             bytecodeIfNotAsmJS());
-    MWasmLoadTls* memoryBase = maybeLoadMemoryBase();
+    MWasmLoadInstance* memoryBase = maybeLoadMemoryBase();
     MDefinition* base = addr.base;
     MOZ_ASSERT(!moduleEnv_.isAsmJS());
     checkOffsetAndAlignmentAndBounds(&access, &base);
@@ -1690,7 +1508,7 @@ class FunctionCompiler {
     }
     MemoryAccessDesc access(Scalar::Simd128, addr.align, addr.offset,
                             bytecodeIfNotAsmJS());
-    MWasmLoadTls* memoryBase = maybeLoadMemoryBase();
+    MWasmLoadInstance* memoryBase = maybeLoadMemoryBase();
     MDefinition* base = addr.base;
     MOZ_ASSERT(!moduleEnv_.isAsmJS());
     checkOffsetAndAlignmentAndBounds(&access, &base);
@@ -1716,7 +1534,7 @@ class FunctionCompiler {
 
     MInstruction* load;
     if (isIndirect) {
-      // Pull a pointer to the value out of TlsData::globalArea, then
+      // Pull a pointer to the value out of Instance::globalArea, then
       // load from that pointer.  Note that the pointer is immutable
       // even though the value it points at may change, hence the use of
       // |true| for the first node's |isConst| value, irrespective of
@@ -1724,57 +1542,153 @@ class FunctionCompiler {
       // applies to the denoted value as a whole.
       auto* cellPtr =
           MWasmLoadGlobalVar::New(alloc(), MIRType::Pointer, globalDataOffset,
-                                  /*isConst=*/true, tlsPointer_);
+                                  /*isConst=*/true, instancePointer_);
       curBlock_->add(cellPtr);
       load = MWasmLoadGlobalCell::New(alloc(), type, cellPtr);
     } else {
-      // Pull the value directly out of TlsData::globalArea.
+      // Pull the value directly out of Instance::globalArea.
       load = MWasmLoadGlobalVar::New(alloc(), type, globalDataOffset, isConst,
-                                     tlsPointer_);
+                                     instancePointer_);
     }
     curBlock_->add(load);
     return load;
   }
 
-  MInstruction* storeGlobalVar(uint32_t globalDataOffset, bool isIndirect,
-                               MDefinition* v) {
+  bool storeGlobalVar(uint32_t lineOrBytecode, uint32_t globalDataOffset,
+                      bool isIndirect, MDefinition* v) {
     if (inDeadCode()) {
-      return nullptr;
+      return true;
     }
 
-    MInstruction* store;
-    MInstruction* valueAddr = nullptr;
     if (isIndirect) {
-      // Pull a pointer to the value out of TlsData::globalArea, then
+      // Pull a pointer to the value out of Instance::globalArea, then
       // store through that pointer.
-      auto* cellPtr =
+      auto* valueAddr =
           MWasmLoadGlobalVar::New(alloc(), MIRType::Pointer, globalDataOffset,
-                                  /*isConst=*/true, tlsPointer_);
-      curBlock_->add(cellPtr);
+                                  /*isConst=*/true, instancePointer_);
+      curBlock_->add(valueAddr);
+
+      // Handle a store to a ref-typed field specially
       if (v->type() == MIRType::RefOrNull) {
-        valueAddr = cellPtr;
-        store = MWasmStoreRef::New(alloc(), tlsPointer_, valueAddr, v,
-                                   AliasSet::WasmGlobalCell);
-      } else {
-        store = MWasmStoreGlobalCell::New(alloc(), v, cellPtr);
+        // Load the previous value for the post-write barrier
+        auto* prevValue =
+            MWasmLoadGlobalCell::New(alloc(), MIRType::RefOrNull, valueAddr);
+        curBlock_->add(prevValue);
+
+        // Store the new value
+        auto* store = MWasmStoreRef::New(alloc(), instancePointer_, valueAddr,
+                                         v, AliasSet::WasmGlobalCell);
+        curBlock_->add(store);
+
+        // Call the post-write barrier
+        return postBarrierPrecise(lineOrBytecode, valueAddr, prevValue);
       }
-    } else {
-      // Store the value directly in TlsData::globalArea.
-      if (v->type() == MIRType::RefOrNull) {
-        valueAddr = MWasmDerivedPointer::New(
-            alloc(), tlsPointer_,
-            offsetof(wasm::TlsData, globalArea) + globalDataOffset);
-        curBlock_->add(valueAddr);
-        store = MWasmStoreRef::New(alloc(), tlsPointer_, valueAddr, v,
-                                   AliasSet::WasmGlobalVar);
-      } else {
-        store =
-            MWasmStoreGlobalVar::New(alloc(), globalDataOffset, v, tlsPointer_);
-      }
+
+      auto* store = MWasmStoreGlobalCell::New(alloc(), v, valueAddr);
+      curBlock_->add(store);
+      return true;
     }
+    // Or else store the value directly in Instance::globalArea.
+
+    // Handle a store to a ref-typed field specially
+    if (v->type() == MIRType::RefOrNull) {
+      // Compute the address of the ref-typed global
+      auto* valueAddr = MWasmDerivedPointer::New(
+          alloc(), instancePointer_,
+          wasm::Instance::offsetOfGlobalArea() + globalDataOffset);
+      curBlock_->add(valueAddr);
+
+      // Load the previous value for the post-write barrier
+      auto* prevValue =
+          MWasmLoadGlobalCell::New(alloc(), MIRType::RefOrNull, valueAddr);
+      curBlock_->add(prevValue);
+
+      // Store the new value
+      auto* store = MWasmStoreRef::New(alloc(), instancePointer_, valueAddr, v,
+                                       AliasSet::WasmGlobalVar);
+      curBlock_->add(store);
+
+      // Call the post-write barrier
+      return postBarrierPrecise(lineOrBytecode, valueAddr, prevValue);
+    }
+
+    auto* store = MWasmStoreGlobalVar::New(alloc(), globalDataOffset, v,
+                                           instancePointer_);
+    curBlock_->add(store);
+    return true;
+  }
+
+  MDefinition* loadTableField(const TableDesc& table, unsigned fieldOffset,
+                              MIRType type) {
+    uint32_t globalDataOffset = wasm::Instance::offsetOfGlobalArea() +
+                                table.globalDataOffset + fieldOffset;
+    auto* load =
+        MWasmLoadInstance::New(alloc(), instancePointer_, globalDataOffset,
+                               type, AliasSet::Load(AliasSet::WasmTableMeta));
+    curBlock_->add(load);
+    return load;
+  }
+
+  MDefinition* loadTableLength(const TableDesc& table) {
+    return loadTableField(table, offsetof(TableInstanceData, length),
+                          MIRType::Int32);
+  }
+
+  MDefinition* loadTableElements(const TableDesc& table) {
+    return loadTableField(table, offsetof(TableInstanceData, elements),
+                          MIRType::Pointer);
+  }
+
+  MDefinition* tableGetAnyRef(const TableDesc& table, MDefinition* index) {
+    // Load the table length and perform a bounds check with spectre index
+    // masking
+    auto* length = loadTableLength(table);
+    auto* check = MWasmBoundsCheck::New(
+        alloc(), index, length, bytecodeOffset(), MWasmBoundsCheck::Table);
+    curBlock_->add(check);
+    if (JitOptions.spectreIndexMasking) {
+      index = check;
+    }
+
+    // Load the table elements and load the element
+    auto* elements = loadTableElements(table);
+    auto* element = MWasmLoadTableElement::New(alloc(), elements, index);
+    curBlock_->add(element);
+    return element;
+  }
+
+  [[nodiscard]] bool tableSetAnyRef(const TableDesc& table, MDefinition* index,
+                                    MDefinition* value,
+                                    uint32_t lineOrBytecode) {
+    // Load the table length and perform a bounds check with spectre index
+    // masking
+    auto* length = loadTableLength(table);
+    auto* check = MWasmBoundsCheck::New(
+        alloc(), index, length, bytecodeOffset(), MWasmBoundsCheck::Table);
+    curBlock_->add(check);
+    if (JitOptions.spectreIndexMasking) {
+      index = check;
+    }
+
+    // Load the table elements
+    auto* elements = loadTableElements(table);
+
+    // Load the previous value
+    auto* prevValue = MWasmLoadTableElement::New(alloc(), elements, index);
+    curBlock_->add(prevValue);
+
+    // Compute the value's location for the post barrier
+    auto* loc =
+        MWasmDerivedIndexPointer::New(alloc(), elements, index, ScalePointer);
+    curBlock_->add(loc);
+
+    // Store the new value
+    auto* store = MWasmStoreRef::New(alloc(), instancePointer_, loc, value,
+                                     AliasSet::WasmTableElement);
     curBlock_->add(store);
 
-    return valueAddr;
+    // Perform the post barrier
+    return postBarrierPrecise(lineOrBytecode, loc, prevValue);
   }
 
   void addInterruptCheck() {
@@ -1782,7 +1696,27 @@ class FunctionCompiler {
       return;
     }
     curBlock_->add(
-        MWasmInterruptCheck::New(alloc(), tlsPointer_, bytecodeOffset()));
+        MWasmInterruptCheck::New(alloc(), instancePointer_, bytecodeOffset()));
+  }
+
+  bool postBarrierPrecise(uint32_t lineOrBytecode, MDefinition* valueAddr,
+                          MDefinition* value) {
+    const SymbolicAddressSignature& callee = SASigPostBarrierPrecise;
+    CallCompileState args;
+    if (!passInstance(callee.argTypes[0], &args)) {
+      return false;
+    }
+    if (!passArg(valueAddr, callee.argTypes[1], &args)) {
+      return false;
+    }
+    if (!passArg(value, callee.argTypes[2], &args)) {
+      return false;
+    }
+    finishCall(&args);
+    if (!builtinInstanceMethodCall(callee, lineOrBytecode, args)) {
+      return false;
+    }
+    return true;
   }
 
   /***************************************************************** Calls */
@@ -1825,14 +1759,14 @@ class FunctionCompiler {
             MWrapInt64ToInt32::New(alloc(), argDef, /* bottomHalf = */ false);
         curBlock_->add(mirHigh);
         return call->regArgs_.append(
-                   MWasmCall::Arg(AnyRegister(arg.gpr64().low), mirLow)) &&
+                   MWasmCallBase::Arg(AnyRegister(arg.gpr64().low), mirLow)) &&
                call->regArgs_.append(
-                   MWasmCall::Arg(AnyRegister(arg.gpr64().high), mirHigh));
+                   MWasmCallBase::Arg(AnyRegister(arg.gpr64().high), mirHigh));
       }
 #endif
       case ABIArg::GPR:
       case ABIArg::FPU:
-        return call->regArgs_.append(MWasmCall::Arg(arg.reg(), argDef));
+        return call->regArgs_.append(MWasmCallBase::Arg(arg.reg(), argDef));
       case ABIArg::Stack: {
         auto* mir =
             MWasmStackArg::New(alloc(), arg.offsetFromArgBase(), argDef);
@@ -1915,7 +1849,7 @@ class FunctionCompiler {
     }
 
     if (!call->regArgs_.append(
-            MWasmCall::Arg(AnyRegister(WasmTlsReg), tlsPointer_))) {
+            MWasmCallBase::Arg(AnyRegister(InstanceReg), instancePointer_))) {
       return false;
     }
 
@@ -2037,6 +1971,36 @@ class FunctionCompiler {
     return true;
   }
 
+  bool catchableCall(const CallSiteDesc& desc, const CalleeDesc& callee,
+                     const MWasmCallBase::Args& args,
+                     const ArgTypeVector& argTypes,
+                     MDefinition* index = nullptr) {
+    MWasmCallTryDesc tryDesc;
+    if (!beginTryCall(&tryDesc)) {
+      return false;
+    }
+
+    MInstruction* ins;
+    if (tryDesc.inTry) {
+      ins = MWasmCallCatchable::New(alloc(), desc, callee, args,
+                                    StackArgAreaSizeUnaligned(argTypes),
+                                    tryDesc, index);
+    } else {
+      ins =
+          MWasmCallUncatchable::New(alloc(), desc, callee, args,
+                                    StackArgAreaSizeUnaligned(argTypes), index);
+    }
+    if (!ins) {
+      return false;
+    }
+    curBlock_->add(ins);
+
+    if (!finishTryCall(&tryDesc)) {
+      return false;
+    }
+    return true;
+  }
+
   bool callDirect(const FuncType& funcType, uint32_t funcIndex,
                   uint32_t lineOrBytecode, const CallCompileState& call,
                   DefVector* results) {
@@ -2048,20 +2012,10 @@ class FunctionCompiler {
     ResultType resultType = ResultType::Vector(funcType.results());
     auto callee = CalleeDesc::function(funcIndex);
     ArgTypeVector args(funcType);
-    bool inTry = false;
-#ifdef ENABLE_WASM_EXCEPTIONS
-    // If we are in Wasm try code, this call must initialise a WasmTryNote
-    // during code generation. This flag is set here.
-    inTry = inTryCode();
-#endif
-    auto* ins = MWasmCall::New(alloc(), desc, callee, call.regArgs_,
-                               StackArgAreaSizeUnaligned(args), inTry);
-    if (!ins) {
+
+    if (!catchableCall(desc, callee, call.regArgs_, args)) {
       return false;
     }
-
-    curBlock_->add(ins);
-
     return collectCallResults(resultType, call.stackResultArea_, results);
   }
 
@@ -2100,20 +2054,10 @@ class FunctionCompiler {
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Indirect);
     ArgTypeVector args(funcType);
     ResultType resultType = ResultType::Vector(funcType.results());
-    bool inTry = false;
-#ifdef ENABLE_WASM_EXCEPTIONS
-    // If we are in Wasm try code, this call must initialise a WasmTryNote
-    // during code generation. This flag is set here.
-    inTry = inTryCode();
-#endif
-    auto* ins = MWasmCall::New(alloc(), desc, callee, call.regArgs_,
-                               StackArgAreaSizeUnaligned(args), inTry, index);
-    if (!ins) {
+
+    if (!catchableCall(desc, callee, call.regArgs_, args, index)) {
       return false;
     }
-
-    curBlock_->add(ins);
-
     return collectCallResults(resultType, call.stackResultArea_, results);
   }
 
@@ -2128,20 +2072,10 @@ class FunctionCompiler {
     auto callee = CalleeDesc::import(globalDataOffset);
     ArgTypeVector args(funcType);
     ResultType resultType = ResultType::Vector(funcType.results());
-    bool inTry = false;
-#ifdef ENABLE_WASM_EXCEPTIONS
-    // If we are in Wasm try code, this call must initialise a WasmTryNote
-    // during code generation. This flag is set here.
-    inTry = inTryCode();
-#endif
-    auto* ins = MWasmCall::New(alloc(), desc, callee, call.regArgs_,
-                               StackArgAreaSizeUnaligned(args), inTry);
-    if (!ins) {
+
+    if (!catchableCall(desc, callee, call.regArgs_, args)) {
       return false;
     }
-
-    curBlock_->add(ins);
-
     return collectCallResults(resultType, call.stackResultArea_, results);
   }
 
@@ -2157,8 +2091,8 @@ class FunctionCompiler {
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Symbolic);
     auto callee = CalleeDesc::builtin(builtin.identity);
-    auto* ins = MWasmCall::New(alloc(), desc, callee, call.regArgs_,
-                               StackArgAreaSizeUnaligned(builtin), false);
+    auto* ins = MWasmCallUncatchable::New(alloc(), desc, callee, call.regArgs_,
+                                          StackArgAreaSizeUnaligned(builtin));
     if (!ins) {
       return false;
     }
@@ -2181,7 +2115,7 @@ class FunctionCompiler {
     }
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Symbolic);
-    auto* ins = MWasmCall::NewBuiltinInstanceMethodCall(
+    auto* ins = MWasmCallUncatchable::NewBuiltinInstanceMethodCall(
         alloc(), desc, builtin.identity, builtin.failureMode, call.instanceArg_,
         call.regArgs_, StackArgAreaSizeUnaligned(builtin));
     if (!ins) {
@@ -2203,7 +2137,7 @@ class FunctionCompiler {
     }
 
     if (values.empty()) {
-      curBlock_->end(MWasmReturnVoid::New(alloc(), tlsPointer_));
+      curBlock_->end(MWasmReturnVoid::New(alloc(), instancePointer_));
     } else {
       ResultType resultType = ResultType::Vector(funcType().results());
       ABIResultIter iter(resultType);
@@ -2224,7 +2158,7 @@ class FunctionCompiler {
                                                  result.stackOffset());
             curBlock_->add(loc);
             auto* store =
-                MWasmStoreRef::New(alloc(), tlsPointer_, loc, values[i],
+                MWasmStoreRef::New(alloc(), instancePointer_, loc, values[i],
                                    AliasSet::WasmStackResult);
             curBlock_->add(store);
           } else {
@@ -2235,7 +2169,8 @@ class FunctionCompiler {
         } else {
           MOZ_ASSERT(iter.remaining() == 1);
           MOZ_ASSERT(i + 1 == values.length());
-          curBlock_->end(MWasmReturn::New(alloc(), values[i], tlsPointer_));
+          curBlock_->end(
+              MWasmReturn::New(alloc(), values[i], instancePointer_));
         }
       }
     }
@@ -2485,9 +2420,9 @@ class FunctionCompiler {
     // Pending jumps to an enclosing try-catch may reference the recycled phis.
     // We have to search above all enclosing try blocks, as a delegate may move
     // patches around.
-#ifdef ENABLE_WASM_EXCEPTIONS
     for (uint32_t depth = 0; depth < iter().controlStackDepth(); depth++) {
-      if (iter().controlKind(depth) != LabelKind::Try) {
+      LabelKind kind = iter().controlKind(depth);
+      if (kind != LabelKind::Try && kind != LabelKind::Body) {
         continue;
       }
       Control& control = iter().controlItem(depth);
@@ -2498,7 +2433,6 @@ class FunctionCompiler {
         }
       }
     }
-#endif
 
     // Discard redundant phis and add to the free list.
     for (MPhiIterator phi = loopEntry->phisBegin();
@@ -2707,7 +2641,6 @@ class FunctionCompiler {
 
   /********************************************************** Exceptions ***/
 
-#ifdef ENABLE_WASM_EXCEPTIONS
   bool inTryBlock(uint32_t* relativeDepth) {
     return iter().controlFindInnermost(LabelKind::Try, relativeDepth);
   }
@@ -2717,19 +2650,49 @@ class FunctionCompiler {
     return inTryBlock(&relativeDepth);
   }
 
-  bool clearExceptionGetTag(MDefinition** tagIndex) {
-    // This clears the pending exception from the tls data and returns the
-    // exception's local tag index.
-    uint32_t lineOrBytecode = readCallSiteLineOrBytecode();
-    const SymbolicAddressSignature& callee = SASigConsumePendingException;
-    CallCompileState args;
-    if (!passInstance(callee.argTypes[0], &args)) {
+  MDefinition* loadTag(uint32_t tagIndex) {
+    MWasmLoadGlobalVar* tag = MWasmLoadGlobalVar::New(
+        alloc(), MIRType::RefOrNull, moduleEnv_.tags[tagIndex].globalDataOffset,
+        true, instancePointer_);
+    curBlock_->add(tag);
+    return tag;
+  }
+
+  void loadPendingExceptionState(MInstruction** exception, MInstruction** tag) {
+    *exception = MWasmLoadInstance::New(
+        alloc(), instancePointer_, wasm::Instance::offsetOfPendingException(),
+        MIRType::RefOrNull, AliasSet::Load(AliasSet::WasmPendingException));
+    curBlock_->add(*exception);
+
+    *tag = MWasmLoadInstance::New(
+        alloc(), instancePointer_,
+        wasm::Instance::offsetOfPendingExceptionTag(), MIRType::RefOrNull,
+        AliasSet::Load(AliasSet::WasmPendingException));
+    curBlock_->add(*tag);
+  }
+
+  bool setPendingExceptionState(MDefinition* exception, MDefinition* tag) {
+    // Set the pending exception object
+    auto* exceptionAddr = MWasmDerivedPointer::New(
+        alloc(), instancePointer_, Instance::offsetOfPendingException());
+    curBlock_->add(exceptionAddr);
+    auto* setException =
+        MWasmStoreRef::New(alloc(), instancePointer_, exceptionAddr, exception,
+                           AliasSet::WasmPendingException);
+    curBlock_->add(setException);
+    if (!postBarrierPrecise(0, exceptionAddr, exception)) {
       return false;
     }
-    if (!finishCall(&args)) {
-      return false;
-    }
-    return builtinInstanceMethodCall(callee, lineOrBytecode, args, tagIndex);
+
+    // Set the pending exception tag object
+    auto* exceptionTagAddr = MWasmDerivedPointer::New(
+        alloc(), instancePointer_, Instance::offsetOfPendingExceptionTag());
+    curBlock_->add(exceptionTagAddr);
+    auto* setExceptionTag =
+        MWasmStoreRef::New(alloc(), instancePointer_, exceptionTagAddr, tag,
+                           AliasSet::WasmPendingException);
+    curBlock_->add(setExceptionTag);
+    return postBarrierPrecise(0, exceptionTagAddr, tag);
   }
 
   bool addPadPatch(MControlInstruction* ins, size_t relativeTryDepth) {
@@ -2738,306 +2701,15 @@ class FunctionCompiler {
     return padPatches.emplaceBack(ins);
   }
 
-  bool endWithPadPatch(MBasicBlock* block, MDefinition* exn,
-                       MDefinition* tagIndex, uint32_t relativeTryDepth) {
-    MOZ_ASSERT(iter().controlKind(relativeTryDepth) == LabelKind::Try);
-    MOZ_ASSERT(exn);
-    MOZ_ASSERT(exn->type() == MIRType::RefOrNull);
-    MOZ_ASSERT(tagIndex && tagIndex->type() == MIRType::Int32);
-    MOZ_ASSERT(numPushed(block) == 0);
-
-    // Push the exception and its tag index on the stack to make them available
-    // to the landing pad.
-    if (!block->ensureHasSlots(2)) {
-      return false;
-    }
-    block->push(exn);
-    block->push(tagIndex);
-
-    MGoto* insToPatch = MGoto::New(alloc());
-    block->end(insToPatch);
-
-    return addPadPatch(insToPatch, relativeTryDepth);
+  bool endWithPadPatch(uint32_t relativeTryDepth) {
+    MGoto* jumpToLandingPad = MGoto::New(alloc());
+    curBlock_->end(jumpToLandingPad);
+    return addPadPatch(jumpToLandingPad, relativeTryDepth);
   }
 
-  bool checkPendingExceptionAndBranch(uint32_t relativeTryDepth) {
-    // Assuming we're in a Wasm try block, branch to a new pre-pad block, if
-    // there exists a pendingException in the Wasm TlsData.
-
-    MOZ_ASSERT(inTryCode());
-
-    // Get the contents of pendingException from the Wasm TlsData.
-    MWasmLoadTls* pendingException = MWasmLoadTls::New(
-        alloc(), tlsPointer_, offsetof(wasm::TlsData, pendingException),
-        MIRType::RefOrNull, AliasSet::Load(AliasSet::WasmPendingException));
-    curBlock_->add(pendingException);
-
-    // Set up a test to see if there was a pending exception or not.
-    MBasicBlock* fallthroughBlock = nullptr;
-    if (!newBlock(curBlock_, &fallthroughBlock)) {
-      return false;
-    }
-    MBasicBlock* prePadBlock = nullptr;
-    if (!newBlock(curBlock_, &prePadBlock)) {
-      return false;
-    }
-    MDefinition* nullVal = nullRefConstant();
-    // We use a not-equal comparison to benefit the non-exceptional common case.
-    MDefinition* pendingExceptionIsNotNull = compare(
-        pendingException, nullVal, JSOp::Ne, MCompare::Compare_RefOrNull);
-
-    // Here we don't null check nullVal and pendingExceptionIsNull because the
-    // temp allocator ballast should make allocation infallible.
-
-    MTest* branchIfNull = MTest::New(alloc(), pendingExceptionIsNotNull,
-                                     prePadBlock, fallthroughBlock);
-    curBlock_->end(branchIfNull);
-    curBlock_ = prePadBlock;
-
-    // Clear pending exception and get the exceptions local tag index.
-    MDefinition* tagIndex = nullptr;
-    if (!clearExceptionGetTag(&tagIndex)) {
-      return false;
-    }
-
-    // Finish the prePadBlock with a patch.
-    if (!endWithPadPatch(prePadBlock, pendingException, tagIndex,
-                         relativeTryDepth)) {
-      return false;
-    }
-
-    // Compilation continues in the fallthroughBlock.
-    curBlock_ = fallthroughBlock;
-    return true;
-  }
-
-  bool maybeCheckPendingExceptionAfterCall() {
-    uint32_t relativeTryDepth;
-    return !inTryBlock(&relativeTryDepth) ||
-           checkPendingExceptionAndBranch(relativeTryDepth);
-  }
-
-  // If there are throws or calls in the try block, then there are stored
-  // pad-patches (a ControlInstructionVector) for this control item. The
-  // following function binds these control instructions (branches) to a join
-  // which will become the landing pad, and also become the curBlock_.
-  //
-  // For the latter to work, the last block in the try code (the curBlock_)
-  // should be either dead code or finished before maybeCreateTryPadBlock gets
-  // called. This function should only be called when try code ends.
-  bool maybeCreateTryPadBlock(Control& catching) {
-    // Make sure the last block in try code is finished.
-    MOZ_ASSERT(inDeadCode() || curBlock_->hasLastIns());
-
-    // If there are no pad-patches for this try control, it means there are no
-    // instructions in the try code that could throw a Wasm exception. In this
-    // case, all the catches are dead code, and the try code ends up equivalent
-    // to a plain Wasm block.
-    ControlInstructionVector& patches = catching.tryPadPatches;
-    if (patches.empty()) {
-      curBlock_ = nullptr;
-      return true;
-    }
-
-    // Otherwise, if there are (pad-) branches from places in the try code that
-    // may throw a Wasm exception, bind these branches to a new landing pad
-    // block. This is done similarly to what is done in bindBranches.
-    MControlInstruction* ins = patches[0];
-    MBasicBlock* pred = ins->block();
-    MBasicBlock* pad = nullptr;
-    if (!newBlock(pred, &pad)) {
-      return false;
-    }
-    ins->replaceSuccessor(0, pad);
-    for (size_t i = 1; i < patches.length(); i++) {
-      ins = patches[i];
-      pred = ins->block();
-      if (!pad->addPredecessor(alloc(), pred)) {
-        return false;
-      }
-      ins->replaceSuccessor(0, pad);
-    }
-
-    // At this point we have finished the try or previous catch block, with a
-    // control flow patch to be joined with the end if each catch block. We are
-    // now ready to start the landing pad, which will eventually branch to each
-    // catch block.
-    curBlock_ = pad;
-    mirGraph().moveBlockToEnd(curBlock_);
-    mirGraph().setHasTryBlock();
-
-    // Clear the now bound pad patches.
-    patches.clear();
-    return true;
-  }
-
-  bool emitTry(MBasicBlock** curBlock) {
-    *curBlock = curBlock_;
-    return startBlock();
-  }
-
-  bool finishTryOrCatchBlock(Control& control) {
-    if (inDeadCode()) {
-      return true;
-    }
-
-    // If we are not in dead code, then this is a split path which we'll need
-    // to join later, using a control flow patch.
-    MOZ_ASSERT(!curBlock_->hasLastIns());
-    MGoto* jump = MGoto::New(alloc());
-    if (!addControlFlowPatch(jump, 0, MGoto::TargetIndex)) {
-      return false;
-    }
-
-    // Finish the current block with the control flow patch instruction.
-    curBlock_->end(jump);
-    return true;
-  }
-
-  bool switchToCatch(const LabelKind& kind, uint32_t tagIndex,
-                     Control& control) {
-    // Finish the previous block (either a try or catch block) and then setup a
-    // new catch block.
-
-    // If there is no control block (which is the entry block for `try` and the
-    // landing pad block for `catch`/`catch_all`) then we are in dead code.
-    if (!control.block) {
-      MOZ_ASSERT(inDeadCode());
-      return true;
-    }
-
-    if (!finishTryOrCatchBlock(control)) {
-      return false;
-    }
-
-    // Finish a try block by emitting a landing pad if there was any code that
-    // may throw.
-    if (kind == LabelKind::Try) {
-      if (!maybeCreateTryPadBlock(control)) {
-        return false;
-      }
-
-      // The landing pad becomes the control block.
-      control.block = curBlock_;
-
-      // If there is no landing pad created, the catches are dead code.
-      if (curBlock_ == nullptr) {
-        return true;
-      }
-
-      // If there is a landing pad, then it has exactly two slots pushed, the
-      // caught exception and its tag index.
-      MOZ_ASSERT(numPushed(curBlock_) == 2);
-
-      // If this is a single catch_all after a try block then we don't need the
-      // exception nor its tag index. So we pop these and there's nothing else
-      // to do.
-      if (tagIndex == CatchAllIndex) {
-        MBasicBlock* catchAllBlock = nullptr;
-        if (!goToNewBlock(curBlock_, &catchAllBlock)) {
-          return false;
-        }
-        control.catchAllBlock = catchAllBlock;
-        curBlock_ = catchAllBlock;
-        curBlock_->pop();
-        curBlock_->pop();
-        return true;
-      }
-
-      MOZ_ASSERT(control.tryCatches.empty());
-    }
-
-    // Get the landing pad.
-    MBasicBlock* padBlock = control.block;
-
-    // If this is not a catch_all and if tagIndex is already handled, then this
-    // catch is dead.
-    if (tagIndex != CatchAllIndex && control.tagAlreadyHandled(tagIndex)) {
-      curBlock_ = nullptr;
-      return true;
-    }
-
-    // Create a new block for the next catch.
-    MBasicBlock* nextCatch = nullptr;
-    if (!newBlock(padBlock, &nextCatch)) {
-      return false;
-    }
-
-    // If this is a catch_all, mark it in the control as such, otherwise collect
-    // the catch info into the control's tryCatches.
-    if (tagIndex == CatchAllIndex) {
-      control.catchAllBlock = nextCatch;
-    } else {
-      CatchInfo catchInfo(tagIndex, nextCatch);
-      if (!control.tryCatches.emplaceBack(catchInfo)) {
-        return false;
-      }
-    }
-
-    // Pop the exception, extract the exception values if necessary, and
-    // continue with the instructions in the next catch.
-    curBlock_ = nextCatch;
-    mirGraph().moveBlockToEnd(curBlock_);
-    // Pop the tag index, which we don't need, to get to the exception object.
-    curBlock_->pop();
-    MDefinition* exn = curBlock_->pop();
-    MOZ_ASSERT(exn->type() == MIRType::RefOrNull);
-
-    // Nothing left to do for a catch_all block, as it gets no params.
-    if (tagIndex == CatchAllIndex) {
-      return true;
-    }
-
-    // Since this is not a catch_all, extract the exception values.
-    const TagType& tagType = moduleEnv().tags[tagIndex].type;
-    const ValTypeVector& tagParams = tagType.argTypes;
-    const TagOffsetVector& offsets = tagType.argOffsets;
-
-    MWasmExceptionDataPointer* exnDataPtr =
-        MWasmExceptionDataPointer::New(alloc(), exn);
-    curBlock_->add(exnDataPtr);
-    MWasmExceptionRefsPointer* exnRefsPtr =
-        MWasmExceptionRefsPointer::New(alloc(), exn, tagType.refCount);
-    curBlock_->add(exnRefsPtr);
-
-    MIRType type;
-    size_t count = tagParams.length();
-    DefVector loadedValues;
-    // Presize the loadedValues vector to the amount of params.
-    if (!loadedValues.reserve(count)) {
-      return false;
-    }
-
-    for (size_t i = 0; i < count; i++) {
-      int32_t offset = offsets[i];
-      type = ToMIRType(tagParams[i]);
-      if (IsNumberType(type) || tagParams[i].kind() == ValType::V128) {
-        auto* load =
-            MWasmLoadExceptionDataValue::New(alloc(), exnDataPtr, offset, type);
-        if (!load || !loadedValues.append(load)) {
-          return false;
-        }
-        MOZ_ASSERT(load->type() != MIRType::None);
-        curBlock_->add(load);
-      } else {
-        MOZ_ASSERT(tagParams[i].kind() == ValType::Rtt ||
-                   tagParams[i].kind() == ValType::Ref);
-        auto* load =
-            MWasmLoadExceptionRefsValue::New(alloc(), exnRefsPtr, offset);
-        if (!load || !loadedValues.append(load)) {
-          return false;
-        }
-        MOZ_ASSERT(load->type() != MIRType::None);
-        curBlock_->add(load);
-      }
-    }
-    iter().setResults(count, loadedValues);
-    return true;
-  }
-
-  bool delegatePadPatches(const ControlInstructionVector& delegatePadPatches,
+  bool delegatePadPatches(const ControlInstructionVector& patches,
                           uint32_t relativeDepth) {
-    if (delegatePadPatches.empty()) {
+    if (patches.empty()) {
       return true;
     }
 
@@ -3049,7 +2721,7 @@ class FunctionCompiler {
       targetRelativeDepth = blockDepth_ - 1;
     }
     // Append the delegate's pad patches to the target's.
-    for (MControlInstruction* ins : delegatePadPatches) {
+    for (MControlInstruction* ins : patches) {
       if (!addPadPatch(ins, targetRelativeDepth)) {
         return false;
       }
@@ -3057,265 +2729,429 @@ class FunctionCompiler {
     return true;
   }
 
-  bool finishCatchlessTry(Control& control) {
-    // If a try has no catches and nothing that may throw, then we have no work
-    // to do.
-    if (control.tryPadPatches.empty()) {
+  bool beginTryCall(MWasmCallTryDesc* call) {
+    call->inTry = inTryBlock(&call->relativeTryDepth);
+    if (!call->inTry) {
+      return true;
+    }
+    // Allocate a try note
+    if (!tryNotes_.append(WasmTryNote())) {
+      return false;
+    }
+    call->tryNoteIndex = tryNotes_.length() - 1;
+    // Allocate blocks for fallthrough and exceptions
+    return newBlock(curBlock_, &call->fallthroughBlock) &&
+           newBlock(curBlock_, &call->prePadBlock);
+  }
+
+  bool finishTryCall(MWasmCallTryDesc* call) {
+    if (!call->inTry) {
       return true;
     }
 
-    // Delegate all the throwing instructions to an enclosing try block if one
-    // exists, or else to the body block which will handle it in
-    // finishBodyDelegateThrowPad. We specify a relativeDepth of '1' to
-    // delegate outside of the still active try block.
-    uint32_t relativeDepth = 1;
-    if (!delegatePadPatches(control.tryPadPatches, relativeDepth)) {
+    // Switch to the prePadBlock
+    MBasicBlock* callBlock = curBlock_;
+    curBlock_ = call->prePadBlock;
+
+    // Mark this as the landing pad for the call
+    curBlock_->add(
+        MWasmCallLandingPrePad::New(alloc(), callBlock, call->tryNoteIndex));
+
+    // End with a pending jump to the landing pad
+    if (!endWithPadPatch(call->relativeTryDepth)) {
       return false;
     }
+
+    // Compilation continues in the fallthroughBlock.
+    curBlock_ = call->fallthroughBlock;
     return true;
   }
 
-  bool finishBodyDelegateThrowPad(Control& control) {
-    // If a function has no catches and nothing that may throw, then we have no
-    // work to do.
-    if (control.tryPadPatches.empty()) {
+  // Create a landing pad for a try block if there are any throwing
+  // instructions.
+  bool createTryLandingPadIfNeeded(Control& control, MBasicBlock** landingPad) {
+    // If there are no pad-patches for this try control, it means there are no
+    // instructions in the try code that could throw an exception. In this
+    // case, all the catches are dead code, and the try code ends up equivalent
+    // to a plain wasm block.
+    ControlInstructionVector& patches = control.tryPadPatches;
+    if (patches.empty()) {
+      *landingPad = nullptr;
       return true;
     }
 
-    // Note the curBlock_ to return to it after we create the landing pad.
+    // Otherwise, if there are (pad-) branches from places in the try code that
+    // may throw an exception, bind these branches to a new landing pad
+    // block. This is done similarly to what is done in bindBranches.
+    MControlInstruction* ins = patches[0];
+    MBasicBlock* pred = ins->block();
+    if (!newBlock(pred, landingPad)) {
+      return false;
+    }
+    ins->replaceSuccessor(0, *landingPad);
+    for (size_t i = 1; i < patches.length(); i++) {
+      ins = patches[i];
+      pred = ins->block();
+      if (!(*landingPad)->addPredecessor(alloc(), pred)) {
+        return false;
+      }
+      ins->replaceSuccessor(0, *landingPad);
+    }
+
+    // Set up the slots in the landing pad block.
+    if (!setupLandingPadSlots(*landingPad)) {
+      return false;
+    }
+
+    // Clear the now bound pad patches.
+    patches.clear();
+    return true;
+  }
+
+  // Consume the pending exception state from instance, and set up the slots
+  // of the landing pad with the exception state.
+  bool setupLandingPadSlots(MBasicBlock* landingPad) {
     MBasicBlock* prevBlock = curBlock_;
-    curBlock_ = nullptr;
+    curBlock_ = landingPad;
 
-    // Create a landing pad for the pad patches.
-    if (!maybeCreateTryPadBlock(control)) {
+    // Load the pending exception and tag
+    MInstruction* exception;
+    MInstruction* tag;
+    loadPendingExceptionState(&exception, &tag);
+
+    // Clear the pending exception and tag
+    auto* null = nullRefConstant();
+    if (!setPendingExceptionState(null, null)) {
       return false;
     }
 
-    // If there are tryPadPatches (which we ensured in the beginning of this
-    // function), then `maybeCreateTryPadBlock` should create a padBlock and set
-    // curBlock_ to it. So we should not be in dead code but in the landing pad,
-    // which should have two slots.
-    MOZ_ASSERT(!inDeadCode());
-    MOZ_ASSERT(numPushed(curBlock_) == 2);
-
-    // So we are now in a landing pad resulting from pad patches. Get the caught
-    // exception and its tag index, and rethrow.
-    MDefinition* tagIndex = curBlock_->pop();
-    MDefinition* exn = curBlock_->pop();
-    if (!throwFrom(exn, tagIndex)) {
+    // Push the exception and its tag on the stack to make them available
+    // to the landing pad blocks.
+    if (!landingPad->ensureHasSlots(2)) {
       return false;
     }
+    landingPad->push(exception);
+    landingPad->push(tag);
 
-    // Return to the previous block.
     curBlock_ = prevBlock;
     return true;
   }
 
-  bool finishCatches(LabelKind kind, Control& control) {
-    MBasicBlock* padBlock = control.block;
-    // If there is no landing pad, there's nothing to do.
+  bool startTry(MBasicBlock** curBlock) {
+    *curBlock = curBlock_;
+    return startBlock();
+  }
+
+  bool joinTryOrCatchBlock(Control& control) {
+    // If the try or catch block ended with dead code, there is no need to
+    // do any control flow join.
+    if (inDeadCode()) {
+      return true;
+    }
+
+    // This is a split path which we'll need to join later, using a control
+    // flow patch.
+    MOZ_ASSERT(!curBlock_->hasLastIns());
+    MGoto* jump = MGoto::New(alloc());
+    if (!addControlFlowPatch(jump, 0, MGoto::TargetIndex)) {
+      return false;
+    }
+
+    // Finish the current block with the control flow patch instruction.
+    curBlock_->end(jump);
+    return true;
+  }
+
+  // Finish the previous block (either a try or catch block) and then setup a
+  // new catch block.
+  bool switchToCatch(Control& control, const LabelKind& fromKind,
+                     uint32_t tagIndex) {
+    // If there is no control block, then either:
+    //   - the entry of the try block is dead code, or
+    //   - there is no landing pad for the try-catch.
+    // In either case, any catch will be dead code.
+    if (!control.block) {
+      MOZ_ASSERT(inDeadCode());
+      return true;
+    }
+
+    // Join the previous try or catch block with a patch to the future join of
+    // the whole try-catch block.
+    if (!joinTryOrCatchBlock(control)) {
+      return false;
+    }
+
+    // If we are switching from the try block, create the landing pad. This is
+    // guaranteed to happen once and only once before processing catch blocks.
+    if (fromKind == LabelKind::Try) {
+      MBasicBlock* padBlock = nullptr;
+      if (!createTryLandingPadIfNeeded(control, &padBlock)) {
+        return false;
+      }
+      // Set the control block for this try-catch to the landing pad.
+      control.block = padBlock;
+    }
+
+    // If there is no landing pad, then this and following catches are dead
+    // code.
+    if (!control.block) {
+      curBlock_ = nullptr;
+      return true;
+    }
+
+    // Switch to the landing pad.
+    curBlock_ = control.block;
+
+    // Handle a catch_all by immediately jumping to a new block. We require a
+    // new block (as opposed to just emitting the catch_all code in the current
+    // block) because rethrow requires the exception/tag to be present in the
+    // landing pad's slots, while the catch_all block must not have the
+    // exception/tag in slots.
+    if (tagIndex == CatchAllIndex) {
+      MBasicBlock* catchAllBlock = nullptr;
+      if (!goToNewBlock(curBlock_, &catchAllBlock)) {
+        return false;
+      }
+      // Compilation will continue in the catch_all block.
+      curBlock_ = catchAllBlock;
+      // Remove the tag and exception slots from the block, they are no
+      // longer necessary.
+      curBlock_->pop();
+      curBlock_->pop();
+      return true;
+    }
+
+    // Handle a tagged catch by doing a compare and branch on the tag index,
+    // jumping to a catch block if they match, or else to a fallthrough block
+    // to continue the landing pad.
+    MBasicBlock* catchBlock = nullptr;
+    MBasicBlock* fallthroughBlock = nullptr;
+    if (!newBlock(curBlock_, &catchBlock) ||
+        !newBlock(curBlock_, &fallthroughBlock)) {
+      return false;
+    }
+
+    // Get the exception and its tag from the slots we pushed when adding
+    // control flow patches.
+    MDefinition* exceptionTag = curBlock_->pop();
+    MDefinition* exception = curBlock_->pop();
+
+    // Branch to the catch block if the exception's tag matches this catch
+    // block's tag.
+    MDefinition* catchTag = loadTag(tagIndex);
+    MDefinition* matchesCatchTag =
+        compare(exceptionTag, catchTag, JSOp::Eq, MCompare::Compare_RefOrNull);
+    curBlock_->end(
+        MTest::New(alloc(), matchesCatchTag, catchBlock, fallthroughBlock));
+
+    // The landing pad will continue in the fallthrough block
+    control.block = fallthroughBlock;
+
+    // Set up the catch block by extracting the values from the exception
+    // object.
+    curBlock_ = catchBlock;
+
+    // Remove the tag and exception slots from the block, they are no
+    // longer necessary.
+    curBlock_->pop();
+    curBlock_->pop();
+
+    // Extract the exception values for the catch block
+    DefVector values;
+    if (!loadExceptionValues(exception, tagIndex, &values)) {
+      return false;
+    }
+    iter().setResults(values.length(), values);
+    return true;
+  }
+
+  bool loadExceptionValues(MDefinition* exception, uint32_t tagIndex,
+                           DefVector* values) {
+    SharedTagType tagType = moduleEnv().tags[tagIndex].type;
+    const ValTypeVector& params = tagType->argTypes_;
+    const TagOffsetVector& offsets = tagType->argOffsets_;
+
+    // Get the data pointer from the exception object
+    auto* data = MWasmLoadObjectField::New(alloc(), exception,
+                                           WasmExceptionObject::offsetOfData(),
+                                           MIRType::Pointer);
+    curBlock_->add(data);
+
+    // Presize the values vector to the number of params
+    if (!values->reserve(params.length())) {
+      return false;
+    }
+
+    // Load each value from the data pointer
+    for (size_t i = 0; i < params.length(); i++) {
+      auto* load = MWasmLoadObjectDataField::New(
+          alloc(), exception, data, offsets[i], ToMIRType(params[i]));
+      if (!load || !values->append(load)) {
+        return false;
+      }
+      curBlock_->add(load);
+    }
+    return true;
+  }
+
+  bool finishTryCatch(LabelKind kind, Control& control, DefVector* defs) {
+    switch (kind) {
+      case LabelKind::Try: {
+        // This is a catchless try, we must delegate all throwing instructions
+        // to the nearest enclosing try block if one exists, or else to the
+        // body block which will handle it in emitBodyDelegateThrowPad. We
+        // specify a relativeDepth of '1' to delegate outside of the still
+        // active try block.
+        uint32_t relativeDepth = 1;
+        if (!delegatePadPatches(control.tryPadPatches, relativeDepth)) {
+          return false;
+        }
+        break;
+      }
+      case LabelKind::Catch: {
+        // This is a try without a catch_all, we must have a rethrow at the end
+        // of the landing pad (if any).
+        MBasicBlock* padBlock = control.block;
+        if (padBlock) {
+          MBasicBlock* prevBlock = curBlock_;
+          curBlock_ = padBlock;
+          MDefinition* tag = curBlock_->pop();
+          MDefinition* exception = curBlock_->pop();
+          if (!throwFrom(exception, tag)) {
+            return false;
+          }
+          curBlock_ = prevBlock;
+        }
+        break;
+      }
+      case LabelKind::CatchAll:
+        // This is a try with a catch_all, and requires no special handling.
+        break;
+      default:
+        MOZ_CRASH();
+    }
+
+    // Finish the block, joining the try and catch blocks
+    return finishBlock(defs);
+  }
+
+  bool emitBodyDelegateThrowPad(Control& control) {
+    // Create a landing pad for any throwing instructions
+    MBasicBlock* padBlock;
+    if (!createTryLandingPadIfNeeded(control, &padBlock)) {
+      return false;
+    }
+
+    // If no landing pad was necessary, then we don't need to do anything here
     if (!padBlock) {
       return true;
     }
 
-    // If there are no tryCatches then this is a single catch_all after a try,
-    // and we don't create a table switch as we can just fallthrough.
-    if (control.tryCatches.empty()) {
-      MOZ_ASSERT(kind == LabelKind::CatchAll);
-      MOZ_ASSERT(padBlock->hasLastIns());
-      return true;
-    }
-
-    // Otherwise we end the landing pad with a table switch.
-
-    // Put the curBlock_ aside while we set up the switch.
+    // Switch to the landing pad and rethrow the exception
     MBasicBlock* prevBlock = curBlock_;
-
-    // Switch to the landing pad.
     curBlock_ = padBlock;
-
-    // Get the pushed exception and its tag index definition.
-    MOZ_ASSERT(numPushed(curBlock_) == 2);
-    MDefinition* tagIndex = curBlock_->pop();
-    MDefinition* exn = curBlock_->pop();
-    MOZ_ASSERT(exn && tagIndex);
-    MOZ_ASSERT(tagIndex->type() == MIRType::Int32);
-    MOZ_ASSERT(exn->type() == MIRType::RefOrNull);
-
-    // Push the exception and its tag index, so the handlers and the
-    // defaultCatch can access it.
-    curBlock_->push(exn);
-    curBlock_->push(tagIndex);
-
-    // We're going to generate a table switch to branch to the target catch
-    // block based off of the tag index of the caught exception. MTableSwitch
-    // requires the default case to be '0', while the default case for tags is
-    // UINT32_MAX. To resolve this difference, we add '1' to the incoming tag
-    // index to force wraparound. This yields an 'adjusted tag index' that we
-    // use below.
-    //
-    // For example:
-    //   CatchAllIndex (UINT32_MAX) -> case 0
-    //   tagIndex 0 -> case 1
-    //   tagIndex n -> case n+1
-    MDefinition* one = constant(Int32Value(1), MIRType::Int32);
-    MDefinition* adjustedTagIndex = add(tagIndex, one, MIRType::Int32);
-    uint32_t numTags = moduleEnv_.tags.length();
-
-    // Set up a table switch test.
-    MTableSwitch* table =
-        MTableSwitch::New(alloc(), adjustedTagIndex, 0, (int32_t)numTags);
-
-    // Get or create the default successor of the landing pad.
-    MBasicBlock* defaultCatch = nullptr;
-    if (kind == LabelKind::CatchAll) {
-      MOZ_ASSERT(control.catchAllBlock);
-      defaultCatch = control.catchAllBlock;
-    } else {
-      if (!newBlock(curBlock_, &defaultCatch)) {
-        return false;
-      }
-      // Set up default catch behaviour.
-      curBlock_ = defaultCatch;
-      MDefinition* rethrowTagIndex = curBlock_->pop();
-      MDefinition* rethrowExn = curBlock_->pop();
-      if (!throwFrom(rethrowExn, rethrowTagIndex)) {
-        return false;
-      }
-      curBlock_ = padBlock;
-    }
-
-    // Add the default catch to the table switch.
-    size_t defaultIndex;
-    if (!table->addDefault(defaultCatch, &defaultIndex)) {
+    MDefinition* tag = curBlock_->pop();
+    MDefinition* exception = curBlock_->pop();
+    if (!throwFrom(exception, tag)) {
       return false;
     }
-    MOZ_ASSERT(defaultIndex == 0);
-    using TagMap =
-        HashMap<uint32_t, uint32_t, DefaultHasher<uint32_t>, SystemAllocPolicy>;
-
-    TagMap tagMap;
-
-    // Add the rest of the catches as table switch successors.
-    for (CatchInfo& info : control.tryCatches) {
-      uint32_t catchTagIndex = info.tagIndex;
-      MBasicBlock* catchBlock = info.block;
-      MOZ_ASSERT(catchTagIndex < numTags);
-      MOZ_ASSERT(catchBlock);
-      size_t switchIndex;
-      if (!table->addSuccessor(catchBlock, &switchIndex)) {
-        return false;
-      }
-      if (!tagMap.put(catchTagIndex, switchIndex)) {
-        return false;
-      }
-    }
-
-    // Add cases mapping from 'adjusted tag index' to tag successor to the
-    // table.
-
-    // Add the default case to the table.
-    if (!table->addCase(0)) {
-      return false;
-    }
-
-    // Add a case for each possible tag in the module.
-    for (size_t catchTagIndex = 0; catchTagIndex < numTags; catchTagIndex++) {
-      size_t switchIndex;
-      TagMap::Ptr p = tagMap.lookup(catchTagIndex);
-      switchIndex = p ? p->value() : 0;
-      if (!table->addCase(switchIndex)) {
-        return false;
-      }
-    }
-
-    // End the landing pad with the table switch.
-    curBlock_->end(table);
-
-    // Return to the previous block.
     curBlock_ = prevBlock;
-    if (prevBlock) {
-      mirGraph().moveBlockToEnd(curBlock_);
-    }
-
     return true;
+  }
+
+  bool emitNewException(MDefinition* tag, MDefinition** exception) {
+    uint32_t bytecodeOffset = readBytecodeOffset();
+    const SymbolicAddressSignature& callee = SASigExceptionNew;
+    CallCompileState args;
+    if (!passInstance(callee.argTypes[0], &args)) {
+      return false;
+    }
+    if (!passArg(tag, callee.argTypes[1], &args)) {
+      return false;
+    }
+    if (!finishCall(&args)) {
+      return false;
+    }
+    return builtinInstanceMethodCall(callee, bytecodeOffset, args, exception);
   }
 
   bool emitThrow(uint32_t tagIndex, const DefVector& argValues) {
     if (inDeadCode()) {
       return true;
     }
+    uint32_t bytecodeOffset = readBytecodeOffset();
 
-    uint32_t lineOrBytecode = readCallSiteLineOrBytecode();
-    const TagType& tagType = moduleEnv_.tags[tagIndex].type;
-    const ResultType& tagParams = tagType.resultType();
+    // Load the tag
+    MDefinition* tag = loadTag(tagIndex);
+    if (!tag) {
+      return false;
+    }
 
-    // First call an instance method to allocate a new WasmExceptionObject.
-    MDefinition* tagIndexDef =
-        constant(Int32Value(int32_t(tagIndex)), MIRType::Int32);
-    MDefinition* exnSize =
-        constant(Int32Value(tagType.bufferSize), MIRType::Int32);
-    MDefinition* exn = nullptr;
-    const SymbolicAddressSignature& callee = SASigExceptionNew;
-    CallCompileState args;
-    if (!passInstance(callee.argTypes[0], &args)) {
+    // Allocate an exception object
+    MDefinition* exception;
+    if (!emitNewException(tag, &exception)) {
       return false;
     }
-    if (!passArg(tagIndexDef, callee.argTypes[1], &args)) {
-      return false;
-    }
-    if (!passArg(exnSize, callee.argTypes[2], &args)) {
-      return false;
-    }
-    if (!finishCall(&args)) {
-      return false;
-    }
-    if (!builtinInstanceMethodCall(callee, lineOrBytecode, args, &exn)) {
-      return false;
-    }
-    MOZ_ASSERT(exn);
 
-    // Then store the exception values.
-    MWasmExceptionDataPointer* exnDataPtr =
-        MWasmExceptionDataPointer::New(alloc(), exn);
-    curBlock_->add(exnDataPtr);
+    // Load the data pointer from the object
+    auto* data = MWasmLoadObjectField::New(alloc(), exception,
+                                           WasmExceptionObject::offsetOfData(),
+                                           MIRType::Pointer);
+    if (!data) {
+      return false;
+    }
+    curBlock_->add(data);
 
-    for (int32_t i = (int32_t)tagParams.length() - 1; i >= 0; i--) {
-      int32_t offset = tagType.argOffsets[i];
-      if (IsNumberType(tagParams[i]) || tagParams[i].kind() == ValType::V128) {
-        MWasmStoreExceptionDataValue* store = MWasmStoreExceptionDataValue::New(
-            alloc(), exnDataPtr, offset, argValues[i]);
+    // Store the params into the data pointer
+    SharedTagType tagType = moduleEnv_.tags[tagIndex].type;
+    for (size_t i = 0; i < tagType->argOffsets_.length(); i++) {
+      ValType type = tagType->argTypes_[i];
+      uint32_t offset = tagType->argOffsets_[i];
+
+      if (!type.isRefRepr()) {
+        auto* store = MWasmStoreObjectDataField::New(alloc(), exception, data,
+                                                     offset, argValues[i]);
+        if (!store) {
+          return false;
+        }
         curBlock_->add(store);
-      } else {
-        MOZ_ASSERT(tagParams[i].kind() == ValType::Ref ||
-                   tagParams[i].kind() == ValType::Rtt);
-        MOZ_ASSERT(argValues[i]->type() != MIRType::None);
+        continue;
+      }
 
-        const SymbolicAddressSignature& callee = SASigPushRefIntoExn;
-        CallCompileState args;
-        if (!passInstance(callee.argTypes[0], &args)) {
-          return false;
-        }
-        if (!passArg(exn, callee.argTypes[1], &args)) {
-          return false;
-        }
-        if (!passArg(argValues[i], callee.argTypes[2], &args)) {
-          return false;
-        }
-        if (!finishCall(&args)) {
-          return false;
-        }
-        if (!builtinInstanceMethodCall(callee, lineOrBytecode, args)) {
-          return false;
-        }
+      // Compute the address of the field
+      auto* fieldAddr = MWasmDerivedPointer::New(alloc(), data, offset);
+      if (!fieldAddr) {
+        return false;
+      }
+      curBlock_->add(fieldAddr);
+
+      // Load the previous value
+      auto* prevValue = MWasmLoadObjectDataField::New(alloc(), exception, data,
+                                                      offset, ToMIRType(type));
+      if (!prevValue) {
+        return false;
+      }
+      curBlock_->add(prevValue);
+
+      // Store the new value
+      auto* store = MWasmStoreObjectDataRefField::New(
+          alloc(), instancePointer_, exception, fieldAddr, argValues[i]);
+      if (!store) {
+        return false;
+      }
+      curBlock_->add(store);
+
+      // Call the post-write barrier
+      if (!postBarrierPrecise(bytecodeOffset, fieldAddr, prevValue)) {
+        return false;
       }
     }
 
-    // Throw the exception.
-    return throwFrom(exn, tagIndexDef);
+    // Throw the exception
+    return throwFrom(exception, tag);
   }
 
-  bool throwFrom(MDefinition* exn, MDefinition* tagIndex) {
+  bool throwFrom(MDefinition* exn, MDefinition* tag) {
     if (inDeadCode()) {
       return true;
     }
@@ -3324,24 +3160,22 @@ class FunctionCompiler {
     // pad-patch to its tryPadPatches.
     uint32_t relativeTryDepth;
     if (inTryBlock(&relativeTryDepth)) {
-      MBasicBlock* prePadBlock = nullptr;
-      if (!newBlock(curBlock_, &prePadBlock)) {
+      // Set the pending exception state, the landing pad will read from this
+      if (!setPendingExceptionState(exn, tag)) {
         return false;
       }
-      MGoto* ins = MGoto::New(alloc(), prePadBlock);
 
-      // Finish the prePadBlock with a control flow (pad) patch.
-      if (!endWithPadPatch(prePadBlock, exn, tagIndex, relativeTryDepth)) {
+      // End with a pending jump to the landing pad
+      if (!endWithPadPatch(relativeTryDepth)) {
         return false;
       }
-      curBlock_->end(ins);
       curBlock_ = nullptr;
       return true;
     }
 
     // If there is no surrounding catching block, call an instance method to
     // throw the exception.
-    uint32_t lineOrBytecode = readCallSiteLineOrBytecode();
+    uint32_t bytecodeOffset = readBytecodeOffset();
     const SymbolicAddressSignature& callee = SASigThrowException;
     CallCompileState args;
     if (!passInstance(callee.argTypes[0], &args)) {
@@ -3353,7 +3187,7 @@ class FunctionCompiler {
     if (!finishCall(&args)) {
       return false;
     }
-    if (!builtinInstanceMethodCall(callee, lineOrBytecode, args)) {
+    if (!builtinInstanceMethodCall(callee, bytecodeOffset, args)) {
       return false;
     }
     unreachableTrap();
@@ -3362,7 +3196,7 @@ class FunctionCompiler {
     return true;
   }
 
-  bool rethrow(uint32_t relativeDepth) {
+  bool emitRethrow(uint32_t relativeDepth) {
     if (inDeadCode()) {
       return true;
     }
@@ -3376,22 +3210,33 @@ class FunctionCompiler {
 
     // The exception will always be the last slot in the landing pad.
     size_t exnSlotPosition = pad->nslots() - 2;
-    MDefinition* tagIndex = pad->getSlot(exnSlotPosition + 1);
-    MDefinition* exn = pad->getSlot(exnSlotPosition);
-    MOZ_ASSERT(exn->type() == MIRType::RefOrNull &&
-               tagIndex->type() == MIRType::Int32);
-    return throwFrom(exn, tagIndex);
+    MDefinition* tag = pad->getSlot(exnSlotPosition + 1);
+    MDefinition* exception = pad->getSlot(exnSlotPosition);
+    MOZ_ASSERT(exception->type() == MIRType::RefOrNull &&
+               tag->type() == MIRType::RefOrNull);
+    return throwFrom(exception, tag);
   }
-#endif
 
   /************************************************************ DECODING ***/
 
+  // AsmJS adds a line number to `callSiteLineNums` for certain operations that
+  // are represented by a JS call, such as math builtins. We use these line
+  // numbers when calling builtins. This method will read from
+  // `callSiteLineNums` when we are using AsmJS, or else return the current
+  // bytecode offset.
+  //
+  // This method MUST be called from opcodes that AsmJS will emit a call site
+  // line number for, or else the arrays will get out of sync. Other opcodes
+  // must use `readBytecodeOffset` below.
   uint32_t readCallSiteLineOrBytecode() {
     if (!func_.callSiteLineNums.empty()) {
       return func_.callSiteLineNums[lastReadCallSite_++];
     }
     return iter_.lastOpcodeOffset();
   }
+
+  // Return the current bytecode offset.
+  uint32_t readBytecodeOffset() { return iter_.lastOpcodeOffset(); }
 
 #if DEBUG
   bool done() const { return iter_.done(); }
@@ -3491,7 +3336,7 @@ MDefinition* FunctionCompiler::unary<MWasmBuiltinTruncateToInt32>(
   if (inDeadCode()) {
     return nullptr;
   }
-  auto* ins = MWasmBuiltinTruncateToInt32::New(alloc(), op, tlsPointer_,
+  auto* ins = MWasmBuiltinTruncateToInt32::New(alloc(), op, instancePointer_,
                                                bytecodeOffset());
   curBlock_->add(ins);
   return ins;
@@ -3638,11 +3483,9 @@ static bool EmitEnd(FunctionCompiler& f) {
   DefVector postJoinDefs;
   switch (kind) {
     case LabelKind::Body:
-#ifdef ENABLE_WASM_EXCEPTIONS
-      if (!f.finishBodyDelegateThrowPad(control)) {
+      if (!f.emitBodyDelegateThrowPad(control)) {
         return false;
       }
-#endif
       if (!f.finishBlock(&postJoinDefs)) {
         return false;
       }
@@ -3687,32 +3530,14 @@ static bool EmitEnd(FunctionCompiler& f) {
       }
       f.iter().popEnd();
       break;
-#ifdef ENABLE_WASM_EXCEPTIONS
-    case LabelKind::Try: {
-      if (block) {
-        if (!f.finishCatchlessTry(control)) {
-          return false;
-        }
-      }
-      if (!f.finishBlock(&postJoinDefs)) {
-        return false;
-      }
-      f.iter().popEnd();
-      break;
-    }
+    case LabelKind::Try:
     case LabelKind::Catch:
     case LabelKind::CatchAll:
-      if (block) {
-        if (!f.finishCatches(kind, control)) {
-          return false;
-        }
-      }
-      if (!f.finishBlock(&postJoinDefs)) {
+      if (!f.finishTryCatch(kind, control, &postJoinDefs)) {
         return false;
       }
       f.iter().popEnd();
       break;
-#endif
   }
 
   MOZ_ASSERT_IF(!f.inDeadCode(), postJoinDefs.length() == type.length());
@@ -3791,7 +3616,6 @@ static bool EmitUnreachable(FunctionCompiler& f) {
   return true;
 }
 
-#ifdef ENABLE_WASM_EXCEPTIONS
 static bool EmitTry(FunctionCompiler& f) {
   ResultType params;
   if (!f.iter().readTry(&params)) {
@@ -3799,7 +3623,7 @@ static bool EmitTry(FunctionCompiler& f) {
   }
 
   MBasicBlock* curBlock = nullptr;
-  if (!f.emitTry(&curBlock)) {
+  if (!f.startTry(&curBlock)) {
     return false;
   }
 
@@ -3825,7 +3649,7 @@ static bool EmitCatch(FunctionCompiler& f) {
     return false;
   }
 
-  return f.switchToCatch(kind, tagIndex, f.iter().controlItem());
+  return f.switchToCatch(f.iter().controlItem(), kind, tagIndex);
 }
 
 static bool EmitCatchAll(FunctionCompiler& f) {
@@ -3843,7 +3667,7 @@ static bool EmitCatchAll(FunctionCompiler& f) {
     return false;
   }
 
-  return f.switchToCatch(kind, CatchAllIndex, f.iter().controlItem());
+  return f.switchToCatch(f.iter().controlItem(), kind, CatchAllIndex);
 }
 
 static bool EmitDelegate(FunctionCompiler& f) {
@@ -3899,9 +3723,8 @@ static bool EmitRethrow(FunctionCompiler& f) {
     return false;
   }
 
-  return f.rethrow(relativeDepth);
+  return f.emitRethrow(relativeDepth);
 }
-#endif
 
 static bool EmitCallArgs(FunctionCompiler& f, const FuncType& funcType,
                          const DefVector& args, CallCompileState* call) {
@@ -3963,12 +3786,6 @@ static bool EmitCall(FunctionCompiler& f, bool asmJSFuncDef) {
     }
   }
 
-#ifdef ENABLE_WASM_EXCEPTIONS
-  if (!f.maybeCheckPendingExceptionAfterCall()) {
-    return false;
-  }
-#endif
-
   f.iter().setResults(results.length(), results);
   return true;
 }
@@ -4008,12 +3825,6 @@ static bool EmitCallIndirect(FunctionCompiler& f, bool oldStyle) {
                       &results)) {
     return false;
   }
-
-#ifdef ENABLE_WASM_EXCEPTIONS
-  if (!f.maybeCheckPendingExceptionAfterCall()) {
-    return false;
-  }
-#endif
 
   f.iter().setResults(results.length(), results);
   return true;
@@ -4110,7 +3921,7 @@ static bool EmitGetGlobal(FunctionCompiler& f) {
 }
 
 static bool EmitSetGlobal(FunctionCompiler& f) {
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   uint32_t id;
   MDefinition* value;
@@ -4120,32 +3931,13 @@ static bool EmitSetGlobal(FunctionCompiler& f) {
 
   const GlobalDesc& global = f.moduleEnv().globals[id];
   MOZ_ASSERT(global.isMutable());
-  MInstruction* barrierAddr =
-      f.storeGlobalVar(global.offset(), global.isIndirect(), value);
-
-  // We always call the C++ postbarrier because the location will never be in
-  // the nursery, and the value stored will very frequently be in the nursery.
-  // The C++ postbarrier performs any necessary filtering.
-
-  if (barrierAddr) {
-    const SymbolicAddressSignature& callee = SASigPostBarrierFiltering;
-    CallCompileState args;
-    if (!f.passInstance(callee.argTypes[0], &args)) {
-      return false;
-    }
-    if (!f.passArg(barrierAddr, callee.argTypes[1], &args)) {
-      return false;
-    }
-    f.finishCall(&args);
-    if (!f.builtinInstanceMethodCall(callee, lineOrBytecode, args)) {
-      return false;
-    }
-  }
-
-  return true;
+  return f.storeGlobalVar(bytecodeOffset, global.offset(), global.isIndirect(),
+                          value);
 }
 
 static bool EmitTeeGlobal(FunctionCompiler& f) {
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
+
   uint32_t id;
   MDefinition* value;
   if (!f.iter().readTeeGlobal(&id, &value)) {
@@ -4155,8 +3947,8 @@ static bool EmitTeeGlobal(FunctionCompiler& f) {
   const GlobalDesc& global = f.moduleEnv().globals[id];
   MOZ_ASSERT(global.isMutable());
 
-  f.storeGlobalVar(global.offset(), global.isIndirect(), value);
-  return true;
+  return f.storeGlobalVar(bytecodeOffset, global.offset(), global.isIndirect(),
+                          value);
 }
 
 template <typename MIRClass>
@@ -4236,7 +4028,7 @@ static bool EmitTruncate(FunctionCompiler& f, ValType operandType,
     MOZ_ASSERT(resultType == ValType::I64);
     MOZ_ASSERT(!f.moduleEnv().isAsmJS());
 #if defined(JS_CODEGEN_ARM)
-    f.iter().setResult(f.truncateWithTls(input, flags));
+    f.iter().setResult(f.truncateWithInstance(input, flags));
 #else
     f.iter().setResult(f.truncate<MWasmTruncateToInt64>(input, flags));
 #endif
@@ -4622,7 +4414,7 @@ static bool EmitBinaryMathBuiltinCall(FunctionCompiler& f,
 }
 
 static bool EmitMemoryGrow(FunctionCompiler& f) {
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee =
       f.isNoMemOrMem32() ? SASigMemoryGrowM32 : SASigMemoryGrowM64;
@@ -4643,7 +4435,7 @@ static bool EmitMemoryGrow(FunctionCompiler& f) {
   f.finishCall(&args);
 
   MDefinition* ret;
-  if (!f.builtinInstanceMethodCall(callee, lineOrBytecode, args, &ret)) {
+  if (!f.builtinInstanceMethodCall(callee, bytecodeOffset, args, &ret)) {
     return false;
   }
 
@@ -4652,7 +4444,7 @@ static bool EmitMemoryGrow(FunctionCompiler& f) {
 }
 
 static bool EmitMemorySize(FunctionCompiler& f) {
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee =
       f.isNoMemOrMem32() ? SASigMemorySizeM32 : SASigMemorySizeM64;
@@ -4669,7 +4461,7 @@ static bool EmitMemorySize(FunctionCompiler& f) {
   f.finishCall(&args);
 
   MDefinition* ret;
-  if (!f.builtinInstanceMethodCall(callee, lineOrBytecode, args, &ret)) {
+  if (!f.builtinInstanceMethodCall(callee, bytecodeOffset, args, &ret)) {
     return false;
   }
 
@@ -4754,7 +4546,7 @@ static bool EmitWait(FunctionCompiler& f, ValType type, uint32_t byteSize) {
   MOZ_ASSERT(type == ValType::I32 || type == ValType::I64);
   MOZ_ASSERT(SizeOf(type) == byteSize);
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee =
       f.isNoMemOrMem32()
@@ -4797,7 +4589,7 @@ static bool EmitWait(FunctionCompiler& f, ValType type, uint32_t byteSize) {
   }
 
   MDefinition* ret;
-  if (!f.builtinInstanceMethodCall(callee, lineOrBytecode, args, &ret)) {
+  if (!f.builtinInstanceMethodCall(callee, bytecodeOffset, args, &ret)) {
     return false;
   }
 
@@ -4815,7 +4607,7 @@ static bool EmitFence(FunctionCompiler& f) {
 }
 
 static bool EmitWake(FunctionCompiler& f) {
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee =
       f.isNoMemOrMem32() ? SASigWakeM32 : SASigWakeM64;
@@ -4850,7 +4642,7 @@ static bool EmitWake(FunctionCompiler& f) {
   }
 
   MDefinition* ret;
-  if (!f.builtinInstanceMethodCall(callee, lineOrBytecode, args, &ret)) {
+  if (!f.builtinInstanceMethodCall(callee, bytecodeOffset, args, &ret)) {
     return false;
   }
 
@@ -4879,7 +4671,7 @@ static bool EmitAtomicXchg(FunctionCompiler& f, ValType type,
 
 static bool EmitMemCopyCall(FunctionCompiler& f, MDefinition* dst,
                             MDefinition* src, MDefinition* len) {
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee =
       (f.moduleEnv().usesSharedMemory()
@@ -4907,15 +4699,11 @@ static bool EmitMemCopyCall(FunctionCompiler& f, MDefinition* dst,
     return false;
   }
 
-  return f.builtinInstanceMethodCall(callee, lineOrBytecode, args);
+  return f.builtinInstanceMethodCall(callee, bytecodeOffset, args);
 }
 
-static bool EmitMemCopyInlineM32(FunctionCompiler& f, MDefinition* dst,
-                                 MDefinition* src, MDefinition* len) {
-  MOZ_ASSERT(MaxInlineMemoryCopyLength != 0);
-
-  MOZ_ASSERT(len->isConstant() && len->type() == MIRType::Int32);
-  uint32_t length = len->toConstant()->toInt32();
+static bool EmitMemCopyInline(FunctionCompiler& f, MDefinition* dst,
+                              MDefinition* src, uint32_t length) {
   MOZ_ASSERT(length != 0 && length <= MaxInlineMemoryCopyLength);
 
   // Compute the number of copies of each width we will need to do
@@ -5060,13 +4848,15 @@ static bool EmitMemCopy(FunctionCompiler& f) {
     return true;
   }
 
-  if (f.isMem32()) {
-    if (len->isConstant() && len->type() == MIRType::Int32 &&
-        len->toConstant()->toInt32() != 0 &&
-        uint32_t(len->toConstant()->toInt32()) <= MaxInlineMemoryCopyLength) {
-      return EmitMemCopyInlineM32(f, dst, src, len);
+  if (len->isConstant()) {
+    uint64_t length = f.isMem32() ? len->toConstant()->toInt32()
+                                  : len->toConstant()->toInt64();
+    static_assert(MaxInlineMemoryCopyLength <= UINT32_MAX);
+    if (length != 0 && length <= MaxInlineMemoryCopyLength) {
+      return EmitMemCopyInline(f, dst, src, uint32_t(length));
     }
   }
+
   return EmitMemCopyCall(f, dst, src, len);
 }
 
@@ -5083,7 +4873,7 @@ static bool EmitTableCopy(FunctionCompiler& f) {
     return true;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee = SASigTableCopy;
   CallCompileState args;
@@ -5118,7 +4908,7 @@ static bool EmitTableCopy(FunctionCompiler& f) {
     return false;
   }
 
-  return f.builtinInstanceMethodCall(callee, lineOrBytecode, args);
+  return f.builtinInstanceMethodCall(callee, bytecodeOffset, args);
 }
 
 static bool EmitDataOrElemDrop(FunctionCompiler& f, bool isData) {
@@ -5131,7 +4921,7 @@ static bool EmitDataOrElemDrop(FunctionCompiler& f, bool isData) {
     return true;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee =
       isData ? SASigDataDrop : SASigElemDrop;
@@ -5150,12 +4940,12 @@ static bool EmitDataOrElemDrop(FunctionCompiler& f, bool isData) {
     return false;
   }
 
-  return f.builtinInstanceMethodCall(callee, lineOrBytecode, args);
+  return f.builtinInstanceMethodCall(callee, bytecodeOffset, args);
 }
 
 static bool EmitMemFillCall(FunctionCompiler& f, MDefinition* start,
                             MDefinition* val, MDefinition* len) {
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee =
       (f.moduleEnv().usesSharedMemory()
@@ -5184,19 +4974,13 @@ static bool EmitMemFillCall(FunctionCompiler& f, MDefinition* start,
     return false;
   }
 
-  return f.builtinInstanceMethodCall(callee, lineOrBytecode, args);
+  return f.builtinInstanceMethodCall(callee, bytecodeOffset, args);
 }
 
-static bool EmitMemFillInlineM32(FunctionCompiler& f, MDefinition* start,
-                                 MDefinition* val, MDefinition* len) {
-  MOZ_ASSERT(MaxInlineMemoryFillLength != 0);
-
-  MOZ_ASSERT(len->isConstant() && len->type() == MIRType::Int32 &&
-             val->isConstant() && val->type() == MIRType::Int32);
-
-  uint32_t length = len->toConstant()->toInt32();
-  uint32_t value = val->toConstant()->toInt32();
+static bool EmitMemFillInline(FunctionCompiler& f, MDefinition* start,
+                              MDefinition* val, uint32_t length) {
   MOZ_ASSERT(length != 0 && length <= MaxInlineMemoryFillLength);
+  uint32_t value = val->toConstant()->toInt32();
 
   // Compute the number of copies of each width we will need to do
   size_t remainder = length;
@@ -5292,14 +5076,15 @@ static bool EmitMemFill(FunctionCompiler& f) {
     return true;
   }
 
-  if (f.isMem32()) {
-    if (len->isConstant() && len->type() == MIRType::Int32 &&
-        len->toConstant()->toInt32() != 0 &&
-        uint32_t(len->toConstant()->toInt32()) <= MaxInlineMemoryFillLength &&
-        val->isConstant() && val->type() == MIRType::Int32) {
-      return EmitMemFillInlineM32(f, start, val, len);
+  if (len->isConstant() && val->isConstant()) {
+    uint64_t length = f.isMem32() ? len->toConstant()->toInt32()
+                                  : len->toConstant()->toInt64();
+    static_assert(MaxInlineMemoryFillLength <= UINT32_MAX);
+    if (length != 0 && length <= MaxInlineMemoryFillLength) {
+      return EmitMemFillInline(f, start, val, uint32_t(length));
     }
   }
+
   return EmitMemFillCall(f, start, val, len);
 }
 
@@ -5315,7 +5100,7 @@ static bool EmitMemOrTableInit(FunctionCompiler& f, bool isMem) {
     return true;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee =
       isMem ? (f.isMem32() ? SASigMemInitM32 : SASigMemInitM64)
@@ -5353,7 +5138,7 @@ static bool EmitMemOrTableInit(FunctionCompiler& f, bool isMem) {
     return false;
   }
 
-  return f.builtinInstanceMethodCall(callee, lineOrBytecode, args);
+  return f.builtinInstanceMethodCall(callee, bytecodeOffset, args);
 }
 
 // Note, table.{get,grow,set} on table(funcref) are currently rejected by the
@@ -5370,7 +5155,7 @@ static bool EmitTableFill(FunctionCompiler& f) {
     return true;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee = SASigTableFill;
   CallCompileState args;
@@ -5401,7 +5186,7 @@ static bool EmitTableFill(FunctionCompiler& f) {
     return false;
   }
 
-  return f.builtinInstanceMethodCall(callee, lineOrBytecode, args);
+  return f.builtinInstanceMethodCall(callee, bytecodeOffset, args);
 }
 
 static bool EmitTableGet(FunctionCompiler& f) {
@@ -5415,7 +5200,17 @@ static bool EmitTableGet(FunctionCompiler& f) {
     return true;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  const TableDesc& table = f.moduleEnv().tables[tableIndex];
+  if (table.elemType.tableRepr() == TableRepr::Ref) {
+    MDefinition* ret = f.tableGetAnyRef(table, index);
+    if (!ret) {
+      return false;
+    }
+    f.iter().setResult(ret);
+    return true;
+  }
+
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee = SASigTableGet;
   CallCompileState args;
@@ -5443,7 +5238,7 @@ static bool EmitTableGet(FunctionCompiler& f) {
   // The return value here is either null, denoting an error, or a short-lived
   // pointer to a location containing a possibly-null ref.
   MDefinition* ret;
-  if (!f.builtinInstanceMethodCall(callee, lineOrBytecode, args, &ret)) {
+  if (!f.builtinInstanceMethodCall(callee, bytecodeOffset, args, &ret)) {
     return false;
   }
 
@@ -5463,7 +5258,7 @@ static bool EmitTableGrow(FunctionCompiler& f) {
     return true;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee = SASigTableGrow;
   CallCompileState args;
@@ -5493,7 +5288,7 @@ static bool EmitTableGrow(FunctionCompiler& f) {
   }
 
   MDefinition* ret;
-  if (!f.builtinInstanceMethodCall(callee, lineOrBytecode, args, &ret)) {
+  if (!f.builtinInstanceMethodCall(callee, bytecodeOffset, args, &ret)) {
     return false;
   }
 
@@ -5513,7 +5308,12 @@ static bool EmitTableSet(FunctionCompiler& f) {
     return true;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
+
+  const TableDesc& table = f.moduleEnv().tables[tableIndex];
+  if (table.elemType.tableRepr() == TableRepr::Ref) {
+    return f.tableSetAnyRef(table, index, value, bytecodeOffset);
+  }
 
   const SymbolicAddressSignature& callee = SASigTableSet;
   CallCompileState args;
@@ -5542,7 +5342,7 @@ static bool EmitTableSet(FunctionCompiler& f) {
     return false;
   }
 
-  return f.builtinInstanceMethodCall(callee, lineOrBytecode, args);
+  return f.builtinInstanceMethodCall(callee, bytecodeOffset, args);
 }
 
 static bool EmitTableSize(FunctionCompiler& f) {
@@ -5555,33 +5355,14 @@ static bool EmitTableSize(FunctionCompiler& f) {
     return true;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  const TableDesc& table = f.moduleEnv().tables[tableIndex];
 
-  const SymbolicAddressSignature& callee = SASigTableSize;
-  CallCompileState args;
-  if (!f.passInstance(callee.argTypes[0], &args)) {
+  MDefinition* length = f.loadTableLength(table);
+  if (!length) {
     return false;
   }
 
-  MDefinition* tableIndexArg =
-      f.constant(Int32Value(tableIndex), MIRType::Int32);
-  if (!tableIndexArg) {
-    return false;
-  }
-  if (!f.passArg(tableIndexArg, callee.argTypes[1], &args)) {
-    return false;
-  }
-
-  if (!f.finishCall(&args)) {
-    return false;
-  }
-
-  MDefinition* ret;
-  if (!f.builtinInstanceMethodCall(callee, lineOrBytecode, args, &ret)) {
-    return false;
-  }
-
-  f.iter().setResult(ret);
+  f.iter().setResult(length);
   return true;
 }
 
@@ -5595,7 +5376,7 @@ static bool EmitRefFunc(FunctionCompiler& f) {
     return true;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const SymbolicAddressSignature& callee = SASigRefFunc;
   CallCompileState args;
@@ -5618,7 +5399,7 @@ static bool EmitRefFunc(FunctionCompiler& f) {
   // The return value here is either null, denoting an error, or a short-lived
   // pointer to a location containing a possibly-null ref.
   MDefinition* ret;
-  if (!f.builtinInstanceMethodCall(callee, lineOrBytecode, args, &ret)) {
+  if (!f.builtinInstanceMethodCall(callee, bytecodeOffset, args, &ret)) {
     return false;
   }
 
@@ -5857,23 +5638,23 @@ static bool EmitStoreLaneSimd128(FunctionCompiler& f, uint32_t laneSize) {
 
 #endif
 
-static bool EmitIntrinsic(FunctionCompiler& f, IntrinsicOp op) {
-  const Intrinsic& intrinsic = Intrinsic::getFromOp(op);
+static bool EmitIntrinsic(FunctionCompiler& f) {
+  const Intrinsic* intrinsic;
 
   DefVector params;
-  if (!f.iter().readIntrinsic(intrinsic, &params)) {
+  if (!f.iter().readIntrinsic(&intrinsic, &params)) {
     return false;
   }
 
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
-  const SymbolicAddressSignature& callee = intrinsic.signature;
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
+  const SymbolicAddressSignature& callee = intrinsic->signature;
 
   CallCompileState args;
   if (!f.passInstance(callee.argTypes[0], &args)) {
     return false;
   }
 
-  if (!f.passArgs(params, intrinsic.params, &args)) {
+  if (!f.passArgs(params, intrinsic->params, &args)) {
     return false;
   }
 
@@ -5884,7 +5665,7 @@ static bool EmitIntrinsic(FunctionCompiler& f, IntrinsicOp op) {
 
   f.finishCall(&args);
 
-  return f.builtinInstanceMethodCall(callee, lineOrBytecode, args);
+  return f.builtinInstanceMethodCall(callee, bytecodeOffset, args);
 }
 
 static bool EmitBodyExprs(FunctionCompiler& f) {
@@ -5929,7 +5710,6 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
         CHECK(EmitIf(f));
       case uint16_t(Op::Else):
         CHECK(EmitElse(f));
-#ifdef ENABLE_WASM_EXCEPTIONS
       case uint16_t(Op::Try):
         if (!f.moduleEnv().exceptionsEnabled()) {
           return f.iter().unrecognizedOpcode(&op);
@@ -5963,7 +5743,6 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
           return f.iter().unrecognizedOpcode(&op);
         }
         CHECK(EmitRethrow(f));
-#endif
       case uint16_t(Op::Br):
         CHECK(EmitBr(f));
       case uint16_t(Op::BrIf):
@@ -6385,15 +6164,7 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
       case uint16_t(Op::I64Extend32S):
         CHECK(EmitSignExtend(f, 4, 8));
 
-      case uint16_t(Op::IntrinsicPrefix): {
-        if (!f.moduleEnv().intrinsicsEnabled() ||
-            op.b1 >= uint32_t(IntrinsicOp::Limit)) {
-          return f.iter().unrecognizedOpcode(&op);
-        }
-        CHECK(EmitIntrinsic(f, IntrinsicOp(op.b1)));
-      }
-
-      // Gc operations
+        // Gc operations
 #ifdef ENABLE_WASM_GC
       case uint16_t(Op::GcPrefix): {
         return f.iter().unrecognizedOpcode(&op);
@@ -6690,10 +6461,11 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
           case uint32_t(SimdOp::F32x4RelaxedFms):
           case uint32_t(SimdOp::F64x2RelaxedFma):
           case uint32_t(SimdOp::F64x2RelaxedFms):
-          case uint32_t(SimdOp::I8x16LaneSelect):
-          case uint32_t(SimdOp::I16x8LaneSelect):
-          case uint32_t(SimdOp::I32x4LaneSelect):
-          case uint32_t(SimdOp::I64x2LaneSelect): {
+          case uint32_t(SimdOp::I8x16RelaxedLaneSelect):
+          case uint32_t(SimdOp::I16x8RelaxedLaneSelect):
+          case uint32_t(SimdOp::I32x4RelaxedLaneSelect):
+          case uint32_t(SimdOp::I64x2RelaxedLaneSelect):
+          case uint32_t(SimdOp::I32x4DotI8x16I7x16AddS): {
             if (!f.moduleEnv().v128RelaxedEnabled()) {
               return f.iter().unrecognizedOpcode(&op);
             }
@@ -6702,7 +6474,8 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
           case uint32_t(SimdOp::F32x4RelaxedMin):
           case uint32_t(SimdOp::F32x4RelaxedMax):
           case uint32_t(SimdOp::F64x2RelaxedMin):
-          case uint32_t(SimdOp::F64x2RelaxedMax): {
+          case uint32_t(SimdOp::F64x2RelaxedMax):
+          case uint32_t(SimdOp::I16x8RelaxedQ15MulrS): {
             if (!f.moduleEnv().v128RelaxedEnabled()) {
               return f.iter().unrecognizedOpcode(&op);
             }
@@ -6717,7 +6490,8 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
             }
             CHECK(EmitUnarySimd128(f, SimdOp(op.b1)));
           }
-          case uint32_t(SimdOp::V8x16RelaxedSwizzle): {
+          case uint32_t(SimdOp::I8x16RelaxedSwizzle):
+          case uint32_t(SimdOp::I16x8DotI8x16I7x16S): {
             if (!f.moduleEnv().v128RelaxedEnabled()) {
               return f.iter().unrecognizedOpcode(&op);
             }
@@ -6975,6 +6749,13 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
 
       // asm.js-specific operators
       case uint16_t(Op::MozPrefix): {
+        if (op.b1 == uint32_t(MozOp::Intrinsic)) {
+          if (!f.moduleEnv().intrinsicsEnabled()) {
+            return f.iter().unrecognizedOpcode(&op);
+          }
+          CHECK(EmitIntrinsic(f));
+        }
+
         if (!f.moduleEnv().isAsmJS()) {
           return f.iter().unrecognizedOpcode(&op);
         }
@@ -7081,9 +6862,9 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
   }
 
   // Create a description of the stack layout created by GenerateTrapExit().
-  MachineState trapExitLayout;
+  RegisterOffsets trapExitLayout;
   size_t trapExitLayoutNumWords;
-  GenerateTrapExitMachineState(&trapExitLayout, &trapExitLayoutNumWords);
+  GenerateTrapExitRegisterOffsets(&trapExitLayout, &trapExitLayoutNumWords);
 
   for (const FuncCompileInput& func : inputs) {
     JitSpewCont(JitSpew_Codegen, "\n");
@@ -7126,7 +6907,7 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
 
     // Build MIR graph
     {
-      FunctionCompiler f(moduleEnv, d, func, locals, mir);
+      FunctionCompiler f(moduleEnv, d, func, locals, mir, masm.tryNotes());
       if (!f.init()) {
         return false;
       }
@@ -7194,7 +6975,7 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
 bool js::wasm::IonPlatformSupport() {
 #if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86) ||    \
     defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS64) || \
-    defined(JS_CODEGEN_ARM64)
+    defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_LOONG64)
   return true;
 #else
   return false;

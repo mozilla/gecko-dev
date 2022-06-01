@@ -15,6 +15,11 @@ interface WrapperCachedNonISupportsTestInterface {
   [Pref="dom.webidl.test1"] constructor();
 };
 
+[Trial="TestTrial", Exposed=*]
+interface TestTrialInterface {
+  constructor();
+};
+
 // The type of string C++ sees.
 enum StringType {
   "literal",      // A string with the LITERAL flag.

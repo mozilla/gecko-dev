@@ -1,24 +1,13 @@
 "use strict";
 
-const { ExtensionAPI } = ExtensionCommon;
+// Delay loading until createAppInfo is called and setup.
+ChromeUtils.defineModuleGetter(
+  this,
+  "AddonManager",
+  "resource://gre/modules/AddonManager.jsm"
+);
 
-const SCHEMA = [
-  {
-    namespace: "eventtest",
-    events: [
-      {
-        name: "onEvent1",
-        type: "function",
-        extraParameters: [{ type: "any" }],
-      },
-      {
-        name: "onEvent2",
-        type: "function",
-        extraParameters: [{ type: "any" }],
-      },
-    ],
-  },
-];
+const { ExtensionAPI } = ExtensionCommon;
 
 // The code in this class does not actually run in this test scope, it is
 // serialized into a string which is later loaded by the WebExtensions
@@ -28,13 +17,31 @@ const SCHEMA = [
 // where the EventManager class is available so just tell it here:
 /* global EventManager */
 const API = class extends ExtensionAPI {
-  primeListener(extension, event, fire, params) {
+  static namespace = undefined;
+  primeListener(event, fire, params, isInStartup) {
+    if (isInStartup && event == "nonBlockingEvent") {
+      return;
+    }
+    // eslint-disable-next-line no-undef
+    let { eventName, throwError, ignoreListener } =
+      this.constructor.testOptions || {};
+    let { namespace } = this.constructor;
+
+    if (eventName == event) {
+      if (throwError) {
+        throw new Error(throwError);
+      }
+      if (ignoreListener) {
+        return;
+      }
+    }
+
     Services.obs.notifyObservers(
-      { event, fire, params },
+      { namespace, event, fire, params },
       "prime-event-listener"
     );
 
-    const FIRE_TOPIC = `fire-${event}`;
+    const FIRE_TOPIC = `fire-${namespace}.${event}`;
 
     async function listener(subject, topic, data) {
       try {
@@ -43,7 +50,7 @@ const API = class extends ExtensionAPI {
         }
         await fire.async(subject.wrappedJSObject.listenerArgs);
       } catch (err) {
-        let errSubject = { event, errorMessage: err.toString() };
+        let errSubject = { namespace, event, errorMessage: err.toString() };
         Services.obs.notifyObservers(errSubject, "listener-callback-exception");
       }
     }
@@ -52,14 +59,14 @@ const API = class extends ExtensionAPI {
     return {
       unregister() {
         Services.obs.notifyObservers(
-          { event, params },
+          { namespace, event, params },
           "unregister-primed-listener"
         );
         Services.obs.removeObserver(listener, FIRE_TOPIC);
       },
       convert(_fire) {
         Services.obs.notifyObservers(
-          { event, params },
+          { namespace, event, params },
           "convert-event-listener"
         );
         fire = _fire;
@@ -68,14 +75,23 @@ const API = class extends ExtensionAPI {
   }
 
   getAPI(context) {
+    let self = this;
+    let { namespace } = this.constructor;
     return {
-      eventtest: {
+      [namespace]: {
+        testOptions(options) {
+          // We want to be able to test errors on startup.
+          // We use a global here because we test restarting AOM,
+          // which causes the instance of this class to be destroyed.
+          // eslint-disable-next-line no-undef
+          self.constructor.testOptions = options;
+        },
         onEvent1: new EventManager({
           context,
-          module: "eventtest",
+          module: namespace,
           event: "onEvent1",
           register: (fire, ...params) => {
-            let data = { event: "onEvent1", params };
+            let data = { namespace, event: "onEvent1", params };
             Services.obs.notifyObservers(data, "register-event-listener");
             return () => {
               Services.obs.notifyObservers(data, "unregister-event-listener");
@@ -85,10 +101,23 @@ const API = class extends ExtensionAPI {
 
         onEvent2: new EventManager({
           context,
-          module: "eventtest",
+          module: namespace,
           event: "onEvent2",
           register: (fire, ...params) => {
-            let data = { event: "onEvent2", params };
+            let data = { namespace, event: "onEvent2", params };
+            Services.obs.notifyObservers(data, "register-event-listener");
+            return () => {
+              Services.obs.notifyObservers(data, "unregister-event-listener");
+            };
+          },
+        }).api(),
+
+        nonBlockingEvent: new EventManager({
+          context,
+          module: namespace,
+          event: "nonBlockingEvent",
+          register: (fire, ...params) => {
+            let data = { namespace, event: "nonBlockingEvent", params };
             Services.obs.notifyObservers(data, "register-event-listener");
             return () => {
               Services.obs.notifyObservers(data, "unregister-event-listener");
@@ -100,16 +129,66 @@ const API = class extends ExtensionAPI {
   }
 };
 
-const API_SCRIPT = `this.eventtest = ${API.toString()}`;
+function makeModule(namespace, options = {}) {
+  const SCHEMA = [
+    {
+      namespace,
+      functions: [
+        {
+          name: "testOptions",
+          type: "function",
+          async: true,
+          parameters: [
+            {
+              name: "options",
+              type: "object",
+              additionalProperties: {
+                type: "any",
+              },
+            },
+          ],
+        },
+      ],
+      events: [
+        {
+          name: "onEvent1",
+          type: "function",
+          extraParameters: [{ type: "any", optional: true }],
+        },
+        {
+          name: "onEvent2",
+          type: "function",
+          extraParameters: [{ type: "any", optional: true }],
+        },
+        {
+          name: "nonBlockingEvent",
+          type: "function",
+          extraParameters: [{ type: "any", optional: true }],
+        },
+      ],
+    },
+  ];
 
-const MODULE_INFO = {
-  eventtest: {
+  const API_SCRIPT = `
+    this.${namespace} = ${API.toString()};
+    this.${namespace}.namespace = "${namespace}";
+  `;
+
+  // MODULE_INFO for registerModules
+  let { startupBlocking } = options;
+  return {
     schema: `data:,${JSON.stringify(SCHEMA)}`,
     scopes: ["addon_parent"],
-    paths: [["eventtest"]],
-    startupBlocking: true,
+    paths: [[namespace]],
+    startupBlocking,
     url: URL.createObjectURL(new Blob([API_SCRIPT])),
-  },
+  };
+}
+
+// Two modules, primary test module is startupBlocking
+const MODULE_INFO = {
+  startupBlocking: makeModule("startupBlocking", { startupBlocking: true }),
+  nonStartupBlocking: makeModule("nonStartupBlocking"),
 };
 
 const global = this;
@@ -125,9 +204,13 @@ async function promiseObservable(topic, count, fn = null) {
   let _countResolve;
   let results = [];
   function listener(subject, _topic, data) {
-    results.push(subject.wrappedJSObject);
+    const eventDetails = subject.wrappedJSObject;
+    results.push(eventDetails);
     if (results.length > count) {
-      ok(false, `Got unexpected ${topic} event`);
+      ok(
+        false,
+        `Got unexpected ${topic} event with ${JSON.stringify(eventDetails)}`
+      );
     } else if (results.length == count) {
       _countResolve();
     }
@@ -157,25 +240,10 @@ function trackEvents(wrapper) {
   return events;
 }
 
+const server = createHttpServer({ hosts: ["example.com"] });
+server.registerDirectory("/data/", do_get_file("data"));
+
 add_task(async function setup() {
-  Services.prefs.setBoolPref(
-    "extensions.webextensions.background-delayed-startup",
-    true
-  );
-
-  AddonTestUtils.init(global);
-  AddonTestUtils.overrideCertDB();
-  AddonTestUtils.createAppInfo(
-    "xpcshell@tests.mozilla.org",
-    "XPCShell",
-    "1",
-    "43"
-  );
-
-  ExtensionParent.apiManager.registerModules(MODULE_INFO);
-});
-
-add_task(async function test_persistent_events() {
   // The blob:-URL registered above in MODULE_INFO gets loaded at
   // https://searchfox.org/mozilla-central/rev/0fec57c05d3996cc00c55a66f20dd5793a9bfb5d/toolkit/components/extensions/ExtensionCommon.jsm#1649
   Services.prefs.setBoolPref(
@@ -186,6 +254,19 @@ add_task(async function test_persistent_events() {
     Services.prefs.clearUserPref("security.allow_parent_unrestricted_js_loads");
   });
 
+  AddonTestUtils.init(global);
+  AddonTestUtils.overrideCertDB();
+  AddonTestUtils.createAppInfo(
+    "xpcshell@tests.mozilla.org",
+    "XPCShell",
+    "42",
+    "42"
+  );
+
+  ExtensionParent.apiManager.registerModules(MODULE_INFO);
+});
+
+add_task(async function test_persistent_events() {
   await AddonTestUtils.promiseStartupManager();
 
   let extension = ExtensionTestUtils.loadExtension({
@@ -205,16 +286,16 @@ add_task(async function test_persistent_events() {
       let listener3 = arg => browser.test.sendMessage("listener3", arg);
 
       if (register1) {
-        browser.eventtest.onEvent1.addListener(listener1, "listener1");
+        browser.startupBlocking.onEvent1.addListener(listener1, "listener1");
       }
       if (register2) {
-        browser.eventtest.onEvent1.addListener(listener2, "listener2");
-        browser.eventtest.onEvent2.addListener(listener3, "listener3");
+        browser.startupBlocking.onEvent1.addListener(listener2, "listener2");
+        browser.startupBlocking.onEvent2.addListener(listener3, "listener3");
       }
 
       browser.test.onMessage.addListener(msg => {
         if (msg == "unregister2") {
-          browser.eventtest.onEvent2.removeListener(listener3);
+          browser.startupBlocking.onEvent2.removeListener(listener3);
           localStorage.setItem("skip2", true);
         } else if (msg == "unregister1") {
           localStorage.setItem("skip1", true);
@@ -268,44 +349,47 @@ add_task(async function test_persistent_events() {
 
   // Check that the regular event registration process occurs when
   // the extension is installed.
-  let [info] = await Promise.all([
+  let [observed] = await Promise.all([
     promiseObservable("register-event-listener", 3),
     extension.startup(),
   ]);
-  check(info, "register");
+  check(observed, "register");
 
   await extension.awaitMessage("ready");
 
   // Check that the regular unregister process occurs when
   // the browser shuts down.
-  [info] = await Promise.all([
+  [observed] = await Promise.all([
     promiseObservable("unregister-event-listener", 3),
     new Promise(resolve => extension.extension.once("shutdown", resolve)),
     AddonTestUtils.promiseShutdownManager(),
   ]);
-  check(info, "unregister");
+  check(observed, "unregister");
 
   // Check that listeners are primed at the next browser startup.
-  [info] = await Promise.all([
+  [observed] = await Promise.all([
     promiseObservable("prime-event-listener", 3),
     AddonTestUtils.promiseStartupManager(),
   ]);
-  check(info, "prime");
+  check(observed, "prime");
 
   // Check that primed listeners are converted to regular listeners
   // when the background page is started after browser startup.
   let p = promiseObservable("convert-event-listener", 3);
-  Services.obs.notifyObservers(null, "sessionstore-windows-restored");
-  info = await p;
+  AddonTestUtils.notifyLateStartup();
+  observed = await p;
 
-  check(info, "convert");
+  check(observed, "convert");
 
   await extension.awaitMessage("ready");
 
   // Check that when the event is triggered, all the plumbing worked
   // correctly for the primed-then-converted listener.
   let listenerArgs = { test: "kaboom" };
-  Services.obs.notifyObservers({ listenerArgs }, "fire-onEvent1");
+  Services.obs.notifyObservers(
+    { listenerArgs },
+    "fire-startupBlocking.onEvent1"
+  );
 
   let details = await extension.awaitMessage("listener1");
   deepEqual(details, listenerArgs, "Listener 1 fired");
@@ -314,28 +398,31 @@ add_task(async function test_persistent_events() {
 
   // Check that the converted listener is properly unregistered at
   // browser shutdown.
-  [info] = await Promise.all([
+  [observed] = await Promise.all([
     promiseObservable("unregister-primed-listener", 3),
     AddonTestUtils.promiseShutdownManager(),
   ]);
-  check(info, "unregister");
+  check(observed, "unregister");
 
   // Start up again, listener should be primed
-  [info] = await Promise.all([
+  [observed] = await Promise.all([
     promiseObservable("prime-event-listener", 3),
     AddonTestUtils.promiseStartupManager(),
   ]);
-  check(info, "prime");
+  check(observed, "prime");
 
   // Check that triggering the event before the listener has been converted
   // causes the background page to be loaded and the listener to be converted,
   // and the listener is invoked.
   p = promiseObservable("convert-event-listener", 3);
   listenerArgs.test = "startup event";
-  Services.obs.notifyObservers({ listenerArgs }, "fire-onEvent2");
-  info = await p;
+  Services.obs.notifyObservers(
+    { listenerArgs },
+    "fire-startupBlocking.onEvent2"
+  );
+  observed = await p;
 
-  check(info, "convert");
+  check(observed, "convert");
 
   details = await extension.awaitMessage("listener3");
   deepEqual(details, listenerArgs, "Listener 3 fired for event during startup");
@@ -346,22 +433,22 @@ add_task(async function test_persistent_events() {
   // a listener.
   p = promiseObservable("unregister-primed-listener", 1);
   extension.sendMessage("unregister2");
-  info = await p;
-  check(info, "unregister", { listener1: false, listener2: false });
+  observed = await p;
+  check(observed, "unregister", { listener1: false, listener2: false });
 
   // Check that we only get unregisters for the remaining events after
   // one listener has been removed.
-  info = await promiseObservable("unregister-primed-listener", 2, () =>
+  observed = await promiseObservable("unregister-primed-listener", 2, () =>
     AddonTestUtils.promiseShutdownManager()
   );
-  check(info, "unregister", { listener3: false });
+  check(observed, "unregister", { listener3: false });
 
   // Check that after restart, only listeners that were present at
   // the end of the last session are primed.
-  info = await promiseObservable("prime-event-listener", 2, () =>
+  observed = await promiseObservable("prime-event-listener", 2, () =>
     AddonTestUtils.promiseStartupManager()
   );
-  check(info, "prime", { listener3: false });
+  check(observed, "prime", { listener3: false });
 
   // Check that if the background script does not re-register listeners,
   // the primed listeners are unregistered after the background page
@@ -369,13 +456,17 @@ add_task(async function test_persistent_events() {
   p = promiseObservable("unregister-primed-listener", 1, () =>
     extension.awaitMessage("ready")
   );
-  Services.obs.notifyObservers(null, "sessionstore-windows-restored");
-  info = await p;
-  check(info, "unregister", { listener1: false, listener3: false });
+
+  AddonTestUtils.notifyLateStartup();
+  observed = await p;
+  check(observed, "unregister", { listener1: false, listener3: false });
 
   // Just listener1 should be registered now, fire event1 to confirm.
   listenerArgs.test = "third time";
-  Services.obs.notifyObservers({ listenerArgs }, "fire-onEvent1");
+  Services.obs.notifyObservers(
+    { listenerArgs },
+    "fire-startupBlocking.onEvent1"
+  );
   details = await extension.awaitMessage("listener1");
   deepEqual(details, listenerArgs, "Listener 1 fired");
 
@@ -384,26 +475,26 @@ add_task(async function test_persistent_events() {
   await extension.awaitMessage("unregistered");
 
   // Shut down, start up
-  info = await promiseObservable("unregister-primed-listener", 1, () =>
+  observed = await promiseObservable("unregister-primed-listener", 1, () =>
     AddonTestUtils.promiseShutdownManager()
   );
-  check(info, "unregister", { listener2: false, listener3: false });
+  check(observed, "unregister", { listener2: false, listener3: false });
 
-  info = await promiseObservable("prime-event-listener", 1, () =>
+  observed = await promiseObservable("prime-event-listener", 1, () =>
     AddonTestUtils.promiseStartupManager()
   );
-  check(info, "register", { listener2: false, listener3: false });
+  check(observed, "register", { listener2: false, listener3: false });
 
   // Check that firing event1 causes the listener fire callback to
   // reject.
   p = promiseObservable("listener-callback-exception", 1);
   Services.obs.notifyObservers(
     { listenerArgs, waitForBackground: true },
-    "fire-onEvent1"
+    "fire-startupBlocking.onEvent1"
   );
   equal(
     (await p)[0].errorMessage,
-    "Error: primed listener not re-registered",
+    "Error: primed listener startupBlocking.onEvent1 not re-registered",
     "Primed listener that was not re-registered received an error when event was triggered during startup"
   );
 
@@ -424,7 +515,7 @@ add_task(async function test_shutdown_before_background_loaded() {
     useAddonManager: "permanent",
     background() {
       let listener = arg => browser.test.sendMessage("triggered", arg);
-      browser.eventtest.onEvent1.addListener(listener, "triggered");
+      browser.startupBlocking.onEvent1.addListener(listener, "triggered");
       browser.test.sendMessage("bg_started");
     },
   });
@@ -488,7 +579,7 @@ add_task(async function test_shutdown_before_background_loaded() {
 
   await Assert.rejects(
     fire.async(),
-    /Error: primed listener not re-registered/,
+    /Error: primed listener startupBlocking.onEvent1 not re-registered/,
     "fire.async after background load failure should be rejected"
   );
 
@@ -498,14 +589,16 @@ add_task(async function test_shutdown_before_background_loaded() {
   // that the persistent listeners have not been unregistered.
 
   // Suppress background page start until an explicit notification.
-  ExtensionParent._resetStartupPromises();
   await Promise.all([
     promiseObservable("prime-event-listener", 1),
-    AddonTestUtils.promiseStartupManager(),
+    AddonTestUtils.promiseStartupManager({ earlyStartup: false }),
   ]);
   info("Triggering persistent event to force the background page to start");
-  Services.obs.notifyObservers({ listenerArgs: 123 }, "fire-onEvent1");
-  Services.obs.notifyObservers(null, "browser-delayed-startup-finished");
+  Services.obs.notifyObservers(
+    { listenerArgs: 123 },
+    "fire-startupBlocking.onEvent1"
+  );
+  AddonTestUtils.notifyEarlyStartup();
   await extension.awaitMessage("bg_started");
   equal(await extension.awaitMessage("triggered"), 123, "triggered event");
 
@@ -516,10 +609,9 @@ add_task(async function test_shutdown_before_background_loaded() {
 
   // And lastly, verify that a primed listener is correctly removed when the
   // extension unloads normally before the delayed background page can load.
-  ExtensionParent._resetStartupPromises();
   await Promise.all([
     promiseObservable("prime-event-listener", 1),
-    AddonTestUtils.promiseStartupManager(),
+    AddonTestUtils.promiseStartupManager({ earlyStartup: false }),
   ]);
 
   info("Unloading extension before background page has loaded");
@@ -536,14 +628,12 @@ add_task(async function test_shutdown_before_background_loaded() {
 // put to sleep.
 add_task(async function test_background_restarted() {
   await AddonTestUtils.promiseStartupManager();
-  // ensure normal delayed startup notification had already happened at some point
-  Services.obs.notifyObservers(null, "browser-delayed-startup-finished");
 
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
     background() {
       let listener = arg => browser.test.sendMessage("triggered", arg);
-      browser.eventtest.onEvent1.addListener(listener, "triggered");
+      browser.startupBlocking.onEvent1.addListener(listener, "triggered");
       browser.test.sendMessage("bg_started");
     },
   });
@@ -552,7 +642,7 @@ add_task(async function test_background_restarted() {
     extension.startup(),
   ]);
   await extension.awaitMessage("bg_started");
-  assertPersistentListeners(extension, "eventtest", "onEvent1", {
+  assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
     primed: false,
   });
 
@@ -562,12 +652,15 @@ add_task(async function test_background_restarted() {
     extension.terminateBackground(),
   ]);
   // When sleeping the background, its events should become persisted
-  assertPersistentListeners(extension, "eventtest", "onEvent1", {
+  assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
     primed: true,
   });
 
   info("Triggering persistent event to force the background page to start");
-  Services.obs.notifyObservers({ listenerArgs: 123 }, "fire-onEvent1");
+  Services.obs.notifyObservers(
+    { listenerArgs: 123 },
+    "fire-startupBlocking.onEvent1"
+  );
   await extension.awaitMessage("bg_started");
   equal(await extension.awaitMessage("triggered"), 123, "triggered event");
 
@@ -579,11 +672,9 @@ add_task(async function test_background_restarted() {
 // restart the background once the background has been shutdown or
 // put to sleep.
 add_task(
-  { prefs_set: [["extensions.eventPages.enabled", true]] },
+  { pref_set: [["extensions.eventPages.enabled", true]] },
   async function test_eventpage_startup() {
     await AddonTestUtils.promiseStartupManager();
-    // ensure normal delayed startup notification had already happened at some point
-    Services.obs.notifyObservers(null, "browser-delayed-startup-finished");
 
     let extension = ExtensionTestUtils.loadExtension({
       useAddonManager: "permanent",
@@ -593,17 +684,22 @@ add_task(
       },
       background() {
         let listener = arg => browser.test.sendMessage("triggered", arg);
-        browser.eventtest.onEvent1.addListener(listener, "triggered");
+        browser.startupBlocking.onEvent1.addListener(listener, "triggered");
+        let listenerNs = arg => browser.test.sendMessage("triggered-et2", arg);
+        browser.nonStartupBlocking.onEvent1.addListener(
+          listenerNs,
+          "triggered-et2"
+        );
         browser.test.onMessage.addListener(() => {
           let listener = arg => browser.test.sendMessage("triggered2", arg);
-          browser.eventtest.onEvent2.addListener(listener, "triggered2");
+          browser.startupBlocking.onEvent2.addListener(listener, "triggered2");
           browser.test.sendMessage("async-registered-listener");
         });
         browser.test.sendMessage("bg_started");
       },
     });
     await Promise.all([
-      promiseObservable("register-event-listener", 1),
+      promiseObservable("register-event-listener", 2),
       extension.startup(),
     ]);
     await extension.awaitMessage("bg_started");
@@ -611,11 +707,11 @@ add_task(
     await extension.awaitMessage("async-registered-listener");
 
     async function testAfterRestart() {
-      assertPersistentListeners(extension, "eventtest", "onEvent1", {
+      assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
         primed: true,
       });
       // async registration should not be primed or persisted
-      assertPersistentListeners(extension, "eventtest", "onEvent2", {
+      assertPersistentListeners(extension, "startupBlocking", "onEvent2", {
         primed: false,
         persisted: false,
       });
@@ -632,7 +728,10 @@ add_task(
 
       info("Triggering persistent event to force the background page to start");
       let converted = promiseObservable("convert-event-listener", 1);
-      Services.obs.notifyObservers({ listenerArgs: 123 }, "fire-onEvent1");
+      Services.obs.notifyObservers(
+        { listenerArgs: 123 },
+        "fire-startupBlocking.onEvent1"
+      );
       await extension.awaitMessage("bg_started");
       await converted;
       equal(await extension.awaitMessage("triggered"), 123, "triggered event");
@@ -648,12 +747,16 @@ add_task(
 
     // Shutdown the background page
     await Promise.all([
-      promiseObservable("unregister-event-listener", 2),
+      promiseObservable("unregister-event-listener", 3),
       new Promise(resolve => extension.extension.once("shutdown", resolve)),
       AddonTestUtils.promiseShutdownManager(),
     ]);
-    await AddonTestUtils.promiseStartupManager();
+    await AddonTestUtils.promiseStartupManager({ lateStartup: false });
     await extension.awaitStartup();
+    assertPersistentListeners(extension, "nonStartupBlocking", "onEvent1", {
+      primed: false,
+      persisted: true,
+    });
     await testAfterRestart();
 
     extension.sendMessage("async-register-listener");
@@ -662,20 +765,28 @@ add_task(
     // We sleep twice to ensure startup and shutdown work correctly
     info("test event listener registration during termination");
     let registrationEvents = Promise.all([
-      promiseObservable("unregister-event-listener", 1),
+      promiseObservable("unregister-event-listener", 2),
       promiseObservable("unregister-primed-listener", 1),
-      promiseObservable("prime-event-listener", 1),
+      promiseObservable("prime-event-listener", 2),
     ]);
     await extension.terminateBackground();
     await registrationEvents;
 
+    assertPersistentListeners(extension, "nonStartupBlocking", "onEvent1", {
+      primed: true,
+      persisted: true,
+    });
+
     // Ensure onEvent2 does not fire, testAfterRestart will fail otherwise.
-    Services.obs.notifyObservers({ listenerArgs: 123 }, "fire-onEvent2");
+    Services.obs.notifyObservers(
+      { listenerArgs: 123 },
+      "fire-startupBlocking.onEvent2"
+    );
     await testAfterRestart();
 
     registrationEvents = Promise.all([
-      promiseObservable("unregister-primed-listener", 1),
-      promiseObservable("prime-event-listener", 1),
+      promiseObservable("unregister-primed-listener", 2),
+      promiseObservable("prime-event-listener", 2),
     ]);
     await extension.terminateBackground();
     await registrationEvents;
@@ -683,6 +794,475 @@ add_task(
 
     await extension.unload();
     await AddonTestUtils.promiseShutdownManager();
-    Services.prefs.setBoolPref("extensions.eventPages.enabled", false);
+  }
+);
+
+// This test verifies primeListener behavior for errors or ignored listeners.
+add_task(async function test_background_primeListener_errors() {
+  await AddonTestUtils.promiseStartupManager();
+
+  // The internal APIs to shutdown the background work with any
+  // background, and in the shutdown case, events will be persisted
+  // and primed for a restart.
+  let extension = ExtensionTestUtils.loadExtension({
+    useAddonManager: "permanent",
+    background() {
+      // Listen for options being set so a restart will have them.
+      browser.test.onMessage.addListener(async (message, options) => {
+        if (message == "set-options") {
+          await browser.startupBlocking.testOptions(options);
+          browser.test.sendMessage("set-options:done");
+        }
+      });
+      let listener = arg => browser.test.sendMessage("triggered", arg);
+      browser.startupBlocking.onEvent1.addListener(listener, "triggered");
+      let listener2 = arg => browser.test.sendMessage("triggered", arg);
+      browser.startupBlocking.onEvent2.addListener(listener2, "triggered");
+      browser.test.sendMessage("bg_started");
+    },
+  });
+  await Promise.all([
+    promiseObservable("register-event-listener", 1),
+    extension.startup(),
+  ]);
+  await extension.awaitMessage("bg_started");
+  assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
+    primed: false,
+  });
+
+  // If an event is removed from an api, a permission is removed,
+  // or some other option prevents priming, ensure that
+  // primelistener works correctly.
+  // In this scenario we are testing that an event is not renewed
+  // on startup because the API does not re-prime it.  The result
+  // is that the event is also not persisted.  However the other
+  // events that are renewed should still be primed and persisted.
+  extension.sendMessage("set-options", {
+    eventName: "onEvent1",
+    ignoreListener: true,
+  });
+  await extension.awaitMessage("set-options:done");
+
+  // Shutdown the background page
+  await Promise.all([
+    promiseObservable("unregister-event-listener", 2),
+    extension.terminateBackground(),
+  ]);
+  // startupBlocking.onEvent1 was not re-primed and should not be persisted, but
+  // onEvent2 should still be primed and persisted.
+  assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
+    primed: false,
+    persisted: false,
+  });
+  assertPersistentListeners(extension, "startupBlocking", "onEvent2", {
+    primed: true,
+  });
+
+  info("Triggering persistent event to force the background page to start");
+  Services.obs.notifyObservers(
+    { listenerArgs: 123 },
+    "fire-startupBlocking.onEvent2"
+  );
+  await extension.awaitMessage("bg_started");
+  equal(await extension.awaitMessage("triggered"), 123, "triggered event");
+
+  // On restart, test an exception, it should not be re-primed.
+  extension.sendMessage("set-options", {
+    eventName: "onEvent1",
+    throwError: "error",
+  });
+  await extension.awaitMessage("set-options:done");
+
+  // Shutdown the background page
+  await Promise.all([
+    promiseObservable("unregister-event-listener", 1),
+    extension.terminateBackground(),
+  ]);
+  // startupBlocking.onEvent1 failed and should not be persisted
+  assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
+    primed: false,
+    persisted: false,
+  });
+
+  info("Triggering event to verify background starts after prior error");
+  Services.obs.notifyObservers(
+    { listenerArgs: 123 },
+    "fire-startupBlocking.onEvent2"
+  );
+  await extension.awaitMessage("bg_started");
+  equal(await extension.awaitMessage("triggered"), 123, "triggered event");
+
+  info("reset options for next test");
+  extension.sendMessage("set-options", {});
+  await extension.awaitMessage("set-options:done");
+
+  // Test errors on app restart
+  info("Test errors during app startup");
+  await AddonTestUtils.promiseRestartManager();
+  await extension.awaitStartup();
+  await extension.awaitMessage("bg_started");
+
+  info("restart AOM and verify primed listener");
+  await AddonTestUtils.promiseRestartManager({ earlyStartup: false });
+  await extension.awaitStartup();
+  assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
+    primed: true,
+    persisted: true,
+  });
+  AddonTestUtils.notifyEarlyStartup();
+
+  Services.obs.notifyObservers(
+    { listenerArgs: 123 },
+    "fire-startupBlocking.onEvent1"
+  );
+  await extension.awaitMessage("bg_started");
+  equal(await extension.awaitMessage("triggered"), 123, "triggered event");
+
+  // Test that an exception happening during priming clears the
+  // event from being persisted when restarting the browser, and that
+  // the background correctly starts.
+  info("test exception during primeListener on startup");
+  extension.sendMessage("set-options", {
+    eventName: "onEvent1",
+    throwError: "error",
+  });
+  await extension.awaitMessage("set-options:done");
+
+  await AddonTestUtils.promiseRestartManager({ earlyStartup: false });
+  await extension.awaitStartup();
+  AddonTestUtils.notifyEarlyStartup();
+
+  // At this point, the exception results in the persisted entry
+  // being cleared.
+  assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
+    primed: false,
+    persisted: false,
+  });
+
+  AddonTestUtils.notifyLateStartup();
+
+  await extension.awaitMessage("bg_started");
+
+  // The background added the listener back during top level execution,
+  // verify it is in the persisted list.
+  assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
+    primed: false,
+    persisted: true,
+  });
+
+  // reset options
+  extension.sendMessage("set-options", {});
+  await extension.awaitMessage("set-options:done");
+  await extension.unload();
+  await AddonTestUtils.promiseShutdownManager();
+});
+
+add_task(async function test_non_background_context_listener_not_persisted() {
+  await AddonTestUtils.promiseStartupManager();
+
+  let extension = ExtensionTestUtils.loadExtension({
+    useAddonManager: "permanent",
+    background() {
+      let listener = arg => browser.test.sendMessage("triggered", arg);
+      browser.startupBlocking.onEvent1.addListener(listener, "triggered");
+      browser.test.sendMessage(
+        "bg_started",
+        browser.runtime.getURL("extpage.html")
+      );
+    },
+    files: {
+      "extpage.html": `<script src="extpage.js"></script>`,
+      "extpage.js": function() {
+        let listener = arg =>
+          browser.test.sendMessage("extpage-triggered", arg);
+        browser.startupBlocking.onEvent2.addListener(
+          listener,
+          "extpage-triggered"
+        );
+        // Send a message to signal the extpage has registered the listener,
+        // after calling an async method and wait it to be resolved to make sure
+        // the addListener call to have been handled in the parent process by
+        // the time we will assert the persisted listeners.
+        browser.runtime.getPlatformInfo().then(() => {
+          browser.test.sendMessage("extpage_started");
+        });
+      },
+    },
+  });
+
+  await extension.startup();
+  const extpage_url = await extension.awaitMessage("bg_started");
+
+  assertPersistentListeners(extension, "startupBlocking", "onEvent1", {
+    persisted: true,
+    primed: false,
+  });
+
+  assertPersistentListeners(extension, "startupBlocking", "onEvent2", {
+    persisted: false,
+  });
+
+  const page = await ExtensionTestUtils.loadContentPage(extpage_url);
+  await extension.awaitMessage("extpage_started");
+
+  // Expect the onEvent2 listener subscribed by the extpage to not be persisted.
+  assertPersistentListeners(extension, "startupBlocking", "onEvent2", {
+    persisted: false,
+  });
+
+  await page.close();
+  await extension.unload();
+  await AddonTestUtils.promiseShutdownManager();
+});
+
+// Test support for event page tests
+const background = async function() {
+  let listener2 = () =>
+    browser.test.sendMessage("triggered:non-startupblocking");
+  browser.startupBlocking.onEvent1.addListener(() => {});
+  browser.startupBlocking.nonBlockingEvent.addListener(() => {});
+  browser.nonStartupBlocking.onEvent2.addListener(listener2);
+  browser.test.sendMessage("bg_started");
+};
+
+const background_update = async function() {
+  browser.startupBlocking.onEvent1.addListener(() => {});
+  browser.nonStartupBlocking.onEvent2.addListener(() => {});
+  browser.test.sendMessage("updated_bg_started");
+};
+
+function testPersistentListeners(extension, expect) {
+  for (let [ns, event, persisted, primed] of expect) {
+    assertPersistentListeners(extension, ns, event, {
+      persisted,
+      primed,
+    });
+  }
+}
+
+add_task(
+  { pref_set: [["extensions.eventPages.enabled", true]] },
+  async function test_startupblocking_behavior() {
+    await AddonTestUtils.promiseStartupManager();
+
+    let extension = ExtensionTestUtils.loadExtension({
+      useAddonManager: "permanent",
+      manifest: {
+        background: { persistent: false },
+      },
+      background,
+    });
+
+    await extension.startup();
+    await extension.awaitMessage("bg_started");
+
+    // All are persisted on startup
+    testPersistentListeners(extension, [
+      ["startupBlocking", "onEvent1", true, false],
+      ["startupBlocking", "nonBlockingEvent", true, false],
+      ["nonStartupBlocking", "onEvent2", true, false],
+    ]);
+
+    info("Test after mocked browser restart");
+    await Promise.all([
+      new Promise(resolve => extension.extension.once("shutdown", resolve)),
+      AddonTestUtils.promiseShutdownManager(),
+    ]);
+    await AddonTestUtils.promiseStartupManager({ lateStartup: false });
+    await extension.awaitStartup();
+
+    testPersistentListeners(extension, [
+      // Startup blocking event is expected to be persisted and primed.
+      ["startupBlocking", "onEvent1", true, true],
+      // A non-startup-blocking event shouldn't be primed yet.
+      ["startupBlocking", "nonBlockingEvent", true, false],
+      // Non "Startup blocking" event is expected to be persisted but not primed yet.
+      ["nonStartupBlocking", "onEvent2", true, false],
+    ]);
+
+    // Complete the browser startup and fire the startup blocking event
+    // to let the backgrund script to run.
+    AddonTestUtils.notifyLateStartup();
+    Services.obs.notifyObservers({}, "fire-startupBlocking.onEvent1");
+    await extension.awaitMessage("bg_started");
+
+    info("Test after terminate background script");
+    await extension.terminateBackground();
+
+    // After the background is terminated, all are persisted and primed.
+    testPersistentListeners(extension, [
+      ["startupBlocking", "onEvent1", true, true],
+      ["startupBlocking", "nonBlockingEvent", true, true],
+      ["nonStartupBlocking", "onEvent2", true, true],
+    ]);
+
+    info("Notify event for the non-startupBlocking API event");
+    Services.obs.notifyObservers({}, "fire-nonStartupBlocking.onEvent2");
+    await extension.awaitMessage("bg_started");
+    await extension.awaitMessage("triggered:non-startupblocking");
+
+    await extension.unload();
+    await AddonTestUtils.promiseShutdownManager();
+  }
+);
+
+add_task(
+  { pref_set: [["extensions.eventPages.enabled", true]] },
+  async function test_startupblocking_behavior_upgrade() {
+    let id = "persistent-upgrade@test";
+    await AddonTestUtils.promiseStartupManager();
+
+    let extensionData = {
+      useAddonManager: "permanent",
+      manifest: {
+        version: "1.0",
+        applications: {
+          gecko: { id },
+        },
+        background: { persistent: false },
+      },
+      background,
+    };
+    let extension = ExtensionTestUtils.loadExtension(extensionData);
+    await extension.startup();
+    await extension.awaitMessage("bg_started");
+
+    // All are persisted on startup
+    testPersistentListeners(extension, [
+      ["startupBlocking", "onEvent1", true, false],
+      ["startupBlocking", "nonBlockingEvent", true, false],
+      ["nonStartupBlocking", "onEvent2", true, false],
+    ]);
+
+    // Prepare the extension that will be updated.
+    extensionData.manifest.version = "2.0";
+    extensionData.background = background_update;
+
+    info("Test after a upgrade");
+    await extension.upgrade(extensionData);
+    // upgrade should start the background
+    await extension.awaitMessage("updated_bg_started");
+
+    // Nothing should be primed at this point after the background
+    // has started.  We look specifically for nonBlockingEvent to
+    // no longer be a part of the persisted listeners.
+    testPersistentListeners(extension, [
+      ["startupBlocking", "onEvent1", true, false],
+      ["startupBlocking", "nonBlockingEvent", false, false],
+      ["nonStartupBlocking", "onEvent2", true, false],
+    ]);
+
+    await extension.unload();
+    await AddonTestUtils.promiseShutdownManager();
+  }
+);
+
+add_task(
+  { pref_set: [["extensions.eventPages.enabled", true]] },
+  async function test_startupblocking_behavior_staged_upgrade() {
+    AddonManager.checkUpdateSecurity = false;
+    let id = "persistent-staged-upgrade@test";
+
+    // register an update file.
+    AddonTestUtils.registerJSON(server, "/test_update.json", {
+      addons: {
+        [id]: {
+          updates: [
+            {
+              version: "2.0",
+              update_link:
+                "http://example.com/addons/test_settings_staged_restart.xpi",
+            },
+          ],
+        },
+      },
+    });
+
+    let extensionData = {
+      useAddonManager: "permanent",
+      manifest: {
+        version: "2.0",
+        applications: {
+          gecko: { id, update_url: `http://example.com/test_update.json` },
+        },
+        background: { persistent: false },
+      },
+      background: background_update,
+    };
+
+    // Prepare the update first.
+    server.registerFile(
+      `/addons/test_settings_staged_restart.xpi`,
+      AddonTestUtils.createTempWebExtensionFile(extensionData)
+    );
+
+    // Prepare the extension that will be updated.
+    extensionData.manifest.version = "1.0";
+    extensionData.background = async function() {
+      // we're testing persistence, not operation, so no action in listeners.
+      browser.startupBlocking.onEvent1.addListener(() => {});
+      // nonBlockingEvent will be removed on upgrade
+      browser.startupBlocking.nonBlockingEvent.addListener(() => {});
+      browser.nonStartupBlocking.onEvent2.addListener(() => {});
+
+      // Force a staged updated.
+      browser.runtime.onUpdateAvailable.addListener(async details => {
+        // This should be the version of the pending update.
+        browser.test.assertEq("2.0", details.version, "correct version");
+        browser.test.sendMessage("delay");
+      });
+
+      browser.test.sendMessage("bg_started");
+    };
+
+    await AddonTestUtils.promiseStartupManager();
+    let extension = ExtensionTestUtils.loadExtension(extensionData);
+
+    await extension.startup();
+    await extension.awaitMessage("bg_started");
+
+    // All are persisted but not primed on startup
+    testPersistentListeners(extension, [
+      ["startupBlocking", "onEvent1", true, false],
+      ["startupBlocking", "nonBlockingEvent", true, false],
+      ["nonStartupBlocking", "onEvent2", true, false],
+    ]);
+
+    info("Test after a staged update");
+    // first, deal with getting and staging an upgrade
+    let addon = await AddonManager.getAddonByID(id);
+    Assert.equal(addon.version, "1.0", "1.0 is loaded");
+
+    let update = await AddonTestUtils.promiseFindAddonUpdates(addon);
+    let install = update.updateAvailable;
+    Assert.ok(install, `install is available ${update.error}`);
+
+    await AddonTestUtils.promiseCompleteAllInstalls([install]);
+
+    Assert.equal(
+      install.state,
+      AddonManager.STATE_POSTPONED,
+      "update is staged for install"
+    );
+    await extension.awaitMessage("delay");
+
+    await AddonTestUtils.promiseShutdownManager();
+
+    // restarting allows upgrade to proceed
+    await AddonTestUtils.promiseStartupManager();
+    // upgrade should always start the background
+    await extension.awaitMessage("updated_bg_started");
+
+    // Since this is an upgraded addon, the background will have started
+    // and we no longer have primed listeners.  Check only the persisted
+    // values, and that nonBlockingEvent is not persisted.
+    testPersistentListeners(extension, [
+      ["startupBlocking", "onEvent1", true, false],
+      ["startupBlocking", "nonBlockingEvent", false, false],
+      ["nonStartupBlocking", "onEvent2", true, false],
+    ]);
+
+    await extension.unload();
+    await AddonTestUtils.promiseShutdownManager();
   }
 );

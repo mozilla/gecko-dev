@@ -5,15 +5,13 @@
 
 #include "nsPrintSettingsService.h"
 
-#include "mozilla/embedding/PPrinting.h"
+#include "mozilla/embedding/PPrintingTypes.h"
 #include "mozilla/layout/RemotePrintJobChild.h"
 #include "mozilla/RefPtr.h"
 #include "nsCoord.h"
 #include "nsIPrinterList.h"
-#include "nsPrintingProxy.h"
 #include "nsReadableUtils.h"
 #include "nsPrintSettingsImpl.h"
-#include "nsIPrintSession.h"
 #include "nsServiceManagerUtils.h"
 #include "nsSize.h"
 
@@ -85,7 +83,6 @@ static const char kPrintBGColors[] = "print_bgcolor";
 static const char kPrintBGImages[] = "print_bgimages";
 static const char kPrintShrinkToFit[] = "print_shrink_to_fit";
 static const char kPrintScaling[] = "print_scaling";
-static const char kPrintResolution[] = "print_resolution";
 static const char kPrintDuplex[] = "print_duplex";
 
 static const char kJustLeft[] = "left";
@@ -122,7 +119,6 @@ nsPrintSettingsService::SerializeToPrintData(nsIPrintSettings* aSettings,
 
   data->honorPageRuleMargins() = aSettings->GetHonorPageRuleMargins();
   data->showMarginGuides() = aSettings->GetShowMarginGuides();
-  data->isPrintSelectionRBEnabled() = aSettings->GetIsPrintSelectionRBEnabled();
   data->printSelectionOnly() = aSettings->GetPrintSelectionOnly();
 
   aSettings->GetTitle(data->title());
@@ -136,7 +132,6 @@ nsPrintSettingsService::SerializeToPrintData(nsIPrintSettings* aSettings,
   aSettings->GetFooterStrCenter(data->footerStrCenter());
   aSettings->GetFooterStrRight(data->footerStrRight());
 
-  aSettings->GetIsCancelled(&data->isCancelled());
   aSettings->GetPrintSilent(&data->printSilent());
   aSettings->GetShrinkToFit(&data->shrinkToFit());
 
@@ -152,16 +147,13 @@ nsPrintSettingsService::SerializeToPrintData(nsIPrintSettings* aSettings,
   aSettings->GetNumCopies(&data->numCopies());
   aSettings->GetNumPagesPerSheet(&data->numPagesPerSheet());
 
-  aSettings->GetPrinterName(data->printerName());
+  data->outputDestination() = aSettings->GetOutputDestination();
 
-  aSettings->GetPrintToFile(&data->printToFile());
+  data->outputFormat() = aSettings->GetOutputFormat();
+  data->printPageDelay() = aSettings->GetPrintPageDelay();
+  data->resolution() = aSettings->GetResolution();
+  data->duplex() = aSettings->GetDuplex();
 
-  aSettings->GetToFileName(data->toFileName());
-
-  aSettings->GetOutputFormat(&data->outputFormat());
-  aSettings->GetPrintPageDelay(&data->printPageDelay());
-  aSettings->GetResolution(&data->resolution());
-  aSettings->GetDuplex(&data->duplex());
   aSettings->GetIsInitializedFromPrinter(&data->isInitializedFromPrinter());
   aSettings->GetIsInitializedFromPrefs(&data->isInitializedFromPrefs());
 
@@ -179,13 +171,6 @@ nsPrintSettingsService::SerializeToPrintData(nsIPrintSettings* aSettings,
 NS_IMETHODIMP
 nsPrintSettingsService::DeserializeToPrintSettings(const PrintData& data,
                                                    nsIPrintSettings* settings) {
-  nsCOMPtr<nsIPrintSession> session;
-  nsresult rv = settings->GetPrintSession(getter_AddRefs(session));
-  if (NS_SUCCEEDED(rv) && session) {
-    session->SetRemotePrintJob(
-        static_cast<RemotePrintJobChild*>(data.remotePrintJobChild()));
-  }
-
   settings->SetPageRanges(data.pageRanges());
 
   settings->SetEdgeTop(data.edgeTop());
@@ -208,7 +193,6 @@ nsPrintSettingsService::DeserializeToPrintSettings(const PrintData& data,
   settings->SetPrintBGImages(data.printBGImages());
   settings->SetHonorPageRuleMargins(data.honorPageRuleMargins());
   settings->SetShowMarginGuides(data.showMarginGuides());
-  settings->SetIsPrintSelectionRBEnabled(data.isPrintSelectionRBEnabled());
   settings->SetPrintSelectionOnly(data.printSelectionOnly());
 
   settings->SetTitle(data.title());
@@ -224,7 +208,6 @@ nsPrintSettingsService::DeserializeToPrintSettings(const PrintData& data,
   settings->SetFooterStrCenter(data.footerStrCenter());
   settings->SetFooterStrRight(data.footerStrRight());
 
-  settings->SetIsCancelled(data.isCancelled());
   settings->SetPrintSilent(data.printSilent());
   settings->SetShrinkToFit(data.shrinkToFit());
 
@@ -241,11 +224,9 @@ nsPrintSettingsService::DeserializeToPrintSettings(const PrintData& data,
   settings->SetNumCopies(data.numCopies());
   settings->SetNumPagesPerSheet(data.numPagesPerSheet());
 
-  settings->SetPrinterName(data.printerName());
-
-  settings->SetPrintToFile(data.printToFile());
-
-  settings->SetToFileName(data.toFileName());
+  settings->SetOutputDestination(
+      nsIPrintSettings::OutputDestinationType(data.outputDestination()));
+  // Output stream intentionally unset, child processes shouldn't care about it.
 
   settings->SetOutputFormat(data.outputFormat());
   settings->SetPrintPageDelay(data.printPageDelay());
@@ -524,7 +505,9 @@ nsresult nsPrintSettingsService::ReadPrefs(nsIPrintSettings* aPS,
 
   if (aFlags & nsIPrintSettings::kInitSavePrintToFile) {
     if (GETBOOLPREF(kPrintToFile, &b)) {
-      aPS->SetPrintToFile(b);
+      aPS->SetOutputDestination(
+          b ? nsIPrintSettings::kOutputDestinationFile
+            : nsIPrintSettings::kOutputDestinationPrinter);
       noValidPrefsFound = false;
     }
   }
@@ -570,15 +553,6 @@ nsresult nsPrintSettingsService::ReadPrefs(nsIPrintSettings* aPS,
     }
   }
 
-  if (aFlags & nsIPrintSettings::kInitSaveResolution) {
-    // DPI. Again, an arbitrary range mainly to purge bad values that have made
-    // their way into user prefs.
-    if (GETINTPREF(kPrintResolution, &iVal) && iVal >= 50 && iVal <= 12000) {
-      aPS->SetResolution(iVal);
-      noValidPrefsFound = false;
-    }
-  }
-
   if (aFlags & nsIPrintSettings::kInitSaveDuplex) {
     if (GETINTPREF(kPrintDuplex, &iVal)) {
       aPS->SetDuplex(iVal);
@@ -588,6 +562,7 @@ nsresult nsPrintSettingsService::ReadPrefs(nsIPrintSettings* aPS,
 
   // Not Reading In:
   //   Number of Copies
+  //   Print Resolution
 
   return noValidPrefsFound ? NS_ERROR_NOT_AVAILABLE : NS_OK;
 }
@@ -740,9 +715,9 @@ nsresult nsPrintSettingsService::WritePrefs(nsIPrintSettings* aPS,
   }
 
   if (aFlags & nsIPrintSettings::kInitSavePrintToFile) {
-    if (NS_SUCCEEDED(aPS->GetPrintToFile(&b))) {
-      Preferences::SetBool(GetPrefName(kPrintToFile, aPrinterName), b);
-    }
+    Preferences::SetBool(GetPrefName(kPrintToFile, aPrinterName),
+                         aPS->GetOutputDestination() ==
+                             nsIPrintSettings::kOutputDestinationFile);
   }
 
   if (aFlags & nsIPrintSettings::kInitSaveToFileName) {
@@ -769,12 +744,6 @@ nsresult nsPrintSettingsService::WritePrefs(nsIPrintSettings* aPS,
     }
   }
 
-  if (aFlags & nsIPrintSettings::kInitSaveResolution) {
-    if (NS_SUCCEEDED(aPS->GetResolution(&iVal))) {
-      Preferences::SetInt(GetPrefName(kPrintResolution, aPrinterName), iVal);
-    }
-  }
-
   if (aFlags & nsIPrintSettings::kInitSaveDuplex) {
     if (NS_SUCCEEDED(aPS->GetDuplex(&iVal))) {
       Preferences::SetInt(GetPrefName(kPrintDuplex, aPrinterName), iVal);
@@ -783,6 +752,7 @@ nsresult nsPrintSettingsService::WritePrefs(nsIPrintSettings* aPS,
 
   // Not Writing Out:
   //   Number of Copies
+  //   Print Resolution
 
   return NS_OK;
 }
@@ -790,7 +760,7 @@ nsresult nsPrintSettingsService::WritePrefs(nsIPrintSettings* aPS,
 NS_IMETHODIMP
 nsPrintSettingsService::GetDefaultPrintSettingsForPrinting(
     nsIPrintSettings** aPrintSettings) {
-  nsresult rv = GetNewPrintSettings(aPrintSettings);
+  nsresult rv = CreateNewPrintSettings(aPrintSettings);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsIPrintSettings* settings = *aPrintSettings;
@@ -807,7 +777,7 @@ nsPrintSettingsService::GetDefaultPrintSettingsForPrinting(
 }
 
 NS_IMETHODIMP
-nsPrintSettingsService::GetNewPrintSettings(
+nsPrintSettingsService::CreateNewPrintSettings(
     nsIPrintSettings** aNewPrintSettings) {
   return _CreatePrintSettings(aNewPrintSettings);
 }
@@ -940,22 +910,25 @@ nsPrintSettingsService::InitPrintSettingsFromPrefs(nsIPrintSettings* aPS,
 nsresult nsPrintSettingsService::SavePrintSettingsToPrefs(
     nsIPrintSettings* aPS, bool aUsePrinterNamePrefix, uint32_t aFlags) {
   NS_ENSURE_ARG_POINTER(aPS);
-
-  if (GeckoProcessType_Content == XRE_GetProcessType()) {
-    // If we're in the content process, we can't directly write to the
-    // Preferences service - we have to proxy the save up to the
-    // parent process.
-    RefPtr<nsPrintingProxy> proxy = nsPrintingProxy::GetInstance();
-    return proxy->SavePrintSettings(aPS, aUsePrinterNamePrefix, aFlags);
-  }
-
-  nsAutoString prtName;
+  MOZ_DIAGNOSTIC_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   // Get the printer name from the PrinterSettings for an optional prefix.
+  nsAutoString prtName;
   nsresult rv = GetAdjustedPrinterName(aPS, aUsePrinterNamePrefix, prtName);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Write the prefs, with or without a printer name prefix.
+#ifndef MOZ_WIDGET_ANDROID
+  // On most platforms we should always use a prefix when saving print settings
+  // to prefs.  Saving without a prefix risks breaking printing for users
+  // without a good way for us to fix things for them (unprefixed prefs act as
+  // defaults and can result in values being inappropriately propagated to
+  // prefixed prefs).
+  if (prtName.IsEmpty() && aFlags != nsIPrintSettings::kInitSavePrinterName) {
+    MOZ_DIAGNOSTIC_ASSERT(false, "Print settings must be saved with a prefix");
+    return NS_ERROR_FAILURE;
+  }
+#endif
+
   return WritePrefs(aPS, prtName, aFlags);
 }
 

@@ -24,6 +24,8 @@
 #  include "jit/mips32/CodeGenerator-mips32.h"
 #elif defined(JS_CODEGEN_MIPS64)
 #  include "jit/mips64/CodeGenerator-mips64.h"
+#elif defined(JS_CODEGEN_LOONG64)
+#  include "jit/loong64/CodeGenerator-loong64.h"
 #elif defined(JS_CODEGEN_RISCV64)
 #  include "jit/riscv64/CodeGenerator-riscv64.h"
 #elif defined(JS_CODEGEN_NONE)
@@ -71,6 +73,8 @@ class OutOfLineRegExpTester;
 class OutOfLineRegExpPrototypeOptimizable;
 class OutOfLineRegExpInstanceOptimizable;
 class OutOfLineNaNToZero;
+class OutOfLineResumableWasmTrap;
+class OutOfLineAbortingWasmTrap;
 class OutOfLineZeroIfNaN;
 class OutOfLineGuardNumberToIntPtrIndex;
 class OutOfLineBoxNonStrictThis;
@@ -105,7 +109,7 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   [[nodiscard]] bool generate();
   [[nodiscard]] bool generateWasm(
       wasm::TypeIdDesc funcTypeId, wasm::BytecodeOffset trapOffset,
-      const wasm::ArgTypeVector& argTys, const MachineState& trapExitLayout,
+      const wasm::ArgTypeVector& argTys, const RegisterOffsets& trapExitLayout,
       size_t trapExitLayoutNumWords, wasm::FuncOffsets* offsets,
       wasm::StackMaps* stackMaps, wasm::Decoder* decoder);
 
@@ -148,6 +152,8 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void visitOutOfLineNaNToZero(OutOfLineNaNToZero* ool);
   void visitOutOfLineZeroIfNaN(OutOfLineZeroIfNaN* ool);
 
+  void visitOutOfLineResumableWasmTrap(OutOfLineResumableWasmTrap* ool);
+  void visitOutOfLineAbortingWasmTrap(OutOfLineAbortingWasmTrap* ool);
   void visitCheckOverRecursedFailure(CheckOverRecursedFailure* ool);
 
   void visitOutOfLineUnboxFloatingPoint(OutOfLineUnboxFloatingPoint* ool);
@@ -192,7 +198,7 @@ class CodeGenerator final : public CodeGeneratorSpecific {
                               size_t argvDstOffset);
   void emitPopArguments(Register extraStackSize);
   void emitPushArguments(Register argcreg, Register extraStackSpace,
-                         Register copyreg);
+                         Register copyreg, uint32_t extraFormals);
   void emitPushArrayAsArguments(Register tmpArgc, Register srcBaseAndArgc,
                                 Register scratch, size_t argvSrcOffset);
   void emitPushArguments(LApplyArgsGeneric* apply, Register extraStackSpace);
@@ -207,16 +213,27 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void emitGetInlinedArgument(GetInlinedArgument* lir, Register index,
                               ValueOperand output);
 
+  using RegisterOrInt32 = mozilla::Variant<Register, int32_t>;
+
+  static RegisterOrInt32 ToRegisterOrInt32(const LAllocation* allocation);
+
+#ifdef DEBUG
+  void emitAssertArgumentsSliceBounds(const RegisterOrInt32& begin,
+                                      const RegisterOrInt32& count,
+                                      Register numActualArgs);
+#endif
+
+  template <class ArgumentsSlice>
+  void emitNewArray(ArgumentsSlice* lir, const RegisterOrInt32& count,
+                    Register output, Register temp);
+
   void visitNewArrayCallVM(LNewArray* lir);
   void visitNewObjectVMCall(LNewObject* lir);
 
   void emitConcat(LInstruction* lir, Register lhs, Register rhs,
                   Register output);
 
-  void emitRest(LInstruction* lir, Register array, Register numActuals,
-                Register temp0, Register temp1, unsigned numFormals,
-                Register resultreg);
-  void emitInstanceOf(LInstruction* ins, const LAllocation* prototypeObject);
+  void emitInstanceOf(LInstruction* ins, Register protoReg);
 
   void loadJSScriptForBlock(MBasicBlock* block, Register reg);
   void loadOutermostJSScript(Register reg);
@@ -244,9 +261,6 @@ class CodeGenerator final : public CodeGeneratorSpecific {
                            const ConstantOrRegister& id,
                            const ConstantOrRegister& value, bool strict);
 
-  void emitLambdaInit(Register resultReg, Register envChainReg,
-                      const LambdaFunctionInfo& info);
-
   template <class IteratorObject, class OrderedHashTable>
   void emitGetNextEntryForIterator(LGetNextEntryForIterator* lir);
 
@@ -269,29 +283,17 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void emitWasmCompareAndSelect(LWasmCompareAndSelect* ins);
 
   void testValueTruthyForType(JSValueType type, ScratchTagScope& tag,
-                              const ValueOperand& value, Register scratch1,
-                              Register scratch2, FloatRegister fr,
+                              const ValueOperand& value, Register tempToUnbox,
+                              Register temp, FloatRegister floatTemp,
                               Label* ifTruthy, Label* ifFalsy,
                               OutOfLineTestObject* ool, bool skipTypeTest);
 
-  // This function behaves like testValueTruthy with the exception that it can
-  // choose to let control flow fall through when the object is truthy, as
-  // an optimization. Use testValueTruthy when it's required to branch to one
-  // of the two labels.
-  void testValueTruthyKernel(const ValueOperand& value,
-                             const LDefinition* scratch1,
-                             const LDefinition* scratch2, FloatRegister fr,
-                             TypeDataList observedTypes, Label* ifTruthy,
-                             Label* ifFalsy, OutOfLineTestObject* ool);
-
   // Test whether value is truthy or not and jump to the corresponding label.
-  // If the value can be an object that emulates |undefined|, |ool| must be
-  // non-null; otherwise it may be null (and the scratch definitions should
-  // be bogus), in which case an object encountered here will always be
-  // truthy.
-  void testValueTruthy(const ValueOperand& value, const LDefinition* scratch1,
-                       const LDefinition* scratch2, FloatRegister fr,
-                       TypeDataList observedTypes, Label* ifTruthy,
+  // The control flow falls through when the object is truthy, as an
+  // optimization.
+  void testValueTruthy(const ValueOperand& value, Register tempToUnbox,
+                       Register temp, FloatRegister floatTemp,
+                       const TypeDataList& observedTypes, Label* ifTruthy,
                        Label* ifFalsy, OutOfLineTestObject* ool);
 
   // This function behaves like testObjectEmulatesUndefined with the exception
@@ -375,6 +377,46 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 #define LIR_OP(op) void visit##op(L##op* ins);
   LIR_OPCODE_LIST(LIR_OP)
 #undef LIR_OP
+};
+
+class OutOfLineResumableWasmTrap : public OutOfLineCodeBase<CodeGenerator> {
+  LInstruction* lir_;
+  size_t framePushed_;
+  wasm::BytecodeOffset bytecodeOffset_;
+  wasm::Trap trap_;
+
+ public:
+  OutOfLineResumableWasmTrap(LInstruction* lir, size_t framePushed,
+                             wasm::BytecodeOffset bytecodeOffset,
+                             wasm::Trap trap)
+      : lir_(lir),
+        framePushed_(framePushed),
+        bytecodeOffset_(bytecodeOffset),
+        trap_(trap) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineResumableWasmTrap(this);
+  }
+  LInstruction* lir() const { return lir_; }
+  size_t framePushed() const { return framePushed_; }
+  wasm::BytecodeOffset bytecodeOffset() const { return bytecodeOffset_; }
+  wasm::Trap trap() const { return trap_; }
+};
+
+class OutOfLineAbortingWasmTrap : public OutOfLineCodeBase<CodeGenerator> {
+  wasm::BytecodeOffset bytecodeOffset_;
+  wasm::Trap trap_;
+
+ public:
+  OutOfLineAbortingWasmTrap(wasm::BytecodeOffset bytecodeOffset,
+                            wasm::Trap trap)
+      : bytecodeOffset_(bytecodeOffset), trap_(trap) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineAbortingWasmTrap(this);
+  }
+  wasm::BytecodeOffset bytecodeOffset() const { return bytecodeOffset_; }
+  wasm::Trap trap() const { return trap_; }
 };
 
 }  // namespace jit

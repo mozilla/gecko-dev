@@ -186,6 +186,20 @@ bool GLBlitHelper::BlitImage(layers::D3D11ShareHandleImage* const srcImage,
 
 // -------------------------------------
 
+bool GLBlitHelper::BlitImage(layers::D3D11TextureIMFSampleImage* const srcImage,
+                             const gfx::IntSize& destSize,
+                             const OriginPos destOrigin) const {
+  const auto& data = srcImage->GetData();
+  if (!data) return false;
+
+  layers::SurfaceDescriptorD3D10 desc;
+  if (!data->SerializeSpecific(&desc)) return false;
+
+  return BlitDescriptor(desc, destSize, destOrigin);
+}
+
+// -------------------------------------
+
 bool GLBlitHelper::BlitImage(layers::D3D11YCbCrImage* const srcImage,
                              const gfx::IntSize& destSize,
                              const OriginPos destOrigin) const {
@@ -195,9 +209,9 @@ bool GLBlitHelper::BlitImage(layers::D3D11YCbCrImage* const srcImage,
   const WindowsHandle handles[3] = {(WindowsHandle)data->mHandles[0],
                                     (WindowsHandle)data->mHandles[1],
                                     (WindowsHandle)data->mHandles[2]};
-  return BlitAngleYCbCr(handles, srcImage->mPictureRect, srcImage->mYSize,
-                        srcImage->mCbCrSize, srcImage->mColorSpace, destSize,
-                        destOrigin);
+  return BlitAngleYCbCr(handles, srcImage->mPictureRect, srcImage->GetYSize(),
+                        srcImage->GetCbCrSize(), srcImage->mColorSpace,
+                        destSize, destOrigin);
 }
 
 // -------------------------------------
@@ -209,6 +223,8 @@ bool GLBlitHelper::BlitDescriptor(const layers::SurfaceDescriptorD3D10& desc,
   if (!d3d) return false;
 
   const auto& handle = desc.handle();
+  const auto& gpuProcessTextureId = desc.gpuProcessTextureId();
+  const auto& arrayIndex = desc.arrayIndex();
   const auto& format = desc.format();
   const auto& clipSize = desc.size();
 
@@ -224,15 +240,31 @@ bool GLBlitHelper::BlitDescriptor(const layers::SurfaceDescriptorD3D10& desc,
     return false;
   }
 
-  const auto tex = OpenSharedTexture(d3d, handle);
+  RefPtr<ID3D11Texture2D> tex;
+  if (gpuProcessTextureId.isSome()) {
+    auto* textureMap = layers::GpuProcessD3D11TextureMap::Get();
+    if (textureMap) {
+      Maybe<HANDLE> handle =
+          textureMap->GetSharedHandleOfCopiedTexture(gpuProcessTextureId.ref());
+      if (handle.isSome()) {
+        tex = OpenSharedTexture(d3d, (WindowsHandle)handle.ref());
+      }
+    }
+  } else {
+    tex = OpenSharedTexture(d3d, handle);
+  }
   if (!tex) {
     MOZ_GL_ASSERT(mGL, false);  // Get a nullptr from OpenSharedResource.
     return false;
   }
   const RefPtr<ID3D11Texture2D> texList[2] = {tex, tex};
   const EGLAttrib postAttribs0[] = {LOCAL_EGL_NATIVE_BUFFER_PLANE_OFFSET_IMG, 0,
+                                    LOCAL_EGL_D3D_TEXTURE_SUBRESOURCE_ID_ANGLE,
+                                    static_cast<EGLAttrib>(arrayIndex),
                                     LOCAL_EGL_NONE};
   const EGLAttrib postAttribs1[] = {LOCAL_EGL_NATIVE_BUFFER_PLANE_OFFSET_IMG, 1,
+                                    LOCAL_EGL_D3D_TEXTURE_SUBRESOURCE_ID_ANGLE,
+                                    static_cast<EGLAttrib>(arrayIndex),
                                     LOCAL_EGL_NONE};
   const EGLAttrib* const postAttribsList[2] = {postAttribs0, postAttribs1};
   // /layers/d3d11/CompositorD3D11.cpp uses bt601 for EffectTypes::NV12.

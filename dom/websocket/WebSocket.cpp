@@ -76,8 +76,7 @@
 
 using namespace mozilla::net;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class WebSocketImpl;
 
@@ -177,7 +176,7 @@ class WebSocketImpl final : public nsIInterfaceRequestor,
   void PrintErrorOnConsole(const char* aBundleURI, const char* aError,
                            nsTArray<nsString>&& aFormatStrings);
 
-  nsresult DoOnMessageAvailable(const nsACString& aMsg, bool isBinary);
+  nsresult DoOnMessageAvailable(const nsACString& aMsg, bool isBinary) const;
 
   // ConnectionCloseEvents: 'error' event if needed, then 'close' event.
   nsresult ScheduleConnectionCloseEvents(nsISupports* aContext,
@@ -249,7 +248,7 @@ class WebSocketImpl final : public nsIInterfaceRequestor,
 
   // This mutex protects mWorkerShuttingDown.
   mozilla::Mutex mMutex;
-  bool mWorkerShuttingDown;
+  bool mWorkerShuttingDown GUARDED_BY(mMutex);
 
   RefPtr<WebSocketEventService> mService;
   nsCOMPtr<nsIPrincipal> mLoadingPrincipal;
@@ -700,7 +699,7 @@ WebSocketImpl::SendMessage(const nsAString& aMessage) {
 //-----------------------------------------------------------------------------
 
 nsresult WebSocketImpl::DoOnMessageAvailable(const nsACString& aMsg,
-                                             bool isBinary) {
+                                             bool isBinary) const {
   AssertIsOnTargetThread();
 
   if (mDisconnectingOrDisconnected) {
@@ -2757,6 +2756,16 @@ WebSocketImpl::DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t) {
 }
 
 NS_IMETHODIMP
+WebSocketImpl::RegisterShutdownTask(nsITargetShutdownTask*) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebSocketImpl::UnregisterShutdownTask(nsITargetShutdownTask*) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 WebSocketImpl::IsOnCurrentThread(bool* aResult) {
   *aResult = IsTargetThread();
   return NS_OK;
@@ -2837,5 +2846,4 @@ nsresult WebSocketImpl::GetLoadingPrincipal(nsIPrincipal** aPrincipal) {
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

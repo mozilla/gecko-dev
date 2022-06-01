@@ -43,11 +43,13 @@ bool ChildProcessHost::CreateChannel() {
 ChildProcessHost::ListenerHook::ListenerHook(ChildProcessHost* host)
     : host_(host) {}
 
-void ChildProcessHost::ListenerHook::OnMessageReceived(IPC::Message&& msg) {
+void ChildProcessHost::ListenerHook::OnMessageReceived(
+    mozilla::UniquePtr<IPC::Message> msg) {
   host_->OnMessageReceived(std::move(msg));
 }
 
-void ChildProcessHost::ListenerHook::OnChannelConnected(int32_t peer_pid) {
+void ChildProcessHost::ListenerHook::OnChannelConnected(
+    base::ProcessId peer_pid) {
   host_->opening_channel_ = false;
   host_->OnChannelConnected(peer_pid);
 }
@@ -58,6 +60,6 @@ void ChildProcessHost::ListenerHook::OnChannelError() {
 }
 
 void ChildProcessHost::ListenerHook::GetQueuedMessages(
-    std::queue<IPC::Message>& queue) {
+    std::queue<mozilla::UniquePtr<IPC::Message>>& queue) {
   host_->GetQueuedMessages(queue);
 }

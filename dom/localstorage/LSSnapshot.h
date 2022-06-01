@@ -24,8 +24,7 @@
 
 class nsITimer;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class LSDatabase;
 class LSNotifyInfo;
@@ -103,11 +102,12 @@ class LSSnapshot final : public nsIRunnable {
 
   uint32_t mInitLength;
   uint32_t mLength;
-  int64_t mExactUsage;
+  int64_t mUsage;
   int64_t mPeakUsage;
 
   LoadState mLoadState;
 
+  bool mHasOtherProcessDatabases;
   bool mHasOtherProcessObservers;
   bool mExplicit;
   bool mHasPendingStableStateCallback;
@@ -155,7 +155,11 @@ class LSSnapshot final : public nsIRunnable {
 
   void MarkDirty();
 
-  nsresult End();
+  nsresult ExplicitCheckpoint();
+
+  nsresult ExplicitEnd();
+
+  int64_t GetUsage() const;
 
  private:
   ~LSSnapshot();
@@ -172,9 +176,9 @@ class LSSnapshot final : public nsIRunnable {
 
   nsresult UpdateUsage(int64_t aDelta);
 
-  nsresult Checkpoint();
+  nsresult Checkpoint(bool aSync = false);
 
-  nsresult Finish();
+  nsresult Finish(bool aSync = false);
 
   void CancelIdleTimer();
 
@@ -184,7 +188,6 @@ class LSSnapshot final : public nsIRunnable {
   NS_DECL_NSIRUNNABLE
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_localstorage_LSSnapshot_h

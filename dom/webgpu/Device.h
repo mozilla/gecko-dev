@@ -52,6 +52,9 @@ namespace ipc {
 enum class ResponseRejectReason;
 class Shmem;
 }  // namespace ipc
+namespace layers {
+class CompositableHandle;
+}  // namespace layers
 
 namespace webgpu {
 namespace ffi {
@@ -102,11 +105,13 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
                    bool aKeepShmem);
   already_AddRefed<Texture> InitSwapChain(
       const dom::GPUCanvasConfiguration& aDesc,
-      wr::ExternalImageId aExternalImageId, gfx::SurfaceFormat aFormat,
+      const layers::CompositableHandle& aHandle, gfx::SurfaceFormat aFormat,
       gfx::IntSize* aDefaultSize);
   bool CheckNewWarning(const nsACString& aMessage);
 
   void CleanupUnregisteredInParent();
+
+  void GenerateError(const nsCString& aMessage);
 
  private:
   ~Device();
@@ -115,12 +120,15 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
   RefPtr<WebGPUChild> mBridge;
   bool mValid = true;
   nsString mLabel;
+  RefPtr<dom::Promise> mLostPromise;
   RefPtr<Queue> mQueue;
   nsTHashSet<nsCString> mKnownWarnings;
 
  public:
   void GetLabel(nsAString& aValue) const;
   void SetLabel(const nsAString& aLabel);
+  dom::Promise* GetLost(ErrorResult& aRv);
+  dom::Promise* MaybeGetLost() const { return mLostPromise; }
 
   const RefPtr<SupportedFeatures>& Features() const { return mFeatures; }
   const RefPtr<SupportedLimits>& Limits() const { return mLimits; }

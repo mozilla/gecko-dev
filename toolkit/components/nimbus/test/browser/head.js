@@ -10,12 +10,11 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 XPCOMUtils.defineLazyModuleGetters(this, {
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.jsm",
-  Ajv: "resource://testing-common/ajv-6.12.6.js",
   ExperimentTestUtils: "resource://testing-common/NimbusTestUtils.jsm",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.jsm",
 });
 
-add_task(function setup() {
+add_setup(function() {
   let sandbox = sinon.createSandbox();
 
   /* We stub the functions that operate with enrollments and remote rollouts

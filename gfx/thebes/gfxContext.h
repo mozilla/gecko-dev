@@ -113,13 +113,6 @@ class gfxContext final {
   void NewPath();
 
   /**
-   * Closes the path, i.e. connects the last drawn point to the first one.
-   *
-   * Filling a path will implicitly close it.
-   */
-  void ClosePath();
-
-  /**
    * Returns the current path.
    */
   already_AddRefed<Path> GetPath();
@@ -128,25 +121,6 @@ class gfxContext final {
    * Sets the given path as the current path.
    */
   void SetPath(Path* path);
-
-  /**
-   * Moves the pen to a new point without drawing a line.
-   */
-  void MoveTo(const gfxPoint& pt);
-
-  /**
-   * Draws a line from the current point to pt.
-   *
-   * @see MoveTo
-   */
-  void LineTo(const gfxPoint& pt);
-
-  // path helpers
-  /**
-   * Draws a line from start to end.
-   */
-  void Line(const gfxPoint& start,
-            const gfxPoint& end);  // XXX snapToPixels option?
 
   /**
    * Draws the rectangle given by rect.
@@ -175,6 +149,14 @@ class gfxContext final {
    */
   void SetMatrix(const mozilla::gfx::Matrix& matrix);
   void SetMatrixDouble(const gfxMatrix& matrix);
+
+  void SetCrossProcessPaintScale(float aScale) {
+    MOZ_ASSERT(mCrossProcessPaintScale == 1.0f,
+               "Should only be initialized once");
+    mCrossProcessPaintScale = aScale;
+  }
+
+  float GetCrossProcessPaintScale() const { return mCrossProcessPaintScale; }
 
   /**
    * Returns the current transformation matrix.
@@ -327,7 +309,11 @@ class gfxContext final {
    ** Line Properties
    **/
 
-  void SetDash(const Float* dashes, int ndash, Float offset);
+  // Set the dash pattern, applying devPxScale to convert passed-in lengths
+  // to device pixels (used by the SVGUtils::SetupStrokeGeometry caller,
+  // which has the desired dash pattern in CSS px).
+  void SetDash(const Float* dashes, int ndash, Float offset, Float devPxScale);
+
   // Return true if dashing is set, false if it's not enabled or the
   // context is in an error state.  |offset| can be nullptr to mean
   // "don't care".
@@ -538,6 +524,7 @@ class gfxContext final {
   }
 
   RefPtr<DrawTarget> mDT;
+  float mCrossProcessPaintScale = 1.0f;
 };
 
 /**

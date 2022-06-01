@@ -3,7 +3,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* globals newAppInfo */
 
 var manifests = [do_get_file("data/test_no_remote_registration.manifest")];
 registerManifests(manifests);
@@ -73,10 +72,7 @@ function run_test() {
     CID: uuidGenerator.generateUUID(),
     scheme: "XULAppInfo",
     contractID: "@mozilla.org/xre/app-info;1",
-    createInstance(outer, iid) {
-      if (outer != null) {
-        throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
-      }
+    createInstance(iid) {
       return XULAppInfo.QueryInterface(iid);
     },
   };
@@ -92,10 +88,7 @@ function run_test() {
       CID: testProtocols[i].CID,
       contractID:
         "@mozilla.org/network/protocol;1?name=" + testProtocols[i].scheme,
-      createInstance(aOuter, aIID) {
-        if (aOuter != null) {
-          throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
-        }
+      createInstance(aIID) {
         let handler = new ProtocolHandler(this.scheme, this.flags, this.CID);
         return handler.QueryInterface(aIID);
       },

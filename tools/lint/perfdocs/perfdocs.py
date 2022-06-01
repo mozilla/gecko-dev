@@ -27,8 +27,8 @@ def run_perfdocs(config, logger=None, paths=None, generate=True):
     test section. H5 will be used be used for individual tests within each
     suite.
 
-    Usage for verification: ./mach lint -l perfdocs
-    Usage for generation: ./mach lint -l perfdocs --fix
+    Usage for verification: "./mach lint -l perfdocs ."
+    Usage for generation: "./mach lint -l perfdocs --fix ."
 
     For validation, see the Verifier class for a description of how
     it works.
@@ -65,7 +65,7 @@ def run_perfdocs(config, logger=None, paths=None, generate=True):
 
     decision_task_id = os.environ.get("DECISION_TASK_ID", None)
     if decision_task_id:
-        from gecko_taskgraph.util.taskcluster import get_artifact
+        from taskgraph.util.taskcluster import get_artifact
 
         task_graph = get_artifact(decision_task_id, "public/full-task-graph.json")
     else:

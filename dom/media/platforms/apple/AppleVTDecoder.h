@@ -91,11 +91,9 @@ class AppleVTDecoder : public MediaDataDecoder,
   const uint32_t mDisplayWidth;
   const uint32_t mDisplayHeight;
   const gfx::YUVColorSpace mColorSpace;
+  const gfx::TransferFunction mTransferFunction;
   const gfx::ColorRange mColorRange;
-#if defined(MAC_OS_VERSION_10_13) && \
-    MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_10_13
   const gfx::ColorDepth mColorDepth;
-#endif
 
   // Method to set up the decompression session.
   MediaResult InitializeSession();
@@ -115,7 +113,7 @@ class AppleVTDecoder : public MediaDataDecoder,
   // not required and so input samples on mTaskQueue need not be processed.
   Atomic<bool> mIsFlushing;
   // Protects mReorderQueue and mPromise.
-  Monitor mMonitor;
+  Monitor mMonitor MOZ_UNANNOTATED;
   ReorderQueue mReorderQueue;
   MozMonitoredPromiseHolder<DecodePromise> mPromise;
 

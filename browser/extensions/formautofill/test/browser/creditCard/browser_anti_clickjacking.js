@@ -6,13 +6,14 @@ const CC_URL =
   "https://example.org/browser/browser/extensions/formautofill/test/browser/creditCard/autocomplete_creditcard_basic.html";
 
 add_task(async function setup_storage() {
-  await saveAddress(TEST_ADDRESS_1);
-  await saveAddress(TEST_ADDRESS_2);
-  await saveAddress(TEST_ADDRESS_3);
-
-  await saveCreditCard(TEST_CREDIT_CARD_1);
-  await saveCreditCard(TEST_CREDIT_CARD_2);
-  await saveCreditCard(TEST_CREDIT_CARD_3);
+  await setStorage(
+    TEST_ADDRESS_1,
+    TEST_ADDRESS_2,
+    TEST_ADDRESS_3,
+    TEST_CREDIT_CARD_1,
+    TEST_CREDIT_CARD_2,
+    TEST_CREDIT_CARD_3
+  );
 });
 
 add_task(async function test_active_delay() {
@@ -39,8 +40,9 @@ add_task(async function test_active_delay() {
     // are things we need to check between these steps.
     await SimpleTest.promiseFocus(browser);
     const start = performance.now();
-    await focusAndWaitForFieldsIdentified(browser, focusInput);
-    await expectPopupOpen(browser);
+    await runAndWaitForAutocompletePopupOpen(browser, async () => {
+      await focusAndWaitForFieldsIdentified(browser, focusInput);
+    });
     const firstItem = getDisplayedPopupItems(browser)[0];
     ok(firstItem.disabled, "Popup should be disbled upon opening.");
     is(
@@ -92,9 +94,10 @@ add_task(async function test_no_delay() {
       // Open the popup -- we don't use openPopupOn() because there
       // are things we need to check between these steps.
       await SimpleTest.promiseFocus(browser);
-      await focusAndWaitForFieldsIdentified(browser, focusInput);
-      await BrowserTestUtils.synthesizeKey("VK_DOWN", {}, browser);
-      await expectPopupOpen(browser);
+      await runAndWaitForAutocompletePopupOpen(browser, async () => {
+        await focusAndWaitForFieldsIdentified(browser, focusInput);
+        await BrowserTestUtils.synthesizeKey("VK_DOWN", {}, browser);
+      });
       const firstItem = getDisplayedPopupItems(browser)[0];
       ok(!firstItem.disabled, "Popup should be enabled upon opening.");
       is(

@@ -373,7 +373,7 @@ void nsWindow::NotifyOcclusionState(mozilla::widget::OcclusionState aState) {
 
   bool isFullyOccluded = aState == mozilla::widget::OcclusionState::OCCLUDED;
   // When window is minimized, it is not set as fully occluded.
-  if (mSizeMode == nsSizeMode_Minimized) {
+  if (mFrameState->GetSizeMode() == nsSizeMode_Minimized) {
     isFullyOccluded = false;
   }
 
@@ -386,15 +386,16 @@ void nsWindow::NotifyOcclusionState(mozilla::widget::OcclusionState aState) {
   mIsFullyOccluded = isFullyOccluded;
 
   MOZ_LOG(gWindowsLog, LogLevel::Info,
-          ("nsWindow::NotifyOcclusionState() mIsFullyOccluded %d mSizeMode %d",
-           mIsFullyOccluded, mSizeMode));
+          ("nsWindow::NotifyOcclusionState() mIsFullyOccluded %d "
+           "mFrameState->GetSizeMode() %d",
+           mIsFullyOccluded, mFrameState->GetSizeMode()));
 
   wr::DebugFlags flags{0};
   flags.bits = gfx::gfxVars::WebRenderDebugFlags();
   bool debugEnabled = bool(flags & wr::DebugFlags::WINDOW_VISIBILITY_DBG);
   if (debugEnabled && mCompositorWidgetDelegate) {
-    mCompositorWidgetDelegate->NotifyVisibilityUpdated(mSizeMode,
-                                                       mIsFullyOccluded);
+    mCompositorWidgetDelegate->NotifyVisibilityUpdated(
+        mFrameState->GetSizeMode(), mIsFullyOccluded);
   }
 
   if (mWidgetListener) {
@@ -414,8 +415,8 @@ void nsWindow::MaybeEnableWindowOcclusion(bool aEnable) {
       flags.bits = gfx::gfxVars::WebRenderDebugFlags();
       bool debugEnabled = bool(flags & wr::DebugFlags::WINDOW_VISIBILITY_DBG);
       if (debugEnabled && mCompositorWidgetDelegate) {
-        mCompositorWidgetDelegate->NotifyVisibilityUpdated(mSizeMode,
-                                                           mIsFullyOccluded);
+        mCompositorWidgetDelegate->NotifyVisibilityUpdated(
+            mFrameState->GetSizeMode(), mIsFullyOccluded);
       }
     }
     return;
@@ -435,8 +436,8 @@ void nsWindow::MaybeEnableWindowOcclusion(bool aEnable) {
   flags.bits = gfx::gfxVars::WebRenderDebugFlags();
   bool debugEnabled = bool(flags & wr::DebugFlags::WINDOW_VISIBILITY_DBG);
   if (debugEnabled && mCompositorWidgetDelegate) {
-    mCompositorWidgetDelegate->NotifyVisibilityUpdated(mSizeMode,
-                                                       mIsFullyOccluded);
+    mCompositorWidgetDelegate->NotifyVisibilityUpdated(
+        mFrameState->GetSizeMode(), mIsFullyOccluded);
   }
 }
 
@@ -444,7 +445,7 @@ void nsWindow::MaybeEnableWindowOcclusion(bool aEnable) {
 // call for RequesetFxrOutput as soon as the compositor for this widget is
 // available.
 void nsWindow::CreateCompositor() {
-  nsWindowBase::CreateCompositor();
+  nsBaseWidget::CreateCompositor();
 
   MaybeEnableWindowOcclusion(/* aEnable */ true);
 
@@ -456,7 +457,7 @@ void nsWindow::CreateCompositor() {
 void nsWindow::DestroyCompositor() {
   MaybeEnableWindowOcclusion(/* aEnable */ false);
 
-  nsWindowBase::DestroyCompositor();
+  nsBaseWidget::DestroyCompositor();
 }
 
 void nsWindow::RequestFxrOutput() {

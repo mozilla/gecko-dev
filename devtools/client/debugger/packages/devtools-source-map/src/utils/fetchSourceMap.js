@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-const { networkRequest } = require("devtools-utils");
+const { networkRequest } = require("./network-request");
+
 const { getSourceMap, setSourceMap } = require("./sourceMapRequests");
 const { WasmRemap } = require("./wasmRemap");
 const { convertToJSON } = require("devtools-wasm-dwarf");
@@ -56,7 +57,10 @@ async function _resolveAndFetch(generatedSource) {
   // Fetch the sourcemap over the network and create it.
   const { sourceMapURL, baseURL } = _resolveSourceMapURL(generatedSource);
 
-  let fetched = await networkRequest(sourceMapURL, { loadFromCache: false });
+  let fetched = await networkRequest(sourceMapURL, {
+    loadFromCache: false,
+    sourceMapBaseURL: generatedSource.sourceMapBaseURL,
+  });
 
   if (fetched.isDwarf) {
     fetched = { content: await convertToJSON(fetched.content) };
@@ -64,6 +68,7 @@ async function _resolveAndFetch(generatedSource) {
 
   // Create the source map and fix it up.
   let map = await createConsumer(fetched.content, baseURL);
+
   if (generatedSource.isWasm) {
     map = new WasmRemap(map);
     // Check if experimental scope info exists.
@@ -72,6 +77,10 @@ async function _resolveAndFetch(generatedSource) {
       map.xScopes = parsedJSON["x-scopes"];
     }
   }
+
+  // Extend the default map object with sourceMapBaseURL, used to check further
+  // network requests made for this sourcemap.
+  map.sourceMapBaseURL = generatedSource.sourceMapBaseURL;
 
   if (map && map.sources) {
     map.sources.forEach(url => originalURLs.add(url));

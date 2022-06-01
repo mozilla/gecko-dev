@@ -44,10 +44,13 @@ interface CanvasRenderingContext2D {
   readonly attribute HTMLCanvasElement? canvas;
 
   // Mozilla-specific stuff
-  // FIXME Bug 768048 mozCurrentTransform/mozCurrentTransformInverse should return a WebIDL array.
-  [Throws]
+  [Deprecated="MozCurrentTransform",
+   Pref="dom.mozCurrentTransform.enabled",
+   Throws]
   attribute object mozCurrentTransform; // [ m11, m12, m21, m22, dx, dy ], i.e. row major
-  [Throws]
+  [Deprecated="MozCurrentTransformInverse",
+   Pref="dom.mozCurrentTransform.enabled",
+   Throws]
   attribute object mozCurrentTransformInverse;
 
   [SetterThrows]
@@ -302,6 +305,7 @@ interface mixin CanvasTextDrawingStyles {
   attribute UTF8String font; // (default 10px sans-serif)
   attribute DOMString textAlign; // "start", "end", "left", "right", "center" (default: "start")
   attribute DOMString textBaseline; // "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" (default: "alphabetic")
+  attribute DOMString direction; // "ltr", "rtl", "inherit" (default: "inherit")
 };
 
 interface mixin CanvasPathMethods {

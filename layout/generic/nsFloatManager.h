@@ -29,7 +29,8 @@ class PresShell;
 enum class nsFlowAreaRectFlags : uint32_t {
   NoFlags = 0,
   HasFloats = 1 << 0,
-  MayWiden = 1 << 1
+  MayWiden = 1 << 1,
+  ISizeIsActuallyNegative = 1 << 2,
 };
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(nsFlowAreaRectFlags)
 
@@ -59,6 +60,9 @@ struct nsFlowAreaRect {
   bool MayWiden() const {
     return (bool)(mAreaFlags & nsFlowAreaRectFlags::MayWiden);
   }
+  bool ISizeIsActuallyNegative() const {
+    return (bool)(mAreaFlags & nsFlowAreaRectFlags::ISizeIsActuallyNegative);
+  }
 };
 
 #define NS_FLOAT_MANAGER_CACHE_SIZE 64
@@ -78,7 +82,7 @@ struct nsFlowAreaRect {
  * 'direction' property of the containing block doesn't affect the
  * interpretation of line-right and line-left. We actually implement this by
  * passing in the writing mode of the block formatting context (BFC), i.e.
- * the of BlockReflowInput's writing mode.
+ * the of BlockReflowState's writing mode.
  *
  * nsFloatManager uses a special logical coordinate space with inline
  * coordinates on the line-axis and block coordinates on the block-axis

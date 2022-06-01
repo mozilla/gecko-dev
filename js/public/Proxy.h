@@ -342,8 +342,6 @@ class JS_PUBLIC_API BaseProxyHandler {
       JS::MutableHandleIdVector props) const;
   virtual bool nativeCall(JSContext* cx, JS::IsAcceptableThis test,
                           JS::NativeImpl impl, const JS::CallArgs& args) const;
-  virtual bool hasInstance(JSContext* cx, JS::HandleObject proxy,
-                           JS::MutableHandleValue v, bool* bp) const;
   virtual bool getBuiltinClass(JSContext* cx, JS::HandleObject proxy,
                                ESClass* cls) const;
   virtual bool isArray(JSContext* cx, JS::HandleObject proxy,
@@ -356,7 +354,7 @@ class JS_PUBLIC_API BaseProxyHandler {
   virtual bool boxedValue_unbox(JSContext* cx, JS::HandleObject proxy,
                                 JS::MutableHandleValue vp) const;
   virtual void trace(JSTracer* trc, JSObject* proxy) const;
-  virtual void finalize(JSFreeOp* fop, JSObject* proxy) const;
+  virtual void finalize(JS::GCContext* gcx, JSObject* proxy) const;
   virtual size_t objectMoved(JSObject* proxy, JSObject* old) const;
 
   // Allow proxies, wrappers in particular, to specify callability at runtime.
@@ -404,7 +402,7 @@ namespace detail {
 struct ProxyReservedSlots {
   JS::Value slots[1];
 
-  static inline int offsetOfPrivateSlot();
+  static constexpr ptrdiff_t offsetOfPrivateSlot();
 
   static inline int offsetOfSlot(size_t slot) {
     return offsetof(ProxyReservedSlots, slots[0]) + slot * sizeof(JS::Value);
@@ -431,24 +429,30 @@ struct ProxyValueArray {
     reservedSlots.init(nreserved);
   }
 
-  static size_t sizeOf(size_t nreserved) {
-    return offsetOfReservedSlots() + nreserved * sizeof(JS::Value);
-  }
   static MOZ_ALWAYS_INLINE ProxyValueArray* fromReservedSlots(
       ProxyReservedSlots* slots) {
     uintptr_t p = reinterpret_cast<uintptr_t>(slots);
     return reinterpret_cast<ProxyValueArray*>(p - offsetOfReservedSlots());
   }
-  static size_t offsetOfReservedSlots() {
+  static constexpr size_t offsetOfReservedSlots() {
     return offsetof(ProxyValueArray, reservedSlots);
+  }
+
+  static size_t allocCount(size_t nreserved) {
+    static_assert(offsetOfReservedSlots() % sizeof(JS::Value) == 0);
+    return offsetOfReservedSlots() / sizeof(JS::Value) + nreserved;
+  }
+  static size_t sizeOf(size_t nreserved) {
+    return allocCount(nreserved) * sizeof(JS::Value);
   }
 
   ProxyValueArray(const ProxyValueArray&) = delete;
   void operator=(const ProxyValueArray&) = delete;
 };
 
-/* static */ inline int ProxyReservedSlots::offsetOfPrivateSlot() {
-  return -int(ProxyValueArray::offsetOfReservedSlots()) +
+/* static */
+constexpr ptrdiff_t ProxyReservedSlots::offsetOfPrivateSlot() {
+  return -ptrdiff_t(ProxyValueArray::offsetOfReservedSlots()) +
          offsetof(ProxyValueArray, privateSlot);
 }
 

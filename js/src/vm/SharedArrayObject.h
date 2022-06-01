@@ -50,7 +50,7 @@ class SharedArrayRawBuffer {
  private:
   mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> refcount_;
   mozilla::Atomic<size_t, mozilla::SequentiallyConsistent> length_;
-  Mutex growLock_;
+  Mutex growLock_ MOZ_UNANNOTATED;
   // The index type of this buffer if it is a wasm buffer.
   wasm::IndexType wasmIndexType_;
   // The maximum size of this buffer in wasm pages. If this buffer was not
@@ -224,7 +224,7 @@ class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared {
                                       size_t length,
                                       HandleObject proto = nullptr);
 
-  static void Finalize(JSFreeOp* fop, JSObject* obj);
+  static void Finalize(JS::GCContext* gcx, JSObject* obj);
 
   static void addSizeOfExcludingThis(JSObject* obj,
                                      mozilla::MallocSizeOf mallocSizeOf,

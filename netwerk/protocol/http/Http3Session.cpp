@@ -12,6 +12,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/Telemetry.h"
 #include "ASpdySession.h"  // because of SoftStreamError()
+#include "nsIHttpActivityObserver.h"
 #include "nsIOService.h"
 #include "nsISSLSocketControl.h"
 #include "ScopedNSSTypes.h"
@@ -25,8 +26,7 @@
 #include "HttpConnectionUDP.h"
 #include "sslerr.h"
 
-namespace mozilla {
-namespace net {
+namespace mozilla::net {
 
 const uint64_t HTTP3_APP_ERROR_NO_ERROR = 0x100;
 // const uint64_t HTTP3_APP_ERROR_GENERAL_PROTOCOL_ERROR = 0x101;
@@ -160,6 +160,13 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
 
   if (gHttpHandler->EchConfigEnabled(true)) {
     mSocketControl->SetEchConfig(mConnInfo->GetEchConfig());
+    HttpConnectionActivity activity(
+        mConnInfo->HashKey(), mConnInfo->GetOrigin(), mConnInfo->OriginPort(),
+        mConnInfo->EndToEndSSL(), !mConnInfo->GetEchConfig().IsEmpty(),
+        mConnInfo->IsHttp3());
+    gHttpHandler->ObserveHttpActivityWithArgs(
+        activity, NS_ACTIVITY_TYPE_HTTP_CONNECTION,
+        NS_HTTP_ACTIVITY_SUBTYPE_ECH_SET, PR_Now(), 0, ""_ns);
   }
 
   // After this line, Http3Session and HttpConnectionUDP become a cycle. We put
@@ -742,9 +749,9 @@ bool Http3Session::AddStream(nsAHttpTransaction* aHttpTransaction,
   // reset the read timers to wash away any idle time
   mLastWriteTime = PR_IntervalNow();
 
-  uint32_t cos = 0;
+  ClassOfService cos;
   if (trans) {
-    cos = trans->ClassOfService();
+    cos = trans->GetClassOfService();
   }
 
   LOG3(("Http3Session::AddStream %p atrans=%p.\n", this, aHttpTransaction));
@@ -1888,5 +1895,6 @@ nsresult Http3Session::GetTransactionSecurityInfo(nsISupports** secinfo) {
   return NS_OK;
 }
 
-}  // namespace net
-}  // namespace mozilla
+PRIntervalTime Http3Session::LastWriteTime() { return mLastWriteTime; }
+
+}  // namespace mozilla::net

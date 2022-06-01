@@ -1187,7 +1187,7 @@ void nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
         }
       }
       // checking drop list last
-      // i.e., if listd as both allowed and dropped, it will still be dropped
+      // i.e., if listed as both allowed and dropped, it will still be dropped
       if (mDroppedAttributes) {
         auto dropElements = mDroppedAttributes->Lookup(attrLocal);
         if (dropElements) {
@@ -1215,7 +1215,8 @@ void nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
         continue;
       }
       if (IsURL(aAllowed.mURLs, attrLocal)) {
-        if (SanitizeURL(aElement, attrNs, attrLocal)) {
+        bool fragmentOnly = aElement->IsSVGElement(nsGkAtoms::use);
+        if (SanitizeURL(aElement, attrNs, attrLocal, fragmentOnly)) {
           // in case the attribute removal shuffled the attribute order, start
           // the loop again.
           --ac;
@@ -1261,7 +1262,8 @@ void nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
       // else not allowed
     } else if (aAllowed.mXLink && kNameSpaceID_XLink == attrNs) {
       if (nsGkAtoms::href == attrLocal) {
-        if (SanitizeURL(aElement, attrNs, attrLocal)) {
+        bool fragmentOnly = aElement->IsSVGElement(nsGkAtoms::use);
+        if (SanitizeURL(aElement, attrNs, attrLocal, fragmentOnly)) {
           // in case the attribute removal shuffled the attribute order, start
           // the loop again.
           --ac;
@@ -1294,7 +1296,8 @@ void nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
 }
 
 bool nsTreeSanitizer::SanitizeURL(mozilla::dom::Element* aElement,
-                                  int32_t aNamespace, nsAtom* aLocalName) {
+                                  int32_t aNamespace, nsAtom* aLocalName,
+                                  bool aFragmentsOnly) {
   nsAutoString value;
   aElement->GetAttr(aNamespace, aLocalName, value);
 
@@ -1304,6 +1307,15 @@ bool nsTreeSanitizer::SanitizeURL(mozilla::dom::Element* aElement,
   // Fragment-only url cannot be harmful.
   if (!v.IsEmpty() && v.First() == u'#') {
     return false;
+  }
+  // if we allow only same-document fragment URLs, stop and remove here
+  if (aFragmentsOnly) {
+    aElement->UnsetAttr(aNamespace, aLocalName, false);
+    if (mLogRemovals) {
+      LogMessage("Removed unsafe URI from element attribute.",
+                 aElement->OwnerDoc(), aElement, aLocalName);
+    }
+    return true;
   }
 
   nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();

@@ -8,13 +8,10 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 Services.prefs.setBoolPref("toolkit.osfile.test.syslib_necessary", false);
 // We don't need libc/kernel32.dll for this test
 
-var ImportWin = {};
-var ImportUnix = {};
-ChromeUtils.import("resource://gre/modules/osfile/ospath_win.jsm", ImportWin);
-ChromeUtils.import("resource://gre/modules/osfile/ospath_unix.jsm", ImportUnix);
-
-var Win = ImportWin;
-var Unix = ImportUnix;
+const Win = ChromeUtils.import("resource://gre/modules/osfile/ospath_win.jsm");
+const Unix = ChromeUtils.import(
+  "resource://gre/modules/osfile/ospath_unix.jsm"
+);
 
 function do_check_fail(f) {
   try {
@@ -181,11 +178,11 @@ function run_test() {
   );
 
   info("Testing the presence of ospath.jsm");
-  let Scope = {};
+  let scope;
   try {
-    ChromeUtils.import("resource://gre/modules/osfile/ospath.jsm", Scope);
+    scope = ChromeUtils.import("resource://gre/modules/osfile/ospath.jsm");
   } catch (ex) {
     // Can't load ospath
   }
-  Assert.ok(!!Scope.basename);
+  Assert.ok(!!scope.basename);
 }

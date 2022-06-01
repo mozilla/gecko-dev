@@ -139,6 +139,9 @@
 #ifdef XP_WIN
 #  include "HttpWinUtils.h"
 #endif
+#ifdef FUZZING
+#  include "mozilla/StaticPrefs_fuzzing.h"
+#endif
 
 namespace mozilla {
 
@@ -507,10 +510,9 @@ nsresult nsHttpChannel::OnBeforeConnect() {
       };
 
       bool willCallback = false;
-      rv = NS_ShouldSecureUpgrade(mURI, mLoadInfo, resultPrincipal,
-                                  mPrivateBrowsing, LoadAllowSTS(),
-                                  originAttributes, shouldUpgrade,
-                                  std::move(resultCallback), willCallback);
+      rv = NS_ShouldSecureUpgrade(
+          mURI, mLoadInfo, resultPrincipal, LoadAllowSTS(), originAttributes,
+          shouldUpgrade, std::move(resultCallback), willCallback);
       // If the request gets upgraded because of the HTTPS-Only mode, but no
       // event listener has been registered so far, we want to do that here.
       uint32_t httpOnlyStatus = mLoadInfo->GetHttpsOnlyStatus();
@@ -661,7 +663,7 @@ nsresult nsHttpChannel::ContinueOnBeforeConnect(bool aShouldUpgrade,
   if (mUpgradeProtocolCallback) {
     // Websockets can run over HTTP/2, but other upgrades can't.
     if (mUpgradeProtocol.EqualsLiteral("websocket") &&
-        gHttpHandler->IsH2WebsocketsEnabled()) {
+        StaticPrefs::network_http_http2_websockets()) {
       // Need to tell the conn manager that we're ok with http/2 even with
       // the allow keepalive bit not set. That bit needs to stay off,
       // though, in case we end up having to fallback to http/1.1 (where
@@ -715,8 +717,9 @@ nsresult nsHttpChannel::Connect() {
   }
 
   bool isTrackingResource = IsThirdPartyTrackingResource();
-  LOG(("nsHttpChannel %p tracking resource=%d, cos=%u", this,
-       isTrackingResource, mClassOfService));
+  LOG(("nsHttpChannel %p tracking resource=%d, cos=%lu, inc=%d", this,
+       isTrackingResource, mClassOfService.Flags(),
+       mClassOfService.Incremental()));
 
   if (isTrackingResource) {
     AddClassFlags(nsIClassOfService::Tail);
@@ -1074,8 +1077,9 @@ void nsHttpChannel::HandleAsyncNotModified() {
 }
 
 nsresult nsHttpChannel::SetupTransaction() {
-  LOG(("nsHttpChannel::SetupTransaction [this=%p, cos=%u, prio=%d]\n", this,
-       mClassOfService, mPriority));
+  LOG(("nsHttpChannel::SetupTransaction [this=%p, cos=%lu, inc=%d prio=%d]\n",
+       this, mClassOfService.Flags(), mClassOfService.Incremental(),
+       mPriority));
 
   NS_ENSURE_TRUE(!mTransaction, NS_ERROR_ALREADY_INITIALIZED);
 
@@ -1253,8 +1257,9 @@ nsresult nsHttpChannel::SetupTransaction() {
 
   // create the transaction object
   if (nsIOService::UseSocketProcess()) {
-    MOZ_ASSERT(gIOService->SocketProcessReady(),
-               "Socket process should be ready.");
+    if (NS_WARN_IF(!gIOService->SocketProcessReady())) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
 
     nsCOMPtr<nsIParentChannel> parentChannel;
     NS_QueryNotificationCallbacks(this, parentChannel);
@@ -1365,7 +1370,7 @@ HttpTrafficCategory nsHttpChannel::CreateTrafficCategory() {
 
   HttpTrafficAnalyzer::ClassOfService cos;
   {
-    if ((mClassOfService & nsIClassOfService::Leader) &&
+    if ((mClassOfService.Flags() & nsIClassOfService::Leader) &&
         mLoadInfo->GetExternalContentPolicyType() ==
             ExtContentPolicy::TYPE_SCRIPT) {
       cos = HttpTrafficAnalyzer::ClassOfService::eLeader;
@@ -1770,8 +1775,7 @@ static void GetSTSConsoleErrorTag(uint32_t failureResult,
 /**
  * Process an HTTP Strict Transport Security (HSTS) header.
  */
-nsresult nsHttpChannel::ProcessHSTSHeader(nsITransportSecurityInfo* aSecInfo,
-                                          uint32_t aFlags) {
+nsresult nsHttpChannel::ProcessHSTSHeader(nsITransportSecurityInfo* aSecInfo) {
   nsHttpAtom atom(nsHttp::ResolveAtom("Strict-Transport-Security"_ns));
 
   nsAutoCString securityHeader;
@@ -1795,7 +1799,7 @@ nsresult nsHttpChannel::ProcessHSTSHeader(nsITransportSecurityInfo* aSecInfo,
 
   uint32_t failureResult;
   uint32_t headerSource = nsISiteSecurityService::SOURCE_ORGANIC_REQUEST;
-  rv = sss->ProcessHeader(mURI, securityHeader, aSecInfo, aFlags, headerSource,
+  rv = sss->ProcessHeader(mURI, securityHeader, aSecInfo, headerSource,
                           originAttributes, nullptr, nullptr, &failureResult);
   if (NS_FAILED(rv)) {
     nsAutoString consoleErrorCategory(u"Invalid HSTS Headers"_ns);
@@ -1842,9 +1846,6 @@ nsresult nsHttpChannel::ProcessSecurityHeaders() {
   // security of the connection.
   NS_ENSURE_TRUE(mSecurityInfo, NS_OK);
 
-  uint32_t flags =
-      NS_UsePrivateBrowsing(this) ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-
   // Get the TransportSecurityInfo
   nsCOMPtr<nsITransportSecurityInfo> transSecInfo =
       do_QueryInterface(mSecurityInfo);
@@ -1853,7 +1854,7 @@ nsresult nsHttpChannel::ProcessSecurityHeaders() {
   // Only process HSTS headers for first-party loads. This prevents a
   // proliferation of useless HSTS state for partitioned third parties.
   if (!mLoadInfo->GetIsThirdPartyContextToTopWindow()) {
-    rv = ProcessHSTSHeader(transSecInfo, flags);
+    rv = ProcessHSTSHeader(transSecInfo);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -3486,7 +3487,7 @@ nsresult nsHttpChannel::OpenCacheEntryInternal(bool isHttps) {
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if ((mClassOfService & nsIClassOfService::Leader) ||
+  if ((mClassOfService.Flags() & nsIClassOfService::Leader) ||
       (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)) {
     cacheEntryOpenFlags |= nsICacheStorage::OPEN_PRIORITY;
   }
@@ -5148,14 +5149,21 @@ nsresult nsHttpChannel::AsyncProcessRedirection(uint32_t redirectType) {
                                         isRedirectURIInAllowList);
       }
 
-      nsCOMPtr<nsIURI> strippedURI;
-      if (!isRedirectURIInAllowList &&
-          URLQueryStringStripper::Strip(mRedirectURI, strippedURI)) {
-        mUnstrippedRedirectURI = mRedirectURI;
-        mRedirectURI = strippedURI;
+      if (!isRedirectURIInAllowList) {
+        nsCOMPtr<nsIURI> strippedURI;
+        uint32_t numStripped = URLQueryStringStripper::Strip(
+            mRedirectURI, mPrivateBrowsing, strippedURI);
 
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_QUERY_STRIPPING_COUNT::StripForRedirect);
+        if (numStripped) {
+          mUnstrippedRedirectURI = mRedirectURI;
+          mRedirectURI = strippedURI;
+
+          // Record telemetry, but only if we stripped any query params.
+          Telemetry::AccumulateCategorical(
+              Telemetry::LABELS_QUERY_STRIPPING_COUNT::StripForRedirect);
+          Telemetry::Accumulate(Telemetry::QUERY_STRIPPING_PARAM_COUNT,
+                                numStripped);
+        }
       }
     }
   }
@@ -5754,7 +5762,8 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
       "security flags in loadInfo but doContentSecurityCheck() not called");
 
   LOG(("nsHttpChannel::AsyncOpen [this=%p]\n", this));
-  LogCallingScriptLocation(this);
+  mOpenerCallingScriptLocation = CallingScriptLocationString();
+  LogCallingScriptLocation(this, mOpenerCallingScriptLocation);
   NS_CompareLoadInfoAndLoadContext(this);
 
 #ifdef DEBUG
@@ -5770,7 +5779,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
     return NS_FAILED(mStatus) ? mStatus : NS_ERROR_FAILURE;
   }
 
-  if (MaybeWaitForUploadStreamLength(listener, nullptr)) {
+  if (MaybeWaitForUploadStreamNormalization(listener, nullptr)) {
     return NS_OK;
   }
 
@@ -6179,13 +6188,13 @@ nsresult nsHttpChannel::BeginConnect() {
   }
 
   if (gHttpHandler->CriticalRequestPrioritization()) {
-    if (mClassOfService & nsIClassOfService::Leader) {
+    if (mClassOfService.Flags() & nsIClassOfService::Leader) {
       mCaps |= NS_HTTP_LOAD_AS_BLOCKING;
     }
-    if (mClassOfService & nsIClassOfService::Unblocked) {
+    if (mClassOfService.Flags() & nsIClassOfService::Unblocked) {
       mCaps |= NS_HTTP_LOAD_UNBLOCKED;
     }
-    if (mClassOfService & nsIClassOfService::UrgentStart &&
+    if (mClassOfService.Flags() & nsIClassOfService::UrgentStart &&
         gHttpHandler->IsUrgentStartEnabled()) {
       mCaps |= NS_HTTP_URGENT_START;
       SetPriority(nsISupportsPriority::PRIORITY_HIGHEST);
@@ -6463,8 +6472,8 @@ nsHttpChannel::SetPriority(int32_t value) {
 //-----------------------------------------------------------------------------
 
 void nsHttpChannel::OnClassOfServiceUpdated() {
-  LOG(("nsHttpChannel::OnClassOfServiceUpdated this=%p, cos=%u", this,
-       mClassOfService));
+  LOG(("nsHttpChannel::OnClassOfServiceUpdated this=%p, cos=%lu, inc=%d", this,
+       mClassOfService.Flags(), mClassOfService.Incremental()));
 
   if (mTransaction) {
     gHttpHandler->UpdateClassOfServiceOnTransaction(mTransaction,
@@ -6479,9 +6488,9 @@ void nsHttpChannel::OnClassOfServiceUpdated() {
 
 NS_IMETHODIMP
 nsHttpChannel::SetClassFlags(uint32_t inFlags) {
-  uint32_t previous = mClassOfService;
-  mClassOfService = inFlags;
-  if (previous != mClassOfService) {
+  uint32_t previous = mClassOfService.Flags();
+  mClassOfService.SetFlags(inFlags);
+  if (previous != mClassOfService.Flags()) {
     OnClassOfServiceUpdated();
   }
   return NS_OK;
@@ -6489,9 +6498,9 @@ nsHttpChannel::SetClassFlags(uint32_t inFlags) {
 
 NS_IMETHODIMP
 nsHttpChannel::AddClassFlags(uint32_t inFlags) {
-  uint32_t previous = mClassOfService;
-  mClassOfService |= inFlags;
-  if (previous != mClassOfService) {
+  uint32_t previous = mClassOfService.Flags();
+  mClassOfService.SetFlags(inFlags | mClassOfService.Flags());
+  if (previous != mClassOfService.Flags()) {
     OnClassOfServiceUpdated();
   }
   return NS_OK;
@@ -6499,9 +6508,29 @@ nsHttpChannel::AddClassFlags(uint32_t inFlags) {
 
 NS_IMETHODIMP
 nsHttpChannel::ClearClassFlags(uint32_t inFlags) {
-  uint32_t previous = mClassOfService;
-  mClassOfService &= ~inFlags;
+  uint32_t previous = mClassOfService.Flags();
+  mClassOfService.SetFlags(~inFlags & mClassOfService.Flags());
+  if (previous != mClassOfService.Flags()) {
+    OnClassOfServiceUpdated();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::SetClassOfService(ClassOfService cos) {
+  ClassOfService previous = mClassOfService;
+  mClassOfService = cos;
   if (previous != mClassOfService) {
+    OnClassOfServiceUpdated();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::SetIncremental(bool incremental) {
+  bool previous = mClassOfService.Incremental();
+  mClassOfService.SetIncremental(incremental);
+  if (previous != mClassOfService.Incremental()) {
     OnClassOfServiceUpdated();
   }
   return NS_OK;
@@ -6740,6 +6769,58 @@ nsHttpChannel::GetRequestMethod(nsACString& aMethod) {
 // nsHttpChannel::nsIRequestObserver
 //-----------------------------------------------------------------------------
 
+static void RecordOnStartTelemetry(nsresult aStatus,
+                                   HttpTransactionShell* aTransaction,
+                                   bool aIsNavigation) {
+  Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_ONSTART_SUCCESS,
+                        NS_SUCCEEDED(aStatus));
+
+  if (aTransaction) {
+    Telemetry::Accumulate(
+        Telemetry::HTTP3_CHANNEL_ONSTART_SUCCESS,
+        (aTransaction->IsHttp3Used()) ? "http3"_ns : "no_http3"_ns,
+        NS_SUCCEEDED(aStatus));
+  }
+
+  enum class HttpOnStartState : uint32_t {
+    Success = 0,
+    DNSError = 1,
+    Others = 2,
+  };
+
+  if (StaticPrefs::network_trr_odoh_enabled()) {
+    nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
+    if (!dns) {
+      return;
+    }
+    bool ODoHActivated = false;
+    if (NS_SUCCEEDED(dns->GetODoHActivated(&ODoHActivated)) && ODoHActivated) {
+      Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_ONSTART_SUCCESS_ODOH,
+                            NS_SUCCEEDED(aStatus));
+    }
+  } else if (TRRService::Get() && TRRService::Get()->IsConfirmed()) {
+    // Note this telemetry probe is not working when DNS resolution is done in
+    // the socket process.
+    HttpOnStartState state = HttpOnStartState::Others;
+    if (NS_SUCCEEDED(aStatus)) {
+      state = HttpOnStartState::Success;
+    } else if (aStatus == NS_ERROR_UNKNOWN_HOST ||
+               aStatus == NS_ERROR_UNKNOWN_PROXY_HOST) {
+      state = HttpOnStartState::DNSError;
+    }
+
+    if (aIsNavigation) {
+      Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_PAGE_ONSTART_SUCCESS_TRR3,
+                            TRRService::ProviderKey(),
+                            static_cast<uint32_t>(state));
+    } else {
+      Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_SUB_ONSTART_SUCCESS_TRR3,
+                            TRRService::ProviderKey(),
+                            static_cast<uint32_t>(state));
+    }
+  }
+}
+
 NS_IMETHODIMP
 nsHttpChannel::OnStartRequest(nsIRequest* request) {
   nsresult rv;
@@ -6757,34 +6838,22 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
     mStatus = status;
   }
 
+  if (mStatus == NS_ERROR_NON_LOCAL_CONNECTION_REFUSED) {
+    MOZ_CRASH_UNSAFE(nsPrintfCString("Attempting to connect to non-local "
+                                     "address! opener is [%s], uri is "
+                                     "[%s]",
+                                     mOpenerCallingScriptLocation
+                                         ? mOpenerCallingScriptLocation->get()
+                                         : "unknown",
+                                     mURI->GetSpecOrDefault().get())
+                         .get());
+  }
+
   LOG(("nsHttpChannel::OnStartRequest [this=%p request=%p status=%" PRIx32
        "]\n",
        this, request, static_cast<uint32_t>(static_cast<nsresult>(mStatus))));
 
-  Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_ONSTART_SUCCESS,
-                        NS_SUCCEEDED(mStatus));
-
-  if (mTransaction) {
-    Telemetry::Accumulate(
-        Telemetry::HTTP3_CHANNEL_ONSTART_SUCCESS,
-        (mTransaction->IsHttp3Used()) ? "http3"_ns : "no_http3"_ns,
-        NS_SUCCEEDED(mStatus));
-  }
-
-  if (StaticPrefs::network_trr_odoh_enabled()) {
-    nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
-    bool ODoHActivated = false;
-    if (dns && NS_SUCCEEDED(dns->GetODoHActivated(&ODoHActivated)) &&
-        ODoHActivated) {
-      Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_ONSTART_SUCCESS_ODOH,
-                            NS_SUCCEEDED(mStatus));
-    }
-  } else if (TRRService::Get() && TRRService::Get()->IsConfirmed()) {
-    // Note this telemetry probe is not working when DNS resolution is done in
-    // the socket process.
-    Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_ONSTART_SUCCESS_TRR2,
-                          TRRService::ProviderKey(), NS_SUCCEEDED(mStatus));
-  }
+  RecordOnStartTelemetry(mStatus, mTransaction, IsNavigation());
 
   if (mRaceCacheWithNetwork) {
     LOG(
@@ -6871,6 +6940,9 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
           NS_SUCCEEDED(mStatus));
       StoreHasHTTPSRR(true);
     }
+
+    StoreLoadedBySocketProcess(mTransaction->AsHttpTransactionParent() !=
+                               nullptr);
   }
 
   // don't enter this block if we're reading from the cache...
@@ -9159,18 +9231,18 @@ nsHttpChannel::TimerCallback::Notify(nsITimer* aTimer) {
 }
 
 bool nsHttpChannel::EligibleForTailing() {
-  if (!(mClassOfService & nsIClassOfService::Tail)) {
+  if (!(mClassOfService.Flags() & nsIClassOfService::Tail)) {
     return false;
   }
 
-  if (mClassOfService &
+  if (mClassOfService.Flags() &
       (nsIClassOfService::UrgentStart | nsIClassOfService::Leader |
        nsIClassOfService::TailForbidden)) {
     return false;
   }
 
-  if (mClassOfService & nsIClassOfService::Unblocked &&
-      !(mClassOfService & nsIClassOfService::TailAllowed)) {
+  if (mClassOfService.Flags() & nsIClassOfService::Unblocked &&
+      !(mClassOfService.Flags() & nsIClassOfService::TailAllowed)) {
     return false;
   }
 
@@ -9289,27 +9361,23 @@ void nsHttpChannel::DisableIsOpaqueResponseAllowedAfterSniffCheck(
 
         if (!isInitialRequest) {
           mBlockOpaqueResponseAfterSniff = true;
-          ReportORBTelemetry("Blocked_NotAnInitialRequest"_ns);
           return;
         }
 
         if (mResponseHead->Status() != 200 && mResponseHead->Status() != 206) {
           mBlockOpaqueResponseAfterSniff = true;
-          ReportORBTelemetry("Blocked_Not200Or206"_ns);
           return;
         }
 
         if (mResponseHead->Status() == 206 &&
             !IsFirstPartialResponse(*mResponseHead)) {
           mBlockOpaqueResponseAfterSniff = true;
-          ReportORBTelemetry("Blocked_InvaliidPartialResponse"_ns);
           return;
         }
       }
     }
 
     mCheckIsOpaqueResponseAllowedAfterSniff = false;
-    ReportORBTelemetry("Allowed_SniffAsImageOrAudioOrVideo"_ns);
   }
 }
 

@@ -23,9 +23,10 @@ pub type DynamicOffset = u32;
 
 /// Buffer-Texture copies must have [`bytes_per_row`] aligned to this number.
 ///
-/// This doesn't apply to [`Queue::write_texture`].
+/// This doesn't apply to [`Queue::write_texture`][Qwt].
 ///
 /// [`bytes_per_row`]: ImageDataLayout::bytes_per_row
+/// [Qwt]: ../wgpu/struct.Queue.html#method.write_texture
 pub const COPY_BYTES_PER_ROW_ALIGNMENT: u32 = 256;
 /// An offset into the query resolve buffer has to be aligned to this.
 pub const QUERY_RESOLVE_BUFFER_ALIGNMENT: BufferAddress = 256;
@@ -65,6 +66,9 @@ pub enum Backend {
 }
 
 /// Power Preference when choosing a physical adapter.
+///
+/// Corresponds to [WebGPU `GPUPowerPreference`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpupowerpreference).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -124,6 +128,9 @@ impl From<Backend> for Backends {
 }
 
 /// Options for requesting adapter.
+///
+/// Corresponds to [WebGPU `GPURequestAdapterOptions`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpurequestadapteroptions).
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -160,6 +167,9 @@ bitflags::bitflags! {
     /// If you want to use a feature, you need to first verify that the adapter supports
     /// the feature. If the adapter does not support the feature, requesting a device with it enabled
     /// will panic.
+    ///
+    /// Corresponds to [WebGPU `GPUFeatureName`](
+    /// https://gpuweb.github.io/gpuweb/#enumdef-gpufeaturename).
     #[repr(transparent)]
     #[derive(Default)]
     pub struct Features: u64 {
@@ -204,7 +214,7 @@ bitflags::bitflags! {
         /// write out a timestamp.
         ///
         /// They must be resolved using [`CommandEncoder::resolve_query_sets`] into a buffer,
-        /// then the result must be multiplied by the timestamp period [`Device::get_timestamp_period`]
+        /// then the result must be multiplied by the timestamp period [`Queue::get_timestamp_period`]
         /// to get the timestamp in nanoseconds. Multiple timestamps can then be diffed to get the
         /// time for operations between them to finish.
         ///
@@ -231,6 +241,16 @@ bitflags::bitflags! {
         ///
         /// This is a web and native feature.
         const PIPELINE_STATISTICS_QUERY = 1 << 4;
+        /// Allows shaders to acquire the FP16 ability
+        ///
+        /// Note: this is not supported in naga yet，only through spir-v passthrough right now.
+        ///
+        /// Supported Platforms:
+        /// - Vulkan
+        /// - Metal
+        ///
+        /// This is a web and native feature.
+        const SHADER_FLOAT16 = 1 << 5;
         /// Webgpu only allows the MAP_READ and MAP_WRITE buffer usage to be matched with
         /// COPY_DST and COPY_SRC respectively. This removes this requirement.
         ///
@@ -347,16 +367,6 @@ bitflags::bitflags! {
         ///
         /// This is a native only feature.
         const PARTIALLY_BOUND_BINDING_ARRAY = 1 << 22;
-        /// Allows the user to create unsized uniform arrays of bindings:
-        ///
-        /// eg. `uniform texture2D textures[]`.
-        ///
-        /// Supported platforms:
-        /// - DX12
-        /// - Vulkan 1.2+ (or VK_EXT_descriptor_indexing)'s runtimeDescriptorArray feature
-        ///
-        /// This is a native only feature.
-        const UNSIZED_BINDING_ARRAY = 1 << 23;
         /// Allows the user to call [`RenderPass::multi_draw_indirect`] and [`RenderPass::multi_draw_indexed_indirect`].
         ///
         /// Allows multiple indirect calls to be dispatched from a single buffer.
@@ -366,7 +376,7 @@ bitflags::bitflags! {
         /// - Vulkan
         ///
         /// This is a native only feature.
-        const MULTI_DRAW_INDIRECT = 1 << 24;
+        const MULTI_DRAW_INDIRECT = 1 << 23;
         /// Allows the user to call [`RenderPass::multi_draw_indirect_count`] and [`RenderPass::multi_draw_indexed_indirect_count`].
         ///
         /// This allows the use of a buffer containing the actual number of draw calls.
@@ -376,7 +386,7 @@ bitflags::bitflags! {
         /// - Vulkan 1.2+ (or VK_KHR_draw_indirect_count)
         ///
         /// This is a native only feature.
-        const MULTI_DRAW_INDIRECT_COUNT = 1 << 25;
+        const MULTI_DRAW_INDIRECT_COUNT = 1 << 24;
         /// Allows the use of push constants: small, fast bits of memory that can be updated
         /// inside a [`RenderPass`].
         ///
@@ -393,8 +403,9 @@ bitflags::bitflags! {
         /// - OpenGL (emulated with uniforms)
         ///
         /// This is a native only feature.
-        const PUSH_CONSTANTS = 1 << 26;
-        /// Allows the use of [`AddressMode::ClampToBorder`].
+        const PUSH_CONSTANTS = 1 << 25;
+        /// Allows the use of [`AddressMode::ClampToBorder`] with a border color
+        /// other than [`SamplerBorderColor::Zero`].
         ///
         /// Supported platforms:
         /// - DX12
@@ -404,7 +415,7 @@ bitflags::bitflags! {
         /// - OpenGL
         ///
         /// This is a web and native feature.
-        const ADDRESS_MODE_CLAMP_TO_BORDER = 1 << 27;
+        const ADDRESS_MODE_CLAMP_TO_BORDER = 1 << 26;
         /// Allows the user to set [`PolygonMode::Line`] in [`PrimitiveState::polygon_mode`]
         ///
         /// This allows drawing polygons/triangles as lines (wireframe) instead of filled
@@ -415,7 +426,7 @@ bitflags::bitflags! {
         /// - Metal
         ///
         /// This is a native only feature.
-        const POLYGON_MODE_LINE= 1 << 28;
+        const POLYGON_MODE_LINE = 1 << 27;
         /// Allows the user to set [`PolygonMode::Point`] in [`PrimitiveState::polygon_mode`]
         ///
         /// This allows only drawing the vertices of polygons/triangles instead of filled
@@ -425,7 +436,7 @@ bitflags::bitflags! {
         /// - Vulkan
         ///
         /// This is a native only feature.
-        const POLYGON_MODE_POINT = 1 << 29;
+        const POLYGON_MODE_POINT = 1 << 28;
         /// Enables ETC family of compressed textures. All ETC textures use 4x4 pixel blocks.
         /// ETC2 RGB and RGBA1 are 8 bytes per block. RTC2 RGBA8 and EAC are 16 bytes per block.
         ///
@@ -440,7 +451,7 @@ bitflags::bitflags! {
         /// - Mobile (some)
         ///
         /// This is a native-only feature.
-        const TEXTURE_COMPRESSION_ETC2 = 1 << 30;
+        const TEXTURE_COMPRESSION_ETC2 = 1 << 29;
         /// Enables ASTC family of compressed textures. ASTC textures use pixel blocks varying from 4x4 to 12x12.
         /// Blocks are always 16 bytes.
         ///
@@ -455,7 +466,7 @@ bitflags::bitflags! {
         /// - Mobile (some)
         ///
         /// This is a native-only feature.
-        const TEXTURE_COMPRESSION_ASTC_LDR = 1 << 31;
+        const TEXTURE_COMPRESSION_ASTC_LDR = 1 << 30;
         /// Enables device specific texture format features.
         ///
         /// See `TextureFormatFeatures` for a listing of the features in question.
@@ -467,7 +478,7 @@ bitflags::bitflags! {
         /// This extension does not enable additional formats.
         ///
         /// This is a native-only feature.
-        const TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES = 1 << 32;
+        const TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES = 1 << 31;
         /// Enables 64-bit floating point types in SPIR-V shaders.
         ///
         /// Note: even when supported by GPU hardware, 64-bit floating point operations are
@@ -477,7 +488,7 @@ bitflags::bitflags! {
         /// - Vulkan
         ///
         /// This is a native-only feature.
-        const SHADER_FLOAT64 = 1 << 33;
+        const SHADER_FLOAT64 = 1 << 32;
         /// Enables using 64-bit types for vertex attributes.
         ///
         /// Requires SHADER_FLOAT64.
@@ -485,7 +496,7 @@ bitflags::bitflags! {
         /// Supported Platforms: N/A
         ///
         /// This is a native-only feature.
-        const VERTEX_ATTRIBUTE_64BIT = 1 << 34;
+        const VERTEX_ATTRIBUTE_64BIT = 1 << 33;
         /// Allows the user to set a overestimation-conservative-rasterization in [`PrimitiveState::conservative`]
         ///
         /// Processing of degenerate triangles/lines is hardware specific.
@@ -495,7 +506,7 @@ bitflags::bitflags! {
         /// - Vulkan
         ///
         /// This is a native only feature.
-        const CONSERVATIVE_RASTERIZATION = 1 << 35;
+        const CONSERVATIVE_RASTERIZATION = 1 << 34;
         /// Enables bindings of writable storage buffers and textures visible to vertex shaders.
         ///
         /// Note: some (tiled-based) platforms do not support vertex shaders with any side-effects.
@@ -504,14 +515,14 @@ bitflags::bitflags! {
         /// - All
         ///
         /// This is a native-only feature.
-        const VERTEX_WRITABLE_STORAGE = 1 << 36;
+        const VERTEX_WRITABLE_STORAGE = 1 << 35;
         /// Enables clear to zero for textures.
         ///
         /// Supported platforms:
         /// - All
         ///
         /// This is a native only feature.
-        const CLEAR_TEXTURE = 1 << 37;
+        const CLEAR_TEXTURE = 1 << 36;
         /// Enables creating shader modules from SPIR-V binary data (unsafe).
         ///
         /// SPIR-V data is not parsed or interpreted in any way; you can use
@@ -523,7 +534,7 @@ bitflags::bitflags! {
         /// Vulkan implementation.
         ///
         /// This is a native only feature.
-        const SPIRV_SHADER_PASSTHROUGH = 1 << 38;
+        const SPIRV_SHADER_PASSTHROUGH = 1 << 37;
         /// Enables `builtin(primitive_index)` in fragment shaders.
         ///
         /// Note: enables geometry processing for pipelines using the builtin.
@@ -534,14 +545,14 @@ bitflags::bitflags! {
         /// - Vulkan
         ///
         /// This is a native only feature.
-        const SHADER_PRIMITIVE_INDEX = 1 << 39;
+        const SHADER_PRIMITIVE_INDEX = 1 << 38;
         /// Enables multiview render passes and `builtin(view_index)` in vertex shaders.
         ///
         /// Supported platforms:
         /// - Vulkan
         ///
         /// This is a native only feature.
-        const MULTIVIEW = 1 << 40;
+        const MULTIVIEW = 1 << 39;
         /// Enables normalized `16-bit` texture formats.
         ///
         /// Supported platforms:
@@ -550,7 +561,24 @@ bitflags::bitflags! {
         /// - Metal
         ///
         /// This is a native only feature.
-        const TEXTURE_FORMAT_16BIT_NORM = 1 << 41;
+        const TEXTURE_FORMAT_16BIT_NORM = 1 << 40;
+        /// Allows the use of [`AddressMode::ClampToBorder`] with a border color
+        /// of [`SamplerBorderColor::Zero`].
+        ///
+        /// Supported platforms:
+        /// - DX12
+        /// - Vulkan
+        /// - Metal
+        /// - DX11
+        /// - OpenGL
+        ///
+        /// This is a native only feature.
+        const ADDRESS_MODE_CLAMP_TO_ZERO = 1 << 41;
+        /// Supported Platforms:
+        /// - Metal
+        ///
+        /// This is a native-only feature.
+        const TEXTURE_COMPRESSION_ASTC_HDR = 1 << 42;
     }
 }
 
@@ -572,7 +600,7 @@ impl Features {
 /// Represents the sets of limits an adapter/device supports.
 ///
 /// We provide three different defaults.
-/// - [`Limits::downlevel_defaults()`]. This is a set of limits that is guarenteed to work on almost
+/// - [`Limits::downlevel_defaults()`]. This is a set of limits that is guaranteed to work on almost
 ///   all backends, including "downlevel" backends such as OpenGL and D3D11, other than WebGL. For
 ///   most applications we recommend using these limits, assuming they are high enough for your
 ///   application, and you do not intent to support WebGL.
@@ -597,9 +625,12 @@ impl Features {
 /// implementation needs to support more than is needed. You should ideally only request exactly
 /// what you need.
 ///
-/// See also: <https://gpuweb.github.io/gpuweb/#dictdef-gpulimits>
+/// Corresponds to [WebGPU `GPUSupportedLimits`](
+/// https://gpuweb.github.io/gpuweb/#gpusupportedlimits).
+///
+/// [`downlevel_defaults()`]: Limits::downlevel_defaults
 #[repr(C)]
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
@@ -802,6 +833,76 @@ impl Limits {
             ..self
         }
     }
+
+    /// Compares every limits within self is within the limits given in `allowed`.
+    ///
+    /// If you need detailed information on failures, look at [`Limits::check_limits_with_fail_fn`].
+    pub fn check_limits(&self, allowed: &Self) -> bool {
+        let mut within = true;
+        self.check_limits_with_fail_fn(allowed, true, |_, _, _| within = false);
+        within
+    }
+
+    /// Compares every limits within self is within the limits given in `allowed`.
+    /// For an easy to use binary choice, use [`Limits::check_limits`].
+    ///
+    /// If a value is not within the allowed limit, this function calls the `fail_fn`
+    /// with the:
+    ///  - limit name
+    ///  - self's limit
+    ///  - allowed's limit.
+    ///
+    /// If fatal is true, a single failure bails out the comparison after a single failure.
+    pub fn check_limits_with_fail_fn(
+        &self,
+        allowed: &Self,
+        fatal: bool,
+        mut fail_fn: impl FnMut(&'static str, u32, u32),
+    ) {
+        use std::cmp::Ordering;
+
+        macro_rules! compare {
+            ($name:ident, $ordering:ident) => {
+                match self.$name.cmp(&allowed.$name) {
+                    Ordering::$ordering | Ordering::Equal => (),
+                    _ => {
+                        fail_fn(stringify!($name), self.$name, allowed.$name);
+                        if fatal {
+                            return;
+                        }
+                    }
+                }
+            };
+        }
+
+        compare!(max_texture_dimension_1d, Less);
+        compare!(max_texture_dimension_2d, Less);
+        compare!(max_texture_dimension_3d, Less);
+        compare!(max_texture_array_layers, Less);
+        compare!(max_bind_groups, Less);
+        compare!(max_dynamic_uniform_buffers_per_pipeline_layout, Less);
+        compare!(max_dynamic_storage_buffers_per_pipeline_layout, Less);
+        compare!(max_sampled_textures_per_shader_stage, Less);
+        compare!(max_samplers_per_shader_stage, Less);
+        compare!(max_storage_buffers_per_shader_stage, Less);
+        compare!(max_storage_textures_per_shader_stage, Less);
+        compare!(max_uniform_buffers_per_shader_stage, Less);
+        compare!(max_uniform_buffer_binding_size, Less);
+        compare!(max_storage_buffer_binding_size, Less);
+        compare!(max_vertex_buffers, Less);
+        compare!(max_vertex_attributes, Less);
+        compare!(max_vertex_buffer_array_stride, Less);
+        compare!(max_push_constant_size, Less);
+        compare!(min_uniform_buffer_offset_alignment, Greater);
+        compare!(min_storage_buffer_offset_alignment, Greater);
+        compare!(max_inter_stage_shader_components, Less);
+        compare!(max_compute_workgroup_storage_size, Less);
+        compare!(max_compute_invocations_per_workgroup, Less);
+        compare!(max_compute_workgroup_size_x, Less);
+        compare!(max_compute_workgroup_size_y, Less);
+        compare!(max_compute_workgroup_size_z, Less);
+        compare!(max_compute_workgroups_per_dimension, Less);
+    }
 }
 
 /// Represents the sets of additional limits on an adapter,
@@ -863,39 +964,50 @@ bitflags::bitflags! {
     /// [`DownlevelCapabilities::is_webgpu_compliant()`] function.
     pub struct DownlevelFlags: u32 {
         /// The device supports compiling and using compute shaders.
+        ///
+        /// DX11 on FL10 level hardware, WebGL2, and GLES3.0 devices do not support compute.
         const COMPUTE_SHADERS = 1 << 0;
         /// Supports binding storage buffers and textures to fragment shaders.
         const FRAGMENT_WRITABLE_STORAGE = 1 << 1;
         /// Supports indirect drawing and dispatching.
+        ///
+        /// DX11 on FL10 level hardware, WebGL2, and GLES 3.0 devices do not support indirect.
         const INDIRECT_EXECUTION = 1 << 2;
         /// Supports non-zero `base_vertex` parameter to indexed draw calls.
         const BASE_VERTEX = 1 << 3;
         /// Supports reading from a depth/stencil buffer while using as a read-only depth/stencil
         /// attachment.
+        ///
+        /// The WebGL2 and GLES backends do not support RODS.
         const READ_ONLY_DEPTH_STENCIL = 1 << 4;
-        /// Supports:
-        /// - copy_image_to_image
-        /// - copy_buffer_to_image and copy_image_to_buffer with a buffer without a MAP_* usage
-        const DEVICE_LOCAL_IMAGE_COPIES = 1 << 5;
         /// Supports textures with mipmaps which have a non power of two size.
-        const NON_POWER_OF_TWO_MIPMAPPED_TEXTURES = 1 << 6;
+        const NON_POWER_OF_TWO_MIPMAPPED_TEXTURES = 1 << 5;
         /// Supports textures that are cube arrays.
-        const CUBE_ARRAY_TEXTURES = 1 << 7;
+        const CUBE_ARRAY_TEXTURES = 1 << 6;
         /// Supports comparison samplers.
-        const COMPARISON_SAMPLERS = 1 << 8;
-        /// Supports different blending modes per color target.
-        const INDEPENDENT_BLENDING = 1 << 9;
+        const COMPARISON_SAMPLERS = 1 << 7;
+        /// Supports different blend operations per color attachment.
+        const INDEPENDENT_BLEND = 1 << 8;
         /// Supports storage buffers in vertex shaders.
-        const VERTEX_STORAGE = 1 << 10;
-
+        const VERTEX_STORAGE = 1 << 9;
 
         /// Supports samplers with anisotropic filtering. Note this isn't actually required by
         /// WebGPU, the implementation is allowed to completely ignore aniso clamp. This flag is
         /// here for native backends so they can comunicate to the user of aniso is enabled.
-        const ANISOTROPIC_FILTERING = 1 << 11;
+        ///
+        /// All backends and all devices support anisotropic filtering.
+        const ANISOTROPIC_FILTERING = 1 << 10;
 
         /// Supports storage buffers in fragment shaders.
-        const FRAGMENT_STORAGE = 1 << 12;
+        const FRAGMENT_STORAGE = 1 << 11;
+
+        /// Supports sample-rate shading.
+        const MULTISAMPLED_SHADING = 1 << 12;
+
+        /// Supports copies between depth textures and buffers.
+        ///
+        /// GLES/WebGL don't support this.
+        const DEPTH_TEXTURE_AND_BUFFER_COPIES = 1 << 13;
     }
 }
 
@@ -961,7 +1073,10 @@ pub struct AdapterInfo {
     pub backend: Backend,
 }
 
-/// Describes a [`Device`].
+/// Describes a [`Device`](../wgpu/struct.Device.html).
+///
+/// Corresponds to [WebGPU `GPUDeviceDescriptor`](
+/// https://gpuweb.github.io/gpuweb/#gpudevicedescriptor).
 #[repr(C)]
 #[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -994,6 +1109,9 @@ bitflags::bitflags! {
     /// These can be combined so something that is visible from both vertex and fragment shaders can be defined as:
     ///
     /// `ShaderStages::VERTEX | ShaderStages::FRAGMENT`
+    ///
+    /// Corresponds to [WebGPU `GPUShaderStageFlags`](
+    /// https://gpuweb.github.io/gpuweb/#typedefdef-gpushaderstageflags).
     #[repr(transparent)]
     pub struct ShaderStages: u32 {
         /// Binding is not visible from any shader stage.
@@ -1013,6 +1131,9 @@ bitflags::bitflags! {
 bitflags_serde_shim::impl_serde_for_bitflags!(ShaderStages);
 
 /// Dimensions of a particular texture view.
+///
+/// Corresponds to [WebGPU `GPUTextureViewDimension`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gputextureviewdimension).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1058,6 +1179,9 @@ impl TextureViewDimension {
 /// Alpha blend factor.
 ///
 /// Alpha blending is very complicated: see the OpenGL or Vulkan spec for more information.
+///
+/// Corresponds to [WebGPU `GPUBlendFactor`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpublendfactor).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1095,6 +1219,9 @@ pub enum BlendFactor {
 /// Alpha blend operation.
 ///
 /// Alpha blending is very complicated: see the OpenGL or Vulkan spec for more information.
+///
+/// Corresponds to [WebGPU `GPUBlendOperation`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpublendoperation).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1119,7 +1246,10 @@ impl Default for BlendOperation {
     }
 }
 
-/// Describes the blend component of a pipeline.
+/// Describes a blend component of a [`BlendState`].
+///
+/// Corresponds to [WebGPU `GPUBlendComponent`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpublendcomponent).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1169,9 +1299,13 @@ impl Default for BlendComponent {
     }
 }
 
-/// Describe the blend state of a render pipeline.
+/// Describe the blend state of a render pipeline,
+/// within [`ColorTargetState`].
 ///
 /// See the OpenGL or Vulkan spec for more information.
+///
+/// Corresponds to [WebGPU `GPUBlendState`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpublendstate).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1209,6 +1343,9 @@ impl BlendState {
 }
 
 /// Describes the color state of a render pipeline.
+///
+/// Corresponds to [WebGPU `GPUColorTargetState`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpucolortargetstate).
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1216,7 +1353,9 @@ impl BlendState {
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ColorTargetState {
     /// The [`TextureFormat`] of the image that this pipeline will render to. Must match the the format
-    /// of the corresponding color attachment in [`CommandEncoder::begin_render_pass`].
+    /// of the corresponding color attachment in [`CommandEncoder::begin_render_pass`][CEbrp]
+    ///
+    /// [CEbrp]: ../wgpu/struct.CommandEncoder.html#method.begin_render_pass
     pub format: TextureFormat,
     /// The blending that is used for this pipeline.
     #[cfg_attr(feature = "serde", serde(default))]
@@ -1237,6 +1376,9 @@ impl From<TextureFormat> for ColorTargetState {
 }
 
 /// Primitive type the input mesh is composed of.
+///
+/// Corresponds to [WebGPU `GPUPrimitiveTopology`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpuprimitivetopology).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1279,7 +1421,10 @@ impl PrimitiveTopology {
     }
 }
 
-/// Winding order which classifies the "front" face.
+/// Vertex winding order which classifies the "front" face of a triangle.
+///
+/// Corresponds to [WebGPU `GPUFrontFace`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpufrontface).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1303,6 +1448,10 @@ impl Default for FrontFace {
 }
 
 /// Face of a vertex.
+///
+/// Corresponds to [WebGPU `GPUCullMode`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpucullmode),
+/// except that the `"none"` value is represented using `Option<Face>` instead.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1337,6 +1486,9 @@ impl Default for PolygonMode {
 }
 
 /// Describes the state of primitive assembly and rasterization in a render pipeline.
+///
+/// Corresponds to [WebGPU `GPUPrimitiveState`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpuprimitivestate).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1375,6 +1527,9 @@ pub struct PrimitiveState {
 }
 
 /// Describes the multi-sampling state of a render pipeline.
+///
+/// Corresponds to [WebGPU `GPUMultisampleState`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpumultisamplestate).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -1467,10 +1622,67 @@ impl TextureFormatInfo {
     }
 }
 
+/// ASTC block dimensions
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub enum AstcBlock {
+    /// 4x4 block compressed texture. 16 bytes per block (8 bit/px).
+    B4x4,
+    /// 5x4 block compressed texture. 16 bytes per block (6.4 bit/px).
+    B5x4,
+    /// 5x5 block compressed texture. 16 bytes per block (5.12 bit/px).
+    B5x5,
+    /// 6x5 block compressed texture. 16 bytes per block (4.27 bit/px).
+    B6x5,
+    /// 6x6 block compressed texture. 16 bytes per block (3.56 bit/px).
+    B6x6,
+    /// 8x5 block compressed texture. 16 bytes per block (3.2 bit/px).
+    B8x5,
+    /// 8x6 block compressed texture. 16 bytes per block (2.67 bit/px).
+    B8x6,
+    /// 8x8 block compressed texture. 16 bytes per block (2 bit/px).
+    B8x8,
+    /// 10x5 block compressed texture. 16 bytes per block (2.56 bit/px).
+    B10x5,
+    /// 10x6 block compressed texture. 16 bytes per block (2.13 bit/px).
+    B10x6,
+    /// 10x8 block compressed texture. 16 bytes per block (1.6 bit/px).
+    B10x8,
+    /// 10x10 block compressed texture. 16 bytes per block (1.28 bit/px).
+    B10x10,
+    /// 12x10 block compressed texture. 16 bytes per block (1.07 bit/px).
+    B12x10,
+    /// 12x12 block compressed texture. 16 bytes per block (0.89 bit/px).
+    B12x12,
+}
+
+/// ASTC RGBA channel
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub enum AstcChannel {
+    /// 8 bit integer RGBA, [0, 255] converted to/from linear-color float [0, 1] in shader.
+    ///
+    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this channel.
+    Unorm,
+    /// 8 bit integer RGBA, Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
+    ///
+    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this channel.
+    UnormSrgb,
+    /// floating-point RGBA, linear-color float can be outside of the [0, 1] range.
+    ///
+    /// [`Features::TEXTURE_COMPRESSION_ASTC_HDR`] must be enabled to use this channel.
+    Hdr,
+}
+
 /// Underlying texture data format.
 ///
-/// If there is a conversion in the format (such as srgb -> linear), The conversion listed is for
+/// If there is a conversion in the format (such as srgb -> linear), the conversion listed here is for
 /// loading from texture in a shader. When writing to the texture, the opposite conversion takes place.
+///
+/// Corresponds to [WebGPU `GPUTextureFormat`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gputextureformat).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
@@ -1809,174 +2021,19 @@ pub enum TextureFormat {
     /// [`Features::TEXTURE_COMPRESSION_ETC2`] must be enabled to use this texture format.
     #[cfg_attr(feature = "serde", serde(rename = "eac-rg11snorm"))]
     EacRg11Snorm,
-    /// 4x4 block compressed texture. 16 bytes per block (8 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
+    /// block compressed texture. 16 bytes per block.
     ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-4x4-unorm"))]
-    Astc4x4RgbaUnorm,
-    /// 4x4 block compressed texture. 16 bytes per block (8 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
+    /// Features [`TEXTURE_COMPRESSION_ASTC_LDR`] or [`TEXTURE_COMPRESSION_ASTC_HDR`]
+    /// must be enabled to use this texture format.
     ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-4x4-unorm-srgb"))]
-    Astc4x4RgbaUnormSrgb,
-    /// 5x4 block compressed texture. 16 bytes per block (6.4 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-5x4-unorm"))]
-    Astc5x4RgbaUnorm,
-    /// 5x4 block compressed texture. 16 bytes per block (6.4 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-5x4-unorm-srgb"))]
-    Astc5x4RgbaUnormSrgb,
-    /// 5x5 block compressed texture. 16 bytes per block (5.12 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-5x5-unorm"))]
-    Astc5x5RgbaUnorm,
-    /// 5x5 block compressed texture. 16 bytes per block (5.12 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-5x5-unorm-srgb"))]
-    Astc5x5RgbaUnormSrgb,
-    /// 6x5 block compressed texture. 16 bytes per block (4.27 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-6x5-unorm"))]
-    Astc6x5RgbaUnorm,
-    /// 6x5 block compressed texture. 16 bytes per block (4.27 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-6x5-unorm-srgb"))]
-    Astc6x5RgbaUnormSrgb,
-    /// 6x6 block compressed texture. 16 bytes per block (3.56 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-6x6-unorm"))]
-    Astc6x6RgbaUnorm,
-    /// 6x6 block compressed texture. 16 bytes per block (3.56 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-6x6-unorm-srgb"))]
-    Astc6x6RgbaUnormSrgb,
-    /// 8x5 block compressed texture. 16 bytes per block (3.2 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-8x5-unorm"))]
-    Astc8x5RgbaUnorm,
-    /// 8x5 block compressed texture. 16 bytes per block (3.2 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-8x5-unorm-srgb"))]
-    Astc8x5RgbaUnormSrgb,
-    /// 8x6 block compressed texture. 16 bytes per block (2.67 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-8x6-unorm"))]
-    Astc8x6RgbaUnorm,
-    /// 8x6 block compressed texture. 16 bytes per block (2.67 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-8x6-unorm-srgb"))]
-    Astc8x6RgbaUnormSrgb,
-    /// 10x5 block compressed texture. 16 bytes per block (2.56 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-10x5-unorm"))]
-    Astc10x5RgbaUnorm,
-    /// 10x5 block compressed texture. 16 bytes per block (2.56 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-10x5-unorm-srgb"))]
-    Astc10x5RgbaUnormSrgb,
-    /// 10x6 block compressed texture. 16 bytes per block (2.13 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-10x6-unorm"))]
-    Astc10x6RgbaUnorm,
-    /// 10x6 block compressed texture. 16 bytes per block (2.13 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-10x6-unorm-srgb"))]
-    Astc10x6RgbaUnormSrgb,
-    /// 8x8 block compressed texture. 16 bytes per block (2 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-8x8-unorm"))]
-    Astc8x8RgbaUnorm,
-    /// 8x8 block compressed texture. 16 bytes per block (2 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-8x8-unorm-srgb"))]
-    Astc8x8RgbaUnormSrgb,
-    /// 10x8 block compressed texture. 16 bytes per block (1.6 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-10x8-unorm"))]
-    Astc10x8RgbaUnorm,
-    /// 10x8 block compressed texture. 16 bytes per block (1.6 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-10x8-unorm-srgb"))]
-    Astc10x8RgbaUnormSrgb,
-    /// 10x10 block compressed texture. 16 bytes per block (1.28 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-10x10-unorm"))]
-    Astc10x10RgbaUnorm,
-    /// 10x10 block compressed texture. 16 bytes per block (1.28 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-10x10-unorm-srgb"))]
-    Astc10x10RgbaUnormSrgb,
-    /// 12x10 block compressed texture. 16 bytes per block (1.07 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-12x10-unorm"))]
-    Astc12x10RgbaUnorm,
-    /// 12x10 block compressed texture. 16 bytes per block (1.07 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-12x10-unorm-srgb"))]
-    Astc12x10RgbaUnormSrgb,
-    /// 12x12 block compressed texture. 16 bytes per block (0.89 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// [0, 255] converted to/from float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-12x12-unorm"))]
-    Astc12x12RgbaUnorm,
-    /// 12x12 block compressed texture. 16 bytes per block (0.89 bit/px). Complex pallet. 8 bit integer RGBA.
-    /// Srgb-color [0, 255] converted to/from linear-color float [0, 1] in shader.
-    ///
-    /// [`Features::TEXTURE_COMPRESSION_ASTC_LDR`] must be enabled to use this texture format.
-    #[cfg_attr(feature = "serde", serde(rename = "astc-12x12-unorm-srgb"))]
-    Astc12x12RgbaUnormSrgb,
+    /// [`TEXTURE_COMPRESSION_ASTC_LDR`]: Features::TEXTURE_COMPRESSION_ASTC_LDR
+    /// [`TEXTURE_COMPRESSION_ASTC_HDR`]: Features::TEXTURE_COMPRESSION_ASTC_HDR
+    Astc {
+        /// compressed block dimensions
+        block: AstcBlock,
+        ///
+        channel: AstcChannel,
+    },
 }
 
 impl TextureFormat {
@@ -1987,6 +2044,7 @@ impl TextureFormat {
         let bc = Features::TEXTURE_COMPRESSION_BC;
         let etc2 = Features::TEXTURE_COMPRESSION_ETC2;
         let astc_ldr = Features::TEXTURE_COMPRESSION_ASTC_LDR;
+        let astc_hdr = Features::TEXTURE_COMPRESSION_ASTC_HDR;
         let norm16bit = Features::TEXTURE_FORMAT_16BIT_NORM;
 
         // Sample Types
@@ -2017,6 +2075,7 @@ impl TextureFormat {
         let all_flags = TextureUsages::all();
 
         // See <https://gpuweb.github.io/gpuweb/#texture-format-caps> for reference
+        #[rustfmt::skip] // lets make a nice table
         let (
             required_features,
             sample_type,
@@ -2028,209 +2087,121 @@ impl TextureFormat {
             components,
         ) = match self {
             // Normal 8 bit textures
-            Self::R8Unorm => (
-                native,
-                float,
-                linear,
-                msaa_resolve,
-                (1, 1),
-                1,
-                attachment,
-                1,
-            ),
-            Self::R8Snorm => (native, float, linear, msaa, (1, 1), 1, basic, 1),
-            Self::R8Uint => (native, uint, linear, msaa, (1, 1), 1, attachment, 1),
-            Self::R8Sint => (native, sint, linear, msaa, (1, 1), 1, attachment, 1),
+            Self::R8Unorm =>             (   native,   float,    linear, msaa_resolve, (1, 1),  1, attachment, 1),
+            Self::R8Snorm =>             (   native,   float,    linear,         msaa, (1, 1),  1,      basic, 1),
+            Self::R8Uint =>              (   native,    uint,    linear,         msaa, (1, 1),  1, attachment, 1),
+            Self::R8Sint =>              (   native,    sint,    linear,         msaa, (1, 1),  1, attachment, 1),
 
             // Normal 16 bit textures
-            Self::R16Uint => (native, uint, linear, msaa, (1, 1), 2, attachment, 1),
-            Self::R16Sint => (native, sint, linear, msaa, (1, 1), 2, attachment, 1),
-            Self::R16Float => (
-                native,
-                float,
-                linear,
-                msaa_resolve,
-                (1, 1),
-                2,
-                attachment,
-                1,
-            ),
-            Self::Rg8Unorm => (
-                native,
-                float,
-                linear,
-                msaa_resolve,
-                (1, 1),
-                2,
-                attachment,
-                2,
-            ),
-            Self::Rg8Snorm => (native, float, linear, msaa, (1, 1), 2, attachment, 2),
-            Self::Rg8Uint => (native, uint, linear, msaa, (1, 1), 2, attachment, 2),
-            Self::Rg8Sint => (native, sint, linear, msaa, (1, 1), 2, basic, 2),
+            Self::R16Uint =>             (   native,    uint,    linear,         msaa, (1, 1),  2, attachment, 1),
+            Self::R16Sint =>             (   native,    sint,    linear,         msaa, (1, 1),  2, attachment, 1),
+            Self::R16Float =>            (   native,   float,    linear, msaa_resolve, (1, 1),  2, attachment, 1),
+            Self::Rg8Unorm =>            (   native,   float,    linear, msaa_resolve, (1, 1),  2, attachment, 2),
+            Self::Rg8Snorm =>            (   native,   float,    linear,         msaa, (1, 1),  2, attachment, 2),
+            Self::Rg8Uint =>             (   native,    uint,    linear,         msaa, (1, 1),  2, attachment, 2),
+            Self::Rg8Sint =>             (   native,    sint,    linear,         msaa, (1, 1),  2,      basic, 2),
 
             // Normal 32 bit textures
-            Self::R32Uint => (native, uint, linear, noaa, (1, 1), 4, all_flags, 1),
-            Self::R32Sint => (native, sint, linear, noaa, (1, 1), 4, all_flags, 1),
-            Self::R32Float => (native, nearest, linear, msaa, (1, 1), 4, all_flags, 1),
-            Self::Rg16Uint => (native, uint, linear, msaa, (1, 1), 4, attachment, 2),
-            Self::Rg16Sint => (native, sint, linear, msaa, (1, 1), 4, attachment, 2),
-            Self::Rg16Float => (
-                native,
-                float,
-                linear,
-                msaa_resolve,
-                (1, 1),
-                4,
-                attachment,
-                2,
-            ),
-            Self::Rgba8Unorm => (native, float, linear, msaa_resolve, (1, 1), 4, all_flags, 4),
-            Self::Rgba8UnormSrgb => (
-                native,
-                float,
-                corrected,
-                msaa_resolve,
-                (1, 1),
-                4,
-                attachment,
-                4,
-            ),
-            Self::Rgba8Snorm => (native, float, linear, msaa, (1, 1), 4, storage, 4),
-            Self::Rgba8Uint => (native, uint, linear, msaa, (1, 1), 4, all_flags, 4),
-            Self::Rgba8Sint => (native, sint, linear, msaa, (1, 1), 4, all_flags, 4),
-            Self::Bgra8Unorm => (
-                native,
-                float,
-                linear,
-                msaa_resolve,
-                (1, 1),
-                4,
-                attachment,
-                4,
-            ),
-            Self::Bgra8UnormSrgb => (
-                native,
-                float,
-                corrected,
-                msaa_resolve,
-                (1, 1),
-                4,
-                attachment,
-                4,
-            ),
+            Self::R32Uint =>             (   native,    uint,    linear,         noaa, (1, 1),  4,  all_flags, 1),
+            Self::R32Sint =>             (   native,    sint,    linear,         noaa, (1, 1),  4,  all_flags, 1),
+            Self::R32Float =>            (   native, nearest,    linear,         msaa, (1, 1),  4,  all_flags, 1),
+            Self::Rg16Uint =>            (   native,    uint,    linear,         msaa, (1, 1),  4, attachment, 2),
+            Self::Rg16Sint =>            (   native,    sint,    linear,         msaa, (1, 1),  4, attachment, 2),
+            Self::Rg16Float =>           (   native,   float,    linear, msaa_resolve, (1, 1),  4, attachment, 2),
+            Self::Rgba8Unorm =>          (   native,   float,    linear, msaa_resolve, (1, 1),  4,  all_flags, 4),
+            Self::Rgba8UnormSrgb =>      (   native,   float, corrected, msaa_resolve, (1, 1),  4, attachment, 4),
+            Self::Rgba8Snorm =>          (   native,   float,    linear,         msaa, (1, 1),  4,    storage, 4),
+            Self::Rgba8Uint =>           (   native,    uint,    linear,         msaa, (1, 1),  4,  all_flags, 4),
+            Self::Rgba8Sint =>           (   native,    sint,    linear,         msaa, (1, 1),  4,  all_flags, 4),
+            Self::Bgra8Unorm =>          (   native,   float,    linear, msaa_resolve, (1, 1),  4, attachment, 4),
+            Self::Bgra8UnormSrgb =>      (   native,   float, corrected, msaa_resolve, (1, 1),  4, attachment, 4),
 
             // Packed 32 bit textures
-            Self::Rgb10a2Unorm => (
-                native,
-                float,
-                linear,
-                msaa_resolve,
-                (1, 1),
-                4,
-                attachment,
-                4,
-            ),
-            Self::Rg11b10Float => (native, float, linear, msaa, (1, 1), 4, basic, 3),
+            Self::Rgb10a2Unorm =>        (   native,   float,    linear, msaa_resolve, (1, 1),  4, attachment, 4),
+            Self::Rg11b10Float =>        (   native,   float,    linear,         msaa, (1, 1),  4,      basic, 3),
 
-            // Packed 32 bit textures
-            Self::Rg32Uint => (native, uint, linear, noaa, (1, 1), 8, all_flags, 2),
-            Self::Rg32Sint => (native, sint, linear, noaa, (1, 1), 8, all_flags, 2),
-            Self::Rg32Float => (native, nearest, linear, noaa, (1, 1), 8, all_flags, 2),
-            Self::Rgba16Uint => (native, uint, linear, msaa, (1, 1), 8, all_flags, 4),
-            Self::Rgba16Sint => (native, sint, linear, msaa, (1, 1), 8, all_flags, 4),
-            Self::Rgba16Float => (native, float, linear, msaa_resolve, (1, 1), 8, all_flags, 4),
+            // Packed 32 bit textures  
+            Self::Rg32Uint =>            (   native,    uint,    linear,         noaa, (1, 1),  8,  all_flags, 2),
+            Self::Rg32Sint =>            (   native,    sint,    linear,         noaa, (1, 1),  8,  all_flags, 2),
+            Self::Rg32Float =>           (   native, nearest,    linear,         noaa, (1, 1),  8,  all_flags, 2),
+            Self::Rgba16Uint =>          (   native,    uint,    linear,         msaa, (1, 1),  8,  all_flags, 4),
+            Self::Rgba16Sint =>          (   native,    sint,    linear,         msaa, (1, 1),  8,  all_flags, 4),
+            Self::Rgba16Float =>         (   native,   float,    linear, msaa_resolve, (1, 1),  8,  all_flags, 4),
 
-            // Packed 32 bit textures
-            Self::Rgba32Uint => (native, uint, linear, noaa, (1, 1), 16, all_flags, 4),
-            Self::Rgba32Sint => (native, sint, linear, noaa, (1, 1), 16, all_flags, 4),
-            Self::Rgba32Float => (native, nearest, linear, noaa, (1, 1), 16, all_flags, 4),
+            // Packed 32 bit textures  
+            Self::Rgba32Uint =>          (   native,    uint,    linear,         noaa, (1, 1), 16,  all_flags, 4),
+            Self::Rgba32Sint =>          (   native,    sint,    linear,         noaa, (1, 1), 16,  all_flags, 4),
+            Self::Rgba32Float =>         (   native, nearest,    linear,         noaa, (1, 1), 16,  all_flags, 4),
 
             // Depth-stencil textures
-            Self::Depth32Float => (native, depth, linear, msaa, (1, 1), 4, attachment, 1),
-            Self::Depth24Plus => (native, depth, linear, msaa, (1, 1), 4, attachment, 1),
-            Self::Depth24PlusStencil8 => (native, depth, linear, msaa, (1, 1), 4, attachment, 2),
+            Self::Depth32Float =>        (   native,   depth,    linear,         msaa, (1, 1),  4, attachment, 1),
+            Self::Depth24Plus =>         (   native,   depth,    linear,         msaa, (1, 1),  4, attachment, 1),
+            Self::Depth24PlusStencil8 => (   native,   depth,    linear,         msaa, (1, 1),  4, attachment, 2),
 
-            // Packed uncompressed
-            Self::Rgb9e5Ufloat => (native, float, linear, noaa, (1, 1), 4, basic, 3),
-
-            // BCn compressed textures
-            Self::Bc1RgbaUnorm => (bc, float, linear, noaa, (4, 4), 8, basic, 4),
-            Self::Bc1RgbaUnormSrgb => (bc, float, corrected, noaa, (4, 4), 8, basic, 4),
-            Self::Bc2RgbaUnorm => (bc, float, linear, noaa, (4, 4), 16, basic, 4),
-            Self::Bc2RgbaUnormSrgb => (bc, float, corrected, noaa, (4, 4), 16, basic, 4),
-            Self::Bc3RgbaUnorm => (bc, float, linear, noaa, (4, 4), 16, basic, 4),
-            Self::Bc3RgbaUnormSrgb => (bc, float, corrected, noaa, (4, 4), 16, basic, 4),
-            Self::Bc4RUnorm => (bc, float, linear, noaa, (4, 4), 8, basic, 1),
-            Self::Bc4RSnorm => (bc, float, linear, noaa, (4, 4), 8, basic, 1),
-            Self::Bc5RgUnorm => (bc, float, linear, noaa, (4, 4), 16, basic, 2),
-            Self::Bc5RgSnorm => (bc, float, linear, noaa, (4, 4), 16, basic, 2),
-            Self::Bc6hRgbUfloat => (bc, float, linear, noaa, (4, 4), 16, basic, 3),
-            Self::Bc6hRgbSfloat => (bc, float, linear, noaa, (4, 4), 16, basic, 3),
-            Self::Bc7RgbaUnorm => (bc, float, linear, noaa, (4, 4), 16, basic, 4),
-            Self::Bc7RgbaUnormSrgb => (bc, float, corrected, noaa, (4, 4), 16, basic, 4),
-
-            // ETC compressed textures
-            Self::Etc2Rgb8Unorm => (etc2, float, linear, noaa, (4, 4), 8, basic, 3),
-            Self::Etc2Rgb8UnormSrgb => (etc2, float, corrected, noaa, (4, 4), 8, basic, 3),
-            Self::Etc2Rgb8A1Unorm => (etc2, float, linear, noaa, (4, 4), 8, basic, 4),
-            Self::Etc2Rgb8A1UnormSrgb => (etc2, float, corrected, noaa, (4, 4), 8, basic, 4),
-            Self::Etc2Rgba8Unorm => (etc2, float, linear, noaa, (4, 4), 16, basic, 4),
-            Self::Etc2Rgba8UnormSrgb => (etc2, float, corrected, noaa, (4, 4), 16, basic, 4),
-            Self::EacR11Unorm => (etc2, float, linear, noaa, (4, 4), 8, basic, 1),
-            Self::EacR11Snorm => (etc2, float, linear, noaa, (4, 4), 8, basic, 1),
-            Self::EacRg11Unorm => (etc2, float, linear, noaa, (4, 4), 16, basic, 2),
-            Self::EacRg11Snorm => (etc2, float, linear, noaa, (4, 4), 16, basic, 2),
-
-            // ASTC compressed textures
-            Self::Astc4x4RgbaUnorm => (astc_ldr, float, linear, noaa, (4, 4), 16, basic, 4),
-            Self::Astc4x4RgbaUnormSrgb => (astc_ldr, float, corrected, noaa, (4, 4), 16, basic, 4),
-            Self::Astc5x4RgbaUnorm => (astc_ldr, float, linear, noaa, (5, 4), 16, basic, 4),
-            Self::Astc5x4RgbaUnormSrgb => (astc_ldr, float, corrected, noaa, (5, 4), 16, basic, 4),
-            Self::Astc5x5RgbaUnorm => (astc_ldr, float, linear, noaa, (5, 5), 16, basic, 4),
-            Self::Astc5x5RgbaUnormSrgb => (astc_ldr, float, corrected, noaa, (5, 5), 16, basic, 4),
-            Self::Astc6x5RgbaUnorm => (astc_ldr, float, linear, noaa, (6, 5), 16, basic, 4),
-            Self::Astc6x5RgbaUnormSrgb => (astc_ldr, float, corrected, noaa, (6, 5), 16, basic, 4),
-            Self::Astc6x6RgbaUnorm => (astc_ldr, float, linear, noaa, (6, 6), 16, basic, 4),
-            Self::Astc6x6RgbaUnormSrgb => (astc_ldr, float, corrected, noaa, (6, 6), 16, basic, 4),
-            Self::Astc8x5RgbaUnorm => (astc_ldr, float, linear, noaa, (8, 5), 16, basic, 4),
-            Self::Astc8x5RgbaUnormSrgb => (astc_ldr, float, corrected, noaa, (8, 5), 16, basic, 4),
-            Self::Astc8x6RgbaUnorm => (astc_ldr, float, linear, noaa, (8, 6), 16, basic, 4),
-            Self::Astc8x6RgbaUnormSrgb => (astc_ldr, float, corrected, noaa, (8, 6), 16, basic, 4),
-            Self::Astc10x5RgbaUnorm => (astc_ldr, float, linear, noaa, (10, 5), 16, basic, 4),
-            Self::Astc10x5RgbaUnormSrgb => {
-                (astc_ldr, float, corrected, noaa, (10, 5), 16, basic, 4)
-            }
-            Self::Astc10x6RgbaUnorm => (astc_ldr, float, linear, noaa, (10, 6), 16, basic, 4),
-            Self::Astc10x6RgbaUnormSrgb => {
-                (astc_ldr, float, corrected, noaa, (10, 6), 16, basic, 4)
-            }
-            Self::Astc8x8RgbaUnorm => (astc_ldr, float, linear, noaa, (8, 8), 16, basic, 4),
-            Self::Astc8x8RgbaUnormSrgb => (astc_ldr, float, corrected, noaa, (8, 8), 16, basic, 4),
-            Self::Astc10x8RgbaUnorm => (astc_ldr, float, linear, noaa, (10, 8), 16, basic, 4),
-            Self::Astc10x8RgbaUnormSrgb => {
-                (astc_ldr, float, corrected, noaa, (10, 8), 16, basic, 4)
-            }
-            Self::Astc10x10RgbaUnorm => (astc_ldr, float, linear, noaa, (10, 10), 16, basic, 4),
-            Self::Astc10x10RgbaUnormSrgb => {
-                (astc_ldr, float, corrected, noaa, (10, 10), 16, basic, 4)
-            }
-            Self::Astc12x10RgbaUnorm => (astc_ldr, float, linear, noaa, (12, 10), 16, basic, 4),
-            Self::Astc12x10RgbaUnormSrgb => {
-                (astc_ldr, float, corrected, noaa, (12, 10), 16, basic, 4)
-            }
-            Self::Astc12x12RgbaUnorm => (astc_ldr, float, linear, noaa, (12, 12), 16, basic, 4),
-            Self::Astc12x12RgbaUnormSrgb => {
-                (astc_ldr, float, corrected, noaa, (12, 12), 16, basic, 4)
-            }
+            // Packed uncompressed  
+            Self::Rgb9e5Ufloat =>        (   native,   float,    linear,         noaa, (1, 1),  4,      basic, 3),
 
             // Optional normalized 16-bit-per-channel formats
-            Self::R16Unorm => (norm16bit, float, linear, msaa, (1, 1), 2, storage, 1),
-            Self::R16Snorm => (norm16bit, float, linear, msaa, (1, 1), 2, storage, 1),
-            Self::Rg16Unorm => (norm16bit, float, linear, msaa, (1, 1), 4, storage, 2),
-            Self::Rg16Snorm => (norm16bit, float, linear, msaa, (1, 1), 4, storage, 2),
-            Self::Rgba16Unorm => (norm16bit, float, linear, msaa, (1, 1), 8, storage, 4),
-            Self::Rgba16Snorm => (norm16bit, float, linear, msaa, (1, 1), 8, storage, 4),
+            Self::R16Unorm =>            (norm16bit,   float,    linear,         msaa, (1, 1),  2,    storage, 1),
+            Self::R16Snorm =>            (norm16bit,   float,    linear,         msaa, (1, 1),  2,    storage, 1),
+            Self::Rg16Unorm =>           (norm16bit,   float,    linear,         msaa, (1, 1),  4,    storage, 2),
+            Self::Rg16Snorm =>           (norm16bit,   float,    linear,         msaa, (1, 1),  4,    storage, 2),
+            Self::Rgba16Unorm =>         (norm16bit,   float,    linear,         msaa, (1, 1),  8,    storage, 4),
+            Self::Rgba16Snorm =>         (norm16bit,   float,    linear,         msaa, (1, 1),  8,    storage, 4),
+
+            // BCn compressed textures
+            Self::Bc1RgbaUnorm =>        (       bc,   float,    linear,         noaa, (4, 4),  8,      basic, 4),
+            Self::Bc1RgbaUnormSrgb =>    (       bc,   float, corrected,         noaa, (4, 4),  8,      basic, 4),
+            Self::Bc2RgbaUnorm =>        (       bc,   float,    linear,         noaa, (4, 4), 16,      basic, 4),
+            Self::Bc2RgbaUnormSrgb =>    (       bc,   float, corrected,         noaa, (4, 4), 16,      basic, 4),
+            Self::Bc3RgbaUnorm =>        (       bc,   float,    linear,         noaa, (4, 4), 16,      basic, 4),
+            Self::Bc3RgbaUnormSrgb =>    (       bc,   float, corrected,         noaa, (4, 4), 16,      basic, 4),
+            Self::Bc4RUnorm =>           (       bc,   float,    linear,         noaa, (4, 4),  8,      basic, 1),
+            Self::Bc4RSnorm =>           (       bc,   float,    linear,         noaa, (4, 4),  8,      basic, 1),
+            Self::Bc5RgUnorm =>          (       bc,   float,    linear,         noaa, (4, 4), 16,      basic, 2),
+            Self::Bc5RgSnorm =>          (       bc,   float,    linear,         noaa, (4, 4), 16,      basic, 2),
+            Self::Bc6hRgbUfloat =>       (       bc,   float,    linear,         noaa, (4, 4), 16,      basic, 3),
+            Self::Bc6hRgbSfloat =>       (       bc,   float,    linear,         noaa, (4, 4), 16,      basic, 3),
+            Self::Bc7RgbaUnorm =>        (       bc,   float,    linear,         noaa, (4, 4), 16,      basic, 4),
+            Self::Bc7RgbaUnormSrgb =>    (       bc,   float, corrected,         noaa, (4, 4), 16,      basic, 4),
+
+            // ETC compressed textures
+            Self::Etc2Rgb8Unorm =>       (     etc2,   float,    linear,         noaa, (4, 4),  8,      basic, 3),
+            Self::Etc2Rgb8UnormSrgb =>   (     etc2,   float, corrected,         noaa, (4, 4),  8,      basic, 3),
+            Self::Etc2Rgb8A1Unorm =>     (     etc2,   float,    linear,         noaa, (4, 4),  8,      basic, 4),
+            Self::Etc2Rgb8A1UnormSrgb => (     etc2,   float, corrected,         noaa, (4, 4),  8,      basic, 4),
+            Self::Etc2Rgba8Unorm =>      (     etc2,   float,    linear,         noaa, (4, 4), 16,      basic, 4),
+            Self::Etc2Rgba8UnormSrgb =>  (     etc2,   float, corrected,         noaa, (4, 4), 16,      basic, 4),
+            Self::EacR11Unorm =>         (     etc2,   float,    linear,         noaa, (4, 4),  8,      basic, 1),
+            Self::EacR11Snorm =>         (     etc2,   float,    linear,         noaa, (4, 4),  8,      basic, 1),
+            Self::EacRg11Unorm =>        (     etc2,   float,    linear,         noaa, (4, 4), 16,      basic, 2),
+            Self::EacRg11Snorm =>        (     etc2,   float,    linear,         noaa, (4, 4), 16,      basic, 2),
+
+            // ASTC compressed textures
+            Self::Astc { block, channel } => {
+                let (feature, color_space) = match channel {
+                    AstcChannel::Hdr => (astc_hdr, linear),
+                    AstcChannel::Unorm => (astc_ldr, linear),
+                    AstcChannel::UnormSrgb => (astc_ldr, corrected),
+                };
+                let dimensions = match block {
+                    AstcBlock::B4x4 => (4, 4),
+                    AstcBlock::B5x4 => (5, 4),
+                    AstcBlock::B5x5 => (5, 5),
+                    AstcBlock::B6x5 => (6, 5),
+                    AstcBlock::B6x6 => (6, 6),
+                    AstcBlock::B8x5 => (8, 5),
+                    AstcBlock::B8x6 => (8, 6),
+                    AstcBlock::B8x8 => (8, 8),
+                    AstcBlock::B10x5 => (10, 5),
+                    AstcBlock::B10x6 => (10, 6),
+                    AstcBlock::B10x8 => (10, 8),
+                    AstcBlock::B10x10 => (10, 10),
+                    AstcBlock::B12x10 => (12, 10),
+                    AstcBlock::B12x12 => (12, 12),
+                };
+                (feature, float, color_space, noaa, dimensions, 16, basic, 4)
+            }
         };
 
         let mut flags = msaa_flags;
@@ -2259,6 +2230,9 @@ impl TextureFormat {
 
 bitflags::bitflags! {
     /// Color write mask. Disabled color channels will not be written to.
+    ///
+    /// Corresponds to [WebGPU `GPUColorWriteFlags`](
+    /// https://gpuweb.github.io/gpuweb/#typedefdef-gpucolorwriteflags).
     #[repr(transparent)]
     pub struct ColorWrites: u32 {
         /// Enable red channel writes
@@ -2286,6 +2260,11 @@ impl Default for ColorWrites {
 }
 
 /// State of the stencil operation (fixed-pipeline stage).
+///
+/// For use in [`DepthStencilState`].
+///
+/// Corresponds to a portion of [WebGPU `GPUDepthStencilState`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpudepthstencilstate).
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2318,6 +2297,11 @@ impl StencilState {
 }
 
 /// Describes the biasing setting for the depth target.
+///
+/// For use in [`DepthStencilState`].
+///
+/// Corresponds to a portion of [WebGPU `GPUDepthStencilState`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpudepthstencilstate).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2339,13 +2323,18 @@ impl DepthBiasState {
 }
 
 /// Describes the depth/stencil state in a render pipeline.
+///
+/// Corresponds to [WebGPU `GPUDepthStencilState`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpudepthstencilstate).
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct DepthStencilState {
     /// Format of the depth/stencil buffer, must be special depth format. Must match the the format
-    /// of the depth/stencil attachment in [`CommandEncoder::begin_render_pass`].
+    /// of the depth/stencil attachment in [`CommandEncoder::begin_render_pass`][CEbrp].
+    ///
+    /// [CEbrp]: ../wgpu/struct.CommandEncoder.html#method.begin_render_pass
     pub format: TextureFormat,
     /// If disabled, depth will not be written to.
     pub depth_write_enabled: bool,
@@ -2371,6 +2360,9 @@ impl DepthStencilState {
 }
 
 /// Format of indices used with pipeline.
+///
+/// Corresponds to [WebGPU `GPUIndexFormat`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpuindexformat).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
@@ -2389,6 +2381,9 @@ impl Default for IndexFormat {
 }
 
 /// Operation to perform on the stencil value.
+///
+/// Corresponds to [WebGPU `GPUStencilOperation`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpustenciloperation).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2399,7 +2394,10 @@ pub enum StencilOperation {
     Keep = 0,
     /// Set stencil value to zero.
     Zero = 1,
-    /// Replace stencil value with value provided in most recent call to [`RenderPass::set_stencil_reference`].
+    /// Replace stencil value with value provided in most recent call to
+    /// [`RenderPass::set_stencil_reference`][RPssr].
+    ///
+    /// [RPssr]: ../wgpu/struct.RenderPass.html#method.set_stencil_reference
     Replace = 2,
     /// Bitwise inverts stencil value.
     Invert = 3,
@@ -2422,6 +2420,9 @@ impl Default for StencilOperation {
 /// Describes stencil state in a render pipeline.
 ///
 /// If you are not using stencil state, set this to [`StencilFaceState::IGNORE`].
+///
+/// Corresponds to [WebGPU `GPUStencilFaceState`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpustencilfacestate).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2463,6 +2464,9 @@ impl Default for StencilFaceState {
 }
 
 /// Comparison function used for depth and stencil operations.
+///
+/// Corresponds to [WebGPU `GPUCompareFunction`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpucomparefunction).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2498,6 +2502,9 @@ impl CompareFunction {
 }
 
 /// Rate that determines when vertex data is advanced.
+///
+/// Corresponds to [WebGPU `GPUVertexStepMode`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpuvertexstepmode).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2518,7 +2525,13 @@ impl Default for VertexStepMode {
 
 /// Vertex inputs (attributes) to shaders.
 ///
-/// Arrays of these can be made with the [`vertex_attr_array`] macro. Vertex attributes are assumed to be tightly packed.
+/// Arrays of these can be made with the [`vertex_attr_array`]
+/// macro. Vertex attributes are assumed to be tightly packed.
+///
+/// Corresponds to [WebGPU `GPUVertexAttribute`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpuvertexattribute).
+///
+/// [`vertex_attr_array`]: ../wgpu/macro.vertex_attr_array.html
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2533,7 +2546,10 @@ pub struct VertexAttribute {
     pub shader_location: ShaderLocation,
 }
 
-/// Vertex Format for a Vertex Attribute (input).
+/// Vertex Format for a [`VertexAttribute`] (input).
+///
+/// Corresponds to [WebGPU `GPUVertexFormat`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpuvertexformat).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2649,6 +2665,9 @@ bitflags::bitflags! {
     ///
     /// The usages determine what kind of memory the buffer is allocated from and what
     /// actions the buffer can partake in.
+    ///
+    /// Corresponds to [WebGPU `GPUBufferUsageFlags`](
+    /// https://gpuweb.github.io/gpuweb/#typedefdef-gpubufferusageflags).
     #[repr(transparent)]
     pub struct BufferUsages: u32 {
         /// Allow a buffer to be mapped for reading using [`Buffer::map_async`] + [`Buffer::get_mapped_range`].
@@ -2685,7 +2704,10 @@ bitflags::bitflags! {
 #[cfg(feature = "bitflags_serde_shim")]
 bitflags_serde_shim::impl_serde_for_bitflags!(BufferUsages);
 
-/// Describes a [`Buffer`].
+/// Describes a [`Buffer`](../wgpu/struct.Buffer.html).
+///
+/// Corresponds to [WebGPU `GPUBufferDescriptor`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpubufferdescriptor).
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2715,7 +2737,10 @@ impl<L> BufferDescriptor<L> {
     }
 }
 
-/// Describes a [`CommandEncoder`].
+/// Describes a [`CommandEncoder`](../wgpu/struct.CommandEncoder.html).
+///
+/// Corresponds to [WebGPU `GPUCommandEncoderDescriptor`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpucommandencoderdescriptor).
 #[repr(C)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -2767,6 +2792,9 @@ bitflags::bitflags! {
     ///
     /// The usages determine what kind of memory the texture is allocated from and what
     /// actions the texture can partake in.
+    ///
+    /// Corresponds to [WebGPU `GPUTextureUsageFlags`](
+    /// https://gpuweb.github.io/gpuweb/#typedefdef-gputextureusageflags).
     #[repr(transparent)]
     pub struct TextureUsages: u32 {
         /// Allows a texture to be the source in a [`CommandEncoder::copy_texture_to_buffer`] or
@@ -2788,6 +2816,8 @@ bitflags::bitflags! {
 bitflags_serde_shim::impl_serde_for_bitflags!(TextureUsages);
 
 /// Configures a [`Surface`] for presentation.
+///
+/// [`Surface`]: ../wgpu/struct.Surface.html
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2883,6 +2913,9 @@ impl Color {
 }
 
 /// Dimensionality of a texture.
+///
+/// Corresponds to [WebGPU `GPUTextureDimension`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gputexturedimension).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2900,6 +2933,9 @@ pub enum TextureDimension {
 }
 
 /// Origin of a copy to/from a texture.
+///
+/// Corresponds to [WebGPU `GPUOrigin3D`](
+/// https://gpuweb.github.io/gpuweb/#typedefdef-gpuorigin3d).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2926,6 +2962,9 @@ impl Default for Origin3d {
 }
 
 /// Extent of a texture related operation.
+///
+/// Corresponds to [WebGPU `GPUExtent3D`](
+/// https://gpuweb.github.io/gpuweb/#typedefdef-gpuextent3d).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -2957,12 +2996,13 @@ impl Default for Extent3d {
 }
 
 impl Extent3d {
-    /// Calculates the [physical size] is backing an texture of the given format and extent.
-    /// This includes padding to the block width and height of the format.
+    /// Calculates the [physical size] backing a texture of the given
+    /// format and extent.  This includes padding to the block width
+    /// and height of the format.
     ///
     /// This is the texture extent that you must upload at when uploading to _mipmaps_ of compressed textures.
     ///
-    /// [physical size]: https://gpuweb.github.io/gpuweb/#physical-size
+    /// [physical size]: https://gpuweb.github.io/gpuweb/#physical-miplevel-specific-texture-extent
     pub fn physical_size(&self, format: TextureFormat) -> Self {
         let (block_width, block_height) = format.describe().block_dimensions;
         let block_width = block_width as u32;
@@ -3040,7 +3080,10 @@ fn test_physical_size() {
             depth_or_array_layers: 1
         }
     );
-    let format = TextureFormat::Astc8x5RgbaUnorm; // 8x5 blocks
+    let format = TextureFormat::Astc {
+        block: AstcBlock::B8x5,
+        channel: AstcChannel::Unorm,
+    }; // 8x5 blocks
     assert_eq!(
         Extent3d {
             width: 7,
@@ -3108,7 +3151,10 @@ fn test_max_mips() {
     );
 }
 
-/// Describes a [`Texture`].
+/// Describes a [`Texture`](../wgpu/struct.Texture.html).
+///
+/// Corresponds to [WebGPU `GPUTextureDescriptor`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gputexturedescriptor).
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -3188,13 +3234,16 @@ impl<L> TextureDescriptor<L> {
     /// Returns the number of array layers.
     pub fn array_layer_count(&self) -> u32 {
         match self.dimension {
-            TextureDimension::D1 | TextureDimension::D2 => self.size.depth_or_array_layers,
-            TextureDimension::D3 => 1,
+            TextureDimension::D1 | TextureDimension::D3 => 1,
+            TextureDimension::D2 => self.size.depth_or_array_layers,
         }
     }
 }
 
 /// Kind of data the texture holds.
+///
+/// Corresponds to [WebGPU `GPUTextureAspect`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gputextureaspect).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -3216,6 +3265,9 @@ impl Default for TextureAspect {
 }
 
 /// How edges should be handled in texture addressing.
+///
+/// Corresponds to [WebGPU `GPUAddressMode`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpuaddressmode).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -3252,6 +3304,9 @@ impl Default for AddressMode {
 }
 
 /// Texel mixing mode when sampling between texels.
+///
+/// Corresponds to [WebGPU `GPUFilterMode`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpufiltermode).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -3287,7 +3342,10 @@ pub struct PushConstantRange {
     pub range: Range<u32>,
 }
 
-/// Describes a [`CommandBuffer`].
+/// Describes a [`CommandBuffer`](../wgpu/struct.CommandBuffer.html).
+///
+/// Corresponds to [WebGPU `GPUCommandBufferDescriptor`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpucommandbufferdescriptor).
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -3307,6 +3365,9 @@ impl<L> CommandBufferDescriptor<L> {
 }
 
 /// Describes the depth/stencil attachment for render bundles.
+///
+/// Corresponds to a portion of [WebGPU `GPURenderBundleEncoderDescriptor`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpurenderbundleencoderdescriptor).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(serde::Serialize))]
@@ -3320,7 +3381,10 @@ pub struct RenderBundleDepthStencil {
     pub stencil_read_only: bool,
 }
 
-/// Describes a [`RenderBundle`].
+/// Describes a [`RenderBundle`](../wgpu/struct.RenderBundle.html).
+///
+/// Corresponds to [WebGPU `GPURenderBundleDescriptor`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpurenderbundledescriptor).
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -3355,6 +3419,9 @@ impl<T> Default for RenderBundleDescriptor<Option<T>> {
 /// | 32x16x8    | RGBA8  | 4               | 1 * 1 * 1        | 32 * 4 = 128 padded to 256 = Some(256) | None                         |
 /// | 256x256    | BC3    | 16              | 4 * 4 * 1        | 16 * (256 / 4) = 1024 = Some(1024)     | None                         |
 /// | 64x64x8    | BC3    | 16              | 4 * 4 * 1        | 16 * (64 / 4) = 256 = Some(256)        | 64 / 4 = 16 = Some(16)       |
+///
+/// Corresponds to [WebGPU `GPUImageDataLayout`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpuimagedatalayout).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
 #[cfg_attr(feature = "trace", derive(serde::Serialize))]
@@ -3369,12 +3436,17 @@ pub struct ImageDataLayout {
     ///
     /// This value is required if there are multiple rows (i.e. height or depth is more than one pixel or pixel block for compressed textures)
     ///
-    /// Must be a multiple of 256 for [`CommandEncoder::copy_buffer_to_texture`] and [`CommandEncoder::copy_texture_to_buffer`]. You must manually pad
-    /// the image such that this is a multiple of 256. It will not affect the image data.
+    /// Must be a multiple of 256 for [`CommandEncoder::copy_buffer_to_texture`][CEcbtt]
+    /// and [`CommandEncoder::copy_texture_to_buffer`][CEcttb]. You must manually pad the
+    /// image such that this is a multiple of 256. It will not affect the image data.
     ///
-    /// [`Queue::write_texture`] does not have this requirement.
+    /// [`Queue::write_texture`][Qwt] does not have this requirement.
     ///
     /// Must be a multiple of the texture block size. For non-compressed textures, this is 1.
+    ///
+    /// [CEcbtt]: ../wgpu/struct.CommandEncoder.html#method.copy_buffer_to_texture
+    /// [CEcttb]: ../wgpu/struct.CommandEncoder.html#method.copy_texture_to_buffer
+    /// [Qwt]: ../wgpu/struct.Queue.html#method.write_texture
     pub bytes_per_row: Option<NonZeroU32>,
     /// "Rows" that make up a single "image".
     ///
@@ -3390,7 +3462,8 @@ pub struct ImageDataLayout {
 
 /// Specific type of a buffer binding.
 ///
-/// WebGPU spec: <https://gpuweb.github.io/gpuweb/#enumdef-gpubufferbindingtype>
+/// Corresponds to [WebGPU `GPUBufferBindingType`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpubufferbindingtype).
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -3436,7 +3509,8 @@ impl Default for BufferBindingType {
 
 /// Specific type of a sample in a texture binding.
 ///
-/// WebGPU spec: <https://gpuweb.github.io/gpuweb/#enumdef-gputexturesampletype>
+/// Corresponds to [WebGPU `GPUTextureSampleType`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gputexturesampletype).
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -3487,7 +3561,10 @@ impl Default for TextureSampleType {
 
 /// Specific type of a sample in a texture binding.
 ///
-/// WebGPU spec: <https://gpuweb.github.io/gpuweb/#enumdef-gpustoragetextureaccess>
+/// For use in [`BindingType::StorageTexture`].
+///
+/// Corresponds to [WebGPU `GPUStorageTextureAccess`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpustoragetextureaccess).
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -3520,7 +3597,10 @@ pub enum StorageTextureAccess {
 
 /// Specific type of a sampler binding.
 ///
-/// WebGPU spec: <https://gpuweb.github.io/gpuweb/#enumdef-gpusamplerbindingtype>
+/// For use in [`BindingType::Sampler`].
+///
+/// Corresponds to [WebGPU `GPUSamplerBindingType`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpusamplerbindingtype).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
@@ -3539,21 +3619,27 @@ pub enum SamplerBindingType {
 
 /// Specific type of a binding.
 ///
-/// WebGPU spec: the enum of
-/// - <https://gpuweb.github.io/gpuweb/#dictdef-gpubufferbindinglayout>
-/// - <https://gpuweb.github.io/gpuweb/#dictdef-gpusamplerbindinglayout>
-/// - <https://gpuweb.github.io/gpuweb/#dictdef-gputexturebindinglayout>
-/// - <https://gpuweb.github.io/gpuweb/#dictdef-gpustoragetexturebindinglayout>
+/// For use in [`BindGroupLayoutEntry`].
+///
+/// Corresponds to WebGPU's mutually exclusive fields within [`GPUBindGroupLayoutEntry`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpubindgrouplayoutentry).
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub enum BindingType {
     /// A buffer binding.
+    ///
+    /// Corresponds to [WebGPU `GPUBufferBindingLayout`](
+    /// https://gpuweb.github.io/gpuweb/#dictdef-gpubufferbindinglayout).
     Buffer {
         /// Sub-type of the buffer binding.
         ty: BufferBindingType,
         /// Indicates that the binding has a dynamic offset.
-        /// One offset must be passed to [`RenderPass::set_bind_group`] for each dynamic binding in increasing order of binding number.
+        ///
+        /// One offset must be passed to [`RenderPass::set_bind_group`][RPsbg] for each dynamic
+        /// binding in increasing order of binding number.
+        ///
+        /// [RPsbg]: ../wgpu/struct.RenderPass.html#method.set_bind_group
         #[cfg_attr(any(feature = "trace", feature = "replay"), serde(default))]
         has_dynamic_offset: bool,
         /// Minimum size of the corresponding `BufferBinding` required to match this entry.
@@ -3570,6 +3656,9 @@ pub enum BindingType {
     /// layout(binding = 0)
     /// uniform sampler s;
     /// ```
+    ///
+    /// Corresponds to [WebGPU `GPUSamplerBindingLayout`](
+    /// https://gpuweb.github.io/gpuweb/#dictdef-gpusamplerbindinglayout).
     Sampler(SamplerBindingType),
     /// A texture binding.
     ///
@@ -3578,6 +3667,9 @@ pub enum BindingType {
     /// layout(binding = 0)
     /// uniform texture2D t;
     /// ```
+    ///
+    /// Corresponds to [WebGPU `GPUTextureBindingLayout`](
+    /// https://gpuweb.github.io/gpuweb/#dictdef-gputexturebindinglayout).
     Texture {
         /// Sample type of the texture binding.
         sample_type: TextureSampleType,
@@ -3596,6 +3688,9 @@ pub enum BindingType {
     /// ```
     /// Note that the texture format must be specified in the shader as well.
     /// A list of valid formats can be found in the specification here: <https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.html#layout-qualifiers>
+    ///
+    /// Corresponds to [WebGPU `GPUStorageTextureBindingLayout`](
+    /// https://gpuweb.github.io/gpuweb/#dictdef-gpustoragetexturebindinglayout).
     StorageTexture {
         /// Allowed access to this texture.
         access: StorageTextureAccess,
@@ -3619,6 +3714,9 @@ impl BindingType {
 }
 
 /// Describes a single binding inside a bind group.
+///
+/// Corresponds to [WebGPU `GPUBindGroupLayoutEntry`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpubindgrouplayoutentry).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "trace", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -3640,6 +3738,9 @@ pub struct BindGroupLayoutEntry {
 }
 
 /// View of a buffer which can be used to copy to/from a texture.
+///
+/// Corresponds to [WebGPU `GPUImageCopyBuffer`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpuimagecopybuffer).
 #[repr(C)]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "trace", derive(serde::Serialize))]
@@ -3652,6 +3753,9 @@ pub struct ImageCopyBuffer<B> {
 }
 
 /// View of a texture which can be used to copy to/from a buffer/texture.
+///
+/// Corresponds to [WebGPU `GPUImageCopyTexture`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpuimagecopytexture).
 #[repr(C)]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "trace", derive(serde::Serialize))]
@@ -3675,7 +3779,9 @@ pub struct ImageCopyTexture<T> {
 #[cfg_attr(feature = "trace", derive(serde::Serialize))]
 #[cfg_attr(feature = "replay", derive(serde::Deserialize))]
 pub struct ImageSubresourceRange {
-    /// Aspect of the texture. Color textures must be [`TextureAspect::All`](wgt::TextureAspect::All).
+    /// Aspect of the texture. Color textures must be [`TextureAspect::All`][TAA].
+    ///
+    /// [TAA]: ../wgpu/enum.TextureAspect.html#variant.All
     pub aspect: TextureAspect,
     /// Base mip level.
     pub base_mip_level: u32,
@@ -3727,9 +3833,19 @@ pub enum SamplerBorderColor {
     OpaqueBlack,
     /// [1, 1, 1, 1]
     OpaqueWhite,
+
+    /// On the Metal backend, this is equivalent to `TransparentBlack` for
+    /// textures that have an alpha component, and equivalent to `OpaqueBlack`
+    /// for textures that do not have an alpha component. On other backends,
+    /// this is equivalent to `TransparentBlack`. Requires
+    /// [`Features::ADDRESS_MODE_CLAMP_TO_ZERO`]. Not supported on the web.
+    Zero,
 }
 
 /// Describes how to create a QuerySet.
+///
+/// Corresponds to [WebGPU `GPUQuerySetDescriptor`](
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpuquerysetdescriptor).
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "trace", derive(serde::Serialize))]
 #[cfg_attr(feature = "replay", derive(serde::Deserialize))]
@@ -3755,6 +3871,9 @@ impl<L> QuerySetDescriptor<L> {
 }
 
 /// Type of query contained in a QuerySet.
+///
+/// Corresponds to [WebGPU `GPUQueryType`](
+/// https://gpuweb.github.io/gpuweb/#enumdef-gpuquerytype).
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "trace", derive(serde::Serialize))]
 #[cfg_attr(feature = "replay", derive(serde::Deserialize))]
@@ -3771,12 +3890,14 @@ pub enum QueryType {
     /// Query returns a 64-bit number indicating the GPU-timestamp
     /// where all previous commands have finished executing.
     ///
-    /// Must be multiplied by [`Device::get_timestamp_period`] to get
+    /// Must be multiplied by [`Queue::get_timestamp_period`][Qgtp] to get
     /// the value in nanoseconds. Absolute values have no meaning,
     /// but timestamps can be subtracted to get the time it takes
     /// for a string of operations to complete.
     ///
     /// [`Features::TIMESTAMP_QUERY`] must be enabled to use this query type.
+    ///
+    /// [Qgtp]: ../wgpu/struct.Queue.html#method.get_timestamp_period
     Timestamp,
 }
 

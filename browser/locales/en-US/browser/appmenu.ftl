@@ -50,10 +50,10 @@ appmenuitem-exit2 =
            *[other] Exit
         }
 appmenu-menu-button-closed2 =
-    .tooltiptext = Open Application Menu
+    .tooltiptext = Open application menu
     .label = { -brand-short-name }
 appmenu-menu-button-opened2 =
-    .tooltiptext = Close Application Menu
+    .tooltiptext = Close application menu
     .label = { -brand-short-name }
 
 # Settings is now used to access the browser settings across all platforms,
@@ -249,8 +249,8 @@ appmenu-help-more-troubleshooting-info =
     .accesskey = t
 appmenu-help-report-site-issue =
     .label = Report site issue…
-appmenu-help-feedback-page =
-    .label = Submit feedback…
+appmenu-help-share-ideas =
+    .label = Share ideas and feedback…
     .accesskey = S
 
 ## appmenu-help-enter-troubleshoot-mode and appmenu-help-exit-troubleshoot-mode

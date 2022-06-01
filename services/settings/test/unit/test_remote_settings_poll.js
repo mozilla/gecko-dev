@@ -6,7 +6,7 @@ const { AppConstants } = ChromeUtils.import(
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 
-const { UptakeTelemetry } = ChromeUtils.import(
+const { UptakeTelemetry, Policy } = ChromeUtils.import(
   "resource://services-common/uptake-telemetry.js"
 );
 const { RemoteSettingsClient } = ChromeUtils.import(
@@ -14,6 +14,9 @@ const { RemoteSettingsClient } = ChromeUtils.import(
 );
 const { pushBroadcastService } = ChromeUtils.import(
   "resource://gre/modules/PushBroadcastService.jsm"
+);
+const { SyncHistory } = ChromeUtils.import(
+  "resource://services-settings/SyncHistory.jsm"
 );
 const {
   RemoteSettings,
@@ -34,8 +37,9 @@ const PREF_LAST_ETAG = "services.settings.last_etag";
 const PREF_CLOCK_SKEW_SECONDS = "services.settings.clock_skew_seconds";
 
 // Telemetry report result.
-const TELEMETRY_HISTOGRAM_POLL_KEY = "settings-changes-monitoring";
-const TELEMETRY_HISTOGRAM_SYNC_KEY = "settings-sync";
+const TELEMETRY_COMPONENT = "remotesettings";
+const TELEMETRY_SOURCE_POLL = "settings-changes-monitoring";
+const TELEMETRY_SOURCE_SYNC = "settings-sync";
 const CHANGES_PATH = "/v1" + Utils.CHANGES_PATH;
 
 var server;
@@ -54,13 +58,18 @@ async function clear_state() {
 
   // Clear events snapshot.
   TelemetryTestUtils.assertEvents([], {}, { process: "dummy" });
+
+  // Clear sync history.
+  await new SyncHistory("").clear();
 }
 
-function serveChangesEntries(serverTime, entries) {
+function serveChangesEntries(serverTime, entriesOrFunc) {
   return (request, response) => {
     response.setStatusLine(null, 200, "OK");
     response.setHeader("Content-Type", "application/json; charset=UTF-8");
     response.setHeader("Date", new Date(serverTime).toUTCString());
+    const entries =
+      typeof entriesOrFunc == "function" ? entriesOrFunc() : entriesOrFunc;
     const latest = entries[0]?.last_modified ?? 42;
     if (entries.length) {
       response.setHeader("ETag", `"${latest}"`);
@@ -74,10 +83,15 @@ function run_test() {
   server = new HttpServer();
   server.start(-1);
 
+  // Pretend we are in nightly channel to make sure all telemetry events are sent.
+  let oldGetChannel = Policy.getChannel;
+  Policy.getChannel = () => "nightly";
+
   run_next_test();
 
-  registerCleanupFunction(function() {
-    server.stop(function() {});
+  registerCleanupFunction(() => {
+    Policy.getChannel = oldGetChannel;
+    server.stop(() => {});
   });
 }
 
@@ -111,8 +125,9 @@ add_task(async function test_an_event_is_sent_on_start() {
 add_task(clear_state);
 
 add_task(async function test_offline_is_reported_if_relevant() {
-  const startHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
   );
   const offlineBackup = Services.io.offline;
   try {
@@ -120,13 +135,14 @@ add_task(async function test_offline_is_reported_if_relevant() {
 
     await RemoteSettings.pollChanges();
 
-    const endHistogram = getUptakeTelemetrySnapshot(
-      TELEMETRY_HISTOGRAM_POLL_KEY
+    const endSnapshot = getUptakeTelemetrySnapshot(
+      TELEMETRY_COMPONENT,
+      TELEMETRY_SOURCE_POLL
     );
     const expectedIncrements = {
       [UptakeTelemetry.STATUS.NETWORK_OFFLINE_ERROR]: 1,
     };
-    checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+    checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
   } finally {
     Services.io.offline = offlineBackup;
   }
@@ -134,12 +150,6 @@ add_task(async function test_offline_is_reported_if_relevant() {
 add_task(clear_state);
 
 add_task(async function test_check_success() {
-  const startPollHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
-  );
-  const startSyncHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_SYNC_KEY
-  );
   const serverTime = 8000;
 
   server.registerPathHandler(
@@ -165,9 +175,8 @@ add_task(async function test_check_success() {
   // add a test kinto client that will respond to lastModified information
   // for a collection called 'test-collection'.
   // Let's use a bucket that is not the default one (`test-bucket`).
-  Services.prefs.setCharPref("services.settings.test_bucket", "test-bucket");
   const c = RemoteSettings("test-collection", {
-    bucketNamePref: "services.settings.test_bucket",
+    bucketName: "test-bucket",
   });
   let maybeSyncCalled = false;
   c.maybeSync = () => {
@@ -195,25 +204,32 @@ add_task(async function test_check_success() {
   Assert.equal(Services.prefs.getCharPref(PREF_LAST_ETAG), '"1100"');
   // check the last_update is updated
   Assert.equal(Services.prefs.getIntPref(PREF_LAST_UPDATE), serverTime / 1000);
+
   // ensure that we've accumulated the correct telemetry
-  const endPollHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
-  );
-  const expectedIncrements = {
-    [UptakeTelemetry.STATUS.SUCCESS]: 1,
-  };
-  checkUptakeTelemetry(
-    startPollHistogram,
-    endPollHistogram,
-    expectedIncrements
-  );
-  const endSyncHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_SYNC_KEY
-  );
-  checkUptakeTelemetry(
-    startSyncHistogram,
-    endSyncHistogram,
-    expectedIncrements
+  TelemetryTestUtils.assertEvents(
+    [
+      [
+        "uptake.remotecontent.result",
+        "uptake",
+        "remotesettings",
+        UptakeTelemetry.STATUS.SUCCESS,
+        {
+          source: TELEMETRY_SOURCE_POLL,
+          trigger: "manual",
+        },
+      ],
+      [
+        "uptake.remotecontent.result",
+        "uptake",
+        "remotesettings",
+        UptakeTelemetry.STATUS.SUCCESS,
+        {
+          source: TELEMETRY_SOURCE_SYNC,
+          trigger: "manual",
+        },
+      ],
+    ],
+    TELEMETRY_EVENTS_FILTERS
   );
 });
 add_task(clear_state);
@@ -257,8 +273,9 @@ add_task(clear_state);
 
 add_task(async function test_check_up_to_date() {
   // Simulate a poll with up-to-date collection.
-  const startHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
   );
 
   const serverTime = 4000;
@@ -293,11 +310,14 @@ add_task(async function test_check_up_to_date() {
   Assert.equal(Services.prefs.getIntPref(PREF_LAST_UPDATE), serverTime / 1000);
 
   // ensure that we've accumulated the correct telemetry
-  const endHistogram = getUptakeTelemetrySnapshot(TELEMETRY_HISTOGRAM_POLL_KEY);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
+  );
   const expectedIncrements = {
     [UptakeTelemetry.STATUS.UP_TO_DATE]: 1,
   };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
@@ -382,23 +402,73 @@ const TELEMETRY_EVENTS_FILTERS = {
   category: "uptake.remotecontent.result",
   method: "uptake",
 };
-
 add_task(async function test_age_of_data_is_reported_in_uptake_status() {
-  await withFakeChannel("nightly", async () => {
-    const serverTime = 1552323900000;
-    const recordsTimestamp = serverTime - 3600 * 1000;
+  const serverTime = 1552323900000;
+  const recordsTimestamp = serverTime - 3600 * 1000;
+  server.registerPathHandler(
+    CHANGES_PATH,
+    serveChangesEntries(serverTime, [
+      {
+        id: "b6ba7fab-a40a-4d03-a4af-6b627f3c5b36",
+        last_modified: recordsTimestamp,
+        host: "localhost",
+        bucket: "main",
+        collection: "some-entry",
+      },
+    ])
+  );
+
+  await RemoteSettings.pollChanges();
+
+  TelemetryTestUtils.assertEvents(
+    [
+      [
+        "uptake.remotecontent.result",
+        "uptake",
+        "remotesettings",
+        UptakeTelemetry.STATUS.SUCCESS,
+        {
+          source: TELEMETRY_SOURCE_POLL,
+          age: "3600",
+          trigger: "manual",
+        },
+      ],
+      [
+        "uptake.remotecontent.result",
+        "uptake",
+        "remotesettings",
+        UptakeTelemetry.STATUS.SUCCESS,
+        {
+          source: TELEMETRY_SOURCE_SYNC,
+          duration: () => true,
+          trigger: "manual",
+          timestamp: `"${recordsTimestamp}"`,
+        },
+      ],
+    ],
+    TELEMETRY_EVENTS_FILTERS
+  );
+});
+add_task(clear_state);
+
+add_task(
+  async function test_synchronization_duration_is_reported_in_uptake_status() {
     server.registerPathHandler(
       CHANGES_PATH,
-      serveChangesEntries(serverTime, [
+      serveChangesEntries(10000, [
         {
           id: "b6ba7fab-a40a-4d03-a4af-6b627f3c5b36",
-          last_modified: recordsTimestamp,
+          last_modified: 42,
           host: "localhost",
           bucket: "main",
           collection: "some-entry",
         },
       ])
     );
+    const c = RemoteSettings("some-entry");
+    // Simulate a synchronization that lasts 1 sec.
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+    c.maybeSync = () => new Promise(resolve => setTimeout(resolve, 1000));
 
     await RemoteSettings.pollChanges();
 
@@ -408,10 +478,10 @@ add_task(async function test_age_of_data_is_reported_in_uptake_status() {
           "uptake.remotecontent.result",
           "uptake",
           "remotesettings",
-          UptakeTelemetry.STATUS.SUCCESS,
+          "success",
           {
-            source: TELEMETRY_HISTOGRAM_POLL_KEY,
-            age: "3600",
+            source: TELEMETRY_SOURCE_POLL,
+            age: () => true,
             trigger: "manual",
           },
         ],
@@ -419,71 +489,16 @@ add_task(async function test_age_of_data_is_reported_in_uptake_status() {
           "uptake.remotecontent.result",
           "uptake",
           "remotesettings",
-          UptakeTelemetry.STATUS.SUCCESS,
+          "success",
           {
-            source: TELEMETRY_HISTOGRAM_SYNC_KEY,
-            duration: () => true,
+            source: TELEMETRY_SOURCE_SYNC,
+            duration: v => v >= 1000,
             trigger: "manual",
-            timestamp: `"${recordsTimestamp}"`,
           },
         ],
       ],
       TELEMETRY_EVENTS_FILTERS
     );
-  });
-});
-add_task(clear_state);
-
-add_task(
-  async function test_synchronization_duration_is_reported_in_uptake_status() {
-    await withFakeChannel("nightly", async () => {
-      server.registerPathHandler(
-        CHANGES_PATH,
-        serveChangesEntries(10000, [
-          {
-            id: "b6ba7fab-a40a-4d03-a4af-6b627f3c5b36",
-            last_modified: 42,
-            host: "localhost",
-            bucket: "main",
-            collection: "some-entry",
-          },
-        ])
-      );
-      const c = RemoteSettings("some-entry");
-      // Simulate a synchronization that lasts 1 sec.
-      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-      c.maybeSync = () => new Promise(resolve => setTimeout(resolve, 1000));
-
-      await RemoteSettings.pollChanges();
-
-      TelemetryTestUtils.assertEvents(
-        [
-          [
-            "uptake.remotecontent.result",
-            "uptake",
-            "remotesettings",
-            "success",
-            {
-              source: TELEMETRY_HISTOGRAM_POLL_KEY,
-              age: () => true,
-              trigger: "manual",
-            },
-          ],
-          [
-            "uptake.remotecontent.result",
-            "uptake",
-            "remotesettings",
-            "success",
-            {
-              source: TELEMETRY_HISTOGRAM_SYNC_KEY,
-              duration: v => v >= 1000,
-              trigger: "manual",
-            },
-          ],
-        ],
-        TELEMETRY_EVENTS_FILTERS
-      );
-    });
   }
 );
 add_task(clear_state);
@@ -571,8 +586,9 @@ add_task(async function test_full_polling() {
 add_task(clear_state);
 
 add_task(async function test_server_bad_json() {
-  const startHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
   );
 
   function simulateBadJSON(request, response) {
@@ -590,17 +606,21 @@ add_task(async function test_server_bad_json() {
   }
   Assert.ok(/JSON.parse: unexpected character/.test(error.message));
 
-  const endHistogram = getUptakeTelemetrySnapshot(TELEMETRY_HISTOGRAM_POLL_KEY);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
+  );
   const expectedIncrements = {
     [UptakeTelemetry.STATUS.PARSE_ERROR]: 1,
   };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
 add_task(async function test_server_bad_content_type() {
-  const startHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
   );
 
   function simulateBadContentType(request, response) {
@@ -618,11 +638,14 @@ add_task(async function test_server_bad_content_type() {
   }
   Assert.ok(/Unexpected content-type/.test(error.message));
 
-  const endHistogram = getUptakeTelemetrySnapshot(TELEMETRY_HISTOGRAM_POLL_KEY);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
+  );
   const expectedIncrements = {
     [UptakeTelemetry.STATUS.CONTENT_ERROR]: 1,
   };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
@@ -639,8 +662,9 @@ add_task(async function test_server_404_response() {
 add_task(clear_state);
 
 add_task(async function test_server_error() {
-  const startHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
   );
 
   // Simulate a server error.
@@ -684,17 +708,21 @@ add_task(async function test_server_error() {
   // When an error occurs, last update was not overwritten.
   Assert.equal(Services.prefs.getIntPref(PREF_LAST_UPDATE), 42);
   // ensure that we've accumulated the correct telemetry
-  const endHistogram = getUptakeTelemetrySnapshot(TELEMETRY_HISTOGRAM_POLL_KEY);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
+  );
   const expectedIncrements = {
     [UptakeTelemetry.STATUS.SERVER_ERROR]: 1,
   };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
 add_task(async function test_server_error_5xx() {
-  const startHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
   );
 
   function simulateErrorResponse(request, response) {
@@ -709,17 +737,21 @@ add_task(async function test_server_error_5xx() {
     await RemoteSettings.pollChanges();
   } catch (e) {}
 
-  const endHistogram = getUptakeTelemetrySnapshot(TELEMETRY_HISTOGRAM_POLL_KEY);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
+  );
   const expectedIncrements = {
     [UptakeTelemetry.STATUS.SERVER_ERROR]: 1,
   };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
 add_task(async function test_client_error() {
-  const startHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_SYNC_KEY
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_SYNC
   );
 
   const collectionDetails = {
@@ -779,12 +811,163 @@ add_task(async function test_client_error() {
   // When an error occurs, last etag was not overwritten.
   Assert.equal(Services.prefs.getIntPref(PREF_LAST_ETAG), 42);
   // ensure that we've accumulated the correct telemetry
-  const endHistogram = getUptakeTelemetrySnapshot(TELEMETRY_HISTOGRAM_SYNC_KEY);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_SYNC
+  );
   const expectedIncrements = {
     [UptakeTelemetry.STATUS.SYNC_ERROR]: 1,
   };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
+add_task(clear_state);
+
+add_task(async function test_sync_success_is_stored_in_history() {
+  const collectionDetails = {
+    last_modified: 444,
+    bucket: "main",
+    collection: "desktop-manager",
+  };
+  server.registerPathHandler(
+    CHANGES_PATH,
+    serveChangesEntries(10000, [collectionDetails])
+  );
+  const c = RemoteSettings("desktop-manager");
+  c.maybeSync = () => {};
+  try {
+    await RemoteSettings.pollChanges({ expectedTimestamp: 555 });
+  } catch (e) {}
+
+  const { history } = await RemoteSettings.inspect();
+
+  Assert.deepEqual(history, {
+    [TELEMETRY_SOURCE_SYNC]: [
+      {
+        timestamp: 444,
+        status: "success",
+        infos: {},
+        datetime: new Date(444),
+      },
+    ],
+  });
+});
+add_task(clear_state);
+
+add_task(async function test_sync_error_is_stored_in_history() {
+  const collectionDetails = {
+    last_modified: 1337,
+    bucket: "main",
+    collection: "desktop-manager",
+  };
+  server.registerPathHandler(
+    CHANGES_PATH,
+    serveChangesEntries(10000, [collectionDetails])
+  );
+  const c = RemoteSettings("desktop-manager");
+  c.maybeSync = () => {
+    throw new RemoteSettingsClient.MissingSignatureError(
+      "main/desktop-manager"
+    );
+  };
+  try {
+    await RemoteSettings.pollChanges({ expectedTimestamp: 123456 });
+  } catch (e) {}
+
+  const { history } = await RemoteSettings.inspect();
+
+  Assert.deepEqual(history, {
+    [TELEMETRY_SOURCE_SYNC]: [
+      {
+        timestamp: 1337,
+        status: "sync_error",
+        infos: {
+          expectedTimestamp: 123456,
+          errorName: "MissingSignatureError",
+        },
+        datetime: new Date(1337),
+      },
+    ],
+  });
+});
+add_task(clear_state);
+
+add_task(
+  async function test_sync_broken_signal_is_sent_on_consistent_failure() {
+    const startSnapshot = getUptakeTelemetrySnapshot(
+      TELEMETRY_COMPONENT,
+      TELEMETRY_SOURCE_POLL
+    );
+    // Wait for the "sync-broken-error" notification.
+    let notificationObserved = false;
+    const observer = {
+      observe(aSubject, aTopic, aData) {
+        Services.obs.removeObserver(this, "remote-settings:broken-sync-error");
+        notificationObserved = true;
+      },
+    };
+    Services.obs.addObserver(observer, "remote-settings:broken-sync-error");
+    // Register a client with a failing sync method.
+    const c = RemoteSettings("desktop-manager");
+    c.maybeSync = () => {
+      throw new RemoteSettingsClient.InvalidSignatureError(
+        "main/desktop-manager"
+      );
+    };
+    // Simulate a response whose ETag gets incremented on each call
+    // (in order to generate several history entries, indexed by timestamp).
+    let timestamp = 1337;
+    server.registerPathHandler(
+      CHANGES_PATH,
+      serveChangesEntries(10000, () => {
+        return [
+          {
+            last_modified: ++timestamp,
+            bucket: "main",
+            collection: "desktop-manager",
+          },
+        ];
+      })
+    );
+
+    // Now obtain several failures in a row (less than threshold).
+    for (var i = 0; i < 9; i++) {
+      try {
+        await RemoteSettings.pollChanges();
+      } catch (e) {}
+    }
+    Assert.ok(!notificationObserved, "Not notified yet");
+
+    // Fail again once. Will now notify.
+    try {
+      await RemoteSettings.pollChanges();
+    } catch (e) {}
+    Assert.ok(notificationObserved, "Broken sync notified");
+    // Uptake event to notify broken sync is sent.
+    const endSnapshot = getUptakeTelemetrySnapshot(
+      TELEMETRY_COMPONENT,
+      TELEMETRY_SOURCE_SYNC
+    );
+    const expectedIncrements = {
+      [UptakeTelemetry.STATUS.SYNC_ERROR]: 10,
+      [UptakeTelemetry.STATUS.SYNC_BROKEN_ERROR]: 1,
+    };
+    checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
+
+    // Synchronize successfully.
+    notificationObserved = false;
+    const failingSync = c.maybeSync;
+    c.maybeSync = () => {};
+    await RemoteSettings.pollChanges();
+    Assert.ok(!notificationObserved, "Not notified after success");
+
+    // Now fail again. Broken sync isn't notified, we need several in a row.
+    c.maybeSync = failingSync;
+    try {
+      await RemoteSettings.pollChanges();
+    } catch (e) {}
+    Assert.ok(!notificationObserved, "Not notified on single error");
+  }
+);
 add_task(clear_state);
 
 add_task(async function test_check_clockskew_is_updated() {
@@ -849,8 +1032,9 @@ add_task(async function test_check_clockskew_takes_age_into_account() {
 add_task(clear_state);
 
 add_task(async function test_backoff() {
-  const startHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
   );
 
   function simulateBackoffResponse(request, response) {
@@ -898,19 +1082,23 @@ add_task(async function test_backoff() {
   Assert.ok(!Services.prefs.prefHasUserValue(PREF_SETTINGS_SERVER_BACKOFF));
 
   // Ensure that we've accumulated the correct telemetry
-  const endHistogram = getUptakeTelemetrySnapshot(TELEMETRY_HISTOGRAM_POLL_KEY);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
+  );
   const expectedIncrements = {
     [UptakeTelemetry.STATUS.SUCCESS]: 1,
     [UptakeTelemetry.STATUS.UP_TO_DATE]: 1,
     [UptakeTelemetry.STATUS.BACKOFF]: 1,
   };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
 add_task(async function test_network_error() {
-  const startHistogram = getUptakeTelemetrySnapshot(
-    TELEMETRY_HISTOGRAM_POLL_KEY
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
   );
 
   // Simulate a network error (to check telemetry report).
@@ -920,11 +1108,14 @@ add_task(async function test_network_error() {
   } catch (e) {}
 
   // ensure that we've accumulated the correct telemetry
-  const endHistogram = getUptakeTelemetrySnapshot(TELEMETRY_HISTOGRAM_POLL_KEY);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    TELEMETRY_SOURCE_POLL
+  );
   const expectedIncrements = {
     [UptakeTelemetry.STATUS.NETWORK_ERROR]: 1,
   };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
@@ -960,15 +1151,14 @@ add_task(async function test_syncs_clients_with_local_database() {
   // We don't want to instantiate a client using the RemoteSettings() API
   // since we want to test «unknown» clients that have a local database.
   new RemoteSettingsClient("addons", {
-    bucketNamePref: "services.blocklist.bucket", // bucketName = "blocklists"
+    bucketName: "blocklists",
   }).db.importChanges({}, 42);
-  new RemoteSettingsClient("recipes", {
-    bucketNamePref: "services.settings.default_bucket", // bucketName = "main"
-  }).db.importChanges({}, 43);
+  new RemoteSettingsClient("recipes").db.importChanges({}, 43);
 
   let error;
   try {
     await RemoteSettings.pollChanges();
+    Assert.ok(false, "pollChange() should throw when pulling recipes");
   } catch (e) {
     error = e;
   }
@@ -1103,6 +1293,7 @@ add_task(
       response.write(
         JSON.stringify({
           changes: entries,
+          timestamp: 42,
         })
       );
       response.setHeader("ETag", '"42"');

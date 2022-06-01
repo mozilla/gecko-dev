@@ -297,6 +297,16 @@ void MacroAssemblerX64::vmulpdSimd128(const SimdConstant& v, FloatRegister lhs,
   vpRiprOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX64::vmulpd_ripr);
 }
 
+void MacroAssemblerX64::vandpdSimd128(const SimdConstant& v, FloatRegister lhs,
+                                      FloatRegister dest) {
+  vpRiprOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX64::vandpd_ripr);
+}
+
+void MacroAssemblerX64::vminpdSimd128(const SimdConstant& v, FloatRegister lhs,
+                                      FloatRegister dest) {
+  vpRiprOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX64::vminpd_ripr);
+}
+
 void MacroAssemblerX64::vpacksswbSimd128(const SimdConstant& v,
                                          FloatRegister lhs,
                                          FloatRegister dest) {
@@ -319,6 +329,19 @@ void MacroAssemblerX64::vpackusdwSimd128(const SimdConstant& v,
                                          FloatRegister lhs,
                                          FloatRegister dest) {
   vpRiprOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX64::vpackusdw_ripr);
+}
+
+void MacroAssemblerX64::vpunpckldqSimd128(const SimdConstant& v,
+                                          FloatRegister lhs,
+                                          FloatRegister dest) {
+  vpRiprOpSimd128(v, lhs, dest,
+                  &X86Encoding::BaseAssemblerX64::vpunpckldq_ripr);
+}
+
+void MacroAssemblerX64::vunpcklpsSimd128(const SimdConstant& v,
+                                         FloatRegister lhs,
+                                         FloatRegister dest) {
+  vpRiprOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX64::vunpcklps_ripr);
 }
 
 void MacroAssemblerX64::vpshufbSimd128(const SimdConstant& v, FloatRegister lhs,
@@ -387,6 +410,11 @@ void MacroAssemblerX64::vcmplepsSimd128(const SimdConstant& v,
   vpRiprOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX64::vcmpleps_ripr);
 }
 
+void MacroAssemblerX64::vcmpgepsSimd128(const SimdConstant& v,
+                                        FloatRegister lhs, FloatRegister dest) {
+  vpRiprOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX64::vcmpgeps_ripr);
+}
+
 void MacroAssemblerX64::vcmpeqpdSimd128(const SimdConstant& v,
                                         FloatRegister lhs, FloatRegister dest) {
   vpRiprOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX64::vcmpeqpd_ripr);
@@ -413,6 +441,11 @@ void MacroAssemblerX64::vpmaddubswSimd128(const SimdConstant& v,
                                           FloatRegister dest) {
   vpRiprOpSimd128(v, lhs, dest,
                   &X86Encoding::BaseAssemblerX64::vpmaddubsw_ripr);
+}
+
+void MacroAssemblerX64::vpmuludqSimd128(const SimdConstant& v,
+                                        FloatRegister lhs, FloatRegister dest) {
+  vpRiprOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX64::vpmuludq_ripr);
 }
 
 void MacroAssemblerX64::bindOffsets(
@@ -487,27 +520,30 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail) {
   Label entryFrame;
   Label catch_;
   Label finally;
-  Label return_;
+  Label returnBaseline;
+  Label returnIon;
   Label bailout;
   Label wasm;
   Label wasmCatch;
 
-  load32(Address(rsp, offsetof(ResumeFromException, kind)), rax);
+  load32(Address(rsp, ResumeFromException::offsetOfKind()), rax);
   asMasm().branch32(Assembler::Equal, rax,
-                    Imm32(ResumeFromException::RESUME_ENTRY_FRAME),
-                    &entryFrame);
+                    Imm32(ExceptionResumeKind::EntryFrame), &entryFrame);
+  asMasm().branch32(Assembler::Equal, rax, Imm32(ExceptionResumeKind::Catch),
+                    &catch_);
+  asMasm().branch32(Assembler::Equal, rax, Imm32(ExceptionResumeKind::Finally),
+                    &finally);
   asMasm().branch32(Assembler::Equal, rax,
-                    Imm32(ResumeFromException::RESUME_CATCH), &catch_);
+                    Imm32(ExceptionResumeKind::ForcedReturnBaseline),
+                    &returnBaseline);
   asMasm().branch32(Assembler::Equal, rax,
-                    Imm32(ResumeFromException::RESUME_FINALLY), &finally);
+                    Imm32(ExceptionResumeKind::ForcedReturnIon), &returnIon);
+  asMasm().branch32(Assembler::Equal, rax, Imm32(ExceptionResumeKind::Bailout),
+                    &bailout);
+  asMasm().branch32(Assembler::Equal, rax, Imm32(ExceptionResumeKind::Wasm),
+                    &wasm);
   asMasm().branch32(Assembler::Equal, rax,
-                    Imm32(ResumeFromException::RESUME_FORCED_RETURN), &return_);
-  asMasm().branch32(Assembler::Equal, rax,
-                    Imm32(ResumeFromException::RESUME_BAILOUT), &bailout);
-  asMasm().branch32(Assembler::Equal, rax,
-                    Imm32(ResumeFromException::RESUME_WASM), &wasm);
-  asMasm().branch32(Assembler::Equal, rax,
-                    Imm32(ResumeFromException::RESUME_WASM_CATCH), &wasmCatch);
+                    Imm32(ExceptionResumeKind::WasmCatch), &wasmCatch);
 
   breakpoint();  // Invalid kind.
 
@@ -515,43 +551,53 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail) {
   // and return from the entry frame.
   bind(&entryFrame);
   asMasm().moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   ret();
 
   // If we found a catch handler, this must be a baseline frame. Restore state
   // and jump to the catch block.
   bind(&catch_);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, target)), rax);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, framePointer)), rbp);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   jmp(Operand(rax));
 
-  // If we found a finally block, this must be a baseline frame. Push
-  // two values expected by JSOp::Retsub: BooleanValue(true) and the
-  // exception.
+  // If we found a finally block, this must be a baseline frame. Push two
+  // values expected by the finally block: the exception and BooleanValue(true).
   bind(&finally);
   ValueOperand exception = ValueOperand(rcx);
-  loadValue(Address(esp, offsetof(ResumeFromException, exception)), exception);
+  loadValue(Address(esp, ResumeFromException::offsetOfException()), exception);
 
-  loadPtr(Address(rsp, offsetof(ResumeFromException, target)), rax);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, framePointer)), rbp);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
 
-  pushValue(BooleanValue(true));
   pushValue(exception);
+  pushValue(BooleanValue(true));
   jmp(Operand(rax));
 
-  // Only used in debug mode. Return BaselineFrame->returnValue() to the caller.
-  bind(&return_);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, framePointer)), rbp);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
+  // Return BaselineFrame->returnValue() to the caller.
+  // Used in debug mode and for GeneratorReturn.
+  Label profilingInstrumentation;
+  bind(&returnBaseline);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   loadValue(Address(rbp, BaselineFrame::reverseOffsetOfReturnValue()),
             JSReturnOperand);
   movq(rbp, rsp);
   pop(rbp);
+  jmp(&profilingInstrumentation);
+
+  // Return the given value to the caller.
+  bind(&returnIon);
+  loadValue(Address(rsp, ResumeFromException::offsetOfException()),
+            JSReturnOperand);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rsp);
 
   // If profiling is enabled, then update the lastProfilingFrame to refer to
-  // caller frame before returning.
+  // caller frame before returning. This code is shared by ForcedReturnIon
+  // and ForcedReturnBaseline.
+  bind(&profilingInstrumentation);
   {
     Label skipProfilingInstrumentation;
     AbsoluteAddress addressOfEnabled(
@@ -567,23 +613,23 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail) {
   // If we are bailing out to baseline to handle an exception, jump to the
   // bailout tail stub. Load 1 (true) in ReturnReg to indicate success.
   bind(&bailout);
-  loadPtr(Address(esp, offsetof(ResumeFromException, bailoutInfo)), r9);
+  loadPtr(Address(esp, ResumeFromException::offsetOfBailoutInfo()), r9);
   move32(Imm32(1), ReturnReg);
-  jmp(Operand(rsp, offsetof(ResumeFromException, target)));
+  jmp(Operand(rsp, ResumeFromException::offsetOfTarget()));
 
   // If we are throwing and the innermost frame was a wasm frame, reset SP and
   // FP; SP is pointing to the unwound return address to the wasm entry, so
   // we can just ret().
   bind(&wasm);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, framePointer)), rbp);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   masm.ret();
 
   // Found a wasm catch handler, restore state and jump to it.
   bind(&wasmCatch);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, target)), rax);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, framePointer)), rbp);
-  loadPtr(Address(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
+  loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   jmp(Operand(rax));
 }
 

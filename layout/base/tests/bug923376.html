@@ -4,11 +4,12 @@
 <script>
 var div = document.body.firstChild;
 div.focus();
-SpecialPowers.Cu.import(
-  "resource://testing-common/AsyncSpellCheckTestHelper.jsm", window);
-onSpellCheck(div, function() {
+var { maybeOnSpellCheck } = SpecialPowers.ChromeUtils.import(
+  "resource://testing-common/AsyncSpellCheckTestHelper.jsm"
+);
+maybeOnSpellCheck(div, function() {
   div.innerHTML = 'something missspelled<br>something elsed#';
-  onSpellCheck(div, function() {
+  maybeOnSpellCheck(div, function() {
     document.documentElement.removeAttribute("class");
   });
 });

@@ -199,7 +199,7 @@ void GfxInfo::EnsureInitialized() {
   mAdapterDescription.AppendPrintf(
       ", Manufacturer: %s", NS_LossyConvertUTF16toASCII(mManufacturer).get());
 
-  mSDKVersion = java::sdk::VERSION::SDK_INT();
+  mSDKVersion = java::sdk::Build::VERSION::SDK_INT();
   // the HARDWARE field isn't available on Android SDK < 8, but we require 9+
   // anyway.
   MOZ_ASSERT(mSDKVersion >= 8);
@@ -208,7 +208,7 @@ void GfxInfo::EnsureInitialized() {
   mAdapterDescription.AppendPrintf(
       ", Hardware: %s", NS_LossyConvertUTF16toASCII(mHardware).get());
 
-  jni::String::LocalRef release = java::sdk::VERSION::RELEASE();
+  jni::String::LocalRef release = java::sdk::Build::VERSION::RELEASE();
   mOSVersion = release->ToCString();
 
   mOSVersionInteger = 0;
@@ -227,12 +227,6 @@ void GfxInfo::EnsureInitialized() {
       mGLStrings->Renderer().get(), mGLStrings->Version().get());
 
   AddCrashReportAnnotations();
-
-  java::sdk::Rect::LocalRef screenrect = java::GeckoAppShell::GetScreenSize();
-  mScreenInfo.mScreenDimensions =
-      gfx::Rect(screenrect->Left(), screenrect->Top(), screenrect->Width(),
-                screenrect->Height());
-
   mInitialized = true;
 }
 
@@ -356,29 +350,6 @@ NS_IMETHODIMP
 GfxInfo::GetIsGPU2Active(bool* aIsGPU2Active) {
   EnsureInitialized();
   return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-GfxInfo::GetDisplayInfo(nsTArray<nsString>& aDisplayInfo) {
-  EnsureInitialized();
-  nsString displayInfo;
-  displayInfo.AppendPrintf("%dx%d",
-                           (int32_t)mScreenInfo.mScreenDimensions.width,
-                           (int32_t)mScreenInfo.mScreenDimensions.height);
-  aDisplayInfo.AppendElement(displayInfo);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-GfxInfo::GetDisplayWidth(nsTArray<uint32_t>& aDisplayWidth) {
-  aDisplayWidth.AppendElement((uint32_t)mScreenInfo.mScreenDimensions.width);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-GfxInfo::GetDisplayHeight(nsTArray<uint32_t>& aDisplayHeight) {
-  aDisplayHeight.AppendElement((uint32_t)mScreenInfo.mScreenDimensions.height);
-  return NS_OK;
 }
 
 NS_IMETHODIMP

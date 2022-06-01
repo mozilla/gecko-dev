@@ -210,7 +210,7 @@ inline bool PtrIsInRange(const void* ptr, const void* start, size_t length) {
 
 static void RelocateCell(Zone* zone, TenuredCell* src, AllocKind thingKind,
                          size_t thingSize) {
-  JS::AutoSuppressGCAnalysis nogc(TlsContext.get());
+  JS::AutoSuppressGCAnalysis nogc;
 
   // Allocate a new cell.
   MOZ_ASSERT(zone == src->zone());
@@ -450,14 +450,13 @@ inline T* MovingTracer::onEdge(T* thing) {
 }
 
 void Zone::prepareForCompacting() {
-  JSFreeOp* fop = runtimeFromMainThread()->defaultFreeOp();
-  discardJitCode(fop);
+  JS::GCContext* gcx = runtimeFromMainThread()->gcContext();
+  discardJitCode(gcx);
 }
 
 void GCRuntime::sweepZoneAfterCompacting(MovingTracer* trc, Zone* zone) {
   MOZ_ASSERT(zone->isCollecting());
-  traceWeakFinalizationRegistryEdges(trc, zone);
-  zone->weakRefMap().traceWeak(trc, &storeBuffer());
+  traceWeakFinalizationObserverEdges(trc, zone);
 
   zone->traceWeakMaps(trc);
 
@@ -788,7 +787,7 @@ void GCRuntime::updateZonePointersToRelocatedCells(Zone* zone) {
 
   zone->externalStringCache().purge();
   zone->functionToStringCache().purge();
-  zone->shapeZone().purgeShapeCaches(rt->defaultFreeOp());
+  zone->shapeZone().purgeShapeCaches(rt->gcContext());
   rt->caches().stringToAtomCache.purge();
 
   // Iterate through all cells that can contain relocatable pointers to update

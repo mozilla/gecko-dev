@@ -14,8 +14,7 @@
 #include "nsDOMNavigationTiming.h"
 #include "nsPresContext.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class DOMRect;
 class DOMRectList;
@@ -30,8 +29,9 @@ class NotifyPaintEvent : public Event {
 
   NS_INLINE_DECL_REFCOUNTING_INHERITED(NotifyPaintEvent, Event)
 
-  void Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType) override;
-  bool Deserialize(const IPC::Message* aMsg, PickleIterator* aIter) override;
+  void Serialize(IPC::MessageWriter* aWriter,
+                 bool aSerializeInterfaceType) override;
+  bool Deserialize(IPC::MessageReader* aReader) override;
 
   virtual JSObject* WrapObjectInternal(
       JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
@@ -60,8 +60,7 @@ class NotifyPaintEvent : public Event {
   DOMHighResTimeStamp mTimeStamp;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 // This empties aInvalidateRequests.
 already_AddRefed<mozilla::dom::NotifyPaintEvent> NS_NewDOMNotifyPaintEvent(

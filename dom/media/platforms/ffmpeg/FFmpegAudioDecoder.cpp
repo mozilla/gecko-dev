@@ -17,19 +17,69 @@ FFmpegAudioDecoder<LIBAV_VER>::FFmpegAudioDecoder(FFmpegLibWrapper* aLib,
                                                   const AudioInfo& aConfig)
     : FFmpegDataDecoder(aLib, GetCodecId(aConfig.mMimeType)) {
   MOZ_COUNT_CTOR(FFmpegAudioDecoder);
-  // Use a new MediaByteBuffer as the object will be modified during
-  // initialization.
-  if (aConfig.mCodecSpecificConfig && aConfig.mCodecSpecificConfig->Length()) {
+
+  if (mCodecID == AV_CODEC_ID_AAC &&
+      aConfig.mCodecSpecificConfig.is<AacCodecSpecificData>()) {
+    const AacCodecSpecificData& aacCodecSpecificData =
+      aConfig.mCodecSpecificConfig.as<AacCodecSpecificData>();
     mExtraData = new MediaByteBuffer;
-    mExtraData->AppendElements(*aConfig.mCodecSpecificConfig);
-    if (mCodecID == AV_CODEC_ID_MP3) {
-      BufferReader reader(mExtraData->Elements(), mExtraData->Length());
-      mEncoderDelay = reader.ReadU32().unwrapOr(0);
-      mEncoderPadding = reader.ReadU32().unwrapOr(0);
+    // Ffmpeg expects the DecoderConfigDescriptor blob.
+    mExtraData->AppendElements(
+        *aacCodecSpecificData.mDecoderConfigDescriptorBinaryBlob);
+    return;
+  }
+
+  if (mCodecID == AV_CODEC_ID_MP3) {
+    MOZ_DIAGNOSTIC_ASSERT(
+        aConfig.mCodecSpecificConfig.is<Mp3CodecSpecificData>());
+    // Gracefully handle bad data. If don't hit the preceding assert once this
+    // has been shipped for awhile, we can remove it and make the following code
+    // non-conditional.
+    if (aConfig.mCodecSpecificConfig.is<Mp3CodecSpecificData>()) {
+      const Mp3CodecSpecificData& mp3CodecSpecificData =
+          aConfig.mCodecSpecificConfig.as<Mp3CodecSpecificData>();
+      mEncoderDelay = mp3CodecSpecificData.mEncoderDelayFrames;
+      mEncoderPadding = mp3CodecSpecificData.mEncoderPaddingFrames;
       FFMPEG_LOG("FFmpegAudioDecoder, found encoder delay (%" PRIu32
                  ") and padding values (%" PRIu32 ") in extra data",
                  mEncoderDelay, mEncoderPadding);
+      return;
     }
+  }
+
+  if (mCodecID == AV_CODEC_ID_FLAC) {
+    MOZ_DIAGNOSTIC_ASSERT(
+        aConfig.mCodecSpecificConfig.is<FlacCodecSpecificData>());
+    // Gracefully handle bad data. If don't hit the preceding assert once this
+    // has been shipped for awhile, we can remove it and make the following code
+    // non-conditional.
+    if (aConfig.mCodecSpecificConfig.is<FlacCodecSpecificData>()) {
+      const FlacCodecSpecificData& flacCodecSpecificData =
+          aConfig.mCodecSpecificConfig.as<FlacCodecSpecificData>();
+      if (flacCodecSpecificData.mStreamInfoBinaryBlob->IsEmpty()) {
+        // Flac files without headers will be missing stream info. In this case
+        // we don't want to feed ffmpeg empty extra data as it will fail, just
+        // early return.
+        return;
+      }
+      // Use a new MediaByteBuffer as the object will be modified during
+      // initialization.
+      mExtraData = new MediaByteBuffer;
+      mExtraData->AppendElements(*flacCodecSpecificData.mStreamInfoBinaryBlob);
+      return;
+    }
+  }
+
+  // Gracefully handle failure to cover all codec specific cases above. Once
+  // we're confident there is no fall through from these cases above, we should
+  // remove this code.
+  RefPtr<MediaByteBuffer> audioCodecSpecificBinaryBlob =
+      GetAudioCodecSpecificBlob(aConfig.mCodecSpecificConfig);
+  if (audioCodecSpecificBinaryBlob && audioCodecSpecificBinaryBlob->Length()) {
+    // Use a new MediaByteBuffer as the object will be modified during
+    // initialization.
+    mExtraData = new MediaByteBuffer;
+    mExtraData->AppendElements(*audioCodecSpecificBinaryBlob);
   }
 }
 
@@ -186,6 +236,7 @@ MediaResult FFmpegAudioDecoder<LIBAV_VER>::DoDecode(MediaRawData* aSample,
                                                     bool* aGotFrame,
                                                     DecodedData& aResults) {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+  PROCESS_DECODE_LOG(aSample);
   AVPacket packet;
   mLib->av_init_packet(&packet);
 
@@ -206,15 +257,49 @@ MediaResult FFmpegAudioDecoder<LIBAV_VER>::DoDecode(MediaRawData* aSample,
   media::TimeUnit pts = aSample->mTime;
 
   while (packet.size > 0) {
-    int decoded;
-    int bytesConsumed =
+    int decoded = false;
+    int bytesConsumed = -1;
+#if LIBAVCODEC_VERSION_MAJOR < 59
+    bytesConsumed =
         mLib->avcodec_decode_audio4(mCodecContext, mFrame, &decoded, &packet);
-
     if (bytesConsumed < 0) {
       NS_WARNING("FFmpeg audio decoder error.");
       return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
                          RESULT_DETAIL("FFmpeg audio error:%d", bytesConsumed));
     }
+#else
+#  define AVRESULT_OK 0
+
+    int ret = mLib->avcodec_receive_frame(mCodecContext, mFrame);
+    switch (ret) {
+      case AVRESULT_OK:
+        decoded = true;
+        break;
+      case AVERROR(EAGAIN):
+        break;
+      case AVERROR_EOF: {
+        FFMPEG_LOG("  End of stream.");
+        return MediaResult(NS_ERROR_DOM_MEDIA_END_OF_STREAM,
+                           RESULT_DETAIL("End of stream"));
+      }
+    }
+    ret = mLib->avcodec_send_packet(mCodecContext, &packet);
+    switch (ret) {
+      case AVRESULT_OK:
+        bytesConsumed = packet.size;
+        break;
+      case AVERROR(EAGAIN):
+        break;
+      case AVERROR_EOF:
+        FFMPEG_LOG("  End of stream.");
+        return MediaResult(NS_ERROR_DOM_MEDIA_END_OF_STREAM,
+                           RESULT_DETAIL("End of stream"));
+      default:
+        NS_WARNING("FFmpeg audio decoder error.");
+        return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
+                           RESULT_DETAIL("FFmpeg audio error"));
+    }
+#endif
 
     if (decoded) {
       if (mFrame->format != AV_SAMPLE_FMT_FLT &&

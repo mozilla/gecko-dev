@@ -605,6 +605,10 @@ class ScriptSource {
   // See: CompileOptions::mutedErrors.
   bool mutedErrors_ = false;
 
+  // Carry the delazification mode per source.
+  JS::DelazificationOption delazificationMode_ =
+      JS::DelazificationOption::OnDemandOnly;
+
   //
   // End of fields.
   //
@@ -1025,6 +1029,10 @@ class ScriptSource {
 
   uint32_t startLine() const { return startLine_; }
 
+  JS::DelazificationOption delazificationMode() const {
+    return delazificationMode_;
+  }
+
   bool hasIntroductionOffset() const { return introductionOffset_.isSome(); }
   uint32_t introductionOffset() const { return introductionOffset_.value(); }
   void setIntroductionOffset(uint32_t offset) {
@@ -1058,7 +1066,7 @@ class ScriptSourceObject : public NativeObject {
  public:
   static const JSClass class_;
 
-  static void finalize(JSFreeOp* fop, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
 
   static ScriptSourceObject* create(JSContext* cx, ScriptSource* source);
 
@@ -1493,6 +1501,10 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   uint32_t lineno() const { return extent_.lineno; }
   uint32_t column() const { return extent_.column; }
 
+  JS::DelazificationOption delazificationMode() const {
+    return scriptSource()->delazificationMode();
+  }
+
  public:
   ImmutableScriptFlags immutableFlags() const { return immutableFlags_; }
   RO_IMMUTABLE_SCRIPT_FLAGS(immutableFlags_)
@@ -1576,7 +1588,7 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   static const JS::TraceKind TraceKind = JS::TraceKind::Script;
 
   void traceChildren(JSTracer* trc);
-  void finalize(JSFreeOp* fop);
+  void finalize(JS::GCContext* gcx);
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
     return mallocSizeOf(data_);
@@ -1783,6 +1795,7 @@ class JSScript : public js::BaseScript {
 
   void updateJitCodeRaw(JSRuntime* rt);
 
+  bool isModule() const;
   js::ModuleObject* module() const;
 
   bool isGlobalCode() const;
@@ -1818,9 +1831,9 @@ class JSScript : public js::BaseScript {
   /* Ensure the script has a JitScript. */
   inline bool ensureHasJitScript(JSContext* cx, js::jit::AutoKeepJitScripts&);
 
-  void maybeReleaseJitScript(JSFreeOp* fop);
-  void releaseJitScript(JSFreeOp* fop);
-  void releaseJitScriptOnFinalize(JSFreeOp* fop);
+  void maybeReleaseJitScript(JS::GCContext* gcx);
+  void releaseJitScript(JS::GCContext* gcx);
+  void releaseJitScriptOnFinalize(JS::GCContext* gcx);
 
   inline js::jit::BaselineScript* baselineScript() const;
   inline js::jit::IonScript* ionScript() const;

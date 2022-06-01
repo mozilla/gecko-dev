@@ -4,7 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-include protocol PFileDescriptorSet;
 include protocol PBrowser;
 include protocol PDocAccessiblePlatformExt;
 
@@ -20,6 +19,7 @@ using mozilla::a11y::AccType from "mozilla/a11y/IPCTypes.h";
 using mozilla::a11y::AccGenericType from "mozilla/a11y/IPCTypes.h";
 [RefCounted] using mozilla::a11y::AccAttributes from "mozilla/a11y/IPCTypes.h";
 using mozilla::a11y::CacheUpdateType from "mozilla/a11y/IPCTypes.h";
+using mozilla::gfx::Matrix4x4 from "mozilla/gfx/Matrix.h";
 
 namespace mozilla {
 namespace a11y {
@@ -98,7 +98,8 @@ parent:
   async HideEvent(uint64_t aRootID, bool aFromUser);
   async StateChangeEvent(uint64_t aID, uint64_t aState, bool aEnabled);
   async CaretMoveEvent(uint64_t aID, int32_t aOffset,
-                       bool aIsSelectionCollapsed, bool aIsAtEndOfLine);
+                       bool aIsSelectionCollapsed, bool aIsAtEndOfLine,
+                       int32_t aGranularity);
   async TextChangeEvent(uint64_t aID, nsString aStr, int32_t aStart, uint32_t aLen,
                         bool aIsInsert, bool aFromUser);
   async SelectionEvent(uint64_t aID, uint64_t aWidgetID, uint32_t aType);

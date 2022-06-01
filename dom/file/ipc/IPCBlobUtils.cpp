@@ -8,7 +8,6 @@
 #include "RemoteLazyInputStream.h"
 #include "RemoteLazyInputStreamChild.h"
 #include "RemoteLazyInputStreamParent.h"
-#include "RemoteLazyInputStreamUtils.h"
 #include "mozilla/dom/IPCBlob.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundParent.h"
@@ -34,11 +33,8 @@ already_AddRefed<BlobImpl> Deserialize(const IPCBlob& aIPCBlob) {
   switch (stream.type()) {
     // Parent to child: when an nsIInputStream is sent from parent to child, the
     // child receives a RemoteLazyInputStream actor.
-    case RemoteLazyStream::TPRemoteLazyInputStreamChild: {
-      RemoteLazyInputStreamChild* actor =
-          static_cast<RemoteLazyInputStreamChild*>(
-              stream.get_PRemoteLazyInputStreamChild());
-      inputStream = actor->CreateStream();
+    case RemoteLazyStream::TRemoteLazyInputStream: {
+      inputStream = stream.get_RemoteLazyInputStream();
       break;
     }
 
@@ -129,13 +125,22 @@ nsresult SerializeInternal(BlobImpl* aBlobImpl, M* aManager,
     return rv.StealNSResult();
   }
 
-  RemoteLazyStream stream;
-  rv = RemoteLazyInputStreamUtils::SerializeInputStream(
-      inputStream, aIPCBlob.size(), stream, aManager);
-  if (NS_WARN_IF(rv.Failed())) {
-    return rv.StealNSResult();
+  if (XRE_IsParentProcess()) {
+    RefPtr<RemoteLazyInputStream> stream =
+        RemoteLazyInputStream::WrapStream(inputStream);
+    if (NS_WARN_IF(!stream)) {
+      return rv.StealNSResult();
+    }
+
+    aIPCBlob.inputStream() = stream;
+    return NS_OK;
   }
 
+  IPCStream stream;
+  if (!mozilla::ipc::SerializeIPCStream(inputStream.forget(), stream,
+                                        /* aAllowLazy */ true)) {
+    return NS_ERROR_FAILURE;
+  }
   aIPCBlob.inputStream() = stream;
   return NS_OK;
 }
@@ -195,32 +200,33 @@ nsresult SerializeUntyped(BlobImpl* aBlobImpl, IProtocol* aActor,
 
 namespace ipc {
 void IPDLParamTraits<mozilla::dom::BlobImpl*>::Write(
-    IPC::Message* aMsg, IProtocol* aActor, mozilla::dom::BlobImpl* aParam) {
+    IPC::MessageWriter* aWriter, IProtocol* aActor,
+    mozilla::dom::BlobImpl* aParam) {
   nsresult rv;
   mozilla::dom::IPCBlob ipcblob;
   if (aParam) {
     rv = mozilla::dom::IPCBlobUtils::SerializeUntyped(aParam, aActor, ipcblob);
   }
   if (!aParam || NS_WARN_IF(NS_FAILED(rv))) {
-    WriteIPDLParam(aMsg, aActor, false);
+    WriteIPDLParam(aWriter, aActor, false);
   } else {
-    WriteIPDLParam(aMsg, aActor, true);
-    WriteIPDLParam(aMsg, aActor, ipcblob);
+    WriteIPDLParam(aWriter, aActor, true);
+    WriteIPDLParam(aWriter, aActor, ipcblob);
   }
 }
 
 bool IPDLParamTraits<mozilla::dom::BlobImpl*>::Read(
-    const IPC::Message* aMsg, PickleIterator* aIter, IProtocol* aActor,
+    IPC::MessageReader* aReader, IProtocol* aActor,
     RefPtr<mozilla::dom::BlobImpl>* aResult) {
   *aResult = nullptr;
 
   bool notnull = false;
-  if (!ReadIPDLParam(aMsg, aIter, aActor, &notnull)) {
+  if (!ReadIPDLParam(aReader, aActor, &notnull)) {
     return false;
   }
   if (notnull) {
     mozilla::dom::IPCBlob ipcblob;
-    if (!ReadIPDLParam(aMsg, aIter, aActor, &ipcblob)) {
+    if (!ReadIPDLParam(aReader, aActor, &ipcblob)) {
       return false;
     }
     *aResult = mozilla::dom::IPCBlobUtils::Deserialize(ipcblob);

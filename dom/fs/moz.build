@@ -4,12 +4,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+TEST_DIRS += ["test"]
+
 EXPORTS.mozilla.dom += [
     "FileSystemDirectoryHandle.h",
     "FileSystemDirectoryIterator.h",
     "FileSystemFileHandle.h",
     "FileSystemHandle.h",
     "FileSystemSyncAccessHandle.h",
+    "FileSystemWritableFileStream.h",
 ]
 
 UNIFIED_SOURCES += [
@@ -18,15 +21,8 @@ UNIFIED_SOURCES += [
     "FileSystemFileHandle.cpp",
     "FileSystemHandle.cpp",
     "FileSystemSyncAccessHandle.cpp",
+    "FileSystemWritableFileStream.cpp",
 ]
-
-if CONFIG["MOZ_DOM_STREAMS"]:
-    EXPORTS.mozilla.dom += [
-        "FileSystemWritableFileStream.h",
-    ]
-    UNIFIED_SOURCES += [
-        "FileSystemWritableFileStream.cpp",
-    ]
 
 include("/ipc/chromium/chromium-config.mozbuild")
 

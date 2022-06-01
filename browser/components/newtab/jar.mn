@@ -11,6 +11,12 @@ browser.jar:
   res/activity-stream/aboutwelcome/aboutwelcome.bundle.js (./aboutwelcome/content/aboutwelcome.bundle.js)
   res/activity-stream/aboutwelcome/aboutwelcome.html (./aboutwelcome/content/aboutwelcome.html)
   res/activity-stream/aboutwelcome/lib/ (./aboutwelcome/lib/*)
+  res/activity-stream/schemas/CFR/ExtensionDoorhanger.schema.json (./content-src/asrouter/templates/CFR/templates/ExtensionDoorhanger.schema.json)
+  res/activity-stream/schemas/CFR/InfoBar.schema.json (./content-src/asrouter/templates/CFR/templates/InfoBar.schema.json)
+  res/activity-stream/schemas/OnboardingMessage/UpdateAction.schema.json (./content-src/asrouter/templates/OnboardingMessage/UpdateAction.schema.json)
+  res/activity-stream/schemas/OnboardingMessage/Spotlight.schema.json (./content-src/asrouter/templates/OnboardingMessage/Spotlight.schema.json)
+  res/activity-stream/schemas/OnboardingMessage/WhatsNewMessage.schema.json (./content-src/asrouter/templates/OnboardingMessage/WhatsNewMessage.schema.json)
+  res/activity-stream/schemas/PBNewtab/NewtabPromoMessage.schema.json (./content-src/asrouter/templates/PBNewtab/NewtabPromoMessage.schema.json)
   res/activity-stream/vendor/Redux.jsm (./vendor/Redux.jsm)
   res/activity-stream/vendor/react.js (./vendor/react.js)
   res/activity-stream/vendor/react-dom.js (./vendor/react-dom.js)
@@ -26,9 +32,6 @@ browser.jar:
 * res/activity-stream/data/content/abouthomecache/page.html.template (./data/content/abouthomecache/page.html.template)
 * res/activity-stream/data/content/abouthomecache/script.js.template (./data/content/abouthomecache/script.js.template)
   content/activity-stream/data/content/assets/  (./data/content/assets/*)
-#ifdef XP_WIN
-  content/activity-stream/data/content/assets/remote  (./data/content/windows-assets/*)
-#endif
   content/activity-stream/data/content/tippytop/ (./data/content/tippytop/*)
   res/activity-stream/data/content/activity-stream.bundle.js (./data/content/activity-stream.bundle.js)
   res/activity-stream/data/content/newtab-render.js (./data/content/newtab-render.js)

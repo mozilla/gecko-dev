@@ -151,12 +151,14 @@ nsresult FileLocation::GetData(Data& aData) {
   }
   aData.mZip = mBaseZip;
   if (!aData.mZip) {
-    aData.mZip = new nsZipArchive();
-    aData.mZip->OpenArchive(mBaseFile);
+    // this can return nullptr
+    aData.mZip = nsZipArchive::OpenArchive(mBaseFile);
   }
-  aData.mItem = aData.mZip->GetItem(mPath.get());
-  if (aData.mItem) {
-    return NS_OK;
+  if (aData.mZip) {
+    aData.mItem = aData.mZip->GetItem(mPath.get());
+    if (aData.mItem) {
+      return NS_OK;
+    }
   }
   return NS_ERROR_FILE_UNRECOGNIZED_PATH;
 }

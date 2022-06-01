@@ -24,6 +24,7 @@ class ClientWebGLContext;
 namespace gfx {
 class SourceSurface;
 class DrawTarget;
+class DrawTargetWebgl;
 }  // namespace gfx
 
 namespace layers {
@@ -77,6 +78,8 @@ class PersistentBufferProvider : public RefCounted<PersistentBufferProvider>,
 
   virtual TextureClient* GetTextureClient() { return nullptr; }
 
+  virtual void OnMemoryPressure() {}
+
   virtual void OnShutdown() {}
 
   virtual bool SetKnowsCompositor(KnowsCompositor* aKnowsCompositor) {
@@ -93,6 +96,13 @@ class PersistentBufferProvider : public RefCounted<PersistentBufferProvider>,
    * costly (cf. bug 1294351).
    */
   virtual bool PreservesDrawingState() const = 0;
+
+  /**
+   * Whether or not the provider should be recreated, such as when profiling
+   * heuristics determine this type of provider is no longer advantageous to
+   * use.
+   */
+  virtual bool RequiresRefresh() const { return false; }
 
   /**
    * Provide a WebGL front buffer for compositing, if available.
@@ -149,8 +159,19 @@ class PersistentBufferProviderAccelerated
 
   bool CopySnapshotTo(gfx::DrawTarget* aDT) override;
 
+  already_AddRefed<gfx::DrawTarget> BorrowDrawTarget(
+      const gfx::IntRect& aPersistedRect) override;
+
+  bool ReturnDrawTarget(already_AddRefed<gfx::DrawTarget> aDT) override;
+
+  bool RequiresRefresh() const override;
+
+  void OnMemoryPressure() override;
+
  protected:
   ~PersistentBufferProviderAccelerated() override;
+
+  gfx::DrawTargetWebgl* GetDrawTargetWebgl() const;
 };
 
 /**

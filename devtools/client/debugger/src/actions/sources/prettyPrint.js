@@ -6,7 +6,7 @@ import { generatedToOriginalId } from "devtools-source-map";
 
 import assert from "../../utils/assert";
 import { recordEvent } from "../../utils/telemetry";
-import { remapBreakpoints } from "../breakpoints";
+import { updateBreakpointsForNewPrettyPrintedSource } from "../breakpoints";
 
 import { setSymbols } from "./symbols";
 import { prettyPrint } from "../../workers/pretty-print";
@@ -67,9 +67,13 @@ export function createPrettySource(cx, sourceId) {
     const source = getSourceFromId(getState(), sourceId);
     const url = getPrettyOriginalSourceURL(source);
     const id = generatedToOriginalId(sourceId, url);
-    const prettySource = createPrettyPrintOriginalSource(id, url);
+    const prettySource = createPrettyPrintOriginalSource(
+      id,
+      url,
+      source.thread
+    );
 
-    dispatch({ type: "ADD_SOURCE", cx, source: prettySource });
+    dispatch({ type: "ADD_SOURCES", cx, sources: [prettySource] });
 
     await dispatch(selectSource(cx, id));
 
@@ -140,7 +144,7 @@ export function togglePrettyPrint(cx, sourceId) {
 
     await dispatch(setSymbols({ cx, source: newPrettySource }));
 
-    await dispatch(remapBreakpoints(cx, sourceId));
+    await dispatch(updateBreakpointsForNewPrettyPrintedSource(cx, sourceId));
 
     return newPrettySource;
   };

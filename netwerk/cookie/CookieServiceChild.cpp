@@ -288,6 +288,7 @@ void CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
           cookie->Expiry() == aCookie->Expiry() &&
           cookie->IsSecure() == aCookie->IsSecure() &&
           cookie->SameSite() == aCookie->SameSite() &&
+          cookie->RawSameSite() == aCookie->RawSameSite() &&
           cookie->IsSession() == aCookie->IsSession() &&
           cookie->IsHttpOnly() == aCookie->IsHttpOnly()) {
         cookie->SetLastAccessed(aCookie->LastAccessed());
@@ -343,9 +344,6 @@ CookieServiceChild::GetCookieStringFromDocument(dom::Document* aDocument,
   if (!CookieCommons::IsSchemeSupported(principal)) {
     return NS_OK;
   }
-
-  nsICookie::schemeType schemeType =
-      CookieCommons::PrincipalToSchemeType(principal);
 
   nsAutoCString baseDomain;
   nsresult rv = CookieCommons::GetBaseDomain(principal, baseDomain);
@@ -408,10 +406,6 @@ CookieServiceChild::GetCookieStringFromDocument(dom::Document* aDocument,
 
     // if the cookie is secure and the host scheme isn't, we can't send it
     if (cookie->IsSecure() && !isPotentiallyTrustworthy) {
-      continue;
-    }
-
-    if (!CookieCommons::MaybeCompareScheme(cookie, schemeType)) {
       continue;
     }
 

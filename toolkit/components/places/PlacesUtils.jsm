@@ -233,8 +233,8 @@ const BOOKMARK_VALIDATORS = Object.freeze({
       val =>
         (typeof val == "string" && val.length <= DB_URL_LENGTH_MAX) ||
         (val instanceof Ci.nsIURI && val.spec.length <= DB_URL_LENGTH_MAX) ||
-        (val instanceof URL && val.href.length <= DB_URL_LENGTH_MAX)
-    ).call(this, v);
+        (URL.isInstance(val) && val.href.length <= DB_URL_LENGTH_MAX)
+    )(v);
     if (typeof v === "string") {
       return new URL(v);
     }
@@ -533,7 +533,7 @@ var PlacesUtils = {
    * @return nsIURI for the given URL.
    */
   toURI(url) {
-    url = url instanceof URL ? url.href : url;
+    url = URL.isInstance(url) ? url.href : url;
 
     return NetUtil.newURI(url);
   },
@@ -597,7 +597,7 @@ var PlacesUtils = {
   parseActionUrl(url) {
     if (url instanceof Ci.nsIURI) {
       url = url.spec;
-    } else if (url instanceof URL) {
+    } else if (URL.isInstance(url)) {
       url = url.href;
     }
     // Faster bailout.
@@ -1233,7 +1233,7 @@ var PlacesUtils = {
       }
       return new URL(key);
     }
-    if (key instanceof URL) {
+    if (URL.isInstance(key)) {
       return key;
     }
     if (key instanceof Ci.nsIURI) {
@@ -1921,6 +1921,20 @@ var PlacesUtils = {
     while (startIndex < array.length) {
       yield array.slice(startIndex, (startIndex += chunkLength));
     }
+  },
+
+  /**
+   * Returns SQL placeholders to bind multiple values into an IN clause.
+   * @param {Array|number} info
+   *   Array or number of entries to create.
+   * @param {string} [prefix]
+   *   String prefix to add before the SQL param.
+   * @param {string} [suffix]
+   *   String suffix to add after the SQL param.
+   */
+  sqlBindPlaceholders(info, prefix = "", suffix = "") {
+    let length = Array.isArray(info) ? info.length : info;
+    return new Array(length).fill(prefix + "?" + suffix).join(",");
   },
 
   /**

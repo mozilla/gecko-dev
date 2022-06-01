@@ -11,7 +11,6 @@
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "SharedSurfaceGL.h"
 #include "WebRenderBridgeChild.h"
-#include "RenderRootStateManager.h"
 
 namespace mozilla {
 namespace layers {
@@ -48,8 +47,9 @@ bool WebRenderCanvasRendererAsync::CreateCompositable() {
     // Alloc async image pipeline id.
     mPipelineId = Some(
         mManager->WrBridge()->GetCompositorBridgeChild()->GetNextPipelineId());
-    mManager->AddPipelineIdForCompositable(mPipelineId.ref(),
-                                           mCanvasClient->GetIPCHandle());
+    mManager->AddPipelineIdForCompositable(
+        mPipelineId.ref(), mCanvasClient->GetIPCHandle(),
+        CompositableHandleOwner::WebRenderBridge);
   }
 
   return true;

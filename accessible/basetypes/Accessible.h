@@ -24,6 +24,8 @@ class AccGroupInfo;
 class HyperTextAccessibleBase;
 class LocalAccessible;
 class RemoteAccessible;
+class TableAccessibleBase;
+class TableCellAccessibleBase;
 
 /**
  * Name type flags.
@@ -74,6 +76,13 @@ class Accessible {
              uint8_t aRoleMapEntryIndex);
 
  public:
+  /**
+   * Return an id for this Accessible which is unique within the document.
+   * Use nsAccUtils::GetAccessibleByID to retrieve an Accessible given an id
+   * returned from this method.
+   */
+  virtual uint64_t ID() const = 0;
+
   virtual Accessible* Parent() const = 0;
 
   virtual role Role() const = 0;
@@ -99,6 +108,21 @@ class Accessible {
   inline Accessible* LastChild() const {
     uint32_t childCount = ChildCount();
     return childCount ? ChildAt(childCount - 1) : nullptr;
+  }
+
+  /**
+   * Return true if this Accessible is before another Accessible in the tree.
+   */
+  bool IsBefore(const Accessible* aAcc) const;
+
+  bool IsAncestorOf(const Accessible* aAcc) const {
+    for (const Accessible* parent = aAcc->Parent(); parent;
+         parent = parent->Parent()) {
+      if (parent == this) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -132,6 +156,11 @@ class Accessible {
   virtual GroupPos GroupPosition();
 
   /**
+   * Return embedded accessible children count.
+   */
+  virtual uint32_t EmbeddedChildCount() = 0;
+
+  /**
    * Return embedded accessible child at the given index.
    */
   virtual Accessible* EmbeddedChildAt(uint32_t aIndex) = 0;
@@ -152,6 +181,11 @@ class Accessible {
    * Get the description of this accessible.
    */
   virtual void Description(nsString& aDescription) const = 0;
+
+  /**
+   * Get the value of this accessible.
+   */
+  virtual void Value(nsString& aValue) const = 0;
 
   virtual double CurValue() const = 0;
   virtual double MinValue() const = 0;
@@ -198,14 +232,38 @@ class Accessible {
    */
   virtual already_AddRefed<AccAttributes> Attributes() = 0;
 
+  virtual already_AddRefed<nsAtom> DisplayStyle() const = 0;
+
+  virtual Maybe<float> Opacity() const = 0;
+
+  LayoutDeviceIntSize Size() const;
+
+  LayoutDeviceIntPoint Position(uint32_t aCoordType);
+
   // Methods that interact with content.
 
   virtual void TakeFocus() const = 0;
 
   /**
+   * Scroll the accessible into view.
+   */
+  MOZ_CAN_RUN_SCRIPT
+  virtual void ScrollTo(uint32_t aHow) const = 0;
+
+  /**
    * Return tag name of associated DOM node.
    */
   virtual nsAtom* TagName() const = 0;
+
+  /**
+   * Return a landmark role if applied.
+   */
+  virtual nsAtom* LandmarkRole() const;
+
+  /**
+   * Return the id of the dom node this accessible represents.
+   */
+  virtual void DOMNodeID(nsString& aID) const = 0;
 
   //////////////////////////////////////////////////////////////////////////////
   // ActionAccessible
@@ -233,6 +291,53 @@ class Accessible {
    * Invoke the accessible action.
    */
   virtual bool DoAction(uint8_t aIndex) const = 0;
+
+  //////////////////////////////////////////////////////////////////////////////
+  // SelectAccessible
+
+  /**
+   * Return an array of selected items.
+   */
+  virtual void SelectedItems(nsTArray<Accessible*>* aItems) = 0;
+
+  /**
+   * Return the number of selected items.
+   */
+  virtual uint32_t SelectedItemCount() = 0;
+
+  /**
+   * Return selected item at the given index.
+   */
+  virtual Accessible* GetSelectedItem(uint32_t aIndex) = 0;
+
+  /**
+   * Determine if item at the given index is selected.
+   */
+  virtual bool IsItemSelected(uint32_t aIndex) = 0;
+
+  /**
+   * Add item at the given index the selection. Return true if success.
+   */
+  virtual bool AddItemToSelection(uint32_t aIndex) = 0;
+
+  /**
+   * Remove item at the given index from the selection. Return if success.
+   */
+  virtual bool RemoveItemFromSelection(uint32_t aIndex) = 0;
+
+  /**
+   * Select all items. Return true if success.
+   */
+  virtual bool SelectAll() = 0;
+
+  /**
+   * Unselect all items. Return true if success.
+   */
+  virtual bool UnselectAll() = 0;
+
+  virtual void TakeSelection() = 0;
+
+  virtual void SetSelected(bool aSelect) = 0;
 
   // Type "is" methods
 
@@ -349,6 +454,17 @@ class Accessible {
 
   virtual HyperTextAccessibleBase* AsHyperTextBase() { return nullptr; }
 
+  virtual TableAccessibleBase* AsTableBase() { return nullptr; }
+  virtual TableCellAccessibleBase* AsTableCellBase() { return nullptr; }
+
+#ifdef A11Y_LOG
+  /**
+   * Provide a human readable description of the accessible,
+   * including memory address, role, name, DOM tag and DOM ID.
+   */
+  void DebugDescription(nsCString& aDesc);
+#endif
+
   /**
    * Return the localized string for the given key.
    */
@@ -389,7 +505,6 @@ class Accessible {
    * @param  aSetSize   [out] the group size
    */
   virtual void GetPositionAndSetSize(int32_t* aPosInSet, int32_t* aSetSize);
-
 
   /**
    * Return the nearest ancestor that has a primary action, or null.

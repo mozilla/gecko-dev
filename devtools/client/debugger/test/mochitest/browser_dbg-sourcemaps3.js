@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
+"use strict";
+
 // Tests loading sourcemapped sources, setting breakpoints, and
 // inspecting restored scopes.
 requestLongerTimeout(2);
@@ -33,7 +35,7 @@ add_task(async function() {
   invokeInTab("test");
 
   await waitForPaused(dbg);
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, sortedSrc.id, 9, 4);
 
   is(getScopeLabel(dbg, 1), "Block");
   is(getScopeLabel(dbg, 2), "na");

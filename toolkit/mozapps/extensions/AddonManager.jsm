@@ -39,6 +39,7 @@ const PREF_EM_AUTOUPDATE_DEFAULT = "extensions.update.autoUpdateDefault";
 const PREF_EM_STRICT_COMPATIBILITY = "extensions.strictCompatibility";
 const PREF_EM_CHECK_UPDATE_SECURITY = "extensions.checkUpdateSecurity";
 const PREF_SYS_ADDON_UPDATE_ENABLED = "extensions.systemAddon.update.enabled";
+const PREF_REMOTESETTINGS_DISABLED = "extensions.remoteSettings.disabled";
 
 const PREF_MIN_WEBEXT_PLATFORM_VERSION =
   "extensions.webExtensionsMinPlatformVersion";
@@ -79,6 +80,9 @@ const { XPCOMUtils } = ChromeUtils.import(
 var { AsyncShutdown } = ChromeUtils.import(
   "resource://gre/modules/AsyncShutdown.jsm"
 );
+const { PromiseUtils } = ChromeUtils.import(
+  "resource://gre/modules/PromiseUtils.jsm"
+);
 
 XPCOMUtils.defineLazyGlobalGetters(this, ["Element"]);
 
@@ -86,6 +90,8 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   AbuseReporter: "resource://gre/modules/AbuseReporter.jsm",
   Extension: "resource://gre/modules/Extension.jsm",
+  RemoteSettings: "resource://services-settings/remote-settings.js",
+  TelemetryTimestamps: "resource://gre/modules/TelemetryTimestamps.jsm",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -105,12 +111,14 @@ Services.ppmm.loadProcessScript(
 
 const INTEGER = /^[1-9]\d*$/;
 
-var EXPORTED_SYMBOLS = ["AddonManager", "AddonManagerPrivate", "AMTelemetry"];
+var EXPORTED_SYMBOLS = [
+  "AddonManager",
+  "AddonManagerPrivate",
+  "AMTelemetry",
+  "AMRemoteSettings",
+];
 
 const CATEGORY_PROVIDER_MODULE = "addon-provider-module";
-
-// A list of providers to load by default
-const DEFAULT_PROVIDERS = ["resource://gre/modules/addons/XPIProvider.jsm"];
 
 const { Log } = ChromeUtils.import("resource://gre/modules/Log.jsm");
 // Configure a logger at the parent 'addons' level to format
@@ -142,6 +150,10 @@ const UNNAMED_PROVIDER = "<unnamed-provider>";
 function providerName(aProvider) {
   return aProvider.name || UNNAMED_PROVIDER;
 }
+
+// A reference to XPIProvider. This should only be used to access properties or
+// methods that are independent of XPIProvider startup.
+var gXPIProvider;
 
 /**
  * Preference listener which listens for a change in the
@@ -466,6 +478,7 @@ AddonScreenshot.prototype = {
 };
 
 var gStarted = false;
+var gStartedPromise = PromiseUtils.defer();
 var gStartupComplete = false;
 var gCheckCompatibility = true;
 var gStrictCompatibility = true;
@@ -481,6 +494,7 @@ var gShutdownInProgress = false;
 var gBrowserUpdated = null;
 
 var AMTelemetry;
+var AMRemoteSettings;
 
 /**
  * This is the real manager, kept here rather than in AddonManager to keep its
@@ -503,7 +517,7 @@ var AddonManagerInternal = {
   externalExtensionLoaders: new Map(),
 
   recordTimestamp(name, value) {
-    this.TelemetryTimestamps.add(name, value);
+    TelemetryTimestamps.add(name, value);
   },
 
   /**
@@ -591,6 +605,9 @@ var AddonManagerInternal = {
       // Enable the addonsManager telemetry event category.
       AMTelemetry.init();
 
+      // Enable the AMRemoteSettings client.
+      AMRemoteSettings.init();
+
       // clear this for xpcshell test restarts
       for (let provider in this.telemetryDetails) {
         delete this.telemetryDetails[provider];
@@ -676,47 +693,23 @@ var AddonManagerInternal = {
       );
       Services.prefs.addObserver(PREF_MIN_WEBEXT_PLATFORM_VERSION, this);
 
+      // Watch for changes to PREF_REMOTESETTINGS_DISABLED.
+      Services.prefs.addObserver(PREF_REMOTESETTINGS_DISABLED, this);
+
       // Watch for language changes, refresh the addon cache when it changes.
       Services.obs.addObserver(this, INTL_LOCALES_CHANGED);
 
       // Ensure all default providers have had a chance to register themselves
-      for (let url of DEFAULT_PROVIDERS) {
-        try {
-          let scope = {};
-          ChromeUtils.import(url, scope);
-          // Sanity check - make sure the provider exports a symbol that
-          // has a 'startup' method
-          let syms = Object.keys(scope);
-          if (syms.length < 1 || typeof scope[syms[0]].startup != "function") {
-            logger.warn("Provider " + url + " has no startup()");
-            AddonManagerPrivate.recordException(
-              "AMI",
-              "provider " + url,
-              "no startup()"
-            );
-          }
-          logger.debug(
-            "Loaded provider scope for " +
-              url +
-              ": " +
-              Object.keys(scope).toSource()
-          );
-        } catch (e) {
-          AddonManagerPrivate.recordException(
-            "AMI",
-            "provider " + url + " load failed",
-            e
-          );
-          logger.error('Exception loading default provider "' + url + '"', e);
-        }
-      }
+      ({ XPIProvider: gXPIProvider } = ChromeUtils.import(
+        "resource://gre/modules/addons/XPIProvider.jsm"
+      ));
 
       // Load any providers registered in the category manager
       for (let { entry, value: url } of Services.catMan.enumerateCategory(
         CATEGORY_PROVIDER_MODULE
       )) {
         try {
-          ChromeUtils.import(url, {});
+          ChromeUtils.import(url);
           logger.debug(`Loaded provider scope for ${url}`);
         } catch (e) {
           AddonManagerPrivate.recordException(
@@ -768,10 +761,12 @@ var AddonManagerInternal = {
       }
 
       gStartupComplete = true;
+      gStartedPromise.resolve();
       this.recordTimestamp("AMI_startup_end");
     } catch (e) {
       logger.error("startup failed", e);
       AddonManagerPrivate.recordException("AMI", "startup failed", e);
+      gStartedPromise.reject("startup failed");
     }
 
     logger.debug("Completed startup sequence");
@@ -955,16 +950,24 @@ var AddonManagerInternal = {
     logger.debug("shutdown");
     this.callManagerListeners("onShutdown");
 
+    if (!gStartupComplete) {
+      gStartedPromise.reject("shutting down");
+    }
+
     gRepoShutdownState = "pending";
     gShutdownInProgress = true;
+
     // Clean up listeners
     Services.prefs.removeObserver(PREF_EM_CHECK_COMPATIBILITY, this);
     Services.prefs.removeObserver(PREF_EM_STRICT_COMPATIBILITY, this);
     Services.prefs.removeObserver(PREF_EM_CHECK_UPDATE_SECURITY, this);
     Services.prefs.removeObserver(PREF_EM_UPDATE_ENABLED, this);
     Services.prefs.removeObserver(PREF_EM_AUTOUPDATE_DEFAULT, this);
+    Services.prefs.removeObserver(PREF_REMOTESETTINGS_DISABLED, this);
 
     Services.obs.removeObserver(this, INTL_LOCALES_CHANGED);
+
+    AMRemoteSettings.shutdown();
 
     let savedError = null;
     // Only shut down providers if they've been started.
@@ -981,6 +984,7 @@ var AddonManagerInternal = {
         );
       }
     }
+    gXPIProvider = null;
 
     // Shut down AddonRepository after providers (if any).
     try {
@@ -1006,6 +1010,7 @@ var AddonManagerInternal = {
       delete this.startupChanges[type];
     }
     gStarted = false;
+    gStartedPromise = PromiseUtils.defer();
     gStartupComplete = false;
     gFinalShutdownBarrier = null;
     gBeforeShutdownBarrier = null;
@@ -1095,6 +1100,14 @@ var AddonManagerInternal = {
         gWebExtensionsMinPlatformVersion = Services.prefs.getCharPref(
           PREF_MIN_WEBEXT_PLATFORM_VERSION
         );
+        break;
+      }
+      case PREF_REMOTESETTINGS_DISABLED: {
+        if (Services.prefs.getBoolPref(PREF_REMOTESETTINGS_DISABLED, false)) {
+          AMRemoteSettings.shutdown();
+        } else {
+          AMRemoteSettings.init();
+        }
         break;
       }
     }
@@ -2098,8 +2111,19 @@ var AddonManagerInternal = {
    *         The nsIPrincipal that initiated the install
    * @param  aInstall
    *         The AddonInstall to be installed
+   * @param  [aDetails]
+   *         Additional optional details
+   * @param  [aDetails.hasCrossOriginAncestor]
+   *         Boolean value set to true if any of cross-origin ancestors of the triggering frame
+   *         (if set to true the installation will be denied).
    */
-  installAddonFromWebpage(aMimetype, aBrowser, aInstallingPrincipal, aInstall) {
+  installAddonFromWebpage(
+    aMimetype,
+    aBrowser,
+    aInstallingPrincipal,
+    aInstall,
+    aDetails
+  ) {
     if (!gStarted) {
       throw Components.Exception(
         "AddonManager is not initialized",
@@ -2175,6 +2199,26 @@ var AddonManagerInternal = {
         );
         return;
       } else if (
+        !this.isInstallAllowedByPolicy(
+          aInstallingPrincipal,
+          aInstall,
+          false /* explicit */
+        )
+      ) {
+        aInstall.cancel();
+
+        this.installNotifyObservers(
+          "addon-install-policy-blocked",
+          topBrowser,
+          aInstallingPrincipal.URI,
+          aInstall
+        );
+        return;
+      } else if (
+        // Block the install request if the triggering frame does have any cross-origin
+        // ancestor.
+        aDetails?.hasCrossOriginAncestor ||
+        // Block the install if triggered by a null principal.
         aInstallingPrincipal.isNullPrincipal ||
         (aBrowser &&
           (!aBrowser.contentPrincipal ||
@@ -2189,12 +2233,7 @@ var AddonManagerInternal = {
             !(
               aBrowser.contentPrincipal.isNullPrincipal ||
               aInstallingPrincipal.subsumes(aBrowser.contentPrincipal)
-            ))) ||
-        !this.isInstallAllowedByPolicy(
-          aInstallingPrincipal,
-          aInstall,
-          false /* explicit */
-        )
+            )))
       ) {
         aInstall.cancel();
 
@@ -2257,7 +2296,8 @@ var AddonManagerInternal = {
           topBrowser,
           aInstallingPrincipal.URI,
           aInstall,
-          () => startInstall("other")
+          () => startInstall("other"),
+          () => aInstall.cancel()
         );
       } else {
         // We download the addon and validate whether a 3rd party
@@ -2291,7 +2331,7 @@ var AddonManagerInternal = {
       install.cancel();
 
       this.installNotifyObservers(
-        "addon-install-origin-blocked",
+        "addon-install-policy-blocked",
         browser,
         install.sourceURI,
         install
@@ -3142,7 +3182,7 @@ var AddonManagerInternal = {
           // eslint-disable-next-line no-throw-literal
           return {
             success: false,
-            code: "addon-install-webapi-blocked-policy",
+            code: "addon-install-policy-blocked",
             message: `Install from ${uri.spec} not permitted by policy`,
           };
         }
@@ -3533,8 +3573,34 @@ var AddonManagerPrivate = {
   AddonScreenshot,
 
   get BOOTSTRAP_REASONS() {
-    return AddonManagerInternal._getProviderByName("XPIProvider")
-      .BOOTSTRAP_REASONS;
+    // BOOTSTRAP_REASONS is a set of constants, and may be accessed before the
+    // provider has fully been started.
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1760146#c1
+    return gXPIProvider.BOOTSTRAP_REASONS;
+  },
+
+  setAddonStartupData(addonId, startupData) {
+    if (!gStarted) {
+      throw Components.Exception(
+        "AddonManager is not initialized",
+        Cr.NS_ERROR_NOT_INITIALIZED
+      );
+    }
+
+    // TODO bug 1761079: Ensure that XPIProvider is available before calling it.
+    gXPIProvider.setStartupData(addonId, startupData);
+  },
+
+  unregisterDictionaries(aDicts) {
+    if (!gStarted) {
+      throw Components.Exception(
+        "AddonManager is not initialized",
+        Cr.NS_ERROR_NOT_INITIALIZED
+      );
+    }
+
+    // TODO bug 1761093: Use _getProviderByName instead of gXPIProvider.
+    gXPIProvider.unregisterDictionaries(aDicts);
   },
 
   recordTimestamp(name, value) {
@@ -3673,6 +3739,16 @@ var AddonManagerPrivate = {
   get finalShutdown() {
     return gFinalShutdownBarrier.client;
   },
+
+  // Used by tests to call repo shutdown.
+  overrideAddonRepository(mockRepo) {
+    AddonRepository = mockRepo;
+  },
+
+  // Used by tests to shut down AddonManager.
+  overrideAsyncShutdown(mockAsyncShutdown) {
+    AsyncShutdown = mockAsyncShutdown;
+  },
 };
 
 /**
@@ -3720,10 +3796,12 @@ var AddonManager = {
   ]),
 
   // Constants representing different types of errors while downloading an
-  // add-on.
+  // add-on as a preparation for installation.
   // These will show up as AddonManager.ERROR_* (eg, ERROR_NETWORK_FAILURE)
   // The _errors codes are translated to text for a panel in browser-addons.js.
-  // The text is located in browser.properties.
+  // The text is located in browser.properties. Errors with the "Updates only:"
+  // prefix are not translated because the error is dumped to the console
+  // instead of a panel.
   _errors: new Map([
     // The download failed due to network problems.
     ["ERROR_NETWORK_FAILURE", -1],
@@ -3735,14 +3813,14 @@ var AddonManager = {
     ["ERROR_FILE_ACCESS", -4],
     // The add-on must be signed and isn't.
     ["ERROR_SIGNEDSTATE_REQUIRED", -5],
-    // The downloaded add-on had a different type than expected.
-    // TODO Bug 1740792
+    // Updates only: The downloaded add-on had a different type than expected.
     ["ERROR_UNEXPECTED_ADDON_TYPE", -6],
-    // The addon did not have the expected ID
-    // TODO Bug 1740792
+    // Updates only: The addon did not have the expected ID.
     ["ERROR_INCORRECT_ID", -7],
     // The addon install_origins does not list the 3rd party domain.
     ["ERROR_INVALID_DOMAIN", -8],
+    // Updates only: The downloaded add-on had a different version than expected.
+    ["ERROR_UNEXPECTED_ADDON_VERSION", -9],
   ]),
   // The update check timed out
   ERROR_TIMEOUT: -1,
@@ -3911,6 +3989,15 @@ var AddonManager = {
     return gStartupComplete && !gShutdownInProgress;
   },
 
+  /**
+   * A promise that is resolved when the AddonManager startup has completed.
+   * This may be rejected if startup of the AddonManager is not successful, or
+   * if shutdown is started before the AddonManager has finished starting.
+   */
+  get readyPromise() {
+    return gStartedPromise.promise;
+  },
+
   /** @constructor */
   init() {
     this._stateToString = new Map();
@@ -4027,12 +4114,19 @@ var AddonManager = {
     return AddonManagerInternal.isInstallAllowed(aType, aInstallingPrincipal);
   },
 
-  installAddonFromWebpage(aType, aBrowser, aInstallingPrincipal, aInstall) {
+  installAddonFromWebpage(
+    aType,
+    aBrowser,
+    aInstallingPrincipal,
+    aInstall,
+    details
+  ) {
     AddonManagerInternal.installAddonFromWebpage(
       aType,
       aBrowser,
       aInstallingPrincipal,
-      aInstall
+      aInstall,
+      details
     );
   },
 
@@ -4094,6 +4188,16 @@ var AddonManager = {
 
   hasAddonType(addonType) {
     return AddonManagerInternal.hasAddonType(addonType);
+  },
+
+  hasProvider(name) {
+    if (!gStarted) {
+      throw Components.Exception(
+        "AddonManager is not initialized",
+        Cr.NS_ERROR_NOT_INITIALIZED
+      );
+    }
+    return !!AddonManagerInternal._getProviderByName(name);
   },
 
   /**
@@ -4189,6 +4293,139 @@ var AddonManager = {
    */
   get beforeShutdown() {
     return gBeforeShutdownBarrier.client;
+  },
+};
+
+/**
+ * Manage AddonManager settings propagated over RemoteSettings synced data.
+ *
+ * See :doc:`AMRemoteSettings Overview <AMRemoteSettings-overview>`.
+ *
+ * .. warning::
+ *   Before landing any change to ``AMRemoteSettings`` or the format expected for the
+ *   remotely controlled settings (on the service or Firefos side), please read the
+ *   documentation page linked above and make sure to keep the JSON Schema described
+ *   and controlled settings groups included in that documentation page in sync with
+ *   the one actually set on the RemoteSettings service side.
+ */
+AMRemoteSettings = {
+  RS_COLLECTION: "addons-manager-settings",
+
+  /**
+   * RemoteSettings settings group map.
+   *
+   * .. note::
+   *   Please keep in sync the "Controlled Settings Groups" documentation from
+   *   :doc:`AMRemoteSettings Overview <AMRemoteSettings-overview>` in sync with
+   *   the settings groups defined here.
+   */
+  RS_ENTRIES_MAP: {
+    installTriggerDeprecation: [
+      "extensions.InstallTriggerImpl.enabled",
+      "extensions.InstallTrigger.enabled",
+    ],
+  },
+
+  client: null,
+  onSync: null,
+  promiseStartup: null,
+
+  init() {
+    try {
+      if (!this.promiseStartup) {
+        // Creating a promise to resolved when the browser startup was completed,
+        // used to process the existing entries (if any) after the startup is completed
+        // and to only to it ones.
+        this.promiseStartup = new Promise(resolve => {
+          function observer() {
+            resolve();
+            Services.obs.removeObserver(
+              observer,
+              "browser-delayed-startup-finished"
+            );
+          }
+          Services.obs.addObserver(
+            observer,
+            "browser-delayed-startup-finished"
+          );
+        });
+      }
+
+      if (Services.prefs.getBoolPref(PREF_REMOTESETTINGS_DISABLED, false)) {
+        return;
+      }
+
+      if (!this.client) {
+        this.client = RemoteSettings(this.RS_COLLECTION);
+        this.onSync = this.processEntries.bind(this);
+        this.client.on("sync", this.onSync);
+        // Process existing entries if any, once the browser has been fully initialized.
+        this.promiseStartup.then(() => this.processEntries());
+      }
+    } catch (err) {
+      logger.error("Failure to initialize AddonManager RemoteSettings", err);
+    }
+  },
+
+  shutdown() {
+    try {
+      if (this.client) {
+        this.client.off("sync", this.onSync);
+        this.client = null;
+        this.onSync = null;
+      }
+      this.promiseStartup = null;
+    } catch (err) {
+      logger.error("Failure on shutdown AddonManager RemoteSettings", err);
+    }
+  },
+
+  /**
+   * Process all the settings groups that are included in the collection entry with ``"id"`` set to ``"AddonManagerSettings"``
+   * (if any).
+   *
+   * .. note::
+   *   This method may need to be updated if the preference value type is not yet expected by this method
+   *   (which means that it would be ignored until handled explicitly).
+   */
+  async processEntries() {
+    const entries = await this.client.get({ syncIfEmpty: false }).catch(err => {
+      logger.error("Failure to process AddonManager RemoteSettings", err);
+      return [];
+    });
+
+    for (const entry of entries) {
+      logger.debug(`Processing AddonManager RemoteSettings "${entry.id}"`);
+
+      for (const [groupName, prefs] of Object.entries(this.RS_ENTRIES_MAP)) {
+        const data = entry[groupName];
+        if (!data) {
+          continue;
+        }
+
+        for (const pref of prefs) {
+          // Skip the pref if it is not included in the remote settings data.
+          if (!(pref in data)) {
+            continue;
+          }
+
+          try {
+            // Support for controlling boolean AddonManager settings.
+            if (typeof data[pref] == "boolean") {
+              logger.debug(
+                `Process AddonManager RemoteSettings "${entry.id}" - "${groupName}": ${pref}=${data[pref]}`
+              );
+              Services.prefs.setBoolPref(pref, data[pref]);
+            }
+          } catch (e) {
+            logger.error(
+              `Failed to process AddonManager RemoteSettings "${entry.id}" - "${groupName}": ${pref}`,
+              e
+            );
+          }
+        }
+      }
+    }
   },
 };
 
@@ -4832,12 +5069,6 @@ AddonManager.init();
 
 // Setup the AMTelemetry once the AddonManager has been started.
 AddonManager.addManagerListener(AMTelemetry);
-
-// load the timestamps module into AddonManagerInternal
-ChromeUtils.import(
-  "resource://gre/modules/TelemetryTimestamps.jsm",
-  AddonManagerInternal
-);
 Object.freeze(AddonManagerInternal);
 Object.freeze(AddonManagerPrivate);
 Object.freeze(AddonManager);

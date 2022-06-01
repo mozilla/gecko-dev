@@ -5,15 +5,15 @@
 Transform the repackage signing task into an actual task description.
 """
 
+from taskgraph.util.taskcluster import get_artifact_path
+from voluptuous import Optional
 
 from gecko_taskgraph.loader.single_dep import schema
 from gecko_taskgraph.transforms.base import TransformSequence
 from gecko_taskgraph.util.attributes import copy_attributes_from_dependent_job
 from gecko_taskgraph.util.partners import get_partner_config_by_kind
 from gecko_taskgraph.util.scriptworker import get_signing_cert_scope_per_platform
-from gecko_taskgraph.util.taskcluster import get_artifact_path
 from gecko_taskgraph.transforms.task import task_description_schema
-from voluptuous import Optional
 
 transforms = TransformSequence()
 
@@ -75,7 +75,7 @@ def make_repackage_signing_description(config, jobs):
                     "paths": [
                         get_artifact_path(dep_job, f"{repack_id}/target.installer.exe"),
                     ],
-                    "formats": ["autograph_authenticode", "autograph_gpg"],
+                    "formats": ["autograph_authenticode_sha2", "autograph_gpg"],
                 }
             ]
 
@@ -95,7 +95,7 @@ def make_repackage_signing_description(config, jobs):
                                 f"{repack_id}/target.stub-installer.exe",
                             ),
                         ],
-                        "formats": ["autograph_authenticode", "autograph_gpg"],
+                        "formats": ["autograph_authenticode_sha2", "autograph_gpg"],
                     }
                 )
         elif "mac" in build_platform:

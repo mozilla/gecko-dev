@@ -59,6 +59,7 @@
 #include "mozilla/dom/InspectorUtilsBinding.h"
 #include "mozilla/dom/MessageChannelBinding.h"
 #include "mozilla/dom/MessagePortBinding.h"
+#include "mozilla/dom/ModuleLoader.h"
 #include "mozilla/dom/NodeBinding.h"
 #include "mozilla/dom/NodeFilterBinding.h"
 #include "mozilla/dom/PathUtilsBinding.h"
@@ -67,14 +68,13 @@
 #include "mozilla/dom/PromiseDebuggingBinding.h"
 #include "mozilla/dom/RangeBinding.h"
 #include "mozilla/dom/RequestBinding.h"
-#ifdef MOZ_DOM_STREAMS
-#  include "mozilla/dom/ReadableStreamBinding.h"
-#endif
+#include "mozilla/dom/ReadableStreamBinding.h"
 #include "mozilla/dom/ResponseBinding.h"
 #ifdef MOZ_WEBRTC
 #  include "mozilla/dom/RTCIdentityProviderRegistrar.h"
 #endif
 #include "mozilla/dom/FileReaderBinding.h"
+#include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/SelectionBinding.h"
 #include "mozilla/dom/StorageManager.h"
@@ -99,6 +99,7 @@
 
 using namespace mozilla;
 using namespace JS;
+using namespace JS::loader;
 using namespace xpc;
 
 using mozilla::dom::DestroyProtoAndIfaceCache;
@@ -110,10 +111,12 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(SandboxPrivate)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
   NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
   NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mModuleLoader)
   tmp->UnlinkObjectsInGlobal();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(SandboxPrivate)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mModuleLoader)
   tmp->TraverseObjectsInGlobal(cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -495,7 +498,7 @@ static bool SandboxCloneInto(JSContext* cx, unsigned argc, Value* vp) {
   return xpc::CloneInto(cx, args[0], args[1], options, args.rval());
 }
 
-static void sandbox_finalize(JSFreeOp* fop, JSObject* obj) {
+static void sandbox_finalize(JS::GCContext* gcx, JSObject* obj) {
   SandboxPrivate* priv = SandboxPrivate::GetPrivate(obj);
   if (!priv) {
     // priv can be null if CreateSandboxObject fails in the middle.
@@ -531,7 +534,6 @@ static const JSClassOps SandboxClassOps = {
     JS_MayResolveStandardClass,      // mayResolve
     sandbox_finalize,                // finalize
     nullptr,                         // call
-    nullptr,                         // hasInstance
     nullptr,                         // construct
     JS_GlobalObjectTraceHook,        // trace
 };
@@ -970,10 +972,8 @@ bool xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj) {
       Window = true;
     } else if (JS_LinearStringEqualsLiteral(nameStr, "XMLSerializer")) {
       XMLSerializer = true;
-#ifdef MOZ_DOM_STREAMS
     } else if (JS_LinearStringEqualsLiteral(nameStr, "ReadableStream")) {
       ReadableStream = true;
-#endif
     } else if (JS_LinearStringEqualsLiteral(nameStr, "atob")) {
       atob = true;
     } else if (JS_LinearStringEqualsLiteral(nameStr, "btoa")) {
@@ -1136,10 +1136,8 @@ bool xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj) {
   if (XMLSerializer && !dom::XMLSerializer_Binding::GetConstructorObject(cx))
     return false;
 
-#ifdef MOZ_DOM_STREAMS
   if (ReadableStream && !dom::ReadableStream_Binding::GetConstructorObject(cx))
     return false;
-#endif
 
   if (atob && !JS_DefineFunction(cx, obj, "atob", Atob, 1, 0)) return false;
 
@@ -2207,4 +2205,28 @@ nsresult xpc::SetSandboxMetadata(JSContext* cx, HandleObject sandbox,
   JS_SetReservedSlot(sandbox, XPCONNECT_SANDBOX_CLASS_METADATA_SLOT, metadata);
 
   return NS_OK;
+}
+
+ModuleLoaderBase* SandboxPrivate::GetModuleLoader(JSContext* aCx) {
+  if (mModuleLoader) {
+    return mModuleLoader;
+  }
+
+  JSObject* object = GetGlobalJSObject();
+  nsGlobalWindowInner* sandboxWindow = xpc::SandboxWindowOrNull(object, aCx);
+  if (!sandboxWindow) {
+    return nullptr;
+  }
+
+  ModuleLoader* mainModuleLoader =
+      static_cast<ModuleLoader*>(sandboxWindow->GetModuleLoader(aCx));
+
+  ScriptLoader* scriptLoader = mainModuleLoader->GetScriptLoader();
+
+  ModuleLoader* moduleLoader =
+      new ModuleLoader(scriptLoader, this, ModuleLoader::WebExtension);
+  scriptLoader->RegisterContentScriptModuleLoader(moduleLoader);
+  mModuleLoader = moduleLoader;
+
+  return moduleLoader;
 }

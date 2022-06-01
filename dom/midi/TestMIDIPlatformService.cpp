@@ -26,7 +26,7 @@ class ProcessMessagesRunnable : public mozilla::Runnable {
   explicit ProcessMessagesRunnable(const nsAString& aPortID)
       : Runnable("ProcessMessagesRunnable"), mPortID(aPortID) {}
   ~ProcessMessagesRunnable() = default;
-  NS_IMETHOD Run() {
+  NS_IMETHOD Run() override {
     // If service is no longer running, just exist without processing.
     if (!MIDIPlatformService::IsRunning()) {
       return NS_OK;
@@ -86,6 +86,7 @@ TestMIDIPlatformService::TestMIDIPlatformService()
                                   u"Always Closed MIDI Device Output Port"_ns,
                                   u"Test Manufacturer"_ns, u"1.0.0"_ns,
                                   static_cast<uint32_t>(MIDIPortType::Output)),
+      mDoRefresh(false),
       mIsInitialized(false) {
   AssertIsOnBackgroundThread();
 }
@@ -112,6 +113,13 @@ void TestMIDIPlatformService::Init() {
 
   // Start the IO Thread.
   NS_DispatchToCurrentThread(r);
+}
+
+void TestMIDIPlatformService::Refresh() {
+  if (mDoRefresh) {
+    AddPortInfo(mStateTestInputPort);
+    mDoRefresh = false;
+  }
 }
 
 void TestMIDIPlatformService::Open(MIDIPortParent* aPort) {
@@ -200,6 +208,11 @@ void TestMIDIPlatformService::ProcessMessages(const nsAString& aPortId) {
               nsCOMPtr<nsIRunnable> r(
                   new QueueMessagesRunnable(aPortId, newMsgs));
               mBackgroundThread->Dispatch(r, NS_DISPATCH_NORMAL);
+              break;
+            }
+            // Causes the next refresh to add new ports to the list
+            case 0x04: {
+              mDoRefresh = true;
               break;
             }
             default:

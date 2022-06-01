@@ -42,10 +42,6 @@
 #include "nsWidgetInitData.h"
 #include "nsXULAppAPI.h"
 
-#ifdef MOZ_IS_GCC
-#  include "VsyncSource.h"
-#endif
-
 // forward declarations
 class nsIBidiKeyboard;
 class nsIRollupListener;
@@ -57,6 +53,7 @@ class nsIRunnable;
 
 namespace mozilla {
 enum class NativeKeyBindingsType : uint8_t;
+class VsyncDispatcher;
 class WidgetGUIEvent;
 class WidgetInputEvent;
 class WidgetKeyboardEvent;
@@ -83,9 +80,6 @@ struct FrameMetrics;
 class LayerManager;
 class WebRenderBridgeChild;
 }  // namespace layers
-namespace gfx {
-class VsyncSource;
-}  // namespace gfx
 namespace widget {
 class TextEventDispatcher;
 class TextEventDispatcherListener;
@@ -150,8 +144,6 @@ typedef void* nsNativeWidget;
 #endif
 #ifdef MOZ_WIDGET_ANDROID
 #  define NS_JAVA_SURFACE 100
-#  define NS_PRESENTATION_WINDOW 101
-#  define NS_PRESENTATION_SURFACE 102
 #endif
 
 #define MOZ_WIDGET_MAX_SIZE 16384
@@ -955,6 +947,11 @@ class nsIWidget : public nsISupports {
   virtual nsresult SetNonClientMargins(LayoutDeviceIntMargin& aMargins) = 0;
 
   /**
+   * Sets the region around the edges of the window that can be dragged to
+   * resize the window. All four sides of the window will get the same margin.
+   */
+  virtual void SetResizeMargin(mozilla::LayoutDeviceIntCoord aResizeMargin) = 0;
+  /**
    * Get the client offset from the window origin.
    *
    * @return the x and y of the offset.
@@ -1307,6 +1304,12 @@ class nsIWidget : public nsISupports {
   virtual mozilla::LayoutDeviceToLayoutDeviceMatrix4x4
   WidgetToTopLevelWidgetTransform() {
     return mozilla::LayoutDeviceToLayoutDeviceMatrix4x4();
+  }
+
+  mozilla::LayoutDeviceIntPoint WidgetToTopLevelWidgetOffset() {
+    return mozilla::LayoutDeviceIntPoint::Round(
+        WidgetToTopLevelWidgetTransform().TransformPoint(
+            mozilla::LayoutDevicePoint()));
   }
 
   /**
@@ -1665,7 +1668,8 @@ class nsIWidget : public nsISupports {
   virtual nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
                                                LayoutDeviceIntPoint aPoint,
                                                double aDeltaX, double aDeltaY,
-                                               int32_t aModifierFlags) = 0;
+                                               int32_t aModifierFlags,
+                                               nsIObserver* aObserver) = 0;
 
   virtual void StartAsyncScrollbarDrag(
       const AsyncDragMetrics& aDragMetrics) = 0;
@@ -1702,16 +1706,12 @@ class nsIWidget : public nsISupports {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  // Get rectangle of the screen where the window is placed.
-  // It's used to detect popup overflow under Wayland because
-  // Screenmanager does not work under it.
-  virtual nsRect GetPreferredPopupRect() {
-    NS_WARNING("GetPreferredPopupRect implemented only for wayland");
-    return nsRect(0, 0, 0, 0);
-  }
-  virtual void FlushPreferredPopupRect() {
-    NS_WARNING("FlushPreferredPopupRect implemented only for wayland");
-    return;
+  /**
+   * Wayland specific routines.
+   */
+  virtual LayoutDeviceIntSize GetMoveToRectPopupSize() const {
+    NS_WARNING("GetLayoutPopupRect implemented only for wayland");
+    return LayoutDeviceIntSize();
   }
 
   /**
@@ -1985,10 +1985,17 @@ class nsIWidget : public nsISupports {
   virtual void ClearCachedWebrenderResources() {}
 
   /**
-   * If this widget has its own vsync source, return it, otherwise return
-   * nullptr. An example of such local source would be Wayland frame callbacks.
+   * Request fast snapshot at RenderCompositor of WebRender.
+   * Since readback of Windows DirectComposition is very slow.
    */
-  virtual RefPtr<mozilla::gfx::VsyncSource> GetVsyncSource() { return nullptr; }
+  virtual bool SetNeedFastSnaphot() { return false; }
+
+  /**
+   * If this widget has its own vsync dispatcher, return it, otherwise return
+   * nullptr. An example of such a local vsync dispatcher would be Wayland frame
+   * callbacks.
+   */
+  virtual RefPtr<mozilla::VsyncDispatcher> GetVsyncDispatcher();
 
   /**
    * Returns true if the widget requires synchronous repaints on resize,

@@ -16,8 +16,7 @@
 
 class nsITimer;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class ContentSessionStore {
  public:
@@ -73,7 +72,7 @@ class TabListener : public nsIDOMEventListener,
   nsresult Init();
   ContentSessionStore* GetSessionStore() { return mSessionStore; }
   // the function is called only when TabListener is in parent process
-  bool ForceFlushFromParent();
+  void ForceFlushFromParent();
   void RemoveListeners();
   void SetEpoch(uint32_t aEpoch) { mEpoch = aEpoch; }
   uint32_t GetEpoch() { return mEpoch; }
@@ -94,7 +93,7 @@ class TabListener : public nsIDOMEventListener,
   void StopTimerForUpdate();
   void AddEventListeners();
   void RemoveEventListeners();
-  bool UpdateSessionStore(bool aIsFlush = false);
+  void UpdateSessionStore(bool aIsFlush = false);
   virtual ~TabListener();
 
   nsCOMPtr<nsIDocShell> mDocShell;
@@ -110,7 +109,6 @@ class TabListener : public nsIDOMEventListener,
   uint32_t mEpoch;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_SessionStoreListener_h

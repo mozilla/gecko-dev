@@ -1,6 +1,8 @@
-//! Logic related to `ByteAddressBuffer` operations.
-//!
-//! HLSL backend uses byte address buffers for all storage buffers in IR.
+/*!
+Logic related to `ByteAddressBuffer` operations.
+
+HLSL backend uses byte address buffers for all storage buffers in IR.
+*/
 
 use super::{super::FunctionCtx, BackendResult, Error};
 use crate::{
@@ -120,19 +122,19 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                     self.out,
                     "{}{}x{}(",
                     crate::ScalarKind::Float.to_hlsl_str(width)?,
-                    rows as u8,
                     columns as u8,
+                    rows as u8,
                 )?;
 
                 // Note: Matrices containing vec3s, due to padding, act like they contain vec4s.
-                let padded_columns = match columns {
+                let padded_rows = match rows {
                     crate::VectorSize::Tri => 4,
-                    columns => columns as u32,
+                    rows => rows as u32,
                 };
-                let row_stride = width as u32 * padded_columns;
-                let iter = (0..rows as u32).map(|i| {
+                let row_stride = width as u32 * padded_rows;
+                let iter = (0..columns as u32).map(|i| {
                     let ty_inner = crate::TypeInner::Vector {
-                        size: columns,
+                        size: rows,
                         kind: crate::ScalarKind::Float,
                         width,
                     };
@@ -148,7 +150,7 @@ impl<W: fmt::Write> super::Writer<'_, W> {
             } => {
                 write!(self.out, "{{")?;
                 let count = module.constants[const_handle].to_array_length().unwrap();
-                let stride = module.types[base].inner.span(&module.constants);
+                let stride = module.types[base].inner.size(&module.constants);
                 let iter = (0..count).map(|i| (TypeResolution::Handle(base), stride * i));
                 self.write_storage_load_sequence(module, var_handle, iter, func_ctx)?;
                 write!(self.out, "}}")?;
@@ -259,8 +261,8 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                     "{}{}{}x{} {}{} = ",
                     level.next(),
                     crate::ScalarKind::Float.to_hlsl_str(width)?,
-                    rows as u8,
                     columns as u8,
+                    rows as u8,
                     STORE_TEMP_NAME,
                     depth,
                 )?;
@@ -268,18 +270,18 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                 writeln!(self.out, ";")?;
 
                 // Note: Matrices containing vec3s, due to padding, act like they contain vec4s.
-                let padded_columns = match columns {
+                let padded_rows = match rows {
                     crate::VectorSize::Tri => 4,
-                    columns => columns as u32,
+                    rows => rows as u32,
                 };
-                let row_stride = width as u32 * padded_columns;
+                let row_stride = width as u32 * padded_rows;
 
                 // then iterate the stores
-                for i in 0..rows as u32 {
+                for i in 0..columns as u32 {
                     self.temp_access_chain
                         .push(SubAccess::Offset(i * row_stride));
                     let ty_inner = crate::TypeInner::Vector {
-                        size: columns,
+                        size: rows,
                         kind: crate::ScalarKind::Float,
                         width,
                     };
@@ -305,13 +307,13 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                 self.write_value_type(module, &module.types[base].inner)?;
                 let depth = level.next().0;
                 write!(self.out, " {}{}", STORE_TEMP_NAME, depth)?;
-                self.write_array_size(module, crate::ArraySize::Constant(const_handle))?;
+                self.write_array_size(module, base, crate::ArraySize::Constant(const_handle))?;
                 write!(self.out, " = ")?;
                 self.write_store_value(module, &value, func_ctx)?;
                 writeln!(self.out, ";")?;
                 // then iterate the stores
                 let count = module.constants[const_handle].to_array_length().unwrap();
-                let stride = module.types[base].inner.span(&module.constants);
+                let stride = module.types[base].inner.size(&module.constants);
                 for i in 0..count {
                     self.temp_access_chain.push(SubAccess::Offset(i * stride));
                     let sv = StoreValue::TempIndex {
@@ -399,8 +401,13 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                     crate::TypeInner::Vector { width, .. } => Parent::Array {
                         stride: width as u32,
                     },
-                    crate::TypeInner::Matrix { rows, width, .. } => Parent::Array {
-                        stride: width as u32 * if rows > crate::VectorSize::Bi { 4 } else { 2 },
+                    crate::TypeInner::Matrix { columns, width, .. } => Parent::Array {
+                        stride: width as u32
+                            * if columns > crate::VectorSize::Bi {
+                                4
+                            } else {
+                                2
+                            },
                     },
                     _ => unreachable!(),
                 },

@@ -68,7 +68,7 @@ interface HTMLMediaElement : HTMLElement {
            attribute boolean autoplay;
   [CEReactions, SetterThrows]
            attribute boolean loop;
-  [Throws]
+  [NewObject]
   Promise<void> play();
   [Throws]
   void pause();
@@ -113,7 +113,11 @@ partial interface HTMLMediaElement {
   Promise<DOMString> mozRequestDebugLog();
 
   attribute MediaStream? srcObject;
+
+  // TODO: Remove mozPreservesPitch. (bug 1765201)
+  [Deprecated="MozPreservesPitchDeprecatedPrefix", BinaryName="preservesPitch"]
   attribute boolean mozPreservesPitch;
+  attribute boolean preservesPitch;
 
   // NB: for internal use with the video controls:
   [Func="IsChromeOrUAWidget"] attribute boolean mozAllowCasting;
@@ -200,7 +204,7 @@ partial interface HTMLMediaElement {
  *     event and an "ended" event.
  */
 partial interface HTMLMediaElement {
-  [Throws, Pref="media.seekToNextFrame.enabled"]
+  [NewObject, Pref="media.seekToNextFrame.enabled"]
   Promise<void> seekToNextFrame();
 };
 
@@ -269,7 +273,7 @@ partial interface HTMLMediaElement {
 partial interface HTMLMediaElement {
   [SecureContext, Pref="media.setsinkid.enabled"]
   readonly attribute DOMString sinkId;
-  [Throws, SecureContext, Pref="media.setsinkid.enabled"]
+  [NewObject, SecureContext, Pref="media.setsinkid.enabled"]
   Promise<void> setSinkId(DOMString sinkId);
 };
 

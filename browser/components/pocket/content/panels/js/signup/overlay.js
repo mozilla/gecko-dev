@@ -34,20 +34,19 @@ var SignupOverlay = function(options) {
       source: `log_in`,
     });
   };
-  this.create = function() {
+  this.create = function({ pockethost }) {
     const parser = new DOMParser();
     let elBody = document.querySelector(`body`);
 
     // Extract local variables passed into template via URL query params
     const { searchParams } = new URL(window.location.href);
     const isEmailSignupEnabled = searchParams.get(`emailButton`) === `true`;
-    const pockethost = searchParams.get(`pockethost`) || `getpocket.com`;
     const locale = searchParams.get(`locale`) || ``;
     const language = locale.split(`-`)[0].toLowerCase();
-    const utmCampaign =
-      searchParams.get(`utmCampaign`) || `firefox_door_hanger_menu`;
-    const utmSource = searchParams.get(`utmSource`) || `control`;
     const layoutRefresh = searchParams.get(`layoutRefresh`) === `true`;
+    const utmSource = searchParams.get(`utmSource`);
+    const utmCampaign = searchParams.get(`utmCampaign`);
+    const utmContent = searchParams.get(`utmContent`);
 
     if (this.active) {
       return;
@@ -55,19 +54,36 @@ var SignupOverlay = function(options) {
     this.active = true;
 
     if (layoutRefresh) {
-      // Create actual content
+      // For now, we need to do a little work on the body element
+      // to support both old and new versions.
+      document
+        .querySelector(`.pkt_ext_containersignup`)
+        ?.classList.add(`stp_signup_body`);
       document
         .querySelector(`.pkt_ext_containersignup`)
         ?.classList.remove(`pkt_ext_containersignup`);
+      // Create actual content
       ReactDOM.render(
-        <Signup pockethost={pockethost} locale={locale} />,
+        <Signup
+          pockethost={pockethost}
+          utmSource={utmSource}
+          utmCampaign={utmCampaign}
+          utmContent={utmContent}
+          locale={locale}
+        />,
         document.querySelector(`body`)
       );
+
+      if (window?.matchMedia(`(prefers-color-scheme: dark)`).matches) {
+        document.querySelector(`body`).classList.add(`theme_dark`);
+      }
     } else {
       const templateData = {
         pockethost,
-        utmCampaign,
-        utmSource,
+        utmCampaign: utmCampaign || `firefox_door_hanger_menu`,
+        // utmContent is now used for experiment branch in the new layouts,
+        // but for backwards comp reasons, we pass it in the old way as utmSource.
+        utmSource: utmContent || `control`,
       };
 
       // extra modifier class for language

@@ -36,14 +36,13 @@ const kPrefCustomizationDebug = "browser.uiCustomization.debug";
 const kPrefScreenshots = "extensions.screenshots.disabled";
 
 XPCOMUtils.defineLazyGetter(this, "log", () => {
-  let scope = {};
-  ChromeUtils.import("resource://gre/modules/Console.jsm", scope);
+  let { ConsoleAPI } = ChromeUtils.import("resource://gre/modules/Console.jsm");
   let debug = Services.prefs.getBoolPref(kPrefCustomizationDebug, false);
   let consoleOptions = {
     maxLogLevel: debug ? "all" : "log",
     prefix: "CustomizableWidgets",
   };
-  return new scope.ConsoleAPI(consoleOptions);
+  return new ConsoleAPI(consoleOptions);
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -451,6 +450,56 @@ const CustomizableWidgets = [
     onCommand(aEvent) {
       let win = aEvent.view;
       win.MailIntegration.sendLinkForBrowser(win.gBrowser.selectedBrowser);
+    },
+  },
+  {
+    id: "firefox-view-button",
+    l10nId: "toolbar-button-firefox-view",
+    defaultArea: CustomizableUI.AREA_TABSTRIP,
+    introducedInVersion: Services.prefs.getBoolPref("browser.tabs.firefox-view")
+      ? "pref"
+      : 0,
+    onBeforeCreated() {
+      return Services.prefs.getBoolPref("browser.tabs.firefox-view");
+    },
+    onCommand(e) {
+      let button = e.target;
+      if (button.hasAttribute("open")) {
+        return;
+      }
+      let window = button.ownerGlobal;
+      let tabbrowser = window.gBrowser;
+      let tab = window.gFirefoxViewTab;
+      if (!tab) {
+        tab = tabbrowser.addTrustedTab("about:firefoxview", { index: 0 });
+        tabbrowser.hideTab(tab);
+        window.gFirefoxViewTab = tab;
+
+        let onTabSelect = event => {
+          button.toggleAttribute("open", event.target == tab);
+        };
+
+        let onTabClose = () => {
+          window.gFirefoxViewTab = null;
+          tabbrowser.tabContainer.removeEventListener("TabSelect", onTabSelect);
+        };
+
+        tabbrowser.tabContainer.addEventListener("TabSelect", onTabSelect);
+        tab.addEventListener("TabClose", onTabClose, { once: true });
+
+        window.addEventListener(
+          "unload",
+          () => {
+            tabbrowser.tabContainer.removeEventListener(
+              "TabSelect",
+              onTabSelect
+            );
+            tab.removeEventListener("TabClose", onTabClose);
+          },
+          { once: true }
+        );
+      }
+      tabbrowser.selectedTab = tab;
     },
   },
 ];

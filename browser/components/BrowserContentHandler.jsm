@@ -26,27 +26,25 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   ShellService: "resource:///modules/ShellService.jsm",
   UpdatePing: "resource://gre/modules/UpdatePing.jsm",
 });
-XPCOMUtils.defineLazyServiceGetter(
-  this,
-  "WindowsUIUtils",
-  "@mozilla.org/windows-ui-utils;1",
-  "nsIWindowsUIUtils"
-);
-XPCOMUtils.defineLazyServiceGetter(
-  this,
-  "UpdateManager",
-  "@mozilla.org/updates/update-manager;1",
-  "nsIUpdateManager"
-);
+XPCOMUtils.defineLazyServiceGetters(this, {
+  UpdateManager: ["@mozilla.org/updates/update-manager;1", "nsIUpdateManager"],
+  WinTaskbar: ["@mozilla.org/windows-taskbar;1", "nsIWinTaskbar"],
+  WindowsUIUtils: ["@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils"],
+});
 
 XPCOMUtils.defineLazyGetter(this, "gSystemPrincipal", () =>
   Services.scriptSecurityManager.getSystemPrincipal()
 );
-XPCOMUtils.defineLazyGlobalGetters(this, [URL]);
+XPCOMUtils.defineLazyGlobalGetters(this, ["URL"]);
 
 // One-time startup homepage override configurations
 const ONCE_DOMAINS = ["mozilla.org", "firefox.com"];
 const ONCE_PREF = "browser.startup.homepage_override.once";
+
+// Index of Private Browsing icon in firefox.exe
+// Must line up with the one in nsNativeAppSupportWin.h.
+const PRIVATE_BROWSING_ICON_INDEX = 5;
+const PRIVACY_SEGMENTATION_PREF = "browser.privacySegmentation.enabled";
 
 function shouldLoadURI(aURI) {
   if (aURI && !aURI.schemeIs("chrome")) {
@@ -276,6 +274,20 @@ function openBrowserWindow(
         win.docShell.QueryInterface(
           Ci.nsILoadContext
         ).usePrivateBrowsing = true;
+        if (Services.prefs.getBoolPref(PRIVACY_SEGMENTATION_PREF)) {
+          // TODO: Changing this after the Window has been painted causes it to
+          // change Taskbar icons if the original one had a different AUMID.
+          // This must stay pref'ed off until this is resolved.
+          // https://bugzilla.mozilla.org/show_bug.cgi?id=1751010
+          WinTaskbar.setGroupIdForWindow(win, WinTaskbar.defaultPrivateGroupId);
+          WindowsUIUtils.setWindowIconFromExe(
+            win,
+            Services.dirsvc.get("XREExeF", Ci.nsIFile).path,
+            // This corresponds to the definitions in
+            // nsNativeAppSupportWin.h
+            PRIVATE_BROWSING_ICON_INDEX
+          );
+        }
       }
 
       let openTime = win.openTime;
@@ -372,6 +384,19 @@ nsBrowserContentHandler.prototype = {
   handle: function bch_handle(cmdLine) {
     if (cmdLine.handleFlag("kiosk", false)) {
       gKiosk = true;
+    }
+    if (cmdLine.handleFlag("disable-pinch", false)) {
+      let defaults = Services.prefs.getDefaultBranch(null);
+      defaults.setBoolPref("apz.allow_zooming", false);
+      Services.prefs.lockPref("apz.allow_zooming");
+      defaults.setCharPref("browser.gesture.pinch.in", "");
+      Services.prefs.lockPref("browser.gesture.pinch.in");
+      defaults.setCharPref("browser.gesture.pinch.in.shift", "");
+      Services.prefs.lockPref("browser.gesture.pinch.in.shift");
+      defaults.setCharPref("browser.gesture.pinch.out", "");
+      Services.prefs.lockPref("browser.gesture.pinch.out");
+      defaults.setCharPref("browser.gesture.pinch.out.shift", "");
+      Services.prefs.lockPref("browser.gesture.pinch.out.shift");
     }
     if (cmdLine.handleFlag("browser", false)) {
       openBrowserWindow(cmdLine, gSystemPrincipal);
@@ -586,7 +611,9 @@ nsBrowserContentHandler.prototype = {
     info += "  --setDefaultBrowser Set this app as the default browser.\n";
     info +=
       "  --first-startup    Run post-install actions before opening a new window.\n";
-    info += "  --kiosk Start the browser in kiosk mode.\n";
+    info += "  --kiosk            Start the browser in kiosk mode.\n";
+    info +=
+      "  --disable-pinch    Disable touch-screen and touch-pad pinch gestures.\n";
     return info;
   },
 

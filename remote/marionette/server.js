@@ -36,9 +36,6 @@ XPCOMUtils.defineLazyGetter(this, "ServerSocket", () => {
 
 const { KeepWhenOffline, LoopbackOnly } = Ci.nsIServerSocket;
 
-/** @namespace */
-this.server = {};
-
 const PROTOCOL_VERSION = 3;
 
 /**
@@ -168,7 +165,6 @@ class TCPListener {
     this.conns.delete(conn);
   }
 }
-this.TCPListener = TCPListener;
 
 /**
  * Marionette client connection.
@@ -416,4 +412,3 @@ class TCPConnection {
     return `[object TCPConnection ${this.id}]`;
   }
 }
-this.TCPConnection = TCPConnection;

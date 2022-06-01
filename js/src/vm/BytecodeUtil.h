@@ -302,13 +302,11 @@ static inline bool IsJumpOpcode(JSOp op) { return JOF_OPTYPE(op) == JOF_JUMP; }
 static inline bool BytecodeFallsThrough(JSOp op) {
   // Note:
   // * JSOp::Yield/JSOp::Await is considered to fall through, like JSOp::Call.
-  // * JSOp::Gosub falls through indirectly, after executing a 'finally'.
   switch (op) {
     case JSOp::Goto:
     case JSOp::Default:
     case JSOp::Return:
     case JSOp::RetRval:
-    case JSOp::Retsub:
     case JSOp::FinalYieldRval:
     case JSOp::Throw:
     case JSOp::ThrowMsg:
@@ -349,8 +347,7 @@ MOZ_ALWAYS_INLINE unsigned StackUses(jsbytecode* pc) {
       /* stack: fun, this, [argc arguments] */
       MOZ_ASSERT(op == JSOp::Call || op == JSOp::CallIgnoresRv ||
                  op == JSOp::Eval || op == JSOp::CallIter ||
-                 op == JSOp::StrictEval || op == JSOp::FunCall ||
-                 op == JSOp::FunApply);
+                 op == JSOp::StrictEval);
       return 2 + GET_ARGC(pc);
   }
 }
@@ -478,8 +475,11 @@ inline bool IsGetPropPC(const jsbytecode* pc) { return IsGetPropOp(JSOp(*pc)); }
 inline bool IsHiddenInitOp(JSOp op) {
   return op == JSOp::InitHiddenProp || op == JSOp::InitHiddenElem ||
          op == JSOp::InitHiddenPropGetter || op == JSOp::InitHiddenElemGetter ||
-         op == JSOp::InitHiddenPropSetter || op == JSOp::InitHiddenElemSetter ||
-         op == JSOp::InitLockedElem;
+         op == JSOp::InitHiddenPropSetter || op == JSOp::InitHiddenElemSetter;
+}
+
+inline bool IsLockedInitOp(JSOp op) {
+  return op == JSOp::InitLockedProp || op == JSOp::InitLockedElem;
 }
 
 inline bool IsStrictSetPC(jsbytecode* pc) {

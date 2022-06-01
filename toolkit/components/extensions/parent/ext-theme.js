@@ -60,7 +60,7 @@ class Theme {
       }
 
       if (experiment) {
-        if (extension.experimentsAllowed) {
+        if (extension.isPrivileged) {
           this.lwtStyles.experimental = {
             colors: {},
             images: {},
@@ -352,6 +352,11 @@ class Theme {
           styles.backgroundsTiling = tiling.join(",");
           break;
         }
+        case "color_scheme":
+        case "content_color_scheme": {
+          styles[property] = val;
+          break;
+        }
         default: {
           if (
             this.experiment &&
@@ -402,7 +407,33 @@ class Theme {
   }
 }
 
-this.theme = class extends ExtensionAPI {
+this.theme = class extends ExtensionAPIPersistent {
+  PERSISTENT_EVENTS = {
+    onUpdated({ fire, context }) {
+      let callback = (event, theme, windowId) => {
+        if (windowId) {
+          // Force access validation for incognito mode by getting the window.
+          if (windowTracker.getWindow(windowId, context, false)) {
+            fire.async({ theme, windowId });
+          }
+        } else {
+          fire.async({ theme });
+        }
+      };
+
+      onUpdatedEmitter.on("theme-updated", callback);
+      return {
+        unregister() {
+          onUpdatedEmitter.off("theme-updated", callback);
+        },
+        convert(_fire, _context) {
+          fire = _fire;
+          context = _context;
+        },
+      };
+    },
+  };
+
   onManifestEntry(entryName) {
     let { extension } = this;
     let { manifest } = extension;
@@ -487,24 +518,9 @@ this.theme = class extends ExtensionAPI {
         },
         onUpdated: new EventManager({
           context,
-          name: "theme.onUpdated",
-          register: fire => {
-            let callback = (event, theme, windowId) => {
-              if (windowId) {
-                // Force access validation for incognito mode by getting the window.
-                if (windowTracker.getWindow(windowId, context, false)) {
-                  fire.async({ theme, windowId });
-                }
-              } else {
-                fire.async({ theme });
-              }
-            };
-
-            onUpdatedEmitter.on("theme-updated", callback);
-            return () => {
-              onUpdatedEmitter.off("theme-updated", callback);
-            };
-          },
+          module: "theme",
+          event: "onUpdated",
+          extensionApi: this,
         }).api(),
       },
     };

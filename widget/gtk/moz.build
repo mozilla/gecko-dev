@@ -51,6 +51,8 @@ UNIFIED_SOURCES += [
     "MozContainer.cpp",
     "MPRISServiceHandler.cpp",
     "NativeKeyBindings.cpp",
+    "NativeMenuGtk.cpp",
+    "NativeMenuSupport.cpp",
     "nsApplicationChooser.cpp",
     "nsAppShell.cpp",
     "nsBidiKeyboard.cpp",
@@ -92,6 +94,7 @@ if CONFIG["MOZ_WAYLAND"]:
         "MozContainerWayland.cpp",
         "nsClipboardWayland.cpp",
         "nsWaylandDisplay.cpp",
+        "VAAPIUtils.cpp",
         "WaylandBuffer.cpp",
         "WindowSurfaceWaylandMultiBuffer.cpp",
     ]
@@ -100,26 +103,37 @@ if CONFIG["MOZ_WAYLAND"]:
         "DMABufSurface.h",
         "MozContainerWayland.h",
         "nsWaylandDisplay.h",
+        "VAAPIUtils.h",
         "WaylandBuffer.h",
     ]
+    LOCAL_INCLUDES += [
+        "/media/mozva",
+    ]
+    USE_LIBS += [
+        "mozva",
+    ]
 
-if CONFIG["MOZ_X11"]:
+if CONFIG["MOZ_X11"] or CONFIG["MOZ_WAYLAND"]:
     UNIFIED_SOURCES += [
         "CompositorWidgetChild.cpp",
         "CompositorWidgetParent.cpp",
         "InProcessGtkCompositorWidget.cpp",
-        "nsClipboardX11.cpp",
-        "nsShmImage.cpp",
         "nsUserIdleServiceGTK.cpp",
-        "WindowSurfaceX11.cpp",
-        "WindowSurfaceX11Image.cpp",
-        "WindowSurfaceX11SHM.cpp",
     ]
     EXPORTS.mozilla.widget += [
         "CompositorWidgetChild.h",
         "CompositorWidgetParent.h",
         "GtkCompositorWidget.h",
         "InProcessGtkCompositorWidget.h",
+    ]
+
+if CONFIG["MOZ_X11"]:
+    UNIFIED_SOURCES += [
+        "nsClipboardX11.cpp",
+        "nsShmImage.cpp",
+        "WindowSurfaceX11.cpp",
+        "WindowSurfaceX11Image.cpp",
+        "WindowSurfaceX11SHM.cpp",
     ]
 
 if CONFIG["NS_PRINTING"]:
@@ -149,7 +163,7 @@ LOCAL_INCLUDES += [
     "/widget/headless",
 ]
 
-if CONFIG["MOZ_X11"]:
+if CONFIG["MOZ_X11"] or CONFIG["MOZ_WAYLAND"]:
     LOCAL_INCLUDES += [
         "/widget/x11",
     ]
@@ -166,6 +180,12 @@ if CONFIG["MOZ_WAYLAND"]:
     CXXFLAGS += CONFIG["MOZ_WAYLAND_CFLAGS"]
 
 if CONFIG["MOZ_ENABLE_DBUS"]:
+    EXPORTS.mozilla.widget += [
+        "AsyncDBus.h",
+    ]
+    UNIFIED_SOURCES += [
+        "AsyncDBus.cpp",
+    ]
     CXXFLAGS += CONFIG["MOZ_DBUS_GLIB_CFLAGS"]
 CXXFLAGS += ["-Werror=switch"]
 

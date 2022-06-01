@@ -1,12 +1,12 @@
 browser/components/newtab/vendor/
 browser/components/pocket/content/panels/js/vendor/
+browser/components/storybook/node_modules/
 browser/components/translation/cld2/
 browser/extensions/formautofill/content/third-party/
 browser/extensions/formautofill/test/fixtures/third_party/
 browser/extensions/screenshots/build/raven.js
 devtools/client/inspector/markup/test/lib_*
 devtools/client/jsonview/lib/require.js
-devtools/client/shared/demangle.js
 devtools/client/shared/build/babel.js
 devtools/client/shared/source-map/
 devtools/client/shared/sourceeditor/codemirror/
@@ -31,6 +31,7 @@ dom/media/gmp/widevine-adapter/content_decryption_module.h
 dom/media/gmp/widevine-adapter/content_decryption_module_proxy.h
 dom/media/platforms/ffmpeg/ffmpeg57/
 dom/media/platforms/ffmpeg/ffmpeg58/
+dom/media/platforms/ffmpeg/ffmpeg59/
 dom/media/platforms/ffmpeg/libav53/
 dom/media/platforms/ffmpeg/libav54/
 dom/media/platforms/ffmpeg/libav55/
@@ -151,7 +152,6 @@ testing/gtest/gtest/
 testing/mochitest/MochiKit/
 testing/mochitest/pywebsocket3/
 testing/mochitest/tests/MochiKit-1.4.2/
-testing/modules/ajv-6.12.6.js
 testing/modules/sinon-7.2.7.js
 testing/mozbase/mozproxy/mozproxy/backends/mitm/scripts/catapult/
 testing/talos/talos/tests/dromaeo/

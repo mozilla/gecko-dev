@@ -168,6 +168,9 @@ enum class BailoutKind : uint8_t {
   // A bailout to baseline from Ion on exception to handle Debugger hooks.
   IonExceptionDebugMode,
 
+  // A bailout to baseline from Ion on exception to handle a finally block.
+  Finally,
+
   // We returned to a stack frame after invalidating its IonScript.
   OnStackInvalidation,
 
@@ -211,6 +214,8 @@ inline const char* BailoutKindString(BailoutKind kind) {
       return "UninitializedLexical";
     case BailoutKind::IonExceptionDebugMode:
       return "IonExceptionDebugMode";
+    case BailoutKind::Finally:
+      return "Finally";
     case BailoutKind::OnStackInvalidation:
       return "OnStackInvalidation";
     case BailoutKind::Unreachable:
@@ -989,6 +994,42 @@ constexpr T SplatByteToUInt(uint8_t val, uint8_t x) {
     splatted |= splatted << 8;
   }
   return splatted;
+}
+
+// Resume information for a frame, stored in a resume point.
+enum class ResumeMode : uint8_t {
+  // Innermost frame. Resume at the next bytecode op when bailing out.
+  ResumeAfter,
+
+  // Innermost frame. Resume at the current bytecode op when bailing out.
+  ResumeAt,
+
+  // Outer frame for an inlined "standard" call at an IsInvokeOp bytecode op.
+  InlinedStandardCall,
+
+  // Outer frame for an inlined js::fun_call at an IsInvokeOp bytecode op.
+  InlinedFunCall,
+
+  // Outer frame for an inlined getter/setter at a Get*/Set* bytecode op.
+  InlinedAccessor,
+
+  Last = InlinedAccessor
+};
+
+inline const char* ResumeModeToString(ResumeMode mode) {
+  switch (mode) {
+    case ResumeMode::ResumeAfter:
+      return "ResumeAfter";
+    case ResumeMode::ResumeAt:
+      return "ResumeAt";
+    case ResumeMode::InlinedStandardCall:
+      return "InlinedStandardCall";
+    case ResumeMode::InlinedFunCall:
+      return "InlinedFunCall";
+    case ResumeMode::InlinedAccessor:
+      return "InlinedAccessor";
+  }
+  MOZ_CRASH("Invalid mode");
 }
 
 }  // namespace jit

@@ -459,7 +459,7 @@ async function testSelectColors(selectID, itemCount, options) {
 // System colors may be different in content pages and chrome pages.
 let kDefaultSelectStyles = {};
 
-add_task(async function setup() {
+add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [["dom.forms.select.customstyling", true]],
   });
@@ -797,7 +797,10 @@ add_task(async function test_scrollbar_props() {
 if (AppConstants.isPlatformAndVersionAtLeast("win", "10")) {
   add_task(async function test_darkmode() {
     // Force dark mode:
+    let darkModeQuery = matchMedia("(prefers-color-scheme: dark)");
+    let darkModeChange = BrowserTestUtils.waitForEvent(darkModeQuery, "change");
     await SpecialPowers.pushPrefEnv({ set: [["ui.systemUsesDarkTheme", 1]] });
+    await darkModeChange;
 
     // Determine colours from the main context menu:
     let cs = getComputedStyle(document.documentElement);

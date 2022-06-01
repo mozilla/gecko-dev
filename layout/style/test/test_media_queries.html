@@ -266,6 +266,17 @@ function run() {
       } else {
         expression_should_not_be_parseable("min-" + feature + " " + separator + " -0");
         expression_should_not_be_parseable("max-" + feature + " " + separator + " -0");
+        let multi_range = "0px " + separator + " " + feature + " " + separator + " 100000px"
+        if (separator == "=") {
+          expression_should_not_be_parseable(multi_range);
+        } else {
+          expression_should_be_parseable(multi_range);
+        }
+      }
+      if (separator == ">=") {
+        expression_should_not_be_parseable(feature + " > = 0px");
+      } else if (separator == "<=") {
+        expression_should_not_be_parseable(feature + " < = 0px");
       }
       expression_should_not_be_parseable(feature + " " + separator + " -1px");
       expression_should_not_be_parseable("min-" + feature + " " + separator + " -1px");
@@ -337,6 +348,13 @@ function run() {
 
     should_apply("(" + feature + " <= " + value + "px)");
     should_apply("(" + feature + " >= " + value + "px)");
+
+    should_apply("(0px < " + feature + " <= " + value + "px)");
+    should_apply("(" + value + "px >= " + feature + " > 0px)");
+
+    should_not_apply("(0px < " + feature + " < " + value + "px)");
+    should_not_apply("(" + value + "px > " + feature + " > 0px)");
+
     should_not_apply("(" + feature + " < " + value + "px)");
     should_not_apply("(" + feature + " > " + value + "px)");
 
@@ -707,8 +725,9 @@ function run() {
       ? expression_should_be_parseable
       : expression_should_not_be_parseable;
     should_be_parseable_if_enabled("prefers-contrast");
-    should_be_parseable_if_enabled("prefers-contrast: high");
-    should_be_parseable_if_enabled("prefers-contrast: low");
+    should_be_parseable_if_enabled("prefers-contrast: more");
+    should_be_parseable_if_enabled("prefers-contrast: less");
+    should_be_parseable_if_enabled("prefers-contrast: custom");
     should_be_parseable_if_enabled("prefers-contrast: no-preference");
   }
 
@@ -792,6 +811,12 @@ function run() {
   should_not_apply_unbalanced("(resolution(),all");
   should_not_apply_unbalanced("(resolution (),all");
   should_not_apply_unbalanced("(resolution:(),all");
+
+  for (let rangeFeature of ["dynamic-range", "video-dynamic-range"]) {
+    should_apply("(" + rangeFeature + ": standard)");
+    query_should_be_parseable("(" + rangeFeature + ": high)");
+    query_should_not_be_parseable("(" + rangeFeature + ": low)");
+  }
 
   handle_posted_items();
 }

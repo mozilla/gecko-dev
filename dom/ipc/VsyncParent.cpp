@@ -20,26 +20,25 @@ VsyncParent::VsyncParent()
       mDestroyed(false),
       mInitialThread(NS_GetCurrentThread()) {}
 
-void VsyncParent::UpdateVsyncSource(
-    const RefPtr<gfx::VsyncSource>& aVsyncSource) {
-  mVsyncSource = aVsyncSource;
-  if (!mVsyncSource) {
-    mVsyncSource = gfxPlatform::GetPlatform()->GetHardwareVsync();
+void VsyncParent::UpdateVsyncDispatcher(
+    const RefPtr<VsyncDispatcher>& aVsyncDispatcher) {
+  if (aVsyncDispatcher == mVsyncDispatcher) {
+    return;
   }
 
   if (mObservingVsync && mVsyncDispatcher) {
-    mVsyncDispatcher->RemoveChildRefreshTimer(this);
+    mVsyncDispatcher->RemoveVsyncObserver(this);
   }
-  mVsyncDispatcher = mVsyncSource->GetRefreshTimerVsyncDispatcher();
+  mVsyncDispatcher = aVsyncDispatcher;
   if (mObservingVsync) {
-    mVsyncDispatcher->AddChildRefreshTimer(this);
+    mVsyncDispatcher->AddVsyncObserver(this);
   }
 }
 
-bool VsyncParent::NotifyVsync(const VsyncEvent& aVsync) {
+void VsyncParent::NotifyVsync(const VsyncEvent& aVsync) {
   if (IsOnInitialThread()) {
     DispatchVsyncEvent(aVsync);
-    return true;
+    return;
   }
 
   // Called on hardware vsync thread. We should post to current ipc thread.
@@ -48,7 +47,6 @@ bool VsyncParent::NotifyVsync(const VsyncEvent& aVsync) {
       &VsyncParent::DispatchVsyncEvent, aVsync);
   MOZ_ALWAYS_SUCCEEDS(NS_DispatchToThreadQueue(
       vsyncEvent.forget(), mInitialThread, EventQueuePriority::Vsync));
-  return true;
 }
 
 void VsyncParent::DispatchVsyncEvent(const VsyncEvent& aVsync) {
@@ -60,7 +58,7 @@ void VsyncParent::DispatchVsyncEvent(const VsyncEvent& aVsync) {
   // NotifyVsync(). We use mObservingVsync and mDestroyed flags to skip this
   // notification.
   if (mObservingVsync && !mDestroyed) {
-    TimeDuration vsyncRate = mVsyncSource->GetGlobalDisplay().GetVsyncRate();
+    TimeDuration vsyncRate = mVsyncDispatcher->GetVsyncRate();
     Unused << SendNotify(aVsync, vsyncRate.ToMilliseconds());
   }
 }
@@ -69,7 +67,7 @@ mozilla::ipc::IPCResult VsyncParent::RecvObserve() {
   AssertIsOnInitialThread();
   if (!mObservingVsync) {
     if (mVsyncDispatcher) {
-      mVsyncDispatcher->AddChildRefreshTimer(this);
+      mVsyncDispatcher->AddVsyncObserver(this);
     }
     mObservingVsync = true;
     return IPC_OK();
@@ -81,7 +79,7 @@ mozilla::ipc::IPCResult VsyncParent::RecvUnobserve() {
   AssertIsOnInitialThread();
   if (mObservingVsync) {
     if (mVsyncDispatcher) {
-      mVsyncDispatcher->RemoveChildRefreshTimer(this);
+      mVsyncDispatcher->RemoveVsyncObserver(this);
     }
     mObservingVsync = false;
     return IPC_OK();
@@ -93,7 +91,7 @@ void VsyncParent::ActorDestroy(ActorDestroyReason aActorDestroyReason) {
   MOZ_ASSERT(!mDestroyed);
   AssertIsOnInitialThread();
   if (mObservingVsync && mVsyncDispatcher) {
-    mVsyncDispatcher->RemoveChildRefreshTimer(this);
+    mVsyncDispatcher->RemoveVsyncObserver(this);
   }
   mVsyncDispatcher = nullptr;
   mDestroyed = true;

@@ -12,7 +12,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["Subprocess"];
+var EXPORTED_SYMBOLS = ["Subprocess", "getSubprocessImplForTest"];
 
 /* exported Subprocess */
 
@@ -203,3 +203,7 @@ var Subprocess = {
 
 Object.assign(Subprocess, SubprocessConstants);
 Object.freeze(Subprocess);
+
+function getSubprocessImplForTest() {
+  return SubprocessImpl;
+}

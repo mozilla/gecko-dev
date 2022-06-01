@@ -1098,12 +1098,6 @@ var gProtectionsHandler = {
       "tracking-protection-icon-box"
     ));
   },
-  get _protectionsIconBox() {
-    delete this._protectionsIconBox;
-    return (this._protectionsIconBox = document.getElementById(
-      "tracking-protection-icon-animatable-box"
-    ));
-  },
   get _protectionsPopupMultiView() {
     delete this._protectionsPopupMultiView;
     return (this._protectionsPopupMultiView = document.getElementById(
@@ -2149,7 +2143,7 @@ var gProtectionsHandler = {
         "popupshown",
         () => {
           this._toastPanelTimer = setTimeout(() => {
-            PanelMultiView.hidePopup(this._protectionsPopup);
+            PanelMultiView.hidePopup(this._protectionsPopup, true);
             delete this._toastPanelTimer;
           }, this._protectionsPopupToastTimeout);
         },

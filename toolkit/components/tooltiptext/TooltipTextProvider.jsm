@@ -39,10 +39,10 @@ TooltipTextProvider.prototype = {
     // If the element is invalid per HTML5 Forms specifications and has no title,
     // show the constraint validation error message.
     if (
-      (tipElement instanceof defView.HTMLInputElement ||
-        tipElement instanceof defView.HTMLTextAreaElement ||
-        tipElement instanceof defView.HTMLSelectElement ||
-        tipElement instanceof defView.HTMLButtonElement) &&
+      (defView.HTMLInputElement.isInstance(tipElement) ||
+        defView.HTMLTextAreaElement.isInstance(tipElement) ||
+        defView.HTMLSelectElement.isInstance(tipElement) ||
+        defView.HTMLButtonElement.isInstance(tipElement)) &&
       !tipElement.hasAttribute("title") &&
       (!tipElement.form || !tipElement.form.noValidate)
     ) {
@@ -55,7 +55,7 @@ TooltipTextProvider.prototype = {
     // the current file selection.
     if (
       !titleText &&
-      tipElement instanceof defView.HTMLInputElement &&
+      defView.HTMLInputElement.isInstance(tipElement) &&
       tipElement.type == "file" &&
       !tipElement.hasAttribute("title")
     ) {
@@ -86,9 +86,10 @@ TooltipTextProvider.prototype = {
           } else if (files.length > TRUNCATED_FILE_COUNT + 1) {
             let xmoreStr = bundle.GetStringFromName("AndNMoreFiles");
             let xmoreNum = files.length - TRUNCATED_FILE_COUNT;
-            let tmp = {};
-            ChromeUtils.import("resource://gre/modules/PluralForm.jsm", tmp);
-            let andXMoreStr = tmp.PluralForm.get(xmoreNum, xmoreStr).replace(
+            let { PluralForm } = ChromeUtils.import(
+              "resource://gre/modules/PluralForm.jsm"
+            );
+            let andXMoreStr = PluralForm.get(xmoreNum, xmoreStr).replace(
               "#1",
               xmoreNum
             );
@@ -113,29 +114,29 @@ TooltipTextProvider.prototype = {
           XULtooltiptextText = tipElement.hasAttribute("tooltiptext")
             ? tipElement.getAttribute("tooltiptext")
             : null;
-        } else if (!(tipElement instanceof defView.SVGElement)) {
+        } else if (!defView.SVGElement.isInstance(tipElement)) {
           titleText = tipElement.getAttribute("title");
         }
 
         if (
-          (tipElement instanceof defView.HTMLAnchorElement ||
-            tipElement instanceof defView.HTMLAreaElement ||
-            tipElement instanceof defView.HTMLLinkElement ||
-            tipElement instanceof defView.SVGAElement) &&
+          (defView.HTMLAnchorElement.isInstance(tipElement) ||
+            defView.HTMLAreaElement.isInstance(tipElement) ||
+            defView.HTMLLinkElement.isInstance(tipElement) ||
+            defView.SVGAElement.isInstance(tipElement)) &&
           tipElement.href
         ) {
           XLinkTitleText = tipElement.getAttributeNS(XLinkNS, "title");
         }
         if (
           lookingForSVGTitle &&
-          (!(tipElement instanceof defView.SVGElement) ||
+          (!defView.SVGElement.isInstance(tipElement) ||
             tipElement.parentNode.nodeType == defView.Node.DOCUMENT_NODE)
         ) {
           lookingForSVGTitle = false;
         }
         if (lookingForSVGTitle) {
           for (let childNode of tipElement.childNodes) {
-            if (childNode instanceof defView.SVGTitleElement) {
+            if (defView.SVGTitleElement.isInstance(childNode)) {
               SVGTitleText = childNode.textContent;
               break;
             }

@@ -56,21 +56,6 @@ interface nsISubjectAndPubKeyRevocationState : nsIRevocationState {
 };
 
 /**
- * An interface representing the CRLite enrollment state of a certificate
- * identified by its subject and subject public key info hash.
- * subject is a base 64-encoded DER subject distinguished name.
- * spkiHash is a base 64-encoded SHA-256 hash of a DER subject public key info.
- * state is nsICertStorage.STATE_ENFORCE or STATE_UNSET, meaning the certificate
- * is or is not enrolled in CRLite, respectively.
- */
-[scriptable, uuid(5d0d22be-185f-4cf0-b73b-c5a911273e77)]
-interface nsICRLiteState : nsISupports {
-    readonly attribute ACString subject;
-    readonly attribute ACString spkiHash;
-    readonly attribute short state;
-};
-
-/**
  * An interface representing a set of certificates that are covered by a CRLite
  * filter. The set is represented by a certificate transparency log ID and a
  * pair of timestamps. The timestamps are such that the CRLite aggregator has
@@ -137,6 +122,7 @@ interface nsICertStorage : nsISupports {
   const short STATE_ENFORCE = 1;
   const short STATE_NOT_ENROLLED = 2;
   const short STATE_NOT_COVERED = 3;
+  const short STATE_NO_FILTER = 4;
 
   /**
    * Asynchronously set the revocation states of a set of certificates.
@@ -164,40 +150,16 @@ interface nsICertStorage : nsISupports {
                            in Array<octet> subject,
                            in Array<octet> pubkey);
 
-   /**
-    * Check that the blocklist data is current. Specifically, that the current
-    * time is no more than security.onecrl.maximum_staleness_in_seconds seconds
-    * after the last blocklist update (as stored in the
-    * services.blocklist.onecrl.checked pref)
-    */
-  [must_use]
-  boolean isBlocklistFresh();
-
   /**
-   * Asynchronously set a batch of CRLite enrollment state. See the
-   * documentation for nsICRLiteState.
-   * Must only be called from the main thread.
-   */
-  [must_use]
-  void setCRLiteState(in Array<nsICRLiteState> crliteState,
-                      in nsICertStorageCallback callback);
-
-  /**
-   * Get the CRLite enrollment state of a certificate identified by the given
-   * subject distinguished name and subject public key info (both as DER bytes).
-   * STATE_ENFORCE indicates the certificate is enrolled, whereas STATE_UNSET
-   * indicates it is not.
-   */
-  [must_use]
-  short getCRLiteState(in Array<octet> subject, in Array<octet> spki);
-
-  /**
-   * Given the contents of a new CRLite filter and a description of the new
-   * filter's coverage, replaces any existing filter with the new one.  Also
-   * clears any previously-set incremental revocation updates ("stashes").
+   * Given the contents of a new CRLite filter, a list containing
+   * `base64(sha256(subject DN || subject SPKI))` for each enrolled issuer, and
+   * the filter's timestamp coverage, replaces any existing filter with the new
+   * one. Also clears any previously-set incremental revocation updates
+   * ("stashes").
    */
   [must_use]
   void setFullCRLiteFilter(in Array<octet> filter,
+                           in Array<ACString> enrolledIssuers,
                            in Array<nsICRLiteCoverage> coverage,
                            in nsICertStorageCallback callback);
 
@@ -212,6 +174,7 @@ interface nsICertStorage : nsISupports {
    *    - STATE_NOT_ENROLLED if the issuer is not enrolled in CRLite, or
    *    - STATE_NOT_COVERED if the issuer is enrolled but the provided timestamps indicate
    *      that the serial number is not covered by the current CRLite filter.
+   *    - STATE_NO_FILTER if there is no (usable) CRLite filter.
    * No lookup is performed in the STATE_NOT_ENROLLED and STATE_NOT_COVERED cases.
    */
   [must_use]

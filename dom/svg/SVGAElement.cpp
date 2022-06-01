@@ -20,8 +20,7 @@
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(A)
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 JSObject* SVGAElement::WrapNode(JSContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
@@ -59,14 +58,6 @@ already_AddRefed<DOMSVGAnimatedString> SVGAElement::Href() {
   return mStringAttributes[HREF].IsExplicitlySet()
              ? mStringAttributes[HREF].ToDOMAnimatedString(this)
              : mStringAttributes[XLINK_HREF].ToDOMAnimatedString(this);
-}
-
-//----------------------------------------------------------------------
-// Link methods
-
-bool SVGAElement::ElementHasHref() const {
-  return mStringAttributes[HREF].IsExplicitlySet() ||
-         mStringAttributes[XLINK_HREF].IsExplicitlySet();
 }
 
 //----------------------------------------------------------------------
@@ -176,11 +167,6 @@ void SVGAElement::UnbindFromTree(bool aNullParent) {
   SVGAElementBase::UnbindFromTree(aNullParent);
 }
 
-already_AddRefed<nsIURI> SVGAElement::GetHrefURI() const {
-  nsCOMPtr<nsIURI> hrefURI;
-  return IsLink(getter_AddRefs(hrefURI)) ? hrefURI.forget() : nullptr;
-}
-
 NS_IMETHODIMP_(bool)
 SVGAElement::IsAttributeMapped(const nsAtom* name) const {
   static const MappedAttributeEntry* const map[] = {sFEFloodMap,
@@ -219,7 +205,7 @@ bool SVGAElement::IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) {
 
   if (GetTabIndexAttrValue().isNothing()) {
     // check whether we're actually a link
-    if (!Link::HasURI()) {
+    if (!IsLink()) {
       // Not tabbable or focusable without href (bug 17605), unless
       // forced to be via presence of nonnegative tabindex attribute
       if (aTabIndex) {
@@ -236,48 +222,27 @@ bool SVGAElement::IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) {
   return true;
 }
 
-bool SVGAElement::IsLink(nsIURI** aURI) const {
-  // To be a clickable XLink for styling and interaction purposes, we require:
-  //
-  //   xlink:href    - must be set
-  //   xlink:type    - must be unset or set to "" or set to "simple"
-  //   xlink:show    - must be unset or set to "", "new" or "replace"
-  //   xlink:actuate - must be unset or set to "" or "onRequest"
-  //
-  // For any other values, we're either not a *clickable* XLink, or the end
-  // result is poorly specified. Either way, we return false.
+bool SVGAElement::HasHref() const {
+  // Currently our SMIL implementation does not modify the DOM attributes. Once
+  // we implement the SVG 2 SMIL behaviour this can be removed.
+  return mStringAttributes[HREF].IsExplicitlySet() ||
+         mStringAttributes[XLINK_HREF].IsExplicitlySet();
+}
 
-  static Element::AttrValuesArray sTypeVals[] = {nsGkAtoms::_empty,
-                                                 nsGkAtoms::simple, nullptr};
-
-  static Element::AttrValuesArray sShowVals[] = {
-      nsGkAtoms::_empty, nsGkAtoms::_new, nsGkAtoms::replace, nullptr};
-
-  static Element::AttrValuesArray sActuateVals[] = {
-      nsGkAtoms::_empty, nsGkAtoms::onRequest, nullptr};
-
+already_AddRefed<nsIURI> SVGAElement::GetHrefURI() const {
   // Optimization: check for href first for early return
   bool useBareHref = mStringAttributes[HREF].IsExplicitlySet();
-
-  if ((useBareHref || mStringAttributes[XLINK_HREF].IsExplicitlySet()) &&
-      FindAttrValueIn(kNameSpaceID_XLink, nsGkAtoms::type, sTypeVals,
-                      eCaseMatters) != Element::ATTR_VALUE_NO_MATCH &&
-      FindAttrValueIn(kNameSpaceID_XLink, nsGkAtoms::show, sShowVals,
-                      eCaseMatters) != Element::ATTR_VALUE_NO_MATCH &&
-      FindAttrValueIn(kNameSpaceID_XLink, nsGkAtoms::actuate, sActuateVals,
-                      eCaseMatters) != Element::ATTR_VALUE_NO_MATCH) {
+  if (useBareHref || mStringAttributes[XLINK_HREF].IsExplicitlySet()) {
     // Get absolute URI
     nsAutoString str;
     const uint8_t idx = useBareHref ? HREF : XLINK_HREF;
     mStringAttributes[idx].GetAnimValue(str, this);
-    nsContentUtils::NewURIWithDocumentCharset(aURI, str, OwnerDoc(),
-                                              GetBaseURI());
-    // must promise out param is non-null if we return true
-    return !!*aURI;
+    nsCOMPtr<nsIURI> uri;
+    nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(uri), str,
+                                              OwnerDoc(), GetBaseURI());
+    return uri.forget();
   }
-
-  *aURI = nullptr;
-  return false;
+  return nullptr;
 }
 
 void SVGAElement::GetLinkTarget(nsAString& aTarget) {
@@ -330,5 +295,4 @@ SVGElement::StringAttributesInfo SVGAElement::GetStringInfo() {
                               ArrayLength(sStringInfo));
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

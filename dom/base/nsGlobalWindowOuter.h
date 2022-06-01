@@ -122,6 +122,9 @@ class CacheStorage;
 }  // namespace cache
 class IDBFactory;
 }  // namespace dom
+namespace layout {
+class RemotePrintJobChild;
+}  // namespace layout
 }  // namespace mozilla
 
 extern already_AddRefed<nsIScriptTimeoutHandler> NS_CreateJSTimeoutHandler(
@@ -231,6 +234,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   // nsIGlobalObject
   bool ShouldResistFingerprinting() const final;
   uint32_t GetPrincipalHashValue() const final;
+  mozilla::OriginTrials Trials() const final;
 
   // nsIGlobalJSObjectHolder
   JSObject* GetGlobalJSObject() final { return GetWrapper(); }
@@ -533,10 +537,16 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   bool GetClosedOuter();
   bool Closed() override;
   void StopOuter(mozilla::ErrorResult& aError);
-  void FocusOuter(mozilla::dom::CallerType aCallerType, bool aFromOtherProcess,
-                  uint64_t aActionId);
+  // TODO: Convert FocusOuter() to MOZ_CAN_RUN_SCRIPT and get rid of the
+  // kungFuDeathGrip in it.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void FocusOuter(
+      mozilla::dom::CallerType aCallerType, bool aFromOtherProcess,
+      uint64_t aActionId);
   nsresult Focus(mozilla::dom::CallerType aCallerType) override;
-  void BlurOuter(mozilla::dom::CallerType aCallerType);
+  // TODO: Convert BlurOuter() to MOZ_CAN_RUN_SCRIPT and get rid of the
+  // kungFuDeathGrip in it.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void BlurOuter(
+      mozilla::dom::CallerType aCallerType);
   mozilla::dom::WindowProxyHolder GetFramesOuter();
   uint32_t Length();
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> GetTopOuter();
@@ -587,8 +597,9 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   enum class IsPreview : bool { No, Yes };
   enum class IsForWindowDotPrint : bool { No, Yes };
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> Print(
-      nsIPrintSettings*, nsIWebProgressListener*, nsIDocShell*, IsPreview,
-      IsForWindowDotPrint, PrintPreviewResolver&&, mozilla::ErrorResult&);
+      nsIPrintSettings*, mozilla::layout::RemotePrintJobChild* aRemotePrintJob,
+      nsIWebProgressListener*, nsIDocShell*, IsPreview, IsForWindowDotPrint,
+      PrintPreviewResolver&&, mozilla::ErrorResult&);
   mozilla::dom::Selection* GetSelectionOuter();
   already_AddRefed<mozilla::dom::Selection> GetSelection() override;
   nsScreen* GetScreen();
@@ -622,7 +633,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   bool FindOuter(const nsAString& aString, bool aCaseSensitive, bool aBackwards,
                  bool aWrapAround, bool aWholeWord, bool aSearchInFrames,
                  bool aShowDialog, mozilla::ErrorResult& aError);
-  uint64_t GetMozPaintCountOuter();
 
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> OpenDialogOuter(
       JSContext* aCx, const nsAString& aUrl, const nsAString& aName,

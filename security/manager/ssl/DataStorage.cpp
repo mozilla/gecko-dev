@@ -138,7 +138,7 @@ nsresult DataStorage::Init() {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  if (AppShutdown::IsShuttingDown()) {
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
     // Reject new DataStorage instances if the browser is shutting down. There
     // is no guarantee that DataStorage writes will be able to be persisted if
     // we init during shutdown, so we return an error here to hopefully make
@@ -170,7 +170,7 @@ nsresult DataStorage::Init() {
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  mBackgroundTaskQueue = new TaskQueue(target.forget(), "PSM DataStorage");
+  mBackgroundTaskQueue = TaskQueue::Create(target.forget(), "PSM DataStorage");
 
   // For test purposes, we can set the write timer to be very fast.
   uint32_t timerDelayMS = Preferences::GetInt("test.datastorage.write_timer_ms",
@@ -201,6 +201,9 @@ nsresult DataStorage::Init() {
   // This is a backstop for xpcshell and other cases where
   // profile-before-change might not get sent.
   os->AddObserver(this, "xpcom-shutdown-threads", false);
+  // On mobile, if the app is backgrounded, it may be killed. Observe this
+  // notification to kick off an asynchronous write to avoid losing data.
+  os->AddObserver(this, "application-background", false);
 
   return NS_OK;
 }
@@ -257,9 +260,7 @@ DataStorage::Reader::Run() {
   nsCOMPtr<nsIInputStream> fileInputStream;
   rv = NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream), file);
   // If we failed for some reason other than the file doesn't exist, bail.
-  if (NS_WARN_IF(NS_FAILED(rv) &&
-                 rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&  // on Unix
-                 rv != NS_ERROR_FILE_NOT_FOUND)) {             // on Windows
+  if (NS_WARN_IF(NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND)) {
     return rv;
   }
 
@@ -415,6 +416,7 @@ nsresult DataStorage::Reader::ParseLine(nsDependentCSubstring& aLine,
 }
 
 nsresult DataStorage::AsyncReadData(const MutexAutoLock& /*aProofOfLock*/) {
+  mMutex.AssertCurrentThreadOwns();
   // Allocate a Reader so that even if it isn't dispatched,
   // the data-storage-ready notification will be fired and Get
   // will be able to proceed (this happens in its destructor).
@@ -580,6 +582,7 @@ nsresult DataStorage::Put(const nsCString& aKey, const nsCString& aValue,
 nsresult DataStorage::PutInternal(const nsCString& aKey, Entry& aEntry,
                                   DataStorageType aType,
                                   const MutexAutoLock& aProofOfLock) {
+  mMutex.AssertCurrentThreadOwns();
   DataStorageTable& table = GetTableForType(aType, aProofOfLock);
   table.InsertOrUpdate(aKey, aEntry);
 
@@ -634,13 +637,14 @@ DataStorage::Writer::Run() {
       return rv;
     }
   }
+
   nsCOMPtr<nsIOutputStream> outputStream;
-  rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream), file,
-                                   PR_CREATE_FILE | PR_TRUNCATE | PR_WRONLY);
+  rv =
+      NS_NewSafeLocalFileOutputStream(getter_AddRefs(outputStream), file,
+                                      PR_CREATE_FILE | PR_TRUNCATE | PR_WRONLY);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-
   // When the output stream is null, it means we don't have a profile.
   if (!outputStream) {
     return NS_OK;
@@ -658,6 +662,16 @@ DataStorage::Writer::Run() {
     ptr += written;
   }
 
+  nsCOMPtr<nsISafeOutputStream> safeOutputStream =
+      do_QueryInterface(outputStream);
+  if (!safeOutputStream) {
+    return NS_ERROR_FAILURE;
+  }
+  rv = safeOutputStream->Finish();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
   // Observed by tests.
   nsCOMPtr<nsIRunnable> job = NewRunnableMethod<const char*>(
       "DataStorage::NotifyObservers", mDataStorage,
@@ -671,6 +685,7 @@ DataStorage::Writer::Run() {
 }
 
 nsresult DataStorage::AsyncWriteData(const MutexAutoLock& /*aProofOfLock*/) {
+  mMutex.AssertCurrentThreadOwns();
   if (!mPendingWrite || mShuttingDown || !mBackingFile) {
     return NS_OK;
   }
@@ -779,6 +794,16 @@ DataStorage::Observe(nsISupports* /*aSubject*/, const char* aTopic,
       taskQueueToAwait->AwaitShutdownAndIdle();
     }
     ShutdownTimer();
+  }
+
+  // On mobile, if the app is backgrounded, it may be killed. Kick off an
+  // asynchronous write to avoid losing data.
+  if (strcmp(aTopic, "application-background") == 0) {
+    MutexAutoLock lock(mMutex);
+    if (!mShuttingDown) {
+      nsresult rv = AsyncWriteData(lock);
+      Unused << NS_WARN_IF(NS_FAILED(rv));
+    }
   }
 
   return NS_OK;

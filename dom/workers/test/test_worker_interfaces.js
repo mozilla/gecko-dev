@@ -49,12 +49,10 @@ var wasmGlobalInterfaces = [
   {
     name: "Exception",
     insecureContext: true,
-    nightly: true,
   },
   {
     name: "Tag",
     insecureContext: true,
-    nightly: true,
   },
 ];
 // IMPORTANT: Do not change this list without review from
@@ -68,8 +66,6 @@ var ecmaGlobals = [
   { name: "BigInt64Array", insecureContext: true },
   { name: "BigUint64Array", insecureContext: true },
   { name: "Boolean", insecureContext: true },
-  { name: "ByteLengthQueuingStrategy", insecureContext: true },
-  { name: "CountQueuingStrategy", insecureContext: true },
   { name: "DataView", insecureContext: true },
   { name: "Date", insecureContext: true },
   { name: "Error", insecureContext: true },
@@ -95,7 +91,6 @@ var ecmaGlobals = [
   { name: "Promise", insecureContext: true },
   { name: "Proxy", insecureContext: true },
   { name: "RangeError", insecureContext: true },
-  { name: "ReadableStream", insecureContext: true },
   { name: "ReferenceError", insecureContext: true },
   { name: "Reflect", insecureContext: true },
   { name: "RegExp", insecureContext: true },
@@ -133,11 +128,15 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "BroadcastChannel", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ByteLengthQueuingStrategy", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Cache", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CacheStorage", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CloseEvent", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "CountQueuingStrategy", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Crypto", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -262,6 +261,18 @@ var interfaceNamesInGlobalScope = [
     insecureContext: true,
   },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ReadableByteStreamController", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ReadableStream", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ReadableStreamBYOBReader", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ReadableStreamBYOBRequest", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ReadableStreamDefaultController", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ReadableStreamDefaultReader", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Report", nightly: true, insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ReportBody", nightly: true, insecureContext: true },
@@ -272,15 +283,30 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Response", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "Scheduler", insecureContext: true, nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ServiceWorkerRegistration", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "StorageManager", fennec: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "SubtleCrypto" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "TaskController", insecureContext: true, nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "TaskPriorityChangeEvent", insecureContext: true, nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "TaskSignal", insecureContext: true, nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "TextDecoder", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "TextEncoder", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "TransformStream", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  {
+    name: "TransformStreamDefaultController",
+    insecureContext: true,
+  },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "XMLHttpRequest", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -325,6 +351,12 @@ var interfaceNamesInGlobalScope = [
   { name: "WorkerLocation", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "WorkerNavigator", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WritableStream", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WritableStreamDefaultController", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WritableStreamDefaultWriter", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
 ];
 // IMPORTANT: Do not change the list above without review from a DOM peer!

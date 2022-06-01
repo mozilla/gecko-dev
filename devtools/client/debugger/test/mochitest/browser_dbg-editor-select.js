@@ -4,6 +4,9 @@
 
 // Tests that the editor highlights the correct location when the
 // debugger pauses
+
+"use strict";
+
 requestLongerTimeout(2);
 
 add_task(async function() {
@@ -11,32 +14,26 @@ add_task(async function() {
   // which is the slowest part of this and make it run faster, but to
   // fix a frequent failure allow a longer timeout.
   const dbg = await initDebugger("doc-scripts.html");
-  const {
-    selectors: { getSelectedSource },
-    getState,
-  } = dbg;
-  const simple1 = findSource(dbg, "simple1.js");
-  const simple2 = findSource(dbg, "simple2.js");
 
   info("Set the initial breakpoint.");
-  await selectSource(dbg, "simple1");
-  await addBreakpoint(dbg, simple1, 4);
+  await selectSource(dbg, "simple1.js");
+  await addBreakpoint(dbg, "simple1.js", 4);
 
   info("Call the function that we set a breakpoint in.");
   invokeInTab("main");
   await waitForPaused(dbg);
-  await waitForSelectedSource(dbg, "simple1");
-  assertPausedLocation(dbg);
+  await waitForSelectedSource(dbg, "simple1.js");
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple1.js").id, 4);
 
   info("Step into another file.");
   await stepOver(dbg);
   await stepIn(dbg);
-  await waitForSelectedSource(dbg, "simple2");
-  assertPausedLocation(dbg);
+  await waitForSelectedSource(dbg, "simple2.js");
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple2.js").id, 3);
 
   info("Step out to the initial file.");
   await stepOut(dbg);
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple1.js").id, 6);
   await resume(dbg);
 
   info("Make sure that the editor scrolls to the paused location.");
@@ -48,7 +45,7 @@ add_task(async function() {
   await waitForPaused(dbg);
   await waitForSelectedSource(dbg, "long.js");
 
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "long.js").id, 66);
   ok(
     isVisibleInEditor(dbg, findElement(dbg, "breakpoint")),
     "Breakpoint is visible"

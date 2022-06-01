@@ -313,6 +313,33 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       APPEND_DEVICE(0x0155);
       APPEND_DEVICE(0x0157);
       break;
+    case DeviceFamily::IntelSkylake:
+      APPEND_DEVICE(0x1902);
+      APPEND_DEVICE(0x1906);
+      APPEND_DEVICE(0x190a);
+      APPEND_DEVICE(0x190B);
+      APPEND_DEVICE(0x190e);
+      APPEND_DEVICE(0x1912);
+      APPEND_DEVICE(0x1913);
+      APPEND_DEVICE(0x1915);
+      APPEND_DEVICE(0x1916);
+      APPEND_DEVICE(0x1917);
+      APPEND_DEVICE(0x191a);
+      APPEND_DEVICE(0x191b);
+      APPEND_DEVICE(0x191d);
+      APPEND_DEVICE(0x191e);
+      APPEND_DEVICE(0x1921);
+      APPEND_DEVICE(0x1923);
+      APPEND_DEVICE(0x1926);
+      APPEND_DEVICE(0x1927);
+      APPEND_DEVICE(0x192a);
+      APPEND_DEVICE(0x192b);
+      APPEND_DEVICE(0x192d);
+      APPEND_DEVICE(0x1932);
+      APPEND_DEVICE(0x193a);
+      APPEND_DEVICE(0x193b);
+      APPEND_DEVICE(0x193d);
+      break;
     case DeviceFamily::IntelHD520:
       APPEND_DEVICE(0x1916);
       break;
@@ -366,6 +393,12 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       APPEND_DEVICE(0x6778);
       APPEND_DEVICE(0x6779);
       APPEND_DEVICE(0x677b);
+      break;
+    case DeviceFamily::RadeonBlockNoVideoCopy:
+      // Stoney
+      APPEND_DEVICE(0x98e4);
+      // Carrizo
+      APPEND_RANGE(0x9870, 0x9877);
       break;
     case DeviceFamily::Geforce7300GT:
       APPEND_DEVICE(0x0393);
@@ -471,6 +504,10 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       APPEND_RANGE(0x9610, 0x9616);
       // RS880
       APPEND_RANGE(0x9710, 0x9715);
+      break;
+    case DeviceFamily::NvidiaWebRenderBlocked:
+      APPEND_RANGE(0x0190, 0x019e);  // early tesla
+      APPEND_RANGE(0x0500, 0x05df);  // C67-C68
       break;
     case DeviceFamily::NvidiaRolloutWebRender:
       APPEND_RANGE(0x0400, 0x04ff);
@@ -938,6 +975,7 @@ const nsAString& GfxDriverInfo::GetDeviceVendor(DeviceFamily id) {
     case DeviceFamily::IntelHaswell:
     case DeviceFamily::IntelSandyBridge:
     case DeviceFamily::IntelGen7Baytrail:
+    case DeviceFamily::IntelSkylake:
     case DeviceFamily::IntelHD520:
     case DeviceFamily::IntelMobileHDGraphics:
     case DeviceFamily::IntelRolloutWebRender:
@@ -951,6 +989,7 @@ const nsAString& GfxDriverInfo::GetDeviceVendor(DeviceFamily id) {
     case DeviceFamily::NvidiaAll:
     case DeviceFamily::NvidiaBlockD3D9Layers:
     case DeviceFamily::NvidiaRolloutWebRender:
+    case DeviceFamily::NvidiaWebRenderBlocked:
     case DeviceFamily::Geforce7300GT:
     case DeviceFamily::Nvidia310M:
     case DeviceFamily::Nvidia8800GTS:
@@ -958,6 +997,7 @@ const nsAString& GfxDriverInfo::GetDeviceVendor(DeviceFamily id) {
       vendor = DeviceVendor::NVIDIA;
       break;
     case DeviceFamily::AtiAll:
+    case DeviceFamily::RadeonBlockNoVideoCopy:
     case DeviceFamily::RadeonCaicos:
     case DeviceFamily::RadeonX1000:
     case DeviceFamily::Bug1447141:

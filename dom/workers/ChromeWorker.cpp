@@ -6,12 +6,12 @@
 
 #include "ChromeWorker.h"
 
+#include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/WorkerBinding.h"
 #include "nsContentUtils.h"
 #include "WorkerPrivate.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 /* static */
 already_AddRefed<ChromeWorker> ChromeWorker::Constructor(
@@ -69,5 +69,4 @@ JSObject* ChromeWorker::WrapObject(JSContext* aCx,
   return wrapper;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

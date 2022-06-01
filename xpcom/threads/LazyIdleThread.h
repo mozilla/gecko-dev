@@ -145,9 +145,10 @@ class LazyIdleThread final : public nsIThread,
   nsCOMPtr<nsIThread> mThread;
 
   /**
-   * Protected by mMutex. Created when mThread has no pending events and fired
+   * Created when mThread has no pending events and fired
    * at mOwningThread. Any thread that dispatches to mThread will take ownership
    * of the timer and fire a separate cancel event to the owning thread.
+   * Only accessed from the owning thread.
    */
   nsCOMPtr<nsITimer> mIdleTimer;
 
@@ -175,14 +176,14 @@ class LazyIdleThread final : public nsIThread,
    * The number of events that are pending on mThread. A nonzero value means
    * that the thread cannot be cleaned up.
    */
-  uint32_t mPendingEventCount;
+  uint32_t mPendingEventCount GUARDED_BY(mMutex);
 
   /**
    * The number of times that mThread has dispatched an idle notification. Any
    * timer that fires while this count is nonzero can safely be ignored as
    * another timer will be on the way.
    */
-  uint32_t mIdleNotificationCount;
+  uint32_t mIdleNotificationCount GUARDED_BY(mMutex);
 
   /**
    * Whether or not the thread should automatically shutdown. If the owner
@@ -201,7 +202,7 @@ class LazyIdleThread final : public nsIThread,
    * Set from CleanupThread and lasting until the thread has shut down. Prevents
    * further idle notifications during the shutdown process.
    */
-  bool mThreadIsShuttingDown;
+  bool mThreadIsShuttingDown GUARDED_BY(mMutex);
 
   /**
    * Whether or not the idle timeout is enabled.

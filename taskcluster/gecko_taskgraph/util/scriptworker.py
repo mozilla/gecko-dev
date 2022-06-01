@@ -25,10 +25,10 @@ from datetime import datetime
 import jsone
 
 from mozbuild.util import memoize
+from taskgraph.util.taskcluster import get_artifact_prefix
 from taskgraph.util.yaml import load_yaml
 
 from .schema import resolve_keyed_by
-from .taskcluster import get_artifact_prefix
 
 # constants {{{1
 """Map signing scope aliases to sets of projects.
@@ -61,8 +61,10 @@ SIGNING_SCOPE_ALIAS_TO_PROJECT = [
             "mozilla-beta",
             "mozilla-release",
             "mozilla-esr91",
+            "mozilla-esr102",
             "comm-beta",
             "comm-esr91",
+            "comm-esr102",
         },
     ],
 ]
@@ -106,8 +108,10 @@ BEETMOVER_SCOPE_ALIAS_TO_PROJECT = [
             "mozilla-beta",
             "mozilla-release",
             "mozilla-esr91",
+            "mozilla-esr102",
             "comm-beta",
             "comm-esr91",
+            "comm-esr102",
         },
     ],
 ]
@@ -163,12 +167,19 @@ BALROG_SCOPE_ALIAS_TO_PROJECT = [
         {
             "mozilla-release",
             "comm-esr91",
+            "comm-esr102",
         },
     ],
     [
         "esr91",
         {
             "mozilla-esr91",
+        },
+    ],
+    [
+        "esr102",
+        {
+            "mozilla-esr102",
         },
     ],
 ]
@@ -181,6 +192,7 @@ BALROG_SERVER_SCOPES = {
     "beta": "balrog:server:beta",
     "release": "balrog:server:release",
     "esr91": "balrog:server:esr",
+    "esr102": "balrog:server:esr",
     "default": "balrog:server:dep",
 }
 
@@ -457,13 +469,15 @@ def generate_beetmover_upstream_artifacts(
                 )
             )
 
-        if job.get("dependencies") and getattr(
-            job["dependencies"][dep], "release_artifacts", None
+        if (
+            job.get("dependencies")
+            and getattr(job["dependencies"][dep], "attributes", None)
+            and job["dependencies"][dep].attributes.get("release_artifacts")
         ):
             paths = [
                 path
                 for path in paths
-                if path in job["dependencies"][dep].release_artifacts
+                if path in job["dependencies"][dep].attributes["release_artifacts"]
             ]
 
         if not paths:

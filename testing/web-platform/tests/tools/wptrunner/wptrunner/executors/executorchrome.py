@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import os
 import traceback
 
@@ -69,7 +71,7 @@ class ChromeDriverPrintRefTestExecutor(WebDriverRefTestExecutor):
     protocol_cls = ChromeDriverProtocol
 
     def setup(self, runner):
-        super(ChromeDriverPrintRefTestExecutor, self).setup(runner)
+        super().setup(runner)
         self.protocol.pdf_print.load_runner()
         self.has_window = False
         with open(os.path.join(here, "reftest.js")) as f:

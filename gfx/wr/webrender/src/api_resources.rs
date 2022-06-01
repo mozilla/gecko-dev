@@ -4,15 +4,15 @@
 
 use crate::api::{BlobImageKey, ImageDescriptor, DirtyRect, TileSize};
 use crate::api::{BlobImageHandler, AsyncBlobImageRasterizer, BlobImageData, BlobImageParams};
-use crate::api::{BlobImageRequest, BlobImageDescriptor, BlobImageResources};
-use crate::api::{FontKey, FontTemplate, FontInstanceData, FontInstanceKey};
-use crate::api::SharedFontInstanceMap;
+use crate::api::{BlobImageRequest, BlobImageDescriptor, FontTemplate};
 use crate::api::units::*;
+use crate::glyph_rasterizer::{SharedFontResources, BaseFontInstance};
 use crate::render_api::{ResourceUpdate, TransactionMsg, AddFont};
 use crate::image_tiling::*;
 use crate::profiler;
 
 use std::collections::HashMap;
+use std::mem;
 use std::sync::Arc;
 
 /// We use this to generate the async blob rendering requests.
@@ -31,53 +31,36 @@ struct BlobImageTemplate {
     valid_tiles_after_bounds_change: Option<TileRange>,
 }
 
-struct FontResources {
-    templates: HashMap<FontKey, FontTemplate>,
-    instances: SharedFontInstanceMap,
-}
-
 pub struct ApiResources {
     blob_image_templates: HashMap<BlobImageKey, BlobImageTemplate>,
     pub blob_image_handler: Option<Box<dyn BlobImageHandler>>,
-    fonts: FontResources,
-}
-
-impl BlobImageResources for FontResources {
-    fn get_font_data(&self, key: FontKey) -> &FontTemplate {
-        self.templates.get(&key).unwrap()
-    }
-    fn get_font_instance_data(&self, key: FontInstanceKey) -> Option<FontInstanceData> {
-        self.instances.get_font_instance_data(key)
-    }
+    fonts: SharedFontResources,
 }
 
 impl ApiResources {
     pub fn new(
         blob_image_handler: Option<Box<dyn BlobImageHandler>>,
-        instances: SharedFontInstanceMap,
+        fonts: SharedFontResources,
     ) -> Self {
         ApiResources {
             blob_image_templates: HashMap::new(),
             blob_image_handler,
-            fonts: FontResources {
-                templates: HashMap::new(),
-                instances,
-            }
+            fonts,
         }
     }
 
-    pub fn get_shared_font_instances(&self) -> SharedFontInstanceMap {
-        self.fonts.instances.clone()
+    pub fn get_fonts(&self) -> SharedFontResources {
+        self.fonts.clone()
     }
 
     pub fn update(&mut self, transaction: &mut TransactionMsg) {
         let mut blobs_to_rasterize = Vec::new();
-        for update in &transaction.resource_updates {
+        for update in &mut transaction.resource_updates {
             match *update {
                 ResourceUpdate::AddBlobImage(ref img) => {
                     self.blob_image_handler
                         .as_mut()
-                        .unwrap()
+                        .expect("no blob image handler")
                         .add(img.key, Arc::clone(&img.data), &img.visible_rect, img.tile_size);
 
                     self.blob_image_templates.insert(
@@ -115,47 +98,42 @@ impl ApiResources {
                     blobs_to_rasterize.push(*key);
                 }
                 ResourceUpdate::AddFont(ref font) => {
-                    match font {
+                    let (key, template) = match font {
                         AddFont::Raw(key, bytes, index) => {
-                            self.fonts.templates.insert(
-                                *key,
-                                FontTemplate::Raw(Arc::clone(bytes), *index),
-                            );
+                            (key, FontTemplate::Raw(Arc::clone(bytes), *index))
                         }
                         AddFont::Native(key, native_font_handle) => {
-                            self.fonts.templates.insert(
-                                *key,
-                                FontTemplate::Native(native_font_handle.clone()),
-                            );
+                            (key, FontTemplate::Native(native_font_handle.clone()))
                         }
+                    };
+                    if let Some(shared_key) = self.fonts.font_keys.add_key(key, &template) {
+                        self.fonts.templates.add_font(shared_key, template);
                     }
                 }
-                ResourceUpdate::AddFontInstance(ref instance) => {
-                    // TODO(nical): Don't clone these.
-                    self.fonts.instances.add_font_instance(
+                ResourceUpdate::AddFontInstance(ref mut instance) => {
+                    let shared_font_key = self.fonts.font_keys.map_key(&instance.font_key);
+                    assert!(self.fonts.templates.has_font(&shared_font_key));
+                    // AddFontInstance will only be processed here, not in the resource cache, so it
+                    // is safe to take the options rather than clone them.
+                    let base = BaseFontInstance::new(
                         instance.key,
-                        instance.font_key,
+                        shared_font_key,
                         instance.glyph_size,
-                        instance.options.clone(),
-                        instance.platform_options.clone(),
-                        instance.variations.clone(),
+                        mem::take(&mut instance.options),
+                        mem::take(&mut instance.platform_options),
+                        mem::take(&mut instance.variations),
                     );
-                }
-                ResourceUpdate::DeleteFont(key) => {
-                    transaction.use_scene_builder_thread = true;
-                    self.fonts.templates.remove(&key);
-                    if let Some(ref mut handler) = self.blob_image_handler {
-                        handler.delete_font(key);
+                    if let Some(shared_instance) = self.fonts.instance_keys.add_key(base) {
+                        self.fonts.instances.add_font_instance(shared_instance);
                     }
                 }
-                ResourceUpdate::DeleteFontInstance(key) => {
+                ResourceUpdate::DeleteFont(_key) => {
+                    transaction.use_scene_builder_thread = true;
+                }
+                ResourceUpdate::DeleteFontInstance(_key) => {
                     transaction.use_scene_builder_thread = true;
                     // We will delete from the shared font instance map in the resource cache
                     // after scene swap.
-
-                    if let Some(ref mut r) = self.blob_image_handler {
-                        r.delete_font_instance(key);
-                    }
                 }
                 ResourceUpdate::DeleteImage(..) => {
                     transaction.use_scene_builder_thread = true;
@@ -188,8 +166,11 @@ impl ApiResources {
         visible_rect: &DeviceIntRect,
     ) {
         if let Some(data) = data {
-            let dirty_rect = dirty_rect.unwrap();
-            self.blob_image_handler.as_mut().unwrap().update(key, data, visible_rect, dirty_rect);
+            let dirty_rect = dirty_rect.expect("no dirty rect");
+            self.blob_image_handler
+                .as_mut()
+                .expect("no blob image handler")
+                .update(key, data, visible_rect, dirty_rect);
         }
 
         let image = self.blob_image_templates
@@ -240,7 +221,8 @@ impl ApiResources {
 
         let mut blob_request_params = Vec::new();
         for key in keys {
-            let template = self.blob_image_templates.get_mut(key).unwrap();
+            let template = self.blob_image_templates.get_mut(key)
+                .expect("no blob image template");
 
             // If we know that only a portion of the blob image is in the viewport,
             // only request these visible tiles since blob images can be huge.
@@ -292,7 +274,8 @@ impl ApiResources {
             template.valid_tiles_after_bounds_change = None;
         }
 
-        let handler = self.blob_image_handler.as_mut().unwrap();
+        let handler = self.blob_image_handler.as_mut()
+            .expect("no blob image handler");
         handler.prepare_resources(&self.fonts, &blob_request_params);
         (Some(handler.create_blob_rasterizer()), blob_request_params)
     }

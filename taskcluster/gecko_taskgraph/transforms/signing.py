@@ -5,6 +5,7 @@
 Transform the signing task into an actual task description.
 """
 
+from taskgraph.util.keyed_by import evaluate_keyed_by
 
 from gecko_taskgraph.loader.single_dep import schema
 from gecko_taskgraph.transforms.base import TransformSequence
@@ -12,7 +13,6 @@ from gecko_taskgraph.util.attributes import (
     copy_attributes_from_dependent_job,
     release_level,
 )
-from gecko_taskgraph.util.keyed_by import evaluate_keyed_by
 from gecko_taskgraph.util.schema import taskref_or_string
 from gecko_taskgraph.util.scriptworker import get_signing_cert_scope_per_platform
 from gecko_taskgraph.transforms.task import task_description_schema
@@ -173,6 +173,9 @@ def make_task_description(config, jobs):
         )
         attributes["signed"] = True
 
+        if "linux" in build_platform:
+            attributes["release_artifacts"] = ["public/build/KEY"]
+
         if dep_job.attributes.get("chunk_locales"):
             # Used for l10n attribute passthrough
             attributes["chunk_locales"] = dep_job.attributes.get("chunk_locales")
@@ -201,9 +204,6 @@ def make_task_description(config, jobs):
         }
         if dep_job.kind in task["dependencies"]:
             task["if-dependencies"] = [dep_job.kind]
-
-        if "linux" in build_platform:
-            task["release-artifacts"] = ["public/build/KEY"]
 
         if "macosx" in build_platform:
             shippable = "false"

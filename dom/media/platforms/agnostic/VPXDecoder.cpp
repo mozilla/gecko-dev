@@ -9,7 +9,7 @@
 #include <algorithm>
 
 #include "BitReader.h"
-#include "ByteWriter.h"
+#include "BitWriter.h"
 #include "ImageContainer.h"
 #include "TimeUnits.h"
 #include "gfx2DGlue.h"
@@ -70,7 +70,7 @@ static nsresult InitContext(vpx_codec_ctx_t* aCtx, const VideoInfo& aInfo,
 VPXDecoder::VPXDecoder(const CreateDecoderParams& aParams)
     : mImageContainer(aParams.mImageContainer),
       mImageAllocator(aParams.mKnowsCompositor),
-      mTaskQueue(new TaskQueue(
+      mTaskQueue(TaskQueue::Create(
           GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER), "VPXDecoder")),
       mInfo(aParams.VideoConfig()),
       mCodec(MimeTypeToCodec(aParams.VideoConfig().mMimeType)),
@@ -164,6 +164,8 @@ RefPtr<MediaDataDecoder::DecodePromise> VPXDecoder::ProcessDecode(
     b.mPlanes[2].mSkip = 0;
 
     if (img->fmt == VPX_IMG_FMT_I420) {
+      b.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
+
       b.mPlanes[1].mHeight = (img->d_h + 1) >> img->y_chroma_shift;
       b.mPlanes[1].mWidth = (img->d_w + 1) >> img->x_chroma_shift;
 
@@ -351,9 +353,9 @@ bool VPXDecoder::GetStreamInfo(Span<const uint8_t> aBuffer,
     uint16_t height = (aBuffer[8] | aBuffer[9] << 8) & 0x3fff;
 
     // aspect ratio isn't found in the VP8 frame header.
-    aInfo.mImage = aInfo.mDisplay = gfx::IntSize(width, height);
-    aInfo.mDisplayAspectRatio =
-        (float)(aInfo.mDisplay.Width()) / (float)(aInfo.mDisplay.Height());
+    aInfo.mImage = gfx::IntSize(width, height);
+    aInfo.mDisplayAndImageDifferent = false;
+    aInfo.mDisplay = aInfo.mImage;
     return true;
   }
 
@@ -443,16 +445,15 @@ bool VPXDecoder::GetStreamInfo(Span<const uint8_t> aBuffer,
   };
 
   auto render_size = [&]() {
-    bool render_and_frame_size_different = br.ReadBits(1);
-    if (render_and_frame_size_different) {
+    // render_and_frame_size_different
+    aInfo.mDisplayAndImageDifferent = br.ReadBits(1);
+    if (aInfo.mDisplayAndImageDifferent) {
       int32_t width = static_cast<int32_t>(br.ReadBits(16)) + 1;
       int32_t height = static_cast<int32_t>(br.ReadBits(16)) + 1;
       aInfo.mDisplay = gfx::IntSize(width, height);
     } else {
       aInfo.mDisplay = aInfo.mImage;
     }
-    aInfo.mDisplayAspectRatio =
-        (float)(aInfo.mDisplay.Width()) / (float)(aInfo.mDisplay.Height());
   };
 
   if (aInfo.mKeyFrame) {
@@ -515,7 +516,7 @@ bool VPXDecoder::GetStreamInfo(Span<const uint8_t> aBuffer,
 /* static */
 void VPXDecoder::GetVPCCBox(MediaByteBuffer* aDestBox,
                             const VPXStreamInfo& aInfo) {
-  ByteWriter<BigEndian> writer(*aDestBox);
+  BitWriter writer(aDestBox);
 
   int chroma = [&]() {
     if (aInfo.mSubSampling_x && aInfo.mSubSampling_y) {
@@ -532,18 +533,83 @@ void VPXDecoder::GetVPCCBox(MediaByteBuffer* aDestBox,
     return 1;
   }();
 
-  MOZ_ALWAYS_TRUE(writer.WriteU32(1 << 24));        // version & flag
-  MOZ_ALWAYS_TRUE(writer.WriteU8(aInfo.mProfile));  // profile
-  MOZ_ALWAYS_TRUE(writer.WriteU8(10));              // level set it to 1.0
-  MOZ_ALWAYS_TRUE(writer.WriteU8(
-      (0xF & aInfo.mBitDepth) << 4 | (0x7 & chroma) << 1 |
-      (0x1 & aInfo.mFullRange)));      // bitdepth (4 bits), chroma (3 bits),
-                                       // video full/restrice range (1 bit)
-  MOZ_ALWAYS_TRUE(writer.WriteU8(2));  // color primaries: unknown
-  MOZ_ALWAYS_TRUE(writer.WriteU8(2));  // transfer characteristics: unknown
-  MOZ_ALWAYS_TRUE(writer.WriteU8(2));  // matrix coefficient: unknown
-  MOZ_ALWAYS_TRUE(
-      writer.WriteU16(0));  // codecIntializationDataSize (must be 0 for VP9)
+  writer.WriteU8(1);        // version
+  writer.WriteBits(0, 24);  // flags
+
+  writer.WriteU8(aInfo.mProfile);  // profile
+  writer.WriteU8(10);              // level set it to 1.0
+
+  writer.WriteBits(aInfo.mBitDepth, 4);  // bitdepth
+  writer.WriteBits(chroma, 3);           // chroma
+  writer.WriteBit(aInfo.mFullRange);     // full/restricted range
+
+  // See VPXDecoder::VPXStreamInfo enums
+  writer.WriteU8(2);  // colour primaries: unspecified
+  writer.WriteU8(2);  // transfer characteristics: unspecified
+  writer.WriteU8(2);  // matrix coefficients: unspecified
+
+  writer.WriteBits(0,
+                   16);  // codecIntializationDataSize (must be 0 for VP8/VP9)
+}
+
+/* static */
+bool VPXDecoder::SetVideoInfo(VideoInfo* aDestInfo, const nsAString& aCodec) {
+  VPXDecoder::VPXStreamInfo info;
+  uint8_t level = 0;
+  uint8_t chroma = 1;
+  VideoColorSpace colorSpace;
+  if (!ExtractVPXCodecDetails(aCodec, info.mProfile, level, info.mBitDepth,
+                              chroma, colorSpace)) {
+    return false;
+  }
+
+  aDestInfo->mColorDepth = gfx::ColorDepthForBitDepth(info.mBitDepth);
+  VPXDecoder::SetChroma(info, chroma);
+  info.mFullRange = colorSpace.mRange == ColorRange::FULL;
+  RefPtr<MediaByteBuffer> extraData = new MediaByteBuffer();
+  VPXDecoder::GetVPCCBox(extraData, info);
+  aDestInfo->mExtraData = extraData;
+  return true;
+}
+
+/* static */
+void VPXDecoder::SetChroma(VPXStreamInfo& aDestInfo, uint8_t chroma) {
+  switch (chroma) {
+    case 0:
+    case 1:
+      aDestInfo.mSubSampling_x = true;
+      aDestInfo.mSubSampling_y = true;
+      break;
+    case 2:
+      aDestInfo.mSubSampling_x = true;
+      aDestInfo.mSubSampling_y = false;
+      break;
+    case 3:
+      aDestInfo.mSubSampling_x = false;
+      aDestInfo.mSubSampling_y = false;
+      break;
+  }
+}
+
+/* static */
+void VPXDecoder::ReadVPCCBox(VPXStreamInfo& aDestInfo, MediaByteBuffer* aBox) {
+  BitReader reader(aBox);
+
+  reader.ReadBits(8);   // version
+  reader.ReadBits(24);  // flags
+  aDestInfo.mProfile = reader.ReadBits(8);
+  reader.ReadBits(8);  // level
+
+  aDestInfo.mBitDepth = reader.ReadBits(4);
+  SetChroma(aDestInfo, reader.ReadBits(3));
+  aDestInfo.mFullRange = reader.ReadBit();
+
+  reader.ReadBits(8);  // colour primaries
+  reader.ReadBits(8);  // transfer characteristics
+  reader.ReadBits(8);  // matrix coefficients
+
+  MOZ_ASSERT(reader.ReadBits(16) ==
+             0);  // codecInitializationDataSize (must be 0 for VP8/VP9)
 }
 
 }  // namespace mozilla

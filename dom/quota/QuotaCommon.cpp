@@ -173,9 +173,8 @@ Result<nsCOMPtr<nsIFile>, nsresult> CloneFileAndAppend(
 Result<nsIFileKind, nsresult> GetDirEntryKind(nsIFile& aFile) {
   // Callers call this function without checking if the directory already
   // exists (idempotent usage). QM_OR_ELSE_WARN_IF is not used here since we
-  // just want to log NS_ERROR_FILE_NOT_FOUND,
-  // NS_ERROR_FILE_TARGET_DOES_NOT_EXIST and NS_ERROR_FILE_FS_CORRUPTED results
-  // and not spam the reports.
+  // just want to log NS_ERROR_FILE_NOT_FOUND and NS_ERROR_FILE_FS_CORRUPTED
+  // results and not spam the reports.
   QM_TRY_RETURN(QM_OR_ELSE_LOG_VERBOSE_IF(
       MOZ_TO_RESULT_INVOKE_MEMBER(aFile, IsDirectory)
           .map([](const bool isDirectory) {
@@ -184,7 +183,6 @@ Result<nsIFileKind, nsresult> GetDirEntryKind(nsIFile& aFile) {
           }),
       ([](const nsresult rv) {
         return rv == NS_ERROR_FILE_NOT_FOUND ||
-               rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST ||
                // We treat NS_ERROR_FILE_FS_CORRUPTED as if the file did not
                // exist at all.
                rv == NS_ERROR_FILE_FS_CORRUPTED;
@@ -526,16 +524,28 @@ void LogError(const nsACString& aExpr, const Maybe<nsresult> aMaybeRv,
         res.AppendElement(EventExtraEntry{"result"_ns, nsCString{rvName}});
       }
 
-      // The sequence number is currently per-process, and we don't record the
-      // thread id. This is ok as long as we only record during storage
-      // initialization, and that happens (mostly) from a single thread. It's
-      // safe even if errors from multiple threads are interleaved, but the data
-      // will be hard to analyze then. In that case, we should record a pair of
-      // thread id and thread-local sequence number.
-      static Atomic<int32_t> sSequenceNumber{0};
+      // Here, we are generating thread local sequence number and thread Id
+      // information which could be useful for summarizing and categorizing
+      // log statistics in QM_TRY stack propagation scripts. Since, this is
+      // a thread local object, we do not need to worry about data races.
+      static MOZ_THREAD_LOCAL(uint32_t) sSequenceNumber;
+
+      // This would be initialized once, all subsequent calls would be a no-op.
+      MOZ_ALWAYS_TRUE(sSequenceNumber.init());
+
+      // sequence number should always starts at number 1.
+      // `sSequenceNumber` gets initialized to 0; so we have to increment here.
+      const auto newSeqNum = sSequenceNumber.get() + 1;
+      const auto threadId =
+          mozilla::baseprofiler::profiler_current_thread_id().ToNumber();
+
+      const auto threadIdAndSequence =
+          (static_cast<uint64_t>(threadId) << 32) | (newSeqNum & 0xFFFFFFFF);
 
       res.AppendElement(
-          EventExtraEntry{"seq"_ns, IntToCString(++sSequenceNumber)});
+          EventExtraEntry{"seq"_ns, IntToCString(threadIdAndSequence)});
+
+      sSequenceNumber.set(newSeqNum);
 
       res.AppendElement(EventExtraEntry{"severity"_ns, severityString});
 

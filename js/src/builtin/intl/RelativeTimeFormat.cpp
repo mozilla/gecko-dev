@@ -15,7 +15,7 @@
 #include "builtin/intl/CommonFunctions.h"
 #include "builtin/intl/FormatBuffer.h"
 #include "builtin/intl/LanguageTag.h"
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "js/CharacterEncoding.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/PropertySpec.h"
@@ -41,7 +41,6 @@ const JSClassOps RelativeTimeFormatObject::classOps_ = {
     nullptr,                             // mayResolve
     RelativeTimeFormatObject::finalize,  // finalize
     nullptr,                             // call
-    nullptr,                             // hasInstance
     nullptr,                             // construct
     nullptr,                             // trace
 };
@@ -132,12 +131,12 @@ static bool RelativeTimeFormat(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-void js::RelativeTimeFormatObject::finalize(JSFreeOp* fop, JSObject* obj) {
-  MOZ_ASSERT(fop->onMainThread());
+void js::RelativeTimeFormatObject::finalize(JS::GCContext* gcx, JSObject* obj) {
+  MOZ_ASSERT(gcx->onMainThread());
 
   if (mozilla::intl::RelativeTimeFormat* rtf =
           obj->as<RelativeTimeFormatObject>().getRelativeTimeFormatter()) {
-    intl::RemoveICUCellMemory(fop, obj,
+    intl::RemoveICUCellMemory(gcx, obj,
                               RelativeTimeFormatObject::EstimatedMemoryUse);
 
     // This was allocated using `new` in mozilla::intl::RelativeTimeFormat,

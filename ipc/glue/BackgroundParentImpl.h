@@ -15,14 +15,7 @@ namespace mozilla::ipc {
 
 // Instances of this class should never be created directly. This class is meant
 // to be inherited in BackgroundImpl.
-class BackgroundParentImpl : public PBackgroundParent,
-                             public ParentToChildStreamActorManager {
- public:
-  PParentToChildStreamParent* SendPParentToChildStreamConstructor(
-      PParentToChildStreamParent* aActor) override;
-  PFileDescriptorSetParent* SendPFileDescriptorSetConstructor(
-      const FileDescriptor& aFD) override;
-
+class BackgroundParentImpl : public PBackgroundParent {
  protected:
   BackgroundParentImpl();
   virtual ~BackgroundParentImpl();
@@ -138,15 +131,10 @@ class BackgroundParentImpl : public PBackgroundParent,
   AllocPBackgroundSessionStorageManagerParent(
       const uint64_t& aTopContextId) override;
 
+  already_AddRefed<PBackgroundSessionStorageServiceParent>
+  AllocPBackgroundSessionStorageServiceParent() override;
+
   already_AddRefed<PIdleSchedulerParent> AllocPIdleSchedulerParent() override;
-
-  already_AddRefed<PRemoteLazyInputStreamParent>
-  AllocPRemoteLazyInputStreamParent(const nsID& aID,
-                                    const uint64_t& aSize) override;
-
-  mozilla::ipc::IPCResult RecvPRemoteLazyInputStreamConstructor(
-      PRemoteLazyInputStreamParent* aActor, const nsID& aID,
-      const uint64_t& aSize) override;
 
   PTemporaryIPCBlobParent* AllocPTemporaryIPCBlobParent() override;
 
@@ -204,12 +192,6 @@ class BackgroundParentImpl : public PBackgroundParent,
 
   bool DeallocPSharedWorkerParent(PSharedWorkerParent* aActor) override;
 
-  PFileDescriptorSetParent* AllocPFileDescriptorSetParent(
-      const FileDescriptor& aFileDescriptor) override;
-
-  bool DeallocPFileDescriptorSetParent(
-      PFileDescriptorSetParent* aActor) override;
-
   already_AddRefed<PVsyncParent> AllocPVsyncParent() override;
 
   already_AddRefed<mozilla::psm::PVerifySSLServerCertParent>
@@ -242,23 +224,16 @@ class BackgroundParentImpl : public PBackgroundParent,
 
   bool DeallocPBroadcastChannelParent(PBroadcastChannelParent* aActor) override;
 
-  PChildToParentStreamParent* AllocPChildToParentStreamParent() override;
-
-  bool DeallocPChildToParentStreamParent(
-      PChildToParentStreamParent* aActor) override;
-
-  PParentToChildStreamParent* AllocPParentToChildStreamParent() override;
-
-  bool DeallocPParentToChildStreamParent(
-      PParentToChildStreamParent* aActor) override;
-
   PServiceWorkerManagerParent* AllocPServiceWorkerManagerParent() override;
 
   bool DeallocPServiceWorkerManagerParent(
       PServiceWorkerManagerParent* aActor) override;
 
   PCamerasParent* AllocPCamerasParent() override;
-
+#ifdef MOZ_WEBRTC
+  mozilla::ipc::IPCResult RecvPCamerasConstructor(
+      PCamerasParent* aActor) override;
+#endif
   bool DeallocPCamerasParent(PCamerasParent* aActor) override;
 
   mozilla::ipc::IPCResult RecvShutdownServiceWorkerRegistrar() override;
@@ -402,6 +377,9 @@ class BackgroundParentImpl : public PBackgroundParent,
 
   mozilla::ipc::IPCResult RecvEnsureRDDProcessAndCreateBridge(
       EnsureRDDProcessAndCreateBridgeResolver&& aResolver) override;
+
+  mozilla::ipc::IPCResult RecvEnsureUtilityProcessAndCreateBridge(
+      EnsureUtilityProcessAndCreateBridgeResolver&& aResolver) override;
 
   bool DeallocPEndpointForReportParent(
       PEndpointForReportParent* aActor) override;

@@ -88,6 +88,31 @@ nsresult JsepSessionImpl::Init() {
   return NS_OK;
 }
 
+static void GetIceCredentials(
+    const Sdp& aSdp,
+    std::set<std::pair<std::string, std::string>>* aCredentials) {
+  for (size_t i = 0; i < aSdp.GetMediaSectionCount(); ++i) {
+    const SdpAttributeList& attrs = aSdp.GetMediaSection(i).GetAttributeList();
+    if (attrs.HasAttribute(SdpAttribute::kIceUfragAttribute) &&
+        attrs.HasAttribute(SdpAttribute::kIcePwdAttribute)) {
+      aCredentials->insert(
+          std::make_pair(attrs.GetIceUfrag(), attrs.GetIcePwd()));
+    }
+  }
+}
+
+std::set<std::pair<std::string, std::string>>
+JsepSessionImpl::GetLocalIceCredentials() const {
+  std::set<std::pair<std::string, std::string>> result;
+  if (mCurrentLocalDescription) {
+    GetIceCredentials(*mCurrentLocalDescription, &result);
+  }
+  if (mPendingLocalDescription) {
+    GetIceCredentials(*mPendingLocalDescription, &result);
+  }
+  return result;
+}
+
 nsresult JsepSessionImpl::AddTransceiver(RefPtr<JsepTransceiver> transceiver) {
   mLastError.clear();
   MOZ_MTLOG(ML_DEBUG, "[" << mName << "]: Adding transceiver.");
@@ -2002,9 +2027,13 @@ nsresult JsepSessionImpl::CreateGenericSDP(UniquePtr<Sdp>* sdpp) {
   //     local address in this field.  As mentioned in [RFC4566], the
   //     entire o= line needs to be unique, but selecting a random number
   //     for <sess-id> is sufficient to accomplish this.
-
-  auto origin = SdpOrigin("mozilla...THIS_IS_SDPARTA-" MOZ_APP_UA_VERSION,
-                          mSessionId, mSessionVersion, sdp::kIPv4, "0.0.0.0");
+  //
+  // Historical note: we used to report the actual version number here, after
+  // "SDPARTA-", but that becomes a problem starting with version 100, since
+  // some services parse 100 as "10" and give us legacy/broken behavior. So
+  // we're freezing the version number at 99.0 in this string.
+  auto origin = SdpOrigin("mozilla...THIS_IS_SDPARTA-99.0", mSessionId,
+                          mSessionVersion, sdp::kIPv4, "0.0.0.0");
 
   UniquePtr<Sdp> sdp = MakeUnique<SipccSdp>(origin);
 
@@ -2365,7 +2394,7 @@ nsresult JsepSessionImpl::Close() {
 
 const std::string JsepSessionImpl::GetLastError() const { return mLastError; }
 
-const std::vector<std::pair<size_t, std::string> >&
+const std::vector<std::pair<size_t, std::string>>&
 JsepSessionImpl::GetLastSdpParsingErrors() const {
   return mLastSdpParsingErrors;
 }
@@ -2409,6 +2438,13 @@ bool JsepSessionImpl::CheckNegotiationNeeded() const {
     }
 
     size_t level = transceiver->GetLevel();
+    if (NS_WARN_IF(mCurrentLocalDescription->GetMediaSectionCount() <= level) ||
+        NS_WARN_IF(mCurrentRemoteDescription->GetMediaSectionCount() <=
+                   level)) {
+      MOZ_ASSERT(false);
+      continue;
+    }
+
     const SdpMediaSection& local =
         mCurrentLocalDescription->GetMediaSection(level);
     const SdpMediaSection& remote =

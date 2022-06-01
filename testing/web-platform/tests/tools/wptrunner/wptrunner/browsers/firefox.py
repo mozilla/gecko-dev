@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import json
 import os
 import platform
@@ -93,7 +95,7 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
             "certutil_binary": kwargs["certutil_binary"],
             "ca_certificate_path": config.ssl_config["ca_cert_path"],
             "e10s": kwargs["gecko_e10s"],
-            "enable_fission": run_info_data["fission"],
+            "disable_fission": kwargs["disable_fission"],
             "stackfix_dir": kwargs["stackfix_dir"],
             "binary_args": kwargs["binary_args"],
             "timeout_multiplier": get_timeout_multiplier(test_type,
@@ -107,7 +109,8 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
             "browser_channel": kwargs["browser_channel"],
             "headless": kwargs["headless"],
             "preload_browser": kwargs["preload_browser"] and not kwargs["pause_after_test"] and not kwargs["num_test_groups"] == 1,
-            "specialpowers_path": kwargs["specialpowers_path"]}
+            "specialpowers_path": kwargs["specialpowers_path"],
+            "debug_test": kwargs["debug_test"]}
 
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data,
@@ -124,7 +127,6 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
         capabilities["pageLoadStrategy"] = "eager"
     if test_type in ("reftest", "print-reftest"):
         executor_kwargs["reftest_internal"] = kwargs["reftest_internal"]
-        executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]
     if test_type == "wdspec":
         options = {"args": []}
         if kwargs["binary"]:
@@ -145,6 +147,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     executor_kwargs["ccov"] = run_info_data.get("ccov", False)
     executor_kwargs["browser_version"] = run_info_data.get("browser_version")
     executor_kwargs["debug_test"] = kwargs["debug_test"]
+    executor_kwargs["disable_fission"] = kwargs["disable_fission"]
     return executor_kwargs
 
 
@@ -174,18 +177,13 @@ def run_info_extras(**kwargs):
         pref_value = get_bool_pref_if_exists(pref)
         return pref_value if pref_value is not None else False
 
-    # Default fission to on, unless we get --[no-]enable-fission or
-    # --set-pref fission.autostart=[true|false]
-    enable_fission = [item for item in [kwargs.get("enable_fission"),
-                                        get_bool_pref_if_exists("fission.autostart"),
-                                        True] if item is not None][0]
-
+    # Default fission to on, unless we get --disable-fission
     rv = {"e10s": kwargs["gecko_e10s"],
           "wasm": kwargs.get("wasm", True),
           "verify": kwargs["verify"],
           "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
-          "fission": enable_fission,
-          "sessionHistoryInParent": (enable_fission or
+          "fission": not kwargs.get("disable_fission"),
+          "sessionHistoryInParent": (not kwargs.get("disable_fission") or
                                      get_bool_pref("fission.sessionHistoryInParent")),
           "swgl": get_bool_pref("gfx.webrender.software")}
 
@@ -357,7 +355,7 @@ class PreloadInstanceManager(FirefoxInstanceManager):
     def __init__(self, *args, **kwargs):
         """FirefoxInstanceManager that keeps once Firefox instance preloaded
         to allow rapid resumption after an instance shuts down."""
-        super(PreloadInstanceManager, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.pending = None
 
     def get(self):
@@ -550,7 +548,7 @@ class FirefoxOutputHandler(OutputHandler):
 
 class ProfileCreator:
     def __init__(self, logger, prefs_root, config, test_type, extra_prefs, e10s,
-                 enable_fission, browser_channel, binary, certutil_binary,
+                 disable_fission, debug_test, browser_channel, binary, certutil_binary,
                  ca_certificate_path):
         self.logger = logger
         self.prefs_root = prefs_root
@@ -558,7 +556,8 @@ class ProfileCreator:
         self.test_type = test_type
         self.extra_prefs = extra_prefs
         self.e10s = e10s
-        self.enable_fission = enable_fission
+        self.disable_fission = disable_fission
+        self.debug_test = debug_test
         self.browser_channel = browser_channel
         self.ca_certificate_path = ca_certificate_path
         self.binary = binary
@@ -589,7 +588,7 @@ class ProfileCreator:
 
         profiles = os.path.join(self.prefs_root, 'profiles.json')
         if os.path.isfile(profiles):
-            with open(profiles, 'r') as fh:
+            with open(profiles) as fh:
                 for name in json.load(fh)['web-platform-tests']:
                     if self.browser_channel in (None, 'nightly'):
                         pref_paths.append(os.path.join(self.prefs_root, name, 'user.js'))
@@ -633,9 +632,8 @@ class ProfileCreator:
         if self.e10s:
             profile.set_preferences({"browser.tabs.remote.autostart": True})
 
-        if self.enable_fission:
-            profile.set_preferences({"fission.autostart": True})
-        else:
+        profile.set_preferences({"fission.autostart": True})
+        if self.disable_fission:
             profile.set_preferences({"fission.autostart": False})
 
         if self.test_type in ("reftest", "print-reftest"):
@@ -647,7 +645,10 @@ class ProfileCreator:
         # Bug 1262954: winxp + e10s, disable hwaccel
         if (self.e10s and platform.system() in ("Windows", "Microsoft") and
             "5.1" in platform.version()):
-            self.profile.set_preferences({"layers.acceleration.disabled": True})
+            profile.set_preferences({"layers.acceleration.disabled": True})
+
+        if self.debug_test:
+            profile.set_preferences({"devtools.console.stdout.content": True})
 
     def _setup_ssl(self, profile):
         """Create a certificate database to use in the test profile. This is configured
@@ -706,11 +707,11 @@ class FirefoxBrowser(Browser):
 
     def __init__(self, logger, binary, prefs_root, test_type, extra_prefs=None, debug_info=None,
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
-                 ca_certificate_path=None, e10s=False, enable_fission=True,
+                 ca_certificate_path=None, e10s=False, disable_fission=False,
                  stackfix_dir=None, binary_args=None, timeout_multiplier=None, leak_check=False,
                  asan=False, stylo_threads=1, chaos_mode_flags=None, config=None,
                  browser_channel="nightly", headless=None, preload_browser=False,
-                 specialpowers_path=None, **kwargs):
+                 specialpowers_path=None, debug_test=False, **kwargs):
         Browser.__init__(self, logger)
 
         self.logger = logger
@@ -736,7 +737,8 @@ class FirefoxBrowser(Browser):
                                          test_type,
                                          extra_prefs,
                                          e10s,
-                                         enable_fission,
+                                         disable_fission,
+                                         debug_test,
                                          browser_channel,
                                          binary,
                                          certutil_binary,
@@ -793,7 +795,8 @@ class FirefoxBrowser(Browser):
         if self._settings.get("special_powers", False):
             extensions.append(self.specialpowers_path)
         return ExecutorBrowser, {"marionette_port": self.instance.marionette_port,
-                                 "extensions": extensions}
+                                 "extensions": extensions,
+                                 "supports_devtools": True}
 
     def check_crash(self, process, test):
         dump_dir = os.path.join(self.instance.runner.profile.profile, "minidumps")
@@ -805,7 +808,7 @@ class FirefoxBrowser(Browser):
                                              stackwalk_binary=self.stackwalk_binary,
                                              process=process,
                                              test=test))
-        except IOError:
+        except OSError:
             self.logger.warning("Looking for crash dump files failed")
             return False
 
@@ -814,9 +817,9 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
     def __init__(self, logger, binary, prefs_root, webdriver_binary, webdriver_args,
                  extra_prefs=None, debug_info=None, symbols_path=None, stackwalk_binary=None,
                  certutil_binary=None, ca_certificate_path=None, e10s=False,
-                 enable_fission=False, stackfix_dir=None, leak_check=False,
+                 disable_fission=False, stackfix_dir=None, leak_check=False,
                  asan=False, stylo_threads=1, chaos_mode_flags=None, config=None,
-                 browser_channel="nightly", headless=None, **kwargs):
+                 browser_channel="nightly", headless=None, debug_test=False, **kwargs):
 
         super().__init__(logger, binary, webdriver_binary, webdriver_args)
         self.binary = binary
@@ -838,7 +841,8 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
                                          "wdspec",
                                          extra_prefs,
                                          e10s,
-                                         enable_fission,
+                                         disable_fission,
+                                         debug_test,
                                          browser_channel,
                                          binary,
                                          certutil_binary,
@@ -875,12 +879,13 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
         super().start(group_metadata, **kwargs)
 
     def stop(self, force=False):
-        # Initially wait for any WebDriver session to cleanly shutdown
-        # When this is called the executor is usually sending a end session
+        # Initially wait for any WebDriver session to cleanly shutdown if the
+        # process doesn't have to be force stopped.
+        # When this is called the executor is usually sending an end session
         # command to the browser. We don't have a synchronisation mechanism
         # that allows us to know that process is ongoing, so poll the status
         # endpoint until there isn't a session, before killing the driver.
-        if self.is_alive():
+        if self.is_alive() and not force:
             end_time = time.time() + BrowserInstance.shutdown_timeout
             while time.time() < end_time:
                 self.logger.debug("Waiting for WebDriver session to end")
@@ -932,5 +937,6 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
 
     def executor_browser(self):
         cls, args = super().executor_browser()
+        args["supports_devtools"] = False
         args["profile"] = self.profile.profile
         return cls, args

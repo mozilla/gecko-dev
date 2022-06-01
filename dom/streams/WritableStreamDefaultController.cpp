@@ -11,11 +11,10 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/AbortSignal.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/PromiseNativeHandler.h"
+#include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/WritableStream.h"
 #include "mozilla/dom/WritableStreamDefaultController.h"
 #include "mozilla/dom/WritableStreamDefaultControllerBinding.h"
-// #include "mozilla/dom/ReadableStreamDefaultReaderBinding.h"
 #include "mozilla/dom/UnderlyingSinkBinding.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
@@ -29,15 +28,13 @@ namespace mozilla::dom {
 NS_IMPL_CYCLE_COLLECTION_CLASS(WritableStreamDefaultController)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(WritableStreamDefaultController)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobal, mSignal, mStrategySizeAlgorithm,
-                                  mWriteAlgorithm, mCloseAlgorithm,
-                                  mAbortAlgorithm, mStream)
+                                  mAlgorithms, mStream)
   tmp->mQueue.clear();
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WritableStreamDefaultController)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGlobal, mSignal, mStrategySizeAlgorithm,
-                                    mWriteAlgorithm, mCloseAlgorithm,
-                                    mAbortAlgorithm, mStream)
+                                    mAlgorithms, mStream)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(WritableStreamDefaultController)
@@ -57,7 +54,9 @@ NS_INTERFACE_MAP_END
 
 WritableStreamDefaultController::WritableStreamDefaultController(
     nsISupports* aGlobal, WritableStream& aStream)
-    : mGlobal(do_QueryInterface(aGlobal)), mStream(&aStream) {}
+    : mGlobal(do_QueryInterface(aGlobal)), mStream(&aStream) {
+  mozilla::HoldJSObjects(this);
+}
 
 WritableStreamDefaultController::~WritableStreamDefaultController() {
   // MG:XXX: LinkedLists are required to be empty at destruction, but it seems
@@ -66,6 +65,7 @@ WritableStreamDefaultController::~WritableStreamDefaultController() {
   //
   //         This needs to be verified as not indicating some other issue.
   mQueue.clear();
+  mozilla::DropJSObjects(this);
 }
 
 JSObject* WritableStreamDefaultController::WrapObject(
@@ -92,12 +92,10 @@ already_AddRefed<Promise> WritableStreamDefaultController::AbortSteps(
     JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
   // Step 1. Let result be the result of performing this.[[abortAlgorithm]],
   // passing reason.
-  RefPtr<UnderlyingSinkAbortCallbackHelper> abortAlgorithm(mAbortAlgorithm);
+  RefPtr<UnderlyingSinkAlgorithmsBase> algorithms = mAlgorithms;
   Optional<JS::Handle<JS::Value>> optionalReason(aCx, aReason);
   RefPtr<Promise> abortPromise =
-      abortAlgorithm
-          ? abortAlgorithm->AbortCallback(aCx, optionalReason, aRv)
-          : Promise::CreateResolvedWithUndefined(GetParentObject(), aRv);
+      algorithms->AbortCallback(aCx, optionalReason, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -125,69 +123,11 @@ WritableStreamDefaultControllerAdvanceQueueIfNeeded(
     JSContext* aCx, WritableStreamDefaultController* aController,
     ErrorResult& aRv);
 
-class WritableStartPromiseNativeHandler final : public PromiseNativeHandler {
-  ~WritableStartPromiseNativeHandler() = default;
-
-  // Virtually const, but cycle collected
-  RefPtr<WritableStreamDefaultController> mController;
-
- public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(WritableStartPromiseNativeHandler)
-
-  explicit WritableStartPromiseNativeHandler(
-      WritableStreamDefaultController* aController)
-      : PromiseNativeHandler(), mController(aController) {}
-
-  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(JSContext* aCx,
-                                           JS::Handle<JS::Value> aValue,
-                                           ErrorResult& aRv) override {
-    // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller
-    // Step 17. Upon fulfillment of startPromise,
-    // Step 17.1. Assert: stream.[[state]] is "writable" or "erroring".
-    MOZ_ASSERT(mController->Stream()->State() ==
-                   WritableStream::WriterState::Writable ||
-               mController->Stream()->State() ==
-                   WritableStream::WriterState::Erroring);
-    // Step 17.2. Set controller.[[started]] to true.
-    mController->SetStarted(true);
-    // Step 17.3 Perform
-    // ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-    WritableStreamDefaultControllerAdvanceQueueIfNeeded(
-        aCx, MOZ_KnownLive(mController), aRv);
-  }
-
-  MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
-                                           JS::Handle<JS::Value> aValue,
-                                           ErrorResult& aRv) override {
-    // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller
-    RefPtr<WritableStream> stream = mController->Stream();
-    // Step 18. Upon rejection of startPromise with reason r,
-    // Step 18.1. Assert: stream.[[state]] is "writable" or "erroring".
-    MOZ_ASSERT(stream->State() == WritableStream::WriterState::Writable ||
-               stream->State() == WritableStream::WriterState::Erroring);
-    // Step 18.2. Set controller.[[started]] to true.
-    mController->SetStarted(true);
-    // Step 18.3. Perform ! WritableStreamDealWithRejection(stream, r).
-    stream->DealWithRejection(aCx, aValue, aRv);
-  }
-};
-
-NS_IMPL_CYCLE_COLLECTION(WritableStartPromiseNativeHandler, mController)
-NS_IMPL_CYCLE_COLLECTING_ADDREF(WritableStartPromiseNativeHandler)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(WritableStartPromiseNativeHandler)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WritableStartPromiseNativeHandler)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
 // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller
 void SetUpWritableStreamDefaultController(
     JSContext* aCx, WritableStream* aStream,
     WritableStreamDefaultController* aController,
-    UnderlyingSinkStartCallbackHelper* aStartAlgorithm,
-    UnderlyingSinkWriteCallbackHelper* aWriteAlgorithm,
-    UnderlyingSinkCloseCallbackHelper* aCloseAlgorithm,
-    UnderlyingSinkAbortCallbackHelper* aAbortAlgorithm, double aHighWaterMark,
+    UnderlyingSinkAlgorithmsBase* aAlgorithms, double aHighWaterMark,
     QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv) {
   // Step 1. Assert: stream implements WritableStream.
   // Step 2. Assert: stream.[[controller]] is undefined.
@@ -199,7 +139,7 @@ void SetUpWritableStreamDefaultController(
   MOZ_ASSERT(aController->Stream() == aStream);
 
   // Step 4. Set stream.[[controller]] to controller.
-  aStream->SetController(aController);
+  aStream->SetController(*aController);
 
   // Step 5. Perform ! ResetQueue(controller).
   ResetQueue(aController);
@@ -219,13 +159,9 @@ void SetUpWritableStreamDefaultController(
   aController->SetStrategyHWM(aHighWaterMark);
 
   // Step 10. Set controller.[[writeAlgorithm]] to writeAlgorithm.
-  aController->SetWriteAlgorithm(aWriteAlgorithm);
-
   // Step 11. Set controller.[[closeAlgorithm]] to closeAlgorithm.
-  aController->SetCloseAlgorithm(aCloseAlgorithm);
-
   // Step 12. Set controller.[[abortAlgorithm]] to abortAlgorithm.
-  aController->SetAbortAlgorithm(aAbortAlgorithm);
+  aController->SetAlgorithms(aAlgorithms);
 
   // Step 13. Let backpressure be !
   // WritableStreamDefaultControllerGetBackpressure(controller).
@@ -240,118 +176,73 @@ void SetUpWritableStreamDefaultController(
   // Step 15. Let startResult be the result of performing startAlgorithm. (This
   // may throw an exception.)
   JS::Rooted<JS::Value> startResult(aCx, JS::UndefinedValue());
-  if (aStartAlgorithm) {
-    // Strong Refs:
-    RefPtr<UnderlyingSinkStartCallbackHelper> startAlgorithm(aStartAlgorithm);
-    RefPtr<WritableStreamDefaultController> controller(aController);
-
-    startAlgorithm->StartCallback(aCx, *controller, &startResult, aRv);
-    if (aRv.Failed()) {
-      return;
-    }
+  RefPtr<WritableStreamDefaultController> controller(aController);
+  aAlgorithms->StartCallback(aCx, *controller, &startResult, aRv);
+  if (aRv.Failed()) {
+    return;
   }
 
   // Step 16. Let startPromise be a promise resolved with startResult.
-  RefPtr<Promise> startPromise = Promise::Create(GetIncumbentGlobal(), aRv);
+  RefPtr<Promise> startPromise =
+      Promise::Create(aStream->GetParentObject(), aRv);
   if (aRv.Failed()) {
     return;
   }
   startPromise->MaybeResolve(startResult);
 
   // Step 17/18.
-  RefPtr<WritableStartPromiseNativeHandler> startPromiseHandler =
-      new WritableStartPromiseNativeHandler(aController);
-  startPromise->AppendNativeHandler(startPromiseHandler);
+  startPromise->AddCallbacksWithCycleCollectedArgs(
+      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         WritableStreamDefaultController* aController)
+          MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+            // Step 17. Upon fulfillment of startPromise,
+            // Step 17.1. Assert: stream.[[state]] is "writable" or "erroring".
+            MOZ_ASSERT(aController->Stream()->State() ==
+                           WritableStream::WriterState::Writable ||
+                       aController->Stream()->State() ==
+                           WritableStream::WriterState::Erroring);
+            // Step 17.2. Set controller.[[started]] to true.
+            aController->SetStarted(true);
+            // Step 17.3 Perform
+            // !WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+            WritableStreamDefaultControllerAdvanceQueueIfNeeded(
+                aCx, MOZ_KnownLive(aController), aRv);
+          },
+      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         WritableStreamDefaultController* aController)
+          MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+            RefPtr<WritableStream> stream = aController->Stream();
+            // Step 18. Upon rejection of startPromise with reason r,
+            // Step 18.1. Assert: stream.[[state]] is "writable" or "erroring".
+            MOZ_ASSERT(
+                stream->State() == WritableStream::WriterState::Writable ||
+                stream->State() == WritableStream::WriterState::Erroring);
+            // Step 18.2. Set controller.[[started]] to true.
+            aController->SetStarted(true);
+            // Step 18.3. Perform ! WritableStreamDealWithRejection(stream, r).
+            stream->DealWithRejection(aCx, aValue, aRv);
+          },
+      RefPtr(aController));
 }
 
 // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
 void SetUpWritableStreamDefaultControllerFromUnderlyingSink(
-    JSContext* aCx, WritableStream* aStream, JS::HandleObject aUnderlyingSink,
-    UnderlyingSink& aUnderlyingSinkDict, double aHighWaterMark,
-    QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv) {
+    JSContext* aCx, WritableStream* aStream,
+    JS::Handle<JSObject*> aUnderlyingSink, UnderlyingSink& aUnderlyingSinkDict,
+    double aHighWaterMark, QueuingStrategySize* aSizeAlgorithm,
+    ErrorResult& aRv) {
   // Step 1.
   RefPtr<WritableStreamDefaultController> controller =
       new WritableStreamDefaultController(aStream->GetParentObject(), *aStream);
 
-  // Step 6. (implicit Step 2.)
-  RefPtr<UnderlyingSinkStartCallbackHelper> startAlgorithm =
-      aUnderlyingSinkDict.mStart.WasPassed()
-          ? new UnderlyingSinkStartCallbackHelper(
-                aUnderlyingSinkDict.mStart.Value(), aUnderlyingSink)
-          : nullptr;
-
-  // Step 7. (implicit Step 3.)
-  RefPtr<UnderlyingSinkWriteCallbackHelper> writeAlgorithm =
-      aUnderlyingSinkDict.mWrite.WasPassed()
-          ? new UnderlyingSinkWriteCallbackHelper(
-                aUnderlyingSinkDict.mWrite.Value(), aUnderlyingSink)
-          : nullptr;
-
-  // Step 8. (implicit Step 4.)
-  RefPtr<UnderlyingSinkCloseCallbackHelper> closeAlgorithm =
-      aUnderlyingSinkDict.mClose.WasPassed()
-          ? new UnderlyingSinkCloseCallbackHelper(
-                aUnderlyingSinkDict.mClose.Value(), aUnderlyingSink)
-          : nullptr;
-
-  // Step 9. (implicit Step 5.)
-  RefPtr<UnderlyingSinkAbortCallbackHelper> abortAlgorithm =
-      aUnderlyingSinkDict.mAbort.WasPassed()
-          ? new UnderlyingSinkAbortCallbackHelper(
-                aUnderlyingSinkDict.mAbort.Value(), aUnderlyingSink)
-          : nullptr;
+  // Step 2 - 9.
+  auto algorithms = MakeRefPtr<UnderlyingSinkAlgorithms>(
+      aStream->GetParentObject(), aUnderlyingSink, aUnderlyingSinkDict);
 
   // Step 10.
-  SetUpWritableStreamDefaultController(
-      aCx, aStream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm,
-      abortAlgorithm, aHighWaterMark, aSizeAlgorithm, aRv);
+  SetUpWritableStreamDefaultController(aCx, aStream, controller, algorithms,
+                                       aHighWaterMark, aSizeAlgorithm, aRv);
 }
-
-// MG:XXX: Probably can find base class between this and
-// StartPromiseNativeHandler
-class SinkCloseNativePromiseHandler final : public PromiseNativeHandler {
-  ~SinkCloseNativePromiseHandler() = default;
-
- public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(SinkCloseNativePromiseHandler)
-
-  explicit SinkCloseNativePromiseHandler(
-      WritableStreamDefaultController* aController)
-      : PromiseNativeHandler(), mController(aController) {}
-
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
-                        ErrorResult& aRv) override {
-    // https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close
-    RefPtr<WritableStream> stream = mController->Stream();
-    // Step 7. Upon fulfillment of sinkClosePromise,
-    // Step 7.1. Perform ! WritableStreamFinishInFlightClose(stream).
-    stream->FinishInFlightClose();
-  }
-
-  MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
-                                           JS::Handle<JS::Value> aValue,
-                                           ErrorResult& aRv) override {
-    // https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close
-    RefPtr<WritableStream> stream = mController->Stream();
-    // Step 8. Upon rejection of sinkClosePromise with reason reason,
-    // Step 8.1. Perform ! WritableStreamFinishInFlightCloseWithError(stream,
-    // reason).
-
-    stream->FinishInFlightCloseWithError(aCx, aValue, aRv);
-  }
-
- private:
-  RefPtr<WritableStreamDefaultController> mController;
-};
-
-// Cycle collection methods for promise handler.
-NS_IMPL_CYCLE_COLLECTION(SinkCloseNativePromiseHandler, mController)
-NS_IMPL_CYCLE_COLLECTING_ADDREF(SinkCloseNativePromiseHandler)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(SinkCloseNativePromiseHandler)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SinkCloseNativePromiseHandler)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
 
 // https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close
 MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessClose(
@@ -372,14 +263,9 @@ MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessClose(
 
   // Step 5. Let sinkClosePromise be the result of performing
   // controller.[[closeAlgorithm]].
-  RefPtr<UnderlyingSinkCloseCallbackHelper> closeAlgorithm(
-      aController->GetCloseAlgorithm());
-
-  RefPtr<Promise> sinkClosePromise =
-      closeAlgorithm ? closeAlgorithm->CloseCallback(aCx, aRv)
-                     : Promise::CreateResolvedWithUndefined(
-                           aController->GetParentObject(), aRv);
-
+  RefPtr<UnderlyingSinkAlgorithmsBase> algorithms =
+      aController->GetAlgorithms();
+  RefPtr<Promise> sinkClosePromise = algorithms->CloseCallback(aCx, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -389,93 +275,25 @@ MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessClose(
   aController->ClearAlgorithms();
 
   // Step 7 + 8.
-  sinkClosePromise->AppendNativeHandler(
-      new SinkCloseNativePromiseHandler(aController));
+  sinkClosePromise->AddCallbacksWithCycleCollectedArgs(
+      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         WritableStreamDefaultController* aController) {
+        RefPtr<WritableStream> stream = aController->Stream();
+        // Step 7. Upon fulfillment of sinkClosePromise,
+        // Step 7.1. Perform ! WritableStreamFinishInFlightClose(stream).
+        stream->FinishInFlightClose();
+      },
+      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         WritableStreamDefaultController* aController)
+          MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+            RefPtr<WritableStream> stream = aController->Stream();
+            // Step 8. Upon rejection of sinkClosePromise with reason reason,
+            // Step 8.1. Perform
+            // ! WritableStreamFinishInFlightCloseWithError(stream, reason).
+            stream->FinishInFlightCloseWithError(aCx, aValue, aRv);
+          },
+      RefPtr(aController));
 }
-
-// MG:XXX: Probably can find base class between this and
-// StartPromiseNativeHandler
-class SinkWriteNativePromiseHandler final : public PromiseNativeHandler {
-  ~SinkWriteNativePromiseHandler() = default;
-
-  // Virtually const, but is cycle collected
-  RefPtr<WritableStreamDefaultController> mController;
-
- public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(SinkWriteNativePromiseHandler)
-
-  explicit SinkWriteNativePromiseHandler(
-      WritableStreamDefaultController* aController)
-      : PromiseNativeHandler(), mController(aController) {}
-
-  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(JSContext* aCx,
-                                           JS::Handle<JS::Value> aValue,
-                                           ErrorResult& aRv) override {
-    // https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write
-    RefPtr<WritableStream> stream = mController->Stream();
-
-    // Step 4.1. Perform ! WritableStreamFinishInFlightWrite(stream).
-    stream->FinishInFlightWrite();
-
-    // Step 4.2. Let state be stream.[[state]].
-    WritableStream::WriterState state = stream->State();
-
-    // Step 4.3. Assert: state is "writable" or "erroring".
-    MOZ_ASSERT(state == WritableStream::WriterState::Writable ||
-               state == WritableStream::WriterState::Erroring);
-
-    // Step 4.4. Perform ! DequeueValue(controller).
-    JS::Rooted<JS::Value> value(aCx);
-    DequeueValue(mController, &value);
-
-    // Step 4.5. If ! WritableStreamCloseQueuedOrInFlight(stream) is false and
-    // state is "writable",
-    if (!stream->CloseQueuedOrInFlight() &&
-        state == WritableStream::WriterState::Writable) {
-      // Step 4.5.1. Let backpressure be !
-      // WritableStreamDefaultControllerGetBackpressure(controller).
-      bool backpressure = mController->GetBackpressure();
-      // Step 4.5.2. Perform ! WritableStreamUpdateBackpressure(stream,
-      // backpressure).
-      stream->UpdateBackpressure(backpressure, aRv);
-      if (aRv.Failed()) {
-        return;
-      }
-    }
-
-    // Step 4.6. Perform !
-    // WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-    WritableStreamDefaultControllerAdvanceQueueIfNeeded(
-        aCx, MOZ_KnownLive(mController), aRv);
-  }
-
-  MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
-                                           JS::Handle<JS::Value> aValue,
-                                           ErrorResult& aRv) override {
-    // https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write
-    RefPtr<WritableStream> stream = mController->Stream();
-
-    // Step 5.1. If stream.[[state]] is "writable", perform !
-    // WritableStreamDefaultControllerClearAlgorithms(controller).
-    if (stream->State() == WritableStream::WriterState::Writable) {
-      mController->ClearAlgorithms();
-    }
-
-    // Step 5.2. Perform ! WritableStreamFinishInFlightWriteWithError(stream,
-    // reason)
-
-    stream->FinishInFlightWriteWithError(aCx, aValue, aRv);
-  }
-};
-
-// Cycle collection methods for promise handler.
-NS_IMPL_CYCLE_COLLECTION(SinkWriteNativePromiseHandler, mController)
-NS_IMPL_CYCLE_COLLECTING_ADDREF(SinkWriteNativePromiseHandler)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(SinkWriteNativePromiseHandler)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SinkWriteNativePromiseHandler)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
 
 // https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write
 MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessWrite(
@@ -489,21 +307,71 @@ MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessWrite(
 
   // Step 3. Let sinkWritePromise be the result of performing
   // controller.[[writeAlgorithm]], passing in chunk.
-  RefPtr<UnderlyingSinkWriteCallbackHelper> writeAlgorithm(
-      aController->GetWriteAlgorithm());
-
+  RefPtr<UnderlyingSinkAlgorithmsBase> algorithms =
+      aController->GetAlgorithms();
   RefPtr<Promise> sinkWritePromise =
-      writeAlgorithm
-          ? writeAlgorithm->WriteCallback(aCx, aChunk, *aController, aRv)
-          : Promise::CreateResolvedWithUndefined(aController->GetParentObject(),
-                                                 aRv);
+      algorithms->WriteCallback(aCx, aChunk, *aController, aRv);
   if (aRv.Failed()) {
     return;
   }
 
   // Step 4 + 5:
-  sinkWritePromise->AppendNativeHandler(
-      new SinkWriteNativePromiseHandler(aController));
+  sinkWritePromise->AddCallbacksWithCycleCollectedArgs(
+      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         WritableStreamDefaultController* aController)
+          MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+            RefPtr<WritableStream> stream = aController->Stream();
+
+            // Step 4.1. Perform ! WritableStreamFinishInFlightWrite(stream).
+            stream->FinishInFlightWrite();
+
+            // Step 4.2. Let state be stream.[[state]].
+            WritableStream::WriterState state = stream->State();
+
+            // Step 4.3. Assert: state is "writable" or "erroring".
+            MOZ_ASSERT(state == WritableStream::WriterState::Writable ||
+                       state == WritableStream::WriterState::Erroring);
+
+            // Step 4.4. Perform ! DequeueValue(controller).
+            JS::Rooted<JS::Value> value(aCx);
+            DequeueValue(aController, &value);
+
+            // Step 4.5. If ! WritableStreamCloseQueuedOrInFlight(stream) is
+            // false and state is "writable",
+            if (!stream->CloseQueuedOrInFlight() &&
+                state == WritableStream::WriterState::Writable) {
+              // Step 4.5.1. Let backpressure be !
+              // WritableStreamDefaultControllerGetBackpressure(controller).
+              bool backpressure = aController->GetBackpressure();
+              // Step 4.5.2. Perform ! WritableStreamUpdateBackpressure(stream,
+              // backpressure).
+              stream->UpdateBackpressure(backpressure, aRv);
+              if (aRv.Failed()) {
+                return;
+              }
+            }
+
+            // Step 4.6. Perform !
+            // WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+            WritableStreamDefaultControllerAdvanceQueueIfNeeded(
+                aCx, MOZ_KnownLive(aController), aRv);
+          },
+      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         WritableStreamDefaultController* aController)
+          MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+            RefPtr<WritableStream> stream = aController->Stream();
+
+            // Step 5.1. If stream.[[state]] is "writable", perform !
+            // WritableStreamDefaultControllerClearAlgorithms(controller).
+            if (stream->State() == WritableStream::WriterState::Writable) {
+              aController->ClearAlgorithms();
+            }
+
+            // Step 5.2. Perform !
+            // WritableStreamFinishInFlightWriteWithError(stream, reason)
+            stream->FinishInFlightWriteWithError(aCx, aValue, aRv);
+          },
+      RefPtr(aController));
 }
 
 // We use a JS::MagicValue to represent the close sentinel required by the spec.

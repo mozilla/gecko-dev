@@ -27,8 +27,7 @@ class SocketProcessHost;
 // by SocketProcessHost.
 class SocketProcessParent final
     : public PSocketProcessParent,
-      public ipc::CrashReporterHelper<GeckoProcessType_Socket>,
-      public ipc::ParentToChildStreamActorManager {
+      public ipc::CrashReporterHelper<GeckoProcessType_Socket> {
  public:
   friend class SocketProcessHost;
 
@@ -55,12 +54,12 @@ class SocketProcessParent final
       const Maybe<TabId>& aTabId);
   bool DeallocPWebrtcTCPSocketParent(PWebrtcTCPSocketParent* aActor);
   already_AddRefed<PDNSRequestParent> AllocPDNSRequestParent(
-      const nsCString& aHost, const nsCString& aTrrServer,
+      const nsCString& aHost, const nsCString& aTrrServer, const int32_t& port,
       const uint16_t& aType, const OriginAttributes& aOriginAttributes,
       const uint32_t& aFlags);
   virtual mozilla::ipc::IPCResult RecvPDNSRequestConstructor(
       PDNSRequestParent* actor, const nsCString& aHost,
-      const nsCString& trrServer, const uint16_t& type,
+      const nsCString& trrServer, const int32_t& port, const uint16_t& type,
       const OriginAttributes& aOriginAttributes,
       const uint32_t& flags) override;
 
@@ -69,20 +68,6 @@ class SocketProcessParent final
                                const bool& aAnonymize,
                                const bool& aMinimizeMemoryUsage,
                                const Maybe<ipc::FileDescriptor>& aDMDFile);
-
-  PFileDescriptorSetParent* AllocPFileDescriptorSetParent(
-      const FileDescriptor& fd);
-  bool DeallocPFileDescriptorSetParent(PFileDescriptorSetParent* aActor);
-
-  PChildToParentStreamParent* AllocPChildToParentStreamParent();
-  bool DeallocPChildToParentStreamParent(PChildToParentStreamParent* aActor);
-  PParentToChildStreamParent* AllocPParentToChildStreamParent();
-  bool DeallocPParentToChildStreamParent(PParentToChildStreamParent* aActor);
-
-  PParentToChildStreamParent* SendPParentToChildStreamConstructor(
-      PParentToChildStreamParent* aActor) override;
-  PFileDescriptorSetParent* SendPFileDescriptorSetConstructor(
-      const FileDescriptor& aFD) override;
 
   mozilla::ipc::IPCResult RecvObserveHttpActivity(
       const HttpActivityArgs& aArgs, const uint32_t& aActivityType,
@@ -117,13 +102,6 @@ class SocketProcessParent final
   mozilla::ipc::IPCResult RecvCachePushCheck(
       nsIURI* aPushedURL, OriginAttributes&& aOriginAttributes,
       nsCString&& aRequestString, CachePushCheckResolver&& aResolver);
-
-  already_AddRefed<PRemoteLazyInputStreamParent>
-  AllocPRemoteLazyInputStreamParent(const nsID& aID, const uint64_t& aSize);
-
-  mozilla::ipc::IPCResult RecvPRemoteLazyInputStreamConstructor(
-      PRemoteLazyInputStreamParent* aActor, const nsID& aID,
-      const uint64_t& aSize);
 
   mozilla::ipc::IPCResult RecvODoHServiceActivated(const bool& aActivated);
 

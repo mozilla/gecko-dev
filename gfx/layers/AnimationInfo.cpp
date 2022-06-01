@@ -332,21 +332,23 @@ static StyleTransform ResolveTransformOperations(
   return transform;
 }
 
-static TimingFunction ToTimingFunction(
-    const Maybe<ComputedTimingFunction>& aCTF) {
-  if (aCTF.isNothing()) {
-    return TimingFunction(null_t());
+static Maybe<ScrollTimelineOptions> GetScrollTimelineOptions(
+    dom::AnimationTimeline* aTimeline) {
+  if (!aTimeline || !aTimeline->IsScrollTimeline()) {
+    return Nothing();
   }
 
-  if (aCTF->HasSpline()) {
-    const SMILKeySpline* spline = aCTF->GetFunction();
-    return TimingFunction(CubicBezierFunction(
-        static_cast<float>(spline->X1()), static_cast<float>(spline->Y1()),
-        static_cast<float>(spline->X2()), static_cast<float>(spline->Y2())));
-  }
+  const dom::ScrollTimeline* timeline = aTimeline->AsScrollTimeline();
+  MOZ_ASSERT(timeline->IsActive(),
+             "We send scroll animation to the compositor only if its timeline "
+             "is active");
 
-  return TimingFunction(StepFunction(
-      aCTF->GetSteps().mSteps, static_cast<uint8_t>(aCTF->GetSteps().mPos)));
+  ScrollableLayerGuid::ViewID source = ScrollableLayerGuid::NULL_SCROLL_ID;
+  DebugOnly<bool> success =
+      nsLayoutUtils::FindIDFor(timeline->SourceElement(), &source);
+  MOZ_ASSERT(success, "We should have a valid ViewID for the scroller");
+
+  return Some(ScrollTimelineOptions(source, timeline->Axis()));
 }
 
 // FIXME: Bug 1489392: We don't have to normalize the path here if we accept
@@ -486,11 +488,14 @@ void AnimationInfo::AddAnimationForProperty(
           ? static_cast<float>(aAnimation->PlaybackRate())
           : std::numeric_limits<float>::quiet_NaN();
   animation->transformData() = aTransformData;
-  animation->easingFunction() = ToTimingFunction(timing.TimingFunction());
+  animation->easingFunction() =
+      ComputedTimingFunction::ToLayersTimingFunction(timing.TimingFunction());
   animation->iterationComposite() = static_cast<uint8_t>(
       aAnimation->GetEffect()->AsKeyframeEffect()->IterationComposite());
   animation->isNotPlaying() = !aAnimation->IsPlaying();
   animation->isNotAnimating() = false;
+  animation->scrollTimelineOptions() =
+      GetScrollTimelineOptions(aAnimation->GetTimeline());
 
   TransformReferenceBox refBox(aFrame);
 
@@ -521,7 +526,8 @@ void AnimationInfo::AddAnimationForProperty(
     animSegment->startComposite() =
         static_cast<uint8_t>(segment.mFromComposite);
     animSegment->endComposite() = static_cast<uint8_t>(segment.mToComposite);
-    animSegment->sampleFn() = ToTimingFunction(segment.mTimingFunction);
+    animSegment->sampleFn() =
+        ComputedTimingFunction::ToLayersTimingFunction(segment.mTimingFunction);
   }
 }
 

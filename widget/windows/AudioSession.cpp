@@ -4,8 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <windows.h>
+#include <atomic>
 #include <audiopolicy.h>
+#include <windows.h>
 #include <mmdeviceapi.h>
 
 #include "mozilla/RefPtr.h"
@@ -83,13 +84,13 @@ class AudioSession final : public IAudioSessionEvents {
   nsString mIconPath;
   nsID mSessionGroupingParameter;
   // Guards the IAudioSessionControl
-  mozilla::Mutex mMutex;
+  mozilla::Mutex mMutex MOZ_UNANNOTATED;
 
   ThreadSafeAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 };
 
-static AudioSession* sService = nullptr;
+static std::atomic<AudioSession*> sService = nullptr;
 
 void StartAudioSession() {
   AudioSession::GetSingleton()->InitializeAudioSession();
@@ -100,7 +101,10 @@ void StartAudioSession() {
 
 void StopAudioSession() {
   RefPtr<AudioSession> audioSession;
-  audioSession.swap(sService);
+  AudioSession* temp = sService;
+  audioSession.swap(temp);
+  sService = nullptr;
+
   if (audioSession) {
     NS_DispatchBackgroundTask(NS_NewRunnableFunction(
         "StopAudioSession",
@@ -117,7 +121,9 @@ AudioSession::~AudioSession() {}
 AudioSession* AudioSession::GetSingleton() {
   if (!sService) {
     RefPtr<AudioSession> service = new AudioSession();
-    service.forget(&sService);
+    AudioSession* temp = nullptr;
+    service.swap(temp);
+    sService = temp;
   }
 
   // We don't refcount AudioSession on the Gecko side, we hold one single ref
@@ -199,7 +205,6 @@ void AudioSession::Start() {
   hr = enumerator->GetDefaultAudioEndpoint(
       EDataFlow::eRender, ERole::eMultimedia, getter_AddRefs(device));
   if (FAILED(hr)) {
-    if (hr == E_NOTFOUND) return;
     return;
   }
 
@@ -235,16 +240,13 @@ void AudioSession::StopInternal() {
   if (mAudioSessionControl && (mState == STARTED || mState == STOPPED)) {
     // Decrement refcount of 'this'
     mAudioSessionControl->UnregisterAudioSessionNotification(this);
-  }
-
-  if (mAudioSessionControl) {
-    // Release cannot be called on mAudioSessionControl directly because
-    // RefPtr<T>::operator-> is marked MOZ_NO_ADDREF_RELEASE_ON_RETURN
-    // See Bug 1156084
-    IAudioSessionControl* rawPtr = nullptr;
-    mAudioSessionControl.forget(&rawPtr);
-    MOZ_ASSERT(rawPtr);
-    rawPtr->Release();
+    // Deleting this COM object seems to require the STA / main thread.
+    // Audio code may concurrently be running on the main thread and it may
+    // block waiting for this to complete, creating deadlock.  So we destroy the
+    // object on the main thread instead.
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
+        "ShutdownAudioSession",
+        [asc = std::move(mAudioSessionControl)] { /* */ }));
   }
 }
 
@@ -350,20 +352,19 @@ AudioSession::OnIconPathChanged(LPCWSTR aIconPath, LPCGUID aContext) {
 
 STDMETHODIMP
 AudioSession::OnSessionDisconnected(AudioSessionDisconnectReason aReason) {
-  // When successful, UnregisterAudioSessionNotification will decrement the
-  // refcount of 'this'.  Start will re-increment it.  In the interim,
-  // we'll need to reference ourselves.
-
-  // We need to release the mutex before we call Start().
   {
     MutexAutoLock lock(mMutex);
     if (!mAudioSessionControl) return S_OK;
     mAudioSessionControl->UnregisterAudioSessionNotification(this);
-    mAudioSessionControl = nullptr;
+    // Deleting this COM object seems to require the STA / main thread.
+    // Audio code may concurrently be running on the main thread and it may
+    // block waiting for this to complete, creating deadlock.  So we destroy the
+    // object on the main thread instead.
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
+        "FreeAudioSession", [asc = std::move(mAudioSessionControl)] { /* */ }));
     mState = AUDIO_SESSION_DISCONNECTED;
   }
   Start();  // If it fails there's not much we can do.
-
   return S_OK;
 }
 

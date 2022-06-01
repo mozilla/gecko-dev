@@ -8,7 +8,7 @@ job-defaults:
 geckoview-junit:
     description: "Geckoview junit run"
     suite: geckoview-junit
-    variants: ["geckoview-e10s-single", "geckoview-fission"]
+    variants: ["geckoview-e10s-single", "geckoview-fission", "fission-no-isolate", "no-fission"]
     treeherder-symbol: gv-junit
     loopback-video: true
     target: geckoview-androidTest.apk
@@ -17,7 +17,9 @@ geckoview-junit:
         by-variant:
             geckoview-e10s-single: ['trunk']
             geckoview-fission: ['trunk']
-            default: built-projects
+            fission-no-isolate: ['trunk']
+            no-fission: built-projects
+            default: []
     tier: default
     mozharness:
         script: android_emulator_unittest.py
@@ -33,14 +35,12 @@ telemetry-tests-client:
     description: "Telemetry tests client run"
     suite: telemetry-tests-client
     treeherder-symbol: tt(c)
-    variants: [fission]
+    variants:
+        - fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             fission: built-projects
-            default:
-                by-test-platform:
-                    linux.*: ['trunk']
-                    default: []
     max-run-time: 1200
     tier: default
     mozharness:
@@ -59,7 +59,9 @@ test-verify:
     loopback-video: true
     max-run-time: 10800
     allow-software-gl-layers: false
-    variants: ["fission"]
+    variants:
+        - fission
+        - no-fission
     run-without-variant: false
     run-on-projects:
         by-variant:
@@ -70,7 +72,17 @@ test-verify:
                     # we prefer -qr platforms with fission, no need to run on both
                     (?!.*(-ccov|-asan|-shippable))(?!.*-qr).*: []
                     # do not run on mozilla-central, beta or release: usually just confirms earlier results
+                    android.*: []
                     default: ['integration']
+            no-fission:
+                by-test-platform:
+                    # do not run on ccov or asan or shippable
+                    .*(-ccov|-asan|-shippable).*: []
+                    # we prefer -qr platforms with fission, no need to run on both
+                    (?!.*(-ccov|-asan|-shippable))(?!.*-qr).*: []
+                    # do not run on mozilla-central, beta or release: usually just confirms earlier results
+                    android.*: ['integration']
+                    default: []
             default: []
     built-projects-only: true
     target:

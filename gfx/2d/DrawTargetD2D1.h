@@ -56,8 +56,7 @@ class DrawTargetD2D1 : public DrawTarget {
                           const DrawOptions& aOptions = DrawOptions()) override;
   virtual void DrawSurfaceWithShadow(SourceSurface* aSurface,
                                      const Point& aDest,
-                                     const DeviceColor& aColor,
-                                     const Point& aOffset, Float aSigma,
+                                     const ShadowOptions& aShadow,
                                      CompositionOp aOperator) override;
   virtual void ClearRect(const Rect& aRect) override;
   virtual void MaskSurface(
@@ -200,7 +199,7 @@ class DrawTargetD2D1 : public DrawTarget {
 
   // Must be called with all clips popped and an identity matrix set.
   already_AddRefed<ID2D1Image> GetImageForLayerContent(
-      bool aShouldPreserveContent = true);
+      const IntRect* aBounds = nullptr, bool aShouldPreserveContent = true);
 
   ID2D1Image* CurrentTarget() {
     if (CurrentLayer().mCurrentList) {

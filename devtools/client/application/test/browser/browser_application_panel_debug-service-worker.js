@@ -3,15 +3,9 @@
 
 "use strict";
 
-/* import-globals-from ../../../debugger/test/mochitest/helpers.js */
+/* import-globals-from ../../../debugger/test/mochitest/shared-head.js */
 Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/helpers.js",
-  this
-);
-
-/* import-globals-from ../../../debugger/test/mochitest/helpers/context.js */
-Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/helpers/context.js",
+  "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/shared-head.js",
   this
 );
 
@@ -53,11 +47,11 @@ add_task(async function() {
     content.wrappedJSObject.fetchFromWorker();
   });
   await waitForPaused(debuggerContext);
-  assertPausedLocation(debuggerContext);
+  const workerScript = findSource(debuggerContext, "debug-sw.js");
+  assertPausedAtSourceAndLine(debuggerContext, workerScript.id, 11);
   await resume(debuggerContext);
 
   // remove breakpoint
-  const workerScript = findSource(debuggerContext, "debug-sw.js");
   await removeBreakpoint(debuggerContext, workerScript.id, 11);
 
   await unregisterAllWorkers(commands.client, doc);

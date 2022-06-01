@@ -305,12 +305,10 @@ class _ToolbarBadgeHub {
   }
 }
 
-this._ToolbarBadgeHub = _ToolbarBadgeHub;
-
 /**
  * ToolbarBadgeHub - singleton instance of _ToolbarBadgeHub that can initiate
  * message requests and render messages.
  */
-this.ToolbarBadgeHub = new _ToolbarBadgeHub();
+const ToolbarBadgeHub = new _ToolbarBadgeHub();
 
 const EXPORTED_SYMBOLS = ["ToolbarBadgeHub", "_ToolbarBadgeHub"];

@@ -69,6 +69,7 @@ class StyleSheetWatcher {
       resourceId,
       resourceType: STYLESHEET,
       disabled: styleSheet.disabled,
+      constructed: styleSheet.constructed,
       fileName,
       href: styleSheet.href,
       isNew: isCreatedByDevTools,
@@ -110,6 +111,8 @@ class StyleSheetWatcher {
   ) {
     this._onUpdated([
       {
+        browsingContextID: this._targetActor.browsingContextID,
+        innerWindowId: this._targetActor.innerWindowId,
         resourceType: STYLESHEET,
         resourceId,
         updateType,

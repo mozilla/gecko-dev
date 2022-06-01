@@ -1792,7 +1792,10 @@ def default_debug_flags(compiler_info, target):
         return "-Z7"
     elif target.kernel == "WINNT" and compiler_info.type == "clang":
         return "-g -gcodeview"
-    return "-g"
+    # The oldest versions of supported compilers default to DWARF-4, but
+    # newer versions may default to DWARF-5 or newer (e.g. clang 14), which
+    # Valgrind doesn't support. Force-use DWARF-4.
+    return "-gdwarf-4"
 
 
 option(env="MOZ_DEBUG_FLAGS", nargs=1, help="Debug compiler flags")
@@ -2144,6 +2147,7 @@ def security_hardening_cflags(
 
     flags = []
     ldflags = []
+    trivial_auto_var_init = []
 
     # WASI compiler doesn't support security hardening cflags
     if target.os == "WASI":
@@ -2179,18 +2183,20 @@ def security_hardening_cflags(
                 ldflags.append("-fstack-clash-protection")
 
         # ftrivial-auto-var-init ------------------------------
-        # Initialize local variables with a 0xAA pattern in clang debug builds.
+        # Initialize local variables with a 0xAA pattern in clang builds.
         # Linux32 fails some xpcshell tests with -ftrivial-auto-var-init
         linux32 = target.kernel == "Linux" and target.cpu == "x86"
         if (
             (c_compiler.type == "clang" or c_compiler.type == "clang-cl")
             and c_compiler.version >= "8"
-            and debug
             and not linux32
         ):
             if c_compiler.type == "clang-cl":
-                flags.append("-Xclang")
-            flags.append("-ftrivial-auto-var-init=pattern")
+                trivial_auto_var_init.append("-Xclang")
+            trivial_auto_var_init.append("-ftrivial-auto-var-init=pattern")
+            # Always enable on debug builds.
+            if debug:
+                flags.extend(trivial_auto_var_init)
 
         # ASLR ------------------------------------------------
         # ASLR (dynamicbase) is enabled by default in clang-cl; but the
@@ -2229,11 +2235,16 @@ def security_hardening_cflags(
     return namespace(
         flags=flags,
         ldflags=ldflags,
+        trivial_auto_var_init=trivial_auto_var_init,
     )
 
 
 set_config("MOZ_HARDENING_CFLAGS", security_hardening_cflags.flags)
 set_config("MOZ_HARDENING_LDFLAGS", security_hardening_cflags.ldflags)
+set_config(
+    "MOZ_TRIVIAL_AUTO_VAR_INIT",
+    security_hardening_cflags.trivial_auto_var_init,
+)
 
 
 # Intel Control-flow Enforcement Technology
@@ -2563,12 +2574,12 @@ def stdcxx_compat(value):
 
 
 set_config("MOZ_STDCXX_COMPAT", True, when=stdcxx_compat)
-add_gcc_flag(
+add_flag(
     "-D_GLIBCXX_USE_CXX11_ABI=0",
     cxx_compiler,
     when=stdcxx_compat,
 )
-add_gcc_flag(
+add_flag(
     "-D_GLIBCXX_USE_CXX11_ABI=0",
     host_cxx_compiler,
     when=stdcxx_compat,

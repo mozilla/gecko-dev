@@ -29,8 +29,6 @@ class UtilityProcessParent final
 
   explicit UtilityProcessParent(UtilityProcessHost* aHost);
 
-  static UtilityProcessParent* GetSingleton();
-
   mozilla::ipc::IPCResult RecvAddMemoryReport(const MemoryReport& aReport);
 
   bool SendRequestMemoryReport(const uint32_t& aGeneration,
@@ -39,6 +37,8 @@ class UtilityProcessParent final
                                const Maybe<ipc::FileDescriptor>& aDMDFile);
 
   mozilla::ipc::IPCResult RecvFOGData(ByteBuf&& aBuf);
+
+  mozilla::ipc::IPCResult RecvInitCompleted();
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 

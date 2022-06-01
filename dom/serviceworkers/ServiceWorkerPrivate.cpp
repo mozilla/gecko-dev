@@ -60,8 +60,7 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 using mozilla::ipc::PrincipalInfo;
 
@@ -1760,7 +1759,9 @@ nsresult ServiceWorkerPrivate::SpawnWorkerIfNeeded(WakeUpReason aWhy,
   // Default CSP permissions for now.  These will be overrided if necessary
   // based on the script CSP headers during load in ScriptLoader.
   info.mEvalAllowed = true;
-  info.mReportCSPViolations = false;
+  info.mReportEvalCSPViolations = false;
+  info.mWasmEvalAllowed = true;
+  info.mReportWasmEvalCSPViolations = false;
 
   WorkerPrivate::OverrideLoadInfoLoadGroup(info, info.mPrincipal);
 
@@ -2162,5 +2163,4 @@ void ServiceWorkerPrivate::SetHandlesFetch(bool aValue) {
   mInfo->SetHandlesFetch(aValue);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

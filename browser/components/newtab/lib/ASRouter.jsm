@@ -25,7 +25,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
     "resource://activity-stream/lib/ASRouterPreferences.jsm",
   ASRouterTriggerListeners:
     "resource://activity-stream/lib/ASRouterTriggerListeners.jsm",
-  CFRMessageProvider: "resource://activity-stream/lib/CFRMessageProvider.jsm",
   KintoHttpClient: "resource://services-common/kinto-http-client.js",
   Downloader: "resource://services-settings/Attachments.jsm",
   RemoteL10n: "resource://activity-stream/lib/RemoteL10n.jsm",
@@ -91,6 +90,7 @@ const JEXL_PROVIDER_CACHE = new Set(["snippets"]);
 
 // To observe the app locale change notification.
 const TOPIC_INTL_LOCALE_CHANGED = "intl:app-locales-changed";
+const TOPIC_EXPERIMENT_FORCE_ENROLLED = "nimbus:force-enroll";
 // To observe the pref that controls if ASRouter should use the remote Fluent files for l10n.
 const USE_REMOTE_L10N_PREF =
   "browser.newtabpage.activity-stream.asrouter.useRemoteL10n";
@@ -276,18 +276,9 @@ const MessageLoaderUtils = {
           );
         } else if (
           RS_PROVIDERS_WITH_L10N.includes(provider.id) &&
-          (RemoteL10n.isLocaleSupported(Services.locale.appLocaleAsBCP47) ||
-            // While it's not a valid locale, "und" is commonly observed on
-            // Linux platforms. Per l10n team, it's reasonable to fallback to
-            // "en-US", therefore, we should allow the fetch for it.
-            Services.locale.appLocaleAsBCP47 === "und")
+          RemoteL10n.isLocaleSupported(MessageLoaderUtils.locale)
         ) {
-          let locale = Services.locale.appLocaleAsBCP47;
-          // Fallback to "en-US" if locale is "und"
-          if (locale === "und") {
-            locale = "en-US";
-          }
-          const recordId = `${RS_FLUENT_RECORD_PREFIX}-${locale}`;
+          const recordId = `${RS_FLUENT_RECORD_PREFIX}-${MessageLoaderUtils.locale}`;
           const kinto = new KintoHttpClient(
             Services.prefs.getStringPref(RS_SERVER_PREF)
           );
@@ -303,7 +294,7 @@ const MessageLoaderUtils = {
               "newtab"
             );
             // Await here in order to capture the exceptions for reporting.
-            await downloader.download(record.data, {
+            await downloader.downloadToDisk(record.data, {
               retries: RS_DOWNLOAD_MAX_RETRIES,
             });
             RemoteL10n.reloadL10n();
@@ -497,9 +488,27 @@ const MessageLoaderUtils = {
       await storage.set(MessageLoaderUtils.REMOTE_LOADER_CACHE_KEY, cache);
     }
   },
-};
 
-this.MessageLoaderUtils = MessageLoaderUtils;
+  /**
+   * The locale to use for RemoteL10n.
+   *
+   * This may map the app's actual locale into something that RemoteL10n
+   * supports.
+   */
+  get locale() {
+    const localeMap = {
+      "ja-JP-macos": "ja-JP-mac",
+
+      // While it's not a valid locale, "und" is commonly observed on
+      // Linux platforms. Per l10n team, it's reasonable to fallback to
+      // "en-US", therefore, we should allow the fetch for it.
+      und: "en-US",
+    };
+
+    const locale = Services.locale.appLocaleAsBCP47;
+    return localeMap[locale] ?? locale;
+  },
+};
 
 /**
  * @class _ASRouter - Keeps track of all messages, UI surfaces, and
@@ -540,6 +549,9 @@ class _ASRouter {
     this.isUnblockedMessage = this.isUnblockedMessage.bind(this);
     this.unblockAll = this.unblockAll.bind(this);
     this.forceWNPanel = this.forceWNPanel.bind(this);
+    this._onExperimentForceEnrolled = this._onExperimentForceEnrolled.bind(
+      this
+    );
     Services.telemetry.setEventRecordingEnabled(REACH_EVENT_CATEGORY, true);
   }
 
@@ -748,12 +760,16 @@ class _ASRouter {
   /**
    * loadMessagesFromAllProviders - Loads messages from all providers if they require updates.
    *                                Checks the .lastUpdated field on each provider to see if updates are needed
+   * @param toUpdate  An optional list of providers to update. This overrides
+   *                  the checks to determine which providers to update.
    * @memberof _ASRouter
    */
-  async loadMessagesFromAllProviders() {
-    const needsUpdate = this.state.providers.filter(provider =>
-      MessageLoaderUtils.shouldProviderUpdate(provider)
-    );
+  async loadMessagesFromAllProviders(toUpdate = undefined) {
+    const needsUpdate = Array.isArray(toUpdate)
+      ? toUpdate
+      : this.state.providers.filter(provider =>
+          MessageLoaderUtils.shouldProviderUpdate(provider)
+        );
     await this.loadAllMessageGroups();
     // Don't do extra work if we don't need any updates
     if (needsUpdate.length) {
@@ -917,6 +933,10 @@ class _ASRouter {
 
     SpecialMessageActions.blockMessageById = this.blockMessageById;
     Services.obs.addObserver(this._onLocaleChanged, TOPIC_INTL_LOCALE_CHANGED);
+    Services.obs.addObserver(
+      this._onExperimentForceEnrolled,
+      TOPIC_EXPERIMENT_FORCE_ENROLLED
+    );
     Services.prefs.addObserver(USE_REMOTE_L10N_PREF, this);
     // sets .initialized to true and resolves .waitForInitialized promise
     this._finishInitializing();
@@ -945,6 +965,10 @@ class _ASRouter {
     Services.obs.removeObserver(
       this._onLocaleChanged,
       TOPIC_INTL_LOCALE_CHANGED
+    );
+    Services.obs.removeObserver(
+      this._onExperimentForceEnrolled,
+      TOPIC_EXPERIMENT_FORCE_ENROLLED
     );
     Services.prefs.removeObserver(USE_REMOTE_L10N_PREF, this);
     // If we added any CFR recommendations, they need to be removed
@@ -1437,6 +1461,18 @@ class _ASRouter {
     }));
   }
 
+  resetMessageState() {
+    const newMessageImpressions = {};
+    for (let { id } of this.state.messages) {
+      newMessageImpressions[id] = [];
+    }
+    // Update storage
+    this._storage.set("messageImpressions", newMessageImpressions);
+    return this.setState(() => ({
+      messageImpressions: newMessageImpressions,
+    }));
+  }
+
   _validPreviewEndpoint(url) {
     try {
       const endpoint = new URL(url);
@@ -1582,14 +1618,26 @@ class _ASRouter {
     return this.loadMessagesFromAllProviders();
   }
 
-  async sendPBNewTabMessage({ tabId }) {
+  async sendPBNewTabMessage({ tabId, hideDefault }) {
     let message = null;
 
     await this.loadMessagesFromAllProviders();
 
+    // If message has hideDefault property set to true
+    // remove from state all pb_newtab messages with type default
+    if (hideDefault) {
+      await this.setState(state => ({
+        messages: state.messages.filter(
+          m => !(m.template === "pb_newtab" && m.type === "default")
+        ),
+      }));
+    }
+
     const telemetryObject = { tabId };
     TelemetryStopwatch.start("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
-    message = await this.handleMessageRequest({ template: "pb_newtab" });
+    message = await this.handleMessageRequest({
+      template: "pb_newtab",
+    });
     TelemetryStopwatch.finish("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
 
     // Format urls if any are defined
@@ -1722,13 +1770,23 @@ class _ASRouter {
     // Removing the button is enough to close the panel.
     await ToolbarPanelHub._hideToolbarButton(win);
   }
+
+  async _onExperimentForceEnrolled(subject, topic, data) {
+    const experimentProvider = this.state.providers.find(
+      p => p.id === "messaging-experiments"
+    );
+    if (!experimentProvider.enabled) {
+      return;
+    }
+
+    await this.loadMessagesFromAllProviders([experimentProvider]);
+  }
 }
-this._ASRouter = _ASRouter;
 
 /**
  * ASRouter - singleton instance of _ASRouter that controls all messages
  * in the new tab page.
  */
-this.ASRouter = new _ASRouter();
+const ASRouter = new _ASRouter();
 
 const EXPORTED_SYMBOLS = ["_ASRouter", "ASRouter", "MessageLoaderUtils"];

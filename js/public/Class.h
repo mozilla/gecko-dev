@@ -141,9 +141,13 @@ class ObjectOpResult {
   JS_PUBLIC_API bool failNoNamedSetter();
   JS_PUBLIC_API bool failNoIndexedSetter();
   JS_PUBLIC_API bool failNotDataDescriptor();
+  JS_PUBLIC_API bool failInvalidDescriptor();
 
   // Careful: This case has special handling in Object.defineProperty.
   JS_PUBLIC_API bool failCantDefineWindowNonConfigurable();
+
+  JS_PUBLIC_API bool failBadArrayLength();
+  JS_PUBLIC_API bool failBadIndex();
 
   uint32_t failureCode() const {
     MOZ_ASSERT(!ok());
@@ -291,15 +295,7 @@ typedef bool (*JSMayResolveOp)(const JSAtomState& names, jsid id,
  * from other live objects or from GC roots.  Obviously, finalizers must never
  * store a reference to obj.
  */
-typedef void (*JSFinalizeOp)(JSFreeOp* fop, JSObject* obj);
-
-/**
- * Check whether v is an instance of obj.  Return false on error or exception,
- * true on success with true in *bp if v is an instance of obj, false in
- * *bp otherwise.
- */
-typedef bool (*JSHasInstanceOp)(JSContext* cx, JS::HandleObject obj,
-                                JS::MutableHandleValue vp, bool* bp);
+typedef void (*JSFinalizeOp)(JS::GCContext* gcx, JSObject* obj);
 
 /**
  * Function type for trace operation of the class called to enumerate all
@@ -604,7 +600,6 @@ struct MOZ_STATIC_CLASS JSClassOps {
   JSMayResolveOp mayResolve;
   JSFinalizeOp finalize;
   JSNative call;
-  JSHasInstanceOp hasInstance;
   JSNative construct;
   JSTraceOp trace;
 };
@@ -639,9 +634,6 @@ struct alignas(js::gc::JSClassAlignBytes) JSClass {
     return cOps ? cOps->mayResolve : nullptr;
   }
   JSNative getCall() const { return cOps ? cOps->call : nullptr; }
-  JSHasInstanceOp getHasInstance() const {
-    return cOps ? cOps->hasInstance : nullptr;
-  }
   JSNative getConstruct() const { return cOps ? cOps->construct : nullptr; }
 
   bool hasFinalize() const { return cOps && cOps->finalize; }
@@ -652,9 +644,9 @@ struct alignas(js::gc::JSClassAlignBytes) JSClass {
   // The special treatment of |finalize| and |trace| is necessary because if we
   // assign either of those hooks to a local variable and then call it -- as is
   // done with the other hooks -- the GC hazard analysis gets confused.
-  void doFinalize(JSFreeOp* fop, JSObject* obj) const {
+  void doFinalize(JS::GCContext* gcx, JSObject* obj) const {
     MOZ_ASSERT(cOps && cOps->finalize);
-    cOps->finalize(fop, obj);
+    cOps->finalize(gcx, obj);
   }
   void doTrace(JSTracer* trc, JSObject* obj) const {
     MOZ_ASSERT(cOps && cOps->trace);

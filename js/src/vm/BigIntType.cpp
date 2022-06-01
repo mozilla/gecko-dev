@@ -110,7 +110,7 @@
 #include "vm/SelfHosting.h"
 #include "vm/StaticStrings.h"
 
-#include "gc/FreeOp-inl.h"
+#include "gc/GCContext-inl.h"
 #include "gc/Nursery-inl.h"
 #include "vm/JSContext-inl.h"
 
@@ -178,11 +178,11 @@ void BigInt::initializeDigitsToZero() {
   std::uninitialized_fill_n(digs.begin(), digs.Length(), 0);
 }
 
-void BigInt::finalize(JSFreeOp* fop) {
+void BigInt::finalize(JS::GCContext* gcx) {
   MOZ_ASSERT(isTenured());
   if (hasHeapDigits()) {
     size_t size = digitLength() * sizeof(Digit);
-    fop->free_(this, heapDigits_, size, js::MemoryUse::BigIntDigits);
+    gcx->free_(this, heapDigits_, size, js::MemoryUse::BigIntDigits);
   }
 }
 
@@ -1457,9 +1457,9 @@ JSLinearString* BigInt::toStringGeneric(JSContext* cx, HandleBigInt x,
 
 static void FreeDigits(JSContext* cx, BigInt* bi, BigInt::Digit* digits,
                        size_t nbytes) {
-  if (cx->isHelperThreadContext()) {
-    js_free(digits);
-  } else if (bi->isTenured()) {
+  MOZ_ASSERT(cx->isMainThreadContext());
+
+  if (bi->isTenured()) {
     MOZ_ASSERT(!cx->nursery().isInside(digits));
     js_free(digits);
   } else {

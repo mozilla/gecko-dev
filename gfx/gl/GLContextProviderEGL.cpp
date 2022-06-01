@@ -76,11 +76,10 @@
 
 #if defined(MOZ_WIDGET_GTK)
 #  include "mozilla/widget/GtkCompositorWidget.h"
-#  include "mozilla/WidgetUtilsGtk.h"
 #  if defined(MOZ_WAYLAND)
 #    include <gdk/gdkwayland.h>
 #    include <wayland-egl.h>
-#    define MOZ_GTK_WAYLAND 1
+#    include "mozilla/widget/nsWaylandDisplay.h"
 #  endif
 #endif
 
@@ -94,31 +93,25 @@ namespace gl {
 using namespace mozilla::widget;
 
 #if defined(MOZ_WAYLAND)
-class WaylandGLSurface {
+class SavedGLSurface {
  public:
-  WaylandGLSurface(struct wl_surface* aWaylandSurface,
-                   struct wl_egl_window* aEGLWindow);
-  ~WaylandGLSurface();
+  SavedGLSurface(struct wl_surface* aWaylandSurface,
+                 struct wl_egl_window* aEGLWindow);
+  ~SavedGLSurface();
 
  private:
-  struct wl_surface* mWaylandSurface;
-  struct wl_egl_window* mEGLWindow;
+  struct wl_surface* mWaylandSurface = nullptr;
+  struct wl_egl_window* mEGLWindow = nullptr;
 };
 
-static nsTHashMap<nsPtrHashKey<void>, WaylandGLSurface*> sWaylandGLSurface;
+static nsTHashMap<nsPtrHashKey<void>, SavedGLSurface*> sSavedGLSurfaces;
 
-void DeleteWaylandGLSurface(EGLSurface surface) {
-#  ifdef MOZ_GTK_WAYLAND
-  // We're running on Wayland which means our EGLSurface may
-  // have attached Wayland backend data which must be released.
-  if (GdkIsWaylandDisplay()) {
-    auto entry = sWaylandGLSurface.Lookup(surface);
-    if (entry) {
-      delete entry.Data();
-      entry.Remove();
-    }
+void DeleteSavedGLSurface(EGLSurface surface) {
+  auto entry = sSavedGLSurfaces.Lookup(surface);
+  if (entry) {
+    delete entry.Data();
+    entry.Remove();
   }
-#  endif
 }
 #endif
 
@@ -161,7 +154,7 @@ static void DestroySurface(EglDisplay& egl, const EGLSurface oldSurface) {
     egl.fMakeCurrent(EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     egl.fDestroySurface(oldSurface);
 #if defined(MOZ_WAYLAND)
-    DeleteWaylandGLSurface(oldSurface);
+    DeleteSavedGLSurface(oldSurface);
 #endif
   }
 }
@@ -237,7 +230,7 @@ class GLContextEGLFactory {
 already_AddRefed<GLContext> GLContextEGLFactory::CreateImpl(
     EGLNativeWindowType aWindow, bool aHardwareWebRender, bool aUseGles) {
   nsCString failureId;
-  const auto lib = gl::DefaultEglLibrary(&failureId);
+  const auto lib = GLLibraryEGL::Get(&failureId);
   if (!lib) {
     gfxCriticalNote << "Failed[3] to load EGL library: " << failureId.get();
     return nullptr;
@@ -808,41 +801,40 @@ TRY_AGAIN_POWER_OF_TWO:
 }
 
 #if defined(MOZ_WAYLAND)
-WaylandGLSurface::WaylandGLSurface(struct wl_surface* aWaylandSurface,
-                                   struct wl_egl_window* aEGLWindow)
+SavedGLSurface::SavedGLSurface(struct wl_surface* aWaylandSurface,
+                               struct wl_egl_window* aEGLWindow)
     : mWaylandSurface(aWaylandSurface), mEGLWindow(aEGLWindow) {}
 
-WaylandGLSurface::~WaylandGLSurface() {
-  wl_egl_window_destroy(mEGLWindow);
-  wl_surface_destroy(mWaylandSurface);
+SavedGLSurface::~SavedGLSurface() {
+  if (mEGLWindow) {
+    wl_egl_window_destroy(mEGLWindow);
+  }
+  if (mWaylandSurface) {
+    wl_surface_destroy(mWaylandSurface);
+  }
 }
-#endif
 
 // static
 EGLSurface GLContextEGL::CreateWaylandBufferSurface(
     EglDisplay& egl, EGLConfig config, mozilla::gfx::IntSize& pbsize) {
   wl_egl_window* eglwindow = nullptr;
 
-#ifdef MOZ_GTK_WAYLAND
   struct wl_compositor* compositor =
       gdk_wayland_display_get_wl_compositor(gdk_display_get_default());
   struct wl_surface* wlsurface = wl_compositor_create_surface(compositor);
   eglwindow = wl_egl_window_create(wlsurface, pbsize.width, pbsize.height);
-#endif
   if (!eglwindow) return nullptr;
 
   const auto surface = egl.fCreateWindowSurface(
       config, reinterpret_cast<EGLNativeWindowType>(eglwindow), 0);
   if (surface) {
-#ifdef MOZ_GTK_WAYLAND
-    MOZ_ASSERT(!sWaylandGLSurface.Contains(surface));
-    sWaylandGLSurface.LookupOrInsert(
-        surface, new WaylandGLSurface(wlsurface, eglwindow));
-#endif
+    MOZ_ASSERT(!sSavedGLSurfaces.Contains(surface));
+    sSavedGLSurfaces.LookupOrInsert(surface,
+                                    new SavedGLSurface(wlsurface, eglwindow));
   }
-
   return surface;
 }
+#endif
 
 static const EGLint kEGLConfigAttribsRGB16[] = {
     LOCAL_EGL_SURFACE_TYPE, LOCAL_EGL_WINDOW_BIT,
@@ -1013,7 +1005,7 @@ EGLSurface GLContextEGL::CreateCompatibleSurface(void* aWindow) const {
 
 static void FillContextAttribs(bool es3, bool useGles, nsTArray<EGLint>* out) {
   out->AppendElement(LOCAL_EGL_SURFACE_TYPE);
-#ifdef MOZ_GTK_WAYLAND
+#ifdef MOZ_WAYLAND
   if (GdkIsWaylandDisplay()) {
     // Wayland on desktop does not support PBuffer or FBO.
     // We create a dummy wl_egl_window instead.
@@ -1136,7 +1128,7 @@ RefPtr<GLContextEGL> GLContextEGL::CreateEGLPBufferOffscreenContextImpl(
 
   mozilla::gfx::IntSize pbSize(size);
   EGLSurface surface = nullptr;
-#ifdef MOZ_GTK_WAYLAND
+#ifdef MOZ_WAYLAND
   if (GdkIsWaylandDisplay()) {
     surface = GLContextEGL::CreateWaylandBufferSurface(*egl, config, pbSize);
   } else
@@ -1159,7 +1151,7 @@ RefPtr<GLContextEGL> GLContextEGL::CreateEGLPBufferOffscreenContextImpl(
     NS_WARNING("Failed to create GLContext from PBuffer");
     egl->fDestroySurface(surface);
 #if defined(MOZ_WAYLAND)
-    DeleteWaylandGLSurface(surface);
+    DeleteSavedGLSurface(surface);
 #endif
     return nullptr;
   }
@@ -1190,16 +1182,42 @@ RefPtr<GLContextEGL> GLContextEGL::CreateEGLPBufferOffscreenContext(
 }
 
 /*static*/
+RefPtr<GLContextEGL> GLContextEGL::CreateEGLSurfacelessContext(
+    const std::shared_ptr<EglDisplay> display, const GLContextCreateDesc& desc,
+    nsACString* const out_failureId) {
+  const EGLConfig config = {};
+  auto fullDesc = GLContextDesc{desc};
+  fullDesc.isOffscreen = true;
+  RefPtr<GLContextEGL> gl = GLContextEGL::CreateGLContext(
+      display, fullDesc, config, EGL_NO_SURFACE, false, out_failureId);
+  if (!gl) {
+    NS_WARNING("Failed to create surfaceless GL context");
+    return nullptr;
+  }
+  return gl;
+}
+
+/*static*/
 already_AddRefed<GLContext> GLContextProviderEGL::CreateHeadless(
     const GLContextCreateDesc& desc, nsACString* const out_failureId) {
   const auto display = DefaultEglDisplay(out_failureId);
   if (!display) {
     return nullptr;
   }
-  mozilla::gfx::IntSize dummySize = mozilla::gfx::IntSize(16, 16);
-  auto ret = GLContextEGL::CreateEGLPBufferOffscreenContext(
-      display, desc, dummySize, out_failureId);
-  return ret.forget();
+  RefPtr<GLContextEGL> gl;
+#ifdef MOZ_WAYLAND
+  if (!gdk_display_get_default() &&
+      display->IsExtensionSupported(EGLExtension::MESA_platform_surfaceless)) {
+    gl =
+        GLContextEGL::CreateEGLSurfacelessContext(display, desc, out_failureId);
+  } else
+#endif
+  {
+    mozilla::gfx::IntSize dummySize = mozilla::gfx::IntSize(16, 16);
+    gl = GLContextEGL::CreateEGLPBufferOffscreenContext(
+        display, desc, dummySize, out_failureId);
+  }
+  return gl.forget();
 }
 
 // Don't want a global context on Android as 1) share groups across 2 threads
@@ -1211,30 +1229,7 @@ GLContext* GLContextProviderEGL::GetGlobalContext() { return nullptr; }
 
 // -
 
-static StaticMutex sMutex;
-static StaticRefPtr<GLLibraryEGL> gDefaultEglLibrary;
-
-RefPtr<GLLibraryEGL> DefaultEglLibrary(nsACString* const out_failureId) {
-  StaticMutexAutoLock lock(sMutex);
-  if (!gDefaultEglLibrary) {
-    gDefaultEglLibrary = GLLibraryEGL::Create(out_failureId);
-    if (!gDefaultEglLibrary) {
-      NS_WARNING("GLLibraryEGL::Create failed");
-    }
-  }
-  return gDefaultEglLibrary.get();
-}
-
-// -
-
-/*static*/
-void GLContextProviderEGL::Shutdown() {
-  StaticMutexAutoLock lock(sMutex);
-  if (!gDefaultEglLibrary) {
-    return;
-  }
-  gDefaultEglLibrary = nullptr;
-}
+/*static*/ void GLContextProviderEGL::Shutdown() { GLLibraryEGL::Shutdown(); }
 
 } /* namespace gl */
 } /* namespace mozilla */

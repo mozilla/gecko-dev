@@ -20,7 +20,15 @@ let gMainSubButton;
 let gSubView;
 let gSubButton;
 
-add_task(async function setup() {
+function createWith(doc, tag, props) {
+  let el = doc.createXULElement(tag);
+  for (let prop in props) {
+    el.setAttribute(prop, props[prop]);
+  }
+  return el;
+}
+
+add_setup(async function() {
   let navBar = document.getElementById("nav-bar");
   gAnchor = document.createXULElement("toolbarbutton");
   // Must be focusable in order for key presses to work.
@@ -41,9 +49,9 @@ add_task(async function setup() {
   gMainView = document.createXULElement("panelview");
   gMainView.id = "testMainView";
   gPanelMultiView.appendChild(gMainView);
-  gMainButton = document.createXULElement("button");
+  gMainButton = createWith(document, "button", { label: "gMainButton" });
   gMainView.appendChild(gMainButton);
-  gMainSubButton = document.createXULElement("button");
+  gMainSubButton = createWith(document, "button", { label: "gMainSubButton" });
   gMainView.appendChild(gMainSubButton);
   gMainSubButton.addEventListener("command", () =>
     gPanelMultiView.showSubView("testSubView", gMainSubButton)
@@ -52,7 +60,7 @@ add_task(async function setup() {
   gSubView = document.createXULElement("panelview");
   gSubView.id = "testSubView";
   gPanelMultiView.appendChild(gSubView);
-  gSubButton = document.createXULElement("button");
+  gSubButton = createWith(document, "button", { label: "gSubButton" });
   gSubView.appendChild(gSubButton);
 
   registerCleanupFunction(() => {

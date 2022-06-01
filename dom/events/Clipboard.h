@@ -12,8 +12,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/dom/DataTransfer.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 enum ClipboardReadType {
   eRead,
@@ -67,9 +66,17 @@ class Clipboard : public DOMEventTargetHelper {
                                        ClipboardReadType aClipboardReadType,
                                        ErrorResult& aRv);
 
+  // If necessary, fill the data transfer with data from the clipboard and
+  // resolve a promise with the appropriate object based on aClipboardReadType
+  static void ProcessDataTransfer(DataTransfer& aDataTransfer,
+                                  Promise& aPromise,
+                                  ClipboardReadType aClipboardReadType,
+                                  nsPIDOMWindowInner& aOwner,
+                                  nsIPrincipal& aSubjectPrincipal,
+                                  bool aNeedToFill);
+
   ~Clipboard();
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 #endif  // mozilla_dom_Clipboard_h_

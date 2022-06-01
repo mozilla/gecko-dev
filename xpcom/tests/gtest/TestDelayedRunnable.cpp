@@ -41,7 +41,7 @@ struct ReleaseDetector {
 TEST(DelayedRunnable, TaskQueueShutdownLeak)
 {
   Atomic<bool> active{false};
-  auto taskQueue = MakeRefPtr<TaskQueue>(
+  auto taskQueue = TaskQueue::Create(
       GetMediaThreadPool(mozilla::MediaThreadType::SUPERVISOR),
       "TestDelayedRunnable TaskQueueShutdownLeak");
   taskQueue->DelayedDispatch(
@@ -118,16 +118,16 @@ TEST(DelayedRunnable, TimerFiresBeforeRunnableRuns)
 {
   RefPtr<mozilla::SharedThreadPool> pool =
       mozilla::SharedThreadPool::Get("Test Pool"_ns);
-  auto tailTaskQueue1 = MakeRefPtr<TaskQueue>(
-      do_AddRef(pool), "TestDelayedRunnable tailTaskQueue1",
-      /* aSupportsTailDispatch = */ true);
-  auto tailTaskQueue2 = MakeRefPtr<TaskQueue>(
-      do_AddRef(pool), "TestDelayedRunnable tailTaskQueue2",
-      /* aSupportsTailDispatch = */ true);
-  auto noTailTaskQueue = MakeRefPtr<TaskQueue>(
-      do_AddRef(pool), "TestDelayedRunnable noTailTaskQueue",
-      /* aSupportsTailDispatch = */ false);
-  Monitor outerMonitor(__func__);
+  auto tailTaskQueue1 =
+      TaskQueue::Create(do_AddRef(pool), "TestDelayedRunnable tailTaskQueue1",
+                        /* aSupportsTailDispatch = */ true);
+  auto tailTaskQueue2 =
+      TaskQueue::Create(do_AddRef(pool), "TestDelayedRunnable tailTaskQueue2",
+                        /* aSupportsTailDispatch = */ true);
+  auto noTailTaskQueue =
+      TaskQueue::Create(do_AddRef(pool), "TestDelayedRunnable noTailTaskQueue",
+                        /* aSupportsTailDispatch = */ false);
+  Monitor outerMonitor MOZ_UNANNOTATED(__func__);
   MonitorAutoLock lock(outerMonitor);
   MOZ_ALWAYS_SUCCEEDS(
       tailTaskQueue1->Dispatch(NS_NewRunnableFunction(__func__, [&] {
@@ -137,7 +137,7 @@ TEST(DelayedRunnable, TimerFiresBeforeRunnableRuns)
         EXPECT_TRUE(tailTaskQueue1->RequiresTailDispatch(tailTaskQueue2));
         tailTaskQueue2->DelayedDispatch(
             NS_NewRunnableFunction(__func__, [&] {}), 1);
-        Monitor innerMonitor(__func__);
+        Monitor innerMonitor MOZ_UNANNOTATED(__func__);
         MonitorAutoLock lock(innerMonitor);
         auto timer = MakeRefPtr<mozilla::MediaTimer>();
         timer->WaitFor(mozilla::TimeDuration::FromMilliseconds(1), __func__)

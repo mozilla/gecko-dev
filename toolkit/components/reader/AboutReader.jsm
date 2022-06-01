@@ -47,7 +47,12 @@ const zoomOnMeta =
   Services.prefs.getIntPref("mousewheel.with_meta.action", 1) == 3;
 const isAppLocaleRTL = Services.locale.isAppLocaleRTL;
 
-var AboutReader = function(actor, articlePromise, docContentType = "document") {
+var AboutReader = function(
+  actor,
+  articlePromise,
+  docContentType = "document",
+  docTitle = ""
+) {
   let win = actor.contentWindow;
   let url = this._getOriginalUrl(win);
   if (
@@ -72,6 +77,8 @@ var AboutReader = function(actor, articlePromise, docContentType = "document") {
     doc.dir = "rtl";
   }
   doc.documentElement.setAttribute("platform", AppConstants.platform);
+
+  doc.title = docTitle;
 
   this._actor = actor;
   this._isLoggedInPocketUser = undefined;
@@ -128,6 +135,9 @@ var AboutReader = function(actor, articlePromise, docContentType = "document") {
   win.addEventListener("resize", this);
   win.addEventListener("wheel", this, { passive: false });
 
+  this.colorSchemeMediaList = win.matchMedia("(prefers-color-scheme: dark)");
+  this.colorSchemeMediaList.addEventListener("change", this);
+
   this._topScrollChange = this._topScrollChange.bind(this);
   this._intersectionObs = new win.IntersectionObserver(this._topScrollChange, {
     root: null,
@@ -164,8 +174,25 @@ var AboutReader = function(actor, articlePromise, docContentType = "document") {
       itemClass: value + "-button",
     };
   });
-
   let colorScheme = Services.prefs.getCharPref("reader.color_scheme");
+
+  // If the UI improvements are not enabled, we will filter "Auto" from
+  // the list of color schemes available and ensure the current preference isn't set to
+  // "Auto"
+  this.readerImprovementsEnabled = Services.prefs.getBoolPref(
+    "reader.improvements_H12022.enabled",
+    false
+  );
+  if (!this.readerImprovementsEnabled) {
+    colorSchemeOptions = colorSchemeOptions.filter(function(value) {
+      return value.name !== "Auto";
+    });
+
+    if (Services.prefs.getCharPref("reader.color_scheme") === "auto") {
+      colorScheme = "light";
+    }
+  }
+
   this._setupSegmentedButton(
     "color-scheme-buttons",
     colorSchemeOptions,
@@ -232,12 +259,13 @@ var AboutReader = function(actor, articlePromise, docContentType = "document") {
     ".light-button": "colorschemelight",
     ".dark-button": "colorschemedark",
     ".sepia-button": "colorschemesepia",
+    ".auto-button": "colorschemeauto",
   };
 
   for (let [selector, stringID] of Object.entries(elemL10nMap)) {
     dropdown
       .querySelector(selector)
-      .setAttribute(
+      ?.setAttribute(
         "title",
         gStrings.GetStringFromName("aboutReader.toolbar." + stringID)
       );
@@ -474,6 +502,19 @@ AboutReader.prototype = {
 
         delete this._intersectionObs;
         delete this._ctaIntersectionObserver;
+
+        break;
+
+      case "change":
+        // We should only be changing the color scheme in relation to a preference change
+        // if the user has the color scheme preference set to "Auto"
+        if (Services.prefs.getCharPref("reader.color_scheme") === "auto") {
+          let colorScheme = this.colorSchemeMediaList.matches
+            ? "dark"
+            : "light";
+
+          this._setColorScheme(colorScheme);
+        }
 
         break;
     }
@@ -743,8 +784,8 @@ AboutReader.prototype = {
   },
 
   _setColorScheme(newColorScheme) {
-    // "auto" is not a real color scheme
-    if (this._colorScheme === newColorScheme || newColorScheme === "auto") {
+    // There's nothing to change if the new color scheme is the same as our current scheme.
+    if (this._colorScheme === newColorScheme) {
       return;
     }
 
@@ -754,11 +795,16 @@ AboutReader.prototype = {
       bodyClasses.remove(this._colorScheme);
     }
 
-    this._colorScheme = newColorScheme;
+    if (newColorScheme === "auto") {
+      this._colorScheme = this.colorSchemeMediaList.matches ? "dark" : "light";
+    } else {
+      this._colorScheme = newColorScheme;
+    }
+
     bodyClasses.add(this._colorScheme);
   },
 
-  // Pref values include "dark", "light", and "sepia"
+  // Pref values include "dark", "light", "sepia", and "auto"
   _setColorSchemePref(colorSchemePref) {
     this._setColorScheme(colorSchemePref);
 
@@ -798,7 +844,12 @@ AboutReader.prototype = {
           docContentType
         );
       } catch (e) {
-        if (e && e.newURL) {
+        if (e?.newURL && this._actor) {
+          await this._actor.sendQuery("RedirectTo", {
+            newURL: e.newURL,
+            article: e.article,
+          });
+
           let readerURL = "about:reader?url=" + encodeURIComponent(e.newURL);
           this._win.location.replace(readerURL);
           return;
@@ -1030,7 +1081,14 @@ AboutReader.prototype = {
       article.readingTimeMinsSlow,
       article.readingTimeMinsFast
     );
-    this._doc.title = article.title;
+
+    // If a document title was not provided in the constructor, we'll fall back
+    // to using the article title.
+    if (!this._doc.title) {
+      this._doc.title = article.title;
+    }
+
+    this._containerElement.setAttribute("lang", article.lang);
 
     this._headerElement.classList.add("reader-show-element");
 

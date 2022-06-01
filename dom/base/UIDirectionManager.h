@@ -7,16 +7,24 @@
 #ifndef mozilla_dom_UIDirectionManager_h
 #define mozilla_dom_UIDirectionManager_h
 
-namespace mozilla {
-namespace dom {
+#include "nsIObserver.h"
 
-class UIDirectionManager final {
+namespace mozilla::dom {
+
+class UIDirectionManager final : public nsIObserver {
  public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
   static void Initialize();
   static void Shutdown();
+
+ private:
+  UIDirectionManager() = default;
+  virtual ~UIDirectionManager() = default;
+  static mozilla::StaticRefPtr<UIDirectionManager> gUIDirectionManager;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif

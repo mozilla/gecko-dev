@@ -143,6 +143,10 @@ static bool IsVisibleNode(const nsINode* aNode) {
     return true;
   }
 
+  if (frame->IsContentHidden() || frame->AncestorHidesContent()) {
+    return false;
+  }
+
   return frame->StyleVisibility()->IsVisible();
 }
 
@@ -598,7 +602,7 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
   }
 
   // Ignore soft hyphens in the pattern
-  static const char kShy[] = {char(CH_SHY), 0};
+  static const char16_t kShy[] = {CH_SHY, 0};
   patAutoStr.StripChars(kShy);
 
   const char16_t* patStr = patAutoStr.get();

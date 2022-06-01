@@ -72,6 +72,17 @@ class FrecencyComparator {
 
 }  // namespace
 
+CacheIndexRecordWrapper::~CacheIndexRecordWrapper() {
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  CacheIndex::sLock.AssertCurrentThreadOwns();
+  RefPtr<CacheIndex> index = CacheIndex::gInstance;
+  if (index) {
+    bool found = index->mFrecencyArray.RecordExistedUnlocked(this);
+    MOZ_DIAGNOSTIC_ASSERT(!found);
+  }
+#endif
+}
+
 /**
  * This helper class is responsible for keeping CacheIndex::mIndexStats and
  * CacheIndex::mFrecencyArray up to date.
@@ -2681,6 +2692,7 @@ void CacheIndex::BuildIndex(const StaticMutexAutoLock& aProofOfLock) {
   if (!mDirEnumerator) {
     {
       // Do not do IO under the lock.
+      sLock.AssertCurrentThreadOwns();
       StaticMutexAutoUnlock unlock(sLock);
       rv = SetupDirectoryEnumerator();
     }
@@ -2708,6 +2720,7 @@ void CacheIndex::BuildIndex(const StaticMutexAutoLock& aProofOfLock) {
     nsCOMPtr<nsIFile> file;
     {
       // Do not do IO under the lock.
+      sLock.AssertCurrentThreadOwns();
       StaticMutexAutoUnlock unlock(sLock);
       rv = mDirEnumerator->GetNextFile(getter_AddRefs(file));
 
@@ -2915,6 +2928,7 @@ void CacheIndex::UpdateIndex(const StaticMutexAutoLock& aProofOfLock) {
   LOG(("CacheIndex::UpdateIndex()"));
 
   MOZ_ASSERT(mPendingUpdates.Count() == 0);
+  sLock.AssertCurrentThreadOwns();
 
   nsresult rv;
 
@@ -3370,6 +3384,11 @@ void CacheIndex::FrecencyArray::SortIfNeeded(
       mRemovedElements = 0;
     }
   }
+}
+
+bool CacheIndex::FrecencyArray::RecordExistedUnlocked(
+    CacheIndexRecordWrapper* aRecord) {
+  return mRecs.Contains(aRecord);
 }
 
 void CacheIndex::AddRecordToIterators(CacheIndexRecordWrapper* aRecord,

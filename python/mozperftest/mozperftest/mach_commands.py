@@ -162,7 +162,7 @@ def run_perftest(command_context, **kwargs):
     "perftest-test",
     category="testing",
     description="Run perftest tests",
-    virtualenv_name="python-test",
+    virtualenv_name="perftest-test",
 )
 @CommandArgument(
     "tests", default=None, nargs="*", help="Tests to run. By default will run all"
@@ -178,8 +178,6 @@ def run_perftest(command_context, **kwargs):
     "-v", "--verbose", action="store_true", default=False, help="Verbose mode"
 )
 def run_tests(command_context, **kwargs):
-    command_context.activate_virtualenv()
-
     from pathlib import Path
     from mozperftest.utils import temporary_env
 
@@ -192,7 +190,6 @@ def run_tests(command_context, **kwargs):
 def _run_tests(command_context, **kwargs):
     from pathlib import Path
     from mozperftest.utils import (
-        install_package,
         ON_TRY,
         checkout_script,
         checkout_python_script,
@@ -201,18 +198,6 @@ def _run_tests(command_context, **kwargs):
     venv = command_context.virtualenv_manager
     skip_linters = kwargs.get("skip_linters", False)
     verbose = kwargs.get("verbose", False)
-
-    try:
-        import coverage  # noqa
-    except ImportError:
-        pydeps = Path(command_context.topsrcdir, "third_party", "python")
-        vendors = ["coverage"]
-        if not ON_TRY:
-            vendors.append("attrs")
-
-        # pip-installing dependencies that require compilation or special setup
-        for dep in vendors:
-            install_package(command_context.virtualenv_manager, str(Path(pydeps, dep)))
 
     if not ON_TRY and not skip_linters:
         cmd = "./mach lint "
@@ -248,8 +233,6 @@ def _run_tests(command_context, **kwargs):
     if sys.platform == "darwin" and ON_TRY:
         run_coverage_check = False
 
-    import pytest
-
     options = "-xs"
     if kwargs.get("verbose"):
         options += "v"
@@ -258,7 +241,7 @@ def _run_tests(command_context, **kwargs):
         assert checkout_python_script(
             venv, "coverage", ["erase"], label="remove old coverage data"
         )
-    args = ["run", pytest.__file__, options, "--duration", "10", tests]
+    args = ["run", "-m", "pytest", options, "--durations", "10", tests]
     assert checkout_python_script(
         venv, "coverage", args, label="running tests", verbose=verbose
     )

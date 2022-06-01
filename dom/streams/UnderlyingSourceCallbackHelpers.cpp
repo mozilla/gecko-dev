@@ -4,154 +4,48 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/dom/BodyStream.h"
+#include "mozilla/dom/ReadableStreamDefaultController.h"
 #include "mozilla/dom/UnderlyingSourceCallbackHelpers.h"
 #include "mozilla/dom/UnderlyingSourceBinding.h"
 
 namespace mozilla::dom {
 
-// UnderlyingSourceStartCallbackHelper
-NS_IMPL_CYCLE_COLLECTION_CLASS(UnderlyingSourceStartCallbackHelper)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(UnderlyingSourceStartCallbackHelper)
-  tmp->mThisObj.set(nullptr);
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(UnderlyingSourceStartCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(UnderlyingSourceStartCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mThisObj)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSourceStartCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSourceStartCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSourceStartCallbackHelper)
+// UnderlyingSourceAlgorithmsBase
+NS_IMPL_CYCLE_COLLECTION(UnderlyingSourceAlgorithmsBase)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSourceAlgorithmsBase)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSourceAlgorithmsBase)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSourceAlgorithmsBase)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
-
-// UnderlyingSourcePullCallbackHelper
-NS_IMPL_CYCLE_COLLECTION(UnderlyingSourcePullCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSourcePullCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSourcePullCallbackHelper)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSourcePullCallbackHelper)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(UnderlyingSourcePullCallbackHelper)
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(UnderlyingSourceAlgorithmsBase)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-// IDLUnderlyingSourcePullCallbackHelper
-NS_IMPL_CYCLE_COLLECTION_CLASS(IDLUnderlyingSourcePullCallbackHelper)
+NS_IMPL_CYCLE_COLLECTION_INHERITED_WITH_JS_MEMBERS(
+    UnderlyingSourceAlgorithms, UnderlyingSourceAlgorithmsBase,
+    (mGlobal, mStartCallback, mPullCallback, mCancelCallback),
+    (mUnderlyingSource))
+NS_IMPL_ADDREF_INHERITED(UnderlyingSourceAlgorithms,
+                         UnderlyingSourceAlgorithmsBase)
+NS_IMPL_RELEASE_INHERITED(UnderlyingSourceAlgorithms,
+                          UnderlyingSourceAlgorithmsBase)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSourceAlgorithms)
+NS_INTERFACE_MAP_END_INHERITING(UnderlyingSourceAlgorithmsBase)
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(
-    IDLUnderlyingSourcePullCallbackHelper, UnderlyingSourcePullCallbackHelper)
-  tmp->mThisObj.set(nullptr);
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(
-    IDLUnderlyingSourcePullCallbackHelper, UnderlyingSourcePullCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(
-    IDLUnderlyingSourcePullCallbackHelper, UnderlyingSourcePullCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mThisObj)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-NS_IMPL_ADDREF_INHERITED(IDLUnderlyingSourcePullCallbackHelper,
-                         UnderlyingSourcePullCallbackHelper)
-NS_IMPL_RELEASE_INHERITED(IDLUnderlyingSourcePullCallbackHelper,
-                          UnderlyingSourcePullCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(IDLUnderlyingSourcePullCallbackHelper)
-NS_INTERFACE_MAP_END_INHERITING(UnderlyingSourcePullCallbackHelper)
-
-// BodyStreamUnderlyingSourcePullCallbackHelper
-NS_IMPL_CYCLE_COLLECTION(BodyStreamUnderlyingSourcePullCallbackHelper,
-                         mUnderlyingSource)
-
-NS_IMPL_ADDREF_INHERITED(BodyStreamUnderlyingSourcePullCallbackHelper,
-                         UnderlyingSourcePullCallbackHelper)
-NS_IMPL_RELEASE_INHERITED(BodyStreamUnderlyingSourcePullCallbackHelper,
-                          UnderlyingSourcePullCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(
-    BodyStreamUnderlyingSourcePullCallbackHelper)
-NS_INTERFACE_MAP_END_INHERITING(UnderlyingSourcePullCallbackHelper)
-
-// UnderlyingSourceCancelCallbackHelper
-NS_IMPL_CYCLE_COLLECTION(UnderlyingSourceCancelCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSourceCancelCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSourceCancelCallbackHelper)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSourceCancelCallbackHelper)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(UnderlyingSourceCancelCallbackHelper)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-// IDLUnderlyingSourceCancelCallbackHelper
-NS_IMPL_CYCLE_COLLECTION_CLASS(IDLUnderlyingSourceCancelCallbackHelper)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(
-    IDLUnderlyingSourceCancelCallbackHelper,
-    UnderlyingSourceCancelCallbackHelper)
-  tmp->mThisObj.set(nullptr);
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(
-    IDLUnderlyingSourceCancelCallbackHelper,
-    UnderlyingSourceCancelCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(
-    IDLUnderlyingSourceCancelCallbackHelper,
-    UnderlyingSourceCancelCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mThisObj)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-NS_IMPL_ADDREF_INHERITED(IDLUnderlyingSourceCancelCallbackHelper,
-                         UnderlyingSourceCancelCallbackHelper)
-NS_IMPL_RELEASE_INHERITED(IDLUnderlyingSourceCancelCallbackHelper,
-                          UnderlyingSourceCancelCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(IDLUnderlyingSourceCancelCallbackHelper)
-NS_INTERFACE_MAP_END_INHERITING(UnderlyingSourceCancelCallbackHelper)
-
-// UnderlyingSourcePullCallbackHelper
-NS_IMPL_CYCLE_COLLECTION(UnderlyingSourceErrorCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSourceErrorCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSourceErrorCallbackHelper)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSourceErrorCallbackHelper)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-// BodyStreamUnderlyingSourceCancelCallbackHelper
-NS_IMPL_CYCLE_COLLECTION(BodyStreamUnderlyingSourceCancelCallbackHelper,
-                         mUnderlyingSource)
-
-NS_IMPL_ADDREF_INHERITED(BodyStreamUnderlyingSourceCancelCallbackHelper,
-                         UnderlyingSourceCancelCallbackHelper)
-NS_IMPL_RELEASE_INHERITED(BodyStreamUnderlyingSourceCancelCallbackHelper,
-                          UnderlyingSourceCancelCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(
-    BodyStreamUnderlyingSourceCancelCallbackHelper)
-NS_INTERFACE_MAP_END_INHERITING(UnderlyingSourceCancelCallbackHelper)
-
-void UnderlyingSourceStartCallbackHelper::StartCallback(
+// https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller-from-underlying-source
+void UnderlyingSourceAlgorithms::StartCallback(
     JSContext* aCx, ReadableStreamController& aController,
     JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) {
-  JS::RootedObject thisObj(aCx, mThisObj);
-  RefPtr<UnderlyingSourceStartCallback> callback(mCallback);
+  if (!mStartCallback) {
+    // Step 2: Let startAlgorithm be an algorithm that returns undefined.
+    aRetVal.setUndefined();
+    return;
+  }
 
+  // Step 5: If underlyingSourceDict["start"] exists, then set startAlgorithm to
+  // an algorithm which returns the result of invoking
+  // underlyingSourceDict["start"] with argument list « controller » and
+  // callback this value underlyingSource.
+  JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSource);
   ReadableStreamDefaultControllerOrReadableByteStreamController controller;
   if (aController.IsDefault()) {
     controller.SetAsReadableStreamDefaultController() = aController.AsDefault();
@@ -159,16 +53,25 @@ void UnderlyingSourceStartCallbackHelper::StartCallback(
     controller.SetAsReadableByteStreamController() = aController.AsByte();
   }
 
-  return callback->Call(thisObj, controller, aRetVal, aRv,
-                        "UnderlyingSource.start",
-                        CallbackFunction::eRethrowExceptions);
+  return mStartCallback->Call(thisObj, controller, aRetVal, aRv,
+                              "UnderlyingSource.start",
+                              CallbackFunction::eRethrowExceptions);
 }
 
-MOZ_CAN_RUN_SCRIPT
-already_AddRefed<Promise> IDLUnderlyingSourcePullCallbackHelper::PullCallback(
+// https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller-from-underlying-source
+already_AddRefed<Promise> UnderlyingSourceAlgorithms::PullCallback(
     JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
-  JS::RootedObject thisObj(aCx, mThisObj);
+  JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSource);
+  if (!mPullCallback) {
+    // Step 3: Let pullAlgorithm be an algorithm that returns a promise resolved
+    // with undefined.
+    return Promise::CreateResolvedWithUndefined(mGlobal, aRv);
+  }
 
+  // Step 6: If underlyingSourceDict["pull"] exists, then set pullAlgorithm to
+  // an algorithm which returns the result of invoking
+  // underlyingSourceDict["pull"] with argument list « controller » and callback
+  // this value underlyingSource.
   ReadableStreamDefaultControllerOrReadableByteStreamController controller;
   if (aController.IsDefault()) {
     controller.SetAsReadableStreamDefaultController() = aController.AsDefault();
@@ -176,76 +79,33 @@ already_AddRefed<Promise> IDLUnderlyingSourcePullCallbackHelper::PullCallback(
     controller.SetAsReadableByteStreamController() = aController.AsByte();
   }
 
-  // Strong Ref
-  RefPtr<UnderlyingSourcePullCallback> callback(mCallback);
   RefPtr<Promise> promise =
-      callback->Call(thisObj, controller, aRv, "UnderlyingSource.pull",
-                     CallbackFunction::eRethrowExceptions);
+      mPullCallback->Call(thisObj, controller, aRv, "UnderlyingSource.pull",
+                          CallbackFunction::eRethrowExceptions);
 
   return promise.forget();
 }
 
-BodyStreamUnderlyingSourcePullCallbackHelper::
-    BodyStreamUnderlyingSourcePullCallbackHelper(
-        BodyStreamHolder* underlyingSource)
-    : mUnderlyingSource(underlyingSource) {}
-
-already_AddRefed<Promise>
-BodyStreamUnderlyingSourcePullCallbackHelper::PullCallback(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
-  RefPtr<BodyStream> bodyStream = mUnderlyingSource->GetBodyStream();
-  return bodyStream->PullCallback(aCx, aController, aRv);
-}
-
-already_AddRefed<Promise>
-IDLUnderlyingSourceCancelCallbackHelper::CancelCallback(
+// https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller-from-underlying-source
+already_AddRefed<Promise> UnderlyingSourceAlgorithms::CancelCallback(
     JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
     ErrorResult& aRv) {
-  JS::RootedObject thisObj(aCx, mThisObj);
+  if (!mCancelCallback) {
+    // Step 4: Let cancelAlgorithm be an algorithm that returns a promise
+    // resolved with undefined.
+    return Promise::CreateResolvedWithUndefined(mGlobal, aRv);
+  }
 
-  // Strong Ref
-  RefPtr<UnderlyingSourceCancelCallback> callback(mCallback);
+  // Step 7: If underlyingSourceDict["cancel"] exists, then set cancelAlgorithm
+  // to an algorithm which takes an argument reason and returns the result of
+  // invoking underlyingSourceDict["cancel"] with argument list « reason » and
+  // callback this value underlyingSource.
+  JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSource);
   RefPtr<Promise> promise =
-      callback->Call(thisObj, aReason, aRv, "UnderlyingSource.cancel",
-                     CallbackFunction::eRethrowExceptions);
+      mCancelCallback->Call(thisObj, aReason, aRv, "UnderlyingSource.cancel",
+                            CallbackFunction::eRethrowExceptions);
 
   return promise.forget();
-}
-
-BodyStreamUnderlyingSourceCancelCallbackHelper::
-    BodyStreamUnderlyingSourceCancelCallbackHelper(
-        BodyStreamHolder* aUnderlyingSource)
-    : mUnderlyingSource(aUnderlyingSource) {}
-
-already_AddRefed<Promise>
-BodyStreamUnderlyingSourceCancelCallbackHelper::CancelCallback(
-    JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
-    ErrorResult& aRv) {
-  RefPtr<BodyStream> bodyStream = mUnderlyingSource->GetBodyStream();
-  return bodyStream->CancelCallback(aCx, aReason, aRv);
-}
-
-// BodyStreamUnderlyingSourceErrorCallbackHelper
-NS_IMPL_CYCLE_COLLECTION(BodyStreamUnderlyingSourceErrorCallbackHelper,
-                         mUnderlyingSource)
-
-NS_IMPL_ADDREF_INHERITED(BodyStreamUnderlyingSourceErrorCallbackHelper,
-                         UnderlyingSourceErrorCallbackHelper)
-NS_IMPL_RELEASE_INHERITED(BodyStreamUnderlyingSourceErrorCallbackHelper,
-                          UnderlyingSourceErrorCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(
-    BodyStreamUnderlyingSourceErrorCallbackHelper)
-NS_INTERFACE_MAP_END_INHERITING(UnderlyingSourceErrorCallbackHelper)
-
-BodyStreamUnderlyingSourceErrorCallbackHelper::
-    BodyStreamUnderlyingSourceErrorCallbackHelper(
-        BodyStreamHolder* aUnderlyingSource)
-    : mUnderlyingSource(aUnderlyingSource) {}
-
-void BodyStreamUnderlyingSourceErrorCallbackHelper::Call() {
-  RefPtr<BodyStream> bodyStream = mUnderlyingSource->GetBodyStream();
-  bodyStream->ErrorCallback();
 }
 
 }  // namespace mozilla::dom

@@ -134,6 +134,21 @@ class FrameStatistics {
            aData.mDroppedCompositorFrames;
   }
 
+  uint64_t GetDroppedDecodedFrames() const {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    return mFrameStatisticsData.mDroppedDecodedFrames;
+  }
+
+  uint64_t GetDroppedSinkFrames() const {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    return mFrameStatisticsData.mDroppedSinkFrames;
+  }
+
+  uint64_t GetDroppedCompositorFrames() const {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    return mFrameStatisticsData.mDroppedCompositorFrames;
+  }
+
   // Increments the parsed and decoded frame counters by the passed in counts.
   // Can be called on any thread.
   void Accumulate(const FrameStatisticsData& aStats) {
@@ -171,7 +186,7 @@ class FrameStatistics {
   ~FrameStatistics() = default;
 
   // ReentrantMonitor to protect access of playback statistics.
-  mutable ReentrantMonitor mReentrantMonitor;
+  mutable ReentrantMonitor mReentrantMonitor MOZ_UNANNOTATED;
 
   FrameStatisticsData mFrameStatisticsData;
 };

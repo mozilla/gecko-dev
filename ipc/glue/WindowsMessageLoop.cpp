@@ -212,14 +212,12 @@ static void DumpNeuteredMessage(HWND hwnd, UINT uMsg) {
   nsAutoCString log("Received \"nonqueued\" ");
   // classify messages
   if (uMsg < WM_USER) {
-    int idx = 0;
-    while (mozilla::widget::gAllEvents[idx].mId != uMsg &&
-           mozilla::widget::gAllEvents[idx].mStr != nullptr) {
-      idx++;
-    }
-    if (mozilla::widget::gAllEvents[idx].mStr) {
-      log.AppendPrintf("ui message \"%s\"",
-                       mozilla::widget::gAllEvents[idx].mStr);
+    const auto eventMsgInfo = mozilla::widget::gAllEvents.find(uMsg);
+    const char* msgText = eventMsgInfo != mozilla::widget::gAllEvents.end()
+                              ? eventMsgInfo->second.mStr
+                              : nullptr;
+    if (msgText) {
+      log.AppendPrintf("ui message \"%s\"", msgText);
     } else {
       log.AppendPrintf("ui message (0x%X)", uMsg);
     }
@@ -234,7 +232,7 @@ static void DumpNeuteredMessage(HWND hwnd, UINT uMsg) {
   }
 
   log.AppendLiteral(" during a synchronous IPC message for window ");
-  log.AppendPrintf("0x%X", hwnd);
+  log.AppendPrintf("0x%p", hwnd);
 
   wchar_t className[256] = {0};
   if (GetClassNameW(hwnd, className, sizeof(className) - 1) > 0) {
@@ -379,7 +377,7 @@ ProcessOrDeferMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #if defined(ACCESSIBILITY)
     case WM_GETOBJECT: {
       if (!::GetPropW(hwnd, k3rdPartyWindowProp)) {
-        DWORD objId = static_cast<DWORD>(lParam);
+        LONG objId = static_cast<LONG>(lParam);
         if (objId == OBJID_CLIENT || objId == MOZOBJID_UIAROOT) {
           WNDPROC oldWndProc = (WNDPROC)GetProp(hwnd, kOldWndProcProp);
           if (oldWndProc) {

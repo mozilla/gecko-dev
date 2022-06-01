@@ -3,15 +3,9 @@
 
 "use strict";
 
-/* import-globals-from ../../../debugger/test/mochitest/helpers.js */
+/* import-globals-from ../../../debugger/test/mochitest/shared-head.js */
 Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/helpers.js",
-  this
-);
-
-/* import-globals-from ../../../debugger/test/mochitest/helpers/context.js */
-Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/helpers/context.js",
+  "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/shared-head.js",
   this
 );
 
@@ -63,7 +57,8 @@ add_task(async function() {
 
   info("Wait for the debugger to pause");
   await waitForPaused(debuggerContext);
-  assertPausedLocation(debuggerContext);
+  const script = findSource(debuggerContext, SCRIPT_FILE);
+  assertPausedAtSourceAndLine(debuggerContext, script.id, 10);
 
   info("Resume");
   await resume(debuggerContext);
@@ -72,7 +67,6 @@ add_task(async function() {
   await onContentTaskDone;
 
   info("Remove breakpoint");
-  const script = findSource(debuggerContext, SCRIPT_FILE);
   await removeBreakpoint(debuggerContext, script.id, 10);
 
   await closeAboutDevtoolsToolbox(document, devtoolsTab, window);

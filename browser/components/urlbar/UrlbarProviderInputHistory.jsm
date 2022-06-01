@@ -205,7 +205,7 @@ class ProviderInputHistory extends UrlbarProvider {
       SQL_ADAPTIVE_QUERY,
       {
         parent: PlacesUtils.tagsFolderId,
-        search_string: queryContext.searchString,
+        search_string: queryContext.searchString.toLowerCase(),
         matchBehavior: Ci.mozIPlacesAutoComplete.MATCH_ANYWHERE,
         searchBehavior: UrlbarPrefs.get("defaultBehavior"),
         userContextId: UrlbarProviderOpenTabs.getUserContextIdForOpenPagesTable(

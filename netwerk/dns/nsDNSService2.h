@@ -23,6 +23,27 @@
 
 class nsAuthSSPI;
 
+class DNSServiceWrapper final : public nsPIDNSService {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_FORWARD_NSPIDNSSERVICE(PIDNSService()->)
+  NS_FORWARD_NSIDNSSERVICE(DNSService()->)
+
+  DNSServiceWrapper() = default;
+
+  static already_AddRefed<nsIDNSService> GetSingleton();
+  static void SwitchToBackupDNSService();
+
+ private:
+  ~DNSServiceWrapper() = default;
+  nsIDNSService* DNSService();
+  nsPIDNSService* PIDNSService();
+
+  mozilla::Mutex mLock{"DNSServiceWrapper.mLock"};
+  nsCOMPtr<nsIDNSService> mDNSServiceInUse;
+  nsCOMPtr<nsIDNSService> mBackupDNSService;
+};
+
 class nsDNSService final : public mozilla::net::DNSServiceBase,
                            public nsPIDNSService,
                            public nsIMemoryReporter {
@@ -43,6 +64,7 @@ class nsDNSService final : public mozilla::net::DNSServiceBase,
 
  protected:
   friend class nsAuthSSPI;
+  friend class DNSServiceWrapper;
 
   nsresult DeprecatedSyncResolve(
       const nsACString& aHostname, uint32_t flags,
@@ -62,15 +84,15 @@ class nsDNSService final : public mozilla::net::DNSServiceBase,
 
   nsresult AsyncResolveInternal(
       const nsACString& aHostname, uint16_t type, uint32_t flags,
-      nsIDNSResolverInfo* aResolver, nsIDNSListener* aListener,
+      nsIDNSAdditionalInfo* aInfo, nsIDNSListener* aListener,
       nsIEventTarget* target_,
       const mozilla::OriginAttributes& aOriginAttributes,
       nsICancelable** result);
 
   nsresult CancelAsyncResolveInternal(
       const nsACString& aHostname, uint16_t aType, uint32_t aFlags,
-      nsIDNSResolverInfo* aResolver, nsIDNSListener* aListener,
-      nsresult aReason, const mozilla::OriginAttributes& aOriginAttributes);
+      nsIDNSAdditionalInfo* aInfo, nsIDNSListener* aListener, nsresult aReason,
+      const mozilla::OriginAttributes& aOriginAttributes);
 
   nsresult ResolveInternal(const nsACString& aHostname, uint32_t flags,
                            const mozilla::OriginAttributes& aOriginAttributes,
@@ -84,7 +106,7 @@ class nsDNSService final : public mozilla::net::DNSServiceBase,
 
   // mLock protects access to mResolver, mLocalDomains, mIPv4OnlyDomains and
   // mFailedSVCDomainNames
-  mozilla::Mutex mLock{"nsDNSServer.mLock"};
+  mozilla::Mutex mLock MOZ_UNANNOTATED{"nsDNSServer.mLock"};
 
   // mIPv4OnlyDomains is a comma-separated list of domains for which only
   // IPv4 DNS lookups are performed. This allows the user to disable IPv6 on

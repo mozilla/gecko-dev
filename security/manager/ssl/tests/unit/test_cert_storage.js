@@ -12,10 +12,6 @@
 // * it does a sanity check to ensure other cert verifier behavior is
 //   unmodified
 
-const { setTimeout } = ChromeUtils.import(
-  "resource://gre/modules/Timer.jsm",
-  {}
-);
 const { RemoteSecuritySettings } = ChromeUtils.import(
   "resource://gre/modules/psm/RemoteSecuritySettings.jsm"
 );
@@ -278,10 +274,6 @@ function run_test() {
     // Check a bad cert is still bad (unknown issuer)
     file = "bad_certs/unknownissuer.pem";
     await verify_cert(file, SEC_ERROR_UNKNOWN_ISSUER);
-  });
-
-  add_task(async function() {
-    ok(certList.isBlocklistFresh(), "Blocklist should be fresh.");
   });
 
   run_next_test();

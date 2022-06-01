@@ -55,8 +55,7 @@ extern nsString gAbsoluteArgv0Path;
 extern bool gIsGtest;
 
 namespace mozilla {
-nsresult AppInfoConstructor(nsISupports* aOuter, const nsID& aIID,
-                            void** aResult);
+nsresult AppInfoConstructor(const nsID& aIID, void** aResult);
 }  // namespace mozilla
 
 // Exported for gtests.
@@ -145,6 +144,8 @@ namespace startup {
 Result<nsCOMPtr<nsIFile>, nsresult> GetIncompleteStartupFile(nsIFile* aProfLD);
 
 extern GeckoProcessType sChildProcessType;
+
+void IncreaseDescriptorLimits();
 }  // namespace startup
 
 const char* PlatformBuildID();

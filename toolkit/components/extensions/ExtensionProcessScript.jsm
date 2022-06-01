@@ -68,18 +68,20 @@ var pendingExtensions = new Map();
 var ExtensionManager;
 
 ExtensionManager = {
-  // WeakMap<WebExtensionPolicy, Map<string, WebExtensionContentScript>>
+  // WeakMap<WebExtensionPolicy, Map<number, WebExtensionContentScript>>
   registeredContentScripts: new DefaultWeakMap(policy => new Map()),
 
   init() {
     Services.cpmm.addMessageListener("Extension:Startup", this);
     Services.cpmm.addMessageListener("Extension:Shutdown", this);
     Services.cpmm.addMessageListener("Extension:FlushJarCache", this);
-    Services.cpmm.addMessageListener("Extension:RegisterContentScript", this);
+    Services.cpmm.addMessageListener("Extension:RegisterContentScripts", this);
     Services.cpmm.addMessageListener(
       "Extension:UnregisterContentScripts",
       this
     );
+    Services.cpmm.addMessageListener("Extension:UpdateContentScripts", this);
+    Services.cpmm.addMessageListener("Extension:UpdatePermissions", this);
 
     this.updateStubExtensions();
 
@@ -246,38 +248,37 @@ ExtensionManager = {
           ExtensionUtils.flushJarCache(data.path);
           break;
 
-        case "Extension:RegisterContentScript": {
+        case "Extension:RegisterContentScripts": {
           let policy = WebExtensionPolicy.getByID(data.id);
 
           if (policy) {
             const registeredContentScripts = this.registeredContentScripts.get(
               policy
             );
-            const type =
-              "userScriptOptions" in data.options
-                ? "userScript"
-                : "contentScript";
 
-            if (registeredContentScripts.has(data.scriptId)) {
-              Cu.reportError(
-                new Error(
-                  `Registering ${type} ${data.scriptId} on ${data.id} more than once`
-                )
-              );
-            } else {
-              const script = new WebExtensionContentScript(
-                policy,
-                data.options
-              );
+            for (const { scriptId, options } of data.scripts) {
+              const type =
+                "userScriptOptions" in options ? "userScript" : "contentScript";
 
-              // If the script is a userScript, add the additional userScriptOptions
-              // property to the WebExtensionContentScript instance.
-              if (type === "userScript") {
-                script.userScriptOptions = data.options.userScriptOptions;
+              if (registeredContentScripts.has(scriptId)) {
+                Cu.reportError(
+                  new Error(
+                    `Registering ${type} ${scriptId} on ${data.id} more than once`
+                  )
+                );
+              } else {
+                const script = new WebExtensionContentScript(policy, options);
+
+                // If the script is a userScript, add the additional
+                // userScriptOptions property to the WebExtensionContentScript
+                // instance.
+                if (type === "userScript") {
+                  script.userScriptOptions = options.userScriptOptions;
+                }
+
+                policy.registerContentScript(script);
+                registeredContentScripts.set(scriptId, script);
               }
-
-              policy.registerContentScript(script);
-              registeredContentScripts.set(data.scriptId, script);
             }
           }
           break;
@@ -298,6 +299,59 @@ ExtensionManager = {
                 registeredContentScripts.delete(scriptId);
               }
             }
+          }
+          break;
+        }
+
+        case "Extension:UpdateContentScripts": {
+          let policy = WebExtensionPolicy.getByID(data.id);
+
+          if (policy) {
+            const registeredContentScripts = this.registeredContentScripts.get(
+              policy
+            );
+
+            for (const { scriptId, options } of data.scripts) {
+              const oldScript = registeredContentScripts.get(scriptId);
+              const newScript = new WebExtensionContentScript(policy, options);
+
+              policy.unregisterContentScript(oldScript);
+              policy.registerContentScript(newScript);
+              registeredContentScripts.set(scriptId, newScript);
+            }
+          }
+          break;
+        }
+
+        case "Extension:UpdatePermissions": {
+          let policy = WebExtensionPolicy.getByID(data.id);
+          if (!policy) {
+            break;
+          }
+          // In the parent process, Extension.jsm updates the policy.
+          if (isContentProcess) {
+            ExtensionCommon.updateAllowedOrigins(
+              policy,
+              data.origins,
+              data.add
+            );
+
+            if (data.permissions.length) {
+              let perms = new Set(policy.permissions);
+              for (let perm of data.permissions) {
+                if (data.add) {
+                  perms.add(perm);
+                } else {
+                  perms.delete(perm);
+                }
+              }
+              policy.permissions = perms;
+            }
+          }
+
+          if (data.permissions.length && extensions.has(policy)) {
+            // Notify ChildApiManager of permission changes.
+            extensions.get(policy).emit("update-permissions");
           }
           break;
         }

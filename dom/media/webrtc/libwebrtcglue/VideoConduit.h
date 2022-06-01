@@ -161,6 +161,8 @@ class WebrtcVideoConduit
   // Call thread.
   void UnsetRemoteSSRC(uint32_t aSsrc) override;
 
+  static unsigned ToLibwebrtcMaxFramerate(const Maybe<double>& aMaxFramerate);
+
  private:
   void NotifyUnsetCurrentRemoteSSRC();
   void SetRemoteSSRCConfig(uint32_t aSsrc, uint32_t aRtxSsrc);
@@ -271,7 +273,7 @@ class WebrtcVideoConduit
 
   bool RequiresNewSendStream(const VideoCodecConfig& newConfig) const;
 
-  mutable mozilla::ReentrantMonitor mRendererMonitor;
+  mutable mozilla::ReentrantMonitor mRendererMonitor MOZ_UNANNOTATED;
 
   // Accessed on any thread under mRendererMonitor.
   RefPtr<mozilla::VideoRenderer> mRenderer;
@@ -297,7 +299,7 @@ class WebrtcVideoConduit
     Mirror<Ssrcs> mLocalSsrcs;
     Mirror<Ssrcs> mLocalRtxSsrcs;
     Mirror<std::string> mLocalCname;
-    Mirror<std::string> mLocalMid;
+    Mirror<std::string> mMid;
     Mirror<Ssrc> mRemoteSsrc;
     Mirror<Ssrc> mRemoteRtxSsrc;
     Mirror<std::string> mSyncGroup;
@@ -328,7 +330,7 @@ class WebrtcVideoConduit
   // that will update the webrtc.org configuration.
   WatchManager<WebrtcVideoConduit> mWatchManager;
 
-  mutable Mutex mMutex;
+  mutable Mutex mMutex MOZ_UNANNOTATED;
 
   // Decoder factory used by mRecvStream when it needs new decoders. This is
   // not shared broader like some state in the WebrtcCallWrapper because it
@@ -406,7 +408,7 @@ class WebrtcVideoConduit
   Maybe<uint32_t> mLastRTPTimestampReceive;
 
   // Accessed under mMutex.
-  unsigned int mSendingFramerate;
+  unsigned int mMaxFramerateForAllStreams;
 
   // Accessed from any thread under mRendererMonitor.
   uint64_t mVideoLatencyAvg = 0;

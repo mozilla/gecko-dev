@@ -34,12 +34,16 @@ const PREFS_FOR_DISPLAY = [
   "browser.cache.",
   "browser.contentblocking.category",
   "browser.display.",
+  "browser.download.always_ask_before_handling_new_types",
+  "browser.download.enable_spam_prevention",
   "browser.download.folderList",
+  "browser.download.improvements_to_download_panel",
   "browser.download.lastDir.savePerSite",
   "browser.download.manager.addToRecentDocs",
   "browser.download.manager.resumeOnWakeDelay",
   "browser.download.preferred.",
   "browser.download.skipConfirmLaunchExecutable",
+  "browser.download.start_downloads_in_tmp_dir",
   "browser.download.useDownloadDir",
   "browser.fixup.",
   "browser.history_expire_",
@@ -63,8 +67,12 @@ const PREFS_FOR_DISPLAY = [
   "doh-rollout.",
   "dom.",
   "extensions.checkCompatibility",
+  "extensions.eventPages.enabled",
   "extensions.formautofill.",
   "extensions.lastAppVersion",
+  "extensions.manifestV3.enabled",
+  "extensions.InstallTrigger.enabled",
+  "extensions.InstallTriggerImpl.enabled",
   "fission.autostart",
   "font.",
   "general.autoScroll",
@@ -107,7 +115,6 @@ const PREFS_FOR_DISPLAY = [
   "widget.use-xdg-desktop-portal",
   "widget.use-xdg-desktop-portal.file-picker",
   "widget.use-xdg-desktop-portal.mime-handler",
-  "widget.use-xdg-desktop-portal.print",
   "widget.gtk.overlay-scrollbars.enabled",
   "widget.wayland",
 ];
@@ -220,6 +227,9 @@ var dataProviders = {
         Ci.nsIHttpProtocolHandler
       ).userAgent,
       safeMode: Services.appinfo.inSafeMode,
+      memorySizeBytes: Services.sysinfo.getProperty("memsize"),
+      diskAvailableBytes: Services.dirsvc.get("ProfD", Ci.nsIFile)
+        .diskSpaceAvailable,
     };
 
     if (Services.sysinfo.getProperty("name") == "Windows_NT") {
@@ -230,8 +240,7 @@ var dataProviders = {
 
     if (AppConstants.MOZ_UPDATER) {
       data.updateChannel = ChromeUtils.import(
-        "resource://gre/modules/UpdateUtils.jsm",
-        {}
+        "resource://gre/modules/UpdateUtils.jsm"
       ).UpdateUtils.UpdateChannel;
     }
 
@@ -976,11 +985,11 @@ if (AppConstants.ENABLE_WEBDRIVER) {
     const { RemoteAgent } = ChromeUtils.import(
       "chrome://remote/content/components/RemoteAgent.jsm"
     );
-    const { listening, scheme, host, port } = RemoteAgent;
+    const { running, scheme, host, port } = RemoteAgent;
     let url = "";
-    if (listening) {
+    if (running) {
       url = `${scheme}://${host}:${port}/`;
     }
-    done({ listening, url });
+    done({ running, url });
   };
 }

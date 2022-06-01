@@ -48,6 +48,11 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.defineModuleGetter(
+  this,
+  "IndexedDB",
+  "resource://gre/modules/IndexedDB.jsm"
+);
 
 XPCOMUtils.defineLazyGlobalGetters(this, ["XMLHttpRequest"]);
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -56,6 +61,31 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "privacy.firstparty.isolate",
   false
 );
+
+const DB_NAME = "SaveToPocket";
+const STORE_NAME = "pktAPI";
+const DB_VERSION = 1;
+const RECENT_SAVES_UPDATE_TIME = 5 * 60 * 1000; // 30 minutes
+
+/**
+ * Create a new connection to the database.
+ */
+function openDatabase() {
+  return IndexedDB.open(DB_NAME, DB_VERSION, db => {
+    db.createObjectStore(STORE_NAME);
+  });
+}
+
+/**
+ * Cache the database connection so that it is shared among multiple operations.
+ */
+let databasePromise;
+function getDatabase() {
+  if (!databasePromise) {
+    databasePromise = openDatabase();
+  }
+  return databasePromise;
+}
 
 var pktApi = (function() {
   /**
@@ -331,9 +361,15 @@ var pktApi = (function() {
     setSetting("premium_status", undefined);
     setSetting("latestSince", undefined);
     setSetting("tags", undefined);
+    // An old pref that is no longer used,
+    // but the user data may still exist on some profiles.
+    // So best to clean it up just in case.
+    // Can probably remove this line in the future.
     setSetting("usedTags", undefined);
 
     setSetting("fsv1", undefined);
+
+    _clearRecentSavesCache();
   }
 
   /**
@@ -388,6 +424,7 @@ var pktApi = (function() {
         }
         data.ho2 = getSetting("test.ho2");
 
+        _expireRecentSavesCache();
         if (options.success) {
           options.success.apply(options, Array.apply(null, arguments));
         }
@@ -582,32 +619,6 @@ var pktApi = (function() {
     };
     action = extend(action, actionPart);
 
-    // Backup the success callback as we need it later
-    var finalSuccessCallback = options.success;
-
-    // Switch the success callback
-    options.success = function(data) {
-      // Update used tags
-      var usedTagsJSON = getSetting("usedTags");
-      var usedTags = usedTagsJSON ? JSON.parse(usedTagsJSON) : {};
-
-      // Check for each tag if it's already in the used tags
-      for (var i = 0; i < tags.length; i++) {
-        var tagToSave = tags[i].trim();
-        var newUsedTagObject = {
-          tag: tagToSave,
-          timestamp: new Date().getTime(),
-        };
-        usedTags[tagToSave] = newUsedTagObject;
-      }
-      setSetting("usedTags", JSON.stringify(usedTags));
-
-      // Let the callback know that we are finished
-      if (finalSuccessCallback) {
-        finalSuccessCallback(data);
-      }
-    };
-
     // Execute the action
     return sendAction(action, options);
   }
@@ -624,40 +635,8 @@ var pktApi = (function() {
       return [];
     };
 
-    var sortedUsedTagsFromSettings = function() {
-      // Get and Sort used tags
-      var usedTags = [];
-
-      var usedTagsJSON = getSetting("usedTags");
-      if (typeof usedTagsJSON !== "undefined") {
-        var usedTagsObject = JSON.parse(usedTagsJSON);
-        var usedTagsObjectArray = [];
-        for (var tagKey in usedTagsObject) {
-          usedTagsObjectArray.push(usedTagsObject[tagKey]);
-        }
-
-        // Sort usedTagsObjectArray based on timestamp
-        usedTagsObjectArray.sort(function(usedTagA, usedTagB) {
-          var a = usedTagA.timestamp;
-          var b = usedTagB.timestamp;
-          return a - b;
-        });
-
-        // Get all keys tags
-        for (var j = 0; j < usedTagsObjectArray.length; j++) {
-          usedTags.push(usedTagsObjectArray[j].tag);
-        }
-
-        // Reverse to set the last recent used tags to the front
-        usedTags.reverse();
-      }
-
-      return usedTags;
-    };
-
     return {
       tags: tagsFromSettings(),
-      usedTags: sortedUsedTagsFromSettings(),
     };
   }
 
@@ -719,6 +698,69 @@ var pktApi = (function() {
     });
   }
 
+  async function _getRecentSavesCache() {
+    const db = await getDatabase();
+    return db.objectStore(STORE_NAME, "readonly").get("recentSaves");
+  }
+  async function _setRecentSavesCache(data) {
+    const db = await getDatabase();
+    db.objectStore(STORE_NAME, "readwrite").put(data, "recentSaves");
+  }
+  // Clears the cache time, so the next get forces an update.
+  async function _expireRecentSavesCache() {
+    const cache = await _getRecentSavesCache();
+    _setRecentSavesCache({
+      ...cache,
+      lastUpdated: 0,
+    });
+  }
+  // Clears the cache, for when a new user logs in.
+  async function _clearRecentSavesCache() {
+    const db = await getDatabase();
+    db.objectStore(STORE_NAME, "readwrite").delete("recentSaves");
+  }
+
+  async function getRecentSavesCache() {
+    // Get cache
+    const cache = await _getRecentSavesCache();
+    // Check age
+    if (
+      cache?.lastUpdated &&
+      Date.now() - cache.lastUpdated < RECENT_SAVES_UPDATE_TIME
+    ) {
+      // Return cache if it's not too old.
+      return cache.list;
+    }
+    return null;
+  }
+
+  async function getRecentSaves(options = {}) {
+    pktApi.retrieve(
+      { count: 4 },
+      {
+        success(data) {
+          // Cache results
+          const results = {
+            lastUpdated: Date.now(),
+            // We want these to show up in the same order as they saved,
+            // so we need to do some work and sort.
+            list: Object.values(data.list)
+              .map(item => ({
+                ...item,
+                time_added: parseInt(item.time_added),
+              }))
+              .sort((a, b) => b.time_added - a.time_added),
+          };
+          _setRecentSavesCache(results);
+          options.success?.(results.list);
+        },
+        error(error) {
+          options.error?.(error);
+        },
+      }
+    );
+  }
+
   /**
    * Public functions
    */
@@ -736,6 +778,8 @@ var pktApi = (function() {
     getSuggestedTagsForItem,
     getSuggestedTagsForURL,
     retrieve,
+    getRecentSavesCache,
+    getRecentSaves,
     getArticleInfo,
     getMobileDownload,
   };

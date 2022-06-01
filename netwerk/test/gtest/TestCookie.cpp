@@ -740,11 +740,6 @@ TEST(TestCookie, TestCookieMain)
   GetACookieNoHttp(cookieService, "http://www.security.test/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_CONTAIN, "test=non-security2"));
 
-  Preferences::SetBool("network.cookie.sameSite.schemeful", true);
-  GetACookieNoHttp(cookieService, "http://www.security.test/", cookie);
-  EXPECT_FALSE(CheckResult(cookie.get(), MUST_CONTAIN, "test=security3"));
-  Preferences::SetBool("network.cookie.sameSite.schemeful", false);
-
   // *** nsICookieManager interface tests
   nsCOMPtr<nsICookieManager> cookieMgr =
       do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv0);
@@ -1029,7 +1024,7 @@ TEST(TestCookie, SameSiteLax)
 
   cookie = static_cast<Cookie*>(cookies[0].get());
   EXPECT_EQ(cookie->RawSameSite(), nsICookie::SAMESITE_NONE);
-  EXPECT_EQ(cookie->SameSite(), nsICookie::SAMESITE_NONE);
+  EXPECT_EQ(cookie->SameSite(), nsICookie::SAMESITE_LAX);
 }
 
 TEST(TestCookie, OnionSite)

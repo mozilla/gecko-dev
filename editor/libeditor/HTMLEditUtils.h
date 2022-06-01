@@ -15,6 +15,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EditorBase.h"
 #include "mozilla/EditorDOMPoint.h"
+#include "mozilla/EditorForwards.h"
 #include "mozilla/EditorUtils.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/IntegerRange.h"
@@ -34,8 +35,6 @@ class nsAtom;
 class nsPresContext;
 
 namespace mozilla {
-
-enum class EditAction;
 
 class HTMLEditUtils final {
   using AbstractRange = dom::AbstractRange;
@@ -187,7 +186,7 @@ class HTMLEditUtils final {
   static bool IsLink(nsINode* aNode);
   static bool IsNamedAnchor(const nsINode* aNode);
   static bool IsMozDiv(nsINode* aNode);
-  static bool IsMailCite(nsINode* aNode);
+  static bool IsMailCite(const Element& aElement);
   static bool IsFormWidget(const nsINode* aNode);
   static bool SupportsAlignAttr(nsINode& aNode);
 
@@ -507,10 +506,10 @@ class HTMLEditUtils final {
     // XXX Assuming it's not in an empty text node because it's unrealistic edge
     //     case.
     bool maybeStartOfAnchor = aPoint.IsStartOfContainer();
-    for (EditorRawDOMPoint point(aPoint.GetContainer());
+    for (EditorRawDOMPoint point(aPoint.ContainerAsContent());
          point.IsSet() && (maybeStartOfAnchor ? point.IsStartOfContainer()
                                               : point.IsAtLastContent());
-         point.Set(point.GetContainer())) {
+         point = point.ParentPoint()) {
       if (HTMLEditUtils::IsLink(point.GetContainer())) {
         // Now, we're at start or end of <a href>.
         if (aFoundLinkElement) {
@@ -1383,6 +1382,54 @@ class HTMLEditUtils final {
       }
     }
     return nullptr;
+  }
+
+  /**
+   * GetFirstTableCellElementChild() and GetLastTableCellElementChild()
+   * return the first/last element child of <tr> element if it's a table
+   * cell element.
+   */
+  static Element* GetFirstTableCellElementChild(
+      const Element& aTableRowElement) {
+    MOZ_ASSERT(aTableRowElement.IsHTMLElement(nsGkAtoms::tr));
+    Element* firstElementChild = aTableRowElement.GetFirstElementChild();
+    return firstElementChild && HTMLEditUtils::IsTableCell(firstElementChild)
+               ? firstElementChild
+               : nullptr;
+  }
+  static Element* GetLastTableCellElementChild(
+      const Element& aTableRowElement) {
+    MOZ_ASSERT(aTableRowElement.IsHTMLElement(nsGkAtoms::tr));
+    Element* lastElementChild = aTableRowElement.GetLastElementChild();
+    return lastElementChild && HTMLEditUtils::IsTableCell(lastElementChild)
+               ? lastElementChild
+               : nullptr;
+  }
+
+  /**
+   * GetPreviousTableCellElementSibling() and GetNextTableCellElementSibling()
+   * return a table cell element of previous/next element sibling of given
+   * content node if and only if the element sibling is a table cell element.
+   */
+  static Element* GetPreviousTableCellElementSibling(
+      const nsIContent& aChildOfTableRow) {
+    MOZ_ASSERT(aChildOfTableRow.GetParentNode());
+    MOZ_ASSERT(aChildOfTableRow.GetParentNode()->IsHTMLElement(nsGkAtoms::tr));
+    Element* previousElementSibling =
+        aChildOfTableRow.GetPreviousElementSibling();
+    return previousElementSibling &&
+                   HTMLEditUtils::IsTableCell(previousElementSibling)
+               ? previousElementSibling
+               : nullptr;
+  }
+  static Element* GetNextTableCellElementSibling(
+      const nsIContent& aChildOfTableRow) {
+    MOZ_ASSERT(aChildOfTableRow.GetParentNode());
+    MOZ_ASSERT(aChildOfTableRow.GetParentNode()->IsHTMLElement(nsGkAtoms::tr));
+    Element* nextElementSibling = aChildOfTableRow.GetNextElementSibling();
+    return nextElementSibling && HTMLEditUtils::IsTableCell(nextElementSibling)
+               ? nextElementSibling
+               : nullptr;
   }
 
   /**

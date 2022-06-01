@@ -102,12 +102,10 @@
       window.addEventListener("unload", this.destroy);
 
       this.FormHistory = ChromeUtils.import(
-        "resource://gre/modules/FormHistory.jsm",
-        {}
+        "resource://gre/modules/FormHistory.jsm"
       ).FormHistory;
       this.SearchSuggestionController = ChromeUtils.import(
-        "resource://gre/modules/SearchSuggestionController.jsm",
-        {}
+        "resource://gre/modules/SearchSuggestionController.jsm"
       ).SearchSuggestionController;
 
       Services.obs.addObserver(this.observer, "browser-search-engine-modified");
@@ -815,10 +813,11 @@
       };
 
       this.textbox.onkeyup = event => {
-        if (
-          event.keyCode === KeyEvent.DOM_VK_RETURN &&
-          this._needBrowserFocusAtEnterKeyUp
-        ) {
+        // Pressing Enter key while pressing Meta key, and next, even when
+        // releasing Enter key before releasing Meta key, the keyup event is not
+        // fired. Therefore, if Enter keydown is detecting, continue the post
+        // processing for Enter key when any keyup event is detected.
+        if (this._needBrowserFocusAtEnterKeyUp) {
           this._needBrowserFocusAtEnterKeyUp = false;
           gBrowser.selectedBrowser.focus();
         }

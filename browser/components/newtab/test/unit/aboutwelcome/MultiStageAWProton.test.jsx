@@ -27,9 +27,8 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.ok(wrapper.exists());
     });
 
-    it("should render section left on first screen", () => {
+    it("should render section left for corner positioned screens", () => {
       const SCREEN_PROPS = {
-        order: 0,
         content: {
           position: "corner",
           title: "test title",
@@ -43,33 +42,18 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.equal(wrapper.find("main").prop("pos"), "corner");
     });
 
-    it("should autoClose on last screen", () => {
-      const fakeWindow = {
-        location: {
-          href: "test",
-        },
-        document: {
-          querySelector: () => {
-            return { className: "dialog-last" };
-          },
-        },
-      };
+    it("should render with no section left for center positioned screens", () => {
       const SCREEN_PROPS = {
-        order: 1,
-        autoClose: true,
-        totalNumberOfScreens: 1,
         content: {
+          position: "center",
           title: "test title",
-          subtitle: "test subtitle",
         },
-        windowObj: fakeWindow,
       };
       const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
       assert.ok(wrapper.exists());
-      assert.equal(fakeWindow.location.href, "test");
-
-      clock.tick(20001);
-      assert.equal(fakeWindow.location.href, "about:home");
+      assert.equal(wrapper.find(".section-left").exists(), false);
+      assert.equal(wrapper.find(".welcome-text h1").text(), "test title");
+      assert.equal(wrapper.find("main").prop("pos"), "center");
     });
   });
 
@@ -88,43 +72,43 @@ describe("MultiStageAboutWelcomeProton module", () => {
       const data = await getData();
 
       assert.propertyVal(
-        data.screens[0].content.primary_button.label,
-        "string_id",
-        "mr1-onboarding-pin-primary-button-label"
+        data.screens[0].content.primary_button.action,
+        "type",
+        "PIN_FIREFOX_TO_TASKBAR"
       );
     });
     it("should have 'pin' button if we need default and pin", async () => {
       const data = await prepConfig({ needDefault: true, needPin: true });
 
       assert.propertyVal(
-        data.screens[0].content.primary_button.label,
-        "string_id",
-        "mr1-onboarding-pin-primary-button-label"
+        data.screens[0].content.primary_button.action,
+        "type",
+        "PIN_FIREFOX_TO_TASKBAR"
       );
       assert.propertyVal(data.screens[0], "id", "AW_PIN_FIREFOX");
       assert.propertyVal(data.screens[1], "id", "AW_SET_DEFAULT");
-      assert.lengthOf(data.screens, getData().screens.length);
+      assert.lengthOf(data.screens, getData().screens.length - 1);
     });
     it("should keep 'pin' and remove 'default' if already default", async () => {
       const data = await prepConfig({ needPin: true });
 
       assert.propertyVal(data.screens[0], "id", "AW_PIN_FIREFOX");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, getData().screens.length - 1);
+      assert.lengthOf(data.screens, getData().screens.length - 2);
     });
     it("should switch to 'default' if already pinned", async () => {
       const data = await prepConfig({ needDefault: true });
 
       assert.propertyVal(data.screens[0], "id", "AW_ONLY_DEFAULT");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, getData().screens.length - 1);
+      assert.lengthOf(data.screens, getData().screens.length - 2);
     });
     it("should switch to 'start' if already pinned and default", async () => {
       const data = await prepConfig();
 
       assert.propertyVal(data.screens[0], "id", "AW_GET_STARTED");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, getData().screens.length - 1);
+      assert.lengthOf(data.screens, getData().screens.length - 2);
     });
     it("should have a FxA button", async () => {
       const data = await prepConfig();
@@ -156,21 +140,18 @@ describe("MultiStageAboutWelcomeProton module", () => {
         screens: [
           {
             id: "AW_PIN_FIREFOX",
-            order: 0,
             content: {
               position: "corner",
               help_text: {
                 deleteIfNotEn: true,
-                text: {
-                  string_id: "mr1-onboarding-welcome-image-caption",
-                },
+                string_id: "mr1-onboarding-welcome-image-caption",
               },
             },
           },
         ],
       });
 
-      assert.notProperty(data.screens[0].content.help_text, "text");
+      assert.notProperty(data.screens[0].content, "help_text");
     });
   });
   describe("AboutWelcomeDefaults prepareContentForReact", () => {
@@ -241,26 +222,21 @@ describe("MultiStageAboutWelcomeProton module", () => {
       const { screens } = await AboutWelcomeDefaults.prepareContentForReact({
         screens: [
           {
-            order: 0,
             content: {
               tiles: { type: "theme" },
             },
           },
-          { id: "hello", order: 1 },
+          { id: "hello" },
           {
-            order: 2,
             content: {
               tiles: { type: "theme" },
             },
           },
-          { id: "world", order: 3 },
+          { id: "world" },
         ],
       });
 
-      assert.deepEqual(screens, [
-        { id: "hello", order: 0 },
-        { id: "world", order: 1 },
-      ]);
+      assert.deepEqual(screens, [{ id: "hello" }, { id: "world" }]);
     });
     it("shouldn't remove colorway screens on win7", async () => {
       sandbox.stub(AppConstants, "isPlatformAndVersionAtMost").returns(true);
@@ -268,31 +244,28 @@ describe("MultiStageAboutWelcomeProton module", () => {
       const { screens } = await AboutWelcomeDefaults.prepareContentForReact({
         screens: [
           {
-            order: 0,
             content: {
               tiles: { type: "colorway" },
             },
           },
-          { id: "hello", order: 1 },
+          { id: "hello" },
           {
-            order: 2,
             content: {
               tiles: { type: "theme" },
             },
           },
-          { id: "world", order: 3 },
+          { id: "world" },
         ],
       });
 
       assert.deepEqual(screens, [
         {
-          order: 0,
           content: {
             tiles: { type: "colorway" },
           },
         },
-        { id: "hello", order: 1 },
-        { id: "world", order: 2 },
+        { id: "hello" },
+        { id: "world" },
       ]);
     });
   });

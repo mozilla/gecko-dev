@@ -11,14 +11,10 @@
   --sidemenu-selected-arrow-rtl: url(images/item-arrow-rtl.svg);
 }
 
-/* Loading animation */
-@keyframes item-load {
-  0% {
-    transform: scaleY(0) translateY(-100%);
-  }
-  100% {
-    transform: none;
-  }
+box,
+.splitview-nav {
+  -moz-box-flex: 1;
+  -moz-box-orient: vertical;
 }
 
 .splitview-nav {
@@ -29,13 +25,11 @@
 }
 
 .splitview-nav > li {
-  animation: item-load .5s var(--animation-curve);
   padding-inline-end: 8px;
   -moz-box-align: center;
   outline: 0;
   vertical-align: bottom;
   border-bottom: 1px solid var(--theme-splitter-color);
-  background: inherit;
 }
 
 .placeholder {
@@ -56,14 +50,89 @@
   background-position: center left;
 }
 
+.splitview-nav > li:not(.splitview-active):where(:hover, :focus-within) {
+  background-color: var(--theme-selection-background-hover);
+}
+
 /* Toolbars */
 
 .splitview-main > .devtools-toolbar {
-  background-origin: border-box;
-  background-clip: border-box;
+  height: 29px;
 }
 
 .splitview-main > toolbar,
 .loading .splitview-nav-container {
   border-inline-end: 1px solid var(--theme-splitter-color);
+}
+
+.splitview-nav-container {
+  -moz-box-pack: center;
+}
+
+.loading .splitview-nav-container > .placeholder {
+  display: none !important;
+}
+
+.splitview-controller,
+.splitview-main {
+  -moz-box-flex: 0;
+}
+
+.splitview-controller {
+  min-height: 3em;
+  max-height: 14em;
+  max-width: 400px;
+  min-width: 200px;
+}
+
+.splitview-nav {
+  display: -moz-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* only the active details pane is shown */
+.splitview-side-details > * {
+  display: none;
+}
+.splitview-side-details > .splitview-active {
+  display: -moz-box;
+}
+
+/* filtered items are hidden */
+ol.splitview-nav > li.splitview-filtered {
+  display: none;
+}
+
+/* "empty list" and "all filtered" placeholders are hidden */
+.splitview-nav:empty,
+.splitview-nav.splitview-all-filtered,
+.splitview-nav + .splitview-nav.placeholder {
+  display: none;
+}
+.splitview-nav.splitview-all-filtered ~ .splitview-nav.placeholder.all-filtered,
+.splitview-nav:empty ~ .splitview-nav.placeholder.empty {
+  display: -moz-box;
+}
+
+@media (min-width: 701px) {
+  .splitview-root {
+    -moz-box-orient: horizontal;
+  }
+  .splitview-controller {
+    max-height: none;
+  }
+  .splitview-details {
+    display: none;
+  }
+  .splitview-details.splitview-active {
+    display: -moz-box;
+  }
+}
+
+/* portrait mode */
+@media (max-width: 700px) {
+  .splitview-controller {
+    max-width: none;
+  }
 }

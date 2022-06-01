@@ -11,7 +11,7 @@
 #include "DecoderBenchmark.h"
 #include "ImageContainer.h"
 #include "Layers.h"
-#include "MediaDecoderStateMachine.h"
+#include "MediaDecoderStateMachineBase.h"
 #include "MediaFormatReader.h"
 #include "MediaResource.h"
 #include "MediaShutdownManager.h"
@@ -1188,7 +1188,7 @@ void MediaDecoder::SetStreamName(const nsAutoString& aStreamName) {
   mStreamName = aStreamName;
 }
 
-void MediaDecoder::ConnectMirrors(MediaDecoderStateMachine* aObject) {
+void MediaDecoder::ConnectMirrors(MediaDecoderStateMachineBase* aObject) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aObject);
   mStateMachineDuration.Connect(aObject->CanonicalDuration());
@@ -1205,16 +1205,17 @@ void MediaDecoder::DisconnectMirrors() {
   mIsAudioDataAudible.DisconnectIfConnected();
 }
 
-void MediaDecoder::SetStateMachine(MediaDecoderStateMachine* aStateMachine) {
+void MediaDecoder::SetStateMachine(
+    MediaDecoderStateMachineBase* aStateMachine) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT_IF(aStateMachine, !mDecoderStateMachine);
   if (aStateMachine) {
     mDecoderStateMachine = aStateMachine;
-    DDLINKCHILD("decoder state machine", mDecoderStateMachine.get());
+    LOG("set state machine %p", mDecoderStateMachine.get());
     ConnectMirrors(aStateMachine);
     UpdateVideoDecodeMode();
   } else if (mDecoderStateMachine) {
-    DDUNLINKCHILD(mDecoderStateMachine.get());
+    LOG("null out state machine %p", mDecoderStateMachine.get());
     mDecoderStateMachine = nullptr;
     DisconnectMirrors();
   }
@@ -1282,7 +1283,7 @@ void MediaDecoder::NotifyReaderDataArrived() {
 }
 
 // Provide access to the state machine object
-MediaDecoderStateMachine* MediaDecoder::GetStateMachine() const {
+MediaDecoderStateMachineBase* MediaDecoder::GetStateMachine() const {
   MOZ_ASSERT(NS_IsMainThread());
   return mDecoderStateMachine;
 }
@@ -1376,6 +1377,7 @@ MediaDecoderOwner::NextFrameStatus MediaDecoder::NextFrameBufferedStatus() {
 }
 
 void MediaDecoder::GetDebugInfo(dom::MediaDecoderDebugInfo& aInfo) {
+  MOZ_ASSERT(NS_IsMainThread());
   CopyUTF8toUTF16(nsPrintfCString("%p", this), aInfo.mInstance);
   aInfo.mChannels = mInfo ? mInfo->mAudio.mChannels : 0;
   aInfo.mRate = mInfo ? mInfo->mAudio.mRate : 0;
@@ -1384,27 +1386,28 @@ void MediaDecoder::GetDebugInfo(dom::MediaDecoderDebugInfo& aInfo) {
   CopyUTF8toUTF16(MakeStringSpan(PlayStateStr()), aInfo.mPlayState);
   aInfo.mContainerType =
       NS_ConvertUTF8toUTF16(ContainerType().Type().AsString());
-  mReader->GetDebugInfo(aInfo.mReader);
 }
 
 RefPtr<GenericPromise> MediaDecoder::RequestDebugInfo(
     MediaDecoderDebugInfo& aInfo) {
   MOZ_DIAGNOSTIC_ASSERT(!IsShutdown());
+  if (!NS_IsMainThread()) {
+    // Run the request on the main thread if it's not already.
+    return InvokeAsync(AbstractThread::MainThread(), __func__,
+                       [this, self = RefPtr{this}, &aInfo]() {
+                         return RequestDebugInfo(aInfo);
+                       });
+  }
   GetDebugInfo(aInfo);
 
-  if (!GetStateMachine()) {
-    return GenericPromise::CreateAndResolve(true, __func__);
-  }
-
-  return GetStateMachine()
-      ->RequestDebugInfo(aInfo.mStateMachine)
-      ->Then(
-          AbstractThread::MainThread(), __func__,
-          []() { return GenericPromise::CreateAndResolve(true, __func__); },
-          []() {
-            MOZ_ASSERT_UNREACHABLE("Unexpected RequestDebugInfo() rejection");
-            return GenericPromise::CreateAndResolve(false, __func__);
-          });
+  return mReader->RequestDebugInfo(aInfo.mReader)
+      ->Then(AbstractThread::MainThread(), __func__,
+             [this, self = RefPtr{this}, &aInfo] {
+               if (!GetStateMachine()) {
+                 return GenericPromise::CreateAndResolve(true, __func__);
+               }
+               return GetStateMachine()->RequestDebugInfo(aInfo.mStateMachine);
+             });
 }
 
 void MediaDecoder::NotifyAudibleStateChanged() {

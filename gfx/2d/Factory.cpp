@@ -179,11 +179,12 @@ void mozilla_ForgetSharedFTFaceLockOwner(void* aContext, void* aOwner) {
   static_cast<mozilla::gfx::SharedFTFace*>(aContext)->ForgetLockOwner(aOwner);
 }
 
-int mozilla_LockSharedFTFace(void* aContext, void* aOwner) {
+int mozilla_LockSharedFTFace(void* aContext,
+                             void* aOwner) NO_THREAD_SAFETY_ANALYSIS {
   return int(static_cast<mozilla::gfx::SharedFTFace*>(aContext)->Lock(aOwner));
 }
 
-void mozilla_UnlockSharedFTFace(void* aContext) {
+void mozilla_UnlockSharedFTFace(void* aContext) NO_THREAD_SAFETY_ANALYSIS {
   static_cast<mozilla::gfx::SharedFTFace*>(aContext)->Unlock();
 }
 
@@ -630,9 +631,15 @@ void Factory::ReleaseFTLibrary(FT_Library aFTLibrary) {
   FT_Done_FreeType(aFTLibrary);
 }
 
-void Factory::LockFTLibrary(FT_Library aFTLibrary) { mFTLock.Lock(); }
+void Factory::LockFTLibrary(FT_Library aFTLibrary)
+    CAPABILITY_ACQUIRE(mFTLock) NO_THREAD_SAFETY_ANALYSIS {
+  mFTLock.Lock();
+}
 
-void Factory::UnlockFTLibrary(FT_Library aFTLibrary) { mFTLock.Unlock(); }
+void Factory::UnlockFTLibrary(FT_Library aFTLibrary)
+    CAPABILITY_RELEASE(mFTLock) NO_THREAD_SAFETY_ANALYSIS {
+  mFTLock.Unlock();
+}
 
 FT_Face Factory::NewFTFace(FT_Library aFTLibrary, const char* aFileName,
                            int aFaceIndex) {
@@ -1092,7 +1099,7 @@ void Factory::CopyDataSourceSurface(DataSourceSurface* aSource,
 /* static */
 already_AddRefed<DataSourceSurface>
 Factory::CreateBGRA8DataSourceSurfaceForD3D11Texture(
-    ID3D11Texture2D* aSrcTexture) {
+    ID3D11Texture2D* aSrcTexture, uint32_t aArrayIndex) {
   D3D11_TEXTURE2D_DESC srcDesc = {0};
   aSrcTexture->GetDesc(&srcDesc);
 
@@ -1102,7 +1109,7 @@ Factory::CreateBGRA8DataSourceSurfaceForD3D11Texture(
   if (NS_WARN_IF(!destTexture)) {
     return nullptr;
   }
-  if (!ReadbackTexture(destTexture, aSrcTexture)) {
+  if (!ReadbackTexture(destTexture, aSrcTexture, aArrayIndex)) {
     return nullptr;
   }
   return destTexture.forget();
@@ -1111,7 +1118,8 @@ Factory::CreateBGRA8DataSourceSurfaceForD3D11Texture(
 /* static */
 template <typename DestTextureT>
 bool Factory::ConvertSourceAndRetryReadback(DestTextureT* aDestCpuTexture,
-                                            ID3D11Texture2D* aSrcTexture) {
+                                            ID3D11Texture2D* aSrcTexture,
+                                            uint32_t aArrayIndex) {
   RefPtr<ID3D11Device> device;
   aSrcTexture->GetDevice(getter_AddRefs(device));
   if (!device) {
@@ -1128,8 +1136,8 @@ bool Factory::ConvertSourceAndRetryReadback(DestTextureT* aDestCpuTexture,
   }
 
   RefPtr<ID3D11Texture2D> newSrcTexture;
-  HRESULT hr =
-      manager->CopyToBGRATexture(aSrcTexture, getter_AddRefs(newSrcTexture));
+  HRESULT hr = manager->CopyToBGRATexture(aSrcTexture, aArrayIndex,
+                                          getter_AddRefs(newSrcTexture));
   if (FAILED(hr)) {
     gfxWarning() << "Failed to copy to BGRA texture.";
     return false;
@@ -1168,7 +1176,8 @@ bool Factory::ReadbackTexture(layers::TextureData* aDestCpuTexture,
 
 /* static */
 bool Factory::ReadbackTexture(DataSourceSurface* aDestCpuTexture,
-                              ID3D11Texture2D* aSrcTexture) {
+                              ID3D11Texture2D* aSrcTexture,
+                              uint32_t aArrayIndex) {
   D3D11_TEXTURE2D_DESC srcDesc = {0};
   aSrcTexture->GetDesc(&srcDesc);
 
@@ -1176,7 +1185,8 @@ bool Factory::ReadbackTexture(DataSourceSurface* aDestCpuTexture,
   // destination is B8G8R8A8 then convert the source to B8G8R8A8 and readback.
   if ((srcDesc.Format != DXGIFormat(aDestCpuTexture->GetFormat())) &&
       (aDestCpuTexture->GetFormat() == SurfaceFormat::B8G8R8A8)) {
-    return ConvertSourceAndRetryReadback(aDestCpuTexture, aSrcTexture);
+    return ConvertSourceAndRetryReadback(aDestCpuTexture, aSrcTexture,
+                                         aArrayIndex);
   }
 
   if ((IntSize(srcDesc.Width, srcDesc.Height) != aDestCpuTexture->GetSize()) ||
@@ -1189,6 +1199,8 @@ bool Factory::ReadbackTexture(DataSourceSurface* aDestCpuTexture,
   if (!aDestCpuTexture->Map(gfx::DataSourceSurface::WRITE, &mappedSurface)) {
     return false;
   }
+
+  MOZ_ASSERT(aArrayIndex == 0);
 
   bool ret =
       ReadbackTexture(mappedSurface.mData, mappedSurface.mStride, aSrcTexture);
@@ -1261,7 +1273,7 @@ bool Factory::ReadbackTexture(uint8_t* aDestData, int32_t aDestStride,
   uint32_t width = srcDesc.Width;
   uint32_t height = srcDesc.Height;
   int bpp = BytesPerPixel(gfx::ToPixelFormat(srcDesc.Format));
-  for (int y = 0; y < height; y++) {
+  for (uint32_t y = 0; y < height; y++) {
     memcpy(aDestData + aDestStride * y,
            (unsigned char*)(srcMap.pData) + srcMap.RowPitch * y, width * bpp);
   }

@@ -5,11 +5,12 @@
 
 import unittest
 
-from gecko_taskgraph.decision import full_task_graph_to_runnable_jobs
-from gecko_taskgraph.graph import Graph
-from gecko_taskgraph.taskgraph import TaskGraph
-from gecko_taskgraph.task import Task
 from mozunit import main
+from taskgraph.graph import Graph
+from taskgraph.task import Task
+from taskgraph.taskgraph import TaskGraph
+
+from gecko_taskgraph.decision import full_task_graph_to_runnable_jobs
 
 
 class TestRunnableJobs(unittest.TestCase):

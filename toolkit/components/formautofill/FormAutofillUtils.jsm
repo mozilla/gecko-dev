@@ -4,7 +4,12 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["FormAutofillUtils", "AddressDataLoader"];
+const EXPORTED_SYMBOLS = [
+  "FormAutofillUtils",
+  "AddressDataLoader",
+  "LabelUtils",
+];
+let FormAutofillUtils;
 
 const ADDRESS_METADATA_PATH = "resource://autofill/addressmetadata/";
 const ADDRESS_REFERENCES = "addressReferences.js";
@@ -51,6 +56,8 @@ const SECTION_TYPES = {
   ADDRESS: "address",
   CREDIT_CARD: "creditCard",
 };
+
+const ELIGIBLE_INPUT_TYPES = ["text", "email", "tel", "number", "month"];
 
 // The maximum length of data to be saved in a single field for preventing DoS
 // attacks that fill the user's hard drive(s).
@@ -207,7 +214,7 @@ let AddressDataLoader = {
   },
 };
 
-this.FormAutofillUtils = {
+FormAutofillUtils = {
   get AUTOFILL_FIELDS_THRESHOLD() {
     return 3;
   },
@@ -286,7 +293,7 @@ this.FormAutofillUtils = {
    * @returns {Array}
    */
   getCreditCardNetworks() {
-    return CreditCard.SUPPORTED_NETWORKS;
+    return CreditCard.getSupportedNetworks();
   },
 
   getCategoryFromFieldName(fieldName) {
@@ -438,13 +445,23 @@ this.FormAutofillUtils = {
   },
 
   /**
+   * Determines if an element can be autofilled or not.
+   *
+   * @param {HTMLElement} element
+   * @returns {boolean} true if the element can be autofilled
+   */
+  isFieldAutofillable(element) {
+    return element && !element.readOnly && !element.disabled;
+  },
+
+  /**
    *  Determines if an element is visually hidden or not.
    *
    * NOTE: this does not encompass every possible way of hiding an element.
    * Instead, we check some of the more common methods of hiding for performance reasons.
    * See Bug 1727832 for follow up.
    * @param {HTMLElement} element
-   * @returns {boolean}
+   * @returns {boolean} true if the element is visible
    */
   isFieldVisible(element) {
     if (element.hidden) {
@@ -456,19 +473,26 @@ this.FormAutofillUtils = {
     return true;
   },
 
-  ALLOWED_TYPES: ["text", "email", "tel", "number", "month"],
-  isFieldEligibleForAutofill(element) {
-    let tagName = element.tagName;
-    if (tagName == "INPUT") {
+  /**
+   * Determines if an element is eligible to be used by credit card or address autofill.
+   *
+   * @param {HTMLElement} element
+   * @returns {boolean} true if element can be used by credit card or address autofill
+   */
+  isCreditCardOrAddressFieldType(element) {
+    if (!element) {
+      return false;
+    }
+    if (HTMLInputElement.isInstance(element)) {
       // `element.type` can be recognized as `text`, if it's missing or invalid.
-      if (!this.ALLOWED_TYPES.includes(element.type)) {
+      if (!ELIGIBLE_INPUT_TYPES.includes(element.type)) {
         return false;
       }
       // If the field is visually invisible, we do not want to autofill into it.
       if (!this.isFieldVisible(element)) {
         return false;
       }
-    } else if (tagName != "SELECT") {
+    } else if (!HTMLSelectElement.isInstance(element)) {
       return false;
     }
 
@@ -622,7 +646,7 @@ this.FormAutofillUtils = {
   },
 
   /**
-   * Used to populate dropdowns in the UI (e.g. FormAutofill preferences, Web Payments).
+   * Used to populate dropdowns in the UI (e.g. FormAutofill preferences).
    * Use findAddressSelectOption for matching a value to a region.
    *
    * @param {string[]} subKeys An array of regionCode strings
@@ -1128,6 +1152,142 @@ this.FormAutofillUtils = {
       this.localizeAttributeForElement(element, "data-localization-region");
     }
   },
+
+  CC_FATHOM_NONE: 0,
+  CC_FATHOM_JS: 1,
+  CC_FATHOM_NATIVE: 2,
+  isFathomCreditCardsEnabled() {
+    return this.ccHeuristicsMode != this.CC_FATHOM_NONE;
+  },
+
+  /**
+   * Transform the key in FormAutofillConfidences (defined in ChromeUtils.webidl)
+   * to fathom recognized field type.
+   * @param {string} key key from FormAutofillConfidences dictionary
+   * @returns {string} fathom field type
+   */
+  formAutofillConfidencesKeyToCCFieldType(key) {
+    const MAP = {
+      ccNumber: "cc-number",
+      ccName: "cc-name",
+      ccType: "cc-type",
+      ccExp: "cc-exp",
+      ccExpMonth: "cc-exp-month",
+      ccExpYear: "cc-exp-year",
+    };
+    return MAP[key];
+  },
+};
+
+const LabelUtils = {
+  // The tag name list is from Chromium except for "STYLE":
+  // eslint-disable-next-line max-len
+  // https://cs.chromium.org/chromium/src/components/autofill/content/renderer/form_autofill_util.cc?l=216&rcl=d33a171b7c308a64dc3372fac3da2179c63b419e
+  EXCLUDED_TAGS: ["SCRIPT", "NOSCRIPT", "OPTION", "STYLE"],
+
+  // A map object, whose keys are the id's of form fields and each value is an
+  // array consisting of label elements correponding to the id.
+  // @type {Map<string, array>}
+  _mappedLabels: null,
+
+  // An array consisting of label elements whose correponding form field doesn't
+  // have an id attribute.
+  // @type {Array<[HTMLLabelElement, HTMLElement]>}
+  _unmappedLabelControls: null,
+
+  // A weak map consisting of label element and extracted strings pairs.
+  // @type {WeakMap<HTMLLabelElement, array>}
+  _labelStrings: null,
+
+  /**
+   * Extract all strings of an element's children to an array.
+   * "element.textContent" is a string which is merged of all children nodes,
+   * and this function provides an array of the strings contains in an element.
+   *
+   * @param  {Object} element
+   *         A DOM element to be extracted.
+   * @returns {Array}
+   *          All strings in an element.
+   */
+  extractLabelStrings(element) {
+    if (this._labelStrings.has(element)) {
+      return this._labelStrings.get(element);
+    }
+    let strings = [];
+    let _extractLabelStrings = el => {
+      if (this.EXCLUDED_TAGS.includes(el.tagName)) {
+        return;
+      }
+
+      if (el.nodeType == el.TEXT_NODE || !el.childNodes.length) {
+        let trimmedText = el.textContent.trim();
+        if (trimmedText) {
+          strings.push(trimmedText);
+        }
+        return;
+      }
+
+      for (let node of el.childNodes) {
+        let nodeType = node.nodeType;
+        if (nodeType != node.ELEMENT_NODE && nodeType != node.TEXT_NODE) {
+          continue;
+        }
+        _extractLabelStrings(node);
+      }
+    };
+    _extractLabelStrings(element);
+    this._labelStrings.set(element, strings);
+    return strings;
+  },
+
+  generateLabelMap(doc) {
+    this._mappedLabels = new Map();
+    this._unmappedLabelControls = [];
+    this._labelStrings = new WeakMap();
+
+    for (let label of doc.querySelectorAll("label")) {
+      let id = label.htmlFor;
+      let control;
+      if (!id) {
+        control = label.control;
+        if (!control) {
+          continue;
+        }
+        id = control.id;
+      }
+      if (id) {
+        let labels = this._mappedLabels.get(id);
+        if (labels) {
+          labels.push(label);
+        } else {
+          this._mappedLabels.set(id, [label]);
+        }
+      } else {
+        // control must be non-empty here
+        this._unmappedLabelControls.push({ label, control });
+      }
+    }
+  },
+
+  clearLabelMap() {
+    this._mappedLabels = null;
+    this._unmappedLabelControls = null;
+    this._labelStrings = null;
+  },
+
+  findLabelElements(element) {
+    if (!this._mappedLabels) {
+      this.generateLabelMap(element.ownerDocument);
+    }
+
+    let id = element.id;
+    if (!id) {
+      return this._unmappedLabelControls
+        .filter(lc => lc.control == element)
+        .map(lc => lc.label);
+    }
+    return this._mappedLabels.get(id) || [];
+  },
 };
 
 this.log = null;
@@ -1150,4 +1310,20 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "_reauthEnabledByUser",
   "extensions.formautofill.reauth.enabled",
   false
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofillUtils,
+  "ccHeuristicsMode",
+  "extensions.formautofill.creditCards.heuristics.mode",
+  0
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofillUtils,
+  "ccHeuristicsThreshold",
+  "extensions.formautofill.creditCards.heuristics.confidenceThreshold",
+  "0.5",
+  null,
+  pref => parseFloat(pref)
 );

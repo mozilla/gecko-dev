@@ -33,7 +33,7 @@
 #include "jspubtd.h"
 #include "jstypes.h"
 
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "gc/Marking.h"
 #include "gc/PublicIterators.h"
 #include "irregexp/RegExpAPI.h"
@@ -263,9 +263,8 @@ bool AutoResolving::alreadyStartedSlow() const {
 
 /*
  * Since memory has been exhausted, avoid the normal error-handling path which
- * allocates an error object, report and callstack. If code is running, simply
- * throw the static atom "out of memory". If code is not running, call the
- * error reporter directly.
+ * allocates an error object, report and callstack. Instead simply throw the
+ * static atom "out of memory".
  *
  * Furthermore, callers of ReportOutOfMemory (viz., malloc) assume a GC does
  * not occur, so GC must be avoided or suppressed.
@@ -953,7 +952,6 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       nurserySuppressions_(this),
       options_(this, options),
       freeLists_(this, nullptr),
-      defaultFreeOp_(this, runtime, true),
       freeUnusedMemory(false),
       measuringExecutionTime_(this, false),
       jitActivation(this, nullptr),
@@ -975,17 +973,11 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       dtoaState(this, nullptr),
       suppressGC(this, 0),
 #ifdef DEBUG
-      gcUse(this, GCUse::None),
-      gcSweepZone(this, nullptr),
-      isTouchingGrayThings(this, false),
       noNurseryAllocationCheck(this, 0),
       disableStrictProxyCheckingCount(this, 0),
 #endif
 #if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
       runningOOMTest(this, false),
-#endif
-#ifdef DEBUG
-      disableCompartmentCheckTracer(this, false),
 #endif
       inUnsafeRegion(this, 0),
       generationalDisabled(this, 0),
@@ -1063,7 +1055,8 @@ JSContext::~JSContext() {
   TlsContext.set(nullptr);
 }
 
-void JSContext::setHelperThread(const AutoLockHelperThreadState& locked) {
+void JSContext::setHelperThread(const JS::ContextOptions& options,
+                                const AutoLockHelperThreadState& locked) {
   MOZ_ASSERT(isHelperThreadContext());
   MOZ_ASSERT_IF(!JSRuntime::hasLiveRuntimes(), !TlsContext.get());
   MOZ_ASSERT(currentThread_ == ThreadId());
@@ -1071,6 +1064,7 @@ void JSContext::setHelperThread(const AutoLockHelperThreadState& locked) {
   TlsContext.set(this);
   currentThread_ = ThreadId::ThisThreadId();
   nativeStackBase_.emplace(GetNativeStackBase());
+  options_ = options;
 }
 
 void JSContext::clearHelperThread(const AutoLockHelperThreadState& locked) {
@@ -1080,6 +1074,7 @@ void JSContext::clearHelperThread(const AutoLockHelperThreadState& locked) {
 
   currentThread_ = ThreadId();
   nativeStackBase_.reset();
+  options_ = JS::ContextOptions();
   TlsContext.set(nullptr);
 }
 
@@ -1190,6 +1185,18 @@ bool JSContext::isThrowingDebuggeeWouldRun() {
          unwrappedException().toObject().is<ErrorObject>() &&
          unwrappedException().toObject().as<ErrorObject>().type() ==
              JSEXN_DEBUGGEEWOULDRUN;
+}
+
+bool JSContext::isRuntimeCodeGenEnabled(JS::RuntimeCode kind,
+                                        HandleString code) {
+  // Make sure that the CSP callback is installed and that it permits runtime
+  // code generation.
+  if (JSCSPEvalChecker allows =
+          runtime()->securityCallbacks->contentSecurityPolicyAllows) {
+    return allows(this, kind, code);
+  }
+
+  return true;
 }
 
 size_t JSContext::sizeOfExcludingThis(

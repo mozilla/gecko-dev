@@ -234,15 +234,15 @@ class IProtocol : public HasResultCodes {
   virtual void RemoveManagee(int32_t, IProtocol*) = 0;
   virtual void DeallocManagee(int32_t, IProtocol*) = 0;
 
-  Maybe<IProtocol*> ReadActor(const IPC::Message* aMessage,
-                              PickleIterator* aIter, bool aNullable,
+  Maybe<IProtocol*> ReadActor(IPC::MessageReader* aReader, bool aNullable,
                               const char* aActorDescription,
                               int32_t aProtocolTypeId);
 
   virtual Result OnMessageReceived(const Message& aMessage) = 0;
   virtual Result OnMessageReceived(const Message& aMessage,
-                                   Message*& aReply) = 0;
-  virtual Result OnCallReceived(const Message& aMessage, Message*& aReply) = 0;
+                                   UniquePtr<Message>& aReply) = 0;
+  virtual Result OnCallReceived(const Message& aMessage,
+                                UniquePtr<Message>& aReply) = 0;
   bool AllocShmem(size_t aSize, Shmem::SharedMemory::SharedMemoryType aType,
                   Shmem* aOutMem);
   bool AllocUnsafeShmem(size_t aSize,
@@ -274,17 +274,18 @@ class IProtocol : public HasResultCodes {
   void SetManagerAndRegister(IProtocol* aManager, int32_t aId);
 
   // Helpers for calling `Send` on our underlying IPC channel.
-  bool ChannelSend(IPC::Message* aMsg);
-  bool ChannelSend(IPC::Message* aMsg, IPC::Message* aReply);
+  bool ChannelSend(UniquePtr<IPC::Message> aMsg);
+  bool ChannelSend(UniquePtr<IPC::Message> aMsg,
+                   UniquePtr<IPC::Message>* aReply);
   template <typename Value>
-  void ChannelSend(IPC::Message* aMsg, ResolveCallback<Value>&& aResolve,
+  void ChannelSend(UniquePtr<IPC::Message> aMsg,
+                   ResolveCallback<Value>&& aResolve,
                    RejectCallback&& aReject) {
-    UniquePtr<IPC::Message> msg(aMsg);
     if (CanSend()) {
-      GetIPCChannel()->Send(std::move(msg), this, std::move(aResolve),
+      GetIPCChannel()->Send(std::move(aMsg), this, std::move(aResolve),
                             std::move(aReject));
     } else {
-      WarnMessageDiscarded(msg.get());
+      WarnMessageDiscarded(aMsg.get());
       aReject(ResponseRejectReason::SendError);
     }
   }
@@ -418,7 +419,7 @@ class IToplevelProtocol : public IProtocol {
 
   bool Open(ScopedPort aPort, base::ProcessId aOtherPid);
 
-  bool Open(MessageChannel* aChannel, nsISerialEventTarget* aEventTarget,
+  bool Open(IToplevelProtocol* aTarget, nsISerialEventTarget* aEventTarget,
             mozilla::ipc::Side aSide = mozilla::ipc::UnknownSide);
 
   // Open a toplevel actor such that both ends of the actor's channel are on
@@ -427,7 +428,7 @@ class IToplevelProtocol : public IProtocol {
   //
   // WARNING: Attempting to send a sync or intr message on the same thread
   // will crash.
-  bool OpenOnSameThread(MessageChannel* aChannel,
+  bool OpenOnSameThread(IToplevelProtocol* aTarget,
                         mozilla::ipc::Side aSide = mozilla::ipc::UnknownSide);
 
   /**
@@ -558,6 +559,10 @@ MOZ_NEVER_INLINE void LogMessageForProtocol(const char* aTopLevelProtocol,
                                             MessageDirection aDirection);
 
 MOZ_NEVER_INLINE void ProtocolErrorBreakpoint(const char* aMsg);
+
+// IPC::MessageReader and IPC::MessageWriter call this function for FatalError
+// calls which come from serialization/deserialization.
+MOZ_NEVER_INLINE void PickleFatalError(const char* aMsg, IProtocol* aActor);
 
 // The code generator calls this function for errors which come from the
 // methods of protocols.  Doing this saves codesize by making the error

@@ -15,7 +15,6 @@ define(function(require, exports, module) {
   } = require("devtools/client/shared/components/reps/shared/grip-length-bubble");
   const {
     interleave,
-    isGrip,
     wrapRender,
     ellipsisElement,
   } = require("devtools/client/shared/components/reps/reps/rep-utils");
@@ -23,9 +22,6 @@ define(function(require, exports, module) {
   const {
     MODE,
   } = require("devtools/client/shared/components/reps/reps/constants");
-  const {
-    ModePropType,
-  } = require("devtools/client/shared/components/reps/reps/array");
 
   /**
    * Renders an map. A map is represented by a list of its
@@ -34,8 +30,7 @@ define(function(require, exports, module) {
 
   GripMap.propTypes = {
     object: PropTypes.object,
-    // @TODO Change this to Object.values when supported in Node's version of V8
-    mode: ModePropType,
+    mode: PropTypes.oneOf(Object.values(MODE)),
     isInterestingEntry: PropTypes.func,
     onDOMNodeMouseOver: PropTypes.func,
     onDOMNodeMouseOut: PropTypes.func,
@@ -222,11 +217,8 @@ define(function(require, exports, module) {
     return grip.preview.size || 0;
   }
 
-  function supportsObject(grip, noGrip = false) {
-    if (noGrip === true || !isGrip(grip)) {
-      return false;
-    }
-    return grip.preview && grip.preview.kind == "MapLike";
+  function supportsObject(grip) {
+    return grip?.preview?.kind == "MapLike";
   }
 
   const maxLengthMap = new Map();

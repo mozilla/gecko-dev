@@ -85,6 +85,7 @@ void text_shader_main(
 #define BRUSH_FLAG_SEGMENT_REPEAT_Y_ROUND      32
 #define BRUSH_FLAG_SEGMENT_NINEPATCH_MIDDLE    64
 #define BRUSH_FLAG_TEXEL_RECT                 128
+#define BRUSH_FLAG_FORCE_AA                   256
 
 #define INVALID_SEGMENT_INDEX                   0xffff
 
@@ -95,8 +96,8 @@ void brush_shader_main_vs(
     PictureTask pic_task,
     ClipArea clip_area
 ) {
-    int edge_flags = instance.flags & 0xff;
-    int brush_flags = (instance.flags >> 8) & 0xff;
+    int edge_flags = (instance.flags >> 12) & 0xf;
+    int brush_flags = instance.flags & 0xfff;
 
     // Fetch the segment of this brush primitive we are drawing.
     vec4 segment_data;
@@ -116,21 +117,30 @@ void brush_shader_main_vs(
         segment_data = segment_info[1];
     }
 
-    VertexInfo vi;
+    // Most of the time this is the segment rect, but when doing the edge AA
+    // it is inflated.
+    RectWithEndpoint adjusted_segment_rect = segment_rect;
+
+    bool antialiased = !transform.is_axis_aligned || ((brush_flags & BRUSH_FLAG_FORCE_AA) != 0);
 
     // Write the normal vertex information out.
-    if (transform.is_axis_aligned) {
-
-        // Select the corner of the local rect that we are processing.
-        vec2 local_pos = mix(segment_rect.p0, segment_rect.p1, aPosition.xy);
-
-        vi = write_vertex(
-            local_pos,
+    if (antialiased) {
+        adjusted_segment_rect = clip_and_init_antialiasing(
+            segment_rect,
+            ph.local_rect,
             ph.local_clip_rect,
+            edge_flags,
             ph.z,
             transform,
             pic_task
         );
+
+        // The clip was taken into account in clip_and_init_antialiasing, remove
+        // it so that it doesn't interfere with the aa.
+        ph.local_clip_rect.p0 = vec2(-1.0e16);
+        ph.local_clip_rect.p1 = vec2(1.0e16);
+    } else {
+        // The common case for most CSS content.
 
         // TODO(gw): transform bounds may be referenced by
         //           the fragment shader when running in
@@ -141,17 +151,18 @@ void brush_shader_main_vs(
 #if defined(WR_FEATURE_ALPHA_PASS) && !defined(SWGL_ANTIALIAS)
         init_transform_vs(vec4(vec2(-1.0e16), vec2(1.0e16)));
 #endif
-    } else {
-        vi = write_transform_vertex(
-            segment_rect,
-            ph.local_rect,
-            ph.local_clip_rect,
-            edge_flags,
-            ph.z,
-            transform,
-            pic_task
-        );
     }
+
+    // Select the corner of the local rect that we are processing.
+    vec2 local_pos = mix(adjusted_segment_rect.p0, adjusted_segment_rect.p1, aPosition.xy);
+
+    VertexInfo vi = write_vertex(
+        local_pos,
+        ph.local_clip_rect,
+        ph.z,
+        transform,
+        pic_task
+    );
 
     // For brush instances in the alpha pass, always write
     // out clip information.

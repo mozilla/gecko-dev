@@ -322,9 +322,6 @@ void js::gc::GCRuntime::traceRuntimeCommon(JSTracer* trc,
   // Trace runtime global roots.
   TracePersistentRooted(rt, trc);
 
-  // Trace the self-hosting stencil.
-  rt->traceSelfHostingStencil(trc);
-
 #ifdef JS_HAS_INTL_API
   // Trace the shared Intl data.
   rt->traceSharedIntlData(trc);
@@ -339,13 +336,13 @@ void js::gc::GCRuntime::traceRuntimeCommon(JSTracer* trc,
     r->traceRoots(trc, traceOrMark);
   }
 
-  // Trace zone script-table roots. See comment in
-  // Zone::traceScriptTableRoots() for justification re: calling this only
-  // during major (non-nursery) collections.
   if (!JS::RuntimeHeapIsMinorCollecting()) {
+    // Trace the self-hosting stencil. The contents of this are always tenured.
+    rt->traceSelfHostingStencil(trc);
+
     for (ZonesIter zone(this, ZoneSelector::SkipAtoms); !zone.done();
          zone.next()) {
-      zone->traceScriptTableRoots(trc);
+      zone->traceRootsInMajorGC(trc);
     }
   }
 

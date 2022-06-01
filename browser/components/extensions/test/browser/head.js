@@ -3,7 +3,7 @@
 "use strict";
 
 /* exported CustomizableUI makeWidgetId focusWindow forceGC
- *          getBrowserActionWidget
+ *          getBrowserActionWidget assertPersistentListeners
  *          clickBrowserAction clickPageAction clickPageActionInPanel
  *          triggerPageActionWithKeyboard triggerPageActionWithKeyboardInPanel
  *          triggerBrowserActionWithKeyboard
@@ -104,6 +104,9 @@ Services.prefs
   );
   void LoginManagerParent.recipeParentPromise;
 }
+
+// Persistent Listener test functionality
+const { assertPersistentListeners } = ExtensionTestUtils.testAssertions;
 
 // Bug 1239884: Our tests occasionally hit a long GC pause at unpredictable
 // times in debug builds, which results in intermittent timeouts. Until we have
@@ -255,7 +258,20 @@ function delay(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function promiseContentDimensions(browser) {
+/**
+ * Retrieve the content dimensions (and wait until the content gets to the.
+ * size of the browser element they are loaded into, optionally tollerating
+ * size differences to prevent intermittent failures).
+ *
+ * @param {BrowserElement} browser
+ *        The browser element where the content has been loaded.
+ * @param {number} [tolleratedWidthSizeDiff]
+ *        width size difference to tollerate in pixels (defaults to 1).
+ *
+ * @returns {Promise<object>}
+ *          An object with the dims retrieved from the content.
+ */
+async function promiseContentDimensions(browser, tolleratedWidthSizeDiff = 1) {
   // For remote browsers, each resize operation requires an asynchronous
   // round-trip to resize the content window. Since there's a certain amount of
   // unpredictability in the timing, mainly due to the unpredictability of
@@ -264,9 +280,15 @@ async function promiseContentDimensions(browser) {
 
   let dims = await promisePossiblyInaccurateContentDimensions(browser);
   while (
-    browser.clientWidth !== Math.round(dims.window.innerWidth) ||
+    Math.abs(browser.clientWidth - dims.window.innerWidth) >
+      tolleratedWidthSizeDiff ||
     browser.clientHeight !== Math.round(dims.window.innerHeight)
   ) {
+    const diffWidth = Math.abs(browser.clientWidth - dims.window.innerWidth);
+    const diffHeight = Math.abs(browser.clientHeight - dims.window.innerHeight);
+    info(
+      `Content dimension did not reached the expected size yet (diff: ${diffWidth}x${diffHeight}). Wait further.`
+    );
     await delay(50);
     dims = await promisePossiblyInaccurateContentDimensions(browser);
   }

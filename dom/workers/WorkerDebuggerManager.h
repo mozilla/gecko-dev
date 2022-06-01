@@ -26,15 +26,14 @@
 #define WORKERDEBUGGERMANAGER_CONTRACTID \
   "@mozilla.org/dom/workers/workerdebuggermanager;1"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class WorkerDebugger;
 class WorkerPrivate;
 
 class WorkerDebuggerManager final : public nsIObserver,
                                     public nsIWorkerDebuggerManager {
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
 
   // Protected by mMutex.
   nsTArray<nsCOMPtr<nsIWorkerDebuggerManagerListener>> mListeners;
@@ -112,7 +111,6 @@ inline nsresult UnregisterWorkerDebugger(WorkerPrivate* aWorkerPrivate) {
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_workers_workerdebuggermanager_h

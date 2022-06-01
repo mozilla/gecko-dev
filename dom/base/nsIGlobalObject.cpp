@@ -51,7 +51,8 @@ bool nsIGlobalObject::IsScriptForbidden(JSObject* aCallback,
     if (aIsJSImplementedWebIDL) {
       return false;
     }
-    if (!xpc::Scriptability::Get(aCallback).Allowed()) {
+
+    if (!xpc::Scriptability::AllowedIfExists(aCallback)) {
       return true;
     }
   }
@@ -134,10 +135,8 @@ void nsIGlobalObject::UnlinkObjectsInGlobal() {
 
   mReportRecords.Clear();
   mReportingObservers.Clear();
-#ifdef MOZ_DOM_STREAMS
   mCountQueuingStrategySizeFunction = nullptr;
   mByteLengthQueuingStrategySizeFunction = nullptr;
-#endif
 }
 
 void nsIGlobalObject::TraverseObjectsInGlobal(
@@ -153,10 +152,8 @@ void nsIGlobalObject::TraverseObjectsInGlobal(
   nsIGlobalObject* tmp = this;
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mReportRecords)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mReportingObservers)
-#ifdef MOZ_DOM_STREAMS
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCountQueuingStrategySizeFunction)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mByteLengthQueuingStrategySizeFunction)
-#endif
 }
 
 void nsIGlobalObject::AddEventTargetObject(DOMEventTargetHelper* aObject) {
@@ -357,7 +354,6 @@ void nsIGlobalObject::RemoveReportRecords() {
   }
 }
 
-#ifdef MOZ_DOM_STREAMS
 already_AddRefed<mozilla::dom::Function>
 nsIGlobalObject::GetCountQueuingStrategySizeFunction() {
   return do_AddRef(mCountQueuingStrategySizeFunction);
@@ -377,7 +373,6 @@ void nsIGlobalObject::SetByteLengthQueuingStrategySizeFunction(
     mozilla::dom::Function* aFunction) {
   mByteLengthQueuingStrategySizeFunction = aFunction;
 }
-#endif
 
 bool nsIGlobalObject::ShouldResistFingerprinting() const {
   return nsContentUtils::ShouldResistFingerprinting();

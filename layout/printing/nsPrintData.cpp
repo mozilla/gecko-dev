@@ -24,15 +24,7 @@ extern mozilla::LazyLogModule gPrintingLog;
 //-- nsPrintData Class Impl
 //---------------------------------------------------
 nsPrintData::nsPrintData(ePrintDataType aType)
-    : mType(aType),
-      mPrintDocList(0),
-      mIsParentAFrameSet(false),
-      mOnStartSent(false),
-      mIsAborted(false),
-      mPreparingForPrint(false),
-      mShrinkToFit(false),
-      mNumPrintablePages(0),
-      mShrinkRatio(1.0) {}
+    : mType(aType), mOnStartSent(false), mIsAborted(false) {}
 
 nsPrintData::~nsPrintData() {
   // Only Send an OnEndPrinting if we have started printing
@@ -43,12 +35,10 @@ nsPrintData::~nsPrintData() {
   if (mPrintDC) {
     PR_PL(("****************** End Document ************************\n"));
     PR_PL(("\n"));
-    bool isCancelled = false;
-    mPrintSettings->GetIsCancelled(&isCancelled);
 
     nsresult rv = NS_OK;
     if (mType == eIsPrinting && mPrintDC->IsCurrentlyPrintingDocument()) {
-      if (!isCancelled && !mIsAborted) {
+      if (!mIsAborted) {
         rv = mPrintDC->EndDocument();
       } else {
         rv = mPrintDC->AbortDocument();

@@ -15,6 +15,7 @@
 #include "mozilla/dom/CSSLayerBlockRule.h"
 #include "mozilla/dom/CSSLayerStatementRule.h"
 #include "mozilla/dom/CSSKeyframesRule.h"
+#include "mozilla/dom/CSSContainerRule.h"
 #include "mozilla/dom/CSSMediaRule.h"
 #include "mozilla/dom/CSSMozDocumentRule.h"
 #include "mozilla/dom/CSSNamespaceRule.h"
@@ -35,9 +36,7 @@ ServoCSSRuleList::ServoCSSRuleList(already_AddRefed<ServoCssRules> aRawRules,
                                    StyleSheet* aSheet,
                                    css::GroupRule* aParentRule)
     : mStyleSheet(aSheet), mParentRule(aParentRule), mRawRules(aRawRules) {
-  if (mRawRules) {
-    Servo_CssRules_ListTypes(mRawRules, &mRules);
-  }
+  ResetRules();
 }
 
 // QueryInterface implementation for ServoCSSRuleList
@@ -93,6 +92,7 @@ css::Rule* ServoCSSRuleList::GetRule(uint32_t aIndex) {
       CASE_RULE(LayerBlock, LayerBlock)
       CASE_RULE(LayerStatement, LayerStatement)
       CASE_RULE(ScrollTimeline, ScrollTimeline)
+      CASE_RULE(Container, Container)
 #undef CASE_RULE
       case StyleCssRuleType::Viewport:
         MOZ_ASSERT_UNREACHABLE("viewport is not implemented in Gecko");
@@ -132,10 +132,7 @@ static void DropRule(already_AddRefed<css::Rule> aRule) {
   rule->DropReferences();
 }
 
-void ServoCSSRuleList::DropAllRules() {
-  mStyleSheet = nullptr;
-  mParentRule = nullptr;
-  mRawRules = nullptr;
+void ServoCSSRuleList::ResetRules() {
   // DropRule could reenter here via the cycle collector.
   auto rules = std::move(mRules);
   for (uintptr_t rule : rules) {
@@ -144,6 +141,17 @@ void ServoCSSRuleList::DropAllRules() {
     }
   }
   MOZ_ASSERT(mRules.IsEmpty());
+  if (mRawRules) {
+    Servo_CssRules_ListTypes(mRawRules, &mRules);
+  }
+}
+
+void ServoCSSRuleList::DropAllRules() {
+  mStyleSheet = nullptr;
+  mParentRule = nullptr;
+  mRawRules = nullptr;
+
+  ResetRules();
 }
 
 void ServoCSSRuleList::DropSheetReference() {
@@ -219,8 +227,14 @@ nsresult ServoCSSRuleList::DeleteRule(uint32_t aIndex) {
   return rv;
 }
 
-void ServoCSSRuleList::SetRawAfterClone(RefPtr<ServoCssRules> aNewRules) {
+void ServoCSSRuleList::SetRawContents(RefPtr<ServoCssRules> aNewRules,
+                                      bool aFromClone) {
   mRawRules = std::move(aNewRules);
+  if (!aFromClone) {
+    ResetRules();
+    return;
+  }
+
   EnumerateInstantiatedRules([&](css::Rule* aRule, uint32_t aIndex) {
 #define CASE_FOR(constant_, type_)                                           \
   case StyleCssRuleType::constant_: {                                        \
@@ -247,6 +261,7 @@ void ServoCSSRuleList::SetRawAfterClone(RefPtr<ServoCssRules> aNewRules) {
       CASE_FOR(LayerBlock, LayerBlock)
       CASE_FOR(LayerStatement, LayerStatement)
       CASE_FOR(ScrollTimeline, ScrollTimeline)
+      CASE_FOR(Container, Container)
       case StyleCssRuleType::Keyframe:
         MOZ_ASSERT_UNREACHABLE("keyframe rule cannot be here");
         break;

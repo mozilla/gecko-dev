@@ -64,8 +64,7 @@ class nsNodeSupportsWeakRefTearoff final : public nsISupportsWeakReference {
  * A generic base class for DOM elements and document fragments,
  * implementing many nsIContent, nsINode and Element methods.
  */
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class ShadowRoot;
 
@@ -97,7 +96,6 @@ class FragmentOrElement : public nsIContent {
   virtual uint32_t TextLength() const override;
   virtual bool TextIsOnlyWhitespace() override;
   virtual bool ThreadSafeTextIsOnlyWhitespace() const override;
-  virtual bool IsLink(nsIURI** aURI) const override;
 
   virtual void DestroyContent() override;
   virtual void SaveSubtreeState() override;
@@ -307,8 +305,7 @@ class FragmentOrElement : public nsIContent {
   friend class ::ContentUnbinder;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #define NS_ELEMENT_INTERFACE_TABLE_TO_MAP_SEGUE               \
   if (NS_SUCCEEDED(rv)) return rv;                            \

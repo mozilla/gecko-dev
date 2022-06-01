@@ -12,6 +12,7 @@
 #include "nsTHashMap.h"
 #include "nsAtom.h"
 #include "nsStringFwd.h"
+#include "mozilla/gfx/Matrix.h"
 
 class nsVariant;
 
@@ -68,7 +69,8 @@ class AccAttributes {
   using AttrValueType =
       Variant<bool, float, double, int32_t, RefPtr<nsAtom>, nsTArray<int32_t>,
               CSSCoord, FontSize, Color, DeleteEntry, UniquePtr<nsString>,
-              RefPtr<AccAttributes>, uint64_t, UniquePtr<AccGroupInfo>>;
+              RefPtr<AccAttributes>, uint64_t, UniquePtr<AccGroupInfo>,
+              UniquePtr<gfx::Matrix4x4>, nsTArray<uint64_t>>;
   static_assert(sizeof(AttrValueType) <= 16);
   using AtomVariantMap = nsTHashMap<nsRefPtrHashKey<nsAtom>, AttrValueType>;
 
@@ -87,6 +89,7 @@ class AccAttributes {
   template <typename T, typename std::enable_if<
                             !std::is_convertible_v<T, nsString> &&
                                 !std::is_convertible_v<T, AccGroupInfo*> &&
+                                !std::is_convertible_v<T, gfx::Matrix4x4> &&
                                 !std::is_convertible_v<T, nsAtom*>,
                             bool>::type = true>
   void SetAttribute(nsAtom* aAttrName, T&& aAttrValue) {
@@ -104,6 +107,12 @@ class AccAttributes {
     mData.InsertOrUpdate(aAttrName, AsVariant(std::move(value)));
   }
 
+  void SetAttribute(nsAtom* aAttrName, gfx::Matrix4x4&& aAttrValue) {
+    UniquePtr<gfx::Matrix4x4> value = MakeUnique<gfx::Matrix4x4>();
+    *value = std::forward<gfx::Matrix4x4>(aAttrValue);
+    mData.InsertOrUpdate(aAttrName, AsVariant(std::move(value)));
+  }
+
   void SetAttributeStringCopy(nsAtom* aAttrName, nsString aAttrValue) {
     SetAttribute(aAttrName, std::move(aAttrValue));
   }
@@ -118,6 +127,11 @@ class AccAttributes {
       if constexpr (std::is_same_v<nsString, T>) {
         if (value->is<UniquePtr<nsString>>()) {
           const T& val = *(value->as<UniquePtr<nsString>>().get());
+          return SomeRef(val);
+        }
+      } else if constexpr (std::is_same_v<gfx::Matrix4x4, T>) {
+        if (value->is<UniquePtr<gfx::Matrix4x4>>()) {
+          const T& val = *(value->as<UniquePtr<gfx::Matrix4x4>>());
           return SomeRef(val);
         }
       } else {
@@ -182,6 +196,11 @@ class AccAttributes {
       if constexpr (std::is_same_v<nsString, T>) {
         if (mValue->is<UniquePtr<nsString>>()) {
           const T& val = *(mValue->as<UniquePtr<nsString>>().get());
+          return SomeRef(val);
+        }
+      } else if constexpr (std::is_same_v<gfx::Matrix4x4, T>) {
+        if (mValue->is<UniquePtr<gfx::Matrix4x4>>()) {
+          const T& val = *(mValue->as<UniquePtr<gfx::Matrix4x4>>());
           return SomeRef(val);
         }
       } else {

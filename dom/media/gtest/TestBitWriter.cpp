@@ -28,6 +28,9 @@ TEST(BitWriter, BitWriter)
   b.WriteU32(16356);
   b.WriteU64(116356);
   b.WriteBits(~(0ULL) & ~1ULL, 16);
+  b.WriteULEB128(16ULL);
+  b.WriteULEB128(31895793ULL);
+  b.WriteULEB128(426894039235654ULL);
   const uint32_t length = b.BitCount();
   b.CloseWithRbspTrailing();
 
@@ -47,6 +50,9 @@ TEST(BitWriter, BitWriter)
   EXPECT_EQ(c.ReadU32(), 16356u);
   EXPECT_EQ(c.ReadU64(), 116356u);
   EXPECT_EQ(c.ReadBits(16), 0xfffeu);
+  EXPECT_EQ(c.ReadULEB128(), 16ull);
+  EXPECT_EQ(c.ReadULEB128(), 31895793ull);
+  EXPECT_EQ(c.ReadULEB128(), 426894039235654ull);
   EXPECT_EQ(length, BitReader::GetBitLength(test));
 }
 
@@ -64,9 +70,28 @@ TEST(BitWriter, SPS)
   bool success = H264::DecodeSPSFromExtraData(extraData, spsdata1);
   EXPECT_EQ(success, true);
 
-  RefPtr<MediaByteBuffer> extraData2 =
-      H264::CreateExtraData(0x42, 0xc0, 0x1e, {1280, 720});
-  SPSData spsdata2;
-  success = H264::DecodeSPSFromExtraData(extraData2, spsdata2);
-  EXPECT_EQ(success, true);
+  auto testOutput = [&](uint8_t aProfile, uint8_t aConstraints, uint8_t aLevel,
+                        gfx::IntSize aSize, char const* aDesc) {
+    RefPtr<MediaByteBuffer> extraData =
+        H264::CreateExtraData(aProfile, aConstraints, aLevel, aSize);
+    SPSData spsData;
+    success = H264::DecodeSPSFromExtraData(extraData, spsData);
+    EXPECT_EQ(success, true) << aDesc;
+    EXPECT_EQ(spsData.profile_idc, aProfile) << aDesc;
+    EXPECT_EQ(spsData.constraint_set0_flag, (aConstraints >> 7) & 1) << aDesc;
+    EXPECT_EQ(spsData.constraint_set1_flag, (aConstraints >> 6) & 1) << aDesc;
+    EXPECT_EQ(spsData.constraint_set2_flag, (aConstraints >> 5) & 1) << aDesc;
+    EXPECT_EQ(spsData.constraint_set3_flag, (aConstraints >> 4) & 1) << aDesc;
+    EXPECT_EQ(spsData.constraint_set4_flag, (aConstraints >> 3) & 1) << aDesc;
+    EXPECT_EQ(spsData.constraint_set5_flag, (aConstraints >> 2) & 1) << aDesc;
+
+    EXPECT_EQ(spsData.level_idc, aLevel) << aDesc;
+    EXPECT_TRUE(!aSize.IsEmpty());
+    EXPECT_EQ(spsData.pic_width, static_cast<uint32_t>(aSize.width)) << aDesc;
+    EXPECT_EQ(spsData.pic_height, static_cast<uint32_t>(aSize.height)) << aDesc;
+  };
+
+  testOutput(0x42, 0x40, 0x1E, {1920, 1080}, "Constrained Baseline Profile");
+  testOutput(0x4D, 0x00, 0x0B, {300, 300}, "Main Profile");
+  testOutput(0x64, 0x0C, 0x33, {1280, 720}, "Constrained High Profile");
 }

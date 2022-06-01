@@ -6,6 +6,7 @@
 #include "MediaSourceDecoder.h"
 
 #include "mozilla/Logging.h"
+#include "ExternalEngineStateMachine.h"
 #include "MediaDecoderStateMachine.h"
 #include "MediaShutdownManager.h"
 #include "MediaSource.h"
@@ -34,7 +35,7 @@ MediaSourceDecoder::MediaSourceDecoder(MediaDecoderInit& aInit)
   mExplicitDuration.emplace(UnspecifiedNaN<double>());
 }
 
-MediaDecoderStateMachine* MediaSourceDecoder::CreateStateMachine() {
+MediaDecoderStateMachineBase* MediaSourceDecoder::CreateStateMachine() {
   MOZ_ASSERT(NS_IsMainThread());
   mDemuxer = new MediaSourceDemuxer(AbstractMainThread());
   MediaFormatReaderInit init;
@@ -44,6 +45,13 @@ MediaDecoderStateMachine* MediaSourceDecoder::CreateStateMachine() {
   init.mFrameStats = mFrameStats;
   init.mMediaDecoderOwnerID = mOwner;
   mReader = new MediaFormatReader(init, mDemuxer);
+#ifdef MOZ_WMF
+  // TODO : Only for testing development for now. In the future this should be
+  // used for encrypted content only.
+  if (StaticPrefs::media_wmf_media_engine_enabled()) {
+    return new ExternalEngineStateMachine(this, mReader);
+  }
+#endif
   return new MediaDecoderStateMachine(this, mReader);
 }
 
@@ -223,11 +231,25 @@ void MediaSourceDecoder::SetMediaSourceDuration(double aDuration) {
   }
 }
 
-void MediaSourceDecoder::GetDebugInfo(dom::MediaSourceDecoderDebugInfo& aInfo) {
-  if (mReader && mDemuxer) {
-    mReader->GetDebugInfo(aInfo.mReader);
-    mDemuxer->GetDebugInfo(aInfo.mDemuxer);
+RefPtr<GenericPromise> MediaSourceDecoder::RequestDebugInfo(
+    dom::MediaSourceDecoderDebugInfo& aInfo) {
+  // This should be safe to call off main thead, but there's no such usage at
+  // time of writing. Can be carefully relaxed if needed.
+  MOZ_ASSERT(NS_IsMainThread(), "Expects to be called on main thread.");
+  nsTArray<RefPtr<GenericPromise>> promises;
+  if (mReader) {
+    promises.AppendElement(mReader->RequestDebugInfo(aInfo.mReader));
   }
+  if (mDemuxer) {
+    promises.AppendElement(mDemuxer->GetDebugInfo(aInfo.mDemuxer));
+  }
+  return GenericPromise::All(GetCurrentSerialEventTarget(), promises)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          []() { return GenericPromise::CreateAndResolve(true, __func__); },
+          [] {
+            return GenericPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
+          });
 }
 
 double MediaSourceDecoder::GetDuration() {

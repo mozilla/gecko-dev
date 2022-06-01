@@ -177,6 +177,15 @@ Download.prototype = {
   canceled: false,
 
   /**
+   * Downloaded files can be deleted from within Firefox, e.g. via the context
+   * menu. Currently Firefox does not track file moves (see bug 1746386), so if
+   * a download's target file stops existing we have to assume it's "moved or
+   * missing." To distinguish files intentionally deleted within Firefox from
+   * files that are moved/missing, we mark them as "deleted" with this property.
+   */
+  deleted: false,
+
+  /**
    * When the download fails, this is set to a DownloadError instance indicating
    * the cause of the failure.  If the download has been completed successfully
    * or has been canceled, this property is null.  This property is reset to
@@ -274,6 +283,15 @@ Download.prototype = {
    * download has completed.
    */
   launchWhenSucceeded: false,
+
+  /**
+   * When a download starts, we typically want to automatically open the
+   * downloads panel if the pref browser.download.alwaysOpenPanel is enabled.
+   * However, there are conditions where we want to prevent this. For example, a
+   * false value can prevent the downloads panel from opening when an add-on
+   * creates a download without user input as part of some background operation.
+   */
+  openDownloadsListOnStart: true,
 
   /**
    * This represents the MIME type of the download.
@@ -605,8 +623,9 @@ Download.prototype = {
         );
       } else if (
         Services.prefs.getBoolPref("browser.helperApps.deleteTempFileOnExit") &&
-        !Services.prefs.getBoolPref(
-          "browser.download.improvements_to_download_panel"
+        Services.prefs.getBoolPref(
+          "browser.download.start_downloads_in_tmp_dir",
+          false
         )
       ) {
         gExternalAppLauncher.deleteTemporaryFileOnExit(
@@ -941,6 +960,7 @@ Download.prototype = {
           if (this.currentBytes != 0 || this.hasPartialData) {
             this.currentBytes = 0;
             this.hasPartialData = false;
+            this.target.refreshPartFileState();
             this._notifyChange();
           }
         } finally {
@@ -1124,6 +1144,36 @@ Download.prototype = {
   },
 
   /**
+   * Deletes all file data associated with a download, preserving the download
+   * object itself and updating it for download views.
+   */
+  async manuallyRemoveData() {
+    let { path } = this.target;
+    if (this.succeeded) {
+      // Temp files are made "read-only" by DownloadIntegration.downloadDone, so
+      // reset the permission bits to read/write. This won't be necessary after
+      // bug 1733587 since Downloads won't ever be temporary.
+      await IOUtils.setPermissions(path, 0o660);
+      await IOUtils.remove(path, { ignoreAbsent: true });
+    }
+    this.deleted = true;
+    await this.cancel();
+    await this.removePartialData();
+    // We need to guarantee that the UI is refreshed irrespective of what state
+    // the download is in when this is called, to ensure the download doesn't
+    // wind up stuck displaying as if it exists when it actually doesn't. And
+    // that means updating this.target.partFileExists no matter what.
+    await this.target.refreshPartFileState();
+    await this.refresh();
+    // The above methods will sometimes call _notifyChange, but not always. It
+    // depends on whether the download is `succeeded`, `stopped`, `canceled`,
+    // etc. Since this method needs to update the UI and can be invoked on any
+    // download as long as its target has some file on the system, we need to
+    // call _notifyChange no matter what state the download is in.
+    this._notifyChange();
+  },
+
+  /**
    * Indicates the time of the last progress notification, expressed as the
    * number of milliseconds since January 1, 1970, 00:00:00 UTC.  This is zero
    * until some bytes have actually been transferred.
@@ -1294,6 +1344,7 @@ const kPlainSerializableDownloadProperties = [
   "launchWhenSucceeded",
   "contentType",
   "handleInternally",
+  "openDownloadsListOnStart",
 ];
 
 /**
@@ -1387,6 +1438,11 @@ DownloadSource.prototype = {
   url: null,
 
   /**
+   * String containing the original URL for the download source.
+   */
+  originalUrl: null,
+
+  /**
    * Indicates whether the download originated from a private window.  This
    * determines the context of the network request that is made to retrieve the
    * resource.
@@ -1445,6 +1501,11 @@ DownloadSource.prototype = {
    */
   cookieJarSettings: null,
 
+  /**
+   * Represents the authentication header of the download source, could be null if
+   * the download source had no authentication header.
+   */
+  authHeader: null,
   /**
    * Returns a static representation of the current object state.
    *
@@ -1542,6 +1603,9 @@ DownloadSource.fromSerializable = function(aSerializable) {
         source[propName] = aSerializable[propName];
       }
     }
+    if ("originalUrl" in aSerializable) {
+      source.originalUrl = aSerializable.originalUrl;
+    }
     if ("referrerInfo" in aSerializable) {
       // Quick pass, pass directly nsIReferrerInfo, we don't need to serialize
       // and deserialize
@@ -1582,14 +1646,20 @@ DownloadSource.fromSerializable = function(aSerializable) {
       }
     }
 
+    if ("authHeader" in aSerializable) {
+      source.authHeader = aSerializable.authHeader;
+    }
+
     deserializeUnknownProperties(
       source,
       aSerializable,
       property =>
         property != "url" &&
+        property != "originalUrl" &&
         property != "isPrivate" &&
         property != "referrerInfo" &&
-        property != "cookieJarSettings"
+        property != "cookieJarSettings" &&
+        property != "authHeader"
     );
   }
 
@@ -2343,7 +2413,15 @@ DownloadCopySaver.prototype = {
           }
         },
 
-        onDataAvailable(aRequest, aInputStream, aOffset, aCount) {
+        onDataAvailable: (aRequest, aInputStream, aOffset, aCount) => {
+          // Check if the download have been canceled in the mean time,
+          // and close the channel and return earlier, BackgroundFileSaver
+          // methods shouldn't be called anymore after `finish` was called
+          // on download cancellation.
+          if (this._canceled) {
+            aRequest.cancel(Cr.NS_BINDING_ABORTED);
+            return;
+          }
           backgroundFileSaver.onDataAvailable(
             aRequest,
             aInputStream,
@@ -2400,6 +2478,18 @@ DownloadCopySaver.prototype = {
         ) {
           channel.loadInfo.cookieJarSettings =
             download.source.cookieJarSettings;
+        }
+        if (
+          channel instanceof Ci.nsIHttpChannel &&
+          download.source.authHeader
+        ) {
+          try {
+            channel.setRequestHeader(
+              "Authorization",
+              download.source.authHeader,
+              true
+            );
+          } catch (e) {}
         }
 
         if (download.source.userContextId) {

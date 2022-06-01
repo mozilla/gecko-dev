@@ -8,6 +8,7 @@
 #include "mozilla/gfx/PrintTargetPDF.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Services.h"
+#include "mozilla/GUniquePtr.h"
 #include "mozilla/WidgetUtilsGtk.h"
 
 #include "plstr.h"
@@ -16,6 +17,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsIObserverService.h"
 #include "nsPrintfCString.h"
+#include "nsQueryObject.h"
 #include "nsReadableUtils.h"
 #include "nsThreadUtils.h"
 
@@ -74,36 +76,41 @@ already_AddRefed<PrintTarget> nsDeviceContextSpecGTK::MakePrintTarget() {
   width /= TWIPS_PER_POINT_FLOAT;
   height /= TWIPS_PER_POINT_FLOAT;
 
-  nsresult rv;
-
   // We shouldn't be attempting to get a surface if we've already got a spool
   // file.
   MOZ_ASSERT(!mSpoolFile);
 
-  // Spool file. Use Glib's temporary file function since we're
-  // already dependent on the gtk software stack.
-  gchar* buf;
-  gint fd = g_file_open_tmp("XXXXXX.tmp", &buf, nullptr);
-  if (-1 == fd) return nullptr;
-  close(fd);
-
-  rv = NS_NewNativeLocalFile(nsDependentCString(buf), false,
-                             getter_AddRefs(mSpoolFile));
-  if (NS_FAILED(rv)) {
-    unlink(buf);
+  auto stream = [&]() -> nsCOMPtr<nsIOutputStream> {
+    if (mPrintSettings->GetOutputDestination() ==
+        nsIPrintSettings::kOutputDestinationStream) {
+      nsCOMPtr<nsIOutputStream> out;
+      mPrintSettings->GetOutputStream(getter_AddRefs(out));
+      return out;
+    }
+    // Spool file. Use Glib's temporary file function since we're
+    // already dependent on the gtk software stack.
+    gchar* buf;
+    gint fd = g_file_open_tmp("XXXXXX.tmp", &buf, nullptr);
+    if (-1 == fd) {
+      return nullptr;
+    }
+    close(fd);
+    if (NS_FAILED(NS_NewNativeLocalFile(nsDependentCString(buf), false,
+                                        getter_AddRefs(mSpoolFile)))) {
+      unlink(buf);
+      g_free(buf);
+      return nullptr;
+    }
+    mSpoolName = buf;
     g_free(buf);
-    return nullptr;
-  }
-
-  mSpoolName = buf;
-  g_free(buf);
-
-  mSpoolFile->SetPermissions(0600);
-
-  nsCOMPtr<nsIFileOutputStream> stream =
-      do_CreateInstance("@mozilla.org/network/file-output-stream;1");
-  rv = stream->Init(mSpoolFile, -1, -1, 0);
-  if (NS_FAILED(rv)) return nullptr;
+    mSpoolFile->SetPermissions(0600);
+    nsCOMPtr<nsIFileOutputStream> stream =
+        do_CreateInstance("@mozilla.org/network/file-output-stream;1");
+    if (NS_FAILED(stream->Init(mSpoolFile, -1, -1, 0))) {
+      return nullptr;
+    }
+    return stream;
+  }();
 
   return PrintTargetPDF::CreateOrNull(stream, IntSize::Ceil(width, height));
 }
@@ -119,14 +126,15 @@ struct {
 #undef DECLARE_KNOWN_MONOCHROME_SETTING
 
 // https://developer.gnome.org/gtk3/stable/GtkPaperSize.html#gtk-paper-size-new-from-ipp
-static GtkPaperSize* GtkPaperSizeFromIpp(const gchar* aIppName, gdouble aWidth,
-                                         gdouble aHeight) {
+static GUniquePtr<GtkPaperSize> GtkPaperSizeFromIpp(const gchar* aIppName,
+                                                    gdouble aWidth,
+                                                    gdouble aHeight) {
   static auto sPtr = (GtkPaperSize * (*)(const gchar*, gdouble, gdouble))
       dlsym(RTLD_DEFAULT, "gtk_paper_size_new_from_ipp");
   if (gtk_check_version(3, 16, 0)) {
     return nullptr;
   }
-  return sPtr(aIppName, aWidth, aHeight);
+  return GUniquePtr<GtkPaperSize>(sPtr(aIppName, aWidth, aHeight));
 }
 
 static bool PaperSizeAlmostEquals(GtkPaperSize* aSize,
@@ -144,43 +152,70 @@ static bool PaperSizeAlmostEquals(GtkPaperSize* aSize,
   return true;
 }
 
-// This is a horrible workaround for some printer driver bugs that treat
-// custom page sizes different to standard ones. If our paper object matches
-// one of a standard one, use a standard paper size object instead.
+// Prefer the ppd name because some printers don't deal well even with standard
+// ipp names.
+static GUniquePtr<GtkPaperSize> PpdSizeFromIppName(const gchar* aIppName) {
+  static constexpr struct {
+    const char* mCups;
+    const char* mGtk;
+  } kMap[] = {
+      {CUPS_MEDIA_A3, GTK_PAPER_NAME_A3},
+      {CUPS_MEDIA_A4, GTK_PAPER_NAME_A4},
+      {CUPS_MEDIA_A5, GTK_PAPER_NAME_A5},
+      {CUPS_MEDIA_LETTER, GTK_PAPER_NAME_LETTER},
+      {CUPS_MEDIA_LEGAL, GTK_PAPER_NAME_LEGAL},
+      // Other gtk sizes with no standard CUPS constant: _EXECUTIVE and _B5
+  };
+
+  for (const auto& entry : kMap) {
+    if (!strcmp(entry.mCups, aIppName)) {
+      return GUniquePtr<GtkPaperSize>(gtk_paper_size_new(entry.mGtk));
+    }
+  }
+
+  return nullptr;
+}
+
+// This is a horrible workaround for some printer driver bugs that treat custom
+// page sizes different to standard ones. If our paper object matches one of a
+// standard one, use a standard paper size object instead.
 //
-// See bug 414314 and bug 1691798 for more info.
-static GtkPaperSize* GetStandardGtkPaperSize(GtkPaperSize* aGeckoPaperSize) {
+// We prefer ppd to ipp to custom sizes.
+//
+// See bug 414314, bug 1691798, and bug 1717292 for more info.
+static GUniquePtr<GtkPaperSize> GetStandardGtkPaperSize(
+    GtkPaperSize* aGeckoPaperSize) {
+  // We should get an ipp name from cups, try to get a ppd from that first.
   const gchar* geckoName = gtk_paper_size_get_name(aGeckoPaperSize);
-
-  // We try ipp size first because that's the names we get from CUPS, and
-  // because even though gtk_paper_size_new deals with ipp, it has rounding
-  // issues, see https://gitlab.gnome.org/GNOME/gtk/-/issues/3685.
-  GtkPaperSize* size = GtkPaperSizeFromIpp(
-      geckoName, gtk_paper_size_get_width(aGeckoPaperSize, GTK_UNIT_POINTS),
-      gtk_paper_size_get_height(aGeckoPaperSize, GTK_UNIT_POINTS));
-  if (size && !gtk_paper_size_is_custom(size)) {
-    return size;
+  if (auto ppd = PpdSizeFromIppName(geckoName)) {
+    return ppd;
   }
 
-  if (size) {
-    gtk_paper_size_free(size);
+  // We try gtk_paper_size_new_from_ipp next, because even though
+  // gtk_paper_size_new tries to deal with ipp, it has some rounding issues that
+  // the ipp equivalent doesn't have, see
+  // https://gitlab.gnome.org/GNOME/gtk/-/issues/3685.
+  if (auto ipp = GtkPaperSizeFromIpp(
+          geckoName, gtk_paper_size_get_width(aGeckoPaperSize, GTK_UNIT_POINTS),
+          gtk_paper_size_get_height(aGeckoPaperSize, GTK_UNIT_POINTS))) {
+    if (!gtk_paper_size_is_custom(ipp.get())) {
+      if (auto ppd = PpdSizeFromIppName(gtk_paper_size_get_name(ipp.get()))) {
+        return ppd;
+      }
+      return ipp;
+    }
   }
 
-  size = gtk_paper_size_new(geckoName);
-  if (gtk_paper_size_is_equal(size, aGeckoPaperSize)) {
-    return size;
-  }
-
+  GUniquePtr<GtkPaperSize> size(gtk_paper_size_new(geckoName));
   // gtk_paper_size_is_equal compares just paper names. The name in Gecko
   // might come from CUPS, which is an ipp size, and gets normalized by gtk.
-  //
   // So check also for the same actual paper size.
-  if (PaperSizeAlmostEquals(aGeckoPaperSize, size)) {
+  if (gtk_paper_size_is_equal(size.get(), aGeckoPaperSize) ||
+      PaperSizeAlmostEquals(aGeckoPaperSize, size.get())) {
     return size;
   }
 
-  // Not the same after all, so use our custom paper size.
-  gtk_paper_size_free(size);
+  // Not the same after all, so use our custom paper sizes instead.
   return nullptr;
 }
 
@@ -189,25 +224,20 @@ static GtkPaperSize* GetStandardGtkPaperSize(GtkPaperSize* aGeckoPaperSize) {
  *  @update   dc 2/15/98
  *  @update   syd 3/2/99
  */
-NS_IMETHODIMP nsDeviceContextSpecGTK::Init(nsIWidget* aWidget,
-                                           nsIPrintSettings* aPS,
+NS_IMETHODIMP nsDeviceContextSpecGTK::Init(nsIPrintSettings* aPS,
                                            bool aIsPrintPreview) {
-  mPrintSettings = do_QueryInterface(aPS);
-  if (!mPrintSettings) {
+  RefPtr<nsPrintSettingsGTK> settings = do_QueryObject(aPS);
+  if (!settings) {
     return NS_ERROR_NO_INTERFACE;
   }
+  mPrintSettings = aPS;
 
-  // This is only set by embedders
-  bool toFile;
-  aPS->GetPrintToFile(&toFile);
-
-  mToPrinter = !toFile && !aIsPrintPreview;
-
-  mGtkPrintSettings = mPrintSettings->GetGtkPrintSettings();
-  mGtkPageSetup = mPrintSettings->GetGtkPageSetup();
+  mGtkPrintSettings = settings->GetGtkPrintSettings();
+  mGtkPageSetup = settings->GetGtkPageSetup();
 
   GtkPaperSize* geckoPaperSize = gtk_page_setup_get_paper_size(mGtkPageSetup);
-  GtkPaperSize* gtkPaperSize = GetStandardGtkPaperSize(geckoPaperSize);
+  GUniquePtr<GtkPaperSize> gtkPaperSize =
+      GetStandardGtkPaperSize(geckoPaperSize);
 
   mGtkPageSetup = gtk_page_setup_copy(mGtkPageSetup);
   mGtkPrintSettings = gtk_print_settings_copy(mGtkPrintSettings);
@@ -226,14 +256,11 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::Init(nsIWidget* aWidget,
     nsPrinterCUPS::ForEachExtraMonochromeSetting(applySetting);
   }
 
-  GtkPaperSize* properPaperSize = gtkPaperSize ? gtkPaperSize : geckoPaperSize;
+  GtkPaperSize* properPaperSize =
+      gtkPaperSize ? gtkPaperSize.get() : geckoPaperSize;
   gtk_print_settings_set_paper_size(mGtkPrintSettings, properPaperSize);
   gtk_page_setup_set_paper_size_and_default_margins(mGtkPageSetup,
                                                     properPaperSize);
-  if (gtkPaperSize) {
-    gtk_paper_size_free(gtkPaperSize);
-  }
-
   return NS_OK;
 }
 
@@ -255,7 +282,7 @@ gboolean nsDeviceContextSpecGTK::PrinterEnumerator(GtkPrinter* aPrinter,
     NS_ConvertUTF16toUTF8 requestedName(printerName);
     const char* currentName = gtk_printer_get_name(aPrinter);
     if (requestedName.Equals(currentName)) {
-      spec->mPrintSettings->SetGtkPrinter(aPrinter);
+      nsPrintSettingsGTK::From(spec->mPrintSettings)->SetGtkPrinter(aPrinter);
 
       // Bug 1145916 - attempting to kick off a print job for this printer
       // during this tick of the event loop will result in the printer backend
@@ -274,71 +301,18 @@ gboolean nsDeviceContextSpecGTK::PrinterEnumerator(GtkPrinter* aPrinter,
 }
 
 void nsDeviceContextSpecGTK::StartPrintJob() {
-  // When using flatpak, we have to call the Print method of the portal
-  //
-  // FIXME: This code doesn't seem to be working alright, see bug 1688720.
-  if (widget::ShouldUsePortal(widget::PortalKind::Print)) {
-    GError* error = nullptr;
-    GDBusProxy* dbusProxy = g_dbus_proxy_new_for_bus_sync(
-        G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, nullptr,
-        "org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
-        "org.freedesktop.portal.Print", nullptr, &error);
-    if (!dbusProxy) {
-      NS_WARNING(
-          nsPrintfCString("Unable to create dbus proxy: %s", error->message)
-              .get());
-      g_error_free(error);
-      return;
-    }
-    int fd = open(mSpoolName.get(), O_RDONLY | O_CLOEXEC);
-    if (fd == -1) {
-      NS_WARNING("Failed to open spool file.");
-      g_object_unref(dbusProxy);
-      return;
-    }
-    static auto s_g_unix_fd_list_new = reinterpret_cast<GUnixFDList* (*)(void)>(
-        dlsym(RTLD_DEFAULT, "g_unix_fd_list_new"));
-    NS_ASSERTION(s_g_unix_fd_list_new,
-                 "Cannot find g_unix_fd_list_new function.");
+  GtkPrintJob* job = gtk_print_job_new(
+      mTitle.get(), nsPrintSettingsGTK::From(mPrintSettings)->GetGtkPrinter(),
+      mGtkPrintSettings, mGtkPageSetup);
 
-    GUnixFDList* fd_list = s_g_unix_fd_list_new();
-    static auto s_g_unix_fd_list_append =
-        reinterpret_cast<gint (*)(GUnixFDList*, gint, GError**)>(
-            dlsym(RTLD_DEFAULT, "g_unix_fd_list_append"));
-    int idx = s_g_unix_fd_list_append(fd_list, fd, NULL);
-    close(fd);
+  if (!gtk_print_job_set_source_file(job, mSpoolName.get(), nullptr)) return;
 
-    // We'll pass empty options as long as we don't have token from PreparePrint
-    // dbus call (which we don't use). This unfortunately leads to showing gtk
-    // print dialog and also the duplex or printer specific settings is not
-    // honored, so this needs to be fixed when the portal provides more options.
-    GVariantBuilder opt_builder;
-    g_variant_builder_init(&opt_builder, G_VARIANT_TYPE_VARDICT);
-
-    g_dbus_proxy_call_with_unix_fd_list(
-        dbusProxy, "Print",
-        g_variant_new("(ssh@a{sv})", "", /* window */
-                      "Print",           /* title */
-                      idx, g_variant_builder_end(&opt_builder)),
-        G_DBUS_CALL_FLAGS_NONE, -1, fd_list, NULL,
-        NULL,      // portal result cb function
-        nullptr);  // userdata
-    g_object_unref(fd_list);
-    g_object_unref(dbusProxy);
-  } else {
-    GtkPrintJob* job =
-        gtk_print_job_new(mTitle.get(), mPrintSettings->GetGtkPrinter(),
-                          mGtkPrintSettings, mGtkPageSetup);
-
-    if (!gtk_print_job_set_source_file(job, mSpoolName.get(), nullptr)) return;
-
-    // Now gtk owns the print job, and will be released via our callback.
-    gtk_print_job_send(job, print_callback, mSpoolFile.forget().take(),
-                       [](gpointer aData) {
-                         auto* spoolFile = static_cast<nsIFile*>(aData);
-                         NS_RELEASE(spoolFile);
-                       });
-  }
+  // Now gtk owns the print job, and will be released via our callback.
+  gtk_print_job_send(job, print_callback, mSpoolFile.forget().take(),
+                     [](gpointer aData) {
+                       auto* spoolFile = static_cast<nsIFile*>(aData);
+                       NS_RELEASE(spoolFile);
+                     });
 }
 
 void nsDeviceContextSpecGTK::EnumeratePrinters() {
@@ -362,64 +336,65 @@ nsDeviceContextSpecGTK::BeginDocument(const nsAString& aTitle,
 }
 
 NS_IMETHODIMP nsDeviceContextSpecGTK::EndDocument() {
-  if (mToPrinter) {
-    // At this point, we might have a GtkPrinter set up in nsPrintSettingsGTK,
-    // or we might not. In the single-process case, we probably will, as this
-    // is populated by the print settings dialog, or set to the default
-    // printer.
-    // In the multi-process case, we proxy the print settings dialog over to
-    // the parent process, and only get the name of the printer back on the
-    // content process side. In that case, we need to enumerate the printers
-    // on the content side, and find a printer with a matching name.
+  switch (mPrintSettings->GetOutputDestination()) {
+    case nsIPrintSettings::kOutputDestinationPrinter: {
+      // At this point, we might have a GtkPrinter set up in nsPrintSettingsGTK,
+      // or we might not. In the single-process case, we probably will, as this
+      // is populated by the print settings dialog, or set to the default
+      // printer.
+      // In the multi-process case, we proxy the print settings dialog over to
+      // the parent process, and only get the name of the printer back on the
+      // content process side. In that case, we need to enumerate the printers
+      // on the content side, and find a printer with a matching name.
 
-    if (mPrintSettings->GetGtkPrinter()) {
-      // We have a printer, so we can print right away.
-      StartPrintJob();
-    } else {
-      // We don't have a printer. We have to enumerate the printers and find
-      // one with a matching name.
-      NS_DispatchToCurrentThread(
-          NewRunnableMethod("nsDeviceContextSpecGTK::EnumeratePrinters", this,
-                            &nsDeviceContextSpecGTK::EnumeratePrinters));
+      if (nsPrintSettingsGTK::From(mPrintSettings)->GetGtkPrinter()) {
+        // We have a printer, so we can print right away.
+        StartPrintJob();
+      } else {
+        // We don't have a printer. We have to enumerate the printers and find
+        // one with a matching name.
+        NS_DispatchToCurrentThread(
+            NewRunnableMethod("nsDeviceContextSpecGTK::EnumeratePrinters", this,
+                              &nsDeviceContextSpecGTK::EnumeratePrinters));
+      }
+      break;
     }
-  } else {
-    // Handle print-to-file ourselves for the benefit of embedders
-    nsString targetPath;
-    nsCOMPtr<nsIFile> destFile;
-    mPrintSettings->GetToFileName(targetPath);
+    case nsIPrintSettings::kOutputDestinationFile: {
+      // Handle print-to-file ourselves for the benefit of embedders
+      nsString targetPath;
+      nsCOMPtr<nsIFile> destFile;
+      mPrintSettings->GetToFileName(targetPath);
 
-    nsresult rv = NS_NewLocalFile(targetPath, false, getter_AddRefs(destFile));
-    NS_ENSURE_SUCCESS(rv, rv);
+      nsresult rv =
+          NS_NewLocalFile(targetPath, false, getter_AddRefs(destFile));
+      NS_ENSURE_SUCCESS(rv, rv);
 
-    nsAutoString destLeafName;
-    rv = destFile->GetLeafName(destLeafName);
-    NS_ENSURE_SUCCESS(rv, rv);
+      nsAutoString destLeafName;
+      rv = destFile->GetLeafName(destLeafName);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIFile> destDir;
-    rv = destFile->GetParent(getter_AddRefs(destDir));
-    NS_ENSURE_SUCCESS(rv, rv);
+      nsCOMPtr<nsIFile> destDir;
+      rv = destFile->GetParent(getter_AddRefs(destDir));
+      NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = mSpoolFile->MoveTo(destDir, destLeafName);
-    NS_ENSURE_SUCCESS(rv, rv);
+      rv = mSpoolFile->MoveTo(destDir, destLeafName);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-    mSpoolFile = nullptr;
+      mSpoolFile = nullptr;
 
-    // This is the standard way to get the UNIX umask. Ugh.
-    mode_t mask = umask(0);
-    umask(mask);
-    // If you're not familiar with umasks, they contain the bits of what NOT
-    // to set in the permissions (thats because files and directories have
-    // different numbers of bits for their permissions)
-    destFile->SetPermissions(0666 & ~(mask));
-
-    // Notify flatpak printing portal that file is completely written
-    if (widget::ShouldUsePortal(widget::PortalKind::Print)) {
-      // Use the name of the file for printing to match with
-      // nsFlatpakPrintPortal
-      nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-      // Pass filename to be sure that observer process the right data
-      os->NotifyObservers(nullptr, "print-to-file-finished", targetPath.get());
+      // This is the standard way to get the UNIX umask. Ugh.
+      mode_t mask = umask(0);
+      umask(mask);
+      // If you're not familiar with umasks, they contain the bits of what NOT
+      // to set in the permissions (thats because files and directories have
+      // different numbers of bits for their permissions)
+      destFile->SetPermissions(0666 & ~(mask));
+      break;
     }
+    case nsIPrintSettings::kOutputDestinationStream:
+      // Nothing to do, handled in MakePrintTarget.
+      MOZ_ASSERT(!mSpoolFile);
+      break;
   }
   return NS_OK;
 }

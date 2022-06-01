@@ -6,10 +6,12 @@ Object {
   "id": "base.js/originalSource-36c718d4bde9a75edb388ff7733efe7f",
   "isBlackBoxed": false,
   "isExtension": false,
+  "isHTML": false,
   "isOriginal": true,
   "isPrettyPrinted": true,
   "isWasm": false,
   "relativeUrl": "/examples/base.js:formatted",
+  "thread": "FakeThread",
   "url": "http://localhost:8000/examples/base.js:formatted",
 }
 `;

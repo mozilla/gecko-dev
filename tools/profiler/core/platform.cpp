@@ -36,9 +36,11 @@
 #include "ProfilerBacktrace.h"
 #include "ProfilerChild.h"
 #include "ProfilerCodeAddressService.h"
+#include "ProfilerControl.h"
 #include "ProfilerIOInterposeObserver.h"
 #include "ProfilerParent.h"
 #include "ProfilerRustBindings.h"
+#include "mozilla/MozPromise.h"
 #include "shared-libraries.h"
 #include "VTuneProfiler.h"
 
@@ -50,6 +52,7 @@
 #include "mozilla/BaseAndGeckoProfilerDetail.h"
 #include "mozilla/ExtensionPolicyService.h"
 #include "mozilla/extensions/WebExtensionPolicy.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Printf.h"
@@ -99,7 +102,9 @@
 #include <type_traits>
 
 #if defined(GP_OS_android)
+#  include "JavaExceptions.h"
 #  include "mozilla/java/GeckoJavaSamplerNatives.h"
+#  include "mozilla/jni/Refs.h"
 #endif
 
 #if defined(GP_OS_darwin)
@@ -235,6 +240,59 @@ class GeckoJavaSampler
     }
     return profiler_time();
   };
+
+  static void JavaStringArrayToCharArray(jni::ObjectArray::Param& aJavaArray,
+                                         Vector<const char*>& aCharArray,
+                                         JNIEnv* aJni) {
+    int arraySize = aJavaArray->Length();
+    for (int i = 0; i < arraySize; i++) {
+      jstring javaString =
+          (jstring)(aJni->GetObjectArrayElement(aJavaArray.Get(), i));
+      const char* filterString = aJni->GetStringUTFChars(javaString, 0);
+      // FIXME. These strings are leaked.
+      MOZ_RELEASE_ASSERT(aCharArray.append(filterString));
+    }
+  }
+
+  static void StartProfiler(jni::ObjectArray::Param aFiltersArray,
+                            jni::ObjectArray::Param aFeaturesArray) {
+    JNIEnv* jni = jni::GetEnvForThread();
+    Vector<const char*> filtersTemp;
+    Vector<const char*> featureStringArray;
+
+    JavaStringArrayToCharArray(aFiltersArray, filtersTemp, jni);
+    JavaStringArrayToCharArray(aFeaturesArray, featureStringArray, jni);
+
+    uint32_t features = 0;
+    features = ParseFeaturesFromStringArray(featureStringArray.begin(),
+                                            featureStringArray.length());
+
+    // 128 * 1024 * 1024 is the entries preset that is given in
+    // devtools/client/performance-new/popup/background.jsm.js
+    profiler_start(PowerOfTwo32(128 * 1024 * 1024), 5.0, features,
+                   filtersTemp.begin(), filtersTemp.length(), 0, Nothing());
+  }
+
+  static void StopProfiler(jni::Object::Param aGeckoResult) {
+    auto result = java::GeckoResult::LocalRef(aGeckoResult);
+    profiler_pause();
+    nsCOMPtr<nsIProfiler> nsProfiler(
+        do_GetService("@mozilla.org/tools/profiler;1"));
+    nsProfiler->GetProfileDataAsGzippedArrayBufferAndroid(0)->Then(
+        GetMainThreadSerialEventTarget(), __func__,
+        [result](FallibleTArray<uint8_t> compressedProfile) {
+          result->Complete(jni::ByteArray::New(
+              reinterpret_cast<const int8_t*>(compressedProfile.Elements()),
+              compressedProfile.Length()));
+        },
+        [result](nsresult aRv) {
+          char errorString[9];
+          sprintf(errorString, "%08x", aRv);
+          result->CompleteExceptionally(
+              mozilla::java::sdk::IllegalStateException::New(errorString)
+                  .Cast<jni::Throwable>());
+        });
+  }
 };
 #endif
 
@@ -443,7 +501,6 @@ class CorePS {
     // is worthwhile:
     // - CorePS::mRegisteredPages itself (its elements' children are
     // measured above)
-    // - CorePS::mInterposeObserver
 
 #if defined(USE_LUL_STACKWALK)
     if (lul::LUL* lulPtr = sInstance->mLul; lulPtr) {
@@ -678,6 +735,12 @@ class ActivePS {
     return aFeatures;
   }
 
+  bool ShouldInterposeIOs() {
+    return ProfilerFeature::HasMainThreadIO(mFeatures) ||
+           ProfilerFeature::HasFileIO(mFeatures) ||
+           ProfilerFeature::HasFileIOAll(mFeatures);
+  }
+
   ActivePS(
       PSLockRef aLock, PowerOfTwo32 aCapacity, double aInterval,
       uint32_t aFeatures, const char** aFilters, uint32_t aFilterCount,
@@ -709,11 +772,6 @@ class ActivePS {
         // unlocks gPSMutex.
         mSamplerThread(
             NewSamplerThread(aLock, mGeneration, aInterval, aFeatures)),
-        mInterposeObserver((ProfilerFeature::HasMainThreadIO(aFeatures) ||
-                            ProfilerFeature::HasFileIO(aFeatures) ||
-                            ProfilerFeature::HasFileIOAll(aFeatures))
-                               ? new ProfilerIOInterposeObserver()
-                               : nullptr),
         mIsPaused(false),
         mIsSamplingPaused(false) {
     // Deep copy and lower-case aFilters.
@@ -727,20 +785,29 @@ class ActivePS {
     }
 
 #if !defined(RELEASE_OR_BETA)
-    if (mInterposeObserver) {
+    if (ShouldInterposeIOs()) {
       // We need to register the observer on the main thread, because we want
       // to observe IO that happens on the main thread.
       // IOInterposer needs to be initialized before calling
       // IOInterposer::Register or our observer will be silently dropped.
       if (NS_IsMainThread()) {
         IOInterposer::Init();
-        IOInterposer::Register(IOInterposeObserver::OpAll, mInterposeObserver);
+        IOInterposer::Register(IOInterposeObserver::OpAll,
+                               &ProfilerIOInterposeObserver::GetInstance());
       } else {
-        RefPtr<ProfilerIOInterposeObserver> observer = mInterposeObserver;
         NS_DispatchToMainThread(
-            NS_NewRunnableFunction("ActivePS::ActivePS", [=]() {
+            NS_NewRunnableFunction("ActivePS::ActivePS", []() {
+              // Note: This could theoretically happen after ActivePS gets
+              // destroyed, but it's ok:
+              // - The Observer always checks that the profiler is (still)
+              //   active before doing its work.
+              // - The destruction should happen on the same thread as this
+              //   construction, so the un-registration will also be dispatched
+              //   and queued on the main thread, and run after this.
               IOInterposer::Init();
-              IOInterposer::Register(IOInterposeObserver::OpAll, observer);
+              IOInterposer::Register(
+                  IOInterposeObserver::OpAll,
+                  &ProfilerIOInterposeObserver::GetInstance());
             }));
       }
     }
@@ -752,17 +819,18 @@ class ActivePS {
         !mMaybeProcessCPUCounter,
         "mMaybeProcessCPUCounter should have been deleted before ~ActivePS()");
 #if !defined(RELEASE_OR_BETA)
-    if (mInterposeObserver) {
+    if (ShouldInterposeIOs()) {
       // We need to unregister the observer on the main thread, because that's
       // where we've registered it.
       if (NS_IsMainThread()) {
         IOInterposer::Unregister(IOInterposeObserver::OpAll,
-                                 mInterposeObserver);
+                                 &ProfilerIOInterposeObserver::GetInstance());
       } else {
-        RefPtr<ProfilerIOInterposeObserver> observer = mInterposeObserver;
         NS_DispatchToMainThread(
-            NS_NewRunnableFunction("ActivePS::~ActivePS", [=]() {
-              IOInterposer::Unregister(IOInterposeObserver::OpAll, observer);
+            NS_NewRunnableFunction("ActivePS::~ActivePS", []() {
+              IOInterposer::Unregister(
+                  IOInterposeObserver::OpAll,
+                  &ProfilerIOInterposeObserver::GetInstance());
             }));
       }
     }
@@ -1355,9 +1423,6 @@ class ActivePS {
   // the SamplerThread object; the Destroy() method returns it so the caller
   // can destroy it.
   SamplerThread* const mSamplerThread;
-
-  // The interposer that records main thread I/O.
-  RefPtr<ProfilerIOInterposeObserver> mInterposeObserver;
 
   // Is the profiler fully paused?
   bool mIsPaused;
@@ -2881,23 +2946,29 @@ struct JavaMarkerWithDetails {
   }
 };
 
-static void CollectJavaThreadProfileData(ProfileBuffer& aProfileBuffer) {
+static void CollectJavaThreadProfileData(
+    nsTArray<java::GeckoJavaSampler::ThreadInfo::LocalRef>& javaThreads,
+    ProfileBuffer& aProfileBuffer) {
+  // Retrieve metadata about the threads.
+  const auto threadCount = java::GeckoJavaSampler::GetRegisteredThreadCount();
+  for (int i = 0; i < threadCount; i++) {
+    javaThreads.AppendElement(
+        java::GeckoJavaSampler::GetRegisteredThreadInfo(i));
+  }
+
   // locked_profiler_start uses sample count is 1000 for Java thread.
   // This entry size is enough now, but we might have to estimate it
   // if we can customize it
-
   // Pass the samples
-  // FIXME(bug 1618560): We are currently only profiling the Android UI thread.
-  constexpr ProfilerThreadId threadId;
   int sampleId = 0;
   while (true) {
-    // Gets the data from the Android UI thread only.
+    const auto threadId = java::GeckoJavaSampler::GetThreadId(sampleId);
     double sampleTime = java::GeckoJavaSampler::GetSampleTime(sampleId);
-    if (sampleTime == 0.0) {
+    if (threadId == 0 || sampleTime == 0.0) {
       break;
     }
 
-    aProfileBuffer.AddThreadIdEntry(threadId);
+    aProfileBuffer.AddThreadIdEntry(ProfilerThreadId::FromNumber(threadId));
     aProfileBuffer.AddEntry(ProfileBufferEntry::Time(sampleTime));
     int frameId = 0;
     while (true) {
@@ -2927,6 +2998,7 @@ static void CollectJavaThreadProfileData(ProfileBuffer& aProfileBuffer) {
     }
 
     // Get all the marker information from the Java thread using JNI.
+    const auto threadId = ProfilerThreadId::FromNumber(marker->GetThreadId());
     nsCString markerName = marker->GetMarkerName()->ToCString();
     jni::String::LocalRef text = marker->GetMarkerText();
     TimeStamp startTime =
@@ -3045,8 +3117,11 @@ static void locked_profiler_stream_json_for_this_process(
   ProfileChunkedBuffer javaBufferManager(
       ProfileChunkedBuffer::ThreadSafety::WithoutMutex, javaChunkManager);
   ProfileBuffer javaBuffer(javaBufferManager);
+
+  nsTArray<java::GeckoJavaSampler::ThreadInfo::LocalRef> javaThreads;
+
   if (ActivePS::FeatureJava(aLock)) {
-    CollectJavaThreadProfileData(javaBuffer);
+    CollectJavaThreadProfileData(javaThreads, javaBuffer);
     aProgressLogger.SetLocalProgress(3_pc, "Collected Java thread");
   }
 #endif
@@ -3142,23 +3217,20 @@ static void locked_profiler_stream_json_for_this_process(
 
 #if defined(GP_OS_android)
     if (ActivePS::FeatureJava(aLock)) {
-      // Set the thread id of the Android UI thread to be 0.
-      // We are profiling the Android UI thread twice: Both from the C++ side
-      // (as a regular C++ profiled thread with the name "AndroidUI"), and from
-      // the Java side. The thread's actual ID is mozilla::jni::GetUIThreadId(),
-      // but since we're using that ID for the C++ side, we need to pick another
-      // tid that doesn't conflict with it for the Java side. So we just use 0.
-      // Once we add support for profiling of other java threads, we'll have to
-      // get their thread id and name via JNI.
-      ProfiledThreadData profiledThreadData(
-          ThreadRegistrationInfo{"AndroidUI (JVM)", ProfilerThreadId{}, false,
-                                 CorePS::ProcessStartTime()});
-      profiledThreadData.StreamJSON(
-          javaBuffer, nullptr, aWriter, CorePS::ProcessName(aLock),
-          CorePS::ETLDplus1(aLock), CorePS::ProcessStartTime(), aSinceTime,
-          ActivePS::FeatureJSTracer(aLock), nullptr,
-          aProgressLogger.CreateSubLoggerTo("Streaming Java thread...", 96_pc,
-                                            "Streamed Java thread"));
+      for (java::GeckoJavaSampler::ThreadInfo::LocalRef& threadInfo :
+           javaThreads) {
+        ProfiledThreadData threadData(ThreadRegistrationInfo{
+            threadInfo->GetName()->ToCString().BeginReading(),
+            ProfilerThreadId::FromNumber(threadInfo->GetId()), false,
+            CorePS::ProcessStartTime()});
+
+        threadData.StreamJSON(
+            javaBuffer, nullptr, aWriter, CorePS::ProcessName(aLock),
+            CorePS::ETLDplus1(aLock), CorePS::ProcessStartTime(), aSinceTime,
+            ActivePS::FeatureJSTracer(aLock), nullptr,
+            aProgressLogger.CreateSubLoggerTo("Streaming Java thread...", 96_pc,
+                                              "Streamed Java thread"));
+      }
     } else {
       aProgressLogger.SetLocalProgress(96_pc, "No Java thread");
     }
@@ -3675,7 +3747,8 @@ class SamplerThread {
   // spy. This will ensure that the work doesn't take more than 50% of a CPU
   // core.
   int mDelaySpyStart = 0;
-  Monitor mSpyingStateMonitor{"SamplerThread::mSpyingStateMonitor"};
+  Monitor mSpyingStateMonitor MOZ_UNANNOTATED{
+      "SamplerThread::mSpyingStateMonitor"};
 #elif defined(GP_OS_darwin) || defined(GP_OS_linux) || \
     defined(GP_OS_android) || defined(GP_OS_freebsd)
   pthread_t mThread;
@@ -4434,6 +4507,7 @@ void SamplerThread::SpyOnUnregisteredThreads() {
       /* aProcessType = */ ProcType::Unknown,
       /* aOrigin = */ ""_ns,
       /* aWindowInfo = */ nsTArray<WindowInfo>{},
+      /* aUtilityInfo = */ nsTArray<UtilityInfo>{},
       /* aChild = */ 0
 #ifdef XP_MACOSX
       ,
@@ -4739,11 +4813,10 @@ static void NotifyObservers(const char* aTopic,
   }
 }
 
-static void NotifyProfilerStarted(const PowerOfTwo32& aCapacity,
-                                  const Maybe<double>& aDuration,
-                                  double aInterval, uint32_t aFeatures,
-                                  const char** aFilters, uint32_t aFilterCount,
-                                  uint64_t aActiveTabID) {
+[[nodiscard]] static RefPtr<GenericPromise> NotifyProfilerStarted(
+    const PowerOfTwo32& aCapacity, const Maybe<double>& aDuration,
+    double aInterval, uint32_t aFeatures, const char** aFilters,
+    uint32_t aFilterCount, uint64_t aActiveTabID) {
   nsTArray<nsCString> filtersArray;
   for (size_t i = 0; i < aFilterCount; ++i) {
     filtersArray.AppendElement(aFilters[i]);
@@ -4753,8 +4826,9 @@ static void NotifyProfilerStarted(const PowerOfTwo32& aCapacity,
       aCapacity.Value(), aDuration, aInterval, aFeatures,
       std::move(filtersArray), aActiveTabID);
 
-  ProfilerParent::ProfilerStarted(params);
+  RefPtr<GenericPromise> startPromise = ProfilerParent::ProfilerStarted(params);
   NotifyObservers("profiler-started", params);
+  return startPromise;
 }
 
 static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
@@ -5060,8 +5134,8 @@ void profiler_init(void* aStackTop) {
 
   // We do this with gPSMutex unlocked. The comment in profiler_stop() explains
   // why.
-  NotifyProfilerStarted(capacity, duration, interval, features, filters.begin(),
-                        filters.length(), 0);
+  Unused << NotifyProfilerStarted(capacity, duration, interval, features,
+                                  filters.begin(), filters.length(), 0);
 }
 
 static void locked_profiler_save_profile_to_file(
@@ -5117,7 +5191,7 @@ void profiler_shutdown(IsFastShutdown aIsFastShutdown) {
   // We do these operations with gPSMutex unlocked. The comments in
   // profiler_stop() explain why.
   if (samplerThread) {
-    ProfilerParent::ProfilerStopped();
+    Unused << ProfilerParent::ProfilerStopped();
     NotifyObservers("profiler-stopped");
     delete samplerThread;
   }
@@ -5474,7 +5548,14 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
 
   // Do this before the Base Profiler is stopped, to keep the existing buffer
   // (if any) alive for our use.
-  mozilla::base_profiler_markers_detail::EnsureBufferForMainThreadAddMarker();
+  if (NS_IsMainThread()) {
+    mozilla::base_profiler_markers_detail::EnsureBufferForMainThreadAddMarker();
+  } else {
+    NS_DispatchToMainThread(
+        NS_NewRunnableFunction("EnsureBufferForMainThreadAddMarker",
+                               &mozilla::base_profiler_markers_detail::
+                                   EnsureBufferForMainThreadAddMarker));
+  }
 
   UniquePtr<ProfileBufferChunkManagerWithLocalLimit> baseChunkManager;
   bool profilersHandOver = false;
@@ -5553,6 +5634,7 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
           aLock, MakeUnique<ProfiledThreadData>(info));
       lockedThreadData->SetProfilingFeaturesAndData(threadProfilingFeatures,
                                                     profiledThreadData, aLock);
+      lockedThreadData->GetNewCpuTimeInNs();
       if (ActivePS::FeatureJS(aLock)) {
         lockedThreadData->StartJSSampling(ActivePS::JSFlags(aLock));
         if (ThreadRegistration::LockedRWOnThread* lockedRWOnThread =
@@ -5591,11 +5673,21 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
     if (javaInterval < 1) {
       javaInterval = 1;
     }
+
+    JNIEnv* env = jni::GetEnvForThread();
+    const auto& filters = ActivePS::Filters(aLock);
+    jni::ObjectArray::LocalRef javaFilters =
+        jni::ObjectArray::New<jni::String>(filters.length());
+    for (size_t i = 0; i < filters.length(); i++) {
+      javaFilters->SetElement(i, jni::StringParam(filters[i].data(), env));
+    }
+
     // Send the interval-relative entry count, but we have 100000 hard cap in
     // the java code, it can't be more than that.
     java::GeckoJavaSampler::Start(
-        javaInterval, std::round((double)(capacity.Value()) * interval /
-                                 (double)(javaInterval)));
+        javaFilters, javaInterval,
+        std::round((double)(capacity.Value()) * interval /
+                   (double)(javaInterval)));
   }
 #endif
 
@@ -5625,10 +5717,11 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
   }
 }
 
-void profiler_start(PowerOfTwo32 aCapacity, double aInterval,
-                    uint32_t aFeatures, const char** aFilters,
-                    uint32_t aFilterCount, uint64_t aActiveTabID,
-                    const Maybe<double>& aDuration) {
+RefPtr<GenericPromise> profiler_start(PowerOfTwo32 aCapacity, double aInterval,
+                                      uint32_t aFeatures, const char** aFilters,
+                                      uint32_t aFilterCount,
+                                      uint64_t aActiveTabID,
+                                      const Maybe<double>& aDuration) {
   LOG("profiler_start");
 
   ProfilerParent::ProfilerWillStopIfStarted();
@@ -5666,12 +5759,12 @@ void profiler_start(PowerOfTwo32 aCapacity, double aInterval,
   // We do these operations with gPSMutex unlocked. The comments in
   // profiler_stop() explain why.
   if (samplerThread) {
-    ProfilerParent::ProfilerStopped();
+    Unused << ProfilerParent::ProfilerStopped();
     NotifyObservers("profiler-stopped");
     delete samplerThread;
   }
-  NotifyProfilerStarted(aCapacity, aDuration, aInterval, aFeatures, aFilters,
-                        aFilterCount, aActiveTabID);
+  return NotifyProfilerStarted(aCapacity, aDuration, aInterval, aFeatures,
+                               aFilters, aFilterCount, aActiveTabID);
 }
 
 void profiler_ensure_started(PowerOfTwo32 aCapacity, double aInterval,
@@ -5717,7 +5810,7 @@ void profiler_ensure_started(PowerOfTwo32 aCapacity, double aInterval,
   // We do these operations with gPSMutex unlocked. The comments in
   // profiler_stop() explain why.
   if (samplerThread) {
-    ProfilerParent::ProfilerStopped();
+    Unused << ProfilerParent::ProfilerStopped();
     NotifyObservers("profiler-stopped");
     delete samplerThread;
   }
@@ -5725,8 +5818,8 @@ void profiler_ensure_started(PowerOfTwo32 aCapacity, double aInterval,
   if (startedProfiler) {
     invoke_profiler_state_change_callbacks(ProfilingState::Started);
 
-    NotifyProfilerStarted(aCapacity, aDuration, aInterval, aFeatures, aFilters,
-                          aFilterCount, aActiveTabID);
+    Unused << NotifyProfilerStarted(aCapacity, aDuration, aInterval, aFeatures,
+                                    aFilters, aFilterCount, aActiveTabID);
   }
 }
 
@@ -5793,12 +5886,20 @@ void profiler_ensure_started(PowerOfTwo32 aCapacity, double aInterval,
   SamplerThread* samplerThread = ActivePS::Destroy(aLock);
   samplerThread->Stop(aLock);
 
-  mozilla::base_profiler_markers_detail::ReleaseBufferForMainThreadAddMarker();
+  if (NS_IsMainThread()) {
+    mozilla::base_profiler_markers_detail::
+        ReleaseBufferForMainThreadAddMarker();
+  } else {
+    NS_DispatchToMainThread(
+        NS_NewRunnableFunction("ReleaseBufferForMainThreadAddMarker",
+                               &mozilla::base_profiler_markers_detail::
+                                   ReleaseBufferForMainThreadAddMarker));
+  }
 
   return samplerThread;
 }
 
-void profiler_stop() {
+RefPtr<GenericPromise> profiler_stop() {
   LOG("profiler_stop");
 
   MOZ_RELEASE_ASSERT(CorePS::Exists());
@@ -5820,7 +5921,7 @@ void profiler_stop() {
     PSAutoLock lock;
 
     if (!ActivePS::Exists(lock)) {
-      return;
+      return GenericPromise::CreateAndResolve(/* unused */ true, __func__);
     }
 
     samplerThread = locked_profiler_stop(lock);
@@ -5831,7 +5932,7 @@ void profiler_stop() {
   // locks gPSMutex, for example when it wants to insert a marker.
   // (This has been seen in practise in bug 1346356, when we were still firing
   // these notifications synchronously.)
-  ProfilerParent::ProfilerStopped();
+  RefPtr<GenericPromise> promise = ProfilerParent::ProfilerStopped();
   NotifyObservers("profiler-stopped");
 
   // We delete with gPSMutex unlocked. Otherwise we would get a deadlock: we
@@ -5844,6 +5945,8 @@ void profiler_stop() {
   // in a way that's safe with respect to other gPSMutex-locking operations
   // that may have occurred in the meantime.
   delete samplerThread;
+
+  return promise;
 }
 
 bool profiler_is_paused() {
@@ -5869,7 +5972,7 @@ bool profiler_is_paused() {
   return ActivePS::AppendPostSamplingCallback(lock, std::move(aCallback));
 }
 
-void profiler_pause() {
+RefPtr<GenericPromise> profiler_pause() {
   LOG("profiler_pause");
 
   MOZ_RELEASE_ASSERT(CorePS::Exists());
@@ -5880,7 +5983,7 @@ void profiler_pause() {
     PSAutoLock lock;
 
     if (!ActivePS::Exists(lock)) {
-      return;
+      return GenericPromise::CreateAndResolve(/* unused */ true, __func__);
     }
 
 #if defined(GP_OS_android)
@@ -5897,11 +6000,12 @@ void profiler_pause() {
   }
 
   // gPSMutex must be unlocked when we notify, to avoid potential deadlocks.
-  ProfilerParent::ProfilerPaused();
+  RefPtr<GenericPromise> promise = ProfilerParent::ProfilerPaused();
   NotifyObservers("profiler-paused");
+  return promise;
 }
 
-void profiler_resume() {
+RefPtr<GenericPromise> profiler_resume() {
   LOG("profiler_resume");
 
   MOZ_RELEASE_ASSERT(CorePS::Exists());
@@ -5910,7 +6014,7 @@ void profiler_resume() {
     PSAutoLock lock;
 
     if (!ActivePS::Exists(lock)) {
-      return;
+      return GenericPromise::CreateAndResolve(/* unused */ true, __func__);
     }
 
     ActivePS::Buffer(lock).AddEntry(
@@ -5928,10 +6032,12 @@ void profiler_resume() {
   }
 
   // gPSMutex must be unlocked when we notify, to avoid potential deadlocks.
-  ProfilerParent::ProfilerResumed();
+  RefPtr<GenericPromise> promise = ProfilerParent::ProfilerResumed();
   NotifyObservers("profiler-resumed");
 
   invoke_profiler_state_change_callbacks(ProfilingState::Resumed);
+
+  return promise;
 }
 
 bool profiler_is_sampling_paused() {
@@ -5946,7 +6052,7 @@ bool profiler_is_sampling_paused() {
   return ActivePS::IsSamplingPaused(lock);
 }
 
-void profiler_pause_sampling() {
+RefPtr<GenericPromise> profiler_pause_sampling() {
   LOG("profiler_pause_sampling");
 
   MOZ_RELEASE_ASSERT(CorePS::Exists());
@@ -5955,7 +6061,7 @@ void profiler_pause_sampling() {
     PSAutoLock lock;
 
     if (!ActivePS::Exists(lock)) {
-      return;
+      return GenericPromise::CreateAndResolve(/* unused */ true, __func__);
     }
 
 #if defined(GP_OS_android)
@@ -5973,11 +6079,12 @@ void profiler_pause_sampling() {
   }
 
   // gPSMutex must be unlocked when we notify, to avoid potential deadlocks.
-  ProfilerParent::ProfilerPausedSampling();
+  RefPtr<GenericPromise> promise = ProfilerParent::ProfilerPausedSampling();
   NotifyObservers("profiler-paused-sampling");
+  return promise;
 }
 
-void profiler_resume_sampling() {
+RefPtr<GenericPromise> profiler_resume_sampling() {
   LOG("profiler_resume_sampling");
 
   MOZ_RELEASE_ASSERT(CorePS::Exists());
@@ -5986,7 +6093,7 @@ void profiler_resume_sampling() {
     PSAutoLock lock;
 
     if (!ActivePS::Exists(lock)) {
-      return;
+      return GenericPromise::CreateAndResolve(/* unused */ true, __func__);
     }
 
     ActivePS::Buffer(lock).AddEntry(
@@ -6004,8 +6111,9 @@ void profiler_resume_sampling() {
   }
 
   // gPSMutex must be unlocked when we notify, to avoid potential deadlocks.
-  ProfilerParent::ProfilerResumedSampling();
+  RefPtr<GenericPromise> promise = ProfilerParent::ProfilerResumedSampling();
   NotifyObservers("profiler-resumed-sampling");
+  return promise;
 }
 
 bool profiler_feature_active(uint32_t aFeature) {
@@ -6058,7 +6166,7 @@ void ThreadRegistry::Register(ThreadRegistration::OnThreadRef aOnThreadRef) {
   PSAutoLock lock;
 
   {
-    LockedRegistry lock;
+    RegistryLockExclusive lock{sRegistryMutex};
     MOZ_RELEASE_ASSERT(sRegistryContainer.append(OffThreadRef{aOnThreadRef}));
   }
 
@@ -6110,7 +6218,7 @@ void ThreadRegistry::Unregister(ThreadRegistration::OnThreadRef aOnThreadRef) {
   PSAutoLock psLock;
   locked_unregister_thread(psLock, aOnThreadRef);
 
-  LockedRegistry registryLock;
+  RegistryLockExclusive lock{sRegistryMutex};
   for (OffThreadRef& thread : sRegistryContainer) {
     if (thread.IsPointingAt(*aOnThreadRef.mThreadRegistration)) {
       sRegistryContainer.erase(&thread);
@@ -6219,7 +6327,8 @@ struct CPUAwakeMarker {
 #ifdef GP_OS_windows
                                    ,
                                    int32_t aAbsolutePriority,
-                                   int32_t aRelativePriority
+                                   int32_t aRelativePriority,
+                                   int32_t aCurrentPriority
 #endif
   ) {
 #ifndef GP_PLAT_arm64_darwin
@@ -6228,6 +6337,9 @@ struct CPUAwakeMarker {
 #ifdef GP_OS_windows
     if (aAbsolutePriority) {
       aWriter.IntProperty("absPriority", aAbsolutePriority);
+    }
+    if (aCurrentPriority) {
+      aWriter.IntProperty("curPriority", aCurrentPriority);
     }
     aWriter.IntProperty("priority", aRelativePriority);
 #endif
@@ -6261,6 +6373,7 @@ struct CPUAwakeMarker {
   static MarkerSchema MarkerTypeDisplay() {
     using MS = MarkerSchema;
     MS schema{MS::Location::MarkerChart, MS::Location::MarkerTable};
+    schema.AddKeyFormat("CPU Time", MS::Format::Duration);
 #ifndef GP_PLAT_arm64_darwin
     schema.AddKeyFormat("CPU Id", MS::Format::Integer);
     schema.SetTableLabel("Awake - CPU Id = {marker.data.CPU Id}");
@@ -6268,7 +6381,9 @@ struct CPUAwakeMarker {
 #ifdef GP_OS_windows
     schema.AddKeyLabelFormat("priority", "Relative Thread Priority",
                              MS::Format::Integer);
-    schema.AddKeyLabelFormat("absPriority", "Absolute Thread Priority",
+    schema.AddKeyLabelFormat("absPriority", "Base Thread Priority",
+                             MS::Format::Integer);
+    schema.AddKeyLabelFormat("curPriority", "Current Thread Priority",
                              MS::Format::Integer);
 #endif
 #ifdef GP_OS_darwin
@@ -6278,10 +6393,34 @@ struct CPUAwakeMarker {
   }
 };
 
+struct CPUAwakeMarkerEnd : public CPUAwakeMarker {
+  static constexpr Span<const char> MarkerTypeName() {
+    return MakeStringSpan("AwakeEnd");
+  }
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   int64_t aCPUTimeNs) {
+    if (aCPUTimeNs) {
+      constexpr double NS_PER_MS = 1'000'000;
+      aWriter.DoubleProperty("CPU Time", double(aCPUTimeNs) / NS_PER_MS);
+    }
+  }
+};
+
 }  // namespace geckoprofiler::markers
 
 void profiler_mark_thread_asleep() {
-  PROFILER_MARKER_UNTYPED("Awake", OTHER, MarkerTiming::IntervalEnd());
+  if (!profiler_thread_is_being_profiled_for_markers()) {
+    return;
+  }
+
+  uint64_t cpuTimeNs = ThreadRegistration::WithOnThreadRefOr(
+      [](ThreadRegistration::OnThreadRef aOnThreadRef) {
+        return aOnThreadRef.UnlockedConstReaderAndAtomicRWRef()
+            .GetNewCpuTimeInNs();
+      },
+      0);
+  PROFILER_MARKER("Awake", OTHER, MarkerTiming::IntervalEnd(),
+                  CPUAwakeMarkerEnd, cpuTimeNs);
 }
 
 void profiler_thread_sleep() {
@@ -6292,7 +6431,78 @@ void profiler_thread_sleep() {
       });
 }
 
+#if defined(GP_OS_windows)
+#  if !defined(__MINGW32__)
+enum {
+  ThreadBasicInformation,
+};
+#  endif
+
+struct THREAD_BASIC_INFORMATION {
+  NTSTATUS ExitStatus;
+  PVOID TebBaseAddress;
+  CLIENT_ID ClientId;
+  KAFFINITY AffMask;
+  DWORD Priority;
+  DWORD BasePriority;
+};
+#endif
+
+static mozilla::Atomic<uint64_t, mozilla::MemoryOrdering::Relaxed> gWakeCount(
+    0);
+
+namespace geckoprofiler::markers {
+struct WakeUpCountMarker {
+  static constexpr Span<const char> MarkerTypeName() {
+    return MakeStringSpan("WakeUpCount");
+  }
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   int32_t aCount,
+                                   const ProfilerString8View& aType) {
+    aWriter.IntProperty("Count", aCount);
+    aWriter.StringProperty("label", aType);
+  }
+  static MarkerSchema MarkerTypeDisplay() {
+    using MS = MarkerSchema;
+    MS schema{MS::Location::MarkerChart, MS::Location::MarkerTable};
+    schema.AddKeyFormat("Count", MS::Format::Integer);
+    schema.SetTooltipLabel("{marker.name} - {marker.data.label}");
+    schema.SetTableLabel(
+        "{marker.name} - {marker.data.label}: {marker.data.count}");
+    return schema;
+  }
+};
+}  // namespace geckoprofiler::markers
+
+void profiler_record_wakeup_count(const nsACString& aProcessType) {
+  static uint64_t previousThreadWakeCount = 0;
+
+  uint64_t newWakeups = gWakeCount - previousThreadWakeCount;
+  if (newWakeups > 0) {
+    if (newWakeups < std::numeric_limits<int32_t>::max()) {
+      int32_t newWakeups32 = int32_t(newWakeups);
+      mozilla::glean::power::total_thread_wakeups.Add(newWakeups32);
+      mozilla::glean::power::wakeups_per_process_type.Get(aProcessType)
+          .Add(newWakeups32);
+      PROFILER_MARKER("Thread Wake-ups", OTHER, {}, WakeUpCountMarker,
+                      newWakeups32, aProcessType);
+    }
+
+    previousThreadWakeCount += newWakeups;
+  }
+
+#ifdef NIGHTLY_BUILD
+  ThreadRegistry::LockedRegistry lockedRegistry;
+  for (ThreadRegistry::OffThreadRef offThreadRef : lockedRegistry) {
+    const ThreadRegistry::UnlockedConstReaderAndAtomicRW& threadData =
+        offThreadRef.UnlockedConstReaderAndAtomicRWRef();
+    threadData.RecordWakeCount();
+  }
+#endif
+}
+
 void profiler_mark_thread_awake() {
+  ++gWakeCount;
   if (!profiler_thread_is_being_profiled_for_markers()) {
     return;
   }
@@ -6325,16 +6535,31 @@ void profiler_mark_thread_awake() {
                                  &priority, sizeof(priority))) {
     priority = 0;
   }
+
+  static const auto nt_query_information_thread_fn =
+      reinterpret_cast<decltype(&::NtQueryInformationThread)>(::GetProcAddress(
+          ::GetModuleHandle(L"ntdll.dll"), "NtQueryInformationThread"));
+
+  LONG currentPriority = 0;
+  if (nt_query_information_thread_fn) {
+    THREAD_BASIC_INFORMATION threadInfo;
+    auto status = (*nt_query_information_thread_fn)(
+        GetCurrentThread(), (THREADINFOCLASS)ThreadBasicInformation,
+        &threadInfo, sizeof(threadInfo), NULL);
+    if (NT_SUCCESS(status)) {
+      currentPriority = threadInfo.Priority;
+    }
+  }
 #endif
-  PROFILER_MARKER("Awake", OTHER, MarkerTiming::IntervalStart(), CPUAwakeMarker,
-                  cpuId
+  PROFILER_MARKER(
+      "Awake", OTHER, MarkerTiming::IntervalStart(), CPUAwakeMarker, cpuId
 #if defined(GP_OS_darwin)
-                  ,
-                  qos_class_self()
+      ,
+      qos_class_self()
 #endif
 #if defined(GP_OS_windows)
-                      ,
-                  priority, GetThreadPriority(GetCurrentThread())
+          ,
+      priority, GetThreadPriority(GetCurrentThread()), currentPriority
 #endif
   );
 }

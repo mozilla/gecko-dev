@@ -10,11 +10,8 @@
 #include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions
 #include "js/PropertySpec.h"
-#include "mozJSComponentLoader.h"
 #include "nsIThread.h"
-#include "nsZipArchive.h"
 
-#include "mozilla/Scoped.h"
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"
 #include "nsThreadUtils.h"
@@ -93,7 +90,7 @@ already_AddRefed<FinalizationEvent> ExtractFinalizationEvent(
  * Unless method Forget() has been called, the finalizer displays an error
  * message.
  */
-void Finalize(JSFreeOp* fop, JSObject* objSelf) {
+void Finalize(JS::GCContext* gcx, JSObject* objSelf) {
   RefPtr<FinalizationEvent> event = ExtractFinalizationEvent(objSelf);
   if (event == nullptr || gShuttingDown) {
     // NB: event will be null if Forget() has been called

@@ -3,6 +3,7 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import { PureComponent } from "react";
+import PropTypes from "prop-types";
 import {
   toEditorPosition,
   getDocument,
@@ -17,39 +18,51 @@ import { connect } from "../../utils/connect";
 import {
   getVisibleSelectedFrame,
   getPauseReason,
-  getSourceWithContent,
+  getSourceTextContent,
   getCurrentThread,
   getPausePreviewLocation,
 } from "../../selectors";
 
-function isDocumentReady(source, location) {
-  return location && source && source.content && hasDocument(location.sourceId);
+function isDocumentReady(location, sourceTextContent) {
+  return location && sourceTextContent && hasDocument(location.sourceId);
 }
 
 export class DebugLine extends PureComponent {
   debugExpression;
 
+  static get propTypes() {
+    return {
+      location: PropTypes.object,
+      sourceTextContent: PropTypes.object,
+      why: PropTypes.object,
+    };
+  }
+
   componentDidMount() {
-    const { why, location, source } = this.props;
-    this.setDebugLine(why, location, source);
+    const { why, location, sourceTextContent } = this.props;
+    this.setDebugLine(why, location, sourceTextContent);
   }
 
   componentWillUnmount() {
-    const { why, location, source } = this.props;
-    this.clearDebugLine(why, location, source);
+    const { why, location, sourceTextContent } = this.props;
+    this.clearDebugLine(why, location, sourceTextContent);
   }
 
   componentDidUpdate(prevProps) {
-    const { why, location, source } = this.props;
+    const { why, location, sourceTextContent } = this.props;
 
     startOperation();
-    this.clearDebugLine(prevProps.why, prevProps.location, prevProps.source);
-    this.setDebugLine(why, location, source);
+    this.clearDebugLine(
+      prevProps.why,
+      prevProps.location,
+      prevProps.sourceTextContent
+    );
+    this.setDebugLine(why, location, sourceTextContent);
     endOperation();
   }
 
-  setDebugLine(why, location, source) {
-    if (!location || !isDocumentReady(source, location)) {
+  setDebugLine(why, location, sourceTextContent) {
+    if (!location || !isDocumentReady(location, sourceTextContent)) {
       return;
     }
     const { sourceId } = location;
@@ -77,8 +90,8 @@ export class DebugLine extends PureComponent {
     );
   }
 
-  clearDebugLine(why, location, source) {
-    if (!location || !isDocumentReady(source, location)) {
+  clearDebugLine(why, location, sourceTextContent) {
+    if (!location || !isDocumentReady(location, sourceTextContent)) {
       return;
     }
 
@@ -115,7 +128,8 @@ const mapStateToProps = state => {
   return {
     frame,
     location,
-    source: location && getSourceWithContent(state, location.sourceId),
+    sourceTextContent:
+      location && getSourceTextContent(state, location.sourceId),
     why: getPauseReason(state, getCurrentThread(state)),
   };
 };

@@ -4,21 +4,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 const MAX_TIME_DIFFERENCE = 2500;
 const MILLIS_PER_DAY = 1000 * 60 * 60 * 24;
 
 var LocalFile = CC("@mozilla.org/file/local;1", "nsIFile", "initWithPath");
 
-function run_test() {
-  test_toplevel_parent_is_null();
-  test_normalize_crash_if_media_missing();
-  test_file_modification_time();
-  test_directory_modification_time();
-  test_diskSpaceAvailable();
-  test_diskCapacity();
-}
-
-function test_toplevel_parent_is_null() {
+add_task(function test_toplevel_parent_is_null() {
   try {
     var lf = new LocalFile("C:\\");
 
@@ -31,9 +25,9 @@ function test_toplevel_parent_is_null() {
     // not Windows
     Assert.equal(e.result, Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH);
   }
-}
+});
 
-function test_normalize_crash_if_media_missing() {
+add_task(function test_normalize_crash_if_media_missing() {
   const a = "a".charCodeAt(0);
   const z = "z".charCodeAt(0);
   for (var i = a; i <= z; ++i) {
@@ -41,10 +35,10 @@ function test_normalize_crash_if_media_missing() {
       LocalFile(String.fromCharCode(i) + ":.\\test").normalize();
     } catch (e) {}
   }
-}
+});
 
 // Tests that changing a file's modification time is possible
-function test_file_modification_time() {
+add_task(function test_file_modification_time() {
   var file = do_get_profile();
   file.append("testfile");
 
@@ -81,10 +75,10 @@ function test_file_modification_time() {
   Assert.ok(diff < MAX_TIME_DIFFERENCE);
 
   file.remove(true);
-}
+});
 
 // Tests that changing a directory's modification time is possible
-function test_directory_modification_time() {
+add_task(function test_directory_modification_time() {
   var dir = do_get_profile();
   dir.append("testdir");
 
@@ -115,9 +109,9 @@ function test_directory_modification_time() {
   Assert.ok(diff < MAX_TIME_DIFFERENCE);
 
   dir.remove(true);
-}
+});
 
-function test_diskSpaceAvailable() {
+add_task(function test_diskSpaceAvailable() {
   let file = do_get_profile();
   file.QueryInterface(Ci.nsIFile);
 
@@ -134,9 +128,9 @@ function test_diskSpaceAvailable() {
   Assert.ok(bytes > 0);
 
   file.remove(true);
-}
+});
 
-function test_diskCapacity() {
+add_task(function test_diskCapacity() {
   let file = do_get_profile();
   file.QueryInterface(Ci.nsIFile);
 
@@ -154,41 +148,62 @@ function test_diskCapacity() {
   Assert.ok(startBytes === endBytes);
 
   file.remove(true);
-}
+});
 
-function test_file_creation_time() {
-  const file = do_get_profile();
-  file.append("testfile");
+add_task(
+  {
+    // nsIFile::CreationTime is only supported on macOS and Windows.
+    skip_if: () => !["macosx", "win"].includes(AppConstants.platform),
+  },
+  function test_file_creation_time() {
+    const file = do_get_profile();
+    // If we re-use the same file name from the other tests, even if the
+    // file.exists() check fails at 165, this test will likely fail due to the
+    // creation time being copied over from the previous instance of the file on
+    // Windows.
+    file.append("testfile-creation-time");
 
-  if (file.exists()) {
+    if (file.exists()) {
+      file.remove(true);
+    }
+
+    const now = Date.now();
+
+    file.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0o644);
+    Assert.ok(file.exists());
+
+    const creationTime = file.creationTime;
+    Assert.ok(creationTime === file.lastModifiedTime);
+
+    file.lastModifiedTime = now + MILLIS_PER_DAY;
+
+    Assert.ok(creationTime !== file.lastModifiedTime);
+    Assert.ok(creationTime === file.creationTime);
+
     file.remove(true);
   }
+);
 
-  const now = Date.now();
+add_task(function test_file_append_parent() {
+  const SEPARATOR = AppConstants.platform === "win" ? "\\" : "/";
 
-  file.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0o644);
-  Assert.ok(file.exists());
+  const file = do_get_profile();
 
-  let creationTime;
-  try {
-    creationTime = file.creationTime;
-  } catch (e) {
-    if (e.name === "NS_ERROR_NOT_AVAILABLE") {
-      // Creation time is not supported on this platform.
-      file.remove(true);
-      return;
-    }
-  }
+  Assert.throws(
+    () => file.append(".."),
+    /NS_ERROR_FILE_UNRECOGNIZED_PATH/,
+    `nsLocalFile::Append("..") throws`
+  );
 
-  const diff = Math.abs(creationTime - now);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.throws(
+    () => file.appendRelativePath(".."),
+    /NS_ERROR_FILE_UNRECOGNIZED_PATH/,
+    `nsLocalFile::AppendRelativePath("..") throws`
+  );
 
-  Assert.ok(creationTime === file.lastModifiedTime);
-
-  file.lastModifiedTime = now + MILLIS_PER_DAY;
-
-  Assert.ok(creationTime !== file.lastModifiedTime);
-  Assert.ok(creationTime === file.creationTime);
-
-  file.remove(true);
-}
+  Assert.throws(
+    () => file.appendRelativePath(`foo${SEPARATOR}..${SEPARATOR}baz`),
+    /NS_ERROR_FILE_UNRECOGNIZED_PATH/,
+    `nsLocalFile::AppendRelativePath(path) fails when path contains ".."`
+  );
+});

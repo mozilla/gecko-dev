@@ -54,10 +54,11 @@ class MacIOSurfaceRecycleAllocator {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MacIOSurfaceRecycleAllocator)
 
-  already_AddRefed<MacIOSurface> Allocate(const gfx::IntSize aYSize,
-                                          const gfx::IntSize& aCbCrSize,
-                                          gfx::YUVColorSpace aYUVColorSpace,
-                                          gfx::ColorRange aColorRange);
+  already_AddRefed<MacIOSurface> Allocate(
+      const gfx::IntSize aYSize, const gfx::IntSize& aCbCrSize,
+      gfx::YUVColorSpace aYUVColorSpace,
+      gfx::TransferFunction aTransferFunction, gfx::ColorRange aColorRange,
+      gfx::ColorDepth aColorDepth);
 
  private:
   ~MacIOSurfaceRecycleAllocator() = default;

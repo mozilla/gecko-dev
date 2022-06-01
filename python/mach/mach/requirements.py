@@ -29,7 +29,8 @@ class PypiOptionalSpecifier(PypiSpecifier):
 
 
 class MachEnvRequirements:
-    """Requirements associated with a "virtualenv_packages.txt" definition
+    """Requirements associated with a "site dependency manifest", as
+    defined in "python/sites/".
 
     Represents the dependencies of a site. The source files consist
     of colon-delimited fields. The first field
@@ -61,12 +62,10 @@ class MachEnvRequirements:
         self.vendored_requirements = []
 
     def pths_as_absolute(self, topsrcdir: str):
-        return sorted(
-            [
-                os.path.normcase(Path(topsrcdir) / pth.path)
-                for pth in (self.pth_requirements + self.vendored_requirements)
-            ]
-        )
+        return [
+            os.path.normcase(Path(topsrcdir) / pth.path)
+            for pth in (self.pth_requirements + self.vendored_requirements)
+        ]
 
     @classmethod
     def from_requirements_definition(

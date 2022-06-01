@@ -49,6 +49,31 @@ uint32_t MakeCookieBehavior(uint32_t aCookieBehavior) {
   return aCookieBehavior;
 }
 
+/*
+ Enables sanitizeOnShutdown cleaning prefs and disables the
+ network.cookie.lifetimePolicy
+*/
+void MigrateCookieLifetimePrefs() {
+  if (mozilla::Preferences::GetInt("network.cookie.lifetimePolicy") !=
+      nsICookieService::ACCEPT_SESSION) {
+    return;
+  }
+  if (!mozilla::Preferences::GetBool("privacy.sanitize.sanitizeOnShutdown")) {
+    mozilla::Preferences::SetBool("privacy.sanitize.sanitizeOnShutdown", true);
+    // To avoid clearing categories that the user did not intend to clear
+    mozilla::Preferences::SetBool("privacy.clearOnShutdown.history", false);
+    mozilla::Preferences::SetBool("privacy.clearOnShutdown.formdata", false);
+    mozilla::Preferences::SetBool("privacy.clearOnShutdown.downloads", false);
+    mozilla::Preferences::SetBool("privacy.clearOnShutdown.sessions", false);
+    mozilla::Preferences::SetBool("privacy.clearOnShutdown.siteSettings",
+                                  false);
+  }
+  mozilla::Preferences::SetBool("privacy.clearOnShutdown.cookies", true);
+  mozilla::Preferences::SetBool("privacy.clearOnShutdown.cache", true);
+  mozilla::Preferences::SetBool("privacy.clearOnShutdown.offlineApps", true);
+  mozilla::Preferences::ClearUser("network.cookie.lifetimePolicy");
+}
+
 }  // anonymous namespace
 
 // static
@@ -219,6 +244,9 @@ nsresult CookieService::Init() {
   // Init our default, and possibly private CookieStorages.
   InitCookieStorages();
 
+  // Migrate network.cookie.lifetimePolicy pref to sanitizeOnShutdown prefs
+  MigrateCookieLifetimePrefs();
+
   RegisterWeakMemoryReporter(this);
 
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
@@ -235,10 +263,13 @@ void CookieService::InitCookieStorages() {
   NS_ASSERTION(!mPrivateStorage, "already have a private CookieStorage");
 
   // Create two new CookieStorages.
-  mPersistentStorage = CookiePersistentStorage::Create();
-  mPrivateStorage = CookiePrivateStorage::Create();
+  if (MOZ_UNLIKELY(StaticPrefs::network_cookie_noPersistentStorage())) {
+    mPersistentStorage = CookiePrivateStorage::Create();
+  } else {
+    mPersistentStorage = CookiePersistentStorage::Create();
+  }
 
-  mPersistentStorage->Activate();
+  mPrivateStorage = CookiePrivateStorage::Create();
 }
 
 void CookieService::CloseCookieStorages() {
@@ -248,10 +279,10 @@ void CookieService::CloseCookieStorages() {
   }
 
   // Let's nullify both storages before calling Close().
-  RefPtr<CookiePrivateStorage> privateStorage;
+  RefPtr<CookieStorage> privateStorage;
   privateStorage.swap(mPrivateStorage);
 
-  RefPtr<CookiePersistentStorage> persistentStorage;
+  RefPtr<CookieStorage> persistentStorage;
   persistentStorage.swap(mPersistentStorage);
 
   privateStorage->Close();
@@ -325,9 +356,6 @@ CookieService::GetCookieStringFromDocument(Document* aDocument,
     return NS_OK;
   }
 
-  nsICookie::schemeType schemeType =
-      CookieCommons::PrincipalToSchemeType(principal);
-
   CookieStorage* storage = PickStorage(principal->OriginAttributesRef());
 
   nsAutoCString baseDomain;
@@ -397,10 +425,6 @@ CookieService::GetCookieStringFromDocument(Document* aDocument,
 
     // if the cookie is secure and the host scheme isn't, we can't send it
     if (cookie->IsSecure() && !potentiallyTurstworthy) {
-      continue;
-    }
-
-    if (!CookieCommons::MaybeCompareScheme(cookie, schemeType)) {
       continue;
     }
 
@@ -708,7 +732,7 @@ CookieService::RunInTransaction(nsICookieTransactionCallback* aCallback) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  mPersistentStorage->EnsureReadComplete();
+  mPersistentStorage->EnsureInitialized();
   return mPersistentStorage->RunInTransaction(aCallback);
 }
 
@@ -723,7 +747,7 @@ CookieService::RemoveAll() {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  mPersistentStorage->EnsureReadComplete();
+  mPersistentStorage->EnsureInitialized();
   mPersistentStorage->RemoveAll();
   return NS_OK;
 }
@@ -734,7 +758,7 @@ CookieService::GetCookies(nsTArray<RefPtr<nsICookie>>& aCookies) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  mPersistentStorage->EnsureReadComplete();
+  mPersistentStorage->EnsureInitialized();
 
   // We expose only non-private cookies.
   mPersistentStorage->GetCookies(aCookies);
@@ -748,7 +772,7 @@ CookieService::GetSessionCookies(nsTArray<RefPtr<nsICookie>>& aCookies) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  mPersistentStorage->EnsureReadComplete();
+  mPersistentStorage->EnsureInitialized();
 
   // We expose only non-private cookies.
   mPersistentStorage->GetCookies(aCookies);
@@ -925,8 +949,6 @@ void CookieService::GetCookiesForURI(
                                             baseDomainFromURI);
   NS_ENSURE_SUCCESS_VOID(rv);
 
-  nsICookie::schemeType schemeType = CookieCommons::URIToSchemeType(aHostURI);
-
   // check default prefs
   uint32_t rejectedReason = aRejectedReason;
   uint32_t priorCookieCount = storage->CountCookiesFromHost(
@@ -990,12 +1012,6 @@ void CookieService::GetCookiesForURI(
 
     // if the cookie is secure and the host scheme isn't, we can't send it
     if (cookie->IsSecure() && !potentiallyTurstworthy) {
-      continue;
-    }
-
-    // The scheme doesn't match.
-    if (!CookieCommons::MaybeCompareSchemeWithLogging(crc, aHostURI, cookie,
-                                                      schemeType)) {
       continue;
     }
 
@@ -1206,7 +1222,13 @@ bool CookieService::CanSetCookie(
 
   // If the new cookie is same-site but in a cross site context,
   // browser must ignore the cookie.
-  if ((aCookieData.sameSite() != nsICookie::SAMESITE_NONE) &&
+  bool laxByDefault =
+      StaticPrefs::network_cookie_sameSite_laxByDefault() &&
+      !nsContentUtils::IsURIInPrefList(
+          aHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
+  auto effectiveSameSite =
+      laxByDefault ? aCookieData.sameSite() : aCookieData.rawSameSite();
+  if ((effectiveSameSite != nsICookie::SAMESITE_NONE) &&
       aIsForeignAndNotAddon) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
                       "failed the samesite tests");
@@ -1375,14 +1397,17 @@ bool CookieService::GetTokenValue(nsACString::const_char_iterator& aIter,
   return false;
 }
 
-static inline void SetSameSiteDefaultAttribute(CookieStruct& aCookieData,
-                                               bool laxByDefault) {
+static inline void SetSameSiteAttributeDefault(CookieStruct& aCookieData) {
+  // Set cookie with SameSite attribute that is treated as Default
+  // and doesn't requires changing the DB schema.
+  aCookieData.sameSite() = nsICookie::SAMESITE_LAX;
   aCookieData.rawSameSite() = nsICookie::SAMESITE_NONE;
-  if (laxByDefault) {
-    aCookieData.sameSite() = nsICookie::SAMESITE_LAX;
-  } else {
-    aCookieData.sameSite() = nsICookie::SAMESITE_NONE;
-  }
+}
+
+static inline void SetSameSiteAttribute(CookieStruct& aCookieData,
+                                        int32_t aValue) {
+  aCookieData.sameSite() = aValue;
+  aCookieData.rawSameSite() = aValue;
 }
 
 // Parses attributes from cookie header. expires/max-age attributes aren't
@@ -1415,11 +1440,7 @@ bool CookieService::ParseAttributes(nsIConsoleReportCollector* aCRC,
   aCookieData.isSecure() = false;
   aCookieData.isHttpOnly() = false;
 
-  bool laxByDefault =
-      StaticPrefs::network_cookie_sameSite_laxByDefault() &&
-      !nsContentUtils::IsURIInPrefList(
-          aHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
-  SetSameSiteDefaultAttribute(aCookieData, laxByDefault);
+  SetSameSiteAttributeDefault(aCookieData);
 
   nsDependentCSubstring tokenString(cookieStart, cookieStart);
   nsDependentCSubstring tokenValue(cookieStart, cookieStart);
@@ -1469,17 +1490,14 @@ bool CookieService::ParseAttributes(nsIConsoleReportCollector* aCRC,
 
     } else if (tokenString.LowerCaseEqualsLiteral(kSameSite)) {
       if (tokenValue.LowerCaseEqualsLiteral(kSameSiteLax)) {
-        aCookieData.sameSite() = nsICookie::SAMESITE_LAX;
-        aCookieData.rawSameSite() = nsICookie::SAMESITE_LAX;
+        SetSameSiteAttribute(aCookieData, nsICookie::SAMESITE_LAX);
       } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteStrict)) {
-        aCookieData.sameSite() = nsICookie::SAMESITE_STRICT;
-        aCookieData.rawSameSite() = nsICookie::SAMESITE_STRICT;
+        SetSameSiteAttribute(aCookieData, nsICookie::SAMESITE_STRICT);
       } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteNone)) {
-        aCookieData.sameSite() = nsICookie::SAMESITE_NONE;
-        aCookieData.rawSameSite() = nsICookie::SAMESITE_NONE;
+        SetSameSiteAttribute(aCookieData, nsICookie::SAMESITE_NONE);
       } else {
-        // Reset to defaults if unknown token value (see Bug 1682450)
-        SetSameSiteDefaultAttribute(aCookieData, laxByDefault);
+        // Reset to Default if unknown token value (see Bug 1682450)
+        SetSameSiteAttributeDefault(aCookieData);
         CookieLogging::LogMessageToConsole(
             aCRC, aHostURI, nsIScriptError::infoFlag, CONSOLE_SAMESITE_CATEGORY,
             "CookieSameSiteValueInvalid2"_ns,
@@ -1491,29 +1509,32 @@ bool CookieService::ParseAttributes(nsIConsoleReportCollector* aCRC,
   // re-assign aCookieHeader, in case we need to process another cookie
   aCookieHeader.Assign(Substring(cookieStart, cookieEnd));
 
-  // If same-site is set to 'none' but this is not a secure context, let's abort
-  // the parsing.
+  // If same-site is explicitly set to 'none' but this is not a secure context,
+  // let's abort the parsing.
   if (!aCookieData.isSecure() &&
       aCookieData.sameSite() == nsICookie::SAMESITE_NONE) {
-    if (laxByDefault &&
-        StaticPrefs::network_cookie_sameSite_noneRequiresSecure()) {
+    if (StaticPrefs::network_cookie_sameSite_noneRequiresSecure()) {
       CookieLogging::LogMessageToConsole(
-          aCRC, aHostURI, nsIScriptError::infoFlag, CONSOLE_SAMESITE_CATEGORY,
+          aCRC, aHostURI, nsIScriptError::errorFlag, CONSOLE_SAMESITE_CATEGORY,
           "CookieRejectedNonRequiresSecure2"_ns,
           AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(aCookieData.name())});
       return newCookie;
     }
 
-    // if SameSite=Lax by default is disabled, we want to warn the user.
+    // Still warn about the missing Secure attribute when not enforcing.
     CookieLogging::LogMessageToConsole(
         aCRC, aHostURI, nsIScriptError::warningFlag, CONSOLE_SAMESITE_CATEGORY,
-        "CookieRejectedNonRequiresSecureForBeta2"_ns,
+        "CookieRejectedNonRequiresSecureForBeta3"_ns,
         AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(aCookieData.name()),
                                 SAMESITE_MDN_URL});
   }
 
   if (aCookieData.rawSameSite() == nsICookie::SAMESITE_NONE &&
       aCookieData.sameSite() == nsICookie::SAMESITE_LAX) {
+    bool laxByDefault =
+        StaticPrefs::network_cookie_sameSite_laxByDefault() &&
+        !nsContentUtils::IsURIInPrefList(
+            aHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
     if (laxByDefault) {
       CookieLogging::LogMessageToConsole(
           aCRC, aHostURI, nsIScriptError::infoFlag, CONSOLE_SAMESITE_CATEGORY,
@@ -1531,7 +1552,7 @@ bool CookieService::ParseAttributes(nsIConsoleReportCollector* aCRC,
   // Cookie accepted.
   aAcceptedByParser = true;
 
-  MOZ_ASSERT(Cookie::ValidateRawSame(aCookieData));
+  MOZ_ASSERT(Cookie::ValidateSameSite(aCookieData));
   return newCookie;
 }
 
@@ -2027,7 +2048,7 @@ CookieService::CountCookiesFromHost(const nsACString& aHost,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  mPersistentStorage->EnsureReadComplete();
+  mPersistentStorage->EnsureInitialized();
 
   *aCountFromHost = mPersistentStorage->CountCookiesFromHost(baseDomain, 0);
 
@@ -2232,7 +2253,7 @@ CookieService::RemoveAllSince(int64_t aSinceWhen, JSContext* aCx,
     return result.StealNSResult();
   }
 
-  mPersistentStorage->EnsureReadComplete();
+  mPersistentStorage->EnsureInitialized();
 
   nsTArray<RefPtr<nsICookie>> cookieList;
 
@@ -2271,7 +2292,7 @@ CookieService::GetCookiesSince(int64_t aSinceWhen,
     return NS_OK;
   }
 
-  mPersistentStorage->EnsureReadComplete();
+  mPersistentStorage->EnsureInitialized();
 
   // We expose only non-private cookies.
   nsTArray<RefPtr<nsICookie>> cookieList;
@@ -2329,7 +2350,7 @@ CookieStorage* CookieService::PickStorage(const OriginAttributes& aAttrs) {
     return mPrivateStorage;
   }
 
-  mPersistentStorage->EnsureReadComplete();
+  mPersistentStorage->EnsureInitialized();
   return mPersistentStorage;
 }
 
@@ -2342,7 +2363,7 @@ CookieStorage* CookieService::PickStorage(
     return mPrivateStorage;
   }
 
-  mPersistentStorage->EnsureReadComplete();
+  mPersistentStorage->EnsureInitialized();
   return mPersistentStorage;
 }
 

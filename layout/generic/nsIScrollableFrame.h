@@ -261,12 +261,11 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * Any point within this area can be chosen.
    * The choosen point will be as close as possible to aScrollPosition.
    */
-  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                        const nsRect* aRange = nullptr,
-                        nsIScrollbarMediator::ScrollSnapMode aSnap =
-                            nsIScrollbarMediator::DISABLE_SNAP,
-                        mozilla::ScrollTriggeredByScript aTriggeredByScript =
-                            mozilla::ScrollTriggeredByScript::No) = 0;
+  virtual void ScrollTo(
+      nsPoint aScrollPosition, ScrollMode aMode, const nsRect* aRange = nullptr,
+      mozilla::ScrollSnapFlags aSnapFlags = mozilla::ScrollSnapFlags::Disabled,
+      mozilla::ScrollTriggeredByScript aTriggeredByScript =
+          mozilla::ScrollTriggeredByScript::No) = 0;
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    * Scrolls to a particular position in integer CSS pixels.
@@ -316,8 +315,8 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
                         ScrollMode aMode, nsIntPoint* aOverflow = nullptr,
                         ScrollOrigin aOrigin = ScrollOrigin::NotSpecified,
                         ScrollMomentum aMomentum = NOT_MOMENTUM,
-                        nsIScrollbarMediator::ScrollSnapMode aSnap =
-                            nsIScrollbarMediator::DISABLE_SNAP) = 0;
+                        mozilla::ScrollSnapFlags aSnapFlags =
+                            mozilla::ScrollSnapFlags::Disabled) = 0;
 
   virtual void ScrollByCSSPixels(const CSSIntPoint& aDelta,
                                  ScrollMode aMode = ScrollMode::Instant) = 0;
@@ -411,16 +410,25 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
   virtual ScrollOrigin LastScrollOrigin() = 0;
 
   /**
-   * Returns whether there's an async scroll going on.
+   * Gets the async scroll animation state of this scroll frame.
    *
-   * The argument allows a subtle distinction that's needed for APZ. When
-   * `IncludeApzAnimation::No` is given, ongoing APZ animations that have
-   * already been synced to the main thread are not included, which is needed so
-   * that APZ can keep syncing the scroll offset properly.
+   * There are four possible kinds that can overlap.
+   * MainThread means async scroll animated by the main thread.
+   * APZ scroll animations that are requested from the main thread go through
+   * three states: 1) pending, when the main thread has recorded that it wants
+   * apz to do a scroll animation, 2) requested, when the main thread has sent
+   * the request to the compositor (but it hasn't necessarily arrived yet), and
+   * 3) in progress, after apz has responded to the main thread that it got the
+   * request.
    */
-  enum class IncludeApzAnimation : bool { No, Yes };
-  virtual bool IsScrollAnimating(
-      IncludeApzAnimation = IncludeApzAnimation::Yes) = 0;
+  enum class AnimationState {
+    MainThread,    // mAsyncScroll || mAsyncSmoothMSDScroll
+    APZPending,    // mScrollUpdates.LastElement() is Smooth or SmoothMsd
+    APZRequested,  // mApzAnimationRequested
+    APZInProgress  // mCurrentAPZScrollAnimationType !=
+                   // APZScrollAniationType::No
+  };
+  virtual mozilla::EnumSet<AnimationState> ScrollAnimationState() const = 0;
 
   /**
    * Returns the current generation counter for the scrollframe. This counter
@@ -480,7 +488,7 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
   /**
    * Invalidate the scrollbar after the marks have been changed.
    */
-  virtual void InvalidateVerticalScrollbar() const = 0;
+  virtual void InvalidateScrollbars() const = 0;
 
   virtual void UpdateScrollbarPosition() = 0;
 

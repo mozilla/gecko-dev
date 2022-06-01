@@ -30,6 +30,7 @@ EXPORTS += [
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     SOURCES += [
         "D3D11ShareHandleImage.cpp",
+        "D3D11TextureIMFSampleImage.cpp",
         "D3D11YCbCrImage.cpp",
     ]
     UNIFIED_SOURCES += [
@@ -126,6 +127,7 @@ EXPORTS.mozilla.layers += [
     "CompositorAnimationStorage.h",
     "CompositorTypes.h",
     "D3D11ShareHandleImage.h",
+    "D3D11TextureIMFSampleImage.h",
     "D3D11YCbCrImage.h",
     "D3D9SurfaceImage.h",
     "DirectionUtils.h",
@@ -140,6 +142,7 @@ EXPORTS.mozilla.layers += [
     "ipc/CanvasThread.h",
     "ipc/CanvasTranslator.h",
     "ipc/CompositableForwarder.h",
+    "ipc/CompositableInProcessManager.h",
     "ipc/CompositableTransactionParent.h",
     "ipc/CompositorBridgeChild.h",
     "ipc/CompositorBridgeParent.h",
@@ -153,7 +156,6 @@ EXPORTS.mozilla.layers += [
     "ipc/ImageBridgeParent.h",
     "ipc/ISurfaceAllocator.h",
     "ipc/KnowsCompositor.h",
-    "ipc/LayerAnimationUtils.h",
     "ipc/LayersMessageUtils.h",
     "ipc/LayerTreeOwnerTracker.h",
     "ipc/RefCountedShmem.h",
@@ -359,6 +361,7 @@ UNIFIED_SOURCES += [
     "ipc/CanvasThread.cpp",
     "ipc/CanvasTranslator.cpp",
     "ipc/CompositableForwarder.cpp",
+    "ipc/CompositableInProcessManager.cpp",
     "ipc/CompositableTransactionParent.cpp",
     "ipc/CompositorBench.cpp",
     "ipc/CompositorBridgeChild.cpp",
@@ -372,7 +375,6 @@ UNIFIED_SOURCES += [
     "ipc/ImageBridgeParent.cpp",
     "ipc/ISurfaceAllocator.cpp",
     "ipc/KnowsCompositor.cpp",
-    "ipc/LayerAnimationUtils.cpp",
     "ipc/LayerTreeOwnerTracker.cpp",
     "ipc/RefCountedShmem.cpp",
     "ipc/RemoteContentController.cpp",

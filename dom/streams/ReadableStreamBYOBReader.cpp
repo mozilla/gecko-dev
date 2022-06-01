@@ -20,8 +20,7 @@
 #include "mozilla/dom/ReadableStreamBYOBRequest.h"
 #include "mozilla/dom/ReadableStreamBYOBReader.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_INHERITED(ReadableStreamBYOBReader,
                                                 ReadableStreamGenericReader,
@@ -39,8 +38,7 @@ JSObject* ReadableStreamBYOBReader::WrapObject(
 }
 
 // https://streams.spec.whatwg.org/#set-up-readable-stream-byob-reader
-void SetUpReadableStreamBYOBReader(JSContext* aCx,
-                                   ReadableStreamBYOBReader* reader,
+void SetUpReadableStreamBYOBReader(ReadableStreamBYOBReader* reader,
                                    ReadableStream& stream, ErrorResult& rv) {
   // Step 1. If !IsReadableStreamLocked(stream) is true, throw a TypeError
   // exception.
@@ -57,7 +55,7 @@ void SetUpReadableStreamBYOBReader(JSContext* aCx,
   }
 
   // Step 3. Perform ! ReadableStreamReaderGenericInitialize(reader, stream).
-  ReadableStreamReaderGenericInitialize(aCx, reader, &stream, rv);
+  ReadableStreamReaderGenericInitialize(reader, &stream, rv);
   if (rv.Failed()) {
     return;
   }
@@ -76,7 +74,7 @@ ReadableStreamBYOBReader::Constructor(const GlobalObject& global,
       new ReadableStreamBYOBReader(globalObject);
 
   // Step 1.
-  SetUpReadableStreamBYOBReader(global.Context(), reader, stream, rv);
+  SetUpReadableStreamBYOBReader(reader, stream, rv);
   if (rv.Failed()) {
     return nullptr;
   }
@@ -94,7 +92,7 @@ struct Read_ReadIntoRequest final : public ReadIntoRequest {
   explicit Read_ReadIntoRequest(Promise* aPromise) : mPromise(aPromise) {}
 
   void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
-                  ErrorResult& errorResult) override {
+                  ErrorResult& aRv) override {
     MOZ_ASSERT(aChunk.isObject());
     // https://streams.spec.whatwg.org/#byob-reader-read Step 6.
     //
@@ -103,37 +101,37 @@ struct Read_ReadIntoRequest final : public ReadIntoRequest {
 
     // We need to wrap this as the chunk could have come from
     // another compartment.
-    JS::RootedObject chunk(aCx, &aChunk.toObject());
+    JS::Rooted<JSObject*> chunk(aCx, &aChunk.toObject());
     if (!JS_WrapObject(aCx, &chunk)) {
+      aRv.StealExceptionFromJSContext(aCx);
       return;
     }
 
-    RootedDictionary<ReadableStreamBYOBReadResult> result(aCx);
-    result.mValue.Construct();
-    result.mValue.Value().Init(chunk);
+    RootedDictionary<ReadableStreamReadResult> result(aCx);
+    result.mValue = aChunk;
     result.mDone.Construct(false);
 
     mPromise->MaybeResolve(result);
   }
 
   void CloseSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
-                  ErrorResult& errorResult) override {
+                  ErrorResult& aRv) override {
     MOZ_ASSERT(aChunk.isObject() || aChunk.isUndefined());
     // https://streams.spec.whatwg.org/#byob-reader-read Step 6.
     //
     // close steps, given chunk:
     // Resolve promise with «[ "value" → chunk, "done" → true ]».
-    RootedDictionary<ReadableStreamBYOBReadResult> result(aCx);
+    RootedDictionary<ReadableStreamReadResult> result(aCx);
     if (aChunk.isObject()) {
       // We need to wrap this as the chunk could have come from
       // another compartment.
-      JS::RootedObject chunk(aCx, &aChunk.toObject());
+      JS::Rooted<JSObject*> chunk(aCx, &aChunk.toObject());
       if (!JS_WrapObject(aCx, &chunk)) {
+        aRv.StealExceptionFromJSContext(aCx);
         return;
       }
 
-      result.mValue.Construct();
-      result.mValue.Value().Init(chunk);
+      result.mValue = aChunk;
     }
     result.mDone.Construct(true);
 
@@ -141,7 +139,7 @@ struct Read_ReadIntoRequest final : public ReadIntoRequest {
   }
 
   void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> e,
-                  ErrorResult& errorResult) override {
+                  ErrorResult& aRv) override {
     // https://streams.spec.whatwg.org/#byob-reader-read Step 6.
     //
     // error steps, given e:
@@ -150,7 +148,7 @@ struct Read_ReadIntoRequest final : public ReadIntoRequest {
   }
 
  protected:
-  virtual ~Read_ReadIntoRequest() = default;
+  ~Read_ReadIntoRequest() override = default;
 };
 
 NS_IMPL_CYCLE_COLLECTION(ReadIntoRequest)
@@ -171,7 +169,7 @@ NS_INTERFACE_MAP_END_INHERITING(ReadIntoRequest)
 // https://streams.spec.whatwg.org/#readable-stream-byob-reader-read
 void ReadableStreamBYOBReaderRead(JSContext* aCx,
                                   ReadableStreamBYOBReader* aReader,
-                                  JS::HandleObject aView,
+                                  JS::Handle<JSObject*> aView,
                                   ReadIntoRequest* aReadIntoRequest,
                                   ErrorResult& aRv) {
   // Step 1.Let stream be reader.[[stream]].
@@ -186,7 +184,7 @@ void ReadableStreamBYOBReaderRead(JSContext* aCx,
   // Step 4. If stream.[[state]] is "errored", perform readIntoRequest’s error
   // steps given stream.[[storedError]].
   if (stream->State() == ReadableStream::ReaderState::Errored) {
-    JS::RootedValue error(aCx, stream->StoredError());
+    JS::Rooted<JS::Value> error(aCx, stream->StoredError());
 
     aReadIntoRequest->ErrorSteps(aCx, error, aRv);
     return;
@@ -212,7 +210,7 @@ already_AddRefed<Promise> ReadableStreamBYOBReader::Read(
   }
   JSContext* cx = jsapi.cx();
 
-  JS::RootedObject view(cx, aArray.Obj());
+  JS::Rooted<JSObject*> view(cx, aArray.Obj());
 
   // Step 1. If view.[[ByteLength]] is 0, return a promise rejected with a
   // TypeError exception.
@@ -225,7 +223,7 @@ already_AddRefed<Promise> ReadableStreamBYOBReader::Read(
   // Step 2. If view.[[ViewedArrayBuffer]].[[ArrayBufferByteLength]] is 0,
   // return a promise rejected with a TypeError exception.
   bool isSharedMemory;
-  JS::RootedObject viewedArrayBuffer(
+  JS::Rooted<JSObject*> viewedArrayBuffer(
       cx, JS_GetArrayBufferViewBuffer(cx, view, &isSharedMemory));
   if (!viewedArrayBuffer) {
     aRv.StealExceptionFromJSContext(cx);
@@ -335,13 +333,13 @@ void ReadableStreamBYOBReader::ReleaseLock(ErrorResult& aRv) {
 
 // https://streams.spec.whatwg.org/#acquire-readable-stream-byob-reader
 already_AddRefed<ReadableStreamBYOBReader> AcquireReadableStreamBYOBReader(
-    JSContext* aCx, ReadableStream* aStream, ErrorResult& aRv) {
+    ReadableStream* aStream, ErrorResult& aRv) {
   // Step 1. Let reader be a new ReadableStreamBYOBReader.
   RefPtr<ReadableStreamBYOBReader> reader =
       new ReadableStreamBYOBReader(aStream->GetParentObject());
 
   // Step 2. Perform ? SetUpReadableStreamBYOBReader(reader, stream).
-  SetUpReadableStreamBYOBReader(aCx, reader, *aStream, aRv);
+  SetUpReadableStreamBYOBReader(reader, *aStream, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -350,5 +348,4 @@ already_AddRefed<ReadableStreamBYOBReader> AcquireReadableStreamBYOBReader(
   return reader.forget();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

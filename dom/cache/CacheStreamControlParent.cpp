@@ -11,20 +11,14 @@
 #include "mozilla/dom/cache/CacheTypes.h"
 #include "mozilla/dom/cache/ReadStream.h"
 #include "mozilla/dom/cache/StreamList.h"
-#include "mozilla/ipc/FileDescriptorSetParent.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/ipc/PBackgroundParent.h"
-#include "mozilla/ipc/PFileDescriptorSetParent.h"
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"
 
 namespace mozilla::dom::cache {
 
-using mozilla::dom::OptionalFileDescriptorSet;
-using mozilla::ipc::AutoIPCStream;
 using mozilla::ipc::FileDescriptor;
-using mozilla::ipc::FileDescriptorSetParent;
-using mozilla::ipc::PFileDescriptorSetParent;
 
 // declared in ActorUtils.h
 void DeallocPCacheStreamControlParent(PCacheStreamControlParent* aActor) {
@@ -49,18 +43,14 @@ void CacheStreamControlParent::SerializeControl(
   aReadStreamOut->controlParent() = this;
 }
 
-void CacheStreamControlParent::SerializeStream(
-    CacheReadStream* aReadStreamOut, nsIInputStream* aStream,
-    nsTArray<UniquePtr<AutoIPCStream>>& aStreamCleanupList) {
+void CacheStreamControlParent::SerializeStream(CacheReadStream* aReadStreamOut,
+                                               nsIInputStream* aStream) {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlParent);
   MOZ_DIAGNOSTIC_ASSERT(aReadStreamOut);
 
-  UniquePtr<AutoIPCStream> autoStream(
-      new AutoIPCStream(aReadStreamOut->stream()));
-  DebugOnly<bool> ok = autoStream->Serialize(aStream, Manager());
+  DebugOnly<bool> ok = mozilla::ipc::SerializeIPCStream(
+      do_AddRef(aStream), aReadStreamOut->stream(), /* aAllowLazy */ false);
   MOZ_ASSERT(ok);
-
-  aStreamCleanupList.AppendElement(std::move(autoStream));
 }
 
 void CacheStreamControlParent::OpenStream(const nsID& aId,
@@ -100,9 +90,23 @@ void CacheStreamControlParent::ActorDestroy(ActorDestroyReason aReason) {
     return;
   }
   mStreamList->GetManager().RemoveListener(this);
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  mStreamList->GetManager().RecordHaveDeletedCSCP(Id());
+#endif
   mStreamList->RemoveStreamControl(this);
   mStreamList->NoteClosedAll();
   mStreamList = nullptr;
+}
+
+void CacheStreamControlParent::AssertWillDelete() {
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  // If we cannot send, Send__delete__ will not do any cleanup.
+  // But if we are still unfreed, that might be wrong.
+  if (mStreamList && !CanSend()) {
+    MOZ_ASSERT(false, "Attempt to delete blocking CSCP that cannot send.");
+    mStreamList->GetManager().RecordMayNotDeleteCSCP(Id());
+  }
+#endif
 }
 
 mozilla::ipc::IPCResult CacheStreamControlParent::RecvOpenStream(
@@ -111,9 +115,11 @@ mozilla::ipc::IPCResult CacheStreamControlParent::RecvOpenStream(
 
   OpenStream(aStreamId, [aResolver, self = RefPtr{this}](
                             nsCOMPtr<nsIInputStream>&& aStream) {
-    AutoIPCStream autoStream;
-    if (self->CanSend() && autoStream.Serialize(aStream, self->Manager())) {
-      aResolver(autoStream.TakeOptionalValue());
+    Maybe<IPCStream> stream;
+    if (self->CanSend() &&
+        mozilla::ipc::SerializeIPCStream(aStream.forget(), stream,
+                                         /* aAllowLazy */ false)) {
+      aResolver(stream);
     } else {
       aResolver(Nothing());
     }
@@ -147,6 +153,7 @@ void CacheStreamControlParent::CloseAll() {
 void CacheStreamControlParent::Shutdown() {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlParent);
 
+  AssertWillDelete();
   // If child process is gone, warn and allow actor to clean up normally
   QM_WARNONLY_TRY(OkIf(Send__delete__(this)));
 }

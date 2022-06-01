@@ -45,9 +45,9 @@ ogg_packet InitTheoraPacket(const unsigned char* aData, size_t aLength,
 TheoraDecoder::TheoraDecoder(const CreateDecoderParams& aParams)
     : mImageAllocator(aParams.mKnowsCompositor),
       mImageContainer(aParams.mImageContainer),
-      mTaskQueue(
-          new TaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
-                        "TheoraDecoder")),
+      mTaskQueue(TaskQueue::Create(
+          GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
+          "TheoraDecoder")),
       mTheoraInfo{},
       mTheoraComment{},
       mTheoraSetupInfo(nullptr),
@@ -170,6 +170,12 @@ RefPtr<MediaDataDecoder::DecodePromise> TheoraDecoder::ProcessDecode(
     b.mPlanes[2].mHeight = mTheoraInfo.frame_height >> vdec;
     b.mPlanes[2].mWidth = mTheoraInfo.frame_width >> hdec;
     b.mPlanes[2].mSkip = 0;
+
+    if (vdec) {
+      b.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
+    } else if (hdec) {
+      b.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH;
+    }
 
     b.mYUVColorSpace =
         DefaultColorSpace({mTheoraInfo.frame_width, mTheoraInfo.frame_height});

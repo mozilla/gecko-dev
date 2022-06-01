@@ -96,6 +96,7 @@
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/scache/StartupCache.h"
 #include "gfxPlatform.h"
+#include "PDMFactory.h"
 #ifdef XP_MACOSX
 #  include "gfxPlatformMac.h"
 #endif
@@ -632,7 +633,9 @@ static bool Win32kRequirementsUnsatisfied(
          aStatus ==
              nsIXULRuntime::ContentWin32kLockdownState::MissingWebRender ||
          aStatus ==
-             nsIXULRuntime::ContentWin32kLockdownState::MissingRemoteWebGL;
+             nsIXULRuntime::ContentWin32kLockdownState::MissingRemoteWebGL ||
+         aStatus ==
+             nsIXULRuntime::ContentWin32kLockdownState::DecodersArentRemote;
 }
 
 static void Win32kExperimentDisqualify() {
@@ -695,6 +698,7 @@ nsIXULRuntime::ContentWin32kLockdownState GetLiveWin32kLockdownState() {
   // HasUserValue The Pref functions can only be called on main thread
   MOZ_ASSERT(NS_IsMainThread());
   mozilla::EnsureWin32kInitialized();
+  gfxPlatform::GetPlatform();
 
   if (gSafeMode) {
     return nsIXULRuntime::ContentWin32kLockdownState::DisabledBySafeMode;
@@ -708,7 +712,10 @@ nsIXULRuntime::ContentWin32kLockdownState GetLiveWin32kLockdownState() {
     return nsIXULRuntime::ContentWin32kLockdownState::DisabledByE10S;
   }
 
-  if (!IsWin8OrLater()) {
+  // Win32k lockdown is available on Win8+, but we are initially limiting it to
+  // Windows 10 v1709 (build 16299) or later. Before this COM initialization
+  // currently fails if user32.dll has loaded before it is called.
+  if (!IsWin10FallCreatorsUpdateOrLater()) {
     return nsIXULRuntime::ContentWin32kLockdownState::
         OperatingSystemNotSupported;
   }
@@ -732,6 +739,11 @@ nsIXULRuntime::ContentWin32kLockdownState GetLiveWin32kLockdownState() {
   // certain hardware or virtual machines.
   if (!gfx::gfxVars::AllowWebglOop() || !StaticPrefs::webgl_out_of_process()) {
     return nsIXULRuntime::ContentWin32kLockdownState::MissingRemoteWebGL;
+  }
+
+  // Some (not sure exactly which) decoders are not compatible
+  if (!PDMFactory::AllDecodersAreRemote()) {
+    return nsIXULRuntime::ContentWin32kLockdownState::DecodersArentRemote;
   }
 
   bool prefSetByUser =
@@ -1020,9 +1032,6 @@ static void EnsureFissionAutostartInitialized() {
     } else {
       gFissionDecisionStatus = nsIXULRuntime::eFissionDisabledByE10sOther;
     }
-  } else if (gSafeMode) {
-    gFissionAutostart = false;
-    gFissionDecisionStatus = nsIXULRuntime::eFissionDisabledBySafeMode;
   } else if (EnvHasValue("MOZ_FORCE_ENABLE_FISSION")) {
     gFissionAutostart = true;
     gFissionDecisionStatus = nsIXULRuntime::eFissionEnabledByEnv;
@@ -1475,9 +1484,6 @@ nsXULAppInfo::GetFissionDecisionStatusString(nsACString& aResult) {
     case eFissionDisabledByEnv:
       aResult = "disabledByEnv";
       break;
-    case eFissionDisabledBySafeMode:
-      aResult = "disabledBySafeMode";
-      break;
     case eFissionEnabledByDefault:
       aResult = "enabledByDefault";
       break;
@@ -1669,6 +1675,13 @@ NS_IMETHODIMP
 nsXULAppInfo::GetChromeColorSchemeIsDark(bool* aResult) {
   LookAndFeel::EnsureColorSchemesInitialized();
   *aResult = LookAndFeel::ColorSchemeForChrome() == ColorScheme::Dark;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULAppInfo::GetContentThemeDerivedColorSchemeIsDark(bool* aResult) {
+  *aResult =
+      LookAndFeel::ThemeDerivedColorSchemeForContent() == ColorScheme::Dark;
   return NS_OK;
 }
 
@@ -1874,15 +1887,15 @@ nsXULAppInfo::RemoveCrashReportAnnotation(const nsACString& key) {
 }
 
 NS_IMETHODIMP
-nsXULAppInfo::IsAnnotationWhitelistedForPing(const nsACString& aValue,
-                                             bool* aIsWhitelisted) {
+nsXULAppInfo::IsAnnotationAllowlistedForPing(const nsACString& aValue,
+                                             bool* aIsAllowlisted) {
   CrashReporter::Annotation annotation;
 
   if (!AnnotationFromString(annotation, PromiseFlatCString(aValue).get())) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  *aIsWhitelisted = CrashReporter::IsAnnotationWhitelistedForPing(annotation);
+  *aIsAllowlisted = CrashReporter::IsAnnotationAllowlistedForPing(annotation);
 
   return NS_OK;
 }
@@ -1972,10 +1985,7 @@ nsXULAppInfo::Callback(nsISupports* aData) {
 
 static const nsXULAppInfo kAppInfo;
 namespace mozilla {
-nsresult AppInfoConstructor(nsISupports* aOuter, REFNSIID aIID,
-                            void** aResult) {
-  NS_ENSURE_NO_AGGREGATION(aOuter);
-
+nsresult AppInfoConstructor(REFNSIID aIID, void** aResult) {
   return const_cast<nsXULAppInfo*>(&kAppInfo)->QueryInterface(aIID, aResult);
 }
 }  // namespace mozilla
@@ -2106,15 +2116,9 @@ nsSingletonFactory::nsSingletonFactory(nsISupports* aSingleton)
 NS_IMPL_ISUPPORTS(nsSingletonFactory, nsIFactory)
 
 NS_IMETHODIMP
-nsSingletonFactory::CreateInstance(nsISupports* aOuter, const nsIID& aIID,
-                                   void** aResult) {
-  NS_ENSURE_NO_AGGREGATION(aOuter);
-
+nsSingletonFactory::CreateInstance(const nsIID& aIID, void** aResult) {
   return mSingleton->QueryInterface(aIID, aResult);
 }
-
-NS_IMETHODIMP
-nsSingletonFactory::LockFactory(bool) { return NS_OK; }
 
 /**
  * Set our windowcreator on the WindowWatcher service.
@@ -3642,8 +3646,7 @@ static bool RemoveComponentRegistries(nsIFile* aProfileDir,
 
   file->SetNativeLeafName("startupCache"_ns);
   nsresult rv = file->Remove(true);
-  return NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST ||
-         rv == NS_ERROR_FILE_NOT_FOUND;
+  return NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_NOT_FOUND;
 }
 
 // When we first initialize the crash reporter we don't have a profile,
@@ -3746,6 +3749,7 @@ bool fire_glxtest_process();
 #endif
 
 #include "GeckoProfiler.h"
+#include "ProfilerControl.h"
 
 // Encapsulates startup and shutdown state for XRE_main
 class XREMain {
@@ -3856,7 +3860,7 @@ static bool CheckForUserMismatch() {
 static bool CheckForUserMismatch() { return false; }
 #endif
 
-static void IncreaseDescriptorLimits() {
+void mozilla::startup::IncreaseDescriptorLimits() {
 #ifdef XP_UNIX
   // Increase the fd limit to accomodate IPC resources like shared memory.
   // See also the Darwin case in config/external/nspr/pr/moz.build
@@ -3993,7 +3997,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
   if (PR_GetEnv("XRE_MAIN_BREAK")) NS_BREAK();
 #endif
 
-  IncreaseDescriptorLimits();
+  mozilla::startup::IncreaseDescriptorLimits();
 
 #ifdef USE_GLX_TEST
   // bug 639842 - it's very important to fire this process BEFORE we set up
@@ -4389,6 +4393,11 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
   if (ar || EnvHasValue("XRE_START_OFFLINE")) {
     mStartOffline = true;
   }
+
+  // On Windows, to get working console arrangements so help/version/etc
+  // print something, we need to initialize the native app support.
+  rv = NS_CreateNativeAppSupport(getter_AddRefs(mNativeApp));
+  if (NS_FAILED(rv)) return 1;
 
   // Handle --help, --full-version and --version command line arguments.
   // They should return quickly, so we deal with them here.
@@ -4857,9 +4866,6 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   setupProfilingStuff();
 #endif
 
-  rv = NS_CreateNativeAppSupport(getter_AddRefs(mNativeApp));
-  if (NS_FAILED(rv)) return 1;
-
   bool canRun = false;
   rv = mNativeApp->Start(&canRun);
   if (NS_FAILED(rv) || !canRun) {
@@ -5257,7 +5263,7 @@ nsresult XREMain::XRE_mainRun() {
 
 #if defined(XP_WIN)
   RefPtr<mozilla::DllServices> dllServices(mozilla::DllServices::Get());
-  dllServices->StartUntrustedModulesProcessor();
+  dllServices->StartUntrustedModulesProcessor(false);
   auto dllServicesDisable =
       MakeScopeExit([&dllServices]() { dllServices->DisableFull(); });
 
@@ -5446,16 +5452,36 @@ nsresult XREMain::XRE_mainRun() {
     // files can't override JS engine start-up prefs.
     mDirProvider.FinishInitializingUserPrefs();
 
-    nsAppStartupNotifier::NotifyObservers(APPSTARTUP_CATEGORY);
+    nsCOMPtr<nsIFile> workingDir;
+    rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR,
+                                getter_AddRefs(workingDir));
+    if (NS_FAILED(rv)) {
+      // No working dir? This can happen if it gets deleted before we start.
+      workingDir = nullptr;
+    }
+
+    cmdLine = new nsCommandLine();
+
+    rv = cmdLine->Init(gArgc, gArgv, workingDir,
+                       nsICommandLine::STATE_INITIAL_LAUNCH);
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+
+    nsAppStartupNotifier::NotifyObservers(APPSTARTUP_CATEGORY, cmdLine);
 
     appStartup = components::AppStartup::Service();
     NS_ENSURE_TRUE(appStartup, NS_ERROR_FAILURE);
 
     mDirProvider.DoStartup();
 
+#ifdef XP_WIN
+    // It needs to be called on the main thread because it has to use
+    // nsObserverService.
+    EnsureWin32kInitialized();
+#endif
+
     // As FilePreferences need the profile directory, we must initialize right
     // here.
-    mozilla::FilePreferences::InitDirectoriesWhitelist();
+    mozilla::FilePreferences::InitDirectoriesAllowlist();
     mozilla::FilePreferences::InitPrefs();
 
     OverrideDefaultLocaleIfNeeded();
@@ -5467,21 +5493,7 @@ nsresult XREMain::XRE_mainRun() {
 
     appStartup->GetShuttingDown(&mShuttingDown);
 
-    nsCOMPtr<nsIFile> workingDir;
-    rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR,
-                                getter_AddRefs(workingDir));
-    if (NS_FAILED(rv)) {
-      // No working dir? This can happen if it gets deleted before we start.
-      workingDir = nullptr;
-    }
-
     if (!mShuttingDown) {
-      cmdLine = new nsCommandLine();
-
-      rv = cmdLine->Init(gArgc, gArgv, workingDir,
-                         nsICommandLine::STATE_INITIAL_LAUNCH);
-      NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
-
       /* Special-case services that need early access to the command
           line. */
       nsCOMPtr<nsIObserverService> obsService =
@@ -5595,9 +5607,9 @@ nsresult XREMain::XRE_mainRun() {
       NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
 #  ifdef MOZILLA_OFFICIAL
-      // Check if we're running from a DMG and allow the user to install to the
-      // Applications directory.
-      if (MacRunFromDmgUtils::MaybeInstallFromDmgAndRelaunch()) {
+      // Check if we're running from a DMG or an app translocated location and
+      // allow the user to install to the Applications directory.
+      if (MacRunFromDmgUtils::MaybeInstallAndRelaunch()) {
         bool userAllowedQuit = true;
         appStartup->Quit(nsIAppStartup::eForceQuit, 0, &userAllowedQuit);
       }
@@ -5864,6 +5876,15 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   mAppData->sandboxPermissionsService = aConfig.sandboxPermissionsService;
 #endif
 
+  // Once we unset the exception handler, we lose the ability to properly
+  // detect hangs -- they show up as crashes.  We do this as late as possible.
+  // In particular, after ProcessRuntime is destroyed on Windows.
+  auto unsetExceptionHandler = MakeScopeExit([&] {
+    if (mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER)
+      return CrashReporter::UnsetExceptionHandler();
+    return NS_OK;
+  });
+
   mozilla::IOInterposerInit ioInterposerGuard;
 
 #if defined(XP_WIN)
@@ -5904,7 +5925,15 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   rv = XRE_mainRun();
 
 #if defined(XP_WIN)
-  mozilla::widget::StopAudioSession();
+  bool wantAudio = true;
+#  ifdef MOZ_BACKGROUNDTASKS
+  if (BackgroundTasks::IsBackgroundTaskMode()) {
+    wantAudio = false;
+  }
+#  endif
+  if (MOZ_LIKELY(wantAudio)) {
+    mozilla::widget::StopAudioSession();
+  }
 #endif
 
 #ifdef MOZ_INSTRUMENT_EVENT_LOOP
@@ -5943,9 +5972,6 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
 #  endif
   }
 #endif
-
-  if (mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER)
-    CrashReporter::UnsetExceptionHandler();
 
   XRE_DeinitCommandLine();
 

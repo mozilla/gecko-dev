@@ -78,6 +78,12 @@ function TargetMixin(parentClass) {
         ["resource-available-form", offResourceAvailable],
         ["resource-updated-form", offResourceUpdated],
       ]);
+
+      // Expose a promise that is resolved once the target front is usable
+      // i.e. once attachAndInitThread has been called and resolved.
+      this.initialized = new Promise(resolve => {
+        this._onInitialized = resolve;
+      });
     }
 
     on(eventName, listener) {
@@ -479,6 +485,9 @@ function TargetMixin(parentClass) {
       }
 
       this._onThreadInitialized = this._attachAndInitThread(targetCommand);
+      // Resolve the `initialized` promise, while ignoring errors
+      // The empty function passed to catch will avoid spawning a new possibly rejected promise
+      this._onThreadInitialized.catch(() => {}).then(this._onInitialized);
       return this._onThreadInitialized;
     }
 
@@ -496,15 +505,13 @@ function TargetMixin(parentClass) {
         return;
       }
 
-      // We still need to attach workers.
       // The current class we have is actually the WorkerDescriptorFront,
       // which will morph into a target by fetching the underlying target's form.
       // Ideally, worker targets would be spawn by the server, and we would no longer
       // have the hybrid descriptor/target class which brings lots of complexity and confusion.
-      // By doing so, the "attach" would be done on the server side and would simply be
-      // part of the target actor instantiation.
-      if (this.attach) {
-        await this.attach();
+      // To be removed in bug 1651522.
+      if (this.morphWorkerDescriptorIntoWorkerTarget) {
+        await this.morphWorkerDescriptorIntoWorkerTarget();
       }
 
       const isBrowserToolbox =
@@ -520,9 +527,10 @@ function TargetMixin(parentClass) {
         return;
       }
 
-      // Avoid attaching any thread actor in the browser console
-      // in order to avoid trigerring any type of breakpoint.
-      if (targetCommand.descriptorFront.createdForBrowserConsole) {
+      // Avoid attaching any thread actor in the browser console or in
+      // webextension commands in order to avoid triggering any type of
+      // breakpoint.
+      if (targetCommand.descriptorFront.doNotAttachThreadActor) {
         return;
       }
 
@@ -531,26 +539,7 @@ function TargetMixin(parentClass) {
       if (this.isDestroyedOrBeingDestroyed()) {
         return;
       }
-      const threadFront = await this.attachThread(options);
-
-      // @backward-compat { version 86 } ThreadActor.attach no longer pause the thread,
-      //                                 so that we no longer have to resume.
-      // Once 86 is in release, we can remove the rest of this method.
-      if (this.getTrait("noPauseOnThreadActorAttach")) {
-        return;
-      }
-      try {
-        if (this.isDestroyedOrBeingDestroyed() || threadFront.isDestroyed()) {
-          return;
-        }
-        await threadFront.resume();
-      } catch (ex) {
-        if (ex.error === "wrongOrder") {
-          targetCommand.emit("target-thread-wrong-order-on-resume");
-        } else {
-          throw ex;
-        }
-      }
+      await this.attachThread(options);
     }
 
     async attachThread(options = {}) {

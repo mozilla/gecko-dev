@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FFmpegVideoFramePool.h"
+#include "PlatformDecoderModule.h"
 #include "FFmpegLog.h"
 #include "mozilla/widget/DMABufLibWrapper.h"
 #include "libavutil/pixfmt.h"
@@ -15,14 +16,14 @@
 
 namespace mozilla {
 
-RefPtr<layers::Image> VideoFrameSurfaceVAAPI::GetAsImage() {
+RefPtr<layers::Image> VideoFrameSurface<LIBAV_VER>::GetAsImage() {
   return new layers::DMABUFSurfaceImage(mSurface);
 }
 
-VideoFrameSurfaceVAAPI::VideoFrameSurfaceVAAPI(DMABufSurface* aSurface)
+VideoFrameSurface<LIBAV_VER>::VideoFrameSurface(DMABufSurface* aSurface)
     : mSurface(aSurface),
       mLib(nullptr),
-      mAVHWFramesContext(nullptr),
+      mAVHWFrameContext(nullptr),
       mHWAVBuffer(nullptr) {
   // Create global refcount object to track mSurface usage over
   // gects rendering engine. We can't release it until it's used
@@ -30,23 +31,29 @@ VideoFrameSurfaceVAAPI::VideoFrameSurfaceVAAPI(DMABufSurface* aSurface)
   MOZ_ASSERT(mSurface);
   MOZ_RELEASE_ASSERT(mSurface->GetAsDMABufSurfaceYUV());
   mSurface->GlobalRefCountCreate();
-  FFMPEG_LOG("VideoFrameSurfaceVAAPI: creating surface UID = %d",
+  FFMPEG_LOG("VideoFrameSurface: creating surface UID = %d",
              mSurface->GetUID());
 }
 
-void VideoFrameSurfaceVAAPI::LockVAAPIData(AVCodecContext* aAVCodecContext,
-                                           AVFrame* aAVFrame,
-                                           FFmpegLibWrapper* aLib) {
-  FFMPEG_LOG("VideoFrameSurfaceVAAPI: VAAPI locking dmabuf surface UID = %d",
-             mSurface->GetUID());
+void VideoFrameSurface<LIBAV_VER>::LockVAAPIData(
+    AVCodecContext* aAVCodecContext, AVFrame* aAVFrame,
+    FFmpegLibWrapper* aLib) {
+  MOZ_DIAGNOSTIC_ASSERT(aAVCodecContext->hw_frames_ctx);
   mLib = aLib;
-  mAVHWFramesContext = aLib->av_buffer_ref(aAVCodecContext->hw_frames_ctx);
+  mAVHWFrameContext = aLib->av_buffer_ref(aAVCodecContext->hw_frames_ctx);
   mHWAVBuffer = aLib->av_buffer_ref(aAVFrame->buf[0]);
+  FFMPEG_LOG(
+      "VideoFrameSurface: VAAPI locking dmabuf surface UID = %d "
+      "mAVHWFrameContext %p mHWAVBuffer %p",
+      mSurface->GetUID(), mAVHWFrameContext, mHWAVBuffer);
 }
 
-void VideoFrameSurfaceVAAPI::ReleaseVAAPIData(bool aForFrameRecycle) {
-  FFMPEG_LOG("VideoFrameSurfaceVAAPI: VAAPI releasing dmabuf surface UID = %d",
-             mSurface->GetUID());
+void VideoFrameSurface<LIBAV_VER>::ReleaseVAAPIData(bool aForFrameRecycle) {
+  FFMPEG_LOG(
+      "VideoFrameSurface: VAAPI releasing dmabuf surface UID = %d "
+      "aForFrameRecycle %d mLib %p mAVHWFrameContext %p mHWAVBuffer %p",
+      mSurface->GetUID(), aForFrameRecycle, mLib, mAVHWFrameContext,
+      mHWAVBuffer);
 
   // It's possible to unref GPU data while IsUsed() is still set.
   // It can happens when VideoFramePool is deleted while decoder shutdown
@@ -56,7 +63,8 @@ void VideoFrameSurfaceVAAPI::ReleaseVAAPIData(bool aForFrameRecycle) {
   // is closed.
   if (mLib) {
     mLib->av_buffer_unref(&mHWAVBuffer);
-    mLib->av_buffer_unref(&mAVHWFramesContext);
+    mLib->av_buffer_unref(&mAVHWFrameContext);
+    mLib = nullptr;
   }
 
   // If we want to recycle the frame, make sure it's not used
@@ -67,45 +75,47 @@ void VideoFrameSurfaceVAAPI::ReleaseVAAPIData(bool aForFrameRecycle) {
   }
 }
 
-VideoFrameSurfaceVAAPI::~VideoFrameSurfaceVAAPI() {
-  FFMPEG_LOG("VideoFrameSurfaceVAAPI: deleting dmabuf surface UID = %d",
+VideoFrameSurface<LIBAV_VER>::~VideoFrameSurface() {
+  FFMPEG_LOG("VideoFrameSurface: deleting dmabuf surface UID = %d",
              mSurface->GetUID());
   // We're about to quit, no need to recycle the frames.
   ReleaseVAAPIData(/* aForFrameRecycle */ false);
 }
 
-VideoFramePool::VideoFramePool() : mSurfaceLock("VideoFramePoolSurfaceLock") {}
+VideoFramePool<LIBAV_VER>::VideoFramePool()
+    : mSurfaceLock("VideoFramePoolSurfaceLock") {}
 
-VideoFramePool::~VideoFramePool() {
+VideoFramePool<LIBAV_VER>::~VideoFramePool() {
   MutexAutoLock lock(mSurfaceLock);
   mDMABufSurfaces.Clear();
 }
 
-void VideoFramePool::ReleaseUnusedVAAPIFrames() {
+void VideoFramePool<LIBAV_VER>::ReleaseUnusedVAAPIFrames() {
   MutexAutoLock lock(mSurfaceLock);
   for (const auto& surface : mDMABufSurfaces) {
-    auto* vaapiSurface = surface->AsVideoFrameSurfaceVAAPI();
-    if (!vaapiSurface->IsUsed()) {
-      vaapiSurface->ReleaseVAAPIData();
+    if (!surface->IsUsed()) {
+      surface->ReleaseVAAPIData();
     }
   }
 }
 
-RefPtr<VideoFrameSurface> VideoFramePool::GetFreeVideoFrameSurface() {
+RefPtr<VideoFrameSurface<LIBAV_VER>>
+VideoFramePool<LIBAV_VER>::GetFreeVideoFrameSurface() {
   for (auto& surface : mDMABufSurfaces) {
     if (surface->IsUsed()) {
       continue;
     }
-    auto* vaapiSurface = surface->AsVideoFrameSurfaceVAAPI();
-    vaapiSurface->ReleaseVAAPIData();
+    surface->ReleaseVAAPIData();
     return surface;
   }
   return nullptr;
 }
 
-RefPtr<VideoFrameSurface> VideoFramePool::GetVideoFrameSurface(
-    VADRMPRIMESurfaceDescriptor& aVaDesc, AVCodecContext* aAVCodecContext,
-    AVFrame* aAVFrame, FFmpegLibWrapper* aLib) {
+RefPtr<VideoFrameSurface<LIBAV_VER>>
+VideoFramePool<LIBAV_VER>::GetVideoFrameSurface(
+    VADRMPRIMESurfaceDescriptor& aVaDesc, int aWidth, int aHeight,
+    AVCodecContext* aAVCodecContext, AVFrame* aAVFrame,
+    FFmpegLibWrapper* aLib) {
   if (aVaDesc.fourcc != VA_FOURCC_NV12 && aVaDesc.fourcc != VA_FOURCC_YV12 &&
       aVaDesc.fourcc != VA_FOURCC_P010) {
     FFMPEG_LOG("Unsupported VA-API surface format %d", aVaDesc.fourcc);
@@ -113,15 +123,17 @@ RefPtr<VideoFrameSurface> VideoFramePool::GetVideoFrameSurface(
   }
 
   MutexAutoLock lock(mSurfaceLock);
-  RefPtr<VideoFrameSurface> videoSurface = GetFreeVideoFrameSurface();
+  RefPtr<VideoFrameSurface<LIBAV_VER>> videoSurface =
+      GetFreeVideoFrameSurface();
   if (!videoSurface) {
     RefPtr<DMABufSurfaceYUV> surface =
-        DMABufSurfaceYUV::CreateYUVSurface(aVaDesc);
+        DMABufSurfaceYUV::CreateYUVSurface(aVaDesc, aWidth, aHeight);
     if (!surface) {
       return nullptr;
     }
     FFMPEG_LOG("Created new VA-API DMABufSurface UID = %d", surface->GetUID());
-    RefPtr<VideoFrameSurfaceVAAPI> surf = new VideoFrameSurfaceVAAPI(surface);
+    RefPtr<VideoFrameSurface<LIBAV_VER>> surf =
+        new VideoFrameSurface<LIBAV_VER>(surface);
     if (!mTextureCreationWorks) {
       mTextureCreationWorks = Some(surface->VerifyTextureCreation());
     }
@@ -133,16 +145,13 @@ RefPtr<VideoFrameSurface> VideoFramePool::GetVideoFrameSurface(
     mDMABufSurfaces.AppendElement(std::move(surf));
   } else {
     RefPtr<DMABufSurfaceYUV> surface = videoSurface->GetDMABufSurface();
-    if (!surface->UpdateYUVData(aVaDesc)) {
+    if (!surface->UpdateYUVData(aVaDesc, aWidth, aHeight)) {
       return nullptr;
     }
     FFMPEG_LOG("Reusing VA-API DMABufSurface UID = %d", surface->GetUID());
   }
-
-  auto* vaapiSurface = videoSurface->AsVideoFrameSurfaceVAAPI();
-  vaapiSurface->LockVAAPIData(aAVCodecContext, aAVFrame, aLib);
-  vaapiSurface->MarkAsUsed();
-
+  videoSurface->LockVAAPIData(aAVCodecContext, aAVFrame, aLib);
+  videoSurface->MarkAsUsed();
   return videoSurface;
 }
 

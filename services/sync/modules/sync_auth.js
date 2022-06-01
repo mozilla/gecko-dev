@@ -11,9 +11,6 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { Log } = ChromeUtils.import("resource://gre/modules/Log.jsm");
-const { fxAccounts } = ChromeUtils.import(
-  "resource://gre/modules/FxAccounts.jsm"
-);
 const { Async } = ChromeUtils.import("resource://services-common/async.js");
 const { TokenServerClient } = ChromeUtils.import(
   "resource://services-common/tokenserverclient.js"
@@ -44,11 +41,11 @@ ChromeUtils.defineModuleGetter(
   "resource://services-sync/keys.js"
 );
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "fxAccounts",
-  "resource://gre/modules/FxAccounts.jsm"
-);
+XPCOMUtils.defineLazyGetter(this, "fxAccounts", () => {
+  return ChromeUtils.import(
+    "resource://gre/modules/FxAccounts.jsm"
+  ).getFxAccountsSingleton();
+});
 
 ChromeUtils.defineModuleGetter(
   this,
@@ -69,10 +66,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 // FxAccountsCommon.js doesn't use a "namespace", so create one here.
-var fxAccountsCommon = {};
-ChromeUtils.import(
-  "resource://gre/modules/FxAccountsCommon.js",
-  fxAccountsCommon
+var fxAccountsCommon = ChromeUtils.import(
+  "resource://gre/modules/FxAccountsCommon.js"
 );
 
 const SCOPE_OLD_SYNC = fxAccountsCommon.SCOPE_OLD_SYNC;
@@ -128,7 +123,7 @@ function SyncAuthManager() {
   }
 }
 
-this.SyncAuthManager.prototype = {
+SyncAuthManager.prototype = {
   _fxaService: null,
   _tokenServerClient: null,
   // https://docs.services.mozilla.com/token/apis.html

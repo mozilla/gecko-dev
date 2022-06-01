@@ -19,10 +19,6 @@ add_task(async function() {
 
   let dbDirectory = do_get_profile();
   dbDirectory.append("security_state");
-  let dbFile = do_get_file(
-    "test_cert_storage_preexisting_crlite/data.safe.bin"
-  );
-  dbFile.copyTo(dbDirectory, "data.safe.bin");
   let crliteFile = do_get_file(
     "test_cert_storage_preexisting_crlite/crlite.filter"
   );
@@ -31,10 +27,22 @@ add_task(async function() {
     "test_cert_storage_preexisting_crlite/crlite.coverage"
   );
   coverageFile.copyTo(dbDirectory, "crlite.coverage");
+  let enrollmentFile = do_get_file(
+    "test_cert_storage_preexisting_crlite/crlite.enrollment"
+  );
+  enrollmentFile.copyTo(dbDirectory, "crlite.enrollment");
 
   let certStorage = Cc["@mozilla.org/security/certstorage;1"].getService(
     Ci.nsICertStorage
   );
+
+  // Add an empty stash to ensure the filter is considered to be fresh.
+  await new Promise(resolve => {
+    certStorage.addCRLiteStash(new Uint8Array([]), (rv, _) => {
+      Assert.equal(rv, Cr.NS_OK, "marked filter as fresh");
+      resolve();
+    });
+  });
 
   let certdb = Cc["@mozilla.org/security/x509certdb;1"].getService(
     Ci.nsIX509CertDB

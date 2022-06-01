@@ -45,11 +45,21 @@ RefPtr<layers::ImageContainer> OffscreenCanvasDisplayHelper::GetImageContainer()
   return mImageContainer;
 }
 
+layers::CompositableHandle OffscreenCanvasDisplayHelper::GetCompositableHandle()
+    const {
+  MutexAutoLock lock(mMutex);
+  return mData.mHandle;
+}
+
 void OffscreenCanvasDisplayHelper::UpdateContext(
     CanvasContextType aType, const Maybe<int32_t>& aChildId) {
   MutexAutoLock lock(mMutex);
-  mImageContainer =
-      MakeRefPtr<layers::ImageContainer>(layers::ImageContainer::ASYNCHRONOUS);
+
+  if (aType != CanvasContextType::WebGPU) {
+    mImageContainer = MakeRefPtr<layers::ImageContainer>(
+        layers::ImageContainer::ASYNCHRONOUS);
+  }
+
   mType = aType;
   mContextChildId = aChildId;
 
@@ -80,6 +90,16 @@ bool OffscreenCanvasDisplayHelper::CommitFrameToCompositor(
   if (aData) {
     mData = aData.ref();
     MaybeQueueInvalidateElement();
+  }
+
+  if (mData.mHandle) {
+    // No need to update the ImageContainer as the presentation itself is
+    // handled in the compositor process.
+    return true;
+  }
+
+  if (!mImageContainer) {
+    return false;
   }
 
   if (mData.mIsOpaque) {
@@ -125,9 +145,22 @@ bool OffscreenCanvasDisplayHelper::CommitFrameToCompositor(
   } else {
     surface = aContext->GetFrontBufferSnapshot(/* requireAlphaPremult */ false);
     if (surface) {
-      auto surfaceImage = MakeRefPtr<layers::SourceSurfaceImage>(surface);
-      surfaceImage->SetTextureFlags(flags);
-      image = surfaceImage;
+      bool usable = true;
+      if (surface->GetType() == gfx::SurfaceType::WEBGL) {
+        // Ensure we can map in the surface. If we get a SourceSurfaceWebgl
+        // surface, then it may not be backed by raw pixels yet. We need to map
+        // it on the owning thread rather than the ImageBridge thread.
+        gfx::DataSourceSurface::ScopedMap map(
+            static_cast<gfx::DataSourceSurface*>(surface.get()),
+            gfx::DataSourceSurface::READ);
+        usable = map.IsMapped();
+      }
+
+      if (usable) {
+        auto surfaceImage = MakeRefPtr<layers::SourceSurfaceImage>(surface);
+        surfaceImage->SetTextureFlags(flags);
+        image = surfaceImage;
+      }
     }
   }
 
@@ -232,12 +265,14 @@ OffscreenCanvasDisplayHelper::GetSurfaceSnapshot() {
   Maybe<int32_t> childId;
   HTMLCanvasElement* canvasElement;
   RefPtr<gfx::SourceSurface> surface;
+  layers::CompositableHandle handle;
 
   {
     MutexAutoLock lock(mMutex);
     hasAlpha = !mData.mIsOpaque;
     isAlphaPremult = mData.mIsAlphaPremult;
     originPos = mData.mOriginPos;
+    handle = mData.mHandle;
     managerId = mContextManagerId;
     childId = mContextChildId;
     canvasElement = mCanvasElement;
@@ -291,7 +326,9 @@ OffscreenCanvasDisplayHelper::GetSurfaceSnapshot() {
     // We don't have a usable surface, and the context lives in the compositor
     // process.
     return gfx::CanvasManagerChild::Get()->GetSnapshot(
-        managerId.value(), childId.value(), hasAlpha);
+        managerId.value(), childId.value(), handle,
+        hasAlpha ? gfx::SurfaceFormat::R8G8B8A8 : gfx::SurfaceFormat::R8G8B8X8,
+        hasAlpha && !isAlphaPremult, originPos == gl::OriginPos::BottomLeft);
   }
 
   // If we don't have any protocol IDs, or an existing surface, it is possible

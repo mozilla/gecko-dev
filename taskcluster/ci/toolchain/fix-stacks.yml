@@ -11,8 +11,7 @@ job-defaults:
         max-run-time: 1800
     run:
         script: build-fix-stacks.sh
-    run-on-projects:
-        - trunk
+        toolchain-artifact: public/build/fix-stacks.tar.zst
     fetches:
         fetch:
             - fix-stacks
@@ -22,12 +21,11 @@ linux64-fix-stacks:
         symbol: TL(fix-stacks)
     run:
         arguments: ['x86_64-unknown-linux-gnu']
-        toolchain-artifact: public/build/fix-stacks.tar.zst
     fetches:
         toolchain:
             - linux64-binutils
             - linux64-clang-toolchain
-            - linux64-rust-1.57
+            - linux64-rust-toolchain
             - sysroot-x86_64-linux-gnu
 
 macosx64-fix-stacks:
@@ -35,12 +33,11 @@ macosx64-fix-stacks:
         symbol: TM(fix-stacks)
     run:
         arguments: ['x86_64-apple-darwin']
-        toolchain-artifact: public/build/fix-stacks.tar.zst
     fetches:
         toolchain:
             - linux64-cctools-port
             - linux64-clang-toolchain
-            - linux64-rust-macos-1.57
+            - linux64-rust-macos-toolchain
             - macosx64-sdk-11.0
 
 macosx64-aarch64-fix-stacks:
@@ -48,28 +45,33 @@ macosx64-aarch64-fix-stacks:
         symbol: TM(fix-stacks-arm64)
     run:
         arguments: ['aarch64-apple-darwin']
-        toolchain-artifact: public/build/fix-stacks.tar.zst
     fetches:
         toolchain:
             - linux64-cctools-port
             - linux64-clang-toolchain
-            - linux64-rust-macos-1.57
+            - linux64-rust-macos-toolchain
             - macosx64-sdk-11.0
 
 win32-fix-stacks:
     treeherder:
         symbol: TW32(fix-stacks)
-    worker:
-        env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.9.manifest"
     run:
         arguments: ['i686-pc-windows-msvc']
-        toolchain-artifact: public/build/fix-stacks.tar.zst
-        resources:
-            - 'taskcluster/scripts/misc/tooltool-download.sh'
-        tooltool-downloads: internal
     fetches:
         toolchain:
             - linux64-clang-toolchain
             - linux64-liblowercase
-            - linux64-rust-windows-1.57
+            - linux64-rust-windows-toolchain
+            - win64-vs2017
+
+win64-fix-stacks:
+    treeherder:
+        symbol: TW64(fix-stacks)
+    run:
+        arguments: ['x86_64-pc-windows-msvc']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-liblowercase
+            - linux64-rust-windows-toolchain
+            - win64-vs2017

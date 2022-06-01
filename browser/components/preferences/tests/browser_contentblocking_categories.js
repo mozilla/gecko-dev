@@ -19,7 +19,10 @@ const CM_PREF = "privacy.trackingprotection.cryptomining.enabled";
 const STP_PREF = "privacy.trackingprotection.socialtracking.enabled";
 const LEVEL2_PREF = "privacy.annotate_channels.strict_list.enabled";
 const REFERRER_PREF = "network.http.referer.disallowCrossSiteRelaxingDefault";
+const REFERRER_TOP_PREF =
+  "network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation";
 const OCSP_PREF = "privacy.partition.network_state.ocsp_cache";
+const QUERY_PARAM_STRIP_PREF = "privacy.query_stripping.enabled";
 const STRICT_DEF_PREF = "browser.contentblocking.features.strict";
 
 // Tests that the content blocking standard category definition is based on the default settings of
@@ -71,8 +74,16 @@ add_task(async function testContentBlockingStandardDefinition() {
     `${REFERRER_PREF} pref has the default value`
   );
   ok(
+    !Services.prefs.prefHasUserValue(REFERRER_TOP_PREF),
+    `${REFERRER_TOP_PREF} pref has the default value`
+  );
+  ok(
     !Services.prefs.prefHasUserValue(OCSP_PREF),
     `${OCSP_PREF} pref has the default value`
+  );
+  ok(
+    !Services.prefs.prefHasUserValue(QUERY_PARAM_STRIP_PREF),
+    `${QUERY_PARAM_STRIP_PREF} pref has the default value`
   );
 
   let defaults = Services.prefs.getDefaultBranch("");
@@ -85,7 +96,9 @@ add_task(async function testContentBlockingStandardDefinition() {
   let originalNCBP = defaults.getIntPref(NCBP_PREF);
   let originalLEVEL2 = defaults.getBoolPref(LEVEL2_PREF);
   let originalREFERRER = defaults.getBoolPref(REFERRER_PREF);
+  let originalREFERRERTOP = defaults.getBoolPref(REFERRER_TOP_PREF);
   let originalOCSP = defaults.getBoolPref(OCSP_PREF);
+  let originalQueryParamStrip = defaults.getBoolPref(QUERY_PARAM_STRIP_PREF);
 
   let nonDefaultNCB;
   switch (originalNCB) {
@@ -115,7 +128,9 @@ add_task(async function testContentBlockingStandardDefinition() {
   defaults.setIntPref(NCB_PREF, !originalNCB);
   defaults.setBoolPref(LEVEL2_PREF, !originalLEVEL2);
   defaults.setBoolPref(REFERRER_PREF, !originalREFERRER);
+  defaults.setBoolPref(REFERRER_TOP_PREF, !originalREFERRERTOP);
   defaults.setBoolPref(OCSP_PREF, !originalOCSP);
+  defaults.setBoolPref(QUERY_PARAM_STRIP_PREF, !originalQueryParamStrip);
 
   ok(
     !Services.prefs.prefHasUserValue(TP_PREF),
@@ -154,8 +169,16 @@ add_task(async function testContentBlockingStandardDefinition() {
     `${REFERRER_PREF} pref has the default value`
   );
   ok(
+    !Services.prefs.prefHasUserValue(REFERRER_TOP_PREF),
+    `${REFERRER_TOP_PREF} pref has the default value`
+  );
+  ok(
     !Services.prefs.prefHasUserValue(OCSP_PREF),
     `${OCSP_PREF} pref has the default value`
+  );
+  ok(
+    !Services.prefs.prefHasUserValue(QUERY_PARAM_STRIP_PREF),
+    `${QUERY_PARAM_STRIP_PREF} pref has the default value`
   );
 
   // cleanup
@@ -169,7 +192,9 @@ add_task(async function testContentBlockingStandardDefinition() {
   defaults.setIntPref(NCBP_PREF, originalNCBP);
   defaults.setBoolPref(LEVEL2_PREF, originalLEVEL2);
   defaults.setBoolPref(REFERRER_PREF, originalREFERRER);
+  defaults.setBoolPref(REFERRER_TOP_PREF, originalREFERRERTOP);
   defaults.setBoolPref(OCSP_PREF, originalOCSP);
+  defaults.setBoolPref(QUERY_PARAM_STRIP_PREF, !originalQueryParamStrip);
 });
 
 // Tests that the content blocking strict category definition changes the behavior
@@ -180,7 +205,7 @@ add_task(async function testContentBlockingStrictDefinition() {
   let originalStrictPref = defaults.getStringPref(STRICT_DEF_PREF);
   defaults.setStringPref(
     STRICT_DEF_PREF,
-    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,lvl2,rp,ocsp"
+    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,lvl2,rp,rpTop,ocsp,qps"
   );
   Services.prefs.setStringPref(CAT_PREF, "strict");
   is(
@@ -195,7 +220,7 @@ add_task(async function testContentBlockingStrictDefinition() {
   );
   is(
     Services.prefs.getStringPref(STRICT_DEF_PREF),
-    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,lvl2,rp,ocsp",
+    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,lvl2,rp,rpTop,ocsp,qps",
     `${STRICT_DEF_PREF} changed to what we set.`
   );
 
@@ -245,9 +270,19 @@ add_task(async function testContentBlockingStrictDefinition() {
     `${REFERRER_PREF} pref has been set to true`
   );
   is(
+    Services.prefs.getBoolPref(REFERRER_TOP_PREF),
+    true,
+    `${REFERRER_TOP_PREF} pref has been set to true`
+  );
+  is(
     Services.prefs.getBoolPref(OCSP_PREF),
     true,
     `${OCSP_PREF} pref has been set to true`
+  );
+  is(
+    Services.prefs.getBoolPref(QUERY_PARAM_STRIP_PREF),
+    true,
+    `${QUERY_PARAM_STRIP_PREF} pref has been set to true`
   );
 
   // Note, if a pref is not listed it will use the default value, however this is only meant as a
@@ -290,13 +325,21 @@ add_task(async function testContentBlockingStrictDefinition() {
     `${REFERRER_PREF} pref has the default value`
   );
   ok(
+    !Services.prefs.prefHasUserValue(REFERRER_TOP_PREF),
+    `${REFERRER_TOP_PREF} pref has the default value`
+  );
+  ok(
     !Services.prefs.prefHasUserValue(OCSP_PREF),
     `${OCSP_PREF} pref has the default value`
+  );
+  ok(
+    !Services.prefs.prefHasUserValue(QUERY_PARAM_STRIP_PREF),
+    `${QUERY_PARAM_STRIP_PREF} pref has the default value`
   );
 
   defaults.setStringPref(
     STRICT_DEF_PREF,
-    "-tpPrivate,-fp,-cm,-tp,cookieBehavior3,cookieBehaviorPBM2,-stp,-lvl2,-rp,-ocsp"
+    "-tpPrivate,-fp,-cm,-tp,cookieBehavior3,cookieBehaviorPBM2,-stp,-lvl2,-rp,-ocsp,-qps"
   );
   is(
     Services.prefs.getBoolPref(TP_PREF),
@@ -344,9 +387,19 @@ add_task(async function testContentBlockingStrictDefinition() {
     `${REFERRER_PREF} pref has been set to false`
   );
   is(
+    Services.prefs.getBoolPref(REFERRER_TOP_PREF),
+    false,
+    `${REFERRER_TOP_PREF} pref has been set to false`
+  );
+  is(
     Services.prefs.getBoolPref(OCSP_PREF),
     false,
     `${OCSP_PREF} pref has been set to false`
+  );
+  is(
+    Services.prefs.getBoolPref(QUERY_PARAM_STRIP_PREF),
+    false,
+    `${QUERY_PARAM_STRIP_PREF} pref has been set to false`
   );
 
   // cleanup

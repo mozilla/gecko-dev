@@ -9,6 +9,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/SVGAElement.h"
 #include "mozilla/dom/HTMLDNSPrefetch.h"
 #include "mozilla/IHistory.h"
 #include "mozilla/StaticPrefs_layout.h"
@@ -53,32 +54,32 @@ Link::~Link() {
 }
 
 bool Link::ElementHasHref() const {
-  return mElement->HasAttr(kNameSpaceID_None, nsGkAtoms::href) ||
-         (!mElement->IsHTMLElement() &&
-          mElement->HasAttr(kNameSpaceID_XLink, nsGkAtoms::href));
+  if (mElement->HasAttr(nsGkAtoms::href)) {
+    return true;
+  }
+  if (const auto* svg = SVGAElement::FromNode(*mElement)) {
+    // This can be a HasAttr(kNameSpaceID_XLink, nsGkAtoms::href) check once
+    // SMIL is fixed to actually mutate DOM attributes rather than faking it.
+    return svg->HasHref();
+  }
+  MOZ_ASSERT(!mElement->IsSVGElement(),
+             "What other SVG element inherits from Link?");
+  return false;
 }
 
 void Link::VisitedQueryFinished(bool aVisited) {
   MOZ_ASSERT(mRegistered, "Setting the link state of an unregistered Link!");
-  MOZ_ASSERT(mState == State::Unvisited,
-             "Why would we want to know our visited state otherwise?");
 
   auto newState = aVisited ? State::Visited : State::Unvisited;
 
   // Set our current state as appropriate.
   mState = newState;
 
-  // We will be no longer registered if we're visited, as it'd be pointless, we
-  // never transition from visited -> unvisited.
-  if (aVisited) {
-    mRegistered = false;
-  }
-
   MOZ_ASSERT(LinkState() == NS_EVENT_STATE_VISITED ||
                  LinkState() == NS_EVENT_STATE_UNVISITED,
              "Unexpected state obtained from LinkState()!");
 
-  // Tell the element to update its visited state
+  // Tell the element to update its visited state.
   mElement->UpdateState(true);
 
   if (StaticPrefs::layout_css_always_repaint_on_unvisited()) {

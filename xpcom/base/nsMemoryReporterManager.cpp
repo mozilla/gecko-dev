@@ -443,6 +443,10 @@ static bool InSharedRegion(mach_vm_address_t aAddr, cpu_type_t aType) {
       base = SHARED_REGION_BASE_ARM;
       size = SHARED_REGION_SIZE_ARM;
       break;
+    case CPU_TYPE_ARM64:
+      base = SHARED_REGION_BASE_ARM64;
+      size = SHARED_REGION_SIZE_ARM64;
+      break;
     case CPU_TYPE_I386:
       base = SHARED_REGION_BASE_I386;
       size = SHARED_REGION_SIZE_I386;
@@ -1677,8 +1681,11 @@ NS_IMETHODIMP
 nsMemoryReporterManager::CollectReports(nsIHandleReportCallback* aHandleReport,
                                         nsISupports* aData, bool aAnonymize) {
   size_t n = MallocSizeOf(this);
-  n += mStrongReporters->ShallowSizeOfIncludingThis(MallocSizeOf);
-  n += mWeakReporters->ShallowSizeOfIncludingThis(MallocSizeOf);
+  {
+    mozilla::MutexAutoLock autoLock(mMutex);
+    n += mStrongReporters->ShallowSizeOfIncludingThis(MallocSizeOf);
+    n += mWeakReporters->ShallowSizeOfIncludingThis(MallocSizeOf);
+  }
 
   MOZ_COLLECT_REPORT("explicit/memory-reporter-manager", KIND_HEAP, UNITS_BYTES,
                      n, "Memory used by the memory reporter infrastructure.");
@@ -1750,6 +1757,7 @@ nsMemoryReporterManager::GetReportsExtended(
   return rv;
 }
 
+// MainThread only
 nsresult nsMemoryReporterManager::StartGettingReports() {
   PendingProcessesState* s = mPendingProcessesState;
   nsresult rv;
@@ -1803,7 +1811,7 @@ nsresult nsMemoryReporterManager::StartGettingReports() {
     }
   }
 
-  if (!mIsRegistrationBlocked && net::gIOService) {
+  if (!IsRegistrationBlocked() && net::gIOService) {
     if (RefPtr<MemoryReportingProcess> proc =
             net::gIOService->GetSocketProcessMemoryReporter()) {
       s->mChildrenPending.AppendElement(proc.forget());
@@ -1812,9 +1820,12 @@ nsresult nsMemoryReporterManager::StartGettingReports() {
 
   if (RefPtr<UtilityProcessManager> utility =
           UtilityProcessManager::GetIfExists()) {
-    if (RefPtr<MemoryReportingProcess> proc =
-            utility->GetProcessMemoryReporter()) {
-      s->mChildrenPending.AppendElement(proc.forget());
+    for (RefPtr<UtilityProcessParent>& parent :
+         utility->GetAllProcessesProcessParent()) {
+      if (RefPtr<MemoryReportingProcess> proc =
+              utility->GetProcessMemoryReporter(parent)) {
+        s->mChildrenPending.AppendElement(proc.forget());
+      }
     }
   }
 
@@ -1909,6 +1920,7 @@ nsMemoryReporterManager::GetReportsForThisProcessExtended(
   return NS_OK;
 }
 
+// MainThread only
 NS_IMETHODIMP
 nsMemoryReporterManager::EndReport() {
   if (--mPendingReportersState->mReportsPending == 0) {

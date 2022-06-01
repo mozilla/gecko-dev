@@ -127,11 +127,13 @@ AccShowEvent::AccShowEvent(LocalAccessible* aTarget)
 
 AccTextSelChangeEvent::AccTextSelChangeEvent(HyperTextAccessible* aTarget,
                                              dom::Selection* aSelection,
-                                             int32_t aReason)
+                                             int32_t aReason,
+                                             int32_t aGranularity)
     : AccEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED, aTarget,
                eAutoDetect, eCoalesceTextSelChange),
       mSel(aSelection),
-      mReason(aReason) {}
+      mReason(aReason),
+      mGranularity(aGranularity) {}
 
 AccTextSelChangeEvent::~AccTextSelChangeEvent() {}
 
@@ -246,7 +248,8 @@ already_AddRefed<nsIAccessibleEvent> a11y::MakeXPCEvent(AccEvent* aEvent) {
     AccCaretMoveEvent* cm = downcast_accEvent(aEvent);
     xpEvent = new xpcAccCaretMoveEvent(
         type, ToXPC(acc), ToXPCDocument(doc), node, fromUser,
-        cm->GetCaretOffset(), cm->IsSelectionCollapsed(), cm->IsAtEndOfLine());
+        cm->GetCaretOffset(), cm->IsSelectionCollapsed(), cm->IsAtEndOfLine(),
+        cm->GetGranularity());
     return xpEvent.forget();
   }
 
@@ -259,8 +262,7 @@ already_AddRefed<nsIAccessibleEvent> a11y::MakeXPCEvent(AccEvent* aEvent) {
         do_CreateInstance(NS_ARRAY_CONTRACTID);
     uint32_t len = ranges.Length();
     for (uint32_t idx = 0; idx < len; idx++) {
-      xpcRanges->AppendElement(
-          new xpcAccessibleTextRange(std::move(ranges[idx])));
+      xpcRanges->AppendElement(new xpcAccessibleTextRange(ranges[idx]));
     }
 
     xpEvent = new xpcAccTextSelectionChangeEvent(

@@ -15,7 +15,7 @@ import * as selectors from "../selectors";
 import { parserWorker, evaluationsParser } from "../test/tests-setup";
 import configureStore from "../actions/utils/create-store";
 import sourceQueue from "../utils/source-queue";
-
+import { setupCreate } from "../client/firefox/create";
 /**
  * This file contains older interfaces used by tests that have not been
  * converted to use test-mockup.js
@@ -55,6 +55,8 @@ function createStore(client, initialState = {}, sourceMapsMock) {
   // Put the initial context in the store, for convenience to unit tests.
   store.cx = selectors.getThreadContext(store.getState());
 
+  setupCreate({ store });
+
   return store;
 }
 
@@ -80,6 +82,7 @@ function createSourceObject(filename, props = {}) {
   return {
     id: filename,
     url: makeSourceURL(filename),
+    thread: props.thread || "FakeThread",
     isBlackBoxed: !!props.isBlackBoxed,
     isPrettyPrinted: false,
     isExtension: false,

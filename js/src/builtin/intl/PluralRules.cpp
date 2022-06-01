@@ -15,7 +15,7 @@
 
 #include "builtin/Array.h"
 #include "builtin/intl/CommonFunctions.h"
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "js/CharacterEncoding.h"
 #include "js/PropertySpec.h"
 #include "vm/GlobalObject.h"
@@ -40,7 +40,6 @@ const JSClassOps PluralRulesObject::classOps_ = {
     nullptr,                      // mayResolve
     PluralRulesObject::finalize,  // finalize
     nullptr,                      // call
-    nullptr,                      // hasInstance
     nullptr,                      // construct
     nullptr,                      // trace
 };
@@ -129,13 +128,13 @@ static bool PluralRules(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-void js::PluralRulesObject::finalize(JSFreeOp* fop, JSObject* obj) {
-  MOZ_ASSERT(fop->onMainThread());
+void js::PluralRulesObject::finalize(JS::GCContext* gcx, JSObject* obj) {
+  MOZ_ASSERT(gcx->onMainThread());
 
   auto* pluralRules = &obj->as<PluralRulesObject>();
   if (mozilla::intl::PluralRules* pr = pluralRules->getPluralRules()) {
     intl::RemoveICUCellMemory(
-        fop, obj, PluralRulesObject::UPluralRulesEstimatedMemoryUse);
+        gcx, obj, PluralRulesObject::UPluralRulesEstimatedMemoryUse);
     delete pr;
   }
 }
@@ -336,16 +335,37 @@ bool js::intl_SelectPluralRule(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * ResolvePluralRange ( pluralRules, x, y )
+ * PluralRuleSelectRange ( locale, type, xp, yp )
+ */
 bool js::intl_SelectPluralRuleRange(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   MOZ_ASSERT(args.length() == 3);
 
+  // Steps 1-2.
   Rooted<PluralRulesObject*> pluralRules(
       cx, &args[0].toObject().as<PluralRulesObject>());
 
+  // Steps 3-4.
   double x = args[1].toNumber();
   double y = args[2].toNumber();
 
+  // Step 5.
+  if (mozilla::IsNaN(x)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_NAN_NUMBER_RANGE, "start", "PluralRules",
+                              "selectRange");
+    return false;
+  }
+  if (mozilla::IsNaN(y)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_NAN_NUMBER_RANGE, "end", "PluralRules",
+                              "selectRange");
+    return false;
+  }
+
+  // Step 6.
   if (x > y) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_START_AFTER_END_NUMBER, "PluralRules",
@@ -359,6 +379,7 @@ bool js::intl_SelectPluralRuleRange(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  // Steps 7-11.
   auto keywordResult = pr->SelectRange(x, y);
   if (keywordResult.isErr()) {
     intl::ReportInternalError(cx, keywordResult.unwrapErr());

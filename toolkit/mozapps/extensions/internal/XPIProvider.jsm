@@ -33,6 +33,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
   Dictionary: "resource://gre/modules/Extension.jsm",
   Extension: "resource://gre/modules/Extension.jsm",
+  ExtensionData: "resource://gre/modules/Extension.jsm",
   Langpack: "resource://gre/modules/Extension.jsm",
   SitePermission: "resource://gre/modules/Extension.jsm",
   FileUtils: "resource://gre/modules/FileUtils.jsm",
@@ -563,6 +564,14 @@ class XPIState {
 
   get isWebExtension() {
     return this.loader == null;
+  }
+
+  get isPrivileged() {
+    return ExtensionData.getIsPrivileged({
+      signedState: this.signedState,
+      builtIn: this.location.isBuiltin,
+      temporarilyInstalled: this.location.isTemporary,
+    });
   }
 
   /**
@@ -1813,6 +1822,7 @@ class BootstrapScope {
         temporarilyInstalled: addon.location.isTemporary,
         builtIn: addon.location.isBuiltin,
         isSystem: addon.location.isSystem,
+        isPrivileged: addon.isPrivileged,
         recommendationState: addon.recommendationState,
       };
 
@@ -2412,7 +2422,8 @@ var XPIProvider = {
    *        unregistered.
    */
   unregisterDictionaries(aDicts) {
-    let origDict = spellCheck.dictionary;
+    let origDicts = spellCheck.dictionaries.slice();
+    let toRemove = [];
 
     for (let [lang, uri] of Object.entries(aDicts)) {
       if (
@@ -2420,12 +2431,14 @@ var XPIProvider = {
         this.dictionaries.hasOwnProperty(lang)
       ) {
         spellCheck.addDictionary(lang, this.dictionaries[lang]);
-
-        if (lang == origDict) {
-          spellCheck.dictionary = origDict;
-        }
+      } else {
+        toRemove.push(lang);
       }
     }
+
+    spellCheck.dictionaries = origDicts.filter(
+      lang => !toRemove.includes(lang)
+    );
   },
 
   /**
@@ -3299,6 +3312,11 @@ var XPIInternal = {
   maybeResolveURI,
   migrateAddonLoader,
   resolveDBReady,
+
+  // Used by tests to shut down AddonManager.
+  overrideAsyncShutdown(mockAsyncShutdown) {
+    AsyncShutdown = mockAsyncShutdown;
+  },
 };
 
 AddonManagerPrivate.registerProvider(XPIProvider, Array.from(ALL_XPI_TYPES));

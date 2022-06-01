@@ -83,7 +83,6 @@ UNIFIED_SOURCES += [
     "nsUserIdleServiceWin.cpp",
     "nsUXThemeData.cpp",
     "nsWindow.cpp",
-    "nsWindowBase.cpp",
     "nsWindowDbg.cpp",
     "nsWindowGfx.cpp",
     "nsWinGesture.cpp",
@@ -180,7 +179,7 @@ LOCAL_INCLUDES += [
 
 DEFINES["MOZ_UNICODE"] = True
 
-for var in "MOZ_ENABLE_D3D10_LAYER":
+for var in ("MOZ_ENABLE_D3D10_LAYER", "MOZ_BACKGROUNDTASKS"):
     if CONFIG[var]:
         DEFINES[var] = True
 

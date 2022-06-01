@@ -13,9 +13,6 @@ const kWhitelist = new Set([
 ]);
 
 const kESModuleList = new Set([
-  /browser\/res\/payments\/(components|containers|mixins)\/.*\.js$/,
-  /browser\/res\/payments\/paymentRequest\.js$/,
-  /browser\/res\/payments\/PaymentsStore\.js$/,
   /browser\/aboutlogins\/components\/.*\.js$/,
   /browser\/aboutlogins\/.*\.js$/,
   /browser\/protections.js$/,
@@ -24,8 +21,12 @@ const kESModuleList = new Set([
   /browser\/proxy-card.js$/,
   /browser\/vpn-card.js$/,
   /browser\/content\/browser\/certerror\/aboutNetError\.js$/,
+  /browser\/content\/browser\/firefoxview\.js$/,
+  /browser\/content\/browser\/recently-closed-tabs\.js$/,
+  /browser\/content\/browser\/tabs-pickup\.js$/,
   /toolkit\/content\/global\/certviewer\/components\/.*\.js$/,
   /toolkit\/content\/global\/certviewer\/.*\.js$/,
+  /chrome\/pdfjs\/content\/web\/.*\.js$/,
 ]);
 
 // Normally we would use reflect.jsm to get Reflect.parse. However, if

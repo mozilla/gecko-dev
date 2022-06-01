@@ -339,18 +339,13 @@ enum class BufferKind : uint8_t {
 
 struct FloatOrInt final  // For TexParameter[fi] and friends.
 {
-  const bool isFloat;
-  const GLfloat f;
-  const GLint i;
+  bool isFloat = false;
+  GLfloat f = 0;
+  GLint i = 0;
 
   explicit FloatOrInt(GLint x = 0) : isFloat(false), f(x), i(x) {}
 
   explicit FloatOrInt(GLfloat x) : isFloat(true), f(x), i(roundf(x)) {}
-
-  FloatOrInt& operator=(const FloatOrInt& x) {
-    memcpy(this, &x, sizeof(x));
-    return *this;
-  }
 };
 
 struct WebGLContextOptions {
@@ -364,6 +359,8 @@ struct WebGLContextOptions {
   bool xrCompatible = false;
   dom::WebGLPowerPreference powerPreference =
       dom::WebGLPowerPreference::Default;
+  dom::PredefinedColorSpace colorSpace = dom::PredefinedColorSpace::Srgb;
+  bool ignoreColorSpace = true;  // Our legacy behavior.
   bool shouldResistFingerprinting = true;
   bool enableDebugRendererInfo = false;
 
@@ -375,6 +372,22 @@ struct WebGLContextOptions {
     return !(*this == rhs);
   }
 };
+
+namespace gfx {
+
+inline ColorSpace2 ToColorSpace2(const dom::PredefinedColorSpace cs) {
+  switch (cs) {
+    case dom::PredefinedColorSpace::Srgb:
+      return ColorSpace2::SRGB;
+    case dom::PredefinedColorSpace::Display_p3:
+      return ColorSpace2::DISPLAY_P3;
+    case dom::PredefinedColorSpace::EndGuard_:
+      break;
+  }
+  MOZ_CRASH("Exhaustive switch");
+}
+
+}  // namespace gfx
 
 // -
 
@@ -657,6 +670,12 @@ struct OpaqueFramebufferOptions final {
 
 // -
 
+struct SwapChainOptions final {
+  bool bgra = false;
+};
+
+// -
+
 struct ActiveInfo {
   GLenum elemType = 0;     // `type`
   uint32_t elemCount = 0;  // `size`
@@ -746,13 +765,6 @@ struct VertAttribPointerCalculated final {
 };
 
 }  // namespace webgl
-
-// return value for the InitializeCanvasRenderer message
-struct ICRData {
-  gfx::IntSize size;
-  bool hasAlpha;
-  bool isPremultAlpha;
-};
 
 /**
  * Represents a block of memory that it may or may not own.  The

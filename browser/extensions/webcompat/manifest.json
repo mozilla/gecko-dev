@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "30.2.0",
+  "version": "102.2.0",
   "applications": {
     "gecko": {
       "id": "webcompat@mozilla.org",
@@ -64,6 +64,7 @@
   "content_security_policy": "script-src 'self' 'sha256-MmZkN2QaIHhfRWPZ8TVRjijTn5Ci1iEabtTEWrt9CCo='; default-src 'self'; base-uri moz-extension://*; object-src 'none'",
 
   "permissions": [
+    "mozillaAddons",
     "tabs",
     "webNavigation",
     "webRequest",
@@ -101,6 +102,7 @@
     "shims/crave-ca.js",
     "shims/criteo.js",
     "shims/cxense.js",
+    "shims/doubleverify.js",
     "shims/eluminate.js",
     "shims/empty-script.js",
     "shims/empty-shim.txt",
@@ -135,6 +137,7 @@
     "shims/vast2.xml",
     "shims/vast3.xml",
     "shims/vidible.js",
-    "shims/vmad.xml"
+    "shims/vmad.xml",
+    "shims/webtrends.js"
   ]
 }

@@ -6,10 +6,13 @@
 import json
 import os
 
+import requests
+
 from taskgraph.parameters import Parameters
+from taskgraph.taskgraph import TaskGraph
+from taskgraph.util.taskcluster import get_artifact, list_task_group_incomplete_tasks
 
 from gecko_taskgraph.actions.registry import register_callback_action
-from gecko_taskgraph.util.taskcluster import get_artifact
 from gecko_taskgraph.util.taskgraph import (
     find_decision_task,
     find_existing_tasks_from_previous_kinds,
@@ -21,7 +24,6 @@ from gecko_taskgraph.util.partners import (
     get_partner_url_config,
     get_token,
 )
-from gecko_taskgraph.taskgraph import TaskGraph
 from gecko_taskgraph.decision import taskgraph_decision
 from gecko_taskgraph.util.attributes import RELEASE_PROMOTION_PROJECTS, release_level
 
@@ -297,6 +299,22 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
     do_not_optimize = input.get(
         "do_not_optimize", promotion_config.get("do-not-optimize", [])
     )
+
+    # Make sure no pending tasks remain from a previous run
+    own_task_id = os.environ.get("TASK_ID", "")
+    try:
+        for t in list_task_group_incomplete_tasks(own_task_id):
+            if t == own_task_id:
+                continue
+            raise Exception(
+                "task group has unexpected pre-existing incomplete tasks (e.g. {})".format(
+                    t
+                )
+            )
+    except requests.exceptions.HTTPError as e:
+        # 404 means the task group doesn't exist yet, and we're fine
+        if e.response.status_code != 404:
+            raise
 
     # Build previous_graph_ids from ``previous_graph_ids``, ``revision``,
     # or the action parameters.

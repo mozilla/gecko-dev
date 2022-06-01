@@ -30,6 +30,17 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   CryptoWrapper: "resource://services-sync/record.js",
 });
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "INVALID_SHAREABLE_SCHEMES",
+  "services.sync.engine.tabs.filteredSchemes",
+  "",
+  null,
+  val => {
+    return new Set(val.split("|"));
+  }
+);
+
 class FxAccountsCommands {
   constructor(fxAccountsInternal) {
     this._fxai = fxAccountsInternal;
@@ -199,6 +210,13 @@ class FxAccountsCommands {
                 sender ? sender.name : "Unknown device"
               }.`
             );
+            // This should eventually be rare to hit as all platforms will be using the same
+            // scheme filter list, but we have this here in the case other platforms
+            // haven't caught up and/or trying to send invalid uris using older versions
+            const scheme = Services.io.newURI(uri).scheme;
+            if (INVALID_SHAREABLE_SCHEMES.has(scheme)) {
+              throw new Error("Invalid scheme found for received URI.");
+            }
             tabsReceived.push({ title, uri, sender });
           } catch (e) {
             log.error(`Error while handling incoming Send Tab payload.`, e);
@@ -209,8 +227,12 @@ class FxAccountsCommands {
       }
     }
     if (tabsReceived.length) {
-      Observers.notify("fxaccounts:commands:open-uri", tabsReceived);
+      this._notifyFxATabsReceived(tabsReceived);
     }
+  }
+
+  _notifyFxATabsReceived(tabsReceived) {
+    Observers.notify("fxaccounts:commands:open-uri", tabsReceived);
   }
 }
 
@@ -350,17 +372,11 @@ class SendTab {
   }
 
   async _decrypt(ciphertext) {
-    let sendTabKeys = await this._getPersistedSendTabKeys();
-    if (!sendTabKeys) {
-      // If we lost the user's send tab keys for any reason,
-      // `generateAndPersistEncryptedSendTabKeys` will regenerate the send tab keys,
-      // persist them, then persist an encrypted bundle of the keys.
-      // It should be impossible for us to hit this for new devices
-      // this was added to recover users who hit Bug 1752609
-      await this._generateAndPersistEncryptedSendTabKey();
-      sendTabKeys = await this._getPersistedSendTabKeys();
-    }
-    let { privateKey, publicKey, authSecret } = sendTabKeys;
+    let {
+      privateKey,
+      publicKey,
+      authSecret,
+    } = await this._getPersistedSendTabKeys();
     publicKey = urlsafeBase64Decode(publicKey);
     authSecret = urlsafeBase64Decode(authSecret);
     ciphertext = new Uint8Array(urlsafeBase64Decode(ciphertext));
@@ -446,7 +462,8 @@ class SendTab {
 
   async getEncryptedSendTabKeys() {
     let encryptedSendTabKeys = await this._getPersistedEncryptedSendTabKey();
-    if (!encryptedSendTabKeys) {
+    const sendTabKeys = await this._getPersistedSendTabKeys();
+    if (!encryptedSendTabKeys || !sendTabKeys) {
       log.info("Generating and persisting encrypted sendtab keys");
       // `_generateAndPersistEncryptedKeys` requires the sync key
       // which cannot be accessed if the login manager is locked

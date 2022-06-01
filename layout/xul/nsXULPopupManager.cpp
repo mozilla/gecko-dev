@@ -51,9 +51,7 @@
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/StaticPrefs_xul.h"
 #include "mozilla/widget/nsAutoRollup.h"
-#ifdef XP_MACOSX
-#  include "mozilla/widget/NativeMenuSupport.h"
-#endif
+#include "mozilla/widget/NativeMenuSupport.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -770,7 +768,7 @@ void nsXULPopupManager::ShowPopup(nsIContent* aPopup,
 }
 
 static bool ShouldUseNativeContextMenus() {
-#ifdef XP_MACOSX
+#ifdef HAS_NATIVE_MENU_SUPPORT
   return mozilla::widget::NativeMenuSupport::ShouldUseNativeContextMenus();
 #else
   return false;
@@ -810,7 +808,7 @@ bool nsXULPopupManager::ShowPopupAsNativeMenu(nsIContent* aPopup, int32_t aXPos,
   }
 
   RefPtr<NativeMenu> menu;
-#ifdef XP_MACOSX
+#ifdef HAS_NATIVE_MENU_SUPPORT
   if (aPopup->IsElement()) {
     menu = mozilla::widget::NativeMenuSupport::CreateNativeContextMenu(
         aPopup->AsElement());
@@ -849,13 +847,9 @@ bool nsXULPopupManager::ShowPopupAsNativeMenu(nsIContent* aPopup, int32_t aXPos,
     return true;
   }
 
-  auto scale = presContext->CSSToDevPixelScale() /
-               presContext->DeviceContext()->GetDesktopToDeviceScale();
-  DesktopPoint position = CSSPoint(aXPos, aYPos) * scale;
-
   mNativeMenu = menu;
   mNativeMenu->AddObserver(this);
-  mNativeMenu->ShowAsContextMenu(position);
+  mNativeMenu->ShowAsContextMenu(presContext, CSSIntPoint(aXPos, aYPos));
 
   // While the native menu is open, it consumes mouseup events.
   // Clear any :active state, mouse capture state and drag tracking now.
@@ -1589,8 +1583,7 @@ void nsXULPopupManager::BeginShowingPopup(const PendingPopup& aPendingPopup,
       !popup->AsElement()->AttrValueIs(kNameSpaceID_None,
                                        nsGkAtoms::noautofocus, nsGkAtoms::_true,
                                        eCaseMatters)) {
-    nsFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (fm) {
+    if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
       Document* doc = popup->GetUncomposedDoc();
 
       // Only remove the focus if the currently focused item is ouside the
@@ -1601,7 +1594,8 @@ void nsXULPopupManager::BeginShowingPopup(const PendingPopup& aPendingPopup,
       RefPtr<Element> currentFocus = fm->GetFocusedElement();
       if (doc && currentFocus &&
           !nsContentUtils::ContentIsCrossDocDescendantOf(currentFocus, popup)) {
-        fm->ClearFocus(doc->GetWindow());
+        nsCOMPtr<nsPIDOMWindowOuter> outerWindow = doc->GetWindow();
+        fm->ClearFocus(outerWindow);
       }
     }
   }
@@ -1654,15 +1648,15 @@ void nsXULPopupManager::FirePopupHidingEvent(
       (!aPopup->IsElement() || !aPopup->AsElement()->AttrValueIs(
                                    kNameSpaceID_None, nsGkAtoms::noautofocus,
                                    nsGkAtoms::_true, eCaseMatters))) {
-    nsFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (fm) {
+    if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
       Document* doc = aPopup->GetUncomposedDoc();
 
       // Remove the focus from the focused node only if it is inside the popup.
       RefPtr<Element> currentFocus = fm->GetFocusedElement();
       if (doc && currentFocus &&
           nsContentUtils::ContentIsCrossDocDescendantOf(currentFocus, aPopup)) {
-        fm->ClearFocus(doc->GetWindow());
+        nsCOMPtr<nsPIDOMWindowOuter> outerWindow = doc->GetWindow();
+        fm->ClearFocus(outerWindow);
       }
     }
   }
@@ -2027,6 +2021,7 @@ void nsXULPopupManager::UpdateKeyboardListeners() {
   }
 
   if (mKeyListener != newTarget) {
+    OwningNonNull<nsXULPopupManager> kungFuDeathGrip(*this);
     if (mKeyListener) {
       mKeyListener->RemoveEventListener(u"keypress"_ns, this, true);
       mKeyListener->RemoveEventListener(u"keydown"_ns, this, true);
@@ -2938,6 +2933,7 @@ nsXULPopupPositionedEvent::Run() {
 
   PopupPositionedEventInit init;
   init.mComposed = true;
+  init.mIsAnchored = popupFrame->IsAnchored();
   init.mAlignmentOffset = popupOffset;
   AlignmentPositionToString(popupFrame, init.mAlignmentPosition);
   RefPtr<PopupPositionedEvent> event =

@@ -101,6 +101,7 @@ this.ui = (function() {
               // eslint-disable-next-line no-unsanitized/property
               this.document.documentElement.innerHTML = `
                <head>
+                <meta name="color-scheme" content="light dark">
                 <style>${substitutedCss}</style>
                 <title></title>
                </head>
@@ -134,9 +135,6 @@ this.ui = (function() {
     unhide() {
       this.updateElementSize();
       this.element.style.display = "block";
-      catcher.watchPromise(
-        callBackground("sendEvent", "internal", "unhide-selection-frame")
-      );
       this.initSizeWatch();
       this.element.focus();
     },
@@ -258,6 +256,7 @@ this.ui = (function() {
               this.document.documentElement.innerHTML = `
                <head>
                 <link rel="localization" href="browser/screenshots.ftl">
+                <meta name="color-scheme" content="light dark">
                 <style>${substitutedCss}</style>
                 <title></title>
                </head>
@@ -343,9 +342,6 @@ this.ui = (function() {
       );
       window.addEventListener("resize", this.onResize, true);
       this.element.style.display = "block";
-      catcher.watchPromise(
-        callBackground("sendEvent", "internal", "unhide-preselection-frame")
-      );
       this.element.focus();
     },
 
@@ -403,6 +399,7 @@ this.ui = (function() {
               this.document.documentElement.innerHTML = `
                 <head>
                   <link rel="localization" href="browser/screenshots.ftl">
+                  <meta name="color-scheme" content="light dark">
                   <style>${substitutedCss}</style>
                   <title></title>
                 </head>
@@ -481,9 +478,6 @@ this.ui = (function() {
 
     unhide() {
       this.element.style.display = "block";
-      catcher.watchPromise(
-        callBackground("sendEvent", "internal", "unhide-preview-frame")
-      );
       this.element.focus();
     },
 

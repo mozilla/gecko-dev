@@ -25,7 +25,7 @@ struct Resource {
     name: Option<String>,
     bind: naga::ResourceBinding,
     ty: ResourceType,
-    class: naga::StorageClass,
+    class: naga::AddressSpace,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -181,9 +181,9 @@ pub enum BindingError {
     #[error("type on the shader side does not match the pipeline binding")]
     WrongType,
     #[error("storage class {binding:?} doesn't match the shader {shader:?}")]
-    WrongStorageClass {
-        binding: naga::StorageClass,
-        shader: naga::StorageClass,
+    WrongAddressSpace {
+        binding: naga::AddressSpace,
+        shader: naga::AddressSpace,
     },
     #[error("buffer structure size {0}, added to one element of an unbound array, if it's the last field, ended up greater than the given `min_binding_size`")]
     WrongBufferSize(wgt::BufferSize),
@@ -373,7 +373,7 @@ impl Resource {
                     } => {
                         let (class, global_use) = match ty {
                             wgt::BufferBindingType::Uniform => {
-                                (naga::StorageClass::Uniform, GlobalUse::READ)
+                                (naga::AddressSpace::Uniform, GlobalUse::READ)
                             }
                             wgt::BufferBindingType::Storage { read_only } => {
                                 let mut global_use = GlobalUse::READ | GlobalUse::QUERY;
@@ -381,7 +381,7 @@ impl Resource {
                                 let mut naga_access = naga::StorageAccess::LOAD;
                                 naga_access.set(naga::StorageAccess::STORE, !read_only);
                                 (
-                                    naga::StorageClass::Storage {
+                                    naga::AddressSpace::Storage {
                                         access: naga_access,
                                     },
                                     global_use,
@@ -389,7 +389,7 @@ impl Resource {
                             }
                         };
                         if self.class != class {
-                            return Err(BindingError::WrongStorageClass {
+                            return Err(BindingError::WrongAddressSpace {
                                 binding: class,
                                 shader: self.class,
                             });
@@ -540,8 +540,8 @@ impl Resource {
         Ok(match self.ty {
             ResourceType::Buffer { size } => BindingType::Buffer {
                 ty: match self.class {
-                    naga::StorageClass::Uniform => wgt::BufferBindingType::Uniform,
-                    naga::StorageClass::Storage { .. } => wgt::BufferBindingType::Storage {
+                    naga::AddressSpace::Uniform => wgt::BufferBindingType::Uniform,
+                    naga::AddressSpace::Storage { .. } => wgt::BufferBindingType::Storage {
                         read_only: !shader_usage.contains(GlobalUse::WRITE),
                     },
                     _ => return Err(BindingError::WrongType),
@@ -717,35 +717,7 @@ impl NumericType {
             | Tf::Etc2Rgb8A1Unorm
             | Tf::Etc2Rgb8A1UnormSrgb
             | Tf::Etc2Rgba8Unorm
-            | Tf::Etc2Rgba8UnormSrgb
-            | Tf::Astc4x4RgbaUnorm
-            | Tf::Astc4x4RgbaUnormSrgb
-            | Tf::Astc5x4RgbaUnorm
-            | Tf::Astc5x4RgbaUnormSrgb
-            | Tf::Astc5x5RgbaUnorm
-            | Tf::Astc5x5RgbaUnormSrgb
-            | Tf::Astc6x5RgbaUnorm
-            | Tf::Astc6x5RgbaUnormSrgb
-            | Tf::Astc6x6RgbaUnorm
-            | Tf::Astc6x6RgbaUnormSrgb
-            | Tf::Astc8x5RgbaUnorm
-            | Tf::Astc8x5RgbaUnormSrgb
-            | Tf::Astc8x6RgbaUnorm
-            | Tf::Astc8x6RgbaUnormSrgb
-            | Tf::Astc10x5RgbaUnorm
-            | Tf::Astc10x5RgbaUnormSrgb
-            | Tf::Astc10x6RgbaUnorm
-            | Tf::Astc10x6RgbaUnormSrgb
-            | Tf::Astc8x8RgbaUnorm
-            | Tf::Astc8x8RgbaUnormSrgb
-            | Tf::Astc10x8RgbaUnorm
-            | Tf::Astc10x8RgbaUnormSrgb
-            | Tf::Astc10x10RgbaUnorm
-            | Tf::Astc10x10RgbaUnormSrgb
-            | Tf::Astc12x10RgbaUnorm
-            | Tf::Astc12x10RgbaUnormSrgb
-            | Tf::Astc12x12RgbaUnorm
-            | Tf::Astc12x12RgbaUnormSrgb => (NumericDimension::Vector(Vs::Quad), Sk::Float),
+            | Tf::Etc2Rgba8UnormSrgb => (NumericDimension::Vector(Vs::Quad), Sk::Float),
             Tf::Bc4RUnorm | Tf::Bc4RSnorm | Tf::EacR11Unorm | Tf::EacR11Snorm => {
                 (NumericDimension::Scalar, Sk::Float)
             }
@@ -755,6 +727,10 @@ impl NumericType {
             Tf::Bc6hRgbUfloat | Tf::Bc6hRgbSfloat | Tf::Etc2Rgb8Unorm | Tf::Etc2Rgb8UnormSrgb => {
                 (NumericDimension::Vector(Vs::Tri), Sk::Float)
             }
+            Tf::Astc {
+                block: _,
+                channel: _,
+            } => (NumericDimension::Vector(Vs::Quad), Sk::Float),
         };
 
         NumericType {
@@ -891,10 +867,14 @@ impl Interface {
                 Some(ref br) => br.clone(),
                 _ => continue,
             };
-            let ty = match module.types[var.ty].inner {
-                naga::TypeInner::Struct { members: _, span } => ResourceType::Buffer {
-                    size: wgt::BufferSize::new(span as u64).unwrap(),
-                },
+            let naga_ty = &module.types[var.ty].inner;
+
+            let inner_ty = match *naga_ty {
+                naga::TypeInner::BindingArray { base, .. } => &module.types[base].inner,
+                ref ty => ty,
+            };
+
+            let ty = match *inner_ty {
                 naga::TypeInner::Image {
                     dim,
                     arrayed,
@@ -905,17 +885,19 @@ impl Interface {
                     class,
                 },
                 naga::TypeInner::Sampler { comparison } => ResourceType::Sampler { comparison },
-                ref other => {
-                    log::error!("Unexpected resource type: {:?}", other);
-                    continue;
-                }
+                naga::TypeInner::Array { stride, .. } => ResourceType::Buffer {
+                    size: wgt::BufferSize::new(stride as u64).unwrap(),
+                },
+                ref other => ResourceType::Buffer {
+                    size: wgt::BufferSize::new(other.size(&module.constants) as u64).unwrap(),
+                },
             };
             let handle = resources.append(
                 Resource {
                     name: var.name.clone(),
                     bind,
                     ty,
-                    class: var.class,
+                    class: var.space,
                 },
                 Default::default(),
             );
@@ -924,7 +906,7 @@ impl Interface {
 
         let mut entry_points = FastHashMap::default();
         entry_points.reserve(module.entry_points.len());
-        for (index, entry_point) in (&module.entry_points).iter().enumerate() {
+        for (index, entry_point) in module.entry_points.iter().enumerate() {
             let info = info.get_entry_point(index);
             let mut ep = EntryPoint::default();
             for arg in entry_point.function.arguments.iter() {

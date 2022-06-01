@@ -5,7 +5,6 @@
 
 #include "nsSocketTransportService2.h"
 
-#include "GeckoProfiler.h"
 #include "IOActivityMonitor.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/ChaosMode.h"
@@ -14,6 +13,7 @@
 #include "mozilla/PodOperations.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProfilerMarkers.h"
+#include "mozilla/ProfilerThreadSleep.h"
 #include "mozilla/PublicSSL.h"
 #include "mozilla/ReverseIterator.h"
 #include "mozilla/Services.h"
@@ -296,6 +296,18 @@ NS_IMETHODIMP
 nsSocketTransportService::DelayedDispatch(already_AddRefed<nsIRunnable>,
                                           uint32_t) {
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsSocketTransportService::RegisterShutdownTask(nsITargetShutdownTask* task) {
+  nsCOMPtr<nsIThread> thread = GetThreadSafely();
+  return thread ? thread->RegisterShutdownTask(task) : NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+nsSocketTransportService::UnregisterShutdownTask(nsITargetShutdownTask* task) {
+  nsCOMPtr<nsIThread> thread = GetThreadSafely();
+  return thread ? thread->UnregisterShutdownTask(task) : NS_ERROR_UNEXPECTED;
 }
 
 NS_IMETHODIMP

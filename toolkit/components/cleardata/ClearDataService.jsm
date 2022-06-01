@@ -538,11 +538,7 @@ const QuotaCleaner = {
     );
 
     // Clear sessionStorage
-    Services.obs.notifyObservers(
-      null,
-      "browser:purge-sessionStorage",
-      aPrincipal.host
-    );
+    Services.sessionStorage.clearStoragesForOrigin(aPrincipal);
 
     // ServiceWorkers: they must be removed before cleaning QuotaManager.
     return ServiceWorkerCleanUp.removeFromPrincipal(aPrincipal)
@@ -1198,7 +1194,7 @@ const HSTSCleaner = {
       if (Services.eTLD.hasRootDomain(hostname, aHost)) {
         // This uri is used as a key to reset the state.
         let uri = Services.io.newURI("https://" + hostname);
-        sss.resetState(uri, 0, entry.originAttributes);
+        sss.resetState(uri, entry.originAttributes);
       }
     }
   },
@@ -1221,7 +1217,7 @@ const HSTSCleaner = {
       .forEach(({ hostname, originAttributes }) => {
         // This uri is used as a key to reset the state.
         let uri = Services.io.newURI("https://" + hostname);
-        sss.resetState(uri, 0, originAttributes);
+        sss.resetState(uri, originAttributes);
       });
   },
 
@@ -1499,9 +1495,9 @@ const FLAGS_MAP = [
   },
 ];
 
-this.ClearDataService = function() {
+function ClearDataService() {
   this._initialize();
-};
+}
 
 ClearDataService.prototype = Object.freeze({
   classID: Components.ID("{0c06583d-7dd8-4293-b1a5-912205f779aa}"),

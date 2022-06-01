@@ -65,9 +65,7 @@ struct CloneInfo;
 
 MOZ_DECLARE_RELOCATE_USING_MOVE_CONSTRUCTOR(mozilla::dom::indexedDB::CloneInfo)
 
-namespace mozilla {
-namespace dom {
-namespace indexedDB {
+namespace mozilla::dom::indexedDB {
 
 class BackgroundFactoryChild final : public PBackgroundIDBFactoryChild {
   friend class mozilla::ipc::BackgroundChildImpl;
@@ -114,7 +112,8 @@ class BackgroundFactoryChild final : public PBackgroundIDBFactoryChild {
       PBackgroundIDBFactoryRequestChild* aActor);
 
   PBackgroundIDBDatabaseChild* AllocPBackgroundIDBDatabaseChild(
-      const DatabaseSpec& aSpec, PBackgroundIDBFactoryRequestChild* aRequest);
+      const DatabaseSpec& aSpec,
+      PBackgroundIDBFactoryRequestChild* aRequest) const;
 
   bool DeallocPBackgroundIDBDatabaseChild(PBackgroundIDBDatabaseChild* aActor);
 
@@ -189,11 +188,11 @@ class BackgroundFactoryRequestChild final
 
   void SetDatabaseActor(BackgroundDatabaseChild* aActor);
 
-  bool HandleResponse(nsresult aResponse);
+  void HandleResponse(nsresult aResponse);
 
-  bool HandleResponse(const OpenDatabaseRequestResponse& aResponse);
+  void HandleResponse(const OpenDatabaseRequestResponse& aResponse);
 
-  bool HandleResponse(const DeleteDatabaseRequestResponse& aResponse);
+  void HandleResponse(const DeleteDatabaseRequestResponse& aResponse);
 
  public:
   // IPDL methods are only called by IPDL.
@@ -261,7 +260,7 @@ class BackgroundDatabaseChild final : public PBackgroundIDBDatabaseChild {
       const IPCBlob& aIPCBlob);
 
   bool DeallocPBackgroundIDBDatabaseFileChild(
-      PBackgroundIDBDatabaseFileChild* aActor);
+      PBackgroundIDBDatabaseFileChild* aActor) const;
 
   PBackgroundIDBDatabaseRequestChild* AllocPBackgroundIDBDatabaseRequestChild(
       const DatabaseRequestParams& aParams);
@@ -281,7 +280,7 @@ class BackgroundDatabaseChild final : public PBackgroundIDBDatabaseChild {
       const int64_t& aNextObjectStoreId, const int64_t& aNextIndexId) override;
 
   PBackgroundMutableFileChild* AllocPBackgroundMutableFileChild(
-      const nsString& aName, const nsString& aType);
+      const nsString& aName, const nsString& aType) const;
 
   bool DeallocPBackgroundMutableFileChild(PBackgroundMutableFileChild* aActor);
 
@@ -309,9 +308,9 @@ class BackgroundDatabaseRequestChild final
   // Only destroyed by BackgroundDatabaseChild.
   ~BackgroundDatabaseRequestChild();
 
-  bool HandleResponse(nsresult aResponse);
+  void HandleResponse(nsresult aResponse);
 
-  bool HandleResponse(const CreateFileRequestResponse& aResponse);
+  void HandleResponse(const CreateFileRequestResponse& aResponse);
 
  public:
   // IPDL methods are only called by IPDL.
@@ -493,7 +492,8 @@ class BackgroundMutableFileChild final : public PBackgroundMutableFileChild {
   PBackgroundFileHandleChild* AllocPBackgroundFileHandleChild(
       const FileMode& aMode);
 
-  bool DeallocPBackgroundFileHandleChild(PBackgroundFileHandleChild* aActor);
+  bool DeallocPBackgroundFileHandleChild(
+      PBackgroundFileHandleChild* aActor) const;
 };
 
 class BackgroundRequestChild final : public BackgroundRequestChildBase,
@@ -812,8 +812,6 @@ class BackgroundUtilsChild final : public PBackgroundIndexedDBUtilsChild {
   void ActorDestroy(ActorDestroyReason aWhy) override;
 };
 
-}  // namespace indexedDB
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::indexedDB
 
 #endif  // mozilla_dom_indexeddb_actorschild_h__

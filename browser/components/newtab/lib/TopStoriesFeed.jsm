@@ -50,7 +50,7 @@ const PREF_USER_TOPSTORIES = "feeds.section.topstories";
 const MAX_LIFETIME_CAP = 500; // Guard against misconfiguration on the server
 const DISCOVERY_STREAM_PREF = "discoverystream.config";
 
-this.TopStoriesFeed = class TopStoriesFeed {
+class TopStoriesFeed {
   constructor(ds) {
     // Use discoverystream config pref default values for fast path and
     // if needed lazy load activity stream top stories feed based on
@@ -738,14 +738,8 @@ this.TopStoriesFeed = class TopStoriesFeed {
         break;
     }
   }
-};
+}
 
-this.STORIES_UPDATE_TIME = STORIES_UPDATE_TIME;
-this.TOPICS_UPDATE_TIME = TOPICS_UPDATE_TIME;
-this.SECTION_ID = SECTION_ID;
-this.SPOC_IMPRESSION_TRACKING_PREF = SPOC_IMPRESSION_TRACKING_PREF;
-this.REC_IMPRESSION_TRACKING_PREF = REC_IMPRESSION_TRACKING_PREF;
-this.DEFAULT_RECS_EXPIRE_TIME = DEFAULT_RECS_EXPIRE_TIME;
 const EXPORTED_SYMBOLS = [
   "TopStoriesFeed",
   "STORIES_UPDATE_TIME",

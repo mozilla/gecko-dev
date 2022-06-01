@@ -54,6 +54,9 @@ class MIDIPlatformService {
   // Platform specific init function.
   virtual void Init() = 0;
 
+  // Forces the implementation to refresh the port list.
+  virtual void Refresh() = 0;
+
   // Platform specific MIDI port opening function.
   virtual void Open(MIDIPortParent* aPort) = 0;
 
@@ -149,7 +152,7 @@ class MIDIPlatformService {
   nsClassHashtable<nsStringHashKey, MIDIMessageQueue> mMessageQueues;
 
   // Mutex for managing access to message queue objects.
-  Mutex mMessageQueueMutex;
+  Mutex mMessageQueueMutex MOZ_UNANNOTATED;
 };
 
 }  // namespace mozilla::dom

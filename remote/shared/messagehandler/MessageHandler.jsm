@@ -4,7 +4,7 @@
 
 "use strict";
 
-const EXPORTED_SYMBOLS = ["CONTEXT_DESCRIPTOR_TYPES", "MessageHandler"];
+const EXPORTED_SYMBOLS = ["ContextDescriptorType", "MessageHandler"];
 
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
@@ -14,6 +14,8 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   EventEmitter: "resource://gre/modules/EventEmitter.jsm",
 
   error: "chrome://remote/content/shared/messagehandler/Errors.jsm",
+  EventsDispatcher:
+    "chrome://remote/content/shared/messagehandler/EventsDispatcher.jsm",
   Log: "chrome://remote/content/shared/Log.jsm",
   ModuleCache: "chrome://remote/content/shared/messagehandler/ModuleCache.jsm",
 });
@@ -33,19 +35,23 @@ XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
  * be later expanded to filter on a worker, a webextension, a process etc...
  *
  * @typedef {Object} ContextDescriptor
- * @property {String} type
- *     The type of context, one of CONTEXT_DESCRIPTOR_TYPES
+ * @property {ContextDescriptorType} type
+ *     The type of context
  * @property {String=} id
  *     Unique id of a given context for the provided type.
- *     For CONTEXT_DESCRIPTOR_TYPES.ALL, id can be ommitted.
- *     For CONTEXT_DESCRIPTOR_TYPES.TOP_BROWSING_CONTEXT, the id should be a
+ *     For ContextDescriptorType.All, id can be ommitted.
+ *     For ContextDescriptorType.TopBrowsingContext, the id should be a
  *     WindowManager UUID created by `getIdForBrowser`.
  */
 
-// Enum of ContextDescriptor types.
-const CONTEXT_DESCRIPTOR_TYPES = {
-  ALL: "all",
-  TOP_BROWSING_CONTEXT: "top-browsing-context",
+/**
+ * Enum of ContextDescriptor types.
+ *
+ * @enum {string}
+ */
+const ContextDescriptorType = {
+  All: "All",
+  TopBrowsingContext: "TopBrowsingContext",
 };
 
 /**
@@ -88,10 +94,15 @@ class MessageHandler extends EventEmitter {
     this._sessionId = sessionId;
     this._context = context;
     this._contextId = this.constructor.getIdFromContext(context);
+    this._eventsDispatcher = new EventsDispatcher(this);
   }
 
   get contextId() {
     return this._contextId;
+  }
+
+  get eventsDispatcher() {
+    return this._eventsDispatcher;
   }
 
   get name() {
@@ -106,6 +117,7 @@ class MessageHandler extends EventEmitter {
     logger.trace(
       `MessageHandler ${this.constructor.type} for session ${this.sessionId} is being destroyed`
     );
+    this._eventsDispatcher.destroy();
     this._moduleCache.destroy();
 
     // At least the MessageHandlerRegistry will be expecting this event in order
@@ -137,6 +149,12 @@ class MessageHandler extends EventEmitter {
       isProtocolEvent,
       sessionId: this.sessionId,
     });
+
+    // Internal events should also be emitted using their original event name
+    // for ease of use.
+    if (!isProtocolEvent) {
+      this.emit(name, data);
+    }
   }
 
   /**
@@ -196,12 +214,7 @@ class MessageHandler extends EventEmitter {
       `Received command ${moduleName}.${commandName} for destination ${destination.type}`
     );
 
-    const supportsCommand = this.getAllModuleClasses(
-      moduleName,
-      destination
-    ).some(cls => cls.supportsMethod(commandName));
-
-    if (!supportsCommand) {
+    if (!this.supportsCommand(moduleName, commandName, destination)) {
       throw new error.UnsupportedCommandError(
         `${moduleName}.${commandName} not supported for destination ${destination?.type}`
       );
@@ -265,5 +278,24 @@ class MessageHandler extends EventEmitter {
    */
   forwardCommand(command) {
     throw new Error("Not implemented");
+  }
+
+  /**
+   * Check if the given command is supported in the module
+   * for the destination
+   *
+   * @param {String} moduleName
+   *     The name of the module.
+   * @param {String} commandName
+   *     The name of the command.
+   * @param {Destination} destination
+   *     The destination.
+   * @return {Boolean}
+   *     True if the command is supported.
+   */
+  supportsCommand(moduleName, commandName, destination) {
+    return this.getAllModuleClasses(moduleName, destination).some(cls =>
+      cls.supportsMethod(commandName)
+    );
   }
 }

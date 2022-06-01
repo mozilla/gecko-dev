@@ -265,6 +265,7 @@ DownloadLegacyTransfer.prototype = {
   // nsITransfer
   init: function DLT_init(
     aSource,
+    aSourceOriginalURI,
     aTarget,
     aDisplayName,
     aMIMEInfo,
@@ -277,6 +278,7 @@ DownloadLegacyTransfer.prototype = {
   ) {
     return this._nsITransferInitInternal(
       aSource,
+      aSourceOriginalURI,
       aTarget,
       aDisplayName,
       aMIMEInfo,
@@ -302,7 +304,8 @@ DownloadLegacyTransfer.prototype = {
     aDownloadClassification,
     aReferrerInfo,
     aBrowsingContext,
-    aHandleInternally
+    aHandleInternally,
+    aHttpChannel
   ) {
     let browsingContextId;
     let userContextId;
@@ -314,6 +317,7 @@ DownloadLegacyTransfer.prototype = {
     }
     return this._nsITransferInitInternal(
       aSource,
+      null,
       aTarget,
       aDisplayName,
       aMIMEInfo,
@@ -325,12 +329,14 @@ DownloadLegacyTransfer.prototype = {
       aReferrerInfo,
       userContextId,
       browsingContextId,
-      aHandleInternally
+      aHandleInternally,
+      aHttpChannel
     );
   },
 
   _nsITransferInitInternal(
     aSource,
+    aSourceOriginalURI,
     aTarget,
     aDisplayName,
     aMIMEInfo,
@@ -342,7 +348,8 @@ DownloadLegacyTransfer.prototype = {
     referrerInfo,
     userContextId = 0,
     browsingContextId = 0,
-    handleInternally = false
+    handleInternally = false,
+    aHttpChannel = null
   ) {
     this._cancelable = aCancelable;
     let launchWhenSucceeded = false,
@@ -365,13 +372,21 @@ DownloadLegacyTransfer.prototype = {
     // Create a new Download object associated to a DownloadLegacySaver, and
     // wait for it to be available.  This operation may cause the entire
     // download system to initialize before the object is created.
+    let authHeader = null;
+    if (aHttpChannel) {
+      try {
+        authHeader = aHttpChannel.getRequestHeader("Authorization");
+      } catch (e) {}
+    }
     let serialisedDownload = {
       source: {
         url: aSource.spec,
+        originalUrl: aSourceOriginalURI && aSourceOriginalURI.spec,
         isPrivate,
         userContextId,
         browsingContextId,
         referrerInfo,
+        authHeader,
       },
       target: {
         path: aTarget.QueryInterface(Ci.nsIFileURL).file.path,

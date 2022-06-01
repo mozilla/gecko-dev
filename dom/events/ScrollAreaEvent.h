@@ -13,8 +13,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class ScrollAreaEvent : public UIEvent {
  public:
@@ -24,8 +23,9 @@ class ScrollAreaEvent : public UIEvent {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ScrollAreaEvent, UIEvent)
 
-  void Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType) override;
-  bool Deserialize(const IPC::Message* aMsg, PickleIterator* aIter) override;
+  void Serialize(IPC::MessageWriter* aWriter,
+                 bool aSerializeInterfaceType) override;
+  bool Deserialize(IPC::MessageReader* aReader) override;
 
   virtual JSObject* WrapObjectInternal(
       JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
@@ -51,8 +51,7 @@ class ScrollAreaEvent : public UIEvent {
   RefPtr<DOMRect> mClientArea;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 already_AddRefed<mozilla::dom::ScrollAreaEvent> NS_NewDOMScrollAreaEvent(
     mozilla::dom::EventTarget* aOwner, nsPresContext* aPresContext,

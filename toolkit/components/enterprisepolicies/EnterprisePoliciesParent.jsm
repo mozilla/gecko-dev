@@ -186,8 +186,16 @@ EnterprisePoliciesManager.prototype = {
         continue;
       }
 
-      this._parsedPolicies[policyName] = parsedParameters;
       let policyImpl = Policies[policyName];
+
+      if (policyImpl.validate && !policyImpl.validate(parsedParameters)) {
+        log.error(
+          `Parameters for ${policyName} did not validate successfully.`
+        );
+        continue;
+      }
+
+      this._parsedPolicies[policyName] = parsedParameters;
 
       for (let timing of Object.keys(this._callbacks)) {
         let policyCallback = policyImpl[timing];
@@ -426,6 +434,25 @@ EnterprisePoliciesManager.prototype = {
 
   allowedInstallSource(uri) {
     return InstallSources ? InstallSources.matches(uri) : true;
+  },
+
+  isExemptExecutableExtension(origin, extension) {
+    let hostname = new URL(origin)?.hostname;
+    let exemptArray = this.getActivePolicies()
+      ?.ExemptDomainFileTypePairsFromFileTypeDownloadWarnings;
+    if (!hostname || !extension || !exemptArray) {
+      return false;
+    }
+    let domains = exemptArray
+      .filter(item => item.file_extension == extension)
+      .map(item => item.domains)
+      .flat();
+    for (let domain of domains) {
+      if (Services.eTLD.hasRootDomain(hostname, domain)) {
+        return true;
+      }
+    }
+    return false;
   },
 };
 

@@ -168,12 +168,10 @@ class _MomentsPageHub {
   }
 }
 
-this._MomentsPageHub = _MomentsPageHub;
-
 /**
  * ToolbarBadgeHub - singleton instance of _ToolbarBadgeHub that can initiate
  * message requests and render messages.
  */
-this.MomentsPageHub = new _MomentsPageHub();
+const MomentsPageHub = new _MomentsPageHub();
 
 const EXPORTED_SYMBOLS = ["_MomentsPageHub", "MomentsPageHub"];

@@ -456,20 +456,16 @@ AtomizeAndCopyCharsNonStaticValidLengthFromLookup(
     const AtomHasher::Lookup& lookup, const Maybe<uint32_t>& indexValue) {
   // Try the per-Zone cache first. If we find the atom there we can avoid the
   // markAtom call, and the multiple HashSet lookups below.
-  // We don't use the per-Zone cache if we want a pinned atom: handling that
-  // is more complicated and pinning atoms is relatively uncommon.
   Zone* zone = cx->zone();
-  Maybe<AtomSet::AddPtr> zonePtr;
-  if (MOZ_LIKELY(zone)) {
-    zonePtr.emplace(zone->atomCache().lookupForAdd(lookup));
-    if (zonePtr.ref()) {
-      // The cache is purged on GC so if we're in the middle of an
-      // incremental GC we should have barriered the atom when we put
-      // it in the cache.
-      JSAtom* atom = zonePtr.ref()->unbarrieredGet();
-      MOZ_ASSERT(AtomIsMarked(zone, atom));
-      return atom;
-    }
+  MOZ_ASSERT(zone);
+  AtomSet::AddPtr zonePtr = zone->atomCache().lookupForAdd(lookup);
+  if (zonePtr) {
+    // The cache is purged on GC so if we're in the middle of an
+    // incremental GC we should have barriered the atom when we put
+    // it in the cache.
+    JSAtom* atom = zonePtr->unbarrieredGet();
+    MOZ_ASSERT(AtomIsMarked(zone, atom));
+    return atom;
   }
 
   MOZ_ASSERT(cx->permanentAtomsPopulated());
@@ -477,7 +473,7 @@ AtomizeAndCopyCharsNonStaticValidLengthFromLookup(
   AtomSet::Ptr pp = cx->permanentAtoms().readonlyThreadsafeLookup(lookup);
   if (pp) {
     JSAtom* atom = pp->get();
-    if (zonePtr && MOZ_UNLIKELY(!zone->atomCache().add(*zonePtr, atom))) {
+    if (MOZ_UNLIKELY(!zone->atomCache().add(zonePtr, atom))) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
@@ -496,7 +492,7 @@ AtomizeAndCopyCharsNonStaticValidLengthFromLookup(
     return nullptr;
   }
 
-  if (zonePtr && MOZ_UNLIKELY(!zone->atomCache().add(*zonePtr, atom))) {
+  if (MOZ_UNLIKELY(!zone->atomCache().add(zonePtr, atom))) {
     ReportOutOfMemory(cx);
     return nullptr;
   }
@@ -739,6 +735,8 @@ static MOZ_ALWAYS_INLINE JSAtom* AllocateNewPermanentAtomNonStaticValidLength(
 }
 
 JSAtom* js::AtomizeString(JSContext* cx, JSString* str) {
+  MOZ_ASSERT(cx->isMainThreadContext());
+
   if (str->isAtom()) {
     return &str->asAtom();
   }
@@ -748,10 +746,8 @@ JSAtom* js::AtomizeString(JSContext* cx, JSString* str) {
     return nullptr;
   }
 
-  if (cx->isMainThreadContext()) {
-    if (JSAtom* atom = cx->caches().stringToAtomCache.lookup(linear)) {
-      return atom;
-    }
+  if (JSAtom* atom = cx->caches().stringToAtomCache.lookup(linear)) {
+    return atom;
   }
 
   Maybe<uint32_t> indexValue;
@@ -769,9 +765,7 @@ JSAtom* js::AtomizeString(JSContext* cx, JSString* str) {
     return nullptr;
   }
 
-  if (cx->isMainThreadContext()) {
-    cx->caches().stringToAtomCache.maybePut(linear, atom);
-  }
+  cx->caches().stringToAtomCache.maybePut(linear, atom);
 
   return atom;
 }
@@ -804,22 +798,6 @@ JSAtom* js::Atomize(JSContext* cx, const char* bytes, size_t length,
   return AtomizeAndCopyChars(cx, chars, length, indexValue);
 }
 
-JSAtom* js::Atomize(JSContext* cx, HashNumber hash, const char* bytes,
-                    size_t length) {
-  const Latin1Char* chars = reinterpret_cast<const Latin1Char*>(bytes);
-  if (JSAtom* s = cx->staticStrings().lookup(chars, length)) {
-    return s;
-  }
-
-  if (MOZ_UNLIKELY(!JSString::validateLength(cx, length))) {
-    return nullptr;
-  }
-
-  AtomHasher::Lookup lookup(hash, chars, length);
-  return AtomizeAndCopyCharsNonStaticValidLengthFromLookup(cx, chars, length,
-                                                           lookup, Nothing());
-}
-
 template <typename CharT>
 JSAtom* js::AtomizeChars(JSContext* cx, const CharT* chars, size_t length) {
   return AtomizeAndCopyChars(cx, chars, length, Nothing());
@@ -830,6 +808,34 @@ template JSAtom* js::AtomizeChars(JSContext* cx, const Latin1Char* chars,
 
 template JSAtom* js::AtomizeChars(JSContext* cx, const char16_t* chars,
                                   size_t length);
+
+JSAtom* js::AtomizeWithoutActiveZone(JSContext* cx, const char* bytes,
+                                     size_t length) {
+  // This is used to implement JS_AtomizeAndPinString{N} when called without an
+  // active zone. This simplifies the normal atomization code because it can
+  // assume a non-null cx->zone().
+
+  MOZ_ASSERT(!cx->zone());
+  MOZ_ASSERT(cx->permanentAtomsPopulated());
+
+  const Latin1Char* chars = reinterpret_cast<const Latin1Char*>(bytes);
+
+  if (JSAtom* s = cx->staticStrings().lookup(chars, length)) {
+    return s;
+  }
+
+  if (MOZ_UNLIKELY(!JSString::validateLength(cx, length))) {
+    return nullptr;
+  }
+
+  AtomHasher::Lookup lookup(chars, length);
+  if (AtomSet::Ptr pp = cx->permanentAtoms().readonlyThreadsafeLookup(lookup)) {
+    return pp->get();
+  }
+
+  return cx->atoms().atomizeAndCopyCharsNonStaticValidLength(cx, chars, length,
+                                                             Nothing(), lookup);
+}
 
 /* |chars| must not point into an inline or short string. */
 template <typename CharT>
@@ -950,6 +956,60 @@ bool js::IndexToIdSlow(JSContext* cx, uint32_t index, MutableHandleId idp) {
 }
 
 template <AllowGC allowGC>
+static MOZ_ALWAYS_INLINE JSAtom* PrimitiveToAtom(JSContext* cx,
+                                                 const Value& v) {
+  MOZ_ASSERT(v.isPrimitive());
+  switch (v.type()) {
+    case ValueType::String: {
+      JSAtom* atom = AtomizeString(cx, v.toString());
+      if (!allowGC && !atom) {
+        cx->recoverFromOutOfMemory();
+      }
+      return atom;
+    }
+    case ValueType::Int32: {
+      JSAtom* atom = Int32ToAtom(cx, v.toInt32());
+      if (!allowGC && !atom) {
+        cx->recoverFromOutOfMemory();
+      }
+      return atom;
+    }
+    case ValueType::Double: {
+      JSAtom* atom = NumberToAtom(cx, v.toDouble());
+      if (!allowGC && !atom) {
+        cx->recoverFromOutOfMemory();
+      }
+      return atom;
+    }
+    case ValueType::Boolean:
+      return v.toBoolean() ? cx->names().true_ : cx->names().false_;
+    case ValueType::Null:
+      return cx->names().null;
+    case ValueType::Undefined:
+      return cx->names().undefined;
+    case ValueType::Symbol:
+      MOZ_ASSERT(!cx->isHelperThreadContext());
+      if constexpr (allowGC) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_SYMBOL_TO_STRING);
+      }
+      return nullptr;
+    case ValueType::BigInt: {
+      RootedBigInt i(cx, v.toBigInt());
+      return BigIntToAtom<allowGC>(cx, i);
+    }
+#ifdef ENABLE_RECORD_TUPLE
+    case ValueType::ExtendedPrimitive:
+#endif
+    case ValueType::Object:
+    case ValueType::Magic:
+    case ValueType::PrivateGCThing:
+      break;
+  }
+  MOZ_CRASH("Unexpected type");
+}
+
+template <AllowGC allowGC>
 static JSAtom* ToAtomSlow(
     JSContext* cx, typename MaybeRooted<Value, allowGC>::HandleType arg) {
   MOZ_ASSERT(!arg.isString());
@@ -967,47 +1027,7 @@ static JSAtom* ToAtomSlow(
     v = v2;
   }
 
-  if (v.isString()) {
-    JSAtom* atom = AtomizeString(cx, v.toString());
-    if (!allowGC && !atom) {
-      cx->recoverFromOutOfMemory();
-    }
-    return atom;
-  }
-  if (v.isInt32()) {
-    JSAtom* atom = Int32ToAtom(cx, v.toInt32());
-    if (!allowGC && !atom) {
-      cx->recoverFromOutOfMemory();
-    }
-    return atom;
-  }
-  if (v.isDouble()) {
-    JSAtom* atom = NumberToAtom(cx, v.toDouble());
-    if (!allowGC && !atom) {
-      cx->recoverFromOutOfMemory();
-    }
-    return atom;
-  }
-  if (v.isBoolean()) {
-    return v.toBoolean() ? cx->names().true_ : cx->names().false_;
-  }
-  if (v.isNull()) {
-    return cx->names().null;
-  }
-  if (v.isSymbol()) {
-    MOZ_ASSERT(!cx->isHelperThreadContext());
-    if (allowGC) {
-      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                JSMSG_SYMBOL_TO_STRING);
-    }
-    return nullptr;
-  }
-  if (v.isBigInt()) {
-    RootedBigInt i(cx, v.toBigInt());
-    return BigIntToAtom<allowGC>(cx, i);
-  }
-  MOZ_ASSERT(v.isUndefined());
-  return cx->names().undefined;
+  return PrimitiveToAtom<allowGC>(cx, v);
 }
 
 template <AllowGC allowGC>
@@ -1031,8 +1051,37 @@ JSAtom* js::ToAtom(JSContext* cx,
 }
 
 template JSAtom* js::ToAtom<CanGC>(JSContext* cx, HandleValue v);
-
 template JSAtom* js::ToAtom<NoGC>(JSContext* cx, const Value& v);
+
+template <AllowGC allowGC>
+bool js::PrimitiveValueToIdSlow(
+    JSContext* cx, typename MaybeRooted<Value, allowGC>::HandleType v,
+    typename MaybeRooted<jsid, allowGC>::MutableHandleType idp) {
+  MOZ_ASSERT(v.isPrimitive());
+  MOZ_ASSERT(!v.isString());
+  MOZ_ASSERT(!v.isSymbol());
+  MOZ_ASSERT_IF(v.isInt32(), !PropertyKey::fitsInInt(v.toInt32()));
+
+  int32_t i;
+  if (v.isDouble() && mozilla::NumberEqualsInt32(v.toDouble(), &i) &&
+      PropertyKey::fitsInInt(i)) {
+    idp.set(PropertyKey::Int(i));
+    return true;
+  }
+
+  JSAtom* atom = PrimitiveToAtom<allowGC>(cx, v);
+  if (!atom) {
+    return false;
+  }
+
+  idp.set(AtomToId(atom));
+  return true;
+}
+
+template bool js::PrimitiveValueToIdSlow<CanGC>(JSContext* cx, HandleValue v,
+                                                MutableHandleId idp);
+template bool js::PrimitiveValueToIdSlow<NoGC>(JSContext* cx, const Value& v,
+                                               FakeMutableHandle<jsid> idp);
 
 #ifdef ENABLE_RECORD_TUPLE
 bool js::EnsureAtomized(JSContext* cx, MutableHandleValue v, bool* updated) {

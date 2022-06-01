@@ -32,8 +32,7 @@
 #include "nsStringFwd.h"
 #include "mozilla/Maybe.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 /**
  * "mAttributes" and "mMethods" are the cross-origin attributes and methods we
@@ -339,14 +338,6 @@ class MaybeCrossOriginObject : public Base,
                  JS::MutableHandleVector<jsid> props) const final;
 
   /**
-   * Spidermonkey-internal hook used for instanceof.  We need to override this
-   * because otherwise we can end up doing instanceof work in the wrong
-   * compartment.
-   */
-  bool hasInstance(JSContext* cx, JS::Handle<JSObject*> proxy,
-                   JS::MutableHandle<JS::Value> v, bool* bp) const final;
-
-  /**
    * Spidermonkey-internal hook used by Object.prototype.toString.  Subclasses
    * need to implement this, because we don't know what className they want.
    * Except in the cross-origin case, when we could maybe handle it...
@@ -355,7 +346,6 @@ class MaybeCrossOriginObject : public Base,
                         JS::Handle<JSObject*> proxy) const override = 0;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif /* mozilla_dom_MaybeCrossOriginObject_h */

@@ -534,8 +534,8 @@ add_task(async function suggestHistoryFalse_bookmark_multiple() {
 });
 
 // This is similar to suggestHistoryFalse_bookmark_prefix_0 in
-// autofill_tasks.js, but it adds unbookmarked visits for multiple URLs with the
-// same origin.
+// autofill_test_autofill_originsAndQueries.js, but it adds unbookmarked visits
+// for multiple URLs with the same origin.
 add_task(async function suggestHistoryFalse_bookmark_prefix_multiple() {
   // Force only bookmarked pages to be suggested and therefore only bookmarked
   // pages to be completed.
@@ -753,5 +753,35 @@ add_task(async function searchParams_https() {
     ],
   });
 
+  await cleanup();
+});
+
+// Checks an origin that looks like a prefix: a scheme with no dots + a port.
+add_task(async function originLooksLikePrefix() {
+  let hostAndPort = "localhost:8888";
+  let address = `http://${hostAndPort}/`;
+  await PlacesTestUtils.addVisits([{ uri: address }]);
+
+  // addTestSuggestionsEngine adds a search engine
+  // with localhost as a server, so we have to disable the
+  // TTS result or else it will show up as a second result
+  // when searching l to localhost
+  UrlbarPrefs.set("suggest.engines", false);
+
+  for (let search of ["lo", "localhost", "localhost:", "localhost:8888"]) {
+    let context = createContext(search, { isPrivate: false });
+    await check_results({
+      context,
+      autofilled: hostAndPort + "/",
+      completed: address,
+      matches: [
+        makeVisitResult(context, {
+          uri: address,
+          title: hostAndPort,
+          heuristic: true,
+        }),
+      ],
+    });
+  }
   await cleanup();
 });

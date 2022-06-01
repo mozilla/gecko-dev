@@ -15,12 +15,14 @@
 
 namespace mozilla {
 
+class PMFMediaEngineChild;
 class RemoteDecoderChild;
 
 enum class RemoteDecodeIn {
   Unspecified,
   RddProcess,
   GpuProcess,
+  UtilityProcess,
 
   SENTINEL,
 };
@@ -46,7 +48,7 @@ class RemoteDecoderManagerChild final
                        const SupportDecoderParams& aParams,
                        DecoderDoctorDiagnostics* aDiagnostics);
   static RefPtr<PlatformDecoderModule::CreateDecoderPromise> CreateAudioDecoder(
-      const CreateDecoderParams& aParams);
+      const CreateDecoderParams& aParams, RemoteDecodeIn aLocation);
   static RefPtr<PlatformDecoderModule::CreateDecoderPromise> CreateVideoDecoder(
       const CreateDecoderParams& aParams, RemoteDecodeIn aLocation);
 
@@ -90,6 +92,9 @@ class RemoteDecoderManagerChild final
   RemoteDecodeIn Location() const { return mLocation; }
   layers::VideoBridgeSource GetSource() const;
 
+  // A thread-safe method to launch the RDD process if it hasn't launched yet.
+  static RefPtr<GenericNonExclusivePromise> LaunchRDDProcessIfNeeded();
+
  protected:
   void InitIPDL();
 
@@ -100,20 +105,26 @@ class RemoteDecoderManagerChild final
   PRemoteDecoderChild* AllocPRemoteDecoderChild(
       const RemoteDecoderInfoIPDL& aRemoteDecoderInfo,
       const CreateDecoderParams::OptionSet& aOptions,
-      const Maybe<layers::TextureFactoryIdentifier>& aIdentifier);
+      const Maybe<layers::TextureFactoryIdentifier>& aIdentifier,
+      const Maybe<uint64_t>& aMediaEngineId);
   bool DeallocPRemoteDecoderChild(PRemoteDecoderChild* actor);
+
+  PMFMediaEngineChild* AllocPMFMediaEngineChild();
+  bool DeallocPMFMediaEngineChild(PMFMediaEngineChild* actor);
 
  private:
   explicit RemoteDecoderManagerChild(RemoteDecodeIn aLocation);
   ~RemoteDecoderManagerChild() = default;
   static RefPtr<PlatformDecoderModule::CreateDecoderPromise> Construct(
-      RefPtr<RemoteDecoderChild>&& aChild);
+      RefPtr<RemoteDecoderChild>&& aChild, RemoteDecodeIn aLocation);
 
   static void OpenForRDDProcess(
       Endpoint<PRemoteDecoderManagerChild>&& aEndpoint);
   static void OpenForGPUProcess(
       Endpoint<PRemoteDecoderManagerChild>&& aEndpoint);
-  static RefPtr<GenericNonExclusivePromise> LaunchRDDProcessIfNeeded();
+  static void OpenForUtilityProcess(
+      Endpoint<PRemoteDecoderManagerChild>&& aEndpoint);
+  static RefPtr<GenericNonExclusivePromise> LaunchUtilityProcessIfNeeded();
 
   RefPtr<RemoteDecoderManagerChild> mIPDLSelfRef;
   // The location for decoding, Rdd or Gpu process.

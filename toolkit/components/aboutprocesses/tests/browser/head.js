@@ -12,7 +12,7 @@ const { AppConstants } = ChromeUtils.import(
 // update these values.
 // Note that Test Verify can really stress the cpu durations.
 const HARDCODED_ASSUMPTIONS_PROCESS = {
-  minimalNumberOfThreads: 10,
+  minimalNumberOfThreads: 6,
   maximalNumberOfThreads: 1000,
   minimalCPUPercentage: 0,
   maximalCPUPercentage: 1000,
@@ -148,6 +148,17 @@ async function testCpu(element, total, slope, assumptions) {
   info(
     `Testing CPU display ${element.textContent} - ${element.title} vs total ${total}, slope ${slope}`
   );
+  let barWidth = getComputedStyle(element).getPropertyValue("--bar-width");
+  if (slope) {
+    Assert.greater(
+      Number.parseFloat(barWidth),
+      0,
+      "The bar width should be > 0 when there is some CPU use"
+    );
+  } else {
+    Assert.equal(barWidth, "-0.5", "There should be no CPU bar displayed");
+  }
+
   if (element.textContent == "(measuring)") {
     info("Still measuring");
     return;
@@ -371,6 +382,27 @@ async function setupTabWithOriginAndTitle(origin, title) {
   return tab;
 }
 
+async function setupAudioTab() {
+  let origin = "about:blank";
+  let title = "utility audio";
+  let tab = BrowserTestUtils.addTab(gBrowser, origin, { skipAnimation: true });
+  tab.testTitle = title;
+  tab.testOrigin = origin;
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  await SpecialPowers.spawn(tab.linkedBrowser, [title], async title => {
+    content.document.title = title;
+    const ROOT =
+      "https://example.com/browser/toolkit/components/aboutprocesses/tests/browser";
+    let audio = content.document.createElement("audio");
+    audio.setAttribute("controls", "true");
+    audio.setAttribute("loop", true);
+    audio.src = `${ROOT}/small-shot.mp3`;
+    content.document.body.appendChild(audio);
+    await audio.play();
+  });
+  return tab;
+}
+
 async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
   const isFission = gFissionBrowser;
   await SpecialPowers.pushPrefEnv({
@@ -380,6 +412,8 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       // Force same-origin tabs to share a single process, to properly test
       // functionality involving multiple tabs within a single process with Fission.
       ["dom.ipc.processCount.webIsolated", 1],
+      // Ensure utility audio decoder is enabled
+      ["media.utility-process.enabled", true],
     ],
   });
 
@@ -418,17 +452,20 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       skipAnimation: true,
     });
     await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+    let p = BrowserTestUtils.browserLoaded(
+      tab.linkedBrowser,
+      true /* includeSubFrames */
+    );
     await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
       // Open an in-process iframe to test toolkit.aboutProcesses.showAllSubframes
       let frame = content.document.createElement("iframe");
       content.document.body.appendChild(frame);
     });
-    await BrowserTestUtils.browserLoaded(
-      tab.linkedBrowser,
-      true /* includeSubFrames */
-    );
+    await p;
     return tab;
   })();
+
+  let promiseAudioPlayback = setupAudioTab();
 
   let promiseUserContextTab = (async function() {
     let tab = BrowserTestUtils.addTab(gBrowser, "http://example.com", {
@@ -482,6 +519,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
   // Wait for initialization to finish.
   let tabAboutProcesses = await promiseTabAboutProcesses;
   let tabHung = await promiseTabHung;
+  let audioPlayback = await promiseAudioPlayback;
   let tabUserContext = await promiseUserContextTab;
   let tabCloseSeparately1 = await promiseTabCloseSeparately1;
   let tabCloseSeparately2 = await promiseTabCloseSeparately2;
@@ -561,6 +599,17 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
         !row.classList.contains("hung") &&
         row.classList.contains("process") &&
         ["web", "webIsolated"].includes(row.process.type),
+    },
+    // A utility process with audio decoder.
+    {
+      name: "utility",
+      predicate: row =>
+        row.process &&
+        row.process.type == "utility" &&
+        row.classList.contains("process") &&
+        row.nextSibling &&
+        row.nextSibling.classList.contains("actor") &&
+        row.nextSibling.actor.actorName === "audioDecoder",
     },
   ];
   for (let finder of processesToBeFound) {
@@ -1012,6 +1061,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
   // We killed the process, but we don't want to leave zombie tabs lying around.
   BrowserTestUtils.removeTab(tabCloseProcess1);
   BrowserTestUtils.removeTab(tabCloseProcess2);
+  BrowserTestUtils.removeTab(audioPlayback);
 
   await SpecialPowers.popPrefEnv();
 

@@ -182,7 +182,9 @@ var PrintEventHandler = {
     this.printFrameOnly = args.getProperty("printFrameOnly");
     this.printSelectionOnly = args.getProperty("printSelectionOnly");
     this.isArticle = args.getProperty("isArticle");
-    this.hasSelection = await this.checkForSelection(sourceBrowsingContext);
+    this.hasSelection = await PrintUtils.checkForSelection(
+      sourceBrowsingContext
+    );
 
     let sourcePrincipal =
       sourceBrowsingContext.currentWindowGlobal.documentPrincipal;
@@ -296,22 +298,24 @@ var PrintEventHandler = {
         this.settings.printerName == PrintUtils.SAVE_TO_PDF_PRINTER
           ? PrintUtils.getPrintSettings(this.viewSettings.defaultSystemPrinter)
           : this.settings.clone();
-      // Update the settings print options on whether there is a selection since
-      // getPrintSettings won't have the correct value.
-      settings.isPrintSelectionRBEnabled = this.hasSelection;
       // We set the title so that if the user chooses save-to-PDF from the
       // system dialog the title will be used to generate the prepopulated
       // filename in the file picker.
       settings.title = this.activeTitle;
-      const PRINTPROMPTSVC = Cc[
-        "@mozilla.org/embedcomp/printingprompt-service;1"
-      ].getService(Ci.nsIPrintingPromptService);
+      const PRINTDIALOGSVC = Cc[
+        "@mozilla.org/widget/printdialog-service;1"
+      ].getService(Ci.nsIPrintDialogService);
       try {
         Services.telemetry.scalarAdd(
           "printing.dialog_opened_via_preview_tm",
           1
         );
-        await this._showPrintDialog(PRINTPROMPTSVC, window, settings);
+        await this._showPrintDialog(
+          PRINTDIALOGSVC,
+          window,
+          this.hasSelection,
+          settings
+        );
       } catch (e) {
         if (e.result == Cr.NS_ERROR_ABORT) {
           Services.telemetry.scalarAdd(
@@ -357,19 +361,6 @@ var PrintEventHandler = {
     fm.setFocus(document.getElementById("printer-picker"), fm.FLAG_SHOWRING);
 
     await initialPreviewDone;
-  },
-
-  async checkForSelection(browsingContext) {
-    try {
-      let sourceActor = browsingContext.currentWindowGlobal.getActor(
-        "PrintingSelection"
-      );
-      // Need the await for the try to trigger...
-      return await sourceActor.sendQuery("PrintingSelection:HasSelection", {});
-    } catch (e) {
-      Cu.reportError(e);
-    }
-    return false;
   },
 
   async print(systemDialogSettings) {
@@ -702,31 +693,51 @@ var PrintEventHandler = {
             ? paperWidthInInches
             : paperHeightInInches;
 
-        if (
-          parseFloat(this.viewSettings.customMargins.marginTop) +
-            parseFloat(this.viewSettings.customMargins.marginBottom) >
+        function verticalMarginsInvalid(margins) {
+          return (
+            parseFloat(margins.marginTop) + parseFloat(margins.marginBottom) >
             height -
               paperWrapper.unwriteableMarginTop -
-              paperWrapper.unwriteableMarginBottom ||
+              paperWrapper.unwriteableMarginBottom
+          );
+        }
+
+        function horizontalMarginsInvalid(margins) {
+          return (
+            parseFloat(margins.marginRight) + parseFloat(margins.marginLeft) >
+            width -
+              paperWrapper.unwriteableMarginRight -
+              paperWrapper.unwriteableMarginLeft
+          );
+        }
+
+        if (
+          verticalMarginsInvalid(this.viewSettings.customMargins) ||
           this.viewSettings.customMargins.marginTop < 0 ||
           this.viewSettings.customMargins.marginBottom < 0
         ) {
           let { marginTop, marginBottom } = this.viewSettings.defaultMargins;
+          if (verticalMarginsInvalid(this.viewSettings.defaultMargins)) {
+            let marginsNone = this.getMarginPresets("none");
+            marginTop = marginsNone.marginTop;
+            marginBottom = marginsNone.marginBottom;
+          }
           changedSettings.marginTop = changedSettings.customMarginTop = marginTop;
           changedSettings.marginBottom = changedSettings.customMarginBottom = marginBottom;
           delete this._userChangedSettings.customMargins;
         }
 
         if (
-          parseFloat(this.viewSettings.customMargins.marginRight) +
-            parseFloat(this.viewSettings.customMargins.marginLeft) >
-            width -
-              paperWrapper.unwriteableMarginRight -
-              paperWrapper.unwriteableMarginLeft ||
+          horizontalMarginsInvalid(this.viewSettings.customMargins) ||
           this.viewSettings.customMargins.marginLeft < 0 ||
           this.viewSettings.customMargins.marginRight < 0
         ) {
           let { marginLeft, marginRight } = this.viewSettings.defaultMargins;
+          if (horizontalMarginsInvalid(this.viewSettings.defaultMargins)) {
+            let marginsNone = this.getMarginPresets("none");
+            marginLeft = marginsNone.marginLeft;
+            marginRight = marginsNone.marginRight;
+          }
           changedSettings.marginLeft = changedSettings.customMarginLeft = marginLeft;
           changedSettings.marginRight = changedSettings.customMarginRight = marginRight;
           delete this._userChangedSettings.customMargins;
@@ -854,9 +865,6 @@ var PrintEventHandler = {
       this.viewSettings.pageRanges = [];
       this.updatePrintPreview();
     }
-
-    // Update the settings print options on whether there is a selection.
-    settings.isPrintSelectionRBEnabled = this.hasSelection;
 
     document.dispatchEvent(
       new CustomEvent("page-count", {
@@ -1018,8 +1026,17 @@ var PrintEventHandler = {
    * testing purposes. The showPrintDialog() call blocks until the dialog is
    * closed, so we mark it as async to allow us to reject from the test.
    */
-  async _showPrintDialog(aPrintingPromptService, aWindow, aSettings) {
-    return aPrintingPromptService.showPrintDialog(aWindow, aSettings);
+  async _showPrintDialog(
+    aPrintDialogService,
+    aWindow,
+    aHaveSelection,
+    aSettings
+  ) {
+    return aPrintDialogService.showPrintDialog(
+      aWindow,
+      aHaveSelection,
+      aSettings
+    );
   },
 };
 
@@ -1176,20 +1193,23 @@ var PrintSettingsViewProxy = {
       printerInfo.defaultSettings = basePrinterInfo.defaultSettings;
     } else if (printerName == PrintUtils.SAVE_TO_PDF_PRINTER) {
       // The Mozilla PDF pseudo-printer has no actual nsIPrinter implementation
-      printerInfo.defaultSettings = PSSVC.newPrintSettings;
+      printerInfo.defaultSettings = PSSVC.createNewPrintSettings();
       printerInfo.defaultSettings.printerName = printerName;
       printerInfo.defaultSettings.toFileName = "";
       printerInfo.defaultSettings.outputFormat =
         Ci.nsIPrintSettings.kOutputFormatPDF;
-      printerInfo.defaultSettings.printToFile = true;
+      printerInfo.defaultSettings.outputDestination =
+        Ci.nsIPrintSettings.kOutputDestinationFile;
       printerInfo.paperList = this.fallbackPaperList;
     }
     printerInfo.settings = printerInfo.defaultSettings.clone();
     // Apply any previously persisted user values
     // Don't apply kInitSavePrintToFile though, that should only be true for
     // the PDF printer.
-    printerInfo.settings.printToFile =
-      printerName == PrintUtils.SAVE_TO_PDF_PRINTER;
+    printerInfo.settings.outputDestination =
+      printerName == PrintUtils.SAVE_TO_PDF_PRINTER
+        ? Ci.nsIPrintSettings.kOutputDestinationFile
+        : Ci.nsIPrintSettings.kOutputDestinationPrinter;
     let flags =
       printerInfo.settings.kInitSaveAll ^
       printerInfo.settings.kInitSavePrintToFile;
@@ -1575,12 +1595,7 @@ class PrintUIForm extends PrintUIControlMixin(HTMLFormElement) {
   }
 
   removeNonPdfSettings() {
-    let selectors = [
-      "#margins",
-      "#headers-footers",
-      "#backgrounds",
-      "#source-version-selection",
-    ];
+    let selectors = ["#backgrounds", "#source-version-selection"];
     for (let selector of selectors) {
       this.querySelector(selector).remove();
     }
@@ -2464,7 +2479,6 @@ class MarginsPicker extends PrintUIControlMixin(HTMLElement) {
         settings.unwriteableMarginLeft -
         settings.unwriteableMarginRight;
 
-      this._defaultPresets = settings.defaultMargins;
       // The values in custom fields should be initialized to custom margin values
       // and must be overriden if they are no longer valid.
       this.setAllMarginValues(settings);
@@ -2615,7 +2629,7 @@ class PageCount extends PrintUIControlMixin(HTMLElement) {
   update(settings) {
     this.numCopies = settings.numCopies;
     this.duplex = settings.duplex;
-    this.printToFile = settings.printToFile;
+    this.outputDestination = settings.outputDestination;
     this.render();
   }
 
@@ -2628,7 +2642,10 @@ class PageCount extends PrintUIControlMixin(HTMLElement) {
 
     // When printing to a printer (not to a file) update
     // the sheet count to account for duplex printing.
-    if (!this.printToFile && this.duplex != Ci.nsIPrintSettings.kDuplexNone) {
+    if (
+      this.outputDestination == Ci.nsIPrintSettings.kOutputDestinationPrinter &&
+      this.duplex != Ci.nsIPrintSettings.kDuplexNone
+    ) {
       sheetCount = Math.ceil(sheetCount / 2);
     }
 

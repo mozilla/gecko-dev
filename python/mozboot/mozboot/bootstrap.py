@@ -54,10 +54,9 @@ Firefox for Android frontends, or the GeckoView Java API. They are unsuitable
 for those working on C++ code. For more information see:
 https://firefox-source-docs.mozilla.org/contributing/build/artifact_builds.html.
 
-Please choose the version of Firefox you want to build:
+Please choose the version of Firefox you want to build (see note above):
 %s
-Your choice:
-""".strip()
+Your choice: """
 
 APPLICATIONS = OrderedDict(
     [
@@ -80,7 +79,7 @@ Paste the lines between the chevrons (>>> and <<<) into
 >>>
 %s
 <<<
-""".strip()
+"""
 
 CONFIGURE_MERCURIAL = """
 Mozilla recommends a number of changes to Mercurial to enhance your
@@ -105,6 +104,8 @@ DEBIAN_DISTROS = (
     "pop",
     "kali",
     "devuan",
+    "pureos",
+    "deepin",
 )
 
 ADD_GIT_CINNABAR_PATH = """
@@ -209,7 +210,7 @@ class Bootstrapper(object):
             cls = OpenBSDBootstrapper
             args["version"] = platform.uname()[2]
 
-        elif sys.platform.startswith("dragonfly") or sys.platform.startswith("freebsd"):
+        elif sys.platform.startswith(("dragonfly", "freebsd", "netbsd")):
             cls = FreeBSDBootstrapper
             args["version"] = platform.release()
             args["flavor"] = platform.system()
@@ -219,7 +220,6 @@ class Bootstrapper(object):
                 cls = MozillaBuildBootstrapper
             else:
                 cls = WindowsBootstrapper
-
         if cls is None:
             raise NotImplementedError(
                 "Bootstrap support is not yet available " "for your OS."
@@ -548,6 +548,7 @@ def current_firefox_checkout(env, hg: Optional[Path] = None):
 
         if not len(path.parents):
             break
+        path = path.parent
 
     raise UserError(
         "Could not identify the root directory of your checkout! "
@@ -566,7 +567,7 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
     git = to_optional_str(git)
 
     # Perform a download of cinnabar.
-    download_args = [git, "cinnabar", "download"]
+    download_args = [sys.executable, str(cinnabar_dir / "download.py")]
 
     try:
         subprocess.check_call(download_args, cwd=str(cinnabar_dir))

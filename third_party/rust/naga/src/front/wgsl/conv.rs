@@ -1,22 +1,22 @@
 use super::{Error, Span};
 
-pub fn map_storage_class(word: &str, span: Span) -> Result<crate::StorageClass, Error<'_>> {
+pub fn map_address_space(word: &str, span: Span) -> Result<crate::AddressSpace, Error<'_>> {
     match word {
-        "private" => Ok(crate::StorageClass::Private),
-        "workgroup" => Ok(crate::StorageClass::WorkGroup),
-        "uniform" => Ok(crate::StorageClass::Uniform),
-        "storage" => Ok(crate::StorageClass::Storage {
+        "private" => Ok(crate::AddressSpace::Private),
+        "workgroup" => Ok(crate::AddressSpace::WorkGroup),
+        "uniform" => Ok(crate::AddressSpace::Uniform),
+        "storage" => Ok(crate::AddressSpace::Storage {
             access: crate::StorageAccess::default(),
         }),
-        "push_constant" => Ok(crate::StorageClass::PushConstant),
-        "function" => Ok(crate::StorageClass::Function),
-        _ => Err(Error::UnknownStorageClass(span)),
+        "push_constant" => Ok(crate::AddressSpace::PushConstant),
+        "function" => Ok(crate::AddressSpace::Function),
+        _ => Err(Error::UnknownAddressSpace(span)),
     }
 }
 
 pub fn map_built_in(word: &str, span: Span) -> Result<crate::BuiltIn, Error<'_>> {
     Ok(match word {
-        "position" => crate::BuiltIn::Position,
+        "position" => crate::BuiltIn::Position { invariant: false },
         // vertex
         "vertex_index" => crate::BuiltIn::VertexIndex,
         "instance_index" => crate::BuiltIn::InstanceIndex,
@@ -36,15 +36,6 @@ pub fn map_built_in(word: &str, span: Span) -> Result<crate::BuiltIn, Error<'_>>
         "num_workgroups" => crate::BuiltIn::NumWorkGroups,
         _ => return Err(Error::UnknownBuiltin(span)),
     })
-}
-
-pub fn map_shader_stage(word: &str, span: Span) -> Result<crate::ShaderStage, Error<'_>> {
-    match word {
-        "vertex" => Ok(crate::ShaderStage::Vertex),
-        "fragment" => Ok(crate::ShaderStage::Fragment),
-        "compute" => Ok(crate::ShaderStage::Compute),
-        _ => Err(Error::UnknownShaderStage(span)),
-    }
 }
 
 pub fn map_interpolation(word: &str, span: Span) -> Result<crate::Interpolation, Error<'_>> {
@@ -191,7 +182,7 @@ pub fn map_standard_fun(word: &str) -> Option<crate::MathFunction> {
         "fma" => Mf::Fma,
         "mix" => Mf::Mix,
         "step" => Mf::Step,
-        "smoothStep" => Mf::SmoothStep,
+        "smoothstep" => Mf::SmoothStep,
         "sqrt" => Mf::Sqrt,
         "inverseSqrt" => Mf::InverseSqrt,
         "transpose" => Mf::Transpose,
@@ -201,8 +192,8 @@ pub fn map_standard_fun(word: &str) -> Option<crate::MathFunction> {
         "reverseBits" => Mf::ReverseBits,
         "extractBits" => Mf::ExtractBits,
         "insertBits" => Mf::InsertBits,
-        "findLsb" => Mf::FindLsb,
-        "findMsb" => Mf::FindMsb,
+        "firstTrailingBit" => Mf::FindLsb,
+        "firstLeadingBit" => Mf::FindMsb,
         // data packing
         "pack4x8snorm" => Mf::Pack4x8snorm,
         "pack4x8unorm" => Mf::Pack4x8unorm,

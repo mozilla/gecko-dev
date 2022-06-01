@@ -7,11 +7,6 @@
 /* import-globals-from ../../mochitest/attributes.js */
 loadScripts({ name: "attributes.js", dir: MOCHITESTS_DIR });
 
-const isCacheEnabled = Services.prefs.getBoolPref(
-  "accessibility.cache.enabled",
-  false
-);
-
 /**
  * Default textbox accessible attributes.
  */
@@ -202,4 +197,74 @@ addAccessibleTask(
     testInputType("radio");
   },
   { chrome: true, topLevel: true, iframe: false, remoteIframe: false }
+);
+
+/**
+ * Test caching of the display attribute.
+ */
+addAccessibleTask(
+  `
+<div id="div">
+  <ins id="ins">a</ins>
+  <button id="button">b</button>
+</div>
+  `,
+  async function(browser, docAcc) {
+    const div = findAccessibleChildByID(docAcc, "div");
+    testAttrs(div, { display: "block" }, true);
+    const ins = findAccessibleChildByID(docAcc, "ins");
+    testAttrs(ins, { display: "inline" }, true);
+    const textLeaf = ins.firstChild;
+    testAbsentAttrs(textLeaf, { display: "" });
+    const button = findAccessibleChildByID(docAcc, "button");
+    testAttrs(button, { display: "inline-block" }, true);
+
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("ins").style.display = "block";
+      content.document.body.offsetTop; // Flush layout.
+    });
+    await untilCacheIs(
+      () => ins.attributes.getStringProperty("display"),
+      "block",
+      "ins display attribute changed to block"
+    );
+  },
+  { chrome: true, topLevel: true, iframe: true, remoteIframe: true }
+);
+
+/**
+ * Test caching of the explicit-name attribute.
+ */
+addAccessibleTask(
+  `
+<h1 id="h1">content</h1>
+<button id="buttonContent">content</button>
+<button id="buttonLabel" aria-label="label">content</button>
+<button id="buttonEmpty"></button>
+<button id="buttonSummary"><details><summary>test</summary></details></button>
+<div id="div"></div>
+  `,
+  async function(browser, docAcc) {
+    const h1 = findAccessibleChildByID(docAcc, "h1");
+    testAbsentAttrs(h1, { "explicit-name": "" });
+    const buttonContent = findAccessibleChildByID(docAcc, "buttonContent");
+    testAbsentAttrs(buttonContent, { "explicit-name": "" });
+    const buttonLabel = findAccessibleChildByID(docAcc, "buttonLabel");
+    testAttrs(buttonLabel, { "explicit-name": "true" }, true);
+    const buttonEmpty = findAccessibleChildByID(docAcc, "buttonEmpty");
+    testAbsentAttrs(buttonEmpty, { "explicit-name": "" });
+    const buttonSummary = findAccessibleChildByID(docAcc, "buttonSummary");
+    testAbsentAttrs(buttonSummary, { "explicit-name": "" });
+    const div = findAccessibleChildByID(docAcc, "div");
+    testAbsentAttrs(div, { "explicit-name": "" });
+
+    info("Setting aria-label on h1");
+    let nameChanged = waitForEvent(EVENT_NAME_CHANGE, h1);
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("h1").setAttribute("aria-label", "label");
+    });
+    await nameChanged;
+    testAttrs(h1, { "explicit-name": "true" }, true);
+  },
+  { chrome: true, topLevel: true, iframe: true, remoteIframe: true }
 );

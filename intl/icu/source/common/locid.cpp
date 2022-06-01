@@ -716,20 +716,19 @@ AliasDataBuilder::readAlias(
         status = U_MEMORY_ALLOCATION_ERROR;
         return;
     }
-    int i = 0;
-    while (ures_hasNext(alias)) {
+    for (int i = 0; U_SUCCESS(status) && ures_hasNext(alias); i++) {
         LocalUResourceBundlePointer res(
             ures_getNextResource(alias, nullptr, &status));
         const char* aliasFrom = ures_getKey(res.getAlias());
         UnicodeString aliasTo =
             ures_getUnicodeStringByKey(res.getAlias(), "replacement", &status);
+        if (U_FAILURE(status)) return;
 
         checkType(aliasFrom);
         checkReplacement(aliasTo);
 
         rawTypes[i] = aliasFrom;
         rawIndexes[i] = strings->add(aliasTo, status);
-        i++;
     }
 }
 
@@ -1204,14 +1203,11 @@ AliasReplacer::parseLanguageReplacement(
     // We have multiple field so we have to allocate and parse
     CharString* str = new CharString(
         replacement, (int32_t)uprv_strlen(replacement), status);
+    LocalPointer<CharString> lpStr(str, status);
+    toBeFreed.adoptElement(lpStr.orphan(), status);
     if (U_FAILURE(status)) {
         return;
     }
-    if (str == nullptr) {
-        status = U_MEMORY_ALLOCATION_ERROR;
-        return;
-    }
-    toBeFreed.addElementX(str, status);
     char* data = str->data();
     replacedLanguage = (const char*) data;
     char* endOfField = uprv_strchr(data, '_');
@@ -1420,12 +1416,9 @@ AliasReplacer::replaceTerritory(UVector& toBeFreed, UErrorCode& status)
                                (int32_t)(firstSpace - replacement), status), status);
         }
         if (U_FAILURE(status)) { return false; }
-        if (item.isNull()) {
-            status = U_MEMORY_ALLOCATION_ERROR;
-            return false;
-        }
         replacedRegion = item->data();
-        toBeFreed.addElementX(item.orphan(), status);
+        toBeFreed.adoptElement(item.orphan(), status);
+        if (U_FAILURE(status)) { return false; }
     }
     U_ASSERT(!same(region, replacedRegion));
     region = replacedRegion;
@@ -1659,10 +1652,10 @@ AliasReplacer::replace(const Locale& locale, CharString& out, UErrorCode& status
         while ((end = uprv_strchr(start, SEP_CHAR)) != nullptr &&
                U_SUCCESS(status)) {
             *end = NULL_CHAR;  // null terminate inside variantsBuff
-            variants.addElementX(start, status);
+            variants.addElement(start, status);
             start = end + 1;
         }
-        variants.addElementX(start, status);
+        variants.addElement(start, status);
     }
     if (U_FAILURE(status)) { return false; }
 

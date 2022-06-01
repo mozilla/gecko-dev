@@ -197,7 +197,7 @@ class BufferRecycleBin final {
 
   // This protects mRecycledBuffers, mRecycledBufferSize, mRecycledTextures
   // and mRecycledTextureSizes
-  Mutex mLock;
+  Mutex mLock MOZ_UNANNOTATED;
 
   // We should probably do something to prune this list on a timer so we don't
   // eat excess memory while video is paused...
@@ -251,7 +251,7 @@ class ImageContainerListener final {
 
   ~ImageContainerListener();
 
-  Mutex mLock;
+  Mutex mLock MOZ_UNANNOTATED;
   ImageContainer* mImageContainer;
 };
 
@@ -281,7 +281,6 @@ class ImageContainer final : public SupportsThreadSafeWeakPtr<ImageContainer> {
   friend class ImageContainerChild;
 
  public:
-  MOZ_DECLARE_THREADSAFEWEAKREFERENCE_TYPENAME(ImageContainer)
   MOZ_DECLARE_REFCOUNTED_TYPENAME(ImageContainer)
 
   enum Mode { SYNCHRONOUS = 0x0, ASYNCHRONOUS = 0x01 };
@@ -543,7 +542,7 @@ class ImageContainer final : public SupportsThreadSafeWeakPtr<ImageContainer> {
 
   // RecursiveMutex to protect thread safe access to the "current
   // image", and any other state which is shared between threads.
-  RecursiveMutex mRecursiveMutex;
+  RecursiveMutex mRecursiveMutex MOZ_UNANNOTATED;
 
   RefPtr<TextureClientRecycleAllocator> mRecycleAllocator;
 
@@ -638,35 +637,43 @@ struct PlanarYCbCrData {
   // Luminance buffer
   uint8_t* mYChannel = nullptr;
   int32_t mYStride = 0;
-  gfx::IntSize mYSize = gfx::IntSize(0, 0);
   int32_t mYSkip = 0;
   // Chroma buffers
   uint8_t* mCbChannel = nullptr;
   uint8_t* mCrChannel = nullptr;
   int32_t mCbCrStride = 0;
-  gfx::IntSize mCbCrSize = gfx::IntSize(0, 0);
   int32_t mCbSkip = 0;
   int32_t mCrSkip = 0;
   // Picture region
-  uint32_t mPicX = 0;
-  uint32_t mPicY = 0;
-  gfx::IntSize mPicSize = gfx::IntSize(0, 0);
+  gfx::IntRect mPictureRect = gfx::IntRect(0, 0, 0, 0);
   StereoMode mStereoMode = StereoMode::MONO;
   gfx::ColorDepth mColorDepth = gfx::ColorDepth::COLOR_8;
   gfx::YUVColorSpace mYUVColorSpace = gfx::YUVColorSpace::Default;
+  gfx::TransferFunction mTransferFunction = gfx::TransferFunction::SRGB;
   gfx::ColorRange mColorRange = gfx::ColorRange::LIMITED;
+  gfx::ChromaSubsampling mChromaSubsampling = gfx::ChromaSubsampling::FULL;
 
-  gfx::IntRect GetPictureRect() const {
-    return gfx::IntRect(mPicX, mPicY, mPicSize.width, mPicSize.height);
+  // The cropped picture size of the Y channel.
+  gfx::IntSize YPictureSize() const { return mPictureRect.Size(); }
+
+  // The cropped picture size of the Cb/Cr channels.
+  gfx::IntSize CbCrPictureSize() const {
+    return mCbCrStride > 0 ? gfx::ChromaSize(YPictureSize(), mChromaSubsampling)
+                           : gfx::IntSize(0, 0);
+  }
+
+  // The total uncropped size of data in the Y channel.
+  gfx::IntSize YDataSize() const {
+    return gfx::IntSize(mPictureRect.XMost(), mPictureRect.YMost());
+  }
+
+  // The total uncropped size of data in the Cb/Cr channels.
+  gfx::IntSize CbCrDataSize() const {
+    return mCbCrStride > 0 ? gfx::ChromaSize(YDataSize(), mChromaSubsampling)
+                           : gfx::IntSize(0, 0);
   }
 
   static Maybe<PlanarYCbCrData> From(const SurfaceDescriptorBuffer&);
-
-  // We would use mPicSize, but that's not hooked up in WR for RawData
-  // ExternalImages, so we manually clip sizes later on. We should fix WR,
-  // but not in this patch. Do not use unless mPicSize doesn't work for you.
-  Maybe<gfx::IntSize> mCroppedYSize;
-  Maybe<gfx::IntSize> mCroppedCbCrSize;
 };
 
 // This type is currently only used for AVIF and therefore makes some
@@ -690,12 +697,9 @@ struct PlanarAlphaData {
  * 4:2:2 - CbCr width is half that of Y. Height is the same.
  * 4:2:0 - CbCr width and height is half that of Y.
  *
- * The color format is detected based on the height/width ratios
- * defined above.
+ * mChromaSubsampling specifies which YCbCr subsampling scheme to use.
  *
- * The Image that is rendered is the picture region defined by
- * mPicX, mPicY and mPicSize. The size of the rendered image is
- * mPicSize, not mYSize or mCbCrSize.
+ * The Image that is rendered is the picture region defined by mPictureRect.
  *
  * mYSkip, mCbSkip, mCrSkip are added to support various output
  * formats from hardware decoder. They are per-pixel skips in the
@@ -705,7 +709,7 @@ struct PlanarAlphaData {
  * the mYChannel buffer looks like:
  *
  * |<----------------------- mYStride ----------------------------->|
- * |<----------------- mYSize.width --------------->|
+ * |<----------------- YDataSize().width ---------->|
  *  0   3   6   9   12  15  18  21                639             669
  * |----------------------------------------------------------------|
  * |Y___Y___Y___Y___Y___Y___Y___Y...                |%%%%%%%%%%%%%%%|
@@ -736,7 +740,13 @@ class PlanarYCbCrImage : public Image {
   /**
    * This will create an empty data buffers according to the input data's size.
    */
-  virtual bool CreateEmptyBuffer(const Data& aData) { return false; }
+  virtual bool CreateEmptyBuffer(const Data& aData, const gfx::IntSize& aYSize,
+                                 const gfx::IntSize& aCbCrSize) {
+    return false;
+  }
+  bool CreateEmptyBuffer(const Data& aData) {
+    return CreateEmptyBuffer(aData, aData.YDataSize(), aData.CbCrDataSize());
+  }
 
   /**
    * Ask this Image to not convert YUV to RGB during SetData, and make

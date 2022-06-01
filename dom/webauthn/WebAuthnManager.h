@@ -43,8 +43,7 @@
  *
  */
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class Credential;
 
@@ -85,13 +84,14 @@ class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
 
   already_AddRefed<Promise> MakeCredential(
       const PublicKeyCredentialCreationOptions& aOptions,
-      const Optional<OwningNonNull<AbortSignal>>& aSignal);
+      const Optional<OwningNonNull<AbortSignal>>& aSignal, ErrorResult& aError);
 
   already_AddRefed<Promise> GetAssertion(
       const PublicKeyCredentialRequestOptions& aOptions,
-      const Optional<OwningNonNull<AbortSignal>>& aSignal);
+      const Optional<OwningNonNull<AbortSignal>>& aSignal, ErrorResult& aError);
 
-  already_AddRefed<Promise> Store(const Credential& aCredential);
+  already_AddRefed<Promise> Store(const Credential& aCredential,
+                                  ErrorResult& aError);
 
   // WebAuthnManagerBase
 
@@ -139,7 +139,6 @@ inline void ImplCycleCollectionUnlink(WebAuthnTransaction& aTransaction) {
   ImplCycleCollectionUnlink(aTransaction.mPromise);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_WebAuthnManager_h

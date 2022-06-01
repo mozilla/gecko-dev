@@ -6,6 +6,11 @@ ChromeUtils.defineModuleGetter(
   "Preferences",
   "resource://gre/modules/Preferences.jsm"
 );
+ChromeUtils.defineModuleGetter(
+  this,
+  "BrowserGlue",
+  "resource:///modules/BrowserGlue.jsm"
+);
 
 const { ExperimentFakes } = ChromeUtils.import(
   "resource://testing-common/NimbusTestUtils.jsm"
@@ -64,13 +69,19 @@ async function waitForAndAssertPrefState(pref, expectedValue, message) {
   });
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   const defaultPrefs = Services.prefs.getDefaultBranch("");
   const previousDefaultCB = defaultPrefs.getIntPref(COOKIE_BEHAVIOR_PREF);
 
   registerCleanupFunction(function() {
     defaultPrefs.setIntPref(COOKIE_BEHAVIOR_PREF, previousDefaultCB);
+    BrowserGlue._defaultCookieBehaviorAtStartup = previousDefaultCB;
   });
+
+  // The BrowserGlue code which computes this flag runs before we can set the
+  // default cookie behavior for this test. Thus we need to overwrite it in
+  // order for the opt-out to work correctly.
+  BrowserGlue._defaultCookieBehaviorAtStartup = BEHAVIOR_REJECT_TRACKER;
   defaultPrefs.setIntPref(
     COOKIE_BEHAVIOR_PREF,
     Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER

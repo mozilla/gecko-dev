@@ -210,9 +210,20 @@ void Axis::EndOverscrollAnimation() {
   mMSDModel.SetVelocity(0.0);
 }
 
-bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta) {
+bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta,
+                                     SideBits aOverscrollSideBits) {
   mMSDModel.Simulate(aDelta);
   mOverscroll = mMSDModel.GetPosition();
+
+  if (((aOverscrollSideBits & (SideBits::eTop | SideBits::eLeft)) &&
+       mOverscroll > 0) ||
+      ((aOverscrollSideBits & (SideBits::eBottom | SideBits::eRight)) &&
+       mOverscroll < 0)) {
+    // Stop the overscroll model immediately if it's going to get across the
+    // boundary.
+    mMSDModel.SetPosition(0.0);
+    mMSDModel.SetVelocity(0.0);
+  }
 
   AXIS_LOG("%p|%s changed overscroll amount to %f\n", mAsyncPanZoomController,
            Name(), mOverscroll.value);
@@ -273,7 +284,7 @@ ParentLayerCoord Axis::PanDistance(ParentLayerCoord aPos) const {
   return fabs(aPos - mStartPos);
 }
 
-void Axis::EndTouch(TimeStamp aTimestamp) {
+void Axis::EndTouch(TimeStamp aTimestamp, ClearAxisLock aClearAxisLock) {
   // mVelocityQueue is controller-thread only
   APZThreadUtils::AssertOnControllerThread();
 
@@ -290,7 +301,9 @@ void Axis::EndTouch(TimeStamp aTimestamp) {
   } else {
     DoSetVelocity(0);
   }
-  mAxisLocked = false;
+  if (aClearAxisLock == ClearAxisLock::Yes) {
+    mAxisLocked = false;
+  }
   AXIS_LOG("%p|%s ending touch, computed velocity %f\n",
            mAsyncPanZoomController, Name(), DoGetVelocity());
 }
@@ -303,6 +316,7 @@ void Axis::CancelGesture() {
            mAsyncPanZoomController, Name());
   DoSetVelocity(0.0f);
   mVelocityTracker->Clear();
+  SetAxisLocked(false);
 }
 
 bool Axis::CanScroll() const {

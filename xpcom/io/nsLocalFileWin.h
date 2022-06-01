@@ -30,7 +30,7 @@ class nsLocalFile final : public nsILocalFileWin {
   nsLocalFile();
   explicit nsLocalFile(const nsAString& aFilePath);
 
-  static nsresult nsLocalFileConstructor(nsISupports* aOuter, const nsIID& aIID,
+  static nsresult nsLocalFileConstructor(const nsIID& aIID,
                                          void** aInstancePtr);
 
   // nsISupports interface
@@ -48,6 +48,10 @@ class nsLocalFile final : public nsILocalFileWin {
   static bool CleanupCmdHandlerPath(nsAString& aCommandHandler);
   // Called off the main thread to open the window revealing the file
   static nsresult RevealFile(const nsString& aResolvedPath);
+
+  // Checks if the filename is one of the windows reserved filenames
+  // (com1, com2, etc...) and truncates the string if so.
+  static void CheckForReservedFileName(nsString& aFileName);
 
  private:
   // CopyMove and CopySingleFile constants for |options| parameter:

@@ -48,12 +48,12 @@ CompositorVsyncScheduler::Observer::Observer(CompositorVsyncScheduler* aOwner)
 
 CompositorVsyncScheduler::Observer::~Observer() { MOZ_ASSERT(!mOwner); }
 
-bool CompositorVsyncScheduler::Observer::NotifyVsync(const VsyncEvent& aVsync) {
+void CompositorVsyncScheduler::Observer::NotifyVsync(const VsyncEvent& aVsync) {
   MutexAutoLock lock(mMutex);
   if (!mOwner) {
-    return false;
+    return;
   }
-  return mOwner->NotifyVsync(aVsync);
+  mOwner->NotifyVsync(aVsync);
 }
 
 void CompositorVsyncScheduler::Observer::Destroy() {
@@ -161,14 +161,15 @@ void CompositorVsyncScheduler::ScheduleComposition(wr::RenderReasons aReasons) {
       // through the main thread of the UI process. It's possible that
       // we're blocking there waiting on a composite, so schedule an initial
       // one now to get things started.
-      PostCompositeTask(vsyncEvent, aReasons);
+      PostCompositeTask(vsyncEvent,
+                        aReasons | wr::RenderReasons::START_OBSERVING_VSYNC);
     } else {
       mRendersDelayedByVsyncReasons = aReasons;
     }
   }
 }
 
-bool CompositorVsyncScheduler::NotifyVsync(const VsyncEvent& aVsync) {
+void CompositorVsyncScheduler::NotifyVsync(const VsyncEvent& aVsync) {
   // Called from the vsync dispatch thread. When in the GPU Process, that's
   // the same as the compositor thread.
 #ifdef DEBUG
@@ -201,7 +202,6 @@ bool CompositorVsyncScheduler::NotifyVsync(const VsyncEvent& aVsync) {
 #endif  // defined(MOZ_WIDGET_ANDROID)
 
   PostVRTask(aVsync.mTime);
-  return true;
 }
 
 void CompositorVsyncScheduler::CancelCurrentVRTask() {

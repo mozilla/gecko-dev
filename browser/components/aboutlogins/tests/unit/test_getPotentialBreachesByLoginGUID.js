@@ -61,6 +61,13 @@ const TEST_BREACHES = [
   },
 ];
 
+const CRASHING_URI_LOGIN = LoginTestUtils.testData.formLogin({
+  origin: "chrome://grwatcher",
+  formActionOrigin: "https://www.example.com",
+  username: "username",
+  password: "password",
+  timePasswordChanged: new Date("2018-12-15").getTime(),
+});
 const NOT_BREACHED_LOGIN = LoginTestUtils.testData.formLogin({
   origin: "https://www.example.com",
   formActionOrigin: "https://www.example.com",
@@ -107,7 +114,6 @@ const LOGIN_WITH_NON_STANDARD_URI = LoginTestUtils.testData.formLogin({
 
 add_task(async function test_notBreachedLogin() {
   Services.logins.addLogin(NOT_BREACHED_LOGIN);
-
   const breachesByLoginGUID = await LoginBreaches.getPotentialBreachesByLoginGUID(
     [NOT_BREACHED_LOGIN],
     TEST_BREACHES
@@ -123,6 +129,25 @@ add_task(async function test_breachedLogin() {
   Services.logins.addLogin(BREACHED_LOGIN);
   const breachesByLoginGUID = await LoginBreaches.getPotentialBreachesByLoginGUID(
     [NOT_BREACHED_LOGIN, BREACHED_LOGIN],
+    TEST_BREACHES
+  );
+  Assert.strictEqual(
+    breachesByLoginGUID.size,
+    1,
+    "Should be 1 breached login: " + BREACHED_LOGIN.origin
+  );
+  Assert.strictEqual(
+    breachesByLoginGUID.get(BREACHED_LOGIN.guid).breachAlertURL,
+    "https://monitor.firefox.com/breach-details/Breached?utm_source=firefox-desktop&utm_medium=referral&utm_campaign=about-logins&utm_content=about-logins",
+    "Breach alert link should be equal to the breachAlertURL"
+  );
+});
+
+add_task(async function test_breachedLoginAfterCrashingUriLogin() {
+  Services.logins.addLogin(CRASHING_URI_LOGIN);
+
+  const breachesByLoginGUID = await LoginBreaches.getPotentialBreachesByLoginGUID(
+    [CRASHING_URI_LOGIN, BREACHED_LOGIN],
     TEST_BREACHES
   );
   Assert.strictEqual(
@@ -281,8 +306,8 @@ add_task(async function test_setBreachesFromRemoteSettingsSync() {
     "Should be 0 breached login before not-breached-subdomain.host.com is added to fxmonitor-breaches collection and synced: "
   );
   gBrowserGlue.observe(null, "browser-glue-test", "add-breaches-sync-handler");
-  const db = await RemoteSettings(LoginBreaches.REMOTE_SETTINGS_COLLECTION).db;
-  await db.importChanges({}, 42, [nowExampleIsInBreachedRecords[0]]);
+  const db = RemoteSettings(LoginBreaches.REMOTE_SETTINGS_COLLECTION).db;
+  await db.importChanges({}, Date.now(), [nowExampleIsInBreachedRecords[0]]);
   await emitSync();
 
   const breachesByLoginGUID = await LoginBreaches.getPotentialBreachesByLoginGUID(

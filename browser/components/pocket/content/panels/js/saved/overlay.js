@@ -652,7 +652,7 @@ var SavedOverlay = function(options) {
 };
 
 SavedOverlay.prototype = {
-  create() {
+  create({ pockethost }) {
     if (this.active) {
       return;
     }
@@ -660,18 +660,38 @@ SavedOverlay.prototype = {
     var myself = this;
 
     const { searchParams } = new URL(window.location.href);
-    const pockethost = searchParams.get(`pockethost`) || `getpocket.com`;
     const premiumStatus = searchParams.get(`premiumStatus`) == `1`;
     const locale = searchParams.get(`locale`) || ``;
     const language = locale.split(`-`)[0].toLowerCase();
     const layoutRefresh = searchParams.get(`layoutRefresh`) === `true`;
+    const utmSource = searchParams.get(`utmSource`);
+    const utmCampaign = searchParams.get(`utmCampaign`);
+    const utmContent = searchParams.get(`utmContent`);
 
     if (layoutRefresh) {
+      // For now, we need to do a little work on the body element
+      // to support both old and new versions.
+      document
+        .querySelector(`.pkt_ext_containersaved`)
+        ?.classList.add(`stp_saved_body`);
+      document
+        .querySelector(`.pkt_ext_containersaved`)
+        ?.classList.remove(`pkt_ext_containersaved`);
       // Create actual content
       ReactDOM.render(
-        <Saved pockethost={pockethost} savedStory={{}} />,
+        <Saved
+          locale={locale}
+          pockethost={pockethost}
+          utmSource={utmSource}
+          utmCampaign={utmCampaign}
+          utmContent={utmContent}
+        />,
         document.querySelector(`body`)
       );
+
+      if (window?.matchMedia(`(prefers-color-scheme: dark)`).matches) {
+        document.querySelector(`body`).classList.add(`theme_dark`);
+      }
     } else {
       // set host
       const templateData = {
@@ -748,10 +768,10 @@ SavedOverlay.prototype = {
         const { data } = resp;
         myself.renderItemRecs(data);
       });
-    }
 
-    // tell back end we're ready
-    pktPanelMessaging.sendMessage("PKT_show_saved");
+      // tell back end we're ready
+      pktPanelMessaging.sendMessage("PKT_show_saved");
+    }
   },
 };
 

@@ -19,7 +19,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   capture: "chrome://remote/content/marionette/capture.js",
   Log: "chrome://remote/content/shared/Log.jsm",
   navigate: "chrome://remote/content/marionette/navigate.js",
-  print: "chrome://remote/content/marionette/print.js",
+  print: "chrome://remote/content/shared/PDF.jsm",
   windowManager: "chrome://remote/content/shared/WindowManager.jsm",
 });
 
@@ -61,7 +61,7 @@ const DEFAULT_PDF_RESOLUTION = 96 / 72;
  *
  * @namespace
  */
-this.reftest = {};
+const reftest = {};
 
 /**
  * @memberof reftest
@@ -212,9 +212,14 @@ reftest.Runner = class {
     }
     // Make sure the browser element is exactly the right size, no matter
     // what size our window is
-    const windowStyle = `padding: 0px; margin: 0px; border:none;
-min-width: ${width}px; min-height: ${height}px;
-max-width: ${width}px; max-height: ${height}px`;
+    const windowStyle = `
+      padding: 0px;
+      margin: 0px;
+      border:none;
+      min-width: ${width}px; min-height: ${height}px;
+      max-width: ${width}px; max-height: ${height}px;
+      color-scheme: env(-moz-content-preferred-color-scheme);
+    `;
     browser.setAttribute("style", windowStyle);
 
     if (!AppInfo.isAndroid) {

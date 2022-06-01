@@ -1,5 +1,5 @@
-/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:expandtab:shiftwidth=4:tabstop=4:
+/* -*- Mode: C; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:expandtab:shiftwidth=2:tabstop=2:
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -50,12 +50,15 @@ typedef uint32_t (*GetOffsetFunc)(struct gbm_bo*, int);
 typedef int (*DeviceIsFormatSupportedFunc)(struct gbm_device*, uint32_t,
                                            uint32_t);
 typedef int (*DrmPrimeHandleToFDFunc)(int, uint32_t, uint32_t, int*);
+typedef struct gbm_surface* (*CreateSurfaceFunc)(struct gbm_device*, uint32_t,
+                                                 uint32_t, uint32_t, uint32_t);
+typedef void (*DestroySurfaceFunc)(struct gbm_surface*);
 
 class nsGbmLib {
  public:
-  static bool Load();
-  static bool IsLoaded();
-  static bool IsAvailable();
+  static bool IsAvailable() {
+    return sLoaded || Load();
+  }
   static bool IsModifierAvailable();
 
   static struct gbm_device* CreateDevice(int fd) {
@@ -132,8 +135,21 @@ class nsGbmLib {
     StaticMutexAutoLock lockDRI(sDRILock);
     return sDrmPrimeHandleToFD(fd, handle, flags, prime_fd);
   }
+  static struct gbm_surface* CreateSurface(struct gbm_device* gbm,
+                                           uint32_t width, uint32_t height,
+                                           uint32_t format, uint32_t flags) {
+    StaticMutexAutoLock lockDRI(sDRILock);
+    return sCreateSurface(gbm, width, height, format, flags);
+  }
+  static void DestroySurface(struct gbm_surface* surface) {
+    StaticMutexAutoLock lockDRI(sDRILock);
+    return sDestroySurface(surface);
+  }
 
  private:
+  static bool Load();
+  static bool IsLoaded();
+
   static CreateDeviceFunc sCreateDevice;
   static DestroyDeviceFunc sDestroyDevice;
   static CreateFunc sCreate;
@@ -150,11 +166,13 @@ class nsGbmLib {
   static GetOffsetFunc sGetOffset;
   static DeviceIsFormatSupportedFunc sDeviceIsFormatSupported;
   static DrmPrimeHandleToFDFunc sDrmPrimeHandleToFD;
+  static CreateSurfaceFunc sCreateSurface;
+  static DestroySurfaceFunc sDestroySurface;
+  static bool sLoaded;
 
   static void* sGbmLibHandle;
   static void* sXf86DrmLibHandle;
-  static mozilla::StaticMutex sDRILock;
-  static bool sLibLoaded;
+  static mozilla::StaticMutex sDRILock MOZ_UNANNOTATED;
 };
 
 struct GbmFormat {

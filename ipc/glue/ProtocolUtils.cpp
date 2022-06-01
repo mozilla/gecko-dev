@@ -35,6 +35,10 @@
 #  include "sddl.h"
 #endif
 
+#ifdef FUZZING_SNAPSHOT
+#  include "mozilla/fuzzing/IPCFuzzController.h"
+#endif
+
 using namespace IPC;
 
 using base::GetCurrentProcId;
@@ -120,7 +124,7 @@ void LogMessageForProtocol(const char* aTopLevelProtocol,
                            const char* aContextDescription, uint32_t aMessageId,
                            MessageDirection aDirection) {
   nsPrintfCString logMessage(
-      "[time: %" PRId64 "][%d%s%d] [%s] %s %s\n", PR_Now(),
+      "[time: %" PRId64 "][%" PRIPID "%s%" PRIPID "] [%s] %s %s\n", PR_Now(),
       base::GetCurrentProcId(),
       aDirection == MessageDirection::eReceiving ? "<-" : "->", aOtherPid,
       aTopLevelProtocol, aContextDescription,
@@ -136,6 +140,14 @@ void ProtocolErrorBreakpoint(const char* aMsg) {
   // reproduce.  Log always in the hope that someone finds the error
   // message.
   printf_stderr("IPDL protocol error: %s\n", aMsg);
+}
+
+void PickleFatalError(const char* aMsg, IProtocol* aActor) {
+  if (aActor) {
+    aActor->FatalError(aMsg);
+  } else {
+    FatalError(aMsg, false);
+  }
 }
 
 void FatalError(const char* aMsg, bool aIsParent) {
@@ -345,12 +357,12 @@ void IProtocol::SetId(int32_t aId) {
   mId = aId;
 }
 
-Maybe<IProtocol*> IProtocol::ReadActor(const IPC::Message* aMessage,
-                                       PickleIterator* aIter, bool aNullable,
+Maybe<IProtocol*> IProtocol::ReadActor(IPC::MessageReader* aReader,
+                                       bool aNullable,
                                        const char* aActorDescription,
                                        int32_t aProtocolTypeId) {
   int32_t id;
-  if (!IPC::ReadParam(aMessage, aIter, &id)) {
+  if (!IPC::ReadParam(aReader, &id)) {
     ActorIdReadError(aActorDescription);
     return Nothing();
   }
@@ -467,27 +479,26 @@ void IProtocol::SetManagerAndRegister(IProtocol* aManager, int32_t aId) {
   aManager->RegisterID(this, aId);
 }
 
-bool IProtocol::ChannelSend(IPC::Message* aMsg) {
-  UniquePtr<IPC::Message> msg(aMsg);
+bool IProtocol::ChannelSend(UniquePtr<IPC::Message> aMsg) {
   if (CanSend()) {
     // NOTE: This send call failing can only occur during toplevel channel
     // teardown. As this is an async call, this isn't reasonable to predict or
     // respond to, so just drop the message on the floor silently.
-    GetIPCChannel()->Send(std::move(msg));
+    GetIPCChannel()->Send(std::move(aMsg));
     return true;
   }
 
-  WarnMessageDiscarded(msg.get());
+  WarnMessageDiscarded(aMsg.get());
   return false;
 }
 
-bool IProtocol::ChannelSend(IPC::Message* aMsg, IPC::Message* aReply) {
-  UniquePtr<IPC::Message> msg(aMsg);
+bool IProtocol::ChannelSend(UniquePtr<IPC::Message> aMsg,
+                            UniquePtr<IPC::Message>* aReply) {
   if (CanSend()) {
-    return GetIPCChannel()->Send(std::move(msg), aReply);
+    return GetIPCChannel()->Send(std::move(aMsg), aReply);
   }
 
-  WarnMessageDiscarded(msg.get());
+  WarnMessageDiscarded(aMsg.get());
   return false;
 }
 
@@ -503,6 +514,10 @@ void IProtocol::ActorConnected() {
   if (mLinkStatus != LinkStatus::Inactive) {
     return;
   }
+
+#ifdef FUZZING_SNAPSHOT
+  fuzzing::IPCFuzzController::instance().OnActorConnected(this);
+#endif
 
   mLinkStatus = LinkStatus::Connected;
 
@@ -588,16 +603,19 @@ bool IToplevelProtocol::Open(ScopedPort aPort, base::ProcessId aOtherPid) {
   return GetIPCChannel()->Open(std::move(aPort), mSide);
 }
 
-bool IToplevelProtocol::Open(MessageChannel* aChannel,
+bool IToplevelProtocol::Open(IToplevelProtocol* aTarget,
                              nsISerialEventTarget* aEventTarget,
                              mozilla::ipc::Side aSide) {
   SetOtherProcessId(base::GetCurrentProcId());
-  return GetIPCChannel()->Open(aChannel, aEventTarget, aSide);
+  aTarget->SetOtherProcessId(base::GetCurrentProcId());
+  return GetIPCChannel()->Open(aTarget->GetIPCChannel(), aEventTarget, aSide);
 }
 
-bool IToplevelProtocol::OpenOnSameThread(MessageChannel* aChannel, Side aSide) {
+bool IToplevelProtocol::OpenOnSameThread(IToplevelProtocol* aTarget,
+                                         Side aSide) {
   SetOtherProcessId(base::GetCurrentProcId());
-  return GetIPCChannel()->OpenOnSameThread(aChannel, aSide);
+  aTarget->SetOtherProcessId(base::GetCurrentProcId());
+  return GetIPCChannel()->OpenOnSameThread(aTarget->GetIPCChannel(), aSide);
 }
 
 void IToplevelProtocol::NotifyImpendingShutdown() {
@@ -738,11 +756,11 @@ bool IToplevelProtocol::ShmemCreated(const Message& aMsg) {
 
 bool IToplevelProtocol::ShmemDestroyed(const Message& aMsg) {
   Shmem::id_t id;
-  PickleIterator iter = PickleIterator(aMsg);
-  if (!IPC::ReadParam(&aMsg, &iter, &id)) {
+  MessageReader reader(aMsg);
+  if (!IPC::ReadParam(&reader, &id)) {
     return false;
   }
-  aMsg.EndRead(iter);
+  reader.EndRead();
 
   Shmem::SharedMemory* rawmem = LookupSharedMemory(id);
   if (rawmem) {
@@ -775,10 +793,11 @@ void IPDLResolverInner::ResolveOrReject(
     return;
   }
 
-  WriteIPDLParam(reply.get(), actor, aResolve);
+  IPC::MessageWriter writer(*reply, actor);
+  WriteIPDLParam(&writer, actor, aResolve);
   aWrite(reply.get(), actor);
 
-  actor->ChannelSend(reply.release());
+  actor->ChannelSend(std::move(reply));
 }
 
 void IPDLResolverInner::Destroy() {
@@ -800,8 +819,9 @@ IPDLResolverInner::~IPDLResolverInner() {
             mReply->name())
             .get());
     ResolveOrReject(false, [](IPC::Message* aMessage, IProtocol* aActor) {
+      IPC::MessageWriter writer(*aMessage, aActor);
       ResponseRejectReason reason = ResponseRejectReason::ResolverDestroyed;
-      WriteIPDLParam(aMessage, aActor, reason);
+      WriteIPDLParam(&writer, aActor, reason);
     });
   }
 }

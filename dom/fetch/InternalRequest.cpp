@@ -52,6 +52,7 @@ SafeRefPtr<InternalRequest> InternalRequest::GetRequestConstructorCopy(
   copy->mContentPolicyTypeOverridden = mContentPolicyTypeOverridden;
 
   copy->mPreferredAlternativeDataType = mPreferredAlternativeDataType;
+  copy->mSkipWasmCaching = mSkipWasmCaching;
   return copy;
 }
 
@@ -134,6 +135,7 @@ InternalRequest::InternalRequest(const InternalRequest& aOther,
       mMozErrors(aOther.mMozErrors),
       mFragment(aOther.mFragment),
       mSkipServiceWorker(aOther.mSkipServiceWorker),
+      mSkipWasmCaching(aOther.mSkipWasmCaching),
       mSynchronous(aOther.mSynchronous),
       mUnsafeRequest(aOther.mUnsafeRequest),
       mUseURLCredentials(aOther.mUseURLCredentials),
@@ -169,9 +171,7 @@ InternalRequest::InternalRequest(const IPCInternalRequest& aIPCRequest)
   // (constructed on the child side).
   if (body) {
     MOZ_ASSERT(body->type() == BodyStreamVariant::TParentToChildStream);
-    mBodyStream = static_cast<RemoteLazyInputStreamChild*>(
-                      body->get_ParentToChildStream().actorChild())
-                      ->CreateStream();
+    mBodyStream = body->get_ParentToChildStream().stream();
   }
 }
 

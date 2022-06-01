@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <cstdlib>
-#include <cstdio>
 #include <fcntl.h>
 
 #ifdef _WIN32
@@ -25,7 +24,7 @@ static malloc_table_t sFuncs;
 static intptr_t sFd = 0;
 static bool sStdoutOrStderr = false;
 
-static Mutex sMutex;
+static Mutex sMutex MOZ_UNANNOTATED;
 
 #ifndef _WIN32
 static void prefork() { sMutex.Lock(); }

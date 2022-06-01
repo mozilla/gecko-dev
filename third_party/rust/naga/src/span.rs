@@ -3,6 +3,7 @@ use std::{error::Error, fmt, ops::Range};
 
 /// A source code span, used for error reporting.
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct Span {
     start: u32,
     end: u32,
@@ -13,7 +14,7 @@ impl Span {
     /// Creates a new `Span` from a range of byte indices
     ///
     /// Note: end is exclusive, it doesn't belong to the `Span`
-    pub fn new(start: u32, end: u32) -> Self {
+    pub const fn new(start: u32, end: u32) -> Self {
         Span { start, end }
     }
 
@@ -54,7 +55,7 @@ impl Span {
         }
     }
 
-    /// Check wether `self` was defined or is a default/unknown span
+    /// Check whether `self` was defined or is a default/unknown span
     pub fn is_defined(&self) -> bool {
         *self != Self::default()
     }
@@ -110,7 +111,7 @@ where
 
 impl<E> WithSpan<E> {
     /// Create a new [`WithSpan`] from an [`Error`], containing no spans.
-    pub fn new(inner: E) -> Self {
+    pub const fn new(inner: E) -> Self {
         Self {
             inner,
             #[cfg(feature = "span")]
@@ -119,12 +120,17 @@ impl<E> WithSpan<E> {
     }
 
     /// Reverse of [`Self::new`], discards span information and returns an inner error.
+    #[allow(clippy::missing_const_for_fn)] // ignore due to requirement of #![feature(const_precise_live_drops)]
     pub fn into_inner(self) -> E {
         self.inner
     }
 
+    pub const fn as_inner(&self) -> &E {
+        &self.inner
+    }
+
     /// Iterator over stored [`SpanContext`]s.
-    pub fn spans(&self) -> impl Iterator<Item = &SpanContext> {
+    pub fn spans(&self) -> impl Iterator<Item = &SpanContext> + ExactSizeIterator {
         #[cfg(feature = "span")]
         return self.spans.iter();
         #[cfg(not(feature = "span"))]

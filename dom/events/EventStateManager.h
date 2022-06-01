@@ -130,7 +130,8 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void DispatchLegacyMouseScrollEvents(
       nsIFrame* aTargetFrame, WidgetWheelEvent* aEvent, nsEventStatus* aStatus);
 
-  void NotifyDestroyPresContext(nsPresContext* aPresContext);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void NotifyDestroyPresContext(
+      nsPresContext* aPresContext);
   void SetPresContext(nsPresContext* aPresContext);
   void ClearFrameRefs(nsIFrame* aFrame);
 
@@ -158,7 +159,8 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
   bool SetContentState(nsIContent* aContent, EventStates aState);
 
   void NativeAnonymousContentRemoved(nsIContent* aAnonContent);
-  void ContentRemoved(dom::Document* aDocument, nsIContent* aContent);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void ContentRemoved(dom::Document* aDocument,
+                                                  nsIContent* aContent);
 
   /**
    * Called when a native anonymous <div> element which is root element of
@@ -190,6 +192,8 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
    * asynchronously.
    */
   void TryToFlushPendingNotificationsToIME();
+
+  static bool IsKeyboardEventUserActivity(WidgetEvent* aEvent);
 
   /**
    * Register accesskey on the given element. When accesskey is activated then
@@ -283,9 +287,6 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
   // if aContent is non-null, marks the object as active.
   static void SetActiveManager(EventStateManager* aNewESM,
                                nsIContent* aContent);
-
-  // Sets the fullscreen event state on aElement to aIsFullscreen.
-  static void SetFullscreenState(dom::Element* aElement, bool aIsFullscreen);
 
   static bool IsRemoteTarget(nsIContent* target);
 
@@ -1240,10 +1241,9 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
 
 // Click and double-click events need to be handled even for content that
 // has no frame. This is required for Web compatibility.
-#define NS_EVENT_NEEDS_FRAME(event)               \
-  (!(event)->HasPluginActivationEventMessage() && \
-   (event)->mMessage != eMouseClick &&            \
-   (event)->mMessage != eMouseDoubleClick &&      \
+#define NS_EVENT_NEEDS_FRAME(event)          \
+  ((event)->mMessage != eMouseClick &&       \
+   (event)->mMessage != eMouseDoubleClick && \
    (event)->mMessage != eMouseAuxClick)
 
 #endif  // mozilla_EventStateManager_h_

@@ -2,7 +2,7 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 861:
+/***/ 122:
 /***/ ((__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) => {
 
 
@@ -49,92 +49,6 @@ function Header(props) {
 }
 
 /* harmony default export */ const Header_Header = (Header);
-;// CONCATENATED MODULE: ./content/panels/js/components/ArticleList/ArticleList.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-function ArticleList(props) {
-  return /*#__PURE__*/react.createElement("ul", {
-    className: "stp_article_list"
-  }, props.articles?.map(article => /*#__PURE__*/react.createElement("li", {
-    className: "stp_article_list_item"
-  }, /*#__PURE__*/react.createElement("a", {
-    className: "stp_article_list_link",
-    href: article.url
-  }, /*#__PURE__*/react.createElement("img", {
-    className: "stp_article_list_thumb",
-    src: article.thumbnail,
-    alt: article.alt
-  }), /*#__PURE__*/react.createElement("div", {
-    className: "stp_article_list_meta"
-  }, /*#__PURE__*/react.createElement("header", {
-    className: "stp_article_list_header"
-  }, article.title), /*#__PURE__*/react.createElement("p", {
-    className: "stp_article_list_publisher"
-  }, article.publisher))))));
-}
-
-/* harmony default export */ const ArticleList_ArticleList = (ArticleList);
-;// CONCATENATED MODULE: ./content/panels/js/components/PopularTopics/PopularTopics.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-function PopularTopics(props) {
-  return /*#__PURE__*/react.createElement("ul", {
-    className: "stp_popular_topics"
-  }, props.topics?.map(topic => /*#__PURE__*/react.createElement("li", {
-    key: `item-${topic.topic}`,
-    className: "stp_popular_topic"
-  }, /*#__PURE__*/react.createElement("a", {
-    className: "stp_popular_topic_link",
-    href: `https://${props.pockethost}/explore/${topic.topic}?utm_source=${props.utmsource}`
-  }, topic.title))));
-}
-
-/* harmony default export */ const PopularTopics_PopularTopics = (PopularTopics);
-;// CONCATENATED MODULE: ./content/panels/js/components/Home/Home.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-
-
-
-function Home(props) {
-  const {
-    articles,
-    locale,
-    topics,
-    pockethost
-  } = props;
-  return /*#__PURE__*/react.createElement("div", {
-    className: "stp_panel_container"
-  }, /*#__PURE__*/react.createElement("div", {
-    className: "stp_panel stp_panel_home"
-  }, /*#__PURE__*/react.createElement(Header_Header, null, /*#__PURE__*/react.createElement("a", null, /*#__PURE__*/react.createElement("span", {
-    "data-l10n-id": "pocket-panel-header-my-list"
-  }))), /*#__PURE__*/react.createElement("hr", null), articles?.length ? /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("p", {
-    "data-l10n-id": "pocket-panel-home-most-recent-saves"
-  }), /*#__PURE__*/react.createElement(ArticleList_ArticleList, {
-    articles: articles
-  }), /*#__PURE__*/react.createElement("span", {
-    "data-l10n-id": "pocket-panel-button-show-all"
-  })) : /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("p", {
-    "data-l10n-id": "pocket-panel-home-new-user-cta"
-  }), /*#__PURE__*/react.createElement("p", {
-    "data-l10n-id": "pocket-panel-home-new-user-message"
-  })), /*#__PURE__*/react.createElement("hr", null), pockethost && locale?.startsWith("en") && topics?.length && /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("div", null, "Explore popular topics:"), /*#__PURE__*/react.createElement(PopularTopics_PopularTopics, {
-    topics: topics,
-    pockethost: pockethost
-  }))));
-}
-
-/* harmony default export */ const Home_Home = (Home);
 ;// CONCATENATED MODULE: ./content/panels/js/messages.js
 /* global RPMRemoveMessageListener:false, RPMAddMessageListener:false, RPMSendAsyncMessage:false */
 var pktPanelMessaging = {
@@ -176,7 +90,6 @@ var pktPanelMessaging = {
       event.preventDefault();
       this.sendMessage("PKT_openTabWithUrl", {
         url: event.currentTarget.getAttribute(`href`),
-        activate: true,
         source,
         position
       });
@@ -189,6 +102,312 @@ var pktPanelMessaging = {
 
 };
 /* harmony default export */ const messages = (pktPanelMessaging);
+;// CONCATENATED MODULE: ./content/panels/js/components/TelemetryLink/TelemetryLink.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+function TelemetryLink(props) {
+  function onClick(event) {
+    if (props.onClick) {
+      props.onClick(event);
+    } else {
+      event.preventDefault();
+      messages.sendMessage("PKT_openTabWithUrl", {
+        url: event.currentTarget.getAttribute(`href`),
+        source: props.source,
+        model: props.model,
+        position: props.position
+      });
+    }
+  }
+
+  return /*#__PURE__*/react.createElement("a", {
+    href: props.href,
+    onClick: onClick,
+    target: "_blank",
+    className: props.className
+  }, props.children);
+}
+
+/* harmony default export */ const TelemetryLink_TelemetryLink = (TelemetryLink);
+;// CONCATENATED MODULE: ./content/panels/js/components/ArticleList/ArticleList.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+function ArticleUrl(props) {
+  // We turn off the link if we're either a saved article, or if the url doesn't exist.
+  if (props.savedArticle || !props.url) {
+    return /*#__PURE__*/react.createElement("div", {
+      className: "stp_article_list_saved_article"
+    }, props.children);
+  }
+
+  return /*#__PURE__*/react.createElement(TelemetryLink_TelemetryLink, {
+    className: "stp_article_list_link",
+    href: props.url,
+    source: props.source,
+    position: props.position,
+    model: props.model
+  }, props.children);
+}
+
+function Article(props) {
+  function encodeThumbnail(rawSource) {
+    return rawSource ? `https://img-getpocket.cdn.mozilla.net/80x80/filters:format(jpeg):quality(60):no_upscale():strip_exif()/${encodeURIComponent(rawSource)}` : null;
+  }
+
+  const [thumbnailLoaded, setThumbnailLoaded] = (0,react.useState)(false);
+  const [thumbnailLoadFailed, setThumbnailLoadFailed] = (0,react.useState)(false);
+  const {
+    article,
+    savedArticle,
+    position,
+    source,
+    model,
+    utmParams,
+    openInPocketReader
+  } = props;
+  const url = new URL(article.url || article.resolved_url || "");
+  const urlSearchParams = new URLSearchParams(utmParams);
+
+  if (openInPocketReader && article.item_id && !url.href.match(/getpocket\.com\/read/)) {
+    url.href = `https://getpocket.com/read/${article.item_id}`;
+  }
+
+  for (let [key, val] of urlSearchParams.entries()) {
+    url.searchParams.set(key, val);
+  } // Using array notation because there is a key titled `1` (`images` is an object)
+
+
+  const thumbnail = article.thumbnail || encodeThumbnail(article?.top_image_url || article?.images?.["1"]?.src);
+  const alt = article.alt || "thumbnail image";
+  const title = article.title || article.resolved_title; // Sometimes domain_metadata is not there, depending on the source.
+
+  const publisher = article.publisher || article.domain_metadata?.name || article.resolved_domain;
+  return /*#__PURE__*/react.createElement("li", {
+    className: "stp_article_list_item"
+  }, /*#__PURE__*/react.createElement(ArticleUrl, {
+    url: url.href,
+    savedArticle: savedArticle,
+    position: position,
+    source: source,
+    model: model,
+    utmParams: utmParams
+  }, /*#__PURE__*/react.createElement(react.Fragment, null, thumbnail && !thumbnailLoadFailed ? /*#__PURE__*/react.createElement("img", {
+    className: "stp_article_list_thumb",
+    src: thumbnail,
+    alt: alt,
+    width: "40",
+    height: "40",
+    onLoad: () => {
+      setThumbnailLoaded(true);
+    },
+    onError: () => {
+      setThumbnailLoadFailed(true);
+    },
+    style: {
+      visibility: thumbnailLoaded ? `visible` : `hidden`
+    }
+  }) : /*#__PURE__*/react.createElement("div", {
+    className: "stp_article_list_thumb_placeholder"
+  }), /*#__PURE__*/react.createElement("div", {
+    className: "stp_article_list_meta"
+  }, /*#__PURE__*/react.createElement("header", {
+    className: "stp_article_list_header"
+  }, title), /*#__PURE__*/react.createElement("p", {
+    className: "stp_article_list_publisher"
+  }, publisher)))));
+}
+
+function ArticleList(props) {
+  return /*#__PURE__*/react.createElement("ul", {
+    className: "stp_article_list"
+  }, props.articles?.map((article, position) => /*#__PURE__*/react.createElement(Article, {
+    article: article,
+    savedArticle: props.savedArticle,
+    position: position,
+    source: props.source,
+    model: props.model,
+    utmParams: props.utmParams,
+    openInPocketReader: props.openInPocketReader
+  })));
+}
+
+/* harmony default export */ const ArticleList_ArticleList = (ArticleList);
+;// CONCATENATED MODULE: ./content/panels/js/components/PopularTopics/PopularTopics.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+function PopularTopics(props) {
+  return /*#__PURE__*/react.createElement("ul", {
+    className: "stp_popular_topics"
+  }, props.topics?.map((topic, position) => /*#__PURE__*/react.createElement("li", {
+    key: `item-${topic.topic}`,
+    className: "stp_popular_topic"
+  }, /*#__PURE__*/react.createElement(TelemetryLink_TelemetryLink, {
+    className: "stp_popular_topic_link",
+    href: `https://${props.pockethost}/explore/${topic.topic}?${props.utmParams}`,
+    source: props.source,
+    position: position
+  }, topic.title))));
+}
+
+/* harmony default export */ const PopularTopics_PopularTopics = (PopularTopics);
+;// CONCATENATED MODULE: ./content/panels/js/components/Button/Button.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+function Button(props) {
+  return /*#__PURE__*/react.createElement(TelemetryLink_TelemetryLink, {
+    href: props.url,
+    onClick: props.onClick,
+    className: `stp_button${props?.style && ` stp_button_${props.style}`}`,
+    source: props.source
+  }, props.children);
+}
+
+/* harmony default export */ const Button_Button = (Button);
+;// CONCATENATED MODULE: ./content/panels/js/components/Home/Home.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
+
+function Home(props) {
+  const {
+    locale,
+    topics,
+    pockethost,
+    hideRecentSaves,
+    utmSource,
+    utmCampaign,
+    utmContent
+  } = props;
+  const [{
+    articles,
+    status
+  }, setArticlesState] = (0,react.useState)({
+    articles: [],
+    // Can be success, loading, or error.
+    status: ""
+  });
+  const utmParams = `utm_source=${utmSource}${utmCampaign && utmContent ? `&utm_campaign=${utmCampaign}&utm_content=${utmContent}` : ``}`;
+  (0,react.useEffect)(() => {
+    if (!hideRecentSaves) {
+      // We don't display the loading message until instructed. This is because cache
+      // loads should be fast, so using the loading message for cache just adds loading jank.
+      messages.addMessageListener("PKT_loadingRecentSaves", function (resp) {
+        setArticlesState({
+          articles,
+          status: "loading"
+        });
+      });
+      messages.addMessageListener("PKT_renderRecentSaves", function (resp) {
+        const {
+          data
+        } = resp;
+
+        if (data.status === "error") {
+          setArticlesState({
+            articles: [],
+            status: "error"
+          });
+          return;
+        }
+
+        setArticlesState({
+          articles: data,
+          status: "success"
+        });
+      });
+    } // tell back end we're ready
+
+
+    messages.sendMessage("PKT_show_home");
+  }, []);
+  let recentSavesSection = null;
+
+  if (status === "error" || hideRecentSaves) {
+    recentSavesSection = /*#__PURE__*/react.createElement("h3", {
+      className: "header_medium",
+      "data-l10n-id": "pocket-panel-home-new-user-cta"
+    });
+  } else if (status === "loading") {
+    recentSavesSection = /*#__PURE__*/react.createElement("span", {
+      "data-l10n-id": "pocket-panel-home-most-recent-saves-loading"
+    });
+  } else if (status === "success") {
+    if (articles?.length) {
+      recentSavesSection = /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("h3", {
+        className: "header_medium",
+        "data-l10n-id": "pocket-panel-home-most-recent-saves"
+      }), articles.length > 3 ? /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement(ArticleList_ArticleList, {
+        articles: articles.slice(0, 3),
+        source: "home_recent_save",
+        utmParams: utmParams,
+        openInPocketReader: true
+      }), /*#__PURE__*/react.createElement("span", {
+        className: "stp_button_wide"
+      }, /*#__PURE__*/react.createElement(Button_Button, {
+        style: "secondary",
+        url: `https://${pockethost}/a?${utmParams}`,
+        source: "home_view_list"
+      }, /*#__PURE__*/react.createElement("span", {
+        "data-l10n-id": "pocket-panel-button-show-all"
+      })))) : /*#__PURE__*/react.createElement(ArticleList_ArticleList, {
+        articles: articles,
+        source: "home_recent_save",
+        utmParams: utmParams
+      }));
+    } else {
+      recentSavesSection = /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("h3", {
+        className: "header_medium",
+        "data-l10n-id": "pocket-panel-home-new-user-cta"
+      }), /*#__PURE__*/react.createElement("h3", {
+        className: "header_medium",
+        "data-l10n-id": "pocket-panel-home-new-user-message"
+      }));
+    }
+  }
+
+  return /*#__PURE__*/react.createElement("div", {
+    className: "stp_panel_container"
+  }, /*#__PURE__*/react.createElement("div", {
+    className: "stp_panel stp_panel_home"
+  }, /*#__PURE__*/react.createElement(Header_Header, null, /*#__PURE__*/react.createElement(Button_Button, {
+    style: "primary",
+    url: `https://${pockethost}/a?${utmParams}`,
+    source: "home_view_list"
+  }, /*#__PURE__*/react.createElement("span", {
+    "data-l10n-id": "pocket-panel-header-my-list"
+  }))), /*#__PURE__*/react.createElement("hr", null), recentSavesSection, /*#__PURE__*/react.createElement("hr", null), pockethost && locale?.startsWith("en") && topics?.length && /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("h3", {
+    className: "header_medium"
+  }, "Explore popular topics:"), /*#__PURE__*/react.createElement(PopularTopics_PopularTopics, {
+    topics: topics,
+    pockethost: pockethost,
+    utmParams: utmParams,
+    source: "home_popular_topic"
+  }))));
+}
+
+/* harmony default export */ const Home_Home = (Home);
 ;// CONCATENATED MODULE: ./content/panels/js/home/overlay.js
 /* global Handlebars:false */
 
@@ -228,13 +447,18 @@ var HomeOverlay = function (options) {
 };
 
 HomeOverlay.prototype = {
-  create() {
+  create({
+    pockethost
+  }) {
     const {
       searchParams
     } = new URL(window.location.href);
-    const pockethost = searchParams.get(`pockethost`) || `getpocket.com`;
     const locale = searchParams.get(`locale`) || ``;
     const layoutRefresh = searchParams.get(`layoutRefresh`) === `true`;
+    const hideRecentSaves = searchParams.get(`hiderecentsaves`) === `true`;
+    const utmSource = searchParams.get(`utmSource`);
+    const utmCampaign = searchParams.get(`utmCampaign`);
+    const utmContent = searchParams.get(`utmContent`);
 
     if (this.active) {
       return;
@@ -246,22 +470,47 @@ HomeOverlay.prototype = {
       // Create actual content
       react_dom.render( /*#__PURE__*/react.createElement(Home_Home, {
         locale: locale,
-        articles: [],
+        hideRecentSaves: hideRecentSaves,
         pockethost: pockethost,
+        utmSource: utmSource,
+        utmCampaign: utmCampaign,
+        utmContent: utmContent,
         topics: [{
+          title: "Technology",
+          topic: "technology"
+        }, {
           title: "Self Improvement",
           topic: "self-improvement"
         }, {
           title: "Food",
           topic: "food"
         }, {
-          title: "Entertainment",
-          topic: "entertainment"
+          title: "Parenting",
+          topic: "parenting"
         }, {
           title: "Science",
           topic: "science"
+        }, {
+          title: "Entertainment",
+          topic: "entertainment"
+        }, {
+          title: "Career",
+          topic: "career"
+        }, {
+          title: "Health",
+          topic: "health"
+        }, {
+          title: "Travel",
+          topic: "travel"
+        }, {
+          title: "Must-Reads",
+          topic: "must-reads"
         }]
       }), document.querySelector(`body`));
+
+      if (window?.matchMedia(`(prefers-color-scheme: dark)`).matches) {
+        document.querySelector(`body`).classList.add(`theme_dark`);
+      }
     } else {
       // For English, we have a discover topics link.
       // For non English, we don't have a link yet for this.
@@ -299,11 +548,10 @@ HomeOverlay.prototype = {
       } // click events
 
 
-      this.setupClickEvents();
-    } // tell back end we're ready
+      this.setupClickEvents(); // tell back end we're ready
 
-
-    messages.sendMessage("PKT_show_home");
+      messages.sendMessage("PKT_show_home");
+    }
   }
 
 };
@@ -315,25 +563,59 @@ HomeOverlay.prototype = {
 
 
 
+
 function Signup(props) {
   const {
-    locale
+    locale,
+    pockethost,
+    utmSource,
+    utmCampaign,
+    utmContent
   } = props;
+  const utmParams = `utm_source=${utmSource}${utmCampaign && utmContent ? `&utm_campaign=${utmCampaign}&utm_content=${utmContent}` : ``}`;
   return /*#__PURE__*/react.createElement("div", {
     className: "stp_panel_container"
   }, /*#__PURE__*/react.createElement("div", {
-    className: "stp_panel stp_panel_home"
-  }, /*#__PURE__*/react.createElement(Header_Header, null, /*#__PURE__*/react.createElement("a", null, /*#__PURE__*/react.createElement("span", {
-    "data-l10n-id": "pocket-panel-header-sign-in"
-  }))), /*#__PURE__*/react.createElement("hr", null), /*#__PURE__*/react.createElement("p", {
-    "data-l10n-id": "pocket-panel-signup-cta-a"
+    className: "stp_panel stp_panel_signup"
+  }, /*#__PURE__*/react.createElement(Header_Header, null, /*#__PURE__*/react.createElement(Button_Button, {
+    style: "secondary",
+    url: `https://${pockethost}/login?${utmParams}`,
+    source: "log_in"
+  }, /*#__PURE__*/react.createElement("span", {
+    "data-l10n-id": "pocket-panel-signup-login"
+  }))), /*#__PURE__*/react.createElement("hr", null), locale?.startsWith("en") ? /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("div", {
+    className: "stp_signup_content_wrapper"
+  }, /*#__PURE__*/react.createElement("h3", {
+    className: "header_medium",
+    "data-l10n-id": "pocket-panel-signup-cta-a-fix"
   }), /*#__PURE__*/react.createElement("p", {
     "data-l10n-id": "pocket-panel-signup-cta-b"
-  }), locale?.startsWith("en") ? /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("hr", null), /*#__PURE__*/react.createElement("p", null, "Get thought-provoking article recommendations"), /*#__PURE__*/react.createElement("p", null, "Find stories that go deep into a subject or offer a new perspective.")) : /*#__PURE__*/react.createElement("p", {
+  })), /*#__PURE__*/react.createElement("div", {
+    className: "stp_signup_content_wrapper"
+  }, /*#__PURE__*/react.createElement("hr", null)), /*#__PURE__*/react.createElement("div", {
+    className: "stp_signup_content_wrapper"
+  }, /*#__PURE__*/react.createElement("div", {
+    className: "stp_signup_img_rainbow_reader"
+  }), /*#__PURE__*/react.createElement("h3", {
+    className: "header_medium"
+  }, "Get thought-provoking article recommendations"), /*#__PURE__*/react.createElement("p", null, "Find stories that go deep into a subject or offer a new perspective."))) : /*#__PURE__*/react.createElement("div", {
+    className: "stp_signup_content_wrapper"
+  }, /*#__PURE__*/react.createElement("h3", {
+    className: "header_large",
+    "data-l10n-id": "pocket-panel-signup-cta-a-fix"
+  }), /*#__PURE__*/react.createElement("p", {
+    "data-l10n-id": "pocket-panel-signup-cta-b-short"
+  }), /*#__PURE__*/react.createElement("strong", null, /*#__PURE__*/react.createElement("p", {
     "data-l10n-id": "pocket-panel-signup-cta-c"
-  }), /*#__PURE__*/react.createElement("hr", null), /*#__PURE__*/react.createElement("p", {
+  }))), /*#__PURE__*/react.createElement("hr", null), /*#__PURE__*/react.createElement("span", {
+    className: "stp_button_wide"
+  }, /*#__PURE__*/react.createElement(Button_Button, {
+    style: "primary",
+    url: `https://${pockethost}/ff_signup?${utmParams}`,
+    source: "sign_up_1"
+  }, /*#__PURE__*/react.createElement("span", {
     "data-l10n-id": "pocket-panel-button-activate"
-  })));
+  })))));
 }
 
 /* harmony default export */ const Signup_Signup = (Signup);
@@ -368,7 +650,9 @@ var SignupOverlay = function (options) {
     });
   };
 
-  this.create = function () {
+  this.create = function ({
+    pockethost
+  }) {
     const parser = new DOMParser();
     let elBody = document.querySelector(`body`); // Extract local variables passed into template via URL query params
 
@@ -376,12 +660,12 @@ var SignupOverlay = function (options) {
       searchParams
     } = new URL(window.location.href);
     const isEmailSignupEnabled = searchParams.get(`emailButton`) === `true`;
-    const pockethost = searchParams.get(`pockethost`) || `getpocket.com`;
     const locale = searchParams.get(`locale`) || ``;
     const language = locale.split(`-`)[0].toLowerCase();
-    const utmCampaign = searchParams.get(`utmCampaign`) || `firefox_door_hanger_menu`;
-    const utmSource = searchParams.get(`utmSource`) || `control`;
     const layoutRefresh = searchParams.get(`layoutRefresh`) === `true`;
+    const utmSource = searchParams.get(`utmSource`);
+    const utmCampaign = searchParams.get(`utmCampaign`);
+    const utmContent = searchParams.get(`utmContent`);
 
     if (this.active) {
       return;
@@ -390,17 +674,29 @@ var SignupOverlay = function (options) {
     this.active = true;
 
     if (layoutRefresh) {
-      // Create actual content
-      document.querySelector(`.pkt_ext_containersignup`)?.classList.remove(`pkt_ext_containersignup`);
+      // For now, we need to do a little work on the body element
+      // to support both old and new versions.
+      document.querySelector(`.pkt_ext_containersignup`)?.classList.add(`stp_signup_body`);
+      document.querySelector(`.pkt_ext_containersignup`)?.classList.remove(`pkt_ext_containersignup`); // Create actual content
+
       react_dom.render( /*#__PURE__*/react.createElement(Signup_Signup, {
         pockethost: pockethost,
+        utmSource: utmSource,
+        utmCampaign: utmCampaign,
+        utmContent: utmContent,
         locale: locale
       }), document.querySelector(`body`));
+
+      if (window?.matchMedia(`(prefers-color-scheme: dark)`).matches) {
+        document.querySelector(`body`).classList.add(`theme_dark`);
+      }
     } else {
       const templateData = {
         pockethost,
-        utmCampaign,
-        utmSource
+        utmCampaign: utmCampaign || `firefox_door_hanger_menu`,
+        // utmContent is now used for experiment branch in the new layouts,
+        // but for backwards comp reasons, we pass it in the old way as utmSource.
+        utmSource: utmContent || `control`
       }; // extra modifier class for language
 
       if (language) {
@@ -424,6 +720,151 @@ var SignupOverlay = function (options) {
 };
 
 /* harmony default export */ const signup_overlay = (SignupOverlay);
+;// CONCATENATED MODULE: ./content/panels/js/components/TagPicker/TagPicker.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+function TagPicker(props) {
+  const [tags, setTags] = (0,react.useState)(props.tags);
+  const [duplicateTag, setDuplicateTag] = (0,react.useState)(null);
+  const [inputValue, setInputValue] = (0,react.useState)("");
+  const [usedTags, setUsedTags] = (0,react.useState)([]); // Status be success, waiting, or error.
+
+  const [{
+    tagInputStatus,
+    tagInputErrorMessage
+  }, setTagInputStatus] = (0,react.useState)({
+    tagInputStatus: "",
+    tagInputErrorMessage: ""
+  });
+  const inputToSubmit = inputValue.trim();
+  const tagsToSubmit = [...tags, ...(inputToSubmit ? [inputToSubmit] : [])];
+
+  let handleKeyDown = e => {
+    const enterKey = e.keyCode === 13;
+    const commaKey = e.keyCode === 188;
+    const tabKey = inputValue && e.keyCode === 9; // Submit tags on enter with no input.
+    // Enter tag on comma, tab, or enter with input.
+    // Tab to next element with no input.
+
+    if (commaKey || enterKey || tabKey) {
+      e.preventDefault();
+
+      if (inputValue) {
+        addTag();
+      } else if (enterKey) {
+        submitTags();
+      }
+    }
+  };
+
+  let addTag = () => {
+    let newDuplicateTag = tags.find(item => item === inputToSubmit);
+
+    if (!inputToSubmit?.length) {
+      return;
+    }
+
+    setInputValue(``); // Clear out input
+
+    if (!newDuplicateTag) {
+      setTags(tagsToSubmit);
+    } else {
+      setDuplicateTag(newDuplicateTag);
+      setTimeout(() => {
+        setDuplicateTag(null);
+      }, 1000);
+    }
+  };
+
+  let removeTag = index => {
+    let updatedTags = tags.slice(0); // Shallow copied array
+
+    updatedTags.splice(index, 1);
+    setTags(updatedTags);
+  };
+
+  let submitTags = () => {
+    if (!props.itemUrl || !tagsToSubmit?.length) {
+      return;
+    }
+
+    setTagInputStatus({
+      tagInputStatus: "waiting",
+      tagInputErrorMessage: ""
+    });
+    messages.sendMessage("PKT_addTags", {
+      url: props.itemUrl,
+      tags: tagsToSubmit
+    }, function (resp) {
+      const {
+        data
+      } = resp;
+
+      if (data.status === "success") {
+        setTagInputStatus({
+          tagInputStatus: "success",
+          tagInputErrorMessage: ""
+        });
+      } else if (data.status === "error") {
+        setTagInputStatus({
+          tagInputStatus: "error",
+          tagInputErrorMessage: data.error.message
+        });
+      }
+    });
+  };
+
+  (0,react.useEffect)(() => {
+    messages.sendMessage("PKT_getTags", {}, resp => setUsedTags(resp?.data?.tags));
+  }, []);
+  return /*#__PURE__*/react.createElement("div", {
+    className: "stp_tag_picker"
+  }, !tagInputStatus && /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("h3", {
+    className: "header_small",
+    "data-l10n-id": "pocket-panel-signup-add-tags"
+  }), /*#__PURE__*/react.createElement("div", {
+    className: "stp_tag_picker_tags"
+  }, tags.map((tag, i) => /*#__PURE__*/react.createElement("div", {
+    className: `stp_tag_picker_tag${duplicateTag === tag ? ` stp_tag_picker_tag_duplicate` : ``}`
+  }, tag, /*#__PURE__*/react.createElement("button", {
+    onClick: () => removeTag(i),
+    className: `stp_tag_picker_tag_remove`
+  }, "X"))), /*#__PURE__*/react.createElement("div", {
+    className: "stp_tag_picker_input_wrapper"
+  }, /*#__PURE__*/react.createElement("input", {
+    className: "stp_tag_picker_input",
+    type: "text",
+    list: "tag-list",
+    value: inputValue,
+    onChange: e => setInputValue(e.target.value),
+    onKeyDown: e => handleKeyDown(e),
+    maxlength: "25"
+  }), /*#__PURE__*/react.createElement("datalist", {
+    id: "tag-list"
+  }, usedTags.map(item => /*#__PURE__*/react.createElement("option", {
+    key: item,
+    value: item
+  }))), /*#__PURE__*/react.createElement("button", {
+    className: "stp_tag_picker_button",
+    disabled: !tagsToSubmit?.length,
+    "data-l10n-id": "pocket-panel-saved-save-tags",
+    onClick: () => submitTags()
+  })))), tagInputStatus === "waiting" && /*#__PURE__*/react.createElement("h3", {
+    className: "header_large",
+    "data-l10n-id": "pocket-panel-saved-processing-tags"
+  }), tagInputStatus === "success" && /*#__PURE__*/react.createElement("h3", {
+    className: "header_large",
+    "data-l10n-id": "pocket-panel-saved-tags-saved"
+  }), tagInputStatus === "error" && /*#__PURE__*/react.createElement("h3", {
+    className: "header_small"
+  }, tagInputErrorMessage));
+}
+
+/* harmony default export */ const TagPicker_TagPicker = (TagPicker);
 ;// CONCATENATED MODULE: ./content/panels/js/components/Saved/Saved.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -432,28 +873,175 @@ var SignupOverlay = function (options) {
 
 
 
+
+
+
 function Saved(props) {
   const {
+    locale,
+    pockethost,
+    utmSource,
+    utmCampaign,
+    utmContent
+  } = props; // savedStatus can be success, loading, or error.
+
+  const [{
+    savedStatus,
+    savedErrorId,
+    itemId,
+    itemUrl
+  }, setSavedStatusState] = (0,react.useState)({
+    savedStatus: "loading"
+  }); // removedStatus can be removed, removing, or error.
+
+  const [{
+    removedStatus,
+    removedErrorMessage
+  }, setRemovedStatusState] = (0,react.useState)({});
+  const [savedStory, setSavedStoryState] = (0,react.useState)();
+  const [{
     similarRecs,
-    savedStory
-  } = props;
+    similarRecsModel
+  }, setSimilarRecsState] = (0,react.useState)({});
+  const utmParams = `utm_source=${utmSource}${utmCampaign && utmContent ? `&utm_campaign=${utmCampaign}&utm_content=${utmContent}` : ``}`;
+
+  function removeItem(event) {
+    event.preventDefault();
+    setRemovedStatusState({
+      removedStatus: "removing"
+    });
+    messages.sendMessage("PKT_deleteItem", {
+      itemId
+    }, function (resp) {
+      const {
+        data
+      } = resp;
+
+      if (data.status == "success") {
+        setRemovedStatusState({
+          removedStatus: "removed"
+        });
+      } else if (data.status == "error") {
+        let errorMessage = ""; // The server returns English error messages, so in the case of
+        // non English, we do our best with a generic translated error.
+
+        if (data.error.message && locale?.startsWith("en")) {
+          errorMessage = data.error.message;
+        }
+
+        setRemovedStatusState({
+          removedStatus: "error",
+          removedErrorMessage: errorMessage
+        });
+      }
+    });
+  }
+
+  (0,react.useEffect)(() => {
+    // Wait confirmation of save before flipping to final saved state
+    messages.addMessageListener("PKT_saveLink", function (resp) {
+      const {
+        data
+      } = resp;
+
+      if (data.status == "error") {
+        // Use localizedKey or fallback to a generic catch all error.
+        setSavedStatusState({
+          savedStatus: "error",
+          savedErrorId: data?.error?.localizedKey || "pocket-panel-saved-error-generic"
+        });
+        return;
+      } // Success, so no localized error id needed.
+
+
+      setSavedStatusState({
+        savedStatus: "success",
+        itemId: data.item?.item_id,
+        itemUrl: data.item?.given_url,
+        savedErrorId: ""
+      });
+    });
+    messages.addMessageListener("PKT_renderSavedStory", function (resp) {
+      setSavedStoryState(resp?.data?.item_preview);
+    });
+    messages.addMessageListener("PKT_renderItemRecs", function (resp) {
+      const {
+        data
+      } = resp; // This is the ML model used to recommend the story.
+      // Right now this value is the same for all three items returned together,
+      // so we can just use the first item's value for all.
+
+      const model = data?.recommendations?.[0]?.experiment || "";
+      setSimilarRecsState({
+        similarRecs: data?.recommendations?.map(rec => rec.item),
+        similarRecsModel: model
+      });
+    }); // tell back end we're ready
+
+    messages.sendMessage("PKT_show_saved");
+  }, []);
+
+  if (savedStatus === "error") {
+    return /*#__PURE__*/react.createElement("div", {
+      className: "stp_panel_container"
+    }, /*#__PURE__*/react.createElement("div", {
+      className: "stp_panel stp_panel_error"
+    }, /*#__PURE__*/react.createElement("div", {
+      className: "stp_panel_error_icon"
+    }), /*#__PURE__*/react.createElement("h3", {
+      className: "header_large",
+      "data-l10n-id": "pocket-panel-saved-error-not-saved"
+    }), /*#__PURE__*/react.createElement("p", {
+      "data-l10n-id": savedErrorId
+    })));
+  }
+
   return /*#__PURE__*/react.createElement("div", {
     className: "stp_panel_container"
   }, /*#__PURE__*/react.createElement("div", {
-    className: "stp_panel stp_panel_home"
-  }, /*#__PURE__*/react.createElement(Header_Header, null, /*#__PURE__*/react.createElement("a", null, /*#__PURE__*/react.createElement("span", {
+    className: "stp_panel stp_panel_saved"
+  }, /*#__PURE__*/react.createElement(Header_Header, null, /*#__PURE__*/react.createElement(Button_Button, {
+    style: "primary",
+    url: `https://${pockethost}/a?${utmParams}`,
+    source: "view_list"
+  }, /*#__PURE__*/react.createElement("span", {
     "data-l10n-id": "pocket-panel-header-my-list"
-  }))), /*#__PURE__*/react.createElement("hr", null), savedStory && /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("p", {
-    "data-l10n-id": "pocket-panel-saved-page-saved"
-  }), /*#__PURE__*/react.createElement(ArticleList_ArticleList, {
-    articles: [savedStory]
-  }), /*#__PURE__*/react.createElement("span", {
-    "data-l10n-id": "pocket-panel-button-add-tags"
-  }), /*#__PURE__*/react.createElement("span", {
-    "data-l10n-id": "pocket-panel-saved-remove-page"
-  })), /*#__PURE__*/react.createElement("hr", null), similarRecs?.length && /*#__PURE__*/react.createElement(ArticleList_ArticleList, {
-    articles: similarRecs
-  })));
+  }))), /*#__PURE__*/react.createElement("hr", null), !removedStatus && savedStatus === "success" && /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("h3", {
+    className: "header_large header_flex"
+  }, /*#__PURE__*/react.createElement("span", {
+    "data-l10n-id": "pocket-panel-saved-page-saved-b"
+  }), /*#__PURE__*/react.createElement(Button_Button, {
+    style: "text",
+    onClick: removeItem
+  }, /*#__PURE__*/react.createElement("span", {
+    "data-l10n-id": "pocket-panel-button-remove"
+  }))), savedStory && /*#__PURE__*/react.createElement(ArticleList_ArticleList, {
+    articles: [savedStory],
+    openInPocketReader: true,
+    utmParams: utmParams
+  }), /*#__PURE__*/react.createElement(TagPicker_TagPicker, {
+    tags: [],
+    itemUrl: itemUrl
+  }), similarRecs?.length && locale?.startsWith("en") && /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("hr", null), /*#__PURE__*/react.createElement("h3", {
+    className: "header_medium"
+  }, "Similar Stories"), /*#__PURE__*/react.createElement(ArticleList_ArticleList, {
+    articles: similarRecs,
+    source: "on_save_recs",
+    model: similarRecsModel,
+    utmParams: utmParams
+  }))), savedStatus === "loading" && /*#__PURE__*/react.createElement("h3", {
+    className: "header_large",
+    "data-l10n-id": "pocket-panel-saved-saving-tags"
+  }), removedStatus === "removing" && /*#__PURE__*/react.createElement("h3", {
+    className: "header_large header_center",
+    "data-l10n-id": "pocket-panel-saved-processing-remove"
+  }), removedStatus === "removed" && /*#__PURE__*/react.createElement("h3", {
+    className: "header_large header_center",
+    "data-l10n-id": "pocket-panel-saved-removed"
+  }), removedStatus === "error" && /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("h3", {
+    className: "header_large",
+    "data-l10n-id": "pocket-panel-saved-error-remove"
+  }), removedErrorMessage && /*#__PURE__*/react.createElement("p", null, removedErrorMessage))));
 }
 
 /* harmony default export */ const Saved_Saved = (Saved);
@@ -964,7 +1552,9 @@ var SavedOverlay = function (options) {
 };
 
 SavedOverlay.prototype = {
-  create() {
+  create({
+    pockethost
+  }) {
     if (this.active) {
       return;
     }
@@ -974,18 +1564,31 @@ SavedOverlay.prototype = {
     const {
       searchParams
     } = new URL(window.location.href);
-    const pockethost = searchParams.get(`pockethost`) || `getpocket.com`;
     const premiumStatus = searchParams.get(`premiumStatus`) == `1`;
     const locale = searchParams.get(`locale`) || ``;
     const language = locale.split(`-`)[0].toLowerCase();
     const layoutRefresh = searchParams.get(`layoutRefresh`) === `true`;
+    const utmSource = searchParams.get(`utmSource`);
+    const utmCampaign = searchParams.get(`utmCampaign`);
+    const utmContent = searchParams.get(`utmContent`);
 
     if (layoutRefresh) {
-      // Create actual content
+      // For now, we need to do a little work on the body element
+      // to support both old and new versions.
+      document.querySelector(`.pkt_ext_containersaved`)?.classList.add(`stp_saved_body`);
+      document.querySelector(`.pkt_ext_containersaved`)?.classList.remove(`pkt_ext_containersaved`); // Create actual content
+
       react_dom.render( /*#__PURE__*/react.createElement(Saved_Saved, {
+        locale: locale,
         pockethost: pockethost,
-        savedStory: {}
+        utmSource: utmSource,
+        utmCampaign: utmCampaign,
+        utmContent: utmContent
       }), document.querySelector(`body`));
+
+      if (window?.matchMedia(`(prefers-color-scheme: dark)`).matches) {
+        document.querySelector(`body`).classList.add(`theme_dark`);
+      }
     } else {
       // set host
       const templateData = {
@@ -1035,30 +1638,16 @@ SavedOverlay.prototype = {
           data
         } = resp;
         myself.renderItemRecs(data);
-      });
-    } // tell back end we're ready
+      }); // tell back end we're ready
 
-
-    messages.sendMessage("PKT_show_saved");
+      messages.sendMessage("PKT_show_saved");
+    }
   }
 
 };
 /* harmony default export */ const saved_overlay = (SavedOverlay);
-;// CONCATENATED MODULE: ./content/panels/js/components/Button/Button.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-function Button(props) {
-  return /*#__PURE__*/react.createElement("a", {
-    href: props.url,
-    className: `stp_button${props?.style && ` stp_button_${props.style}`}`
-  }, props.children);
-}
-
-/* harmony default export */ const Button_Button = (Button);
 ;// CONCATENATED MODULE: ./content/panels/js/style-guide/overlay.js
+
 
 
 
@@ -1073,30 +1662,52 @@ StyleGuideOverlay.prototype = {
     // TODO: Wrap popular topics component in JSX to work without needing an explicit container hierarchy for styling
     react_dom.render( /*#__PURE__*/react.createElement("div", null, /*#__PURE__*/react.createElement("h3", null, "JSX Components:"), /*#__PURE__*/react.createElement("h4", {
       className: "stp_styleguide_h4"
-    }, "Button"), /*#__PURE__*/react.createElement(Button_Button, {
+    }, "Buttons"), /*#__PURE__*/react.createElement("h5", {
+      className: "stp_styleguide_h5"
+    }, "text"), /*#__PURE__*/react.createElement(Button_Button, {
       style: "text",
-      url: "https://example.org"
-    }, "Text Button"), /*#__PURE__*/react.createElement("br", null), /*#__PURE__*/react.createElement(Button_Button, {
-      style: "primary"
-    }, "Primary Button"), /*#__PURE__*/react.createElement("br", null), /*#__PURE__*/react.createElement(Button_Button, {
-      style: "secondary"
-    }, "Secondary Button"), /*#__PURE__*/react.createElement("span", {
+      url: "https://example.org",
+      source: "styleguide"
+    }, "Text Button"), /*#__PURE__*/react.createElement("h5", {
+      className: "stp_styleguide_h5"
+    }, "primary"), /*#__PURE__*/react.createElement(Button_Button, {
+      style: "primary",
+      url: "https://example.org",
+      source: "styleguide"
+    }, "Primary Button"), /*#__PURE__*/react.createElement("h5", {
+      className: "stp_styleguide_h5"
+    }, "secondary"), /*#__PURE__*/react.createElement(Button_Button, {
+      style: "secondary",
+      url: "https://example.org",
+      source: "styleguide"
+    }, "Secondary Button"), /*#__PURE__*/react.createElement("h5", {
+      className: "stp_styleguide_h5"
+    }, "primary wide"), /*#__PURE__*/react.createElement("span", {
       className: "stp_button_wide"
     }, /*#__PURE__*/react.createElement(Button_Button, {
-      style: "primary"
-    }, "Primary Wide Button")), /*#__PURE__*/react.createElement("span", {
+      style: "primary",
+      url: "https://example.org",
+      source: "styleguide"
+    }, "Primary Wide Button")), /*#__PURE__*/react.createElement("h5", {
+      className: "stp_styleguide_h5"
+    }, "secondary wide"), /*#__PURE__*/react.createElement("span", {
       className: "stp_button_wide"
     }, /*#__PURE__*/react.createElement(Button_Button, {
-      style: "secondary"
+      style: "secondary",
+      url: "https://example.org",
+      source: "styleguide"
     }, "Secondary Wide Button")), /*#__PURE__*/react.createElement("h4", {
       className: "stp_styleguide_h4"
     }, "Header"), /*#__PURE__*/react.createElement(Header_Header, null, /*#__PURE__*/react.createElement(Button_Button, {
-      style: "primary"
+      style: "primary",
+      url: "https://example.org",
+      source: "styleguide"
     }, "View My List")), /*#__PURE__*/react.createElement("h4", {
       className: "stp_styleguide_h4"
     }, "PopularTopics"), /*#__PURE__*/react.createElement(PopularTopics_PopularTopics, {
       pockethost: `getpocket.com`,
-      utmsource: `styleguide`,
+      source: `styleguide`,
+      utmParams: `utm_source=styleguide`,
       topics: [{
         title: "Self Improvement",
         topic: "self-improvement"
@@ -1113,6 +1724,7 @@ StyleGuideOverlay.prototype = {
     }), /*#__PURE__*/react.createElement("h4", {
       className: "stp_styleguide_h4"
     }, "ArticleList"), /*#__PURE__*/react.createElement(ArticleList_ArticleList, {
+      source: `styleguide`,
       articles: [{
         title: "Article Title",
         publisher: "Publisher",
@@ -1120,18 +1732,20 @@ StyleGuideOverlay.prototype = {
         url: "https://example.org",
         alt: "Alt Text"
       }, {
-        title: "Article Title",
-        publisher: "Publisher",
+        title: "Article Title (No Publisher)",
         thumbnail: "https://img-getpocket.cdn.mozilla.net/80x80/https://www.raritanheadwaters.org/wp-content/uploads/2020/04/red-fox.jpg",
         url: "https://example.org",
         alt: "Alt Text"
       }, {
-        title: "Article Title",
+        title: "Article Title (No Thumbnail)",
         publisher: "Publisher",
-        thumbnail: "https://img-getpocket.cdn.mozilla.net/80x80/https://www.raritanheadwaters.org/wp-content/uploads/2020/04/red-fox.jpg",
         url: "https://example.org",
         alt: "Alt Text"
       }]
+    }), /*#__PURE__*/react.createElement("h4", {
+      className: "stp_styleguide_h4"
+    }, "TagPicker"), /*#__PURE__*/react.createElement(TagPicker_TagPicker, {
+      tags: [`futurism`, `politics`, `mozilla`]
     }), /*#__PURE__*/react.createElement("h3", null, "Typography:"), /*#__PURE__*/react.createElement("h2", {
       className: "header_large"
     }, ".header_large"), /*#__PURE__*/react.createElement("h3", {
@@ -1147,6 +1761,8 @@ StyleGuideOverlay.prototype = {
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* global RPMGetStringPref:false */
 
 
 
@@ -1256,7 +1872,10 @@ PKT_PANEL.prototype = {
   },
 
   create() {
-    this.overlay.create();
+    const pockethost = RPMGetStringPref("extensions.pocket.site") || "getpocket.com";
+    this.overlay.create({
+      pockethost
+    });
   }
 
 };
@@ -1390,7 +2009,7 @@ window.pktPanelMessaging = messages;
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(861)))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(122)))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()

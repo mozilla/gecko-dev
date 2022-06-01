@@ -153,7 +153,10 @@ class ChannelEventQueue final {
   }
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  bool IsEmpty() const { return mEventQueue.IsEmpty(); }
+  bool IsEmpty() {
+    MutexAutoLock lock(mMutex);
+    return mEventQueue.IsEmpty();
+  }
 #endif
 
  private:
@@ -163,7 +166,7 @@ class ChannelEventQueue final {
   void SuspendInternal();
   void ResumeInternal();
 
-  bool MaybeSuspendIfEventsAreSuppressed();
+  bool MaybeSuspendIfEventsAreSuppressed() REQUIRES(mMutex);
 
   inline void MaybeFlushQueue();
   void FlushQueue();
@@ -171,26 +174,27 @@ class ChannelEventQueue final {
 
   ChannelEvent* TakeEvent();
 
-  nsTArray<UniquePtr<ChannelEvent>> mEventQueue;
+  nsTArray<UniquePtr<ChannelEvent>> mEventQueue GUARDED_BY(mMutex);
 
-  uint32_t mSuspendCount;
-  bool mSuspended;
-  uint32_t mForcedCount;  // Support ForcedQueueing on multiple thread.
-  bool mFlushing;
+  uint32_t mSuspendCount GUARDED_BY(mMutex);
+  bool mSuspended GUARDED_BY(mMutex);
+  uint32_t mForcedCount  // Support ForcedQueueing on multiple thread.
+      GUARDED_BY(mMutex);
+  bool mFlushing GUARDED_BY(mMutex);
 
   // Whether the queue is associated with an XHR. This is lazily instantiated
-  // the first time it is needed.
+  // the first time it is needed. These are MainThread-only.
   bool mHasCheckedForXMLHttpRequest;
   bool mForXMLHttpRequest;
 
   // Keep ptr to avoid refcount cycle: only grab ref during flushing.
-  nsISupports* mOwner;
+  nsISupports* mOwner GUARDED_BY(mMutex);
 
   // For atomic mEventQueue operation and state update
   Mutex mMutex;
 
   // To guarantee event execution order among threads
-  RecursiveMutex mRunningMutex;
+  RecursiveMutex mRunningMutex ACQUIRED_BEFORE(mMutex);
 
   friend class AutoEventEnqueuer;
 };
@@ -198,12 +202,10 @@ class ChannelEventQueue final {
 inline void ChannelEventQueue::RunOrEnqueue(ChannelEvent* aCallback,
                                             bool aAssertionWhenNotQueued) {
   MOZ_ASSERT(aCallback);
-
   // Events execution could be a destruction of the channel (and our own
   // destructor) unless we make sure its refcount doesn't drop to 0 while this
   // method is running.
-  nsCOMPtr<nsISupports> kungFuDeathGrip(mOwner);
-  Unused << kungFuDeathGrip;  // Not used in this function
+  nsCOMPtr<nsISupports> kungFuDeathGrip;
 
   // To avoid leaks.
   UniquePtr<ChannelEvent> event(aCallback);
@@ -211,9 +213,9 @@ inline void ChannelEventQueue::RunOrEnqueue(ChannelEvent* aCallback,
   // To guarantee that the running event and all the events generated within
   // it will be finished before events on other threads.
   RecursiveMutexAutoLock lock(mRunningMutex);
-
   {
     MutexAutoLock lock(mMutex);
+    kungFuDeathGrip = mOwner;  // must be under the lock
 
     bool enqueue = !!mForcedCount || mSuspended || mFlushing ||
                    !mEventQueue.IsEmpty() ||
@@ -341,8 +343,13 @@ inline void ChannelEventQueue::MaybeFlushQueue() {
 // when it goes out of scope.
 class MOZ_STACK_CLASS AutoEventEnqueuer {
  public:
-  explicit AutoEventEnqueuer(ChannelEventQueue* queue)
-      : mEventQueue(queue), mOwner(queue->mOwner) {
+  explicit AutoEventEnqueuer(ChannelEventQueue* queue) : mEventQueue(queue) {
+    {
+      // Probably not actually needed, since NotifyReleasingOwner should
+      // only happen after this, but safer to take it in case things change
+      MutexAutoLock lock(queue->mMutex);
+      mOwner = queue->mOwner;
+    }
     mEventQueue->StartForcedQueueing();
   }
   ~AutoEventEnqueuer() { mEventQueue->EndForcedQueueing(); }

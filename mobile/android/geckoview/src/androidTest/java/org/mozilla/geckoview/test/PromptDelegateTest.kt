@@ -382,6 +382,83 @@ class PromptDelegateTest : BaseSessionTest() {
     }
 
     @Test
+    @WithDisplay(width = 100, height = 100)
+    fun selectTestUpdate() {
+        mainSession.loadTestPath(SELECT_HTML_PATH)
+        sessionRule.waitForPageStop()
+
+        val result = GeckoResult<PromptDelegate.PromptResponse>()
+        val promptInstanceDelegate = object : PromptDelegate.PromptInstanceDelegate {
+            override fun onPromptUpdate(prompt: PromptDelegate.BasePrompt) {
+                val newPrompt: PromptDelegate.ChoicePrompt = prompt as PromptDelegate.ChoicePrompt
+                assertThat("First choice is correct", newPrompt.choices[0].label, equalTo("foo"))
+                assertThat("Second choice is correct", newPrompt.choices[1].label, equalTo("bar"))
+                assertThat("Third choice is correct", newPrompt.choices[2].label, equalTo("baz"))
+                result.complete(prompt.confirm(newPrompt.choices[2]))
+            }
+        }
+
+        sessionRule.delegateUntilTestEnd(object: PromptDelegate {
+            @AssertCalled(count = 1)
+            override fun onChoicePrompt(session: GeckoSession, prompt: PromptDelegate.ChoicePrompt): GeckoResult<PromptDelegate.PromptResponse>? {
+                assertThat("There should be two choices", prompt.choices.size, equalTo(2))
+                prompt.setDelegate(promptInstanceDelegate)
+                return result
+            }
+        })
+
+        mainSession.evaluateJS("""
+            document.querySelector("select").addEventListener("focus", () => {
+                window.setTimeout(() => {
+                    document.querySelector("select").innerHTML =
+                        "<option>foo</option><option>bar</option><option>baz</option>";
+                }, 100);
+            }, { once: true })
+        """.trimIndent())
+
+        val promise = mainSession.evaluatePromiseJS("""
+            new Promise(resolve => {
+                document.querySelector("select").addEventListener("change", e => {
+                    resolve(e.target.value);
+                });
+            })
+        """.trimIndent())
+
+        mainSession.synthesizeTap(10, 10)
+        sessionRule.waitForResult(result)
+        assertThat("Selected item should be as expected",
+                   promise.value as String,
+                   equalTo("baz"))
+    }
+
+    @Test
+    @WithDisplay(width = 100, height = 100)
+    fun selectTestDismiss() {
+        mainSession.loadTestPath(SELECT_HTML_PATH)
+        sessionRule.waitForPageStop()
+
+        val result = GeckoResult<PromptDelegate.PromptResponse>()
+        val promptInstanceDelegate = object : PromptDelegate.PromptInstanceDelegate {
+            override fun onPromptDismiss(prompt: PromptDelegate.BasePrompt) {
+                result.complete(prompt.dismiss())
+            }
+        }
+
+        sessionRule.delegateUntilTestEnd(object: PromptDelegate {
+            @AssertCalled(count = 1)
+            override fun onChoicePrompt(session: GeckoSession, prompt: PromptDelegate.ChoicePrompt): GeckoResult<PromptDelegate.PromptResponse>? {
+                assertThat("There should be two choices", prompt.choices.size, equalTo(2))
+                prompt.setDelegate(promptInstanceDelegate)
+                return GeckoResult()
+            }
+        })
+
+        mainSession.evaluateJS("document.querySelector('select').addEventListener('click', e => window.setTimeout(() => e.target.blur(), 500))")
+        mainSession.synthesizeTap(10, 10)
+        sessionRule.waitForResult(result)
+    }
+
+    @Test
     fun onBeforeUnloadTest() {
         sessionRule.setPrefsUntilTestEnd(mapOf(
                 "dom.require_user_interaction_for_beforeunload" to false
@@ -489,18 +566,99 @@ class PromptDelegateTest : BaseSessionTest() {
                 equalTo("#123456"))
     }
 
-    @Ignore // TODO: Figure out weird test env behavior here.
+    @WithDisplay(width = 100, height = 100)
     @Test fun dateTest() {
+        mainSession.loadTestPath(PROMPT_HTML_PATH)
+        mainSession.waitForPageStop()
+
+        mainSession.evaluateJS("""
+            document.body.addEventListener("click", () => {
+                document.getElementById('dateexample').showPicker();
+            });
+        """.trimIndent())
+
+        mainSession.synthesizeTap(1, 1) // Provides user activation.
+        sessionRule.waitUntilCalled(object : PromptDelegate {
+            @AssertCalled(count = 1)
+            override fun onDateTimePrompt(session: GeckoSession, prompt: PromptDelegate.DateTimePrompt): GeckoResult<PromptDelegate.PromptResponse> {
+                return GeckoResult.fromValue(prompt.dismiss())
+            }
+        })
+    }
+
+    @WithDisplay(width = 100, height = 100)
+    @Test fun dateTestByTap() {
         sessionRule.setPrefsUntilTestEnd(mapOf("dom.disable_open_during_load" to false))
 
         mainSession.loadTestPath(PROMPT_HTML_PATH)
         mainSession.waitForPageStop()
 
-        mainSession.evaluateJS("document.getElementById('dateexample').click();")
+        // By removing first element in PROMPT_HTML_PATH, dateexample becomes first element.
+        //
+        // TODO: What better calculation of element bounds for synthesizeTap?
+        mainSession.evaluateJS("""
+            document.getElementById('selectexample').remove();
+            document.getElementById('dateexample').getBoundingClientRect();
+        """.trimIndent())
+        mainSession.synthesizeTap(10, 10)
 
         sessionRule.waitUntilCalled(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onDateTimePrompt(session: GeckoSession, prompt: PromptDelegate.DateTimePrompt): GeckoResult<PromptDelegate.PromptResponse> {
+                assertThat("<input type=date> is tapped", PromptDelegate.DateTimePrompt.Type.DATE, equalTo(prompt.type))
+                return GeckoResult.fromValue(prompt.dismiss())
+            }
+        })
+    }
+
+    @WithDisplay(width = 100, height = 100)
+    @Test fun monthTestByTap() {
+        // Gecko doesn't have the widget for <input type=month>. But GeckoView can show the picker.
+        sessionRule.setPrefsUntilTestEnd(mapOf("dom.disable_open_during_load" to false))
+
+        mainSession.loadTestPath(PROMPT_HTML_PATH)
+        mainSession.waitForPageStop()
+
+        // TODO: What better calculation of element bounds for synthesizeTap?
+        mainSession.evaluateJS("""
+            document.getElementById('selectexample').remove();
+            document.getElementById('dateexample').remove();
+            document.getElementById('weekexample').getBoundingClientRect();
+        """.trimIndent())
+        mainSession.synthesizeTap(10, 10)
+
+        sessionRule.waitUntilCalled(object : PromptDelegate {
+            @AssertCalled(count = 1)
+            override fun onDateTimePrompt(session: GeckoSession, prompt: PromptDelegate.DateTimePrompt): GeckoResult<PromptDelegate.PromptResponse> {
+                assertThat("<input type=month> is tapped", PromptDelegate.DateTimePrompt.Type.MONTH, equalTo(prompt.type))
+                return GeckoResult.fromValue(prompt.dismiss())
+            }
+        })
+    }
+
+    @WithDisplay(width = 100, height = 100)
+    @Test fun dateTestParameters() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("dom.disable_open_during_load" to false))
+
+        mainSession.loadTestPath(PROMPT_HTML_PATH)
+        mainSession.waitForPageStop()
+
+        mainSession.evaluateJS("""
+            document.getElementById('selectexample').remove();
+            document.getElementById('dateexample').min = "2022-01-01";
+            document.getElementById('dateexample').max = "2022-12-31";
+            document.getElementById('dateexample').step = "10";
+            document.getElementById('dateexample').getBoundingClientRect();
+        """.trimIndent())
+        mainSession.synthesizeTap(10, 10)
+
+        sessionRule.waitUntilCalled(object : PromptDelegate {
+            @AssertCalled(count = 1)
+            override fun onDateTimePrompt(session: GeckoSession, prompt: PromptDelegate.DateTimePrompt): GeckoResult<PromptDelegate.PromptResponse> {
+                assertThat("<input type=date> is tapped", prompt.type, equalTo(PromptDelegate.DateTimePrompt.Type.DATE))
+                assertThat("min value is exported", prompt.minValue, equalTo("2022-01-01"))
+                assertThat("max value is exported", prompt.maxValue, equalTo("2022-12-31"))
+                assertThat("step value is exported", prompt.stepValue, equalTo("10"))
                 return GeckoResult.fromValue(prompt.dismiss())
             }
         })

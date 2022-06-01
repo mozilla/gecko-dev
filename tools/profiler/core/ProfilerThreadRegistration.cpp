@@ -9,7 +9,12 @@
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/ProfilerThreadRegistry.h"
 #include "nsString.h"
-#include "platform.h"
+#ifdef MOZ_GECKO_PROFILER
+#  include "platform.h"
+#else
+#  define profiler_mark_thread_awake()
+#  define profiler_mark_thread_asleep()
+#endif
 
 namespace mozilla::profiler {
 
@@ -68,6 +73,9 @@ ThreadRegistration::~ThreadRegistration() {
     }
 
     profiler_mark_thread_asleep();
+#ifdef NIGHTLY_BUILD
+    mData.RecordWakeCount();
+#endif
     ThreadRegistry::Unregister(OnThreadRef{*this});
 #ifdef DEBUG
     // After ThreadRegistry::Unregister, other threads should not be able to

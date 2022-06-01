@@ -19,8 +19,10 @@
 #include "lib/jxl/base/status.h"
 #include "lib/jxl/color_encoding_internal.h"
 #include "lib/jxl/common.h"
+#include "lib/jxl/dec_external_image.h"
 #include "lib/jxl/enc_color_management.h"
 #include "lib/jxl/enc_image_bundle.h"
+#include "lib/jxl/exif.h"
 #include "lib/jxl/image.h"
 #include "lib/jxl/image_bundle.h"
 #include "lib/jxl/sanitizers.h"
@@ -33,7 +35,6 @@ namespace extras {
 
 namespace {
 
-constexpr float kJPEGSampleMultiplier = MAXJSAMPLE;
 constexpr unsigned char kICCSignature[12] = {
     0x49, 0x43, 0x43, 0x5F, 0x50, 0x52, 0x4F, 0x46, 0x49, 0x4C, 0x45, 0x00};
 constexpr int kICCMarker = JPEG_APP0 + 2;
@@ -42,127 +43,6 @@ constexpr size_t kMaxBytesInMarker = 65533;
 constexpr unsigned char kExifSignature[6] = {0x45, 0x78, 0x69,
                                              0x66, 0x00, 0x00};
 constexpr int kExifMarker = JPEG_APP0 + 1;
-
-constexpr float kJPEGSampleMin = 0;
-constexpr float kJPEGSampleMax = MAXJSAMPLE;
-
-static inline bool IsJPG(const Span<const uint8_t> bytes) {
-  if (bytes.size() < 2) return false;
-  if (bytes[0] != 0xFF || bytes[1] != 0xD8) return false;
-  return true;
-}
-
-bool MarkerIsICC(const jpeg_saved_marker_ptr marker) {
-  return marker->marker == kICCMarker &&
-         marker->data_length >= sizeof kICCSignature + 2 &&
-         std::equal(std::begin(kICCSignature), std::end(kICCSignature),
-                    marker->data);
-}
-bool MarkerIsExif(const jpeg_saved_marker_ptr marker) {
-  return marker->marker == kExifMarker &&
-         marker->data_length >= sizeof kExifSignature + 2 &&
-         std::equal(std::begin(kExifSignature), std::end(kExifSignature),
-                    marker->data);
-}
-
-Status ReadICCProfile(jpeg_decompress_struct* const cinfo,
-                      std::vector<uint8_t>* const icc) {
-  constexpr size_t kICCSignatureSize = sizeof kICCSignature;
-  // ICC signature + uint8_t index + uint8_t max_index.
-  constexpr size_t kICCHeadSize = kICCSignatureSize + 2;
-  // Markers are 1-indexed, and we keep them that way in this vector to get a
-  // convenient 0 at the front for when we compute the offsets later.
-  std::vector<size_t> marker_lengths;
-  int num_markers = 0;
-  int seen_markers_count = 0;
-  bool has_num_markers = false;
-  for (jpeg_saved_marker_ptr marker = cinfo->marker_list; marker != nullptr;
-       marker = marker->next) {
-    // marker is initialized by libjpeg, which we are not instrumenting with
-    // msan.
-    msan::UnpoisonMemory(marker, sizeof(*marker));
-    msan::UnpoisonMemory(marker->data, marker->data_length);
-    if (!MarkerIsICC(marker)) continue;
-
-    const int current_marker = marker->data[kICCSignatureSize];
-    if (current_marker == 0) {
-      return JXL_FAILURE("inconsistent JPEG ICC marker numbering");
-    }
-    const int current_num_markers = marker->data[kICCSignatureSize + 1];
-    if (current_marker > current_num_markers) {
-      return JXL_FAILURE("inconsistent JPEG ICC marker numbering");
-    }
-    if (has_num_markers) {
-      if (current_num_markers != num_markers) {
-        return JXL_FAILURE("inconsistent numbers of JPEG ICC markers");
-      }
-    } else {
-      num_markers = current_num_markers;
-      has_num_markers = true;
-      marker_lengths.resize(num_markers + 1);
-    }
-
-    size_t marker_length = marker->data_length - kICCHeadSize;
-
-    if (marker_length == 0) {
-      // NB: if we allow empty chunks, then the next check is incorrect.
-      return JXL_FAILURE("Empty ICC chunk");
-    }
-
-    if (marker_lengths[current_marker] != 0) {
-      return JXL_FAILURE("duplicate JPEG ICC marker number");
-    }
-    marker_lengths[current_marker] = marker_length;
-    seen_markers_count++;
-  }
-
-  if (marker_lengths.empty()) {
-    // Not an error.
-    return false;
-  }
-
-  if (seen_markers_count != num_markers) {
-    JXL_DASSERT(has_num_markers);
-    return JXL_FAILURE("Incomplete set of ICC chunks");
-  }
-
-  std::vector<size_t> offsets = std::move(marker_lengths);
-  std::partial_sum(offsets.begin(), offsets.end(), offsets.begin());
-  icc->resize(offsets.back());
-
-  for (jpeg_saved_marker_ptr marker = cinfo->marker_list; marker != nullptr;
-       marker = marker->next) {
-    if (!MarkerIsICC(marker)) continue;
-    const uint8_t* first = marker->data + kICCHeadSize;
-    uint8_t current_marker = marker->data[kICCSignatureSize];
-    size_t offset = offsets[current_marker - 1];
-    size_t marker_length = offsets[current_marker] - offset;
-    std::copy_n(first, marker_length, icc->data() + offset);
-  }
-
-  return true;
-}
-
-void ReadExif(jpeg_decompress_struct* const cinfo,
-              std::vector<uint8_t>* const exif) {
-  constexpr size_t kExifSignatureSize = sizeof kExifSignature;
-  for (jpeg_saved_marker_ptr marker = cinfo->marker_list; marker != nullptr;
-       marker = marker->next) {
-    // marker is initialized by libjpeg, which we are not instrumenting with
-    // msan.
-    msan::UnpoisonMemory(marker, sizeof(*marker));
-    msan::UnpoisonMemory(marker->data, marker->data_length);
-    if (!MarkerIsExif(marker)) continue;
-    size_t marker_length = marker->data_length - kExifSignatureSize;
-    exif->resize(marker_length);
-    std::copy_n(marker->data + kExifSignatureSize, marker_length, exif->data());
-    return;
-  }
-}
-
-// TODO (jon): take orientation into account when writing jpeg output
-// TODO (jon): write Exif blob also in sjpeg encoding
-// TODO (jon): overwrite orientation in Exif blob to avoid double orientation
 
 void WriteICCProfile(jpeg_compress_struct* const cinfo,
                      const PaddedBytes& icc) {
@@ -187,15 +67,15 @@ void WriteICCProfile(jpeg_compress_struct* const cinfo,
     }
   }
 }
-void WriteExif(jpeg_compress_struct* const cinfo, const PaddedBytes& exif) {
-  if (exif.size() < 4) return;
+void WriteExif(jpeg_compress_struct* const cinfo,
+               const std::vector<uint8_t>& exif) {
   jpeg_write_m_header(
       cinfo, kExifMarker,
-      static_cast<unsigned int>(exif.size() - 4 + sizeof kExifSignature));
+      static_cast<unsigned int>(exif.size() + sizeof kExifSignature));
   for (const unsigned char c : kExifSignature) {
     jpeg_write_m_byte(cinfo, c);
   }
-  for (size_t i = 4; i < exif.size(); ++i) {
+  for (size_t i = 0; i < exif.size(); ++i) {
     jpeg_write_m_byte(cinfo, exif[i]);
   }
 }
@@ -213,148 +93,7 @@ Status SetChromaSubsampling(const YCbCrChromaSubsampling& chroma_subsampling,
   return true;
 }
 
-void MyErrorExit(j_common_ptr cinfo) {
-  jmp_buf* env = static_cast<jmp_buf*>(cinfo->client_data);
-  (*cinfo->err->output_message)(cinfo);
-  jpeg_destroy_decompress(reinterpret_cast<j_decompress_ptr>(cinfo));
-  longjmp(*env, 1);
-}
-
-void MyOutputMessage(j_common_ptr cinfo) {
-#if JXL_DEBUG_WARNING == 1
-  char buf[JMSG_LENGTH_MAX];
-  (*cinfo->err->format_message)(cinfo, buf);
-  JXL_WARNING("%s", buf);
-#endif
-}
-
 }  // namespace
-
-Status DecodeImageJPG(const Span<const uint8_t> bytes,
-                      const ColorHints& color_hints,
-                      const SizeConstraints& constraints,
-                      PackedPixelFile* ppf) {
-  // Don't do anything for non-JPEG files (no need to report an error)
-  if (!IsJPG(bytes)) return false;
-
-  // TODO(veluca): use JPEGData also for pixels?
-
-  // We need to declare all the non-trivial destructor local variables before
-  // the call to setjmp().
-  ColorEncoding color_encoding;
-  PaddedBytes icc;
-  Image3F image;
-  std::unique_ptr<JSAMPLE[]> row;
-
-  const auto try_catch_block = [&]() -> bool {
-    jpeg_decompress_struct cinfo;
-    // cinfo is initialized by libjpeg, which we are not instrumenting with
-    // msan, therefore we need to initialize cinfo here.
-    msan::UnpoisonMemory(&cinfo, sizeof(cinfo));
-    // Setup error handling in jpeg library so we can deal with broken jpegs in
-    // the fuzzer.
-    jpeg_error_mgr jerr;
-    jmp_buf env;
-    cinfo.err = jpeg_std_error(&jerr);
-    jerr.error_exit = &MyErrorExit;
-    jerr.output_message = &MyOutputMessage;
-    if (setjmp(env)) {
-      return false;
-    }
-    cinfo.client_data = static_cast<void*>(&env);
-
-    jpeg_create_decompress(&cinfo);
-    jpeg_mem_src(&cinfo, reinterpret_cast<const unsigned char*>(bytes.data()),
-                 bytes.size());
-    jpeg_save_markers(&cinfo, kICCMarker, 0xFFFF);
-    jpeg_save_markers(&cinfo, kExifMarker, 0xFFFF);
-    const auto failure = [&cinfo](const char* str) -> Status {
-      jpeg_abort_decompress(&cinfo);
-      jpeg_destroy_decompress(&cinfo);
-      return JXL_FAILURE("%s", str);
-    };
-    int read_header_result = jpeg_read_header(&cinfo, TRUE);
-    // TODO(eustas): what about JPEG_HEADER_TABLES_ONLY?
-    if (read_header_result == JPEG_SUSPENDED) {
-      return failure("truncated JPEG input");
-    }
-    if (!VerifyDimensions(&constraints, cinfo.image_width,
-                          cinfo.image_height)) {
-      return failure("image too big");
-    }
-    // Might cause CPU-zip bomb.
-    if (cinfo.arith_code) {
-      return failure("arithmetic code JPEGs are not supported");
-    }
-    int nbcomp = cinfo.num_components;
-    if (nbcomp != 1 && nbcomp != 3) {
-      return failure("unsupported number of components in JPEG");
-    }
-    if (!ReadICCProfile(&cinfo, &ppf->icc)) {
-      ppf->icc.clear();
-      // Default to SRGB
-      // Actually, (cinfo.output_components == nbcomp) will be checked after
-      // `jpeg_start_decompress`.
-      ppf->color_encoding.color_space =
-          (nbcomp == 1) ? JXL_COLOR_SPACE_GRAY : JXL_COLOR_SPACE_RGB;
-      ppf->color_encoding.white_point = JXL_WHITE_POINT_D65;
-      ppf->color_encoding.primaries = JXL_PRIMARIES_SRGB;
-      ppf->color_encoding.transfer_function = JXL_TRANSFER_FUNCTION_SRGB;
-      ppf->color_encoding.rendering_intent = JXL_RENDERING_INTENT_PERCEPTUAL;
-    }
-    ReadExif(&cinfo, &ppf->metadata.exif);
-    if (!ApplyColorHints(color_hints, /*color_already_set=*/true,
-                         /*is_gray=*/false, ppf)) {
-      return failure("ApplyColorHints failed");
-    }
-
-    ppf->info.xsize = cinfo.image_width;
-    ppf->info.ysize = cinfo.image_height;
-    // Original data is uint, so exponent_bits_per_sample = 0.
-    ppf->info.bits_per_sample = BITS_IN_JSAMPLE;
-    JXL_ASSERT(BITS_IN_JSAMPLE == 8 || BITS_IN_JSAMPLE == 16);
-    ppf->info.exponent_bits_per_sample = 0;
-    ppf->info.uses_original_profile = true;
-
-    // No alpha in JPG
-    ppf->info.alpha_bits = 0;
-    ppf->info.alpha_exponent_bits = 0;
-
-    ppf->info.num_color_channels = nbcomp;
-    ppf->info.orientation = JXL_ORIENT_IDENTITY;
-
-    jpeg_start_decompress(&cinfo);
-    JXL_ASSERT(cinfo.output_components == nbcomp);
-
-    const JxlPixelFormat format{
-        /*num_channels=*/static_cast<uint32_t>(nbcomp),
-        /*data_type=*/BITS_IN_JSAMPLE == 8 ? JXL_TYPE_UINT8 : JXL_TYPE_UINT16,
-        /*endianness=*/JXL_NATIVE_ENDIAN,
-        /*align=*/0,
-    };
-    ppf->frames.clear();
-    // Allocates the frame buffer.
-    ppf->frames.emplace_back(cinfo.image_width, cinfo.image_height, format);
-    const auto& frame = ppf->frames.back();
-    JXL_ASSERT(sizeof(JSAMPLE) * cinfo.output_components * cinfo.image_width <=
-               frame.color.stride);
-
-    for (size_t y = 0; y < cinfo.image_height; ++y) {
-      JSAMPROW rows[] = {reinterpret_cast<JSAMPLE*>(
-          static_cast<uint8_t*>(frame.color.pixels()) +
-          frame.color.stride * y)};
-      jpeg_read_scanlines(&cinfo, rows, 1);
-      msan::UnpoisonMemory(rows[0], sizeof(JSAMPLE) * cinfo.output_components *
-                                        cinfo.image_width);
-    }
-
-    jpeg_finish_decompress(&cinfo);
-    jpeg_destroy_decompress(&cinfo);
-    return true;
-  };
-
-  return try_catch_block();
-}
 
 Status EncodeWithLibJpeg(const ImageBundle* ib, const CodecInOut* io,
                          size_t quality,
@@ -370,8 +109,8 @@ Status EncodeWithLibJpeg(const ImageBundle* ib, const CodecInOut* io,
   unsigned char* buffer = nullptr;
   unsigned long size = 0;
   jpeg_mem_dest(&cinfo, &buffer, &size);
-  cinfo.image_width = ib->xsize();
-  cinfo.image_height = ib->ysize();
+  cinfo.image_width = ib->oriented_xsize();
+  cinfo.image_height = ib->oriented_ysize();
   if (ib->IsGray()) {
     cinfo.input_components = 1;
     cinfo.in_color_space = JCS_GRAYSCALE;
@@ -389,27 +128,26 @@ Status EncodeWithLibJpeg(const ImageBundle* ib, const CodecInOut* io,
   if (!ib->IsSRGB()) {
     WriteICCProfile(&cinfo, ib->c_current().ICC());
   }
-  WriteExif(&cinfo, io->blobs.exif);
+  if (!io->blobs.exif.empty()) {
+    std::vector<uint8_t> exif = io->blobs.exif;
+    ResetExifOrientation(exif);
+    WriteExif(&cinfo, exif);
+  }
   if (cinfo.input_components > 3 || cinfo.input_components < 0)
     return JXL_FAILURE("invalid numbers of components");
 
-  std::unique_ptr<JSAMPLE[]> row(
-      new JSAMPLE[cinfo.input_components * cinfo.image_width]);
-  for (size_t y = 0; y < ib->ysize(); ++y) {
-    const float* const JXL_RESTRICT input_row[3] = {
-        ib->color().ConstPlaneRow(0, y), ib->color().ConstPlaneRow(1, y),
-        ib->color().ConstPlaneRow(2, y)};
-    for (size_t x = 0; x < ib->xsize(); ++x) {
-      for (size_t c = 0; c < static_cast<size_t>(cinfo.input_components); ++c) {
-        JXL_RETURN_IF_ERROR(c < 3);
-        row[cinfo.input_components * x + c] = static_cast<JSAMPLE>(
-            std::max(std::min(kJPEGSampleMultiplier * input_row[c][x] + .5f,
-                              kJPEGSampleMax),
-                     kJPEGSampleMin));
-      }
-    }
-    JSAMPROW rows[] = {row.get()};
-    jpeg_write_scanlines(&cinfo, rows, 1);
+  size_t stride =
+      ib->oriented_xsize() * cinfo.input_components * sizeof(JSAMPLE);
+  PaddedBytes raw_bytes(stride * ib->oriented_ysize());
+  JXL_RETURN_IF_ERROR(ConvertToExternal(
+      *ib, BITS_IN_JSAMPLE, /*float_out=*/false, cinfo.input_components,
+      JXL_BIG_ENDIAN, stride, nullptr, raw_bytes.data(), raw_bytes.size(),
+      /*out_callback=*/{}, ib->metadata()->GetOrientation()));
+
+  for (size_t y = 0; y < ib->oriented_ysize(); ++y) {
+    JSAMPROW row[] = {raw_bytes.data() + y * stride};
+
+    jpeg_write_scanlines(&cinfo, row, 1);
   }
   jpeg_finish_compress(&cinfo);
   jpeg_destroy_compress(&cinfo);
@@ -422,7 +160,8 @@ Status EncodeWithLibJpeg(const ImageBundle* ib, const CodecInOut* io,
   return true;
 }
 
-Status EncodeWithSJpeg(const ImageBundle* ib, size_t quality,
+Status EncodeWithSJpeg(const ImageBundle* ib, const CodecInOut* io,
+                       size_t quality,
                        const YCbCrChromaSubsampling& chroma_subsampling,
                        PaddedBytes* bytes) {
 #if !JPEGXL_ENABLE_SJPEG
@@ -433,6 +172,11 @@ Status EncodeWithSJpeg(const ImageBundle* ib, size_t quality,
     param.iccp.assign(ib->metadata()->color_encoding.ICC().begin(),
                       ib->metadata()->color_encoding.ICC().end());
   }
+  std::vector<uint8_t> exif = io->blobs.exif;
+  if (!exif.empty()) {
+    ResetExifOrientation(exif);
+    param.exif.assign(exif.begin(), exif.end());
+  }
   if (chroma_subsampling.Is444()) {
     param.yuv_mode = SJPEG_YUV_444;
   } else if (chroma_subsampling.Is420()) {
@@ -440,24 +184,17 @@ Status EncodeWithSJpeg(const ImageBundle* ib, size_t quality,
   } else {
     return JXL_FAILURE("sjpeg does not support this chroma subsampling mode");
   }
-  std::vector<uint8_t> rgb;
-  rgb.reserve(ib->xsize() * ib->ysize() * 3);
-  for (size_t y = 0; y < ib->ysize(); ++y) {
-    const float* const rows[] = {
-        ib->color().ConstPlaneRow(0, y),
-        ib->color().ConstPlaneRow(1, y),
-        ib->color().ConstPlaneRow(2, y),
-    };
-    for (size_t x = 0; x < ib->xsize(); ++x) {
-      for (const float* const row : rows) {
-        rgb.push_back(static_cast<uint8_t>(
-            std::max(0.f, std::min(255.f, roundf(255.f * row[x])))));
-      }
-    }
-  }
+  size_t stride = ib->oriented_xsize() * 3;
+  PaddedBytes rgb(ib->xsize() * ib->ysize() * 3);
+  JXL_RETURN_IF_ERROR(
+      ConvertToExternal(*ib, 8, /*float_out=*/false, 3, JXL_BIG_ENDIAN, stride,
+                        nullptr, rgb.data(), rgb.size(),
+                        /*out_callback=*/{}, ib->metadata()->GetOrientation()));
+
   std::string output;
-  JXL_RETURN_IF_ERROR(sjpeg::Encode(rgb.data(), ib->xsize(), ib->ysize(),
-                                    ib->xsize() * 3, param, &output));
+  JXL_RETURN_IF_ERROR(sjpeg::Encode(rgb.data(), ib->oriented_xsize(),
+                                    ib->oriented_ysize(), stride, param,
+                                    &output));
   bytes->assign(
       reinterpret_cast<const uint8_t*>(output.data()),
       reinterpret_cast<const uint8_t*>(output.data() + output.size()));
@@ -489,7 +226,7 @@ Status EncodeImageJPG(const CodecInOut* io, JpegEncoder encoder, size_t quality,
       break;
     case JpegEncoder::kSJpeg:
       JXL_RETURN_IF_ERROR(
-          EncodeWithSJpeg(ib, quality, chroma_subsampling, bytes));
+          EncodeWithSJpeg(ib, io, quality, chroma_subsampling, bytes));
       break;
     default:
       return JXL_FAILURE("tried to use an unknown JPEG encoder");

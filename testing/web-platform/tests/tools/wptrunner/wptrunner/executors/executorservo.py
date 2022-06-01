@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import base64
 import json
 import os
@@ -43,7 +45,7 @@ def build_servo_command(test, test_url_func, browser, binary, pause_after_test, 
     for stylesheet in browser.user_stylesheets:
         args += ["--user-stylesheet", stylesheet]
     for pref, value in test.environment.get('prefs', {}).items():
-        args += ["--pref", "%s=%s" % (pref, value)]
+        args += ["--pref", f"{pref}={value}"]
     if browser.ca_certificate_path:
         args += ["--certificate-path", browser.ca_certificate_path]
     if extra_args:
@@ -157,7 +159,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         self.result_flag.set()
 
 
-class TempFilename(object):
+class TempFilename:
     def __init__(self, directory):
         self.directory = directory
         self.path = None

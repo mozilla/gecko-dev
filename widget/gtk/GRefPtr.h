@@ -9,8 +9,14 @@
 // Allows to use RefPtr<T> with various kinds of GObjects
 
 #include <gdk/gdk.h>
+#include <gio/gio.h>
 #include <gtk/gtk.h>
 #include "mozilla/RefPtr.h"
+
+#ifdef MOZ_ENABLE_DBUS
+// TODO: Remove this (we should use GDBus instead, which is not deprecated).
+#  include <dbus/dbus-glib.h>
+#endif
 
 namespace mozilla {
 
@@ -20,21 +26,61 @@ struct GObjectRefPtrTraits {
   static void Release(T* aObject) { g_object_unref(aObject); }
 };
 
-template <>
-struct RefPtrTraits<GtkWidget> : public GObjectRefPtrTraits<GtkWidget> {};
+#define GOBJECT_TRAITS(type_) \
+  template <>                 \
+  struct RefPtrTraits<type_> : public GObjectRefPtrTraits<type_> {};
 
-template <>
-struct RefPtrTraits<GDBusProxy> : public GObjectRefPtrTraits<GDBusProxy> {};
+GOBJECT_TRAITS(GtkWidget)
+GOBJECT_TRAITS(GFile)
+GOBJECT_TRAITS(GMenu)
+GOBJECT_TRAITS(GMenuItem)
+GOBJECT_TRAITS(GSimpleAction)
+GOBJECT_TRAITS(GSimpleActionGroup)
+GOBJECT_TRAITS(GDBusProxy)
+GOBJECT_TRAITS(GAppInfo)
+GOBJECT_TRAITS(GAppLaunchContext)
+GOBJECT_TRAITS(GdkDragContext)
+GOBJECT_TRAITS(GDBusMessage)
+GOBJECT_TRAITS(GdkPixbuf)
+GOBJECT_TRAITS(GCancellable)
 
-template <>
-struct RefPtrTraits<GdkDragContext>
-    : public GObjectRefPtrTraits<GdkDragContext> {};
+#ifdef MOZ_ENABLE_DBUS
+GOBJECT_TRAITS(DBusGProxy)
+#endif
+
+#undef GOBJECT_TRAITS
 
 template <>
 struct RefPtrTraits<GVariant> {
   static void AddRef(GVariant* aVariant) { g_variant_ref(aVariant); }
   static void Release(GVariant* aVariant) { g_variant_unref(aVariant); }
 };
+
+template <>
+struct RefPtrTraits<GHashTable> {
+  static void AddRef(GHashTable* aObject) { g_hash_table_ref(aObject); }
+  static void Release(GHashTable* aObject) { g_hash_table_unref(aObject); }
+};
+
+template <>
+struct RefPtrTraits<GDBusNodeInfo> {
+  static void AddRef(GDBusNodeInfo* aObject) { g_dbus_node_info_ref(aObject); }
+  static void Release(GDBusNodeInfo* aObject) {
+    g_dbus_node_info_unref(aObject);
+  }
+};
+
+#ifdef MOZ_ENABLE_DBUS
+template <>
+struct RefPtrTraits<DBusGConnection> {
+  static void AddRef(DBusGConnection* aObject) {
+    dbus_g_connection_ref(aObject);
+  }
+  static void Release(DBusGConnection* aObject) {
+    dbus_g_connection_unref(aObject);
+  }
+};
+#endif
 
 }  // namespace mozilla
 

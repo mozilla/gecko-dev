@@ -11,12 +11,21 @@ import socket
 import subprocess
 import sys
 
+from typing import (
+    Callable,
+    List,
+    Union,
+    Optional,
+)
+
 import attr
 import psutil
 import requests
 
-from distutils.version import LooseVersion
+from pathlib import Path
+from packaging.version import Version
 
+import mozversioncontrol
 import mozpack.path as mozpath
 
 # Minimum recommended logical processors in system.
@@ -29,7 +38,7 @@ MEMORY_THRESHOLD = 7.4
 FREESPACE_THRESHOLD = 10
 
 # Latest MozillaBuild version.
-LATEST_MOZILLABUILD_VERSION = LooseVersion("3.3")
+LATEST_MOZILLABUILD_VERSION = Version("4.0")
 
 DISABLE_LASTACCESS_WIN = """
 Disable the last access time feature?
@@ -39,8 +48,20 @@ hour. Backup programs that rely on this feature may be affected.
 https://technet.microsoft.com/en-us/library/cc785435.aspx
 """
 
+COMPILED_LANGUAGE_FILE_EXTENSIONS = [
+    ".cc",
+    ".cxx",
+    ".c",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".rs",
+    ".rlib",
+    ".mk",
+]
 
-def get_mount_point(path):
+
+def get_mount_point(path: str) -> str:
     """Return the mount point for a given path."""
     while path != "/" and not os.path.ismount(path):
         path = mozpath.abspath(mozpath.join(path, os.pardir))
@@ -73,7 +94,7 @@ class DoctorCheck:
 CHECKS = {}
 
 
-def check(func):
+def check(func: Callable):
     """Decorator that registers a function as a doctor check.
 
     The function should return a `DoctorCheck` or be an iterator of
@@ -83,7 +104,7 @@ def check(func):
 
 
 @check
-def dns(**kwargs):
+def dns(**kwargs) -> DoctorCheck:
     """Check DNS is queryable."""
     try:
         socket.getaddrinfo("mozilla.org", 80)
@@ -102,7 +123,7 @@ def dns(**kwargs):
 
 
 @check
-def internet(**kwargs):
+def internet(**kwargs) -> DoctorCheck:
     """Check the internet is reachable via HTTPS."""
     try:
         resp = requests.get("https://mozilla.org")
@@ -123,7 +144,7 @@ def internet(**kwargs):
 
 
 @check
-def ssh(**kwargs):
+def ssh(**kwargs) -> DoctorCheck:
     """Check the status of `ssh hg.mozilla.org` for common errors."""
     try:
         # We expect this command to return exit code 1 even when we hit
@@ -144,7 +165,7 @@ def ssh(**kwargs):
             )
 
         if "Permission denied" in proc.stdout:
-            # Parse thproc.stdout for username, which looks like:
+            # Parse proc.stdout for username, which looks like:
             # `<username>@hg.mozilla.org: Permission denied (reason)`
             login_string = proc.stdout.split()[0]
             username, _host = login_string.split("@hg.mozilla.org")
@@ -199,7 +220,7 @@ def ssh(**kwargs):
 
 
 @check
-def cpu(**kwargs):
+def cpu(**kwargs) -> DoctorCheck:
     """Check the host machine has the recommended processing power to develop Firefox."""
     cpu_count = psutil.cpu_count()
     if cpu_count < PROCESSORS_THRESHOLD:
@@ -216,7 +237,7 @@ def cpu(**kwargs):
 
 
 @check
-def memory(**kwargs):
+def memory(**kwargs) -> DoctorCheck:
     """Check the host machine has the recommended memory to develop Firefox."""
     memory = psutil.virtual_memory().total
     # Convert to gigabytes.
@@ -228,11 +249,11 @@ def memory(**kwargs):
         status = CheckStatus.OK
         desc = "%.1fGB of physical memory, >%.1fGB" % (memory_GB, MEMORY_THRESHOLD)
 
-    return DoctorCheck(name="memory", status=status, display_text=[desc])
+    return DoctorCheck(name="memory", display_text=[desc], status=status)
 
 
 @check
-def storage_freespace(topsrcdir, topobjdir, **kwargs):
+def storage_freespace(topsrcdir: str, topobjdir: str, **kwargs) -> List[DoctorCheck]:
     """Check the host machine has the recommended disk space to develop Firefox."""
     topsrcdir_mount = get_mount_point(topsrcdir)
     topobjdir_mount = get_mount_point(topobjdir)
@@ -296,7 +317,9 @@ def fix_lastaccess_win():
 
 
 @check
-def fs_lastaccess(topsrcdir, topobjdir, **kwargs):
+def fs_lastaccess(
+    topsrcdir: str, topobjdir: str, **kwargs
+) -> Union[DoctorCheck, List[DoctorCheck]]:
     """Check for the `lastaccess` behaviour on the filsystem, which can slow
     down filesystem operations."""
     if sys.platform.startswith("win"):
@@ -304,23 +327,35 @@ def fs_lastaccess(topsrcdir, topobjdir, **kwargs):
         # https://technet.microsoft.com/en-us/library/cc785435.aspx
         try:
             command = ["fsutil", "behavior", "query", "disablelastaccess"]
-            fsutil_output = subprocess.check_output(command)
+            fsutil_output = subprocess.check_output(command, encoding="utf-8")
             disablelastaccess = int(fsutil_output.partition("=")[2][1])
         except subprocess.CalledProcessError:
             return DoctorCheck(
-                status=CheckStatus.WARNING, desc=["unable to check lastaccess behavior"]
+                name="lastaccess",
+                status=CheckStatus.WARNING,
+                display_text=["unable to check lastaccess behavior"],
             )
 
-        if disablelastaccess == 1:
+        if disablelastaccess in {1, 3}:
             return DoctorCheck(
-                status=CheckStatus.OK, display_text=["lastaccess disabled systemwide"]
+                name="lastaccess",
+                status=CheckStatus.OK,
+                display_text=["lastaccess disabled systemwide"],
             )
-        elif disablelastaccess == 0:
+        elif disablelastaccess in {0, 2}:
             return DoctorCheck(
+                name="lastaccess",
                 status=CheckStatus.WARNING,
                 display_text=["lastaccess enabled"],
                 fix=fix_lastaccess_win,
             )
+
+        # `disablelastaccess` should be a value between 0-3.
+        return DoctorCheck(
+            name="lastaccess",
+            status=CheckStatus.WARNING,
+            display_text=["Could not parse `fsutil` for lastaccess behavior."],
+        )
 
     elif any(
         sys.platform.startswith(prefix) for prefix in ["freebsd", "linux", "openbsd"]
@@ -342,8 +377,15 @@ def fs_lastaccess(topsrcdir, topobjdir, **kwargs):
 
         return mount_checks
 
+    # Return "SKIPPED" if this test is not relevant.
+    return DoctorCheck(
+        name="lastaccess",
+        display_text=["lastaccess not relevant for this platform."],
+        status=CheckStatus.SKIPPED,
+    )
 
-def check_mount_lastaccess(mount):
+
+def check_mount_lastaccess(mount: str) -> DoctorCheck:
     """Check `lastaccess` behaviour for a Linux mount."""
     partitions = psutil.disk_partitions(all=True)
     atime_opts = {"atime", "noatime", "relatime", "norelatime"}
@@ -381,7 +423,7 @@ def check_mount_lastaccess(mount):
 
 
 @check
-def mozillabuild(**kwargs):
+def mozillabuild(**kwargs) -> DoctorCheck:
     """Check that MozillaBuild is the latest version."""
     if not sys.platform.startswith("win"):
         return DoctorCheck(
@@ -409,7 +451,7 @@ def mozillabuild(**kwargs):
                 display_text=["Could not get local MozillaBuild version."],
             )
 
-        if LooseVersion(local_version) < LATEST_MOZILLABUILD_VERSION:
+        if Version(local_version) < LATEST_MOZILLABUILD_VERSION:
             status = CheckStatus.WARNING
             desc = "MozillaBuild %s in use, <%s" % (
                 local_version,
@@ -428,7 +470,7 @@ def mozillabuild(**kwargs):
 
 
 @check
-def bad_locale_utf8(**kwargs):
+def bad_locale_utf8(**kwargs) -> DoctorCheck:
     """Check to detect the invalid locale `UTF-8` on pre-3.8 Python."""
     if sys.version_info >= (3, 8):
         return DoctorCheck(
@@ -460,7 +502,61 @@ def bad_locale_utf8(**kwargs):
         )
 
 
-def run_doctor(fix=False, verbose=False, **kwargs):
+@check
+def artifact_build(
+    topsrcdir: str, configure_args: Optional[List[str]], **kwargs
+) -> DoctorCheck:
+    """Check that if Artifact Builds are enabled, that no
+    source files that would not be compiled are changed"""
+
+    if configure_args is None or "--enable-artifact-builds" not in configure_args:
+        return DoctorCheck(
+            name="artifact_build",
+            status=CheckStatus.SKIPPED,
+            display_text=[
+                "Artifact Builds are not enabled. No need to proceed checking for changed files."
+            ],
+        )
+
+    repo = mozversioncontrol.get_repository_object(topsrcdir)
+    changed_files = [
+        Path(file)
+        for file in set(repo.get_outgoing_files()) | set(repo.get_changed_files())
+    ]
+
+    compiled_language_files_changed = ""
+    for file in changed_files:
+        if (
+            file.suffix in COMPILED_LANGUAGE_FILE_EXTENSIONS
+            or file.stem.lower() == "makefile"
+            and not file.suffix == ".py"
+        ):
+            compiled_language_files_changed += ' - "' + str(file) + '"\n'
+
+    if compiled_language_files_changed:
+        return DoctorCheck(
+            name="artifact_build",
+            status=CheckStatus.FATAL,
+            display_text=[
+                "Artifact Builds are enabled, but the following files from compiled languages "
+                f"have been modified: \n{compiled_language_files_changed}\nThese files will "
+                "not be compiled, and your changes will not be realized in the build output."
+                "\n\nIf you want these changes to be realized, you should re-run './mach "
+                'boostrap` and select a build that does not state "Artifact Mode".'
+                "\nFor additional information on Artifact Builds see: "
+                "https://firefox-source-docs.mozilla.org/contributing/build/"
+                "artifact_builds.html"
+            ],
+        )
+
+    return DoctorCheck(
+        name="artifact_build",
+        status=CheckStatus.OK,
+        display_text=["No Artifact Build conflicts found."],
+    )
+
+
+def run_doctor(fix: bool = False, verbose: bool = False, **kwargs) -> int:
     """Run the doctor checks.
 
     If `fix` is `True`, run fixing functions for issues that can be resolved
@@ -508,8 +604,12 @@ def run_doctor(fix=False, verbose=False, **kwargs):
         return 1
 
     # Attempt to run the fix functions.
-    for fix in fixes:
+    fixer_fail = 0
+    for fixer in fixes:
         try:
-            fix()
+            fixer()
         except Exception:
+            fixer_fail = 1
             pass
+
+    return fixer_fail

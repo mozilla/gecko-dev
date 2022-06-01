@@ -40,11 +40,6 @@ loader.lazyGetter(
 );
 loader.lazyGetter(
   this,
-  "PerformancePanel",
-  () => require("devtools/client/performance/panel").PerformancePanel
-);
-loader.lazyGetter(
-  this,
   "NewPerformancePanel",
   () => require("devtools/client/performance-new/panel").PerformancePanel
 );
@@ -124,7 +119,7 @@ Tools.options = {
   tooltip: l10n("optionsButton.tooltip"),
   inMenu: false,
 
-  isTargetSupported: function() {
+  isToolSupported: function() {
     return true;
   },
 
@@ -162,8 +157,8 @@ Tools.inspector = {
     toolbox.nodePicker.togglePicker();
   },
 
-  isTargetSupported: function(target) {
-    return target.hasActor("inspector");
+  isToolSupported: function(toolbox) {
+    return toolbox.target.hasActor("inspector");
   },
 
   build: function(iframeWindow, toolbox, commands) {
@@ -198,7 +193,7 @@ Tools.webConsole = {
     return undefined;
   },
 
-  isTargetSupported: function() {
+  isToolSupported: function() {
     return true;
   },
   build: function(iframeWindow, toolbox, commands) {
@@ -222,7 +217,7 @@ Tools.jsdebugger = {
     );
   },
   inMenu: false,
-  isTargetSupported: function() {
+  isToolSupported: function() {
     return true;
   },
   build: function(iframeWindow, toolbox, commands) {
@@ -246,8 +241,8 @@ Tools.styleEditor = {
     );
   },
   inMenu: false,
-  isTargetSupported: function(target) {
-    return target.hasActor("styleSheets");
+  isToolSupported: function(toolbox) {
+    return toolbox.target.hasActor("styleSheets");
   },
 
   build: function(iframeWindow, toolbox, commands) {
@@ -259,6 +254,7 @@ Tools.performance = {
   id: "performance",
   ordinal: 6,
   icon: "chrome://devtools/skin/images/tool-profiler.svg",
+  url: "chrome://devtools/content/performance-new/index.xhtml",
   visibilityswitch: "devtools.performance.enabled",
   label: l10n("performance.label"),
   panelLabel: l10n("performance.panelLabel"),
@@ -270,52 +266,19 @@ Tools.performance = {
   },
   accesskey: l10n("performance.accesskey"),
   inMenu: false,
+  isToolSupported: function(toolbox) {
+    // Only use the new performance panel on local tab toolboxes, as they are guaranteed
+    // to have a performance actor.
+    // Remote tab toolboxes (eg about:devtools-toolbox from about:debugging) should not
+    // use the performance panel; about:debugging provides a "Profile performance" button
+    // which can be used instead, without having the overhead of starting a remote toolbox.
+    // Also accept the Browser Toolbox, so that we can profile its process via a second browser toolbox.
+    return toolbox.target.isLocalTab || toolbox.isBrowserToolbox;
+  },
+  build: function(frame, toolbox, commands) {
+    return new NewPerformancePanel(frame, toolbox, commands);
+  },
 };
-
-function switchPerformancePanel() {
-  if (
-    Services.prefs.getBoolPref("devtools.performance.new-panel-enabled", false)
-  ) {
-    Tools.performance.url =
-      "chrome://devtools/content/performance-new/index.xhtml";
-    Tools.performance.build = function(frame, toolbox, commands) {
-      return new NewPerformancePanel(frame, toolbox, commands);
-    };
-    Tools.performance.isTargetSupported = function(target) {
-      // Only use the new performance panel on local tab toolboxes, as they are guaranteed
-      // to have a performance actor.
-      // Remote tab toolboxes (eg about:devtools-toolbox from about:debugging) should not
-      // use the performance panel; about:debugging provides a "Profile performance" button
-      // which can be used instead, without having the overhead of starting a remote toolbox.
-      return target.isLocalTab;
-    };
-  } else {
-    Tools.performance.url = "chrome://devtools/content/performance/index.xhtml";
-    Tools.performance.build = function(frame, toolbox, commands) {
-      return new PerformancePanel(frame, toolbox, commands);
-    };
-    Tools.performance.isTargetSupported = function(target) {
-      return target.hasActor("performance");
-    };
-  }
-}
-switchPerformancePanel();
-
-const prefObserver = { observe: switchPerformancePanel };
-Services.prefs.addObserver(
-  "devtools.performance.new-panel-enabled",
-  prefObserver
-);
-const unloadObserver = function(subject) {
-  if (subject.wrappedJSObject == require("@loader/unload")) {
-    Services.prefs.removeObserver(
-      "devtools.performance.new-panel-enabled",
-      prefObserver
-    );
-    Services.obs.removeObserver(unloadObserver, "devtools:loader:destroy");
-  }
-};
-Services.obs.addObserver(unloadObserver, "devtools:loader:destroy");
 
 Tools.memory = {
   id: "memory",
@@ -327,8 +290,8 @@ Tools.memory = {
   panelLabel: l10n("memory.panelLabel"),
   tooltip: l10n("memory.tooltip"),
 
-  isTargetSupported: function(target) {
-    return !target.isAddon && !target.isWorkerTarget;
+  isToolSupported: function(toolbox) {
+    return !toolbox.target.isAddon && !toolbox.target.isWorkerTarget;
   },
 
   build: function(frame, toolbox, commands) {
@@ -354,8 +317,11 @@ Tools.netMonitor = {
   },
   inMenu: false,
 
-  isTargetSupported: function(target) {
-    return target.getTrait("networkMonitor") && !target.isWorkerTarget;
+  isToolSupported: function(toolbox) {
+    return (
+      toolbox.target.getTrait("networkMonitor") &&
+      !toolbox.target.isWorkerTarget
+    );
   },
 
   build: function(iframeWindow, toolbox, commands) {
@@ -381,8 +347,8 @@ Tools.storage = {
   },
   inMenu: false,
 
-  isTargetSupported: function(target) {
-    return target.hasActor("storage");
+  isToolSupported: function(toolbox) {
+    return toolbox.target.hasActor("storage");
   },
 
   build: function(iframeWindow, toolbox, commands) {
@@ -408,7 +374,7 @@ Tools.dom = {
   },
   inMenu: false,
 
-  isTargetSupported: function(target) {
+  isToolSupported: function() {
     return true;
   },
 
@@ -436,8 +402,8 @@ Tools.accessibility = {
   },
   inMenu: false,
 
-  isTargetSupported(target) {
-    return target.hasActor("accessibility");
+  isToolSupported(toolbox) {
+    return toolbox.target.hasActor("accessibility");
   },
 
   build(iframeWindow, toolbox, commands) {
@@ -456,8 +422,8 @@ Tools.application = {
   tooltip: l10n("application.tooltip"),
   inMenu: false,
 
-  isTargetSupported: function(target) {
-    return target.hasActor("manifest");
+  isToolSupported: function(toolbox) {
+    return toolbox.target.hasActor("manifest");
   },
 
   build: function(iframeWindow, toolbox, commands) {
@@ -507,7 +473,7 @@ exports.ToolboxButtons = [
   {
     id: "command-button-experimental-prefs",
     description: "DevTools Experimental preferences",
-    isTargetSupported: target => !AppConstants.MOZILLA_OFFICIAL,
+    isToolSupported: () => !AppConstants.MOZILLA_OFFICIAL,
     onClick: (event, toolbox) => DevToolsExperimentalPrefs.showTooltip(toolbox),
     isChecked: () => DevToolsExperimentalPrefs.isAnyPreferenceEnabled(),
   },
@@ -517,7 +483,7 @@ exports.ToolboxButtons = [
       "toolbox.buttons.responsive",
       osString == "Darwin" ? "Cmd+Opt+M" : "Ctrl+Shift+M"
     ),
-    isTargetSupported: target => target.isLocalTab,
+    isToolSupported: toolbox => toolbox.target.isLocalTab,
     onClick(event, toolbox) {
       const { localTab } = toolbox.descriptorFront;
       const browserWindow = localTab.ownerDocument.defaultView;
@@ -544,12 +510,12 @@ exports.ToolboxButtons = [
   {
     id: "command-button-screenshot",
     description: l10n("toolbox.buttons.screenshot"),
-    isTargetSupported: targetFront => {
+    isToolSupported: toolbox => {
       return (
         // @backward-compat { version 87 } We need to check for the screenshot actor as well
         // when connecting to older server that does not have the screenshotContentActor
-        targetFront.hasActor("screenshotContent") ||
-        targetFront.hasActor("screenshot")
+        toolbox.target.hasActor("screenshotContent") ||
+        toolbox.target.hasActor("screenshot")
       );
     },
     async onClick(event, toolbox) {
@@ -605,7 +571,7 @@ function createHighlightButton(highlighterName, id) {
   return {
     id: `command-button-${id}`,
     description: l10n(`toolbox.buttons.${id}`),
-    isTargetSupported: target => !target.chrome,
+    isToolSupported: toolbox => !toolbox.target.chrome,
     async onClick(event, toolbox) {
       const inspectorFront = await toolbox.target.getFront("inspector");
       const highlighter = await inspectorFront.getOrCreateHighlighterByType(

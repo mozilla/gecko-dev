@@ -9,6 +9,8 @@
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
 
+#include "gc/GCContext.h"
+#include "gc/GCInternals.h"
 #include "gc/ParallelWork.h"
 #include "vm/HelperThreadState.h"
 #include "vm/Runtime.h"
@@ -150,15 +152,32 @@ void js::GCParallelTask::runFromMainThread() {
   runTask(lock);
 }
 
+class MOZ_RAII AutoGCContext {
+  JS::GCContext context;
+
+ public:
+  explicit AutoGCContext(JSRuntime* runtime) : context(runtime) {
+    MOZ_RELEASE_ASSERT(TlsGCContext.init(),
+                       "Failed to initialize TLS for GC context");
+
+    MOZ_ASSERT(!TlsGCContext.get());
+    TlsGCContext.set(&context);
+  }
+
+  ~AutoGCContext() {
+    MOZ_ASSERT(TlsGCContext.get() == &context);
+    TlsGCContext.set(nullptr);
+  }
+};
+
 void js::GCParallelTask::runHelperThreadTask(AutoLockHelperThreadState& lock) {
   TraceLoggerThread* logger = TraceLoggerForCurrentThread();
   AutoTraceLog logCompile(logger, TraceLogger_GC);
 
   setRunning(lock);
 
-  AutoSetHelperThreadContext usesContext(lock);
-  AutoSetContextRuntime ascr(gc->rt);
-  gc::AutoSetThreadIsPerformingGC performingGC;
+  AutoGCContext gcContext(gc->rt);
+
   runTask(lock);
 
   setFinished(lock);
@@ -166,6 +185,8 @@ void js::GCParallelTask::runHelperThreadTask(AutoLockHelperThreadState& lock) {
 
 void GCParallelTask::runTask(AutoLockHelperThreadState& lock) {
   // Run the task from either the main thread or a helper thread.
+
+  gc::AutoSetThreadIsPerformingGC performingGC;
 
   // The hazard analysis can't tell what the call to func_ will do but it's not
   // allowed to GC.

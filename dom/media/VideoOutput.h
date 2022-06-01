@@ -19,7 +19,7 @@ static bool SetImageToBlackPixel(layers::PlanarYCbCrImage* aImage) {
   data.mCbChannel = blackPixel + 1;
   data.mCrChannel = blackPixel + 2;
   data.mYStride = data.mCbCrStride = 1;
-  data.mPicSize = data.mYSize = data.mCbCrSize = gfx::IntSize(1, 1);
+  data.mPictureRect = gfx::IntRect(0, 0, 1, 1);
   data.mYUVColorSpace = gfx::YUVColorSpace::BT601;
   // This could be made FULL once bug 1568745 is complete. A black pixel being
   // 0x00, 0x80, 0x80
@@ -213,7 +213,7 @@ class VideoOutput : public DirectMediaTrackListener {
     }
   }
 
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
   TimeStamp mLastFrameTime;
   // Once the frame is forced to black, we initialize mBlackImage for use in any
   // following forced-black frames.

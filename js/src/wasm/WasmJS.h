@@ -42,14 +42,13 @@
 #include "wasm/WasmConstants.h"
 #include "wasm/WasmException.h"
 #include "wasm/WasmExprType.h"
+#include "wasm/WasmInstanceData.h"
 #include "wasm/WasmMemory.h"
 #include "wasm/WasmModuleTypes.h"
-#include "wasm/WasmTlsData.h"    // UniqueTlsData
 #include "wasm/WasmTypeDecls.h"  // MutableHandleWasmInstanceObject
 #include "wasm/WasmValType.h"
 #include "wasm/WasmValue.h"
 
-class JSFreeOp;
 class JSObject;
 class JSTracer;
 struct JSContext;
@@ -127,6 +126,8 @@ bool WasmCompilerForAsmJSAvailable(JSContext* cx);
 // otherwise true, with the result in `*isDisabled` and optionally the reason in
 // `*reason`.
 
+bool BaselineDisabledByFeatures(JSContext* cx, bool* isDisabled,
+                                JSStringBuilder* reason = nullptr);
 bool IonDisabledByFeatures(JSContext* cx, bool* isDisabled,
                            JSStringBuilder* reason = nullptr);
 bool CraneliftDisabledByFeatures(JSContext* cx, bool* isDisabled,
@@ -188,7 +189,8 @@ struct ImportValues;
 // the parent process, deserializing the given byte array into a
 // WebAssembly.Module object.
 
-[[nodiscard]] bool CompileAndSerialize(const ShareableBytes& bytecode,
+[[nodiscard]] bool CompileAndSerialize(JSContext* cx,
+                                       const ShareableBytes& bytecode,
                                        Bytes* serialized);
 
 [[nodiscard]] bool DeserializeModule(JSContext* cx, const Bytes& serialized,
@@ -219,7 +221,7 @@ class WasmModuleObject : public NativeObject {
   static const unsigned MODULE_SLOT = 0;
   static const JSClassOps classOps_;
   static const ClassSpec classSpec_;
-  static void finalize(JSFreeOp* fop, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
   static bool imports(JSContext* cx, unsigned argc, Value* vp);
   static bool exports(JSContext* cx, unsigned argc, Value* vp);
   static bool customSections(JSContext* cx, unsigned argc, Value* vp);
@@ -255,7 +257,7 @@ class WasmGlobalObject : public NativeObject {
 
   static const JSClassOps classOps_;
   static const ClassSpec classSpec_;
-  static void finalize(JSFreeOp*, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
   static void trace(JSTracer* trc, JSObject* obj);
 
   static bool typeImpl(JSContext* cx, const CallArgs& args);
@@ -301,7 +303,7 @@ class WasmInstanceObject : public NativeObject {
   static bool exportsGetterImpl(JSContext* cx, const CallArgs& args);
   static bool exportsGetter(JSContext* cx, unsigned argc, Value* vp);
   bool isNewborn() const;
-  static void finalize(JSFreeOp* fop, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
   static void trace(JSTracer* trc, JSObject* obj);
 
   // ExportMap maps from function index to exported function object.
@@ -330,12 +332,12 @@ class WasmInstanceObject : public NativeObject {
       const wasm::DataSegmentVector& dataSegments,
       const wasm::ElemSegmentVector& elemSegments, uint32_t globalDataLength,
       HandleWasmMemoryObject memory,
-      Vector<RefPtr<wasm::ExceptionTag>, 0, SystemAllocPolicy>&& exceptionTags,
       Vector<RefPtr<wasm::Table>, 0, SystemAllocPolicy>&& tables,
       const JSFunctionVector& funcImports,
       const wasm::GlobalDescVector& globals,
       const wasm::ValVector& globalImportValues,
-      const WasmGlobalObjectVector& globalObjs, HandleObject proto,
+      const WasmGlobalObjectVector& globalObjs,
+      const WasmTagObjectVector& tagObjs, HandleObject proto,
       UniquePtr<wasm::DebugState> maybeDebug);
   void initExportsObj(JSObject& exportsObj);
 
@@ -368,7 +370,7 @@ class WasmMemoryObject : public NativeObject {
   static const unsigned ISHUGE_SLOT = 2;
   static const JSClassOps classOps_;
   static const ClassSpec classSpec_;
-  static void finalize(JSFreeOp* fop, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
   static bool bufferGetterImpl(JSContext* cx, const CallArgs& args);
   static bool bufferGetter(JSContext* cx, unsigned argc, Value* vp);
   static bool typeImpl(JSContext* cx, const CallArgs& args);
@@ -444,7 +446,7 @@ class WasmTableObject : public NativeObject {
   static const JSClassOps classOps_;
   static const ClassSpec classSpec_;
   bool isNewborn() const;
-  static void finalize(JSFreeOp* fop, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
   static void trace(JSTracer* trc, JSObject* obj);
   static bool lengthGetterImpl(JSContext* cx, const CallArgs& args);
   static bool lengthGetter(JSContext* cx, unsigned argc, Value* vp);
@@ -488,18 +490,16 @@ class WasmTableObject : public NativeObject {
 // types for exports and imports.
 
 class WasmTagObject : public NativeObject {
-  static const unsigned TAG_SLOT = 0;
-  static const unsigned TYPE_SLOT = 1;
+  static const unsigned TYPE_SLOT = 0;
 
   static const JSClassOps classOps_;
   static const ClassSpec classSpec_;
-  static void finalize(JSFreeOp*, JSObject* obj);
-  static void trace(JSTracer* trc, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
   static bool typeImpl(JSContext* cx, const CallArgs& args);
   static bool type(JSContext* cx, unsigned argc, Value* vp);
 
  public:
-  static const unsigned RESERVED_SLOTS = 2;
+  static const unsigned RESERVED_SLOTS = 1;
   static const JSClass class_;
   static const JSClass& protoClass_;
   static const JSPropertySpec properties[];
@@ -507,14 +507,13 @@ class WasmTagObject : public NativeObject {
   static const JSFunctionSpec static_methods[];
   static bool construct(JSContext*, unsigned, Value*);
 
-  static WasmTagObject* create(JSContext* cx, const wasm::TagType& tagType,
+  static WasmTagObject* create(JSContext* cx,
+                               const wasm::SharedTagType& tagType,
                                HandleObject proto);
-  bool isNewborn() const;
 
-  wasm::TagType& tagType() const;
-  wasm::ValTypeVector& valueTypes() const;
+  const wasm::TagType* tagType() const;
+  const wasm::ValTypeVector& valueTypes() const;
   wasm::ResultType resultType() const;
-  wasm::ExceptionTag& tag() const;
 };
 
 // The class of WebAssembly.Exception. This class is used for
@@ -523,21 +522,30 @@ class WasmTagObject : public NativeObject {
 
 class WasmExceptionObject : public NativeObject {
   static const unsigned TAG_SLOT = 0;
-  static const unsigned VALUES_SLOT = 1;
-  static const unsigned REFS_SLOT = 2;
+  static const unsigned TYPE_SLOT = 1;
+  static const unsigned DATA_SLOT = 2;
+  static const unsigned STACK_SLOT = 3;
 
   static const JSClassOps classOps_;
   static const ClassSpec classSpec_;
-  static void finalize(JSFreeOp*, JSObject* obj);
   static void trace(JSTracer* trc, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
   // Named isMethod instead of is to avoid name conflict.
   static bool isMethod(JSContext* cx, unsigned argc, Value* vp);
   static bool isImpl(JSContext* cx, const CallArgs& args);
   static bool getArg(JSContext* cx, unsigned argc, Value* vp);
   static bool getArgImpl(JSContext* cx, const CallArgs& args);
+  static bool getStack(JSContext* cx, unsigned argc, Value* vp);
+  static bool getStack_impl(JSContext* cx, const CallArgs& args);
+
+  uint8_t* typedMem() const;
+  [[nodiscard]] bool loadValue(JSContext* cx, size_t offset, wasm::ValType type,
+                               MutableHandleValue vp);
+  [[nodiscard]] bool initValue(JSContext* cx, size_t offset, wasm::ValType type,
+                               HandleValue value);
 
  public:
-  static const unsigned RESERVED_SLOTS = 3;
+  static const unsigned RESERVED_SLOTS = 4;
   static const JSClass class_;
   static const JSClass& protoClass_;
   static const JSPropertySpec properties[];
@@ -545,22 +553,16 @@ class WasmExceptionObject : public NativeObject {
   static const JSFunctionSpec static_methods[];
   static bool construct(JSContext*, unsigned, Value*);
 
-  static WasmExceptionObject* create(JSContext* cx,
-                                     wasm::SharedExceptionTag tag,
-                                     Handle<ArrayBufferObject*> values,
-                                     HandleArrayObject refs);
+  static WasmExceptionObject* create(JSContext* cx, Handle<WasmTagObject*> tag,
+                                     HandleObject stack, HandleObject proto);
   bool isNewborn() const;
 
-  wasm::ExceptionTag& tag() const;
-  ArrayBufferObject& values() const;
-  ArrayObject& refs() const;
+  JSObject* stack() const;
+  const wasm::TagType* tagType() const;
+  WasmTagObject& tag() const;
 
-  static size_t offsetOfValues() {
-    return NativeObject::getFixedSlotOffset(VALUES_SLOT);
-  }
-
-  static size_t offsetOfRefs() {
-    return NativeObject::getFixedSlotOffset(REFS_SLOT);
+  static size_t offsetOfData() {
+    return NativeObject::getFixedSlotOffset(DATA_SLOT);
   }
 };
 

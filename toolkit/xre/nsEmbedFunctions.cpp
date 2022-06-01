@@ -27,11 +27,14 @@
 #  include "mozilla/ScopeExit.h"
 #  include "mozilla/WinDllServices.h"
 #  include "WinUtils.h"
+#  ifdef ACCESSIBILITY
+#    include "mozilla/GeckoArgs.h"
+#    include "mozilla/mscom/ActCtxResource.h"
+#  endif
 #endif
 
 #include "nsAppRunner.h"
 #include "nsExceptionHandler.h"
-#include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsJSUtils.h"
 #include "nsWidgetsCID.h"
@@ -49,6 +52,7 @@
 #  include "chrome/common/mach_ipc_mac.h"
 #  include "gfxPlatformMac.h"
 #endif
+#include "nsX11ErrorHandler.h"
 #include "nsGDKErrorHandler.h"
 #include "base/at_exit.h"
 #include "base/message_loop.h"
@@ -83,8 +87,7 @@
 #include "mozilla/gfx/GPUProcessImpl.h"
 #include "mozilla/net/SocketProcessImpl.h"
 
-#include "GeckoProfiler.h"
-#include "BaseProfiler.h"
+#include "ProfilerControl.h"
 
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
 #  include "mozilla/sandboxTarget.h"
@@ -110,13 +113,6 @@
 #    define PR_SET_PTRACER_ANY ((unsigned long)-1)
 #  endif
 #endif
-
-#ifdef MOZ_IPDL_TESTS
-#  include "mozilla/_ipdltest/IPDLUnitTests.h"
-#  include "mozilla/_ipdltest/IPDLUnitTestProcessChild.h"
-
-using mozilla::_ipdltest::IPDLUnitTestProcessChild;
-#endif  // ifdef MOZ_IPDL_TESTS
 
 #ifdef MOZ_JPROF
 #  include "jprof.h"
@@ -154,6 +150,12 @@ using mozilla::ipc::TestShellCommandParent;
 using mozilla::ipc::TestShellParent;
 
 using mozilla::startup::sChildProcessType;
+
+namespace mozilla::_ipdltest {
+// Set in IPDLUnitTest.cpp when running gtests.
+UniquePtr<mozilla::ipc::ProcessChild> (*gMakeIPDLUnitTestProcessChild)(
+    base::ProcessId) = nullptr;
+}  // namespace mozilla::_ipdltest
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
@@ -526,10 +528,17 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
                   __FILE__, __LINE__);
   } else if (PR_GetEnv("MOZ_DEBUG_CHILD_PAUSE")) {
     printf_stderr(
-        "\n\nCHILDCHILDCHILDCHILD (process type %s)\n  debug me @ %d\n\n",
+        "\n\nCHILDCHILDCHILDCHILD (process type %s)\n  debug me @ %lu\n\n",
         XRE_GetProcessTypeString(), base::GetCurrentProcId());
     ::Sleep(GetDebugChildPauseTime());
   }
+#endif
+
+#ifdef MOZ_WIDGET_ANDROID
+  // The parent process already did this, but Gecko child processes on
+  // Android aren't descendants of the parent process, so they don't
+  // inherit its rlimits.
+  mozilla::startup::IncreaseDescriptorLimits();
 #endif
 
   // child processes launched by GeckoChildProcessHost get this magic
@@ -573,6 +582,7 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   switch (XRE_GetProcessType()) {
     case GeckoProcessType_Content:
     case GeckoProcessType_GPU:
+    case GeckoProcessType_IPDLUnitTest:
     case GeckoProcessType_VR:
     case GeckoProcessType_RDD:
     case GeckoProcessType_Socket:
@@ -619,6 +629,16 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
     // Associate this thread with a UI MessageLoop
     MessageLoop uiMessageLoop(uiLoopType);
     {
+#if defined(XP_WIN) && defined(ACCESSIBILITY)
+      // The accessibility resource ID is passed down on the command line
+      // because its retrieval causes issues with the sandbox. When it is set,
+      // it is required for ProcessRuntime construction within ProcessChild.
+      auto a11yResourceId = geckoargs::sA11yResourceId.Get(aArgc, aArgv);
+      if (a11yResourceId.isSome()) {
+        mscom::ActCtxResource::SetAccessibilityResourceId(*a11yResourceId);
+      }
+#endif
+
       UniquePtr<ProcessChild> process;
       switch (XRE_GetProcessType()) {
         case GeckoProcessType_Default:
@@ -631,11 +651,10 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
           break;
 
         case GeckoProcessType_IPDLUnitTest:
-#ifdef MOZ_IPDL_TESTS
-          process = MakeUnique<IPDLUnitTestProcessChild>(parentPID);
-#else
-          MOZ_CRASH("rebuild with --enable-ipdl-tests");
-#endif
+          MOZ_RELEASE_ASSERT(mozilla::_ipdltest::gMakeIPDLUnitTestProcessChild,
+                             "xul-gtest not loaded!");
+          process =
+              mozilla::_ipdltest::gMakeIPDLUnitTestProcessChild(parentPID);
           break;
 
         case GeckoProcessType_GMPlugin:
@@ -702,7 +721,7 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
       if (XRE_GetProcessType() != GeckoProcessType_RemoteSandboxBroker) {
         // Remote sandbox launcher process doesn't have prerequisites for
         // these...
-        mozilla::FilePreferences::InitDirectoriesWhitelist();
+        mozilla::FilePreferences::InitDirectoriesAllowlist();
         mozilla::FilePreferences::InitPrefs();
         OverrideDefaultLocaleIfNeeded();
       }
@@ -808,28 +827,6 @@ nsresult XRE_InitParentProcess(int aArgc, char* aArgv[],
 
   return XRE_DeinitCommandLine();
 }
-
-#ifdef MOZ_IPDL_TESTS
-//-----------------------------------------------------------------------------
-// IPDL unit test
-
-int XRE_RunIPDLTest(int aArgc, char** aArgv) {
-  if (aArgc < 2) {
-    fprintf(
-        stderr,
-        "TEST-UNEXPECTED-FAIL | <---> | insufficient #args, need at least 2\n");
-    return 1;
-  }
-
-  void* data = reinterpret_cast<void*>(aArgv[aArgc - 1]);
-
-  nsresult rv = XRE_InitParentProcess(
-      --aArgc, aArgv, mozilla::_ipdltest::IPDLUnitTestMain, data);
-  NS_ENSURE_SUCCESS(rv, 1);
-
-  return 0;
-}
-#endif  // ifdef MOZ_IPDL_TESTS
 
 nsresult XRE_RunAppShell() {
   nsCOMPtr<nsIAppShell> appShell(do_GetService(kAppShellCID));
@@ -966,9 +963,15 @@ bool XRE_ShutdownTestShell() {
 void XRE_InstallX11ErrorHandler() {
 #  ifdef MOZ_WIDGET_GTK
   InstallGdkErrorHandler();
-#  else
-  InstallX11ErrorHandler();
 #  endif
+
+  // Ensure our X11 error handler overrides the default GDK error handler such
+  // that errors are ignored by default. GDK will install its own error handler
+  // temporarily when pushing error traps internally as needed. This avoids us
+  // otherwise having to frequently override the error handler merely to trap
+  // errors in multiple places that would otherwise contend with GDK or other
+  // libraries that might also override the handler.
+  InstallX11ErrorHandler();
 }
 #endif
 

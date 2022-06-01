@@ -16,10 +16,9 @@ let shortURL = {};
 let searchShortcuts = {};
 let didSuccessfulImport = false;
 try {
-  ChromeUtils.import("resource://activity-stream/lib/ShortURL.jsm", shortURL);
-  ChromeUtils.import(
-    "resource://activity-stream/lib/SearchShortcuts.jsm",
-    searchShortcuts
+  shortURL = ChromeUtils.import("resource://activity-stream/lib/ShortURL.jsm");
+  searchShortcuts = ChromeUtils.import(
+    "resource://activity-stream/lib/SearchShortcuts.jsm"
   );
   didSuccessfulImport = true;
 } catch (e) {
@@ -58,10 +57,9 @@ ChromeUtils.defineModuleGetter(
 
 let BrowserWindowTracker;
 try {
-  ChromeUtils.import(
-    "resource:///modules/BrowserWindowTracker.jsm",
-    BrowserWindowTracker
-  );
+  BrowserWindowTracker = ChromeUtils.import(
+    "resource:///modules/BrowserWindowTracker.jsm"
+  ).BrowserWindowTracker;
 } catch (e) {
   // BrowserWindowTracker is used to determine devicePixelRatio in
   // _addFavicons. We fallback to the value 2 if we can't find a window,
@@ -741,6 +739,8 @@ var PlacesProvider = {
  * history changes.
  */
 var ActivityStreamProvider = {
+  THUMB_FAVICON_SIZE: 96,
+
   /**
    * Shared adjustment for selecting potentially blocked links.
    */
@@ -879,7 +879,10 @@ var ActivityStreamProvider = {
     // Fetch the largest icon available.
     let faviconData;
     try {
-      faviconData = await PlacesUtils.promiseFaviconData(aUri, 0);
+      faviconData = await PlacesUtils.promiseFaviconData(
+        aUri,
+        this.THUMB_FAVICON_SIZE
+      );
       Object.assign(iconData, {
         favicon: faviconData.data,
         faviconLength: faviconData.dataLen,
@@ -1182,6 +1185,15 @@ var ActivityStreamProvider = {
    *   {int}  topsiteFrecency: Minimum amount of frecency for a site.
    *   {bool} onePerDomain: Dedupe the resulting list.
    *   {bool} includeFavicon: Include favicons if available.
+   *   {string} hideWithSearchParam: URLs that contain this search param will be
+   *     excluded from the returned links. This value should be either undefined
+   *     or a string with one of the following forms:
+   *     - undefined: Fall back to the value of pref
+   *       `browser.newtabpage.activity-stream.hideTopSitesWithSearchParam`
+   *     - "" (empty) - Disable this feature
+   *     - "key" - Search param named "key" with any or no value
+   *     - "key=" - Search param named "key" with no value
+   *     - "key=value" - Search param named "key" with value "value"
    *
    * @returns {Promise} Returns a promise with the array of links as payload.
    */
@@ -1193,6 +1205,10 @@ var ActivityStreamProvider = {
         topsiteFrecency: ACTIVITY_STREAM_DEFAULT_FRECENCY,
         onePerDomain: true,
         includeFavicon: true,
+        hideWithSearchParam: Services.prefs.getCharPref(
+          "browser.newtabpage.activity-stream.hideTopSitesWithSearchParam",
+          ""
+        ),
       },
       aOptions || {}
     );
@@ -1277,6 +1293,20 @@ var ActivityStreamProvider = {
         if (searchProvider) {
           link.url = searchProvider.url;
         }
+      });
+    }
+
+    // Remove links that contain the hide-with search param.
+    if (options.hideWithSearchParam) {
+      let [key, value] = options.hideWithSearchParam.split("=");
+      links = links.filter(link => {
+        try {
+          let { searchParams } = new URL(link.url);
+          return value === undefined
+            ? !searchParams.has(key)
+            : !searchParams.getAll(key).includes(value);
+        } catch (error) {}
+        return true;
       });
     }
 

@@ -564,7 +564,7 @@ class ShutdownEvent : public Runnable {
   }
 
  protected:
-  mozilla::Monitor mMonitor;
+  mozilla::Monitor mMonitor MOZ_UNANNOTATED;
   bool mNotified{false};
 };
 
@@ -2144,8 +2144,7 @@ nsresult CacheFileIOManager::DoomFileInternal(
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = aHandle->mFile->MoveToNative(parentDir, leafName);
-    if (NS_ERROR_FILE_NOT_FOUND == rv ||
-        NS_ERROR_FILE_TARGET_DOES_NOT_EXIST == rv) {
+    if (NS_ERROR_FILE_NOT_FOUND == rv) {
       LOG(("  file already removed under our hands"));
       aHandle->mFileExists = false;
       rv = NS_OK;
@@ -4197,7 +4196,7 @@ class SizeOfHandlesRunnable : public Runnable {
   }
 
  private:
-  mozilla::Monitor mMonitor;
+  mozilla::Monitor mMonitor MOZ_UNANNOTATED;
   bool mMonitorNotified;
   mozilla::MallocSizeOf mMallocSizeOf;
   CacheFileHandles const& mHandles;

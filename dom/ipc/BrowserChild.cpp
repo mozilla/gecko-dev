@@ -69,10 +69,8 @@
 #include "mozilla/dom/PBrowser.h"
 #include "mozilla/dom/PaymentRequestChild.h"
 #include "mozilla/dom/PointerEventHandler.h"
-#include "mozilla/dom/SessionStoreChangeListener.h"
-#include "mozilla/dom/SessionStoreDataCollector.h"
-#include "mozilla/dom/SessionStoreListener.h"
 #include "mozilla/dom/SessionStoreUtils.h"
+#include "mozilla/dom/SessionStoreChild.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/WindowProxyHolder.h"
 #include "mozilla/gfx/CrossProcessPaint.h"
@@ -149,7 +147,7 @@
 #endif
 
 #ifdef NS_PRINTING
-#  include "nsIPrintSession.h"
+#  include "mozilla/layout/RemotePrintJobChild.h"
 #  include "nsIPrintSettings.h"
 #  include "nsIPrintSettingsService.h"
 #  include "nsIWebBrowserPrint.h"
@@ -177,8 +175,8 @@ static BrowserChildMap* sBrowserChildren;
 StaticMutex sBrowserChildrenMutex;
 
 already_AddRefed<Document> BrowserChild::GetTopLevelDocument() const {
-  nsCOMPtr<Document> doc;
-  WebNavigation()->GetDocument(getter_AddRefs(doc));
+  nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
+  nsCOMPtr<Document> doc = docShell ? docShell->GetExtantDocument() : nullptr;
   return doc.forget();
 }
 
@@ -522,12 +520,7 @@ nsresult BrowserChild::Init(mozIDOMWindowProxy* aParent,
   mIPCOpen = true;
 
   if constexpr (SessionStoreUtils::NATIVE_LISTENER) {
-    mSessionStoreListener = new TabListener(docShell, nullptr);
-    rv = mSessionStoreListener->Init();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mSessionStoreChangeListener =
-        SessionStoreChangeListener::Create(mBrowsingContext);
+    mSessionStoreChild = SessionStoreChild::GetOrCreate(mBrowsingContext);
   }
 
   // We've all set up, make sure our visibility state is consistent. This is
@@ -545,8 +538,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(BrowserChild)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mStatusFilter)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWebNav)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mBrowsingContext)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStoreListener)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStoreChangeListener)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStoreChild)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mContentTransformPromise)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -555,8 +548,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(BrowserChild)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStatusFilter)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWebNav)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowsingContext)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionStoreListener)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionStoreChangeListener)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionStoreChild)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContentTransformPromise)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(BrowserChild)
@@ -780,15 +773,6 @@ BrowserChild::FocusPrevElement(bool aForDocumentNavigation) {
 
 NS_IMETHODIMP
 BrowserChild::GetInterface(const nsIID& aIID, void** aSink) {
-  if (aIID.Equals(NS_GET_IID(nsITopLevelNavigationDelegate))) {
-    nsCOMPtr<nsITopLevelNavigationDelegate> delegate =
-        GetTopLevelNavigationDelegate();
-    if (delegate) {
-      delegate.forget(aSink);
-      return NS_OK;
-    }
-  }
-
   // XXXbz should we restrict the set of interfaces we hand out here?
   // See bug 537429
   return QueryInterface(aIID, aSink);
@@ -858,14 +842,9 @@ void BrowserChild::DestroyWindow() {
     mCoalescedTouchMoveEventFlusher = nullptr;
   }
 
-  if (mSessionStoreListener) {
-    mSessionStoreListener->RemoveListeners();
-    mSessionStoreListener = nullptr;
-  }
-
-  if (mSessionStoreChangeListener) {
-    mSessionStoreChangeListener->Stop();
-    mSessionStoreChangeListener = nullptr;
+  if (mSessionStoreChild) {
+    mSessionStoreChild->Stop();
+    mSessionStoreChild = nullptr;
   }
 
   // In case we don't have chance to process all entries, clean all data in
@@ -1049,7 +1028,7 @@ nsresult BrowserChild::CloneDocumentTreeIntoSelf(
 
   nsCOMPtr<nsIPrintSettings> printSettings;
   nsresult rv =
-      printSettingsSvc->GetNewPrintSettings(getter_AddRefs(printSettings));
+      printSettingsSvc->CreateNewPrintSettings(getter_AddRefs(printSettings));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1117,7 +1096,7 @@ nsresult BrowserChild::UpdateRemotePrintSettings(
 
   nsCOMPtr<nsIPrintSettings> printSettings;
   nsresult rv =
-      printSettingsSvc->GetNewPrintSettings(getter_AddRefs(printSettings));
+      printSettingsSvc->CreateNewPrintSettings(getter_AddRefs(printSettings));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1137,7 +1116,9 @@ nsresult BrowserChild::UpdateRemotePrintSettings(
       // BC tree, and our code above is simple enough and keeps strong refs to
       // everything.
       ([&]() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
-        cv->SetPrintSettingsForSubdocument(printSettings);
+        RefPtr<RemotePrintJobChild> printJob =
+            static_cast<RemotePrintJobChild*>(aPrintData.remotePrintJobChild());
+        cv->SetPrintSettingsForSubdocument(printSettings, printJob);
       }());
     } else if (RefPtr<BrowserBridgeChild> remoteChild =
                    BrowserBridgeChild::GetFrom(aBc->GetEmbedderElement())) {
@@ -1322,6 +1303,11 @@ mozilla::ipc::IPCResult BrowserChild::RecvChildToParentMatrix(
       LayoutDeviceToLayoutDeviceMatrix4x4::FromUnknownMatrix(aMatrix);
   mTopLevelViewportVisibleRectInBrowserCoords =
       aTopLevelViewportVisibleRectInBrowserCoords;
+
+  if (mContentTransformPromise) {
+    mContentTransformPromise->MaybeResolveWithUndefined();
+    mContentTransformPromise = nullptr;
+  }
 
   // Trigger an intersection observation update since ancestor viewports
   // changed.
@@ -2069,16 +2055,9 @@ mozilla::ipc::IPCResult BrowserChild::RecvNativeSynthesisResponse(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvUpdateEpoch(const uint32_t& aEpoch) {
-  if (mSessionStoreListener) {
-    mSessionStoreListener->SetEpoch(aEpoch);
-  }
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult BrowserChild::RecvUpdateSHistory() {
-  if (mSessionStoreListener) {
-    mSessionStoreListener->UpdateSHistoryChanges();
+  if (mSessionStoreChild) {
+    mSessionStoreChild->UpdateSHistoryChanges();
   }
   return IPC_OK();
 }
@@ -2237,7 +2216,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvPasteTransferable(
 
   rv = nsContentUtils::IPCTransferableToTransferable(
       aDataTransfer, aIsPrivateData, aRequestingPrincipal, aContentPolicyType,
-      trans, nullptr, this);
+      true /* aAddDataFlavor */, trans, this);
   NS_ENSURE_SUCCESS(rv, IPC_OK());
 
   nsCOMPtr<nsIDocShell> ourDocShell = do_GetInterface(WebNavigation());
@@ -2476,7 +2455,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvPrintPreview(
   if (NS_WARN_IF(!printSettingsSvc)) {
     return IPC_OK();
   }
-  printSettingsSvc->GetNewPrintSettings(getter_AddRefs(printSettings));
+  printSettingsSvc->CreateNewPrintSettings(getter_AddRefs(printSettings));
   if (NS_WARN_IF(!printSettings)) {
     return IPC_OK();
   }
@@ -2491,6 +2470,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvPrintPreview(
   }
 
   sourceWindow->Print(printSettings,
+                      /* aRemotePrintJob = */ nullptr,
                       /* aListener = */ nullptr, docShellToCloneInto,
                       nsGlobalWindowOuter::IsPreview::Yes,
                       nsGlobalWindowOuter::IsForWindowDotPrint::No,
@@ -2531,27 +2511,21 @@ mozilla::ipc::IPCResult BrowserChild::RecvPrint(
 
   nsCOMPtr<nsIPrintSettings> printSettings;
   nsresult rv =
-      printSettingsSvc->GetNewPrintSettings(getter_AddRefs(printSettings));
+      printSettingsSvc->CreateNewPrintSettings(getter_AddRefs(printSettings));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IPC_OK();
   }
 
-  nsCOMPtr<nsIPrintSession> printSession =
-      do_CreateInstance("@mozilla.org/gfx/printsession;1", &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return IPC_OK();
-  }
-
-  printSettings->SetPrintSession(printSession);
   printSettingsSvc->DeserializeToPrintSettings(aPrintData, printSettings);
   {
     IgnoredErrorResult rv;
-    outerWindow->Print(printSettings,
-                       /* aListener = */ nullptr,
-                       /* aWindowToCloneInto = */ nullptr,
-                       nsGlobalWindowOuter::IsPreview::No,
-                       nsGlobalWindowOuter::IsForWindowDotPrint::No,
-                       /* aPrintPreviewCallback = */ nullptr, rv);
+    outerWindow->Print(
+        printSettings,
+        static_cast<RemotePrintJobChild*>(aPrintData.remotePrintJobChild()),
+        /* aListener = */ nullptr,
+        /* aWindowToCloneInto = */ nullptr, nsGlobalWindowOuter::IsPreview::No,
+        nsGlobalWindowOuter::IsForWindowDotPrint::No,
+        /* aPrintPreviewCallback = */ nullptr, rv);
     if (NS_WARN_IF(rv.Failed())) {
       return IPC_OK();
     }
@@ -2998,16 +2972,6 @@ BrowserChild::GetMessageManager(ContentFrameMessageManager** aResult) {
   return *aResult ? NS_OK : NS_ERROR_FAILURE;
 }
 
-already_AddRefed<nsITopLevelNavigationDelegate>
-BrowserChild::GetTopLevelNavigationDelegate() {
-  nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
-  if (nsCOMPtr<nsITopLevelNavigationDelegate> delegate = do_QueryActor(
-          "TopLevelNavigationDelegate", docShell->GetDocument())) {
-    return delegate.forget();
-  }
-  return nullptr;
-}
-
 void BrowserChild::SendRequestFocus(bool aCanFocus, CallerType aCallerType) {
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   if (!fm) {
@@ -3208,8 +3172,9 @@ void BrowserChild::ReinitRendering() {
     lm->SetLayersObserverEpoch(mLayersObserverEpoch);
   }
 
-  nsCOMPtr<Document> doc(GetTopLevelDocument());
-  doc->NotifyLayerManagerRecreated();
+  if (nsCOMPtr<Document> doc = GetTopLevelDocument()) {
+    doc->NotifyLayerManagerRecreated();
+  }
 
   if (mRenderLayers) {
     SchedulePaint();
@@ -3257,16 +3222,13 @@ void BrowserChild::NotifyJankedAnimations(
 
 mozilla::ipc::IPCResult BrowserChild::RecvUIResolutionChanged(
     const float& aDpi, const int32_t& aRounding, const double& aScale) {
-  nsCOMPtr<Document> document(GetTopLevelDocument());
-  if (!document) {
-    return IPC_OK();
-  }
-
   ScreenIntSize oldScreenSize = GetInnerSize();
   if (aDpi > 0) {
     mPuppetWidget->UpdateBackingScaleCache(aDpi, aRounding, aScale);
   }
-  RefPtr<nsPresContext> presContext = document->GetPresContext();
+  nsCOMPtr<Document> document(GetTopLevelDocument());
+  RefPtr<nsPresContext> presContext =
+      document ? document->GetPresContext() : nullptr;
   if (presContext) {
     presContext->UIResolutionChangedSync();
   }
@@ -3828,26 +3790,10 @@ nsresult BrowserChild::PrepareProgressListenerData(
   return PrepareRequestData(aRequest, aRequestData);
 }
 
-bool BrowserChild::UpdateSessionStore() {
-  if (!mSessionStoreListener) {
-    return false;
+void BrowserChild::UpdateSessionStore() {
+  if (mSessionStoreChild) {
+    mSessionStoreChild->UpdateSessionStore();
   }
-  RefPtr<ContentSessionStore> store = mSessionStoreListener->GetSessionStore();
-
-  Maybe<nsCString> docShellCaps;
-  if (store->IsDocCapChanged()) {
-    docShellCaps.emplace(store->GetDocShellCaps());
-  }
-
-  Maybe<bool> privatedMode;
-  if (store->IsPrivateChanged()) {
-    privatedMode.emplace(store->GetPrivateModeEnabled());
-  }
-
-  Unused << SendSessionStoreUpdate(docShellCaps, privatedMode,
-                                   store->GetAndClearSHistoryChanged(),
-                                   mSessionStoreListener->GetEpoch());
-  return true;
 }
 
 #ifdef XP_WIN
@@ -3903,6 +3849,28 @@ void BrowserChild::NotifyContentBlockingEvent(
         aEvent, requestData, aBlocked, PromiseFlatCString(aTrackingOrigin),
         aTrackingFullHashes, aReason);
   }
+}
+
+NS_IMETHODIMP
+BrowserChild::ContentTransformsReceived(JSContext* aCx,
+                                        dom::Promise** aPromise) {
+  auto* globalObject = xpc::CurrentNativeGlobal(aCx);
+  ErrorResult rv;
+  if (mChildToParentConversionMatrix) {
+    // Already received content transforms
+    RefPtr<Promise> promise =
+        Promise::CreateResolvedWithUndefined(globalObject, rv);
+    promise.forget(aPromise);
+    return rv.StealNSResult();
+  }
+
+  if (!mContentTransformPromise) {
+    mContentTransformPromise = Promise::Create(globalObject, rv);
+  }
+
+  MOZ_ASSERT(globalObject == mContentTransformPromise->GetGlobalObject());
+  NS_IF_ADDREF(*aPromise = mContentTransformPromise);
+  return rv.StealNSResult();
 }
 
 BrowserChildMessageManager::BrowserChildMessageManager(

@@ -132,15 +132,16 @@ NS_IMPL_ISUPPORTS(nsBaseWidget, nsIWidget, nsISupportsWeakReference)
 //
 //-------------------------------------------------------------------------
 
-nsBaseWidget::nsBaseWidget()
+nsBaseWidget::nsBaseWidget() : nsBaseWidget(eBorderStyle_none) {}
+
+nsBaseWidget::nsBaseWidget(nsBorderStyle aBorderStyle)
     : mWidgetListener(nullptr),
       mAttachedWidgetListener(nullptr),
       mPreviouslyAttachedWidgetListener(nullptr),
       mCompositorVsyncDispatcher(nullptr),
-      mBorderStyle(eBorderStyle_none),
+      mBorderStyle(aBorderStyle),
       mBounds(0, 0, 0, 0),
       mOriginalBounds(nullptr),
-      mSizeMode(nsSizeMode_Normal),
       mIsTiled(false),
       mPopupLevel(ePopupLevelTop),
       mPopupType(ePopupTypeAny),
@@ -151,6 +152,7 @@ nsBaseWidget::nsBaseWidget()
       mIMEHasFocus(false),
       mIMEHasQuit(false),
       mIsFullyOccluded(false),
+      mNeedFastSnaphot(false),
       mCurrentPanGestureBelongsToSwipe(false) {
 #ifdef NOISY_WIDGET_LEAKS
   gNumWidgets++;
@@ -232,9 +234,6 @@ void WidgetShutdownObserver::Unregister() {
 }
 
 #define INTL_APP_LOCALES_CHANGED "intl:app-locales-changed"
-#define L10N_PSEUDO_PREF "intl.l10n.pseudo"
-
-static const char* kObservedPrefs[] = {L10N_PSEUDO_PREF, nullptr};
 
 NS_IMPL_ISUPPORTS(LocalesChangedObserver, nsIObserver)
 
@@ -258,13 +257,6 @@ LocalesChangedObserver::Observe(nsISupports* aSubject, const char* aTopic,
   if (!strcmp(aTopic, INTL_APP_LOCALES_CHANGED)) {
     RefPtr<nsBaseWidget> widget(mWidget);
     widget->LocalesChanged();
-  } else {
-    MOZ_ASSERT(!strcmp("nsPref:changed", aTopic));
-    nsDependentString pref(aData);
-    if (pref.EqualsLiteral(L10N_PSEUDO_PREF)) {
-      RefPtr<nsBaseWidget> widget(mWidget);
-      widget->LocalesChanged();
-    }
   }
   return NS_OK;
 }
@@ -273,10 +265,6 @@ void LocalesChangedObserver::Register() {
   if (mRegistered) {
     return;
   }
-
-  DebugOnly<nsresult> rv =
-      Preferences::AddStrongObservers(this, kObservedPrefs);
-  MOZ_ASSERT(NS_SUCCEEDED(rv), "Adding observers failed.");
 
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
@@ -299,7 +287,6 @@ void LocalesChangedObserver::Unregister() {
   if (obs) {
     obs->RemoveObserver(this, INTL_APP_LOCALES_CHANGED);
   }
-  Preferences::RemoveObservers(this, kObservedPrefs);
 
   mWidget = nullptr;
   mRegistered = false;
@@ -478,6 +465,10 @@ already_AddRefed<nsIWidget> nsBaseWidget::CreateChild(
     widget = nsIWidget::CreateChildWindow();
   }
 
+  if (widget && mNeedFastSnaphot) {
+    widget->SetNeedFastSnaphot();
+  }
+
   if (widget &&
       NS_SUCCEEDED(widget->Create(parent, nativeParent, aRect, aInitData))) {
     return widget.forget();
@@ -577,6 +568,10 @@ nsIntSize nsIWidget::CustomCursorSize(const Cursor& aCursor) {
   aCursor.mContainer->GetHeight(&height);
   aCursor.mResolution.ApplyTo(width, height);
   return {width, height};
+}
+
+RefPtr<mozilla::VsyncDispatcher> nsIWidget::GetVsyncDispatcher() {
+  return nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -682,18 +677,6 @@ void nsBaseWidget::SetZIndex(int32_t aZIndex) {
       parent->AddChild(this);
     }
   }
-}
-
-//-------------------------------------------------------------------------
-//
-// Maximize, minimize or restore the window. The BaseWidget implementation
-// merely stores the state.
-//
-//-------------------------------------------------------------------------
-void nsBaseWidget::SetSizeMode(nsSizeMode aMode) {
-  MOZ_ASSERT(aMode == nsSizeMode_Normal || aMode == nsSizeMode_Minimized ||
-             aMode == nsSizeMode_Maximized || aMode == nsSizeMode_Fullscreen);
-  mSizeMode = aMode;
 }
 
 void nsBaseWidget::GetWorkspaceID(nsAString& workspaceID) {
@@ -1153,7 +1136,10 @@ void nsBaseWidget::CreateCompositorVsyncDispatcher() {
     }
     MutexAutoLock lock(*mCompositorVsyncDispatcherLock.get());
     if (!mCompositorVsyncDispatcher) {
-      mCompositorVsyncDispatcher = new CompositorVsyncDispatcher();
+      RefPtr<VsyncDispatcher> vsyncDispatcher =
+          gfxPlatform::GetPlatform()->GetGlobalVsyncDispatcher();
+      mCompositorVsyncDispatcher =
+          new CompositorVsyncDispatcher(std::move(vsyncDispatcher));
     }
   }
 }
@@ -1203,6 +1189,9 @@ already_AddRefed<WebRenderLayerManager> nsBaseWidget::CreateCompositorSession(
       options.SetAllowSoftwareWebRenderD3D11(
           gfx::gfxVars::AllowSoftwareWebRenderD3D11());
     }
+    if (mNeedFastSnaphot) {
+      options.SetNeedFastSnaphot(true);
+    }
 #elif defined(MOZ_WIDGET_ANDROID)
     MOZ_ASSERT(supportsAcceleration);
     options.SetAllowSoftwareWebRenderOGL(
@@ -1213,8 +1202,6 @@ already_AddRefed<WebRenderLayerManager> nsBaseWidget::CreateCompositorSession(
           StaticPrefs::gfx_webrender_software_opengl_AtStartup());
     }
 #endif
-
-    options.SetUseWebGPU(StaticPrefs::dom_webgpu_enabled());
 
 #ifdef MOZ_WIDGET_ANDROID
     // Unconditionally set the compositor as initially paused, as we have not
@@ -1228,10 +1215,15 @@ already_AddRefed<WebRenderLayerManager> nsBaseWidget::CreateCompositorSession(
 
     RefPtr<WebRenderLayerManager> lm = new WebRenderLayerManager(this);
 
+    uint64_t innerWindowId = 0;
+    if (Document* doc = GetDocument()) {
+      innerWindowId = doc->InnerWindowID();
+    }
+
     bool retry = false;
     mCompositorSession = gpu->CreateTopLevelCompositor(
         this, lm, GetDefaultScale(), options, UseExternalCompositingSurface(),
-        gfx::IntSize(aWidth, aHeight), &retry);
+        gfx::IntSize(aWidth, aHeight), innerWindowId, &retry);
 
     if (mCompositorSession) {
       TextureFactoryIdentifier textureFactoryIdentifier;
@@ -1379,6 +1371,18 @@ void nsBaseWidget::ClearCachedWebrenderResources() {
   mWindowRenderer->AsWebRender()->ClearCachedResources();
 }
 
+bool nsBaseWidget::SetNeedFastSnaphot() {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(!mCompositorSession);
+
+  if (!XRE_IsParentProcess() || mCompositorSession) {
+    return false;
+  }
+
+  mNeedFastSnaphot = true;
+  return true;
+}
+
 already_AddRefed<gfx::DrawTarget> nsBaseWidget::StartRemoteDrawing() {
   return nullptr;
 }
@@ -1508,6 +1512,8 @@ LayoutDeviceIntPoint nsBaseWidget::GetClientOffset() {
 nsresult nsBaseWidget::SetNonClientMargins(LayoutDeviceIntMargin& margins) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
+
+void nsBaseWidget::SetResizeMargin(LayoutDeviceIntCoord aResizeMargin) {}
 
 uint32_t nsBaseWidget::GetMaxTouchPoints() const { return 0; }
 

@@ -18,8 +18,7 @@
 #include "nsIObserverService.h"
 #include "nsPIDOMWindow.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 static const char kStorageEnabled[] = "dom.storage.enabled";
 
@@ -60,6 +59,12 @@ Storage::~Storage() = default;
 /* static */
 bool Storage::StoragePrefIsEnabled() {
   return mozilla::Preferences::GetBool(kStorageEnabled);
+}
+
+int64_t Storage::GetSnapshotUsage(nsIPrincipal& aSubjectPrincipal,
+                                  ErrorResult& aRv) {
+  aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
+  return 0;
 }
 
 bool Storage::CanUseStorage(nsIPrincipal& aSubjectPrincipal) {
@@ -149,5 +154,4 @@ void Storage::NotifyChange(Storage* aStorage, nsIPrincipal* aPrincipal,
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

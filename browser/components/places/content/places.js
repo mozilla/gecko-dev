@@ -444,6 +444,16 @@ var PlacesOrganizer = {
         ? [view.selectedNode]
         : view.selectedNodes;
       this._fillDetailsPane(selectedNodes);
+      window
+        .promiseDocumentFlushed(() => {})
+        .then(() => {
+          if (view.selectedNode && ContentArea.currentView.view) {
+            let row = ContentArea.currentView.view.treeIndexForNode(
+              view.selectedNode
+            );
+            ContentTree.view.ensureRowIsVisible(row);
+          }
+        });
     }
   },
 
@@ -584,7 +594,7 @@ var PlacesOrganizer = {
           document.getElementById("restoreFromFile")
         );
         m.setAttribute("label", dateFormatter.format(backupDate) + sizeInfo);
-        m.setAttribute("value", OS.Path.basename(backupFiles[i]));
+        m.setAttribute("value", PathUtils.filename(backupFiles[i]));
         m.setAttribute(
           "oncommand",
           "PlacesOrganizer.onRestoreMenuItemClick(this);"
@@ -608,7 +618,7 @@ var PlacesOrganizer = {
     let backupName = aMenuItem.getAttribute("value");
     let backupFilePaths = await PlacesBackups.getBackupFiles();
     for (let backupFilePath of backupFilePaths) {
-      if (OS.Path.basename(backupFilePath) == backupName) {
+      if (PathUtils.filename(backupFilePath) == backupName) {
         PlacesOrganizer.restoreBookmarksFromFile(backupFilePath);
         break;
       }
@@ -767,17 +777,21 @@ var PlacesOrganizer = {
     gEditItemOverlay.uninitPanel(false);
 
     if (selectedNode && !PlacesUtils.nodeIsSeparator(selectedNode)) {
-      gEditItemOverlay.initPanel({
-        node: selectedNode,
-        hiddenRows: ["folderPicker"],
-      });
+      gEditItemOverlay
+        .initPanel({
+          node: selectedNode,
+          hiddenRows: ["folderPicker"],
+        })
+        .catch(ex => Cu.reportError(ex));
     } else if (!selectedNode && aNodeList[0]) {
       if (aNodeList.every(PlacesUtils.nodeIsURI)) {
         let uris = aNodeList.map(node => Services.io.newURI(node.uri));
-        gEditItemOverlay.initPanel({
-          uris,
-          hiddenRows: ["folderPicker", "location", "keyword", "name"],
-        });
+        gEditItemOverlay
+          .initPanel({
+            uris,
+            hiddenRows: ["folderPicker", "location", "keyword", "name"],
+          })
+          .catch(ex => Cu.reportError(ex));
       } else {
         let selectItemDesc = document.getElementById("selectItemDescription");
         let itemsCountLabel = document.getElementById("itemsCountText");

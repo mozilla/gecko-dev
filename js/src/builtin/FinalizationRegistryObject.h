@@ -21,7 +21,7 @@
  *   |  |                |                   |               |               |
  *   |  |                v                   |               v               |
  *   |  |  +-------------+-------------+     | +-------------+------------+  |
- *   |  |  |       Registrations       |     | | FinalizationRegistryZone |  |
+ *   |  |  |       Registrations       |     | |  FinalizationObservers   |  |
  *   |  |  |         weak map          |     | +-------------+------------+  |
  *   |  |  +---------------------------+     |               |               |
  *   |  |  | Unregister  :   Records   |     |               v               |
@@ -116,7 +116,7 @@ using RootedFinalizationQueueObject = Rooted<FinalizationQueueObject*>;
 //
 // Finalization records are added to a per-zone record map. They are removed
 // when the record is queued for cleanup, or if the interest in finalization is
-// cancelled. See FinalizationRegistryZone::shouldRemoveRecord for the possible
+// cancelled. See FinalizationObservers::shouldRemoveRecord for the possible
 // reasons.
 
 class FinalizationRecordObject : public NativeObject {
@@ -171,7 +171,7 @@ class FinalizationRegistrationsObject : public NativeObject {
   void* privatePtr() const;
 
   static void trace(JSTracer* trc, JSObject* obj);
-  static void finalize(JSFreeOp* fop, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
 };
 
 using FinalizationRecordVector =
@@ -218,7 +218,7 @@ class FinalizationRegistryObject : public NativeObject {
   static bool preserveDOMWrapper(JSContext* cx, HandleObject obj);
 
   static void trace(JSTracer* trc, JSObject* obj);
-  static void finalize(JSFreeOp* fop, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
 };
 
 // Contains information about the cleanup callback and the records queued to
@@ -266,7 +266,7 @@ class FinalizationQueueObject : public NativeObject {
   static bool doCleanup(JSContext* cx, unsigned argc, Value* vp);
 
   static void trace(JSTracer* trc, JSObject* obj);
-  static void finalize(JSFreeOp* fop, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
 };
 
 }  // namespace js

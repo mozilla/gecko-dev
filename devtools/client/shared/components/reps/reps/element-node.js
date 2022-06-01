@@ -15,7 +15,6 @@ define(function(require, exports, module) {
 
   // Utils
   const {
-    isGrip,
     wrapRender,
   } = require("devtools/client/shared/components/reps/reps/rep-utils");
   const {
@@ -36,8 +35,7 @@ define(function(require, exports, module) {
   ElementNode.propTypes = {
     object: PropTypes.object.isRequired,
     inspectIconTitle: PropTypes.string,
-    // @TODO Change this to Object.values when supported in Node's version of V8
-    mode: PropTypes.oneOf(Object.keys(MODE).map(key => MODE[key])),
+    mode: PropTypes.oneOf(Object.values(MODE)),
     onDOMNodeClick: PropTypes.func,
     onDOMNodeMouseOver: PropTypes.func,
     onDOMNodeMouseOut: PropTypes.func,
@@ -296,13 +294,8 @@ define(function(require, exports, module) {
   }
 
   // Registration
-  function supportsObject(object, noGrip = false) {
-    if (noGrip === true || !isGrip(object)) {
-      return false;
-    }
-    return (
-      object.preview && object.preview.nodeType === nodeConstants.ELEMENT_NODE
-    );
+  function supportsObject(object) {
+    return object?.preview?.nodeType === nodeConstants.ELEMENT_NODE;
   }
 
   // Exports from this module

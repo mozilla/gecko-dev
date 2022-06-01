@@ -21,6 +21,7 @@
 
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ContentBlocking.h"
+#include "mozilla/ContentBlockingAllowList.h"
 #include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/net/HttpBaseChannel.h"
 #include "mozilla/dom/Document.h"
@@ -36,8 +37,7 @@ static mozilla::LazyLogModule gReferrerInfoLog("ReferrerInfo");
 
 using namespace mozilla::net;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 // Implementation of ClassInfo is required to serialize/deserialize
 NS_IMPL_CLASSINFO(ReferrerInfo, nullptr, nsIClassInfo::MAIN_THREAD_ONLY,
@@ -213,7 +213,8 @@ ReferrerPolicy ReferrerInfo::GetDefaultReferrerPolicy(nsIHttpChannel* aChannel,
           !ContentBlocking::ShouldAllowAccessFor(aChannel, aURI,
                                                  &rejectedReason) &&
           rejectedReason !=
-              nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN;
+              static_cast<uint32_t>(
+                  nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN);
       // Here we intentionally do not notify about the rejection reason, if any
       // in order to avoid this check to have any visible side-effects (e.g. a
       // web console report.)
@@ -497,14 +498,7 @@ bool ReferrerInfo::IsCrossOriginRequest(nsIHttpChannel* aChannel) {
     return true;
   }
 
-  bool isPrivateWin = loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
-  bool isSameOrigin = false;
-  rv = loadInfo->TriggeringPrincipal()->IsSameOrigin(uri, isPrivateWin,
-                                                     &isSameOrigin);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return true;
-  }
-  return !isSameOrigin;
+  return !loadInfo->TriggeringPrincipal()->IsSameOrigin(uri);
 }
 
 /* static */
@@ -530,7 +524,7 @@ bool ReferrerInfo::IsCrossSiteRequest(nsIHttpChannel* aChannel) {
 
   bool isCrossSite = true;
   rv = loadInfo->TriggeringPrincipal()->IsThirdPartyURI(uri, &isCrossSite);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_FAILED(rv)) {
     return true;
   }
 
@@ -706,8 +700,46 @@ bool ReferrerInfo::ShouldIgnoreLessRestrictedPolicies(
     return false;
   }
 
-  bool isCrossSite = IsCrossSiteRequest(aChannel);
+  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   bool isPrivate = NS_UsePrivateBrowsing(aChannel);
+
+  // Return early if we don't want to ignore less restricted policies for the
+  // top navigation.
+  if (loadInfo->GetExternalContentPolicyType() ==
+      ExtContentPolicy::TYPE_DOCUMENT) {
+    bool isEnabledForTopNavigation =
+        isPrivate
+            ? StaticPrefs::
+                  network_http_referer_disallowCrossSiteRelaxingDefault_pbmode_top_navigation()
+            : StaticPrefs::
+                  network_http_referer_disallowCrossSiteRelaxingDefault_top_navigation();
+    if (!isEnabledForTopNavigation) {
+      return false;
+    }
+
+    // We have to get the value of the contentBlockingAllowList earlier because
+    // the channel hasn't been opened yet here. Note that we only need to do
+    // this for first-party navigation. For third-party loads, the value is
+    // inherited from the parent.
+    if (XRE_IsParentProcess()) {
+      nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
+      Unused << loadInfo->GetCookieJarSettings(
+          getter_AddRefs(cookieJarSettings));
+
+      net::CookieJarSettings::Cast(cookieJarSettings)
+          ->UpdateIsOnContentBlockingAllowList(aChannel);
+    }
+  }
+
+  // We don't ignore less restricted referrer policies if ETP is toggled off.
+  // This would affect iframe loads and top navigation. For iframes, it will
+  // stop ignoring if the first-party site toggled ETP off. For top navigation,
+  // it depends on the ETP toggle for the destination site.
+  if (ContentBlockingAllowList::Check(aChannel)) {
+    return false;
+  }
+
+  bool isCrossSite = IsCrossSiteRequest(aChannel);
   bool isEnabled =
       isPrivate
           ? StaticPrefs::
@@ -730,8 +762,6 @@ bool ReferrerInfo::ShouldIgnoreLessRestrictedPolicies(
     }
     return false;
   }
-
-  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
 
   // Check if the channel is triggered by the system or the extension.
   auto* triggerBasePrincipal =
@@ -882,6 +912,7 @@ nsIReferrerInfo::ReferrerPolicyIDL ReferrerPolicyToReferrerPolicyIDL(
 ReferrerInfo::ReferrerInfo()
     : mOriginalReferrer(nullptr),
       mPolicy(ReferrerPolicy::_empty),
+      mOriginalPolicy(ReferrerPolicy::_empty),
       mSendReferrer(true),
       mInitialized(false),
       mOverridePolicyByDefault(false) {}
@@ -899,6 +930,7 @@ ReferrerInfo::ReferrerInfo(nsIURI* aOriginalReferrer,
                            const Maybe<nsCString>& aComputedReferrer)
     : mOriginalReferrer(aOriginalReferrer),
       mPolicy(aPolicy),
+      mOriginalPolicy(aPolicy),
       mSendReferrer(aSendReferrer),
       mInitialized(true),
       mOverridePolicyByDefault(false),
@@ -907,6 +939,7 @@ ReferrerInfo::ReferrerInfo(nsIURI* aOriginalReferrer,
 ReferrerInfo::ReferrerInfo(const ReferrerInfo& rhs)
     : mOriginalReferrer(rhs.mOriginalReferrer),
       mPolicy(rhs.mPolicy),
+      mOriginalPolicy(rhs.mOriginalPolicy),
       mSendReferrer(rhs.mSendReferrer),
       mInitialized(rhs.mInitialized),
       mOverridePolicyByDefault(rhs.mOverridePolicyByDefault),
@@ -921,6 +954,7 @@ already_AddRefed<ReferrerInfo> ReferrerInfo::CloneWithNewPolicy(
     ReferrerPolicyEnum aPolicy) const {
   RefPtr<ReferrerInfo> copy(new ReferrerInfo(*this));
   copy->mPolicy = aPolicy;
+  copy->mOriginalPolicy = aPolicy;
   return copy.forget();
 }
 
@@ -1048,6 +1082,7 @@ ReferrerInfo::Init(nsIReferrerInfo::ReferrerPolicyIDL aReferrerPolicy,
   };
 
   mPolicy = ReferrerPolicyIDLToReferrerPolicy(aReferrerPolicy);
+  mOriginalPolicy = mPolicy;
   mSendReferrer = aSendReferrer;
   mOriginalReferrer = aOriginalReferrer;
   mInitialized = true;
@@ -1062,6 +1097,7 @@ ReferrerInfo::InitWithDocument(const Document* aDocument) {
   };
 
   mPolicy = aDocument->GetReferrerPolicy();
+  mOriginalPolicy = mPolicy;
   mSendReferrer = true;
   mOriginalReferrer = aDocument->GetDocumentURIAsReferrer();
   mInitialized = true;
@@ -1119,6 +1155,7 @@ ReferrerInfo::InitWithElement(const Element* aElement) {
     mPolicy = aElement->OwnerDoc()->GetReferrerPolicy();
   }
 
+  mOriginalPolicy = mPolicy;
   mSendReferrer = !HasRelNoReferrer(*aElement);
   mOriginalReferrer = aElement->OwnerDoc()->GetDocumentURIAsReferrer();
 
@@ -1267,7 +1304,7 @@ nsresult ReferrerInfo::ComputeReferrer(nsIHttpChannel* aChannel) {
   }
 
   if (mPolicy == ReferrerPolicy::_empty ||
-      ShouldIgnoreLessRestrictedPolicies(aChannel, mPolicy)) {
+      ShouldIgnoreLessRestrictedPolicies(aChannel, mOriginalPolicy)) {
     nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
     OriginAttributes attrs = loadInfo->GetOriginAttributes();
     bool isPrivate = attrs.mPrivateBrowsingId > 0;
@@ -1280,6 +1317,16 @@ nsresult ReferrerInfo::ComputeReferrer(nsIHttpChannel* aChannel) {
 
     mPolicy = GetDefaultReferrerPolicy(aChannel, uri, isPrivate);
     mOverridePolicyByDefault = true;
+  }
+
+  // This is for the case where the ETP toggle is off. In this case, we need to
+  // reset the referrer and the policy if the original policy is different from
+  // the current policy in order to recompute the referrer policy with the
+  // original policy.
+  if (!mOverridePolicyByDefault && mOriginalPolicy != ReferrerPolicy::_empty &&
+      mPolicy != mOriginalPolicy) {
+    referrer = nullptr;
+    mPolicy = mOriginalPolicy;
   }
 
   if (mPolicy == ReferrerPolicy::No_referrer) {
@@ -1420,6 +1467,14 @@ ReferrerInfo::Read(nsIObjectInputStream* aStream) {
   mPolicy = ReferrerPolicyIDLToReferrerPolicy(
       static_cast<nsIReferrerInfo::ReferrerPolicyIDL>(policy));
 
+  uint32_t originalPolicy;
+  rv = aStream->Read32(&originalPolicy);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  mOriginalPolicy = ReferrerPolicyIDLToReferrerPolicy(
+      static_cast<nsIReferrerInfo::ReferrerPolicyIDL>(originalPolicy));
+
   rv = aStream->ReadBoolean(&mSendReferrer);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -1479,6 +1534,11 @@ ReferrerInfo::Write(nsIObjectOutputStream* aStream) {
     return rv;
   }
 
+  rv = aStream->Write32(ReferrerPolicyToReferrerPolicyIDL(mOriginalPolicy));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
   rv = aStream->WriteBoolean(mSendReferrer);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -1526,5 +1586,4 @@ void ReferrerInfo::RecordTelemetry(nsIHttpChannel* aChannel) {
                         static_cast<uint32_t>(mPolicy) + telemetryOffset);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

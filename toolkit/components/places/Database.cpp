@@ -549,7 +549,9 @@ nsresult Database::EnsureConnection() {
     // Open the database file.  If it does not exist a new one will be created.
     // Use an unshared connection, it will consume more memory but avoid shared
     // cache contentions across threads.
-    rv = storage->OpenUnsharedDatabase(databaseFile, getter_AddRefs(mMainConn));
+    rv = storage->OpenUnsharedDatabase(databaseFile,
+                                       mozIStorageService::CONNECTION_DEFAULT,
+                                       getter_AddRefs(mMainConn));
     if (NS_SUCCEEDED(rv) && !databaseExisted) {
       mDatabaseStatus = nsINavHistoryService::DATABASE_STATUS_CREATE;
     } else if (rv == NS_ERROR_FILE_CORRUPTED) {
@@ -669,7 +671,9 @@ nsresult Database::EnsureFaviconsDatabaseAttached(
 
   // Open the database file, this will also create it.
   nsCOMPtr<mozIStorageConnection> conn;
-  rv = aStorage->OpenUnsharedDatabase(databaseFile, getter_AddRefs(conn));
+  rv = aStorage->OpenUnsharedDatabase(databaseFile,
+                                      mozIStorageService::CONNECTION_DEFAULT,
+                                      getter_AddRefs(conn));
   NS_ENSURE_SUCCESS(rv, rv);
 
   {
@@ -770,8 +774,7 @@ nsresult Database::BackupAndReplaceDatabaseFile(
     rv = corruptFile->Append(corruptFilename);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = corruptFile->Remove(false);
-    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-        rv != NS_ERROR_FILE_NOT_FOUND) {
+    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND) {
       return rv;
     }
 
@@ -819,8 +822,7 @@ nsresult Database::BackupAndReplaceDatabaseFile(
     // Remove the broken database.
     stage = stage_removing;
     rv = databaseFile->Remove(false);
-    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-        rv != NS_ERROR_FILE_NOT_FOUND) {
+    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND) {
       return rv;
     }
 
@@ -842,8 +844,9 @@ nsresult Database::BackupAndReplaceDatabaseFile(
       // Use an unshared connection, it will consume more memory but avoid
       // shared cache contentions across threads.
       stage = stage_reopening;
-      rv = aStorage->OpenUnsharedDatabase(databaseFile,
-                                          getter_AddRefs(mMainConn));
+      rv = aStorage->OpenUnsharedDatabase(
+          databaseFile, mozIStorageService::CONNECTION_DEFAULT,
+          getter_AddRefs(mMainConn));
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -877,8 +880,7 @@ nsresult Database::TryToCloneTablesFromCorruptDatabase(
   NS_ENSURE_SUCCESS(rv, rv);
   // Ensure there's no previous recover file.
   rv = recoverFile->Remove(false);
-  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-      rv != NS_ERROR_FILE_NOT_FOUND) {
+  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND) {
     return rv;
   }
 
@@ -890,7 +892,9 @@ nsresult Database::TryToCloneTablesFromCorruptDatabase(
     Unused << recoverFile->Remove(false);
   });
 
-  rv = aStorage->OpenUnsharedDatabase(recoverFile, getter_AddRefs(conn));
+  rv = aStorage->OpenUnsharedDatabase(recoverFile,
+                                      mozIStorageService::CONNECTION_DEFAULT,
+                                      getter_AddRefs(conn));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = AttachDatabase(conn, NS_ConvertUTF16toUTF8(path), "corrupt"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1047,8 +1051,7 @@ nsresult Database::SetupDatabaseConnection(
     rv = iconsFile->Append(DATABASE_FAVICONS_FILENAME);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = iconsFile->Remove(false);
-    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-        rv != NS_ERROR_FILE_NOT_FOUND) {
+    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND) {
       return rv;
     }
     rv = EnsureFaviconsDatabaseAttached(aStorage);
@@ -1238,6 +1241,32 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
       }
 
       // Firefox 98 uses schema version 63
+
+      if (currentSchemaVersion < 64) {
+        rv = MigrateV64Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      // Firefox 99 uses schema version 64
+
+      if (currentSchemaVersion < 65) {
+        rv = MigrateV65Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      if (currentSchemaVersion < 66) {
+        rv = MigrateV66Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      // Firefox 100 uses schema version 66
+
+      if (currentSchemaVersion < 67) {
+        rv = MigrateV67Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      // Firefox 103 uses schema version 67
 
       // Schema Upgrades must add migration code here.
       // >>> IMPORTANT! <<<
@@ -2428,6 +2457,88 @@ nsresult Database::MigrateV63Up() {
         "ADD COLUMN title TEXT "_ns);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  return NS_OK;
+}
+
+nsresult Database::MigrateV64Up() {
+  // Add hidden column to snapshot groups if necessary.
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->CreateStatement(
+      "SELECT hidden FROM moz_places_metadata_snapshots_groups"_ns,
+      getter_AddRefs(stmt));
+  if (NS_FAILED(rv)) {
+    rv = mMainConn->ExecuteSimpleSQL(
+        "ALTER TABLE moz_places_metadata_snapshots_groups "
+        "ADD COLUMN hidden INTEGER DEFAULT 0 NOT NULL "_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return NS_OK;
+}
+
+nsresult Database::MigrateV65Up() {
+  // Add hidden column to snapshot groups to snapshots table if necessary.
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->CreateStatement(
+      "SELECT hidden FROM moz_places_metadata_groups_to_snapshots"_ns,
+      getter_AddRefs(stmt));
+  if (NS_FAILED(rv)) {
+    rv = mMainConn->ExecuteSimpleSQL(
+        "ALTER TABLE moz_places_metadata_groups_to_snapshots "
+        "ADD COLUMN hidden INTEGER DEFAULT 0 NOT NULL "_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return NS_OK;
+}
+
+nsresult Database::MigrateV66Up() {
+  // Let the title column in snapshots groups be NULL.
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->CreateStatement(
+      "SELECT 1 "
+      "FROM sqlite_master "
+      "WHERE name = 'moz_places_metadata_snapshots_groups' AND "
+      "INSTR(sql, 'title TEXT NOT NULL') > 0"_ns,
+      getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  bool hasMore = false;
+  if (NS_SUCCEEDED(stmt->ExecuteStep(&hasMore)) && hasMore) {
+    // Migrate non-empty titles to the builder_data object, drop the column
+    // and recreate a nullable one.
+    rv = mMainConn->ExecuteSimpleSQL(
+        "UPDATE moz_places_metadata_snapshots_groups "
+        "SET builder_data = json_set(IFNULL(builder_data, json_object()), "
+        "'$.title', title) "
+        "WHERE title <> '' AND builder_data->>'title' IS NULL"_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(
+        "ALTER TABLE moz_places_metadata_snapshots_groups DROP COLUMN title"_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(
+        "ALTER TABLE moz_places_metadata_snapshots_groups "
+        "ADD COLUMN title TEXT"_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
+nsresult Database::MigrateV67Up() {
+  // Align all input field in moz_inputhistory to lowercase. If there are
+  // multiple records that expresses the same input, use maximum use_count from
+  // them to carry on the experience of the past.
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->ExecuteSimpleSQL(
+      "INSERT INTO moz_inputhistory "
+      "SELECT place_id, LOWER(input), use_count FROM moz_inputhistory "
+      "  WHERE LOWER(input) <> input "
+      "ON CONFLICT DO "
+      "  UPDATE SET use_count = MAX(use_count, EXCLUDED.use_count)"_ns);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mMainConn->ExecuteSimpleSQL(
+      "DELETE FROM moz_inputhistory WHERE LOWER(input) <> input"_ns);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }

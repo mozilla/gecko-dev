@@ -454,19 +454,17 @@ class FunctionBox : public SuspendableContext {
   }
 
   void initFromLazyFunction(const ScriptStencilExtra& extra,
-                            ScopeContext& scopeContext, FunctionFlags flags,
+                            ScopeContext& scopeContext,
                             FunctionSyntaxKind kind);
   void initFromScriptStencilExtra(const ScriptStencilExtra& extra);
-  void initStandalone(ScopeContext& scopeContext, FunctionFlags flags,
-                      FunctionSyntaxKind kind);
+  void initStandalone(ScopeContext& scopeContext, FunctionSyntaxKind kind);
 
  private:
-  void initStandaloneOrLazy(ScopeContext& scopeContext, FunctionFlags flags,
+  void initStandaloneOrLazy(ScopeContext& scopeContext,
                             FunctionSyntaxKind kind);
 
  public:
   void initWithEnclosingParseContext(ParseContext* enclosing,
-                                     FunctionFlags flags,
                                      FunctionSyntaxKind kind);
 
   void setEnclosingScopeForInnerLazyFunction(ScopeIndex scopeIndex);
@@ -491,6 +489,8 @@ class FunctionBox : public SuspendableContext {
   IMMUTABLE_FLAG_GETTER_SETTER(isGenerator, IsGenerator)
   IMMUTABLE_FLAG_GETTER_SETTER(funHasExtensibleScope, FunHasExtensibleScope)
   IMMUTABLE_FLAG_GETTER_SETTER(functionHasThisBinding, FunctionHasThisBinding)
+  IMMUTABLE_FLAG_GETTER_SETTER(functionHasNewTargetBinding,
+                               FunctionHasNewTargetBinding)
   // NeedsHomeObject: custom logic below.
   // IsDerivedClassConstructor: custom logic below.
   // IsFieldInitializer: custom logic below.
@@ -589,6 +589,7 @@ class FunctionBox : public SuspendableContext {
   void setNeedsHomeObject() {
     MOZ_ASSERT(flags_.allowSuperProperty());
     setFlag(ImmutableFlags::NeedsHomeObject);
+    flags_.setIsExtended();
   }
 
   bool isDerivedClassConstructor() const {

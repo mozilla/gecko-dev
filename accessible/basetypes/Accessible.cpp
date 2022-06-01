@@ -6,10 +6,15 @@
 #include "Accessible.h"
 #include "AccGroupInfo.h"
 #include "ARIAMap.h"
+#include "nsAccUtils.h"
 #include "States.h"
 #include "mozilla/a11y/HyperTextAccessibleBase.h"
 #include "mozilla/Components.h"
 #include "nsIStringBundle.h"
+
+#ifdef A11Y_LOG
+#  include "nsAccessibilityService.h"
+#endif
 
 using namespace mozilla;
 using namespace mozilla::a11y;
@@ -31,6 +36,41 @@ void Accessible::StaticAsserts() const {
   static_assert(
       eLastAccGenericType <= (1 << kGenericTypesBits) - 1,
       "Accessible::mGenericType was oversized by eLastAccGenericType!");
+}
+
+bool Accessible::IsBefore(const Accessible* aAcc) const {
+  // Build the chain of parents.
+  const Accessible* thisP = this;
+  const Accessible* otherP = aAcc;
+  AutoTArray<const Accessible*, 30> thisParents, otherParents;
+  do {
+    thisParents.AppendElement(thisP);
+    thisP = thisP->Parent();
+  } while (thisP);
+  do {
+    otherParents.AppendElement(otherP);
+    otherP = otherP->Parent();
+  } while (otherP);
+
+  // Find where the parent chain differs.
+  uint32_t thisPos = thisParents.Length(), otherPos = otherParents.Length();
+  for (uint32_t len = std::min(thisPos, otherPos); len > 0; --len) {
+    const Accessible* thisChild = thisParents.ElementAt(--thisPos);
+    const Accessible* otherChild = otherParents.ElementAt(--otherPos);
+    if (thisChild != otherChild) {
+      return thisChild->IndexInParent() < otherChild->IndexInParent();
+    }
+  }
+
+  // If the ancestries are the same length (both thisPos and otherPos are 0),
+  // we should have returned by now.
+  MOZ_ASSERT(thisPos != 0 || otherPos != 0);
+  // At this point, one of the ancestries is a superset of the other, so one of
+  // thisPos or otherPos should be 0.
+  MOZ_ASSERT(thisPos != otherPos);
+  // If the other Accessible is deeper than this one (otherPos > 0), this
+  // Accessible comes before the other.
+  return otherPos > 0;
 }
 
 const nsRoleMapEntry* Accessible::ARIARoleMap() const {
@@ -55,6 +95,14 @@ bool Accessible::HasGenericType(AccGenericType aType) const {
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
   return (mGenericTypes & aType) ||
          (roleMapEntry && roleMapEntry->IsOfType(aType));
+}
+
+LayoutDeviceIntSize Accessible::Size() const { return Bounds().Size(); }
+
+LayoutDeviceIntPoint Accessible::Position(uint32_t aCoordType) {
+  LayoutDeviceIntPoint point = Bounds().TopLeft();
+  nsAccUtils::ConvertScreenCoordsTo(&point.x, &point.y, aCoordType, this);
+  return point;
 }
 
 bool Accessible::IsTextRole() {
@@ -259,6 +307,38 @@ void Accessible::GetPositionAndSetSize(int32_t* aPosInSet, int32_t* aSetSize) {
   }
 }
 
+#ifdef A11Y_LOG
+void Accessible::DebugDescription(nsCString& aDesc) {
+  aDesc.Truncate();
+  aDesc.AppendPrintf("[%p] ", this);
+  nsAutoString role;
+  GetAccService()->GetStringRole(Role(), role);
+  aDesc.Append(NS_ConvertUTF16toUTF8(role));
+
+  if (nsAtom* tagAtom = TagName()) {
+    nsAutoCString tag;
+    tagAtom->ToUTF8String(tag);
+    aDesc.AppendPrintf(" %s", tag.get());
+
+    nsAutoString id;
+    DOMNodeID(id);
+    if (!id.IsEmpty()) {
+      aDesc.Append("#");
+      aDesc.Append(NS_ConvertUTF16toUTF8(id));
+    }
+  }
+  nsAutoString id;
+
+  nsAutoString name;
+  Name(name);
+  if (!name.IsEmpty()) {
+    aDesc.Append(" '");
+    aDesc.Append(NS_ConvertUTF16toUTF8(name));
+    aDesc.Append("'");
+  }
+}
+#endif
+
 void Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut) {
   nsCOMPtr<nsIStringBundleService> stringBundleService =
       components::StringBundle::Service();
@@ -277,7 +357,9 @@ void Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut) {
 }
 
 const Accessible* Accessible::ActionAncestor() const {
-  for (Accessible* parent = Parent(); parent && !parent->IsDoc();
+  // We do want to consider a click handler on the document. However, we don't
+  // want to walk outside of this document, so we stop if we see an OuterDoc.
+  for (Accessible* parent = Parent(); parent && !parent->IsOuterDoc();
        parent = parent->Parent()) {
     if (parent->HasPrimaryAction()) {
       return parent;
@@ -285,4 +367,57 @@ const Accessible* Accessible::ActionAncestor() const {
   }
 
   return nullptr;
+}
+
+nsAtom* Accessible::LandmarkRole() const {
+  nsAtom* tagName = TagName();
+  if (!tagName) {
+    // Either no associated content, or no cache.
+    return nullptr;
+  }
+
+  if (tagName == nsGkAtoms::nav) {
+    return nsGkAtoms::navigation;
+  }
+
+  if (tagName == nsGkAtoms::aside) {
+    return nsGkAtoms::complementary;
+  }
+
+  if (tagName == nsGkAtoms::main) {
+    return nsGkAtoms::main;
+  }
+
+  if (tagName == nsGkAtoms::header) {
+    if (Role() == roles::LANDMARK) {
+      return nsGkAtoms::banner;
+    }
+  }
+
+  if (tagName == nsGkAtoms::footer) {
+    if (Role() == roles::LANDMARK) {
+      return nsGkAtoms::contentinfo;
+    }
+  }
+
+  if (tagName == nsGkAtoms::section) {
+    nsAutoString name;
+    Name(name);
+    if (!name.IsEmpty()) {
+      return nsGkAtoms::region;
+    }
+  }
+
+  if (tagName == nsGkAtoms::form) {
+    nsAutoString name;
+    Name(name);
+    if (!name.IsEmpty()) {
+      return nsGkAtoms::form;
+    }
+  }
+
+  const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
+  return roleMapEntry && roleMapEntry->IsOfType(eLandmark)
+             ? roleMapEntry->roleAtom
+             : nullptr;
 }

@@ -22,7 +22,6 @@
 #include "mozilla/TaskDispatcher.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
-#include "nsIDelayedRunnableObserver.h"
 #include "nsIDirectTaskDispatcher.h"
 #include "nsIEventTarget.h"
 #include "nsISerialEventTarget.h"
@@ -156,7 +155,6 @@ class PerformanceCounterState {
 // A native thread
 class nsThread : public nsIThreadInternal,
                  public nsISupportsPriority,
-                 public nsIDelayedRunnableObserver,
                  public nsIDirectTaskDispatcher,
                  private mozilla::LinkedListElement<nsThread> {
   friend mozilla::LinkedList<nsThread>;
@@ -270,10 +268,6 @@ class nsThread : public nsIThreadInternal,
     mUseHangMonitor = aValue;
   }
 
-  void OnDelayedRunnableCreated(mozilla::DelayedRunnable* aRunnable) override;
-  void OnDelayedRunnableScheduled(mozilla::DelayedRunnable* aRunnable) override;
-  void OnDelayedRunnableRan(mozilla::DelayedRunnable* aRunnable) override;
-
  private:
   void DoMainThreadSpecificProcessing() const;
 
@@ -300,7 +294,6 @@ class nsThread : public nsIThreadInternal,
 
   static mozilla::OffTheBooksMutex& ThreadListMutex();
   static mozilla::LinkedList<nsThread>& ThreadList();
-  static void ClearThreadList();
 
   void AddToThreadList();
   void MaybeRemoveFromThreadList();
@@ -341,8 +334,6 @@ class nsThread : public nsIThreadInternal,
 
   // Set to true if this thread creates a JSRuntime.
   bool mCanInvokeJS;
-
-  bool mHasTLSEntry = false;
 
   // The time the currently running event spent in event queues, and
   // when it started running.  If no event is running, they are

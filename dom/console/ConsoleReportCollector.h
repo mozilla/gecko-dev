@@ -81,7 +81,7 @@ class ConsoleReportCollector final : public nsIConsoleReportCollector {
   Mutex mMutex;
 
   // protected by mMutex
-  nsTArray<PendingReport> mPendingReports;
+  nsTArray<PendingReport> mPendingReports GUARDED_BY(mMutex);
 
  public:
   NS_DECL_THREADSAFE_ISUPPORTS

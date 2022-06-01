@@ -48,10 +48,12 @@
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/PContent.h"  // For TextRecognitionResult
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/ImageTracker.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
+#include "mozilla/widget/TextRecognition.h"
 
 #include "Orientation.h"
 
@@ -192,11 +194,8 @@ void nsImageLoadingContent::Notify(imgIRequest* aRequest, int32_t aType,
        */
       if (net::UrlClassifierFeatureFactory::IsClassifierBlockingErrorCode(
               errorCode)) {
-        nsCOMPtr<nsIContent> thisNode =
-            do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-
         Document* doc = GetOurOwnerDoc();
-        doc->AddBlockedNodeByClassifier(thisNode);
+        doc->AddBlockedNodeByClassifier(AsContent());
       }
     }
     nsresult status =
@@ -262,9 +261,8 @@ void nsImageLoadingContent::OnLoadComplete(imgIRequest* aRequest,
     FireEvent(u"loadend"_ns);
   }
 
-  nsCOMPtr<nsINode> thisNode =
-      do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  SVGObserverUtils::InvalidateDirectRenderingObservers(thisNode->AsElement());
+  SVGObserverUtils::InvalidateDirectRenderingObservers(
+      AsContent()->AsElement());
   MaybeResolveDecodePromises();
 }
 
@@ -1200,6 +1198,57 @@ void nsImageLoadingContent::ForceImageState(bool aForce,
   mForcedImageState = EventStates(aState);
 }
 
+already_AddRefed<Promise> nsImageLoadingContent::RecognizeCurrentImageText(
+    ErrorResult& aRv) {
+  using widget::TextRecognition;
+
+  if (!mCurrentRequest) {
+    aRv.ThrowInvalidStateError("No current request");
+    return nullptr;
+  }
+  nsCOMPtr<imgIContainer> image;
+  mCurrentRequest->GetImage(getter_AddRefs(image));
+  if (!image) {
+    aRv.ThrowInvalidStateError("No image");
+    return nullptr;
+  }
+
+  RefPtr<Promise> domPromise =
+      Promise::Create(GetOurOwnerDoc()->GetScopeObject(), aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  TextRecognition::FindText(*image)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [weak = RefPtr{do_GetWeakReference(this)},
+       request = RefPtr{mCurrentRequest}, domPromise](
+          TextRecognition::NativePromise::ResolveOrRejectValue&& aValue) {
+        if (aValue.IsReject()) {
+          domPromise->MaybeRejectWithNotSupportedError(aValue.RejectValue());
+          return;
+        }
+        RefPtr<nsIImageLoadingContent> iilc = do_QueryReferent(weak.get());
+        if (!iilc) {
+          domPromise->MaybeRejectWithInvalidStateError(
+              "Element was dead when we got the results");
+          return;
+        }
+        auto* ilc = static_cast<nsImageLoadingContent*>(iilc.get());
+        if (ilc->mCurrentRequest != request) {
+          domPromise->MaybeRejectWithInvalidStateError("Request not current");
+          return;
+        }
+        Element* el = ilc->AsContent()->AsElement();
+        el->AttachAndSetUAShadowRoot(Element::NotifyUAWidgetSetup::No);
+        TextRecognition::FillShadow(*el->GetShadowRoot(),
+                                    aValue.ResolveValue());
+        // TODO: Maybe resolve with the recognition results?
+        domPromise->MaybeResolveWithUndefined();
+      });
+  return domPromise.forget();
+}
+
 CSSIntSize nsImageLoadingContent::GetWidthHeightForImage() {
   Element* element = AsContent()->AsElement();
   if (nsIFrame* frame = element->GetPrimaryFrame(FlushType::Layout)) {
@@ -1343,8 +1392,7 @@ nsresult nsImageLoadingContent::FireEvent(const nsAString& aEventType,
   // loops in cases when onLoad handlers reset the src and the new src is in
   // cache.
 
-  nsCOMPtr<nsINode> thisNode =
-      do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+  nsCOMPtr<nsINode> thisNode = AsContent();
 
   RefPtr<AsyncEventDispatcher> loadBlockingAsyncDispatcher =
       new LoadBlockingAsyncEventDispatcher(thisNode, aEventType, CanBubble::eNo,

@@ -25,7 +25,11 @@ class gfxHarfBuzzShaper : public gfxFontShaper {
     gfxHarfBuzzShaper* mShaper;
   };
 
+  // Initializes the shaper and returns whether this was successful.
   bool Initialize();
+
+  // Returns whether the shaper has been successfully initialized.
+  bool IsInitialized() const { return mHBFont != nullptr; }
 
   bool ShapeText(DrawTarget* aDrawTarget, const char16_t* aText,
                  uint32_t aOffset, uint32_t aLength, Script aScript,
@@ -169,6 +173,12 @@ class gfxHarfBuzzShaper : public gfxFontShaper {
   // Whether the font implements GetGlyph, or we should read tables
   // directly
   bool mUseFontGetGlyph;
+
+  // Whether the font is an MS Symbol-encoded font, in which case we will
+  // try remapping U+0020..00FF to U+F020..F0FF for characters in the U+00xx
+  // range that are otherwise unsupported.
+  bool mIsSymbolFont;
+
   // Whether the font implements GetGlyphWidth, or we should read tables
   // directly to get ideal widths
   bool mUseFontGlyphWidths;

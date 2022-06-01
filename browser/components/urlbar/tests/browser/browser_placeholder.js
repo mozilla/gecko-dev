@@ -13,7 +13,7 @@ var tabs = [];
 
 var noEngineString;
 
-add_task(async function setup() {
+add_setup(async function() {
   originalEngine = await Services.search.getDefault();
   [noEngineString, expectedString] = (
     await document.l10n.formatMessages([
@@ -270,6 +270,52 @@ add_task(async function test_search_mode_history() {
     { source: UrlbarUtils.RESULT_SOURCE.HISTORY },
     { id: "urlbar-placeholder-search-mode-other-history", args: null }
   );
+});
+
+add_task(async function test_change_default_engine_updates_placeholder() {
+  tabs.push(await BrowserTestUtils.openNewForegroundTab(gBrowser));
+
+  info(`Set engine to ${extraEngine.name}`);
+  await Services.search.setDefault(extraEngine);
+  await TestUtils.waitForCondition(
+    () => gURLBar.placeholder == noEngineString,
+    "The placeholder should match the default placeholder for non-built-in engines."
+  );
+  Assert.equal(gURLBar.placeholder, noEngineString);
+
+  info(`Set engine to ${originalEngine.name}`);
+  await Services.search.setDefault(originalEngine);
+  await TestUtils.waitForCondition(
+    () => gURLBar.placeholder == expectedString,
+    "The placeholder should include the engine name for built-in engines."
+  );
+
+  // Simulate the placeholder not having changed due to the delayed update
+  // on startup.
+  BrowserSearch._setURLBarPlaceholder("");
+  await TestUtils.waitForCondition(
+    () => gURLBar.placeholder == noEngineString,
+    "The placeholder should have been reset."
+  );
+
+  info("Show search engine removal info bar");
+  BrowserSearch.removalOfSearchEngineNotificationBox(
+    extraEngine.name,
+    originalEngine.name
+  );
+  const notificationBox = gNotificationBox.getNotificationWithValue(
+    "search-engine-removal"
+  );
+  Assert.ok(notificationBox, "Search engine removal should be shown.");
+
+  await TestUtils.waitForCondition(
+    () => gURLBar.placeholder == expectedString,
+    "The placeholder should include the engine name for built-in engines."
+  );
+
+  Assert.equal(gURLBar.placeholder, expectedString);
+
+  notificationBox.close();
 });
 
 /**

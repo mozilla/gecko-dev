@@ -32,6 +32,10 @@ class PerfStats {
     HttpChannelCompletion,
     HttpChannelCompletion_Network,
     HttpChannelCompletion_Cache,
+    JSBC_Compression,
+    JSBC_Decompression,
+    JSBC_IO_Read,
+    JSBC_IO_Write,
     Max
   };
 
@@ -97,7 +101,7 @@ class PerfStats {
   nsCString CollectLocalPerfStatsJSONInternal();
 
   static MetricMask sCollectionMask;
-  static StaticMutex sMutex;
+  static StaticMutex sMutex MOZ_UNANNOTATED;
   static StaticAutoPtr<PerfStats> sSingleton;
   TimeStamp mRecordedStarts[static_cast<size_t>(Metric::Max)];
   double mRecordedTimes[static_cast<size_t>(Metric::Max)];

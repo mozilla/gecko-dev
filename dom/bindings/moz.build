@@ -43,8 +43,10 @@ EXPORTS.mozilla.dom += [
     "JSSlots.h",
     "NonRefcountedDOMObject.h",
     "Nullable.h",
+    "ObservableArrayProxyHandler.h",
     "PinnedStringId.h",
     "PrimitiveConversions.h",
+    "ProxyHandlerUtils.h",
     "Record.h",
     "RemoteObjectProxy.h",
     "RootedDictionary.h",
@@ -57,10 +59,6 @@ EXPORTS.mozilla.dom += [
     "XrayExpandoClass.h",
 ]
 
-if not CONFIG["MOZ_DOM_STREAMS"]:
-    EXPORTS.mozilla.dom += [
-        "ReadableStream.h",
-    ]
 
 # Generated bindings reference *Binding.h, not mozilla/dom/*Binding.h. And,
 # since we generate exported bindings directly to $(DIST)/include, we need
@@ -120,6 +118,7 @@ UNIFIED_SOURCES += [
     "IterableIterator.cpp",
     "nsScriptError.cpp",
     "nsScriptErrorWithStack.cpp",
+    "ObservableArrayProxyHandler.cpp",
     "RemoteObjectProxy.cpp",
     "SimpleGlobalObject.cpp",
     "ToJSValue.cpp",
@@ -140,8 +139,10 @@ if CONFIG["MOZ_DEBUG"] and CONFIG["ENABLE_TESTS"]:
         "test/TestInterfaceMaplike.h",
         "test/TestInterfaceMaplikeJSObject.h",
         "test/TestInterfaceMaplikeObject.h",
+        "test/TestInterfaceObservableArray.h",
         "test/TestInterfaceSetlike.h",
         "test/TestInterfaceSetlikeNode.h",
+        "test/TestTrialInterface.h",
         "test/WrapperCachedNonISupportsTestInterface.h",
     ]
     UNIFIED_SOURCES += [
@@ -152,8 +153,10 @@ if CONFIG["MOZ_DEBUG"] and CONFIG["ENABLE_TESTS"]:
         "test/TestInterfaceMaplike.cpp",
         "test/TestInterfaceMaplikeJSObject.cpp",
         "test/TestInterfaceMaplikeObject.cpp",
+        "test/TestInterfaceObservableArray.cpp",
         "test/TestInterfaceSetlike.cpp",
         "test/TestInterfaceSetlikeNode.cpp",
+        "test/TestTrialInterface.cpp",
         "test/WrapperCachedNonISupportsTestInterface.cpp",
     ]
 

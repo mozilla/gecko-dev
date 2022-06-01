@@ -22,6 +22,7 @@
 #include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/ErrorEventBinding.h"
 #include "mozilla/dom/WorkerScope.h"
+#include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/intl/LocaleCanonicalizer.h"
 #include "mozilla/ipc/BackgroundChild.h"
@@ -103,8 +104,6 @@ class FileManagerInfo {
 using namespace mozilla::dom::indexedDB;
 
 namespace {
-
-NS_DEFINE_IID(kIDBPrivateRequestIID, PRIVATE_IDBREQUEST_IID);
 
 // The threshold we use for structured clone data storing.
 // Anything smaller than the threshold is compressed and stored in the database.
@@ -409,8 +408,9 @@ nsresult IndexedDatabaseManager::CommonPostHandleEvent(
 
   // Only mess with events that were originally targeted to an IDBRequest.
   RefPtr<IDBRequest> request;
-  if (NS_FAILED(eventTarget->QueryInterface(kIDBPrivateRequestIID,
-                                            getter_AddRefs(request))) ||
+  if (NS_FAILED(eventTarget->QueryInterface(
+          NS_GET_IID(mozilla::dom::detail::PrivateIDBRequest),
+          getter_AddRefs(request))) ||
       !request) {
     return NS_OK;
   }
@@ -612,7 +612,7 @@ bool IndexedDatabaseManager::ExperimentalFeaturesEnabled(JSContext* aCx,
   // actually going through IndexedDatabaseManager.
   // See Bug 1198093 comment 14 for detailed explanation.
   MOZ_DIAGNOSTIC_ASSERT(JS_IsGlobalObject(aGlobal));
-  if (IsNonExposedGlobal(aCx, aGlobal, GlobalNames::BackstagePass)) {
+  if (!strcmp(JS::GetClass(aGlobal)->name, "BackstagePass")) {
     MOZ_ASSERT(NS_IsMainThread());
     static bool featureRetrieved = false;
     if (!featureRetrieved) {

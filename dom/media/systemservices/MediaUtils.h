@@ -26,8 +26,7 @@
 
 class nsIEventTarget;
 
-namespace mozilla {
-namespace media {
+namespace mozilla::media {
 
 /* media::NewRunnableFrom() - Create a Runnable from a lambda.
  *
@@ -224,8 +223,8 @@ void Await(already_AddRefed<nsIEventTarget> aPool,
            ResolveFunction&& aResolveFunction,
            RejectFunction&& aRejectFunction) {
   RefPtr<TaskQueue> taskQueue =
-      new TaskQueue(std::move(aPool), "MozPromiseAwait");
-  Monitor mon(__func__);
+      TaskQueue::Create(std::move(aPool), "MozPromiseAwait");
+  Monitor mon MOZ_UNANNOTATED(__func__);
   bool done = false;
 
   aPromise->Then(
@@ -255,8 +254,8 @@ typename MozPromise<ResolveValueType, RejectValueType,
 Await(already_AddRefed<nsIEventTarget> aPool,
       RefPtr<MozPromise<ResolveValueType, RejectValueType, Excl>> aPromise) {
   RefPtr<TaskQueue> taskQueue =
-      new TaskQueue(std::move(aPool), "MozPromiseAwait");
-  Monitor mon(__func__);
+      TaskQueue::Create(std::move(aPool), "MozPromiseAwait");
+  Monitor mon MOZ_UNANNOTATED(__func__);
   bool done = false;
 
   typename MozPromise<ResolveValueType, RejectValueType,
@@ -298,7 +297,7 @@ void AwaitAll(
   typedef MozPromise<ResolveValueType, RejectValueType, true> Promise;
   RefPtr<nsIEventTarget> pool = aPool;
   RefPtr<TaskQueue> taskQueue =
-      new TaskQueue(do_AddRef(pool), "MozPromiseAwaitAll");
+      TaskQueue::Create(do_AddRef(pool), "MozPromiseAwaitAll");
   RefPtr<typename Promise::AllPromiseType> p =
       Promise::All(taskQueue, aPromises);
   Await(pool.forget(), p, std::move(aResolveFunction),
@@ -316,96 +315,12 @@ AwaitAll(already_AddRefed<nsIEventTarget> aPool,
   typedef MozPromise<ResolveValueType, RejectValueType, true> Promise;
   RefPtr<nsIEventTarget> pool = aPool;
   RefPtr<TaskQueue> taskQueue =
-      new TaskQueue(do_AddRef(pool), "MozPromiseAwaitAll");
+      TaskQueue::Create(do_AddRef(pool), "MozPromiseAwaitAll");
   RefPtr<typename Promise::AllPromiseType> p =
       Promise::All(taskQueue, aPromises);
   return Await(pool.forget(), p);
 }
 
-}  // namespace media
-
-/**
- * AsyncBlockers provide a simple registration service that allows to suspend
- * completion of a particular task until all registered entries have been
- * cleared. This can be used to implement a similar service to
- * nsAsyncShutdownService in processes where it wouldn't normally be available.
- * This class is thread-safe.
- */
-class AsyncBlockers {
- public:
-  AsyncBlockers()
-      : mLock("AsyncRegistrar"),
-        mPromise(new GenericPromise::Private(__func__)) {}
-  void Register(void* aBlocker) {
-    MutexAutoLock lock(mLock);
-    if (mResolved) {
-      // Too late.
-      return;
-    }
-    mBlockers.insert({aBlocker, true});
-  }
-  void Deregister(void* aBlocker) {
-    MutexAutoLock lock(mLock);
-    if (mResolved) {
-      // Too late.
-      return;
-    }
-    auto it = mBlockers.find(aBlocker);
-    MOZ_ASSERT(it != mBlockers.end());
-
-    mBlockers.erase(it);
-    MaybeResolve();
-  }
-  RefPtr<GenericPromise> WaitUntilClear(uint32_t aTimeOutInMs = 0) {
-    if (!aTimeOutInMs) {
-      // We don't need to wait, resolve the promise right away.
-      MutexAutoLock lock(mLock);
-      if (!mResolved) {
-        mPromise->Resolve(true, __func__);
-        mResolved = true;
-      }
-    } else {
-      GetCurrentEventTarget()->DelayedDispatch(
-          NS_NewRunnableFunction("AsyncBlockers::WaitUntilClear",
-                                 [promise = mPromise]() {
-                                   // The AsyncBlockers object may have been
-                                   // deleted by now and the object isn't
-                                   // refcounted (nor do we want it to be). We
-                                   // can unconditionally resolve the promise
-                                   // even it has already been resolved as
-                                   // MozPromise are thread-safe and will just
-                                   // ignore the action if already resolved.
-                                   promise->Resolve(true, __func__);
-                                 }),
-          aTimeOutInMs);
-    }
-    return mPromise;
-  }
-
-  virtual ~AsyncBlockers() {
-    if (!mResolved) {
-      mPromise->Resolve(true, __func__);
-    }
-  }
-
- private:
-  void MaybeResolve() {
-    mLock.AssertCurrentThreadOwns();
-    if (mResolved) {
-      return;
-    }
-    if (!mBlockers.empty()) {
-      return;
-    }
-    mPromise->Resolve(true, __func__);
-    mResolved = true;
-  }
-  Mutex mLock;  // protects mBlockers and mResolved.
-  std::map<void*, bool> mBlockers;
-  bool mResolved = false;
-  const RefPtr<GenericPromise::Private> mPromise;
-};
-
-}  // namespace mozilla
+}  // namespace mozilla::media
 
 #endif  // mozilla_MediaUtils_h

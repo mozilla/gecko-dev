@@ -31,6 +31,7 @@
 #include "mozilla/gfx/Rect.h"     // for IntSize
 #include "mozilla/gfx/gfxVars.h"  // for gfxVars
 #include "mozilla/gfx/GPUParent.h"
+#include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/layers/APZCTreeManagerParent.h"  // for APZCTreeManagerParent
 #include "mozilla/layers/APZSampler.h"             // for APZSampler
 #include "mozilla/layers/APZThreadUtils.h"         // for APZThreadUtils
@@ -267,7 +268,8 @@ static int32_t CalculateCompositionFrameRate() {
 CompositorBridgeParent::CompositorBridgeParent(
     CompositorManagerParent* aManager, CSSToLayoutDeviceScale aScale,
     const TimeDuration& aVsyncRate, const CompositorOptions& aOptions,
-    bool aUseExternalSurfaceSize, const gfx::IntSize& aSurfaceSize)
+    bool aUseExternalSurfaceSize, const gfx::IntSize& aSurfaceSize,
+    uint64_t aInnerWindowId)
     : CompositorBridgeParentBase(aManager),
       mWidget(nullptr),
       mScale(aScale),
@@ -284,6 +286,7 @@ CompositorBridgeParent::CompositorBridgeParent(
       mRootLayerTreeID{0},
       mOverrideComposeReadiness(false),
       mForceCompositionTask(nullptr),
+      mInnerWindowId(aInnerWindowId),
       mCompositorScheduler(nullptr),
       mAnimationStorage(nullptr),
       mPaintTime(TimeDuration::Forever()) {}
@@ -1131,7 +1134,6 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvAdoptChild(
       }
       oldApzUpdater = sIndirectLayerTrees[child].mParent->mApzUpdater;
     }
-    NotifyChildCreated(child);
     if (mWrBridge) {
       childWrBridge = sIndirectLayerTrees[child].mWrBridge;
     }
@@ -1150,6 +1152,13 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvAdoptChild(
     TimeStamp now = TimeStamp::Now();
     NotifyPipelineRendered(childWrBridge->PipelineId(), newEpoch, VsyncId(),
                            now, now, now);
+  }
+
+  {
+    MonitorAutoLock lock(*sIndirectLayerTreesLock);
+    // Update sIndirectLayerTrees[child].mParent after
+    // WebRenderBridgeParent::UpdateWebRender().
+    NotifyChildCreated(child);
   }
 
   if (oldApzUpdater) {
@@ -1650,26 +1659,53 @@ void CompositorBridgeParent::NotifyDidRender(const VsyncId& aCompositeStartId,
   }
 }
 
+bool CompositorBridgeParent::sStable = false;
+uint32_t CompositorBridgeParent::sFramesComposited = 0;
+
+/* static */ void CompositorBridgeParent::ResetStable() {
+  if (!CompositorThreadHolder::IsInCompositorThread()) {
+    if (CompositorThread()) {
+      CompositorThread()->Dispatch(
+          NewRunnableFunction("CompositorBridgeParent::ResetStable",
+                              &CompositorBridgeParent::ResetStable));
+    }
+
+    // If there is no compositor thread, e.g. due to shutdown, then we can
+    // safefully just ignore this request.
+    return;
+  }
+
+  sStable = false;
+  sFramesComposited = 0;
+}
+
 void CompositorBridgeParent::MaybeDeclareStable() {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
 
-  static bool sStable = false;
-  if (!XRE_IsGPUProcess() || sStable) {
+  if (sStable) {
     return;
   }
 
   // Once we render as many frames as the threshold, we declare this instance of
   // the GPU process 'stable'. This causes the parent process to always respawn
   // the GPU process if it crashes.
-  static uint32_t sFramesComposited = 0;
-
   if (++sFramesComposited >=
       StaticPrefs::layers_gpu_process_stable_frame_threshold()) {
     sStable = true;
 
     NS_DispatchToMainThread(NS_NewRunnableFunction(
-        "gfx::GPUParent::SendDeclareStable", []() -> void {
-          Unused << GPUParent::GetSingleton()->SendDeclareStable();
+        "CompositorBridgeParent::MaybeDeclareStable", []() -> void {
+          if (XRE_IsParentProcess()) {
+            GPUProcessManager* gpm = GPUProcessManager::Get();
+            if (gpm) {
+              gpm->OnProcessDeclaredStable();
+            }
+          } else {
+            gfx::GPUParent* gpu = gfx::GPUParent::GetSingleton();
+            if (gpu && gpu->CanSend()) {
+              Unused << gpu->SendDeclareStable();
+            }
+          }
         }));
   }
 }

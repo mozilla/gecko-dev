@@ -1234,7 +1234,7 @@ nsresult nsSocketTransport::InitiateSocket() {
           "Browser services should be disabled or redirected to a local "
           "server.\n",
           mHost.get(), ipaddr.get());
-      MOZ_CRASH("Attempting to connect to non-local address!");
+      return NS_ERROR_NON_LOCAL_CONNECTION_REFUSED;
     }
   }
 
@@ -1630,7 +1630,10 @@ bool nsSocketTransport::RecoverFromError() {
 
   // all connection failures need to be reported to DNS so that the next
   // time we will use a different address if available.
-  if (mState == STATE_CONNECTING && mDNSRecord) {
+  // NS_BASE_STREAM_CLOSED is not an actual connection failure, so don't report
+  // to DNS.
+  if (mState == STATE_CONNECTING && mDNSRecord &&
+      mCondition != NS_BASE_STREAM_CLOSED) {
     mDNSRecord->ReportUnusable(SocketPort());
   }
 
@@ -3118,22 +3121,25 @@ static void LogOSError(const char* aPrefix, const void* aObjPtr) {
 
 #  ifdef XP_WIN
   DWORD errCode = WSAGetLastError();
-  LPVOID errMessage;
-  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                    FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL, errCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR)&errMessage, 0, NULL);
+  char* errMessage;
+  FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                     FORMAT_MESSAGE_IGNORE_INSERTS,
+                 NULL, errCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                 (LPSTR)&errMessage, 0, NULL);
+  NS_WARNING(nsPrintfCString("%s [%p] OS error[0x%lx] %s",
+                             aPrefix ? aPrefix : "nsSocketTransport", aObjPtr,
+                             errCode,
+                             errMessage ? errMessage : "<no error text>")
+                 .get());
+  LocalFree(errMessage);
 #  else
   int errCode = errno;
   char* errMessage = strerror(errno);
-#  endif
   NS_WARNING(nsPrintfCString("%s [%p] OS error[0x%x] %s",
                              aPrefix ? aPrefix : "nsSocketTransport", aObjPtr,
                              errCode,
                              errMessage ? errMessage : "<no error text>")
                  .get());
-#  ifdef XP_WIN
-  LocalFree(errMessage);
 #  endif
 #endif
 }

@@ -170,11 +170,12 @@ class BaseProcessLauncher {
 #endif
         mTmpDirName(aHost->mTmpDirName),
         mChildId(++gChildCounter) {
-    SprintfLiteral(mPidString, "%d", base::GetCurrentProcId());
+    SprintfLiteral(mPidString, "%" PRIPID, base::GetCurrentProcId());
 
     // Compute the serial event target we'll use for launching.
     nsCOMPtr<nsIEventTarget> threadOrPool = GetIPCLauncher();
-    mLaunchThread = new TaskQueue(threadOrPool.forget(), "BaseProcessLauncher");
+    mLaunchThread =
+        TaskQueue::Create(threadOrPool.forget(), "BaseProcessLauncher");
 
     if (ShouldHaveDirectoryService()) {
       // "Current process directory" means the app dir, not the current
@@ -277,7 +278,8 @@ class PosixProcessLauncher : public BaseProcessLauncher {
   PosixProcessLauncher(GeckoChildProcessHost* aHost,
                        std::vector<std::string>&& aExtraOpts)
       : BaseProcessLauncher(aHost, std::move(aExtraOpts)),
-        mProfileDir(aHost->mProfileDir) {}
+        mProfileDir(aHost->mProfileDir),
+        mChannelDstFd(-1) {}
 
  protected:
   bool SetChannel(IPC::Channel* aChannel) override {
@@ -287,6 +289,9 @@ class PosixProcessLauncher : public BaseProcessLauncher {
     // this purpose it's just a number.
     int origSrcFd;
     aChannel->GetClientFileDescriptorMapping(&origSrcFd, &mChannelDstFd);
+#  ifndef MOZ_WIDGET_ANDROID
+    MOZ_ASSERT(mChannelDstFd >= 0);
+#  endif
     mChannelSrcFd.reset(dup(origSrcFd));
     if (NS_WARN_IF(!mChannelSrcFd)) {
       return false;
@@ -415,6 +420,13 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
     if (NS_SUCCEEDED(rv)) {
       contentTempDir->GetNativePath(mTmpDirName);
     }
+  } else if (aProcessType == GeckoProcessType_RDD) {
+    // The RDD process makes limited use of EGL.  If Mesa's shader
+    // cache is enabled and the directory isn't explicitly set, then
+    // it will try to getpwuid() the user which can cause problems
+    // with sandboxing.  Because we shouldn't need shader caching in
+    // this process, we just disable the cache to prevent that.
+    mLaunchOptions->env_map["MESA_GLSL_CACHE_DISABLE"] = "true";
   }
 #endif
 #if defined(MOZ_ENABLE_FORKSERVER)
@@ -589,6 +601,10 @@ void GeckoChildProcessHost::PrepareLaunch() {
 #  if defined(MOZ_SANDBOX)
   // We need to get the pref here as the process is launched off main thread.
   if (mProcessType == GeckoProcessType_Content) {
+    // Win32k Lockdown state must be initialized on the main thread.
+    // This is our last chance to do it before it is read on the IPC Launch
+    // thread
+    GetWin32kLockdownState();
     mSandboxLevel = GetEffectiveContentSandboxLevel();
     mEnableSandboxLogging =
         Preferences::GetBool("security.sandbox.logging.enabled");
@@ -878,7 +894,8 @@ void BaseProcessLauncher::GetChildLogName(const char* origLogName,
     defined(MOZ_ENABLE_FORKSERVER)
 
 static mozilla::StaticMutex gIPCLaunchThreadMutex;
-static mozilla::StaticRefPtr<nsIThread> gIPCLaunchThread;
+static mozilla::StaticRefPtr<nsIThread> gIPCLaunchThread
+    GUARDED_BY(gIPCLaunchThreadMutex);
 
 class IPCLaunchThreadObserver final : public nsIObserver {
  public:
@@ -1111,7 +1128,13 @@ bool PosixProcessLauncher::DoSetup() {
     mLaunchOptions->env_map["LD_LIBRARY_PATH"] = new_ld_lib_path.get();
 
 #  elif OS_MACOSX  // defined(OS_LINUX) || defined(OS_BSD)
-    mLaunchOptions->env_map["DYLD_LIBRARY_PATH"] = path.get();
+    // If we're running with gtests, add the gtest XUL ahead of normal XUL on
+    // the DYLD_LIBRARY_PATH so that plugin-container.app loads it instead.
+    nsCString new_dyld_lib_path(path.get());
+    if (PR_GetEnv("MOZ_RUN_GTEST")) {
+      new_dyld_lib_path = path + "/gtest:"_ns + new_dyld_lib_path;
+    }
+    mLaunchOptions->env_map["DYLD_LIBRARY_PATH"] = new_dyld_lib_path.get();
 
     // DYLD_INSERT_LIBRARIES is currently unused by default but we allow
     // it to be set by the external environment.
@@ -1136,8 +1159,16 @@ bool PosixProcessLauncher::DoSetup() {
 
   // remap the IPC socket fd to a well-known int, as the OS does for
   // STDOUT_FILENO, for example
+#  ifdef MOZ_WIDGET_ANDROID
+  // On Android mChannelDstFd is uninitialised and the launching code uses only
+  // the first of each pair.
+  mLaunchOptions->fds_to_remap.push_back(
+      std::pair<int, int>(mChannelSrcFd.get(), -1));
+#  else
+  MOZ_ASSERT(mChannelDstFd >= 0);
   mLaunchOptions->fds_to_remap.push_back(
       std::pair<int, int>(mChannelSrcFd.get(), mChannelDstFd));
+#  endif
 
   // no need for kProcessChannelID, the child process inherits the
   // other end of the socketpair() from us
@@ -1432,6 +1463,11 @@ bool WindowsProcessLauncher::DoSetup() {
          ++it) {
       mResults.mSandboxBroker->AllowReadFile(it->c_str());
     }
+
+    if (mResults.mSandboxBroker->IsWin32kLockedDown()) {
+      mCmdLine->AppendLooseValue(
+          UTF8ToWide(geckoargs::sWin32kLockedDown.Name()));
+    }
   }
 #  endif  // defined(MOZ_SANDBOX)
 
@@ -1556,7 +1592,7 @@ bool GeckoChildProcessHost::OpenPrivilegedHandle(base::ProcessId aPid) {
   return base::OpenPrivilegedProcessHandle(aPid, &mChildProcessHandle);
 }
 
-void GeckoChildProcessHost::OnChannelConnected(int32_t peer_pid) {
+void GeckoChildProcessHost::OnChannelConnected(base::ProcessId peer_pid) {
   if (!OpenPrivilegedHandle(peer_pid)) {
     MOZ_CRASH("can't open handle to child process");
   }
@@ -1565,7 +1601,7 @@ void GeckoChildProcessHost::OnChannelConnected(int32_t peer_pid) {
   lock.Notify();
 }
 
-void GeckoChildProcessHost::OnMessageReceived(IPC::Message&& aMsg) {
+void GeckoChildProcessHost::OnMessageReceived(UniquePtr<IPC::Message> aMsg) {
   // We never process messages ourself, just save them up for the next
   // listener.
   mQueue.push(std::move(aMsg));
@@ -1589,7 +1625,8 @@ RefPtr<ProcessHandlePromise> GeckoChildProcessHost::WhenProcessHandleReady() {
   return mHandlePromise;
 }
 
-void GeckoChildProcessHost::GetQueuedMessages(std::queue<IPC::Message>& queue) {
+void GeckoChildProcessHost::GetQueuedMessages(
+    std::queue<UniquePtr<IPC::Message>>& queue) {
   // If this is called off the IO thread, bad things will happen.
   DCHECK(MessageLoopForIO::current());
   swap(queue, mQueue);

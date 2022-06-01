@@ -215,18 +215,14 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.push(r14);
 
   CodeLabel returnLabel;
-  CodeLabel oomReturnLabel;
+  Label oomReturnLabel;
   {
     // Handle Interpreter -> Baseline OSR.
     AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
-    regs.takeUnchecked(OsrFrameReg);
-    regs.take(rbp);
+    MOZ_ASSERT(!regs.has(rbp));
+    regs.take(OsrFrameReg);
     regs.take(reg_code);
 
-    // Ensure that |scratch| does not end up being JSReturnOperand.
-    // Do takeUnchecked because on Win64/x64, reg_code (IntArgReg0) and
-    // JSReturnOperand are the same (rcx).  See bug 849398.
-    regs.takeUnchecked(JSReturnOperand);
     Register scratch = regs.takeAny();
 
     Label notOsr;
@@ -239,15 +235,16 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.mov(&returnLabel, scratch);
     masm.push(scratch);
 
-    // Push previous frame pointer.
+    // Frame prologue.
     masm.push(rbp);
+    masm.mov(rsp, rbp);
 
     // Reserve frame.
-    Register framePtr = rbp;
     masm.subPtr(Imm32(BaselineFrame::Size()), rsp);
 
-    masm.touchFrameValues(numStackValues, scratch, framePtr);
-    masm.mov(rsp, framePtr);
+    Register framePtrScratch = regs.takeAny();
+    masm.touchFrameValues(numStackValues, scratch, framePtrScratch);
+    masm.mov(rsp, framePtrScratch);
 
     // Reserve space for locals and stack values.
     Register valuesSize = regs.takeAny();
@@ -269,26 +266,23 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
     regs.add(valuesSize);
 
-    masm.push(framePtr);
     masm.push(reg_code);
 
     using Fn = bool (*)(BaselineFrame * frame, InterpreterFrame * interpFrame,
                         uint32_t numStackValues);
     masm.setupUnalignedABICall(scratch);
-    masm.passABIArg(framePtr);     // BaselineFrame
-    masm.passABIArg(OsrFrameReg);  // InterpreterFrame
+    masm.passABIArg(framePtrScratch);  // BaselineFrame
+    masm.passABIArg(OsrFrameReg);      // InterpreterFrame
     masm.passABIArg(numStackValues);
     masm.callWithABI<Fn, jit::InitBaselineFrameForOsr>(
         MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
 
     masm.pop(reg_code);
-    masm.pop(framePtr);
 
     MOZ_ASSERT(reg_code != ReturnReg);
 
     Label error;
     masm.addPtr(Imm32(ExitFrameLayout::SizeWithFooter()), rsp);
-    masm.addPtr(Imm32(BaselineFrame::Size()), framePtr);
     masm.branchIfFalseBool(ReturnReg, &error);
 
     // If OSR-ing, then emit instrumentation for setting lastProfilerFrame
@@ -300,21 +294,20 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
           cx->runtime()->geckoProfiler().addressOfEnabled());
       masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0),
                     &skipProfilingInstrumentation);
-      masm.lea(Operand(framePtr, sizeof(void*)), realFramePtr);
+      masm.lea(Operand(rbp, sizeof(void*)), realFramePtr);
       masm.profilerEnterFrame(realFramePtr, scratch);
       masm.bind(&skipProfilingInstrumentation);
     }
 
     masm.jump(reg_code);
 
-    // OOM: load error value, discard return address and previous frame
-    // pointer and return.
+    // OOM: frame epilogue, load error value, discard return address and return.
     masm.bind(&error);
-    masm.mov(framePtr, rsp);
-    masm.addPtr(Imm32(2 * sizeof(uintptr_t)), rsp);
+    masm.mov(rbp, rsp);
+    masm.pop(rbp);
+    masm.addPtr(Imm32(sizeof(uintptr_t)), rsp);  // Return address.
     masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
-    masm.mov(&oomReturnLabel, scratch);
-    masm.jump(scratch);
+    masm.jump(&oomReturnLabel);
 
     masm.bind(&notOsr);
     masm.movq(scopeChain, R1.scratchReg());
@@ -332,7 +325,6 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.bind(&returnLabel);
     masm.addCodeLabel(returnLabel);
     masm.bind(&oomReturnLabel);
-    masm.addCodeLabel(oomReturnLabel);
   }
 
   // Pop arguments and padding from stack.
@@ -496,8 +488,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   masm.loadPtr(Address(rsp, RectifierFrameLayout::offsetOfCalleeToken()), rax);
   masm.mov(rax, rcx);
   masm.andq(Imm32(uint32_t(CalleeTokenMask)), rcx);
-  masm.load32(Operand(rcx, JSFunction::offsetOfFlagsAndArgCount()), rcx);
-  masm.rshift32(Imm32(JSFunction::ArgCountShift), rcx);
+  masm.loadFunctionArgCount(rcx, rcx);
 
   // Stash another copy in r11, since we are going to do destructive operations
   // on rcx
@@ -1054,7 +1045,6 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
   Label handle_Rectifier;
   Label handle_IonICCall;
   Label handle_Entry;
-  Label end;
 
   masm.branch32(Assembler::Equal, scratch2, Imm32(FrameType::IonJS),
                 &handle_IonJS);

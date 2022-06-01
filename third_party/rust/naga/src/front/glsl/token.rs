@@ -16,7 +16,7 @@ pub struct Token {
     pub meta: Span,
 }
 
-/// A token passed from the lexing used in the parsing
+/// A token passed from the lexing used in the parsing.
 ///
 /// This type is exported since it's returned in the
 /// [`InvalidToken`](super::ErrorKind::InvalidToken) error.
@@ -38,8 +38,13 @@ pub enum TokenValue {
     Shared,
 
     Restrict,
-    StorageAccess(crate::StorageAccess),
+    /// A `glsl` memory qualifier such as `writeonly`
+    ///
+    /// The associated [`crate::StorageAccess`] is the access being allowed
+    /// (for example `writeonly` has an associated value of [`crate::StorageAccess::STORE`])
+    MemoryQualifier(crate::StorageAccess),
 
+    Invariant,
     Interpolation(Interpolation),
     Sampling(Sampling),
     Precision,

@@ -81,6 +81,7 @@ class Message extends Component {
         openContextMenu: PropTypes.func.isRequired,
         openLink: PropTypes.func.isRequired,
         sourceMapURLService: PropTypes.any,
+        preventStacktraceInitialRenderDelay: PropTypes.bool,
       }),
       notes: PropTypes.arrayOf(
         PropTypes.shape({
@@ -297,19 +298,25 @@ class Message extends Component {
     if (this.props.attachment) {
       attachment = this.props.attachment;
     } else if (stacktrace && open) {
+      const smartTraceAttributes = {
+        stacktrace,
+        onViewSourceInDebugger:
+          serviceContainer.onViewSourceInDebugger ||
+          serviceContainer.onViewSource,
+        onViewSource: serviceContainer.onViewSource,
+        onReady: this.props.maybeScrollToBottom,
+        sourceMapURLService: serviceContainer.sourceMapURLService,
+      };
+
+      if (serviceContainer.preventStacktraceInitialRenderDelay) {
+        smartTraceAttributes.initialRenderDelay = 0;
+      }
+
       attachment = dom.div(
         {
           className: "stacktrace devtools-monospace",
         },
-        createElement(SmartTrace, {
-          stacktrace,
-          onViewSourceInDebugger:
-            serviceContainer.onViewSourceInDebugger ||
-            serviceContainer.onViewSource,
-          onViewSource: serviceContainer.onViewSource,
-          onReady: this.props.maybeScrollToBottom,
-          sourceMapURLService: serviceContainer.sourceMapURLService,
-        })
+        createElement(SmartTrace, smartTraceAttributes)
       );
     }
 
@@ -375,20 +382,18 @@ class Message extends Component {
     }
 
     // Configure the location.
-    const location = dom.span(
-      { className: "message-location devtools-monospace" },
-      frame
-        ? FrameView({
-            frame,
-            onClick: onFrameClick,
-            showEmptyPathAsHost: true,
-            sourceMapURLService: serviceContainer
-              ? serviceContainer.sourceMapURLService
-              : undefined,
-            messageSource: source,
-          })
-        : null
-    );
+    const location = frame
+      ? FrameView({
+          className: "message-location devtools-monospace",
+          frame,
+          onClick: onFrameClick,
+          showEmptyPathAsHost: true,
+          sourceMapURLService: serviceContainer
+            ? serviceContainer.sourceMapURLService
+            : undefined,
+          messageSource: source,
+        })
+      : null;
 
     let learnMore;
     if (exceptionDocURL) {
@@ -415,6 +420,7 @@ class Message extends Component {
           this.messageNode = node;
         },
         "data-message-id": messageId,
+        "data-indent": indent || 0,
         "aria-live": type === MESSAGE_TYPE.COMMAND ? "off" : "polite",
       },
       timestampEl,

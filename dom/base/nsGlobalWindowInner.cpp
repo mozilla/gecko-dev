@@ -31,6 +31,7 @@
 #include "js/CompileOptions.h"
 #include "js/friend/PerformanceHint.h"
 #include "js/Id.h"
+#include "js/loader/LoadedScript.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty
 #include "js/PropertyDescriptor.h"
 #include "js/RealmOptions.h"
@@ -80,7 +81,9 @@
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_docshell.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPrefs_extensions.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StorageAccess.h"
 #include "mozilla/StoragePrincipalHelper.h"
@@ -109,7 +112,6 @@
 #include "mozilla/dom/ContentFrameMessageManager.h"
 #include "mozilla/dom/ContentMediaController.h"
 #include "mozilla/dom/CustomElementRegistry.h"
-#include "mozilla/dom/DOMJSProxyHandler.h"
 #include "mozilla/dom/DebuggerNotification.h"
 #include "mozilla/dom/DebuggerNotificationBinding.h"
 #include "mozilla/dom/DebuggerNotificationManager.h"
@@ -135,7 +137,6 @@
 #include "mozilla/dom/IntlUtils.h"
 #include "mozilla/dom/JSExecutionContext.h"
 #include "mozilla/dom/LSObject.h"
-#include "mozilla/dom/LoadedScript.h"
 #include "mozilla/dom/LocalStorage.h"
 #include "mozilla/dom/LocalStorageCommon.h"
 #include "mozilla/dom/Location.h"
@@ -150,7 +151,9 @@
 #include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/dom/PrimitiveConversions.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/ProxyHandlerUtils.h"
 #include "mozilla/dom/RootedDictionary.h"
+#include "mozilla/dom/WebTaskSchedulerMainThread.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ServiceWorker.h"
@@ -211,6 +214,7 @@
 #include "nsDOMNavigationTiming.h"
 #include "nsDOMOfflineResourceList.h"
 #include "nsDebug.h"
+#include "nsDeviceContext.h"
 #include "nsDocShell.h"
 #include "nsFocusManager.h"
 #include "nsFrameMessageManager.h"
@@ -565,20 +569,11 @@ class IdleRequestExecutor final : public nsIRunnable,
   Maybe<int32_t> mDelayedExecutorHandle;
 };
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(IdleRequestExecutor)
+NS_IMPL_CYCLE_COLLECTION(IdleRequestExecutor, mWindow,
+                         mDelayedExecutorDispatcher)
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(IdleRequestExecutor)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(IdleRequestExecutor)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IdleRequestExecutor)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindow)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDelayedExecutorDispatcher)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(IdleRequestExecutor)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindow)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDelayedExecutorDispatcher)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(IdleRequestExecutor)
   NS_INTERFACE_MAP_ENTRY(nsIRunnable)
@@ -919,6 +914,7 @@ nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter* aOuterWindow,
       mHasSeenGamepadInput(false),
       mHintedWasLoading(false),
       mHasOpenedExternalProtocolFrame(false),
+      mScrollMarksOnHScrollbar(false),
       mStorageAllowedReasonCache(0),
       mSuspendDepth(0),
       mFreezeDepth(0),
@@ -1287,6 +1283,11 @@ void nsGlobalWindowInner::FreeInnerObjects() {
 
   mContentMediaController = nullptr;
 
+  if (mWebTaskScheduler) {
+    mWebTaskScheduler->Disconnect();
+    mWebTaskScheduler = nullptr;
+  }
+
   mSharedWorkers.Clear();
 
 #ifdef MOZ_WEBSPEECH
@@ -1381,6 +1382,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNavigator)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPerformance)
+
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWebTaskScheduler)
 
 #ifdef MOZ_WEBSPEECH
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSpeechSynthesis)
@@ -1479,6 +1482,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mNavigator)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPerformance)
+
+  if (tmp->mWebTaskScheduler) {
+    tmp->mWebTaskScheduler->Disconnect();
+    NS_IMPL_CYCLE_COLLECTION_UNLINK(mWebTaskScheduler)
+  }
 
 #ifdef MOZ_WEBSPEECH
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSpeechSynthesis)
@@ -1622,6 +1630,10 @@ bool nsGlobalWindowInner::ShouldResistFingerprinting() const {
   return nsIScriptGlobalObject::ShouldResistFingerprinting();
 }
 
+OriginTrials nsGlobalWindowInner::Trials() const {
+  return OriginTrials::FromWindow(this);
+}
+
 uint32_t nsGlobalWindowInner::GetPrincipalHashValue() const {
   if (mDoc) {
     return mDoc->NodePrincipal()->GetHashValue();
@@ -1744,6 +1756,10 @@ void nsGlobalWindowInner::InitDocumentDependentState(JSContext* aCx) {
   mLocalStorage = nullptr;
   mSessionStorage = nullptr;
   mPerformance = nullptr;
+  if (mWebTaskScheduler) {
+    mWebTaskScheduler->Disconnect();
+    mWebTaskScheduler = nullptr;
+  }
 
   // This must be called after nullifying the internal objects because here we
   // could recreate them, calling the getter methods, and store them into the JS
@@ -2473,6 +2489,20 @@ bool nsGlobalWindowInner::ShouldReportForServiceWorkerScope(
 }
 
 InstallTriggerImpl* nsGlobalWindowInner::GetInstallTrigger() {
+  if (!mInstallTrigger &&
+      !StaticPrefs::extensions_InstallTriggerImpl_enabled()) {
+    // Return nullptr when InstallTriggerImpl is disabled by pref,
+    // which does not yet break the "typeof InstallTrigger !== 'undefined"
+    // "UA detection" use case, but prevents access to the InstallTriggerImpl
+    // methods and properties.
+    //
+    // NOTE: a separate pref ("extensions.InstallTrigger.enabled"), associated
+    // to this property using the [Pref] extended attribute in Window.webidl,
+    // does instead hide the entire InstallTrigger property.
+    //
+    // See Bug 1754441 for more details about this deprecation.
+    return nullptr;
+  }
   if (!mInstallTrigger) {
     ErrorResult rv;
     mInstallTrigger = ConstructJSImplementation<InstallTriggerImpl>(
@@ -3516,28 +3546,31 @@ float nsGlobalWindowInner::GetMozInnerScreenY(CallerType aCallerType,
   FORWARD_TO_OUTER_OR_THROW(GetMozInnerScreenYOuter, (aCallerType), aError, 0);
 }
 
+static nsPresContext* GetPresContextForRatio(Document* aDoc) {
+  if (nsPresContext* presContext = aDoc->GetPresContext()) {
+    return presContext;
+  }
+  // We're in an undisplayed subdocument... There's not really an awesome way
+  // to tell what the right DPI is from here, so we try to walk up our parent
+  // document chain to the extent that the docs can observe each other.
+  Document* doc = aDoc;
+  while (doc->StyleOrLayoutObservablyDependsOnParentDocumentLayout()) {
+    doc = doc->GetInProcessParentDocument();
+    if (nsPresContext* presContext = doc->GetPresContext()) {
+      return presContext;
+    }
+  }
+  return nullptr;
+}
+
 double nsGlobalWindowInner::GetDevicePixelRatio(CallerType aCallerType,
                                                 ErrorResult& aError) {
   ENSURE_ACTIVE_DOCUMENT(aError, 0.0);
 
-  RefPtr<nsPresContext> presContext = mDoc->GetPresContext();
+  RefPtr<nsPresContext> presContext = GetPresContextForRatio(mDoc);
   if (NS_WARN_IF(!presContext)) {
-    // We're in an undisplayed subdocument... There's not really an awesome way
-    // to tell what the right DPI is from here, so we try to walk up our parent
-    // document chain to the extent that the docs can observe each other.
-    Document* doc = mDoc;
-    while (doc->StyleOrLayoutObservablyDependsOnParentDocumentLayout()) {
-      doc = doc->GetInProcessParentDocument();
-      presContext = doc->GetPresContext();
-      if (presContext) {
-        break;
-      }
-    }
-
-    if (!presContext) {
-      // Still nothing, oh well.
-      return 1.0;
-    }
+    // Still nothing, oh well.
+    return 1.0;
   }
 
   if (nsContentUtils::ResistFingerprinting(aCallerType)) {
@@ -3555,17 +3588,24 @@ double nsGlobalWindowInner::GetDevicePixelRatio(CallerType aCallerType,
     }
   }
 
-  float overrideDPPX = presContext->GetOverrideDPPX();
-  if (overrideDPPX > 0.0f) {
-    return overrideDPPX;
+  if (aCallerType == CallerType::NonSystem) {
+    float overrideDPPX = presContext->GetOverrideDPPX();
+    if (overrideDPPX > 0.0f) {
+      return overrideDPPX;
+    }
   }
 
   return double(AppUnitsPerCSSPixel()) /
          double(presContext->AppUnitsPerDevPixel());
 }
 
-uint64_t nsGlobalWindowInner::GetMozPaintCount(ErrorResult& aError) {
-  FORWARD_TO_OUTER_OR_THROW(GetMozPaintCountOuter, (), aError, 0);
+double nsGlobalWindowInner::GetDesktopToDeviceScale(ErrorResult& aError) {
+  ENSURE_ACTIVE_DOCUMENT(aError, 0.0);
+  nsPresContext* presContext = GetPresContextForRatio(mDoc);
+  if (!presContext) {
+    return 1.0;
+  }
+  return presContext->DeviceContext()->GetDesktopToDeviceScale().scale;
 }
 
 int32_t nsGlobalWindowInner::RequestAnimationFrame(
@@ -3813,12 +3853,14 @@ void nsGlobalWindowInner::Print(ErrorResult& aError) {
 Nullable<WindowProxyHolder> nsGlobalWindowInner::PrintPreview(
     nsIPrintSettings* aSettings, nsIWebProgressListener* aListener,
     nsIDocShell* aDocShellToCloneInto, ErrorResult& aError) {
-  FORWARD_TO_OUTER_OR_THROW(Print,
-                            (aSettings, aListener, aDocShellToCloneInto,
-                             nsGlobalWindowOuter::IsPreview::Yes,
-                             nsGlobalWindowOuter::IsForWindowDotPrint::No,
-                             /* aPrintPreviewCallback = */ nullptr, aError),
-                            aError, nullptr);
+  FORWARD_TO_OUTER_OR_THROW(
+      Print,
+      (aSettings,
+       /* aRemotePrintJob = */ nullptr, aListener, aDocShellToCloneInto,
+       nsGlobalWindowOuter::IsPreview::Yes,
+       nsGlobalWindowOuter::IsForWindowDotPrint::No,
+       /* aPrintPreviewCallback = */ nullptr, aError),
+      aError, nullptr);
 }
 
 void nsGlobalWindowInner::MoveTo(int32_t aXPos, int32_t aYPos,
@@ -4190,6 +4232,14 @@ Selection* nsGlobalWindowInner::GetSelection(ErrorResult& aError) {
   FORWARD_TO_OUTER_OR_THROW(GetSelectionOuter, (), aError, nullptr);
 }
 
+WebTaskScheduler* nsGlobalWindowInner::Scheduler() {
+  if (!mWebTaskScheduler) {
+    mWebTaskScheduler = WebTaskScheduler::CreateForMainThread(this);
+  }
+  MOZ_ASSERT(mWebTaskScheduler);
+  return mWebTaskScheduler;
+}
+
 bool nsGlobalWindowInner::Find(const nsAString& aString, bool aCaseSensitive,
                                bool aBackwards, bool aWrapAround,
                                bool aWholeWord, bool aSearchInFrames,
@@ -4512,9 +4562,9 @@ void nsGlobalWindowInner::SetReadyForFocus() {
   bool oldNeedsFocus = mNeedsFocus;
   mNeedsFocus = false;
 
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm) {
-    fm->WindowShown(GetOuterWindow(), oldNeedsFocus);
+  if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
+    nsCOMPtr<nsPIDOMWindowOuter> outerWindow = GetOuterWindow();
+    fm->WindowShown(outerWindow, oldNeedsFocus);
   }
 }
 
@@ -4523,9 +4573,9 @@ void nsGlobalWindowInner::PageHidden() {
   // no longer valid. Use the persisted field to determine if the document
   // is being destroyed.
 
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm) {
-    fm->WindowHidden(GetOuterWindow(), nsFocusManager::GenerateFocusActionId());
+  if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
+    nsCOMPtr<nsPIDOMWindowOuter> outerWindow = GetOuterWindow();
+    fm->WindowHidden(outerWindow, nsFocusManager::GenerateFocusActionId());
   }
 
   mNeedsFocus = true;
@@ -4614,21 +4664,22 @@ nsresult nsGlobalWindowInner::DispatchSyncPopState() {
     return NS_OK;
   }
 
-  // Get the document's pending state object -- it contains the data we're
-  // going to send along with the popstate event.  The object is serialized
-  // using structured clone.
-  nsCOMPtr<nsIVariant> stateObj;
-  nsresult rv = mDoc->GetStateObject(getter_AddRefs(stateObj));
-  NS_ENSURE_SUCCESS(rv, rv);
-
   AutoJSAPI jsapi;
   bool result = jsapi.Init(this);
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JS::Value> stateJSValue(cx, JS::NullValue());
-  result = stateObj ? VariantToJsval(cx, stateObj, &stateJSValue) : true;
-  NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
+
+  // Get the document's pending state object -- it contains the data we're
+  // going to send along with the popstate event.  The object is serialized
+  // using structured clone.
+  JS::Rooted<JS::Value> stateJSValue(cx);
+  nsresult rv = mDoc->GetStateObject(&stateJSValue);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!JS_WrapValue(cx, &stateJSValue)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   RootedDictionary<PopStateEventInit> init(cx);
   init.mState = stateJSValue;
@@ -6113,7 +6164,7 @@ class WindowScriptTimeoutHandler final : public ScriptTimeoutHandler {
   virtual ~WindowScriptTimeoutHandler() = default;
 
   // Initiating script for use when evaluating mExpr on the main thread.
-  RefPtr<LoadedScript> mInitiatingScript;
+  RefPtr<JS::loader::LoadedScript> mInitiatingScript;
 };
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(WindowScriptTimeoutHandler,
@@ -6293,10 +6344,16 @@ static const char* GetTimeoutReasonString(Timeout* aTimeout) {
       return "setTimeout handler";
     case Timeout::Reason::eIdleCallbackTimeout:
       return "setIdleCallback handler (timed out)";
+    case Timeout::Reason::eAbortSignalTimeout:
+      return "AbortSignal timeout";
+    case Timeout::Reason::eDelayedWebTaskTimeout:
+      return "delayedWebTaskCallback handler (timed out)";
     default:
       MOZ_CRASH("Unexpected enum value");
       return "";
   }
+  MOZ_CRASH("Unexpected enum value");
+  return "";
 }
 
 bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout,
@@ -6576,13 +6633,22 @@ void nsGlobalWindowInner::EventListenerAdded(nsAtom* aType) {
     mHasVRDisplayActivateEvents = true;
   }
 
-  if ((aType == nsGkAtoms::onunload || aType == nsGkAtoms::onbeforeunload) &&
-      mWindowGlobalChild) {
+  if (aType == nsGkAtoms::onunload && mWindowGlobalChild) {
     if (++mUnloadOrBeforeUnloadListenerCount == 1) {
       mWindowGlobalChild->BlockBFCacheFor(BFCacheStatus::UNLOAD_LISTENER);
     }
-    if (aType == nsGkAtoms::onbeforeunload &&
-        (!mDoc || !(mDoc->GetSandboxFlags() & SANDBOXED_MODALS))) {
+  }
+
+  if (aType == nsGkAtoms::onbeforeunload && mWindowGlobalChild) {
+    if (!mozilla::SessionHistoryInParent() ||
+        !StaticPrefs::
+            docshell_shistory_bfcache_ship_allow_beforeunload_listeners()) {
+      if (++mUnloadOrBeforeUnloadListenerCount == 1) {
+        mWindowGlobalChild->BlockBFCacheFor(
+            BFCacheStatus::BEFOREUNLOAD_LISTENER);
+      }
+    }
+    if (!mDoc || !(mDoc->GetSandboxFlags() & SANDBOXED_MODALS)) {
       mWindowGlobalChild->BeforeUnloadAdded();
       MOZ_ASSERT(mWindowGlobalChild->BeforeUnloadListeners() > 0);
     }
@@ -6604,14 +6670,23 @@ void nsGlobalWindowInner::EventListenerAdded(nsAtom* aType) {
 }
 
 void nsGlobalWindowInner::EventListenerRemoved(nsAtom* aType) {
-  if ((aType == nsGkAtoms::onunload || aType == nsGkAtoms::onbeforeunload) &&
-      mWindowGlobalChild) {
+  if (aType == nsGkAtoms::onunload && mWindowGlobalChild) {
     MOZ_ASSERT(mUnloadOrBeforeUnloadListenerCount > 0);
     if (--mUnloadOrBeforeUnloadListenerCount == 0) {
       mWindowGlobalChild->UnblockBFCacheFor(BFCacheStatus::UNLOAD_LISTENER);
     }
-    if (aType == nsGkAtoms::onbeforeunload &&
-        (!mDoc || !(mDoc->GetSandboxFlags() & SANDBOXED_MODALS))) {
+  }
+
+  if (aType == nsGkAtoms::onbeforeunload && mWindowGlobalChild) {
+    if (!mozilla::SessionHistoryInParent() ||
+        !StaticPrefs::
+            docshell_shistory_bfcache_ship_allow_beforeunload_listeners()) {
+      if (--mUnloadOrBeforeUnloadListenerCount == 0) {
+        mWindowGlobalChild->UnblockBFCacheFor(
+            BFCacheStatus::BEFOREUNLOAD_LISTENER);
+      }
+    }
+    if (!mDoc || !(mDoc->GetSandboxFlags() & SANDBOXED_MODALS)) {
       mWindowGlobalChild->BeforeUnloadRemoved();
       MOZ_ASSERT(mWindowGlobalChild->BeforeUnloadListeners() >= 0);
     }
@@ -7694,9 +7769,10 @@ ContentMediaController* nsGlobalWindowInner::GetContentMediaController() {
   return mContentMediaController;
 }
 
-void nsGlobalWindowInner::SetScrollMarks(
-    const nsTArray<uint32_t>& aScrollMarks) {
+void nsGlobalWindowInner::SetScrollMarks(const nsTArray<uint32_t>& aScrollMarks,
+                                         bool aOnHScrollbar) {
   mScrollMarks.Assign(aScrollMarks);
+  mScrollMarksOnHScrollbar = aOnHScrollbar;
 
   // Mark the scrollbar for repainting.
   if (mDoc) {
@@ -7704,7 +7780,7 @@ void nsGlobalWindowInner::SetScrollMarks(
     if (presShell) {
       nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollable();
       if (sf) {
-        sf->InvalidateVerticalScrollbar();
+        sf->InvalidateScrollbars();
       }
     }
   }
@@ -7727,6 +7803,21 @@ already_AddRefed<nsGlobalWindowInner> nsGlobalWindowInner::Create(
 
   window->InitWasOffline();
   return window.forget();
+}
+
+JS::loader::ModuleLoaderBase* nsGlobalWindowInner::GetModuleLoader(
+    JSContext* aCx) {
+  Document* document = GetDocument();
+  if (!document) {
+    return nullptr;
+  }
+
+  ScriptLoader* loader = document->ScriptLoader();
+  if (!loader) {
+    return nullptr;
+  }
+
+  return loader->GetModuleLoader();
 }
 
 nsIURI* nsPIDOMWindowInner::GetDocumentURI() const {

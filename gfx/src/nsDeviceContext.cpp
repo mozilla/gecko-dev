@@ -63,8 +63,6 @@ nsDeviceContext::nsDeviceContext()
 
 nsDeviceContext::~nsDeviceContext() = default;
 
-bool nsDeviceContext::IsPrinterContext() { return mPrintTarget != nullptr; }
-
 void nsDeviceContext::SetDPI(double* aScale) {
   float dpi;
 
@@ -76,17 +74,15 @@ void nsDeviceContext::SetDPI(double* aScale) {
     mAppUnitsPerDevPixelAtUnitFullZoom =
         NS_lround((AppUnitsPerCSSPixel() * 96) / dpi);
   } else {
-    nsCOMPtr<nsIScreen> primaryScreen;
-    ScreenManager& screenManager = ScreenManager::GetSingleton();
-    screenManager.GetPrimaryScreen(getter_AddRefs(primaryScreen));
+    RefPtr<widget::Screen> primaryScreen =
+        ScreenManager::GetSingleton().GetPrimaryScreen();
     MOZ_ASSERT(primaryScreen);
 
     // A value of -1 means use the maximum of 96 and the system DPI.
     // A value of 0 means use the system DPI. A positive value is used as the
     // DPI. This sets the physical size of a device pixel and thus controls the
     // interpretation of physical units.
-    int32_t prefDPI = Preferences::GetInt("layout.css.dpi", -1);
-
+    int32_t prefDPI = StaticPrefs::layout_css_dpi();
     if (prefDPI > 0) {
       dpi = prefDPI;
     } else if (mWidget) {
@@ -95,7 +91,7 @@ void nsDeviceContext::SetDPI(double* aScale) {
       // In case that the widget returns -1, use the primary screen's
       // value as default.
       if (dpi < 0) {
-        primaryScreen->GetDpi(&dpi);
+        dpi = primaryScreen->GetDPI();
       }
       if (prefDPI < 0) {
         dpi = std::max(96.0f, dpi);
@@ -200,20 +196,12 @@ already_AddRefed<gfxContext> nsDeviceContext::CreateRenderingContextCommon(
 
   gfxMatrix transform;
   transform.PreTranslate(mPrintingTranslate);
-  if (mPrintTarget->RotateNeededForLandscape()) {
-    // Rotate page 90 degrees to draw landscape page on portrait paper
-    IntSize size = mPrintTarget->GetSize();
-    transform.PreTranslate(gfxPoint(0, size.width));
-    gfxMatrix rotate(0, -1, 1, 0, 0, 0);
-    transform = rotate * transform;
-  }
   transform.PreScale(mPrintingScale, mPrintingScale);
-
   pContext->SetMatrixDouble(transform);
   return pContext.forget();
 }
 
-nsresult nsDeviceContext::GetDepth(uint32_t& aDepth) {
+uint32_t nsDeviceContext::GetDepth() {
   nsCOMPtr<nsIScreen> screen;
   FindScreen(getter_AddRefs(screen));
   if (!screen) {
@@ -221,9 +209,9 @@ nsresult nsDeviceContext::GetDepth(uint32_t& aDepth) {
     screenManager.GetPrimaryScreen(getter_AddRefs(screen));
     MOZ_ASSERT(screen);
   }
-  screen->GetColorDepth(reinterpret_cast<int32_t*>(&aDepth));
-
-  return NS_OK;
+  int32_t depth = 0;
+  screen->GetColorDepth(&depth);
+  return uint32_t(depth);
 }
 
 nsresult nsDeviceContext::GetDeviceSurfaceDimensions(nscoord& aWidth,
@@ -480,20 +468,4 @@ DesktopToLayoutDeviceScale nsDeviceContext::GetDesktopToDeviceScale() {
   }
 
   return DesktopToLayoutDeviceScale(1.0);
-}
-
-bool nsDeviceContext::IsSyncPagePrinting() const {
-  MOZ_ASSERT(mPrintTarget);
-  return mPrintTarget->IsSyncPagePrinting();
-}
-
-void nsDeviceContext::RegisterPageDoneCallback(
-    PrintTarget::PageDoneCallback&& aCallback) {
-  MOZ_ASSERT(mPrintTarget && aCallback && !IsSyncPagePrinting());
-  mPrintTarget->RegisterPageDoneCallback(std::move(aCallback));
-}
-void nsDeviceContext::UnregisterPageDoneCallback() {
-  if (mPrintTarget) {
-    mPrintTarget->UnregisterPageDoneCallback();
-  }
 }

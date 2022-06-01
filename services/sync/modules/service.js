@@ -76,9 +76,10 @@ const { DeclinedEngines } = ChromeUtils.import(
 const { Status } = ChromeUtils.import("resource://services-sync/status.js");
 ChromeUtils.import("resource://services-sync/telemetry.js");
 const { Svc, Utils } = ChromeUtils.import("resource://services-sync/util.js");
-const { fxAccounts } = ChromeUtils.import(
+const { getFxAccountsSingleton } = ChromeUtils.import(
   "resource://gre/modules/FxAccounts.jsm"
 );
+const fxAccounts = getFxAccountsSingleton();
 
 function getEngineModules() {
   let result = {
@@ -461,9 +462,8 @@ Sync11Service.prototype = {
       if (!modInfo.module.includes(":")) {
         modInfo.module = "resource://services-sync/engines/" + modInfo.module;
       }
-      let ns = {};
       try {
-        ChromeUtils.import(modInfo.module, ns);
+        let ns = ChromeUtils.import(modInfo.module);
         if (modInfo.symbol) {
           let symbol = modInfo.symbol;
           if (!(symbol in ns)) {
@@ -1636,6 +1636,6 @@ Sync11Service.prototype = {
 };
 
 var Service = new Sync11Service();
-this.Service.promiseInitialized = new Promise(resolve => {
-  this.Service.onStartup().then(resolve);
+Service.promiseInitialized = new Promise(resolve => {
+  Service.onStartup().then(resolve);
 });

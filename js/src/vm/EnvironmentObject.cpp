@@ -27,6 +27,7 @@
 #include "vm/Realm.h"
 #include "vm/Scope.h"
 #include "vm/Shape.h"
+#include "wasm/WasmDebug.h"
 #include "wasm/WasmDebugFrame.h"
 #include "wasm/WasmInstance.h"
 
@@ -201,16 +202,17 @@ CallObject* CallObject::create(JSContext* cx, AbstractFramePtr frame) {
   return callobj;
 }
 
-CallObject* CallObject::find(JSObject* env) {
+template <class EnvT>
+EnvT* FindEnclosingEnv(JSObject* env) {
   for (;;) {
-    if (env->is<CallObject>()) {
+    if (env->is<EnvT>()) {
       break;
     } else if (env->is<EnvironmentObject>()) {
       env = &env->as<EnvironmentObject>().enclosingEnvironment();
     } else if (env->is<DebugEnvironmentProxy>()) {
       EnvironmentObject& unwrapped =
           env->as<DebugEnvironmentProxy>().environment();
-      if (unwrapped.is<CallObject>()) {
+      if (unwrapped.is<EnvT>()) {
         env = &unwrapped;
         break;
       }
@@ -220,7 +222,15 @@ CallObject* CallObject::find(JSObject* env) {
       return nullptr;
     }
   }
-  return &env->as<CallObject>();
+  return &env->as<EnvT>();
+}
+
+CallObject* CallObject::find(JSObject* env) {
+  return FindEnclosingEnv<CallObject>(env);
+}
+
+ModuleEnvironmentObject* ModuleEnvironmentObject::find(JSObject* env) {
+  return FindEnclosingEnv<ModuleEnvironmentObject>(env);
 }
 
 CallObject* CallObject::createHollowForDebug(JSContext* cx,
@@ -263,10 +273,8 @@ const JSClass CallObject::class_ = {
 /*****************************************************************************/
 
 /* static */
-VarEnvironmentObject* VarEnvironmentObject::create(JSContext* cx,
-                                                   HandleShape shape,
-                                                   HandleObject enclosing,
-                                                   gc::InitialHeap heap) {
+VarEnvironmentObject* VarEnvironmentObject::createInternal(
+    JSContext* cx, HandleShape shape, HandleObject enclosing) {
   MOZ_ASSERT(shape->getObjectClass() == &class_);
 
   auto* env = CreateEnvironmentObject<VarEnvironmentObject>(cx, shape);
@@ -284,7 +292,21 @@ VarEnvironmentObject* VarEnvironmentObject::create(JSContext* cx,
 /* static */
 VarEnvironmentObject* VarEnvironmentObject::create(JSContext* cx,
                                                    HandleScope scope,
-                                                   AbstractFramePtr frame) {
+                                                   HandleObject enclosing) {
+  MOZ_ASSERT(scope->is<EvalScope>() || scope->is<VarScope>());
+
+  RootedShape shape(cx, scope->environmentShape());
+  auto* env = createInternal(cx, shape, enclosing);
+  if (!env) {
+    return nullptr;
+  }
+  env->initScope(scope);
+  return env;
+}
+
+/* static */
+VarEnvironmentObject* VarEnvironmentObject::createForFrame(
+    JSContext* cx, HandleScope scope, AbstractFramePtr frame) {
 #ifdef DEBUG
   if (frame.isEvalFrame()) {
     MOZ_ASSERT(scope->is<EvalScope>() && scope == frame.script()->bodyScope());
@@ -300,15 +322,8 @@ VarEnvironmentObject* VarEnvironmentObject::create(JSContext* cx,
   }
 #endif
 
-  RootedScript script(cx, frame.script());
   RootedObject envChain(cx, frame.environmentChain());
-  RootedShape shape(cx, scope->environmentShape());
-  VarEnvironmentObject* env = create(cx, shape, envChain, gc::DefaultHeap);
-  if (!env) {
-    return nullptr;
-  }
-  env->initScope(scope);
-  return env;
+  return create(cx, scope, envChain);
 }
 
 /* static */
@@ -327,8 +342,8 @@ VarEnvironmentObject* VarEnvironmentObject::createHollowForDebug(
   // enclosing link, which is what Debugger uses to construct the tree of
   // Debugger.Environment objects.
   RootedObject enclosingEnv(cx, &cx->global()->lexicalEnvironment());
-  Rooted<VarEnvironmentObject*> env(
-      cx, create(cx, shape, enclosingEnv, gc::TenuredHeap));
+  Rooted<VarEnvironmentObject*> env(cx,
+                                    createInternal(cx, shape, enclosingEnv));
   if (!env) {
     return nullptr;
   }
@@ -373,7 +388,6 @@ const JSClassOps ModuleEnvironmentObject::classOps_ = {
     nullptr,                                // mayResolve
     nullptr,                                // finalize
     nullptr,                                // call
-    nullptr,                                // hasInstance
     nullptr,                                // construct
     nullptr,                                // trace
 };
@@ -666,7 +680,7 @@ WithEnvironmentObject* WithEnvironmentObject::createNonSyntactic(
 }
 
 static inline bool IsUnscopableDotName(JSContext* cx, HandleId id) {
-  return id.isAtom(cx->names().dotThis);
+  return id.isAtom(cx->names().dotThis) || id.isAtom(cx->names().dotNewTarget);
 }
 
 #ifdef DEBUG
@@ -678,6 +692,7 @@ static bool IsInternalDotName(JSContext* cx, HandleId id) {
          id.isAtom(cx->names().dotStaticInitializers) ||
          id.isAtom(cx->names().dotStaticFieldKeys) ||
          id.isAtom(cx->names().dotArgs) ||
+         id.isAtom(cx->names().dotNewTarget) ||
          id.isAtom(cx->names().starNamespaceStar);
 }
 #endif
@@ -706,7 +721,8 @@ static bool CheckUnscopables(JSContext* cx, HandleObject obj, HandleId id,
 static bool with_LookupProperty(JSContext* cx, HandleObject obj, HandleId id,
                                 MutableHandleObject objp,
                                 PropertyResult* propp) {
-  // SpiderMonkey-specific: consider the internal '.this' name to be unscopable.
+  // SpiderMonkey-specific: consider the internal '.this' and '.newTarget' names
+  // to be unscopable.
   if (IsUnscopableDotName(cx, id)) {
     objp.set(nullptr);
     propp->setNotFound();
@@ -2396,9 +2412,19 @@ ArrayObject* DebugEnvironmentProxy::maybeSnapshot() const {
 }
 
 void DebugEnvironmentProxy::initSnapshot(ArrayObject& o) {
-  MOZ_ASSERT_IF(
-      maybeSnapshot() != nullptr,
-      CallObject::find(&environment())->callee().isGeneratorOrAsync());
+#ifdef DEBUG
+  if (maybeSnapshot()) {
+    auto* callObj = CallObject::find(&environment());
+    if (callObj) {
+      MOZ_ASSERT(callObj->callee().isGeneratorOrAsync());
+    } else {
+      auto* moduleEnv = ModuleEnvironmentObject::find(&environment());
+      MOZ_ASSERT(moduleEnv);
+      MOZ_ASSERT(moduleEnv->module().isAsync());
+    }
+  }
+#endif
+
   setReservedSlot(SNAPSHOT_SLOT, ObjectValue(o));
 }
 
@@ -3935,7 +3961,7 @@ bool js::InitFunctionEnvironmentObjects(JSContext* cx, AbstractFramePtr frame) {
 
 bool js::PushVarEnvironmentObject(JSContext* cx, HandleScope scope,
                                   AbstractFramePtr frame) {
-  VarEnvironmentObject* env = VarEnvironmentObject::create(cx, scope, frame);
+  auto* env = VarEnvironmentObject::createForFrame(cx, scope, frame);
   if (!env) {
     return false;
   }

@@ -438,12 +438,13 @@ static void UpsampleImage(const ImageF& input, ImageF* output) {
   for (int64_t y = 0; y < ysize2; y++) {
     for (int64_t x = 0; x < xsize2; x++) {
       auto kernel = kernel00;
-      if ((x & 1) && (y & 1))
+      if ((x & 1) && (y & 1)) {
         kernel = kernel11;
-      else if (x & 1)
+      } else if (x & 1) {
         kernel = kernel10;
-      else if (y & 1)
+      } else if (y & 1) {
         kernel = kernel01;
+      }
       float sum = 0;
       int64_t x2 = x / 2;
       int64_t y2 = y / 2;
@@ -487,12 +488,13 @@ static void UpsampleImage(const ImageF& input, ImageF* output) {
 // output pixel x, y (ignoring the clamping).
 float UpsamplerDeriv(int64_t x2, int64_t y2, int64_t x, int64_t y) {
   auto kernel = kernel00;
-  if ((x & 1) && (y & 1))
+  if ((x & 1) && (y & 1)) {
     kernel = kernel11;
-  else if (x & 1)
+  } else if (x & 1) {
     kernel = kernel10;
-  else if (y & 1)
+  } else if (y & 1) {
     kernel = kernel01;
+  }
 
   int64_t ix = x / 2;
   int64_t iy = y / 2;
@@ -866,6 +868,9 @@ Status DefaultEncoderHeuristics::LossyFrameHeuristics(
     GaborishInverse(opsin, 0.9908511000000001f, pool);
   }
 
+  FindBestDequantMatrices(cparams, *opsin, modular_frame_encoder,
+                          &enc_state->shared.matrices);
+
   cfl_heuristics.Init(*opsin);
   acs_heuristics.Init(*opsin, enc_state);
 
@@ -933,9 +938,6 @@ Status DefaultEncoderHeuristics::LossyFrameHeuristics(
     cfl_heuristics.ComputeDC(/*fast=*/cparams.speed_tier >= SpeedTier::kWombat,
                              &enc_state->shared.cmap);
   }
-
-  FindBestDequantMatrices(cparams, *opsin, modular_frame_encoder,
-                          &enc_state->shared.matrices);
 
   // Refine quantization levels.
   FindBestQuantizer(original_pixels, *opsin, enc_state, cms, pool, aux_out);

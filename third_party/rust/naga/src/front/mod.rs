@@ -1,4 +1,6 @@
-//! Parsers which load shaders into memory.
+/*!
+Frontend parsers that consume binary and text shaders and load them into [`Module`](super::Module)s.
+*/
 
 mod interpolator;
 
@@ -53,7 +55,7 @@ impl Emitter {
 
 #[allow(dead_code)]
 impl super::ConstantInner {
-    fn boolean(value: bool) -> Self {
+    const fn boolean(value: bool) -> Self {
         Self::Scalar {
             width: super::BOOL_WIDTH,
             value: super::ScalarValue::Bool(value),
@@ -68,7 +70,7 @@ pub struct Typifier {
 }
 
 impl Typifier {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Typifier {
             resolutions: Vec::new(),
         }
@@ -94,7 +96,8 @@ impl Typifier {
     ) -> Result<(), ResolveError> {
         if self.resolutions.len() <= expr_handle.index() {
             for (eh, expr) in expressions.iter().skip(self.resolutions.len()) {
-                let resolution = ctx.resolve(expr, |h| &self.resolutions[h.index()])?;
+                //Note: the closure can't `Err` by construction
+                let resolution = ctx.resolve(expr, |h| Ok(&self.resolutions[h.index()]))?;
                 log::debug!("Resolving {:?} = {:?} : {:?}", eh, expr, resolution);
                 self.resolutions.push(resolution);
             }
@@ -102,7 +105,7 @@ impl Typifier {
         Ok(())
     }
 
-    /// Invalidates the cached type resolution for `epxr_handle` forcing a recomputation
+    /// Invalidates the cached type resolution for `expr_handle` forcing a recomputation
     ///
     /// If the type of the expression hasn't yet been calculated a
     /// [`grow`](Self::grow) is performed instead
@@ -116,7 +119,8 @@ impl Typifier {
             self.grow(expr_handle, expressions, ctx)
         } else {
             let expr = &expressions[expr_handle];
-            let resolution = ctx.resolve(expr, |h| &self.resolutions[h.index()])?;
+            //Note: the closure can't `Err` by construction
+            let resolution = ctx.resolve(expr, |h| Ok(&self.resolutions[h.index()]))?;
             self.resolutions[expr_handle.index()] = resolution;
             Ok(())
         }
@@ -143,6 +147,6 @@ impl ops::Index<Handle<crate::Expression>> for Typifier {
 /// assert_eq!(334, align_up(333, 2));
 /// assert_eq!(384, align_up(257, 128));
 /// ```
-pub fn align_up(value: u32, align: u32) -> u32 {
+pub const fn align_up(value: u32, align: u32) -> u32 {
     ((value.wrapping_sub(1)) & !(align - 1)).wrapping_add(align)
 }

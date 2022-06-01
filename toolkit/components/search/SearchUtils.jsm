@@ -13,7 +13,6 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  OS: "resource://gre/modules/osfile.jsm",
   Services: "resource://gre/modules/Services.jsm",
 });
 
@@ -320,17 +319,11 @@ var SearchUtils = {
       "to accordingly.";
 
     let salt =
-      OS.Path.basename(OS.Constants.Path.profileDir) +
+      PathUtils.filename(PathUtils.profileDir) +
       name +
       disclaimer.replace(/\$appName/g, Services.appinfo.name);
 
-    let converter = Cc[
-      "@mozilla.org/intl/scriptableunicodeconverter"
-    ].createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.charset = "UTF-8";
-
-    // Data is an array of bytes.
-    let data = converter.convertToByteArray(salt, {});
+    let data = new TextEncoder("utf-8").encode(salt);
     let hasher = Cc["@mozilla.org/security/hash;1"].createInstance(
       Ci.nsICryptoHash
     );

@@ -26,6 +26,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 const PREF_URLBAR_BRANCH = "browser.urlbar.";
 
 const FIREFOX_SUGGEST_UPDATE_TOPIC = "firefox-suggest-update";
+const FIREFOX_SUGGEST_UPDATE_SKIPPED_TOPIC = "firefox-suggest-update-skipped";
 
 // Prefs are defined as [pref name, default value] or [pref name, [default
 // value, type]].  In the former case, the getter method name is inferred from
@@ -45,6 +46,21 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // textbox.  If false, autofill will be disabled.
   ["autoFill", true],
 
+  // Whether enabling adaptive history autofill. This pref is a fallback for the
+  // Nimbus variable `autoFillAdaptiveHistoryEnabled`.
+  ["autoFill.adaptiveHistory.enabled", false],
+
+  // Minimum char length of the user's search string to enable adaptive history
+  // autofill. This pref is a fallback for the Nimbus variable
+  // `autoFillAdaptiveHistoryMinCharsThreshold`.
+  ["autoFill.adaptiveHistory.minCharsThreshold", 0],
+
+  // Threshold for use count of input history that we handle as adaptive history
+  // autofill. If the use count is this value or more, it will be a candidate.
+  // Set the threshold to not be candidate the input history passed approximately
+  // 30 days since user input it as the default.
+  ["autoFill.adaptiveHistory.useCountThreshold", [0.47, "float"]],
+
   // If true, the domains of the user's installed search engines will be
   // autofilled even if the user hasn't actually visited them.
   ["autoFill.searchEngines", false],
@@ -54,7 +70,11 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // this value.  See UrlbarProviderPlaces.
   ["autoFill.stddevMultiplier", [0.0, "float"]],
 
-  // Whether best match results are enabled.
+  // Whether best match results can be blocked. This pref is a fallback for the
+  // Nimbus variable `bestMatchBlockingEnabled`.
+  ["bestMatch.blockingEnabled", false],
+
+  // Whether the best match feature is enabled.
   ["bestMatch.enabled", true],
 
   // Whether using `ctrl` when hitting return/enter in the URL bar
@@ -182,6 +202,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether speculative connections should be enabled.
   ["speculativeConnect.enabled", true],
 
+  // When `bestMatch.enabled` is true, this controls whether results will
+  // include best matches.
+  ["suggest.bestmatch", true],
+
   // Whether results will include the user's bookmarks.
   ["suggest.bookmark", true],
 
@@ -213,9 +237,30 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether results will include top sites and the view will open on focus.
   ["suggest.topsites", true],
 
+  // JSON'ed array of blocked quick suggest URL digests.
+  ["quicksuggest.blockedDigests", ""],
+
+  // Whether the usual non-best-match quick suggest results can be blocked. This
+  // pref is a fallback for the Nimbus variable `quickSuggestBlockingEnabled`.
+  ["quicksuggest.blockingEnabled", false],
+
   // Global toggle for whether the quick suggest feature is enabled, i.e.,
   // sponsored and recommended results related to the user's search string.
   ["quicksuggest.enabled", false],
+
+  // Whether non-sponsored quick suggest results are subject to impression
+  // frequency caps. This pref is a fallback for the Nimbus variable
+  // `quickSuggestImpressionCapsNonSponsoredEnabled`.
+  ["quicksuggest.impressionCaps.nonSponsoredEnabled", false],
+
+  // Whether sponsored quick suggest results are subject to impression frequency
+  // caps. This pref is a fallback for the Nimbus variable
+  // `quickSuggestImpressionCapsSponsoredEnabled`.
+  ["quicksuggest.impressionCaps.sponsoredEnabled", false],
+
+  // JSON'ed object of quick suggest impression stats. Used for implementing
+  // impression frequency caps for quick suggest suggestions.
+  ["quicksuggest.impressionCaps.stats", ""],
 
   // Whether to show QuickSuggest related logs.
   ["quicksuggest.log", false],
@@ -316,6 +361,15 @@ const PREF_OTHER_DEFAULTS = new Map([
   ["keyword.enabled", true],
   ["ui.popup.disable_autohide", false],
 ]);
+
+// Default values for Nimbus urlbar variables that do not have fallback prefs.
+// Variables with fallback prefs do not need to be defined here because their
+// defaults are the values of their fallbacks.
+const NIMBUS_DEFAULTS = {
+  experimentType: "",
+  isBestMatchExperiment: false,
+  quickSuggestRemoteSettingsDataType: "data",
+};
 
 // Maps preferences under browser.urlbar.suggest to behavior names, as defined
 // in mozIPlacesAutoComplete.
@@ -729,37 +783,19 @@ class Preferences {
     //    removing prefs, or changing the meaning of existing prefs.
 
     // 1. Pick a scenario
-    let scenario = testOverrides?.scenario || this._nimbus.quickSuggestScenario;
-    if (!scenario) {
-      if (
-        Region.home == "US" &&
-        Services.locale.appLocaleAsBCP47.substring(0, 2) == "en"
-      ) {
-        // offline rollout for en locales in the US region
-        scenario = "offline";
-      } else {
-        // no rollout
-        scenario = "history";
-      }
-    }
-    let defaultPrefs =
-      testOverrides?.defaultPrefs || this.FIREFOX_SUGGEST_DEFAULT_PREFS;
-    if (!defaultPrefs.hasOwnProperty(scenario)) {
-      scenario = "history";
-      Cu.reportError(`Unrecognized Firefox Suggest scenario "${scenario}"`);
-    }
+    let scenario =
+      testOverrides?.scenario || this._getIntendedFirefoxSuggestScenario();
 
     // 2. Set default-branch values for the scenario
+    let defaultPrefs =
+      testOverrides?.defaultPrefs || this.FIREFOX_SUGGEST_DEFAULT_PREFS;
     let prefs = { ...defaultPrefs[scenario] };
 
     // 3. Set default-branch values for prefs that are both exposed in the UI
     // and configurable via Nimbus
-    let uiPrefNamesByVariable = {
-      quickSuggestNonSponsoredEnabled: "suggest.quicksuggest.nonsponsored",
-      quickSuggestSponsoredEnabled: "suggest.quicksuggest.sponsored",
-      quickSuggestDataCollectionEnabled: "quicksuggest.dataCollection.enabled",
-    };
-    for (let [variable, prefName] of Object.entries(uiPrefNamesByVariable)) {
+    for (let [variable, prefName] of Object.entries(
+      this.FIREFOX_SUGGEST_UI_PREFS_BY_VARIABLE
+    )) {
       if (this._nimbus.hasOwnProperty(variable)) {
         prefs[prefName] = this._nimbus[variable];
       }
@@ -791,6 +827,52 @@ class Preferences {
     // pref service, so the new values need to be set beforehand. See also the
     // comments in D126017.
     Services.obs.notifyObservers(null, FIREFOX_SUGGEST_UPDATE_TOPIC);
+  }
+
+  /**
+   * Returns the Firefox Suggest scenario the user should be enrolled in. This
+   * does *not* return the scenario they are currently enrolled in.
+   *
+   * @returns {string}
+   *   The scenario the user should be enrolled in.
+   */
+  _getIntendedFirefoxSuggestScenario() {
+    // If the user is in a Nimbus rollout, then Nimbus will define the scenario.
+    // Otherwise the user may be in a "hardcoded" rollout depending on their
+    // region and locale. If the user is not in any rollouts, then the scenario
+    // is "history", which means no Firefox Suggest suggestions will appear.
+    let scenario = this._nimbus.quickSuggestScenario;
+    if (!scenario) {
+      if (
+        Region.home == "US" &&
+        Services.locale.appLocaleAsBCP47.substring(0, 2) == "en"
+      ) {
+        // offline rollout for en locales in the US region
+        scenario = "offline";
+      } else {
+        // no rollout
+        scenario = "history";
+      }
+    }
+    if (!this.FIREFOX_SUGGEST_DEFAULT_PREFS.hasOwnProperty(scenario)) {
+      scenario = "history";
+      Cu.reportError(`Unrecognized Firefox Suggest scenario "${scenario}"`);
+    }
+    return scenario;
+  }
+
+  /**
+   * Prefs that are exposed in the UI and whose default-branch values are
+   * configurable via Nimbus variables. This getter returns an object that maps
+   * from variable names to pref names relative to `browser.urlbar`. See point 3
+   * in the comment inside `_updateFirefoxSuggestScenarioHelper()` for more.
+   */
+  get FIREFOX_SUGGEST_UI_PREFS_BY_VARIABLE() {
+    return {
+      quickSuggestNonSponsoredEnabled: "suggest.quicksuggest.nonsponsored",
+      quickSuggestSponsoredEnabled: "suggest.quicksuggest.sponsored",
+      quickSuggestDataCollectionEnabled: "quicksuggest.dataCollection.enabled",
+    };
   }
 
   /**
@@ -1129,6 +1211,9 @@ class Preferences {
 
     // Some prefs may influence others.
     switch (pref) {
+      case "autoFill.adaptiveHistory.useCountThreshold":
+        this._map.delete("autoFillAdaptiveHistoryUseCountThreshold");
+        return;
       case "showSearchSuggestionsFirst":
         this.set(
           "resultGroups",
@@ -1152,22 +1237,64 @@ class Preferences {
    * Called when the `NimbusFeatures.urlbar` value changes.
    */
   _onNimbusUpdate() {
-    this._clearNimbusCache();
-    this.updateFirefoxSuggestScenario();
+    let oldNimbus = this._clearNimbusCache();
+    let newNimbus = this._nimbus;
+
+    // If a change occurred to the Firefox Suggest scenario variable or any
+    // variables that correspond to prefs exposed in the UI, we need to update
+    // the scenario.
+    let variables = [
+      "quickSuggestScenario",
+      ...Object.keys(this.FIREFOX_SUGGEST_UI_PREFS_BY_VARIABLE),
+    ];
+    for (let name of variables) {
+      if (oldNimbus[name] != newNimbus[name]) {
+        this.updateFirefoxSuggestScenario();
+        return;
+      }
+    }
+
+    // If the current default-branch value of any pref is incorrect for the
+    // intended scenario, we need to update the scenario.
+    let scenario = this._getIntendedFirefoxSuggestScenario();
+    let intendedDefaultPrefs = this.FIREFOX_SUGGEST_DEFAULT_PREFS[scenario];
+    let defaults = Services.prefs.getDefaultBranch("browser.urlbar.");
+    for (let [name, value] of Object.entries(intendedDefaultPrefs)) {
+      // We assume all prefs are boolean right now.
+      if (defaults.getBoolPref(name) != value) {
+        this.updateFirefoxSuggestScenario();
+        return;
+      }
+    }
+
+    // Notify consumer who are waiting for the scenario to be updated.
+    Services.obs.notifyObservers(null, FIREFOX_SUGGEST_UPDATE_SKIPPED_TOPIC);
   }
 
+  /**
+   * Clears cached Nimbus variables. The cache will be repopulated the next time
+   * `_nimbus` is accessed.
+   *
+   * @returns {object}
+   *   The value of the cache before it was cleared. It's an object that maps
+   *   from variable names to values.
+   */
   _clearNimbusCache() {
-    if (this.__nimbus) {
-      for (let key of Object.keys(this.__nimbus)) {
+    let nimbus = this.__nimbus;
+    if (nimbus) {
+      for (let key of Object.keys(nimbus)) {
         this._map.delete(key);
       }
       this.__nimbus = null;
     }
+    return nimbus || {};
   }
 
   get _nimbus() {
     if (!this.__nimbus) {
-      this.__nimbus = NimbusFeatures.urlbar.getAllVariables();
+      this.__nimbus = NimbusFeatures.urlbar.getAllVariables({
+        defaultValues: NIMBUS_DEFAULTS,
+      });
     }
     return this.__nimbus;
   }
@@ -1221,6 +1348,12 @@ class Preferences {
         return this.shouldHandOffToSearchModePrefs.some(
           prefName => !this.get(prefName)
         );
+      case "autoFillAdaptiveHistoryUseCountThreshold":
+        const nimbusValue = this._nimbus
+          .autoFillAdaptiveHistoryUseCountThreshold;
+        return nimbusValue === undefined
+          ? this.get("autoFill.adaptiveHistory.useCountThreshold")
+          : parseFloat(nimbusValue);
     }
     return this._readPref(pref);
   }

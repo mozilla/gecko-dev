@@ -55,8 +55,20 @@ bool RenderTextureHostSWGL::UpdatePlanes(RenderCompositor* aCompositor,
         }
         break;
       case gfx::SurfaceFormat::NV12:
-        MOZ_ASSERT(colorDepth == gfx::ColorDepth::COLOR_8);
-        internalFormat = i > 0 ? LOCAL_GL_RG8 : LOCAL_GL_R8;
+        switch (colorDepth) {
+          case gfx::ColorDepth::COLOR_8:
+            internalFormat = i > 0 ? LOCAL_GL_RG8 : LOCAL_GL_R8;
+            break;
+          case gfx::ColorDepth::COLOR_10:
+          case gfx::ColorDepth::COLOR_12:
+          case gfx::ColorDepth::COLOR_16:
+            internalFormat = i > 0 ? LOCAL_GL_RG16 : LOCAL_GL_R16;
+            break;
+        }
+        break;
+      case gfx::SurfaceFormat::P010:
+        MOZ_ASSERT(colorDepth == gfx::ColorDepth::COLOR_10);
+        internalFormat = i > 0 ? LOCAL_GL_RG16 : LOCAL_GL_R16;
         break;
       case gfx::SurfaceFormat::YUV422:
         MOZ_ASSERT(colorDepth == gfx::ColorDepth::COLOR_8);
@@ -111,15 +123,22 @@ wr::WrExternalImage RenderTextureHostSWGL::LockSWGL(
   }
   const PlaneInfo& plane = mPlanes[aChannelIndex];
 
+  const auto uvs = GetUvCoords(plane.mSize);
+
   // Prefer native textures, unless our backend forbids it.
+  // If the GetUvCoords call above returned anything other than the default,
+  // for example if this is a RenderAndroidSurfaceTextureHost, then this won't
+  // be handled correctly in the RawDataToWrExternalImage path. But we shouldn't
+  // hit this path in practice with a RenderAndroidSurfaceTextureHost.
   layers::TextureHost::NativeTexturePolicy policy =
       layers::TextureHost::BackendNativeTexturePolicy(
           layers::WebRenderBackend::SOFTWARE, plane.mSize);
   return policy == layers::TextureHost::NativeTexturePolicy::FORBID
              ? RawDataToWrExternalImage((uint8_t*)plane.mData,
                                         plane.mStride * plane.mSize.height)
-             : NativeTextureToWrExternalImage(
-                   plane.mTexture, 0, 0, plane.mSize.width, plane.mSize.height);
+             : NativeTextureToWrExternalImage(plane.mTexture, uvs.first.x,
+                                              uvs.first.y, uvs.second.x,
+                                              uvs.second.y);
 }
 
 void RenderTextureHostSWGL::UnlockSWGL() {
@@ -164,6 +183,7 @@ bool RenderTextureHostSWGL::LockSWGLCompositeSurface(
   switch (GetFormat()) {
     case gfx::SurfaceFormat::YUV:
     case gfx::SurfaceFormat::NV12:
+    case gfx::SurfaceFormat::P010:
     case gfx::SurfaceFormat::YUV422: {
       aInfo->yuv_planes = mPlanes.size();
       auto colorSpace = GetYUVColorSpace();

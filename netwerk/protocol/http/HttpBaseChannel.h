@@ -279,6 +279,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   NS_IMETHOD GetIsTRRServiceChannel(bool* aTRR) override;
   NS_IMETHOD SetIsTRRServiceChannel(bool aTRR) override;
   NS_IMETHOD GetIsResolvedByTRR(bool* aResolvedByTRR) override;
+  NS_IMETHOD GetIsLoadedBySocketProcess(bool* aResult) override;
   NS_IMETHOD GetIsOCSP(bool* value) override;
   NS_IMETHOD SetIsOCSP(bool value) override;
   NS_IMETHOD GetTlsFlags(uint32_t* aTlsFlags) override;
@@ -351,7 +352,12 @@ class HttpBaseChannel : public nsHashPropertyBag,
 
   // nsIClassOfService
   NS_IMETHOD GetClassFlags(uint32_t* outFlags) override {
-    *outFlags = mClassOfService;
+    *outFlags = mClassOfService.Flags();
+    return NS_OK;
+  }
+
+  NS_IMETHOD GetIncremental(bool* outIncremental) override {
+    *outIncremental = mClassOfService.Incremental();
     return NS_OK;
   }
 
@@ -446,11 +452,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
   [[nodiscard]] nsresult DoApplyContentConversions(
       nsIStreamListener* aNextListener, nsIStreamListener** aNewNextListener);
 
-  // Callback on STS thread called by CopyComplete when NS_AsyncCopy()
-  // is finished. This function works as a proxy function to dispatch
-  // |EnsureUploadStreamIsCloneableComplete| to main thread.
-  virtual void OnCopyComplete(nsresult aStatus);
-
   void AddClassificationFlags(uint32_t aClassificationFlags,
                               bool aIsThirdParty);
 
@@ -458,13 +459,9 @@ class HttpBaseChannel : public nsHashPropertyBag,
 
   const uint64_t& ChannelId() const { return mChannelId; }
 
-  void InternalSetUploadStream(nsIInputStream* uploadStream) {
-    mUploadStream = uploadStream;
-  }
-
-  void InternalSetUploadStreamLength(uint64_t aLength) {
-    mReqContentLength = aLength;
-  }
+  nsresult InternalSetUploadStream(nsIInputStream* uploadStream,
+                                   int64_t aContentLength = -1,
+                                   bool aSetContentLengthHeader = false);
 
   void SetUploadStreamHasHeaders(bool hasHeaders) {
     StoreUploadStreamHasHeaders(hasHeaders);
@@ -498,7 +495,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
         const dom::ReplacementChannelConfigInit& aInit);
 
     uint32_t redirectFlags = 0;
-    uint32_t classOfService = 0;
+    ClassOfService classOfService = {0, false};
     Maybe<bool> privateBrowsing = Nothing();
     Maybe<nsCString> method;
     nsCOMPtr<nsIReferrerInfo> referrerInfo;
@@ -588,10 +585,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
   // prepare for a possible synthesized response instead.
   bool ShouldIntercept(nsIURI* aURI = nullptr);
 
-  // Callback on main thread when NS_AsyncCopy() is finished populating
-  // the new mUploadStream.
-  void EnsureUploadStreamIsCloneableComplete(nsresult aStatus);
-
 #ifdef DEBUG
   // Check if mPrivateBrowsingId matches between LoadInfo and LoadContext.
   void AssertPrivateBrowsingId();
@@ -602,8 +595,8 @@ class HttpBaseChannel : public nsHashPropertyBag,
 
   nsresult CheckRedirectLimit(uint32_t aRedirectFlags) const;
 
-  bool MaybeWaitForUploadStreamLength(nsIStreamListener* aListener,
-                                      nsISupports* aContext);
+  bool MaybeWaitForUploadStreamNormalization(nsIStreamListener* aListener,
+                                             nsISupports* aContext);
 
   void MaybeFlushConsoleReports();
 
@@ -656,7 +649,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   void ReleaseMainThreadOnlyReferences();
 
   void ExplicitSetUploadStreamLength(uint64_t aContentLength,
-                                     bool aStreamHasHeaders);
+                                     bool aSetContentLengthHeader);
 
   void MaybeResumeAsyncOpen();
 
@@ -692,7 +685,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
   // Upload throttling.
   nsCOMPtr<nsIInputChannelThrottleQueue> mThrottleQueue;
   nsCOMPtr<nsIInputStream> mUploadStream;
-  nsCOMPtr<nsIRunnable> mUploadCloneableCallback;
   UniquePtr<nsHttpResponseHead> mResponseHead;
   UniquePtr<nsHttpHeaderArray> mResponseTrailers;
   RefPtr<nsHttpConnectionInfo> mConnectionInfo;
@@ -705,8 +697,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
   RefPtr<nsHttpHandler> mHttpHandler;  // keep gHttpHandler alive
   UniquePtr<nsTArray<nsCString>> mRedirectedCachekeys;
   nsCOMPtr<nsIRequestContext> mRequestContext;
-
-  RefPtr<OpaqueResponseBlockingInfo> mOpaqueResponseBlockingInfo;
 
   NetAddr mSelfAddr;
   NetAddr mPeerAddr;
@@ -769,7 +759,8 @@ class HttpBaseChannel : public nsHashPropertyBag,
 
   uint32_t mLoadFlags;
   uint32_t mCaps;
-  uint32_t mClassOfService;
+
+  ClassOfService mClassOfService;
 
   // clang-format off
   MOZ_ATOMIC_BITFIELDS(mAtomicBitfields1, 32, (
@@ -839,10 +830,10 @@ class HttpBaseChannel : public nsHashPropertyBag,
     // a non tail request.  We must remove it again when this channel is done.
     (uint32_t, AddedAsNonTailRequest, 1),
 
-    // True if AsyncOpen() is called when the stream length is still unknown.
-    // AsyncOpen() will be retriggered when InputStreamLengthHelper execs the
-    // callback, passing the stream length value.
-    (uint32_t, AsyncOpenWaitingForStreamLength, 1),
+    // True if AsyncOpen() is called when the upload stream normalization or
+    // length is still unknown.  AsyncOpen() will be retriggered when
+    // normalization is complete and length has been determined.
+    (uint32_t, AsyncOpenWaitingForStreamNormalization, 1),
 
     // Defaults to true.  This is set to false when it is no longer possible
     // to upgrade the request to a secure channel.
@@ -857,7 +848,11 @@ class HttpBaseChannel : public nsHashPropertyBag,
 
     // Used by system requests such as remote settings and updates to
     // retry requests without proxies.
-    (uint32_t, BypassProxy, 1)
+    (uint32_t, BypassProxy, 1),
+
+    // Indicate whether the response of this channel is coming from
+    // socket process.
+    (uint32_t, LoadedBySocketProcess, 1)
   ))
   // clang-format on
 
@@ -938,9 +933,9 @@ class HttpBaseChannel : public nsHashPropertyBag,
     (bool, DisableAltDataCache, 1),
 
     (bool, ForceMainDocumentChannel, 1),
-    // This is set true if the channel is waiting for the
-    // InputStreamLengthHelper::GetAsyncLength callback.
-    (bool, PendingInputStreamLengthOperation, 1),
+    // This is set true if the channel is waiting for upload stream
+    // normalization or the InputStreamLengthHelper::GetAsyncLength callback.
+    (bool, PendingUploadStreamNormalization, 1),
 
     // Set to true if our listener has indicated that it requires
     // content conversion to be done by us.
@@ -966,11 +961,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
   void RemoveAsNonTailRequest();
 
   void EnsureTopBrowsingContextId();
-
-  void InitiateORBTelemetry();
-
-  void ReportORBTelemetry(const nsCString& aKey);
-  void ReportORBTelemetry(int64_t aContentLength);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(HttpBaseChannel, HTTP_BASE_CHANNEL_IID)

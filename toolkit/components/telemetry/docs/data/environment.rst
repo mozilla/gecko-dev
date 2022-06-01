@@ -85,6 +85,7 @@ Structure:
           experiment: <string>, // name/id of the enrolled funnel experiment
           ua: <string>, // identifier derived from the user agent downloading the installer, e.g., chrome, Google Chrome 123
           dltoken: <string>, // Unique token created at Firefox download time. ex: c18f86a3-f228-4d98-91bb-f90135c0aa9c
+          msstoresignedin: <boolean>, // optional, only present if the installation was done through the Microsoft Store, and was able to retrieve the "campaign ID" it was first installed with. this value is "true" if the user was signed into the Microsoft Store when they first installed, and false otherwise
         },
         sandbox: {
           effectiveContentProcessLevel: <integer>,
@@ -380,9 +381,15 @@ The following is a partial list of `collected preferences <https://searchfox.org
 
 - ``browser.search.suggest.enabled``: The "master switch" for search suggestions everywhere in Firefox (search bar, urlbar, etc.). Defaults to true.
 
-- ``browser.urlbar.quicksuggest.onboardingDialogChoice``: The user's choice in the Firefox Suggest onboarding dialog. If the dialog was shown multiple times, this records the user's most recent choice. Values are the following. Empty string: The user has not made a choice (e.g., because the dialog hasn't been shown). ``accept_2`` is recorded when the user accepts the dialog and opts in, ``reject_2`` is recorded when the user rejects the dialog and opts out, ``learn_more_2`` is recorded when the user clicks "Learn more" (the user remains opted out), ``close_1`` is recorded when the user clicks close button on introduction section (the user remains opted out), ``not_now_2`` is recorded when the user clicks "Not now" link on main section (the user remains opted out), ``dismiss_1`` recorded when the user dismisses the dialog on introduction section (the user remains opted out), ``dismiss_2`` recorded when the user dismisses the dialog on main (the user remains opted out).
+- ``browser.urlbar.autoFill``: The global preference for whether autofill in the urlbar is enabled. When false, all types of autofill are disabled.
+
+- ``browser.urlbar.autoFill.adaptiveHistory.enabled``: True if adaptive history autofill in the urlbar is enabled.
+
+- ``browser.urlbar.quicksuggest.onboardingDialogChoice``: The user's choice in the Firefox Suggest onboarding dialog. If the dialog was shown multiple times, this records the user's most recent choice. Values are the following. Empty string: The user has not made a choice (e.g., because the dialog hasn't been shown). ``accept_2`` is recorded when the user accepts the dialog and opts in, ``reject_2`` is recorded when the user rejects the dialog and opts out, ``learn_more_1`` is recorded when the user clicks "Learn more" on the introduction section (the user remains opted out), ``learn_more_2`` is recorded when the user clicks "Learn more" on the main section (the user remains opted out), ``close_1`` is recorded when the user clicks close button on the introduction section (the user remains opted out), ``not_now_2`` is recorded when the user clicks "Not now" link on main section (the user remains opted out), ``dismiss_1`` recorded when the user dismisses the dialog on the introduction section (the user remains opted out), ``dismiss_2`` recorded when the user dismisses the dialog on main (the user remains opted out).
 
 - ``browser.urlbar.quicksuggest.dataCollection.enabled``: Whether the user has opted in to data collection for Firefox Suggest. This pref is set to true when the user opts in to the Firefox Suggest onboarding dialog modal. The user can also toggle the pref using a toggle switch in the Firefox Suggest preferences UI.
+
+- ``browser.urlbar.suggest.bestmatch``: True if to show best match result is enabled in the urlbar.
 
 - ``browser.urlbar.suggest.quicksuggest.nonsponsored``: True if non-sponsored Firefox Suggest suggestions are enabled in the urlbar.
 
@@ -409,6 +416,34 @@ The following is a partial list of `collected preferences <https://searchfox.org
 - ``network.trr.mode``: User-set DNS over HTTPS mode. Defaults to 0.
 
 - ``network.trr.strict_native_fallback``: Whether strict fallback mode is enabled for DoH mode 2. Defaults to true on Nightly, false elsewhere.
+
+- ``extensions.InstallTriggerImpl.enabled``: Whether the InstallTrigger implementation should be enabled (or hidden and none of its methods available).
+
+- ``extensions.InstallTrigger.enabled``: Whether the InstallTrigger implementation should be enabled (or completely hidden), separate from InstallTriggerImpl because InstallTrigger is improperly used also for UA detection.
+
+- ``extensions.eventPages.enabled``: Whether non-persistent background pages (also known as Event pages) should be enabled for `"manifest_version": 2` extensions.
+
+- ``extensions.manifestV3.enabled``: Whether `"manifest_version": 3` extensions should be allowed to install successfully.
+
+- ``media.gmp-gmpopenh264.enabled``: Whether OpenH264 is enabled.
+
+- ``media.gmp-gmpopenh264.lastDownload``: When OpenH264 was last downloaded as seconds since Jan 1, 1970.
+
+- ``media.gmp-gmpopenh264.lastDownloadFailed``: When OpenH264 was last downloaded unsuccessfully as seconds since Jan 1, 1970.
+
+- ``media.gmp-gmpopenh264.lastDownloadFailReason``: The exception value when OpenH264 was last failed to downloaded.
+
+- ``media.gmp-gmpopenh264.lastInstallFailed``: When OpenH264 installation last failed as seconds since Jan 1, 1970.
+
+- ``media.gmp-gmpopenh264.lastInstallStart``: When OpenH264 installation was last started as seconds since Jan 1, 1970.
+
+- ``media.gmp-gmpopenh264.lastUpdate``: When OpenH264 was last updated as seconds since Jan 1, 1970.
+
+- ``media.gmp-gmpopenh264.visible``: Whether OpenH264 is visible.
+
+- ``media.gmp-manager.lastCheck``: When the gmp-manager last checked for updates as seconds since Jan 1, 1970.
+
+- ``media.gmp-manager.lastEmptyCheck``: When the gmp-manager last checked for updates and there was nothing to install as seconds since Jan 1, 1970.
 
 attribution
 ~~~~~~~~~~~
@@ -444,6 +479,7 @@ Specific keys are:
   - EnabledByTreatmentGroup = 13 - The user is in the Treatment Group, so it is enabled
   - DisabledByDefault = 14 - The default value of the pref is false
   - EnabledByDefault = 15 - The default value of the pref is true
+  - DecodersArentRemote = 16 - Some decoder is not remoted to RDD Process (checks PDMFactory::AllDecodersAreRemote)
 
 
 profile

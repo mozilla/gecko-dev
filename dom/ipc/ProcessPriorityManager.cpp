@@ -199,8 +199,8 @@ class ProcessPriorityManagerImpl final : public nsIObserver,
       ParticularProcessPriorityManager* aParticularManager,
       hal::ProcessPriority aOldPriority);
 
-  void ActivityChanged(CanonicalBrowsingContext* aBC, bool aIsActive);
-  void ActivityChanged(BrowserParent* aBrowserParent, bool aIsActive);
+  void BrowserPriorityChanged(CanonicalBrowsingContext* aBC, bool aPriority);
+  void BrowserPriorityChanged(BrowserParent* aBrowserParent, bool aPriority);
 
   void ResetPriority(ContentParent* aContentParent);
 
@@ -307,7 +307,7 @@ class ParticularProcessPriorityManager final : public WakeLockObserver,
   void ResetPriorityNow();
   void SetPriorityNow(ProcessPriority aPriority);
 
-  void ActivityChanged(BrowserParent* aBrowserParent, bool aIsActive);
+  void BrowserPriorityChanged(BrowserParent* aBrowserParent, bool aPriority);
 
   void ShutDown();
 
@@ -336,8 +336,8 @@ class ParticularProcessPriorityManager final : public WakeLockObserver,
 
   nsCOMPtr<nsITimer> mResetPriorityTimer;
 
-  // This hashtable contains the list of active TabId for this process.
-  nsTHashSet<uint64_t> mActiveBrowserParents;
+  // This hashtable contains the list of high priority TabIds for this process.
+  nsTHashSet<uint64_t> mHighPriorityBrowserParents;
 };
 
 /* static */
@@ -509,41 +509,54 @@ void ProcessPriorityManagerImpl::NotifyProcessPriorityChanged(
   }
 }
 
-void ProcessPriorityManagerImpl::ActivityChanged(
-    dom::CanonicalBrowsingContext* aBC, bool aIsActive) {
+static nsCString BCToString(dom::CanonicalBrowsingContext* aBC) {
+  nsCOMPtr<nsIURI> uri = aBC->GetCurrentURI();
+  return nsPrintfCString("id=%" PRIu64 " uri=%s active=%d pactive=%d",
+                         aBC->Id(),
+                         uri ? uri->GetSpecOrDefault().get() : "(no uri)",
+                         aBC->IsActive(), aBC->IsPriorityActive());
+}
+
+void ProcessPriorityManagerImpl::BrowserPriorityChanged(
+    dom::CanonicalBrowsingContext* aBC, bool aPriority) {
   MOZ_ASSERT(aBC->IsTop());
 
+  LOG("BrowserPriorityChanged(%s, %d)\n", BCToString(aBC).get(), aPriority);
+
   bool alreadyActive = aBC->IsPriorityActive();
-  if (alreadyActive == aIsActive) {
+  if (alreadyActive == aPriority) {
     return;
   }
 
   Telemetry::ScalarAdd(
       Telemetry::ScalarID::DOM_CONTENTPROCESS_OS_PRIORITY_CHANGE_CONSIDERED, 1);
 
-  aBC->SetPriorityActive(aIsActive);
+  aBC->SetPriorityActive(aPriority);
 
   aBC->PreOrderWalk([&](BrowsingContext* aContext) {
     CanonicalBrowsingContext* canonical = aContext->Canonical();
+    LOG("PreOrderWalk for %p: %p -> %p, %p\n", aBC, canonical,
+        canonical->GetContentParent(), canonical->GetBrowserParent());
     if (ContentParent* cp = canonical->GetContentParent()) {
       if (RefPtr pppm = GetParticularProcessPriorityManager(cp)) {
         if (auto* bp = canonical->GetBrowserParent()) {
-          pppm->ActivityChanged(bp, aIsActive);
+          pppm->BrowserPriorityChanged(bp, aPriority);
         }
       }
     }
   });
 }
 
-void ProcessPriorityManagerImpl::ActivityChanged(BrowserParent* aBrowserParent,
-                                                 bool aIsActive) {
+void ProcessPriorityManagerImpl::BrowserPriorityChanged(
+    BrowserParent* aBrowserParent, bool aPriority) {
+  LOG("BrowserPriorityChanged(bp=%p, %d)\n", aBrowserParent, aPriority);
+
   if (RefPtr pppm =
           GetParticularProcessPriorityManager(aBrowserParent->Manager())) {
     Telemetry::ScalarAdd(
         Telemetry::ScalarID::DOM_CONTENTPROCESS_OS_PRIORITY_CHANGE_CONSIDERED,
         1);
-
-    pppm->ActivityChanged(aBrowserParent, aIsActive);
+    pppm->BrowserPriorityChanged(aBrowserParent, aPriority);
   }
 }
 
@@ -746,7 +759,7 @@ ProcessPriority ParticularProcessPriorityManager::CurrentPriority() {
 }
 
 ProcessPriority ParticularProcessPriorityManager::ComputePriority() {
-  if (!mActiveBrowserParents.IsEmpty() ||
+  if (!mHighPriorityBrowserParents.IsEmpty() ||
       mContentParent->GetRemoteType() == EXTENSION_REMOTE_TYPE ||
       mHoldsPlayingAudioWakeLock) {
     return PROCESS_PRIORITY_FOREGROUND;
@@ -767,12 +780,13 @@ void ParticularProcessPriorityManager::SetPriorityNow(
     return;
   }
 
+  LOGP("Changing priority from %s to %s (cp=%p).",
+       ProcessPriorityToString(mPriority), ProcessPriorityToString(aPriority),
+       mContentParent);
+
   if (!mContentParent || mPriority == aPriority) {
     return;
   }
-
-  LOGP("Changing priority from %s to %s.", ProcessPriorityToString(mPriority),
-       ProcessPriorityToString(aPriority));
 
   PROFILER_MARKER(
       "Subprocess Priority", OTHER,
@@ -811,14 +825,14 @@ void ParticularProcessPriorityManager::SetPriorityNow(
                                    ProcessPriorityToString(mPriority));
 }
 
-void ParticularProcessPriorityManager::ActivityChanged(
-    BrowserParent* aBrowserParent, bool aIsActive) {
+void ParticularProcessPriorityManager::BrowserPriorityChanged(
+    BrowserParent* aBrowserParent, bool aPriority) {
   MOZ_ASSERT(aBrowserParent);
 
-  if (!aIsActive) {
-    mActiveBrowserParents.Remove(aBrowserParent->GetTabId());
+  if (!aPriority) {
+    mHighPriorityBrowserParents.Remove(aBrowserParent->GetTabId());
   } else {
-    mActiveBrowserParents.Insert(aBrowserParent->GetTabId());
+    mHighPriorityBrowserParents.Insert(aBrowserParent->GetTabId());
   }
 
   ResetPriority();
@@ -968,16 +982,16 @@ bool ProcessPriorityManager::CurrentProcessIsForeground() {
 }
 
 /* static */
-void ProcessPriorityManager::ActivityChanged(CanonicalBrowsingContext* aBC,
-                                             bool aIsActive) {
+void ProcessPriorityManager::BrowserPriorityChanged(
+    CanonicalBrowsingContext* aBC, bool aPriority) {
   if (auto* singleton = ProcessPriorityManagerImpl::GetSingleton()) {
-    singleton->ActivityChanged(aBC, aIsActive);
+    singleton->BrowserPriorityChanged(aBC, aPriority);
   }
 }
 
 /* static */
-void ProcessPriorityManager::ActivityChanged(BrowserParent* aBrowserParent,
-                                             bool aIsActive) {
+void ProcessPriorityManager::BrowserPriorityChanged(
+    BrowserParent* aBrowserParent, bool aPriority) {
   MOZ_ASSERT(aBrowserParent);
 
   ProcessPriorityManagerImpl* singleton =
@@ -985,8 +999,7 @@ void ProcessPriorityManager::ActivityChanged(BrowserParent* aBrowserParent,
   if (!singleton) {
     return;
   }
-
-  singleton->ActivityChanged(aBrowserParent, aIsActive);
+  singleton->BrowserPriorityChanged(aBrowserParent, aPriority);
 }
 
 /* static */

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
+"use strict";
+
 add_task(async function() {
   const dbg = await initDebugger("doc-pause-points.html", "pause-points.js");
   await selectSource(dbg, "pause-points.js");
@@ -13,7 +15,12 @@ add_task(async function() {
   await waitForInlinePreviews(dbg);
 
   await continueToLine(dbg, 31);
-  assertDebugLine(dbg, 31, 4);
+  assertPausedAtSourceAndLine(
+    dbg,
+    findSource(dbg, "pause-points.js").id,
+    31,
+    4
+  );
   await resume(dbg);
 
   info("Test continuing to a column");
@@ -22,7 +29,12 @@ add_task(async function() {
   await waitForInlinePreviews(dbg);
 
   await continueToColumn(dbg, { line: 31, ch: 7 });
-  assertDebugLine(dbg, 31, 4);
+  assertPausedAtSourceAndLine(
+    dbg,
+    findSource(dbg, "pause-points.js").id,
+    31,
+    4
+  );
   await resume(dbg);
 });
 

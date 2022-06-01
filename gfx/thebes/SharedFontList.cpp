@@ -105,11 +105,11 @@ Family::Family(FontList* aList, const InitData& aData)
 
 class SetCharMapRunnable : public mozilla::Runnable {
  public:
-  SetCharMapRunnable(uint32_t aListGeneration, Face* aFace,
+  SetCharMapRunnable(uint32_t aListGeneration, Pointer aFacePtr,
                      gfxCharacterMap* aCharMap)
       : Runnable("SetCharMapRunnable"),
         mListGeneration(aListGeneration),
-        mFace(aFace),
+        mFacePtr(aFacePtr),
         mCharMap(aCharMap) {}
 
   NS_IMETHOD Run() override {
@@ -117,26 +117,26 @@ class SetCharMapRunnable : public mozilla::Runnable {
     if (!list || list->GetGeneration() != mListGeneration) {
       return NS_OK;
     }
-    dom::ContentChild::GetSingleton()->SendSetCharacterMap(
-        mListGeneration, list->ToSharedPointer(mFace), *mCharMap);
+    dom::ContentChild::GetSingleton()->SendSetCharacterMap(mListGeneration,
+                                                           mFacePtr, *mCharMap);
     return NS_OK;
   }
 
  private:
   uint32_t mListGeneration;
-  Face* mFace;
+  Pointer mFacePtr;
   RefPtr<gfxCharacterMap> mCharMap;
 };
 
 void Face::SetCharacterMap(FontList* aList, gfxCharacterMap* aCharMap) {
   if (!XRE_IsParentProcess()) {
+    Pointer ptr = aList->ToSharedPointer(this);
     if (NS_IsMainThread()) {
-      Pointer ptr = aList->ToSharedPointer(this);
       dom::ContentChild::GetSingleton()->SendSetCharacterMap(
           aList->GetGeneration(), ptr, *aCharMap);
     } else {
       NS_DispatchToMainThread(
-          new SetCharMapRunnable(aList->GetGeneration(), this, aCharMap));
+          new SetCharMapRunnable(aList->GetGeneration(), ptr, aCharMap));
     }
     return;
   }
@@ -908,9 +908,8 @@ void FontList::SetFamilyNames(nsTArray<Family::InitData>& aFamilies) {
   // that has the same name as a system-installed one); in this case we keep
   // the bundled one as it will always be exposed.
   if (count > 1) {
-    const nsCString* prevKey = &aFamilies[0].mKey;
     for (size_t i = 1; i < count; ++i) {
-      if (aFamilies[i].mKey.Equals(*prevKey)) {
+      if (aFamilies[i].mKey.Equals(aFamilies[i - 1].mKey)) {
         // Decide whether to discard the current entry or the preceding one
         size_t discard =
             aFamilies[i].mBundled && !aFamilies[i - 1].mBundled ? i - 1 : i;
@@ -1116,6 +1115,7 @@ Family* FontList::FindFamily(const nsCString& aName, bool aPrimaryNameOnly) {
   // the "real" family names will have been found in AliasFamilies() above.
   if (aName.Contains(' ')) {
     auto pfl = gfxPlatformFontList::PlatformFontList();
+    pfl->mLock.AssertCurrentThreadIn();
     if (header.mAliasCount) {
       // Aliases have been fully loaded by the parent process, so just discard
       // any stray mAliasTable and mLocalNameTable entries from earlier calls

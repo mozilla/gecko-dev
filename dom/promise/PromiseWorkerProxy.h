@@ -24,8 +24,7 @@ namespace JS {
 class CloneDataPolicy;
 }  // namespace JS
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class ThreadSafeWorkerRef;
 class WorkerPrivate;
@@ -117,7 +116,8 @@ class WorkerPrivate;
 // references to it are dropped.
 
 class PromiseWorkerProxy : public PromiseNativeHandler,
-                           public StructuredCloneHolderBase {
+                           public StructuredCloneHolderBase,
+                           public SingleWriterLockOwner {
   friend class PromiseWorkerProxyRunnable;
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -130,7 +130,9 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
   typedef bool (*WriteCallbackOp)(JSContext* aCx,
                                   JSStructuredCloneWriter* aWorker,
                                   PromiseWorkerProxy* aProxy,
-                                  JS::HandleObject aObj);
+                                  JS::Handle<JSObject*> aObj);
+
+  bool OnWritingThread() const override;
 
   struct PromiseWorkerProxyStructuredCloneCallbacks {
     ReadCallbackOp Read;
@@ -144,7 +146,7 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
   // Main thread callers must hold Lock() and check CleanUp() before calling
   // this. Worker thread callers, this will assert that the proxy has not been
   // cleaned up.
-  WorkerPrivate* GetWorkerPrivate() const;
+  WorkerPrivate* GetWorkerPrivate() const NO_THREAD_SAFETY_ANALYSIS;
 
   // This should only be used within WorkerRunnable::WorkerRun() running on the
   // worker thread! Do not call this after calling CleanUp().
@@ -156,9 +158,9 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
   // 2. WorkerPromise() will crash!
   void CleanUp();
 
-  Mutex& Lock() { return mCleanUpLock; }
+  Mutex& Lock() RETURN_CAPABILITY(mCleanUpLock) { return mCleanUpLock; }
 
-  bool CleanedUp() const {
+  bool CleanedUp() const REQUIRES(mCleanUpLock) {
     mCleanUpLock.AssertCurrentThreadOwns();
     return mCleanedUp;
   }
@@ -202,14 +204,16 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
   // Modified on the worker thread.
   // It is ok to *read* this without a lock on the worker.
   // Main thread must always acquire a lock.
-  bool mCleanedUp;  // To specify if the cleanUp() has been done.
+  bool mCleanedUp
+      GUARDED_BY(mCleanUpLock);  // To specify if the cleanUp() has been done.
 
   const PromiseWorkerProxyStructuredCloneCallbacks* mCallbacks;
 
   // Ensure the worker and the main thread won't race to access |mCleanedUp|.
+  // Should be a MutexSingleWriter, but that causes a lot of issues when you
+  // expose the lock via Lock().
   Mutex mCleanUpLock;
 };
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_PromiseWorkerProxy_h

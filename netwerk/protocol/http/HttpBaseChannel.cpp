@@ -15,6 +15,7 @@
 #include "HttpLog.h"
 #include "LoadInfo.h"
 #include "ReferrerInfo.h"
+#include "mozIRemoteLazyInputStream.h"
 #include "mozIThirdPartyUtil.h"
 #include "mozilla/AntiTrackingUtils.h"
 #include "mozilla/BasePrincipal.h"
@@ -35,14 +36,16 @@
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/nsHTTPSOnlyUtils.h"
+#include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/dom/Performance.h"
 #include "mozilla/dom/PerformanceStorage.h"
 #include "mozilla/dom/ProcessIsolation.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/net/OpaqueResponseUtils.h"
-#include "mozilla/net/PartiallySeekableInputStream.h"
 #include "mozilla/net/UrlClassifierCommon.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
+#include "nsBufferedStreams.h"
+#include "nsCOMPtr.h"
 #include "nsCRT.h"
 #include "nsContentSecurityManager.h"
 #include "nsContentSecurityUtils.h"
@@ -65,6 +68,7 @@
 #include "nsIHttpHeaderVisitor.h"
 #include "nsILoadGroupChild.h"
 #include "nsIMIMEInputStream.h"
+#include "nsIMultiplexInputStream.h"
 #include "nsIMutableArray.h"
 #include "nsINetworkInterceptController.h"
 #include "nsIObserverService.h"
@@ -92,7 +96,6 @@
 #include "nsThreadUtils.h"
 #include "nsURLHelper.h"
 #include "mozilla/RemoteLazyInputStreamChild.h"
-#include "mozilla/RemoteLazyInputStreamUtils.h"
 #include "mozilla/net/SFVService.h"
 #include "mozilla/dom/ContentChild.h"
 #include "nsQueryObject.h"
@@ -196,7 +199,7 @@ HttpBaseChannel::HttpBaseChannel()
       mFlashPluginState(nsIHttpChannel::FlashPluginUnknown),
       mLoadFlags(LOAD_NORMAL),
       mCaps(0),
-      mClassOfService(0),
+      mClassOfService(0, false),
       mTlsFlags(0),
       mSuspendCount(0),
       mInitialRwin(0),
@@ -319,6 +322,12 @@ void HttpBaseChannel::SetFlashPluginState(
   mFlashPluginState = aState;
 }
 
+static bool isSecureOrTrustworthyURL(nsIURI* aURI) {
+  return aURI->SchemeIs("https") ||
+         (StaticPrefs::network_http_encoding_trustworthy_is_https() &&
+          nsMixedContentBlocker::IsPotentiallyTrustworthyLoopbackURL(aURI));
+}
+
 nsresult HttpBaseChannel::Init(nsIURI* aURI, uint32_t aCaps,
                                nsProxyInfo* aProxyInfo,
                                uint32_t aProxyResolveFlags, nsIURI* aProxyURI,
@@ -339,7 +348,7 @@ nsresult HttpBaseChannel::Init(nsIURI* aURI, uint32_t aCaps,
   // Construct connection info object
   nsAutoCString host;
   int32_t port = -1;
-  bool isHTTPS = mURI->SchemeIs("https");
+  bool isHTTPS = isSecureOrTrustworthyURL(mURI);
 
   nsresult rv = mURI->GetAsciiHost(host);
   if (NS_FAILED(rv)) return rv;
@@ -860,13 +869,32 @@ HttpBaseChannel::SetUploadStream(nsIInputStream* stream,
   // So we need special case for GET method.
   StoreUploadStreamHasHeaders(false);
   mRequestHead.SetMethod("GET"_ns);  // revert to GET request
-  mUploadStream = stream;
+  mUploadStream = nullptr;
   return NS_OK;
 }
 
 namespace {
 
-void CopyComplete(void* aClosure, nsresult aStatus) {
+class MIMEHeaderCopyVisitor final : public nsIHttpHeaderVisitor {
+ public:
+  explicit MIMEHeaderCopyVisitor(nsIMIMEInputStream* aDest) : mDest(aDest) {}
+
+  NS_DECL_ISUPPORTS
+  NS_IMETHOD VisitHeader(const nsACString& aName,
+                         const nsACString& aValue) override {
+    return mDest->AddHeader(PromiseFlatCString(aName).get(),
+                            PromiseFlatCString(aValue).get());
+  }
+
+ private:
+  ~MIMEHeaderCopyVisitor() = default;
+
+  nsCOMPtr<nsIMIMEInputStream> mDest;
+};
+
+NS_IMPL_ISUPPORTS(MIMEHeaderCopyVisitor, nsIHttpHeaderVisitor)
+
+static void NormalizeCopyComplete(void* aClosure, nsresult aStatus) {
 #ifdef DEBUG
   // Called on the STS thread by NS_AsyncCopy
   nsCOMPtr<nsIEventTarget> sts =
@@ -876,108 +904,230 @@ void CopyComplete(void* aClosure, nsresult aStatus) {
   MOZ_ASSERT(result, "Should only be called on the STS thread.");
 #endif
 
-  auto* channel = static_cast<HttpBaseChannel*>(aClosure);
-  channel->OnCopyComplete(aStatus);
+  RefPtr<GenericPromise::Private> ready =
+      already_AddRefed(static_cast<GenericPromise::Private*>(aClosure));
+  if (NS_SUCCEEDED(aStatus)) {
+    ready->Resolve(true, __func__);
+  } else {
+    ready->Reject(aStatus, __func__);
+  }
 }
 
-}  // anonymous namespace
+// Normalize the upload stream for a HTTP channel, so that is one of the
+// expected and compatible types. Components like WebExtensions and DevTools
+// expect that upload streams in the parent process are cloneable, seekable, and
+// synchronous to read, which this function helps guarantee somewhat efficiently
+// and without loss of information.
+//
+// If the replacement stream outparameter is not initialized to `nullptr`, the
+// returned stream should be used instead of `aUploadStream` as the upload
+// stream for the HTTP channel, and the previous stream should not be touched
+// again.
+//
+// If aReadyPromise is non-nullptr after the function is called, it is a promise
+// which should be awaited before continuing to `AsyncOpen` the HTTP channel,
+// as the replacement stream will not be ready until it is resolved.
+static nsresult NormalizeUploadStream(nsIInputStream* aUploadStream,
+                                      nsIInputStream** aReplacementStream,
+                                      GenericPromise** aReadyPromise) {
+  MOZ_ASSERT(XRE_IsParentProcess());
 
-NS_IMETHODIMP
-HttpBaseChannel::EnsureUploadStreamIsCloneable(nsIRunnable* aCallback) {
-  MOZ_ASSERT(NS_IsMainThread(), "Should only be called on the main thread.");
-  NS_ENSURE_ARG_POINTER(aCallback);
+  *aReplacementStream = nullptr;
+  *aReadyPromise = nullptr;
 
-  // We could in theory allow multiple callers to use this method,
-  // but the complexity does not seem worth it yet.  Just fail if
-  // this is called more than once simultaneously.
-  NS_ENSURE_FALSE(mUploadCloneableCallback, NS_ERROR_UNEXPECTED);
+  // Unwrap RemoteLazyInputStream and normalize the contents as we're in the
+  // parent process.
+  if (nsCOMPtr<mozIRemoteLazyInputStream> lazyStream =
+          do_QueryInterface(aUploadStream)) {
+    nsCOMPtr<nsIInputStream> internal;
+    if (NS_SUCCEEDED(
+            lazyStream->TakeInternalStream(getter_AddRefs(internal)))) {
+      nsCOMPtr<nsIInputStream> replacement;
+      nsresult rv = NormalizeUploadStream(internal, getter_AddRefs(replacement),
+                                          aReadyPromise);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-  // We can immediately exec the callback if we don't have an upload stream.
-  if (!mUploadStream) {
-    aCallback->Run();
+      if (replacement) {
+        replacement.forget(aReplacementStream);
+      } else {
+        internal.forget(aReplacementStream);
+      }
+      return NS_OK;
+    }
+  }
+
+  // Preserve MIME information on the stream when normalizing.
+  if (nsCOMPtr<nsIMIMEInputStream> mime = do_QueryInterface(aUploadStream)) {
+    nsCOMPtr<nsIInputStream> data;
+    nsresult rv = mime->GetData(getter_AddRefs(data));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIInputStream> replacement;
+    rv =
+        NormalizeUploadStream(data, getter_AddRefs(replacement), aReadyPromise);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (replacement) {
+      nsCOMPtr<nsIMIMEInputStream> replacementMime(
+          do_CreateInstance("@mozilla.org/network/mime-input-stream;1", &rv));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<nsIHttpHeaderVisitor> visitor =
+          new MIMEHeaderCopyVisitor(replacementMime);
+      rv = mime->VisitHeaders(visitor);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = replacementMime->SetData(replacement);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      replacementMime.forget(aReplacementStream);
+    }
     return NS_OK;
   }
 
-  // Upload nsIInputStream must be cloneable and seekable in order to be
-  // processed by devtools network inspector.
-  nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mUploadStream);
-  if (seekable && NS_InputStreamIsCloneable(mUploadStream)) {
-    aCallback->Run();
+  // Preserve "real" buffered input streams which wrap data (i.e. are backed by
+  // nsBufferedInputStream), but normalize the wrapped stream.
+  if (nsCOMPtr<nsIBufferedInputStream> buffered =
+          do_QueryInterface(aUploadStream)) {
+    nsCOMPtr<nsIInputStream> data;
+    if (NS_SUCCEEDED(buffered->GetData(getter_AddRefs(data)))) {
+      nsCOMPtr<nsIInputStream> replacement;
+      nsresult rv = NormalizeUploadStream(data, getter_AddRefs(replacement),
+                                          aReadyPromise);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (replacement) {
+        // This buffer size should be kept in sync with HTMLFormSubmission.
+        rv = NS_NewBufferedInputStream(aReplacementStream, replacement.forget(),
+                                       8192);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+      return NS_OK;
+    }
+  }
+
+  // Preserve multiplex input streams, normalizing each individual inner stream
+  // to avoid unnecessary copying.
+  if (nsCOMPtr<nsIMultiplexInputStream> multiplex =
+          do_QueryInterface(aUploadStream)) {
+    uint32_t count = multiplex->GetCount();
+    nsTArray<nsCOMPtr<nsIInputStream>> streams(count);
+    nsTArray<RefPtr<GenericPromise>> promises(count);
+    bool replace = false;
+    for (uint32_t i = 0; i < count; ++i) {
+      nsCOMPtr<nsIInputStream> inner;
+      nsresult rv = multiplex->GetStream(i, getter_AddRefs(inner));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      RefPtr<GenericPromise> promise;
+      nsCOMPtr<nsIInputStream> replacement;
+      rv = NormalizeUploadStream(inner, getter_AddRefs(replacement),
+                                 getter_AddRefs(promise));
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (promise) {
+        promises.AppendElement(promise);
+      }
+      if (replacement) {
+        streams.AppendElement(replacement);
+        replace = true;
+      } else {
+        streams.AppendElement(inner);
+      }
+    }
+
+    // If any of the inner streams needed to be replaced, replace the entire
+    // nsIMultiplexInputStream.
+    if (replace) {
+      nsresult rv;
+      nsCOMPtr<nsIMultiplexInputStream> replacement =
+          do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1", &rv);
+      NS_ENSURE_SUCCESS(rv, rv);
+      for (auto& stream : streams) {
+        rv = replacement->AppendStream(stream);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      MOZ_ALWAYS_SUCCEEDS(CallQueryInterface(replacement, aReplacementStream));
+    }
+
+    // Wait for all inner promises to settle before resolving the final promise.
+    if (!promises.IsEmpty()) {
+      RefPtr<GenericPromise> ready =
+          GenericPromise::AllSettled(GetCurrentSerialEventTarget(), promises)
+              ->Then(GetCurrentSerialEventTarget(), __func__,
+                     [](GenericPromise::AllSettledPromiseType::
+                            ResolveOrRejectValue&& aResults)
+                         -> RefPtr<GenericPromise> {
+                       MOZ_ASSERT(aResults.IsResolve(),
+                                  "AllSettled never rejects");
+                       for (auto& result : aResults.ResolveValue()) {
+                         if (result.IsReject()) {
+                           return GenericPromise::CreateAndReject(
+                               result.RejectValue(), __func__);
+                         }
+                       }
+                       return GenericPromise::CreateAndResolve(true, __func__);
+                     });
+      ready.forget(aReadyPromise);
+    }
     return NS_OK;
   }
+
+  // If the stream is cloneable, seekable and non-async, we can allow it.  Async
+  // input streams can cause issues, as various consumers of input streams
+  // expect the payload to be synchronous and `Available()` to be the length of
+  // the stream, which is not true for asynchronous streams.
+  nsCOMPtr<nsIAsyncInputStream> async = do_QueryInterface(aUploadStream);
+  nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(aUploadStream);
+  if (NS_InputStreamIsCloneable(aUploadStream) && seekable && !async) {
+    return NS_OK;
+  }
+
+  // Asynchronously copy our non-normalized stream into a StorageStream so that
+  // it is seekable, cloneable, and synchronous once the copy completes.
+
+  NS_WARNING("Upload Stream is being copied into StorageStream");
 
   nsCOMPtr<nsIStorageStream> storageStream;
   nsresult rv =
       NS_NewStorageStream(4096, UINT32_MAX, getter_AddRefs(storageStream));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIInputStream> newUploadStream;
-  rv = storageStream->NewInputStream(0, getter_AddRefs(newUploadStream));
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsCOMPtr<nsIOutputStream> sink;
   rv = storageStream->GetOutputStream(0, getter_AddRefs(sink));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIInputStream> source;
-  if (NS_InputStreamIsBuffered(mUploadStream)) {
-    source = mUploadStream;
-  } else {
-    rv = NS_NewBufferedInputStream(getter_AddRefs(source),
-                                   mUploadStream.forget(), 4096);
+  nsCOMPtr<nsIInputStream> replacementStream;
+  rv = storageStream->NewInputStream(0, getter_AddRefs(replacementStream));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Ensure the source stream is buffered before starting the copy so we can use
+  // ReadSegments, as nsStorageStream doesn't implement WriteSegments.
+  nsCOMPtr<nsIInputStream> source = aUploadStream;
+  if (!NS_InputStreamIsBuffered(aUploadStream)) {
+    nsCOMPtr<nsIInputStream> bufferedSource;
+    rv = NS_NewBufferedInputStream(getter_AddRefs(bufferedSource),
+                                   source.forget(), 4096);
     NS_ENSURE_SUCCESS(rv, rv);
+    source = bufferedSource.forget();
   }
 
+  // Perform an AsyncCopy into the input stream on the STS.
   nsCOMPtr<nsIEventTarget> target =
       do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
-
-  mUploadCloneableCallback = aCallback;
-
-  rv = NS_AsyncCopy(source, sink, target, NS_ASYNCCOPY_VIA_READSEGMENTS,
-                    4096,  // copy segment size
-                    CopyComplete, this);
+  RefPtr<GenericPromise::Private> ready = new GenericPromise::Private(__func__);
+  rv = NS_AsyncCopy(source, sink, target, NS_ASYNCCOPY_VIA_READSEGMENTS, 4096,
+                    NormalizeCopyComplete, do_AddRef(ready).take());
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    mUploadCloneableCallback = nullptr;
+    ready.get()->Release();
     return rv;
   }
 
-  // Since we're consuming the old stream, replace it with the new
-  // stream immediately.
-  mUploadStream = newUploadStream;
-
-  // Explicity hold the stream alive until copying is complete.  This will
-  // be released in EnsureUploadStreamIsCloneableComplete().
-  AddRef();
-
+  replacementStream.forget(aReplacementStream);
+  ready.forget(aReadyPromise);
   return NS_OK;
 }
 
-void HttpBaseChannel::OnCopyComplete(nsresult aStatus) {
-  // Assert in parent process because we don't have to label the runnable
-  // in parent process.
-  MOZ_ASSERT(XRE_IsParentProcess());
-
-  nsCOMPtr<nsIRunnable> runnable = NewRunnableMethod<nsresult>(
-      "net::HttpBaseChannel::EnsureUploadStreamIsCloneableComplete", this,
-      &HttpBaseChannel::EnsureUploadStreamIsCloneableComplete, aStatus);
-  NS_DispatchToMainThread(runnable.forget());
-}
-
-void HttpBaseChannel::EnsureUploadStreamIsCloneableComplete(nsresult aStatus) {
-  MOZ_ASSERT(NS_IsMainThread(), "Should only be called on the main thread.");
-  MOZ_ASSERT(mUploadCloneableCallback);
-
-  if (NS_SUCCEEDED(mStatus)) {
-    mStatus = aStatus;
-  }
-
-  mUploadCloneableCallback->Run();
-  mUploadCloneableCallback = nullptr;
-
-  // Release the reference we grabbed in EnsureUploadStreamIsCloneable() now
-  // that the copying is complete.
-  Release();
-}
+}  // anonymous namespace
 
 NS_IMETHODIMP
 HttpBaseChannel::CloneUploadStream(int64_t* aContentLength,
@@ -985,6 +1135,11 @@ HttpBaseChannel::CloneUploadStream(int64_t* aContentLength,
   NS_ENSURE_ARG_POINTER(aContentLength);
   NS_ENSURE_ARG_POINTER(aClonedStream);
   *aClonedStream = nullptr;
+
+  if (!XRE_IsParentProcess()) {
+    NS_WARNING("CloneUploadStream is only supported in the parent process");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   if (!mUploadStream) {
     return NS_OK;
@@ -1035,45 +1190,91 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream* aStream,
 
   StoreUploadStreamHasHeaders(aStreamHasHeaders);
 
-  nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(aStream);
-  if (!seekable) {
-    nsCOMPtr<nsIInputStream> stream = aStream;
-    seekable = new PartiallySeekableInputStream(stream.forget());
-  }
+  return InternalSetUploadStream(aStream, aContentLength, !aStreamHasHeaders);
+}
 
-  mUploadStream = do_QueryInterface(seekable);
+nsresult HttpBaseChannel::InternalSetUploadStream(
+    nsIInputStream* aUploadStream, int64_t aContentLength,
+    bool aSetContentLengthHeader) {
+  // If we're not on the main thread, such as for TRR, the content length must
+  // be provided, as we can't normalize our upload stream.
+  if (!NS_IsMainThread()) {
+    if (aContentLength < 0) {
+      MOZ_ASSERT_UNREACHABLE(
+          "Upload content length must be explicit off-main-thread");
+      return NS_ERROR_INVALID_ARG;
+    }
 
-  if (aContentLength >= 0) {
-    ExplicitSetUploadStreamLength(aContentLength, aStreamHasHeaders);
+    nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(aUploadStream);
+    if (!NS_InputStreamIsCloneable(aUploadStream) || !seekable) {
+      MOZ_ASSERT_UNREACHABLE(
+          "Upload stream must be cloneable & seekable off-main-thread");
+      return NS_ERROR_INVALID_ARG;
+    }
+
+    mUploadStream = aUploadStream;
+    ExplicitSetUploadStreamLength(aContentLength, aSetContentLengthHeader);
     return NS_OK;
   }
 
-  // Sync access to the stream length.
-  int64_t length;
-  if (InputStreamLengthHelper::GetSyncLength(aStream, &length)) {
-    ExplicitSetUploadStreamLength(length >= 0 ? length : 0, aStreamHasHeaders);
-    return NS_OK;
+  // Normalize the upload stream we're provided to ensure that it is cloneable,
+  // seekable, and synchronous when in the parent process.
+  //
+  // This might be an async operation, in which case ready will be returned and
+  // resolved when the operation is complete.
+  nsCOMPtr<nsIInputStream> replacement;
+  RefPtr<GenericPromise> ready;
+  if (XRE_IsParentProcess()) {
+    nsresult rv = NormalizeUploadStream(
+        aUploadStream, getter_AddRefs(replacement), getter_AddRefs(ready));
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  // Let's resolve the size of the stream.
-  RefPtr<HttpBaseChannel> self = this;
-  InputStreamLengthHelper::GetAsyncLength(
-      aStream, [self, aStreamHasHeaders](int64_t aLength) {
-        self->StorePendingInputStreamLengthOperation(false);
-        self->ExplicitSetUploadStreamLength(aLength >= 0 ? aLength : 0,
-                                            aStreamHasHeaders);
-        self->MaybeResumeAsyncOpen();
-      });
-  StorePendingInputStreamLengthOperation(true);
+  mUploadStream = replacement ? replacement.get() : aUploadStream;
+
+  // Once the upload stream is ready, fetch its length before proceeding with
+  // AsyncOpen.
+  auto onReady = [self = RefPtr{this}, aContentLength, aSetContentLengthHeader,
+                  stream = mUploadStream]() {
+    auto setLengthAndResume = [self, aSetContentLengthHeader](int64_t aLength) {
+      self->StorePendingUploadStreamNormalization(false);
+      self->ExplicitSetUploadStreamLength(aLength >= 0 ? aLength : 0,
+                                          aSetContentLengthHeader);
+      self->MaybeResumeAsyncOpen();
+    };
+
+    if (aContentLength >= 0) {
+      setLengthAndResume(aContentLength);
+      return;
+    }
+
+    int64_t length;
+    if (InputStreamLengthHelper::GetSyncLength(stream, &length)) {
+      setLengthAndResume(length);
+      return;
+    }
+
+    InputStreamLengthHelper::GetAsyncLength(stream, setLengthAndResume);
+  };
+  StorePendingUploadStreamNormalization(true);
+
+  // Resolve onReady synchronously unless a promise is returned.
+  if (ready) {
+    ready->Then(GetCurrentSerialEventTarget(), __func__,
+                [onReady = std::move(onReady)](
+                    GenericPromise::ResolveOrRejectValue&&) { onReady(); });
+  } else {
+    onReady();
+  }
   return NS_OK;
 }
 
-void HttpBaseChannel::ExplicitSetUploadStreamLength(uint64_t aContentLength,
-                                                    bool aStreamHasHeaders) {
+void HttpBaseChannel::ExplicitSetUploadStreamLength(
+    uint64_t aContentLength, bool aSetContentLengthHeader) {
   // We already have the content length. We don't need to determinate it.
   mReqContentLength = aContentLength;
 
-  if (aStreamHasHeaders) {
+  if (!aSetContentLengthHeader) {
     return;
   }
 
@@ -1102,33 +1303,33 @@ HttpBaseChannel::GetUploadStreamHasHeaders(bool* hasHeaders) {
   return NS_OK;
 }
 
-bool HttpBaseChannel::MaybeWaitForUploadStreamLength(
+bool HttpBaseChannel::MaybeWaitForUploadStreamNormalization(
     nsIStreamListener* aListener, nsISupports* aContext) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!LoadAsyncOpenWaitingForStreamLength(),
+  MOZ_ASSERT(!LoadAsyncOpenWaitingForStreamNormalization(),
              "AsyncOpen() called twice?");
 
-  if (!LoadPendingInputStreamLengthOperation()) {
+  if (!LoadPendingUploadStreamNormalization()) {
     return false;
   }
 
   mListener = aListener;
-  StoreAsyncOpenWaitingForStreamLength(true);
+  StoreAsyncOpenWaitingForStreamNormalization(true);
   return true;
 }
 
 void HttpBaseChannel::MaybeResumeAsyncOpen() {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!LoadPendingInputStreamLengthOperation());
+  MOZ_ASSERT(!LoadPendingUploadStreamNormalization());
 
-  if (!LoadAsyncOpenWaitingForStreamLength()) {
+  if (!LoadAsyncOpenWaitingForStreamNormalization()) {
     return;
   }
 
   nsCOMPtr<nsIStreamListener> listener;
   listener.swap(mListener);
 
-  StoreAsyncOpenWaitingForStreamLength(false);
+  StoreAsyncOpenWaitingForStreamNormalization(false);
 
   nsresult rv = AsyncOpen(listener);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -1254,7 +1455,8 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
       break;
     }
 
-    if (gHttpHandler->IsAcceptableEncoding(val, mURI->SchemeIs("https"))) {
+    if (gHttpHandler->IsAcceptableEncoding(val,
+                                           isSecureOrTrustworthyURL(mURI))) {
       RefPtr<nsHTTPCompressConv> converter = new nsHTTPCompressConv();
       nsAutoCString from(val);
       ToLowerCase(from);
@@ -2620,11 +2822,7 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
       break;
   }
 
-  bool isPrivateWin = aLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
-  bool isSameOrigin = false;
-  aLoadInfo->GetLoadingPrincipal()->IsSameOrigin(aURI, isPrivateWin,
-                                                 &isSameOrigin);
-  if (isSameOrigin) {
+  if (aLoadInfo->GetLoadingPrincipal()->IsSameOrigin(aURI)) {
     // same origin
     AccumulateCategorical(
         Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::same_origin);
@@ -2640,12 +2838,7 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
         nsCOMPtr<nsIURI> corsOriginURI;
         rv = NS_NewURI(getter_AddRefs(corsOriginURI), corsOrigin);
         if (NS_SUCCEEDED(rv)) {
-          bool isPrivateWin =
-              aLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
-          bool isSameOrigin = false;
-          aLoadInfo->GetLoadingPrincipal()->IsSameOrigin(
-              corsOriginURI, isPrivateWin, &isSameOrigin);
-          if (isSameOrigin) {
+          if (aLoadInfo->GetLoadingPrincipal()->IsSameOrigin(corsOriginURI)) {
             cors = true;
           }
         }
@@ -2867,24 +3060,18 @@ bool HttpBaseChannel::EnsureOpaqueResponseIsAllowed() {
     return true;
   }
 
-  InitiateORBTelemetry();
-
   switch (GetOpaqueResponseBlockedReason(*mResponseHead)) {
     case OpaqueResponseBlockedReason::ALLOWED_SAFE_LISTED:
-      ReportORBTelemetry("Allowed_SafeListed"_ns);
       return true;
     case OpaqueResponseBlockedReason::BLOCKED_BLOCKLISTED_NEVER_SNIFFED:
       // XXXtt: Report To Console.
-      ReportORBTelemetry("Blocked_BlockListedNeverSniffed"_ns);
       return false;
     case OpaqueResponseBlockedReason::BLOCKED_206_AND_BLOCKLISTED:
       // XXXtt: Report To Console.
-      ReportORBTelemetry("Blocked_206AndBlockListed"_ns);
       return false;
     case OpaqueResponseBlockedReason::
         BLOCKED_NOSNIFF_AND_EITHER_BLOCKLISTED_OR_TEXTPLAIN:
       // XXXtt: Report To Console.
-      ReportORBTelemetry("Blocked_NosniffAndEitherBlockListedOrTextPlain"_ns);
       return false;
     default:
       break;
@@ -2898,7 +3085,6 @@ bool HttpBaseChannel::EnsureOpaqueResponseIsAllowed() {
     bool isMediaInitialRequest;
     mLoadInfo->GetIsMediaInitialRequest(&isMediaInitialRequest);
     if (!isMediaInitialRequest) {
-      ReportORBTelemetry("Allowed_SubsequentMediaRequest"_ns);
       return true;
     }
   }
@@ -2945,19 +3131,16 @@ HttpBaseChannel::EnsureOpaqueResponseIsAllowedAfterSniff() {
   mLoadInfo->GetIsMediaRequest(&isMediaRequest);
   if (isMediaRequest) {
     // XXXtt: Report To Console.
-    ReportORBTelemetry("Blocked_UnexpectedMediaRequest"_ns);
     return false;
   }
 
   nsAutoCString contentType;
   nsresult rv = GetContentType(contentType);
   if (NS_FAILED(rv)) {
-    ReportORBTelemetry("Blocked_UnexpectedContentType"_ns);
     return Err(rv);
   }
 
   if (!mResponseHead) {
-    ReportORBTelemetry("Allowed_UnexpectedResponseHead"_ns);
     return true;
   }
 
@@ -2965,19 +3148,16 @@ HttpBaseChannel::EnsureOpaqueResponseIsAllowedAfterSniff() {
   if (mResponseHead->GetContentTypeOptionsHeader(contentTypeOptionsHeader) &&
       contentTypeOptionsHeader.EqualsIgnoreCase("nosniff")) {
     // XXXtt: Report To Console.
-    ReportORBTelemetry("Blocked_NoSniffHeaderAfterSniff"_ns);
     return false;
   }
 
   if (mResponseHead->Status() < 200 || mResponseHead->Status() > 299) {
     // XXXtt: Report To Console.
-    ReportORBTelemetry("Blocked_ResponseNotOk"_ns);
     return false;
   }
 
   if (contentType.EqualsLiteral(UNKNOWN_CONTENT_TYPE) ||
       contentType.EqualsLiteral(APPLICATION_OCTET_STREAM)) {
-    ReportORBTelemetry("Allowed_FailtoGetMIMEType"_ns);
     return true;
   }
 
@@ -2985,7 +3165,6 @@ HttpBaseChannel::EnsureOpaqueResponseIsAllowedAfterSniff() {
       StringBeginsWith(contentType, "video/"_ns) ||
       StringBeginsWith(contentType, "audio/"_ns)) {
     // XXXtt: Report To Console.
-    ReportORBTelemetry("Blocked_ContentTypeBeginsWithImageOrVideoOrAudio"_ns);
     return false;
   }
 
@@ -2996,12 +3175,8 @@ HttpBaseChannel::EnsureOpaqueResponseIsAllowedAfterSniff() {
   rv = GetContentLength(&contentLength);
   if (NS_FAILED(rv)) {
     // XXXtt: Report To Console.
-    ReportORBTelemetry("Blocked_GetContentLengthFailed"_ns);
     return false;
   }
-
-  ReportORBTelemetry(contentLength);
-  ReportORBTelemetry("Allowed_NotImplementOrPass"_ns);
 
   return true;
 }
@@ -3343,6 +3518,13 @@ NS_IMETHODIMP
 HttpBaseChannel::GetIsResolvedByTRR(bool* aResolvedByTRR) {
   NS_ENSURE_ARG_POINTER(aResolvedByTRR);
   *aResolvedByTRR = LoadResolvedByTRR();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetIsLoadedBySocketProcess(bool* aResult) {
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = LoadLoadedBySocketProcess();
   return NS_OK;
 }
 
@@ -4185,7 +4367,7 @@ HttpBaseChannel::CloneReplacementChannelConfig(bool aPreserveMethod,
     ReplacementReason aReason) {
   nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(newChannel));
   if (cos) {
-    cos->SetClassFlags(config.classOfService);
+    cos->SetClassOfService(config.classOfService);
   }
 
   // Try to preserve the privacy bit if it has been overridden
@@ -4352,15 +4534,8 @@ HttpBaseChannel::ReplacementChannelConfig::ReplacementChannelConfig(
   method = aInit.method();
   referrerInfo = aInit.referrerInfo();
   timedChannelInfo = aInit.timedChannelInfo();
-  if (RemoteLazyInputStreamChild* actor =
-          static_cast<RemoteLazyInputStreamChild*>(aInit.uploadStreamChild())) {
-    uploadStreamLength = actor->Size();
-    uploadStream = actor->CreateStream();
-    // actor can be deleted by CreateStream, so don't touch it
-    // after this.
-  } else {
-    uploadStreamLength = 0;
-  }
+  uploadStream = aInit.uploadStream();
+  uploadStreamLength = aInit.uploadStreamLength();
   uploadStreamHasHeaders = aInit.uploadStreamHasHeaders();
   contentType = aInit.contentType();
   contentLength = aInit.contentLength();
@@ -4376,12 +4551,9 @@ HttpBaseChannel::ReplacementChannelConfig::Serialize(
   config.method() = method;
   config.referrerInfo() = referrerInfo;
   config.timedChannelInfo() = timedChannelInfo;
-  if (uploadStream) {
-    RemoteLazyStream ipdlStream;
-    RemoteLazyInputStreamUtils::SerializeInputStream(
-        uploadStream, uploadStreamLength, ipdlStream, aParent);
-    config.uploadStreamParent() = ipdlStream;
-  }
+  config.uploadStream() =
+      uploadStream ? RemoteLazyInputStream::WrapStream(uploadStream) : nullptr;
+  config.uploadStreamLength() = uploadStreamLength;
   config.uploadStreamHasHeaders() = uploadStreamHasHeaders;
   config.contentType() = contentType;
   config.contentLength() = contentLength;
@@ -5243,27 +5415,6 @@ void HttpBaseChannel::EnsureTopBrowsingContextId() {
   }
 }
 
-void HttpBaseChannel::InitiateORBTelemetry() {
-  MOZ_ASSERT(!mOpaqueResponseBlockingInfo);
-  MOZ_RELEASE_ASSERT(mLoadInfo);
-
-  mOpaqueResponseBlockingInfo = MakeRefPtr<OpaqueResponseBlockingInfo>(
-      mLoadInfo->GetExternalContentPolicyType());
-}
-
-void HttpBaseChannel::ReportORBTelemetry(const nsCString& aKey) {
-  MOZ_ASSERT(mOpaqueResponseBlockingInfo);
-
-  mOpaqueResponseBlockingInfo->Report(aKey);
-  mOpaqueResponseBlockingInfo = nullptr;
-}
-
-void HttpBaseChannel::ReportORBTelemetry(int64_t aContentLength) {
-  MOZ_ASSERT(mOpaqueResponseBlockingInfo);
-
-  mOpaqueResponseBlockingInfo->ReportContentLength(aContentLength);
-}
-
 void HttpBaseChannel::SetCorsPreflightParameters(
     const nsTArray<nsCString>& aUnsafeHeaders,
     bool aShouldStripRequestBodyHeader) {
@@ -5589,6 +5740,12 @@ HttpBaseChannel::HasCrossOriginOpenerPolicyMismatch(bool* aIsMismatch) {
 }
 
 void HttpBaseChannel::MaybeFlushConsoleReports() {
+  // Flush if we have a known window ID.
+  if (mLoadInfo->GetInnerWindowID() > 0) {
+    FlushReportsToConsole(mLoadInfo->GetInnerWindowID());
+    return;
+  }
+
   // If this channel is part of a loadGroup, we can flush the console reports
   // immediately.
   nsCOMPtr<nsILoadGroup> loadGroup;

@@ -35,7 +35,7 @@ class BufferTextureData : public TextureData {
       const gfx::IntSize& aCbCrSize, uint32_t aCbCrStride,
       StereoMode aStereoMode, gfx::ColorDepth aColorDepth,
       gfx::YUVColorSpace aYUVColorSpace, gfx::ColorRange aColorRange,
-      TextureFlags aTextureFlags);
+      gfx::ChromaSubsampling aSubsampling, TextureFlags aTextureFlags);
 
   bool Lock(OpenMode aMode) override { return true; }
 
@@ -54,8 +54,6 @@ class BufferTextureData : public TextureData {
 
   BufferTextureData* AsBufferTextureData() override { return this; }
 
-  virtual void RestoreOriginalDescriptor() {}
-
   Maybe<gfx::IntSize> GetYSize() const;
 
   Maybe<gfx::IntSize> GetCbCrSize() const;
@@ -69,6 +67,8 @@ class BufferTextureData : public TextureData {
   Maybe<gfx::ColorDepth> GetColorDepth() const;
 
   Maybe<StereoMode> GetStereoMode() const;
+
+  Maybe<gfx::ChromaSubsampling> GetChromaSubsampling() const;
 
   gfx::IntRect GetPictureRect() const;
 

@@ -7,12 +7,11 @@
 
 #include "ipc/WebGPUChild.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
-#include "mozilla/dom/HTMLCanvasElement.h"
+#include "mozilla/webgpu/CanvasContext.h"
 #include "mozilla/dom/WebGPUBinding.h"
 #include "TextureView.h"
 
-namespace mozilla {
-namespace webgpu {
+namespace mozilla::webgpu {
 
 GPU_IMPL_CYCLE_COLLECTION(Texture, mParent)
 GPU_IMPL_JS_WRAP(Texture)
@@ -105,7 +104,12 @@ void Texture::Cleanup() {
 
 already_AddRefed<TextureView> Texture::CreateView(
     const dom::GPUTextureViewDescriptor& aDesc) {
-  RawId id = mParent->GetBridge()->TextureCreateView(mId, mParent->mId, aDesc);
+  auto bridge = mParent->GetBridge();
+  RawId id = 0;
+  if (bridge->IsOpen()) {
+    id = bridge->TextureCreateView(mId, mParent->mId, aDesc);
+  }
+
   RefPtr<TextureView> view = new TextureView(this, id);
   return view.forget();
 }
@@ -115,5 +119,4 @@ void Texture::Destroy() {
   // examples
 }
 
-}  // namespace webgpu
-}  // namespace mozilla
+}  // namespace mozilla::webgpu

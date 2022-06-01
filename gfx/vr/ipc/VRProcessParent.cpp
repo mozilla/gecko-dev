@@ -16,6 +16,7 @@
 #include "mozilla/ipc/ProcessUtils.h"
 #include "mozilla/ipc/ProtocolTypes.h"
 #include "mozilla/ipc/ProtocolUtils.h"  // for IToplevelProtocol
+#include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/TimeStamp.h"  // for TimeStamp
 #include "mozilla/Unused.h"
@@ -42,9 +43,7 @@ VRProcessParent::VRProcessParent(Listener* aListener)
   MOZ_COUNT_CTOR(VRProcessParent);
 }
 
-VRProcessParent::~VRProcessParent() {
-  MOZ_COUNT_DTOR(VRProcessParent);
-}
+VRProcessParent::~VRProcessParent() { MOZ_COUNT_DTOR(VRProcessParent); }
 
 bool VRProcessParent::Launch() {
   MOZ_ASSERT(mLaunchPhase == LaunchPhase::Unlaunched);
@@ -56,9 +55,9 @@ bool VRProcessParent::Launch() {
   std::vector<std::string> extraArgs;
   ProcessChild::AddPlatformBuildID(extraArgs);
 
-  mPrefSerializer = MakeUnique<ipc::SharedPreferenceSerializer>(
-      dom::ContentParent::ShouldSyncPreference);
-  if (!mPrefSerializer->SerializeToSharedMemory()) {
+  mPrefSerializer = MakeUnique<ipc::SharedPreferenceSerializer>();
+  if (!mPrefSerializer->SerializeToSharedMemory(GeckoProcessType_VR,
+                                                /* remoteType */ ""_ns)) {
     return false;
   }
   mPrefSerializer->AddSharedPrefCmdLineArgs(*this, extraArgs);
@@ -156,6 +155,12 @@ bool VRProcessParent::InitAfterConnect(bool aSucceeded) {
       return false;
     }
 
+    if (!StaticPrefs::dom_vr_enabled() &&
+        !StaticPrefs::dom_vr_webxr_enabled()) {
+      NS_WARNING("VR is not enabled when trying to create a VRChild");
+      return false;
+    }
+
     mVRChild = MakeUnique<VRChild>(this);
 
     DebugOnly<bool> rv = mVRChild->Open(
@@ -194,7 +199,7 @@ void VRProcessParent::OnChannelError() {
   MOZ_ASSERT(false, "VR process channel error.");
 }
 
-void VRProcessParent::OnChannelConnected(int32_t peer_pid) {
+void VRProcessParent::OnChannelConnected(base::ProcessId peer_pid) {
   MOZ_ASSERT(!NS_IsMainThread());
 
   GeckoChildProcessHost::OnChannelConnected(peer_pid);

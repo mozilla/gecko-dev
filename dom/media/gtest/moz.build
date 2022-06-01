@@ -29,6 +29,7 @@ UNIFIED_SOURCES += [
     "TestAudioCompactor.cpp",
     "TestAudioDecoderInputTrack.cpp",
     "TestAudioDriftCorrection.cpp",
+    "TestAudioInputSource.cpp",
     "TestAudioMixer.cpp",
     "TestAudioPacketizer.cpp",
     "TestAudioRingBuffer.cpp",
@@ -39,6 +40,7 @@ UNIFIED_SOURCES += [
     "TestBitWriter.cpp",
     "TestBlankVideoDataCreator.cpp",
     "TestBufferReader.cpp",
+    "TestCubebInputStream.cpp",
     "TestDataMutex.cpp",
     "TestDecoderBenchmark.cpp",
     "TestDeviceInputTrack.cpp",
@@ -92,6 +94,7 @@ if CONFIG["MOZ_WEBRTC"] and CONFIG["OS_TARGET"] != "Android":
     ]
 
 TEST_HARNESS_FILES.gtest += [
+    "../test/av1.mp4",
     "../test/gizmo-frag.mp4",
     "../test/gizmo.mp4",
     "../test/vp9cake.webm",

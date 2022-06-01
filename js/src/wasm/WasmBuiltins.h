@@ -122,14 +122,11 @@ enum class SymbolicAddress {
   RttSub,
   PreBarrierFiltering,
   PostBarrier,
+  PostBarrierPrecise,
   PostBarrierFiltering,
   StructNew,
-#if defined(ENABLE_WASM_EXCEPTIONS)
   ExceptionNew,
   ThrowException,
-  ConsumePendingException,
-  PushRefIntoExn,
-#endif
   ArrayNew,
   InlineTypedObjectClass,
 #define DECL_INTRINSIC_SA(op, export, sa_name, abitype, entry, idx) sa_name,
@@ -246,14 +243,11 @@ extern const SymbolicAddressSignature SASigTableSize;
 extern const SymbolicAddressSignature SASigRefFunc;
 extern const SymbolicAddressSignature SASigPreBarrierFiltering;
 extern const SymbolicAddressSignature SASigPostBarrier;
+extern const SymbolicAddressSignature SASigPostBarrierPrecise;
 extern const SymbolicAddressSignature SASigPostBarrierFiltering;
 extern const SymbolicAddressSignature SASigStructNew;
-#ifdef ENABLE_WASM_EXCEPTIONS
 extern const SymbolicAddressSignature SASigExceptionNew;
 extern const SymbolicAddressSignature SASigThrowException;
-extern const SymbolicAddressSignature SASigConsumePendingException;
-extern const SymbolicAddressSignature SASigPushRefIntoExn;
-#endif
 extern const SymbolicAddressSignature SASigArrayNew;
 extern const SymbolicAddressSignature SASigRefTest;
 extern const SymbolicAddressSignature SASigRttSub;
@@ -267,6 +261,7 @@ bool IsRoundingFunction(SymbolicAddress callee, jit::RoundingMode* mode);
 // A SymbolicAddress that NeedsBuiltinThunk() will call through a thunk to the
 // C++ function. This will be true for all normal calls from normal wasm
 // function code. Only calls to C++ from other exits/thunks do not need a thunk.
+// See "The Wasm-builtin ABIs in WasmFrame.h".
 
 bool NeedsBuiltinThunk(SymbolicAddress sym);
 

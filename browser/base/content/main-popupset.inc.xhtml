@@ -46,14 +46,14 @@
       <menupopup id="moveTabOptionsMenu">
         <menuitem id="context_moveToStart"
                   data-lazy-l10n-id="move-to-start"
-                  tbattr="tabbrowser-multiple"
+                  tbattr="tabbrowser-multiple-visible"
                   oncommand="gBrowser.moveTabsToStart(TabContextMenu.contextTab);"/>
         <menuitem id="context_moveToEnd"
                   data-lazy-l10n-id="move-to-end"
-                  tbattr="tabbrowser-multiple"
+                  tbattr="tabbrowser-multiple-visible"
                   oncommand="gBrowser.moveTabsToEnd(TabContextMenu.contextTab);"/>
         <menuitem id="context_openTabInWindow" data-lazy-l10n-id="move-to-new-window"
-                  tbattr="tabbrowser-multiple"
+                  tbattr="tabbrowser-multiple-visible"
                   oncommand="gBrowser.replaceTabsWithWindow(TabContextMenu.contextTab);"/>
       </menupopup>
     </menu>
@@ -335,7 +335,7 @@
   </panel>
 
   <menupopup id="toolbar-context-menu"
-             onpopupshowing="onViewToolbarsPopupShowing(event, document.getElementById('viewToolbarsMenuSeparator')); ToolbarContextMenu.updateDownloadsAutoHide(this); ToolbarContextMenu.updateExtension(this)">
+             onpopupshowing="onViewToolbarsPopupShowing(event, document.getElementById('viewToolbarsMenuSeparator')); ToolbarContextMenu.updateDownloadsAutoHide(this); ToolbarContextMenu.updateDownloadsAlwaysOpenPanel(this); ToolbarContextMenu.updateExtension(this)">
     <menuitem oncommand="ToolbarContextMenu.openAboutAddonsForContextAction(this.parentElement)"
               data-lazy-l10n-id="toolbar-context-menu-manage-extension"
               contexttype="toolbaritem"
@@ -362,6 +362,12 @@
               data-lazy-l10n-id="toolbar-context-menu-remove-from-toolbar"
               contexttype="toolbaritem"
               class="customize-context-removeFromToolbar"/>
+    <menuseparator id="toolbarDownloadsAnchorMenuSeparator"/>
+    <menuitem id="toolbar-context-always-open-downloads-panel"
+              oncommand="ToolbarContextMenu.onDownloadsAlwaysOpenPanelChange(event);"
+              type="checkbox"
+              data-lazy-l10n-id="toolbar-context-menu-always-open-downloads-panel"
+              contexttype="toolbaritem"/>
     <menuitem id="toolbar-context-openANewTab"
               contexttype="tabbar"
               command="cmd_newNavigatorTab"

@@ -6,7 +6,6 @@
 
 #include "Telemetry.h"
 #include "TelemetryEvent.h"
-#include <prtime.h>
 #include <limits>
 #include "ipc/TelemetryIPCAccumulator.h"
 #include "jsapi.h"
@@ -16,7 +15,6 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Unused.h"
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
 #include "nsIObserverService.h"
@@ -676,7 +674,7 @@ nsresult SerializeEventsArray(const EventRecordArray& events, JSContext* cx,
 // that, due to the nature of Telemetry, we cannot rely on having a
 // mutex initialized in InitializeGlobalState. Unfortunately, we
 // cannot make sure that no other function is called before this point.
-static StaticMutex gTelemetryEventsMutex;
+static StaticMutex gTelemetryEventsMutex MOZ_UNANNOTATED;
 
 void TelemetryEvent::InitializeGlobalState(bool aCanRecordBase,
                                            bool aCanRecordExtended) {

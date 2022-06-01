@@ -33,7 +33,9 @@ class MockMozCrash(object):
         with self.marionette.using_context("chrome"):
             self.crash_reporter_enabled = self.marionette.execute_script(
                 """
-                Cu.import("resource://gre/modules/AppConstants.jsm");
+                const { AppConstants } = ChromeUtils.import(
+                  "resource://gre/modules/AppConstants.jsm"
+                );
                 return AppConstants.MOZ_CRASHREPORTER;
             """
             )
@@ -158,9 +160,8 @@ class TestCrash(BaseCrashTestCase):
                 message="Expected IOError exception for content crash not raised.",
             )
 
-        # In the case of a content crash Firefox will be closed and its
-        # returncode will report 0 (this will change with 1370520).
-        self.assertEqual(self.marionette.instance.runner.returncode, 0)
+        # A crash when loading about:crashcontent results in a SIGUSR1 exit code.
+        self.assertEqual(self.marionette.instance.runner.returncode, 245)
 
         self.assertEqual(self.marionette.crashed, 1)
         self.assertIsNone(self.marionette.session)

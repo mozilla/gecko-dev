@@ -344,6 +344,21 @@ class Manager::Factory {
     return !sFactory;
   }
 
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  static void RecordMayNotDeleteCSCP(int32_t aCacheStreamControlParentId) {
+    if (sFactory) {
+      sFactory->mPotentiallyUnreleasedCSCP.AppendElement(
+          aCacheStreamControlParentId);
+    }
+  }
+
+  static void RecordHaveDeletedCSCP(int32_t aCacheStreamControlParentId) {
+    if (sFactory) {
+      sFactory->mPotentiallyUnreleasedCSCP.RemoveElement(
+          aCacheStreamControlParentId);
+    }
+  }
+#endif
   static nsCString GetShutdownStatus() {
     mozilla::ipc::AssertIsOnBackgroundThread();
 
@@ -367,7 +382,12 @@ class Manager::Factory {
         data.AppendLiteral(", ");
       }
 
-      data.AppendLiteral(" )");
+      data.AppendLiteral(" ) ");
+      if (sFactory->mPotentiallyUnreleasedCSCP.Length() > 0) {
+        data.Append(
+            "There have been CSCP instances whose"
+            "Send__delete__ might not have freed them.");
+      }
     }
 
     return data;
@@ -481,6 +501,8 @@ class Manager::Factory {
   // or Shutdown() on each Manager.  We need to be careful not to synchronously
   // trigger the deletion of the factory while still executing this loop.
   bool mInSyncAbortOrShutdown;
+
+  nsTArray<int32_t> mPotentiallyUnreleasedCSCP;
 };
 
 // static
@@ -1079,7 +1101,7 @@ class Manager::CachePutAllAction final : public DBAction {
   nsTArray<nsID> mDeletedBodyIdList;
 
   // accessed from any thread while mMutex locked
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
   nsTArray<nsCOMPtr<nsISupports>> mCopyContextList;
 
   Maybe<CacheDirectoryMetadata> mDirectoryMetadata;
@@ -1559,6 +1581,8 @@ Result<SafeRefPtr<Manager>, nsresult> Manager::AcquireCreateIfNonExistent(
 void Manager::InitiateShutdown() {
   mozilla::ipc::AssertIsOnBackgroundThread();
 
+  Factory::AbortAll();
+
   Factory::ShutdownAll();
 }
 
@@ -1568,6 +1592,16 @@ bool Manager::IsShutdownAllComplete() {
 
   return Factory::IsShutdownAllComplete();
 }
+
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+void Manager::RecordMayNotDeleteCSCP(int32_t aCacheStreamControlParentId) {
+  Factory::RecordMayNotDeleteCSCP(aCacheStreamControlParentId);
+}
+
+void Manager::RecordHaveDeletedCSCP(int32_t aCacheStreamControlParentId) {
+  Factory::RecordHaveDeletedCSCP(aCacheStreamControlParentId);
+}
+#endif
 
 // static
 nsCString Manager::GetShutdownStatus() {

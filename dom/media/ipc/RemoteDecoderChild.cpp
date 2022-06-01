@@ -28,6 +28,7 @@ void RemoteDecoderChild::HandleRejectionError(
   // be rejected with SendError rather than ActorDestroyed. Both means the same
   // thing and we can consider that the parent has crashed. The child can no
   // longer be used.
+  //
 
   // The GPU/RDD process crashed.
   if (mLocation == RemoteDecodeIn::GpuProcess) {
@@ -40,22 +41,30 @@ void RemoteDecoderChild::HandleRejectionError(
     GetManager()->RunWhenGPUProcessRecreated(NS_NewRunnableFunction(
         "RemoteDecoderChild::HandleRejectionError",
         [self, callback = std::move(aCallback)]() {
-          MediaResult error(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER, __func__);
+          MediaResult error(
+              NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR,
+              __func__);
           callback(error);
         }));
     return;
   }
+
+  nsresult err = ((mLocation == RemoteDecodeIn::GpuProcess) ||
+                  (mLocation == RemoteDecodeIn::RddProcess))
+                     ? NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR
+                     : NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR;
   // The RDD process is restarted on demand and asynchronously, we can
   // immediately inform the caller that a new decoder is needed. The RDD will
-  // then be restarted during the new decoder creation.
-  aCallback(MediaResult(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER, __func__));
+  // then be restarted during the new decoder creation by
+  aCallback(MediaResult(err, __func__));
 }
 
 // ActorDestroy is called if the channel goes down while waiting for a response.
 void RemoteDecoderChild::ActorDestroy(ActorDestroyReason aWhy) {
+  mRemoteDecoderCrashed = (aWhy == AbnormalShutdown);
   mDecodedData.Clear();
   CleanupShmemRecycleAllocator();
-  RecordShutdownTelemetry(aWhy == AbnormalShutdown);
+  RecordShutdownTelemetry(mRemoteDecoderCrashed);
 }
 
 void RemoteDecoderChild::DestroyIPDL() {
@@ -77,6 +86,8 @@ void RemoteDecoderChild::IPDLActorDestroyed() { mIPDLSelfRef = nullptr; }
 RefPtr<MediaDataDecoder::InitPromise> RemoteDecoderChild::Init() {
   AssertOnManagerThread();
 
+  mRemoteDecoderCrashed = false;
+
   RefPtr<RemoteDecoderChild> self = this;
   SendInit()
       ->Then(
@@ -90,7 +101,9 @@ RefPtr<MediaDataDecoder::InitPromise> RemoteDecoderChild::Init() {
             const auto& initResponse = aResponse.get_InitCompletionIPDL();
             mDescription =
                 initResponse.decoderDescription() +
-                (GetManager()->Location() == RemoteDecodeIn::RddProcess
+                (GetManager()->Location() == RemoteDecodeIn::UtilityProcess
+                     ? " (Utility remote)"_ns
+                 : GetManager()->Location() == RemoteDecodeIn::RddProcess
                      ? " (RDD remote)"_ns
                      : " (GPU remote)"_ns);
             mIsHardwareAccelerated = initResponse.hardware();
@@ -115,6 +128,15 @@ RefPtr<MediaDataDecoder::InitPromise> RemoteDecoderChild::Init() {
 RefPtr<MediaDataDecoder::DecodePromise> RemoteDecoderChild::Decode(
     const nsTArray<RefPtr<MediaRawData>>& aSamples) {
   AssertOnManagerThread();
+
+  if (mRemoteDecoderCrashed) {
+    nsresult err =
+        ((mLocation == RemoteDecodeIn::GpuProcess) ||
+         (mLocation == RemoteDecodeIn::RddProcess))
+            ? NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR
+            : NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR;
+    return MediaDataDecoder::DecodePromise::CreateAndReject(err, __func__);
+  }
 
   auto samples = MakeRefPtr<ArrayOfRemoteMediaRawData>();
   if (!samples->Fill(aSamples,

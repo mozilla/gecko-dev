@@ -4,7 +4,12 @@
 
 // This module converts Firefox specific types to the generic types
 
-import { hasSourceActor, getSourceActor } from "../../selectors";
+import {
+  hasSource,
+  hasSourceActor,
+  getSourceActor,
+  getSourcesMap,
+} from "../../selectors";
 import { features } from "../../utils/prefs";
 import { isUrlExtension } from "../../utils/source";
 
@@ -55,21 +60,21 @@ export async function createFrame(thread, frame, index = 0) {
 }
 
 /**
- * This method wait for the given source to be registered in Redux store.
+ * This method wait for the given source actor to be registered in Redux store.
  *
- * @param {String} sourceActor
+ * @param {String} sourceActorId
  *                 Actor ID of the source to be waiting for.
  */
 async function waitForSourceActorToBeRegisteredInStore(sourceActorId) {
   if (!hasSourceActor(store.getState(), sourceActorId)) {
     await new Promise(resolve => {
       const unsubscribe = store.subscribe(check);
-      let currentState = null;
+      let currentSize = null;
       function check() {
-        const previousState = currentState;
-        currentState = store.getState().sourceActors.values;
+        const previousSize = currentSize;
+        currentSize = store.getState().sourceActors.size;
         // For perf reason, avoid any extra computation if sources did not change
-        if (previousState == currentState) {
+        if (previousSize == currentSize) {
           return;
         }
         if (hasSourceActor(store.getState(), sourceActorId)) {
@@ -80,6 +85,35 @@ async function waitForSourceActorToBeRegisteredInStore(sourceActorId) {
     });
   }
   return getSourceActor(store.getState(), sourceActorId);
+}
+
+/**
+ * This method wait for the given source to be registered in Redux store.
+ *
+ * @param {String} sourceId
+ *                 The id of the source to be waiting for.
+ */
+export async function waitForSourceToBeRegisteredInStore(sourceId) {
+  return new Promise(resolve => {
+    if (hasSource(store.getState(), sourceId)) {
+      resolve();
+      return;
+    }
+    const unsubscribe = store.subscribe(check);
+    let currentSize = null;
+    function check() {
+      const previousSize = currentSize;
+      currentSize = getSourcesMap(store.getState()).size;
+      // For perf reason, avoid any extra computation if sources did not change
+      if (previousSize == currentSize) {
+        return;
+      }
+      if (hasSource(store.getState(), sourceId)) {
+        unsubscribe();
+        resolve();
+      }
+    }
+  });
 }
 
 // Compute the reducer's source ID for a given source front/resource.
@@ -102,13 +136,40 @@ export function makeSourceId(sourceResource) {
   if ("mockedJestID" in sourceResource) {
     return sourceResource.mockedJestID;
   }
-  // Source actors with the same URL will be given the same source ID and
-  // grouped together under the same source in the client. There is an exception
-  // for sources from distinct target types, where there may be multiple processes/threads
-  // running at the same time which use different versions of the same URL.
-  if (sourceResource.targetFront.isTopLevel && sourceResource.url) {
-    return `source-${sourceResource.url}`;
+  // By default, within a given target, all sources will be grouped by URL.
+  // You will be having a unique Source object in sources.js reducer,
+  // while you might have many Source Actor objects in source-actors.js reducer.
+  //
+  // There is two distinct usecases here:
+  // * HTML pages, which will have one source object which represents the whole HTML page
+  //   and it will relate to many source actors. One for each inline <script> tag.
+  //   Each script tag's source actor will actually return the whole content of the html page
+  //   and not only this one script tag content.
+  // * Scripts with the same URL injected many times.
+  //   For example, two <script src=""> with the same location
+  //   Or by using eval("...// # SourceURL=")
+  //   All the scripts will be grouped under a unique Source object, while having dedicated
+  //   Source Actor objects.
+  //   An important point this time is that each actor may have a different source text content.
+  //   For now, the debugger arbitrarily picks the first source actor's text content and never
+  //   updates it. (See bug 1751063)
+  if (sourceResource.url) {
+    // Simplify the top level target source ID's. But we could probably be using the same pattern
+    // and always include the thread actor ID.
+    if (sourceResource.targetFront.isTopLevel) {
+      return `source-${sourceResource.url}`;
+    }
+    const threadActorID = sourceResource.targetFront.getCachedFront("thread")
+      .actorID;
+    return `source-${threadActorID}-${sourceResource.url}`;
   }
+
+  // Otherwise, we are processing a source without URL.
+  // This is typically evals, console evaluations, setTimeout/setInterval strings,
+  // DOM event handler strings (i.e. `<div onclick="foo">`), ...
+  // The main way to interact with them is to use a debugger statement from them,
+  // or have other panels ask the debugger to open them (like DOM event handlers from the inspector).
+  // We can register transient breakpoints against them (i.e. they will only apply to the current source actor instance)
   return `source-${sourceResource.actor}`;
 }
 
@@ -126,10 +187,12 @@ export function createGeneratedSource(sourceResource) {
   return createSourceObject({
     id: makeSourceId(sourceResource),
     url: sourceResource.url,
+    thread: sourceResource.targetFront.getCachedFront("thread").actorID,
     extensionName: sourceResource.extensionName,
     isWasm: !!features.wasm && sourceResource.introductionType === "wasm",
     isExtension:
       (sourceResource.url && isUrlExtension(sourceResource.url)) || false,
+    isHTML: !!sourceResource.isInlineSource,
   });
 }
 
@@ -142,11 +205,13 @@ export function createGeneratedSource(sourceResource) {
 function createSourceObject({
   id,
   url,
+  thread = null,
   extensionName = null,
   isWasm = false,
   isExtension = false,
   isPrettyPrinted = false,
   isOriginal = false,
+  isHTML = false,
 }) {
   return {
     // The ID, computed by:
@@ -156,6 +221,9 @@ function createSourceObject({
 
     // Absolute URL for the source. This may be a fake URL for pretty printed sources
     url,
+
+    // The thread actor id of the thread/target which this source belongs to
+    thread,
 
     // By default refers to the absolute URL, but this will be updated
     // if user defines a project root. In this case it will be crafted via `getRelativeUrl`
@@ -175,6 +243,10 @@ function createSourceObject({
 
     // True if WASM is enabled *and* the generated source is a WASM source
     isWasm,
+
+    // True is this source is an HTML and relates to many sources actors,
+    // one for each of its inline <script>
+    isHTML,
 
     // True, if this is an original pretty printed source
     isPrettyPrinted,
@@ -199,11 +271,14 @@ function createSourceObject({
  *        The ID of the source, computed by source map codebase.
  * @param {String} url
  *        The URL of the original source file.
+ * @param {String} thread
+ *        The thread actor id of the thread the related generated source belongs to
  */
-export function createSourceMapOriginalSource(id, url) {
+export function createSourceMapOriginalSource(id, url, thread) {
   return createSourceObject({
     id,
     url,
+    thread,
     isOriginal: true,
   });
 }
@@ -220,11 +295,14 @@ export function createSourceMapOriginalSource(id, url) {
  * @param {String} url
  *        The URL of the pretty-printed source file.
  *        This URL doesn't work. It is the URL of the non-pretty-printed file with ":formated" suffix.
+ * @param {String} thread
+ *        The thread actor id of the thread the related generated source belongs to
  */
-export function createPrettyPrintOriginalSource(id, url) {
+export function createPrettyPrintOriginalSource(id, url, thread) {
   return createSourceObject({
     id,
     url,
+    thread,
     isOriginal: true,
     isPrettyPrinted: true,
   });
@@ -278,5 +356,50 @@ export function createThread(actor, target) {
     targetType: target.targetType,
     name,
     serviceWorkerStatus: target.debuggerServiceWorkerStatus,
+  };
+}
+
+/**
+ * Defines the shape of a breakpoint
+ */
+export function createBreakpoint({
+  id,
+  thread,
+  disabled = false,
+  options = {},
+  location,
+  generatedLocation,
+  text,
+  originalText,
+}) {
+  return {
+    // The unique identifier (string) for the breakpoint, for details on its format and creation See `makeBreakpointId`
+    id,
+
+    // The thread actor id (string) which the source this breakpoint is created in belongs to
+    thread,
+
+    // This (boolean) specifies if the breakpoint is disabled or not
+    disabled,
+
+    // This (object) stores extra information about the breakpoint, which defines the type of the breakpoint (i.e conditional breakpoints, log points)
+    // {
+    //    condition: <Boolean>,
+    //    logValue: <String>,
+    //    hidden: <Boolean>
+    // }
+    options,
+
+    // The location (object) information for the original source, for details on its format and structure See `makeBreakpointLocation`
+    location,
+
+    // The location (object) information for the generated source, for details on its format and structure See `makeBreakpointLocation`
+    generatedLocation,
+
+    // The text (string) on the line which the brekpoint is set in the generated source
+    text,
+
+    // The text (string) on the line which the breakpoint is set in the original source
+    originalText,
   };
 }

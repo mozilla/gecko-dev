@@ -20,8 +20,7 @@
 class nsIPrincipal;
 class nsPIDOMWindowInner;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class Storage : public nsISupports, public nsWrapperCache {
  public:
@@ -118,13 +117,19 @@ class Storage : public nsISupports, public nsWrapperCache {
   virtual void BeginExplicitSnapshot(nsIPrincipal& aSubjectPrincipal,
                                      ErrorResult& aRv) {}
 
+  virtual void CheckpointExplicitSnapshot(nsIPrincipal& aSubjectPrincipal,
+                                          ErrorResult& aRv) {}
+
   virtual void EndExplicitSnapshot(nsIPrincipal& aSubjectPrincipal,
                                    ErrorResult& aRv) {}
 
-  virtual bool GetHasActiveSnapshot(nsIPrincipal& aSubjectPrincipal,
-                                    ErrorResult& aRv) {
+  virtual bool GetHasSnapshot(nsIPrincipal& aSubjectPrincipal,
+                              ErrorResult& aRv) {
     return false;
   }
+
+  virtual int64_t GetSnapshotUsage(nsIPrincipal& aSubjectPrincipal,
+                                   ErrorResult& aRv);
 
   //////////////////////////////////////////////////////////////////////////////
 
@@ -170,7 +175,6 @@ class Storage : public nsISupports, public nsWrapperCache {
   bool mSessionScopedOrLess : 1;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_Storage_h

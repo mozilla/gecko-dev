@@ -34,14 +34,9 @@
  */
 
 #include <stdint.h>
-#include <time.h>
-#include <cstdio>
 #include <cstring>
 #include <iostream>
-#include <string>
-#include <memory>
 #include <assert.h>
-#include <limits.h>
 
 #include "gmp-platform.h"
 #include "gmp-video-host.h"
@@ -389,7 +384,9 @@ class FakeVideoDecoder : public GMPVideoDecoder {
 
 extern "C" {
 
-PUBLIC_FUNC GMPErr GMPInit(GMPPlatformAPI* aPlatformAPI) { return GMPNoErr; }
+PUBLIC_FUNC GMPErr GMPInit(const GMPPlatformAPI* aPlatformAPI) {
+  return GMPNoErr;
+}
 
 PUBLIC_FUNC GMPErr GMPGetAPI(const char* aApiName, void* aHostAPI,
                              void** aPluginApi) {

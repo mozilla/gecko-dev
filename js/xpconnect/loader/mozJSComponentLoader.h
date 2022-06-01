@@ -7,6 +7,7 @@
 #ifndef mozJSComponentLoader_h
 #define mozJSComponentLoader_h
 
+#include "ComponentModuleLoader.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/FileLocation.h"
 #include "mozilla/MemoryReporting.h"
@@ -19,6 +20,7 @@
 #include "nsClassHashtable.h"
 #include "nsTHashMap.h"
 #include "jsapi.h"
+#include "js/experimental/JSStencil.h"
 
 #include "xpcIJSGetFactory.h"
 #include "xpcpublic.h"
@@ -39,7 +41,15 @@ class mozJSComponentLoader final : public nsIMemoryReporter {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
 
+  // Returns the list of all JSMs.
   void GetLoadedModules(nsTArray<nsCString>& aLoadedModules);
+
+  // Returns the list of all ESMs.
+  nsresult GetLoadedESModules(nsTArray<nsCString>& aLoadedModules);
+
+  // Returns the list of all JSMs and ESMs.
+  nsresult GetLoadedJSAndESModules(nsTArray<nsCString>& aLoadedModules);
+
   void GetLoadedComponents(nsTArray<nsCString>& aLoadedComponents);
   nsresult GetModuleImportStack(const nsACString& aLocation,
                                 nsACString& aRetval);
@@ -63,14 +73,31 @@ class mozJSComponentLoader final : public nsIMemoryReporter {
                       JS::HandleValue aTargetObj, JSContext* aCx, uint8_t aArgc,
                       JS::MutableHandleValue aRetval);
 
+  // Load a JSM.
   nsresult Import(JSContext* aCx, const nsACString& aResourceURI,
                   JS::MutableHandleObject aModuleGlobal,
                   JS::MutableHandleObject aModuleExports,
                   bool aIgnoreExports = false);
 
+  // Load an ES6 module and all its dependencies.
+  nsresult ImportModule(JSContext* aCx, const nsACString& aResourceURI,
+                        JS::MutableHandleObject aModuleNamespace);
+
+  // Fallback from Import to ImportModule.
+  nsresult TryFallbackToImportModule(JSContext* aCx,
+                                     const nsACString& aResourceURI,
+                                     JS::MutableHandleObject aModuleGlobal,
+                                     JS::MutableHandleObject aModuleExports,
+                                     bool aIgnoreExports);
+
   nsresult Unload(const nsACString& aResourceURI);
   nsresult IsModuleLoaded(const nsACString& aResourceURI, bool* aRetval);
   bool IsLoaderGlobal(JSObject* aObj) { return mLoaderGlobal == aObj; }
+
+  // Public methods for use from ComponentModuleLoader.
+  static bool IsTrustedScheme(nsIURI* aURI);
+  static nsresult LoadSingleModuleScript(JSContext* aCx, nsIURI* aURI,
+                                         JS::MutableHandleScript aScriptOut);
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
@@ -90,15 +117,33 @@ class mozJSComponentLoader final : public nsIMemoryReporter {
 
   JSObject* GetSharedGlobal(JSContext* aCx);
 
+  static nsresult GetSourceFile(nsIURI* aResolvedURI, nsIFile** aSourceFileOut);
+
+  static bool LocationIsRealFile(nsIURI* aURI);
+
   JSObject* PrepareObjectForLocation(JSContext* aCx, nsIFile* aComponentFile,
-                                     nsIURI* aComponent, bool* aRealFile);
+                                     nsIURI* aComponent, bool aRealFile);
 
   nsresult ObjectForLocation(ComponentLoaderInfo& aInfo,
                              nsIFile* aComponentFile,
                              JS::MutableHandleObject aObject,
                              JS::MutableHandleScript aTableScript,
-                             char** location, bool aCatchException,
+                             char** aLocation, bool aCatchException,
                              JS::MutableHandleValue aException);
+
+  // Get the script for a given location, either from a cached stencil or by
+  // compiling it from source.
+  static nsresult GetScriptForLocation(JSContext* aCx,
+                                       ComponentLoaderInfo& aInfo,
+                                       nsIFile* aComponentFile, bool aUseMemMap,
+                                       JS::MutableHandleScript aScriptOut,
+                                       char** aLocationOut = nullptr);
+
+  static already_AddRefed<JS::Stencil> CompileStencil(
+      JSContext* aCx, const JS::CompileOptions& aOptions,
+      JS::SourceText<mozilla::Utf8Unit>& aSource, bool aIsModule);
+  static JSScript* InstantiateStencil(JSContext* aCx, JS::Stencil* aStencil,
+                                      bool aIsModule);
 
   nsresult ImportInto(const nsACString& aLocation, JS::HandleObject targetObj,
                       JSContext* callercx, JS::MutableHandleObject vp);
@@ -183,6 +228,8 @@ class mozJSComponentLoader final : public nsIMemoryReporter {
 
   bool mInitialized;
   JS::PersistentRooted<JSObject*> mLoaderGlobal;
+
+  RefPtr<mozilla::loader::ComponentModuleLoader> mModuleLoader;
 };
 
 #endif

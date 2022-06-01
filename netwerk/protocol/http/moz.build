@@ -49,6 +49,8 @@ EXPORTS.mozilla.net += [
     "ClassifierDummyChannel.h",
     "ClassifierDummyChannelChild.h",
     "ClassifierDummyChannelParent.h",
+    "ClassOfService.h",
+    "EarlyHintPreloader.h",
     "EarlyHintsService.h",
     "HttpAuthUtils.h",
     "HttpBackgroundChannelChild.h",
@@ -100,8 +102,10 @@ UNIFIED_SOURCES += [
     "ConnectionEntry.cpp",
     "ConnectionHandle.cpp",
     "DnsAndConnectSocket.cpp",
+    "EarlyHintPreloader.cpp",
     "EarlyHintsService.cpp",
     "Http2Compression.cpp",
+    "Http2ConnectTransaction.cpp",
     "Http2Push.cpp",
     "Http2Session.cpp",
     "Http2Stream.cpp",
@@ -149,9 +153,11 @@ UNIFIED_SOURCES += [
     "PendingTransactionInfo.cpp",
     "PendingTransactionQueue.cpp",
     "QuicSocketControl.cpp",
+    "SocketWrapper.cpp",
     "SpeculativeTransaction.cpp",
+    "TLSFilterTransaction.cpp",
+    "TlsHandshaker.cpp",
     "TRRServiceChannel.cpp",
-    "TunnelUtils.cpp",
 ]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
@@ -211,6 +217,3 @@ if CONFIG["OS_TARGET"] == "Darwin":
         DEFINES["HAS_CONNECTX"] = True
 
 include("/tools/fuzzing/libfuzzer-config.mozbuild")
-
-if CONFIG["MOZ_BUILD_APP"] == "browser":
-    DEFINES["MOZ_BUILD_APP_IS_BROWSER"] = True

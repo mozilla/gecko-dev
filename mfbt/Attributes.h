@@ -673,16 +673,23 @@
  * MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG: Applies to method declarations.
  *   Callers of the annotated method must return from that function within the
  *   calling block using an explicit `return` statement if the "this" value for
- * the call is a parameter of the caller.  Only calls to Constructors,
- * references to local and member variables, and calls to functions or methods
- * marked as MOZ_MAY_CALL_AFTER_MUST_RETURN may be made after the
+ *   the call is a parameter of the caller.  Only calls to Constructors,
+ *   references to local and member variables, and calls to functions or
+ *   methods marked as MOZ_MAY_CALL_AFTER_MUST_RETURN may be made after the
  *   MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG call.
  * MOZ_MAY_CALL_AFTER_MUST_RETURN: Applies to function or method declarations.
  *   Calls to these methods may be made in functions after calls a
  *   MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG method.
  * MOZ_LIFETIME_BOUND: Applies to method declarations.
  *   The result of calling these functions on temporaries may not be returned as
- * a reference or bound to a reference variable.
+ *   a reference or bound to a reference variable.
+ * MOZ_UNANNOTATED/MOZ_ANNOTATED: Applies to Mutexes/Monitors and variations on
+ *   them. MOZ_UNANNOTATED indicates that the Mutex/Monitor/etc hasn't been
+ *   examined and annotated using macros from mfbt/ThreadSafety --
+ *   GUARDED_BY()/REQUIRES()/etc. MOZ_ANNOTATED is used in rare cases to
+ *   indicate that is has been looked at, but it did not need any
+ *   GUARDED_BY()/REQUIRES()/etc (and thus static analysis knows it can ignore
+ *   this Mutex/Monitor/etc)
  */
 
 // gcc emits a nuisance warning -Wignored-attributes because attributes do not
@@ -768,6 +775,13 @@
       __attribute__((annotate("moz_may_call_after_must_return")))
 #    define MOZ_LIFETIME_BOUND __attribute__((annotate("moz_lifetime_bound")))
 #    define MOZ_KNOWN_LIVE __attribute__((annotate("moz_known_live")))
+#    ifndef XGILL_PLUGIN
+#      define MOZ_UNANNOTATED __attribute__((annotate("moz_unannotated")))
+#      define MOZ_ANNOTATED __attribute__((annotate("moz_annotated")))
+#    else
+#      define MOZ_UNANNOTATED /* nothing */
+#      define MOZ_ANNOTATED   /* nothing */
+#    endif
 
 /*
  * It turns out that clang doesn't like void func() __attribute__ {} without a
@@ -821,19 +835,34 @@
 #    define MOZ_MAY_CALL_AFTER_MUST_RETURN                  /* nothing */
 #    define MOZ_LIFETIME_BOUND                              /* nothing */
 #    define MOZ_KNOWN_LIVE                                  /* nothing */
+#    define MOZ_UNANNOTATED                                 /* nothing */
+#    define MOZ_ANNOTATED                                   /* nothing */
 #  endif /* defined(MOZ_CLANG_PLUGIN) || defined(XGILL_PLUGIN) */
 
 #  define MOZ_RAII MOZ_NON_TEMPORARY_CLASS MOZ_STACK_CLASS
 
-// gcc has different rules governing attribute placement. Since none of these
-// attributes are actually used by the gcc-based static analysis, just
-// eliminate them rather than updating all of the code.
+// XGILL_PLUGIN is used for the GC rooting hazard analysis, which compiles with
+// gcc. gcc has different rules governing __attribute__((...)) placement, so
+// some attributes will error out when used in the source code where clang
+// expects them to be. Remove the problematic annotations when needed.
+//
+// The placement of c++11 [[...]] attributes is more flexible and defined by a
+// spec, so it would be nice to switch to those for the problematic
+// cases. Unfortunately, the official spec provides *no* way to annotate a
+// lambda function, which is one source of the difficulty here. It appears that
+// this will be fixed in c++23: https://github.com/cplusplus/papers/issues/882
 
 #  ifdef XGILL_PLUGIN
+
 #    undef MOZ_MUST_OVERRIDE
-#    define MOZ_MUST_OVERRIDE /* nothing */
 #    undef MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION
+#    undef MOZ_CAN_RUN_SCRIPT
+#    undef MOZ_CAN_RUN_SCRIPT_BOUNDARY
+#    define MOZ_MUST_OVERRIDE                 /* nothing */
 #    define MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION /* nothing */
+#    define MOZ_CAN_RUN_SCRIPT                /* nothing */
+#    define MOZ_CAN_RUN_SCRIPT_BOUNDARY       /* nothing */
+
 #  endif
 
 #endif /* __cplusplus */
@@ -874,7 +903,7 @@
 #ifdef __MINGW32__
 #  define MOZ_FORMAT_PRINTF(stringIndex, firstToCheck) \
     __attribute__((format(__MINGW_PRINTF_FORMAT, stringIndex, firstToCheck)))
-#elif __GNUC__
+#elif __GNUC__ || __clang__
 #  define MOZ_FORMAT_PRINTF(stringIndex, firstToCheck) \
     __attribute__((format(printf, stringIndex, firstToCheck)))
 #else
@@ -892,6 +921,19 @@
 #  define MOZ_XPCOM_ABI __stdcall
 #else
 #  define MOZ_XPCOM_ABI
+#endif
+
+/**
+ * MSVC / clang-cl don't optimize empty bases correctly unless we explicitly
+ * tell it to, see:
+ *
+ * https://stackoverflow.com/questions/12701469/why-is-the-empty-base-class-optimization-ebo-is-not-working-in-msvc
+ * https://devblogs.microsoft.com/cppblog/optimizing-the-layout-of-empty-base-classes-in-vs2015-update-2-3/
+ */
+#if defined(_MSC_VER)
+#  define MOZ_EMPTY_BASES __declspec(empty_bases)
+#else
+#  define MOZ_EMPTY_BASES
 #endif
 
 #endif /* mozilla_Attributes_h */

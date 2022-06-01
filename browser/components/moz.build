@@ -64,8 +64,10 @@ DIRS += ["build"]
 
 if CONFIG["NIGHTLY_BUILD"]:
     DIRS += [
-        "payments",
+        "colorways",
+        "firefoxview",
     ]
+
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
     DIRS += ["touchbar"]

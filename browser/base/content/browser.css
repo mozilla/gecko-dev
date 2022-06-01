@@ -94,7 +94,10 @@ body {
   }
 }
 
-%ifdef MENUBAR_CAN_AUTOHIDE
+#titlebar {
+  -moz-window-dragging: drag;
+}
+
 #toolbar-menubar[autohide="true"] {
   overflow: hidden;
 }
@@ -104,13 +107,10 @@ body {
   height: 0 !important;
   appearance: none !important;
 }
-%endif
 
-%ifdef XP_MACOSX
-#toolbar-menubar {
+#toolbar-menubar:not([autohide]) {
   visibility: collapse;
 }
-%endif
 
 panelmultiview {
   -moz-box-align: start;
@@ -291,51 +291,47 @@ toolbar[customizing] #whats-new-menu-button {
   display: none;
 }
 
-
-%ifdef MENUBAR_CAN_AUTOHIDE
 /* Hide the TabsToolbar titlebar controls if the menubar is permanently shown.
  * (That is, if the menu bar doesn't autohide, and we're not in a fullscreen or
  * popup window.) */
-:root:not([chromehidden~="menubar"], [inFullscreen]) #toolbar-menubar:not([autohide=true]) + #TabsToolbar > :is(.titlebar-buttonbox-container, .titlebar-spacer),
-%endif
-%ifndef MOZ_WIDGET_COCOA
-%ifndef MOZ_WIDGET_GTK
-:root:not([sizemode=normal]) .titlebar-spacer[type="pre-tabs"],
-%endif
-%endif
+:root:not([chromehidden~="menubar"], [inFullscreen]) #toolbar-menubar[autohide="false"] + #TabsToolbar > :is(.titlebar-buttonbox-container, .titlebar-spacer) {
+  display: none;
+}
+
 :root:not([chromemargin], [inFullscreen]) .titlebar-buttonbox-container,
 :root[inFullscreen] .titlebar-spacer,
 :root:not([tabsintitlebar]) .titlebar-spacer {
   display: none;
 }
-%ifdef MOZ_WIDGET_GTK
-@media (-moz-gtk-csd-reversed-placement: 0) {
-  :root:not([sizemode=normal]) .titlebar-spacer[type="pre-tabs"],
-  :root[gtktiledwindow=true] .titlebar-spacer[type="pre-tabs"] {
+
+@media (-moz-platform: windows) {
+  :root:not([sizemode=normal]) .titlebar-spacer[type="pre-tabs"] {
     display: none;
   }
 }
-@media (-moz-gtk-csd-reversed-placement) {
-  :root:not([sizemode=normal]) .titlebar-spacer[type="post-tabs"],
-  :root[gtktiledwindow=true] .titlebar-spacer[type="post-tabs"] {
-    display: none;
+
+@media (-moz-platform: linux) {
+  @media (-moz-gtk-csd-reversed-placement: 0) {
+    :root:not([sizemode=normal]) .titlebar-spacer[type="pre-tabs"],
+    :root[gtktiledwindow=true] .titlebar-spacer[type="pre-tabs"] {
+      display: none;
+    }
+  }
+  @media (-moz-gtk-csd-reversed-placement) {
+    :root:not([sizemode=normal]) .titlebar-spacer[type="post-tabs"],
+    :root[gtktiledwindow=true] .titlebar-spacer[type="post-tabs"] {
+      display: none;
+    }
   }
 }
-%endif
 
 :root:not([sizemode=maximized], [sizemode=fullscreen]) .titlebar-restore,
 :root:is([sizemode=maximized], [sizemode=fullscreen]) .titlebar-max {
   display: none;
 }
 
-%ifdef MENUBAR_CAN_AUTOHIDE
-#toolbar-menubar[autohide=true]:not([inactive]) + #TabsToolbar > .titlebar-buttonbox-container {
+#toolbar-menubar[autohide="true"]:not([inactive]) + #TabsToolbar > .titlebar-buttonbox-container {
   visibility: hidden;
-}
-%endif
-
-#titlebar {
-  -moz-window-dragging: drag;
 }
 
 :root[tabsintitlebar] .titlebar-buttonbox {
@@ -369,21 +365,19 @@ toolbarpaletteitem {
   -moz-box-ordinal-group: 1000;
 }
 
-%ifdef XP_MACOSX
+@media (-moz-platform: macos) {
+  @media not (-moz-mac-rtl) {
+    .titlebar-buttonbox-container:-moz-locale-dir(ltr) {
+      -moz-box-ordinal-group: 0;
+    }
+  }
 
-@media not (-moz-mac-rtl) {
-  .titlebar-buttonbox-container:-moz-locale-dir(ltr) {
-    -moz-box-ordinal-group: 0;
+  @media (-moz-mac-rtl) {
+    .titlebar-buttonbox-container:-moz-locale-dir(rtl) {
+      -moz-box-ordinal-group: 0;
+    }
   }
 }
-
-@media (-moz-mac-rtl) {
-  .titlebar-buttonbox-container:-moz-locale-dir(rtl) {
-    -moz-box-ordinal-group: 0;
-  }
-}
-
-%endif
 
 :root[inDOMFullscreen] #navigator-toolbox,
 :root[inDOMFullscreen] #fullscr-toggler,
@@ -474,13 +468,13 @@ toolbarpaletteitem[removable="false"] {
   opacity: 0.5;
 }
 
-%ifndef XP_MACOSX
-toolbarpaletteitem[place="palette"],
-toolbarpaletteitem[place="menu-panel"],
-toolbarpaletteitem[place="toolbar"] {
-  -moz-user-focus: normal;
+@media not (-moz-platform: macos) {
+  toolbarpaletteitem[place="palette"],
+  toolbarpaletteitem[place="menu-panel"],
+  toolbarpaletteitem[place="toolbar"] {
+    -moz-user-focus: normal;
+  }
 }
-%endif
 
 #bookmarks-toolbar-placeholder,
 #bookmarks-toolbar-button,
@@ -532,11 +526,11 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   -moz-box-flex: 1;
 }
 
-%ifdef XP_MACOSX
-:root[inFullscreen="true"] {
-  padding-top: 0; /* override drawintitlebar="true" */
+@media (-moz-platform: macos) {
+  :root[inFullscreen="true"] {
+    padding-top: 0; /* override drawintitlebar="true" */
+  }
 }
-%endif
 
 /* Hide menu elements intended for keyboard access support */
 #main-menubar[openedwithkey=false] .show-only-for-keyboard {
@@ -1050,7 +1044,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
 
 @supports -moz-bool-pref("xul.panel-animations.enabled") {
 @media (prefers-reduced-motion: no-preference) {
-%ifdef MOZ_WIDGET_COCOA
+@media (-moz-platform: macos) {
   /* On Mac, use the properties "-moz-window-transform" and "-moz-window-opacity"
      instead of "transform" and "opacity" for these animations.
      The -moz-window* properties apply to the whole window including the window's
@@ -1093,7 +1087,8 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
     -moz-window-opacity: 0;
     -moz-window-transform: none;
   }
-%else
+}
+@media not (-moz-platform: macos) {
   #BMB_bookmarksPopup:not([animate="false"]) {
     opacity: 0;
     transform: translateY(-70px);
@@ -1120,7 +1115,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
   #BMB_bookmarksPopup[animate][animate="cancel"] {
     transform: none;
   }
-%endif
+}
 }
 }
 
@@ -1505,11 +1500,15 @@ toolbar[keyNav=true]:not([collapsed=true], [customizing=true]) toolbartabstop {
 
 .dialogBox {
   background-clip: content-box;
-  box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
   display: -moz-box;
   margin: 0;
   padding: 0;
   overflow-x: auto;
+}
+
+.dialogBox:not(.noShadow) {
+  box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
 }
 
 /*
@@ -1528,10 +1527,6 @@ toolbar[keyNav=true]:not([collapsed=true], [customizing=true]) toolbartabstop {
 .dialogBox {
   border: 1px solid WindowText;
 }
-}
-
-.dialogBox {
-  border-radius: 8px;
 }
 
 .dialogBox[resizable="true"] {
@@ -1630,10 +1625,6 @@ toolbar[keyNav=true]:not([collapsed=true], [customizing=true]) toolbartabstop {
 .dialogOverlay[topmost="true"],
 #window-modal-dialog::backdrop {
   background-color: rgba(28, 27, 34, 0.45);
-}
-
-#window-modal-dialog.showToolbar::backdrop {
-  background: linear-gradient(transparent, rgba(28, 27, 34, 0.45) 50%);
 }
 
 /* For the window-modal dialog, the background is supplied by the HTML dialog

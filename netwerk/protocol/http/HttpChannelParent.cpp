@@ -8,7 +8,6 @@
 #include "HttpLog.h"
 
 #include "mozilla/ConsoleReportCollector.h"
-#include "mozilla/ipc/FileDescriptorSetParent.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/dom/ContentParent.h"
@@ -17,6 +16,7 @@
 #include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/net/NeckoParent.h"
+#include "mozilla/net/ExecuteIfOnMainThreadEventTarget.h"
 #include "mozilla/InputStreamLengthHelper.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/ProfilerLabels.h"
@@ -62,8 +62,7 @@ using mozilla::BasePrincipal;
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
 
-namespace mozilla {
-namespace net {
+namespace mozilla::net {
 
 HttpChannelParent::HttpChannelParent(dom::BrowserParent* iframeEmbedding,
                                      nsILoadContext* aLoadContext,
@@ -361,7 +360,7 @@ bool HttpChannelParent::DoAsyncOpen(
     const Maybe<URIParams>& aTopWindowURI, const uint32_t& aLoadFlags,
     const RequestHeaderTuples& requestHeaders, const nsCString& requestMethod,
     const Maybe<IPCStream>& uploadStream, const bool& uploadStreamHasHeaders,
-    const int16_t& priority, const uint32_t& classOfService,
+    const int16_t& priority, const ClassOfService& classOfService,
     const uint8_t& redirectionLimit, const bool& allowSTS,
     const uint32_t& thirdPartyFlags, const bool& doResumeAt,
     const uint64_t& startPos, const nsCString& entityID, const bool& allowSpdy,
@@ -492,24 +491,11 @@ bool HttpChannelParent::DoAsyncOpen(
 
   nsCOMPtr<nsIInputStream> stream = DeserializeIPCStream(uploadStream);
   if (stream) {
-    int64_t length;
-    if (InputStreamLengthHelper::GetSyncLength(stream, &length)) {
-      httpChannel->InternalSetUploadStreamLength(length >= 0 ? length : 0);
-    } else {
-      // Wait for the nputStreamLengthHelper::GetAsyncLength callback.
-      ++mAsyncOpenBarrier;
-
-      // Let's resolve the size of the stream. The following operation is always
-      // async.
-      RefPtr<HttpChannelParent> self = this;
-      InputStreamLengthHelper::GetAsyncLength(stream, [self, httpChannel](
-                                                          int64_t aLength) {
-        httpChannel->InternalSetUploadStreamLength(aLength >= 0 ? aLength : 0);
-        self->TryInvokeAsyncOpen(NS_OK);
-      });
+    rv = httpChannel->InternalSetUploadStream(stream);
+    if (NS_FAILED(rv)) {
+      return SendFailedAsyncOpen(rv);
     }
 
-    httpChannel->InternalSetUploadStream(stream);
     httpChannel->SetUploadStreamHasHeaders(uploadStreamHasHeaders);
   }
 
@@ -536,8 +522,8 @@ bool HttpChannelParent::DoAsyncOpen(
   if (priority != nsISupportsPriority::PRIORITY_NORMAL) {
     httpChannel->SetPriority(priority);
   }
-  if (classOfService) {
-    httpChannel->SetClassFlags(classOfService);
+  if (classOfService.Flags() || classOfService.Incremental()) {
+    httpChannel->SetClassOfService(classOfService);
   }
   httpChannel->SetRedirectionLimit(redirectionLimit);
   httpChannel->SetAllowSTS(allowSTS);
@@ -574,7 +560,9 @@ bool HttpChannelParent::DoAsyncOpen(
   RefPtr<HttpChannelParent> self = this;
   WaitForBgParent()
       ->Then(
-          GetMainThreadSerialEventTarget(), __func__,
+          ExecuteIfOnMainThreadEventTarget::
+              GetExecuteIfOnMainThreadEventTarget(),
+          __func__,
           [self]() {
             self->mRequest.Complete();
             self->TryInvokeAsyncOpen(NS_OK);
@@ -584,14 +572,6 @@ bool HttpChannelParent::DoAsyncOpen(
             self->TryInvokeAsyncOpen(aStatus);
           })
       ->Track(mRequest);
-
-  // The stream, received from the child process, must be cloneable and seekable
-  // in order to allow devtools to inspect its content.
-  nsCOMPtr<nsIRunnable> r =
-      NS_NewRunnableFunction("HttpChannelParent::EnsureUploadStreamIsCloneable",
-                             [self]() { self->TryInvokeAsyncOpen(NS_OK); });
-  ++mAsyncOpenBarrier;
-  mChannel->EnsureUploadStreamIsCloneable(r);
   return true;
 }
 
@@ -664,8 +644,9 @@ bool HttpChannelParent::ConnectChannel(const uint32_t& registrarId) {
   RefPtr<HttpChannelParent> self = this;
   WaitForBgParent()
       ->Then(
-          GetMainThreadSerialEventTarget(), __func__,
-          [self]() { self->mRequest.Complete(); },
+          ExecuteIfOnMainThreadEventTarget::
+              GetExecuteIfOnMainThreadEventTarget(),
+          __func__, [self]() { self->mRequest.Complete(); },
           [self](const nsresult& aResult) {
             NS_ERROR("failed to establish the background channel");
             self->mRequest.Complete();
@@ -692,9 +673,9 @@ mozilla::ipc::IPCResult HttpChannelParent::RecvSetPriority(
 }
 
 mozilla::ipc::IPCResult HttpChannelParent::RecvSetClassOfService(
-    const uint32_t& cos) {
+    const ClassOfService& cos) {
   if (mChannel) {
-    mChannel->SetClassFlags(cos);
+    mChannel->SetClassOfService(cos);
   }
   return IPC_OK();
 }
@@ -718,8 +699,14 @@ mozilla::ipc::IPCResult HttpChannelParent::RecvResume() {
 }
 
 mozilla::ipc::IPCResult HttpChannelParent::RecvCancel(
-    const nsresult& status, const uint32_t& requestBlockingReason) {
+    const nsresult& status, const uint32_t& requestBlockingReason,
+    const mozilla::Maybe<nsCString>& logString) {
   LOG(("HttpChannelParent::RecvCancel [this=%p]\n", this));
+
+  // logging child cancel reason on the parent side
+  if (logString.isSome()) {
+    LOG(("HttpChannelParent::RecvCancel: %s", logString->get()));
+  }
 
   // May receive cancel before channel has been constructed!
   if (mChannel) {
@@ -896,8 +883,8 @@ HttpChannelParent::ContinueVerification(
   // Otherwise, wait for the background channel.
   nsCOMPtr<nsIAsyncVerifyRedirectReadyCallback> callback = aCallback;
   WaitForBgParent()->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [callback]() { callback->ReadyToVerify(NS_OK); },
+      ExecuteIfOnMainThreadEventTarget::GetExecuteIfOnMainThreadEventTarget(),
+      __func__, [callback]() { callback->ReadyToVerify(NS_OK); },
       [callback](const nsresult& aResult) {
         NS_ERROR("failed to establish the background channel");
         callback->ReadyToVerify(aResult);
@@ -1036,6 +1023,7 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
   MOZ_ASSERT(NS_IsMainThread());
 
   Maybe<uint32_t> multiPartID;
+  bool isFirstPartOfMultiPart = false;
   bool isLastPartOfMultiPart = false;
   DebugOnly<bool> isMultiPart = false;
 
@@ -1051,6 +1039,7 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
       uint32_t partID = 0;
       multiPartChannel->GetPartID(&partID);
       multiPartID = Some(partID);
+      multiPartChannel->GetIsFirstPart(&isFirstPartOfMultiPart);
       multiPartChannel->GetIsLastPart(&isLastPartOfMultiPart);
     } else if (nsCOMPtr<nsIViewSourceChannel> viewSourceChannel =
                    do_QueryInterface(aRequest)) {
@@ -1088,6 +1077,7 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
   }
 
   args.multiPartID() = multiPartID;
+  args.isFirstPartOfMultiPart() = isFirstPartOfMultiPart;
   args.isLastPartOfMultiPart() = isLastPartOfMultiPart;
 
   args.cacheExpirationTime() = nsICacheEntry::NO_EXPIRATION_TIME;
@@ -1469,19 +1459,17 @@ mozilla::ipc::IPCResult HttpChannelParent::RecvOpenOriginalCacheInputStream() {
   if (mIPCClosed) {
     return IPC_OK();
   }
-  AutoIPCStream autoStream;
+  Maybe<IPCStream> ipcStream;
   if (mCacheEntry) {
     nsCOMPtr<nsIInputStream> inputStream;
     nsresult rv = mCacheEntry->OpenInputStream(0, getter_AddRefs(inputStream));
     if (NS_SUCCEEDED(rv)) {
-      PContentParent* pcp = Manager()->Manager();
-      Unused << autoStream.Serialize(inputStream,
-                                     static_cast<ContentParent*>(pcp));
+      Unused << mozilla::ipc::SerializeIPCStream(
+          inputStream.forget(), ipcStream, /* aAllowLazy */ false);
     }
   }
 
-  Unused << SendOriginalCacheInputStreamAvailable(
-      autoStream.TakeOptionalValue());
+  Unused << SendOriginalCacheInputStreamAvailable(ipcStream);
   return IPC_OK();
 }
 
@@ -2023,5 +2011,4 @@ void HttpChannelParent::SetCookie(nsCString&& aCookie) {
   mCookie = std::move(aCookie);
 }
 
-}  // namespace net
-}  // namespace mozilla
+}  // namespace mozilla::net

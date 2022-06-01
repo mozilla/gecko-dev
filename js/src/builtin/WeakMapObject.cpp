@@ -7,14 +7,16 @@
 #include "builtin/WeakMapObject-inl.h"
 
 #include "builtin/WeakSetObject.h"
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "js/PropertySpec.h"
 #include "js/WeakMap.h"
 #include "vm/JSContext.h"
 #include "vm/SelfHosting.h"
 
+#include "gc/WeakMap-inl.h"
 #include "vm/Interpreter-inl.h"
+#include "vm/NativeObject-inl.h"
 
 using namespace js;
 
@@ -139,6 +141,12 @@ bool WeakMapObject::set(JSContext* cx, unsigned argc, Value* vp) {
                                                                           args);
 }
 
+size_t WeakCollectionObject::sizeOfExcludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) {
+  ObjectValueWeakMap* map = getMap();
+  return map ? map->sizeOfIncludingThis(aMallocSizeOf) : 0;
+}
+
 bool WeakCollectionObject::nondeterministicGetKeys(
     JSContext* cx, Handle<WeakCollectionObject*> obj, MutableHandleObject ret) {
   RootedObject arr(cx, NewDenseEmptyArray(cx));
@@ -182,10 +190,9 @@ static void WeakCollection_trace(JSTracer* trc, JSObject* obj) {
   }
 }
 
-static void WeakCollection_finalize(JSFreeOp* fop, JSObject* obj) {
-  MOZ_ASSERT(fop->maybeOnHelperThread());
+static void WeakCollection_finalize(JS::GCContext* gcx, JSObject* obj) {
   if (ObjectValueWeakMap* map = obj->as<WeakCollectionObject>().getMap()) {
-    fop->delete_(obj, map, MemoryUse::WeakMapObject);
+    gcx->delete_(obj, map, MemoryUse::WeakMapObject);
   }
 }
 
@@ -268,7 +275,6 @@ const JSClassOps WeakCollectionObject::classOps_ = {
     nullptr,                  // mayResolve
     WeakCollection_finalize,  // finalize
     nullptr,                  // call
-    nullptr,                  // hasInstance
     nullptr,                  // construct
     WeakCollection_trace,     // trace
 };

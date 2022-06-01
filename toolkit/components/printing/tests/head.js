@@ -252,7 +252,14 @@ class PrintHelper {
     });
 
     // Mock PrintEventHandler with our Promises.
-    this.win.PrintEventHandler._showPrintDialog = () => showSystemDialogPromise;
+    this.win.PrintEventHandler._showPrintDialog = (
+      dialogSvc,
+      haveSelection,
+      settings
+    ) => {
+      this.systemDialogOpenedWithSelection = haveSelection;
+      return showSystemDialogPromise;
+    };
     this.win.PrintEventHandler._doPrint = (bc, settings) => {
       this._printedSettings = settings;
       return printPromise;
@@ -281,11 +288,12 @@ class PrintHelper {
       ).fallbackPaperList;
     }
 
-    let defaultSettings = PSSVC.newPrintSettings;
+    let defaultSettings = PSSVC.createNewPrintSettings();
     defaultSettings.printerName = name;
     defaultSettings.toFileName = "";
     defaultSettings.outputFormat = Ci.nsIPrintSettings.kOutputFormatNative;
-    defaultSettings.printToFile = false;
+    defaultSettings.outputDestination =
+      Ci.nsIPrintSettings.kOutputDestinationPrinter;
     defaultSettings.paperSizeUnit = paperSizeUnit;
     if (paperId) {
       defaultSettings.paperId = paperId;

@@ -23,13 +23,16 @@ using namespace mozilla;
 
 ThreadEventTarget::ThreadEventTarget(ThreadTargetSink* aSink,
                                      bool aIsMainThread)
-    : mSink(aSink), mIsMainThread(aIsMainThread) {
+    : mSink(aSink)
+#ifdef DEBUG
+      ,
+      mIsMainThread(aIsMainThread)
+#endif
+{
   mThread = PR_GetCurrentThread();
 }
 
-ThreadEventTarget::~ThreadEventTarget() {
-  MOZ_ASSERT(mScheduledDelayedRunnables.IsEmpty());
-}
+ThreadEventTarget::~ThreadEventTarget() = default;
 
 void ThreadEventTarget::SetCurrentThread(PRThread* aThread) {
   mThread = aThread;
@@ -37,8 +40,7 @@ void ThreadEventTarget::SetCurrentThread(PRThread* aThread) {
 
 void ThreadEventTarget::ClearCurrentThread() { mThread = nullptr; }
 
-NS_IMPL_ISUPPORTS(ThreadEventTarget, nsIEventTarget, nsISerialEventTarget,
-                  nsIDelayedRunnableObserver)
+NS_IMPL_ISUPPORTS(ThreadEventTarget, nsIEventTarget, nsISerialEventTarget)
 
 NS_IMETHODIMP
 ThreadEventTarget::DispatchFromScript(nsIRunnable* aRunnable, uint32_t aFlags) {
@@ -55,10 +57,9 @@ ThreadEventTarget::Dispatch(already_AddRefed<nsIRunnable> aEvent,
     return NS_ERROR_INVALID_ARG;
   }
 
-  if (gXPCOMThreadsShutDown && !mIsMainThread) {
-    NS_ASSERTION(false, "Failed Dispatch after xpcom-shutdown-threads");
-    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
-  }
+  NS_ASSERTION(!gXPCOMThreadsShutDown || mIsMainThread ||
+                   PR_GetCurrentThread() == mThread,
+               "Dispatch to non-main thread after xpcom-shutdown-threads");
 
   LogRunnable::LogDispatch(event.get());
 
@@ -117,6 +118,16 @@ ThreadEventTarget::DelayedDispatch(already_AddRefed<nsIRunnable> aEvent,
 }
 
 NS_IMETHODIMP
+ThreadEventTarget::RegisterShutdownTask(nsITargetShutdownTask* aTask) {
+  return mSink->RegisterShutdownTask(aTask);
+}
+
+NS_IMETHODIMP
+ThreadEventTarget::UnregisterShutdownTask(nsITargetShutdownTask* aTask) {
+  return mSink->UnregisterShutdownTask(aTask);
+}
+
+NS_IMETHODIMP
 ThreadEventTarget::IsOnCurrentThread(bool* aIsOnCurrentThread) {
   *aIsOnCurrentThread = IsOnCurrentThread();
   return NS_OK;
@@ -128,24 +139,4 @@ ThreadEventTarget::IsOnCurrentThreadInfallible() {
   // only happens when the thread has exited the event loop.  Therefore, when
   // we are called, we can never be on this thread.
   return false;
-}
-
-void ThreadEventTarget::OnDelayedRunnableCreated(DelayedRunnable* aRunnable) {}
-
-void ThreadEventTarget::OnDelayedRunnableScheduled(DelayedRunnable* aRunnable) {
-  MOZ_ASSERT(IsOnCurrentThread());
-  mScheduledDelayedRunnables.AppendElement(aRunnable);
-}
-
-void ThreadEventTarget::OnDelayedRunnableRan(DelayedRunnable* aRunnable) {
-  MOZ_ASSERT(IsOnCurrentThread());
-  Unused << mScheduledDelayedRunnables.RemoveElement(aRunnable);
-}
-
-void ThreadEventTarget::NotifyShutdown() {
-  MOZ_ASSERT(IsOnCurrentThread());
-  for (const auto& runnable : mScheduledDelayedRunnables) {
-    runnable->CancelTimer();
-  }
-  mScheduledDelayedRunnables.Clear();
 }

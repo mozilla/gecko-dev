@@ -1,6 +1,6 @@
-use crate::arena::Handle;
 #[cfg(feature = "validate")]
 use crate::arena::{Arena, UniqueArena};
+use crate::arena::{BadHandle, Handle};
 
 use super::{
     analyzer::{UniformityDisruptor, UniformityRequirements},
@@ -16,8 +16,8 @@ use bit_set::BitSet;
 #[derive(Clone, Debug, thiserror::Error)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum CallError {
-    #[error("Bad function")]
-    InvalidFunction,
+    #[error(transparent)]
+    BadHandle(#[from] BadHandle),
     #[error("The callee is declared after the caller")]
     ForwardDeclaredFunction,
     #[error("Argument {index} expression is invalid")]
@@ -67,6 +67,8 @@ pub enum LocalVariableError {
 #[derive(Clone, Debug, thiserror::Error)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum FunctionError {
+    #[error(transparent)]
+    BadHandle(#[from] BadHandle),
     #[error("Expression {handle:?} is invalid")]
     Expression {
         handle: Handle<crate::Expression>,
@@ -84,11 +86,11 @@ pub enum FunctionError {
     },
     #[error("Argument '{name}' at index {index} has a type that can't be passed into functions.")]
     InvalidArgumentType { index: usize, name: String },
-    #[error("Argument '{name}' at index {index} is a pointer of class {class:?}, which can't be passed into functions.")]
-    InvalidArgumentPointerClass {
+    #[error("Argument '{name}' at index {index} is a pointer of space {space:?}, which can't be passed into functions.")]
+    InvalidArgumentPointerSpace {
         index: usize,
         name: String,
-        class: crate::StorageClass,
+        space: crate::AddressSpace,
     },
     #[error("There are instructions after `return`/`break`/`continue`")]
     InstructionsAfterReturn,
@@ -121,8 +123,6 @@ pub enum FunctionError {
         pointer: Handle<crate::Expression>,
         value: Handle<crate::Expression>,
     },
-    #[error("The expression {0:?} is currupted")]
-    InvalidExpression(Handle<crate::Expression>),
     #[error("Image store parameters are invalid")]
     InvalidImageStore(#[source] ExpressionError),
     #[error("Call to {function:?} is invalid")]
@@ -193,7 +193,7 @@ impl<'a> BlockContext<'a> {
         }
     }
 
-    fn with_abilities(&self, abilities: ControlFlowAbility) -> Self {
+    const fn with_abilities(&self, abilities: ControlFlowAbility) -> Self {
         BlockContext { abilities, ..*self }
     }
 
@@ -201,9 +201,7 @@ impl<'a> BlockContext<'a> {
         &self,
         handle: Handle<crate::Expression>,
     ) -> Result<&'a crate::Expression, FunctionError> {
-        self.expressions
-            .try_get(handle)
-            .ok_or(FunctionError::InvalidExpression(handle))
+        Ok(self.expressions.try_get(handle)?)
     }
 
     fn resolve_type_impl(
@@ -256,7 +254,7 @@ impl super::Validator {
         let fun = context
             .functions
             .try_get(function)
-            .ok_or(CallError::InvalidFunction)
+            .map_err(CallError::BadHandle)
             .map_err(WithSpan::new)?;
         if fun.arguments.len() != arguments.len() {
             return Err(CallError::ArgumentCount {
@@ -612,7 +610,7 @@ impl super::Validator {
                         .map_err(|e| e.with_span())?;
 
                     let good = match *pointer_ty {
-                        Ti::Pointer { base, class: _ } => match context.types[base].inner {
+                        Ti::Pointer { base, space: _ } => match context.types[base].inner {
                             Ti::Atomic { kind, width } => *value_ty == Ti::Scalar { kind, width },
                             ref other => value_ty == other,
                         },
@@ -620,13 +618,13 @@ impl super::Validator {
                             size: Some(size),
                             kind,
                             width,
-                            class: _,
+                            space: _,
                         } => *value_ty == Ti::Vector { size, kind, width },
                         Ti::ValuePointer {
                             size: None,
                             kind,
                             width,
-                            class: _,
+                            space: _,
                         } => *value_ty == Ti::Scalar { kind, width },
                         _ => false,
                     };
@@ -637,8 +635,8 @@ impl super::Validator {
                             .with_handle(value, context.expressions));
                     }
 
-                    if let Some(class) = pointer_ty.pointer_class() {
-                        if !class.access().contains(crate::StorageAccess::STORE) {
+                    if let Some(space) = pointer_ty.pointer_space() {
+                        if !space.access().contains(crate::StorageAccess::STORE) {
                             return Err(FunctionError::InvalidStorePointer(pointer)
                                 .with_span_static(
                                     context.expressions.get_span(pointer),
@@ -659,6 +657,21 @@ impl super::Validator {
                         crate::Expression::GlobalVariable(var_handle) => {
                             &context.global_vars[var_handle]
                         }
+                        // We're looking at a binding index situation, so punch through the index and look at the global behind it.
+                        crate::Expression::Access { base, .. }
+                        | crate::Expression::AccessIndex { base, .. } => {
+                            match *context.get_expression(base).map_err(|e| e.with_span())? {
+                                crate::Expression::GlobalVariable(var_handle) => {
+                                    &context.global_vars[var_handle]
+                                }
+                                _ => {
+                                    return Err(FunctionError::InvalidImageStore(
+                                        ExpressionError::ExpectedGlobalVariable,
+                                    )
+                                    .with_span_handle(image, context.expressions))
+                                }
+                            }
+                        }
                         _ => {
                             return Err(FunctionError::InvalidImageStore(
                                 ExpressionError::ExpectedGlobalVariable,
@@ -667,7 +680,13 @@ impl super::Validator {
                         }
                     };
 
-                    let value_ty = match context.types[var.ty].inner {
+                    // Punch through a binding array to get the underlying type
+                    let global_ty = match context.types[var.ty].inner {
+                        Ti::BindingArray { base, .. } => &context.types[base].inner,
+                        ref inner => inner,
+                    };
+
+                    let value_ty = match *global_ty {
                         Ti::Image {
                             class,
                             arrayed,
@@ -786,12 +805,17 @@ impl super::Validator {
         constants: &Arena<crate::Constant>,
     ) -> Result<(), LocalVariableError> {
         log::debug!("var {:?}", var);
-        if !self.types[var.ty.index()]
+        let type_info = self
+            .types
+            .get(var.ty.index())
+            .ok_or(LocalVariableError::InvalidType(var.ty))?;
+        if !type_info
             .flags
             .contains(super::TypeFlags::DATA | super::TypeFlags::SIZED)
         {
             return Err(LocalVariableError::InvalidType(var.ty));
         }
+
         if let Some(const_handle) = var.init {
             match constants[const_handle].inner {
                 crate::ConstantInner::Scalar { width, ref value } => {
@@ -819,13 +843,8 @@ impl super::Validator {
         module: &crate::Module,
         mod_info: &ModuleInfo,
     ) -> Result<FunctionInfo, WithSpan<FunctionError>> {
-        #[cfg(feature = "validate")]
-        let mut info = mod_info
-            .process_function(fun, module, self.flags)
-            .map_err(WithSpan::into_other)?;
-
-        #[cfg(not(feature = "validate"))]
-        let info = mod_info.process_function(fun, module, self.flags)?;
+        #[cfg_attr(not(feature = "validate"), allow(unused_mut))]
+        let mut info = mod_info.process_function(fun, module, self.flags, self.capabilities)?;
 
         #[cfg(feature = "validate")]
         for (var_handle, var) in fun.local_variables.iter() {
@@ -843,16 +862,21 @@ impl super::Validator {
 
         #[cfg(feature = "validate")]
         for (index, argument) in fun.arguments.iter().enumerate() {
-            match module.types[argument.ty].inner.pointer_class() {
-                Some(crate::StorageClass::Private)
-                | Some(crate::StorageClass::Function)
-                | Some(crate::StorageClass::WorkGroup)
+            let ty = module.types.get_handle(argument.ty).map_err(|err| {
+                FunctionError::from(err).with_span_handle(argument.ty, &module.types)
+            })?;
+            match ty.inner.pointer_space() {
+                Some(
+                    crate::AddressSpace::Private
+                    | crate::AddressSpace::Function
+                    | crate::AddressSpace::WorkGroup,
+                )
                 | None => {}
                 Some(other) => {
-                    return Err(FunctionError::InvalidArgumentPointerClass {
+                    return Err(FunctionError::InvalidArgumentPointerSpace {
                         index,
                         name: argument.name.clone().unwrap_or_default(),
-                        class: other,
+                        space: other,
                     }
                     .with_span_handle(argument.ty, &module.types))
                 }

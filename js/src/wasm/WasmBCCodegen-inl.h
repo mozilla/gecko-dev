@@ -263,15 +263,6 @@ void BaseCompiler::branchTo(Assembler::Condition c, RegRef lhs, ImmWord rhs,
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// Debugger API.
-
-void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
-  fr.loadTlsPtr(WasmTlsReg);
-  masm.nopPatchableToCall(CallSiteDesc(iter_.lastOpcodeOffset(), kind));
-}
-
-//////////////////////////////////////////////////////////////////////////////
-//
 // Templated emitters
 
 template <>

@@ -192,7 +192,7 @@ nsCertOverrideService::nsCertOverrideService()
       do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
   MOZ_ASSERT(target);
 
-  mWriterTaskQueue = new TaskQueue(target.forget(), "CertOverrideService");
+  mWriterTaskQueue = TaskQueue::Create(target.forget(), "CertOverrideService");
 }
 
 nsCertOverrideService::~nsCertOverrideService() = default;
@@ -283,6 +283,7 @@ void nsCertOverrideService::RemoveAllTemporaryOverrides() {
 
 static const char sSHA256OIDString[] = "OID.2.16.840.1.101.3.4.2.1";
 nsresult nsCertOverrideService::Read(const MutexAutoLock& aProofOfLock) {
+  mMutex.AssertCurrentThreadOwns();
   // If we don't have a profile, then we won't try to read any settings file.
   if (!mSettingsFile) return NS_OK;
 
@@ -379,6 +380,7 @@ nsresult nsCertOverrideService::Read(const MutexAutoLock& aProofOfLock) {
 }
 
 nsresult nsCertOverrideService::Write(const MutexAutoLock& aProofOfLock) {
+  mMutex.AssertCurrentThreadOwns();
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
@@ -641,6 +643,7 @@ nsresult nsCertOverrideService::AddEntryToList(
     const bool aIsTemporary, const nsACString& fingerprint,
     nsCertOverride::OverrideBits ob, const nsACString& dbKey,
     const MutexAutoLock& aProofOfLock) {
+  mMutex.AssertCurrentThreadOwns();
   nsAutoCString keyString;
   GetKeyString(aHostName, aPort, aOriginAttributes, keyString);
 
@@ -738,6 +741,7 @@ nsCertOverrideService::ClearAllOverrides() {
 
 void nsCertOverrideService::CountPermanentOverrideTelemetry(
     const MutexAutoLock& aProofOfLock) {
+  mMutex.AssertCurrentThreadOwns();
   uint32_t overrideCount = 0;
   for (auto iter = mSettingsTable.Iter(); !iter.Done(); iter.Next()) {
     if (!iter.Get()->mSettings->mIsTemporary) {
@@ -761,9 +765,9 @@ static bool IsDebugger() {
 
   nsCOMPtr<nsIRemoteAgent> agent = do_GetService(NS_REMOTEAGENT_CONTRACTID);
   if (agent) {
-    bool remoteAgentListening = false;
-    agent->GetListening(&remoteAgentListening);
-    if (remoteAgentListening) {
+    bool remoteAgentRunning = false;
+    agent->GetRunning(&remoteAgentRunning);
+    if (remoteAgentRunning) {
       return true;
     }
   }

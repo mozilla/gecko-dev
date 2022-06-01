@@ -8,6 +8,7 @@
 interface nsIPrincipal;
 webidl Element;
 webidl WindowGlobalParent;
+webidl BrowsingContext;
 
 [builtinclass, scriptable, uuid(8e49f7b0-1f98-4939-bf91-e9c39cd56434)]
 interface nsIRemoteTab : nsISupports
@@ -24,6 +25,12 @@ interface nsIRemoteTab : nsISupports
    * receiving them.
    */
   readonly attribute boolean hasLayers;
+
+  /**
+   * When set to true, this priority hint indicates that the content
+   * processes of this tab should be set to a higher process priority.
+   */
+  attribute boolean priorityHint;
 
   /**
    * Adjusts the tab's active state in the process priority manager,
@@ -48,6 +55,11 @@ interface nsIRemoteTab : nsISupports
    * The OS level process Id of the related child process.
    */
   readonly attribute int32_t osPid;
+
+  /**
+   * The toplevel BrowsingContext loaded in this remote tab.
+   */
+  readonly attribute BrowsingContext browsingContext;
 
   /**
    * True if we've previously received layers for this tab when switching to

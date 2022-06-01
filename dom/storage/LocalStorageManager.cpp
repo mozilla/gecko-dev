@@ -25,8 +25,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/LocalStorageCommon.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 using namespace StorageUtils;
 
@@ -318,6 +317,16 @@ LocalStorageManager::IsPreloaded(nsIPrincipal* aPrincipal, JSContext* aContext,
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+NS_IMETHODIMP
+LocalStorageManager::GetState(nsIPrincipal* aPrincipal, JSContext* aContext,
+                              Promise** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aPrincipal);
+  MOZ_ASSERT(_retval);
+
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 void LocalStorageManager::ClearCaches(uint32_t aUnloadFlags,
                                       const OriginAttributesPattern& aPattern,
                                       const nsACString& aOriginScope) {
@@ -442,5 +451,4 @@ LocalStorageManager* LocalStorageManager::Ensure() {
   return sSelf;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

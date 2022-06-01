@@ -28,7 +28,7 @@
 
 namespace mozilla {
 enum class MediaFeatureChangeReason : uint16_t;
-enum class StyleOrientation : uint8_t;
+enum class StylePageOrientation : uint8_t;
 enum class StyleRuleChangeKind : uint32_t;
 namespace css {
 class Rule;
@@ -238,7 +238,7 @@ class ServoStyleSet {
   // value to page-size, as well as for an explicit size or paper name which
   // is not square.
   // If the value is auto or square, then returns nothing.
-  Maybe<StyleOrientation> GetDefaultPageOrientation();
+  Maybe<StylePageOrientation> GetDefaultPageOrientation();
 
   void AppendAllNonDocumentAuthorSheets(nsTArray<StyleSheet*>& aArray) const;
 
@@ -448,6 +448,12 @@ class ServoStyleSet {
       ComputedStyle* aComputedStyle, ComputedStyle* aNewParent,
       ComputedStyle* aNewParentIgnoringFirstLine,
       ComputedStyle* aNewLayoutParent, dom::Element* aElement);
+
+  /**
+   * Invalidate styles where there's any viewport units dependent style.
+   */
+  enum class OnlyDynamic : bool { No, Yes };
+  void InvalidateForViewportUnits(OnlyDynamic);
 
  private:
   friend class AutoSetInServoTraversal;

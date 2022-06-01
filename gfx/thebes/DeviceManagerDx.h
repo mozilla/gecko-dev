@@ -61,7 +61,7 @@ class DeviceManagerDx final {
   RefPtr<ID3D11Device> GetImageDevice();
   RefPtr<IDCompositionDevice2> GetDirectCompositionDevice();
   RefPtr<ID3D11Device> GetVRDevice();
-  RefPtr<ID3D11Device> CreateDecoderDevice();
+  RefPtr<ID3D11Device> CreateDecoderDevice(bool aHardwareWebRender);
   IDirectDraw7* GetDirectDraw();
 
   unsigned GetCompositorFeatureLevel() const;
@@ -172,7 +172,7 @@ class DeviceManagerDx final {
 
   nsModuleHandle mDcompModule;
 
-  mozilla::Mutex mDeviceLock;
+  mozilla::Mutex mDeviceLock MOZ_UNANNOTATED;
   nsTArray<D3D_FEATURE_LEVEL> mFeatureLevels;
   RefPtr<IDXGIAdapter1> mAdapter;
   RefPtr<ID3D11Device> mCompositorDevice;

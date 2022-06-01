@@ -176,6 +176,7 @@ void ScriptPreloader::DeleteCacheDataSingleton() {
 
 void ScriptPreloader::InitContentChild(ContentParent& parent) {
   auto& cache = GetChildSingleton();
+  cache.mSaveMonitor.AssertOnWritingThread();
 
   // We want startup script data from the first process of a given type.
   // That process sends back its script data before it executes any
@@ -219,7 +220,7 @@ ProcessType ScriptPreloader::GetChildProcessType(const nsACString& remoteType) {
 ScriptPreloader::ScriptPreloader(AutoMemMap* cacheData)
     : mCacheData(cacheData),
       mMonitor("[ScriptPreloader.mMonitor]"),
-      mSaveMonitor("[ScriptPreloader.mSaveMonitor]") {
+      mSaveMonitor("[ScriptPreloader.mSaveMonitor]", this) {
   // We do not set the process type for child processes here because the
   // remoteType in ContentChild is not ready yet.
   if (XRE_IsParentProcess()) {
@@ -280,7 +281,7 @@ void ScriptPreloader::InvalidateCache() {
     // of any cache file we've already written out this session, which will
     // prevent us from falling back to the current session's cache file on the
     // next startup.
-    if (mSaveComplete && mChildCache) {
+    if (mSaveComplete && !mSaveThread && mChildCache) {
       mSaveComplete = false;
 
       StartCacheWrite();
@@ -288,7 +289,7 @@ void ScriptPreloader::InvalidateCache() {
   }
 
   {
-    MonitorAutoLock saveMonitorAutoLock(mSaveMonitor);
+    MonitorSingleWriterAutoLock saveMonitorAutoLock(mSaveMonitor);
 
     mCacheInvalidated = true;
   }
@@ -428,6 +429,7 @@ Result<Ok, nsresult> ScriptPreloader::OpenCache() {
 // Opens the script cache file for this session, and initializes the script
 // cache based on its contents. See WriteCache for details of the cache file.
 Result<Ok, nsresult> ScriptPreloader::InitCache(const nsAString& basePath) {
+  mSaveMonitor.AssertOnWritingThread();
   mCacheInitialized = true;
   mBaseName = basePath;
 
@@ -453,6 +455,7 @@ Result<Ok, nsresult> ScriptPreloader::InitCache(const nsAString& basePath) {
 
 Result<Ok, nsresult> ScriptPreloader::InitCache(
     const Maybe<ipc::FileDescriptor>& cacheFile, ScriptCacheChild* cacheChild) {
+  mSaveMonitor.AssertOnWritingThread();
   MOZ_ASSERT(XRE_IsContentProcess());
 
   mCacheInitialized = true;
@@ -661,9 +664,10 @@ void ScriptPreloader::PrepareCacheWrite() {
 //   an offset from the start of the block, as specified above.
 Result<Ok, nsresult> ScriptPreloader::WriteCache() {
   MOZ_ASSERT(!NS_IsMainThread());
+  mSaveMonitor.AssertCurrentThreadOwns();
 
   if (!mDataPrepared && !mSaveComplete) {
-    MonitorAutoUnlock mau(mSaveMonitor);
+    MonitorSingleWriterAutoUnlock mau(mSaveMonitor);
 
     NS_DispatchToMainThread(
         NewRunnableMethod("ScriptPreloader::PrepareCacheWrite", this,
@@ -759,7 +763,7 @@ nsresult ScriptPreloader::GetName(nsACString& aName) {
 // Runs in the mSaveThread thread, and writes out the cache file for the next
 // session after a reasonable delay.
 nsresult ScriptPreloader::Run() {
-  MonitorAutoLock mal(mSaveMonitor);
+  MonitorSingleWriterAutoLock mal(mSaveMonitor);
 
   // Ideally wait about 10 seconds before saving, to avoid unnecessary IO
   // during early startup. But only if the cache hasn't been invalidated,
@@ -776,7 +780,7 @@ nsresult ScriptPreloader::Run() {
   Unused << NS_WARN_IF(result.isErr());
 
   {
-    MonitorAutoLock lock(mChildCache->mSaveMonitor);
+    MonitorSingleWriterAutoLock lock(mChildCache->mSaveMonitor);
     result = mChildCache->WriteCache();
   }
   Unused << NS_WARN_IF(result.isErr());
@@ -912,6 +916,11 @@ void ScriptPreloader::FillDecodeOptionsForCachedStencil(
 
 already_AddRefed<JS::Stencil> ScriptPreloader::GetCachedStencil(
     JSContext* cx, const JS::DecodeOptions& options, const nsCString& path) {
+  MOZ_RELEASE_ASSERT(
+      !(XRE_IsContentProcess() && !mCacheInitialized),
+      "ScriptPreloader must be initialized before getting cached "
+      "scripts in the content process.");
+
   // If a script is used by both the parent and the child, it's stored only
   // in the child cache.
   if (mChildCache) {

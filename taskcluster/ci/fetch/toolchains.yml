@@ -58,29 +58,33 @@ gcc-8.5.0:
         strip-components: 1
         add-prefix: gcc-source/
 
-gcc-9.3.0:
-    description: GCC 9.3.0 source code
+gcc-9.4.0:
+    description: GCC 9.4.0 source code
     fetch:
         type: static-url
-        url: ftp://ftp.gnu.org/gnu/gcc/gcc-9.3.0/gcc-9.3.0.tar.xz
-        sha256: 71e197867611f6054aa1119b13a0c0abac12834765fe2d81f35ac57f84f742d1
-        size: 70533868
+        url: ftp://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.xz
+        sha256: c95da32f440378d7751dd95533186f7fc05ceb4fb65eb5b85234e6299eb9838e
+        size: 72411232
         gpg-signature:
             sig-url: "{url}.sig"
-            key-path: build/unix/build-gcc/33C235A34C46AA3FFB293709A328C3A2C3C45C06.key
+            key-path: build/unix/build-gcc/7F74F97C103468EE5D750B583AB00996FC26A641.key
         artifact-name: gcc-source.tar.zst
         strip-components: 1
         add-prefix: gcc-source/
 
-gcc-11.1.0:
-    description: GCC 11.1.0+ source code
+gcc-11.3.0:
+    description: GCC 11.3.0 source code
     fetch:
-        type: git
-        repo: https://gcc.gnu.org/git/gcc.git
-        # Tip of the releases/gcc-11 as of 2021-06-02.
-        revision: 22e424002217e182dee2fcc7d2df6d0fc601300d
+        type: static-url
+        url: ftp://ftp.gnu.org/gnu/gcc/gcc-11.3.0/gcc-11.3.0.tar.xz
+        sha256: b47cf2818691f5b1e21df2bb38c795fac2cfbd640ede2d0a5e1c89e338a3ac39
+        size: 81141364
+        gpg-signature:
+            sig-url: "{url}.sig"
+            key-path: build/unix/build-gcc/7F74F97C103468EE5D750B583AB00996FC26A641.key
         artifact-name: gcc-source.tar.zst
-        path-prefix: gcc-source/
+        strip-components: 1
+        add-prefix: gcc-source/
 
 gmp-6.1.0:
     description: GMP 6.1.0 source code
@@ -208,9 +212,13 @@ nsis-3.07-win:
     description: nsis 3.07 for windows
     fetch:
         type: static-url
-        url: https://downloads.sourceforge.net/project/nsis/NSIS%203/3.07/nsis-3.07.zip
-        sha256: 04dde28896ae9ab36ea3035ff3a294e78053f00048064f6d22a6f1c02bcb6ec0
-        size: 2335219
+        # Temporary: pull down our own repackage of NSIS, with its plugin DLLs signed by Mozilla
+        # See https://bugzilla.mozilla.org/show_bug.cgi?id=1751450#c38 for more details
+        # bug 1771192 tracks adding a signing task downstream of the NSIS toolchain task
+        # to fix this more robustly.
+        url: https://github.com/mozilla-releng/adhoc-signing-blobs/raw/nsis/nsis-3.07-signed.zip
+        sha256: 5856cd49b52870caa41814d71ce30c4304d5001b80c04f4eb7028ffedd91df7e
+        size: 2618390
         artifact-name: nsis.tar.zst
         strip-components: 1
         add-prefix: nsis/
@@ -237,12 +245,12 @@ wine:
         strip-components: 1
         add-prefix: wine-source/
 
-cbindgen-0.19.0:
+cbindgen-0.23.0:
     description: cbindgen source code
     fetch:
         type: git
         repo: https://github.com/eqrion/cbindgen
-        revision: d9e490ce8b836194595bd30611253a7028059da2
+        revision: 798cfab52bced65a749443faa16990ec3a8e0cfe
 
 cctools-port:
     description: cctools-port source code
@@ -307,8 +315,8 @@ sccache:
     fetch:
         type: git
         repo: https://github.com/mozilla/sccache
-        # 0.2.15 release
-        revision: 6b6d2f7d2dceefeb4f583712aa4c221db62be0bd
+        # 0.3.0 release
+        revision: f6e36e68c6cb1e17127273956df9ebf2127dff1a
 
 fxc2:
     description: fxc2 source code
@@ -324,13 +332,6 @@ mingw-w64:
         repo: https://git.code.sf.net/p/mingw-w64/mingw-w64
         revision: 09def642bf5e8a78195791257ff53fd920c549d1
 
-libunwind:
-    description: libunwind source code
-    fetch:
-        type: git
-        repo: https://github.com/llvm-mirror/libunwind
-        revision: efd17a11b0fae29d3414e11e99307e082d4ee949
-
 llvm-mingw:
     description: llvm-mingw source code
     fetch:
@@ -338,12 +339,12 @@ llvm-mingw:
         repo: https://github.com/mstorsjo/llvm-mingw
         revision: 9f8e5cebd6dbbb7546e8917e6c59284699a48d26
 
-android-rs-glue:
-    description: android-rs-glue source code
+android-ndk-rs:
+    description: android-ndk-rs source code
     fetch:
         type: git
-        repo: https://github.com/jamienicol/android-rs-glue
-        revision: 86d9cb4db7bf7a8052e6765d9f8caae6009107cb
+        repo: https://github.com/jamienicol/android-ndk-rs
+        revision: 595f4e14a78371e3ab59b12f7bd8131f2ec5b4a1
 
 clang-5.0:
     description: clang 5.0.2 source code
@@ -352,12 +353,12 @@ clang-5.0:
         repo: https://github.com/llvm/llvm-project
         revision: 6a075b6de4cafebec9ca1ff9eec7229a617c93f6
 
-clang-13:
-    description: clang 13.0.1 source code
+clang-14:
+    description: clang 14.0.4 source code
     fetch:
         type: git
         repo: https://github.com/llvm/llvm-project
-        revision: 75e33f71c2dae584b13a7d1186ae0a038ba98838
+        revision: 29f1039a7285a5c3a9c353d054140bf2556d4c4d
 
 clang-trunk:
     description: clang main branch source code
@@ -368,29 +369,29 @@ clang-trunk:
         repo: https://github.com/llvm/llvm-project
         branch: main
 
-# This revision currently corresponds to rust nightly-2021-11-28,
-# which is the first nightly with the version 1.59.0,
+# This revision currently corresponds to rust nightly-2022-02-20,
+# which is the first nightly with the version 1.61.0,
 # so it should be as close as possible to the behaviour of
-# stable-1.58.0.
+# stable-1.60.0.
 #
 # We use this to build from source, so the resulting non-official
-# artifacts will report their version as "1.59.0-dev", but will otherwise
+# artifacts will report their version as "1.61.0-dev", but will otherwise
 # behave like a nightly build. This means they will allow you to use
 # unstable features like -Zbuild-std and sanitizers.
-rust-1.59.0-dev:
-    description: Rust 1.59.0-dev source code
+rust-1.61.0-dev:
+    description: Rust 1.61.0-dev source code
     fetch:
         type: git
         include-dot-git: true
         repo: https://github.com/rust-lang/rust/
-        revision: 686e313a9aa14107c8631ffe48fa09110a7692db
+        revision: 3b348d932aa5c9884310d025cf7c516023fd0d9a
 
 wasi-sdk:
-    description: wasi-sdk source code
+    description: wasi-sdk-15 source code + LLVM-15 fix
     fetch:
         type: git
         repo: https://github.com/WebAssembly/wasi-sdk
-        revision: f0d40b6491efc1e2332f55eb22e6292abdce4335
+        revision: 37ae6af88201884c8b98a65adcd6d8cd1284f95e
 
 ninja:
     description: ninja 1.9.0
@@ -418,14 +419,14 @@ dump-syms:
     fetch:
         type: git
         repo: https://github.com/mozilla/dump_syms/
-        revision: bf7f6bd855eb6ecb233b52bfa7b2c975b7026540
+        revision: 29c131802494c52e9e89597f1d763f79e797b348
 
 rust-minidump:
-    description: rust-minidump source code (for minidump-stackwalk)
+    description: rust-minidump 0.10.4-prerelease source code (for minidump-stackwalk)
     fetch:
         type: git
         repo: https://github.com/luser/rust-minidump/
-        revision: 664dcd1d8ba8c227220f8b83927095880bd68a5f
+        revision: 7f83ad8f2cab043ed19a7f96718606e718d99488
 
 fix-stacks:
     description: fix-stacks source code
@@ -501,6 +502,16 @@ nodejs-12-linux64:
         strip-components: 1
         add-prefix: node/
 
+nodejs-16-linux64:
+    description: nodejs 16 for x64 linux
+    fetch:
+        type: static-url
+        url: https://nodejs.org/dist/v16.0.0/node-v16.0.0-linux-x64.tar.xz
+        sha256: 1736446bb102e19942addce29f6a12b157ca71f38b9159d0446f51ba69618b8d
+        size: 22206588
+        artifact-name: nodejs.tar.zst
+        strip-components: 1
+        add-prefix: node/
 
 nodejs-10-macosx64:
     description: nodejs 10 for x64 macOS
@@ -520,6 +531,17 @@ nodejs-12-macosx64:
         url: https://nodejs.org/dist/v12.22.1/node-v12.22.1-darwin-x64.tar.xz
         sha256: de5e317580732530961d83b0fb9b2c370d222bd0c5a1b331900e9ddc0fdfe086
         size: 13670384
+        artifact-name: nodejs.tar.zst
+        strip-components: 1
+        add-prefix: node/
+
+nodejs-16-macosx64:
+    description: nodejs 16 for x64 macOS
+    fetch:
+        type: static-url
+        url: https://nodejs.org/dist/v16.0.0/node-v16.0.0-darwin-x64.tar.xz
+        sha256: 66ecffa48b98cf1ca4d038b42b74f05bfc4d31681e2aa43a1ba50919ea23823b
+        size: 20650712
         artifact-name: nodejs.tar.zst
         strip-components: 1
         add-prefix: node/
@@ -557,6 +579,17 @@ nodejs-12-win32:
         strip-components: 1
         add-prefix: node/
 
+nodejs-16-win32:
+    description: nodejs 16 for x86 Windows
+    fetch:
+        type: static-url
+        url: https://nodejs.org/dist/v16.0.0/node-v16.0.0-win-x86.zip
+        sha256: 0600dffb5331b6f49e6ff4fa97770811746e0e2ecaf53de6deaafff277a644b4
+        size: 25092862
+        artifact-name: nodejs.tar.zst
+        strip-components: 1
+        add-prefix: node/
+
 nodejs-10-win64:
     description: nodejs 10 for x64 Windows
     fetch:
@@ -579,6 +612,16 @@ nodejs-12-win64:
         strip-components: 1
         add-prefix: node/
 
+nodejs-16-win64:
+    description: nodejs 16 for x64 Windows
+    fetch:
+        type: static-url
+        url: https://nodejs.org/dist/v16.0.0/node-v16.0.0-win-x64.zip
+        sha256: 99c2b01afb8d966fc876ec30ac7dfdbd9da9b17a3daeda92c19ce657ab9bea61
+        size: 26841308
+        artifact-name: nodejs.tar.zst
+        strip-components: 1
+        add-prefix: node/
 
 gnumake:
     description: GNU make source
@@ -608,3 +651,10 @@ pkgconf:
         artifact-name: pkgconf.tar.zst
         strip-components: 1
         add-prefix: pkgconf/
+
+aflplusplus-4.0:
+    description: AFL++ 4.00 source
+    fetch:
+        type: git
+        repo: https://github.com/AFLplusplus/AFLplusplus
+        revision: ba3c7bfe40f9b17a691958e3525828385127ad25

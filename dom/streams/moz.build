@@ -21,6 +21,7 @@ EXPORTS.mozilla.dom += [
     "ReadableStreamDefaultController.h",
     "ReadableStreamDefaultReader.h",
     "ReadableStreamGenericReader.h",
+    "ReadableStreamPipeTo.h",
     "ReadableStreamTee.h",
     "ReadIntoRequest.h",
     "ReadRequest.h",
@@ -45,9 +46,12 @@ UNIFIED_SOURCES += [
     "ReadableStreamBYOBRequest.cpp",
     "ReadableStreamDefaultController.cpp",
     "ReadableStreamDefaultReader.cpp",
+    "ReadableStreamPipeTo.cpp",
     "ReadableStreamTee.cpp",
     "StreamUtils.cpp",
     "TeeState.cpp",
+    "Transferable.cpp",
+    "TransformerCallbackHelpers.cpp",
     "TransformStream.cpp",
     "TransformStreamDefaultController.cpp",
     "UnderlyingSinkCallbackHelpers.cpp",
@@ -57,10 +61,13 @@ UNIFIED_SOURCES += [
     "WritableStreamDefaultWriter.cpp",
 ]
 
+include("/ipc/chromium/chromium-config.mozbuild")  # to import MessagePort.h
+
 FINAL_LIBRARY = "xul"
 
 LOCAL_INCLUDES += [
     "/dom/base",
+    "/dom/ipc",
 ]
 
 # MOCHITEST_MANIFESTS += ["tests/mochitest.ini"]

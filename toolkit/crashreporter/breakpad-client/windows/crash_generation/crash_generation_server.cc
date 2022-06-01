@@ -35,6 +35,7 @@
 #include "common/scoped_ptr.h"
 
 #include "windows/crash_generation/client_info.h"
+#include "windows/crash_generation/temporary_stack.h"
 
 namespace google_breakpad {
 
@@ -823,17 +824,32 @@ void CALLBACK CrashGenerationServer::OnPipeConnected(void* context, BOOLEAN) {
 
 // static
 void CALLBACK CrashGenerationServer::OnDumpRequest(void* context, BOOLEAN) {
-  assert(context);
-  ClientInfo* client_info = reinterpret_cast<ClientInfo*>(context);
+  // The original function implementation.
+  auto const impl = [](void* context) {
+    assert(context);
+    ClientInfo* client_info = reinterpret_cast<ClientInfo*>(context);
 
-  CrashGenerationServer* crash_server = client_info->crash_server();
-  assert(crash_server);
-  if (crash_server->pre_fetch_custom_info_) {
-    client_info->PopulateCustomInfo();
+    CrashGenerationServer* crash_server = client_info->crash_server();
+    assert(crash_server);
+    if (crash_server->pre_fetch_custom_info_) {
+      client_info->PopulateCustomInfo();
+    }
+    crash_server->HandleDumpRequest(*client_info);
+
+    ResetEvent(client_info->dump_requested_handle());
+  };
+
+  // Attempt to run this function on a separate stack, to hopefully handle an
+  // observed high frequency of stack overflows here. (See bug 1758654 for
+  // details.)
+  HRESULT const ret = RunOnTemporaryStack(impl, context, 16 * 1024 * 1024);
+  if (FAILED(ret)) {
+    // This means either that there wasn't enough available memory to allocate
+    // the start of a new stack, or there wasn't enough address space to reserve
+    // for the entirety of a new stack. Either way, this probably won't work --
+    // but it's worth a shot:
+    impl(context);
   }
-  crash_server->HandleDumpRequest(*client_info);
-
-  ResetEvent(client_info->dump_requested_handle());
 }
 
 // static
@@ -938,7 +954,7 @@ bool CrashGenerationServer::GenerateDump(const ClientInfo& client,
     }
 
     // Allocate AppMemory instances for exception context.
-    for (int i = 0; i < kExceptionAppMemoryRegions; i++) {
+    for (size_t i = 0; i < kExceptionAppMemoryRegions; i++) {
       AppMemory app_memory;
       app_memory.ptr = reinterpret_cast<ULONG64>(nullptr);
       app_memory.length = 0;

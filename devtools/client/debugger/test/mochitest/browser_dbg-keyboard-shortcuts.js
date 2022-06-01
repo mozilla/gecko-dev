@@ -6,6 +6,8 @@
  * Test keyboard shortcuts.
  */
 
+"use strict";
+
 add_task(async function() {
   const dbg = await initDebugger("doc-debugger-statements.html");
 
@@ -16,19 +18,19 @@ add_task(async function() {
   assertPausedAtSourceAndLine(dbg, source.id, 11);
 
   await pressResume(dbg);
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, source.id, 16);
 
   await pressStepOver(dbg);
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, source.id, 17);
 
   await pressStepIn(dbg);
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, source.id, 22);
 
   await pressStepOut(dbg);
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, source.id, 18);
 
   await pressStepOver(dbg);
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, source.id, 18);
 });
 
 function pressResume(dbg) {

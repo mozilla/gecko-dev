@@ -321,48 +321,30 @@ BrowserTabList.prototype._getActorForBrowser = async function(browser) {
   return actor;
 };
 
-BrowserTabList.prototype.getTab = function({ outerWindowID, tabId }) {
-  if (typeof outerWindowID == "number") {
-    // First look for in-process frames with this ID
-    const window = Services.wm.getOuterWindowWithId(outerWindowID);
-    // Safety check to prevent debugging top level window via getTab
-    if (window?.isChromeWindow) {
+/**
+ * Return the tab descriptor :
+ * - for the tab matching a browserId if one is passed
+ * - OR the currently selected tab if no browserId is passed.
+ *
+ * @param {Number} browserId: use to match any tab
+ */
+BrowserTabList.prototype.getTab = function({ browserId }) {
+  if (typeof browserId == "number") {
+    const browsingContext = BrowsingContext.getCurrentTopByBrowserId(browserId);
+    if (!browsingContext) {
       return Promise.reject({
-        error: "forbidden",
-        message: "Window with outerWindowID '" + outerWindowID + "' is chrome",
+        error: "noTab",
+        message: `Unable to find tab with browserId '${browserId}' (no browsing-context)`,
       });
     }
-    if (window) {
-      const iframe = window.browsingContext.embedderElement;
-      if (iframe) {
-        return this._getActorForBrowser(iframe);
-      }
+    const browser = browsingContext.embedderElement;
+    if (!browser) {
+      return Promise.reject({
+        error: "noTab",
+        message: `Unable to find tab with browserId '${browserId}' (no embedder element)`,
+      });
     }
-    // Then also look on registered <xul:browsers> when using outerWindowID for
-    // OOP tabs
-    for (const browser of this._getBrowsers()) {
-      if (browser.outerWindowID == outerWindowID) {
-        return this._getActorForBrowser(browser);
-      }
-    }
-    return Promise.reject({
-      error: "noTab",
-      message: "Unable to find tab with outerWindowID '" + outerWindowID + "'",
-    });
-  } else if (typeof tabId == "number") {
-    // Tabs OOP
-    for (const browser of this._getBrowsers()) {
-      if (
-        browser.frameLoader?.remoteTab &&
-        browser.frameLoader.remoteTab.tabId === tabId
-      ) {
-        return this._getActorForBrowser(browser);
-      }
-    }
-    return Promise.reject({
-      error: "noTab",
-      message: "Unable to find tab with tabId '" + tabId + "'",
-    });
+    return this._getActorForBrowser(browser);
   }
 
   const topAppWindow = Services.wm.getMostRecentWindow(

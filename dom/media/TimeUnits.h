@@ -14,12 +14,11 @@
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/IntegerPrintfMacros.h"
 
-namespace mozilla {
-namespace media {
+namespace mozilla::media {
 class TimeIntervals;
-}  // namespace media
-}  // namespace mozilla
+}  // namespace mozilla::media
 // CopyChooser specialization for nsTArray
 template <>
 struct nsTArray_RelocationStrategy<mozilla::media::TimeIntervals> {
@@ -39,6 +38,16 @@ namespace media {
 
 // Number of nanoseconds per second. 1e9.
 static const int64_t NSECS_PER_S = 1000000000;
+
+#ifndef PROCESS_DECODE_LOG
+#  define PROCESS_DECODE_LOG(sample)                                         \
+    MOZ_LOG(                                                                 \
+        sPDMLog, mozilla::LogLevel::Verbose,                                 \
+        ("ProcessDecode: mDuration=%" PRIu64 "µs ; mTime=%" PRIu64           \
+         "µs ; mTimecode=%" PRIu64 "µs",                                     \
+         sample->mDuration.ToMicroseconds(), sample->mTime.ToMicroseconds(), \
+         sample->mTimecode.ToMicroseconds()))
+#endif  // PROCESS_DECODE_LOG
 
 // TimeUnit at present uses a CheckedInt64 as storage.
 // INT64_MAX has the special meaning of being +oo.

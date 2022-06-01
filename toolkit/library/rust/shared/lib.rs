@@ -72,6 +72,8 @@ extern crate fluent_langneg_ffi;
 extern crate fluent;
 extern crate fluent_ffi;
 
+extern crate regex_ffi;
+
 extern crate fluent_fallback;
 extern crate l10nregistry_ffi;
 extern crate localization_ffi;
@@ -86,6 +88,8 @@ extern crate rust_minidump_writer_linux;
 
 #[cfg(feature = "webmidi_midir_impl")]
 extern crate midir_impl;
+
+extern crate origin_trials_ffi;
 
 extern crate log;
 use log::info;

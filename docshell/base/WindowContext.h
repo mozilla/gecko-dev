@@ -13,6 +13,7 @@
 #include "mozilla/dom/MaybeDiscarded.h"
 #include "mozilla/dom/SyncedContext.h"
 #include "mozilla/dom/UserActivation.h"
+#include "nsDOMNavigationTiming.h"
 #include "nsILoadInfo.h"
 #include "nsWrapperCache.h"
 
@@ -188,6 +189,10 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   // out.
   bool HasValidTransientUserGestureActivation();
 
+  // Reture timestamp of last user gesture in milliseconds relative to
+  // navigation start timestamp.
+  DOMHighResTimeStamp LastUserGestureTimeStamp();
+
   // Return true if the corresponding window has valid transient user gesture
   // activation and the transient user gesture activation had been consumed
   // successfully.
@@ -353,20 +358,18 @@ extern template class syncedcontext::Transaction<WindowContext>;
 namespace ipc {
 template <>
 struct IPDLParamTraits<dom::MaybeDiscarded<dom::WindowContext>> {
-  static void Write(IPC::Message* aMsg, IProtocol* aActor,
+  static void Write(IPC::MessageWriter* aWriter, IProtocol* aActor,
                     const dom::MaybeDiscarded<dom::WindowContext>& aParam);
-  static bool Read(const IPC::Message* aMsg, PickleIterator* aIter,
-                   IProtocol* aActor,
+  static bool Read(IPC::MessageReader* aReader, IProtocol* aActor,
                    dom::MaybeDiscarded<dom::WindowContext>* aResult);
 };
 
 template <>
 struct IPDLParamTraits<dom::WindowContext::IPCInitializer> {
-  static void Write(IPC::Message* aMessage, IProtocol* aActor,
+  static void Write(IPC::MessageWriter* aWriter, IProtocol* aActor,
                     const dom::WindowContext::IPCInitializer& aInitializer);
 
-  static bool Read(const IPC::Message* aMessage, PickleIterator* aIterator,
-                   IProtocol* aActor,
+  static bool Read(IPC::MessageReader* aReader, IProtocol* aActor,
                    dom::WindowContext::IPCInitializer* aInitializer);
 };
 }  // namespace ipc

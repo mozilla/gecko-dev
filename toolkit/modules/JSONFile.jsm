@@ -240,7 +240,7 @@ JSONFile.prototype = {
         cleansedBasename,
         errorNo ? errorNo.toString() : ""
       );
-      if (!(ex instanceof DOMException && ex.name == "NotFoundError")) {
+      if (!(DOMException.isInstance(ex) && ex.name == "NotFoundError")) {
         Cu.reportError(ex);
 
         // Move the original file to a backup location, ignoring errors.
@@ -264,7 +264,7 @@ JSONFile.prototype = {
         try {
           await IOUtils.copy(this._options.backupFile, this.path);
         } catch (e) {
-          if (!(e instanceof DOMException && e.name == "NotFoundError")) {
+          if (!(DOMException.isInstance(e) && e.name == "NotFoundError")) {
             Cu.reportError(e);
           }
         }
@@ -283,7 +283,7 @@ JSONFile.prototype = {
           }
           this._recordTelemetry("load", cleansedBasename, "used_backup");
         } catch (e3) {
-          if (!(e3 instanceof DOMException && e3.name == "NotFoundError")) {
+          if (!(DOMException.isInstance(e3) && e3.name == "NotFoundError")) {
             Cu.reportError(e3);
           }
         }
@@ -372,10 +372,7 @@ JSONFile.prototype = {
           let backupFile = new FileUtils.File(this._options.backupFile);
           backupFile.copyTo(null, basename);
         } catch (e) {
-          if (
-            e.result != Cr.NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-            e.result != Cr.NS_ERROR_FILE_NOT_FOUND
-          ) {
+          if (e.result != Cr.NS_ERROR_FILE_NOT_FOUND) {
             Cu.reportError(e);
           }
         }
@@ -401,10 +398,7 @@ JSONFile.prototype = {
             inputStream.close();
           }
         } catch (e3) {
-          if (
-            e3.result != Cr.NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-            e3.result != Cr.NS_ERROR_FILE_NOT_FOUND
-          ) {
+          if (e3.result != Cr.NS_ERROR_FILE_NOT_FOUND) {
             Cu.reportError(e3);
           }
         }

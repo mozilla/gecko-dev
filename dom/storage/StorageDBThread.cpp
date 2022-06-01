@@ -48,8 +48,7 @@
 // Current version of the database schema
 #define CURRENT_SCHEMA_VERSION 2
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 using namespace StorageUtils;
 
@@ -71,7 +70,7 @@ StorageDBBridge::StorageDBBridge()
 
 class StorageDBThread::InitHelper final : public Runnable {
   nsCOMPtr<nsIEventTarget> mOwningThread;
-  mozilla::Mutex mMutex;
+  mozilla::Mutex mMutex MOZ_UNANNOTATED;
   mozilla::CondVar mCondVar;
   nsString mProfilePath;
   nsresult mMainThreadResultCode;
@@ -531,12 +530,14 @@ nsresult StorageDBThread::OpenDatabaseConnection() {
     MOZ_ASSERT(mDatabaseFile);
 
     rv = service->OpenUnsharedDatabase(mDatabaseFile,
+                                       mozIStorageService::CONNECTION_DEFAULT,
                                        getter_AddRefs(mWorkerConnection));
     if (rv == NS_ERROR_FILE_CORRUPTED) {
       // delete the db and try opening again
       rv = mDatabaseFile->Remove(false);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = service->OpenUnsharedDatabase(mDatabaseFile,
+                                         mozIStorageService::CONNECTION_DEFAULT,
                                          getter_AddRefs(mWorkerConnection));
     }
   } else {
@@ -544,6 +545,7 @@ nsresult StorageDBThread::OpenDatabaseConnection() {
 
     rv = service->OpenSpecialDatabase(kMozStorageMemoryStorageKey,
                                       "lsprivatedb"_ns,
+                                      mozIStorageService::CONNECTION_DEFAULT,
                                       getter_AddRefs(mWorkerConnection));
   }
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1629,5 +1631,4 @@ StorageDBThread::ShutdownRunnable::Run() {
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

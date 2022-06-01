@@ -3,6 +3,9 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 // Tests basic pretty-printing functionality.
+
+"use strict";
+
 requestLongerTimeout(2);
 
 add_task(async function() {
@@ -24,11 +27,11 @@ add_task(async function() {
   invokeInTab("arithmetic");
   await waitForPaused(dbg);
 
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, ppSrc.id, 18);
 
   await stepOver(dbg);
 
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, ppSrc.id, 27);
 
   await resume(dbg);
 

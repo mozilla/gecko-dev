@@ -45,8 +45,6 @@ pref(browser.display.document_color_use,2) == non-themed-button-002.html non-the
 
 != cascade-001.html about:blank
 
-pref(browser.display.document_color_use,2) == background-transparent-form-control.html background-transparent-form-control-ref.html
-
 # prefers-contrast media query:
 
 # Forced colors affects prefers-contrast.
@@ -93,3 +91,5 @@ pref(browser.display.use_system_colors,true) pref(browser.display.document_color
 
 != border-color-transparent.html about:blank
 == border-color-transparent.html border-color-transparent-ref.html
+
+test-pref(browser.display.background_color,"black") test-pref(browser.display.foreground_color,"white") test-pref(ui.-moz-fieldtext,"black") test-pref(ui.-moz-fieldtext.dark,"white") pref(ui.use_standins_for_native_colors,false) pref(browser.display.use_system_colors,false) == no-system-colors-color-scheme.html no-system-colors-color-scheme-ref.html

@@ -18,19 +18,23 @@ for feature in gkrust_features:
 # Target directory doesn't matter a lot here, since we can't share panic=abort
 # compilation artifacts with gkrust.
 RUST_TESTS = [
+    "fog",
+    "l10nregistry",
     "selectors",
     "servo_arc",
-    "stylo_tests",
     "qcms",
     # this does nothing, but is needed so that `gkrust_features` are recognized
     # also see: https://github.com/rust-lang/cargo/issues/9856
     "gkrust",
 ]
 
+# Code coverage builds link a bunch of Gecko bindings code from the style
+# crate, which is not used by our tests but would cause link errors.
+#
+# Bug 1768874 tracks improving the setup to potentially remove these
+# altogether.
 if not CONFIG["MOZ_CODE_COVERAGE"]:
-    # glean tests are disabled for ccov builds because some of them test panics
-    # and those builds are compiled with '-Cpanic=abort -Zpanic_abort_tests'
-    RUST_TESTS += ["fog"]
+    RUST_TESTS += ["stylo_tests"]
 
 if CONFIG["CPU_ARCH"] != "x86":
     # malloc_size_of_derive is a build dependency, so if we are doing

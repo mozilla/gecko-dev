@@ -626,9 +626,15 @@ nsresult MediaTransportHandlerSTS::SetIceConfig(
     return rv;
   }
 
+  MOZ_RELEASE_ASSERT(mInitPromise);
+
   mInitPromise->Then(
       mStsThread, __func__,
       [=, self = RefPtr<MediaTransportHandlerSTS>(this)]() {
+        if (!mIceCtx) {
+          CSFLogError(LOGTAG, "%s: mIceCtx is null", __FUNCTION__);
+          return;
+        }
         NrIceCtx::Config config;
         config.mPolicy = toNrIcePolicy(aIcePolicy);
         if (config.mPolicy == NrIceCtx::ICE_POLICY_ALL && mForceNoHost) {

@@ -125,6 +125,7 @@ class Navigator final : public nsISupports, public nsWrapperCache {
                                ErrorResult& aRv);
   nsMimeTypeArray* GetMimeTypes(ErrorResult& aRv);
   nsPluginArray* GetPlugins(ErrorResult& aRv);
+  bool PdfViewerEnabled();
   Permissions* GetPermissions(ErrorResult& aRv);
   void GetDoNotTrack(nsAString& aResult);
   bool GlobalPrivacyControl();
@@ -132,7 +133,7 @@ class Navigator final : public nsISupports, public nsWrapperCache {
   Promise* GetBattery(ErrorResult& aRv);
 
   bool CanShare(const ShareData& aData);
-  Promise* Share(const ShareData& aData, ErrorResult& aRv);
+  already_AddRefed<Promise> Share(const ShareData& aData, ErrorResult& aRv);
 
   static void AppName(nsAString& aAppName, nsIPrincipal* aCallerPrincipal,
                       bool aUsePrefOverriddenValue);
@@ -251,6 +252,8 @@ class Navigator final : public nsISupports, public nsWrapperCache {
   void NotifyVRDisplaysUpdated();
   void NotifyActiveVRDisplaysChanged();
 
+  bool TestTrialGatedAttribute() const { return true; }
+
  private:
   virtual ~Navigator();
 
@@ -265,7 +268,6 @@ class Navigator final : public nsISupports, public nsWrapperCache {
     return mWindow ? mWindow->GetDocShell() : nullptr;
   }
 
-  RefPtr<nsMimeTypeArray> mMimeTypes;
   RefPtr<nsPluginArray> mPlugins;
   RefPtr<Permissions> mPermissions;
   RefPtr<Geolocation> mGeolocation;

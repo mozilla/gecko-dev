@@ -1,0 +1,2 @@
+vendored:third_party/python/glean_parser
+pypi:pytest==7.0.1

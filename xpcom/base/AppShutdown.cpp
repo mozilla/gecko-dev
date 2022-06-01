@@ -12,7 +12,7 @@
 #  include <unistd.h>
 #endif
 
-#include "GeckoProfiler.h"
+#include "ProfilerControl.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/CmdLineAndEnvUtils.h"
 #include "mozilla/PoisonIOInterposer.h"
@@ -58,12 +58,27 @@ const char* sPhaseObserverKeys[] = {
     "xpcom-will-shutdown",              // XPCOMWillShutdown
     "xpcom-shutdown",                   // XPCOMShutdown
     "xpcom-shutdown-threads",           // XPCOMShutdownThreads
-    nullptr,                            // XPCOMShutdownLoaders
     nullptr,                            // XPCOMShutdownFinal
     nullptr                             // CCPostLastCycleCollection
 };
 
 static_assert(sizeof(sPhaseObserverKeys) / sizeof(sPhaseObserverKeys[0]) ==
+              (size_t)ShutdownPhase::ShutdownPhase_Length);
+
+const char* sPhaseReadableNames[] = {"NotInShutdown",
+                                     "AppShutdownConfirmed",
+                                     "AppShutdownNetTeardown",
+                                     "AppShutdownTeardown",
+                                     "AppShutdown",
+                                     "AppShutdownQM",
+                                     "AppShutdownTelemetry",
+                                     "XPCOMWillShutdown",
+                                     "XPCOMShutdown",
+                                     "XPCOMShutdownThreads",
+                                     "XPCOMShutdownFinal",
+                                     "CCPostLastCycleCollection"};
+
+static_assert(sizeof(sPhaseReadableNames) / sizeof(sPhaseReadableNames[0]) ==
               (size_t)ShutdownPhase::ShutdownPhase_Length);
 
 #ifndef ANDROID
@@ -73,7 +88,6 @@ static nsTerminator* sTerminator = nullptr;
 static ShutdownPhase sFastShutdownPhase = ShutdownPhase::NotInShutdown;
 static ShutdownPhase sLateWriteChecksPhase = ShutdownPhase::NotInShutdown;
 static AppShutdownMode sShutdownMode = AppShutdownMode::Normal;
-static Atomic<bool, MemoryOrdering::Relaxed> sIsShuttingDown;
 static Atomic<ShutdownPhase> sCurrentShutdownPhase(
     ShutdownPhase::NotInShutdown);
 static int sExitCode = 0;
@@ -104,8 +118,6 @@ ShutdownPhase GetShutdownPhaseFromPrefValue(int32_t aPrefValue) {
   return ShutdownPhase::NotInShutdown;
 }
 
-bool AppShutdown::IsShuttingDown() { return sIsShuttingDown; }
-
 ShutdownPhase AppShutdown::GetCurrentShutdownPhase() {
   return sCurrentShutdownPhase;
 }
@@ -126,6 +138,11 @@ void AppShutdown::SaveEnvVarsForPotentialRestart() {
 
 const char* AppShutdown::GetObserverKey(ShutdownPhase aPhase) {
   return sPhaseObserverKeys[static_cast<std::underlying_type_t<ShutdownPhase>>(
+      aPhase)];
+}
+
+const char* AppShutdown::GetShutdownPhaseName(ShutdownPhase aPhase) {
+  return sPhaseReadableNames[static_cast<std::underlying_type_t<ShutdownPhase>>(
       aPhase)];
 }
 
@@ -244,17 +261,6 @@ void AppShutdown::MaybeFastShutdown(ShutdownPhase aPhase) {
 
     profiler_shutdown(IsFastShutdown::Yes);
 
-#ifdef MOZ_BACKGROUNDTASKS
-    // We must unlock the profile, or else the lock file `parent.lock` will
-    // prevent removing the directory, allowing additional writes (including
-    // `ShutdownDuration.json{.tmp}`) to succeed.  But `UnlockProfile()` is not
-    // idempotent so we can't push the unlock into `Shutdown()` directly.
-    if (mozilla::BackgroundTasks::IsUsingTemporaryProfile()) {
-      UnlockProfile();
-    }
-    mozilla::BackgroundTasks::Shutdown();
-#endif
-
     DoImmediateExit(sExitCode);
   } else if (aPhase == sLateWriteChecksPhase) {
 #ifdef XP_MACOSX
@@ -265,7 +271,6 @@ void AppShutdown::MaybeFastShutdown(ShutdownPhase aPhase) {
 }
 
 void AppShutdown::OnShutdownConfirmed() {
-  sIsShuttingDown = true;
   // If we're restarting, we need to save environment variables correctly
   // while everything is still alive to do so.
   if (sShutdownMode == AppShutdownMode::Restart) {
@@ -323,7 +328,7 @@ bool AppShutdown::IsNoOrLegalShutdownTopic(const char* aTopic) {
 }
 #endif
 
-void AdvanceShutdownPhaseInternal(
+void AppShutdown::AdvanceShutdownPhaseInternal(
     ShutdownPhase aPhase, bool doNotify, const char16_t* aNotificationData,
     const nsCOMPtr<nsISupports>& aNotificationSubject) {
   AssertIsOnMainThread();
@@ -336,6 +341,13 @@ void AdvanceShutdownPhaseInternal(
     return;
   }
   sCurrentShutdownPhase = aPhase;
+
+  // TODO: Bug 1768581
+  // We think it would be more logical to have the following order here:
+  //    AppShutdown::MaybeFastShutdown(aPhase);
+  //    sTerminator->AdvancePhase(aPhase);
+  //    obsService->NotifyObservers(...);
+  //    mozilla::KillClearOnShutdown(aPhase);
 
 #ifndef ANDROID
   if (sTerminator) {

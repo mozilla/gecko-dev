@@ -1,6 +1,5 @@
 const { AddonTestUtils } = ChromeUtils.import(
-  "resource://testing-common/AddonTestUtils.jsm",
-  {}
+  "resource://testing-common/AddonTestUtils.jsm"
 );
 
 AddonTestUtils.initMochitest(this);
@@ -133,7 +132,7 @@ async function init(startPage) {
 
 /* Test functions start here. */
 
-add_task(async function setup() {
+add_setup(async function() {
   // Clear out any telemetry data that existed before this file is run.
   Services.telemetry.clearEvents();
 });

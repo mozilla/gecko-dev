@@ -6,6 +6,7 @@ loader: gecko_taskgraph.loader.transform:loader
 
 kind-dependencies:
     - fetch
+    - toolchain
 
 transforms:
     - gecko_taskgraph.transforms.release_notifications:transforms
@@ -13,32 +14,6 @@ transforms:
     - gecko_taskgraph.transforms.task:transforms
 
 jobs:
-    verify:
-        description: Verify Job for Updatebot
-        run-on-projects: ['autoland']
-        treeherder:
-            kind: other
-            platform: updatebot/all
-            symbol: verify
-            tier: 1
-        worker-type: b-linux
-        worker:
-            docker-image: {in-tree: debian11-amd64-build}
-            max-run-time: 3600
-            env:
-                PYTHONUNBUFFERED: "1"
-        run:
-            using: run-task
-            cwd: '{checkout}'
-            command: ./mach python taskcluster/scripts/misc/verify-updatebot.py
-        notifications:
-            subject: 'updatebot verify job failed'
-            message: 'updatebot verify job failed'
-            status-types:
-                - on-failed
-                - on-exception
-            emails: ["tom@mozilla.com", "jewilde@mozilla.com"]
-
     cron:
         description: Cron Job for Updatebot
         run-on-projects: []
@@ -70,6 +45,9 @@ jobs:
                 - on-failed
                 - on-exception
             emails: ["tom@mozilla.com", "jewilde@mozilla.com"]
+        fetches:
+            toolchain:
+                - linux64-rust
 
     cron-win:
         description: Cron Job for Updatebot (Windows)

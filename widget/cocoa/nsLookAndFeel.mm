@@ -216,30 +216,28 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme, nscolor
     case ColorID::Buttonhighlight:
       color = GetColorFromNSColor(NSColor.selectedControlColor);
       break;
-    case ColorID::Buttonshadow:
-      color = NS_RGB(0xDC, 0xDC, 0xDC);
-      break;
     case ColorID::Inactivecaptiontext:
       color = NS_RGB(0x45, 0x45, 0x45);
       break;
     case ColorID::Scrollbar:
       color = GetColorFromNSColor(NSColor.scrollBarColor);
       break;
-    case ColorID::Threeddarkshadow:
-      color = NS_RGB(0xDC, 0xDC, 0xDC);
-      break;
-    case ColorID::Threedshadow:
-      color = NS_RGB(0xE0, 0xE0, 0xE0);
-      break;
-    case ColorID::Threedface:
-      color = NS_RGB(0xF0, 0xF0, 0xF0);
-      break;
     case ColorID::Threedhighlight:
       color = GetColorFromNSColor(NSColor.highlightColor);
       break;
+    case ColorID::Buttonshadow:
+    case ColorID::Threeddarkshadow:
+      color = aScheme == ColorScheme::Dark ? *GenericDarkColor(aID) : NS_RGB(0xDC, 0xDC, 0xDC);
+      break;
+    case ColorID::Threedshadow:
+      color = aScheme == ColorScheme::Dark ? *GenericDarkColor(aID) : NS_RGB(0xE0, 0xE0, 0xE0);
+      break;
+    case ColorID::Threedface:
+      color = aScheme == ColorScheme::Dark ? *GenericDarkColor(aID) : NS_RGB(0xF0, 0xF0, 0xF0);
+      break;
     case ColorID::Threedlightshadow:
     case ColorID::MozDisabledfield:
-      color = NS_RGB(0xDA, 0xDA, 0xDA);
+      color = aScheme == ColorScheme::Dark ? *GenericDarkColor(aID) : NS_RGB(0xDA, 0xDA, 0xDA);
       break;
     case ColorID::Menu:
       color = GetColorFromNSColor(NSColor.textBackgroundColor);
@@ -327,20 +325,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme, nscolor
       break;
     case ColorID::MozNativevisitedhyperlinktext:
       color = GetColorFromNSColor(NSColor.systemPurpleColor);
-      break;
-    // The following colors are supposed to be used as font-smoothing background
-    // colors, in the chrome-only -moz-font-smoothing-background-color property.
-    // This property is used for text on "vibrant" -moz-appearances.
-    // The colors have been obtained from the system on 10.14 using the
-    // program at https://bugzilla.mozilla.org/attachment.cgi?id=9208594 .
-    // We could obtain them at runtime, but doing so may be expensive and
-    // requires the use of the private API
-    // -[NSVisualEffectView fontSmoothingBackgroundColor].
-    case ColorID::MozMacVibrantTitlebarLight:
-      color = NS_RGB(0xe6, 0xe6, 0xe6);
-      break;
-    case ColorID::MozMacVibrantTitlebarDark:
-      color = NS_RGB(0x28, 0x28, 0x28);
       break;
     case ColorID::MozMacTooltip:
     case ColorID::MozMacMenupopup:
@@ -499,6 +483,8 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::UseAccessibilityTheme:
       aResult = NSWorkspace.sharedWorkspace.accessibilityDisplayShouldIncreaseContrast;
       break;
+    case IntID::VideoDynamicRange:
+      aResult = nsCocoaFeatures::OnBigSurOrLater();
       break;
     default:
       aResult = 0;

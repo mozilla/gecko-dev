@@ -265,8 +265,8 @@ extern bool GenerateEntryStubs(jit::MacroAssembler& masm,
                                const Maybe<jit::ImmPtr>& callee, bool isAsmJS,
                                CodeRangeVector* codeRanges);
 
-extern void GenerateTrapExitMachineState(jit::MachineState* machine,
-                                         size_t* numWords);
+extern void GenerateTrapExitRegisterOffsets(jit::RegisterOffsets* offsets,
+                                            size_t* numWords);
 
 extern bool GenerateProvisionalLazyJitEntryStub(jit::MacroAssembler& masm,
                                                 Offsets* offsets);
@@ -357,10 +357,12 @@ using JitCallStackArgVector = Vector<JitCallStackArg, 4, SystemAllocPolicy>;
 // - all arguments passed on stack slot are alive as defined by a corresponding
 //   JitCallStackArg.
 
-extern void GenerateDirectCallFromJit(
-    jit::MacroAssembler& masm, const FuncExport& fe, const Instance& inst,
-    const JitCallStackArgVector& stackArgs, bool profilingEnabled,
-    jit::Register scratch, uint32_t* callOffset);
+extern void GenerateDirectCallFromJit(jit::MacroAssembler& masm,
+                                      const FuncExport& fe,
+                                      const Instance& inst,
+                                      const JitCallStackArgVector& stackArgs,
+                                      jit::Register scratch,
+                                      uint32_t* callOffset);
 
 }  // namespace wasm
 }  // namespace js

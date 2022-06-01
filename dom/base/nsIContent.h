@@ -372,6 +372,17 @@ class nsIContent : public nsINode {
    */
   inline nsIContent* GetFlattenedTreeParent() const;
 
+  /**
+   * Get the index of a child within this content's flat tree children.
+   *
+   * @param aPossibleChild the child to get the index of.
+   * @return the index of the child, or Nothing if not a child. Be aware that
+   *         anonymous children (e.g. a <div> child of an <input> element) will
+   *         result in Nothing.
+   */
+  mozilla::Maybe<uint32_t> ComputeFlatTreeIndexOf(
+      const nsINode* aPossibleChild) const;
+
  protected:
   // Handles getting inserted or removed directly under a <slot> element.
   // This is meant to only be called from the two functions below.
@@ -388,30 +399,6 @@ class nsIContent : public nsINode {
   inline void HandleShadowDOMRelatedRemovalSteps(bool aNullParent);
 
  public:
-  /**
-   * API to check if this is a link that's traversed in response to user input
-   * (e.g. a click event). Specializations for HTML/SVG/generic XML allow for
-   * different types of link in different types of content.
-   *
-   * @param aURI Required out param. If this content is a link, a new nsIURI
-   *             set to this link's URI will be passed out.
-   *
-   * @note The out param, aURI, is guaranteed to be set to a non-null pointer
-   *   when the return value is true.
-   *
-   * XXXjwatt: IMO IsInteractiveLink would be a better name.
-   */
-  virtual bool IsLink(nsIURI** aURI) const = 0;
-
-  /**
-   * Get a pointer to the full href URI (fully resolved and canonicalized,
-   * since it's an nsIURI object) for link elements.
-   *
-   * @return A pointer to the URI or null if the element is not a link or it
-   *         has no HREF attribute.
-   */
-  virtual already_AddRefed<nsIURI> GetHrefURI() const { return nullptr; }
-
   /**
    * This method is called when the parser finishes creating the element.  This
    * particularly means that it has done everything you would expect it to have

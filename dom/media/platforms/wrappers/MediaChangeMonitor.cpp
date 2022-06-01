@@ -14,6 +14,10 @@
 #include "MediaInfo.h"
 #include "PDMFactory.h"
 #include "VPXDecoder.h"
+#ifdef MOZ_AV1
+#  include "AOMDecoder.h"
+#endif
+#include "gfxUtils.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/TaskQueue.h"
@@ -138,6 +142,11 @@ class H264ChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
       mCurrentConfig.mDisplay.height = spsdata.display_height;
       mCurrentConfig.mColorDepth = spsdata.ColorDepth();
       mCurrentConfig.mColorSpace = Some(spsdata.ColorSpace());
+      // spsdata.transfer_characteristics has the same values as
+      // gfx::CICP::TransferCharacteristics.
+      mCurrentConfig.mTransferFunction = gfxUtils::CicpToTransferFunction(
+          static_cast<gfx::CICP::TransferCharacteristics>(
+              spsdata.transfer_characteristics));
       mCurrentConfig.mColorRange = spsdata.video_full_range_flag
                                        ? gfx::ColorRange::FULL
                                        : gfx::ColorRange::LIMITED;
@@ -154,15 +163,39 @@ class H264ChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
   RefPtr<MediaByteBuffer> mPreviousExtraData;
 };
 
+// Gets the pixel aspect ratio from the decoded video size and the rendered
+// size.
+inline double GetPixelAspectRatio(const gfx::IntSize& aImage,
+                                  const gfx::IntSize& aDisplay) {
+  return (static_cast<double>(aDisplay.Width()) / aImage.Width()) /
+         (static_cast<double>(aDisplay.Height()) / aImage.Height());
+}
+
+// Returns the render size based on the PAR and the new image size.
+inline gfx::IntSize ApplyPixelAspectRatio(double aPixelAspectRatio,
+                                          const gfx::IntSize& aImage) {
+  return gfx::IntSize(static_cast<int32_t>(aImage.Width() * aPixelAspectRatio),
+                      aImage.Height());
+}
+
 class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
  public:
   explicit VPXChangeMonitor(const VideoInfo& aInfo)
       : mCurrentConfig(aInfo),
         mCodec(VPXDecoder::IsVP8(aInfo.mMimeType) ? VPXDecoder::Codec::VP8
                                                   : VPXDecoder::Codec::VP9),
-        mDisplayAspectRatioFromContainer((float)(aInfo.mDisplay.Width()) /
-                                         (float)(aInfo.mDisplay.Height())) {
+        mPixelAspectRatio(GetPixelAspectRatio(aInfo.mImage, aInfo.mDisplay)) {
     mTrackInfo = new TrackInfoSharedPtr(mCurrentConfig, mStreamID++);
+
+    if (mCurrentConfig.mExtraData && !mCurrentConfig.mExtraData->IsEmpty()) {
+      // If we're passed VP codec configuration, store it so that we can
+      // instantiate the decoder on init.
+      VPXDecoder::VPXStreamInfo vpxInfo;
+      vpxInfo.mImage = mCurrentConfig.mImage;
+      vpxInfo.mDisplay = mCurrentConfig.mDisplay;
+      VPXDecoder::ReadVPCCBox(vpxInfo, mCurrentConfig.mExtraData);
+      mInfo = Some(vpxInfo);
+    }
   }
 
   bool CanBeInstantiated() const override {
@@ -215,29 +248,41 @@ class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
       rv = NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER;
     }
 
-    LOG("Detect inband %s resolution changes, image (%d,%d)->(%d,%d), display "
-        "(%" PRId32 ",%" PRId32 ")->(%" PRId32 ",%" PRId32 "), DAR %f->%f",
+    LOG("Detect inband %s resolution changes, image (%" PRId32 ",%" PRId32
+        ")->(%" PRId32 ",%" PRId32 "), display (%" PRId32 ",%" PRId32
+        ")->(%" PRId32 ",%" PRId32 " %s)",
         mCodec == VPXDecoder::Codec::VP9 ? "VP9" : "VP8",
         mCurrentConfig.mImage.Width(), mCurrentConfig.mImage.Height(),
         info.mImage.Width(), info.mImage.Height(),
         mCurrentConfig.mDisplay.Width(), mCurrentConfig.mDisplay.Height(),
         info.mDisplay.Width(), info.mDisplay.Height(),
-        mDisplayAspectRatioFromContainer, info.mDisplayAspectRatio);
+        info.mDisplayAndImageDifferent ? "specified" : "unspecified");
 
     mInfo = Some(info);
     mCurrentConfig.mImage = info.mImage;
-    // For the display information, we choose to trust the container more. From
-    // our experience, the display information contained in byte stream is less
-    // trustworty. Therefore, we will update the display only when the new
-    // display matches the original DAR in the container.
-    if (FuzzyEqualsMultiplicative(info.mDisplayAspectRatio,
-                                  mDisplayAspectRatioFromContainer)) {
+    if (info.mDisplayAndImageDifferent) {
+      // If the flag to change the display size is set in the sequence, we
+      // set our original values to begin rescaling according to the new values.
       mCurrentConfig.mDisplay = info.mDisplay;
+      mPixelAspectRatio = GetPixelAspectRatio(info.mImage, info.mDisplay);
+    } else {
+      mCurrentConfig.mDisplay =
+          ApplyPixelAspectRatio(mPixelAspectRatio, info.mImage);
     }
+
     mCurrentConfig.mColorDepth = gfx::ColorDepthForBitDepth(info.mBitDepth);
     mCurrentConfig.mColorSpace = Some(info.ColorSpace());
+
+    // We don't update the transfer function here, because VPX bitstream
+    // doesn't specify the transfer function. Instead, we keep the transfer
+    // function (if any) that was set in mCurrentConfig when we were created.
+    // If a video changes colorspaces away from BT2020, we won't clear
+    // mTransferFunction, in case the video changes back to BT2020 and we
+    // need the value again.
+
     mCurrentConfig.mColorRange = info.ColorRange();
     if (mCodec == VPXDecoder::Codec::VP9) {
+      mCurrentConfig.mExtraData->ClearAndRetainStorage();
       VPXDecoder::GetVPCCBox(mCurrentConfig.mExtraData, info);
     }
     mTrackInfo = new TrackInfoSharedPtr(mCurrentConfig, mStreamID++);
@@ -261,26 +306,161 @@ class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
   Maybe<VPXDecoder::VPXStreamInfo> mInfo;
   uint32_t mStreamID = 0;
   RefPtr<TrackInfoSharedPtr> mTrackInfo;
-  const float mDisplayAspectRatioFromContainer;
+  double mPixelAspectRatio;
 };
 
+#ifdef MOZ_AV1
+class AV1ChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
+ public:
+  explicit AV1ChangeMonitor(const VideoInfo& aInfo)
+      : mCurrentConfig(aInfo),
+        mPixelAspectRatio(GetPixelAspectRatio(aInfo.mImage, aInfo.mDisplay)) {
+    mTrackInfo = new TrackInfoSharedPtr(mCurrentConfig, mStreamID++);
+
+    if (mCurrentConfig.mExtraData && !mCurrentConfig.mExtraData->IsEmpty()) {
+      // If we're passed AV1 codec configuration, store it so that we can
+      // instantiate a decoder in MediaChangeMonitor::Create.
+      AOMDecoder::AV1SequenceInfo seqInfo;
+      MediaResult seqHdrResult;
+      AOMDecoder::TryReadAV1CBox(mCurrentConfig.mExtraData, seqInfo,
+                                 seqHdrResult);
+      // If the av1C box doesn't include a sequence header specifying image
+      // size, keep the one provided by VideoInfo.
+      if (seqHdrResult.Code() != NS_OK) {
+        seqInfo.mImage = mCurrentConfig.mImage;
+      }
+
+      UpdateConfig(seqInfo);
+    }
+  }
+
+  bool CanBeInstantiated() const override {
+    // We want to have enough codec configuration to determine whether hardware
+    // decoding can be used before creating a decoder. The av1C box or a
+    // sequence header from a sample will contain this information.
+    return mInfo || mCurrentConfig.mCrypto.IsEncrypted();
+  }
+
+  void UpdateConfig(const AOMDecoder::AV1SequenceInfo& aInfo) {
+    mInfo = Some(aInfo);
+    mCurrentConfig.mColorDepth = gfx::ColorDepthForBitDepth(aInfo.mBitDepth);
+    mCurrentConfig.mColorSpace = gfxUtils::CicpToColorSpace(
+        aInfo.mColorSpace.mMatrix, aInfo.mColorSpace.mPrimaries,
+        gMediaDecoderLog);
+    mCurrentConfig.mTransferFunction =
+        gfxUtils::CicpToTransferFunction(aInfo.mColorSpace.mTransfer);
+    mCurrentConfig.mColorRange = aInfo.mColorSpace.mRange;
+
+    if (mCurrentConfig.mImage != mInfo->mImage) {
+      gfx::IntSize newDisplay =
+          ApplyPixelAspectRatio(mPixelAspectRatio, aInfo.mImage);
+      LOG("AV1ChangeMonitor detected a resolution change in-band, image "
+          "(%" PRIu32 ",%" PRIu32 ")->(%" PRIu32 ",%" PRIu32
+          "), display (%" PRIu32 ",%" PRIu32 ")->(%" PRIu32 ",%" PRIu32
+          " from PAR)",
+          mCurrentConfig.mImage.Width(), mCurrentConfig.mImage.Height(),
+          aInfo.mImage.Width(), aInfo.mImage.Height(),
+          mCurrentConfig.mDisplay.Width(), mCurrentConfig.mDisplay.Height(),
+          newDisplay.Width(), newDisplay.Height());
+      mCurrentConfig.mImage = aInfo.mImage;
+      mCurrentConfig.mDisplay = newDisplay;
+      mCurrentConfig.ResetImageRect();
+    }
+
+    bool wroteSequenceHeader = false;
+    // Our headers should all be around the same size.
+    mCurrentConfig.mExtraData->ClearAndRetainStorage();
+    AOMDecoder::WriteAV1CBox(aInfo, mCurrentConfig.mExtraData.get(),
+                             wroteSequenceHeader);
+    // Header should always be written ReadSequenceHeaderInfo succeeds.
+    MOZ_ASSERT(wroteSequenceHeader);
+  }
+
+  MediaResult CheckForChange(MediaRawData* aSample) override {
+    // Don't look at encrypted content.
+    if (aSample->mCrypto.IsEncrypted()) {
+      return NS_OK;
+    }
+    auto dataSpan = Span<const uint8_t>(aSample->Data(), aSample->Size());
+
+    // We don't trust the keyframe flag as set on the MediaRawData.
+    AOMDecoder::AV1SequenceInfo info;
+    MediaResult seqHdrResult =
+        AOMDecoder::ReadSequenceHeaderInfo(dataSpan, info);
+    nsresult seqHdrCode = seqHdrResult.Code();
+    if (seqHdrCode == NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA) {
+      return NS_OK;
+    }
+    if (seqHdrCode != NS_OK) {
+      LOG("AV1ChangeMonitor::CheckForChange read a corrupted sample: %s",
+          seqHdrResult.Description().get());
+      return seqHdrResult;
+    }
+
+    nsresult rv = NS_OK;
+    if (mInfo.isSome() &&
+        (mInfo->mProfile != info.mProfile ||
+         mInfo->ColorDepth() != info.ColorDepth() ||
+         mInfo->mMonochrome != info.mMonochrome ||
+         mInfo->mSubsamplingX != info.mSubsamplingX ||
+         mInfo->mSubsamplingY != info.mSubsamplingY ||
+         mInfo->mChromaSamplePosition != info.mChromaSamplePosition ||
+         mInfo->mImage != info.mImage)) {
+      PROFILER_MARKER_TEXT(
+          "AV1 Stream Change", MEDIA_PLAYBACK, {},
+          "AV1ChangeMonitor::CheckForChange has detected a change in a "
+          "stream and will request a new decoder");
+      LOG("AV1ChangeMonitor detected a change and requests a new decoder");
+      rv = NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER;
+    }
+
+    UpdateConfig(info);
+
+    if (rv == NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER) {
+      mTrackInfo = new TrackInfoSharedPtr(mCurrentConfig, mStreamID++);
+    }
+    return rv;
+  }
+
+  const TrackInfo& Config() const override { return mCurrentConfig; }
+
+  MediaResult PrepareSample(MediaDataDecoder::ConversionRequired aConversion,
+                            MediaRawData* aSample,
+                            bool aNeedKeyFrame) override {
+    aSample->mTrackInfo = mTrackInfo;
+    return NS_OK;
+  }
+
+ private:
+  VideoInfo mCurrentConfig;
+  Maybe<AOMDecoder::AV1SequenceInfo> mInfo;
+  uint32_t mStreamID = 0;
+  RefPtr<TrackInfoSharedPtr> mTrackInfo;
+  double mPixelAspectRatio;
+};
+#endif
+
 MediaChangeMonitor::MediaChangeMonitor(
-    PlatformDecoderModule* aPDM,
+    PDMFactory* aPDMFactory,
     UniquePtr<CodecChangeMonitor>&& aCodecChangeMonitor,
     MediaDataDecoder* aDecoder, const CreateDecoderParams& aParams)
     : mChangeMonitor(std::move(aCodecChangeMonitor)),
-      mPDM(aPDM),
+      mPDMFactory(aPDMFactory),
       mCurrentConfig(aParams.VideoConfig()),
       mDecoder(aDecoder),
       mParams(aParams) {}
 
 /* static */
 RefPtr<PlatformDecoderModule::CreateDecoderPromise> MediaChangeMonitor::Create(
-    PlatformDecoderModule* aPDM, const CreateDecoderParams& aParams) {
+    PDMFactory* aPDMFactory, const CreateDecoderParams& aParams) {
   UniquePtr<CodecChangeMonitor> changeMonitor;
   const VideoInfo& currentConfig = aParams.VideoConfig();
   if (VPXDecoder::IsVPX(currentConfig.mMimeType)) {
     changeMonitor = MakeUnique<VPXChangeMonitor>(currentConfig);
+#ifdef MOZ_AV1
+  } else if (AOMDecoder::IsAV1(currentConfig.mMimeType)) {
+    changeMonitor = MakeUnique<AV1ChangeMonitor>(currentConfig);
+#endif
   } else {
     MOZ_ASSERT(MP4Decoder::IsH264(currentConfig.mMimeType));
     changeMonitor = MakeUnique<H264ChangeMonitor>(
@@ -294,31 +474,26 @@ RefPtr<PlatformDecoderModule::CreateDecoderPromise> MediaChangeMonitor::Create(
   // other params for aParams and use that going forward.
   const CreateDecoderParams updatedParams{changeMonitor->Config(), aParams};
 
-  if (!changeMonitor->CanBeInstantiated()) {
-    // nothing found yet, will try again later
-    return PlatformDecoderModule::CreateDecoderPromise::CreateAndResolve(
-        new MediaChangeMonitor(aPDM, std::move(changeMonitor), nullptr,
-                               updatedParams),
-        __func__);
+  RefPtr<MediaChangeMonitor> instance = new MediaChangeMonitor(
+      aPDMFactory, std::move(changeMonitor), nullptr, updatedParams);
+
+  if (instance->mChangeMonitor->CanBeInstantiated()) {
+    RefPtr<PlatformDecoderModule::CreateDecoderPromise> p =
+        instance->CreateDecoder()->Then(
+            GetCurrentSerialEventTarget(), __func__,
+            [instance = RefPtr{instance}] {
+              return PlatformDecoderModule::CreateDecoderPromise::
+                  CreateAndResolve(instance, __func__);
+            },
+            [](const MediaResult& aError) {
+              return PlatformDecoderModule::CreateDecoderPromise::
+                  CreateAndReject(aError, __func__);
+            });
+    return p;
   }
 
-  RefPtr<PlatformDecoderModule::CreateDecoderPromise> p =
-      aPDM->AsyncCreateDecoder(updatedParams)
-          ->Then(
-              GetCurrentSerialEventTarget(), __func__,
-              [params = CreateDecoderParamsForAsync(updatedParams),
-               pdm = RefPtr{aPDM}, changeMonitor = std::move(changeMonitor)](
-                  RefPtr<MediaDataDecoder>&& aDecoder) mutable {
-                RefPtr<MediaDataDecoder> decoder = new MediaChangeMonitor(
-                    pdm, std::move(changeMonitor), aDecoder, params);
-                return PlatformDecoderModule::CreateDecoderPromise::
-                    CreateAndResolve(decoder, __func__);
-              },
-              [](MediaResult aError) {
-                return PlatformDecoderModule::CreateDecoderPromise::
-                    CreateAndReject(aError, __func__);
-              });
-  return p;
+  return PlatformDecoderModule::CreateDecoderPromise::CreateAndResolve(
+      instance, __func__);
 }
 
 MediaChangeMonitor::~MediaChangeMonitor() = default;
@@ -512,12 +687,11 @@ void MediaChangeMonitor::SetSeekThreshold(const media::TimeUnit& aTime) {
 
 RefPtr<MediaChangeMonitor::CreateDecoderPromise>
 MediaChangeMonitor::CreateDecoder() {
-  MOZ_ASSERT(mThread && mThread->IsOnCurrentThread());
-
   mCurrentConfig = *mChangeMonitor->Config().GetAsVideoInfo();
-
   RefPtr<CreateDecoderPromise> p =
-      mPDM->AsyncCreateDecoder({mCurrentConfig, mParams})
+      mPDMFactory
+          ->CreateDecoder(
+              {mCurrentConfig, mParams, CreateDecoderParams::NoWrapper(true)})
           ->Then(
               GetCurrentSerialEventTarget(), __func__,
               [self = RefPtr{this}, this](RefPtr<MediaDataDecoder>&& aDecoder) {
@@ -525,27 +699,8 @@ MediaChangeMonitor::CreateDecoder() {
                 DDLINKCHILD("decoder", mDecoder.get());
                 return CreateDecoderPromise::CreateAndResolve(true, __func__);
               },
-              [self = RefPtr{this}, this](const MediaResult& aError) {
-                // We failed to create a decoder with the existing PDM; attempt
-                // once again with a PDMFactory.
-                RefPtr<PDMFactory> factory = new PDMFactory();
-                RefPtr<CreateDecoderPromise> p =
-                    factory
-                        ->CreateDecoder({mCurrentConfig, mParams,
-                                         CreateDecoderParams::NoWrapper(true)})
-                        ->Then(
-                            GetCurrentSerialEventTarget(), __func__,
-                            [self, this](RefPtr<MediaDataDecoder>&& aDecoder) {
-                              mDecoder = std::move(aDecoder);
-                              DDLINKCHILD("decoder", mDecoder.get());
-                              return CreateDecoderPromise::CreateAndResolve(
-                                  true, __func__);
-                            },
-                            [self](const MediaResult& aError) {
-                              return CreateDecoderPromise::CreateAndReject(
-                                  aError, __func__);
-                            });
-                return p;
+              [self = RefPtr{this}](const MediaResult& aError) {
+                return CreateDecoderPromise::CreateAndReject(aError, __func__);
               });
 
   mDecoderInitialized = false;
@@ -555,6 +710,8 @@ MediaChangeMonitor::CreateDecoder() {
 }
 
 MediaResult MediaChangeMonitor::CreateDecoderAndInit(MediaRawData* aSample) {
+  MOZ_ASSERT(mThread && mThread->IsOnCurrentThread());
+
   MediaResult rv = mChangeMonitor->CheckForChange(aSample);
   if (!NS_SUCCEEDED(rv) && rv != NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER) {
     return rv;
@@ -598,7 +755,7 @@ MediaResult MediaChangeMonitor::CreateDecoderAndInit(MediaRawData* aSample) {
 
                       mDecodePromise.Reject(
                           MediaResult(
-                              NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                              aError.Code(),
                               RESULT_DETAIL("Unable to initialize decoder")),
                           __func__);
                     })

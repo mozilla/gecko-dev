@@ -52,14 +52,6 @@ enum class NamedCurve {
   secp256r1 = 3,
 };
 
-struct SignedDigest final {
-  Input digest;
-  DigestAlgorithm digestAlgorithm;
-  Input signature;
-
-  void operator=(const SignedDigest&) = delete;
-};
-
 enum class EndEntityOrCA { MustBeEndEntity = 0, MustBeCA = 1 };
 
 enum class KeyUsage : uint8_t {
@@ -305,10 +297,22 @@ class TrustDomain {
   //
   // CheckRSAPublicKeyModulusSizeInBits will be called before calling this
   // function, so it is not necessary to repeat those checks here. However,
-  // VerifyRSAPKCS1SignedDigest *is* responsible for doing the mathematical
+  // VerifyRSAPKCS1SignedData *is* responsible for doing the mathematical
   // verification of the public key validity as specified in NIST SP 800-56A.
-  virtual Result VerifyRSAPKCS1SignedDigest(const SignedDigest& signedDigest,
-                                            Input subjectPublicKeyInfo) = 0;
+  virtual Result VerifyRSAPKCS1SignedData(Input data,
+                                          DigestAlgorithm digestAlgorithm,
+                                          Input signature,
+                                          Input subjectPublicKeyInfo) = 0;
+
+  // Verify the given RSA-PSS signature on the given digest using the
+  // given RSA public key.
+  //
+  // CheckRSAPublicKeyModulusSizeInBits will be called before calling this
+  // function, so it is not necessary to repeat those checks here.
+  virtual Result VerifyRSAPSSSignedData(Input data,
+                                        DigestAlgorithm digestAlgorithm,
+                                        Input signature,
+                                        Input subjectPublicKeyInfo) = 0;
 
   // Check that the given named ECC curve is acceptable for ECDSA signatures.
   //
@@ -323,10 +327,12 @@ class TrustDomain {
   //
   // CheckECDSACurveIsAcceptable will be called before calling this function,
   // so it is not necessary to repeat that check here. However,
-  // VerifyECDSASignedDigest *is* responsible for doing the mathematical
+  // VerifyECDSASignedData *is* responsible for doing the mathematical
   // verification of the public key validity as specified in NIST SP 800-56A.
-  virtual Result VerifyECDSASignedDigest(const SignedDigest& signedDigest,
-                                         Input subjectPublicKeyInfo) = 0;
+  virtual Result VerifyECDSASignedData(Input data,
+                                       DigestAlgorithm digestAlgorithm,
+                                       Input signature,
+                                       Input subjectPublicKeyInfo) = 0;
 
   // Check that the validity duration is acceptable.
   //
@@ -394,6 +400,13 @@ class NameMatchingPolicy {
 
   NameMatchingPolicy(const NameMatchingPolicy&) = delete;
   void operator=(const NameMatchingPolicy&) = delete;
+};
+
+class StrictNameMatchingPolicy : public NameMatchingPolicy {
+ public:
+  virtual Result FallBackToCommonName(
+      Time notBefore,
+      /*out*/ FallBackToSearchWithinSubject& fallBacktoCommonName) override;
 };
 }
 }  // namespace mozilla::pkix

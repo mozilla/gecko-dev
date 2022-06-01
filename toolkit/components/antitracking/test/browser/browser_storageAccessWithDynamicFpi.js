@@ -35,7 +35,7 @@ async function cleanup() {
   });
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   await SpecialPowers.flushPrefEnv();
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -419,8 +419,8 @@ add_task(async function testExceptionListRemoteSettings() {
   Services.prefs.setStringPref(EXCEPTION_LIST_PREF_NAME, "");
 
   // Add some initial data
-  let db = await RemoteSettings(COLLECTION_NAME).db;
-  await db.importChanges({}, 42, []);
+  let db = RemoteSettings(COLLECTION_NAME).db;
+  await db.importChanges({}, Date.now(), []);
 
   // make peuSerivce start working by calling
   // registerAndRunExceptionListObserver

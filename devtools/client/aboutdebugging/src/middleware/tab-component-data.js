@@ -27,7 +27,7 @@ const tabComponentDataMiddleware = store => next => action => {
 function toComponentData(tabs) {
   return tabs.map(tab => {
     const type = DEBUG_TARGETS.TAB;
-    const id = tab.outerWindowID;
+    const id = tab.browserId;
     const icon = tab.favicon
       ? `data:image/png;base64,${btoa(
           String.fromCharCode.apply(String, tab.favicon)

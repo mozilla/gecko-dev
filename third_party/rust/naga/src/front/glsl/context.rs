@@ -9,33 +9,33 @@ use super::{
 };
 use crate::{
     front::{Emitter, Typifier},
-    Arena, BinaryOperator, Block, Constant, Expression, FastHashMap, FunctionArgument, Handle,
-    LocalVariable, RelationalFunction, ScalarKind, ScalarValue, Span, Statement, StorageClass,
-    Type, TypeInner, VectorSize,
+    AddressSpace, Arena, BinaryOperator, Block, Constant, Expression, FastHashMap,
+    FunctionArgument, Handle, LocalVariable, RelationalFunction, ScalarKind, ScalarValue, Span,
+    Statement, Type, TypeInner, VectorSize,
 };
 use std::{convert::TryFrom, ops::Index};
 
 /// The position at which an expression is, used while lowering
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ExprPos {
     /// The expression is in the left hand side of an assignment
     Lhs,
     /// The expression is in the right hand side of an assignment
     Rhs,
     /// The expression is an array being indexed, needed to allow constant
-    /// arrays to be dinamically indexed
-    ArrayBase {
+    /// arrays to be dynamically indexed
+    AccessBase {
         /// The index is a constant
         constant_index: bool,
     },
 }
 
 impl ExprPos {
-    /// Returns an lhs position if the current position is lhs otherwise ArrayBase
-    fn maybe_array_base(&self, constant_index: bool) -> Self {
+    /// Returns an lhs position if the current position is lhs otherwise AccessBase
+    const fn maybe_access_base(&self, constant_index: bool) -> Self {
         match *self {
             ExprPos::Lhs => *self,
-            _ => ExprPos::ArrayBase { constant_index },
+            _ => ExprPos::AccessBase { constant_index },
         }
     }
 }
@@ -107,7 +107,7 @@ impl Context {
                 let span = parser.module.global_variables.get_span(v);
                 let res = (
                     self.expressions.append(Expression::GlobalVariable(v), span),
-                    parser.module.global_variables[v].class != StorageClass::Handle,
+                    parser.module.global_variables[v].space != AddressSpace::Handle,
                     None,
                 );
                 self.emit_start();
@@ -262,7 +262,7 @@ impl Context {
                     name: None,
                     inner: TypeInner::Pointer {
                         base: arg.ty,
-                        class: StorageClass::Function,
+                        space: AddressSpace::Function,
                     },
                 },
                 span,
@@ -492,6 +492,8 @@ impl Context {
     ) -> Result<(Option<Handle<Expression>>, Span)> {
         let HirExpr { ref kind, meta } = stmt.hir_exprs[expr];
 
+        log::debug!("Lowering {:?}", expr);
+
         let handle = match *kind {
             HirExprKind::Access { base, index } => {
                 let (index, index_meta) =
@@ -508,7 +510,7 @@ impl Context {
                         stmt,
                         parser,
                         base,
-                        pos.maybe_array_base(maybe_constant_index.is_some()),
+                        pos.maybe_access_base(maybe_constant_index.is_some()),
                         body,
                     )?
                     .0;
@@ -540,7 +542,7 @@ impl Context {
 
                 if ExprPos::Rhs == pos {
                     let resolved = parser.resolve_type(self, pointer, meta)?;
-                    if resolved.pointer_class().is_some() {
+                    if resolved.pointer_space().is_some() {
                         return Ok((
                             Some(self.add_expression(Expression::Load { pointer }, meta, body)),
                             meta,
@@ -551,18 +553,20 @@ impl Context {
                 pointer
             }
             HirExprKind::Select { base, ref field } => {
-                let base = self.lower_expect_inner(stmt, parser, base, pos, body)?.0;
+                let base = self
+                    .lower_expect_inner(stmt, parser, base, pos.maybe_access_base(true), body)?
+                    .0;
 
-                parser.field_selection(self, ExprPos::Lhs == pos, body, base, field, meta)?
+                parser.field_selection(self, pos, body, base, field, meta)?
             }
             HirExprKind::Constant(constant) if pos != ExprPos::Lhs => {
                 self.add_expression(Expression::Constant(constant), meta, body)
             }
             HirExprKind::Binary { left, op, right } if pos != ExprPos::Lhs => {
                 let (mut left, left_meta) =
-                    self.lower_expect_inner(stmt, parser, left, pos, body)?;
+                    self.lower_expect_inner(stmt, parser, left, ExprPos::Rhs, body)?;
                 let (mut right, right_meta) =
-                    self.lower_expect_inner(stmt, parser, right, pos, body)?;
+                    self.lower_expect_inner(stmt, parser, right, ExprPos::Rhs, body)?;
 
                 match op {
                     BinaryOperator::ShiftLeft | BinaryOperator::ShiftRight => self
@@ -579,8 +583,165 @@ impl Context {
                 let right_inner = self.typifier.get(right, &parser.module.types);
 
                 match (left_inner, right_inner) {
-                    (&TypeInner::Vector { .. }, &TypeInner::Vector { .. })
-                    | (&TypeInner::Matrix { .. }, &TypeInner::Matrix { .. }) => match op {
+                    (
+                        &TypeInner::Matrix {
+                            columns: left_columns,
+                            rows: left_rows,
+                            width: left_width,
+                        },
+                        &TypeInner::Matrix {
+                            columns: right_columns,
+                            rows: right_rows,
+                            width: right_width,
+                        },
+                    ) => {
+                        // Check that the two arguments have the same dimensions
+                        if left_columns != right_columns
+                            || left_rows != right_rows
+                            || left_width != right_width
+                        {
+                            parser.errors.push(Error {
+                                kind: ErrorKind::SemanticError(
+                                    format!(
+                                        "Cannot apply operation to {:?} and {:?}",
+                                        left_inner, right_inner
+                                    )
+                                    .into(),
+                                ),
+                                meta,
+                            })
+                        }
+
+                        match op {
+                            BinaryOperator::Divide => {
+                                // Naga IR doesn't support matrix division so we need to
+                                // divide the columns individually and reassemble the matrix
+                                let mut components = Vec::with_capacity(left_columns as usize);
+
+                                for index in 0..left_columns as u32 {
+                                    // Get the column vectors
+                                    let left_vector = self.add_expression(
+                                        Expression::AccessIndex { base: left, index },
+                                        meta,
+                                        body,
+                                    );
+                                    let right_vector = self.add_expression(
+                                        Expression::AccessIndex { base: right, index },
+                                        meta,
+                                        body,
+                                    );
+
+                                    // Divide the vectors
+                                    let column = self.expressions.append(
+                                        Expression::Binary {
+                                            op,
+                                            left: left_vector,
+                                            right: right_vector,
+                                        },
+                                        meta,
+                                    );
+
+                                    components.push(column)
+                                }
+
+                                // Rebuild the matrix from the divided vectors
+                                self.expressions.append(
+                                    Expression::Compose {
+                                        ty: parser.module.types.insert(
+                                            Type {
+                                                name: None,
+                                                inner: TypeInner::Matrix {
+                                                    columns: left_columns,
+                                                    rows: left_rows,
+                                                    width: left_width,
+                                                },
+                                            },
+                                            Span::default(),
+                                        ),
+                                        components,
+                                    },
+                                    meta,
+                                )
+                            }
+                            BinaryOperator::Equal | BinaryOperator::NotEqual => {
+                                // Naga IR doesn't support matrix comparisons so we need to
+                                // compare the columns individually and then fold them together
+                                //
+                                // The folding is done using a logical and for equality and
+                                // a logical or for inequality
+                                let equals = op == BinaryOperator::Equal;
+
+                                let (op, combine, fun) = match equals {
+                                    true => (
+                                        BinaryOperator::Equal,
+                                        BinaryOperator::LogicalAnd,
+                                        RelationalFunction::All,
+                                    ),
+                                    false => (
+                                        BinaryOperator::NotEqual,
+                                        BinaryOperator::LogicalOr,
+                                        RelationalFunction::Any,
+                                    ),
+                                };
+
+                                let mut root = None;
+
+                                for index in 0..left_columns as u32 {
+                                    // Get the column vectors
+                                    let left_vector = self.add_expression(
+                                        Expression::AccessIndex { base: left, index },
+                                        meta,
+                                        body,
+                                    );
+                                    let right_vector = self.add_expression(
+                                        Expression::AccessIndex { base: right, index },
+                                        meta,
+                                        body,
+                                    );
+
+                                    let argument = self.expressions.append(
+                                        Expression::Binary {
+                                            op,
+                                            left: left_vector,
+                                            right: right_vector,
+                                        },
+                                        meta,
+                                    );
+
+                                    // The result of comparing two vectors is a boolean vector
+                                    // so use a relational function like all to get a single
+                                    // boolean value
+                                    let compare = self.add_expression(
+                                        Expression::Relational { fun, argument },
+                                        meta,
+                                        body,
+                                    );
+
+                                    // Fold the result
+                                    root = Some(match root {
+                                        Some(right) => self.add_expression(
+                                            Expression::Binary {
+                                                op: combine,
+                                                left: compare,
+                                                right,
+                                            },
+                                            meta,
+                                            body,
+                                        ),
+                                        None => compare,
+                                    });
+                                }
+
+                                root.unwrap()
+                            }
+                            _ => self.add_expression(
+                                Expression::Binary { left, op, right },
+                                meta,
+                                body,
+                            ),
+                        }
+                    }
+                    (&TypeInner::Vector { .. }, &TypeInner::Vector { .. }) => match op {
                         BinaryOperator::Equal | BinaryOperator::NotEqual => {
                             let equals = op == BinaryOperator::Equal;
 
@@ -659,11 +820,196 @@ impl Context {
                             self.add_expression(Expression::Binary { left, op, right }, meta, body)
                         }
                     },
+                    (
+                        &TypeInner::Scalar {
+                            width: left_width, ..
+                        },
+                        &TypeInner::Matrix {
+                            rows,
+                            columns,
+                            width: right_width,
+                        },
+                    ) => {
+                        // Check that the two arguments have the same width
+                        if left_width != right_width {
+                            parser.errors.push(Error {
+                                kind: ErrorKind::SemanticError(
+                                    format!(
+                                        "Cannot apply operation to {:?} and {:?}",
+                                        left_inner, right_inner
+                                    )
+                                    .into(),
+                                ),
+                                meta,
+                            })
+                        }
+
+                        match op {
+                            BinaryOperator::Divide
+                            | BinaryOperator::Add
+                            | BinaryOperator::Subtract => {
+                                // Naga IR doesn't support all matrix by scalar operations so
+                                // we need for some to turn the scalar into a vector by
+                                // splatting it and then for each column vector apply the
+                                // operation and finally reconstruct the matrix
+                                let scalar_vector = self.add_expression(
+                                    Expression::Splat {
+                                        size: rows,
+                                        value: left,
+                                    },
+                                    meta,
+                                    body,
+                                );
+
+                                let mut components = Vec::with_capacity(columns as usize);
+
+                                for index in 0..columns as u32 {
+                                    // Get the column vector
+                                    let matrix_column = self.add_expression(
+                                        Expression::AccessIndex { base: right, index },
+                                        meta,
+                                        body,
+                                    );
+
+                                    // Apply the operation to the splatted vector and
+                                    // the column vector
+                                    let column = self.expressions.append(
+                                        Expression::Binary {
+                                            op,
+                                            left: scalar_vector,
+                                            right: matrix_column,
+                                        },
+                                        meta,
+                                    );
+
+                                    components.push(column)
+                                }
+
+                                // Rebuild the matrix from the operation result vectors
+                                self.expressions.append(
+                                    Expression::Compose {
+                                        ty: parser.module.types.insert(
+                                            Type {
+                                                name: None,
+                                                inner: TypeInner::Matrix {
+                                                    columns,
+                                                    rows,
+                                                    width: left_width,
+                                                },
+                                            },
+                                            Span::default(),
+                                        ),
+                                        components,
+                                    },
+                                    meta,
+                                )
+                            }
+                            _ => self.add_expression(
+                                Expression::Binary { left, op, right },
+                                meta,
+                                body,
+                            ),
+                        }
+                    }
+                    (
+                        &TypeInner::Matrix {
+                            rows,
+                            columns,
+                            width: left_width,
+                        },
+                        &TypeInner::Scalar {
+                            width: right_width, ..
+                        },
+                    ) => {
+                        // Check that the two arguments have the same width
+                        if left_width != right_width {
+                            parser.errors.push(Error {
+                                kind: ErrorKind::SemanticError(
+                                    format!(
+                                        "Cannot apply operation to {:?} and {:?}",
+                                        left_inner, right_inner
+                                    )
+                                    .into(),
+                                ),
+                                meta,
+                            })
+                        }
+
+                        match op {
+                            BinaryOperator::Divide
+                            | BinaryOperator::Add
+                            | BinaryOperator::Subtract => {
+                                // Naga IR doesn't support all matrix by scalar operations so
+                                // we need for some to turn the scalar into a vector by
+                                // splatting it and then for each column vector apply the
+                                // operation and finally reconstruct the matrix
+
+                                let scalar_vector = self.add_expression(
+                                    Expression::Splat {
+                                        size: rows,
+                                        value: right,
+                                    },
+                                    meta,
+                                    body,
+                                );
+
+                                let mut components = Vec::with_capacity(columns as usize);
+
+                                for index in 0..columns as u32 {
+                                    // Get the column vector
+                                    let matrix_column = self.add_expression(
+                                        Expression::AccessIndex { base: left, index },
+                                        meta,
+                                        body,
+                                    );
+
+                                    // Apply the operation to the splatted vector and
+                                    // the column vector
+                                    let column = self.expressions.append(
+                                        Expression::Binary {
+                                            op,
+                                            left: matrix_column,
+                                            right: scalar_vector,
+                                        },
+                                        meta,
+                                    );
+
+                                    components.push(column)
+                                }
+
+                                // Rebuild the matrix from the operation result vectors
+                                self.expressions.append(
+                                    Expression::Compose {
+                                        ty: parser.module.types.insert(
+                                            Type {
+                                                name: None,
+                                                inner: TypeInner::Matrix {
+                                                    columns,
+                                                    rows,
+                                                    width: left_width,
+                                                },
+                                            },
+                                            Span::default(),
+                                        ),
+                                        components,
+                                    },
+                                    meta,
+                                )
+                            }
+                            _ => self.add_expression(
+                                Expression::Binary { left, op, right },
+                                meta,
+                                body,
+                            ),
+                        }
+                    }
                     _ => self.add_expression(Expression::Binary { left, op, right }, meta, body),
                 }
             }
             HirExprKind::Unary { op, expr } if pos != ExprPos::Lhs => {
-                let expr = self.lower_expect_inner(stmt, parser, expr, pos, body)?.0;
+                let expr = self
+                    .lower_expect_inner(stmt, parser, expr, ExprPos::Rhs, body)?
+                    .0;
 
                 self.add_expression(Expression::Unary { op, expr }, meta, body)
             }
@@ -680,20 +1026,29 @@ impl Context {
 
                     var.expr
                 }
-                ExprPos::ArrayBase {
-                    constant_index: false,
-                } => {
-                    if let Some((constant, ty)) = var.constant {
-                        let local = self.locals.append(
-                            LocalVariable {
-                                name: None,
-                                ty,
-                                init: Some(constant),
-                            },
-                            Span::default(),
-                        );
+                ExprPos::AccessBase { constant_index } => {
+                    // If the index isn't constant all accesses backed by a constant base need
+                    // to be done trough a proxy local variable, since constants have a non
+                    // pointer type which is required for dynamic indexing
+                    if !constant_index {
+                        if let Some((constant, ty)) = var.constant {
+                            let local = self.locals.append(
+                                LocalVariable {
+                                    name: None,
+                                    ty,
+                                    init: Some(constant),
+                                },
+                                Span::default(),
+                            );
 
-                        self.add_expression(Expression::LocalVariable(local), Span::default(), body)
+                            self.add_expression(
+                                Expression::LocalVariable(local),
+                                Span::default(),
+                                body,
+                            )
+                        } else {
+                            var.expr
+                        }
                     } else {
                         var.expr
                     }
@@ -751,9 +1106,12 @@ impl Context {
                 let (mut value, value_meta) =
                     self.lower_expect_inner(stmt, parser, value, ExprPos::Rhs, body)?;
 
-                let scalar_components = self.expr_scalar_components(parser, pointer, ptr_meta)?;
+                let ty = match *parser.resolve_type(self, pointer, ptr_meta)? {
+                    TypeInner::Pointer { base, .. } => &parser.module.types[base].inner,
+                    ref ty => ty,
+                };
 
-                if let Some((kind, width)) = scalar_components {
+                if let Some((kind, width)) = scalar_components(ty) {
                     self.implicit_conversion(parser, &mut value, value_meta, kind, width)?;
                 }
 
@@ -876,6 +1234,14 @@ impl Context {
             }
         };
 
+        log::trace!(
+            "Lowered {:?}\n\tKind = {:?}\n\tPos = {:?}\n\tResult = {:?}",
+            expr,
+            kind,
+            pos,
+            handle
+        );
+
         Ok((Some(handle), meta))
     }
 
@@ -932,6 +1298,25 @@ impl Context {
             self.expr_power(parser, *expr, meta)?,
         ) {
             if tgt_power > expr_power {
+                self.conversion(expr, meta, kind, width)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn forced_conversion(
+        &mut self,
+        parser: &Parser,
+        expr: &mut Handle<Expression>,
+        meta: Span,
+        kind: ScalarKind,
+        width: crate::Bytes,
+    ) -> Result<()> {
+        if let Some((expr_scalar_kind, expr_width)) =
+            self.expr_scalar_components(parser, *expr, meta)?
+        {
+            if expr_scalar_kind != kind || expr_width != width {
                 self.conversion(expr, meta, kind, width)?;
             }
         }
@@ -1029,7 +1414,7 @@ pub struct StmtContext {
 }
 
 impl StmtContext {
-    fn new() -> Self {
+    const fn new() -> Self {
         StmtContext {
             hir_exprs: Arena::new(),
         }

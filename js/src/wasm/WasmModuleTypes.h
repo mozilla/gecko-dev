@@ -19,6 +19,8 @@
 #ifndef wasm_module_types_h
 #define wasm_module_types_h
 
+#include "mozilla/RefPtr.h"
+
 #include "js/AllocPolicy.h"
 #include "js/RefCounted.h"
 #include "js/Utility.h"
@@ -55,7 +57,7 @@ struct CacheableChars : UniqueChars {
   explicit CacheableChars(char* ptr) : UniqueChars(ptr) {}
   MOZ_IMPLICIT CacheableChars(UniqueChars&& rhs)
       : UniqueChars(std::move(rhs)) {}
-  WASM_DECLARE_SERIALIZABLE(CacheableChars)
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
 using CacheableCharsVector = Vector<CacheableChars, 0, SystemAllocPolicy>;
@@ -75,7 +77,7 @@ struct Import {
   Import(UniqueChars&& module, UniqueChars&& field, DefinitionKind kind)
       : module(std::move(module)), field(std::move(field)), kind(kind) {}
 
-  WASM_DECLARE_SERIALIZABLE(Import)
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
 using ImportVector = Vector<Import, 0, SystemAllocPolicy>;
@@ -92,11 +94,17 @@ using ImportVector = Vector<Import, 0, SystemAllocPolicy>;
 // immutably by Module.
 
 class Export {
-  CacheableChars fieldName_;
+ public:
   struct CacheablePod {
     DefinitionKind kind_;
     uint32_t index_;
-  } pod;
+
+    WASM_CHECK_CACHEABLE_POD(kind_, index_);
+  };
+
+ private:
+  CacheableChars fieldName_;
+  CacheablePod pod;
 
  public:
   Export() = default;
@@ -107,14 +115,15 @@ class Export {
 
   DefinitionKind kind() const { return pod.kind_; }
   uint32_t funcIndex() const;
-#ifdef ENABLE_WASM_EXCEPTIONS
   uint32_t tagIndex() const;
-#endif
   uint32_t globalIndex() const;
   uint32_t tableIndex() const;
 
-  WASM_DECLARE_SERIALIZABLE(Export)
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+  WASM_DECLARE_FRIEND_SERIALIZE(Export);
 };
+
+WASM_DECLARE_CACHEABLE_POD(Export::CacheablePod);
 
 using ExportVector = Vector<Export, 0, SystemAllocPolicy>;
 
@@ -271,7 +280,8 @@ class GlobalDesc {
 
   ValType type() const { return initial_.type(); }
 
-  WASM_DECLARE_SERIALIZABLE(GlobalDesc)
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+  WASM_DECLARE_FRIEND_SERIALIZE(GlobalDesc);
 };
 
 using GlobalDescVector = Vector<GlobalDesc, 0, SystemAllocPolicy>;
@@ -280,55 +290,53 @@ using GlobalDescVector = Vector<GlobalDesc, 0, SystemAllocPolicy>;
 // exception handling proposal and potentially other future proposals.
 
 // The TagOffsetVector represents the offsets in the layout of the
-// data stored in a Wasm exception. For non-reference values, it is
-// an offset in the ArrayBuffer and for reference values it is the
-// offset in the elements of the exception's ArrayObject.
-using TagOffsetVector = Vector<int32_t, 0, SystemAllocPolicy>;
+// data buffer stored in a Wasm exception.
+using TagOffsetVector = Vector<uint32_t, 0, SystemAllocPolicy>;
 
-// Not guarded by #ifdef like TagDesc as this is required for Wasm JS
-// API classes in WasmJS.h.
-struct TagType {
-  ValTypeVector argTypes;
-  TagOffsetVector argOffsets;
-  int32_t bufferSize;
-  int32_t refCount;
+struct TagType : AtomicRefCounted<TagType> {
+  ValTypeVector argTypes_;
+  TagOffsetVector argOffsets_;
+  uint32_t size_;
 
-  TagType() : argTypes(), argOffsets(), bufferSize(0), refCount(0) {}
-  TagType(ValTypeVector&& argTypes, TagOffsetVector&& argOffsets)
-      : argTypes(std::move(argTypes)),
-        argOffsets(std::move(argOffsets)),
-        bufferSize(0),
-        refCount(0) {}
+  TagType() : size_(0) {}
 
-  ResultType resultType() const { return ResultType::Vector(argTypes); }
+  ResultType resultType() const { return ResultType::Vector(argTypes_); }
 
-  [[nodiscard]] bool computeLayout();
+  [[nodiscard]] bool initialize(ValTypeVector&& argTypes);
 
   [[nodiscard]] bool clone(const TagType& src) {
-    MOZ_ASSERT(argTypes.empty());
-    MOZ_ASSERT(argOffsets.empty());
-    if (!argTypes.appendAll(src.argTypes) ||
-        !argOffsets.appendAll(src.argOffsets)) {
+    MOZ_ASSERT(argTypes_.empty() && argOffsets_.empty() && size_ == 0);
+    if (!argTypes_.appendAll(src.argTypes_) ||
+        !argOffsets_.appendAll(src.argOffsets_)) {
       return false;
     }
-    bufferSize = src.bufferSize;
-    refCount = src.refCount;
+    size_ = src.size_;
     return true;
   }
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
-#ifdef ENABLE_WASM_EXCEPTIONS
+using MutableTagType = RefPtr<TagType>;
+using SharedTagType = RefPtr<const TagType>;
+
 struct TagDesc {
   TagKind kind;
-  TagType type;
+  SharedTagType type;
+  uint32_t globalDataOffset;
   bool isExport;
 
-  TagDesc(TagKind kind, TagType&& type, bool isExport = false)
-      : kind(kind), type(std::move(type)), isExport(isExport) {}
+  TagDesc() : globalDataOffset(UINT32_MAX), isExport(false) {}
+  TagDesc(TagKind kind, const SharedTagType& type, bool isExport = false)
+      : kind(kind),
+        type(type),
+        globalDataOffset(UINT32_MAX),
+        isExport(isExport) {}
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
 using TagDescVector = Vector<TagDesc, 0, SystemAllocPolicy>;
-#endif
 
 // When a ElemSegment is "passive" it is shared between a wasm::Module and its
 // wasm::Instances. To allow each segment to be released as soon as the last
@@ -354,7 +362,7 @@ struct ElemSegment : AtomicRefCounted<ElemSegment> {
 
   size_t length() const { return elemFuncIndices.length(); }
 
-  WASM_DECLARE_SERIALIZABLE(ElemSegment)
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
 // NullFuncIndex represents the case when an element segment (of type funcref)
@@ -363,7 +371,7 @@ constexpr uint32_t NullFuncIndex = UINT32_MAX;
 static_assert(NullFuncIndex > MaxFuncs, "Invariant");
 
 using MutableElemSegment = RefPtr<ElemSegment>;
-using SharedElemSegment = SerializableRefPtr<const ElemSegment>;
+using SharedElemSegment = RefPtr<const ElemSegment>;
 using ElemSegmentVector = Vector<SharedElemSegment, 0, SystemAllocPolicy>;
 
 // DataSegmentEnv holds the initial results of decoding a data segment from the
@@ -406,11 +414,11 @@ struct DataSegment : AtomicRefCounted<DataSegment> {
     return bytes.append(bytecode.begin() + src.bytecodeOffset, src.length);
   }
 
-  WASM_DECLARE_SERIALIZABLE(DataSegment)
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
 using MutableDataSegment = RefPtr<DataSegment>;
-using SharedDataSegment = SerializableRefPtr<const DataSegment>;
+using SharedDataSegment = RefPtr<const DataSegment>;
 using DataSegmentVector = Vector<SharedDataSegment, 0, SystemAllocPolicy>;
 
 // The CustomSection(Env) structs are like DataSegment(Env): CustomSectionEnv is
@@ -430,7 +438,7 @@ struct CustomSection {
   Bytes name;
   SharedBytes payload;
 
-  WASM_DECLARE_SERIALIZABLE(CustomSection)
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
 using CustomSectionVector = Vector<CustomSection, 0, SystemAllocPolicy>;
@@ -445,8 +453,12 @@ struct Name {
   uint32_t offsetInNamePayload;
   uint32_t length;
 
+  WASM_CHECK_CACHEABLE_POD(offsetInNamePayload, length);
+
   Name() : offsetInNamePayload(UINT32_MAX), length(0) {}
 };
+
+WASM_DECLARE_CACHEABLE_POD(Name);
 
 using NameVector = Vector<Name, 0, SystemAllocPolicy>;
 
@@ -473,6 +485,8 @@ struct Limits {
   // memories.
   Shareable shared;
 
+  WASM_CHECK_CACHEABLE_POD(indexType, initial, maximum, shared);
+
   Limits() = default;
   explicit Limits(uint64_t initial, const Maybe<uint64_t>& maximum = Nothing(),
                   Shareable shared = Shareable::False)
@@ -482,10 +496,14 @@ struct Limits {
         shared(shared) {}
 };
 
+WASM_DECLARE_CACHEABLE_POD(Limits);
+
 // MemoryDesc describes a memory.
 
 struct MemoryDesc {
   Limits limits;
+
+  WASM_CHECK_CACHEABLE_POD(limits);
 
   bool isShared() const { return limits.shared == Shareable::True; }
 
@@ -526,6 +544,8 @@ struct MemoryDesc {
   explicit MemoryDesc(Limits limits) : limits(limits) {}
 };
 
+WASM_DECLARE_CACHEABLE_POD(MemoryDesc);
+
 // We don't need to worry about overflow with a Memory32 field when
 // using a uint64_t.
 static_assert(MaxMemory32LimitField <= UINT64_MAX / PageSize);
@@ -548,6 +568,9 @@ struct TableDesc {
   uint32_t initialLength;
   Maybe<uint32_t> maximumLength;
 
+  WASM_CHECK_CACHEABLE_POD(elemType, isImportedOrExported, isAsmJS,
+                           globalDataOffset, initialLength, maximumLength);
+
   TableDesc() = default;
   TableDesc(RefType elemType, uint32_t initialLength,
             Maybe<uint32_t> maximumLength, bool isAsmJS,
@@ -559,6 +582,8 @@ struct TableDesc {
         initialLength(initialLength),
         maximumLength(maximumLength) {}
 };
+
+WASM_DECLARE_CACHEABLE_POD(TableDesc);
 
 using TableDescVector = Vector<TableDesc, 0, SystemAllocPolicy>;
 

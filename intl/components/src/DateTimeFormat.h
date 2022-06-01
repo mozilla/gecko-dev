@@ -36,8 +36,7 @@ class Calendar;
  * of the DateTimeFormat operation. DateTimeFormat::TryFormat should be
  * relatively inexpensive after the initial construction.
  *
- * This class supports creating from Styles (a fixed set of options), from
- * Skeletons (a list of fields and field widths to include), and from a
+ * This class supports creating from Styles (a fixed set of options) and from a
  * components bag (a list of components and their lengths).
  *
  * This API serves to back the ECMA-402 Intl.DateTimeFormat API.
@@ -252,6 +251,7 @@ class DateTimeFormat final {
       DateTimePatternGenerator* aDateTimePatternGenerator,
       Maybe<Span<const char16_t>> aTimeZoneOverride = Nothing{});
 
+ private:
   /**
    * Create a DateTimeFormat from a UTF-16 skeleton.
    *
@@ -267,20 +267,10 @@ class DateTimeFormat final {
   static Result<UniquePtr<DateTimeFormat>, ICUError> TryCreateFromSkeleton(
       Span<const char> aLocale, Span<const char16_t> aSkeleton,
       DateTimePatternGenerator* aDateTimePatternGenerator,
-      Maybe<DateTimeFormat::HourCycle> aHourCycle = Nothing{},
-      Maybe<Span<const char16_t>> aTimeZoneOverride = Nothing{});
+      Maybe<DateTimeFormat::HourCycle> aHourCycle,
+      Maybe<Span<const char16_t>> aTimeZoneOverride);
 
-  /**
-   * Create a DateTimeFormat from a UTF-8 skeleton.
-   *
-   * See the TryCreateFromSkeleton for const char16_t for documentation.
-   */
-  static Result<UniquePtr<DateTimeFormat>, ICUError> TryCreateFromSkeleton(
-      Span<const char> aLocale, Span<const char> aSkeleton,
-      DateTimePatternGenerator* aDateTimePatternGenerator,
-      Maybe<DateTimeFormat::HourCycle> aHourCycle = Nothing{},
-      Maybe<Span<const char>> aTimeZoneOverride = Nothing{});
-
+ public:
   /**
    * Create a DateTimeFormat from a ComponentsBag.
    *
@@ -419,8 +409,7 @@ class DateTimeFormat final {
    * plan to remove it.
    */
   template <typename B>
-  ICUResult GetOriginalSkeleton(B& aBuffer,
-                                Maybe<HourCycle> aHourCycle = Nothing()) {
+  ICUResult GetOriginalSkeleton(B& aBuffer) {
     static_assert(std::is_same_v<typename B::CharType, char16_t>);
     if (mOriginalSkeleton.length() == 0) {
       // Generate a skeleton from the resolved pattern, there was no originally
@@ -435,10 +424,6 @@ class DateTimeFormat final {
 
     if (!FillBuffer(mOriginalSkeleton, aBuffer)) {
       return Err(ICUError::OutOfMemory);
-    }
-    if (aHourCycle) {
-      DateTimeFormat::ReplaceHourSymbol(Span(aBuffer.data(), aBuffer.length()),
-                                        *aHourCycle);
     }
     return Ok();
   }

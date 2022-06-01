@@ -51,14 +51,14 @@ async function testWindowColorScheme({
   if (expectLWTAttributes) {
     ok(docEl.hasAttribute("lwtheme"), "Window should have LWT attribute.");
     is(
-      docEl.getAttribute("lwthemetextcolor"),
-      expectDark ? "bright" : "dark",
+      docEl.getAttribute("lwtheme-brighttext"),
+      expectDark ? "true" : null,
       "LWT text color attribute should be set."
     );
   } else {
     ok(!docEl.hasAttribute("lwtheme"), "Window should not have LWT attribute.");
     ok(
-      !docEl.hasAttribute("lwthemetextcolor"),
+      !docEl.hasAttribute("lwtheme-brighttext"),
       "LWT text color attribute should not be set."
     );
   }
@@ -98,7 +98,7 @@ function getPrefersColorSchemeInfo({ win, chrome = false }) {
   return SpecialPowers.spawn(win.gBrowser.selectedBrowser, [], fn);
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   // Set system theme to light to ensure consistency across test machines.
   await SpecialPowers.pushPrefEnv({
     set: [

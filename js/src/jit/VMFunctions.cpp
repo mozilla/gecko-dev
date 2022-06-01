@@ -1141,6 +1141,18 @@ bool NewArgumentsObject(JSContext* cx, BaselineFrame* frame,
   return true;
 }
 
+ArrayObject* NewArrayObjectEnsureDenseInitLength(JSContext* cx, int32_t count) {
+  MOZ_ASSERT(count >= 0);
+
+  auto* array = NewDenseFullyAllocatedArray(cx, count);
+  if (!array) {
+    return nullptr;
+  }
+  array->ensureDenseInitializedLength(0, count);
+
+  return array;
+}
+
 JSObject* CopyLexicalEnvironmentObject(JSContext* cx, HandleObject env,
                                        bool copySlots) {
   Handle<BlockLexicalEnvironmentObject*> lexicalEnv =
@@ -1710,23 +1722,26 @@ static MOZ_ALWAYS_INLINE bool ValueToAtomOrSymbolPure(JSContext* cx,
         return false;
       }
     }
-    *id = AtomToId(atom);
-  } else if (idVal.isSymbol()) {
-    *id = PropertyKey::Symbol(idVal.toSymbol());
-  } else {
-    if (!ValueToIdPure(idVal, id)) {
+
+    // Watch out for integer ids because they may be stored in dense elements.
+    static_assert(PropertyKey::IntMin == 0);
+    static_assert(NativeObject::MAX_DENSE_ELEMENTS_COUNT < PropertyKey::IntMax,
+                  "All dense elements must have integer jsids");
+    uint32_t index;
+    if (MOZ_UNLIKELY(atom->isIndex(&index) && index <= PropertyKey::IntMax)) {
       return false;
     }
+
+    *id = PropertyKey::NonIntAtom(atom);
+    return true;
   }
 
-  // Watch out for ids that may be stored in dense elements.
-  static_assert(NativeObject::MAX_DENSE_ELEMENTS_COUNT < PropertyKey::IntMax,
-                "All dense elements must have integer jsids");
-  if (MOZ_UNLIKELY(id->isInt())) {
-    return false;
+  if (idVal.isSymbol()) {
+    *id = PropertyKey::Symbol(idVal.toSymbol());
+    return true;
   }
 
-  return true;
+  return false;
 }
 
 bool GetNativeDataPropertyByValuePure(JSContext* cx, JSObject* obj, Value* vp) {

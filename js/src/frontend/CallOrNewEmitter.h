@@ -216,11 +216,18 @@ class MOZ_STACK_CLASS CallOrNewEmitter {
   // |                                |
   // |                                +<------------------------------------+
   // |                                |                                     |
-  // |                                | wantSpreadIteration                 |
+  // |                                | emitSpreadArgumentsTestEnd          |
   // |                                |                                     |
   // |                                |         +-----------------+         |
   // |                                +---------| SpreadIteration |------+  |
   // |                                          +-----------------+      |  |
+  // |                                +----------------------------------+  |
+  // |                                |                                     |
+  // |                                | wantSpreadIteration                 |
+  // |                                |                                     |
+  // |                                |         +---------------------+     |
+  // |                                +---------| SpreadArgumentsTest |--+  |
+  // |                                          +---------------------+  |  |
   // | [isSpread]                                                        |  |
   // |   wantSpreadOperand +-------------------+ emitSpreadArgumentsTest |  |
   // +-------------------->| WantSpreadOperand |-------------------------+  |
@@ -263,6 +270,9 @@ class MOZ_STACK_CLASS CallOrNewEmitter {
     WantSpreadOperand,
 
     // After calling emitSpreadArgumentsTest.
+    SpreadArgumentsTest,
+
+    // After calling wantSpreadIteration.
     SpreadIteration,
 
     // After calling prepareForNonSpreadArguments.
@@ -280,7 +290,7 @@ class MOZ_STACK_CLASS CallOrNewEmitter {
  private:
   [[nodiscard]] bool isCall() const {
     return op_ == JSOp::Call || op_ == JSOp::CallIgnoresRv ||
-           op_ == JSOp::SpreadCall || isEval() || isFunApply() || isFunCall();
+           op_ == JSOp::SpreadCall || isEval();
   }
 
   [[nodiscard]] bool isNew() const {
@@ -295,10 +305,6 @@ class MOZ_STACK_CLASS CallOrNewEmitter {
     return op_ == JSOp::Eval || op_ == JSOp::StrictEval ||
            op_ == JSOp::SpreadEval || op_ == JSOp::StrictSpreadEval;
   }
-
-  [[nodiscard]] bool isFunApply() const { return op_ == JSOp::FunApply; }
-
-  [[nodiscard]] bool isFunCall() const { return op_ == JSOp::FunCall; }
 
   [[nodiscard]] bool isSpread() const { return IsSpreadOp(op_); }
 
@@ -332,6 +338,7 @@ class MOZ_STACK_CLASS CallOrNewEmitter {
   // See the usage in the comment at the top of the class.
   [[nodiscard]] bool wantSpreadOperand();
   [[nodiscard]] bool emitSpreadArgumentsTest();
+  [[nodiscard]] bool emitSpreadArgumentsTestEnd();
   [[nodiscard]] bool wantSpreadIteration();
 
   // Parameters are the offset in the source code for each character below:

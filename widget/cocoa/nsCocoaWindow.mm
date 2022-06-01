@@ -136,6 +136,7 @@ nsCocoaWindow::nsCocoaWindow()
       mAnimationType(nsIWidget::eGenericWindowAnimation),
       mWindowMadeHere(false),
       mSheetNeedsShow(false),
+      mSizeMode(nsSizeMode_Normal),
       mInFullScreenMode(false),
       mInFullScreenTransition(false),
       mIgnoreOcclusionCount(0),
@@ -376,12 +377,28 @@ static unsigned int WindowMaskForBorderStyle(nsBorderStyle aBorderStyle) {
    * NSWindowStyleMaskBorderless]".  This implies that a borderless window
    * shouldn't have any other styles than NSWindowStyleMaskBorderless.
    */
-  if (!allOrDefault && !(aBorderStyle & eBorderStyle_title)) return NSWindowStyleMaskBorderless;
+  if (!allOrDefault && !(aBorderStyle & eBorderStyle_title)) {
+    if (aBorderStyle & eBorderStyle_minimize) {
+      /* It appears that at a minimum, borderless windows can be miniaturizable,
+       * effectively contradicting some of Apple's documentation referenced
+       * above. One such exception is the screen share indicator, see
+       * bug 1742877.
+       */
+      return NSWindowStyleMaskBorderless | NSWindowStyleMaskMiniaturizable;
+    }
+    return NSWindowStyleMaskBorderless;
+  }
 
   unsigned int mask = NSWindowStyleMaskTitled;
-  if (allOrDefault || aBorderStyle & eBorderStyle_close) mask |= NSWindowStyleMaskClosable;
-  if (allOrDefault || aBorderStyle & eBorderStyle_minimize) mask |= NSWindowStyleMaskMiniaturizable;
-  if (allOrDefault || aBorderStyle & eBorderStyle_resizeh) mask |= NSWindowStyleMaskResizable;
+  if (allOrDefault || aBorderStyle & eBorderStyle_close) {
+    mask |= NSWindowStyleMaskClosable;
+  }
+  if (allOrDefault || aBorderStyle & eBorderStyle_minimize) {
+    mask |= NSWindowStyleMaskMiniaturizable;
+  }
+  if (allOrDefault || aBorderStyle & eBorderStyle_resizeh) {
+    mask |= NSWindowStyleMaskResizable;
+  }
 
   return mask;
 }
@@ -408,9 +425,6 @@ nsresult nsCocoaWindow::CreateNativeWindow(const NSRect& aRect, nsBorderStyle aB
         if (aBorderStyle & eBorderStyle_close) {
           features |= NSWindowStyleMaskClosable;
         }
-      }
-      if (mPopupType != ePopupTypeTooltip && aBorderStyle & eBorderStyle_minimize) {
-        features |= NSWindowStyleMaskMiniaturizable;
       }
       break;
     case eWindowType_toplevel:
@@ -4005,8 +4019,6 @@ static const NSUInteger kWindowShadowOptionsTooltipMojaveOrLater = 4;
 
     case StyleWindowShadow::Default:  // we treat "default" as "default panel"
     case StyleWindowShadow::Menu:
-    case StyleWindowShadow::Sheet:
-    case StyleWindowShadow::Cliprounded:  // this is a Windows-only value.
       return kWindowShadowOptionsMenu;
 
     case StyleWindowShadow::Tooltip:

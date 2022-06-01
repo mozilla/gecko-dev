@@ -13,8 +13,7 @@ function setup() {
   // Set to allow the cert presented by our H2 server
   do_get_profile();
 
-  Services.prefs.setBoolPref("network.http.spdy.enabled", true);
-  Services.prefs.setBoolPref("network.http.spdy.enabled.http2", true);
+  Services.prefs.setBoolPref("network.http.http2.enabled", true);
   // the TRR server is on 127.0.0.1
   Services.prefs.setCharPref("network.trr.bootstrapAddr", "127.0.0.1");
 
@@ -39,6 +38,12 @@ function setup() {
   // XXX(valentin): It would be nice to just call trr_test_setup() here, but
   // the relative path here makes it awkward. Would be nice to fix someday.
   addCertFromFile(certdb, "../unit/http2-ca.pem", "CTu,u,u");
+
+  if (!gDNS) {
+    gDNS = Cc["@mozilla.org/network/dns-service;1"].getService(
+      Ci.nsIDNSService
+    );
+  }
 }
 
 setup();

@@ -72,6 +72,8 @@ pub enum ImmutableScriptFlagsEnum {
     HasMappedArgsObj = 1 << 27,
     #[allow(dead_code)]
     IsInlinableLargeFunction = 1 << 28,
+    #[allow(dead_code)]
+    FunctionHasNewTargetBinding = 1 << 29,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -445,6 +447,12 @@ impl ScriptStencil {
         debug_assert!(self.is_lazy_function());
         self.immutable_flags
             .set(ImmutableScriptFlagsEnum::HasMappedArgsObj);
+    }
+
+    pub fn set_function_has_new_target_binding(&mut self) {
+        debug_assert!(self.is_lazy_function());
+        self.immutable_flags
+            .set(ImmutableScriptFlagsEnum::FunctionHasNewTargetBinding);
     }
 
     pub fn is_arrow_function(&self) -> bool {

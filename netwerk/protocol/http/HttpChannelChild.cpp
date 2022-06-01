@@ -18,7 +18,6 @@
 #include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/extensions/StreamFilterParent.h"
-#include "mozilla/ipc/FileDescriptorSetChild.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/HttpChannelChild.h"
@@ -68,8 +67,7 @@
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
 
-namespace mozilla {
-namespace net {
+namespace mozilla::net {
 
 //-----------------------------------------------------------------------------
 // HttpChannelChild
@@ -84,6 +82,7 @@ HttpChannelChild::HttpChannelChild()
       mKeptAlive(false),
       mIPCActorDeleted(false),
       mSuspendSent(false),
+      mIsFirstPartOfMultiPart(false),
       mIsLastPartOfMultiPart(false),
       mSuspendForWaitCompleteRedirectSetup(false),
       mRecvOnStartRequestSentCalled(false),
@@ -460,6 +459,7 @@ void HttpChannelChild::OnStartRequest(
   StoreAllRedirectsSameOrigin(aArgs.allRedirectsSameOrigin());
 
   mMultiPartID = aArgs.multiPartID();
+  mIsFirstPartOfMultiPart = aArgs.isFirstPartOfMultiPart();
   mIsLastPartOfMultiPart = aArgs.isLastPartOfMultiPart();
 
   if (aArgs.overrideReferrerInfo()) {
@@ -1796,7 +1796,15 @@ NS_IMETHODIMP
 HttpChannelChild::Cancel(nsresult aStatus) {
   LOG(("HttpChannelChild::Cancel [this=%p, status=%" PRIx32 "]\n", this,
        static_cast<uint32_t>(aStatus)));
-  LogCallingScriptLocation(this);
+  // only logging on parent is necessary
+  Maybe<nsCString> logStack = CallingScriptLocationString();
+  Maybe<nsCString> logOnParent;
+  if (logStack.isSome()) {
+    logOnParent = Some(""_ns);
+    logOnParent->AppendPrintf(
+        "[this=%p] cancelled call in child process from script: %s", this,
+        logStack->get());
+  }
 
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -1813,7 +1821,7 @@ HttpChannelChild::Cancel(nsresult aStatus) {
 #endif
 
     if (remoteChannelExists) {
-      SendCancel(aStatus, mLoadInfo->GetRequestBlockingReason());
+      SendCancel(aStatus, mLoadInfo->GetRequestBlockingReason(), logOnParent);
     } else if (MOZ_UNLIKELY(!LoadOnStartRequestCalled() ||
                             !LoadOnStopRequestCalled())) {
       Unused << AsyncAbort(mStatus);
@@ -1957,7 +1965,7 @@ nsresult HttpChannelChild::AsyncOpenInternal(nsIStreamListener* aListener) {
   NS_ENSURE_TRUE(!LoadIsPending(), NS_ERROR_IN_PROGRESS);
   NS_ENSURE_TRUE(!LoadWasOpened(), NS_ERROR_ALREADY_OPENED);
 
-  if (MaybeWaitForUploadStreamLength(listener, nullptr)) {
+  if (MaybeWaitForUploadStreamNormalization(listener, nullptr)) {
     return NS_OK;
   }
 
@@ -2123,10 +2131,10 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
   openArgs.preferredAlternativeTypes() = mPreferredCachedAltDataTypes.Clone();
   openArgs.referrerInfo() = mReferrerInfo;
 
-  AutoIPCStream autoStream(openArgs.uploadStream());
   if (mUploadStream) {
-    autoStream.Serialize(mUploadStream, ContentChild::GetSingleton());
-    autoStream.TakeOptionalValue();
+    MOZ_ALWAYS_TRUE(SerializeIPCStream(do_AddRef(mUploadStream),
+                                       openArgs.uploadStream(),
+                                       /* aAllowLazy */ false));
   }
 
   Maybe<CorsPreflightArgs> optionalCorsPreflightArgs;
@@ -2554,7 +2562,6 @@ HttpChannelChild::ResumeAt(uint64_t startPos, const nsACString& entityID) {
 NS_IMETHODIMP
 HttpChannelChild::SetPriority(int32_t aPriority) {
   LOG(("HttpChannelChild::SetPriority %p p=%d", this, aPriority));
-
   int16_t newValue = clamped<int32_t>(aPriority, INT16_MIN, INT16_MAX);
   if (mPriority == newValue) return NS_OK;
   mPriority = newValue;
@@ -2567,13 +2574,14 @@ HttpChannelChild::SetPriority(int32_t aPriority) {
 //-----------------------------------------------------------------------------
 NS_IMETHODIMP
 HttpChannelChild::SetClassFlags(uint32_t inFlags) {
-  if (mClassOfService == inFlags) {
+  if (mClassOfService.Flags() == inFlags) {
     return NS_OK;
   }
 
-  mClassOfService = inFlags;
+  mClassOfService.SetFlags(inFlags);
 
-  LOG(("HttpChannelChild %p ClassOfService=%u", this, mClassOfService));
+  LOG(("HttpChannelChild %p ClassOfService flags=%lu inc=%d", this,
+       mClassOfService.Flags(), mClassOfService.Incremental()));
 
   if (RemoteChannelExists()) {
     SendSetClassOfService(mClassOfService);
@@ -2583,9 +2591,10 @@ HttpChannelChild::SetClassFlags(uint32_t inFlags) {
 
 NS_IMETHODIMP
 HttpChannelChild::AddClassFlags(uint32_t inFlags) {
-  mClassOfService |= inFlags;
+  mClassOfService.SetFlags(inFlags | mClassOfService.Flags());
 
-  LOG(("HttpChannelChild %p ClassOfService=%u", this, mClassOfService));
+  LOG(("HttpChannelChild %p ClassOfService flags=%lu inc=%d", this,
+       mClassOfService.Flags(), mClassOfService.Incremental()));
 
   if (RemoteChannelExists()) {
     SendSetClassOfService(mClassOfService);
@@ -2595,10 +2604,32 @@ HttpChannelChild::AddClassFlags(uint32_t inFlags) {
 
 NS_IMETHODIMP
 HttpChannelChild::ClearClassFlags(uint32_t inFlags) {
-  mClassOfService &= ~inFlags;
+  mClassOfService.SetFlags(~inFlags & mClassOfService.Flags());
 
-  LOG(("HttpChannelChild %p ClassOfService=%u", this, mClassOfService));
+  LOG(("HttpChannelChild %p ClassOfService=%lu", this,
+       mClassOfService.Flags()));
 
+  if (RemoteChannelExists()) {
+    SendSetClassOfService(mClassOfService);
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpChannelChild::SetClassOfService(ClassOfService inCos) {
+  mClassOfService = inCos;
+  LOG(("HttpChannelChild %p ClassOfService flags=%lu inc=%d", this,
+       mClassOfService.Flags(), mClassOfService.Incremental()));
+  if (RemoteChannelExists()) {
+    SendSetClassOfService(mClassOfService);
+  }
+  return NS_OK;
+}
+NS_IMETHODIMP
+HttpChannelChild::SetIncremental(bool inIncremental) {
+  mClassOfService.SetIncremental(inIncremental);
+  LOG(("HttpChannelChild %p ClassOfService flags=%lu inc=%d", this,
+       mClassOfService.Flags(), mClassOfService.Incremental()));
   if (RemoteChannelExists()) {
     SendSetClassOfService(mClassOfService);
   }
@@ -2690,6 +2721,15 @@ HttpChannelChild::GetPartID(uint32_t* aPartID) {
 }
 
 NS_IMETHODIMP
+HttpChannelChild::GetIsFirstPart(bool* aIsFirstPart) {
+  if (!mMultiPartID) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  *aIsFirstPart = mIsFirstPartOfMultiPart;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpChannelChild::GetIsLastPart(bool* aIsLastPart) {
   if (!mMultiPartID) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -2708,7 +2748,6 @@ HttpChannelChild::RetargetDeliveryTo(nsIEventTarget* aNewTarget) {
        aNewTarget));
 
   MOZ_ASSERT(NS_IsMainThread(), "Should be called on main thread only");
-  MOZ_ASSERT(!mODATarget);
   MOZ_ASSERT(aNewTarget);
 
   NS_ENSURE_ARG(aNewTarget);
@@ -2746,6 +2785,7 @@ HttpChannelChild::RetargetDeliveryTo(nsIEventTarget* aNewTarget) {
 
   {
     MutexAutoLock lock(mEventTargetMutex);
+    MOZ_ASSERT(!mODATarget);
     mODATarget = aNewTarget;
   }
 
@@ -2791,16 +2831,6 @@ void HttpChannelChild::TrySendDeletingChannel() {
           &HttpChannelChild::TrySendDeletingChannel),
       NS_DISPATCH_NORMAL);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
-}
-
-void HttpChannelChild::OnCopyComplete(nsresult aStatus) {
-  nsCOMPtr<nsIRunnable> runnable = NewRunnableMethod<nsresult>(
-      "net::HttpBaseChannel::EnsureUploadStreamIsCloneableComplete", this,
-      &HttpChannelChild::EnsureUploadStreamIsCloneableComplete, aStatus);
-  nsCOMPtr<nsISerialEventTarget> neckoTarget = GetNeckoTarget();
-  MOZ_ASSERT(neckoTarget);
-
-  Unused << neckoTarget->Dispatch(runnable, NS_DISPATCH_NORMAL);
 }
 
 nsresult HttpChannelChild::AsyncCallImpl(
@@ -3016,7 +3046,11 @@ void HttpChannelChild::MaybeConnectToSocketProcess() {
     return;
   }
 
-  RefPtr<HttpBackgroundChannelChild> bgChild = mBgChild;
+  RefPtr<HttpBackgroundChannelChild> bgChild;
+  {
+    MutexAutoLock lock(mBgChildMutex);
+    bgChild = mBgChild;
+  }
   SocketProcessBridgeChild::GetSocketProcessBridge()->Then(
       GetCurrentSerialEventTarget(), __func__,
       [bgChild]() {
@@ -3034,5 +3068,4 @@ HttpChannelChild::SetEarlyHintObserver(nsIEarlyHintObserver* aObserver) {
   return NS_OK;
 }
 
-}  // namespace net
-}  // namespace mozilla
+}  // namespace mozilla::net

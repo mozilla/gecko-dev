@@ -15,6 +15,13 @@ import logging
 import json
 
 import mozpack.path as mozpath
+from taskgraph.util.taskcluster import get_artifact_prefix
+from voluptuous import (
+    Extra,
+    Optional,
+    Required,
+    Exclusive,
+)
 
 from gecko_taskgraph.transforms.base import TransformSequence
 from gecko_taskgraph.transforms.cached_tasks import order_tasks
@@ -23,15 +30,8 @@ from gecko_taskgraph.util.schema import (
     Schema,
 )
 from gecko_taskgraph.util.python_path import import_sibling_modules
-from gecko_taskgraph.util.taskcluster import get_artifact_prefix
 from gecko_taskgraph.util.workertypes import worker_type_implementation
 from gecko_taskgraph.transforms.task import task_description_schema
-from voluptuous import (
-    Extra,
-    Optional,
-    Required,
-    Exclusive,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,6 @@ job_description_schema = Schema(
             "optimization"
         ],
         Optional("use-sccache"): task_description_schema["use-sccache"],
-        Optional("release-artifacts"): task_description_schema["release-artifacts"],
         Optional("priority"): task_description_schema["priority"],
         # The "when" section contains descriptions of the circumstances under which
         # this task should be included in the task graph.  This will be converted

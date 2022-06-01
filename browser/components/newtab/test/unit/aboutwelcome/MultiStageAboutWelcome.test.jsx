@@ -33,6 +33,7 @@ describe("MultiStageAboutWelcome module", () => {
       AWGetRegion: () => Promise.resolve(),
       AWWaitForMigrationClose: () => Promise.resolve(),
       AWSelectTheme: () => Promise.resolve(),
+      AWFinish: () => Promise.resolve(),
     });
     sandbox = sinon.createSandbox();
   });
@@ -66,7 +67,7 @@ describe("MultiStageAboutWelcome module", () => {
       assert.calledTwice(impressionSpy);
       assert.equal(
         impressionSpy.firstCall.args[0],
-        `${DEFAULT_PROPS.message_id}_${DEFAULT_PROPS.screens[0].order}_${DEFAULT_PROPS.screens[0].id}`
+        `${DEFAULT_PROPS.message_id}_0_${DEFAULT_PROPS.screens[0].id}`
       );
       assert.equal(
         impressionSpy.secondCall.args[0],
@@ -107,6 +108,48 @@ describe("MultiStageAboutWelcome module", () => {
         welcomeScreenWrapper.props().messageId
       );
       assert.equal(stub.firstCall.args[1], "primary_button");
+      stub.restore();
+    });
+
+    it("should autoAdvance on last screen and send appropriate telemetry", () => {
+      let clock = sinon.useFakeTimers();
+      const screens = [
+        {
+          auto_advance: "primary_button",
+          content: {
+            title: "test title",
+            subtitle: "test subtitle",
+            primary_button: {
+              label: "Test Button",
+              action: {
+                navigate: true,
+              },
+            },
+          },
+        },
+      ];
+      const AUTO_ADVANCE_PROPS = {
+        screens,
+        metricsFlowUri: "http://localhost/",
+        message_id: "DEFAULT_ABOUTWELCOME",
+        utm_term: "default",
+      };
+      const wrapper = mount(<MultiStageAboutWelcome {...AUTO_ADVANCE_PROPS} />);
+      wrapper.update();
+      const finishStub = sandbox.stub(global, "AWFinish");
+      const telemetryStub = sinon.stub(
+        AboutWelcomeUtils,
+        "sendActionTelemetry"
+      );
+
+      assert.notCalled(finishStub);
+      clock.tick(20001);
+      assert.calledOnce(finishStub);
+      assert.calledOnce(telemetryStub);
+      assert.equal(telemetryStub.lastCall.args[2], "AUTO_ADVANCE");
+      clock.restore();
+      finishStub.restore();
+      telemetryStub.restore();
     });
   });
 
@@ -119,7 +162,6 @@ describe("MultiStageAboutWelcome module", () => {
       const GET_STARTED_SCREEN_PROPS = {
         id: startScreen.id,
         totalNumberofScreens: 1,
-        order: startScreen.order,
         content: startScreen.content,
         topSites: [],
         messageId: `${DEFAULT_PROPS.message_id}_${startScreen.id}`,
@@ -152,7 +194,6 @@ describe("MultiStageAboutWelcome module", () => {
       it("should render steps indicator", () => {
         let SCREEN_PROPS = {
           totalNumberOfScreens: 1,
-          order: 0,
         };
         <StepsIndicator {...SCREEN_PROPS} />;
         const wrapper = mount(<StepsIndicator {...SCREEN_PROPS} />);
@@ -173,7 +214,6 @@ describe("MultiStageAboutWelcome module", () => {
       const THEME_SCREEN_PROPS = {
         id: "test-theme-screen",
         totalNumberofScreens: 1,
-        order: 0,
         content: {
           title: "test title",
           subtitle: "test subtitle",

@@ -40,6 +40,7 @@ import org.junit.runner.RunWith
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.ShouldContinue
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.Setting
 
 const val DISPLAY_WIDTH = 480
@@ -197,6 +198,68 @@ class AccessibilityTest : BaseSessionTest() {
         })
     }
 
+    @Test fun testAccessibilityFocusAboutMozilla() {
+        var nodeId = AccessibilityNodeProvider.HOST_VIEW_ID
+        mainSession.loadUri("about:license")
+
+        sessionRule.waitUntilCalled(object: GeckoSession.NavigationDelegate {
+            override fun onLoadRequest(session: GeckoSession,
+                                       request: GeckoSession.NavigationDelegate.LoadRequest)
+                    : GeckoResult<AllowOrDeny>? {
+                return GeckoResult.allow()
+            }
+        })
+
+        // XXX: Local pages do not dispatch focus events when loaded
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled
+            override fun onWinStateChanged(event: AccessibilityEvent) { }
+
+            @AssertCalled
+            override fun onWinContentChanged(event: AccessibilityEvent) { }
+        })
+
+        provider.performAction(View.NO_ID,
+                AccessibilityNodeInfo.ACTION_NEXT_HTML_ELEMENT, null)
+
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onAccessibilityFocused(event: AccessibilityEvent) {
+                nodeId = getSourceId(event)
+                val node = createNodeInfo(nodeId)
+                assertThat("Header is a11y focused", node.contentDescription.toString(),
+                        equalTo("Licenses"))
+            }
+        })
+
+        provider.performAction(nodeId,
+                AccessibilityNodeInfo.ACTION_NEXT_HTML_ELEMENT, null)
+
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onAccessibilityFocused(event: AccessibilityEvent) {
+                nodeId = getSourceId(event)
+                val node = createNodeInfo(nodeId)
+                assertThat("Next text leaf is focused", node.text.toString(),
+                        equalTo("All of the "))
+            }
+        })
+
+        val bundle = Bundle()
+        bundle.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_HTML_ELEMENT_STRING, "LINK")
+
+        provider.performAction(nodeId, AccessibilityNodeInfo.ACTION_NEXT_HTML_ELEMENT, bundle)
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onAccessibilityFocused(event: AccessibilityEvent) {
+                nodeId = getSourceId(event)
+                val node = createNodeInfo(nodeId)
+                assertThat("Accessibility focus on a with href",
+                        node.contentDescription as String, equalTo("free"))
+            }
+        })
+    }
+
     @Test fun testAccessibilityFocus() {
         var nodeId = AccessibilityNodeProvider.HOST_VIEW_ID
         mainSession.loadTestPath(INPUTS_PATH)
@@ -323,6 +386,7 @@ class AccessibilityTest : BaseSessionTest() {
             }
         })
 
+        // This focuses the link.
         mainSession.finder.find("sweet", 0)
         sessionRule.waitUntilCalled(object : EventDelegate {
             @AssertCalled(count = 1)
@@ -335,6 +399,9 @@ class AccessibilityTest : BaseSessionTest() {
         // reset caret position
         mainSession.evaluateJS("""
             this.select(document.body, 0, 0);
+            // Changing DOM selection doesn't focus the document! Force focus
+            // here so we can use that to determine when this is done.
+            document.activeElement.blur();
         """.trimIndent())
         sessionRule.waitUntilCalled(object : EventDelegate {
             @AssertCalled(count = 1)
@@ -1172,8 +1239,6 @@ class AccessibilityTest : BaseSessionTest() {
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1715480
         sessionRule.setPrefsUntilTestEnd(mapOf(
                 "fission.bfcacheInParent" to false))
-        // disable test on debug for frequently failing #Bug 1505353
-        assumeThat(sessionRule.env.isDebugBuild, equalTo(false))
         fun countAutoFillNodes(cond: (AccessibilityNodeInfo) -> Boolean =
                                        { it.className == "android.widget.EditText" },
                                id: Int = View.NO_ID): Int {
@@ -1184,9 +1249,27 @@ class AccessibilityTest : BaseSessionTest() {
                 } else 0)
         }
 
+        // XXX: Reliably waiting for iframes to load could be flaky, so we wait
+        // for our autofill nodes to be the right number.
+        fun waitForAutoFillNodes() {
+            val checkAutoFillNodes = object : EventDelegate, ShouldContinue {
+                var haveAllAutoFills = countAutoFillNodes() == 18
+
+                override fun shouldContinue(): Boolean = !haveAllAutoFills
+
+                override fun onWinContentChanged(event: AccessibilityEvent) {
+                    haveAllAutoFills = countAutoFillNodes() == 18
+                }
+            }
+            if (checkAutoFillNodes.shouldContinue()) {
+                sessionRule.waitUntilCalled(checkAutoFillNodes)
+            }
+        }
+
         // Wait for the accessibility nodes to populate.
         mainSession.loadTestPath(FORMS_HTML_PATH)
         waitForInitialFocus()
+        waitForAutoFillNodes()
 
         assertThat("Initial auto-fill count should match",
                    countAutoFillNodes(), equalTo(18))
@@ -1202,6 +1285,7 @@ class AccessibilityTest : BaseSessionTest() {
         // Now wait for the nodes to reappear.
         mainSession.goBack()
         waitForInitialFocus()
+        waitForAutoFillNodes()
         assertThat("Should have auto-fill fields again",
                    countAutoFillNodes(), equalTo(18))
         assertThat("Should not have focused field",
@@ -1233,8 +1317,15 @@ class AccessibilityTest : BaseSessionTest() {
 
         val rootNode = createNodeInfo(View.NO_ID)
         assertThat("Document has 3 children", rootNode.childCount, equalTo(3))
+        var rootBounds = Rect()
+        rootNode.getBoundsInScreen(rootBounds)
+        assertThat("Root node bounds are not empty", rootBounds.isEmpty, equalTo(false))
 
+        var labelBounds = Rect()
         val labelNode = createNodeInfo(rootNode.getChildId(0))
+        labelNode.getBoundsInScreen(labelBounds)
+
+        assertThat("Label bounds are in parent", rootBounds.contains(labelBounds), equalTo(true))
         assertThat("First node is a label", labelNode.className.toString(), equalTo("android.view.View"))
         assertThat("Label has text", labelNode.text.toString(), equalTo("Name:"))
 
@@ -1255,6 +1346,101 @@ class AccessibilityTest : BaseSessionTest() {
         // The child text leaf is pruned, so this button is childless.
         assertThat("Button has a single text leaf", buttonNode.childCount, equalTo(0))
         assertThat("Button has correct text", buttonNode.text.toString(), equalTo("Submit"))
+    }
+
+
+    private fun testAccessibilityFocusIframe(page: String) {
+        var nodeId = AccessibilityNodeProvider.HOST_VIEW_ID
+        mainSession.loadTestPath(page)
+        waitForInitialFocus(true)
+
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onAccessibilityFocused(event: AccessibilityEvent) {
+                nodeId = getSourceId(event)
+                val node = createNodeInfo(nodeId)
+                assertThat("Label has text", node.text.toString(), equalTo("Some stuff "))
+            }
+        })
+
+        provider.performAction(nodeId,
+                AccessibilityNodeInfo.ACTION_NEXT_HTML_ELEMENT, null)
+
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onAccessibilityFocused(event: AccessibilityEvent) {
+                nodeId = getSourceId(event)
+                val node = createNodeInfo(nodeId)
+                assertThat("heading has correct content", node.text as String, equalTo("Hello, world!"))
+            }
+        })
+
+        provider.performAction(nodeId,
+                AccessibilityNodeInfo.ACTION_PREVIOUS_HTML_ELEMENT, null)
+
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onAccessibilityFocused(event: AccessibilityEvent) {
+                nodeId = getSourceId(event)
+                val node = createNodeInfo(nodeId)
+                assertThat("Label has text", node.text.toString(), equalTo("Some stuff "))
+            }
+        })
+    }
+
+    @Test fun testRemoteAccessibilityFocusIframe() {
+        testAccessibilityFocusIframe(REMOTE_IFRAME);
+    }
+
+    @Test fun testLocalAccessibilityFocusIframe() {
+        testAccessibilityFocusIframe(LOCAL_IFRAME);
+    }
+
+    private fun testIframeTree(page: String) {
+        mainSession.loadTestPath(page)
+        waitForInitialFocus()
+
+        val rootNode = createNodeInfo(View.NO_ID)
+        assertThat("Document has 2 children", rootNode.childCount, equalTo(2))
+        var rootBounds = Rect()
+        rootNode.getBoundsInScreen(rootBounds)
+        assertThat("Root bounds are not empty", rootBounds.isEmpty, equalTo(false))
+
+        val labelNode = createNodeInfo(rootNode.getChildId(0))
+        assertThat("First node has text", labelNode.text.toString(), equalTo("Some stuff "))
+
+        val iframeNode = createNodeInfo(rootNode.getChildId(1))
+        assertThat("iframe has vieIdwResourceName of 'iframe'", iframeNode.viewIdResourceName, equalTo("iframe"))
+        assertThat("iframe has 1 child", iframeNode.childCount, equalTo(1))
+        var iframeBounds = Rect()
+        iframeNode.getBoundsInScreen(iframeBounds)
+        assertThat("iframe bounds in root bounds", rootBounds.contains(iframeBounds), equalTo(true))
+
+        val innerDocNode = createNodeInfo(iframeNode.getChildId(0))
+        assertThat("Inner doc has one child", innerDocNode.childCount, equalTo(1))
+        var innerDocBounds = Rect()
+        innerDocNode.getBoundsInScreen(innerDocBounds)
+        assertThat("iframe bounds match inner doc bounds", iframeBounds.contains(innerDocBounds), equalTo(true))
+
+        val section = createNodeInfo(innerDocNode.getChildId(0))
+        assertThat("section has one child", innerDocNode.childCount, equalTo(1))
+
+        val node = createNodeInfo(section.getChildId(0))
+        assertThat("Text node has text", node.text as String, equalTo("Hello, world!"))
+        var nodeBounds = Rect()
+        node.getBoundsInScreen(nodeBounds)
+        assertThat("inner node in inner doc bounds", innerDocBounds.contains(nodeBounds), equalTo(true))
+
+    }
+
+    @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")
+    @Test fun testRemoteIframeTree() {
+        testIframeTree(REMOTE_IFRAME);
+    }
+
+    @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")
+    @Test fun testLocalIframeTree() {
+        testIframeTree(LOCAL_IFRAME);
     }
 
     @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")

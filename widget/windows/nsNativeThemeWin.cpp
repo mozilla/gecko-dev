@@ -95,7 +95,7 @@ static int32_t GetTopLevelWindowActiveState(nsIFrame* aFrame) {
   // Get the widget. nsIFrame's GetNearestWidget walks up the view chain
   // until it finds a real window.
   nsIWidget* widget = aFrame->GetNearestWidget();
-  nsWindowBase* window = static_cast<nsWindowBase*>(widget);
+  nsWindow* window = static_cast<nsWindow*>(widget);
   if (!window) return mozilla::widget::themeconst::FS_INACTIVE;
   if (widget && !window->IsTopLevelWidget() &&
       !(window = window->GetParentWindowBase(false)))
@@ -702,8 +702,6 @@ mozilla::Maybe<nsUXThemeClass> nsNativeThemeWin::GetThemeClass(
     case StyleAppearance::Textarea:
     case StyleAppearance::FocusOutline:
       return Some(eUXEdit);
-    case StyleAppearance::Tooltip:
-      return Some(eUXTooltip);
     case StyleAppearance::Toolbox:
       return Some(eUXRebar);
     case StyleAppearance::MozWinMediaToolbox:
@@ -930,11 +928,6 @@ nsresult nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame,
       // XXX the EDITBORDER values don't respect DTBG_OMITCONTENT
       aPart = TFP_TEXTFIELD;  // TFP_EDITBORDER_NOSCROLL;
       aState = TS_FOCUSED;    // TFS_EDITBORDER_FOCUSED;
-      return NS_OK;
-    }
-    case StyleAppearance::Tooltip: {
-      aPart = TTP_STANDARD;
-      aState = TS_NORMAL;
       return NS_OK;
     }
     case StyleAppearance::ProgressBar: {
@@ -1935,21 +1928,24 @@ bool nsNativeThemeWin::GetWidgetPadding(nsDeviceContext* aContext,
   if (aAppearance == StyleAppearance::MozWindowTitlebar ||
       aAppearance == StyleAppearance::MozWindowTitlebarMaximized) {
     aResult->SizeTo(0, 0, 0, 0);
-    // XXX Maximized windows have an offscreen offset equal to
-    // the border padding. This should be addressed in nsWindow,
-    // but currently can't be, see UpdateNonClientMargins.
-    if (aAppearance == StyleAppearance::MozWindowTitlebarMaximized) {
+    // Prior to Windows 10, a bug in DwmDefWindowProc would cause window
+    // button presses/mouseovers to be missed.  This bug is circumvented by
+    // adding padding to the top of the window that is the size of the caption
+    // area and then "removing" it when calculating the client area for
+    // WM_NCCALCSIZE.  See bug 618353,
+    if (!IsWin10OrLater() &&
+        aAppearance == StyleAppearance::MozWindowTitlebarMaximized) {
       nsCOMPtr<nsIWidget> rootWidget;
       if (WinUtils::HasSystemMetricsForDpi()) {
         rootWidget = aFrame->PresContext()->GetRootWidget();
       }
       if (rootWidget) {
         double dpi = rootWidget->GetDPI();
-        aResult->top = WinUtils::GetSystemMetricsForDpi(SM_CXFRAME, dpi) +
+        aResult->top = WinUtils::GetSystemMetricsForDpi(SM_CYFRAME, dpi) +
                        WinUtils::GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
       } else {
         aResult->top =
-            GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+            GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
       }
     }
     return ok;
@@ -2335,7 +2331,6 @@ nsNativeThemeWin::WidgetStateChanged(nsIFrame* aFrame,
       aAppearance == StyleAppearance::Resizerpanel ||
       aAppearance == StyleAppearance::Progresschunk ||
       aAppearance == StyleAppearance::ProgressBar ||
-      aAppearance == StyleAppearance::Tooltip ||
       aAppearance == StyleAppearance::Tabpanels ||
       aAppearance == StyleAppearance::Tabpanel ||
       aAppearance == StyleAppearance::Separator ||
@@ -2506,9 +2501,8 @@ nsITheme::Transparency nsNativeThemeWin::GetWidgetTransparency(
   HANDLE theme = GetTheme(aAppearance);
   // For the classic theme we don't really have a way of knowing
   if (!theme) {
-    // menu backgrounds and tooltips which can't be themed are opaque
-    if (aAppearance == StyleAppearance::Menupopup ||
-        aAppearance == StyleAppearance::Tooltip) {
+    // menu backgrounds which can't be themed are opaque
+    if (aAppearance == StyleAppearance::Menupopup) {
       return eOpaque;
     }
     return eUnknownTransparency;
@@ -2546,6 +2540,7 @@ bool nsNativeThemeWin::ClassicThemeSupportsWidget(nsIFrame* aFrame,
     case StyleAppearance::Menupopup:
       // Classic non-flat menus are handled almost entirely through CSS.
       if (!nsUXThemeData::AreFlatMenusEnabled()) return false;
+      [[fallthrough]];
     case StyleAppearance::Button:
     case StyleAppearance::NumberInput:
     case StyleAppearance::Textfield:
@@ -2562,7 +2557,6 @@ bool nsNativeThemeWin::ClassicThemeSupportsWidget(nsIFrame* aFrame,
     case StyleAppearance::SpinnerDownbutton:
     case StyleAppearance::Listbox:
     case StyleAppearance::Treeview:
-    case StyleAppearance::Tooltip:
     case StyleAppearance::Statusbar:
     case StyleAppearance::Statusbarpanel:
     case StyleAppearance::Resizerpanel:
@@ -2627,9 +2621,6 @@ LayoutDeviceIntMargin nsNativeThemeWin::ClassicGetWidgetBorder(
       result.right = aFrame->GetNextSibling() ? 3 : 1;
       break;
     }
-    case StyleAppearance::Tooltip:
-      result.top = result.left = result.bottom = result.right = 1;
-      break;
     case StyleAppearance::ProgressBar:
       result.top = result.left = result.bottom = result.right = 1;
       break;
@@ -2734,7 +2725,6 @@ nsresult nsNativeThemeWin::ClassicGetMinimumWidgetSize(
     case StyleAppearance::Statusbarpanel:
     case StyleAppearance::Resizerpanel:
     case StyleAppearance::Progresschunk:
-    case StyleAppearance::Tooltip:
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Tab:
     case StyleAppearance::Tabpanel:
@@ -2949,7 +2939,6 @@ nsresult nsNativeThemeWin::ClassicGetThemePartAndState(
     case StyleAppearance::Statusbarpanel:
     case StyleAppearance::Resizerpanel:
     case StyleAppearance::Progresschunk:
-    case StyleAppearance::Tooltip:
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Tab:
     case StyleAppearance::Tabpanel:
@@ -3287,7 +3276,7 @@ RENDER_AGAIN:
         if (brush) ::FrameRect(hdc, &widgetRect, brush);
         InflateRect(&widgetRect, -1, -1);
       }
-      // fall-through...
+      [[fallthrough]];
     }
     // Draw controls supported by DrawFrameControl
     case StyleAppearance::Checkbox:
@@ -3334,13 +3323,6 @@ RENDER_AGAIN:
 
       break;
     }
-    // Draw ToolTip background
-    case StyleAppearance::Tooltip:
-      ::FrameRect(hdc, &widgetRect, ::GetSysColorBrush(COLOR_WINDOWFRAME));
-      InflateRect(&widgetRect, -1, -1);
-      ::FillRect(hdc, &widgetRect, ::GetSysColorBrush(COLOR_INFOBK));
-
-      break;
     case StyleAppearance::Groupbox:
       ::DrawEdge(hdc, &widgetRect, EDGE_ETCHED, BF_RECT | BF_ADJUST);
       ::FillRect(hdc, &widgetRect, (HBRUSH)(COLOR_BTNFACE + 1));
@@ -3350,7 +3332,7 @@ RENDER_AGAIN:
       // Draw 3D border
       ::DrawEdge(hdc, &widgetRect, BDR_SUNKENOUTER, BF_RECT | BF_MIDDLE);
       InflateRect(&widgetRect, -1, -1);
-      // fall through
+      [[fallthrough]];
     case StyleAppearance::Tabpanel:
     case StyleAppearance::Statusbar:
     case StyleAppearance::Resizerpanel: {
@@ -3480,6 +3462,7 @@ RENDER_AGAIN:
     case StyleAppearance::Menucheckbox:
     case StyleAppearance::Menuradio:
       if (!(state & DFCS_CHECKED)) break;  // nothin' to do
+      [[fallthrough]];
     case StyleAppearance::Menuarrow: {
       uint32_t color = COLOR_MENUTEXT;
       if ((state & DFCS_INACTIVE))

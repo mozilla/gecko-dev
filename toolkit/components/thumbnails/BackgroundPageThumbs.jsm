@@ -380,6 +380,7 @@ const BackgroundPageThumbs = {
     // thumbnails are blank and transparent -- but setting the style does.
     browser.style.width = bwidth + "px";
     browser.style.height = (bwidth * sheight.value) / swidth.value + "px";
+    browser.style.colorScheme = "env(-moz-content-preferred-color-scheme)";
 
     this._parentWin.document.documentElement.appendChild(browser);
 
@@ -510,11 +511,6 @@ const BackgroundPageThumbs = {
 };
 
 BackgroundPageThumbs._init();
-Object.defineProperty(this, "BackgroundPageThumbs", {
-  value: BackgroundPageThumbs,
-  enumerable: true,
-  writable: false,
-});
 
 /**
  * Represents a single capture request in the capture queue.

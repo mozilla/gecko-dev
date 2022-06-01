@@ -21,7 +21,13 @@ class ErrorResult;
 
 namespace dom {
 
+class OwningStringOrDouble;
+class StringOrPerformanceMeasureOptions;
 class PerformanceEntry;
+class PerformanceMark;
+struct PerformanceMarkOptions;
+struct PerformanceMeasureOptions;
+class PerformanceMeasure;
 class PerformanceNavigation;
 class PerformancePaintTiming;
 class PerformanceObserver;
@@ -46,6 +52,10 @@ class Performance : public DOMEventTargetHelper {
 
   static already_AddRefed<Performance> CreateForWorker(
       WorkerPrivate* aWorkerPrivate);
+
+  // This will return nullptr if called outside of a Window or Worker.
+  static already_AddRefed<Performance> Get(JSContext* aCx,
+                                           nsIGlobalObject* aGlobal);
 
   JSObject* WrapObject(JSContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
@@ -72,12 +82,16 @@ class Performance : public DOMEventTargetHelper {
 
   DOMHighResTimeStamp TimeOrigin();
 
-  void Mark(const nsAString& aName, ErrorResult& aRv);
+  already_AddRefed<PerformanceMark> Mark(
+      JSContext* aCx, const nsAString& aName,
+      const PerformanceMarkOptions& aMarkOptions, ErrorResult& aRv);
 
   void ClearMarks(const Optional<nsAString>& aName);
 
-  void Measure(const nsAString& aName, const Optional<nsAString>& aStartMark,
-               const Optional<nsAString>& aEndMark, ErrorResult& aRv);
+  already_AddRefed<PerformanceMeasure> Measure(
+      JSContext* aCx, const nsAString& aName,
+      const StringOrPerformanceMeasureOptions& aStartOrMeasureOptions,
+      const Optional<nsAString>& aEndMark, ErrorResult& aRv);
 
   void ClearMeasures(const Optional<nsAString>& aName);
 
@@ -138,6 +152,10 @@ class Performance : public DOMEventTargetHelper {
 
   void QueueNotificationObserversTask();
 
+  virtual bool IsPerformanceTimingAttribute(const nsAString& aName) {
+    return false;
+  }
+
  protected:
   Performance(nsIGlobalObject* aGlobal, bool aSystemPrincipal);
   Performance(nsPIDOMWindowInner* aWindow, bool aSystemPrincipal);
@@ -149,16 +167,9 @@ class Performance : public DOMEventTargetHelper {
   void ClearUserEntries(const Optional<nsAString>& aEntryName,
                         const nsAString& aEntryType);
 
-  DOMHighResTimeStamp ResolveTimestampFromName(const nsAString& aName,
-                                               ErrorResult& aRv);
-
   virtual void DispatchBufferFullEvent() = 0;
 
   virtual DOMHighResTimeStamp CreationTime() const = 0;
-
-  virtual bool IsPerformanceTimingAttribute(const nsAString& aName) {
-    return false;
-  }
 
   virtual DOMHighResTimeStamp GetPerformanceTimingFromString(
       const nsAString& aTimingName) {
@@ -167,7 +178,7 @@ class Performance : public DOMEventTargetHelper {
 
   void LogEntry(PerformanceEntry* aEntry, const nsACString& aOwner) const;
   void TimingNotification(PerformanceEntry* aEntry, const nsACString& aOwner,
-                          uint64_t epoch);
+                          const double aEpoch);
 
   void RunNotificationObserversTask();
   void QueueEntry(PerformanceEntry* aEntry);
@@ -198,6 +209,28 @@ class Performance : public DOMEventTargetHelper {
  private:
   MOZ_ALWAYS_INLINE bool CanAddResourceTimingEntry();
   void BufferEvent();
+
+  // The attributes of a PerformanceMeasureOptions that we call
+  // ResolveTimestamp* on.
+  enum class ResolveTimestampAttribute;
+
+  DOMHighResTimeStamp ConvertMarkToTimestampWithString(const nsAString& aName,
+                                                       ErrorResult& aRv);
+  DOMHighResTimeStamp ConvertMarkToTimestampWithDOMHighResTimeStamp(
+      const ResolveTimestampAttribute aAttribute, const double aTimestamp,
+      ErrorResult& aRv);
+  DOMHighResTimeStamp ConvertMarkToTimestamp(
+      const ResolveTimestampAttribute aAttribute,
+      const OwningStringOrDouble& aMarkNameOrTimestamp, ErrorResult& aRv);
+
+  DOMHighResTimeStamp ResolveEndTimeForMeasure(
+      const Optional<nsAString>& aEndMark,
+      const Maybe<const PerformanceMeasureOptions&>& aOptions,
+      ErrorResult& aRv);
+  DOMHighResTimeStamp ResolveStartTimeForMeasure(
+      const Maybe<const nsAString&>& aStartMark,
+      const Maybe<const PerformanceMeasureOptions&>& aOptions,
+      ErrorResult& aRv);
 };
 
 }  // namespace dom

@@ -9,7 +9,7 @@
         <title>Pocket: Style Guide</title>
         <link rel="stylesheet" href="css/main.compiled.css">
     </head>
-    <body class="pkt_ext_container_style_guide">
+    <body>
         <script src="js/vendor/jquery-2.1.1.min.js"></script>
         <script src="js/vendor/handlebars.runtime.js"></script>
         <script src="js/tmpl.js"></script>
@@ -18,6 +18,12 @@
         <script src="js/style-guide/entry.js"></script>
 
         <div id="stp_style_guide">
+            <div id="dark_mode_toggle">
+                <form autocomplete="off">
+                    <label for="dark_mode_checkbox"><strong>Dark Mode: </strong></label>
+                    <input id="dark_mode_checkbox" type="checkbox"/>
+                </form>
+            </div>
             <h1>Save To Pocket:<br/> Style Guide</h1>
             <div id="stp_style_guide_components"></div>
         </div>

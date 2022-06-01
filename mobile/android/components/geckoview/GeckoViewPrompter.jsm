@@ -24,7 +24,7 @@ class GeckoViewPrompter {
       .slice(1, -1); // Discard surrounding braces
 
     if (aParent) {
-      if (aParent instanceof Window) {
+      if (Window.isInstance(aParent)) {
         this._domWin = aParent;
       } else if (aParent.window) {
         this._domWin = aParent.window;
@@ -34,15 +34,8 @@ class GeckoViewPrompter {
       }
     }
 
-    if (this._domWin) {
-      this._dispatcher = GeckoViewUtils.getDispatcherForWindow(this._domWin);
-    }
-
-    if (!this._dispatcher) {
-      [
-        this._dispatcher,
-        this._domWin,
-      ] = GeckoViewUtils.getActiveDispatcherAndWindow();
+    if (!this._domWin) {
+      this._domWin = Services.wm.getMostRecentWindow("navigator:geckoview");
     }
 
     this._innerWindowId = this._domWin?.browsingContext.currentWindowContext.innerWindowId;
@@ -50,6 +43,11 @@ class GeckoViewPrompter {
 
   get domWin() {
     return this._domWin;
+  }
+
+  get prompterActor() {
+    const actor = this.domWin?.windowGlobalChild.getActor("GeckoViewPrompter");
+    return actor;
   }
 
   _changeModalState(aEntering) {
@@ -80,6 +78,64 @@ class GeckoViewPrompter {
       Cu.reportError("Failed to change modal state: " + ex);
     }
     return false;
+  }
+
+  _dismissUi() {
+    this.prompterActor?.dismissPrompt(this);
+  }
+
+  accept(aInputText = this.inputText) {
+    if (this.callback) {
+      let acceptMsg = {};
+      switch (this.message.type) {
+        case "alert":
+          acceptMsg = null;
+          break;
+        case "button":
+          acceptMsg.button = 0;
+          break;
+        case "text":
+          acceptMsg.text = aInputText;
+          break;
+        default:
+          acceptMsg = null;
+          break;
+      }
+      this.callback(acceptMsg);
+      // Notify the UI that this prompt should be hidden.
+      this._dismissUi();
+    }
+  }
+
+  dismiss() {
+    this.callback(null);
+    // Notify the UI that this prompt should be hidden.
+    this._dismissUi();
+  }
+
+  getPromptType() {
+    switch (this.message.type) {
+      case "alert":
+        return this.message.checkValue ? "alertCheck" : "alert";
+      case "button":
+        return this.message.checkValue ? "confirmCheck" : "confirm";
+      case "text":
+        return this.message.checkValue ? "promptCheck" : "prompt";
+      default:
+        return this.message.type;
+    }
+  }
+
+  getPromptText() {
+    return this.message.msg;
+  }
+
+  getInputText() {
+    return this.inputText;
+  }
+
+  setInputText(aInput) {
+    this.inputText = aInput;
   }
 
   /**
@@ -122,44 +178,41 @@ class GeckoViewPrompter {
     });
   }
 
-  dismiss() {
-    this._dispatcher.dispatch("GeckoView:Prompt:Dismiss", { id: this.id });
-  }
-
-  asyncShowPrompt(aMsg, aCallback) {
-    let handled = false;
-    const onResponse = response => {
-      if (handled) {
-        return;
-      }
-      if (!this.checkInnerWindow()) {
-        // Page has navigated away, let's dismiss the prompt
-        aCallback(null);
-      } else {
-        aCallback(response);
-      }
-      // This callback object is tied to the Java garbage collector because
-      // it is invoked from Java. Manually release the target callback
-      // here; otherwise we may hold onto resources for too long, because
-      // we would be relying on both the Java and the JS garbage collectors
-      // to run.
-      aMsg = undefined;
-      aCallback = undefined;
-      handled = true;
-    };
-
-    if (!this._dispatcher || !this.checkInnerWindow()) {
-      onResponse(null);
-      return;
-    }
+  async asyncShowPrompt(aMsg, aCallback) {
+    this.message = aMsg;
+    this.inputText = aMsg.value;
+    this.callback = aCallback;
 
     aMsg.id = this.id;
-    this._dispatcher.dispatch("GeckoView:Prompt", aMsg, {
-      onSuccess: onResponse,
-      onError: error => {
-        Cu.reportError("Prompt error: " + error);
-        onResponse(null);
-      },
-    });
+
+    let response = null;
+    try {
+      if (this.checkInnerWindow()) {
+        response = await this.prompterActor.prompt(this, aMsg);
+      }
+    } catch (error) {
+      // Nothing we can do really, we will treat this as a dismiss.
+      warn`Error while prompting: ${error}`;
+    }
+
+    if (!this.checkInnerWindow()) {
+      // Page has navigated away, let's dismiss the prompt
+      aCallback(null);
+    } else {
+      aCallback(response);
+    }
+    // This callback object is tied to the Java garbage collector because
+    // it is invoked from Java. Manually release the target callback
+    // here; otherwise we may hold onto resources for too long, because
+    // we would be relying on both the Java and the JS garbage collectors
+    // to run.
+    aMsg = undefined;
+    aCallback = undefined;
+  }
+
+  update(aMsg) {
+    this.message = aMsg;
+    aMsg.id = this.id;
+    this.prompterActor?.updatePrompt(aMsg);
   }
 }

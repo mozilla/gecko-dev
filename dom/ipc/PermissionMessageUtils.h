@@ -35,21 +35,20 @@ class Principal {
 
 }  // namespace IPC
 
-namespace mozilla {
-namespace ipc {
+namespace mozilla::ipc {
 
 template <>
 struct IPDLParamTraits<nsIPrincipal*> {
-  static void Write(IPC::Message* aMsg, IProtocol* aActor,
+  static void Write(IPC::MessageWriter* aWriter, IProtocol* aActor,
                     nsIPrincipal* aParam);
-  static bool Read(const IPC::Message* aMsg, PickleIterator* aIter,
-                   IProtocol* aActor, RefPtr<nsIPrincipal>* aResult);
+  static bool Read(IPC::MessageReader* aReader, IProtocol* aActor,
+                   RefPtr<nsIPrincipal>* aResult);
 
   // Overload to support deserializing nsCOMPtr<nsIPrincipal> directly.
-  static bool Read(const IPC::Message* aMsg, PickleIterator* aIter,
-                   IProtocol* aActor, nsCOMPtr<nsIPrincipal>* aResult) {
+  static bool Read(IPC::MessageReader* aReader, IProtocol* aActor,
+                   nsCOMPtr<nsIPrincipal>* aResult) {
     RefPtr<nsIPrincipal> result;
-    if (!Read(aMsg, aIter, aActor, &result)) {
+    if (!Read(aReader, aActor, &result)) {
       return false;
     }
     *aResult = std::move(result);
@@ -60,17 +59,16 @@ struct IPDLParamTraits<nsIPrincipal*> {
 template <>
 struct IPDLParamTraits<IPC::Principal> {
   typedef IPC::Principal paramType;
-  static void Write(IPC::Message* aMsg, IProtocol* aActor,
+  static void Write(IPC::MessageWriter* aWriter, IProtocol* aActor,
                     const paramType& aParam) {
-    WriteIPDLParam(aMsg, aActor, aParam.mPrincipal);
+    WriteIPDLParam(aWriter, aActor, aParam.mPrincipal);
   }
-  static bool Read(const IPC::Message* aMsg, PickleIterator* aIter,
-                   IProtocol* aActor, paramType* aResult) {
-    return ReadIPDLParam(aMsg, aIter, aActor, &aResult->mPrincipal);
+  static bool Read(IPC::MessageReader* aReader, IProtocol* aActor,
+                   paramType* aResult) {
+    return ReadIPDLParam(aReader, aActor, &aResult->mPrincipal);
   }
 };
 
-}  // namespace ipc
-}  // namespace mozilla
+}  // namespace mozilla::ipc
 
 #endif  // mozilla_dom_permission_message_utils_h__

@@ -598,8 +598,6 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
   static nsLiteralCString evalAllowlist[] = {
       // Test-only third-party library
       "resource://testing-common/sinon-7.2.7.js"_ns,
-      // Test-only third-party library
-      "resource://testing-common/ajv-6.12.6.js"_ns,
       // Test-only utility
       "resource://testing-common/content-task.js"_ns,
 
@@ -814,18 +812,33 @@ void nsContentSecurityUtils::DetectJsHacks() {
   if (!NS_IsMainThread()) {
     return;
   }
+
+  // If the pref service isn't available, do nothing and re-do this later.
+  if (!Preferences::IsServiceAvailable()) {
+    return;
+  }
+
   // No need to check again.
   if (MOZ_LIKELY(sJSHacksChecked || sJSHacksPresent)) {
     return;
   }
+  nsresult rv;
+  sJSHacksChecked = true;
+
   // This preference is required by bootstrapLoader.xpi, which is an
   // alternate way to load legacy-style extensions. It only works on
   // DevEdition/Nightly.
-  bool xpinstallSignatures =
-      Preferences::GetBool("xpinstall.signatures.required", false);
-  if (!xpinstallSignatures) {
+  bool xpinstallSignatures;
+  rv = Preferences::GetBool("xpinstall.signatures.required",
+                            &xpinstallSignatures, PrefValueKind::Default);
+  if (!NS_FAILED(rv) && !xpinstallSignatures) {
     sJSHacksPresent = true;
-    sJSHacksChecked = true;
+    return;
+  }
+  rv = Preferences::GetBool("xpinstall.signatures.required",
+                            &xpinstallSignatures, PrefValueKind::User);
+  if (!NS_FAILED(rv) && !xpinstallSignatures) {
+    sJSHacksPresent = true;
     return;
   }
 
@@ -834,27 +847,48 @@ void nsContentSecurityUtils::DetectJsHacks() {
   // project to run legacy-style 'extensions', some of which use eval,
   // all of which run in the System Principal context.
   nsAutoString jsConfigPref;
-  nsresult rv = Preferences::GetString("general.config.filename", jsConfigPref);
+  rv = Preferences::GetString("general.config.filename", jsConfigPref,
+                              PrefValueKind::Default);
   if (!NS_FAILED(rv) && !jsConfigPref.IsEmpty()) {
     sJSHacksPresent = true;
+    return;
+  }
+  rv = Preferences::GetString("general.config.filename", jsConfigPref,
+                              PrefValueKind::User);
+  if (!NS_FAILED(rv) && !jsConfigPref.IsEmpty()) {
+    sJSHacksPresent = true;
+    return;
   }
 
   // These preferences are for autoconfiguration of Firefox by admins.
   // The first will load a file over the network; the second will
   // fall back to a local file if the network is unavailable
   nsAutoString configUrlPref;
-  rv = Preferences::GetString("autoadmin.global_config_url", configUrlPref);
+  rv = Preferences::GetString("autoadmin.global_config_url", configUrlPref,
+                              PrefValueKind::Default);
   if (!NS_FAILED(rv) && !configUrlPref.IsEmpty()) {
     sJSHacksPresent = true;
+    return;
+  }
+  rv = Preferences::GetString("autoadmin.global_config_url", configUrlPref,
+                              PrefValueKind::User);
+  if (!NS_FAILED(rv) && !configUrlPref.IsEmpty()) {
+    sJSHacksPresent = true;
+    return;
   }
 
   bool failOverToCache;
-  rv = Preferences::GetBool("autoadmin.failover_to_cached", &failOverToCache);
+  rv = Preferences::GetBool("autoadmin.failover_to_cached", &failOverToCache,
+                            PrefValueKind::Default);
+  if (!NS_FAILED(rv) && failOverToCache) {
+    sJSHacksPresent = true;
+    return;
+  }
+  rv = Preferences::GetBool("autoadmin.failover_to_cached", &failOverToCache,
+                            PrefValueKind::User);
   if (!NS_FAILED(rv) && failOverToCache) {
     sJSHacksPresent = true;
   }
-
-  sJSHacksChecked = true;
 }
 
 /* static */
@@ -865,6 +899,12 @@ void nsContentSecurityUtils::DetectCssHacks() {
   if (!NS_IsMainThread()) {
     return;
   }
+
+  // If the pref service isn't available, do nothing and re-do this later.
+  if (!Preferences::IsServiceAvailable()) {
+    return;
+  }
+
   // No need to check again.
   if (MOZ_LIKELY(sCSSHacksChecked || sCSSHacksPresent)) {
     return;
@@ -1127,8 +1167,6 @@ void nsContentSecurityUtils::AssertAboutPageHasCSP(Document* aDocument) {
     "about:srcdoc"_ns,
     // about:sync-log displays plain text only -> no CSP
     "about:sync-log"_ns,
-    // about:printpreview displays plain text only -> no CSP
-    "about:printpreview"_ns,
     // about:logo just displays the firefox logo -> no CSP
     "about:logo"_ns,
     // about:sync is a special mozilla-signed developer addon with low usage ->
@@ -1182,7 +1220,8 @@ void nsContentSecurityUtils::AssertAboutPageHasCSP(Document* aDocument) {
                  StringBeginsWith(aboutSpec, "about:home"_ns) ||
                  StringBeginsWith(aboutSpec, "about:welcome"_ns) ||
                  StringBeginsWith(aboutSpec, "about:devtools"_ns) ||
-                 StringBeginsWith(aboutSpec, "about:pocket-saved"_ns),
+                 StringBeginsWith(aboutSpec, "about:pocket-saved"_ns) ||
+                 StringBeginsWith(aboutSpec, "about:pocket-home"_ns),
              "about: page must not contain a CSP including a web scheme");
 
   if (aDocument->IsExtensionPage()) {
@@ -1328,7 +1367,7 @@ bool nsContentSecurityUtils::ValidateScriptFilename(JSContext* cx,
 
   auto kAllowedFilenamesExact = {
       // Allow through the injection provided by about:sync addon
-      u"data:,new function() {\n  Components.utils.import(\"chrome://aboutsync/content/AboutSyncRedirector.js\");\n  AboutSyncRedirector.register();\n}"_ns,
+      u"data:,new function() {\n  const { AboutSyncRedirector } = ChromeUtils.import(\"chrome://aboutsync/content/AboutSyncRedirector.js\");\n  AboutSyncRedirector.register();\n}"_ns,
   };
 
   for (auto allowedFilename : kAllowedFilenamesExact) {
@@ -1342,7 +1381,11 @@ bool nsContentSecurityUtils::ValidateScriptFilename(JSContext* cx,
       // and this is the most reasonable. See 1727770
       u"about:downloads"_ns,
       // We think this is the same problem as about:downloads
-      u"about:preferences"_ns};
+      u"about:preferences"_ns,
+      // Browser console will give a filename of 'debugger' See 1763943
+      // Sometimes it's 'debugger eager eval code', other times just 'debugger
+      // eval code'
+      u"debugger"_ns};
 
   for (auto allowedFilenamePrefix : kAllowedFilenamesPrefix) {
     if (StringBeginsWith(filenameU, allowedFilenamePrefix)) {

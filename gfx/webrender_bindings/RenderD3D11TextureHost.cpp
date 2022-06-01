@@ -17,12 +17,14 @@
 namespace mozilla {
 namespace wr {
 
-RenderDXGITextureHost::RenderDXGITextureHost(WindowsHandle aHandle,
-                                             gfx::SurfaceFormat aFormat,
-                                             gfx::YUVColorSpace aYUVColorSpace,
-                                             gfx::ColorRange aColorRange,
-                                             gfx::IntSize aSize)
+RenderDXGITextureHost::RenderDXGITextureHost(
+    WindowsHandle aHandle, Maybe<uint64_t>& aGpuProcessTextureId,
+    uint32_t aArrayIndex, gfx::SurfaceFormat aFormat,
+    gfx::YUVColorSpace aYUVColorSpace, gfx::ColorRange aColorRange,
+    gfx::IntSize aSize)
     : mHandle(aHandle),
+      mGpuProcessTextureId(aGpuProcessTextureId),
+      mArrayIndex(aArrayIndex),
       mSurface(0),
       mStream(0),
       mTextureHandle{0},
@@ -36,7 +38,8 @@ RenderDXGITextureHost::RenderDXGITextureHost(WindowsHandle aHandle,
               mFormat != gfx::SurfaceFormat::P010 &&
               mFormat != gfx::SurfaceFormat::P016) ||
              (mSize.width % 2 == 0 && mSize.height % 2 == 0));
-  MOZ_ASSERT(aHandle);
+  MOZ_ASSERT((aHandle && aGpuProcessTextureId.isNothing()) ||
+             (!aHandle && aGpuProcessTextureId.isSome()));
 }
 
 RenderDXGITextureHost::~RenderDXGITextureHost() {
@@ -155,6 +158,18 @@ void RenderDXGITextureHost::UnmapPlanes() {
 bool RenderDXGITextureHost::EnsureD3D11Texture2DWithGL() {
   if (mTexture) {
     return true;
+  }
+
+  if (mGpuProcessTextureId.isSome()) {
+    auto* textureMap = layers::GpuProcessD3D11TextureMap::Get();
+    if (textureMap) {
+      RefPtr<ID3D11Texture2D> texture;
+      mTexture = textureMap->GetTexture(mGpuProcessTextureId.ref());
+      if (mTexture) {
+        return true;
+      }
+    }
+    return false;
   }
 
   const auto& gle = gl::GLContextEGL::Cast(mGL);
@@ -294,9 +309,15 @@ bool RenderDXGITextureHost::EnsureLockable(wr::ImageRendering aRendering) {
     ok &= bool(egl->fCreateStreamProducerD3DTextureANGLE(mStream, nullptr));
   }
 
+  const EGLAttrib frameAttributes[] = {
+      LOCAL_EGL_D3D_TEXTURE_SUBRESOURCE_ID_ANGLE,
+      static_cast<EGLAttrib>(mArrayIndex),
+      LOCAL_EGL_NONE,
+  };
+
   // Insert the d3d texture.
-  ok &= bool(
-      egl->fStreamPostD3DTextureANGLE(mStream, (void*)mTexture.get(), nullptr));
+  ok &= bool(egl->fStreamPostD3DTextureANGLE(mStream, (void*)mTexture.get(),
+                                             frameAttributes));
 
   if (!ok) {
     gfxCriticalNote << "RenderDXGITextureHost init stream failed";
@@ -335,9 +356,10 @@ wr::WrExternalImage RenderDXGITextureHost::Lock(uint8_t aChannelIndex,
     return InvalidToWrExternalImage();
   }
 
-  gfx::IntSize size = GetSize(aChannelIndex);
-  return NativeTextureToWrExternalImage(GetGLHandle(aChannelIndex), 0, 0,
-                                        size.width, size.height);
+  const auto uvs = GetUvCoords(GetSize(aChannelIndex));
+  return NativeTextureToWrExternalImage(GetGLHandle(aChannelIndex), uvs.first.x,
+                                        uvs.first.y, uvs.second.x,
+                                        uvs.second.y);
 }
 
 bool RenderDXGITextureHost::LockInternal() {
@@ -639,9 +661,10 @@ wr::WrExternalImage RenderDXGIYCbCrTextureHost::Lock(
     return InvalidToWrExternalImage();
   }
 
-  gfx::IntSize size = GetSize(aChannelIndex);
-  return NativeTextureToWrExternalImage(GetGLHandle(aChannelIndex), 0, 0,
-                                        size.width, size.height);
+  const auto uvs = GetUvCoords(GetSize(aChannelIndex));
+  return NativeTextureToWrExternalImage(GetGLHandle(aChannelIndex), uvs.first.x,
+                                        uvs.first.y, uvs.second.x,
+                                        uvs.second.y);
 }
 
 void RenderDXGIYCbCrTextureHost::Unlock() {

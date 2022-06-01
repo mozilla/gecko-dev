@@ -22,7 +22,7 @@ class SplineStage : public RenderPipelineStage {
 
   void ProcessRow(const RowInfo& input_rows, const RowInfo& output_rows,
                   size_t xextra, size_t xsize, size_t xpos, size_t ypos,
-                  float* JXL_RESTRICT temp) const final {
+                  size_t thread_id) const final {
     PROFILER_ZONE("RenderSplines");
     float* row_x = GetInputRow(input_rows, 0, 0);
     float* row_y = GetInputRow(input_rows, 1, 0);
@@ -34,6 +34,8 @@ class SplineStage : public RenderPipelineStage {
     return c < 3 ? RenderPipelineChannelMode::kInPlace
                  : RenderPipelineChannelMode::kIgnored;
   }
+
+  const char* GetName() const override { return "Splines"; }
 
  private:
   const Splines& splines_;

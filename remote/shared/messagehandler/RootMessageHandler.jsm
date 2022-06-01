@@ -11,8 +11,6 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  CONTEXT_DESCRIPTOR_TYPES:
-    "chrome://remote/content/shared/messagehandler/MessageHandler.jsm",
   FrameTransport:
     "chrome://remote/content/shared/messagehandler/transports/FrameTransport.jsm",
   MessageHandler:
@@ -148,9 +146,7 @@ class RootMessageHandler extends MessageHandler {
 
     const destination = {
       type: WindowGlobalMessageHandler.type,
-      contextDescriptor: {
-        type: CONTEXT_DESCRIPTOR_TYPES.ALL,
-      },
+      contextDescriptor,
     };
 
     // Don't apply session data if the module is not present

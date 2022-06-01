@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // HttpLog.h should generally be included first
+#include "DecoderDoctorDiagnostics.h"
 #include "HttpLog.h"
 
 #include "nsNetUtil.h"
@@ -105,6 +106,10 @@
 #include "nsParserConstants.h"
 #include "nsCRT.h"
 #include "nsServiceManagerUtils.h"
+#include "mozilla/dom/MediaList.h"
+#include "MediaContainerType.h"
+#include "DecoderTraits.h"
+#include "imgLoader.h"
 
 #if defined(MOZ_THUNDERBIRD) || defined(MOZ_SUITE)
 #  include "nsNewMailnewsURI.h"
@@ -180,7 +185,7 @@ Result<nsCOMPtr<nsIOutputStream>, nsresult> NS_NewLocalFileOutputStream(
 nsresult NS_NewLocalFileOutputStream(nsIOutputStream** result,
                                      const mozilla::ipc::FileDescriptor& fd) {
   nsCOMPtr<nsIFileOutputStream> out;
-  nsFileOutputStream::Create(nullptr, NS_GET_IID(nsIFileOutputStream),
+  nsFileOutputStream::Create(NS_GET_IID(nsIFileOutputStream),
                              getter_AddRefs(out));
 
   nsresult rv =
@@ -1338,7 +1343,7 @@ nsresult NS_NewBufferedOutputStream(
 
   nsCOMPtr<nsIBufferedInputStream> in;
   nsresult rv = nsBufferedInputStream::Create(
-      nullptr, NS_GET_IID(nsIBufferedInputStream), getter_AddRefs(in));
+      NS_GET_IID(nsIBufferedInputStream), getter_AddRefs(in));
   if (NS_SUCCEEDED(rv)) {
     rv = in->Init(inputStream, aBufferSize);
     if (NS_SUCCEEDED(rv)) {
@@ -1547,7 +1552,7 @@ class BufferWriter final : public nsIInputStreamCallback {
         return NS_ERROR_FAILURE;
       }
 
-      mTaskQueue = new TaskQueue(target.forget(), "nsNetUtil:BufferWriter");
+      mTaskQueue = TaskQueue::Create(target.forget(), "nsNetUtil:BufferWriter");
     }
 
     return NS_OK;
@@ -1596,7 +1601,7 @@ class BufferWriter final : public nsIInputStreamCallback {
 
   // All the members of this class are touched on the owning thread only. The
   // monitor is only used to communicate when there is more data to read.
-  Monitor mMonitor;
+  Monitor mMonitor MOZ_UNANNOTATED;
 
   nsCOMPtr<nsIInputStream> mInputStream;
   nsCOMPtr<nsIAsyncInputStream> mAsyncInputStream;
@@ -2897,7 +2902,7 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     NS_ConvertUTF8toUTF16 reportSpec(aURI->GetSpecOrDefault());
     NS_ConvertUTF8toUTF16 reportScheme(scheme);
     AutoTArray<nsString, 2> params = {reportSpec, reportScheme};
-    uint32_t innerWindowId = aLoadInfo->GetInnerWindowID();
+    uint64_t innerWindowId = aLoadInfo->GetInnerWindowID();
     CSP_LogLocalizedStr("upgradeInsecureRequest", params,
                         u""_ns,  // aSourceFile
                         u""_ns,  // aScriptSample
@@ -2931,7 +2936,7 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     message.AppendLiteral(u"Mixed Content: ");
     message.Append(localizedMsg);
 
-    uint32_t innerWindowId = aLoadInfo->GetInnerWindowID();
+    uint64_t innerWindowId = aLoadInfo->GetInnerWindowID();
     nsContentUtils::ReportToConsoleByWindowID(
         message, nsIScriptError::warningFlag, "Mixed Content Message"_ns,
         innerWindowId, aURI);
@@ -2961,9 +2966,8 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
 // (5. Https RR - will be checked in nsHttpChannel)
 nsresult NS_ShouldSecureUpgrade(
     nsIURI* aURI, nsILoadInfo* aLoadInfo, nsIPrincipal* aChannelResultPrincipal,
-    bool aPrivateBrowsing, bool aAllowSTS,
-    const OriginAttributes& aOriginAttributes, bool& aShouldUpgrade,
-    std::function<void(bool, nsresult)>&& aResultCallback,
+    bool aAllowSTS, const OriginAttributes& aOriginAttributes,
+    bool& aShouldUpgrade, std::function<void(bool, nsresult)>&& aResultCallback,
     bool& aWillCallback) {
   MOZ_ASSERT(XRE_IsParentProcess());
   if (!XRE_IsParentProcess()) {
@@ -3005,8 +3009,6 @@ nsresult NS_ShouldSecureUpgrade(
 
   bool isStsHost = false;
   uint32_t hstsSource = 0;
-  uint32_t flags =
-      aPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
   // Calling |IsSecureURI| before the storage is ready to read will
   // block the main thread. Once the storage is ready, we can call it
   // from main thread.
@@ -3034,16 +3036,15 @@ nsresult NS_ShouldSecureUpgrade(
     nsresult rv = gSocketTransportService->Dispatch(
         NS_NewRunnableFunction(
             "net::NS_ShouldSecureUpgrade",
-            [service{std::move(service)}, uri{std::move(uri)}, flags(flags),
+            [service{std::move(service)}, uri{std::move(uri)},
              originAttributes(aOriginAttributes),
              handleResultFunc{std::move(handleResultFunc)},
              callbackWrapper{std::move(callbackWrapper)},
              allowSTS{std::move(aAllowSTS)}]() mutable {
               bool isStsHost = false;
               uint32_t hstsSource = 0;
-              nsresult rv =
-                  service->IsSecureURI(uri, flags, originAttributes, nullptr,
-                                       &hstsSource, &isStsHost);
+              nsresult rv = service->IsSecureURI(uri, originAttributes, nullptr,
+                                                 &hstsSource, &isStsHost);
 
               // Successfully get the result from |IsSecureURI| implies that
               // the storage is ready to read.
@@ -3063,8 +3064,8 @@ nsresult NS_ShouldSecureUpgrade(
     return rv;
   }
 
-  nsresult rv = sss->IsSecureURI(aURI, flags, aOriginAttributes, nullptr,
-                                 &hstsSource, &isStsHost);
+  nsresult rv = sss->IsSecureURI(aURI, aOriginAttributes, nullptr, &hstsSource,
+                                 &isStsHost);
 
   // if the SSS check fails, it's likely because this load is on a
   // malformed URI or something else in the setup is wrong, so any error
@@ -3344,99 +3345,6 @@ bool SchemeIsResource(nsIURI* aURI) {
 bool SchemeIsFTP(nsIURI* aURI) {
   MOZ_ASSERT(aURI);
   return aURI->SchemeIs("ftp");
-}
-
-}  // namespace net
-}  // namespace mozilla
-
-nsresult NS_HasRootDomain(const nsACString& aInput, const nsACString& aHost,
-                          bool* aResult) {
-  if (NS_WARN_IF(!aResult)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  *aResult = false;
-
-  // If the strings are the same, we obviously have a match.
-  if (aInput == aHost) {
-    *aResult = true;
-    return NS_OK;
-  }
-
-  // If aHost is not found, we know we do not have it as a root domain.
-  int32_t index = nsAutoCString(aInput).Find(aHost.BeginReading());
-  if (index == kNotFound) {
-    return NS_OK;
-  }
-
-  // Otherwise, we have aHost as our root domain iff the index of aHost is
-  // aHost.length subtracted from our length and (since we do not have an
-  // exact match) the character before the index is a dot or slash.
-  *aResult = index > 0 && (uint32_t)index == aInput.Length() - aHost.Length() &&
-             (aInput[index - 1] == '.' || aInput[index - 1] == '/');
-  return NS_OK;
-}
-
-void CheckForBrokenChromeURL(nsILoadInfo* aLoadInfo, nsIURI* aURI) {
-  if (!aURI) {
-    return;
-  }
-  nsAutoCString scheme;
-  aURI->GetScheme(scheme);
-  if (!scheme.EqualsLiteral("chrome") && !scheme.EqualsLiteral("resource")) {
-    return;
-  }
-  nsAutoCString host;
-  aURI->GetHost(host);
-  // Ignore test hits.
-  if (host.EqualsLiteral("mochitests") || host.EqualsLiteral("reftest")) {
-    return;
-  }
-
-  nsAutoCString filePath;
-  aURI->GetFilePath(filePath);
-  // Fluent likes checking for files everywhere and expects failure.
-  if (StringEndsWith(filePath, ".ftl"_ns)) {
-    return;
-  }
-
-  // Ignore fetches/xhrs, as they are frequently used in a way where
-  // non-existence is OK (ie with fallbacks). This risks false negatives (ie
-  // files that *should* be there but aren't) - which we accept for now.
-  ExtContentPolicy policy = aLoadInfo
-                                ? aLoadInfo->GetExternalContentPolicyType()
-                                : ExtContentPolicy::TYPE_OTHER;
-  if (policy == ExtContentPolicy::TYPE_FETCH ||
-      policy == ExtContentPolicy::TYPE_XMLHTTPREQUEST) {
-    return;
-  }
-
-  nsCString spec;
-  aURI->GetSpec(spec);
-
-  // DTD files from gre may not exist when requested by tests.
-  if (StringBeginsWith(spec, "resource://gre/res/dtd/"_ns)) {
-    return;
-  }
-
-  // The background task machinery allows the caller to specify a JSM on the
-  // command line, which is then looked up in both app-specific and toolkit-wide
-  // locations.
-  if (spec.Find("backgroundtasks") != kNotFound) {
-    return;
-  }
-
-  if (xpc::IsInAutomation()) {
-#ifdef DEBUG
-    if (NS_IsMainThread()) {
-      nsCOMPtr<nsIXPConnect> xpc = nsIXPConnect::XPConnect();
-      Unused << xpc->DebugDumpJSStack(false, false, false);
-    }
-#endif
-    MOZ_CRASH_UNSAFE_PRINTF("Missing chrome or resource URLs: %s", spec.get());
-  } else {
-    printf_stderr("Missing chrome or resource URL: %s\n", spec.get());
-  }
 }
 
 // Decode a parameter value using the encoding defined in RFC 5987 (in place)
@@ -3753,4 +3661,226 @@ nsTArray<LinkHeader> ParseLinkHeader(const nsAString& aLinkData) {
   }
 
   return linkHeaders;
+}
+
+// We will use official mime-types from:
+// https://www.iana.org/assignments/media-types/media-types.xhtml#font
+// We do not support old deprecated mime-types for preload feature.
+// (We currectly do not support font/collection)
+static uint32_t StyleLinkElementFontMimeTypesNum = 5;
+static const char* StyleLinkElementFontMimeTypes[] = {
+    "font/otf", "font/sfnt", "font/ttf", "font/woff", "font/woff2"};
+
+bool IsFontMimeType(const nsAString& aType) {
+  if (aType.IsEmpty()) {
+    return true;
+  }
+  for (uint32_t i = 0; i < StyleLinkElementFontMimeTypesNum; i++) {
+    if (aType.EqualsASCII(StyleLinkElementFontMimeTypes[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static const nsAttrValue::EnumTable kAsAttributeTable[] = {
+    {"", DESTINATION_INVALID},      {"audio", DESTINATION_AUDIO},
+    {"font", DESTINATION_FONT},     {"image", DESTINATION_IMAGE},
+    {"script", DESTINATION_SCRIPT}, {"style", DESTINATION_STYLE},
+    {"track", DESTINATION_TRACK},   {"video", DESTINATION_VIDEO},
+    {"fetch", DESTINATION_FETCH},   {nullptr, 0}};
+
+void ParseAsValue(const nsAString& aValue, nsAttrValue& aResult) {
+  DebugOnly<bool> success =
+      aResult.ParseEnumValue(aValue, kAsAttributeTable, false,
+                             // default value is a empty string
+                             // if aValue is not a value we
+                             // understand
+                             &kAsAttributeTable[0]);
+  MOZ_ASSERT(success);
+}
+
+nsContentPolicyType AsValueToContentPolicy(const nsAttrValue& aValue) {
+  switch (aValue.GetEnumValue()) {
+    case DESTINATION_INVALID:
+      return nsIContentPolicy::TYPE_INVALID;
+    case DESTINATION_AUDIO:
+      return nsIContentPolicy::TYPE_INTERNAL_AUDIO;
+    case DESTINATION_TRACK:
+      return nsIContentPolicy::TYPE_INTERNAL_TRACK;
+    case DESTINATION_VIDEO:
+      return nsIContentPolicy::TYPE_INTERNAL_VIDEO;
+    case DESTINATION_FONT:
+      return nsIContentPolicy::TYPE_FONT;
+    case DESTINATION_IMAGE:
+      return nsIContentPolicy::TYPE_IMAGE;
+    case DESTINATION_SCRIPT:
+      return nsIContentPolicy::TYPE_SCRIPT;
+    case DESTINATION_STYLE:
+      return nsIContentPolicy::TYPE_STYLESHEET;
+    case DESTINATION_FETCH:
+      return nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD;
+  }
+  return nsIContentPolicy::TYPE_INVALID;
+}
+
+bool CheckPreloadAttrs(const nsAttrValue& aAs, const nsAString& aType,
+                       const nsAString& aMedia,
+                       mozilla::dom::Document* aDocument) {
+  nsContentPolicyType policyType = AsValueToContentPolicy(aAs);
+  if (policyType == nsIContentPolicy::TYPE_INVALID) {
+    return false;
+  }
+
+  // Check if media attribute is valid.
+  if (!aMedia.IsEmpty()) {
+    RefPtr<mozilla::dom::MediaList> mediaList =
+        mozilla::dom::MediaList::Create(NS_ConvertUTF16toUTF8(aMedia));
+    if (!mediaList->Matches(*aDocument)) {
+      return false;
+    }
+  }
+
+  if (aType.IsEmpty()) {
+    return true;
+  }
+
+  if (policyType == nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD) {
+    return true;
+  }
+
+  nsAutoString type(aType);
+  ToLowerCase(type);
+  if (policyType == nsIContentPolicy::TYPE_MEDIA) {
+    if (aAs.GetEnumValue() == DESTINATION_TRACK) {
+      return type.EqualsASCII("text/vtt");
+    }
+    Maybe<MediaContainerType> mimeType = MakeMediaContainerType(aType);
+    if (!mimeType) {
+      return false;
+    }
+    DecoderDoctorDiagnostics diagnostics;
+    CanPlayStatus status =
+        DecoderTraits::CanHandleContainerType(*mimeType, &diagnostics);
+    // Preload if this return CANPLAY_YES and CANPLAY_MAYBE.
+    return status != CANPLAY_NO;
+  }
+  if (policyType == nsIContentPolicy::TYPE_FONT) {
+    return IsFontMimeType(type);
+  }
+  if (policyType == nsIContentPolicy::TYPE_IMAGE) {
+    return imgLoader::SupportImageWithMimeType(
+        NS_ConvertUTF16toUTF8(type), AcceptedMimeTypes::IMAGES_AND_DOCUMENTS);
+  }
+  if (policyType == nsIContentPolicy::TYPE_SCRIPT) {
+    return nsContentUtils::IsJavascriptMIMEType(type);
+  }
+  if (policyType == nsIContentPolicy::TYPE_STYLESHEET) {
+    return type.EqualsASCII("text/css");
+  }
+  return false;
+}
+
+void WarnIgnoredPreload(const mozilla::dom::Document& aDoc, nsIURI& aURI) {
+  AutoTArray<nsString, 1> params;
+  {
+    nsCString uri = nsContentUtils::TruncatedURLForDisplay(&aURI);
+    AppendUTF8toUTF16(uri, *params.AppendElement());
+  }
+  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns, &aDoc,
+                                  nsContentUtils::eDOM_PROPERTIES,
+                                  "PreloadIgnoredInvalidAttr", params);
+}
+
+}  // namespace net
+}  // namespace mozilla
+
+nsresult NS_HasRootDomain(const nsACString& aInput, const nsACString& aHost,
+                          bool* aResult) {
+  if (NS_WARN_IF(!aResult)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *aResult = false;
+
+  // If the strings are the same, we obviously have a match.
+  if (aInput == aHost) {
+    *aResult = true;
+    return NS_OK;
+  }
+
+  // If aHost is not found, we know we do not have it as a root domain.
+  int32_t index = nsAutoCString(aInput).Find(aHost.BeginReading());
+  if (index == kNotFound) {
+    return NS_OK;
+  }
+
+  // Otherwise, we have aHost as our root domain iff the index of aHost is
+  // aHost.length subtracted from our length and (since we do not have an
+  // exact match) the character before the index is a dot or slash.
+  *aResult = index > 0 && (uint32_t)index == aInput.Length() - aHost.Length() &&
+             (aInput[index - 1] == '.' || aInput[index - 1] == '/');
+  return NS_OK;
+}
+
+void CheckForBrokenChromeURL(nsILoadInfo* aLoadInfo, nsIURI* aURI) {
+  if (!aURI) {
+    return;
+  }
+  nsAutoCString scheme;
+  aURI->GetScheme(scheme);
+  if (!scheme.EqualsLiteral("chrome") && !scheme.EqualsLiteral("resource")) {
+    return;
+  }
+  nsAutoCString host;
+  aURI->GetHost(host);
+  // Ignore test hits.
+  if (host.EqualsLiteral("mochitests") || host.EqualsLiteral("reftest")) {
+    return;
+  }
+
+  nsAutoCString filePath;
+  aURI->GetFilePath(filePath);
+  // Fluent likes checking for files everywhere and expects failure.
+  if (StringEndsWith(filePath, ".ftl"_ns)) {
+    return;
+  }
+
+  // Ignore fetches/xhrs, as they are frequently used in a way where
+  // non-existence is OK (ie with fallbacks). This risks false negatives (ie
+  // files that *should* be there but aren't) - which we accept for now.
+  ExtContentPolicy policy = aLoadInfo
+                                ? aLoadInfo->GetExternalContentPolicyType()
+                                : ExtContentPolicy::TYPE_OTHER;
+  if (policy == ExtContentPolicy::TYPE_FETCH ||
+      policy == ExtContentPolicy::TYPE_XMLHTTPREQUEST) {
+    return;
+  }
+
+  nsCString spec;
+  aURI->GetSpec(spec);
+
+  // DTD files from gre may not exist when requested by tests.
+  if (StringBeginsWith(spec, "resource://gre/res/dtd/"_ns)) {
+    return;
+  }
+
+  // The background task machinery allows the caller to specify a JSM on the
+  // command line, which is then looked up in both app-specific and toolkit-wide
+  // locations.
+  if (spec.Find("backgroundtasks") != kNotFound) {
+    return;
+  }
+
+  if (xpc::IsInAutomation()) {
+#ifdef DEBUG
+    if (NS_IsMainThread()) {
+      nsCOMPtr<nsIXPConnect> xpc = nsIXPConnect::XPConnect();
+      Unused << xpc->DebugDumpJSStack(false, false, false);
+    }
+#endif
+    MOZ_CRASH_UNSAFE_PRINTF("Missing chrome or resource URLs: %s", spec.get());
+  } else {
+    printf_stderr("Missing chrome or resource URL: %s\n", spec.get());
+  }
 }

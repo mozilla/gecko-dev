@@ -12,8 +12,7 @@
 
 class nsIMenuBuilder;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class HTMLMenuElement final : public nsGenericHTMLElement {
  public:
@@ -58,7 +57,7 @@ class HTMLMenuElement final : public nsGenericHTMLElement {
 
   MOZ_CAN_RUN_SCRIPT void SendShowEvent();
 
-  already_AddRefed<nsIMenuBuilder> CreateBuilder();
+  already_AddRefed<nsIMenuBuilder> CreateBuilder() const;
 
   void Build(nsIMenuBuilder* aBuilder);
 
@@ -82,7 +81,6 @@ class HTMLMenuElement final : public nsGenericHTMLElement {
   uint8_t mType;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_HTMLMenuElement_h

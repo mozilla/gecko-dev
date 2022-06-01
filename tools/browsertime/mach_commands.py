@@ -36,6 +36,7 @@ import contextlib
 import json
 import logging
 import os
+import platform
 import re
 import stat
 import subprocess
@@ -51,8 +52,24 @@ import mozpack.path as mozpath
 
 AUTOMATION = "MOZ_AUTOMATION" in os.environ
 BROWSERTIME_ROOT = os.path.dirname(__file__)
-PILLOW_VERSION = "6.0.0"
+
+PILLOW_VERSION = "8.4.0"  # version 8.4.0 currently supports python 3.6 to 3.10
 PYSSIM_VERSION = "0.4"
+SCIPY_VERSION = "1.2.3"
+NUMPY_VERSION = "1.16.1"
+OPENCV_VERSION = "4.5.4.60"
+
+py3_minor = sys.version_info.minor
+if py3_minor > 7:
+    SCIPY_VERSION = "1.7.3"
+    NUMPY_VERSION = "1.22.0"
+    PILLOW_VERSION = "9.0.0"
+
+MIN_NODE_VERSION = "16.0.0"
+
+IS_APPLE_SILICON = sys.platform.startswith(
+    "darwin"
+) and platform.processor().startswith("arm")
 
 
 @contextlib.contextmanager
@@ -65,12 +82,53 @@ def silence():
         sys.stdout, sys.stderr = oldout, olderr
 
 
-def node_path():
+def node_path(command_context):
     from mozbuild.nodeutil import find_node_executable
+    from distutils.version import StrictVersion
+    import platform
 
-    node, _ = find_node_executable()
+    state_dir = command_context._mach_context.state_dir
+    cache_path = os.path.join(state_dir, "browsertime", "node-16")
 
-    return os.path.abspath(node)
+    NODE_FAILURE_MSG = (
+        "Could not locate a node binary that is at least version {}. ".format(
+            MIN_NODE_VERSION
+        )
+        + "Please run `./mach raptor --browsertime -t amazon` to install it "
+        + "from the Taskcluster Toolchain artifacts."
+    )
+
+    # Check standard locations first
+    node_exe = find_node_executable(min_version=StrictVersion(MIN_NODE_VERSION))
+    if node_exe and (node_exe[0] is not None):
+        return os.path.abspath(node_exe[0])
+    if not os.path.exists(cache_path):
+        raise Exception(NODE_FAILURE_MSG)
+
+    # Check the browsertime-specific node location next
+    node_name = "node"
+    if platform.system() == "Windows":
+        node_name = "node.exe"
+        node_exe_path = os.path.join(
+            state_dir,
+            "browsertime",
+            "node-16",
+            "node",
+        )
+    else:
+        node_exe_path = os.path.join(
+            state_dir,
+            "browsertime",
+            "node-16",
+            "node",
+            "bin",
+        )
+
+    node_exe = os.path.join(node_exe_path, node_name)
+    if not os.path.exists(node_exe):
+        raise Exception(NODE_FAILURE_MSG)
+
+    return os.path.abspath(node_exe)
 
 
 def package_path():
@@ -95,7 +153,7 @@ def browsertime_path():
 
 def visualmetrics_path():
     """The path to the `visualmetrics.py` script."""
-    return mozpath.join(package_path(), "browsertime", "visualmetrics.py")
+    return mozpath.join(package_path(), "browsertime", "visualmetrics-portable.py")
 
 
 def host_platform():
@@ -130,10 +188,6 @@ host_fetches = {
             # An extension to `fetch` syntax.
             "path": "ffmpeg-4.1.4-i686-static",
         },
-        # TODO: install a static ImageMagick.  All easily available binaries are
-        # not statically linked, so they will (mostly) fail at runtime due to
-        # missing dependencies.  For now we require folks to install ImageMagick
-        # globally with their package manager of choice.
     },
     "win64": {
         "ffmpeg": {
@@ -141,12 +195,6 @@ host_fetches = {
             "url": "https://github.com/ncalexan/geckodriver/releases/download/v0.24.0-android/ffmpeg-4.1.1-win64-static.zip",  # noqa
             # An extension to `fetch` syntax.
             "path": "ffmpeg-4.1.1-win64-static",
-        },
-        "ImageMagick": {
-            "type": "static-url",
-            "url": "https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.1.0-portable-Q16-x64.zip",  # noqa
-            # An extension to `fetch` syntax.
-            "path": "ImageMagick-7.1.0",
         },
     },
 }
@@ -170,25 +218,7 @@ def setup_prerequisites(command_context):
     from mozbuild.action.tooltool import unpack_file
     from mozbuild.artifact_cache import ArtifactCache
 
-    if not AUTOMATION and host_platform().startswith("linux"):
-        # On Linux ImageMagick needs to be installed manually, and `mach bootstrap` doesn't
-        # do that (yet).  Provide some guidance.
-        from shutil import which
-
-        im_programs = ("compare", "convert", "mogrify")
-        for im_program in im_programs:
-            prog = which(im_program)
-            if not prog:
-                print(
-                    "Error: On Linux, ImageMagick must be on the PATH. "
-                    "Install ImageMagick manually and try again (or update PATH). "
-                    "On Ubuntu and Debian, try `sudo apt-get install imagemagick`. "
-                    "On Fedora, try `sudo dnf install imagemagick`. "
-                    "On CentOS, try `sudo yum install imagemagick`."
-                )
-                return 1
-
-    # Download the visualmetrics.py requirements.
+    # Download the visualmetrics-portable.py requirements.
     artifact_cache = ArtifactCache(
         artifact_cache_path(command_context),
         log=command_context.log,
@@ -212,17 +242,7 @@ def setup_prerequisites(command_context):
                     "Unpacking temporary location {path}",
                 )
 
-                if "win64" in host_platform() and "imagemagick" in tool.lower():
-                    # Windows archive does not contain a subfolder
-                    # so we make one for it here
-                    mkdir(fetch.get("path"))
-                    os.chdir(
-                        os.path.join(state_path(command_context), fetch.get("path"))
-                    )
-                    unpack_file(archive)
-                    os.chdir(state_path(command_context))
-                else:
-                    unpack_file(archive)
+                unpack_file(archive)
 
                 # Make sure the expected path exists after extraction
                 path = os.path.join(state_path(command_context), fetch.get("path"))
@@ -320,6 +340,16 @@ def setup_browsertime(
         {"package_json": mozpath.join(BROWSERTIME_ROOT, "package.json")},
         "Installing browsertime node module from {package_json}",
     )
+
+    # Add the mozbuild Node binary path to the OS environment in Apple Silicon.
+    # During the browesertime installation, it seems installation of sitespeed.io
+    # sub dependencies look for a global Node rather than the mozbuild Node binary.
+    # Normally `--scripts-prepend-node-path` should prevent this but it seems to still
+    # look for a system Node in the environment. This logic ensures the same Node is used.
+    node_dir = os.path.dirname(node_path(command_context))
+    if IS_APPLE_SILICON and node_dir not in os.environ["PATH"]:
+        os.environ["PATH"] += os.pathsep + node_dir
+
     status = setup_helper.package_setup(
         BROWSERTIME_ROOT,
         "browsertime",
@@ -330,17 +360,18 @@ def setup_browsertime(
 
     if status:
         return status
-
     if new_upstream_url or AUTOMATION:
         return 0
+    if install_vismet_reqs:
+        return check(command_context)
 
-    return check(command_context)
+    return 0
 
 
 def node(command_context, args):
     r"""Invoke node (interactively) with the given arguments."""
     return command_context.run_process(
-        [node_path()] + args,
+        [node_path(command_context)] + args,
         append_env=append_env(command_context),
         pass_thru=True,  # Allow user to run Node interactively.
         ensure_exit_code=False,  # Don't throw on non-zero exit code.
@@ -351,30 +382,12 @@ def node(command_context, args):
 def append_env(command_context, append_path=True):
     fetches = host_fetches[host_platform()]
 
-    # Ensure that bare `ffmpeg` and ImageMagick commands
-    # {`convert`,`compare`,`mogrify`} are found.  The `visualmetrics.py`
-    # script doesn't take these as configuration, so we do this (for now).
-    # We should update the script itself to accept this configuration.
+    # Ensure that `ffmpeg` is found and added to the environment
     path = os.environ.get("PATH", "").split(os.pathsep) if append_path else []
     path_to_ffmpeg = mozpath.join(
         state_path(command_context), fetches["ffmpeg"]["path"]
     )
 
-    path_to_imagemagick = None
-    if "ImageMagick" in fetches:
-        path_to_imagemagick = mozpath.join(
-            state_path(command_context), fetches["ImageMagick"]["path"]
-        )
-
-    if path_to_imagemagick:
-        # ImageMagick ships ffmpeg (on Windows, at least) so we
-        # want to ensure that our ffmpeg goes first, just in case.
-        path.insert(
-            0,
-            state_path(command_context)
-            if host_platform().startswith("win")
-            else mozpath.join(path_to_imagemagick, "bin"),
-        )  # noqa
     path.insert(
         0,
         path_to_ffmpeg
@@ -386,31 +399,8 @@ def append_env(command_context, append_path=True):
     # scripts, finds the binary we're invoking with.  Without this, it's
     # easy for compiled extensions to get mismatched versions of the Node.js
     # extension API.
-    node_dir = os.path.dirname(node_path())
+    node_dir = os.path.dirname(node_path(command_context))
     path = [node_dir] + path
-
-    # On windows, we need to add the ImageMagick directory to the path
-    # otherwise compare won't be found, and the built-in OS convert
-    # method will be used instead of the ImageMagick one.
-    if "win64" in host_platform() and path_to_imagemagick:
-        # Bug 1596237 - In the windows ImageMagick distribution, the ffmpeg
-        # binary is directly located in the root directory, so here we
-        # insert in the 3rd position to avoid taking precedence over ffmpeg
-        path.insert(2, path_to_imagemagick)
-
-    # On macOs, we can't install our own ImageMagick because the
-    # System Integrity Protection (SIP) won't let us set DYLD_LIBRARY_PATH
-    # unless we deactivate SIP with "csrutil disable".
-    # So we're asking the user to install it.
-    #
-    # if ImageMagick was installed via brew, we want to make sure we
-    # include the PATH
-    if host_platform() == "darwin":
-        for p in os.environ["PATH"].split(os.pathsep):
-            p = p.strip()
-            if not p or p in path:
-                continue
-            path.append(p)
 
     append_env = {
         "PATH": os.pathsep.join(path),
@@ -424,17 +414,6 @@ def append_env(command_context, append_path=True):
         # that points to the exact python executable to use.
         "PYTHON": command_context.virtualenv_manager.python_path,
     }
-
-    if path_to_imagemagick:
-        append_env.update(
-            {
-                # See https://imagemagick.org/script/download.php.  Harmless on other
-                # platforms.
-                "LD_LIBRARY_PATH": mozpath.join(path_to_imagemagick, "lib"),
-                "DYLD_LIBRARY_PATH": mozpath.join(path_to_imagemagick, "lib"),
-                "MAGICK_HOME": path_to_imagemagick,
-            }
-        )
 
     return append_env
 
@@ -459,10 +438,17 @@ def activate_browsertime_virtualenv(command_context, *args, **kwargs):
     This function will also install Pillow and pyssim if needed.
     It will raise an error in case the install failed.
     """
+    # TODO: Remove `./mach browsertime` completely, as a follow up to Bug 1758990
     MachCommandBase.activate_virtualenv(command_context, *args, **kwargs)
 
     # installing Python deps on the fly
-    for dep in ("Pillow==%s" % PILLOW_VERSION, "pyssim==%s" % PYSSIM_VERSION):
+    for dep in (
+        "Pillow==%s" % PILLOW_VERSION,
+        "pyssim==%s" % PYSSIM_VERSION,
+        "scipy==%s" % SCIPY_VERSION,
+        "numpy==%s" % NUMPY_VERSION,
+        "opencv-python==%s" % OPENCV_VERSION,
+    ):
         if _need_install(command_context, dep):
             subprocess.check_call(
                 [
@@ -482,9 +468,7 @@ def check(command_context):
     args = ["--check"]
     status = command_context.run_process(
         [command_context.virtualenv_manager.python_path, visualmetrics_path()] + args,
-        # For --check, don't allow user's path to interfere with
-        # path testing except on Linux, where ImageMagick needs to
-        # be installed manually.
+        # For --check, don't allow user's path to interfere with path testing except on Linux
         append_env=append_env(
             command_context, append_path=host_platform().startswith("linux")
         ),

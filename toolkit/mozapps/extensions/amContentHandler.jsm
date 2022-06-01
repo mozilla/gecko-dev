@@ -8,6 +8,13 @@ const XPI_CONTENT_TYPE = "application/x-xpinstall";
 const MSG_INSTALL_ADDON = "WebInstallerInstallAddonFromWebpage";
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
+XPCOMUtils.defineLazyServiceGetters(this, {
+  ThirdPartyUtil: ["@mozilla.org/thirdpartyutil;1", "mozIThirdPartyUtil"],
+});
 
 function amContentHandler() {}
 
@@ -33,10 +40,29 @@ amContentHandler.prototype = {
 
     let uri = aRequest.URI;
 
+    // This check will allow a link to an xpi clicked by the user to trigger the
+    // addon install flow, but prevents window.open or window.location from triggering
+    // an addon install even when called from inside a event listener triggered by
+    // user input.
+    if (
+      !aRequest.loadInfo.hasValidUserGestureActivation &&
+      Services.prefs.getBoolPref("xpinstall.userActivation.required", true)
+    ) {
+      const error = Components.Exception(
+        `${uri.spec} install cancelled because of missing user gesture activation`,
+        Cr.NS_ERROR_WONT_HANDLE_CONTENT
+      );
+      // Report the error in the BrowserConsole, the error thrown from here doesn't
+      // seem to be visible anywhere.
+      Cu.reportError(error);
+      throw error;
+    }
+
     aRequest.cancel(Cr.NS_BINDING_ABORTED);
 
     let { loadInfo } = aRequest;
     const { triggeringPrincipal } = loadInfo;
+
     let browsingContext = loadInfo.targetBrowsingContext;
 
     let sourceHost;
@@ -63,6 +89,7 @@ amContentHandler.prototype = {
       sourceHost,
       sourceURL,
       browsingContext,
+      hasCrossOriginAncestor: ThirdPartyUtil.isThirdPartyChannel(aRequest),
     };
 
     Services.cpmm.sendAsyncMessage(MSG_INSTALL_ADDON, install);

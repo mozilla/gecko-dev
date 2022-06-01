@@ -363,14 +363,6 @@ static const char kVerisign_Class_1_Public_Primary_Certification_Authority___G3F
 static const char kVerisign_Class_2_Public_Primary_Certification_Authority___G3Fingerprint[] =
   "cAajgxHlj7GTSEIzIYIQxmEloOSoJq7VOaxWHfv72QM=";
 
-/* YahooBackup1 */
-static const char kYahooBackup1Fingerprint[] =
-  "2fRAUXyxl4A1/XHrKNBmc8bTkzA7y4FB/GLJuNAzCqY=";
-
-/* YahooBackup2 */
-static const char kYahooBackup2Fingerprint[] =
-  "dolnbtzEBnELx/9lOEQ22e6OZO/QNb6VSSX2XHA3E7A=";
-
 /* Pinsets are each an ordered list by the actual value of the fingerprint */
 struct StaticFingerprints {
   // See bug 1338873 about making these fields const.
@@ -591,13 +583,11 @@ static const StaticFingerprints kPinset_spideroak = {
 };
 
 static const char* const kPinset_yahoo_Data[] = {
-  kYahooBackup1Fingerprint,
   kDigiCert_Assured_ID_Root_CAFingerprint,
   kGlobalSign_Root_CAFingerprint,
   kDigiCert_Trusted_Root_G4Fingerprint,
   kDigiCert_High_Assurance_EV_Root_CAFingerprint,
   kGlobalSign_Root_CA___R3Fingerprint,
-  kYahooBackup2Fingerprint,
   kDigiCert_Global_Root_G2Fingerprint,
   kDigiCert_Global_Root_CAFingerprint,
   kDigiCert_Global_Root_G3Fingerprint,
@@ -952,6 +942,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "google.tn", true, false, false, -1, &kPinset_google_root_pems },
   { "google.to", true, false, false, -1, &kPinset_google_root_pems },
   { "google.tt", true, false, false, -1, &kPinset_google_root_pems },
+  { "google.ua", true, false, false, -1, &kPinset_google_root_pems },
   { "google.us", true, false, false, -1, &kPinset_google_root_pems },
   { "google.uz", true, false, false, -1, &kPinset_google_root_pems },
   { "google.vg", true, false, false, -1, &kPinset_google_root_pems },
@@ -1130,8 +1121,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "zh.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
 };
 
-// Pinning Preload List Length = 495;
+// Pinning Preload List Length = 496;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1653303043687000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1662375546454000);

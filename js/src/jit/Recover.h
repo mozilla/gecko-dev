@@ -124,7 +124,6 @@ namespace jit {
   _(NewIterator)                  \
   _(NewCallObject)                \
   _(Lambda)                       \
-  _(LambdaArrow)                  \
   _(FunctionWithProto)            \
   _(ObjectState)                  \
   _(ArrayState)                   \
@@ -207,13 +206,22 @@ class MOZ_NON_PARAM RInstruction {
 
 class RResumePoint final : public RInstruction {
  private:
-  uint32_t pcOffset_;     // Offset from script->code.
-  uint32_t numOperands_;  // Number of slots.
+  uint32_t pcOffsetAndMode_;  // Offset from script->code and ResumeMode.
+  uint32_t numOperands_;      // Number of slots.
 
  public:
   RINSTRUCTION_HEADER_(ResumePoint)
 
-  uint32_t pcOffset() const { return pcOffset_; }
+  // Used to encode/decode pcOffsetAndMode_.
+  static constexpr uint32_t PCOffsetShift = 4;
+  static constexpr uint32_t ResumeModeMask = 0b1111;
+  static_assert(uint32_t(ResumeMode::Last) <= ResumeModeMask);
+
+  uint32_t pcOffset() const { return pcOffsetAndMode_ >> PCOffsetShift; }
+  ResumeMode mode() const {
+    return ResumeMode(pcOffsetAndMode_ & ResumeModeMask);
+  }
+
   uint32_t numOperands() const override { return numOperands_; }
   [[nodiscard]] bool recover(JSContext* cx,
                              SnapshotIterator& iter) const override;
@@ -798,14 +806,6 @@ class RNewIterator final : public RInstruction {
 class RLambda final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Lambda, 2)
-
-  [[nodiscard]] bool recover(JSContext* cx,
-                             SnapshotIterator& iter) const override;
-};
-
-class RLambdaArrow final : public RInstruction {
- public:
-  RINSTRUCTION_HEADER_NUM_OP_(LambdaArrow, 3)
 
   [[nodiscard]] bool recover(JSContext* cx,
                              SnapshotIterator& iter) const override;

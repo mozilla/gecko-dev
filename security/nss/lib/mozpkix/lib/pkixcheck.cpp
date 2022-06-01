@@ -100,12 +100,13 @@ CheckSignatureAlgorithm(TrustDomain& trustDomain,
 
   switch (publicKeyAlg) {
     case der::PublicKeyAlgorithm::RSA_PKCS1:
+    case der::PublicKeyAlgorithm::RSA_PSS:
     {
       // The RSA computation may give a result that requires fewer bytes to
-      // encode than the public key (since it is modular arithmetic). However,
-      // the last step of generating a PKCS#1.5 signature is the I2OSP
-      // procedure, which pads any such shorter result with zeros so that it
-      // is exactly the same length as the public key.
+      // encode than the modulus (since it is modular arithmetic). However,
+      // the last step of generating a RSA-PKCS#1.5 or -PSS signature is the
+      // I2OSP procedure, which pads any such shorter result with zeros so that
+      // it is exactly the same length as the modulus.
       unsigned int signatureSizeInBits = signedData.signature.GetLength() * 8u;
       return trustDomain.CheckRSAPublicKeyModulusSizeInBits(
                endEntityOrCA, signatureSizeInBits);
@@ -117,11 +118,6 @@ CheckSignatureAlgorithm(TrustDomain& trustDomain,
       // for any curve that we support, the chances of us encountering a curve
       // during path building is too low to be worth bothering with.
       break;
-    case der::PublicKeyAlgorithm::Uninitialized:
-    {
-      assert(false);
-      return Result::FATAL_ERROR_LIBRARY_FAILURE;
-    }
     MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
   }
 

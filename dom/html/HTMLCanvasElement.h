@@ -163,10 +163,6 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
 
     SetHTMLBoolAttr(nsGkAtoms::moz_opaque, aValue, aRv);
   }
-  already_AddRefed<File> MozGetAsFile(const nsAString& aName,
-                                      const nsAString& aType,
-                                      nsIPrincipal& aSubjectPrincipal,
-                                      ErrorResult& aRv);
   already_AddRefed<nsISupports> MozGetIPCContext(const nsAString& aContextId,
                                                  ErrorResult& aRv);
   PrintCallback* GetMozPrintCallback() const;
@@ -187,15 +183,11 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   bool IsWriteOnly() const;
 
   /**
-   * Force the canvas to be write-only.
-   */
-  void SetWriteOnly();
-
-  /**
    * Force the canvas to be write-only, except for readers from
-   * a specific extension's content script expanded principal.
+   * a specific extension's content script expanded principal, if
+   * available.
    */
-  void SetWriteOnly(nsIPrincipal* aExpandedReader);
+  void SetWriteOnly(nsIPrincipal* aExpandedReader = nullptr);
 
   /**
    * Notify the placeholder offscreen canvas of an updated size.
@@ -313,6 +305,7 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
 
  protected:
   virtual ~HTMLCanvasElement();
+  void Destroy();
 
   virtual JSObject* WrapNode(JSContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
@@ -328,8 +321,6 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   nsresult ToDataURLImpl(JSContext* aCx, nsIPrincipal& aSubjectPrincipal,
                          const nsAString& aMimeType,
                          const JS::Value& aEncoderOptions, nsAString& aDataURL);
-  nsresult MozGetAsFileImpl(const nsAString& aName, const nsAString& aType,
-                            nsIPrincipal& aSubjectPrincipal, File** aResult);
   MOZ_CAN_RUN_SCRIPT void CallPrintCallback();
 
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
@@ -348,7 +339,9 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   bool IsOffscreen() const { return !!mOffscreenCanvas; }
   OffscreenCanvas* GetOffscreenCanvas() const { return mOffscreenCanvas; }
 
-  RefPtr<layers::ImageContainer> GetImageContainer();
+  layers::ImageContainer* GetImageContainer() const { return mImageContainer; }
+
+  layers::CompositableHandle GetCompositableHandle() const;
 
  protected:
   bool mResetLayer;
@@ -362,6 +355,7 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   RefPtr<CanvasRenderer> mCanvasRenderer;
   RefPtr<OffscreenCanvas> mOffscreenCanvas;
   RefPtr<OffscreenCanvasDisplayHelper> mOffscreenDisplay;
+  RefPtr<layers::ImageContainer> mImageContainer;
   RefPtr<HTMLCanvasElementObserver> mContextObserver;
 
  public:
@@ -376,7 +370,7 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   RefPtr<nsIPrincipal> mExpandedReader;
 
   // Determines if the caller should be able to read the content.
-  bool CallerCanRead(JSContext* aCx);
+  bool CallerCanRead(JSContext* aCx) const;
 
   bool IsPrintCallbackDone();
 

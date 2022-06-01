@@ -5,18 +5,14 @@
 #include ../../shared/desktop-jar.inc.mn
 
 toolkit.jar:
-* skin/classic/global/alert.css
   skin/classic/global/autocomplete.css
   skin/classic/global/button.css
-* skin/classic/global/checkbox.css
-* skin/classic/global/commonDialog.css
   skin/classic/global/dialog.css
   skin/classic/global/dropmarker.css
-* skin/classic/global/global.css
-* skin/classic/global/menu.css
-* skin/classic/global/menulist.css
+  skin/classic/global/global.css
+  skin/classic/global/menu.css
+  skin/classic/global/menulist.css
   skin/classic/global/popup.css
-* skin/classic/global/popupnotification.css
   skin/classic/global/radio.css
   skin/classic/global/richlistbox.css
   skin/classic/global/search-textbox.css
@@ -26,7 +22,6 @@ toolkit.jar:
   skin/classic/global/toolbar.css
   skin/classic/global/toolbarbutton.css
   skin/classic/global/tooltip.css
-* skin/classic/global/tree.css
   skin/classic/global/wizard.css
   skin/classic/global/arrow/panelarrow-vertical.svg                  (arrow/panelarrow-vertical.svg)
   skin/classic/global/icons/search-textbox.svg                       (icons/search-textbox.svg)
@@ -34,4 +29,4 @@ toolkit.jar:
   skin/classic/global/icons/warning-large.png                        (icons/warning-large.png)
   skin/classic/global/icons/error-64.png                             (icons/error-64.png)
   skin/classic/global/icons/question-64.png                          (icons/question-64.png)
-* skin/classic/global/in-content/common.css                          (in-content/common.css)
+  skin/classic/global/in-content/common.css                          (in-content/common.css)

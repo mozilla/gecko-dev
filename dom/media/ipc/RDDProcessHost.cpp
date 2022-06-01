@@ -46,9 +46,9 @@ bool RDDProcessHost::Launch(StringVector aExtraOpts) {
   MOZ_ASSERT(mLaunchPhase == LaunchPhase::Unlaunched);
   MOZ_ASSERT(!mRDDChild);
 
-  mPrefSerializer = MakeUnique<ipc::SharedPreferenceSerializer>(
-      dom::ContentParent::ShouldSyncPreference);
-  if (!mPrefSerializer->SerializeToSharedMemory()) {
+  mPrefSerializer = MakeUnique<ipc::SharedPreferenceSerializer>();
+  if (!mPrefSerializer->SerializeToSharedMemory(GeckoProcessType_RDD,
+                                                /* remoteType */ ""_ns)) {
     return false;
   }
   mPrefSerializer->AddSharedPrefCmdLineArgs(*this, aExtraOpts);
@@ -127,7 +127,7 @@ RefPtr<GenericNonExclusivePromise> RDDProcessHost::LaunchPromise() {
   return mLaunchPromise;
 }
 
-void RDDProcessHost::OnChannelConnected(int32_t peer_pid) {
+void RDDProcessHost::OnChannelConnected(base::ProcessId peer_pid) {
   MOZ_ASSERT(!NS_IsMainThread());
 
   GeckoChildProcessHost::OnChannelConnected(peer_pid);

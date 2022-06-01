@@ -146,6 +146,12 @@ bool RenderCompositorANGLE::Initialize(nsACString& aError) {
     return false;
   }
 
+  // Disable native compositor when fast snapshot is needed.
+  // Taking snapshot of native compositor is very slow on Windows.
+  if (mWidget->GetCompositorOptions().NeedFastSnaphot()) {
+    mUseNativeCompositor = false;
+  }
+
   // Create DCLayerTree when DirectComposition is used.
   if (gfx::gfxVars::UseWebRenderDCompWin()) {
     HWND compositorHwnd = GetCompositorHwnd();
@@ -302,7 +308,7 @@ bool RenderCompositorANGLE::CreateSwapChain(nsACString& aError) {
                                               getter_AddRefs(mSwapChain));
     if (FAILED(hr)) {
       aError.Assign(
-          nsPrintfCString("RcANGLE(swap chain create failed %x)", hr));
+          nsPrintfCString("RcANGLE(swap chain create failed %lx)", hr));
       return false;
     }
 

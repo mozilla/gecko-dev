@@ -31,11 +31,14 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
   mozilla::PodZero(infos_.begin(), infos_.length());
   infos_[0].init(/*stackDepth=*/0);
 
-  // Because WarpBuilder can compile try-blocks but doesn't compile the
-  // catch-body, we need some special machinery to prevent OSR into Warp code in
-  // the following cases:
+  // WarpBuilder can compile try blocks, but doesn't support handling
+  // exceptions. If exception unwinding would resume in a catch or finally
+  // block, we instead bail out to the baseline interpreter. Finally blocks can
+  // still be reached by normal means, but the catch block is unreachable and is
+  // not compiled. We therefore need some special machinery to prevent OSR into
+  // Warp code in the following cases:
   //
-  // (1) Loops in catch/finally blocks:
+  // (1) Loops in catch blocks:
   //
   //       try {
   //         ..
@@ -43,7 +46,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
   //         while (..) {} // Can't OSR here.
   //       }
   //
-  // (2) Loops only reachable via a catch/finally block:
+  // (2) Loops only reachable via a catch block:
   //
   //       for (;;) {
   //         try {
@@ -55,8 +58,8 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
   //       while (..) {} // Loop is only reachable via the catch-block.
   //
   // To deal with both of these cases, we track whether the current op is
-  // 'normally reachable' (reachable without going through a catch/finally
-  // block). Forward jumps propagate this flag to their jump targets (see
+  // 'normally reachable' (reachable without exception handling).
+  // Forward jumps propagate this flag to their jump targets (see
   // BytecodeInfo::jumpTargetNormallyReachable) and when the analysis reaches a
   // jump target it updates its normallyReachable flag based on the target's
   // flag.
@@ -130,8 +133,10 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
               (tn.kind() == TryNoteKind::Catch ||
                tn.kind() == TryNoteKind::Finally)) {
             uint32_t catchOrFinallyOffset = tn.start + tn.length;
+            uint32_t targetDepth =
+                tn.kind() == TryNoteKind::Finally ? stackDepth + 2 : stackDepth;
             BytecodeInfo& targetInfo = infos_[catchOrFinallyOffset];
-            targetInfo.init(stackDepth);
+            targetInfo.init(targetDepth);
             targetInfo.setJumpTarget(/* normallyReachable = */ false);
           }
         }
@@ -144,8 +149,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
 
 #ifdef DEBUG
       case JSOp::Exception:
-      case JSOp::Finally:
-        // Sanity check: ops only emitted in catch/finally blocks are never
+        // Sanity check: ops only emitted in catch blocks are never
         // normally reachable.
         MOZ_ASSERT(!normallyReachable);
         break;
@@ -184,10 +188,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
 #endif
 
       infos_[targetOffset].init(newStackDepth);
-
-      // Gosub's target is a finally-block => not normally reachable.
-      bool targetNormallyReachable = (op != JSOp::Gosub) && normallyReachable;
-      infos_[targetOffset].setJumpTarget(targetNormallyReachable);
+      infos_[targetOffset].setJumpTarget(normallyReachable);
     }
 
     // Handle any fallthrough from this opcode.
@@ -200,10 +201,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
 
       // Treat the fallthrough of a branch instruction as a jump target.
       if (jump) {
-        // Gosub falls through after executing a finally-block => not normally
-        // reachable.
-        bool nextNormallyReachable = (op != JSOp::Gosub) && normallyReachable;
-        infos_[fallthroughOffset].setJumpTarget(nextNormallyReachable);
+        infos_[fallthroughOffset].setJumpTarget(normallyReachable);
       }
     }
   }
@@ -267,17 +265,13 @@ IonBytecodeInfo js::jit::AnalyzeBytecodeForIon(JSContext* cx,
       case JSOp::GetAliasedVar:
       case JSOp::SetAliasedVar:
       case JSOp::Lambda:
-      case JSOp::LambdaArrow:
       case JSOp::PushLexicalEnv:
       case JSOp::PopLexicalEnv:
+      case JSOp::PushVarEnv:
       case JSOp::ImplicitThis:
       case JSOp::FunWithProto:
       case JSOp::GlobalOrEvalDeclInstantiation:
         result.usesEnvironmentChain = true;
-        break;
-
-      case JSOp::Finally:
-        result.hasTryFinally = true;
         break;
 
       default:

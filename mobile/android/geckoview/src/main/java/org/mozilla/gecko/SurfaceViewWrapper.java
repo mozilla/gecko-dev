@@ -1,11 +1,17 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package org.mozilla.gecko;
 
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
+import android.os.Build;
 import android.util.Log;
 import android.view.Surface;
+import android.view.SurfaceControl;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
@@ -82,6 +88,18 @@ public class SurfaceViewWrapper {
     return mListenerWrapper.mHeight;
   }
 
+  /**
+   * Returns the SurfaceControl associated with the SurfaceView, or null on unsupported SDK versions
+   * or when using the TextureView backend.
+   */
+  public SurfaceControl getSurfaceControl() {
+    if (mSurfaceView != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      return mSurfaceView.getSurfaceControl();
+    }
+
+    return null;
+  }
+
   public Surface getSurface() {
     if (mSurfaceView != null) {
       return mSurfaceView.getHolder().getSurface();
@@ -98,7 +116,7 @@ public class SurfaceViewWrapper {
    * Translates SurfaceTextureListener and SurfaceHolder.Callback into a common interface
    * SurfaceViewWrapper.Listener
    */
-  private static class ListenerWrapper
+  private class ListenerWrapper
       implements TextureView.SurfaceTextureListener, SurfaceHolder.Callback {
     private Listener mListener;
 
@@ -121,7 +139,7 @@ public class SurfaceViewWrapper {
       mWidth = width;
       mHeight = height;
       if (mListener != null) {
-        mListener.onSurfaceChanged(mSurface, width, height);
+        mListener.onSurfaceChanged(mSurface, null, width, height);
       }
     }
 
@@ -131,7 +149,7 @@ public class SurfaceViewWrapper {
       mWidth = width;
       mHeight = height;
       if (mListener != null) {
-        mListener.onSurfaceChanged(mSurface, mWidth, mHeight);
+        mListener.onSurfaceChanged(mSurface, null, mWidth, mHeight);
       }
     }
 
@@ -148,7 +166,7 @@ public class SurfaceViewWrapper {
     public void onSurfaceTextureUpdated(final SurfaceTexture surface) {
       mSurface = new Surface(surface);
       if (mListener != null) {
-        mListener.onSurfaceChanged(mSurface, mWidth, mHeight);
+        mListener.onSurfaceChanged(mSurface, null, mWidth, mHeight);
       }
     }
 
@@ -160,7 +178,7 @@ public class SurfaceViewWrapper {
     public void surfaceChanged(
         final SurfaceHolder holder, final int format, final int width, final int height) {
       if (mListener != null) {
-        mListener.onSurfaceChanged(holder.getSurface(), width, height);
+        mListener.onSurfaceChanged(holder.getSurface(), getSurfaceControl(), width, height);
       }
     }
 
@@ -173,7 +191,7 @@ public class SurfaceViewWrapper {
   }
 
   public interface Listener {
-    void onSurfaceChanged(Surface surface, int width, int height);
+    void onSurfaceChanged(Surface surface, SurfaceControl surfaceControl, int width, int height);
 
     void onSurfaceDestroyed();
   }

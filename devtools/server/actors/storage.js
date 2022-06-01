@@ -20,11 +20,6 @@ loader.lazyGetter(this, "ExtensionStorageIDB", () => {
   return require("resource://gre/modules/ExtensionStorageIDB.jsm")
     .ExtensionStorageIDB;
 });
-loader.lazyGetter(
-  this,
-  "WebExtensionPolicy",
-  () => Cu.getGlobalForObject(ExtensionProcessScript).WebExtensionPolicy
-);
 
 const EXTENSION_STORAGE_ENABLED_PREF =
   "devtools.storage.extensionStorage.enabled";
@@ -704,7 +699,7 @@ StorageActors.createActor(
      */
     onCookieChanged(subject, topic, action) {
       if (
-        topic !== "cookie-changed" ||
+        (topic !== "cookie-changed" && topic !== "private-cookie-changed") ||
         !this.storageActor ||
         !this.storageActor.windows
       ) {
@@ -1137,11 +1132,13 @@ var cookieHelpers = {
 
   addCookieObservers() {
     Services.obs.addObserver(cookieHelpers, "cookie-changed");
+    Services.obs.addObserver(cookieHelpers, "private-cookie-changed");
     return null;
   },
 
   removeCookieObservers() {
     Services.obs.removeObserver(cookieHelpers, "cookie-changed");
+    Services.obs.removeObserver(cookieHelpers, "private-cookie-changed");
     return null;
   },
 
@@ -1152,6 +1149,7 @@ var cookieHelpers = {
 
     switch (topic) {
       case "cookie-changed":
+      case "private-cookie-changed":
         if (data === "batch-deleted") {
           const cookiesNoInterface = subject.QueryInterface(Ci.nsIArray);
           const cookies = [];

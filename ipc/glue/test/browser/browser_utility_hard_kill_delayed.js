@@ -3,23 +3,9 @@
 
 "use strict";
 
-var utilityPid = undefined;
 add_task(async () => {
-  const utilityProcessTest = Cc[
-    "@mozilla.org/utility-process-test;1"
-  ].createInstance(Ci.nsIUtilityProcessTest);
-  await utilityProcessTest
-    .startProcess()
-    .then(async pid => {
-      utilityPid = pid;
-      ok(true, "Could start Utility process: " + pid);
-    })
-    .catch(async () => {
-      ok(false, "Cannot start Utility process?");
-    });
-});
+  const utilityPid = await startUtilityProcess();
 
-add_task(async () => {
   SimpleTest.expectChildProcessCrash();
 
   const utilityProcessGone = TestUtils.topicObserved("ipc:utility-shutdown");

@@ -430,7 +430,7 @@ void APZCTreeManager::UpdateHitTestingTree(
 
   if (aRoot) {
     std::unordered_set<LayersId, LayersId::HashFn> seenLayersIds;
-    std::stack<gfx::TreeAutoIndent<LOG_DEFAULT>> indents;
+    std::stack<gfx::TreeAutoIndent<gfx::LOG_CRITICAL>> indents;
     std::stack<AncestorTransform> ancestorTransforms;
     HitTestingTreeNode* parent = nullptr;
     HitTestingTreeNode* next = nullptr;
@@ -449,8 +449,6 @@ void APZCTreeManager::UpdateHitTestingTree(
     ForEachNode<ReverseIterator>(
         aRoot,
         [&](ScrollNode aLayerMetrics) {
-          mApzcTreeLog << aLayerMetrics.Name() << '\t';
-
           if (auto asyncZoomContainerId =
                   aLayerMetrics.GetAsyncZoomContainerId()) {
             if (asyncZoomContainerNestingDepth > 0) {
@@ -524,8 +522,6 @@ void APZCTreeManager::UpdateHitTestingTree(
             state.mScrollTargets[apzc->GetGuid()] = node;
           }
 
-          mApzcTreeLog << '\n';
-
           // Accumulate the CSS transform between layers that have an APZC.
           // In the terminology of the big comment above
           // APZCTreeManager::GetScreenToApzcTransform, if we are at layer M,
@@ -570,7 +566,7 @@ void APZCTreeManager::UpdateHitTestingTree(
                                       aLayerMetrics.GetEventRegionsOverride());
           }
 
-          indents.push(gfx::TreeAutoIndent<LOG_DEFAULT>(mApzcTreeLog));
+          indents.push(gfx::TreeAutoIndent<gfx::LOG_CRITICAL>(mApzcTreeLog));
         },
         [&](ScrollNode aLayerMetrics) {
           if (aLayerMetrics.GetAsyncZoomContainerId()) {
@@ -955,23 +951,16 @@ bool APZCTreeManager::AdvanceAnimationsInternal(
   return activeAnimations;
 }
 
-void APZCTreeManager::PrintAPZCInfo(const ScrollNode& aLayer,
-                                    const AsyncPanZoomController* apzc) {
-  const FrameMetrics& metrics = aLayer.Metrics();
-  std::stringstream guidStr;
-  guidStr << apzc->GetGuid();
-  mApzcTreeLog << "APZC " << guidStr.str()
-               << "\tcb=" << metrics.GetCompositionBounds()
-               << "\tsr=" << metrics.GetScrollableRect()
-               << (metrics.IsScrollInfoLayer() ? "\tscrollinfo" : "")
-               << (apzc->HasScrollgrab() ? "\tscrollgrab" : "") << "\t"
-               << aLayer.Metadata().GetContentDescription().get();
+void APZCTreeManager::PrintLayerInfo(const ScrollNode& aLayer) {
+  if (StaticPrefs::apz_printtree() && aLayer.Dump(mApzcTreeLog) > 0) {
+    mApzcTreeLog << "\n";
+  }
 }
 
+// mTreeLock is held, and checked with static analysis
 void APZCTreeManager::AttachNodeToTree(HitTestingTreeNode* aNode,
                                        HitTestingTreeNode* aParent,
                                        HitTestingTreeNode* aNextSibling) {
-  mTreeLock.AssertCurrentThreadIn();
   if (aNextSibling) {
     aNextSibling->SetPrevSibling(aNode);
   } else if (aParent) {
@@ -1095,6 +1084,7 @@ HitTestingTreeNode* APZCTreeManager::PrepareNodeForLayer(
     const Maybe<ZoomConstraints>& aZoomConstraints,
     const AncestorTransform& aAncestorTransform, HitTestingTreeNode* aParent,
     HitTestingTreeNode* aNextSibling, TreeBuildingState& aState) {
+  mTreeLock.AssertCurrentThreadIn();  // for static analysis
   bool needsApzc = true;
   if (!aMetrics.IsScrollable()) {
     needsApzc = false;
@@ -1134,6 +1124,7 @@ HitTestingTreeNode* APZCTreeManager::PrepareNodeForLayer(
                            aLayer.GetStickyScrollRangeOuter(),
                            aLayer.GetStickyScrollRangeInner(),
                            aLayer.GetStickyPositionAnimationId());
+    PrintLayerInfo(aLayer);
     return node;
   }
 
@@ -1153,7 +1144,7 @@ HitTestingTreeNode* APZCTreeManager::PrepareNodeForLayer(
       ApzcMapData{static_cast<AsyncPanZoomController*>(nullptr), Nothing()}));
   if (!insertResult.second) {
     apzc = insertResult.first->second.apzc;
-    PrintAPZCInfo(aLayer, apzc);
+    PrintLayerInfo(aLayer);
   }
   APZCTM_LOG("Found APZC %p for layer %p with identifiers %" PRIx64 " %" PRId64
              "\n",
@@ -1244,7 +1235,7 @@ HitTestingTreeNode* APZCTreeManager::PrepareNodeForLayer(
     SetHitTestData(node, aLayer, aState.mOverrideFlags.top());
     apzc->SetAncestorTransform(aAncestorTransform);
 
-    PrintAPZCInfo(aLayer, apzc);
+    PrintLayerInfo(aLayer);
 
     // Bind the APZC instance into the tree of APZCs
     AttachNodeToTree(node, aParent, aNextSibling);
@@ -1338,9 +1329,16 @@ HitTestingTreeNode* APZCTreeManager::PrepareNodeForLayer(
       typedef TreeBuildingState::DeferredTransformMap::value_type PairType;
       if (!aAncestorTransform.ContainsPerspectiveTransform() &&
           !apzc->AncestorTransformContainsPerspective()) {
-        MOZ_ASSERT(false,
-                   "Two layers that scroll together have different ancestor "
-                   "transforms");
+        // If this content is being presented in a paginated fashion (e.g.
+        // print preview), the multiple layers may reflect multiple instances
+        // of the same display item being rendered on different pages. In such
+        // cases, it's expected that different instances can have different
+        // transforms, since each page renders a different part of the item.
+        if (!aLayer.Metadata().IsPaginatedPresentation()) {
+          MOZ_ASSERT(false,
+                     "Two layers that scroll together have different ancestor "
+                     "transforms");
+        }
       } else if (!aAncestorTransform.ContainsPerspectiveTransform()) {
         aState.mPerspectiveTransformsDeferredToChildren.insert(
             PairType{apzc, apzc->GetAncestorTransformPerspective()});
@@ -1411,7 +1409,8 @@ static bool HasNonLockModifier(Modifiers aModifiers) {
                         MODIFIER_SYMBOL | MODIFIER_OS)) != 0;
 }
 
-APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
+APZEventResult APZCTreeManager::ReceiveInputEvent(
+    InputData& aEvent, InputBlockCallback&& aCallback) {
   APZThreadUtils::AssertOnControllerThread();
   InputHandlingState state{aEvent};
 
@@ -1520,7 +1519,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
 
       wheelInput.mHandledByAPZ = WillHandleInput(wheelInput);
       if (!wheelInput.mHandledByAPZ) {
-        return state.Finish();
+        return state.Finish(*this, std::move(aCallback));
       }
 
       if (state.mHit.mTargetApzc) {
@@ -1539,7 +1538,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
                                                  state.mHit.mTargetApzc);
           }
           state.mResult.SetStatusAsConsumeNoDefault();
-          return state.Finish();
+          return state.Finish(*this, std::move(aCallback));
         }
 
         MOZ_ASSERT(wheelInput.mAPZAction == APZWheelAction::Scroll);
@@ -1558,7 +1557,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
             UntransformBy(transformToGecko, wheelInput.mOrigin);
 
         if (!untransformedOrigin) {
-          return state.Finish();
+          return state.Finish(*this, std::move(aCallback));
         }
 
         state.mResult = mInputQueue->ReceiveInputEvent(
@@ -1599,7 +1598,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
                 TargetConfirmationFlags{state.mHit.mHitResult}, panInterrupted);
           }
         }
-        return state.Finish();
+        return state.Finish(*this, std::move(aCallback));
       }
 
       // If/when we enable support for pan inputs off-main-thread, we'll need
@@ -1633,7 +1632,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
                               panInput.mPanStartPoint);
 
         if (!untransformedStartPoint || !untransformedDisplacement) {
-          return state.Finish();
+          return state.Finish(*this, std::move(aCallback));
         }
 
         state.mResult = mInputQueue->ReceiveInputEvent(
@@ -1654,7 +1653,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
       if (HasNonLockModifier(pinchInput.modifiers)) {
         APZCTM_LOG("Discarding pinch input due to modifiers 0x%x\n",
                    pinchInput.modifiers);
-        return state.Finish();
+        return state.Finish(*this, std::move(aCallback));
       }
 
       state.mHit = GetTargetAPZC(pinchInput.mFocusPoint);
@@ -1678,7 +1677,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
             UntransformBy(outTransform, pinchInput.mFocusPoint);
 
         if (!untransformedFocusPoint) {
-          return state.Finish();
+          return state.Finish(*this, std::move(aCallback));
         }
 
         state.mResult = mInputQueue->ReceiveInputEvent(
@@ -1704,7 +1703,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
             UntransformBy(outTransform, tapInput.mPoint);
 
         if (!untransformedPoint) {
-          return state.Finish();
+          return state.Finish(*this, std::move(aCallback));
         }
 
         state.mResult = mInputQueue->ReceiveInputEvent(
@@ -1722,7 +1721,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
       if (!StaticPrefs::apz_keyboard_enabled_AtStartup() ||
           StaticPrefs::accessibility_browsewithcaret()) {
         APZ_KEY_LOG("Skipping key input from invalid prefs\n");
-        return state.Finish();
+        return state.Finish(*this, std::move(aCallback));
       }
 
       KeyboardInput& keyInput = aEvent.AsKeyboardInput();
@@ -1739,14 +1738,14 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
         if (mFocusState.CanIgnoreKeyboardShortcutMisses()) {
           focusSetter.MarkAsNonFocusChanging();
         }
-        return state.Finish();
+        return state.Finish(*this, std::move(aCallback));
       }
 
       // Check if this shortcut needs to be dispatched to content. Anything
       // matching this is assumed to be able to change focus.
       if (shortcut->mDispatchToContent) {
         APZ_KEY_LOG("Skipping key input with dispatch-to-content shortcut\n");
-        return state.Finish();
+        return state.Finish(*this, std::move(aCallback));
       }
 
       // We know we have an action to execute on whatever is the current focus
@@ -1775,7 +1774,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
       // to content.
       if (!targetGuid) {
         APZ_KEY_LOG("Skipping key input with no current focus target\n");
-        return state.Finish();
+        return state.Finish(*this, std::move(aCallback));
       }
 
       RefPtr<AsyncPanZoomController> targetApzc =
@@ -1783,7 +1782,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
 
       if (!targetApzc) {
         APZ_KEY_LOG("Skipping key input with focus target but no APZC\n");
-        return state.Finish();
+        return state.Finish(*this, std::move(aCallback));
       }
 
       // Attach the keyboard scroll action to the input event for processing
@@ -1807,7 +1806,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
       break;
     }
   }
-  return state.Finish();
+  return state.Finish(*this, std::move(aCallback));
 }
 
 static TouchBehaviorFlags ConvertToTouchBehavior(
@@ -1882,7 +1881,8 @@ APZCTreeManager::HitTestResult APZCTreeManager::GetTouchInputBlockAPZC(
   return hit;
 }
 
-APZEventResult APZCTreeManager::InputHandlingState::Finish() {
+APZEventResult APZCTreeManager::InputHandlingState::Finish(
+    APZCTreeManager& aTreeManager, InputBlockCallback&& aCallback) {
   // The validity check here handles both the case where mHit was
   // never populated (because this event did not trigger a hit-test),
   // and the case where it was populated with an invalid LayersId
@@ -1894,6 +1894,13 @@ APZEventResult APZCTreeManager::InputHandlingState::Finish() {
   // If the event is over an overscroll gutter, do not dispatch it to Gecko.
   if (mHit.mHitOverscrollGutter) {
     mResult.SetStatusAsConsumeNoDefault();
+  }
+
+  // If the event will have a delayed result then add the callback to the
+  // APZCTreeManager.
+  if (aCallback && mResult.WillHaveDelayedResult()) {
+    aTreeManager.AddInputBlockCallback(mResult.mInputBlockId,
+                                       std::move(aCallback));
   }
 
   return mResult;
@@ -2422,9 +2429,6 @@ void APZCTreeManager::UpdateZoomConstraints(
         return matches;
       });
 
-  MOZ_ASSERT(!node ||
-             !node->GetApzc());  // any node returned must not have an APZC
-
   // This does not hold because we can get zoom constraints updates before the
   // layer tree update with the async zoom container (I assume).
   // clang-format off
@@ -2708,7 +2712,7 @@ ParentLayerPoint APZCTreeManager::DispatchFling(
     residualVelocity += current->AttemptFling(transformedHandoffState);
 
     // If there's no residual velocity, there's nothing more to hand off.
-    if (IsZero(residualVelocity)) {
+    if (current->IsZero(residualVelocity)) {
       return ParentLayerPoint();
     }
 
@@ -2746,6 +2750,12 @@ already_AddRefed<AsyncPanZoomController> APZCTreeManager::GetTargetAPZC(
     const LayersId& aLayersId,
     const ScrollableLayerGuid::ViewID& aScrollId) const {
   MutexAutoLock lock(mMapLock);
+  return GetTargetAPZC(aLayersId, aScrollId, lock);
+}
+
+already_AddRefed<AsyncPanZoomController> APZCTreeManager::GetTargetAPZC(
+    const LayersId& aLayersId, const ScrollableLayerGuid::ViewID& aScrollId,
+    const MutexAutoLock& aProofOfMapLock) const {
   ScrollableLayerGuid guid(aLayersId, 0, aScrollId);
   auto it = mApzcMap.find(guid);
   RefPtr<AsyncPanZoomController> apzc =
@@ -2929,11 +2939,6 @@ HitTestingTreeNode* APZCTreeManager::FindRootNodeForLayersId(
 already_AddRefed<AsyncPanZoomController> APZCTreeManager::FindZoomableApzc(
     AsyncPanZoomController* aStart) const {
   return GetZoomableTarget(aStart, aStart);
-}
-
-ScreenMargin APZCTreeManager::GetGeckoFixedLayerMargins() const {
-  RecursiveMutexAutoLock lock(mTreeLock);
-  return mGeckoFixedLayerMargins;
 }
 
 ScreenMargin APZCTreeManager::GetCompositorFixedLayerMargins() const {
@@ -3522,6 +3527,7 @@ void APZCTreeManager::SendSubtreeTransformsToChromeMainThread(
     ForEachNode<ReverseIterator>(
         mRootNode.get(),
         [&](HitTestingTreeNode* aNode) {
+          mTreeLock.AssertCurrentThreadIn();
           bool atAncestor = (aAncestor && aNode->GetApzc() == aAncestor);
           MOZ_ASSERT(!(underAncestor && atAncestor));
           underAncestor |= atAncestor;
@@ -3601,6 +3607,7 @@ void APZCTreeManager::AssertOnUpdaterThread() {
   GetUpdater()->AssertOnUpdaterThread();
 }
 
+PUSH_IGNORE_THREAD_SAFETY
 void APZCTreeManager::LockTree() {
   AssertOnUpdaterThread();
   mTreeLock.Lock();
@@ -3610,6 +3617,7 @@ void APZCTreeManager::UnlockTree() {
   AssertOnUpdaterThread();
   mTreeLock.Unlock();
 }
+POP_THREAD_SAFETY
 
 void APZCTreeManager::SetDPI(float aDpiValue) {
   if (!APZThreadUtils::IsControllerThread()) {

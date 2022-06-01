@@ -50,39 +50,41 @@ class nsAvailableMemoryWatcher final : public nsITimerCallback,
   static bool IsCommitSpaceLow();
 
   ~nsAvailableMemoryWatcher();
-  bool RegisterMemoryResourceHandler();
-  void UnregisterMemoryResourceHandler();
-  void MaybeSaveMemoryReport(const MutexAutoLock&);
-  void Shutdown(const MutexAutoLock&);
-  bool ListenForLowMemory(const MutexAutoLock&);
-  void OnLowMemory(const MutexAutoLock&);
-  void OnHighMemory(const MutexAutoLock&);
-  void StartPollingIfUserInteracting(const MutexAutoLock&);
-  void StopPolling();
-  void StopPollingIfUserIdle(const MutexAutoLock&);
-  void OnUserInteracting(const MutexAutoLock&);
+  bool RegisterMemoryResourceHandler(const MutexAutoLock& aLock)
+      REQUIRES(mMutex);
+  void UnregisterMemoryResourceHandler(const MutexAutoLock&) REQUIRES(mMutex);
+  void MaybeSaveMemoryReport(const MutexAutoLock&) REQUIRES(mMutex);
+  void Shutdown(const MutexAutoLock& aLock) REQUIRES(mMutex);
+  bool ListenForLowMemory(const MutexAutoLock&) REQUIRES(mMutex);
+  void OnLowMemory(const MutexAutoLock&) REQUIRES(mMutex);
+  void OnHighMemory(const MutexAutoLock&) REQUIRES(mMutex);
+  void StartPollingIfUserInteracting(const MutexAutoLock& aLock)
+      REQUIRES(mMutex);
+  void StopPolling(const MutexAutoLock&) REQUIRES(mMutex);
+  void StopPollingIfUserIdle(const MutexAutoLock&) REQUIRES(mMutex);
+  void OnUserInteracting(const MutexAutoLock&) REQUIRES(mMutex);
 
   // The publicly available methods (::Observe() and ::Notify()) are called on
   // the main thread while the ::LowMemoryCallback() method is called by an
   // external thread. All functions called from those must acquire a lock on
   // this mutex before accessing the object's fields to prevent races.
   Mutex mMutex;
-  nsCOMPtr<nsITimer> mTimer;
-  nsAutoHandle mLowMemoryHandle;
-  HANDLE mWaitHandle;
-  bool mPolling;
+  nsCOMPtr<nsITimer> mTimer GUARDED_BY(mMutex);
+  nsAutoHandle mLowMemoryHandle GUARDED_BY(mMutex);
+  HANDLE mWaitHandle GUARDED_BY(mMutex);
+  bool mPolling GUARDED_BY(mMutex);
 
   // Indicates whether to start a timer when user interaction is notified.
   // This flag is needed because the low-memory callback may be triggered when
   // the user is inactive and we want to delay-start the timer.
-  bool mNeedToRestartTimerOnUserInteracting;
+  bool mNeedToRestartTimerOnUserInteracting GUARDED_BY(mMutex);
   // Indicate that the available commit space is low.  The timer handler needs
   // this flag because it is triggered by the low physical memory regardless
   // of the available commit space.
-  bool mUnderMemoryPressure;
+  bool mUnderMemoryPressure GUARDED_BY(mMutex);
 
-  bool mSavedReport;
-  bool mIsShutdown;
+  bool mSavedReport GUARDED_BY(mMutex);
+  bool mIsShutdown GUARDED_BY(mMutex);
 
   // Members below this line are used only in the main thread.
   // No lock is needed.
@@ -111,6 +113,7 @@ nsresult nsAvailableMemoryWatcher::Init() {
     return rv;
   }
 
+  MutexAutoLock lock(mMutex);
   mTimer = NS_NewTimer();
   if (!mTimer) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -119,7 +122,7 @@ nsresult nsAvailableMemoryWatcher::Init() {
   // Use a very short interval for GTest to verify the timer's behavior.
   mPollingInterval = gIsGtest ? 10 : 10000;
 
-  if (!RegisterMemoryResourceHandler()) {
+  if (!RegisterMemoryResourceHandler(lock)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -179,7 +182,8 @@ void nsAvailableMemoryWatcher::RecordLowMemoryEvent() {
       sNumLowPhysicalMemEvents);
 }
 
-bool nsAvailableMemoryWatcher::RegisterMemoryResourceHandler() {
+bool nsAvailableMemoryWatcher::RegisterMemoryResourceHandler(
+    const MutexAutoLock& aLock) {
   mLowMemoryHandle.own(
       ::CreateMemoryResourceNotification(LowMemoryResourceNotification));
 
@@ -187,11 +191,11 @@ bool nsAvailableMemoryWatcher::RegisterMemoryResourceHandler() {
     return false;
   }
 
-  MutexAutoLock lock(mMutex);
-  return ListenForLowMemory(lock);
+  return ListenForLowMemory(aLock);
 }
 
-void nsAvailableMemoryWatcher::UnregisterMemoryResourceHandler() {
+void nsAvailableMemoryWatcher::UnregisterMemoryResourceHandler(
+    const MutexAutoLock&) {
   if (mWaitHandle) {
     bool res = ::UnregisterWait(mWaitHandle);
     if (res || ::GetLastError() != ERROR_IO_PENDING) {
@@ -205,7 +209,7 @@ void nsAvailableMemoryWatcher::UnregisterMemoryResourceHandler() {
   mLowMemoryHandle.reset();
 }
 
-void nsAvailableMemoryWatcher::Shutdown(const MutexAutoLock&) {
+void nsAvailableMemoryWatcher::Shutdown(const MutexAutoLock& aLock) {
   mIsShutdown = true;
   mNeedToRestartTimerOnUserInteracting = false;
 
@@ -214,7 +218,7 @@ void nsAvailableMemoryWatcher::Shutdown(const MutexAutoLock&) {
     mTimer = nullptr;
   }
 
-  UnregisterMemoryResourceHandler();
+  UnregisterMemoryResourceHandler(aLock);
 }
 
 bool nsAvailableMemoryWatcher::ListenForLowMemory(const MutexAutoLock&) {
@@ -291,7 +295,7 @@ void nsAvailableMemoryWatcher::OnHighMemory(const MutexAutoLock& aLock) {
 
   mUnderMemoryPressure = false;
   mSavedReport = false;  // Will save a new report if memory gets low again
-  StopPolling();
+  StopPolling(aLock);
   ListenForLowMemory(aLock);
 }
 
@@ -328,14 +332,15 @@ void nsAvailableMemoryWatcher::StartPollingIfUserInteracting(
   }
 }
 
-void nsAvailableMemoryWatcher::StopPolling() {
+void nsAvailableMemoryWatcher::StopPolling(const MutexAutoLock&) {
   mTimer->Cancel();
   mPolling = false;
 }
 
-void nsAvailableMemoryWatcher::StopPollingIfUserIdle(const MutexAutoLock&) {
+void nsAvailableMemoryWatcher::StopPollingIfUserIdle(
+    const MutexAutoLock& aLock) {
   if (!mInteracting) {
-    StopPolling();
+    StopPolling(aLock);
   }
 }
 

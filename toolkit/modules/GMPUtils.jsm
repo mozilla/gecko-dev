@@ -41,12 +41,6 @@ var GMPUtils = {
    *          The plugin to check.
    */
   isPluginHidden(aPlugin) {
-    if (this._is32bitModeMacOS()) {
-      // GMPs are hidden on MacOS when running in 32 bit mode.
-      // See bug 1291537.
-      return true;
-    }
-
     if (!this._isPluginSupported(aPlugin) || !this._isPluginVisible(aPlugin)) {
       return true;
     }
@@ -82,13 +76,6 @@ var GMPUtils = {
     }
 
     return true;
-  },
-
-  _is32bitModeMacOS() {
-    if (AppConstants.platform != "macosx") {
-      return false;
-    }
-    return Services.appinfo.XPCOMABI.split("-")[0] == "x86";
   },
 
   /**
@@ -138,6 +125,11 @@ var GMPUtils = {
 var GMPPrefs = {
   KEY_EME_ENABLED: "media.eme.enabled",
   KEY_PLUGIN_ENABLED: "media.{0}.enabled",
+  KEY_PLUGIN_LAST_DOWNLOAD: "media.{0}.lastDownload",
+  KEY_PLUGIN_LAST_DOWNLOAD_FAILED: "media.{0}.lastDownloadFailed",
+  KEY_PLUGIN_LAST_DOWNLOAD_FAIL_REASON: "media.{0}.lastDownloadFailReason",
+  KEY_PLUGIN_LAST_INSTALL_FAILED: "media.{0}.lastInstallFailed",
+  KEY_PLUGIN_LAST_INSTALL_START: "media.{0}.lastInstallStart",
   KEY_PLUGIN_LAST_UPDATE: "media.{0}.lastUpdate",
   KEY_PLUGIN_VERSION: "media.{0}.version",
   KEY_PLUGIN_AUTOUPDATE: "media.{0}.autoupdate",
@@ -150,6 +142,7 @@ var GMPPrefs = {
   KEY_CERT_REQUIREBUILTIN: "media.gmp-manager.cert.requireBuiltIn",
   KEY_CHECK_CONTENT_SIGNATURE: "media.gmp-manager.checkContentSignature",
   KEY_UPDATE_LAST_CHECK: "media.gmp-manager.lastCheck",
+  KEY_UPDATE_LAST_EMPTY_CHECK: "media.gmp-manager.lastEmptyCheck",
   KEY_SECONDS_BETWEEN_CHECKS: "media.gmp-manager.secondsBetweenChecks",
   KEY_UPDATE_ENABLED: "media.gmp-manager.updateEnabled",
   KEY_APP_DISTRIBUTION: "distribution.id",

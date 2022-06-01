@@ -22,7 +22,7 @@ add_task(async function() {
   info("Test Copy URL menu item for text log");
 
   info("Logging a text message in the content window");
-  const onLogMessage = waitForMessage(hud, "stringLog");
+  const onLogMessage = waitForMessageByType(hud, "stringLog", ".console-api");
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
     content.wrappedJSObject.stringLog();
   });
@@ -36,9 +36,7 @@ add_task(async function() {
   ok(!copyURLItem, "Copy URL menu item is hidden for a simple text message");
 
   info("Open and check the context menu for the logged text message");
-  const locationElement = message.node.querySelector(
-    ".frame-link-source-inner"
-  );
+  const locationElement = message.node.querySelector(".frame-link-source");
   menuPopup = await openContextMenu(hud, locationElement);
   copyURLItem = menuPopup.querySelector(CONTEXT_MENU_ID);
   ok(copyURLItem, "The Copy Link Location entry is displayed");
@@ -53,7 +51,11 @@ add_task(async function() {
   info("Test Copy URL menu item for network log");
 
   info("Reload the content window to produce a network log");
-  const onNetworkMessage = waitForMessage(hud, "test-console.html");
+  const onNetworkMessage = waitForMessageByType(
+    hud,
+    "test-console.html",
+    ".network"
+  );
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
     content.wrappedJSObject.location.reload();
   });
@@ -76,7 +78,7 @@ add_task(async function() {
   info("Test Copy URL menu item from [Learn More] link");
 
   info("Generate a Reference Error in the JS Console");
-  message = await executeAndWaitForMessage(
+  message = await executeAndWaitForErrorMessage(
     hud,
     "area51.aliens",
     "ReferenceError:"

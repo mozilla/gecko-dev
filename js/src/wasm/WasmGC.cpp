@@ -67,7 +67,7 @@ wasm::StackMap* wasm::ConvertStackMapBoolVectorToStackMap(
 // MacroAssembler::wasmReserveStackChecked, in the case where the frame is
 // "small", as determined by that function.
 bool wasm::CreateStackMapForFunctionEntryTrap(
-    const wasm::ArgTypeVector& argTypes, const MachineState& trapExitLayout,
+    const wasm::ArgTypeVector& argTypes, const RegisterOffsets& trapExitLayout,
     size_t trapExitLayoutWords, size_t nBytesReservedBeforeTrap,
     size_t nInboundStackArgBytes, wasm::StackMap** result) {
   // Ensure this is defined on all return paths.
@@ -161,8 +161,8 @@ bool wasm::CreateStackMapForFunctionEntryTrap(
                                   numStackArgWords);
 #ifdef DEBUG
   for (uint32_t i = 0; i < nFrameBytes / sizeof(void*); i++) {
-    MOZ_ASSERT(stackMap->getBit(stackMap->numMappedWords -
-                                stackMap->frameOffsetFromTop + i) == 0);
+    MOZ_ASSERT(stackMap->getBit(stackMap->header.numMappedWords -
+                                stackMap->header.frameOffsetFromTop + i) == 0);
   }
 #endif
 
@@ -171,13 +171,9 @@ bool wasm::CreateStackMapForFunctionEntryTrap(
 }
 
 bool wasm::GenerateStackmapEntriesForTrapExit(
-    const ArgTypeVector& args, const MachineState& trapExitLayout,
+    const ArgTypeVector& args, const RegisterOffsets& trapExitLayout,
     const size_t trapExitLayoutNumWords, ExitStubMapVector* extras) {
   MOZ_ASSERT(extras->empty());
-
-  // If this doesn't hold, we can't distinguish saved and not-saved
-  // registers in the MachineState.  See MachineState::MachineState().
-  MOZ_ASSERT(trapExitLayoutNumWords < 0x100);
 
   if (!extras->appendN(false, trapExitLayoutNumWords)) {
     return false;
@@ -188,8 +184,7 @@ bool wasm::GenerateStackmapEntriesForTrapExit(
       continue;
     }
 
-    size_t offsetFromTop =
-        reinterpret_cast<size_t>(trapExitLayout.address(i->gpr()));
+    size_t offsetFromTop = trapExitLayout.getOffset(i->gpr());
 
     // If this doesn't hold, the associated register wasn't saved by
     // the trap exit stub.  Better to crash now than much later, in
@@ -207,12 +202,12 @@ bool wasm::GenerateStackmapEntriesForTrapExit(
   return true;
 }
 
-void wasm::EmitWasmPreBarrierGuard(MacroAssembler& masm, Register tls,
+void wasm::EmitWasmPreBarrierGuard(MacroAssembler& masm, Register instance,
                                    Register scratch, Register valueAddr,
                                    Label* skipBarrier) {
   // If no incremental GC has started, we don't need the barrier.
   masm.loadPtr(
-      Address(tls, offsetof(TlsData, addressOfNeedsIncrementalBarrier)),
+      Address(instance, Instance::offsetOfAddressOfNeedsIncrementalBarrier()),
       scratch);
   masm.branchTest32(Assembler::Zero, Address(scratch, 0), Imm32(0x1),
                     skipBarrier);
@@ -222,12 +217,11 @@ void wasm::EmitWasmPreBarrierGuard(MacroAssembler& masm, Register tls,
   masm.branchTestPtr(Assembler::Zero, scratch, scratch, skipBarrier);
 }
 
-void wasm::EmitWasmPreBarrierCall(MacroAssembler& masm, Register tls,
+void wasm::EmitWasmPreBarrierCall(MacroAssembler& masm, Register instance,
                                   Register scratch, Register valueAddr) {
   MOZ_ASSERT(valueAddr == PreBarrierReg);
 
-  masm.loadPtr(Address(tls, offsetof(TlsData, instance)), scratch);
-  masm.loadPtr(Address(scratch, Instance::offsetOfPreBarrierCode()), scratch);
+  masm.loadPtr(Address(instance, Instance::offsetOfPreBarrierCode()), scratch);
 #if defined(DEBUG) && defined(JS_CODEGEN_ARM64)
   // The prebarrier assumes that x28 == sp.
   Label ok;
@@ -263,31 +257,29 @@ bool wasm::IsValidStackMapKey(bool debugEnabled, const uint8_t* nextPC) {
   const uint8_t* insn = nextPC;
   return (insn[-2] == 0x0F && insn[-1] == 0x0B) ||           // ud2
          (insn[-2] == 0xFF && (insn[-1] & 0xF8) == 0xD0) ||  // call *%r_
-         insn[-5] == 0xE8 ||                                 // call simm32
-         (debugEnabled && insn[-5] == 0x0F && insn[-4] == 0x1F &&
-          insn[-3] == 0x44 && insn[-2] == 0x00 &&
-          insn[-1] == 0x00);  // nop_five
+         insn[-5] == 0xE8;                                   // call simm32
 
 #  elif defined(JS_CODEGEN_ARM)
   const uint32_t* insn = (const uint32_t*)nextPC;
-  return ((uintptr_t(insn) & 3) == 0) &&              // must be ARM, not Thumb
-         (insn[-1] == 0xe7f000f0 ||                   // udf
-          (insn[-1] & 0xfffffff0) == 0xe12fff30 ||    // blx reg (ARM, enc A1)
-          (insn[-1] & 0xff000000) == 0xeb000000 ||    // bl simm24 (ARM, enc A1)
-          (debugEnabled && insn[-1] == 0xe320f000));  // "as_nop"
+  return ((uintptr_t(insn) & 3) == 0) &&            // must be ARM, not Thumb
+         (insn[-1] == 0xe7f000f0 ||                 // udf
+          (insn[-1] & 0xfffffff0) == 0xe12fff30 ||  // blx reg (ARM, enc A1)
+          (insn[-1] & 0x0f000000) == 0x0b000000);   // bl.cc simm24 (ARM, enc A1)
 
 #  elif defined(JS_CODEGEN_ARM64)
   const uint32_t hltInsn = 0xd4a00000;
   const uint32_t* insn = (const uint32_t*)nextPC;
   return ((uintptr_t(insn) & 3) == 0) &&
-         (insn[-1] == hltInsn ||                      // hlt
-          (insn[-1] & 0xfffffc1f) == 0xd63f0000 ||    // blr reg
-          (insn[-1] & 0xfc000000) == 0x94000000 ||    // bl simm26
-          (debugEnabled && insn[-1] == 0xd503201f));  // nop
+         (insn[-1] == hltInsn ||                    // hlt
+          (insn[-1] & 0xfffffc1f) == 0xd63f0000 ||  // blr reg
+          (insn[-1] & 0xfc000000) == 0x94000000);   // bl simm26
 
 #  elif defined(JS_CODEGEN_MIPS64)
   // TODO (bug 1699696): Implement this.  As for the platforms above, we need to
   // enumerate all code sequences that can precede the stackmap location.
+  return true;
+#  elif defined(JS_CODEGEN_LOONG64)
+  // TODO(loong64): Implement IsValidStackMapKey.
   return true;
 #  else
   MOZ_CRASH("IsValidStackMapKey: requires implementation on this platform");

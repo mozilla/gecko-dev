@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "builtin/FinalizationRegistryObject.h"
 #include "gc/PublicIterators.h"
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy
 #include "js/Wrapper.h"
@@ -303,16 +304,6 @@ bool CrossCompartmentWrapper::nativeCall(JSContext* cx, IsAcceptableThis test,
   return cx->compartment()->wrap(cx, srcArgs.rval());
 }
 
-bool CrossCompartmentWrapper::hasInstance(JSContext* cx, HandleObject wrapper,
-                                          MutableHandleValue v,
-                                          bool* bp) const {
-  AutoRealm call(cx, wrappedObject(wrapper));
-  if (!cx->compartment()->wrap(cx, v)) {
-    return false;
-  }
-  return Wrapper::hasInstance(cx, wrapper, v, bp);
-}
-
 const char* CrossCompartmentWrapper::className(JSContext* cx,
                                                HandleObject wrapper) const {
   AutoRealm call(cx, wrappedObject(wrapper));
@@ -506,9 +497,6 @@ JS_PUBLIC_API bool js::NukedObjectRealm(JSObject* obj) {
 // inconsistent state.
 void js::RemapWrapper(JSContext* cx, JSObject* wobjArg,
                       JSObject* newTargetArg) {
-  MOZ_ASSERT(!IsInsideNursery(wobjArg));
-  MOZ_ASSERT(!IsInsideNursery(newTargetArg));
-
   RootedObject wobj(cx, wobjArg);
   RootedObject newTarget(cx, newTargetArg);
   MOZ_ASSERT(wobj->is<CrossCompartmentWrapperObject>());
@@ -554,6 +542,10 @@ void js::RemapDeadWrapper(JSContext* cx, HandleObject wobj,
                           HandleObject newTarget) {
   MOZ_ASSERT(IsDeadProxyObject(wobj));
   MOZ_ASSERT(!newTarget->is<CrossCompartmentWrapperObject>());
+
+  // These are not exposed. Doing this would require updating the
+  // FinalizationObservers data structures.
+  MOZ_ASSERT(!newTarget->is<FinalizationRecordObject>());
 
   AutoDisableProxyCheck adpc;
 
@@ -606,9 +598,6 @@ void js::RemapDeadWrapper(JSContext* cx, HandleObject wobj,
 JS_PUBLIC_API bool js::RemapAllWrappersForObject(JSContext* cx,
                                                  HandleObject oldTarget,
                                                  HandleObject newTarget) {
-  MOZ_ASSERT(!IsInsideNursery(oldTarget));
-  MOZ_ASSERT(!IsInsideNursery(newTarget));
-
   AutoWrapperVector toTransplant(cx);
 
   for (CompartmentsIter c(cx->runtime()); !c.done(); c.next()) {
@@ -648,6 +637,13 @@ JS_PUBLIC_API bool js::RecomputeWrappers(
     // Iterate over object wrappers, filtering appropriately.
     for (Compartment::ObjectWrapperEnum e(c, targetFilter); !e.empty();
          e.popFront()) {
+      // Don't remap wrappers to finalization record objects. These are used
+      // internally and are not exposed.
+      JSObject* wrapper = *e.front().value().unsafeGet();
+      if (Wrapper::wrappedObject(wrapper)->is<FinalizationRecordObject>()) {
+        continue;
+      }
+
       // Add the wrapper to the list.
       if (!toRecompute.append(WrapperValue(e))) {
         return false;

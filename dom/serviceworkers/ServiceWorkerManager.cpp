@@ -108,8 +108,7 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 // Counts the number of registered ServiceWorkers, and the number that
 // handle Fetch, for reporting in Telemetry
@@ -2064,6 +2063,7 @@ void ServiceWorkerManager::DispatchFetchEvent(nsIInterceptedChannel* aChannel,
                                               ErrorResult& aRv) {
   MOZ_ASSERT(aChannel);
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess());
 
   nsCOMPtr<nsIChannel> internalChannel;
   aRv = aChannel->GetChannel(getter_AddRefs(internalChannel));
@@ -2232,28 +2232,13 @@ void ServiceWorkerManager::DispatchFetchEvent(nsIInterceptedChannel* aChannel,
   // When this service worker was registered, we also sent down the permissions
   // for the runnable. They should have arrived by now, but we still need to
   // wait for them if they have not.
-  nsCOMPtr<nsIRunnable> permissionsRunnable = NS_NewRunnableFunction(
-      "dom::ServiceWorkerManager::DispatchFetchEvent", [=]() {
-        RefPtr<PermissionManager> permMgr = PermissionManager::GetInstance();
-        if (permMgr) {
-          permMgr->WhenPermissionsAvailable(serviceWorker->Principal(),
-                                            continueRunnable);
-        } else {
-          continueRunnable->HandleError();
-        }
-      });
-
-  nsCOMPtr<nsIUploadChannel2> uploadChannel =
-      do_QueryInterface(internalChannel);
-
-  // If there is no upload stream, then continue immediately
-  if (!uploadChannel) {
-    MOZ_ALWAYS_SUCCEEDS(permissionsRunnable->Run());
-    return;
+  RefPtr<PermissionManager> permMgr = PermissionManager::GetInstance();
+  if (permMgr) {
+    permMgr->WhenPermissionsAvailable(serviceWorker->Principal(),
+                                      continueRunnable);
+  } else {
+    continueRunnable->HandleError();
   }
-  // Otherwise, ensure the upload stream can be cloned directly.  This may
-  // require some async copying, so provide a callback.
-  aRv = uploadChannel->EnsureUploadStreamIsCloneable(permissionsRunnable);
 }
 
 bool ServiceWorkerManager::IsAvailable(nsIPrincipal* aPrincipal, nsIURI* aURI,
@@ -3384,5 +3369,4 @@ void ServiceWorkerManager::ReportServiceWorkerShutdownProgress(
   mShutdownBlocker->ReportShutdownProgress(aShutdownStateId, aProgress);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

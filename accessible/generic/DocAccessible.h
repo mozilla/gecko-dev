@@ -15,7 +15,6 @@
 #include "nsTHashMap.h"
 #include "mozilla/UniquePtr.h"
 #include "nsIDocumentObserver.h"
-#include "nsIObserver.h"
 #include "nsITimer.h"
 #include "nsTHashSet.h"
 #include "nsWeakReference.h"
@@ -44,13 +43,11 @@ class TNotification;
 
 class DocAccessible : public HyperTextAccessibleWrap,
                       public nsIDocumentObserver,
-                      public nsIObserver,
                       public nsSupportsWeakReference,
                       public nsIAccessiblePivotObserver {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DocAccessible, LocalAccessible)
 
-  NS_DECL_NSIOBSERVER
   NS_DECL_NSIACCESSIBLEPIVOTOBSERVER
 
  protected:
@@ -86,6 +83,10 @@ class DocAccessible : public HyperTextAccessibleWrap,
 #endif
 
   virtual nsRect RelativeBounds(nsIFrame** aRelativeFrame) const override;
+
+  // ActionAccessible
+  virtual bool HasPrimaryAction() const override;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
 
   // HyperTextAccessible
   virtual already_AddRefed<EditorBase> GetEditor() const override;
@@ -387,9 +388,18 @@ class DocAccessible : public HyperTextAccessibleWrap,
   /**
    * Notify the document that a DOM node has been scrolled. document will
    * dispatch throttled accessibility events for scrolling, and a scroll-end
-   * event.
+   * event. This function also queues a cache update for ScrollPosition.
    */
   void HandleScroll(nsINode* aTarget);
+
+  /**
+   * Retrieves the scroll frame (if it exists) for the given accessible
+   * and returns its scroll position and scroll range. If the given
+   * accessible is `this`, return the scroll position and range of
+   * the root scroll frame. Return values have been scaled by the
+   * PresShell's resolution.
+   */
+  std::pair<nsPoint, nsRect> ComputeScrollData(LocalAccessible* aAcc);
 
  protected:
   virtual ~DocAccessible();
@@ -761,11 +771,11 @@ class DocAccessible : public HyperTextAccessibleWrap,
   // Exclusively owned by IPDL so don't manually delete it!
   DocAccessibleChild* mIPCDoc;
 
-  nsTHashSet<RefPtr<LocalAccessible>> mMaybeBoundsChanged;
-
   // A hash map between LocalAccessibles and CacheDomains, tracking
   // cache updates that have been queued during the current tick
-  // but not yet sent.
+  // but not yet sent. It is possible for this map to contain a reference
+  // to the document it lives on. We clear the list in Shutdown() to
+  // avoid cyclical references.
   nsTHashMap<RefPtr<LocalAccessible>, uint64_t> mQueuedCacheUpdates;
 
   // A set of Accessibles moved during this tick. Only used in content

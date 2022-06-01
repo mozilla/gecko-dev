@@ -16,7 +16,6 @@
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/BasePrincipal.h"
-#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StaticPrefs_webgl.h"
@@ -200,7 +199,7 @@ bool GetCanvasContextType(const nsAString& str,
     }
   }
 
-  if (StaticPrefs::dom_webgpu_enabled()) {
+  if (gfxVars::AllowWebGPU()) {
     if (str.EqualsLiteral("webgpu")) {
       *out_type = dom::CanvasContextType::WebGPU;
       return true;
@@ -291,8 +290,12 @@ bool HasDrawWindowPrivilege(JSContext* aCx, JSObject* /* unused */) {
                                              nsGkAtoms::all_urlsPermission);
 }
 
-bool IsOffscreenCanvasEnabled(JSContext* aCx, JSObject* /* unused */) {
+bool IsOffscreenCanvasEnabled(JSContext* aCx, JSObject* aObj) {
   if (StaticPrefs::gfx_offscreencanvas_enabled()) {
+    return true;
+  }
+
+  if (OriginTrials::IsEnabled(aCx, aObj, OriginTrial::OffscreenCanvas)) {
     return true;
   }
 
@@ -304,7 +307,8 @@ bool IsOffscreenCanvasEnabled(JSContext* aCx, JSObject* /* unused */) {
 
   if (!NS_IsMainThread()) {
     dom::WorkerPrivate* workerPrivate = dom::GetWorkerPrivateFromContext(aCx);
-    if (workerPrivate->UsesSystemPrincipal()) {
+    if (workerPrivate->UsesSystemPrincipal() ||
+        workerPrivate->OriginNoSuffix() == u"resource://pdf.js"_ns) {
       return true;
     }
 
@@ -312,7 +316,7 @@ bool IsOffscreenCanvasEnabled(JSContext* aCx, JSObject* /* unused */) {
   }
 
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
-  if (principal->IsSystemPrincipal()) {
+  if (principal->IsSystemPrincipal() || nsContentUtils::IsPDFJS(principal)) {
     return true;
   }
 

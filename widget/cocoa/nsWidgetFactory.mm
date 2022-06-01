@@ -36,7 +36,6 @@
 #include "nsPrinterListCUPS.h"
 #include "nsPrintSettingsServiceX.h"
 #include "nsPrintDialogX.h"
-#include "nsPrintSession.h"
 #include "nsToolkitCompsCID.h"
 
 #include "mozilla/widget/ScreenManager.h"
@@ -66,7 +65,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsDeviceContextSpecX)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsPrinterListCUPS)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsPrintSettingsServiceX, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsPrintDialogServiceX, Init)
-NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsPrintSession, Init)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsUserIdleServiceX, nsUserIdleServiceX::GetInstance)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(ScreenManager, ScreenManager::GetAddRefedSingleton)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(OSXNotificationCenter, Init)
@@ -106,7 +104,6 @@ NS_DEFINE_NAMED_CID(NS_DRAGSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_SCREENMANAGER_CID);
 NS_DEFINE_NAMED_CID(NS_DEVICE_CONTEXT_SPEC_CID);
 NS_DEFINE_NAMED_CID(NS_PRINTER_LIST_CID);
-NS_DEFINE_NAMED_CID(NS_PRINTSESSION_CID);
 NS_DEFINE_NAMED_CID(NS_PRINTSETTINGSSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_PRINTDIALOGSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_IDLE_SERVICE_CID);
@@ -134,12 +131,13 @@ static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
      mozilla::Module::MAIN_PROCESS_ONLY},
     {&kNS_SCREENMANAGER_CID, false, NULL, ScreenManagerConstructor,
      mozilla::Module::MAIN_PROCESS_ONLY},
-    {&kNS_DEVICE_CONTEXT_SPEC_CID, false, NULL, nsDeviceContextSpecXConstructor},
+    {&kNS_DEVICE_CONTEXT_SPEC_CID, false, NULL, nsDeviceContextSpecXConstructor,
+     mozilla::Module::MAIN_PROCESS_ONLY},
     {&kNS_PRINTER_LIST_CID, false, NULL, nsPrinterListCUPSConstructor,
      mozilla::Module::MAIN_PROCESS_ONLY},
-    {&kNS_PRINTSESSION_CID, false, NULL, nsPrintSessionConstructor},
     {&kNS_PRINTSETTINGSSERVICE_CID, false, NULL, nsPrintSettingsServiceXConstructor},
-    {&kNS_PRINTDIALOGSERVICE_CID, false, NULL, nsPrintDialogServiceXConstructor},
+    {&kNS_PRINTDIALOGSERVICE_CID, false, NULL, nsPrintDialogServiceXConstructor,
+     mozilla::Module::MAIN_PROCESS_ONLY},
     {&kNS_IDLE_SERVICE_CID, false, NULL, nsUserIdleServiceXConstructor},
     {&kNS_SYSTEMALERTSSERVICE_CID, false, NULL, OSXNotificationCenterConstructor},
     {&kNS_MACDOCKSUPPORT_CID, false, NULL, nsMacDockSupportConstructor},
@@ -164,11 +162,12 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
     {"@mozilla.org/widget/dragservice;1", &kNS_DRAGSERVICE_CID, mozilla::Module::MAIN_PROCESS_ONLY},
     {"@mozilla.org/gfx/screenmanager;1", &kNS_SCREENMANAGER_CID,
      mozilla::Module::MAIN_PROCESS_ONLY},
-    {"@mozilla.org/gfx/devicecontextspec;1", &kNS_DEVICE_CONTEXT_SPEC_CID},
+    {"@mozilla.org/gfx/devicecontextspec;1", &kNS_DEVICE_CONTEXT_SPEC_CID,
+     mozilla::Module::MAIN_PROCESS_ONLY},
     {"@mozilla.org/gfx/printerlist;1", &kNS_PRINTER_LIST_CID, mozilla::Module::MAIN_PROCESS_ONLY},
-    {"@mozilla.org/gfx/printsession;1", &kNS_PRINTSESSION_CID},
     {"@mozilla.org/gfx/printsettings-service;1", &kNS_PRINTSETTINGSSERVICE_CID},
-    {NS_PRINTDIALOGSERVICE_CONTRACTID, &kNS_PRINTDIALOGSERVICE_CID},
+    {NS_PRINTDIALOGSERVICE_CONTRACTID, &kNS_PRINTDIALOGSERVICE_CID,
+     mozilla::Module::MAIN_PROCESS_ONLY},
     {"@mozilla.org/widget/useridleservice;1", &kNS_IDLE_SERVICE_CID},
     {"@mozilla.org/system-alerts-service;1", &kNS_SYSTEMALERTSSERVICE_CID},
     {"@mozilla.org/widget/macdocksupport;1", &kNS_MACDOCKSUPPORT_CID},

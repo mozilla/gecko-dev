@@ -29,16 +29,9 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
-
-// FxAccountsCommon.js doesn't use a "namespace", so create one here.
-XPCOMUtils.defineLazyGetter(this, "FxAccountsCommon", function() {
-  let FxAccountsCommon = {};
-  ChromeUtils.import(
-    "resource://gre/modules/FxAccountsCommon.js",
-    FxAccountsCommon
-  );
-  return FxAccountsCommon;
-});
+const FxAccountsCommon = ChromeUtils.import(
+  "resource://gre/modules/FxAccountsCommon.js"
+);
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -81,8 +74,6 @@ var Utils = {
   digestUTF8: CryptoUtils.digestUTF8,
   digestBytes: CryptoUtils.digestBytes,
   sha256: CryptoUtils.sha256,
-  makeHMACKey: CryptoUtils.makeHMACKey,
-  makeHMACHasher: CryptoUtils.makeHMACHasher,
   hkdfExpand: CryptoUtils.hkdfExpand,
   pbkdf2Generate: CryptoUtils.pbkdf2Generate,
   getHTTPMACSHA1Header: CryptoUtils.getHTTPMACSHA1Header,

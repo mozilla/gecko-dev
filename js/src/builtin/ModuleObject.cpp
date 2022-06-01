@@ -15,7 +15,7 @@
 #include "frontend/ParseNode.h"
 #include "frontend/ParserAtom.h"  // TaggedParserAtomIndex, ParserAtomsTable, ParserAtom
 #include "frontend/SharedContext.h"
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "gc/Policy.h"
 #include "gc/Tracer.h"
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
@@ -754,12 +754,12 @@ void ModuleNamespaceObject::ProxyHandler::trace(JSTracer* trc,
   }
 }
 
-void ModuleNamespaceObject::ProxyHandler::finalize(JSFreeOp* fop,
+void ModuleNamespaceObject::ProxyHandler::finalize(JS::GCContext* gcx,
                                                    JSObject* proxy) const {
   auto& self = proxy->as<ModuleNamespaceObject>();
 
   if (self.hasBindings()) {
-    fop->delete_(proxy, &self.bindings(), MemoryUse::ModuleBindingMap);
+    gcx->delete_(proxy, &self.bindings(), MemoryUse::ModuleBindingMap);
   }
 }
 
@@ -775,7 +775,6 @@ void ModuleNamespaceObject::ProxyHandler::finalize(JSFreeOp* fop,
     nullptr,                 // mayResolve
     ModuleObject::finalize,  // finalize
     nullptr,                 // call
-    nullptr,                 // hasInstance
     nullptr,                 // construct
     ModuleObject::trace,     // trace
 };
@@ -854,16 +853,15 @@ ModuleObject* ModuleObject::create(JSContext* cx) {
 }
 
 /* static */
-void ModuleObject::finalize(JSFreeOp* fop, JSObject* obj) {
-  MOZ_ASSERT(fop->maybeOnHelperThread());
+void ModuleObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   ModuleObject* self = &obj->as<ModuleObject>();
   if (self->hasImportBindings()) {
-    fop->delete_(obj, &self->importBindings(), MemoryUse::ModuleBindingMap);
+    gcx->delete_(obj, &self->importBindings(), MemoryUse::ModuleBindingMap);
   }
   if (frontend::FunctionDeclarationVector* funDecls =
           GetFunctionDeclarations(self)) {
     // Not tracked as these may move between zones on merge.
-    fop->deleteUntracked(funDecls);
+    gcx->deleteUntracked(funDecls);
   }
 }
 
@@ -1165,10 +1163,6 @@ void ModuleObject::setMetaObject(JSObject* obj) {
   setReservedSlot(MetaObjectSlot, ObjectValue(*obj));
 }
 
-Scope* ModuleObject::enclosingScope() const {
-  return script()->enclosingScope();
-}
-
 /* static */
 void ModuleObject::trace(JSTracer* trc, JSObject* obj) {
   ModuleObject& module = obj->as<ModuleObject>();
@@ -1236,11 +1230,14 @@ bool ModuleObject::execute(JSContext* cx, HandleModuleObject self,
 
   RootedScript script(cx, self->script());
 
-  // The top-level script if a module is only ever executed once. Clear the
-  // reference at exit to prevent us keeping this alive unnecessarily. This is
-  // kept while executing so it is available to the debugger.
-  auto guardA = mozilla::MakeScopeExit(
-      [&] { self->setReservedSlot(ScriptSlot, UndefinedValue()); });
+  auto guardA = mozilla::MakeScopeExit([&] {
+    if (self->isAsync()) {
+      // Handled in AsyncModuleExecutionFulfilled and
+      // AsyncModuleExecutionRejected.
+      return;
+    }
+    ModuleObject::onTopLevelEvaluationFinished(self);
+  });
 
   RootedModuleEnvironmentObject env(cx, self->environment());
   if (!env) {
@@ -1250,6 +1247,14 @@ bool ModuleObject::execute(JSContext* cx, HandleModuleObject self,
   }
 
   return Execute(cx, script, env, rval);
+}
+
+/* static */
+void ModuleObject::onTopLevelEvaluationFinished(ModuleObject* module) {
+  // ScriptSlot is used by debugger to access environments during evaluating
+  // the top-level script.
+  // Clear the reference at exit to prevent us keeping this alive unnecessarily.
+  module->setReservedSlot(ScriptSlot, UndefinedValue());
 }
 
 /* static */
@@ -2252,6 +2257,8 @@ void js::AsyncModuleExecutionFulfilled(JSContext* cx,
   // Step 2.
   MOZ_ASSERT(module->isAsyncEvaluating());
 
+  ModuleObject::onTopLevelEvaluationFinished(module);
+
   if (module->hasTopLevelCapability()) {
     MOZ_ASSERT(module->getCycleRoot() == module);
     ModuleObject::topLevelCapabilityResolve(cx, module);
@@ -2327,6 +2334,8 @@ void js::AsyncModuleExecutionRejected(JSContext* cx, HandleModuleObject module,
     MOZ_ASSERT(module->hadEvaluationError());
     return;
   }
+
+  ModuleObject::onTopLevelEvaluationFinished(module);
 
   // Step 3.
   MOZ_ASSERT(!module->hadEvaluationError());
@@ -2584,7 +2593,7 @@ static bool OnRootModuleRejected(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   HandleValue error = args.get(0);
 
-  js::ReportExceptionClosure reportExn(error);
+  ReportExceptionClosure reportExn(error);
   PrepareScriptEnvironmentAndInvoke(cx, cx->global(), reportExn);
 
   args.rval().setUndefined();
@@ -2592,8 +2601,27 @@ static bool OnRootModuleRejected(JSContext* cx, unsigned argc, Value* vp) {
 };
 
 bool js::OnModuleEvaluationFailure(JSContext* cx,
-                                   HandleObject evaluationPromise) {
+                                   HandleObject evaluationPromise,
+                                   JS::ModuleErrorBehaviour errorBehaviour) {
   if (evaluationPromise == nullptr) {
+    return false;
+  }
+
+  // To allow module evaluation to happen synchronously throw the error
+  // immediately. This assumes that any error will already have caused the
+  // promise to be rejected, and doesn't support top-level await.
+  if (errorBehaviour == JS::ThrowModuleErrorsSync) {
+    JS::PromiseState state = JS::GetPromiseState(evaluationPromise);
+    MOZ_DIAGNOSTIC_ASSERT(state == JS::PromiseState::Rejected ||
+                          state == JS::PromiseState::Fulfilled);
+
+    JS::SetSettledPromiseIsHandled(cx, evaluationPromise);
+    if (state == JS::PromiseState::Fulfilled) {
+      return true;
+    }
+
+    RootedValue error(cx, JS::GetPromiseResult(evaluationPromise));
+    JS_SetPendingException(cx, error);
     return false;
   }
 

@@ -4,8 +4,7 @@
 
 "use strict";
 
-const TEST_COM_URI =
-  URL_ROOT_COM_SSL + "examples/doc_dbg-fission-frame-sources.html";
+const TEST_COM_URI = `${URL_ROOT_COM_SSL}examples/doc_dbg-fission-frame-sources.html`;
 
 add_task(async function() {
   // Load a test page with a remote frame:
@@ -16,7 +15,7 @@ add_task(async function() {
     "simple2.js"
   );
   const {
-    selectors: { getSelectedSource, getIsPaused, getCurrentThread },
+    selectors: { getSelectedSource },
   } = dbg;
 
   // Add breakpoint within the iframe, which is hit early on load
@@ -26,21 +25,23 @@ add_task(async function() {
   const onBreakpoint = waitForDispatch(dbg.store, "SET_BREAKPOINT");
   info("Reload the page to hit the breakpoint on load");
   await reload(dbg);
-  await onBreakpoint
+  await onBreakpoint;
   await waitForSelectedSource(dbg, "simple2.js");
 
-  ok(getSelectedSource().url.includes("simple2.js"), "Selected source is simple2.js");
-  assertPausedLocation(dbg);
-  assertDebugLine(dbg, 7);
+  ok(
+    getSelectedSource().url.includes("simple2.js"),
+    "Selected source is simple2.js"
+  );
+  await waitForPaused(dbg);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple2.js").id, 7);
 
   await stepIn(dbg);
-  assertDebugLine(dbg, 7);
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple2.js").id, 7);
 
   // We can't used `stepIn` helper as this last step will resume
   // and the helper is expecting to pause again
   await dbg.actions.stepIn(getThreadContext(dbg));
-  ok(!isPaused(dbg), "Stepping in two times resumes");
+  assertNotPaused(dbg, "Stepping in two times resumes");
 
   await dbg.toolbox.closeToolbox();
 });

@@ -14,8 +14,7 @@
 
 class MLSFallback;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class WindowsLocationProvider final : public nsIGeolocationProvider {
  public:
@@ -43,9 +42,9 @@ class WindowsLocationProvider final : public nsIGeolocationProvider {
 
   RefPtr<ILocation> mLocation;
   RefPtr<MLSFallback> mMLSProvider;
+  bool mWatching = false;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_WindowsLocationProvider_h__

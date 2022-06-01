@@ -35,15 +35,13 @@
 class nsGeolocationService;
 class nsGeolocationRequest;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 class Geolocation;
 using GeoPositionCallback =
     CallbackObjectHolder<PositionCallback, nsIDOMGeoPositionCallback>;
 using GeoPositionErrorCallback =
     CallbackObjectHolder<PositionErrorCallback, nsIDOMGeoPositionErrorCallback>;
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 struct CachedPositionAndAccuracy {
   nsCOMPtr<nsIDOMGeoPosition> position;
@@ -63,7 +61,7 @@ class nsGeolocationService final : public nsIGeolocationUpdate,
   NS_DECL_NSIGEOLOCATIONUPDATE
   NS_DECL_NSIOBSERVER
 
-  nsGeolocationService() { mHigherAccuracy = false; }
+  nsGeolocationService() = default;
 
   nsresult Init();
 
@@ -75,13 +73,12 @@ class nsGeolocationService final : public nsIGeolocationUpdate,
   CachedPositionAndAccuracy GetCachedPosition();
 
   // Find and startup a geolocation device (gps, nmea, etc.)
-  MOZ_CAN_RUN_SCRIPT
-  nsresult StartDevice(nsIPrincipal* aPrincipal);
+  MOZ_CAN_RUN_SCRIPT nsresult StartDevice();
 
   // Stop the started geolocation device (gps, nmea, etc.)
   void StopDevice();
 
-  // create, or reinitalize the callback timer
+  // create, or reinitialize the callback timer
   void SetDisconnectTimer();
 
   // Update the accuracy and notify the provider if changed
@@ -108,11 +105,10 @@ class nsGeolocationService final : public nsIGeolocationUpdate,
   CachedPositionAndAccuracy mLastPosition;
 
   // Current state of requests for higher accuracy
-  bool mHigherAccuracy;
+  bool mHigherAccuracy = false;
 };
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 /**
  * Can return a geolocation info
@@ -248,7 +244,6 @@ class Geolocation final : public nsIGeolocationUpdate, public nsWrapperCache {
   static mozilla::StaticRefPtr<Geolocation> sNonWindowSingleton;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif /* mozilla_dom_Geolocation_h */

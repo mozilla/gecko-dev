@@ -19,8 +19,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ShadowRoot.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class ShadowIncludingTreeIterator {
  public:
@@ -49,7 +48,15 @@ class ShadowIncludingTreeIterator {
 
   bool operator!=(std::nullptr_t) const { return !!mCurrent; }
 
+  explicit operator bool() const { return !!mCurrent; }
+
   void operator++() { Next(); }
+
+  void SkipChildren() {
+    MOZ_ASSERT(mCurrent, "Shouldn't be at end");
+    mCurrent = mCurrent->GetNextNonChildNode(mRoots.LastElement());
+    WalkOutOfShadowRootsIfNeeded();
+  }
 
   nsINode* operator*() { return mCurrent; }
 
@@ -67,6 +74,10 @@ class ShadowIncludingTreeIterator {
     }
 
     mCurrent = mCurrent->GetNextNode(mRoots.LastElement());
+    WalkOutOfShadowRootsIfNeeded();
+  }
+
+  void WalkOutOfShadowRootsIfNeeded() {
     while (!mCurrent) {
       // Nothing left under this root.  Keep trying to pop the stack until we
       // find a node or run out of stack.
@@ -102,7 +113,6 @@ class ShadowIncludingTreeIterator {
 #endif  // DEBUG
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_ShadowIncludingTreeIterator_h

@@ -50,7 +50,6 @@ class HyperTextAccessible : public AccessibleWrap,
   NS_INLINE_DECL_REFCOUNTING_INHERITED(HyperTextAccessible, AccessibleWrap)
 
   // LocalAccessible
-  virtual nsAtom* LandmarkRole() const override;
   virtual already_AddRefed<AccAttributes> NativeAttributes() override;
   virtual mozilla::a11y::role NativeRole() const override;
   virtual uint64_t NativeState() const override;
@@ -72,11 +71,6 @@ class HyperTextAccessible : public AccessibleWrap,
 
   //////////////////////////////////////////////////////////////////////////////
   // HyperLinkAccessible
-
-  /**
-   * Return link count within this hypertext accessible.
-   */
-  uint32_t LinkCount() { return EmbeddedChildCount(); }
 
   /**
    * Return link accessible at the given index.
@@ -165,12 +159,10 @@ class HyperTextAccessible : public AccessibleWrap,
 
   virtual already_AddRefed<AccAttributes> DefaultTextAttributes() override;
 
+  virtual void InvalidateCachedHyperTextOffsets() override { mOffsets.Clear(); }
+
   // HyperTextAccessibleBase provides an overload which takes an Accessible.
   using HyperTextAccessibleBase::GetChildOffset;
-  virtual int32_t GetChildOffset(uint32_t aChildIndex,
-                                 bool aInvalidateAfter = false) const override;
-
-  virtual int32_t GetChildIndexAtOffset(uint32_t aOffset) const override;
 
   virtual LocalAccessible* GetChildAtOffset(uint32_t aOffset) const override {
     return LocalChildAt(GetChildIndexAtOffset(aOffset));
@@ -181,20 +173,13 @@ class HyperTextAccessible : public AccessibleWrap,
    */
   int32_t OffsetAtPoint(int32_t aX, int32_t aY, uint32_t aCoordType);
 
-  /**
-   * Return a rect (in dev pixels) of the given text range relative given
-   * coordinate system.
-   */
   LayoutDeviceIntRect TextBounds(
       int32_t aStartOffset, int32_t aEndOffset,
       uint32_t aCoordType =
-          nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE);
+          nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE) override;
 
-  /**
-   * Return a rect (in dev pixels) for character at given offset relative given
-   * coordinate system.
-   */
-  LayoutDeviceIntRect CharBounds(int32_t aOffset, uint32_t aCoordType) {
+  LayoutDeviceIntRect CharBounds(int32_t aOffset,
+                                 uint32_t aCoordType) override {
     int32_t endOffset = aOffset == static_cast<int32_t>(CharacterCount())
                             ? aOffset
                             : aOffset + 1;
@@ -227,16 +212,10 @@ class HyperTextAccessible : public AccessibleWrap,
    */
   bool IsCaretAtEndOfLine() const;
 
-  /**
-   * Return selected regions count within the accessible.
-   */
-  int32_t SelectionCount();
+  virtual int32_t SelectionCount() override;
 
-  /**
-   * Return the start and end offset of the specified selection.
-   */
-  bool SelectionBoundsAt(int32_t aSelectionNum, int32_t* aStartOffset,
-                         int32_t* aEndOffset);
+  virtual bool SelectionBoundsAt(int32_t aSelectionNum, int32_t* aStartOffset,
+                                 int32_t* aEndOffset) override;
 
   /*
    * Changes the start and end offset of the specified selection.
@@ -278,11 +257,7 @@ class HyperTextAccessible : public AccessibleWrap,
    */
   void EnclosingRange(TextRange& aRange) const;
 
-  /**
-   * Return an array of disjoint ranges for selected text within the text
-   * control or the document this accessible belongs to.
-   */
-  void SelectionRanges(nsTArray<TextRange>* aRanges) const;
+  virtual void SelectionRanges(nsTArray<TextRange>* aRanges) const override;
 
   /**
    * Return an array of disjoint ranges of visible text within the text control
@@ -449,11 +424,18 @@ class HyperTextAccessible : public AccessibleWrap,
   // HyperTextAccessibleBase
   virtual const Accessible* Acc() const override { return this; }
 
+  virtual const nsTArray<int32_t>& GetCachedHyperTextOffsets() const override {
+    if (mOffsets.IsEmpty()) {
+      BuildCachedHyperTextOffsets(mOffsets);
+    }
+    return mOffsets;
+  }
+
  private:
   /**
    * End text offsets array.
    */
-  mutable nsTArray<uint32_t> mOffsets;
+  mutable nsTArray<int32_t> mOffsets;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -11,7 +11,6 @@ DIRS += ["build"]
 
 XPIDL_SOURCES += [
     "nsIEmbeddingSiteWindow.idl",
-    "nsITopLevelNavigationDelegate.idl",
     "nsIWebBrowser.idl",
     "nsIWebBrowserChrome.idl",
     "nsIWebBrowserChromeFocus.idl",
@@ -20,11 +19,6 @@ XPIDL_SOURCES += [
 XPIDL_SOURCES += [
     "nsIWebBrowserPrint.idl",
 ]
-
-if CONFIG["NS_PRINTING"]:
-    XPIDL_SOURCES += [
-        "nsIPrintingPromptService.idl",
-    ]
 
 XPIDL_MODULE = "webBrowser_core"
 

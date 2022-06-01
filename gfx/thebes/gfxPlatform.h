@@ -22,9 +22,11 @@
 #include "mozilla/RefPtr.h"
 #include "GfxInfoCollector.h"
 
+#include "mozilla/Maybe.h"
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/MemoryPressureObserver.h"
+#include "mozilla/layers/OverlayInfo.h"
 
 class gfxASurface;
 class gfxFont;
@@ -45,6 +47,7 @@ typedef struct FT_LibraryRec_* FT_Library;
 namespace mozilla {
 struct StyleFontFamilyList;
 class LogModule;
+class VsyncDispatcher;
 namespace layers {
 class FrameStats;
 }
@@ -54,6 +57,7 @@ class SourceSurface;
 class DataSourceSurface;
 class ScaledFont;
 class VsyncSource;
+class SoftwareVsyncSource;
 class ContentDeviceData;
 class GPUDeviceData;
 class FeatureState;
@@ -316,6 +320,7 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   void GetFrameStats(mozilla::widget::InfoObject& aObj);
   void GetCMSSupportInfo(mozilla::widget::InfoObject& aObj);
   void GetDisplayInfo(mozilla::widget::InfoObject& aObj);
+  void GetOverlayInfo(mozilla::widget::InfoObject& aObj);
 
   // Get the default content backend that will be used with the default
   // compositor. If the compositor is known when calling this function,
@@ -653,14 +658,11 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   static bool UsesOffMainThreadCompositing();
 
   /**
-   * Get the hardware vsync source for each platform.
-   * Should only exist and be valid on the parent process
+   * Returns the global vsync dispatcher. There is only one global vsync
+   * dispatcher and it stays around for the entire lifetime of the process.
+   * Must only be called in the parent process.
    */
-  virtual mozilla::gfx::VsyncSource* GetHardwareVsync() {
-    MOZ_ASSERT(mVsyncSource != nullptr);
-    MOZ_ASSERT(XRE_IsParentProcess());
-    return mVsyncSource;
-  }
+  RefPtr<mozilla::VsyncDispatcher> GetGlobalVsyncDispatcher();
 
   /**
    * True if layout rendering should use ASAP mode, which means
@@ -687,7 +689,7 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   /**
    * Update the frame rate (called e.g. after pref changes).
    */
-  static void ReInitFrameRate();
+  static void ReInitFrameRate(const char* aPrefIgnored, void* aDataIgnored);
 
   /**
    * Update force subpixel AA quality setting (called after pref
@@ -769,6 +771,10 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    */
   virtual void ImportGPUDeviceData(const mozilla::gfx::GPUDeviceData& aData);
 
+  void SetOverlayInfo(const mozilla::layers::OverlayInfo& aInfo) {
+    mOverlayInfo = mozilla::Some(aInfo);
+  }
+
   bool HasVariationFontSupport() const { return mHasVariationFontSupport; }
 
   bool HasNativeColrFontSupport() const { return mHasNativeColrFontSupport; }
@@ -781,9 +787,13 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   static const char* WebRenderResourcePathOverride();
 
   // Returns true if we would like to keep the GPU process if possible.
+  // If aCrashAfterFinalFallback is true then crash if we have already
+  // exhausted all of our fallback options. Otherwise we remain on the final
+  // fallback configuration.
   static bool FallbackFromAcceleration(mozilla::gfx::FeatureStatus aStatus,
                                        const char* aMessage,
-                                       const nsACString& aFailureId);
+                                       const nsACString& aFailureId,
+                                       bool aCrashAfterFinalFallback = false);
 
   void NotifyFrameStats(nsTArray<mozilla::layers::FrameStats>&& aFrameStats);
 
@@ -805,6 +815,7 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
 
   virtual void InitAcceleration();
   virtual void InitWebRenderConfig();
+  void InitHardwareVideoConfig();
   virtual void InitWebGLConfig();
   virtual void InitWebGPUConfig();
   virtual void InitWindowOcclusionConfig();
@@ -816,11 +827,18 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    */
   virtual void WillShutdown();
 
-  /**
-   * Initialized hardware vsync based on each platform.
-   */
+  // Return a hardware vsync source for this platform.
+  already_AddRefed<mozilla::gfx::VsyncSource> GetGlobalHardwareVsyncSource();
+
+  // Return a software vsync source (which uses a timer internally).
+  // Can be used as a fallback for platforms without hardware vsync,
+  // and when the layout.frame_rate pref is set to a non-negative value.
+  already_AddRefed<mozilla::gfx::VsyncSource> GetSoftwareVsyncSource();
+
+  // Create the platform-specific global vsync source. Can fall back to
+  // GetSoftwareVsyncSource().
   virtual already_AddRefed<mozilla::gfx::VsyncSource>
-  CreateHardwareVsyncSource();
+  CreateGlobalHardwareVsyncSource() = 0;
 
   // Returns whether or not layers should be accelerated by default on this
   // platform.
@@ -921,8 +939,20 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   // max number of entries in word cache
   int32_t mWordCacheMaxEntries;
 
-  // Hardware vsync source. Only valid on parent process
-  RefPtr<mozilla::gfx::VsyncSource> mVsyncSource;
+  // The global vsync dispatcher. Only non-null in the parent process.
+  // Its underlying VsyncSource is either mGlobalHardwareVsyncSource
+  // or mSoftwareVsyncSource.
+  RefPtr<mozilla::VsyncDispatcher> mVsyncDispatcher;
+
+  // Cached software vsync source. Only non-null in the parent process,
+  // and only after the first time GetHardwareVsyncSource has been called.
+  RefPtr<mozilla::gfx::VsyncSource> mGlobalHardwareVsyncSource;
+
+  // Cached software vsync source. Only non-null in the parent process,
+  // and only after the first time GetSoftwareVsyncSource has been called.
+  // Used as a fallback source if hardware vsync is not available,
+  // or when the layout.frame_rate pref is set.
+  RefPtr<mozilla::gfx::SoftwareVsyncSource> mSoftwareVsyncSource;
 
   RefPtr<mozilla::gfx::DrawTarget> mScreenReferenceDrawTarget;
 
@@ -993,6 +1023,7 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   mozilla::widget::GfxInfoCollector<gfxPlatform> mFrameStatsCollector;
   mozilla::widget::GfxInfoCollector<gfxPlatform> mCMSInfoCollector;
   mozilla::widget::GfxInfoCollector<gfxPlatform> mDisplayInfoCollector;
+  mozilla::widget::GfxInfoCollector<gfxPlatform> mOverlayInfoCollector;
 
   nsTArray<mozilla::layers::FrameStats> mFrameStats;
 
@@ -1002,6 +1033,8 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
 
   int32_t mScreenDepth;
   mozilla::gfx::IntSize mScreenSize;
+
+  mozilla::Maybe<mozilla::layers::OverlayInfo> mOverlayInfo;
 
   // An instance of gfxSkipChars which is empty. It is used as the
   // basis for error-case iterators.

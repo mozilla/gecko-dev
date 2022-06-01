@@ -78,8 +78,7 @@ bool WebRenderLayerManager::Initialize(
 
   LayoutDeviceIntSize size = mWidget->GetClientSize();
   // Check widget size
-  if (size.width < 0 || size.width > wr::MAX_RENDER_TASK_SIZE ||
-      size.height < 0 || size.height > wr::MAX_RENDER_TASK_SIZE) {
+  if (!wr::WindowSizeSanityCheck(size.width, size.height)) {
     gfxCriticalNoteOnce << "Widget size is not valid " << size
                         << " isParent: " << XRE_IsParentProcess();
   }
@@ -98,11 +97,13 @@ bool WebRenderLayerManager::Initialize(
     return false;
   }
 
+  mWrChild = static_cast<WebRenderBridgeChild*>(bridge);
+
   TextureFactoryIdentifier textureFactoryIdentifier;
   wr::MaybeIdNamespace idNamespace;
   // Sync ipc
-  if (!bridge->SendEnsureConnected(&textureFactoryIdentifier, &idNamespace,
-                                   &aError)) {
+  if (!WrBridge()->SendEnsureConnected(&textureFactoryIdentifier, &idNamespace,
+                                       &aError)) {
     gfxCriticalNote << "Failed as lost WebRenderBridgeChild.";
     aError.Assign(hasInitialized
                       ? "FEATURE_FAILURE_WEBRENDER_INITIALIZE_SYNC_POST"_ns
@@ -112,12 +113,12 @@ bool WebRenderLayerManager::Initialize(
 
   if (textureFactoryIdentifier.mParentBackend == LayersBackend::LAYERS_NONE ||
       idNamespace.isNothing()) {
-    gfxCriticalNote << "Failed to connect WebRenderBridgeChild.";
+    gfxCriticalNote << "Failed to connect WebRenderBridgeChild. isParent="
+                    << XRE_IsParentProcess();
     aError.Append(hasInitialized ? "_POST"_ns : "_FIRST"_ns);
     return false;
   }
 
-  mWrChild = static_cast<WebRenderBridgeChild*>(bridge);
   WrBridge()->SetWebRenderLayerManager(this);
   WrBridge()->IdentifyTextureHost(textureFactoryIdentifier);
   WrBridge()->SetNamespace(idNamespace.ref());

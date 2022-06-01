@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Cribbed from upgradeDialog.js; whether this is actually still required
+/* Whether this is actually still required
  * is not totally clear, but better to be safe than sorry:
  *
  * For some reason SubDialog browser sizing can result in scrollbars, so just
@@ -10,15 +10,16 @@
  * scrollbar. This should be okay as we wrap content for this fixed width
  * dialog unless the window is actually narrow and really does need
  * horizontal scrollbars. */
-@media (min-width: 604px) {
+@media (min-width: 544px) {
 body {
   overflow-x: hidden;
 }
 }
 
 body {
-  padding: 20px 52px;
-  width: 500px;
+  padding: 20px 40px;
+  /* Keep as multiple of 4px. Match min-width media query above + padding. */
+  width: 464px;
 }
 
 #dialog-content {
@@ -33,20 +34,20 @@ body {
   width: 100px;
   height: 100px;
   object-fit: contain;
-  margin-bottom: 13px;
+  margin-bottom: 8px;
 }
 
 #title {
   font-weight: 500;
   font-size: 26px;
-  margin-bottom: 5px;
+  margin-bottom: 0;
   white-space: pre-wrap;
 }
 
 #content {
   font-weight: 400;
   font-size: 13px;
-  margin-bottom: 24px;
+  margin-block: 10px 18px;
 }
 
 #learn-more-toggle::after {

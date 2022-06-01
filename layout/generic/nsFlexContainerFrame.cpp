@@ -4305,7 +4305,10 @@ nscoord nsFlexContainerFrame::ComputeMainSize(
     return aTentativeContentBoxMainSize;
   }
 
-  if (aTentativeContentBoxMainSize != NS_UNCONSTRAINEDSIZE) {
+  const bool shouldApplyAutomaticMinimumOnBlockAxis =
+      aReflowInput.ShouldApplyAutomaticMinimumOnBlockAxis();
+  if (aTentativeContentBoxMainSize != NS_UNCONSTRAINEDSIZE &&
+      !shouldApplyAutomaticMinimumOnBlockAxis) {
     // Column-oriented case, with fixed BSize:
     // Just use our fixed block-size because we always assume the available
     // block-size is unconstrained, and the reflow input has already done the
@@ -4313,19 +4316,30 @@ nscoord nsFlexContainerFrame::ComputeMainSize(
     return aTentativeContentBoxMainSize;
   }
 
-  // Column-oriented case, with size-containment:
+  // Column-oriented case, with size-containment in block axis:
   // Behave as if we had no content and just use our MinBSize.
-  if (aReflowInput.mStyleDisplay->IsContainSize()) {
+  if (aReflowInput.mStyleDisplay->GetContainSizeAxes().mBContained) {
     return aReflowInput.ComputedMinBSize();
+  }
+
+  const AuCoord64 largestLineMainSize = GetLargestLineMainSize(aLines);
+  const nscoord contentBSize = NS_CSS_MINMAX(
+      nscoord(largestLineMainSize.ToMinMaxClamped()),
+      aReflowInput.ComputedMinBSize(), aReflowInput.ComputedMaxBSize());
+  // If the clamped largest FlexLine length is larger than the tentative main
+  // size (which is resolved by aspect-ratio), we extend it to contain the
+  // entire FlexLine.
+  // https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum
+  if (shouldApplyAutomaticMinimumOnBlockAxis) {
+    // Column-oriented case, with auto BSize which is resolved by
+    // aspect-ratio.
+    return std::max(contentBSize, aTentativeContentBoxMainSize);
   }
 
   // Column-oriented case, with auto BSize:
   // Resolve auto BSize to the largest FlexLine length, clamped to our
   // computed min/max main-size properties.
-  const AuCoord64 largestLineMainSize = GetLargestLineMainSize(aLines);
-  return NS_CSS_MINMAX(nscoord(largestLineMainSize.ToMinMaxClamped()),
-                       aReflowInput.ComputedMinBSize(),
-                       aReflowInput.ComputedMaxBSize());
+  return contentBSize;
 }
 
 nscoord nsFlexContainerFrame::ComputeCrossSize(
@@ -4349,8 +4363,11 @@ nscoord nsFlexContainerFrame::ComputeCrossSize(
     return aTentativeContentBoxCrossSize;
   }
 
+  const bool shouldApplyAutomaticMinimumOnBlockAxis =
+      aReflowInput.ShouldApplyAutomaticMinimumOnBlockAxis();
   const nscoord computedBSize = aReflowInput.ComputedBSize();
-  if (computedBSize != NS_UNCONSTRAINEDSIZE) {
+  if (computedBSize != NS_UNCONSTRAINEDSIZE &&
+      !shouldApplyAutomaticMinimumOnBlockAxis) {
     // Row-oriented case (cross axis is block-axis), with fixed BSize:
     *aIsDefinite = true;
 
@@ -4360,19 +4377,32 @@ nscoord nsFlexContainerFrame::ComputeCrossSize(
     return computedBSize;
   }
 
-  // Row-oriented case, with size-containment:
+  // Row-oriented case, with size-containment in block axis:
   // Behave as if we had no content and just use our MinBSize.
-  if (aReflowInput.mStyleDisplay->IsContainSize()) {
+  if (aReflowInput.mStyleDisplay->GetContainSizeAxes().mBContained) {
     *aIsDefinite = true;
     return aReflowInput.ComputedMinBSize();
+  }
+
+  // The cross size must not be definite in the following cases.
+  *aIsDefinite = false;
+
+  const nscoord contentBSize =
+      NS_CSS_MINMAX(aSumLineCrossSizes, aReflowInput.ComputedMinBSize(),
+                    aReflowInput.ComputedMaxBSize());
+  // If the content block-size is larger than the effective computed
+  // block-size, we extend the block-size to contain all the content.
+  // https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum
+  if (shouldApplyAutomaticMinimumOnBlockAxis) {
+    // Row-oriented case (cross axis is block-axis), with auto BSize which is
+    // resolved by aspect-ratio or content size.
+    return std::max(contentBSize, computedBSize);
   }
 
   // Row-oriented case (cross axis is block axis), with auto BSize:
   // Shrink-wrap our line(s), subject to our min-size / max-size
   // constraints in that (block) axis.
-  *aIsDefinite = false;
-  return NS_CSS_MINMAX(aSumLineCrossSizes, aReflowInput.ComputedMinBSize(),
-                       aReflowInput.ComputedMaxBSize());
+  return contentBSize;
 }
 
 LogicalSize nsFlexContainerFrame::ComputeAvailableSizeForItems(
@@ -4742,7 +4772,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     for (const FlexLine& line : flr.mLines) {
       for (const FlexItem& item : line.Items()) {
         const nsIFrame* f = item.Frame();
-        if (MOZ_UNLIKELY(f->IsRelativelyPositioned())) {
+        if (MOZ_UNLIKELY(f->IsRelativelyOrStickyPositioned())) {
           const nsRect marginRect = f->GetMarginRectRelativeToSelf();
           itemMarginBoxes =
               itemMarginBoxes.Union(marginRect + f->GetNormalPosition());
@@ -5349,8 +5379,7 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
           overflowIncompleteItems.Insert(item.Frame());
         }
       } else {
-        MoveFlexItemToFinalPosition(aReflowInput, item, framePos,
-                                    aContainerSize);
+        MoveFlexItemToFinalPosition(item, framePos, aContainerSize);
         // We didn't perform a final reflow of the item. If we still have a
         // -webkit-line-clamp ellipsis hanging around, but we shouldn't have
         // one any more, we need to clear that now.  Technically, we only need
@@ -5549,25 +5578,29 @@ void nsFlexContainerFrame::PopulateReflowOutput(
 }
 
 void nsFlexContainerFrame::MoveFlexItemToFinalPosition(
-    const ReflowInput& aReflowInput, const FlexItem& aItem,
-    LogicalPoint& aFramePos, const nsSize& aContainerSize) {
+    const FlexItem& aItem, LogicalPoint& aFramePos,
+    const nsSize& aContainerSize) {
+  const WritingMode outerWM = aItem.ContainingBlockWM();
+  const nsStyleDisplay* display = aItem.Frame()->StyleDisplay();
+  if (display->IsRelativelyOrStickyPositionedStyle()) {
+    // If the item is relatively positioned, look up its offsets (cached from
+    // previous reflow). A sticky positioned item can pass a dummy
+    // logicalOffsets into ApplyRelativePositioning().
+    LogicalMargin logicalOffsets(outerWM);
+    if (display->IsRelativelyPositionedStyle()) {
+      nsMargin* cachedOffsets =
+          aItem.Frame()->GetProperty(nsIFrame::ComputedOffsetProperty());
+      MOZ_ASSERT(
+          cachedOffsets,
+          "relpos previously-reflowed frame should've cached its offsets");
+      logicalOffsets = LogicalMargin(outerWM, *cachedOffsets);
+    }
+    ReflowInput::ApplyRelativePositioning(
+        aItem.Frame(), outerWM, logicalOffsets, &aFramePos, aContainerSize);
+  }
+
   FLEX_LOG("Moving flex item %p to its desired position %s", aItem.Frame(),
            ToString(aFramePos).c_str());
-
-  WritingMode outerWM = aReflowInput.GetWritingMode();
-
-  // If item is relpos, look up its offsets (cached from prev reflow)
-  LogicalMargin logicalOffsets(outerWM);
-  if (StylePositionProperty::Relative ==
-      aItem.Frame()->StyleDisplay()->mPosition) {
-    nsMargin* cachedOffsets =
-        aItem.Frame()->GetProperty(nsIFrame::ComputedOffsetProperty());
-    MOZ_ASSERT(cachedOffsets,
-               "relpos previously-reflowed frame should've cached its offsets");
-    logicalOffsets = LogicalMargin(outerWM, *cachedOffsets);
-  }
-  ReflowInput::ApplyRelativePositioning(aItem.Frame(), outerWM, logicalOffsets,
-                                        &aFramePos, aContainerSize);
   aItem.Frame()->SetPosition(outerWM, aFramePos, aContainerSize);
   PositionFrameView(aItem.Frame());
   PositionChildViews(aItem.Frame());
@@ -5767,7 +5800,7 @@ nscoord nsFlexContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
   DISPLAY_MIN_INLINE_SIZE(this, mCachedMinISize);
   if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
     mCachedMinISize =
-        StyleDisplay()->IsContainSize()
+        StyleDisplay()->GetContainSizeAxes().mIContained
             ? 0
             : IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
   }
@@ -5780,7 +5813,7 @@ nscoord nsFlexContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
   DISPLAY_PREF_INLINE_SIZE(this, mCachedPrefISize);
   if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
     mCachedPrefISize =
-        StyleDisplay()->IsContainSize()
+        StyleDisplay()->GetContainSizeAxes().mIContained
             ? 0
             : IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
   }

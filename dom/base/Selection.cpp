@@ -97,11 +97,11 @@ static constexpr nsLiteralCString kNoDocumentTypeNodeError =
 static constexpr nsLiteralCString kNoRangeExistsError =
     "No selection range exists"_ns;
 
+namespace mozilla {
+
 /******************************************************************************
  * Utility methods defined in nsISelectionController.idl
  ******************************************************************************/
-
-namespace mozilla {
 
 const char* ToChar(SelectionType aSelectionType) {
   switch (aSelectionType) {
@@ -132,6 +132,48 @@ const char* ToChar(SelectionType aSelectionType) {
     default:
       return "Invalid SelectionType";
   }
+}
+
+/******************************************************************************
+ * Utility methods defined in nsISelectionListener.idl
+ ******************************************************************************/
+
+nsCString SelectionChangeReasonsToCString(int16_t aReasons) {
+  nsCString reasons;
+  if (!aReasons) {
+    reasons.AssignLiteral("NO_REASON");
+    return reasons;
+  }
+  auto EnsureSeparator = [](nsCString& aString) -> void {
+    if (!aString.IsEmpty()) {
+      aString.AppendLiteral(" | ");
+    }
+  };
+  struct ReasonData {
+    int16_t mReason;
+    const char* mReasonStr;
+
+    ReasonData(int16_t aReason, const char* aReasonStr)
+        : mReason(aReason), mReasonStr(aReasonStr) {}
+  };
+  for (const ReasonData& reason :
+       {ReasonData(nsISelectionListener::DRAG_REASON, "DRAG_REASON"),
+        ReasonData(nsISelectionListener::MOUSEDOWN_REASON, "MOUSEDOWN_REASON"),
+        ReasonData(nsISelectionListener::MOUSEUP_REASON, "MOUSEUP_REASON"),
+        ReasonData(nsISelectionListener::KEYPRESS_REASON, "KEYPRESS_REASON"),
+        ReasonData(nsISelectionListener::SELECTALL_REASON, "SELECTALL_REASON"),
+        ReasonData(nsISelectionListener::COLLAPSETOSTART_REASON,
+                   "COLLAPSETOSTART_REASON"),
+        ReasonData(nsISelectionListener::COLLAPSETOEND_REASON,
+                   "COLLAPSETOEND_REASON"),
+        ReasonData(nsISelectionListener::IME_REASON, "IME_REASON"),
+        ReasonData(nsISelectionListener::JS_REASON, "JS_REASON")}) {
+    if (aReasons & reason.mReason) {
+      EnsureSeparator(reasons);
+      reasons.Append(reason.mReasonStr);
+    }
+  }
+  return reasons;
 }
 
 }  // namespace mozilla
@@ -339,26 +381,46 @@ void Selection::ToStringWithFormat(const nsAString& aFormatType,
   }
 }
 
-void Selection::SetInterlinePosition(bool aHintRight, ErrorResult& aRv) {
+nsresult Selection::SetInterlinePosition(InterlinePosition aInterlinePosition) {
   MOZ_ASSERT(mSelectionType == SelectionType::eNormal);
+  MOZ_ASSERT(aInterlinePosition != InterlinePosition::Undefined);
 
   if (!mFrameSelection) {
-    aRv.Throw(NS_ERROR_NOT_INITIALIZED);  // Can't do selection
-    return;
+    return NS_ERROR_NOT_INITIALIZED;  // Can't do selection
   }
 
-  mFrameSelection->SetHint(aHintRight ? CARET_ASSOCIATE_AFTER
-                                      : CARET_ASSOCIATE_BEFORE);
+  mFrameSelection->SetHint(aInterlinePosition ==
+                                   InterlinePosition::StartOfNextLine
+                               ? CARET_ASSOCIATE_AFTER
+                               : CARET_ASSOCIATE_BEFORE);
+  return NS_OK;
 }
 
-bool Selection::GetInterlinePosition(ErrorResult& aRv) {
+Selection::InterlinePosition Selection::GetInterlinePosition() const {
   MOZ_ASSERT(mSelectionType == SelectionType::eNormal);
 
   if (!mFrameSelection) {
+    return InterlinePosition::Undefined;
+  }
+  return mFrameSelection->GetHint() == CARET_ASSOCIATE_AFTER
+             ? InterlinePosition::StartOfNextLine
+             : InterlinePosition::EndOfLine;
+}
+
+void Selection::SetInterlinePositionJS(bool aHintRight, ErrorResult& aRv) {
+  MOZ_ASSERT(mSelectionType == SelectionType::eNormal);
+
+  aRv = SetInterlinePosition(aHintRight ? InterlinePosition::StartOfNextLine
+                                        : InterlinePosition::EndOfLine);
+}
+
+bool Selection::GetInterlinePositionJS(ErrorResult& aRv) const {
+  const InterlinePosition interlinePosition = GetInterlinePosition();
+  if (interlinePosition == InterlinePosition::Undefined) {
     aRv.Throw(NS_ERROR_NOT_INITIALIZED);  // Can't do selection
     return false;
   }
-  return mFrameSelection->GetHint() == CARET_ASSOCIATE_AFTER;
+  return interlinePosition == InterlinePosition::StartOfNextLine;
 }
 
 static bool IsEditorNode(const nsINode* aNode) {
@@ -1947,7 +2009,7 @@ void Selection::AddRangeAndSelectFramesAndNotifyListeners(nsRange& aRange,
 
   // Make sure the caret appears on the next line, if at a newline
   if (mSelectionType == SelectionType::eNormal) {
-    SetInterlinePosition(true, IgnoreErrors());
+    SetInterlinePosition(InterlinePosition::StartOfNextLine);
   }
 
   if (!mFrameSelection) {
@@ -3156,6 +3218,8 @@ void Selection::NotifySelectionListeners() {
     reason |= nsISelectionListener::JS_REASON;
   }
 
+  int32_t amount = static_cast<int32_t>(frameSelection->GetCaretMoveAmount());
+
   if (mNotifyAutoCopy) {
     AutoCopyListener::OnSelectionChange(doc, *this, reason);
   }
@@ -3176,21 +3240,21 @@ void Selection::NotifySelectionListeners() {
     //
     // This can go away once
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1620312 is fixed.
-    MOZ_KnownLive(listener)->NotifySelectionChanged(doc, this, reason);
+    MOZ_KnownLive(listener)->NotifySelectionChanged(doc, this, reason, amount);
   }
 }
 
-void Selection::StartBatchChanges() {
+void Selection::StartBatchChanges(const char* aDetails) {
   if (mFrameSelection) {
     RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
-    frameSelection->StartBatchChanges();
+    frameSelection->StartBatchChanges(aDetails);
   }
 }
 
-void Selection::EndBatchChanges(int16_t aReason) {
+void Selection::EndBatchChanges(const char* aDetails, int16_t aReasons) {
   if (mFrameSelection) {
     RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
-    frameSelection->EndBatchChanges(aReason);
+    frameSelection->EndBatchChanges(aDetails, aReasons);
   }
 }
 
@@ -3403,7 +3467,7 @@ void Selection::SetBaseAndExtentInternal(InLimiter aInLimiter,
   // after we set the direction.
   // XXX If they are disconnected, shouldn't we return error before allocating
   //     new nsRange instance?
-  SelectionBatcher batch(this);
+  SelectionBatcher batch(this, __FUNCTION__);
   const Maybe<int32_t> order =
       nsContentUtils::ComparePoints(aAnchorRef, aFocusRef);
   if (order && (*order <= 0)) {
@@ -3442,7 +3506,7 @@ void Selection::SetStartAndEndInternal(InLimiter aInLimiter,
   }
 
   // Don't fire "selectionchange" event until everything done.
-  SelectionBatcher batch(this);
+  SelectionBatcher batch(this, __FUNCTION__);
 
   if (aInLimiter == InLimiter::eYes) {
     if (!mFrameSelection ||

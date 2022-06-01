@@ -24,6 +24,7 @@ job-defaults:
         max-run-time: 7200
         env:
             PERFHERDER_EXTRA_OPTIONS: instrumented
+            MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE: system
     run:
         using: mozharness
         actions: [get-secrets, build]
@@ -122,7 +123,7 @@ jobs:
             toolchain:
                 - linux64-binutils
                 - linux64-cctools-port
-                - linux64-clang-macosx-cross
+                - linux64-clang
                 - linux64-hfsplus
                 - linux64-libdmg
                 - linux64-rust-macos
@@ -131,7 +132,7 @@ jobs:
                 - linux64-dump_syms
                 - linux64-nasm
                 - linux64-node
-                - macosx64-sdk-10.12
+                - macosx64-sdk-11.0
                 - sysroot-x86_64-linux-gnu
                 - sysroot-wasm32-wasi
 
@@ -181,7 +182,7 @@ jobs:
                 - linux64-jdk
                 # Workaround issues in binutils from the ndk with the compiler-rt from clang-13
                 - linux64-binutils
-                - linux64-clang-android-cross
+                - linux64-clang
                 - linux64-rust-android
                 - linux64-rust-size
                 - linux64-cbindgen
@@ -235,7 +236,7 @@ jobs:
                 - android-ndk-linux
                 - android-sdk-linux
                 - linux64-jdk
-                - linux64-clang-android-cross
+                - linux64-clang
                 - linux64-rust-android
                 - linux64-rust-size
                 - linux64-cbindgen
@@ -256,25 +257,22 @@ jobs:
         worker-type: b-linux
         worker:
             docker-image: {in-tree: debian11-amd64-build}
-            env:
-                TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.9.manifest"
         run:
             options: [append-env-variables-from-configs]
             mozconfig-variant: profile-generate
             config:
                 - builds/releng_base_firefox.py
                 - builds/releng_base_linux_64_builds.py
-            tooltool-downloads: internal
             extra-config:
                 stage_platform: win32
                 mozconfig_platform: win32
                 env:
                     LD_PRELOAD: "/builds/worker/fetches/liblowercase/liblowercase.so"
-                    LOWERCASE_DIRS: "/builds/worker/checkouts/gecko/vs2017_15.9.6"
+                    LOWERCASE_DIRS: "/builds/worker/fetches/vs"
         fetches:
             toolchain:
                 - linux64-binutils
-                - linux64-clang-win-cross
+                - linux64-clang
                 - linux64-rust-cross
                 - linux64-rust-size
                 - linux64-nasm
@@ -287,6 +285,7 @@ jobs:
                 - nsis
                 - sysroot-x86_64-linux-gnu
                 - sysroot-wasm32-wasi
+                - win64-vs2017
             fetch:
                 - upx-3.95-win
 
@@ -301,25 +300,22 @@ jobs:
         worker-type: b-linux
         worker:
             docker-image: {in-tree: debian11-amd64-build}
-            env:
-                TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.9.manifest"
         run:
             options: [append-env-variables-from-configs]
             mozconfig-variant: profile-generate
             config:
                 - builds/releng_base_firefox.py
                 - builds/releng_base_linux_64_builds.py
-            tooltool-downloads: internal
             extra-config:
                 stage_platform: win64
                 mozconfig_platform: win64
                 env:
                     LD_PRELOAD: "/builds/worker/fetches/liblowercase/liblowercase.so"
-                    LOWERCASE_DIRS: "/builds/worker/checkouts/gecko/vs2017_15.9.6"
+                    LOWERCASE_DIRS: "/builds/worker/fetches/vs"
         fetches:
             toolchain:
                 - linux64-binutils
-                - linux64-clang-win-cross
+                - linux64-clang
                 - linux64-rust-cross
                 - linux64-rust-size
                 - linux64-nasm
@@ -332,5 +328,6 @@ jobs:
                 - nsis
                 - sysroot-x86_64-linux-gnu
                 - sysroot-wasm32-wasi
+                - win64-vs2017
             fetch:
                 - upx-3.95-win

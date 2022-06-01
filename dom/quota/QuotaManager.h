@@ -381,6 +381,9 @@ class QuotaManager final : public BackgroundThreadObject {
   static void SafeMaybeRecordQuotaClientShutdownStep(
       Client::Type aClientType, const nsACString& aStepDescription);
 
+  // Record a quota manager shutdown step, use only if shutdown is active.
+  void RecordQuotaManagerShutdownStep(const nsACString& aStepDescription);
+
   // Record a quota manager shutdown step, if shutting down.
   void MaybeRecordQuotaManagerShutdownStep(const nsACString& aStepDescription);
 
@@ -587,9 +590,6 @@ class QuotaManager final : public BackgroundThreadObject {
 
   nsCOMPtr<mozIStorageConnection> mStorageConnection;
 
-  // A timer that gets activated at shutdown to ensure we close all storages.
-  LazyInitializedOnceNotNull<const nsCOMPtr<nsITimer>> mShutdownTimer;
-
   EnumeratedArray<Client::Type, Client::TYPE_MAX, nsCString> mShutdownSteps;
   LazyInitializedOnce<const TimeStamp> mShutdownStartedAt;
   Atomic<bool> mShutdownStarted;
@@ -597,7 +597,7 @@ class QuotaManager final : public BackgroundThreadObject {
   // Accesses to mQuotaManagerShutdownSteps must be protected by mQuotaMutex.
   nsCString mQuotaManagerShutdownSteps;
 
-  mutable mozilla::Mutex mQuotaMutex;
+  mutable mozilla::Mutex mQuotaMutex MOZ_UNANNOTATED;
 
   nsClassHashtable<nsCStringHashKey, GroupInfoPair> mGroupInfoPairs;
 

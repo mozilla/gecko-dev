@@ -3,8 +3,17 @@
 
 "use strict";
 
+var { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
+
 let gHandlerService = Cc["@mozilla.org/uriloader/handler-service;1"].getService(
   Ci.nsIHandlerService
+);
+
+const ROOT_PATH = getRootDirectory(gTestPath).replace(
+  "chrome://mochitests/content/",
+  ""
 );
 
 // Testing multiple protocol / origin combinations takes long on debug.
@@ -66,7 +75,6 @@ function initTestHandlers() {
     let handlerInfo = HandlerServiceTestUtils.getBlankHandlerInfo(scheme);
     handlerInfo.possibleApplicationHandlers.appendElement(webHandler);
     handlerInfo.preferredApplicationHandler = webHandler;
-
     gHandlerService.store(handlerInfo);
   });
 }
@@ -120,6 +128,10 @@ async function triggerOpenProto(
     useNullPrincipal = false,
     useExtensionPrincipal = false,
     omitTriggeringPrincipal = false,
+    useJSRedirect = false,
+    serverRedirect = "",
+    linkToRedirect = false,
+    customHandlerInfo,
   } = {}
 ) {
   let uri = `${scheme}://test`;
@@ -161,7 +173,8 @@ async function triggerOpenProto(
       "@mozilla.org/content-dispatch-chooser;1"
     ].createInstance(Ci.nsIContentDispatchChooser);
 
-    let handler = HandlerServiceTestUtils.getHandlerInfo(scheme);
+    let handler =
+      customHandlerInfo || HandlerServiceTestUtils.getHandlerInfo(scheme);
 
     contentDispatchChooser.handleURI(
       handler,
@@ -169,6 +182,65 @@ async function triggerOpenProto(
       null,
       browser.browsingContext
     );
+    return;
+  }
+
+  if (useJSRedirect) {
+    let innerParams = new URLSearchParams();
+    innerParams.set("uri", uri);
+    let params = new URLSearchParams();
+    params.set(
+      "uri",
+      "https://example.com/" +
+        ROOT_PATH +
+        "script_redirect.html?" +
+        innerParams.toString()
+    );
+    uri =
+      "https://example.org/" +
+      ROOT_PATH +
+      "script_redirect.html?" +
+      params.toString();
+    BrowserTestUtils.loadURI(browser, uri);
+    return;
+  }
+
+  if (serverRedirect) {
+    let innerParams = new URLSearchParams();
+    innerParams.set("uri", uri);
+    innerParams.set("redirectType", serverRedirect);
+    let params = new URLSearchParams();
+    params.set(
+      "uri",
+      "https://example.com/" +
+        ROOT_PATH +
+        "redirect_helper.sjs?" +
+        innerParams.toString()
+    );
+    uri =
+      "https://example.org/" +
+      ROOT_PATH +
+      "redirect_helper.sjs?" +
+      params.toString();
+    BrowserTestUtils.loadURI(browser, uri);
+    return;
+  }
+
+  if (linkToRedirect) {
+    let params = new URLSearchParams();
+    params.set("uri", uri);
+    uri =
+      "https://example.com/" +
+      ROOT_PATH +
+      "redirect_helper.sjs?" +
+      params.toString();
+    await ContentTask.spawn(browser, { uri }, args => {
+      let textLink = content.document.createElement("a");
+      textLink.href = args.uri;
+      textLink.textContent = "click me";
+      content.document.body.appendChild(textLink);
+      textLink.click();
+    });
     return;
   }
 
@@ -229,6 +301,7 @@ async function testOpenProto(
 
     let {
       hasCheckbox,
+      checkboxOrigin,
       hasChangeApp,
       chooserIsNext,
       actionCheckbox,
@@ -254,11 +327,13 @@ async function testOpenProto(
     await testCheckbox(dialogEl, dialogType, {
       hasCheckbox,
       actionCheckbox,
+      checkboxOrigin,
     });
 
     // Check the button label depending on whether we would show the chooser
     // dialog next or directly open the handler.
     let acceptBtnLabel = dialogEl.getButton("accept")?.label;
+
     if (chooserIsNext) {
       is(
         acceptBtnLabel,
@@ -311,7 +386,11 @@ async function testOpenProto(
   }
 
   // Clean up test extension if needed.
-  await testExtension?.unload();
+  if (testExtension) {
+    await testExtension.unload();
+    // Don't try to unload it again later!
+    testExtension = null;
+  }
 }
 
 /**
@@ -330,7 +409,7 @@ async function testOpenProto(
 async function testCheckbox(
   dialogEl,
   dialogType,
-  { hasCheckbox, hasCheckboxState = false, actionCheckbox }
+  { hasCheckbox, hasCheckboxState = false, actionCheckbox, checkboxOrigin }
 ) {
   let checkbox = dialogEl.ownerDocument.getElementById("remember");
   if (typeof hasCheckbox == "boolean") {
@@ -356,6 +435,14 @@ async function testCheckbox(
 
   if (typeof hasCheckboxState == "boolean") {
     is(checkbox.checked, hasCheckboxState, "Dialog checkbox has correct state");
+  }
+
+  if (checkboxOrigin) {
+    let doc = dialogEl.ownerDocument;
+    let hostFromLabel = doc.l10n.getAttributes(
+      doc.getElementById("remember-label")
+    ).args.host;
+    is(hostFromLabel, checkboxOrigin, "Checkbox should be for correct domain.");
   }
 
   if (typeof actionCheckbox == "boolean") {
@@ -474,7 +561,7 @@ registerCleanupFunction(function() {
   Services.perms.removeAll();
 });
 
-add_task(async function setup() {
+add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [["security.external_protocol_requires_permission", true]],
   });
@@ -752,6 +839,37 @@ add_task(async function test_no_principal() {
 });
 
 /**
+ * Tests that if a URI scheme has a non-standard protocol, an OS default exists,
+ * and the user hasn't selected an alternative only the permission dialog is shown.
+ */
+add_task(async function test_non_standard_protocol() {
+  let scheme = null;
+  // TODO add a scheme for Windows 10 or greater once support is added (see bug 1764599).
+  if (AppConstants.platform == "macosx") {
+    scheme = "itunes";
+  } else {
+    info(
+      "Skipping this test since there isn't a suitable default protocol on this platform"
+    );
+    return;
+  }
+
+  await BrowserTestUtils.withNewTab(ORIGIN1, async browser => {
+    await testOpenProto(browser, scheme, {
+      loadOptions: {
+        customHandlerInfo: HandlerServiceTestUtils.getHandlerInfo(scheme),
+      },
+      permDialogOptions: {
+        hasCheckbox: true,
+        hasChangeApp: true,
+        chooserIsNext: false,
+        actionChangeApp: false,
+      },
+    });
+  });
+});
+
+/**
  * Tests that we skip the permission dialog for extension callers.
  */
 add_task(async function test_extension_principal() {
@@ -762,6 +880,106 @@ add_task(async function test_extension_principal() {
         useExtensionPrincipal: true,
       },
       chooserDialogOptions: {
+        hasCheckbox: true,
+        actionConfirm: false, // Cancel dialog
+      },
+    });
+  });
+});
+
+/**
+ * Test that we use the redirect principal for the dialog when applicable.
+ */
+add_task(async function test_redirect_principal() {
+  let scheme = TEST_PROTOS[0];
+  await BrowserTestUtils.withNewTab("about:blank", async browser => {
+    await testOpenProto(browser, scheme, {
+      loadOptions: {
+        serverRedirect: "location",
+      },
+      permDialogOptions: {
+        checkboxOrigin: ORIGIN1,
+        chooserIsNext: true,
+        hasCheckbox: true,
+        actionConfirm: false, // Cancel dialog
+      },
+    });
+  });
+});
+
+/**
+ * Test that we use the redirect principal for the dialog for refresh headers.
+ */
+add_task(async function test_redirect_principal() {
+  let scheme = TEST_PROTOS[0];
+  await BrowserTestUtils.withNewTab("about:blank", async browser => {
+    await testOpenProto(browser, scheme, {
+      loadOptions: {
+        serverRedirect: "refresh",
+      },
+      permDialogOptions: {
+        checkboxOrigin: ORIGIN1,
+        chooserIsNext: true,
+        hasCheckbox: true,
+        actionConfirm: false, // Cancel dialog
+      },
+    });
+  });
+});
+
+/**
+ * Test that we use the redirect principal for the dialog for meta refreshes.
+ */
+add_task(async function test_redirect_principal() {
+  let scheme = TEST_PROTOS[0];
+  await BrowserTestUtils.withNewTab("about:blank", async browser => {
+    await testOpenProto(browser, scheme, {
+      loadOptions: {
+        serverRedirect: "meta-refresh",
+      },
+      permDialogOptions: {
+        checkboxOrigin: ORIGIN1,
+        chooserIsNext: true,
+        hasCheckbox: true,
+        actionConfirm: false, // Cancel dialog
+      },
+    });
+  });
+});
+
+/**
+ * Test that we use the redirect principal for the dialog for JS redirects.
+ */
+add_task(async function test_redirect_principal_js() {
+  let scheme = TEST_PROTOS[0];
+  await BrowserTestUtils.withNewTab("about:blank", async browser => {
+    await testOpenProto(browser, scheme, {
+      loadOptions: {
+        useJSRedirect: true,
+      },
+      permDialogOptions: {
+        checkboxOrigin: ORIGIN1,
+        chooserIsNext: true,
+        hasCheckbox: true,
+        actionConfirm: false, // Cancel dialog
+      },
+    });
+  });
+});
+
+/**
+ * Test that we use the redirect principal for the dialog for link clicks.
+ */
+add_task(async function test_redirect_principal_links() {
+  let scheme = TEST_PROTOS[0];
+  await BrowserTestUtils.withNewTab("about:blank", async browser => {
+    await testOpenProto(browser, scheme, {
+      loadOptions: {
+        linkToRedirect: true,
+      },
+      permDialogOptions: {
+        checkboxOrigin: ORIGIN1,
+        chooserIsNext: true,
         hasCheckbox: true,
         actionConfirm: false, // Cancel dialog
       },

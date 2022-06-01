@@ -34,8 +34,17 @@ function parsePoint(str) {
   };
 }
 
-// TODO: Clean up these rect-handling functions so that e.g. a rect returned
-//       by Element.getBoundingClientRect() Just Works with them.
+// Given a VisualViewport object, return the visual viewport
+// rect relative to the page.
+function getVisualViewportRect(vv) {
+  return {
+    x: vv.pageLeft,
+    y: vv.pageTop,
+    width: vv.width,
+    height: vv.height,
+  };
+}
+
 function parseRect(str) {
   var pieces = str.replace(/[()\s]+/g, "").split(",");
   SimpleTest.is(pieces.length, 4, "expected string of form (x,y,w,h)");
@@ -48,23 +57,25 @@ function parseRect(str) {
   return {
     x: parseInt(pieces[0]),
     y: parseInt(pieces[1]),
-    w: parseInt(pieces[2]),
-    h: parseInt(pieces[3]),
+    width: parseInt(pieces[2]),
+    height: parseInt(pieces[3]),
   };
 }
 
-// These functions expect rects with fields named x/y/w/h, such as
+// These functions expect rects with fields named x/y/width/height, such as
 // that returned by parseRect().
 function rectContains(haystack, needle) {
   return (
     haystack.x <= needle.x &&
     haystack.y <= needle.y &&
-    haystack.x + haystack.w >= needle.x + needle.w &&
-    haystack.y + haystack.h >= needle.y + needle.h
+    haystack.x + haystack.width >= needle.x + needle.width &&
+    haystack.y + haystack.height >= needle.y + needle.height
   );
 }
 function rectToString(rect) {
-  return "(" + rect.x + "," + rect.y + "," + rect.w + "," + rect.h + ")";
+  return (
+    "(" + rect.x + "," + rect.y + "," + rect.width + "," + rect.height + ")"
+  );
 }
 function assertRectContainment(
   haystackRect,
@@ -287,7 +298,7 @@ function promiseAfterPaint() {
 // APZ handler on the main thread, the repaints themselves may not have
 // occurred by the the returned promise resolves. If you want to wait
 // for those repaints, consider using promiseApzFlushedRepaints instead.
-function promiseOnlyApzControllerFlushed(aWindow = window) {
+function promiseOnlyApzControllerFlushedWithoutSetTimeout(aWindow = window) {
   return new Promise(function(resolve, reject) {
     var repaintDone = function() {
       dump("PromiseApzRepaintsFlushed: APZ flush done\n");
@@ -295,7 +306,7 @@ function promiseOnlyApzControllerFlushed(aWindow = window) {
         repaintDone,
         "apz-repaints-flushed"
       );
-      setTimeout(resolve, 0);
+      resolve();
     };
     SpecialPowers.Services.obs.addObserver(repaintDone, "apz-repaints-flushed");
     if (SpecialPowers.getDOMWindowUtils(aWindow).flushApzRepaints()) {
@@ -308,6 +319,16 @@ function promiseOnlyApzControllerFlushed(aWindow = window) {
       );
       repaintDone();
     }
+  });
+}
+
+// Another variant of the above promiseOnlyApzControllerFlushedWithoutSetTimeout
+// but with a setTimeout(0) callback.
+function promiseOnlyApzControllerFlushed(aWindow = window) {
+  return new Promise(resolve => {
+    promiseOnlyApzControllerFlushedWithoutSetTimeout(aWindow).then(() => {
+      setTimeout(resolve, 0);
+    });
   });
 }
 
@@ -698,15 +719,15 @@ function getSnapshot(rect) {
         "http://www.w3.org/1999/xhtml",
         "canvas"
       );
-      canvas.width = parentRect.w;
-      canvas.height = parentRect.h;
+      canvas.width = parentRect.width;
+      canvas.height = parentRect.height;
       var ctx = canvas.getContext("2d");
       ctx.drawWindow(
         topWin,
         parentRect.x,
         parentRect.y,
-        parentRect.w,
-        parentRect.h,
+        parentRect.width,
+        parentRect.height,
         "rgb(255,255,255)",
         ctx.DRAWWINDOW_DRAW_VIEW |
           ctx.DRAWWINDOW_USE_WIDGET_LAYERS |

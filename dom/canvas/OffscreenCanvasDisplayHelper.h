@@ -28,6 +28,7 @@ struct OffscreenCanvasDisplayData final {
   bool mIsOpaque = true;
   bool mIsAlphaPremult = true;
   mozilla::gl::OriginPos mOriginPos = gl::OriginPos::TopLeft;
+  mozilla::layers::CompositableHandle mHandle;
 };
 
 class OffscreenCanvasDisplayHelper final {
@@ -40,6 +41,8 @@ class OffscreenCanvasDisplayHelper final {
   CanvasContextType GetContextType() const;
 
   RefPtr<layers::ImageContainer> GetImageContainer() const;
+
+  layers::CompositableHandle GetCompositableHandle() const;
 
   void UpdateContext(CanvasContextType aType, const Maybe<int32_t>& aChildId);
 
@@ -62,7 +65,7 @@ class OffscreenCanvasDisplayHelper final {
                         gfx::SurfaceFormat aFormat, const gfx::IntSize& aSize,
                         bool aNeedsPremult, gl::OriginPos aOriginPos) const;
 
-  mutable Mutex mMutex;
+  mutable Mutex mMutex MOZ_UNANNOTATED;
   HTMLCanvasElement* MOZ_NON_OWNING_REF mCanvasElement;
   RefPtr<layers::ImageContainer> mImageContainer;
   RefPtr<gfx::SourceSurface> mFrontBufferSurface;

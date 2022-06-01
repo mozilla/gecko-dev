@@ -89,9 +89,6 @@
       <hbox id="browserContainersExtensionContent"
             align="center" class="extension-controlled info-box-container">
         <hbox flex="1">
-          <hbox class="info-icon-container">
-            <image class="info-icon"></image>
-          </hbox>
           <description control="disableContainersExtension" class="description-with-side-element" flex="1" />
         </hbox>
         <button id="disableContainersExtension"
@@ -128,9 +125,87 @@
   <html:h1 data-l10n-id="language-and-appearance-header"/>
 </hbox>
 
-<!-- Fonts and Colors -->
+<!-- Website appearance -->
+<groupbox id="webAppearanceGroup" data-category="paneGeneral" hidden="true">
+  <html:h2 data-l10n-id="preferences-web-appearance-header"/>
+  <html:div id="webAppearanceSettings">
+    <description data-l10n-id="preferences-web-appearance-description"/>
+    <html:div id="web-appearance-override-warning" class="info-box-container">
+      <html:div class="info-icon-container">
+        <image class="info-icon"></image>
+      </html:div>
+      <description data-l10n-id="preferences-web-appearance-override-warning">
+        <html:a class="text-link" data-l10n-name="colors-link" id="web-appearance-manage-colors-link" href="#"/>
+      </description>
+    </html:div>
+    <form xmlns="http://www.w3.org/1999/xhtml" id="web-appearance-chooser" autocomplete="off">
+      <label class="web-appearance-choice" data-l10n-id="preferences-web-appearance-choice-tooltip-browser">
+        <div class="web-appearance-choice-image-container"><img role="presentation" alt="" width="54" height="42" /></div>
+        <div class="web-appearance-choice-footer">
+          <input type="radio" name="web-appearance" value="browser" data-l10n-id="preferences-web-appearance-choice-input-browser"
+          /><span data-l10n-id="preferences-web-appearance-choice-browser" />
+        </div>
+      </label>
+      <label class="web-appearance-choice" data-l10n-id="preferences-web-appearance-choice-tooltip-system">
+        <div class="web-appearance-choice-image-container"><img role="presentation" alt="" width="54" height="42" /></div>
+        <div class="web-appearance-choice-footer">
+          <input type="radio" name="web-appearance" value="system" data-l10n-id="preferences-web-appearance-choice-input-system"
+          /><span data-l10n-id="preferences-web-appearance-choice-system" />
+        </div>
+      </label>
+      <label class="web-appearance-choice" data-l10n-id="preferences-web-appearance-choice-tooltip-light">
+        <div class="web-appearance-choice-image-container"><img role="presentation" alt="" width="54" height="42" /></div>
+        <div class="web-appearance-choice-footer">
+          <input type="radio" name="web-appearance" value="light" data-l10n-id="preferences-web-appearance-choice-input-light"
+          /><span data-l10n-id="preferences-web-appearance-choice-light" />
+        </div>
+      </label>
+      <label class="web-appearance-choice" data-l10n-id="preferences-web-appearance-choice-tooltip-dark">
+        <div class="web-appearance-choice-image-container"><img role="presentation" alt="" width="54" height="42" /></div>
+        <div class="web-appearance-choice-footer">
+          <input type="radio" name="web-appearance" value="dark" data-l10n-id="preferences-web-appearance-choice-input-dark"
+          /><span data-l10n-id="preferences-web-appearance-choice-dark" />
+        </div>
+      </label>
+    </form>
+    <html:div data-l10n-id="preferences-web-appearance-footer">
+      <html:a id="web-appearance-manage-themes-link" class="text-link" data-l10n-name="themes-link" href="about:addons" target="_blank" />
+    </html:div>
+  </html:div>
+</groupbox>
+
+<!-- Colors -->
+<groupbox id="colorsGroup" data-category="paneGeneral" hidden="true">
+  <label><html:h2 data-l10n-id="preferences-colors-header"/></label>
+
+  <hbox id="colorsSettings">
+    <hbox align="center" flex="1">
+      <description flex="1" control="colors" data-l10n-id="preferences-colors-description"/>
+      <button id="colors"
+              is="highlightable-button"
+              class="accessory-button"
+              data-l10n-id="preferences-colors-manage-button"
+              search-l10n-ids="
+                colors-page-override,
+                colors-page-override-option-always.label,
+                colors-page-override-option-auto.label,
+                colors-page-override-option-never.label,
+                colors-text-and-background,
+                colors-text-header,
+                colors-background,
+                colors-use-system,
+                colors-underline-links,
+                colors-links-header,
+                colors-unvisited-links,
+                colors-visited-links
+              "/>
+    </hbox>
+  </hbox>
+</groupbox>
+
+<!-- Fonts -->
 <groupbox id="fontsGroup" data-category="paneGeneral" hidden="true">
-  <label><html:h2 data-l10n-id="fonts-and-colors-header"/></label>
+  <label><html:h2 data-l10n-id="preferences-fonts-header"/></label>
 
   <hbox id="fontSettings">
     <hbox align="center" flex="1">
@@ -223,30 +298,6 @@
                 fonts-default-sans-serif.label,
                 fonts-allow-own.label,
               " />
-    </hbox>
-  </hbox>
-  <hbox id="colorsSettings">
-    <spacer flex="1" />
-    <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-    <hbox>
-      <button id="colors"
-              is="highlightable-button"
-              class="accessory-button"
-              data-l10n-id="colors-settings"
-              search-l10n-ids="
-                colors-page-override,
-                colors-page-override-option-always.label,
-                colors-page-override-option-auto.label,
-                colors-page-override-option-never.label,
-                colors-text-and-background,
-                colors-text-header,
-                colors-background,
-                colors-use-system,
-                colors-underline-links,
-                colors-links-header,
-                colors-unvisited-links,
-                colors-visited-links
-              "/>
     </hbox>
   </hbox>
 </groupbox>
@@ -359,29 +410,22 @@
 <groupbox id="downloadsGroup" data-category="paneGeneral" hidden="true">
   <label><html:h2 data-l10n-id="download-header"/></label>
 
-  <radiogroup id="saveWhere"
-              preference="browser.download.useDownloadDir">
-    <hbox>
-      <radio id="saveTo"
-             value="true"
-             data-l10n-id="download-save-to"/>
-      <html:input id="downloadFolder"
-                  type="text"
-                  readonly="readonly"
-                  aria-labelledby="saveTo"/>
-      <button id="chooseFolder"
-              is="highlightable-button"
-              class="accessory-button"
-              data-l10n-id="download-choose-folder"/>
-    </hbox>
-    <!-- Additional radio button added to support CloudStorage - Bug 1357171 -->
-    <radio id="saveToCloud"
-           value="true"
-           hidden="true"/>
-    <radio id="alwaysAsk"
-           value="false"
-           data-l10n-id="download-always-ask-where"/>
-  </radiogroup>
+  <hbox id="saveWhere">
+    <label id="saveTo"
+           control="downloadFolder"
+           data-l10n-id="download-save-where"/>
+    <html:input id="downloadFolder"
+                type="text"
+                readonly="readonly"
+                aria-labelledby="saveTo"/>
+    <button id="chooseFolder"
+            is="highlightable-button"
+            class="accessory-button"
+            data-l10n-id="download-choose-folder"/>
+  </hbox>
+  <checkbox id="alwaysAsk"
+            data-l10n-id="download-always-ask-where"
+            preference="browser.download.useDownloadDir"/>
 </groupbox>
 
 <groupbox id="applicationsGroup" data-category="paneGeneral" hidden="true">
@@ -402,6 +446,17 @@
   </listheader>
   <richlistbox id="handlersView"
                preference="pref.downloads.disable_button.edit_actions"/>
+  <description id="handleNewFileTypesDesc"
+               data-l10n-id="applications-handle-new-file-types-description"/>
+  <radiogroup id="handleNewFileTypes"
+              preference="browser.download.always_ask_before_handling_new_types">
+    <radio id="saveForNewTypes"
+           value="false"
+           data-l10n-id="applications-save-for-new-types"/>
+    <radio id="askBeforeHandling"
+           value="true"
+           data-l10n-id="applications-ask-before-handling"/>
+  </radiogroup>
 </groupbox>
 
 

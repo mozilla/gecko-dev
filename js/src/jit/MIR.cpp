@@ -65,6 +65,41 @@ static void ConvertDefinitionToDouble(TempAllocator& alloc, MDefinition* def,
   consumer->block()->insertBefore(consumer, replace);
 }
 
+template <size_t Arity, size_t Index>
+static void ConvertOperandToDouble(MAryInstruction<Arity>* def,
+                                   TempAllocator& alloc) {
+  static_assert(Index < Arity);
+  auto* operand = def->getOperand(Index);
+  if (operand->type() == MIRType::Float32) {
+    ConvertDefinitionToDouble<Index>(alloc, operand, def);
+  }
+}
+
+template <size_t Arity, size_t... ISeq>
+static void ConvertOperandsToDouble(MAryInstruction<Arity>* def,
+                                    TempAllocator& alloc,
+                                    std::index_sequence<ISeq...>) {
+  (ConvertOperandToDouble<Arity, ISeq>(def, alloc), ...);
+}
+
+template <size_t Arity>
+static void ConvertOperandsToDouble(MAryInstruction<Arity>* def,
+                                    TempAllocator& alloc) {
+  ConvertOperandsToDouble<Arity>(def, alloc, std::make_index_sequence<Arity>{});
+}
+
+template <size_t Arity, size_t... ISeq>
+static bool AllOperandsCanProduceFloat32(MAryInstruction<Arity>* def,
+                                         std::index_sequence<ISeq...>) {
+  return (def->getOperand(ISeq)->canProduceFloat32() && ...);
+}
+
+template <size_t Arity>
+static bool AllOperandsCanProduceFloat32(MAryInstruction<Arity>* def) {
+  return AllOperandsCanProduceFloat32<Arity>(def,
+                                             std::make_index_sequence<Arity>{});
+}
+
 static bool CheckUsesAreFloat32Consumers(const MInstruction* ins) {
   if (ins->isImplicitlyUsed()) {
     return false;
@@ -1639,6 +1674,11 @@ MDefinition* MStringLength::foldsTo(TempAllocator& alloc) {
     return MConstant::New(alloc, Int32Value(str->length()));
   }
 
+  // MFromCharCode returns a one-element string.
+  if (string()->isFromCharCode()) {
+    return MConstant::New(alloc, Int32Value(1));
+  }
+
   return this;
 }
 
@@ -1656,7 +1696,7 @@ MDefinition* MConcat::foldsTo(TempAllocator& alloc) {
 
 MDefinition* MCharCodeAt::foldsTo(TempAllocator& alloc) {
   MDefinition* string = this->string();
-  if (!string->isConstant()) {
+  if (!string->isConstant() && !string->isFromCharCode()) {
     return this;
   }
 
@@ -1667,9 +1707,25 @@ MDefinition* MCharCodeAt::foldsTo(TempAllocator& alloc) {
   if (!index->isConstant()) {
     return this;
   }
+  int32_t idx = index->toConstant()->toInt32();
+
+  // Handle the pattern |s[idx].charCodeAt(0)|.
+  if (string->isFromCharCode()) {
+    if (idx != 0) {
+      return this;
+    }
+
+    // Simplify |CharCodeAt(FromCharCode(CharCodeAt(s, idx)), 0)| to just
+    // |CharCodeAt(s, idx)|.
+    auto* charCode = string->toFromCharCode()->code();
+    if (!charCode->isCharCodeAt()) {
+      return this;
+    }
+
+    return charCode;
+  }
 
   JSLinearString* str = &string->toConstant()->toString()->asLinear();
-  int32_t idx = index->toConstant()->toInt32();
   if (idx < 0 || uint32_t(idx) >= str->length()) {
     return this;
   }
@@ -1678,16 +1734,31 @@ MDefinition* MCharCodeAt::foldsTo(TempAllocator& alloc) {
   return MConstant::New(alloc, Int32Value(ch));
 }
 
-static bool EnsureFloatInputOrConvert(MUnaryInstruction* owner,
-                                      TempAllocator& alloc) {
-  MDefinition* input = owner->input();
-  if (!input->canProduceFloat32()) {
-    if (input->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<0>(alloc, input, owner);
-    }
-    return false;
+template <size_t Arity>
+[[nodiscard]] static bool EnsureFloatInputOrConvert(
+    MAryInstruction<Arity>* owner, TempAllocator& alloc) {
+  MOZ_ASSERT(!IsFloatingPointType(owner->type()),
+             "Floating point types must check consumers");
+
+  if (AllOperandsCanProduceFloat32(owner)) {
+    return true;
   }
-  return true;
+  ConvertOperandsToDouble(owner, alloc);
+  return false;
+}
+
+template <size_t Arity>
+[[nodiscard]] static bool EnsureFloatConsumersAndInputOrConvert(
+    MAryInstruction<Arity>* owner, TempAllocator& alloc) {
+  MOZ_ASSERT(IsFloatingPointType(owner->type()),
+             "Integer types don't need to check consumers");
+
+  if (AllOperandsCanProduceFloat32(owner) &&
+      CheckUsesAreFloat32Consumers(owner)) {
+    return true;
+  }
+  ConvertOperandsToDouble(owner, alloc);
+  return false;
 }
 
 void MFloor::trySpecializeFloat32(TempAllocator& alloc) {
@@ -1719,7 +1790,7 @@ void MTrunc::trySpecializeFloat32(TempAllocator& alloc) {
 }
 
 void MNearbyInt::trySpecializeFloat32(TempAllocator& alloc) {
-  if (EnsureFloatInputOrConvert(this, alloc)) {
+  if (EnsureFloatConsumersAndInputOrConvert(this, alloc)) {
     specialization_ = MIRType::Float32;
     setResultType(MIRType::Float32);
   }
@@ -2541,21 +2612,9 @@ void MBinaryArithInstruction::trySpecializeFloat32(TempAllocator& alloc) {
     return;
   }
 
-  MDefinition* left = lhs();
-  MDefinition* right = rhs();
-
-  if (!left->canProduceFloat32() || !right->canProduceFloat32() ||
-      !CheckUsesAreFloat32Consumers(this)) {
-    if (left->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<0>(alloc, left, this);
-    }
-    if (right->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<1>(alloc, right, this);
-    }
-    return;
+  if (EnsureFloatConsumersAndInputOrConvert(this, alloc)) {
+    setResultType(MIRType::Float32);
   }
-
-  setResultType(MIRType::Float32);
 }
 
 void MMinMax::trySpecializeFloat32(TempAllocator& alloc) {
@@ -2566,20 +2625,14 @@ void MMinMax::trySpecializeFloat32(TempAllocator& alloc) {
   MDefinition* left = lhs();
   MDefinition* right = rhs();
 
-  if (!(left->canProduceFloat32() ||
-        (left->isMinMax() && left->type() == MIRType::Float32)) ||
-      !(right->canProduceFloat32() ||
-        (right->isMinMax() && right->type() == MIRType::Float32))) {
-    if (left->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<0>(alloc, left, this);
-    }
-    if (right->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<1>(alloc, right, this);
-    }
-    return;
+  if ((left->canProduceFloat32() ||
+       (left->isMinMax() && left->type() == MIRType::Float32)) &&
+      (right->canProduceFloat32() ||
+       (right->isMinMax() && right->type() == MIRType::Float32))) {
+    setResultType(MIRType::Float32);
+  } else {
+    ConvertOperandsToDouble(this, alloc);
   }
-
-  setResultType(MIRType::Float32);
 }
 
 MDefinition* MMinMax::foldsTo(TempAllocator& alloc) {
@@ -2650,11 +2703,12 @@ MDefinition* MMinMax::foldsTo(TempAllocator& alloc) {
     }
   }
 
-  if ((operand->isArrayLength() || operand->isArrayBufferViewLength()) &&
+  if ((operand->isArrayLength() || operand->isArrayBufferViewLength() ||
+       operand->isArgumentsLength()) &&
       constant->type() == MIRType::Int32) {
     MOZ_ASSERT(operand->type() == MIRType::Int32);
 
-    // (Typed)ArrayLength is always >= 0.
+    // (Typed)ArrayLength and ArgumentsLength is always >= 0.
     // max(array.length, cte <= 0) = array.length
     // min(array.length, cte <= 0) = cte
     if (constant->toInt32() <= 0) {
@@ -2791,14 +2845,9 @@ void MAbs::trySpecializeFloat32(TempAllocator& alloc) {
     return;
   }
 
-  if (!input()->canProduceFloat32() || !CheckUsesAreFloat32Consumers(this)) {
-    if (input()->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<0>(alloc, input(), this);
-    }
-    return;
+  if (EnsureFloatConsumersAndInputOrConvert(this, alloc)) {
+    setResultType(MIRType::Float32);
   }
-
-  setResultType(MIRType::Float32);
 }
 
 MDefinition* MDiv::foldsTo(TempAllocator& alloc) {
@@ -2907,15 +2956,10 @@ bool MMod::fallible() const {
 }
 
 void MMathFunction::trySpecializeFloat32(TempAllocator& alloc) {
-  if (!input()->canProduceFloat32() || !CheckUsesAreFloat32Consumers(this)) {
-    if (input()->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<0>(alloc, input(), this);
-    }
-    return;
+  if (EnsureFloatConsumersAndInputOrConvert(this, alloc)) {
+    setResultType(MIRType::Float32);
+    specialization_ = MIRType::Float32;
   }
-
-  setResultType(MIRType::Float32);
-  specialization_ = MIRType::Float32;
 }
 
 bool MMathFunction::isFloat32Commutative() const {
@@ -3340,7 +3384,7 @@ MUrsh* MUrsh::NewWasm(TempAllocator& alloc, MDefinition* left,
 }
 
 MResumePoint* MResumePoint::New(TempAllocator& alloc, MBasicBlock* block,
-                                jsbytecode* pc, Mode mode) {
+                                jsbytecode* pc, ResumeMode mode) {
   MResumePoint* resume = new (alloc) MResumePoint(block, pc, mode);
   if (!resume->init(alloc)) {
     block->discardPreAllocatedResumePoint(resume);
@@ -3350,7 +3394,7 @@ MResumePoint* MResumePoint::New(TempAllocator& alloc, MBasicBlock* block,
   return resume;
 }
 
-MResumePoint::MResumePoint(MBasicBlock* block, jsbytecode* pc, Mode mode)
+MResumePoint::MResumePoint(MBasicBlock* block, jsbytecode* pc, ResumeMode mode)
     : MNode(block, Kind::ResumePoint),
       pc_(pc),
       instruction_(nullptr),
@@ -3400,18 +3444,15 @@ void MResumePoint::dump(GenericPrinter& out) const {
   out.printf("resumepoint mode=");
 
   switch (mode()) {
-    case MResumePoint::ResumeAt:
+    case ResumeMode::ResumeAt:
       if (instruction_) {
-        out.printf("At(%u)", instruction_->id());
+        out.printf("ResumeAt(%u)", instruction_->id());
       } else {
-        out.printf("At");
+        out.printf("ResumeAt");
       }
       break;
-    case MResumePoint::ResumeAfter:
-      out.printf("After");
-      break;
-    case MResumePoint::Outer:
-      out.printf("Outer");
+    default:
+      out.put(ResumeModeToString(mode()));
       break;
   }
 
@@ -4337,19 +4378,10 @@ MDefinition* MCompare::foldsTo(TempAllocator& alloc) {
 }
 
 void MCompare::trySpecializeFloat32(TempAllocator& alloc) {
-  MDefinition* lhs = getOperand(0);
-  MDefinition* rhs = getOperand(1);
-
-  if (lhs->canProduceFloat32() && rhs->canProduceFloat32() &&
-      compareType_ == Compare_Double) {
+  if (AllOperandsCanProduceFloat32(this) && compareType_ == Compare_Double) {
     compareType_ = Compare_Float32;
   } else {
-    if (lhs->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<0>(alloc, lhs, this);
-    }
-    if (rhs->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<1>(alloc, rhs, this);
-    }
+    ConvertOperandsToDouble(this, alloc);
   }
 }
 
@@ -4391,10 +4423,7 @@ MDefinition* MNot::foldsTo(TempAllocator& alloc) {
 }
 
 void MNot::trySpecializeFloat32(TempAllocator& alloc) {
-  MDefinition* in = input();
-  if (!in->canProduceFloat32() && in->type() == MIRType::Float32) {
-    ConvertDefinitionToDouble<0>(alloc, in, this);
-  }
+  (void)EnsureFloatInputOrConvert(this, alloc);
 }
 
 #ifdef JS_JITSPEW
@@ -4921,7 +4950,7 @@ bool MWasmLoadGlobalVar::congruentTo(const MDefinition* ins) const {
   MOZ_ASSERT_IF(sameOffsets, isConstant_ == other->isConstant_);
 
   // We omit checking congruence of the operands.  There is only one
-  // operand, the TLS pointer, and it only ever has one value within the
+  // operand, the instance pointer, and it only ever has one value within the
   // domain of optimization.  If that should ever change then operand
   // congruence checking should be reinstated.
   return sameOffsets /* && congruentIfOperandsEqual(other) */;
@@ -4966,11 +4995,112 @@ MDefinition* MWasmTernarySimd128::foldsTo(TempAllocator& alloc) {
       }
     } else if (canRelaxBitselect()) {
       return MWasmTernarySimd128::New(alloc, v0(), v1(), v2(),
-                                      wasm::SimdOp::I8x16LaneSelect);
+                                      wasm::SimdOp::I8x16RelaxedLaneSelect);
     }
   }
   return this;
 }
+
+#  ifdef ENABLE_WASM_SIMD_WORMHOLE
+inline static bool MatchSpecificShift(MDefinition* instr,
+                                      wasm::SimdOp simdShiftOp,
+                                      int shiftValue) {
+  return instr->isWasmShiftSimd128() &&
+         instr->toWasmShiftSimd128()->simdOp() == simdShiftOp &&
+         instr->toWasmShiftSimd128()->rhs()->isConstant() &&
+         instr->toWasmShiftSimd128()->rhs()->toConstant()->toInt32() ==
+             shiftValue;
+}
+
+// Matches MIR subtree that represents PMADDUBSW instruction generated by
+// emscripten. The a and b parameters return subtrees that correspond
+// operands of the instruction, if match is found.
+static bool MatchPmaddubswSequence(MWasmBinarySimd128* lhs,
+                                   MWasmBinarySimd128* rhs, MDefinition** a,
+                                   MDefinition** b) {
+  MOZ_ASSERT(lhs->simdOp() == wasm::SimdOp::I16x8Mul &&
+             rhs->simdOp() == wasm::SimdOp::I16x8Mul);
+  // The emscripten/LLVM produced the following sequence for _mm_maddubs_epi16:
+  //
+  //  return _mm_adds_epi16(
+  //    _mm_mullo_epi16(
+  //      _mm_and_si128(__a, _mm_set1_epi16(0x00FF)),
+  //      _mm_srai_epi16(_mm_slli_epi16(__b, 8), 8)),
+  //    _mm_mullo_epi16(_mm_srli_epi16(__a, 8), _mm_srai_epi16(__b, 8)));
+  //
+  //  This will roughly correspond the following MIR:
+  //    MWasmBinarySimd128[I16x8AddSatS]
+  //      |-- lhs: MWasmBinarySimd128[I16x8Mul]                      (lhs)
+  //      |     |-- lhs: MWasmBinarySimd128WithConstant[V128And]     (op0)
+  //      |     |     |-- lhs: a
+  //      |     |      -- rhs: SimdConstant::SplatX8(0x00FF)
+  //      |      -- rhs: MWasmShiftSimd128[I16x8ShrS]                (op1)
+  //      |           |-- lhs: MWasmShiftSimd128[I16x8Shl]
+  //      |           |     |-- lhs: b
+  //      |           |      -- rhs: MConstant[8]
+  //      |            -- rhs: MConstant[8]
+  //       -- rhs: MWasmBinarySimd128[I16x8Mul]                      (rhs)
+  //            |-- lhs: MWasmShiftSimd128[I16x8ShrU]                (op2)
+  //            |     |-- lhs: a
+  //            |     |-- rhs: MConstant[8]
+  //             -- rhs: MWasmShiftSimd128[I16x8ShrS]                (op3)
+  //                  |-- lhs: b
+  //                   -- rhs: MConstant[8]
+
+  // The I16x8AddSatS and I16x8Mul are commutative, so their operands
+  // may be swapped. Rearrange op0, op1, op2, op3 to be in the order
+  // noted above.
+  MDefinition *op0 = lhs->lhs(), *op1 = lhs->rhs(), *op2 = rhs->lhs(),
+              *op3 = rhs->rhs();
+  if (op1->isWasmBinarySimd128WithConstant()) {
+    // Move MWasmBinarySimd128WithConstant[V128And] as first operand in lhs.
+    std::swap(op0, op1);
+  } else if (op3->isWasmBinarySimd128WithConstant()) {
+    // Move MWasmBinarySimd128WithConstant[V128And] as first operand in rhs.
+    std::swap(op2, op3);
+  }
+  if (op2->isWasmBinarySimd128WithConstant()) {
+    // The lhs and rhs are swapped.
+    // Make MWasmBinarySimd128WithConstant[V128And] to be op0.
+    std::swap(op0, op2);
+    std::swap(op1, op3);
+  }
+  if (op2->isWasmShiftSimd128() &&
+      op2->toWasmShiftSimd128()->simdOp() == wasm::SimdOp::I16x8ShrS) {
+    // The op2 and op3 appears to be in wrong order, swap.
+    std::swap(op2, op3);
+  }
+
+  // Check all instructions SIMD code and constant values for assigned
+  // names op0, op1, op2, op3 (see diagram above).
+  const uint16_t const00FF[8] = {255, 255, 255, 255, 255, 255, 255, 255};
+  if (!op0->isWasmBinarySimd128WithConstant() ||
+      op0->toWasmBinarySimd128WithConstant()->simdOp() !=
+          wasm::SimdOp::V128And ||
+      memcmp(op0->toWasmBinarySimd128WithConstant()->rhs().bytes(), const00FF,
+             16) != 0 ||
+      !MatchSpecificShift(op1, wasm::SimdOp::I16x8ShrS, 8) ||
+      !MatchSpecificShift(op2, wasm::SimdOp::I16x8ShrU, 8) ||
+      !MatchSpecificShift(op3, wasm::SimdOp::I16x8ShrS, 8) ||
+      !MatchSpecificShift(op1->toWasmShiftSimd128()->lhs(),
+                          wasm::SimdOp::I16x8Shl, 8)) {
+    return false;
+  }
+
+  // Check if the instructions arguments that are subtrees match the
+  // a and b assignments. May depend on GVN behavior.
+  MDefinition* maybeA = op0->toWasmBinarySimd128WithConstant()->lhs();
+  MDefinition* maybeB = op3->toWasmShiftSimd128()->lhs();
+  if (maybeA != op2->toWasmShiftSimd128()->lhs() ||
+      maybeB != op1->toWasmShiftSimd128()->lhs()->toWasmShiftSimd128()->lhs()) {
+    return false;
+  }
+
+  *a = maybeA;
+  *b = maybeB;
+  return true;
+}
+#  endif  // ENABLE_WASM_SIMD_WORMHOLE
 
 MDefinition* MWasmBinarySimd128::foldsTo(TempAllocator& alloc) {
   if (simdOp() == wasm::SimdOp::I8x16Swizzle && rhs()->isWasmFloatConstant()) {
@@ -5018,6 +5148,20 @@ MDefinition* MWasmBinarySimd128::foldsTo(TempAllocator& alloc) {
           alloc, lhs(), rhs()->toWasmFloatConstant()->toSimd128(), simdOp());
     }
   }
+
+#  ifdef ENABLE_WASM_SIMD_WORMHOLE
+  if (simdOp() == wasm::SimdOp::I16x8AddSatS && lhs()->isWasmBinarySimd128() &&
+      rhs()->isWasmBinarySimd128() &&
+      lhs()->toWasmBinarySimd128()->simdOp() == wasm::SimdOp::I16x8Mul &&
+      rhs()->toWasmBinarySimd128()->simdOp() == wasm::SimdOp::I16x8Mul) {
+    MDefinition *a, *b;
+    if (MatchPmaddubswSequence(lhs()->toWasmBinarySimd128(),
+                               rhs()->toWasmBinarySimd128(), &a, &b)) {
+      return MWasmBinarySimd128::New(alloc, a, b, /* commutative = */ false,
+                                     wasm::SimdOp::MozWHPMADDUBSW);
+    }
+  }
+#  endif  // ENABLE_WASM_SIMD_WORMHOLE
 
   return this;
 }
@@ -5241,13 +5385,10 @@ void MStoreDynamicSlot::printOpcode(GenericPrinter& out) const {
 #endif
 
 MDefinition* MGuardFunctionScript::foldsTo(TempAllocator& alloc) {
-  if (input()->isLambda() &&
-      input()->toLambda()->info().baseScript == expected()) {
-    return input();
-  }
-  if (input()->isLambdaArrow() &&
-      input()->toLambdaArrow()->info().baseScript == expected()) {
-    return input();
+  MDefinition* in = input();
+  if (in->isLambda() &&
+      in->toLambda()->templateFunction()->baseScript() == expected()) {
+    return in;
   }
   return this;
 }
@@ -5255,9 +5396,6 @@ MDefinition* MGuardFunctionScript::foldsTo(TempAllocator& alloc) {
 MDefinition* MFunctionEnvironment::foldsTo(TempAllocator& alloc) {
   if (input()->isLambda()) {
     return input()->toLambda()->environmentChain();
-  }
-  if (input()->isLambdaArrow()) {
-    return input()->toLambdaArrow()->environmentChain();
   }
   if (input()->isFunctionWithProto()) {
     return input()->toFunctionWithProto()->environmentChain();
@@ -5396,43 +5534,52 @@ MDefinition* MWasmUnsignedToFloat32::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
-MWasmCall* MWasmCall::New(TempAllocator& alloc, const wasm::CallSiteDesc& desc,
-                          const wasm::CalleeDesc& callee, const Args& args,
-                          uint32_t stackArgAreaSizeUnaligned, bool inTry,
-                          MDefinition* tableIndex) {
-  MWasmCall* call =
-      new (alloc) MWasmCall(desc, callee, stackArgAreaSizeUnaligned, inTry);
+MWasmCallCatchable* MWasmCallCatchable::New(TempAllocator& alloc,
+                                            const wasm::CallSiteDesc& desc,
+                                            const wasm::CalleeDesc& callee,
+                                            const Args& args,
+                                            uint32_t stackArgAreaSizeUnaligned,
+                                            const MWasmCallTryDesc& tryDesc,
+                                            MDefinition* tableIndex) {
+  MOZ_ASSERT(tryDesc.inTry);
 
-  if (!call->argRegs_.init(alloc, args.length())) {
-    return nullptr;
-  }
-  for (size_t i = 0; i < call->argRegs_.length(); i++) {
-    call->argRegs_[i] = args[i].reg;
-  }
+  MWasmCallCatchable* call = new (alloc) MWasmCallCatchable(
+      desc, callee, stackArgAreaSizeUnaligned, tryDesc.tryNoteIndex);
 
-  if (!call->init(alloc,
-                  call->argRegs_.length() + (callee.isTable() ? 1 : 0))) {
+  call->setSuccessor(FallthroughBranchIndex, tryDesc.fallthroughBlock);
+  call->setSuccessor(PrePadBranchIndex, tryDesc.prePadBlock);
+
+  MOZ_ASSERT_IF(callee.isTable(), tableIndex);
+  if (!call->initWithArgs(alloc, call, args, tableIndex)) {
     return nullptr;
-  }
-  // FixedList doesn't initialize its elements, so do an unchecked init.
-  for (size_t i = 0; i < call->argRegs_.length(); i++) {
-    call->initOperand(i, args[i].def);
-  }
-  if (callee.isTable()) {
-    call->initOperand(call->argRegs_.length(), tableIndex);
   }
 
   return call;
 }
 
-MWasmCall* MWasmCall::NewBuiltinInstanceMethodCall(
+MWasmCallUncatchable* MWasmCallUncatchable::New(
+    TempAllocator& alloc, const wasm::CallSiteDesc& desc,
+    const wasm::CalleeDesc& callee, const Args& args,
+    uint32_t stackArgAreaSizeUnaligned, MDefinition* tableIndex) {
+  MWasmCallUncatchable* call =
+      new (alloc) MWasmCallUncatchable(desc, callee, stackArgAreaSizeUnaligned);
+
+  MOZ_ASSERT_IF(callee.isTable(), tableIndex);
+  if (!call->initWithArgs(alloc, call, args, tableIndex)) {
+    return nullptr;
+  }
+
+  return call;
+}
+
+MWasmCallUncatchable* MWasmCallUncatchable::NewBuiltinInstanceMethodCall(
     TempAllocator& alloc, const wasm::CallSiteDesc& desc,
     const wasm::SymbolicAddress builtin, wasm::FailureMode failureMode,
     const ABIArg& instanceArg, const Args& args,
     uint32_t stackArgAreaSizeUnaligned) {
   auto callee = wasm::CalleeDesc::builtinInstanceMethod(builtin);
-  MWasmCall* call = MWasmCall::New(alloc, desc, callee, args,
-                                   stackArgAreaSizeUnaligned, false, nullptr);
+  MWasmCallUncatchable* call = MWasmCallUncatchable::New(
+      alloc, desc, callee, args, stackArgAreaSizeUnaligned, nullptr);
   if (!call) {
     return nullptr;
   }
@@ -5444,15 +5591,10 @@ MWasmCall* MWasmCall::NewBuiltinInstanceMethodCall(
 }
 
 void MSqrt::trySpecializeFloat32(TempAllocator& alloc) {
-  if (!input()->canProduceFloat32() || !CheckUsesAreFloat32Consumers(this)) {
-    if (input()->type() == MIRType::Float32) {
-      ConvertDefinitionToDouble<0>(alloc, input(), this);
-    }
-    return;
+  if (EnsureFloatConsumersAndInputOrConvert(this, alloc)) {
+    setResultType(MIRType::Float32);
+    specialization_ = MIRType::Float32;
   }
-
-  setResultType(MIRType::Float32);
-  specialization_ = MIRType::Float32;
 }
 
 MDefinition* MClz::foldsTo(TempAllocator& alloc) {
@@ -5989,10 +6131,7 @@ MDefinition* MGuardStringToInt32::foldsTo(TempAllocator& alloc) {
   }
 
   JSLinearString* str = &string()->toConstant()->toString()->asLinear();
-  double number;
-  if (!js::MaybeStringToNumber(str, &number)) {
-    return this;
-  }
+  double number = LinearStringToNumber(str);
 
   int32_t n;
   if (!mozilla::NumberIsInt32(number, &n)) {
@@ -6008,11 +6147,7 @@ MDefinition* MGuardStringToDouble::foldsTo(TempAllocator& alloc) {
   }
 
   JSLinearString* str = &string()->toConstant()->toString()->asLinear();
-  double number;
-  if (!js::MaybeStringToNumber(str, &number)) {
-    return this;
-  }
-
+  double number = LinearStringToNumber(str);
   return MConstant::New(alloc, DoubleValue(number));
 }
 
@@ -6405,9 +6540,9 @@ bool MIonToWasmCall::isConsistentFloat32Use(MUse* use) const {
 
 MCreateInlinedArgumentsObject* MCreateInlinedArgumentsObject::New(
     TempAllocator& alloc, MDefinition* callObj, MDefinition* callee,
-    MDefinitionVector& args) {
+    MDefinitionVector& args, ArgumentsObject* templateObj) {
   MCreateInlinedArgumentsObject* ins =
-      new (alloc) MCreateInlinedArgumentsObject();
+      new (alloc) MCreateInlinedArgumentsObject(templateObj);
 
   uint32_t argc = args.length();
   MOZ_ASSERT(argc <= ArgumentsObject::MaxInlinedArgs);
@@ -6510,6 +6645,101 @@ MDefinition* MGetInlinedArgumentHole::foldsTo(TempAllocator& alloc) {
   }
 
   return arg;
+}
+
+MInlineArgumentsSlice* MInlineArgumentsSlice::New(
+    TempAllocator& alloc, MDefinition* begin, MDefinition* count,
+    MCreateInlinedArgumentsObject* args, JSObject* templateObj,
+    gc::InitialHeap initialHeap) {
+  auto* ins = new (alloc) MInlineArgumentsSlice(templateObj, initialHeap);
+
+  uint32_t argc = args->numActuals();
+  MOZ_ASSERT(argc <= ArgumentsObject::MaxInlinedArgs);
+
+  if (!ins->init(alloc, argc + NumNonArgumentOperands)) {
+    return nullptr;
+  }
+
+  ins->initOperand(0, begin);
+  ins->initOperand(1, count);
+  for (uint32_t i = 0; i < argc; i++) {
+    ins->initOperand(i + NumNonArgumentOperands, args->getArg(i));
+  }
+
+  return ins;
+}
+
+MDefinition* MNormalizeSliceTerm::foldsTo(TempAllocator& alloc) {
+  auto* length = this->length();
+  if (!length->isConstant() && !length->isArgumentsLength()) {
+    return this;
+  }
+
+  if (length->isConstant()) {
+    int32_t lengthConst = length->toConstant()->toInt32();
+    MOZ_ASSERT(lengthConst >= 0);
+
+    // Result is always zero when |length| is zero.
+    if (lengthConst == 0) {
+      return length;
+    }
+
+    auto* value = this->value();
+    if (value->isConstant()) {
+      int32_t valueConst = value->toConstant()->toInt32();
+
+      int32_t normalized;
+      if (valueConst < 0) {
+        normalized = std::max(valueConst + lengthConst, 0);
+      } else {
+        normalized = std::min(valueConst, lengthConst);
+      }
+
+      if (normalized == valueConst) {
+        return value;
+      }
+      if (normalized == lengthConst) {
+        return length;
+      }
+      return MConstant::New(alloc, Int32Value(normalized));
+    }
+
+    return this;
+  }
+
+  auto* value = this->value();
+  if (value->isConstant()) {
+    int32_t valueConst = value->toConstant()->toInt32();
+
+    // Minimum of |value| and |length|.
+    if (valueConst > 0) {
+      bool isMax = false;
+      return MMinMax::New(alloc, value, length, MIRType::Int32, isMax);
+    }
+
+    // Maximum of |value + length| and zero.
+    if (valueConst < 0) {
+      // Safe to truncate because |length| is never negative.
+      auto* add = MAdd::New(alloc, value, length, TruncateKind::Truncate);
+      block()->insertBefore(this, add);
+
+      auto* zero = MConstant::New(alloc, Int32Value(0));
+      block()->insertBefore(this, zero);
+
+      bool isMax = true;
+      return MMinMax::New(alloc, add, zero, MIRType::Int32, isMax);
+    }
+
+    // Directly return the value when it's zero.
+    return value;
+  }
+
+  // Normalizing MArgumentsLength is a no-op.
+  if (value->isArgumentsLength()) {
+    return value;
+  }
+
+  return this;
 }
 
 bool MWasmShiftSimd128::congruentTo(const MDefinition* ins) const {

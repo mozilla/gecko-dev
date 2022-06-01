@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@import url("chrome://global/skin/menu-scrolling.css");
+
 /* ===== menu.css =======================================================
   == Styles used by XUL menu-related elements.
   ======================================================================= */
@@ -79,6 +81,10 @@ menuitem[default="true"],
 menuitem.spell-suggestion,
 menucaption {
   font-weight: bold;
+}
+
+menubar > menu:-moz-window-inactive {
+  color: ThreeDShadow;
 }
 
 /* ..... Internal content .... */
@@ -187,12 +193,12 @@ menubar > menu:-moz-lwtheme {
 }
 
 menubar > menu:-moz-lwtheme:not([disabled="true"]) {
-  color: inherit !important;
+  color: inherit;
 }
 
 menubar > menu:-moz-lwtheme[_moz-menuactive="true"]:not([disabled="true"]) {
   background-color: SelectedItem;
-  color: SelectedItemText !important;
+  color: SelectedItemText;
   text-shadow: none;
 }
 
@@ -207,12 +213,6 @@ menubar > menu:-moz-lwtheme[_moz-menuactive="true"]:not([disabled="true"]) {
     text-shadow: inherit;
   }
 }
-
-%ifdef XP_WIN
-menubar > menu:-moz-window-inactive {
-  color: ThreeDShadow;
-}
-%endif
 
 /* ..... internal content .... */
 
@@ -410,5 +410,3 @@ menuseparator {
     margin: 2px 1em;
   }
 }
-
-%include ../../shared/menu-scrolling.inc.css

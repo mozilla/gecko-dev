@@ -22,14 +22,13 @@
 
 #include "debugger/Debugger.h"
 #include "ds/Sort.h"
-#include "jit/AutoWritableJitCode.h"
 #include "jit/MacroAssembler.h"
-#include "wasm/WasmInstance.h"
 #include "wasm/WasmJS.h"
 #include "wasm/WasmStubs.h"
 #include "wasm/WasmValidate.h"
 
-#include "gc/FreeOp-inl.h"
+#include "gc/GCContext-inl.h"
+#include "wasm/WasmInstance-inl.h"
 
 using namespace js;
 using namespace js::jit;
@@ -42,7 +41,8 @@ DebugState::DebugState(const Code& code, const Module& module)
       module_(&module),
       enterFrameTrapsEnabled_(false),
       enterAndLeaveFrameTrapsCounter_(0) {
-  MOZ_ASSERT(code.metadata().debugEnabled);
+  MOZ_RELEASE_ASSERT(code.metadata().debugEnabled);
+  MOZ_RELEASE_ASSERT(code.hasTier(Tier::Debug));
 }
 
 void DebugState::trace(JSTracer* trc) {
@@ -52,10 +52,10 @@ void DebugState::trace(JSTracer* trc) {
   }
 }
 
-void DebugState::finalize(JSFreeOp* fop) {
+void DebugState::finalize(JS::GCContext* gcx) {
   for (auto iter = breakpointSites_.iter(); !iter.done(); iter.next()) {
     WasmBreakpointSite* site = iter.get().value();
-    site->delete_(fop);
+    site->delete_(gcx);
   }
 }
 
@@ -106,39 +106,28 @@ bool DebugState::stepModeEnabled(uint32_t funcIndex) const {
   return stepperCounters_.lookup(funcIndex).found();
 }
 
-bool DebugState::incrementStepperCount(JSContext* cx, uint32_t funcIndex) {
-  const CodeRange& codeRange =
-      codeRanges(Tier::Debug)[funcToCodeRangeIndex(funcIndex)];
-  MOZ_ASSERT(codeRange.isFunction());
-
+bool DebugState::incrementStepperCount(JSContext* cx, Instance* instance,
+                                       uint32_t funcIndex) {
   StepperCounters::AddPtr p = stepperCounters_.lookupForAdd(funcIndex);
   if (p) {
     MOZ_ASSERT(p->value() > 0);
     p->value()++;
     return true;
   }
+
   if (!stepperCounters_.add(p, funcIndex, 1)) {
     ReportOutOfMemory(cx);
     return false;
   }
 
-  AutoWritableJitCode awjc(
-      cx->runtime(), code_->segment(Tier::Debug).base() + codeRange.begin(),
-      codeRange.end() - codeRange.begin());
+  enableDebuggingForFunction(instance, funcIndex);
+  enableDebugTrap(instance);
 
-  for (const CallSite& callSite : callSites(Tier::Debug)) {
-    if (callSite.kind() != CallSite::Breakpoint) {
-      continue;
-    }
-    uint32_t offset = callSite.returnAddressOffset();
-    if (codeRange.begin() <= offset && offset <= codeRange.end()) {
-      toggleDebugTrap(offset, true);
-    }
-  }
   return true;
 }
 
-void DebugState::decrementStepperCount(JSFreeOp* fop, uint32_t funcIndex) {
+void DebugState::decrementStepperCount(JS::GCContext* gcx, Instance* instance,
+                                       uint32_t funcIndex) {
   const CodeRange& codeRange =
       codeRanges(Tier::Debug)[funcToCodeRangeIndex(funcIndex)];
   MOZ_ASSERT(codeRange.isFunction());
@@ -152,18 +141,25 @@ void DebugState::decrementStepperCount(JSFreeOp* fop, uint32_t funcIndex) {
 
   stepperCounters_.remove(p);
 
-  AutoWritableJitCode awjc(
-      fop->runtime(), code_->segment(Tier::Debug).base() + codeRange.begin(),
-      codeRange.end() - codeRange.begin());
+  bool anyStepping = !stepperCounters_.empty();
+  bool anyBreakpoints = !breakpointSites_.empty();
+  bool anyEnterAndLeave = enterAndLeaveFrameTrapsCounter_ > 0;
 
+  bool keepDebugging = false;
   for (const CallSite& callSite : callSites(Tier::Debug)) {
     if (callSite.kind() != CallSite::Breakpoint) {
       continue;
     }
     uint32_t offset = callSite.returnAddressOffset();
     if (codeRange.begin() <= offset && offset <= codeRange.end()) {
-      bool enabled = breakpointSites_.has(offset);
-      toggleDebugTrap(offset, enabled);
+      keepDebugging = keepDebugging || breakpointSites_.has(offset);
+    }
+  }
+
+  if (!keepDebugging && !anyEnterAndLeave) {
+    disableDebuggingForFunction(instance, funcIndex);
+    if (!anyStepping && !anyBreakpoints) {
+      disableDebugTrap(instance);
     }
   }
 }
@@ -172,8 +168,8 @@ bool DebugState::hasBreakpointTrapAtOffset(uint32_t offset) {
   return SlowCallSiteSearchByOffset(metadata(Tier::Debug), offset);
 }
 
-void DebugState::toggleBreakpointTrap(JSRuntime* rt, uint32_t offset,
-                                      bool enabled) {
+void DebugState::toggleBreakpointTrap(JSRuntime* rt, Instance* instance,
+                                      uint32_t offset, bool enabled) {
   const CallSite* callSite =
       SlowCallSiteSearchByOffset(metadata(Tier::Debug), offset);
   if (!callSite) {
@@ -186,12 +182,24 @@ void DebugState::toggleBreakpointTrap(JSRuntime* rt, uint32_t offset,
       code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
   MOZ_ASSERT(codeRange);
 
-  if (stepperCounters_.lookup(codeRange->funcIndex())) {
+  uint32_t funcIndex = codeRange->funcIndex();
+  if (stepperCounters_.lookup(funcIndex)) {
     return;  // no need to toggle when step mode is enabled
   }
 
-  AutoWritableJitCode awjc(rt, codeSegment.base(), codeSegment.length());
-  toggleDebugTrap(debugTrapOffset, enabled);
+  bool anyEnterAndLeave = enterAndLeaveFrameTrapsCounter_ > 0;
+  bool anyStepping = !stepperCounters_.empty();
+  bool anyBreakpoints = !breakpointSites_.empty();
+
+  if (enabled) {
+    enableDebuggingForFunction(instance, funcIndex);
+    enableDebugTrap(instance);
+  } else if (!anyEnterAndLeave) {
+    disableDebuggingForFunction(instance, funcIndex);
+    if (!anyStepping && !anyBreakpoints) {
+      disableDebugTrap(instance);
+    }
+  }
 }
 
 WasmBreakpointSite* DebugState::getBreakpointSite(uint32_t offset) const {
@@ -224,7 +232,7 @@ WasmBreakpointSite* DebugState::getOrCreateBreakpointSite(JSContext* cx,
     AddCellMemory(instance->object(), sizeof(WasmBreakpointSite),
                   MemoryUse::BreakpointSite);
 
-    toggleBreakpointTrap(cx->runtime(), offset, true);
+    toggleBreakpointTrap(cx->runtime(), instance, offset, true);
   } else {
     site = p->value();
   }
@@ -235,17 +243,18 @@ bool DebugState::hasBreakpointSite(uint32_t offset) {
   return breakpointSites_.has(offset);
 }
 
-void DebugState::destroyBreakpointSite(JSFreeOp* fop, Instance* instance,
+void DebugState::destroyBreakpointSite(JS::GCContext* gcx, Instance* instance,
                                        uint32_t offset) {
   WasmBreakpointSiteMap::Ptr p = breakpointSites_.lookup(offset);
   MOZ_ASSERT(p);
-  fop->delete_(instance->objectUnbarriered(), p->value(),
+  gcx->delete_(instance->objectUnbarriered(), p->value(),
                MemoryUse::BreakpointSite);
   breakpointSites_.remove(p);
-  toggleBreakpointTrap(fop->runtime(), offset, false);
+  toggleBreakpointTrap(gcx->runtime(), instance, offset, false);
 }
 
-void DebugState::clearBreakpointsIn(JSFreeOp* fop, WasmInstanceObject* instance,
+void DebugState::clearBreakpointsIn(JS::GCContext* gcx,
+                                    WasmInstanceObject* instance,
                                     js::Debugger* dbg, JSObject* handler) {
   MOZ_ASSERT(instance);
 
@@ -267,72 +276,95 @@ void DebugState::clearBreakpointsIn(JSFreeOp* fop, WasmInstanceObject* instance,
       MOZ_ASSERT(bp->site == site);
       if ((!dbg || bp->debugger == dbg) &&
           (!handler || bp->getHandler() == handler)) {
-        bp->delete_(fop);
+        bp->delete_(gcx);
       }
     }
     if (site->isEmpty()) {
-      fop->delete_(instance, site, MemoryUse::BreakpointSite);
+      gcx->delete_(instance, site, MemoryUse::BreakpointSite);
       e.removeFront();
     }
   }
 }
 
-void DebugState::toggleDebugTrap(uint32_t offset, bool enabled) {
-  MOZ_ASSERT(offset);
-  uint8_t* trap = code_->segment(Tier::Debug).base() + offset;
-  const Uint32Vector& farJumpOffsets =
-      metadata(Tier::Debug).debugTrapFarJumpOffsets;
-  if (enabled) {
-    MOZ_ASSERT(farJumpOffsets.length() > 0);
-    size_t i = 0;
-    while (i < farJumpOffsets.length() && offset < farJumpOffsets[i]) {
-      i++;
-    }
-    if (i >= farJumpOffsets.length() ||
-        (i > 0 &&
-         offset - farJumpOffsets[i - 1] < farJumpOffsets[i] - offset)) {
-      i--;
-    }
-    uint8_t* farJump = code_->segment(Tier::Debug).base() + farJumpOffsets[i];
-    MacroAssembler::patchNopToCall(trap, farJump);
-  } else {
-    MacroAssembler::patchCallToNop(trap);
-  }
+void DebugState::enableDebuggingForFunction(Instance* instance,
+                                            uint32_t funcIndex) {
+  instance->setDebugFilter(funcIndex, true);
+}
+
+void DebugState::disableDebuggingForFunction(Instance* instance,
+                                             uint32_t funcIndex) {
+  instance->setDebugFilter(funcIndex, false);
+}
+
+void DebugState::enableDebugTrap(Instance* instance) {
+  instance->setDebugTrapHandler(code_->segment(Tier::Debug).base() +
+                                metadata(Tier::Debug).debugTrapOffset);
+}
+
+void DebugState::disableDebugTrap(Instance* instance) {
+  instance->setDebugTrapHandler(nullptr);
 }
 
 void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
+                                                    Instance* instance,
                                                     bool enabled) {
   MOZ_ASSERT_IF(!enabled, enterAndLeaveFrameTrapsCounter_ > 0);
 
   bool wasEnabled = enterAndLeaveFrameTrapsCounter_ > 0;
-  if (enabled) {
-    ++enterAndLeaveFrameTrapsCounter_;
-  } else {
-    --enterAndLeaveFrameTrapsCounter_;
-  }
+  enterAndLeaveFrameTrapsCounter_ += enabled ? 1 : -1;
   bool stillEnabled = enterAndLeaveFrameTrapsCounter_ > 0;
   if (wasEnabled == stillEnabled) {
     return;
   }
 
-  const ModuleSegment& codeSegment = code_->segment(Tier::Debug);
-  AutoWritableJitCode awjc(cx->runtime(), codeSegment.base(),
-                           codeSegment.length());
-  for (const CallSite& callSite : callSites(Tier::Debug)) {
-    if (callSite.kind() != CallSite::EnterFrame &&
-        callSite.kind() != CallSite::LeaveFrame) {
-      continue;
+  MOZ_RELEASE_ASSERT(&instance->metadata() == &metadata());
+  uint32_t numFuncs = metadata().debugFuncReturnTypes.length();
+  if (enabled) {
+    MOZ_ASSERT(enterAndLeaveFrameTrapsCounter_ > 0);
+    for (uint32_t funcIdx = 0; funcIdx < numFuncs; funcIdx++) {
+      enableDebuggingForFunction(instance, funcIdx);
     }
-    toggleDebugTrap(callSite.returnAddressOffset(), stillEnabled);
+    enableDebugTrap(instance);
+  } else {
+    MOZ_ASSERT(enterAndLeaveFrameTrapsCounter_ == 0);
+    bool anyEnabled = false;
+    for (uint32_t funcIdx = 0; funcIdx < numFuncs; funcIdx++) {
+      // For each function, disable the bit if nothing else is going on.  This
+      // means determining if there's stepping or breakpoints.
+      bool mustLeaveEnabled = stepperCounters_.lookup(funcIdx).found();
+      for (auto iter = breakpointSites_.iter();
+           !iter.done() && !mustLeaveEnabled; iter.next()) {
+        WasmBreakpointSite* site = iter.get().value();
+        const CallSite* callSite =
+            SlowCallSiteSearchByOffset(metadata(Tier::Debug), site->offset);
+        if (callSite) {
+          size_t debugTrapOffset = callSite->returnAddressOffset();
+          const ModuleSegment& codeSegment = code_->segment(Tier::Debug);
+          const CodeRange* codeRange =
+              code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
+          MOZ_ASSERT(codeRange);
+          mustLeaveEnabled = codeRange->funcIndex() == funcIdx;
+        }
+      }
+      if (mustLeaveEnabled) {
+        anyEnabled = true;
+      } else {
+        disableDebuggingForFunction(instance, funcIdx);
+      }
+    }
+    if (!anyEnabled) {
+      disableDebugTrap(instance);
+    }
   }
 }
 
-void DebugState::ensureEnterFrameTrapsState(JSContext* cx, bool enabled) {
+void DebugState::ensureEnterFrameTrapsState(JSContext* cx, Instance* instance,
+                                            bool enabled) {
   if (enterFrameTrapsEnabled_ == enabled) {
     return;
   }
 
-  adjustEnterAndLeaveFrameTrapsState(cx, enabled);
+  adjustEnterAndLeaveFrameTrapsState(cx, instance, enabled);
 
   enterFrameTrapsEnabled_ = enabled;
 }

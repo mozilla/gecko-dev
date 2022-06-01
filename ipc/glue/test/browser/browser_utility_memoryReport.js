@@ -3,30 +3,15 @@
 
 "use strict";
 
-var utilityPid = undefined;
-var utilityReports = [];
-
-const utilityProcessTest = Cc[
-  "@mozilla.org/utility-process-test;1"
-].createInstance(Ci.nsIUtilityProcessTest);
-
 add_task(async () => {
-  await utilityProcessTest
-    .startProcess()
-    .then(async pid => {
-      utilityPid = pid;
-      ok(true, "Could start Utility process: " + pid);
-    })
-    .catch(async () => {
-      ok(false, "Cannot start Utility process?");
-    });
-});
+  const utilityPid = await startUtilityProcess();
 
-add_task(async () => {
   const gMgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(
     Ci.nsIMemoryReporterManager
   );
-  ok(utilityPid !== undefined, "Utility process is running");
+  ok(utilityPid !== undefined, `Utility process is running as ${utilityPid}`);
+
+  var utilityReports = [];
 
   const performCollection = new Promise((resolve, reject) => {
     // Record the reports from the live memory reporters then process them.
@@ -38,7 +23,7 @@ add_task(async () => {
       aAmount,
       aDescription
     ) {
-      const expectedProcess = `Utility (pid ${utilityPid})`;
+      const expectedProcess = `Utility (pid: ${utilityPid}, sandboxingKind: ${kGenericUtility})`;
       if (aProcess !== expectedProcess) {
         return;
       }
@@ -61,7 +46,9 @@ add_task(async () => {
 
   await performCollection;
 
-  info("Collected", utilityReports.length, "reports from utility process");
+  info(
+    `Collected ${utilityReports.length} reports from utility process ${utilityPid}`
+  );
   ok(!!utilityReports.length, "Collected some reports");
   ok(
     utilityReports.filter(r => r.path === "vsize" && r.amount > 0).length === 1,
@@ -79,5 +66,5 @@ add_task(async () => {
     "Collected some explicit/ report"
   );
 
-  await utilityProcessTest.stopProcess();
+  await cleanUtilityProcessShutdown(utilityPid);
 });

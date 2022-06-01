@@ -1,4 +1,6 @@
-//! Interpolation defaults.
+/*!
+Interpolation defaults.
+*/
 
 impl crate::Binding {
     /// Apply the usual default interpolation for `ty` to `binding`.
@@ -48,7 +50,7 @@ impl crate::Binding {
                     *interpolation = Some(crate::Interpolation::Perspective);
                     *sampling = Some(crate::Sampling::Center);
                 }
-                Some(crate::ScalarKind::Sint) | Some(crate::ScalarKind::Uint) => {
+                Some(crate::ScalarKind::Sint | crate::ScalarKind::Uint) => {
                     *interpolation = Some(crate::Interpolation::Flat);
                     *sampling = None;
                 }

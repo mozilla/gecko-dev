@@ -21,17 +21,18 @@ class nsHtml5TreeOpStage : public nsAHtml5TreeOpSink {
    * Flush the operations from the tree operations from the argument
    * queue unconditionally.
    */
-  virtual void MoveOpsFrom(nsTArray<nsHtml5TreeOperation>& aOpQueue) override;
+  [[nodiscard]] virtual bool MoveOpsFrom(
+      nsTArray<nsHtml5TreeOperation>& aOpQueue) override;
 
   /**
    * Retrieve the staged operations into the argument.
    */
-  void MoveOpsTo(nsTArray<nsHtml5TreeOperation>& aOpQueue);
+  [[nodiscard]] bool MoveOpsTo(nsTArray<nsHtml5TreeOperation>& aOpQueue);
 
   /**
    * Retrieve the staged operations and speculative loads into the arguments.
    */
-  void MoveOpsAndSpeculativeLoadsTo(
+  [[nodiscard]] bool MoveOpsAndSpeculativeLoadsTo(
       nsTArray<nsHtml5TreeOperation>& aOpQueue,
       nsTArray<nsHtml5SpeculativeLoad>& aSpeculativeLoadQueue);
 
@@ -54,7 +55,7 @@ class nsHtml5TreeOpStage : public nsAHtml5TreeOpSink {
  private:
   nsTArray<nsHtml5TreeOperation> mOpQueue;
   nsTArray<nsHtml5SpeculativeLoad> mSpeculativeLoadQueue;
-  mozilla::Mutex mMutex;
+  mozilla::Mutex mMutex MOZ_UNANNOTATED;
 };
 
 #endif /* nsHtml5TreeOpStage_h */

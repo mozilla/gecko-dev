@@ -1,13 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
+
+"use strict";
+
 requestLongerTimeout(2);
 
 add_task(async function() {
   // NOTE: the CORS call makes the test run times inconsistent
   const dbg = await initDebugger("doc-sourcemaps.html");
   const {
-    selectors: { getBreakpoint, getBreakpointCount }
+    selectors: { getBreakpoint, getBreakpointCount },
   } = dbg;
 
   await waitForSources(dbg, "entry.js", "output.js", "times2.js", "opts.js");
@@ -32,25 +35,21 @@ add_task(async function() {
 
   await waitForPaused(dbg);
   await waitForDispatch(dbg.store, "ADD_INLINE_PREVIEW");
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "entry.js").id, 5);
 
   await waitForBreakpointCount(dbg, 2);
-  is(getBreakpointCount(), 2, "Three breakpoints exist");
-
-  ok(
-    getBreakpoint({ sourceId: entrySrc.id, line: 15, column: 0 }),
-    "Breakpoint has correct line"
-  );
+  is(getBreakpointCount(), 2, "Two breakpoints exist");
 
   ok(
     getBreakpoint({
       sourceId: entrySrc.id,
       line: 15,
       column: 0,
-      disabled: true
+      disabled: true,
     }),
-    "Breakpoint has correct line"
+    "Breakpoint is on the correct line and is disabled"
   );
+  await assertBreakpoint(dbg, 15);
 });
 
 async function waitForBreakpointCount(dbg, count) {

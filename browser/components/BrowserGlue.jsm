@@ -58,6 +58,8 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   NewTabUtils: "resource://gre/modules/NewTabUtils.jsm",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
   Normandy: "resource://normandy/Normandy.jsm",
+  OnboardingMessageProvider:
+    "resource://activity-stream/lib/OnboardingMessageProvider.jsm",
   OsEnvironment: "resource://gre/modules/OsEnvironment.jsm",
   PageActions: "resource:///modules/PageActions.jsm",
   PageThumbs: "resource://gre/modules/PageThumbs.jsm",
@@ -85,11 +87,14 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   ShellService: "resource:///modules/ShellService.jsm",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.jsm",
   SnapshotMonitor: "resource:///modules/SnapshotMonitor.jsm",
+  SpecialMessageActions:
+    "resource://messaging-system/lib/SpecialMessageActions.jsm",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.jsm",
   TabUnloader: "resource:///modules/TabUnloader.jsm",
   TelemetryUtils: "resource://gre/modules/TelemetryUtils.jsm",
   TRRRacer: "resource:///modules/TRRPerformance.jsm",
   UIState: "resource://services-sync/UIState.jsm",
+  UpdateListener: "resource://gre/modules/UpdateListener.jsm",
   UrlbarQuickSuggest: "resource:///modules/UrlbarQuickSuggest.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
   WebChannel: "resource://gre/modules/WebChannel.jsm",
@@ -102,27 +107,29 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   PluginManager: "resource:///actors/PluginParent.jsm",
 });
 
-// Modules requiring an initialization method call.
-let initializedModules = {};
-[
-  [
-    "ContentPrefServiceParent",
-    "resource://gre/modules/ContentPrefServiceParent.jsm",
-    "alwaysInit",
-  ],
-  ["UpdateListener", "resource://gre/modules/UpdateListener.jsm", "init"],
-].forEach(([name, resource, init]) => {
-  XPCOMUtils.defineLazyGetter(this, name, () => {
-    ChromeUtils.import(resource, initializedModules);
-    initializedModules[name][init]();
-    return initializedModules[name];
-  });
-});
-
 XPCOMUtils.defineLazyServiceGetters(this, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
   PushService: ["@mozilla.org/push/Service;1", "nsIPushService"],
 });
+
+if (AppConstants.ENABLE_WEBDRIVER) {
+  XPCOMUtils.defineLazyServiceGetter(
+    this,
+    "Marionette",
+    "@mozilla.org/remote/marionette;1",
+    "nsIMarionette"
+  );
+
+  XPCOMUtils.defineLazyServiceGetter(
+    this,
+    "RemoteAgent",
+    "@mozilla.org/remote/agent;1",
+    "nsIRemoteAgent"
+  );
+} else {
+  this.Marionette = { running: false };
+  this.RemoteAgent = { running: false };
+}
 
 const PREF_PDFJS_ISDEFAULT_CACHE_STATE = "pdfjs.enabledCache.state";
 const PREF_DFPI_ENABLED_BY_DEFAULT =
@@ -215,6 +222,8 @@ let JSWINDOWACTORS = {
       },
     },
     matches: ["about:logins", "about:logins?*", "about:loginsimportreport"],
+    allFrames: true,
+    remoteTypes: ["privilegedabout"],
   },
 
   AboutNewTab: {
@@ -688,6 +697,7 @@ let JSWINDOWACTORS = {
         // The 'unload' event is only used to clean up state, and should not
         // force actor creation.
         unload: { createActor: false },
+        load: { mozSystemGroup: true, capture: true },
       },
     },
   },
@@ -775,97 +785,6 @@ let JSWINDOWACTORS = {
     allFrames: true,
   },
 };
-
-(function earlyBlankFirstPaint() {
-  let startTime = Cu.now();
-  if (
-    AppConstants.platform == "macosx" ||
-    Services.startup.wasSilentlyStarted ||
-    !Services.prefs.getBoolPref("browser.startup.blankWindow", false)
-  ) {
-    return;
-  }
-
-  // Until bug 1450626 and bug 1488384 are fixed, skip the blank window when
-  // using a non-default theme.
-  if (
-    !Services.startup.showedPreXULSkeletonUI &&
-    Services.prefs.getCharPref(
-      "extensions.activeThemeID",
-      "default-theme@mozilla.org"
-    ) != "default-theme@mozilla.org"
-  ) {
-    return;
-  }
-
-  let store = Services.xulStore;
-  let getValue = attr =>
-    store.getValue(AppConstants.BROWSER_CHROME_URL, "main-window", attr);
-  let width = getValue("width");
-  let height = getValue("height");
-
-  // The clean profile case isn't handled yet. Return early for now.
-  if (!width || !height) {
-    return;
-  }
-
-  let browserWindowFeatures =
-    "chrome,all,dialog=no,extrachrome,menubar,resizable,scrollbars,status," +
-    "location,toolbar,personalbar";
-  let win = Services.ww.openWindow(
-    null,
-    "about:blank",
-    null,
-    browserWindowFeatures,
-    null
-  );
-
-  // Hide the titlebar if the actual browser window will draw in it.
-  let hiddenTitlebar = Services.appinfo.drawInTitlebar;
-  if (hiddenTitlebar) {
-    win.windowUtils.setChromeMargin(0, 2, 2, 2);
-  }
-
-  let docElt = win.document.documentElement;
-  docElt.setAttribute("screenX", getValue("screenX"));
-  docElt.setAttribute("screenY", getValue("screenY"));
-
-  // The sizemode="maximized" attribute needs to be set before first paint.
-  let sizemode = getValue("sizemode");
-  if (sizemode == "maximized") {
-    docElt.setAttribute("sizemode", sizemode);
-
-    // Set the size to use when the user leaves the maximized mode.
-    // The persisted size is the outer size, but the height/width
-    // attributes set the inner size.
-    let appWin = win.docShell.treeOwner
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIAppWindow);
-    height -= appWin.outerToInnerHeightDifferenceInCSSPixels;
-    width -= appWin.outerToInnerWidthDifferenceInCSSPixels;
-    docElt.setAttribute("height", height);
-    docElt.setAttribute("width", width);
-  } else {
-    // Setting the size of the window in the features string instead of here
-    // causes the window to grow by the size of the titlebar.
-    win.resizeTo(width, height);
-  }
-
-  // Set this before showing the window so that graphics code can use it to
-  // decide to skip some expensive code paths (eg. starting the GPU process).
-  docElt.setAttribute("windowtype", "navigator:blank");
-
-  // The window becomes visible after OnStopRequest, so make this happen now.
-  win.stop();
-
-  ChromeUtils.addProfilerMarker("earlyBlankFirstPaint", startTime);
-  win.openTime = Cu.now();
-
-  let { TelemetryTimestamps } = ChromeUtils.import(
-    "resource://gre/modules/TelemetryTimestamps.jsm"
-  );
-  TelemetryTimestamps.add("blankWindowShown");
-})();
 
 XPCOMUtils.defineLazyGetter(
   this,
@@ -974,6 +893,7 @@ BrowserGlue.prototype = {
   _migrationImportsDefaultBookmarks: false,
   _placesBrowserInitComplete: false,
   _isNewProfile: undefined,
+  _defaultCookieBehaviorAtStartup: null,
 
   _setPrefToSaveSession: function BG__setPrefToSaveSession(aForce) {
     if (!this._saveSession && !aForce) {
@@ -991,35 +911,6 @@ BrowserGlue.prototype = {
     // ends up causing prefs not to be flushed to disk, so we need to do that
     // explicitly here. See bug 497652.
     Services.prefs.savePrefFile(null);
-  },
-
-  _setSyncAutoconnectDelay: function BG__setSyncAutoconnectDelay() {
-    // Assume that a non-zero value for services.sync.autoconnectDelay should override
-    if (Services.prefs.prefHasUserValue("services.sync.autoconnectDelay")) {
-      let prefDelay = Services.prefs.getIntPref(
-        "services.sync.autoconnectDelay"
-      );
-
-      if (prefDelay > 0) {
-        return;
-      }
-    }
-
-    // delays are in seconds
-    const MAX_DELAY = 300;
-    let delay = 3;
-    for (let win of Services.wm.getEnumerator("navigator:browser")) {
-      // browser windows without a gBrowser almost certainly means we are
-      // shutting down, so instead of just ignoring that window we abort.
-      if (win.closed || !win.gBrowser) {
-        return;
-      }
-      delay += win.gBrowser.tabs.length;
-    }
-    delay = delay <= MAX_DELAY ? delay : MAX_DELAY;
-
-    const { Weave } = ChromeUtils.import("resource://services-sync/main.js");
-    Weave.Service.scheduler.delayedAutoConnect(delay);
   },
 
   // nsIObserver implementation
@@ -1063,9 +954,6 @@ BrowserGlue.prototype = {
         if (OBSERVE_LASTWINDOW_CLOSE_TOPICS) {
           this._setPrefToSaveSession();
         }
-        break;
-      case "weave:service:ready":
-        this._setSyncAutoconnectDelay();
         break;
       case "fxaccounts:onverified":
         this._onThisDeviceConnected();
@@ -1191,9 +1079,6 @@ BrowserGlue.prototype = {
           );
         }
         break;
-      case "flash-plugin-hang":
-        this._handleFlashHang();
-        break;
       case "xpi-signature-changed":
         let disabledAddons = JSON.parse(data).disabled;
         let addons = await AddonManager.getAddonsByIDs(disabledAddons);
@@ -1218,6 +1103,9 @@ BrowserGlue.prototype = {
         DownloadsViewableInternally.register();
 
         break;
+      case "app-startup":
+        this._earlyBlankFirstPaint(subject);
+        break;
     }
   },
 
@@ -1232,7 +1120,6 @@ BrowserGlue.prototype = {
       "browser:purge-session-history",
       "quit-application-requested",
       "quit-application-granted",
-      "weave:service:ready",
       "fxaccounts:onverified",
       "fxaccounts:device_connected",
       "fxaccounts:verify_login",
@@ -1246,7 +1133,6 @@ BrowserGlue.prototype = {
       "keyword-search",
       "browser-search-engine-modified",
       "restart-in-safe-mode",
-      "flash-plugin-hang",
       "xpi-signature-changed",
       "sync-ui-state:update",
       "handlersvc-store-initialized",
@@ -1259,7 +1145,6 @@ BrowserGlue.prototype = {
     ActorManagerParent.addJSProcessActors(JSPROCESSACTORS);
     ActorManagerParent.addJSWindowActors(JSWINDOWACTORS);
 
-    this._flashHangCount = 0;
     this._firstWindowReady = new Promise(
       resolve => (this._firstWindowLoaded = resolve)
     );
@@ -1311,7 +1196,15 @@ BrowserGlue.prototype = {
       this._matchCBCategory
     );
     Services.prefs.removeObserver(
+      "network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation",
+      this._matchCBCategory
+    );
+    Services.prefs.removeObserver(
       "privacy.partition.network_state.ocsp_cache",
+      this._matchCBCategory
+    );
+    Services.prefs.removeObserver(
+      "privacy.query_stripping.enabled",
       this._matchCBCategory
     );
     Services.prefs.removeObserver(
@@ -1330,6 +1223,7 @@ BrowserGlue.prototype = {
       PREF_DFPI_ENABLED_BY_DEFAULT,
       this._setDefaultCookieBehavior
     );
+    NimbusFeatures.tcpByDefault.off(this._setDefaultCookieBehavior);
   },
 
   // runs on startup, before the first command line handler is invoked
@@ -1555,6 +1449,104 @@ BrowserGlue.prototype = {
     );
   },
 
+  _earlyBlankFirstPaint(cmdLine) {
+    let startTime = Cu.now();
+    if (
+      AppConstants.platform == "macosx" ||
+      Services.startup.wasSilentlyStarted ||
+      !Services.prefs.getBoolPref("browser.startup.blankWindow", false)
+    ) {
+      return;
+    }
+
+    // Until bug 1450626 and bug 1488384 are fixed, skip the blank window when
+    // using a non-default theme.
+    if (
+      !Services.startup.showedPreXULSkeletonUI &&
+      Services.prefs.getCharPref(
+        "extensions.activeThemeID",
+        "default-theme@mozilla.org"
+      ) != "default-theme@mozilla.org"
+    ) {
+      return;
+    }
+
+    let store = Services.xulStore;
+    let getValue = attr =>
+      store.getValue(AppConstants.BROWSER_CHROME_URL, "main-window", attr);
+    let width = getValue("width");
+    let height = getValue("height");
+
+    // The clean profile case isn't handled yet. Return early for now.
+    if (!width || !height) {
+      return;
+    }
+
+    let browserWindowFeatures =
+      "chrome,all,dialog=no,extrachrome,menubar,resizable,scrollbars,status," +
+      "location,toolbar,personalbar";
+    // This needs to be set when opening the window to ensure that the AppUserModelID
+    // is set correctly on Windows. Without it, initial launches with `-private-window`
+    // will show up under the regular Firefox taskbar icon first, and then switch
+    // to the Private Browsing icon shortly thereafter.
+    if (cmdLine.findFlag("private-window", false) != -1) {
+      browserWindowFeatures += ",private";
+    }
+    let win = Services.ww.openWindow(
+      null,
+      "about:blank",
+      null,
+      browserWindowFeatures,
+      null
+    );
+
+    // Hide the titlebar if the actual browser window will draw in it.
+    let hiddenTitlebar = Services.appinfo.drawInTitlebar;
+    if (hiddenTitlebar) {
+      win.windowUtils.setChromeMargin(0, 2, 2, 2);
+    }
+
+    let docElt = win.document.documentElement;
+    docElt.setAttribute("screenX", getValue("screenX"));
+    docElt.setAttribute("screenY", getValue("screenY"));
+
+    // The sizemode="maximized" attribute needs to be set before first paint.
+    let sizemode = getValue("sizemode");
+    if (sizemode == "maximized") {
+      docElt.setAttribute("sizemode", sizemode);
+
+      // Set the size to use when the user leaves the maximized mode.
+      // The persisted size is the outer size, but the height/width
+      // attributes set the inner size.
+      let appWin = win.docShell.treeOwner
+        .QueryInterface(Ci.nsIInterfaceRequestor)
+        .getInterface(Ci.nsIAppWindow);
+      height -= appWin.outerToInnerHeightDifferenceInCSSPixels;
+      width -= appWin.outerToInnerWidthDifferenceInCSSPixels;
+      docElt.setAttribute("height", height);
+      docElt.setAttribute("width", width);
+    } else {
+      // Setting the size of the window in the features string instead of here
+      // causes the window to grow by the size of the titlebar.
+      win.resizeTo(width, height);
+    }
+
+    // Set this before showing the window so that graphics code can use it to
+    // decide to skip some expensive code paths (eg. starting the GPU process).
+    docElt.setAttribute("windowtype", "navigator:blank");
+
+    // The window becomes visible after OnStopRequest, so make this happen now.
+    win.stop();
+
+    ChromeUtils.addProfilerMarker("earlyBlankFirstPaint", startTime);
+    win.openTime = Cu.now();
+
+    let { TelemetryTimestamps } = ChromeUtils.import(
+      "resource://gre/modules/TelemetryTimestamps.jsm"
+    );
+    TelemetryTimestamps.add("blankWindowShown");
+  },
+
   _firstWindowTelemetry(aWindow) {
     let scaling = aWindow.devicePixelRatio * 100;
     try {
@@ -1642,8 +1634,7 @@ BrowserGlue.prototype = {
       let updateChannel;
       try {
         updateChannel = ChromeUtils.import(
-          "resource://gre/modules/UpdateUtils.jsm",
-          {}
+          "resource://gre/modules/UpdateUtils.jsm"
         ).UpdateUtils.UpdateChannel;
       } catch (ex) {}
       if (updateChannel) {
@@ -1694,9 +1685,16 @@ BrowserGlue.prototype = {
     PlacesUtils.favicons.setDefaultIconURIPreferredSize(
       16 * aWindow.devicePixelRatio
     );
+
+    // Keep track of the initial default cookie behavior to revert to when
+    // users opt-out. This is used by _setDefaultCookieBehavior.
+    BrowserGlue._defaultCookieBehaviorAtStartup = Services.prefs
+      .getDefaultBranch("")
+      .getIntPref("network.cookie.cookieBehavior");
     // _setDefaultCookieBehavior needs to run before other functions that modify
     // privacy preferences such as _setPrefExpectationsAndUpdate and _matchCBCategory
     this._setDefaultCookieBehavior();
+
     this._setPrefExpectationsAndUpdate();
     this._matchCBCategory();
 
@@ -1718,7 +1716,15 @@ BrowserGlue.prototype = {
       this._matchCBCategory
     );
     Services.prefs.addObserver(
+      "network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation",
+      this._matchCBCategory
+    );
+    Services.prefs.addObserver(
       "privacy.partition.network_state.ocsp_cache",
+      this._matchCBCategory
+    );
+    Services.prefs.addObserver(
+      "privacy.query_stripping.enabled",
       this._matchCBCategory
     );
     Services.prefs.addObserver(
@@ -1741,6 +1747,7 @@ BrowserGlue.prototype = {
       PREF_DFPI_ENABLED_BY_DEFAULT,
       this._setDefaultCookieBehavior
     );
+    NimbusFeatures.tcpByDefault.onUpdate(this._setDefaultCookieBehavior);
   },
 
   _updateAutoplayPref() {
@@ -1754,55 +1761,55 @@ BrowserGlue.prototype = {
     }
   },
 
-  // For the initial rollout of dFPI, set the default cookieBehavior based on the pref
-  // set during onboarding when the user chooses to enable protections or not.
   _setDefaultCookieBehavior() {
+    let defaultPrefs = Services.prefs.getDefaultBranch("");
+
+    let hasCookieBehaviorPolicy = () =>
+      Services.policies.status == Services.policies.ACTIVE &&
+      Services.policies.getActivePolicies()?.Cookies?.Behavior;
+
+    // For phase 2 we enable dFPI / TCP for all clients which are part of the
+    // rollout.
+    // Avoid overwriting cookie behavior set by enterprise policy.
+    if (NimbusFeatures.tcpByDefault.isEnabled() && !hasCookieBehaviorPolicy()) {
+      Services.telemetry.scalarSet(
+        "privacy.dfpi_rollout_tcpByDefault_feature",
+        true
+      );
+
+      // Enable TCP by updating the default pref state for cookie behaviour. This
+      // means we won't override user choice.
+      defaultPrefs.setIntPref(
+        "network.cookie.cookieBehavior",
+        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN
+      );
+
+      return;
+    }
+    Services.telemetry.scalarSet(
+      "privacy.dfpi_rollout_tcpByDefault_feature",
+      false
+    );
+
+    // For the initial rollout of dFPI, set the default cookieBehavior based on the pref
+    // set during onboarding when the user chooses to enable protections or not.
     if (!Services.prefs.prefHasUserValue(PREF_DFPI_ENABLED_BY_DEFAULT)) {
       Services.telemetry.scalarSet("privacy.dfpi_rollout_enabledByDefault", 2);
       return;
     }
     let dFPIEnabled = Services.prefs.getBoolPref(PREF_DFPI_ENABLED_BY_DEFAULT);
 
-    let defaultPrefs = Services.prefs.getDefaultBranch("");
     defaultPrefs.setIntPref(
       "network.cookie.cookieBehavior",
       dFPIEnabled
         ? Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN
-        : Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER
+        : BrowserGlue._defaultCookieBehaviorAtStartup
     );
 
     Services.telemetry.scalarSet(
       "privacy.dfpi_rollout_enabledByDefault",
       dFPIEnabled ? 1 : 0
     );
-
-    if (dFPIEnabled) {
-      Services.prefs.setStringPref(
-        "browser.search.param.google_channel_us",
-        "tus7"
-      );
-      Services.prefs.setStringPref(
-        "browser.search.param.google_channel_row",
-        "trow7"
-      );
-      Services.prefs.setStringPref(
-        "browser.search.param.bing_ptag",
-        "MOZZ0000000031"
-      );
-    } else {
-      Services.prefs.setStringPref(
-        "browser.search.param.google_channel_us",
-        "xus7"
-      );
-      Services.prefs.setStringPref(
-        "browser.search.param.google_channel_row",
-        "xrow7"
-      );
-      Services.prefs.setStringPref(
-        "browser.search.param.bing_ptag",
-        "MOZZ0000000032"
-      );
-    }
   },
 
   _setPrefExpectations() {
@@ -1986,13 +1993,8 @@ BrowserGlue.prototype = {
       () => Normandy.uninit(),
       () => RFPHelper.uninit(),
       () => ASRouterNewTabHook.destroy(),
+      () => UpdateListener.reset(),
     ];
-
-    tasks.push(
-      ...Object.values(initializedModules)
-        .filter(m => m.uninit)
-        .map(m => () => m.uninit())
-    );
 
     for (let task of tasks) {
       try {
@@ -2019,6 +2021,9 @@ BrowserGlue.prototype = {
     const ID = "screenshots@mozilla.org";
     const _checkScreenshotsPref = async () => {
       let addon = await AddonManager.getAddonByID(ID);
+      if (!addon) {
+        return;
+      }
       let screenshotsDisabled = Services.prefs.getBoolPref(
         SCREENSHOTS_PREF,
         false
@@ -2048,6 +2053,9 @@ BrowserGlue.prototype = {
     const ID = "webcompat-reporter@mozilla.org";
     Services.prefs.addObserver(PREF, async () => {
       let addon = await AddonManager.getAddonByID(ID);
+      if (!addon) {
+        return;
+      }
       let enabled = Services.prefs.getBoolPref(PREF, false);
       if (enabled && !addon.isActive) {
         await addon.enable({ allowSystemAddons: true });
@@ -2055,45 +2063,6 @@ BrowserGlue.prototype = {
         await addon.disable({ allowSystemAddons: true });
       }
     });
-  },
-
-  // Set up a listener to enable/disable the translation extension
-  // based on its preference.
-  _monitorTranslationsPref() {
-    const PREF = "extensions.translations.disabled";
-    const ID = "firefox-translations@mozilla.org";
-    const oldID = "firefox-infobar-ui-bergamot-browser-extension@browser.mt";
-
-    // First, try to uninstall the old extension, if exists.
-    (async () => {
-      let addon = await AddonManager.getAddonByID(oldID);
-      if (addon) {
-        addon.uninstall().catch(Cu.reportError);
-      }
-    })();
-
-    const _checkTranslationsPref = async () => {
-      let addon = await AddonManager.getAddonByID(ID);
-      let disabled = Services.prefs.getBoolPref(PREF, false);
-      if (!addon && disabled) {
-        // not installed, bail out early.
-        return;
-      }
-      if (!disabled) {
-        // first time install of addon and install on firefox update
-        addon =
-          (await AddonManager.maybeInstallBuiltinAddon(
-            ID,
-            "0.4.3",
-            "resource://builtin-addons/translations/"
-          )) || addon;
-        await addon.enable();
-      } else if (addon) {
-        await addon.disable();
-      }
-    };
-    Services.prefs.addObserver(PREF, _checkTranslationsPref);
-    _checkTranslationsPref();
   },
 
   async _setupSearchDetection() {
@@ -2336,7 +2305,7 @@ BrowserGlue.prototype = {
 
     if (AppConstants.ASAN_REPORTER) {
       var { AsanReporter } = ChromeUtils.import(
-        "resource:///modules/AsanReporter.jsm"
+        "resource://gre/modules/AsanReporter.jsm"
       );
       AsanReporter.init();
     }
@@ -2366,9 +2335,6 @@ BrowserGlue.prototype = {
     this._monitorIonStudies();
     this._setupSearchDetection();
 
-    if (AppConstants.NIGHTLY_BUILD) {
-      this._monitorTranslationsPref();
-    }
     this._monitorGPCPref();
     this._monitorPrivacySegmentationPref();
   },
@@ -2496,11 +2462,22 @@ BrowserGlue.prototype = {
           let shellService = Cc[
             "@mozilla.org/browser/shell-service;1"
           ].getService(Ci.nsIWindowsShellService);
+          let winTaskbar = Cc["@mozilla.org/windows-taskbar;1"].getService(
+            Ci.nsIWinTaskbar
+          );
 
           try {
             Services.telemetry.scalarSet(
               "os.environment.is_taskbar_pinned",
-              await shellService.isCurrentAppPinnedToTaskbarAsync()
+              await shellService.isCurrentAppPinnedToTaskbarAsync(
+                winTaskbar.defaultGroupId
+              )
+            );
+            Services.telemetry.scalarSet(
+              "os.environment.is_taskbar_pinned_private",
+              await shellService.isCurrentAppPinnedToTaskbarAsync(
+                winTaskbar.defaultPrivateGroupId
+              )
             );
           } catch (ex) {
             Cu.reportError(ex);
@@ -2560,12 +2537,10 @@ BrowserGlue.prototype = {
             WINTASKBAR_CONTRACTID in Cc &&
             Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available
           ) {
-            let temp = {};
-            ChromeUtils.import(
-              "resource:///modules/WindowsJumpLists.jsm",
-              temp
+            const { WinTaskbarJumpList } = ChromeUtils.import(
+              "resource:///modules/WindowsJumpLists.jsm"
             );
-            temp.WinTaskbarJumpList.startup();
+            WinTaskbarJumpList.startup();
           }
         },
       },
@@ -2739,10 +2714,8 @@ BrowserGlue.prototype = {
           // `UpdateService.disabledForTesting`, but without creating the
           // service, which can perform a good deal of I/O in order to log its
           // state.  Since this is in the startup path, we avoid all of that.
-          // We also don't test for Marionette and Remote Agent since they are
-          // not yet initialized.
           let disabledForTesting =
-            Cu.isInAutomation &&
+            (Cu.isInAutomation || Marionette.running || RemoteAgent.running) &&
             Services.prefs.getBoolPref("app.update.disabledForTesting", false);
           if (!disabledForTesting) {
             BackgroundUpdate.maybeScheduleBackgroundUpdateTask();
@@ -2765,11 +2738,33 @@ BrowserGlue.prototype = {
           this._collectTelemetryPiPEnabled();
         },
       },
-
-      // WebDriver components (Remote Agent and Marionette) need to be
-      // initialized as very last step.
+      // Schedule a sync (if enabled) after we've loaded
       {
-        condition: AppConstants.ENABLE_WEBDRIVER,
+        task: async () => {
+          if (WeaveService.enabled) {
+            await WeaveService.whenLoaded();
+            WeaveService.Weave.Service.scheduler.autoConnect();
+          }
+        },
+      },
+
+      {
+        condition: AppConstants.platform == "win",
+        task: () => {
+          Services.obs.notifyObservers(
+            null,
+            "unblock-untrusted-modules-thread"
+          );
+        },
+      },
+
+      {
+        task: () => {
+          UpdateListener.maybeShowUnsupportedNotification();
+        },
+      },
+
+      {
         task: () => {
           // Use idleDispatch a second time to run this after the per-window
           // idle tasks.
@@ -2778,15 +2773,10 @@ BrowserGlue.prototype = {
               null,
               "browser-startup-idle-tasks-finished"
             );
-
-            // Request startup of the Remote Agent (support for WebDriver BiDi
-            // and the partial Chrome DevTools protocol) before Marionette.
-            Services.obs.notifyObservers(null, "remote-startup-requested");
-            Services.obs.notifyObservers(null, "marionette-startup-requested");
           });
         },
       },
-      // Do NOT add anything after WebDriver initialization.
+      // Do NOT add anything after idle tasks finished.
     ];
 
     for (let task of idleTasks) {
@@ -2828,7 +2818,7 @@ BrowserGlue.prototype = {
   _scheduleBestEffortUserIdleTasks() {
     const idleTasks = [
       () => {
-        // Telemetry for master-password - we do this after a delay as it
+        // Telemetry for primary-password - we do this after a delay as it
         // can cause IO if NSS/PSM has not already initialized.
         let tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"].getService(
           Ci.nsIPK11TokenDB
@@ -2843,9 +2833,10 @@ BrowserGlue.prototype = {
       },
 
       () => {
-        let obj = {};
-        ChromeUtils.import("resource://gre/modules/GMPInstallManager.jsm", obj);
-        this._gmpInstallManager = new obj.GMPInstallManager();
+        let { GMPInstallManager } = ChromeUtils.import(
+          "resource://gre/modules/GMPInstallManager.jsm"
+        );
+        this._gmpInstallManager = new GMPInstallManager();
         // We don't really care about the results, if someone is interested they
         // can check the log.
         this._gmpInstallManager.simpleCheckAndInstall().catch(() => {});
@@ -3404,7 +3395,7 @@ BrowserGlue.prototype = {
   _migrateUI: function BG__migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 124;
+    const UI_VERSION = 128;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     const PROFILE_DIR = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
@@ -4162,20 +4153,85 @@ BrowserGlue.prototype = {
       Services.prefs.clearUserPref(oldCreditCardsAvailable);
     }
 
+    if (currentUIVersion < 125) {
+      // Bug 1756243 - Clear PiP cached coordinates since we changed their
+      // coordinate space.
+      const PIP_PLAYER_URI =
+        "chrome://global/content/pictureinpicture/player.xhtml";
+      try {
+        for (let value of ["left", "top", "width", "height"]) {
+          Services.xulStore.removeValue(
+            PIP_PLAYER_URI,
+            "picture-in-picture",
+            value
+          );
+        }
+      } catch (ex) {
+        Cu.reportError("Failed to clear XULStore PiP values: " + ex);
+      }
+    }
+
+    if (currentUIVersion < 126) {
+      // Bug 1747343 - Add a pref to set the default download action to "Always
+      // ask" so the UCT dialog will be opened for mime types that are not
+      // stored already. Users who wanted this behavior would have disabled the
+      // experimental pref browser.download.improvements_to_download_panel so we
+      // can migrate its inverted value to this new pref.
+      if (
+        !Services.prefs.getBoolPref(
+          "browser.download.improvements_to_download_panel",
+          true
+        )
+      ) {
+        Services.prefs.setBoolPref(
+          "browser.download.always_ask_before_handling_new_types",
+          true
+        );
+      }
+    }
+
+    // Bug 1769071: The UI Version 127 was used for a clean up code that is not
+    // necessary anymore. Please do not use 127 because this number is probably
+    // set in Nightly and Beta channel.
+
+    // Non-macOS only (on macOS we've never used the tmp folder for downloads):
+    if (AppConstants.platform != "macosx" && currentUIVersion < 128) {
+      // Bug 1738574 - Add a pref to start downloads in the tmp folder.
+      // Users who wanted this behavior would have disabled the experimental
+      // pref browser.download.improvements_to_download_panel so we
+      // can migrate its inverted value to this new pref.
+      if (
+        !Services.prefs.getBoolPref(
+          "browser.download.improvements_to_download_panel",
+          true
+        )
+      ) {
+        Services.prefs.setBoolPref(
+          "browser.download.start_downloads_in_tmp_dir",
+          true
+        );
+      }
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
 
-  _showUpgradeDialog() {
-    BrowserWindowTracker.getTopWindow().gDialogBox.open(
-      "chrome://browser/content/upgradeDialog.html"
-    );
+  async _showUpgradeDialog() {
+    const data = await OnboardingMessageProvider.getUpgradeMessage();
+    const win = BrowserWindowTracker.getTopWindow();
+    const browser = win.gBrowser.selectedBrowser;
+    const config = {
+      type: "SHOW_SPOTLIGHT",
+      data,
+    };
+    SpecialMessageActions.handleAction(config, browser);
   },
 
   async _maybeShowDefaultBrowserPrompt() {
     // Highest priority is the upgrade dialog, which can include a "primary
     // browser" request and is limited in various ways, e.g., major upgrades.
-    const dialogVersion = 94;
+    const dialogVersion = 100;
     const dialogVersionPref = "browser.startup.upgradeDialog.version";
     const dialogReason = await (async () => {
       if (!BrowserHandler.majorUpgrade) {
@@ -4221,10 +4277,6 @@ BrowserGlue.prototype = {
     // Show the upgrade dialog if allowed and remember the version.
     if (!dialogReason) {
       Services.prefs.setIntPref(dialogVersionPref, dialogVersion);
-
-      // Show Firefox Home behind the upgrade dialog to see theme changes.
-      const { gBrowser } = BrowserWindowTracker.getTopWindow();
-      gBrowser.selectedTab = gBrowser.addTrustedTab("about:home");
       this._showUpgradeDialog();
       return;
     }
@@ -4383,7 +4435,7 @@ BrowserGlue.prototype = {
         } else {
           tab = win.gBrowser.addWebTab(URI.uri);
         }
-        tab.setAttribute("attention", true);
+        tab.attention = true;
         return tab;
       };
 
@@ -4482,7 +4534,7 @@ BrowserGlue.prototype = {
     } else {
       tab = win.gBrowser.addWebTab(url);
     }
-    tab.setAttribute("attention", true);
+    tab.attention = true;
     let clickCallback = (subject, topic, data) => {
       if (topic != "alertclickcallback") {
         return;
@@ -4563,65 +4615,6 @@ BrowserGlue.prototype = {
       true,
       null,
       clickCallback
-    );
-  },
-
-  _handleFlashHang() {
-    ++this._flashHangCount;
-    if (this._flashHangCount < 2) {
-      return;
-    }
-    // protected mode only applies to win32
-    if (Services.appinfo.XPCOMABI != "x86-msvc") {
-      return;
-    }
-
-    if (
-      Services.prefs.getBoolPref("dom.ipc.plugins.flash.disable-protected-mode")
-    ) {
-      return;
-    }
-    if (
-      !Services.prefs.getBoolPref("browser.flash-protected-mode-flip.enable")
-    ) {
-      return;
-    }
-    if (Services.prefs.getBoolPref("browser.flash-protected-mode-flip.done")) {
-      return;
-    }
-    Services.prefs.setBoolPref(
-      "dom.ipc.plugins.flash.disable-protected-mode",
-      true
-    );
-    Services.prefs.setBoolPref("browser.flash-protected-mode-flip.done", true);
-
-    let win = BrowserWindowTracker.getTopWindow();
-    if (!win) {
-      return;
-    }
-    let productName = gBrandBundle.GetStringFromName("brandShortName");
-    let message = win.gNavigatorBundle.getFormattedString("flashHang.message", [
-      productName,
-    ]);
-    let buttons = [
-      {
-        label: win.gNavigatorBundle.getString("flashHang.helpButton.label"),
-        accessKey: win.gNavigatorBundle.getString(
-          "flashHang.helpButton.accesskey"
-        ),
-        link:
-          "https://support.mozilla.org/kb/flash-protected-mode-autodisabled",
-      },
-    ];
-
-    // XXXndeakin is this notification still relevant?
-    win.gNotificationBox.appendNotification(
-      "flash-hang",
-      {
-        label: message,
-        priority: win.gNotificationBox.PRIORITY_INFO_MEDIUM,
-      },
-      buttons
     );
   },
 
@@ -4716,7 +4709,9 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.trackingprotection.cryptomining.enabled": null,
         "privacy.annotate_channels.strict_list.enabled": null,
         "network.http.referer.disallowCrossSiteRelaxingDefault": null,
+        "network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation": null,
         "privacy.partition.network_state.ocsp_cache": null,
+        "privacy.query_stripping.enabled": null,
       },
       standard: {
         "network.cookie.cookieBehavior": null,
@@ -4728,7 +4723,9 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.trackingprotection.cryptomining.enabled": null,
         "privacy.annotate_channels.strict_list.enabled": null,
         "network.http.referer.disallowCrossSiteRelaxingDefault": null,
+        "network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation": null,
         "privacy.partition.network_state.ocsp_cache": null,
+        "privacy.query_stripping.enabled": null,
       },
     };
     let type = "strict";
@@ -4807,6 +4804,16 @@ var ContentBlockingCategoriesPrefs = {
             "network.http.referer.disallowCrossSiteRelaxingDefault"
           ] = false;
           break;
+        case "rpTop":
+          this.CATEGORY_PREFS[type][
+            "network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation"
+          ] = true;
+          break;
+        case "-rpTop":
+          this.CATEGORY_PREFS[type][
+            "network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation"
+          ] = false;
+          break;
         case "ocsp":
           this.CATEGORY_PREFS[type][
             "privacy.partition.network_state.ocsp_cache"
@@ -4816,6 +4823,12 @@ var ContentBlockingCategoriesPrefs = {
           this.CATEGORY_PREFS[type][
             "privacy.partition.network_state.ocsp_cache"
           ] = false;
+          break;
+        case "qps":
+          this.CATEGORY_PREFS[type]["privacy.query_stripping.enabled"] = true;
+          break;
+        case "-qps":
+          this.CATEGORY_PREFS[type]["privacy.query_stripping.enabled"] = false;
           break;
         case "cookieBehavior0":
           this.CATEGORY_PREFS[type]["network.cookie.cookieBehavior"] =

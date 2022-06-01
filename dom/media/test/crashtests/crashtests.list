@@ -1,3 +1,4 @@
+skip-if(OSX) load 1185191.html # this needs to run near the beginning of the test suite
 load 0-timescale.html # bug 1229166
 skip-if(Android) pref(media.autoplay.default,0) load 459439-1.html # bug 888557
 load 466607-1.html
@@ -151,3 +152,7 @@ skip-if(appleSilicon) load 1517199.html
 load 1734008.html
 load 1741677.html
 load 1748272.html
+load 1752917.html
+load 1762620.html
+load 1765842.html
+load 1770073.html

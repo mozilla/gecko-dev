@@ -83,6 +83,9 @@ Maybe<gfx::ColorRange> ColorRangeFromBufferDescriptor(
 Maybe<StereoMode> StereoModeFromBufferDescriptor(
     const BufferDescriptor& aDescriptor);
 
+Maybe<gfx::ChromaSubsampling> ChromaSubsamplingFromBufferDescriptor(
+    const BufferDescriptor& aDescriptor);
+
 uint8_t* GetYChannel(uint8_t* aBuffer, const YCbCrDescriptor& aDescriptor);
 
 uint8_t* GetCbChannel(uint8_t* aBuffer, const YCbCrDescriptor& aDescriptor);
@@ -99,6 +102,8 @@ void ConvertAndScaleFromYCbCrDescriptor(uint8_t* aBuffer,
                                         const gfx::IntSize& aDestSize,
                                         unsigned char* aDestBuffer,
                                         int32_t aStride);
+
+gfx::IntSize GetCroppedCbCrSize(const YCbCrDescriptor& aDescriptor);
 
 }  // namespace ImageDataSerializer
 

@@ -7,6 +7,7 @@
 #include "LocalAccessible-inl.h"
 #include "AccIterator.h"
 #include "AccAttributes.h"
+#include "CachedTableAccessible.h"
 #include "DocAccessible-inl.h"
 #include "DocAccessibleChild.h"
 #include "HTMLImageMapAccessible.h"
@@ -158,7 +159,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DocAccessible)
   NS_INTERFACE_MAP_ENTRY(nsIDocumentObserver)
   NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
-  NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsIAccessiblePivotObserver)
 NS_INTERFACE_MAP_END_INHERITING(HyperTextAccessible)
 
@@ -399,6 +399,10 @@ void DocAccessible::Init() {
     // harm even if it isn't necessary. We set mLoadEventType here and it will
     // be fired in ProcessLoad as usual.
     mLoadEventType = nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE;
+  } else if (mDocumentNode->IsInitialDocument()) {
+    // The initial about:blank document will never finish loading, so we can
+    // immediately mark it loaded to avoid waiting for its load.
+    mLoadState |= eDOMLoaded;
   }
 
   AddEventListeners();
@@ -449,6 +453,10 @@ void DocAccessible::Shutdown() {
   }
 
   mChildDocuments.Clear();
+  // mQueuedCacheUpdates can contain a reference to this document (ex. if the
+  // doc is scrollable and we're sending a scroll position update). Clear the
+  // map here to avoid creating ref cycles.
+  mQueuedCacheUpdates.Clear();
 
   // XXX thinking about ordering?
   if (mIPCDoc) {
@@ -546,17 +554,6 @@ nsRect DocAccessible::RelativeBounds(nsIFrame** aRelativeFrame) const {
 
 // DocAccessible protected member
 nsresult DocAccessible::AddEventListeners() {
-  nsCOMPtr<nsIDocShell> docShell(mDocumentNode->GetDocShell());
-
-  // We want to add a command observer only if the document is content and has
-  // an editor.
-  if (docShell->ItemType() == nsIDocShellTreeItem::typeContent) {
-    RefPtr<nsCommandManager> commandManager = docShell->GetCommandManager();
-    if (commandManager) {
-      commandManager->AddCommandObserver(this, "obs_documentCreated");
-    }
-  }
-
   SelectionMgr()->AddDocSelectionListener(mPresShell);
 
   // Add document observer.
@@ -571,18 +568,6 @@ nsresult DocAccessible::RemoveEventListeners() {
 
   if (mDocumentNode) {
     mDocumentNode->RemoveObserver(this);
-
-    nsCOMPtr<nsIDocShell> docShell(mDocumentNode->GetDocShell());
-    NS_ASSERTION(docShell, "doc should support nsIDocShellTreeItem.");
-
-    if (docShell) {
-      if (docShell->ItemType() == nsIDocShellTreeItem::typeContent) {
-        RefPtr<nsCommandManager> commandManager = docShell->GetCommandManager();
-        if (commandManager) {
-          commandManager->RemoveCommandObserver(this, "obs_documentCreated");
-        }
-      }
-    }
   }
 
   if (mScrollWatchTimer) {
@@ -616,6 +601,13 @@ void DocAccessible::ScrollTimerCallback(nsITimer* aTimer, void* aClosure) {
 }
 
 void DocAccessible::HandleScroll(nsINode* aTarget) {
+  // Regardless of our scroll timer, we need to send a cache update
+  // to ensure the next Bounds() query accurately reflects our position
+  // after scrolling.
+  if (LocalAccessible* scrollTarget = GetAccessible(aTarget)) {
+    QueueCacheUpdate(scrollTarget, CacheDomain::ScrollPosition);
+  }
+
   const uint32_t kScrollEventInterval = 100;
   // If we haven't dispatched a scrolling event for a target in at least
   // kScrollEventInterval milliseconds, dispatch one now.
@@ -648,23 +640,28 @@ void DocAccessible::HandleScroll(nsINode* aTarget) {
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// nsIObserver
+std::pair<nsPoint, nsRect> DocAccessible::ComputeScrollData(
+    LocalAccessible* aAcc) {
+  nsPoint scrollPoint;
+  nsRect scrollRange;
 
-NS_IMETHODIMP
-DocAccessible::Observe(nsISupports* aSubject, const char* aTopic,
-                       const char16_t* aData) {
-  if (!nsCRT::strcmp(aTopic, "obs_documentCreated")) {
-    // State editable will now be set, readonly is now clear
-    // Normally we only fire delayed events created from the node, not an
-    // accessible object. See the AccStateChangeEvent constructor for details
-    // about this exceptional case.
-    RefPtr<AccEvent> event =
-        new AccStateChangeEvent(this, states::EDITABLE, true);
-    FireDelayedEvent(event);
+  if (nsIFrame* frame = aAcc->GetFrame()) {
+    nsIScrollableFrame* sf = aAcc == this
+                                 ? mPresShell->GetRootScrollFrameAsScrollable()
+                                 : frame->GetScrollTargetFrame();
+
+    // If there is no scrollable frame, it's likely a scroll in a popup, like
+    // <select>. Return a scroll offset and range of 0. The scroll info
+    // is currently only used on Android, and popups are rendered natively
+    // there.
+    if (sf) {
+      scrollPoint = sf->GetScrollPosition() * mPresShell->GetResolution();
+      scrollRange = sf->GetScrollRange();
+      scrollRange.ScaleRoundOut(mPresShell->GetResolution());
+    }
   }
 
-  return NS_OK;
+  return {scrollPoint, scrollRange};
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -868,6 +865,20 @@ void DocAccessible::ContentAppended(nsIContent* aFirstNewContent) {}
 void DocAccessible::ContentStateChanged(dom::Document* aDocument,
                                         nsIContent* aContent,
                                         EventStates aStateMask) {
+  if (aStateMask.HasState(NS_EVENT_STATE_READWRITE) &&
+      aContent == mDocumentNode->GetRootElement()) {
+    // This handles changes to designMode. contentEditable is handled by
+    // LocalAccessible::AttributeChangesState and
+    // LocalAccessible::DOMAttributeChanged.
+    const bool isEditable =
+        aContent->AsElement()->State().HasState(NS_EVENT_STATE_READWRITE);
+    RefPtr<AccEvent> event =
+        new AccStateChangeEvent(this, states::EDITABLE, isEditable);
+    FireDelayedEvent(event);
+    event = new AccStateChangeEvent(this, states::READONLY, !isEditable);
+    FireDelayedEvent(event);
+  }
+
   LocalAccessible* accessible = GetAccessible(aContent);
   if (!accessible) return;
 
@@ -1288,6 +1299,19 @@ bool DocAccessible::PruneOrInsertSubtree(nsIContent* aRoot) {
     // cache, which listens for the following event.
     if (acc->IsTable() || acc->IsTableRow() || acc->IsTableCell()) {
       FireDelayedEvent(nsIAccessibleEvent::EVENT_TABLE_STYLING_CHANGED, acc);
+      LocalAccessible* table;
+      if (acc->IsTable()) {
+        table = acc;
+      } else {
+        for (table = acc->LocalParent(); table; table = table->LocalParent()) {
+          if (table->IsTable()) {
+            break;
+          }
+        }
+      }
+      if (table && table->IsTable()) {
+        QueueCacheUpdate(acc, CacheDomain::Table);
+      }
     }
 
     // The accessible can be reparented or reordered in its parent.
@@ -1404,7 +1428,7 @@ void DocAccessible::ProcessQueuedCacheUpdates() {
   for (auto iter = mQueuedCacheUpdates.Iter(); !iter.Done(); iter.Next()) {
     LocalAccessible* acc = iter.Key();
     uint64_t domain = iter.UserData();
-    if (!acc->IsDefunct()) {
+    if (acc->IsInDocument() && !acc->IsDefunct()) {
       RefPtr<AccAttributes> fields =
           acc->BundleFieldsForCache(domain, CacheUpdateType::Update);
 
@@ -2048,8 +2072,8 @@ void DocAccessible::ContentRemoved(LocalAccessible* aChild) {
     }
   }
   MOZ_DIAGNOSTIC_ASSERT(aChild->LocalParent(), "Unparented #2");
-  parent->RemoveChild(aChild);
   UncacheChildrenInSubtree(aChild);
+  parent->RemoveChild(aChild);
 
   mt.Done();
 }
@@ -2446,6 +2470,14 @@ void DocAccessible::UncacheChildrenInSubtree(LocalAccessible* aRoot) {
   aRoot->mStateFlags |= eIsNotInDocument;
   RemoveDependentIDsFor(aRoot);
 
+  // The parent of the removed subtree is about to be cleared, so we must do
+  // this here rather than in LocalAccessible::UnbindFromParent because we need
+  // the ancestry for this to work.
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup() &&
+      (aRoot->IsTable() || aRoot->IsTableCell())) {
+    CachedTableAccessible::Invalidate(aRoot);
+  }
+
   nsTArray<RefPtr<LocalAccessible>>* owned = mARIAOwnsHash.Get(aRoot);
   uint32_t count = aRoot->ContentChildCount();
   for (uint32_t idx = 0; idx < count; idx++) {
@@ -2541,31 +2573,19 @@ void DocAccessible::DispatchScrollingEvent(nsINode* aTarget,
     return;
   }
 
-  LayoutDevicePoint scrollPoint;
-  LayoutDeviceRect scrollRange;
-  nsIScrollableFrame* sf = acc == this
-                               ? mPresShell->GetRootScrollFrameAsScrollable()
-                               : frame->GetScrollTargetFrame();
+  auto [scrollPoint, scrollRange] = ComputeScrollData(acc);
 
-  // If there is no scrollable frame, it's likely a scroll in a popup, like
-  // <select>. Just send an event with no scroll info. The scroll info
-  // is currently only used on Android, and popups are rendered natively
-  // there.
-  if (sf) {
-    int32_t appUnitsPerDevPixel =
-        mPresShell->GetPresContext()->AppUnitsPerDevPixel();
-    scrollPoint = LayoutDevicePoint::FromAppUnits(sf->GetScrollPosition(),
-                                                  appUnitsPerDevPixel) *
-                  mPresShell->GetResolution();
+  int32_t appUnitsPerDevPixel =
+      mPresShell->GetPresContext()->AppUnitsPerDevPixel();
 
-    scrollRange = LayoutDeviceRect::FromAppUnits(sf->GetScrollRange(),
-                                                 appUnitsPerDevPixel);
-    scrollRange.ScaleRoundOut(mPresShell->GetResolution());
-  }
+  LayoutDeviceIntPoint scrollPointDP = LayoutDevicePoint::FromAppUnitsToNearest(
+      scrollPoint, appUnitsPerDevPixel);
+  LayoutDeviceIntRect scrollRangeDP =
+      LayoutDeviceRect::FromAppUnitsToNearest(scrollRange, appUnitsPerDevPixel);
 
   RefPtr<AccEvent> event =
-      new AccScrollingEvent(aEventType, acc, scrollPoint.x, scrollPoint.y,
-                            scrollRange.width, scrollRange.height);
+      new AccScrollingEvent(aEventType, acc, scrollPointDP.x, scrollPointDP.y,
+                            scrollRangeDP.width, scrollRangeDP.height);
   nsEventShell::FireEvent(event);
 }
 
@@ -2599,4 +2619,27 @@ void DocAccessible::SetRoleMapEntryForDoc(dom::Element* aElement) {
 LocalAccessible* DocAccessible::GetAccessible(nsINode* aNode) const {
   return aNode == mDocumentNode ? const_cast<DocAccessible*>(this)
                                 : mNodeToAccessibleMap.Get(aNode);
+}
+
+bool DocAccessible::HasPrimaryAction() const {
+  if (HyperTextAccessible::HasPrimaryAction()) {
+    return true;
+  }
+  // mContent is normally the body, but there might be a click listener on the
+  // root.
+  dom::Element* root = mDocumentNode->GetRootElement();
+  if (mContent != root) {
+    return nsCoreUtils::HasClickListener(root);
+  }
+  return false;
+}
+
+void DocAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
+  aName.Truncate();
+  if (aIndex != 0) {
+    return;
+  }
+  if (HasPrimaryAction()) {
+    aName.AssignLiteral("click");
+  }
 }

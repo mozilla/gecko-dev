@@ -18,6 +18,7 @@
 // it may take quite a long time.
 // This requires more twice as much as the default 45 seconds per test:
 requestLongerTimeout(2);
+SimpleTest.requestCompleteLog();
 
 add_task(async function() {
   await setup();
@@ -33,7 +34,8 @@ add_task(async function() {
   });
 
   // Top-Level scheme: HTTP
-  testSet.push(
+  // NOTE(freddyb): Test case temporarily disabled. See bug 1735565
+  /*testSet.push(
     runTest({
       queryString: "test1.1",
       topLevelScheme: "http",
@@ -42,7 +44,7 @@ add_task(async function() {
       expectedSameOrigin: "http",
       expectedCrossOrigin: "http",
     })
-  );
+  );*/
   // Top-Level scheme: HTTPS
   testSet.push(
     runTest({
@@ -151,8 +153,11 @@ let shouldContain = [];
 let shouldNotContain = [];
 
 async function setup() {
+  info(`TEST-CASE-setup - A`);
   const response = await fetch(SERVER_URL("https") + "setup");
+  info(`TEST-CASE-setup - B`);
   const txt = await response.text();
+  info(`TEST-CASE-setup - C`);
   if (txt != "ok") {
     ok(false, "Failed to setup test server.");
     finish();
@@ -160,8 +165,11 @@ async function setup() {
 }
 
 async function evaluate() {
+  info(`TEST-CASE-evaluate - A`);
   const response = await fetch(SERVER_URL("https") + "results");
+  info(`TEST-CASE-evaluate - B`);
   const requestResults = (await response.text()).split(";");
+  info(`TEST-CASE-evaluate - C`);
 
   shouldContain.map(str =>
     ok(requestResults.includes(str), `Results should contain '${str}'.`)
@@ -173,6 +181,7 @@ async function evaluate() {
 
 async function runTest(test) {
   const queryString = test.queryString;
+  info(`TEST-CASE-${test.queryString} - runTest BEGIN`);
   await BrowserTestUtils.withNewTab("about:blank", async function(browser) {
     let loaded = BrowserTestUtils.browserLoaded(
       browser,
@@ -184,8 +193,11 @@ async function runTest(test) {
       browser,
       SERVER_URL(test.topLevelScheme) + queryString
     );
+    info(`TEST-CASE-${test.queryString} - Before 'await loaded'`);
     await loaded;
+    info(`TEST-CASE-${test.queryString} - After 'await loaded'`);
   });
+  info(`TEST-CASE-${test.queryString} - After 'await withNewTab'`);
 
   if (test.expectedTopLevel !== "fail") {
     shouldContain.push(`top-${queryString}-${test.expectedTopLevel}`);
@@ -207,4 +219,5 @@ async function runTest(test) {
     shouldNotContain.push(`org-${queryString}-http`);
     shouldNotContain.push(`org-${queryString}-https`);
   }
+  info(`TEST-CASE-${test.queryString} - runTest END`);
 }

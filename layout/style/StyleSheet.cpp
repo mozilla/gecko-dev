@@ -123,7 +123,8 @@ already_AddRefed<StyleSheet> StyleSheet::Constructor(
   sheet->SetURIs(sheetURI, originalURI, baseURI);
 
   sheet->SetPrincipal(constructorDocument->NodePrincipal());
-  sheet->SetReferrerInfo(constructorDocument->GetReferrerInfo());
+  auto referrerInfo = MakeRefPtr<ReferrerInfo>(*constructorDocument);
+  sheet->SetReferrerInfo(referrerInfo);
   sheet->mConstructorDocument = constructorDocument;
   if (constructorDocument) {
     sheet->mRelevantGlobal = constructorDocument->GetParentObject();
@@ -316,9 +317,15 @@ void StyleSheet::ApplicableStateChanged(bool aApplicable) {
     Notify(*sheet.mDocumentOrShadowRoot);
   }
 
+  if (sheet.mConstructorDocument) {
+    Notify(*sheet.mConstructorDocument);
+  }
+
   for (DocumentOrShadowRoot* adopter : sheet.mAdopters) {
     MOZ_ASSERT(adopter, "adopters should never be null");
-    Notify(*adopter);
+    if (adopter != sheet.mConstructorDocument) {
+      Notify(*adopter);
+    }
   }
 }
 
@@ -773,8 +780,8 @@ void StyleSheet::ReplaceSync(const nsACString& aText, ErrorResult& aRv) {
           .Consume();
 
   // 5. Set sheet's rules to the new rules.
-  DropRuleList();
   Inner().mContents = std::move(rawContent);
+  FixUpRuleListAfterContentsChangeIfNeeded();
   FinishParse();
   RuleChanged(nullptr, StyleRuleChangeKind::Generic);
 }
@@ -1109,18 +1116,25 @@ JSObject* StyleSheet::WrapObject(JSContext* aCx,
   return dom::CSSStyleSheet_Binding::Wrap(aCx, this, aGivenProto);
 }
 
+void StyleSheet::FixUpRuleListAfterContentsChangeIfNeeded(bool aFromClone) {
+  if (!mRuleList) {
+    return;
+  }
+
+  RefPtr<ServoCssRules> rules =
+      Servo_StyleSheet_GetRules(Inner().mContents.get()).Consume();
+  mRuleList->SetRawContents(std::move(rules), aFromClone);
+}
+
 void StyleSheet::FixUpAfterInnerClone() {
   MOZ_ASSERT(Inner().mSheets.Length() == 1, "Should've just cloned");
   MOZ_ASSERT(Inner().mSheets[0] == this);
   MOZ_ASSERT(Inner().mChildren.IsEmpty());
 
-  auto* contents = Inner().mContents.get();
-  RefPtr<ServoCssRules> rules = Servo_StyleSheet_GetRules(contents).Consume();
+  FixUpRuleListAfterContentsChangeIfNeeded(/* aFromClone = */ true);
 
-  if (mRuleList) {
-    mRuleList->SetRawAfterClone(rules);
-  }
-
+  RefPtr<ServoCssRules> rules =
+      Servo_StyleSheet_GetRules(Inner().mContents.get()).Consume();
   uint32_t index = 0;
   while (true) {
     uint32_t line, column;  // Actually unused.
@@ -1327,12 +1341,17 @@ void StyleSheet::ReparseSheet(const nsACString& aInput, ErrorResult& aRv) {
       MOZ_ASSERT(rule);
       RuleRemoved(*rule);
     }
-  }
 
-  DropRuleList();
+    // We need to clear the rule list here (rather than after parsing) because
+    // ParseSheetSync may reuse child sheets, which would cause us to end up
+    // with a wrong mChilden array.
+    ruleList->SetRawContents(nullptr, /* aFromClone = */ false);
+  }
 
   ParseSheetSync(loader, aInput, /* aLoadData = */ nullptr, lineNumber,
                  &reusableSheets);
+
+  FixUpRuleListAfterContentsChangeIfNeeded();
 
   // Notify the stylesets about the new rules.
   {

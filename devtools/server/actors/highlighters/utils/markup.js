@@ -134,14 +134,7 @@ ClassList.prototype = {
  * @return {Boolean}
  */
 function isXUL(window) {
-  // XXX: We temporarily return true for HTML documents if the document disables
-  // scroll frames since the regular highlighter is broken in this case. This
-  // should be removed when bug 1594587 is fixed.
-  return (
-    window.document.documentElement.namespaceURI === XUL_NS ||
-    (window.isChromeWindow &&
-      window.document.documentElement.getAttribute("scrolling") === "false")
-  );
+  return window.document.documentElement.namespaceURI === XUL_NS;
 }
 exports.isXUL = isXUL;
 
@@ -273,17 +266,21 @@ CanvasFrameAnonymousContentHelper.prototype = {
       // CanvasFrameAnonymousContentHelper was already destroyed.
       return;
     }
-    if (isXUL(this.highlighterEnv.window)) {
+
+    const window = this.highlighterEnv.window;
+    const isXULWindow = isXUL(window);
+    const isChromeWindow = window.isChromeWindow;
+
+    if (isXULWindow || isChromeWindow) {
       // In order to use anonymous content, we need to create and use an IFRAME
       // inside a XUL document first and use its window/document the same way we
-      // would normally use highlighter environment's window/document. See
-      // TODO: bug 1594587 for more details.
-      //
-      // Note: xul:window is not necessarily the top chrome window (as it's the
-      // case with about:devtools-toolbox). We need to ensure that we use the
-      // top chrome window to look up or create the iframe.
+      // would normally use highlighter environment's window/document.
+      // See Bug 1594587 for more details.
+      // For Chrome Windows, we also need to do it as the first call to insertAnonymousContent
+      // closes XUL popups even if ui.popup.disable_autohide is true (See Bug 1768896).
+
+      const { documentElement } = window.document;
       if (!this._iframe) {
-        const { documentElement } = this.highlighterEnv.window.document;
         this._iframe = documentElement.querySelector(
           ":scope > .devtools-highlighter-renderer"
         );
@@ -293,17 +290,17 @@ CanvasFrameAnonymousContentHelper.prototype = {
           const numberOfHighlighters =
             parseInt(this._iframe.dataset.numberOfHighlighters, 10) + 1;
           this._iframe.dataset.numberOfHighlighters = numberOfHighlighters;
-        } else {
-          this._iframe = this.highlighterEnv.window.document.createElement(
-            "iframe"
-          );
-          this._iframe.classList.add("devtools-highlighter-renderer");
-          // If iframe is used for the first time, add ref count of one to its
-          // numberOfHighlighters data attribute.
-          this._iframe.dataset.numberOfHighlighters = 1;
-          documentElement.append(this._iframe);
-          loadSheet(this.highlighterEnv.window, XUL_HIGHLIGHTER_STYLES_SHEET);
         }
+      }
+
+      if (!this._iframe) {
+        this._iframe = window.document.createElement("iframe");
+        this._iframe.classList.add("devtools-highlighter-renderer");
+        // If iframe is used for the first time, add ref count of one to its
+        // numberOfHighlighters data attribute.
+        this._iframe.dataset.numberOfHighlighters = 1;
+        documentElement.append(this._iframe);
+        loadSheet(window, XUL_HIGHLIGHTER_STYLES_SHEET);
       }
 
       if (this.waitForDocumentToLoad) {
@@ -767,9 +764,6 @@ function waitForContentLoaded(iframeOrWindow) {
  * @param  {String} options.position
  *         Force the infobar to be displayed either on "top" or "bottom". Any other value
  *         will be ingnored.
- * @param  {Boolean} options.hideIfOffscreen
- *         If set to `true`, hides the infobar if it's offscreen, instead of automatically
- *         reposition it.
  */
 function moveInfobar(container, bounds, win, options = {}) {
   const zoom = getCurrentZoom(win);
@@ -842,10 +836,7 @@ function moveInfobar(container, bounds, win, options = {}) {
     top -= pageYOffset;
   }
 
-  if (isOverlapTheNode && options.hideIfOffscreen) {
-    container.setAttribute("hidden", "true");
-    return;
-  } else if (isOverlapTheNode) {
+  if (isOverlapTheNode) {
     left = Math.min(Math.max(leftBoundary, left - pageXOffset), rightBoundary);
 
     position = "fixed";

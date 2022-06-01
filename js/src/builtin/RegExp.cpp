@@ -14,7 +14,6 @@
 
 #include "frontend/TokenStream.h"
 #include "irregexp/RegExpAPI.h"
-#include "jit/InlinableNatives.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_NEWREGEXP_FLAGGED
 #include "js/PropertySpec.h"
 #include "js/RegExpFlags.h"  // JS::RegExpFlag, JS::RegExpFlags
@@ -27,7 +26,6 @@
 
 #include "vm/EnvironmentObject-inl.h"
 #include "vm/JSObject-inl.h"
-#include "vm/NativeObject-inl.h"
 #include "vm/ObjectOperations-inl.h"
 #include "vm/PlainObject-inl.h"
 
@@ -854,8 +852,10 @@ static bool regexp_source(JSContext* cx, unsigned argc, JS::Value* vp) {
       [cx, args](RegExpObject* unwrapped) {
         RootedAtom src(cx, unwrapped->getSource());
         MOZ_ASSERT(src);
-        // Mark potentially cross-compartment JSAtom.
-        cx->markAtom(src);
+        // Mark potentially cross-zone JSAtom.
+        if (cx->zone() != unwrapped->zone()) {
+          cx->markAtom(src);
+        }
 
         // Step 7.
         JSString* escaped = EscapeRegExpPattern(cx, src);
@@ -1177,19 +1177,17 @@ bool js::RegExpMatcher(JSContext* cx, unsigned argc, Value* vp) {
  * This code cannot re-enter JIT code.
  */
 bool js::RegExpMatcherRaw(JSContext* cx, HandleObject regexp,
-                          HandleString input, int32_t maybeLastIndex,
+                          HandleString input, int32_t lastIndex,
                           MatchPairs* maybeMatches, MutableHandleValue output) {
+  MOZ_ASSERT(lastIndex >= 0 && size_t(lastIndex) <= input->length());
+
   // RegExp execution was successful only if the pairs have actually been
   // filled in. Note that IC code always passes a nullptr maybeMatches.
   if (maybeMatches && maybeMatches->pairsRaw()[0] > MatchPair::NoMatch) {
     RootedRegExpShared shared(cx, regexp->as<RegExpObject>().getShared());
     return CreateRegExpMatchResult(cx, shared, input, *maybeMatches, output);
   }
-
-  // |maybeLastIndex| only contains a valid value when the RegExp execution
-  // was not successful.
-  MOZ_ASSERT(maybeLastIndex >= 0);
-  return RegExpMatcherImpl(cx, regexp, input, maybeLastIndex, output);
+  return RegExpMatcherImpl(cx, regexp, input, lastIndex, output);
 }
 
 /*

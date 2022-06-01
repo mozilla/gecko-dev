@@ -921,6 +921,7 @@ class CCacheStats(object):
         ("bad_args", "Uncacheable/Bad compiler arguments"),
         ("autoconf", "Uncacheable/Autoconf compile/link"),
         ("no_input", "Uncacheable/No input file"),
+        ("unsupported_code_directive", "Uncacheable/Unsupported code directive"),
         ("num_cleanups", "Primary storage/Cleanups"),
         ("cache_files", "Primary storage/Files"),
         # Cache size is reported in GB, see
@@ -1069,6 +1070,8 @@ class CCacheStats(object):
             ts = time.strptime(raw_value, "%c")
             return int(time.mktime(ts))
         except ValueError:
+            if raw_value == "never":
+                return 0
             pass
 
         value = raw_value.split()
@@ -1221,6 +1224,7 @@ class BuildDriver(MozbuildObject):
         keep_going=False,
         mach_context=None,
         append_env=None,
+        virtualenv_topobjdir=None,
     ):
         """Invoke the build backend.
 
@@ -1298,6 +1302,7 @@ class BuildDriver(MozbuildObject):
                     buildstatus_messages=True,
                     line_handler=output.on_line,
                     append_env=append_env,
+                    virtualenv_topobjdir=virtualenv_topobjdir,
                 )
 
                 if config_rc != 0:
@@ -1636,6 +1641,7 @@ class BuildDriver(MozbuildObject):
         buildstatus_messages=False,
         line_handler=None,
         append_env=None,
+        virtualenv_topobjdir=None,
     ):
         # Disable indexing in objdir because it is not necessary and can slow
         # down builds.
@@ -1659,11 +1665,12 @@ class BuildDriver(MozbuildObject):
                 if eq == "=":
                     append_env[k] = v
 
+        virtualenv_topobjdir = virtualenv_topobjdir or self.topobjdir
         build_site = CommandSiteManager.from_environment(
             self.topsrcdir,
             lambda: get_state_dir(specific_to_topsrcdir=True, topsrcdir=self.topsrcdir),
             "build",
-            os.path.join(self.topobjdir, "_virtualenvs"),
+            os.path.join(virtualenv_topobjdir, "_virtualenvs"),
         )
         build_site.ensure()
 
@@ -1674,11 +1681,21 @@ class BuildDriver(MozbuildObject):
         if buildstatus_messages:
             line_handler("BUILDSTATUS TIERS configure")
             line_handler("BUILDSTATUS TIER_START configure")
-        status = self._run_command_in_objdir(
-            args=command,
-            line_handler=line_handler,
-            append_env=append_env,
-        )
+
+        env = os.environ.copy()
+        env.update(append_env)
+
+        with subprocess.Popen(
+            command,
+            cwd=self.topobjdir,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+        ) as process:
+            for line in process.stdout:
+                line_handler(line.rstrip())
+            status = process.wait()
         if buildstatus_messages:
             line_handler("BUILDSTATUS TIER_FINISH configure")
         if status:

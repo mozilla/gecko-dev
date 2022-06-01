@@ -9,14 +9,13 @@ import hashlib
 import io
 import logging
 import os
-import platform
 import re
 import subprocess
-import sys
 from collections import defaultdict, OrderedDict
 from distutils.version import LooseVersion
 from itertools import dropwhile
-from datetime import datetime
+from mozboot.util import MINIMUM_RUST_VERSION
+from pathlib import Path
 
 import pytoml
 import mozpack.path as mozpath
@@ -75,23 +74,18 @@ PACKAGES_WE_ALWAYS_WANT_AN_OVERRIDE_OF = [
 # add a comment as to why.
 TOLERATED_DUPES = {
     "arrayvec": 2,
-    "base64": 3,
+    "base64": 2,
     "bytes": 3,
-    "cfg-if": 2,
     "crossbeam-deque": 2,
     "crossbeam-epoch": 2,
     "crossbeam-utils": 3,
     "futures": 2,
-    "itertools": 2,
     "libloading": 2,
-    "memmap2": 2,
     "memoffset": 2,
     "mio": 2,
     "nix": 2,
     "pin-project-lite": 2,
-    "sfv": 2,
-    "target-lexicon": 2,
-    "tokio": 2,
+    "tokio": 3,
 }
 
 
@@ -116,10 +110,7 @@ class VendorRust(MozbuildObject):
 
     def check_cargo_version(self, cargo):
         """
-        Ensure that cargo is new enough. cargo 1.42 fixed some issue with
-        the vendor command. cargo 1.47 similarly did so for windows, but as of
-        this writing is the current nightly, so we restrict this check only to
-        the platform it's actually required on
+        Ensure that Cargo is new enough.
         """
         out = (
             subprocess.check_output([cargo, "--version"])
@@ -129,42 +120,20 @@ class VendorRust(MozbuildObject):
         if not out.startswith("cargo"):
             return False
         version = LooseVersion(out.split()[1])
-        if platform.system() == "Windows":
-            if version >= "1.47" and "nightly" in out:
-                # parsing the date from "cargo 1.47.0-nightly (aa6872140 2020-07-23)"
-                date_format = "%Y-%m-%d"
-                req_nightly = datetime.strptime("2020-07-23", date_format)
-                nightly = datetime.strptime(
-                    out.rstrip(")").rsplit(" ", 1)[1], date_format
-                )
-                if nightly < req_nightly:
-                    self.log(
-                        logging.ERROR,
-                        "cargo_version",
-                        {},
-                        "Cargo >= 1.47.0-nightly (2020-07-23) required (update your nightly)",
-                    )
-                    return False
-            elif version < "1.47":
-                self.log(
-                    logging.ERROR,
-                    "cargo_version",
-                    {},
-                    "Cargo >= 1.47 required (install Rust 1.47 or newer)",
-                )
-                return False
-        elif version < "1.42":
+        if version < MINIMUM_RUST_VERSION:
             self.log(
                 logging.ERROR,
                 "cargo_version",
                 {},
-                "Cargo >= 1.42 required (install Rust 1.42 or newer)",
+                "Cargo >= {0} required (install Rust {0} or newer)".format(
+                    MINIMUM_RUST_VERSION
+                ),
             )
             return False
         self.log(logging.DEBUG, "cargo_version", {}, "cargo is new enough")
         return True
 
-    def check_modified_files(self):
+    def has_modified_files(self):
         """
         Ensure that there aren't any uncommitted changes to files
         in the working copy, since we're going to change some state
@@ -190,7 +159,7 @@ Please commit or stash these changes before vendoring, or re-run with `--ignore-
                     files="\n".join(sorted(modified))
                 ),
             )
-            sys.exit(1)
+        return modified
 
     def check_openssl(self):
         """
@@ -348,6 +317,13 @@ Please commit or stash these changes before vendoring, or re-run with `--ignore-
         we will abort if that is detected. We'll handle `/` and OR as
         equivalent and approve is any is in our approved list."""
 
+        # This specific AND combination has been reviewed for encoding_rs.
+        if (
+            license_string == "(Apache-2.0 OR MIT) AND BSD-3-Clause"
+            and package == "encoding_rs"
+        ):
+            return True
+
         if re.search(r"\s+AND", license_string):
             return False
 
@@ -399,6 +375,7 @@ Please commit or stash these changes before vendoring, or re-run with `--ignore-
                         ),
                     )
                     return False
+            return True
 
         def check_package(package):
             self.log(
@@ -457,7 +434,8 @@ Please commit or stash these changes before vendoring, or re-run with `--ignore-
 
                 if license_matches:
                     license = license_matches[0].group(1)
-                    verify_acceptable_license(package, license)
+                    if not verify_acceptable_license(package, license):
+                        return False
                 else:
                     license_file = license_file_matches[0].group(1)
                     self.log(
@@ -521,12 +499,13 @@ license file's hash.
     ):
         self.populate_logger()
         self.log_manager.enable_unstructured()
-        if not ignore_modified:
-            self.check_modified_files()
+        if not ignore_modified and self.has_modified_files():
+            return False
 
         cargo = self._ensure_cargo()
         if not cargo:
-            return
+            self.log(logging.ERROR, "cargo_not_found", {}, "Cargo was not found.")
+            return False
 
         relative_vendor_dir = "third_party/rust"
         vendor_dir = mozpath.join(self.topsrcdir, relative_vendor_dir)
@@ -534,10 +513,17 @@ license file's hash.
         # We use check_call instead of mozprocess to ensure errors are displayed.
         # We do an |update -p| here to regenerate the Cargo.lock file with minimal
         # changes. See bug 1324462
-        subprocess.check_call([cargo, "update", "-p", "gkrust"], cwd=self.topsrcdir)
+        res = subprocess.run([cargo, "update", "-p", "gkrust"], cwd=self.topsrcdir)
+        if res.returncode:
+            self.log(logging.ERROR, "cargo_update_failed", {}, "Cargo update failed.")
+            return False
 
-        with open(os.path.join(self.topsrcdir, "Cargo.lock")) as fh:
+        with open(os.path.join(self.topsrcdir, "Cargo.lock")) as fh, open(
+            os.path.join(self.topsrcdir, "Cargo.toml")
+        ) as toml_fh:
             cargo_lock = pytoml.load(fh)
+            cargo_toml = pytoml.load(toml_fh)
+            patches = cargo_toml.get("patch", {}).get("crates-io", {})
             failed = False
             for package in cargo_lock.get("patch", {}).get("unused", []):
                 self.log(
@@ -570,6 +556,11 @@ license file's hash.
 
             for name, packages in grouped.items():
                 num = len(packages)
+                # Allow to have crates in build/rust that provide older versions
+                # of crates based on newer ones, implying there are at least two
+                # crates with the same name, one of them being under build/rust.
+                if patches.get(name, {}).get("path", "").startswith("build/rust"):
+                    num -= 1
                 expected = TOLERATED_DUPES.get(name, 1)
                 if num > expected:
                     self.log(
@@ -579,11 +570,12 @@ license file's hash.
                             "crate": name,
                             "num": num,
                             "expected": expected,
-                            "file": __file__,
+                            "file": Path(__file__).relative_to(self.topsrcdir),
                         },
                         "There are {num} different versions of crate {crate} "
-                        "(expected {expected}). Please void the extra duplication "
-                        "or adjust TOLERATED_DUPES in {file} if not possible.",
+                        "(expected {expected}). Please avoid the extra duplication "
+                        "or adjust TOLERATED_DUPES in {file} if not possible "
+                        "(but we'd prefer the former).",
                     )
                     failed = True
                 elif num < expected and num > 1:
@@ -594,20 +586,20 @@ license file's hash.
                             "crate": name,
                             "num": num,
                             "expected": expected,
-                            "file": __file__,
+                            "file": Path(__file__).relative_to(self.topsrcdir),
                         },
                         "There are {num} different versions of crate {crate} "
                         "(expected {expected}). Please adjust TOLERATED_DUPES in "
                         "{file} to reflect this improvement.",
                     )
                     failed = True
-                elif num < expected:
+                elif num < expected and num > 0:
                     self.log(
                         logging.ERROR,
                         "less_duplicate_crate",
                         {
                             "crate": name,
-                            "file": __file__,
+                            "file": Path(__file__).relative_to(self.topsrcdir),
                         },
                         "Crate {crate} is not duplicated anymore. "
                         "Please adjust TOLERATED_DUPES in {file} to reflect this improvement.",
@@ -619,7 +611,7 @@ license file's hash.
                         "broken_allowed_dupes",
                         {
                             "crate": name,
-                            "file": __file__,
+                            "file": Path(__file__).relative_to(self.topsrcdir),
                         },
                         "Crate {crate} is not duplicated. Remove it from "
                         "TOLERATED_DUPES in {file}.",
@@ -633,7 +625,7 @@ license file's hash.
                         "outdated_allowed_dupes",
                         {
                             "crate": name,
-                            "file": __file__,
+                            "file": Path(__file__).relative_to(self.topsrcdir),
                         },
                         "Crate {crate} is not in Cargo.lock anymore. Remove it from "
                         "TOLERATED_DUPES in {file}.",
@@ -641,11 +633,15 @@ license file's hash.
                     failed = True
 
             if failed:
-                sys.exit(1)
+                return False
 
-        output = subprocess.check_output(
-            [cargo, "vendor", vendor_dir], cwd=self.topsrcdir
-        ).decode("UTF-8")
+        res = subprocess.run(
+            [cargo, "vendor", vendor_dir], cwd=self.topsrcdir, stdout=subprocess.PIPE
+        )
+        if res.returncode:
+            self.log(logging.ERROR, "cargo_vendor_failed", {}, "Cargo vendor failed.")
+            return False
+        output = res.stdout.decode("UTF-8")
 
         # Get the snippet of configuration that cargo vendor outputs, and
         # update .cargo/config with it.
@@ -673,7 +669,7 @@ license file's hash.
                 """cargo vendor didn't output a unique replace-with. Found: %s."""
                 % replaces,
             )
-            sys.exit(1)
+            return False
 
         replace_name = replaces.pop()
         replace = config["source"].pop(replace_name)
@@ -727,7 +723,7 @@ license file's hash.
                 ),
             )
             self.repository.clean_directory(vendor_dir)
-            sys.exit(1)
+            return False
 
         self.repository.add_remove_files(vendor_dir)
 
@@ -767,7 +763,7 @@ The changes from `mach vendor rust` will NOT be added to version control.
             )
             self.repository.forget_add_remove_files(vendor_dir)
             self.repository.clean_directory(vendor_dir)
-            sys.exit(1)
+            return False
 
         # Only warn for large imports, since we may just have large code
         # drops from time to time (e.g. importing features into m-c).
@@ -786,3 +782,4 @@ a pull request upstream to ignore those files when publishing.""".format(
                     size=cumulative_added_size
                 ),
             )
+        return True

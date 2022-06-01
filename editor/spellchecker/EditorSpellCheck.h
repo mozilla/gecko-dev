@@ -68,7 +68,7 @@ class EditorSpellCheck final : public nsIEditorSpellCheck {
   // GetPersonalDictionary must be called to load them.
   nsTArray<nsString> mDictionaryList;
 
-  nsCString mPreferredLang;
+  nsTArray<nsCString> mPreferredLangs;
 
   uint32_t mTxtSrvFilterType;
   int32_t mSuggestedWordIndex;
@@ -79,13 +79,14 @@ class EditorSpellCheck final : public nsIEditorSpellCheck {
 
   nsresult DeleteSuggestedWordList();
 
-  void BuildDictionaryList(const nsACString& aDictName,
+  bool BuildDictionaryList(const nsACString& aDictName,
                            const nsTArray<nsCString>& aDictList,
                            enum dictCompare aCompareType,
                            nsTArray<nsCString>& aOutList);
 
   nsresult DictionaryFetched(DictionaryFetcher* aFetchState);
 
+  void SetDictionarySucceeded(DictionaryFetcher* aFetcher);
   void SetFallbackDictionary(DictionaryFetcher* aFetcher);
 
  public:

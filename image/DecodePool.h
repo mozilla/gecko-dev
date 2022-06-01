@@ -99,7 +99,7 @@ class DecodePool final : public nsIObserver {
 
   // mMutex protects mIOThread.
   Mutex mMutex;
-  nsCOMPtr<nsIThread> mIOThread;
+  nsCOMPtr<nsIThread> mIOThread GUARDED_BY(mMutex);
 };
 
 }  // namespace image

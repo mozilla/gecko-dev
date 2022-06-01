@@ -312,6 +312,12 @@ class gfxTextRun : public gfxShapedText {
                        aDrawTargetForTightBoundingBox, aProvider);
   }
 
+  void GetLineHeightMetrics(Range aRange, gfxFloat& aAscent,
+                            gfxFloat& aDescent) const;
+  void GetLineHeightMetrics(gfxFloat& aAscent, gfxFloat& aDescent) const {
+    GetLineHeightMetrics(Range(this), aAscent, aDescent);
+  }
+
   /**
    * Computes just the advance width for a substring.
    * Uses GetSpacing from aBreakProvider.
@@ -828,7 +834,8 @@ class gfxTextRun : public gfxShapedText {
   // Advance aRange.start to the start of the nearest ligature, back
   // up aRange.end to the nearest ligature end; may result in
   // aRange->start == aRange->end.
-  void ShrinkToLigatureBoundaries(Range* aRange) const;
+  // Returns whether any adjustment was made.
+  bool ShrinkToLigatureBoundaries(Range* aRange) const;
   // result in appunits
   gfxFloat GetPartialLigatureWidth(Range aRange,
                                    PropertyProvider* aProvider) const;
@@ -933,6 +940,10 @@ class gfxFontGroup final : public gfxTextRunFactory {
   gfxFont* GetFirstMathFont();
 
   const gfxFontStyle* GetStyle() const { return &mStyle; }
+
+  // Get the presContext for which this fontGroup was constructed. This may be
+  // null! (In the case of canvas not connected to a document.)
+  nsPresContext* GetPresContext() const { return mPresContext; }
 
   /**
    * The listed characters should be treated as invisible and zero-width

@@ -10,7 +10,7 @@ use super::{CallError, ExpressionError, FunctionError, ModuleInfo, ShaderStages,
 use crate::span::{AddSpan as _, WithSpan};
 use crate::{
     arena::{Arena, Handle},
-    proc::{ResolveContext, TypeResolution},
+    proc::{ResolveContext, ResolveError, TypeResolution},
 };
 use std::ops;
 
@@ -50,7 +50,7 @@ pub struct Uniformity {
 }
 
 impl Uniformity {
-    fn new() -> Self {
+    const fn new() -> Self {
         Uniformity {
             non_uniform_result: None,
             requirements: UniformityRequirements::empty(),
@@ -94,7 +94,7 @@ impl ops::BitOr for FunctionUniformity {
 }
 
 impl FunctionUniformity {
-    fn new() -> Self {
+    const fn new() -> Self {
         FunctionUniformity {
             result: Uniformity::new(),
             exit: ExitFlags::empty(),
@@ -102,7 +102,7 @@ impl FunctionUniformity {
     }
 
     /// Returns a disruptor based on the stored exit flags, if any.
-    fn exit_disruptor(&self) -> Option<UniformityDisruptor> {
+    const fn exit_disruptor(&self) -> Option<UniformityDisruptor> {
         if self.exit.contains(ExitFlags::MAY_RETURN) {
             Some(UniformityDisruptor::Return)
         } else if self.exit.contains(ExitFlags::MAY_KILL) {
@@ -146,7 +146,7 @@ pub struct ExpressionInfo {
 }
 
 impl ExpressionInfo {
-    fn new() -> Self {
+    const fn new() -> Self {
         ExpressionInfo {
             uniformity: Uniformity::new(),
             ref_count: 0,
@@ -168,11 +168,19 @@ enum GlobalOrArgument {
     Argument(u32),
 }
 
-impl crate::Expression {
-    fn to_global_or_argument(&self) -> Result<GlobalOrArgument, ExpressionError> {
-        Ok(match *self {
+impl GlobalOrArgument {
+    fn from_expression(
+        expression_arena: &Arena<crate::Expression>,
+        expression: Handle<crate::Expression>,
+    ) -> Result<GlobalOrArgument, ExpressionError> {
+        Ok(match expression_arena[expression] {
             crate::Expression::GlobalVariable(var) => GlobalOrArgument::Global(var),
             crate::Expression::FunctionArgument(i) => GlobalOrArgument::Argument(i),
+            crate::Expression::Access { base, .. }
+            | crate::Expression::AccessIndex { base, .. } => match expression_arena[base] {
+                crate::Expression::GlobalVariable(var) => GlobalOrArgument::Global(var),
+                _ => return Err(ExpressionError::ExpectedGlobalOrArgument),
+            },
             _ => return Err(ExpressionError::ExpectedGlobalOrArgument),
         })
     }
@@ -199,25 +207,59 @@ pub struct FunctionInfo {
     pub uniformity: Uniformity,
     /// Function may kill the invocation.
     pub may_kill: bool,
-    /// Set of image-sampler pais used with sampling.
+
+    /// All pairs of (texture, sampler) globals that may be used together in
+    /// sampling operations by this function and its callees. This includes
+    /// pairings that arise when this function passes textures and samplers as
+    /// arguments to its callees.
+    ///
+    /// This table does not include uses of textures and samplers passed as
+    /// arguments to this function itself, since we do not know which globals
+    /// those will be. However, this table *is* exhaustive when computed for an
+    /// entry point function: entry points never receive textures or samplers as
+    /// arguments, so all an entry point's sampling can be reported in terms of
+    /// globals.
+    ///
+    /// The GLSL back end uses this table to construct reflection info that
+    /// clients need to construct texture-combined sampler values.
     pub sampling_set: crate::FastHashSet<SamplingKey>,
-    /// Vector of global variable usages.
+
+    /// How this function and its callees use this module's globals.
     ///
-    /// Each item corresponds to a global variable in the module.
+    /// This is indexed by `Handle<GlobalVariable>` indices. However,
+    /// `FunctionInfo` implements `std::ops::Index<Handle<GlobalVariable>>`,
+    /// so you can simply index this struct with a global handle to retrieve
+    /// its usage information.
     global_uses: Box<[GlobalUse]>,
-    /// Vector of expression infos.
+
+    /// Information about each expression in this function's body.
     ///
-    /// Each item corresponds to an expression in the function.
+    /// This is indexed by `Handle<Expression>` indices. However, `FunctionInfo`
+    /// implements `std::ops::Index<Handle<Expression>>`, so you can simply
+    /// index this struct with an expression handle to retrieve its
+    /// `ExpressionInfo`.
     expressions: Box<[ExpressionInfo]>,
-    /// HashSet with information about sampling realized by the function
+
+    /// All (texture, sampler) pairs that may be used together in sampling
+    /// operations by this function and its callees, whether they are accessed
+    /// as globals or passed as arguments.
+    ///
+    /// Participants are represented by [`GlobalVariable`] handles whenever
+    /// possible, and otherwise by indices of this function's arguments.
+    ///
+    /// When analyzing a function call, we combine this data about the callee
+    /// with the actual arguments being passed to produce the callers' own
+    /// `sampling_set` and `sampling` tables.
+    ///
+    /// [`GlobalVariable`]: crate::GlobalVariable
     sampling: crate::FastHashSet<Sampling>,
 }
 
 impl FunctionInfo {
-    pub fn global_variable_count(&self) -> usize {
+    pub const fn global_variable_count(&self) -> usize {
         self.global_uses.len()
     }
-    pub fn expression_count(&self) -> usize {
+    pub const fn expression_count(&self) -> usize {
         self.expressions.len()
     }
     pub fn dominates_global_use(&self, other: &Self) -> bool {
@@ -266,7 +308,10 @@ impl FunctionInfo {
         handle: Handle<crate::Expression>,
         global_use: GlobalUse,
     ) -> NonUniformResult {
-        let info = &mut self.expressions[handle.index()];
+        //Note: if the expression doesn't exist, this function
+        // will return `None`, but the later validation of
+        // expressions should detect this and error properly.
+        let info = self.expressions.get_mut(handle.index())?;
         info.ref_count += 1;
         // mark the used global as read
         if let Some(global) = info.assignable_global {
@@ -290,7 +335,8 @@ impl FunctionInfo {
         handle: Handle<crate::Expression>,
         assignable_global: &mut Option<Handle<crate::GlobalVariable>>,
     ) -> NonUniformResult {
-        let info = &mut self.expressions[handle.index()];
+        //Note: similarly to `add_ref_impl`, this ignores invalid expressions.
+        let info = self.expressions.get_mut(handle.index())?;
         info.ref_count += 1;
         // propagate the assignable global up the chain, till it either hits
         // a value-type expression, or the assignment statement.
@@ -305,24 +351,25 @@ impl FunctionInfo {
     /// Inherit information from a called function.
     fn process_call(
         &mut self,
-        info: &Self,
+        callee: &Self,
         arguments: &[Handle<crate::Expression>],
         expression_arena: &Arena<crate::Expression>,
     ) -> Result<FunctionUniformity, WithSpan<FunctionError>> {
-        for key in info.sampling_set.iter() {
-            self.sampling_set.insert(key.clone());
-        }
-        for sampling in info.sampling.iter() {
+        self.sampling_set
+            .extend(callee.sampling_set.iter().cloned());
+        for sampling in callee.sampling.iter() {
+            // If the callee was passed the texture or sampler as an argument,
+            // we may now be able to determine which globals those referred to.
             let image_storage = match sampling.image {
                 GlobalOrArgument::Global(var) => GlobalOrArgument::Global(var),
                 GlobalOrArgument::Argument(i) => {
                     let handle = arguments[i as usize];
-                    expression_arena[handle]
-                        .to_global_or_argument()
-                        .map_err(|error| {
+                    GlobalOrArgument::from_expression(expression_arena, handle).map_err(
+                        |error| {
                             FunctionError::Expression { handle, error }
                                 .with_span_handle(handle, expression_arena)
-                        })?
+                        },
+                    )?
                 }
             };
 
@@ -330,15 +377,19 @@ impl FunctionInfo {
                 GlobalOrArgument::Global(var) => GlobalOrArgument::Global(var),
                 GlobalOrArgument::Argument(i) => {
                     let handle = arguments[i as usize];
-                    expression_arena[handle]
-                        .to_global_or_argument()
-                        .map_err(|error| {
+                    GlobalOrArgument::from_expression(expression_arena, handle).map_err(
+                        |error| {
                             FunctionError::Expression { handle, error }
                                 .with_span_handle(handle, expression_arena)
-                        })?
+                        },
+                    )?
                 }
             };
 
+            // If we've managed to pin both the image and sampler down to
+            // specific globals, record that in our `sampling_set`. Otherwise,
+            // record as much as we do know in our own `sampling` table, for our
+            // callers to sort out.
             match (image_storage, sampler_storage) {
                 (GlobalOrArgument::Global(image), GlobalOrArgument::Global(sampler)) => {
                     self.sampling_set.insert(SamplingKey { image, sampler });
@@ -348,12 +399,15 @@ impl FunctionInfo {
                 }
             }
         }
-        for (mine, other) in self.global_uses.iter_mut().zip(info.global_uses.iter()) {
+
+        // Inherit global use from our callees.
+        for (mine, other) in self.global_uses.iter_mut().zip(callee.global_uses.iter()) {
             *mine |= *other;
         }
+
         Ok(FunctionUniformity {
-            result: info.uniformity.clone(),
-            exit: if info.may_kill {
+            result: callee.uniformity.clone(),
+            exit: if callee.may_kill {
                 ExitFlags::MAY_KILL
             } else {
                 ExitFlags::empty()
@@ -371,17 +425,73 @@ impl FunctionInfo {
         expression_arena: &Arena<crate::Expression>,
         other_functions: &[FunctionInfo],
         resolve_context: &ResolveContext,
+        capabilities: super::Capabilities,
     ) -> Result<(), ExpressionError> {
         use crate::{Expression as E, SampleLevel as Sl};
 
         let mut assignable_global = None;
         let uniformity = match *expression {
-            E::Access { base, index } => Uniformity {
-                non_uniform_result: self
-                    .add_assignable_ref(base, &mut assignable_global)
-                    .or(self.add_ref(index)),
-                requirements: UniformityRequirements::empty(),
-            },
+            E::Access { base, index } => {
+                let base_ty = self[base].ty.inner_with(resolve_context.types);
+
+                // build up the caps needed if this is indexed non-uniformly
+                let mut needed_caps = super::Capabilities::empty();
+                let is_binding_array = match *base_ty {
+                    crate::TypeInner::BindingArray {
+                        base: array_element_ty_handle,
+                        ..
+                    } => {
+                        // these are nasty aliases, but these idents are too long and break rustfmt
+                        let ub_st = super::Capabilities::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING;
+                        let st_sb = super::Capabilities::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING;
+                        let sampler = super::Capabilities::SAMPLER_NON_UNIFORM_INDEXING;
+
+                        // We're a binding array, so lets use the type of _what_ we are array of to determine if we can non-uniformly index it.
+                        let array_element_ty =
+                            &resolve_context.types[array_element_ty_handle].inner;
+
+                        needed_caps |= match *array_element_ty {
+                            // If we're an image, use the appropriate limit.
+                            crate::TypeInner::Image { class, .. } => match class {
+                                crate::ImageClass::Storage { .. } => ub_st,
+                                _ => st_sb,
+                            },
+                            crate::TypeInner::Sampler { .. } => sampler,
+                            // If we're anything but an image, assume we're a buffer and use the address space.
+                            _ => {
+                                if let E::GlobalVariable(global_handle) = expression_arena[base] {
+                                    let global = &resolve_context.global_vars[global_handle];
+                                    match global.space {
+                                        crate::AddressSpace::Uniform => ub_st,
+                                        crate::AddressSpace::Storage { .. } => st_sb,
+                                        _ => unreachable!(),
+                                    }
+                                } else {
+                                    unreachable!()
+                                }
+                            }
+                        };
+
+                        true
+                    }
+                    _ => false,
+                };
+
+                if self[index].uniformity.non_uniform_result.is_some()
+                    && !capabilities.contains(needed_caps)
+                    && is_binding_array
+                {
+                    return Err(ExpressionError::MissingCapabilities(needed_caps));
+                }
+
+                let _ = ();
+                Uniformity {
+                    non_uniform_result: self
+                        .add_assignable_ref(base, &mut assignable_global)
+                        .or(self.add_ref(index)),
+                    requirements: UniformityRequirements::empty(),
+                }
+            }
             E::AccessIndex { base, .. } => Uniformity {
                 non_uniform_result: self.add_assignable_ref(base, &mut assignable_global),
                 requirements: UniformityRequirements::empty(),
@@ -430,21 +540,21 @@ impl FunctionInfo {
                     requirements: UniformityRequirements::empty(),
                 }
             }
-            // depends on the storage class
+            // depends on the address space
             E::GlobalVariable(gh) => {
-                use crate::StorageClass as Sc;
+                use crate::AddressSpace as As;
                 assignable_global = Some(gh);
                 let var = &resolve_context.global_vars[gh];
-                let uniform = match var.class {
+                let uniform = match var.space {
                     // local data is non-uniform
-                    Sc::Function | Sc::Private => false,
+                    As::Function | As::Private => false,
                     // workgroup memory is exclusively accessed by the group
-                    Sc::WorkGroup => true,
+                    As::WorkGroup => true,
                     // uniform data
-                    Sc::Uniform | Sc::PushConstant => true,
+                    As::Uniform | As::PushConstant => true,
                     // storage data is only uniform when read-only
-                    Sc::Storage { access } => !access.contains(crate::StorageAccess::STORE),
-                    Sc::Handle => false,
+                    As::Storage { access } => !access.contains(crate::StorageAccess::STORE),
+                    As::Handle => false,
                 };
                 Uniformity {
                     non_uniform_result: if uniform { None } else { Some(handle) },
@@ -469,8 +579,8 @@ impl FunctionInfo {
                 level,
                 depth_ref,
             } => {
-                let image_storage = expression_arena[image].to_global_or_argument()?;
-                let sampler_storage = expression_arena[sampler].to_global_or_argument()?;
+                let image_storage = GlobalOrArgument::from_expression(expression_arena, image)?;
+                let sampler_storage = GlobalOrArgument::from_expression(expression_arena, sampler)?;
 
                 match (image_storage, sampler_storage) {
                     (GlobalOrArgument::Global(image), GlobalOrArgument::Global(sampler)) => {
@@ -511,16 +621,19 @@ impl FunctionInfo {
                 image,
                 coordinate,
                 array_index,
-                index,
+                sample,
+                level,
             } => {
                 let array_nur = array_index.and_then(|h| self.add_ref(h));
-                let index_nur = index.and_then(|h| self.add_ref(h));
+                let sample_nur = sample.and_then(|h| self.add_ref(h));
+                let level_nur = level.and_then(|h| self.add_ref(h));
                 Uniformity {
                     non_uniform_result: self
                         .add_ref(image)
                         .or(self.add_ref(coordinate))
                         .or(array_nur)
-                        .or(index_nur),
+                        .or(sample_nur)
+                        .or(level_nur),
                     requirements: UniformityRequirements::empty(),
                 }
             }
@@ -594,7 +707,12 @@ impl FunctionInfo {
             },
         };
 
-        let ty = resolve_context.resolve(expression, |h| &self.expressions[h.index()].ty)?;
+        let ty = resolve_context.resolve(expression, |h| {
+            self.expressions
+                .get(h.index())
+                .map(|ei| &ei.ty)
+                .ok_or(ResolveError::ExpressionForwardDependency(h))
+        })?;
         self.expressions[handle.index()] = ExpressionInfo {
             uniformity,
             ref_count: 0,
@@ -629,7 +747,10 @@ impl FunctionInfo {
                 S::Emit(ref range) => {
                     let mut requirements = UniformityRequirements::empty();
                     for expr in range.clone() {
-                        let req = self.expressions[expr.index()].uniformity.requirements;
+                        let req = match self.expressions.get(expr.index()) {
+                            Some(expr) => expr.uniformity.requirements,
+                            None => UniformityRequirements::empty(),
+                        };
                         #[cfg(feature = "validate")]
                         if self
                             .flags
@@ -813,6 +934,7 @@ impl ModuleInfo {
         fun: &crate::Function,
         module: &crate::Module,
         flags: ValidationFlags,
+        capabilities: super::Capabilities,
     ) -> Result<FunctionInfo, WithSpan<FunctionError>> {
         let mut info = FunctionInfo {
             flags,
@@ -840,6 +962,7 @@ impl ModuleInfo {
                 &fun.expressions,
                 &self.functions,
                 &resolve_context,
+                capabilities,
             ) {
                 return Err(FunctionError::Expression { handle, error }
                     .with_span_handle(handle, &fun.expressions));
@@ -893,7 +1016,7 @@ fn uniform_control_flow() {
             name: None,
             init: None,
             ty,
-            class: crate::StorageClass::Handle,
+            space: crate::AddressSpace::Handle,
             binding: None,
         },
         Default::default(),
@@ -904,7 +1027,7 @@ fn uniform_control_flow() {
             init: None,
             ty,
             binding: None,
-            class: crate::StorageClass::Uniform,
+            space: crate::AddressSpace::Uniform,
         },
         Default::default(),
     );
@@ -958,8 +1081,15 @@ fn uniform_control_flow() {
         arguments: &[],
     };
     for (handle, expression) in expressions.iter() {
-        info.process_expression(handle, expression, &expressions, &[], &resolve_context)
-            .unwrap();
+        info.process_expression(
+            handle,
+            expression,
+            &expressions,
+            &[],
+            &resolve_context,
+            super::Capabilities::empty(),
+        )
+        .unwrap();
     }
     assert_eq!(info[non_uniform_global_expr].ref_count, 1);
     assert_eq!(info[uniform_global_expr].ref_count, 1);

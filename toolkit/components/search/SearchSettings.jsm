@@ -97,7 +97,7 @@ class SearchSettings {
     await this._ensurePendingWritesCompleted(origin);
     try {
       let settingsFilePath = PathUtils.join(
-        await PathUtils.getProfileDir(),
+        PathUtils.profileDir,
         SETTINGS_FILENAME
       );
       json = await IOUtils.readJSON(settingsFilePath, { decompress: true });
@@ -217,11 +217,11 @@ class SearchSettings {
       }
 
       logConsole.debug("_write: Writing to settings file.");
-      let path = PathUtils.join(
-        await PathUtils.getProfileDir(),
-        SETTINGS_FILENAME
-      );
-      await IOUtils.writeJSON(path, settings, { compress: true });
+      let path = PathUtils.join(PathUtils.profileDir, SETTINGS_FILENAME);
+      await IOUtils.writeJSON(path, settings, {
+        compress: true,
+        tmpPath: path + ".tmp",
+      });
       logConsole.debug("_write: settings file written to disk.");
       Services.obs.notifyObservers(
         null,

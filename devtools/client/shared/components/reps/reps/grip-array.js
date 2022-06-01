@@ -16,7 +16,6 @@ define(function(require, exports, module) {
   const {
     interleave,
     getGripType,
-    isGrip,
     wrapRender,
     ellipsisElement,
   } = require("devtools/client/shared/components/reps/reps/rep-utils");
@@ -24,9 +23,6 @@ define(function(require, exports, module) {
     MODE,
   } = require("devtools/client/shared/components/reps/reps/constants");
 
-  const {
-    ModePropType,
-  } = require("devtools/client/shared/components/reps/reps/array");
   const DEFAULT_TITLE = "Array";
 
   /**
@@ -36,8 +32,7 @@ define(function(require, exports, module) {
 
   GripArray.propTypes = {
     object: PropTypes.object.isRequired,
-    // @TODO Change this to Object.values when supported in Node's version of V8
-    mode: ModePropType,
+    mode: PropTypes.oneOf(Object.values(MODE)),
     provider: PropTypes.object,
     onDOMNodeMouseOver: PropTypes.func,
     onDOMNodeMouseOut: PropTypes.func,
@@ -239,12 +234,8 @@ define(function(require, exports, module) {
   }
 
   function supportsObject(grip, noGrip = false) {
-    if (noGrip === true || !isGrip(grip)) {
-      return false;
-    }
-
     return (
-      grip.preview &&
+      grip?.preview &&
       (grip.preview.kind == "ArrayLike" ||
         getGripType(grip, noGrip) === "DocumentFragment")
     );

@@ -175,7 +175,7 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 /* SSL_REUSE_SERVER_ECDHE_KEY controls whether the ECDHE server key is
  * reused for multiple handshakes or generated each time.
- * SSL_REUSE_SERVER_ECDHE_KEY is currently enabled by default.
+ * SSL_REUSE_SERVER_ECDHE_KEY is currently disabled by default.
  * This socket option is for ECDHE, only. It is unrelated to DHE.
  */
 #define SSL_REUSE_SERVER_ECDHE_KEY 27
@@ -1258,6 +1258,20 @@ NSS_GetClientAuthData(void *arg,
                       struct CERTDistNamesStr *caNames,
                       struct CERTCertificateStr **pRetCert,
                       struct SECKEYPrivateKeyStr **pRetKey);
+
+/* This function can be called by the appliation's custom GetClientAuthHook
+ * to filter out any certs in the cert list that doesn't match the negotiated
+ * requirements of the current SSL connection.
+ */
+SSL_IMPORT SECStatus
+SSL_FilterClientCertListBySocket(PRFileDesc *socket, CERTCertList *certlist);
+
+/* This function can be called by the application's custom GetClientAuthHook
+ * to determine if a single certificate matches the negotiated requirements of
+ * the current SSL connection.
+ */
+SSL_IMPORT PRBool
+SSL_CertIsUsable(PRFileDesc *socket, CERTCertificate *cert);
 
 /*
 ** Configure DTLS-SRTP (RFC 5764) cipher suite preferences.

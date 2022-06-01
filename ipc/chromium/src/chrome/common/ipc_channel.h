@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <queue>
 #include "base/basictypes.h"
+#include "base/process.h"
 #include "build/build_config.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
@@ -23,6 +24,8 @@
 namespace IPC {
 
 class Message;
+class MessageReader;
+class MessageWriter;
 
 //------------------------------------------------------------------------------
 
@@ -54,11 +57,11 @@ class Channel {
     virtual ~Listener() = default;
 
     // Called when a message is received.
-    virtual void OnMessageReceived(Message&& message) = 0;
+    virtual void OnMessageReceived(mozilla::UniquePtr<Message> message) = 0;
 
     // Called when the channel is connected and we have received the internal
     // Hello message from the peer.
-    virtual void OnChannelConnected(int32_t peer_pid) {}
+    virtual void OnChannelConnected(base::ProcessId peer_pid) {}
 
     // Called when an error is detected that causes the channel to close.
     // This method is not called when a channel is closed normally.
@@ -66,7 +69,8 @@ class Channel {
 
     // If the listener has queued messages, swap them for |queue| like so
     //   swap(impl->my_queued_messages, queue);
-    virtual void GetQueuedMessages(std::queue<Message>& queue) {}
+    virtual void GetQueuedMessages(
+        std::queue<mozilla::UniquePtr<Message>>& queue) {}
   };
 
   enum Mode { MODE_SERVER, MODE_CLIENT };

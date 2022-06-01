@@ -43,12 +43,10 @@ var wasmGlobalInterfaces = [
   {
     name: "Exception",
     insecureContext: true,
-    nightly: true,
   },
   {
     name: "Tag",
     insecureContext: true,
-    nightly: true,
   },
 ];
 // IMPORTANT: Do not change this list without review from
@@ -62,8 +60,6 @@ var ecmaGlobals = [
   "BigInt",
   "BigInt64Array",
   "BigUint64Array",
-  { name: "ByteLengthQueuingStrategy", optional: true },
-  { name: "CountQueuingStrategy", optional: true },
   "DataView",
   "Date",
   "Error",
@@ -87,7 +83,6 @@ var ecmaGlobals = [
   "Promise",
   "Proxy",
   "RangeError",
-  { name: "ReadableStream", optional: true },
   "ReferenceError",
   "Reflect",
   "RegExp",
@@ -124,6 +119,8 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "BroadcastChannel",
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  "ByteLengthQueuingStrategy",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   "Cache",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "CacheStorage",
@@ -133,6 +130,8 @@ var interfaceNamesInGlobalScope = [
   "Clients",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "CloseEvent",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "CountQueuingStrategy",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "Crypto",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -262,6 +261,18 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "PushSubscriptionOptions" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  "ReadableByteStreamController",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "ReadableStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "ReadableStreamBYOBReader",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "ReadableStreamBYOBRequest",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "ReadableStreamDefaultController",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "ReadableStreamDefaultReader",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Report", nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ReportBody", nightly: true },
@@ -271,6 +282,8 @@ var interfaceNamesInGlobalScope = [
   "Request",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "Response",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "Scheduler", nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "ServiceWorker",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -282,9 +295,19 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "SubtleCrypto",
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "TaskController", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "TaskPriorityChangeEvent", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "TaskSignal", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   "TextDecoder",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "TextEncoder",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "TransformStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "TransformStreamDefaultController",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "URL",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -302,6 +325,11 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "WorkerNavigator",
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WritableStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WritableStreamDefaultController",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WritableStreamDefaultWriter",
 ];
 // IMPORTANT: Do not change the list above without review from a DOM peer!
 

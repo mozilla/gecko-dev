@@ -26,11 +26,13 @@ add_task(async function() {
 
   info("wait until all the messages are displayed");
   await waitFor(
-    () => findMessage(hud, "message 1") && findMessage(hud, "message 50")
+    () =>
+      findConsoleAPIMessage(hud, "message 1") &&
+      findConsoleAPIMessage(hud, "message 50")
   );
 
   is(
-    findMessages(hud, "startup message").length,
+    (await findAllMessagesVirtualized(hud)).length,
     50,
     "We have the expected number of messages"
   );

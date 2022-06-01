@@ -149,8 +149,7 @@ class IncrementalFinalizeRunnable : public DiscardableRunnable {
 struct NoteWeakMapChildrenTracer : public JS::CallbackTracer {
   NoteWeakMapChildrenTracer(JSRuntime* aRt,
                             nsCycleCollectionNoteRootCallback& aCb)
-      : JS::CallbackTracer(aRt, JS::TracerKind::Callback,
-                           JS::IdTraceAction::CanSkip),
+      : JS::CallbackTracer(aRt, JS::TracerKind::Callback),
         mCb(aCb),
         mTracedAny(false),
         mMap(nullptr),
@@ -169,7 +168,7 @@ void NoteWeakMapChildrenTracer::onChild(JS::GCCellPtr aThing) {
     return;
   }
 
-  if (!JS::GCThingIsMarkedGray(aThing) && !mCb.WantAllTraces()) {
+  if (!JS::GCThingIsMarkedGrayInCC(aThing) && !mCb.WantAllTraces()) {
     return;
   }
 
@@ -192,9 +191,10 @@ struct NoteWeakMapsTracer : public js::WeakMapTracer {
 void NoteWeakMapsTracer::trace(JSObject* aMap, JS::GCCellPtr aKey,
                                JS::GCCellPtr aValue) {
   // If nothing that could be held alive by this entry is marked gray, return.
-  if ((!aKey || !JS::GCThingIsMarkedGray(aKey)) &&
+  if ((!aKey || !JS::GCThingIsMarkedGrayInCC(aKey)) &&
       MOZ_LIKELY(!mCb.WantAllTraces())) {
-    if (!aValue || !JS::GCThingIsMarkedGray(aValue) || aValue.is<JSString>()) {
+    if (!aValue || !JS::GCThingIsMarkedGrayInCC(aValue) ||
+        aValue.is<JSString>()) {
       return;
     }
   }
@@ -232,7 +232,7 @@ void NoteWeakMapsTracer::trace(JSObject* aMap, JS::GCCellPtr aKey,
 
     // The delegate could hold alive the key, so report something to the CC
     // if we haven't already.
-    if (!mChildTracer.mTracedAny && aKey && JS::GCThingIsMarkedGray(aKey) &&
+    if (!mChildTracer.mTracedAny && aKey && JS::GCThingIsMarkedGrayInCC(aKey) &&
         kdelegate) {
       mCb.NoteWeakMapping(aMap, aKey, kdelegate, nullptr);
     }
@@ -249,8 +249,8 @@ static void ShouldWeakMappingEntryBeBlack(JSObject* aMap, JS::GCCellPtr aKey,
   *aValueShouldBeBlack = false;
 
   // If nothing that could be held alive by this entry is marked gray, return.
-  bool keyMightNeedMarking = aKey && JS::GCThingIsMarkedGray(aKey);
-  bool valueMightNeedMarking = aValue && JS::GCThingIsMarkedGray(aValue) &&
+  bool keyMightNeedMarking = aKey && JS::GCThingIsMarkedGrayInCC(aKey);
+  bool valueMightNeedMarking = aValue && JS::GCThingIsMarkedGrayInCC(aValue) &&
                                aValue.kind() != JS::TraceKind::String;
   if (!keyMightNeedMarking && !valueMightNeedMarking) {
     return;
@@ -269,8 +269,8 @@ static void ShouldWeakMappingEntryBeBlack(JSObject* aMap, JS::GCCellPtr aKey,
     }
   }
 
-  if (aValue && JS::GCThingIsMarkedGray(aValue) &&
-      (!aKey || !JS::GCThingIsMarkedGray(aKey)) &&
+  if (aValue && JS::GCThingIsMarkedGrayInCC(aValue) &&
+      (!aKey || !JS::GCThingIsMarkedGrayInCC(aKey)) &&
       (!aMap || !JS::ObjectIsMarkedGray(aMap)) &&
       aValue.kind() != JS::TraceKind::Shape) {
     *aValueShouldBeBlack = true;
@@ -351,7 +351,7 @@ static void CheckParticipatesInCycleCollection(JS::GCCellPtr aThing,
     return;
   }
 
-  if (JS::IsCCTraceKind(aThing.kind()) && JS::GCThingIsMarkedGray(aThing)) {
+  if (JS::IsCCTraceKind(aThing.kind()) && JS::GCThingIsMarkedGrayInCC(aThing)) {
     *cycleCollectionEnabled = true;
   }
 }
@@ -391,8 +391,7 @@ struct TraversalTracer : public JS::CallbackTracer {
   TraversalTracer(JSRuntime* aRt, nsCycleCollectionTraversalCallback& aCb)
       : JS::CallbackTracer(aRt, JS::TracerKind::Callback,
                            JS::TraceOptions(JS::WeakMapTraceAction::Skip,
-                                            JS::WeakEdgeTraceAction::Trace,
-                                            JS::IdTraceAction::CanSkip)),
+                                            JS::WeakEdgeTraceAction::Trace)),
         mCb(aCb) {}
   void onChild(JS::GCCellPtr aThing) override;
   nsCycleCollectionTraversalCallback& mCb;
@@ -406,7 +405,7 @@ void TraversalTracer::onChild(JS::GCCellPtr aThing) {
   }
 
   // Don't traverse non-gray objects, unless we want all traces.
-  if (!JS::GCThingIsMarkedGray(aThing) && !mCb.WantAllTraces()) {
+  if (!JS::GCThingIsMarkedGrayInCC(aThing) && !mCb.WantAllTraces()) {
     return;
   }
 
@@ -882,7 +881,7 @@ void CycleCollectedJSRuntime::NoteGCThingXPCOMChildren(
 void CycleCollectedJSRuntime::TraverseGCThing(
     TraverseSelect aTs, JS::GCCellPtr aThing,
     nsCycleCollectionTraversalCallback& aCb) {
-  bool isMarkedGray = JS::GCThingIsMarkedGray(aThing);
+  bool isMarkedGray = JS::GCThingIsMarkedGrayInCC(aThing);
 
   if (aTs == TRAVERSE_FULL) {
     DescribeGCThing(!isMarkedGray, aThing, aCb);
@@ -996,10 +995,13 @@ bool CycleCollectedJSRuntime::TraceGrayJS(JSTracer* aTracer,
 
   // Mark these roots as gray so the CC can walk them later.
 
-  JSHolderMap::WhichHolders which = JSHolderMap::HoldersRequiredForGrayMarking;
-  if (JS::AtomsZoneIsCollecting(self->Runtime())) {
-    // Any holder may point into the atoms zone.
-    which = JSHolderMap::AllHolders;
+  JSHolderMap::WhichHolders which = JSHolderMap::AllHolders;
+
+  // Only trace holders in collecting zones when marking, except if we are
+  // collecting the atoms zone since any holder may point into that zone.
+  if (aTracer->isMarkingTracer() &&
+      !JS::AtomsZoneIsCollecting(self->Runtime())) {
+    which = JSHolderMap::HoldersRequiredForGrayMarking;
   }
 
   return self->TraceNativeGrayRoots(aTracer, which, budget);
@@ -1603,14 +1605,7 @@ void CycleCollectedJSRuntime::JSObjectsTenured() {
     }
   }
 
-#ifdef DEBUG
-  for (auto iter = mPreservedNurseryObjects.Iter(); !iter.Done(); iter.Next()) {
-    MOZ_ASSERT(JS::ObjectIsTenured(iter.Get().get()));
-  }
-#endif
-
   mNurseryObjects.Clear();
-  mPreservedNurseryObjects.Clear();
 }
 
 void CycleCollectedJSRuntime::NurseryWrapperAdded(nsWrapperCache* aCache) {
@@ -1618,11 +1613,6 @@ void CycleCollectedJSRuntime::NurseryWrapperAdded(nsWrapperCache* aCache) {
   MOZ_ASSERT(aCache->GetWrapperMaybeDead());
   MOZ_ASSERT(!JS::ObjectIsTenured(aCache->GetWrapperMaybeDead()));
   mNurseryObjects.InfallibleAppend(aCache);
-}
-
-void CycleCollectedJSRuntime::NurseryWrapperPreserved(JSObject* aWrapper) {
-  mPreservedNurseryObjects.InfallibleAppend(
-      JS::PersistentRooted<JSObject*>(mJSRuntime, aWrapper));
 }
 
 void CycleCollectedJSRuntime::DeferredFinalize(
@@ -1901,7 +1891,8 @@ void CycleCollectedJSRuntime::PrepareWaitingZonesForGC() {
 }
 
 /* static */
-void CycleCollectedJSRuntime::OnZoneDestroyed(JSFreeOp* aFop, JS::Zone* aZone) {
+void CycleCollectedJSRuntime::OnZoneDestroyed(JS::GCContext* aGcx,
+                                              JS::Zone* aZone) {
   // Remove the zone from the set of zones waiting for GC, if present. This can
   // happen if a zone is added to the set during an incremental GC in which it
   // is later destroyed.

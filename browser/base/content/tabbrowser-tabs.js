@@ -61,13 +61,9 @@
       );
       this._hiddenSoundPlayingTabs = new Set();
 
-      // Normal tab title is used also in the permanent private browsing mode.
-      let strId =
-        PrivateBrowsingUtils.isWindowPrivate(window) &&
-        !Services.prefs.getBoolPref("browser.privatebrowsing.autostart")
-          ? "emptyPrivateTabTitle"
-          : "emptyTabTitle";
-      this.emptyTabTitle = gTabBrowserBundle.GetStringFromName("tabs." + strId);
+      this.emptyTabTitle = gTabBrowserBundle.GetStringFromName(
+        this.getTabTitleMessageId()
+      );
 
       var tab = this.allTabs[0];
       tab.label = this.emptyTabTitle;
@@ -100,6 +96,7 @@
 
       this.boundObserve = (...args) => this.observe(...args);
       Services.prefs.addObserver("privacy.userContext", this.boundObserve);
+      Services.obs.addObserver(this.boundObserve, "intl:app-locales-changed");
       this.observe(null, "nsPref:changed", "privacy.userContext.enabled");
 
       XPCOMUtils.defineLazyPreferenceGetter(
@@ -750,17 +747,39 @@
           }
         }
       } else if (draggedTab) {
-        let newIndex = this._getDropIndex(event, false);
-        let newTabs = [];
-        for (let tab of movingTabs) {
-          let newTab = gBrowser.adoptTab(tab, newIndex++, tab == draggedTab);
-          newTabs.push(newTab);
+        // Move the tabs. To avoid multiple tab-switches in the original window,
+        // the selected tab should be adopted last.
+        const dropIndex = this._getDropIndex(event, false);
+        let newIndex = dropIndex;
+        let selectedTab;
+        let indexForSelectedTab;
+        for (let i = 0; i < movingTabs.length; ++i) {
+          const tab = movingTabs[i];
+          if (tab.selected) {
+            selectedTab = tab;
+            indexForSelectedTab = newIndex;
+          } else {
+            const newTab = gBrowser.adoptTab(tab, newIndex, tab == draggedTab);
+            if (newTab) {
+              ++newIndex;
+            }
+          }
+        }
+        if (selectedTab) {
+          const newTab = gBrowser.adoptTab(
+            selectedTab,
+            indexForSelectedTab,
+            selectedTab == draggedTab
+          );
+          if (newTab) {
+            ++newIndex;
+          }
         }
 
         // Restore tab selection
         gBrowser.addRangeToMultiSelectedTabs(
-          newTabs[0],
-          newTabs[newTabs.length - 1]
+          gBrowser.tabs[dropIndex],
+          gBrowser.tabs[newIndex - 1]
         );
       } else {
         // Pass true to disallow dropping javascript: or data: urls
@@ -870,49 +889,63 @@
 
       // screen.availLeft et. al. only check the screen that this window is on,
       // but we want to look at the screen the tab is being dropped onto.
-      var screen = Cc["@mozilla.org/gfx/screenmanager;1"]
-        .getService(Ci.nsIScreenManager)
-        .screenForRect(
-          eX * window.devicePixelRatio,
-          eY * window.devicePixelRatio,
-          1,
-          1
-        );
-      var fullX = {},
-        fullY = {},
-        fullWidth = {},
-        fullHeight = {};
+      var screen = event.screen;
       var availX = {},
         availY = {},
         availWidth = {},
         availHeight = {};
-      // get full screen rect and available rect, both in desktop pix
-      screen.GetRectDisplayPix(fullX, fullY, fullWidth, fullHeight);
+      // Get available rect in desktop pixels.
       screen.GetAvailRectDisplayPix(availX, availY, availWidth, availHeight);
+      availX = availX.value;
+      availY = availY.value;
+      availWidth = availWidth.value;
+      availHeight = availHeight.value;
 
-      // scale factor to convert desktop pixels to CSS px
-      var scaleFactor =
-        screen.contentsScaleFactor / screen.defaultCSSScaleFactor;
-      // synchronize CSS-px top-left coordinates with the screen's desktop-px
-      // coordinates, to ensure uniqueness across multiple screens
-      // (compare the equivalent adjustments in nsGlobalWindow::GetScreenXY()
-      // and related methods)
-      availX.value = (availX.value - fullX.value) * scaleFactor + fullX.value;
-      availY.value = (availY.value - fullY.value) * scaleFactor + fullY.value;
-      availWidth.value *= scaleFactor;
-      availHeight.value *= scaleFactor;
+      // Compute the final window size in desktop pixels ensuring that the new
+      // window entirely fits within `screen`.
+      let ourCssToDesktopScale =
+        window.devicePixelRatio / window.desktopToDeviceScale;
+      let screenCssToDesktopScale =
+        screen.defaultCSSScaleFactor / screen.contentsScaleFactor;
 
-      // ensure new window entirely within screen
-      var winWidth = Math.min(window.outerWidth, availWidth.value);
-      var winHeight = Math.min(window.outerHeight, availHeight.value);
+      // NOTE(emilio): Multiplying the sizes here for screenCssToDesktopScale
+      // means that we'll try to create a window that has the same amount of CSS
+      // pixels than our current window, not the same amount of device pixels.
+      // There are pros and cons of both conversions, though this matches the
+      // pre-existing intended behavior.
+      var winWidth = Math.min(
+        window.outerWidth * screenCssToDesktopScale,
+        availWidth
+      );
+      var winHeight = Math.min(
+        window.outerHeight * screenCssToDesktopScale,
+        availHeight
+      );
+
+      // This is slightly tricky: _dragData.offsetX/Y is an offset in CSS
+      // pixels. Since we're doing the sizing above based on those, we also need
+      // to apply the offset with pixels relative to the screen's scale rather
+      // than our scale.
       var left = Math.min(
-        Math.max(eX - draggedTab._dragData.offsetX, availX.value),
-        availX.value + availWidth.value - winWidth
+        Math.max(
+          eX * ourCssToDesktopScale -
+            draggedTab._dragData.offsetX * screenCssToDesktopScale,
+          availX
+        ),
+        availX + availWidth - winWidth
       );
       var top = Math.min(
-        Math.max(eY - draggedTab._dragData.offsetY, availY.value),
-        availY.value + availHeight.value - winHeight
+        Math.max(
+          eY * ourCssToDesktopScale -
+            draggedTab._dragData.offsetY * screenCssToDesktopScale,
+          availY
+        ),
+        availY + availHeight - winHeight
       );
+
+      // Convert back left and top to our CSS pixel space.
+      left /= ourCssToDesktopScale;
+      top /= ourCssToDesktopScale;
 
       delete draggedTab._dragData;
 
@@ -920,10 +953,23 @@
         // resize _before_ move to ensure the window fits the new screen.  if
         // the window is too large for its screen, the window manager may do
         // automatic repositioning.
+        //
+        // Since we're resizing before moving to our new screen, we need to use
+        // sizes relative to the current screen. If we moved, then resized, then
+        // we could avoid this special-case and share this with the else branch
+        // below...
+        winWidth /= ourCssToDesktopScale;
+        winHeight /= ourCssToDesktopScale;
+
         window.resizeTo(winWidth, winHeight);
         window.moveTo(left, top);
         window.focus();
       } else {
+        // We're opening a new window in a new screen, so make sure to use sizes
+        // relative to the new screen.
+        winWidth /= screenCssToDesktopScale;
+        winHeight /= screenCssToDesktopScale;
+
         let props = { screenX: left, screenY: top, suppressanimation: 1 };
         if (AppConstants.platform != "win") {
           props.outerWidth = winWidth;
@@ -948,6 +994,14 @@
 
       this._tabDropIndicator.hidden = true;
       event.stopPropagation();
+    }
+
+    getTabTitleMessageId() {
+      // Normal tab title is used also in the permanent private browsing mode.
+      return PrivateBrowsingUtils.isWindowPrivate(window) &&
+        !Services.prefs.getBoolPref("browser.privatebrowsing.autostart")
+        ? "tabs.emptyPrivateTabTitle"
+        : "tabs.emptyTabTitle";
     }
 
     get tabbox() {
@@ -1121,6 +1175,19 @@
             }
           }
 
+          break;
+
+        case "intl:app-locales-changed":
+          document.l10n.ready.then(() => {
+            // The cached emptyTabTitle needs updating, create a new string bundle
+            // here to ensure the latest locale string is used.
+            const bundle = Services.strings.createBundle(
+              "chrome://browser/locale/tabbrowser.properties"
+            );
+            this.emptyTabTitle = bundle.GetStringFromName(
+              this.getTabTitleMessageId()
+            );
+          });
           break;
       }
     }
@@ -1407,7 +1474,10 @@
           );
           tab._pinnedUnscrollable = true;
         }
-        this.style.paddingInlineStart = width + "px";
+        this.style.setProperty(
+          "--tab-overflow-pinned-tabs-width",
+          width + "px"
+        );
       } else {
         this.removeAttribute("positionpinnedtabs");
 
@@ -1417,7 +1487,7 @@
           tab._pinnedUnscrollable = false;
         }
 
-        this.style.paddingInlineStart = "";
+        this.style.removeProperty("--tab-overflow-pinned-tabs-width");
       }
 
       if (this._lastNumPinned != numPinned) {
@@ -2026,7 +2096,10 @@
       // and make it ready to use. We only do this if the tab is selected
       // because otherwise, callers might end up unintentionally binding the
       // browser for lazy background tabs.
-      if (aTab.selected) {
+      if (!aTab.linkedPanel) {
+        if (!aTab.selected) {
+          return null;
+        }
         gBrowser._insertBrowser(aTab);
       }
       return document.getElementById(aTab.linkedPanel);
@@ -2095,6 +2168,10 @@
     destroy() {
       if (this.boundObserve) {
         Services.prefs.removeObserver("privacy.userContext", this.boundObserve);
+        Services.obs.removeObserver(
+          this.boundObserve,
+          "intl:app-locales-changed"
+        );
       }
 
       CustomizableUI.removeListener(this);

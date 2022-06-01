@@ -330,21 +330,23 @@ public final class GeckoEditableChild extends JNIObject implements IGeckoEditabl
       final CharSequence text,
       final int start,
       final int unboundedOldEnd,
-      final int unboundedNewEnd)
+      final int unboundedNewEnd,
+      final boolean causedOnlyByComposition)
       throws RemoteException {
     if (DEBUG) {
       ThreadUtils.assertOnGeckoThread();
-      Log.d(
-          LOGTAG,
-          "onTextChange("
-              + text
-              + ", "
-              + start
-              + ", "
-              + unboundedOldEnd
-              + ", "
-              + unboundedNewEnd
-              + ")");
+      final StringBuilder sb = new StringBuilder("onTextChange(");
+      sb.append(text)
+          .append(", ")
+          .append(start)
+          .append(", ")
+          .append(unboundedOldEnd)
+          .append(", ")
+          .append(unboundedNewEnd)
+          .append(", ")
+          .append(causedOnlyByComposition)
+          .append(")");
+      Log.d(LOGTAG, sb.toString());
     }
     if (!hasEditableParent()) {
       return;
@@ -371,7 +373,8 @@ public final class GeckoEditableChild extends JNIObject implements IGeckoEditabl
     // Need unboundedOldEnd so GeckoEditable can distinguish changed text vs cleared text.
     if (text.length() == 0) {
       // Remove text in range.
-      mEditableParent.onTextChange(mEditableChild.asBinder(), text, start, unboundedOldEnd);
+      mEditableParent.onTextChange(
+          mEditableChild.asBinder(), text, start, unboundedOldEnd, causedOnlyByComposition);
       return;
     }
     // Using large text causes TransactionTooLargeException, so split text data.
@@ -383,7 +386,8 @@ public final class GeckoEditableChild extends JNIObject implements IGeckoEditabl
           mEditableChild.asBinder(),
           text.subSequence(offset, end),
           start + offset,
-          newUnboundedOldEnd);
+          newUnboundedOldEnd,
+          causedOnlyByComposition);
       offset = end;
       newUnboundedOldEnd = start + offset;
     }
@@ -424,7 +428,7 @@ public final class GeckoEditableChild extends JNIObject implements IGeckoEditabl
   }
 
   @WrapForJNI(calledFrom = "gecko")
-  private void updateCompositionRects(final RectF[] rects) {
+  private void updateCompositionRects(final RectF[] rects, final RectF caretRect) {
     if (DEBUG) {
       // GeckoEditableListener methods should all be called from the Gecko thread
       ThreadUtils.assertOnGeckoThread();
@@ -435,7 +439,7 @@ public final class GeckoEditableChild extends JNIObject implements IGeckoEditabl
     }
 
     try {
-      mEditableParent.updateCompositionRects(mEditableChild.asBinder(), rects);
+      mEditableParent.updateCompositionRects(mEditableChild.asBinder(), rects, caretRect);
     } catch (final RemoteException e) {
       Log.e(LOGTAG, "Remote call failed", e);
     }

@@ -756,7 +756,17 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
             this.documentEventsListener = new DocumentEventsListener(
               this.parentActor
             );
-            this.documentEventsListener.on("*", this.onDocumentEvent);
+
+            this.documentEventsListener.on("dom-loading", data =>
+              this.onDocumentEvent("dom-loading", data)
+            );
+            this.documentEventsListener.on("dom-interactive", data =>
+              this.onDocumentEvent("dom-interactive", data)
+            );
+            this.documentEventsListener.on("dom-complete", data =>
+              this.onDocumentEvent("dom-complete", data)
+            );
+
             this.documentEventsListener.listen();
           }
           startedListeners.push(event);
@@ -991,7 +1001,10 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
 
     // Execute the evaluation in the next event loop in order to immediately
     // reply with the resultID.
-    DevToolsUtils.executeSoon(async () => {
+    //
+    // The console input should be evaluated with micro task level != 0,
+    // so that microtask checkpoint isn't performed while evaluating it.
+    DevToolsUtils.executeSoonWithMicroTask(async () => {
       try {
         // Execute the script that may pause.
         let response = await this.evaluateJS(request);
@@ -1798,12 +1811,6 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    *        Only passed when `name` is "dom-complete" (see devtools/server/actors/webconsole/listeners/document-events.js).
    */
   onDocumentEvent: function(name, { time, hasNativeConsoleAPI }) {
-    // will-navigate event has been added in Fx91 and is only expected to be used
-    // by DOCUMENT_EVENT watcher. For toolbox still not using watcher actor and DOCUMENT_EVENT watcher
-    // will-navigate will be emitted based on target actor's will-navigate events.
-    if (name == "will-navigate") {
-      return;
-    }
     this.emit("documentEvent", {
       name,
       time,
@@ -2037,7 +2044,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    * instance.
    *
    * @param object message
-   *        The original message received from console-api-log-event.
+   *        The original message received from the console storage listener.
    * @param boolean aUseObjectGlobal
    *        If |true| the object global is determined and added as a debuggee,
    *        otherwise |this.global| is used when makeDebuggeeValue() is invoked.
@@ -2045,18 +2052,38 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    *         The object that can be sent to the remote client.
    */
   prepareConsoleMessageForRemote: function(message, useObjectGlobal = true) {
-    const result = WebConsoleUtils.cloneObject(message);
+    const result = {
+      arguments: message.arguments
+        ? message.arguments.map(obj => {
+            const dbgObj = this.makeDebuggeeValue(obj, useObjectGlobal);
+            return this.createValueGrip(dbgObj);
+          })
+        : [],
+      chromeContext: message.chromeContext,
+      columnNumber: message.columnNumber,
+      filename: message.filename,
+      level: message.level,
+      lineNumber: message.lineNumber,
+      timeStamp: message.timeStamp,
+      sourceId: this.getActorIdForInternalSourceId(message.sourceId),
+      category: message.category || "webdev",
+      innerWindowID: message.innerID,
+    };
 
-    result.workerType = WebConsoleUtils.getWorkerType(result) || "none";
-    result.sourceId = this.getActorIdForInternalSourceId(result.sourceId);
+    // It only make sense to include the following properties in the message when they have
+    // a meaningful value. Otherwise we simply don't include them so we save cycles in JSActor communication.
+    if (message.counter) {
+      result.counter = message.counter;
+    }
+    if (message.private) {
+      result.private = message.private;
+    }
+    if (message.prefix) {
+      result.prefix = message.prefix;
+    }
 
-    delete result.wrappedJSObject;
-    delete result.ID;
-    delete result.innerID;
-    delete result.consoleID;
-
-    if (result.stacktrace) {
-      result.stacktrace = result.stacktrace.map(frame => {
+    if (message.stacktrace) {
+      result.stacktrace = message.stacktrace.map(frame => {
         return {
           ...frame,
           sourceId: this.getActorIdForInternalSourceId(frame.sourceId),
@@ -2064,16 +2091,17 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       });
     }
 
-    result.arguments = (message.arguments || []).map(obj => {
-      const dbgObj = this.makeDebuggeeValue(obj, useObjectGlobal);
-      return this.createValueGrip(dbgObj);
-    });
+    if (message.styles && message.styles.length > 0) {
+      result.styles = message.styles.map(string => {
+        return this.createValueGrip(string);
+      });
+    }
 
-    result.styles = (message.styles || []).map(string => {
-      return this.createValueGrip(string);
-    });
+    if (message.timer) {
+      result.timer = message.timer;
+    }
 
-    if (result.level === "table") {
+    if (message.level === "table") {
       const tableItems = this._getConsoleTableMessageItems(result);
       if (tableItems) {
         result.arguments[0].ownProperties = tableItems;
@@ -2083,9 +2111,6 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       // Only return the 2 first params.
       result.arguments = result.arguments.slice(0, 2);
     }
-
-    result.category = message.category || "webdev";
-    result.innerWindowID = message.innerID;
 
     return result;
   },

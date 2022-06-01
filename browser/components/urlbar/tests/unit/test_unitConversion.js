@@ -18,6 +18,7 @@ const TEST_DATA = [
     category: "angle",
     cases: [
       { queryString: "1 d to d", expected: "1 deg" },
+      { queryString: "-1 d to d", expected: "-1 deg" },
       { queryString: "1 d in d", expected: "1 deg" },
       { queryString: "1 d = d", expected: "1 deg" },
       { queryString: "1 D=D", expected: "1 deg" },
@@ -67,6 +68,7 @@ const TEST_DATA = [
     category: "force",
     cases: [
       { queryString: "1 n to n", expected: "1 newton" },
+      { queryString: "-1 n to n", expected: "-1 newton" },
       { queryString: "1 n in n", expected: "1 newton" },
       { queryString: "1 n = n", expected: "1 newton" },
       { queryString: "1 N=N", expected: "1 newton" },
@@ -221,6 +223,7 @@ const TEST_DATA = [
     category: "length",
     cases: [
       { queryString: "1 meter to meter", expected: "1 m" },
+      { queryString: "-1 meter to meter", expected: "-1 m" },
       { queryString: "1 meter in meter", expected: "1 m" },
       { queryString: "1 meter = meter", expected: "1 m" },
       { queryString: "1 METER=METER", expected: "1 m" },
@@ -247,6 +250,7 @@ const TEST_DATA = [
     category: "mass",
     cases: [
       { queryString: "1 kg to kg", expected: "1 kg" },
+      { queryString: "-1 kg to kg", expected: "-1 kg" },
       { queryString: "1 kg in kg", expected: "1 kg" },
       { queryString: "1 kg = kg", expected: "1 kg" },
       { queryString: "1 KG=KG", expected: "1 kg" },
@@ -318,6 +322,7 @@ const TEST_DATA = [
         queryString: "10 f to kelvin",
         expected: `${round((10 - 32) / 1.8 + 273.15)} kelvin`,
       },
+      { queryString: "-10 c to f", expected: "14°F" },
     ],
   },
   {
@@ -389,83 +394,32 @@ const TEST_DATA = [
       { queryString: "23 pm pst to cet", expected: "8:00 AM CET" },
       { queryString: "23:30 pm pst to cet", expected: "8:30 AM CET" },
       {
-        queryString: "0:00 utc to here",
-        timezone: "EST5EDT",
-        assertResult: output => {
-          const date = new Date();
-          const offset = date.getTimezoneOffset();
-          if (offset === 240) {
-            // Summer time.
-            Assert.equal(output, "20:00 UTC-400");
-          } else if (offset === 300) {
-            // Standard time.
-            Assert.equal(output, "19:00 UTC-500");
-          } else {
-            Assert.ok(false, "Unexpected time");
-          }
-        },
+        queryString: "10:00 JST to here",
+        timezone: "UTC",
+        expected: "01:00 UTC-000",
       },
       {
-        queryString: "0:00 utc to here",
-        timezone: "PST8PDT",
-        assertResult: output => {
-          const date = new Date();
-          const offset = date.getTimezoneOffset();
-          if (offset === 420) {
-            // Summer time.
-            Assert.equal(output, "17:00 UTC-700");
-          } else if (offset === 480) {
-            // Standard time.
-            Assert.equal(output, "16:00 UTC-800");
-          } else {
-            Assert.ok(false, "Unexpected time");
-          }
-        },
+        queryString: "1:00 to JST",
+        timezone: "UTC",
+        expected: "10:00 JST",
       },
       {
-        queryString: "9:00 to utc",
-        timezone: "EST5EDT",
-        assertResult: output => {
-          const date = new Date();
-          const offset = date.getTimezoneOffset();
-          if (offset === 240) {
-            // Summer time.
-            Assert.equal(output, "13:00 UTC");
-          } else if (offset === 300) {
-            // Standard time.
-            Assert.equal(output, "14:00 UTC");
-          } else {
-            Assert.ok(false, "Unexpected time");
-          }
-        },
+        queryString: "1 am to JST",
+        timezone: "UTC",
+        expected: "10:00 AM JST",
       },
       {
-        queryString: "9 am to utc",
-        timezone: "EST5EDT",
-        assertResult: output => {
-          const date = new Date();
-          const offset = date.getTimezoneOffset();
-          if (offset === 240) {
-            // Summer time.
-            Assert.equal(output, "1:00 PM UTC");
-          } else if (offset === 300) {
-            // Standard time.
-            Assert.equal(output, "2:00 PM UTC");
-          } else {
-            Assert.ok(false, "Unexpected time");
-          }
-        },
-      },
-      {
-        queryString: "now to utc",
-        timezone: "EST5EDT",
+        queryString: "now to JST",
+        timezone: "UTC",
         assertResult: output => {
           const outputRegexResult = /([0-9]+):([0-9]+)/.exec(output);
           const outputMinutes =
             parseInt(outputRegexResult[1]) * 60 +
             parseInt(outputRegexResult[2]);
           const nowDate = new Date();
-          let nowMinutes = nowDate.getUTCHours() * 60 + nowDate.getUTCMinutes();
+          // Apply JST time difference.
+          nowDate.setHours(nowDate.getHours() + 9);
+          let nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
           // When we cross the day between the unit converter calculation and the
           // assertion here.
           nowMinutes =
@@ -475,7 +429,7 @@ const TEST_DATA = [
       },
       {
         queryString: "now to here",
-        timezone: "EST5EDT",
+        timezone: "UTC",
         assertResult: output => {
           const outputRegexResult = /([0-9]+):([0-9]+)/.exec(output);
           const outputMinutes =

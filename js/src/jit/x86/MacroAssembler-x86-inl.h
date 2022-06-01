@@ -1144,15 +1144,6 @@ void MacroAssembler::spectreBoundsCheckPtr(Register index,
 // ========================================================================
 // SIMD
 
-void MacroAssembler::anyTrueSimd128(FloatRegister src, Register dest) {
-  Label done;
-  movl(Imm32(1), dest);
-  vptest(src, src);  // SSE4.1
-  j(NonZero, &done);
-  movl(Imm32(0), dest);
-  bind(&done);
-}
-
 void MacroAssembler::extractLaneInt64x2(uint32_t lane, FloatRegister src,
                                         Register64 dest) {
   if (lane == 0) {
@@ -1176,8 +1167,9 @@ void MacroAssembler::replaceLaneInt64x2(unsigned lane, FloatRegister lhs,
 }
 
 void MacroAssembler::splatX2(Register64 src, FloatRegister dest) {
-  replaceLaneInt64x2(0, src, dest);
-  replaceLaneInt64x2(1, src, dest);
+  vmovd(src.low, dest);
+  vpinsrd(1, src.high, dest, dest);
+  vpunpcklqdq(dest, dest, dest);
 }
 
 // ========================================================================

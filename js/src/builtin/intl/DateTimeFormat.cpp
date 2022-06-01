@@ -26,7 +26,7 @@
 #include "builtin/intl/LanguageTag.h"
 #include "builtin/intl/SharedIntlData.h"
 #include "builtin/intl/TimeZoneDataGenerated.h"
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "js/CharacterEncoding.h"
 #include "js/Date.h"
 #include "js/experimental/Intl.h"     // JS::AddMozDateTimeFormatConstructor
@@ -65,7 +65,6 @@ const JSClassOps DateTimeFormatObject::classOps_ = {
     nullptr,                         // mayResolve
     DateTimeFormatObject::finalize,  // finalize
     nullptr,                         // call
-    nullptr,                         // hasInstance
     nullptr,                         // construct
     nullptr,                         // trace
 };
@@ -183,8 +182,8 @@ bool js::intl_DateTimeFormat(JSContext* cx, unsigned argc, Value* vp) {
   return DateTimeFormat(cx, args, true, DateTimeFormatOptions::Standard);
 }
 
-void js::DateTimeFormatObject::finalize(JSFreeOp* fop, JSObject* obj) {
-  MOZ_ASSERT(fop->onMainThread());
+void js::DateTimeFormatObject::finalize(JS::GCContext* gcx, JSObject* obj) {
+  MOZ_ASSERT(gcx->onMainThread());
 
   auto* dateTimeFormat = &obj->as<DateTimeFormatObject>();
   mozilla::intl::DateTimeFormat* df = dateTimeFormat->getDateFormat();
@@ -193,14 +192,14 @@ void js::DateTimeFormatObject::finalize(JSFreeOp* fop, JSObject* obj) {
 
   if (df) {
     intl::RemoveICUCellMemory(
-        fop, obj, DateTimeFormatObject::UDateFormatEstimatedMemoryUse);
+        gcx, obj, DateTimeFormatObject::UDateFormatEstimatedMemoryUse);
 
     delete df;
   }
 
   if (dif) {
     intl::RemoveICUCellMemory(
-        fop, obj, DateTimeFormatObject::UDateIntervalFormatEstimatedMemoryUse);
+        gcx, obj, DateTimeFormatObject::UDateIntervalFormatEstimatedMemoryUse);
 
     delete dif;
   }
@@ -1336,9 +1335,7 @@ static mozilla::intl::DateIntervalFormat* NewDateIntervalFormat(
     return nullptr;
   }
 
-  // Determine the hour cycle used in the resolved pattern. This is needed to
-  // workaround <https://unicode-org.atlassian.net/browse/ICU-21154> and
-  // <https://unicode-org.atlassian.net/browse/ICU-21155>.
+  // Determine the hour cycle used in the resolved pattern.
   mozilla::Maybe<mozilla::intl::DateTimeFormat::HourCycle> hcPattern =
       mozilla::intl::DateTimeFormat::HourCycleFromPattern(pattern);
 
@@ -1358,7 +1355,7 @@ static mozilla::intl::DateIntervalFormat* NewDateIntervalFormat(
   mozilla::Span<const char16_t> timeZoneChars = timeZone.twoByteRange();
 
   FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> skeleton(cx);
-  auto skelResult = mozDtf.GetOriginalSkeleton(skeleton, hcPattern);
+  auto skelResult = mozDtf.GetOriginalSkeleton(skeleton);
   if (skelResult.isErr()) {
     intl::ReportInternalError(cx, skelResult.unwrapErr());
     return nullptr;

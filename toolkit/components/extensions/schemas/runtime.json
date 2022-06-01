@@ -64,7 +64,7 @@
       {
         "id": "PlatformArch",
         "type": "string",
-        "enum": ["aarch64", "arm", "ppc64", "s390x", "sparc64", "x86-32", "x86-64"],
+        "enum": ["aarch64", "arm", "ppc64", "s390x", "sparc64", "x86-32", "x86-64", "noarch"],
         "allowedContexts": ["content", "devtools"],
         "description": "The machine's processor architecture."
       },
@@ -160,7 +160,6 @@
     "functions": [
       {
         "name": "getBackgroundPage",
-        "max_manifest_version": 2,
         "type": "function",
         "description": "Retrieves the JavaScript 'window' object for the background page running inside the current extension/app. If the background page is an event page, the system will ensure it is loaded before calling the callback. If there is no background page, an error is set.",
         "async": "callback",
@@ -514,13 +513,11 @@
       },
       {
         "name": "onSuspend",
-        "unsupported": true,
         "type": "function",
         "description": "Sent to the event page just before it is unloaded. This gives the extension opportunity to do some clean up. Note that since the page is unloading, any asynchronous operations started while handling this event are not guaranteed to complete. If more activity for the event page occurs before it gets unloaded the onSuspendCanceled event will be sent and the page won't be unloaded. "
       },
       {
         "name": "onSuspendCanceled",
-        "unsupported": true,
         "type": "function",
         "description": "Sent after onSuspend to indicate that the app won't be unloaded after all."
       },

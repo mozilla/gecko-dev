@@ -240,11 +240,12 @@ var openCubicBezierAndChangeCoords = async function(
  *        The name for the new property
  * @param {String} value
  *        The value for the new property
- * @param {String} commitValueWith
+ * @param {Object=} options
+ * @param {String=} options.commitValueWith
  *        Which key should be used to commit the new value. VK_RETURN is used by
  *        default, but tests might want to use another key to test cancelling
  *        for exemple.
- * @param {Boolean} blurNewProperty
+ * @param {Boolean=} options.blurNewProperty
  *        After the new value has been added, a new property would have been
  *        focused. This parameter is true by default, and that causes the new
  *        property to be blurred. Set to false if you don't want this.
@@ -255,8 +256,7 @@ var addProperty = async function(
   ruleIndex,
   name,
   value,
-  commitValueWith = "VK_RETURN",
-  blurNewProperty = true
+  { commitValueWith = "VK_RETURN", blurNewProperty = true } = {}
 ) {
   info("Adding new property " + name + ":" + value + " to rule " + ruleIndex);
 
@@ -265,21 +265,32 @@ var addProperty = async function(
   const numOfProps = ruleEditor.rule.textProps.length;
 
   const onMutations = new Promise(r => {
-    // If we're adding the property to a non-element style rule, we don't need to wait
-    // for mutations.
+    // If the rule index is 0, then we are updating the rule for the "element"
+    // selector in the rule view.
+    // This rule is actually updating the style attribute of the element, and
+    // therefore we can expect mutations.
+    // For any other rule index, no mutation should be created, we can resolve
+    // immediately.
     if (ruleIndex !== 0) {
       r();
     }
 
-    // Otherwise, adding the property to the element style rule causes 2 mutations to the
-    // style attribute on the element: first when the name is added with an empty value,
-    // and then when the value is added.
-    let receivedMutations = 0;
+    // Use CSS.escape for the name in order to match the logic at
+    // devtools/client/fronts/inspector/rule-rewriter.js
+    // This leads to odd values in the style attribute and might change in the
+    // future. See https://bugzilla.mozilla.org/show_bug.cgi?id=1765943
+    const expectedAttributeValue = `${CSS.escape(name)}: ${value}`;
     view.inspector.walker.on("mutations", function onWalkerMutations(
       mutations
     ) {
-      receivedMutations += mutations.length;
-      if (receivedMutations >= 2) {
+      // Wait until we receive a mutation which updates the style attribute
+      // with the expected value.
+      const receivedLastMutation = mutations.some(
+        mut =>
+          mut.attributeName === "style" &&
+          mut.newValue.includes(expectedAttributeValue)
+      );
+      if (receivedLastMutation) {
         view.inspector.walker.off("mutations", onWalkerMutations);
         r();
       }
@@ -687,7 +698,7 @@ async function openEyedropper(view, swatch) {
  * @param {boolean} addCompatibilityData
  *        Optional argument to add compatibility dat with the property data
  *
- * @returns A map containing stringified property declarations e.g.
+ * @returns A Promise that resolves with a Map containing stringified property declarations e.g.
  *          [
  *            {
  *              "color:red":
@@ -696,20 +707,21 @@ async function openEyedropper(view, swatch) {
  *                  propertyValue: "red",
  *                  warning: "This won't work",
  *                  used: true,
- *                  isCompatible: Promise<boolean>,
+ *                  compatibilityData: {
+ *                    isCompatible: true,
+ *                  },
  *                }
  *            },
  *            ...
  *          ]
  */
-function getPropertiesForRuleIndex(
+async function getPropertiesForRuleIndex(
   view,
   ruleIndex,
   addCompatibilityData = false
 ) {
   const declaration = new Map();
   const ruleEditor = getRuleViewRuleEditor(view, ruleIndex);
-
   for (const currProp of ruleEditor.rule.textProps) {
     const icon = currProp.editor.unusedState;
     const unused = currProp.editor.element.classList.contains("unused");
@@ -717,7 +729,7 @@ function getPropertiesForRuleIndex(
     let compatibilityData;
     let compatibilityIcon;
     if (addCompatibilityData) {
-      compatibilityData = currProp.isCompatible();
+      compatibilityData = await currProp.isCompatible();
       compatibilityIcon = currProp.editor.compatibilityState;
     }
 
@@ -730,7 +742,6 @@ function getPropertiesForRuleIndex(
       used: !unused,
       ...(addCompatibilityData
         ? {
-            isCompatible: compatibilityData.then(data => data.isCompatible),
             compatibilityData,
             compatibilityIcon,
           }
@@ -854,23 +865,18 @@ async function checkDeclarationCompatibility(
   declaration,
   expected
 ) {
-  const declarations = getPropertiesForRuleIndex(view, ruleIndex, true);
+  const declarations = await getPropertiesForRuleIndex(view, ruleIndex, true);
   const [[name, value]] = Object.entries(declaration);
   const dec = `${name}:${value}`;
-  const { isCompatible, compatibilityData } = declarations.get(dec);
-  const compatibilityStatus = await isCompatible;
-  // Await on compatibilityData even if the rule is
-  // compatible. Otherwise, the test browser may close
-  // while waiting for the response from the compatibility actor.
-  const messageId = (await compatibilityData).msgId;
+  const { compatibilityData } = declarations.get(dec);
 
   is(
     !expected,
-    compatibilityStatus,
+    compatibilityData.isCompatible,
     `"${dec}" has the correct compatibility status in the payload`
   );
 
-  is(messageId, expected, `"${dec}" has expected message ID`);
+  is(compatibilityData.msgId, expected, `"${dec}" has expected message ID`);
 
   if (expected) {
     await checkInteractiveTooltip(
@@ -894,7 +900,7 @@ async function checkDeclarationCompatibility(
  *        An object representing the declaration e.g. { color: "red" }.
  */
 async function checkDeclarationIsInactive(view, ruleIndex, declaration) {
-  const declarations = getPropertiesForRuleIndex(view, ruleIndex);
+  const declarations = await getPropertiesForRuleIndex(view, ruleIndex);
   const [[name, value]] = Object.entries(declaration);
   const dec = `${name}:${value}`;
   const { used, warning } = declarations.get(dec);
@@ -920,8 +926,8 @@ async function checkDeclarationIsInactive(view, ruleIndex, declaration) {
  * @param {Object} declaration
  *        An object representing the declaration e.g. { color: "red" }.
  */
-function checkDeclarationIsActive(view, ruleIndex, declaration) {
-  const declarations = getPropertiesForRuleIndex(view, ruleIndex);
+async function checkDeclarationIsActive(view, ruleIndex, declaration) {
+  const declarations = await getPropertiesForRuleIndex(view, ruleIndex);
   const [[name, value]] = Object.entries(declaration);
   const dec = `${name}:${value}`;
   const { used, warning } = declarations.get(dec);
@@ -944,7 +950,7 @@ function checkDeclarationIsActive(view, ruleIndex, declaration) {
  */
 async function checkInteractiveTooltip(view, type, ruleIndex, declaration) {
   // Get the declaration
-  const declarations = getPropertiesForRuleIndex(
+  const declarations = await getPropertiesForRuleIndex(
     view,
     ruleIndex,
     type === "compatibility-tooltip"
@@ -960,7 +966,7 @@ async function checkInteractiveTooltip(view, type, ruleIndex, declaration) {
   } else {
     const { compatibilityIcon, compatibilityData } = declarations.get(dec);
     icon = compatibilityIcon;
-    data = await compatibilityData;
+    data = compatibilityData;
   }
 
   // Get the tooltip.
@@ -1109,7 +1115,7 @@ async function runInactiveCSSTests(view, inspector, tests) {
         for (const [name, value] of Object.entries(
           activeDeclarations.declarations
         )) {
-          checkDeclarationIsActive(view, activeDeclarations.ruleIndex, {
+          await checkDeclarationIsActive(view, activeDeclarations.ruleIndex, {
             [name]: value,
           });
         }

@@ -56,10 +56,10 @@ using CodecIntervals = std::array<CodecInterval, 4>;  // RGB[A] or Y[A]
 
 // Optional text/EXIF metadata.
 struct Blobs {
-  PaddedBytes exif;
-  PaddedBytes iptc;
-  PaddedBytes jumbf;
-  PaddedBytes xmp;
+  std::vector<uint8_t> exif;
+  std::vector<uint8_t> iptc;
+  std::vector<uint8_t> jumbf;
+  std::vector<uint8_t> xmp;
 };
 
 // Holds a preview, a main image or one or more frames, plus the inputs/outputs
@@ -76,7 +76,7 @@ class CodecInOut {
   CodecInOut& operator=(CodecInOut&&) = default;
 
   size_t LastStillFrame() const {
-    JXL_DASSERT(frames.size() > 0);
+    JXL_DASSERT(!frames.empty());
     size_t last = 0;
     for (size_t i = 0; i < frames.size(); i++) {
       last = i;

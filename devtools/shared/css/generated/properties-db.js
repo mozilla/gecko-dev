@@ -55,6 +55,7 @@ exports.CSS_PROPERTIES = {
       "revert",
       "revert-layer",
       "running",
+      "scroll",
       "step-end",
       "step-start",
       "steps",
@@ -209,8 +210,6 @@ exports.CSS_PROPERTIES = {
       "-moz-mac-help-button",
       "-moz-mac-source-list",
       "-moz-mac-source-list-selection",
-      "-moz-mac-vibrant-titlebar-dark",
-      "-moz-mac-vibrant-titlebar-light",
       "-moz-menulist-arrow-button",
       "-moz-win-borderless-glass",
       "-moz-win-browsertabbar-toolbox",
@@ -1327,6 +1326,7 @@ exports.CSS_PROPERTIES = {
       "revert",
       "revert-layer",
       "running",
+      "scroll",
       "step-end",
       "step-start",
       "steps",
@@ -1481,8 +1481,6 @@ exports.CSS_PROPERTIES = {
       "-moz-mac-help-button",
       "-moz-mac-source-list",
       "-moz-mac-source-list-selection",
-      "-moz-mac-vibrant-titlebar-dark",
-      "-moz-mac-vibrant-titlebar-light",
       "-moz-menulist-arrow-button",
       "-moz-win-borderless-glass",
       "-moz-win-browsertabbar-toolbox",
@@ -2955,19 +2953,6 @@ exports.CSS_PROPERTIES = {
       "overflow-x",
       "overflow-y",
       "overflow-anchor",
-      "transition-duration",
-      "transition-timing-function",
-      "transition-property",
-      "transition-delay",
-      "animation-name",
-      "animation-duration",
-      "animation-timing-function",
-      "animation-iteration-count",
-      "animation-direction",
-      "animation-play-state",
-      "animation-fill-mode",
-      "animation-delay",
-      "animation-timeline",
       "transform",
       "rotate",
       "scale",
@@ -2979,6 +2964,7 @@ exports.CSS_PROPERTIES = {
       "scroll-behavior",
       "scroll-snap-align",
       "scroll-snap-type",
+      "scroll-snap-stop",
       "overscroll-behavior-x",
       "overscroll-behavior-y",
       "isolation",
@@ -2993,6 +2979,9 @@ exports.CSS_PROPERTIES = {
       "transform-style",
       "transform-origin",
       "contain",
+      "content-visibility",
+      "container-type",
+      "container-name",
       "appearance",
       "-moz-orient",
       "will-change",
@@ -3122,6 +3111,7 @@ exports.CSS_PROPERTIES = {
       "margin-right",
       "margin-bottom",
       "margin-left",
+      "overflow-clip-margin",
       "scroll-margin-top",
       "scroll-margin-right",
       "scroll-margin-bottom",
@@ -3219,6 +3209,19 @@ exports.CSS_PROPERTIES = {
       "user-select",
       "-moz-window-dragging",
       "-moz-force-broken-image-icon",
+      "transition-duration",
+      "transition-timing-function",
+      "transition-property",
+      "transition-delay",
+      "animation-name",
+      "animation-duration",
+      "animation-timing-function",
+      "animation-iteration-count",
+      "animation-direction",
+      "animation-play-state",
+      "animation-fill-mode",
+      "animation-delay",
+      "animation-timeline",
       "-moz-box-align",
       "-moz-box-direction",
       "-moz-box-flex",
@@ -3274,6 +3277,7 @@ exports.CSS_PROPERTIES = {
       "revert",
       "revert-layer",
       "running",
+      "scroll",
       "step-end",
       "step-start",
       "steps",
@@ -3428,8 +3432,6 @@ exports.CSS_PROPERTIES = {
       "-moz-mac-help-button",
       "-moz-mac-source-list",
       "-moz-mac-source-list-selection",
-      "-moz-mac-vibrant-titlebar-dark",
-      "-moz-mac-vibrant-titlebar-light",
       "-moz-menulist-arrow-button",
       "-moz-win-borderless-glass",
       "-moz-win-browsertabbar-toolbox",
@@ -5934,6 +5936,7 @@ exports.CSS_PROPERTIES = {
       "content",
       "inherit",
       "initial",
+      "inline-size",
       "layout",
       "none",
       "paint",
@@ -9009,7 +9012,6 @@ exports.CSS_PROPERTIES = {
     ],
     "supports": [],
     "values": [
-      "-moz-hidden-unscrollable",
       "auto",
       "clip",
       "hidden",
@@ -9045,7 +9047,6 @@ exports.CSS_PROPERTIES = {
     ],
     "supports": [],
     "values": [
-      "-moz-hidden-unscrollable",
       "auto",
       "clip",
       "hidden",
@@ -9058,6 +9059,20 @@ exports.CSS_PROPERTIES = {
       "visible"
     ]
   },
+  "overflow-clip-margin": {
+    "isInherited": false,
+    "subproperties": [
+      "overflow-clip-margin"
+    ],
+    "supports": [],
+    "values": [
+      "inherit",
+      "initial",
+      "revert",
+      "revert-layer",
+      "unset"
+    ]
+  },
   "overflow-inline": {
     "isInherited": false,
     "subproperties": [
@@ -9065,7 +9080,6 @@ exports.CSS_PROPERTIES = {
     ],
     "supports": [],
     "values": [
-      "-moz-hidden-unscrollable",
       "auto",
       "clip",
       "hidden",
@@ -9102,7 +9116,6 @@ exports.CSS_PROPERTIES = {
     ],
     "supports": [],
     "values": [
-      "-moz-hidden-unscrollable",
       "auto",
       "clip",
       "hidden",
@@ -9122,7 +9135,6 @@ exports.CSS_PROPERTIES = {
     ],
     "supports": [],
     "values": [
-      "-moz-hidden-unscrollable",
       "auto",
       "clip",
       "hidden",
@@ -10179,6 +10191,22 @@ exports.CSS_PROPERTIES = {
       "unset"
     ]
   },
+  "scroll-snap-stop": {
+    "isInherited": false,
+    "subproperties": [
+      "scroll-snap-stop"
+    ],
+    "supports": [],
+    "values": [
+      "always",
+      "inherit",
+      "initial",
+      "normal",
+      "revert",
+      "revert-layer",
+      "unset"
+    ]
+  },
   "scroll-snap-type": {
     "isInherited": false,
     "subproperties": [
@@ -10590,6 +10618,7 @@ exports.CSS_PROPERTIES = {
     "supports": [],
     "values": [
       "-moz-center",
+      "-moz-center-or-inherit",
       "-moz-left",
       "-moz-right",
       "center",
@@ -11599,6 +11628,14 @@ exports.PREFERENCES = [
     "layout.css.aspect-ratio.enabled"
   ],
   [
+    "container-type",
+    "layout.css.container-queries.enabled"
+  ],
+  [
+    "content-visibility",
+    "layout.css.content-visibility.enabled"
+  ],
+  [
     "font-optical-sizing",
     "layout.css.font-variations.enabled"
   ],
@@ -11695,6 +11732,10 @@ exports.PREFERENCES = [
     "layout.css.color-scheme.enabled"
   ],
   [
+    "container-name",
+    "layout.css.container-queries.enabled"
+  ],
+  [
     "d",
     "layout.css.d-property.enabled"
   ],
@@ -11755,12 +11796,52 @@ exports.PREFERENCES = [
     "layout.css.overscroll-behavior.enabled"
   ],
   [
+    "container",
+    "layout.css.container-queries.enabled"
+  ],
+  [
     "offset",
     "layout.css.motion-path.enabled"
   ],
   [
     "zoom",
     "layout.css.zoom-transform-hack.enabled"
+  ],
+  [
+    "-moz-transform",
+    "layout.css.prefixes.transforms"
+  ],
+  [
+    "-moz-perspective",
+    "layout.css.prefixes.transforms"
+  ],
+  [
+    "-moz-perspective-origin",
+    "layout.css.prefixes.transforms"
+  ],
+  [
+    "-moz-backface-visibility",
+    "layout.css.prefixes.transforms"
+  ],
+  [
+    "-moz-transform-style",
+    "layout.css.prefixes.transforms"
+  ],
+  [
+    "-moz-transform-origin",
+    "layout.css.prefixes.transforms"
+  ],
+  [
+    "-moz-font-feature-settings",
+    "layout.css.prefixes.font-features"
+  ],
+  [
+    "-moz-font-language-override",
+    "layout.css.prefixes.font-features"
+  ],
+  [
+    "-moz-box-sizing",
+    "layout.css.prefixes.box-sizing"
   ],
   [
     "-moz-transition-duration",
@@ -11809,42 +11890,6 @@ exports.PREFERENCES = [
   [
     "-moz-animation-delay",
     "layout.css.prefixes.animations"
-  ],
-  [
-    "-moz-transform",
-    "layout.css.prefixes.transforms"
-  ],
-  [
-    "-moz-perspective",
-    "layout.css.prefixes.transforms"
-  ],
-  [
-    "-moz-perspective-origin",
-    "layout.css.prefixes.transforms"
-  ],
-  [
-    "-moz-backface-visibility",
-    "layout.css.prefixes.transforms"
-  ],
-  [
-    "-moz-transform-style",
-    "layout.css.prefixes.transforms"
-  ],
-  [
-    "-moz-transform-origin",
-    "layout.css.prefixes.transforms"
-  ],
-  [
-    "-moz-font-feature-settings",
-    "layout.css.prefixes.font-features"
-  ],
-  [
-    "-moz-font-language-override",
-    "layout.css.prefixes.font-features"
-  ],
-  [
-    "-moz-box-sizing",
-    "layout.css.prefixes.box-sizing"
   ],
   [
     "-moz-border-image",

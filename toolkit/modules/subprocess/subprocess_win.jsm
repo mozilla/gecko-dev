@@ -7,7 +7,9 @@
 
 /* eslint-disable mozilla/balanced-listeners */
 
-var EXPORTED_SYMBOLS = ["SubprocessImpl"];
+// libc and win32 are exported for tests. It is imported into this file lower
+// down, from the shared scripts loaded via loadSubScript.
+var EXPORTED_SYMBOLS = ["SubprocessImpl", "libc", "win32"];
 
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
@@ -29,16 +31,17 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsIEnvironment"
 );
 
-/* import-globals-from subprocess_shared.js */
-/* import-globals-from subprocess_shared_win.js */
+var obj = {};
 Services.scriptloader.loadSubScript(
   "resource://gre/modules/subprocess/subprocess_shared.js",
-  this
+  obj
 );
 Services.scriptloader.loadSubScript(
   "resource://gre/modules/subprocess/subprocess_shared_win.js",
-  this
+  obj
 );
+
+const { SubprocessConstants, libc, win32 } = obj;
 
 class WinPromiseWorker extends PromiseWorker {
   constructor(...args) {

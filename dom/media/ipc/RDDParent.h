@@ -8,7 +8,7 @@
 #include "mozilla/PRDDParent.h"
 
 #include "mozilla/RefPtr.h"
-#include "mozilla/media/MediaUtils.h"
+#include "mozilla/ipc/AsyncBlockers.h"
 
 namespace mozilla {
 
@@ -22,20 +22,20 @@ class RDDParent final : public PRDDParent {
 
   static RDDParent* GetSingleton();
 
-  AsyncBlockers& AsyncShutdownService() { return mShutdownBlockers; }
+  ipc::AsyncBlockers& AsyncShutdownService() { return mShutdownBlockers; }
 
   bool Init(base::ProcessId aParentPid, const char* aParentBuildID,
             mozilla::ipc::ScopedPort aPort);
 
   mozilla::ipc::IPCResult RecvInit(nsTArray<GfxVarUpdate>&& vars,
                                    const Maybe<ipc::FileDescriptor>& aBrokerFd,
-                                   const bool& aCanRecordReleaseTelemetry);
+                                   const bool& aCanRecordReleaseTelemetry,
+                                   const bool& aIsReadyForBackgroundProcessing);
   mozilla::ipc::IPCResult RecvInitProfiler(
       Endpoint<PProfilerChild>&& aEndpoint);
 
   mozilla::ipc::IPCResult RecvNewContentRemoteDecoderManager(
-      Endpoint<PRemoteDecoderManagerParent>&& aEndpoint,
-      const bool& aAllowHardwareDecoding);
+      Endpoint<PRemoteDecoderManagerParent>&& aEndpoint);
   mozilla::ipc::IPCResult RecvInitVideoBridge(
       Endpoint<PVideoBridgeChild>&& aEndpoint,
       const bool& aCreateHardwareDevice,
@@ -48,6 +48,7 @@ class RDDParent final : public PRDDParent {
 #if defined(XP_WIN)
   mozilla::ipc::IPCResult RecvGetUntrustedModulesData(
       GetUntrustedModulesDataResolver&& aResolver);
+  mozilla::ipc::IPCResult RecvUnblockUntrustedModulesThread();
 #endif  // defined(XP_WIN)
   mozilla::ipc::IPCResult RecvPreferenceUpdate(const Pref& pref);
   mozilla::ipc::IPCResult RecvUpdateVar(const GfxVarUpdate& pref);
@@ -66,7 +67,7 @@ class RDDParent final : public PRDDParent {
  private:
   const TimeStamp mLaunchTime;
   RefPtr<ChildProfilerController> mProfilerController;
-  AsyncBlockers mShutdownBlockers;
+  ipc::AsyncBlockers mShutdownBlockers;
 };
 
 }  // namespace mozilla

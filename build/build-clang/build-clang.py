@@ -192,12 +192,11 @@ def build_one_stage(
     src_dir,
     stage_dir,
     package_name,
-    build_libcxx,
     osx_cross_compile,
     build_type,
     assertions,
     libcxx_include_dir,
-    build_wasm,
+    targets,
     is_final_stage=False,
     profile=None,
 ):
@@ -212,9 +211,7 @@ def build_one_stage(
         return path.replace("\\", "/")
 
     def cmake_base_args(cc, cxx, asm, ld, ar, ranlib, libtool, inst_dir):
-        machine_targets = "X86;ARM;AArch64" if is_final_stage else "X86"
-        if build_wasm and is_final_stage:
-            machine_targets += ";WebAssembly"
+        machine_targets = targets if is_final_stage and targets else "X86"
 
         cmake_args = [
             "-GNinja",
@@ -234,6 +231,7 @@ def build_one_stage(
             "-DLLVM_ENABLE_ASSERTIONS=%s" % ("ON" if assertions else "OFF"),
             "-DLLVM_ENABLE_BINDINGS=OFF",
             "-DLLVM_ENABLE_CURL=OFF",
+            "-DLLVM_INCLUDE_TESTS=OFF",
         ]
         if "TASK_ID" in os.environ:
             cmake_args += [
@@ -242,8 +240,7 @@ def build_one_stage(
         # libc++ doesn't build with MSVC because of the use of #include_next.
         if is_final_stage and os.path.basename(cc[0]).lower() != "cl.exe":
             cmake_args += [
-                "-DLLVM_FORCE_BUILD_RUNTIME=ON",
-                "-DLLVM_TOOL_LIBCXX_BUILD=%s" % ("ON" if build_libcxx else "OFF"),
+                "-DLLVM_TOOL_LIBCXX_BUILD=ON",
                 # libc++abi has conflicting definitions between the shared and static
                 # library on Windows because of the import library for the dll having
                 # the same name as the static library. libc++abi is not necessary on
@@ -252,13 +249,8 @@ def build_one_stage(
             ]
         if not is_final_stage:
             cmake_args += [
-                "-DLLVM_ENABLE_PROJECTS=clang;compiler-rt",
-                "-DLLVM_INCLUDE_TESTS=OFF",
+                "-DLLVM_ENABLE_PROJECTS=clang",
                 "-DLLVM_TOOL_LLI_BUILD=OFF",
-                "-DCOMPILER_RT_BUILD_SANITIZERS=OFF",
-                "-DCOMPILER_RT_BUILD_XRAY=OFF",
-                "-DCOMPILER_RT_BUILD_MEMPROF=OFF",
-                "-DCOMPILER_RT_BUILD_LIBFUZZER=OFF",
             ]
 
         # There is no libxml2 on Windows except if we build one ourselves.
@@ -512,7 +504,6 @@ def main():
     extra_source_dir = source_dir + "/clang-tools-extra"
     clang_source_dir = source_dir + "/clang"
     lld_source_dir = source_dir + "/lld"
-    compiler_rt_source_dir = source_dir + "/compiler-rt"
     libcxx_source_dir = source_dir + "/libcxx"
     libcxxabi_source_dir = source_dir + "/libcxxabi"
 
@@ -581,16 +572,7 @@ def main():
                 "We only know how to do Release, Debug, RelWithDebInfo or "
                 "MinSizeRel builds"
             )
-    build_libcxx = True
-    if "build_libcxx" in config:
-        build_libcxx = config["build_libcxx"]
-        if build_libcxx not in (True, False):
-            raise ValueError("Only boolean values are accepted for build_libcxx.")
-    build_wasm = False
-    if "build_wasm" in config:
-        build_wasm = config["build_wasm"]
-        if build_wasm not in (True, False):
-            raise ValueError("Only boolean values are accepted for build_wasm.")
+    targets = config.get("targets")
     build_clang_tidy = False
     if "build_clang_tidy" in config:
         build_clang_tidy = config["build_clang_tidy"]
@@ -647,13 +629,10 @@ def main():
         for p in config.get("patches", []):
             patch(p, source_dir)
 
-    compiler_rt_source_link = llvm_source_dir + "/projects/compiler-rt"
-
     symlinks = [
         (clang_source_dir, llvm_source_dir + "/tools/clang"),
         (extra_source_dir, llvm_source_dir + "/tools/clang/tools/extra"),
         (lld_source_dir, llvm_source_dir + "/tools/lld"),
-        (compiler_rt_source_dir, compiler_rt_source_link),
         (libcxx_source_dir, llvm_source_dir + "/projects/libcxx"),
         (libcxxabi_source_dir, llvm_source_dir + "/projects/libcxxabi"),
         (source_dir + "/cmake", llvm_source_dir + "/projects/cmake"),
@@ -683,7 +662,6 @@ def main():
     stage1_inst_dir = stage1_dir + "/" + package_name
 
     final_stage_dir = stage1_dir
-    final_inst_dir = stage1_inst_dir
 
     if is_darwin():
         extra_cflags = []
@@ -715,11 +693,18 @@ def main():
         extra_cxxflags = []
         # clang-cl would like to figure out what it's supposed to be emulating
         # by looking at an MSVC install, but we don't really have that here.
-        # Force things on.
-        extra_cflags2 = []
-        extra_cxxflags2 = [
-            "-fms-compatibility-version=19.15.26726",
-        ]
+        # Force things on based on WinMsvc.cmake.
+        # Ideally, we'd just use WinMsvc.cmake as a toolchain file, but it only
+        # really works for cross-compiles, which this is not.
+        with open(os.path.join(llvm_source_dir, "cmake/platforms/WinMsvc.cmake")) as f:
+            compat = [
+                item
+                for line in f
+                for item in line.split()
+                if "-fms-compatibility-version=" in item
+            ][0]
+        extra_cflags2 = [compat]
+        extra_cxxflags2 = [compat]
         extra_asmflags = []
         extra_ldflags = []
 
@@ -771,12 +756,11 @@ def main():
             llvm_source_dir,
             stage1_dir,
             package_name,
-            build_libcxx,
             osx_cross_compile,
             build_type,
             assertions,
             libcxx_include_dir,
-            build_wasm,
+            targets,
             is_final_stage=(stages == 1),
         )
 
@@ -784,7 +768,6 @@ def main():
         stage2_dir = build_dir + "/stage2"
         stage2_inst_dir = stage2_dir + "/" + package_name
         final_stage_dir = stage2_dir
-        final_inst_dir = stage2_inst_dir
         if skip_stages < 1:
             cc = stage1_inst_dir + "/bin/%s%s" % (cc_name, exe_ext)
             cxx = stage1_inst_dir + "/bin/%s%s" % (cxx_name, exe_ext)
@@ -800,12 +783,11 @@ def main():
             llvm_source_dir,
             stage2_dir,
             package_name,
-            build_libcxx,
             osx_cross_compile,
             build_type,
             assertions,
             libcxx_include_dir,
-            build_wasm,
+            targets,
             is_final_stage=(stages == 2),
             profile="gen" if pgo else None,
         )
@@ -814,7 +796,6 @@ def main():
         stage3_dir = build_dir + "/stage3"
         stage3_inst_dir = stage3_dir + "/" + package_name
         final_stage_dir = stage3_dir
-        final_inst_dir = stage3_inst_dir
         if skip_stages < 2:
             cc = stage2_inst_dir + "/bin/%s%s" % (cc_name, exe_ext)
             cxx = stage2_inst_dir + "/bin/%s%s" % (cxx_name, exe_ext)
@@ -830,12 +811,11 @@ def main():
             llvm_source_dir,
             stage3_dir,
             package_name,
-            build_libcxx,
             osx_cross_compile,
             build_type,
             assertions,
             libcxx_include_dir,
-            build_wasm,
+            targets,
             (stages == 3),
         )
         if pgo:
@@ -852,9 +832,7 @@ def main():
 
     if stages >= 4 and skip_stages < 4:
         stage4_dir = build_dir + "/stage4"
-        stage4_inst_dir = stage4_dir + "/" + package_name
         final_stage_dir = stage4_dir
-        final_inst_dir = stage4_inst_dir
         profile = None
         if pgo:
             if skip_stages == 3:
@@ -877,12 +855,11 @@ def main():
             llvm_source_dir,
             stage4_dir,
             package_name,
-            build_libcxx,
             osx_cross_compile,
             build_type,
             assertions,
             libcxx_include_dir,
-            build_wasm,
+            targets,
             (stages == 4),
             profile=profile,
         )
@@ -891,21 +868,6 @@ def main():
         prune_final_dir_for_clang_tidy(
             os.path.join(final_stage_dir, package_name), osx_cross_compile
         )
-
-    # Copy the wasm32 builtins to the final_inst_dir if the archive is present.
-    if "wasi-compiler-rt" in config:
-        compiler_rt = config["wasi-compiler-rt"].format(**os.environ)
-        if os.path.isdir(compiler_rt):
-            for libdir in glob.glob(
-                os.path.join(final_inst_dir, "lib", "clang", "*", "lib")
-            ):
-                srcdir = os.path.join(compiler_rt, "lib", "wasi")
-                print("Copying from wasi-compiler-rt srcdir %s" % srcdir)
-                # Copy the contents of the "lib/wasi" subdirectory to the
-                # appropriate location in final_inst_dir.
-                destdir = os.path.join(libdir, "wasi")
-                mkdir_p(destdir)
-                copy_tree(srcdir, destdir)
 
     if not args.skip_tar:
         build_tar_package("%s.tar.zst" % package_name, final_stage_dir, package_name)

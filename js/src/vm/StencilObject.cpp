@@ -32,7 +32,6 @@ using namespace js;
     nullptr,                  // mayResolve
     StencilObject::finalize,  // finalize
     nullptr,                  // call
-    nullptr,                  // hasInstance
     nullptr,                  // construct
     nullptr,                  // trace
 };
@@ -67,7 +66,7 @@ JS::Stencil* StencilObject::stencil() const {
   return &obj->as<StencilObject>();
 }
 
-/* static */ void StencilObject::finalize(JSFreeOp* fop, JSObject* obj) {
+/* static */ void StencilObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   if (obj->as<StencilObject>().hasStencil()) {
     JS::StencilRelease(obj->as<StencilObject>().stencil());
   }
@@ -82,7 +81,6 @@ JS::Stencil* StencilObject::stencil() const {
     nullptr,                           // mayResolve
     StencilXDRBufferObject::finalize,  // finalize
     nullptr,                           // call
-    nullptr,                           // hasInstance
     nullptr,                           // construct
     nullptr,                           // trace
 };
@@ -141,7 +139,7 @@ size_t StencilXDRBufferObject::bufferLength() const {
   return &obj->as<StencilXDRBufferObject>();
 }
 
-/* static */ void StencilXDRBufferObject::finalize(JSFreeOp* fop,
+/* static */ void StencilXDRBufferObject::finalize(JS::GCContext* gcx,
                                                    JSObject* obj) {
   if (obj->as<StencilXDRBufferObject>().hasBuffer()) {
     js_free(obj->as<StencilXDRBufferObject>().writableBuffer());

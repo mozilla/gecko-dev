@@ -297,9 +297,9 @@ partial interface Document {
   [BinaryName="fullscreenEnabled", NeedsCallerType]
   readonly attribute boolean mozFullScreenEnabled;
 
-  [Throws]
+  [NewObject]
   Promise<void> exitFullscreen();
-  [Throws, BinaryName="exitFullscreen"]
+  [NewObject, BinaryName="exitFullscreen"]
   Promise<void> mozCancelFullScreen();
 
   // Events handlers
@@ -319,7 +319,7 @@ partial interface Document {
 
 // Mozilla-internal document extensions specific to error pages.
 partial interface Document {
-  [Func="Document::CallerIsTrustedAboutCertError"]
+  [Func="Document::CallerIsTrustedAboutCertError", NewObject]
   Promise<any> addCertException(boolean isTemporary);
 
   [Func="Document::CallerIsTrustedAboutHttpsOnlyError"]
@@ -448,7 +448,7 @@ partial interface Document {
   [ChromeOnly] readonly attribute nsILoadGroup? documentLoadGroup;
 
   // Blocks the initial document parser until the given promise is settled.
-  [ChromeOnly, Throws]
+  [ChromeOnly, NewObject]
   Promise<any> blockParsing(Promise<any> promise,
                             optional BlockParsingOptions options = {});
 
@@ -540,9 +540,9 @@ partial interface Document {
 
 // https://github.com/whatwg/html/issues/3338
 partial interface Document {
-  [Pref="dom.storage_access.enabled", Throws]
+  [Pref="dom.storage_access.enabled", NewObject]
   Promise<boolean> hasStorageAccess();
-  [Pref="dom.storage_access.enabled", Throws]
+  [Pref="dom.storage_access.enabled", NewObject]
   Promise<void> requestStorageAccess();
 };
 
@@ -550,7 +550,7 @@ partial interface Document {
 // webcompat extension the ability to request the storage access for a given
 // third party.
 partial interface Document {
-  [Func="Document::CallerCanAccessPrivilegeSSA", Throws]
+  [Func="Document::CallerCanAccessPrivilegeSSA", NewObject]
   Promise<void> requestStorageAccessForOrigin(DOMString thirdPartyOrigin, optional boolean requireUserInteraction = true);
 };
 
@@ -584,6 +584,8 @@ partial interface Document {
   readonly attribute boolean hasBeenUserGestureActivated;
   [ChromeOnly]
   readonly attribute boolean hasValidTransientUserGestureActivation;
+  [ChromeOnly]
+  readonly attribute DOMHighResTimeStamp lastUserGestureTimeStamp;
   [ChromeOnly]
   boolean consumeTransientUserGestureActivation();
 };
@@ -732,13 +734,15 @@ dictionary WireframeTaggedRect {
   unrestricted double y = 0;
   unrestricted double width = 0;
   unrestricted double height = 0;
-  DOMString? color; /* Only relevant for "background" rects */
+  unsigned long color = 0; // in nscolor format
   WireframeRectType type;
   Node? node;
 };
+[GenerateInit]
 dictionary Wireframe {
-  DOMString canvasBackground;
+  unsigned long canvasBackground = 0; // in nscolor format
   sequence<WireframeTaggedRect> rects;
+  unsigned long version = 1; // Increment when the wireframe structure changes in backwards-incompatible ways
 };
 partial interface Document {
   [ChromeOnly]

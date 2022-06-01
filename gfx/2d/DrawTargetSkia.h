@@ -43,7 +43,10 @@ class DrawTargetSkia : public DrawTarget {
   virtual BackendType GetBackendType() const override {
     return BackendType::SKIA;
   }
-  virtual already_AddRefed<SourceSurface> Snapshot() override;
+  already_AddRefed<SourceSurface> Snapshot(SurfaceFormat aFormat);
+  virtual already_AddRefed<SourceSurface> Snapshot() override {
+    return Snapshot(mFormat);
+  }
   already_AddRefed<SourceSurface> GetBackingSurface() override;
   virtual IntSize GetSize() const override { return mSize; };
   virtual bool LockBits(uint8_t** aData, IntSize* aSize, int32_t* aStride,
@@ -60,8 +63,7 @@ class DrawTargetSkia : public DrawTarget {
                           const DrawOptions& aOptions = DrawOptions()) override;
   virtual void DrawSurfaceWithShadow(SourceSurface* aSurface,
                                      const Point& aDest,
-                                     const DeviceColor& aColor,
-                                     const Point& aOffset, Float aSigma,
+                                     const ShadowOptions& aShadow,
                                      CompositionOp aOperator) override;
   void Clear(const Rect* aRect = nullptr);
   virtual void ClearRect(const Rect& aRect) override { Clear(&aRect); }
@@ -188,7 +190,7 @@ class DrawTargetSkia : public DrawTarget {
   SkCanvas* mCanvas = nullptr;
   RefPtr<DataSourceSurface> mBackingSurface;
   RefPtr<SourceSurfaceSkia> mSnapshot;
-  Mutex mSnapshotLock;
+  Mutex mSnapshotLock MOZ_UNANNOTATED;
 
 #ifdef MOZ_WIDGET_COCOA
   friend class BorrowedCGContext;

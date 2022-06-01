@@ -9,6 +9,7 @@ const {
   Component,
   createFactory,
 } = require("devtools/client/shared/vendor/react");
+const Services = require("Services");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const {
@@ -22,7 +23,6 @@ const {
 const {
   getUrlQuery,
   parseQueryString,
-  updateTextareaRows,
 } = require("devtools/client/netmonitor/src/utils/request-utils");
 const InputMap = createFactory(
   require("devtools/client/netmonitor/src/components/new-request/InputMap")
@@ -66,6 +66,19 @@ const FIREFOX_DEFAULT_HEADERS = [
   "Upgrade",
   "Via",
 ];
+// This does not include the CONNECT method as it is restricted and special.
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=1769572#c2 for details
+const HTTP_METHODS = [
+  "GET",
+  "HEAD",
+  "POST",
+  "DELETE",
+  "PUT",
+  "OPTIONS",
+  "TRACE",
+  "PATH",
+];
+
 /*
  * HTTP Custom request panel component
  * A network request panel which enables creating and sending new requests
@@ -80,97 +93,130 @@ class HTTPCustomRequestPanel extends Component {
     };
   }
 
-  static createQueryParamsListFromURL(url) {
-    const queryArray = (url ? parseQueryString(getUrlQuery(url)) : []) || [];
-    return queryArray.map(({ name, value }) => {
-      return {
-        checked: true,
-        name,
-        value,
-      };
-    });
-  }
-
   constructor(props) {
     super(props);
 
-    const { request } = props;
+    let { request } = props;
+
+    request = request || this.getStateFromPref();
+
+    // We need this part because on the pref we are saving the request in one format
+    // and from the edit and resen it comes in a different form with different properties,
+    // so we need this to nomalize the request.
+    if (request.requestHeaders) {
+      request.headers = request.requestHeaders.headers;
+    }
+
+    if (request.requestPostData?.postData?.text) {
+      request.postBody = request.requestPostData.postData.text;
+    }
 
     this.URLTextareaRef = createRef();
 
+    const requestHeaders = request.headers
+      ?.map(({ name, value }) => {
+        return {
+          name,
+          value,
+          checked: true,
+          disabled: FIREFOX_DEFAULT_HEADERS.some(i => name.startsWith(i)),
+        };
+      })
+      .sort((a, b) => {
+        if (a.disabled && !b.disabled) {
+          return -1;
+        }
+        if (!a.disabled && b.disabled) {
+          return 1;
+        }
+        return 0;
+      });
+
     this.state = {
-      method: request ? request.method : "",
-      url: request ? request.url : "",
-      urlQueryParams: HTTPCustomRequestPanel.createQueryParamsListFromURL(
-        request?.url
-      ),
-      headers: request
-        ? request.requestHeaders.headers
-            .map(({ name, value }) => {
-              return {
-                name,
-                value,
-                checked: true,
-                disabled: !!FIREFOX_DEFAULT_HEADERS.find(i =>
-                  name.startsWith(i)
-                ),
-              };
-            })
-            .sort((a, b) => {
-              if (a.disabled && !b.disabled) {
-                return -1;
-              }
-              if (!a.disabled && b.disabled) {
-                return 1;
-              }
-              return 0;
-            })
-        : [],
-      requestPostData: request
-        ? request.requestPostData?.postData.text || ""
-        : "",
+      method: request.method || HTTP_METHODS[0],
+      url: request.url || "",
+      urlQueryParams: this.createQueryParamsListFromURL(request.url),
+      headers: requestHeaders || [],
+      postBody: request.postBody || "",
     };
 
+    Services.prefs.setCharPref(
+      "devtools.netmonitor.customRequest",
+      JSON.stringify(this.state)
+    );
+
+    this.updateStateAndPref = this.updateStateAndPref.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
-    this.onUpdateQueryParams = this.onUpdateQueryParams.bind(this);
     this.handleChangeURL = this.handleChangeURL.bind(this);
     this.updateInputMapItem = this.updateInputMapItem.bind(this);
     this.addInputMapItem = this.addInputMapItem.bind(this);
     this.deleteInputMapItem = this.deleteInputMapItem.bind(this);
     this.checkInputMapItem = this.checkInputMapItem.bind(this);
     this.handleClear = this.handleClear.bind(this);
+    this.createQueryParamsListFromURL = this.createQueryParamsListFromURL.bind(
+      this
+    );
+    this.onUpdateQueryParams = this.onUpdateQueryParams.bind(this);
+    this.getStateFromPref = this.getStateFromPref.bind(this);
   }
 
-  componentDidMount() {
-    updateTextareaRows(this.URLTextareaRef.current);
-    this.resizeObserver = new ResizeObserver(entries => {
-      updateTextareaRows(this.URLTextareaRef.current);
-    });
-
-    this.resizeObserver.observe(this.URLTextareaRef.current);
+  async componentWillMount() {
+    const { connector, request } = this.props;
+    if (request?.requestPostDataAvailable && !this.state.postBody) {
+      const requestData = await connector.requestData(
+        request.id,
+        "requestPostData"
+      );
+      this.setState({
+        postBody: requestData.postData.text,
+      });
+    }
   }
 
-  componentWillUnmount() {
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
+  componentDidUpdate(prevProps, prevState) {
+    // This is when the query params change in the url params input map
+    if (
+      prevState.urlQueryParams !== this.state.urlQueryParams &&
+      prevState.url === this.state.url
+    ) {
+      this.onUpdateQueryParams();
+    }
+  }
+
+  updateStateAndPref(nextState, cb) {
+    this.setState(nextState, cb);
+
+    const persistedState = this.getStateFromPref();
+
+    Services.prefs.setCharPref(
+      "devtools.netmonitor.customRequest",
+      JSON.stringify({ ...persistedState, ...nextState })
+    );
+  }
+
+  getStateFromPref() {
+    try {
+      return JSON.parse(
+        Services.prefs.getCharPref("devtools.netmonitor.customRequest")
+      );
+    } catch (_) {
+      return {};
     }
   }
 
   handleChangeURL(event) {
     const { value } = event.target;
 
-    this.setState({
+    this.updateStateAndPref({
       url: value,
-      urlQueryParams: HTTPCustomRequestPanel.createQueryParamsListFromURL(
-        value
-      ),
+      urlQueryParams: this.createQueryParamsListFromURL(value),
     });
   }
 
   handleInputChange(event) {
     const { name, value } = event.target;
 
-    this.setState({
+    this.updateStateAndPref({
       [name]: value,
     });
   }
@@ -184,13 +230,13 @@ class HTTPCustomRequestPanel extends Component {
 
     updatedList[Number(index)][prop] = value;
 
-    this.setState({
+    this.updateStateAndPref({
       [stateName]: updatedList,
     });
   }
 
   addInputMapItem(stateName, name, value) {
-    this.setState({
+    this.updateStateAndPref({
       [stateName]: [
         ...this.state[stateName],
         { name, value, checked: true, disabled: false },
@@ -199,26 +245,23 @@ class HTTPCustomRequestPanel extends Component {
   }
 
   deleteInputMapItem(stateName, index) {
-    this.setState({
+    this.updateStateAndPref({
       [stateName]: this.state[stateName].filter((_, i) => i !== index),
     });
   }
 
-  checkInputMapItem(stateName, index, checked, cb) {
-    this.setState(
-      {
-        [stateName]: this.state[stateName].map((item, i) => {
-          if (index === i) {
-            return {
-              ...item,
-              checked: checked,
-            };
-          }
-          return item;
-        }),
-      },
-      cb
-    );
+  checkInputMapItem(stateName, index, checked) {
+    this.updateStateAndPref({
+      [stateName]: this.state[stateName].map((item, i) => {
+        if (index === i) {
+          return {
+            ...item,
+            checked: checked,
+          };
+        }
+        return item;
+      }),
+    });
   }
 
   onUpdateQueryParams() {
@@ -226,7 +269,9 @@ class HTTPCustomRequestPanel extends Component {
     let queryString = "";
     for (const { name, value, checked } of urlQueryParams) {
       if (checked) {
-        queryString += `${name}=${value}&`;
+        queryString += `${encodeURIComponent(name)}=${encodeURIComponent(
+          value
+        )}&`;
       }
     }
 
@@ -235,45 +280,37 @@ class HTTPCustomRequestPanel extends Component {
     if (queryString.length > 0) {
       finalURL += `?${queryString.substring(0, queryString.length - 1)}`;
     }
-    this.setState({
+    this.updateStateAndPref({
       url: finalURL,
     });
   }
 
+  createQueryParamsListFromURL(url = "") {
+    const parsedQuery = parseQueryString(getUrlQuery(url) || url.split("?")[1]);
+    const queryArray = parsedQuery || [];
+    return queryArray.map(({ name, value }) => {
+      return {
+        checked: true,
+        name,
+        value,
+      };
+    });
+  }
+
   handleClear() {
-    this.setState(
-      {
-        method: "",
-        url: "",
-        urlQueryParams: [],
-        headers: [],
-        requestPostData: "",
-      },
-      () => updateTextareaRows(this.URLTextareaRef.current)
-    );
+    this.updateStateAndPref({
+      method: HTTP_METHODS[0],
+      url: "",
+      urlQueryParams: [],
+      headers: [],
+      postBody: "",
+    });
   }
 
   render() {
     const { sendCustomRequest } = this.props;
-    const {
-      method,
-      urlQueryParams,
-      requestPostData,
-      url,
-      headers,
-    } = this.state;
+    const { method, urlQueryParams, postBody, url, headers } = this.state;
 
-    const methods = [
-      "GET",
-      "HEAD",
-      "POST",
-      "DELETE",
-      "PUT",
-      "CONNECT",
-      "OPTIONS",
-      "TRACE",
-      "PATH",
-    ];
     return div(
       { className: "http-custom-request-panel" },
       div(
@@ -293,7 +330,7 @@ class HTTPCustomRequestPanel extends Component {
               value: method,
             },
 
-            methods.map(item =>
+            HTTP_METHODS.map(item =>
               option(
                 {
                   value: item,
@@ -303,20 +340,25 @@ class HTTPCustomRequestPanel extends Component {
               )
             )
           ),
-          textarea({
-            className: "http-custom-url-value",
-            id: "http-custom-url-value",
-            name: "url",
-            placeholder: CUSTOM_NEW_REQUEST_URL_LABEL,
-            ref: this.URLTextareaRef,
-            onChange: event => {
-              this.handleChangeURL(event);
-              updateTextareaRows(event.target);
+          div(
+            {
+              className: "auto-growing-textarea",
+              "data-replicated-value": url,
             },
-            onBlur: this.handleTextareaChange,
-            value: url,
-            rows: 1,
-          })
+            textarea({
+              className: "http-custom-url-value",
+              id: "http-custom-url-value",
+              name: "url",
+              placeholder: CUSTOM_NEW_REQUEST_URL_LABEL,
+              ref: this.URLTextareaRef,
+              onChange: event => {
+                this.handleChangeURL(event);
+              },
+              onBlur: this.handleTextareaChange,
+              value: url,
+              rows: 1,
+            })
+          )
         ),
         div(
           {
@@ -330,8 +372,29 @@ class HTTPCustomRequestPanel extends Component {
             },
             CUSTOM_QUERY
           ),
+          // This is the input map for the Url Parameters Component
           InputMap({
             list: urlQueryParams,
+            onUpdate: event => {
+              this.updateInputMapItem(
+                "urlQueryParams",
+                event,
+                this.onUpdateQueryParams
+              );
+            },
+            onAdd: (name, value) =>
+              this.addInputMapItem(
+                "urlQueryParams",
+                name,
+                value,
+                this.onUpdateQueryParams
+              ),
+            onDelete: index =>
+              this.deleteInputMapItem(
+                "urlQueryParams",
+                index,
+                this.onUpdateQueryParams
+              ),
             onChecked: (index, checked) => {
               this.checkInputMapItem(
                 "urlQueryParams",
@@ -354,9 +417,9 @@ class HTTPCustomRequestPanel extends Component {
             },
             CUSTOM_HEADERS
           ),
+          // This is the input map for the Headers Component
           InputMap({
             ref: this.headersListRef,
-            resizeable: true,
             list: headers,
             onUpdate: event => {
               this.updateInputMapItem("headers", event);
@@ -384,11 +447,11 @@ class HTTPCustomRequestPanel extends Component {
           textarea({
             className: "tabpanel-summary-input",
             id: "http-custom-postdata-value",
-            name: "requestPostData",
+            name: "postBody",
             placeholder: CUSTOM_POSTDATA_PLACEHOLDER,
             onChange: this.handleInputChange,
             rows: 6,
-            value: requestPostData,
+            value: postBody,
             wrap: "off",
           })
         ),
@@ -408,14 +471,28 @@ class HTTPCustomRequestPanel extends Component {
               {
                 className: "devtools-button",
                 id: "http-custom-request-send-button",
-                disabled: !this.state.url,
-                onClick: () =>
-                  sendCustomRequest({
+                disabled: !this.state.url || !this.state.method,
+                onClick: () => {
+                  const customRequestDetails = {
                     ...this.state,
-                    headers: this.state.headers.filter(
-                      ({ checked }) => checked
+                    cause: this.props.request?.cause,
+                    urlQueryParams: urlQueryParams.map(
+                      ({ checked, ...params }) => params
                     ),
-                  }),
+                    headers: headers
+                      .filter(({ checked }) => checked)
+                      .map(({ checked, ...headersValues }) => headersValues),
+                  };
+                  if (postBody) {
+                    customRequestDetails.requestPostData = {
+                      postData: {
+                        text: postBody,
+                      },
+                    };
+                  }
+                  delete customRequestDetails.postBody;
+                  sendCustomRequest(customRequestDetails);
+                },
               },
               CUSTOM_SEND
             )

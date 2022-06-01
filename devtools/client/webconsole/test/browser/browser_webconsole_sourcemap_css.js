@@ -32,13 +32,13 @@ add_task(async function() {
   const hud = await openNewTabAndConsole(PAGE_URL);
 
   info("Waiting for css warning");
-  const node = await waitFor(() => findMessage(hud, "octopus"));
+  const node = await waitFor(() => findWarningMessage(hud, "octopus"));
   ok(!!node, "css warning seen");
 
   info("Waiting for source map to be applied");
   const found = await waitFor(() => {
-    const frameLinkNode = node.querySelector(".message-location .frame-link");
-    const url = frameLinkNode.getAttribute("data-url");
+    const messageLocationNode = node.querySelector(".message-location");
+    const url = messageLocationNode.getAttribute("data-url");
     return url.includes("scss");
   });
 

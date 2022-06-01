@@ -3,16 +3,7 @@
 
 "use strict";
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AddonManager: "resource://gre/modules/AddonManager.jsm",
-  ExtensionTestUtils: "resource://testing-common/ExtensionXPCShellUtils.jsm",
-});
-
-const {
-  promiseRestartManager,
-  promiseShutdownManager,
-  promiseStartupManager,
-} = AddonTestUtils;
+const { promiseShutdownManager, promiseStartupManager } = AddonTestUtils;
 
 async function getEngineNames() {
   let engines = await Services.search.getEngines();
@@ -130,7 +121,7 @@ add_task(async function test_manifest_selection() {
 });
 
 add_task(async function test_load_favicon_invalid() {
-  let observed = TestUtils.topicObserved("console-api-log-event", msg => {
+  let observed = TestUtils.consoleMessageObserved(msg => {
     return msg.wrappedJSObject.arguments[0].includes(
       "Content type does not match expected"
     );
@@ -156,7 +147,7 @@ add_task(async function test_load_favicon_invalid() {
 });
 
 add_task(async function test_load_favicon_invalid_redirect() {
-  let observed = TestUtils.topicObserved("console-api-log-event", msg => {
+  let observed = TestUtils.consoleMessageObserved(msg => {
     return msg.wrappedJSObject.arguments[0].includes(
       "Content type does not match expected"
     );

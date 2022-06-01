@@ -27,6 +27,11 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
+  "BackgroundTasksUtils",
+  "resource://gre/modules/BackgroundTasksUtils.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "FileUtils",
   "resource://gre/modules/FileUtils.jsm"
 );
@@ -39,10 +44,13 @@ XPCOMUtils.defineLazyGetter(this, "EventEmitter", function() {
 });
 
 const Services = require("Services");
+const env = Cc["@mozilla.org/process/environment;1"].getService(
+  Ci.nsIEnvironment
+);
 
 const EXPORTED_SYMBOLS = ["BrowserToolboxLauncher"];
 
-var processes = new Set();
+const processes = new Set();
 
 /**
  * Constructor for creating a process that will hold a chrome toolbox.
@@ -55,12 +63,7 @@ var processes = new Set();
  *        Set to force overwriting the toolbox profile's preferences with the
  *        current set of preferences.
  */
-function BrowserToolboxLauncher(
-  onClose,
-  onRun,
-  overwritePreferences,
-  binaryPath
-) {
+function BrowserToolboxLauncher(onClose, onRun, overwritePreferences) {
   const emitter = new EventEmitter();
   this.on = emitter.on.bind(emitter);
   this.off = emitter.off.bind(emitter);
@@ -84,7 +87,7 @@ function BrowserToolboxLauncher(
   Services.obs.addObserver(this.close, "quit-application");
   this._initServer();
   this._initProfile(overwritePreferences);
-  this._create(binaryPath);
+  this._create();
 
   processes.add(this);
 }
@@ -93,14 +96,14 @@ EventEmitter.decorate(BrowserToolboxLauncher);
 
 /**
  * Initializes and starts a chrome toolbox process.
- * @return object
+ *
+ * See BrowserToolboxLauncher jsdoc for the arguments.
  */
-BrowserToolboxLauncher.init = function(
+BrowserToolboxLauncher.init = function({
   onClose,
   onRun,
   overwritePreferences,
-  binaryPath
-) {
+} = {}) {
   if (
     !Services.prefs.getBoolPref("devtools.chrome.enabled") ||
     !Services.prefs.getBoolPref("devtools.debugger.remote-enabled")
@@ -108,12 +111,7 @@ BrowserToolboxLauncher.init = function(
     console.error("Could not start Browser Toolbox, you need to enable it.");
     return null;
   }
-  return new BrowserToolboxLauncher(
-    onClose,
-    onRun,
-    overwritePreferences,
-    binaryPath
-  );
+  return new BrowserToolboxLauncher(onClose, onRun, overwritePreferences);
 };
 
 /**
@@ -160,6 +158,18 @@ BrowserToolboxLauncher.prototype = {
     this.devToolsServer.registerAllActors();
     this.devToolsServer.allowChromeProcess = true;
     dumpn("initialized and added the browser actors for the DevToolsServer.");
+
+    const bts = Cc["@mozilla.org/backgroundtasks;1"]?.getService(
+      Ci.nsIBackgroundTasks
+    );
+    if (bts?.isBackgroundTaskMode) {
+      // A special root actor, just for background tasks invoked with
+      // `--backgroundtask TASK --jsdebugger`.
+      const { createRootActor } = this.loader.require(
+        "resource://gre/modules/backgroundtasks/dbg-actors.js"
+      );
+      this.devToolsServer.setRootActor(createRootActor);
+    }
 
     const chromeDebuggingWebSocket = Services.prefs.getBoolPref(
       "devtools.debugger.chrome-debugging-websocket"
@@ -213,14 +223,41 @@ BrowserToolboxLauncher.prototype = {
     // We would like to copy prefs into this new profile...
     const prefsFile = debuggingProfileDir.clone();
     prefsFile.append("prefs.js");
-    // ... but unfortunately, when we run tests, it seems the starting profile
-    // clears out the prefs file before re-writing it, and in practice the
-    // file is empty when we get here. So just copying doesn't work in that
-    // case.
-    // We could force a sync pref flush and then copy it... but if we're doing
-    // that, we might as well just flush directly to the new profile, which
-    // always works:
-    Services.prefs.savePrefFile(prefsFile);
+
+    const bts = Cc["@mozilla.org/backgroundtasks;1"]?.getService(
+      Ci.nsIBackgroundTasks
+    );
+    if (bts?.isBackgroundTaskMode) {
+      // Background tasks run under a temporary profile.  In order to set
+      // preferences for the launched browser toolbox, take the preferences from
+      // the default profile.  This is the standard pattern for controlling
+      // background task settings.  Without this, there'd be no way to increase
+      // logging in the browser toolbox process, etc.
+      const defaultProfile = BackgroundTasksUtils.getDefaultProfile();
+      if (!defaultProfile) {
+        throw new Error(
+          "Cannot start Browser Toolbox from background task with no default profile"
+        );
+      }
+
+      const defaultPrefsFile = defaultProfile.rootDir.clone();
+      defaultPrefsFile.append("prefs.js");
+      defaultPrefsFile.copyTo(prefsFile.parent, prefsFile.leafName);
+
+      dumpn(
+        `Copied browser toolbox prefs at '${prefsFile.path}'` +
+          ` from default profiles prefs at '${defaultPrefsFile.path}'`
+      );
+    } else {
+      // ... but unfortunately, when we run tests, it seems the starting profile
+      // clears out the prefs file before re-writing it, and in practice the
+      // file is empty when we get here. So just copying doesn't work in that
+      // case.
+      // We could force a sync pref flush and then copy it... but if we're doing
+      // that, we might as well just flush directly to the new profile, which
+      // always works:
+      Services.prefs.savePrefFile(prefsFile);
+    }
 
     dumpn(
       "Finished creating the chrome toolbox user profile at: " +
@@ -231,14 +268,20 @@ BrowserToolboxLauncher.prototype = {
   /**
    * Creates and initializes the profile & process for the remote debugger.
    */
-  _create: function(binaryPath) {
+  _create: function() {
     dumpn("Initializing chrome debugging process.");
 
     let command = Services.dirsvc.get("XREExeF", Ci.nsIFile).path;
     let profilePath = this._dbgProfilePath;
 
-    if (binaryPath) {
-      command = binaryPath;
+    // MOZ_BROWSER_TOOLBOX_BINARY is an absolute file path to a custom firefox binary.
+    // This is especially useful when debugging debug builds which are really slow
+    // so that you could pass an optimized build for the browser toolbox.
+    // This is also useful when debugging a patch that break devtools,
+    // so that you could use a build that works for the browser toolbox.
+    const customBinaryPath = env.get("MOZ_BROWSER_TOOLBOX_BINARY");
+    if (customBinaryPath) {
+      command = customBinaryPath;
       profilePath = FileUtils.getDir("TmpD", ["browserToolboxProfile"], true)
         .path;
     }
@@ -262,6 +305,12 @@ BrowserToolboxLauncher.prototype = {
       false
     );
     const environment = {
+      // Allow recording the startup of the browser toolbox when setting
+      // MOZ_BROWSER_TOOLBOX_PROFILER_STARTUP=1 when running firefox.
+      MOZ_PROFILER_STARTUP: env.get("MOZ_BROWSER_TOOLBOX_PROFILER_STARTUP"),
+      // And prevent profiling any subsequent toolbox
+      MOZ_BROWSER_TOOLBOX_PROFILER_STARTUP: "0",
+
       // Will be read by the Browser Toolbox Firefox instance to update the
       // devtools.browsertoolbox.fission pref on the Browser Toolbox profile.
       MOZ_BROWSER_TOOLBOX_FISSION_PREF: isBrowserToolboxFission ? "1" : "0",
@@ -274,6 +323,16 @@ BrowserToolboxLauncher.prototype = {
       MOZ_HEADLESS: null,
       // Never enable Marionette for the new process.
       MOZ_MARIONETTE: null,
+      // Don't inherit debug settings from the process launching us.  This can
+      // cause errors when log files collide.
+      MOZ_LOG: null,
+      MOZ_LOG_FILE: null,
+      XPCOM_MEM_BLOAT_LOG: null,
+      XPCOM_MEM_LEAK_LOG: null,
+      XPCOM_MEM_LOG_CLASSES: null,
+      XPCOM_MEM_REFCNT_LOG: null,
+      XRE_PROFILE_PATH: null,
+      XRE_PROFILE_LOCAL_PATH: null,
     };
 
     // During local development, incremental builds can trigger the main process
@@ -307,10 +366,21 @@ BrowserToolboxLauncher.prototype = {
 
         proc.stdin.close();
         const dumpPipe = async pipe => {
+          let leftover = "";
           let data = await pipe.readString();
           while (data) {
-            dump("> " + data);
+            data = leftover + data;
+            const lines = data.split(/\r\n|\r|\n/);
+            if (lines.length) {
+              for (const line of lines.slice(0, -1)) {
+                dump(`${proc.pid}> ${line}\n`);
+              }
+              leftover = lines[lines.length - 1];
+            }
             data = await pipe.readString();
+          }
+          if (leftover) {
+            dump(`${proc.pid}> ${leftover}\n`);
           }
         };
         dumpPipe(proc.stdout);
@@ -342,13 +412,8 @@ BrowserToolboxLauncher.prototype = {
 
     Services.obs.removeObserver(this.close, "quit-application");
 
-    this._dbgProcess.stdout.close();
-    await this._dbgProcess.kill();
-
-    // jsbrowserdebugger is not connected with a toolbox so we pass -1 as the
-    // toolbox session id.
-    this._telemetry.toolClosed("jsbrowserdebugger", -1, this);
-
+    // We tear down before killing the browser toolbox process to avoid leaking
+    // socket connection objects.
     if (this.listener) {
       this.listener.close();
     }
@@ -357,6 +422,13 @@ BrowserToolboxLauncher.prototype = {
       this.devToolsServer.destroy();
       this.devToolsServer = null;
     }
+
+    this._dbgProcess.stdout.close();
+    await this._dbgProcess.kill();
+
+    // jsbrowserdebugger is not connected with a toolbox so we pass -1 as the
+    // toolbox session id.
+    this._telemetry.toolClosed("jsbrowserdebugger", -1, this);
 
     dumpn("Chrome toolbox is now closed...");
     this.emit("close", this);

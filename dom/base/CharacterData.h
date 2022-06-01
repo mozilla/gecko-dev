@@ -20,12 +20,10 @@
 #include "nsError.h"
 #include "nsCycleCollectionParticipant.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 class Element;
 class HTMLSlotElement;
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #define CHARACTER_DATA_FLAG_BIT(n_) \
   NODE_FLAG_BIT(NODE_TYPE_SPECIFIC_BITS_OFFSET + (n_))
@@ -166,11 +164,6 @@ class CharacterData : public nsIContent {
 #endif
 
   bool IsNodeOfType(uint32_t aFlags) const override { return false; }
-
-  bool IsLink(nsIURI** aURI) const final {
-    *aURI = nullptr;
-    return false;
-  }
 
   nsresult Clone(dom::NodeInfo* aNodeInfo, nsINode** aResult) const override {
     RefPtr<CharacterData> result = CloneDataNode(aNodeInfo, true);

@@ -113,6 +113,8 @@ bool WebGLContextOptions::operator==(const WebGLContextOptions& r) const {
   eq &= (failIfMajorPerformanceCaveat == r.failIfMajorPerformanceCaveat);
   eq &= (xrCompatible == r.xrCompatible);
   eq &= (powerPreference == r.powerPreference);
+  eq &= (colorSpace == r.colorSpace);
+  eq &= (ignoreColorSpace == r.ignoreColorSpace);
   return eq;
 }
 
@@ -744,7 +746,7 @@ ScopedPrepForResourceClear::ScopedPrepForResourceClear(
 
   // "The clear operation always uses the front stencil write mask
   //  when clearing the stencil buffer."
-  webgl.DoColorMask(0x0f);
+  webgl.DoColorMask(Some(0), 0b1111);
   gl->fDepthMask(true);
   gl->fStencilMaskSeparate(LOCAL_GL_FRONT, 0xffffffff);
 
@@ -763,7 +765,7 @@ ScopedPrepForResourceClear::~ScopedPrepForResourceClear() {
     gl->fEnable(LOCAL_GL_RASTERIZER_DISCARD);
   }
 
-  // DoColorMask() is lazy.
+  webgl.DoColorMask(Some(0), webgl.mColorWriteMask0);
   gl->fDepthMask(webgl.mDepthWriteMask);
   gl->fStencilMaskSeparate(LOCAL_GL_FRONT, webgl.mStencilWriteMaskFront);
 
@@ -793,8 +795,8 @@ void WebGLContext::OnEndOfFrame() {
 
 void WebGLContext::BlitBackbufferToCurDriverFB(
     WebGLFramebuffer* const srcAsWebglFb,
-    const gl::MozFramebuffer* const srcAsMozFb) const {
-  DoColorMask(0x0f);
+    const gl::MozFramebuffer* const srcAsMozFb, bool srcIsBGRA) const {
+  // BlitFramebuffer ignores ColorMask().
 
   if (mScissorTestEnabled) {
     gl->fDisable(LOCAL_GL_SCISSOR_TEST);
@@ -818,19 +820,25 @@ void WebGLContext::BlitBackbufferToCurDriverFB(
       size = mozFb->mSize;
     }
 
-    if (gl->IsSupported(gl::GLFeature::framebuffer_blit)) {
-      gl->fBindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER, fbo);
-      gl->fBlitFramebuffer(0, 0, size.width, size.height, 0, 0, size.width,
-                           size.height, LOCAL_GL_COLOR_BUFFER_BIT,
-                           LOCAL_GL_NEAREST);
-      return;
-    }
-    if (mDefaultFB->mSamples &&
-        gl->IsExtensionSupported(
-            gl::GLContext::APPLE_framebuffer_multisample)) {
-      gl->fBindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER, fbo);
-      gl->fResolveMultisampleFramebufferAPPLE();
-      return;
+    // If no format conversion is necessary, then attempt to directly blit
+    // between framebuffers. Otherwise, if we need to convert to RGBA from
+    // the source format, then we will need to use the texture blit path
+    // below.
+    if (!srcIsBGRA) {
+      if (gl->IsSupported(gl::GLFeature::framebuffer_blit)) {
+        gl->fBindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER, fbo);
+        gl->fBlitFramebuffer(0, 0, size.width, size.height, 0, 0, size.width,
+                             size.height, LOCAL_GL_COLOR_BUFFER_BIT,
+                             LOCAL_GL_NEAREST);
+        return;
+      }
+      if (mDefaultFB->mSamples &&
+          gl->IsExtensionSupported(
+              gl::GLContext::APPLE_framebuffer_multisample)) {
+        gl->fBindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER, fbo);
+        gl->fResolveMultisampleFramebufferAPPLE();
+        return;
+      }
     }
 
     GLuint colorTex = 0;
@@ -841,7 +849,10 @@ void WebGLContext::BlitBackbufferToCurDriverFB(
     } else {
       colorTex = mozFb->ColorTex();
     }
-    gl->BlitHelper()->DrawBlitTextureToFramebuffer(colorTex, size, size);
+
+    // DrawBlit handles ColorMask itself.
+    gl->BlitHelper()->DrawBlitTextureToFramebuffer(
+        colorTex, size, size, LOCAL_GL_TEXTURE_2D, srcIsBGRA);
   }();
 
   if (mScissorTestEnabled) {
@@ -856,30 +867,25 @@ constexpr auto MakeArray(Args... args) -> std::array<T, sizeof...(Args)> {
   return {{static_cast<T>(args)...}};
 }
 
+inline gfx::ColorSpace2 ToColorSpace2(const WebGLContextOptions& options) {
+  if (options.ignoreColorSpace) {
+    return gfx::ColorSpace2::UNKNOWN;
+  }
+  return gfx::ToColorSpace2(options.colorSpace);
+}
+
 // -
 
 // For an overview of how WebGL compositing works, see:
 // https://wiki.mozilla.org/Platform/GFX/WebGL/Compositing
-bool WebGLContext::PresentInto(gl::SwapChain& swapChain,
-                               WebGLFramebuffer* const srcFb) {
+bool WebGLContext::PresentInto(gl::SwapChain& swapChain) {
   OnEndOfFrame();
 
-  if (!ValidateAndInitFB(srcFb)) return false;
+  if (!ValidateAndInitFB(nullptr)) return false;
 
   {
-    GLuint fbo = 0;
-    gfx::IntSize size;
-    if (srcFb) {
-      fbo = srcFb->mGLName;
-      const auto* info = srcFb->GetCompletenessInfo();
-      MOZ_ASSERT(info);
-      size = gfx::IntSize(info->width, info->height);
-    } else {
-      fbo = mDefaultFB->mFB;
-      size = mDefaultFB->mSize;
-    }
-
-    auto presenter = swapChain.Acquire(size);
+    const auto colorSpace = ToColorSpace2(mOptions);
+    auto presenter = swapChain.Acquire(mDefaultFB->mSize, colorSpace);
     if (!presenter) {
       GenerateWarning("Swap chain surface creation failed.");
       LoseContext();
@@ -889,19 +895,17 @@ bool WebGLContext::PresentInto(gl::SwapChain& swapChain,
     const auto destFb = presenter->Fb();
     gl->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, destFb);
 
-    BlitBackbufferToCurDriverFB(srcFb);
+    BlitBackbufferToCurDriverFB();
 
     if (!mOptions.preserveDrawingBuffer) {
       if (gl->IsSupported(gl::GLFeature::invalidate_framebuffer)) {
-        gl->fBindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER, fbo);
+        gl->fBindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER, mDefaultFB->mFB);
         constexpr auto attachments = MakeArray<GLenum>(
             LOCAL_GL_COLOR_ATTACHMENT0, LOCAL_GL_DEPTH_STENCIL_ATTACHMENT);
         gl->fInvalidateFramebuffer(LOCAL_GL_READ_FRAMEBUFFER,
                                    attachments.size(), attachments.data());
       }
-      if (!srcFb) {
-        mDefaultFB_IsInvalid = true;
-      }
+      mDefaultFB_IsInvalid = true;
     }
 
 #ifdef DEBUG
@@ -922,7 +926,8 @@ bool WebGLContext::PresentIntoXR(gl::SwapChain& swapChain,
                                  const gl::MozFramebuffer& fb) {
   OnEndOfFrame();
 
-  auto presenter = swapChain.Acquire(fb.mSize);
+  const auto colorSpace = ToColorSpace2(mOptions);
+  auto presenter = swapChain.Acquire(fb.mSize, colorSpace);
   if (!presenter) {
     GenerateWarning("Swap chain surface creation failed.");
     LoseContext();
@@ -948,6 +953,22 @@ bool WebGLContext::PresentIntoXR(gl::SwapChain& swapChain,
   return true;
 }
 
+// Initialize a swap chain's surface factory given the desired surface type.
+void InitSwapChain(gl::GLContext& gl, gl::SwapChain& swapChain,
+                   const layers::TextureType consumerType) {
+  if (!swapChain.mFactory) {
+    auto typedFactory = gl::SurfaceFactory::Create(&gl, consumerType);
+    if (typedFactory) {
+      swapChain.mFactory = std::move(typedFactory);
+    }
+  }
+  if (!swapChain.mFactory) {
+    NS_WARNING("Failed to make an ideal SurfaceFactory.");
+    swapChain.mFactory = MakeUnique<gl::SurfaceFactory_Basic>(gl);
+  }
+  MOZ_ASSERT(swapChain.mFactory);
+}
+
 void WebGLContext::Present(WebGLFramebuffer* const xrFb,
                            const layers::TextureType consumerType,
                            const bool webvr) {
@@ -966,23 +987,54 @@ void WebGLContext::Present(WebGLFramebuffer* const xrFb,
     mResolvedDefaultFB = nullptr;
   }
 
-  if (!swapChain->mFactory) {
-    auto typedFactory = gl::SurfaceFactory::Create(gl, consumerType);
-    if (typedFactory) {
-      swapChain->mFactory = std::move(typedFactory);
-    }
-  }
-  if (!swapChain->mFactory) {
-    NS_WARNING("Failed to make an ideal SurfaceFactory.");
-    swapChain->mFactory = MakeUnique<gl::SurfaceFactory_Basic>(*gl);
-  }
-  MOZ_ASSERT(swapChain->mFactory);
+  InitSwapChain(*gl, *swapChain, consumerType);
 
   if (maybeFB) {
     (void)PresentIntoXR(*swapChain, *maybeFB);
   } else {
-    (void)PresentInto(*swapChain, xrFb);
+    (void)PresentInto(*swapChain);
   }
+}
+
+void WebGLContext::CopyToSwapChain(WebGLFramebuffer* const srcFb,
+                                   const layers::TextureType consumerType,
+                                   const webgl::SwapChainOptions& options) {
+  const FuncScope funcScope(*this, "<CopyToSwapChain>");
+  if (IsContextLost()) return;
+
+  OnEndOfFrame();
+
+  if (!srcFb) return;
+  const auto* info = srcFb->GetCompletenessInfo();
+  if (!info) {
+    return;
+  }
+  gfx::IntSize size(info->width, info->height);
+
+  InitSwapChain(*gl, srcFb->mSwapChain, consumerType);
+
+  // ColorSpace will need to be part of SwapChainOptions for DTWebgl.
+  const auto colorSpace = ToColorSpace2(mOptions);
+  auto presenter = srcFb->mSwapChain.Acquire(size, colorSpace);
+  if (!presenter) {
+    GenerateWarning("Swap chain surface creation failed.");
+    LoseContext();
+    return;
+  }
+
+  const ScopedFBRebinder saveFB(this);
+
+  const auto destFb = presenter->Fb();
+  gl->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, destFb);
+
+  BlitBackbufferToCurDriverFB(srcFb, nullptr, options.bgra);
+}
+
+void WebGLContext::EndOfFrame() {
+  const FuncScope funcScope(*this, "<EndOfFrame>");
+  if (IsContextLost()) return;
+
+  OnEndOfFrame();
 }
 
 Maybe<layers::SurfaceDescriptor> WebGLContext::GetFrontBuffer(
@@ -1285,15 +1337,15 @@ bool WebGLContext::BindDefaultFBForRead() {
   return true;
 }
 
-void WebGLContext::DoColorMask(const uint8_t bitmask) const {
-  if (mDriverColorMask0 != bitmask) {
-    mDriverColorMask0 = bitmask;
-    const auto bs = std::bitset<4>(bitmask);
-    if (gl->IsSupported(gl::GLFeature::draw_buffers_indexed)) {
-      gl->fColorMaski(0, bs[0], bs[1], bs[2], bs[3]);
-    } else {
-      gl->fColorMask(bs[0], bs[1], bs[2], bs[3]);
-    }
+void WebGLContext::DoColorMask(Maybe<GLuint> i, const uint8_t bitmask) const {
+  if (!IsExtensionEnabled(WebGLExtensionID::OES_draw_buffers_indexed)) {
+    i = Nothing();
+  }
+  const auto bs = std::bitset<4>(bitmask);
+  if (i) {
+    gl->fColorMaski(*i, bs[0], bs[1], bs[2], bs[3]);
+  } else {
+    gl->fColorMask(bs[0], bs[1], bs[2], bs[3]);
   }
 }
 
@@ -1323,7 +1375,7 @@ ScopedDrawCallWrapper::ScopedDrawCallWrapper(WebGLContext& webgl)
   }
 
   const auto& gl = mWebGL.gl;
-  mWebGL.DoColorMask(driverColorMask0);
+  mWebGL.DoColorMask(Some(0), driverColorMask0);
   if (mWebGL.mDriverDepthTest != driverDepthTest) {
     // "When disabled, the depth comparison and subsequent possible updates to
     // the

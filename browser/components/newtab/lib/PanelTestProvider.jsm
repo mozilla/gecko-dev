@@ -34,7 +34,7 @@ const MESSAGES = () => [
       icon_alt: { string_id: "cfr-badge-reader-label-newfeature" },
       body: "Message body",
       link_text: "Click here",
-      cta_url: "",
+      cta_url: "about:blank",
       cta_type: "OPEN_PROTECTION_REPORT",
     },
     targeting: `firefoxVersion >= 72`,
@@ -105,11 +105,9 @@ const MESSAGES = () => [
       bucket_id: "WHATS_NEW_PIONEER_82",
       published_date: 1603152000000,
       title: "Put your data to work for a better internet",
-      icon_url: "",
-      icon_alt: "",
       body:
         "Contribute your data to Mozilla's Pioneer program to help researchers understand pressing technology issues like misinformation, data privacy, and ethical AI.",
-      cta_url: "pioneer",
+      cta_url: "about:blank",
       cta_where: "tab",
       cta_type: "OPEN_ABOUT_PAGE",
       link_text: "Join Pioneer",
@@ -222,7 +220,9 @@ const MESSAGES = () => [
     groups: ["panel-test-provider"],
     content: {
       template: "logo-and-content",
-      logoImageURL: "chrome://browser/content/logos/vpn-promo-logo.svg",
+      logo: {
+        imageURL: "chrome://browser/content/logos/vpn-promo-logo.svg",
+      },
       body: {
         title: {
           label: {
@@ -280,7 +280,7 @@ const MESSAGES = () => [
           label: {
             string_id: "spotlight-total-cookie-protection-body",
           },
-          size: "20px",
+          size: "18px",
         },
         primary: {
           label: {
@@ -312,10 +312,343 @@ const MESSAGES = () => [
     trigger: { id: "defaultBrowserCheck" },
   },
   {
+    id: "BETTER_INTERNET_GLOBAL_ROLLOUT",
+    groups: ["eco"],
+    content: {
+      template: "logo-and-content",
+      logo: {
+        imageURL:
+          "chrome://activity-stream/content/data/content/assets/remote/mountain.svg",
+        size: "115px",
+      },
+      body: {
+        title: {
+          label: {
+            string_id: "spotlight-better-internet-header",
+          },
+          size: "22px",
+        },
+        text: {
+          label: {
+            string_id: "spotlight-better-internet-body",
+          },
+          size: "16px",
+        },
+        primary: {
+          label: {
+            string_id: "spotlight-pin-primary-button",
+          },
+          action: {
+            type: "PIN_FIREFOX_TO_TASKBAR",
+          },
+        },
+        secondary: {
+          label: {
+            string_id: "spotlight-pin-secondary-button",
+          },
+          action: {
+            type: "CANCEL",
+          },
+        },
+      },
+    },
+    trigger: {
+      id: "defaultBrowserCheck",
+    },
+    template: "spotlight",
+    frequency: {
+      lifetime: 1,
+    },
+    targeting:
+      "userMonthlyActivity|length >= 1 && userMonthlyActivity|length <= 6 && doesAppNeedPin",
+  },
+  {
+    id: "PEACE_OF_MIND_GLOBAL_ROLLOUT",
+    groups: ["eco"],
+    content: {
+      template: "logo-and-content",
+      logo: {
+        imageURL:
+          "chrome://activity-stream/content/data/content/assets/remote/umbrella.png",
+        size: "115px",
+      },
+      body: {
+        title: {
+          label: {
+            string_id: "spotlight-peace-mind-header",
+          },
+          size: "22px",
+        },
+        text: {
+          label: {
+            string_id: "spotlight-peace-mind-body",
+          },
+          size: "15px",
+        },
+        primary: {
+          label: {
+            string_id: "spotlight-pin-primary-button",
+          },
+          action: {
+            type: "PIN_FIREFOX_TO_TASKBAR",
+          },
+        },
+        secondary: {
+          label: {
+            string_id: "spotlight-pin-secondary-button",
+          },
+          action: {
+            type: "CANCEL",
+          },
+        },
+      },
+    },
+    trigger: {
+      id: "defaultBrowserCheck",
+    },
+    template: "spotlight",
+    frequency: {
+      lifetime: 1,
+    },
+    targeting:
+      "userMonthlyActivity|length >= 7 && userMonthlyActivity|length <= 13 && doesAppNeedPin",
+  },
+  {
+    id: "MULTISTAGE_SPOTLIGHT_MESSAGE",
+    groups: ["panel-test-provider"],
+    template: "spotlight",
+    content: {
+      id: "control",
+      template: "multistage",
+      backdrop: "transparent",
+      transitions: true,
+      screens: [
+        {
+          id: "AW_PIN_FIREFOX",
+          content: {
+            has_noodles: true,
+            title: {
+              string_id: "mr1-onboarding-pin-header",
+            },
+            logo: {},
+            hero_text: {
+              string_id: "mr1-welcome-screen-hero-text",
+            },
+            help_text: {
+              text: {
+                string_id: "mr1-onboarding-welcome-image-caption",
+              },
+            },
+            primary_button: {
+              label: {
+                string_id: "mr1-onboarding-pin-primary-button-label",
+              },
+              action: {
+                navigate: true,
+                type: "PIN_FIREFOX_TO_TASKBAR",
+              },
+            },
+            secondary_button: {
+              label: {
+                string_id: "mr1-onboarding-set-default-secondary-button-label",
+              },
+              action: {
+                navigate: true,
+              },
+            },
+          },
+        },
+        {
+          id: "AW_SET_DEFAULT",
+          content: {
+            has_noodles: true,
+            logo: {
+              imageURL: "chrome://browser/content/logos/vpn-promo-logo.svg",
+              height: "100px",
+            },
+            title: {
+              fontSize: "36px",
+              fontWeight: 276,
+              string_id: "mr1-onboarding-default-header",
+            },
+            subtitle: {
+              string_id: "mr1-onboarding-default-subtitle",
+            },
+            primary_button: {
+              label: {
+                string_id: "mr1-onboarding-default-primary-button-label",
+              },
+              action: {
+                navigate: true,
+                type: "SET_DEFAULT_BROWSER",
+              },
+            },
+            secondary_button: {
+              label: {
+                string_id: "mr1-onboarding-set-default-secondary-button-label",
+              },
+              action: {
+                navigate: true,
+              },
+            },
+          },
+        },
+        {
+          id: "BACKGROUND_IMAGE",
+          content: {
+            background:
+              "url(chrome://activity-stream/content/data/content/assets/proton-bkg.avif) no-repeat center/cover",
+            text_color: "light",
+            logo: {
+              imageURL:
+                "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/a3c640c8-7594-4bb2-bc18-8b4744f3aaf2.gif",
+            },
+            title: "A dialog with a background image",
+            subtitle: "The text color is configurable",
+            primary_button: {
+              label: "Continue",
+              action: {
+                navigate: true,
+              },
+            },
+            secondary_button: {
+              label: {
+                string_id: "mr1-onboarding-set-default-secondary-button-label",
+              },
+              action: {
+                navigate: true,
+              },
+            },
+          },
+        },
+        {
+          id: "BACKGROUND_COLOR",
+          content: {
+            background: "white",
+            logo: {
+              height: "200px",
+              imageURL: "",
+            },
+            title: {
+              fontSize: "36px",
+              fontWeight: 276,
+              raw: "Peace of mind.",
+            },
+            title_style: "fancy shine",
+            text_color: "dark",
+            subtitle:
+              "For the best privacy protection, keep Firefox in easy reach.",
+            primary_button: {
+              label: "Continue",
+              action: {
+                navigate: true,
+              },
+            },
+            secondary_button: {
+              label: {
+                string_id: "mr1-onboarding-set-default-secondary-button-label",
+              },
+              action: {
+                navigate: true,
+              },
+            },
+          },
+        },
+      ],
+    },
+    frequency: { lifetime: 3 },
+    trigger: { id: "defaultBrowserCheck" },
+  },
+  {
+    id: "PB_FOCUS_PROMO",
+    groups: ["panel-test-provider"],
+    template: "spotlight",
+    content: {
+      template: "multistage",
+      backdrop: "transparent",
+      screens: [
+        {
+          id: "PBM_FIREFOX_FOCUS",
+          order: 0,
+          content: {
+            logo: {
+              imageURL: "chrome://browser/content/assets/focus-logo.svg",
+              height: "48px",
+            },
+            title: {
+              string_id: "spotlight-focus-promo-title",
+            },
+            subtitle: {
+              string_id: "spotlight-focus-promo-subtitle",
+            },
+            dismiss_button: {
+              action: {
+                navigate: true,
+              },
+            },
+            ios: {
+              action: {
+                data: {
+                  args:
+                    "https://app.adjust.com/167k4ih?campaign=firefox-desktop&adgroup=pb&creative=focus-omc172&redirect=https%3A%2F%2Fapps.apple.com%2Fus%2Fapp%2Ffirefox-focus-privacy-browser%2Fid1055677337",
+                  where: "tabshifted",
+                },
+                type: "OPEN_URL",
+                navigate: true,
+              },
+            },
+            android: {
+              action: {
+                data: {
+                  args:
+                    "https://app.adjust.com/167k4ih?campaign=firefox-desktop&adgroup=pb&creative=focus-omc172&redirect=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.mozilla.focus",
+                  where: "tabshifted",
+                },
+                type: "OPEN_URL",
+                navigate: true,
+              },
+            },
+            email_link: {
+              action: {
+                data: {
+                  args: "https://mozilla.org",
+                  where: "tabshifted",
+                },
+                type: "OPEN_URL",
+                navigate: true,
+              },
+            },
+            tiles: {
+              type: "mobile_downloads",
+              data: {
+                QR_code: {
+                  image_url:
+                    "chrome://browser/content/assets/focus-qr-code.svg",
+                  alt_text: {
+                    string_id: "spotlight-focus-promo-qr-code",
+                  },
+                  image_overrides: {
+                    de: "chrome://browser/content/assets/klar-qr-code.svg",
+                  },
+                },
+                email: {
+                  link_text: "Email yourself a link",
+                },
+                marketplace_buttons: ["ios", "android"],
+              },
+            },
+          },
+        },
+      ],
+    },
+    trigger: { id: "defaultBrowserCheck" },
+  },
+  {
     id: "PB_NEWTAB_VPN_PROMO",
     template: "pb_newtab",
     content: {
       promoEnabled: true,
+      promoType: "VPN",
       infoEnabled: true,
       infoIcon: "",
       infoTitle: "",
@@ -345,6 +678,5 @@ const PanelTestProvider = {
     );
   },
 };
-this.PanelTestProvider = PanelTestProvider;
 
 const EXPORTED_SYMBOLS = ["PanelTestProvider"];

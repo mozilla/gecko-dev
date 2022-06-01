@@ -1,4 +1,6 @@
-//! Reusing collections' previous allocations.
+/*!
+Reusing collections' previous allocations.
+*/
 
 /// A value that can be reset to its initial state, retaining its current allocations.
 ///
@@ -44,6 +46,13 @@ impl<K, V, S: Clone> Recyclable for std::collections::HashMap<K, V, S> {
 }
 
 impl<K, S: Clone> Recyclable for std::collections::HashSet<K, S> {
+    fn recycle(mut self) -> Self {
+        self.clear();
+        self
+    }
+}
+
+impl<K: Ord, V> Recyclable for std::collections::BTreeMap<K, V> {
     fn recycle(mut self) -> Self {
         self.clear();
         self

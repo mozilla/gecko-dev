@@ -12,6 +12,7 @@
 #include "mozilla/dom/ClientInfo.h"
 #include "mozilla/dom/DispatcherTrait.h"
 #include "mozilla/dom/ServiceWorkerDescriptor.h"
+#include "mozilla/OriginTrials.h"
 #include "nsHashKeys.h"
 #include "nsISupports.h"
 #include "nsStringFwd.h"
@@ -46,6 +47,10 @@ class ServiceWorkerRegistration;
 class ServiceWorkerRegistrationDescriptor;
 }  // namespace dom
 }  // namespace mozilla
+
+namespace JS::loader {
+class ModuleLoaderBase;
+}  // namespace JS::loader
 
 /**
  * See <https://developer.mozilla.org/en-US/docs/Glossary/Global_object>.
@@ -196,6 +201,9 @@ class nsIGlobalObject : public nsISupports,
    */
   virtual mozilla::StorageAccess GetStorageAccess();
 
+  // Returns the set of active origin trials for this global.
+  virtual mozilla::OriginTrials Trials() const = 0;
+
   // Returns a pointer to this object as an inner window if this is one or
   // nullptr otherwise.
   nsPIDOMWindowInner* AsInnerWindow();
@@ -213,7 +221,6 @@ class nsIGlobalObject : public nsISupports,
 
   void RemoveReportRecords();
 
-#ifdef MOZ_DOM_STREAMS
   // https://streams.spec.whatwg.org/#count-queuing-strategy-size-function
   // This function is set once by CountQueuingStrategy::GetSize.
   already_AddRefed<mozilla::dom::Function>
@@ -224,7 +231,6 @@ class nsIGlobalObject : public nsISupports,
   GetByteLengthQueuingStrategySizeFunction();
   void SetByteLengthQueuingStrategySizeFunction(
       mozilla::dom::Function* aFunction);
-#endif
 
   /**
    * Check whether we should avoid leaking distinguishing information to JS/CSS.
@@ -237,6 +243,14 @@ class nsIGlobalObject : public nsISupports,
    * principal.
    */
   virtual uint32_t GetPrincipalHashValue() const { return 0; }
+
+  /**
+   * Get the module loader to use for this global, if any. By default this
+   * returns null.
+   */
+  virtual JS::loader::ModuleLoaderBase* GetModuleLoader(JSContext* aCx) {
+    return nullptr;
+  }
 
  protected:
   virtual ~nsIGlobalObject();
@@ -255,13 +269,11 @@ class nsIGlobalObject : public nsISupports,
   nsTArray<RefPtr<mozilla::dom::ReportingObserver>> mReportingObservers;
   nsTArray<RefPtr<mozilla::dom::Report>> mReportRecords;
 
-#ifdef MOZ_DOM_STREAMS
   // https://streams.spec.whatwg.org/#count-queuing-strategy-size-function
   RefPtr<mozilla::dom::Function> mCountQueuingStrategySizeFunction;
 
   // https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function
   RefPtr<mozilla::dom::Function> mByteLengthQueuingStrategySizeFunction;
-#endif
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIGlobalObject, NS_IGLOBALOBJECT_IID)

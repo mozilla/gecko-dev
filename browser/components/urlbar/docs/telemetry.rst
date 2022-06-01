@@ -52,6 +52,19 @@ FX_URLBAR_SELECTED_RESULT_METHOD
 Scalars
 -------
 
+urlbar.abandonment
+  A uint recording the number of abandoned engagements in the urlbar. An
+  abandonment occurs when the user begins using the urlbar but stops before
+  completing the engagement. This can happen when the user clicks outside the
+  urlbar to focus a different part of the window. It can also happen when the
+  user switches to another window while the urlbar is focused.
+
+urlbar.engagement
+  A uint recording the number of engagements the user completes in the urlbar.
+  An engagement occurs when the user navigates to a page using the urlbar, for
+  example by picking a result in the urlbar panel or typing a search term or URL
+  in the urlbar and pressing the enter key.
+
 urlbar.tips
   This is a keyed scalar whose values are uints and are incremented each time a
   tip result is shown, a tip is picked, and a tip's help button is picked. The
@@ -193,10 +206,21 @@ urlbar.picked.*
     Available from Firefox 84 on. Use the *FX_URLBAR_SELECTED_** histograms in
     earlier versions. See the `Obsolete probes`_ section below.
 
+  .. note::
+    Firefox 102 added ``autofill_adaptive``, ``autofill_origin`` and
+    ``autofill_url`` and deprecated ``autofill``.
+
   Valid result types are:
 
   - ``autofill``
-    An origin or a URL completed the user typed text inline.
+    An origin or a URL completed the user typed text inline. This was deprecated
+    in Firefox 102.
+  - ``autofill_adaptive``
+    An adaptive history completed the user typed text inline.
+  - ``autofill_origin``
+    An origin completed the user typed text inline.
+  - ``autofill_url``
+    A URL completed the user typed text inline.
   - ``bookmark``
     A bookmarked URL.
   - ``dynamic``
@@ -210,6 +234,8 @@ urlbar.picked.*
     A URL from history.
   - ``keyword``
     A bookmark keyword.
+  - ``quicksuggest``
+    A Firefox Suggest (a.k.a. quick suggest) suggestion.
   - ``remotetab``
     A tab synced from another device.
   - ``searchengine``
@@ -340,11 +366,12 @@ Event Extra
     ``history``, ``keyword``, ``searchengine``, ``searchsuggestion``,
     ``switchtab``, ``remotetab``, ``extension``, ``oneoff``, ``keywordoffer``,
     ``canonized``, ``tip``, ``tiphelp``, ``formhistory``, ``tabtosearch``,
-    ``help``, ``unknown``
+    ``help``, ``block``, ``quicksuggest``, ``unknown``
     In practice, ``tabtosearch`` should not appear in real event telemetry.
     Opening a tab-to-search result enters search mode and entering search mode
     does not currently mark the end of an engagement. It is noted here for
-    completeness.
+    completeness. Similarly, ``block`` indicates a result was blocked or deleted
+    but should not appear because blocking a result does not end the engagement.
   - ``selIndex``
     Index of the selected result in the urlbar panel, or -1 for no selection.
     There won't be a selection when a one-off button is the only selection, and
@@ -444,6 +471,10 @@ Telemetry Environment
     - ``browser.search.suggest.enabled``: The global toggle for search
       suggestions everywhere in Firefox (search bar, urlbar, etc.). Defaults to
       true.
+    - ``browser.urlbar.autoFill``: The global preference for whether autofill in
+      the urlbar is enabled. When false, all types of autofill are disabled.
+    - ``browser.urlbar.autoFill.adaptiveHistory.enabled``: True if adaptive
+      history autofill in the urlbar is enabled.
     - ``browser.urlbar.suggest.searches``: True if search suggestions are
       enabled in the urlbar. Defaults to false.
 
@@ -463,7 +494,7 @@ FX_URLBAR_SELECTED_RESULT_INDEX (OBSOLETE)
 
 FX_URLBAR_SELECTED_RESULT_TYPE and FX_URLBAR_SELECTED_RESULT_TYPE_2 (from Firefox 78 on) (OBSOLETE)
   This probe tracked the types of picked results.
-  It was an enumerated histogram with 17 groups:
+  It was an enumerated histogram with the following groups:
 
     0. autofill
     1. bookmark
@@ -482,6 +513,10 @@ FX_URLBAR_SELECTED_RESULT_TYPE and FX_URLBAR_SELECTED_RESULT_TYPE_2 (from Firefo
     14. formhistory
     15. dynamic
     16. tabtosearch
+    17. quicksuggest
+    18. autofill_adaptive
+    19. autofill_origin
+    20. autofill_url
 
 FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE and FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE_2 (from Firefox 78 on) (OBSOLETE)
   This probe tracked picked result type, for each one it tracked the index where

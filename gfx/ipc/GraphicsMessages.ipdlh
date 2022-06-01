@@ -5,6 +5,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+include "mozilla/GfxMessageUtils.h";
+
 using struct DxgiAdapterDesc from "mozilla/D3DMessageUtils.h";
 using struct mozilla::null_t from "mozilla/ipc/IPCCore.h";
 using mozilla::gfx::FeatureStatus from "gfxTelemetry.h";
@@ -33,7 +35,6 @@ struct DevicePrefs
   FeatureStatus d3d11Compositing;
   FeatureStatus oglCompositing;
   FeatureStatus useD2D1;
-  FeatureStatus webGPU;
   FeatureStatus d3d11HwAngle;
 };
 
@@ -59,7 +60,6 @@ struct GPUDeviceData
   FeatureFailure? d3d11Compositing;
   FeatureFailure? oglCompositing;
   D3D11DeviceStatus? gpuDevice;
-  FeatureFailure? webGPU;
 };
 
 union GfxVarValue

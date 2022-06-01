@@ -2,25 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
+"use strict";
+
 // Tests the breakpoints are hit in various situations.
 
 add_task(async function() {
   const dbg = await initDebugger("doc-scripts.html");
   const {
     selectors: { getSelectedSource },
-    getState,
   } = dbg;
 
-  await selectSource(dbg, "scripts.html");
+  await selectSource(dbg, "doc-scripts.html");
 
   // Make sure we can set a top-level breakpoint and it will be hit on
   // reload.
-  await addBreakpoint(dbg, "scripts.html", 21);
+  await addBreakpoint(dbg, "doc-scripts.html", 21);
 
-  reload(dbg);
+  await reload(dbg, "doc-scripts.html");
 
-  await waitForDispatch(dbg.store, "NAVIGATE");
-  await waitForSelectedSource(dbg, "doc-scripts.html");
   await waitForPaused(dbg);
 
   let whyPaused = await waitFor(
@@ -28,12 +27,15 @@ add_task(async function() {
   );
   is(whyPaused, "Paused on breakpoint");
 
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "doc-scripts.html").id, 21);
   await resume(dbg);
 
   info("Create an eval script that pauses itself.");
   invokeInTab("doEval");
   await waitForPaused(dbg);
+  const source = getSelectedSource();
+  ok(!source.url, "It is an eval source");
+  assertPausedAtSourceAndLine(dbg, source.id, 2);
 
   whyPaused = await waitFor(
     () => dbg.win.document.querySelector(".why-paused")?.innerText
@@ -41,11 +43,11 @@ add_task(async function() {
   is(whyPaused, "Paused on debugger statement");
 
   await resume(dbg);
-  const source = getSelectedSource();
-  ok(!source.url, "It is an eval source");
 
   await addBreakpoint(dbg, source, 5);
   invokeInTab("evaledFunc");
   await waitForPaused(dbg);
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, source.id, 5);
+
+  await resume(dbg);
 });

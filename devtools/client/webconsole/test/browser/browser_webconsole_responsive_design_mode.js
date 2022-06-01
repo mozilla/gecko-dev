@@ -8,9 +8,6 @@
 const TEST_URI =
   "data:text/html,<!DOCTYPE html><meta charset=utf8>Test logging in RDM";
 
-const ResponsiveUIManager = require("devtools/client/responsive/manager");
-const message = require("devtools/client/responsive/utils/message");
-
 add_task(async function() {
   const tab = await addTab(TEST_URI);
 
@@ -22,14 +19,7 @@ add_task(async function() {
   );
 
   info("Open responsive design mode");
-  const { toolWindow } = await ResponsiveUIManager.openIfNeeded(
-    tab.ownerGlobal,
-    tab,
-    {
-      trigger: "test",
-    }
-  );
-  await message.wait(toolWindow, "post-init");
+  await openRDM(tab);
 
   info("Log a message before the console is open");
   SpecialPowers.spawn(gBrowser.selectedBrowser, [], function() {
@@ -39,7 +29,7 @@ add_task(async function() {
   info("Open the console");
   const hud = await openConsole(tab);
   await waitFor(
-    () => findMessage(hud, "Cached message"),
+    () => findConsoleAPIMessage(hud, "Cached message"),
     "Cached message isn't displayed in the console output"
   );
   ok(true, "Cached message is displayed in the console");
@@ -50,11 +40,11 @@ add_task(async function() {
   });
 
   await waitFor(
-    () => findMessage(hud, "Live message"),
+    () => findConsoleAPIMessage(hud, "Live message"),
     "Live message isn't displayed in the console output"
   );
   ok(true, "Live message is displayed in the console");
 
   info("Close responsive design mode");
-  await ResponsiveUIManager.closeIfNeeded(tab.ownerGlobal, tab);
+  await closeRDM(tab);
 });

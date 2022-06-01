@@ -201,7 +201,8 @@ nsresult gfxFontUtils::ReadCMAPTableFormat12or13(
 
 nsresult gfxFontUtils::ReadCMAPTableFormat4(const uint8_t* aBuf,
                                             uint32_t aLength,
-                                            gfxSparseBitSet& aCharacterMap) {
+                                            gfxSparseBitSet& aCharacterMap,
+                                            bool aIsSymbolFont) {
   enum {
     OffsetFormat = 0,
     OffsetLength = 2,
@@ -286,6 +287,20 @@ nsresult gfxFontUtils::ReadCMAPTableFormat4(const uint8_t* aBuf,
     }
   }
 
+  if (aIsSymbolFont) {
+    // For fonts with "MS Symbol" encoding, we duplicate character mappings in
+    // the U+F0xx range down to U+00xx codepoints, so as to support fonts such
+    // as Wingdings.
+    // Note that if the font actually has cmap coverage for the U+00xx range
+    // (either duplicating the PUA codepoints or mapping to separate glyphs),
+    // this will not affect it.
+    for (uint32_t c = 0x0020; c <= 0x00ff; ++c) {
+      if (aCharacterMap.test(0xf000 + c)) {
+        aCharacterMap.set(c);
+      }
+    }
+  }
+
   aCharacterMap.Compact();
 
   return NS_OK;
@@ -293,7 +308,7 @@ nsresult gfxFontUtils::ReadCMAPTableFormat4(const uint8_t* aBuf,
 
 nsresult gfxFontUtils::ReadCMAPTableFormat14(const uint8_t* aBuf,
                                              uint32_t aLength,
-                                             UniquePtr<uint8_t[]>& aTable) {
+                                             const uint8_t*& aTable) {
   enum {
     OffsetFormat = 0,
     OffsetTableLength = 2,
@@ -382,8 +397,10 @@ nsresult gfxFontUtils::ReadCMAPTableFormat14(const uint8_t* aBuf,
     }
   }
 
-  aTable = MakeUnique<uint8_t[]>(tablelen);
-  memcpy(aTable.get(), aBuf, tablelen);
+  uint8_t* table = new uint8_t[tablelen];
+  memcpy(table, aBuf, tablelen);
+
+  aTable = static_cast<const uint8_t*>(table);
 
   return NS_OK;
 }
@@ -420,7 +437,8 @@ nsresult gfxFontUtils::ReadCMAPTableFormat14(const uint8_t* aBuf,
 uint32_t gfxFontUtils::FindPreferredSubtable(const uint8_t* aBuf,
                                              uint32_t aBufLength,
                                              uint32_t* aTableOffset,
-                                             uint32_t* aUVSTableOffset) {
+                                             uint32_t* aUVSTableOffset,
+                                             bool* aIsSymbolFont) {
   enum {
     OffsetVersion = 0,
     OffsetNumTables = 2,
@@ -444,6 +462,9 @@ uint32_t gfxFontUtils::FindPreferredSubtable(const uint8_t* aBuf,
 
   if (aUVSTableOffset) {
     *aUVSTableOffset = 0;
+  }
+  if (aIsSymbolFont) {
+    *aIsSymbolFont = false;
   }
 
   if (!aBuf || aBufLength < SizeOfHeader) {
@@ -479,6 +500,9 @@ uint32_t gfxFontUtils::FindPreferredSubtable(const uint8_t* aBuf,
     if (isSymbol(platformID, encodingID)) {
       keepFormat = format;
       *aTableOffset = offset;
+      if (aIsSymbolFont) {
+        *aIsSymbolFont = true;
+      }
       break;
     } else if (format == 4 &&
                acceptableFormat4(platformID, encodingID, keepFormat)) {
@@ -509,13 +533,14 @@ nsresult gfxFontUtils::ReadCMAP(const uint8_t* aBuf, uint32_t aBufLength,
                                 gfxSparseBitSet& aCharacterMap,
                                 uint32_t& aUVSOffset) {
   uint32_t offset;
-  uint32_t format =
-      FindPreferredSubtable(aBuf, aBufLength, &offset, &aUVSOffset);
+  bool isSymbolFont;
+  uint32_t format = FindPreferredSubtable(aBuf, aBufLength, &offset,
+                                          &aUVSOffset, &isSymbolFont);
 
   switch (format) {
     case 4:
       return ReadCMAPTableFormat4(aBuf + offset, aBufLength - offset,
-                                  aCharacterMap);
+                                  aCharacterMap, isSymbolFont);
 
     case 10:
       return ReadCMAPTableFormat10(aBuf + offset, aBufLength - offset,
@@ -762,8 +787,9 @@ uint32_t gfxFontUtils::MapCharToGlyph(const uint8_t* aCmapBuf,
                                       uint32_t aBufLength, uint32_t aUnicode,
                                       uint32_t aVarSelector) {
   uint32_t offset, uvsOffset;
-  uint32_t format =
-      FindPreferredSubtable(aCmapBuf, aBufLength, &offset, &uvsOffset);
+  bool isSymbolFont;
+  uint32_t format = FindPreferredSubtable(aCmapBuf, aBufLength, &offset,
+                                          &uvsOffset, &isSymbolFont);
 
   uint32_t gid;
   switch (format) {
@@ -772,6 +798,12 @@ uint32_t gfxFontUtils::MapCharToGlyph(const uint8_t* aCmapBuf,
                 ? MapCharToGlyphFormat4(aCmapBuf + offset, aBufLength - offset,
                                         char16_t(aUnicode))
                 : 0;
+      if (!gid && isSymbolFont) {
+        if (auto pua = MapLegacySymbolFontCharToPUA(aUnicode)) {
+          gid = MapCharToGlyphFormat4(aCmapBuf + offset, aBufLength - offset,
+                                      pua);
+        }
+      }
       break;
     case 10:
       gid = MapCharToGlyphFormat10(aCmapBuf + offset, aUnicode);
@@ -846,10 +878,11 @@ void gfxFontUtils::ParseFontList(const nsACString& aFamilyList,
   }
 }
 
-void gfxFontUtils::AppendPrefsFontList(const char* aPrefName,
-                                       nsTArray<nsCString>& aFontList,
-                                       bool aLocalized) {
-  // get the list of single-face font families
+void gfxFontUtils::GetPrefsFontList(const char* aPrefName,
+                                    nsTArray<nsCString>& aFontList,
+                                    bool aLocalized) {
+  aFontList.Clear();
+
   nsAutoCString fontlistValue;
   nsresult rv = aLocalized
                     ? Preferences::GetLocalizedCString(aPrefName, fontlistValue)
@@ -859,13 +892,6 @@ void gfxFontUtils::AppendPrefsFontList(const char* aPrefName,
   }
 
   ParseFontList(fontlistValue, aFontList);
-}
-
-void gfxFontUtils::GetPrefsFontList(const char* aPrefName,
-                                    nsTArray<nsCString>& aFontList,
-                                    bool aLocalized) {
-  aFontList.Clear();
-  AppendPrefsFontList(aPrefName, aFontList, aLocalized);
 }
 
 // produce a unique font name that is (1) a valid Postscript name and (2) less

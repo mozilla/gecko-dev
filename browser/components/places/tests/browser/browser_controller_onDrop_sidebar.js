@@ -5,7 +5,18 @@
 
 const TEST_URL = "about:buildconfig";
 
-add_task(async function setup() {
+add_setup(async function() {
+  // The following initialization code is necessary to avoid a frequent
+  // intermittent failure in verify-fission where, due to timings, we may or
+  // may not import default bookmarks.
+  info("Ensure Places init is complete");
+  let placesInitCompleteObserved = TestUtils.topicObserved(
+    "places-browser-init-complete"
+  );
+  Cc["@mozilla.org/browser/browserglue;1"]
+    .getService(Ci.nsIObserver)
+    .observe(null, "browser-glue-test", "places-browser-init-complete");
+  await placesInitCompleteObserved;
   // Clean before and after so we don't have anything in the folders.
   await PlacesUtils.bookmarks.eraseEverything();
 
@@ -199,4 +210,103 @@ add_task(async function test_try_move_bm_within_two_root_folder_queries() {
     PlacesUtils.bookmarks.toolbarGuid,
     "should have moved the bookmark to a new folder."
   );
+});
+
+add_task(async function test_move_within_itself() {
+  await PlacesUtils.bookmarks.eraseEverything();
+
+  let bookmarks = await PlacesUtils.bookmarks.insertTree({
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    children: [
+      {
+        title: "bm1",
+        url: "http://www.example.com/bookmark1.html",
+      },
+      {
+        title: "bm2",
+        url: "http://www.example.com/bookmark2.html",
+      },
+      {
+        title: "bm3",
+        url: "http://www.example.com/bookmark3.html",
+      },
+    ],
+  });
+
+  await withSidebarTree("bookmarks", async function(tree) {
+    // Select the folder containing the bookmarks
+    // and save its index position
+    tree.selectItems([PlacesUtils.bookmarks.unfiledGuid]);
+    let unfiledFolderIndex = tree.view.treeIndexForNode(tree.selectedNode);
+
+    let guids = bookmarks.map(bookmark => bookmark.guid);
+    tree.selectItems(guids);
+    let dataTransfer = {
+      _data: [],
+      dropEffect: "move",
+      mozCursor: "auto",
+      mozItemCount: bookmarks.length,
+      types: [PlacesUtils.TYPE_X_MOZ_PLACE],
+      mozTypesAt(i) {
+        return [this._data[0].type];
+      },
+      mozGetDataAt(i) {
+        return this._data[0].data;
+      },
+      mozSetDataAt(type, data, index) {
+        this._data.push({
+          type,
+          data,
+          index,
+        });
+      },
+    };
+
+    bookmarks.forEach((bookmark, index) => {
+      // Index positions of the newly created bookmarks
+      bookmark.rowIndex = unfiledFolderIndex + index + 1;
+      bookmark.node = tree.view.nodeForTreeIndex(bookmark.rowIndex);
+      bookmark.cachedBookmarkIndex = bookmark.node.bookmarkIndex;
+    });
+
+    let assertBookmarksHaveNotChangedPosition = () => {
+      bookmarks.forEach(bookmark => {
+        Assert.equal(
+          bookmark.node.bookmarkIndex,
+          bookmark.cachedBookmarkIndex,
+          "should not have moved the bookmark."
+        );
+      });
+    };
+
+    // Mimic "drag" events
+    let dragStartEvent = new CustomEvent("dragstart", {
+      bubbles: true,
+    });
+    dragStartEvent.dataTransfer = dataTransfer;
+
+    let dragEndEvent = new CustomEvent("dragend", {
+      bubbles: true,
+    });
+
+    let treeChildren = tree.view._element.children[1];
+
+    treeChildren.dispatchEvent(dragStartEvent);
+    await tree.view.drop(
+      bookmarks[1].rowIndex,
+      Ci.nsITreeView.DROP_ON,
+      dataTransfer
+    );
+    treeChildren.dispatchEvent(dragEndEvent);
+    assertBookmarksHaveNotChangedPosition();
+
+    treeChildren.dispatchEvent(dragStartEvent);
+    await tree.view.drop(
+      bookmarks[2].rowIndex,
+      Ci.nsITreeView.DROP_ON,
+      dataTransfer
+    );
+    treeChildren.dispatchEvent(dragEndEvent);
+    assertBookmarksHaveNotChangedPosition();
+  });
 });

@@ -1,6 +1,5 @@
-const { ExtensionTestCommon } = SpecialPowers.Cu.import(
-  "resource://testing-common/ExtensionTestCommon.jsm",
-  {}
+const { ExtensionTestCommon } = SpecialPowers.ChromeUtils.import(
+  "resource://testing-common/ExtensionTestCommon.jsm"
 );
 
 var ExtensionTestUtils = {
@@ -14,6 +13,10 @@ var ExtensionTestUtils = {
   // is set to true.
   isInBackgroundServiceWorkerTests() {
     return ExtensionTestCommon.isInBackgroundServiceWorkerTests();
+  },
+
+  get testAssertions() {
+    return ExtensionTestCommon.testAssertions;
   },
 };
 
@@ -162,7 +165,7 @@ ExtensionTestUtils.loadExtension = function(ext) {
 
 ExtensionTestUtils.failOnSchemaWarnings = (warningsAsErrors = true) => {
   let prefName = "extensions.webextensions.warnings-as-errors";
-  SpecialPowers.setBoolPref(prefName, warningsAsErrors);
+  let prefPromise = SpecialPowers.setBoolPref(prefName, warningsAsErrors);
   if (!warningsAsErrors) {
     let registerCleanup;
     if (typeof registerCleanupFunction != "undefined") {
@@ -172,4 +175,6 @@ ExtensionTestUtils.failOnSchemaWarnings = (warningsAsErrors = true) => {
     }
     registerCleanup(() => SpecialPowers.setBoolPref(prefName, true));
   }
+  // In mochitests, setBoolPref is async.
+  return prefPromise.then(() => {});
 };

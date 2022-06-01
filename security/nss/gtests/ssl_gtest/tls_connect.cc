@@ -472,10 +472,8 @@ void TlsConnectTestBase::CheckConnected() {
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
 
   uint16_t cipher_suite1, cipher_suite2;
-  bool ret = client_->cipher_suite(&cipher_suite1);
-  EXPECT_TRUE(ret);
-  ret = server_->cipher_suite(&cipher_suite2);
-  EXPECT_TRUE(ret);
+  ASSERT_TRUE(client_->cipher_suite(&cipher_suite1));
+  ASSERT_TRUE(server_->cipher_suite(&cipher_suite2));
   EXPECT_EQ(cipher_suite1, cipher_suite2);
 
   std::cerr << "Connected with version " << client_->version()
@@ -902,8 +900,8 @@ void TlsConnectTestBase::CheckEarlyDataAccepted() {
   server_->CheckEarlyDataAccepted(expect_early_data_accepted_);
 }
 
-void TlsConnectTestBase::DisableECDHEServerKeyReuse() {
-  server_->DisableECDHEServerKeyReuse();
+void TlsConnectTestBase::EnableECDHEServerKeyReuse() {
+  server_->EnableECDHEServerKeyReuse();
 }
 
 void TlsConnectTestBase::SkipVersionChecks() {

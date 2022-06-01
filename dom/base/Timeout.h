@@ -16,8 +16,7 @@
 #include "nsTHashMap.h"
 #include "GeckoProfiler.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 /*
  * Timeout struct that holds information about each script
@@ -34,6 +33,8 @@ class Timeout final : protected LinkedListElement<RefPtr<Timeout>> {
   enum class Reason : uint8_t {
     eTimeoutOrInterval,
     eIdleCallbackTimeout,
+    eAbortSignalTimeout,
+    eDelayedWebTaskTimeout,
   };
 
   struct TimeoutIdAndReason {
@@ -192,7 +193,6 @@ class Timeout final : protected LinkedListElement<RefPtr<Timeout>> {
   friend class LinkedListElement<RefPtr<Timeout>>;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_timeout_h

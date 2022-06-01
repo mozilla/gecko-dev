@@ -18,6 +18,7 @@ namespace net {
 
 class ChannelEvent;
 class ChannelEventQueue;
+class MessageEvent;
 
 class WebSocketChannelChild final : public BaseWebSocketChannel,
                                     public PWebSocketChild,
@@ -98,7 +99,7 @@ class WebSocketChannelChild final : public BaseWebSocketChannel,
   // This variable is protected by mutex.
   enum { Opened, Closing, Closed } mIPCState;
 
-  mozilla::Mutex mMutex;
+  mozilla::Mutex mMutex MOZ_UNANNOTATED;
 
   friend class StartEvent;
   friend class StopEvent;

@@ -27,8 +27,7 @@
 
 class mozIStorageConnection;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class LocalStorageCacheBridge;
 class StorageUsageBridge;
@@ -286,7 +285,7 @@ class StorageDBThread final {
     virtual ~ThreadObserver() = default;
     bool mHasPendingEvents;
     // The monitor we drive the thread with
-    Monitor mMonitor;
+    Monitor mMonitor MOZ_UNANNOTATED;
   };
 
   class InitHelper;
@@ -489,7 +488,6 @@ class StorageDBThread final {
   void ThreadFunc();
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_StorageDBThread_h

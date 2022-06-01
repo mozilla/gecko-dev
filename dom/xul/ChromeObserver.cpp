@@ -19,8 +19,7 @@
 #include "mozilla/dom/MutationEventBinding.h"
 #include "nsXULElement.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_ISUPPORTS(ChromeObserver, nsIMutationObserver)
 
@@ -175,8 +174,7 @@ void ChromeObserver::AttributeChanged(dom::Element* aElement,
       // if the localedir changed on the root element, reset the document
       // direction
       mDocument->ResetDocumentDirection();
-    } else if (aName == nsGkAtoms::lwtheme ||
-               aName == nsGkAtoms::lwthemetextcolor) {
+    } else if (aName == nsGkAtoms::lwtheme) {
       // if the lwtheme changed, make sure to reset the document lwtheme
       // cache
       mDocument->ResetDocumentLWTheme();
@@ -190,8 +188,7 @@ void ChromeObserver::AttributeChanged(dom::Element* aElement,
       // if the localedir changed on the root element, reset the document
       // direction
       mDocument->ResetDocumentDirection();
-    } else if ((aName == nsGkAtoms::lwtheme ||
-                aName == nsGkAtoms::lwthemetextcolor)) {
+    } else if (aName == nsGkAtoms::lwtheme) {
       // if the lwtheme changed, make sure to restyle appropriately
       mDocument->ResetDocumentLWTheme();
     } else if (aName == nsGkAtoms::drawintitlebar) {
@@ -236,5 +233,4 @@ nsresult ChromeObserver::HideWindowChrome(bool aShouldHide) {
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

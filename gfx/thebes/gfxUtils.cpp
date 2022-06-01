@@ -425,13 +425,14 @@ static bool PrescaleAndTileDrawable(gfxDrawable* aDrawable,
                                     const SamplingFilter aSamplingFilter,
                                     const SurfaceFormat aFormat,
                                     gfxFloat aOpacity, ExtendMode aExtendMode) {
-  Size scaleFactor = aContext->CurrentMatrix().ScaleFactors();
-  Matrix scaleMatrix = Matrix::Scaling(scaleFactor.width, scaleFactor.height);
+  MatrixScales scaleFactor =
+      aContext->CurrentMatrix().ScaleFactors().ConvertTo<float>();
+  Matrix scaleMatrix = Matrix::Scaling(scaleFactor.xScale, scaleFactor.yScale);
   const float fuzzFactor = 0.01;
 
   // If we aren't scaling or translating, don't go down this path
-  if ((FuzzyEqual(scaleFactor.width, 1.0, fuzzFactor) &&
-       FuzzyEqual(scaleFactor.width, 1.0, fuzzFactor)) ||
+  if ((FuzzyEqual(scaleFactor.xScale, 1.0f, fuzzFactor) &&
+       FuzzyEqual(scaleFactor.yScale, 1.0f, fuzzFactor)) ||
       aContext->CurrentMatrix().HasNonAxisAlignedTransform()) {
     return false;
   }
@@ -489,7 +490,7 @@ static bool PrescaleAndTileDrawable(gfxDrawable* aDrawable,
     DrawTarget* destDrawTarget = aContext->GetDrawTarget();
 
     // The translation still is in scaled units
-    withoutScale.PreScale(1.0 / scaleFactor.width, 1.0 / scaleFactor.height);
+    withoutScale.PreScale(1.0f / scaleFactor.xScale, 1.0f / scaleFactor.yScale);
     aContext->SetMatrix(withoutScale);
 
     DrawOptions drawOptions(aOpacity, aContext->CurrentOp(),
@@ -1377,6 +1378,26 @@ const float kIdentityNarrowYCbCrToRGB_RowMajor[16] = {
     default:
       MOZ_LOG(aLogger, LogLevel::Debug,
               ("Unsupported color matrix value: %hhu", aMatrixCoefficients));
+      return {};
+  }
+}
+
+// Translate from CICP values to the transfer functions we support, or return
+// Nothing() if there is no appropriate match.
+//
+/* static */ Maybe<gfx::TransferFunction> gfxUtils::CicpToTransferFunction(
+    const CICP::TransferCharacteristics aTransferCharacteristics) {
+  switch (aTransferCharacteristics) {
+    case CICP::TransferCharacteristics::TC_SRGB:
+      return Some(gfx::TransferFunction::SRGB);
+
+    case CICP::TransferCharacteristics::TC_SMPTE2084:
+      return Some(gfx::TransferFunction::PQ);
+
+    case CICP::TransferCharacteristics::TC_HLG:
+      return Some(gfx::TransferFunction::HLG);
+
+    default:
       return {};
   }
 }

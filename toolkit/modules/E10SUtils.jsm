@@ -80,7 +80,6 @@ const PRIVILEGEDMOZILLA_REMOTE_TYPE = "privilegedmozilla";
 const SERVICEWORKER_REMOTE_TYPE = "webServiceWorker";
 
 // This must start with the WEB_REMOTE_TYPE above.
-const LARGE_ALLOCATION_REMOTE_TYPE = "webLargeAllocation";
 const DEFAULT_REMOTE_TYPE = WEB_REMOTE_TYPE;
 
 // This list is duplicated between Navigator.cpp and here because navigator
@@ -111,6 +110,8 @@ const kSafeSchemes = [
   "wtai",
   "xmpp",
 ];
+
+const STANDARD_SAFE_PROTOCOLS = kSafeSchemes;
 
 // Note that even if the scheme fits the criteria for a web-handled scheme
 // (ie it is compatible with the checks registerProtocolHandler uses), it may
@@ -274,9 +275,9 @@ var E10SUtils = {
   EXTENSION_REMOTE_TYPE,
   PRIVILEGEDABOUT_REMOTE_TYPE,
   PRIVILEGEDMOZILLA_REMOTE_TYPE,
-  LARGE_ALLOCATION_REMOTE_TYPE,
   FISSION_WEB_REMOTE_TYPE,
   SERVICEWORKER_REMOTE_TYPE,
+  STANDARD_SAFE_PROTOCOLS,
 
   /**
    * @param aURI The URI of the about page
@@ -662,17 +663,10 @@ var E10SUtils = {
       return NOT_REMOTE;
     }
 
-    if (
-      // We don't want to launch workers in a large allocation remote type,
-      // change it to the web remote type (then getRemoteTypeForURIObject
-      // may change it to an isolated one).
-      aPreferredRemoteType === LARGE_ALLOCATION_REMOTE_TYPE ||
-      // Similarly to the large allocation remote type, we don't want to
-      // launch the shared worker in a web coop+coep remote type even if
-      // was registered from a frame loaded in a child process with that
-      // remote type.
-      aPreferredRemoteType?.startsWith(WEB_REMOTE_COOP_COEP_TYPE_PREFIX)
-    ) {
+    // We don't want to launch the shared worker in a web coop+coep remote type
+    // even if was registered from a frame loaded in a child process with that
+    // remote type.
+    if (aPreferredRemoteType?.startsWith(WEB_REMOTE_COOP_COEP_TYPE_PREFIX)) {
       aPreferredRemoteType = DEFAULT_REMOTE_TYPE;
     }
 

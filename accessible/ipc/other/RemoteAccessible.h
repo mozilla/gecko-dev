@@ -35,6 +35,13 @@ class RemoteAccessible : public RemoteAccessibleBase<RemoteAccessible> {
 
   virtual uint32_t CharacterCount() const override;
 
+  LayoutDeviceIntRect TextBounds(
+      int32_t aStartOffset, int32_t aEndOffset,
+      uint32_t aCoordType =
+          nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE) override;
+
+  LayoutDeviceIntRect CharBounds(int32_t aOffset, uint32_t aCoordType) override;
+
   virtual already_AddRefed<AccAttributes> TextAttributes(
       bool aIncludeDefAttrs, int32_t aOffset, int32_t* aStartOffset,
       int32_t* aEndOffset) override;
@@ -47,10 +54,27 @@ class RemoteAccessible : public RemoteAccessibleBase<RemoteAccessible> {
   virtual int32_t LinkIndexAtOffset(uint32_t aOffset) override;
 
   virtual bool DoAction(uint8_t aIndex) const override;
-
   virtual uint8_t ActionCount() const override;
-
   virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+
+  virtual void SelectedItems(nsTArray<Accessible*>* aSelectedItems) override;
+  virtual uint32_t SelectedItemCount() override;
+  virtual Accessible* GetSelectedItem(uint32_t aIndex) override;
+  virtual bool IsItemSelected(uint32_t aIndex) override;
+  virtual bool AddItemToSelection(uint32_t aIndex) override;
+  virtual bool RemoveItemFromSelection(uint32_t aIndex) override;
+  virtual bool SelectAll() override;
+  virtual bool UnselectAll() override;
+
+  virtual nsAtom* LandmarkRole() const override;
+
+  virtual int32_t SelectionCount() override;
+
+  using RemoteAccessibleBase<RemoteAccessible>::SelectionBoundsAt;
+  bool SelectionBoundsAt(int32_t aSelectionNum, nsString& aData,
+                         int32_t* aStartOffset, int32_t* aEndOffset);
+
+  virtual bool TableIsProbablyForLayout() override;
 
  protected:
   explicit RemoteAccessible(DocAccessibleParent* aThisAsDoc)

@@ -160,7 +160,7 @@ bool HTMLEditUtils::IsInlineStyle(nsINode* aNode) {
 }
 
 bool HTMLEditUtils::IsDisplayOutsideInline(const Element& aElement) {
-  RefPtr<ComputedStyle> elementStyle =
+  RefPtr<const ComputedStyle> elementStyle =
       nsComputedDOMStyle::GetComputedStyleNoFlush(&aElement);
   if (!elementStyle) {
     return false;
@@ -352,20 +352,16 @@ bool HTMLEditUtils::IsMozDiv(nsINode* aNode) {
 /**
  * IsMailCite() returns true if aNode is an html blockquote with |type=cite|.
  */
-bool HTMLEditUtils::IsMailCite(nsINode* aNode) {
-  MOZ_ASSERT(aNode);
-
+bool HTMLEditUtils::IsMailCite(const Element& aElement) {
   // don't ask me why, but our html mailcites are id'd by "type=cite"...
-  if (aNode->IsElement() &&
-      aNode->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
-                                      u"cite"_ns, eIgnoreCase)) {
+  if (aElement.AttrValueIs(kNameSpaceID_None, nsGkAtoms::type, u"cite"_ns,
+                           eIgnoreCase)) {
     return true;
   }
 
   // ... but our plaintext mailcites by "_moz_quote=true".  go figure.
-  if (aNode->IsElement() &&
-      aNode->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozquote,
-                                      u"true"_ns, eIgnoreCase)) {
+  if (aElement.AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozquote, u"true"_ns,
+                           eIgnoreCase)) {
     return true;
   }
 
@@ -1119,7 +1115,7 @@ nsIContent* HTMLEditUtils::GetNextContent(
       "GetNextContent() doesn't assume that the start point is a "
       "data node except text node");
 
-  EditorRawDOMPoint point(aPoint);
+  auto point = aPoint.template To<EditorRawDOMPoint>();
 
   // if the container is a text node, use its location instead
   if (point.IsInTextNode()) {
@@ -1744,11 +1740,12 @@ EditorDOMPointType HTMLEditUtils::GetBetterInsertionPointFor(
     return EditorDOMPointType();
   }
 
-  EditorDOMPointType pointToInsert(
-      aPointToInsert.GetNonAnonymousSubtreePoint());
-  if (NS_WARN_IF(!pointToInsert.IsSet()) ||
-      NS_WARN_IF(!pointToInsert.GetContainer()->IsInclusiveDescendantOf(
-          &aEditingHost))) {
+  auto pointToInsert =
+      aPointToInsert.template GetNonAnonymousSubtreePoint<EditorDOMPointType>();
+  if (MOZ_UNLIKELY(
+          NS_WARN_IF(!pointToInsert.IsSet()) ||
+          NS_WARN_IF(!pointToInsert.GetContainer()->IsInclusiveDescendantOf(
+              &aEditingHost)))) {
     // Cannot insert aContentToInsert into this DOM tree.
     return EditorDOMPointType();
   }
@@ -1793,7 +1790,8 @@ EditorDOMPointType HTMLEditUtils::GetBetterInsertionPointFor(
     return pointToInsert;
   }
 
-  return forwardScanFromPointToInsertResult.RawPointAfterContent();
+  return forwardScanFromPointToInsertResult
+      .template PointAfterContent<EditorDOMPointType>();
 }
 
 }  // namespace mozilla

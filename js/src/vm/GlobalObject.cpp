@@ -36,17 +36,14 @@
 #include "builtin/streams/ReadableStream.h"  // js::ReadableStream
 #include "builtin/streams/ReadableStreamController.h"  // js::Readable{StreamDefault,ByteStream}Controller
 #include "builtin/streams/ReadableStreamReader.h"  // js::ReadableStreamDefaultReader
-#include "builtin/streams/WritableStream.h"        // js::WritableStream
-#include "builtin/streams/WritableStreamDefaultController.h"  // js::WritableStreamDefaultController
-#include "builtin/streams/WritableStreamDefaultWriter.h"  // js::WritableStreamDefaultWriter
 #include "builtin/Symbol.h"
 #include "builtin/WeakMapObject.h"
 #include "builtin/WeakRefObject.h"
 #include "builtin/WeakSetObject.h"
 #include "debugger/DebugAPI.h"
 #include "frontend/CompilationStencil.h"
-#include "gc/FinalizationRegistry.h"
-#include "gc/FreeOp.h"
+#include "gc/FinalizationObservers.h"
+#include "gc/GCContext.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/WindowProxy.h"    // js::ToWindowProxyIfWindow
 #include "js/PropertyAndElement.h"    // JS_DefineFunctions, JS_DefineProperties
@@ -71,7 +68,7 @@
 #  include "vm/TupleType.h"
 #endif
 
-#include "gc/FreeOp-inl.h"
+#include "gc/GCContext-inl.h"
 #include "vm/JSObject-inl.h"
 #include "vm/JSScript-inl.h"
 #include "vm/NativeObject-inl.h"
@@ -196,14 +193,6 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_ByteLengthQueuingStrategy:
     case JSProto_CountQueuingStrategy:
       return !cx->realm()->creationOptions().getStreamsEnabled();
-
-    case JSProto_WritableStream:
-    case JSProto_WritableStreamDefaultController:
-    case JSProto_WritableStreamDefaultWriter: {
-      const auto& realmOptions = cx->realm()->creationOptions();
-      return !realmOptions.getStreamsEnabled() ||
-             !realmOptions.getWritableStreamsEnabled();
-    }
 #endif
 
     // Return true if the given constructor has been disabled at run-time.
@@ -585,6 +574,10 @@ GlobalObject* GlobalObject::createInternal(JSContext* cx,
   }
   global->data().emptyGlobalScope.init(emptyGlobalScope);
 
+  if (!GlobalObject::createIntrinsicsHolder(cx, global)) {
+    return nullptr;
+  }
+
   if (!JSObject::setQualifiedVarObj(cx, global)) {
     return nullptr;
   }
@@ -676,20 +669,6 @@ bool GlobalObject::initStandardClasses(JSContext* cx,
       }
     }
   }
-  return true;
-}
-
-/* static */
-bool GlobalObject::isRuntimeCodeGenEnabled(JSContext* cx, HandleString code,
-                                           Handle<GlobalObject*> global) {
-  // If there are callbacks, make sure that the CSP callback is installed
-  // and that it permits runtime code generation.
-  JSCSPEvalChecker allows =
-      cx->runtime()->securityCallbacks->contentSecurityPolicyAllows;
-  if (allows) {
-    return allows(cx, code);
-  }
-
   return true;
 }
 
@@ -846,28 +825,24 @@ bool GlobalObject::addToVarNames(JSContext* cx, JS::Handle<JSAtom*> name) {
 }
 
 /* static */
-NativeObject* GlobalObject::getIntrinsicsHolder(JSContext* cx,
-                                                Handle<GlobalObject*> global) {
-  if (NativeObject* holder = global->data().intrinsicsHolder) {
-    return holder;
-  }
-
+bool GlobalObject::createIntrinsicsHolder(JSContext* cx,
+                                          Handle<GlobalObject*> global) {
   Rooted<NativeObject*> intrinsicsHolder(
       cx, NewPlainObjectWithProto(cx, nullptr, TenuredObject));
   if (!intrinsicsHolder) {
-    return nullptr;
+    return false;
   }
 
   // Define a top-level property 'undefined' with the undefined value.
   if (!DefineDataProperty(cx, intrinsicsHolder, cx->names().undefined,
                           UndefinedHandleValue,
                           JSPROP_PERMANENT | JSPROP_READONLY)) {
-    return nullptr;
+    return false;
   }
 
   // Install the intrinsics holder on the global.
   global->data().intrinsicsHolder.init(intrinsicsHolder);
-  return intrinsicsHolder;
+  return true;
 }
 
 /* static */
@@ -876,12 +851,7 @@ bool GlobalObject::getSelfHostedFunction(JSContext* cx,
                                          HandlePropertyName selfHostedName,
                                          HandleAtom name, unsigned nargs,
                                          MutableHandleValue funVal) {
-  bool exists = false;
-  if (!GlobalObject::maybeGetIntrinsicValue(cx, global, selfHostedName, funVal,
-                                            &exists)) {
-    return false;
-  }
-  if (exists) {
+  if (global->maybeGetIntrinsicValue(selfHostedName, funVal.address(), cx)) {
     RootedFunction fun(cx, &funVal.toObject().as<JSFunction>());
     if (fun->explicitName() == name) {
       return true;
@@ -932,12 +902,6 @@ bool GlobalObject::getIntrinsicValueSlow(JSContext* cx,
   // If this is a C++ intrinsic, simply define the function on the intrinsics
   // holder.
   if (const JSFunctionSpec* spec = js::FindIntrinsicSpec(name)) {
-    RootedNativeObject holder(cx,
-                              GlobalObject::getIntrinsicsHolder(cx, global));
-    if (!holder) {
-      return false;
-    }
-
     RootedId id(cx, NameToId(name));
     RootedFunction fun(cx, JS::NewFunctionFromSpec(cx, spec, id));
     if (!fun) {
@@ -957,11 +921,7 @@ bool GlobalObject::getIntrinsicValueSlow(JSContext* cx,
   // defining the intrinsic. For instance, cloning can call NewArray, which
   // resolves Array.prototype, which defines some self-hosted functions. If this
   // happens we use the value already defined on the intrinsics holder.
-  bool exists = false;
-  if (!GlobalObject::maybeGetIntrinsicValue(cx, global, name, value, &exists)) {
-    return false;
-  }
-  if (exists) {
+  if (global->maybeGetIntrinsicValue(name, value.address(), cx)) {
     return true;
   }
 
@@ -973,10 +933,7 @@ bool GlobalObject::addIntrinsicValue(JSContext* cx,
                                      Handle<GlobalObject*> global,
                                      HandlePropertyName name,
                                      HandleValue value) {
-  RootedNativeObject holder(cx, GlobalObject::getIntrinsicsHolder(cx, global));
-  if (!holder) {
-    return false;
-  }
+  RootedNativeObject holder(cx, &global->getIntrinsicsHolder());
 
   RootedId id(cx, NameToId(name));
   MOZ_ASSERT(!holder->containsPure(id));
@@ -1032,17 +989,17 @@ JSObject* GlobalObject::createAsyncIteratorPrototype(
   return proto;
 }
 
-void GlobalObject::releaseData(JSFreeOp* fop) {
+void GlobalObject::releaseData(JS::GCContext* gcx) {
   GlobalObjectData* data = maybeData();
   setReservedSlot(GLOBAL_DATA_SLOT, PrivateValue(nullptr));
-  fop->delete_(this, data, MemoryUse::GlobalObjectData);
+  gcx->delete_(this, data, MemoryUse::GlobalObjectData);
 }
 
 GlobalObjectData::GlobalObjectData(Zone* zone) : varNames(zone) {}
 
 void GlobalObjectData::trace(JSTracer* trc, GlobalObject* global) {
-  // Atoms are always tenured.
-  if (!JS::RuntimeHeapIsMinorCollecting()) {
+  // Atoms are always tenured so don't need to be traced during minor GC.
+  if (trc->runtime()->heapState() != JS::HeapState::MinorCollecting) {
     varNames.trace(trc);
   }
 
@@ -1097,7 +1054,7 @@ void GlobalObjectData::trace(JSTracer* trc, GlobalObject* global) {
                     "self-hosting-script-source");
 
   if (finalizationRegistryData) {
-    finalizationRegistryData->trace(trc, global);
+    finalizationRegistryData->trace(trc);
   }
 }
 

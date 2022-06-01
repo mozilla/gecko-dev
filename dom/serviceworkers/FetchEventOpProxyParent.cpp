@@ -25,7 +25,6 @@
 #include "mozilla/dom/FetchEventOpParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
-#include "mozilla/RemoteLazyInputStreamUtils.h"
 #include "mozilla/RemoteLazyInputStreamStorage.h"
 
 namespace mozilla {
@@ -58,7 +57,7 @@ nsresult MaybeDeserializeAndWrapForMainThread(
   }
 
   auto storage = storageOrErr.unwrap();
-  storage->AddStream(deserialized, uuid, aBodyStreamSize, 0);
+  storage->AddStream(deserialized, uuid);
   return NS_OK;
 }
 
@@ -118,12 +117,16 @@ ParentToParentFetchEventRespondWithResult ToParentToParent(
   MOZ_ASSERT(aManager);
   MOZ_ASSERT(aReal);
 
-  ParentToChildServiceWorkerFetchEventOpArgs copyArgs(aArgs.common(),
+  ParentToChildServiceWorkerFetchEventOpArgs copyArgs(aArgs.common(), Nothing(),
                                                       Nothing());
   if (aArgs.preloadResponse().isSome()) {
     // Convert the preload response to ParentToChildInternalResponse.
     copyArgs.preloadResponse() = Some(ToParentToChild(
         aArgs.preloadResponse().ref(), WrapNotNull(aManager->Manager())));
+  }
+
+  if (aArgs.preloadResponseEndArgs().isSome()) {
+    copyArgs.preloadResponseEndArgs() = aArgs.preloadResponseEndArgs();
   }
 
   FetchEventOpProxyParent* actor =
@@ -135,27 +138,29 @@ ParentToParentFetchEventRespondWithResult ToParentToParent(
   // need to add it to the arguments. Note that we have to make sure that the
   // arguments don't contain the preload response already, otherwise we'll end
   // up overwriting it with a Nothing.
-  Maybe<ParentToParentInternalResponse> preloadResponse =
+  Maybe<ParentToParentInternalResponse> preloadResponse;
+  Maybe<ResponseEndArgs> preloadResponseEndArgs;
+  Tie(preloadResponse, preloadResponseEndArgs) =
       actor->mReal->OnStart(WrapNotNull(actor));
   if (copyArgs.preloadResponse().isNothing() && preloadResponse.isSome()) {
     copyArgs.preloadResponse() = Some(ToParentToChild(
         preloadResponse.ref(), WrapNotNull(aManager->Manager())));
   }
+  if (copyArgs.preloadResponseEndArgs().isNothing() &&
+      preloadResponseEndArgs.isSome()) {
+    copyArgs.preloadResponseEndArgs() = preloadResponseEndArgs;
+  }
 
   IPCInternalRequest& copyRequest = copyArgs.common().internalRequest();
 
   if (aBodyStream) {
-    PBackgroundParent* bgParent = aManager->Manager();
-    MOZ_ASSERT(bgParent);
-
     copyRequest.body() = Some(ParentToChildStream());
 
-    RemoteLazyStream ipdlStream;
-    MOZ_ALWAYS_SUCCEEDS(RemoteLazyInputStreamUtils::SerializeInputStream(
-        aBodyStream, copyRequest.bodySize(), ipdlStream, bgParent));
+    RefPtr<RemoteLazyInputStream> stream =
+        RemoteLazyInputStream::WrapStream(aBodyStream);
+    MOZ_DIAGNOSTIC_ASSERT(stream);
 
-    copyRequest.body().ref().get_ParentToChildStream().actorParent() =
-        ipdlStream;
+    copyRequest.body().ref().get_ParentToChildStream().stream() = stream;
   }
 
   Unused << aManager->SendPFetchEventOpProxyConstructor(actor, copyArgs);
@@ -191,7 +196,6 @@ mozilla::ipc::IPCResult FetchEventOpProxyParent::RecvRespondWith(
   auto manager = WrapNotNull(mReal->Manager());
   auto backgroundParent = WrapNotNull(manager->Manager());
   Unused << mReal->SendRespondWith(ToParentToParent(aResult, backgroundParent));
-  mReal->OnFinish();
   return IPC_OK();
 }
 
@@ -200,7 +204,7 @@ mozilla::ipc::IPCResult FetchEventOpProxyParent::Recv__delete__(
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(mLifetimePromise);
   MOZ_ASSERT(mReal);
-
+  mReal->OnFinish();
   if (mLifetimePromise) {
     mLifetimePromise->Resolve(aResult, __func__);
     mLifetimePromise = nullptr;

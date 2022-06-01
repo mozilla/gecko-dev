@@ -72,9 +72,9 @@ class UtilityProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
 
   // Return the actor for the top-level actor of the process. If the process
   // has not connected yet, this returns null.
-  UtilityProcessParent* GetActor() const {
+  RefPtr<UtilityProcessParent> GetActor() const {
     MOZ_ASSERT(NS_IsMainThread());
-    return mUtilityProcessParent.get();
+    return mUtilityProcessParent;
   }
 
   bool IsConnected() const {
@@ -83,7 +83,7 @@ class UtilityProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
   }
 
   // Called on the IO thread.
-  void OnChannelConnected(int32_t peer_pid) override;
+  void OnChannelConnected(base::ProcessId peer_pid) override;
   void OnChannelError() override;
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)

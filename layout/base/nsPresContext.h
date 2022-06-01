@@ -580,17 +580,22 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
 
   float GetOverrideDPPX() const { return mMediaEmulationData.mDPPX; }
 
-  // Gets the forced color-scheme if any via either DevTools emulation or
-  // printing.
+  // Gets the forced color-scheme if any via either our embedder, or DevTools
+  // emulation, or printing.
   //
   // NOTE(emilio): This might be called from an stylo thread.
-  Maybe<mozilla::ColorScheme> GetOverriddenColorScheme() const;
+  Maybe<mozilla::ColorScheme> GetOverriddenOrEmbedderColorScheme() const;
 
   /**
    * Recomputes the data dependent on the browsing context, like zoom and text
    * zoom.
    */
   void RecomputeBrowsingContextDependentData();
+
+  /**
+   * Sets the effective color scheme override, and invalidate stuff as needed.
+   */
+  void SetColorSchemeOverride(mozilla::dom::PrefersColorSchemeOverride);
 
   mozilla::CSSCoord GetAutoQualityMinFontSize() const {
     return DevPixelsToFloatCSSPixels(mAutoQualityMinFontSizePixelsPref);
@@ -1377,7 +1382,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   // FIXME(emilio): These would be better packed on top of the bitfields, but
   // that breaks bindgen in win32.
   FontVisibility mFontVisibility = FontVisibility::Unknown;
-  mozilla::dom::PrefersColorSchemeOverride mColorSchemeOverride;
+  mozilla::dom::PrefersColorSchemeOverride mOverriddenOrEmbedderColorScheme;
 
  protected:
   virtual ~nsPresContext();

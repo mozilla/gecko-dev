@@ -22,11 +22,9 @@
 #include "nsHashKeys.h"
 #include "nsTArray.h"
 
-class nsITimer;
 class nsPIDOMWindowInner;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 struct WorkerLoadInfo;
 class WorkerThread;
 
@@ -55,26 +53,16 @@ class RuntimeService final : public nsIObserver {
     }
   };
 
-  struct IdleThreadInfo {
-    SafeRefPtr<WorkerThread> mThread;
-    mozilla::TimeStamp mExpirationTime;
-  };
-
   mozilla::Mutex mMutex;
 
   // Protected by mMutex.
-  nsClassHashtable<nsCStringHashKey, WorkerDomainInfo> mDomainMap;
-
-  // Protected by mMutex.
-  nsTArray<IdleThreadInfo> mIdleThreadArray;
+  nsClassHashtable<nsCStringHashKey, WorkerDomainInfo> mDomainMap
+      GUARDED_BY(mMutex);
 
   // *Not* protected by mMutex.
   nsClassHashtable<nsPtrHashKey<const nsPIDOMWindowInner>,
                    nsTArray<WorkerPrivate*> >
       mWindowMap;
-
-  // Only used on the main thread.
-  nsCOMPtr<nsITimer> mIdleThreadTimer;
 
   static UniquePtr<workerinternals::JSSettings> sDefaultJSSettings;
 
@@ -126,8 +114,6 @@ class RuntimeService final : public nsIObserver {
     return mNavigatorProperties;
   }
 
-  void NoteIdleThread(SafeRefPtr<WorkerThread> aThread);
-
   static void GetDefaultJSSettings(workerinternals::JSSettings& aSettings) {
     AssertIsOnMainThread();
     aSettings = *sDefaultJSSettings;
@@ -178,7 +164,7 @@ class RuntimeService final : public nsIObserver {
 
   void MemoryPressureAllWorkers();
 
-  uint32_t ClampedHardwareConcurrency() const;
+  uint32_t ClampedHardwareConcurrency(bool aShouldResistFingerprinting) const;
 
   void CrashIfHanging();
 
@@ -194,21 +180,19 @@ class RuntimeService final : public nsIObserver {
 
   void Cleanup();
 
-  void AddAllTopLevelWorkersToArray(nsTArray<WorkerPrivate*>& aWorkers);
+  void AddAllTopLevelWorkersToArray(nsTArray<WorkerPrivate*>& aWorkers)
+      REQUIRES(mMutex);
 
   nsTArray<WorkerPrivate*> GetWorkersForWindow(
       const nsPIDOMWindowInner& aWindow) const;
 
   bool ScheduleWorker(WorkerPrivate& aWorkerPrivate);
 
-  static void ShutdownIdleThreads(nsITimer* aTimer, void* aClosure);
-
   template <typename Func>
   void BroadcastAllWorkers(const Func& aFunc);
 };
 
 }  // namespace workerinternals
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif /* mozilla_dom_workers_runtimeservice_h__ */

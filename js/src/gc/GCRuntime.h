@@ -14,6 +14,7 @@
 
 #include "gc/ArenaList.h"
 #include "gc/AtomMarking.h"
+#include "gc/GCContext.h"
 #include "gc/GCMarker.h"
 #include "gc/IteratorUtils.h"
 #include "gc/Nursery.h"
@@ -57,7 +58,7 @@ struct SweepAction {
   // The arguments passed to each action.
   struct Args {
     GCRuntime* gc;
-    JSFreeOp* fop;
+    JS::GCContext* gcx;
     SliceBudget& budget;
   };
 
@@ -451,6 +452,10 @@ class GCRuntime {
 
   bool isShutdownGC() const { return gcOptions() == JS::GCOptions::Shutdown; }
 
+#ifdef DEBUG
+  bool isShuttingDown() const { return hadShutdownGC; }
+#endif
+
   bool initSweepActions();
 
   void setGrayRootsTracer(JSGrayRootsTracer traceOp, void* data);
@@ -489,8 +494,10 @@ class GCRuntime {
   bool registerWithFinalizationRegistry(JSContext* cx, HandleObject target,
                                         HandleObject record);
   void queueFinalizationRegistryForCleanup(FinalizationQueueObject* queue);
+
   void nukeFinalizationRecordWrapper(JSObject* wrapper,
                                      FinalizationRecordObject* record);
+  void nukeWeakRefWrapper(JSObject* wrapper, WeakRefObject* record);
 
   void setFullCompartmentChecks(bool enable);
 
@@ -620,7 +627,6 @@ class GCRuntime {
 
   // WeakRefs
   bool registerWeakRef(HandleObject target, HandleObject weakRef);
-  bool unregisterWeakRefWrapper(JSObject* wrapper);
   void traceKeptObjects(JSTracer* trc);
 
   JS::GCReason lastStartReason() const { return initialReason; }
@@ -716,6 +722,8 @@ class GCRuntime {
   friend class AutoCallGCCallbacks;
   void maybeCallGCCallback(JSGCStatus status, JS::GCReason reason);
 
+  void startCollection(JS::GCReason reason);
+
   void purgeRuntime();
   [[nodiscard]] bool beginPreparePhase(JS::GCReason reason,
                                        AutoGCSession& session);
@@ -765,53 +773,57 @@ class GCRuntime {
   [[nodiscard]] bool findSweepGroupEdges();
   void getNextSweepGroup();
   void resetGrayList(Compartment* comp);
-  IncrementalProgress beginMarkingSweepGroup(JSFreeOp* fop,
+  IncrementalProgress beginMarkingSweepGroup(JS::GCContext* gcx,
                                              SliceBudget& budget);
-  IncrementalProgress markGrayRootsInCurrentGroup(JSFreeOp* fop,
+  IncrementalProgress markGrayRootsInCurrentGroup(JS::GCContext* gcx,
                                                   SliceBudget& budget);
-  IncrementalProgress markGray(JSFreeOp* fop, SliceBudget& budget);
-  IncrementalProgress endMarkingSweepGroup(JSFreeOp* fop, SliceBudget& budget);
+  IncrementalProgress markGray(JS::GCContext* gcx, SliceBudget& budget);
+  IncrementalProgress endMarkingSweepGroup(JS::GCContext* gcx,
+                                           SliceBudget& budget);
   void markIncomingGrayCrossCompartmentPointers();
-  IncrementalProgress beginSweepingSweepGroup(JSFreeOp* fop,
+  IncrementalProgress beginSweepingSweepGroup(JS::GCContext* gcx,
                                               SliceBudget& budget);
-  void initBackgroundSweep(Zone* zone, JSFreeOp* fop,
+  void initBackgroundSweep(Zone* zone, JS::GCContext* gcx,
                            const FinalizePhase& phase);
-  IncrementalProgress markDuringSweeping(JSFreeOp* fop, SliceBudget& budget);
+  IncrementalProgress markDuringSweeping(JS::GCContext* gcx,
+                                         SliceBudget& budget);
   void updateAtomsBitmap();
   void sweepCCWrappers();
   void sweepRealmGlobals();
-  void sweepEmbeddingWeakPointers(JSFreeOp* fop);
+  void sweepEmbeddingWeakPointers(JS::GCContext* gcx);
   void sweepMisc();
   void sweepCompressionTasks();
   void sweepWeakMaps();
   void sweepUniqueIds();
-  void sweepDebuggerOnMainThread(JSFreeOp* fop);
-  void sweepJitDataOnMainThread(JSFreeOp* fop);
-  void sweepFinalizationRegistriesOnMainThread();
-  void traceWeakFinalizationRegistryEdges(JSTracer* trc, Zone* zone);
+  void sweepDebuggerOnMainThread(JS::GCContext* gcx);
+  void sweepJitDataOnMainThread(JS::GCContext* gcx);
+  void sweepFinalizationObserversOnMainThread();
+  void traceWeakFinalizationObserverEdges(JSTracer* trc, Zone* zone);
   void sweepWeakRefs();
-  IncrementalProgress endSweepingSweepGroup(JSFreeOp* fop, SliceBudget& budget);
+  IncrementalProgress endSweepingSweepGroup(JS::GCContext* gcx,
+                                            SliceBudget& budget);
   IncrementalProgress performSweepActions(SliceBudget& sliceBudget);
   void startSweepingAtomsTable();
-  IncrementalProgress sweepAtomsTable(JSFreeOp* fop, SliceBudget& budget);
-  IncrementalProgress sweepWeakCaches(JSFreeOp* fop, SliceBudget& budget);
-  IncrementalProgress finalizeAllocKind(JSFreeOp* fop, SliceBudget& budget);
-  bool foregroundFinalize(JSFreeOp* fop, Zone* zone, AllocKind thingKind,
+  IncrementalProgress sweepAtomsTable(JS::GCContext* gcx, SliceBudget& budget);
+  IncrementalProgress sweepWeakCaches(JS::GCContext* gcx, SliceBudget& budget);
+  IncrementalProgress finalizeAllocKind(JS::GCContext* gcx,
+                                        SliceBudget& budget);
+  bool foregroundFinalize(JS::GCContext* gcx, Zone* zone, AllocKind thingKind,
                           js::SliceBudget& sliceBudget,
                           SortedArenaList& sweepList);
-  IncrementalProgress sweepPropMapTree(JSFreeOp* fop, SliceBudget& budget);
+  IncrementalProgress sweepPropMapTree(JS::GCContext* gcx, SliceBudget& budget);
   void endSweepPhase(bool lastGC);
   void queueZonesAndStartBackgroundSweep(ZoneList& zones);
   void sweepFromBackgroundThread(AutoLockHelperThreadState& lock);
   void startBackgroundFree();
   void freeFromBackgroundThread(AutoLockHelperThreadState& lock);
   void sweepBackgroundThings(ZoneList& zones);
-  void backgroundFinalize(JSFreeOp* fop, Zone* zone, AllocKind kind,
+  void backgroundFinalize(JS::GCContext* gcx, Zone* zone, AllocKind kind,
                           Arena** empty);
   void assertBackgroundSweepingFinished();
 
   bool allCCVisibleZonesWereCollected();
-  void sweepZones(JSFreeOp* fop, bool destroyingRuntime);
+  void sweepZones(JS::GCContext* gcx, bool destroyingRuntime);
   bool shouldDecommit() const;
   void startDecommit();
   void decommitEmptyChunks(const bool& cancel, AutoLockGC& lock);
@@ -881,7 +893,7 @@ class GCRuntime {
   void checkForCompartmentMismatches();
 #endif
 
-  void callFinalizeCallbacks(JSFreeOp* fop, JSFinalizeStatus status) const;
+  void callFinalizeCallbacks(JS::GCContext* gcx, JSFinalizeStatus status) const;
   void callWeakPointerZonesCallbacks(JSTracer* trc) const;
   void callWeakPointerCompartmentCallbacks(JSTracer* trc,
                                            JS::Compartment* comp) const;
@@ -895,6 +907,8 @@ class GCRuntime {
 
   // Embedders can use this zone however they wish.
   MainThreadData<JS::Zone*> systemZone;
+
+  MainThreadData<JS::GCContext> mainThreadContext;
 
  private:
   // All zones in the runtime, except the atoms zone.
@@ -1051,6 +1065,11 @@ class GCRuntime {
 
   /* Whether any sweeping will take place in the separate GC helper thread. */
   MainThreadData<bool> sweepOnBackgroundThread;
+
+#ifdef DEBUG
+  /* Shutdown has started. Further collections must be shutdown collections. */
+  MainThreadData<bool> hadShutdownGC;
+#endif
 
   /* Singly linked list of zones to be swept in the background. */
   HelperThreadLockData<ZoneList> backgroundSweepZones;
@@ -1211,7 +1230,7 @@ class GCRuntime {
   /* Synchronize GC heap access among GC helper threads and the main thread. */
   friend class js::AutoLockGC;
   friend class js::AutoLockGCBgAlloc;
-  js::Mutex lock;
+  js::Mutex lock MOZ_UNANNOTATED;
 
   friend class BackgroundSweepTask;
   friend class BackgroundFreeTask;

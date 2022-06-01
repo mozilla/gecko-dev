@@ -147,7 +147,7 @@ class _RFPHelper {
 
   _removeRFPObservers() {
     try {
-      Services.pref.removeObserver(kPrefSpoofEnglish, this);
+      Services.prefs.removeObserver(kPrefSpoofEnglish, this);
     } catch (e) {
       // do nothing
     }
@@ -201,16 +201,7 @@ class _RFPHelper {
   _handleHttpOnModifyRequest(subject, data) {
     // If we are loading an HTTP page from content, show the
     // "request English language web pages?" prompt.
-    let httpChannel;
-    try {
-      httpChannel = subject.QueryInterface(Ci.nsIHttpChannel);
-    } catch (e) {
-      return;
-    }
-
-    if (!httpChannel) {
-      return;
-    }
+    let httpChannel = subject.QueryInterface(Ci.nsIHttpChannel);
 
     let notificationCallbacks = httpChannel.notificationCallbacks;
     if (!notificationCallbacks) {

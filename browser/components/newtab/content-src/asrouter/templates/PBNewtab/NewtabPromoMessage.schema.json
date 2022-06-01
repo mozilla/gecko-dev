@@ -30,11 +30,17 @@
     },
     "infoLinkUrl": {
       "type": "string",
-      "description": "URL for the info section link."
+      "description": "URL for the info section link.",
+      "format": "moz-url-format"
     },
     "promoEnabled": {
       "type": "boolean",
       "description": "Should we show the promo section."
+    },
+    "promoType": {
+      "type": "string",
+      "description": "Promo type used to determine if promo should show to a given user",
+      "enum": ["FOCUS", "RALLY", "VPN"]
     },
     "promoSectionStyle": {
       "type": "string",
@@ -59,7 +65,8 @@
     },
     "promoLinkUrl": {
       "type": "string",
-      "description": "URL for link in the promo box."
+      "description": "URL for link in the promo box.",
+      "format": "moz-url-format"
     },
     "promoLinkType": {
       "type": "string",
@@ -68,11 +75,14 @@
     },
     "promoImageLarge": {
       "type": "string",
-      "description": "URL for image used on the left side of the promo box, larger, showcases some feature. Default off."
+      "description": "URL for image used on the left side of the promo box, larger, showcases some feature. Default off.",
+      "format": "uri"
     },
     "promoImageSmall": {
       "type": "string",
-      "description": "URL for image used on the right side of the promo box, smaller, usually a logo. Default off."
+      "description": "URL for image used on the right side of the promo box, smaller, usually a logo. Default off.",
+      "format": "uri"
     }
-  }
+  },
+  "additionalProperties": true
 }

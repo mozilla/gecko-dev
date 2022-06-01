@@ -8,7 +8,7 @@
 //! See the comment at the top of the `renderer` module for a description of
 //! how these two pieces interact.
 
-use api::{DebugFlags, BlobImageHandler, Parameter, BoolParameter};
+use api::{DebugFlags, Parameter, BoolParameter};
 use api::{DocumentId, ExternalScrollId, HitTestResult};
 use api::{IdNamespace, PipelineId, RenderNotifier, SampledScrollOffset};
 use api::{NotificationRequest, Checkpoint, QualitySettings};
@@ -31,12 +31,13 @@ use crate::gpu_cache::GpuCache;
 use crate::hit_test::{HitTest, HitTester, SharedHitTester};
 use crate::intern::DataStore;
 #[cfg(any(feature = "capture", feature = "replay"))]
-use crate::internal_types::DebugOutput;
+use crate::internal_types::{DebugOutput};
 use crate::internal_types::{FastHashMap, RenderedDocument, ResultMsg, FrameId, FrameStamp};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use crate::picture::{PictureScratchBuffer, SliceId, TileCacheInstance, TileCacheParams};
+use crate::picture::{PictureScratchBuffer, SliceId, TileCacheInstance, TileCacheParams, SurfaceInfo, RasterConfig};
+use crate::picture::{PicturePrimitive};
 use crate::prim_store::{PrimitiveScratchBuffer, PrimitiveInstance};
-use crate::prim_store::{PrimitiveInstanceKind, PrimTemplateCommonData, PrimitiveStore};
+use crate::prim_store::{PrimitiveInstanceKind, PrimTemplateCommonData};
 use crate::prim_store::interned::*;
 use crate::profiler::{self, TransactionProfile};
 use crate::render_task_graph::RenderTaskGraphBuilder;
@@ -53,6 +54,7 @@ use crate::scene_builder_thread::*;
 use crate::spatial_tree::SpatialTree;
 #[cfg(feature = "replay")]
 use crate::spatial_tree::SceneSpatialTree;
+use crate::telemetry::Telemetry;
 #[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 #[cfg(feature = "replay")]
@@ -135,12 +137,53 @@ impl DataStores {
     pub fn get_local_prim_rect(
         &self,
         prim_instance: &PrimitiveInstance,
-        prim_store: &PrimitiveStore,
+        pictures: &[PicturePrimitive],
+        surfaces: &[SurfaceInfo],
     ) -> LayoutRect {
         match prim_instance.kind {
             PrimitiveInstanceKind::Picture { pic_index, .. } => {
-                let pic = &prim_store.pictures[pic_index.0];
-                pic.precise_local_rect
+                let pic = &pictures[pic_index.0];
+
+                match pic.raster_config {
+                    Some(RasterConfig { surface_index, ref composite_mode, .. }) => {
+                        let surface = &surfaces[surface_index.0];
+
+                        composite_mode.get_rect(surface, None)
+                    }
+                    None => {
+                        panic!("bug: get_local_prim_rect should not be called for pass-through pictures");
+                    }
+                }
+            }
+            _ => {
+                self.as_common_data(prim_instance).prim_rect
+            }
+        }
+    }
+
+    /// Returns the local coverage (space occupied) for a primitive. For most primitives,
+    /// this is stored in the template. For pictures, this is stored inside the picture
+    /// primitive instance itself, since this is determined during frame building.
+    pub fn get_local_prim_coverage_rect(
+        &self,
+        prim_instance: &PrimitiveInstance,
+        pictures: &[PicturePrimitive],
+        surfaces: &[SurfaceInfo],
+    ) -> LayoutRect {
+        match prim_instance.kind {
+            PrimitiveInstanceKind::Picture { pic_index, .. } => {
+                let pic = &pictures[pic_index.0];
+
+                match pic.raster_config {
+                    Some(RasterConfig { surface_index, ref composite_mode, .. }) => {
+                        let surface = &surfaces[surface_index.0];
+
+                        composite_mode.get_coverage(surface, None)
+                    }
+                    None => {
+                        panic!("bug: get_local_prim_coverage_rect should not be called for pass-through pictures");
+                    }
+                }
             }
             _ => {
                 self.as_common_data(prim_instance).prim_rect
@@ -215,8 +258,12 @@ impl DataStores {
                 let prim_data = &self.yuv_image[data_handle];
                 &prim_data.common
             }
-            PrimitiveInstanceKind::Backdrop { data_handle, .. } => {
-                let prim_data = &self.backdrop[data_handle];
+            PrimitiveInstanceKind::BackdropCapture { data_handle, .. } => {
+                let prim_data = &self.backdrop_capture[data_handle];
+                &prim_data.common
+            }
+            PrimitiveInstanceKind::BackdropRender { data_handle, .. } => {
+                let prim_data = &self.backdrop_render[data_handle];
                 &prim_data.common
             }
         }
@@ -639,11 +686,6 @@ pub struct RenderBackend {
     debug_flags: DebugFlags,
     namespace_alloc_by_client: bool,
 
-    // We keep one around to be able to call clear_namespace
-    // after the api object is deleted. For most purposes the
-    // api object's blob handler should be used instead.
-    blob_image_handler: Option<Box<dyn BlobImageHandler>>,
-
     recycler: Recycler,
 
     #[cfg(feature = "capture")]
@@ -667,7 +709,6 @@ impl RenderBackend {
         scene_tx: Sender<SceneBuilderRequest>,
         resource_cache: ResourceCache,
         notifier: Box<dyn RenderNotifier>,
-        blob_image_handler: Option<Box<dyn BlobImageHandler>>,
         frame_config: FrameBuilderConfig,
         sampler: Option<Box<dyn AsyncPropertySampler + Send>>,
         size_of_ops: Option<MallocSizeOfOps>,
@@ -689,7 +730,6 @@ impl RenderBackend {
             debug_flags,
             namespace_alloc_by_client,
             recycler: Recycler::new(),
-            blob_image_handler,
             #[cfg(feature = "capture")]
             capture_config: None,
             #[cfg(feature = "replay")]
@@ -698,7 +738,7 @@ impl RenderBackend {
         }
     }
 
-    fn next_namespace_id(&self) -> IdNamespace {
+    pub fn next_namespace_id() -> IdNamespace {
         IdNamespace(NEXT_NAMESPACE_ID.fetch_add(1, Ordering::Relaxed) as u32)
     }
 
@@ -873,7 +913,7 @@ impl RenderBackend {
         match msg {
             ApiMsg::CloneApi(sender) => {
                 assert!(!self.namespace_alloc_by_client);
-                sender.send(self.next_namespace_id()).unwrap();
+                sender.send(Self::next_namespace_id()).unwrap();
             }
             ApiMsg::CloneApiByClient(namespace_id) => {
                 assert!(self.namespace_alloc_by_client);
@@ -929,6 +969,12 @@ impl RenderBackend {
                     }
                     DebugCommand::SetPictureTileSize(tile_size) => {
                         self.frame_config.tile_size_override = tile_size;
+                        self.update_frame_builder_config();
+
+                        return RenderBackendStatus::Continue;
+                    }
+                    DebugCommand::SetMaximumSurfaceSize(surface_size) => {
+                        self.frame_config.max_surface_override = surface_size;
                         self.update_frame_builder_config();
 
                         return RenderBackendStatus::Continue;
@@ -1102,7 +1148,8 @@ impl RenderBackend {
             }
             SceneBuilderResult::GetGlyphDimensions(request) => {
                 let mut glyph_dimensions = Vec::with_capacity(request.glyph_indices.len());
-                if let Some(base) = self.resource_cache.get_font_instance(request.key) {
+                let instance_key = self.resource_cache.map_font_instance_key(request.key);
+                if let Some(base) = self.resource_cache.get_font_instance(instance_key) {
                     let font = FontInstance::from_base(Arc::clone(&base));
                     for glyph_index in &request.glyph_indices {
                         let glyph_dim = self.resource_cache.get_glyph_dimensions(&font, *glyph_index);
@@ -1113,8 +1160,9 @@ impl RenderBackend {
             }
             SceneBuilderResult::GetGlyphIndices(request) => {
                 let mut glyph_indices = Vec::with_capacity(request.text.len());
+                let font_key = self.resource_cache.map_font_key(request.key);
                 for ch in request.text.chars() {
-                    let index = self.resource_cache.get_glyph_index(request.key, ch);
+                    let index = self.resource_cache.get_glyph_index(font_key, ch);
                     glyph_indices.push(index);
                 }
                 request.sender.send(glyph_indices).unwrap();
@@ -1128,9 +1176,6 @@ impl RenderBackend {
             SceneBuilderResult::ClearNamespace(id) => {
                 self.resource_cache.clear_namespace(id);
                 self.documents.retain(|doc_id, _doc| doc_id.namespace_id != id);
-                if let Some(handler) = &mut self.blob_image_handler {
-                    handler.clear_namespace(id);
-                }
             }
             SceneBuilderResult::DeleteDocument(document_id) => {
                 self.documents.remove(&document_id);
@@ -1330,7 +1375,6 @@ impl RenderBackend {
             }
         }
 
-        let mut frame_build_time = None;
         if build_frame {
             profile_scope!("generate frame");
 
@@ -1338,7 +1382,7 @@ impl RenderBackend {
 
             // borrow ck hack for profile_counters
             let (pending_update, mut rendered_document) = {
-                let frame_build_start_time = precise_time_ns();
+                let timer_id = Telemetry::start_framebuild_time();
 
                 let frame_stats = doc.frame_stats.take();
 
@@ -1357,7 +1401,7 @@ impl RenderBackend {
                 let msg = ResultMsg::UpdateGpuCache(self.gpu_cache.extract_updates());
                 self.result_tx.send(msg).unwrap();
 
-                frame_build_time = Some(precise_time_ns() - frame_build_start_time);
+                Telemetry::stop_and_accumulate_framebuild_time(timer_id);
 
                 let pending_update = self.resource_cache.pending_updates();
                 (pending_update, rendered_document)
@@ -1448,7 +1492,7 @@ impl RenderBackend {
             } else if render_frame {
                 doc.rendered_frame_is_valid = true;
             }
-            self.notifier.new_frame_ready(document_id, scroll, render_frame, frame_build_time);
+            self.notifier.new_frame_ready(document_id, scroll, render_frame);
         }
 
         if !doc.hit_tester_is_valid {
@@ -1822,7 +1866,7 @@ impl RenderBackend {
                     );
                     self.result_tx.send(msg_publish).unwrap();
 
-                    self.notifier.new_frame_ready(id, false, true, None);
+                    self.notifier.new_frame_ready(id, false, true);
 
                     // We deserialized the state of the frame so we don't want to build
                     // it (but we do want to update the scene builder's state)
@@ -1836,7 +1880,7 @@ impl RenderBackend {
                 scene,
                 view: view.scene.clone(),
                 config: self.frame_config.clone(),
-                font_instances: self.resource_cache.get_font_instances(),
+                fonts: self.resource_cache.get_fonts(),
                 build_frame,
                 interners,
                 spatial_tree: scene_spatial_tree,

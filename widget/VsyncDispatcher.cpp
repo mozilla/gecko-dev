@@ -10,36 +10,23 @@
 #include "mozilla/layers/Compositor.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorThread.h"
+#include "mozilla/StaticPrefs_gfx.h"
 
 using namespace mozilla::layers;
 
 namespace mozilla {
 
-CompositorVsyncDispatcher::CompositorVsyncDispatcher()
-    : mVsyncSource(gfxPlatform::GetPlatform()->GetHardwareVsync()),
-      mCompositorObserverLock("CompositorObserverLock"),
-      mDidShutdown(false) {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(NS_IsMainThread());
-
-  mVsyncSource->RegisterCompositorVsyncDispatcher(this);
-}
-
 CompositorVsyncDispatcher::CompositorVsyncDispatcher(
-    RefPtr<gfx::VsyncSource> aVsyncSource)
-    : mVsyncSource(std::move(aVsyncSource)),
+    RefPtr<VsyncDispatcher> aVsyncDispatcher)
+    : mVsyncDispatcher(std::move(aVsyncDispatcher)),
       mCompositorObserverLock("CompositorObserverLock"),
       mDidShutdown(false) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
-
-  mVsyncSource->RegisterCompositorVsyncDispatcher(this);
 }
 
 CompositorVsyncDispatcher::~CompositorVsyncDispatcher() {
   MOZ_ASSERT(XRE_IsParentProcess());
-  // We auto remove this vsync dispatcher from the vsync source in the
-  // nsBaseWidget
 }
 
 void CompositorVsyncDispatcher::NotifyVsync(const VsyncEvent& aVsync) {
@@ -52,13 +39,6 @@ void CompositorVsyncDispatcher::NotifyVsync(const VsyncEvent& aVsync) {
   }
 }
 
-void CompositorVsyncDispatcher::MoveToSource(
-    const RefPtr<gfx::VsyncSource>& aVsyncSource) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(XRE_IsParentProcess());
-  mVsyncSource = aVsyncSource;
-}
-
 void CompositorVsyncDispatcher::ObserveVsync(bool aEnable) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(XRE_IsParentProcess());
@@ -67,9 +47,9 @@ void CompositorVsyncDispatcher::ObserveVsync(bool aEnable) {
   }
 
   if (aEnable) {
-    mVsyncSource->EnableCompositorVsyncDispatcher(this);
+    mVsyncDispatcher->AddVsyncObserver(this);
   } else {
-    mVsyncSource->DisableCompositorVsyncDispatcher(this);
+    mVsyncDispatcher->RemoveVsyncObserver(this);
   }
 }
 
@@ -106,91 +86,161 @@ void CompositorVsyncDispatcher::Shutdown() {
     MutexAutoLock lock(mCompositorObserverLock);
     mCompositorVsyncObserver = nullptr;
   }
-  mVsyncSource->DeregisterCompositorVsyncDispatcher(this);
-  mVsyncSource = nullptr;
+  mVsyncDispatcher = nullptr;
 }
 
-RefreshTimerVsyncDispatcher::RefreshTimerVsyncDispatcher(
-    gfx::VsyncSource::Display* aDisplay)
-    : mDisplay(aDisplay), mRefreshTimersLock("RefreshTimers lock") {
+VsyncDispatcher::VsyncDispatcher(gfx::VsyncSource* aVsyncSource)
+    : mState(State(aVsyncSource), "VsyncDispatcher::mState") {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 }
 
-RefreshTimerVsyncDispatcher::~RefreshTimerVsyncDispatcher() {
+VsyncDispatcher::~VsyncDispatcher() {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 }
 
-void RefreshTimerVsyncDispatcher::MoveToDisplay(
-    gfx::VsyncSource::Display* aDisplay) {
+void VsyncDispatcher::SetVsyncSource(gfx::VsyncSource* aVsyncSource) {
+  MOZ_RELEASE_ASSERT(aVsyncSource);
+
+  auto state = mState.Lock();
+  if (aVsyncSource == state->mCurrentVsyncSource) {
+    return;
+  }
+
+  if (state->mIsObservingVsync) {
+    state->mCurrentVsyncSource->RemoveVsyncDispatcher(this);
+    aVsyncSource->AddVsyncDispatcher(this);
+  }
+  state->mCurrentVsyncSource = aVsyncSource;
+}
+
+RefPtr<gfx::VsyncSource> VsyncDispatcher::GetCurrentVsyncSource() {
+  auto state = mState.Lock();
+  return state->mCurrentVsyncSource;
+}
+
+TimeDuration VsyncDispatcher::GetVsyncRate() {
+  auto state = mState.Lock();
+  return state->mCurrentVsyncSource->GetVsyncRate();
+}
+
+void VsyncDispatcher::NotifyVsync(const VsyncEvent& aVsync) {
+  if (++mVsyncSkipCounter < StaticPrefs::gfx_display_frame_rate_divisor()) {
+    return;
+  }
+  mVsyncSkipCounter = 0;
+
+  nsTArray<RefPtr<VsyncObserver>> observers;
+  bool shouldDispatchToMainThread = false;
+  {
+    // Copy out the observers so that we don't keep the mutex
+    // locked while notifying vsync.
+    auto state = mState.Lock();
+    observers = state->mObservers.Clone();
+    shouldDispatchToMainThread = !state->mMainThreadObservers.IsEmpty() &&
+                                 (state->mLastVsyncIdSentToMainThread ==
+                                  state->mLastMainThreadProcessedVsyncId);
+  }
+
+  for (const auto& observer : observers) {
+    observer->NotifyVsync(aVsync);
+  }
+
+  if (shouldDispatchToMainThread) {
+    auto state = mState.Lock();
+    state->mLastVsyncIdSentToMainThread = aVsync.mId;
+    NS_DispatchToMainThread(NewRunnableMethod<VsyncEvent>(
+        "VsyncDispatcher::NotifyMainThreadObservers", this,
+        &VsyncDispatcher::NotifyMainThreadObservers, aVsync));
+  }
+}
+
+void VsyncDispatcher::NotifyMainThreadObservers(VsyncEvent aEvent) {
   MOZ_ASSERT(NS_IsMainThread());
-  mDisplay = aDisplay;
-}
-
-void RefreshTimerVsyncDispatcher::NotifyVsync(const VsyncEvent& aVsync) {
-  MutexAutoLock lock(mRefreshTimersLock);
-
-  for (size_t i = 0; i < mChildRefreshTimers.Length(); i++) {
-    mChildRefreshTimers[i]->NotifyVsync(aVsync);
+  nsTArray<RefPtr<VsyncObserver>> observers;
+  {
+    // Copy out the main thread observers so that we don't keep the mutex
+    // locked while notifying vsync.
+    auto state = mState.Lock();
+    observers.AppendElements(state->mMainThreadObservers);
   }
 
-  if (mParentRefreshTimer) {
-    mParentRefreshTimer->NotifyVsync(aVsync);
+  for (const auto& observer : observers) {
+    observer->NotifyVsync(aEvent);
+  }
+
+  {  // Scope lock
+    auto state = mState.Lock();
+    state->mLastMainThreadProcessedVsyncId = aEvent.mId;
   }
 }
 
-void RefreshTimerVsyncDispatcher::SetParentRefreshTimer(
-    VsyncObserver* aVsyncObserver) {
-  MOZ_ASSERT(NS_IsMainThread());
-  {  // lock scope because UpdateVsyncStatus runs on main thread and will
-     // deadlock
-    MutexAutoLock lock(mRefreshTimersLock);
-    mParentRefreshTimer = aVsyncObserver;
-  }
-
-  UpdateVsyncStatus();
-}
-
-void RefreshTimerVsyncDispatcher::AddChildRefreshTimer(
-    VsyncObserver* aVsyncObserver) {
-  {  // scope lock - called on pbackground thread
-    MutexAutoLock lock(mRefreshTimersLock);
-    MOZ_ASSERT(aVsyncObserver);
-    if (!mChildRefreshTimers.Contains(aVsyncObserver)) {
-      mChildRefreshTimers.AppendElement(aVsyncObserver);
+void VsyncDispatcher::AddVsyncObserver(VsyncObserver* aVsyncObserver) {
+  MOZ_ASSERT(aVsyncObserver);
+  {  // scope lock - called on PBackground thread or main thread
+    auto state = mState.Lock();
+    if (!state->mObservers.Contains(aVsyncObserver)) {
+      state->mObservers.AppendElement(aVsyncObserver);
     }
   }
 
   UpdateVsyncStatus();
 }
 
-void RefreshTimerVsyncDispatcher::RemoveChildRefreshTimer(
-    VsyncObserver* aVsyncObserver) {
-  {  // scope lock - called on pbackground thread
-    MutexAutoLock lock(mRefreshTimersLock);
-    MOZ_ASSERT(aVsyncObserver);
-    mChildRefreshTimers.RemoveElement(aVsyncObserver);
+void VsyncDispatcher::RemoveVsyncObserver(VsyncObserver* aVsyncObserver) {
+  MOZ_ASSERT(aVsyncObserver);
+  {  // scope lock - called on PBackground thread or main thread
+    auto state = mState.Lock();
+    state->mObservers.RemoveElement(aVsyncObserver);
   }
 
   UpdateVsyncStatus();
 }
 
-void RefreshTimerVsyncDispatcher::UpdateVsyncStatus() {
-  if (!NS_IsMainThread()) {
-    NS_DispatchToMainThread(NewRunnableMethod(
-        "RefreshTimerVsyncDispatcher::UpdateVsyncStatus", this,
-        &RefreshTimerVsyncDispatcher::UpdateVsyncStatus));
-    return;
+void VsyncDispatcher::AddMainThreadObserver(VsyncObserver* aObserver) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aObserver);
+  {
+    auto state = mState.Lock();
+    state->mMainThreadObservers.AppendElement(aObserver);
   }
 
-  mDisplay->NotifyRefreshTimerVsyncStatus(NeedsVsync());
+  UpdateVsyncStatus();
 }
 
-bool RefreshTimerVsyncDispatcher::NeedsVsync() {
+void VsyncDispatcher::RemoveMainThreadObserver(VsyncObserver* aObserver) {
   MOZ_ASSERT(NS_IsMainThread());
-  MutexAutoLock lock(mRefreshTimersLock);
-  return (mParentRefreshTimer != nullptr) || !mChildRefreshTimers.IsEmpty();
+  MOZ_ASSERT(aObserver);
+  {
+    auto state = mState.Lock();
+    state->mMainThreadObservers.RemoveElement(aObserver);
+  }
+
+  UpdateVsyncStatus();
+}
+
+void VsyncDispatcher::UpdateVsyncStatus() {
+  bool wasObservingVsync = false;
+  bool needVsync = false;
+  RefPtr<VsyncSource> vsyncSource;
+
+  {
+    auto state = mState.Lock();
+    wasObservingVsync = state->mIsObservingVsync;
+    needVsync =
+        !state->mObservers.IsEmpty() || !state->mMainThreadObservers.IsEmpty();
+    state->mIsObservingVsync = needVsync;
+    vsyncSource = state->mCurrentVsyncSource;
+  }
+
+  // Call Add/RemoveVsyncDispatcher outside the lock, because it can re-enter
+  // into VsyncDispatcher::NotifyVsync.
+  if (needVsync && !wasObservingVsync) {
+    vsyncSource->AddVsyncDispatcher(this);
+  } else if (!needVsync && wasObservingVsync) {
+    vsyncSource->RemoveVsyncDispatcher(this);
+  }
 }
 
 }  // namespace mozilla

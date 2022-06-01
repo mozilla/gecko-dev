@@ -15,8 +15,7 @@
 #include "nsString.h"
 #include "nsTArrayForwardDeclare.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class LSDatabaseChild;
 class LSNotifyInfo;
@@ -55,12 +54,6 @@ class LSDatabase final {
     mActor = nullptr;
   }
 
-  bool HasActiveSnapshot() const {
-    AssertIsOnOwningThread();
-
-    return !!mSnapshot;
-  }
-
   bool IsAllowedToClose() const {
     AssertIsOnOwningThread();
 
@@ -90,7 +83,13 @@ class LSDatabase final {
 
   nsresult BeginExplicitSnapshot(LSObject* aObject);
 
-  nsresult EndExplicitSnapshot(LSObject* aObject);
+  nsresult CheckpointExplicitSnapshot();
+
+  nsresult EndExplicitSnapshot();
+
+  bool HasSnapshot() const;
+
+  int64_t GetSnapshotUsage() const;
 
  private:
   ~LSDatabase();
@@ -101,7 +100,6 @@ class LSDatabase final {
   void AllowToClose();
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_localstorage_LSDatabase_h

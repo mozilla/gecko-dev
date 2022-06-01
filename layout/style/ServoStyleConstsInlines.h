@@ -56,6 +56,7 @@ template struct StyleStrong<RawServoFontFeatureValuesRule>;
 template struct StyleStrong<RawServoFontFaceRule>;
 template struct StyleStrong<RawServoCounterStyleRule>;
 template struct StyleStrong<RawServoScrollTimelineRule>;
+template struct StyleStrong<RawServoContainerRule>;
 
 template <typename T>
 inline void StyleOwnedSlice<T>::Clear() {
@@ -1051,10 +1052,6 @@ inline AspectRatio StyleAspectRatio::ToLayoutRatio() const {
   return HasRatio() ? ratio.AsRatio().ToLayoutRatio(auto_ ? UseBoxSizing::No
                                                           : UseBoxSizing::Yes)
                     : AspectRatio();
-}
-
-inline nsAtom* StyleTimelineOrKeyframesName::AsAtom() const {
-  return IsIdent() ? AsIdent().AsAtom() : AsQuotedString().AsAtom();
 }
 
 }  // namespace mozilla

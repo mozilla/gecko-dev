@@ -37,7 +37,7 @@
 #include "frontend/SourceNotes.h"  // SrcNote, SrcNoteType, SrcNoteIterator
 #include "frontend/StencilXdr.h"   // XDRStencilEncoder
 #include "gc/AllocKind.h"          // gc::InitialHeap
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "jit/BaselineJIT.h"
 #include "jit/CacheIRHealth.h"
 #include "jit/Invalidation.h"
@@ -127,7 +127,7 @@ void js::BaseScript::setEnclosingScope(Scope* enclosingScope) {
   warmUpData_.initEnclosingScope(enclosingScope);
 }
 
-void js::BaseScript::finalize(JSFreeOp* fop) {
+void js::BaseScript::finalize(JS::GCContext* gcx) {
   // Scripts with bytecode may have optional data stored in per-runtime or
   // per-zone maps. Note that a failed compilation must not have entries since
   // the script itself will not be marked as having bytecode.
@@ -141,7 +141,7 @@ void js::BaseScript::finalize(JSFreeOp* fop) {
     script->destroyScriptCounts();
   }
 
-  fop->runtime()->geckoProfiler().onScriptFinalized(this);
+  gcx->runtime()->geckoProfiler().onScriptFinalized(this);
 
 #ifdef MOZ_VTUNE
   if (zone()->scriptVTuneIdMap) {
@@ -155,7 +155,7 @@ void js::BaseScript::finalize(JSFreeOp* fop) {
 #ifdef JS_CACHEIR_SPEW
     maybeUpdateWarmUpCount(script);
 #endif
-    script->releaseJitScriptOnFinalize(fop);
+    script->releaseJitScriptOnFinalize(gcx);
   }
 
 #ifdef JS_CACHEIR_SPEW
@@ -169,7 +169,7 @@ void js::BaseScript::finalize(JSFreeOp* fop) {
     size_t size = data_->allocationSize();
     AlwaysPoison(data_, JS_POISONED_JSSCRIPT_DATA_PATTERN, size,
                  MemCheckKind::MakeNoAccess);
-    fop->free_(this, data_, size, MemoryUse::ScriptPrivateData);
+    gcx->free_(this, data_, size, MemoryUse::ScriptPrivateData);
   }
 
   freeSharedData();
@@ -241,11 +241,11 @@ bool JSScript::functionHasParameterExprs() const {
   return scope->as<js::FunctionScope>().hasParameterExprs();
 }
 
+bool JSScript::isModule() const { return bodyScope()->is<js::ModuleScope>(); }
+
 js::ModuleObject* JSScript::module() const {
-  if (bodyScope()->is<js::ModuleScope>()) {
-    return bodyScope()->as<js::ModuleScope>().module();
-  }
-  return nullptr;
+  MOZ_ASSERT(isModule());
+  return bodyScope()->as<js::ModuleScope>().module();
 }
 
 bool JSScript::isGlobalCode() const {
@@ -692,13 +692,13 @@ void JSScript::resetScriptCounts() {
   }
 }
 
-void ScriptSourceObject::finalize(JSFreeOp* fop, JSObject* obj) {
-  MOZ_ASSERT(fop->onMainThread());
+void ScriptSourceObject::finalize(JS::GCContext* gcx, JSObject* obj) {
+  MOZ_ASSERT(gcx->onMainThread());
   ScriptSourceObject* sso = &obj->as<ScriptSourceObject>();
   sso->source()->Release();
 
   // Clear the private value, calling the release hook if necessary.
-  sso->setPrivate(fop->runtime(), UndefinedValue());
+  sso->setPrivate(gcx->runtime(), UndefinedValue());
 }
 
 static const JSClassOps ScriptSourceObjectClassOps = {
@@ -710,7 +710,6 @@ static const JSClassOps ScriptSourceObjectClassOps = {
     nullptr,                       // mayResolve
     ScriptSourceObject::finalize,  // finalize
     nullptr,                       // call
-    nullptr,                       // hasInstance
     nullptr,                       // construct
     nullptr,                       // trace
 };
@@ -829,19 +828,6 @@ void ScriptSourceObject::setPrivate(JSRuntime* rt, const Value& value) {
   rt->releaseScriptPrivate(prevValue);
   setReservedSlot(PRIVATE_SLOT, value);
   rt->addRefScriptPrivate(value);
-}
-
-JSObject* ScriptSourceObject::unwrappedElement(JSContext* cx) const {
-  JS::RootedValue privateValue(cx, getPrivate());
-  if (privateValue.isUndefined()) {
-    return nullptr;
-  }
-
-  if (cx->runtime()->sourceElementCallback) {
-    return (*cx->runtime()->sourceElementCallback)(cx, privateValue);
-  }
-
-  return nullptr;
 }
 
 class ScriptSource::LoadSourceMatcher {
@@ -1500,6 +1486,9 @@ bool ScriptSource::assignSource(JSContext* cx,
   MOZ_ASSERT(data.is<Missing>(),
              "source assignment should only occur on fresh ScriptSources");
 
+  mutedErrors_ = options.mutedErrors();
+  delazificationMode_ = options.eagerDelazificationStrategy();
+
   if (options.discardSource) {
     return true;
   }
@@ -1873,6 +1862,7 @@ bool ScriptSource::initFromOptions(JSContext* cx,
   MOZ_ASSERT(!introducerFilename_);
 
   mutedErrors_ = options.mutedErrors();
+  delazificationMode_ = options.eagerDelazificationStrategy();
 
   startLine_ = options.lineno;
   introductionType_ = options.introductionType;

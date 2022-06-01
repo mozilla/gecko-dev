@@ -376,7 +376,8 @@ void MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
       p = platform->CreateDecoder(
           {*ownerData.GetCurrentInfo()->GetAsAudioInfo(), mOwner->mCrashHelper,
            CreateDecoderParams::UseNullDecoder(ownerData.mIsNullDecode),
-           TrackInfo::kAudioTrack, std::move(onWaitingForKeyEvent)});
+           TrackInfo::kAudioTrack, std::move(onWaitingForKeyEvent),
+           mOwner->mMediaEngineId});
       break;
     }
 
@@ -395,7 +396,8 @@ void MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
            CreateDecoderParams::VideoFrameRate(ownerData.mMeanRate.Mean()),
            OptionSet(ownerData.mHardwareDecodingDisabled
                          ? Option::HardwareDecoderNotAllowed
-                         : Option::Default)});
+                         : Option::Default),
+           mOwner->mMediaEngineId});
       break;
     }
 
@@ -501,9 +503,9 @@ class MediaFormatReader::DemuxerProxy {
 
  public:
   explicit DemuxerProxy(MediaDataDemuxer* aDemuxer)
-      : mTaskQueue(
-            new TaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
-                          "DemuxerProxy::mTaskQueue")),
+      : mTaskQueue(TaskQueue::Create(
+            GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
+            "DemuxerProxy::mTaskQueue")),
         mData(new Data(aDemuxer)) {
     MOZ_COUNT_CTOR(DemuxerProxy);
   }
@@ -718,7 +720,7 @@ class MediaFormatReader::DemuxerProxy::Wrapper : public MediaTrackDemuxer {
   void BreakCycles() override {}
 
  private:
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
   const RefPtr<TaskQueue> mTaskQueue;
   const bool mGetSamplesMayBlock;
   const UniquePtr<TrackInfo> mInfo;
@@ -853,9 +855,10 @@ MediaFormatReader::DemuxerProxy::NotifyDataArrived() {
 
 MediaFormatReader::MediaFormatReader(MediaFormatReaderInit& aInit,
                                      MediaDataDemuxer* aDemuxer)
-    : mTaskQueue(new TaskQueue(GetMediaThreadPool(MediaThreadType::SUPERVISOR),
-                               "MediaFormatReader::mTaskQueue",
-                               /* aSupportsTailDispatch = */ true)),
+    : mTaskQueue(
+          TaskQueue::Create(GetMediaThreadPool(MediaThreadType::SUPERVISOR),
+                            "MediaFormatReader::mTaskQueue",
+                            /* aSupportsTailDispatch = */ true)),
       mAudio(this, MediaData::Type::AUDIO_DATA,
              StaticPrefs::media_audio_max_decode_error()),
       mVideo(this, MediaData::Type::VIDEO_DATA,
@@ -998,12 +1001,12 @@ nsresult MediaFormatReader::Init() {
   MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
 
   mAudio.mTaskQueue =
-      new TaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
-                    "MFR::mAudio::mTaskQueue");
+      TaskQueue::Create(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
+                        "MFR::mAudio::mTaskQueue");
 
   mVideo.mTaskQueue =
-      new TaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
-                    "MFR::mVideo::mTaskQueue");
+      TaskQueue::Create(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
+                        "MFR::mVideo::mTaskQueue");
 
   return NS_OK;
 }
@@ -1397,6 +1400,8 @@ RefPtr<MediaFormatReader::VideoDataPromise> MediaFormatReader::RequestVideoData(
 
   if (Maybe<TimeUnit> target =
           ShouldSkip(aTimeThreshold, aRequestNextVideoKeyFrame)) {
+    PROFILER_MARKER_UNTYPED("RequestVideoData SkipVideoDemuxToNextKeyFrame",
+                            MEDIA_PLAYBACK);
     RefPtr<VideoDataPromise> p = mVideo.EnsurePromise(__func__);
     SkipVideoDemuxToNextKeyFrame(*target);
     return p;
@@ -1684,7 +1689,8 @@ void MediaFormatReader::NotifyNewOutput(
            sample->mDuration.ToMicroseconds());
       decoder.mOutput.AppendElement(sample);
       decoder.mNumSamplesOutput++;
-      decoder.mNumOfConsecutiveError = 0;
+      decoder.mNumOfConsecutiveDecodingError = 0;
+      decoder.mNumOfConsecutiveRDDOrGPUCrashes = 0;
     }
   LOG("Done processing new %s samples", TrackTypeToStr(aTrack));
 
@@ -2374,8 +2380,45 @@ void MediaFormatReader::Update(TrackType aTrack) {
     bool needsNewDecoder =
         decoder.mError.ref() == NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER ||
         firstFrameDecodingFailedWithHardware;
-    if (!needsNewDecoder &&
-        ++decoder.mNumOfConsecutiveError > decoder.mMaxConsecutiveError) {
+    // Limit number of RDD process restarts after crash
+    // Restart Utility without any limit after crash
+    if ((decoder.mError.ref() ==
+             NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR &&
+         decoder.mNumOfConsecutiveRDDOrGPUCrashes++ <
+             decoder.mMaxConsecutiveRDDOrGPUCrashes) ||
+        (decoder.mError.ref() ==
+         NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR)) {
+      needsNewDecoder = true;
+    }
+#ifdef XP_LINUX
+    // We failed to decode on Linux with HW decoder,
+    // give it another try without HW decoder.
+    if (decoder.mError.ref() == NS_ERROR_DOM_MEDIA_DECODE_ERR &&
+        decoder.mDecoder->IsHardwareAccelerated(error)) {
+      LOG("Error: %s decode error, disable HW acceleration",
+          TrackTypeToStr(aTrack));
+      needsNewDecoder = true;
+      decoder.mHardwareDecodingDisabled = true;
+    }
+    // RDD process crashed on Linux, give it another try without HW decoder.
+    if (decoder.mError.ref() ==
+        NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR) {
+      LOG("Error: %s remote decoder crashed, disable HW acceleration",
+          TrackTypeToStr(aTrack));
+      decoder.mHardwareDecodingDisabled = true;
+    }
+#endif
+    // We don't want to expose crash error so switch to
+    // NS_ERROR_DOM_MEDIA_DECODE_ERR.
+    if (decoder.mError.ref() ==
+            NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR ||
+        decoder.mError.ref() ==
+            NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR) {
+      decoder.mError = Some(MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
+                                        RESULT_DETAIL("Unable to decode")));
+    }
+    if (!needsNewDecoder && ++decoder.mNumOfConsecutiveDecodingError >
+                                decoder.mMaxConsecutiveDecodingError) {
       DDLOG(DDLogCategory::Log, "too_many_decode_errors", decoder.mError.ref());
       NotifyError(aTrack, decoder.mError.ref());
       return;
@@ -2385,11 +2428,12 @@ void MediaFormatReader::Update(TrackType aTrack) {
     }
     decoder.mError.reset();
 
-    LOG("%s decoded error count %d", TrackTypeToStr(aTrack),
-        decoder.mNumOfConsecutiveError);
+    LOG("%s decoded error count %d RDD crashes count %d",
+        TrackTypeToStr(aTrack), decoder.mNumOfConsecutiveDecodingError,
+        decoder.mNumOfConsecutiveRDDOrGPUCrashes);
 
     if (needsNewDecoder) {
-      LOG("Error: Need new decoder");
+      LOG("Error: %s needs a new decoder", TrackTypeToStr(aTrack));
       ShutdownDecoder(aTrack);
     }
     if (decoder.mFirstFrameTime) {
@@ -3010,6 +3054,11 @@ void MediaFormatReader::NotifyDataArrived() {
       ->Track(mNotifyDataArrivedPromise);
 }
 
+void MediaFormatReader::UpdateMediaEngineId(uint64_t aMediaEngineId) {
+  LOG("Update external media engine Id %" PRIu64, aMediaEngineId);
+  mMediaEngineId = Some(aMediaEngineId);
+}
+
 void MediaFormatReader::UpdateBuffered() {
   AUTO_PROFILER_LABEL("MediaFormatReader::UpdateBuffered", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
@@ -3074,7 +3123,23 @@ layers::ImageContainer* MediaFormatReader::GetImageContainer() {
                               : nullptr;
 }
 
+RefPtr<GenericPromise> MediaFormatReader::RequestDebugInfo(
+    dom::MediaFormatReaderDebugInfo& aInfo) {
+  if (!OnTaskQueue()) {
+    // Run the request on the task queue if it's not already.
+    return InvokeAsync(mTaskQueue, __func__,
+                       [this, self = RefPtr{this}, &aInfo] {
+                         return RequestDebugInfo(aInfo);
+                       });
+  }
+  GetDebugInfo(aInfo);
+  return GenericPromise::CreateAndResolve(true, __func__);
+}
+
 void MediaFormatReader::GetDebugInfo(dom::MediaFormatReaderDebugInfo& aInfo) {
+  MOZ_ASSERT(OnTaskQueue(),
+             "Don't call this off the task queue, it's going to touch a lot of "
+             "data members");
   nsCString result;
   nsAutoCString audioDecoderName("unavailable");
   nsAutoCString videoDecoderName = audioDecoderName;
@@ -3082,34 +3147,11 @@ void MediaFormatReader::GetDebugInfo(dom::MediaFormatReaderDebugInfo& aInfo) {
   nsAutoCString videoType("none");
 
   AudioInfo audioInfo;
-  {
-    MutexAutoLock lock(mAudio.mMutex);
-    if (HasAudio()) {
-      audioInfo = *mAudio.GetWorkingInfo()->GetAsAudioInfo();
-      audioDecoderName = mAudio.mDecoder ? mAudio.mDecoder->GetDescriptionName()
-                                         : mAudio.mDescription;
-      audioType = audioInfo.mMimeType;
-    }
-  }
-
-  VideoInfo videoInfo;
-  {
-    MutexAutoLock lock(mVideo.mMutex);
-    if (HasVideo()) {
-      videoInfo = *mVideo.GetWorkingInfo()->GetAsVideoInfo();
-      videoDecoderName = mVideo.mDecoder ? mVideo.mDecoder->GetDescriptionName()
-                                         : mVideo.mDescription;
-      videoType = videoInfo.mMimeType;
-    }
-  }
-
-  CopyUTF8toUTF16(audioDecoderName, aInfo.mAudioDecoderName);
-  CopyUTF8toUTF16(audioType, aInfo.mAudioType);
-  aInfo.mAudioChannels = audioInfo.mChannels;
-  aInfo.mAudioRate = audioInfo.mRate / 1000.0f;
-  aInfo.mAudioFramesDecoded = mAudio.mNumSamplesOutputTotal;
-
   if (HasAudio()) {
+    audioInfo = *mAudio.GetWorkingInfo()->GetAsAudioInfo();
+    audioDecoderName = mAudio.mDecoder ? mAudio.mDecoder->GetDescriptionName()
+                                       : mAudio.mDescription;
+    audioType = audioInfo.mMimeType;
     aInfo.mAudioState.mNeedInput = NeedInput(mAudio);
     aInfo.mAudioState.mHasPromise = mAudio.HasPromise();
     aInfo.mAudioState.mWaitingPromise = !mAudio.mWaitingPromise.IsEmpty();
@@ -3133,18 +3175,18 @@ void MediaFormatReader::GetDebugInfo(dom::MediaFormatReaderDebugInfo& aInfo) {
     aInfo.mAudioState.mLastStreamSourceID = mAudio.mLastStreamSourceID;
   }
 
-  CopyUTF8toUTF16(videoDecoderName, aInfo.mVideoDecoderName);
-  CopyUTF8toUTF16(videoType, aInfo.mVideoType);
-  aInfo.mVideoWidth =
-      videoInfo.mDisplay.width < 0 ? 0 : videoInfo.mDisplay.width;
-  aInfo.mVideoHeight =
-      videoInfo.mDisplay.height < 0 ? 0 : videoInfo.mDisplay.height;
-  aInfo.mVideoRate = mVideo.mMeanRate.Mean();
-  aInfo.mVideoHardwareAccelerated = VideoIsHardwareAccelerated();
-  aInfo.mVideoNumSamplesOutputTotal = mVideo.mNumSamplesOutputTotal;
-  aInfo.mVideoNumSamplesSkippedTotal = mVideo.mNumSamplesSkippedTotal;
+  CopyUTF8toUTF16(audioDecoderName, aInfo.mAudioDecoderName);
+  CopyUTF8toUTF16(audioType, aInfo.mAudioType);
+  aInfo.mAudioChannels = audioInfo.mChannels;
+  aInfo.mAudioRate = audioInfo.mRate;
+  aInfo.mAudioFramesDecoded = mAudio.mNumSamplesOutputTotal;
 
+  VideoInfo videoInfo;
   if (HasVideo()) {
+    videoInfo = *mVideo.GetWorkingInfo()->GetAsVideoInfo();
+    videoDecoderName = mVideo.mDecoder ? mVideo.mDecoder->GetDescriptionName()
+                                       : mVideo.mDescription;
+    videoType = videoInfo.mMimeType;
     aInfo.mVideoState.mNeedInput = NeedInput(mVideo);
     aInfo.mVideoState.mHasPromise = mVideo.HasPromise();
     aInfo.mVideoState.mWaitingPromise = !mVideo.mWaitingPromise.IsEmpty();
@@ -3167,6 +3209,17 @@ void MediaFormatReader::GetDebugInfo(dom::MediaFormatReaderDebugInfo& aInfo) {
     aInfo.mVideoState.mWaitingForKey = mVideo.mWaitingForKey;
     aInfo.mVideoState.mLastStreamSourceID = mVideo.mLastStreamSourceID;
   }
+
+  CopyUTF8toUTF16(videoDecoderName, aInfo.mVideoDecoderName);
+  CopyUTF8toUTF16(videoType, aInfo.mVideoType);
+  aInfo.mVideoWidth =
+      videoInfo.mDisplay.width < 0 ? 0 : videoInfo.mDisplay.width;
+  aInfo.mVideoHeight =
+      videoInfo.mDisplay.height < 0 ? 0 : videoInfo.mDisplay.height;
+  aInfo.mVideoRate = mVideo.mMeanRate.Mean();
+  aInfo.mVideoHardwareAccelerated = VideoIsHardwareAccelerated();
+  aInfo.mVideoNumSamplesOutputTotal = mVideo.mNumSamplesOutputTotal;
+  aInfo.mVideoNumSamplesSkippedTotal = mVideo.mNumSamplesSkippedTotal;
 
   // Looking at dropped frames
   FrameStatisticsData stats = mFrameStats->GetFrameStatisticsData();

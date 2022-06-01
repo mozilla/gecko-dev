@@ -34,7 +34,6 @@
 #include "vm/PromiseObject.h"  // js::PromiseObject
 #include "vm/ProxyObject.h"    // ProxyObject
 
-class JSFreeOp;
 class JSScript;
 class JSTracer;
 
@@ -243,7 +242,7 @@ class ModuleNamespaceObject : public ProxyObject {
              HandleValue receiver, ObjectOpResult& result) const override;
 
     void trace(JSTracer* trc, JSObject* proxy) const override;
-    void finalize(JSFreeOp* fop, JSObject* proxy) const override;
+    void finalize(JS::GCContext* gcx, JSObject* proxy) const override;
 
     static const char family;
   };
@@ -333,7 +332,6 @@ class ModuleObject : public NativeObject {
 
   JSScript* maybeScript() const;
   JSScript* script() const;
-  Scope* enclosingScope() const;
   ModuleEnvironmentObject& initialEnvironment() const;
   ModuleEnvironmentObject* environment() const;
   ModuleNamespaceObject* namespace_();
@@ -366,6 +364,8 @@ class ModuleObject : public NativeObject {
   uint32_t getAsyncEvaluatingPostOrder() const;
   void setCycleRoot(ModuleObject* cycleRoot);
   ModuleObject* getCycleRoot() const;
+
+  static void onTopLevelEvaluationFinished(ModuleObject* module);
 
   static bool appendAsyncParentModule(JSContext* cx, HandleModuleObject self,
                                       HandleModuleObject parent);
@@ -416,7 +416,7 @@ class ModuleObject : public NativeObject {
   static const JSClassOps classOps_;
 
   static void trace(JSTracer* trc, JSObject* obj);
-  static void finalize(JSFreeOp* fop, JSObject* obj);
+  static void finalize(JS::GCContext* gcx, JSObject* obj);
 
   bool hasImportBindings() const;
 };
@@ -444,7 +444,8 @@ bool AsyncModuleExecutionRejectedHandler(JSContext* cx, unsigned argc,
 JSObject* StartDynamicModuleImport(JSContext* cx, HandleScript script,
                                    HandleValue specifier, HandleValue options);
 
-bool OnModuleEvaluationFailure(JSContext* cx, HandleObject evaluationPromise);
+bool OnModuleEvaluationFailure(JSContext* cx, HandleObject evaluationPromise,
+                               JS::ModuleErrorBehaviour errorBehaviour);
 
 bool FinishDynamicModuleImport(JSContext* cx, HandleObject evaluationPromise,
                                HandleValue referencingPrivate,

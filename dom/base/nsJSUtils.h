@@ -70,36 +70,7 @@ class nsJSUtils {
       JS::CompileOptions& aOptions, JS::Handle<JSString*> aElementAttributeName,
       JS::Handle<JS::Value> aPrivateValue);
 
-  static nsresult CompileModule(JSContext* aCx,
-                                JS::SourceText<char16_t>& aSrcBuf,
-                                JS::Handle<JSObject*> aEvaluationGlobal,
-                                JS::CompileOptions& aCompileOptions,
-                                JS::MutableHandle<JSObject*> aModule);
-
-  static nsresult CompileModule(JSContext* aCx,
-                                JS::SourceText<mozilla::Utf8Unit>& aSrcBuf,
-                                JS::Handle<JSObject*> aEvaluationGlobal,
-                                JS::CompileOptions& aCompileOptions,
-                                JS::MutableHandle<JSObject*> aModule);
-
-  static nsresult ModuleInstantiate(JSContext* aCx,
-                                    JS::Handle<JSObject*> aModule);
-
-  /*
-   * Wrapper for JSAPI ModuleEvaluate function.
-   *
-   * @param JSContext aCx
-   *        The JSContext where this is executed.
-   * @param JS::Handle<JSObject*> aModule
-   *        The module to be evaluated.
-   * @param JS::Handle<Value*> aResult
-   *        If Top level await is enabled:
-   *          The evaluation promise returned from evaluating the module.
-   *        Otherwise:
-   *          Undefined
-   */
-  static nsresult ModuleEvaluate(JSContext* aCx, JS::Handle<JSObject*> aModule,
-                                 JS::MutableHandle<JS::Value> aResult);
+  static bool IsScriptable(JS::Handle<JSObject*> aEvaluationGlobal);
 
   // Returns false if an exception got thrown on aCx.  Passing a null
   // aElement is allowed; that wil produce an empty aScopeChain.

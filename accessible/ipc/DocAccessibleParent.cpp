@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "CachedTableAccessible.h"
 #include "DocAccessibleParent.h"
 #include "mozilla/a11y/Platform.h"
 #include "mozilla/dom/BrowserBridgeParent.h"
@@ -23,6 +24,15 @@
 #  include "RootAccessible.h"
 #else
 #  include "mozilla/a11y/DocAccessiblePlatformExtParent.h"
+#endif
+
+#if defined(ANDROID)
+#  define ACQUIRE_ANDROID_LOCK \
+    MonitorAutoLock mal(nsAccessibilityService::GetAndroidMonitor());
+#else
+#  define ACQUIRE_ANDROID_LOCK \
+    do {                       \
+    } while (0);
 #endif
 
 namespace mozilla {
@@ -45,6 +55,7 @@ uint64_t DocAccessibleParent::sMaxDocID = 0;
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvShowEvent(
     const ShowEventData& aData, const bool& aFromUser) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) return IPC_OK();
 
   MOZ_ASSERT(CheckDocTree());
@@ -162,6 +173,10 @@ uint32_t DocAccessibleParent::AddSubtree(
     });
   }
 
+  if (newProxy->IsTableCell()) {
+    CachedTableAccessible::Invalidate(newProxy);
+  }
+
   DebugOnly<bool> isOuterDoc = newProxy->ChildCount() == 1;
 
   uint32_t accessibles = 1;
@@ -188,6 +203,9 @@ void DocAccessibleParent::ShutdownOrPrepareForMove(RemoteAccessible* aAcc) {
   // This is a move. Moves are sent as a hide and then a show, but for a move,
   // we want to keep the Accessible alive for reuse later.
   aAcc->SetParent(nullptr);
+  if (aAcc->IsTable() || aAcc->IsTableCell()) {
+    CachedTableAccessible::Invalidate(aAcc);
+  }
   mMovingIDs.EnsureRemoved(id);
   if (aAcc->IsOuterDoc()) {
     // Leave child documents alone. They are added and removed differently to
@@ -205,6 +223,7 @@ void DocAccessibleParent::ShutdownOrPrepareForMove(RemoteAccessible* aAcc) {
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvHideEvent(
     const uint64_t& aRootID, const bool& aFromUser) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) return IPC_OK();
 
   MOZ_ASSERT(CheckDocTree());
@@ -259,49 +278,55 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvHideEvent(
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvEvent(
     const uint64_t& aID, const uint32_t& aEventType) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
 
-  RemoteAccessible* proxy = GetAccessible(aID);
-  if (!proxy) {
+  RemoteAccessible* remote = GetAccessible(aID);
+  if (!remote) {
     NS_ERROR("no proxy for event!");
     return IPC_OK();
   }
 
+  FireEvent(remote, aEventType);
+  return IPC_OK();
+}
+
+void DocAccessibleParent::FireEvent(RemoteAccessible* aAcc,
+                                    const uint32_t& aEventType) {
   if (aEventType == nsIAccessibleEvent::EVENT_FOCUS) {
-    mFocus = aID;
+    mFocus = aAcc->ID();
   }
 
   if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     if (aEventType == nsIAccessibleEvent::EVENT_REORDER ||
         aEventType == nsIAccessibleEvent::EVENT_INNER_REORDER) {
-      for (RemoteAccessible* child = proxy->RemoteFirstChild(); child;
+      for (RemoteAccessible* child = aAcc->RemoteFirstChild(); child;
            child = child->RemoteNextSibling()) {
         child->InvalidateGroupInfo();
       }
     }
   }
 
-  ProxyEvent(proxy, aEventType);
+  ProxyEvent(aAcc, aEventType);
 
   if (!nsCoreUtils::AccEventObserversExist()) {
-    return IPC_OK();
+    return;
   }
 
-  xpcAccessibleGeneric* xpcAcc = GetXPCAccessible(proxy);
+  xpcAccessibleGeneric* xpcAcc = GetXPCAccessible(aAcc);
   xpcAccessibleDocument* doc = GetAccService()->GetXPCDocument(this);
   nsINode* node = nullptr;
   bool fromUser = true;  // XXX fix me
   RefPtr<xpcAccEvent> event =
       new xpcAccEvent(aEventType, xpcAcc, doc, node, fromUser);
   nsCoreUtils::DispatchAccEvent(std::move(event));
-
-  return IPC_OK();
 }
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvStateChangeEvent(
     const uint64_t& aID, const uint64_t& aState, const bool& aEnabled) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -341,7 +366,8 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvCaretMoveEvent(
     const LayoutDeviceIntRect& aCaretRect,
 #endif  // defined (XP_WIN)
     const int32_t& aOffset, const bool& aIsSelectionCollapsed,
-    const bool& aIsAtEndOfLine) {
+    const bool& aIsAtEndOfLine, const int32_t& aGranularity) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -355,11 +381,18 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvCaretMoveEvent(
   mCaretId = aID;
   mCaretOffset = aOffset;
   mIsCaretAtEndOfLine = aIsAtEndOfLine;
+  if (aIsSelectionCollapsed) {
+    // We don't fire selection events for collapsed selections, but we need to
+    // ensure we don't have a stale cached selection; e.g. when selecting
+    // forward and then unselecting backward.
+    mTextSelections.ClearAndRetainStorage();
+    mTextSelections.AppendElement(TextRangeData(aID, aID, aOffset, aOffset));
+  }
 
 #if defined(XP_WIN)
-  ProxyCaretMoveEvent(proxy, aCaretRect);
+  ProxyCaretMoveEvent(proxy, aCaretRect, aGranularity);
 #else
-  ProxyCaretMoveEvent(proxy, aOffset, aIsSelectionCollapsed);
+  ProxyCaretMoveEvent(proxy, aOffset, aIsSelectionCollapsed, aGranularity);
 #endif
 
   if (!nsCoreUtils::AccEventObserversExist()) {
@@ -371,9 +404,9 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvCaretMoveEvent(
   nsINode* node = nullptr;
   bool fromUser = true;  // XXX fix me
   uint32_t type = nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED;
-  RefPtr<xpcAccCaretMoveEvent> event =
-      new xpcAccCaretMoveEvent(type, xpcAcc, doc, node, fromUser, aOffset,
-                               aIsSelectionCollapsed, aIsAtEndOfLine);
+  RefPtr<xpcAccCaretMoveEvent> event = new xpcAccCaretMoveEvent(
+      type, xpcAcc, doc, node, fromUser, aOffset, aIsSelectionCollapsed,
+      aIsAtEndOfLine, aGranularity);
   nsCoreUtils::DispatchAccEvent(std::move(event));
 
   return IPC_OK();
@@ -382,6 +415,7 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvCaretMoveEvent(
 mozilla::ipc::IPCResult DocAccessibleParent::RecvTextChangeEvent(
     const uint64_t& aID, const nsString& aStr, const int32_t& aStart,
     const uint32_t& aLen, const bool& aIsInsert, const bool& aFromUser) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -422,6 +456,7 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvSyncTextChangeEvent(
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvSelectionEvent(
     const uint64_t& aID, const uint64_t& aWidgetID, const uint32_t& aType) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -452,6 +487,7 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvVirtualCursorChangeEvent(
     const uint64_t& aNewPositionID, const int32_t& aNewStartOffset,
     const int32_t& aNewEndOffset, const int16_t& aReason,
     const int16_t& aBoundaryType, const bool& aFromUser) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -492,6 +528,7 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvScrollingEvent(
     const uint64_t& aID, const uint64_t& aType, const uint32_t& aScrollX,
     const uint32_t& aScrollY, const uint32_t& aMaxScrollX,
     const uint32_t& aMaxScrollY) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -528,6 +565,7 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvScrollingEvent(
 mozilla::ipc::IPCResult DocAccessibleParent::RecvCache(
     const mozilla::a11y::CacheUpdateType& aUpdateType,
     nsTArray<CacheData>&& aData, const bool& aFinal) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -562,6 +600,7 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvAccessiblesWillMove(
 mozilla::ipc::IPCResult DocAccessibleParent::RecvAnnouncementEvent(
     const uint64_t& aID, const nsString& aAnnouncement,
     const uint16_t& aPriority) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -589,10 +628,11 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvAnnouncementEvent(
 
   return IPC_OK();
 }
+#endif  // !defined(XP_WIN)
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvTextSelectionChangeEvent(
     const uint64_t& aID, nsTArray<TextRangeData>&& aSelection) {
-#  ifdef MOZ_WIDGET_COCOA
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -603,18 +643,35 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvTextSelectionChangeEvent(
     return IPC_OK();
   }
 
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    mTextSelections.ClearAndRetainStorage();
+    mTextSelections.AppendElements(aSelection);
+  }
+
+#ifdef MOZ_WIDGET_COCOA
   ProxyTextSelectionChangeEvent(target, aSelection);
+#else
+  ProxyEvent(target, nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED);
+#endif
+
+  if (!nsCoreUtils::AccEventObserversExist()) {
+    return IPC_OK();
+  }
+  xpcAccessibleGeneric* xpcAcc = GetXPCAccessible(target);
+  xpcAccessibleDocument* doc = nsAccessibilityService::GetXPCDocument(this);
+  nsINode* node = nullptr;
+  bool fromUser = true;  // XXX fix me
+  RefPtr<xpcAccEvent> event =
+      new xpcAccEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED, xpcAcc,
+                      doc, node, fromUser);
+  nsCoreUtils::DispatchAccEvent(std::move(event));
 
   return IPC_OK();
-#  else
-  return RecvEvent(aID, nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED);
-#  endif
 }
-
-#endif
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvRoleChangedEvent(
     const a11y::role& aRole) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -769,8 +826,8 @@ ipc::IPCResult DocAccessibleParent::AddChildDoc(DocAccessibleParent* aChildDoc,
       // For same-process documents, this is fired by the content process, but
       // this isn't possible when the document is in a different process to its
       // embedder.
-      // RecvEvent fires both OS and XPCOM events.
-      Unused << RecvEvent(aParentID, nsIAccessibleEvent::EVENT_REORDER);
+      // FireEvent fires both OS and XPCOM events.
+      FireEvent(outerDoc, nsIAccessibleEvent::EVENT_REORDER);
     }
   }
 
@@ -794,6 +851,7 @@ ipc::IPCResult DocAccessibleParent::AddChildDoc(
 }
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvShutdown() {
+  ACQUIRE_ANDROID_LOCK
   Destroy();
 
   auto mgr = static_cast<dom::BrowserParent*>(Manager());
@@ -1005,6 +1063,7 @@ void DocAccessibleParent::SetEmulatedWindowHandle(HWND aWindowHandle) {
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvFocusEvent(
     const uint64_t& aID, const LayoutDeviceIntRect& aCaretRect) {
+  ACQUIRE_ANDROID_LOCK
   if (mShutdown) {
     return IPC_OK();
   }
@@ -1084,6 +1143,17 @@ DocAccessiblePlatformExtParent* DocAccessibleParent::GetPlatformExtension() {
 }
 
 #endif  // !defined(XP_WIN)
+
+void DocAccessibleParent::SelectionRanges(nsTArray<TextRange>* aRanges) const {
+  for (const auto& data : mTextSelections) {
+    aRanges->AppendElement(
+        TextRange(const_cast<DocAccessibleParent*>(this),
+                  const_cast<RemoteAccessible*>(GetAccessible(data.StartID())),
+                  data.StartOffset(),
+                  const_cast<RemoteAccessible*>(GetAccessible(data.EndID())),
+                  data.EndOffset()));
+  }
+}
 
 }  // namespace a11y
 }  // namespace mozilla

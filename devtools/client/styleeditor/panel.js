@@ -23,7 +23,6 @@ var StyleEditorPanel = function StyleEditorPanel(panelWin, toolbox, commands) {
   this._panelWin = panelWin;
   this._panelDoc = panelWin.document;
 
-  this.destroy = this.destroy.bind(this);
   this._showError = this._showError.bind(this);
 };
 
@@ -37,7 +36,7 @@ StyleEditorPanel.prototype = {
   /**
    * open is effectively an asynchronous constructor
    */
-  async open() {
+  async open(options) {
     // Initialize the CSS properties database.
     const { cssProperties } = await this._toolbox.target.getFront(
       "cssProperties"
@@ -51,7 +50,7 @@ StyleEditorPanel.prototype = {
       cssProperties
     );
     this.UI.on("error", this._showError);
-    await this.UI.initialize();
+    await this.UI.initialize(options);
 
     return this;
   },

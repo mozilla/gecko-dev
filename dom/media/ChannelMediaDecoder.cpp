@@ -139,8 +139,7 @@ void ChannelMediaDecoder::NotifyPrincipalChanged() {
     mInitialChannelPrincipalKnown = true;
     return;
   }
-  if (!mSameOriginMedia &&
-      Preferences::GetBool("media.block-midflight-redirects", true)) {
+  if (!mSameOriginMedia) {
     // Block mid-flight redirects to non CORS same origin destinations.
     // See bugs 1441153, 1443942.
     LOG("ChannnelMediaDecoder prohibited cross origin redirect blocked.");
@@ -201,7 +200,7 @@ already_AddRefed<ChannelMediaDecoder> ChannelMediaDecoder::Clone(
   return decoder.forget();
 }
 
-MediaDecoderStateMachine* ChannelMediaDecoder::CreateStateMachine() {
+MediaDecoderStateMachineBase* ChannelMediaDecoder::CreateStateMachine() {
   MOZ_ASSERT(NS_IsMainThread());
   MediaFormatReaderInit init;
   init.mVideoFrameContainer = GetVideoFrameContainer();

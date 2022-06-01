@@ -172,13 +172,15 @@ void SerializedTaskDispatcher::Destroy() {
 
 void SerializedTaskDispatcher::PostTaskToMain(
     already_AddRefed<nsIRunnable> aTask) {
+  RefPtr<nsIRunnable> task = aTask;
+
   auto data = mData.Lock();
   if (data->mDestroyed) {
     return;
   }
 
   nsISerialEventTarget* eventTarget = GetMainThreadSerialEventTarget();
-  data->mTasks.push({std::move(aTask), eventTarget});
+  data->mTasks.push({std::move(task), eventTarget});
 
   MOZ_ASSERT_IF(!data->mCurrentRunnable, data->mTasks.size() == 1);
   PostTasksIfNecessary(eventTarget, data);
@@ -186,6 +188,8 @@ void SerializedTaskDispatcher::PostTaskToMain(
 
 void SerializedTaskDispatcher::PostTaskToCalculator(
     already_AddRefed<nsIRunnable> aTask) {
+  RefPtr<nsIRunnable> task = aTask;
+
   auto data = mData.Lock();
   if (data->mDestroyed) {
     return;
@@ -193,7 +197,7 @@ void SerializedTaskDispatcher::PostTaskToCalculator(
 
   nsISerialEventTarget* eventTarget =
       WinWindowOcclusionTracker::OcclusionCalculatorLoop()->SerialEventTarget();
-  data->mTasks.push({std::move(aTask), eventTarget});
+  data->mTasks.push({std::move(task), eventTarget});
 
   MOZ_ASSERT_IF(!data->mCurrentRunnable, data->mTasks.size() == 1);
   PostTasksIfNecessary(eventTarget, data);
@@ -236,6 +240,8 @@ void SerializedTaskDispatcher::HandleDelayedTask(
   MOZ_ASSERT(WinWindowOcclusionTracker::IsInWinWindowOcclusionThread());
   CALC_LOG(LogLevel::Debug, "SerializedTaskDispatcher::HandleDelayedTask()");
 
+  RefPtr<nsIRunnable> task = aTask;
+
   auto data = mData.Lock();
   if (data->mDestroyed) {
     return;
@@ -243,7 +249,7 @@ void SerializedTaskDispatcher::HandleDelayedTask(
 
   nsISerialEventTarget* eventTarget =
       WinWindowOcclusionTracker::OcclusionCalculatorLoop()->SerialEventTarget();
-  data->mTasks.push({std::move(aTask), eventTarget});
+  data->mTasks.push({std::move(task), eventTarget});
 
   MOZ_ASSERT_IF(!data->mCurrentRunnable, data->mTasks.size() == 1);
   PostTasksIfNecessary(eventTarget, data);
@@ -403,6 +409,20 @@ bool WinWindowOcclusionTracker::IsInWinWindowOcclusionThread() {
          sTracker->mThread->thread_id() == PlatformThread::CurrentId();
 }
 
+void WinWindowOcclusionTracker::EnsureDisplayStatusObserver() {
+  if (mDisplayStatusObserver) {
+    return;
+  }
+  mDisplayStatusObserver = DisplayStatusObserver::Create(this);
+}
+
+void WinWindowOcclusionTracker::EnsureSessionChangeObserver() {
+  if (mSessionChangeObserver) {
+    return;
+  }
+  mSessionChangeObserver = SessionChangeObserver::Create(this);
+}
+
 void WinWindowOcclusionTracker::Enable(nsBaseWidget* aWindow, HWND aHwnd) {
   MOZ_ASSERT(NS_IsMainThread());
   LOG(LogLevel::Info, "WinWindowOcclusionTracker::Enable() aWindow %p aHwnd %p",
@@ -463,8 +483,14 @@ WinWindowOcclusionTracker::WinWindowOcclusionTracker(base::Thread* aThread)
   MOZ_ASSERT(NS_IsMainThread());
   LOG(LogLevel::Info, "WinWindowOcclusionTracker::WinWindowOcclusionTracker()");
 
-  mDisplayStatusObserver = DisplayStatusObserver::Create(this);
-  mSessionChangeObserver = SessionChangeObserver::Create(this);
+  if (StaticPrefs::
+          widget_windows_window_occlusion_tracking_display_state_enabled()) {
+    mDisplayStatusObserver = DisplayStatusObserver::Create(this);
+  }
+  if (StaticPrefs::
+          widget_windows_window_occlusion_tracking_session_lock_enabled()) {
+    mSessionChangeObserver = SessionChangeObserver::Create(this);
+  }
   mSerializedTaskDispatcher = new SerializedTaskDispatcher();
 }
 
@@ -1228,7 +1254,7 @@ void WinWindowOcclusionTracker::WindowOcclusionCalculator::
   }
 
   CALC_LOG(LogLevel::Debug,
-           "WindowOcclusionCalculator::ProcessEventHookCallback() aEvent 0x%x",
+           "WindowOcclusionCalculator::ProcessEventHookCallback() aEvent 0x%lx",
            aEvent);
 
   // We generally ignore events for popup windows, except for when the taskbar

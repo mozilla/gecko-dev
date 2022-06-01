@@ -104,7 +104,8 @@ class SubstitutingProtocolHandler {
   Maybe<uint32_t> mFlags;
 
   RWLock mSubstitutionsLock;
-  nsTHashMap<nsCStringHashKey, SubstitutionEntry> mSubstitutions;
+  nsTHashMap<nsCStringHashKey, SubstitutionEntry> mSubstitutions
+      GUARDED_BY(mSubstitutionsLock);
   nsCOMPtr<nsIIOService> mIOService;
 
   // Returns a SubstitutingJARURI if |aUrl| maps to a |jar:| URI,

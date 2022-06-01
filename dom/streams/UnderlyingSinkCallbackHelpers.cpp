@@ -8,139 +8,102 @@
 
 using namespace mozilla::dom;
 
-// UnderlyingSinkStartCallbackHelper
-NS_IMPL_CYCLE_COLLECTION_CLASS(UnderlyingSinkStartCallbackHelper)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(UnderlyingSinkStartCallbackHelper)
-  tmp->mUnderlyingSink = nullptr;
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(UnderlyingSinkStartCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(UnderlyingSinkStartCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mUnderlyingSink)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSinkStartCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSinkStartCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSinkStartCallbackHelper)
+NS_IMPL_CYCLE_COLLECTION(UnderlyingSinkAlgorithmsBase)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSinkAlgorithmsBase)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSinkAlgorithmsBase)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSinkAlgorithmsBase)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(UnderlyingSinkAlgorithmsBase)
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-void UnderlyingSinkStartCallbackHelper::StartCallback(
+NS_IMPL_CYCLE_COLLECTION_INHERITED_WITH_JS_MEMBERS(
+    UnderlyingSinkAlgorithms, UnderlyingSinkAlgorithmsBase,
+    (mGlobal, mStartCallback, mWriteCallback, mCloseCallback, mAbortCallback),
+    (mUnderlyingSink))
+NS_IMPL_ADDREF_INHERITED(UnderlyingSinkAlgorithms, UnderlyingSinkAlgorithmsBase)
+NS_IMPL_RELEASE_INHERITED(UnderlyingSinkAlgorithms,
+                          UnderlyingSinkAlgorithmsBase)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSinkAlgorithms)
+NS_INTERFACE_MAP_END_INHERITING(UnderlyingSinkAlgorithmsBase)
+
+// https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
+void UnderlyingSinkAlgorithms::StartCallback(
     JSContext* aCx, WritableStreamDefaultController& aController,
     JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) {
+  if (!mStartCallback) {
+    // Step 2: Let startAlgorithm be an algorithm that returns undefined.
+    aRetVal.setUndefined();
+    return;
+  }
+
+  // Step 6: If underlyingSinkDict["start"] exists, then set startAlgorithm to
+  // an algorithm which returns the result of invoking
+  // underlyingSinkDict["start"] with argument list « controller » and callback
+  // this value underlyingSink.
   JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
-  RefPtr<UnderlyingSinkStartCallback> callback(mCallback);
-  return callback->Call(thisObj, aController, aRetVal, aRv,
-                        "UnderlyingSink.start",
-                        CallbackFunction::eRethrowExceptions);
+  return mStartCallback->Call(thisObj, aController, aRetVal, aRv,
+                              "UnderlyingSink.start",
+                              CallbackFunction::eRethrowExceptions);
 }
 
-// UnderlyingSinkWriteCallbackHelper
-NS_IMPL_CYCLE_COLLECTION_CLASS(UnderlyingSinkWriteCallbackHelper)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(UnderlyingSinkWriteCallbackHelper)
-  tmp->mUnderlyingSink = nullptr;
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(UnderlyingSinkWriteCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(UnderlyingSinkWriteCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mUnderlyingSink)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSinkWriteCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSinkWriteCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSinkWriteCallbackHelper)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-already_AddRefed<Promise> UnderlyingSinkWriteCallbackHelper::WriteCallback(
+// https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
+already_AddRefed<Promise> UnderlyingSinkAlgorithms::WriteCallback(
     JSContext* aCx, JS::Handle<JS::Value> aChunk,
     WritableStreamDefaultController& aController, ErrorResult& aRv) {
+  if (!mWriteCallback) {
+    // Step 3: Let writeAlgorithm be an algorithm that returns a promise
+    // resolved with undefined.
+    return Promise::CreateResolvedWithUndefined(mGlobal, aRv);
+  }
+
+  // Step 7: If underlyingSinkDict["write"] exists, then set writeAlgorithm to
+  // an algorithm which takes an argument chunk and returns the result of
+  // invoking underlyingSinkDict["write"] with argument list « chunk, controller
+  // » and callback this value underlyingSink.
   JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
-  RefPtr<UnderlyingSinkWriteCallback> callback(mCallback);
-  RefPtr<Promise> promise =
-      callback->Call(thisObj, aChunk, aController, aRv, "UnderlyingSink.write",
-                     CallbackFunction::eRethrowExceptions);
+  RefPtr<Promise> promise = mWriteCallback->Call(
+      thisObj, aChunk, aController, aRv, "UnderlyingSink.write",
+      CallbackFunction::eRethrowExceptions);
   return promise.forget();
 }
 
-// UnderlyingSinkCloseCallbackHelper
-NS_IMPL_CYCLE_COLLECTION_CLASS(UnderlyingSinkCloseCallbackHelper)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(UnderlyingSinkCloseCallbackHelper)
-  tmp->mUnderlyingSink = nullptr;
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(UnderlyingSinkCloseCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(UnderlyingSinkCloseCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mUnderlyingSink)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSinkCloseCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSinkCloseCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSinkCloseCallbackHelper)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-already_AddRefed<Promise> UnderlyingSinkCloseCallbackHelper::CloseCallback(
+// https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
+already_AddRefed<Promise> UnderlyingSinkAlgorithms::CloseCallback(
     JSContext* aCx, ErrorResult& aRv) {
+  if (!mCloseCallback) {
+    // Step 4: Let closeAlgorithm be an algorithm that returns a promise
+    // resolved with undefined.
+    return Promise::CreateResolvedWithUndefined(mGlobal, aRv);
+  }
+
+  // Step 8: If underlyingSinkDict["close"] exists, then set closeAlgorithm to
+  // an algorithm which returns the result of invoking
+  // underlyingSinkDict["close"] with argument list «» and callback this value
+  // underlyingSink.
   JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
-  RefPtr<UnderlyingSinkCloseCallback> callback(mCallback);
   RefPtr<Promise> promise =
-      callback->Call(thisObj, aRv, "UnderlyingSink.close",
-                     CallbackFunction::eRethrowExceptions);
+      mCloseCallback->Call(thisObj, aRv, "UnderlyingSink.close",
+                           CallbackFunction::eRethrowExceptions);
   return promise.forget();
 }
 
-// UnderlyingSinkAbortCallbackHelper
-NS_IMPL_CYCLE_COLLECTION_CLASS(UnderlyingSinkAbortCallbackHelper)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(UnderlyingSinkAbortCallbackHelper)
-  tmp->mUnderlyingSink = nullptr;
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(UnderlyingSinkAbortCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(UnderlyingSinkAbortCallbackHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mUnderlyingSink)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(UnderlyingSinkAbortCallbackHelper)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(UnderlyingSinkAbortCallbackHelper)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UnderlyingSinkAbortCallbackHelper)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-already_AddRefed<Promise> UnderlyingSinkAbortCallbackHelper::AbortCallback(
+// https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
+already_AddRefed<Promise> UnderlyingSinkAlgorithms::AbortCallback(
     JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
     ErrorResult& aRv) {
-  JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
+  if (!mAbortCallback) {
+    // Step 5: Let abortAlgorithm be an algorithm that returns a promise
+    // resolved with undefined.
+    return Promise::CreateResolvedWithUndefined(mGlobal, aRv);
+  }
 
-  // Strong Ref
-  RefPtr<UnderlyingSinkAbortCallback> callback(mCallback);
+  // Step 9: Let abortAlgorithm be an algorithm that returns a promise resolved
+  // with undefined.
+  JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
   RefPtr<Promise> promise =
-      callback->Call(thisObj, aReason, aRv, "UnderlyingSink.abort",
-                     CallbackFunction::eRethrowExceptions);
+      mAbortCallback->Call(thisObj, aReason, aRv, "UnderlyingSink.abort",
+                           CallbackFunction::eRethrowExceptions);
 
   return promise.forget();
 }

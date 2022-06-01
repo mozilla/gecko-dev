@@ -724,7 +724,7 @@ struct ReflowInput : public SizeComputationInput {
    *                           calculation.
    */
   static nscoord CalcLineHeight(nsIContent* aContent,
-                                ComputedStyle* aComputedStyle,
+                                const ComputedStyle* aComputedStyle,
                                 nsPresContext* aPresContext,
                                 nscoord aBlockBSize, float aFontSizeInflation);
 
@@ -842,6 +842,15 @@ struct ReflowInput : public SizeComputationInput {
     return mDiscoveredClearance && *mDiscoveredClearance;
   }
 
+  // Returns true if we should apply automatic minimum on the block axis.
+  //
+  // The automatic minimum size in the ratio-dependent axis of a box with a
+  // preferred aspect ratio that is neither a replaced element nor a scroll
+  // container is its min-content size clamped from above by its maximum size.
+  //
+  // https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum
+  bool ShouldApplyAutomaticMinimumOnBlockAxis() const;
+
   // Compute the offsets for a relative position element
   //
   // @param aWM the writing mode of aCBSize and the returned offsets.
@@ -849,7 +858,16 @@ struct ReflowInput : public SizeComputationInput {
       mozilla::WritingMode aWM, nsIFrame* aFrame,
       const mozilla::LogicalSize& aCBSize);
 
-  // If a relatively positioned element, adjust the position appropriately.
+  // If aFrame is a relatively or sticky positioned element, adjust aPosition
+  // appropriately.
+  //
+  // @param aComputedOffsets aFrame's relative offset, either from the cached
+  //        nsIFrame::ComputedOffsetProperty() or ComputedPhysicalOffsets().
+  //        Note: This parameter is used only when aFrame is relatively
+  //        positioned, not sticky positioned.
+  // @param aPosition [in/out] Pass aFrame's normal position (pre-relative
+  //        positioning), and this method will update it to indicate aFrame's
+  //        actual position.
   static void ApplyRelativePositioning(nsIFrame* aFrame,
                                        const nsMargin& aComputedOffsets,
                                        nsPoint* aPosition);

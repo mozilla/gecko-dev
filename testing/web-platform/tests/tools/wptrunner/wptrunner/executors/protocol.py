@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import traceback
 from http.client import HTTPConnection
 
@@ -17,7 +19,7 @@ def merge_dicts(target, source):
             else:
                 target[key] = source_value
 
-class Protocol(object):
+class Protocol:
     """Backend for a specific browser-control protocol.
 
     Each Protocol is composed of a set of ProtocolParts that implement
@@ -90,7 +92,7 @@ class Protocol(object):
             getattr(self, cls.name).teardown()
 
 
-class ProtocolPart(object):
+class ProtocolPart:
     """Base class  for all ProtocolParts.
 
     :param Protocol parent: The parent protocol"""
@@ -269,9 +271,9 @@ class SelectorProtocolPart(ProtocolPart):
     def element_by_selector(self, element_selector):
         elements = self.elements_by_selector(element_selector)
         if len(elements) == 0:
-            raise ValueError("Selector '%s' matches no elements" % (element_selector,))
+            raise ValueError(f"Selector '{element_selector}' matches no elements")
         elif len(elements) > 1:
-            raise ValueError("Selector '%s' matches multiple elements" % (element_selector,))
+            raise ValueError(f"Selector '{element_selector}' matches multiple elements")
         return elements[0]
 
     @abstractmethod

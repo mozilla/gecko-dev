@@ -202,8 +202,9 @@ using namespace mozilla;
 // depending on kernel configuration, so they are opted out by default.
 // Debug builds are opted out too, for test coverage.
 #ifndef MOZ_DEBUG
-#  if !defined(__ia64__) && !defined(__sparc__) && !defined(__mips__) && \
-      !defined(__aarch64__) && !defined(__powerpc__) && !defined(XP_MACOSX)
+#  if !defined(__ia64__) && !defined(__sparc__) && !defined(__mips__) &&       \
+      !defined(__aarch64__) && !defined(__powerpc__) && !defined(XP_MACOSX) && \
+      !defined(__loongarch__)
 #    define MALLOC_STATIC_PAGESIZE 1
 #  endif
 #endif
@@ -471,6 +472,8 @@ static const size_t kChunkSizeMask = kChunkSize - 1;
 // Platform specific page size conditions copied from js/public/HeapAPI.h
 #  if defined(__powerpc64__)
 static const size_t gPageSize = 64_KiB;
+#  elif defined(__loongarch64)
+static const size_t gPageSize = 16_KiB;
 #  else
 static const size_t gPageSize = 4_KiB;
 #  endif
@@ -628,7 +631,7 @@ static bool malloc_initialized;
 static Atomic<bool, SequentiallyConsistent> malloc_initialized;
 #endif
 
-static StaticMutex gInitLock = {STATIC_MUTEX_INIT};
+static StaticMutex gInitLock MOZ_UNANNOTATED = {STATIC_MUTEX_INIT};
 
 // ***************************************************************************
 // Statistics data structures.
@@ -800,7 +803,7 @@ class AddressRadixTree {
   static_assert(kBitsAtLevel1 + (kHeight - 1) * kBitsPerLevel == Bits,
                 "AddressRadixTree parameters don't work out");
 
-  Mutex mLock;
+  Mutex mLock MOZ_UNANNOTATED;
   void** mRoot;
 
  public:
@@ -976,7 +979,7 @@ struct arena_t {
   arena_id_t mId;
 
   // All operations on this arena require that lock be locked.
-  Mutex mLock;
+  Mutex mLock MOZ_UNANNOTATED;
 
   arena_stats_t mStats;
 
@@ -1201,7 +1204,7 @@ class ArenaCollection {
 
   inline arena_t* GetDefault() { return mDefaultArena; }
 
-  Mutex mLock;
+  Mutex mLock MOZ_UNANNOTATED;
 
  private:
   inline arena_t* GetByIdInternal(arena_id_t aArenaId, bool aIsPrivate);
@@ -1219,7 +1222,7 @@ static ArenaCollection gArenas;
 static AddressRadixTree<(sizeof(void*) << 3) - LOG2(kChunkSize)> gChunkRTree;
 
 // Protects chunk-related data structures.
-static Mutex chunks_mtx;
+static Mutex chunks_mtx MOZ_UNANNOTATED;
 
 // Trees of chunks that were previously allocated (trees differ only in node
 // ordering).  These are used when allocating chunks, in an attempt to re-use
@@ -1229,7 +1232,7 @@ static RedBlackTree<extent_node_t, ExtentTreeSzTrait> gChunksBySize;
 static RedBlackTree<extent_node_t, ExtentTreeTrait> gChunksByAddress;
 
 // Protects huge allocation-related data structures.
-static Mutex huge_mtx;
+static Mutex huge_mtx MOZ_UNANNOTATED;
 
 // Tree of chunks that are stand-alone huge allocations.
 static RedBlackTree<extent_node_t, ExtentTreeTrait> huge;
@@ -1249,7 +1252,7 @@ static void* base_pages;
 static void* base_next_addr;
 static void* base_next_decommitted;
 static void* base_past_addr;  // Addr immediately past base_pages.
-static Mutex base_mtx;
+static Mutex base_mtx MOZ_UNANNOTATED;
 static size_t base_mapped;
 static size_t base_committed;
 

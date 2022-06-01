@@ -21,8 +21,7 @@ class nsIGlobalObject;
 class nsPIDOMWindowInner;
 class nsIStackFrame;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class AnyCallback;
 class ConsoleCallData;
@@ -369,8 +368,6 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   MOZ_CAN_RUN_SCRIPT
   void ExecuteDumpFunction(const nsAString& aMessage);
 
-  bool IsEnabled(JSContext* aCx) const;
-
   bool ShouldProceed(MethodName aName) const;
 
   uint32_t WebIDLLogLevelToInteger(ConsoleLogLevel aLevel) const;
@@ -446,7 +443,6 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   friend class MainThreadConsoleData;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif /* mozilla_dom_Console_h */

@@ -6,25 +6,26 @@ use api::{CompositeOperator, FilterPrimitive, FilterPrimitiveInput, FilterPrimit
 use api::{LineStyle, LineOrientation, ClipMode, MixBlendMode, ColorF, ColorSpace};
 use api::MAX_RENDER_TASK_SIZE;
 use api::units::*;
-use crate::batch::BatchFilter;
+use crate::batch::CommandBufferIndex;
 use crate::clip::{ClipDataStore, ClipItemKind, ClipStore, ClipNodeRange};
 use crate::spatial_tree::SpatialNodeIndex;
 use crate::filterdata::SFilterData;
-use crate::frame_builder::FrameBuilderConfig;
+use crate::frame_builder::{FrameBuilderConfig};
 use crate::gpu_cache::{GpuCache, GpuCacheAddress, GpuCacheHandle};
 use crate::gpu_types::{BorderInstance, ImageSource, UvRectKind};
 use crate::internal_types::{CacheTextureId, FastHashMap, TextureSource, Swizzle};
-use crate::picture::{ResolvedSurfaceTexture, SurfaceInfo};
-use crate::prim_store::{ClipData, PictureIndex};
+use crate::picture::ResolvedSurfaceTexture;
+use crate::prim_store::ClipData;
 use crate::prim_store::gradient::{
     FastLinearGradientTask, RadialGradientTask,
     ConicGradientTask, LinearGradientTask,
 };
 use crate::resource_cache::{ResourceCache, ImageRequest};
 use std::{usize, f32, i32, u32};
-use crate::render_target::RenderTargetKind;
+use crate::render_target::{ResolveOp, RenderTargetKind};
 use crate::render_task_graph::{PassId, RenderTaskId, RenderTaskGraphBuilder};
 use crate::render_task_cache::{RenderTaskCacheEntryHandle, RenderTaskCacheKey, RenderTaskCacheKeyKind, RenderTaskParent};
+use crate::surface::SurfaceBuilder;
 use smallvec::SmallVec;
 
 const FLOATS_PER_RENDER_TASK_INFO: usize = 8;
@@ -95,6 +96,12 @@ pub enum RenderTaskLocation {
     CacheRequest {
         size: DeviceIntSize,
     },
+    /// Same allocation as an existing task deeper in the dependency graph
+    Existing {
+        parent_task_id: RenderTaskId,
+        /// Requested size of this render task
+        size: DeviceIntSize,
+    },
 
     // Before batching begins, we expect that locations have been resolved to
     // one of the following variants:
@@ -131,6 +138,7 @@ impl RenderTaskLocation {
             RenderTaskLocation::Dynamic { rect, .. } => rect.size(),
             RenderTaskLocation::Static { rect, .. } => rect.size(),
             RenderTaskLocation::CacheRequest { size } => *size,
+            RenderTaskLocation::Existing { size, .. } => *size,
         }
     }
 }
@@ -165,15 +173,50 @@ pub struct ClipRegionTask {
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct TileCompositeTask {
+    pub clear_color: ColorF,
+    pub scissor_rect: DeviceIntRect,
+    pub valid_rect: DeviceIntRect,
+    pub task_id: Option<RenderTaskId>,
+    pub sub_rect_offset: DeviceIntVector2D,
+}
+
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct PictureTask {
-    pub pic_index: PictureIndex,
     pub can_merge: bool,
     pub content_origin: DevicePoint,
     pub surface_spatial_node_index: SpatialNodeIndex,
+    pub raster_spatial_node_index: SpatialNodeIndex,
     pub device_pixel_scale: DevicePixelScale,
-    pub batch_filter: Option<BatchFilter>,
+    pub clear_color: Option<ColorF>,
     pub scissor_rect: Option<DeviceIntRect>,
     pub valid_rect: Option<DeviceIntRect>,
+    pub cmd_buffer_index: CommandBufferIndex,
+    pub resolve_op: Option<ResolveOp>,
+
+    pub can_use_shared_surface: bool,
+}
+
+impl PictureTask {
+    /// Copy an existing picture task, but set a new command buffer for it to build in to.
+    /// Used for pictures that are split between render tasks (e.g. pre/post a backdrop
+    /// filter). Subsequent picture tasks never have a clear color as they are by definition
+    /// going to write to an existing target
+    pub fn duplicate(
+        &self,
+        cmd_buffer_index: CommandBufferIndex,
+    ) -> Self {
+        assert_eq!(self.resolve_op, None);
+
+        PictureTask {
+            clear_color: None,
+            cmd_buffer_index,
+            resolve_op: None,
+            can_use_shared_surface: false,
+            ..*self
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -301,12 +344,29 @@ pub enum RenderTaskKind {
     RadialGradient(RadialGradientTask),
     ConicGradient(ConicGradientTask),
     SvgFilter(SvgFilterTask),
+    TileComposite(TileCompositeTask),
     #[cfg(test)]
     Test(RenderTargetKind),
 }
 
 impl RenderTaskKind {
     pub fn is_a_rendering_operation(&self) -> bool {
+        match self {
+            &RenderTaskKind::Image(..) => false,
+            &RenderTaskKind::Cached(..) => false,
+            _ => true,
+        }
+    }
+
+    /// Whether this task can be allocated on a shared render target surface
+    pub fn can_use_shared_surface(&self) -> bool {
+        match self {
+            &RenderTaskKind::Picture(ref info) => info.can_use_shared_surface,
+            _ => true,
+        }
+    }
+
+    pub fn should_advance_pass(&self) -> bool {
         match self {
             &RenderTaskKind::Image(..) => false,
             &RenderTaskKind::Cached(..) => false,
@@ -333,6 +393,7 @@ impl RenderTaskKind {
             RenderTaskKind::RadialGradient(..) => "RadialGradient",
             RenderTaskKind::ConicGradient(..) => "ConicGradient",
             RenderTaskKind::SvgFilter(..) => "SvgFilter",
+            RenderTaskKind::TileComposite(..) => "TileComposite",
             #[cfg(test)]
             RenderTaskKind::Test(..) => "Test",
         }
@@ -350,6 +411,7 @@ impl RenderTaskKind {
             RenderTaskKind::ConicGradient(..) |
             RenderTaskKind::Picture(..) |
             RenderTaskKind::Blit(..) |
+            RenderTaskKind::TileComposite(..) |
             RenderTaskKind::SvgFilter(..) => {
                 RenderTargetKind::Color
             }
@@ -377,31 +439,48 @@ impl RenderTaskKind {
         }
     }
 
+    pub fn new_tile_composite(
+        sub_rect_offset: DeviceIntVector2D,
+        scissor_rect: DeviceIntRect,
+        valid_rect: DeviceIntRect,
+        clear_color: ColorF,
+    ) -> Self {
+        RenderTaskKind::TileComposite(TileCompositeTask {
+            task_id: None,
+            sub_rect_offset,
+            scissor_rect,
+            valid_rect,
+            clear_color,
+        })
+    }
+
     pub fn new_picture(
         size: DeviceIntSize,
-        unclipped_size: DeviceSize,
-        pic_index: PictureIndex,
+        needs_scissor_rect: bool,
         content_origin: DevicePoint,
         surface_spatial_node_index: SpatialNodeIndex,
+        raster_spatial_node_index: SpatialNodeIndex,
         device_pixel_scale: DevicePixelScale,
-        batch_filter: Option<BatchFilter>,
         scissor_rect: Option<DeviceIntRect>,
         valid_rect: Option<DeviceIntRect>,
+        clear_color: Option<ColorF>,
+        cmd_buffer_index: CommandBufferIndex,
+        can_use_shared_surface: bool,
     ) -> Self {
         render_task_sanity_check(&size);
 
-        let can_merge = size.width as f32 >= unclipped_size.width &&
-                        size.height as f32 >= unclipped_size.height;
-
         RenderTaskKind::Picture(PictureTask {
-            pic_index,
             content_origin,
-            can_merge,
+            can_merge: !needs_scissor_rect,
             surface_spatial_node_index,
+            raster_spatial_node_index,
             device_pixel_scale,
-            batch_filter,
             scissor_rect,
             valid_rect,
+            clear_color,
+            cmd_buffer_index,
+            resolve_op: None,
+            can_use_shared_surface,
         })
     }
 
@@ -462,7 +541,7 @@ impl RenderTaskKind {
         clip_data_store: &mut ClipDataStore,
         device_pixel_scale: DevicePixelScale,
         fb_config: &FrameBuilderConfig,
-        surfaces: &[SurfaceInfo],
+        surface_builder: &mut SurfaceBuilder,
     ) -> RenderTaskId {
         // Step through the clip sources that make up this mask. If we find
         // any box-shadow clip sources, request that image from the render
@@ -516,7 +595,7 @@ impl RenderTaskKind {
                         None,
                         false,
                         RenderTaskParent::RenderTask(clip_task_id),
-                        surfaces,
+                        surface_builder,
                         |rg_builder| {
                             let clip_data = ClipData::rounded_rect(
                                 source.minimal_shadow_rect.size(),
@@ -616,10 +695,10 @@ impl RenderTaskKind {
             RenderTaskKind::LinearGradient(..) |
             RenderTaskKind::RadialGradient(..) |
             RenderTaskKind::ConicGradient(..) |
+            RenderTaskKind::TileComposite(..) |
             RenderTaskKind::Blit(..) => {
                 [0.0; 4]
             }
-
 
             RenderTaskKind::SvgFilter(ref task) => {
                 match task.info {
@@ -1326,16 +1405,13 @@ impl RenderTask {
         gpu_cache.get_address(&self.uv_rect_handle)
     }
 
-    pub fn get_dynamic_size(&self) -> DeviceIntSize {
-        self.location.size()
-    }
-
     pub fn get_target_texture(&self) -> CacheTextureId {
         match self.location {
             RenderTaskLocation::Dynamic { texture_id, .. } => {
                 assert_ne!(texture_id, CacheTextureId::INVALID);
                 texture_id
             }
+            RenderTaskLocation::Existing { .. } |
             RenderTaskLocation::CacheRequest { .. } |
             RenderTaskLocation::Unallocated { .. } |
             RenderTaskLocation::Static { .. } => {
@@ -1356,6 +1432,7 @@ impl RenderTask {
             RenderTaskLocation::Static { surface: StaticRenderTaskSurface::TextureCache { texture, .. }, .. } => {
                 TextureSource::TextureCache(texture, Swizzle::default())
             }
+            RenderTaskLocation::Existing { .. } |
             RenderTaskLocation::Static { .. } |
             RenderTaskLocation::CacheRequest { .. } |
             RenderTaskLocation::Unallocated { .. } => {
@@ -1382,8 +1459,9 @@ impl RenderTask {
             //           would allow us to restore this debug check.
             RenderTaskLocation::Dynamic { rect, .. } => rect,
             RenderTaskLocation::Static { rect, .. } => rect,
-            RenderTaskLocation::CacheRequest { .. }
-            | RenderTaskLocation::Unallocated { .. } => {
+            RenderTaskLocation::Existing { .. } |
+            RenderTaskLocation::CacheRequest { .. } |
+            RenderTaskLocation::Unallocated { .. } => {
                 panic!("bug: get_target_rect called before allocating");
             }
         }

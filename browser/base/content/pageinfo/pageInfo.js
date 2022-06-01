@@ -473,7 +473,7 @@ async function loadTab(args) {
     document.getElementById("generalTab");
   radioGroup.selectedItem = initialTab;
   radioGroup.selectedItem.doCommand();
-  radioGroup.focus();
+  radioGroup.focus({ preventFocusRing: true });
 }
 
 function openCacheEntry(key, cb) {
@@ -738,6 +738,7 @@ function saveMedia() {
       saveURL(
         url,
         null,
+        null,
         titleKey,
         false,
         false,
@@ -764,6 +765,7 @@ function saveMedia() {
           );
           internalSave(
             aURIString,
+            null,
             null,
             null,
             null,

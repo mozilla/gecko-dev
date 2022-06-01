@@ -72,6 +72,7 @@ def get_global_excludes(**lintargs):
     category="devenv",
     description="Run linters.",
     parser=setup_argument_parser,
+    virtualenv_name="lint",
 )
 def lint(command_context, *runargs, **lintargs):
     """Run linters."""
@@ -96,7 +97,10 @@ def lint(command_context, *runargs, **lintargs):
         parser.GLOBAL_SUPPORT_FILES.append(
             os.path.join(command_context.topsrcdir, path)
         )
-    return cli.run(*runargs, **lintargs)
+    setupargs = {
+        "mach_command_context": command_context,
+    }
+    return cli.run(*runargs, setupargs=setupargs, **lintargs)
 
 
 @Command(

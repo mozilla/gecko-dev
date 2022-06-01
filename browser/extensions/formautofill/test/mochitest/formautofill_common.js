@@ -7,9 +7,10 @@
 
 let formFillChromeScript;
 let defaultTextColor;
+let defaultDisabledTextColor;
 let expectingPopup = null;
 
-const { FormAutofillUtils } = SpecialPowers.Cu.import(
+const { FormAutofillUtils } = SpecialPowers.ChromeUtils.import(
   "resource://autofill/FormAutofillUtils.jsm"
 );
 
@@ -112,8 +113,12 @@ async function checkFieldPreview(elem, expectedValue) {
   let isTextColorApplied;
   await SimpleTest.promiseWaitForCondition(function checkPreview() {
     const computedStyle = window.getComputedStyle(elem);
-    isTextColorApplied =
-      computedStyle.getPropertyValue("color") !== defaultTextColor;
+    const actualColor = computedStyle.getPropertyValue("color");
+    if (elem.disabled) {
+      isTextColorApplied = actualColor !== defaultDisabledTextColor;
+    } else {
+      isTextColorApplied = actualColor !== defaultTextColor;
+    }
     return isTextColorApplied === !!expectedValue;
   }, `Checking #${elem.id} preview style`);
 
@@ -124,9 +129,18 @@ async function checkFormFieldsStyle(profile, isPreviewing = true) {
   const elems = document.querySelectorAll("input, select");
 
   for (const elem of elems) {
-    const fillableValue = profile && profile[elem.id];
-    const previewValue = (isPreviewing && fillableValue) || "";
-
+    let fillableValue;
+    let previewValue;
+    let isElementEligible =
+      FormAutofillUtils.isCreditCardOrAddressFieldType(elem) &&
+      FormAutofillUtils.isFieldAutofillable(elem);
+    if (!isElementEligible) {
+      fillableValue = "";
+      previewValue = "";
+    } else {
+      fillableValue = profile && profile[elem.id];
+      previewValue = (isPreviewing && fillableValue) || "";
+    }
     await checkFieldHighlighted(elem, !!fillableValue);
     await checkFieldPreview(elem, previewValue);
   }
@@ -440,6 +454,14 @@ function formAutoFillCommonSetup() {
       defaultTextColor = window
         .getComputedStyle(document.querySelector("input"))
         .getPropertyValue("color");
+
+      // This is needed for test_formautofill_preview_highlight.html to work properly
+      let disabledInput = document.querySelector(`input[disabled]`);
+      if (disabledInput) {
+        defaultDisabledTextColor = window
+          .getComputedStyle(disabledInput)
+          .getPropertyValue("color");
+      }
     },
     { once: true }
   );

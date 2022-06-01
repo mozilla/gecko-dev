@@ -95,9 +95,10 @@ static constexpr Register ReturnReg{Registers::x0};
 static constexpr Register64 ReturnReg64(ReturnReg);
 static constexpr Register JSReturnReg{Registers::x2};
 static constexpr Register FramePointer{Registers::fp};
+static constexpr ARMRegister FramePointer64{FramePointer, 64};
 static constexpr Register ZeroRegister{Registers::sp};
-static constexpr ARMRegister ZeroRegister64 = {Registers::sp, 64};
-static constexpr ARMRegister ZeroRegister32 = {Registers::sp, 32};
+static constexpr ARMRegister ZeroRegister64{Registers::sp, 64};
+static constexpr ARMRegister ZeroRegister32{Registers::sp, 32};
 
 // [SMDOC] AArch64 Stack Pointer and Pseudo Stack Pointer conventions
 //
@@ -697,21 +698,21 @@ static constexpr Register ABINonVolatileReg{Registers::x19};
 // and non-volatile registers.
 static constexpr Register ABINonArgReturnVolatileReg = lr;
 
-// TLS pointer argument register for WebAssembly functions. This must not alias
-// any other register used for passing function arguments or return values.
-// Preserved by WebAssembly functions.  Must be nonvolatile.
-static constexpr Register WasmTlsReg{Registers::x23};
+// Instance pointer argument register for WebAssembly functions. This must not
+// alias any other register used for passing function arguments or return
+// values. Preserved by WebAssembly functions.  Must be nonvolatile.
+static constexpr Register InstanceReg{Registers::x23};
 
 // Registers used for wasm table calls. These registers must be disjoint
-// from the ABI argument registers, WasmTlsReg and each other.
+// from the ABI argument registers, InstanceReg and each other.
 static constexpr Register WasmTableCallScratchReg0 = ABINonArgReg0;
 static constexpr Register WasmTableCallScratchReg1 = ABINonArgReg1;
 static constexpr Register WasmTableCallSigReg = ABINonArgReg2;
 static constexpr Register WasmTableCallIndexReg = ABINonArgReg3;
 
 // Register used as a scratch along the return path in the fast js -> wasm stub
-// code.  This must not overlap ReturnReg, JSReturnOperand, or WasmTlsReg.  It
-// must be a volatile register.
+// code.  This must not overlap ReturnReg, JSReturnOperand, or InstanceReg.
+// It must be a volatile register.
 static constexpr Register WasmJitEntryReturnScratch = r9;
 
 static inline bool GetIntArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs,

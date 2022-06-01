@@ -13,7 +13,7 @@
 #include "HttpLog.h"
 #include "HTTPSRecordResolver.h"
 #include "NSSErrorsService.h"
-#include "TunnelUtils.h"
+#include "Http2ConnectTransaction.h"
 #include "base/basictypes.h"
 #include "mozilla/Components.h"
 #include "mozilla/ScopeExit.h"
@@ -67,8 +67,7 @@
 
 using namespace mozilla::net;
 
-namespace mozilla {
-namespace net {
+namespace mozilla::net {
 
 //-----------------------------------------------------------------------------
 // nsHttpTransaction <public>
@@ -112,19 +111,20 @@ void nsHttpTransaction::ResumeReading() {
 }
 
 bool nsHttpTransaction::EligibleForThrottling() const {
-  return (mClassOfService &
+  return (mClassOfServiceFlags &
           (nsIClassOfService::Throttleable | nsIClassOfService::DontThrottle |
            nsIClassOfService::Leader | nsIClassOfService::Unblocked)) ==
          nsIClassOfService::Throttleable;
 }
 
-void nsHttpTransaction::SetClassOfService(uint32_t cos) {
+void nsHttpTransaction::SetClassOfService(ClassOfService cos) {
   if (mClosed) {
     return;
   }
 
   bool wasThrottling = EligibleForThrottling();
-  mClassOfService = cos;
+  mClassOfServiceFlags = cos.Flags();
+  mClassOfServiceIncremental = cos.Incremental();
   bool isThrottling = EligibleForThrottling();
 
   if (mConnection && wasThrottling != isThrottling) {
@@ -205,7 +205,7 @@ nsresult nsHttpTransaction::Init(
     bool requestBodyHasHeaders, nsIEventTarget* target,
     nsIInterfaceRequestor* callbacks, nsITransportEventSink* eventsink,
     uint64_t topBrowsingContextId, HttpTrafficCategory trafficCategory,
-    nsIRequestContext* requestContext, uint32_t classOfService,
+    nsIRequestContext* requestContext, ClassOfService classOfService,
     uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
     TransactionObserverFunc&& transactionObserver,
     OnPushCallback&& aOnPushCallback,
@@ -225,27 +225,6 @@ nsresult nsHttpTransaction::Init(
   mTopBrowsingContextId = topBrowsingContextId;
 
   mTrafficCategory = trafficCategory;
-
-  mActivityDistributor = components::HttpActivityDistributor::Service();
-  if (!mActivityDistributor) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  bool activityDistributorActive;
-  rv = mActivityDistributor->GetIsActive(&activityDistributorActive);
-  if (NS_SUCCEEDED(rv) && activityDistributorActive) {
-    // there are some observers registered at activity distributor, gather
-    // nsISupports for the channel that called Init()
-    LOG(
-        ("nsHttpTransaction::Init() "
-         "mActivityDistributor is active "
-         "this=%p",
-         this));
-  } else {
-    // there is no observer, so don't use it
-    activityDistributorActive = false;
-    mActivityDistributor = nullptr;
-  }
 
   LOG1(("nsHttpTransaction %p SetRequestContext %p\n", this, requestContext));
   mRequestContext = requestContext;
@@ -284,18 +263,17 @@ nsresult nsHttpTransaction::Init(
   }
 
   // report the request header
-  if (mActivityDistributor) {
-    RefPtr<nsHttpTransaction> self = this;
+  if (gHttpHandler->HttpActivityDistributorActivated()) {
     nsCString requestBuf(mReqHeaderBuf);
-    NS_DispatchToMainThread(
-        NS_NewRunnableFunction("ObserveActivityWithArgs", [self, requestBuf]() {
-          nsresult rv = self->mActivityDistributor->ObserveActivityWithArgs(
-              HttpActivityArgs(self->mChannelId),
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
+        "ObserveHttpActivityWithArgs", [channelId(mChannelId), requestBuf]() {
+          if (!gHttpHandler) {
+            return;
+          }
+          gHttpHandler->ObserveHttpActivityWithArgs(
+              HttpActivityArgs(channelId),
               NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
               NS_HTTP_ACTIVITY_SUBTYPE_REQUEST_HEADER, PR_Now(), 0, requestBuf);
-          if (NS_FAILED(rv)) {
-            LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
-          }
         }));
   }
 
@@ -317,8 +295,8 @@ nsresult nsHttpTransaction::Init(
   if (mHasRequestBody) {
     // wrap the headers and request body in a multiplexed input stream.
     nsCOMPtr<nsIMultiplexInputStream> multi;
-    rv = nsMultiplexInputStreamConstructor(
-        nullptr, NS_GET_IID(nsIMultiplexInputStream), getter_AddRefs(multi));
+    rv = nsMultiplexInputStreamConstructor(NS_GET_IID(nsIMultiplexInputStream),
+                                           getter_AddRefs(multi));
     if (NS_FAILED(rv)) return rv;
 
     rv = multi->AppendStream(headers);
@@ -643,25 +621,18 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
 
   // Need to do this before the STATUS_RECEIVING_FROM check below, to make
   // sure that the activity distributor gets told about all status events.
-  if (mActivityDistributor) {
-    // upon STATUS_WAITING_FOR; report request body sent
-    if ((mHasRequestBody) && (status == NS_NET_STATUS_WAITING_FOR)) {
-      nsresult rv = mActivityDistributor->ObserveActivityWithArgs(
-          HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
-          NS_HTTP_ACTIVITY_SUBTYPE_REQUEST_BODY_SENT, PR_Now(), 0, ""_ns);
-      if (NS_FAILED(rv)) {
-        LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
-      }
-    }
 
-    // report the status and progress
-    nsresult rv = mActivityDistributor->ObserveActivityWithArgs(
-        HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_SOCKET_TRANSPORT,
-        static_cast<uint32_t>(status), PR_Now(), progress, ""_ns);
-    if (NS_FAILED(rv)) {
-      LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
-    }
+  // upon STATUS_WAITING_FOR; report request body sent
+  if ((mHasRequestBody) && (status == NS_NET_STATUS_WAITING_FOR)) {
+    gHttpHandler->ObserveHttpActivityWithArgs(
+        HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
+        NS_HTTP_ACTIVITY_SUBTYPE_REQUEST_BODY_SENT, PR_Now(), 0, ""_ns);
   }
+
+  // report the status and progress
+  gHttpHandler->ObserveHttpActivityWithArgs(
+      HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_SOCKET_TRANSPORT,
+      static_cast<uint32_t>(status), PR_Now(), progress, ""_ns);
 
   // nsHttpChannel synthesizes progress events in OnDataAvailable
   if (status == NS_NET_STATUS_RECEIVING_FROM) return;
@@ -689,16 +660,21 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
       return;
     }
 
-    nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mRequestStream);
-    if (!seekable) {
+    nsCOMPtr<nsITellableStream> tellable = do_QueryInterface(mRequestStream);
+    if (!tellable) {
       LOG1(
           ("nsHttpTransaction::OnTransportStatus %p "
-           "SENDING_TO without seekable request stream\n",
+           "SENDING_TO without tellable request stream\n",
            this));
+      MOZ_ASSERT(
+          !mRequestStream,
+          "mRequestStream should be tellable as it was wrapped in "
+          "nsBufferedInputStream, which provides the tellable interface even "
+          "when wrapping non-tellable streams.");
       progress = 0;
     } else {
       int64_t prog = 0;
-      seekable->Tell(&prog);
+      tellable->Tell(&prog);
       progress = prog;
     }
 
@@ -860,7 +836,7 @@ nsresult nsHttpTransaction::WritePipeSegment(nsIOutputStream* stream,
 }
 
 bool nsHttpTransaction::ShouldThrottle() {
-  if (mClassOfService & nsIClassOfService::DontThrottle) {
+  if (mClassOfServiceFlags & nsIClassOfService::DontThrottle) {
     // We deliberately don't touch the throttling window here since
     // DontThrottle requests are expected to be long-standing media
     // streams and would just unnecessarily block running downloads.
@@ -883,7 +859,7 @@ bool nsHttpTransaction::ShouldThrottle() {
     return false;
   }
 
-  if (!(mClassOfService & nsIClassOfService::Throttleable) &&
+  if (!(mClassOfServiceFlags & nsIClassOfService::Throttleable) &&
       gHttpHandler->ConnMgr()->IsConnEntryUnderPressure(mConnInfo)) {
     LOG(("nsHttpTransaction::ShouldThrottle entry pressure this=%p", this));
     // This is expensive to check (two hashtable lookups) but may help
@@ -1344,8 +1320,7 @@ bool nsHttpTransaction::ShouldRestartOn0RttError(nsresult reason) {
        "mEarlyDataWasAvailable=%d error=%" PRIx32 "]\n",
        this, mEarlyDataWasAvailable, static_cast<uint32_t>(reason)));
   return StaticPrefs::network_http_early_data_disable_on_error() &&
-         mEarlyDataWasAvailable &&
-         SecurityErrorToBeHandledByTransaction(reason);
+         mEarlyDataWasAvailable && SecurityErrorThatMayNeedRestart(reason);
 }
 
 void nsHttpTransaction::Close(nsresult reason) {
@@ -1408,26 +1383,18 @@ void nsHttpTransaction::Close(nsresult reason) {
     mTokenBucketCancel = nullptr;
   }
 
-  if (mActivityDistributor) {
-    // report the reponse is complete if not already reported
-    if (!mResponseIsComplete) {
-      nsresult rv = mActivityDistributor->ObserveActivityWithArgs(
-          HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
-          NS_HTTP_ACTIVITY_SUBTYPE_RESPONSE_COMPLETE, PR_Now(),
-          static_cast<uint64_t>(mContentRead), ""_ns);
-      if (NS_FAILED(rv)) {
-        LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
-      }
-    }
-
-    // report that this transaction is closing
-    nsresult rv = mActivityDistributor->ObserveActivityWithArgs(
+  // report the reponse is complete if not already reported
+  if (!mResponseIsComplete) {
+    gHttpHandler->ObserveHttpActivityWithArgs(
         HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
-        NS_HTTP_ACTIVITY_SUBTYPE_TRANSACTION_CLOSE, PR_Now(), 0, ""_ns);
-    if (NS_FAILED(rv)) {
-      LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
-    }
+        NS_HTTP_ACTIVITY_SUBTYPE_RESPONSE_COMPLETE, PR_Now(),
+        static_cast<uint64_t>(mContentRead), ""_ns);
   }
+
+  // report that this transaction is closing
+  gHttpHandler->ObserveHttpActivityWithArgs(
+      HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
+      NS_HTTP_ACTIVITY_SUBTYPE_TRANSACTION_CLOSE, PR_Now(), 0, ""_ns);
 
   // we must no longer reference the connection!  find out if the
   // connection was being reused before letting it go.
@@ -2013,7 +1980,7 @@ nsresult nsHttpTransaction::ParseLineSegment(char* segment, uint32_t len) {
       mResponseHead->Reset();
       return NS_OK;
     }
-    {
+    if (!mConnection->IsProxyConnectInProgress()) {
       MutexAutoLock lock(mLock);
       mEarlyHintObserver = nullptr;
     }
@@ -2040,14 +2007,11 @@ nsresult nsHttpTransaction::ParseHead(char* buf, uint32_t count,
     if (!mResponseHead) return NS_ERROR_OUT_OF_MEMORY;
 
     // report that we have a least some of the response
-    if (mActivityDistributor && !mReportedStart) {
+    if (!mReportedStart) {
       mReportedStart = true;
-      rv = mActivityDistributor->ObserveActivityWithArgs(
+      gHttpHandler->ObserveHttpActivityWithArgs(
           HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
           NS_HTTP_ACTIVITY_SUBTYPE_RESPONSE_START, PR_Now(), 0, ""_ns);
-      if (NS_FAILED(rv)) {
-        LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
-      }
     }
   }
 
@@ -2208,6 +2172,27 @@ nsresult nsHttpTransaction::HandleContentStart() {
       case 304:
         mNoContent = true;
         LOG(("this response should not contain a body.\n"));
+        break;
+      case 408:
+        LOG(("408 Server Timeouts"));
+
+        if (mConnection->Version() >= HttpVersion::v2_0) {
+          mForceRestart = true;
+          return NS_ERROR_NET_RESET;
+        }
+
+        // If this error could be due to a persistent connection
+        // reuse then we pass an error code of NS_ERROR_NET_RESET
+        // to trigger the transaction 'restart' mechanism.  We
+        // tell it to reset its response headers so that it will
+        // be ready to receive the new response.
+        LOG(("408 Server Timeouts now=%d lastWrite=%d", PR_IntervalNow(),
+             mConnection->LastWriteTime()));
+        if ((PR_IntervalNow() - mConnection->LastWriteTime()) >=
+            PR_MillisecondsToInterval(1000)) {
+          mForceRestart = true;
+          return NS_ERROR_NET_RESET;
+        }
         break;
       case 421:
         LOG(("Misdirected Request.\n"));
@@ -2392,15 +2377,10 @@ nsresult nsHttpTransaction::HandleContent(char* buf, uint32_t count,
     }
 
     // report the entire response has arrived
-    if (mActivityDistributor) {
-      rv = mActivityDistributor->ObserveActivityWithArgs(
-          HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
-          NS_HTTP_ACTIVITY_SUBTYPE_RESPONSE_COMPLETE, PR_Now(),
-          static_cast<uint64_t>(mContentRead), ""_ns);
-      if (NS_FAILED(rv)) {
-        LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
-      }
-    }
+    gHttpHandler->ObserveHttpActivityWithArgs(
+        HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
+        NS_HTTP_ACTIVITY_SUBTYPE_RESPONSE_COMPLETE, PR_Now(),
+        static_cast<uint64_t>(mContentRead), ""_ns);
   }
 
   return NS_OK;
@@ -2440,32 +2420,19 @@ nsresult nsHttpTransaction::ProcessData(char* buf, uint32_t count,
     // if buf has some content in it, shift bytes to top of buf.
     if (count && bytesConsumed) memmove(buf, buf + bytesConsumed, count);
 
-    // report the completed response header
-    if (mActivityDistributor && mResponseHead && mHaveAllHeaders) {
+    if (mResponseHead && mHaveAllHeaders) {
       auto reportResponseHeader = [&](uint32_t aSubType) {
         nsAutoCString completeResponseHeaders;
         mResponseHead->Flatten(completeResponseHeaders, false);
         completeResponseHeaders.AppendLiteral("\r\n");
-        rv = mActivityDistributor->ObserveActivityWithArgs(
+        gHttpHandler->ObserveHttpActivityWithArgs(
             HttpActivityArgs(mChannelId),
             NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION, aSubType, PR_Now(), 0,
             completeResponseHeaders);
-        if (NS_FAILED(rv)) {
-          LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
-        }
       };
 
       if (mConnection->IsProxyConnectInProgress()) {
-        nsCOMPtr<nsIHttpActivityDistributor> distributor =
-            do_QueryInterface(mActivityDistributor);
-        bool observeProxyResponse = false;
-        if (distributor) {
-          Unused << distributor->GetObserveProxyResponse(&observeProxyResponse);
-          if (observeProxyResponse) {
-            reportResponseHeader(
-                NS_HTTP_ACTIVITY_SUBTYPE_PROXY_RESPONSE_HEADER);
-          }
-        }
+        reportResponseHeader(NS_HTTP_ACTIVITY_SUBTYPE_PROXY_RESPONSE_HEADER);
       } else if (!mReportedResponseHeader) {
         mReportedResponseHeader = true;
         reportResponseHeader(NS_HTTP_ACTIVITY_SUBTYPE_RESPONSE_HEADER);
@@ -3043,7 +3010,7 @@ bool nsHttpTransaction::IsWebsocketUpgrade() {
 }
 
 void nsHttpTransaction::SetH2WSTransaction(
-    SpdyConnectTransaction* aH2WSTransaction) {
+    Http2ConnectTransaction* aH2WSTransaction) {
   MOZ_ASSERT(OnSocketThread());
 
   mH2WSTransaction = aH2WSTransaction;
@@ -3488,5 +3455,4 @@ void nsHttpTransaction::GetHashKeyOfConnectionEntry(nsACString& aResult) {
   aResult.Assign(mHashKeyOfConnectionEntry);
 }
 
-}  // namespace net
-}  // namespace mozilla
+}  // namespace mozilla::net

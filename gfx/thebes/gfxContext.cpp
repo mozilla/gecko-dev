@@ -171,11 +171,6 @@ void gfxContext::NewPath() {
   mTransformChanged = false;
 }
 
-void gfxContext::ClosePath() {
-  EnsurePathBuilder();
-  mPathBuilder->Close();
-}
-
 already_AddRefed<Path> gfxContext::GetPath() {
   EnsurePath();
   RefPtr<Path> path(mPath);
@@ -215,22 +210,6 @@ void gfxContext::Fill(const Pattern& aPattern) {
     EnsurePath();
     mDT->Fill(mPath, aPattern, DrawOptions(1.0f, op, state.aaMode));
   }
-}
-
-void gfxContext::MoveTo(const gfxPoint& pt) {
-  EnsurePathBuilder();
-  mPathBuilder->MoveTo(ToPoint(pt));
-}
-
-void gfxContext::LineTo(const gfxPoint& pt) {
-  EnsurePathBuilder();
-  mPathBuilder->LineTo(ToPoint(pt));
-}
-
-void gfxContext::Line(const gfxPoint& start, const gfxPoint& end) {
-  EnsurePathBuilder();
-  mPathBuilder->MoveTo(ToPoint(start));
-  mPathBuilder->LineTo(ToPoint(end));
 }
 
 // XXX snapToPixels is only valid when snapping for filled
@@ -432,16 +411,17 @@ AntialiasMode gfxContext::CurrentAntialiasMode() const {
   return CurrentState().aaMode;
 }
 
-void gfxContext::SetDash(const Float* dashes, int ndash, Float offset) {
+void gfxContext::SetDash(const Float* dashes, int ndash, Float offset,
+                         Float devPxScale) {
   CURRENTSTATE_CHANGED()
   AzureState& state = CurrentState();
 
   state.dashPattern.SetLength(ndash);
   for (int i = 0; i < ndash; i++) {
-    state.dashPattern[i] = dashes[i];
+    state.dashPattern[i] = dashes[i] * devPxScale;
   }
   state.strokeOptions.mDashLength = ndash;
-  state.strokeOptions.mDashOffset = offset;
+  state.strokeOptions.mDashOffset = offset * devPxScale;
   state.strokeOptions.mDashPattern =
       ndash ? state.dashPattern.Elements() : nullptr;
 }

@@ -25,7 +25,7 @@ class WebRenderTextureHost : public TextureHost {
  public:
   WebRenderTextureHost(const SurfaceDescriptor& aDesc, TextureFlags aFlags,
                        TextureHost* aTexture,
-                       wr::ExternalImageId& aExternalImageId);
+                       const wr::ExternalImageId& aExternalImageId);
   virtual ~WebRenderTextureHost();
 
   void DeallocateDeviceData() override {}
@@ -46,6 +46,7 @@ class WebRenderTextureHost : public TextureHost {
 
   already_AddRefed<gfx::DataSourceSurface> GetAsSurface() override;
 
+  gfx::ColorDepth GetColorDepth() const override;
   gfx::YUVColorSpace GetYUVColorSpace() const override;
   gfx::ColorRange GetColorRange() const override;
 
@@ -81,8 +82,6 @@ class WebRenderTextureHost : public TextureHost {
                         PushDisplayItemFlagSet aFlags) override;
 
   bool SupportsExternalCompositing(WebRenderBackend aBackend) override;
-
-  bool NeedsYFlip() const override;
 
   void SetAcquireFence(mozilla::ipc::FileDescriptor&& aFenceFd) override;
 

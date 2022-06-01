@@ -89,6 +89,12 @@ elif toolkit == "windows":
         "nsIWinTaskbar.idl",
     ]
 
+if CONFIG["NS_PRINTING"]:
+    # Needs to go before the XPIDL_MODULE line.
+    XPIDL_SOURCES += [
+        "nsIPrintDialogService.idl",
+    ]
+
 TEST_DIRS += ["tests", "tests/gtest"]
 
 DIRS += ["headless"]
@@ -119,7 +125,6 @@ XPIDL_SOURCES += [
     "nsIPaperMargin.idl",
     "nsIPrinter.idl",
     "nsIPrinterList.idl",
-    "nsIPrintSession.idl",
     "nsIPrintSettings.idl",
     "nsIPrintSettingsService.idl",
     "nsIScreen.idl",
@@ -145,7 +150,6 @@ EXPORTS += [
     "nsBaseScreen.h",
     "nsBaseWidget.h",
     "nsIDeviceContextSpec.h",
-    "nsIPrintDialogService.h",
     "nsIRollupListener.h",
     "nsIWidget.h",
     "nsIWidgetListener.h",
@@ -189,12 +193,14 @@ EXPORTS.mozilla.widget += [
     "InProcessCompositorWidget.h",
     "MediaKeysEventSourceFactory.h",
     "NativeMenu.h",
+    "NativeMenuSupport.h",
     "nsAutoRollup.h",
     "nsXPLookAndFeel.h",
     "PuppetBidiKeyboard.h",
     "RemoteLookAndFeel.h",
     "Screen.h",
     "ScreenManager.h",
+    "TextRecognition.h",
     "ThemeChangeKind.h",
     "WidgetMessageUtils.h",
     "WindowOcclusionState.h",
@@ -221,6 +227,7 @@ UNIFIED_SOURCES += [
     "nsDragServiceProxy.cpp",
     "nsFilePickerProxy.cpp",
     "nsHTMLFormatConverter.cpp",
+    "nsIDeviceContextSpec.cpp",
     "nsIWidgetListener.cpp",
     "nsPrimitiveHelpers.cpp",
     "nsPrintSettingsImpl.cpp",
@@ -241,6 +248,7 @@ UNIFIED_SOURCES += [
     "SharedWidgetUtils.cpp",
     "SwipeTracker.cpp",
     "TextEventDispatcher.cpp",
+    "TextRecognition.cpp",
     "Theme.cpp",
     "ThemeCocoa.cpp",
     "ThemeColors.cpp",
@@ -266,7 +274,6 @@ if CONFIG["NS_PRINTING"]:
         "nsPaperMargin.cpp",
         "nsPrinterBase.cpp",
         "nsPrinterListBase.cpp",
-        "nsPrintSession.cpp",
         "nsPrintSettingsService.cpp",
     ]
 
@@ -290,9 +297,12 @@ if CONFIG["MOZ_INSTRUMENT_EVENT_LOOP"]:
         "WidgetTraceEvent.h",
     ]
 
-EXPORTS.ipc = ["nsGUIEventIPC.h"]
+EXPORTS.ipc = [
+    "nsGUIEventIPC.h",
+    "nsTransferableIPC.h",
+]
 
-if CONFIG["MOZ_X11"]:
+if CONFIG["MOZ_X11"] or CONFIG["MOZ_WAYLAND"]:
     DIRS += ["x11"]
 
 if toolkit in ("cocoa", "windows"):
@@ -339,7 +349,7 @@ if toolkit == "windows":
         "windows/PCompositorWidget.ipdl",
         "windows/PlatformWidgetTypes.ipdlh",
     ]
-elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk" and CONFIG["MOZ_X11"]:
+elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     IPDL_SOURCES = [
         "gtk/PCompositorWidget.ipdl",
         "gtk/PlatformWidgetTypes.ipdlh",

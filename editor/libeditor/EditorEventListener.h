@@ -6,6 +6,8 @@
 #ifndef EditorEventListener_h
 #define EditorEventListener_h
 
+#include "EditorForwards.h"
+
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
 #include "nsCOMPtr.h"
@@ -29,10 +31,7 @@ class nsPresContext;
 #endif
 
 namespace mozilla {
-
-class EditorBase;
 class PresShell;
-
 namespace dom {
 class DragEvent;
 class MouseEvent;
@@ -46,12 +45,16 @@ class EditorEventListener : public nsIDOMEventListener {
 
   virtual void Disconnect();
 
+  /**
+   * DetachedFromEditor() returns true if editor was detached.
+   * Otherwise, false.
+   */
+  [[nodiscard]] bool DetachedFromEditor() const;
+
   NS_DECL_ISUPPORTS
 
   // nsIDOMEventListener
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD HandleEvent(dom::Event* aEvent) override;
-
-  MOZ_CAN_RUN_SCRIPT void SpellCheckIfNeeded();
 
  protected:
   virtual ~EditorEventListener();
@@ -75,8 +78,8 @@ class EditorEventListener : public nsIDOMEventListener {
   }
   MOZ_CAN_RUN_SCRIPT virtual nsresult MouseClick(
       WidgetMouseEvent* aMouseClickEvent);
-  MOZ_CAN_RUN_SCRIPT nsresult Focus(InternalFocusEvent* aFocusEvent);
-  nsresult Blur(InternalFocusEvent* aBlurEvent);
+  MOZ_CAN_RUN_SCRIPT nsresult Focus(const InternalFocusEvent& aFocusEvent);
+  nsresult Blur(const InternalFocusEvent& aBlurEvent);
   MOZ_CAN_RUN_SCRIPT nsresult DragOverOrDrop(dom::DragEvent* aDragEvent);
   nsresult DragLeave(dom::DragEvent* aDragEvent);
 
@@ -93,12 +96,6 @@ class EditorEventListener : public nsIDOMEventListener {
   bool EditorHasFocus();
   bool IsFileControlTextBox();
   bool ShouldHandleNativeKeyBindings(WidgetKeyboardEvent* aKeyboardEvent);
-
-  /**
-   * DetachedFromEditor() returns true if editor was detached.
-   * Otherwise, false.
-   */
-  bool DetachedFromEditor() const;
 
   /**
    * DetachedFromEditorOrDefaultPrevented() returns true if editor was detached

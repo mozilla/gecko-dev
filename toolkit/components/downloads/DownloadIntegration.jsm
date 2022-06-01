@@ -68,11 +68,6 @@ ChromeUtils.defineModuleGetter(
   "NetUtil",
   "resource://gre/modules/NetUtil.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "CloudStorage",
-  "resource://gre/modules/CloudStorage.jsm"
-);
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -265,7 +260,7 @@ var DownloadIntegration = {
 
     this._store = new DownloadStore(
       list,
-      PathUtils.join(await PathUtils.getProfileDir(), "downloads.json")
+      PathUtils.join(PathUtils.profileDir, "downloads.json")
     );
     this._store.onsaveitem = this.shouldPersistDownload.bind(this);
 
@@ -378,14 +373,6 @@ var DownloadIntegration = {
         } catch (ex) {
           Cu.reportError(ex);
           // Either the preference isn't set or the directory cannot be created.
-          directoryPath = await this.getSystemDownloadsDirectory();
-        }
-        break;
-      case 3: // Cloud Storage
-        try {
-          directoryPath = await CloudStorage.getDownloadFolder();
-        } catch (ex) {}
-        if (!directoryPath) {
           directoryPath = await this.getSystemDownloadsDirectory();
         }
         break;
@@ -629,7 +616,7 @@ var DownloadIntegration = {
           );
         } catch (ex) {
           // If writing to the file fails, we ignore the error and continue.
-          if (!(ex instanceof DOMException)) {
+          if (!DOMException.isInstance(ex)) {
             Cu.reportError(ex);
           }
         }
@@ -669,7 +656,7 @@ var DownloadIntegration = {
       // We should report errors with making the permissions less restrictive
       // or marking the file as read-only on Unix and Mac, but this should not
       // prevent the download from completing.
-      if (!(ex instanceof DOMException)) {
+      if (!DOMException.isInstance(ex)) {
         Cu.reportError(ex);
       }
     }
@@ -747,6 +734,17 @@ var DownloadIntegration = {
       fileExtension &&
       fileExtension.toLowerCase() == "exe";
 
+    let isExemptExecutableExtension = false;
+    try {
+      let url = new URL(aDownload.source.url);
+      isExemptExecutableExtension = Services.policies.isExemptExecutableExtension(
+        url.origin,
+        fileExtension?.toLowerCase()
+      );
+    } catch (e) {
+      // Invalid URL, go down the original path.
+    }
+
     // Ask for confirmation if the file is executable, except for .exe on
     // Windows where the operating system will show the prompt based on the
     // security zone.  We do this here, instead of letting the caller handle
@@ -754,9 +752,11 @@ var DownloadIntegration = {
     // first is because of its security nature, so that add-ons cannot forget
     // to do this check.  The second is that the system-level security prompt
     // would be displayed at launch time in any case.
+    // We allow policy to override this behavior for file extensions on specific domains.
     if (
       file.isExecutable() &&
       !isWindowsExe &&
+      !isExemptExecutableExtension &&
       !(await this.confirmLaunchExecutable(file.path))
     ) {
       return;

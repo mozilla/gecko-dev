@@ -34,6 +34,7 @@
 #include "mozilla/dom/BlobURLProtocolHandler.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/PerformanceStorage.h"
+#include "mozilla/dom/PerformanceTiming.h"
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/PreloaderBase.h"
@@ -824,7 +825,8 @@ nsresult FetchDriver::HttpFetch(
     if (mRequest->GetIntegrity().IsEmpty()) {
       MOZ_ASSERT(!FetchUtil::WasmAltDataType.IsEmpty());
       nsCOMPtr<nsICacheInfoChannel> cic = do_QueryInterface(chan);
-      if (cic && StaticPrefs::javascript_options_wasm_caching()) {
+      if (cic && StaticPrefs::javascript_options_wasm_caching() &&
+          !mRequest->SkipWasmCaching()) {
         cic->PreferAlternativeDataType(
             FetchUtil::WasmAltDataType, nsLiteralCString(WASM_CONTENT_TYPE),
             nsICacheInfoChannel::PreferredAlternativeDataDeliveryType::
@@ -1299,10 +1301,14 @@ FetchDriver::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInputStream,
     }
   }
 
+  if (!mResponse) {
+    MOZ_ASSERT(false);
+    return NS_ERROR_UNEXPECTED;
+  }
+
   // Needs to be initialized to 0 because in some cases nsStringInputStream may
   // not write to aRead.
   uint32_t aRead = 0;
-  MOZ_ASSERT(mResponse);
   MOZ_ASSERT(mPipeOutputStream);
 
   // From "Main Fetch" step 19: SRI-part2.
@@ -1543,6 +1549,23 @@ void FetchDriver::SetController(
     const Maybe<ServiceWorkerDescriptor>& aController) {
   MOZ_ASSERT(!mFetchCalled);
   mController = aController;
+}
+
+PerformanceTimingData* FetchDriver::GetPerformanceTimingData(
+    nsAString& aInitiatorType, nsAString& aEntryName) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(mChannel);
+
+  nsCOMPtr<nsITimedChannel> timedChannel = do_QueryInterface(mChannel);
+  if (!timedChannel) {
+    return nullptr;
+  }
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
+  if (!httpChannel) {
+    return nullptr;
+  }
+  return dom::PerformanceTimingData::Create(timedChannel, httpChannel, 0,
+                                            aInitiatorType, aEntryName);
 }
 
 void FetchDriver::SetRequestHeaders(nsIHttpChannel* aChannel,

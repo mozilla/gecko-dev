@@ -15,6 +15,7 @@
 
 #include "common.h"
 #include "DefaultBrowser.h"
+#include "DefaultPDF.h"
 #include "EventLog.h"
 #include "Notification.h"
 #include "Registry.h"
@@ -251,10 +252,12 @@ static bool CheckIfAppRanRecently(bool* aResult) {
 //   Actually performs the default agent task, which currently means generating
 //   and sending our telemetry ping and possibly showing a notification to the
 //   user if their browser has switched from Firefox to Edge with Blink.
-// set-default-browser-user-choice [app-user-model-id] [[.file1] ...]
+// set-default-browser-user-choice [app-user-model-id] [[.file1 ProgIDRoot1]
+// ...]
 //   Set the default browser via the UserChoice registry keys.  Additional
 //   optional file extensions to register can be specified as additional
-//   arguments.
+//   argument pairs: the first element is the file extension, the second element
+//   is the root of a ProgID, which will be suffixed with `-$AUMI`.
 int wmain(int argc, wchar_t** argv) {
   if (argc < 2 || !argv[1]) {
     return E_INVALIDARG;
@@ -387,10 +390,16 @@ int wmain(int argc, wchar_t** argv) {
     }
     DefaultBrowserInfo browserInfo = defaultBrowserResult.unwrap();
 
+    DefaultPdfResult defaultPdfResult = GetDefaultPdfInfo();
+    if (defaultPdfResult.isErr()) {
+      return defaultPdfResult.unwrapErr().AsHResult();
+    }
+    DefaultPdfInfo pdfInfo = defaultPdfResult.unwrap();
+
     NotificationActivities activitiesPerformed =
         MaybeShowNotification(browserInfo, argv[2]);
 
-    return SendDefaultBrowserPing(browserInfo, activitiesPerformed);
+    return SendDefaultBrowserPing(browserInfo, pdfInfo, activitiesPerformed);
   } else if (!wcscmp(argv[1], L"set-default-browser-user-choice")) {
     if (argc < 3 || !argv[2]) {
       return E_INVALIDARG;

@@ -24,6 +24,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/BitSet.h"
+#include "mozilla/OriginTrials.h"
 #include "mozilla/CORSMode.h"
 #include "mozilla/CallState.h"
 #include "mozilla/EventStates.h"
@@ -315,11 +316,9 @@ enum BFCacheStatus {
 }  // namespace dom
 }  // namespace mozilla
 
-namespace mozilla {
-namespace net {
+namespace mozilla::net {
 class ChannelEventQueue;
-}  // namespace net
-}  // namespace mozilla
+}  // namespace mozilla::net
 
 // Must be kept in sync with xpcom/rust/xpcom/src/interfaces/nonidl.rs
 #define NS_IDOCUMENT_IID                             \
@@ -329,14 +328,19 @@ class ChannelEventQueue;
     }                                                \
   }
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class Document;
 class DOMStyleSheetSetList;
 class ResizeObserver;
 class ResizeObserverController;
 class PostMessageEvent;
+struct PageLoadEventTelemetryData {
+  TimeDuration mPageLoadTime;
+  TimeDuration mTotalJSExecutionTime;
+  TimeDuration mResponseStartTime;
+  TimeDuration mFirstContentfulPaintTime;
+};
 
 #define DEPRECATED_OPERATION(_op) e##_op,
 enum class DeprecatedOperations : uint16_t {
@@ -357,26 +361,9 @@ enum class DeprecatedOperations : uint16_t {
 #define NS_DOCUMENT_STATE_LTR_LOCALE NS_DEFINE_EVENT_STATE_MACRO(2)
 // Lightweight-theme status.
 #define NS_DOCUMENT_STATE_LWTHEME NS_DEFINE_EVENT_STATE_MACRO(3)
-#define NS_DOCUMENT_STATE_LWTHEME_BRIGHTTEXT NS_DEFINE_EVENT_STATE_MACRO(4)
-#define NS_DOCUMENT_STATE_LWTHEME_DARKTEXT NS_DEFINE_EVENT_STATE_MACRO(5)
 
 #define NS_DOCUMENT_STATE_ALL_LOCALEDIR_BITS \
   (NS_DOCUMENT_STATE_RTL_LOCALE | NS_DOCUMENT_STATE_LTR_LOCALE)
-#define NS_DOCUMENT_STATE_ALL_LWTHEME_BITS                            \
-  (NS_DOCUMENT_STATE_LWTHEME | NS_DOCUMENT_STATE_LWTHEME_BRIGHTTEXT | \
-   NS_DOCUMENT_STATE_LWTHEME_DARKTEXT)
-
-class DocHeaderData {
- public:
-  DocHeaderData(nsAtom* aField, const nsAString& aData)
-      : mField(aField), mData(aData), mNext(nullptr) {}
-
-  ~DocHeaderData(void) { delete mNext; }
-
-  RefPtr<nsAtom> mField;
-  nsString mData;
-  DocHeaderData* mNext;
-};
 
 class ExternalResourceMap {
   using SubDocEnumFunc = FunctionRef<CallState(Document&)>;
@@ -1918,32 +1905,31 @@ class Document : public nsINode,
   void RequestFullscreenInParentProcess(UniquePtr<FullscreenRequest> aRequest,
                                         bool applyFullScreenDirectly);
 
+  // Pushes aElement onto the top layer
+  void TopLayerPush(Element&);
+
+  // Removes the topmost element for which aPredicate returns true from the top
+  // layer. The removed element, if any, is returned.
+  Element* TopLayerPop(FunctionRef<bool(Element*)> aPredicate);
+
  public:
   // Removes all the elements with fullscreen flag set from the top layer, and
   // clears their fullscreen flag.
   void CleanupFullscreenState();
 
-  // Pushes aElement onto the top layer
-  void TopLayerPush(Element* aElement);
-
-  // Removes the topmost element which have aPredicate return true from the top
-  // layer. The removed element, if any, is returned.
-  Element* TopLayerPop(FunctionRef<bool(Element*)> aPredicateFunc);
-
   // Pops the fullscreen element from the top layer and clears its
-  // fullscreen flag.
-  void UnsetFullscreenElement();
+  // fullscreen flag. Returns whether there was any fullscreen element.
+  bool PopFullscreenElement();
 
   // Pushes the given element into the top of top layer and set fullscreen
   // flag.
-  void SetFullscreenElement(Element* aElement);
+  void SetFullscreenElement(Element&);
 
   // Cancel the dialog element if the document is blocked by the dialog
   void TryCancelDialog();
 
-  void SetBlockedByModalDialog(HTMLDialogElement&);
-
-  void UnsetBlockedByModalDialog(HTMLDialogElement&);
+  void AddModalDialog(HTMLDialogElement&);
+  void RemoveModalDialog(HTMLDialogElement&);
 
   /**
    * Called when a frame in a child process has entered fullscreen or when a
@@ -2784,7 +2770,8 @@ class Document : public nsINode,
    * @param aFireEvents If true, delayed events (focus/blur) will be fired
    *                    asynchronously.
    */
-  void UnsuppressEventHandlingAndFireEvents(bool aFireEvents);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void UnsuppressEventHandlingAndFireEvents(
+      bool aFireEvents);
 
   uint32_t EventHandlingSuppressed() const { return mEventsSuppressed; }
 
@@ -2898,6 +2885,10 @@ class Document : public nsINode,
    * HTMLTemplateElement.
    */
   Document* GetTemplateContentsOwner();
+
+  Document* GetTemplateContentsOwnerIfExists() const {
+    return mTemplateContentsOwner.get();
+  }
 
   /**
    * Returns true if this document is a static clone of a normal document.
@@ -3046,17 +3037,13 @@ class Document : public nsINode,
     SetStateObject(aDocument->mStateObjectContainer);
   }
 
-  enum class DocumentTheme { None, Neutral, Dark, Bright };
-
   /**
-   * Returns DocumentTheme::None if there is no lightweight theme specified,
-   * Dark for a dark theme, Bright for a light theme, and Neutral for any other
-   * theme. This is used to determine the state of the pseudoclasses
-   * :-moz-lwtheme and :-moz-lwtheme-*text.
+   * Returns true if there is a lightweight theme specified. This is used to
+   * determine the state of the :-moz-lwtheme pseudo-class.
    */
-  DocumentTheme GetDocumentLWTheme() const;
+  bool ComputeDocumentLWTheme() const;
   void ResetDocumentLWTheme() {
-    UpdateDocumentStates(NS_DOCUMENT_STATE_ALL_LWTHEME_BITS, true);
+    UpdateDocumentStates(NS_DOCUMENT_STATE_LWTHEME, true);
   }
 
   // Whether we're a media document or not.
@@ -3183,7 +3170,7 @@ class Document : public nsINode,
   // features values changing.
   void NotifyMediaFeatureValuesChanged();
 
-  nsresult GetStateObject(nsIVariant** aResult);
+  nsresult GetStateObject(JS::MutableHandle<JS::Value> aState);
 
   nsDOMNavigationTiming* GetNavigationTiming() const { return mTiming; }
 
@@ -3679,6 +3666,10 @@ class Document : public nsINode,
   // document in the document tree.
   bool HasBeenUserGestureActivated();
 
+  // Reture timestamp of last user gesture in milliseconds relative to
+  // navigation start timestamp.
+  DOMHighResTimeStamp LastUserGestureTimeStamp();
+
   // Return true if there is transient user gesture activation and it hasn't yet
   // timed out.
   bool HasValidTransientUserGestureActivation() const;
@@ -3694,8 +3685,8 @@ class Document : public nsINode,
 
   bool HasScriptsBlockedBySandbox();
 
-  void ReportHasScrollLinkedEffect();
-  bool HasScrollLinkedEffect() const { return mHasScrollLinkedEffect; }
+  void ReportHasScrollLinkedEffect(const TimeStamp& aTimeStamp);
+  bool HasScrollLinkedEffect() const;
 
 #ifdef DEBUG
   void AssertDocGroupMatchesKey() const;
@@ -3910,6 +3901,8 @@ class Document : public nsINode,
  public:
   bool IsThirdPartyForFlashClassifier();
 
+  const OriginTrials& Trials() const { return mTrials; }
+
  private:
   void DoCacheAllKnownLangPrefs();
   void RecomputeLanguageFromCharset();
@@ -3990,6 +3983,8 @@ class Document : public nsINode,
 
   bool ModuleScriptsEnabled();
 
+  bool ImportMapsEnabled();
+
   /**
    * Find the (non-anonymous) content in this document for aFrame. It will
    * be aFrame's content node if that content is in this document and not
@@ -4029,7 +4024,8 @@ class Document : public nsINode,
   static bool AutomaticStorageAccessPermissionCanBeGranted(
       nsIPrincipal* aPrincipal);
 
-  already_AddRefed<Promise> AddCertException(bool aIsTemporary);
+  already_AddRefed<Promise> AddCertException(bool aIsTemporary,
+                                             ErrorResult& aError);
 
   void ReloadWithHttpsOnlyException();
 
@@ -4423,6 +4419,8 @@ class Document : public nsINode,
   NotNull<const Encoding*> mCharacterSet;
   int32_t mCharacterSetSource;
 
+  OriginTrials mTrials;
+
   // This is just a weak pointer; the parent document owns its children.
   Document* mParentDocument;
 
@@ -4502,6 +4500,9 @@ class Document : public nsINode,
   // Last time this document or a one of its sub-documents was focused.  If
   // focus has never occurred then mLastFocusTime.IsNull() will be true.
   TimeStamp mLastFocusTime;
+
+  // Last time we found any scroll linked effect in this document.
+  TimeStamp mLastScrollLinkedEffectDetectionTime;
 
   EventStates mDocumentState{NS_DOCUMENT_STATE_LTR_LOCALE};
 
@@ -4660,9 +4661,6 @@ class Document : public nsINode,
   // True if we have fired the DOMContentLoaded event, or don't plan to fire one
   // (e.g. we're not being parsed at all).
   bool mDidFireDOMContentLoaded : 1;
-
-  // True if ReportHasScrollLinkedEffect() has been called.
-  bool mHasScrollLinkedEffect : 1;
 
   // True if we have frame request callbacks scheduled with the refresh driver.
   // This should generally be updated only via
@@ -4823,9 +4821,6 @@ class Document : public nsINode,
 
   // Currently active onload blockers.
   uint32_t mOnloadBlockCount;
-
-  // Onload blockers which haven't been activated yet.
-  uint32_t mAsyncOnloadBlockCount;
 
   // Tracks if we are currently processing any document.write calls (either
   // implicit or explicit). Note that if a write call writes out something which
@@ -5007,7 +5002,7 @@ class Document : public nsINode,
   nsString mBaseTarget;
 
   nsCOMPtr<nsIStructuredCloneContainer> mStateObjectContainer;
-  nsCOMPtr<nsIVariant> mStateObjectCached;
+  Maybe<JS::Heap<JS::Value>> mStateObjectCached;
 
   uint32_t mInSyncOperationCount;
 
@@ -5101,7 +5096,8 @@ class Document : public nsINode,
 
   PLDHashTable* mSubDocuments;
 
-  DocHeaderData* mHeaderData;
+  class HeaderData;
+  UniquePtr<HeaderData> mHeaderData;
 
   // For determining if this is a flash document which should be
   // blocked based on its principal.
@@ -5298,11 +5294,17 @@ class Document : public nsINode,
   // See SetNotifyFormOrPasswordRemoved and ShouldNotifyFormOrPasswordRemoved.
   bool mShouldNotifyFormOrPasswordRemoved;
 
+  // Record page load telemetry
+  void RecordPageLoadEventTelemetry(
+      PageLoadEventTelemetryData aEventTelemetryData);
+
   // Accumulate JS telemetry collected
-  void AccumulateJSTelemetry();
+  void AccumulateJSTelemetry(
+      PageLoadEventTelemetryData& aEventTelemetryDataOut);
 
   // Accumulate page load metrics
-  void AccumulatePageLoadTelemetry();
+  void AccumulatePageLoadTelemetry(
+      PageLoadEventTelemetryData& aEventTelemetryDataOut);
 
   // The OOP counterpart to nsDocLoader::mChildrenInOnload.
   // Not holding strong refs here since we don't actually use the BBCs.
@@ -5429,8 +5431,7 @@ class MOZ_RAII IgnoreOpensDuringUnload final {
 
 bool IsInActiveTab(Document* aDoc);
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 // XXX These belong somewhere else
 nsresult NS_NewHTMLDocument(mozilla::dom::Document** aInstancePtrResult,

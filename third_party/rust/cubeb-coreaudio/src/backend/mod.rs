@@ -65,8 +65,7 @@ bitflags! {
         const DEV_UNKNOWN           = 0b0000_0000; // Unknown
         const DEV_INPUT             = 0b0000_0001; // Record device like mic
         const DEV_OUTPUT            = 0b0000_0010; // Playback device like speakers
-        const DEV_SYSTEM_DEFAULT    = 0b0000_0100; // System default device
-        const DEV_SELECTED_DEFAULT  = 0b0000_1000; // User selected to use the system default device
+        const DEV_SELECTED_DEFAULT  = 0b0000_0100; // User selected to use the system default device
     }
 }
 
@@ -190,36 +189,22 @@ fn clamp_latency(latency_frames: u32) -> u32 {
     )
 }
 
-fn create_device_info(id: AudioDeviceID, devtype: DeviceType) -> Result<device_info> {
-    assert_ne!(id, kAudioObjectSystemObject);
+fn create_device_info(devid: AudioDeviceID, devtype: DeviceType) -> Option<device_info> {
+    assert_ne!(devid, kAudioObjectSystemObject);
 
-    let mut info = device_info {
-        id,
-        flags: match devtype {
-            DeviceType::INPUT => device_flags::DEV_INPUT,
-            DeviceType::OUTPUT => device_flags::DEV_OUTPUT,
-            _ => panic!("Only accept input or output type"),
-        },
+    let mut flags = match devtype {
+        DeviceType::INPUT => device_flags::DEV_INPUT,
+        DeviceType::OUTPUT => device_flags::DEV_OUTPUT,
+        _ => panic!("Only accept input or output type"),
     };
 
-    let default_device_id = audiounit_get_default_device_id(devtype);
-    if default_device_id == kAudioObjectUnknown {
-        cubeb_log!("Could not find default audio device for {:?}", devtype);
-        return Err(Error::error());
+    if devid == kAudioObjectUnknown {
+        cubeb_log!("Use the system default device");
+        flags |= device_flags::DEV_SELECTED_DEFAULT;
+        get_default_device(devtype).map(|id| device_info { id, flags })
+    } else {
+        Some(device_info { id: devid, flags })
     }
-
-    if id == kAudioObjectUnknown {
-        info.id = default_device_id;
-        cubeb_log!("Creating a default device info.");
-        info.flags |= device_flags::DEV_SELECTED_DEFAULT;
-    }
-
-    if info.id == default_device_id {
-        cubeb_log!("Requesting default system device.");
-        info.flags |= device_flags::DEV_SYSTEM_DEFAULT;
-    }
-
-    Ok(info)
 }
 
 fn create_stream_description(stream_params: &StreamParams) -> Result<AudioStreamBasicDescription> {
@@ -377,10 +362,10 @@ extern "C" fn audiounit_input_callback(
         // Create the AudioBufferList to store input.
         let mut input_buffer_list = AudioBufferList::default();
         input_buffer_list.mBuffers[0].mDataByteSize =
-            stm.core_stream_data.input_desc.mBytesPerFrame * input_frames;
+            stm.core_stream_data.input_dev_desc.mBytesPerFrame * input_frames;
         input_buffer_list.mBuffers[0].mData = ptr::null_mut();
         input_buffer_list.mBuffers[0].mNumberChannels =
-            stm.core_stream_data.input_desc.mChannelsPerFrame;
+            stm.core_stream_data.input_dev_desc.mChannelsPerFrame;
         input_buffer_list.mNumberBuffers = 1;
 
         debug_assert!(!stm.core_stream_data.input_unit.is_null());
@@ -412,10 +397,8 @@ extern "C" fn audiounit_input_callback(
             ErrorHandle::Reinit
         } else {
             assert_eq!(status, NO_ERR);
-            // Copy input data in linear buffer.
-            let elements =
-                (input_frames * stm.core_stream_data.input_desc.mChannelsPerFrame) as usize;
-            input_buffer_manager.push_data(input_buffer_list.mBuffers[0].mData, elements);
+            input_buffer_manager
+                .push_data(input_buffer_list.mBuffers[0].mData, input_frames as usize);
             ErrorHandle::Return(status)
         };
 
@@ -426,8 +409,7 @@ extern "C" fn audiounit_input_callback(
             input_buffer_list.mBuffers[0].mDataByteSize,
             input_buffer_list.mBuffers[0].mNumberChannels,
             input_frames,
-            input_buffer_manager.available_samples()
-                / stm.core_stream_data.input_desc.mChannelsPerFrame as usize
+            input_buffer_manager.available_frames()
         );
 
         // Full Duplex. We'll call data_callback in the AudioUnit output callback.
@@ -437,20 +419,26 @@ extern "C" fn audiounit_input_callback(
 
         // Input only. Call the user callback through resampler.
         // Resampler will deliver input buffer in the correct rate.
-        let mut total_input_frames = (input_buffer_manager.available_samples()
-            / stm.core_stream_data.input_desc.mChannelsPerFrame as usize)
-            as i64;
-        assert!(input_frames as i64 <= total_input_frames);
-        stm.frames_read
-            .fetch_add(total_input_frames as usize, atomic::Ordering::SeqCst);
+        assert!(input_frames as usize <= input_buffer_manager.available_frames());
+        stm.frames_read.fetch_add(
+            input_buffer_manager.available_frames(),
+            atomic::Ordering::SeqCst,
+        );
+        let mut total_input_frames = input_buffer_manager.available_frames() as i64;
         let input_buffer =
-            input_buffer_manager.get_linear_data(input_buffer_manager.available_samples());
+            input_buffer_manager.get_linear_data(input_buffer_manager.available_frames());
         let outframes = stm.core_stream_data.resampler.fill(
             input_buffer,
             &mut total_input_frames,
             ptr::null_mut(),
             0,
         );
+        if outframes < 0 {
+            stm.stopped.store(true, Ordering::SeqCst);
+            stm.core_stream_data.stop_audiounits();
+            stm.notify_state_changed(State::Error);
+            return handle;
+        }
         if outframes < total_input_frames {
             stm.draining.store(true, Ordering::SeqCst);
         }
@@ -495,7 +483,7 @@ fn host_time_to_ns(host_time: u64) -> u64 {
 
 fn compute_output_latency(stm: &AudioUnitStream, audio_output_time: u64, now: u64) -> u32 {
     const NS2S: u64 = 1_000_000_000;
-    let output_hw_rate = stm.core_stream_data.output_hw_rate as u64;
+    let output_hw_rate = stm.core_stream_data.output_dev_desc.mSampleRate as u64;
     let fixed_latency_ns =
         (stm.output_device_latency_frames.load(Ordering::SeqCst) as u64 * NS2S) / output_hw_rate;
     // The total output latency is the timestamp difference + the stream latency + the hardware
@@ -508,7 +496,7 @@ fn compute_output_latency(stm: &AudioUnitStream, audio_output_time: u64, now: u6
 
 fn compute_input_latency(stm: &AudioUnitStream, audio_input_time: u64, now: u64) -> u32 {
     const NS2S: u64 = 1_000_000_000;
-    let input_hw_rate = stm.core_stream_data.input_hw_rate as u64;
+    let input_hw_rate = stm.core_stream_data.input_dev_desc.mSampleRate as u64;
     let fixed_latency_ns =
         (stm.input_device_latency_frames.load(Ordering::SeqCst) as u64 * NS2S) / input_hw_rate;
     // The total input latency is the timestamp difference + the stream latency +
@@ -594,23 +582,22 @@ extern "C" fn audiounit_output_callback(
     // Also get the input buffer if the stream is duplex
     let (input_buffer, mut input_frames) = if !stm.core_stream_data.input_unit.is_null() {
         let input_buffer_manager = stm.core_stream_data.input_buffer_manager.as_mut().unwrap();
-        assert_ne!(stm.core_stream_data.input_desc.mChannelsPerFrame, 0);
-        let input_channels = stm.core_stream_data.input_desc.mChannelsPerFrame as usize;
+        assert_ne!(stm.core_stream_data.input_dev_desc.mChannelsPerFrame, 0);
         // If the output callback came first and this is a duplex stream, we need to
         // fill in some additional silence in the resampler.
         // Otherwise, if we had more than expected callbacks in a row, or we're
         // currently switching, we add some silence as well to compensate for the
         // fact that we're lacking some input data.
         let input_frames_needed = minimum_resampling_input_frames(
-            stm.core_stream_data.input_hw_rate,
+            stm.core_stream_data.input_dev_desc.mSampleRate,
             f64::from(stm.core_stream_data.output_stream_params.rate()),
             output_frames as usize,
         );
-        let buffered_input_frames = input_buffer_manager.available_samples() / input_channels;
+        let buffered_input_frames = input_buffer_manager.available_frames();
         // Else if the input has buffered a lot already because the output started late, we
         // need to trim the input buffer
         if prev_frames_written == 0 && buffered_input_frames > input_frames_needed as usize {
-            input_buffer_manager.trim(input_frames_needed * input_channels);
+            input_buffer_manager.trim(input_frames_needed);
             let popped_frames = buffered_input_frames - input_frames_needed as usize;
             cubeb_log!("Dropping {} frames in input buffer.", popped_frames);
         }
@@ -639,10 +626,9 @@ extern "C" fn audiounit_output_callback(
             buffered_input_frames
         };
 
-        let input_samples_needed = input_frames * input_channels;
         stm.frames_read.fetch_add(input_frames, Ordering::SeqCst);
         (
-            input_buffer_manager.get_linear_data(input_samples_needed),
+            input_buffer_manager.get_linear_data(input_frames),
             input_frames as i64,
         )
     } else {
@@ -706,7 +692,7 @@ extern "C" fn audiounit_output_callback(
     if stm.core_stream_data.mixer.is_some() {
         assert!(
             buffers[0].mDataByteSize
-                >= stm.core_stream_data.output_desc.mBytesPerFrame * output_frames
+                >= stm.core_stream_data.output_dev_desc.mBytesPerFrame * output_frames
         );
         stm.core_stream_data.mixer.as_mut().unwrap().mix(
             output_frames as usize,
@@ -724,81 +710,46 @@ extern "C" fn audiounit_property_listener_callback(
     addresses: *const AudioObjectPropertyAddress,
     user: *mut c_void,
 ) -> OSStatus {
-    use self::coreaudio_sys_utils::sys;
+    assert_ne!(address_count, 0);
 
     let stm = unsafe { &mut *(user as *mut AudioUnitStream) };
     let addrs = unsafe { slice::from_raw_parts(addresses, address_count as usize) };
-    let property_selector = PropertySelector::new(addrs[0].mSelector);
     if stm.switching_device.load(Ordering::SeqCst) {
         cubeb_log!(
-            "Switching is already taking place. Skip Event {} for id={}",
-            property_selector,
+            "Switching is already taking place. Skip Events for device {}",
             id
         );
         return NO_ERR;
     }
     stm.switching_device.store(true, Ordering::SeqCst);
 
+    let mut input_device_dead = false;
+
+    // Log the events
     cubeb_log!(
-        "({:p}) Audio device changed, {} events.",
+        "({:p}) Handle {} device changed events for device {}",
         stm as *const AudioUnitStream,
-        address_count
+        address_count,
+        id
     );
     for (i, addr) in addrs.iter().enumerate() {
-        match addr.mSelector {
-            sys::kAudioHardwarePropertyDefaultOutputDevice => {
-                cubeb_log!(
-                    "Event[{}] - mSelector == kAudioHardwarePropertyDefaultOutputDevice for id={}",
-                    i,
-                    id
-                );
-            }
-            sys::kAudioHardwarePropertyDefaultInputDevice => {
-                cubeb_log!(
-                    "Event[{}] - mSelector == kAudioHardwarePropertyDefaultInputDevice for id={}",
-                    i,
-                    id
-                );
-            }
-            sys::kAudioDevicePropertyDeviceIsAlive => {
-                cubeb_log!(
-                    "Event[{}] - mSelector == kAudioDevicePropertyDeviceIsAlive for id={}",
-                    i,
-                    id
-                );
-                // If this is the default input device ignore the event,
-                // kAudioHardwarePropertyDefaultInputDevice will take care of the switch
-                if stm
-                    .core_stream_data
-                    .input_device
-                    .flags
-                    .contains(device_flags::DEV_SYSTEM_DEFAULT)
-                {
-                    cubeb_log!("It's the default input device, ignore the event");
-                    stm.switching_device.store(false, Ordering::SeqCst);
-                    return NO_ERR;
-                }
-            }
-            sys::kAudioDevicePropertyDataSource => {
-                cubeb_log!(
-                    "Event[{}] - mSelector == kAudioDevicePropertyDataSource for id={}",
-                    i,
-                    id
-                );
-            }
-            _ => {
-                cubeb_log!(
-                    "Event[{}] - mSelector == Unexpected Event id {}, return",
-                    i,
-                    addr.mSelector
-                );
-                stm.switching_device.store(false, Ordering::SeqCst);
-                return NO_ERR;
-            }
+        let p = PropertySelector::from(addr.mSelector);
+        cubeb_log!("Event #{}: {}", i, p);
+        assert_ne!(p, PropertySelector::Unknown);
+        if p == PropertySelector::DeviceIsAlive {
+            input_device_dead = true;
         }
     }
 
-    for _addr in addrs.iter() {
+    // Handle the events
+    if input_device_dead {
+        cubeb_log!("The user-selected input device is dead, enter error state");
+        stm.stopped.store(true, Ordering::SeqCst);
+        stm.core_stream_data.stop_audiounits();
+        stm.close_on_error();
+        return NO_ERR;
+    }
+    {
         let callback = stm.device_changed_callback.lock().unwrap();
         if let Some(device_changed_callback) = *callback {
             unsafe {
@@ -806,13 +757,26 @@ extern "C" fn audiounit_property_listener_callback(
             }
         }
     }
-
     stm.reinit_async();
 
     NO_ERR
 }
 
-fn audiounit_get_default_device_id(devtype: DeviceType) -> AudioObjectID {
+fn get_default_device(devtype: DeviceType) -> Option<AudioObjectID> {
+    match get_default_device_id(devtype) {
+        Err(e) => {
+            cubeb_log!("Cannot get default {:?} device. Error: {}", devtype, e);
+            None
+        }
+        Ok(id) if id == kAudioObjectUnknown => {
+            cubeb_log!("Get an invalid default {:?} device: {}", devtype, id);
+            None
+        }
+        Ok(id) => Some(id),
+    }
+}
+
+fn get_default_device_id(devtype: DeviceType) -> std::result::Result<AudioObjectID, OSStatus> {
     let address = get_property_address(
         match devtype {
             DeviceType::INPUT => Property::HardwareDefaultInputDevice,
@@ -824,13 +788,13 @@ fn audiounit_get_default_device_id(devtype: DeviceType) -> AudioObjectID {
 
     let mut devid: AudioDeviceID = kAudioObjectUnknown;
     let mut size = mem::size_of::<AudioDeviceID>();
-    if audio_object_get_property_data(kAudioObjectSystemObject, &address, &mut size, &mut devid)
-        != NO_ERR
-    {
-        return kAudioObjectUnknown;
+    let status =
+        audio_object_get_property_data(kAudioObjectSystemObject, &address, &mut size, &mut devid);
+    if status == NO_ERR {
+        Ok(devid)
+    } else {
+        Err(status)
     }
-
-    devid
 }
 
 fn audiounit_convert_channel_layout(layout: &AudioChannelLayout) -> Vec<mixer::Channel> {
@@ -970,13 +934,7 @@ fn create_audiounit(device: &device_info) -> Result<AudioUnit> {
         .flags
         .contains(device_flags::DEV_INPUT | device_flags::DEV_OUTPUT));
 
-    let unit = create_default_audiounit(device.flags)?;
-    if device
-        .flags
-        .contains(device_flags::DEV_SYSTEM_DEFAULT | device_flags::DEV_OUTPUT)
-    {
-        return Ok(unit);
-    }
+    let unit = create_blank_audiounit()?;
 
     if device.flags.contains(device_flags::DEV_INPUT) {
         // Input only.
@@ -1066,35 +1024,18 @@ fn set_device_to_audiounit(
     }
 }
 
-fn create_default_audiounit(flags: device_flags) -> Result<AudioUnit> {
-    let desc = get_audiounit_description(flags);
-    create_audiounit_by_description(desc)
-}
-
-fn get_audiounit_description(flags: device_flags) -> AudioComponentDescription {
-    AudioComponentDescription {
+fn create_blank_audiounit() -> Result<AudioUnit> {
+    let desc = AudioComponentDescription {
         componentType: kAudioUnitType_Output,
-        // Use the DefaultOutputUnit for output when no device is specified
-        // so we retain automatic output device switching when the default
-        // changes. Once we have complete support for device notifications
-        // and switching, we can use the AUHAL for everything.
         #[cfg(not(target_os = "ios"))]
-        componentSubType: if flags
-            .contains(device_flags::DEV_SYSTEM_DEFAULT | device_flags::DEV_OUTPUT)
-        {
-            kAudioUnitSubType_DefaultOutput
-        } else {
-            kAudioUnitSubType_HALOutput
-        },
+        componentSubType: kAudioUnitSubType_HALOutput,
         #[cfg(target_os = "ios")]
         componentSubType: kAudioUnitSubType_RemoteIO,
         componentManufacturer: kAudioUnitManufacturer_Apple,
         componentFlags: 0,
         componentFlagsMask: 0,
-    }
-}
+    };
 
-fn create_audiounit_by_description(desc: AudioComponentDescription) -> Result<AudioUnit> {
     let comp = unsafe { AudioComponentFindNext(ptr::null_mut(), &desc) };
     if comp.is_null() {
         cubeb_log!("Could not find matching audio hardware.");
@@ -1299,28 +1240,21 @@ fn convert_uint32_into_string(data: u32) -> CString {
     CString::new(buffer).unwrap_or(empty)
 }
 
-fn audiounit_get_default_datasource_string(devtype: DeviceType) -> Result<CString> {
-    let id = audiounit_get_default_device_id(devtype);
-    if id == kAudioObjectUnknown {
-        return Err(Error::error());
-    }
-    let data = get_device_source(id, devtype).unwrap_or(0);
+fn get_device_source_string(
+    id: AudioDeviceID,
+    devtype: DeviceType,
+) -> std::result::Result<CString, OSStatus> {
+    let data = get_device_source(id, devtype)?;
     Ok(convert_uint32_into_string(data))
 }
 
-fn is_device_a_type_of(devid: AudioObjectID, devtype: DeviceType) -> bool {
-    assert_ne!(devid, kAudioObjectUnknown);
-    get_channel_count(devid, devtype).unwrap_or(0) > 0
-}
-
-fn get_channel_count(devid: AudioObjectID, devtype: DeviceType) -> Result<u32> {
+fn get_channel_count(
+    devid: AudioObjectID,
+    devtype: DeviceType,
+) -> std::result::Result<u32, OSStatus> {
     assert_ne!(devid, kAudioObjectUnknown);
 
-    let buffers = get_device_stream_configuration(devid, devtype).map_err(|e| {
-        cubeb_log!("Cannot get the stream configuration. Error: {}", e);
-        Error::error()
-    })?;
-
+    let buffers = get_device_stream_configuration(devid, devtype)?;
     let mut count = 0;
     for buffer in buffers {
         count += buffer.mNumberChannels;
@@ -1390,17 +1324,16 @@ fn get_fixed_latency(devid: AudioObjectID, devtype: DeviceType) -> u32 {
     device_latency + stream_latency
 }
 
+#[allow(non_upper_case_globals)]
 fn get_device_group_id(
     id: AudioDeviceID,
     devtype: DeviceType,
 ) -> std::result::Result<CString, OSStatus> {
-    const BLTN: u32 = 0x626C_746E; // "bltn" (builtin)
-
     match get_device_transport_type(id, devtype) {
-        Ok(BLTN) => {
+        Ok(kAudioDeviceTransportTypeBuiltIn) => {
             cubeb_log!(
                 "The transport type is {:?}",
-                convert_uint32_into_string(BLTN)
+                convert_uint32_into_string(kAudioDeviceTransportTypeBuiltIn)
             );
             match get_custom_group_id(id, devtype) {
                 Some(id) => return Ok(id),
@@ -1484,7 +1417,10 @@ fn create_cubeb_device_info(
     devid: AudioObjectID,
     devtype: DeviceType,
 ) -> Result<ffi::cubeb_device_info> {
-    let channels = get_channel_count(devid, devtype)?;
+    let channels = get_channel_count(devid, devtype).map_err(|e| {
+        cubeb_log!("Cannot get the channel count. Error: {}", e);
+        Error::error()
+    })?;
     if channels == 0 {
         // Invalid type for this device.
         return Err(Error::error());
@@ -1566,10 +1502,9 @@ fn create_cubeb_device_info(
     };
 
     dev_info.state = ffi::CUBEB_DEVICE_STATE_ENABLED;
-    dev_info.preferred = if devid == audiounit_get_default_device_id(devtype) {
-        ffi::CUBEB_DEVICE_PREF_ALL
-    } else {
-        ffi::CUBEB_DEVICE_PREF_NONE
+    dev_info.preferred = match get_default_device(devtype) {
+        Some(id) if id == devid => ffi::CUBEB_DEVICE_PREF_ALL,
+        _ => ffi::CUBEB_DEVICE_PREF_NONE,
     };
 
     dev_info.format = ffi::CUBEB_DEVICE_FMT_ALL;
@@ -2033,19 +1968,17 @@ impl ContextOps for AudioUnitContext {
     }
     #[cfg(not(target_os = "ios"))]
     fn max_channel_count(&mut self) -> Result<u32> {
-        let device = audiounit_get_default_device_id(DeviceType::OUTPUT);
-        if device == kAudioObjectUnknown {
-            return Err(Error::error());
-        }
-
-        let format = get_device_stream_format(device, DeviceType::OUTPUT).map_err(|e| {
-            cubeb_log!(
-                "Cannot get the stream format of the default output device. Error: {}",
-                e
-            );
+        let device = match get_default_device(DeviceType::OUTPUT) {
+            None => {
+                cubeb_log!("Could not get default output device");
+                return Err(Error::error());
+            }
+            Some(id) => id,
+        };
+        get_channel_count(device, DeviceType::OUTPUT).map_err(|e| {
+            cubeb_log!("Cannot get the channel count. Error: {}", e);
             Error::error()
-        })?;
-        Ok(format.mChannelsPerFrame)
+        })
     }
     #[cfg(target_os = "ios")]
     fn min_latency(&mut self, _params: StreamParams) -> Result<u32> {
@@ -2053,11 +1986,13 @@ impl ContextOps for AudioUnitContext {
     }
     #[cfg(not(target_os = "ios"))]
     fn min_latency(&mut self, _params: StreamParams) -> Result<u32> {
-        let device = audiounit_get_default_device_id(DeviceType::OUTPUT);
-        if device == kAudioObjectUnknown {
-            cubeb_log!("Could not get default output device id.");
-            return Err(Error::error());
-        }
+        let device = match get_default_device(DeviceType::OUTPUT) {
+            None => {
+                cubeb_log!("Could not get default output device");
+                return Err(Error::error());
+            }
+            Some(id) => id,
+        };
 
         let range =
             get_device_buffer_frame_size_range(device, DeviceType::OUTPUT).map_err(|e| {
@@ -2073,10 +2008,13 @@ impl ContextOps for AudioUnitContext {
     }
     #[cfg(not(target_os = "ios"))]
     fn preferred_sample_rate(&mut self) -> Result<u32> {
-        let device = audiounit_get_default_device_id(DeviceType::OUTPUT);
-        if device == kAudioObjectUnknown {
-            return Err(Error::error());
-        }
+        let device = match get_default_device(DeviceType::OUTPUT) {
+            None => {
+                cubeb_log!("Could not get default output device");
+                return Err(Error::error());
+            }
+            Some(id) => id,
+        };
         let rate = get_device_sample_rate(device, DeviceType::OUTPUT).map_err(|e| {
             cubeb_log!(
                 "Cannot get the sample rate of the default output device. Error: {}",
@@ -2164,11 +2102,14 @@ impl ContextOps for AudioUnitContext {
         }
 
         let in_stm_settings = if let Some(params) = input_stream_params {
-            let in_device = create_device_info(input_device as AudioDeviceID, DeviceType::INPUT)
-                .map_err(|e| {
-                    cubeb_log!("Fail to create device info for input.");
-                    e
-                })?;
+            let in_device =
+                match create_device_info(input_device as AudioDeviceID, DeviceType::INPUT) {
+                    None => {
+                        cubeb_log!("Fail to create device info for input");
+                        return Err(Error::error());
+                    }
+                    Some(d) => d,
+                };
             let stm_params = StreamParams::from(unsafe { *params.as_ptr() });
             Some((stm_params, in_device))
         } else {
@@ -2176,11 +2117,14 @@ impl ContextOps for AudioUnitContext {
         };
 
         let out_stm_settings = if let Some(params) = output_stream_params {
-            let out_device = create_device_info(output_device as AudioDeviceID, DeviceType::OUTPUT)
-                .map_err(|e| {
-                    cubeb_log!("Fail to create device info for output.");
-                    e
-                })?;
+            let out_device =
+                match create_device_info(output_device as AudioDeviceID, DeviceType::OUTPUT) {
+                    None => {
+                        cubeb_log!("Fail to create device info for output");
+                        return Err(Error::error());
+                    }
+                    Some(d) => d,
+                };
             let stm_params = StreamParams::from(unsafe { *params.as_ptr() });
             Some((stm_params, out_device))
         } else {
@@ -2267,26 +2211,21 @@ unsafe impl Sync for AudioUnitContext {}
 #[derive(Debug)]
 struct CoreStreamData<'ctx> {
     stm_ptr: *const AudioUnitStream<'ctx>,
-    aggregate_device: AggregateDevice,
+    aggregate_device: Option<AggregateDevice>,
     mixer: Option<Mixer>,
     resampler: Resampler,
     // Stream creation parameters.
     input_stream_params: StreamParams,
     output_stream_params: StreamParams,
-    // Format descriptions.
-    input_desc: AudioStreamBasicDescription,
-    output_desc: AudioStreamBasicDescription,
+    // Device settings for AudioUnits.
+    input_dev_desc: AudioStreamBasicDescription,
+    output_dev_desc: AudioStreamBasicDescription,
     // I/O AudioUnits.
     input_unit: AudioUnit,
     output_unit: AudioUnit,
     // Info of the I/O devices.
     input_device: device_info,
     output_device: device_info,
-    // Sample rates of the I/O devices.
-    input_hw_rate: f64,
-    output_hw_rate: f64,
-    // Channel layout of the output AudioUnit.
-    device_layout: Vec<mixer::Channel>,
     input_buffer_manager: Option<BufferManager>,
     // Listeners indicating what system events are monitored.
     default_input_listener: Option<device_property_listener>,
@@ -2300,7 +2239,7 @@ impl<'ctx> Default for CoreStreamData<'ctx> {
     fn default() -> Self {
         Self {
             stm_ptr: ptr::null(),
-            aggregate_device: AggregateDevice::default(),
+            aggregate_device: None,
             mixer: None,
             resampler: Resampler::default(),
             input_stream_params: StreamParams::from(ffi::cubeb_stream_params {
@@ -2317,15 +2256,12 @@ impl<'ctx> Default for CoreStreamData<'ctx> {
                 layout: ffi::CUBEB_LAYOUT_UNDEFINED,
                 prefs: ffi::CUBEB_STREAM_PREF_NONE,
             }),
-            input_desc: AudioStreamBasicDescription::default(),
-            output_desc: AudioStreamBasicDescription::default(),
+            input_dev_desc: AudioStreamBasicDescription::default(),
+            output_dev_desc: AudioStreamBasicDescription::default(),
             input_unit: ptr::null_mut(),
             output_unit: ptr::null_mut(),
             input_device: device_info::default(),
             output_device: device_info::default(),
-            input_hw_rate: 0_f64,
-            output_hw_rate: 0_f64,
-            device_layout: Vec::new(),
             input_buffer_manager: None,
             default_input_listener: None,
             default_output_listener: None,
@@ -2357,20 +2293,17 @@ impl<'ctx> CoreStreamData<'ctx> {
             .unwrap_or((get_default_sttream_params(), device_info::default()));
         Self {
             stm_ptr: stm,
-            aggregate_device: AggregateDevice::default(),
+            aggregate_device: None,
             mixer: None,
             resampler: Resampler::default(),
             input_stream_params: in_stm_params,
             output_stream_params: out_stm_params,
-            input_desc: AudioStreamBasicDescription::default(),
-            output_desc: AudioStreamBasicDescription::default(),
+            input_dev_desc: AudioStreamBasicDescription::default(),
+            output_dev_desc: AudioStreamBasicDescription::default(),
             input_unit: ptr::null_mut(),
             output_unit: ptr::null_mut(),
             input_device: in_dev,
             output_device: out_dev,
-            input_hw_rate: 0_f64,
-            output_hw_rate: 0_f64,
-            device_layout: Vec::new(),
             input_buffer_manager: None,
             default_input_listener: None,
             default_output_listener: None,
@@ -2414,22 +2347,70 @@ impl<'ctx> CoreStreamData<'ctx> {
     }
 
     fn should_use_aggregate_device(&self) -> bool {
-        // Only using aggregate device when the input is a mic-only device and the output is a
-        // speaker-only device. Otherwise, the mic on the output device may become the main
-        // microphone of the aggregate device for this duplex stream.
+        // It's impossible to create an aggregate device from an aggregate device, and it's
+        // unnecessary to create an aggregate device when opening the same device input/output. In
+        // all other cases, use an aggregate device.
+
+        let mut either_already_aggregate = false;
+        if self.has_input() {
+            either_already_aggregate |=
+                get_device_transport_type(self.input_device.id, DeviceType::INPUT).unwrap_or(0)
+                    == kAudioDeviceTransportTypeAggregate;
+        }
+        if self.has_output() {
+            either_already_aggregate |=
+                get_device_transport_type(self.output_device.id, DeviceType::OUTPUT).unwrap_or(0)
+                    == kAudioDeviceTransportTypeAggregate;
+        }
+        // Only use an aggregate device when the device are different.
         self.has_input()
             && self.has_output()
-            && self.input_device.id != kAudioObjectUnknown
-            && self.input_device.flags.contains(device_flags::DEV_INPUT)
-            && self.output_device.id != kAudioObjectUnknown
-            && self.output_device.flags.contains(device_flags::DEV_OUTPUT)
             && self.input_device.id != self.output_device.id
-            && !is_device_a_type_of(self.input_device.id, DeviceType::OUTPUT)
-            && !is_device_a_type_of(self.output_device.id, DeviceType::INPUT)
+            && !either_already_aggregate
+    }
+
+    fn same_clock_domain(&self) -> bool {
+        // If not setting up a duplex stream, there is only one device,
+        // no reclocking necessary.
+        if !(self.has_input() && self.has_output()) {
+            return true;
+        }
+        let input_domain = match get_clock_domain(self.input_device.id, DeviceType::INPUT) {
+            Ok(clock_domain) => clock_domain,
+            Err(_) => {
+                cubeb_log!("Coudn't determine clock domains for input.");
+                return false;
+            }
+        };
+
+        let output_domain = match get_clock_domain(self.output_device.id, DeviceType::OUTPUT) {
+            Ok(clock_domain) => clock_domain,
+            Err(_) => {
+                cubeb_log!("Coudn't determine clock domains for input.");
+                return false;
+            }
+        };
+        input_domain == output_domain
     }
 
     #[allow(clippy::cognitive_complexity)] // TODO: Refactoring.
     fn setup(&mut self) -> Result<()> {
+        fn get_device_channel_count(id: AudioDeviceID, devtype: DeviceType) -> Option<u32> {
+            get_channel_count(id, devtype)
+                .or_else(|e| {
+                    cubeb_log!("Fail to get channel count for device {}. Error: {}", id, e);
+                    get_device_stream_format(id, devtype).map(|f| f.mChannelsPerFrame)
+                })
+                .map_err(|e| {
+                    cubeb_log!(
+                        "Fail to get channel info from stream format for device {}. Error: {}",
+                        id,
+                        e
+                    );
+                })
+                .ok()
+        }
+
         if self
             .input_stream_params
             .prefs()
@@ -2445,6 +2426,7 @@ impl<'ctx> CoreStreamData<'ctx> {
 
         let mut in_dev_info = self.input_device.clone();
         let mut out_dev_info = self.output_device.clone();
+        let same_clock_domain = self.same_clock_domain();
 
         if self.should_use_aggregate_device() {
             match AggregateDevice::new(in_dev_info.id, out_dev_info.id) {
@@ -2453,11 +2435,11 @@ impl<'ctx> CoreStreamData<'ctx> {
                     out_dev_info.id = device.get_device_id();
                     in_dev_info.flags = device_flags::DEV_INPUT;
                     out_dev_info.flags = device_flags::DEV_OUTPUT;
-                    self.aggregate_device = device;
+                    self.aggregate_device = Some(device);
                     cubeb_log!(
                         "({:p}) Use aggregate device {} for input and output.",
                         self.stm_ptr,
-                        self.aggregate_device.get_device_id()
+                        self.aggregate_device.as_ref().unwrap().get_device_id()
                     );
                 }
                 Err(e) => {
@@ -2469,6 +2451,8 @@ impl<'ctx> CoreStreamData<'ctx> {
                     );
                 }
             }
+        } else {
+            cubeb_log!("Not using an aggregate device");
         }
 
         assert!(!self.stm_ptr.is_null());
@@ -2481,6 +2465,12 @@ impl<'ctx> CoreStreamData<'ctx> {
                 self.stm_ptr,
                 in_dev_info
             );
+
+            let device_channel_count =
+                get_device_channel_count(self.input_device.id, DeviceType::INPUT).unwrap_or(0);
+            if device_channel_count < self.input_stream_params.channels() {
+                return Err(Error::invalid_parameter());
+            }
 
             self.input_unit = create_audiounit(&in_dev_info).map_err(|e| {
                 cubeb_log!("({:p}) AudioUnit creation for input failed.", self.stm_ptr);
@@ -2498,7 +2488,7 @@ impl<'ctx> CoreStreamData<'ctx> {
                 stream.latency_frames
             );
 
-            // Get input device sample rate.
+            // Get input device hardware information.
             let mut input_hw_desc = AudioStreamBasicDescription::default();
             let mut size = mem::size_of::<AudioStreamBasicDescription>();
             let r = audio_unit_get_property(
@@ -2521,17 +2511,32 @@ impl<'ctx> CoreStreamData<'ctx> {
                 self.stm_ptr,
                 input_hw_desc
             );
-            self.input_hw_rate = input_hw_desc.mSampleRate;
+            assert!(input_hw_desc.mChannelsPerFrame >= device_channel_count);
+            // Notice: when we are using aggregate device, the input_hw_desc.mChannelsPerFrame is
+            // the total of all the input channel count of the devices added in the aggregate device.
+            // Due to our aggregate device settings, the data captured by the output device's input
+            // channels will be put in the beginning of the raw data given by the input callback.
 
-            // Set format description according to the input params.
-            self.input_desc =
-                create_stream_description(&self.input_stream_params).map_err(|e| {
-                    cubeb_log!(
-                        "({:p}) Setting format description for input failed.",
-                        self.stm_ptr
-                    );
-                    e
-                })?;
+            // Always request all the input channels of the device, and only pass the correct
+            // channels to the audio callback.
+            let params = unsafe {
+                let mut p = *self.input_stream_params.as_ptr();
+                p.channels = input_hw_desc.mChannelsPerFrame;
+                // Input AudioUnit must be configured with device's sample rate.
+                // we will resample inside input callback.
+                p.rate = input_hw_desc.mSampleRate as _;
+                StreamParams::from(p)
+            };
+
+            self.input_dev_desc = create_stream_description(&params).map_err(|e| {
+                cubeb_log!(
+                    "({:p}) Setting format description for input failed.",
+                    self.stm_ptr
+                );
+                e
+            })?;
+
+            assert_eq!(self.input_dev_desc.mSampleRate, input_hw_desc.mSampleRate);
 
             // Use latency to set buffer size
             assert_ne!(stream.latency_frames, 0);
@@ -2542,16 +2547,12 @@ impl<'ctx> CoreStreamData<'ctx> {
                 return Err(r);
             }
 
-            let mut src_desc = self.input_desc;
-            // Input AudioUnit must be configured with device's sample rate.
-            // we will resample inside input callback.
-            src_desc.mSampleRate = self.input_hw_rate;
             let r = audio_unit_set_property(
                 self.input_unit,
                 kAudioUnitProperty_StreamFormat,
                 kAudioUnitScope_Output,
                 AU_IN_BUS,
-                &src_desc,
+                &self.input_dev_desc,
                 mem::size_of::<AudioStreamBasicDescription>(),
             );
             if r != NO_ERR {
@@ -2579,9 +2580,18 @@ impl<'ctx> CoreStreamData<'ctx> {
                 return Err(Error::error());
             }
 
+            // When we use the aggregate device, the self.input_dev_desc.mChannelsPerFrame is the
+            // total input channel count of all the device added in the aggregate device. However,
+            // we only need the audio data captured by the requested input device, so we need to
+            // ignore some data captured by the audio input of the requested output device (e.g.,
+            // the requested output device is a USB headset with built-in mic), in the beginning of
+            // the raw data taken from input callback.
             self.input_buffer_manager = Some(BufferManager::new(
-                &self.input_stream_params,
-                SAFE_MAX_LATENCY_FRAMES,
+                self.input_stream_params.format(),
+                SAFE_MAX_LATENCY_FRAMES as usize,
+                self.input_dev_desc.mChannelsPerFrame as usize,
+                (self.input_dev_desc.mChannelsPerFrame - device_channel_count) as usize,
+                self.input_stream_params.channels() as usize,
             ));
 
             let aurcbs_in = AURenderCallbackStruct {
@@ -2637,16 +2647,7 @@ impl<'ctx> CoreStreamData<'ctx> {
                 stream.latency_frames
             );
 
-            self.output_desc =
-                create_stream_description(&self.output_stream_params).map_err(|e| {
-                    cubeb_log!(
-                        "({:p}) Could not initialize the audio stream description.",
-                        self.stm_ptr
-                    );
-                    e
-                })?;
-
-            // Get output device sample rate.
+            // Get output device hardware information.
             let mut output_hw_desc = AudioStreamBasicDescription::default();
             let mut size = mem::size_of::<AudioStreamBasicDescription>();
             let r = audio_unit_get_property(
@@ -2669,37 +2670,52 @@ impl<'ctx> CoreStreamData<'ctx> {
                 self.stm_ptr,
                 output_hw_desc
             );
-            self.output_hw_rate = output_hw_desc.mSampleRate;
-            let hw_channels = output_hw_desc.mChannelsPerFrame;
-            if hw_channels == 0 {
+
+            // This has been observed in the wild.
+            if output_hw_desc.mChannelsPerFrame == 0 {
                 cubeb_log!(
-                    "({:p}) Output hardware has no output channel! Bail out.",
+                    "({:p}) Output hardware description channel count is zero",
                     self.stm_ptr
                 );
-                return Err(Error::device_unavailable());
+                return Err(Error::error());
             }
 
-            self.device_layout = audiounit_get_current_channel_layout(self.output_unit);
+            // Notice: when we are using aggregate device, the output_hw_desc.mChannelsPerFrame is
+            // the total of all the output channel count of the devices added in the aggregate device.
+            // Due to our aggregate device settings, the data recorded by the input device's output
+            // channels will be appended at the end of the raw data given by the output callback.
+            let params = unsafe {
+                let mut p = *self.output_stream_params.as_ptr();
+                p.channels = output_hw_desc.mChannelsPerFrame;
+                StreamParams::from(p)
+            };
 
-            self.mixer = if hw_channels != self.output_stream_params.channels()
-                || self.device_layout
-                    != mixer::get_channel_order(self.output_stream_params.layout())
+            self.output_dev_desc = create_stream_description(&params).map_err(|e| {
+                cubeb_log!(
+                    "({:p}) Could not initialize the audio stream description.",
+                    self.stm_ptr
+                );
+                e
+            })?;
+
+            let device_layout = audiounit_get_current_channel_layout(self.output_unit);
+
+            // The mixer will be set up when
+            // 1. using aggregate device whose input device has output channels
+            // 2. output device has more channels than we need
+            // 3. output device has different layout than the one we have
+            self.mixer = if self.output_dev_desc.mChannelsPerFrame
+                != self.output_stream_params.channels()
+                || device_layout != mixer::get_channel_order(self.output_stream_params.layout())
             {
                 cubeb_log!("Incompatible channel layouts detected, setting up remixer");
                 // We will be remixing the data before it reaches the output device.
-                // We need to adjust the number of channels and other
-                // AudioStreamDescription details.
-                self.output_desc.mChannelsPerFrame = hw_channels;
-                self.output_desc.mBytesPerFrame =
-                    (self.output_desc.mBitsPerChannel / 8) * self.output_desc.mChannelsPerFrame;
-                self.output_desc.mBytesPerPacket =
-                    self.output_desc.mBytesPerFrame * self.output_desc.mFramesPerPacket;
                 Some(Mixer::new(
                     self.output_stream_params.format(),
                     self.output_stream_params.channels() as usize,
                     self.output_stream_params.layout(),
-                    hw_channels as usize,
-                    self.device_layout.clone(),
+                    self.output_dev_desc.mChannelsPerFrame as usize,
+                    device_layout,
                 ))
             } else {
                 None
@@ -2710,7 +2726,7 @@ impl<'ctx> CoreStreamData<'ctx> {
                 kAudioUnitProperty_StreamFormat,
                 kAudioUnitScope_Input,
                 AU_OUT_BUS,
-                &self.output_desc,
+                &self.output_dev_desc,
                 mem::size_of::<AudioStreamBasicDescription>(),
             );
             if r != NO_ERR {
@@ -2788,17 +2804,29 @@ impl<'ctx> CoreStreamData<'ctx> {
         };
 
         let resampler_input_params = if self.has_input() {
-            let mut params = unsafe { *(self.input_stream_params.as_ptr()) };
-            params.rate = self.input_hw_rate as u32;
-            Some(params)
+            let mut p = unsafe { *(self.input_stream_params.as_ptr()) };
+            p.rate = self.input_dev_desc.mSampleRate as u32;
+            Some(p)
         } else {
             None
         };
         let resampler_output_params = if self.has_output() {
-            let params = unsafe { *(self.output_stream_params.as_ptr()) };
-            Some(params)
+            Some(unsafe { *(self.output_stream_params.as_ptr()) })
         } else {
             None
+        };
+
+        // Only reclock if there is an input and we couldn't use an aggregate device, and the
+        // devices are not part of the same clock domain.
+        let reclock_policy = if self.aggregate_device.is_none() && !same_clock_domain {
+            cubeb_log!(
+                "Reclocking duplex steam using_aggregate_device={} same_clock_domain={}",
+                self.aggregate_device.is_some(),
+                same_clock_domain
+            );
+            ffi::CUBEB_RESAMPLER_RECLOCK_INPUT
+        } else {
+            ffi::CUBEB_RESAMPLER_RECLOCK_NONE
         };
 
         self.resampler = Resampler::new(
@@ -2808,6 +2836,8 @@ impl<'ctx> CoreStreamData<'ctx> {
             target_sample_rate,
             stream.data_callback,
             stream.user_ptr,
+            ffi::CUBEB_RESAMPLER_QUALITY_DESKTOP,
+            reclock_policy,
         );
 
         if !self.input_unit.is_null() {
@@ -2847,7 +2877,7 @@ impl<'ctx> CoreStreamData<'ctx> {
             ) == NO_ERR
             {
                 stream.output_device_latency_frames.fetch_add(
-                    (unit_s * self.output_desc.mSampleRate) as u32,
+                    (unit_s * self.output_dev_desc.mSampleRate) as u32,
                     Ordering::SeqCst,
                 );
             }
@@ -2869,6 +2899,15 @@ impl<'ctx> CoreStreamData<'ctx> {
             return Err(r);
         }
 
+        // We have either default_input_listener or input_alive_listener.
+        // We cannot have both of them at the same time.
+        assert!(
+            !self.has_input()
+                || ((self.default_input_listener.is_some() != self.input_alive_listener.is_some())
+                    && (self.default_input_listener.is_some()
+                        || self.input_alive_listener.is_some()))
+        );
+
         Ok(())
     }
 
@@ -2887,7 +2926,7 @@ impl<'ctx> CoreStreamData<'ctx> {
 
         self.resampler.destroy();
         self.mixer = None;
-        self.aggregate_device = AggregateDevice::default();
+        self.aggregate_device = None;
 
         if self.uninstall_system_changed_callback().is_err() {
             cubeb_log!(
@@ -2916,9 +2955,8 @@ impl<'ctx> CoreStreamData<'ctx> {
                 "register output_source_listener without unregistering the one in use"
             );
 
-            // This event will notify us when the data source on the same device changes,
-            // for example when the user plugs in a normal (non-usb) headset in the
-            // headphone jack.
+            // Get the notification when the data source on the same device changes,
+            // e.g., when the user plugs in a TRRS headset into the headphone jack.
             self.output_source_listener = Some(device_property_listener::new(
                 self.output_device.id,
                 get_property_address(Property::DeviceSource, DeviceType::OUTPUT),
@@ -2944,7 +2982,8 @@ impl<'ctx> CoreStreamData<'ctx> {
                 "register input_alive_listener without unregistering the one in use"
             );
 
-            // This event will notify us when the data source on the input device changes.
+            // Get the notification when the data source on the same device changes,
+            // e.g., when the user plugs in a TRRS mic into the headphone jack.
             self.input_source_listener = Some(device_property_listener::new(
                 self.input_device.id,
                 get_property_address(Property::DeviceSource, DeviceType::INPUT),
@@ -2957,20 +2996,27 @@ impl<'ctx> CoreStreamData<'ctx> {
                 return Err(Error::error());
             }
 
-            // Event to notify when the input is going away.
-            self.input_alive_listener = Some(device_property_listener::new(
-                self.input_device.id,
-                get_property_address(
-                    Property::DeviceIsAlive,
-                    DeviceType::INPUT | DeviceType::OUTPUT,
-                ),
-                audiounit_property_listener_callback,
-            ));
-            let rv = stm.add_device_listener(self.input_alive_listener.as_ref().unwrap());
-            if rv != NO_ERR {
-                self.input_alive_listener = None;
-                cubeb_log!("AudioObjectAddPropertyListener/input/kAudioDevicePropertyDeviceIsAlive rv={}, device id ={}", rv, self.input_device.id);
-                return Err(Error::error());
+            // Get the notification when the input device is going away
+            // if the input doesn't follow the system default.
+            if !self
+                .input_device
+                .flags
+                .contains(device_flags::DEV_SELECTED_DEFAULT)
+            {
+                self.input_alive_listener = Some(device_property_listener::new(
+                    self.input_device.id,
+                    get_property_address(
+                        Property::DeviceIsAlive,
+                        DeviceType::INPUT | DeviceType::OUTPUT,
+                    ),
+                    audiounit_property_listener_callback,
+                ));
+                let rv = stm.add_device_listener(self.input_alive_listener.as_ref().unwrap());
+                if rv != NO_ERR {
+                    self.input_alive_listener = None;
+                    cubeb_log!("AudioObjectAddPropertyListener/input/kAudioDevicePropertyDeviceIsAlive rv={}, device id ={}", rv, self.input_device.id);
+                    return Err(Error::error());
+                }
             }
         }
 
@@ -2987,10 +3033,9 @@ impl<'ctx> CoreStreamData<'ctx> {
                 "register default_output_listener without unregistering the one in use"
             );
 
-            // This event will notify us when the default audio device changes,
-            // for example when the user plugs in a USB headset and the system chooses it
-            // automatically as the default, or when another device is chosen in the
-            // dropdown list.
+            // Get the notification when the default output audio changes, e.g.,
+            // when the user plugs in a USB headset and the system chooses it automatically as the default,
+            // or when another device is chosen in the dropdown list.
             self.default_output_listener = Some(device_property_listener::new(
                 kAudioObjectSystemObject,
                 get_property_address(
@@ -3007,13 +3052,20 @@ impl<'ctx> CoreStreamData<'ctx> {
             }
         }
 
-        if !self.input_unit.is_null() {
+        if !self.input_unit.is_null()
+            && self
+                .input_device
+                .flags
+                .contains(device_flags::DEV_SELECTED_DEFAULT)
+        {
             assert!(
                 self.default_input_listener.is_none(),
                 "register default_input_listener without unregistering the one in use"
             );
 
-            // This event will notify us when the default input device changes.
+            // Get the notification when the default intput audio changes, e.g.,
+            // when the user plugs in a USB mic and the system chooses it automatically as the default,
+            // or when another device is chosen in the system preference.
             self.default_input_listener = Some(device_property_listener::new(
                 kAudioObjectSystemObject,
                 get_property_address(
@@ -3259,70 +3311,48 @@ impl<'ctx> AudioUnitStream<'ctx> {
             get_volume(self.core_stream_data.output_unit)
         };
 
-        let has_input = !self.core_stream_data.input_unit.is_null();
-        let input_device = if has_input {
-            self.core_stream_data.input_device.id
-        } else {
-            kAudioObjectUnknown
-        };
-
         self.core_stream_data.close();
 
-        // Reinit occurs in one of the following case:
-        // - When the device is not alive any more
-        // - When the default system device change.
-        // - The bluetooth device changed from A2DP to/from HFP/HSP profile
-        // We first attempt to re-use the same device id, should that fail we will
-        // default to the (potentially new) default device.
-        if has_input {
-            self.core_stream_data.input_device = create_device_info(input_device, DeviceType::INPUT).map_err(|e| {
-                cubeb_log!(
-                    "({:p}) Create input device info failed. This can happen when last media device is unplugged",
-                    self.core_stream_data.stm_ptr
-                );
-                e
-            })?;
+        // Use the new default device if this stream was set to follow the output device.
+        if self.core_stream_data.has_output()
+            && self
+                .core_stream_data
+                .output_device
+                .flags
+                .contains(device_flags::DEV_SELECTED_DEFAULT)
+        {
+            self.core_stream_data.output_device =
+                match create_device_info(kAudioObjectUnknown, DeviceType::OUTPUT) {
+                    None => {
+                        cubeb_log!("Fail to create device info for output");
+                        return Err(Error::error());
+                    }
+                    Some(d) => d,
+                };
         }
 
-        // Always use the default output on reinit. This is not correct in every
-        // case but it is sufficient for Firefox and prevent reinit from reporting
-        // failures. It will change soon when reinit mechanism will be updated.
-        self.core_stream_data.output_device = create_device_info(kAudioObjectUnknown, DeviceType::OUTPUT).map_err(|e| {
-            cubeb_log!(
-                "({:p}) Create output device info failed. This can happen when last media device is unplugged",
-                self.core_stream_data.stm_ptr
-            );
+        // Likewise, for the input side
+        if self.core_stream_data.has_input()
+            && self
+                .core_stream_data
+                .input_device
+                .flags
+                .contains(device_flags::DEV_SELECTED_DEFAULT)
+        {
+            self.core_stream_data.input_device =
+                match create_device_info(kAudioObjectUnknown, DeviceType::INPUT) {
+                    None => {
+                        cubeb_log!("Fail to create device info for input");
+                        return Err(Error::error());
+                    }
+                    Some(d) => d,
+                }
+        }
+
+        self.core_stream_data.setup().map_err(|e| {
+            cubeb_log!("({:p}) Setup failed.", self.core_stream_data.stm_ptr);
             e
         })?;
-
-        if let Err(setup_err) = self.core_stream_data.setup() {
-            cubeb_log!(
-                "({:p}) Stream reinit failed.",
-                self.core_stream_data.stm_ptr
-            );
-            self.core_stream_data.close();
-            if has_input && input_device != kAudioObjectUnknown {
-                // Attempt to re-use the same device-id failed, so attempt again with
-                // default input device.
-                self.core_stream_data.input_device = create_device_info(kAudioObjectUnknown, DeviceType::INPUT).map_err(|e| {
-                    cubeb_log!(
-                        "({:p}) Create input device info failed. This can happen when last media device is unplugged",
-                        self.core_stream_data.stm_ptr
-                    );
-                    e
-                })?;
-                self.core_stream_data.setup().map_err(|e| {
-                    cubeb_log!(
-                        "({:p}) Second stream reinit failed.",
-                        self.core_stream_data.stm_ptr
-                    );
-                    e
-                })?;
-            } else {
-                cubeb_log!("({:p}) Setup failed.", self.core_stream_data.stm_ptr);
-                return Err(setup_err);
-            }
-        }
 
         if let Ok(volume) = vol_rv {
             set_volume(self.core_stream_data.output_unit, volume);
@@ -3378,6 +3408,25 @@ impl<'ctx> AudioUnitStream<'ctx> {
             }
             stm_guard.switching_device.store(false, Ordering::SeqCst);
             stm_guard.reinit_pending.store(false, Ordering::SeqCst);
+        });
+    }
+
+    fn close_on_error(&mut self) {
+        let queue = self.queue.clone();
+        let mutexed_stm = Arc::new(Mutex::new(self));
+        let also_mutexed_stm = Arc::clone(&mutexed_stm);
+
+        // Use a different thread, through the queue, to avoid deadlock when calling
+        // Get/SetProperties method from inside notify callback
+        queue.run_async(move || {
+            let mut stm_guard = also_mutexed_stm.lock().unwrap();
+            let stm_ptr = *stm_guard as *const AudioUnitStream;
+
+            stm_guard.core_stream_data.close();
+            stm_guard.notify_state_changed(State::Error);
+            cubeb_log!("({:p}) Close the stream due to an error.", stm_ptr);
+
+            stm_guard.switching_device.store(false, Ordering::SeqCst);
         });
     }
 
@@ -3534,13 +3583,13 @@ impl<'ctx> StreamOps for AudioUnitStream<'ctx> {
     #[cfg(not(target_os = "ios"))]
     fn input_latency(&mut self) -> Result<u32> {
         let user_rate = self.core_stream_data.input_stream_params.rate();
-        let hw_rate = self.core_stream_data.input_hw_rate as u32;
+        let hw_rate = self.core_stream_data.input_dev_desc.mSampleRate as u32;
         let frames = self.total_input_latency_frames.load(Ordering::SeqCst);
         if frames != 0 {
             if hw_rate == user_rate {
                 Ok(frames)
             } else {
-                Ok(frames * (user_rate / hw_rate))
+                Ok((frames * user_rate) / hw_rate)
             }
         } else {
             Err(Error::error())
@@ -3573,18 +3622,41 @@ impl<'ctx> StreamOps for AudioUnitStream<'ctx> {
     }
     #[cfg(not(target_os = "ios"))]
     fn current_device(&mut self) -> Result<&DeviceRef> {
-        let input_name = audiounit_get_default_datasource_string(DeviceType::INPUT);
-        let output_name = audiounit_get_default_datasource_string(DeviceType::OUTPUT);
-        if input_name.is_err() && output_name.is_err() {
-            return Err(Error::error());
-        }
+        let output_device = match get_default_device(DeviceType::OUTPUT) {
+            None => {
+                cubeb_log!("Could not get default output device");
+                return Err(Error::error());
+            }
+            Some(id) => id,
+        };
+        let output_name =
+            get_device_source_string(output_device, DeviceType::OUTPUT).map_err(|e| {
+                cubeb_log!(
+                    "Could not get device source string for default output device. Error: {}",
+                    e
+                );
+                Error::error()
+            })?;
+
+        let input_device = match get_default_device(DeviceType::INPUT) {
+            None => {
+                cubeb_log!("Could not get default input device");
+                return Err(Error::error());
+            }
+            Some(id) => id,
+        };
+        let input_name =
+            get_device_source_string(input_device, DeviceType::INPUT).map_err(|e| {
+                cubeb_log!(
+                    "Could not get device source string for default input device. Error: {}",
+                    e
+                );
+                Error::error()
+            })?;
 
         let mut device: Box<ffi::cubeb_device> = Box::new(ffi::cubeb_device::default());
 
-        let input_name = input_name.unwrap_or_default();
         device.input_name = input_name.into_raw();
-
-        let output_name = output_name.unwrap_or_default();
         device.output_name = output_name.into_raw();
 
         Ok(unsafe { DeviceRef::from_ptr(Box::into_raw(device)) })

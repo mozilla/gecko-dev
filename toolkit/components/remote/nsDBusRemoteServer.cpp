@@ -7,14 +7,11 @@
 
 #include "nsDBusRemoteServer.h"
 
-#include "nsPIDOMWindow.h"
-#include "mozilla/ModuleUtils.h"
-#include "mozilla/Base64.h"
-#include "nsIWidget.h"
-#include "nsAppShellCID.h"
-#include "nsPrintfCString.h"
-
 #include "nsCOMPtr.h"
+#include "mozilla/XREAppData.h"
+#include "mozilla/Base64.h"
+#include "mozilla/ScopeExit.h"
+#include "nsPrintfCString.h"
 
 #include "nsGTKToolkit.h"
 
@@ -41,9 +38,7 @@ static const char* introspect_template =
     "</node>\n";
 
 DBusHandlerResult nsDBusRemoteServer::Introspect(DBusMessage* msg) {
-  DBusMessage* reply;
-
-  reply = dbus_message_new_method_return(msg);
+  DBusMessage* reply = dbus_message_new_method_return(msg);
   if (!reply) return DBUS_HANDLER_RESULT_NEED_MEMORY;
 
   nsAutoCString introspect_xml;
@@ -141,30 +136,26 @@ nsresult nsDBusRemoteServer::Startup(const char* aAppName,
       aProfileName[0] == '\0')
     return NS_ERROR_INVALID_ARG;
 
-  mConnection =
-      already_AddRefed<DBusConnection>(dbus_bus_get(DBUS_BUS_SESSION, nullptr));
+  mConnection = dont_AddRef(dbus_bus_get(DBUS_BUS_SESSION, nullptr));
   if (!mConnection) {
     return NS_ERROR_FAILURE;
   }
+  auto releaseDBusConnection =
+      mozilla::MakeScopeExit([&] { mConnection = nullptr; });
   dbus_connection_set_exit_on_disconnect(mConnection, false);
   dbus_connection_setup_with_g_main(mConnection, nullptr);
 
   mAppName = aAppName;
-  ToLowerCase(mAppName);
+  mozilla::XREAppData::SanitizeNameForDBus(mAppName);
 
-  // D-Bus names can contain only [a-z][A-Z][0-9]_
-  // characters so adjust the profile string properly.
   nsAutoCString profileName;
-  nsresult rv =
-      mozilla::Base64Encode(aProfileName, strlen(aProfileName), profileName);
-  NS_ENSURE_SUCCESS(rv, rv);
+  MOZ_TRY(
+      mozilla::Base64Encode(aProfileName, strlen(aProfileName), profileName));
 
-  profileName.ReplaceChar("+/=-", '_');
-  mAppName.ReplaceChar("+/=-", '_');
+  mozilla::XREAppData::SanitizeNameForDBus(profileName);
 
-  nsAutoCString busName;
-  busName =
-      nsPrintfCString("org.mozilla.%s.%s", mAppName.get(), profileName.get());
+  nsPrintfCString busName("org.mozilla.%s.%s", mAppName.get(),
+                          profileName.get());
   if (busName.Length() > DBUS_MAXIMUM_NAME_LENGTH)
     busName.Truncate(DBUS_MAXIMUM_NAME_LENGTH);
 
@@ -192,7 +183,6 @@ nsresult nsDBusRemoteServer::Startup(const char* aAppName,
   // instance already running.
   if (dbus_error_is_set(&err)) {
     dbus_error_free(&err);
-    mConnection = nullptr;
     return NS_ERROR_FAILURE;
   }
 
@@ -201,15 +191,14 @@ nsresult nsDBusRemoteServer::Startup(const char* aAppName,
       RTLD_DEFAULT, "dbus_validate_path");
   if (!sDBusValidatePathName ||
       !sDBusValidatePathName(mPathName.get(), nullptr)) {
-    mConnection = nullptr;
     return NS_ERROR_FAILURE;
   }
   if (!dbus_connection_register_object_path(mConnection, mPathName.get(),
                                             &remoteHandlersTable, this)) {
-    mConnection = nullptr;
     return NS_ERROR_FAILURE;
   }
 
+  releaseDBusConnection.release();
   return NS_OK;
 }
 

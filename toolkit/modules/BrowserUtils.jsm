@@ -20,6 +20,17 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/Region.jsm"
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "INVALID_SHAREABLE_SCHEMES",
+  "services.sync.engine.tabs.filteredSchemes",
+  "",
+  null,
+  val => {
+    return new Set(val.split("|"));
+  }
+);
+
 function stringPrefToSet(prefVal) {
   return new Set(
     prefVal
@@ -81,6 +92,7 @@ var BrowserUtils = {
     return (
       mimeType.startsWith("text/") ||
       mimeType.endsWith("+xml") ||
+      mimeType.endsWith("+json") ||
       mimeType == "application/x-javascript" ||
       mimeType == "application/javascript" ||
       mimeType == "application/json" ||
@@ -146,16 +158,9 @@ var BrowserUtils = {
     if (url.spec.length > 65535) {
       return false;
     }
-
-    let scheme = url.scheme;
-
-    return !(
-      "about" == scheme ||
-      "resource" == scheme ||
-      "chrome" == scheme ||
-      "blob" == scheme ||
-      "moz-extension" == scheme
-    );
+    // Use the same preference as synced tabs to disable what kind
+    // of tabs we can send to another device
+    return !INVALID_SHAREABLE_SCHEMES.has(url.scheme);
   },
 
   /**
@@ -178,9 +183,9 @@ var BrowserUtils = {
     function isHTMLLink(aNode) {
       // Be consistent with what nsContextMenu.js does.
       return (
-        (aNode instanceof content.HTMLAnchorElement && aNode.href) ||
-        (aNode instanceof content.HTMLAreaElement && aNode.href) ||
-        aNode instanceof content.HTMLLinkElement
+        (content.HTMLAnchorElement.isInstance(aNode) && aNode.href) ||
+        (content.HTMLAreaElement.isInstance(aNode) && aNode.href) ||
+        content.HTMLLinkElement.isInstance(aNode)
       );
     }
 
@@ -312,37 +317,85 @@ var BrowserUtils = {
     return aEvent;
   },
 
-  // Returns true if user should see VPN promos
+  /**
+   * An enumeration of the promotion types that can be passed to shouldShowPromo
+   */
+  PromoType: {
+    DEFAULT: 0, // invalid
+    VPN: 1,
+    RALLY: 2,
+    FOCUS: 3,
+  },
+
+  /**
+   * Should a given promo be shown to the user now, based on things including:
+   *
+   *  current region
+   *  home region
+   *  where ads for a particular thing are allowed
+   *  where they are illegal
+   *  in what regions is the thing being promoted supported?
+   *  whether there is an active enterprise policy
+   *  settings of specific preferences related to this promo
+   *
+   * @param {BrowserUtils.PromoType} promoType - What promo are we checking on?
+   *
+   * @return {boolean} - should we display this promo now or not?
+   */
+  shouldShowPromo(promoType) {
+    switch (promoType) {
+      case this.PromoType.VPN:
+        return this._shouldShowPromoInternal(promoType);
+      case this.PromoType.RALLY:
+        return this._shouldShowRallyPromo();
+      case this.PromoType.FOCUS:
+        return this._shouldShowPromoInternal(promoType);
+      default:
+        throw new Error("Unknown promo type: ", promoType);
+    }
+  },
+
+  /**
+   * @deprecated in favor of shouldShowPromo
+   */
   shouldShowVPNPromo() {
-    const vpnPromoEnabled = Services.prefs.getBoolPref(
-      "browser.vpn_promo.enabled",
-      true
-    );
+    return this._shouldShowPromoInternal(this.PromoType.VPN);
+  },
+
+  _shouldShowPromoInternal(promoType) {
+    const info = PromoInfo[promoType];
+    const promoEnabled = Services.prefs.getBoolPref(info.enabledPref, true);
+
     const homeRegion = Region.home || "";
     const currentRegion = Region.current || "";
-    const supportedRegions = BrowserUtils.vpnSupportedRegions;
-    const inSupportedRegion =
-      supportedRegions.has(currentRegion.toLowerCase()) ||
-      supportedRegions.has(homeRegion.toLowerCase());
-    const avoidAdsCountries = BrowserUtils.vpnDisallowedRegions;
-    // Extra check for countries where VPNs are illegal and compliance is strongly enforced
-    const vpnIllegalCountries = ["cn", "kp", "tm"];
-    vpnIllegalCountries.forEach(country => avoidAdsCountries.add(country));
+
+    let inSupportedRegion = true;
+    if ("supportedRegions" in info.lazyStringSetPrefs) {
+      const supportedRegions =
+        info.lazyStringSetPrefs.supportedRegions.lazyValue;
+      inSupportedRegion =
+        supportedRegions.has(currentRegion.toLowerCase()) ||
+        supportedRegions.has(homeRegion.toLowerCase());
+    }
+
+    const avoidAdsRegions = info.lazyStringSetPrefs.disallowedRegions.lazyValue;
+
     // Don't show promo if there's an active enterprise policy
     const noActivePolicy =
       !Services.policies ||
       Services.policies.status !== Services.policies.ACTIVE;
 
     return (
-      vpnPromoEnabled &&
-      !avoidAdsCountries.has(homeRegion.toLowerCase()) &&
-      !avoidAdsCountries.has(currentRegion.toLowerCase()) &&
+      promoEnabled &&
+      !avoidAdsRegions.has(homeRegion.toLowerCase()) &&
+      !avoidAdsRegions.has(currentRegion.toLowerCase()) &&
+      !info.illegalRegions.includes(homeRegion.toLowerCase()) &&
+      !info.illegalRegions.includes(currentRegion.toLowerCase()) &&
       inSupportedRegion &&
       noActivePolicy
     );
   },
 
-  // Returns true if user should see Rally promos
   shouldShowRallyPromo() {
     const homeRegion = Region.home || "";
     const currentRegion = Region.current || "";
@@ -351,7 +404,65 @@ var BrowserUtils = {
 
     return language.startsWith("en-") && region.toLowerCase() == "us";
   },
+
+  // Return true if Send to Device emails are supported for user's locale
+  sendToDeviceEmailsSupported() {
+    const userLocale = Services.locale.appLocaleAsBCP47.toLowerCase();
+    return this.emailSupportedLocales.has(userLocale);
+  },
 };
+
+/**
+ * A table of promos used by  _shouldShowPromoInternal to decide whether or not to
+ * show. Each entry defines the criteria for a given promo, and also houses lazy
+ * getters for specified string set preferences.
+ */
+let PromoInfo = {
+  [BrowserUtils.PromoType.VPN]: {
+    enabledPref: "browser.vpn_promo.enabled",
+    lazyStringSetPrefs: {
+      supportedRegions: {
+        name: "browser.contentblocking.report.vpn_region",
+        default: "us,ca,nz,sg,my,gb,de,fr",
+      },
+      disallowedRegions: {
+        name: "browser.vpn_promo.disallowed_regions",
+        default: "ae,by,cn,cu,iq,ir,kp,om,ru,sd,sy,tm,tr,ua",
+      },
+    },
+    illegalRegions: ["cn", "kp", "tm"],
+  },
+  [BrowserUtils.PromoType.FOCUS]: {
+    enabledPref: "browser.promo.focus.enabled",
+    lazyStringSetPrefs: {
+      // there are no particular limitions to where it is "supported",
+      // so we leave out the supported pref
+      disallowedRegions: {
+        name: "browser.promo.focus.disallowed_regions",
+        default: "cn",
+      },
+    },
+    illegalRegions: ["cn"],
+  },
+};
+
+/*
+ * Finish setting up the PromoInfo data structure by attaching lazy prefs getters
+ * as specified in the structure. (the object for each pref in the lazyStringSetPrefs
+ * gets a `lazyValue` property attached to it).
+ */
+for (let promo of Object.values(PromoInfo)) {
+  for (let prefObj of Object.values(promo.lazyStringSetPrefs)) {
+    XPCOMUtils.defineLazyPreferenceGetter(
+      prefObj,
+      "lazyValue",
+      prefObj.name,
+      prefObj.default,
+      null,
+      stringPrefToSet
+    );
+  }
+}
 
 XPCOMUtils.defineLazyPreferenceGetter(
   BrowserUtils,
@@ -362,18 +473,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 XPCOMUtils.defineLazyPreferenceGetter(
   BrowserUtils,
-  "vpnSupportedRegions",
-  "browser.contentblocking.report.vpn_regions",
-  "us,ca,nz,sg,my,gb,de,fr",
-  null,
-  stringPrefToSet
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  BrowserUtils,
-  "vpnDisallowedRegions",
-  "browser.vpn_promo.disallowed_regions",
-  "ae,by,cn,cu,iq,ir,kp,om,ru,sd,sy,tm,tr,ua",
+  "emailSupportedLocales",
+  "browser.send_to_device_locales",
+  "de,en-GB,en-US,es-AR,es-CL,es-ES,es-MX,fr,id,pl,pt-BR,ru,zh-TW",
   null,
   stringPrefToSet
 );

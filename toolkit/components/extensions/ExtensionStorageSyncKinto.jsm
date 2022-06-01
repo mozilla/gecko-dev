@@ -16,8 +16,6 @@ var EXPORTED_SYMBOLS = [
   "extensionStorageSync",
 ];
 
-const global = this;
-
 Cu.importGlobalProperties(["atob", "btoa"]);
 
 const { AppConstants } = ChromeUtils.import(
@@ -54,13 +52,18 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   CommonUtils: "resource://services-common/utils.js",
   CryptoUtils: "resource://services-crypto/utils.js",
   ExtensionCommon: "resource://gre/modules/ExtensionCommon.jsm",
-  fxAccounts: "resource://gre/modules/FxAccounts.jsm",
   KintoHttpClient: "resource://services-common/kinto-http-client.js",
   Kinto: "resource://services-common/kinto-offline-client.js",
   FirefoxAdapter: "resource://services-common/kinto-storage-adapter.js",
   Observers: "resource://services-common/observers.js",
   Services: "resource://gre/modules/Services.jsm",
   Utils: "resource://services-sync/util.js",
+});
+
+XPCOMUtils.defineLazyGetter(this, "fxAccounts", () => {
+  return ChromeUtils.import(
+    "resource://gre/modules/FxAccounts.jsm"
+  ).getFxAccountsSingleton();
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -135,9 +138,12 @@ var extensionStorageSync = null;
  * @param {string}    ciphertext The ciphertext over which to compute the HMAC
  * @returns {string} The computed HMAC
  */
-function ciphertextHMAC(keyBundle, id, IV, ciphertext) {
-  const hasher = keyBundle.sha256HMACHasher;
-  return CommonUtils.bytesAsHex(Utils.digestUTF8(id + IV + ciphertext, hasher));
+async function ciphertextHMAC(keyBundle, id, IV, ciphertext) {
+  const hmacKey = CommonUtils.byteStringToArrayBuffer(keyBundle.hmacKey);
+  const encoder = new TextEncoder();
+  const data = encoder.encode(id + IV + ciphertext);
+  const hmac = await CryptoUtils.hmac("SHA-256", hmacKey, data);
+  return CommonUtils.bytesAsHex(CommonUtils.arrayBufferToByteString(hmac));
 }
 
 /**
@@ -176,7 +182,7 @@ class EncryptionRemoteTransformer {
       keyBundle.encryptionKeyB64,
       IV
     );
-    let hmac = ciphertextHMAC(keyBundle, id, IV, ciphertext);
+    let hmac = await ciphertextHMAC(keyBundle, id, IV, ciphertext);
     const encryptedResult = { ciphertext, IV, hmac, id };
 
     // Copy over the _status field, so that we handle concurrency
@@ -202,7 +208,7 @@ class EncryptionRemoteTransformer {
     }
     const keyBundle = await this.getKeys();
     // Authenticate the encrypted blob with the expected HMAC
-    let computedHMAC = ciphertextHMAC(
+    let computedHMAC = await ciphertextHMAC(
       keyBundle,
       record.id,
       record.IV,
@@ -262,7 +268,6 @@ class EncryptionRemoteTransformer {
     return Promise.resolve(record.id);
   }
 }
-global.EncryptionRemoteTransformer = EncryptionRemoteTransformer;
 
 /**
  * An EncryptionRemoteTransformer that provides a keybundle derived
@@ -328,7 +333,6 @@ class KeyRingEncryptionRemoteTransformer extends EncryptionRemoteTransformer {
     );
   }
 }
-global.KeyRingEncryptionRemoteTransformer = KeyRingEncryptionRemoteTransformer;
 
 /**
  * A Promise that centralizes initialization of ExtensionStorageSync.
@@ -647,7 +651,6 @@ class CryptoCollection {
     await collection.clear();
   }
 }
-this.CryptoCollection = CryptoCollection;
 
 /**
  * An EncryptionRemoteTransformer for extension records.
@@ -693,8 +696,6 @@ let CollectionKeyEncryptionRemoteTransformer = class extends EncryptionRemoteTra
       .then(hash => `id-${hash}`);
   }
 };
-
-global.CollectionKeyEncryptionRemoteTransformer = CollectionKeyEncryptionRemoteTransformer;
 
 /**
  * Clean up now that one context is no longer using this extension's collection.
@@ -1320,7 +1321,7 @@ class ExtensionStorageSync {
       records = {};
     } else {
       keys = Object.keys(spec);
-      records = Cu.cloneInto(spec, global);
+      records = Cu.cloneInto(spec, {});
     }
 
     for (let key of keys) {
@@ -1370,7 +1371,6 @@ class ExtensionStorageSync {
     }
   }
 }
-this.ExtensionStorageSync = ExtensionStorageSync;
 extensionStorageSync = new ExtensionStorageSync(_fxaService);
 
 // For test use only.

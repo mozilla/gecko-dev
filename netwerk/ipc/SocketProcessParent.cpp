@@ -13,10 +13,6 @@
 #include "mozilla/Components.h"
 #include "mozilla/dom/MemoryReportRequest.h"
 #include "mozilla/FOGIPC.h"
-#include "mozilla/ipc/FileDescriptorSetParent.h"
-#include "mozilla/ipc/IPCStreamAlloc.h"
-#include "mozilla/ipc/PChildToParentStreamParent.h"
-#include "mozilla/ipc/PParentToChildStreamParent.h"
 #include "mozilla/net/DNSRequestParent.h"
 #include "mozilla/net/ProxyConfigLookupParent.h"
 #include "mozilla/RemoteLazyInputStreamParent.h"
@@ -215,8 +211,9 @@ bool SocketProcessParent::DeallocPWebrtcTCPSocketParent(
 }
 
 already_AddRefed<PDNSRequestParent> SocketProcessParent::AllocPDNSRequestParent(
-    const nsCString& aHost, const nsCString& aTrrServer, const uint16_t& aType,
-    const OriginAttributes& aOriginAttributes, const uint32_t& aFlags) {
+    const nsCString& aHost, const nsCString& aTrrServer, const int32_t& port,
+    const uint16_t& aType, const OriginAttributes& aOriginAttributes,
+    const uint32_t& aFlags) {
   RefPtr<DNSRequestHandler> handler = new DNSRequestHandler();
   RefPtr<DNSRequestParent> actor = new DNSRequestParent(handler);
   return actor.forget();
@@ -224,60 +221,14 @@ already_AddRefed<PDNSRequestParent> SocketProcessParent::AllocPDNSRequestParent(
 
 mozilla::ipc::IPCResult SocketProcessParent::RecvPDNSRequestConstructor(
     PDNSRequestParent* aActor, const nsCString& aHost,
-    const nsCString& aTrrServer, const uint16_t& aType,
+    const nsCString& aTrrServer, const int32_t& port, const uint16_t& aType,
     const OriginAttributes& aOriginAttributes, const uint32_t& aFlags) {
   RefPtr<DNSRequestParent> actor = static_cast<DNSRequestParent*>(aActor);
   RefPtr<DNSRequestHandler> handler =
       actor->GetDNSRequest()->AsDNSRequestHandler();
-  handler->DoAsyncResolve(aHost, aTrrServer, aType, aOriginAttributes, aFlags);
+  handler->DoAsyncResolve(aHost, aTrrServer, port, aType, aOriginAttributes,
+                          aFlags);
   return IPC_OK();
-}
-
-mozilla::ipc::PFileDescriptorSetParent*
-SocketProcessParent::AllocPFileDescriptorSetParent(const FileDescriptor& aFD) {
-  return new mozilla::ipc::FileDescriptorSetParent(aFD);
-}
-
-bool SocketProcessParent::DeallocPFileDescriptorSetParent(
-    PFileDescriptorSetParent* aActor) {
-  delete static_cast<mozilla::ipc::FileDescriptorSetParent*>(aActor);
-  return true;
-}
-
-mozilla::ipc::PChildToParentStreamParent*
-SocketProcessParent::AllocPChildToParentStreamParent() {
-  return mozilla::ipc::AllocPChildToParentStreamParent();
-}
-
-bool SocketProcessParent::DeallocPChildToParentStreamParent(
-    PChildToParentStreamParent* aActor) {
-  delete aActor;
-  return true;
-}
-
-mozilla::ipc::PParentToChildStreamParent*
-SocketProcessParent::AllocPParentToChildStreamParent() {
-  MOZ_CRASH("PParentToChildStreamChild actors should be manually constructed!");
-}
-
-bool SocketProcessParent::DeallocPParentToChildStreamParent(
-    PParentToChildStreamParent* aActor) {
-  delete aActor;
-  return true;
-}
-
-mozilla::ipc::PParentToChildStreamParent*
-SocketProcessParent::SendPParentToChildStreamConstructor(
-    PParentToChildStreamParent* aActor) {
-  MOZ_ASSERT(NS_IsMainThread());
-  return PSocketProcessParent::SendPParentToChildStreamConstructor(aActor);
-}
-
-mozilla::ipc::PFileDescriptorSetParent*
-SocketProcessParent::SendPFileDescriptorSetConstructor(
-    const FileDescriptor& aFD) {
-  MOZ_ASSERT(NS_IsMainThread());
-  return PSocketProcessParent::SendPFileDescriptorSetConstructor(aFD);
 }
 
 mozilla::ipc::IPCResult SocketProcessParent::RecvObserveHttpActivity(
@@ -407,25 +358,6 @@ class DeferredDeleteSocketProcessParent : public Runnable {
 void SocketProcessParent::Destroy(UniquePtr<SocketProcessParent>&& aParent) {
   NS_DispatchToMainThread(
       new DeferredDeleteSocketProcessParent(std::move(aParent)));
-}
-
-already_AddRefed<PRemoteLazyInputStreamParent>
-SocketProcessParent::AllocPRemoteLazyInputStreamParent(const nsID& aID,
-                                                       const uint64_t& aSize) {
-  RefPtr<RemoteLazyInputStreamParent> actor =
-      RemoteLazyInputStreamParent::Create(aID, aSize, this);
-  return actor.forget();
-}
-
-mozilla::ipc::IPCResult
-SocketProcessParent::RecvPRemoteLazyInputStreamConstructor(
-    PRemoteLazyInputStreamParent* aActor, const nsID& aID,
-    const uint64_t& aSize) {
-  if (!static_cast<RemoteLazyInputStreamParent*>(aActor)->HasValidStream()) {
-    return IPC_FAIL_NO_REASON(this);
-  }
-
-  return IPC_OK();
 }
 
 mozilla::ipc::IPCResult SocketProcessParent::RecvODoHServiceActivated(

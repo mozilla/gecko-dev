@@ -22,12 +22,23 @@ class MFTDecoder final {
 
   MFTDecoder();
 
-  // Creates the MFT. First thing to do as part of setup.
+  // Creates the MFT by COM class ID.
   //
   // Params:
-  //  - aMFTClsID the clsid used by CoCreateInstance to instantiate the
-  //    decoder MFT.
-  HRESULT Create(const GUID& aMFTClsID);
+  //  - aCLSID The COM class ID of the decoder.
+  HRESULT Create(const GUID& aCLSID);
+
+  // Creates the MFT by querying a category and media subtype.
+  // First thing to do as part of setup.
+  //
+  // Params:
+  //  - aCategory the GUID of the MFT category to use.
+  //  - aInSubType the GUID of the input MFT media type to use.
+  //    GUID_NULL may be used as a wildcard.
+  //  - aOutSubType the GUID of the output MFT media type to use.
+  //    GUID_NULL may be used as a wildcard.
+  HRESULT Create(const GUID& aCategory, const GUID& aInSubtype,
+                 const GUID& aOutSubtype);
 
   // Sets the input and output media types. Call after Init().
   //
@@ -41,8 +52,14 @@ class MFTDecoder final {
       std::function<HRESULT(IMFMediaType*)>&& aCallback =
           [](IMFMediaType* aOutput) { return S_OK; });
 
-  // Returns the MFT's IMFAttributes object.
+  // Returns the MFT's global IMFAttributes object.
   already_AddRefed<IMFAttributes> GetAttributes();
+
+  // Returns the MFT's IMFAttributes object for an output stream.
+  already_AddRefed<IMFAttributes> GetOutputStreamAttributes();
+
+  // Retrieves the media type being input.
+  HRESULT GetInputMediaType(RefPtr<IMFMediaType>& aMediaType);
 
   // Retrieves the media type being output. This may not be valid until
   //  the first sample is decoded.
@@ -97,6 +114,7 @@ class MFTDecoder final {
   MFT_INPUT_STREAM_INFO mInputStreamInfo;
   MFT_OUTPUT_STREAM_INFO mOutputStreamInfo;
 
+  RefPtr<IMFActivate> mActivate;
   RefPtr<IMFTransform> mDecoder;
 
   RefPtr<IMFMediaType> mOutputType;

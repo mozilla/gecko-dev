@@ -1,4 +1,7 @@
-//! Functions which export shader modules into binary and text formats.
+/*!
+Backend functions that export shader [`Module`](super::Module)s into binary and text formats.
+*/
+#![allow(dead_code)] // can be dead if none of the enabled backends need it
 
 #[cfg(feature = "dot-out")]
 pub mod dot;
@@ -13,25 +16,21 @@ pub mod spv;
 #[cfg(feature = "wgsl-out")]
 pub mod wgsl;
 
-#[allow(dead_code)]
 const COMPONENTS: &[char] = &['x', 'y', 'z', 'w'];
-#[allow(dead_code)]
 const INDENT: &str = "    ";
-#[allow(dead_code)]
 const BAKE_PREFIX: &str = "_e";
 
+type NeedBakeExpressions = crate::FastHashSet<crate::Handle<crate::Expression>>;
+
 #[derive(Clone, Copy)]
-#[allow(dead_code)]
 struct Level(usize);
 
-#[allow(dead_code)]
 impl Level {
-    fn next(&self) -> Self {
+    const fn next(&self) -> Self {
         Level(self.0 + 1)
     }
 }
 
-#[allow(dead_code)]
 impl std::fmt::Display for Level {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         (0..self.0).try_for_each(|_| formatter.write_str(INDENT))
@@ -41,7 +40,6 @@ impl std::fmt::Display for Level {
 /// Stores the current function type (either a regular function or an entry point)
 ///
 /// Also stores data needed to identify it (handle for a regular function or index for an entry point)
-#[allow(dead_code)]
 enum FunctionType {
     /// A regular function and it's handle
     Function(crate::Handle<crate::Function>),
@@ -50,7 +48,6 @@ enum FunctionType {
 }
 
 /// Helper structure that stores data needed when writing the function
-#[allow(dead_code)]
 struct FunctionCtx<'a> {
     /// The current function being written
     ty: FunctionType,
@@ -62,10 +59,9 @@ struct FunctionCtx<'a> {
     named_expressions: &'a crate::NamedExpressions,
 }
 
-#[allow(dead_code)]
 impl<'a> FunctionCtx<'_> {
     /// Helper method that generates a [`NameKey`](crate::proc::NameKey) for a local in the current function
-    fn name_key(&self, local: crate::Handle<crate::LocalVariable>) -> crate::proc::NameKey {
+    const fn name_key(&self, local: crate::Handle<crate::LocalVariable>) -> crate::proc::NameKey {
         match self.ty {
             FunctionType::Function(handle) => crate::proc::NameKey::FunctionLocal(handle, local),
             FunctionType::EntryPoint(idx) => crate::proc::NameKey::EntryPointLocal(idx, local),
@@ -76,7 +72,7 @@ impl<'a> FunctionCtx<'_> {
     ///
     /// # Panics
     /// - If the function arguments are less or equal to `arg`
-    fn argument_key(&self, arg: u32) -> crate::proc::NameKey {
+    const fn argument_key(&self, arg: u32) -> crate::proc::NameKey {
         match self.ty {
             FunctionType::Function(handle) => crate::proc::NameKey::FunctionArgument(handle, arg),
             FunctionType::EntryPoint(ep_index) => {
@@ -128,12 +124,11 @@ impl crate::Expression {
     /// should be considered for baking.
     ///
     /// Note: we have to cache any expressions that depend on the control flow,
-    /// or otherwise they may be moved into a non-uniform contol flow, accidentally.
+    /// or otherwise they may be moved into a non-uniform control flow, accidentally.
     /// See the [module-level documentation][emit] for details.
     ///
     /// [emit]: index.html#expression-evaluation-time
-    #[allow(dead_code)]
-    fn bake_ref_count(&self) -> usize {
+    const fn bake_ref_count(&self) -> usize {
         match *self {
             // accesses are never cached, only loads are
             crate::Expression::Access { .. } | crate::Expression::AccessIndex { .. } => !0,
@@ -154,8 +149,7 @@ impl crate::Expression {
 /// Helper function that returns the string corresponding to the [`BinaryOperator`](crate::BinaryOperator)
 /// # Notes
 /// Used by `glsl-out`, `msl-out`, `wgsl-out`, `hlsl-out`.
-#[allow(dead_code)]
-fn binary_operation_str(op: crate::BinaryOperator) -> &'static str {
+const fn binary_operation_str(op: crate::BinaryOperator) -> &'static str {
     use crate::BinaryOperator as Bo;
     match op {
         Bo::Add => "+",
@@ -182,8 +176,7 @@ fn binary_operation_str(op: crate::BinaryOperator) -> &'static str {
 /// Helper function that returns the string corresponding to the [`VectorSize`](crate::VectorSize)
 /// # Notes
 /// Used by `msl-out`, `wgsl-out`, `hlsl-out`.
-#[allow(dead_code)]
-fn vector_size_str(size: crate::VectorSize) -> &'static str {
+const fn vector_size_str(size: crate::VectorSize) -> &'static str {
     match size {
         crate::VectorSize::Bi => "2",
         crate::VectorSize::Tri => "3",
@@ -192,8 +185,7 @@ fn vector_size_str(size: crate::VectorSize) -> &'static str {
 }
 
 impl crate::TypeInner {
-    #[allow(unused)]
-    fn is_handle(&self) -> bool {
+    const fn is_handle(&self) -> bool {
         match *self {
             crate::TypeInner::Image { .. } | crate::TypeInner::Sampler { .. } => true,
             _ => false,
@@ -202,10 +194,10 @@ impl crate::TypeInner {
 }
 
 impl crate::Statement {
-    /// Returns true if the statement directly terminates the current block
+    /// Returns true if the statement directly terminates the current block.
     ///
-    /// Used to decided wether case blocks require a explicit `break`
-    pub fn is_terminator(&self) -> bool {
+    /// Used to decide whether case blocks require a explicit `break`.
+    pub const fn is_terminator(&self) -> bool {
         match *self {
             crate::Statement::Break
             | crate::Statement::Continue

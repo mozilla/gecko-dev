@@ -7,7 +7,9 @@
 
 /* eslint-disable mozilla/balanced-listeners */
 
-var EXPORTED_SYMBOLS = ["SubprocessImpl"];
+// libc is exported for tests. It is imported into this file lower down,
+// from the shared scripts loaded via loadSubScript.
+var EXPORTED_SYMBOLS = ["SubprocessImpl", "libc"];
 
 const { ctypes } = ChromeUtils.import("resource://gre/modules/ctypes.jsm");
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
@@ -16,16 +18,17 @@ const { BaseProcess, PromiseWorker } = ChromeUtils.import(
   "resource://gre/modules/subprocess/subprocess_common.jsm"
 );
 
-/* import-globals-from subprocess_shared.js */
-/* import-globals-from subprocess_shared_unix.js */
+var obj = {};
 Services.scriptloader.loadSubScript(
   "resource://gre/modules/subprocess/subprocess_shared.js",
-  this
+  obj
 );
 Services.scriptloader.loadSubScript(
   "resource://gre/modules/subprocess/subprocess_shared_unix.js",
-  this
+  obj
 );
+
+const { SubprocessConstants, libc, LIBC } = obj;
 
 class UnixPromiseWorker extends PromiseWorker {
   constructor(...args) {

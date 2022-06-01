@@ -122,16 +122,16 @@ const AVAILABLE_INJECTIONS = [
     customFunc: "noSniffFix",
   },
   {
-    id: "bug1561371",
-    platform: "android",
-    domain: "mail.google.com",
-    bug: "1561371",
+    id: "bug1768243",
+    platform: "desktop",
+    domain: "cloud.google.com",
+    bug: "1768243",
     contentScripts: {
-      matches: ["*://mail.google.com/*"],
+      matches: ["*://cloud.google.com/terms/*"],
       css: [
         {
           file:
-            "injections/css/bug1561371-mail.google.com-allow-horizontal-scrolling.css",
+            "injections/css/bug1768243-cloud.google.com-allow-table-scrolling.css",
         },
       ],
     },
@@ -290,21 +290,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1666771",
-    platform: "desktop",
-    domain: "zillow.com",
-    bug: "1666771",
-    contentScripts: {
-      allFrames: true,
-      matches: ["*://*.zillow.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1666771-zilow-map-overdraw.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1631811",
     platform: "all",
     domain: "datastudio.google.com",
@@ -329,20 +314,6 @@ const AVAILABLE_INJECTIONS = [
       css: [
         {
           file: "injections/css/bug1694470-myvidster.com-content-not-shown.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1704653",
-    platform: "all",
-    domain: "tsky.in",
-    bug: "1704653",
-    contentScripts: {
-      matches: ["*://tsky.in/*"],
-      css: [
-        {
-          file: "injections/css/bug1704653-tsky.in-clear-float.css",
         },
       ],
     },
@@ -418,20 +389,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1719870",
-    platform: "all",
-    domain: "lcbo.com",
-    bug: "1719870",
-    contentScripts: {
-      matches: ["*://*.lcbo.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1719870-lcbo.com-table-clearfix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1722955",
     platform: "android",
     domain: "frontgate.com",
@@ -479,49 +436,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1727080",
-    platform: "android",
-    domain: "nexity.fr",
-    bug: "1727080",
-    contentScripts: {
-      matches: ["*://*.nexity.fr/*"],
-      css: [
-        {
-          file: "injections/css/bug1727080-nexity.fr-svg-size-fix.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1738313",
-    platform: "desktop",
-    domain: "curriculum.gov.bc.ca",
-    bug: "1738313",
-    contentScripts: {
-      matches: ["*://curriculum.gov.bc.ca/*"],
-      css: [
-        {
-          file:
-            "injections/css/bug1738313-curriculum.gov.bc.ca-bootstrap-fix.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1738316",
-    platform: "android",
-    domain: "vuoriclothing.com",
-    bug: "1738316",
-    contentScripts: {
-      matches: ["*://vuoriclothing.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1738316-vuoriclothing.com-flexbox-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1741234",
     platform: "all",
     domain: "patient.alphalabs.ca",
@@ -531,20 +445,6 @@ const AVAILABLE_INJECTIONS = [
       css: [
         {
           file: "injections/css/bug1741234-patient.alphalabs.ca-height-fix.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1740542",
-    platform: "desktop",
-    domain: "tesla.com",
-    bug: "1740542",
-    contentScripts: {
-      matches: ["*://*.tesla.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1740542-tesla.com-footer-links.css",
         },
       ],
     },
@@ -564,20 +464,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1749565",
-    platform: "android",
-    domain: "bonappetit.com",
-    bug: "1749565",
-    contentScripts: {
-      matches: ["*://*.bonappetit.com/recipe/*"],
-      css: [
-        {
-          file: "injections/css/bug1749565-bonappetit.com-grid-width-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1751022",
     platform: "android",
     domain: "chotot.com",
@@ -592,15 +478,16 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1751065",
+    id: "bug1754473",
     platform: "android",
-    domain: "chanel.com",
-    bug: "1751065",
+    domain: "m.intl.taobao.com",
+    bug: "1754473",
     contentScripts: {
-      matches: ["*://*.chanel.com/*"],
-      js: [
+      matches: ["*://m.intl.taobao.com/*"],
+      css: [
         {
-          file: "injections/js/bug1751065-chanel.com-effectiveType-shim.js",
+          file:
+            "injections/css/bug1754473-m.intl.taobao.com-number-arrow-buttons-overlapping-fix.css",
         },
       ],
     },
@@ -616,6 +503,77 @@ const AVAILABLE_INJECTIONS = [
         {
           file:
             "injections/css/bug1748455-reddit.com-gallery-image-width-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1756692",
+    platform: "android",
+    domain: "zee5.com",
+    bug: "1756692",
+    contentScripts: {
+      matches: ["*://www.zee5.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1756692-effectiveType-shim.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1739489",
+    platform: "desktop",
+    domain: "draft.js",
+    bug: "1739489",
+    contentScripts: {
+      matches: ["*://draftjs.org/*", "*://www.facebook.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1739489-draftjs-beforeinput.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1765947",
+    platform: "android",
+    domain: "veniceincoming.com",
+    bug: "1765947",
+    contentScripts: {
+      matches: ["*://veniceincoming.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1765947-veniceincoming.com-left-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug11769762",
+    platform: "all",
+    domain: "tiktok.com",
+    bug: "1769762",
+    contentScripts: {
+      matches: ["https://www.tiktok.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1769762-tiktok.com-plugins-shim.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1770962",
+    platform: "all",
+    domain: "coldwellbankerhomes.com",
+    bug: "1770962",
+    contentScripts: {
+      matches: ["*://*.coldwellbankerhomes.com/*"],
+      css: [
+        {
+          file:
+            "injections/css/bug1770962-coldwellbankerhomes.com-image-height.css",
         },
       ],
     },

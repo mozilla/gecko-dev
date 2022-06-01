@@ -11,13 +11,13 @@
 #include "base/shared_memory.h"
 #include "mozilla/Array.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Omnijar.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/SandboxLaunch.h"
 #include "mozilla/SandboxSettings.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
-#include "mozilla/dom/ContentChild.h"
 #include "nsComponentManagerUtils.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
@@ -32,6 +32,7 @@
 #include "nsIFile.h"
 
 #include "nsNetCID.h"
+#include "prenv.h"
 
 #ifdef ANDROID
 #  include "cutils/properties.h"
@@ -61,14 +62,10 @@ static const int access = SandboxBroker::MAY_ACCESS;
 static const int deny = SandboxBroker::FORCE_DENY;
 }  // namespace
 
-static void AddMesaSysfsPaths(SandboxBroker::Policy* aPolicy) {
-  // Bug 1384178: Mesa driver loader
-  aPolicy->AddPrefix(rdonly, "/sys/dev/char/226:");
-
-  // Bug 1480755: Mesa tries to probe /sys paths in turn
-  aPolicy->AddAncestors("/sys/dev/char/");
-
+static void AddDriPaths(SandboxBroker::Policy* aPolicy) {
   // Bug 1401666: Mesa driver loader part 2: Mesa <= 12 using libudev
+  // Used by libdrm, which is used by Mesa, and
+  // Intel(R) Media Driver for VAAPI.
   if (auto dir = opendir("/dev/dri")) {
     while (auto entry = readdir(dir)) {
       if (entry->d_name[0] != '.') {
@@ -77,35 +74,67 @@ static void AddMesaSysfsPaths(SandboxBroker::Policy* aPolicy) {
         if (stat(devPath.get(), &sb) == 0 && S_ISCHR(sb.st_mode)) {
           // For both the DRI node and its parent (the physical
           // device), allow reading the "uevent" file.
-          static const Array<const char*, 2> kSuffixes = {"", "/device"};
-          for (const auto suffix : kSuffixes) {
-            nsPrintfCString sysPath("/sys/dev/char/%u:%u%s", major(sb.st_rdev),
-                                    minor(sb.st_rdev), suffix);
+          static const Array<nsCString, 2> kSuffixes = {""_ns, "/device"_ns};
+          nsPrintfCString prefix("/sys/dev/char/%u:%u", major(sb.st_rdev),
+                                 minor(sb.st_rdev));
+          for (const auto& suffix : kSuffixes) {
+            nsCString sysPath(prefix + suffix);
+
             // libudev will expand the symlink but not do full
             // canonicalization, so it will leave in ".." path
             // components that will be realpath()ed in the
             // broker.  To match this, allow the canonical paths.
             UniqueFreePtr<char[]> realSysPath(realpath(sysPath.get(), nullptr));
             if (realSysPath) {
-              constexpr const char* kMesaAttrSuffixes[] = {
-                  "config",    "device",           "revision",
-                  "subsystem", "subsystem_device", "subsystem_vendor",
-                  "uevent",    "vendor",
-              };
-              for (const auto& attrSuffix : kMesaAttrSuffixes) {
-                nsPrintfCString attrPath("%s/%s", realSysPath.get(),
-                                         attrSuffix);
-                aPolicy->AddPath(rdonly, attrPath.get());
+              // https://gitlab.freedesktop.org/mesa/drm/-/commit/3988580e4c0f4b3647a0c6af138a3825453fe6e0
+              // > term = strrchr(real_path, '/');
+              // > if (term && strncmp(term, "/virtio", 7) == 0)
+              // >     *term = 0;
+              char* term = strrchr(realSysPath.get(), '/');
+              if (term && strncmp(term, "/virtio", 7) == 0) {
+                *term = 0;
               }
-              // Allowing stat-ing the parent dirs
+
+              aPolicy->AddFilePrefix(rdonly, realSysPath.get(), "");
+              // Allowing stat-ing and readlink-ing the parent dirs
               nsPrintfCString basePath("%s/", realSysPath.get());
-              aPolicy->AddAncestors(basePath.get());
+              aPolicy->AddAncestors(basePath.get(), rdonly);
             }
           }
+
+          // https://gitlab.freedesktop.org/mesa/drm/-/commit/a02900133b32dd4a7d6da4966f455ab337e80dfc
+          // > strncpy(path, device_path, PATH_MAX);
+          // > strncat(path, "/subsystem", PATH_MAX);
+          // >
+          // > if (readlink(path, link, PATH_MAX) < 0)
+          // >     return -errno;
+          nsCString subsystemPath(prefix + "/device/subsystem"_ns);
+          aPolicy->AddPath(rdonly, subsystemPath.get());
+          aPolicy->AddAncestors(subsystemPath.get(), rdonly);
         }
       }
     }
     closedir(dir);
+  }
+
+  // https://gitlab.freedesktop.org/mesa/mesa/-/commit/04bdbbcab3c4862bf3f54ce60fcc1d2007776f80
+  aPolicy->AddPath(rdonly, "/usr/share/drirc.d");
+
+  // https://dri.freedesktop.org/wiki/ConfigurationInfrastructure/
+  aPolicy->AddPath(rdonly, "/etc/drirc");
+
+  nsCOMPtr<nsIFile> drirc;
+  nsresult rv =
+      GetSpecialSystemDirectory(Unix_HomeDirectory, getter_AddRefs(drirc));
+  if (NS_SUCCEEDED(rv)) {
+    rv = drirc->AppendNative(".drirc"_ns);
+    if (NS_SUCCEEDED(rv)) {
+      nsAutoCString tmpPath;
+      rv = drirc->GetNativePath(tmpPath);
+      if (NS_SUCCEEDED(rv)) {
+        aPolicy->AddPath(rdonly, tmpPath.get());
+      }
+    }
   }
 }
 
@@ -298,6 +327,64 @@ static void AddDynamicPathList(SandboxBroker::Policy* policy,
   }
 }
 
+static void AddX11Dependencies(SandboxBroker::Policy* policy) {
+  // Allow Primus to contact the Bumblebee daemon to manage GPU
+  // switching on NVIDIA Optimus systems.
+  const char* bumblebeeSocket = PR_GetEnv("BUMBLEBEE_SOCKET");
+  if (bumblebeeSocket == nullptr) {
+    bumblebeeSocket = "/var/run/bumblebee.socket";
+  }
+  policy->AddPath(SandboxBroker::MAY_CONNECT, bumblebeeSocket);
+
+#if defined(MOZ_WIDGET_GTK) && defined(MOZ_X11)
+  // Allow local X11 connections, for several purposes:
+  //
+  // * for content processes to use WebGL when the browser is in headless
+  //   mode, by opening the X display if/when needed
+  //
+  // * if Primus or VirtualGL is used, to contact the secondary X server
+  static const bool kIsX11 =
+      !mozilla::widget::GdkIsWaylandDisplay() && PR_GetEnv("DISPLAY");
+  if (kIsX11) {
+    policy->AddPrefix(SandboxBroker::MAY_CONNECT, "/tmp/.X11-unix/X");
+    if (auto* const xauth = PR_GetEnv("XAUTHORITY")) {
+      policy->AddPath(rdonly, xauth);
+    } else if (auto* const home = PR_GetEnv("HOME")) {
+      // This follows the logic in libXau: append "/.Xauthority",
+      // even if $HOME ends in a slash, except in the special case
+      // where HOME=/ because POSIX allows implementations to treat
+      // an initial double slash specially.
+      nsAutoCString xauth(home);
+      if (xauth != "/"_ns) {
+        xauth.Append('/');
+      }
+      xauth.AppendLiteral(".Xauthority");
+      policy->AddPath(rdonly, xauth.get());
+    }
+  }
+#endif
+}
+
+static void AddGLDependencies(SandboxBroker::Policy* policy) {
+  // Devices
+  policy->AddDir(rdwr, "/dev/dri");
+  policy->AddFilePrefix(rdwr, "/dev", "nvidia");
+
+  // Hardware info
+  AddDriPaths(policy);
+
+  // /etc and /usr/share (glvnd, libdrm, drirc, ...?)
+  policy->AddDir(rdonly, "/etc");
+  policy->AddDir(rdonly, "/usr/share");
+  policy->AddDir(rdonly, "/usr/local/share");
+
+  // Note: This function doesn't do anything about Mesa's shader
+  // cache, because the details can vary by process type, including
+  // whether caching is enabled.
+
+  AddX11Dependencies(policy);
+}
+
 void SandboxBrokerPolicyFactory::InitContentPolicy() {
   const bool headless =
       StaticPrefs::security_sandbox_content_headless_AtStartup();
@@ -306,17 +393,13 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
   // are cached over the lifetime of the factory.
   SandboxBroker::Policy* policy = new SandboxBroker::Policy;
   // Write permssions
-  //
-  if (!headless) {
-    // Bug 1308851: NVIDIA proprietary driver when using WebGL
-    policy->AddFilePrefix(rdwr, "/dev", "nvidia");
-
-    // Bug 1312678: Mesa with DRI when using WebGL
-    policy->AddDir(rdwr, "/dev/dri");
-  }
 
   // Bug 1575985: WASM library sandbox needs RW access to /dev/null
   policy->AddPath(rdwr, "/dev/null");
+
+  if (!headless) {
+    AddGLDependencies(policy);
+  }
 
   // Read permissions
   policy->AddPath(rdonly, "/dev/urandom");
@@ -343,9 +426,6 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
   policy->AddDir(rdonly, "/run/host/local-fonts");
   policy->AddDir(rdonly, "/var/cache/fontconfig");
 
-  if (!headless) {
-    AddMesaSysfsPaths(policy);
-  }
   AddLdconfigPaths(policy);
   AddLdLibraryEnvPaths(policy);
 
@@ -542,41 +622,7 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
 #endif
 
   if (!headless) {
-    // Allow Primus to contact the Bumblebee daemon to manage GPU
-    // switching on NVIDIA Optimus systems.
-    const char* bumblebeeSocket = PR_GetEnv("BUMBLEBEE_SOCKET");
-    if (bumblebeeSocket == nullptr) {
-      bumblebeeSocket = "/var/run/bumblebee.socket";
-    }
-    policy->AddPath(SandboxBroker::MAY_CONNECT, bumblebeeSocket);
-
-#if defined(MOZ_WIDGET_GTK) && defined(MOZ_X11)
-    // Allow local X11 connections, for several purposes:
-    //
-    // * for content processes to use WebGL when the browser is in headless
-    //   mode, by opening the X display if/when needed
-    //
-    // * if Primus or VirtualGL is used, to contact the secondary X server
-    static const bool kIsX11 =
-        !mozilla::widget::GdkIsWaylandDisplay() && PR_GetEnv("DISPLAY");
-    if (kIsX11) {
-      policy->AddPrefix(SandboxBroker::MAY_CONNECT, "/tmp/.X11-unix/X");
-      if (auto* const xauth = PR_GetEnv("XAUTHORITY")) {
-        policy->AddPath(rdonly, xauth);
-      } else if (auto* const home = PR_GetEnv("HOME")) {
-        // This follows the logic in libXau: append "/.Xauthority",
-        // even if $HOME ends in a slash, except in the special case
-        // where HOME=/ because POSIX allows implementations to treat
-        // an initial double slash specially.
-        nsAutoCString xauth(home);
-        if (xauth != "/"_ns) {
-          xauth.Append('/');
-        }
-        xauth.AppendLiteral(".Xauthority");
-        policy->AddPath(rdonly, xauth.get());
-      }
-    }
-#endif
+    AddX11Dependencies(policy);
   }
 
   // Bug 1732580: when packaged as a strictly confined snap, may need
@@ -700,8 +746,6 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
   if (!headless && HasAtiDrivers()) {
     policy->AddDir(rdonly, "/opt/amdgpu/share");
     policy->AddPath(rdonly, "/sys/module/amdgpu");
-    // AMDGPU-PRO's MESA version likes to readlink a lot of things here
-    policy->AddDir(access, "/sys");
   }
 
   mCommonContentPolicy.reset(policy);
@@ -780,6 +824,8 @@ SandboxBrokerPolicyFactory::GetRDDPolicy(int aPid) {
   policy->AddDir(rdonly, "/usr/lib");
   policy->AddDir(rdonly, "/usr/lib32");
   policy->AddDir(rdonly, "/usr/lib64");
+  policy->AddDir(rdonly, "/run/opengl-driver/lib");
+  policy->AddDir(rdonly, "/nix/store");
 
   // Bug 1647957: memory reporting.
   AddMemoryReporting(policy.get(), aPid);
@@ -809,9 +855,8 @@ SandboxBrokerPolicyFactory::GetRDDPolicy(int aPid) {
     }
   }
 
-  // VA-API needs DRI and GPU detection
-  policy->AddDir(rdwr, "/dev/dri");
-  AddMesaSysfsPaths(policy.get());
+  // VA-API needs GPU access and GL context creation
+  AddGLDependencies(policy.get());
 
   // FFmpeg and GPU drivers may need general-case library loading
   AddLdconfigPaths(policy.get());

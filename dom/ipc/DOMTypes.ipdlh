@@ -13,10 +13,10 @@ include "mozilla/dom/ReferrerInfoUtils.h";
 include "mozilla/dom/TabMessageUtils.h";
 include "mozilla/ipc/URIUtils.h";
 include "mozilla/layers/LayersMessageUtils.h";
+include "mozilla/net/ClassOfService.h";
 
 include IPCBlob;
 include IPCStream;
-include protocol PRemoteLazyInputStream;
 include ProtocolTypes;
 
 using struct mozilla::void_t from "mozilla/ipc/IPCCore.h";
@@ -26,6 +26,9 @@ using struct mozilla::void_t from "mozilla/ipc/IPCCore.h";
 
 using struct mozilla::dom::LoadingSessionHistoryInfo
   from "mozilla/dom/SessionHistoryEntry.h";
+
+using mozilla::net::ClassOfService from "mozilla/net/ClassOfService.h";
+
 
 using hal::ScreenOrientation from "mozilla/HalIPCUtils.h";
 using LayoutDeviceIntRect from "Units.h";
@@ -39,6 +42,7 @@ using mozilla::LayoutDeviceIntPoint from "Units.h";
 using nsSizeMode from "nsIWidgetListener.h";
 using ScrollbarPreference from "mozilla/ScrollbarPreferences.h";
 using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
+using TransferableDataType from "ipc/nsTransferableIPC.h";
 [RefCounted] using class nsIPrincipal from "nsIPrincipal.h";
 using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingContext.h";
 [RefCounted] using class nsIURI from "nsIURI.h";
@@ -48,6 +52,7 @@ using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingCont
 [RefCounted] using class nsIVariant from "nsIVariant.h";
 using mozilla::TimeStamp from "mozilla/TimeStamp.h";
 [RefCounted] using class mozilla::dom::BrowsingContext from "mozilla/dom/BrowsingContext.h";
+[RefCounted] using class mozilla::RemoteLazyInputStream from "mozilla/RemoteLazyInputStream.h";
 
 namespace mozilla {
 namespace dom {
@@ -114,9 +119,10 @@ struct IPCDataTransferImage
 struct IPCDataTransferItem
 {
   nsCString flavor;
-  // The image details are only used when transferring images.
-  IPCDataTransferImage imageDetails;
   IPCDataTransferData data;
+  TransferableDataType dataType;
+  // The image details are only used when transferring images.
+  IPCDataTransferImage? imageDetails;
 };
 
 struct IPCDataTransfer
@@ -131,11 +137,13 @@ struct ScreenDetails {
   DesktopIntRect availRectDisplayPix;
   int32_t pixelDepth;
   int32_t colorDepth;
+  uint32_t refreshRate; // In Hz, or 0 if not known.
   DesktopToLayoutDeviceScale contentsScaleFactor;
   CSSToLayoutDeviceScale defaultCSSScaleFactor;
   float dpi;
   ScreenOrientation orientation;
   uint16_t orientationAngle;
+  bool isPseudoDisplay;
 };
 
 struct DimensionInfo
@@ -334,12 +342,13 @@ struct TimedChannelInfo
 struct ReplacementChannelConfigInit
 {
   uint32_t redirectFlags;
-  uint32_t classOfService;
+  ClassOfService classOfService;
   bool? privateBrowsing;
   nsCString? method;
   nsIReferrerInfo referrerInfo;
   TimedChannelInfo? timedChannelInfo;
-  nullable PRemoteLazyInputStream uploadStream;
+  RemoteLazyInputStream uploadStream;
+  uint64_t uploadStreamLength;
   bool uploadStreamHasHeaders;
   nsCString? contentType;
   nsCString? contentLength;

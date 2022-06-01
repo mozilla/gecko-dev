@@ -826,7 +826,7 @@ static bool PropertyIsEnumerable(JSContext* cx, HandleObject obj, HandleId id,
 // Returns true if properties not named "__proto__" can be added to |obj|
 // with a fast path that doesn't check any properties on the prototype chain.
 static bool CanAddNewPropertyExcludingProtoFast(PlainObject* obj) {
-  if (!obj->isExtensible()) {
+  if (!obj->isExtensible() || obj->isUsedAsPrototype()) {
     return false;
   }
 
@@ -2268,12 +2268,6 @@ static bool FinishObjectClassInit(JSContext* cx, JS::HandleObject ctor,
     }
   }
 #endif
-
-  Rooted<NativeObject*> holder(cx,
-                               GlobalObject::getIntrinsicsHolder(cx, global));
-  if (!holder) {
-    return false;
-  }
 
   /*
    * The global object should have |Object.prototype| as its [[Prototype]].

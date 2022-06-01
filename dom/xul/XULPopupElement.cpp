@@ -18,8 +18,7 @@
 #include "mozilla/dom/XULPopupElement.h"
 #include "mozilla/dom/XULPopupElementBinding.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 nsXULElement* NS_NewXULPopupElement(
     already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo) {
@@ -237,22 +236,12 @@ nsINode* XULPopupElement::GetTriggerNode() const {
   return nsMenuPopupFrame::GetTriggerContent(menuPopupFrame);
 }
 
-bool XULPopupElement::IsAnchored() const {
-  nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetPrimaryFrame());
-  if (!menuPopupFrame) {
-    return false;
-  }
-
-  return menuPopupFrame->IsAnchored();
-}
-
 // FIXME(emilio): should probably be renamed to GetAnchorElement?
 Element* XULPopupElement::GetAnchorNode() const {
   nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetPrimaryFrame());
   if (!menuPopupFrame) {
     return nullptr;
   }
-
   return Element::FromNodeOrNull(menuPopupFrame->GetAnchor());
 }
 
@@ -299,5 +288,4 @@ void XULPopupElement::SetConstraintRect(dom::DOMRectReadOnly& aRect) {
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

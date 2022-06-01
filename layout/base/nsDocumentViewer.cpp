@@ -141,6 +141,7 @@ class PrintPreviewResultInfo;
 using namespace mozilla;
 using namespace mozilla::dom;
 
+using mozilla::layout::RemotePrintJobChild;
 using PrintPreviewResolver =
     std::function<void(const mozilla::dom::PrintPreviewResultInfo&)>;
 
@@ -2586,9 +2587,10 @@ nsDocumentViewer::SetReloadEncodingAndSource(const Encoding* aEncoding,
                                              int32_t aSource) {
   MOZ_ASSERT(
       aSource == kCharsetUninitialized ||
-      (aSource >= kCharsetFromFinalAutoDetectionWouldHaveBeenUTF8 &&
+      (aSource >=
+           kCharsetFromFinalAutoDetectionWouldHaveBeenUTF8InitialWasASCII &&
        aSource <=
-           kCharsetFromFinalAutoDetectionWouldNotHaveBeenUTF8DependedOnTLD) ||
+           kCharsetFromFinalAutoDetectionWouldNotHaveBeenUTF8DependedOnTLDInitialWasASCII) ||
       aSource == kCharsetFromFinalUserForcedAutoDetection);
   mReloadEncoding = aEncoding;
   mReloadEncodingSource = aSource;
@@ -2738,10 +2740,8 @@ already_AddRefed<nsINode> nsDocumentViewer::GetPopupLinkNode() {
 
   // find out if we have a link in our ancestry
   while (node) {
-    nsCOMPtr<nsIContent> content(do_QueryInterface(node));
-    if (content) {
-      nsCOMPtr<nsIURI> hrefURI = content->GetHrefURI();
-      if (hrefURI) {
+    if (const auto* element = Element::FromNode(*node)) {
+      if (element->IsLink()) {
         return node.forget();
       }
     }
@@ -2824,7 +2824,7 @@ NS_IMETHODIMP nsDocumentViewer::GetInImage(bool* aInImage) {
 }
 
 NS_IMETHODIMP nsDocViewerSelectionListener::NotifySelectionChanged(
-    Document*, Selection*, int16_t aReason) {
+    Document*, Selection*, int16_t aReason, int32_t aAmount) {
   if (!mDocViewer) {
     return NS_OK;
   }
@@ -2899,6 +2899,7 @@ nsresult nsDocViewerFocusListener::HandleEvent(Event* aEvent) {
 
 NS_IMETHODIMP
 nsDocumentViewer::Print(nsIPrintSettings* aPrintSettings,
+                        RemotePrintJobChild* aRemotePrintJob,
                         nsIWebProgressListener* aWebProgressListener) {
   if (NS_WARN_IF(!mContainer)) {
     PR_PL(("Container was destroyed yet we are still trying to use it!"));
@@ -2933,7 +2934,8 @@ nsDocumentViewer::Print(nsIPrintSettings* aPrintSettings,
   }
 
   mPrintJob = printJob;
-  rv = printJob->Print(mDocument, aPrintSettings, aWebProgressListener);
+  rv = printJob->Print(mDocument, aPrintSettings, aRemotePrintJob,
+                       aWebProgressListener);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     OnDonePrinting();
   }
@@ -3017,8 +3019,7 @@ nsDocumentViewer::PrintPreviewScrollToPage(int16_t aType, int32_t aPageNum) {
   if (!GetIsPrintPreview() || mPrintJob->GetIsCreatingPrintPreview())
     return NS_ERROR_FAILURE;
 
-  nsIScrollableFrame* sf =
-      mPrintJob->GetPrintPreviewPresShell()->GetRootScrollFrameAsScrollable();
+  nsIScrollableFrame* sf = mPresShell->GetRootScrollFrameAsScrollable();
   if (!sf) return NS_OK;
 
   auto [seqFrame, sheetCount] = mPrintJob->GetSeqFrameAndCountSheets();
@@ -3092,8 +3093,7 @@ nsDocumentViewer::GetCurrentSheetFrameAndNumber() const {
     return {nullptr, 0};
   }
 
-  nsIScrollableFrame* sf =
-      mPrintJob->GetPrintPreviewPresShell()->GetRootScrollFrameAsScrollable();
+  nsIScrollableFrame* sf = mPresShell->GetRootScrollFrameAsScrollable();
   if (!sf) {
     // No scrollable contents, returns 1 even if there are multiple sheets.
     return {seqFrame->PrincipalChildList().FirstChild(), 1};
@@ -3183,24 +3183,6 @@ nsDocumentViewer::GetDoingPrintPreview(bool* aDoingPrintPreview) {
 
   *aDoingPrintPreview = mPrintJob ? mPrintJob->CreatedForPrintPreview() : false;
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocumentViewer::GetCurrentPrintSettings(
-    nsIPrintSettings** aCurrentPrintSettings) {
-  NS_ENSURE_ARG_POINTER(aCurrentPrintSettings);
-
-  *aCurrentPrintSettings = nullptr;
-  NS_ENSURE_TRUE(mPrintJob, NS_ERROR_FAILURE);
-
-  *aCurrentPrintSettings = mPrintJob->GetCurrentPrintSettings().take();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocumentViewer::Cancel() {
-  NS_ENSURE_TRUE(mPrintJob, NS_ERROR_FAILURE);
-  return mPrintJob->Cancel();
 }
 
 NS_IMETHODIMP
@@ -3401,7 +3383,7 @@ void nsDocumentViewer::OnDonePrinting() {
 }
 
 NS_IMETHODIMP nsDocumentViewer::SetPrintSettingsForSubdocument(
-    nsIPrintSettings* aPrintSettings) {
+    nsIPrintSettings* aPrintSettings, RemotePrintJobChild* aRemotePrintJob) {
 #ifdef NS_PRINTING
   {
     nsAutoScriptBlocker scriptBlocker;
@@ -3421,9 +3403,9 @@ NS_IMETHODIMP nsDocumentViewer::SetPrintSettingsForSubdocument(
       return NS_ERROR_NOT_AVAILABLE;
     }
 
-    RefPtr<nsIDeviceContextSpec> devspec = new nsDeviceContextSpecProxy();
-    nsresult rv =
-        devspec->Init(nullptr, aPrintSettings, /* aIsPrintPreview = */ true);
+    RefPtr<nsDeviceContextSpecProxy> devspec =
+        new nsDeviceContextSpecProxy(aRemotePrintJob);
+    nsresult rv = devspec->Init(aPrintSettings, /* aIsPrintPreview = */ true);
     NS_ENSURE_SUCCESS(rv, rv);
 
     mDeviceContext = new nsDeviceContext();

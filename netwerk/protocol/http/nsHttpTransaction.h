@@ -19,6 +19,7 @@
 #include "nsITimer.h"
 #include "nsIEarlyHintObserver.h"
 #include "nsTHashMap.h"
+#include "nsIClassOfService.h"
 #include "TimingStruct.h"
 #include "Http2Push.h"
 #include "mozilla/net/DNS.h"
@@ -27,7 +28,6 @@
 
 //-----------------------------------------------------------------------------
 
-class nsIHttpActivityObserver;
 class nsIDNSHTTPSSVCRecord;
 class nsIEventTarget;
 class nsIInputStream;
@@ -35,8 +35,7 @@ class nsIOutputStream;
 class nsIRequestContext;
 class nsISVCBRecord;
 
-namespace mozilla {
-namespace net {
+namespace mozilla::net {
 
 class HTTPSRecordResolver;
 class nsHttpChunkedDecoder;
@@ -44,7 +43,7 @@ class nsHttpHeaderArray;
 class nsHttpRequestHead;
 class nsHttpResponseHead;
 class NullHttpTransaction;
-class SpdyConnectTransaction;
+class Http2ConnectTransaction;
 
 //-----------------------------------------------------------------------------
 // nsHttpTransaction represents a single HTTP transaction.  It is thread-safe,
@@ -155,7 +154,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   void SetHttpTrailers(nsCString& aTrailers);
 
   bool IsWebsocketUpgrade();
-  void SetH2WSTransaction(SpdyConnectTransaction*);
+  void SetH2WSTransaction(Http2ConnectTransaction*);
 
   void OnProxyConnectComplete(int32_t aResponseCode) override;
   void SetFlat407Headers(const nsACString& aHeaders);
@@ -167,7 +166,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   void UpdateConnectionInfo(nsHttpConnectionInfo* aConnInfo);
 
-  void SetClassOfService(uint32_t cos);
+  void SetClassOfService(ClassOfService cos);
 
   virtual nsresult OnHTTPSRRAvailable(
       nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
@@ -301,7 +300,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   };
 
-  Mutex mLock{"transaction lock"};
+  Mutex mLock MOZ_UNANNOTATED{"transaction lock"};
 
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsCOMPtr<nsITransportEventSink> mTransportSink;
@@ -312,7 +311,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   nsCOMPtr<nsIRequestContext> mRequestContext;
 
   uint64_t mChannelId{0};
-  nsCOMPtr<nsIHttpActivityObserver> mActivityDistributor;
 
   nsCString mReqHeaderBuf;  // flattened request headers
   nsCOMPtr<nsIInputStream> mRequestStream;
@@ -487,10 +485,13 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   void CollectTelemetryForUploads();
 
  public:
-  uint32_t ClassOfService() { return mClassOfService; }
+  ClassOfService GetClassOfService() {
+    return {mClassOfServiceFlags, mClassOfServiceIncremental};
+  }
 
  private:
-  Atomic<uint32_t, Relaxed> mClassOfService{0};
+  Atomic<uint32_t, Relaxed> mClassOfServiceFlags{0};
+  Atomic<bool, Relaxed> mClassOfServiceIncremental{false};
 
  public:
   // setting TunnelProvider to non-null means the transaction should only
@@ -524,7 +525,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   } mEarlyDataDisposition{EARLY_NONE};
 
   // H2 websocket support
-  RefPtr<SpdyConnectTransaction> mH2WSTransaction;
+  RefPtr<Http2ConnectTransaction> mH2WSTransaction;
 
   HttpTrafficCategory mTrafficCategory{HttpTrafficCategory::eInvalid};
   bool mThroughCaptivePortal;
@@ -564,7 +565,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   nsCString mHashKeyOfConnectionEntry;
 };
 
-}  // namespace net
-}  // namespace mozilla
+}  // namespace mozilla::net
 
 #endif  // nsHttpTransaction_h__

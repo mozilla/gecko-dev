@@ -7,7 +7,7 @@
  * https://streams.spec.whatwg.org/#default-writer-class-definition
  */
 
-[Exposed=(Window,Worker,Worklet), Pref="dom.streams.writable_streams.enabled"]
+[Exposed=*, Pref="dom.streams.writable_streams.enabled"]
 interface WritableStreamDefaultWriter {
   [Throws]
   constructor(WritableStream stream);
@@ -19,12 +19,12 @@ interface WritableStreamDefaultWriter {
   [Throws]
   Promise<void> abort(optional any reason);
 
-  [Throws]
+  [NewObject]
   Promise<void> close();
 
   [Throws]
   void releaseLock();
 
-  [Throws]
+  [NewObject]
   Promise<void> write(optional any chunk);
 };

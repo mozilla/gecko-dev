@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// If we're in a subdialog, then this is a spotlight modal
+const page = document.querySelector(":root[dialogroot=true]")
+  ? "spotlight"
+  : "about:welcome";
+
 export const AboutWelcomeUtils = {
   handleUserAction(action) {
     window.AWSendToParent("SPECIAL_ACTION", action);
@@ -9,16 +14,19 @@ export const AboutWelcomeUtils = {
   sendImpressionTelemetry(messageId, context) {
     window.AWSendEventTelemetry({
       event: "IMPRESSION",
-      event_context: context,
+      event_context: {
+        ...context,
+        page,
+      },
       message_id: messageId,
     });
   },
-  sendActionTelemetry(messageId, elementId) {
+  sendActionTelemetry(messageId, elementId, eventName = "CLICK_BUTTON") {
     const ping = {
-      event: "CLICK_BUTTON",
+      event: eventName,
       event_context: {
         source: elementId,
-        page: "about:welcome",
+        page,
       },
       message_id: messageId,
     };
@@ -54,8 +62,8 @@ export const AboutWelcomeUtils = {
 export const DEFAULT_RTAMO_CONTENT = {
   template: "return_to_amo",
   utm_term: "rtamo",
-  order: 0,
   content: {
+    position: "corner",
     hero_text: { string_id: "mr1-welcome-screen-hero-text" },
     title: { string_id: "return-to-amo-subtitle" },
     has_noodles: true,
@@ -63,11 +71,8 @@ export const DEFAULT_RTAMO_CONTENT = {
       string_id: "return-to-amo-addon-title",
     },
     help_text: {
-      text: {
-        string_id: "mr1-onboarding-welcome-image-caption",
-      },
+      string_id: "mr1-onboarding-welcome-image-caption",
     },
-    hide_logo: true,
     backdrop:
       "#212121 url(chrome://activity-stream/content/data/content/assets/proton-bkg.avif) center/cover no-repeat fixed",
     primary_button: {

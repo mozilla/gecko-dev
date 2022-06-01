@@ -5,7 +5,6 @@
 
 #include "nsISupports.idl"
 
-
 %{ C++
 #include "nsMargin.h"
 #include "nsTArray.h"
@@ -21,7 +20,7 @@ struct PrintSettingsInitializer;
 native nsNativeIntMargin(nsIntMargin);
 [ref] native nsNativeIntMarginRef(nsIntMargin);
 
-interface nsIPrintSession;
+interface nsIOutputStream;
 
 /**
  * Simplified graphics interface for JS rendering.
@@ -42,7 +41,7 @@ interface nsIPrintSettings : nsISupports
   const unsigned long kInitSaveBGColors       = 0x00000080;
   const unsigned long kInitSaveBGImages       = 0x00000100;
   const unsigned long kInitSavePaperSize      = 0x00000200;
-  const unsigned long kInitSaveResolution     = 0x00000400;
+  /* Flag 0x00000400 is unused */
   const unsigned long kInitSaveDuplex         = 0x00000800;
   /* Flag 0x00001000 is unused */
   /* Flag 0x00002000 is unused */
@@ -78,23 +77,24 @@ interface nsIPrintSettings : nsISupports
   const long kJustCenter = 1;
   const long kJustRight  = 2;
 
-  /**
-   * Page Size Unit Constants
-   */
+  /** Page Size Unit Constants */
   const short kPaperSizeInches      = 0;
   const short kPaperSizeMillimeters = 1;
 
-  /**
-   * Orientation Constants
-   */
+  /** Orientation Constants */
   const short kPortraitOrientation  = 0;
   const short kLandscapeOrientation = 1;
 
-  /**
-   * Output file format
-   */
+  /** Output file format */
   const short kOutputFormatNative = 0;
   const short kOutputFormatPDF    = 2;
+
+  /** Output destination */
+  cenum OutputDestinationType : 8 {
+    kOutputDestinationPrinter = 0,
+    kOutputDestinationFile = 1,
+    kOutputDestinationStream = 2,
+  };
 
   /**
    * Duplex printing options.
@@ -213,11 +213,6 @@ interface nsIPrintSettings : nsISupports
   bool equivalentTo(in nsIPrintSettings aPrintSettings);
 
   /**
-   * Data Members
-   */
-  [noscript] attribute nsIPrintSession printSession; /* We hold a weak reference */
-
-  /**
    * The edge measurements define the positioning of the headers
    * and footers on the page. They're treated as an offset from the edges of
    * the page, but are forced to be at least the "unwriteable margin"
@@ -256,10 +251,6 @@ interface nsIPrintSettings : nsISupports
   /** Whether to draw guidelines showing the margin settings */
   [infallible] attribute boolean showMarginGuides;
 
-  /** Whether whether the "print selection" radio button should be enabled
-   *  in the UI (i.e. whether there is an active selection) */
-  [infallible] attribute boolean isPrintSelectionRBEnabled;
-
   /** Whether to only print the selected nodes */
   [infallible] attribute boolean printSelectionOnly;
 
@@ -274,8 +265,6 @@ interface nsIPrintSettings : nsISupports
   attribute AString footerStrCenter;
   attribute AString footerStrRight;
 
-  attribute boolean isCancelled;         /* indicates whether the print job has been cancelled */
-  readonly attribute boolean saveOnCancel;        /* indicates whether the print settings should be saved after a cancel */
   attribute boolean printSilent;         /* print without putting up the dialog */
   [infallible] attribute boolean shrinkToFit; /* shrinks content to fit on page */
 
@@ -298,17 +287,33 @@ interface nsIPrintSettings : nsISupports
    */
   attribute long    numPagesPerSheet;
 
-  attribute AString printerName;   /* name of destination printer */
+  /** Output device information */
+  [infallible] attribute nsIPrintSettings_OutputDestinationType outputDestination;
+  [infallible] attribute short outputFormat;
 
-  attribute boolean printToFile;
+  /**
+   * If outputDestination==kOutputDestinationPrinter, this is set to the name
+   * of the printer that the print output should be saved to, but only in the
+   * parent process (we don't want to leak printer names to potentially
+   * compromised content processes).
+   */
+  attribute AString printerName;
+
+  /**
+   * If outputDestination==kOutputDestinationFile, this is set to the path
+   * of the file that the print output should be saved to, but only in the
+   * parent process (we don't want to leak system paths to potentially
+   * compromised content processes).
+   */
   attribute AString toFileName;
-  attribute short   outputFormat;
 
-  attribute long    printPageDelay; /* in milliseconds */
+  attribute nsIOutputStream outputStream; /* for kOutputDestinationPrinter */
 
-  attribute long    resolution;     /* print resolution (dpi) */
+  [infallible] attribute long printPageDelay; /* in milliseconds */
 
-  attribute long    duplex;         /* duplex mode */
+  [infallible] attribute long resolution;     /* print resolution (dpi) */
+
+  [infallible] attribute long duplex;         /* duplex mode */
 
   /* initialize helpers */
   /**
@@ -316,7 +321,7 @@ interface nsIPrintSettings : nsISupports
    * from a printer specified by the "printerName" attr.
    * If a different name is set into the "printerName"
    * attribute than the one it was initialized with the PS
-   * will then get intialized from that printer.
+   * will then get initialized from that printer.
    */
   attribute boolean isInitializedFromPrinter;
 
@@ -324,7 +329,7 @@ interface nsIPrintSettings : nsISupports
    * This attribute tracks whether the PS has been initialized
    * from prefs. If a different name is set into the "printerName"
    * attribute than the one it was initialized with the PS
-   * will then get intialized from prefs again.
+   * will then get initialized from prefs again.
    */
   attribute boolean isInitializedFromPrefs;
 

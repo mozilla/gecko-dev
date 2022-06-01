@@ -44,7 +44,7 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "inactivePropertyHelper",
+  "isPropertyUsed",
   "devtools/server/actors/utils/inactive-property-helper",
   true
 );
@@ -287,16 +287,12 @@ const StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
   },
 
   getDocument: function(sheet) {
-    if (sheet.ownerNode) {
-      return sheet.ownerNode.nodeType == sheet.ownerNode.DOCUMENT_NODE
-        ? sheet.ownerNode
-        : sheet.ownerNode.ownerDocument;
-    } else if (sheet.parentStyleSheet) {
-      return this.getDocument(sheet.parentStyleSheet);
+    if (!sheet.associatedDocument) {
+      throw new Error(
+        "Failed trying to get the document of an invalid stylesheet"
+      );
     }
-    throw new Error(
-      "Failed trying to get the document of an invalid stylesheet"
-    );
+    return sheet.associatedDocument;
   },
 
   toString: function() {
@@ -454,12 +450,7 @@ const StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
           supportsOptions
         );
         // TODO: convert from Object to Boolean. See Bug 1574471
-        decl.isUsed = inactivePropertyHelper.isPropertyUsed(
-          el,
-          style,
-          this.rawRule,
-          decl.name
-        );
+        decl.isUsed = isPropertyUsed(el, style, this.rawRule, decl.name);
         // Check property name. All valid CSS properties support "initial" as a value.
         decl.isNameValid = InspectorUtils.supports(
           `${decl.name}:initial`,
@@ -738,11 +729,10 @@ const StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
         newText +
         cssText.substring(offset + text.length);
 
-      await this.pageStyle.styleSheetsManager.update(
+      await this.pageStyle.styleSheetsManager.setStyleSheetText(
         resourceId,
         cssText,
-        false,
-        UPDATE_PRESERVING_RULES
+        { kind: UPDATE_PRESERVING_RULES }
       );
     } else {
       // For stylesheet rules, set the text in the stylesheet.
@@ -870,11 +860,10 @@ const StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
           value +
           authoredText.substring(endOffset);
 
-        await this.pageStyle.styleSheetsManager.update(
+        await this.pageStyle.styleSheetsManager.setStyleSheetText(
           resourceId,
           authoredText,
-          false,
-          UPDATE_PRESERVING_RULES
+          { kind: UPDATE_PRESERVING_RULES }
         );
       } else {
         const sheetActor = this.pageStyle._sheetRef(parentStyleSheet);
@@ -1105,12 +1094,7 @@ const StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
 
     for (const decl of this._declarations) {
       // TODO: convert from Object to Boolean. See Bug 1574471
-      const isUsed = inactivePropertyHelper.isPropertyUsed(
-        el,
-        style,
-        this.rawRule,
-        decl.name
-      );
+      const isUsed = isPropertyUsed(el, style, this.rawRule, decl.name);
 
       if (decl.isUsed.used !== isUsed.used) {
         decl.isUsed = isUsed;

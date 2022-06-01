@@ -337,13 +337,6 @@ bool BaseProxyHandler::nativeCall(JSContext* cx, IsAcceptableThis test,
   return false;
 }
 
-bool BaseProxyHandler::hasInstance(JSContext* cx, HandleObject proxy,
-                                   MutableHandleValue v, bool* bp) const {
-  assertEnteredPolicy(cx, proxy, JS::PropertyKey::Void(), GET);
-  cx->check(proxy, v);
-  return JS::InstanceofOperator(cx, proxy, v, bp);
-}
-
 bool BaseProxyHandler::getBuiltinClass(JSContext* cx, HandleObject proxy,
                                        ESClass* cls) const {
   *cls = ESClass::Other;
@@ -358,7 +351,7 @@ bool BaseProxyHandler::isArray(JSContext* cx, HandleObject proxy,
 
 void BaseProxyHandler::trace(JSTracer* trc, JSObject* proxy) const {}
 
-void BaseProxyHandler::finalize(JSFreeOp* fop, JSObject* proxy) const {}
+void BaseProxyHandler::finalize(JS::GCContext* gcx, JSObject* proxy) const {}
 
 size_t BaseProxyHandler::objectMoved(JSObject* proxy, JSObject* old) const {
   return 0;
@@ -406,7 +399,7 @@ JS_PUBLIC_API void js::NukeNonCCWProxy(JSContext* cx, HandleObject proxy) {
 
   // The proxy is about to be replaced, so we need to do any necessary
   // cleanup first.
-  proxy->as<ProxyObject>().handler()->finalize(cx->defaultFreeOp(), proxy);
+  proxy->as<ProxyObject>().handler()->finalize(cx->gcContext(), proxy);
 
   proxy->as<ProxyObject>().nuke();
 

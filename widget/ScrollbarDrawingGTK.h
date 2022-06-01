@@ -14,7 +14,7 @@ namespace mozilla::widget {
 
 class ScrollbarDrawingGTK final : public ScrollbarDrawing {
  public:
-  ScrollbarDrawingGTK() = default;
+  ScrollbarDrawingGTK() : ScrollbarDrawing(Kind::Gtk) {}
   virtual ~ScrollbarDrawingGTK() = default;
 
   LayoutDeviceIntSize GetMinimumWidgetSize(nsPresContext*,
@@ -26,18 +26,17 @@ class ScrollbarDrawingGTK final : public ScrollbarDrawing {
 
   template <typename PaintBackendData>
   bool DoPaintScrollbarThumb(PaintBackendData&, const LayoutDeviceRect&,
-                             bool aHorizontal, nsIFrame*, const ComputedStyle&,
+                             ScrollbarKind, nsIFrame*, const ComputedStyle&,
                              const EventStates& aElementState,
                              const EventStates& aDocumentState, const Colors&,
                              const DPIRatio&);
-  bool PaintScrollbarThumb(DrawTarget&, const LayoutDeviceRect&,
-                           bool aHorizontal, nsIFrame*,
-                           const ComputedStyle& aStyle,
+  bool PaintScrollbarThumb(DrawTarget&, const LayoutDeviceRect&, ScrollbarKind,
+                           nsIFrame*, const ComputedStyle& aStyle,
                            const EventStates& aElementState,
                            const EventStates& aDocumentState, const Colors&,
                            const DPIRatio&) override;
   bool PaintScrollbarThumb(WebRenderBackendData&, const LayoutDeviceRect&,
-                           bool aHorizontal, nsIFrame*,
+                           ScrollbarKind, nsIFrame*,
                            const ComputedStyle& aStyle,
                            const EventStates& aElementState,
                            const EventStates& aDocumentState, const Colors&,

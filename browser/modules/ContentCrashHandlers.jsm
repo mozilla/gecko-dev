@@ -38,6 +38,9 @@ const MAX_UNSEEN_CRASHED_SUBFRAME_IDS = 10;
 // Time after which we will begin scanning for unsubmitted crash reports
 const CHECK_FOR_UNSUBMITTED_CRASH_REPORTS_DELAY_MS = 60 * 10000; // 10 minutes
 
+// This is SIGUSR1 and indicates a user-invoked crash
+const EXIT_CODE_CONTENT_CRASHED = 245;
+
 const TABCRASHED_ICON_URI = "chrome://browser/skin/tab-crashed.svg";
 
 const SUBFRAMECRASH_LEARNMORE_URI =
@@ -174,7 +177,10 @@ var TabCrashHandler = {
             "A content process crashed and MOZ_CRASHREPORTER_SHUTDOWN is " +
               "set, shutting down\n"
           );
-          Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
+          Services.startup.quit(
+            Ci.nsIAppStartup.eForceQuit,
+            EXIT_CODE_CONTENT_CRASHED
+          );
         }
 
         break;
@@ -412,7 +418,10 @@ var TabCrashHandler = {
         popup: null,
         callback: async () => {
           if (dumpID) {
-            UnsubmittedCrashHandler.submitReports([dumpID]);
+            UnsubmittedCrashHandler.submitReports(
+              [dumpID],
+              CrashSubmit.SUBMITTED_FROM_CRASH_TAB
+            );
           }
           closeAllNotifications();
         },
@@ -487,7 +496,10 @@ var TabCrashHandler = {
       if (UnsubmittedCrashHandler.autoSubmit) {
         let dumpID = this.childMap.get(childID);
         if (dumpID) {
-          UnsubmittedCrashHandler.submitReports([dumpID]);
+          UnsubmittedCrashHandler.submitReports(
+            [dumpID],
+            CrashSubmit.SUBMITTED_FROM_AUTO
+          );
         }
       } else {
         this.sendToTabCrashedPage(browser);
@@ -624,7 +636,7 @@ var TabCrashHandler = {
       extraExtraKeyVals.URL = "";
     }
 
-    CrashSubmit.submit(dumpID, {
+    CrashSubmit.submit(dumpID, CrashSubmit.SUBMITTED_FROM_CRASH_TAB, {
       recordSubmission: true,
       extraExtraKeyVals,
     }).catch(Cu.reportError);
@@ -890,7 +902,7 @@ var UnsubmittedCrashHandler = {
 
     if (reportIDs.length) {
       if (this.autoSubmit) {
-        this.submitReports(reportIDs);
+        this.submitReports(reportIDs, CrashSubmit.SUBMITTED_FROM_AUTO);
       } else if (this.shouldShowPendingSubmissionsNotification()) {
         return this.showPendingSubmissionsNotification(reportIDs);
       }
@@ -1050,7 +1062,7 @@ var UnsubmittedCrashHandler = {
       {
         label: gNavigatorBundle.GetStringFromName("pendingCrashReports.send"),
         callback: () => {
-          this.submitReports(reportIDs);
+          this.submitReports(reportIDs, CrashSubmit.SUBMITTED_FROM_INFOBAR);
           if (onAction) {
             onAction();
           }
@@ -1062,7 +1074,7 @@ var UnsubmittedCrashHandler = {
         ),
         callback: () => {
           this.autoSubmit = true;
-          this.submitReports(reportIDs);
+          this.submitReports(reportIDs, CrashSubmit.SUBMITTED_FROM_INFOBAR);
           if (onAction) {
             onAction();
           }
@@ -1120,20 +1132,17 @@ var UnsubmittedCrashHandler = {
   },
 
   /**
-   * Attempt to submit reports to the crash report server. Each
-   * report will have the "SubmittedFromInfobar" annotation set
-   * to "1".
+   * Attempt to submit reports to the crash report server.
    *
    * @param reportIDs (Array<string>)
    *        The array of reportIDs to submit.
+   * @param submittedFrom (string)
+   *        One of the CrashSubmit.SUBMITTED_FROM_* constants representing
+   *        how this crash was submitted.
    */
-  submitReports(reportIDs) {
+  submitReports(reportIDs, submittedFrom) {
     for (let reportID of reportIDs) {
-      CrashSubmit.submit(reportID, {
-        extraExtraKeyVals: {
-          SubmittedFromInfobar: "1",
-        },
-      }).catch(Cu.reportError);
+      CrashSubmit.submit(reportID, submittedFrom).catch(Cu.reportError);
     }
   },
 };

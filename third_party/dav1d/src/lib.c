@@ -97,6 +97,37 @@ static COLD size_t get_stack_size_internal(const pthread_attr_t *const thread_at
     return 0;
 }
 
+static COLD void get_num_threads(Dav1dContext *const c, const Dav1dSettings *const s,
+                                 unsigned *n_tc, unsigned *n_fc)
+{
+    /* ceil(sqrt(n)) */
+    static const uint8_t fc_lut[49] = {
+        1,                                     /*     1 */
+        2, 2, 2,                               /*  2- 4 */
+        3, 3, 3, 3, 3,                         /*  5- 9 */
+        4, 4, 4, 4, 4, 4, 4,                   /* 10-16 */
+        5, 5, 5, 5, 5, 5, 5, 5, 5,             /* 17-25 */
+        6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,       /* 26-36 */
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, /* 37-49 */
+    };
+    *n_tc = s->n_threads ? s->n_threads :
+        iclip(dav1d_num_logical_processors(c), 1, DAV1D_MAX_THREADS);
+    *n_fc = s->max_frame_delay ? umin(s->max_frame_delay, *n_tc) :
+            *n_tc < 50 ? fc_lut[*n_tc - 1] : 8; // min(8, ceil(sqrt(n)))
+}
+
+COLD int dav1d_get_frame_delay(const Dav1dSettings *const s) {
+    unsigned n_tc, n_fc;
+    validate_input_or_ret(s != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(s->n_threads >= 0 &&
+                          s->n_threads <= DAV1D_MAX_THREADS, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(s->max_frame_delay >= 0 &&
+                          s->max_frame_delay <= DAV1D_MAX_FRAME_DELAY, DAV1D_ERR(EINVAL));
+
+    get_num_threads(NULL, s, &n_tc, &n_fc);
+    return n_fc;
+}
+
 COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     static pthread_once_t initted = PTHREAD_ONCE_INIT;
     pthread_once(&initted, init_internal);
@@ -120,7 +151,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
 
     pthread_attr_setstacksize(&thread_attr, stack_size);
 
-    Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 32);
+    Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 64);
     if (!c) goto error;
     memset(c, 0, sizeof(*c));
 
@@ -133,6 +164,8 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->strict_std_compliance = s->strict_std_compliance;
     c->output_invisible_frames = s->output_invisible_frames;
     c->inloop_filters = s->inloop_filters;
+
+    dav1d_data_props_set_defaults(&c->cached_error_props);
 
     if (dav1d_mem_pool_init(&c->seq_hdr_pool) ||
         dav1d_mem_pool_init(&c->frame_hdr_pool) ||
@@ -169,20 +202,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->flush = &c->flush_mem;
     atomic_init(c->flush, 0);
 
-    c->n_tc = s->n_threads ? s->n_threads :
-        iclip(dav1d_num_logical_processors(c), 1, DAV1D_MAX_THREADS);
-    /* ceil(sqrt(n)) */
-    static const uint8_t fc_lut[49] = {
-        1,                                     /*     1 */
-        2, 2, 2,                               /*  2- 4 */
-        3, 3, 3, 3, 3,                         /*  5- 9 */
-        4, 4, 4, 4, 4, 4, 4,                   /* 10-16 */
-        5, 5, 5, 5, 5, 5, 5, 5, 5,             /* 17-25 */
-        6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,       /* 26-36 */
-        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, /* 37-49 */
-    };
-    c->n_fc = s->max_frame_delay ? umin(s->max_frame_delay, c->n_tc) :
-              c->n_tc < 50 ? fc_lut[c->n_tc - 1] : 8; // min(8, ceil(sqrt(n)))
+    get_num_threads(c, s, &c->n_tc, &c->n_fc);
 
     c->fc = dav1d_alloc_aligned(sizeof(*c->fc) * c->n_fc, 32);
     if (!c->fc) goto error;
@@ -194,6 +214,11 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     if (c->n_tc > 1) {
         if (pthread_mutex_init(&c->task_thread.lock, NULL)) goto error;
         if (pthread_cond_init(&c->task_thread.cond, NULL)) {
+            pthread_mutex_destroy(&c->task_thread.lock);
+            goto error;
+        }
+        if (pthread_cond_init(&c->task_thread.delayed_fg.cond, NULL)) {
+            pthread_cond_destroy(&c->task_thread.cond);
             pthread_mutex_destroy(&c->task_thread.lock);
             goto error;
         }
@@ -317,7 +342,8 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out)
 {
     int res = 0;
 
-    Dav1dThreadPicture *const in = c->all_layers ? &c->out : &c->cache;
+    Dav1dThreadPicture *const in = (c->all_layers || !c->max_spatial_id)
+                                   ? &c->out : &c->cache;
     if (!c->apply_grain || !has_grain(&in->p)) {
         dav1d_picture_move_ref(out, &in->p);
         dav1d_thread_picture_unref(in);
@@ -327,18 +353,17 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out)
     res = dav1d_apply_grain(c, out, &in->p);
     dav1d_thread_picture_unref(in);
 end:
-    if (!c->all_layers && c->out.p.data[0]) {
+    if (!c->all_layers && c->max_spatial_id && c->out.p.data[0]) {
         dav1d_thread_picture_move_ref(in, &c->out);
     }
     return res;
 }
 
 static int output_picture_ready(Dav1dContext *const c, const int drain) {
-    if (!c->all_layers) {
+    if (c->cached_error) return 1;
+    if (!c->all_layers && c->max_spatial_id) {
         if (c->out.p.data[0] && c->cache.p.data[0]) {
-            const unsigned spatial_mask = c->operating_point_idc >> 8;
-            const int max_spatial_id = spatial_mask ? ulog2(spatial_mask) : 0;
-            if (max_spatial_id == c->cache.p.frame_hdr->spatial_id ||
+            if (c->max_spatial_id == c->cache.p.frame_hdr->spatial_id ||
                 c->out.flags & PICTURE_FLAG_NEW_TEMPORAL_UNIT)
                 return 1;
             dav1d_thread_picture_unref(&c->cache);
@@ -377,6 +402,13 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
         if (++c->frame_thread.next == c->n_fc)
             c->frame_thread.next = 0;
         pthread_mutex_unlock(&c->task_thread.lock);
+        const int error = f->task_thread.retval;
+        if (error) {
+            f->task_thread.retval = 0;
+            dav1d_data_props_copy(&c->cached_error_props, &out_delayed->p.m);
+            dav1d_thread_picture_unref(out_delayed);
+            return error;
+        }
         if (out_delayed->p.data[0]) {
             const unsigned progress =
                 atomic_load_explicit(&out_delayed->progress[1],
@@ -457,6 +489,12 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
     if (res < 0)
         return res;
 
+    if (c->cached_error) {
+        const int res = c->cached_error;
+        c->cached_error = 0;
+        return res;
+    }
+
     if (output_picture_ready(c, c->n_fc == 1))
         return output_image(c, out);
 
@@ -479,33 +517,43 @@ int dav1d_apply_grain(Dav1dContext *const c, Dav1dPicture *const out,
     }
 
     int res = dav1d_picture_alloc_copy(c, out, in->p.w, in);
-    if (res < 0) {
-        dav1d_picture_unref_internal(out);
-        return res;
-    }
+    if (res < 0) goto error;
 
-    switch (out->p.bpc) {
+    if (c->n_tc > 1) {
+        dav1d_task_delayed_fg(c, out, in);
+    } else {
+        switch (out->p.bpc) {
 #if CONFIG_8BPC
-    case 8:
-        dav1d_apply_grain_8bpc(&c->dsp[0].fg, out, in);
-        break;
+        case 8:
+            dav1d_apply_grain_8bpc(&c->dsp[0].fg, out, in);
+            break;
 #endif
 #if CONFIG_16BPC
-    case 10:
-    case 12:
-        dav1d_apply_grain_16bpc(&c->dsp[(out->p.bpc >> 1) - 4].fg, out, in);
-        break;
+        case 10:
+        case 12:
+            dav1d_apply_grain_16bpc(&c->dsp[(out->p.bpc >> 1) - 4].fg, out, in);
+            break;
 #endif
-    default:
-        assert(0);
+        default: abort();
+        }
     }
 
     return 0;
+
+error:
+    dav1d_picture_unref_internal(out);
+    return res;
 }
 
 void dav1d_flush(Dav1dContext *const c) {
     dav1d_data_unref_internal(&c->in);
+    if (c->out.p.data[0])
+        dav1d_thread_picture_unref(&c->out);
+    if (c->cache.p.data[0])
+        dav1d_thread_picture_unref(&c->cache);
+
     c->drain = 0;
+    c->cached_error = 0;
 
     for (int i = 0; i < 8; i++) {
         if (c->refs[i].p.p.data[0])
@@ -524,6 +572,8 @@ void dav1d_flush(Dav1dContext *const c) {
     dav1d_ref_dec(&c->mastering_display_ref);
     dav1d_ref_dec(&c->content_light_ref);
     dav1d_ref_dec(&c->itut_t35_ref);
+
+    dav1d_data_props_unref_internal(&c->cached_error_props);
 
     if (c->n_fc == 1 && c->n_tc == 1) return;
     atomic_store(c->flush, 1);
@@ -556,6 +606,7 @@ void dav1d_flush(Dav1dContext *const c) {
             Dav1dFrameContext *const f = &c->fc[next];
             dav1d_decode_frame_exit(f, -1);
             f->n_tile_data = 0;
+            f->task_thread.retval = 0;
             Dav1dThreadPicture *out_delayed = &c->frame_thread.out_delayed[next];
             if (out_delayed->p.data[0]) {
                 dav1d_thread_picture_unref(out_delayed);
@@ -592,6 +643,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
                 pthread_cond_destroy(&pf->task_thread.td.cond);
                 pthread_mutex_destroy(&pf->task_thread.td.lock);
             }
+            pthread_cond_destroy(&ttd->delayed_fg.cond);
             pthread_cond_destroy(&ttd->cond);
             pthread_mutex_destroy(&ttd->lock);
         }
@@ -631,7 +683,6 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
         dav1d_free_aligned(f->lf.lr_line_buf);
     }
     dav1d_free_aligned(c->fc);
-    dav1d_data_unref_internal(&c->in);
     if (c->n_fc > 1 && c->frame_thread.out_delayed) {
         for (unsigned n = 0; n < c->n_fc; n++)
             if (c->frame_thread.out_delayed[n].p.data[0])
@@ -674,6 +725,17 @@ int dav1d_get_event_flags(Dav1dContext *const c, enum Dav1dEventFlags *const fla
     return 0;
 }
 
+int dav1d_get_decode_error_data_props(Dav1dContext *const c, Dav1dDataProps *const out) {
+    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
+
+    dav1d_data_props_unref_internal(out);
+    *out = c->cached_error_props;
+    dav1d_data_props_set_defaults(&c->cached_error_props);
+
+    return 0;
+}
+
 void dav1d_picture_unref(Dav1dPicture *const p) {
     dav1d_picture_unref_internal(p);
 }
@@ -705,4 +767,8 @@ int dav1d_data_wrap_user_data(Dav1dData *const buf,
 
 void dav1d_data_unref(Dav1dData *const buf) {
     dav1d_data_unref_internal(buf);
+}
+
+void dav1d_data_props_unref(Dav1dDataProps *const props) {
+    dav1d_data_props_unref_internal(props);
 }

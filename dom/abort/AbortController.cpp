@@ -8,25 +8,16 @@
 #include "AbortSignal.h"
 #include "js/Value.h"
 #include "mozilla/dom/AbortControllerBinding.h"
+#include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/WorkerPrivate.h"
+#include "mozilla/HoldDropJSObjects.h"
 
 namespace mozilla::dom {
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(AbortController)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(AbortController)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobal, mSignal)
-  tmp->mReason.setUndefined();
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(AbortController)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGlobal, mSignal)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(AbortController)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mReason)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_WITH_JS_MEMBERS(AbortController,
+                                                      (mGlobal, mSignal),
+                                                      (mReason))
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(AbortController)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(AbortController)

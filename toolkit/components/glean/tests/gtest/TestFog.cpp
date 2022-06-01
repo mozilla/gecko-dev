@@ -39,10 +39,13 @@ TEST(FOG, FogInitDoesntCrash)
   Preferences::SetInt("telemetry.fog.test.localhost_port", -1);
   const nsCString empty;
   ASSERT_EQ(NS_OK, fog_init(&empty, &empty));
+  ASSERT_EQ(NS_OK, fog_test_reset(&empty, &empty));
 }
 
 extern "C" void Rust_MeasureInitializeTime();
-TEST(FOG, TestMeasureInitializeTime)
+// Disabled because this depends on the preinit buffer not overflowing,
+// which currently can't be guaranteed. See bug 1756057 for how to fix it.
+TEST(FOG, DISABLED_TestMeasureInitializeTime)
 { Rust_MeasureInitializeTime(); }
 
 TEST(FOG, BuiltinPingsRegistered)
@@ -389,4 +392,16 @@ TEST(FOG, TestCppRateWorks)
   ASSERT_EQ(
       kDen,
       test_only_ipc::an_external_denominator.TestGetValue().unwrap().extract());
+}
+
+TEST(FOG, TestCppUrlWorks)
+{
+  auto kValue = "https://example.com/fog/gtest"_ns;
+  mozilla::glean::test_only_ipc::a_url.Set(kValue);
+
+  ASSERT_STREQ(kValue.get(),
+               mozilla::glean::test_only_ipc::a_url.TestGetValue("store1"_ns)
+                   .unwrap()
+                   .value()
+                   .get());
 }

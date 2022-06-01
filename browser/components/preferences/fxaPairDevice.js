@@ -16,8 +16,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   FxAccountsPairingFlow: "resource://gre/modules/FxAccountsPairing.jsm",
 });
 const { require } = ChromeUtils.import(
-  "resource://devtools/shared/loader/Loader.jsm",
-  {}
+  "resource://devtools/shared/loader/Loader.jsm"
 );
 const QR = require("devtools/shared/qrcode/index");
 
@@ -42,7 +41,7 @@ var gFxaPairDeviceDialog = {
           .getElementById("connect-another-device-link")
           .setAttribute("href", connectURI);
       });
-    // We let the modal show itself before eventually showing a master-password dialog later.
+    // We let the modal show itself before eventually showing a primary-password dialog later.
     Services.tm.dispatchToMainThread(() => this.startPairingFlow());
   },
 

@@ -670,6 +670,17 @@ class CompileFlags(TargetCompileFlags):
                 ["-fno-strict-aliasing"],
                 ("CXXFLAGS", "CFLAGS"),
             ),
+            (
+                # Disable floating-point contraction by default.
+                "FP_CONTRACT",
+                (
+                    ["-Xclang"]
+                    if context.config.substs.get("CC_TYPE") == "clang-cl"
+                    else []
+                )
+                + ["-ffp-contract=off"],
+                ("CXXFLAGS", "CFLAGS"),
+            ),
         )
 
         TargetCompileFlags.__init__(self, context)
@@ -897,9 +908,11 @@ class SourcePath(Path):
 
     def __new__(cls, context, value=None):
         if value.startswith("!"):
-            raise ValueError("Object directory paths are not allowed")
+            raise ValueError(f'Object directory paths are not allowed\nPath: "{value}"')
         if value.startswith("%"):
-            raise ValueError("Filesystem absolute paths are not allowed")
+            raise ValueError(
+                f'Filesystem absolute paths are not allowed\nPath: "{value}"'
+            )
         self = super(SourcePath, cls).__new__(cls, context, value)
 
         if value.startswith("/"):
@@ -1463,7 +1476,7 @@ VARIABLES = {
         """,
     ),
     "UNIFIED_SOURCES": (
-        ContextDerivedTypedList(SourcePath, StrictOrderingOnAppendList),
+        ContextDerivedTypedList(Path, StrictOrderingOnAppendList),
         list,
         """Source code files that can be compiled together.
 

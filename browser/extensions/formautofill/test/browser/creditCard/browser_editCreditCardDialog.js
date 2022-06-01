@@ -1,8 +1,6 @@
-/* eslint-disable mozilla/no-arbitrary-setTimeout */
-
 "use strict";
 
-add_task(async function setup() {
+add_setup(async function() {
   let { formAutofillStorage } = ChromeUtils.import(
     "resource://autofill/FormAutofillStorage.jsm"
   );
@@ -109,8 +107,7 @@ add_task(async function test_saveCreditCardWithMaxYear() {
 });
 
 add_task(async function test_saveCreditCardWithBillingAddress() {
-  await saveAddress(TEST_ADDRESS_4);
-  await saveAddress(TEST_ADDRESS_1);
+  await setStorage(TEST_ADDRESS_4, TEST_ADDRESS_1);
   let addresses = await getAddresses();
   let billingAddress = addresses[0];
 
@@ -200,7 +197,7 @@ add_task(async function test_editCreditCardWithMissingBillingAddress() {
   const TEST_CREDIT_CARD = Object.assign({}, TEST_CREDIT_CARD_2, {
     billingAddressGUID: "unknown-guid",
   });
-  await saveCreditCard(TEST_CREDIT_CARD);
+  await setStorage(TEST_CREDIT_CARD);
 
   let creditCards = await getCreditCards();
   is(creditCards.length, 1, "one credit card in storage");
@@ -271,11 +268,12 @@ add_task(async function test_addInvalidCreditCard() {
     SimpleTest.requestFlakyTimeout(
       "Ensure the window remains open after save attempt"
     );
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
     setTimeout(() => {
       win.removeEventListener("unload", unloadHandler);
       info("closing");
       win.close();
-    }, 500);
+    }, TIMEOUT_ENSURE_CC_EDIT_DIALOG_NOT_CLOSED);
   });
   info("closed");
   let creditCards = await getCreditCards();
@@ -287,7 +285,7 @@ add_task(async function test_editCardWithInvalidNetwork() {
   const TEST_CREDIT_CARD = Object.assign({}, TEST_CREDIT_CARD_2, {
     "cc-type": "asiv",
   });
-  await saveCreditCard(TEST_CREDIT_CARD);
+  await setStorage(TEST_CREDIT_CARD);
 
   let creditCards = await getCreditCards();
   is(creditCards.length, 1, "one credit card in storage");
@@ -332,7 +330,7 @@ add_task(async function test_editCardWithInvalidNetwork() {
 });
 
 add_task(async function test_editInvalidCreditCardNumber() {
-  await saveAddress(TEST_ADDRESS_4);
+  await setStorage(TEST_ADDRESS_4);
   let addresses = await getAddresses();
   let billingAddress = addresses[0];
 
@@ -404,7 +402,7 @@ add_task(async function test_editInvalidCreditCardNumber() {
 
 add_task(async function test_editCreditCardWithInvalidNumber() {
   const TEST_CREDIT_CARD = Object.assign({}, TEST_CREDIT_CARD_1);
-  await saveCreditCard(TEST_CREDIT_CARD);
+  await setStorage(TEST_CREDIT_CARD);
 
   let creditCards = await getCreditCards();
   is(creditCards.length, 1, "only one credit card is in storage");

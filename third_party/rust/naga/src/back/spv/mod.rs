@@ -1,5 +1,8 @@
-/*! Standard Portable Intermediate Representation (SPIR-V) backend
-!*/
+/*!
+Backend for [SPIR-V][spv] (Standard Portable Intermediate Representation).
+
+[spv]: https://www.khronos.org/registry/SPIR-V/
+*/
 
 mod block;
 mod helpers;
@@ -66,8 +69,6 @@ pub enum Error {
     FeatureNotImplemented(&'static str),
     #[error("module is not validated properly: {0}")]
     Validation(&'static str),
-    #[error(transparent)]
-    Proc(#[from] crate::proc::ProcError),
 }
 
 #[derive(Default)]
@@ -103,7 +104,7 @@ struct TerminatedBlock {
 }
 
 impl Block {
-    fn new(label_id: Word) -> Self {
+    const fn new(label_id: Word) -> Self {
         Block {
             label_id,
             body: Vec::new(),
@@ -269,7 +270,7 @@ enum LocalType {
         vector_size: Option<crate::VectorSize>,
         kind: crate::ScalarKind,
         width: crate::Bytes,
-        pointer_class: Option<spirv::StorageClass>,
+        pointer_space: Option<spirv::StorageClass>,
     },
     /// A matrix of floating-point values.
     Matrix {
@@ -286,6 +287,14 @@ enum LocalType {
         image_type_id: Word,
     },
     Sampler,
+    PointerToBindingArray {
+        base: Handle<crate::Type>,
+        size: u64,
+    },
+    BindingArray {
+        base: Handle<crate::Type>,
+        size: u64,
+    },
 }
 
 /// A type encountered during SPIR-V generation.
@@ -335,14 +344,14 @@ fn make_local(inner: &crate::TypeInner) -> Option<LocalType> {
                 vector_size: None,
                 kind,
                 width,
-                pointer_class: None,
+                pointer_space: None,
             }
         }
         crate::TypeInner::Vector { size, kind, width } => LocalType::Value {
             vector_size: Some(size),
             kind,
             width,
-            pointer_class: None,
+            pointer_space: None,
         },
         crate::TypeInner::Matrix {
             columns,
@@ -353,20 +362,20 @@ fn make_local(inner: &crate::TypeInner) -> Option<LocalType> {
             rows,
             width,
         },
-        crate::TypeInner::Pointer { base, class } => LocalType::Pointer {
+        crate::TypeInner::Pointer { base, space } => LocalType::Pointer {
             base,
-            class: helpers::map_storage_class(class),
+            class: helpers::map_storage_class(space),
         },
         crate::TypeInner::ValuePointer {
             size,
             kind,
             width,
-            class,
+            space,
         } => LocalType::Value {
             vector_size: size,
             kind,
             width,
-            pointer_class: Some(helpers::map_storage_class(class)),
+            pointer_space: Some(helpers::map_storage_class(space)),
         },
         crate::TypeInner::Image {
             dim,
@@ -432,12 +441,25 @@ impl recyclable::Recyclable for CachedExpressions {
 
 #[derive(Clone)]
 struct GlobalVariable {
-    /// ID of the variable. Not really used.
+    /// ID of the OpVariable that declares the global.
+    ///
+    /// If you need the variable's value, use [`access_id`] instead of this
+    /// field. If we wrapped the Naga IR `GlobalVariable`'s type in a struct to
+    /// comply with Vulkan's requirements, then this points to the `OpVariable`
+    /// with the synthesized struct type, whereas `access_id` points to the
+    /// field of said struct that holds the variable's actual value.
+    ///
+    /// This is used to compute the `access_id` pointer in function prologues,
+    /// and used for `ArrayLength` expressions, which do need the struct.
+    ///
+    /// [`access_id`]: GlobalVariable::access_id
     var_id: Word,
-    /// For `StorageClass::Handle` variables, this ID is recorded in the function
+
+    /// For `AddressSpace::Handle` variables, this ID is recorded in the function
     /// prelude block (and reset before every function) as `OpLoad` of the variable.
     /// It is then used for all the global ops, such as `OpImageSample`.
     handle_id: Word,
+
     /// Actual ID used to access this variable.
     /// For wrapped buffer variables, this ID is `OpAccessChain` into the
     /// wrapper. Otherwise, the same as `var_id`.
@@ -453,7 +475,7 @@ struct GlobalVariable {
 }
 
 impl GlobalVariable {
-    fn dummy() -> Self {
+    const fn dummy() -> Self {
         Self {
             var_id: 0,
             handle_id: 0,
@@ -461,7 +483,7 @@ impl GlobalVariable {
         }
     }
 
-    fn new(id: Word) -> Self {
+    const fn new(id: Word) -> Self {
         Self {
             var_id: id,
             handle_id: 0,
@@ -553,6 +575,9 @@ pub struct Writer {
     /// that.
     capabilities_used: crate::FastHashSet<Capability>,
 
+    /// The set of spirv extensions used.
+    extensions_used: crate::FastHashSet<&'static str>,
+
     debugs: Vec<Instruction>,
     annotations: Vec<Instruction>,
     flags: WriterFlags,
@@ -565,6 +590,7 @@ pub struct Writer {
     constant_ids: Vec<Word>,
     cached_constants: crate::FastHashMap<(crate::ScalarValue, crate::Bytes), Word>,
     global_variables: Vec<GlobalVariable>,
+    binding_map: BindingMap,
 
     // Cached expressions are only meaningful within a BlockContext, but we
     // retain the table here between functions to save heap allocations.
@@ -593,6 +619,17 @@ bitflags::bitflags! {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+pub struct BindingInfo {
+    /// If the binding is an unsized binding array, this overrides the size.
+    pub binding_array_size: Option<u32>,
+}
+
+// Using `BTreeMap` instead of `HashMap` so that we can hash itself.
+pub type BindingMap = std::collections::BTreeMap<crate::ResourceBinding, BindingInfo>;
+
 #[derive(Debug, Clone)]
 pub struct Options {
     /// (Major, Minor) target version of the SPIR-V.
@@ -600,6 +637,9 @@ pub struct Options {
 
     /// Configuration flags for the writer.
     pub flags: WriterFlags,
+
+    /// Map of resources to information about the binding.
+    pub binding_map: BindingMap,
 
     /// If given, the set of capabilities modules are allowed to use. Code that
     /// requires capabilities beyond these is rejected with an error.
@@ -623,23 +663,23 @@ impl Default for Options {
         Options {
             lang_version: (1, 0),
             flags,
+            binding_map: BindingMap::default(),
             capabilities: None,
             bounds_check_policies: crate::proc::BoundsCheckPolicies::default(),
         }
     }
 }
 
-// A subset of options that are meant to be changed per pipeline.
+// A subset of options meant to be changed per pipeline.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub struct PipelineOptions {
-    /// The stage of the entry point
+    /// The stage of the entry point.
     pub shader_stage: crate::ShaderStage,
-    /// The name of the entry point
+    /// The name of the entry point.
     ///
-    /// If no entry point that matches is found a error will be thrown while creating a new instance
-    /// of [`Writer`](struct.Writer.html)
+    /// If no entry point that matches is found while creating a [`Writer`], a error will be thrown.
     pub entry_point: String,
 }
 

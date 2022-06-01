@@ -1,0 +1,40 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+with Files("**"):
+    BUG_COMPONENT = ("Core", "DOM: Core & HTML")
+
+if CONFIG["COMPILE_ENVIRONMENT"]:
+    EXPORTS.mozilla += [
+        "!origin_trials_ffi_generated.h",
+    ]
+
+    CbindgenHeader(
+        "origin_trials_ffi_generated.h",
+        inputs=["ffi"],
+    )
+
+    GeneratedFile(
+        "keys.inc",
+        inputs=["test.pub", "prod.pub"],
+        script="gen-keys.py",
+        entry_point="generate",
+    )
+
+MOCHITEST_MANIFESTS += ["tests/mochitest.ini"]
+
+EXPORTS.mozilla += [
+    "OriginTrials.h",
+    "OriginTrialsIPCUtils.h",
+]
+
+UNIFIED_SOURCES += [
+    "OriginTrials.cpp",
+]
+
+include("/ipc/chromium/chromium-config.mozbuild")
+
+FINAL_LIBRARY = "xul"

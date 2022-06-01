@@ -165,6 +165,24 @@ body.dark blockquote {
   background-color: #f4ecd8;
 }
 
+.auto-button {
+  text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  .auto-button {
+    background-color: #1c1b22;
+    color: #eeeeee;
+  }
+}
+
+@media not (prefers-color-scheme: dark){
+  .auto-button {
+    background-color: #ffffff;
+    color: #333333;
+  }
+}
+
 /* Loading/error message */
 
 .reader-message {
@@ -404,8 +422,7 @@ button:disabled {
   visibility: hidden;
   border-radius: 4px;
   border: 1px solid var(--popup-border);
-  box-shadow: 0 0px 10px 0 var(--popup-shadow);
-  border-bottom-width: 0;
+  box-shadow: 0 0 10px 0 var(--popup-shadow);
   top: 0;
 }
 
@@ -450,6 +467,8 @@ button:disabled {
 .radiorow,
 .buttonrow {
   display: flex;
+  align-content: center;
+  justify-content: center;
 }
 
 .content-width-value,
@@ -522,8 +541,8 @@ button:disabled {
 }
 
 .color-scheme-buttons > label {
+  padding: 12px;
   height: 34px;
-  width: 70px;
   font-size: 12px;
   /* Center the labels horizontally as well as vertically */
   display: inline-flex;
@@ -742,7 +761,6 @@ button:disabled {
   font-style: italic;
 }
 
-.moz-reader-content code,
 .moz-reader-content pre {
   white-space: pre-wrap;
 }
@@ -822,4 +840,11 @@ table {
 .moz-reader-wide-table {
   overflow-x: auto;
   display: block;
+}
+
+pre code {
+  background-color: var(--main-background);
+  border: 1px solid var(--font-color);
+  display: block;
+  overflow: auto;
 }

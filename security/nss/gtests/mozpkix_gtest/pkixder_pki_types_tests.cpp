@@ -32,6 +32,7 @@
 
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::der;
+using namespace mozilla::pkix::test;
 
 class pkixder_pki_types_tests : public ::testing::Test { };
 
@@ -188,7 +189,7 @@ TEST_F(pkixder_pki_types_tests, OptionalVersionMissing)
   ASSERT_EQ(der::Version::v1, version);
 }
 
-static const size_t MAX_ALGORITHM_OID_DER_LENGTH = 13;
+static const size_t MAX_ALGORITHM_OID_DER_LENGTH = 65;
 
 struct InvalidAlgorithmIdentifierTestInfo
 {
@@ -311,6 +312,7 @@ struct ValidSignatureAlgorithmIdentifierValueTestInfo
   DigestAlgorithm digestAlg;
   uint8_t der[MAX_ALGORITHM_OID_DER_LENGTH];
   size_t derLength;
+  bool explicitNullAllowed;
 };
 
 static const ValidSignatureAlgorithmIdentifierValueTestInfo
@@ -322,44 +324,51 @@ static const ValidSignatureAlgorithmIdentifierValueTestInfo
     { 0x06, 0x08,
       0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x04 },
     10,
+    true,
   },
   { PublicKeyAlgorithm::ECDSA,
     DigestAlgorithm::sha384,
     { 0x06, 0x08,
       0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x03 },
     10,
+    true,
   },
   { PublicKeyAlgorithm::ECDSA,
     DigestAlgorithm::sha256,
     { 0x06, 0x08,
       0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02 },
     10,
+    true,
   },
   { PublicKeyAlgorithm::ECDSA,
     DigestAlgorithm::sha1,
     { 0x06, 0x07,
       0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x01 },
     9,
+    true,
   },
 
-  // RSA
+  // RSA PKCS#1 1.5
   { PublicKeyAlgorithm::RSA_PKCS1,
     DigestAlgorithm::sha512,
     { 0x06, 0x09,
       0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0d },
     11,
+    true,
   },
   { PublicKeyAlgorithm::RSA_PKCS1,
     DigestAlgorithm::sha384,
     { 0x06, 0x09,
       0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0c },
     11,
+    true,
   },
   { PublicKeyAlgorithm::RSA_PKCS1,
     DigestAlgorithm::sha256,
     { 0x06, 0x09,
       0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b },
     11,
+    true,
   },
   { PublicKeyAlgorithm::RSA_PKCS1,
     DigestAlgorithm::sha1,
@@ -367,6 +376,7 @@ static const ValidSignatureAlgorithmIdentifierValueTestInfo
     { 0x06, 0x09,
       0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x05 },
     11,
+    true,
   },
   { PublicKeyAlgorithm::RSA_PKCS1,
     DigestAlgorithm::sha1,
@@ -374,6 +384,44 @@ static const ValidSignatureAlgorithmIdentifierValueTestInfo
     { 0x06, 0x05,
       0x2b, 0x0e, 0x03, 0x02, 0x1d },
     7,
+    true,
+  },
+
+  // RSA-PSS
+  { PublicKeyAlgorithm::RSA_PSS,
+    DigestAlgorithm::sha256,
+    { 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0a, 0x30,
+      0x34, 0xa0, 0x0f, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65,
+      0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0xa1, 0x1c, 0x30, 0x1a, 0x06, 0x09,
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x08, 0x30, 0x0d, 0x06,
+      0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00,
+      0xa2, 0x03, 0x02, 0x01, 0x20  },
+    65,
+    false,
+  },
+
+  { PublicKeyAlgorithm::RSA_PSS,
+    DigestAlgorithm::sha384,
+    { 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0a, 0x30,
+      0x34, 0xa0, 0x0f, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65,
+      0x03, 0x04, 0x02, 0x02, 0x05, 0x00, 0xa1, 0x1c, 0x30, 0x1a, 0x06, 0x09,
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x08, 0x30, 0x0d, 0x06,
+      0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02, 0x05, 0x00,
+      0xa2, 0x03, 0x02, 0x01, 0x30 },
+    65,
+    false,
+  },
+
+  { PublicKeyAlgorithm::RSA_PSS,
+    DigestAlgorithm::sha512,
+    { 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0a, 0x30,
+      0x34, 0xa0, 0x0f, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65,
+      0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0xa1, 0x1c, 0x30, 0x1a, 0x06, 0x09,
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x08, 0x30, 0x0d, 0x06,
+      0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00,
+      0xa2, 0x03, 0x02, 0x01, 0x40 },
+    65,
+    false,
   },
 };
 
@@ -402,20 +450,22 @@ TEST_P(pkixder_SignatureAlgorithmIdentifierValue_Valid, Valid)
     ASSERT_EQ(Success, End(reader));
   }
 
-  {
-    uint8_t derWithNullParam[MAX_ALGORITHM_OID_DER_LENGTH + 2];
-    memcpy(derWithNullParam, param.der, param.derLength);
-    derWithNullParam[param.derLength] = 0x05; // NULL tag
-    derWithNullParam[param.derLength + 1] = 0x00; // length zero
+  uint8_t derWithNullParam[MAX_ALGORITHM_OID_DER_LENGTH + 2];
+  memcpy(derWithNullParam, param.der, param.derLength);
+  derWithNullParam[param.derLength] = 0x05; // NULL tag
+  derWithNullParam[param.derLength + 1] = 0x00; // length zero
 
-    Input input;
-    ASSERT_EQ(Success, input.Init(derWithNullParam, param.derLength + 2));
-    Reader reader(input);
-    PublicKeyAlgorithm publicKeyAlg;
-    DigestAlgorithm digestAlg;
-    ASSERT_EQ(Success,
-              SignatureAlgorithmIdentifierValue(reader, publicKeyAlg,
-                                                digestAlg));
+  Input input;
+  ASSERT_EQ(Success, input.Init(derWithNullParam, param.derLength + 2));
+  Reader reader(input);
+  PublicKeyAlgorithm publicKeyAlg;
+  DigestAlgorithm digestAlg;
+  ASSERT_EQ(param.explicitNullAllowed
+              ? Success
+              : Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED,
+            SignatureAlgorithmIdentifierValue(reader, publicKeyAlg,
+                                              digestAlg));
+  if (param.explicitNullAllowed) {
     ASSERT_EQ(param.publicKeyAlg, publicKeyAlg);
     ASSERT_EQ(param.digestAlg, digestAlg);
     ASSERT_EQ(Success, End(reader));
@@ -454,6 +504,37 @@ static const InvalidAlgorithmIdentifierTestInfo
       0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01 },
     11,
   },
+
+  // RSA-PSS with SHA-256, MGF-1 with SHA-256, and a salt length of 48 bytes
+  { { 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0a, 0x30,
+      0x34, 0xa0, 0x0f, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65,
+      0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0xa1, 0x1c, 0x30, 0x1a, 0x06, 0x09,
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x08, 0x30, 0x0d, 0x06,
+      0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00,
+      0xa2, 0x03, 0x02, 0x01, 0x30 },
+    65,
+  },
+
+  // RSA-PSS with SHA-512, MGF-1 with SHA-256, and a salt length of 32 bytes
+  { { 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0a, 0x30,
+      0x34, 0xa0, 0x0f, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65,
+      0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0xa1, 0x1c, 0x30, 0x1a, 0x06, 0x09,
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x08, 0x30, 0x0d, 0x06,
+      0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00,
+      0xa2, 0x03, 0x02, 0x01, 0x20 },
+    65,
+  },
+
+  // RSA-PSS with omitted parameters
+  { { 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0a },
+    11,
+  },
+
+  // RSA-PSS with NULL parameters
+  { { 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0a,
+      0x05, 0x00 },
+    13,
+  },
 };
 
 class pkixder_SignatureAlgorithmIdentifier_Invalid
@@ -478,3 +559,169 @@ INSTANTIATE_TEST_SUITE_P(
   pkixder_SignatureAlgorithmIdentifier_Invalid,
   pkixder_SignatureAlgorithmIdentifier_Invalid,
   testing::ValuesIn(INVALID_SIGNATURE_ALGORITHM_VALUE_TEST_INFO));
+
+struct EncodedECDSASignatureValidParams {
+  std::vector<uint8_t> signature;
+  std::vector<uint8_t> rExpected;
+  std::vector<uint8_t> sExpected;
+};
+
+::std::ostream& operator<<(::std::ostream& os, const EncodedECDSASignatureValidParams&)
+{
+  return os << "TODO (bug 1318770)";
+}
+
+static const EncodedECDSASignatureValidParams
+  ENCODEDECDSASIGNATURE_VALID_PARAMS[] =
+{
+  {
+    { 0x30, 0x07, // SEQUENCE
+        0x02, 0x01, 0x01, // INTEGER (0x01)
+        0x02, 0x02, 0x05, 0x06 }, // INTEGER ([0x05, 0x06])
+    { 0x01 },
+    { 0x05, 0x06 },
+  },
+  {
+    { 0x30, 0x08, // SEQUENCE
+        0x02, 0x03, 0x00, 0xb7, 0x0a, // INTEGER ([0xb7, 0x0a]) highest bit set
+        0x02, 0x01, 0x02 }, // INTEGER (0x02)
+    { 0xb7, 0x0a },
+    { 0x02 },
+  },
+  {
+    { 0x30, 0x09, // SEQUENCE
+        0x02, 0x03, 0x23, 0x00, 0x55, // INTEGER ([0x23, 0x00, 0x55])
+        0x02, 0x02, 0x00, 0xf0 }, // INTEGER (0xf0) highest bit set
+    { 0x23, 0x00, 0x55 },
+    { 0xf0 },
+  },
+  {
+    { 0x30, 0x09, // SEQUENCE
+        0x02, 0x03, 0x00, 0x93, 0x10, // INTEGER ([0x93, 0xl0]) highest bit set
+        0x02, 0x02, 0x00, 0xcf }, // INTEGER (0xcf) highest bit set
+    { 0x93, 0x10, },
+    { 0xcf },
+  },
+};
+
+class pkixder_ECDSASigValue_valid
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<EncodedECDSASignatureValidParams>
+{
+};
+
+
+TEST_P(pkixder_ECDSASigValue_valid, pkixder_ECDSASigValue_valid)
+{
+  const EncodedECDSASignatureValidParams& params(GetParam());
+
+  Input signature;
+  ASSERT_EQ(Success,
+            signature.Init(params.signature.data(), params.signature.size()));
+  Input r;
+  Input s;
+  ASSERT_EQ(Success, ECDSASigValue(signature, r, s));
+
+  Input rExpected;
+  ASSERT_EQ(Success,
+            rExpected.Init(params.rExpected.data(), params.rExpected.size()));
+  ASSERT_TRUE(InputsAreEqual(r, rExpected));
+
+  Input sExpected;
+  ASSERT_EQ(Success,
+            sExpected.Init(params.sExpected.data(), params.sExpected.size()));
+  ASSERT_TRUE(InputsAreEqual(s, sExpected));
+}
+
+INSTANTIATE_TEST_SUITE_P(pkixder_ECDSASigValue_valid,
+    pkixder_ECDSASigValue_valid,
+    testing::ValuesIn(ENCODEDECDSASIGNATURE_VALID_PARAMS));
+
+struct EncodedECDSASignatureInvalidParams {
+  std::vector<uint8_t> signature;
+  Result expectedResult;
+};
+
+::std::ostream& operator<<(::std::ostream& os, const EncodedECDSASignatureInvalidParams&)
+{
+  return os << "TODO (bug 1318770)";
+}
+
+static const EncodedECDSASignatureInvalidParams
+  ENCODEDECDSASIGNATURE_INVALID_PARAMS[] =
+{
+  {
+    { 0x05, 0x00 }, // not a SEQUENCE
+    Result::ERROR_BAD_DER
+  },
+  {
+    { 0x30, 0x00 }, // empty SEQUENCE
+    Result::ERROR_BAD_DER
+  },
+  {
+    { 0x30, 0x06,
+        0x05, 0x01, 0x01, // NULL, not INTEGER
+        0x02, 0x01, 0x01 },
+    Result::ERROR_BAD_DER
+  },
+  {
+    { 0x30, 0x08,
+        0x02, 0x01, 0x01,
+        0x02, 0x01, 0x01,
+        0x05, 0x00 }, // trailing data in SEQUENCE
+    Result::ERROR_BAD_DER
+  },
+  { { 0x30, 0x06,
+        0x02, 0x01, 0x01,
+        0x02, 0x01, 0x01,
+      0x05, 0x00 }, // trailing data after SEQUENCE
+    Result::ERROR_BAD_DER
+  },
+  {
+    { 0x30, 0x07,
+        0x02, 0x01, 0x00, // not a positive INTEGER
+        0x02, 0x02, 0x0f, 0x02 },
+    Result::ERROR_INVALID_INTEGER_ENCODING
+  },
+  {
+    { 0x30, 0x08,
+        0x02, 0x02, 0x00, 0x01, // unnecessary zero padding
+        0x02, 0x02, 0x0f, 0x02 },
+    Result::ERROR_INVALID_INTEGER_ENCODING
+  },
+  {
+    { 0x30, 0x07,
+        0x02, 0x01, 0x01,
+        0x02, 0x02, 0xff, 0x02 }, // negative INTEGER
+    Result::ERROR_INVALID_INTEGER_ENCODING
+  },
+  {
+    { 0x30, 0x06,
+        0x02, 0x01, 0x01,
+        0x02, 0x01, 0xf0 }, // negative INTEGER
+    Result::ERROR_INVALID_INTEGER_ENCODING
+  },
+};
+
+class pkixder_ECDSASigValue_invalid
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<EncodedECDSASignatureInvalidParams>
+{
+};
+
+
+TEST_P(pkixder_ECDSASigValue_invalid, pkixder_ECDSASigValue_invalid)
+{
+  const EncodedECDSASignatureInvalidParams& params(GetParam());
+
+  Input signature;
+  ASSERT_EQ(Success,
+            signature.Init(params.signature.data(), params.signature.size()));
+  Input r;
+  Input s;
+  ASSERT_EQ(params.expectedResult, ECDSASigValue(signature, r, s));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+  pkixder_ECDSASigValue_invalid, pkixder_ECDSASigValue_invalid,
+  testing::ValuesIn(ENCODEDECDSASIGNATURE_INVALID_PARAMS));

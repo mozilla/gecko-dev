@@ -30,6 +30,7 @@
 
 struct nsStyleDisplay;
 namespace mozilla {
+enum class StyleScrollSnapStop : uint8_t;
 enum class StyleScrollSnapStrictness : uint8_t;
 enum class StyleOverscrollBehavior : uint8_t;
 class WritingMode;
@@ -693,8 +694,7 @@ struct ScrollSnapInfo {
   bool operator==(const ScrollSnapInfo& aOther) const {
     return mScrollSnapStrictnessX == aOther.mScrollSnapStrictnessX &&
            mScrollSnapStrictnessY == aOther.mScrollSnapStrictnessY &&
-           mSnapPositionX == aOther.mSnapPositionX &&
-           mSnapPositionY == aOther.mSnapPositionY &&
+           mSnapTargets == aOther.mSnapTargets &&
            mXRangeWiderThanSnapport == aOther.mXRangeWiderThanSnapport &&
            mYRangeWiderThanSnapport == aOther.mYRangeWiderThanSnapport &&
            mSnapportSize == aOther.mSnapportSize;
@@ -710,9 +710,35 @@ struct ScrollSnapInfo {
   StyleScrollSnapStrictness mScrollSnapStrictnessX;
   StyleScrollSnapStrictness mScrollSnapStrictnessY;
 
-  // The scroll positions corresponding to scroll-snap-align values.
-  CopyableTArray<nscoord> mSnapPositionX;
-  CopyableTArray<nscoord> mSnapPositionY;
+  struct SnapTarget {
+    // The scroll positions corresponding to scroll-snap-align values.
+    Maybe<nscoord> mSnapPositionX;
+    Maybe<nscoord> mSnapPositionY;
+
+    // https://drafts.csswg.org/css-scroll-snap/#scroll-snap-area
+    nsRect mSnapArea;
+
+    // https://drafts.csswg.org/css-scroll-snap/#propdef-scroll-snap-stop
+    StyleScrollSnapStop mScrollSnapStop;
+
+    SnapTarget() = default;
+
+    SnapTarget(Maybe<nscoord>&& aSnapPositionX, Maybe<nscoord>&& aSnapPositionY,
+               nsRect&& aSnapArea, StyleScrollSnapStop aScrollSnapStop)
+        : mSnapPositionX(std::move(aSnapPositionX)),
+          mSnapPositionY(std::move(aSnapPositionY)),
+          mSnapArea(std::move(aSnapArea)),
+          mScrollSnapStop(aScrollSnapStop) {}
+
+    bool operator==(const SnapTarget& aOther) const {
+      return mSnapPositionX == aOther.mSnapPositionX &&
+             mSnapPositionY == aOther.mSnapPositionY &&
+             mSnapArea == aOther.mSnapArea &&
+             mScrollSnapStop == aOther.mScrollSnapStop;
+    }
+  };
+
+  CopyableTArray<SnapTarget> mSnapTargets;
 
   struct ScrollSnapRange {
     ScrollSnapRange() = default;
@@ -811,6 +837,7 @@ struct ScrollMetadata {
         mPrefersReducedMotion(false),
         mForceMousewheelAutodir(false),
         mForceMousewheelAutodirHonourRoot(false),
+        mIsPaginatedPresentation(false),
         mOverscrollBehavior() {}
 
   bool operator==(const ScrollMetadata& aOther) const {
@@ -831,6 +858,7 @@ struct ScrollMetadata {
            mForceMousewheelAutodir == aOther.mForceMousewheelAutodir &&
            mForceMousewheelAutodirHonourRoot ==
                aOther.mForceMousewheelAutodirHonourRoot &&
+           mIsPaginatedPresentation == aOther.mIsPaginatedPresentation &&
            mDisregardedDirection == aOther.mDisregardedDirection &&
            mOverscrollBehavior == aOther.mOverscrollBehavior &&
            mScrollUpdates == aOther.mScrollUpdates;
@@ -916,6 +944,11 @@ struct ScrollMetadata {
   bool ForceMousewheelAutodirHonourRoot() const {
     return mForceMousewheelAutodirHonourRoot;
   }
+
+  void SetIsPaginatedPresentation(bool aValue) {
+    mIsPaginatedPresentation = aValue;
+  }
+  bool IsPaginatedPresentation() const { return mIsPaginatedPresentation; }
 
   bool DidContentGetPainted() const { return mDidContentGetPainted; }
 
@@ -1031,6 +1064,13 @@ struct ScrollMetadata {
   // enabled for the scroll frame.
   bool mForceMousewheelAutodir : 1;
   bool mForceMousewheelAutodirHonourRoot : 1;
+
+  // Whether this content is being displayed in a paginated fashion
+  // such as printing or print preview. In such cases, content that
+  // would normally only generate one display item may generated one
+  // display item per page, and the different instances may be subject
+  // to different transforms, which constrains the assumptions APZ can make.
+  bool mIsPaginatedPresentation : 1;
 
   // The disregarded direction means the direction which is disregarded anyway,
   // even if the scroll frame overflows in that direction and the direction is

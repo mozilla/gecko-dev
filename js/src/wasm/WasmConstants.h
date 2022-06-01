@@ -43,9 +43,7 @@ enum class SectionId {
   Code = 10,
   Data = 11,
   DataCount = 12,
-#ifdef ENABLE_WASM_EXCEPTIONS
   Tag = 13,
-#endif
 };
 
 // WebAssembly type encodings are all single-byte negative SLEB128s, hence:
@@ -177,9 +175,7 @@ enum class DefinitionKind {
   Table = 0x01,
   Memory = 0x02,
   Global = 0x03,
-#ifdef ENABLE_WASM_EXCEPTIONS
   Tag = 0x04,
-#endif
 };
 
 enum class GlobalTypeImmediate { IsMutable = 0x1, AllowedMask = 0x1 };
@@ -219,11 +215,9 @@ enum class ElemSegmentPayload : uint32_t {
   ElemExpression = 0x4,
 };
 
-#ifdef ENABLE_WASM_EXCEPTIONS
 enum class TagKind {
   Exception = 0x0,
 };
-#endif
 
 enum class Op {
   // Control flow operators
@@ -233,12 +227,10 @@ enum class Op {
   Loop = 0x03,
   If = 0x04,
   Else = 0x05,
-#ifdef ENABLE_WASM_EXCEPTIONS
   Try = 0x06,
   Catch = 0x07,
   Throw = 0x08,
   Rethrow = 0x09,
-#endif
   End = 0x0b,
   Br = 0x0c,
   BrIf = 0x0d,
@@ -249,11 +241,9 @@ enum class Op {
   Call = 0x10,
   CallIndirect = 0x11,
 
-// Additional exception operators
-#ifdef ENABLE_WASM_EXCEPTIONS
+  // Additional exception operators
   Delegate = 0x18,
   CatchAll = 0x19,
-#endif
 
   // Parametric operators
   Drop = 0x1a,
@@ -453,7 +443,6 @@ enum class Op {
   RefEq = 0xd5,
 
   FirstPrefix = 0xfa,
-  IntrinsicPrefix = 0xfa,
   GcPrefix = 0xfb,
   MiscPrefix = 0xfc,
   SimdPrefix = 0xfd,
@@ -665,11 +654,11 @@ enum class SimdOp {
   I16x8ExtmulHighI8x16U = 0x9f,
   I32x4Abs = 0xa0,
   I32x4Neg = 0xa1,
-  V8x16RelaxedSwizzle = 0xa2,
+  // Unused = 0xa2
   I32x4AllTrue = 0xa3,
   I32x4Bitmask = 0xa4,
-  I32x4RelaxedTruncSSatF32x4 = 0xa5,
-  I32x4RelaxedTruncUSatF32x4 = 0xa6,
+  // Unused = 0xa5
+  // Unused = 0xa6
   I32x4ExtendLowI16x8S = 0xa7,
   I32x4ExtendHighI16x8S = 0xa8,
   I32x4ExtendLowI16x8U = 0xa9,
@@ -678,12 +667,12 @@ enum class SimdOp {
   I32x4ShrS = 0xac,
   I32x4ShrU = 0xad,
   I32x4Add = 0xae,
-  F32x4RelaxedFma = 0xaf,
-  F32x4RelaxedFms = 0xb0,
+  // Unused = 0xaf
+  // Unused = 0xb0
   I32x4Sub = 0xb1,
-  I8x16LaneSelect = 0xb2,
-  I16x8LaneSelect = 0xb3,
-  F32x4RelaxedMin = 0xb4,
+  // Unused = 0xb2
+  // Unused = 0xb3
+  // Unused = 0xb4
   I32x4Mul = 0xb5,
   I32x4MinS = 0xb6,
   I32x4MinU = 0xb7,
@@ -700,8 +689,8 @@ enum class SimdOp {
   // AnyTrue = 0xc2
   I64x2AllTrue = 0xc3,
   I64x2Bitmask = 0xc4,
-  I32x4RelaxedTruncSatF64x2SZero = 0xc5,
-  I32x4RelaxedTruncSatF64x2UZero = 0xc6,
+  // Unused = 0xc5
+  // Unused = 0xc6
   I64x2ExtendLowI32x4S = 0xc7,
   I64x2ExtendHighI32x4S = 0xc8,
   I64x2ExtendLowI32x4U = 0xc9,
@@ -710,12 +699,12 @@ enum class SimdOp {
   I64x2ShrS = 0xcc,
   I64x2ShrU = 0xcd,
   I64x2Add = 0xce,
-  F64x2RelaxedFma = 0xcf,
-  F64x2RelaxedFms = 0xd0,
+  // Unused = 0xcf
+  // Unused = 0xd0
   I64x2Sub = 0xd1,
-  I32x4LaneSelect = 0xd2,
-  I64x2LaneSelect = 0xd3,
-  F64x2RelaxedMin = 0xd4,
+  // Unused = 0xd2
+  // Unused = 0xd3
+  // Unused = 0xd4
   I64x2Mul = 0xd5,
   I64x2Eq = 0xd6,
   I64x2Ne = 0xd7,
@@ -729,7 +718,7 @@ enum class SimdOp {
   I64x2ExtmulHighI32x4U = 0xdf,
   F32x4Abs = 0xe0,
   F32x4Neg = 0xe1,
-  F32x4RelaxedMax = 0xe2,
+  // Unused = 0xe2
   F32x4Sqrt = 0xe3,
   F32x4Add = 0xe4,
   F32x4Sub = 0xe5,
@@ -741,7 +730,7 @@ enum class SimdOp {
   F32x4PMax = 0xeb,
   F64x2Abs = 0xec,
   F64x2Neg = 0xed,
-  F64x2RelaxedMax = 0xee,
+  // Unused = 0xee
   F64x2Sqrt = 0xef,
   F64x2Add = 0xf0,
   F64x2Sub = 0xf1,
@@ -759,7 +748,30 @@ enum class SimdOp {
   I32x4TruncSatF64x2UZero = 0xfd,
   F64x2ConvertLowI32x4S = 0xfe,
   F64x2ConvertLowI32x4U = 0xff,
-// Unused = 0x100 and up
+  I8x16RelaxedSwizzle = 0x100,
+  I32x4RelaxedTruncSSatF32x4 = 0x101,
+  I32x4RelaxedTruncUSatF32x4 = 0x102,
+  I32x4RelaxedTruncSatF64x2SZero = 0x103,
+  I32x4RelaxedTruncSatF64x2UZero = 0x104,
+  F32x4RelaxedFma = 0x105,
+  F32x4RelaxedFms = 0x106,
+  F64x2RelaxedFma = 0x107,
+  F64x2RelaxedFms = 0x108,
+  I8x16RelaxedLaneSelect = 0x109,
+  I16x8RelaxedLaneSelect = 0x10a,
+  I32x4RelaxedLaneSelect = 0x10b,
+  I64x2RelaxedLaneSelect = 0x10c,
+  F32x4RelaxedMin = 0x10d,
+  F32x4RelaxedMax = 0x10e,
+  F64x2RelaxedMin = 0x10f,
+  F64x2RelaxedMax = 0x110,
+  I16x8RelaxedQ15MulrS = 0x111,
+  I16x8DotI8x16I7x16S = 0x112,
+  I32x4DotI8x16I7x16AddS = 0x113,
+// bfloat16 dot product = 0x114
+// Reserved for Relaxed SIMD = 0x115-0x12f
+
+// Unused = 0x130 and up
 
 // Mozilla extensions, highly experimental and platform-specific
 #ifdef ENABLE_WASM_SIMD_WORMHOLE
@@ -940,11 +952,12 @@ enum class ThreadOp {
   Limit
 };
 
-enum class IntrinsicOp {
+enum class IntrinsicId {
 // ------------------------------------------------------------------------
-// These operators are emitted internally when compiling intrinsic modules
-// and are rejected by wasm validation.  They are prefixed by
-// IntrinsicPrefix. See wasm/WasmIntrinsic.yaml for the list.
+// These are part/suffix of the MozOp::Intrinsic operators that are emitted
+// internally when compiling intrinsic modules and are rejected by wasm
+// validation.
+// See wasm/WasmIntrinsic.yaml for the list.
 #define DECL_INTRINSIC_OP(op, export, sa_name, abitype, entry, idx) \
   op = idx,  // NOLINT
   FOR_EACH_INTRINSIC(DECL_INTRINSIC_OP)
@@ -993,6 +1006,10 @@ enum class MozOp {
   // asm.js-style call_indirect with the callee evaluated first.
   OldCallDirect,
   OldCallIndirect,
+
+  // Intrinsic modules operations. The operator has argument leb u32 to specify
+  // particular operation id. See IntrinsicId above.
+  Intrinsic,
 
   Limit
 };

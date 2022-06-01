@@ -2,24 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
+"use strict";
+
 PromiseTestUtils.allowMatchingRejectionsGlobally(/Current state is running/);
 PromiseTestUtils.allowMatchingRejectionsGlobally(/Connection closed/);
 
 // Test that unusual objects have their contents shown in worker thread scopes.
 add_task(async function() {
   const dbg = await initDebugger("doc-worker-scopes.html", "scopes-worker.js");
-  const workerSource = findSource(dbg, "scopes-worker.js");
 
-  await addBreakpoint(dbg, workerSource, 11);
+  await selectSource(dbg, "scopes-worker.js");
+  await addBreakpointViaGutter(dbg, 11);
   await dbg.toolbox.target.waitForRequestsToSettle();
   invokeInTab("startWorker");
   await waitForPaused(dbg, "scopes-worker.js");
-  const onRemoved = waitForDispatch(dbg.store, "REMOVE_BREAKPOINT");
-  await removeBreakpoint(dbg, workerSource.id, 11);
-  await onRemoved;
-
+  await removeBreakpointViaGutter(dbg, 11);
   // We should be paused at the first line of simple-worker.js
-  const workerSource2 = dbg.selectors.getSelectedSourceWithContent();
+  const workerSource2 = dbg.selectors.getSelectedSource();
   assertPausedAtSourceAndLine(dbg, workerSource2.id, 11);
 
   await toggleNode(dbg, "var_array");
@@ -94,4 +93,10 @@ function findNodeValue(dbg, text) {
       return findElement(dbg, "scopeValue", index).innerText;
     }
   }
+}
+
+async function removeBreakpointViaGutter(dbg, line) {
+  const onRemoved = waitForDispatch(dbg.store, "REMOVE_BREAKPOINT");
+  await clickGutter(dbg, line);
+  await onRemoved;
 }

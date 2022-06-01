@@ -104,10 +104,11 @@ void ProxyStateChangeEvent(RemoteAccessible* aTarget, uint64_t aState,
 void ProxyFocusEvent(RemoteAccessible* aTarget,
                      const LayoutDeviceIntRect& aCaretRect);
 void ProxyCaretMoveEvent(RemoteAccessible* aTarget,
-                         const LayoutDeviceIntRect& aCaretRect);
+                         const LayoutDeviceIntRect& aCaretRect,
+                         int32_t aGranularity);
 #else
 void ProxyCaretMoveEvent(RemoteAccessible* aTarget, int32_t aOffset,
-                         bool aIsSelectionCollapsed);
+                         bool aIsSelectionCollapsed, int32_t aGranularity);
 #endif
 void ProxyTextChangeEvent(RemoteAccessible* aTarget, const nsString& aStr,
                           int32_t aStart, uint32_t aLen, bool aIsInsert,
@@ -118,7 +119,6 @@ void ProxySelectionEvent(RemoteAccessible* aTarget, RemoteAccessible* aWidget,
                          uint32_t aType);
 
 #if defined(ANDROID)
-MOZ_CAN_RUN_SCRIPT
 void ProxyVirtualCursorChangeEvent(RemoteAccessible* aTarget,
                                    RemoteAccessible* aOldPosition,
                                    int32_t aOldStartOffset,
@@ -141,9 +141,7 @@ void ProxyBatch(RemoteAccessible* aDocument, const uint64_t aBatchType,
                 const nsTArray<RemoteAccessible*>& aAccessibles,
                 const nsTArray<BatchData>& aData);
 
-bool LocalizeString(
-    const char* aToken, nsAString& aLocalized,
-    const nsTArray<nsString>& aFormatString = nsTArray<nsString>());
+bool LocalizeString(const nsAString& aToken, nsAString& aLocalized);
 #endif
 
 #ifdef MOZ_WIDGET_COCOA

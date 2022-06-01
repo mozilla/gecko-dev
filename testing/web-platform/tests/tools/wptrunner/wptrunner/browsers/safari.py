@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import os
 import plistlib
 from distutils.spawn import find_executable
@@ -144,7 +146,7 @@ class SafariBrowser(WebDriverBrowser):
     """Safari is backed by safaridriver, which is supplied through
     ``wptrunner.webdriver.SafariDriverServer``.
     """
-    def __init__(self, logger, binary, webdriver_binary, webdriver_args=None,
+    def __init__(self, logger, binary=None, webdriver_binary=None, webdriver_args=None,
                  port=None, env=None, kill_safari=False, **kwargs):
         """Creates a new representation of Safari.  The `webdriver_binary`
         argument gives the WebDriver binary to use for testing. (The browser
@@ -182,7 +184,7 @@ class SafariBrowser(WebDriverBrowser):
         return exe_path
 
     def make_command(self):
-        return [self.binary, f"--port={self.port}"] + self.webdriver_args
+        return [self.webdriver_binary, f"--port={self.port}"] + self.webdriver_args
 
     def stop(self, force=False):
         super().stop(force)
@@ -190,7 +192,8 @@ class SafariBrowser(WebDriverBrowser):
         if self.kill_safari:
             self.logger.debug("Going to stop Safari")
             for proc in psutil.process_iter(attrs=["exe"]):
-                if proc.info["exe"] is not None and os.path.samefile(proc.info["exe"], self.safari_path):
+                if (proc.info["exe"] is not None and
+                    os.path.samefile(proc.info["exe"], self.safari_path)):
                     self.logger.debug("Stopping Safari %s" % proc.pid)
                     try:
                         proc.terminate()
@@ -198,5 +201,6 @@ class SafariBrowser(WebDriverBrowser):
                             proc.wait(10)
                         except psutil.TimeoutExpired:
                             proc.kill()
+                            proc.wait(10)
                     except psutil.NoSuchProcess:
                         pass

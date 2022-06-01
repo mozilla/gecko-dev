@@ -279,7 +279,8 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
                                   const TimeDuration& aVsyncRate,
                                   const CompositorOptions& aOptions,
                                   bool aUseExternalSurfaceSize,
-                                  const gfx::IntSize& aSurfaceSize);
+                                  const gfx::IntSize& aSurfaceSize,
+                                  uint64_t aInnerWindowId);
 
   void InitSameProcess(widget::CompositorWidget* aWidget,
                        const LayersId& aLayerTreeId);
@@ -533,6 +534,8 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   RefPtr<APZUpdater> GetAPZUpdater() const;
   RefPtr<OMTASampler> GetOMTASampler() const;
 
+  uint64_t GetInnerWindowId() const { return mInnerWindowId; }
+
   CompositorOptions GetOptions() const { return mOptions; }
 
   TimeDuration GetVsyncInterval() const {
@@ -608,6 +611,8 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
    */
   Maybe<CollectedFramesParams> WrapCollectedFrames(CollectedFrames&& aFrames);
 
+  static void ResetStable();
+
   void MaybeDeclareStable();
 
  protected:
@@ -671,6 +676,9 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   template <typename Lambda>
   static inline void ForEachWebRenderBridgeParent(const Lambda& aCallback);
 
+  static bool sStable;
+  static uint32_t sFramesComposited;
+
   RefPtr<Compositor> mCompositor;
   RefPtr<AsyncImagePipelineManager> mAsyncImageManager;
   RefPtr<WebRenderBridgeParent> mWrBridge;
@@ -693,8 +701,8 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
 
   CompositorOptions mOptions;
 
-  mozilla::Monitor mPauseCompositionMonitor;
-  mozilla::Monitor mResumeCompositionMonitor;
+  mozilla::Monitor mPauseCompositionMonitor MOZ_UNANNOTATED;
+  mozilla::Monitor mResumeCompositionMonitor MOZ_UNANNOTATED;
 
   uint64_t mCompositorBridgeID;
   LayersId mRootLayerTreeID;
@@ -706,6 +714,10 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   RefPtr<APZSampler> mApzSampler;
   RefPtr<APZUpdater> mApzUpdater;
   RefPtr<OMTASampler> mOMTASampler;
+
+  // Store the inner window id of the browser window, to use it in
+  // profiler markers.
+  uint64_t mInnerWindowId;
 
   RefPtr<CompositorVsyncScheduler> mCompositorScheduler;
   // This makes sure the compositorParent is not destroyed before receiving

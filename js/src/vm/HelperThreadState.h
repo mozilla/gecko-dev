@@ -232,8 +232,6 @@ class GlobalHelperThreadState {
                                size_t threadCount, size_t stackSize,
                                const AutoLockHelperThreadState& lock);
 
-  [[nodiscard]] bool ensureContextList(size_t count,
-                                       const AutoLockHelperThreadState& lock);
   JSContext* getFirstUnusedContext(AutoLockHelperThreadState& locked);
   void destroyHelperContexts(AutoLockHelperThreadState& lock);
 
@@ -458,7 +456,8 @@ class GlobalHelperThreadState {
   // completed some work.
   js::ConditionVariable consumerWakeup;
 
-  void dispatch(const AutoLockHelperThreadState& locked);
+  void dispatch(JS::DispatchReason reason,
+                const AutoLockHelperThreadState& locked);
 
   void runTask(HelperThreadTask* task, AutoLockHelperThreadState& lock);
 
@@ -490,6 +489,11 @@ class GlobalHelperThreadState {
       const AutoLockHelperThreadState& locked);
 };
 
+static inline bool IsHelperThreadStateInitialized() {
+  extern GlobalHelperThreadState* gHelperThreadState;
+  return gHelperThreadState;
+}
+
 static inline GlobalHelperThreadState& HelperThreadState() {
   extern GlobalHelperThreadState* gHelperThreadState;
 
@@ -502,7 +506,8 @@ class MOZ_RAII AutoSetHelperThreadContext {
   AutoLockHelperThreadState& lock;
 
  public:
-  explicit AutoSetHelperThreadContext(AutoLockHelperThreadState& lock);
+  AutoSetHelperThreadContext(const JS::ContextOptions& options,
+                             AutoLockHelperThreadState& lock);
   ~AutoSetHelperThreadContext();
 };
 
@@ -527,6 +532,9 @@ struct ParseTask : public mozilla::LinkedListElement<ParseTask>,
                    public HelperThreadTask {
   ParseTaskKind kind;
   JS::OwningCompileOptions options;
+
+  // Context options from the main thread.
+  const JS::ContextOptions contextOptions;
 
   // HelperThreads are shared between all runtimes in the process so explicitly
   // track which one we are associated with.
@@ -652,6 +660,9 @@ struct DelazifyTask : public mozilla::LinkedListElement<DelazifyTask>,
   // track which one we are associated with.
   JSRuntime* runtime = nullptr;
 
+  // Context options originally from the main thread.
+  const JS::ContextOptions contextOptions;
+
   // Queue of functions to be processed while delazifying.
   UniquePtr<DelazifyStrategy> strategy;
 
@@ -662,7 +673,15 @@ struct DelazifyTask : public mozilla::LinkedListElement<DelazifyTask>,
   // Record any errors happening while parsing or generating bytecode.
   OffThreadFrontendErrors errors_;
 
-  explicit DelazifyTask(JSRuntime* runtime);
+  // Create a new DelazifyTask and initialize it.
+  static UniquePtr<DelazifyTask> Create(
+      JSContext* cx,
+      JSRuntime* runtime,
+      const JS::ContextOptions& contextOptions,
+      const JS::ReadOnlyCompileOptions& options,
+      const frontend::CompilationStencil& stencil);
+
+  DelazifyTask(JSRuntime* runtime, const JS::ContextOptions& options);
 
   [[nodiscard]] bool init(
       JSContext* cx, const JS::ReadOnlyCompileOptions& options,

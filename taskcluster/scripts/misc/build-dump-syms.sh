@@ -8,7 +8,7 @@ export TARGET=$1
 COMPRESS_EXT=zst
 # This script is for building dump_syms
 case "$(uname -s)" in
-MINGW*)
+MINGW*|MSYS*)
     UPLOAD_DIR=$PWD/public/build
 
     . $GECKO_PATH/taskcluster/scripts/misc/vs-setup.sh
@@ -16,10 +16,6 @@ MINGW*)
 esac
 
 cd $GECKO_PATH
-
-if [ -n "$TOOLTOOL_MANIFEST" ]; then
-  . taskcluster/scripts/misc/tooltool-download.sh
-fi
 
 PATH="$(cd $MOZ_FETCHES_DIR && pwd)/rustc/bin:$PATH"
 
@@ -49,11 +45,11 @@ Linux)
         export CFLAGS="--sysroot=$MOZ_FETCHES_DIR/sysroot-x86_64-linux-gnu"
         export CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 --sysroot=$MOZ_FETCHES_DIR/sysroot-x86_64-linux-gnu"
         export PATH="$MOZ_FETCHES_DIR/clang/bin:$MOZ_FETCHES_DIR/binutils/bin:$PATH"
-        cargo build --verbose --release --features "vendored-openssl"
+        cargo build --verbose --release
         ;;
     esac
     ;;
-MINGW*)
+MINGW*|MSYS*)
     cargo build --verbose --release
     ;;
 esac

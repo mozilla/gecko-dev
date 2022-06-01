@@ -138,7 +138,7 @@ class RenderThread final {
   static RenderThread* Get();
 
   /// Can only be called from the main thread.
-  static void Start();
+  static void Start(uint32_t aNamespace);
 
   /// Can only be called from the main thread.
   static void ShutDown();
@@ -360,7 +360,7 @@ class RenderThread final {
     }
   };
 
-  Mutex mRenderTextureMapLock;
+  Mutex mRenderTextureMapLock MOZ_UNANNOTATED;
   std::unordered_map<wr::ExternalImageId, RefPtr<RenderTextureHost>,
                      ExternalImageIdHashFn>
       mRenderTextures;

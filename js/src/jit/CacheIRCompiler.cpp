@@ -208,7 +208,6 @@ void CacheRegisterAllocator::copyToScratchRegister(MacroAssembler& masm,
 
   const OperandLocation& loc = operandLocations_[typedId.id()];
 
-  Label failure, done;
   switch (loc.kind()) {
     case OperandLocation::ValueReg: {
       masm.unboxNonDouble(loc.valueReg(), dest, typedId.type());
@@ -1521,7 +1520,6 @@ bool CacheIRCompiler::emitGuardIsNull(ValOperandId inputId) {
     return false;
   }
 
-  Label success;
   masm.branchTestNull(Assembler::NotEqual, input, failure->label());
   return true;
 }
@@ -2119,6 +2117,24 @@ bool CacheIRCompiler::emitGuardDynamicSlotValue(ObjOperandId objId,
   BaseIndex slotVal(scratch1, scratch2, TimesOne);
   masm.branchTestValue(Assembler::NotEqual, slotVal, scratchVal,
                        failure->label());
+  return true;
+}
+
+bool CacheIRCompiler::emitLoadDynamicSlot(ValOperandId resultId,
+                                          ObjOperandId objId,
+                                          uint32_t slotOffset) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  ValueOperand output = allocator.defineValueRegister(masm, resultId);
+  Register obj = allocator.useRegister(masm, objId);
+  AutoScratchRegister scratch1(allocator, masm);
+  Register scratch2 = output.scratchReg();
+
+  StubFieldOffset slotIndex(slotOffset, StubField::Type::RawInt32);
+  emitLoadStubField(slotIndex, scratch2);
+
+  masm.loadPtr(Address(obj, NativeObject::offsetOfSlots()), scratch1);
+  masm.loadValue(BaseObjectSlotIndex(scratch1, scratch2), output);
   return true;
 }
 
@@ -3265,6 +3281,21 @@ bool CacheIRCompiler::emitLoadArgumentsObjectLengthResult(ObjOperandId objId) {
   masm.loadArgumentsObjectLength(obj, scratch, failure->label());
 
   masm.tagValue(JSVAL_TYPE_INT32, scratch, output.valueReg());
+  return true;
+}
+
+bool CacheIRCompiler::emitLoadArgumentsObjectLength(ObjOperandId objId,
+                                                    Int32OperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+  Register obj = allocator.useRegister(masm, objId);
+  Register res = allocator.defineRegister(masm, resultId);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.loadArgumentsObjectLength(obj, res, failure->label());
   return true;
 }
 

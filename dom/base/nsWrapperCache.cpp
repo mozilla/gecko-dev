@@ -29,15 +29,20 @@ void nsWrapperCache::HoldJSObjects(void* aScriptObjectHolder,
                                    JS::Zone* aWrapperZone) {
   cyclecollector::HoldJSObjectsImpl(aScriptObjectHolder, aTracer, aWrapperZone);
   if (mWrapper && !JS::ObjectIsTenured(mWrapper)) {
-    CycleCollectedJSRuntime::Get()->NurseryWrapperPreserved(mWrapper);
+    JS::HeapObjectPostWriteBarrier(&mWrapper, nullptr, mWrapper);
   }
 }
 
-void nsWrapperCache::SetWrapperJSObject(JSObject* aWrapper) {
-  mWrapper = aWrapper;
+static inline bool IsNurseryWrapper(JSObject* aWrapper) {
+  return aWrapper && !JS::ObjectIsTenured(aWrapper);
+}
+
+void nsWrapperCache::SetWrapperJSObject(JSObject* aNewWrapper) {
+  JSObject* oldWrapper = mWrapper;
+  mWrapper = aNewWrapper;
   UnsetWrapperFlags(kWrapperFlagsMask);
 
-  if (aWrapper && !JS::ObjectIsTenured(aWrapper)) {
+  if (IsNurseryWrapper(aNewWrapper) && !IsNurseryWrapper(oldWrapper)) {
     CycleCollectedJSRuntime::Get()->NurseryWrapperAdded(this);
   }
 }
@@ -48,6 +53,7 @@ void nsWrapperCache::ReleaseWrapper(void* aScriptObjectHolder) {
   if (PreservingWrapper()) {
     SetPreservingWrapper(false);
     cyclecollector::DropJSObjectsImpl(aScriptObjectHolder);
+    JS::HeapObjectPostWriteBarrier(&mWrapper, mWrapper, nullptr);
   }
 }
 

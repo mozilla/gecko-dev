@@ -69,13 +69,17 @@ class nsNetworkLinkService : public nsINetworkLinkService,
   bool RoutingFromKernel(nsTArray<nsCString>& aHash);
   bool RoutingTable(nsTArray<nsCString>& aHash);
 
-  mozilla::Mutex mMutex;
+  mozilla::Mutex mMutex MOZ_UNANNOTATED;
   nsCString mNetworkId;
   nsTArray<nsCString> mDNSSuffixList;
 
   // The timer used to delay the calculation of network id since it takes some
   // time to discover the gateway's MAC address.
   nsCOMPtr<nsITimer> mNetworkIdTimer;
+
+  // Scheduled timers used to delay querying of the DNS suffix list when
+  // triggered by a network change. Guarded by mMutex.
+  nsTArray<nsCOMPtr<nsITimer>> mDNSConfigChangedTimers;
 
   // IP address used to check the route for public traffic.
   struct in_addr mRouteCheckIPv4;

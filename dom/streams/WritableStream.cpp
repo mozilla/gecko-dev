@@ -17,7 +17,6 @@
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/AbortSignal.h"
 #include "mozilla/dom/BindingCallContext.h"
-#include "mozilla/dom/ModuleMapKey.h"
 #include "mozilla/dom/QueueWithSizes.h"
 #include "mozilla/dom/QueuingStrategyBinding.h"
 #include "mozilla/dom/ReadRequest.h"
@@ -35,27 +34,12 @@
 
 namespace mozilla::dom {
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(WritableStream)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(WritableStream)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobal, mCloseRequest, mController,
-                                  mInFlightWriteRequest, mInFlightCloseRequest,
-                                  mPendingAbortRequestPromise, mWriter,
-                                  mWriteRequests)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
-  tmp->mPendingAbortRequestReason.setNull();
-  tmp->mStoredError.setNull();
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WritableStream)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(
-      mGlobal, mCloseRequest, mController, mInFlightWriteRequest,
-      mInFlightCloseRequest, mWriter, mWriteRequests)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(WritableStream)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mPendingAbortRequestReason)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mStoredError)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_WITH_JS_MEMBERS(
+    WritableStream,
+    (mGlobal, mCloseRequest, mController, mInFlightWriteRequest,
+     mInFlightCloseRequest, mPendingAbortRequestPromise, mWriter,
+     mWriteRequests),
+    (mPendingAbortRequestReason, mStoredError))
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(WritableStream)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(WritableStream)
@@ -100,57 +84,6 @@ void WritableStream::DealWithRejection(JSContext* aCx,
   // Step 4. Perform ! WritableStreamFinishErroring(stream).
   FinishErroring(aCx, aRv);
 }
-
-class AbortStepsNativePromiseHandler final : public PromiseNativeHandler {
-  ~AbortStepsNativePromiseHandler() = default;
-
-  RefPtr<WritableStream> mStream;
-  RefPtr<Promise> mAbortRequestPromise;
-
- public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(AbortStepsNativePromiseHandler)
-
-  explicit AbortStepsNativePromiseHandler(WritableStream* aStream,
-                                          Promise* aAbortRequestPromise)
-      : PromiseNativeHandler(),
-        mStream(aStream),
-        mAbortRequestPromise(aAbortRequestPromise) {}
-
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
-                        ErrorResult& aRv) override {
-    // https://streams.spec.whatwg.org/#writable-stream-finish-erroring
-
-    // Step 13. Upon fulfillment of promise,
-    // Step 13.1. Resolve abortRequest’s promise with undefined.
-    mAbortRequestPromise->MaybeResolveWithUndefined();
-
-    // Step 13.2. Perform !
-    // WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
-    mStream->RejectCloseAndClosedPromiseIfNeeded();
-  }
-
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
-                        ErrorResult& aRv) override {
-    // https://streams.spec.whatwg.org/#writable-stream-finish-erroring
-
-    // Step 14. Upon rejection of promise with reason reason,
-    // Step 14.1. Reject abortRequest’s promise with reason.
-    mAbortRequestPromise->MaybeReject(aValue);
-
-    // Step 14.2. Perform !
-    // WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
-    mStream->RejectCloseAndClosedPromiseIfNeeded();
-  }
-};
-
-NS_IMPL_CYCLE_COLLECTION(AbortStepsNativePromiseHandler, mStream,
-                         mAbortRequestPromise)
-NS_IMPL_CYCLE_COLLECTING_ADDREF(AbortStepsNativePromiseHandler)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(AbortStepsNativePromiseHandler)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AbortStepsNativePromiseHandler)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
 
 // https://streams.spec.whatwg.org/#writable-stream-finish-erroring
 void WritableStream::FinishErroring(JSContext* aCx, ErrorResult& aRv) {
@@ -219,8 +152,28 @@ void WritableStream::FinishErroring(JSContext* aCx, ErrorResult& aRv) {
   }
 
   // Step 13 + 14.
-  promise->AppendNativeHandler(
-      new AbortStepsNativePromiseHandler(this, abortPromise));
+  promise->AddCallbacksWithCycleCollectedArgs(
+      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         Promise* aAbortRequestPromise, WritableStream* aStream) {
+        // Step 13. Upon fulfillment of promise,
+        // Step 13.1. Resolve abortRequest’s promise with undefined.
+        aAbortRequestPromise->MaybeResolveWithUndefined();
+
+        // Step 13.2. Perform !
+        // WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
+        aStream->RejectCloseAndClosedPromiseIfNeeded();
+      },
+      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         Promise* aAbortRequestPromise, WritableStream* aStream) {
+        // Step 14. Upon rejection of promise with reason reason,
+        // Step 14.1. Reject abortRequest’s promise with reason.
+        aAbortRequestPromise->MaybeReject(aValue);
+
+        // Step 14.2. Perform !
+        // WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
+        aStream->RejectCloseAndClosedPromiseIfNeeded();
+      },
+      RefPtr(abortPromise), RefPtr(this));
 }
 
 // https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close
@@ -743,6 +696,35 @@ AcquireWritableStreamDefaultWriter(WritableStream* aStream, ErrorResult& aRv) {
 
   // Step 3. Return writer.
   return writer.forget();
+}
+
+// https://streams.spec.whatwg.org/#create-writable-stream
+already_AddRefed<WritableStream> CreateWritableStream(
+    JSContext* aCx, nsIGlobalObject* aGlobal,
+    UnderlyingSinkAlgorithmsBase* aAlgorithms, double aHighWaterMark,
+    QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv) {
+  // Step 1: Assert: ! IsNonNegativeNumber(highWaterMark) is true.
+  MOZ_ASSERT(IsNonNegativeNumber(aHighWaterMark));
+
+  // Step 2: Let stream be a new WritableStream.
+  // Step 3: Perform ! InitializeWritableStream(stream).
+  auto stream = MakeRefPtr<WritableStream>(aGlobal);
+
+  // Step 4: Let controller be a new WritableStreamDefaultController.
+  auto controller =
+      MakeRefPtr<WritableStreamDefaultController>(aGlobal, *stream);
+
+  // Step 5: Perform ? SetUpWritableStreamDefaultController(stream, controller,
+  // startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm,
+  // highWaterMark, sizeAlgorithm).
+  SetUpWritableStreamDefaultController(aCx, stream, controller, aAlgorithms,
+                                       aHighWaterMark, aSizeAlgorithm, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  // Step 6: Return stream.
+  return stream.forget();
 }
 
 already_AddRefed<WritableStreamDefaultWriter> WritableStream::GetWriter(

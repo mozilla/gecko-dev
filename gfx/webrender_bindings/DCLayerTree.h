@@ -14,6 +14,7 @@
 
 #include "GLTypes.h"
 #include "mozilla/HashFunctions.h"
+#include "mozilla/layers/OverlayInfo.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
@@ -59,6 +60,7 @@ struct GpuOverlayInfo {
   DXGI_FORMAT mOverlayFormatUsedHdr = DXGI_FORMAT_R10G10B10A2_UNORM;
   UINT mNv12OverlaySupportFlags = 0;
   UINT mYuy2OverlaySupportFlags = 0;
+  UINT mBgra8OverlaySupportFlags = 0;
   UINT mRgb10a2OverlaySupportFlags = 0;
 };
 
@@ -117,7 +119,8 @@ class DCLayerTree {
   ID3D11VideoProcessorEnumerator* GetVideoProcessorEnumerator() const {
     return mVideoProcessorEnumerator;
   }
-  bool EnsureVideoProcessor(const gfx::IntSize& aVideoSize);
+  bool EnsureVideoProcessor(const gfx::IntSize& aInputSize,
+                            const gfx::IntSize& aOutputSize);
 
   DCSurface* GetSurface(wr::NativeSurfaceId aId) const;
 
@@ -138,6 +141,7 @@ class DCLayerTree {
       RefPtr<IDCompositionSurface> aCompositionSurface,
       wr::DeviceIntPoint aSurfaceOffset);
   void ReleaseNativeCompositorResources();
+  layers::OverlayInfo GetOverlayInfo();
 
   RefPtr<gl::GLContext> mGL;
   EGLConfig mEGLConfig;
@@ -154,7 +158,8 @@ class DCLayerTree {
   RefPtr<ID3D11VideoContext> mVideoContext;
   RefPtr<ID3D11VideoProcessor> mVideoProcessor;
   RefPtr<ID3D11VideoProcessorEnumerator> mVideoProcessorEnumerator;
-  gfx::IntSize mVideoSize;
+  gfx::IntSize mVideoInputSize;
+  gfx::IntSize mVideoOutputSize;
 
   bool mDebugCounter;
   bool mDebugVisualRedrawRegions;
@@ -272,23 +277,27 @@ class DCSurfaceVideo : public DCSurface {
   DCSurfaceVideo(bool aIsOpaque, DCLayerTree* aDCLayerTree);
 
   void AttachExternalImage(wr::ExternalImageId aExternalImage);
+  bool CalculateSwapChainSize(gfx::Matrix& aTransform);
+  void PresentVideo();
 
   DCSurfaceVideo* AsDCSurfaceVideo() override { return this; }
 
  protected:
   DXGI_FORMAT GetSwapChainFormat();
-  bool CreateVideoSwapChain(RenderTextureHost* aTexture);
-  bool CallVideoProcessorBlt(RenderTextureHost* aTexture);
+  bool CreateVideoSwapChain();
+  bool CallVideoProcessorBlt();
   void ReleaseDecodeSwapChainResources();
 
   RefPtr<ID3D11VideoProcessorOutputView> mOutputView;
   RefPtr<IDXGIResource> mDecodeResource;
   RefPtr<IDXGISwapChain1> mVideoSwapChain;
   RefPtr<IDXGIDecodeSwapChain> mDecodeSwapChain;
-  HANDLE mSwapChainSurfaceHandle;
+  HANDLE mSwapChainSurfaceHandle = 0;
+  gfx::IntSize mVideoSize;
   gfx::IntSize mSwapChainSize;
   DXGI_FORMAT mSwapChainFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-  bool mFailedToCreateYuvSwapChain = false;
+  bool mFailedYuvSwapChain = false;
+  RefPtr<RenderTextureHost> mRenderTextureHost;
   RefPtr<RenderTextureHost> mPrevTexture;
 };
 

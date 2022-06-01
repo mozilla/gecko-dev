@@ -41,6 +41,7 @@ class WebrtcMediaDataEncoder : public RefCountedWebrtcVideoEncoder {
   int32_t SetRates(
       const webrtc::VideoEncoder::RateControlParameters& aParameters) override;
 
+  WebrtcVideoEncoder::EncoderInfo GetEncoderInfo() const override;
   MediaEventSource<uint64_t>* InitPluginEvent() override { return nullptr; }
 
   MediaEventSource<uint64_t>* ReleasePluginEvent() override { return nullptr; }
@@ -57,7 +58,7 @@ class WebrtcMediaDataEncoder : public RefCountedWebrtcVideoEncoder {
   const RefPtr<PEMFactory> mFactory;
   RefPtr<MediaDataEncoder> mEncoder;
 
-  Mutex mCallbackMutex;  // Protects mCallback and mError.
+  Mutex mCallbackMutex MOZ_UNANNOTATED;  // Protects mCallback and mError.
   webrtc::EncodedImageCallback* mCallback = nullptr;
   MediaResult mError = NS_OK;
 

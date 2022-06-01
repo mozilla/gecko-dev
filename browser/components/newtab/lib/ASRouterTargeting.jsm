@@ -22,12 +22,17 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AppConstants: "resource://gre/modules/AppConstants.jsm",
   AttributionCode: "resource:///modules/AttributionCode.jsm",
   TargetingContext: "resource://messaging-system/targeting/Targeting.jsm",
-  fxAccounts: "resource://gre/modules/FxAccounts.jsm",
   Region: "resource://gre/modules/Region.jsm",
   TelemetrySession: "resource://gre/modules/TelemetrySession.jsm",
   HomePage: "resource:///modules/HomePage.jsm",
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
+});
+
+XPCOMUtils.defineLazyGetter(this, "fxAccounts", () => {
+  return ChromeUtils.import(
+    "resource://gre/modules/FxAccounts.jsm"
+  ).getFxAccountsSingleton();
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -665,7 +670,7 @@ const TargetingGetters = {
   },
 };
 
-this.ASRouterTargeting = {
+const ASRouterTargeting = {
   Environment: TargetingGetters,
 
   isTriggerMatch(trigger = {}, candidateMessageTrigger = {}) {
@@ -841,11 +846,7 @@ this.ASRouterTargeting = {
   },
 };
 
-// Export for testing
-this.getSortedMessages = getSortedMessages;
-this.QueryCache = QueryCache;
-this.CachedTargetingGetter = CachedTargetingGetter;
-this.EXPORTED_SYMBOLS = [
+const EXPORTED_SYMBOLS = [
   "ASRouterTargeting",
   "QueryCache",
   "CachedTargetingGetter",

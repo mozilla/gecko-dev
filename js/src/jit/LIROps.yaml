@@ -304,7 +304,7 @@
 
 - name: WasmInterruptCheck
   operands:
-    tlsPtr: WordSized
+    instance: WordSized
   mir_op: true
 
 - name: TypeOfV
@@ -653,7 +653,6 @@
   operands:
     left: WordSized
     right: WordSized
-  num_temps: 1
   call_instruction: true
   mir_op: Compare
 
@@ -675,7 +674,7 @@
   result_type: WordSized
   operands:
     value: BoxedValue
-  num_temps: 2
+  num_temps: 1
   mir_op: Compare
 
 # Takes an object pointer and tests whether it is an object that emulates
@@ -686,10 +685,30 @@
     input: WordSized
   mir_op: Compare
 
+# Takes a value and tests whether it is null.
+- name: IsNull
+  result_type: WordSized
+  operands:
+    value: BoxedValue
+  mir_op: Compare
+
+# Takes a value and tests whether it is undefined.
+- name: IsUndefined
+  result_type: WordSized
+  operands:
+    value: BoxedValue
+  mir_op: Compare
+
 - name: IsNullOrLikeUndefinedAndBranchV
   gen_boilerplate: false
 
 - name: IsNullOrLikeUndefinedAndBranchT
+  gen_boilerplate: false
+
+- name: IsNullAndBranch
+  gen_boilerplate: false
+
+- name: IsUndefinedAndBranch
   gen_boilerplate: false
 
 - name: SameValueDouble
@@ -750,7 +769,7 @@
   result_type: WordSized
   operands:
     input: BoxedValue
-  num_temps: 3
+  num_temps: 2
   mir_op: Not
 
 - name: BitNotI
@@ -922,7 +941,6 @@
   operands:
     value: WordSized
     power: WordSized
-  num_temps: 1
   call_instruction: true
 
 # Integer raised to an integer power.
@@ -940,7 +958,6 @@
   operands:
     value: WordSized
     power: WordSized
-  num_temps: 1
   call_instruction: true
 
 # Constant of a power of two raised to an integer power.
@@ -1008,7 +1025,7 @@
   operands:
     lhs: WordSized
     rhs: WordSized
-    tls: WordSized
+    instance: WordSized
   call_instruction: true
   mir_op: true
 
@@ -1207,13 +1224,13 @@
   num_temps: 1
   mir_op: TruncateToInt32
 
-# Convert a double to a truncated int32 with tls offset because we need it for
-# the slow ool path.
+# Convert a double to a truncated int32 with instance offset because we need it
+# for the slow ool path.
 - name: WasmBuiltinTruncateDToInt32
   result_type: WordSized
   operands:
     in: WordSized
-    tls: WordSized
+    instance: WordSized
   num_temps: 1
   mir_op: WasmBuiltinTruncateToInt32
 
@@ -1227,13 +1244,13 @@
   num_temps: 1
   mir_op: TruncateToInt32
 
-# Convert a float32 to a truncated int32 with tls offset because we need it for
-# the slow ool path.
+# Convert a float32 to a truncated int32 with instance offset because we need
+# it for the slow ool path.
 - name: WasmBuiltinTruncateFToInt32
   result_type: WordSized
   operands:
     in: WordSized
-    tls: WordSized
+    instance: WordSized
   num_temps: 1
   mir_op: WasmBuiltinTruncateToInt32
 
@@ -1432,14 +1449,6 @@
   result_type: WordSized
   operands:
     environmentChain: WordSized
-  num_temps: 1
-  mir_op: true
-
-- name: LambdaArrow
-  result_type: WordSized
-  operands:
-    environmentChain: WordSized
-    newTarget: BoxedValue
   num_temps: 1
   mir_op: true
 
@@ -1662,6 +1671,34 @@
     end: WordSized
   num_temps: 2
   call_instruction: true
+  mir_op: true
+
+- name: ArgumentsSlice
+  result_type: WordSized
+  operands:
+    object: WordSized
+    begin: WordSized
+    end: WordSized
+  num_temps: 2
+  call_instruction: true
+  mir_op: true
+
+- name: FrameArgumentsSlice
+  result_type: WordSized
+  operands:
+    begin: WordSized
+    count: WordSized
+  num_temps: 1
+  mir_op: true
+
+- name: InlineArgumentsSlice
+  gen_boilerplate: false
+
+- name: NormalizeSliceTerm
+  result_type: WordSized
+  operands:
+    value: WordSized
+    length: WordSized
   mir_op: true
 
 - name: ArrayJoin
@@ -2034,6 +2071,13 @@
   mir_op: true
 
 - name: NewClassBodyEnvironmentObject
+  result_type: WordSized
+  operands:
+    enclosing: WordSized
+  call_instruction: true
+  mir_op: true
+
+- name: NewVarEnvironmentObject
   result_type: WordSized
   operands:
     enclosing: WordSized
@@ -2632,22 +2676,22 @@
     ptr: Int64
   mir_op: WasmAlignmentCheck
 
-- name: WasmLoadTls
+- name: WasmLoadInstance
   result_type: WordSized
   operands:
-    tlsPtr: WordSized
+    instance: WordSized
   mir_op: true
 
-- name: WasmLoadTls64
+- name: WasmLoadInstance64
   result_type: Int64
   operands:
-    tlsPtr: WordSized
-  mir_op: WasmLoadTls
+    instance: WordSized
+  mir_op: WasmLoadInstance
 
 - name: WasmHeapBase
   result_type: WordSized
   operands:
-    tlsPtr: WordSized
+    instance: WordSized
   mir_op: true
 
 - name: WasmLoad
@@ -2723,12 +2767,21 @@
   arguments:
     offset: size_t
 
+- name: WasmLoadTableElement
+  result_type: WordSized
+  operands:
+    elements: WordSized
+    index: WordSized
+
 - name: WasmDerivedPointer
+  gen_boilerplate: false
+
+- name: WasmDerivedIndexPointer
   gen_boilerplate: false
 
 - name: WasmStoreRef
   operands:
-    tls: WordSized
+    instance: WordSized
     valueAddr: WordSized
     value: WordSized
   num_temps: 1
@@ -2743,12 +2796,12 @@
 - name: WasmReturn
   operands:
     rval: WordSized
-    tls: WordSized
+    instance: WordSized
 
 - name: WasmReturnI64
   operands:
     rval: Int64
-    tls: WordSized
+    instance: WordSized
 
 - name: WasmReturnVoid
   operands:
@@ -2772,6 +2825,9 @@
 
 - name: WasmCall
   gen_boilerplate: false
+
+- name: WasmCallLandingPrePad
+  mir_op: true
 
 - name: WasmRegisterResult
   gen_boilerplate: false
@@ -2812,14 +2868,6 @@
   operands:
     input: WordSized
   mir_op: true
-
-- name: AssertResultT
-  operands:
-    input: WordSized
-
-- name: AssertResultV
-  operands:
-    input: BoxedValue
 
 - name: GuardValue
   operands:
@@ -2881,16 +2929,11 @@
   gen_boilerplate: false
 
 - name: Debugger
-  num_temps: 2
+  num_temps: 1
   call_instruction: true
 
 - name: NewTarget
   result_type: BoxedValue
-
-- name: ArrowNewTarget
-  result_type: BoxedValue
-  operands:
-    callee: WordSized
 
 - name: Random
   gen_boilerplate: false
@@ -3388,15 +3431,6 @@
 - name: MulI
   gen_boilerplate: false
 
-- name: WasmExceptionDataPointer
-  gen_boilerplate: false
-
-- name: WasmExceptionRefsPointer
-  gen_boilerplate: false
-
-- name: WasmLoadExceptionRefsValue
-  gen_boilerplate: false
-
 #ifdef JS_CODEGEN_X86
 - name: BoxFloatingPoint
   gen_boilerplate: false
@@ -3629,4 +3663,33 @@
 
 - name: WasmAtomicExchangeI64
   gen_boilerplate: false
-#endif  
+#endif
+
+#ifdef JS_CODEGEN_LOONG64
+- name: DivOrModI64
+  gen_boilerplate: false
+
+- name: UDivOrMod
+  gen_boilerplate: false
+
+- name: UDivOrModI64
+  gen_boilerplate: false
+
+- name: ModMaskI
+  gen_boilerplate: false
+
+- name: WasmTruncateToInt64
+  gen_boilerplate: false
+
+- name: Int64ToFloatingPoint
+  gen_boilerplate: false
+
+- name: WasmCompareExchangeI64
+  gen_boilerplate: false
+
+- name: WasmAtomicBinopI64
+  gen_boilerplate: false
+
+- name: WasmAtomicExchangeI64
+  gen_boilerplate: false
+#endif

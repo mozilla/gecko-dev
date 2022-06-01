@@ -11,9 +11,10 @@ var { XPCOMUtils } = ChromeUtils.import(
 var gAppInfo = null;
 
 function createAppInfo(ID, name, version, platformVersion = "1.0") {
-  let tmp = {};
-  ChromeUtils.import("resource://testing-common/AppInfo.jsm", tmp);
-  gAppInfo = tmp.newAppInfo({
+  let { newAppInfo } = ChromeUtils.import(
+    "resource://testing-common/AppInfo.jsm"
+  );
+  gAppInfo = newAppInfo({
     ID,
     name,
     version,
@@ -23,10 +24,7 @@ function createAppInfo(ID, name, version, platformVersion = "1.0") {
   });
 
   let XULAppInfoFactory = {
-    createInstance(outer, iid) {
-      if (outer != null) {
-        throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
-      }
+    createInstance(iid) {
       return gAppInfo.QueryInterface(iid);
     },
   };

@@ -439,7 +439,6 @@ static already_AddRefed<SourceSurface> CreateSurfaceFromRawData(
   // Copy the source buffer in the _cropRect_ area into a new SourceSurface.
   RefPtr<DataSourceSurface> result =
       CropAndCopyDataSourceSurface(dataSurface, cropRect);
-
   if (NS_WARN_IF(!result)) {
     return nullptr;
   }
@@ -452,17 +451,17 @@ static already_AddRefed<SourceSurface> CreateSurfaceFromRawData(
     }
   }
 
-  if (aOptions.mResizeWidth.WasPassed() || aOptions.mResizeHeight.WasPassed()) {
-    dataSurface = result->GetDataSurface();
-    result = ScaleDataSourceSurface(dataSurface, aOptions);
+  if (aOptions.mPremultiplyAlpha == PremultiplyAlpha::Premultiply) {
+    result = AlphaPremultiplyDataSourceSurface(result);
+
     if (NS_WARN_IF(!result)) {
       return nullptr;
     }
   }
 
-  if (aOptions.mPremultiplyAlpha == PremultiplyAlpha::Premultiply) {
-    result = AlphaPremultiplyDataSourceSurface(result);
-
+  if (aOptions.mResizeWidth.WasPassed() || aOptions.mResizeHeight.WasPassed()) {
+    dataSurface = result->GetDataSurface();
+    result = ScaleDataSourceSurface(dataSurface, aOptions);
     if (NS_WARN_IF(!result)) {
       return nullptr;
     }
@@ -928,6 +927,17 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateImageBitmapInternal(
     }
   }
 
+  if (requiresPremultiply) {
+    if (!dataSurface) {
+      dataSurface = surface->GetDataSurface();
+    }
+
+    surface = AlphaPremultiplyDataSourceSurface(dataSurface, true);
+    if (NS_WARN_IF(!surface)) {
+      return nullptr;
+    }
+  }
+
   // resize if required
   if (aOptions.mResizeWidth.WasPassed() || aOptions.mResizeHeight.WasPassed()) {
     if (!dataSurface) {
@@ -944,13 +954,12 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateImageBitmapInternal(
     cropRect.SetRect(0, 0, surface->GetSize().width, surface->GetSize().height);
   }
 
-  if (requiresPremultiply || requiresUnpremultiply) {
+  if (requiresUnpremultiply) {
     if (!dataSurface) {
       dataSurface = surface->GetDataSurface();
     }
 
-    surface =
-        AlphaPremultiplyDataSourceSurface(dataSurface, requiresPremultiply);
+    surface = AlphaPremultiplyDataSourceSurface(dataSurface, false);
     if (NS_WARN_IF(!surface)) {
       return nullptr;
     }
@@ -1182,7 +1191,9 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
   array.ComputeState();
   const SurfaceFormat FORMAT = SurfaceFormat::R8G8B8A8;
   // ImageData's underlying data is not alpha-premultiplied.
-  auto alphaType = gfxAlphaType::NonPremult;
+  auto alphaType = (aOptions.mPremultiplyAlpha == PremultiplyAlpha::Premultiply)
+                       ? gfxAlphaType::Premult
+                       : gfxAlphaType::NonPremult;
 
   const uint32_t BYTES_PER_PIXEL = BytesPerPixel(FORMAT);
   const uint32_t imageWidth = aImageData.Width();
@@ -1306,6 +1317,10 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
   } else {
     RefPtr<layers::Image> data = aImageBitmap.mData;
     surface = data->GetAsSourceSurface();
+    if (NS_WARN_IF(!surface)) {
+      aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+      return nullptr;
+    }
 
     if (aCropRect.isSome()) {
       // get new crop rect relative to original uncropped surface
@@ -1471,7 +1486,7 @@ class CreateImageBitmapFromBlob final : public DiscardableRunnable,
   // This is called on the main-thread only.
   nsresult GetMimeTypeAsync();
 
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
 
   // The access to this object is protected by mutex but is always nullified on
   // the owning thread.
@@ -1736,13 +1751,25 @@ bool ImageBitmap::WriteStructuredClone(
   }
 
   RefPtr<SourceSurface> surface = aImageBitmap->mData->GetAsSourceSurface();
+  if (NS_WARN_IF(!surface)) {
+    return false;
+  }
+
   RefPtr<DataSourceSurface> snapshot = surface->GetDataSurface();
+  if (NS_WARN_IF(!snapshot)) {
+    return false;
+  }
+
   RefPtr<DataSourceSurface> dstDataSurface;
   {
     // DataSourceSurfaceD2D1::GetStride() will call EnsureMapped implicitly and
     // won't Unmap after exiting function. So instead calling GetStride()
     // directly, using ScopedMap to get stride.
     DataSourceSurface::ScopedMap map(snapshot, DataSourceSurface::READ);
+    if (NS_WARN_IF(!map.IsMapped())) {
+      return false;
+    }
+
     dstDataSurface = Factory::CreateDataSourceSurfaceWithStride(
         snapshot->GetSize(), snapshot->GetFormat(), map.GetStride(), true);
   }
@@ -1769,6 +1796,10 @@ size_t ImageBitmap::GetAllocatedSize() const {
   }
 
   RefPtr<SourceSurface> surface = mData->GetAsSourceSurface();
+  if (NS_WARN_IF(!surface)) {
+    return 0;
+  }
+
   const int bytesPerPixel = BytesPerPixel(surface->GetFormat());
   return surface->GetSize().height * surface->GetSize().width * bytesPerPixel;
 }

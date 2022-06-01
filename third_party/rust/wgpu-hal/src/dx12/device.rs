@@ -1,6 +1,9 @@
-use crate::FormatAspects;
+use crate::{
+    auxil::{self, dxgi::result::HResult as _},
+    FormatAspects,
+};
 
-use super::{conv, descriptor, view, HResult as _};
+use super::{conv, descriptor, view};
 use parking_lot::Mutex;
 use std::{ffi, mem, num::NonZeroU32, ptr, slice, sync::Arc};
 use winapi::{
@@ -18,7 +21,6 @@ impl super::Device {
     pub(super) fn new(
         raw: native::Device,
         present_queue: native::CommandQueue,
-        features: wgt::Features,
         private_caps: super::PrivateCapabilities,
         library: &Arc<native::D3D12Lib>,
     ) -> Result<Self, crate::DeviceError> {
@@ -84,7 +86,6 @@ impl super::Device {
         let capacity_samplers = 2_048;
 
         let shared = super::DeviceShared {
-            features,
             zero_buffer,
             cmd_signatures: super::CommandSignatures {
                 draw: raw
@@ -219,13 +220,6 @@ impl super::Device {
             compile_flags |=
                 d3dcompiler::D3DCOMPILE_DEBUG | d3dcompiler::D3DCOMPILE_SKIP_OPTIMIZATION;
         }
-        if self
-            .shared
-            .features
-            .contains(wgt::Features::UNSIZED_BINDING_ARRAY)
-        {
-            compile_flags |= d3dcompiler::D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
-        }
 
         let source_name = match stage.module.raw_name {
             Some(ref cstr) => cstr.as_c_str().as_ptr(),
@@ -285,6 +279,10 @@ impl super::Device {
 
     pub fn raw_device(&self) -> &native::Device {
         &self.raw
+    }
+
+    pub fn raw_queue(&self) -> &native::CommandQueue {
+        &self.present_queue
     }
 
     pub unsafe fn texture_from_raw(
@@ -432,13 +430,13 @@ impl crate::Device<super::Api> for super::Device {
                         | crate::TextureUses::STORAGE_READ
                         | crate::TextureUses::STORAGE_WRITE,
                 ) {
-                conv::map_texture_format(desc.format)
+                auxil::dxgi::conv::map_texture_format(desc.format)
             } else {
                 // This branch is needed if it's a depth texture, and it's ever needed to be viewed as SRV or UAV,
                 // because then we'd create a non-depth format view of it.
                 // Note: we can skip this branch if
                 // `D3D12_FEATURE_D3D12_OPTIONS3::CastingFullyTypedFormatSupported`
-                conv::map_texture_format_depth_typeless(desc.format)
+                auxil::dxgi::conv::map_texture_format_depth_typeless(desc.format)
             },
             SampleDesc: dxgitype::DXGI_SAMPLE_DESC {
                 Count: desc.sample_count,
@@ -620,6 +618,8 @@ impl crate::Device<super::Api> for super::Device {
                 .anisotropy_clamp
                 .map_or(0, |_| d3d12::D3D12_FILTER_ANISOTROPIC);
 
+        let border_color = conv::map_border_color(desc.border_color);
+
         self.raw.create_sampler(
             handle.raw,
             filter,
@@ -631,7 +631,7 @@ impl crate::Device<super::Api> for super::Device {
             0.0,
             desc.anisotropy_clamp.map_or(0, |aniso| aniso.get() as u32),
             conv::map_comparison(desc.compare.unwrap_or(wgt::CompareFunction::Always)),
-            conv::map_border_color(desc.border_color),
+            border_color,
             desc.lod_clamp.clone().unwrap_or(0.0..16.0),
         );
 
@@ -682,16 +682,17 @@ impl crate::Device<super::Api> for super::Device {
     ) -> Result<super::BindGroupLayout, crate::DeviceError> {
         let (mut num_buffer_views, mut num_samplers, mut num_texture_views) = (0, 0, 0);
         for entry in desc.entries.iter() {
+            let count = entry.count.map_or(1, NonZeroU32::get);
             match entry.ty {
                 wgt::BindingType::Buffer {
                     has_dynamic_offset: true,
                     ..
                 } => {}
-                wgt::BindingType::Buffer { .. } => num_buffer_views += 1,
+                wgt::BindingType::Buffer { .. } => num_buffer_views += count,
                 wgt::BindingType::Texture { .. } | wgt::BindingType::StorageTexture { .. } => {
-                    num_texture_views += 1
+                    num_texture_views += count
                 }
-                wgt::BindingType::Sampler { .. } => num_samplers += 1,
+                wgt::BindingType::Sampler { .. } => num_samplers += count,
             }
         }
 
@@ -849,7 +850,10 @@ impl crate::Device<super::Api> for super::Device {
                         group: index as u32,
                         binding: entry.binding,
                     },
-                    bt.clone(),
+                    hlsl::BindTarget {
+                        binding_array_size: entry.count.map(NonZeroU32::get),
+                        ..bt.clone()
+                    },
                 );
                 ranges.push(native::DescriptorRange::new(
                     range_ty,
@@ -857,7 +861,7 @@ impl crate::Device<super::Api> for super::Device {
                     native_binding(bt),
                     d3d12::D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
                 ));
-                bt.register += 1;
+                bt.register += entry.count.map(NonZeroU32::get).unwrap_or(1);
             }
             if ranges.len() > range_base {
                 log::debug!(
@@ -885,7 +889,10 @@ impl crate::Device<super::Api> for super::Device {
                         group: index as u32,
                         binding: entry.binding,
                     },
-                    bind_sampler.clone(),
+                    hlsl::BindTarget {
+                        binding_array_size: entry.count.map(NonZeroU32::get),
+                        ..bind_sampler.clone()
+                    },
                 );
                 ranges.push(native::DescriptorRange::new(
                     range_ty,
@@ -893,7 +900,7 @@ impl crate::Device<super::Api> for super::Device {
                     native_binding(&bind_sampler),
                     d3d12::D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
                 ));
-                bind_sampler.register += 1;
+                bind_sampler.register += entry.count.map(NonZeroU32::get).unwrap_or(1);
             }
             if ranges.len() > range_base {
                 log::debug!(
@@ -944,7 +951,10 @@ impl crate::Device<super::Api> for super::Device {
                         group: index as u32,
                         binding: entry.binding,
                     },
-                    bt.clone(),
+                    hlsl::BindTarget {
+                        binding_array_size: entry.count.map(NonZeroU32::get),
+                        ..bt.clone()
+                    },
                 );
                 info.dynamic_buffers.push(kind);
 
@@ -960,7 +970,7 @@ impl crate::Device<super::Api> for super::Device {
                     native_binding(bt),
                 ));
 
-                bt.register += 1;
+                bt.register += entry.count.map_or(1, NonZeroU32::get);
             }
 
             bind_group_infos.push(info);
@@ -1073,82 +1083,97 @@ impl crate::Device<super::Api> for super::Device {
                     has_dynamic_offset: true,
                     ..
                 } => {
-                    let data = &desc.buffers[entry.resource_index as usize];
-                    dynamic_buffers.push(data.resolve_address());
+                    let start = entry.resource_index as usize;
+                    let end = start + entry.count as usize;
+                    for data in &desc.buffers[start..end] {
+                        dynamic_buffers.push(data.resolve_address());
+                    }
                 }
                 wgt::BindingType::Buffer { ty, .. } => {
-                    let data = &desc.buffers[entry.resource_index as usize];
-                    let gpu_address = data.resolve_address();
-                    let size = data.resolve_size() as u32;
-                    let inner = cpu_views.as_mut().unwrap();
-                    let cpu_index = inner.stage.len() as u32;
-                    let handle = desc.layout.cpu_heap_views.as_ref().unwrap().at(cpu_index);
-                    match ty {
-                        wgt::BufferBindingType::Uniform => {
-                            let size_mask =
-                                d3d12::D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1;
-                            let raw_desc = d3d12::D3D12_CONSTANT_BUFFER_VIEW_DESC {
-                                BufferLocation: gpu_address,
-                                SizeInBytes: ((size - 1) | size_mask) + 1,
-                            };
-                            self.raw.CreateConstantBufferView(&raw_desc, handle);
+                    let start = entry.resource_index as usize;
+                    let end = start + entry.count as usize;
+                    for data in &desc.buffers[start..end] {
+                        let gpu_address = data.resolve_address();
+                        let size = data.resolve_size() as u32;
+                        let inner = cpu_views.as_mut().unwrap();
+                        let cpu_index = inner.stage.len() as u32;
+                        let handle = desc.layout.cpu_heap_views.as_ref().unwrap().at(cpu_index);
+                        match ty {
+                            wgt::BufferBindingType::Uniform => {
+                                let size_mask =
+                                    d3d12::D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1;
+                                let raw_desc = d3d12::D3D12_CONSTANT_BUFFER_VIEW_DESC {
+                                    BufferLocation: gpu_address,
+                                    SizeInBytes: ((size - 1) | size_mask) + 1,
+                                };
+                                self.raw.CreateConstantBufferView(&raw_desc, handle);
+                            }
+                            wgt::BufferBindingType::Storage { read_only: true } => {
+                                let mut raw_desc = d3d12::D3D12_SHADER_RESOURCE_VIEW_DESC {
+                                    Format: dxgiformat::DXGI_FORMAT_R32_TYPELESS,
+                                    Shader4ComponentMapping:
+                                        view::D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+                                    ViewDimension: d3d12::D3D12_SRV_DIMENSION_BUFFER,
+                                    u: mem::zeroed(),
+                                };
+                                *raw_desc.u.Buffer_mut() = d3d12::D3D12_BUFFER_SRV {
+                                    FirstElement: data.offset / 4,
+                                    NumElements: size / 4,
+                                    StructureByteStride: 0,
+                                    Flags: d3d12::D3D12_BUFFER_SRV_FLAG_RAW,
+                                };
+                                self.raw.CreateShaderResourceView(
+                                    data.buffer.resource.as_mut_ptr(),
+                                    &raw_desc,
+                                    handle,
+                                );
+                            }
+                            wgt::BufferBindingType::Storage { read_only: false } => {
+                                let mut raw_desc = d3d12::D3D12_UNORDERED_ACCESS_VIEW_DESC {
+                                    Format: dxgiformat::DXGI_FORMAT_R32_TYPELESS,
+                                    ViewDimension: d3d12::D3D12_UAV_DIMENSION_BUFFER,
+                                    u: mem::zeroed(),
+                                };
+                                *raw_desc.u.Buffer_mut() = d3d12::D3D12_BUFFER_UAV {
+                                    FirstElement: data.offset / 4,
+                                    NumElements: size / 4,
+                                    StructureByteStride: 0,
+                                    CounterOffsetInBytes: 0,
+                                    Flags: d3d12::D3D12_BUFFER_UAV_FLAG_RAW,
+                                };
+                                self.raw.CreateUnorderedAccessView(
+                                    data.buffer.resource.as_mut_ptr(),
+                                    ptr::null_mut(),
+                                    &raw_desc,
+                                    handle,
+                                );
+                            }
                         }
-                        wgt::BufferBindingType::Storage { read_only: true } => {
-                            let mut raw_desc = d3d12::D3D12_SHADER_RESOURCE_VIEW_DESC {
-                                Format: dxgiformat::DXGI_FORMAT_R32_TYPELESS,
-                                Shader4ComponentMapping:
-                                    view::D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
-                                ViewDimension: d3d12::D3D12_SRV_DIMENSION_BUFFER,
-                                u: mem::zeroed(),
-                            };
-                            *raw_desc.u.Buffer_mut() = d3d12::D3D12_BUFFER_SRV {
-                                FirstElement: data.offset / 4,
-                                NumElements: size / 4,
-                                StructureByteStride: 0,
-                                Flags: d3d12::D3D12_BUFFER_SRV_FLAG_RAW,
-                            };
-                            self.raw.CreateShaderResourceView(
-                                data.buffer.resource.as_mut_ptr(),
-                                &raw_desc,
-                                handle,
-                            );
-                        }
-                        wgt::BufferBindingType::Storage { read_only: false } => {
-                            let mut raw_desc = d3d12::D3D12_UNORDERED_ACCESS_VIEW_DESC {
-                                Format: dxgiformat::DXGI_FORMAT_R32_TYPELESS,
-                                ViewDimension: d3d12::D3D12_UAV_DIMENSION_BUFFER,
-                                u: mem::zeroed(),
-                            };
-                            *raw_desc.u.Buffer_mut() = d3d12::D3D12_BUFFER_UAV {
-                                FirstElement: data.offset / 4,
-                                NumElements: size / 4,
-                                StructureByteStride: 0,
-                                CounterOffsetInBytes: 0,
-                                Flags: d3d12::D3D12_BUFFER_UAV_FLAG_RAW,
-                            };
-                            self.raw.CreateUnorderedAccessView(
-                                data.buffer.resource.as_mut_ptr(),
-                                ptr::null_mut(),
-                                &raw_desc,
-                                handle,
-                            );
-                        }
+                        inner.stage.push(handle);
                     }
-                    inner.stage.push(handle);
                 }
                 wgt::BindingType::Texture { .. } => {
-                    let data = &desc.textures[entry.resource_index as usize];
-                    let handle = data.view.handle_srv.unwrap();
-                    cpu_views.as_mut().unwrap().stage.push(handle.raw);
+                    let start = entry.resource_index as usize;
+                    let end = start + entry.count as usize;
+                    for data in &desc.textures[start..end] {
+                        let handle = data.view.handle_srv.unwrap();
+                        cpu_views.as_mut().unwrap().stage.push(handle.raw);
+                    }
                 }
                 wgt::BindingType::StorageTexture { .. } => {
-                    let data = &desc.textures[entry.resource_index as usize];
-                    let handle = data.view.handle_uav.unwrap();
-                    cpu_views.as_mut().unwrap().stage.push(handle.raw);
+                    let start = entry.resource_index as usize;
+                    let end = start + entry.count as usize;
+                    for data in &desc.textures[start..end] {
+                        let handle = data.view.handle_uav.unwrap();
+                        cpu_views.as_mut().unwrap().stage.push(handle.raw);
+                    }
                 }
                 wgt::BindingType::Sampler { .. } => {
-                    let data = &desc.samplers[entry.resource_index as usize];
-                    cpu_samplers.as_mut().unwrap().stage.push(data.handle.raw);
+                    let start = entry.resource_index as usize;
+                    let end = start + entry.count as usize;
+                    for data in &desc.samplers[start..end] {
+                        cpu_samplers.as_mut().unwrap().stage.push(data.handle.raw);
+                    }
                 }
             }
         }
@@ -1247,7 +1272,7 @@ impl crate::Device<super::Api> for super::Device {
                 input_element_descs.push(d3d12::D3D12_INPUT_ELEMENT_DESC {
                     SemanticName: NAGA_LOCATION_SEMANTIC.as_ptr() as *const _,
                     SemanticIndex: attribute.shader_location,
-                    Format: conv::map_vertex_format(attribute.format),
+                    Format: auxil::dxgi::conv::map_vertex_format(attribute.format),
                     InputSlot: i as u32,
                     AlignedByteOffset: attribute.offset as u32,
                     InputSlotClass: slot_class,
@@ -1259,7 +1284,7 @@ impl crate::Device<super::Api> for super::Device {
         let mut rtv_formats = [dxgiformat::DXGI_FORMAT_UNKNOWN;
             d3d12::D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT as usize];
         for (rtv_format, ct) in rtv_formats.iter_mut().zip(desc.color_targets) {
-            *rtv_format = conv::map_texture_format(ct.format);
+            *rtv_format = auxil::dxgi::conv::map_texture_format(ct.format);
         }
 
         let bias = desc
@@ -1348,7 +1373,7 @@ impl crate::Device<super::Api> for super::Device {
                 .depth_stencil
                 .as_ref()
                 .map_or(dxgiformat::DXGI_FORMAT_UNKNOWN, |ds| {
-                    conv::map_texture_format(ds.format)
+                    auxil::dxgi::conv::map_texture_format(ds.format)
                 }),
             SampleDesc: dxgitype::DXGI_SAMPLE_DESC {
                 Count: desc.multisample.count,

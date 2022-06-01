@@ -11,8 +11,7 @@
 #include "mozilla/Telemetry.h"
 #include "EMEUtils.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 /*
  * This is pretty horrible; bug 1160445.
@@ -24,11 +23,6 @@ class DetailedPromise : public Promise {
   static already_AddRefed<DetailedPromise> Create(nsIGlobalObject* aGlobal,
                                                   ErrorResult& aRv,
                                                   const nsACString& aName);
-
-  static already_AddRefed<DetailedPromise> Create(
-      nsIGlobalObject* aGlobal, ErrorResult& aRv, const nsACString& aName,
-      Telemetry::HistogramID aSuccessLatencyProbe,
-      Telemetry::HistogramID aFailureLatencyProbe);
 
   template <typename T>
   void MaybeResolve(T&& aArg) {
@@ -105,7 +99,6 @@ class DetailedPromise : public Promise {
   Optional<Telemetry::HistogramID> mFailureLatencyProbe;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // __DetailedPromise_h__

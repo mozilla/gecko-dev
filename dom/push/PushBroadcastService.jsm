@@ -14,7 +14,8 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/JSONFile.jsm"
 );
 
-const EXPORTED_SYMBOLS = ["pushBroadcastService"];
+// BroadcastService is exported for test purposes.
+const EXPORTED_SYMBOLS = ["pushBroadcastService", "BroadcastService"];
 
 // We are supposed to ignore any updates with this version.
 const DUMMY_VERSION_STRING = "____NOP____";
@@ -218,9 +219,9 @@ var BroadcastService = class {
 
       const { moduleURI, symbolName } = sourceInfo;
 
-      const module = {};
+      let module;
       try {
-        ChromeUtils.import(moduleURI, module);
+        module = ChromeUtils.import(moduleURI);
       } catch (e) {
         console.error(
           "receivedBroadcastMessage: couldn't invoke",

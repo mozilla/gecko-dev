@@ -342,7 +342,7 @@ void Realm::traceWeakGlobalEdge(JSTracer* trc) {
   // If the global is dead, free its GlobalObjectData.
   auto result = TraceWeakEdge(trc, &global_, "Realm::global_");
   if (result.isDead()) {
-    result.initialTarget()->releaseData(runtime_->defaultFreeOp());
+    result.initialTarget()->releaseData(runtime_->gcContext());
   }
 }
 
@@ -408,7 +408,7 @@ void Realm::setAllocationMetadataBuilder(
     const js::AllocationMetadataBuilder* builder) {
   // Clear any jitcode in the runtime, which behaves differently depending on
   // whether there is a creation callback.
-  ReleaseAllJITCode(runtime_->defaultFreeOp());
+  ReleaseAllJITCode(runtime_->gcContext());
 
   allocationMetadataBuilder_ = builder;
 }
@@ -452,7 +452,8 @@ void Realm::setNewObjectMetadata(JSContext* cx, HandleObject obj) {
 void Realm::updateDebuggerObservesFlag(unsigned flag) {
   MOZ_ASSERT(isDebuggee());
   MOZ_ASSERT(flag == DebuggerObservesAllExecution ||
-             flag == DebuggerObservesCoverage || flag == DebuggerObservesAsmJS);
+             flag == DebuggerObservesCoverage ||
+             flag == DebuggerObservesAsmJS || flag == DebuggerObservesWasm);
 
   GlobalObject* global =
       zone()->runtimeFromMainThread()->gc.isForegroundSweeping()
@@ -465,6 +466,8 @@ void Realm::updateDebuggerObservesFlag(unsigned flag) {
     observes = DebugAPI::debuggerObservesCoverage(global);
   } else if (flag == DebuggerObservesAsmJS) {
     observes = DebugAPI::debuggerObservesAsmJS(global);
+  } else if (flag == DebuggerObservesWasm) {
+    observes = DebugAPI::debuggerObservesWasm(global);
   }
 
   if (observes) {
@@ -616,21 +619,12 @@ mozilla::HashCodeScrambler Realm::randomHashCodeScrambler() {
 }
 
 AutoSetNewObjectMetadata::AutoSetNewObjectMetadata(JSContext* cx)
-    : cx_(cx->isHelperThreadContext() ? nullptr : cx),
-      prevState_(cx, cx->realm()->objectMetadataState_) {
-  if (cx_) {
-    cx_->realm()->objectMetadataState_ =
-        NewObjectMetadataState(DelayMetadata());
-  }
+    : cx_(cx), prevState_(cx, cx->realm()->objectMetadataState_) {
+  MOZ_ASSERT(cx_->isMainThreadContext());
+  cx_->realm()->objectMetadataState_ = NewObjectMetadataState(DelayMetadata());
 }
 
 AutoSetNewObjectMetadata::~AutoSetNewObjectMetadata() {
-  // If we don't have a cx, we didn't change the metadata state, so no need to
-  // reset it here.
-  if (!cx_) {
-    return;
-  }
-
   if (!cx_->isExceptionPending() && cx_->realm()->hasObjectPendingMetadata()) {
     // This destructor often runs upon exit from a function that is
     // returning an unrooted pointer to a Cell. The allocation metadata

@@ -93,6 +93,7 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
     return mCanvasElement->GetOriginalCanvas();
   }
 
+  void OnMemoryPressure() override;
   void OnBeforePaintTransaction() override;
   void OnDidPaintTransaction() override;
   layers::PersistentBufferProvider* GetBufferProvider() override {
@@ -304,6 +305,8 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   void SetTextAlign(const nsAString& aTextAlign);
   void GetTextBaseline(nsAString& aTextBaseline);
   void SetTextBaseline(const nsAString& aTextBaseline);
+  void GetDirection(nsAString& aDirection);
+  void SetDirection(const nsAString& aDirection);
 
   void ClosePath() override {
     EnsureWritablePath();
@@ -589,7 +592,8 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
                    ErrorResult& aError);
 
   // Returns whether the font was successfully updated.
-  bool SetFontInternal(const nsACString& aFont, mozilla::ErrorResult& aError);
+  virtual bool SetFontInternal(const nsACString& aFont,
+                               mozilla::ErrorResult& aError);
 
   // Clears the target and updates mOpaque based on mOpaqueAttrValue and
   // mContextAttributesHasAlpha.
@@ -751,6 +755,9 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
 
   RefPtr<mozilla::layers::PersistentBufferProvider> mBufferProvider;
 
+  // Whether we should try to create an accelerated buffer provider.
+  bool mAllowAcceleration = true;
+
   RefPtr<CanvasShutdownObserver> mShutdownObserver;
   virtual void AddShutdownObserver();
   virtual void RemoveShutdownObserver();
@@ -867,15 +874,6 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
     return NeedToDrawShadow() || NeedToApplyFilter();
   }
 
-  mozilla::gfx::CompositionOp UsedOperation() {
-    if (NeedToDrawShadow() || NeedToApplyFilter()) {
-      // In this case the shadow or filter rendering will use the operator.
-      return mozilla::gfx::CompositionOp::OP_OVER;
-    }
-
-    return CurrentState().op;
-  }
-
   // text
 
  protected:
@@ -891,6 +889,8 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   };
 
   enum class TextDrawOperation : uint8_t { FILL, STROKE, MEASURE };
+
+  enum class TextDirection : uint8_t { LTR, RTL, INHERIT };
 
  protected:
   gfxFontGroup* GetCurrentFontStyle();
@@ -959,6 +959,7 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
     nsCString font;
     TextAlign textAlign = TextAlign::START;
     TextBaseline textBaseline = TextBaseline::ALPHABETIC;
+    TextDirection textDirection = TextDirection::INHERIT;
 
     nscolor shadowColor = 0;
 

@@ -27,6 +27,18 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsIXREDirProvider"
 );
 
+XPCOMUtils.defineLazyGetter(this, "log", () => {
+  let { ConsoleAPI } = ChromeUtils.import("resource://gre/modules/Console.jsm");
+  let consoleOptions = {
+    // tip: set maxLogLevel to "debug" and use log.debug() to create detailed
+    // messages during development. See LOG_LEVELS in Console.jsm for details.
+    maxLogLevel: "debug",
+    maxLogLevelPref: "browser.shell.loglevel",
+    prefix: "ShellService",
+  };
+  return new ConsoleAPI(consoleOptions);
+});
+
 /**
  * Internal functionality to save and restore the docShell.allow* properties.
  */
@@ -153,6 +165,72 @@ let ShellServiceInternal = {
   },
 
   /*
+   * Accommodate `setDefaultPDFHandlerOnlyReplaceBrowsers` feature.
+   * @return true if Firefox should set itself as default PDF handler, false
+   * otherwise.
+   */
+  _shouldSetDefaultPDFHandler() {
+    if (
+      !NimbusFeatures.shellService.getVariable(
+        "setDefaultPDFHandlerOnlyReplaceBrowsers"
+      )
+    ) {
+      return true;
+    }
+
+    const knownBrowserPrefixes = [
+      "AppXq0fevzme2pys62n3e0fbqa7peapykr8v", // Edge before Blink, per https://stackoverflow.com/a/32724723.
+      "Brave", // For "BraveFile".
+      "Chrome", // For "ChromeHTML".
+      "Firefox", // For "FirefoxHTML-*" or "FirefoxPDF-*".  Need to take from other installations of Firefox!
+      "IE", // Best guess.
+      "MSEdge", // For "MSEdgePDF".  Edgium.
+      "Opera", // For "OperaStable", presumably varying with channel.
+      "Yandex", // For "YandexPDF.IHKFKZEIOKEMR6BGF62QXCRIKM", presumably varying with installation.
+    ];
+    let currentProgID = "";
+    try {
+      // Returns the empty string when no association is registered, in
+      // which case the prefix matching will fail and we'll set Firefox as
+      // the default PDF handler.
+      currentProgID = this.queryCurrentDefaultHandlerFor(".pdf");
+    } catch (e) {
+      // We only get an exception when something went really wrong.  Fail
+      // safely: don't set Firefox as default PDF handler.
+      log.warn(
+        "Failed to queryCurrentDefaultHandlerFor: " +
+          "not setting Firefox as default PDF handler!"
+      );
+      return false;
+    }
+
+    if (currentProgID == "") {
+      log.debug(
+        `Current default PDF handler has no registered association; ` +
+          `should set as default PDF handler.`
+      );
+      return true;
+    }
+
+    let knownBrowserPrefix = knownBrowserPrefixes.find(it =>
+      currentProgID.startsWith(it)
+    );
+    if (knownBrowserPrefix) {
+      log.debug(
+        `Current default PDF handler progID matches known browser prefix: ` +
+          `'${knownBrowserPrefix}'; should set as default PDF handler.`
+      );
+      return true;
+    }
+
+    log.debug(
+      `Current default PDF handler progID does not match known browser prefix; ` +
+        `should not set as default PDF handler.`
+    );
+    return false;
+  },
+
+  /*
    * Set the default browser through the UserChoice registry keys on Windows.
    *
    * NOTE: This does NOT open the System Settings app for manual selection
@@ -165,6 +243,8 @@ let ShellServiceInternal = {
     if (AppConstants.platform != "win") {
       throw new Error("Windows-only");
     }
+
+    log.info("Setting Firefox as default using UserChoice");
 
     // We launch the WDBA to handle the registry writes, see
     // SetDefaultBrowserUserChoice() in
@@ -190,7 +270,12 @@ let ShellServiceInternal = {
       telemetryResult = "ErrLaunchExe";
       const exeArgs = ["set-default-browser-user-choice", aumi];
       if (NimbusFeatures.shellService.getVariable("setDefaultPDFHandler")) {
-        exeArgs.push(".pdf");
+        if (this._shouldSetDefaultPDFHandler()) {
+          log.info("Setting Firefox as default PDF handler");
+          exeArgs.push(".pdf", "FirefoxPDF");
+        } else {
+          log.info("Not setting Firefox as default PDF handler");
+        }
       }
       const exeProcess = await this._callExternalDefaultBrowserAgent({
         arguments: exeArgs,
@@ -309,7 +394,7 @@ let ShellServiceInternal = {
    *
    * @throws if not called from main process.
    */
-  async doesAppNeedPin() {
+  async doesAppNeedPin(privateBrowsing = false) {
     if (
       Services.appinfo.processType !== Services.appinfo.PROCESS_TYPE_DEFAULT
     ) {
@@ -327,17 +412,28 @@ let ShellServiceInternal = {
     // Currently this only works on certain Windows versions.
     try {
       // First check if we can even pin the app where an exception means no.
-      this.shellService
+      await this.shellService
         .QueryInterface(Ci.nsIWindowsShellService)
-        .checkPinCurrentAppToTaskbar();
+        .checkPinCurrentAppToTaskbarAsync(privateBrowsing);
+      let winTaskbar = Cc["@mozilla.org/windows-taskbar;1"].getService(
+        Ci.nsIWinTaskbar
+      );
 
       // Then check if we're already pinned.
-      return !(await this.shellService.isCurrentAppPinnedToTaskbarAsync());
+      return !(await this.shellService.isCurrentAppPinnedToTaskbarAsync(
+        privateBrowsing
+          ? winTaskbar.defaultPrivateGroupId
+          : winTaskbar.defaultGroupId
+      ));
     } catch (ex) {}
 
     // Next check mac pinning to dock.
     try {
-      return !this.macDockSupport.isAppInDock;
+      // Accessing this.macDockSupport will ensure we're actually running
+      // on Mac (it's possible to be on Linux in this block).
+      const isInDock = this.macDockSupport.isAppInDock;
+      // We can't pin Private Browsing mode on Mac, only a shortcut to the vanilla app
+      return privateBrowsing ? false : !isInDock;
     } catch (ex) {}
     return false;
   },
@@ -345,12 +441,12 @@ let ShellServiceInternal = {
   /**
    * Pin Firefox app to the OS "taskbar."
    */
-  async pinToTaskbar() {
-    if (await this.doesAppNeedPin()) {
+  async pinToTaskbar(privateBrowsing = false) {
+    if (await this.doesAppNeedPin(privateBrowsing)) {
       try {
         if (AppConstants.platform == "win") {
-          this.shellService.pinCurrentAppToTaskbar();
-        } else {
+          await this.shellService.pinCurrentAppToTaskbarAsync(privateBrowsing);
+        } else if (AppConstants.platform == "macosx") {
           this.macDockSupport.ensureAppIsPinnedToDock();
         }
       } catch (ex) {

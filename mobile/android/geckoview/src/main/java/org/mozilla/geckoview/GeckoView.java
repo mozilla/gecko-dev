@@ -23,13 +23,13 @@ import android.os.Build;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.DisplayCutout;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
+import android.view.SurfaceControl;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
@@ -49,6 +49,8 @@ import androidx.annotation.UiThread;
 import androidx.core.view.ViewCompat;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.ref.WeakReference;
+import java.util.Objects;
 import org.mozilla.gecko.AndroidGamepadManager;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.InputMethods;
@@ -64,6 +66,12 @@ public class GeckoView extends FrameLayout {
 
   private Integer mLastCoverColor;
   protected @Nullable GeckoSession mSession;
+  WeakReference<Autofill.Session> mAutofillSession = new WeakReference<>(null);
+
+  // Whether this GeckoView instance has a session that is no longer valid, e.g. because the session
+  // associated to this GeckoView was attached to a different GeckoView instance.
+  private boolean mIsSessionPoisoned = false;
+
   private boolean mStateSaved;
 
   private @Nullable SurfaceViewWrapper mSurfaceWrapper;
@@ -97,7 +105,11 @@ public class GeckoView extends FrameLayout {
       onGlobalLayout();
       if (GeckoView.this.mSurfaceWrapper != null) {
         final SurfaceViewWrapper wrapper = GeckoView.this.mSurfaceWrapper;
-        mDisplay.surfaceChanged(wrapper.getSurface(), wrapper.getWidth(), wrapper.getHeight());
+        mDisplay.surfaceChanged(
+            new GeckoDisplay.SurfaceInfo.Builder(wrapper.getSurface())
+                .surfaceControl(wrapper.getSurfaceControl())
+                .size(wrapper.getWidth(), wrapper.getHeight())
+                .build());
         mDisplay.setDynamicToolbarMaxHeight(mDynamicToolbarMaxHeight);
         GeckoView.this.setActive(true);
       }
@@ -117,9 +129,17 @@ public class GeckoView extends FrameLayout {
     }
 
     @Override // SurfaceListener
-    public void onSurfaceChanged(final Surface surface, final int width, final int height) {
+    public void onSurfaceChanged(
+        final Surface surface,
+        @Nullable final SurfaceControl surfaceControl,
+        final int width,
+        final int height) {
       if (mDisplay != null) {
-        mDisplay.surfaceChanged(surface, width, height);
+        mDisplay.surfaceChanged(
+            new GeckoDisplay.SurfaceInfo.Builder(surface)
+                .surfaceControl(surfaceControl)
+                .size(width, height)
+                .build());
         mDisplay.setDynamicToolbarMaxHeight(mDynamicToolbarMaxHeight);
         if (!mValid) {
           GeckoView.this.setActive(true);
@@ -255,7 +275,12 @@ public class GeckoView extends FrameLayout {
       mSelectionActionDelegate = new BasicSelectionActionDelegate(activity);
     }
 
-    mAutofillDelegate = new AndroidAutofillDelegate();
+    if (Build.VERSION.SDK_INT >= 26) {
+      mAutofillDelegate = new AndroidAutofillDelegate();
+    } else {
+      // We don't support Autofill on SDK < 26
+      mAutofillDelegate = new Autofill.Delegate() {};
+    }
   }
 
   /**
@@ -319,6 +344,10 @@ public class GeckoView extends FrameLayout {
     }
 
     addView(mSurfaceWrapper.getView());
+
+    if (mSession != null) {
+      mSession.getMagnifier().setView(mSurfaceWrapper.getView());
+    }
   }
 
   /**
@@ -424,12 +453,32 @@ public class GeckoView extends FrameLayout {
       mSession.setAutofillDelegate(null);
     }
 
+    if (mSession.getMagnifier().getView() == mSurfaceWrapper.getView()) {
+      session.getMagnifier().setView(null);
+    }
+
     if (isFocused()) {
       mSession.setFocused(false);
     }
     mSession = null;
+    mIsSessionPoisoned = false;
+    session.releaseOwner();
     return session;
   }
+
+  private final GeckoSession.Owner mSessionOwner =
+      new GeckoSession.Owner() {
+        @Override
+        public void onRelease() {
+          // The session that we own is being owned by some other object so we need to release it
+          // here.
+          releaseSession();
+          // The session associated to this GeckoView is now invalid, but the app is not aware of
+          // it. We cannot display this GeckoView until the app sets a session again (or releases
+          // the poisoned session).
+          mIsSessionPoisoned = true;
+        }
+      };
 
   /**
    * Attach a session to this view. If this instance already has an open session, you must use
@@ -443,13 +492,16 @@ public class GeckoView extends FrameLayout {
   public void setSession(@NonNull final GeckoSession session) {
     ThreadUtils.assertOnUiThread();
 
-    if (mSession != null && mSession.isOpen()) {
-      throw new IllegalStateException("Current session is open");
+    if (session == mSession) {
+      // Nothing to do
+      return;
     }
 
     releaseSession();
 
+    session.setOwner(mSessionOwner);
     mSession = session;
+    mIsSessionPoisoned = false;
 
     // Make sure the clear color is set to the default
     mSession.getCompositorController().setClearColor(defaultColor());
@@ -502,6 +554,10 @@ public class GeckoView extends FrameLayout {
       session.setAutofillDelegate(mAutofillDelegate);
     }
 
+    if (session.getMagnifier().getView() == null) {
+      session.getMagnifier().setView(mSurfaceWrapper.getView());
+    }
+
     if (isFocused()) {
       session.setFocused(true);
     }
@@ -527,6 +583,9 @@ public class GeckoView extends FrameLayout {
 
   @Override
   public void onAttachedToWindow() {
+    if (mIsSessionPoisoned) {
+      throw new IllegalStateException("Trying to display a view with invalid session.");
+    }
     if (mSession != null) {
       final GeckoRuntime runtime = mSession.getRuntime();
       if (runtime != null) {
@@ -796,13 +855,20 @@ public class GeckoView extends FrameLayout {
     }
 
     final Autofill.Session autofillSession = mSession.getAutofillSession();
+
+    // Let's store the session here in case we need to autofill it later
+    mAutofillSession = new WeakReference<>(autofillSession);
     autofillSession.fillViewStructure(this, structure, flags);
   }
 
   @Override
   @TargetApi(26)
   public void autofill(@NonNull final SparseArray<AutofillValue> values) {
-    if (mSession == null) {
+    // Note: we can't use mSession.getAutofillSession() because the app might have swapped
+    // the session under us between the onProvideAutofillVirtualStructure and this call
+    // so mSession could refer to a different session or we might not have a session at all.
+    final Autofill.Session session = mAutofillSession.get();
+    if (session == null) {
       return;
     }
     final SparseArray<CharSequence> strValues = new SparseArray<>(values.size());
@@ -813,7 +879,7 @@ public class GeckoView extends FrameLayout {
         strValues.put(values.keyAt(i), value.getTextValue());
       }
     }
-    mSession.autofill(strValues);
+    session.autofill(strValues);
   }
 
   @Override
@@ -864,10 +930,26 @@ public class GeckoView extends FrameLayout {
     return mAutofillEnabled;
   }
 
+  @TargetApi(26)
   private class AndroidAutofillDelegate implements Autofill.Delegate {
+    AutofillManager mAutofillManager;
+    boolean mDisabled = false;
+
+    private void ensureAutofillManager() {
+      if (mDisabled || mAutofillManager != null) {
+        // Nothing to do
+        return;
+      }
+
+      mAutofillManager = GeckoView.this.getContext().getSystemService(AutofillManager.class);
+      if (mAutofillManager == null) {
+        // If we can't get a reference to the autofill manager, we cannot run the autofill service
+        mDisabled = true;
+      }
+    }
 
     private Rect displayRectForId(
-        @NonNull final GeckoSession session, @NonNull final Autofill.Node node) {
+        @NonNull final GeckoSession session, @Nullable final Autofill.Node node) {
       if (node == null) {
         return new Rect(0, 0, 0, 0);
       }
@@ -883,43 +965,95 @@ public class GeckoView extends FrameLayout {
     }
 
     @Override
-    public void onAutofill(
-        @NonNull final GeckoSession session, final int notification, final Autofill.Node node) {
-      ThreadUtils.assertOnUiThread();
-      if (Build.VERSION.SDK_INT < 26) {
+    public void onNodeBlur(
+        final @NonNull GeckoSession session,
+        final @NonNull Autofill.Node prev,
+        final @NonNull Autofill.NodeData data) {
+      ensureAutofillManager();
+      if (mAutofillManager != null) {
+        mAutofillManager.notifyViewExited(GeckoView.this, data.getId());
+      }
+    }
+
+    @Override
+    public void onNodeAdd(
+        final @NonNull GeckoSession session,
+        final @NonNull Autofill.Node node,
+        final @NonNull Autofill.NodeData data) {
+      if (!mSession.getAutofillSession().isVisible(node)) {
         return;
       }
+      final Autofill.Node focused = mSession.getAutofillSession().getFocused();
+      // We must have a focused node because |node| is visible
+      Objects.requireNonNull(focused);
 
-      final AutofillManager manager =
-          GeckoView.this.getContext().getSystemService(AutofillManager.class);
-      if (manager == null) {
-        return;
+      final Autofill.NodeData focusedData = mSession.getAutofillSession().dataFor(focused);
+      Objects.requireNonNull(focusedData);
+
+      ensureAutofillManager();
+      if (mAutofillManager != null) {
+        mAutofillManager.notifyViewExited(GeckoView.this, focusedData.getId());
+        mAutofillManager.notifyViewEntered(
+            GeckoView.this, focusedData.getId(), displayRectForId(session, focused));
       }
+    }
 
-      try {
-        switch (notification) {
-          case Autofill.Notify.SESSION_STARTED:
-            // This line seems necessary for auto-fill to work on the initial page.
-          case Autofill.Notify.SESSION_CANCELED:
-            manager.cancel();
-            break;
-          case Autofill.Notify.SESSION_COMMITTED:
-            manager.commit();
-            break;
-          case Autofill.Notify.NODE_FOCUSED:
-            manager.notifyViewEntered(
-                GeckoView.this, node.getId(), displayRectForId(session, node));
-            break;
-          case Autofill.Notify.NODE_BLURRED:
-            manager.notifyViewExited(GeckoView.this, node.getId());
-            break;
-          case Autofill.Notify.NODE_UPDATED:
-            manager.notifyValueChanged(
-                GeckoView.this, node.getId(), AutofillValue.forText(node.getValue()));
-            break;
-        }
-      } catch (final SecurityException e) {
-        Log.e(LOGTAG, "Failed to call Autofill Manager API: ", e);
+    @Override
+    public void onNodeFocus(
+        final @NonNull GeckoSession session,
+        final @NonNull Autofill.Node focused,
+        final @NonNull Autofill.NodeData data) {
+      ensureAutofillManager();
+      if (mAutofillManager != null) {
+        mAutofillManager.notifyViewEntered(
+            GeckoView.this, data.getId(), displayRectForId(session, focused));
+      }
+    }
+
+    @Override
+    public void onNodeRemove(
+        final @NonNull GeckoSession session,
+        final @NonNull Autofill.Node node,
+        final @NonNull Autofill.NodeData data) {}
+
+    @Override
+    public void onNodeUpdate(
+        final @NonNull GeckoSession session,
+        final @NonNull Autofill.Node node,
+        final @NonNull Autofill.NodeData data) {
+      ensureAutofillManager();
+      if (mAutofillManager != null) {
+        mAutofillManager.notifyValueChanged(
+            GeckoView.this, data.getId(), AutofillValue.forText(data.getValue()));
+      }
+    }
+
+    @Override
+    public void onSessionCancel(final @NonNull GeckoSession session) {
+      ensureAutofillManager();
+      if (mAutofillManager != null) {
+        // This line seems necessary for auto-fill to work on the initial page.
+        mAutofillManager.cancel();
+      }
+    }
+
+    @Override
+    public void onSessionCommit(
+        final @NonNull GeckoSession session,
+        final @NonNull Autofill.Node node,
+        final @NonNull Autofill.NodeData data) {
+      ensureAutofillManager();
+      if (mAutofillManager != null) {
+        mAutofillManager.commit();
+      }
+    }
+
+    @Override
+    public void onSessionStart(final @NonNull GeckoSession session) {
+      ensureAutofillManager();
+      if (mAutofillManager != null) {
+        // This line seems necessary for auto-fill to work on the initial page.
+        mAutofillManager.cancel();
       }
     }
   }

@@ -75,8 +75,12 @@ DOMTimeStamp nsMenuPopupFrame::sLastKeyTime = 0;
 #ifdef MOZ_WAYLAND
 #  include "mozilla/WidgetUtilsGtk.h"
 #  define IS_WAYLAND_DISPLAY() mozilla::widget::GdkIsWaylandDisplay()
+extern mozilla::LazyLogModule gWidgetPopupLog;
+#  define LOG_WAYLAND(...) \
+    MOZ_LOG(gWidgetPopupLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 #else
 #  define IS_WAYLAND_DISPLAY() false
+#  define LOG_WAYLAND (...)
 #endif
 
 // NS_NewMenuPopupFrame
@@ -105,7 +109,6 @@ nsMenuPopupFrame::nsMenuPopupFrame(ComputedStyle* aStyle,
       mPrefSize(-1, -1),
       mXPos(0),
       mYPos(0),
-      mAnchorRect(),
       mAlignmentOffset(0),
       mLastClientOffset(0, 0),
       mPopupType(ePopupTypePanel),
@@ -115,8 +118,6 @@ nsMenuPopupFrame::nsMenuPopupFrame(ComputedStyle* aStyle,
       mPosition(POPUPPOSITION_UNKNOWN),
       mFlip(FlipType_Default),
       mIsOpenChanged(false),
-      mIsContextMenu(false),
-      mAdjustOffsetForContextMenu(false),
       mMenuCanOverlapOSBar(false),
       mShouldAutoPosition(true),
       mInContentShell(true),
@@ -366,11 +367,9 @@ nsresult nsMenuPopupFrame::CreateWidgetForView(nsView* aView) {
   widgetData.mSupportTranslucency = mode == eTransparencyTransparent;
   widgetData.mPopupLevel = PopupLevel(widgetData.mNoAutoHide);
 
-  // The special cases are menulists and handling the Windows 10
-  // drop-shadow on menus with rounded borders.
+  // The special cases are menulists.
   widgetData.mDropShadow =
-      !(mode == eTransparencyTransparent || tag == nsGkAtoms::menulist) ||
-      StyleUIReset()->mWindowShadow == StyleWindowShadow::Cliprounded;
+      !(mode == eTransparencyTransparent || tag == nsGkAtoms::menulist);
 
   // panels which have a parent level need a parent widget. This allows them to
   // always appear in front of the parent window but behind other windows that
@@ -519,11 +518,54 @@ void nsMenuPopupFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
   }
 }
 
+void nsMenuPopupFrame::ConstrainSizeForWayland(nsSize& aSize) const {
+#ifdef MOZ_WAYLAND
+  if (!IS_WAYLAND_DISPLAY()) {
+    return;
+  }
+
+  // If the size is not a whole number in CSS pixels we need round it up to
+  // avoid reflow of the tooltips/popups and putting the text on two lines
+  // (usually happens with 200% scale factor and font scale factor <> 1) because
+  // GTK throws away the decimals.
+  int32_t appPerCSS = AppUnitsPerCSSPixel();
+  if (aSize.width % appPerCSS > 0) {
+    aSize.width += appPerCSS;
+  }
+  if (aSize.height % appPerCSS > 0) {
+    aSize.height += appPerCSS;
+  }
+
+  nsIWidget* widget = GetWidget();
+  if (!widget) {
+    return;
+  }
+
+  // Shrink the popup down if it's larger than popup size received from Wayland
+  // compositor. We don't know screen size on Wayland so this is the only info
+  // we have there.
+  const nsSize waylandSize = LayoutDeviceIntRect::ToAppUnits(
+      widget->GetMoveToRectPopupSize(), PresContext()->AppUnitsPerDevPixel());
+  if (waylandSize.width > 0 && aSize.width > waylandSize.width) {
+    LOG_WAYLAND("Wayland constraint width [%p]:  %d to %d", widget, aSize.width,
+                waylandSize.width);
+    aSize.width = waylandSize.width;
+  }
+  if (waylandSize.height > 0 && aSize.height > waylandSize.height) {
+    LOG_WAYLAND("Wayland constraint height [%p]:  %d to %d", widget,
+                aSize.height, waylandSize.height);
+    aSize.height = waylandSize.height;
+  }
+#endif
+}
+
 void nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState,
                                    nsIFrame* aParentMenu, bool aSizedToPopup) {
   if (IsNativeMenu()) {
     return;
   }
+
+  mSizedToPopup = aSizedToPopup;
 
   SchedulePaint();
 
@@ -575,35 +617,18 @@ void nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState,
   if (aSizedToPopup) {
     prefSize.width = aParentMenu->GetRect().width;
   }
+
   prefSize = XULBoundsCheck(minSize, prefSize, maxSize);
 
-  if (IS_WAYLAND_DISPLAY()) {
-    // If prefSize it is not a whole number in css pixels we need round it up
-    // to avoid reflow of the tooltips/popups and putting the text on two lines
-    // (usually happens with 200% scale factor and font scale factor <> 1)
-    // because GTK thrown away the decimals.
-    int32_t appPerCSS = AppUnitsPerCSSPixel();
-    if (prefSize.width % appPerCSS > 0) {
-      prefSize.width += appPerCSS;
-    }
-    if (prefSize.height % appPerCSS > 0) {
-      prefSize.height += appPerCSS;
-    }
-  }
+  ConstrainSizeForWayland(prefSize);
 
-  bool sizeChanged = (mPrefSize != prefSize);
+  const bool sizeChanged = mPrefSize != prefSize;
   // if the size changed then set the bounds to be the preferred size, and make
   // sure we re-position the popup too (as that can shrink or resize us again).
   if (sizeChanged) {
     shouldPosition = true;
     SetXULBounds(aState, nsRect(0, 0, prefSize.width, prefSize.height), false);
     mPrefSize = prefSize;
-    nsIWidget* widget = GetWidget();
-    if (mPopupState != ePopupShown && widget && IS_WAYLAND_DISPLAY()) {
-      // When the popup size changed in the DOM, we need to flush widget
-      // preferred popup rect to avoid showing it in wrong size.
-      widget->FlushPreferredPopupRect();
-    }
   }
 
   bool needCallback = false;
@@ -694,16 +719,13 @@ void nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState,
 
   if (needCallback && !mReflowCallbackData.mPosted) {
     pc->PresShell()->PostReflowCallback(this);
-    mReflowCallbackData.MarkPosted(aParentMenu, aSizedToPopup, openChanged);
+    mReflowCallbackData.MarkPosted(aParentMenu, openChanged);
   }
 }
 
 bool nsMenuPopupFrame::ReflowFinished() {
-  SetPopupPosition(mReflowCallbackData.mAnchor, false,
-                   mReflowCallbackData.mSizedToPopup);
-
+  SetPopupPosition(mReflowCallbackData.mAnchor, false, mSizedToPopup);
   mReflowCallbackData.Clear();
-
   return false;
 }
 
@@ -786,8 +808,8 @@ void nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
   mTriggerContent = aTriggerContent;
   mXPos = aXPos;
   mYPos = aYPos;
-  mAdjustOffsetForContextMenu = false;
   mIsNativeMenu = false;
+  mIsTopLevelContextMenu = false;
   mVFlip = false;
   mHFlip = false;
   mAlignmentOffset = 0;
@@ -931,8 +953,7 @@ void nsMenuPopupFrame::InitializePopupAtScreen(nsIContent* aTriggerContent,
   mPopupAlignment = POPUPALIGNMENT_NONE;
   mPosition = POPUPPOSITION_UNKNOWN;
   mIsContextMenu = aIsContextMenu;
-  // Wayland does menu adjustments at widget code
-  mAdjustOffsetForContextMenu = aIsContextMenu && !IS_WAYLAND_DISPLAY();
+  mIsTopLevelContextMenu = aIsContextMenu;
   mIsNativeMenu = false;
   mAnchorType = MenuPopupAnchorType_Point;
   mPositionedOffset = 0;
@@ -952,8 +973,7 @@ void nsMenuPopupFrame::InitializePopupAsNativeContextMenu(
   mPopupAlignment = POPUPALIGNMENT_NONE;
   mPosition = POPUPPOSITION_UNKNOWN;
   mIsContextMenu = true;
-  // Wayland does menu adjustments at widget code
-  mAdjustOffsetForContextMenu = !IS_WAYLAND_DISPLAY();
+  mIsTopLevelContextMenu = true;
   mIsNativeMenu = true;
   mAnchorType = MenuPopupAnchorType_Point;
   mPositionedOffset = 0;
@@ -1152,8 +1172,7 @@ nsPoint nsMenuPopupFrame::AdjustPositionForAnchorAlign(nsRect& anchorRect,
   // by the width. Similarly, if the alignment is on the bottom edge of the
   // popup, move the popup up by the height. In addition, account for the
   // margins of the popup on the edge on which it is aligned.
-  nsMargin margin(0, 0, 0, 0);
-  StyleMargin()->GetMargin(margin);
+  nsMargin margin = GetMargin();
   switch (popupAlign) {
     case POPUPALIGNMENT_TOPRIGHT:
       pnt.MoveBy(-mRect.width - margin.right, margin.top);
@@ -1278,7 +1297,6 @@ nscoord nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
                                        nscoord aScreenBegin, nscoord aScreenEnd,
                                        nscoord aAnchorBegin, nscoord aAnchorEnd,
                                        nscoord aMarginBegin, nscoord aMarginEnd,
-                                       nscoord aOffsetForContextMenu,
                                        FlipStyle aFlip, bool aEndAligned,
                                        bool* aFlipSide) {
   // The flip side argument will be set to true if there wasn't room and we
@@ -1342,8 +1360,7 @@ nscoord nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
         // if the newly calculated position is different than the existing
         // position, we flip such that the popup is to the left or top of the
         // anchor point instead.
-        nscoord newScreenPoint = startpos - aSize - aMarginBegin -
-                                 std::max(aOffsetForContextMenu, 0);
+        nscoord newScreenPoint = startpos - aSize - aMarginBegin;
         if (newScreenPoint != aScreenPoint) {
           *aFlipSide = !aEndAligned;
           aScreenPoint = newScreenPoint;
@@ -1404,7 +1421,9 @@ nsRect nsMenuPopupFrame::ComputeAnchorRect(nsPresContext* aRootPresContext,
 
 nsresult nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame,
                                             bool aIsMove, bool aSizedToPopup) {
-  if (!mShouldAutoPosition) return NS_OK;
+  if (!mShouldAutoPosition) {
+    return NS_OK;
+  }
 
   // If this is due to a move, return early if the popup hasn't been laid out
   // yet. On Windows, this can happen when using a drag popup before it opens.
@@ -1466,16 +1485,21 @@ nsresult nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame,
   // adjusted to fit on the screen or within the content area. If the anchor
   // is sized to the popup, use the anchor's width instead of the preferred
   // width. The preferred size should already be set by the parent frame.
-  NS_ASSERTION(mPrefSize.width >= 0 || mPrefSize.height >= 0,
-               "preferred size of popup not set");
-  mRect.width = aSizedToPopup ? parentWidth : mPrefSize.width;
-  mRect.height = mPrefSize.height;
-
-  // If we're anchoring to a rect, and the rect is smaller than the preferred
-  // size of the popup, change its width accordingly.
-  if (mAnchorType == MenuPopupAnchorType_Rect &&
-      parentWidth < mPrefSize.width) {
-    mRect.width = mPrefSize.width;
+  {
+    NS_ASSERTION(mPrefSize.width >= 0 || mPrefSize.height >= 0,
+                 "preferred size of popup not set");
+    nsSize newSize = mPrefSize;
+    if (aSizedToPopup) {
+      newSize.width = parentWidth;
+      // If we're anchoring to a rect, and the rect is smaller than the
+      // preferred size of the popup, change its width accordingly.
+      if (mAnchorType == MenuPopupAnchorType_Rect) {
+        newSize.width = std::max(parentWidth, mPrefSize.width);
+      }
+      // Pref size is already constrained by LayoutPopup().
+      ConstrainSizeForWayland(newSize);
+    }
+    mRect.SizeTo(newSize);
   }
 
   // the screen position in app units where the popup should appear
@@ -1484,14 +1508,10 @@ nsresult nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame,
   // indicators of whether the popup should be flipped or resized.
   FlipStyle hFlip = FlipStyle_None, vFlip = FlipStyle_None;
 
-  nsMargin margin(0, 0, 0, 0);
-  StyleMargin()->GetMargin(margin);
+  const nsMargin margin = GetMargin();
 
   // the screen rectangle of the root frame, in dev pixels.
   nsRect rootScreenRect = rootFrame->GetScreenRectInAppUnits();
-
-  nsDeviceContext* devContext = presContext->DeviceContext();
-  nsPoint offsetForContextMenu;
 
   bool isNoAutoHide = IsNoAutoHide();
   nsPopupLevel popupLevel = PopupLevel(isNoAutoHide);
@@ -1508,20 +1528,20 @@ nsresult nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame,
       // tell us which axis the popup is flush against in case we have to move
       // it around later. The AdjustPositionForAnchorAlign method accounts for
       // the popup's margin.
-      if (IS_WAYLAND_DISPLAY()) {
-        screenPoint = nsPoint(anchorRect.x, anchorRect.y);
-        mAnchorRect = anchorRect;
-      }
+      mUntransformedAnchorRect = anchorRect;
       screenPoint = AdjustPositionForAnchorAlign(anchorRect, hFlip, vFlip);
     } else {
       // with no anchor, the popup is positioned relative to the root frame
       anchorRect = rootScreenRect;
+      mUntransformedAnchorRect = anchorRect;
       screenPoint = anchorRect.TopLeft() + nsPoint(margin.left, margin.top);
     }
 
-    // mXPos and mYPos specify an additonal offset passed to OpenPopup that
+    // mXPos and mYPos specify an additional offset passed to OpenPopup that
     // should be added to the position.  We also add the offset to the anchor
     // pos so a later flip/resize takes the offset into account.
+    // FIXME(emilio): Wayland doesn't seem to be accounting for this offset
+    // anywhere, and it probably should.
     nscoord anchorXOffset = CSSPixel::ToAppUnits(mXPos);
     if (IsDirectionRTL()) {
       screenPoint.x -= anchorXOffset;
@@ -1548,39 +1568,18 @@ nsresult nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame,
       mScreenRect.y = screenPoint.y - margin.top;
     }
   } else {
-    // The popup is positioned at a screen coordinate.
-    // First convert the screen position in mScreenRect from CSS pixels into
-    // device pixels, ignoring any zoom as mScreenRect holds unzoomed screen
-    // coordinates.
-    int32_t factor = devContext->AppUnitsPerDevPixelAtUnitFullZoom();
+    screenPoint = mScreenRect.TopLeft();
+    anchorRect = nsRect(screenPoint, nsSize());
+    mUntransformedAnchorRect = anchorRect;
 
-    // Depending on the platform, context menus should be offset by varying
-    // amounts to ensure that they don't appear directly where the cursor is.
-    // Otherwise, it is too easy to have the context menu close up again.
-    if (mAdjustOffsetForContextMenu) {
-      nsPoint offsetForContextMenuDev;
-      offsetForContextMenuDev.x =
-          CSSPixel::ToAppUnits(LookAndFeel::GetInt(
-              LookAndFeel::IntID::ContextMenuOffsetHorizontal)) /
-          factor;
-      offsetForContextMenuDev.y =
-          CSSPixel::ToAppUnits(LookAndFeel::GetInt(
-              LookAndFeel::IntID::ContextMenuOffsetVertical)) /
-          factor;
-      offsetForContextMenu.x =
-          presContext->DevPixelsToAppUnits(offsetForContextMenuDev.x);
-      offsetForContextMenu.y =
-          presContext->DevPixelsToAppUnits(offsetForContextMenuDev.y);
+    // Right-align RTL context menus, and apply margin and offsets as per the
+    // platform conventions.
+    if (mIsContextMenu && IsDirectionRTL()) {
+      screenPoint.x -= mRect.Width();
+      screenPoint.MoveBy(-margin.right, margin.top);
+    } else {
+      screenPoint.MoveBy(margin.left, margin.top);
     }
-
-    // next, convert into app units accounting for the zoom
-    screenPoint.x = presContext->DevPixelsToAppUnits(mScreenRect.x / factor);
-    screenPoint.y = presContext->DevPixelsToAppUnits(mScreenRect.y / factor);
-    anchorRect = nsRect(screenPoint, nsSize(0, 0));
-
-    // add the margins on the popup
-    screenPoint.MoveBy(margin.left + offsetForContextMenu.x,
-                       margin.top + offsetForContextMenu.y);
 
 #ifdef XP_MACOSX
     // OSX tooltips follow standard flip rule but other popups flip horizontally
@@ -1599,21 +1598,6 @@ nsresult nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame,
 
   nscoord oldAlignmentOffset = mAlignmentOffset;
 
-  if (IS_WAYLAND_DISPLAY()) {
-    if (nsIWidget* widget = GetWidget()) {
-      nsRect prefRect = widget->GetPreferredPopupRect();
-      if (prefRect.width > 0 && prefRect.height > 0) {
-        // shrink the the popup down if it is larger than the prefered size.
-        if (mRect.width > prefRect.width) {
-          mRect.width = prefRect.width;
-        }
-        if (mRect.height > prefRect.height) {
-          mRect.height = prefRect.height;
-        }
-      }
-    }
-  }
-
   // If a panel is being moved or has flip="none", don't constrain or flip it,
   // in order to avoid visual noise when moving windows between screens.
   // However, if a panel is already constrained or flipped (mIsOffset), then we
@@ -1623,23 +1607,38 @@ nsresult nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame,
       (mInContentShell ||
        (mFlip != FlipType_None &&
         (!aIsMove || mIsOffset || mPopupType != ePopupTypePanel)))) {
-    int32_t appPerDev = presContext->AppUnitsPerDevPixel();
-    LayoutDeviceIntRect anchorRectDevPix =
-        LayoutDeviceIntRect::FromAppUnitsToNearest(anchorRect, appPerDev);
-    LayoutDeviceIntRect rootScreenRectDevPix =
-        LayoutDeviceIntRect::FromAppUnitsToNearest(rootScreenRect, appPerDev);
-    LayoutDeviceIntRect screenRectDevPix =
-        GetConstraintRect(anchorRectDevPix, rootScreenRectDevPix, popupLevel);
-    nsRect screenRect =
-        LayoutDeviceIntRect::ToAppUnits(screenRectDevPix, appPerDev);
+    const nsRect screenRect = [&] {
+      int32_t appPerDev = presContext->AppUnitsPerDevPixel();
+      auto anchorRectDevPix =
+          LayoutDeviceIntRect::FromAppUnitsToNearest(anchorRect, appPerDev);
+      auto rootScreenRectDevPix =
+          LayoutDeviceIntRect::FromAppUnitsToNearest(rootScreenRect, appPerDev);
+      auto screenRectDevPix =
+          GetConstraintRect(anchorRectDevPix, rootScreenRectDevPix, popupLevel);
+      nsRect sr = LayoutDeviceIntRect::ToAppUnits(screenRectDevPix, appPerDev);
+
+      // Expand the allowable screen rect by the negative margins. Note that we
+      // intentionally don't include the context menu offset in the margin here.
+      nsMargin rawMargin;
+      if (StyleMargin()->GetMargin(rawMargin)) {
+        rawMargin.EnsureAtMost(nsMargin());
+        sr.Deflate(rawMargin);
+      }
+      return sr;
+    }();
+
     // Ensure that anchorRect is on screen.
     anchorRect = anchorRect.Intersect(screenRect);
 
-    // shrink the the popup down if it is larger than the screen size
-    if (mRect.width > screenRect.width) mRect.width = screenRect.width;
-    if (mRect.height > screenRect.height) mRect.height = screenRect.height;
+    // Shrink the the popup down if it is larger than the screen size
+    if (mRect.width > screenRect.width) {
+      mRect.width = screenRect.width;
+    }
+    if (mRect.height > screenRect.height) {
+      mRect.height = screenRect.height;
+    }
 
-    // at this point the anchor (anchorRect) is within the available screen
+    // At this point the anchor (anchorRect) is within the available screen
     // area (screenRect) and the popup is known to be no larger than the
     // screen.
 
@@ -1658,42 +1657,40 @@ nsresult nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame,
     // Next, check if there is enough space to show the popup at full size
     // when positioned at screenPoint. If not, flip the popups to the opposite
     // side of their anchor point, or resize them as necessary.
-    bool endAligned = IsDirectionRTL()
-                          ? mPopupAlignment == POPUPALIGNMENT_TOPLEFT ||
-                                mPopupAlignment == POPUPALIGNMENT_BOTTOMLEFT
-                          : mPopupAlignment == POPUPALIGNMENT_TOPRIGHT ||
-                                mPopupAlignment == POPUPALIGNMENT_BOTTOMRIGHT;
-    nscoord preOffsetScreenPoint = screenPoint.x;
+    const nsPoint preOffsetScreenPoint = screenPoint;
     if (slideHorizontal) {
       mRect.width = SlideOrResize(screenPoint.x, mRect.width, screenRect.x,
                                   screenRect.XMost(), &mAlignmentOffset);
     } else {
-      mRect.width = FlipOrResize(
-          screenPoint.x, mRect.width, screenRect.x, screenRect.XMost(),
-          anchorRect.x, anchorRect.XMost(), margin.left, margin.right,
-          offsetForContextMenu.x, hFlip, endAligned, &mHFlip);
+      bool endAligned = IsDirectionRTL()
+                            ? mPopupAlignment == POPUPALIGNMENT_TOPLEFT ||
+                                  mPopupAlignment == POPUPALIGNMENT_BOTTOMLEFT
+                            : mPopupAlignment == POPUPALIGNMENT_TOPRIGHT ||
+                                  mPopupAlignment == POPUPALIGNMENT_BOTTOMRIGHT;
+      mRect.width =
+          FlipOrResize(screenPoint.x, mRect.width, screenRect.x,
+                       screenRect.XMost(), anchorRect.x, anchorRect.XMost(),
+                       margin.left, margin.right, hFlip, endAligned, &mHFlip);
     }
-    mIsOffset = preOffsetScreenPoint != screenPoint.x;
-
-    endAligned = mPopupAlignment == POPUPALIGNMENT_BOTTOMLEFT ||
-                 mPopupAlignment == POPUPALIGNMENT_BOTTOMRIGHT;
-    preOffsetScreenPoint = screenPoint.y;
     if (slideVertical) {
       mRect.height = SlideOrResize(screenPoint.y, mRect.height, screenRect.y,
                                    screenRect.YMost(), &mAlignmentOffset);
     } else {
-      mRect.height = FlipOrResize(
-          screenPoint.y, mRect.height, screenRect.y, screenRect.YMost(),
-          anchorRect.y, anchorRect.YMost(), margin.top, margin.bottom,
-          offsetForContextMenu.y, vFlip, endAligned, &mVFlip);
+      bool endAligned = mPopupAlignment == POPUPALIGNMENT_BOTTOMLEFT ||
+                        mPopupAlignment == POPUPALIGNMENT_BOTTOMRIGHT;
+      mRect.height =
+          FlipOrResize(screenPoint.y, mRect.height, screenRect.y,
+                       screenRect.YMost(), anchorRect.y, anchorRect.YMost(),
+                       margin.top, margin.bottom, vFlip, endAligned, &mVFlip);
     }
-    mIsOffset = mIsOffset || (preOffsetScreenPoint != screenPoint.y);
+    mIsOffset = preOffsetScreenPoint != screenPoint;
 
-    NS_ASSERTION(screenPoint.x >= screenRect.x &&
-                     screenPoint.y >= screenRect.y &&
-                     screenPoint.x + mRect.width <= screenRect.XMost() &&
-                     screenPoint.y + mRect.height <= screenRect.YMost(),
-                 "Popup is offscreen");
+    NS_ASSERTION(screenPoint.x >= screenRect.x, "Popup is offscreen (x start)");
+    NS_ASSERTION(screenPoint.y >= screenRect.y, "Popup is offscreen (y start)");
+    NS_ASSERTION(screenPoint.x + mRect.width <= screenRect.XMost(),
+                 "Popup is offscreen (x end)");
+    NS_ASSERTION(screenPoint.y + mRect.height <= screenRect.YMost(),
+                 "Popup is offscreen (y end)");
   }
 
   // snap the popup's position in screen coordinates to device pixels,
@@ -2282,10 +2279,8 @@ void nsMenuPopupFrame::LockMenuUntilClosed(bool aLock) {
   }
 }
 
-nsIWidget* nsMenuPopupFrame::GetWidget() {
-  if (!mView) return nullptr;
-
-  return mView->GetWidget();
+nsIWidget* nsMenuPopupFrame::GetWidget() const {
+  return mView ? mView->GetWidget() : nullptr;
 }
 
 // helpers /////////////////////////////////////////////////////////////
@@ -2388,34 +2383,57 @@ void nsMenuPopupFrame::DestroyFrom(nsIFrame* aDestructRoot,
   nsBoxFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
+nsMargin nsMenuPopupFrame::GetMargin() const {
+  nsMargin margin;
+  StyleMargin()->GetMargin(margin);
+  if (mIsTopLevelContextMenu) {
+    const CSSIntPoint offset(
+        LookAndFeel::GetInt(LookAndFeel::IntID::ContextMenuOffsetHorizontal),
+        LookAndFeel::GetInt(LookAndFeel::IntID::ContextMenuOffsetVertical));
+    auto auOffset = CSSIntPoint::ToAppUnits(offset);
+    margin.top += auOffset.y;
+    margin.bottom += auOffset.y;
+    margin.left += auOffset.x;
+    margin.right += auOffset.x;
+  }
+  return margin;
+}
+
 void nsMenuPopupFrame::MoveTo(const CSSPoint& aPos, bool aUpdateAttrs) {
   nsIWidget* widget = GetWidget();
   nsPoint appUnitsPos = CSSPixel::ToAppUnits(aPos);
+
+  // reposition the popup at the specified coordinates. Don't clear the anchor
+  // and position, because the popup can be reset to its anchor position by
+  // using (-1, -1) as coordinates.
+  //
+  // Subtract off the margin as it will be added to the position when
+  // SetPopupPosition is called.
+  {
+    nsMargin margin = GetMargin();
+    if (mIsContextMenu && IsDirectionRTL()) {
+      appUnitsPos.x += margin.right + mRect.Width();
+    } else {
+      appUnitsPos.x -= margin.left;
+    }
+    appUnitsPos.y -= margin.top;
+  }
+
   if ((mScreenRect.x == appUnitsPos.x && mScreenRect.y == appUnitsPos.y) &&
       (!widget || widget->GetClientOffset() == mLastClientOffset)) {
     return;
   }
 
-  // reposition the popup at the specified coordinates. Don't clear the anchor
-  // and position, because the popup can be reset to its anchor position by
-  // using (-1, -1) as coordinates. Subtract off the margin as it will be
-  // added to the position when SetPopupPosition is called.
-  nsMargin margin(0, 0, 0, 0);
-  StyleMargin()->GetMargin(margin);
-
-  // Workaround for bug 788189.  See also bug 708278 comment #25 and following.
-  if (mAdjustOffsetForContextMenu) {
-    margin.left += CSSPixel::ToAppUnits(
-        LookAndFeel::GetInt(LookAndFeel::IntID::ContextMenuOffsetHorizontal));
-    margin.top += CSSPixel::ToAppUnits(
-        LookAndFeel::GetInt(LookAndFeel::IntID::ContextMenuOffsetVertical));
+  mScreenRect.MoveTo(appUnitsPos);
+  if (mAnchorType == MenuPopupAnchorType_Rect) {
+    // This ensures that the anchor width is still honored, to prevent it from
+    // changing spuriously.
+    mScreenRect.height = 0;
+  } else {
+    mAnchorType = MenuPopupAnchorType_Point;
   }
 
-  mAnchorType = MenuPopupAnchorType_Point;
-  mScreenRect.x = appUnitsPos.x - margin.left;
-  mScreenRect.y = appUnitsPos.y - margin.top;
-
-  SetPopupPosition(nullptr, true, false);
+  SetPopupPosition(nullptr, true, mSizedToPopup);
 
   RefPtr<Element> popup = mContent->AsElement();
   if (aUpdateAttrs && (popup->HasAttr(kNameSpaceID_None, nsGkAtoms::left) ||

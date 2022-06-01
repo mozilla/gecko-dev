@@ -119,7 +119,7 @@ namespace SessionStoreUtils {
    Promise<void> initializeRestore(CanonicalBrowsingContext browsingContext,
                                    nsISessionStoreRestoreData? data);
 
-   [Throws]
+   [NewObject]
    Promise<void> restoreDocShellState(
       CanonicalBrowsingContext browsingContext,
       UTF8String? url,
@@ -166,29 +166,4 @@ dictionary InputElementData {
   sequence<DOMString> selectVal;
   sequence<DOMString> strVal;
   sequence<boolean> boolVal;
-};
-
-[GenerateConversionToJS]
-dictionary UpdateSessionStoreData {
-  ByteString docShellCaps;
-  boolean isPrivate;
-};
-
-[GenerateConversionToJS]
-dictionary SessionStoreWindowStateChange {
-  SessionStoreFormData formdata;
-  SessionStoreScroll scroll;
-  boolean hasChildren;
-  required sequence<unsigned long> path;
-};
-
-dictionary SessionStoreFormData {
-  ByteString url;
-  record<DOMString, CollectedFormDataValue> id;
-  record<DOMString, CollectedFormDataValue> xpath;
-  DOMString innerHTML;
-};
-
-dictionary SessionStoreScroll {
-  ByteString scroll;
 };

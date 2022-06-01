@@ -267,7 +267,7 @@ void HTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
         // This is sort of a hack ... we need to notify that the option was
         // set and change selectedIndex even though we didn't really change
         // its value.
-        OnOptionSelected(selectFrame, i, true, false, false);
+        OnOptionSelected(selectFrame, i, true, false, aNotify);
       }
     }
 
@@ -545,7 +545,7 @@ void HTMLSelectElement::Add(nsGenericHTMLElement& aElement,
   parent->InsertBefore(aElement, refNode, aError);
 }
 
-void HTMLSelectElement::Remove(int32_t aIndex) {
+void HTMLSelectElement::Remove(int32_t aIndex) const {
   if (aIndex < 0) {
     return;
   }
@@ -638,7 +638,7 @@ void HTMLSelectElement::SetSelectedIndexInternal(int32_t aIndex, bool aNotify) {
   SetSelectionChanged(true, aNotify);
 }
 
-bool HTMLSelectElement::IsOptionSelectedByIndex(int32_t aIndex) {
+bool HTMLSelectElement::IsOptionSelectedByIndex(int32_t aIndex) const {
   HTMLOptionElement* option = Item(static_cast<uint32_t>(aIndex));
   return option && option->Selected();
 }
@@ -920,7 +920,7 @@ bool HTMLSelectElement::IsOptionDisabled(HTMLOptionElement* aOption) const {
   return false;
 }
 
-void HTMLSelectElement::GetValue(DOMString& aValue) {
+void HTMLSelectElement::GetValue(DOMString& aValue) const {
   int32_t selectedIndex = SelectedIndex();
   if (selectedIndex < 0) {
     return;

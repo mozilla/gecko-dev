@@ -550,7 +550,7 @@ void nsHTMLDocument::AddedForm() { ++mNumForms; }
 
 void nsHTMLDocument::RemovedForm() { --mNumForms; }
 
-int32_t nsHTMLDocument::GetNumFormsSynchronous() { return mNumForms; }
+int32_t nsHTMLDocument::GetNumFormsSynchronous() const { return mNumForms; }
 
 bool nsHTMLDocument::ResolveName(JSContext* aCx, const nsAString& aName,
                                  JS::MutableHandle<JS::Value> aRetval,
@@ -675,7 +675,7 @@ bool nsHTMLDocument::WillIgnoreCharsetOverride() {
     case kCharsetFromDocTypeDefault:
     case kCharsetFromInitialAutoDetectionWouldHaveBeenUTF8:
     case kCharsetFromInitialAutoDetectionWouldNotHaveBeenUTF8DependedOnTLD:
-    case kCharsetFromFinalAutoDetectionWouldHaveBeenUTF8:
+    case kCharsetFromFinalAutoDetectionWouldHaveBeenUTF8InitialWasASCII:
     case kCharsetFromFinalAutoDetectionWouldNotHaveBeenUTF8DependedOnTLD:
     case kCharsetFromParentFrame:
     case kCharsetFromXmlDeclaration:

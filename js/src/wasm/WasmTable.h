@@ -29,8 +29,8 @@ namespace wasm {
 // stateful objects exposed to WebAssembly. asm.js also uses Tables to represent
 // its homogeneous function-pointer tables.
 //
-// A table of FuncRef holds FunctionTableElems, which are (code*,tls*) pairs,
-// where the tls must be traced.
+// A table of FuncRef holds FunctionTableElems, which are (code*,instance*)
+// pairs, where the instance must be traced.
 //
 // A table of AnyRef holds JSObject pointers, which must be traced.
 
@@ -83,8 +83,8 @@ class Table : public ShareableBase<Table> {
   uint32_t length() const { return length_; }
   Maybe<uint32_t> maximum() const { return maximum_; }
 
-  // Only for function values.  Raw pointer to the table.
-  uint8_t* functionBase() const;
+  // Raw pointer to the table for use in TableInstanceData.
+  uint8_t* instanceElements() const;
 
   // set/get/fillFuncRef is allowed only on table-of-funcref.
   // get/fillAnyRef is allowed only on table-of-anyref.
@@ -93,8 +93,9 @@ class Table : public ShareableBase<Table> {
   const FunctionTableElem& getFuncRef(uint32_t index) const;
   [[nodiscard]] bool getFuncRef(JSContext* cx, uint32_t index,
                                 MutableHandleFunction fun) const;
-  void setFuncRef(uint32_t index, void* code, const Instance* instance);
-  void fillFuncRef(uint32_t index, uint32_t fillCount, FuncRef ref, JSContext* cx);
+  void setFuncRef(uint32_t index, void* code, Instance* instance);
+  void fillFuncRef(uint32_t index, uint32_t fillCount, FuncRef ref,
+                   JSContext* cx);
 
   AnyRef getAnyRef(uint32_t index) const;
   void fillAnyRef(uint32_t index, uint32_t fillCount, AnyRef ref);

@@ -23,6 +23,7 @@
 #endif
 #include "mozilla/Services.h"
 #include "mozilla/SSE.h"
+#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
@@ -583,7 +584,7 @@ bool GMPCapability::Supports(const nsTArray<GMPCapability>& aCapabilities,
         // certain services packs.
         if (tag.EqualsLiteral(kClearKeyKeySystemName)) {
           if (capabilities.mAPIName.EqualsLiteral(GMP_API_VIDEO_DECODER)) {
-            if (!WMFDecoderModule::HasH264()) {
+            if (!WMFDecoderModule::CanCreateMFTDecoder(WMFStreamType::H264)) {
               continue;
             }
           }

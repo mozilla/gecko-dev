@@ -12,13 +12,11 @@
 #include "mozilla/dom/cache/ManagerId.h"
 #include "mozilla/dom/cache/ReadStream.h"
 #include "mozilla/dom/cache/SavedTypes.h"
-#include "mozilla/ipc/FileDescriptorSetParent.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
 
 namespace mozilla::dom::cache {
 
-using mozilla::ipc::FileDescriptorSetParent;
 using mozilla::ipc::PBackgroundParent;
 
 CacheOpParent::CacheOpParent(PBackgroundParent* aIpcManager, CacheId aCacheId,
@@ -212,8 +210,8 @@ already_AddRefed<nsIInputStream> CacheOpParent::DeserializeCacheStream(
   }
 
   // Option 2: A stream was serialized using normal methods or passed
-  //           as a PChildToParentStream actor.  Use the standard method for
-  //           extracting the resulting stream.
+  //           as a DataPipe.  Use the standard method for extracting the
+  //           resulting stream.
   return DeserializeIPCStream(readStream.stream());
 }
 
@@ -225,7 +223,7 @@ void CacheOpParent::ProcessCrossOriginResourcePolicyHeader(
   // Only checking for match/matchAll.
   nsILoadInfo::CrossOriginEmbedderPolicy loadingCOEP =
       nsILoadInfo::EMBEDDER_POLICY_NULL;
-  Maybe<PrincipalInfo> principalInfo;
+  Maybe<mozilla::ipc::PrincipalInfo> principalInfo;
   switch (mOpArgs.type()) {
     case CacheOpArgs::TCacheMatchArgs: {
       loadingCOEP =
@@ -254,10 +252,11 @@ void CacheOpParent::ProcessCrossOriginResourcePolicyHeader(
   // skip checking if the request has no principal for same-origin/same-site
   // checking.
   if (principalInfo.isNothing() ||
-      principalInfo.ref().type() != PrincipalInfo::TContentPrincipalInfo) {
+      principalInfo.ref().type() !=
+          mozilla::ipc::PrincipalInfo::TContentPrincipalInfo) {
     return;
   }
-  const ContentPrincipalInfo& contentPrincipalInfo =
+  const mozilla::ipc::ContentPrincipalInfo& contentPrincipalInfo =
       principalInfo.ref().get_ContentPrincipalInfo();
 
   for (auto it = aResponses.cbegin(); it != aResponses.cend(); ++it) {
@@ -288,11 +287,11 @@ void CacheOpParent::ProcessCrossOriginResourcePolicyHeader(
     // checking.
     if (it->mValue.principalInfo().isNothing() ||
         it->mValue.principalInfo().ref().type() !=
-            PrincipalInfo::TContentPrincipalInfo) {
+            mozilla::ipc::PrincipalInfo::TContentPrincipalInfo) {
       continue;
     }
 
-    const ContentPrincipalInfo& responseContentPrincipalInfo =
+    const mozilla::ipc::ContentPrincipalInfo& responseContentPrincipalInfo =
         it->mValue.principalInfo().ref().get_ContentPrincipalInfo();
 
     const auto& corp =

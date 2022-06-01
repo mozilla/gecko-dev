@@ -27,7 +27,7 @@ class nsITreeView;
 namespace mozilla {
 
 class PresShell;
-
+class Monitor;
 namespace dom {
 class DOMStringList;
 class Element;
@@ -242,6 +242,9 @@ class nsAccessibilityService final : public mozilla::a11y::DocManager,
   void NotifyOfResolutionChange(mozilla::PresShell* aPresShell,
                                 float aResolution);
 
+  void NotifyOfDevPixelRatioChange(mozilla::PresShell* aPresShell,
+                                   int32_t aAppUnitsPerDevPixel);
+
   // nsAccessibiltiyService
 
   /**
@@ -308,6 +311,10 @@ class nsAccessibilityService final : public mozilla::a11y::DocManager,
     eMainProcess = 1 << 1,
     ePlatformAPI = 1 << 2,
   };
+
+#if defined(ANDROID)
+  static mozilla::Monitor& GetAndroidMonitor();
+#endif
 
  private:
   // nsAccessibilityService creation is controlled by friend

@@ -41,11 +41,11 @@ function ConsoleApiCall(props) {
     dispatch,
     message,
     open,
-    payload,
     serviceContainer,
     timestampsVisible,
     repeat,
     maybeScrollToBottom,
+    setExpanded,
   } = props;
   const {
     id: messageId,
@@ -71,6 +71,7 @@ function ConsoleApiCall(props) {
     serviceContainer,
     type,
     maybeScrollToBottom,
+    setExpanded,
     // When the object is a parameter of a console.dir call, we always want to show its
     // properties, like regular object (i.e. not showing the DOM tree for an Element, or
     // only showing the message + stacktrace for Error object).
@@ -115,6 +116,7 @@ function ConsoleApiCall(props) {
       serviceContainer,
       useQuotes: false,
       transformEmptyString: true,
+      setExpanded,
       type,
     });
   }
@@ -126,7 +128,6 @@ function ConsoleApiCall(props) {
       id: message.id,
       serviceContainer,
       parameters: message.parameters,
-      tableData: payload,
     });
   }
 
@@ -175,43 +176,44 @@ function formatReps(options = {}) {
     userProvidedStyles,
     type,
     maybeScrollToBottom,
+    setExpanded,
     customFormat,
   } = options;
 
-  return (
-    parameters
-      // Get all the grips.
-      .map((grip, key) =>
-        GripMessageBody({
-          dispatch,
-          messageId,
-          grip,
-          key,
-          userProvidedStyle: userProvidedStyles
-            ? userProvidedStyles[key]
-            : null,
-          serviceContainer,
-          useQuotes: false,
-          loadedObjectProperties,
-          loadedObjectEntries,
-          type,
-          maybeScrollToBottom,
-          customFormat,
-        })
-      )
-      // Interleave spaces.
-      .reduce((arr, v, i) => {
-        // We need to interleave a space if we are not on the last element AND
-        // if we are not between 2 messages with user provided style.
-        const needSpace =
-          i + 1 < parameters.length &&
-          (!userProvidedStyles ||
-            userProvidedStyles[i] === undefined ||
-            userProvidedStyles[i + 1] === undefined);
+  const elements = [];
+  const parametersLength = parameters.length;
+  for (let i = 0; i < parametersLength; i++) {
+    elements.push(
+      GripMessageBody({
+        dispatch,
+        messageId,
+        grip: parameters[i],
+        key: i,
+        userProvidedStyle: userProvidedStyles ? userProvidedStyles[i] : null,
+        serviceContainer,
+        useQuotes: false,
+        loadedObjectProperties,
+        loadedObjectEntries,
+        type,
+        maybeScrollToBottom,
+        setExpanded,
+        customFormat,
+      })
+    );
 
-        return needSpace ? arr.concat(v, " ") : arr.concat(v);
-      }, [])
-  );
+    // We need to interleave a space if we are not on the last element AND
+    // if we are not between 2 messages with user provided style.
+    if (
+      i !== parametersLength - 1 &&
+      (!userProvidedStyles ||
+        userProvidedStyles[i] === undefined ||
+        userProvidedStyles[i + 1] === undefined)
+    ) {
+      elements.push(" ");
+    }
+  }
+
+  return elements;
 }
 
 module.exports = ConsoleApiCall;

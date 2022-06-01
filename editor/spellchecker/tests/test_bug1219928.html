@@ -29,14 +29,14 @@ var spellchecker;
 
 SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(function() {
-  var onSpellCheck =
-    SpecialPowers.Cu.import(
-      "resource://testing-common/AsyncSpellCheckTestHelper.jsm", null).onSpellCheck;
+  var { maybeOnSpellCheck } = SpecialPowers.ChromeUtils.import(
+    "resource://testing-common/AsyncSpellCheckTestHelper.jsm"
+  );
 
   var elem = document.getElementById("en-US");
   elem.focus();
 
-  onSpellCheck(elem, function() {
+  maybeOnSpellCheck(elem, function() {
     var editingSession = SpecialPowers.wrap(window).docShell.editingSession;
     var editor = editingSession.getEditorForWindow(window);
     var selcon = editor.selectionController;

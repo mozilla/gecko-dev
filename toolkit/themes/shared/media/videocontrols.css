@@ -12,6 +12,10 @@
   overflow: hidden;
 
   direction: ltr;
+  /* Prevent selection from interacting weirdly with the page,
+   * see bug 1766093. Our text selection story with shadow dom should be
+   * better, see bug 1590379 */
+  user-select: none;
   /* Prevent unwanted style inheritance. See bug 554717. */
   text-align: left;
   list-style-image: none !important;
@@ -33,8 +37,6 @@
   --thumb-size: 13px;
   --label-font-size: 13px;
   --pip-toggle-padding: 5px;
-  --pip-toggle-icon-width-height: 16px;
-  --pip-toggle-translate-x: calc(100% - var(--pip-toggle-icon-width-height) - 2 * var(--pip-toggle-padding));
   --control-focus-outline: 2px solid #00DDFF;
   --control-focus-outline-offset: -2px;
 
@@ -78,7 +80,6 @@
 .controlsContainer [hidden],
 .controlBar[hidden] .progressBar,
 .controlBar[hidden] .bufferBar,
-.pictureInPictureToggleButton[hidden],
 .videocontrols[inDOMFullscreen] > .controlsContainer > .controlsOverlay > #pictureInPictureToggle {
   display: none;
 }
@@ -322,6 +323,15 @@
   background: none;
 }
 
+.bufferBar::-moz-progress-bar {
+  background-color: rgba(255,255,255,0.3);
+  border-radius: calc(var(--track-size) / 2);
+}
+
+.progressBar::-moz-progress-bar {
+  background-color: #00b6f0;
+}
+
 .scrubber:hover::-moz-range-thumb,
 .volumeControl:hover::-moz-range-thumb {
   background-color: #48a0f7;
@@ -352,14 +362,18 @@
   background-color: rgba(0,0,0,0.7);
 }
 
+@media (prefers-contrast) {
+  /* Show a border in high contrast mode since background-colors
+     are not shown. */
+  .scrubber::-moz-range-track,
+  .volumeControl::-moz-range-track {
+    border: 1px solid;
+  }
 
-.bufferBar::-moz-progress-bar {
-  background-color: rgba(255,255,255,0.3);
-  border-radius: calc(var(--track-size) / 2);
-}
-
-.progressBar::-moz-progress-bar {
-  background-color: #00b6f0;
+  .scrubber::-moz-range-progress,
+  .volumeControl::-moz-range-progress {
+    border: 2px solid;
+  }
 }
 
 .textTrackListContainer {
@@ -428,12 +442,12 @@
   font-variant-numeric: tabular-nums;
 }
 
-%ifdef XP_MACOSX
-.positionDurationBox {
-  font-size-adjust: unset;
-  font-family: "Helvetica Neue", "Helvetica", sans-serif;
+@media (-moz-platform: macos) {
+  .positionDurationBox {
+    font-size-adjust: unset;
+    font-family: "Helvetica Neue", "Helvetica", sans-serif;
+  }
 }
-%endif
 
 .duration {
   display: inline-block;
@@ -477,61 +491,12 @@
   fill: currentColor;
 }
 
-.pictureInPictureToggleButton {
-  display: flex;
-  appearance: none;
-  position: absolute;
-  background-color: #0060df;
-  color: inherit;
-  border: 0;
-  padding: var(--pip-toggle-padding);
-  right: 0;
-  top: 50%;
-  translate: var(--pip-toggle-translate-x) -50%;
-  transition: opacity 160ms linear, translate 160ms linear;
-  min-width: max-content;
-  pointer-events: auto;
-  opacity: 0;
-}
-
-.pictureInPictureToggleButton[policy="hidden"] {
-  display: none;
-}
-
-.pictureInPictureToggleButton[policy="top"] {
-  top: 0%;
-  translate: var(--pip-toggle-translate-x);
-}
-
-.pictureInPictureToggleButton[policy="one-quarter"] {
-  top: 25%;
-}
-
-.pictureInPictureToggleButton[policy="three-quarters"] {
-  top: 75%;
-}
-
-.pictureInPictureToggleButton[policy="bottom"] {
-  top: 100%;
-  translate: var(--pip-toggle-translate-x) -100%;
-}
-
 .videocontrols[localedir="rtl"] .statusIcon[type="pictureInPicture"] {
   transform: scaleX(-1);
 }
 
 .pictureInPictureToggleLabel {
   margin-inline-start: var(--pip-toggle-padding);
-}
-
-@supports -moz-bool-pref("media.videocontrols.picture-in-picture.video-toggle.testing") {
-  /**
-   * To make automated tests faster, we drop the transition duration in
-   * testing mode.
-   */
-  .pictureInPictureToggleButton {
-    transition-duration: 10ms;
-  }
 }
 
 /* Overlay Play button */
@@ -603,14 +568,12 @@
   display: inline;
 }
 
-%ifdef XP_WIN
-@media (-moz-windows-default-theme: 0) {
+@media (-moz-platform: windows) and (-moz-windows-default-theme: 0) {
   .controlsSpacer,
   .clickToPlay {
     background-color: transparent;
   }
 }
-%endif
 
 .pip-wrapper {
   position: absolute;
@@ -623,12 +586,12 @@
   top: calc(70% - 40px);
   opacity: 0;
   padding-inline: 0;
-  margin-right: 8px;
   transition: opacity 200ms;
   --pip-icon-size: 24px;
   --pip-icon-width-with-margins: calc(2 * var(--pip-toggle-margin) + var(--pip-icon-size));
   --pip-highlight-width: 2px;
   --pip-toggle-margin: 8px;
+  --pip-toggle-distanceFromVideoEdge: 18px;
   --pip-highlight-style: solid rgba(0, 254, 255, 1);
 }
 
@@ -657,11 +620,12 @@
 }
 
 .pip-wrapper[position="right"] {
-  right: 40px;
+  /* move from the right by total width of pip toggle so that it is at least visible in the video element */
+  right: calc(var(--pip-icon-width-with-margins) + var(--pip-toggle-distanceFromVideoEdge));
 }
 
 .pip-wrapper[position="left"] {
-  left: 12px;
+  left: var(--pip-toggle-distanceFromVideoEdge);
 }
 
 .pip-expanded,
@@ -747,7 +711,8 @@
 }
 
 .pip-wrapper[position="right"] > .pip-expanded {
-  translate: calc(-100% + 48px);
+
+  translate: calc(-100% + var(--pip-icon-width-with-margins));
   transform-origin: right;
   justify-content: right;
 }

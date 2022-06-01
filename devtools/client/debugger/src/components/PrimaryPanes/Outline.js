@@ -3,6 +3,7 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import React, { Component } from "react";
+import PropTypes from "prop-types";
 import { showMenu } from "../../context-menu/menu";
 import { connect } from "../../utils/connect";
 import { score as fuzzaldrinScore } from "fuzzaldrin-plus";
@@ -14,7 +15,8 @@ import { findFunctionText } from "../../utils/function";
 
 import actions from "../../actions";
 import {
-  getSelectedSourceWithContent,
+  getSelectedSource,
+  getSelectedSourceTextContent,
   getSymbols,
   getCursorPosition,
   getContext,
@@ -60,6 +62,20 @@ export class Outline extends Component {
     super(props);
     this.focusedElRef = null;
     this.state = { filter: "", focusedItem: null };
+  }
+
+  static get propTypes() {
+    return {
+      alphabetizeOutline: PropTypes.bool.isRequired,
+      cursorPosition: PropTypes.object,
+      cx: PropTypes.object.isRequired,
+      flashLineRange: PropTypes.func.isRequired,
+      getFunctionText: PropTypes.func.isRequired,
+      onAlphabetizeClick: PropTypes.func.isRequired,
+      selectLocation: PropTypes.func.isRequired,
+      selectedSource: PropTypes.object.isRequired,
+      symbols: PropTypes.object.isRequired,
+    };
   }
 
   componentDidUpdate(prevProps) {
@@ -319,17 +335,23 @@ export class Outline extends Component {
 }
 
 const mapStateToProps = state => {
-  const selectedSource = getSelectedSourceWithContent(state);
+  const selectedSource = getSelectedSource(state);
   const symbols = selectedSource ? getSymbols(state, selectedSource) : null;
 
   return {
     cx: getContext(state),
     symbols,
-    selectedSource: selectedSource,
+    selectedSource,
     cursorPosition: getCursorPosition(state),
     getFunctionText: line => {
       if (selectedSource) {
-        return findFunctionText(line, selectedSource, symbols);
+        const selectedSourceTextContent = getSelectedSourceTextContent(state);
+        return findFunctionText(
+          line,
+          selectedSource,
+          selectedSourceTextContent,
+          symbols
+        );
       }
 
       return null;

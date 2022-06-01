@@ -24,6 +24,10 @@
 
 namespace mozilla {
 
+// QP scaling thresholds.
+static const int kLowH264QpThreshold = 24;
+static const int kHighH264QpThreshold = 37;
+
 // Encoder.
 WebrtcGmpVideoEncoder::WebrtcGmpVideoEncoder(std::string aPCHandle)
     : mGMP(nullptr),
@@ -459,6 +463,18 @@ int32_t WebrtcGmpVideoEncoder::SetRates(
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
+WebrtcVideoEncoder::EncoderInfo WebrtcGmpVideoEncoder::GetEncoderInfo() const {
+
+  WebrtcVideoEncoder::EncoderInfo info;
+  info.supports_native_handle = false;
+  info.implementation_name = "GMPOpenH264";
+  info.scaling_settings =
+      WebrtcVideoEncoder::ScalingSettings(kLowH264QpThreshold, kHighH264QpThreshold);
+  info.is_hardware_accelerated = false;
+  info.supports_simulcast = false;
+  return info;
+}
+
 /* static */
 int32_t WebrtcGmpVideoEncoder::SetRates_g(RefPtr<WebrtcGmpVideoEncoder> aThis,
                                           uint32_t aNewBitRateKbps,
@@ -608,6 +624,12 @@ void WebrtcGmpVideoEncoder::Encoded(
   unit.SetTimestamp(timestamp);
   unit.capture_time_ms_ = capture_time.ms();
   unit._completeFrame = true;
+  unit._encodedWidth = aEncodedFrame->EncodedWidth();
+  unit._encodedHeight = aEncodedFrame->EncodedHeight();
+
+  // Parse QP.
+  mH264BitstreamParser.ParseBitstream(unit.data(), unit.size());
+  mH264BitstreamParser.GetLastSliceQp(&unit.qp_);
 
   // TODO: Currently the OpenH264 codec does not preserve any codec
   //       specific info passed into it and just returns default values.

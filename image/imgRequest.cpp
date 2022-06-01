@@ -31,6 +31,7 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
+#include "nsEscape.h"
 
 #include "plstr.h"   // PL_strcasestr(...)
 #include "prtime.h"  // for PR_Now
@@ -38,6 +39,7 @@
 #include "nsIProtocolHandler.h"
 #include "imgIRequest.h"
 #include "nsProperties.h"
+#include "nsIURL.h"
 
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/SizeOfState.h"
@@ -64,12 +66,12 @@ imgRequest::imgRequest(imgLoader* aLoader, const ImageCacheKey& aCacheKey)
       mIsCrossSiteNoCORSRequest(false),
       mMutex("imgRequest"),
       mProgressTracker(new ProgressTracker()),
-      mInnerWindowId(0),
       mIsMultiPartChannel(false),
       mIsInCache(false),
       mDecodeRequested(false),
       mNewPartPending(false),
-      mHadInsecureRedirect(false) {
+      mHadInsecureRedirect(false),
+      mInnerWindowId(0) {
   LOG_FUNC(gImgLog, "imgRequest::imgRequest()");
 }
 
@@ -83,13 +85,12 @@ imgRequest::~imgRequest() {
     LOG_FUNC(gImgLog, "imgRequest::~imgRequest()");
 }
 
-nsresult imgRequest::Init(nsIURI* aURI, nsIURI* aFinalURI,
-                          bool aHadInsecureRedirect, nsIRequest* aRequest,
-                          nsIChannel* aChannel, imgCacheEntry* aCacheEntry,
-                          mozilla::dom::Document* aLoadingDocument,
-                          nsIPrincipal* aTriggeringPrincipal,
-                          mozilla::CORSMode aCORSMode,
-                          nsIReferrerInfo* aReferrerInfo) {
+nsresult imgRequest::Init(
+    nsIURI* aURI, nsIURI* aFinalURI, bool aHadInsecureRedirect,
+    nsIRequest* aRequest, nsIChannel* aChannel, imgCacheEntry* aCacheEntry,
+    mozilla::dom::Document* aLoadingDocument,
+    nsIPrincipal* aTriggeringPrincipal, mozilla::CORSMode aCORSMode,
+    nsIReferrerInfo* aReferrerInfo) NO_THREAD_SAFETY_ANALYSIS {
   MOZ_ASSERT(NS_IsMainThread(), "Cannot use nsIURI off main thread!");
   // Init() can only be called once, and that's before it can be used off
   // mainthread
@@ -462,6 +463,30 @@ already_AddRefed<image::Image> imgRequest::GetImage() const {
   return image.forget();
 }
 
+void imgRequest::GetFileName(nsACString& aFileName) {
+  nsAutoString fileName;
+
+  nsCOMPtr<nsISupportsCString> supportscstr;
+  if (NS_SUCCEEDED(mProperties->Get("content-disposition",
+                                    NS_GET_IID(nsISupportsCString),
+                                    getter_AddRefs(supportscstr))) &&
+      supportscstr) {
+    nsAutoCString cdHeader;
+    supportscstr->GetData(cdHeader);
+    NS_GetFilenameFromDisposition(fileName, cdHeader);
+  }
+
+  if (fileName.IsEmpty()) {
+    nsCOMPtr<nsIURL> imgUrl(do_QueryInterface(mURI));
+    if (imgUrl) {
+      imgUrl->GetFileName(aFileName);
+      NS_UnescapeURL(aFileName);
+    }
+  } else {
+    aFileName = NS_ConvertUTF16toUTF8(fileName);
+  }
+}
+
 int32_t imgRequest::Priority() const {
   int32_t priority = nsISupportsPriority::PRIORITY_NORMAL;
   nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(mRequest);
@@ -831,7 +856,7 @@ static NewPartResult PrepareForNewPart(nsIRequest* aRequest,
                                        nsIURI* aURI, bool aIsMultipart,
                                        image::Image* aExistingImage,
                                        ProgressTracker* aProgressTracker,
-                                       uint32_t aInnerWindowId) {
+                                       uint64_t aInnerWindowId) {
   NewPartResult result(aExistingImage);
 
   if (aInStr) {

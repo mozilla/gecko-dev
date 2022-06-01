@@ -12,6 +12,7 @@ include protocol PBackgroundLSRequest;
 include protocol PBackgroundLSSimpleRequest;
 include protocol PBackgroundLocalStorageCache;
 include protocol PBackgroundSessionStorageManager;
+include protocol PBackgroundSessionStorageService;
 include protocol PBackgroundStorage;
 include protocol PBackgroundTest;
 include protocol PBroadcastChannel;
@@ -20,14 +21,12 @@ include protocol PCacheStorage;
 include protocol PCacheStreamControl;
 include protocol PClientManager;
 include protocol PEndpointForReport;
-include protocol PFileDescriptorSet;
 include protocol PFileSystemRequest;
 include protocol PGamepadEventChannel;
 include protocol PGamepadTestChannel;
 include protocol PHttpBackgroundChannel;
 include protocol PIPCClientCerts;
 include protocol PIdleScheduler;
-include protocol PRemoteLazyInputStream;
 include protocol PMediaTransport;
 include protocol PRemoteWorker;
 include protocol PRemoteWorkerController;
@@ -41,8 +40,6 @@ include protocol PLockManager;
 include protocol PMIDIManager;
 include protocol PMIDIPort;
 include protocol PQuota;
-include protocol PChildToParentStream;
-include protocol PParentToChildStream;
 include protocol PServiceWorker;
 include protocol PServiceWorkerContainer;
 include protocol PServiceWorkerManager;
@@ -93,6 +90,7 @@ sync protocol PBackground
   manages PBackgroundLSSimpleRequest;
   manages PBackgroundLocalStorageCache;
   manages PBackgroundSessionStorageManager;
+  manages PBackgroundSessionStorageService;
   manages PBackgroundStorage;
   manages PBackgroundTest;
   manages PBroadcastChannel;
@@ -101,14 +99,12 @@ sync protocol PBackground
   manages PCacheStreamControl;
   manages PClientManager;
   manages PEndpointForReport;
-  manages PFileDescriptorSet;
   manages PFileSystemRequest;
   manages PGamepadEventChannel;
   manages PGamepadTestChannel;
   manages PHttpBackgroundChannel;
   manages PIPCClientCerts;
   manages PIdleScheduler;
-  manages PRemoteLazyInputStream;
   manages PLockManager;
   manages PMediaTransport;
   manages PRemoteWorker;
@@ -122,8 +118,6 @@ sync protocol PBackground
   manages PMIDIManager;
   manages PMIDIPort;
   manages PQuota;
-  manages PChildToParentStream;
-  manages PParentToChildStream;
   manages PServiceWorker;
   manages PServiceWorkerContainer;
   manages PServiceWorkerManager;
@@ -186,6 +180,8 @@ parent:
 
   async PBackgroundSessionStorageManager(uint64_t aTopContextId);
 
+  async PBackgroundSessionStorageService();
+
   async PBackgroundStorage(nsString profilePath, uint32_t privateBrowsingId);
 
   async PVsync();
@@ -202,8 +198,6 @@ parent:
   async PCacheStorage(Namespace aNamespace, PrincipalInfo aPrincipalInfo);
 
   async PMessagePort(nsID uuid, nsID destinationUuid, uint32_t sequenceId);
-
-  async PChildToParentStream();
 
   async MessagePortForceClose(nsID uuid, nsID destinationUuid, uint32_t sequenceId);
 
@@ -284,6 +278,9 @@ parent:
   async EnsureRDDProcessAndCreateBridge()
       returns (nsresult rv, Endpoint<PRemoteDecoderManagerChild> aEndpoint);
 
+  async EnsureUtilityProcessAndCreateBridge()
+      returns (nsresult rv, Endpoint<PRemoteDecoderManagerChild> aEndpoint);
+
   async PWebSocketConnection(uint32_t aListenerId);
 
   async PLockManager(ContentPrincipalInfo aPrincipalInfo, nsID aClientId);
@@ -294,16 +291,7 @@ child:
   async PCache();
   async PCacheStreamControl();
 
-  async PParentToChildStream();
-
   async PRemoteWorker(RemoteWorkerData data);
-
-both:
-  // PRemoteLazyInputStream is created on the parent side only if the child
-  // starts a migration.
-  async PRemoteLazyInputStream(nsID aID, uint64_t aSize);
-
-  async PFileDescriptorSet(FileDescriptor fd);
 };
 
 } // namespace ipc

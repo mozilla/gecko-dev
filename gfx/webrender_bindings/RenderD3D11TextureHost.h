@@ -19,11 +19,11 @@ namespace wr {
 
 class RenderDXGITextureHost final : public RenderTextureHostSWGL {
  public:
-  explicit RenderDXGITextureHost(WindowsHandle aHandle,
-                                 gfx::SurfaceFormat aFormat,
-                                 gfx::YUVColorSpace aYUVColorSpace,
-                                 gfx::ColorRange aColorRange,
-                                 gfx::IntSize aSize);
+  RenderDXGITextureHost(WindowsHandle aHandle,
+                        Maybe<uint64_t>& aGpuProcessTextureId,
+                        uint32_t aArrayIndex, gfx::SurfaceFormat aFormat,
+                        gfx::YUVColorSpace aYUVColorSpace,
+                        gfx::ColorRange aColorRange, gfx::IntSize aSize);
 
   wr::WrExternalImage Lock(uint8_t aChannelIndex, gl::GLContext* aGL,
                            wr::ImageRendering aRendering) override;
@@ -78,6 +78,8 @@ class RenderDXGITextureHost final : public RenderTextureHostSWGL {
     return bytes;
   }
 
+  uint32_t ArrayIndex() const { return mArrayIndex; }
+
  private:
   virtual ~RenderDXGITextureHost();
 
@@ -89,7 +91,9 @@ class RenderDXGITextureHost final : public RenderTextureHostSWGL {
   RefPtr<gl::GLContext> mGL;
 
   WindowsHandle mHandle;
+  Maybe<uint64_t> mGpuProcessTextureId;
   RefPtr<ID3D11Texture2D> mTexture;
+  uint32_t mArrayIndex = 0;
   RefPtr<IDXGIKeyedMutex> mKeyedMutex;
 
   // Temporary state between MapPlane and UnmapPlanes.

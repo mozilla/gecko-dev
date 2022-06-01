@@ -274,6 +274,34 @@ enum Dav1dEventFlags {
  */
 DAV1D_API int dav1d_get_event_flags(Dav1dContext *c, enum Dav1dEventFlags *flags);
 
+/**
+ * Retrieve the user-provided metadata associated with the input data packet
+ * for the last decoding error reported to the user, i.e. a negative return
+ * value (not EAGAIN) from dav1d_send_data() or dav1d_get_picture().
+ *
+ * @param   c Input decoder instance.
+ * @param out Output Dav1dDataProps. On success, the caller assumes ownership of
+ *            the returned reference.
+ *
+ * @return 0 on success, or < 0 (a negative DAV1D_ERR code) on error.
+ */
+DAV1D_API int dav1d_get_decode_error_data_props(Dav1dContext *c, Dav1dDataProps *out);
+
+/**
+ * Get the decoder delay, which is the number of internally buffered frames, not
+ * including reference frames.
+ * This value is guaranteed to be >= 1 and <= max_frame_delay.
+ *
+ * @param s Input settings context.
+ *
+ * @return Decoder frame delay on success, or < 0 (a negative DAV1D_ERR code) on
+ *         error.
+ *
+ * @note The returned delay is valid only for a Dav1dContext initialized with the
+ *       provided Dav1dSettings.
+ */
+DAV1D_API int dav1d_get_frame_delay(const Dav1dSettings *s);
+
 # ifdef __cplusplus
 }
 # endif

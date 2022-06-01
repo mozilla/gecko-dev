@@ -49,6 +49,7 @@
 #include "nsGlobalWindow.h"
 #include "nsScriptError.h"
 #include "GeckoProfiler.h"
+#include "ProfilerControl.h"
 #include "mozilla/EditorSpellCheck.h"
 #include "nsCommandLine.h"
 #include "nsCommandParams.h"
@@ -2521,8 +2522,7 @@ nsXPCComponents_Utils::CreateHTMLCopyEncoder(
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::GetLoadedModules(nsTArray<nsCString>& aLoadedModules) {
-  mozJSComponentLoader::Get()->GetLoadedModules(aLoadedModules);
-  return NS_OK;
+  return mozJSComponentLoader::Get()->GetLoadedJSAndESModules(aLoadedModules);
 }
 
 NS_IMETHODIMP

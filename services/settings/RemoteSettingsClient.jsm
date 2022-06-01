@@ -20,7 +20,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   IDBHelpers: "resource://services-settings/IDBHelpers.jsm",
   KintoHttpClient: "resource://services-common/kinto-http-client.js",
   ObjectUtils: "resource://gre/modules/ObjectUtils.jsm",
-  PerformanceCounters: "resource://gre/modules/PerformanceCounters.jsm",
   RemoteSettingsWorker: "resource://services-settings/RemoteSettingsWorker.jsm",
   SharedUtils: "resource://services-settings/SharedUtils.jsm",
   UptakeTelemetry: "resource://services-common/uptake-telemetry.js",
@@ -30,20 +29,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 const TELEMETRY_COMPONENT = "remotesettings";
 
 XPCOMUtils.defineLazyGetter(this, "console", () => Utils.log);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "gTimingEnabled",
-  "services.settings.enablePerformanceCounters",
-  false
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "gLoadDump",
-  "services.settings.load_dump",
-  true
-);
 
 /**
  * cacheProxy returns an object Proxy that will memoize properties of the target.
@@ -216,7 +201,11 @@ class AttachmentDownloader extends Downloader {
   async deleteAll() {
     let allRecords = await this._client.db.list();
     return Promise.all(
-      allRecords.filter(r => !!r.attachment).map(r => this.delete(r))
+      allRecords
+        .filter(r => !!r.attachment)
+        .map(r =>
+          Promise.all([this.deleteDownloaded(r), this.deleteFromDisk(r)])
+        )
     );
   }
 }
@@ -241,18 +230,19 @@ class RemoteSettingsClient extends EventEmitter {
   constructor(
     collectionName,
     {
-      bucketName,
-      bucketNamePref,
+      bucketName = AppConstants.REMOTE_SETTINGS_DEFAULT_BUCKET,
       signerName,
       filterFunc,
       localFields = [],
       lastCheckTimePref,
-    }
+    } = {}
   ) {
     super(["sync"]); // emitted events
 
     this.collectionName = collectionName;
-    this.bucketName = bucketName;
+    // Client is constructed with the raw bucket name (eg. "main", "security-state", "blocklist")
+    // The `bucketName` will contain the `-preview` suffix if the preview mode is enabled.
+    this.bucketName = Utils.actualBucketName(bucketName);
     this.signerName = signerName;
     this.filterFunc = filterFunc;
     this.localFields = localFields;
@@ -263,22 +253,6 @@ class RemoteSettingsClient extends EventEmitter {
     // This attribute allows signature verification to be disabled, when running tests
     // or when pulling data from a dev server.
     this.verifySignature = AppConstants.REMOTE_SETTINGS_VERIFY_SIGNATURE;
-
-    if (!bucketName) {
-      // TODO bug 1702759: Remove bucketNamePref.
-      // The bucket preference value can be changed (eg. `main` to `main-preview`) in order
-      // to preview the changes to be approved in a real client.
-      this.bucketNamePref = bucketNamePref;
-      XPCOMUtils.defineLazyPreferenceGetter(
-        this,
-        "bucketName",
-        this.bucketNamePref,
-        null,
-        () => {
-          this.db.identifier = this.identifier;
-        }
-      );
-    }
 
     XPCOMUtils.defineLazyGetter(
       this,
@@ -291,6 +265,17 @@ class RemoteSettingsClient extends EventEmitter {
       "attachments",
       () => new AttachmentDownloader(this)
     );
+  }
+
+  /**
+   * Internal method to refresh the client bucket name after the preview mode
+   * was toggled.
+   *
+   * See `RemoteSettings.enabledPreviewMode()`.
+   */
+  refreshBucketName() {
+    this.bucketName = Utils.actualBucketName(this.bucketName);
+    this.db.identifier = this.identifier;
   }
 
   get identifier() {
@@ -341,7 +326,7 @@ class RemoteSettingsClient extends EventEmitter {
    * @param  {Object} options.filters          Filter the results (default: `{}`).
    * @param  {String} options.order            The order to apply (eg. `"-last_modified"`).
    * @param  {boolean} options.dumpFallback    Fallback to dump data if read of local DB fails (default: `true`).
-   * @param  {boolean} options.loadDumpIfNewer Use dump data if it is newer than local data (default: `false`).
+   * @param  {boolean} options.loadDumpIfNewer Use dump data if it is newer than local data (default: `true`).
    * @param  {boolean} options.syncIfEmpty     Synchronize from server if local data is empty (default: `true`).
    * @param  {boolean} options.verifySignature Verify the signature of the local data (default: `false`).
    * @return {Promise}
@@ -351,7 +336,7 @@ class RemoteSettingsClient extends EventEmitter {
       filters = {},
       order = "", // not sorted by default.
       dumpFallback = true,
-      loadDumpIfNewer = false, // TODO bug 1718083: should default to true.
+      loadDumpIfNewer = true,
       syncIfEmpty = true,
     } = options;
     let { verifySignature = false } = options;
@@ -367,16 +352,22 @@ class RemoteSettingsClient extends EventEmitter {
         if (!this._importingPromise) {
           // Prevent parallel loading when .get() is called multiple times.
           this._importingPromise = (async () => {
-            const importedFromDump = gLoadDump
+            const importedFromDump = Utils.LOAD_DUMPS
               ? await this._importJSONDump()
               : -1;
             if (importedFromDump < 0) {
               // There is no JSON dump to load, force a synchronization from the server.
+              // We don't want the "sync" event to be sent, since some consumers use `.get()`
+              // in "sync" callbacks. See Bug 1761953
               console.debug(
                 `${this.identifier} Local DB is empty, pull data from server`
               );
-              await this.sync({ loadDump: false });
+              await this.sync({ loadDump: false, sendEvents: false });
             }
+            // Return `true` to indicate we don't need to `verifySignature`,
+            // since a trusted dump was loaded or a signature verification
+            // happened during synchronization.
+            return true;
           })();
         } else {
           console.debug(`${this.identifier} Awaiting existing import.`);
@@ -394,7 +385,14 @@ class RemoteSettingsClient extends EventEmitter {
           );
           if (!this._importingPromise) {
             // As part of importing, any existing data is wiped.
-            this._importingPromise = this._importJSONDump();
+            this._importingPromise = (async () => {
+              const importedFromDump = await this._importJSONDump();
+              // Return `true` to skip signature verification if a dump was found.
+              // The dump can be missing if a collection is listed in the timestamps summary file,
+              // because its dump is present in the source tree, but the dump was not
+              // included in the `package-manifest.in` file. (eg. android, thunderbird)
+              return importedFromDump >= 0;
+            })();
           } else {
             console.debug(`${this.identifier} Awaiting existing import.`);
           }
@@ -403,10 +401,11 @@ class RemoteSettingsClient extends EventEmitter {
 
       if (this._importingPromise) {
         try {
-          await this._importingPromise;
-          // No need to verify signature, because either we've just load a trusted
-          // dump (here or in a parallel call), or it was verified during sync.
-          verifySignature = false;
+          if (await this._importingPromise) {
+            // No need to verify signature, because either we've just loaded a trusted
+            // dump (here or in a parallel call), or it was verified during sync.
+            verifySignature = false;
+          }
         } catch (e) {
           // Report error, but continue because there could have been data
           // loaded from a parrallel call.
@@ -464,7 +463,9 @@ class RemoteSettingsClient extends EventEmitter {
       let metadata = await this.db.getMetadata();
       if (syncIfEmpty && ObjectUtils.isEmpty(metadata)) {
         // No sync occured yet, may have records from dump but no metadata.
-        await this.sync({ loadDump: false });
+        // We don't want the "sync" event to be sent, since some consumers use `.get()`
+        // in "sync" callbacks. See Bug 1761953
+        await this.sync({ loadDump: false, sendEvents: false });
         metadata = await this.db.getMetadata();
       }
       // Will throw MissingSignatureError if no metadata and `syncIfEmpty` is false.
@@ -509,18 +510,22 @@ class RemoteSettingsClient extends EventEmitter {
   /**
    * Synchronize the local database with the remote server, **only if necessary**.
    *
-   * @param {int}    expectedTimestamp the lastModified date (on the server) for the remote collection.
-   *                                   This will be compared to the local timestamp, and will be used for
-   *                                   cache busting if local data is out of date.
-   * @param {Object} options           additional advanced options.
-   * @param {bool}   options.loadDump  load initial dump from disk on first sync (default: true, unless
-   *                                   `services.settings.load_dump` says otherwise).
-   * @param {string} options.trigger   label to identify what triggered this sync (eg. ``"timer"``, default: `"manual"`)
-   * @return {Promise}                 which rejects on sync or process failure.
+   * @param {int}    expectedTimestamp  the lastModified date (on the server) for the remote collection.
+   *                                    This will be compared to the local timestamp, and will be used for
+   *                                    cache busting if local data is out of date.
+   * @param {Object} options            additional advanced options.
+   * @param {bool}   options.loadDump   load initial dump from disk on first sync (default: true if server is prod)
+   * @param {bool}   options.sendEvents send `"sync"` events (default: `true`)
+   * @param {string} options.trigger    label to identify what triggered this sync (eg. ``"timer"``, default: `"manual"`)
+   * @return {Promise}                  which rejects on sync or process failure.
    */
   async maybeSync(expectedTimestamp, options = {}) {
     // Should the clients try to load JSON dump? (mainly disabled in tests)
-    const { loadDump = gLoadDump, trigger = "manual" } = options;
+    const {
+      loadDump = Utils.LOAD_DUMPS,
+      trigger = "manual",
+      sendEvents = true,
+    } = options;
 
     // Make sure we don't run several synchronizations in parallel, mainly
     // in order to avoid race conditions in "sync" events listeners.
@@ -622,23 +627,13 @@ class RemoteSettingsClient extends EventEmitter {
           // Local data is either outdated or tampered.
           // In both cases we will fetch changes from server,
           // and make sure we overwrite local data.
-          const startSyncDB = Cu.now() * 1000;
           syncResult = await this._importChanges(
             localRecords,
             collectionLastModified,
             localMetadata,
             expectedTimestamp
           );
-          if (gTimingEnabled) {
-            const endSyncDB = Cu.now() * 1000;
-            PerformanceCounters.storeExecutionTime(
-              `remotesettings/${this.identifier}`,
-              "syncDB",
-              endSyncDB - startSyncDB,
-              "duration"
-            );
-          }
-          if (this.hasListeners("sync")) {
+          if (sendEvents && this.hasListeners("sync")) {
             // If we have listeners for the "sync" event, then compute the lists of changes.
             // The records imported from the dump should be considered as "created" for the
             // listeners.
@@ -696,20 +691,22 @@ class RemoteSettingsClient extends EventEmitter {
           throw e;
         }
       }
-      // Filter the synchronization results using `filterFunc` (ie. JEXL).
-      const filteredSyncResult = await this._filterSyncResult(syncResult);
-      // If every changed entry is filtered, we don't even fire the event.
-      if (filteredSyncResult) {
-        try {
-          await this.emit("sync", { data: filteredSyncResult });
-        } catch (e) {
-          reportStatus = UptakeTelemetry.STATUS.APPLY_ERROR;
-          throw e;
+      if (sendEvents) {
+        // Filter the synchronization results using `filterFunc` (ie. JEXL).
+        const filteredSyncResult = await this._filterSyncResult(syncResult);
+        // If every changed entry is filtered, we don't even fire the event.
+        if (filteredSyncResult) {
+          try {
+            await this.emit("sync", { data: filteredSyncResult });
+          } catch (e) {
+            reportStatus = UptakeTelemetry.STATUS.APPLY_ERROR;
+            throw e;
+          }
+        } else {
+          console.info(
+            `All changes are filtered by JEXL expressions for ${this.identifier}`
+          );
         }
-      } else {
-        console.info(
-          `All changes are filtered by JEXL expressions for ${this.identifier}`
-        );
       }
     } catch (e) {
       thrownError = e;
@@ -806,24 +803,10 @@ class RemoteSettingsClient extends EventEmitter {
    */
   async _importJSONDump() {
     console.info(`${this.identifier} try to restore dump`);
-
-    const start = Cu.now() * 1000;
     const result = await RemoteSettingsWorker.importJSONDump(
       this.bucketName,
       this.collectionName
     );
-    console.info(
-      `${this.identifier} imported ${result} records from JSON dump`
-    );
-    if (gTimingEnabled) {
-      const end = Cu.now() * 1000;
-      PerformanceCounters.storeExecutionTime(
-        `remotesettings/${this.identifier}`,
-        "importJSONDump",
-        end - start,
-        "duration"
-      );
-    }
     if (result < 0) {
       console.debug(`${this.identifier} no dump available`);
     } else {
@@ -842,8 +825,6 @@ class RemoteSettingsClient extends EventEmitter {
    * @returns {Promise}
    */
   async _validateCollectionSignature(records, timestamp, metadata) {
-    const start = Cu.now() * 1000;
-
     if (!metadata?.signature) {
       throw new MissingSignatureError(this.identifier);
     }
@@ -873,15 +854,6 @@ class RemoteSettingsClient extends EventEmitter {
       ))
     ) {
       throw new InvalidSignatureError(this.identifier);
-    }
-    if (gTimingEnabled) {
-      const end = Cu.now() * 1000;
-      PerformanceCounters.storeExecutionTime(
-        `remotesettings/${this.identifier}`,
-        "validateCollectionSignature",
-        end - start,
-        "duration"
-      );
     }
   }
 
@@ -936,19 +908,9 @@ class RemoteSettingsClient extends EventEmitter {
       return syncResult;
     }
 
-    const start = Cu.now() * 1000;
     await this.db.importChanges(metadata, remoteTimestamp, remoteRecords, {
       clear: retry,
     });
-    if (gTimingEnabled) {
-      const end = Cu.now() * 1000;
-      PerformanceCounters.storeExecutionTime(
-        `remotesettings/${this.identifier}`,
-        "loadRawData",
-        end - start,
-        "duration"
-      );
-    }
 
     // Read the new local data, after updating.
     const newLocal = await this.db.list();
@@ -1134,19 +1096,9 @@ class RemoteSettingsClient extends EventEmitter {
     if (!this.filterFunc) {
       return data;
     }
-    const start = Cu.now() * 1000;
     const environment = cacheProxy(ClientEnvironmentBase);
     const dataPromises = data.map(e => this.filterFunc(e, environment));
     const results = await Promise.all(dataPromises);
-    if (gTimingEnabled) {
-      const end = Cu.now() * 1000;
-      PerformanceCounters.storeExecutionTime(
-        `remotesettings/${this.identifier}`,
-        "filterEntries",
-        end - start,
-        "duration"
-      );
-    }
     return results.filter(Boolean);
   }
 

@@ -73,6 +73,7 @@ already_AddRefed<PerformanceStorageWorker> PerformanceStorageWorker::Create(
 
   RefPtr<PerformanceStorageWorker> storage = new PerformanceStorageWorker();
 
+  MutexAutoLock lock(storage->mMutex);  // for thread-safety analysis
   storage->mWorkerRef = WeakWorkerRef::Create(
       aWorkerPrivate, [storage]() { storage->ShutdownOnWorker(); });
 
@@ -118,6 +119,20 @@ void PerformanceStorageWorker::AddEntry(nsIHttpChannel* aChannel,
   RefPtr<PerformanceEntryAdder> r =
       new PerformanceEntryAdder(workerPrivate, this, std::move(data));
   Unused << NS_WARN_IF(!r->Dispatch());
+}
+
+void PerformanceStorageWorker::AddEntry(
+    const nsString& aEntryName, const nsString& aInitiatorType,
+    UniquePtr<PerformanceTimingData>&& aData) {
+  MOZ_ASSERT(!NS_IsMainThread());
+  if (!aData) {
+    return;
+  }
+
+  UniquePtr<PerformanceProxyData> data = MakeUnique<PerformanceProxyData>(
+      std::move(aData), aInitiatorType, aEntryName);
+
+  AddEntryOnWorker(std::move(data));
 }
 
 void PerformanceStorageWorker::ShutdownOnWorker() {

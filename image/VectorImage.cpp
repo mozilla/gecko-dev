@@ -264,9 +264,7 @@ bool SVGDrawingCallback::operator()(gfxContext* aContext,
   gfxContextAutoSaveRestore contextRestorer(aContext);
 
   // Clip to aFillRect so that we don't paint outside.
-  aContext->NewPath();
-  aContext->Rectangle(aFillRect);
-  aContext->Clip();
+  aContext->Clip(aFillRect);
 
   gfxMatrix matrix = aTransform;
   if (!matrix.Invert()) {
@@ -1263,6 +1261,11 @@ VectorImage::StartDecoding(uint32_t aFlags, uint32_t aWhichFrame) {
 bool VectorImage::StartDecodingWithResult(uint32_t aFlags,
                                           uint32_t aWhichFrame) {
   // SVG images are ready to draw when they are loaded
+  return mIsFullyLoaded;
+}
+
+bool VectorImage::HasDecodedPixels() {
+  MOZ_ASSERT_UNREACHABLE("calling VectorImage::HasDecodedPixels");
   return mIsFullyLoaded;
 }
 

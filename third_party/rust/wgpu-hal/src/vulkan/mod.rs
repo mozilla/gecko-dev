@@ -343,7 +343,7 @@ pub struct Queue {
     /// from submissions to the last present, since it's required by the
     /// specification.
     /// It would be correct to use a single semaphore there, but
-    /// https://gitlab.freedesktop.org/mesa/mesa/-/issues/5508
+    /// [Intel hangs in `anv_queue_finish`](https://gitlab.freedesktop.org/mesa/mesa/-/issues/5508).
     relay_semaphores: [vk::Semaphore; 2],
     relay_index: Option<usize>,
 }
@@ -398,12 +398,15 @@ pub struct BindGroupLayout {
     raw: vk::DescriptorSetLayout,
     desc_count: gpu_descriptor::DescriptorTotalCount,
     types: Box<[(vk::DescriptorType, u32)]>,
+    /// Map of binding index to size,
+    binding_arrays: Vec<(u32, NonZeroU32)>,
     requires_update_after_bind: bool,
 }
 
 #[derive(Debug)]
 pub struct PipelineLayout {
     raw: vk::PipelineLayout,
+    binding_arrays: naga::back::spv::BindingMap,
 }
 
 #[derive(Debug)]

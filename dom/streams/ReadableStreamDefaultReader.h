@@ -18,8 +18,7 @@
 #include "nsWrapperCache.h"
 #include "mozilla/LinkedList.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class Promise;
 class ReadableStream;
@@ -31,12 +30,8 @@ struct Read_ReadRequest : public ReadRequest {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Read_ReadRequest, ReadRequest)
 
   RefPtr<Promise> mPromise;
-  /* This allows Gecko Internals to create objects with null prototypes, to hide
-   * promise resolution from Object.prototype.then */
-  bool mForAuthorCode = true;
 
-  explicit Read_ReadRequest(Promise* aPromise, bool aForAuthorCode = true)
-      : mPromise(aPromise), mForAuthorCode(aForAuthorCode) {}
+  explicit Read_ReadRequest(Promise* aPromise) : mPromise(aPromise) {}
 
   void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override;
@@ -47,7 +42,7 @@ struct Read_ReadRequest : public ReadRequest {
                   ErrorResult& aRv) override;
 
  protected:
-  virtual ~Read_ReadRequest() = default;
+  ~Read_ReadRequest() override = default;
 };
 
 class ReadableStreamDefaultReader final : public ReadableStreamGenericReader,
@@ -63,7 +58,7 @@ class ReadableStreamDefaultReader final : public ReadableStreamGenericReader,
   explicit ReadableStreamDefaultReader(nsISupports* aGlobal);
 
  protected:
-  ~ReadableStreamDefaultReader();
+  ~ReadableStreamDefaultReader() override;
 
  public:
   bool IsDefault() override { return true; }
@@ -91,9 +86,9 @@ class ReadableStreamDefaultReader final : public ReadableStreamGenericReader,
   LinkedList<RefPtr<ReadRequest>> mReadRequests = {};
 };
 
-extern void SetUpReadableStreamDefaultReader(
-    JSContext* aCx, ReadableStreamDefaultReader* aReader,
-    ReadableStream* aStream, ErrorResult& aRv);
+void SetUpReadableStreamDefaultReader(ReadableStreamDefaultReader* aReader,
+                                      ReadableStream* aStream,
+                                      ErrorResult& aRv);
 
 void ReadableStreamDefaultReaderErrorReadRequests(
     JSContext* aCx, ReadableStreamDefaultReader* aReader,
@@ -103,7 +98,6 @@ void ReadableStreamDefaultReaderRelease(JSContext* aCx,
                                         ReadableStreamDefaultReader* aReader,
                                         ErrorResult& aRv);
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_ReadableStreamDefaultReader_h

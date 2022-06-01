@@ -12,6 +12,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   DeferredTask: "resource://gre/modules/DeferredTask.jsm",
   FilterAdult: "resource://activity-stream/lib/FilterAdult.jsm",
   Services: "resource://gre/modules/Services.jsm",
+  PlacesUIUtils: "resource:///modules/PlacesUIUtils.jsm",
   Snapshots: "resource:///modules/Snapshots.jsm",
   SnapshotScorer: "resource:///modules/SnapshotScorer.jsm",
 });
@@ -27,6 +28,35 @@ XPCOMUtils.defineLazyGetter(this, "logConsole", function() {
       : "Warn",
   });
 });
+
+/**
+ * @typedef {object} SelectionContext
+ *   The necessary context for selecting, filtering and scoring snapshot
+ *   recommendations. This context is expected to be specific to what the user
+ *   is doing.
+ * @property {number} count
+ *   The maximum number of recommendations to generate.
+ * @property {boolean} filterAdult
+ *   Whether to filter out adult sites.
+ * @property {Map<string, number> | null} sourceWeights
+ *   Weights for the different recommendation sources. May be null in the
+ *   event that the new recommendations are disabled.
+ * @property {string | undefined} url
+ *   The page the snapshots are for.
+ * @property {PageDataCollector.DATA_TYPE | undefined} type
+ *   The type of snapshots desired.
+ * @property {function} getCurrentSessionUrls
+ *   A function that returns a Set containing the urls for the current session.
+ */
+
+/**
+ * @typedef {object} Recommendation
+ *   The details of a specific recommendation for a snapshot.
+ * @property {Snapshot} snapshot
+ *   The snapshot this recommendation relates to.
+ * @property {number} score
+ *   The score for the snapshot.
+ */
 
 /**
  * A snapshot selector is responsible for generating a list of snapshots based
@@ -61,43 +91,16 @@ class SnapshotSelector extends EventEmitter {
   /**
    * The context should be thought of as the current state for this specific
    * selector. Global state that impacts all selectors should not be kept here.
+   *
+   * @type {SelectionContext}
    */
   #context = {
-    /**
-     * The number of snapshots desired.
-     * @type {number}
-     */
     count: undefined,
-    /**
-     * Whether to filter adult sites.
-     * @type {boolean}
-     */
     filterAdult: false,
-    /**
-     * Whether to select snapshots where visits overlapped the current context url
-     * @type {boolean}
-     */
-    selectOverlappingVisits: false,
-    /**
-     * Whether to select snapshots which share a common referrer with the context url
-     * @type {boolean}
-     */
-    selectCommonReferrer: false,
-    /**
-     * The page the snapshots are for.
-     * @type {string | undefined}
-     */
+    sourceWeights: null,
     url: undefined,
-    /**
-     * The type of snapshots desired.
-     * @type {PageDataCollector.DATA_TYPE | undefined}
-     */
+    time: Date.now(),
     type: undefined,
-
-    /**
-     * A function that returns a Set containing the urls for the current session.
-     * @type {function}
-     */
     getCurrentSessionUrls: undefined,
   };
 
@@ -114,18 +117,15 @@ class SnapshotSelector extends EventEmitter {
    *   calculations.
    * @param {boolean} [options.filterAdult]
    *   Whether adult sites should be filtered from the snapshots.
-   * @param {boolean} [options.selectOverlappingVisits]
-   *   Whether to select snapshots where visits overlapped the current context url
-   * @param {boolean} [options.selectCommonReferrer]
-   *   Whether to select snapshots which share a common referrer with the context url's interactions
+   * @param {object | undefined} [options.sourceWeights]
+   *   Overrides for the weights of different recommendation sources.
    * @param {function} [options.getCurrentSessionUrls]
    *   A function that returns a Set containing the urls for the current session.
    */
   constructor({
     count = 5,
     filterAdult = false,
-    selectOverlappingVisits = false,
-    selectCommonReferrer = false,
+    sourceWeights = undefined,
     getCurrentSessionUrls = () => new Set(),
   }) {
     super();
@@ -135,8 +135,26 @@ class SnapshotSelector extends EventEmitter {
     );
     this.#context.count = count;
     this.#context.filterAdult = filterAdult;
-    this.#context.selectOverlappingVisits = selectOverlappingVisits;
-    this.#context.selectCommonReferrer = selectCommonReferrer;
+
+    if (
+      sourceWeights ||
+      Services.prefs.getBoolPref(
+        "browser.pinebuild.snapshots.relevancy.enabled",
+        false
+      )
+    ) {
+      // Fetch the defaults
+      let branch = Services.prefs.getBranch("browser.snapshots.source.");
+      let weights = Object.fromEntries(
+        branch.getChildList("").map(name => [name, branch.getIntPref(name, 0)])
+      );
+
+      // Apply overrides
+      Object.assign(weights, sourceWeights ?? {});
+
+      this.#context.sourceWeights = new Map(Object.entries(weights));
+    }
+
     this.#context.getCurrentSessionUrls = getCurrentSessionUrls;
     SnapshotSelector.#selectors.add(this);
   }
@@ -182,10 +200,7 @@ class SnapshotSelector extends EventEmitter {
    * Starts the process of building snapshots.
    */
   async #buildSnapshots() {
-    if (
-      this.#context.selectOverlappingVisits ||
-      this.#context.selectCommonReferrer
-    ) {
+    if (this.#context.sourceWeights) {
       await this.#buildRelevancySnapshots();
       return;
     }
@@ -200,23 +215,31 @@ class SnapshotSelector extends EventEmitter {
     let context = { ...this.#context };
     logConsole.debug("Building snapshots", context);
 
-    // Generally, we query for one more than we need in case the current url is
-    // returned. In the case of filtering out adult sites, we query for a few
-    // more entries than requested, in case the most recent snapshots are all adult.
-    // This may not catch all cases, but saves the complexity of repeated queries.
+    // We query for more snapshots than we need so that we can account for
+    // deduplicating and filtering out adult sites. This may not catch all
+    // cases, but saves the complexity of repeated queries.
     let snapshots = await Snapshots.query({
-      limit: context.filterAdult ? context.count * 4 : context.count + 1,
+      limit: context.count * 4,
       type: context.type,
     });
 
-    snapshots = snapshots
-      .filter(snapshot => {
-        if (snapshot.url == context.url) {
-          return false;
-        }
-        return !context.filterAdult || !FilterAdult.isAdultUrl(snapshot.url);
-      })
-      .slice(0, context.count);
+    snapshots = snapshots.filter(snapshot => {
+      if (snapshot.url == context.url) {
+        return false;
+      }
+      return !context.filterAdult || !FilterAdult.isAdultUrl(snapshot.url);
+    });
+
+    snapshots = SnapshotScorer.dedupeSnapshots(
+      snapshots.map(s => ({
+        snapshot: s,
+      }))
+    )
+      .slice(0, context.count)
+      .map(s => s.snapshot)
+      .slice();
+
+    PlacesUIUtils.insertTitleStartDiffs(snapshots);
 
     this.#snapshotsGenerated(snapshots);
   }
@@ -235,96 +258,79 @@ class SnapshotSelector extends EventEmitter {
     // Take a copy of the context to avoid it changing while we are generating
     // the list.
     let context = { ...this.#context };
-    logConsole.debug("Building overlapping snapshots", context);
+    logConsole.debug("Building relevant snapshots", context);
 
-    let snapshots = [];
+    let recommendationGroups = await Promise.all(
+      Object.entries(Snapshots.recommendationSources).map(
+        async ([key, source]) => {
+          let weight = context.sourceWeights.get(key) ?? 0;
+          if (weight == 0) {
+            return { recommendations: [], weight };
+          }
 
-    if (context.selectOverlappingVisits) {
-      snapshots = await Snapshots.queryOverlapping(context.url);
+          let recommendations = await source(context);
 
-      logConsole.debug(
-        "Found overlapping snapshots:",
-        snapshots.map(s => s.url)
-      );
-    }
+          logConsole.debug(
+            `Found ${key} recommendations:`,
+            recommendations.map(r => r.snapshot.url)
+          );
 
-    if (context.selectCommonReferrer) {
-      let commonReferrerSnapshots = await Snapshots.queryCommonReferrer(
-        context.url
-      );
-
-      logConsole.debug(
-        "Found common referrer snapshots:",
-        commonReferrerSnapshots.map(s => s.url)
-      );
-
-      snapshots = snapshots.concat(commonReferrerSnapshots);
-    }
-
-    if (context.filterAdult) {
-      snapshots = snapshots.filter(snapshot => {
-        return !FilterAdult.isAdultUrl(snapshot.url);
-      });
-    }
-
-    snapshots = SnapshotScorer.combineAndScore(
-      this.#context.getCurrentSessionUrls(),
-      snapshots
+          return { recommendations, weight };
+        }
+      )
     );
 
-    snapshots = snapshots.slice(0, context.count);
-
-    logConsole.debug(
-      "Reduced final candidates:",
-      snapshots.map(s => s.url)
+    let recommendations = SnapshotScorer.combineAndScore(
+      context,
+      ...recommendationGroups
     );
+
+    let snapshots = recommendations
+      .slice(0, context.count)
+      .map(r => r.snapshot);
+
+    PlacesUIUtils.insertTitleStartDiffs(snapshots);
 
     this.#snapshotsGenerated(snapshots);
   }
 
   /**
-   * Sets the current context's url for this selector.
-   *
-   * @param {string} url
-   *  The url of the context
+   * Update context details and start a rebuild.
+   * Undefined properties are ignored, thus pass null to nullify a property.
+   * @param {string} [url]
+   *  The url of the current context.
+   * @param {number} [time]
+   *  The time, in milliseconds from the Unix epoch.
+   * @param {PageDataSchema.DATA_TYPE} [type]
+   *  The type of snapshots for this selector.
+   * @param {string} [rebuildImmediately] (default: false)
+   *  Whether to rebuild immediately instead of waiting some delay. Useful on
+   *  startup.
    */
-  setUrl(url) {
-    if (this.#context.url == url) {
-      return;
+  updateDetailsAndRebuild({ url, time, type, rebuildImmediately = false }) {
+    let rebuild = false;
+    if (url !== undefined) {
+      url = Snapshots.stripFragments(url);
+      if (url != this.#context.url) {
+        this.#context.url = url;
+        rebuild = true;
+      }
     }
-
-    this.#context.url = url;
-    this.rebuild();
-  }
-
-  /**
-   * Like setUrl, but rebuilds immediately instead of after a delay. Useful for
-   * startup.
-   *
-   * @param {string} url
-   *  The url of the context
-   */
-  setUrlAndRebuildNow(url) {
-    if (this.#context.url == url) {
-      return;
+    if (time !== undefined && time != this.#context.time) {
+      this.#context.time = time;
+      rebuild = true;
     }
-
-    this.#context.url = url;
-    this.#buildSnapshots();
-  }
-
-  /**
-   * Sets the type of snapshots for this selector.
-   *
-   * @param {PageDataCollector.DATA_TYPE | undefined} type
-   */
-  async setType(type) {
-    if (this.#context.type === type) {
-      return;
+    if (type !== undefined && type != this.#context.type) {
+      this.#context.type = type;
+      rebuild = true;
     }
-
-    this.#context.type = type;
-    this.rebuild();
+    if (rebuild) {
+      if (rebuildImmediately) {
+        this.#buildSnapshots();
+      } else {
+        this.rebuild();
+      }
+    }
   }
 }
 

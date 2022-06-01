@@ -801,6 +801,7 @@ nsNSSSocketInfo::GetRetryEchConfig(nsACString& aEchConfig) {
 
 NS_IMETHODIMP
 nsNSSSocketInfo::GetPeerId(nsACString& aResult) {
+  MutexAutoLock lock(mMutex);
   if (!mPeerId.IsEmpty()) {
     aResult.Assign(mPeerId);
     return NS_OK;
@@ -819,11 +820,11 @@ nsNSSSocketInfo::GetPeerId(nsACString& aResult) {
 
   mPeerId.AppendPrintf("tlsflags0x%08x:", mProviderTlsFlags);
 
-  mPeerId.Append(GetHostName());
+  mPeerId.Append(mHostName);
   mPeerId.Append(':');
   mPeerId.AppendInt(GetPort());
   nsAutoCString suffix;
-  GetOriginAttributes().CreateSuffix(suffix);
+  mOriginAttributes.CreateSuffix(suffix);
   mPeerId.Append(suffix);
 
   aResult.Assign(mPeerId);
@@ -2061,16 +2062,23 @@ class ClientAuthCertNonverifyingTrustDomain final : public TrustDomain {
       EndEntityOrCA endEntityOrCA, unsigned int modulusSizeInBits) override {
     return Success;
   }
-  virtual mozilla::pkix::Result VerifyRSAPKCS1SignedDigest(
-      const SignedDigest& signedDigest, Input subjectPublicKeyInfo) override {
+  virtual mozilla::pkix::Result VerifyRSAPKCS1SignedData(
+      Input data, DigestAlgorithm, Input signature,
+      Input subjectPublicKeyInfo) override {
+    return Success;
+  }
+  virtual mozilla::pkix::Result VerifyRSAPSSSignedData(
+      Input data, DigestAlgorithm, Input signature,
+      Input subjectPublicKeyInfo) override {
     return Success;
   }
   virtual mozilla::pkix::Result CheckECDSACurveIsAcceptable(
       EndEntityOrCA endEntityOrCA, NamedCurve curve) override {
     return Success;
   }
-  virtual mozilla::pkix::Result VerifyECDSASignedDigest(
-      const SignedDigest& signedDigest, Input subjectPublicKeyInfo) override {
+  virtual mozilla::pkix::Result VerifyECDSASignedData(
+      Input data, DigestAlgorithm, Input signature,
+      Input subjectPublicKeyInfo) override {
     return Success;
   }
   virtual mozilla::pkix::Result CheckValidityIsAcceptable(

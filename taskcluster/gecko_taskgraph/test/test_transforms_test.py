@@ -42,6 +42,7 @@ def test_split_variants(monkeypatch, run_transform, make_test_task):
             "foo": {
                 "description": "foo variant",
                 "suffix": "foo",
+                "component": "foo bar",
                 "merge": {
                     "mozharness": {
                         "extra-options": [
@@ -53,6 +54,7 @@ def test_split_variants(monkeypatch, run_transform, make_test_task):
             "bar": {
                 "description": "bar variant",
                 "suffix": "bar",
+                "component": "foo bar",
                 "when": {
                     "$eval": "task['test-platform'][:5] == 'linux'",
                 },
@@ -183,15 +185,15 @@ def test_split_variants(monkeypatch, run_transform, make_test_task):
         pytest.param(
             {
                 "attributes": {},
-                "test-platform": "android-hw-s7-8-0-android-aarch64-shippable-qr/opt",
+                "test-platform": "android-hw-a51-11-0-arm7-shippable-qr/opt",
             },
             {
                 "platform": {
-                    "arch": "aarch64",
-                    "device": "s7",
+                    "arch": "arm7",
+                    "device": "a51",
                     "os": {
                         "name": "android",
-                        "version": "8.0",
+                        "version": "11.0",
                     },
                 },
                 "build": {

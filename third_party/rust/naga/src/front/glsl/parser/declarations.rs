@@ -1,8 +1,8 @@
 use crate::{
     front::glsl::{
         ast::{
-            GlobalLookup, GlobalLookupKind, Precision, StorageQualifier, StructLayout,
-            TypeQualifier,
+            GlobalLookup, GlobalLookupKind, Precision, QualifierKey, QualifierValue,
+            StorageQualifier, StructLayout, TypeQualifiers,
         },
         context::{Context, ExprPos},
         error::ExpectedToken,
@@ -12,7 +12,7 @@ use crate::{
         variables::{GlobalOrConstant, VarDeclaration},
         Error, ErrorKind, Parser, Span,
     },
-    Block, Expression, FunctionResult, Handle, ScalarKind, Statement, StorageClass, StructMember,
+    AddressSpace, Block, Expression, FunctionResult, Handle, ScalarKind, Statement, StructMember,
     Type, TypeInner,
 };
 
@@ -120,8 +120,7 @@ impl<'source> ParsingContext<'source> {
     pub fn parse_init_declarator_list(
         &mut self,
         parser: &mut Parser,
-        ty: Handle<Type>,
-        mut fallthrough: Option<Token>,
+        mut ty: Handle<Type>,
         ctx: &mut DeclarationContext,
     ) -> Result<()> {
         // init_declarator_list:
@@ -139,20 +138,15 @@ impl<'source> ParsingContext<'source> {
         //     fully_specified_type IDENTIFIER EQUAL initializer
 
         // Consume any leading comma, e.g. this is valid: `float, a=1;`
-        if fallthrough
-            .as_ref()
-            .or_else(|| self.peek(parser))
-            .filter(|t| t.value == TokenValue::Comma)
-            .is_some()
+        if self
+            .peek(parser)
+            .map_or(false, |t| t.value == TokenValue::Comma)
         {
-            fallthrough.take().or_else(|| self.next(parser));
+            self.next(parser);
         }
 
         loop {
-            let token = fallthrough
-                .take()
-                .ok_or(ErrorKind::EndOfFile)
-                .or_else(|_| self.bump(parser))?;
+            let token = self.bump(parser)?;
             let name = match token.value {
                 TokenValue::Semicolon => break,
                 TokenValue::Identifier(name) => name,
@@ -175,8 +169,7 @@ impl<'source> ParsingContext<'source> {
             // parse an array specifier if it exists
             // NOTE: unlike other parse methods this one doesn't expect an array specifier and
             // returns Ok(None) rather than an error if there is not one
-            let array_specifier = self.parse_array_specifier(parser)?;
-            let ty = parser.maybe_array(ty, meta, array_specifier);
+            self.parse_array_specifier(parser, &mut meta, &mut ty)?;
 
             let init = self
                 .bump_if(parser, TokenValue::Assign)
@@ -196,11 +189,23 @@ impl<'source> ParsingContext<'source> {
                 })
                 .transpose()?;
 
-            // TODO: Should we try to make constants here?
-            // This is mostly a hack because we don't yet support adding
-            // bodies to entry points for variable initialization
-            let maybe_constant =
-                init.and_then(|(root, meta)| parser.solve_constant(ctx.ctx, root, meta).ok());
+            // If the declaration has an initializer try to make a constant out of it,
+            // this is only strictly needed for global constant declarations (and if the
+            // initializer can't be made a constant it should throw an error) but we also
+            // try to do it for all other types of declarations.
+            let maybe_constant = if let Some((root, meta)) = init {
+                let is_const = ctx.qualifiers.storage.0 == StorageQualifier::Const;
+
+                match parser.solve_constant(ctx.ctx, root, meta) {
+                    Ok(res) => Some(res),
+                    // If the declaration is external (global scope) and is constant qualified
+                    // then the initializer must be a constant expression
+                    Err(err) if ctx.external && is_const => return Err(err),
+                    _ => None,
+                }
+            } else {
+                None
+            };
 
             let pointer = ctx.add_var(parser, ty, name, maybe_constant, meta)?;
 
@@ -249,7 +254,7 @@ impl<'source> ParsingContext<'source> {
         //    type_qualifier IDENTIFIER identifier_list SEMICOLON
 
         if self.peek_type_qualifier(parser) || self.peek_type_name(parser) {
-            let qualifiers = self.parse_type_qualifiers(parser)?;
+            let mut qualifiers = self.parse_type_qualifiers(parser)?;
 
             if self.peek_type_name(parser) {
                 // This branch handles variables and function prototypes and if
@@ -318,13 +323,13 @@ impl<'source> ParsingContext<'source> {
                                 }),
                             };
                         }
-                        // Pass the token to the init_declator_list parser
+                        // Pass the token to the init_declarator_list parser
                         _ => Token {
                             value: TokenValue::Identifier(name),
                             meta: token.meta,
                         },
                     },
-                    // Pass the token to the init_declator_list parser
+                    // Pass the token to the init_declarator_list parser
                     _ => token,
                 };
 
@@ -339,7 +344,8 @@ impl<'source> ParsingContext<'source> {
                         body,
                     };
 
-                    self.parse_init_declarator_list(parser, ty, Some(token_fallthrough), &mut ctx)?;
+                    self.backtrack(token_fallthrough)?;
+                    self.parse_init_declarator_list(parser, ty, &mut ctx)?;
                 } else {
                     parser.errors.push(Error {
                         kind: ErrorKind::SemanticError("Declaration cannot have void type".into()),
@@ -361,12 +367,20 @@ impl<'source> ParsingContext<'source> {
                                 parser,
                                 ctx,
                                 body,
-                                &qualifiers,
+                                &mut qualifiers,
                                 ty_name,
                                 token.meta,
                             )
                             .map(Some)
                         } else {
+                            if qualifiers.invariant.take().is_some() {
+                                parser.make_variable_invariant(ctx, body, &ty_name, token.meta);
+
+                                qualifiers.unused_errors(&mut parser.errors);
+                                self.expect(parser, TokenValue::Semicolon)?;
+                                return Ok(Some(qualifiers.span));
+                            }
+
                             //TODO: declaration
                             // type_qualifier IDENTIFIER SEMICOLON
                             // type_qualifier IDENTIFIER identifier_list SEMICOLON
@@ -377,33 +391,28 @@ impl<'source> ParsingContext<'source> {
                         }
                     }
                     TokenValue::Semicolon => {
-                        let mut meta_all = token.meta;
-                        for &(ref qualifier, meta) in qualifiers.iter() {
-                            meta_all.subsume(meta);
-                            match *qualifier {
-                                TypeQualifier::WorkGroupSize(i, value) => {
-                                    parser.meta.workgroup_size[i] = value
-                                }
-                                TypeQualifier::EarlyFragmentTests => {
-                                    parser.meta.early_fragment_tests = true;
-                                }
-                                TypeQualifier::StorageQualifier(_) => {
-                                    // TODO: Maybe add some checks here
-                                    // This is needed because of cases like
-                                    // layout(early_fragment_tests) in;
-                                }
-                                _ => {
-                                    parser.errors.push(Error {
-                                        kind: ErrorKind::SemanticError(
-                                            "Qualifier not supported as standalone".into(),
-                                        ),
-                                        meta,
-                                    });
-                                }
-                            }
+                        if let Some(value) =
+                            qualifiers.uint_layout_qualifier("local_size_x", &mut parser.errors)
+                        {
+                            parser.meta.workgroup_size[0] = value;
+                        }
+                        if let Some(value) =
+                            qualifiers.uint_layout_qualifier("local_size_y", &mut parser.errors)
+                        {
+                            parser.meta.workgroup_size[1] = value;
+                        }
+                        if let Some(value) =
+                            qualifiers.uint_layout_qualifier("local_size_z", &mut parser.errors)
+                        {
+                            parser.meta.workgroup_size[2] = value;
                         }
 
-                        Ok(Some(meta_all))
+                        parser.meta.early_fragment_tests |= qualifiers
+                            .none_layout_qualifier("early_fragment_tests", &mut parser.errors);
+
+                        qualifiers.unused_errors(&mut parser.errors);
+
+                        Ok(Some(qualifiers.span))
                     }
                     _ => Err(Error {
                         kind: ErrorKind::InvalidToken(
@@ -442,11 +451,7 @@ impl<'source> ParsingContext<'source> {
 
                     match parser.module.types[ty].inner {
                         TypeInner::Scalar {
-                            kind: ScalarKind::Float,
-                            ..
-                        }
-                        | TypeInner::Scalar {
-                            kind: ScalarKind::Sint,
+                            kind: ScalarKind::Float | ScalarKind::Sint,
                             ..
                         } => {}
                         _ => parser.errors.push(Error {
@@ -471,27 +476,22 @@ impl<'source> ParsingContext<'source> {
         parser: &mut Parser,
         ctx: &mut Context,
         body: &mut Block,
-        qualifiers: &[(TypeQualifier, Span)],
+        qualifiers: &mut TypeQualifiers,
         ty_name: String,
-        meta: Span,
+        mut meta: Span,
     ) -> Result<Span> {
-        let mut storage = None;
-        let mut layout = None;
-
-        for &(ref qualifier, _) in qualifiers {
-            match *qualifier {
-                TypeQualifier::StorageQualifier(StorageQualifier::StorageClass(c)) => {
-                    storage = Some(c)
+        let layout = match qualifiers.layout_qualifiers.remove(&QualifierKey::Layout) {
+            Some((QualifierValue::Layout(l), _)) => l,
+            None => {
+                if let StorageQualifier::AddressSpace(AddressSpace::Storage { .. }) =
+                    qualifiers.storage.0
+                {
+                    StructLayout::Std430
+                } else {
+                    StructLayout::Std140
                 }
-                TypeQualifier::Layout(l) => layout = Some(l),
-                _ => continue,
             }
-        }
-
-        let layout = match (layout, storage) {
-            (Some(layout), _) => layout,
-            (None, Some(StorageClass::Storage { .. })) => StructLayout::Std430,
-            _ => StructLayout::Std140,
+            _ => unreachable!(),
         };
 
         let mut members = Vec::new();
@@ -513,8 +513,7 @@ impl<'source> ParsingContext<'source> {
         let name = match token.value {
             TokenValue::Semicolon => None,
             TokenValue::Identifier(name) => {
-                let array_specifier = self.parse_array_specifier(parser)?;
-                ty = parser.maybe_array(ty, token.meta, array_specifier);
+                self.parse_array_specifier(parser, &mut meta, &mut ty)?;
 
                 self.expect(parser, TokenValue::Semicolon)?;
 
@@ -576,13 +575,12 @@ impl<'source> ParsingContext<'source> {
         loop {
             // TODO: type_qualifier
 
-            let (ty, mut meta) = self.parse_type_non_void(parser)?;
+            let (mut ty, mut meta) = self.parse_type_non_void(parser)?;
             let (name, end_meta) = self.expect_ident(parser)?;
 
             meta.subsume(end_meta);
 
-            let array_specifier = self.parse_array_specifier(parser)?;
-            let ty = parser.maybe_array(ty, meta, array_specifier);
+            self.parse_array_specifier(parser, &mut meta, &mut ty)?;
 
             self.expect(parser, TokenValue::Semicolon)?;
 

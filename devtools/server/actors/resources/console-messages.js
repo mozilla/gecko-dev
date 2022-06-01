@@ -7,7 +7,6 @@
 const {
   TYPES: { CONSOLE_MESSAGE },
 } = require("devtools/server/actors/resources/index");
-const { WebConsoleUtils } = require("devtools/server/actors/webconsole/utils");
 const Targets = require("devtools/server/actors/targets/index");
 
 const consoleAPIListenerModule = isWorker
@@ -25,6 +24,10 @@ const {
 const {
   getActorIdForInternalSourceId,
 } = require("devtools/server/actors/utils/dbg-source");
+
+const {
+  isSupportedByConsoleTable,
+} = require("devtools/shared/webconsole/messages");
 
 /**
  * Start watching for all console messages related to a given Target Actor.
@@ -142,14 +145,6 @@ module.exports = ConsoleMessageWatcher;
  *                   console.table call.
  */
 function getConsoleTableMessageItems(targetActor, result) {
-  if (
-    !result ||
-    !Array.isArray(result.arguments) ||
-    result.arguments.length == 0
-  ) {
-    return null;
-  }
-
   const [tableItemGrip] = result.arguments;
   const dataType = tableItemGrip.class;
   const needEntries = ["Map", "WeakMap", "Set", "WeakSet"].includes(dataType);
@@ -205,23 +200,46 @@ function getConsoleTableMessageItems(targetActor, result) {
  * @param TargetActor targetActor
  *        The related target actor
  * @param object message
- *        The original message received from console-api-log-event.
+ *        The original message received from the console storage listener.
  * @return object
  *         The object that can be sent to the remote client.
  */
 function prepareConsoleMessageForRemote(targetActor, message) {
-  const result = WebConsoleUtils.cloneObject(message);
+  const result = {
+    arguments: message.arguments
+      ? message.arguments.map(obj => {
+          const dbgObj = makeDebuggeeValue(targetActor, obj);
+          return createValueGripForTarget(targetActor, dbgObj);
+        })
+      : [],
+    columnNumber: message.columnNumber,
+    filename: message.filename,
+    level: message.level,
+    lineNumber: message.lineNumber,
+    timeStamp: message.timeStamp,
+    sourceId: getActorIdForInternalSourceId(targetActor, message.sourceId),
+    innerWindowID: message.innerID,
+  };
 
-  result.workerType = WebConsoleUtils.getWorkerType(result) || "none";
-  result.sourceId = getActorIdForInternalSourceId(targetActor, result.sourceId);
+  // This can be a hot path when loading lots of messages, and it only make sense to
+  // include the following properties in the message when they have a meaningful value.
+  // Otherwise we simply don't include them so we save cycles in JSActor communication.
+  if (message.chromeContext) {
+    result.chromeContext = message.chromeContext;
+  }
 
-  delete result.wrappedJSObject;
-  delete result.ID;
-  delete result.innerID;
-  delete result.consoleID;
+  if (message.counter) {
+    result.counter = message.counter;
+  }
+  if (message.private) {
+    result.private = message.private;
+  }
+  if (message.prefix) {
+    result.prefix = message.prefix;
+  }
 
-  if (result.stacktrace) {
-    result.stacktrace = result.stacktrace.map(frame => {
+  if (message.stacktrace) {
+    result.stacktrace = message.stacktrace.map(frame => {
       return {
         ...frame,
         sourceId: getActorIdForInternalSourceId(targetActor, frame.sourceId),
@@ -229,28 +247,29 @@ function prepareConsoleMessageForRemote(targetActor, message) {
     });
   }
 
-  result.arguments = (message.arguments || []).map(obj => {
-    const dbgObj = makeDebuggeeValue(targetActor, obj);
-    return createValueGripForTarget(targetActor, dbgObj);
-  });
-
-  result.styles = (message.styles || []).map(string => {
-    return createValueGripForTarget(targetActor, string);
-  });
-
-  if (result.level === "table") {
-    const tableItems = getConsoleTableMessageItems(targetActor, result);
-    if (tableItems) {
-      result.arguments[0].ownProperties = tableItems;
-      result.arguments[0].preview = null;
-    }
-
-    // Only return the 2 first params.
-    result.arguments = result.arguments.slice(0, 2);
+  if (message.styles && message.styles.length > 0) {
+    result.styles = message.styles.map(string => {
+      return createValueGripForTarget(targetActor, string);
+    });
   }
 
-  result.category = message.category || "webdev";
-  result.innerWindowID = message.innerID;
+  if (message.timer) {
+    result.timer = message.timer;
+  }
+
+  if (message.level === "table") {
+    if (result && isSupportedByConsoleTable(result.arguments)) {
+      const tableItems = getConsoleTableMessageItems(targetActor, result);
+      if (tableItems) {
+        result.arguments[0].ownProperties = tableItems;
+        result.arguments[0].preview = null;
+
+        // Only return the 2 first params.
+        result.arguments = result.arguments.slice(0, 2);
+      }
+    }
+    // NOTE: See transformConsoleAPICallResource for not-supported case.
+  }
 
   return result;
 }

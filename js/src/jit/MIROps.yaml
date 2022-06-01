@@ -854,16 +854,6 @@
   result_type: Value
   possibly_calls: true
 
-# Load an arrow function's |new.target| value.
-- name: ArrowNewTarget
-  operands:
-    callee: Object
-  result_type: Value
-  movable: true
-  congruent_to: if_operands_equal
-  # An arrow function's lexical |this| value is immutable.
-  alias_set: none
-
 - name: Phi
   gen_boilerplate: false
 
@@ -1004,9 +994,6 @@
   result_type: Object
 
 - name: Lambda
-  gen_boilerplate: false
-
-- name: LambdaArrow
   gen_boilerplate: false
 
 - name: FunctionWithProto
@@ -1236,6 +1223,44 @@
   result_type: Object
   possibly_calls: true
 
+# Array.prototype.slice on an arguments object.
+- name: ArgumentsSlice
+  operands:
+    object: Object
+    begin: Int32
+    end: Int32
+  arguments:
+    templateObj: JSObject*
+    initialHeap: gc::InitialHeap
+  result_type: Object
+  possibly_calls: true
+
+# Array.prototype.slice on an arguments object.
+- name: FrameArgumentsSlice
+  operands:
+    begin: Int32
+    count: Int32
+  arguments:
+    templateObj: JSObject*
+    initialHeap: gc::InitialHeap
+  result_type: Object
+  alias_set: none
+  possibly_calls: true
+
+# Array.prototype.slice on an inlined arguments object.
+- name: InlineArgumentsSlice
+  gen_boilerplate: false
+
+- name: NormalizeSliceTerm
+  operands:
+    value: Int32
+    length: Int32
+  result_type: Int32
+  movable: true
+  congruent_to: if_operands_equal
+  alias_set: none
+  folds_to: custom
+
 # MArrayJoin doesn't override |getAliasSet()|, because Array.prototype.join
 # might coerce the elements of the Array to strings. This coercion might
 # cause the evaluation of JavaScript code.
@@ -1293,6 +1318,8 @@
   operands:
     homeObject: Object
   result_type: Value
+  movable: true
+  congruent_to: if_operands_equal
   alias_set: custom
 
 - name: GetPropSuperCache
@@ -1663,6 +1690,15 @@
   result_type: Object
   possibly_calls: true
   alias_set: custom
+
+- name: NewVarEnvironmentObject
+  operands:
+    enclosing: Object
+  arguments:
+    scope: VarScope*
+  result_type: Object
+  possibly_calls: true
+  alias_set: none
 
 - name: HomeObject
   operands:
@@ -2537,7 +2573,10 @@
 - name: WasmBinaryBitwise
   gen_boilerplate: false
 
-- name: WasmLoadTls
+- name: WasmLoadInstance
+  gen_boilerplate: false
+
+- name: WasmStoreInstance
   gen_boilerplate: false
 
 - name: WasmHeapBase
@@ -2604,6 +2643,9 @@
 - name: WasmLoadGlobalCell
   gen_boilerplate: false
 
+- name: WasmLoadTableElement
+  gen_boilerplate: false
+
 - name: WasmStoreGlobalVar
   gen_boilerplate: false
 
@@ -2614,6 +2656,9 @@
   gen_boilerplate: false
 
 - name: WasmDerivedPointer
+  gen_boilerplate: false
+
+- name: WasmDerivedIndexPointer
   gen_boilerplate: false
 
 - name: WasmStoreRef
@@ -2646,7 +2691,13 @@
 - name: WasmStackResult
   gen_boilerplate: false
 
-- name: WasmCall
+- name: WasmCallCatchable
+  gen_boilerplate: false
+
+- name: WasmCallUncatchable
+  gen_boilerplate: false
+
+- name: WasmCallLandingPrePad
   gen_boilerplate: false
 
 - name: WasmSelect
@@ -2728,17 +2779,14 @@
 - name: IonToWasmCall
   gen_boilerplate: false
 
-- name: WasmExceptionDataPointer
+- name: WasmLoadObjectField
   gen_boilerplate: false
 
-- name: WasmLoadExceptionDataValue
+- name: WasmLoadObjectDataField
   gen_boilerplate: false
 
-- name: WasmStoreExceptionDataValue
+- name: WasmStoreObjectDataField
   gen_boilerplate: false
 
-- name: WasmExceptionRefsPointer
-  gen_boilerplate: false
-
-- name: WasmLoadExceptionRefsValue
+- name: WasmStoreObjectDataRefField
   gen_boilerplate: false

@@ -22,7 +22,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   RemoteSettingsClient: "resource://services-settings/RemoteSettingsClient.jsm",
 });
 
-this.LoginBreaches = {
+const LoginBreaches = {
   REMOTE_SETTINGS_COLLECTION: "fxmonitor-breaches",
 
   async update(breaches = null) {
@@ -75,12 +75,11 @@ this.LoginBreaches = {
     // they were changed. It's important to note here that we are NOT considering the
     // username and password of that login.
     for (const login of logins) {
-      const loginURI = Services.io.newURI(login.origin);
       let loginHost;
       try {
         // nsIURI.host can throw if the URI scheme doesn't have a host.
-        loginHost = loginURI.host;
-      } catch (ex) {
+        loginHost = Services.io.newURI(login.origin).host;
+      } catch {
         continue;
       }
       for (const breach of breaches) {

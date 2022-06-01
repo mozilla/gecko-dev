@@ -117,6 +117,7 @@ void PortLink::SendMessage(UniquePtr<Message> aMessage) {
   PortRef port = mPort;
 
   bool ok = false;
+  monitor->AssertCurrentThreadOwns();
   {
     MonitorAutoUnlock guard(*monitor);
     ok = node->SendUserMessage(port, std::move(aMessage));
@@ -185,7 +186,7 @@ void PortLink::OnPortStatusChanged() {
       return;
     }
 
-    mChan->OnMessageReceivedFromLink(std::move(*message));
+    mChan->OnMessageReceivedFromLink(std::move(message));
   }
 }
 

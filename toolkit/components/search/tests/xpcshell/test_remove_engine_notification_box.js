@@ -39,6 +39,23 @@ const CONFIG = [
   },
 ];
 
+const CONFIG_UPDATED = [
+  {
+    webExtension: {
+      id: "engine-pref@search.mozilla.org",
+    },
+    appliesTo: [
+      {
+        included: { everywhere: true },
+      },
+      {
+        included: { regions: ["FR"] },
+        default: "yes",
+      },
+    ],
+  },
+];
+
 let stub;
 let settingsFilePath;
 let userSettings;
@@ -54,10 +71,7 @@ add_task(async function setup() {
     "_showRemovalOfSearchEngineNotificationBox"
   );
 
-  settingsFilePath = PathUtils.join(
-    await PathUtils.getProfileDir(),
-    SETTINGS_FILENAME
-  );
+  settingsFilePath = PathUtils.join(PathUtils.profileDir, SETTINGS_FILENAME);
 
   Region._setHomeRegion("", false);
 
@@ -157,6 +171,23 @@ add_task(async function test_default_engine_unchanged() {
   );
 });
 
+add_task(async function test_new_current_engine_is_undefined() {
+  let settings = structuredClone(userSettings);
+  let getEngineDefaultStub = sinon.stub(
+    await Services.search.wrappedJSObject,
+    "_getEngineDefault"
+  );
+  getEngineDefaultStub.returns(undefined);
+
+  await loadEngines(settings);
+  Assert.ok(
+    stub.notCalled,
+    "_loadEngines should not have shown the notification box."
+  );
+
+  getEngineDefaultStub.restore();
+});
+
 add_task(async function test_current_engine_is_null() {
   Services.search.wrappedJSObject._currentEngine = null;
 
@@ -209,6 +240,26 @@ add_task(async function test_default_engine_changed_and_metadata_unchanged() {
 
   await loadEngines(settings);
   Assert.ok(stub.calledTwice, "_loadEngines should show the notification box.");
+});
+
+add_task(async function test_app_default_engine_changed_on_start_up() {
+  let settings = structuredClone(userSettings);
+
+  // Set the current engine to "" so we can use the app default engine as
+  // default
+  settings.metaData.current = "";
+
+  let searchSettingsObj = await RemoteSettings(SearchUtils.SETTINGS_KEY);
+  // Restore the get method in order to stub it again in useTestEngines
+  searchSettingsObj.get.restore();
+  // Update config by removing the app default engine
+  await SearchTestUtils.useTestEngines("data", null, CONFIG_UPDATED);
+
+  await loadEngines(settings);
+  Assert.ok(
+    stub.calledThrice,
+    "_loadEngines should show the notification box."
+  );
 });
 
 function writeSettings(settings) {

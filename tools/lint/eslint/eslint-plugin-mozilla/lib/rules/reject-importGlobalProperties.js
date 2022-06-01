@@ -8,16 +8,18 @@
 
 "use strict";
 
+const path = require("path");
+
 const privilegedGlobals = Object.keys(
   require("../environments/privileged.js").globals
 );
 
-// -----------------------------------------------------------------------------
-// Rule Definition
-// -----------------------------------------------------------------------------
-
 module.exports = {
   meta: {
+    docs: {
+      url:
+        "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/reject-importGlobalProperties.html",
+    },
     messages: {
       unexpectedCall: "Unexpected call to Cu.importGlobalProperties",
       unexpectedCallWebIdl:
@@ -25,7 +27,6 @@ module.exports = {
     },
     schema: [
       {
-        // XXX Better name?
         enum: ["everything", "allownonwebidl"],
       },
     ],
@@ -35,7 +36,12 @@ module.exports = {
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== "MemberExpression") {
+        if (
+          node.callee.type !== "MemberExpression" ||
+          // TODO Bug 1501127: sjs files have their own sandbox, and do not inherit
+          // the Window backstage pass directly.
+          path.extname(context.getFilename()) == ".sjs"
+        ) {
           return;
         }
         let memexp = node.callee;

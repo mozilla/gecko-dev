@@ -6,7 +6,12 @@ use inplace_it::inplace_or_alloc_from_iter;
 use parking_lot::Mutex;
 
 use std::{
-    borrow::Cow, collections::hash_map::Entry, ffi::CString, num::NonZeroU32, ptr, sync::Arc,
+    borrow::Cow,
+    collections::{hash_map::Entry, BTreeMap},
+    ffi::CString,
+    num::NonZeroU32,
+    ptr,
+    sync::Arc,
 };
 
 impl super::DeviceShared {
@@ -517,12 +522,19 @@ impl super::Device {
             None => vk::SwapchainKHR::null(),
         };
 
+        let color_space = if config.format == wgt::TextureFormat::Rgba16Float {
+            // Enable wide color gamut mode
+            // Vulkan swapchain for Android only supports DISPLAY_P3_NONLINEAR_EXT and EXTENDED_SRGB_LINEAR_EXT
+            vk::ColorSpaceKHR::EXTENDED_SRGB_LINEAR_EXT
+        } else {
+            vk::ColorSpaceKHR::SRGB_NONLINEAR
+        };
         let info = vk::SwapchainCreateInfoKHR::builder()
             .flags(vk::SwapchainCreateFlagsKHR::empty())
             .surface(surface.raw)
             .min_image_count(config.swap_chain_size)
             .image_format(self.shared.private_caps.map_texture_format(config.format))
-            .image_color_space(vk::ColorSpaceKHR::SRGB_NONLINEAR)
+            .image_color_space(color_space)
             .image_extent(vk::Extent2D {
                 width: config.extent.width,
                 height: config.extent.height,
@@ -621,6 +633,7 @@ impl super::Device {
         &self,
         stage: &crate::ProgrammableStage<super::Api>,
         naga_stage: naga::ShaderStage,
+        binding_map: &naga::back::spv::BindingMap,
     ) -> Result<CompiledStage, crate::PipelineError> {
         let stage_flags = crate::auxil::map_naga_stage(naga_stage);
         let vk_module = match *stage.module {
@@ -633,16 +646,21 @@ impl super::Device {
                     entry_point: stage.entry_point.to_string(),
                     shader_stage: naga_stage,
                 };
-                let temp_options;
-                let options = if !runtime_checks {
-                    temp_options = naga::back::spv::Options {
-                        bounds_check_policies: naga::proc::BoundsCheckPolicies {
+                let needs_temp_options = !runtime_checks || !binding_map.is_empty();
+                let mut temp_options;
+                let options = if needs_temp_options {
+                    temp_options = self.naga_options.clone();
+                    if !runtime_checks {
+                        temp_options.bounds_check_policies = naga::proc::BoundsCheckPolicies {
                             index: naga::proc::BoundsCheckPolicy::Unchecked,
                             buffer: naga::proc::BoundsCheckPolicy::Unchecked,
                             image: naga::proc::BoundsCheckPolicy::Unchecked,
-                        },
-                        ..self.naga_options.clone()
-                    };
+                            binding_array: naga::proc::BoundsCheckPolicy::Unchecked,
+                        };
+                    }
+                    if !binding_map.is_empty() {
+                        temp_options.binding_map = binding_map.clone();
+                    }
                     &temp_options
                 } else {
                     &self.naga_options
@@ -974,6 +992,7 @@ impl crate::Device<super::Api> for super::Device {
                     .max_anisotropy(aniso.get() as f32);
             }
         }
+
         if let Some(color) = desc.border_color {
             vk_info = vk_info.border_color(conv::map_border_color(color));
         }
@@ -1092,6 +1111,13 @@ impl crate::Device<super::Api> for super::Device {
 
         let vk_info = vk::DescriptorSetLayoutCreateInfo::builder().bindings(&vk_bindings);
 
+        let binding_arrays = desc
+            .entries
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, entry)| entry.count.map(|count| (idx as u32, count)))
+            .collect();
+
         let mut binding_flag_info;
         let binding_flag_vec;
         let mut requires_update_after_bind = false;
@@ -1168,6 +1194,7 @@ impl crate::Device<super::Api> for super::Device {
             raw,
             desc_count,
             types: types.into_boxed_slice(),
+            binding_arrays,
             requires_update_after_bind,
         })
     }
@@ -1212,7 +1239,25 @@ impl crate::Device<super::Api> for super::Device {
                 .set_object_name(vk::ObjectType::PIPELINE_LAYOUT, raw, label);
         }
 
-        Ok(super::PipelineLayout { raw })
+        let mut binding_arrays = BTreeMap::new();
+        for (group, &layout) in desc.bind_group_layouts.iter().enumerate() {
+            for &(binding, binding_array_size) in &layout.binding_arrays {
+                binding_arrays.insert(
+                    naga::ResourceBinding {
+                        group: group as u32,
+                        binding,
+                    },
+                    naga::back::spv::BindingInfo {
+                        binding_array_size: Some(binding_array_size.get()),
+                    },
+                );
+            }
+        }
+
+        Ok(super::PipelineLayout {
+            raw,
+            binding_arrays,
+        })
     }
     unsafe fn destroy_pipeline_layout(&self, pipeline_layout: super::PipelineLayout) {
         self.shared
@@ -1258,11 +1303,15 @@ impl crate::Device<super::Api> for super::Device {
             write = match ty {
                 vk::DescriptorType::SAMPLER => {
                     let index = sampler_infos.len();
-                    let binding = desc.samplers[entry.resource_index as usize];
-                    let vk_info = vk::DescriptorImageInfo::builder()
-                        .sampler(binding.raw)
-                        .build();
-                    sampler_infos.push(vk_info);
+                    let start = entry.resource_index;
+                    let end = start + entry.count;
+                    sampler_infos.extend(desc.samplers[start as usize..end as usize].iter().map(
+                        |binding| {
+                            vk::DescriptorImageInfo::builder()
+                                .sampler(binding.raw)
+                                .build()
+                        },
+                    ));
                     write.image_info(&sampler_infos[index..])
                 }
                 vk::DescriptorType::SAMPLED_IMAGE | vk::DescriptorType::STORAGE_IMAGE => {
@@ -1336,6 +1385,7 @@ impl crate::Device<super::Api> for super::Device {
                         index: naga::proc::BoundsCheckPolicy::Unchecked,
                         buffer: naga::proc::BoundsCheckPolicy::Unchecked,
                         image: naga::proc::BoundsCheckPolicy::Unchecked,
+                        binding_array: naga::proc::BoundsCheckPolicy::Unchecked,
                     };
                 }
                 Cow::Owned(
@@ -1417,11 +1467,19 @@ impl crate::Device<super::Api> for super::Device {
             .primitive_restart_enable(desc.primitive.strip_index_format.is_some())
             .build();
 
-        let compiled_vs = self.compile_stage(&desc.vertex_stage, naga::ShaderStage::Vertex)?;
+        let compiled_vs = self.compile_stage(
+            &desc.vertex_stage,
+            naga::ShaderStage::Vertex,
+            &desc.layout.binding_arrays,
+        )?;
         stages.push(compiled_vs.create_info);
         let compiled_fs = match desc.fragment_stage {
             Some(ref stage) => {
-                let compiled = self.compile_stage(stage, naga::ShaderStage::Fragment)?;
+                let compiled = self.compile_stage(
+                    stage,
+                    naga::ShaderStage::Fragment,
+                    &desc.layout.binding_arrays,
+                )?;
                 stages.push(compiled.create_info);
                 Some(compiled)
             }
@@ -1596,7 +1654,11 @@ impl crate::Device<super::Api> for super::Device {
         &self,
         desc: &crate::ComputePipelineDescriptor<super::Api>,
     ) -> Result<super::ComputePipeline, crate::PipelineError> {
-        let compiled = self.compile_stage(&desc.stage, naga::ShaderStage::Compute)?;
+        let compiled = self.compile_stage(
+            &desc.stage,
+            naga::ShaderStage::Compute,
+            &desc.layout.binding_arrays,
+        )?;
 
         let vk_infos = [{
             vk::ComputePipelineCreateInfo::builder()
@@ -1715,7 +1777,7 @@ impl crate::Device<super::Api> for super::Device {
         wait_value: crate::FenceValue,
         timeout_ms: u32,
     ) -> Result<bool, crate::DeviceError> {
-        let timeout_us = timeout_ms as u64 * super::MILLIS_TO_NANOS;
+        let timeout_ns = timeout_ms as u64 * super::MILLIS_TO_NANOS;
         match *fence {
             super::Fence::TimelineSemaphore(raw) => {
                 let semaphores = [raw];
@@ -1725,10 +1787,10 @@ impl crate::Device<super::Api> for super::Device {
                     .values(&values);
                 let result = match self.shared.extension_fns.timeline_semaphore {
                     Some(super::ExtensionFn::Extension(ref ext)) => {
-                        ext.wait_semaphores(&vk_info, timeout_us)
+                        ext.wait_semaphores(&vk_info, timeout_ns)
                     }
                     Some(super::ExtensionFn::Promoted) => {
-                        self.shared.raw.wait_semaphores(&vk_info, timeout_us)
+                        self.shared.raw.wait_semaphores(&vk_info, timeout_ns)
                     }
                     None => unreachable!(),
                 };
@@ -1748,7 +1810,7 @@ impl crate::Device<super::Api> for super::Device {
                 } else {
                     match active.iter().find(|&&(value, _)| value >= wait_value) {
                         Some(&(_, raw)) => {
-                            match self.shared.raw.wait_for_fences(&[raw], true, timeout_us) {
+                            match self.shared.raw.wait_for_fences(&[raw], true, timeout_ns) {
                                 Ok(()) => Ok(true),
                                 Err(vk::Result::TIMEOUT) => Ok(false),
                                 Err(other) => Err(other.into()),

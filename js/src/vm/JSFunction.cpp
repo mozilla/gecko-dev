@@ -654,11 +654,11 @@ inline void JSFunction::trace(JSTracer* trc) {
   if (isInterpreted() && hasBaseScript()) {
     if (BaseScript* script = baseScript()) {
       TraceManuallyBarrieredEdge(trc, &script, "script");
-      // Self-hosted scripts are shared with workers but are never
-      // relocated. Skip unnecessary writes to prevent the possible data race.
+      // Self-hosted scripts are shared with workers but are never relocated.
+      // Skip unnecessary writes to prevent the possible data race.
       if (baseScript() != script) {
-        setFixedSlot(NativeJitInfoOrInterpretedScriptSlot,
-                     JS::PrivateValue(script));
+        HeapSlot& slot = getFixedSlotRef(NativeJitInfoOrInterpretedScriptSlot);
+        slot.unbarrieredSet(JS::PrivateValue(script));
       }
     }
   }
@@ -810,6 +810,7 @@ JSString* js::FunctionToString(JSContext* cx, HandleFunction fun,
     // can be matched as the 'PropertyName' grammar production.
     if (fun->explicitName() && !fun->isBoundFunction() &&
         (fun->kind() == FunctionFlags::NormalFunction ||
+         fun->kind() == FunctionFlags::Wasm ||
          fun->kind() == FunctionFlags::ClassConstructor)) {
       if (!out.append(' ')) {
         return nullptr;
@@ -1041,7 +1042,6 @@ static const JSClassOps JSFunctionClassOps = {
     fun_mayResolve,  // mayResolve
     nullptr,         // finalize
     nullptr,         // call
-    nullptr,         // hasInstance
     nullptr,         // construct
     fun_trace,       // trace
 };
@@ -1621,8 +1621,7 @@ static bool CreateDynamicFunction(JSContext* cx, const CallArgs& args,
   }
 
   // Block this call if security callbacks forbid it.
-  Handle<GlobalObject*> global = cx->global();
-  if (!GlobalObject::isRuntimeCodeGenEnabled(cx, functionText, global)) {
+  if (!cx->isRuntimeCodeGenEnabled(JS::RuntimeCode::JS, functionText)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_CSP_BLOCKED_FUNCTION);
     return false;
@@ -1960,6 +1959,7 @@ bool js::CanReuseScriptForClone(JS::Realm* realm, HandleFunction fun,
 
 static inline JSFunction* NewFunctionClone(JSContext* cx, HandleFunction fun,
                                            HandleObject proto) {
+  MOZ_ASSERT(cx->realm() == fun->realm());
   MOZ_ASSERT(proto);
 
   const JSClass* clasp = fun->getClass();
@@ -1995,19 +1995,8 @@ static inline JSFunction* NewFunctionClone(JSContext* cx, HandleFunction fun,
   clone->setArgCount(fun->nargs());
   clone->setFlags(flags);
 
-  JSAtom* atom = fun->displayAtom();
-  if (atom) {
-    cx->markAtom(atom);
-  }
-  clone->initAtom(atom);
-
-  if (allocKind == gc::AllocKind::FUNCTION_EXTENDED) {
-    MOZ_ASSERT(fun->isExtended());
-    MOZ_ASSERT(fun->compartment() == cx->compartment());
-    for (unsigned i = 0; i < FunctionExtended::NUM_EXTENDED_SLOTS; i++) {
-      clone->initExtendedSlot(i, fun->getExtendedSlot(i));
-    }
-  }
+  // Note: |clone| and |fun| are same-zone so we don't need to call markAtom.
+  clone->initAtom(fun->displayAtom());
 
   return clone;
 }
@@ -2037,6 +2026,16 @@ JSFunction* js::CloneFunctionReuseScript(JSContext* cx, HandleFunction fun,
     clone->initEnvironment(enclosingEnv);
   }
 
+#ifdef DEBUG
+  // Assert extended slots don't need to be copied.
+  if (fun->isExtended()) {
+    for (unsigned i = 0; i < FunctionExtended::NUM_EXTENDED_SLOTS; i++) {
+      MOZ_ASSERT(fun->getExtendedSlot(i).isUndefined());
+      MOZ_ASSERT(clone->getExtendedSlot(i).isUndefined());
+    }
+  }
+#endif
+
   return clone;
 }
 
@@ -2055,6 +2054,11 @@ JSFunction* js::CloneAsmJSModuleFunction(JSContext* cx, HandleFunction fun) {
   MOZ_ASSERT(fun->native() == InstantiateAsmJS);
   MOZ_ASSERT(!fun->hasJitInfo());
   clone->initNative(InstantiateAsmJS, nullptr);
+
+  JSObject* moduleObj =
+      &fun->getExtendedSlot(FunctionExtended::ASMJS_MODULE_SLOT).toObject();
+  clone->initExtendedSlot(FunctionExtended::ASMJS_MODULE_SLOT,
+                          ObjectValue(*moduleObj));
 
   return clone;
 }

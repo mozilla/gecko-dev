@@ -82,22 +82,49 @@ static bool IsAvailableInRdd(DecoderType type) {
   }
 }
 
-// Checks if decoder is available in the current process
-static bool IsAvailable(DecoderType type) {
-  return XRE_IsRDDProcess() ? IsAvailableInRdd(type)
-                            : IsAvailableInDefault(type);
+static bool IsAvailableInUtility(DecoderType type) {
+  switch (type) {
+    case DecoderType::Opus:
+      return StaticPrefs::media_utility_opus_enabled();
+    case DecoderType::Vorbis:
+#if defined(__MINGW32__)
+      // If this is a MinGW build we need to force AgnosticDecoderModule to
+      // handle the decision to support Vorbis decoding (instead of
+      // Utility/RemoteDecoderModule) because of Bug 1597408 (Vorbis decoding on
+      // Utility causing sandboxing failure on MinGW-clang).  Typically this
+      // would be dealt with using defines in StaticPrefList.yaml, but we
+      // must handle it here because of Bug 1598426 (the __MINGW32__ define
+      // isn't supported in StaticPrefList.yaml).
+      return false;
+#else
+      return StaticPrefs::media_utility_vorbis_enabled();
+#endif
+    case DecoderType::Wave:
+      return StaticPrefs::media_utility_wav_enabled();
+    case DecoderType::Theora:  // Video codecs, dont take care of them
+    case DecoderType::VPX:
+    default:
+      return false;
+  }
 }
 
-bool AgnosticDecoderModule::SupportsMimeType(
+// Checks if decoder is available in the current process
+static bool IsAvailable(DecoderType type) {
+  return XRE_IsRDDProcess()       ? IsAvailableInRdd(type)
+         : XRE_IsUtilityProcess() ? IsAvailableInUtility(type)
+                                  : IsAvailableInDefault(type);
+}
+
+media::DecodeSupportSet AgnosticDecoderModule::SupportsMimeType(
     const nsACString& aMimeType, DecoderDoctorDiagnostics* aDiagnostics) const {
   UniquePtr<TrackInfo> trackInfo = CreateTrackInfoWithMIMEType(aMimeType);
   if (!trackInfo) {
-    return false;
+    return media::DecodeSupport::Unsupported;
   }
   return Supports(SupportDecoderParams(*trackInfo), aDiagnostics);
 }
 
-bool AgnosticDecoderModule::Supports(
+media::DecodeSupportSet AgnosticDecoderModule::Supports(
     const SupportDecoderParams& aParams,
     DecoderDoctorDiagnostics* aDiagnostics) const {
   const auto& trackInfo = aParams.mConfig;
@@ -117,14 +144,18 @@ bool AgnosticDecoderModule::Supports(
       (WaveDataDecoder::IsWave(mimeType) && IsAvailable(DecoderType::Wave)) ||
       (OpusDataDecoder::IsOpus(mimeType) && IsAvailable(DecoderType::Opus));
   MOZ_LOG(sPDMLog, LogLevel::Debug,
-          ("Agnostic decoder %s requested type",
-           supports ? "supports" : "rejects"));
-  return supports;
+          ("Agnostic decoder %s requested type '%s'",
+           supports ? "supports" : "rejects", mimeType.BeginReading()));
+  if (supports) {
+    return media::DecodeSupport::SoftwareDecode;
+  }
+  return media::DecodeSupport::Unsupported;
 }
 
 already_AddRefed<MediaDataDecoder> AgnosticDecoderModule::CreateVideoDecoder(
     const CreateDecoderParams& aParams) {
-  if (!Supports(SupportDecoderParams(aParams), nullptr /* diagnostic */)) {
+  if (Supports(SupportDecoderParams(aParams), nullptr /* diagnostic */) ==
+      media::DecodeSupport::Unsupported) {
     return nullptr;
   }
   RefPtr<MediaDataDecoder> m;
@@ -155,7 +186,8 @@ already_AddRefed<MediaDataDecoder> AgnosticDecoderModule::CreateVideoDecoder(
 
 already_AddRefed<MediaDataDecoder> AgnosticDecoderModule::CreateAudioDecoder(
     const CreateDecoderParams& aParams) {
-  if (!Supports(SupportDecoderParams(aParams), nullptr /* diagnostic */)) {
+  if (Supports(SupportDecoderParams(aParams), nullptr /* diagnostic */) ==
+      media::DecodeSupport::Unsupported) {
     return nullptr;
   }
   RefPtr<MediaDataDecoder> m;

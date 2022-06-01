@@ -353,7 +353,7 @@ nscoord nsFieldSetFrame::GetIntrinsicISize(gfxContext* aRenderingContext,
                                            IntrinsicISizeType aType) {
   nscoord legendWidth = 0;
   nscoord contentWidth = 0;
-  if (!StyleDisplay()->IsContainSize()) {
+  if (!StyleDisplay()->GetContainSizeAxes().mIContained) {
     // Both inner and legend are children, and if the fieldset is
     // size-contained they should not contribute to the intrinsic size.
     if (nsIFrame* legend = GetLegend()) {
@@ -593,6 +593,15 @@ void nsFieldSetFrame::Reflow(nsPresContext* aPresContext,
     kidReflowInput.Init(
         aPresContext, Nothing(), Nothing(),
         Some(aReflowInput.ComputedLogicalPadding(inner->GetWritingMode())));
+
+    // Propagate the aspect-ratio flag to |inner| (i.e. the container frame
+    // wrapped by nsFieldSetFrame), so we can let |inner|'s reflow code handle
+    // automatic content-based minimum.
+    // Note: Init() resets this flag, so we have to copy it again here.
+    if (aReflowInput.mFlags.mIsBSizeSetByAspectRatio) {
+      kidReflowInput.mFlags.mIsBSizeSetByAspectRatio = true;
+    }
+
     if (kidReflowInput.mFlags.mIsTopOfPage) {
       // Prevent break-before from |inner| if we have a legend.
       kidReflowInput.mFlags.mIsTopOfPage = !legend;
@@ -743,9 +752,9 @@ void nsFieldSetFrame::Reflow(nsPresContext* aPresContext,
   LogicalSize finalSize(
       wm, contentRect.ISize(wm) + border.IStartEnd(wm),
       mLegendSpace + border.BStartEnd(wm) + (inner ? inner->BSize(wm) : 0));
-  if (aReflowInput.mStyleDisplay->IsContainSize()) {
-    // If we're size-contained, then we must set finalSize to be what
-    // it'd be if we had no children (i.e. if we had no legend and if
+  if (aReflowInput.mStyleDisplay->GetContainSizeAxes().mBContained) {
+    // If we're size-contained in block axis, then we must set finalSize to be
+    // what it'd be if we had no children (i.e. if we had no legend and if
     // 'inner' were empty).  Note: normally the fieldset's own padding
     // (which we still must honor) would be accounted for as part of
     // inner's size (see kidReflowInput.Init() call above).  So: since

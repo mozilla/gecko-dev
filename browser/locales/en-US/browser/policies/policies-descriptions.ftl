@@ -15,6 +15,8 @@ policy-AllowedDomainsForApps = Define domains allowed to access Google Workspace
 
 policy-AppAutoUpdate = Enable or disable automatic application update.
 
+policy-AppUpdatePin = Prevent { -brand-short-name } from being updated beyond the specified version.
+
 policy-AppUpdateURL = Set custom app update URL.
 
 policy-Authentication = Configure integrated authentication for websites that support it.
@@ -102,6 +104,8 @@ policy-EnableTrackingProtection = Enable or disable Content Blocking and optiona
 # “lock” means that the user won’t be able to change this setting
 policy-EncryptedMediaExtensions = Enable or disable Encrypted Media Extensions and optionally lock it.
 
+policy-ExemptDomainFileTypePairsFromFileTypeDownloadWarnings = Disable warnings based on file extension for specific file types on domains.
+
 # A “locked” extension can’t be disabled or removed by the user. This policy
 # takes 3 keys (“Install”, ”Uninstall”, ”Locked”), you can either keep them in
 # English or translate them as verbs.
@@ -158,6 +162,8 @@ policy-OverridePostUpdatePage = Override the post-update “What’s New” page
 
 policy-PasswordManagerEnabled = Enable saving passwords to the password manager.
 
+policy-PasswordManagerExceptions = Prevent { -brand-short-name } from saving passwords for specific sites.
+
 # PDF.js and PDF should not be translated
 policy-PDFjs = Disable or configure PDF.js, the built-in PDF viewer in { -brand-short-name }.
 
@@ -192,9 +198,13 @@ policy-SSLVersionMax = Set the maximum SSL version.
 
 policy-SSLVersionMin = Set the minimum SSL version.
 
+policy-StartDownloadsInTempDirectory = Force downloads to start off in a local, temporary location rather than the default download directory.
+
 policy-SupportMenu = Add a custom support menu item to the help menu.
 
 policy-UserMessaging = Don’t show certain messages to the user.
+
+policy-UseSystemPrintDialog = Print using the system print dialog.
 
 # “format” refers to the format used for the value of this policy.
 policy-WebsiteFilter = Block websites from being visited. See documentation for more details on the format.

@@ -4,7 +4,7 @@
 
 use crate::browser::{Browser, LocalBrowser, RemoteBrowser};
 use crate::build;
-use crate::capabilities::{FirefoxCapabilities, FirefoxOptions};
+use crate::capabilities::{FirefoxCapabilities, FirefoxOptions, ProfileType};
 use crate::command::{
     AddonInstallParameters, AddonUninstallParameters, GeckoContextParameters,
     GeckoExtensionCommand, GeckoExtensionRoute, CHROME_ELEMENT_KEY,
@@ -81,6 +81,7 @@ struct MarionetteHandshake {
 #[derive(Default)]
 pub(crate) struct MarionetteSettings {
     pub(crate) binary: Option<PathBuf>,
+    pub(crate) profile_root: Option<PathBuf>,
     pub(crate) connect_existing: bool,
     pub(crate) host: String,
     pub(crate) port: Option<u16>,
@@ -145,6 +146,7 @@ impl MarionetteHandler {
                 // specified, we can pass 0 as the port and later read it back from
                 // the profile.
                 let can_use_profile: bool = options.android.is_none()
+                    && options.profile != ProfileType::Named
                     && !self.settings.connect_existing
                     && fx_capabilities
                         .browser_version(&capabilities)
@@ -187,16 +189,14 @@ impl MarionetteHandler {
                 options,
                 marionette_port,
                 websocket_port,
-                self.settings.allow_hosts.to_owned(),
-                self.settings.allow_origins.to_owned(),
+                self.settings.profile_root.as_ref().map(|x| x.as_path()),
             )?)
         } else if !self.settings.connect_existing {
             Browser::Local(LocalBrowser::new(
                 options,
                 marionette_port,
-                self.settings.allow_hosts.to_owned(),
-                self.settings.allow_origins.to_owned(),
                 self.settings.jsdebugger,
+                self.settings.profile_root.as_ref().map(|x| x.as_path()),
             )?)
         } else {
             Browser::Existing(marionette_port)
@@ -464,8 +464,7 @@ impl MarionetteSession {
                 };
                 let page_load = try_opt!(
                     try_opt!(
-                        resp.result
-                            .get("pageLoad"),
+                        resp.result.get("pageLoad"),
                         ErrorStatus::UnknownError,
                         "Missing field: pageLoad"
                     )
@@ -1173,10 +1172,11 @@ impl MarionetteConnection {
 
             let last_err;
 
-            if let Some(port) = browser.marionette_port() {
+            if let Some(port) = browser.marionette_port()? {
                 match MarionetteConnection::try_connect(host, port) {
                     Ok(stream) => {
                         debug!("Connection to Marionette established on {}:{}.", host, port);
+                        browser.update_marionette_port(port);
                         return Ok(stream);
                     }
                     Err(e) => {

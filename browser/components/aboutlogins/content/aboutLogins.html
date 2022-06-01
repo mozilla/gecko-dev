@@ -33,21 +33,19 @@
     <link rel="icon" href="chrome://branding/content/icon32.png">
   </head>
   <body>
+    <header>
+      <login-filter></login-filter>
+      <fxaccounts-button hidden></fxaccounts-button>
+      <menu-button></menu-button>
+    </header>
     <login-list></login-list>
-    <section>
-      <header>
-        <login-filter></login-filter>
-        <fxaccounts-button hidden></fxaccounts-button>
-        <menu-button></menu-button>
-      </header>
-      <login-item></login-item>
-      <login-intro></login-intro>
-    </section>
+    <login-item></login-item>
+    <login-intro></login-intro>
     <confirmation-dialog hidden></confirmation-dialog>
     <remove-logins-dialog hidden></remove-logins-dialog>
     <import-summary-dialog hidden></import-summary-dialog>
     <import-error-dialog hidden></import-error-dialog>
-    <div id="master-password-required-overlay"></div>
+    <div id="primary-password-required-overlay"></div>
 
     <template id="confirmation-dialog-template">
       <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
@@ -56,10 +54,10 @@
       <div class="overlay">
         <div class="container" role="dialog" aria-labelledby="title" aria-describedby="message">
           <button class="dismiss-button ghost-button" data-l10n-id="confirmation-dialog-dismiss-button">
-            <img class="dismiss-icon" src="chrome://global/skin/icons/close.svg"/>
+            <img class="dismiss-icon" src="chrome://global/skin/icons/close.svg" draggable="false"/>
           </button>
           <div class="content">
-            <img class="warning-icon" src="chrome://global/skin/icons/warning.svg"/>
+            <img class="warning-icon" src="chrome://global/skin/icons/warning.svg" draggable="false"/>
             <h1 class="title" id="title"></h1>
             <p class="message" id="message"></p>
           </div>
@@ -121,7 +119,7 @@
       <link rel="stylesheet" href="chrome://browser/content/aboutlogins/components/import-error-dialog.css">
       <generic-dialog>
         <span slot="dialog-title" data-l10n-id="about-logins-import-dialog-error-title"></span>
-        <img slot="dialog-icon" part="dialog-icon" class="warning-icon" src="chrome://global/skin/icons/warning.svg"/>
+        <img slot="dialog-icon" part="dialog-icon" class="warning-icon" src="chrome://global/skin/icons/warning.svg"/ draggable="false">
         <div slot="content" class="content">
           <span class="error-title" data-l10n-id="about-logins-import-dialog-error-unable-to-read-title"></span>
           <span class="error-description" data-l10n-id="about-logins-import-dialog-error-unable-to-read-description"></span>
@@ -267,7 +265,7 @@
           <div class="error-message">
             <span class="error-message-text" data-l10n-id="about-logins-error-message-default"></span>
             <span class="error-message-link">
-              <a data-l10n-name="duplicate-link" href=""></a>
+              <a data-l10n-name="duplicate-link" tabindex="0" href=""></a>
             </span>
           </div>
           <div class="header">

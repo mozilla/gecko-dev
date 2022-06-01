@@ -36,34 +36,6 @@ def main():
         buildconfig.topobjdir,
     ]
 
-    # We want to ignore system headers in our reports.
-    if buildconfig.substs["OS_TARGET"] == "WINNT":
-        # We use WINDOWSSDKDIR to find the directory holding the system headers on Windows.
-        windows_sdk_dir = None
-        config_opts = buildconfig.substs["MOZ_CONFIGURE_OPTIONS"].split(" ")
-        for opt in config_opts:
-            if opt.startswith("WINDOWSSDKDIR="):
-                windows_sdk_dir = opt[len("WINDOWSSDKDIR=") :]
-                break
-
-        assert (
-            windows_sdk_dir is not None
-        ), "WINDOWSSDKDIR should be in MOZ_CONFIGURE_OPTIONS"
-
-        ignore_dir_abs = pathlib.Path(windows_sdk_dir).parent
-
-        # globs passed to grcov must exist and must be relative to the source directory.
-        # If it doesn't exist, maybe it has moved and we need to update the paths above.
-        # If it is no longer relative to the source directory, we no longer need to ignore it and
-        # this code can be removed.
-        assert ignore_dir_abs.is_dir(), f"{ignore_dir_abs} is not a directory"
-        ignore_dir_rel = ignore_dir_abs.relative_to(buildconfig.topsrcdir)
-
-        grcov_command += [
-            "--ignore",
-            f"{ignore_dir_rel}*",
-        ]
-
     if buildconfig.substs["OS_TARGET"] == "Linux":
         gcc_dir = os.path.join(os.environ["MOZ_FETCHES_DIR"], "gcc")
         if "LD_LIBRARY_PATH" in os.environ:
@@ -73,7 +45,9 @@ def main():
         else:
             os.environ["LD_LIBRARY_PATH"] = "{}/lib64/".format(gcc_dir)
 
-        os.environ["PATH"] = "{}/bin/:{}".format(gcc_dir, os.environ["PATH"])
+        os.environ["PATH"] = "{}/bin/{}{}".format(
+            gcc_dir, os.pathsep, os.environ["PATH"]
+        )
 
     grcov_output = subprocess.check_output(grcov_command)
 

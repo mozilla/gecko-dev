@@ -19,7 +19,8 @@ using namespace js;
 
 static gc::AllocKind GetProxyGCObjectKind(const JSClass* clasp,
                                           const BaseProxyHandler* handler,
-                                          const Value& priv) {
+                                          const Value& priv,
+                                          bool withInlineValues) {
   MOZ_ASSERT(clasp->isProxyObject());
 
   uint32_t nreserved = JSCLASS_RESERVED_SLOTS(clasp);
@@ -29,14 +30,12 @@ static gc::AllocKind GetProxyGCObjectKind(const JSClass* clasp,
   // JSCLASS_HAS_RESERVED_SLOTS since bug 1360523.
   MOZ_ASSERT(nreserved > 0);
 
-  MOZ_ASSERT(
-      js::detail::ProxyValueArray::sizeOf(nreserved) % sizeof(Value) == 0,
-      "ProxyValueArray must be a multiple of Value");
+  uint32_t nslots = 0;
+  if (withInlineValues) {
+    nslots = detail::ProxyValueArray::allocCount(nreserved);
+  }
 
-  uint32_t nslots =
-      js::detail::ProxyValueArray::sizeOf(nreserved) / sizeof(Value);
   MOZ_ASSERT(nslots <= NativeObject::MAX_FIXED_SLOTS);
-
   gc::AllocKind kind = gc::GetGCObjectKind(nslots);
   if (handler->finalizeInBackground(priv)) {
     kind = ForegroundToBackgroundAllocKind(kind);
@@ -86,7 +85,8 @@ ProxyObject* ProxyObject::New(JSContext* cx, const BaseProxyHandler* handler,
   }
 #endif
 
-  gc::AllocKind allocKind = GetProxyGCObjectKind(clasp, handler, priv);
+  gc::AllocKind allocKind = GetProxyGCObjectKind(clasp, handler, priv,
+                                                 /* withInlineValues = */ true);
 
   Realm* realm = cx->realm();
 
@@ -138,9 +138,9 @@ ProxyObject* ProxyObject::New(JSContext* cx, const BaseProxyHandler* handler,
 }
 
 gc::AllocKind ProxyObject::allocKindForTenure() const {
-  MOZ_ASSERT(usingInlineValueArray());
   Value priv = private_();
-  return GetProxyGCObjectKind(getClass(), data.handler, priv);
+  return GetProxyGCObjectKind(getClass(), data.handler, priv,
+                              usingInlineValueArray());
 }
 
 void ProxyObject::setCrossCompartmentPrivate(const Value& priv) {

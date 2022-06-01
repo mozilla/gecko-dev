@@ -9,8 +9,7 @@
 #include "nsPIDOMWindow.h"
 #include "mozilla/dom/BrowsingContext.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class MediaSession;
 
@@ -39,7 +38,8 @@ class MOZ_STACK_CLASS ContentPlaybackController {
   explicit ContentPlaybackController(BrowsingContext* aContext);
   ~ContentPlaybackController() = default;
 
-  void Focus();
+  // TODO: Convert Focus() to MOZ_CAN_RUN_SCRIPT
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void Focus();
   void Play();
   void Pause();
   void SeekBackward();
@@ -68,7 +68,6 @@ class ContentMediaControlKeyHandler {
                                        const MediaControlAction& aAction);
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif

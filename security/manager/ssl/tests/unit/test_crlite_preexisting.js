@@ -14,6 +14,10 @@ add_task(async function test_preexisting_crlite_data() {
     CRLiteModeEnforcePrefValue
   );
 
+  let certStorage = Cc["@mozilla.org/security/certstorage;1"].getService(
+    Ci.nsICertStorage
+  );
+
   let certdb = Cc["@mozilla.org/security/x509certdb;1"].getService(
     Ci.nsIX509CertDB
   );
@@ -30,6 +34,31 @@ add_task(async function test_preexisting_crlite_data() {
   );
 
   let validCert = constructCertFromFile("test_crlite_filters/valid.pem");
+  let revokedCert = constructCertFromFile("test_crlite_filters/revoked.pem");
+
+  // We didn't load a data.bin file, so the filter is not considered fresh and
+  // we should get a "no filter" result. We later test that CRLite considers
+  // this cert to be revoked. So success here shows that CRLite is not
+  // consulted when the filter is stale.
+  await checkCertErrorGenericAtTime(
+    certdb,
+    revokedCert,
+    PRErrorCodeSuccess,
+    certificateUsageSSLServer,
+    new Date("2020-10-20T00:00:00Z").getTime() / 1000,
+    false,
+    "us-datarecovery.com",
+    Ci.nsIX509CertDB.FLAG_LOCAL_ONLY
+  );
+
+  // Add an empty stash to ensure the filter is considered to be fresh.
+  await new Promise(resolve => {
+    certStorage.addCRLiteStash(new Uint8Array([]), (rv, _) => {
+      Assert.equal(rv, Cr.NS_OK, "marked filter as fresh");
+      resolve();
+    });
+  });
+
   // NB: by not specifying Ci.nsIX509CertDB.FLAG_LOCAL_ONLY, this tests that
   // the implementation does not fall back to OCSP fetching, because if it
   // did, the implementation would attempt to connect to a server outside the
@@ -46,7 +75,22 @@ add_task(async function test_preexisting_crlite_data() {
     0
   );
 
-  let revokedCert = constructCertFromFile("test_crlite_filters/revoked.pem");
+  // NB: by not specifying Ci.nsIX509CertDB.FLAG_LOCAL_ONLY, this tests that
+  // the implementation does not fall back to OCSP fetching, because if it
+  // did, the implementation would attempt to connect to a server outside the
+  // test infrastructure, which would result in a crash in the test
+  // environment, which would be treated as a test failure.
+  await checkCertErrorGenericAtTime(
+    certdb,
+    validCert,
+    PRErrorCodeSuccess,
+    certificateUsageSSLServer,
+    new Date("2020-10-20T00:00:00Z").getTime() / 1000,
+    false,
+    "vpn.worldofspeed.org",
+    0
+  );
+
   await checkCertErrorGenericAtTime(
     certdb,
     revokedCert,
@@ -63,14 +107,14 @@ add_task(async function test_preexisting_crlite_data() {
   );
   // The stash may not have loaded yet, so await a task that ensures the stash
   // loading task has completed.
-  let certStorage = Cc["@mozilla.org/security/certstorage;1"].getService(
-    Ci.nsICertStorage
-  );
   await new Promise(resolve => {
-    certStorage.hasPriorData(Ci.nsICertStorage.DATA_TYPE_CRLITE, (rv, _) => {
-      Assert.equal(rv, Cr.NS_OK, "hasPriorData should succeed");
-      resolve();
-    });
+    certStorage.hasPriorData(
+      Ci.nsICertStorage.DATA_TYPE_CRLITE_FILTER_INCREMENTAL,
+      (rv, _) => {
+        Assert.equal(rv, Cr.NS_OK, "hasPriorData should succeed");
+        resolve();
+      }
+    );
   });
   await checkCertErrorGenericAtTime(
     certdb,
@@ -153,8 +197,12 @@ function run_test() {
   stashFile.copyTo(securityStateDirectory, "crlite.stash");
   let coverageFile = do_get_file("test_crlite_preexisting/crlite.coverage");
   coverageFile.copyTo(securityStateDirectory, "crlite.coverage");
-  let certStorageFile = do_get_file("test_crlite_preexisting/data.safe.bin");
-  certStorageFile.copyTo(securityStateDirectory, "data.safe.bin");
+  let enrollmentFile = do_get_file("test_crlite_preexisting/crlite.enrollment");
+  enrollmentFile.copyTo(securityStateDirectory, "crlite.enrollment");
+  let certStorageFile = do_get_file(
+    "test_crlite_preexisting/crlite.enrollment"
+  );
+  certStorageFile.copyTo(securityStateDirectory, "crlite.enrollment");
 
   run_next_test();
 }

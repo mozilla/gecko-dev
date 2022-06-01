@@ -4,10 +4,13 @@
    It is only for internal use by types in
    toolkit/components/glean/bindings/private */
 
+#include "mozilla/AppShutdown.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/Tuple.h"
 #include "mozilla/DataMutex.h"
+#include "nsThreadUtils.h"
 
 #ifndef mozilla_glean_EventGifftMap_h
 #define mozilla_glean_EventGifftMap_h

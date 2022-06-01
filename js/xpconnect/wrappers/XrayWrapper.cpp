@@ -33,6 +33,7 @@
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/ProxyHandlerUtils.h"
 #include "mozilla/dom/WindowBinding.h"
 #include "mozilla/dom/WindowProxyHolder.h"
 #include "mozilla/dom/XrayExpandoClass.h"
@@ -1176,7 +1177,7 @@ static nsIPrincipal* GetExpandoObjectPrincipal(JSObject* expandoObject) {
   return static_cast<nsIPrincipal*>(v.toPrivate());
 }
 
-static void ExpandoObjectFinalize(JSFreeOp* fop, JSObject* obj) {
+static void ExpandoObjectFinalize(JS::GCContext* gcx, JSObject* obj) {
   // Release the principal.
   nsIPrincipal* principal = GetExpandoObjectPrincipal(obj);
   NS_RELEASE(principal);
@@ -1191,7 +1192,6 @@ const JSClassOps XrayExpandoObjectClassOps = {
     nullptr,                // mayResolve
     ExpandoObjectFinalize,  // finalize
     nullptr,                // call
-    nullptr,                // hasInstance
     nullptr,                // construct
     nullptr,                // trace
 };
@@ -2133,20 +2133,6 @@ bool XrayWrapper<Base, Traits>::getBuiltinClass(JSContext* cx,
                                                 JS::HandleObject wrapper,
                                                 js::ESClass* cls) const {
   return Traits::getBuiltinClass(cx, wrapper, Base::singleton, cls);
-}
-
-template <typename Base, typename Traits>
-bool XrayWrapper<Base, Traits>::hasInstance(JSContext* cx,
-                                            JS::HandleObject wrapper,
-                                            JS::MutableHandleValue v,
-                                            bool* bp) const {
-  assertEnteredPolicy(cx, wrapper, JS::PropertyKey::Void(),
-                      BaseProxyHandler::GET);
-
-  // CrossCompartmentWrapper::hasInstance unwraps |wrapper|'s Xrays and enters
-  // its compartment. Any present XrayWrappers should be preserved, so the
-  // standard "instanceof" implementation is called without unwrapping first.
-  return JS::InstanceofOperator(cx, wrapper, v, bp);
 }
 
 template <typename Base, typename Traits>

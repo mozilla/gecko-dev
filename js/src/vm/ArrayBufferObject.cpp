@@ -59,7 +59,7 @@
 #include "wasm/WasmProcess.h"
 #include "wasm/WasmSignalHandlers.h"
 
-#include "gc/FreeOp-inl.h"
+#include "gc/GCContext-inl.h"
 #include "gc/Marking-inl.h"
 #include "gc/Nursery-inl.h"
 #include "vm/JSAtom-inl.h"
@@ -322,7 +322,6 @@ static const JSClassOps ArrayBufferObjectClassOps = {
     nullptr,                      // mayResolve
     ArrayBufferObject::finalize,  // finalize
     nullptr,                      // call
-    nullptr,                      // hasInstance
     nullptr,                      // construct
     nullptr,                      // trace
 };
@@ -508,7 +507,7 @@ void ArrayBufferObject::detach(JSContext* cx,
   }
 
   if (buffer->dataPointer()) {
-    buffer->releaseData(cx->runtime()->defaultFreeOp());
+    buffer->releaseData(cx->gcContext());
     buffer->setDataPointer(BufferContents::createNoData());
   }
 
@@ -934,13 +933,13 @@ ArrayBufferObject::FreeInfo* ArrayBufferObject::freeInfo() const {
   return reinterpret_cast<FreeInfo*>(inlineDataPointer());
 }
 
-void ArrayBufferObject::releaseData(JSFreeOp* fop) {
+void ArrayBufferObject::releaseData(JS::GCContext* gcx) {
   switch (bufferKind()) {
     case INLINE_DATA:
       // Inline data doesn't require releasing.
       break;
     case MALLOCED:
-      fop->free_(this, dataPointer(), byteLength(),
+      gcx->free_(this, dataPointer(), byteLength(),
                  MemoryUse::ArrayBufferContents);
       break;
     case NO_DATA:
@@ -952,12 +951,12 @@ void ArrayBufferObject::releaseData(JSFreeOp* fop) {
       break;
     case MAPPED:
       gc::DeallocateMappedContent(dataPointer(), byteLength());
-      fop->removeCellMemory(this, associatedBytes(),
+      gcx->removeCellMemory(this, associatedBytes(),
                             MemoryUse::ArrayBufferContents);
       break;
     case WASM:
       WasmArrayRawBuffer::Release(dataPointer());
-      fop->removeCellMemory(this, byteLength(), MemoryUse::ArrayBufferContents);
+      gcx->removeCellMemory(this, byteLength(), MemoryUse::ArrayBufferContents);
       break;
     case EXTERNAL:
       if (freeInfo()->freeFunc) {
@@ -1608,8 +1607,8 @@ void ArrayBufferObject::addSizeOfExcludingThis(
 }
 
 /* static */
-void ArrayBufferObject::finalize(JSFreeOp* fop, JSObject* obj) {
-  obj->as<ArrayBufferObject>().releaseData(fop);
+void ArrayBufferObject::finalize(JS::GCContext* gcx, JSObject* obj) {
+  obj->as<ArrayBufferObject>().releaseData(gcx);
 }
 
 /* static */

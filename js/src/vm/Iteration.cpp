@@ -23,7 +23,7 @@
 #include "builtin/Array.h"
 #include "builtin/SelfHostingDefines.h"
 #include "ds/Sort.h"
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "gc/Marking.h"
 #include "js/CallAndConstruct.h"      // JS::IsCallable
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
@@ -1038,22 +1038,6 @@ bool js::EnumerateProperties(JSContext* cx, HandleObject obj,
   return Snapshot(cx, obj, 0, props);
 }
 
-#ifdef DEBUG
-static bool PrototypeMayHaveIndexedProperties(NativeObject* nobj) {
-  JSObject* proto = nobj->staticPrototype();
-  if (!proto) {
-    return false;
-  }
-
-  if (proto->is<NativeObject>() &&
-      proto->as<NativeObject>().getDenseInitializedLength() > 0) {
-    return true;
-  }
-
-  return ObjectMayHaveExtraIndexedProperties(proto);
-}
-#endif
-
 static JSObject* GetIterator(JSContext* cx, HandleObject obj) {
   MOZ_ASSERT(!obj->is<PropertyIteratorObject>());
   MOZ_ASSERT(cx->compartment() == obj->compartment(),
@@ -1230,10 +1214,10 @@ void PropertyIteratorObject::trace(JSTracer* trc, JSObject* obj) {
   }
 }
 
-void PropertyIteratorObject::finalize(JSFreeOp* fop, JSObject* obj) {
+void PropertyIteratorObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   if (NativeIterator* ni =
           obj->as<PropertyIteratorObject>().getNativeIterator()) {
-    fop->free_(obj, ni, ni->allocationSize(), MemoryUse::NativeIterator);
+    gcx->free_(obj, ni, ni->allocationSize(), MemoryUse::NativeIterator);
   }
 }
 
@@ -1246,7 +1230,6 @@ const JSClassOps PropertyIteratorObject::classOps_ = {
     nullptr,   // mayResolve
     finalize,  // finalize
     nullptr,   // call
-    nullptr,   // hasInstance
     nullptr,   // construct
     trace,     // trace
 };

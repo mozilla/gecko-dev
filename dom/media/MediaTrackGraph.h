@@ -97,7 +97,8 @@ class MediaTrack;
 class MediaTrackGraph;
 class MediaTrackGraphImpl;
 class MediaTrackListener;
-class NativeInputTrack;
+class DeviceInputConsumerTrack;
+class DeviceInputTrack;
 class ProcessedMediaTrack;
 class SourceMediaTrack;
 
@@ -359,7 +360,10 @@ class MediaTrack : public mozilla::LinkedListElement<MediaTrack> {
   virtual ForwardedInputTrack* AsForwardedInputTrack() { return nullptr; }
   virtual CrossGraphTransmitter* AsCrossGraphTransmitter() { return nullptr; }
   virtual CrossGraphReceiver* AsCrossGraphReceiver() { return nullptr; }
-  virtual NativeInputTrack* AsNativeInputTrack() { return nullptr; }
+  virtual DeviceInputTrack* AsDeviceInputTrack() { return nullptr; }
+  virtual DeviceInputConsumerTrack* AsDeviceInputConsumerTrack() {
+    return nullptr;
+  }
 
   // These Impl methods perform the core functionality of the control methods
   // above, on the media graph thread.
@@ -667,9 +671,9 @@ class SourceMediaTrack : public MediaTrack {
   // The value set here is applied in MoveToSegment so we can avoid the
   // buffering delay in applying the change. See Bug 1443511.
   void SetVolume(float aVolume);
-  float GetVolumeLocked();
+  float GetVolumeLocked() REQUIRES(mMutex);
 
-  Mutex& GetMutex() { return mMutex; }
+  Mutex& GetMutex() RETURN_CAPABILITY(mMutex) { return mMutex; }
 
   friend class MediaTrackGraphImpl;
 
@@ -702,7 +706,7 @@ class SourceMediaTrack : public MediaTrack {
 
   bool NeedsMixing();
 
-  void ResampleAudioToGraphSampleRate(MediaSegment* aSegment);
+  void ResampleAudioToGraphSampleRate(MediaSegment* aSegment) REQUIRES(mMutex);
 
   void AddDirectListenerImpl(
       already_AddRefed<DirectMediaTrackListener> aListener) override;
@@ -714,7 +718,7 @@ class SourceMediaTrack : public MediaTrack {
    * from AppendData on the thread providing the data, and will call
    * the Listeners on this thread.
    */
-  void NotifyDirectConsumers(MediaSegment* aSegment);
+  void NotifyDirectConsumers(MediaSegment* aSegment) REQUIRES(mMutex);
 
   void OnGraphThreadDone() override {
     MutexAutoLock lock(mMutex);
@@ -735,9 +739,10 @@ class SourceMediaTrack : public MediaTrack {
   // held together.
   Mutex mMutex;
   // protected by mMutex
-  float mVolume = 1.0;
-  UniquePtr<TrackData> mUpdateTrack;
-  nsTArray<RefPtr<DirectMediaTrackListener>> mDirectTrackListeners;
+  float mVolume GUARDED_BY(mMutex) = 1.0;
+  UniquePtr<TrackData> mUpdateTrack GUARDED_BY(mMutex);
+  nsTArray<RefPtr<DirectMediaTrackListener>> mDirectTrackListeners
+      GUARDED_BY(mMutex);
 };
 
 /**
@@ -1030,8 +1035,8 @@ class MediaTrackGraph {
   // Idempotent
   void ForceShutDown();
 
-  virtual void OpenAudioInput(NativeInputTrack* aTrack) = 0;
-  virtual void CloseAudioInput(NativeInputTrack* aTrack) = 0;
+  virtual void OpenAudioInput(DeviceInputTrack* aTrack) = 0;
+  virtual void CloseAudioInput(DeviceInputTrack* aTrack) = 0;
 
   // Control API.
   /**

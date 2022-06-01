@@ -27,8 +27,7 @@
 
 class nsIHttpUpgradeListener;
 
-namespace mozilla {
-namespace net {
+namespace mozilla::net {
 class EventTokenBucket;
 class NullHttpTransaction;
 struct HttpRetParams;
@@ -210,7 +209,7 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
   ReentrantMonitor mReentrantMonitor{"nsHttpConnectionMgr.mReentrantMonitor"};
   // This is used as a flag that we're shut down, and no new events should be
   // dispatched.
-  nsCOMPtr<nsIEventTarget> mSocketThreadTarget;
+  nsCOMPtr<nsIEventTarget> mSocketThreadTarget GUARDED_BY(mReentrantMonitor);
 
   Atomic<bool, mozilla::Relaxed> mIsShuttingDown{false};
 
@@ -313,7 +312,7 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
   void OnMsgNewTransaction(int32_t, ARefBase*);
   void OnMsgNewTransactionWithStickyConn(int32_t, ARefBase*);
   void OnMsgReschedTransaction(int32_t, ARefBase*);
-  void OnMsgUpdateClassOfServiceOnTransaction(int32_t, ARefBase*);
+  void OnMsgUpdateClassOfServiceOnTransaction(ClassOfService, ARefBase*);
   void OnMsgCancelTransaction(int32_t, ARefBase*);
   void OnMsgCancelTransactions(int32_t, ARefBase*);
   void OnMsgProcessPendingQ(int32_t, ARefBase*);
@@ -460,7 +459,6 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
   void CheckTransInPendingQueue(nsHttpTransaction* aTrans);
 };
 
-}  // namespace net
-}  // namespace mozilla
+}  // namespace mozilla::net
 
 #endif  // !nsHttpConnectionMgr_h__

@@ -109,6 +109,7 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   nsIFrame* GetSubdocumentRootFrame();
   enum { IGNORE_PAINT_SUPPRESSION = 0x1 };
   mozilla::PresShell* GetSubdocumentPresShellForPainting(uint32_t aFlags);
+  nsRect GetDestRect();
   mozilla::ScreenIntSize GetSubdocumentSize();
 
   // nsIReflowCallback
@@ -133,6 +134,7 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   void ResetFrameLoader(RetainPaintData);
   void ClearRetainedPaintData();
 
+  void MaybeUpdateEmbedderColorScheme();
   void PropagateIsUnderHiddenEmbedderElementToSubView(
       bool aIsUnderHiddenEmbedderElement);
 
@@ -161,6 +163,9 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   }
 
   nscoord GetIntrinsicISize() {
+    if (StyleDisplay()->GetContainSizeAxes().mIContained) {
+      return 0;
+    }
     auto size = GetIntrinsicSize();
     Maybe<nscoord> iSize =
         GetWritingMode().IsVertical() ? size.height : size.width;

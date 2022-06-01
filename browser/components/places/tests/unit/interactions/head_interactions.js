@@ -8,6 +8,8 @@ const { XPCOMUtils } = ChromeUtils.import(
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   Interactions: "resource:///modules/Interactions.jsm",
+  PageThumbs: "resource://gre/modules/PageThumbs.jsm",
+  PlacesPreviews: "resource://gre/modules/PlacesPreviews.jsm",
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.jsm",
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
   setTimeout: "resource://gre/modules/Timer.jsm",
@@ -34,7 +36,7 @@ const TOPIC_DELETED = "places-snapshots-deleted";
  * @param {InteractionInfo[]} interactions
  */
 async function addInteractions(interactions) {
-  await PlacesTestUtils.addVisits(interactions.map(i => i.url));
+  await PlacesTestUtils.addVisits(interactions);
 
   for (let interaction of interactions) {
     await Interactions.store.add({
@@ -102,9 +104,12 @@ async function assertUrlNotification(topic, expected, task) {
       if (arr.length != expected.length) {
         return;
       }
-
-      if (expected.every(url => arr.includes(url))) {
-        seen = true;
+      if (topic == TOPIC_ADDED) {
+        // For the added notification we receive objects including the url
+        // and userPersisted.
+        seen = arr.every(item => expected.includes(item.url));
+      } else {
+        seen = arr.every(url => expected.includes(url));
       }
     } catch (e) {
       Assert.ok(false, e);
@@ -141,15 +146,17 @@ async function assertTopicNotObserved(topic, task) {
 
 /**
  * Asserts that a date looks reasonably valid, i.e. created no earlier than
- * 24 hours prior to the current date.
+ * threshold days prior to the current date.
  *
  * @param {Date} date
  *   The date to check.
+ * @param {number} threshold
+ *   Maximum number of days the date should be in the past.
  */
-function assertRecentDate(date) {
+function assertRecentDate(date, threshold = 1) {
   Assert.greater(
     date.getTime(),
-    Date.now() - 1000 * 60 * 60 * 24,
+    Date.now() - 1000 * 60 * 60 * 24 * threshold,
     "Should have a reasonable value for the date"
   );
 }
@@ -157,12 +164,19 @@ function assertRecentDate(date) {
 /**
  * Asserts that an individual snapshot contains the expected values.
  *
- * @param {Snapshot} actual
+ * @param {Snapshot|Recommendation} actual
  *  The snapshot to test.
  * @param {Snapshot} expected
  *  The snapshot to test against.
  */
 function assertSnapshot(actual, expected) {
+  // This may be a recommendation.
+  let score = 0;
+  if ("snapshot" in actual) {
+    score = actual.score;
+    actual = actual.snapshot;
+  }
+
   Assert.equal(actual.url, expected.url, "Should have the expected URL");
   let expectedTitle = `test visit for ${expected.url}`;
   if (expected.hasOwnProperty("title")) {
@@ -182,13 +196,13 @@ function assertSnapshot(actual, expected) {
     expected.documentType ?? Interactions.DOCUMENT_TYPE.GENERIC,
     "Should have the expected document type"
   );
-  assertRecentDate(actual.createdAt);
-  assertRecentDate(actual.lastInteractionAt);
+  assertRecentDate(actual.createdAt, expected.daysThreshold);
+  assertRecentDate(actual.lastInteractionAt, expected.daysThreshold);
   if (actual.firstInteractionAt || !actual.userPersisted) {
     // If a snapshot is manually created before its corresponding interaction is
     // created, we assign a temporary value of 0 for first_interaction_at. In
     // all other cases, we want to ensure a reasonable date value is being used.
-    assertRecentDate(actual.firstInteractionAt);
+    assertRecentDate(actual.firstInteractionAt, expected.daysThreshold);
   }
   if (expected.lastUpdated) {
     Assert.greaterOrEqual(
@@ -204,32 +218,32 @@ function assertSnapshot(actual, expected) {
       "Should have the Snapshot URL's common name."
     );
   }
-  if (expected.overlappingVisitScoreIs != null) {
+  if (expected.scoreEqualTo != null) {
     Assert.equal(
-      actual.overlappingVisitScore,
-      expected.overlappingVisitScoreIs,
-      "Should have an overlappingVisitScore equal to the expected score"
+      score,
+      expected.scoreEqualTo,
+      "Should have a score equal to the expected score"
     );
   }
-  if (expected.overlappingVisitScoreGreaterThan != null) {
+  if (expected.scoreGreaterThan != null) {
     Assert.greater(
-      actual.overlappingVisitScore,
-      expected.overlappingVisitScoreGreaterThan,
-      "Should have an overlappingVisitScore greater than the expected score"
+      score,
+      expected.scoreGreaterThan,
+      "Should have a score greater than the expected score"
     );
   }
-  if (expected.overlappingVisitScoreLessThan != null) {
+  if (expected.scoreLessThan != null) {
     Assert.less(
-      actual.overlappingVisitScore,
-      expected.overlappingVisitScoreLessThan,
-      "Should have an overlappingVisitScore less than the expected score"
+      score,
+      expected.scoreLessThan,
+      "Should have a score less than the expected score"
     );
   }
-  if (expected.overlappingVisitScoreLessThanEqualTo != null) {
+  if (expected.scoreLessThanEqualTo != null) {
     Assert.lessOrEqual(
-      actual.overlappingVisitScore,
-      expected.overlappingVisitScoreLessThanEqualTo,
-      "Should have an overlappingVisitScore less than or equal to the expected score"
+      score,
+      expected.scoreLessThanEqualTo,
+      "Should have a score less than or equal to the expected score"
     );
   }
   if (expected.removedAt) {
@@ -243,13 +257,6 @@ function assertSnapshot(actual, expected) {
       actual.removedAt,
       null,
       "Should not have a removed at time"
-    );
-  }
-  if (expected.commonReferrerScoreEqualTo != null) {
-    Assert.equal(
-      actual.commonReferrerScore,
-      expected.commonReferrerScoreEqualTo,
-      "Should have a commonReferrerScore equal to the expected score"
     );
   }
 }
@@ -297,37 +304,50 @@ async function assertSnapshots(expected, options) {
  *   The expected snapshot group.
  */
 function assertSnapshotGroup(group, expected) {
-  if (expected.title != null) {
-    Assert.equal(group.title, expected.title, "Should have the expected title");
+  for (let [p, v] of Object.entries(expected)) {
+    let comparator = Assert.equal.bind(Assert);
+    if (v && typeof v == "object") {
+      comparator = Assert.deepEqual.bind(Assert);
+    }
+    comparator(group[p], v, `Should have the expected ${p} value`);
   }
-  if (expected.builder != null) {
-    Assert.equal(
-      group.builder,
-      expected.builder,
-      "Should have the expected builder"
-    );
+}
+
+/**
+ * Asserts that the list of snapshot groups match the expected values.
+ *
+ * @param {SnapshotGroup[]} received
+ *   The received snapshots.
+ * @param {SnapshotGroup[]} expected
+ *   The expected snapshots.
+ */
+async function assertSnapshotGroupList(received, expected) {
+  info(
+    `Found ${received.length} snapshot groups:\n ${JSON.stringify(received)}`
+  );
+  Assert.equal(
+    received.length,
+    expected.length,
+    "Should have the expected number of snapshots"
+  );
+  for (let i = 0; i < expected.length; i++) {
+    assertSnapshotGroup(received[i], expected[i]);
   }
-  if (expected.builderMetadata != null) {
-    Assert.deepEqual(
-      group.builderMetadata,
-      expected.builderMetadata,
-      "Should have the expected builderMetadata"
-    );
-  }
-  if (expected.snapshotCount != null) {
-    Assert.equal(
-      group.snapshotCount,
-      expected.snapshotCount,
-      "Should have the expected snapshotCount"
-    );
-  }
-  if (expected.lastAccessed != null) {
-    Assert.equal(
-      group.lastAccessed,
-      expected.lastAccessed,
-      "Should have the expected lastAccessed value"
-    );
-  }
+}
+
+/**
+ * Given a list of snapshot groups and a list of ids returns the groups in that
+ * order.
+ *
+ * @param {SnapshotGroup[]} list
+ *   The list of groups.
+ * @param {string[]} order
+ *   The ids of groups.
+ * @returns {SnapshotGroup[]} The list of groups in the order expected.
+ */
+function orderedGroups(list, order) {
+  let groups = Object.fromEntries(list.map(g => [g.id, g]));
+  return order.map(id => groups[id]);
 }
 
 /**
@@ -335,13 +355,15 @@ function assertSnapshotGroup(group, expected) {
  *
  * @param {Snapshot[]} expected
  *   The expected snapshots.
- * @param {object} context
+ * @param {SelectionContext} context
  *   @see SnapshotSelector.#context.
  */
 async function assertOverlappingSnapshots(expected, context) {
-  let snapshots = await Snapshots.queryOverlapping(context.url);
+  let recommendations = await Snapshots.recommendationSources.Overlapping(
+    context
+  );
 
-  await assertSnapshotList(snapshots, expected);
+  await assertSnapshotList(recommendations, expected);
 }
 
 /**
@@ -349,13 +371,31 @@ async function assertOverlappingSnapshots(expected, context) {
  *
  * @param {Snapshot[]} expected
  *   The expected snapshots.
- * @param {object} context
+ * @param {SelectionContext} context
  *   @see SnapshotSelector.#context.
  */
 async function assertCommonReferrerSnapshots(expected, context) {
-  let snapshots = await Snapshots.queryCommonReferrer(context.url);
+  let recommendations = await Snapshots.recommendationSources.CommonReferrer(
+    context
+  );
 
-  await assertSnapshotList(snapshots, expected);
+  await assertSnapshotList(recommendations, expected);
+}
+
+/**
+ * Queries time of day snapshots from the database and asserts their expected values.
+ *
+ * @param {Snapshot[]} expected
+ *   The expected snapshots.
+ * @param {SelectionContext} context
+ *   @see SnapshotSelector.#context.
+ */
+async function assertTimeOfDaySnapshots(expected, context) {
+  let recommendations = await Snapshots.recommendationSources.TimeOfDay(
+    context
+  );
+
+  await assertSnapshotList(recommendations, expected);
 }
 
 /**
@@ -369,28 +409,41 @@ async function reset() {
 /**
  * Asserts relevancy scores for snapshots are correct.
  *
- * @param {Snapshot[]} combinedSnapshots
+ * @param {Recommendation[]} recommendations
  *   The array of combined snapshots.
- * @param {object[]} expectedSnapshots
- *   An array of objects containing expected url and relevancyScore properties.
+ * @param {object[]} expected
+ *   An array of objects containing expected url and score properties.
  */
-function assertSnapshotScores(combinedSnapshots, expectedSnapshots) {
+function assertRecommendations(recommendations, expected) {
   Assert.equal(
-    combinedSnapshots.length,
-    expectedSnapshots.length,
-    "Should have returned the correct amount of snapshots"
+    recommendations.length,
+    expected.length,
+    "Should have returned the correct amount of recommendations"
   );
 
-  for (let i = 0; i < combinedSnapshots.length; i++) {
+  for (let i = 0; i < recommendations.length; i++) {
     Assert.equal(
-      combinedSnapshots[i].url,
-      expectedSnapshots[i].url,
-      "Should have returned the expected URL for the snapshot"
+      recommendations[i].snapshot.url,
+      expected[i].url,
+      "Should have returned the expected URL for the recommendation"
     );
     Assert.equal(
-      combinedSnapshots[i].relevancyScore,
-      expectedSnapshots[i].score,
-      `Should have set the expected score for ${expectedSnapshots[i].url}`
+      recommendations[i].score,
+      expected[i].score,
+      `Should have set the expected score for ${expected[i].url}`
     );
   }
+}
+
+/**
+ * Abstracts getting the right moz-page-thumb url depending on enabled features.
+ * @param {string} url
+ *  The page url to get a screenshot for.
+ * @returns {string} a moz-page-thumb:// url
+ */
+function getPageThumbURL(url) {
+  if (PlacesPreviews.enabled) {
+    return PlacesPreviews.getPageThumbURL(url);
+  }
+  return PageThumbs.getThumbnailURL(url);
 }

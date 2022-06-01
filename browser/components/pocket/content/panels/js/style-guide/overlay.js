@@ -4,6 +4,7 @@ import Header from "../components/Header/Header";
 import ArticleList from "../components/ArticleList/ArticleList";
 import Button from "../components/Button/Button";
 import PopularTopics from "../components/PopularTopics/PopularTopics";
+import TagPicker from "../components/TagPicker/TagPicker";
 
 var StyleGuideOverlay = function(options) {};
 
@@ -13,28 +14,46 @@ StyleGuideOverlay.prototype = {
     ReactDOM.render(
       <div>
         <h3>JSX Components:</h3>
-        <h4 className="stp_styleguide_h4">Button</h4>
-        <Button style="text" url="https://example.org">
+        <h4 className="stp_styleguide_h4">Buttons</h4>
+        <h5 className="stp_styleguide_h5">text</h5>
+        <Button style="text" url="https://example.org" source="styleguide">
           Text Button
         </Button>
-        <br />
-        <Button style="primary">Primary Button</Button>
-        <br />
-        <Button style="secondary">Secondary Button</Button>
+        <h5 className="stp_styleguide_h5">primary</h5>
+        <Button style="primary" url="https://example.org" source="styleguide">
+          Primary Button
+        </Button>
+        <h5 className="stp_styleguide_h5">secondary</h5>
+        <Button style="secondary" url="https://example.org" source="styleguide">
+          Secondary Button
+        </Button>
+        <h5 className="stp_styleguide_h5">primary wide</h5>
         <span className="stp_button_wide">
-          <Button style="primary">Primary Wide Button</Button>
+          <Button style="primary" url="https://example.org" source="styleguide">
+            Primary Wide Button
+          </Button>
         </span>
+        <h5 className="stp_styleguide_h5">secondary wide</h5>
         <span className="stp_button_wide">
-          <Button style="secondary">Secondary Wide Button</Button>
+          <Button
+            style="secondary"
+            url="https://example.org"
+            source="styleguide"
+          >
+            Secondary Wide Button
+          </Button>
         </span>
         <h4 className="stp_styleguide_h4">Header</h4>
         <Header>
-          <Button style="primary">View My List</Button>
+          <Button style="primary" url="https://example.org" source="styleguide">
+            View My List
+          </Button>
         </Header>
         <h4 className="stp_styleguide_h4">PopularTopics</h4>
         <PopularTopics
           pockethost={`getpocket.com`}
-          utmsource={`styleguide`}
+          source={`styleguide`}
+          utmParams={`utm_source=styleguide`}
           topics={[
             { title: "Self Improvement", topic: "self-improvement" },
             { title: "Food", topic: "food" },
@@ -44,6 +63,7 @@ StyleGuideOverlay.prototype = {
         />
         <h4 className="stp_styleguide_h4">ArticleList</h4>
         <ArticleList
+          source={`styleguide`}
           articles={[
             {
               title: "Article Title",
@@ -54,23 +74,22 @@ StyleGuideOverlay.prototype = {
               alt: "Alt Text",
             },
             {
-              title: "Article Title",
-              publisher: "Publisher",
+              title: "Article Title (No Publisher)",
               thumbnail:
                 "https://img-getpocket.cdn.mozilla.net/80x80/https://www.raritanheadwaters.org/wp-content/uploads/2020/04/red-fox.jpg",
               url: "https://example.org",
               alt: "Alt Text",
             },
             {
-              title: "Article Title",
+              title: "Article Title (No Thumbnail)",
               publisher: "Publisher",
-              thumbnail:
-                "https://img-getpocket.cdn.mozilla.net/80x80/https://www.raritanheadwaters.org/wp-content/uploads/2020/04/red-fox.jpg",
               url: "https://example.org",
               alt: "Alt Text",
             },
           ]}
         />
+        <h4 className="stp_styleguide_h4">TagPicker</h4>
+        <TagPicker tags={[`futurism`, `politics`, `mozilla`]} />
         <h3>Typography:</h3>
         <h2 className="header_large">.header_large</h2>
         <h3 className="header_medium">.header_medium</h3>

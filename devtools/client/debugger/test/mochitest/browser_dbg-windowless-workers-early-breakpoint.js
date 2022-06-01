@@ -3,8 +3,14 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 // Test that breakpoints at worker startup are hit when using windowless workers.
+
+"use strict";
+
 add_task(async function() {
-  const dbg = await initDebugger("doc-windowless-workers-early-breakpoint.html", "simple-worker.js");
+  const dbg = await initDebugger(
+    "doc-windowless-workers-early-breakpoint.html",
+    "simple-worker.js"
+  );
 
   const workerSource = findSource(dbg, "simple-worker.js");
 
@@ -17,7 +23,7 @@ add_task(async function() {
   // We should be paused at the first line of simple-worker.js
   // Each worker has its own sources, so we have to retrieve the new source,
   // which has just been opened on pause
-  const workerSource2 = dbg.selectors.getSelectedSourceWithContent();
+  const workerSource2 = dbg.selectors.getSelectedSource();
   assertPausedAtSourceAndLine(dbg, workerSource2.id, 1);
   // We have to remove the first breakpoint, set on the fist worker.
   // The first worker is loaded on the html page load.
@@ -34,7 +40,7 @@ add_task(async function() {
   await waitForPaused(dbg, "simple-worker.js");
 
   // We should be paused in the message listener in simple-worker.js
-  const workerSource3 = dbg.selectors.getSelectedSourceWithContent();
+  const workerSource3 = dbg.selectors.getSelectedSource();
   assertPausedAtSourceAndLine(dbg, workerSource3.id, 10);
   await removeBreakpoint(dbg, workerSource2.id, 10, 2);
 });

@@ -39,6 +39,7 @@
 #include "mozilla/dom/Storage.h"
 #include "mozilla/dom/MaybeCrossOriginObject.h"
 #include "mozilla/dom/Performance.h"
+#include "mozilla/dom/ProxyHandlerUtils.h"
 #include "mozilla/dom/StorageEvent.h"
 #include "mozilla/dom/StorageEventBinding.h"
 #include "mozilla/dom/StorageNotifierService.h"
@@ -271,6 +272,7 @@ using namespace mozilla::dom::ipc;
 using mozilla::BasePrincipal;
 using mozilla::OriginAttributes;
 using mozilla::TimeStamp;
+using mozilla::layout::RemotePrintJobChild;
 
 #define FORWARD_TO_INNER(method, args, err_rval)       \
   PR_BEGIN_MACRO                                       \
@@ -488,7 +490,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<js::Wrapper> {
   const char* className(JSContext* cx,
                         JS::Handle<JSObject*> wrapper) const override;
 
-  void finalize(JSFreeOp* fop, JSObject* proxy) const override;
+  void finalize(JS::GCContext* gcx, JSObject* proxy) const override;
   size_t objectMoved(JSObject* proxy, JSObject* old) const override;
 
   bool isCallable(JSObject* obj) const override { return false; }
@@ -556,7 +558,7 @@ const char* nsOuterWindowProxy::className(JSContext* cx,
   return "Window";
 }
 
-void nsOuterWindowProxy::finalize(JSFreeOp* fop, JSObject* proxy) const {
+void nsOuterWindowProxy::finalize(JS::GCContext* gcx, JSObject* proxy) const {
   nsGlobalWindowOuter* outerWindow = GetOuterWindow(proxy);
   if (outerWindow) {
     outerWindow->ClearWrapper(proxy);
@@ -572,28 +574,6 @@ void nsOuterWindowProxy::finalize(JSFreeOp* fop, JSObject* proxy) const {
     outerWindow->PoisonOuterWindowProxy(proxy);
   }
 }
-
-/**
- * IsNonConfigurableReadonlyPrimitiveGlobalProp returns true for
- * property names that fit the following criteria:
- *
- * 1) The ES spec defines a property with that name on globals.
- * 2) The property is non-configurable.
- * 3) The property is non-writable (readonly).
- * 4) The value of the property is a primitive (so doesn't change
- *    observably on when navigation happens).
- *
- * Such properties can act as actual non-configurable properties on a
- * WindowProxy, because they are not affected by navigation.
- */
-#ifndef RELEASE_OR_BETA
-static bool IsNonConfigurableReadonlyPrimitiveGlobalProp(JSContext* cx,
-                                                         JS::Handle<jsid> id) {
-  return id == GetJSIDByIndex(cx, XPCJSContext::IDX_NAN) ||
-         id == GetJSIDByIndex(cx, XPCJSContext::IDX_UNDEFINED) ||
-         id == GetJSIDByIndex(cx, XPCJSContext::IDX_INFINITY);
-}
-#endif
 
 bool nsOuterWindowProxy::getOwnPropertyDescriptor(
     JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
@@ -650,7 +630,8 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
         return false;
       }
 
-#ifndef RELEASE_OR_BETA  // To be turned on in bug 1496510.
+#if 0
+      // See https://github.com/tc39/ecma262/issues/672 for more information.
       if (desc.isSome() &&
           !IsNonConfigurableReadonlyPrimitiveGlobalProp(cx, id)) {
         (*desc).setConfigurable(true);
@@ -767,7 +748,8 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
     }
   }
 
-#ifndef RELEASE_OR_BETA  // To be turned on in bug 1496510.
+#if 0
+  // See https://github.com/tc39/ecma262/issues/672 for more information.
   if (desc.hasConfigurable() && !desc.configurable() &&
       !IsNonConfigurableReadonlyPrimitiveGlobalProp(cx, id)) {
     // Give callers a way to detect that they failed to "really" define a
@@ -1695,6 +1677,11 @@ uint32_t nsGlobalWindowOuter::GetPrincipalHashValue() const {
     return mDoc->NodePrincipal()->GetHashValue();
   }
   return 0;
+}
+
+OriginTrials nsGlobalWindowOuter::Trials() const {
+  return mInnerWindow ? nsGlobalWindowInner::Cast(mInnerWindow)->Trials()
+                      : OriginTrials();
 }
 
 nsresult nsGlobalWindowOuter::EnsureScriptEnvironment() {
@@ -3728,34 +3715,19 @@ CSSIntPoint nsGlobalWindowOuter::GetScreenXY(CallerType aCallerType,
     return CSSIntPoint(0, 0);
   }
 
-  int32_t x = 0, y = 0;
-  aError = treeOwnerAsWin->GetPosition(&x, &y);  // LayoutDevice px values
+  LayoutDeviceIntPoint windowPos;
+  aError = treeOwnerAsWin->GetPosition(&windowPos.x, &windowPos.y);
 
   RefPtr<nsPresContext> presContext = mDocShell->GetPresContext();
   if (!presContext) {
-    return CSSIntPoint(x, y);
+    // XXX Fishy LayoutDevice to CSS conversion?
+    return CSSIntPoint(windowPos.x, windowPos.y);
   }
 
-  // Find the global desktop coordinate of the top-left of the screen.
-  // We'll use this as a "fake origin" when converting to CSS px units,
-  // to avoid overlapping coordinates in cases such as a hi-dpi screen
-  // placed to the right of a lo-dpi screen on Windows. (Instead, there
-  // may be "gaps" in the resulting CSS px coordinates in some cases.)
-  nsDeviceContext* dc = presContext->DeviceContext();
-  nsRect screenRect;
-  dc->GetRect(screenRect);
-  LayoutDeviceRect screenRectDev =
-      LayoutDevicePixel::FromAppUnits(screenRect, dc->AppUnitsPerDevPixel());
-
-  DesktopToLayoutDeviceScale scale = dc->GetDesktopToDeviceScale();
-  DesktopRect screenRectDesk = screenRectDev / scale;
-
-  CSSPoint cssPt = LayoutDevicePoint(x - screenRectDev.x, y - screenRectDev.y) /
-                   presContext->CSSToDevPixelScale();
-  cssPt.x += screenRectDesk.x;
-  cssPt.y += screenRectDesk.y;
-
-  return CSSIntPoint(NSToIntRound(cssPt.x), NSToIntRound(cssPt.y));
+  nsDeviceContext* context = presContext->DeviceContext();
+  auto windowPosAppUnits = LayoutDeviceIntPoint::ToAppUnits(
+      windowPos, context->AppUnitsPerDevPixel());
+  return CSSIntPoint::FromAppUnitsRounded(windowPosAppUnits);
 }
 
 int32_t nsGlobalWindowOuter::GetScreenXOuter(CallerType aCallerType,
@@ -3842,15 +3814,6 @@ float nsGlobalWindowOuter::GetMozInnerScreenYOuter(CallerType aCallerType) {
 
   nsRect r = GetInnerScreenRect();
   return nsPresContext::AppUnitsToFloatCSSPixels(r.y);
-}
-
-uint64_t nsGlobalWindowOuter::GetMozPaintCountOuter() {
-  if (!mDocShell) {
-    return 0;
-  }
-
-  PresShell* presShell = mDocShell->GetPresShell();
-  return presShell ? presShell->GetPaintCount() : 0;
 }
 
 void nsGlobalWindowOuter::SetScreenXOuter(int32_t aScreenX,
@@ -4169,11 +4132,17 @@ already_AddRefed<nsIWidget> nsGlobalWindowOuter::GetMainWidget() {
 
 nsIWidget* nsGlobalWindowOuter::GetNearestWidget() const {
   nsIDocShell* docShell = GetDocShell();
-  NS_ENSURE_TRUE(docShell, nullptr);
+  if (!docShell) {
+    return nullptr;
+  }
   PresShell* presShell = docShell->GetPresShell();
-  NS_ENSURE_TRUE(presShell, nullptr);
+  if (!presShell) {
+    return nullptr;
+  }
   nsIFrame* rootFrame = presShell->GetRootFrame();
-  NS_ENSURE_TRUE(rootFrame, nullptr);
+  if (!rootFrame) {
+    return nullptr;
+  }
   return rootFrame->GetView()->GetNearestWidget(nullptr);
 }
 
@@ -5017,8 +4986,8 @@ void nsGlobalWindowOuter::PromptOuter(const nsAString& aMessage,
 void nsGlobalWindowOuter::FocusOuter(CallerType aCallerType,
                                      bool aFromOtherProcess,
                                      uint64_t aActionId) {
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (!fm) {
+  RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager();
+  if (MOZ_UNLIKELY(!fm)) {
     return;
   }
 
@@ -5058,7 +5027,8 @@ void nsGlobalWindowOuter::FocusOuter(CallerType aCallerType,
   if (parent) {
     if (!parent->IsInProcess()) {
       if (isActive) {
-        fm->WindowRaised(this, aActionId);
+        OwningNonNull<nsGlobalWindowOuter> kungFuDeathGrip(*this);
+        fm->WindowRaised(kungFuDeathGrip, aActionId);
       } else {
         ContentChild* contentChild = ContentChild::GetSingleton();
         MOZ_ASSERT(contentChild);
@@ -5080,7 +5050,8 @@ void nsGlobalWindowOuter::FocusOuter(CallerType aCallerType,
     // if there is no parent, this must be a toplevel window, so raise the
     // window if canFocus is true. If this is a child process, the raise
     // window request will get forwarded to the parent by the puppet widget.
-    fm->RaiseWindow(this, aCallerType, aActionId);
+    OwningNonNull<nsGlobalWindowOuter> kungFuDeathGrip(*this);
+    fm->RaiseWindow(kungFuDeathGrip, aCallerType, aActionId);
   }
 }
 
@@ -5103,13 +5074,15 @@ void nsGlobalWindowOuter::BlurOuter(CallerType aCallerType) {
     siteWindow->Blur();
 
     // if the root is focused, clear the focus
-    nsFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (fm && mDoc) {
-      RefPtr<Element> element;
-      fm->GetFocusedElementForWindow(this, false, nullptr,
-                                     getter_AddRefs(element));
-      if (element == mDoc->GetRootElement()) {
-        fm->ClearFocus(this);
+    if (mDoc) {
+      if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
+        RefPtr<Element> element;
+        fm->GetFocusedElementForWindow(this, false, nullptr,
+                                       getter_AddRefs(element));
+        if (element == mDoc->GetRootElement()) {
+          OwningNonNull<nsGlobalWindowOuter> kungFuDeathGrip(*this);
+          fm->ClearFocus(kungFuDeathGrip);
+        }
       }
     }
   }
@@ -5162,7 +5135,7 @@ void nsGlobalWindowOuter::PrintOuter(ErrorResult& aError) {
   });
 
   const bool forPreview = !StaticPrefs::print_always_print_silent();
-  Print(nullptr, nullptr, nullptr, IsPreview(forPreview),
+  Print(nullptr, nullptr, nullptr, nullptr, IsPreview(forPreview),
         IsForWindowDotPrint::Yes, nullptr, aError);
 #endif
 }
@@ -5182,9 +5155,9 @@ class MOZ_RAII AutoModalState {
 };
 
 Nullable<WindowProxyHolder> nsGlobalWindowOuter::Print(
-    nsIPrintSettings* aPrintSettings, nsIWebProgressListener* aListener,
-    nsIDocShell* aDocShellToCloneInto, IsPreview aIsPreview,
-    IsForWindowDotPrint aForWindowDotPrint,
+    nsIPrintSettings* aPrintSettings, RemotePrintJobChild* aRemotePrintJob,
+    nsIWebProgressListener* aListener, nsIDocShell* aDocShellToCloneInto,
+    IsPreview aIsPreview, IsForWindowDotPrint aForWindowDotPrint,
     PrintPreviewResolver&& aPrintPreviewCallback, ErrorResult& aError) {
 #ifdef NS_PRINTING
   nsCOMPtr<nsIPrintSettingsService> printSettingsService =
@@ -5210,7 +5183,7 @@ Nullable<WindowProxyHolder> nsGlobalWindowOuter::Print(
   RefPtr<BrowsingContext> sourceBC = docToPrint->GetBrowsingContext();
   MOZ_DIAGNOSTIC_ASSERT(sourceBC);
   if (!sourceBC) {
-    aError.ThrowNotSupportedError("No browsing context");
+    aError.ThrowNotSupportedError("No browsing context for source document");
     return nullptr;
   }
 
@@ -5341,7 +5314,7 @@ Nullable<WindowProxyHolder> nsGlobalWindowOuter::Print(
       }
     } else {
       // Historically we've eaten this error.
-      webBrowserPrint->Print(ps, aListener);
+      webBrowserPrint->Print(ps, aRemotePrintJob, aListener);
     }
   }
 
@@ -5391,42 +5364,21 @@ void nsGlobalWindowOuter::MoveToOuter(int32_t aXPos, int32_t aYPos,
     return;
   }
 
-  nsCOMPtr<nsIScreenManager> screenMgr =
-      do_GetService("@mozilla.org/gfx/screenmanager;1");
-  nsCOMPtr<nsIScreen> screen;
-  if (screenMgr) {
-    CSSSize size;
-    GetInnerSize(size);
-    screenMgr->ScreenForRect(aXPos, aYPos, std::round(size.width),
-                             std::round(size.height), getter_AddRefs(screen));
+  // We need to do the same transformation GetScreenXY does.
+  RefPtr<nsPresContext> presContext = mDocShell->GetPresContext();
+  if (!presContext) {
+    return;
   }
 
-  if (screen) {
-    // On secondary displays, the "CSS px" coordinates are offset so that they
-    // share their origin with global desktop pixels, to avoid ambiguities in
-    // the coordinate space when there are displays with different DPIs.
-    // (See the corresponding code in GetScreenXY() above.)
-    int32_t screenLeftDeskPx, screenTopDeskPx, w, h;
-    screen->GetRectDisplayPix(&screenLeftDeskPx, &screenTopDeskPx, &w, &h);
-    CSSIntPoint cssPos(aXPos - screenLeftDeskPx, aYPos - screenTopDeskPx);
-    CheckSecurityLeftAndTop(&cssPos.x, &cssPos.y, aCallerType);
+  CSSIntPoint cssPos(aXPos, aYPos);
+  CheckSecurityLeftAndTop(&cssPos.x, &cssPos.y, aCallerType);
 
-    double scale;
-    screen->GetDefaultCSSScaleFactor(&scale);
-    LayoutDevicePoint devPos = cssPos * CSSToLayoutDeviceScale(scale);
+  nsDeviceContext* context = presContext->DeviceContext();
 
-    screen->GetContentsScaleFactor(&scale);
-    DesktopPoint deskPos = devPos / DesktopToLayoutDeviceScale(scale);
-    aError = treeOwnerAsWin->SetPositionDesktopPix(screenLeftDeskPx + deskPos.x,
-                                                   screenTopDeskPx + deskPos.y);
-  } else {
-    // We couldn't find a screen? Just assume a 1:1 mapping.
-    CSSIntPoint cssPos(aXPos, aXPos);
-    CheckSecurityLeftAndTop(&cssPos.x, &cssPos.y, aCallerType);
-    LayoutDevicePoint devPos = cssPos * CSSToLayoutDeviceScale(1.0);
-    aError = treeOwnerAsWin->SetPosition(devPos.x, devPos.y);
-  }
+  auto devPos = LayoutDeviceIntPoint::FromAppUnitsRounded(
+      CSSIntPoint::ToAppUnits(cssPos), context->AppUnitsPerDevPixel());
 
+  aError = treeOwnerAsWin->SetPosition(devPos.x, devPos.y);
   CheckForDPIChange();
 }
 
@@ -7026,6 +6978,8 @@ nsresult nsGlobalWindowOuter::OpenInternal(
     // window will do a security check of their own.
     if (!url.IsVoid() && !aDialog && aNavigate)
       rv = SecurityCheckURL(url.get(), getter_AddRefs(uri));
+  } else if (mDoc) {
+    mDoc->SetUseCounter(eUseCounter_custom_WindowOpenEmptyUrl);
   }
 
   if (NS_FAILED(rv)) return rv;

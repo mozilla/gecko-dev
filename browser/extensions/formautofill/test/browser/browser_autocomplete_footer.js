@@ -4,10 +4,12 @@ const URL = BASE_URL + "autocomplete_basic.html";
 const PRIVACY_PREF_URL = "about:preferences#privacy";
 
 add_task(async function setup_storage() {
-  await saveAddress(TEST_ADDRESS_2);
-  await saveAddress(TEST_ADDRESS_3);
-  await saveAddress(TEST_ADDRESS_4);
-  await saveAddress(TEST_ADDRESS_5);
+  await setStorage(
+    TEST_ADDRESS_2,
+    TEST_ADDRESS_3,
+    TEST_ADDRESS_4,
+    TEST_ADDRESS_5
+  );
 });
 
 add_task(async function test_press_enter_on_footer() {
@@ -70,8 +72,10 @@ add_task(async function test_click_on_footer() {
       PRIVACY_PREF_URL,
       true
     );
-    // Wait for dropdown animation finished to continue mouse synthesizing.
-    await sleep(3000);
+    // Make sure dropdown is visible before continuing mouse synthesizing.
+    await BrowserTestUtils.waitForCondition(() =>
+      BrowserTestUtils.is_visible(optionButton)
+    );
     await EventUtils.synthesizeMouseAtCenter(optionButton, {});
     info(`expecting tab: about:preferences#privacy opened`);
     const prefTab = await prefTabPromise;
@@ -99,7 +103,6 @@ add_task(async function test_phishing_warning_single_category() {
       ".autocomplete-richlistitem:last-child"
     )._warningTextBox;
     ok(warningBox, "Got phishing warning box");
-
     await expectWarningText(browser, "Autofills phone");
     is(
       warningBox.ownerGlobal.getComputedStyle(warningBox).backgroundColor,

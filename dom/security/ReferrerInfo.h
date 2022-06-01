@@ -42,8 +42,7 @@ class nsHttpChannel;
 
 using mozilla::Maybe;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 /**
  * The ReferrerInfo class holds the raw referrer and potentially a referrer
@@ -443,6 +442,12 @@ class ReferrerInfo : public nsIReferrerInfo {
 
   ReferrerPolicyEnum mPolicy;
 
+  // The referrer policy that has been set originally for the channel. Note that
+  // the policy may have been overridden by the default referrer policy, so we
+  // need to keep track of this if we need to recover the original referrer
+  // policy.
+  ReferrerPolicyEnum mOriginalPolicy;
+
   // Indicates if the referrer should be sent or not even when it's available
   // (default is true).
   bool mSendReferrer;
@@ -465,7 +470,6 @@ class ReferrerInfo : public nsIReferrerInfo {
 #endif  // DEBUG
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_ReferrerInfo_h

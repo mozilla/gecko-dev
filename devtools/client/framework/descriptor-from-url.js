@@ -20,7 +20,7 @@ const {
  *
  * If type == "tab":
  * - id:
- *      {Number} the tab outerWindowID
+ *      {Number} the tab browserId
  *
  * If type == "extension":
  * - id:
@@ -91,11 +91,11 @@ async function _descriptorFromURL(client, id, type) {
       );
     }
     try {
-      descriptorFront = await client.mainRoot.getTab({ outerWindowID: id });
+      descriptorFront = await client.mainRoot.getTab({ browserId: id });
     } catch (ex) {
       if (ex.message.startsWith("Protocol error (noTab)")) {
         throw new Error(
-          `descriptorFromURL, tab with outerWindowID '${id}' doesn't exist`
+          `descriptorFromURL, tab with browserId '${id}' doesn't exist`
         );
       }
       throw ex;

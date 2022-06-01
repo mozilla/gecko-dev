@@ -60,6 +60,7 @@
 #include "vm/JSFunction.h"
 #include "vm/JSScript.h"
 #include "vm/ProxyObject.h"
+#include "vm/RegExpObject.h"
 #include "vm/Shape.h"
 #include "vm/TypedArrayObject.h"
 #include "vm/Watchtower.h"
@@ -76,6 +77,7 @@
 #include "vm/ArrayObject-inl.h"
 #include "vm/BooleanObject-inl.h"
 #include "vm/Compartment-inl.h"
+#include "vm/EnvironmentObject-inl.h"
 #include "vm/Interpreter-inl.h"
 #include "vm/JSAtom-inl.h"
 #include "vm/JSContext-inl.h"
@@ -1030,58 +1032,6 @@ JS_PUBLIC_API bool JS_InitializePropertiesFromCompatibleNativeObject(
       cx, dst.as<NativeObject>(), src.as<NativeObject>());
 }
 
-/* static */
-bool NativeObject::fillInAfterSwap(JSContext* cx, HandleNativeObject obj,
-                                   NativeObject* old,
-                                   HandleValueVector values) {
-  // This object has just been swapped with some other object, and its shape
-  // no longer reflects its allocated size. Correct this information and
-  // fill the slots in with the specified values.
-  MOZ_ASSERT(obj->slotSpan() == values.length());
-  MOZ_ASSERT(!IsInsideNursery(obj));
-
-  // Make sure the shape's numFixedSlots() is correct.
-  size_t nfixed = gc::GetGCKindSlots(obj->asTenured().getAllocKind());
-  if (nfixed != obj->shape()->numFixedSlots()) {
-    if (!NativeObject::changeNumFixedSlotsAfterSwap(cx, obj, nfixed)) {
-      return false;
-    }
-    MOZ_ASSERT(obj->shape()->numFixedSlots() == nfixed);
-  }
-
-  uint32_t oldDictionarySlotSpan =
-      obj->inDictionaryMode() ? obj->dictionaryModeSlotSpan() : 0;
-
-  Zone* zone = obj->zone();
-  if (obj->hasDynamicSlots()) {
-    ObjectSlots* slotsHeader = obj->getSlotsHeader();
-    size_t size = ObjectSlots::allocSize(slotsHeader->capacity());
-    zone->removeCellMemory(old, size, MemoryUse::ObjectSlots);
-    js_free(slotsHeader);
-    obj->setEmptyDynamicSlots(0);
-  }
-
-  size_t ndynamic =
-      calculateDynamicSlots(nfixed, values.length(), obj->getClass());
-  size_t currentSlots = obj->getSlotsHeader()->capacity();
-  MOZ_ASSERT(ndynamic >= currentSlots);
-  if (ndynamic > currentSlots) {
-    if (!obj->growSlots(cx, currentSlots, ndynamic)) {
-      return false;
-    }
-  }
-
-  if (obj->inDictionaryMode()) {
-    obj->setDictionaryModeSlotSpan(oldDictionarySlotSpan);
-  }
-
-  for (size_t i = 0, len = values.length(); i < len; i++) {
-    obj->initSlotUnchecked(i, values[i]);
-  }
-
-  return true;
-}
-
 bool js::ObjectMayBeSwapped(const JSObject* obj) {
   const JSClass* clasp = obj->getClass();
 
@@ -1098,36 +1048,147 @@ bool js::ObjectMayBeSwapped(const JSObject* obj) {
   return clasp->isProxyObject() || clasp->isDOMClass();
 }
 
-[[nodiscard]] static bool CopyProxyValuesBeforeSwap(
-    JSContext* cx, ProxyObject* proxy, MutableHandleValueVector values) {
-  MOZ_ASSERT(values.empty());
+bool NativeObject::prepareForSwap(JSContext* cx,
+                                  MutableHandleValueVector slotValuesOut) {
+  MOZ_ASSERT(slotValuesOut.empty());
+
+  for (size_t i = 0; i < slotSpan(); i++) {
+    if (!slotValuesOut.append(getSlot(i))) {
+      return false;
+    }
+  }
+
+  if (hasDynamicSlots()) {
+    ObjectSlots* slotsHeader = getSlotsHeader();
+    size_t size = ObjectSlots::allocSize(slotsHeader->capacity());
+    RemoveCellMemory(this, size, MemoryUse::ObjectSlots);
+    if (!cx->nursery().isInside(slotsHeader)) {
+      if (!isTenured()) {
+        cx->nursery().removeMallocedBuffer(slotsHeader, size);
+      }
+      js_free(slotsHeader);
+    }
+    setEmptyDynamicSlots(0);
+  }
+
+  if (hasDynamicElements()) {
+    ObjectElements* elements = getElementsHeader();
+    size_t count = elements->numAllocatedElements();
+    size_t size = count * sizeof(HeapSlot);
+
+    if (isTenured()) {
+      RemoveCellMemory(this, size, MemoryUse::ObjectElements);
+    } else if (cx->nursery().isInside(elements)) {
+      // Move nursery allocated elements in case they end up in a tenured
+      // object.
+      ObjectElements* newElements =
+          reinterpret_cast<ObjectElements*>(js_pod_malloc<HeapSlot>(count));
+      if (!newElements) {
+        return false;
+      }
+
+      memmove(newElements, elements, size);
+      elements_ = newElements->elements();
+    } else {
+      cx->nursery().removeMallocedBuffer(elements, size);
+    }
+    MOZ_ASSERT(hasDynamicElements());
+  }
+
+  return true;
+}
+
+/* static */
+bool NativeObject::fixupAfterSwap(JSContext* cx, HandleNativeObject obj,
+                                  gc::AllocKind kind,
+                                  HandleValueVector slotValues) {
+  // This object has just been swapped with some other object, and its shape
+  // no longer reflects its allocated size. Correct this information and
+  // fill the slots in with the specified values.
+  MOZ_ASSERT_IF(!obj->inDictionaryMode(),
+                obj->slotSpan() == slotValues.length());
+
+  // Make sure the shape's numFixedSlots() is correct.
+  size_t nfixed = gc::GetGCKindSlots(kind);
+  if (nfixed != obj->shape()->numFixedSlots()) {
+    if (!NativeObject::changeNumFixedSlotsAfterSwap(cx, obj, nfixed)) {
+      return false;
+    }
+    MOZ_ASSERT(obj->shape()->numFixedSlots() == nfixed);
+  }
+
+  uint32_t oldDictionarySlotSpan =
+      obj->inDictionaryMode() ? slotValues.length() : 0;
+
+  size_t ndynamic =
+      calculateDynamicSlots(nfixed, slotValues.length(), obj->getClass());
+  size_t currentSlots = obj->getSlotsHeader()->capacity();
+  MOZ_ASSERT(ndynamic >= currentSlots);
+  if (ndynamic > currentSlots) {
+    if (!obj->growSlots(cx, currentSlots, ndynamic)) {
+      return false;
+    }
+  }
+
+  if (obj->inDictionaryMode()) {
+    obj->setDictionaryModeSlotSpan(oldDictionarySlotSpan);
+  }
+
+  for (size_t i = 0, len = slotValues.length(); i < len; i++) {
+    obj->initSlotUnchecked(i, slotValues[i]);
+  }
+
+  if (obj->hasDynamicElements()) {
+    ObjectElements* elements = obj->getElementsHeader();
+    MOZ_ASSERT(!cx->nursery().isInside(elements));
+    size_t size = elements->numAllocatedElements() * sizeof(HeapSlot);
+    if (obj->isTenured()) {
+      AddCellMemory(obj, size, MemoryUse::ObjectElements);
+    } else if (!cx->nursery().registerMallocedBuffer(elements, size)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+[[nodiscard]] bool ProxyObject::prepareForSwap(
+    JSContext* cx, MutableHandleValueVector valuesOut) {
+  MOZ_ASSERT(valuesOut.empty());
 
   // Remove the GCPtrValues we're about to swap from the store buffer, to
   // ensure we don't trace bogus values.
   gc::StoreBuffer& sb = cx->runtime()->gc.storeBuffer();
 
   // Reserve space for the expando, private slot and the reserved slots.
-  if (!values.reserve(2 + proxy->numReservedSlots())) {
+  if (!valuesOut.reserve(2 + numReservedSlots())) {
     return false;
   }
 
-  js::detail::ProxyValueArray* valArray =
-      js::detail::GetProxyDataLayout(proxy)->values();
+  js::detail::ProxyValueArray* valArray = data.values();
   sb.unputValue(&valArray->expandoSlot);
   sb.unputValue(&valArray->privateSlot);
-  values.infallibleAppend(valArray->expandoSlot);
-  values.infallibleAppend(valArray->privateSlot);
+  valuesOut.infallibleAppend(valArray->expandoSlot);
+  valuesOut.infallibleAppend(valArray->privateSlot);
 
-  for (size_t i = 0; i < proxy->numReservedSlots(); i++) {
+  for (size_t i = 0; i < numReservedSlots(); i++) {
     sb.unputValue(&valArray->reservedSlots.slots[i]);
-    values.infallibleAppend(valArray->reservedSlots.slots[i]);
+    valuesOut.infallibleAppend(valArray->reservedSlots.slots[i]);
+  }
+
+  if (isTenured() && !usingInlineValueArray()) {
+    size_t count = detail::ProxyValueArray::allocCount(numReservedSlots());
+    RemoveCellMemory(this, count * sizeof(Value),
+                     MemoryUse::ProxyExternalValueArray);
+    js_free(valArray);
+    data.reservedSlots = nullptr;
   }
 
   return true;
 }
 
-bool ProxyObject::initExternalValueArrayAfterSwap(
-    JSContext* cx, const HandleValueVector values) {
+bool ProxyObject::fixupAfterSwap(JSContext* cx,
+                                 const HandleValueVector values) {
   MOZ_ASSERT(getClass()->isProxyObject());
 
   size_t nreserved = numReservedSlots();
@@ -1135,13 +1196,23 @@ bool ProxyObject::initExternalValueArrayAfterSwap(
   // |values| contains the expando slot, private slot and the reserved slots.
   MOZ_ASSERT(values.length() == 2 + nreserved);
 
-  size_t nbytes = js::detail::ProxyValueArray::sizeOf(nreserved);
-
-  auto* valArray = reinterpret_cast<js::detail::ProxyValueArray*>(
-      cx->zone()->pod_malloc<uint8_t>(nbytes));
-  if (!valArray) {
+  // Allocate the external value array in malloc memory, even for nursery
+  // proxies.
+  size_t count = detail::ProxyValueArray::allocCount(nreserved);
+  auto* allocation = js_pod_malloc<JS::Value>(count);
+  if (!allocation) {
     return false;
   }
+
+  size_t size = count * sizeof(Value);
+  if (isTenured()) {
+    AddCellMemory(&asTenured(), size, MemoryUse::ProxyExternalValueArray);
+  } else if (!cx->nursery().registerMallocedBuffer(allocation, size)) {
+    js_free(allocation);
+    return false;
+  }
+
+  auto* valArray = reinterpret_cast<js::detail::ProxyValueArray*>(allocation);
 
   valArray->expandoSlot = values[0];
   valArray->privateSlot = values[1];
@@ -1150,26 +1221,55 @@ bool ProxyObject::initExternalValueArrayAfterSwap(
     valArray->reservedSlots.slots[i] = values[i + 2];
   }
 
-  // Note: we allocate external slots iff the proxy had an inline
-  // ProxyValueArray, so at this point reservedSlots points into the
-  // old object and we don't have to free anything.
   data.reservedSlots = &valArray->reservedSlots;
+  MOZ_ASSERT(!usingInlineValueArray());
   return true;
+}
+
+#ifdef DEBUG
+static bool IsBackgroundFinalizedWhenTenured(JSObject* obj) {
+  if (obj->isTenured()) {
+    return gc::IsBackgroundFinalized(obj->asTenured().getAllocKind());
+  }
+
+  if (obj->is<ProxyObject>()) {
+    return gc::IsBackgroundFinalized(
+        obj->as<ProxyObject>().allocKindForTenure());
+  }
+
+  return js::gc::CanUseBackgroundAllocKind(obj->getClass());
+}
+#endif
+
+static gc::AllocKind SwappableObjectAllocKind(JSObject* obj) {
+  MOZ_ASSERT(ObjectMayBeSwapped(obj));
+
+  if (obj->isTenured()) {
+    return obj->asTenured().getAllocKind();
+  }
+
+  if (obj->is<NativeObject>()) {
+    return obj->as<NativeObject>().allocKindForTenure();
+  }
+
+  return obj->as<ProxyObject>().allocKindForTenure();
 }
 
 /* Use this method with extreme caution. It trades the guts of two objects. */
 void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
                     AutoEnterOOMUnsafeRegion& oomUnsafe) {
-  // Ensure swap doesn't cause a finalizer to not be run.
-  MOZ_ASSERT(IsBackgroundFinalized(a->asTenured().getAllocKind()) ==
-             IsBackgroundFinalized(b->asTenured().getAllocKind()));
+  // Ensure swap doesn't cause a finalizer to be run at the wrong time.
+  MOZ_ASSERT(IsBackgroundFinalizedWhenTenured(a) ==
+             IsBackgroundFinalizedWhenTenured(b));
+
   MOZ_ASSERT(a->compartment() == b->compartment());
 
   // You must have entered the objects' compartment before calling this.
   MOZ_ASSERT(cx->compartment() == a->compartment());
 
   // Only certain types of objects are allowed to be swapped. This allows the
-  // JITs to better optimize objects that can never swap.
+  // JITs to better optimize objects that can never swap and rules out most
+  // builtin objects that have special behaviour.
   MOZ_RELEASE_ASSERT(js::ObjectMayBeSwapped(a));
   MOZ_RELEASE_ASSERT(js::ObjectMayBeSwapped(b));
 
@@ -1177,35 +1277,21 @@ void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
     oomUnsafe.crash("Watchtower::watchObjectSwap");
   }
 
-  /*
-   * Neither object may be in the nursery, but ensure we update any embedded
-   * nursery pointers in either object.
-   */
-  MOZ_ASSERT(!IsInsideNursery(a) && !IsInsideNursery(b));
+  // Ensure we update any embedded nursery pointers in either object.
   gc::StoreBuffer& storeBuffer = cx->runtime()->gc.storeBuffer();
-  storeBuffer.putWholeCell(a);
-  storeBuffer.putWholeCell(b);
-  if (a->zone()->wasGCStarted() || b->zone()->wasGCStarted()) {
-    storeBuffer.setMayHavePointersToDeadCells();
+  if (a->isTenured()) {
+    storeBuffer.putWholeCell(a);
+  }
+  if (b->isTenured()) {
+    storeBuffer.putWholeCell(b);
+  }
+  if (a->isTenured() || b->isTenured()) {
+    if (a->zone()->wasGCStarted()) {
+      storeBuffer.setMayHavePointersToDeadCells();
+    }
   }
 
   unsigned r = NotifyGCPreSwap(a, b);
-
-  // Do the fundamental swapping of the contents of two objects.
-  MOZ_ASSERT(a->compartment() == b->compartment());
-  MOZ_ASSERT(a->is<JSFunction>() == b->is<JSFunction>());
-
-  // Don't try to swap functions with different sizes.
-  MOZ_ASSERT_IF(a->is<JSFunction>(),
-                a->tenuredSizeOfThis() == b->tenuredSizeOfThis());
-
-  // Watch for oddball objects that have special organizational issues and
-  // can't be swapped.
-  MOZ_ASSERT(!a->is<RegExpObject>() && !b->is<RegExpObject>());
-  MOZ_ASSERT(!a->is<ArrayObject>() && !b->is<ArrayObject>());
-  MOZ_ASSERT(!a->is<ArrayBufferObject>() && !b->is<ArrayBufferObject>());
-  MOZ_ASSERT(!a->is<TypedArrayObject>() && !b->is<TypedArrayObject>());
-  MOZ_ASSERT(!a->is<TypedObject>() && !b->is<TypedObject>());
 
   // Don't swap objects that may currently be participating in shape
   // teleporting optimizations.
@@ -1226,24 +1312,29 @@ void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
 
   // Swap element associations.
   Zone* zone = a->zone();
-  zone->swapCellMemory(a, b, MemoryUse::ObjectElements);
 
-  if (a->tenuredSizeOfThis() == b->tenuredSizeOfThis()) {
-    // When both objects are the same size, just do a plain swap of their
-    // contents.
+  gc::AllocKind ka = SwappableObjectAllocKind(a);
+  gc::AllocKind kb = SwappableObjectAllocKind(b);
+
+  size_t sa = gc::Arena::thingSize(ka);
+  size_t sb = gc::Arena::thingSize(kb);
+  if (sa == sb && a->isTenured() == b->isTenured()) {
+    // When both objects are the same size and in the same heap, just do a plain
+    // swap of their contents.
 
     // Swap slot associations.
     zone->swapCellMemory(a, b, MemoryUse::ObjectSlots);
 
-    size_t size = a->tenuredSizeOfThis();
-
-    char tmp[mozilla::tl::Max<sizeof(JSFunction),
-                              sizeof(JSObject_Slots16)>::value];
+    size_t size = sa;
+    char tmp[sizeof(JSObject_Slots16)];
     MOZ_ASSERT(size <= sizeof(tmp));
 
     js_memcpy(tmp, a, size);
     js_memcpy(a, b, size);
     js_memcpy(b, tmp, size);
+
+    zone->swapCellMemory(a, b, MemoryUse::ObjectElements);
+    zone->swapCellMemory(a, b, MemoryUse::ProxyExternalValueArray);
 
     if (aIsProxyWithInlineValues) {
       b->as<ProxyObject>().setInlineValueArray();
@@ -1256,45 +1347,29 @@ void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
     // intermediate state.
     gc::AutoSuppressGC suppress(cx);
 
-    // When the objects have different sizes, they will have different
-    // numbers of fixed slots before and after the swap, so the slots for
-    // native objects will need to be rearranged.
+    // When the objects have different sizes, they will have different numbers
+    // of fixed slots before and after the swap, so the slots for native objects
+    // will need to be rearranged. Remember the original values from the
+    // objects.
+    RootedValueVector avals(cx);
+    RootedValueVector bvals(cx);
     NativeObject* na = a->is<NativeObject>() ? &a->as<NativeObject>() : nullptr;
     NativeObject* nb = b->is<NativeObject>() ? &b->as<NativeObject>() : nullptr;
-
-    // Remember the original values from the objects.
-    RootedValueVector avals(cx);
-    if (na) {
-      for (size_t i = 0; i < na->slotSpan(); i++) {
-        if (!avals.append(na->getSlot(i))) {
-          oomUnsafe.crash("JSObject::swap");
-        }
-      }
+    if (na && !na->prepareForSwap(cx, &avals)) {
+      oomUnsafe.crash("NativeObject::prepareForSwap");
     }
-    RootedValueVector bvals(cx);
-    if (nb) {
-      for (size_t i = 0; i < nb->slotSpan(); i++) {
-        if (!bvals.append(nb->getSlot(i))) {
-          oomUnsafe.crash("JSObject::swap");
-        }
-      }
+    if (nb && !nb->prepareForSwap(cx, &bvals)) {
+      oomUnsafe.crash("NativeObject::prepareForSwap");
     }
 
-    // Do the same for proxies storing ProxyValueArray inline.
-    ProxyObject* proxyA =
-        a->is<ProxyObject>() ? &a->as<ProxyObject>() : nullptr;
-    ProxyObject* proxyB =
-        b->is<ProxyObject>() ? &b->as<ProxyObject>() : nullptr;
-
-    if (aIsProxyWithInlineValues) {
-      if (!CopyProxyValuesBeforeSwap(cx, proxyA, &avals)) {
-        oomUnsafe.crash("CopyProxyValuesBeforeSwap");
-      }
+    // Do the same for proxy value arrays.
+    ProxyObject* pa = a->is<ProxyObject>() ? &a->as<ProxyObject>() : nullptr;
+    ProxyObject* pb = b->is<ProxyObject>() ? &b->as<ProxyObject>() : nullptr;
+    if (pa && !pa->prepareForSwap(cx, &avals)) {
+      oomUnsafe.crash("ProxyObject::prepareForSwap");
     }
-    if (bIsProxyWithInlineValues) {
-      if (!CopyProxyValuesBeforeSwap(cx, proxyB, &bvals)) {
-        oomUnsafe.crash("CopyProxyValuesBeforeSwap");
-      }
+    if (pb && !pb->prepareForSwap(cx, &bvals)) {
+      oomUnsafe.crash("ProxyObject::prepareForSwap");
     }
 
     // Swap the main fields of the objects, whether they are native objects or
@@ -1304,25 +1379,20 @@ void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
     js_memcpy(a, b, sizeof tmp);
     js_memcpy(b, &tmp, sizeof tmp);
 
-    if (na) {
-      if (!NativeObject::fillInAfterSwap(cx, b.as<NativeObject>(), na, avals)) {
-        oomUnsafe.crash("fillInAfterSwap");
-      }
+    if (na &&
+        !NativeObject::fixupAfterSwap(cx, b.as<NativeObject>(), kb, avals)) {
+      oomUnsafe.crash("NativeObject::fixupAfterSwap");
     }
-    if (nb) {
-      if (!NativeObject::fillInAfterSwap(cx, a.as<NativeObject>(), nb, bvals)) {
-        oomUnsafe.crash("fillInAfterSwap");
-      }
+    if (nb &&
+        !NativeObject::fixupAfterSwap(cx, a.as<NativeObject>(), ka, bvals)) {
+      oomUnsafe.crash("NativeObject::fixupAfterSwap");
     }
-    if (aIsProxyWithInlineValues) {
-      if (!b->as<ProxyObject>().initExternalValueArrayAfterSwap(cx, avals)) {
-        oomUnsafe.crash("initExternalValueArray");
-      }
+
+    if (pa && !b->as<ProxyObject>().fixupAfterSwap(cx, avals)) {
+      oomUnsafe.crash("ProxyObject::fixupAfterSwap");
     }
-    if (bIsProxyWithInlineValues) {
-      if (!a->as<ProxyObject>().initExternalValueArrayAfterSwap(cx, bvals)) {
-        oomUnsafe.crash("initExternalValueArray");
-      }
+    if (pb && !a->as<ProxyObject>().fixupAfterSwap(cx, bvals)) {
+      oomUnsafe.crash("ProxyObject::fixupAfterSwap");
     }
   }
 
@@ -2187,10 +2257,10 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
 
 #ifdef ENABLE_CHANGE_ARRAY_BY_COPY
   if (key == JSProto_Array && !cx->options().changeArrayByCopy() &&
-      (id == NameToId(cx->names().withAt) ||
-       id == NameToId(cx->names().withReversed) ||
-       id == NameToId(cx->names().withSorted) ||
-       id == NameToId(cx->names().withSpliced))) {
+      (id == NameToId(cx->names().with) ||
+       id == NameToId(cx->names().toReversed) ||
+       id == NameToId(cx->names().toSorted) ||
+       id == NameToId(cx->names().toSpliced))) {
     return true;
   }
 #endif
@@ -2213,8 +2283,7 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
 }
 
 static bool DefineFunctionFromSpec(JSContext* cx, HandleObject obj,
-                                   const JSFunctionSpec* fs, unsigned flags,
-                                   DefineAsIntrinsic intrinsic) {
+                                   const JSFunctionSpec* fs) {
   RootedId id(cx);
   if (!PropertySpecNameToId(cx, fs->name, &id)) {
     return false;
@@ -2229,19 +2298,14 @@ static bool DefineFunctionFromSpec(JSContext* cx, HandleObject obj,
     return false;
   }
 
-  if (intrinsic == AsIntrinsic) {
-    fun->setIsIntrinsic();
-  }
-
   RootedValue funVal(cx, ObjectValue(*fun));
-  return DefineDataProperty(cx, obj, id, funVal, flags & ~JSFUN_FLAGS_MASK);
+  return DefineDataProperty(cx, obj, id, funVal, fs->flags & ~JSFUN_FLAGS_MASK);
 }
 
 bool js::DefineFunctions(JSContext* cx, HandleObject obj,
-                         const JSFunctionSpec* fs,
-                         DefineAsIntrinsic intrinsic) {
+                         const JSFunctionSpec* fs) {
   for (; fs->name; fs++) {
-    if (!DefineFunctionFromSpec(cx, obj, fs, fs->flags, intrinsic)) {
+    if (!DefineFunctionFromSpec(cx, obj, fs)) {
       return false;
     }
   }
@@ -3211,22 +3275,26 @@ JS_PUBLIC_API void js::DumpBacktrace(JSContext* cx) {
 
 /* * */
 
+bool JSObject::canHaveFixedElements() const {
+  return (is<ArrayObject>() || IF_RECORD_TUPLE(is<TupleType>(), false));
+}
+
 js::gc::AllocKind JSObject::allocKindForTenure(
     const js::Nursery& nursery) const {
   using namespace js::gc;
 
   MOZ_ASSERT(IsInsideNursery(this));
 
-  if (is<ArrayObject>()) {
-    const ArrayObject& aobj = as<ArrayObject>();
-    MOZ_ASSERT(aobj.numFixedSlots() == 0);
+  if (canHaveFixedElements()) {
+    const NativeObject& nobj = as<NativeObject>();
+    MOZ_ASSERT(nobj.numFixedSlots() == 0);
 
     /* Use minimal size object if we are just going to copy the pointer. */
-    if (!nursery.isInside(aobj.getElementsHeader())) {
+    if (!nursery.isInside(nobj.getElementsHeader())) {
       return gc::AllocKind::OBJECT0_BACKGROUND;
     }
 
-    size_t nelements = aobj.getDenseCapacity();
+    size_t nelements = nobj.getDenseCapacity();
     return ForegroundToBackgroundAllocKind(GetGCArrayKind(nelements));
   }
 

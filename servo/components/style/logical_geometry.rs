@@ -168,6 +168,11 @@ impl WritingMode {
         flags
     }
 
+    /// Returns the `horizontal-tb` value.
+    pub fn horizontal_tb() -> Self {
+        Self::from_bits_truncate(0)
+    }
+
     #[inline]
     pub fn is_vertical(&self) -> bool {
         self.intersects(WritingMode::VERTICAL)
@@ -872,10 +877,10 @@ impl<T> LogicalMargin<T> {
         inline_start: T,
     ) -> LogicalMargin<T> {
         LogicalMargin {
-            block_start: block_start,
-            inline_end: inline_end,
-            block_end: block_end,
-            inline_start: inline_start,
+            block_start,
+            inline_end,
+            block_end,
+            inline_start,
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }

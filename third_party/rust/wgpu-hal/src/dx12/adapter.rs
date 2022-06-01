@@ -1,4 +1,7 @@
-use super::{conv, HResult as _};
+use crate::{
+    auxil::{self, dxgi::result::HResult as _},
+    dx12::SurfaceTarget,
+};
 use std::{mem, sync::Arc, thread};
 use winapi::{
     shared::{dxgi, dxgi1_2, dxgi1_5, minwindef, windef, winerror},
@@ -40,14 +43,14 @@ impl super::Adapter {
 
     #[allow(trivial_casts)]
     pub(super) fn expose(
-        adapter: native::WeakPtr<dxgi1_2::IDXGIAdapter2>,
+        adapter: native::DxgiAdapter,
         library: &Arc<native::D3D12Lib>,
         instance_flags: crate::InstanceFlags,
     ) -> Option<crate::ExposedAdapter<super::Api>> {
         // Create the device so that we can get the capabilities.
         let device = {
             profiling::scope!("ID3D12Device::create_device");
-            match library.create_device(adapter, native::FeatureLevel::L11_0) {
+            match library.create_device(*adapter, native::FeatureLevel::L11_0) {
                 Ok(pair) => match pair.into_result() {
                     Ok(device) => device,
                     Err(err) => {
@@ -68,7 +71,7 @@ impl super::Adapter {
         // Acquire the device information.
         let mut desc: dxgi1_2::DXGI_ADAPTER_DESC2 = unsafe { mem::zeroed() };
         unsafe {
-            adapter.GetDesc2(&mut desc);
+            adapter.unwrap_adapter2().GetDesc2(&mut desc);
         }
 
         let device_name = {
@@ -85,6 +88,18 @@ impl super::Adapter {
                 d3d12::D3D12_FEATURE_ARCHITECTURE,
                 &mut features_architecture as *mut _ as *mut _,
                 mem::size_of::<d3d12::D3D12_FEATURE_DATA_ARCHITECTURE>() as _,
+            )
+        });
+
+        let mut shader_model_support: d3d12::D3D12_FEATURE_DATA_SHADER_MODEL =
+            d3d12::D3D12_FEATURE_DATA_SHADER_MODEL {
+                HighestShaderModel: d3d12::D3D_SHADER_MODEL_6_0,
+            };
+        assert_eq!(0, unsafe {
+            device.CheckFeatureSupport(
+                d3d12::D3D12_FEATURE_SHADER_MODEL,
+                &mut shader_model_support as *mut _ as *mut _,
+                mem::size_of::<d3d12::D3D12_FEATURE_DATA_SHADER_MODEL>() as _,
             )
         });
 
@@ -172,14 +187,10 @@ impl super::Adapter {
             | wgt::Features::DEPTH_CLIP_CONTROL
             | wgt::Features::INDIRECT_FIRST_INSTANCE
             | wgt::Features::MAPPABLE_PRIMARY_BUFFERS
-            //TODO: Naga part
-            //| wgt::Features::TEXTURE_BINDING_ARRAY
-            //| wgt::Features::BUFFER_BINDING_ARRAY
-            //| wgt::Features::STORAGE_RESOURCE_BINDING_ARRAY
-            //| wgt::Features::UNSIZED_BINDING_ARRAY
             | wgt::Features::MULTI_DRAW_INDIRECT
             | wgt::Features::MULTI_DRAW_INDIRECT_COUNT
             | wgt::Features::ADDRESS_MODE_CLAMP_TO_BORDER
+            | wgt::Features::ADDRESS_MODE_CLAMP_TO_ZERO
             | wgt::Features::POLYGON_MODE_LINE
             | wgt::Features::POLYGON_MODE_POINT
             | wgt::Features::VERTEX_WRITABLE_STORAGE
@@ -198,6 +209,13 @@ impl super::Adapter {
             wgt::Features::CONSERVATIVE_RASTERIZATION,
             options.ConservativeRasterizationTier
                 != d3d12::D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED,
+        );
+
+        features.set(
+            wgt::Features::TEXTURE_BINDING_ARRAY
+                | wgt::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING
+                | wgt::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING,
+            shader_model_support.HighestShaderModel >= d3d12::D3D_SHADER_MODEL_5_1,
         );
 
         let base = wgt::Limits::default();
@@ -278,7 +296,7 @@ impl super::Adapter {
 impl crate::Adapter<super::Api> for super::Adapter {
     unsafe fn open(
         &self,
-        features: wgt::Features,
+        _features: wgt::Features,
         _limits: &wgt::Limits,
     ) -> Result<crate::OpenDevice<super::Api>, crate::DeviceError> {
         let queue = {
@@ -293,13 +311,7 @@ impl crate::Adapter<super::Api> for super::Adapter {
                 .into_device_result("Queue creation")?
         };
 
-        let device = super::Device::new(
-            self.device,
-            queue,
-            features,
-            self.private_caps,
-            &self.library,
-        )?;
+        let device = super::Device::new(self.device, queue, self.private_caps, &self.library)?;
         Ok(crate::OpenDevice {
             device,
             queue: super::Queue {
@@ -316,7 +328,7 @@ impl crate::Adapter<super::Api> for super::Adapter {
     ) -> crate::TextureFormatCapabilities {
         use crate::TextureFormatCapabilities as Tfc;
 
-        let raw_format = conv::map_texture_format(format);
+        let raw_format = auxil::dxgi::conv::map_texture_format(format);
         let mut data = d3d12::D3D12_FEATURE_DATA_FORMAT_SUPPORT {
             Format: raw_format,
             Support1: mem::zeroed(),
@@ -388,26 +400,27 @@ impl crate::Adapter<super::Api> for super::Adapter {
         surface: &super::Surface,
     ) -> Option<crate::SurfaceCapabilities> {
         let current_extent = {
-            let mut rect: windef::RECT = mem::zeroed();
-            if winuser::GetClientRect(surface.wnd_handle, &mut rect) != 0 {
-                Some(wgt::Extent3d {
-                    width: (rect.right - rect.left) as u32,
-                    height: (rect.bottom - rect.top) as u32,
-                    depth_or_array_layers: 1,
-                })
-            } else {
-                log::warn!("Unable to get the window client rect");
-                None
+            match surface.target {
+                SurfaceTarget::WndHandle(wnd_handle) => {
+                    let mut rect: windef::RECT = mem::zeroed();
+                    if winuser::GetClientRect(wnd_handle, &mut rect) != 0 {
+                        Some(wgt::Extent3d {
+                            width: (rect.right - rect.left) as u32,
+                            height: (rect.bottom - rect.top) as u32,
+                            depth_or_array_layers: 1,
+                        })
+                    } else {
+                        log::warn!("Unable to get the window client rect");
+                        None
+                    }
+                }
+                SurfaceTarget::Visual(_) => None,
             }
         };
 
         let mut present_modes = vec![wgt::PresentMode::Fifo];
         #[allow(trivial_casts)]
-        if let Ok(factory5) = surface
-            .factory
-            .cast::<dxgi1_5::IDXGIFactory5>()
-            .into_result()
-        {
+        if let Some(factory5) = surface.factory.as_factory5() {
             let mut allow_tearing: minwindef::BOOL = minwindef::FALSE;
             let hr = factory5.CheckFeatureSupport(
                 dxgi1_5::DXGI_FEATURE_PRESENT_ALLOW_TEARING,
@@ -415,7 +428,6 @@ impl crate::Adapter<super::Api> for super::Adapter {
                 mem::size_of::<minwindef::BOOL>() as _,
             );
 
-            factory5.destroy();
             match hr.into_result() {
                 Err(err) => log::warn!("Unable to check for tearing support: {}", err),
                 Ok(()) => present_modes.push(wgt::PresentMode::Immediate),

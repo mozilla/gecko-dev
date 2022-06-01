@@ -12,6 +12,7 @@
 #include "nsIProtocolHandler.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/gfx/GPUProcessManager.h"
 
 #define ABOUT_CONFIG_ENABLED_PREF "general.aboutConfig.enable"
 
@@ -34,6 +35,12 @@ class CrashChannel final : public nsBaseChannel {
 
     if (spec.EqualsASCII("about:crashparent") && XRE_IsParentProcess()) {
       MOZ_CRASH("Crash via about:crashparent");
+    }
+
+    if (spec.EqualsASCII("about:crashgpu") && XRE_IsParentProcess()) {
+      if (auto* gpu = mozilla::gfx::GPUProcessManager::Get()) {
+        gpu->CrashProcess();
+      }
     }
 
     if (spec.EqualsASCII("about:crashcontent") && XRE_IsContentProcess()) {
@@ -151,7 +158,10 @@ static const RedirEntry kRedirMap[] = {
 #endif
 #ifndef MOZ_GLEAN_ANDROID
     {"glean", "chrome://global/content/aboutGlean.html",
-     nsIAboutModule::HIDE_FROM_ABOUTABOUT | nsIAboutModule::ALLOW_SCRIPT},
+#  if !defined(NIGHTLY_BUILD) && defined(MOZILLA_OFFICIAL)
+     nsIAboutModule::HIDE_FROM_ABOUTABOUT |
+#  endif
+         nsIAboutModule::ALLOW_SCRIPT},
 #endif
     {"telemetry", "chrome://global/content/aboutTelemetry.xhtml",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI},
@@ -159,15 +169,12 @@ static const RedirEntry kRedirMap[] = {
      nsIAboutModule::ALLOW_SCRIPT},
     {"webrtc", "chrome://global/content/aboutwebrtc/aboutWebrtc.html",
      nsIAboutModule::ALLOW_SCRIPT},
-    {"printpreview", "about:blank",
-     nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
-         nsIAboutModule::HIDE_FROM_ABOUTABOUT |
-         nsIAboutModule::URI_CAN_LOAD_IN_CHILD},
     {"crashparent", "about:blank", nsIAboutModule::HIDE_FROM_ABOUTABOUT},
     {"crashcontent", "about:blank",
      nsIAboutModule::HIDE_FROM_ABOUTABOUT |
          nsIAboutModule::URI_CAN_LOAD_IN_CHILD |
-         nsIAboutModule::URI_MUST_LOAD_IN_CHILD}};
+         nsIAboutModule::URI_MUST_LOAD_IN_CHILD},
+    {"crashgpu", "about:blank", nsIAboutModule::HIDE_FROM_ABOUTABOUT}};
 static const int kRedirTotal = mozilla::ArrayLength(kRedirMap);
 
 NS_IMETHODIMP
@@ -184,7 +191,8 @@ nsAboutRedirector::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
   nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (path.EqualsASCII("crashparent") || path.EqualsASCII("crashcontent")) {
+  if (path.EqualsASCII("crashparent") || path.EqualsASCII("crashcontent") ||
+      path.EqualsASCII("crashgpu")) {
     bool isExternal;
     aLoadInfo->GetLoadTriggeredFromExternal(&isExternal);
     if (isExternal) {
@@ -276,8 +284,7 @@ nsAboutRedirector::GetChromeURI(nsIURI* aURI, nsIURI** chromeURI) {
   return NS_ERROR_ILLEGAL_VALUE;
 }
 
-nsresult nsAboutRedirector::Create(nsISupports* aOuter, REFNSIID aIID,
-                                   void** aResult) {
+nsresult nsAboutRedirector::Create(REFNSIID aIID, void** aResult) {
   RefPtr<nsAboutRedirector> about = new nsAboutRedirector();
   return about->QueryInterface(aIID, aResult);
 }

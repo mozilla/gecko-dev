@@ -5,7 +5,9 @@
 Services.prefs.setBoolPref("extensions.manifestV3.enabled", true);
 
 async function testManifest(manifest, expectedError) {
+  ExtensionTestUtils.failOnSchemaWarnings(false);
   let normalized = await ExtensionTestUtils.normalizeManifest(manifest);
+  ExtensionTestUtils.failOnSchemaWarnings(true);
 
   if (expectedError) {
     ok(
@@ -75,22 +77,19 @@ add_task(async function test_manifest() {
 });
 
 add_task(async function test_action_version() {
-  // The above test validates these work with the correct version,
-  // here we verify they fail with the incorrect version for MV3.
-  testManifest(
-    {
-      manifest_version: 3,
-      browser_action: {
-        default_panel: "foo.html",
-      },
+  let warnings = await testManifest({
+    manifest_version: 3,
+    browser_action: {
+      default_panel: "foo.html",
     },
-    /Property "browser_action" is unsupported in Manifest Version 3/
+  });
+  Assert.deepEqual(
+    warnings,
+    [`Property "browser_action" is unsupported in Manifest Version 3`],
+    `Manifest v3 with "browser_action" key logs an error.`
   );
 
-  // But we still allow previously ignored keys in MV2, just warn about them.
-  ExtensionTestUtils.failOnSchemaWarnings(false);
-
-  let warnings = await testManifest({
+  warnings = await testManifest({
     manifest_version: 2,
     action: {
       default_icon: "",
@@ -98,44 +97,27 @@ add_task(async function test_action_version() {
     },
   });
 
-  equal(warnings.length, 2, "Got exactly two warnings");
-  equal(
-    warnings[0],
-    `Property "action" is unsupported in Manifest Version 2`,
+  Assert.deepEqual(
+    warnings,
+    [`Property "action" is unsupported in Manifest Version 2`],
     `Manifest v2 with "action" key first warning is clear.`
   );
-  equal(
-    warnings[1],
-    "Warning processing action: An unexpected property was found in the WebExtension manifest.",
-    `Manifest v2 with "action" key second warning has more details.`
-  );
-
-  ExtensionTestUtils.failOnSchemaWarnings(true);
 });
 
-add_task(async function test_scripting_permission() {
-  ExtensionTestUtils.failOnSchemaWarnings(false);
+add_task(async function test_mv2_scripting_permission_always_enabled() {
+  let warnings = await testManifest({
+    manifest_version: 2,
+    permissions: ["scripting"],
+  });
 
-  // The "scripting" permission is only available in MV3.
+  Assert.deepEqual(warnings, [], "Got no warnings");
+});
+
+add_task(async function test_mv3_scripting_permission_always_enabled() {
   let warnings = await testManifest({
     manifest_version: 3,
     permissions: ["scripting"],
   });
 
   Assert.deepEqual(warnings, [], "Got no warnings");
-
-  warnings = await testManifest({
-    manifest_version: 2,
-    permissions: ["scripting"],
-  });
-
-  equal(warnings.length, 1, "Got exactly one warning");
-  ok(
-    warnings[0]?.startsWith(
-      `Warning processing permissions: Error processing permissions.0: Value "scripting" must either:`
-    ),
-    `Got the expected warning message: ${warnings[0]}`
-  );
-
-  ExtensionTestUtils.failOnSchemaWarnings(true);
 });

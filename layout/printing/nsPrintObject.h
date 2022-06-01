@@ -22,8 +22,7 @@ namespace mozilla {
 class PresShell;
 }  // namespace mozilla
 
-// nsPrintObject Document Type
-enum PrintObjectType { eDoc = 0, eFrame = 1, eIFrame = 2, eFrameSet = 3 };
+enum PrintObjectType { eDoc = 0, eIFrame = 1 };
 
 //---------------------------------------------------
 //-- nsPrintObject Class
@@ -73,8 +72,17 @@ class nsPrintObject {
   nsPrintObject* mParent;  // This is a non-owning pointer.
   bool mHasBeenPrinted;
   bool mInvisible;  // Indicates PO is set to not visible by CSS
-  float mShrinkRatio;
-  float mZoomRatio;
+
+  // The scale factor that sheets should be scaled by. This is either the
+  // explicit scale chosen by the user or else the shrink-to-fit scale factor
+  // if the user selects shrink-to-fit. Only set on the top-level nsPrintObject
+  // since this is only used by nsPageFrame (via nsPresContext::GetPageScale()).
+  float mZoomRatio = 1.0;
+
+  // If the user selects the shrink-to-fit option, the shrink-to-fit scale
+  // factor is calculated and stored here. Only set on the top-level
+  // nsPrintObject.
+  float mShrinkRatio = 1.0;
 
  private:
   nsPrintObject& operator=(const nsPrintObject& aOther) = delete;

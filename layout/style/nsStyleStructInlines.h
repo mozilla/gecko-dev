@@ -97,6 +97,10 @@ bool nsStyleDisplay::IsFixedPosContainingBlockForNonSVGTextFrames(
   // should return FIXPOS_CB_NON_SVG for will-change.
   NS_ASSERTION(aStyle.StyleDisplay() == this, "unexpected aStyle");
 
+  if (aStyle.IsRootElementStyle()) {
+    return false;
+  }
+
   if (mWillChange.bits & mozilla::StyleWillChangeBits::FIXPOS_CB_NON_SVG) {
     return true;
   }
@@ -152,6 +156,14 @@ bool nsStyleDisplay::IsAbsPosContainingBlock(
   // NOTE: Any CSS properties that influence the output of this function
   // should also handle will-change appropriately.
   return IsPositionedStyle() &&
+         !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame);
+}
+
+bool nsStyleDisplay::IsRelativelyOrStickyPositioned(
+    const nsIFrame* aContextFrame) const {
+  NS_ASSERTION(aContextFrame->StyleDisplay() == this,
+               "unexpected aContextFrame");
+  return IsRelativelyOrStickyPositionedStyle() &&
          !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame);
 }
 

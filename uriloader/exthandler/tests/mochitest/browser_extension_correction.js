@@ -10,7 +10,7 @@ const TEST_PATH = getRootDirectory(gTestPath).replace(
 
 let gPathsToRemove = [];
 
-add_task(async function setup() {
+add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.download.useDownloadDir", true]],
   });
@@ -44,8 +44,8 @@ async function checkDownloadWithExtensionState(
   task,
   { type, shouldHaveExtension, expectedName = null }
 ) {
-  const shouldExpectDialog = !Services.prefs.getBoolPref(
-    "browser.download.improvements_to_download_panel",
+  const shouldExpectDialog = Services.prefs.getBoolPref(
+    "browser.download.always_ask_before_handling_new_types",
     false
   );
 
@@ -64,7 +64,7 @@ async function checkDownloadWithExtensionState(
   // PDF should load using the internal viewer without downloading it.
   let waitForLoad;
   if (!shouldExpectDialog && type == "application/pdf") {
-    waitForLoad = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+    waitForLoad = BrowserTestUtils.waitForNewTab(gBrowser);
   }
 
   await task();
@@ -108,9 +108,7 @@ async function checkDownloadWithExtensionState(
       "url is correct for " + type
     );
 
-    let backPromise = BrowserTestUtils.waitForLocationChange(gBrowser);
-    gBrowser.goBack();
-    await backPromise;
+    BrowserTestUtils.removeTab(gBrowser.selectedTab);
   } else {
     // Wait for the download if it exists (may produce null).
     let download = await downloadFinishedPromise;

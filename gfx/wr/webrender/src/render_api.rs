@@ -14,7 +14,7 @@ use time::precise_time_ns;
 //use crate::api::peek_poke::PeekPoke;
 use crate::api::channel::{Sender, single_msg_channel, unbounded_channel};
 use crate::api::{ColorF, BuiltDisplayList, IdNamespace, ExternalScrollId, Parameter, BoolParameter};
-use crate::api::{SharedFontInstanceMap, FontKey, FontInstanceKey, NativeFontHandle};
+use crate::api::{FontKey, FontInstanceKey, NativeFontHandle};
 use crate::api::{BlobImageData, BlobImageKey, ImageData, ImageDescriptor, ImageKey, Epoch, QualitySettings};
 use crate::api::{BlobImageParams, BlobImageRequest, BlobImageResult, AsyncBlobImageRasterizer, BlobImageHandler};
 use crate::api::{DocumentId, PipelineId, PropertyBindingId, PropertyBindingKey, ExternalEvent};
@@ -25,6 +25,7 @@ use crate::api::{FontInstanceOptions, FontInstancePlatformOptions, FontVariation
 use crate::api::DEFAULT_TILE_SIZE;
 use crate::api::units::*;
 use crate::api_resources::ApiResources;
+use crate::glyph_rasterizer::SharedFontResources;
 use crate::scene_builder_thread::{SceneBuilderRequest, SceneBuilderResult};
 use crate::intern::InterningMemoryReport;
 use crate::profiler::{self, TransactionProfile};
@@ -903,6 +904,8 @@ pub enum DebugCommand {
     SimulateLongSceneBuild(u32),
     /// Set an override tile size to use for picture caches
     SetPictureTileSize(Option<DeviceIntSize>),
+    /// Set an override for max off-screen surface size
+    SetMaximumSurfaceSize(Option<usize>),
 }
 
 /// Message sent by the `RenderApi` to the render backend thread.
@@ -949,7 +952,7 @@ pub struct RenderApiSender {
     scene_sender: Sender<SceneBuilderRequest>,
     low_priority_scene_sender: Sender<SceneBuilderRequest>,
     blob_image_handler: Option<Box<dyn BlobImageHandler>>,
-    shared_font_instances: SharedFontInstanceMap,
+    fonts: SharedFontResources,
 }
 
 impl RenderApiSender {
@@ -959,14 +962,14 @@ impl RenderApiSender {
         scene_sender: Sender<SceneBuilderRequest>,
         low_priority_scene_sender: Sender<SceneBuilderRequest>,
         blob_image_handler: Option<Box<dyn BlobImageHandler>>,
-        shared_font_instances: SharedFontInstanceMap,
+        fonts: SharedFontResources,
     ) -> Self {
         RenderApiSender {
             api_sender,
             scene_sender,
             low_priority_scene_sender,
             blob_image_handler,
-            shared_font_instances,
+            fonts,
         }
     }
 
@@ -984,7 +987,7 @@ impl RenderApiSender {
             next_id: Cell::new(ResourceId(0)),
             resources: ApiResources::new(
                 self.blob_image_handler.as_ref().map(|handler| handler.create_similar()),
-                self.shared_font_instances.clone(),
+                self.fonts.clone(),
             ),
         }
     }
@@ -1005,7 +1008,7 @@ impl RenderApiSender {
             next_id: Cell::new(ResourceId(0)),
             resources: ApiResources::new(
                 self.blob_image_handler.as_ref().map(|handler| handler.create_similar()),
-                self.shared_font_instances.clone(),
+                self.fonts.clone(),
             ),
         }
     }
@@ -1034,7 +1037,7 @@ impl RenderApi {
             self.scene_sender.clone(),
             self.low_priority_scene_sender.clone(),
             self.resources.blob_image_handler.as_ref().map(|handler| handler.create_similar()),
-            self.resources.get_shared_font_instances(),
+            self.resources.get_fonts(),
         )
     }
 
@@ -1251,9 +1254,11 @@ impl RenderApi {
                 &mut self.scene_sender
             };
 
-            sender.send(SceneBuilderRequest::Transactions(vec![transaction])).unwrap();
+            sender.send(SceneBuilderRequest::Transactions(vec![transaction]))
+                .expect("send by scene sender failed");
         } else {
-            self.api_sender.send(ApiMsg::UpdateDocuments(vec![transaction])).unwrap();
+            self.api_sender.send(ApiMsg::UpdateDocuments(vec![transaction]))
+                .expect("send by api sender failed");
         }
     }
 

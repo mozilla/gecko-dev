@@ -1,6 +1,6 @@
 /* exported ACCENT_COLOR, BACKGROUND, ENCODED_IMAGE_DATA, FRAME_COLOR, TAB_TEXT_COLOR,
    TEXT_COLOR, TAB_BACKGROUND_TEXT_COLOR, imageBufferFromDataURI, hexToCSS, hexToRGB, testBorderColor,
-   waitForTransition, loadTestSubscript, backgroundColorSetOnRoot */
+   waitForTransition, loadTestSubscript, backgroundColorSetOnRoot, assertPersistentListeners */
 
 "use strict";
 
@@ -121,3 +121,6 @@ function backgroundColorSetOnRoot() {
   }
   return os.windowsVersion < 10;
 }
+
+// Persistent Listener test functionality
+const { assertPersistentListeners } = ExtensionTestUtils.testAssertions;

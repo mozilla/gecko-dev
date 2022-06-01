@@ -18,7 +18,7 @@ const { ExperimentFakes } = ChromeUtils.import(
 
 let rsClient;
 
-add_task(async function setup() {
+add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["messaging-system.log", "all"],
@@ -46,7 +46,7 @@ add_task(async function test_experimentEnrollment() {
       randomizationUnit: "normandy_id",
     },
   });
-  await rsClient.db.importChanges({}, 42, [recipe], {
+  await rsClient.db.importChanges({}, Date.now(), [recipe], {
     clear: true,
   });
 

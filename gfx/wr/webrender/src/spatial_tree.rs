@@ -54,10 +54,17 @@ impl CoordinateSystem {
 #[derive(Debug, Copy, Clone, Eq, Hash, MallocSizeOf, PartialEq)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-pub struct SpatialNodeIndex(u32);
+pub struct SpatialNodeIndex(pub u32);
 
 impl SpatialNodeIndex {
     pub const INVALID: SpatialNodeIndex = SpatialNodeIndex(u32::MAX);
+
+    /// May be set on a cluster / picture during scene building if the spatial
+    /// node is not known at this time. It must be set to a valid value before
+    /// scene building is complete (by `finalize_picture`). In future, we could
+    /// make this type-safe with a wrapper type to ensure we know when a spatial
+    /// node index may have an unknown value.
+    pub const UNKNOWN: SpatialNodeIndex = SpatialNodeIndex(u32::MAX - 1);
 }
 
 // In some cases, the conversion from CSS pixels to device pixels can result in small
@@ -1012,19 +1019,17 @@ impl SpatialTree {
         CoordinateSpaceMapping::Transform(transform)
     }
 
-    pub fn is_relative_transform_complex(
+    /// Returns true if both supplied spatial nodes are in the same coordinate system
+    /// (implies the relative transform produce axis-aligned rects).
+    pub fn is_matching_coord_system(
         &self,
-        child_index: SpatialNodeIndex,
-        parent_index: SpatialNodeIndex,
+        index0: SpatialNodeIndex,
+        index1: SpatialNodeIndex,
     ) -> bool {
-        if child_index == parent_index {
-            return false;
-        }
+        let node0 = self.get_spatial_node(index0);
+        let node1 = self.get_spatial_node(index1);
 
-        let child = self.get_spatial_node(child_index);
-        let parent = self.get_spatial_node(parent_index);
-
-        child.coordinate_system_id != parent.coordinate_system_id
+        node0.coordinate_system_id == node1.coordinate_system_id
     }
 
     fn get_world_transform_impl(

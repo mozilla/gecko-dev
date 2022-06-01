@@ -13,8 +13,7 @@
 #include "mozilla/dom/PrototypeList.h"
 #include "xpcpublic.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class BrowsingContext;
 
@@ -138,7 +137,7 @@ class RemoteObjectProxyBase : public js::BaseProxyHandler,
 template <class Native, const CrossOriginProperties& P>
 class RemoteObjectProxy : public RemoteObjectProxyBase {
  public:
-  void finalize(JSFreeOp* aFop, JSObject* aProxy) const final {
+  void finalize(JS::GCContext* aGcx, JSObject* aProxy) const final {
     auto native = static_cast<Native*>(GetNative(aProxy));
     RefPtr<Native> self(dont_AddRef(native));
   }
@@ -196,7 +195,6 @@ inline bool IsRemoteObjectProxy(JSObject* aObj) {
  */
 BrowsingContext* GetBrowsingContext(JSObject* aProxy);
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif /* mozilla_dom_RemoteObjectProxy_h */

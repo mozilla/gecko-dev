@@ -359,6 +359,8 @@ theme-disabled-heading = Disabled
 theme-monochromatic-heading = Colorways
 theme-monochromatic-subheading = Vibrant new colorways from { -brand-product-name }. Available for a limited time.
 
+theme-colorways-button = Try Colorways
+
 plugin-enabled-heading = Enabled
 plugin-disabled-heading = Disabled
 
@@ -482,3 +484,25 @@ addons-heading-search-input =
 
 addon-page-options-button =
     .title = Tools for all add-ons
+
+## Detail notifications
+## Variables:
+##   $name (String): name of the add-on.
+
+# Variables:
+#   $version (String): application version.
+details-notification-incompatible = { $name } is incompatible with { -brand-short-name } { $version }.
+
+details-notification-unsigned-and-disabled = { $name } could not be verified for use in { -brand-short-name } and has been disabled.
+details-notification-unsigned-and-disabled-link = More Information
+
+details-notification-unsigned = { $name } could not be verified for use in { -brand-short-name }. Proceed with caution.
+details-notification-unsigned-link = More Information
+
+details-notification-blocked = { $name } has been disabled due to security or stability issues.
+details-notification-blocked-link = More Information
+
+details-notification-softblocked = { $name } is known to cause security or stability issues.
+details-notification-softblocked-link = More Information
+
+details-notification-gmp-pending = { $name } will be installed shortly.

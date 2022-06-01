@@ -42,12 +42,7 @@ async function loadExtension() {
     },
     background() {
       browser.test.onMessage.addListener(async options => {
-        let sites;
-        if (typeof options !== undefined) {
-          sites = await browser.topSites.get(options);
-        } else {
-          sites = await browser.topSites.get();
-        }
+        let sites = await browser.topSites.get(options);
         browser.test.sendMessage("sites", sites);
       });
     },
@@ -61,7 +56,7 @@ async function getSites(extension, options) {
   return extension.awaitMessage("sites");
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   await PlacesUtils.history.clear();
   await PlacesUtils.bookmarks.eraseEverything();
 

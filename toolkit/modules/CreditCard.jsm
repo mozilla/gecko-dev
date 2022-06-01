@@ -4,7 +4,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["CreditCard"];
+var EXPORTED_SYMBOLS = ["CreditCard", "NETWORK_NAMES"];
 
 // The list of known and supported credit card network ids ("types")
 // This list mirrors the networks from dom/payments/BasicCardPayment.cpp
@@ -157,7 +157,7 @@ class CreditCard {
    */
   set number(value) {
     if (value) {
-      let normalizedNumber = value.replace(/[-\s]/g, "");
+      let normalizedNumber = CreditCard.normalizeCardNumber(value);
       // Based on the information on wiki[1], the shortest valid length should be
       // 12 digits (Maestro).
       // [1] https://en.wikipedia.org/wiki/Payment_card_number
@@ -220,9 +220,22 @@ class CreditCard {
   }
 
   /**
+   * Normalizes a credit card number.
+   * @param {string} number
+   * @return {string | null}
+   * @memberof CreditCard
+   */
+  static normalizeCardNumber(number) {
+    if (!number) {
+      return null;
+    }
+    return number.replace(/[\-\s]/g, "");
+  }
+
+  /**
    * Attempts to match the number against known network identifiers.
    *
-   * @param {string} ccNumber
+   * @param {string} ccNumber Credit card number with no spaces or special characters in it.
    *
    * @returns {string|null}
    */
@@ -374,51 +387,51 @@ class CreditCard {
   static parseExpirationString(expirationString) {
     let rules = [
       {
-        regex: "(\\d{4})[-/](\\d{1,2})",
-        yearIndex: 1,
-        monthIndex: 2,
+        regex: /(?:^|\D)(\d{2})(\d{2})(?!\d)/,
       },
       {
-        regex: "(\\d{1,2})[-/](\\d{4})",
-        yearIndex: 2,
+        regex: /(?:^|\D)(\d{4})[-/](\d{1,2})(?!\d)/,
+        yearIndex: 0,
         monthIndex: 1,
       },
       {
-        regex: "(\\d{1,2})[-/](\\d{1,2})",
+        regex: /(?:^|\D)(\d{1,2})[-/](\d{4})(?!\d)/,
+        yearIndex: 1,
+        monthIndex: 0,
       },
       {
-        regex: "(\\d{2})(\\d{2})",
+        regex: /(?:^|\D)(\d{1,2})[-/](\d{1,2})(?!\d)/,
+      },
+      {
+        regex: /(?:^|\D)(\d{2})(\d{2})(?!\d)/,
       },
     ];
 
+    expirationString = expirationString.replaceAll(" ", "");
     for (let rule of rules) {
-      let result = new RegExp(`(?:^|\\D)${rule.regex}(?!\\d)`).exec(
-        expirationString
-      );
+      let result = rule.regex.exec(expirationString);
       if (!result) {
         continue;
       }
 
       let year, month;
-
+      const parsedResults = [parseInt(result[1], 10), parseInt(result[2], 10)];
       if (!rule.yearIndex || !rule.monthIndex) {
-        month = parseInt(result[1], 10);
+        month = parsedResults[0];
         if (month > 12) {
-          year = parseInt(result[1], 10);
-          month = parseInt(result[2], 10);
+          year = parsedResults[0];
+          month = parsedResults[1];
         } else {
-          year = parseInt(result[2], 10);
+          year = parsedResults[1];
         }
       } else {
-        year = parseInt(result[rule.yearIndex], 10);
-        month = parseInt(result[rule.monthIndex], 10);
+        year = parsedResults[rule.yearIndex];
+        month = parsedResults[rule.monthIndex];
       }
 
-      if (month < 1 || month > 12 || (year >= 100 && year < 2000)) {
-        continue;
+      if (month >= 1 && month <= 12 && (year < 100 || year > 2000)) {
+        return { month, year };
       }
-
-      return { month, year };
     }
     return { month: undefined, year: undefined };
   }
@@ -501,5 +514,8 @@ class CreditCard {
   static isValidNetwork(network) {
     return SUPPORTED_NETWORKS.includes(network);
   }
+
+  static getSupportedNetworks() {
+    return SUPPORTED_NETWORKS;
+  }
 }
-CreditCard.SUPPORTED_NETWORKS = SUPPORTED_NETWORKS;

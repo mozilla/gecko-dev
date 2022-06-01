@@ -109,7 +109,7 @@ function assertTelemetryResults(histograms, type, index, method) {
   );
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [
       // Disable search suggestions in the urlbar.
@@ -286,40 +286,6 @@ add_task(async function test_visitURL() {
   assertTelemetryResults(
     histograms,
     "visiturl",
-    0,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
-  );
-
-  BrowserTestUtils.removeTab(tab);
-});
-
-add_task(async function test_autofill() {
-  const histograms = snapshotHistograms();
-
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    "about:blank"
-  );
-
-  await PlacesTestUtils.addVisits([
-    {
-      uri: "http://example.com/mypage",
-      title: "example",
-      transition: Ci.nsINavHistoryService.TRANSITION_TYPED,
-    },
-  ]);
-
-  Services.prefs.setBoolPref("browser.urlbar.autoFill", true);
-
-  let p = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
-  await searchInAwesomebar("example.com/my");
-  EventUtils.synthesizeKey("KEY_Enter");
-  await p;
-
-  assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "autofill",
     0,
     UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
   );

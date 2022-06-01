@@ -330,6 +330,11 @@ ARCHIVE_FILES = {
             "base": "third_party/python/distro",
             "pattern": "distro.py",
         },
+        {
+            "source": buildconfig.topsrcdir,
+            "base": "third_party/python/packaging",
+            "pattern": "**",
+        },
     ],
     "reftest": [
         {"source": buildconfig.topobjdir, "base": "_tests", "pattern": "reftest/**"},
@@ -391,15 +396,15 @@ ARCHIVE_FILES = {
         {"source": buildconfig.topsrcdir, "pattern": "build/mach_initialize.py"},
         {
             "source": buildconfig.topsrcdir,
-            "pattern": "build/build_virtualenv_packages.txt",
+            "pattern": "python/sites/build.txt",
         },
         {
             "source": buildconfig.topsrcdir,
-            "pattern": "build/common_virtualenv_packages.txt",
+            "pattern": "python/sites/common.txt",
         },
         {
             "source": buildconfig.topsrcdir,
-            "pattern": "build/mach_virtualenv_packages.txt",
+            "pattern": "python/sites/mach.txt",
         },
         {"source": buildconfig.topsrcdir, "pattern": "mach/**"},
         {

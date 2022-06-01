@@ -61,7 +61,7 @@ XPCOMUtils.defineLazyGetter(this, "AboutLoginsL10n", () => {
 
 const ABOUT_LOGINS_ORIGIN = "about:logins";
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-const MASTER_PASSWORD_NOTIFICATION_ID = "master-password-login-required";
+const PRIMARY_PASSWORD_NOTIFICATION_ID = "primary-password-login-required";
 
 // about:logins will always use the privileged content process,
 // even if it is disabled for other consumers such as about:newtab.
@@ -103,7 +103,7 @@ class AboutLoginsParent extends JSWindowActorParent {
       );
     }
 
-    AboutLogins._subscribers.add(this.browsingContext);
+    AboutLogins.subscribers.add(this.browsingContext);
 
     switch (message.name) {
       case "AboutLogins:CreateLogin": {
@@ -175,13 +175,13 @@ class AboutLoginsParent extends JSWindowActorParent {
 
   #createLogin(newLogin) {
     if (!Services.policies.isAllowed("removeMasterPassword")) {
-      if (!LoginHelper.isMasterPasswordSet()) {
+      if (!LoginHelper.isPrimaryPasswordSet()) {
         this.#ownerGlobal.openDialog(
           "chrome://mozapps/content/preferences/changemp.xhtml",
           "",
           "centerscreen,chrome,modal,titlebar"
         );
-        if (!LoginHelper.isMasterPasswordSet()) {
+        if (!LoginHelper.isPrimaryPasswordSet()) {
           return;
         }
       }
@@ -204,7 +204,7 @@ class AboutLoginsParent extends JSWindowActorParent {
     try {
       Services.logins.addLogin(newLogin);
     } catch (error) {
-      this.handleLoginStorageErrors(newLogin, error);
+      this.#handleLoginStorageErrors(newLogin, error);
     }
   }
 
@@ -283,7 +283,7 @@ class AboutLoginsParent extends JSWindowActorParent {
       messageText.value,
       captionText.value
     );
-    this.sendAsyncMessage("AboutLogins:MasterPasswordResponse", {
+    this.sendAsyncMessage("AboutLogins:PrimaryPasswordResponse", {
       result: isAuthorized,
       telemetryEvent,
     });
@@ -299,13 +299,7 @@ class AboutLoginsParent extends JSWindowActorParent {
 
   async #subscribe() {
     AboutLogins._authExpirationTime = Number.NEGATIVE_INFINITY;
-    if (!AboutLogins._observersAdded) {
-      Services.obs.addObserver(AboutLogins, "passwordmgr-crypto-login");
-      Services.obs.addObserver(AboutLogins, "passwordmgr-crypto-loginCanceled");
-      Services.obs.addObserver(AboutLogins, "passwordmgr-storage-changed");
-      Services.obs.addObserver(AboutLogins, UIState.ON_UPDATE);
-      AboutLogins._observersAdded = true;
-    }
+    AboutLogins.addObservers();
 
     const logins = await AboutLogins.getAllLogins();
     try {
@@ -324,14 +318,14 @@ class AboutLoginsParent extends JSWindowActorParent {
         logins,
         selectedSort,
         syncState,
-        masterPasswordEnabled: LoginHelper.isMasterPasswordSet(),
+        primaryPasswordEnabled: LoginHelper.isPrimaryPasswordSet(),
         passwordRevealVisible: Services.policies.isAllowed("passwordReveal"),
         importVisible:
           Services.policies.isAllowed("profileImport") &&
           AppConstants.platform != "linux",
       });
 
-      await AboutLogins._sendAllLoginRelatedObjects(
+      await AboutLogins.sendAllLoginRelatedObjects(
         logins,
         this.browsingContext
       );
@@ -369,7 +363,7 @@ class AboutLoginsParent extends JSWindowActorParent {
     try {
       Services.logins.modifyLogin(logins[0], modifiedLogin);
     } catch (error) {
-      this.handleLoginStorageErrors(modifiedLogin, error);
+      this.#handleLoginStorageErrors(modifiedLogin, error);
     }
   }
 
@@ -490,7 +484,6 @@ class AboutLoginsParent extends JSWindowActorParent {
       let summary;
       try {
         summary = await LoginCSVImport.importFromCSV(path);
-        await AboutLogins._reloadAllLogins();
       } catch (e) {
         Cu.reportError(e);
         this.sendAsyncMessage(
@@ -513,7 +506,7 @@ class AboutLoginsParent extends JSWindowActorParent {
     Services.logins.removeAllUserFacingLogins();
   }
 
-  handleLoginStorageErrors(login, error) {
+  #handleLoginStorageErrors(login, error) {
     let messageObject = {
       login: augmentVanillaLoginObject(LoginHelper.loginToVanillaObject(login)),
       errorMessage: error.message,
@@ -544,111 +537,128 @@ class AboutLoginsParent extends JSWindowActorParent {
   }
 }
 
-var AboutLogins = {
-  _subscribers: new WeakSet(),
-  _observersAdded: false,
-  _authExpirationTime: Number.NEGATIVE_INFINITY,
+class AboutLoginsInternal {
+  subscribers = new WeakSet();
+  #observersAdded = false;
+  authExpirationTime = Number.NEGATIVE_INFINITY;
 
   async observe(subject, topic, type) {
-    if (!ChromeUtils.nondeterministicGetWeakSetKeys(this._subscribers).length) {
-      Services.obs.removeObserver(this, "passwordmgr-crypto-login");
-      Services.obs.removeObserver(this, "passwordmgr-crypto-loginCanceled");
-      Services.obs.removeObserver(this, "passwordmgr-storage-changed");
-      Services.obs.removeObserver(this, UIState.ON_UPDATE);
-      this._observersAdded = false;
+    if (!ChromeUtils.nondeterministicGetWeakSetKeys(this.subscribers).length) {
+      this.#removeObservers();
       return;
     }
 
-    if (topic == "passwordmgr-crypto-login") {
-      this.removeNotifications(MASTER_PASSWORD_NOTIFICATION_ID);
-      await this._reloadAllLogins();
-      return;
-    }
-
-    if (topic == "passwordmgr-crypto-loginCanceled") {
-      this.showMasterPasswordLoginNotifications();
-      return;
-    }
-
-    if (topic == UIState.ON_UPDATE) {
-      this.messageSubscribers("AboutLogins:SyncState", this.getSyncState());
-      return;
-    }
-
-    switch (type) {
-      case "addLogin": {
-        const login = convertSubjectToLogin(subject);
-        if (!login) {
-          return;
-        }
-
-        if (BREACH_ALERTS_ENABLED) {
-          this.messageSubscribers(
-            "AboutLogins:UpdateBreaches",
-            await LoginBreaches.getPotentialBreachesByLoginGUID([login])
-          );
-          if (VULNERABLE_PASSWORDS_ENABLED) {
-            this.messageSubscribers(
-              "AboutLogins:UpdateVulnerableLogins",
-              await LoginBreaches.getPotentiallyVulnerablePasswordsByLoginGUID([
-                login,
-              ])
-            );
+    switch (topic) {
+      case "passwordmgr-reload-all": {
+        await this.#reloadAllLogins();
+        break;
+      }
+      case "passwordmgr-crypto-login": {
+        this.#removeNotifications(PRIMARY_PASSWORD_NOTIFICATION_ID);
+        await this.#reloadAllLogins();
+        break;
+      }
+      case "passwordmgr-crypto-loginCanceled": {
+        this.#showPrimaryPasswordLoginNotifications();
+        break;
+      }
+      case UIState.ON_UPDATE: {
+        this.#messageSubscribers("AboutLogins:SyncState", this.getSyncState());
+        break;
+      }
+      case "passwordmgr-storage-changed": {
+        switch (type) {
+          case "addLogin": {
+            await this.#addLogin(subject);
+            break;
+          }
+          case "modifyLogin": {
+            this.#modifyLogin(subject);
+            break;
+          }
+          case "removeLogin": {
+            this.#removeLogin(subject);
+            break;
+          }
+          case "removeAllLogins": {
+            this.#removeAllLogins();
+            break;
           }
         }
-
-        this.messageSubscribers("AboutLogins:LoginAdded", login);
-        break;
-      }
-      case "modifyLogin": {
-        subject.QueryInterface(Ci.nsIArrayExtensions);
-        const login = convertSubjectToLogin(subject.GetElementAt(1));
-        if (!login) {
-          return;
-        }
-
-        if (BREACH_ALERTS_ENABLED) {
-          let breachesForThisLogin = await LoginBreaches.getPotentialBreachesByLoginGUID(
-            [login]
-          );
-          let breachData = breachesForThisLogin.size
-            ? breachesForThisLogin.get(login.guid)
-            : false;
-          this.messageSubscribers(
-            "AboutLogins:UpdateBreaches",
-            new Map([[login.guid, breachData]])
-          );
-          if (VULNERABLE_PASSWORDS_ENABLED) {
-            let vulnerablePasswordsForThisLogin = await LoginBreaches.getPotentiallyVulnerablePasswordsByLoginGUID(
-              [login]
-            );
-            let isLoginVulnerable = !!vulnerablePasswordsForThisLogin.size;
-            this.messageSubscribers(
-              "AboutLogins:UpdateVulnerableLogins",
-              new Map([[login.guid, isLoginVulnerable]])
-            );
-          }
-        }
-
-        this.messageSubscribers("AboutLogins:LoginModified", login);
-        break;
-      }
-      case "removeLogin": {
-        const login = convertSubjectToLogin(subject);
-        if (!login) {
-          return;
-        }
-        this.messageSubscribers("AboutLogins:LoginRemoved", login);
-        break;
-      }
-      case "removeAllLogins": {
-        this.messageSubscribers("AboutLogins:RemoveAllLogins", []);
-        break;
       }
     }
-  },
+  }
 
-  async getFavicon(login) {
+  async #addLogin(subject) {
+    const login = convertSubjectToLogin(subject);
+    if (!login) {
+      return;
+    }
+
+    if (BREACH_ALERTS_ENABLED) {
+      this.#messageSubscribers(
+        "AboutLogins:UpdateBreaches",
+        await LoginBreaches.getPotentialBreachesByLoginGUID([login])
+      );
+      if (VULNERABLE_PASSWORDS_ENABLED) {
+        this.#messageSubscribers(
+          "AboutLogins:UpdateVulnerableLogins",
+          await LoginBreaches.getPotentiallyVulnerablePasswordsByLoginGUID([
+            login,
+          ])
+        );
+      }
+    }
+
+    this.#messageSubscribers("AboutLogins:LoginAdded", login);
+  }
+
+  async #modifyLogin(subject) {
+    subject.QueryInterface(Ci.nsIArrayExtensions);
+    const login = convertSubjectToLogin(subject.GetElementAt(1));
+    if (!login) {
+      return;
+    }
+
+    if (BREACH_ALERTS_ENABLED) {
+      let breachesForThisLogin = await LoginBreaches.getPotentialBreachesByLoginGUID(
+        [login]
+      );
+      let breachData = breachesForThisLogin.size
+        ? breachesForThisLogin.get(login.guid)
+        : false;
+      this.#messageSubscribers(
+        "AboutLogins:UpdateBreaches",
+        new Map([[login.guid, breachData]])
+      );
+      if (VULNERABLE_PASSWORDS_ENABLED) {
+        let vulnerablePasswordsForThisLogin = await LoginBreaches.getPotentiallyVulnerablePasswordsByLoginGUID(
+          [login]
+        );
+        let isLoginVulnerable = !!vulnerablePasswordsForThisLogin.size;
+        this.#messageSubscribers(
+          "AboutLogins:UpdateVulnerableLogins",
+          new Map([[login.guid, isLoginVulnerable]])
+        );
+      }
+    }
+
+    this.#messageSubscribers("AboutLogins:LoginModified", login);
+  }
+
+  #removeLogin(subject) {
+    const login = convertSubjectToLogin(subject);
+    if (!login) {
+      return;
+    }
+    this.#messageSubscribers("AboutLogins:LoginRemoved", login);
+  }
+
+  #removeAllLogins() {
+    this.#messageSubscribers("AboutLogins:RemoveAllLogins", []);
+  }
+
+  async #getFavicon(login) {
     try {
       const faviconData = await PlacesUtils.promiseFaviconData(login.origin);
       return {
@@ -658,11 +668,11 @@ var AboutLogins = {
     } catch (ex) {
       return null;
     }
-  },
+  }
 
   async getAllFavicons(logins) {
     let favicons = await Promise.all(
-      logins.map(login => this.getFavicon(login))
+      logins.map(login => this.#getFavicon(login))
     );
     let vanillaFavicons = {};
     for (let favicon of favicons) {
@@ -678,17 +688,17 @@ var AboutLogins = {
       } catch (ex) {}
     }
     return vanillaFavicons;
-  },
+  }
 
-  async _reloadAllLogins() {
+  async #reloadAllLogins() {
     let logins = await this.getAllLogins();
-    this.messageSubscribers("AboutLogins:AllLogins", logins);
-    await this._sendAllLoginRelatedObjects(logins);
-  },
+    this.#messageSubscribers("AboutLogins:AllLogins", logins);
+    await this.sendAllLoginRelatedObjects(logins);
+  }
 
-  showMasterPasswordLoginNotifications() {
-    this.showNotifications({
-      id: MASTER_PASSWORD_NOTIFICATION_ID,
+  #showPrimaryPasswordLoginNotifications() {
+    this.#showNotifications({
+      id: PRIMARY_PASSWORD_NOTIFICATION_ID,
       priority: "PRIORITY_WARNING_MEDIUM",
       iconURL: "chrome://browser/skin/login.svg",
       messageId: "about-logins-primary-password-notification-message",
@@ -699,10 +709,10 @@ var AboutLogins = {
         },
       ],
     });
-    this.messageSubscribers("AboutLogins:MasterPasswordAuthRequired");
-  },
+    this.#messageSubscribers("AboutLogins:PrimaryPasswordAuthRequired");
+  }
 
-  showNotifications({
+  #showNotifications({
     id,
     priority,
     iconURL,
@@ -711,7 +721,7 @@ var AboutLogins = {
     onClicks,
     extraFtl = [],
   } = {}) {
-    for (let subscriber of this._subscriberIterator()) {
+    for (let subscriber of this.#subscriberIterator()) {
       let browser = subscriber.embedderElement;
       let MozXULElement = browser.ownerGlobal.MozXULElement;
       MozXULElement.insertFTLIfNeeded("browser/aboutLogins.ftl");
@@ -748,10 +758,10 @@ var AboutLogins = {
         buttons
       );
     }
-  },
+  }
 
-  removeNotifications(notificationId) {
-    for (let subscriber of this._subscriberIterator()) {
+  #removeNotifications(notificationId) {
+    for (let subscriber of this.#subscriberIterator()) {
       let browser = subscriber.embedderElement;
       let { gBrowser } = browser.ownerGlobal;
       let notificationBox = gBrowser.getNotificationBox(browser);
@@ -763,47 +773,45 @@ var AboutLogins = {
       }
       notificationBox.removeNotification(notification);
     }
-  },
+  }
 
-  *_subscriberIterator() {
+  *#subscriberIterator() {
     let subscribers = ChromeUtils.nondeterministicGetWeakSetKeys(
-      this._subscribers
+      this.subscribers
     );
     for (let subscriber of subscribers) {
       let browser = subscriber.embedderElement;
       if (
-        !browser ||
-        browser.remoteType != EXPECTED_ABOUTLOGINS_REMOTE_TYPE ||
-        !browser.contentPrincipal ||
-        browser.contentPrincipal.originNoSuffix != ABOUT_LOGINS_ORIGIN
+        browser?.remoteType != EXPECTED_ABOUTLOGINS_REMOTE_TYPE ||
+        browser?.contentPrincipal?.originNoSuffix != ABOUT_LOGINS_ORIGIN
       ) {
-        this._subscribers.delete(subscriber);
+        this.subscribers.delete(subscriber);
         continue;
       }
       yield subscriber;
     }
-  },
+  }
 
-  messageSubscribers(name, details) {
-    for (let subscriber of this._subscriberIterator()) {
+  #messageSubscribers(name, details) {
+    for (let subscriber of this.#subscriberIterator()) {
       try {
         if (subscriber.currentWindowGlobal) {
           let actor = subscriber.currentWindowGlobal.getActor("AboutLogins");
           actor.sendAsyncMessage(name, details);
         }
       } catch (ex) {
-        if (ex.result != Cr.NS_ERROR_NOT_INITIALIZED) {
+        if (ex.result == Cr.NS_ERROR_NOT_INITIALIZED) {
+          // The actor may be destroyed before the message is sent.
+          log.debug(
+            "messageSubscribers: exception when calling sendAsyncMessage",
+            ex
+          );
+        } else {
           throw ex;
         }
-
-        // The actor may be destroyed before the message is sent.
-        log.debug(
-          "messageSubscribers: exception when calling sendAsyncMessage",
-          ex
-        );
       }
     }
-  },
+  }
 
   async getAllLogins() {
     try {
@@ -818,15 +826,15 @@ var AboutLogins = {
       }
       throw e;
     }
-  },
+  }
 
-  async _sendAllLoginRelatedObjects(logins, browsingContext) {
+  async sendAllLoginRelatedObjects(logins, browsingContext) {
     let sendMessageFn = (name, details) => {
-      if (browsingContext && browsingContext.currentWindowGlobal) {
+      if (browsingContext?.currentWindowGlobal) {
         let actor = browsingContext.currentWindowGlobal.getActor("AboutLogins");
         actor.sendAsyncMessage(name, details);
       } else {
-        this.messageSubscribers(name, details);
+        this.#messageSubscribers(name, details);
       }
     };
 
@@ -849,7 +857,7 @@ var AboutLogins = {
       "AboutLogins:SendFavicons",
       await AboutLogins.getAllFavicons(logins)
     );
-  },
+  }
 
   getSyncState() {
     const state = UIState.get();
@@ -866,12 +874,38 @@ var AboutLogins = {
       fxAccountsEnabled: FXA_ENABLED,
       passwordSyncEnabled,
     };
-  },
+  }
 
   onPasswordSyncEnabledPreferenceChange(data, previous, latest) {
-    this.messageSubscribers("AboutLogins:SyncState", this.getSyncState());
-  },
-};
+    this.#messageSubscribers("AboutLogins:SyncState", this.getSyncState());
+  }
+
+  #observedTopics = [
+    "passwordmgr-crypto-login",
+    "passwordmgr-crypto-loginCanceled",
+    "passwordmgr-storage-changed",
+    "passwordmgr-reload-all",
+    UIState.ON_UPDATE,
+  ];
+
+  addObservers() {
+    if (!this.#observersAdded) {
+      for (const topic of this.#observedTopics) {
+        Services.obs.addObserver(this, topic);
+      }
+      this.#observersAdded = true;
+    }
+  }
+
+  #removeObservers() {
+    for (const topic of this.#observedTopics) {
+      Services.obs.removeObserver(this, topic);
+    }
+    this.#observersAdded = false;
+  }
+}
+
+let AboutLogins = new AboutLoginsInternal();
 var _AboutLogins = AboutLogins;
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -879,5 +913,5 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "PASSWORD_SYNC_ENABLED",
   "services.sync.engine.passwords",
   false,
-  AboutLogins.onPasswordSyncEnabledPreferenceChange.bind(AboutLogins)
+  AboutLogins.onPasswordSyncEnabledPreferenceChange
 );

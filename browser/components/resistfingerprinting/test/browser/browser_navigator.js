@@ -13,6 +13,12 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/AppConstants.jsm"
 );
 
+ChromeUtils.defineModuleGetter(
+  this,
+  "WindowsVersionInfo",
+  "resource://gre/modules/components-utils/WindowsVersionInfo.jsm"
+);
+
 let expectedResults;
 
 let osVersion = Services.sysinfo.get("version");
@@ -66,14 +72,17 @@ const SPOOFED_PLATFORM = {
   other: "Linux x86_64",
 };
 
-// If comparison with this value fails in the future,
-// it's time to evaluate if exposing a new Windows
-// version to the Web is appropriate. See
+// If comparison with the WindowsOscpu value fails in the future, it's time to
+// evaluate if exposing a new Windows version to the Web is appropriate. See
 // https://bugzilla.mozilla.org/show_bug.cgi?id=1693295
-const WindowsOscpu =
-  cpuArch == "x86_64"
-    ? `Windows NT ${osVersion}; Win64; x64`
-    : `Windows NT ${osVersion}`;
+let WindowsOscpu = null;
+if (AppConstants.platform == "win") {
+  let isWin11 = WindowsVersionInfo.get().buildNumber >= 22000;
+  WindowsOscpu =
+    cpuArch == "x86_64" || (cpuArch == "aarch64" && isWin11)
+      ? `Windows NT ${osVersion}; Win64; x64`
+      : `Windows NT ${osVersion}`;
+}
 
 const DEFAULT_OSCPU = {
   linux: `Linux ${cpuArch}`,
@@ -123,7 +132,7 @@ const CONST_VENDOR = "";
 const CONST_VENDORSUB = "";
 
 const appVersion = parseInt(Services.appinfo.version);
-const spoofedVersion = appVersion - ((appVersion - 78) % 13);
+const spoofedVersion = AppConstants.platform == "android" ? "102" : appVersion;
 
 const LEGACY_UA_GECKO_TRAIL = "20100101";
 
@@ -195,8 +204,16 @@ async function testNavigator() {
     expectedResults.userAgentNavigator,
     `Checking ${testDesc} navigator.userAgent.`
   );
-  is(result.mimeTypesLength, 0, "Navigator.mimeTypes has a length of 0.");
-  is(result.pluginsLength, 0, "Navigator.plugins has a length of 0.");
+  is(
+    result.mimeTypesLength,
+    expectedResults.mimeTypesLength,
+    `Navigator.mimeTypes has a length of ${expectedResults.mimeTypesLength}.`
+  );
+  is(
+    result.pluginsLength,
+    expectedResults.pluginsLength,
+    `Navigator.plugins has a length of ${expectedResults.pluginsLength}.`
+  );
   is(
     result.oscpu,
     expectedResults.oscpu,
@@ -275,38 +292,38 @@ async function testWorkerNavigator() {
   is(
     result.appVersion,
     expectedResults.appVersion,
-    `Checking ${testDesc} navigator.appVersion.`
+    `Checking ${testDesc} worker navigator.appVersion.`
   );
   is(
     result.platform,
     expectedResults.platform,
-    `Checking ${testDesc} navigator.platform.`
+    `Checking ${testDesc} worker navigator.platform.`
   );
   is(
     result.userAgent,
     expectedResults.userAgentNavigator,
-    `Checking ${testDesc} navigator.userAgent.`
+    `Checking ${testDesc} worker navigator.userAgent.`
   );
   is(
     result.hardwareConcurrency,
     expectedResults.hardwareConcurrency,
-    `Checking ${testDesc} navigator.hardwareConcurrency.`
+    `Checking ${testDesc} worker navigator.hardwareConcurrency.`
   );
 
   is(
     result.appCodeName,
     CONST_APPCODENAME,
-    "Navigator.appCodeName reports correct constant value."
+    "worker Navigator.appCodeName reports correct constant value."
   );
   is(
     result.appName,
     CONST_APPNAME,
-    "Navigator.appName reports correct constant value."
+    "worker Navigator.appName reports correct constant value."
   );
   is(
     result.product,
     CONST_PRODUCT,
-    "Navigator.product reports correct constant value."
+    "worker Navigator.product reports correct constant value."
   );
 
   BrowserTestUtils.removeTab(tab);
@@ -336,8 +353,10 @@ add_task(async function setupDefaultUserAgent() {
     testDesc: "default",
     appVersion: DEFAULT_APPVERSION[AppConstants.platform],
     hardwareConcurrency: navigator.hardwareConcurrency,
+    mimeTypesLength: 2,
     oscpu: DEFAULT_OSCPU[AppConstants.platform],
     platform: DEFAULT_PLATFORM[AppConstants.platform],
+    pluginsLength: 5,
     userAgentNavigator: defaultUserAgent,
     userAgentHeader: defaultUserAgent,
   };
@@ -347,6 +366,47 @@ add_task(async function setupDefaultUserAgent() {
   await testUserAgentHeader();
 
   await testWorkerNavigator();
+});
+
+add_task(async function setupRFPExemptions() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["privacy.resistFingerprinting", true],
+      ["privacy.resistFingerprinting.testGranularityMask", 4],
+      ["privacy.resistFingerprinting.exemptedDomains", "example.net"],
+    ],
+  });
+
+  let spoofedGeckoTrail = SPOOFED_UA_GECKO_TRAIL[AppConstants.platform];
+
+  let spoofedUserAgentNavigator = `Mozilla/5.0 (${
+    SPOOFED_UA_NAVIGATOR_OS[AppConstants.platform]
+  }; rv:${spoofedVersion}.0) Gecko/${spoofedGeckoTrail} Firefox/${spoofedVersion}.0`;
+
+  let spoofedUserAgentHeader = `Mozilla/5.0 (${
+    SPOOFED_UA_HTTPHEADER_OS[AppConstants.platform]
+  }; rv:${spoofedVersion}.0) Gecko/${spoofedGeckoTrail} Firefox/${spoofedVersion}.0`;
+
+  expectedResults = {
+    testDesc: "spoofed",
+    appVersion: SPOOFED_APPVERSION[AppConstants.platform],
+    hardwareConcurrency: navigator.hardwareConcurrency,
+    mimeTypesLength: 2,
+    oscpu: SPOOFED_OSCPU[AppConstants.platform],
+    platform: SPOOFED_PLATFORM[AppConstants.platform],
+    pluginsLength: 5,
+    userAgentNavigator: spoofedUserAgentNavigator,
+    userAgentHeader: spoofedUserAgentHeader,
+  };
+
+  await testNavigator();
+
+  await testUserAgentHeader();
+
+  await testWorkerNavigator();
+
+  // Pop exempted domains
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function setupResistFingerprinting() {
@@ -368,8 +428,10 @@ add_task(async function setupResistFingerprinting() {
     testDesc: "spoofed",
     appVersion: SPOOFED_APPVERSION[AppConstants.platform],
     hardwareConcurrency: SPOOFED_HW_CONCURRENCY,
+    mimeTypesLength: 2,
     oscpu: SPOOFED_OSCPU[AppConstants.platform],
     platform: SPOOFED_PLATFORM[AppConstants.platform],
+    pluginsLength: 5,
     userAgentNavigator: spoofedUserAgentNavigator,
     userAgentHeader: spoofedUserAgentHeader,
   };
@@ -405,84 +467,3 @@ add_task(async function runOverrideTest() {
   // Pop privacy.resistFingerprinting
   await SpecialPowers.popPrefEnv();
 });
-
-const VERSION_100_UA_OS = {
-  linux: "X11; Linux x86_64",
-  win: cpuArch == "x86_64" ? "Windows NT 10.0; Win64; x64" : "Windows NT 10.0",
-  macosx: "Macintosh; Intel Mac OS X 10.15",
-  android: "Android 10; Mobile",
-};
-
-const VERSION_100_UA = `Mozilla/5.0 (${
-  VERSION_100_UA_OS[AppConstants.platform]
-}; rv:100.0) Gecko/20100101 Firefox/100.0`;
-
-// Only test the Firefox and Gecko experiment prefs on desktop.
-if (AppConstants.platform != "android") {
-  add_task(async function testForceVersion100() {
-    await SpecialPowers.pushPrefEnv({
-      set: [["general.useragent.forceVersion100", true]],
-    });
-
-    expectedResults = {
-      testDesc: "forceVersion100",
-      appVersion: DEFAULT_APPVERSION[AppConstants.platform],
-      hardwareConcurrency: navigator.hardwareConcurrency,
-      oscpu: DEFAULT_OSCPU[AppConstants.platform],
-      platform: DEFAULT_PLATFORM[AppConstants.platform],
-      userAgentNavigator: VERSION_100_UA,
-      userAgentHeader: VERSION_100_UA,
-    };
-
-    await testNavigator();
-
-    await testUserAgentHeader();
-
-    await testWorkerNavigator();
-
-    // Pop general.useragent.override etc
-    await SpecialPowers.popPrefEnv();
-  });
-
-  add_task(async function setupFirefoxVersionExperiment() {
-    // In Test Verify mode, this test is run multiple times so we need to
-    // reset the experiment enrollment prefs as if experiment enrollment
-    // never happend.
-    await SpecialPowers.pushPrefEnv({
-      set: [
-        ["general.useragent.forceVersion100", false],
-        ["general.useragent.handledVersionExperimentEnrollment", false],
-      ],
-    });
-
-    // Mock Nimbus experiment settings
-    const { ExperimentFakes } = ChromeUtils.import(
-      "resource://testing-common/NimbusTestUtils.jsm"
-    );
-    let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
-      featureId: "firefox100",
-      value: { firefoxVersion: 100 },
-    });
-
-    expectedResults = {
-      testDesc: "FirefoxVersionExperimentTest",
-      appVersion: DEFAULT_APPVERSION[AppConstants.platform],
-      hardwareConcurrency: navigator.hardwareConcurrency,
-      oscpu: DEFAULT_OSCPU[AppConstants.platform],
-      platform: DEFAULT_PLATFORM[AppConstants.platform],
-      userAgentNavigator: VERSION_100_UA,
-      userAgentHeader: VERSION_100_UA,
-    };
-
-    await testNavigator();
-
-    // Skip worker tests due to intermittent bug 1713764. This is unlikely to be
-    // a scenario that affects users enrolled in our "Firefox 100" experiment.
-    // await testWorkerNavigator();
-
-    await testUserAgentHeader();
-
-    // Clear Nimbus experiment prefs and session data
-    await doExperimentCleanup();
-  });
-}

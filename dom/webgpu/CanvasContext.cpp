@@ -5,18 +5,19 @@
 
 #include "mozilla/dom/WebGPUBinding.h"
 #include "CanvasContext.h"
-#include "nsDisplayList.h"
+#include "gfxUtils.h"
 #include "LayerUserData.h"
+#include "nsDisplayList.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
-#include "mozilla/layers/CompositorManagerChild.h"
+#include "mozilla/gfx/CanvasManagerChild.h"
+#include "mozilla/layers/CanvasRenderer.h"
+#include "mozilla/layers/CompositableInProcessManager.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/layers/RenderRootStateManager.h"
-#include "mozilla/layers/WebRenderBridgeChild.h"
 #include "ipc/WebGPUChild.h"
 
-namespace mozilla {
-namespace webgpu {
+namespace mozilla::webgpu {
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(CanvasContext)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(CanvasContext)
@@ -38,23 +39,11 @@ CanvasContext::~CanvasContext() {
   RemovePostRefreshObserver();
 }
 
-void CanvasContext::Cleanup() {
-  Unconfigure();
-  if (mRenderRootStateManager && mImageKey) {
-    mRenderRootStateManager->AddImageKeyForDiscard(mImageKey.value());
-    mRenderRootStateManager = nullptr;
-    mImageKey.reset();
-  }
-}
+void CanvasContext::Cleanup() { Unconfigure(); }
 
 JSObject* CanvasContext::WrapObject(JSContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return dom::GPUCanvasContext_Binding::Wrap(aCx, this, aGivenProto);
-}
-
-bool CanvasContext::UpdateWebRenderCanvasData(
-    nsDisplayListBuilder* aBuilder, WebRenderCanvasData* aCanvasData) {
-  return true;
 }
 
 void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aDesc) {
@@ -76,35 +65,37 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aDesc) {
   }
 
   gfx::IntSize actualSize(mWidth, mHeight);
-  mExternalImageId.emplace(
-      layers::CompositorManagerChild::GetInstance()->GetNextExternalImageId());
-  mTexture = aDesc.mDevice->InitSwapChain(aDesc, mExternalImageId.ref(),
-                                          mGfxFormat, &actualSize);
-  mTexture->mTargetCanvasElement = mCanvasElement;
+  mHandle = layers::CompositableInProcessManager::GetNextHandle();
+  mTexture =
+      aDesc.mDevice->InitSwapChain(aDesc, mHandle, mGfxFormat, &actualSize);
+  if (!mTexture) {
+    Unconfigure();
+    return;
+  }
+
+  mTexture->mTargetContext = this;
   mBridge = aDesc.mDevice->GetBridge();
   mGfxSize = actualSize;
 
   // Force a new frame to be built, which will execute the
   // `CanvasContextType::WebGPU` switch case in `CreateWebRenderCommands` and
   // populate the WR user data.
-  mCanvasElement->InvalidateCanvas();
-}
-
-Maybe<wr::ImageKey> CanvasContext::GetImageKey() const { return mImageKey; }
-
-wr::ImageKey CanvasContext::CreateImageKey(
-    layers::RenderRootStateManager* aManager) {
-  const auto key = aManager->WrBridge()->GetNextImageKey();
-  mRenderRootStateManager = aManager;
-  mImageKey = Some(key);
-  return key;
+  if (mCanvasElement) {
+    mCanvasElement->InvalidateCanvas();
+  } else if (mOffscreenCanvas) {
+    dom::OffscreenCanvasDisplayData data;
+    data.mSize = {mWidth, mHeight};
+    data.mIsOpaque = false;
+    data.mHandle = mHandle;
+    mOffscreenCanvas->UpdateDisplayData(data);
+  }
 }
 
 void CanvasContext::Unconfigure() {
-  if (mBridge && mBridge->IsOpen() && mExternalImageId) {
-    mBridge->SendSwapChainDestroy(mExternalImageId.ref());
+  if (mBridge && mBridge->IsOpen() && mHandle) {
+    mBridge->SendSwapChainDestroy(mHandle);
   }
-  mExternalImageId.reset();
+  mHandle = layers::CompositableHandle();
   mBridge = nullptr;
   mTexture = nullptr;
   mGfxFormat = gfx::SurfaceFormat::UNKNOWN;
@@ -122,27 +113,86 @@ RefPtr<Texture> CanvasContext::GetCurrentTexture(ErrorResult& aRv) {
   return mTexture;
 }
 
-bool CanvasContext::UpdateWebRenderLocalCanvasData(
-    layers::WebRenderLocalCanvasData* aCanvasData) {
-  if (!mTexture) {
+void CanvasContext::MaybeQueueSwapChainPresent() {
+  if (mPendingSwapChainPresent) {
+    return;
+  }
+
+  mPendingSwapChainPresent = true;
+  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(
+      NewCancelableRunnableMethod("CanvasContext::SwapChainPresent", this,
+                                  &CanvasContext::SwapChainPresent)));
+}
+
+void CanvasContext::SwapChainPresent() {
+  mPendingSwapChainPresent = false;
+  if (mBridge && mBridge->IsOpen() && mHandle && mTexture) {
+    mBridge->SwapChainPresent(mHandle, mTexture->mId);
+  }
+}
+
+bool CanvasContext::InitializeCanvasRenderer(
+    nsDisplayListBuilder* aBuilder, layers::CanvasRenderer* aRenderer) {
+  // This path is only used for rendering when we use the fallback Paint path,
+  // used by reftest-snapshot, printing and Firefox Screenshot.
+  if (!mHandle) {
     return false;
   }
 
-  aCanvasData->mGpuBridge = mBridge.get();
-  aCanvasData->mGpuTextureId = mTexture->mId;
-  aCanvasData->mExternalImageId = mExternalImageId.ref();
-  aCanvasData->mFormat = mGfxFormat;
+  layers::CanvasRendererData data;
+  data.mContext = this;
+  data.mSize = mGfxSize;
+  data.mIsOpaque = false;
+
+  aRenderer->Initialize(data);
+  aRenderer->SetDirty();
   return true;
 }
 
-wr::ImageDescriptor CanvasContext::MakeImageDescriptor() const {
-  const layers::RGBDescriptor rgbDesc(mGfxSize, mGfxFormat);
-  const auto targetStride = layers::ImageDataSerializer::GetRGBStride(rgbDesc);
-  const bool preferCompositorSurface = true;
-  return wr::ImageDescriptor(mGfxSize, targetStride, mGfxFormat,
-                             wr::OpacityType::HasAlphaChannel,
-                             preferCompositorSurface);
+mozilla::UniquePtr<uint8_t[]> CanvasContext::GetImageBuffer(int32_t* aFormat) {
+  gfxAlphaType any;
+  RefPtr<gfx::SourceSurface> snapshot = GetSurfaceSnapshot(&any);
+  if (!snapshot) {
+    *aFormat = 0;
+    return nullptr;
+  }
+
+  RefPtr<gfx::DataSourceSurface> dataSurface = snapshot->GetDataSurface();
+  return gfxUtils::GetImageBuffer(dataSurface, /* aIsAlphaPremultiplied */ true,
+                                  aFormat);
 }
 
-}  // namespace webgpu
-}  // namespace mozilla
+NS_IMETHODIMP CanvasContext::GetInputStream(const char* aMimeType,
+                                            const nsAString& aEncoderOptions,
+                                            nsIInputStream** aStream) {
+  gfxAlphaType any;
+  RefPtr<gfx::SourceSurface> snapshot = GetSurfaceSnapshot(&any);
+  if (!snapshot) {
+    return NS_ERROR_FAILURE;
+  }
+
+  RefPtr<gfx::DataSourceSurface> dataSurface = snapshot->GetDataSurface();
+  return gfxUtils::GetInputStream(dataSurface, /* aIsAlphaPremultiplied */ true,
+                                  aMimeType, aEncoderOptions, aStream);
+}
+
+already_AddRefed<mozilla::gfx::SourceSurface> CanvasContext::GetSurfaceSnapshot(
+    gfxAlphaType* aOutAlphaType) {
+  if (aOutAlphaType) {
+    *aOutAlphaType = gfxAlphaType::Premult;
+  }
+
+  auto* const cm = gfx::CanvasManagerChild::Get();
+  if (!cm) {
+    return nullptr;
+  }
+
+  if (!mBridge || !mBridge->IsOpen() || !mHandle) {
+    return nullptr;
+  }
+
+  return cm->GetSnapshot(cm->Id(), mBridge->Id(), mHandle, mGfxFormat,
+                         /* aPremultiply */ false, /* aYFlip */ false);
+}
+
+}  // namespace mozilla::webgpu

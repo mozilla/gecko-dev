@@ -3,8 +3,11 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import React, { PureComponent } from "react";
+import PropTypes from "prop-types";
+
 import { connect } from "../../../utils/connect";
 import actions from "../../../actions";
+
 import {
   getTruncatedFileName,
   getDisplayPath,
@@ -15,6 +18,7 @@ import {
   getHasSiblingOfSameName,
   getBreakpointsForSource,
   getContext,
+  getThread,
 } from "../../../selectors";
 
 import SourceIcon from "../../shared/SourceIcon";
@@ -22,6 +26,16 @@ import SourceIcon from "../../shared/SourceIcon";
 import showContextMenu from "./BreakpointHeadingsContextMenu";
 
 class BreakpointHeading extends PureComponent {
+  static get propTypes() {
+    return {
+      cx: PropTypes.object.isRequired,
+      sources: PropTypes.array.isRequired,
+      source: PropTypes.object.isRequired,
+      hasSiblingOfSameName: PropTypes.bool.isRequired,
+      selectSource: PropTypes.func.isRequired,
+      thread: PropTypes.object.isRequired,
+    };
+  }
   onContextMenu = e => {
     showContextMenu({ ...this.props, contextMenuEvent: e });
   };
@@ -33,6 +47,7 @@ class BreakpointHeading extends PureComponent {
       source,
       hasSiblingOfSameName,
       selectSource,
+      thread,
     } = this.props;
 
     const path = getDisplayPath(source, sources);
@@ -41,7 +56,7 @@ class BreakpointHeading extends PureComponent {
     return (
       <div
         className="breakpoint-heading"
-        title={getFileURL(source, false)}
+        title={`${thread?.name} - ${getFileURL(source, false)}`}
         onClick={() => selectSource(cx, source.id)}
         onContextMenu={this.onContextMenu}
       >
@@ -64,6 +79,7 @@ const mapStateToProps = (state, { source }) => ({
   cx: getContext(state),
   hasSiblingOfSameName: getHasSiblingOfSameName(state, source),
   breakpointsForSource: getBreakpointsForSource(state, source.id),
+  thread: getThread(state, source.thread),
 });
 
 export default connect(mapStateToProps, {

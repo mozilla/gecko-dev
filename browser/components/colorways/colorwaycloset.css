@@ -1,0 +1,133 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+body {
+  display: grid;
+  grid-template-areas:
+    "title"
+    "main";
+}
+
+body > header {
+  grid-area: title;
+  margin: 2em;
+}
+
+#collection-title {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  font-size: 1.8em;
+  font-weight: bold;
+}
+
+#collection-expiry-date {
+  display: inline-block;
+  background: linear-gradient(to right, purple, pink, orange);
+  background-origin: border-box;
+  border-radius: 1.5em;
+  padding: 1px;
+  margin: 0.2em 1em;
+  vertical-align: bottom;
+}
+
+#collection-expiry-date > span {
+  display: inline-block;
+  color: black;
+  background: white;
+  border-radius: 1.5em;
+  padding: .2em 1em;
+}
+
+#use-fx-home-controls:not(.success) > .success-prompt,
+#use-fx-home-controls.success > .reset-prompt {
+  display: none;
+}
+
+#use-fx-home-controls > .success-prompt::before {
+  display: inline-block;
+  content: "";
+  background: var(--green-50) url('chrome://global/skin/icons/check.svg') center center no-repeat;
+  -moz-context-properties: fill;
+  fill: white;
+  width: 22px;
+  height: 22px;
+  border-radius: 15px;
+  vertical-align: middle;
+  margin-inline-end: 0.5em;
+}
+
+body > section {
+  grid-area: main;
+}
+
+fieldset {
+  border: none;
+  display: flex;
+  flex-direction: row;
+  padding: 0;
+}
+
+input[type="radio"] {
+  --colorway-icon: none;
+  appearance: none;
+  background-color: unset;
+  border-radius: 50%;
+  border: unset;
+  display: grid;
+  height: 32px;
+  place-content: center;
+  width: 32px;
+}
+
+input[type="radio"]::before {
+  background-image: var(--colorway-icon);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 24px;
+  border-radius: 50%;
+  content: "";
+  fill: #15141A;
+  height: 24px;
+  margin: 4px 8px;
+  width: 24px;
+}
+
+input[type="radio"].active::before {
+  background-image: url(chrome://global/skin/icons/check.svg), var(--colorway-icon);
+  background-size: 14px, 24px;
+}
+
+input[type="radio"]:enabled:checked,
+input[type="radio"]:enabled:checked:hover {
+  border: 2px solid;
+  border-color: #0060DF;
+}
+
+/* override common-shared.css */
+input[type="radio"]:enabled:hover,
+input[type="radio"]:enabled:hover:active,
+input[type="radio"]:checked,
+input[type="radio"]:enabled:checked:hover,
+input[type="radio"]:enabled:checked:hover:active {
+  background-color: unset;
+}
+
+#colorway-customization-panel {
+  padding-inline: 24px;
+}
+
+#colorway-details {
+  margin-top: 50px;
+}
+
+#colorway-name {
+  font-size: 2em;
+  margin-block: 0 37px;
+}
+
+#colorway-description {
+  font-size: 1.1em;
+  margin-block: 0 24px;
+}

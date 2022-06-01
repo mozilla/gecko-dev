@@ -42,16 +42,16 @@ static const char kBackgroundPageHTMLEnd[] =
 </html>";
 
 #define BASE_CSP_PREF_V2 "extensions.webextensions.base-content-security-policy"
-#define DEFAULT_BASE_CSP_V2                                       \
-  "script-src 'self' https://* moz-extension: blob: filesystem: " \
-  "'unsafe-eval' 'unsafe-inline'; "                               \
-  "object-src 'self' https://* moz-extension: blob: filesystem:;"
+#define DEFAULT_BASE_CSP_V2                                            \
+  "script-src 'self' https://* http://localhost:* http://127.0.0.1:* " \
+  "moz-extension: blob: filesystem: 'unsafe-eval' 'wasm-unsafe-eval' " \
+  "'unsafe-inline'; object-src 'self' moz-extension: blob: filesystem:;"
 
 #define BASE_CSP_PREF_V3 \
   "extensions.webextensions.base-content-security-policy.v3"
-#define DEFAULT_BASE_CSP_V3                \
-  "script-src 'self'; object-src 'self'; " \
-  "style-src 'self'; worker-src 'self';"
+#define DEFAULT_BASE_CSP_V3                                  \
+  "script-src 'self' 'wasm-unsafe-eval' http://localhost:* " \
+  "http://127.0.0.1:*; object-src 'self';"
 
 static const char kRestrictedDomainPref[] =
     "extensions.webextensions.restrictedDomains";
@@ -196,7 +196,11 @@ WebExtensionPolicy::WebExtensionPolicy(GlobalObject& aGlobal,
   InitializeBaseCSP();
 
   if (mExtensionPageCSP.IsVoid()) {
-    EPS().GetDefaultCSP(mExtensionPageCSP);
+    if (mManifestVersion < 3) {
+      EPS().GetDefaultCSP(mExtensionPageCSP);
+    } else {
+      EPS().GetDefaultCSPV3(mExtensionPageCSP);
+    }
   }
 
   mWebAccessibleResources.SetCapacity(aInit.mWebAccessibleResources.Length());
@@ -254,6 +258,7 @@ void WebExtensionPolicy::InitializeBaseCSP() {
     }
     return;
   }
+
   // Version 3 or higher.
   nsresult rv = Preferences::GetString(BASE_CSP_PREF_V3, mBaseCSP);
   if (NS_FAILED(rv)) {
@@ -634,6 +639,7 @@ MozDocumentMatcher::MozDocumentMatcher(GlobalObject& aGlobal,
     : mHasActiveTabPermission(aInit.mHasActiveTabPermission),
       mRestricted(aRestricted),
       mAllFrames(aInit.mAllFrames),
+      mCheckPermissions(aInit.mCheckPermissions),
       mFrameID(aInit.mFrameID),
       mMatchAboutBlank(aInit.mMatchAboutBlank) {
   MatchPatternOptions options;
@@ -690,6 +696,11 @@ WebExtensionContentScript::WebExtensionContentScript(
   mCssPaths.Assign(aInit.mCssPaths);
   mJsPaths.Assign(aInit.mJsPaths);
   mExtension = &aExtension;
+
+  // Origin permissions are optional in mv3, so always check them at runtime.
+  if (mExtension->ManifestVersion() >= 3) {
+    mCheckPermissions = true;
+  }
 }
 
 bool MozDocumentMatcher::Matches(const DocInfo& aDoc) const {
@@ -738,7 +749,7 @@ bool MozDocumentMatcher::Matches(const DocInfo& aDoc) const {
     return true;
   }
 
-  if (mRestricted && mExtension->IsRestrictedDoc(aDoc)) {
+  if (mRestricted && mExtension && mExtension->IsRestrictedDoc(aDoc)) {
     return false;
   }
 
@@ -752,6 +763,8 @@ bool MozDocumentMatcher::Matches(const DocInfo& aDoc) const {
 }
 
 bool MozDocumentMatcher::MatchesURI(const URLInfo& aURL) const {
+  MOZ_ASSERT((!mRestricted && !mCheckPermissions) || mExtension);
+
   if (!mMatches->Matches(aURL)) {
     return false;
   }
@@ -769,6 +782,11 @@ bool MozDocumentMatcher::MatchesURI(const URLInfo& aURL) const {
   }
 
   if (mRestricted && mExtension->IsRestrictedURI(aURL)) {
+    return false;
+  }
+
+  if (mCheckPermissions &&
+      !mExtension->CanAccessURI(aURL, false, false, true)) {
     return false;
   }
 

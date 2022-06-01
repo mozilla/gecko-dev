@@ -72,11 +72,10 @@ class DManipEventHandler : public IDirectManipulationViewportEventHandler,
                                           override)
 
    public:
-    bool NotifyVsync(const mozilla::VsyncEvent& aVsync) override {
+    void NotifyVsync(const mozilla::VsyncEvent& aVsync) override {
       if (mOwner) {
         mOwner->Update();
       }
-      return true;
     }
     explicit VObserver(DManipEventHandler* aOwner) : mOwner(aOwner) {}
 
@@ -363,14 +362,15 @@ DManipEventHandler::OnInteraction(
       mObserver = new VObserver(this);
     }
 
-    gfxWindowsPlatform::GetPlatform()->GetHardwareVsync()->AddGenericObserver(
-        mObserver);
+    gfxWindowsPlatform::GetPlatform()
+        ->GetGlobalVsyncDispatcher()
+        ->AddMainThreadObserver(mObserver);
   }
 
   if (mObserver && interaction == DIRECTMANIPULATION_INTERACTION_END) {
     gfxWindowsPlatform::GetPlatform()
-        ->GetHardwareVsync()
-        ->RemoveGenericObserver(mObserver);
+        ->GetGlobalVsyncDispatcher()
+        ->RemoveMainThreadObserver(mObserver);
   }
 
   return S_OK;
@@ -681,8 +681,8 @@ void DirectManipulationOwner::Destroy() {
     mDmHandler->mOwner = nullptr;
     if (mDmHandler->mObserver) {
       gfxWindowsPlatform::GetPlatform()
-          ->GetHardwareVsync()
-          ->RemoveGenericObserver(mDmHandler->mObserver);
+          ->GetGlobalVsyncDispatcher()
+          ->RemoveMainThreadObserver(mDmHandler->mObserver);
       mDmHandler->mObserver->ClearOwner();
       mDmHandler->mObserver = nullptr;
     }

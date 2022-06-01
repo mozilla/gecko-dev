@@ -44,7 +44,7 @@ class HLSResourceCallbacksSupport
 
  private:
   ~HLSResourceCallbacksSupport() {}
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
   HLSDecoder* mDecoder;
 };
 
@@ -131,7 +131,7 @@ HLSDecoder::~HLSDecoder() {
   HLS_DEBUG("HLSDecoder", "~HLSDecoder(): allocated=%zu", sAllocatedInstances);
 }
 
-MediaDecoderStateMachine* HLSDecoder::CreateStateMachine() {
+MediaDecoderStateMachineBase* HLSDecoder::CreateStateMachine() {
   MOZ_ASSERT(NS_IsMainThread());
 
   MediaFormatReaderInit init;

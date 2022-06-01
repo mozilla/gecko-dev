@@ -214,6 +214,12 @@ HRESULT SetDefaultBrowserUserChoice(
     return MOZ_E_NO_PROGID;
   }
 
+  auto pdfProgID = FormatProgID(L"FirefoxPDF", aAumi);
+  if (!CheckProgIDExists(pdfProgID.get())) {
+    LOG_ERROR_MESSAGE(L"ProgID %s not found", pdfProgID.get());
+    return MOZ_E_NO_PROGID;
+  }
+
   if (!CheckBrowserUserChoiceHashes()) {
     LOG_ERROR_MESSAGE(L"UserChoice Hash mismatch");
     return MOZ_E_HASH_CHECK;
@@ -239,7 +245,7 @@ HRESULT SetDefaultBrowserUserChoice(
                       {L"http", urlProgID.get()},
                       {L".html", htmlProgID.get()},
                       {L".htm", htmlProgID.get()}};
-  for (int i = 0; i < mozilla::ArrayLength(associations); ++i) {
+  for (size_t i = 0; i < mozilla::ArrayLength(associations); ++i) {
     if (!SetUserChoice(associations[i].ext, sid.get(),
                        associations[i].progID)) {
       ok = false;
@@ -253,15 +259,22 @@ HRESULT SetDefaultBrowserUserChoice(
   }
 
   const wchar_t* const* extraFileExtension = aExtraFileExtensions;
-  while (ok && extraFileExtension && *extraFileExtension) {
-    if (!SetUserChoice(*extraFileExtension, sid.get(), htmlProgID.get())) {
+  const wchar_t* const* extraProgIDRoot = aExtraFileExtensions + 1;
+  while (ok && extraFileExtension && *extraFileExtension && extraProgIDRoot &&
+         *extraProgIDRoot) {
+    // Formatting the ProgID here prevents using this helper to target arbitrary
+    // ProgIDs.
+    auto extraProgID = FormatProgID(*extraProgIDRoot, aAumi);
+
+    if (!SetUserChoice(*extraFileExtension, sid.get(), extraProgID.get())) {
       ok = false;
-    } else if (!VerifyUserDefault(*extraFileExtension, htmlProgID.get())) {
+    } else if (!VerifyUserDefault(*extraFileExtension, extraProgID.get())) {
       defaultRejected = true;
       ok = false;
     }
 
-    extraFileExtension++;
+    extraFileExtension += 2;
+    extraProgIDRoot += 2;
   }
 
   // Notify shell to refresh icons

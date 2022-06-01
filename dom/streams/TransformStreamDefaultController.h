@@ -7,6 +7,8 @@
 #ifndef DOM_STREAMS_TRANSFORMSTREAMDEFAULTCONTROLLER_H_
 #define DOM_STREAMS_TRANSFORMSTREAMDEFAULTCONTROLLER_H_
 
+#include "js/TypeDecls.h"
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/QueuingStrategyBinding.h"
 
@@ -14,19 +16,21 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 
-#ifndef MOZ_DOM_STREAMS
-#  error "Shouldn't be compiling with this header without MOZ_DOM_STREAMS set"
-#endif
-
 namespace mozilla::dom {
 
 class TransformStream;
+class TransformerAlgorithms;
 
 class TransformStreamDefaultController final : public nsISupports,
                                                public nsWrapperCache {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(TransformStreamDefaultController)
+
+  MOZ_KNOWN_LIVE TransformStream* Stream();
+  void SetStream(TransformStream& aStream);
+  TransformerAlgorithms* Algorithms();
+  void SetAlgorithms(TransformerAlgorithms* aTransformerAlgorithms);
 
   explicit TransformStreamDefaultController(nsIGlobalObject* aGlobal);
 
@@ -40,13 +44,23 @@ class TransformStreamDefaultController final : public nsISupports,
 
   Nullable<double> GetDesiredSize() const;
 
-  void Enqueue(JSContext* aCx, JS::Handle<JS::Value> aChunk, ErrorResult& aRv);
-  void Error(JSContext* aCx, JS::Handle<JS::Value> aError, ErrorResult& aRv);
-  void Terminate(ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void Enqueue(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+                                  ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void Error(JSContext* aCx, JS::Handle<JS::Value> aError,
+                                ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void Terminate(JSContext* aCx, ErrorResult& aRv);
 
  private:
   nsCOMPtr<nsIGlobalObject> mGlobal;
+
+  // Internal slots
+  RefPtr<TransformStream> mStream;
+  RefPtr<TransformerAlgorithms> mTransformerAlgorithms;
 };
+
+void SetUpTransformStreamDefaultControllerFromTransformer(
+    JSContext* aCx, TransformStream& aStream,
+    JS::Handle<JSObject*> aTransformer, Transformer& aTransformerDict);
 
 }  // namespace mozilla::dom
 

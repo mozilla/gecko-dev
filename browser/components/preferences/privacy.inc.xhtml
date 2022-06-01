@@ -213,7 +213,7 @@
                   <label class="content-blocking-warning-title" data-l10n-id="content-blocking-warning-title"/>
                 </hbox>
                 <description class="indent">
-                  <html:span class="tail-with-learn-more content-blocking-warning-description" data-l10n-id="content-blocking-and-isolating-etp-warning-description"></html:span>
+                  <html:span class="tail-with-learn-more content-blocking-warning-description" data-l10n-id="content-blocking-and-isolating-etp-warning-description-2"></html:span>
                   <label id="" class="learnMore contentBlockWarningLink" data-l10n-id="content-blocking-warning-learn-how" is="text-link"/>
                 </description>
               </vbox>
@@ -249,7 +249,7 @@
                                 preference="network.cookie.cookieBehavior">
                         <menupopup>
                           <menuitem id="blockCookiesSocialMedia" data-l10n-id="sitedata-option-block-cross-site-trackers" value="trackers"/>
-                          <menuitem id="isolateCookiesSocialMedia" data-l10n-id="sitedata-option-block-cross-site-and-social-media-trackers-plus-isolate" value="trackers-plus-isolate"/>
+                          <menuitem id="isolateCookiesSocialMedia" data-l10n-id="sitedata-option-block-cross-site-cookies" value="trackers-plus-isolate"/>
                           <menuitem data-l10n-id="sitedata-option-block-unvisited" value="unvisited"/>
                           <menuitem data-l10n-id="sitedata-option-block-all-third-party" value="all-third-parties"/>
                           <menuitem data-l10n-id="sitedata-option-block-all" value="always"/>
@@ -317,7 +317,7 @@
                   <label class="content-blocking-warning-title" data-l10n-id="content-blocking-warning-title"/>
                 </hbox>
                 <description class="indent">
-                  <html:span class="tail-with-learn-more content-blocking-warning-description" data-l10n-id="content-blocking-and-isolating-etp-warning-description"></html:span>
+                  <html:span class="tail-with-learn-more content-blocking-warning-description" data-l10n-id="content-blocking-and-isolating-etp-warning-description-2"></html:span>
                   <label id="" class="learnMore contentBlockWarningLink" data-l10n-id="content-blocking-warning-learn-how" is="text-link"/>
                 </description>
               </vbox>
@@ -359,7 +359,6 @@
             align="center">
         <checkbox id="deleteOnClose"
                   data-l10n-id="sitedata-delete-on-close"
-                  preference="network.cookie.lifetimePolicy"
                   flex="1" />
       </hbox>
     </vbox>
@@ -650,6 +649,16 @@
             preference="browser.urlbar.suggest.topsites"/>
   <checkbox id="enginesSuggestion" data-l10n-id="addressbar-locbar-engines-option"
             preference="browser.urlbar.suggest.engines"/>
+  <hbox id="firefoxSuggestBestMatchContainer" align="center" hidden="true">
+    <checkbox id="firefoxSuggestBestMatch"
+              class="tail-with-learn-more"
+              data-l10n-id="addressbar-firefox-suggest-best-match-option"
+              preference="browser.urlbar.suggest.bestmatch"/>
+    <label id="firefoxSuggestBestMatchLearnMore"
+           class="learnMore"
+           is="text-link"
+           data-l10n-id="addressbar-best-match-learn-more"/>
+  </hbox>
   <vbox id="firefoxSuggestContainer" hidden="true">
     <!-- This form[autocomplete="off"] is necessary to prevent the inputs from
          participating in session restore. autocomplete="off" is ignored on the

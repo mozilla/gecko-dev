@@ -103,15 +103,14 @@ static bool GetDefaultPrinterName(nsAString& aDefaultPrinterName) {
 }
 
 //----------------------------------------------------------------------------------
-NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIWidget* aWidget,
-                                           nsIPrintSettings* aPrintSettings,
+NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIPrintSettings* aPrintSettings,
                                            bool aIsPrintPreview) {
   mPrintSettings = aPrintSettings;
 
   // Get the Printer Name to be used and output format.
   nsAutoString printerName;
   if (mPrintSettings) {
-    mPrintSettings->GetOutputFormat(&mOutputFormat);
+    mOutputFormat = mPrintSettings->GetOutputFormat();
     mPrintSettings->GetPrinterName(printerName);
   }
 
@@ -272,9 +271,6 @@ already_AddRefed<PrintTarget> nsDeviceContextSpecWin::MakePrintTarget() {
 #endif
 
   if (mOutputFormat == nsIPrintSettings::kOutputFormatPDF) {
-    nsString filename;
-    mPrintSettings->GetToFileName(filename);
-
     double width, height;
     mPrintSettings->GetEffectiveSheetSize(&width, &height);
     if (width <= 0 || height <= 0) {
@@ -285,26 +281,37 @@ already_AddRefed<PrintTarget> nsDeviceContextSpecWin::MakePrintTarget() {
     width /= TWIPS_PER_POINT_FLOAT;
     height /= TWIPS_PER_POINT_FLOAT;
 
-    nsCOMPtr<nsIFile> file;
-    nsresult rv;
-    if (!filename.IsEmpty()) {
-      file = do_CreateInstance("@mozilla.org/file/local;1");
-      rv = file->InitWithPath(filename);
-    } else {
-      rv = NS_OpenAnonymousTemporaryNsIFile(getter_AddRefs(mTempFile));
-      file = mTempFile;
-    }
+    auto stream = [&]() -> nsCOMPtr<nsIOutputStream> {
+      if (mPrintSettings->GetOutputDestination() ==
+          nsIPrintSettings::kOutputDestinationStream) {
+        nsCOMPtr<nsIOutputStream> out;
+        mPrintSettings->GetOutputStream(getter_AddRefs(out));
+        return out;
+      }
+      nsAutoString filename;
+      mPrintSettings->GetToFileName(filename);
 
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return nullptr;
-    }
+      nsCOMPtr<nsIFile> file;
+      nsresult rv;
+      if (!filename.IsEmpty()) {
+        file = do_CreateInstance("@mozilla.org/file/local;1");
+        rv = file->InitWithPath(filename);
+      } else {
+        rv = NS_OpenAnonymousTemporaryNsIFile(getter_AddRefs(mTempFile));
+        file = mTempFile;
+      }
 
-    nsCOMPtr<nsIFileOutputStream> stream =
-        do_CreateInstance("@mozilla.org/network/file-output-stream;1");
-    rv = stream->Init(file, -1, -1, 0);
-    if (NS_FAILED(rv)) {
-      return nullptr;
-    }
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return nullptr;
+      }
+
+      nsCOMPtr<nsIFileOutputStream> stream =
+          do_CreateInstance("@mozilla.org/network/file-output-stream;1");
+      if (NS_FAILED(stream->Init(file, -1, -1, 0))) {
+        return nullptr;
+      }
+      return stream;
+    }();
 
     return PrintTargetPDF::CreateOrNull(stream, IntSize::Ceil(width, height));
   }
@@ -324,43 +331,6 @@ already_AddRefed<PrintTarget> nsDeviceContextSpecWin::MakePrintTarget() {
   }
 
   return nullptr;
-}
-
-float nsDeviceContextSpecWin::GetDPI() {
-  if (mOutputFormat == nsIPrintSettings::kOutputFormatPDF || mPrintViaSkPDF) {
-    return nsIDeviceContextSpec::GetDPI();
-  }
-  // To match the previous printing code we need to return 144 when printing to
-  // a Windows surface.
-  return 144.0f;
-}
-
-float nsDeviceContextSpecWin::GetPrintingScale() {
-  MOZ_ASSERT(mPrintSettings);
-  if (mOutputFormat == nsIPrintSettings::kOutputFormatPDF || mPrintViaSkPDF) {
-    return nsIDeviceContextSpec::GetPrintingScale();
-  }
-
-  // The print settings will have the resolution stored from the real device.
-  //
-  // FIXME: Shouldn't we use this in GetDPI then instead of hard-coding 144.0?
-  int32_t resolution;
-  mPrintSettings->GetResolution(&resolution);
-  return float(resolution) / GetDPI();
-}
-
-gfxPoint nsDeviceContextSpecWin::GetPrintingTranslate() {
-  // The underlying surface on windows is the size of the printable region. When
-  // the region is smaller than the actual paper size the (0, 0) coordinate
-  // refers top-left of that unwritable region. To instead have (0, 0) become
-  // the top-left of the actual paper, translate it's coordinate system by the
-  // unprintable region's width.
-  double marginTop, marginLeft;
-  mPrintSettings->GetUnwriteableMarginTop(&marginTop);
-  mPrintSettings->GetUnwriteableMarginLeft(&marginLeft);
-  int32_t resolution;
-  mPrintSettings->GetResolution(&resolution);
-  return gfxPoint(-marginLeft * resolution, -marginTop * resolution);
 }
 
 //----------------------------------------------------------------------------------
@@ -413,7 +383,7 @@ nsresult nsDeviceContextSpecWin::GetDataFromPrinter(const nsAString& aName,
       PR_PL(
           ("**** nsDeviceContextSpecWin::GetDataFromPrinter - Couldn't get "
            "size of DEVMODE using DocumentPropertiesW(pDeviceName = \"%s\"). "
-           "GetLastEror() = %08x\n",
+           "GetLastEror() = %08lx\n",
            NS_ConvertUTF16toUTF8(aName).get(), GetLastError()));
       return NS_ERROR_FAILURE;
     }
@@ -456,7 +426,7 @@ nsresult nsDeviceContextSpecWin::GetDataFromPrinter(const nsAString& aName,
       ::HeapFree(::GetProcessHeap(), 0, pDevMode);
       PR_PL(
           ("***** nsDeviceContextSpecWin::GetDataFromPrinter - "
-           "DocumentProperties call failed code: %d/0x%x\n",
+           "DocumentProperties call failed code: %ld/0x%lx\n",
            ret, ret));
       DISPLAY_LAST_ERROR
       return NS_ERROR_FAILURE;
@@ -606,8 +576,7 @@ nsPrinterListWin::InitPrintSettingsFromPrinter(
   }
 
   // When printing to PDF on Windows there is no associated printer driver.
-  int16_t outputFormat;
-  aPrintSettings->GetOutputFormat(&outputFormat);
+  int16_t outputFormat = aPrintSettings->GetOutputFormat();
   if (outputFormat == nsIPrintSettings::kOutputFormatPDF) {
     return NS_OK;
   }

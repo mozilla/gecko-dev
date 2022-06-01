@@ -8,15 +8,6 @@
  */
 
 import { getRelativeUrl, getPlainUrl } from "../utils/source";
-import {
-  createInitial,
-  insertResources,
-  updateResources,
-  hasResource,
-  getResource,
-  getResourceIds,
-} from "../utils/resource";
-import { pending, fulfilled, rejected } from "../utils/async-value";
 import { prefs } from "../utils/prefs";
 
 export function initialSourcesState(state) {
@@ -25,9 +16,8 @@ export function initialSourcesState(state) {
      * All currently available sources.
      *
      * See create.js: `createSourceObject` method for the description of stored objects.
-     * This reducers will add an extra `content` attribute which is the source text for each source.
      */
-    sources: createInitial(),
+    sources: new Map(),
 
     /**
      * All sources associated with a given URL. When using source maps, multiple
@@ -67,14 +57,6 @@ export function initialSourcesState(state) {
 
     breakpointPositions: {},
     breakableLines: {},
-
-    /**
-     * Incremental number that is bumped each time we navigate to a new page.
-     *
-     * This is used to better handle async race condition where we mix previous page data
-     * with the new page. As sources are keyed by URL we may easily conflate the two page loads data.
-     */
-    epoch: 1,
 
     /**
      * The actual currently selected location.
@@ -130,17 +112,11 @@ function update(state = initialSourcesState(), action) {
   let location = null;
 
   switch (action.type) {
-    case "ADD_SOURCE":
-      return addSources(state, [action.source]);
-
     case "ADD_SOURCES":
       return addSources(state, action.sources);
 
     case "INSERT_SOURCE_ACTORS":
       return insertSourceActors(state, action);
-
-    case "REMOVE_SOURCE_ACTORS":
-      return removeSourceActors(state, action);
 
     case "SET_SELECTED_LOCATION":
       location = {
@@ -181,9 +157,6 @@ function update(state = initialSourcesState(), action) {
       prefs.pendingSelectedLocation = location;
       return { ...state, pendingSelectedLocation: location };
 
-    case "LOAD_SOURCE_TEXT":
-      return updateLoadedState(state, action);
-
     case "BLACKBOX":
       if (action.status === "done") {
         const { blackboxSources } = action.value;
@@ -221,11 +194,19 @@ function update(state = initialSourcesState(), action) {
         },
       };
     }
+
     case "NAVIGATE":
-      return {
-        ...initialSourcesState(state),
-        epoch: state.epoch + 1,
-      };
+      return initialSourcesState(state);
+
+    case "REMOVE_THREAD": {
+      const threadSources = [];
+      for (const source of state.sources.values()) {
+        if (source.thread == action.threadActorID) {
+          threadSources.push(source);
+        }
+      }
+      return removeSourcesAndActors(state, threadSources);
+    }
   }
 
   return state;
@@ -245,15 +226,10 @@ function addSources(state, sources) {
     plainUrls: { ...state.plainUrls },
   };
 
-  state.sources = insertResources(
-    state.sources,
-    sources.map(source => ({
-      ...source,
-      content: null,
-    }))
-  );
-
+  const newSourceMap = new Map(state.sources);
   for (const source of sources) {
+    newSourceMap.set(source.id, source);
+
     // 1. Update the source url map
     const existing = state.urls[source.url] || [];
     if (!existing.includes(source.id)) {
@@ -276,9 +252,59 @@ function addSources(state, sources) {
       state.sourcesWithUrls.push(source.id);
     }
   }
+  state.sources = newSourceMap;
 
   state = updateRootRelativeValues(state, sources);
 
+  return state;
+}
+
+function removeSourcesAndActors(state, sources) {
+  state = {
+    ...state,
+    urls: { ...state.urls },
+    plainUrls: { ...state.plainUrls },
+    sourcesWithUrls: [...state.sourcesWithUrls],
+  };
+
+  const newSourceMap = new Map(state.sources);
+  for (const source of sources) {
+    newSourceMap.delete(source.id);
+
+    if (source.url) {
+      // urls
+      if (state.urls[source.url]) {
+        state.urls[source.url] = state.urls[source.url].filter(
+          id => id !== source.id
+        );
+      }
+      if (state.urls[source.url]?.length == 0) {
+        delete state.urls[source.url];
+      }
+
+      // plainUrls
+      const plainUrl = getPlainUrl(source.url);
+      if (state.plainUrls[plainUrl]) {
+        // This also handles multiple sources with same urls, we should remove
+        // only one occurence at each point.
+        const index = state.plainUrls[plainUrl].findIndex(
+          url => url === source.url
+        );
+        state.plainUrls[plainUrl].splice(index, 1);
+      }
+      if (state.plainUrls[plainUrl]?.length == 0) {
+        delete state.plainUrls[plainUrl];
+      }
+
+      // sourcesWithUrls
+      state.sourcesWithUrls = state.sourcesWithUrls.filter(
+        sourceId => sourceId !== source.id
+      );
+    }
+    // actors
+    delete state.actors[source.id];
+  }
+  state.sources = newSourceMap;
   return state;
 }
 
@@ -317,29 +343,6 @@ function insertSourceActors(state, action) {
 }
 
 /*
- * Update sources when the worker list changes.
- * - filter source actor lists so that missing threads no longer appear
- * - NOTE: we do not remove sources for destroyed threads
- */
-function removeSourceActors(state, action) {
-  const { items } = action;
-
-  const actors = new Set(items.map(item => item.id));
-  const sources = new Set(items.map(item => item.source));
-
-  state = {
-    ...state,
-    actors: { ...state.actors },
-  };
-
-  for (const source of sources) {
-    state.actors[source] = state.actors[source].filter(id => !actors.has(id));
-  }
-
-  return state;
-}
-
-/*
  * Update sources when the project directory root changes
  */
 function updateProjectDirectoryRoot(state, root, name) {
@@ -350,7 +353,12 @@ function updateProjectDirectoryRoot(state, root, name) {
     prefs.projectDirectoryRootName = name;
   }
 
-  return updateRootRelativeValues(state, undefined, root, name);
+  return updateRootRelativeValues(
+    state,
+    [...state.sources.values()],
+    root,
+    name
+  );
 }
 
 /* Checks if a path is a thread actor or not
@@ -363,83 +371,36 @@ function actorType(actor) {
 
 function updateRootRelativeValues(
   state,
-  sources,
+  sourcesToUpdate,
   projectDirectoryRoot = state.projectDirectoryRoot,
   projectDirectoryRootName = state.projectDirectoryRootName
 ) {
-  const wrappedIdsOrIds = sources ? sources : getResourceIds(state.sources);
-
   state = {
     ...state,
     projectDirectoryRoot,
     projectDirectoryRootName,
   };
 
-  const relativeURLUpdates = wrappedIdsOrIds.map(wrappedIdOrId => {
-    const id =
-      typeof wrappedIdOrId === "string" ? wrappedIdOrId : wrappedIdOrId.id;
-    const source = getResource(state.sources, id);
-
-    return {
-      id,
+  const newSourceMap = new Map(state.sources);
+  for (const source of sourcesToUpdate) {
+    newSourceMap.set(source.id, {
+      ...state.sources.get(source.id),
       relativeUrl: getRelativeUrl(source, state.projectDirectoryRoot),
-    };
-  });
-
-  state.sources = updateResources(state.sources, relativeURLUpdates);
+    });
+  }
+  state.sources = newSourceMap;
 
   return state;
-}
-
-/*
- * Update a source's loaded text content.
- */
-function updateLoadedState(state, action) {
-  const { sourceId } = action;
-
-  // If there was a navigation between the time the action was started and
-  // completed, we don't want to update the store.
-  if (action.epoch !== state.epoch || !hasResource(state.sources, sourceId)) {
-    return state;
-  }
-
-  let content;
-  if (action.status === "start") {
-    content = pending();
-  } else if (action.status === "error") {
-    content = rejected(action.error);
-  } else if (typeof action.value.text === "string") {
-    content = fulfilled({
-      type: "text",
-      value: action.value.text,
-      contentType: action.value.contentType,
-    });
-  } else {
-    content = fulfilled({
-      type: "wasm",
-      value: action.value.text,
-    });
-  }
-
-  return {
-    ...state,
-    sources: updateResources(state.sources, [
-      {
-        id: sourceId,
-        content,
-      },
-    ]),
-  };
 }
 
 /*
  * Update the "isBlackBoxed" property on the source objects
  */
 function updateSourcesBlackboxState(state, blackboxSources) {
-  const sourcesToUpdate = [];
-
+  const newSourceMap = new Map(state.sources);
+  let changed = false;
   for (const { source } of blackboxSources) {
-    if (!hasResource(state.sources, source.id)) {
+    if (!state.sources.has(source.id)) {
       // TODO: We may want to consider throwing here once we have a better
       // handle on async action flow control.
       continue;
@@ -448,12 +409,15 @@ function updateSourcesBlackboxState(state, blackboxSources) {
     // The `isBlackBoxed` flag on the source should be `true` when the source still
     // has blackboxed lines or the whole source is blackboxed.
     const isBlackBoxed = !!state.blackboxedRanges[source.url];
-    sourcesToUpdate.push({
-      id: source.id,
+    newSourceMap.set(source.id, {
+      ...state.sources.get(source.id),
       isBlackBoxed,
     });
+    changed = true;
   }
-  state.sources = updateResources(state.sources, sourcesToUpdate);
+  if (changed) {
+    state.sources = newSourceMap;
+  }
 
   return state;
 }
@@ -466,7 +430,7 @@ function updateBlackboxRangesForSourceUrl(
 ) {
   if (shouldBlackBox) {
     // If newRanges is an empty array, it would mean we are blackboxing the whole
-    // source. To do that lets reset the contentto an empty array.
+    // source. To do that lets reset the content to an empty array.
     if (!newRanges.length) {
       currentRanges[url] = [];
     } else {

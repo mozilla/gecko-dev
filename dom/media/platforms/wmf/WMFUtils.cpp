@@ -5,6 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WMFUtils.h"
+
+#include <mfidl.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+#include <initguid.h>
+#include <stdint.h>
+
 #include "VideoUtils.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/CheckedInt.h"
@@ -14,19 +21,8 @@
 #include "nsThreadUtils.h"
 #include "nsWindowsHelpers.h"
 #include "prenv.h"
-#include <shlobj.h>
-#include <shlwapi.h>
-#include <initguid.h>
-#include <stdint.h>
 #include "mozilla/mscom/EnsureMTA.h"
 #include "mozilla/WindowsVersion.h"
-
-#ifdef WMF_MUST_DEFINE_AAC_MFT_CLSID
-// Some SDK versions don't define the AAC decoder CLSID.
-// {32D186A7-218F-4C75-8876-DD77273A8999}
-DEFINE_GUID(CLSID_CMSAACDecMFT, 0x32D186A7, 0x218F, 0x4C75, 0x88, 0x76, 0xDD,
-            0x77, 0x27, 0x3A, 0x89, 0x99);
-#endif
 
 namespace mozilla {
 
@@ -270,7 +266,7 @@ LoadDLLs() {
   typedef HRESULT(STDMETHODCALLTYPE* FunctionName##Ptr_t)(__VA_ARGS__)
 
 HRESULT
-MFStartup() {
+MediaFoundationInitializer::MFStartup() {
   if (IsWin7AndPre2000Compatible()) {
     /*
      * Specific exclude the usage of WMF on Win 7 with compatibility mode
@@ -299,7 +295,7 @@ MFStartup() {
 }
 
 HRESULT
-MFShutdown() {
+MediaFoundationInitializer::MFShutdown() {
   ENSURE_FUNCTION_PTR(MFShutdown, Mfplat.dll)
   HRESULT hr = E_FAIL;
   mozilla::mscom::EnsureMTA([&]() -> void { hr = (MFShutdownPtr)(); });
@@ -378,6 +374,47 @@ HRESULT MFTGetInfo(CLSID clsidMFT, LPWSTR* pszName,
   ENSURE_FUNCTION_PTR(MFTGetInfo, mfplat.dll)
   return (MFTGetInfoPtr)(clsidMFT, pszName, ppInputTypes, pcInputTypes,
                          ppOutputTypes, pcOutputTypes, ppAttributes);
+}
+
+HRESULT
+MFCreateAttributes(IMFAttributes** ppMFAttributes, UINT32 cInitialSize) {
+  ENSURE_FUNCTION_PTR(MFCreateAttributes, mfplat.dll)
+  return (MFCreateAttributesPtr)(ppMFAttributes, cInitialSize);
+}
+
+HRESULT MFCreateEventQueue(IMFMediaEventQueue** ppMediaEventQueue) {
+  ENSURE_FUNCTION_PTR(MFCreateEventQueue, mfplat.dll)
+  return (MFCreateEventQueuePtr)(ppMediaEventQueue);
+}
+
+HRESULT MFCreateStreamDescriptor(DWORD dwStreamIdentifier, DWORD cMediaTypes,
+                                 IMFMediaType** apMediaTypes,
+                                 IMFStreamDescriptor** ppDescriptor) {
+  ENSURE_FUNCTION_PTR(MFCreateStreamDescriptor, mfplat.dll)
+  return (MFCreateStreamDescriptorPtr)(dwStreamIdentifier, cMediaTypes,
+                                       apMediaTypes, ppDescriptor);
+}
+
+HRESULT MFCreateAsyncResult(IUnknown* punkObject, IMFAsyncCallback* pCallback,
+                            IUnknown* punkState,
+                            IMFAsyncResult** ppAsyncResult) {
+  ENSURE_FUNCTION_PTR(MFCreateAsyncResult, mfplat.dll)
+  return (MFCreateAsyncResultPtr)(punkObject, pCallback, punkState,
+                                  ppAsyncResult);
+}
+
+HRESULT MFCreatePresentationDescriptor(
+    DWORD cStreamDescriptors, IMFStreamDescriptor** apStreamDescriptors,
+    IMFPresentationDescriptor** ppPresentationDescriptor) {
+  ENSURE_FUNCTION_PTR(MFCreatePresentationDescriptor, mfplat.dll)
+  return (MFCreatePresentationDescriptorPtr)(cStreamDescriptors,
+                                             apStreamDescriptors,
+                                             ppPresentationDescriptor);
+}
+
+HRESULT MFCreateMemoryBuffer(DWORD cbMaxLength, IMFMediaBuffer** ppBuffer) {
+  ENSURE_FUNCTION_PTR(MFCreateMemoryBuffer, mfplat.dll);
+  return (MFCreateMemoryBufferPtr)(cbMaxLength, ppBuffer);
 }
 
 }  // end namespace wmf

@@ -78,7 +78,9 @@ class TestSafeBrowsingWarningPages(WindowManagerMixin, MarionetteTestCase):
         with self.marionette.using_context("chrome"):
             self.marionette.execute_script(
                 """
-              Components.utils.import("resource://gre/modules/Services.jsm");
+              const { Services } = ChromeUtils.import(
+                "resource://gre/modules/Services.jsm"
+              );
               let uri = Services.io.newURI(arguments[0], null, null);
               let principal = Services.scriptSecurityManager.createContentPrincipal(uri, {});
               Services.perms.removeFromPrincipal(principal, arguments[1]);
@@ -99,7 +101,9 @@ class TestSafeBrowsingWarningPages(WindowManagerMixin, MarionetteTestCase):
         with self.marionette.using_context("chrome"):
             url = self.marionette.execute_script(
                 """
-              Components.utils.import("resource://gre/modules/Services.jsm");
+              const { Services } = ChromeUtils.import(
+                "resource://gre/modules/Services.jsm"
+              );
               return Services.urlFormatter.formatURLPref("app.support.baseURL")
                                                          + "phishing-malware";
             """
@@ -125,7 +129,7 @@ class TestSafeBrowsingWarningPages(WindowManagerMixin, MarionetteTestCase):
         )
 
         topic = self.marionette.find_element(By.ID, "topic")
-        self.assertEquals(topic.text, "phishing-malware")
+        self.assertEqual(topic.text, "phishing-malware")
 
     def check_ignore_warning_button(self, unsafe_page):
         button = self.marionette.find_element(By.ID, "seeDetailsButton")
@@ -136,7 +140,7 @@ class TestSafeBrowsingWarningPages(WindowManagerMixin, MarionetteTestCase):
         Wait(self.marionette, timeout=self.marionette.timeout.page_load).until(
             expected.element_present(By.ID, "main-feature")
         )
-        self.assertEquals(self.marionette.get_url(), self.get_final_url(unsafe_page))
+        self.assertEqual(self.marionette.get_url(), self.get_final_url(unsafe_page))
 
         # Clean up by removing safe browsing permission for unsafe page
         self.remove_permission("https://www.itisatrap.org", "safe-browsing")

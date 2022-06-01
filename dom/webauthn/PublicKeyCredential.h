@@ -15,8 +15,7 @@
 #include "nsWrapperCache.h"
 #include "mozilla/dom/CryptoBuffer.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class PublicKeyCredential final : public Credential {
  public:
@@ -42,10 +41,11 @@ class PublicKeyCredential final : public Credential {
   void SetResponse(RefPtr<AuthenticatorResponse>);
 
   static already_AddRefed<Promise>
-  IsUserVerifyingPlatformAuthenticatorAvailable(GlobalObject& aGlobal);
+  IsUserVerifyingPlatformAuthenticatorAvailable(GlobalObject& aGlobal,
+                                                ErrorResult& aError);
 
   static already_AddRefed<Promise> IsExternalCTAP2SecurityKeySupported(
-      GlobalObject& aGlobal);
+      GlobalObject& aGlobal, ErrorResult& aError);
 
   void GetClientExtensionResults(
       AuthenticationExtensionsClientOutputs& aResult);
@@ -61,7 +61,6 @@ class PublicKeyCredential final : public Credential {
   AuthenticationExtensionsClientOutputs mClientExtensionOutputs;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_PublicKeyCredential_h

@@ -18,8 +18,7 @@
 class nsIPrincipal;
 class nsIHttpChannel;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class Document;
 class InternalRequest;
@@ -66,7 +65,7 @@ class FetchUtil final {
    * given JSContext before returning false. If executing in a worker, the
    * WorkerPrivate must be given.
    */
-  static bool StreamResponseToJS(JSContext* aCx, JS::HandleObject aObj,
+  static bool StreamResponseToJS(JSContext* aCx, JS::Handle<JSObject*> aObj,
                                  JS::MimeType aMimeType,
                                  JS::StreamConsumer* aConsumer,
                                  WorkerPrivate* aMaybeWorker);
@@ -80,6 +79,5 @@ class FetchUtil final {
   static void ReportJSStreamError(JSContext* aCx, size_t aErrorCode);
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 #endif

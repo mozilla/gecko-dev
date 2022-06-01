@@ -32,7 +32,7 @@ function waitForAcceptButtonToGetEnabled(doc) {
   );
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   // Remove the security delay for the dialog during the test.
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -161,7 +161,10 @@ function ensureMIMEState({ preferredAction, alwaysAskBeforeHandling }) {
 add_task(async function test_check_saving_handler_choices() {
   let publicList = await Downloads.getList(Downloads.PUBLIC);
   SpecialPowers.pushPrefEnv({
-    set: [["browser.download.improvements_to_download_panel", false]],
+    set: [
+      ["browser.download.improvements_to_download_panel", false],
+      ["browser.download.always_ask_before_handling_new_types", true],
+    ],
   });
   registerCleanupFunction(async () => {
     await publicList.removeFinished();
@@ -186,6 +189,10 @@ add_task(async function test_check_saving_handler_choices() {
     );
     let doc = dialogWindow.document;
     let internalHandlerRadio = doc.querySelector("#handleInternally");
+
+    if (Services.focus.activeWindow != dialogWindow) {
+      await BrowserTestUtils.waitForEvent(dialogWindow, "activate");
+    }
 
     await waitForAcceptButtonToGetEnabled(doc);
 
@@ -221,8 +228,13 @@ add_task(async function test_check_saving_handler_choices() {
 
     await testCase.dialogActions(doc);
 
+    let mainWindowActivatedAndFocused = Promise.all([
+      BrowserTestUtils.waitForEvent(window, "activate"),
+      BrowserTestUtils.waitForEvent(window, "focus", true),
+    ]);
     let dialog = doc.querySelector("#unknownContentType");
     dialog.acceptDialog();
+    await mainWindowActivatedAndFocused;
 
     let download = await downloadFinishedPromise;
     if (expectLaunch) {
@@ -361,7 +373,10 @@ const kTestCasesPrefEnabled = [
 add_task(
   async function test_check_saving_handler_choices_with_downloads_pref_enabled() {
     SpecialPowers.pushPrefEnv({
-      set: [["browser.download.improvements_to_download_panel", true]],
+      set: [
+        ["browser.download.improvements_to_download_panel", true],
+        ["browser.download.always_ask_before_handling_new_types", false],
+      ],
     });
 
     let publicList = await Downloads.getList(Downloads.PUBLIC);

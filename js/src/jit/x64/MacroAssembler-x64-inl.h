@@ -886,19 +886,6 @@ void MacroAssembler::spectreBoundsCheckPtr(Register index,
 
 // ========================================================================
 // SIMD.
-//
-// These are x64-only because they use ScratchRegister or they use a quadword
-// operation.  SSE4.1 or better is assumed.
-
-// Any lane true, ie any bit set
-
-void MacroAssembler::anyTrueSimd128(FloatRegister src, Register dest) {
-  ScratchRegisterScope one(*this);
-  movl(Imm32(1), one);
-  movl(Imm32(0), dest);
-  vptest(src, src);
-  cmovCCl(NonZero, one, dest);
-}
 
 // Extract lane as scalar
 
@@ -926,8 +913,12 @@ void MacroAssembler::replaceLaneInt64x2(unsigned lane, FloatRegister lhs,
 // Splat
 
 void MacroAssembler::splatX2(Register64 src, FloatRegister dest) {
-  vpinsrq(0, src.reg, dest, dest);
-  vpinsrq(1, src.reg, dest, dest);
+  vmovq(src.reg, dest);
+  if (HasAVX2()) {
+    vbroadcastq(Operand(dest), dest);
+  } else {
+    vpunpcklqdq(dest, dest, dest);
+  }
 }
 
 // ========================================================================

@@ -161,15 +161,8 @@ static bool ShouldSkipSelfSignedNonTrustAnchor(TrustDomain& trustDomain,
   if (trust != TrustLevel::InheritsTrust) {
     return false;
   }
-  uint8_t digestBuf[MAX_DIGEST_SIZE_IN_BYTES];
-  pkix::der::PublicKeyAlgorithm publicKeyAlg;
-  SignedDigest signature;
-  if (DigestSignedData(trustDomain, cert.GetSignedData(), digestBuf,
-                       publicKeyAlg, signature) != Success) {
-    return false;
-  }
-  if (VerifySignedDigest(trustDomain, publicKeyAlg, signature,
-                         cert.GetSubjectPublicKeyInfo()) != Success) {
+  if (VerifySignedData(trustDomain, cert.GetSignedData(),
+                       cert.GetSubjectPublicKeyInfo()) != Success) {
     return false;
   }
   // This is a self-signed, non-trust-anchor certificate, so we shouldn't use it
@@ -693,6 +686,9 @@ Result NSSCertDBTrustDomain::CheckCRLite(
     case nsICertStorage::STATE_NOT_COVERED:
       filterCoversCertificate = false;
       return Success;
+    case nsICertStorage::STATE_NO_FILTER:
+      filterCoversCertificate = false;
+      return Success;
     default:
       MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
               ("NSSCertDBTrustDomain::CheckCRLite: Unknown CRLite revocation "
@@ -710,16 +706,18 @@ Result NSSCertDBTrustDomain::CheckRevocation(
   // Actively distrusted certificates will have already been blocked by
   // GetCertTrust.
 
-  // TODO: need to verify that IsRevoked isn't called for trust anchors AND
-  // that that fact is documented in mozillapkix.
-
   MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
           ("NSSCertDBTrustDomain: Top of CheckRevocation\n"));
 
+  // None of the revocation methods in this function are consulted for CA
+  // certificates. Revocation for CAs is handled by GetCertTrust.
+  if (endEntityOrCA == EndEntityOrCA::MustBeCA) {
+    return Success;
+  }
+
   bool crliteFilterCoversCertificate = false;
   Result crliteResult = Success;
-  if (endEntityOrCA == EndEntityOrCA::MustBeEndEntity &&
-      mCRLiteMode != CRLiteMode::Disabled && sctExtension) {
+  if (mCRLiteMode != CRLiteMode::Disabled && sctExtension) {
     MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
             ("NSSCertDBTrustDomain::CheckRevocation: checking CRLite"));
     nsTArray<uint8_t> issuerSubjectPublicKeyInfoBytes;
@@ -771,14 +769,7 @@ Result NSSCertDBTrustDomain::CheckRevocation(
     }
   }
 
-  // Bug 991815: The BR allow OCSP for intermediates to be up to one year old.
-  // Since this affects EV there is no reason why DV should be more strict
-  // so all intermediates are allowed to have OCSP responses up to one year
-  // old.
-  uint16_t maxOCSPLifetimeInDays = 10;
-  if (endEntityOrCA == EndEntityOrCA::MustBeCA) {
-    maxOCSPLifetimeInDays = 365;
-  }
+  const uint16_t maxOCSPLifetimeInDays = 10;
 
   // If we have a stapled OCSP response then the verification of that response
   // determines the result unless the OCSP response is expired. We make an
@@ -786,13 +777,8 @@ Result NSSCertDBTrustDomain::CheckRevocation(
   // are known to serve expired responses due to bugs.
   // We keep track of the result of verifying the stapled response but don't
   // immediately return failure if the response has expired.
-  //
-  // We only set the OCSP stapling status if we're validating the end-entity
-  // certificate. Non-end-entity certificates would always be
-  // OCSP_STAPLING_NONE unless/until we implement multi-stapling.
   Result stapledOCSPResponseResult = Success;
   if (stapledOCSPResponse) {
-    MOZ_ASSERT(endEntityOrCA == EndEntityOrCA::MustBeEndEntity);
     bool expired;
     stapledOCSPResponseResult = VerifyAndMaybeCacheEncodedOCSPResponse(
         certID, time, maxOCSPLifetimeInDays, *stapledOCSPResponse,
@@ -828,7 +814,7 @@ Result NSSCertDBTrustDomain::CheckRevocation(
               ("NSSCertDBTrustDomain: stapled OCSP response: failure"));
       return stapledOCSPResponseResult;
     }
-  } else if (endEntityOrCA == EndEntityOrCA::MustBeEndEntity) {
+  } else {
     // no stapled OCSP response
     mOCSPStaplingStatus = CertVerifier::OCSP_STAPLING_NONE;
     MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
@@ -882,13 +868,6 @@ Result NSSCertDBTrustDomain::CheckRevocation(
   MOZ_ASSERT((!cachedResponsePresent && cachedResponseResult == Success) ||
              (cachedResponsePresent && cachedResponseResult != Success));
 
-  // If we have a fresh OneCRL Blocklist we can skip OCSP for CA certs
-  bool blocklistIsFresh;
-  nsresult nsrv = mCertStorage->IsBlocklistFresh(&blocklistIsFresh);
-  if (NS_FAILED(nsrv)) {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-
   // TODO: We still need to handle the fallback for invalid stapled responses.
   // But, if/when we disable OCSP fetching by default, it would be ambiguous
   // whether security.OCSP.enable==0 means "I want the default" or "I really
@@ -896,10 +875,7 @@ Result NSSCertDBTrustDomain::CheckRevocation(
   // Additionally, this doesn't properly handle OCSP-must-staple when OCSP
   // fetching is disabled.
   Duration shortLifetime(mCertShortLifetimeInDays * Time::ONE_DAY_IN_SECONDS);
-  if ((mOCSPFetching == NeverFetchOCSP) || (validityDuration < shortLifetime) ||
-      (endEntityOrCA == EndEntityOrCA::MustBeCA &&
-       (mOCSPFetching == FetchOCSPForDVHardFail ||
-        mOCSPFetching == FetchOCSPForDVSoftFail || blocklistIsFresh))) {
+  if ((mOCSPFetching == NeverFetchOCSP) || (validityDuration < shortLifetime)) {
     // We're not going to be doing any fetching, so if there was a cached
     // "unknown" response, say so.
     if (cachedResponseResult == Result::ERROR_OCSP_UNKNOWN_CERT) {
@@ -1300,36 +1276,6 @@ nsresult isDistrustedCertificateChain(
   return NS_OK;
 }
 
-// This is used by NSSCertDBTrustDomain to ensure IsCertBuiltInRoot is only
-// called from the socket thread during TLS server certificate verification.
-Result IsCertBuiltInRootWithSyncDispatch(Input certInput, bool& result) {
-  nsCOMPtr<nsIEventTarget> socketThread(
-      do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID));
-  if (!socketThread) {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-  bool onSocketThread = true;
-  nsresult rv = socketThread->IsOnCurrentThread(&onSocketThread);
-  if (NS_FAILED(rv) || onSocketThread) {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-
-  result = false;
-  Result runnableRV = Result::FATAL_ERROR_LIBRARY_FAILURE;
-
-  RefPtr<Runnable> isBuiltInRootTask = NS_NewRunnableFunction(
-      "IsCertBuiltInRoot",
-      [&]() { runnableRV = IsCertBuiltInRoot(certInput, result); });
-  rv = SyncRunnable::DispatchToThread(socketThread, isBuiltInRootTask);
-  if (NS_FAILED(rv)) {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-  if (runnableRV != Success) {
-    return runnableRV;
-  }
-  return Success;
-}
-
 Result NSSCertDBTrustDomain::IsChainValid(const DERArray& reversedDERArray,
                                           Time time,
                                           const CertPolicyId& requiredPolicy) {
@@ -1352,8 +1298,7 @@ Result NSSCertDBTrustDomain::IsChainValid(const DERArray& reversedDERArray,
   if (rv != Success) {
     return rv;
   }
-  rv = IsCertBuiltInRootWithSyncDispatch(rootInput,
-                                         mIsBuiltChainRootBuiltInRoot);
+  rv = IsCertBuiltInRoot(rootInput, mIsBuiltChainRootBuiltInRoot);
   if (rv != Result::Success) {
     return rv;
   }
@@ -1479,10 +1424,18 @@ Result NSSCertDBTrustDomain::CheckRSAPublicKeyModulusSizeInBits(
   return Success;
 }
 
-Result NSSCertDBTrustDomain::VerifyRSAPKCS1SignedDigest(
-    const SignedDigest& signedDigest, Input subjectPublicKeyInfo) {
-  return VerifyRSAPKCS1SignedDigestNSS(signedDigest, subjectPublicKeyInfo,
-                                       mPinArg);
+Result NSSCertDBTrustDomain::VerifyRSAPKCS1SignedData(
+    Input data, DigestAlgorithm digestAlgorithm, Input signature,
+    Input subjectPublicKeyInfo) {
+  return VerifyRSAPKCS1SignedDataNSS(data, digestAlgorithm, signature,
+                                     subjectPublicKeyInfo, mPinArg);
+}
+
+Result NSSCertDBTrustDomain::VerifyRSAPSSSignedData(
+    Input data, DigestAlgorithm digestAlgorithm, Input signature,
+    Input subjectPublicKeyInfo) {
+  return VerifyRSAPSSSignedDataNSS(data, digestAlgorithm, signature,
+                                   subjectPublicKeyInfo, mPinArg);
 }
 
 Result NSSCertDBTrustDomain::CheckECDSACurveIsAcceptable(
@@ -1497,10 +1450,11 @@ Result NSSCertDBTrustDomain::CheckECDSACurveIsAcceptable(
   return Result::ERROR_UNSUPPORTED_ELLIPTIC_CURVE;
 }
 
-Result NSSCertDBTrustDomain::VerifyECDSASignedDigest(
-    const SignedDigest& signedDigest, Input subjectPublicKeyInfo) {
-  return VerifyECDSASignedDigestNSS(signedDigest, subjectPublicKeyInfo,
-                                    mPinArg);
+Result NSSCertDBTrustDomain::VerifyECDSASignedData(
+    Input data, DigestAlgorithm digestAlgorithm, Input signature,
+    Input subjectPublicKeyInfo) {
+  return VerifyECDSASignedDataNSS(data, digestAlgorithm, signature,
+                                  subjectPublicKeyInfo, mPinArg);
 }
 
 Result NSSCertDBTrustDomain::CheckValidityIsAcceptable(
@@ -1682,6 +1636,7 @@ void DisableMD5() {
 // the given module name. Optionally pass some string parameters to it via
 // 'params'. This argument will be provided to C_Initialize when called on the
 // module.
+// |libraryName| and |dir| are encoded in UTF-8.
 bool LoadUserModuleAt(const char* moduleName, const char* libraryName,
                       const nsCString& dir, /* optional */ const char* params) {
   // If a module exists with the same name, make a best effort attempt to delete
@@ -1850,24 +1805,34 @@ Result BuildRevocationCheckArrays(Input certDER, EndEntityOrCA endEntityOrCA,
   return Success;
 }
 
-bool CertIsInCertStorage(CERTCertificate* cert, nsICertStorage* certStorage) {
-  MOZ_ASSERT(cert);
+bool CertIsInCertStorage(const nsTArray<uint8_t>& certDER,
+                         nsICertStorage* certStorage) {
   MOZ_ASSERT(certStorage);
-  if (!cert || !certStorage) {
+  if (!certStorage) {
+    return false;
+  }
+  Input certInput;
+  Result rv = certInput.Init(certDER.Elements(), certDER.Length());
+  if (rv != Success) {
+    return false;
+  }
+  BackCert cert(certInput, EndEntityOrCA::MustBeCA, nullptr);
+  rv = cert.Init();
+  if (rv != Success) {
     return false;
   }
   nsTArray<uint8_t> subject;
-  subject.AppendElements(cert->derSubject.data, cert->derSubject.len);
+  subject.AppendElements(cert.GetSubject().UnsafeGetData(),
+                         cert.GetSubject().GetLength());
   nsTArray<nsTArray<uint8_t>> certStorageCerts;
-  nsresult rv = certStorage->FindCertsBySubject(subject, certStorageCerts);
-  if (NS_FAILED(rv)) {
+  if (NS_FAILED(certStorage->FindCertsBySubject(subject, certStorageCerts))) {
     return false;
   }
   for (const auto& certStorageCert : certStorageCerts) {
-    if (certStorageCert.Length() != cert->derCert.len) {
+    if (certStorageCert.Length() != certDER.Length()) {
       continue;
     }
-    if (memcmp(certStorageCert.Elements(), cert->derCert.data,
+    if (memcmp(certStorageCert.Elements(), certDER.Elements(),
                certStorageCert.Length()) == 0) {
       return true;
     }
@@ -1885,120 +1850,88 @@ bool CertIsInCertStorage(CERTCertificate* cert, nsICertStorage* certStorage) {
  * @param certList the verified certificate list
  */
 void SaveIntermediateCerts(const nsTArray<nsTArray<uint8_t>>& certList) {
-  UniqueCERTCertList intermediates(CERT_NewCertList());
-  if (!intermediates) {
+  if (certList.IsEmpty()) {
     return;
   }
-
-  size_t index = 0;
-  size_t numIntermediates = 0;
-  for (const auto& certDER : certList) {
-    // Skip the end-entity; we only want to store intermediates. Similarly,
-    // there's no need to save the trust anchor - it's either already a
-    // permanent certificate or it's the Microsoft Family Safety root or an
-    // enterprise root temporarily imported via the child mode or enterprise
-    // root features. We don't want to import these because they're intended to
-    // be temporary (and because importing them happens to reset their trust
-    // settings, which breaks these features).
-    index++;
-    if (index == 1 || index == certList.Length()) {
-      continue;
-    }
-    SECItem certDERItem = {siBuffer,
-                           const_cast<unsigned char*>(certDER.Elements()),
-                           AssertedCast<unsigned int>(certDER.Length())};
-    UniqueCERTCertificate certHandle(CERT_NewTempCertificate(
-        CERT_GetDefaultCertDB(), &certDERItem, nullptr, false, true));
-    if (!certHandle) {
-      continue;
-    }
-    if (certHandle->slot) {
-      // This cert was found on a token; no need to remember it in the permanent
-      // database.
-      continue;
-    }
-
-    PRBool isperm;
-    if (CERT_GetCertIsPerm(certHandle.get(), &isperm) != SECSuccess) {
-      continue;
-    }
-    if (isperm) {
-      // We don't need to remember certs already stored in perm db.
-      continue;
-    }
-
-    if (CERT_AddCertToListTail(intermediates.get(), certHandle.get()) !=
-        SECSuccess) {
-      // If this fails, we're probably out of memory. Just return.
-      return;
-    }
-    certHandle.release();  // intermediates now owns the reference
-    numIntermediates++;
+  nsTArray<nsTArray<uint8_t>> intermediates;
+  // Skip the end-entity; we only want to store intermediates. Similarly,
+  // there's no need to save the trust anchor - it's either already a permanent
+  // certificate or it's the Microsoft Family Safety root or an enterprise root
+  // temporarily imported via the child mode or enterprise root features. We
+  // don't want to import these because they're intended to be temporary (and
+  // because importing them happens to reset their trust settings, which breaks
+  // these features).
+  for (size_t index = 1; index < certList.Length() - 1; index++) {
+    intermediates.AppendElement(certList.ElementAt(index).Clone());
   }
-
-  if (numIntermediates > 0) {
-    nsCOMPtr<nsIRunnable> importCertsRunnable(NS_NewRunnableFunction(
-        "IdleSaveIntermediateCerts",
-        [intermediates = std::move(intermediates)]() -> void {
-          if (AppShutdown::IsShuttingDown()) {
+  nsCOMPtr<nsIRunnable> importCertsRunnable(NS_NewRunnableFunction(
+      "IdleSaveIntermediateCerts",
+      [intermediates = std::move(intermediates)]() -> void {
+        if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+          return;
+        }
+        UniquePK11SlotInfo slot(PK11_GetInternalKeySlot());
+        if (!slot) {
+          return;
+        }
+        size_t numCertsImported = 0;
+        nsCOMPtr<nsICertStorage> certStorage(
+            do_GetService(NS_CERT_STORAGE_CID));
+        for (const auto& certDER : intermediates) {
+          if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
             return;
           }
-
-          UniquePK11SlotInfo slot(PK11_GetInternalKeySlot());
-          if (!slot) {
-            return;
+          if (CertIsInCertStorage(certDER, certStorage)) {
+            continue;
           }
-          nsCOMPtr<nsICertStorage> certStorage(
-              do_GetService(NS_CERT_STORAGE_CID));
-          size_t numCertsImported = 0;
-          for (CERTCertListNode* node = CERT_LIST_HEAD(intermediates);
-               !CERT_LIST_END(node, intermediates);
-               node = CERT_LIST_NEXT(node)) {
-            if (AppShutdown::IsShuttingDown()) {
-              return;
-            }
-
-            if (CertIsInCertStorage(node->cert, certStorage)) {
-              continue;
-            }
-            PRBool isperm;
-            if (CERT_GetCertIsPerm(node->cert, &isperm) != SECSuccess) {
-              continue;
-            }
-            if (isperm) {
-              // This may be a certificate that has already been imported by
-              // another background import task that happened to run before
-              // this one.
-              continue;
-            }
-            // This is a best-effort attempt at avoiding unknown issuer errors
-            // in the future, so ignore failures here.
-            nsAutoCString nickname;
-            if (NS_FAILED(DefaultServerNicknameForCert(node->cert, nickname))) {
-              continue;
-            }
-            Unused << PK11_ImportCert(slot.get(), node->cert, CK_INVALID_HANDLE,
-                                      nickname.get(), false);
-            numCertsImported++;
+          SECItem certDERItem = {siBuffer,
+                                 const_cast<unsigned char*>(certDER.Elements()),
+                                 AssertedCast<unsigned int>(certDER.Length())};
+          UniqueCERTCertificate cert(CERT_NewTempCertificate(
+              CERT_GetDefaultCertDB(), &certDERItem, nullptr, false, true));
+          if (!cert) {
+            continue;
           }
+          if (cert->slot) {
+            // This cert was found on a token; no need to remember it in the
+            // permanent database.
+            continue;
+          }
+          PRBool isperm;
+          if (CERT_GetCertIsPerm(cert.get(), &isperm) != SECSuccess) {
+            continue;
+          }
+          if (isperm) {
+            // We don't need to remember certs already stored in perm db.
+            continue;
+          }
+          // This is a best-effort attempt at avoiding unknown issuer errors
+          // in the future, so ignore failures here.
+          nsAutoCString nickname;
+          if (NS_FAILED(DefaultServerNicknameForCert(cert.get(), nickname))) {
+            continue;
+          }
+          Unused << PK11_ImportCert(slot.get(), cert.get(), CK_INVALID_HANDLE,
+                                    nickname.get(), false);
+          numCertsImported++;
+        }
 
-          nsCOMPtr<nsIRunnable> runnable(NS_NewRunnableFunction(
-              "IdleSaveIntermediateCertsDone", [numCertsImported]() -> void {
-                nsCOMPtr<nsIObserverService> observerService =
-                    mozilla::services::GetObserverService();
-                if (observerService) {
-                  NS_ConvertUTF8toUTF16 numCertsImportedString(
-                      nsPrintfCString("%zu", numCertsImported));
-                  observerService->NotifyObservers(
-                      nullptr, "psm:intermediate-certs-cached",
-                      numCertsImportedString.get());
-                }
-              }));
-          Unused << NS_DispatchToMainThread(runnable.forget());
-        }));
-    Unused << NS_DispatchToCurrentThreadQueue(importCertsRunnable.forget(),
-                                              EventQueuePriority::Idle);
-  }
+        nsCOMPtr<nsIRunnable> runnable(NS_NewRunnableFunction(
+            "IdleSaveIntermediateCertsDone", [numCertsImported]() -> void {
+              nsCOMPtr<nsIObserverService> observerService =
+                  mozilla::services::GetObserverService();
+              if (observerService) {
+                NS_ConvertUTF8toUTF16 numCertsImportedString(
+                    nsPrintfCString("%zu", numCertsImported));
+                observerService->NotifyObservers(
+                    nullptr, "psm:intermediate-certs-cached",
+                    numCertsImportedString.get());
+              }
+            }));
+        Unused << NS_DispatchToMainThread(runnable.forget());
+      }));
+  Unused << NS_DispatchToCurrentThreadQueue(importCertsRunnable.forget(),
+                                            EventQueuePriority::Idle);
 }
 
 }  // namespace psm

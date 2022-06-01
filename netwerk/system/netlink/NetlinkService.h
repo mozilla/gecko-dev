@@ -7,7 +7,6 @@
 #define NETLINKSERVICE_H_
 
 #include <netinet/in.h>
-#include <linux/netlink.h>
 
 #include "nsIRunnable.h"
 #include "nsThreadUtils.h"
@@ -62,7 +61,7 @@ class NetlinkService : public nsIRunnable {
   void EnqueueRtMsg(uint8_t aFamily, void* aAddress);
   void RemovePendingMsg();
 
-  mozilla::Mutex mMutex{"NetlinkService::mMutex"};
+  mozilla::Mutex mMutex MOZ_UNANNOTATED{"NetlinkService::mMutex"};
 
   void OnNetlinkMessage(int aNetlinkSocket);
   void OnLinkMessage(struct nlmsghdr* aNlh);

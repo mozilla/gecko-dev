@@ -329,6 +329,7 @@ Uncacheable:
   Compilation failed:         49
   No input file:               9
   Preprocessing failed:       90
+  Unsupported code directive:  1
     """.format(
         timestamp=time.strftime("%c")
     )
@@ -354,6 +355,26 @@ Primary storage:
     """.format(
         timestamp=time.strftime("%c")
     )
+
+    STAT12 = """
+Summary:
+  Cache directory:  /home/suer/.ccache
+  Primary config:   /home/suer/.ccache/ccache.conf
+  Secondary config: /etc/ccache.conf
+  Stats updated:    never
+  Hits:                0 /    0
+    Direct:            0 /    0
+    Preprocessed:      0 /    0
+  Misses:              0
+    Direct:            0
+    Preprocessed:      0
+Primary storage:
+  Hits:                0 /    0
+  Misses:              0
+  Cache size (GB):  0.00 / 5.00 (0.00 %)
+  Files:               0
+  Cleanups:           16
+    """
 
     def test_parse_garbage_stats_message(self):
         self.assertRaises(ValueError, CCacheStats, self.STAT_GARBAGE)
@@ -436,6 +457,9 @@ Primary storage:
 
         stat11 = CCacheStats(self.STAT11, True)
         self.assertTrue(stat11)
+
+        stat12 = CCacheStats(self.STAT12, True)
+        self.assertTrue(stat12)
 
 
 if __name__ == "__main__":

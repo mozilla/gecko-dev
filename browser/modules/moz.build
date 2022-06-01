@@ -40,9 +40,6 @@ with Files("test/unit/test_SitePermissions.js"):
 with Files("AboutNewTab.jsm"):
     BUG_COMPONENT = ("Firefox", "New Tab Page")
 
-with Files("AsanReporter.jsm"):
-    BUG_COMPONENT = ("Firefox Build System", "General")
-
 with Files("AsyncTabSwitcher.jsm"):
     BUG_COMPONENT = ("Firefox", "Tabbed Browser")
 
@@ -102,9 +99,11 @@ with Files("TransientPrefs.jsm"):
 
 with Files("WindowsJumpLists.jsm"):
     BUG_COMPONENT = ("Firefox", "Shell Integration")
+    SCHEDULES.exclusive = ["windows"]
 
 with Files("WindowsPreviewPerTab.jsm"):
     BUG_COMPONENT = ("Core", "Widget: Win32")
+    SCHEDULES.exclusive = ["windows"]
 
 with Files("webrtcUI.jsm"):
     BUG_COMPONENT = ("Firefox", "Site Permissions")
@@ -149,11 +148,6 @@ EXTRA_JS_MODULES += [
     "webrtcUI.jsm",
     "ZoomUI.jsm",
 ]
-
-if CONFIG["MOZ_ASAN_REPORTER"]:
-    EXTRA_JS_MODULES += [
-        "AsanReporter.jsm",
-    ]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     EXTRA_JS_MODULES += [

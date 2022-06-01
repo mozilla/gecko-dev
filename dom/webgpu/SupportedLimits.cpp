@@ -8,8 +8,7 @@
 #include "mozilla/dom/WebGPUBinding.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 
-namespace mozilla {
-namespace webgpu {
+namespace mozilla::webgpu {
 
 GPU_IMPL_CYCLE_COLLECTION(SupportedLimits, mParent)
 GPU_IMPL_JS_WRAP(SupportedLimits)
@@ -62,6 +61,12 @@ uint32_t SupportedLimits::MaxUniformBufferBindingSize() const {
 uint32_t SupportedLimits::MaxStorageBufferBindingSize() const {
   return mLimits->max_storage_buffer_binding_size;
 }
+uint32_t SupportedLimits::MinUniformBufferOffsetAlignment() const {
+  return mLimits->min_uniform_buffer_offset_alignment;
+}
+uint32_t SupportedLimits::MinStorageBufferOffsetAlignment() const {
+  return mLimits->min_storage_buffer_offset_alignment;
+}
 uint32_t SupportedLimits::MaxVertexBuffers() const {
   return mLimits->max_vertex_buffers;
 }
@@ -71,6 +76,26 @@ uint32_t SupportedLimits::MaxVertexAttributes() const {
 uint32_t SupportedLimits::MaxVertexBufferArrayStride() const {
   return mLimits->max_vertex_buffer_array_stride;
 }
+uint32_t SupportedLimits::MaxInterStageShaderComponents() const {
+  return mLimits->max_inter_stage_shader_components;
+}
+uint32_t SupportedLimits::MaxComputeWorkgroupStorageSize() const {
+  return mLimits->max_compute_workgroup_storage_size;
+}
+uint32_t SupportedLimits::MaxComputeInvocationsPerWorkgroup() const {
+  return mLimits->max_compute_invocations_per_workgroup;
+}
+uint32_t SupportedLimits::MaxComputeWorkgroupSizeX() const {
+  return mLimits->max_compute_workgroup_size_x;
+}
+uint32_t SupportedLimits::MaxComputeWorkgroupSizeY() const {
+  return mLimits->max_compute_workgroup_size_y;
+}
+uint32_t SupportedLimits::MaxComputeWorkgroupSizeZ() const {
+  return mLimits->max_compute_workgroup_size_z;
+}
+uint32_t SupportedLimits::MaxComputeWorkgroupsPerDimension() const {
+  return mLimits->max_compute_workgroups_per_dimension;
+}
 
-}  // namespace webgpu
-}  // namespace mozilla
+}  // namespace mozilla::webgpu

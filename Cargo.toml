@@ -41,6 +41,7 @@ exclude = [
   "xpcom/rust/gkrust_utils",
   "tools/lint/test/files/clippy",
   "tools/fuzzing/rust",
+  "dom/origin-trials/ffi",
 ]
 
 # Use the new dependency resolver to reduce some of the platform-specific dependencies.
@@ -89,6 +90,27 @@ vcpkg = { path = "build/rust/vcpkg" }
 # Helper crate for integration in the gecko build system.
 mozbuild = { path = "build/rust/mozbuild" }
 
+# Patch itoa 0.4 to 1.0.
+itoa = { path = "build/rust/itoa" }
+
+# Patch cexpr 0.6 down to cexpr 0.4, which is enough for bindgen 0.59's needs and avoids pulling another version of nom.
+cexpr = { path = "build/rust/cexpr" }
+
+# Patch bindgen 0.56 to 0.59.
+bindgen = { path = "build/rust/bindgen" }
+
+# Patch cfg-if 0.1 to 1.0
+cfg-if = { path = "build/rust/cfg-if" }
+
+# Patch itertools 0.8 to 1.0
+itertools = { path = "build/rust/itertools" }
+
+# Patch redox_users to an empty crate
+redox_users = { path = "build/rust/redox_users" }
+
+# Patch memmap2 0.2 to 0.3
+memmap2 = { path = "build/rust/memmap2" }
+
 # Patch autocfg to hide rustc output. Workaround for https://github.com/cuviper/autocfg/issues/30
 autocfg = { path = "third_party/rust/autocfg" }
 
@@ -108,10 +130,11 @@ async-task = { git = "https://github.com/smol-rs/async-task", rev="f6488e35beccb
 chardetng = { git = "https://github.com/hsivonen/chardetng", rev="3484d3e3ebdc8931493aa5df4d7ee9360a90e76b" }
 chardetng_c = { git = "https://github.com/hsivonen/chardetng_c", rev="ed8a4c6f900a90d4dbc1d64b856e61490a1c3570" }
 coremidi = { git = "https://github.com/chris-zen/coremidi.git", rev="fc68464b5445caf111e41f643a2e69ccce0b4f83" }
+fog = { path = "toolkit/components/glean/api" }
 libudev-sys = { path = "dom/webauthn/libudev-sys" }
-packed_simd = { git = "https://github.com/hsivonen/packed_simd", rev="8b4bd7d8229660a749dbe419a57ea01df9de5453" }
+packed_simd = { package = "packed_simd_2", git = "https://github.com/hsivonen/packed_simd", rev="c149d0a519bf878567c7630096737669ec2ff15f" }
 midir = { git = "https://github.com/makotokato/midir.git", rev = "6140b2825dd4dc2b40e49e154ca7596e7b9a131a" }
-minidump_writer_linux = { git = "https://github.com/msirringhaus/minidump_writer_linux.git", rev = "029ac0d54b237f27dc7d8d4e51bc0fb076e5e852" }
+minidump_writer_linux = { git = "https://github.com/rust-minidump/minidump-writer.git", rev = "75ada456c92a429704691a85e1cb42fef8cafc0d" }
 
 # Patch mio 0.6 to use winapi 0.3 and miow 0.3, getting rid of winapi 0.2.
 # There is not going to be new version of mio 0.6, mio now being >= 0.7.11.

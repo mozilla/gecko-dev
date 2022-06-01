@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/ReadableStreamDefaultReader.h"
 #include "mozilla/dom/ReadableStream.h"
+#include "mozilla/dom/RootedDictionary.h"
 #include "js/PropertyAndElement.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
@@ -17,8 +18,7 @@
 #include "nsISupports.h"
 #include "nsWrapperCache.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION(ReadableStreamGenericReader, mClosedPromise, mStream,
                          mGlobal)
@@ -57,8 +57,7 @@ JSObject* ReadableStreamDefaultReader::WrapObject(
 }
 
 // https://streams.spec.whatwg.org/#readable-stream-reader-generic-initialize
-bool ReadableStreamReaderGenericInitialize(JSContext* aCx,
-                                           ReadableStreamGenericReader* aReader,
+bool ReadableStreamReaderGenericInitialize(ReadableStreamGenericReader* aReader,
                                            ReadableStream* aStream,
                                            ErrorResult& aRv) {
   // Step 1.
@@ -88,7 +87,8 @@ bool ReadableStreamReaderGenericInitialize(JSContext* aCx,
     case ReadableStream::ReaderState::Errored: {
       // Step 5.1 Implicit
       // Step 5.2
-      JS::RootedValue rootedError(aCx, aStream->StoredError());
+      JS::RootingContext* rcx = RootingCx();
+      JS::Rooted<JS::Value> rootedError(rcx, aStream->StoredError());
       aReader->ClosedPromise()->MaybeReject(rootedError);
 
       // Step 5.3
@@ -122,8 +122,7 @@ ReadableStreamDefaultReader::Constructor(const GlobalObject& aGlobal,
 
   // Step 2.
   RefPtr<ReadableStream> streamPtr = &aStream;
-  if (!ReadableStreamReaderGenericInitialize(aGlobal.Context(), reader,
-                                             streamPtr, aRv)) {
+  if (!ReadableStreamReaderGenericInitialize(reader, streamPtr, aRv)) {
     return nullptr;
   }
 
@@ -133,61 +132,56 @@ ReadableStreamDefaultReader::Constructor(const GlobalObject& aGlobal,
   return reader.forget();
 }
 
-static bool CreateValueDonePair(JSContext* aCx, bool forAuthorCode,
-                                JS::HandleValue aValue, bool aDone,
-                                JS::MutableHandleValue aReturnValue) {
-  JS::RootedObject obj(
-      aCx, forAuthorCode ? JS_NewPlainObject(aCx)
-                         : JS_NewObjectWithGivenProto(aCx, nullptr, nullptr));
-  if (!obj) {
-    return false;
-  }
+void Read_ReadRequest::ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+                                  ErrorResult& aRv) {
+  // https://streams.spec.whatwg.org/#default-reader-read Step 3.
+  // chunk steps, given chunk:
+  //  Step 1. Resolve promise with «[ "value" → chunk, "done" → false ]».
 
   // Value may need to be wrapped if stream and reader are in different
   // compartments.
-  JS::RootedValue value(aCx, aValue);
-  if (!JS_WrapValue(aCx, &value)) {
-    return false;
-  }
-
-  if (!JS_DefineProperty(aCx, obj, "value", value, JSPROP_ENUMERATE)) {
-    return false;
-  }
-  JS::RootedValue done(aCx, JS::BooleanValue(aDone));
-  if (!JS_DefineProperty(aCx, obj, "done", done, JSPROP_ENUMERATE)) {
-    return false;
-  }
-
-  aReturnValue.setObject(*obj);
-  return true;
-}
-
-void Read_ReadRequest::ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
-                                  ErrorResult& aRv) {
-  // Step 1.
-  JS::RootedValue resolvedValue(aCx);
-  if (!CreateValueDonePair(aCx, mForAuthorCode, aChunk, false,
-                           &resolvedValue)) {
+  JS::Rooted<JS::Value> chunk(aCx, aChunk);
+  if (!JS_WrapValue(aCx, &chunk)) {
     aRv.StealExceptionFromJSContext(aCx);
     return;
   }
-  mPromise->MaybeResolve(resolvedValue);
+
+  RootedDictionary<ReadableStreamReadResult> result(aCx);
+  result.mValue = chunk;
+  result.mDone.Construct(false);
+
+  // Ensure that the object is created with the current global.
+  JS::Rooted<JS::Value> value(aCx);
+  if (!ToJSValue(aCx, std::move(result), &value)) {
+    aRv.StealExceptionFromJSContext(aCx);
+    return;
+  }
+
+  mPromise->MaybeResolve(value);
 }
 
 void Read_ReadRequest::CloseSteps(JSContext* aCx, ErrorResult& aRv) {
-  // Step 1.
-  JS::RootedValue undefined(aCx, JS::UndefinedValue());
-  JS::RootedValue resolvedValue(aCx);
-  if (!CreateValueDonePair(aCx, mForAuthorCode, undefined, true,
-                           &resolvedValue)) {
+  // https://streams.spec.whatwg.org/#default-reader-read Step 3.
+  // close steps:
+  //  Step 1. Resolve promise with «[ "value" → undefined, "done" → true ]».
+  RootedDictionary<ReadableStreamReadResult> result(aCx);
+  result.mValue.setUndefined();
+  result.mDone.Construct(true);
+
+  JS::Rooted<JS::Value> value(aCx);
+  if (!ToJSValue(aCx, std::move(result), &value)) {
     aRv.StealExceptionFromJSContext(aCx);
     return;
   }
-  mPromise->MaybeResolve(resolvedValue);
+
+  mPromise->MaybeResolve(value);
 }
 
 void Read_ReadRequest::ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> e,
                                   ErrorResult& aRv) {
+  // https://streams.spec.whatwg.org/#default-reader-read Step 3.
+  // error steps:
+  //  Step 1. Reject promise with e.
   mPromise->MaybeReject(e);
 }
 
@@ -227,7 +221,7 @@ void ReadableStreamDefaultReaderRead(JSContext* aCx,
     }
 
     case ReadableStream::ReaderState::Errored: {
-      JS::RootedValue storedError(aCx, stream->StoredError());
+      JS::Rooted<JS::Value> storedError(aCx, stream->StoredError());
       aRequest->ErrorSteps(aCx, storedError, aRv);
       return;
     }
@@ -404,8 +398,7 @@ already_AddRefed<Promise> ReadableStreamGenericReader::Cancel(
 }
 
 // https://streams.spec.whatwg.org/#set-up-readable-stream-default-reader
-void SetUpReadableStreamDefaultReader(JSContext* aCx,
-                                      ReadableStreamDefaultReader* aReader,
+void SetUpReadableStreamDefaultReader(ReadableStreamDefaultReader* aReader,
                                       ReadableStream* aStream,
                                       ErrorResult& aRv) {
   // Step 1.
@@ -416,7 +409,7 @@ void SetUpReadableStreamDefaultReader(JSContext* aCx,
   }
 
   // Step 2.
-  if (!ReadableStreamReaderGenericInitialize(aCx, aReader, aStream, aRv)) {
+  if (!ReadableStreamReaderGenericInitialize(aReader, aStream, aRv)) {
     return;
   }
 
@@ -424,5 +417,4 @@ void SetUpReadableStreamDefaultReader(JSContext* aCx,
   aReader->ReadRequests().clear();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

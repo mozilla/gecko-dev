@@ -41,8 +41,6 @@ static mozilla::LazyLogModule sEventDispatchAndRunLog("events");
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS(TailDispatchingTarget, nsIEventTarget, nsISerialEventTarget)
-
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
 NS_IMPL_ISUPPORTS(IdlePeriod, nsIIdlePeriod)
@@ -479,7 +477,6 @@ void NS_SetCurrentThreadName(const char* aName) {
     nsThread* thread = nsThreadManager::get().GetCurrentThread();
     thread->SetThreadNameInternal(nsDependentCString(aName));
   }
-  CrashReporter::SetCurrentThreadName(aName);
 }
 
 nsIThread* NS_GetCurrentThread() {

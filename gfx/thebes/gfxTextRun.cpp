@@ -11,6 +11,7 @@
 #include "gfxUserFontSet.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/PathHelpers.h"
+#include "mozilla/ServoStyleSet.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPresData.h"
 
@@ -408,21 +409,26 @@ bool gfxTextRun::GetAdjustedSpacingArray(
   return true;
 }
 
-void gfxTextRun::ShrinkToLigatureBoundaries(Range* aRange) const {
-  if (aRange->start >= aRange->end) return;
+bool gfxTextRun::ShrinkToLigatureBoundaries(Range* aRange) const {
+  if (aRange->start >= aRange->end) {
+    return false;
+  }
 
   const CompressedGlyph* charGlyphs = mCharacterGlyphs;
-
+  bool adjusted = false;
   while (aRange->start < aRange->end &&
          !charGlyphs[aRange->start].IsLigatureGroupStart()) {
     ++aRange->start;
+    adjusted = true;
   }
   if (aRange->end < GetLength()) {
     while (aRange->end > aRange->start &&
            !charGlyphs[aRange->end].IsLigatureGroupStart()) {
       --aRange->end;
+      adjusted = true;
     }
   }
+  return adjusted;
 }
 
 void gfxTextRun::DrawGlyphs(gfxFont* aFont, Range aRange, gfx::Point* aPt,
@@ -668,11 +674,12 @@ void gfxTextRun::Draw(const Range aRange, const gfx::Point aPt,
     }
 
     Range ligatureRange(runRange);
-    ShrinkToLigatureBoundaries(&ligatureRange);
+    bool adjusted = ShrinkToLigatureBoundaries(&ligatureRange);
 
     bool drawPartial =
-        (aParams.drawMode & (DrawMode::GLYPH_FILL | DrawMode::GLYPH_STROKE)) ||
-        (aParams.drawMode == DrawMode::GLYPH_PATH && aParams.callbacks);
+        adjusted &&
+        ((aParams.drawMode & (DrawMode::GLYPH_FILL | DrawMode::GLYPH_STROKE)) ||
+         (aParams.drawMode == DrawMode::GLYPH_PATH && aParams.callbacks));
     gfx::Point origPt = pt;
 
     if (drawPartial) {
@@ -730,11 +737,13 @@ void gfxTextRun::DrawEmphasisMarks(gfxContext* aContext, gfxTextRun* aMark,
     uint32_t start = iter.GetStringStart();
     uint32_t end = iter.GetStringEnd();
     Range ligatureRange(start, end);
-    ShrinkToLigatureBoundaries(&ligatureRange);
+    bool adjusted = ShrinkToLigatureBoundaries(&ligatureRange);
 
-    inlineCoord +=
-        direction * ComputePartialLigatureWidth(
-                        Range(start, ligatureRange.start), aProvider);
+    if (adjusted) {
+      inlineCoord +=
+          direction * ComputePartialLigatureWidth(
+                          Range(start, ligatureRange.start), aProvider);
+    }
 
     AutoTArray<PropertyProvider::Spacing, 200> spacingBuffer;
     bool haveSpacing = GetAdjustedSpacingArray(ligatureRange, aProvider,
@@ -743,8 +752,10 @@ void gfxTextRun::DrawEmphasisMarks(gfxContext* aContext, gfxTextRun* aMark,
     font->DrawEmphasisMarks(this, &aPt, ligatureRange.start,
                             ligatureRange.Length(), params);
 
-    inlineCoord += direction * ComputePartialLigatureWidth(
-                                   Range(ligatureRange.end, end), aProvider);
+    if (adjusted) {
+      inlineCoord += direction * ComputePartialLigatureWidth(
+                                     Range(ligatureRange.end, end), aProvider);
+    }
   }
 }
 
@@ -809,12 +820,14 @@ gfxTextRun::Metrics gfxTextRun::MeasureText(
     uint32_t start = iter.GetStringStart();
     uint32_t end = iter.GetStringEnd();
     Range ligatureRange(start, end);
-    ShrinkToLigatureBoundaries(&ligatureRange);
+    bool adjusted = ShrinkToLigatureBoundaries(&ligatureRange);
 
-    AccumulatePartialLigatureMetrics(
-        font, Range(start, ligatureRange.start), aBoundingBoxType,
-        aRefDrawTarget, aProvider, iter.GetGlyphRun()->mOrientation,
-        &accumulatedMetrics);
+    if (adjusted) {
+      AccumulatePartialLigatureMetrics(
+          font, Range(start, ligatureRange.start), aBoundingBoxType,
+          aRefDrawTarget, aProvider, iter.GetGlyphRun()->mOrientation,
+          &accumulatedMetrics);
+    }
 
     // XXX This sucks. We have to get glyph extents just so we can detect
     // glyphs outside the font box, even when aBoundingBoxType is LOOSE,
@@ -825,12 +838,29 @@ gfxTextRun::Metrics gfxTextRun::MeasureText(
         font, ligatureRange, aBoundingBoxType, aRefDrawTarget, aProvider,
         ligatureRange, iter.GetGlyphRun()->mOrientation, &accumulatedMetrics);
 
-    AccumulatePartialLigatureMetrics(
-        font, Range(ligatureRange.end, end), aBoundingBoxType, aRefDrawTarget,
-        aProvider, iter.GetGlyphRun()->mOrientation, &accumulatedMetrics);
+    if (adjusted) {
+      AccumulatePartialLigatureMetrics(
+          font, Range(ligatureRange.end, end), aBoundingBoxType, aRefDrawTarget,
+          aProvider, iter.GetGlyphRun()->mOrientation, &accumulatedMetrics);
+    }
   }
 
   return accumulatedMetrics;
+}
+
+void gfxTextRun::GetLineHeightMetrics(Range aRange, gfxFloat& aAscent,
+                                      gfxFloat& aDescent) const {
+  Metrics accumulatedMetrics;
+  GlyphRunIterator iter(this, aRange);
+  while (iter.NextRun()) {
+    gfxFont* font = iter.GetGlyphRun()->mFont;
+    auto metrics =
+        font->Measure(this, 0, 0, gfxFont::LOOSE_INK_EXTENTS, nullptr, nullptr,
+                      iter.GetGlyphRun()->mOrientation);
+    accumulatedMetrics.CombineWith(metrics, false);
+  }
+  aAscent = accumulatedMetrics.mAscent;
+  aDescent = accumulatedMetrics.mDescent;
 }
 
 #define MEASUREMENT_BUFFER_SIZE 100
@@ -1191,12 +1221,14 @@ gfxFloat gfxTextRun::GetAdvanceWidth(
   NS_ASSERTION(aRange.end <= GetLength(), "Substring out of range");
 
   Range ligatureRange = aRange;
-  ShrinkToLigatureBoundaries(&ligatureRange);
+  bool adjusted = ShrinkToLigatureBoundaries(&ligatureRange);
 
-  gfxFloat result = ComputePartialLigatureWidth(
-                        Range(aRange.start, ligatureRange.start), aProvider) +
-                    ComputePartialLigatureWidth(
-                        Range(ligatureRange.end, aRange.end), aProvider);
+  gfxFloat result =
+      adjusted ? ComputePartialLigatureWidth(
+                     Range(aRange.start, ligatureRange.start), aProvider) +
+                     ComputePartialLigatureWidth(
+                         Range(ligatureRange.end, aRange.end), aProvider)
+               : 0.0;
 
   if (aSpacing) {
     aSpacing->mBefore = aSpacing->mAfter = 0;
@@ -1228,13 +1260,15 @@ gfxFloat gfxTextRun::GetMinAdvanceWidth(Range aRange) {
   MOZ_ASSERT(aRange.end <= GetLength(), "Substring out of range");
 
   Range ligatureRange = aRange;
-  ShrinkToLigatureBoundaries(&ligatureRange);
+  bool adjusted = ShrinkToLigatureBoundaries(&ligatureRange);
 
   gfxFloat result =
-      std::max(ComputePartialLigatureWidth(
-                   Range(aRange.start, ligatureRange.start), nullptr),
-               ComputePartialLigatureWidth(Range(ligatureRange.end, aRange.end),
-                                           nullptr));
+      adjusted
+          ? std::max(ComputePartialLigatureWidth(
+                         Range(aRange.start, ligatureRange.start), nullptr),
+                     ComputePartialLigatureWidth(
+                         Range(ligatureRange.end, aRange.end), nullptr))
+          : 0.0;
 
   // Compute min advance width by assuming each grapheme cluster takes its own
   // line.
@@ -1548,7 +1582,6 @@ void gfxTextRun::SetSpaceGlyph(gfxFont* aFont, DrawTarget* aDrawTarget,
     return;
   }
 
-  aFont->InitWordCache();
   static const uint8_t space = ' ';
   gfx::ShapedTextFlags flags =
       gfx::ShapedTextFlags::TEXT_IS_8BIT | aOrientation;
@@ -1866,7 +1899,7 @@ gfxFontGroup::gfxFontGroup(nsPresContext* aPresContext,
 
 gfxFontGroup::~gfxFontGroup() {
   // Should not be dropped by stylo
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!Servo_IsWorkerThread());
 }
 
 static StyleGenericFontFamily GetDefaultGeneric(nsAtom* aLanguage) {
@@ -1879,6 +1912,7 @@ void gfxFontGroup::BuildFontList() {
   // initialize fonts in the font family list
   AutoTArray<FamilyAndGeneric, 10> fonts;
   gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
+  mFontListGeneration = pfl->GetGeneration();
 
   // lookup fonts in the fontlist
   for (const StyleSingleFontFamily& name : mFamilyList.list.AsSpan()) {
@@ -1922,8 +1956,6 @@ void gfxFontGroup::BuildFontList() {
       AddFamilyToFontList(f.mFamily.mUnshared, f.mGeneric);
     }
   }
-
-  mFontListGeneration = pfl->GetGeneration();
 }
 
 void gfxFontGroup::AddPlatformFont(const nsACString& aName, bool aQuotedName,
@@ -1980,7 +2012,7 @@ void gfxFontGroup::AddFamilyToFontList(fontlist::Family* aFamily,
                                        StyleGenericFontFamily aGeneric) {
   gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
   if (!aFamily->IsInitialized()) {
-    if (!NS_IsMainThread()) {
+    if (!NS_IsMainThread() && ServoStyleSet::Current()) {
       // If we need to initialize a Family record, but we're on a style
       // worker thread, we have to defer it.
       ServoStyleSet* set = ServoStyleSet::Current();
@@ -3331,7 +3363,7 @@ gfxFont* gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
   gfxFont* font = WhichPrefFontSupportsChar(aCh, aNextCh, presentation);
   if (font) {
     if (PrefersColor(presentation) &&
-        Preferences::HasUserValue("font.name-list.emoji")) {
+        gfxPlatformFontList::PlatformFontList()->EmojiPrefHasUserValue()) {
       // For emoji, always accept the font from preferences if it's explicitly
       // user-set, even if it isn't actually a color-emoji font, as some users
       // may want to set their emoji font preference to a monochrome font like

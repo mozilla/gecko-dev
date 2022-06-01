@@ -7,13 +7,13 @@
 #define PlaceholderTransaction_h
 
 #include "EditAggregateTransaction.h"
+#include "EditorForwards.h"
+#include "SelectionState.h"
+
 #include "mozilla/Maybe.h"
-#include "mozilla/SelectionState.h"
 #include "mozilla/WeakPtr.h"
 
 namespace mozilla {
-
-class EditorBase;
 
 /**
  * An aggregate transaction that knows how to absorb all subsequent
@@ -58,8 +58,6 @@ class PlaceholderTransaction final : public EditAggregateTransaction,
 
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD RedoTransaction() override;
   NS_IMETHOD Merge(nsITransaction* aTransaction, bool* aDidMerge) override;
-
-  bool StartSelectionEquals(SelectionState& aSelectionState);
 
   nsresult EndPlaceHolderBatch();
 

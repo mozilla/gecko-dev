@@ -39,13 +39,15 @@ impl super::CommandEncoder {
         }
     }
 
-    fn enter_any(&mut self) -> &mtl::CommandEncoderRef {
+    fn enter_any(&mut self) -> Option<&mtl::CommandEncoderRef> {
         if let Some(ref encoder) = self.state.render {
-            encoder
+            Some(encoder)
         } else if let Some(ref encoder) = self.state.compute {
-            encoder
+            Some(encoder)
+        } else if let Some(ref encoder) = self.state.blit {
+            Some(encoder)
         } else {
-            self.enter_blit()
+            None
         }
     }
 
@@ -72,13 +74,21 @@ impl super::CommandState {
     ) -> Option<(u32, &'a [u32])> {
         let stage_info = &self.stage_infos[stage];
         let slot = stage_info.sizes_slot?;
+
         result_sizes.clear();
-        for br in stage_info.sized_bindings.iter() {
-            // If it's None, this isn't the right time to update the sizes
-            let size = self.storage_buffer_length_map.get(br)?;
-            result_sizes.push(size.get().min(!0u32 as u64) as u32);
+        result_sizes.extend(
+            stage_info
+                .sized_bindings
+                .iter()
+                .filter_map(|br| self.storage_buffer_length_map.get(br))
+                .map(|size| size.get().min(!0u32 as u64) as u32),
+        );
+
+        if !result_sizes.is_empty() {
+            Some((slot as _, result_sizes))
+        } else {
+            None
         }
-        Some((slot as _, result_sizes))
     }
 }
 
@@ -627,13 +637,23 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
     }
 
     unsafe fn insert_debug_marker(&mut self, label: &str) {
-        self.enter_any().insert_debug_signpost(label);
+        if let Some(encoder) = self.enter_any() {
+            encoder.insert_debug_signpost(label);
+        }
     }
     unsafe fn begin_debug_marker(&mut self, group_label: &str) {
-        self.enter_any().push_debug_group(group_label);
+        if let Some(encoder) = self.enter_any() {
+            encoder.push_debug_group(group_label);
+        } else if let Some(ref buf) = self.raw_cmd_buf {
+            buf.push_debug_group(group_label);
+        }
     }
     unsafe fn end_debug_marker(&mut self) {
-        self.enter_any().pop_debug_group();
+        if let Some(encoder) = self.enter_any() {
+            encoder.pop_debug_group();
+        } else if let Some(ref buf) = self.raw_cmd_buf {
+            buf.pop_debug_group();
+        }
     }
 
     unsafe fn set_render_pipeline(&mut self, pipeline: &super::RenderPipeline) {

@@ -51,6 +51,7 @@ about-processes-socket-process = Network ({ $pid })
 about-processes-remote-sandbox-broker-process = Remote Sandbox Broker ({ $pid })
 about-processes-fork-server-process = Fork Server ({ $pid })
 about-processes-preallocated-process = Preallocated ({ $pid })
+about-processes-utility-process = Utility ({ $pid })
 
 # Unknown process names
 # Variables:
@@ -65,10 +66,8 @@ about-processes-unknown-process = Other: { $type } ({ $pid })
 
 about-processes-web-isolated-process = { $origin } ({ $pid })
 about-processes-web-serviceworker = { $origin } ({ $pid }, serviceworker)
-about-processes-web-large-allocation-process = { $origin } ({ $pid }, large)
 about-processes-with-coop-coep-process = { $origin } ({ $pid }, cross-origin isolated)
 about-processes-web-isolated-process-private = { $origin } — Private ({ $pid })
-about-processes-web-large-allocation-process-private = { $origin } — Private ({ $pid }, large)
 about-processes-with-coop-coep-process-private = { $origin } — Private ({ $pid }, cross-origin isolated)
 
 ## Details within processes
@@ -122,6 +121,10 @@ about-processes-frame-name-one = Subframe: { $url }
 #   $number (Number) The number of subframes in this group. Always ≥ 1.
 #   $shortUrl (String) The shared prefix for the subframes in the group.
 about-processes-frame-name-many = Subframes ({ $number }): { $shortUrl }
+
+# Utility process actor names
+about-processes-utility-actor-unknown = Unknown actor
+about-processes-utility-actor-audio-decoder = Audio Decoder
 
 ## Displaying CPU (percentage and total)
 ## Variables:

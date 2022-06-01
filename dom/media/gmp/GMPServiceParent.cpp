@@ -28,6 +28,7 @@
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/SyncRunnable.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsComponentManagerUtils.h"
@@ -552,12 +553,14 @@ GeckoMediaPluginServiceParent::PathRunnable::Run() {
   return NS_OK;
 }
 
-void GeckoMediaPluginServiceParent::UpdateContentProcessGMPCapabilities() {
+void GeckoMediaPluginServiceParent::UpdateContentProcessGMPCapabilities(
+    ContentParent* aContentProcess) {
   if (!NS_IsMainThread()) {
-    nsCOMPtr<nsIRunnable> task = NewRunnableMethod(
+    nsCOMPtr<nsIRunnable> task = NewRunnableMethod<ContentParent*>(
         "GeckoMediaPluginServiceParent::UpdateContentProcessGMPCapabilities",
         this,
-        &GeckoMediaPluginServiceParent::UpdateContentProcessGMPCapabilities);
+        &GeckoMediaPluginServiceParent::UpdateContentProcessGMPCapabilities,
+        aContentProcess);
     mMainThread->Dispatch(task.forget());
     return;
   }
@@ -566,6 +569,20 @@ void GeckoMediaPluginServiceParent::UpdateContentProcessGMPCapabilities() {
   typedef mozilla::dom::GMPAPITags GMPAPITags;
   typedef mozilla::dom::ContentParent ContentParent;
 
+  const uint32_t NO_H264 = 0;
+  const uint32_t HAS_H264 = 1;
+  const uint32_t NO_H264_1_DIR = 2;
+  const uint32_t NO_H264_2_PLUS_DIRS = 3;
+  const uint32_t NO_H264_DIR_IN_PROGRESS = 4;
+  uint32_t hasH264 = NO_H264;
+  if (mDirectoriesAdded == 1) {
+      hasH264 = NO_H264_1_DIR;
+  } else if (mDirectoriesAdded > 1) {
+      hasH264 = NO_H264_2_PLUS_DIRS;
+  }
+  if (mDirectoriesInProgress) {
+      hasH264 = NO_H264_DIR_IN_PROGRESS;
+  }
   nsTArray<GMPCapabilityData> caps;
   {
     MutexAutoLock lock(mMutex);
@@ -589,10 +606,23 @@ void GeckoMediaPluginServiceParent::UpdateContentProcessGMPCapabilities() {
       x.version() = gmp->GetVersion();
       for (const GMPCapability& tag : gmp->GetCapabilities()) {
         x.capabilities().AppendElement(GMPAPITags(tag.mAPIName, tag.mAPITags));
+        if (tag.mAPIName == nsLiteralCString(GMP_API_VIDEO_ENCODER) &&
+            tag.mAPITags.Contains("h264"_ns)) {
+          hasH264 = HAS_H264;
+        }
       }
       caps.AppendElement(std::move(x));
     }
   }
+
+  Telemetry::Accumulate(Telemetry::MEDIA_GMP_UPDATE_CONTENT_PROCESS_HAS_H264,
+                        hasH264);
+
+  if (aContentProcess) {
+    Unused << aContentProcess->SendGMPsChanged(caps);
+    return;
+  }
+
   for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
     Unused << cp->SendGMPsChanged(caps);
   }
@@ -696,6 +726,9 @@ RefPtr<GenericPromise> GeckoMediaPluginServiceParent::AsyncAddPluginDirectory(
     return GenericPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
   }
 
+  mDirectoriesAdded++;
+  mDirectoriesInProgress++;
+
   nsString dir(aDirectory);
   RefPtr<GeckoMediaPluginServiceParent> self = this;
   return InvokeAsync(thread, this, __func__,
@@ -708,14 +741,16 @@ RefPtr<GenericPromise> GeckoMediaPluginServiceParent::AsyncAddPluginDirectory(
                 "succeeded",
                 NS_ConvertUTF16toUTF8(dir).get());
             MOZ_ASSERT(NS_IsMainThread());
+            self->mDirectoriesInProgress--;
             self->UpdateContentProcessGMPCapabilities();
             return GenericPromise::CreateAndResolve(aVal, __func__);
           },
-          [dir](nsresult aResult) {
+          [dir, self](nsresult aResult) {
             GMP_LOG_DEBUG(
                 "GeckoMediaPluginServiceParent::AsyncAddPluginDirectory %s "
                 "failed",
                 NS_ConvertUTF16toUTF8(dir).get());
+            self->mDirectoriesInProgress--;
             return GenericPromise::CreateAndReject(aResult, __func__);
           });
 }

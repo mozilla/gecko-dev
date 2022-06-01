@@ -33,6 +33,9 @@
 #include "vm/JSContext-inl.h"
 #include "vm/JSObject-inl.h"
 #include "vm/PlainObject-inl.h"
+#ifdef ENABLE_RECORD_TUPLE
+#  include "vm/TupleType.h"
+#endif
 
 using namespace js;
 using namespace js::gc;
@@ -531,9 +534,6 @@ JSObject* js::TenuringTracer::moveToTenuredSlow(JSObject* src) {
     NativeObject* nsrc = &src->as<NativeObject>();
     tenuredSize += moveSlotsToTenured(ndst, nsrc);
     tenuredSize += moveElementsToTenured(ndst, nsrc, dstKind);
-
-    // There is a pointer into a dictionary mode object from the head of its
-    // shape list. This is updated in Nursery::sweepDictionaryModeObjects().
   }
 
   JSObjectMovedOp op = dst->getClass()->extObjectMovedOp();
@@ -651,11 +651,12 @@ size_t js::TenuringTracer::moveElementsToTenured(NativeObject* dst,
   // Shifted elements are copied too.
   uint32_t numShifted = srcHeader->numShiftedElements();
 
-  /* Unlike other objects, Arrays can have fixed elements. */
-  if (src->is<ArrayObject>() && nslots <= GetGCKindSlots(dstKind)) {
-    dst->as<ArrayObject>().setFixedElements();
+  /* Unlike other objects, Arrays and Tuples can have fixed elements. */
+  if (src->canHaveFixedElements() && nslots <= GetGCKindSlots(dstKind)) {
+    dst->as<NativeObject>().setFixedElements();
     js_memcpy(dst->getElementsHeader(), srcAllocatedHeader, allocSize);
     dst->elements_ += numShifted;
+    dst->getElementsHeader()->flags |= ObjectElements::FIXED;
     nursery().setElementsForwardingPointer(srcHeader, dst->getElementsHeader(),
                                            srcHeader->capacity);
     return allocSize;
@@ -677,6 +678,7 @@ size_t js::TenuringTracer::moveElementsToTenured(NativeObject* dst,
 
   js_memcpy(dstHeader, srcAllocatedHeader, allocSize);
   dst->elements_ = dstHeader->elements() + numShifted;
+  dst->getElementsHeader()->flags &= ~ObjectElements::FIXED;
   nursery().setElementsForwardingPointer(srcHeader, dst->getElementsHeader(),
                                          srcHeader->capacity);
   return allocSize;

@@ -17,6 +17,7 @@
 #include "WinIMEHandler.h"
 #include "mozilla/widget/AudioSession.h"
 #include "mozilla/BackgroundHangMonitor.h"
+#include "mozilla/BackgroundTasks.h"
 #include "mozilla/Hal.h"
 #include "nsIDOMWakeLockListener.h"
 #include "nsIPowerManagerService.h"
@@ -97,7 +98,7 @@ class WinWakeLockListener final : public nsIDOMMozWakeLockListener {
     context.Reason.SimpleReasonString = RequestTypeLPWSTR(aType);
     HANDLE handle = PowerCreateRequest(&context);
     if (!handle) {
-      WAKE_LOCK_LOG("Failed to create handle for %s, error=%d",
+      WAKE_LOCK_LOG("Failed to create handle for %s, error=%lu",
                     RequestTypeStr(aType), GetLastError());
       return nullptr;
     }
@@ -146,7 +147,7 @@ class WinWakeLockListener final : public nsIDOMMozWakeLockListener {
     if (PowerSetRequest(handle, aType)) {
       WAKE_LOCK_LOG("Requested %s lock", RequestTypeStr(aType));
     } else {
-      WAKE_LOCK_LOG("Failed to request %s lock, error=%d",
+      WAKE_LOCK_LOG("Failed to request %s lock, error=%lu",
                     RequestTypeStr(aType), GetLastError());
       SetHandle(nullptr, aType);
     }
@@ -160,7 +161,7 @@ class WinWakeLockListener final : public nsIDOMMozWakeLockListener {
 
     WAKE_LOCK_LOG("Prepare to release wakelock for %s", RequestTypeStr(aType));
     if (!PowerClearRequest(GetHandle(aType), aType)) {
-      WAKE_LOCK_LOG("Failed to release %s lock, error=%d",
+      WAKE_LOCK_LOG("Failed to release %s lock, error=%lu",
                     RequestTypeStr(aType), GetLastError());
       return;
     }
@@ -586,7 +587,15 @@ nsresult nsAppShell::Init() {
 NS_IMETHODIMP
 nsAppShell::Run(void) {
   if (XRE_IsParentProcess()) {
-    mozilla::widget::StartAudioSession();
+    bool wantAudio = true;
+#ifdef MOZ_BACKGROUNDTASKS
+    if (BackgroundTasks::IsBackgroundTaskMode()) {
+      wantAudio = false;
+    }
+#endif
+    if (MOZ_LIKELY(wantAudio)) {
+      mozilla::widget::StartAudioSession();
+    }
   }
 
   // Add an observer that disables the screen saver when requested by Gecko.

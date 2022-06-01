@@ -17,6 +17,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   UITour: "resource:///modules/UITour.jsm",
   FxAccounts: "resource://gre/modules/FxAccounts.jsm",
   MigrationUtils: "resource:///modules/MigrationUtils.jsm",
+  Spotlight: "resource://activity-stream/lib/Spotlight.jsm",
 });
 
 const SpecialMessageActions = {
@@ -85,7 +86,7 @@ const SpecialMessageActions = {
    * @param {Window} window Reference to a window object
    */
   pinFirefoxToTaskbar(window) {
-    window.getShellService().pinToTaskbar();
+    return window.getShellService().pinToTaskbar();
   },
 
   /**
@@ -174,7 +175,7 @@ const SpecialMessageActions = {
    * Messaging System interactions.
    *
    * @param {{type: string, data?: any}} action User action defined in message JSON.
-   * @param browser {Browser} The browser most relvant to the message.
+   * @param browser {Browser} The browser most relevant to the message.
    */
   async handleAction(action, browser) {
     const window = browser.ownerGlobal;
@@ -239,10 +240,10 @@ const SpecialMessageActions = {
         );
         break;
       case "PIN_FIREFOX_TO_TASKBAR":
-        this.pinFirefoxToTaskbar(window);
+        await this.pinFirefoxToTaskbar(window);
         break;
       case "PIN_AND_DEFAULT":
-        this.pinFirefoxToTaskbar(window);
+        await this.pinFirefoxToTaskbar(window);
         this.setDefaultBrowser(window);
         break;
       case "SET_DEFAULT_BROWSER":
@@ -323,6 +324,9 @@ const SpecialMessageActions = {
           "privacy.restrict3rdpartystorage.rollout.preferences.TCPToggleInStandard",
           true
         );
+        break;
+      case "SHOW_SPOTLIGHT":
+        Spotlight.showSpotlightDialog(browser, action.data);
         break;
       default:
         throw new Error(

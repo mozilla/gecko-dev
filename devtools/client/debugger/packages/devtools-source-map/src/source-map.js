@@ -7,7 +7,7 @@
  * @module utils/source-map-worker
  */
 
-const { networkRequest } = require("devtools-utils");
+const { networkRequest } = require("./utils/network-request");
 const { SourceMapConsumer, SourceMapGenerator } = require("source-map");
 
 const { createConsumer } = require("./utils/createConsumer");
@@ -310,6 +310,7 @@ async function getOriginalSourceText(originalSourceId) {
   if (!text) {
     try {
       const response = await networkRequest(url, {
+        sourceMapBaseURL: map.sourceMapBaseURL,
         loadFromCache: false,
       });
       text = response.content;

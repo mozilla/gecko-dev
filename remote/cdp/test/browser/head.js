@@ -11,15 +11,9 @@ const { RemoteAgent } = ChromeUtils.import(
 const { RemoteAgentError } = ChromeUtils.import(
   "chrome://remote/content/cdp/Error.jsm"
 );
-
-const { allowNullOrigin } = ChromeUtils.import(
-  "chrome://remote/content/server/WebSocketHandshake.jsm"
+const { TabManager } = ChromeUtils.import(
+  "chrome://remote/content/shared/TabManager.jsm"
 );
-// The handshake request created by the browser mochitests contains an origin
-// header, which is currently not supported. This origin is a string "null".
-// Explicitly allow such an origin for the duration of the test.
-allowNullOrigin(true);
-registerCleanupFunction(() => allowNullOrigin(false));
 
 const TIMEOUT_MULTIPLIER = SpecialPowers.isDebugBuild ? 4 : 1;
 const TIMEOUT_EVENTS = 1000 * TIMEOUT_MULTIPLIER;
@@ -48,16 +42,6 @@ setup and teardown described above.
 
 const add_plain_task = add_task.bind(this);
 
-// Start RemoteAgent lazily and reuse it for all the tests in the suite.
-// Starting and stopping RemoteAgent for every test would trigger race conditions
-// in httpd.js. See Bug 1609162.
-async function startRemoteAgent() {
-  if (!RemoteAgent.listening) {
-    await RemoteAgent.listen(Services.io.newURI("http://localhost:9222"));
-    info("Remote agent started");
-  }
-}
-
 this.add_task = function(taskFn, opts = {}) {
   const {
     createTab = true, // By default run each test in its own tab
@@ -66,19 +50,15 @@ this.add_task = function(taskFn, opts = {}) {
   const fn = async function() {
     let client, tab, target;
 
-    await startRemoteAgent();
-
     try {
       const CDP = await getCDP();
 
       if (createTab) {
         tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-        const browsingContextId = tab.linkedBrowser.browsingContext.id;
+        const tabId = TabManager.getIdForBrowser(tab.linkedBrowser);
 
         const targets = await CDP.List();
-        target = targets.find(
-          target => target.browsingContextId === browsingContextId
-        );
+        target = targets.find(target => target.id === tabId);
       }
 
       client = await CDP({ target });

@@ -43,7 +43,7 @@ class Event {
   }
 
  private:
-  Monitor mMonitor;
+  Monitor mMonitor MOZ_UNANNOTATED;
   bool mSignaled = false;
 };
 
@@ -209,6 +209,7 @@ BOOL ConnectToNewClient(HANDLE aPipe, LPOVERLAPPED aOverlapped) {
     case ERROR_PIPE_CONNECTED:
       if (SetEvent(aOverlapped->hEvent)) break;
 
+      [[fallthrough]];
     default:  // error
       ADD_FAILURE() << "ConnectNamedPipe failed " << GetLastError();
       break;

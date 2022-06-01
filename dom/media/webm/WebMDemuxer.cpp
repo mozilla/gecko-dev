@@ -14,6 +14,7 @@
 #include "WebMDemuxer.h"
 #include "WebMBufferedParser.h"
 #include "gfx2DGlue.h"
+#include "gfxUtils.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/SharedThreadPool.h"
 #include "MediaDataDemuxer.h"
@@ -305,6 +306,15 @@ nsresult WebMDemuxer::ReadMetadata() {
           NS_WARNING("Unknown WebM video codec");
           return NS_ERROR_FAILURE;
       }
+
+      // For VPX, this is our only chance to capture the transfer
+      // characteristics, which we can't get from a VPX bitstream later.
+      // We only need this value if the video is using the BT2020
+      // colorspace, which will be determined on a per-frame basis later.
+      mInfo.mVideo.mTransferFunction = gfxUtils::CicpToTransferFunction(
+          static_cast<gfx::CICP::TransferCharacteristics>(
+              params.transfer_characteristics));
+
       // Picture region, taking into account cropping, before scaling
       // to the display size.
       unsigned int cropH = params.crop_right + params.crop_left;
@@ -381,12 +391,16 @@ nsresult WebMDemuxer::ReadMetadata() {
       mHasAudio = true;
       mAudioCodec = nestegg_track_codec_id(context, track);
       if (mAudioCodec == NESTEGG_CODEC_VORBIS) {
+        mInfo.mAudio.mCodecSpecificConfig =
+            AudioCodecSpecificVariant{VorbisCodecSpecificData{}};
         mInfo.mAudio.mMimeType = "audio/vorbis";
       } else if (mAudioCodec == NESTEGG_CODEC_OPUS) {
         uint64_t codecDelayUs = params.codec_delay / 1000;
         mInfo.mAudio.mMimeType = "audio/opus";
-        OpusDataDecoder::AppendCodecDelay(mInfo.mAudio.mCodecSpecificConfig,
-                                          codecDelayUs);
+        OpusCodecSpecificData opusCodecSpecificData;
+        opusCodecSpecificData.mContainerCodecDelayMicroSeconds = codecDelayUs;
+        mInfo.mAudio.mCodecSpecificConfig =
+            AudioCodecSpecificVariant{std::move(opusCodecSpecificData)};
       }
       mSeekPreroll = params.seek_preroll;
       mInfo.mAudio.mRate = params.rate;
@@ -416,14 +430,15 @@ nsresult WebMDemuxer::ReadMetadata() {
       // TODO: This is already the format WebM stores them in. Would be nice
       // to avoid having libnestegg split them only for us to pack them again,
       // but libnestegg does not give us an API to access this data directly.
+      RefPtr<MediaByteBuffer> audioCodecSpecificBlob =
+          GetAudioCodecSpecificBlob(mInfo.mAudio.mCodecSpecificConfig);
       if (nheaders > 1) {
-        if (!XiphHeadersToExtradata(mInfo.mAudio.mCodecSpecificConfig, headers,
+        if (!XiphHeadersToExtradata(audioCodecSpecificBlob, headers,
                                     headerLens)) {
           return NS_ERROR_FAILURE;
         }
       } else {
-        mInfo.mAudio.mCodecSpecificConfig->AppendElements(headers[0],
-                                                          headerLens[0]);
+        audioCodecSpecificBlob->AppendElements(headers[0], headerLens[0]);
       }
       uint64_t duration = 0;
       r = nestegg_duration(context, &duration);

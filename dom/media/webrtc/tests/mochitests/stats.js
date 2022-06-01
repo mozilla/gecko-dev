@@ -26,6 +26,10 @@ const statsExpectedByType = {
       "pliCount",
       "framesDecoded",
       "discardedPackets",
+      "framesPerSecond",
+      "frameWidth",
+      "frameHeight",
+      "framesReceived",
     ],
     unimplemented: [
       "mediaTrackId",
@@ -56,9 +60,22 @@ const statsExpectedByType = {
       "packetsSent",
       "bytesSent",
       "remoteId",
+      "headerBytesSent",
+      "retransmittedPacketsSent",
+      "retransmittedBytesSent",
     ],
     optional: ["nackCount", "qpSum"],
-    localVideoOnly: ["framesEncoded", "firCount", "pliCount"],
+    localVideoOnly: [
+      "framesEncoded",
+      "firCount",
+      "pliCount",
+      "frameWidth",
+      "frameHeight",
+      "framesSent",
+      "hugeFramesSent",
+      "totalEncodeTime",
+      "totalEncodedBytesTarget",
+    ],
     unimplemented: ["mediaTrackId", "transportId", "sliCount", "targetBitrate"],
     deprecated: ["isRemote"],
   },
@@ -501,11 +518,38 @@ function pedanticChecks(report) {
           `${stat.type}.discardedPackets is a sane number for a short test. ` +
             `value=${stat.discardedPackets}`
         );
+        // framesPerSecond
+        ok(
+          stat.framesPerSecond > 0 && stat.framesPerSecond < 70,
+          `${stat.type}.framesPerSecond is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.framesPerSecond}`
+        );
         // framesDecoded
         ok(
           stat.framesDecoded > 0 && stat.framesDecoded < 1000000,
           `${stat.type}.framesDecoded is a sane number for a short ` +
             `${stat.kind} test. value=${stat.framesDecoded}`
+        );
+
+        // frameWidth
+        ok(
+          stat.frameWidth > 0 && stat.frameWidth < 100000,
+          `${stat.type}.frameWidth is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.framesSent}`
+        );
+
+        // frameHeight
+        ok(
+          stat.frameHeight > 0 && stat.frameHeight < 100000,
+          `${stat.type}.frameHeight is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.frameHeight}`
+        );
+
+        // framesReceived
+        ok(
+          stat.framesReceived >= 0 && stat.framesReceived < 100000,
+          `${stat.type}.framesReceived is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.framesReceived}`
         );
       }
     } else if (stat.type == "remote-inbound-rtp") {
@@ -567,6 +611,32 @@ function pedanticChecks(report) {
           `${stat.kind} test. value=${stat.bytesSent}`
       );
 
+      // headerBytesSent
+      ok(
+        stat.headerBytesSent > 0 &&
+          stat.headerBytesSent < (stat.kind == "video" ? video1Min : audio1Min),
+        `${stat.type}.headerBytesSent is a sane number for a short ` +
+          `${stat.kind} test. value=${stat.headerBytesSent}`
+      );
+
+      // retransmittedPacketsSent
+      ok(
+        stat.retransmittedPacketsSent >= 0 &&
+          stat.retransmittedPacketsSent <
+            (stat.kind == "video" ? video1Min : audio1Min),
+        `${stat.type}.retransmittedPacketsSent is a sane number for a short ` +
+          `${stat.kind} test. value=${stat.retransmittedPacketsSent}`
+      );
+
+      // retransmittedBytesSent
+      ok(
+        stat.retransmittedBytesSent >= 0 &&
+          stat.retransmittedBytesSent <
+            (stat.kind == "video" ? video1Min : audio1Min),
+        `${stat.type}.retransmittedBytesSent is a sane number for a short ` +
+          `${stat.kind} test. value=${stat.retransmittedBytesSent}`
+      );
+
       //
       // Optional fields
       //
@@ -574,12 +644,27 @@ function pedanticChecks(report) {
       // qpSum
       // This is supported for all of our vpx codecs (on the encode side, see
       // bug 1519590)
-      if (report.get(stat.codecId).mimeType.includes("VP")) {
+      const mimeType = report.get(stat.codecId).mimeType;
+      if (mimeType.includes("VP")) {
         ok(
           stat.qpSum >= 0,
           `${stat.type}.qpSum is a sane number (${stat.kind}) ` +
             `for ${report.get(stat.codecId).mimeType}. value=${stat.qpSum}`
         );
+      } else if (mimeType.includes("H264")) {
+        // OpenH264 encoder records QP so we check for either condition.
+        if (!stat.qpSum && !("qpSum" in stat)) {
+          ok(
+            !stat.qpSum && !("qpSum" in stat),
+            `${stat.type}.qpSum absent for ${report.get(stat.codecId).mimeType}`
+          );
+        } else {
+          ok(
+            stat.qpSum >= 0,
+            `${stat.type}.qpSum is a sane number (${stat.kind}) ` +
+              `for ${report.get(stat.codecId).mimeType}. value=${stat.qpSum}`
+          );
+        }
       } else {
         ok(
           !stat.qpSum && !("qpSum" in stat),
@@ -612,6 +697,48 @@ function pedanticChecks(report) {
           stat.framesEncoded >= 0 && stat.framesEncoded < 100000,
           `${stat.type}.framesEncoded is a sane number for a short ` +
             `${stat.kind} test. value=${stat.framesEncoded}`
+        );
+
+        // frameWidth
+        ok(
+          stat.frameWidth >= 0 && stat.frameWidth < 100000,
+          `${stat.type}.frameWidth is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.frameWidth}`
+        );
+
+        // frameHeight
+        ok(
+          stat.frameHeight >= 0 && stat.frameHeight < 100000,
+          `${stat.type}.frameHeight is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.frameHeight}`
+        );
+
+        // framesSent
+        ok(
+          stat.framesSent >= 0 && stat.framesSent < 100000,
+          `${stat.type}.framesSent is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.framesSent}`
+        );
+
+        // hugeFramesSent
+        ok(
+          stat.hugeFramesSent >= 0 && stat.hugeFramesSent < 100000,
+          `${stat.type}.hugeFramesSent is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.hugeFramesSent}`
+        );
+
+        // totalEncodeTime
+        ok(
+          stat.totalEncodeTime >= 0,
+          `${stat.type}.totalEncodeTime is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.totalEncodeTime}`
+        );
+
+        // totalEncodedBytesTarget
+        ok(
+          stat.totalEncodedBytesTarget > 1000,
+          `${stat.type}.totalEncodedBytesTarget is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.totalEncodedBytesTarget}`
         );
       }
     } else if (stat.type == "remote-outbound-rtp") {

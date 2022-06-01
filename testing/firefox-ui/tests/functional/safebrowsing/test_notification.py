@@ -75,7 +75,9 @@ class TestSafeBrowsingNotificationBar(WindowManagerMixin, MarionetteTestCase):
         with self.marionette.using_context("chrome"):
             self.marionette.execute_script(
                 """
-              Components.utils.import("resource://gre/modules/Services.jsm");
+              const { Services } = ChromeUtils.import(
+                "resource://gre/modules/Services.jsm"
+              );
               let uri = Services.io.newURI(arguments[0], null, null);
               let principal = Services.scriptSecurityManager.createContentPrincipal(uri, {});
               Services.perms.removeFromPrincipal(principal, arguments[1]);
@@ -94,7 +96,7 @@ class TestSafeBrowsingNotificationBar(WindowManagerMixin, MarionetteTestCase):
             expected.element_present(By.ID, "main-feature"),
             message='Expected target element "#main-feature" has not been found',
         )
-        self.assertEquals(self.marionette.get_url(), self.get_final_url(unsafe_page))
+        self.assertEqual(self.marionette.get_url(), self.get_final_url(unsafe_page))
 
         # Clean up here since the permission gets set in this function
         self.remove_permission("https://www.itisatrap.org", "safe-browsing")

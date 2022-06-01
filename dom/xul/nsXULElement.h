@@ -240,7 +240,8 @@ class nsXULPrototypeScript : public nsXULPrototypeNode {
 
   JS::Stencil* GetStencil() { return mStencil.get(); }
 
-  nsresult InstantiateScript(JSContext* aCx, JS::MutableHandleScript aScript);
+  nsresult InstantiateScript(JSContext* aCx,
+                             JS::MutableHandle<JSScript*> aScript);
 
   nsCOMPtr<nsIURI> mSrcURI;
   uint32_t mLineNo;
@@ -354,9 +355,6 @@ class nsXULElement : public nsStyledElement {
   virtual void DumpContent(FILE* out, int32_t aIndent,
                            bool aDumpAll) const override {}
 #endif
-
-  MOZ_CAN_RUN_SCRIPT int32_t ScreenX();
-  MOZ_CAN_RUN_SCRIPT int32_t ScreenY();
 
   MOZ_CAN_RUN_SCRIPT bool HasMenu();
   MOZ_CAN_RUN_SCRIPT void OpenMenu(bool aOpenFlag);

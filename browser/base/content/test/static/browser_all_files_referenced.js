@@ -22,9 +22,6 @@ var gExceptionPaths = [
   "resource://gre/modules/commonjs/",
   "resource://gre/defaults/pref/",
 
-  // These resources are referenced using relative paths from html files.
-  "resource://payments/",
-
   // These chrome resources are referenced using relative paths from JS files.
   "chrome://global/content/certviewer/components/",
 
@@ -35,6 +32,14 @@ var gExceptionPaths = [
   "chrome://activity-stream/content/data/content/assets/remote/",
   "chrome://browser/content/assets/moz-vpn.svg",
   "chrome://browser/content/assets/vpn-logo.svg",
+  "chrome://browser/content/assets/focus-promo.png",
+  "chrome://browser/content/preferences/more-from-mozilla-qr-code-advanced.svg",
+  "chrome://browser/content/assets/klar-qr-code.svg",
+
+  // These app marketplace icons are referenced based on the user's locale
+  // in browser/components/newtab/content-src/aboutwelcome/components/MobileDownloads.jsx
+  "chrome://activity-stream/content/data/content/assets/app-marketplace-icons/en-US/ios.svg",
+  "chrome://activity-stream/content/data/content/assets/app-marketplace-icons/en-US/android.png",
 
   // toolkit/components/pdfjs/content/build/pdf.js
   "resource://pdf.js/web/images/",
@@ -60,6 +65,12 @@ var gExceptionPaths = [
 
   // Page data schemas are referenced programmatically.
   "chrome://browser/content/pagedata/schemas/",
+
+  // Nimbus schemas are referenced programmatically.
+  "resource://nimbus/schemas/",
+
+  // Activity stream schemas are referenced programmatically.
+  "resource://activity-stream/schemas",
 ];
 
 // These are not part of the omni.ja file, so we find them only when running
@@ -129,10 +140,6 @@ var whitelist = [
   // These files URLs are constructed programatically at run time.
   {
     file:
-      "chrome://browser/content/preferences/more-from-mozilla-qr-code-advanced.svg",
-  },
-  {
-    file:
       "chrome://browser/content/preferences/more-from-mozilla-qr-code-simple.svg",
   },
   {
@@ -198,6 +205,7 @@ var whitelist = [
 
   // Files from upstream library
   { file: "resource://pdf.js/web/debugger.js" },
+  { file: "resource://pdf.js/web/debugger.css" },
 
   // resource://app/modules/translation/TranslationContentHandler.jsm
   { file: "resource://app/modules/translation/BingTranslator.jsm" },
@@ -343,8 +351,6 @@ for (let entry of ignorableWhitelist) {
 }
 
 if (!isDevtools) {
-  // services/sync/modules/main.js
-  whitelist.add("resource://services-sync/service.js");
   // services/sync/modules/service.js
   for (let module of [
     "addons.js",

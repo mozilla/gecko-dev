@@ -14,9 +14,7 @@
 #include "WebGLContext.h"
 #include "WebGLTypes.h"
 
-namespace mozilla {
-
-namespace webgl {
+namespace mozilla::webgl {
 template <typename T>
 struct QueueParamTraits;
 
@@ -51,9 +49,6 @@ struct IsTriviallySerializable<mozilla::webgl::PixelUnpackStateWebgl>
     : std::true_type {};
 
 template <>
-struct IsTriviallySerializable<ICRData> : std::true_type {};
-
-template <>
 struct IsTriviallySerializable<gfx::IntSize> : std::true_type {};
 
 template <typename T>
@@ -75,6 +70,8 @@ struct IsTriviallySerializable<webgl::ReadPixelsDesc> : std::true_type {};
 // struct IsTriviallySerializable<layers::SurfaceDescriptor> : std::true_type
 // {};
 //  SurfaceDescriptorBuffer is *not* trivial.
+template <>
+struct IsTriviallySerializable<webgl::SwapChainOptions> : std::true_type {};
 
 template <typename T>
 struct QueueParamTraits<RawBuffer<T>> {
@@ -265,7 +262,6 @@ struct QueueParamTraits<gfxAlphaType>
     : public ContiguousEnumSerializerInclusive<
           gfxAlphaType, gfxAlphaType::Opaque, gfxAlphaType::NonPremult> {};
 
-}  // namespace webgl
-}  // namespace mozilla
+}  // namespace mozilla::webgl
 
 #endif  // WEBGLQUEUEPARAMTRAITS_H_

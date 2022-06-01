@@ -43,6 +43,10 @@ class ThreadEventQueue final : public SynchronizedEventQueue {
 
   void Disconnect(const MutexAutoLock& aProofOfLock) final {}
 
+  nsresult RegisterShutdownTask(nsITargetShutdownTask* aTask) final;
+  nsresult UnregisterShutdownTask(nsITargetShutdownTask* aTask) final;
+  void RunShutdownTasks() final;
+
   already_AddRefed<nsISerialEventTarget> PushEventQueue() final;
   void PopEventQueue(nsIEventTarget* aTarget) final;
 
@@ -72,14 +76,17 @@ class ThreadEventQueue final : public SynchronizedEventQueue {
                     ThreadEventTarget* aEventTarget);
   };
 
-  nsTArray<NestedQueueItem> mNestedQueues;
+  nsTArray<NestedQueueItem> mNestedQueues GUARDED_BY(mLock);
 
   Mutex mLock;
-  CondVar mEventsAvailable;
+  CondVar mEventsAvailable GUARDED_BY(mLock);
 
-  bool mEventsAreDoomed = false;
-  nsCOMPtr<nsIThreadObserver> mObserver;
-  bool mIsMainThread;
+  bool mEventsAreDoomed GUARDED_BY(mLock) = false;
+  nsCOMPtr<nsIThreadObserver> mObserver GUARDED_BY(mLock);
+  nsTArray<nsCOMPtr<nsITargetShutdownTask>> mShutdownTasks GUARDED_BY(mLock);
+  bool mShutdownTasksRun GUARDED_BY(mLock) = false;
+
+  const bool mIsMainThread;
 };
 
 }  // namespace mozilla

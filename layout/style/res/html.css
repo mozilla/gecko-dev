@@ -485,6 +485,7 @@ th {
   vertical-align: inherit;
   font-weight: bold;
   padding: 1px;
+  text-align: -moz-center-or-inherit;
 }
 
 tr > form:-moz-is-html, tbody > form:-moz-is-html,
@@ -763,16 +764,17 @@ video > .caption-box {
 }
 
 /**
- * The pseudo element won't inheirt CSS styles from its direct parent, `::cue`
- * would acutally inherit styles from video because it's video's pseudo element.
- * Therefore, we have to explicitly set some styles which are aleady defined in
- * its parent element in vtt.jsm.
+ * The pseudo element won't inherit CSS styles from its direct parent, `::cue`
+ * would actually inherit styles from video because it's video's pseudo element.
+ * Therefore, we have to explicitly set some styles which are already defined
+ * in its parent element in vtt.jsm.
  */
 ::cue {
   color: rgba(255, 255, 255, 1);
   white-space: pre-line;
   background-color: rgba(0, 0, 0, 0.8);
-  font: var(--cue-font-size) sans-serif;
+  font: 10px sans-serif;
+  font-size: var(--cue-font-size);
   writing-mode: var(--cue-writing-mode, inherit);
   overflow-wrap: break-word;
   /* TODO : enable unicode-bidi, right now enable it would cause incorrect
@@ -807,14 +809,14 @@ dialog {
   display: block;
   inset-inline-start: 0;
   inset-inline-end: 0;
-  color: black;
   margin: auto;
   border-width: initial;
   border-style: solid;
   border-color: initial;
   border-image: initial;
   padding: 1em;
-  background: white;
+  background-color: Canvas;
+  color: CanvasText;
   width: -moz-fit-content;
   height: -moz-fit-content;
 }
@@ -823,18 +825,11 @@ dialog:not([open]) {
   display: none;
 }
 
-/* This pseudo-class is used to remove the inertness for the topmost modal
- * dialog in top layer.
- *
- * Avoid doing this if the dialog is explicitly inert though. */
-dialog:not([inert]):-moz-topmost-modal-dialog {
-  -moz-inert: none;
-}
-
 dialog:-moz-modal-dialog {
   -moz-top-layer: top !important;
   position: fixed;
   overflow: auto;
+  visibility: visible;
   inset-block-start: 0;
   inset-block-end: 0;
   max-width: calc(100% - 6px - 2em);
@@ -877,12 +872,14 @@ rtc, rt {
   font-size: 50%;
   -moz-min-font-size-ratio: 50%;
   line-height: 1;
-%ifndef XP_WIN
-  /* The widely-used Windows font Meiryo doesn't work fine with this
-   * setting, so disable this on Windows. We should re-enable it once
-   * Microsoft fixes this issue. See bug 1164279. */
-  font-variant-east-asian: ruby;
-%endif
+}
+@media not (-moz-platform: windows) {
+  rtc, rt {
+    /* The widely-used Windows font Meiryo doesn't work fine with this
+    * setting, so disable this on Windows. We should re-enable it once
+    * Microsoft fixes this issue. See bug 1164279. */
+    font-variant-east-asian: ruby;
+  }
 }
 rtc, rt {
   text-emphasis: none;

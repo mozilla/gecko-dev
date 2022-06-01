@@ -1011,10 +1011,11 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
           case uint32_t(SimdOp::F32x4RelaxedFms):
           case uint32_t(SimdOp::F64x2RelaxedFma):
           case uint32_t(SimdOp::F64x2RelaxedFms):
-          case uint32_t(SimdOp::I8x16LaneSelect):
-          case uint32_t(SimdOp::I16x8LaneSelect):
-          case uint32_t(SimdOp::I32x4LaneSelect):
-          case uint32_t(SimdOp::I64x2LaneSelect): {
+          case uint32_t(SimdOp::I8x16RelaxedLaneSelect):
+          case uint32_t(SimdOp::I16x8RelaxedLaneSelect):
+          case uint32_t(SimdOp::I32x4RelaxedLaneSelect):
+          case uint32_t(SimdOp::I64x2RelaxedLaneSelect):
+          case uint32_t(SimdOp::I32x4DotI8x16I7x16AddS): {
             if (!env.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
@@ -1024,7 +1025,9 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
           case uint32_t(SimdOp::F32x4RelaxedMin):
           case uint32_t(SimdOp::F32x4RelaxedMax):
           case uint32_t(SimdOp::F64x2RelaxedMin):
-          case uint32_t(SimdOp::F64x2RelaxedMax): {
+          case uint32_t(SimdOp::F64x2RelaxedMax):
+          case uint32_t(SimdOp::I16x8RelaxedQ15MulrS):
+          case uint32_t(SimdOp::I16x8DotI8x16I7x16S): {
             if (!env.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
@@ -1039,7 +1042,7 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
             }
             CHECK(iter.readUnary(ValType::V128, &nothing));
           }
-          case uint32_t(SimdOp::V8x16RelaxedSwizzle): {
+          case uint32_t(SimdOp::I8x16RelaxedSwizzle): {
             if (!env.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
@@ -1160,7 +1163,6 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
         Nothing nothing;
         CHECK(iter.readRefIsNull(&nothing));
       }
-#ifdef ENABLE_WASM_EXCEPTIONS
       case uint16_t(Op::Try):
         if (!env.exceptionsEnabled()) {
           return iter.unrecognizedOpcode(&op);
@@ -1208,7 +1210,6 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
         uint32_t unusedDepth;
         CHECK(iter.readRethrow(&unusedDepth));
       }
-#endif
       case uint16_t(Op::ThreadPrefix): {
         // Though thread ops can be used on nonshared memories, we make them
         // unavailable if shared memory has been disabled in the prefs, for
@@ -1927,7 +1928,7 @@ static bool DecodeMemoryTypeAndLimits(Decoder& d, ModuleEnvironment* env) {
   return true;
 }
 
-#ifdef ENABLE_WASM_EXCEPTIONS
+#ifdef WASM_PRIVATE_REFTYPES
 static bool TagIsJSCompatible(Decoder& d, const ValTypeVector& type) {
   for (auto t : type) {
     if (t.isTypeIndex()) {
@@ -1937,6 +1938,7 @@ static bool TagIsJSCompatible(Decoder& d, const ValTypeVector& type) {
 
   return true;
 }
+#endif  // WASM_PRIVATE_REFTYPES
 
 static bool DecodeTag(Decoder& d, ModuleEnvironment* env, TagKind* tagKind,
                       uint32_t* funcTypeIndex) {
@@ -1964,7 +1966,6 @@ static bool DecodeTag(Decoder& d, ModuleEnvironment* env, TagKind* tagKind,
   }
   return true;
 }
-#endif
 
 static bool DecodeImport(Decoder& d, ModuleEnvironment* env) {
   UniqueChars moduleName = DecodeName(d);
@@ -2037,41 +2038,33 @@ static bool DecodeImport(Decoder& d, ModuleEnvironment* env) {
       }
       break;
     }
-#ifdef ENABLE_WASM_EXCEPTIONS
     case DefinitionKind::Tag: {
       TagKind tagKind;
       uint32_t funcTypeIndex;
       if (!DecodeTag(d, env, &tagKind, &funcTypeIndex)) {
         return false;
       }
-      const ValTypeVector& args =
-          (*env->types)[funcTypeIndex].funcType().args();
-#  ifdef WASM_PRIVATE_REFTYPES
+      ValTypeVector args;
+      if (!args.appendAll((*env->types)[funcTypeIndex].funcType().args())) {
+        return false;
+      }
+#ifdef WASM_PRIVATE_REFTYPES
       if (!TagIsJSCompatible(d, args)) {
         return false;
       }
-#  endif
-      ValTypeVector tagArgs;
-      if (!tagArgs.appendAll(args)) {
+#endif
+      MutableTagType tagType = js_new<TagType>();
+      if (!tagType || !tagType->initialize(std::move(args))) {
         return false;
       }
-      TagOffsetVector offsets;
-      if (!offsets.resize(tagArgs.length())) {
-        return false;
-      }
-      TagType type = TagType(std::move(tagArgs), std::move(offsets));
-      if (!env->tags.emplaceBack(tagKind, std::move(type))) {
+      if (!env->tags.emplaceBack(tagKind, tagType)) {
         return false;
       }
       if (env->tags.length() > MaxTags) {
         return d.fail("too many tags");
       }
-      if (!env->tags.back().type.computeLayout()) {
-        return false;
-      }
       break;
     }
-#endif
     default:
       return d.fail("unsupported import kind");
   }
@@ -2246,7 +2239,6 @@ static bool DecodeGlobalSection(Decoder& d, ModuleEnvironment* env) {
   return d.finishSection(*range, "global");
 }
 
-#ifdef ENABLE_WASM_EXCEPTIONS
 static bool DecodeTagSection(Decoder& d, ModuleEnvironment* env) {
   MaybeSectionRange range;
   if (!d.startSection(SectionId::Tag, env, &range, "tag")) {
@@ -2281,25 +2273,19 @@ static bool DecodeTagSection(Decoder& d, ModuleEnvironment* env) {
     if (!DecodeTag(d, env, &tagKind, &funcTypeIndex)) {
       return false;
     }
-    const ValTypeVector& args = (*env->types)[funcTypeIndex].funcType().args();
-    ValTypeVector tagArgs;
-    if (!tagArgs.appendAll(args)) {
+    ValTypeVector args;
+    if (!args.appendAll((*env->types)[funcTypeIndex].funcType().args())) {
       return false;
     }
-    TagOffsetVector offsets;
-    if (!offsets.resize(tagArgs.length())) {
+    MutableTagType tagType = js_new<TagType>();
+    if (!tagType || !tagType->initialize(std::move(args))) {
       return false;
     }
-    TagType type = TagType(std::move(tagArgs), std::move(offsets));
-    env->tags.infallibleEmplaceBack(tagKind, std::move(type));
-    if (!env->tags.back().type.computeLayout()) {
-      return false;
-    }
+    env->tags.infallibleEmplaceBack(tagKind, tagType);
   }
 
   return d.finishSection(*range, "tag");
 }
-#endif
 
 using CStringSet =
     HashSet<const char*, mozilla::CStringHasher, SystemAllocPolicy>;
@@ -2402,7 +2388,6 @@ static bool DecodeExport(Decoder& d, ModuleEnvironment* env,
       return env->exports.emplaceBack(std::move(fieldName), globalIndex,
                                       DefinitionKind::Global);
     }
-#ifdef ENABLE_WASM_EXCEPTIONS
     case DefinitionKind::Tag: {
       uint32_t tagIndex;
       if (!d.readVarU32(&tagIndex)) {
@@ -2412,17 +2397,16 @@ static bool DecodeExport(Decoder& d, ModuleEnvironment* env,
         return d.fail("exported tag index out of bounds");
       }
 
-#  ifdef WASM_PRIVATE_REFTYPES
-      if (!TagIsJSCompatible(d, env->tags[tagIndex].type.argTypes)) {
+#ifdef WASM_PRIVATE_REFTYPES
+      if (!TagIsJSCompatible(d, env->tags[tagIndex].type->argTypes_)) {
         return false;
       }
-#  endif
+#endif
 
       env->tags[tagIndex].isExport = true;
       return env->exports.emplaceBack(std::move(fieldName), tagIndex,
                                       DefinitionKind::Tag);
     }
-#endif
     default:
       return d.fail("unexpected export kind");
   }
@@ -2800,11 +2784,9 @@ bool wasm::DecodeModuleEnvironment(Decoder& d, ModuleEnvironment* env) {
     return false;
   }
 
-#ifdef ENABLE_WASM_EXCEPTIONS
   if (!DecodeTagSection(d, env)) {
     return false;
   }
-#endif
 
   if (!DecodeGlobalSection(d, env)) {
     return false;

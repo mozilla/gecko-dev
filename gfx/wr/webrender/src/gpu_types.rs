@@ -545,12 +545,15 @@ impl From<SplitCompositeInstance> for PrimitiveInstanceData {
 }
 
 bitflags! {
+    // Note: This can use up to 12 bits due to how it will
+    // be packed in the instance data.
+
     /// Flags that define how the common brush shader
     /// code should process this instance.
     #[cfg_attr(feature = "capture", derive(Serialize))]
     #[cfg_attr(feature = "replay", derive(Deserialize))]
     #[derive(MallocSizeOf)]
-    pub struct BrushFlags: u8 {
+    pub struct BrushFlags: u16 {
         /// Apply perspective interpolation to UVs
         const PERSPECTIVE_INTERPOLATION = 1;
         /// Do interpolation relative to segment rect,
@@ -568,6 +571,9 @@ bitflags! {
         const SEGMENT_NINEPATCH_MIDDLE = 64;
         /// The extra segment data is a texel rect.
         const SEGMENT_TEXEL_RECT = 128;
+        /// Whether to force the anti-aliasing when the primitive
+        /// is axis-aligned.
+        const FORCE_AA = 256;
     }
 }
 
@@ -590,8 +596,8 @@ impl From<BrushInstance> for PrimitiveInstanceData {
                 ((instance.render_task_address.0 as i32) << 16)
                 | instance.clip_task_address.0 as i32,
                 instance.segment_index
-                | ((instance.edge_flags.bits() as i32) << 16)
-                | ((instance.brush_flags.bits() as i32) << 24),
+                | ((instance.brush_flags.bits() as i32) << 16)
+                | ((instance.edge_flags.bits() as i32) << 28),
                 instance.resource_address,
             ]
         }
@@ -779,6 +785,23 @@ impl TransformPalette {
             to_index,
             spatial_tree,
         );
+        let transform_kind = self.metadata[index].transform_kind as u32;
+        TransformPaletteId(
+            (index as u32) |
+            (transform_kind << 24)
+        )
+    }
+
+    pub fn get_custom(
+        &mut self,
+        transform: LayoutToPictureTransform,
+    ) -> TransformPaletteId {
+        let index = register_transform(
+            &mut self.metadata,
+            &mut self.transforms,
+            transform,
+        );
+
         let transform_kind = self.metadata[index].transform_kind as u32;
         TransformPaletteId(
             (index as u32) |

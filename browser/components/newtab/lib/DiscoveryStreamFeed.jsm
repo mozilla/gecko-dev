@@ -65,6 +65,7 @@ const PREF_FLIGHT_BLOCKS = "discoverystream.flight.blocks";
 const PREF_REC_IMPRESSIONS = "discoverystream.rec.impressions";
 const PREF_COLLECTIONS_ENABLED =
   "discoverystream.sponsored-collections.enabled";
+const PREF_POCKET_BUTTON = "extensions.pocket.enabled";
 const PREF_COLLECTION_DISMISSIBLE = "discoverystream.isCollectionDismissible";
 const PREF_PERSONALIZATION = "discoverystream.personalization.enabled";
 const PREF_PERSONALIZATION_OVERRIDE =
@@ -72,7 +73,7 @@ const PREF_PERSONALIZATION_OVERRIDE =
 
 let getHardcodedLayout;
 
-this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
+class DiscoveryStreamFeed {
   constructor() {
     // Internal state for checking if we've intialized all our data
     this.loaded = false;
@@ -166,7 +167,10 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
   }
 
   get personalized() {
-    // If both spocs and recs are not personalized, we might as well return false here.
+    // If stories are not displayed, no point in trying to personalize them.
+    if (!this.showStories) {
+      return false;
+    }
     const spocsPersonalized = this.store.getState().Prefs.values?.pocketConfig
       ?.spocsPersonalized;
     const recsPersonalized = this.store.getState().Prefs.values?.pocketConfig
@@ -414,12 +418,12 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     return urlObject.toString();
   }
 
-  parseSpocPositions(csvPositions) {
-    let spocPositions;
+  parseGridPositions(csvPositions) {
+    let gridPositions;
 
     // Only accept parseable non-negative integers
     try {
-      spocPositions = csvPositions.map(index => {
+      gridPositions = csvPositions.map(index => {
         let parsedInt = parseInt(index, 10);
 
         if (!isNaN(parsedInt) && parsedInt >= 0) {
@@ -431,10 +435,10 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     } catch (e) {
       // Catch spoc positions that are not numbers or negative, and do nothing.
       // We have hard coded backup positions.
-      spocPositions = undefined;
+      gridPositions = undefined;
     }
 
-    return spocPositions;
+    return gridPositions;
   }
 
   async loadLayout(sendUpdate, isStartup) {
@@ -455,6 +459,10 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
         PREF_COLLECTIONS_ENABLED
       ];
 
+      const pocketButtonEnabled = Services.prefs.getBoolPref(
+        PREF_POCKET_BUTTON
+      );
+
       const pocketConfig =
         this.store.getState().Prefs.values?.pocketConfig || {};
 
@@ -472,16 +480,23 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
       layoutResp = getHardcodedLayout({
         items,
         sponsoredCollectionsEnabled,
-        spocPositions: this.parseSpocPositions(
+        spocPositions: this.parseGridPositions(
           pocketConfig.spocPositions?.split(`,`)
         ),
+        widgetPositions: this.parseGridPositions(
+          pocketConfig.widgetPositions?.split(`,`)
+        ),
+        widgetData: [
+          ...(this.locale.startsWith("en-") ? [{ type: "TopicsWidget" }] : []),
+        ],
         compactLayout: pocketConfig.compactLayout,
         hybridLayout: pocketConfig.hybridLayout,
         hideCardBackground: pocketConfig.hideCardBackground,
         fourCardLayout: pocketConfig.fourCardLayout,
         loadMore: pocketConfig.loadMore,
         lastCardMessageEnabled: pocketConfig.lastCardMessageEnabled,
-        saveToPocketCard: pocketConfig.saveToPocketCard,
+        pocketButtonEnabled,
+        saveToPocketCard: pocketButtonEnabled && pocketConfig.saveToPocketCard,
         newFooterSection: pocketConfig.newFooterSection,
         hideDescriptions: pocketConfig.hideDescriptions,
         compactGrid: pocketConfig.compactGrid,
@@ -1001,6 +1016,13 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     switch (topic) {
       case "idle-daily":
         this.updatePersonalizationScores();
+        break;
+      case "nsPref:changed":
+        // If the Pocket button was turned on or off, we need to update the cards
+        // because cards show menu options for the Pocket button that need to be removed.
+        if (data === PREF_POCKET_BUTTON) {
+          this.configReset();
+        }
         break;
     }
   }
@@ -1657,6 +1679,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
         if (this.config.enabled) {
           await this.enable();
         }
+        Services.prefs.addObserver(PREF_POCKET_BUTTON, this);
         break;
       case at.DISCOVERY_STREAM_DEV_SYSTEM_TICK:
       case at.SYSTEM_TICK:
@@ -1835,6 +1858,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
         // When this feed is shutting down:
         this.uninitPrefs();
         this._recommendationProvider = null;
+        Services.prefs.removeObserver(PREF_POCKET_BUTTON, this);
         break;
       case at.BLOCK_URL: {
         // If we block a story that also has a flight_id
@@ -1856,7 +1880,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
         break;
     }
   }
-};
+}
 
 /* This function generates a hardcoded layout each call.
    This is because modifying the original object would
@@ -1873,6 +1897,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
      `loadMore` Hide half the Pocket stories behind a load more button.
      `lastCardMessageEnabled` Shows a message card at the end of the feed.
      `newFooterSection` Changes the layout of the topics section.
+     `pocketButtonEnabled` Removes Pocket context menu items from cards.
      `saveToPocketCard` Cards have a save to Pocket button over their thumbnail on hover.
      `hideDescriptions` Hide or display descriptions for Pocket stories.
      `compactGrid` Reduce the number of pixels between the Pocket cards.
@@ -1886,7 +1911,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
 */
 getHardcodedLayout = ({
   items = 21,
-  spocPositions = [2, 4, 11, 20],
+  spocPositions = [1, 5, 7, 11, 18, 20],
+  widgetPositions = [],
+  widgetData = [],
   sponsoredCollectionsEnabled = false,
   compactLayout = false,
   hybridLayout = false,
@@ -1895,6 +1922,7 @@ getHardcodedLayout = ({
   loadMore = false,
   lastCardMessageEnabled = false,
   newFooterSection = false,
+  pocketButtonEnabled = false,
   saveToPocketCard = false,
   hideDescriptions = true,
   compactGrid = false,
@@ -1931,6 +1959,7 @@ getHardcodedLayout = ({
                 properties: {
                   items: 3,
                 },
+                pocketButtonEnabled,
                 header: {
                   title: "",
                 },
@@ -1995,8 +2024,15 @@ getHardcodedLayout = ({
             editorsPicksHeader,
             readTime: readTime || compactLayout,
           },
+          widgets: {
+            positions: widgetPositions.map(position => {
+              return { index: position };
+            }),
+            data: widgetData,
+          },
           loadMore,
           lastCardMessageEnabled,
+          pocketButtonEnabled,
           saveToPocketCard,
           cta_variant: "link",
           header: {

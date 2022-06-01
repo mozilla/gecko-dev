@@ -13,7 +13,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-add_task(
+add_setup(
   /* on Android FOG is set up through head.js */
   { skip_if: () => AppConstants.platform == "android" },
   function test_setup() {
@@ -337,4 +337,11 @@ add_task(function test_fog_rate_works() {
     { numerator: 121, denominator: 11 },
     Glean.testOnlyIpc.rateWithExternalDenominator.testGetValue()
   );
+});
+
+add_task(async function test_fog_url_works() {
+  const value = "https://www.example.com/fog";
+  Glean.testOnlyIpc.aUrl.set(value);
+
+  Assert.equal(value, Glean.testOnlyIpc.aUrl.testGetValue("store1"));
 });

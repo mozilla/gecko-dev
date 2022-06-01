@@ -12,6 +12,7 @@
 #ifndef nsStyleStruct_h___
 #define nsStyleStruct_h___
 
+#include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ServoStyleConstsInlines.h"
@@ -39,6 +40,7 @@ struct nsStyleDisplay;
 struct nsStyleVisibility;
 namespace mozilla {
 class ComputedStyle;
+struct IntrinsicSize;
 
 }  // namespace mozilla
 
@@ -65,6 +67,29 @@ inline Position Position::FromPercentage(float aPercent) {
   return {LengthPercentage::FromPercentage(aPercent),
           LengthPercentage::FromPercentage(aPercent)};
 }
+
+/**
+ * Convenience struct for querying if a given box has size-containment in
+ * either axis.
+ */
+struct ContainSizeAxes {
+  ContainSizeAxes(bool aIContained, bool aBContained)
+      : mIContained(aIContained), mBContained(aBContained) {}
+
+  bool IsBoth() const { return mIContained && mBContained; }
+  bool IsAny() const { return mIContained || mBContained; }
+
+  /**
+   * Return a contained size from an uncontained size.
+   */
+  nsSize ContainSize(const nsSize& aUncontainedSize,
+                     const WritingMode& aWM) const;
+  IntrinsicSize ContainIntrinsicSize(const IntrinsicSize& aUncontainedSize,
+                                     const WritingMode& aWM) const;
+
+  const bool mIContained;
+  const bool mBContained;
+};
 
 }  // namespace mozilla
 
@@ -401,6 +426,9 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleMargin {
 
   mozilla::StyleRect<mozilla::LengthPercentageOrAuto> mMargin;
   mozilla::StyleRect<mozilla::StyleLength> mScrollMargin;
+  // TODO: Add support for overflow-clip-margin: <visual-box> and maybe
+  // per-axis/side clipping, see https://github.com/w3c/csswg-drafts/issues/7245
+  mozilla::StyleLength mOverflowClipMargin;
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePadding {
@@ -1179,8 +1207,11 @@ struct StyleAnimation {
 }  // namespace mozilla
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
-  typedef mozilla::StyleGeometryBox StyleGeometryBox;
+ private:
+  using StyleContain = mozilla::StyleContain;
+  using StyleContentVisibility = mozilla::StyleContentVisibility;
 
+ public:
   explicit nsStyleDisplay(const mozilla::dom::Document&);
   nsStyleDisplay(const nsStyleDisplay& aOther);
   ~nsStyleDisplay();
@@ -1191,27 +1222,9 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   nsChangeHint CalcDifference(const nsStyleDisplay& aNewData,
                               const nsStylePosition& aOldPosition) const;
 
-  nsStyleAutoArray<mozilla::StyleTransition> mTransitions;
-  // The number of elements in mTransitions that are not from repeating
-  // a list due to another property being longer.
-  uint32_t mTransitionTimingFunctionCount;
-  uint32_t mTransitionDurationCount;
-  uint32_t mTransitionDelayCount;
-  uint32_t mTransitionPropertyCount;
-  nsStyleAutoArray<mozilla::StyleAnimation> mAnimations;
-  // The number of elements in mAnimations that are not from repeating
-  // a list due to another property being longer.
-  uint32_t mAnimationTimingFunctionCount;
-  uint32_t mAnimationDurationCount;
-  uint32_t mAnimationDelayCount;
-  uint32_t mAnimationNameCount;
-  uint32_t mAnimationDirectionCount;
-  uint32_t mAnimationFillModeCount;
-  uint32_t mAnimationPlayStateCount;
-  uint32_t mAnimationIterationCountCount;
-  uint32_t mAnimationTimelineCount;
+  nsChangeHint CalcTransformPropertyDifference(
+      const nsStyleDisplay& aNewData) const;
 
-  mozilla::StyleWillChange mWillChange;
   mozilla::StyleDisplay mDisplay;
   mozilla::StyleDisplay mOriginalDisplay;  // saved mDisplay for
                                            //         position:absolute/fixed
@@ -1219,6 +1232,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
                                            //         otherwise equal to
                                            //         mDisplay
   mozilla::StyleContain mContain;
+  mozilla::StyleContentVisibility mContentVisibility;
+  mozilla::StyleContainerType mContainerType;
 
  private:
   mozilla::StyleAppearance mAppearance;
@@ -1248,17 +1263,21 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   mozilla::StyleOverscrollBehavior mOverscrollBehaviorY;
   mozilla::StyleOverflowAnchor mOverflowAnchor;
   mozilla::StyleScrollSnapAlign mScrollSnapAlign;
+  mozilla::StyleScrollSnapStop mScrollSnapStop;
   mozilla::StyleScrollSnapType mScrollSnapType;
-  uint32_t mLineClamp;
-
-  mozilla::StyleTransform mTransform;
-  mozilla::StyleRotate mRotate;
-  mozilla::StyleTranslate mTranslate;
-  mozilla::StyleScale mScale;
 
   mozilla::StyleBackfaceVisibility mBackfaceVisibility;
   mozilla::StyleTransformStyle mTransformStyle;
-  StyleGeometryBox mTransformBox;
+  mozilla::StyleGeometryBox mTransformBox;
+
+  mozilla::StyleTransform mTransform;
+  mozilla::StyleRotate mRotate;
+
+  mozilla::StyleTranslate mTranslate;
+  mozilla::StyleScale mScale;
+
+  mozilla::StyleContainerName mContainerName;
+  mozilla::StyleWillChange mWillChange;
 
   mozilla::StyleOffsetPath mOffsetPath;
   mozilla::LengthPercentage mOffsetDistance;
@@ -1271,57 +1290,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
 
   mozilla::StyleVerticalAlign mVerticalAlign;
 
-  nsCSSPropertyID GetTransitionProperty(uint32_t aIndex) const {
-    return mTransitions[aIndex % mTransitionPropertyCount].GetProperty();
-  }
-  float GetTransitionDelay(uint32_t aIndex) const {
-    return mTransitions[aIndex % mTransitionDelayCount].GetDelay();
-  }
-  float GetTransitionDuration(uint32_t aIndex) const {
-    return mTransitions[aIndex % mTransitionDurationCount].GetDuration();
-  }
-  const nsTimingFunction& GetTransitionTimingFunction(uint32_t aIndex) const {
-    return mTransitions[aIndex % mTransitionTimingFunctionCount]
-        .GetTimingFunction();
-  }
-  float GetTransitionCombinedDuration(uint32_t aIndex) const {
-    // https://drafts.csswg.org/css-transitions/#transition-combined-duration
-    return std::max(
-               mTransitions[aIndex % mTransitionDurationCount].GetDuration(),
-               0.0f) +
-           mTransitions[aIndex % mTransitionDelayCount].GetDelay();
-  }
-
-  nsAtom* GetAnimationName(uint32_t aIndex) const {
-    return mAnimations[aIndex % mAnimationNameCount].GetName();
-  }
-  float GetAnimationDelay(uint32_t aIndex) const {
-    return mAnimations[aIndex % mAnimationDelayCount].GetDelay();
-  }
-  float GetAnimationDuration(uint32_t aIndex) const {
-    return mAnimations[aIndex % mAnimationDurationCount].GetDuration();
-  }
-  mozilla::dom::PlaybackDirection GetAnimationDirection(uint32_t aIndex) const {
-    return mAnimations[aIndex % mAnimationDirectionCount].GetDirection();
-  }
-  mozilla::dom::FillMode GetAnimationFillMode(uint32_t aIndex) const {
-    return mAnimations[aIndex % mAnimationFillModeCount].GetFillMode();
-  }
-  mozilla::StyleAnimationPlayState GetAnimationPlayState(
-      uint32_t aIndex) const {
-    return mAnimations[aIndex % mAnimationPlayStateCount].GetPlayState();
-  }
-  float GetAnimationIterationCount(uint32_t aIndex) const {
-    return mAnimations[aIndex % mAnimationIterationCountCount]
-        .GetIterationCount();
-  }
-  const nsTimingFunction& GetAnimationTimingFunction(uint32_t aIndex) const {
-    return mAnimations[aIndex % mAnimationTimingFunctionCount]
-        .GetTimingFunction();
-  }
-  const mozilla::StyleAnimationTimeline& GetTimeline(uint32_t aIndex) const {
-    return mAnimations[aIndex % mAnimationTimelineCount].GetTimeline();
-  }
+  uint32_t mLineClamp;
 
   // The threshold used for extracting a shape from shape-outside: <image>.
   float mShapeImageThreshold = 0.0f;
@@ -1476,9 +1445,12 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
            mozilla::StylePositionProperty::Fixed == mPosition;
   }
 
-  bool IsRelativelyPositionedStyle() const {
+  bool IsRelativelyOrStickyPositionedStyle() const {
     return mozilla::StylePositionProperty::Relative == mPosition ||
            mozilla::StylePositionProperty::Sticky == mPosition;
+  }
+  bool IsRelativelyPositionedStyle() const {
+    return mozilla::StylePositionProperty::Relative == mPosition;
   }
   bool IsStickyPositionedStyle() const {
     return mozilla::StylePositionProperty::Sticky == mPosition;
@@ -1523,11 +1495,21 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   }
 
   bool IsContainPaint() const {
-    return (mContain & mozilla::StyleContain::PAINT) &&
-           !IsInternalRubyDisplayType() && !IsInternalTableStyleExceptCell();
+    const auto contain = EffectiveContainment();
+    // Short circuit for no containment whatsoever
+    if (!contain) {
+      return false;
+    }
+    return (contain & StyleContain::PAINT) && !IsInternalRubyDisplayType() &&
+           !IsInternalTableStyleExceptCell();
   }
 
   bool IsContainLayout() const {
+    const auto contain = EffectiveContainment();
+    // Short circuit for no containment whatsoever
+    if (!contain) {
+      return false;
+    }
     // Note: The spec for layout containment says it should
     // have no effect on non-atomic, inline-level boxes. We
     // don't check for these here because we don't know
@@ -1535,11 +1517,16 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
     // responsible for checking if the box in question is
     // non-atomic and inline-level, and creating an
     // exemption as necessary.
-    return (mContain & mozilla::StyleContain::LAYOUT) &&
-           !IsInternalRubyDisplayType() && !IsInternalTableStyleExceptCell();
+    return (contain & StyleContain::LAYOUT) && !IsInternalRubyDisplayType() &&
+           !IsInternalTableStyleExceptCell();
   }
 
-  bool IsContainSize() const {
+  mozilla::ContainSizeAxes GetContainSizeAxes() const {
+    const auto contain = EffectiveContainment();
+    // Short circuit for no containment whatsoever
+    if (!contain) {
+      return mozilla::ContainSizeAxes(false, false);
+    }
     // Note: The spec for size containment says it should
     // have no effect on non-atomic, inline-level boxes. We
     // don't check for these here because we don't know
@@ -1547,10 +1534,22 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
     // responsible for checking if the box in question is
     // non-atomic and inline-level, and creating an
     // exemption as necessary.
-    return (mContain & mozilla::StyleContain::SIZE) &&
-           !IsInternalRubyDisplayType() &&
-           DisplayInside() != mozilla::StyleDisplayInside::Table &&
-           !IsInnerTableStyle();
+    if (IsInternalRubyDisplayType() ||
+        DisplayInside() == mozilla::StyleDisplayInside::Table ||
+        IsInnerTableStyle()) {
+      return mozilla::ContainSizeAxes(false, false);
+    }
+    return mozilla::ContainSizeAxes(
+        static_cast<bool>(contain & StyleContain::INLINE_SIZE),
+        static_cast<bool>(contain & StyleContain::BLOCK_SIZE));
+  }
+
+  bool IsContentVisibilityVisible() const {
+    return mContentVisibility == StyleContentVisibility::Visible;
+  }
+
+  bool IsContentVisibilityHidden() const {
+    return mContentVisibility == StyleContentVisibility::Hidden;
   }
 
   /* Returns whether the element has the transform property or a related
@@ -1606,8 +1605,15 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   inline bool IsInlineOutside(const nsIFrame* aContextFrame) const;
   inline mozilla::StyleDisplay GetDisplay(const nsIFrame* aContextFrame) const;
   inline bool IsFloating(const nsIFrame* aContextFrame) const;
+  inline bool IsRelativelyOrStickyPositioned(
+      const nsIFrame* aContextFrame) const;
+
+  // Note: In general, you'd want to call IsRelativelyOrStickyPositioned()
+  // unless you want to deal with "position:relative" and "position:sticky"
+  // differently.
   inline bool IsRelativelyPositioned(const nsIFrame* aContextFrame) const;
   inline bool IsStickyPositioned(const nsIFrame* aContextFrame) const;
+
   inline bool IsAbsolutelyPositioned(const nsIFrame* aContextFrame) const;
 
   // These methods are defined in nsStyleStructInlines.h.
@@ -1658,6 +1664,27 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   inline bool IsFixedPosContainingBlockForTransformSupportingFrames() const;
 
   void GenerateCombinedIndividualTransform();
+
+ private:
+  StyleContain EffectiveContainment() const {
+    // content-visibility and container-type values implicitly enable some
+    // containment flags.
+    // FIXME(dshin, bug 1463600): Add in STYLE containment flag for `auto` &
+    // `hidden` when implemented
+    // FIXME(dshin, bug 1764640): Add in the effect of `container-type`
+    switch (mContentVisibility) {
+      case StyleContentVisibility::Visible:
+        // Most likely case.
+        return mContain;
+      case StyleContentVisibility::Auto:
+        return mContain | StyleContain::LAYOUT | StyleContain::PAINT;
+      case StyleContentVisibility::Hidden:
+        return mContain | StyleContain::LAYOUT | StyleContain::PAINT |
+               StyleContain::SIZE;
+    }
+    MOZ_ASSERT_UNREACHABLE("Invalid content visibility.");
+    return mContain;
+  }
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleTable {
@@ -1738,6 +1765,58 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUIReset {
     return mScrollbarWidth;
   }
 
+  nsCSSPropertyID GetTransitionProperty(uint32_t aIndex) const {
+    return mTransitions[aIndex % mTransitionPropertyCount].GetProperty();
+  }
+  float GetTransitionDelay(uint32_t aIndex) const {
+    return mTransitions[aIndex % mTransitionDelayCount].GetDelay();
+  }
+  float GetTransitionDuration(uint32_t aIndex) const {
+    return mTransitions[aIndex % mTransitionDurationCount].GetDuration();
+  }
+  const nsTimingFunction& GetTransitionTimingFunction(uint32_t aIndex) const {
+    return mTransitions[aIndex % mTransitionTimingFunctionCount]
+        .GetTimingFunction();
+  }
+  float GetTransitionCombinedDuration(uint32_t aIndex) const {
+    // https://drafts.csswg.org/css-transitions/#transition-combined-duration
+    return std::max(
+               mTransitions[aIndex % mTransitionDurationCount].GetDuration(),
+               0.0f) +
+           mTransitions[aIndex % mTransitionDelayCount].GetDelay();
+  }
+
+  nsAtom* GetAnimationName(uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationNameCount].GetName();
+  }
+  float GetAnimationDelay(uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationDelayCount].GetDelay();
+  }
+  float GetAnimationDuration(uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationDurationCount].GetDuration();
+  }
+  mozilla::dom::PlaybackDirection GetAnimationDirection(uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationDirectionCount].GetDirection();
+  }
+  mozilla::dom::FillMode GetAnimationFillMode(uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationFillModeCount].GetFillMode();
+  }
+  mozilla::StyleAnimationPlayState GetAnimationPlayState(
+      uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationPlayStateCount].GetPlayState();
+  }
+  float GetAnimationIterationCount(uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationIterationCountCount]
+        .GetIterationCount();
+  }
+  const nsTimingFunction& GetAnimationTimingFunction(uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationTimingFunctionCount]
+        .GetTimingFunction();
+  }
+  const mozilla::StyleAnimationTimeline& GetTimeline(uint32_t aIndex) const {
+    return mAnimations[aIndex % mAnimationTimelineCount].GetTimeline();
+  }
+
   uint8_t mMozForceBrokenImageIcon;  // (0 if not forcing, otherwise forcing)
   mozilla::StyleImeMode mIMEMode;
   mozilla::StyleWindowDragging mWindowDragging;
@@ -1745,6 +1824,26 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUIReset {
   float mWindowOpacity;
   mozilla::StyleTransform mMozWindowTransform;
   mozilla::StyleTransformOrigin mWindowTransformOrigin;
+
+  nsStyleAutoArray<mozilla::StyleTransition> mTransitions;
+  // The number of elements in mTransitions that are not from repeating
+  // a list due to another property being longer.
+  uint32_t mTransitionTimingFunctionCount;
+  uint32_t mTransitionDurationCount;
+  uint32_t mTransitionDelayCount;
+  uint32_t mTransitionPropertyCount;
+  nsStyleAutoArray<mozilla::StyleAnimation> mAnimations;
+  // The number of elements in mAnimations that are not from repeating
+  // a list due to another property being longer.
+  uint32_t mAnimationTimingFunctionCount;
+  uint32_t mAnimationDurationCount;
+  uint32_t mAnimationDelayCount;
+  uint32_t mAnimationNameCount;
+  uint32_t mAnimationDirectionCount;
+  uint32_t mAnimationFillModeCount;
+  uint32_t mAnimationPlayStateCount;
+  uint32_t mAnimationIterationCountCount;
+  uint32_t mAnimationTimelineCount;
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUI {

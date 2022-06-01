@@ -368,6 +368,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
         // the Download object to be created and added to the public downloads.
         transfer.init(
           sourceURI,
+          null,
           NetUtil.newURI(targetFile),
           null,
           mimeInfo,
@@ -956,7 +957,7 @@ var gMostRecentFirstBytePos;
 
 // Initialization functions common to all tests
 
-add_task(function test_common_initialize() {
+add_setup(function test_common_initialize() {
   // Start the HTTP server.
   gHttpServer = new HttpServer();
   gHttpServer.registerDirectory("/", do_get_file("../data"));

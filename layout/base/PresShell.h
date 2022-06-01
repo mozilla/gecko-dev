@@ -1480,8 +1480,12 @@ class PresShell final : public nsStubDocumentObserver,
   bool SetVisualViewportOffset(const nsPoint& aScrollOffset,
                                const nsPoint& aPrevLayoutScrollPos);
 
+  void ResetVisualViewportOffset();
   nsPoint GetVisualViewportOffset() const {
-    return mVisualViewportOffset.valueOr(nsPoint());
+    if (mVisualViewportOffset.isSome()) {
+      return *mVisualViewportOffset;
+    }
+    return GetLayoutViewportOffset();
   }
   bool IsVisualViewportOffsetSet() const {
     return mVisualViewportOffset.isSome();
@@ -1751,15 +1755,27 @@ class PresShell final : public nsStubDocumentObserver,
 
   void RecordAlloc(void* aPtr) {
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-    MOZ_DIAGNOSTIC_ASSERT(!mAllocatedPointers.Contains(aPtr));
-    mAllocatedPointers.Insert(aPtr);
+    if (!mAllocatedPointers) {
+      return;  // Hash set was presumably freed to avert OOM.
+    }
+    MOZ_DIAGNOSTIC_ASSERT(!mAllocatedPointers->Contains(aPtr));
+    if (!mAllocatedPointers->Insert(aPtr, fallible)) {
+      // Yikes! We're nearly out of memory, and this insertion would've pushed
+      // us over the ledge. At this point, we discard & stop using this set,
+      // since we don't have enough memory to keep it accurate from this point
+      // onwards. Hopefully this helps relieve the memory pressure a bit, too.
+      mAllocatedPointers = nullptr;
+    }
 #endif
   }
 
   void RecordFree(void* aPtr) {
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-    MOZ_DIAGNOSTIC_ASSERT(mAllocatedPointers.Contains(aPtr));
-    mAllocatedPointers.Remove(aPtr);
+    if (!mAllocatedPointers) {
+      return;  // Hash set was presumably freed to avert OOM.
+    }
+    MOZ_DIAGNOSTIC_ASSERT(mAllocatedPointers->Contains(aPtr));
+    mAllocatedPointers->Remove(aPtr);
 #endif
   }
 
@@ -2767,6 +2783,8 @@ class PresShell final : public nsStubDocumentObserver,
 
   PresShell* GetRootPresShell() const;
 
+  bool IsTransparentContainerElement() const;
+  ColorScheme DefaultBackgroundColorScheme() const;
   nscolor GetDefaultBackgroundColorToDraw() const;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -2854,9 +2872,14 @@ class PresShell final : public nsStubDocumentObserver,
   nsCOMPtr<nsITimer> mReflowContinueTimer;
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  // We track allocated pointers in a debug-only hashtable to assert against
-  // missing/double frees.
-  nsTHashSet<void*> mAllocatedPointers;
+  // We track allocated pointers in a diagnostic hash set, to assert against
+  // missing/double frees. This set is allocated infallibly in the PresShell
+  // constructor's initialization list. The set can get quite large, so we use
+  // fallible allocation when inserting into it; and if these operations ever
+  // fail, then we just get rid of the set and stop using this diagnostic from
+  // that point on.  (There's not much else we can do, when the set grows
+  // larger than the available memory.)
+  UniquePtr<nsTHashSet<void*>> mAllocatedPointers;
 #endif
 
   // A list of stack weak frames. This is a pointer to the last item in the

@@ -1,3 +1,9 @@
+/*!
+Backend for [WGSL][wgsl] (WebGPU Shading Language).
+
+[wgsl]: https://gpuweb.github.io/gpuweb/wgsl.html
+*/
+
 mod writer;
 
 use thiserror::Error;
@@ -30,7 +36,7 @@ pub fn write_string(
 }
 
 impl crate::AtomicFunction {
-    fn to_wgsl(self) -> &'static str {
+    const fn to_wgsl(self) -> &'static str {
         match self {
             Self::Add => "Add",
             Self::Subtract => "Sub",

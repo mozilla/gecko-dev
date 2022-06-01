@@ -177,9 +177,10 @@ void DOMLocalization::GetAttributes(Element& aElement, L10nIdArgs& aResult,
 already_AddRefed<Promise> DOMLocalization::TranslateFragment(nsINode& aNode,
                                                              ErrorResult& aRv) {
   Sequence<OwningNonNull<Element>> elements;
-
   GetTranslatables(aNode, elements, aRv);
-
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
   return TranslateElements(elements, aRv);
 }
 
@@ -295,27 +296,26 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(ElementTranslationHandler)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 already_AddRefed<Promise> DOMLocalization::TranslateElements(
-    const Sequence<OwningNonNull<Element>>& aElements, ErrorResult& aRv) {
+    const nsTArray<OwningNonNull<Element>>& aElements, ErrorResult& aRv) {
   return TranslateElements(aElements, nullptr, aRv);
 }
 
 already_AddRefed<Promise> DOMLocalization::TranslateElements(
-    const Sequence<OwningNonNull<Element>>& aElements,
+    const nsTArray<OwningNonNull<Element>>& aElements,
     nsXULPrototypeDocument* aProto, ErrorResult& aRv) {
-  JS::RootingContext* rcx = RootingCx();
   Sequence<OwningUTF8StringOrL10nIdArgs> l10nKeys;
-  SequenceRooter<OwningUTF8StringOrL10nIdArgs> rooter(rcx, &l10nKeys);
   RefPtr<ElementTranslationHandler> nativeHandler =
       new ElementTranslationHandler(this, aProto);
   nsTArray<nsCOMPtr<Element>>& domElements = nativeHandler->Elements();
   domElements.SetCapacity(aElements.Length());
 
   if (!mGlobal) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;
   }
 
   for (auto& domElement : aElements) {
-    if (!domElement->HasAttr(kNameSpaceID_None, nsGkAtoms::datal10nid)) {
+    if (!domElement->HasAttr(nsGkAtoms::datal10nid)) {
       continue;
     }
 
@@ -331,6 +331,7 @@ already_AddRefed<Promise> DOMLocalization::TranslateElements(
     }
 
     if (!domElements.AppendElement(domElement, fallible)) {
+      // This can't really happen, we SetCapacity'd above...
       aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return nullptr;
     }
@@ -405,6 +406,9 @@ already_AddRefed<Promise> DOMLocalization::TranslateRoots(ErrorResult& aRv) {
 
   for (nsINode* root : mRoots) {
     RefPtr<Promise> promise = TranslateFragment(*root, aRv);
+    if (MOZ_UNLIKELY(aRv.Failed())) {
+      return nullptr;
+    }
 
     // If the root is an element, we'll add a native handler
     // to set root info (language, direction etc.) on it

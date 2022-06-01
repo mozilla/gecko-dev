@@ -32,9 +32,13 @@ class nsThreadManager : public nsIThreadManager {
 
   nsresult Init();
 
-  // Shutdown all threads.  This function should only be called on the main
-  // thread of the application process.
-  void Shutdown();
+  // Shutdown all threads other than the main thread.  This function should only
+  // be called on the main thread of the application process.
+  void ShutdownNonMainThreads();
+
+  // Finish shutting down all threads. This function must be called after
+  // ShutdownNonMainThreads and will take the main thread out of commission.
+  void ShutdownMainThread();
 
   // Called by nsThread to inform the ThreadManager it exists.  This method
   // must be called when the given thread is the current thread.
@@ -66,14 +70,6 @@ class nsThreadManager : public nsIThreadManager {
 
   already_AddRefed<nsISerialEventTarget> CreateBackgroundTaskQueue(
       const char* aName);
-
-  // For each background TaskQueue cancel pending DelayedRunnables, and prohibit
-  // creating future DelayedRunnables for them, since we'll soon be shutting
-  // them down.
-  // Pending DelayedRunnables are canceled on their respective TaskQueue.
-  // We block main thread until they are all done, but spin the eventloop in the
-  // meantime.
-  void CancelBackgroundDelayedRunnables();
 
   ~nsThreadManager();
 

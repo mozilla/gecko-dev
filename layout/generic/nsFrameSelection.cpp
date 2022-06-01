@@ -705,18 +705,17 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
     scrollFlags |= Selection::SCROLL_OVERFLOW_HIDDEN;
   }
 
-  int32_t caretStyle = StaticPrefs::layout_selection_caret_style();
-  if (caretStyle == 0
-#ifdef XP_WIN
-      && aAmount != eSelectLine
-#endif
-  ) {
-    // Put caret at the selection edge in the |aDirection| direction.
-    caretStyle = 2;
-  }
+  const bool doCollapse = [&] {
+    if (sel->IsCollapsed() || aContinueSelection) {
+      return false;
+    }
+    if (aAmount > eSelectLine) {
+      return false;
+    }
+    int32_t caretStyle = StaticPrefs::layout_selection_caret_style();
+    return caretStyle == 2 || (caretStyle == 0 && aAmount != eSelectLine);
+  }();
 
-  const bool doCollapse = !sel->IsCollapsed() && !aContinueSelection &&
-                          caretStyle == 2 && aAmount <= eSelectLine;
   if (doCollapse) {
     if (aDirection == eDirPrevious) {
       SetChangeReasons(nsISelectionListener::COLLAPSETOSTART_REASON);
@@ -728,6 +727,8 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
   } else {
     SetChangeReasons(nsISelectionListener::KEYPRESS_REASON);
   }
+
+  mCaretMoveAmount = aAmount;
 
   AutoPrepareFocusRange prep(sel, false);
 
@@ -1320,13 +1321,13 @@ nsINode* nsFrameSelection::TableSelection::IsContentInActivelyEditableTableCell(
     return nullptr;
   }
 
-  const Element* editorHostNode = htmlEditor->GetActiveEditingHost();
-  if (!editorHostNode) {
+  const Element* editingHost = htmlEditor->ComputeEditingHost();
+  if (!editingHost) {
     return nullptr;
   }
 
   const bool editableCell =
-      inclusiveTableCellAncestor->IsInclusiveDescendantOf(editorHostNode);
+      inclusiveTableCellAncestor->IsInclusiveDescendantOf(editingHost);
   return editableCell ? inclusiveTableCellAncestor : nullptr;
 }
 
@@ -1926,7 +1927,8 @@ nsresult nsFrameSelection::PageMove(bool aForward, bool aExtend,
   {
     // We don't want any script to run until we check whether selection is
     // modified by HandleClick.
-    SelectionBatcher ensureNoSelectionChangeNotifications(selection);
+    SelectionBatcher ensureNoSelectionChangeNotifications(selection,
+                                                          __FUNCTION__);
 
     RangeBoundary oldAnchor = selection->AnchorRef();
     RangeBoundary oldFocus = selection->FocusRef();
@@ -2148,14 +2150,28 @@ nsFrameSelection::CreateRangeExtendedToSomewhere(
 
 //////////END FRAMESELECTION
 
-void nsFrameSelection::StartBatchChanges() { mBatching.mCounter++; }
+LazyLogModule gBatchLog("SelectionBatch");
 
-void nsFrameSelection::EndBatchChanges(int16_t aReasons) {
+void nsFrameSelection::StartBatchChanges(const char* aRequesterFuncName) {
+  MOZ_LOG(gBatchLog, LogLevel::Info,
+          ("%p%snsFrameSelection::StartBatchChanges(%s)", this,
+           std::string((mBatching.mCounter + 1) * 2, ' ').c_str(),
+           aRequesterFuncName));
+  mBatching.mCounter++;
+}
+
+void nsFrameSelection::EndBatchChanges(const char* aRequesterFuncName,
+                                       int16_t aReasons) {
+  MOZ_LOG(gBatchLog, LogLevel::Info,
+          ("%p%snsFrameSelection::EndBatchChanges  (%s, %s)", this,
+           std::string(mBatching.mCounter * 2, ' ').c_str(), aRequesterFuncName,
+           SelectionChangeReasonsToCString(aReasons).get()));
   MOZ_ASSERT(mBatching.mCounter > 0, "Bad mBatching.mCounter");
   mBatching.mCounter--;
 
   if (mBatching.mCounter == 0 && mBatching.mChangesDuringBatching) {
     AddChangeReasons(aReasons);
+    mCaretMoveAmount = eSelectNoAmount;
     mBatching.mChangesDuringBatching = false;
     // Be aware, the Selection instance may be destroyed after this call.
     NotifySelectionListeners(SelectionType::eNormal);
@@ -2168,6 +2184,7 @@ nsresult nsFrameSelection::NotifySelectionListeners(
   if (index >= 0 && mDomSelections[index]) {
     RefPtr<Selection> selection = mDomSelections[index];
     selection->NotifySelectionListeners();
+    mCaretMoveAmount = eSelectNoAmount;
     return NS_OK;
   }
   return NS_ERROR_FAILURE;
@@ -2254,7 +2271,7 @@ nsresult nsFrameSelection::TableSelection::HandleSelection(
 
   // Stack-class to wrap all table selection changes in
   //  BeginBatchChanges() / EndBatchChanges()
-  SelectionBatcher selectionBatcher(&aNormalSelection);
+  SelectionBatcher selectionBatcher(&aNormalSelection, __FUNCTION__);
 
   if (aDragState && mDragSelectingCells) {
     return HandleDragSelecting(aTarget, childContent, aMouseEvent,

@@ -7,6 +7,7 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/MessageEvent.h"
 #include "mozilla/dom/MessageEventBinding.h"
+#include "mozilla/dom/RemoteWorkerChild.h"
 #include "mozilla/dom/WindowContext.h"
 #include "mozilla/AbstractThread.h"
 #include "mozilla/PerformanceUtils.h"
@@ -25,8 +26,7 @@
 #  include <unistd.h>  // for getpid()
 #endif                 // defined(XP_WIN)
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 namespace {
 
@@ -568,5 +568,4 @@ RefPtr<PerformanceInfoPromise> WorkerDebugger::ReportPerformanceInfo() {
           });
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

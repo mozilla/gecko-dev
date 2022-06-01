@@ -5,14 +5,13 @@
 
 #include "InsertNodeTransaction.h"
 
-#include "mozilla/EditorBase.h"      // for EditorBase
-#include "mozilla/EditorDOMPoint.h"  // for EditorDOMPoint
-#include "mozilla/HTMLEditor.h"      // for HTMLEditor
-#include "mozilla/Logging.h"
-#include "mozilla/TextEditor.h"  // for TextEditor
-#include "mozilla/ToString.h"
+#include "EditorBase.h"      // for EditorBase
+#include "EditorDOMPoint.h"  // for EditorDOMPoint
+#include "HTMLEditor.h"      // for HTMLEditor
+#include "TextEditor.h"      // for TextEditor
 
-#include "mozilla/dom/Selection.h"  // for Selection
+#include "mozilla/Logging.h"
+#include "mozilla/ToString.h"
 
 #include "nsAString.h"
 #include "nsDebug.h"          // for NS_WARNING, etc.
@@ -48,7 +47,7 @@ InsertNodeTransaction::InsertNodeTransaction(
     EditorBase& aEditorBase, nsIContent& aContentToInsert,
     const EditorDOMPointBase<PT, CT>& aPointToInsert)
     : mContentToInsert(&aContentToInsert),
-      mPointToInsert(aPointToInsert),
+      mPointToInsert(aPointToInsert.template To<EditorDOMPoint>()),
       mEditorBase(&aEditorBase) {
   MOZ_ASSERT(mPointToInsert.IsSetAndValid());
   // Ensure mPointToInsert stores child at offset.
@@ -129,7 +128,7 @@ NS_IMETHODIMP InsertNodeTransaction::DoTransaction() {
                          "EditorBase::MarkElementDirty() failed, but ignored");
   }
 
-  ErrorResult error;
+  IgnoredErrorResult error;
   container->InsertBefore(contentToInsert, refChild, error);
   // InsertBefore() may call MightThrowJSException() even if there is no
   // error. We don't need the flag here.
@@ -139,24 +138,6 @@ NS_IMETHODIMP InsertNodeTransaction::DoTransaction() {
     return error.StealNSResult();
   }
 
-  if (!mEditorBase->AllowsTransactionsToChangeSelection()) {
-    return NS_OK;
-  }
-
-  RefPtr<Selection> selection = mEditorBase->GetSelection();
-  if (NS_WARN_IF(!selection)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // Place the selection just after the inserted element.
-  EditorRawDOMPoint afterInsertedNode(
-      EditorRawDOMPoint::After(contentToInsert));
-  NS_WARNING_ASSERTION(afterInsertedNode.IsSet(),
-                       "Failed to set after the inserted node");
-  IgnoredErrorResult ignoredError;
-  selection->CollapseInLimiter(afterInsertedNode, ignoredError);
-  NS_WARNING_ASSERTION(!ignoredError.Failed(),
-                       "Selection::CollapseInLimiter() failed, but ignored");
   return NS_OK;
 }
 
@@ -183,7 +164,22 @@ NS_IMETHODIMP InsertNodeTransaction::RedoTransaction() {
   MOZ_LOG(GetLogModule(), LogLevel::Info,
           ("%p InsertNodeTransaction::%s this=%s", this, __FUNCTION__,
            ToString(*this).c_str()));
-  return DoTransaction();
+  nsresult rv = DoTransaction();
+  if (MOZ_UNLIKELY(NS_FAILED(rv))) {
+    NS_WARNING("InsertNodeTransaction::RedoTransaction() failed");
+    return rv;
+  }
+
+  if (!mEditorBase->AllowsTransactionsToChangeSelection()) {
+    return NS_OK;
+  }
+
+  OwningNonNull<EditorBase> editorBase(*mEditorBase);
+  rv = editorBase->CollapseSelectionTo(
+      SuggestPointToPutCaret<EditorRawDOMPoint>());
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "EditorBase::CollapseSelectionTo() failed, but ignored");
+  return NS_OK;
 }
 
 }  // namespace mozilla

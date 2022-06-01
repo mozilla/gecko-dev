@@ -11,7 +11,7 @@
 
 #include <algorithm>
 
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "jit/CalleeToken.h"
 #include "jit/JitFrames.h"
 #include "util/BitArray.h"
@@ -447,20 +447,11 @@ ArgumentsObject* ArgumentsObject::createForInlinedIon(JSContext* cx,
   return createFromValueArray(cx, argsArray, callee, scopeChain, numActuals);
 }
 
+template <typename CopyArgs>
 /* static */
-ArgumentsObject* ArgumentsObject::finishForIonPure(JSContext* cx,
-                                                   jit::JitFrameLayout* frame,
-                                                   JSObject* scopeChain,
-                                                   ArgumentsObject* obj) {
-  // JIT code calls this directly (no callVM), because it's faster, so we're
-  // not allowed to GC in here.
-  AutoUnsafeCallWithABI unsafe;
-
-  JSFunction* callee = jit::CalleeTokenToFunction(frame->calleeToken());
-  RootedObject callObj(cx, scopeChain->is<CallObject>() ? scopeChain : nullptr);
-  CopyJitFrameArgs copy(frame, callObj);
-
-  unsigned numActuals = frame->numActualArgs();
+ArgumentsObject* ArgumentsObject::finishPure(
+    JSContext* cx, ArgumentsObject* obj, JSFunction* callee, JSObject* callObj,
+    unsigned numActuals, CopyArgs& copy) {
   unsigned numFormals = callee->nargs();
   unsigned numArgs = std::max(numActuals, numFormals);
   unsigned numBytes = ArgumentsData::bytesRequired(numArgs);
@@ -497,12 +488,51 @@ ArgumentsObject* ArgumentsObject::finishForIonPure(JSContext* cx,
 }
 
 /* static */
+ArgumentsObject* ArgumentsObject::finishForIonPure(JSContext* cx,
+                                                   jit::JitFrameLayout* frame,
+                                                   JSObject* scopeChain,
+                                                   ArgumentsObject* obj) {
+  // JIT code calls this directly (no callVM), because it's faster, so we're
+  // not allowed to GC in here.
+  AutoUnsafeCallWithABI unsafe;
+
+  JSFunction* callee = jit::CalleeTokenToFunction(frame->calleeToken());
+  RootedObject callObj(cx, scopeChain->is<CallObject>() ? scopeChain : nullptr);
+  CopyJitFrameArgs copy(frame, callObj);
+
+  unsigned numActuals = frame->numActualArgs();
+
+  return finishPure(cx, obj, callee, callObj, numActuals, copy);
+}
+
+/* static */
+ArgumentsObject* ArgumentsObject::finishInlineForIonPure(
+    JSContext* cx, JSObject* rawCallObj, JSFunction* rawCallee, Value* args,
+    uint32_t numActuals, ArgumentsObject* obj) {
+  // JIT code calls this directly (no callVM), because it's faster, so we're
+  // not allowed to GC in here.
+  AutoUnsafeCallWithABI unsafe;
+
+  MOZ_ASSERT(numActuals <= MaxInlinedArgs);
+
+  RootedObject callObj(cx, rawCallObj);
+  RootedFunction callee(cx, rawCallee);
+  RootedExternalValueArray rootedArgs(cx, numActuals, args);
+  HandleValueArray argsArray =
+      HandleValueArray::fromMarkedLocation(numActuals, args);
+
+  CopyInlinedArgs copy(argsArray, callObj, callee, numActuals);
+
+  return finishPure(cx, obj, callee, callObj, numActuals, copy);
+}
+
+/* static */
 bool ArgumentsObject::obj_delProperty(JSContext* cx, HandleObject obj,
                                       HandleId id, ObjectOpResult& result) {
   ArgumentsObject& argsobj = obj->as<ArgumentsObject>();
   if (id.isInt()) {
     unsigned arg = unsigned(id.toInt());
-    if (arg < argsobj.initialLength() && !argsobj.isElementDeleted(arg)) {
+    if (argsobj.isElement(arg)) {
       if (!argsobj.markElementDeleted(cx, arg)) {
         return false;
       }
@@ -538,7 +568,7 @@ bool js::MappedArgGetter(JSContext* cx, HandleObject obj, HandleId id,
      * prototype to point to another Arguments object with a bigger argc.
      */
     unsigned arg = unsigned(id.toInt());
-    if (arg < argsobj.initialLength() && !argsobj.isElementDeleted(arg)) {
+    if (argsobj.isElement(arg)) {
       vp.set(argsobj.element(arg));
     }
   } else if (id.isAtom(cx->names().length)) {
@@ -569,7 +599,7 @@ bool js::MappedArgSetter(JSContext* cx, HandleObject obj, HandleId id,
 
   if (id.isInt()) {
     unsigned arg = unsigned(id.toInt());
-    if (arg < argsobj->initialLength() && !argsobj->isElementDeleted(arg)) {
+    if (argsobj->isElement(arg)) {
       argsobj->setElement(arg, v);
       return result.succeed();
     }
@@ -673,7 +703,7 @@ bool MappedArgumentsObject::obj_resolve(JSContext* cx, HandleObject obj,
                          PropertyFlag::Configurable, PropertyFlag::Writable};
   if (id.isInt()) {
     uint32_t arg = uint32_t(id.toInt());
-    if (arg >= argsobj->initialLength() || argsobj->isElementDeleted(arg)) {
+    if (!argsobj->isElement(arg)) {
       return true;
     }
 
@@ -743,7 +773,7 @@ static bool DefineMappedIndex(JSContext* cx, Handle<MappedArgumentsObject*> obj,
   // don't need to mark elements as overridden or deleted.
 
   MOZ_ASSERT(id.isInt());
-  MOZ_ASSERT(!obj->isElementDeleted(id.toInt()));
+  MOZ_ASSERT(obj->isElement(id.toInt()));
   MOZ_ASSERT(!obj->containsDenseElement(id.toInt()));
 
   MOZ_ASSERT(!desc.isAccessorDescriptor());
@@ -808,8 +838,7 @@ bool MappedArgumentsObject::obj_defineProperty(JSContext* cx, HandleObject obj,
   bool isMapped = false;
   if (id.isInt()) {
     unsigned arg = unsigned(id.toInt());
-    isMapped =
-        arg < argsobj->initialLength() && !argsobj->isElementDeleted(arg);
+    isMapped = argsobj->isElement(arg);
   }
 
   // Step 4.
@@ -879,7 +908,7 @@ bool js::UnmappedArgGetter(JSContext* cx, HandleObject obj, HandleId id,
      * prototype to point to another Arguments object with a bigger argc.
      */
     unsigned arg = unsigned(id.toInt());
-    if (arg < argsobj.initialLength() && !argsobj.isElementDeleted(arg)) {
+    if (argsobj.isElement(arg)) {
       vp.set(argsobj.element(arg));
     }
   } else {
@@ -965,7 +994,7 @@ bool UnmappedArgumentsObject::obj_resolve(JSContext* cx, HandleObject obj,
                          PropertyFlag::Configurable, PropertyFlag::Writable};
   if (id.isInt()) {
     uint32_t arg = uint32_t(id.toInt());
-    if (arg >= argsobj->initialLength() || argsobj->isElementDeleted(arg)) {
+    if (!argsobj->isElement(arg)) {
       return true;
     }
 
@@ -1015,14 +1044,14 @@ bool UnmappedArgumentsObject::obj_enumerate(JSContext* cx, HandleObject obj) {
   return true;
 }
 
-void ArgumentsObject::finalize(JSFreeOp* fop, JSObject* obj) {
+void ArgumentsObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   MOZ_ASSERT(!IsInsideNursery(obj));
   ArgumentsObject& argsobj = obj->as<ArgumentsObject>();
   if (argsobj.data()) {
-    fop->free_(&argsobj, argsobj.maybeRareData(),
+    gcx->free_(&argsobj, argsobj.maybeRareData(),
                RareArgumentsData::bytesRequired(argsobj.initialLength()),
                MemoryUse::RareArgumentsData);
-    fop->free_(&argsobj, argsobj.data(),
+    gcx->free_(&argsobj, argsobj.data(),
                ArgumentsData::bytesRequired(argsobj.data()->numArgs),
                MemoryUse::ArgumentsData);
   }
@@ -1107,7 +1136,6 @@ const JSClassOps MappedArgumentsObject::classOps_ = {
     ArgumentsObject::obj_mayResolve,       // mayResolve
     ArgumentsObject::finalize,             // finalize
     nullptr,                               // call
-    nullptr,                               // hasInstance
     nullptr,                               // construct
     ArgumentsObject::trace,                // trace
 };
@@ -1152,7 +1180,6 @@ const JSClassOps UnmappedArgumentsObject::classOps_ = {
     ArgumentsObject::obj_mayResolve,         // mayResolve
     ArgumentsObject::finalize,               // finalize
     nullptr,                                 // call
-    nullptr,                                 // hasInstance
     nullptr,                                 // construct
     ArgumentsObject::trace,                  // trace
 };

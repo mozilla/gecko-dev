@@ -920,11 +920,7 @@ void HyperTextAccessible::TextBeforeOffset(int32_t aOffset,
                                            int32_t* aStartOffset,
                                            int32_t* aEndOffset,
                                            nsAString& aText) {
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup() &&
-      (aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_START ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_END ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_START ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_END)) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     // This isn't strictly related to caching, but this new text implementation
     // is being developed to make caching feasible. We put it behind this pref
     // to make it easy to test while it's still under development.
@@ -1011,11 +1007,7 @@ void HyperTextAccessible::TextAtOffset(int32_t aOffset,
                                        AccessibleTextBoundary aBoundaryType,
                                        int32_t* aStartOffset,
                                        int32_t* aEndOffset, nsAString& aText) {
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup() &&
-      (aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_START ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_END ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_START ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_END)) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     // This isn't strictly related to caching, but this new text implementation
     // is being developed to make caching feasible. We put it behind this pref
     // to make it easy to test while it's still under development.
@@ -1110,11 +1102,7 @@ void HyperTextAccessible::TextAfterOffset(int32_t aOffset,
                                           int32_t* aStartOffset,
                                           int32_t* aEndOffset,
                                           nsAString& aText) {
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup() &&
-      (aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_START ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_WORD_END ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_START ||
-       aBoundaryType == nsIAccessibleText::BOUNDARY_LINE_END)) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     // This isn't strictly related to caching, but this new text implementation
     // is being developed to make caching feasible. We put it behind this pref
     // to make it easy to test while it's still under development.
@@ -1424,26 +1412,6 @@ already_AddRefed<AccAttributes> HyperTextAccessible::NativeAttributes() {
   }
 
   return attributes.forget();
-}
-
-nsAtom* HyperTextAccessible::LandmarkRole() const {
-  if (!HasOwnContent()) return nullptr;
-
-  // For the html landmark elements we expose them like we do ARIA landmarks to
-  // make AT navigation schemes "just work".
-  if (mContent->IsHTMLElement(nsGkAtoms::nav)) {
-    return nsGkAtoms::navigation;
-  }
-
-  if (mContent->IsHTMLElement(nsGkAtoms::aside)) {
-    return nsGkAtoms::complementary;
-  }
-
-  if (mContent->IsHTMLElement(nsGkAtoms::main)) {
-    return nsGkAtoms::main;
-  }
-
-  return AccessibleWrap::LandmarkRole();
 }
 
 int32_t HyperTextAccessible::OffsetAtPoint(int32_t aX, int32_t aY,
@@ -2124,21 +2092,13 @@ void HyperTextAccessible::Shutdown() {
 }
 
 bool HyperTextAccessible::RemoveChild(LocalAccessible* aAccessible) {
-  const int32_t childIndex = aAccessible->IndexInParent();
-  if (childIndex < static_cast<int64_t>(mOffsets.Length())) {
-    mOffsets.RemoveLastElements(mOffsets.Length() -
-                                aAccessible->IndexInParent());
-  }
-
+  InvalidateCachedHyperTextOffsets();
   return AccessibleWrap::RemoveChild(aAccessible);
 }
 
 bool HyperTextAccessible::InsertChildAt(uint32_t aIndex,
                                         LocalAccessible* aChild) {
-  if (aIndex < mOffsets.Length()) {
-    mOffsets.RemoveLastElements(mOffsets.Length() - aIndex);
-  }
-
+  InvalidateCachedHyperTextOffsets();
   return AccessibleWrap::InsertChildAt(aIndex, aChild);
 }
 
@@ -2228,65 +2188,6 @@ nsresult HyperTextAccessible::RenderedToContentOffset(
   *aContentOffset = text.mOffsetWithinNodeText;
 
   return NS_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// HyperTextAccessible public
-
-int32_t HyperTextAccessible::GetChildOffset(uint32_t aChildIndex,
-                                            bool aInvalidateAfter) const {
-  if (aChildIndex == 0) {
-    if (aInvalidateAfter) mOffsets.Clear();
-
-    return aChildIndex;
-  }
-
-  int32_t count = mOffsets.Length() - aChildIndex;
-  if (count > 0) {
-    if (aInvalidateAfter) mOffsets.RemoveElementsAt(aChildIndex, count);
-
-    return mOffsets[aChildIndex - 1];
-  }
-
-  uint32_t lastOffset =
-      mOffsets.IsEmpty() ? 0 : mOffsets[mOffsets.Length() - 1];
-
-  while (mOffsets.Length() < aChildIndex) {
-    LocalAccessible* child = mChildren[mOffsets.Length()];
-    lastOffset += nsAccUtils::TextLength(child);
-    mOffsets.AppendElement(lastOffset);
-  }
-
-  return mOffsets[aChildIndex - 1];
-}
-
-int32_t HyperTextAccessible::GetChildIndexAtOffset(uint32_t aOffset) const {
-  uint32_t lastOffset = 0;
-  const uint32_t offsetCount = mOffsets.Length();
-
-  if (offsetCount > 0) {
-    lastOffset = mOffsets[offsetCount - 1];
-    if (aOffset < lastOffset) {
-      size_t index;
-      if (BinarySearch(mOffsets, 0, offsetCount, aOffset, &index)) {
-        return (index < (offsetCount - 1)) ? index + 1 : index;
-      }
-
-      return (index == offsetCount) ? -1 : index;
-    }
-  }
-
-  uint32_t childCount = ChildCount();
-  while (mOffsets.Length() < childCount) {
-    LocalAccessible* child = LocalChildAt(mOffsets.Length());
-    lastOffset += nsAccUtils::TextLength(child);
-    mOffsets.AppendElement(lastOffset);
-    if (aOffset < lastOffset) return mOffsets.Length() - 1;
-  }
-
-  if (aOffset == lastOffset) return mOffsets.Length() - 1;
-
-  return -1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

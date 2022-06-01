@@ -1,9 +1,5 @@
-commit 45a913c057892bdd26f7bc06a59a0c7420f2d3ec
-Author: Philip Chimento <pchimento@igalia.com>
-Date:   Wed Aug 11 12:31:23 2021 -0700
+commit 2e7cdfbe18eae4309677033673bb4b5ac6b1de40
+Author: legendecas <legendecas@gmail.com>
+Date:   Mon May 2 22:56:46 2022 +0800
 
-    Add branding tests from Temporal (#3138)
-    
-    Closes: #3137
-    
-    Co-authored-by: Ms2ger <Ms2ger@igalia.com>
+    Fix generator clean fail on .DS_Store

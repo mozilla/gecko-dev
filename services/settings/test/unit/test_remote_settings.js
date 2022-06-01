@@ -1,7 +1,5 @@
 /* import-globals-from ../../../common/tests/unit/head_helpers.js */
 
-const { Constructor: CC } = Components;
-
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
@@ -15,7 +13,7 @@ const { RemoteSettings } = ChromeUtils.import(
   "resource://services-settings/remote-settings.js"
 );
 const { Utils } = ChromeUtils.import("resource://services-settings/Utils.jsm");
-const { UptakeTelemetry } = ChromeUtils.import(
+const { UptakeTelemetry, Policy } = ChromeUtils.import(
   "resource://services-common/uptake-telemetry.js"
 );
 const { TelemetryTestUtils } = ChromeUtils.import(
@@ -24,12 +22,7 @@ const { TelemetryTestUtils } = ChromeUtils.import(
 
 const IS_ANDROID = AppConstants.platform == "android";
 
-const BinaryInputStream = CC(
-  "@mozilla.org/binaryinputstream;1",
-  "nsIBinaryInputStream",
-  "setInputStream"
-);
-
+const TELEMETRY_COMPONENT = "remotesettings";
 const TELEMETRY_EVENTS_FILTERS = {
   category: "uptake.remotecontent.result",
   method: "uptake",
@@ -40,6 +33,10 @@ let client;
 let clientWithDump;
 
 async function clear_state() {
+  // Reset preview mode.
+  RemoteSettings.enablePreviewMode(undefined);
+  Services.prefs.clearUserPref("services.settings.preview_enabled");
+
   client.verifySignature = false;
   clientWithDump.verifySignature = false;
 
@@ -50,8 +47,6 @@ async function clear_state() {
 
   await clientWithDump.db.clear();
 
-  Services.prefs.clearUserPref("services.settings.default_bucket");
-
   // Clear events snapshot.
   TelemetryTestUtils.assertEvents([], {}, { process: "dummy" });
 }
@@ -60,6 +55,10 @@ function run_test() {
   // Set up an HTTP Server
   server = new HttpServer();
   server.start(-1);
+
+  // Pretend we are in nightly channel to make sure all telemetry events are sent.
+  let oldGetChannel = Policy.getChannel;
+  Policy.getChannel = () => "nightly";
 
   // Point the blocklist clients to use this local HTTP server.
   Services.prefs.setCharPref(
@@ -93,7 +92,8 @@ function run_test() {
 
   run_next_test();
 
-  registerCleanupFunction(function() {
+  registerCleanupFunction(() => {
+    Policy.getChannel = oldGetChannel;
     server.stop(() => {});
   });
 }
@@ -162,7 +162,8 @@ add_task(async function test_throws_when_network_is_offline() {
   const backupOffline = Services.io.offline;
   try {
     Services.io.offline = true;
-    const startHistogram = getUptakeTelemetrySnapshot(
+    const startSnapshot = getUptakeTelemetrySnapshot(
+      TELEMETRY_COMPONENT,
       clientWithDump.identifier
     );
     let error;
@@ -173,11 +174,14 @@ add_task(async function test_throws_when_network_is_offline() {
     }
     equal(error.name, "NetworkOfflineError");
 
-    const endHistogram = getUptakeTelemetrySnapshot(clientWithDump.identifier);
+    const endSnapshot = getUptakeTelemetrySnapshot(
+      TELEMETRY_COMPONENT,
+      clientWithDump.identifier
+    );
     const expectedIncrements = {
       [UptakeTelemetry.STATUS.NETWORK_OFFLINE_ERROR]: 1,
     };
-    checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+    checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
   } finally {
     Services.io.offline = backupOffline;
   }
@@ -196,7 +200,10 @@ add_task(async function test_sync_event_is_sent_even_if_up_to_date() {
   await clear_state();
 
   // Now, simulate that server data wasn't changed since dump was released.
-  const startHistogram = getUptakeTelemetrySnapshot(clientWithDump.identifier);
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    clientWithDump.identifier
+  );
   let received;
   clientWithDump.on("sync", ({ data }) => (received = data));
 
@@ -205,9 +212,12 @@ add_task(async function test_sync_event_is_sent_even_if_up_to_date() {
   ok(received.current.length > 0, "Dump records are listed as created");
   equal(received.current.length, received.created.length);
 
-  const endHistogram = getUptakeTelemetrySnapshot(clientWithDump.identifier);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    clientWithDump.identifier
+  );
   const expectedIncrements = { [UptakeTelemetry.STATUS.UP_TO_DATE]: 1 };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
@@ -254,16 +264,6 @@ add_task(
     // No synchronization happened (responses are not mocked).
   }
 );
-add_task(clear_state);
-
-add_task(async function test_get_does_not_load_dump_when_pref_is_false() {
-  Services.prefs.setBoolPref("services.settings.load_dump", false);
-
-  const data = await clientWithDump.get();
-
-  equal(data.map(r => r.id).join(", "), "pt-BR, xx"); // No dump, 2 pulled from test server.
-  Services.prefs.clearUserPref("services.settings.load_dump");
-});
 add_task(clear_state);
 
 add_task(async function test_get_loads_dump_only_once_if_called_in_parallel() {
@@ -757,57 +757,70 @@ add_task(clear_state);
 
 add_task(async function test_telemetry_reports_up_to_date() {
   await client.maybeSync(2000);
-  const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
 
   await client.maybeSync(3000);
 
   // No Telemetry was sent.
-  const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
   const expectedIncrements = { [UptakeTelemetry.STATUS.UP_TO_DATE]: 1 };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
 add_task(async function test_telemetry_if_sync_succeeds() {
   // We test each client because Telemetry requires preleminary declarations.
-  const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
 
   await client.maybeSync(2000);
 
-  const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
   const expectedIncrements = { [UptakeTelemetry.STATUS.SUCCESS]: 1 };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
 add_task(
   async function test_synchronization_duration_is_reported_in_uptake_status() {
-    await withFakeChannel("nightly", async () => {
-      await client.maybeSync(2000);
+    await client.maybeSync(2000);
 
-      TelemetryTestUtils.assertEvents(
+    TelemetryTestUtils.assertEvents(
+      [
         [
-          [
-            "uptake.remotecontent.result",
-            "uptake",
-            "remotesettings",
-            UptakeTelemetry.STATUS.SUCCESS,
-            {
-              source: client.identifier,
-              duration: v => v > 0,
-              trigger: "manual",
-            },
-          ],
+          "uptake.remotecontent.result",
+          "uptake",
+          "remotesettings",
+          UptakeTelemetry.STATUS.SUCCESS,
+          {
+            source: client.identifier,
+            duration: v => v > 0,
+            trigger: "manual",
+          },
         ],
-        TELEMETRY_EVENTS_FILTERS
-      );
-    });
+      ],
+      TELEMETRY_EVENTS_FILTERS
+    );
   }
 );
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_if_application_fails() {
-  const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
   client.on("sync", () => {
     throw new Error("boom");
   });
@@ -816,54 +829,75 @@ add_task(async function test_telemetry_reports_if_application_fails() {
     await client.maybeSync(2000);
   } catch (e) {}
 
-  const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
   const expectedIncrements = { [UptakeTelemetry.STATUS.APPLY_ERROR]: 1 };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_if_sync_fails() {
   await client.db.importChanges({}, 9999);
 
-  const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
 
   try {
     await client.maybeSync(10000);
   } catch (e) {}
 
-  const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
   const expectedIncrements = { [UptakeTelemetry.STATUS.SERVER_ERROR]: 1 };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_if_parsing_fails() {
   await client.db.importChanges({}, 10000);
 
-  const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
 
   try {
     await client.maybeSync(10001);
   } catch (e) {}
 
-  const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
   const expectedIncrements = { [UptakeTelemetry.STATUS.PARSE_ERROR]: 1 };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_if_fetching_signature_fails() {
   await client.db.importChanges({}, 11000);
 
-  const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
 
   try {
     await client.maybeSync(11001);
   } catch (e) {}
 
-  const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
   const expectedIncrements = { [UptakeTelemetry.STATUS.SERVER_ERROR]: 1 };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
@@ -872,16 +906,22 @@ add_task(async function test_telemetry_reports_unknown_errors() {
   client.db.list = () => {
     throw new Error("Internal");
   };
-  const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
 
   try {
     await client.maybeSync(2000);
   } catch (e) {}
 
   client.db.list = backup;
-  const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
   const expectedIncrements = { [UptakeTelemetry.STATUS.UNKNOWN_ERROR]: 1 };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
@@ -892,16 +932,22 @@ add_task(async function test_telemetry_reports_indexeddb_as_custom_1() {
   client.db.getLastModified = () => {
     throw new Error(msg);
   };
-  const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const startSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
 
   try {
     await client.maybeSync(2000);
   } catch (e) {}
 
   client.db.getLastModified = backup;
-  const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
+  const endSnapshot = getUptakeTelemetrySnapshot(
+    TELEMETRY_COMPONENT,
+    client.identifier
+  );
   const expectedIncrements = { [UptakeTelemetry.STATUS.CUSTOM_1_ERROR]: 1 };
-  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
 
@@ -913,70 +959,79 @@ add_task(async function test_telemetry_reports_error_name_as_event_nightly() {
     throw e;
   };
 
-  await withFakeChannel("nightly", async () => {
-    try {
-      await client.maybeSync(2000);
-    } catch (e) {}
+  try {
+    await client.maybeSync(2000);
+  } catch (e) {}
 
-    TelemetryTestUtils.assertEvents(
+  TelemetryTestUtils.assertEvents(
+    [
       [
-        [
-          "uptake.remotecontent.result",
-          "uptake",
-          "remotesettings",
-          UptakeTelemetry.STATUS.UNKNOWN_ERROR,
-          {
-            source: client.identifier,
-            trigger: "manual",
-            duration: v => v >= 0,
-            errorName: "ThrownError",
-          },
-        ],
+        "uptake.remotecontent.result",
+        "uptake",
+        "remotesettings",
+        UptakeTelemetry.STATUS.UNKNOWN_ERROR,
+        {
+          source: client.identifier,
+          trigger: "manual",
+          duration: v => v >= 0,
+          errorName: "ThrownError",
+        },
       ],
-      TELEMETRY_EVENTS_FILTERS
-    );
-  });
+    ],
+    TELEMETRY_EVENTS_FILTERS
+  );
 
   client.db.list = backup;
 });
 add_task(clear_state);
 
-add_task(async function test_bucketname_changes_when_bucket_pref_changes() {
+add_task(async function test_bucketname_changes_when_preview_mode_is_enabled() {
   equal(client.bucketName, "main");
 
-  Services.prefs.setCharPref(
-    "services.settings.default_bucket",
-    "main-preview"
-  );
+  RemoteSettings.enablePreviewMode(true);
 
   equal(client.bucketName, "main-preview");
 });
 add_task(clear_state);
 
-add_task(async function test_bucket_pref_ignored_when_bucketName_set() {
-  let clientWithBucket = RemoteSettings("coll", { bucketName: "buck" });
-  equal(clientWithBucket.collectionName, "coll");
-  equal(clientWithBucket.bucketName, "buck");
+add_task(
+  async function test_preview_mode_pref_affects_bucket_names_before_instantiated() {
+    Services.prefs.setBoolPref("services.settings.preview_enabled", true);
 
-  Services.prefs.setCharPref(
-    "services.settings.default_bucket",
-    "coll-preview"
-  );
+    let clientWithDefaultBucket = RemoteSettings("other");
+    let clientWithBucket = RemoteSettings("coll", { bucketName: "buck" });
 
-  equal(clientWithBucket.bucketName, "buck");
-});
+    equal(clientWithDefaultBucket.bucketName, "main-preview");
+    equal(clientWithBucket.bucketName, "buck-preview");
+  }
+);
 add_task(clear_state);
 
 add_task(
-  async function test_get_loads_default_records_from_a_local_dump_if_preview_collection() {
+  async function test_preview_enabled_pref_ignored_when_mode_is_set_explicitly() {
+    Services.prefs.setBoolPref("services.settings.preview_enabled", true);
+
+    let clientWithDefaultBucket = RemoteSettings("other");
+    let clientWithBucket = RemoteSettings("coll", { bucketName: "buck" });
+
+    equal(clientWithDefaultBucket.bucketName, "main-preview");
+    equal(clientWithBucket.bucketName, "buck-preview");
+
+    RemoteSettings.enablePreviewMode(false);
+
+    equal(clientWithDefaultBucket.bucketName, "main");
+    equal(clientWithBucket.bucketName, "buck");
+  }
+);
+add_task(clear_state);
+
+add_task(
+  async function test_get_loads_default_records_from_a_local_dump_when_preview_mode_is_enabled() {
     if (IS_ANDROID) {
       // Skip test: we don't ship remote settings dumps on Android (see package-manifest).
       return;
     }
-    Services.prefs.setCharPref(
-      "services.settings.default_bucket",
-      "main-preview"
-    );
+    RemoteSettings.enablePreviewMode(true);
     // When collection has a dump in services/settings/dumps/{bucket}/{collection}.json
     const data = await clientWithDump.get();
     notEqual(data.length, 0);
@@ -985,16 +1040,38 @@ add_task(
 );
 add_task(clear_state);
 
+add_task(async function test_local_db_distinguishes_preview_records() {
+  RemoteSettings.enablePreviewMode(true);
+  client.db.importChanges({}, Date.now(), [{ id: "record-1" }], {
+    clear: true,
+  });
+
+  RemoteSettings.enablePreviewMode(false);
+  client.db.importChanges({}, Date.now(), [{ id: "record-2" }], {
+    clear: true,
+  });
+
+  deepEqual(await client.get(), [{ id: "record-2" }]);
+});
+add_task(clear_state);
+
 add_task(
-  async function test_inspect_changes_the_list_when_bucket_pref_is_changed() {
+  async function test_inspect_changes_the_list_when_preview_mode_is_enabled() {
     if (IS_ANDROID) {
-      // Skip test: we don't ship remote settings dumps on Android (see package-manifest).
+      // Skip test: we don't ship remote settings dumps on Android (see package-manifest),
+      // and this test relies on the fact that clients are instantiated if a dump is packaged.
       return;
     }
+
     // Register a client only listed in -preview...
     RemoteSettings("crash-rate");
 
-    const { collections: before } = await RemoteSettings.inspect();
+    const {
+      collections: before,
+      previewMode: previewModeBefore,
+    } = await RemoteSettings.inspect();
+
+    Assert.ok(!previewModeBefore, "preview is not enabled");
 
     // These two collections are listed in the main bucket in monitor/changes (one with dump, one registered).
     deepEqual(before.map(c => c.collection).sort(), [
@@ -1002,12 +1079,16 @@ add_task(
       "password-fields",
     ]);
 
-    // Switch to main-preview bucket.
-    Services.prefs.setCharPref(
-      "services.settings.default_bucket",
-      "main-preview"
-    );
-    const { collections: after, mainBucket } = await RemoteSettings.inspect();
+    // Switch to preview mode.
+    RemoteSettings.enablePreviewMode(true);
+
+    const {
+      collections: after,
+      mainBucket,
+      previewMode,
+    } = await RemoteSettings.inspect();
+
+    Assert.ok(previewMode, "preview is enabled");
 
     // These two collections are listed in the main bucket in monitor/changes (both are registered).
     deepEqual(after.map(c => c.collection).sort(), [
@@ -1017,6 +1098,35 @@ add_task(
     equal(mainBucket, "main-preview");
   }
 );
+add_task(clear_state);
+
+add_task(async function test_sync_event_is_not_sent_from_get_when_no_dump() {
+  let called = false;
+  client.on("sync", e => {
+    called = true;
+  });
+
+  await client.get();
+
+  Assert.ok(!called, "sync event is not sent from .get()");
+});
+add_task(clear_state);
+
+add_task(async function test_get_can_be_called_from_sync_event_callback() {
+  let fromGet;
+  let fromEvent;
+
+  client.on("sync", async ({ data: { current } }) => {
+    // Before fixing Bug 1761953 this would result in a deadlock.
+    fromGet = await client.get();
+    fromEvent = current;
+  });
+
+  await client.maybeSync(2000);
+
+  Assert.ok(fromGet, "sync callback was called");
+  Assert.deepEqual(fromGet, fromEvent, ".get() gives current records list");
+});
 add_task(clear_state);
 
 function handleResponse(request, response) {

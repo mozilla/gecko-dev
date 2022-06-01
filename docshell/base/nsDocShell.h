@@ -501,7 +501,8 @@ class nsDocShell final : public nsDocLoader,
       mozilla::dom::BrowsingContext* aBrowsingContext, uint32_t aLoadType);
 
   void SetLoadingSessionHistoryInfo(
-      const mozilla::dom::LoadingSessionHistoryInfo& aLoadingInfo);
+      const mozilla::dom::LoadingSessionHistoryInfo& aLoadingInfo,
+      bool aNeedToReportActiveAfterLoadingBecomesActive = false);
   const mozilla::dom::LoadingSessionHistoryInfo*
   GetLoadingSessionHistoryInfo() {
     return mLoadingEntry.get();
@@ -675,6 +676,12 @@ class nsDocShell final : public nsDocLoader,
       nsIURI* aCurrentURI, nsIReferrerInfo* aReferrerInfo,
       bool aNotifiedBeforeUnloadListeners = false);
 
+ public:
+  bool IsAboutBlankLoadOntoInitialAboutBlank(nsIURI* aURI,
+                                             bool aInheritPrincipal,
+                                             nsIPrincipal* aPrincipalToInherit);
+
+ private:
   //
   // URI Load
   //
@@ -732,12 +739,12 @@ class nsDocShell final : public nsDocLoader,
                 nsIContentSecurityPolicy* aCsp, bool aFireOnLocationChange,
                 bool aAddToGlobalHistory, bool aCloneSHChildren);
 
+ public:
   // If wireframe collection is enabled, will attempt to gather the
   // wireframe for the document and stash it inside of the active history
-  // entry.
-  void CollectWireframe();
+  // entry. Returns true if wireframes were collected.
+  bool CollectWireframe();
 
- public:
   // Helper method that is called when a new document (including any
   // sub-documents - ie. frames) has been completely loaded.
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
@@ -881,7 +888,8 @@ class nsDocShell final : public nsDocLoader,
   // has not been created yet. |aNewDocument| should be the document that will
   // replace the current document.
   bool CanSavePresentation(uint32_t aLoadType, nsIRequest* aNewRequest,
-                           mozilla::dom::Document* aNewDocument);
+                           mozilla::dom::Document* aNewDocument,
+                           bool aReportBFCacheComboTelemetry);
 
   static void ReportBFCacheComboTelemetry(uint32_t aCombo);
 
@@ -1106,7 +1114,8 @@ class nsDocShell final : public nsDocLoader,
   bool NoopenerForceEnabled();
 
   bool ShouldOpenInBlankTarget(const nsAString& aOriginalTarget,
-                               nsIURI* aLinkURI, nsIContent* aContent);
+                               nsIURI* aLinkURI, nsIContent* aContent,
+                               bool aIsUserTriggered);
 
   void RecordSingleChannelId(bool aStartRequest, nsIRequest* aRequest);
 
@@ -1213,7 +1222,9 @@ class nsDocShell final : public nsDocLoader,
   // These are only set when fission.sessionHistoryInParent is set.
   mozilla::UniquePtr<mozilla::dom::SessionHistoryInfo> mActiveEntry;
   bool mActiveEntryIsLoadingFromSessionHistory = false;
-  // mLoadingEntry is set when we're about to start loading.
+  // mLoadingEntry is set when we're about to start loading. Whenever
+  // setting mLoadingEntry, be sure to also set
+  // mNeedToReportActiveAfterLoadingBecomesActive.
   mozilla::UniquePtr<mozilla::dom::LoadingSessionHistoryInfo> mLoadingEntry;
 
   // Holds a weak pointer to a RestorePresentationEvent object if any that
@@ -1362,6 +1373,12 @@ class nsDocShell final : public nsDocLoader,
    * a possible history load. Used only with iframes.
    */
   bool mCheckingSessionHistory : 1;
+
+  // Whether mBrowsingContext->SetActiveSessionHistoryEntry() needs to be called
+  // when the loading entry becomes the active entry. This is used for the
+  // initial about:blank-replacing about:blank in order to make the history
+  // length WPTs pass.
+  bool mNeedToReportActiveAfterLoadingBecomesActive : 1;
 };
 
 inline nsISupports* ToSupports(nsDocShell* aDocShell) {

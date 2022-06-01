@@ -96,10 +96,15 @@ class Axis {
   void StartTouch(ParentLayerCoord aPos, TimeStamp aTimestamp);
 
   /**
+   * Helper enum class for specifying if EndTouch() should clear the axis lock.
+   */
+  enum class ClearAxisLock { Yes, No };
+
+  /**
    * Notify this Axis that a touch has ended gracefully. This may perform
    * recalculations of the axis velocity.
    */
-  void EndTouch(TimeStamp aTimestamp);
+  void EndTouch(TimeStamp aTimestamp, ClearAxisLock aClearAxisLock);
 
   /**
    * Notify this Axis that the gesture has ended forcefully. Useful for stopping
@@ -155,9 +160,11 @@ class Axis {
 
   /**
    * Sample the snap-back animation to relieve overscroll.
-   * |aDelta| is the time since the last sample.
+   * |aDelta| is the time since the last sample, |aOverscrollSideBits| is
+   * the direction where the overscroll happens on this axis.
    */
-  bool SampleOverscrollAnimation(const TimeDuration& aDelta);
+  bool SampleOverscrollAnimation(const TimeDuration& aDelta,
+                                 SideBits aOverscrollSideBits);
 
   /**
    * Stop an overscroll animation.

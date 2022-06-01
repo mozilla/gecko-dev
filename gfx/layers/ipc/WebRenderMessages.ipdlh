@@ -13,6 +13,7 @@ include LayersMessages;
 include protocol PTexture;
 
 using mozilla::layers::CompositableHandle from "mozilla/layers/LayersTypes.h";
+using mozilla::layers::CompositableHandleOwner from "mozilla/layers/LayersTypes.h";
 using mozilla::wr::LayoutSize from "mozilla/webrender/webrender_ffi.h";
 using mozilla::wr::ImageDescriptor from "mozilla/webrender/webrender_ffi.h";
 using mozilla::wr::ImageRendering from "mozilla/webrender/webrender_ffi.h";
@@ -41,12 +42,6 @@ struct RefCountedShmem {
   Shmem buffer;
 };
 
-struct OpAddPrivateExternalImage {
-  ExternalImageId externalImageId;
-  ImageKey key;
-  ImageDescriptor descriptor;
-};
-
 struct OpAddSharedExternalImage {
   ExternalImageId externalImageId;
   ImageKey key;
@@ -66,7 +61,7 @@ struct OpAddCompositorAnimations {
 struct OpAddPipelineIdForCompositable {
   PipelineId pipelineId;
   CompositableHandle handle;
-  bool isAsync;
+  CompositableHandleOwner owner;
 };
 
 struct OpRemovePipelineIdForCompositable {
@@ -139,13 +134,6 @@ struct OpSetBlobImageVisibleArea {
   BlobImageKey key;
 };
 
-struct OpUpdatePrivateExternalImage {
-  ExternalImageId externalImageId;
-  ImageKey key;
-  ImageDescriptor descriptor;
-  ImageIntRect dirtyRect;
-};
-
 struct OpUpdateSharedExternalImage {
   ExternalImageId externalImageId;
   ImageKey key;
@@ -202,10 +190,8 @@ union OpUpdateResource {
   OpDeleteFont;
   OpAddFontInstance;
   OpDeleteFontInstance;
-  OpAddPrivateExternalImage;
   OpAddSharedExternalImage;
   OpPushExternalImageForTexture;
-  OpUpdatePrivateExternalImage;
   OpUpdateSharedExternalImage;
 };
 

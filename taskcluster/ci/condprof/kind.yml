@@ -5,19 +5,20 @@
 loader: gecko_taskgraph.loader.transform:loader
 
 kind-dependencies:
-    - toolchain
     - build
+    - toolchain
 
 transforms:
+    - gecko_taskgraph.transforms.condprof:transforms
     - gecko_taskgraph.transforms.job:transforms
     - gecko_taskgraph.transforms.task:transforms
 
 job-defaults:
-    run-on-projects:
-        - mozilla-central
     treeherder:
         kind: other
         tier: 2
+    scenarios:
+        - settled
     run:
         using: run-task
         cwd: fetches/condprofile
@@ -32,6 +33,7 @@ jobs:
     windows2012-64-firefox:
         worker-type: b-win2012
         description: Creates or updates conditioned profiles on Win64
+        run-on-projects: ['mozilla-central']
         treeherder:
             symbol: condprof(firefox)
             platform: windows2012-64/opt
@@ -40,6 +42,9 @@ jobs:
             job-name: condprof-win64
         dependencies:
             build: build-win64-shippable/opt
+        scenarios:
+            - settled
+            - full
         fetches:
             build:
                 - artifact: target.condprof.tests.tar.gz
@@ -49,10 +54,10 @@ jobs:
         run:
             command: >-
                 python3.exe condprof/main.py
-                --force-new
+                ${EXTRA_ARGS}
                 --geckodriver ${MOZ_FETCHES_DIR}/geckodriver.exe
                 --firefox ${MOZ_FETCHES_DIR}/firefox/firefox.exe
-                --scenario settled
+                --scenario ${SCENARIO}
                 ../../archive
         worker:
             artifacts:
@@ -62,6 +67,7 @@ jobs:
     linux64-firefox:
         worker-type: b-linux
         description: Creates or updates conditioned profiles on Linux
+        run-on-projects: ['mozilla-central']
         treeherder:
             symbol: condprof(firefox)
             platform: linux64/opt
@@ -70,6 +76,9 @@ jobs:
             job-name: condprof-linux64
         dependencies:
             build: build-linux64-shippable/opt
+        scenarios:
+            - settled
+            - full
         fetches:
             build:
                 - artifact: target.condprof.tests.tar.gz
@@ -80,10 +89,10 @@ jobs:
             command: >-
                 python3.7 virtualenv/virtualenv.py . &&
                 bin/python3.7 condprof/main.py
-                --force-new
+                ${EXTRA_ARGS}
                 --geckodriver ${MOZ_FETCHES_DIR}/geckodriver
                 --firefox ${MOZ_FETCHES_DIR}/firefox/firefox-bin
-                --scenario settled
+                --scenario ${SCENARIO}
                 ../../archive
         worker:
             docker-image: {in-tree: condprof}
@@ -94,6 +103,7 @@ jobs:
     macosx64-firefox:
         worker-type: t-osx-1015-r8
         description: Creates or updates conditioned profiles on macOS
+        run-on-projects: ['mozilla-central']
         treeherder:
             symbol: condprof(firefox)
             platform: macosx1015-64-qr/opt
@@ -113,10 +123,10 @@ jobs:
             command: >-
                 python3 -m venv . &&
                 bin/python3 condprof/main.py
-                --force-new
+                ${EXTRA_ARGS}
                 --geckodriver ${MOZ_FETCHES_DIR}/geckodriver
                 --firefox ${MOZ_FETCHES_DIR}/target.dmg
-                --scenario settled
+                --scenario ${SCENARIO}
                 ../../archive
         worker:
             artifacts:
@@ -126,6 +136,7 @@ jobs:
     android-hw-g5-7-0-arm7-geckoview:
         worker-type: t-bitbar-gw-perf-g5
         description: Creates or update conditioned profiles on GeckoView+G5
+        run-on-projects: ['mozilla-central']
         treeherder:
             symbol: condprof(geckoview)
             platform: android-hw-g5-7-0-arm7/opt
@@ -147,11 +158,11 @@ jobs:
                 adb install -r $MOZ_FETCHES_DIR/geckoview_example.apk &&
                 python3 virtualenv/virtualenv.py . &&
                 bin/python3 condprof/main.py
-                --force-new
+                ${EXTRA_ARGS}
                 --geckodriver ${MOZ_FETCHES_DIR}/geckodriver
                 --device-name g5
                 --firefox org.mozilla.geckoview_example
-                --scenario settled
+                --scenario ${SCENARIO}
                 ../../archive
         worker:
             artifacts:
@@ -161,6 +172,7 @@ jobs:
     android-hw-g5-7-0-arm7-fenix:
         worker-type: t-bitbar-gw-perf-g5
         description: Creates or update conditioned profiles on Fenix+G5
+        run-on-projects: ['mozilla-central']
         treeherder:
             symbol: condprof(fenix)
             platform: android-hw-g5-7-0-arm7/opt
@@ -182,9 +194,81 @@ jobs:
                 rm -rf target.apk &&
                 python3 virtualenv/virtualenv.py . &&
                 bin/python3 condprof/main.py
-                --force-new
+                ${EXTRA_ARGS}
                 --geckodriver ${MOZ_FETCHES_DIR}/geckodriver
                 --device-name g5
+                --firefox org.mozilla.fenix
+                --scenario ${SCENARIO}
+                ../../archive
+        worker:
+            artifacts:
+                - name: public/condprof
+                  path: archive
+                  type: directory
+    android-hw-a51-11-0-arm7-geckoview:
+        worker-type: t-bitbar-gw-perf-a51
+        description: Creates or update conditioned profiles on GeckoView+A51
+        run-on-projects: []  # bug 1765348
+        treeherder:
+            symbol: condprof(geckoview)
+            platform: android-hw-a51-11-0-arm7/opt
+        index:
+            product: firefox
+            job-name: condprof-a51-geckoview_example
+        dependencies:
+            build: build-android-arm-shippable/opt
+        fetches:
+            build:
+                - artifact: en-US/target.condprof.tests.tar.gz
+                - artifact: geckoview_example.apk
+                  extract: false
+            toolchain:
+                - linux64-geckodriver
+        run:
+            run-as-root: true
+            command: >-
+                adb install -r $MOZ_FETCHES_DIR/geckoview_example.apk &&
+                python3 virtualenv/virtualenv.py . &&
+                bin/python3 condprof/main.py
+                --force-new
+                --geckodriver ${MOZ_FETCHES_DIR}/geckodriver
+                --device-name a51
+                --firefox org.mozilla.geckoview_example
+                --scenario settled
+                ../../archive
+        worker:
+            artifacts:
+                - name: public/condprof
+                  path: archive
+                  type: directory
+    android-hw-a51-11-0-arm7-fenix:
+        worker-type: t-bitbar-gw-perf-a51
+        description: Creates or update conditioned profiles on Fenix+A51
+        run-on-projects: []  # bug 1765348
+        treeherder:
+            symbol: condprof(fenix)
+            platform: android-hw-a51-11-0-arm7/opt
+        index:
+            product: firefox
+            job-name: condprof-a51-fenix
+        dependencies:
+            build: build-linux64-shippable/opt
+        fetches:
+            build:
+                - artifact: target.condprof.tests.tar.gz
+            toolchain:
+                - linux64-geckodriver
+        run:
+            run-as-root: true
+            command: >-
+                curl -L -o target.apk https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/mobile.v2.fenix.nightly.latest.armeabi-v7a/artifacts/public/build/armeabi-v7a/target.apk &&
+                adb install -r target.apk &&
+                rm -rf target.apk &&
+                python3 virtualenv/virtualenv.py . &&
+                bin/python3 condprof/main.py
+                --force-new
+                --geckodriver ${MOZ_FETCHES_DIR}/geckodriver
+                --device-name a51
                 --firefox org.mozilla.fenix
                 --scenario settled
                 ../../archive
@@ -196,6 +280,7 @@ jobs:
     android-hw-p2-8-0-aarch64-fenix:
         worker-type: t-bitbar-gw-perf-p2
         description: Creates or update conditioned profiles on Fenix+P2
+        run-on-projects: ['mozilla-central']
         treeherder:
             symbol: condprof(fenix)
             platform: android-hw-p2-8-0-android-aarch64/opt
@@ -217,11 +302,11 @@ jobs:
                 rm -rf target.apk &&
                 python3 virtualenv/virtualenv.py . &&
                 bin/python3 condprof/main.py
-                --force-new
+                ${EXTRA_ARGS}
                 --geckodriver ${MOZ_FETCHES_DIR}/geckodriver
                 --device-name p2_aarch64
                 --firefox org.mozilla.fenix
-                --scenario settled
+                --scenario ${SCENARIO}
                 ../../archive
         worker:
             artifacts:
@@ -231,6 +316,7 @@ jobs:
     android-hw-p2-8-0-android-aarch64-geckoview:
         worker-type: t-bitbar-gw-perf-p2
         description: Creates or update conditioned profiles on GeckoView+P2
+        run-on-projects: ['mozilla-central']
         treeherder:
             symbol: condprof(geckoview)
             platform: android-hw-p2-8-0-android-aarch64/opt
@@ -252,11 +338,11 @@ jobs:
                 adb install -r $MOZ_FETCHES_DIR/geckoview_example.apk &&
                 python3 virtualenv/virtualenv.py . &&
                 bin/python3 condprof/main.py
-                --force-new
+                ${EXTRA_ARGS}
                 --geckodriver ${MOZ_FETCHES_DIR}/geckodriver
                 --device-name p2_aarch64
                 --firefox org.mozilla.geckoview_example
-                --scenario settled
+                --scenario ${SCENARIO}
                 ../../archive
         worker:
             artifacts:

@@ -29,10 +29,8 @@ jobs:
           - mozilla-central
       when:
           by-project:
-              # Please update the `searchfox-index` job `mozilla-central` `when`
-              # times as well if updating the times here.
-              # `l10n-bumper` job should also have enough time to finish before
-              # this job runs
+              # `l10n-bumper` job should have enough time to finish before this
+              # job runs
               mozilla-central: [{hour: 10, minute: 0}, {hour: 22, minute: 0}]
               # No default
 
@@ -113,37 +111,33 @@ jobs:
 
     # For more context on this job, see:
     # https://github.com/mozsearch/mozsearch-mozilla#how-searchfoxorg-stays-up-to-date
+    # Note that searchfox now runs on-push for mozilla-central, but continues
+    # to use cron jobs for all other branches
     - name: searchfox-index
       job:
           type: decision-task
           treeherder-symbol: Searchfox
           target-tasks-method: searchfox_index
       run-on-projects:
-          - mozilla-central
           - mozilla-beta
           - mozilla-release
           - mozilla-esr91
+          - mozilla-esr102
           - elm
+      # For all non m-c jobs we just run once daily matching the 10 UTC
+      # nightly which is designed to align with searchfox's AWS cron
+      # jobs (for legacy reasons) rather than trying to align with
+      # specific builds.  (Ex: mozilla-beta has a "daily-releases" job
+      # that currently runs 3 times a week.)
+      #
+      # Note that for branches that don't change a lot this will result
+      # in a redundant job being scheduled each day rather than reusing
+      # the previous day's job.  This is only beneficial in the sense
+      # that there's no risk of expiration for artifacts and is a
+      # trade-off to avoid stale indices.  Bug 1686981 tracks fixing
+      # this.
       when:
-          by-project:
-              # We want to run at both of the times the nightly runs.
-              mozilla-central: [{hour: 10, minute: 0}, {hour: 22, minute: 0}]
-              # For all other jobs we just run once daily matching the 10 UTC
-              # nightly which is designed to align with searchfox's AWS cron
-              # jobs (for legacy reasons) rather than trying to align with
-              # specific builds.  (Ex: mozilla-beta has a "daily-releases" job
-              # that currently runs 3 times a week.)
-              #
-              # Note that for branches that don't change a lot this will result
-              # in a redundant job being scheduled each day rather than reusing
-              # the previous day's job.  This is only beneficial in the sense
-              # that there's no risk of expiration for artifacts and is a
-              # trade-off to avoid stale indices.  Bug 1686981 tracks fixing
-              # this.
-              mozilla-beta: [{hour: 10, minute: 0}]
-              mozilla-release: [{hour: 10, minute: 0}]
-              mozilla-esr91: [{hour: 10, minute: 0}]
-              elm: [{hour: 10, minute: 0}]
+          - {hour: 10, minute: 0}
 
     - name: linux64-clang-trunk-perf
       job:
@@ -228,6 +222,7 @@ jobs:
           - mozilla-beta
           - mozilla-release
           - mozilla-esr91
+          - mozilla-esr102
       when:
           - {weekday: 'Monday', hour: 8, minute: 0}
           - {weekday: 'Thursday', hour: 8, minute: 0}
@@ -249,16 +244,16 @@ jobs:
           - {weekday: 'Saturday', hour: 3, minute: 0}
           - {weekday: 'Sunday', hour: 3, minute: 0}
 
-    - name: perftest-s7
+    - name: backfill-all-browsertime
       job:
           type: decision-task
-          treeherder-symbol: tp6m
-          target-tasks-method: perftest_s7
+          treeherder-symbol: baB
+          target-tasks-method: backfill_all_browsertime
           include-push-tasks: true
       run-on-projects:
-          - mozilla-central
+          - autoland
       when:
-          - {weekday: 'Saturday', hour: 3, minute: 0}
+          - {hour: 5, minute: 0}
 
     - name: condprof
       job:
@@ -281,12 +276,12 @@ jobs:
           - mozilla-central
           - mozilla-beta
       when:
-        by-project:
-            # 3h15m before launch of `nightly-desktop`
-            mozilla-central: [{hour: 6, minute: 45}, {hour: 18, minute: 45}]
-            # 3h15m before launch of `daily-releases`
-            mozilla-beta: [{hour: 18, minute: 45}]
-            # No default
+          by-project:
+              # 3h15m before launch of `nightly-desktop`
+              mozilla-central: [{hour: 6, minute: 45}, {hour: 18, minute: 45}]
+              # 3h15m before launch of `daily-releases`
+              mozilla-beta: [{hour: 18, minute: 45}]
+              # No default
 
     - name: system-symbols
       job:

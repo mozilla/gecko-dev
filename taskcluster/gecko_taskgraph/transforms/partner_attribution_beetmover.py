@@ -5,6 +5,11 @@
 Transform the beetmover task into an actual task description.
 """
 
+from collections import defaultdict
+from copy import deepcopy
+
+from taskgraph.util.taskcluster import get_artifact_prefix
+from voluptuous import Any, Required, Optional
 
 from gecko_taskgraph.loader.single_dep import schema
 from gecko_taskgraph.transforms.base import TransformSequence
@@ -25,12 +30,7 @@ from gecko_taskgraph.util.scriptworker import (
     add_scope_prefix,
     get_beetmover_bucket_scope,
 )
-from gecko_taskgraph.util.taskcluster import get_artifact_prefix
 from gecko_taskgraph.transforms.task import task_description_schema
-from voluptuous import Any, Required, Optional
-
-from collections import defaultdict
-from copy import deepcopy
 
 
 beetmover_description_schema = schema.extend(
@@ -72,7 +72,9 @@ def split_public_and_private(config, jobs):
     # in a single task. Only use a single task for each type though.
     partner_config = get_partner_config_by_kind(config, config.kind)
     for job in jobs:
-        upstream_artifacts = job["primary-dependency"].release_artifacts
+        upstream_artifacts = job["primary-dependency"].attributes.get(
+            "release_artifacts"
+        )
         attribution_task_ref = "<{}>".format(job["primary-dependency"].label)
         prefix = get_artifact_prefix(job["primary-dependency"])
         artifacts = defaultdict(list)

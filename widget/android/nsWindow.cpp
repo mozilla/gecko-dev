@@ -23,6 +23,7 @@
 #include "AndroidView.h"
 #include "gfxContext.h"
 #include "GeckoEditableSupport.h"
+#include "GeckoViewOutputStream.h"
 #include "GeckoViewSupport.h"
 #include "GLContext.h"
 #include "GLContextProvider.h"
@@ -42,6 +43,7 @@
 #include "nsFocusManager.h"
 #include "nsGkAtoms.h"
 #include "nsGfxCIID.h"
+#include "nsIDocShellTreeOwner.h"
 #include "nsLayoutUtils.h"
 #include "nsNetUtil.h"
 #include "nsPrintfCString.h"
@@ -57,6 +59,7 @@
 #include "nsIWindowWatcher.h"
 #include "nsIAppWindow.h"
 
+#include "mozilla/Logging.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
@@ -67,6 +70,7 @@
 #include "mozilla/WheelHandlingHelper.h"  // for WheelDeltaAdjustmentStrategy
 #include "mozilla/a11y/SessionAccessibility.h"
 #include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/BrowserHost.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentParent.h"
@@ -84,6 +88,7 @@
 #include "mozilla/java/GeckoSystemStateListenerWrappers.h"
 #include "mozilla/java/PanZoomControllerNatives.h"
 #include "mozilla/java/SessionAccessibilityWrappers.h"
+#include "mozilla/java/SurfaceControlManagerWrappers.h"
 #include "mozilla/layers/APZEventState.h"
 #include "mozilla/layers/APZInputBridge.h"
 #include "mozilla/layers/APZThreadUtils.h"
@@ -95,6 +100,8 @@
 #include "mozilla/layers/IAPZCTreeManager.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/widget/AndroidVsync.h"
+
+#define GVS_LOG(...) MOZ_LOG(sGVSupportLog, LogLevel::Warning, (__VA_ARGS__))
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -109,6 +116,9 @@ using mozilla::gfx::IntSize;
 using mozilla::gfx::Matrix;
 using mozilla::gfx::SurfaceFormat;
 using mozilla::java::GeckoSession;
+using mozilla::java::sdk::IllegalStateException;
+
+static mozilla::LazyLogModule sGVSupportLog("GeckoViewSupport");
 
 // All the toplevel windows that have been created; these are in
 // stacking order, so the window at gTopLevelWindows[0] is the topmost
@@ -261,7 +271,7 @@ class NPZCSupport final
 #endif  // defined(DEBUG)
 
     // Use vsync for touch resampling on API level 19 and above.
-    // See gfxAndroidPlatform::CreateHardwareVsyncSource() for comparison.
+    // See gfxAndroidPlatform::CreateGlobalHardwareVsyncSource() for comparison.
     if (jni::GetAPIVersion() >= 19) {
       mAndroidVsync = AndroidVsync::GetInstance();
     }
@@ -813,8 +823,17 @@ class NPZCSupport final
       return;
     }
 
-    APZEventResult result =
-        controller->InputBridge()->ReceiveInputEvent(aInput);
+    APZInputBridge::InputBlockCallback callback;
+    if (aReturnResult) {
+      callback = [aReturnResult = java::GeckoResult::GlobalRef(aReturnResult)](
+                     uint64_t aInputBlockId,
+                     const APZHandledResult& aHandledResult) {
+        aReturnResult->Complete(ConvertAPZHandledResult(aHandledResult));
+      };
+    }
+    APZEventResult result = controller->InputBridge()->ReceiveInputEvent(
+        aInput, std::move(callback));
+
     if (result.GetStatus() == nsEventStatus_eConsumeNoDefault) {
       if (aReturnResult) {
         aReturnResult->Complete(java::PanZoomController::InputResultDetail::New(
@@ -831,12 +850,7 @@ class NPZCSupport final
       window->DispatchHitTest(touchEvent);
     });
 
-    if (!aReturnResult) {
-      // We don't care how APZ handled the event so we're done here.
-      return;
-    }
-
-    if (result.GetHandledResult() != Nothing()) {
+    if (aReturnResult && result.GetHandledResult() != Nothing()) {
       // We know conclusively that the root APZ handled this or not and
       // don't need to do any more work.
       switch (result.GetStatus()) {
@@ -860,16 +874,7 @@ class NPZCSupport final
                   java::PanZoomController::OVERSCROLL_FLAG_NONE));
           break;
       }
-      return;
     }
-
-    // Wait to see if APZ handled the event or not...
-    controller->AddInputBlockCallback(
-        result.mInputBlockId,
-        [aReturnResult = java::GeckoResult::GlobalRef(aReturnResult)](
-            uint64_t aInputBlockId, const APZHandledResult& aHandledResult) {
-          aReturnResult->Complete(ConvertAPZHandledResult(aHandledResult));
-        });
   }
 };
 
@@ -894,9 +899,14 @@ class LayerViewSupport final
   GeckoSession::Compositor::WeakRef mCompositor;
   Atomic<bool, ReleaseAcquire> mCompositorPaused;
   java::sdk::Surface::GlobalRef mSurface;
+  java::sdk::SurfaceControl::GlobalRef mSurfaceControl;
+  int32_t mWidth;
+  int32_t mHeight;
   // Used to communicate with the gecko compositor from the UI thread.
   // Set in NotifyCompositorCreated and cleared in NotifyCompositorSessionLost.
   RefPtr<UiCompositorControllerChild> mUiCompositorControllerChild;
+
+  Maybe<uint32_t> mDefaultClearColor;
 
   struct CaptureRequest {
     explicit CaptureRequest() : mResult(nullptr) {}
@@ -1012,15 +1022,27 @@ class LayerViewSupport final
     MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
     mUiCompositorControllerChild = aUiCompositorControllerChild;
 
-    if (auto window{mWindow.Access()}) {
-      nsWindow* gkWindow = window->GetNsWindow();
-      if (gkWindow) {
-        mUiCompositorControllerChild->OnCompositorSurfaceChanged(
-            gkWindow->mWidgetId, mSurface);
-      }
+    if (mDefaultClearColor) {
+      mUiCompositorControllerChild->SetDefaultClearColor(*mDefaultClearColor);
     }
 
     if (!mCompositorPaused) {
+      // If we are using SurfaceControl but mSurface is null, that means the
+      // previous surface was destroyed along with the the previous compositor,
+      // and we need to create a new one.
+      if (mSurfaceControl && !mSurface) {
+        mSurface = java::SurfaceControlManager::GetInstance()->GetChildSurface(
+            mSurfaceControl, mWidth, mHeight);
+      }
+
+      if (auto window{mWindow.Access()}) {
+        nsWindow* gkWindow = window->GetNsWindow();
+        if (gkWindow) {
+          mUiCompositorControllerChild->OnCompositorSurfaceChanged(
+              gkWindow->mWidgetId, mSurface);
+        }
+      }
+
       mUiCompositorControllerChild->Resume();
     }
   }
@@ -1029,6 +1051,12 @@ class LayerViewSupport final
   void NotifyCompositorSessionLost() {
     MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
     mUiCompositorControllerChild = nullptr;
+
+    if (mSurfaceControl) {
+      // If we are using SurfaceControl then we must set the Surface to null
+      // here to ensure we create a new one when the new compositor is created.
+      mSurface = nullptr;
+    }
 
     if (auto window = mWindow.Access()) {
       while (!mCapturePixelsResults.empty()) {
@@ -1135,7 +1163,7 @@ class LayerViewSupport final
     }
 
     nsWindow* gkWindow = acc->GetNsWindow();
-    if (!gkWindow) {
+    if (!gkWindow || !gkWindow->mCompositorBridgeChild) {
       return;
     }
 
@@ -1164,6 +1192,16 @@ class LayerViewSupport final
 
     if (mUiCompositorControllerChild) {
       mUiCompositorControllerChild->Pause();
+
+      mSurface = nullptr;
+      mSurfaceControl = nullptr;
+      if (auto window = mWindow.Access()) {
+        nsWindow* gkWindow = window->GetNsWindow();
+        if (gkWindow) {
+          mUiCompositorControllerChild->OnCompositorSurfaceChanged(
+              gkWindow->mWidgetId, nullptr);
+        }
+      }
     }
 
     if (auto lock{mWindow.Access()}) {
@@ -1192,10 +1230,24 @@ class LayerViewSupport final
 
   void SyncResumeResizeCompositor(
       const GeckoSession::Compositor::LocalRef& aObj, int32_t aX, int32_t aY,
-      int32_t aWidth, int32_t aHeight, jni::Object::Param aSurface) {
+      int32_t aWidth, int32_t aHeight, jni::Object::Param aSurface,
+      jni::Object::Param aSurfaceControl) {
     MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
 
-    mSurface = java::sdk::Surface::GlobalRef::From(aSurface);
+    mWidth = aWidth;
+    mHeight = aHeight;
+    mSurfaceControl =
+        java::sdk::SurfaceControl::GlobalRef::From(aSurfaceControl);
+    if (mSurfaceControl) {
+      // When using SurfaceControl, we create a child Surface to render in to
+      // rather than rendering directly in to the Surface provided by the
+      // application. This allows us to work around a bug on some versions of
+      // Android when recovering from a GPU process crash.
+      mSurface = java::SurfaceControlManager::GetInstance()->GetChildSurface(
+          mSurfaceControl, mWidth, mHeight);
+    } else {
+      mSurface = java::sdk::Surface::GlobalRef::From(aSurface);
+    }
 
     if (mUiCompositorControllerChild) {
       if (auto window = mWindow.Access()) {
@@ -1337,6 +1389,7 @@ class LayerViewSupport final
 
   void SetDefaultClearColor(int32_t aColor) {
     MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
+    mDefaultClearColor = Some((uint32_t)aColor);
     if (mUiCompositorControllerChild) {
       mUiCompositorControllerChild->SetDefaultClearColor((uint32_t)aColor);
     }
@@ -1476,10 +1529,15 @@ void GeckoViewSupport::Open(
     jni::Object::Param aQueue, jni::Object::Param aCompositor,
     jni::Object::Param aDispatcher, jni::Object::Param aSessionAccessibility,
     jni::Object::Param aInitData, jni::String::Param aId,
-    jni::String::Param aChromeURI, int32_t aScreenId, bool aPrivateMode) {
+    jni::String::Param aChromeURI, bool aPrivateMode) {
   MOZ_ASSERT(NS_IsMainThread());
 
   AUTO_PROFILER_LABEL("mozilla::widget::GeckoViewSupport::Open", OTHER);
+
+  // We'll need gfxPlatform to be initialized to create a compositor later.
+  // Might as well do that now so that the GPU process launch can get a head
+  // start.
+  gfxPlatform::GetPlatform();
 
   nsCOMPtr<nsIWindowWatcher> ww = do_GetService(NS_WINDOWWATCHER_CONTRACTID);
   MOZ_RELEASE_ASSERT(ww);
@@ -1512,7 +1570,6 @@ void GeckoViewSupport::Open(
   nsCOMPtr<nsPIDOMWindowOuter> pdomWindow = nsPIDOMWindowOuter::From(domWindow);
   const RefPtr<nsWindow> window = nsWindow::From(pdomWindow);
   MOZ_ASSERT(window);
-  window->SetScreenId(aScreenId);
 
   // Attach a new GeckoView support object to the new window.
   GeckoSession::Window::LocalRef sessionWindow(aCls.Env(), aWindow);
@@ -1693,6 +1750,79 @@ void GeckoViewSupport::PassExternalResponse(
                       response] { window->PassExternalWebResponse(response); });
 }
 
+RefPtr<CanonicalBrowsingContext>
+GeckoViewSupport::GetContentCanonicalBrowsingContext() {
+  nsCOMPtr<nsIDocShellTreeOwner> treeOwner = mDOMWindow->GetTreeOwner();
+  if (!treeOwner) {
+    return nullptr;
+  }
+  RefPtr<BrowsingContext> bc;
+  nsresult rv = treeOwner->GetPrimaryContentBrowsingContext(getter_AddRefs(bc));
+  if (NS_WARN_IF(NS_FAILED(rv)) || !bc) {
+    return nullptr;
+  }
+  return bc->Canonical();
+}
+
+void GeckoViewSupport::PrintToPdf(
+    const java::GeckoSession::Window::LocalRef& inst,
+    jni::Object::Param aResult) {
+  auto stream = java::GeckoInputStream::New(nullptr);
+  auto geckoResult = java::GeckoResult::Ref::From(aResult);
+  const auto pdfErrorMsg = "Coud not save this page as PDF.";
+  RefPtr<GeckoViewOutputStream> streamListener =
+      new GeckoViewOutputStream(stream);
+
+  nsCOMPtr<nsIPrintSettingsService> printSettingsService =
+      do_GetService("@mozilla.org/gfx/printsettings-service;1");
+  if (!printSettingsService) {
+    geckoResult->CompleteExceptionally(
+        IllegalStateException::New(pdfErrorMsg).Cast<jni::Throwable>());
+    GVS_LOG("Could not create print settings service.");
+    return;
+  }
+
+  nsCOMPtr<nsIPrintSettings> printSettings;
+  nsresult rv = printSettingsService->CreateNewPrintSettings(
+      getter_AddRefs(printSettings));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    geckoResult->CompleteExceptionally(
+        IllegalStateException::New(pdfErrorMsg).Cast<jni::Throwable>());
+    GVS_LOG("Could not create print settings.");
+  }
+
+  printSettings->SetPrinterName(u"Mozilla Save to PDF"_ns);
+  printSettings->SetOutputDestination(
+      nsIPrintSettings::kOutputDestinationStream);
+  printSettings->SetOutputFormat(nsIPrintSettings::kOutputFormatPDF);
+  printSettings->SetOutputStream(streamListener);
+  printSettings->SetPrintSilent(true);
+
+  RefPtr<CanonicalBrowsingContext> cbc = GetContentCanonicalBrowsingContext();
+  if (!cbc) {
+    geckoResult->CompleteExceptionally(
+        IllegalStateException::New(pdfErrorMsg).Cast<jni::Throwable>());
+    GVS_LOG("Could not retrieve content canonical browsing context.");
+    return;
+  }
+
+  RefPtr<CanonicalBrowsingContext::PrintPromise> print =
+      cbc->Print(printSettings);
+
+  print->Then(
+      mozilla::GetCurrentSerialEventTarget(), __func__,
+      [result = java::GeckoResult::GlobalRef(geckoResult), stream, pdfErrorMsg](
+          const CanonicalBrowsingContext::PrintPromise::ResolveOrRejectValue&
+              aValue) {
+        if (aValue.IsReject()) {
+          result->CompleteExceptionally(
+              IllegalStateException::New(pdfErrorMsg).Cast<jni::Throwable>());
+          GVS_LOG("Could not print.");
+        } else {
+          result->Complete(stream);
+        }
+      });
+}
 }  // namespace widget
 }  // namespace mozilla
 
@@ -1764,10 +1894,10 @@ void nsWindow::DumpWindows(const nsTArray<nsWindow*>& wins, int indent) {
 
 nsWindow::nsWindow()
     : mWidgetId(++sWidgetId),
-      mScreenId(0),  // Use 0 (primary screen) as the default value.
       mIsVisible(false),
       mParent(nullptr),
       mDynamicToolbarMaxHeight(0),
+      mSizeMode(nsSizeMode_Normal),
       mIsFullScreen(false),
       mCompositorWidgetDelegate(nullptr) {}
 
@@ -1815,6 +1945,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   }
 
   mBounds = rect;
+  SetSizeConstraints(SizeConstraints());
 
   BaseCreate(nullptr, aInitData);
 
@@ -1828,8 +1959,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
     parent->mChildren.AppendElement(this);
     mParent = parent;
   }
-
-  CreateLayerManager();
 
 #ifdef DEBUG_ANDROID_WIDGET
   DumpWindows();
@@ -2059,16 +2188,20 @@ void nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
   ALOG("nsWindow[%p]::Resize [%f %f %f %f] (repaint %d)", (void*)this, aX, aY,
        aWidth, aHeight, aRepaint);
 
-  bool needPositionDispatch = aX != mBounds.x || aY != mBounds.y;
-  bool needSizeDispatch = aWidth != mBounds.width || aHeight != mBounds.height;
+  LayoutDeviceIntRect oldBounds = mBounds;
 
   mBounds.x = NSToIntRound(aX);
   mBounds.y = NSToIntRound(aY);
   mBounds.width = NSToIntRound(aWidth);
   mBounds.height = NSToIntRound(aHeight);
 
+  ConstrainSize(&mBounds.width, &mBounds.height);
+
+  bool needPositionDispatch = mBounds.TopLeft() != oldBounds.TopLeft();
+  bool needSizeDispatch = mBounds.Size() != oldBounds.Size();
+
   if (needSizeDispatch) {
-    OnSizeChanged(gfx::IntSize::Truncate(aWidth, aHeight));
+    OnSizeChanged(mBounds.Size().ToUnknownSize());
   }
 
   if (needPositionDispatch) {
@@ -2088,7 +2221,7 @@ void nsWindow::SetSizeMode(nsSizeMode aMode) {
     return;
   }
 
-  nsBaseWidget::SetSizeMode(aMode);
+  mSizeMode = aMode;
 
   switch (aMode) {
     case nsSizeMode_Minimized:
@@ -2301,15 +2434,17 @@ void nsWindow::OnSizeChanged(const gfx::IntSize& aSize) {
   ALOG("nsWindow: %p OnSizeChanged [%d %d]", (void*)this, aSize.width,
        aSize.height);
 
-  mBounds.width = aSize.width;
-  mBounds.height = aSize.height;
-
   if (mWidgetListener) {
     mWidgetListener->WindowResized(this, aSize.width, aSize.height);
   }
 
   if (mAttachedWidgetListener) {
     mAttachedWidgetListener->WindowResized(this, aSize.width, aSize.height);
+  }
+
+  if (mCompositorWidgetDelegate) {
+    mCompositorWidgetDelegate->NotifyClientSizeChanged(
+        LayoutDeviceIntSize::FromUnknownSize(aSize));
   }
 }
 
@@ -2693,12 +2828,6 @@ CompositorBridgeChild* nsWindow::GetCompositorBridgeChild() const {
                             : nullptr;
 }
 
-already_AddRefed<nsIScreen> nsWindow::GetWidgetScreen() {
-  RefPtr<nsIScreen> screen =
-      ScreenHelperAndroid::GetSingleton()->ScreenForId(mScreenId);
-  return screen.forget();
-}
-
 void nsWindow::SetContentDocumentDisplayed(bool aDisplayed) {
   mContentDocumentDisplayed = aDisplayed;
 }
@@ -2967,7 +3096,7 @@ void nsWindow::SetCursor(const Cursor& aCursor) {
             bitmap = java::sdk::Bitmap::CreateBitmap(
                 destDataSurface->GetSize().width,
                 destDataSurface->GetSize().height,
-                java::sdk::Config::ARGB_8888());
+                java::sdk::Bitmap::Config::ARGB_8888());
             bitmap->CopyPixelsFromBuffer(pixels);
           }
           compositor->SetPointerIcon(type, bitmap, hotspotX, hotspotY);

@@ -448,6 +448,11 @@ partial interface Window {
   [Replaceable, Throws, NeedsCallerType]
   readonly attribute double devicePixelRatio;
 
+  // Allows chrome code to convert desktop pixels to device pixels and vice
+  // versa. Useful for interacting with the screen manager.
+  [ChromeOnly, Throws]
+  readonly attribute double desktopToDeviceScale;
+
   /* The maximum offset that the window can be scrolled to
      (i.e., the document width/height minus the scrollport width/height) */
   [ChromeOnly, Throws]  readonly attribute long   scrollMinX;
@@ -478,14 +483,6 @@ partial interface Window {
                            optional boolean wholeWord = false,
                            optional boolean searchInFrames = false,
                            optional boolean showDialog = false);
-
-  /**
-   * Returns the number of times this document for this window has
-   * been painted to the screen.
-   *
-   * If you need this for tests use nsIDOMWindowUtils.paintCount instead.
-   */
-  [Throws, Pref="dom.mozPaintCount.enabled"] readonly attribute unsigned long long mozPaintCount;
 
            attribute EventHandler ondevicemotion;
            attribute EventHandler ondeviceorientation;
@@ -538,7 +535,7 @@ partial interface Window {
    * be something like a WebIDL namespace, but we don't support
    * JS-implemented static things yet.  See bug 863952.
    */
-  [Replaceable]
+  [Replaceable, Deprecated="InstallTriggerDeprecated", Pref="extensions.InstallTrigger.enabled"]
   readonly attribute InstallTriggerImpl? InstallTrigger;
 
   /**
@@ -712,7 +709,7 @@ partial interface Window {
    * @param {function} callback
    * @returns {Promise}
    */
-  [Throws, Func="nsGlobalWindowInner::IsPrivilegedChromeWindow"]
+  [NewObject, Func="nsGlobalWindowInner::IsPrivilegedChromeWindow"]
   Promise<any> promiseDocumentFlushed(PromiseDocumentFlushedCallback callback);
 
   [ChromeOnly]
@@ -813,9 +810,10 @@ partial interface Window {
 // Used to assign marks to appear on the scrollbar when
 // finding on a page.
 partial interface Window {
-  // The marks are values between 0 and scrollMaxY.
+  // The marks are values between 0 and scrollMax{X,Y} - scrollMin{X,Y}.
   [ChromeOnly]
-  void setScrollMarks(sequence<unsigned long> marks);
+  void setScrollMarks(sequence<unsigned long> marks,
+                      optional boolean onHorizontalScrollbar = false);
 };
 
 dictionary WindowPostMessageOptions : StructuredSerializeOptions {

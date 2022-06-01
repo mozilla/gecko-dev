@@ -645,12 +645,12 @@ var gHistorySwipeAnimation = {
    */
   init: function HSA_init() {
     this.isLTR = document.documentElement.matches(":-moz-locale-dir(ltr)");
+    this._isStoppingAnimation = false;
 
     if (!this._isSupported()) {
       return;
     }
 
-    this._isStoppingAnimation = false;
     if (
       !Services.prefs.getBoolPref(
         "browser.history_swipe_animation.disabled",
@@ -677,10 +677,10 @@ var gHistorySwipeAnimation = {
    *        Whether we're dealing with a vertical swipe or not.
    */
   startAnimation: function HSA_startAnimation() {
-    if (this.isAnimationRunning()) {
-      return;
-    }
-
+    // old boxes can still be around (if completing fade out for example), we
+    // always want to remove them and recreate them because they can be
+    // attached to an old browser stack that's no longer in use.
+    this._removeBoxes();
     this._isStoppingAnimation = false;
     this._canGoBack = this.canGoBack();
     this._canGoForward = this.canGoForward();
@@ -694,16 +694,29 @@ var gHistorySwipeAnimation = {
    * Stops the swipe animation.
    */
   stopAnimation: function HSA_stopAnimation() {
-    if (!this.isAnimationRunning()) {
+    if (!this.isAnimationRunning() || this._isStoppingAnimation) {
       return;
     }
-    this._isStoppingAnimation = true;
-    let box = this._prevBox.style.opacity > 0 ? this._prevBox : this._nextBox;
-    if (box.style.opacity > 0) {
-      box.style.transition = "opacity 0.2s cubic-bezier(.07,.95,0,1)";
-      box.addEventListener("transitionend", this._completeFadeOut);
+
+    let prevOpacity = window
+      .getComputedStyle(this._prevBox)
+      .getPropertyValue("opacity");
+    let nextOpacity = window
+      .getComputedStyle(this._nextBox)
+      .getPropertyValue("opacity");
+    let box = null;
+    if (prevOpacity > 0) {
+      box = this._prevBox;
+    } else if (nextOpacity > 0) {
+      box = this._nextBox;
+    }
+    if (box != null) {
+      this._isStoppingAnimation = true;
+      box.style.transition = "opacity 0.35s cubic-bezier(.25,.1,0.25,1)";
+      box.addEventListener("transitionend", this, true);
       box.style.opacity = 0;
     } else {
+      this._isStoppingAnimation = false;
       this._removeBoxes();
     }
   },
@@ -786,7 +799,21 @@ var gHistorySwipeAnimation = {
     return window.matchMedia("(-moz-swipe-animation-enabled)").matches;
   },
 
+  handleEvent: function HSA_handleEvent(aEvent) {
+    switch (aEvent.type) {
+      case "transitionend":
+        this._completeFadeOut();
+        break;
+    }
+  },
+
   _completeFadeOut: function HSA__completeFadeOut(aEvent) {
+    if (!this._isStoppingAnimation) {
+      // The animation was restarted in the middle of our stopping fade out
+      // tranistion, so don't do anything.
+      return;
+    }
+    this._isStoppingAnimation = false;
     gHistorySwipeAnimation._removeBoxes();
   },
 

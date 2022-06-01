@@ -53,6 +53,9 @@
 #include "mozilla/dom/MouseEvent.h"
 #include "mozilla/dom/Selection.h"
 #include "mozInlineSpellWordUtil.h"
+#ifdef ACCESSIBILITY
+#  include "nsAccessibilityService.h"
+#endif
 #include "nsCOMPtr.h"
 #include "nsCRT.h"
 #include "nsGenericHTMLElement.h"
@@ -1669,8 +1672,8 @@ nsresult mozInlineSpellChecker::ResumeCheck(
     return NS_ERROR_FAILURE;
   }
 
-  nsAutoCString currentDictionary;
-  nsresult rv = mSpellCheck->GetCurrentDictionary(currentDictionary);
+  nsTArray<nsCString> currentDictionaries;
+  nsresult rv = mSpellCheck->GetCurrentDictionaries(currentDictionaries);
   if (NS_FAILED(rv)) {
     MOZ_LOG(sInlineSpellCheckerLog, LogLevel::Debug,
             ("%s: no active dictionary.", __FUNCTION__));
@@ -1879,6 +1882,11 @@ nsresult mozInlineSpellChecker::AddRange(Selection* aSpellCheckSelection,
       rv = err.StealNSResult();
     } else {
       mNumWordsInSpellSelection++;
+#ifdef ACCESSIBILITY
+      if (nsAccessibilityService* accService = GetAccService()) {
+        accService->SpellCheckRangeAdded(*aRange);
+      }
+#endif
     }
   }
 

@@ -48,9 +48,7 @@
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
 #include "nsHashPropertyBag.h"
-#include "nsICryptoHMAC.h"
 #include "nsIEventTarget.h"
-#include "nsIKeyModule.h"
 #include "nsIPermissionManager.h"
 #include "nsIUUIDGenerator.h"
 #include "nsJSUtils.h"
@@ -194,7 +192,9 @@ using media::NewRunnableFrom;
 using media::NewTaskFrom;
 using media::Refcountable;
 
-static Atomic<bool> sHasShutdown;
+// Whether main thread actions of MediaManager shutdown (except for clearing
+// of sSingleton) have completed.
+static bool sHasMainThreadShutdown;
 
 struct DeviceState {
   DeviceState(RefPtr<LocalMediaDevice> aDevice,
@@ -744,7 +744,7 @@ class LocalTrackSource : public MediaStreamTrackSource {
       const MediaTrackConstraints& aConstraints,
       CallerType aCallerType) override {
     MOZ_ASSERT(NS_IsMainThread());
-    if (sHasShutdown || !mListener) {
+    if (sHasMainThreadShutdown || !mListener) {
       // Track has been stopped, or we are in shutdown. In either case
       // there's no observable outcome, so pretend we succeeded.
       return MediaStreamTrackSource::ApplyConstraintsPromise::CreateAndResolve(
@@ -1571,13 +1571,15 @@ void GetUserMediaStreamTask::PrepareDOMStream() {
     }
   }
 
-  if (!domStream || (!audioTrackSource && !videoTrackSource) || sHasShutdown) {
+  if (!domStream || (!audioTrackSource && !videoTrackSource) ||
+      sHasMainThreadShutdown) {
     LOG("Returning error for getUserMedia() - no stream");
 
-    mHolder.Reject(MakeRefPtr<MediaMgrError>(
-                       MediaMgrError::Name::AbortError,
-                       sHasShutdown ? "In shutdown"_ns : "No stream."_ns),
-                   __func__);
+    mHolder.Reject(
+        MakeRefPtr<MediaMgrError>(
+            MediaMgrError::Name::AbortError,
+            sHasMainThreadShutdown ? "In shutdown"_ns : "No stream."_ns),
+        __func__);
     return;
   }
 
@@ -1779,7 +1781,7 @@ RefPtr<MediaManager::DeviceSetPromise> MediaManager::EnumerateRawDevices(
 
   MozPromiseHolder<DeviceSetPromise> holder;
   RefPtr<DeviceSetPromise> promise = holder.Ensure(__func__);
-  if (sHasShutdown) {
+  if (sHasMainThreadShutdown) {
     // The media thread is no longer available but the result will not be
     // observable.  Resolve with an empty set, so that callers do not need to
     // handle rejection.
@@ -2012,13 +2014,10 @@ NS_IMPL_ISUPPORTS(MediaManager, nsIMediaManagerService, nsIMemoryReporter,
 
 /* static */
 StaticRefPtr<MediaManager> MediaManager::sSingleton;
-/* static */
-StaticMutex MediaManager::sSingletonMutex;
 
 #ifdef DEBUG
 /* static */
 bool MediaManager::IsInMediaThread() {
-  StaticMutexAutoLock lock(sSingletonMutex);
   return sSingleton && sSingleton->mMediaThread->IsOnCurrentThread();
 }
 #endif
@@ -2052,15 +2051,14 @@ static void ForeachObservedPref(const Function& aFunction) {
 // Guaranteed never to return nullptr.
 /* static */
 MediaManager* MediaManager::Get() {
-  StaticMutexAutoLock lock(sSingletonMutex);
-  if (!sSingleton) {
-    MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
 
+  if (!sSingleton) {
     static int timesCreated = 0;
     timesCreated++;
     MOZ_RELEASE_ASSERT(timesCreated == 1);
 
-    RefPtr<TaskQueue> mediaThread = new TaskQueue(
+    RefPtr<TaskQueue> mediaThread = TaskQueue::Create(
         GetMediaThreadPool(MediaThreadType::SUPERVISOR), "MediaManager");
     LOG("New Media thread for gum");
 
@@ -2118,7 +2116,7 @@ MediaManager* MediaManager::Get() {
 
 /* static */
 MediaManager* MediaManager::GetIfExists() {
-  StaticMutexAutoLock lock(sSingletonMutex);
+  MOZ_ASSERT(NS_IsMainThread() || IsInMediaThread());
   return sSingleton;
 }
 
@@ -2159,7 +2157,8 @@ void MediaManager::StartupInit() {
 
 /* static */
 void MediaManager::Dispatch(already_AddRefed<Runnable> task) {
-  if (sHasShutdown) {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (sHasMainThreadShutdown) {
     // Can't safely delete task here since it may have items with specific
     // thread-release requirements.
     // XXXkhuey well then who is supposed to delete it?! We don't signal
@@ -2220,7 +2219,7 @@ nsresult MediaManager::NotifyRecordingStatusChange(
 
 void MediaManager::DeviceListChanged() {
   MOZ_ASSERT(NS_IsMainThread());
-  if (sHasShutdown) {
+  if (sHasMainThreadShutdown) {
     return;
   }
   // Invalidate immediately to provide an up-to-date device list for future
@@ -2437,7 +2436,7 @@ RefPtr<MediaManager::StreamPromise> MediaManager::GetUserMedia(
 
   MediaStreamConstraints c(aConstraintsPassedIn);  // use a modifiable copy
 
-  if (sHasShutdown) {
+  if (sHasMainThreadShutdown) {
     return StreamPromise::CreateAndReject(
         MakeRefPtr<MediaMgrError>(MediaMgrError::Name::AbortError,
                                   "In shutdown"),
@@ -2869,7 +2868,7 @@ RefPtr<LocalDeviceSetPromise> MediaManager::AnonymizeDevices(
             RefPtr anonymized = new LocalMediaDeviceSetRefCnt();
             for (const RefPtr<MediaDevice>& device : *rawDevices) {
               nsString id = device->mRawID;
-              AnonymizeId(id, aOriginKey);
+              nsContentUtils::AnonymizeId(id, aOriginKey);
 
               nsString groupId = device->mRawGroupID;
               // Use window id to salt group id in order to make it session
@@ -2878,7 +2877,7 @@ RefPtr<LocalDeviceSetPromise> MediaManager::AnonymizeDevices(
               // against the spec.  Furthermore, since device ids are the same
               // after a browser restart the fingerprint is not bigger.
               groupId.AppendInt(windowId);
-              AnonymizeId(groupId, aOriginKey);
+              nsContentUtils::AnonymizeId(groupId, aOriginKey);
 
               nsString name = device->mRawName;
               if (name.Find(u"AirPods"_ns) != -1) {
@@ -2896,52 +2895,6 @@ RefPtr<LocalDeviceSetPromise> MediaManager::AnonymizeDevices(
                 MakeRefPtr<MediaMgrError>(MediaMgrError::Name::AbortError),
                 __func__);
           });
-}
-
-/* static */
-nsresult MediaManager::AnonymizeId(nsAString& aId,
-                                   const nsACString& aOriginKey) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsresult rv;
-  nsCOMPtr<nsIKeyObjectFactory> factory =
-      do_GetService("@mozilla.org/security/keyobjectfactory;1", &rv);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  nsCString rawKey;
-  rv = Base64Decode(aOriginKey, rawKey);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  nsCOMPtr<nsIKeyObject> key;
-  rv = factory->KeyFromString(nsIKeyObject::HMAC, rawKey, getter_AddRefs(key));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  nsCOMPtr<nsICryptoHMAC> hasher =
-      do_CreateInstance(NS_CRYPTO_HMAC_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  rv = hasher->Init(nsICryptoHMAC::SHA256, key);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  NS_ConvertUTF16toUTF8 id(aId);
-  rv = hasher->Update(reinterpret_cast<const uint8_t*>(id.get()), id.Length());
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  nsCString mac;
-  rv = hasher->Finish(true, mac);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  CopyUTF8toUTF16(mac, aId);
-  return NS_OK;
 }
 
 RefPtr<LocalDeviceSetPromise> MediaManager::EnumerateDevicesImpl(
@@ -3102,8 +3055,6 @@ MediaEngine* MediaManager::GetBackend() {
   // includes picture support for Android.
   // This IS called off main-thread.
   if (!mBackend) {
-    MOZ_RELEASE_ASSERT(
-        !sHasShutdown);  // we should never create a new backend in shutdown
 #if defined(MOZ_WEBRTC)
     mBackend = new MediaEngineWebRTC();
 #else
@@ -3300,7 +3251,7 @@ void MediaManager::GetPrefs(nsIPrefBranch* aBranch, const char* aData) {
 
 void MediaManager::Shutdown() {
   MOZ_ASSERT(NS_IsMainThread());
-  if (sHasShutdown) {
+  if (sHasMainThreadShutdown) {
     return;
   }
 
@@ -3356,80 +3307,45 @@ void MediaManager::Shutdown() {
 
   // From main thread's point of view, shutdown is now done.
   // All that remains is shutting down the media thread.
-  sHasShutdown = true;
+  sHasMainThreadShutdown = true;
 
-  // Because mMediaThread is not an nsThread, we must dispatch to it so it can
-  // clean up BackgroundChild. Continue stopping thread once this is done.
-
-  class ShutdownTask : public Runnable {
-   public:
-    ShutdownTask(RefPtr<MediaManager> aManager, RefPtr<Runnable> aReply)
-        : mozilla::Runnable("ShutdownTask"),
-          mManager(std::move(aManager)),
-          mReply(std::move(aReply)) {}
-
-   private:
-    NS_IMETHOD
-    Run() override {
-      LOG("MediaManager Thread Shutdown");
-      MOZ_ASSERT(MediaManager::IsInMediaThread());
-      // Must shutdown backend on MediaManager thread, since that's where we
-      // started it from!
-      {
-        if (mManager->mBackend) {
-          mManager->mBackend->Shutdown();  // idempotent
-          mManager->mDeviceListChangeListener.DisconnectIfExists();
+  // Release the backend (and call Shutdown()) from within mMediaThread.
+  // Don't use MediaManager::Dispatch() because we're
+  // sHasMainThreadShutdown == true here!
+  MOZ_ALWAYS_SUCCEEDS(mMediaThread->Dispatch(
+      NS_NewRunnableFunction(__func__, [self = RefPtr(this), this]() {
+        LOG("MediaManager Thread Shutdown");
+        MOZ_ASSERT(IsInMediaThread());
+        // Must shutdown backend on MediaManager thread, since that's
+        // where we started it from!
+        if (mBackend) {
+          mBackend->Shutdown();  // idempotent
+          mDeviceListChangeListener.DisconnectIfExists();
         }
-      }
-      // must explicitly do this before dispatching the reply, since the reply
-      // may kill us with Stop()
-      mManager->mBackend =
-          nullptr;  // last reference, will invoke Shutdown() again
-
-      if (NS_FAILED(NS_DispatchToMainThread(mReply.forget()))) {
-        LOG("Will leak thread: DispatchToMainthread of reply runnable failed "
-            "in MediaManager shutdown");
-      }
-
-      return NS_OK;
-    }
-    RefPtr<MediaManager> mManager;
-    RefPtr<Runnable> mReply;
-  };
-
-  // Post ShutdownTask to execute on mMediaThread and pass in a lambda
-  // callback to be executed back on this thread once it is done.
-  //
-  // The lambda callback "captures" the 'this' pointer for member access.
-  // This is safe since this is guaranteed to be here since sSingleton isn't
-  // cleared until the lambda function clears it.
+        // last reference, will invoke Shutdown() again
+        mBackend = nullptr;
+      })));
 
   // note that this == sSingleton
-#ifdef DEBUG
-  {
-    StaticMutexAutoLock lock(sSingletonMutex);
-    MOZ_ASSERT(this == sSingleton);
-  }
-#endif
+  MOZ_ASSERT(this == sSingleton);
 
-  // Release the backend (and call Shutdown()) from within the MediaManager
-  // thread Don't use MediaManager::Dispatch() because we're sHasShutdown=true
-  // here!
-  auto shutdown = MakeRefPtr<ShutdownTask>(
-      this, media::NewRunnableFrom([]() {
+  // Explicitly shut down the TaskQueue so that it releases its
+  // SharedThreadPool when all tasks have completed.  SharedThreadPool blocks
+  // XPCOM shutdown from proceeding beyond "xpcom-shutdown-threads" until all
+  // SharedThreadPools are released, but the nsComponentManager keeps a
+  // reference to the MediaManager for the nsIMediaManagerService until much
+  // later in shutdown.  This also provides additional assurance that no
+  // further tasks will be queued.
+  mMediaThread->BeginShutdown()->Then(
+      GetMainThreadSerialEventTarget(), __func__, [] {
         LOG("MediaManager shutdown lambda running, releasing MediaManager "
-            "singleton and thread");
-        StaticMutexAutoLock lock(sSingletonMutex);
+            "singleton");
         // Remove async shutdown blocker
         media::MustGetShutdownBarrier()->RemoveBlocker(
             sSingleton->mShutdownBlocker);
 
         sSingleton = nullptr;
-        return NS_OK;
-      }));
-  MOZ_ALWAYS_SUCCEEDS(mMediaThread->Dispatch(shutdown.forget()));
-  mMediaThread->BeginShutdown();
-  mMediaThread->AwaitShutdownAndIdle();
+      });
 }
 
 void MediaManager::SendPendingGUMRequest() {
@@ -3504,7 +3420,7 @@ nsresult MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    if (sHasShutdown) {
+    if (sHasMainThreadShutdown) {
       task->Denied(MediaMgrError::Name::AbortError, "In shutdown"_ns);
       return NS_OK;
     }

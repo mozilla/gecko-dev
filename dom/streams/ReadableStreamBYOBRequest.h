@@ -19,8 +19,7 @@
 #include "nsWrapperCache.h"
 #include "nsIGlobalObject.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class ReadableByteStreamController;
 
@@ -55,7 +54,7 @@ class ReadableStreamBYOBRequest final : public nsISupports,
   void SetController(ReadableByteStreamController* aController);
 
   JSObject* View() { return mView; }
-  void SetView(JS::HandleObject aView) { mView = aView; }
+  void SetView(JS::Handle<JSObject*> aView) { mView = aView; }
 
  private:
   // Internal Slots
@@ -64,7 +63,6 @@ class ReadableStreamBYOBRequest final : public nsISupports,
   JS::Heap<JSObject*> mView;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif

@@ -17,10 +17,9 @@ const SEARCH_SHORTCUTS = [
     url: "https://yandex.com",
   },
 ];
-this.SEARCH_SHORTCUTS = SEARCH_SHORTCUTS;
 
 // These can be added via the editor but will not be added organically
-this.CUSTOM_SEARCH_SHORTCUTS = [
+const CUSTOM_SEARCH_SHORTCUTS = [
   ...SEARCH_SHORTCUTS,
   { keyword: "@bing", shortURL: "bing", url: "https://bing.com" },
   {
@@ -38,10 +37,10 @@ this.CUSTOM_SEARCH_SHORTCUTS = [
 ];
 
 // Note: you must add the activity stream branch to the beginning of this if using outside activity stream
-this.SEARCH_SHORTCUTS_EXPERIMENT = "improvesearch.topSiteSearchShortcuts";
-this.SEARCH_SHORTCUTS_SEARCH_ENGINES_PREF =
+const SEARCH_SHORTCUTS_EXPERIMENT = "improvesearch.topSiteSearchShortcuts";
+const SEARCH_SHORTCUTS_SEARCH_ENGINES_PREF =
   "improvesearch.topSiteSearchShortcuts.searchEngines";
-this.SEARCH_SHORTCUTS_HAVE_PINNED_PREF =
+const SEARCH_SHORTCUTS_HAVE_PINNED_PREF =
   "improvesearch.topSiteSearchShortcuts.havePinned";
 
 function getSearchProvider(candidateShortURL) {
@@ -50,7 +49,6 @@ function getSearchProvider(candidateShortURL) {
     null
   );
 }
-this.getSearchProvider = getSearchProvider;
 
 // Get the search form URL for a given search keyword. This allows us to pick
 // different tippytop icons for the different variants. Sush as yandex.com vs. yandex.ru.
@@ -59,7 +57,6 @@ async function getSearchFormURL(keyword) {
   const engine = await Services.search.getEngineByAlias(keyword);
   return engine?.wrappedJSObject._searchForm;
 }
-this.getSearchFormURL = getSearchFormURL;
 
 // Check topsite against predefined list of valid search engines
 // https://searchfox.org/mozilla-central/rev/ca869724246f4230b272ed1c8b9944596e80d920/toolkit/components/search/nsSearchService.js#939
@@ -68,7 +65,6 @@ async function checkHasSearchEngine(keyword) {
     e => e.aliases.includes(keyword) && !e.hidden
   );
 }
-this.checkHasSearchEngine = checkHasSearchEngine;
 
 const EXPORTED_SYMBOLS = [
   "checkHasSearchEngine",

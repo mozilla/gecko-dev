@@ -24,17 +24,55 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/PrivateBrowsingUtils.jsm"
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "DELAYED_STARTUP",
-  "extensions.webextensions.background-delayed-startup"
-);
-
 XPCOMUtils.defineLazyGetter(this, "serviceWorkerManager", () => {
   return Cc["@mozilla.org/serviceworkers/manager;1"].getService(
     Ci.nsIServiceWorkerManager
   );
 });
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "backgroundIdleTimeout",
+  "extensions.background.idle.timeout",
+  30000,
+  null,
+  // Minimum 100ms, max 5min
+  delay => Math.min(Math.max(delay, 100), 5 * 60 * 1000)
+);
+
+function notifyBackgroundScriptStatus(addonId, isRunning) {
+  // Notify devtools when the background scripts is started or stopped
+  // (used to show the current status in about:debugging).
+  const subject = { addonId, isRunning };
+  Services.obs.notifyObservers(subject, "extension:background-script-status");
+}
+
+/**
+ * Background Page state transitions:
+ *
+ *    ------> STOPPED <-------
+ *    |         |            |
+ *    |         v            |
+ *    |      STARTING >------|
+ *    |         |            |
+ *    |         v            ^
+ *    |----< RUNNING ----> SUSPENDING
+ *              ^            v
+ *              |------------|
+ *
+ * STARTING:   The background is being built.
+ * RUNNING:    The background is running.
+ * SUSPENDING: The background is suspending, runtime.onSuspend will be called.
+ * STOPPED:    The background is not running.
+ *
+ * For persistent backgrounds, the SUSPENDING is not used.
+ */
+const BACKGROUND_STATE = {
+  STARTING: "starting",
+  RUNNING: "running",
+  SUSPENDING: "suspending",
+  STOPPED: "stopped",
+};
 
 // Responsible for the background_page section of the manifest.
 class BackgroundPage extends HiddenExtensionPage {
@@ -55,7 +93,6 @@ class BackgroundPage extends HiddenExtensionPage {
 
   async build() {
     const { extension } = this;
-
     ExtensionTelemetry.backgroundPageLoad.stopwatchStart(extension, this);
 
     let context;
@@ -76,35 +113,14 @@ class BackgroundPage extends HiddenExtensionPage {
       });
 
       context = await contextPromise;
+      ExtensionTelemetry.backgroundPageLoad.stopwatchFinish(extension, this);
     } catch (e) {
       // Extension was down before the background page has loaded.
-      Cu.reportError(e);
       ExtensionTelemetry.backgroundPageLoad.stopwatchCancel(extension, this);
-      if (extension.persistentListeners) {
-        EventManager.clearPrimedListeners(this.extension, false);
-      }
-      extension.emit("background-script-aborted");
-      return;
+      throw e;
     }
 
-    ExtensionTelemetry.backgroundPageLoad.stopwatchFinish(extension, this);
-
-    if (context) {
-      // Wait until all event listeners registered by the script so far
-      // to be handled. We then set listenerPromises to null, which indicates
-      // to addListener that the background script has finished loading.
-      await Promise.all(context.listenerPromises);
-      context.listenerPromises = null;
-    }
-
-    if (extension.persistentListeners) {
-      // |this.extension| may be null if the extension was shut down.
-      // In that case, we still want to clear the primed listeners,
-      // but not update the persistent listeners in the startupData.
-      EventManager.clearPrimedListeners(extension, !!this.extension);
-    }
-
-    extension.emit("background-script-started");
+    return context;
   }
 
   shutdown() {
@@ -144,57 +160,28 @@ class BackgroundWorker {
 
   async build() {
     const { extension } = this;
-
     let context;
-    try {
-      const contextPromise = new Promise(resolve => {
-        let unwatch = watchExtensionWorkerContextLoaded(
-          { extension, viewType: "background_worker" },
-          context => {
-            unwatch();
-            this.validateWorkerInfoForContext(context);
-            resolve(context);
-          }
-        );
-      });
-
-      // TODO(Bug 17228327): follow up to spawn the active worker for a previously installed
-      // background service worker.
-      await serviceWorkerManager.registerForAddonPrincipal(
-        this.extension.principal
+    const contextPromise = new Promise(resolve => {
+      let unwatch = watchExtensionWorkerContextLoaded(
+        { extension, viewType: "background_worker" },
+        context => {
+          unwatch();
+          this.validateWorkerInfoForContext(context);
+          resolve(context);
+        }
       );
+    });
 
-      context = await contextPromise;
+    // TODO(Bug 17228327): follow up to spawn the active worker for a previously installed
+    // background service worker.
+    await serviceWorkerManager.registerForAddonPrincipal(
+      this.extension.principal
+    );
 
-      await this.waitForActiveWorker();
-    } catch (e) {
-      // Extension may be shutting down before the background worker has registered or
-      // loaded.
-      Cu.reportError(e);
+    context = await contextPromise;
 
-      if (extension.persistentListeners) {
-        EventManager.clearPrimedListeners(this.extension, false);
-      }
-
-      extension.emit("background-script-aborted");
-      return;
-    }
-
-    if (context) {
-      // Wait until all event listeners registered by the script so far
-      // to be handled.
-      await Promise.all(context.listenerPromises);
-      context.listenerPromises = null;
-    }
-
-    if (extension.persistentListeners) {
-      // |this.extension| may be null if the extension was shut down.
-      // In that case, we still want to clear the primed listeners,
-      // but not update the persistent listeners in the startupData.
-      EventManager.clearPrimedListeners(extension, !!this.extension);
-    }
-
-    extension.emit("background-script-started");
+    await this.waitForActiveWorker();
+    return context;
   }
 
   shutdown(isAppShutdown) {
@@ -258,13 +245,82 @@ this.backgroundPage = class extends ExtensionAPI {
 
     let { extension } = this;
     let { manifest } = extension;
+    extension.backgroundState = BACKGROUND_STATE.STARTING;
 
     let BackgroundClass = manifest.background.service_worker
       ? BackgroundWorker
       : BackgroundPage;
 
     this.bgInstance = new BackgroundClass(extension, manifest.background);
-    return this.bgInstance.build();
+    let context;
+    try {
+      context = await this.bgInstance.build();
+      // Top level execution already happened, RUNNING is
+      // a touch after the fact.
+      if (context && this.extension) {
+        extension.backgroundState = BACKGROUND_STATE.RUNNING;
+      }
+    } catch (e) {
+      Cu.reportError(e);
+      if (extension.persistentListeners) {
+        // Clear the primed listeners, but leave them persisted.
+        EventManager.clearPrimedListeners(extension, false);
+      }
+      extension.backgroundState = BACKGROUND_STATE.STOPPED;
+      extension.emit("background-script-aborted");
+      return;
+    }
+
+    if (context) {
+      // Wait until all event listeners registered by the script so far
+      // to be handled. We then set listenerPromises to null, which indicates
+      // to addListener that the background script has finished loading.
+      await Promise.all(context.listenerPromises);
+      context.listenerPromises = null;
+    }
+
+    if (extension.persistentListeners) {
+      // |this.extension| may be null if the extension was shut down.
+      // In that case, we still want to clear the primed listeners,
+      // but not update the persistent listeners in the startupData.
+      EventManager.clearPrimedListeners(extension, !!this.extension);
+    }
+
+    if (!context || !this.extension) {
+      extension.backgroundState = BACKGROUND_STATE.STOPPED;
+      extension.emit("background-script-aborted");
+      return;
+    }
+    if (!context.unloaded) {
+      notifyBackgroundScriptStatus(extension.id, true);
+      context.callOnClose({
+        close() {
+          notifyBackgroundScriptStatus(extension.id, false);
+        },
+      });
+    }
+
+    extension.emit("background-script-started");
+  }
+
+  observe(subject, topic, data) {
+    if (topic == "timer-callback") {
+      let { extension } = this;
+      this.clearIdleTimer();
+      extension?.terminateBackground();
+    }
+  }
+
+  clearIdleTimer() {
+    this.backgroundTimer?.cancel();
+    this.backgroundTimer = null;
+  }
+
+  resetIdleTimer() {
+    this.clearIdleTimer();
+    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    timer.init(this, backgroundIdleTimeout, Ci.nsITimer.TYPE_ONE_SHOT);
+    this.backgroundTimer = timer;
   }
 
   async primeBackground(isInStartup = true) {
@@ -298,37 +354,116 @@ this.backgroundPage = class extends ExtensionAPI {
       extension.on("shutdown", done);
     });
 
+    extension.promiseBackgroundStarted = () => {
+      return bgStartupPromise;
+    };
+
     extension.wakeupBackground = () => {
+      if (extension.hasShutdown) {
+        return Promise.reject(
+          new Error(
+            "wakeupBackground called while the extension was already shutting down"
+          )
+        );
+      }
       extension.emit("background-script-event");
+      // `extension.wakeupBackground` is set back to the original arrow function
+      // when the background page is terminated and `primeBackground` is called again.
       extension.wakeupBackground = () => bgStartupPromise;
       return bgStartupPromise;
     };
 
-    extension.terminateBackground = async () => {
+    let resetBackgroundIdle = () => {
+      this.clearIdleTimer();
+      if (!this.extension || extension.persistentBackground) {
+        // Extension was already shut down or is persistent and
+        // does not idle timout.
+        return;
+      }
+      // TODO remove at an appropriate point in the future prior
+      // to general availability.  There may be some racy conditions
+      // with idle timeout between an event starting and the event firing
+      // but we still want testing with an idle timeout.
+      if (
+        !Services.prefs.getBoolPref("extensions.background.idle.enabled", true)
+      ) {
+        return;
+      }
+
+      if (extension.backgroundState == BACKGROUND_STATE.SUSPENDING) {
+        extension.backgroundState = BACKGROUND_STATE.RUNNING;
+        // call runtime.onSuspendCanceled
+        extension.emit("background-script-suspend-canceled");
+      }
+      this.resetIdleTimer();
+    };
+
+    // Listen for events from the EventManager
+    extension.on("background-script-reset-idle", resetBackgroundIdle);
+    // After the background is started, initiate the first timer
+    extension.once("background-script-started", resetBackgroundIdle);
+
+    extension.terminateBackground = async ({
+      ignoreDevToolsAttached = false,
+    } = {}) => {
       await bgStartupPromise;
+      if (!this.extension || this.extension.hasShutdown) {
+        // Extension was already shut down.
+        return;
+      }
+      if (extension.backgroundState != BACKGROUND_STATE.RUNNING) {
+        return;
+      }
+
+      if (
+        !ignoreDevToolsAttached &&
+        ExtensionParent.DebugUtils.hasDevToolsAttached(extension.id)
+      ) {
+        extension.emit("background-script-suspend-ignored");
+        return;
+      }
+
+      const childId = extension.backgroundContext?.childId;
+      if (childId !== undefined) {
+        // Ask to the background page context in the child process to check if there are
+        // StreamFilter instances active (e.g. ones with status "transferringdata" or "suspended",
+        // see StreamFilterStatus enum defined in StreamFilter.webidl).
+        // TODO(Bug 1748533): consider additional changes to prevent a StreamFilter that never gets to an
+        // inactive state from preventing an even page from being ever suspended.
+        const hasActiveStreamFilter = await ExtensionParent.ParentAPIManager.queryStreamFilterSuspendCancel(
+          extension.backgroundContext.childId
+        );
+        if (hasActiveStreamFilter) {
+          extension.emit("background-script-reset-idle");
+          return;
+        }
+      }
+
+      extension.backgroundState = BACKGROUND_STATE.SUSPENDING;
+      this.clearIdleTimer();
+      // call runtime.onSuspend
+      await extension.emit("background-script-suspend");
+      // If in the meantime another event fired, state will be RUNNING,
+      // and if it was shutdown it will be STOPPED.
+      if (extension.backgroundState != BACKGROUND_STATE.SUSPENDING) {
+        return;
+      }
+      extension.off("background-script-reset-idle", resetBackgroundIdle);
       this.onShutdown(false);
       EventManager.clearPrimedListeners(this.extension, false);
       // Setup background startup listeners for next primed event.
       return this.primeBackground(false);
     };
 
-    extension.once("terminate-background-script", async () => {
-      if (!this.extension) {
-        // Extension was already shut down.
-        return;
-      }
-      this.extension.terminateBackground();
-    });
-
     // Persistent backgrounds are started immediately except during APP_STARTUP.
     // Non-persistent backgrounds must be started immediately for new install or enable
     // to initialize the addon and create the persisted listeners.
+    // updateReason is set when an extension is updated during APP_STARTUP.
     if (
       isInStartup &&
-      (!DELAYED_STARTUP ||
-        (extension.persistentBackground &&
-          extension.startupReason !== "APP_STARTUP") ||
-        ["ADDON_INSTALL", "ADDON_ENABLE"].includes(extension.startupReason))
+      (extension.testNoDelayedStartup ||
+        extension.startupReason !== "APP_STARTUP" ||
+        extension.updateReason)
     ) {
       return this.build();
     }
@@ -358,9 +493,14 @@ this.backgroundPage = class extends ExtensionAPI {
   }
 
   onShutdown(isAppShutdown) {
+    this.extension.backgroundState = BACKGROUND_STATE.STOPPED;
+    // Ensure there is no backgroundTimer running
+    this.clearIdleTimer();
+
     if (this.bgInstance) {
       this.bgInstance.shutdown(isAppShutdown);
       this.bgInstance = null;
+      // Emit an event for tests.
       this.extension.emit("shutdown-background-script");
     } else {
       EventManager.clearPrimedListeners(this.extension, false);
@@ -369,12 +509,19 @@ this.backgroundPage = class extends ExtensionAPI {
 
   async onManifestEntry(entryName) {
     let { extension } = this;
+    extension.backgroundState = BACKGROUND_STATE.STOPPED;
+
+    // runtime.onStartup event support.  We listen for the first
+    // background startup then emit a first-run event.
+    extension.once("background-script-started", () => {
+      extension.emit("background-first-run");
+    });
 
     await this.primeBackground();
 
     ExtensionParent.browserStartupPromise.then(() => {
-      // If the background has been created earlier than session restore,
-      // we do not want to continue with creating it here.
+      // Return early if the background was created in the first
+      // primeBackground call.  This happens for install, upgrade, downgrade.
       if (this.bgInstance) {
         return;
       }
@@ -383,7 +530,11 @@ this.backgroundPage = class extends ExtensionAPI {
       // start the event page so they can be registered.
       if (
         extension.persistentBackground ||
-        !extension.persistentListeners?.size
+        !extension.persistentListeners?.size ||
+        // If runtime.onStartup has a listener and this is app_startup,
+        // start the extension so it will fire the event.
+        (extension.startupReason == "APP_STARTUP" &&
+          extension.persistentListeners?.get("runtime").has("onStartup"))
       ) {
         extension.emit("start-background-script");
       } else {

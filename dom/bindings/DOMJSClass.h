@@ -13,6 +13,7 @@
 #include "js/Wrapper.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/OriginTrials.h"
 #include "mozilla/Likely.h"
 
 #include "mozilla/dom/PrototypeList.h"  // auto-generated
@@ -36,8 +37,7 @@ class nsIGlobalObject;
 #define JSCLASS_DOM_GLOBAL JSCLASS_USERBIT1
 #define JSCLASS_IS_DOMIFACEANDPROTOJSCLASS JSCLASS_USERBIT2
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 /**
  * Returns true if code running in the given JSContext is allowed to access
@@ -105,14 +105,15 @@ namespace GlobalNames {
 // interfaces, not of the global names used to refer to them in IDL [Exposed]
 // annotations.
 static const uint32_t Window = 1u << 0;
-static const uint32_t BackstagePass = 1u << 1;
-static const uint32_t DedicatedWorkerGlobalScope = 1u << 2;
-static const uint32_t SharedWorkerGlobalScope = 1u << 3;
-static const uint32_t ServiceWorkerGlobalScope = 1u << 4;
-static const uint32_t WorkerDebuggerGlobalScope = 1u << 5;
-static const uint32_t WorkletGlobalScope = 1u << 6;
-static const uint32_t AudioWorkletGlobalScope = 1u << 7;
-static const uint32_t PaintWorkletGlobalScope = 1u << 8;
+static const uint32_t DedicatedWorkerGlobalScope = 1u << 1;
+static const uint32_t SharedWorkerGlobalScope = 1u << 2;
+static const uint32_t ServiceWorkerGlobalScope = 1u << 3;
+static const uint32_t WorkerDebuggerGlobalScope = 1u << 4;
+static const uint32_t WorkletGlobalScope = 1u << 5;
+static const uint32_t AudioWorkletGlobalScope = 1u << 6;
+static const uint32_t PaintWorkletGlobalScope = 1u << 7;
+
+static constexpr uint32_t kCount = 8;
 }  // namespace GlobalNames
 
 struct PrefableDisablers {
@@ -129,6 +130,15 @@ struct PrefableDisablers {
     if (secureContext && !IsSecureContextOrObjectIsFromSecureContext(cx, obj)) {
       return false;
     }
+    if (trial != OriginTrial(0) &&
+        !OriginTrials::IsEnabled(cx, JS::GetNonCCWObjectGlobal(obj), trial)) {
+      // TODO(emilio): Perhaps reconsider the interaction between [Trial=""] and
+      // [Pref=""].
+      //
+      // In particular, it might be desirable to only check the trial if there
+      // is no pref or the pref is disabled.
+      return false;
+    }
     if (enabledFunc && !enabledFunc(cx, JS::GetNonCCWObjectGlobal(obj))) {
       return false;
     }
@@ -138,11 +148,15 @@ struct PrefableDisablers {
   // Index into the array of StaticPrefs
   const WebIDLPrefIndex prefIndex;
 
-  // A boolean indicating whether a Secure Context is required.
-  const bool secureContext;
-
   // Bitmask of global names that we should not be exposed in.
-  const uint16_t nonExposedGlobals;
+  const uint16_t nonExposedGlobals : GlobalNames::kCount;
+
+  // A boolean indicating whether a Secure Context is required.
+  const uint16_t secureContext : 1;
+
+  // An origin trial controlling the feature. This can be made a bitfield too if
+  // needed.
+  const OriginTrial trial;
 
   // A function pointer to a function that can say the property is disabled
   // even if "enabled" is set to true.  If the pointer is null the value of
@@ -425,10 +439,6 @@ struct NativePropertyHooks {
   // constructors::id::_ID_Count.
   constructors::ID mConstructorID;
 
-  // The NativePropertyHooks instance for the parent interface (for
-  // ShimInterfaceInfo).
-  const NativePropertyHooks* mProtoHooks;
-
   // The JSClass to use for expandos on our Xrays.  Can be null, in which case
   // Xrays will use a default class of their choice.
   const JSClass* mXrayExpandoClass;
@@ -587,7 +597,6 @@ inline ProtoAndIfaceCache* GetProtoAndIfaceCache(JSObject* global) {
       JS::GetReservedSlot(global, DOM_PROTOTYPE_SLOT).toPrivate());
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif /* mozilla_dom_DOMJSClass_h */

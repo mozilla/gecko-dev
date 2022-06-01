@@ -3,25 +3,34 @@ name: pipeline
 on: [push, pull_request]
 
 jobs:
-  test:
-    name: Test
+  test-msrv:
+    name: Test MSRV and dependencies minimal-versions
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust: ["1.43.0", nightly]
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: ${{ matrix.rust }}
+          toolchain: "1.56.0"
           override: true
-      - uses: actions-rs/cargo@v1
-        name: Downgrade bitflags to MSRV
-        if: ${{ matrix.rust }} == "1.43.0"
+      - uses: taiki-e/install-action@cargo-hack
+      - uses: taiki-e/install-action@cargo-minimal-versions
+      # nightly is only used by cargo-minimal-versions to regenerate the lock file
+      - run: rustup toolchain add nightly --no-self-update
+      - name: Test all features
+        run: cargo minimal-versions test --all-features --workspace
+      - name: Check snapshots
+        run: git diff --exit-code -- tests/out
+  test:
+    name: Test Nightly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
         with:
-          command: update
-          args: -p bitflags --precise 1.2.1
+          profile: minimal
+          toolchain: nightly
+          override: true
       - uses: actions-rs/cargo@v1
         name: Default test
         with:

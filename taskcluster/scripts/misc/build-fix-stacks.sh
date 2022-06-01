@@ -35,28 +35,33 @@ x86_64-unknown-linux-gnu)
     export TARGET_CC="$CC -isysroot $MOZ_FETCHES_DIR/MacOSX11.0.sdk"
     export TARGET_CXX="$CXX -isysroot $MOZ_FETCHES_DIR/MacOSX11.0.sdk"
     ;;
-i686-pc-windows-msvc)
+*-pc-windows-msvc)
     # Cross-compiling for Windows on Linux.
     EXE=.exe
     # Some magic that papers over differences in case-sensitivity/insensitivity on Linux
     # and Windows file systems.
     export LD_PRELOAD="/builds/worker/fetches/liblowercase/liblowercase.so"
-    export LOWERCASE_DIRS="/builds/worker/fetches/vs2017_15.9.6"
+    export LOWERCASE_DIRS="/builds/worker/fetches/vs"
     # {CC,CXX} and TARGET_{CC,CXX} must be set because a build.rs file builds
     # some C and C++ code.
     export CC=$MOZ_FETCHES_DIR/clang/bin/clang-cl
     export CXX=$MOZ_FETCHES_DIR/clang/bin/clang-cl
     export TARGET_AR=$MOZ_FETCHES_DIR/clang/bin/llvm-lib
-    . $GECKO_PATH/taskcluster/scripts/misc/vs-setup32.sh
-    export CARGO_TARGET_I686_PC_WINDOWS_MSVC_LINKER=$MOZ_FETCHES_DIR/clang/bin/lld-link
+
+    case "$TARGET" in
+        i686-pc-windows-msvc)
+            . $GECKO_PATH/taskcluster/scripts/misc/vs-setup32.sh
+            export CARGO_TARGET_I686_PC_WINDOWS_MSVC_LINKER=$MOZ_FETCHES_DIR/clang/bin/lld-link
+            ;;
+        x86_64-pc-windows-msvc)
+            . $GECKO_PATH/taskcluster/scripts/misc/vs-setup.sh
+            export CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=$MOZ_FETCHES_DIR/clang/bin/lld-link
+            ;;
+    esac
     ;;
 esac
 
 cd $GECKO_PATH
-
-if [ -n "$TOOLTOOL_MANIFEST" ]; then
-  . taskcluster/scripts/misc/tooltool-download.sh
-fi
 
 PATH="$(cd $MOZ_FETCHES_DIR && pwd)/rustc/bin:$PATH"
 

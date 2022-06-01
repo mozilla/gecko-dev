@@ -3,6 +3,9 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 // Tests breakpoints syncing when reloading
+
+"use strict";
+
 requestLongerTimeout(3);
 
 // Tests that a breakpoint set is correctly synced after reload
@@ -25,7 +28,7 @@ add_task(async function() {
   await reload(dbg);
   await waitForPaused(dbg);
 
-  info("Assert that the source is not long.js")
+  info("Assert that the source is not long.js");
   // Adding this is redundant but just to make it explicit that we
   // make sure long.js should not exist yet
   assertSourceDoesNotExist(dbg, "long.js");
@@ -112,10 +115,4 @@ add_task(async function() {
 function assertSourceDoesNotExist(dbg, url) {
   const source = findSource(dbg, url, { silent: true });
   ok(!source, `Source for ${url} does not exist`);
-}
-
-async function addBreakpointViaGutter(dbg, line) {
-  info(`Add breakpoint via the editor on line ${line}`);
-  await clickGutter(dbg, line);
-  return waitForDispatch(dbg.store, "SET_BREAKPOINT");
 }

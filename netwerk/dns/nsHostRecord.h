@@ -165,6 +165,16 @@ class nsHostRecord : public mozilla::LinkedListElement<RefPtr<nsHostRecord>>,
     return type == nsIDNSService::RESOLVE_TYPE_DEFAULT;
   }
 
+  virtual void Reset() {
+    mTRRSkippedReason = TRRSkippedReason::TRR_UNSET;
+    mFirstTRRSkippedReason = TRRSkippedReason::TRR_UNSET;
+    mTrrAttempts = 0;
+    mTRRSuccess = false;
+    mNativeSuccess = false;
+  }
+
+  virtual void OnCompleteLookup() {}
+
   // When the record began being valid. Used mainly for bookkeeping.
   mozilla::TimeStamp mValidStart;
 
@@ -187,8 +197,6 @@ class nsHostRecord : public mozilla::LinkedListElement<RefPtr<nsHostRecord>>,
 
   TRRSkippedReason mTRRSkippedReason = TRRSkippedReason::TRR_UNSET;
   TRRSkippedReason mFirstTRRSkippedReason = TRRSkippedReason::TRR_UNSET;
-  TRRSkippedReason mTRRAFailReason = TRRSkippedReason::TRR_UNSET;
-  TRRSkippedReason mTRRAAAAFailReason = TRRSkippedReason::TRR_UNSET;
 
   mozilla::DataMutex<RefPtr<mozilla::net::TRRQuery>> mTRRQuery;
 
@@ -206,6 +214,12 @@ class nsHostRecord : public mozilla::LinkedListElement<RefPtr<nsHostRecord>>,
 
   // Explicitly expired
   bool mDoomed = false;
+
+  // Whether this is resolved by TRR successfully or not.
+  bool mTRRSuccess = false;
+
+  // Whether this is resolved by native resolver successfully or not.
+  bool mNativeSuccess = false;
 };
 
 // b020e996-f6ab-45e5-9bf5-1da71dd0053a
@@ -241,7 +255,7 @@ class AddrHostRecord final : public nsHostRecord {
    * the other threads just read it.  therefore the resolver worker
    * thread doesn't need to lock when reading |addr_info|.
    */
-  Mutex addr_info_lock{"AddrHostRecord.addr_info_lock"};
+  Mutex addr_info_lock MOZ_UNANNOTATED{"AddrHostRecord.addr_info_lock"};
   // generation count of |addr_info|
   int addr_info_gencnt = 0;
   RefPtr<mozilla::net::AddrInfo> addr_info;
@@ -284,16 +298,25 @@ class AddrHostRecord final : public nsHostRecord {
   // true if pending and on the queue (not yet given to getaddrinfo())
   bool onQueue() { return LoadNative() && isInList(); }
 
+  virtual void Reset() override {
+    nsHostRecord::Reset();
+    StoreNativeUsed(false);
+    mResolverType = DNSResolverType::Native;
+  }
+
+  virtual void OnCompleteLookup() override {
+    nsHostRecord::OnCompleteLookup();
+    // This should always be cleared when a request is completed.
+    StoreNative(false);
+  }
+
   // When the lookups of this record started and their durations
-  mozilla::TimeStamp mTrrStart;
   mozilla::TimeStamp mNativeStart;
   mozilla::TimeDuration mTrrDuration;
   mozilla::TimeDuration mNativeDuration;
 
   // TRR or ODoH was used on this record
   mozilla::Atomic<DNSResolverType> mResolverType{DNSResolverType::Native};
-  uint8_t mTRRSuccess = 0;     // number of successful TRR responses
-  uint8_t mNativeSuccess = 0;  // number of native lookup responses
 
   // clang-format off
   MOZ_ATOMIC_BITFIELDS(mAtomicBitfields, 8, (
@@ -355,7 +378,7 @@ class TypeHostRecord final : public nsHostRecord,
   bool RefreshForNegativeResponse() const override;
 
   mozilla::net::TypeRecordResultType mResults = AsVariant(mozilla::Nothing());
-  mozilla::Mutex mResultsLock{"TypeHostRecord.mResultsLock"};
+  mozilla::Mutex mResultsLock MOZ_UNANNOTATED{"TypeHostRecord.mResultsLock"};
 
   // When the lookups of this record started (for telemetry).
   mozilla::TimeStamp mStart;

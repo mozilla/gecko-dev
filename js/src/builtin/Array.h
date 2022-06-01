@@ -108,6 +108,10 @@ extern bool GetElements(JSContext* cx, HandleObject aobj, uint32_t length,
 extern bool intrinsic_ArrayNativeSort(JSContext* cx, unsigned argc,
                                       js::Value* vp);
 
+extern bool array_includes(JSContext* cx, unsigned argc, js::Value* vp);
+extern bool array_indexOf(JSContext* cx, unsigned argc, js::Value* vp);
+extern bool array_lastIndexOf(JSContext* cx, unsigned argc, js::Value* vp);
+
 extern bool array_push(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool array_pop(JSContext* cx, unsigned argc, js::Value* vp);
@@ -122,6 +126,12 @@ extern bool array_slice(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern JSObject* ArraySliceDense(JSContext* cx, HandleObject obj, int32_t begin,
                                  int32_t end, HandleObject result);
+
+extern JSObject* ArgumentsSliceDense(JSContext* cx, HandleObject obj,
+                                     int32_t begin, int32_t end,
+                                     HandleObject result);
+
+extern bool intrinsic_newList(JSContext* cx, unsigned argc, js::Value* vp);
 
 /*
  * Append the given (non-hole) value to the end of an array.  The array must be
@@ -151,7 +161,7 @@ extern JSString* ArrayToSource(JSContext* cx, HandleObject obj);
 extern bool IsCrossRealmArrayConstructor(JSContext* cx, JSObject* obj,
                                          bool* result);
 
-extern bool ObjectMayHaveExtraIndexedProperties(JSObject* obj);
+extern bool PrototypeMayHaveIndexedProperties(NativeObject* obj);
 
 // JS::IsArray has multiple overloads, use js::IsArrayFromJit to disambiguate.
 extern bool IsArrayFromJit(JSContext* cx, HandleObject obj, bool* isArray);

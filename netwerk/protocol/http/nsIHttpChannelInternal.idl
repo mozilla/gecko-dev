@@ -213,7 +213,7 @@ interface nsIHttpChannelInternal : nsISupports
 
     /**
      * Enable/Disable Spdy negotiation on per channel basis.
-     * The network.http.spdy.enabled preference is still a pre-requisite
+     * The network.http.http2.enabled preference is still a pre-requisite
      * for starting spdy.
      */
     [must_use] attribute boolean allowSpdy;
@@ -276,6 +276,11 @@ interface nsIHttpChannelInternal : nsISupports
      * IP literal host.
      */
     [must_use] readonly attribute boolean isResolvedByTRR;
+
+    /**
+     * True if channel is loaded by socket process.
+     */
+    [must_use] readonly attribute boolean isLoadedBySocketProcess;
 
     /**
      * Set to true if the channel is an OCSP check.

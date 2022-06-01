@@ -130,6 +130,8 @@ struct RequestInit;
 class RequestOrUSVString;
 class SharedWorker;
 class Selection;
+class WebTaskScheduler;
+class WebTaskSchedulerMainThread;
 class SpeechSynthesis;
 class Timeout;
 class U2F;
@@ -251,6 +253,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // nsIGlobalObject
   bool ShouldResistFingerprinting() const final;
   uint32_t GetPrincipalHashValue() const final;
+  mozilla::OriginTrials Trials() const final;
 
   JSObject* GetGlobalJSObject() final { return GetWrapper(); }
   JSObject* GetGlobalJSObjectPreserveColor() const final {
@@ -465,8 +468,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 #endif
 
   virtual bool TakeFocus(bool aFocus, uint32_t aFocusMethod) override;
-  virtual void SetReadyForFocus() override;
-  virtual void PageHidden() override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual void SetReadyForFocus() override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual void PageHidden() override;
   virtual nsresult DispatchAsyncHashchange(nsIURI* aOldURI,
                                            nsIURI* aNewURI) override;
   virtual nsresult DispatchSyncPopState() override;
@@ -869,6 +872,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
                            mozilla::ErrorResult& aError);
   double GetDevicePixelRatio(mozilla::dom::CallerType aCallerType,
                              mozilla::ErrorResult& aError);
+  double GetDesktopToDeviceScale(mozilla::ErrorResult& aError);
   int32_t GetScrollMinX(mozilla::ErrorResult& aError);
   int32_t GetScrollMinY(mozilla::ErrorResult& aError);
   int32_t GetScrollMaxX(mozilla::ErrorResult& aError);
@@ -879,7 +883,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   bool Find(const nsAString& aString, bool aCaseSensitive, bool aBackwards,
             bool aWrapAround, bool aWholeWord, bool aSearchInFrames,
             bool aShowDialog, mozilla::ErrorResult& aError);
-  uint64_t GetMozPaintCount(mozilla::ErrorResult& aError);
 
   bool DidFireDocElemInserted() const { return mDidFireDocElemInserted; }
   void SetDidFireDocElemInserted() { mDidFireDocElemInserted = true; }
@@ -985,6 +988,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   // https://whatpr.org/html/4734/structured-data.html#cross-origin-isolated
   bool CrossOriginIsolated() const override;
+
+  mozilla::dom::WebTaskScheduler* Scheduler();
 
  protected:
   // Web IDL helpers
@@ -1315,7 +1320,9 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   }
 
   nsTArray<uint32_t>& GetScrollMarks() { return mScrollMarks; }
-  void SetScrollMarks(const nsTArray<uint32_t>& aScrollMarks);
+  bool GetScrollMarksOnHScrollbar() const { return mScrollMarksOnHScrollbar; }
+  void SetScrollMarks(const nsTArray<uint32_t>& aScrollMarks,
+                      bool aOnHScrollbar);
 
   // Don't use this value directly, call StorageAccess::StorageAllowedForWindow
   // instead.
@@ -1336,8 +1343,13 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
     mStorageAllowedReasonCache = 0;
   }
 
+  virtual JS::loader::ModuleLoaderBase* GetModuleLoader(
+      JSContext* aCx) override;
+
  private:
   RefPtr<mozilla::dom::ContentMediaController> mContentMediaController;
+
+  RefPtr<mozilla::dom::WebTaskSchedulerMainThread> mWebTaskScheduler;
 
  protected:
   // Whether we need to care about orientation changes.
@@ -1409,6 +1421,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // Whether this window has opened an external-protocol iframe without user
   // activation once already. Only relevant for top windows.
   bool mHasOpenedExternalProtocolFrame : 1;
+
+  bool mScrollMarksOnHScrollbar : 1;
 
   nsCheapSet<nsUint32HashKey> mGamepadIndexSet;
   nsRefPtrHashtable<nsGenericHashKey<mozilla::dom::GamepadHandle>,
@@ -1515,7 +1529,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   RefPtr<mozilla::dom::VREventObserver> mVREventObserver;
 
-  // The number of unload and beforeunload even listeners registered on this
+  // The number of unload and beforeunload event listeners registered on this
   // window.
   uint64_t mUnloadOrBeforeUnloadListenerCount = 0;
 

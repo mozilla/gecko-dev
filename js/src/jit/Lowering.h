@@ -25,6 +25,8 @@
 #  include "jit/mips64/Lowering-mips64.h"
 #elif defined(JS_CODEGEN_RISCV64)
 #  include "jit/riscv64/Lowering-riscv64.h"
+#elif defined(JS_CODEGEN_LOONG64)
+#  include "jit/loong64/Lowering-loong64.h"
 #elif defined(JS_CODEGEN_NONE)
 #  include "jit/none/Lowering-none.h"
 #else
@@ -75,6 +77,9 @@ class LIRGenerator final : public LIRGeneratorSpecific {
 #define MIR_OP(op) void visit##op(M##op* ins);
   MIR_OPCODE_LIST(MIR_OP)
 #undef MIR_OP
+
+  template <class MWasmCallT>
+  void visitWasmCall(MWasmCallT ins);
 };
 
 }  // namespace jit

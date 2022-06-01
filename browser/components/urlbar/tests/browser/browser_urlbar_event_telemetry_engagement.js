@@ -13,6 +13,9 @@ const TEST_ENGINE_NAME = "Test";
 const TEST_ENGINE_ALIAS = "@test";
 const TEST_ENGINE_DOMAIN = "example.com";
 
+// This test has many subtests and can time out in verify mode.
+requestLongerTimeout(5);
+
 // Each test is a function that executes an urlbar action and returns the
 // expected event object.
 const tests = [
@@ -313,8 +316,15 @@ const tests = [
 
   async function(win) {
     info("Type something, click on bookmark entry.");
+    // Add a clean bookmark.
+    const bookmark = await PlacesUtils.bookmarks.insert({
+      parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+      url: "http://example.com/bookmark",
+      title: "bookmark",
+    });
+
     win.gURLBar.select();
-    let url = "http://example.com/?q=%s";
+    let url = "http://example.com/bookmark";
     let promise = BrowserTestUtils.browserLoaded(
       win.gBrowser.selectedBrowser,
       false,
@@ -322,7 +332,7 @@ const tests = [
     );
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window: win,
-      value: "exa",
+      value: "boo",
       fireInputEvent: true,
     });
     while (win.gURLBar.untrimmedValue != url) {
@@ -331,6 +341,7 @@ const tests = [
     let element = UrlbarTestUtils.getSelectedRow(win);
     EventUtils.synthesizeMouseAtCenter(element, {}, win);
     await promise;
+    await PlacesUtils.bookmarks.remove(bookmark);
     return {
       category: "urlbar",
       method: "engagement",
@@ -371,7 +382,7 @@ const tests = [
         numChars: "3",
         numWords: "1",
         selIndex: "0",
-        selType: "autofill",
+        selType: "autofill_origin",
         provider: "Autofill",
       },
     };
@@ -379,18 +390,32 @@ const tests = [
 
   async function(win) {
     info("Type something, select bookmark entry, Enter.");
+
+    // Add a clean bookmark and the input history in order to detect in InputHistory
+    // provider and to not show adaptive history autofill.
+    const bookmark = await PlacesUtils.bookmarks.insert({
+      parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+      url: "http://example.com/bookmark",
+      title: "bookmark",
+    });
+    await UrlbarUtils.addToInputHistory(
+      "http://example.com/bookmark",
+      "bookmark"
+    );
+
     win.gURLBar.select();
     let promise = BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window: win,
-      value: "exa",
+      value: "boo",
       fireInputEvent: true,
     });
-    while (win.gURLBar.untrimmedValue != "http://example.com/?q=%s") {
+    while (win.gURLBar.untrimmedValue != "http://example.com/bookmark") {
       EventUtils.synthesizeKey("KEY_ArrowDown", {}, win);
     }
     EventUtils.synthesizeKey("VK_RETURN", {}, win);
     await promise;
+    await PlacesUtils.bookmarks.remove(bookmark);
     return {
       category: "urlbar",
       method: "engagement",
@@ -771,7 +796,7 @@ const tests = [
         elapsed: val => parseInt(val) > 0,
         numChars: "11",
         numWords: "1",
-        selType: "autofill",
+        selType: "autofill_origin",
         selIndex: "0",
         provider: "Autofill",
       },
@@ -801,7 +826,7 @@ const tests = [
         elapsed: val => parseInt(val) > 0,
         numChars: "11",
         numWords: "1",
-        selType: "autofill",
+        selType: "autofill_origin",
         selIndex: "0",
         provider: "Autofill",
       },
@@ -1106,16 +1131,10 @@ const tests = [
   },
 ];
 
-add_task(async function test() {
+add_task(async function init() {
   await PlacesUtils.history.clear();
   await PlacesUtils.bookmarks.eraseEverything();
 
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.eventTelemetry.enabled", true],
-      ["browser.urlbar.suggest.searches", true],
-    ],
-  });
   // Create a new search engine and mark it as default
   let engine = await SearchTestUtils.promiseNewSearchEngine(
     getRootDirectory(gTestPath) + "searchSuggestionEngine.xml"
@@ -1141,18 +1160,27 @@ add_task(async function test() {
     url: "http://example.com/?q=%s",
   });
 
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-
   registerCleanupFunction(async function() {
     await Services.search.setDefault(oldDefaultEngine);
     await PlacesUtils.keywords.remove("kw");
     await PlacesUtils.bookmarks.remove(bm);
     await PlacesUtils.history.clear();
-    await UrlbarTestUtils.formHistory.clear(win);
   });
+});
+
+async function doTest(eventTelemetryEnabled) {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.urlbar.eventTelemetry.enabled", eventTelemetryEnabled],
+      ["browser.urlbar.suggest.searches", true],
+    ],
+  });
+
+  const win = await BrowserTestUtils.openNewBrowserWindow();
 
   // This is not necessary after each loop, because assertEvents does it.
   Services.telemetry.clearEvents();
+  Services.telemetry.clearScalars();
 
   for (let i = 0; i < tests.length; i++) {
     info(`Running test at index ${i}`);
@@ -1163,11 +1191,36 @@ add_task(async function test() {
     // Always blur to ensure it's not accounted as an additional abandonment.
     win.gURLBar.setSearchMode({});
     win.gURLBar.blur();
-    TelemetryTestUtils.assertEvents(events, { category: "urlbar" });
+    TelemetryTestUtils.assertEvents(eventTelemetryEnabled ? events : [], {
+      category: "urlbar",
+    });
+
+    // Scalars should be recorded regardless of `eventTelemetry.enabled`.
+    let scalars = TelemetryTestUtils.getProcessScalars("parent", false, true);
+    TelemetryTestUtils.assertScalar(
+      scalars,
+      "urlbar.engagement",
+      events.filter(e => e.method == "engagement").length || undefined
+    );
+    TelemetryTestUtils.assertScalar(
+      scalars,
+      "urlbar.abandonment",
+      events.filter(e => e.method == "abandonment").length || undefined
+    );
+
     await UrlbarTestUtils.formHistory.clear(win);
   }
 
   await BrowserTestUtils.closeWindow(win);
+  await SpecialPowers.popPrefEnv();
+}
+
+add_task(async function enabled() {
+  await doTest(true);
+});
+
+add_task(async function disabled() {
+  await doTest(false);
 });
 
 /**

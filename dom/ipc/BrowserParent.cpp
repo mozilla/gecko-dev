@@ -16,6 +16,7 @@
 #endif
 #include "mozilla/Components.h"
 #include "mozilla/dom/BrowserHost.h"
+#include "mozilla/dom/BrowserSessionStore.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/CancelContentJSOptionsBinding.h"
 #include "mozilla/dom/ChromeMessageSender.h"
@@ -32,8 +33,7 @@
 #include "mozilla/dom/RemoteDragStartData.h"
 #include "mozilla/dom/RemoteWebProgressRequest.h"
 #include "mozilla/dom/SessionHistoryEntry.h"
-#include "mozilla/dom/SessionStoreUtils.h"
-#include "mozilla/dom/SessionStoreUtilsBinding.h"
+#include "mozilla/dom/SessionStoreParent.h"
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/gfx/2D.h"
@@ -53,6 +53,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProcessHangMonitor.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/TextEventDispatcher.h"
@@ -128,7 +129,6 @@
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/ProfilerLabels.h"
 #include "MMPrinter.h"
-#include "SessionStoreFunctions.h"
 #include "mozilla/dom/CrashReport.h"
 #include "nsISecureBrowserUI.h"
 #include "nsIXULRuntime.h"
@@ -162,7 +162,6 @@ using namespace mozilla::widget;
 using namespace mozilla::gfx;
 
 using mozilla::LazyLogModule;
-using mozilla::Unused;
 
 extern mozilla::LazyLogModule gSHIPBFCacheLog;
 
@@ -231,6 +230,7 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
       mRemoteTargetSetsCursor(false),
       mIsPreservingLayers(false),
       mRenderLayers(true),
+      mPriorityHint(false),
       mHasLayers(false),
       mHasPresented(false),
       mIsReadyToHandleInputEvents(false),
@@ -242,12 +242,20 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
   // that some input events are dispatched before PBrowserConstructor.
   mIsReadyToHandleInputEvents = !ContentParent::IsInputEventQueueSupported();
 
+  // Make sure to compute our process priority if needed before the block of
+  // code below. This makes sure the block below prioritizes our process if
+  // needed.
+  if (aBrowsingContext->IsTop()) {
+    RecomputeProcessPriority();
+  }
+
   // If we're in a BC tree that is active with respect to the priority manager,
   // ensure that this new BrowserParent is marked as active. This ensures that
   // the process will be prioritized in a cross-site iframe navigation in an
-  // active tab.
+  // active tab, and also that the process is correctly prioritized if we got
+  // created for a browsing context which was already active.
   if (aBrowsingContext->Top()->IsPriorityActive()) {
-    ProcessPriorityManager::ActivityChanged(this, true);
+    ProcessPriorityManager::BrowserPriorityChanged(this, true);
   }
 }
 
@@ -554,7 +562,7 @@ void BrowserParent::SetOwnerElement(Element* aElement) {
     mBrowsingContext->SetEmbedderElement(mFrameElement);
   }
 
-  UpdateVsyncParentVsyncSource();
+  UpdateVsyncParentVsyncDispatcher();
 
   VisitChildren([aElement](BrowserBridgeParent* aBrowser) {
     if (auto* browserParent = aBrowser->GetBrowserParent()) {
@@ -605,7 +613,7 @@ void BrowserParent::Deactivated() {
   PointerLockManager::ReleaseLockedRemoteTarget(this);
   PointerEventHandler::ReleasePointerCaptureRemoteTarget(this);
   PresShell::ReleaseCapturingRemoteTarget(this);
-  ProcessPriorityManager::ActivityChanged(this, /* aIsActive = */ false);
+  ProcessPriorityManager::BrowserPriorityChanged(this, /* aPriority = */ false);
 }
 
 void BrowserParent::DestroyInternal() {
@@ -615,6 +623,9 @@ void BrowserParent::DestroyInternal() {
 
 #ifdef ACCESSIBILITY
   if (a11y::DocAccessibleParent* tabDoc = GetTopLevelDocAccessible()) {
+#  if defined(ANDROID)
+    MonitorAutoLock mal(nsAccessibilityService::GetAndroidMonitor());
+#  endif
     tabDoc->Destroy();
   }
 #endif
@@ -674,7 +685,10 @@ mozilla::ipc::IPCResult BrowserParent::RecvEnsureLayersConnected(
 void BrowserParent::ActorDestroy(ActorDestroyReason why) {
   Manager()->NotifyTabDestroyed(mTabId, mMarkedDestroying);
 
-  ContentProcessManager::GetSingleton()->UnregisterRemoteFrame(mTabId);
+  ContentProcessManager* cpm = ContentProcessManager::GetSingleton();
+  if (cpm) {
+    cpm->UnregisterRemoteFrame(mTabId);
+  }
 
   if (mRemoteLayerTreeOwner.IsInitialized()) {
     auto layersId = mRemoteLayerTreeOwner.GetLayersId();
@@ -1207,6 +1221,9 @@ mozilla::ipc::IPCResult BrowserParent::RecvPDocAccessibleConstructor(
     PDocAccessibleParent* aDoc, PDocAccessibleParent* aParentDoc,
     const uint64_t& aParentID, const uint32_t& aMsaaID,
     const IAccessibleHolder& aDocCOMProxy) {
+#  if defined(ANDROID)
+  MonitorAutoLock mal(nsAccessibilityService::GetAndroidMonitor());
+#  endif
   auto doc = static_cast<a11y::DocAccessibleParent*>(aDoc);
 
   // If this tab is already shutting down just mark the new actor as shutdown
@@ -1368,6 +1385,17 @@ IPCResult BrowserParent::RecvIndexedDBPermissionRequest(
   return IPC_OK();
 }
 
+already_AddRefed<PSessionStoreParent>
+BrowserParent::AllocPSessionStoreParent() {
+  RefPtr<BrowserSessionStore> sessionStore =
+      BrowserSessionStore::GetOrCreate(mBrowsingContext->Top());
+  if (!sessionStore) {
+    return nullptr;
+  }
+
+  return do_AddRef(new SessionStoreParent(mBrowsingContext, sessionStore));
+}
+
 IPCResult BrowserParent::RecvNewWindowGlobal(
     ManagedEndpoint<PWindowGlobalParent>&& aEndpoint,
     const WindowGlobalInit& aInit) {
@@ -1413,7 +1441,7 @@ IPCResult BrowserParent::RecvNewWindowGlobal(
 PVsyncParent* BrowserParent::AllocPVsyncParent() {
   MOZ_ASSERT(!mVsyncParent);
   mVsyncParent = new VsyncParent();
-  UpdateVsyncParentVsyncSource();
+  UpdateVsyncParentVsyncDispatcher();
   return mVsyncParent.get();
 }
 
@@ -1423,13 +1451,17 @@ bool BrowserParent::DeallocPVsyncParent(PVsyncParent* aActor) {
   return true;
 }
 
-void BrowserParent::UpdateVsyncParentVsyncSource() {
+void BrowserParent::UpdateVsyncParentVsyncDispatcher() {
   if (!mVsyncParent) {
     return;
   }
 
   if (nsCOMPtr<nsIWidget> widget = GetWidget()) {
-    mVsyncParent->UpdateVsyncSource(widget->GetVsyncSource());
+    RefPtr<VsyncDispatcher> vsyncDispatcher = widget->GetVsyncDispatcher();
+    if (!vsyncDispatcher) {
+      vsyncDispatcher = gfxPlatform::GetPlatform()->GetGlobalVsyncDispatcher();
+    }
+    mVsyncParent->UpdateVsyncDispatcher(vsyncDispatcher);
   }
 }
 
@@ -1857,6 +1889,9 @@ mozilla::ipc::IPCResult BrowserParent::RecvSynthesizeNativeMouseEvent(
     const LayoutDeviceIntPoint& aPoint, const uint32_t& aNativeMessage,
     const int16_t& aButton, const uint32_t& aModifierFlags,
     const uint64_t& aObserverId) {
+  const uint32_t last =
+      static_cast<uint32_t>(nsIWidget::NativeMouseMessage::LeaveWindow);
+  NS_ENSURE_TRUE(aNativeMessage <= last, IPC_FAIL(this, "Bogus message"));
   AutoSynthesizedEventResponder responder(this, aObserverId, "mouseevent");
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (widget) {
@@ -1967,12 +2002,16 @@ mozilla::ipc::IPCResult BrowserParent::RecvSynthesizeNativeTouchpadDoubleTap(
 
 mozilla::ipc::IPCResult BrowserParent::RecvSynthesizeNativeTouchpadPan(
     const TouchpadGesturePhase& aEventPhase, const LayoutDeviceIntPoint& aPoint,
-    const double& aDeltaX, const double& aDeltaY,
-    const int32_t& aModifierFlags) {
+    const double& aDeltaX, const double& aDeltaY, const int32_t& aModifierFlags,
+    const uint64_t& aObserverId) {
+  AutoSynthesizedEventResponder responder(this, aObserverId,
+                                          "touchpadpanevent");
+
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (widget) {
     widget->SynthesizeNativeTouchpadPan(aEventPhase, aPoint, aDeltaX, aDeltaY,
-                                        aModifierFlags);
+                                        aModifierFlags,
+                                        responder.GetObserver());
   }
   return IPC_OK();
 }
@@ -2997,41 +3036,6 @@ BrowserParent::BrowsingContextForWebProgress(
   return browsingContext.forget();
 }
 
-mozilla::ipc::IPCResult BrowserParent::RecvSessionStoreUpdate(
-    const Maybe<nsCString>& aDocShellCaps, const Maybe<bool>& aPrivatedMode,
-    const bool aNeedCollectSHistory, const uint32_t& aEpoch) {
-  UpdateSessionStoreData data;
-  if (aDocShellCaps.isSome()) {
-    data.mDocShellCaps.Construct() = aDocShellCaps.value();
-  }
-  if (aPrivatedMode.isSome()) {
-    data.mIsPrivate.Construct() = aPrivatedMode.value();
-  }
-
-  nsCOMPtr<nsISessionStoreFunctions> funcs = do_ImportModule(
-      "resource://gre/modules/SessionStoreFunctions.jsm", fallible);
-  nsCOMPtr<nsIXPConnectWrappedJS> wrapped = do_QueryInterface(funcs);
-  NS_ENSURE_TRUE(wrapped, IPC_OK());
-
-  AutoJSAPI jsapi;
-  if (!jsapi.Init(wrapped->GetJSObjectGlobal())) {
-    return IPC_OK();
-  }
-
-  JS::Rooted<JS::Value> update(jsapi.cx());
-  if (!ToJSValue(jsapi.cx(), data, &update)) {
-    return IPC_OK();
-  }
-
-  JS::RootedValue key(jsapi.cx(),
-                      mBrowsingContext->Canonical()->Top()->PermanentKey());
-
-  Unused << funcs->UpdateSessionStore(mFrameElement, mBrowsingContext, key,
-                                      aEpoch, aNeedCollectSHistory, update);
-
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult BrowserParent::RecvIntrinsicSizeOrRatioChanged(
     const Maybe<IntrinsicSize>& aIntrinsicSize,
     const Maybe<AspectRatio>& aIntrinsicRatio) {
@@ -3051,8 +3055,7 @@ bool BrowserParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent) {
   if (!textInputHandlingWidget) {
     return true;
   }
-  if (NS_WARN_IF(!mContentCache.HandleQueryContentEvent(
-          aEvent, textInputHandlingWidget)) ||
+  if (!mContentCache.HandleQueryContentEvent(aEvent, textInputHandlingWidget) ||
       NS_WARN_IF(aEvent.Failed())) {
     return true;
   }
@@ -3475,6 +3478,19 @@ void BrowserParent::SetRenderLayersInternal(bool aEnabled) {
   if (aEnabled) {
     Manager()->PaintTabWhileInterruptingJS(this, mLayerTreeEpoch);
   }
+}
+
+bool BrowserParent::GetPriorityHint() { return mPriorityHint; }
+
+void BrowserParent::SetPriorityHint(bool aPriorityHint) {
+  mPriorityHint = aPriorityHint;
+  RecomputeProcessPriority();
+}
+
+void BrowserParent::RecomputeProcessPriority() {
+  auto* bc = GetBrowsingContext();
+  ProcessPriorityManager::BrowserPriorityChanged(
+      bc, bc->IsActive() || mPriorityHint);
 }
 
 void BrowserParent::PreserveLayers(bool aPreserveLayers) {

@@ -175,8 +175,9 @@ class MochitestRunner(MozbuildObject):
             print("using e10s=False for non-geckoview app")
 
         # Disable fission until geckoview supports fission by default.
-        # Need fission on Android? Use '--setpref fission.autostart=true'
-        options.fission = False
+        setattr(options, "disable_fission", True)
+        if "fission.autostart=true" in options.extraPrefs:
+            setattr(options, "disable_fission", False)
 
         return runtestsremote.run_test_harness(parser, options)
 
@@ -188,6 +189,12 @@ class MochitestRunner(MozbuildObject):
         import runjunit
 
         options = Namespace(**kwargs)
+
+        # Disable fission until geckoview supports fission by default.
+        setattr(options, "disable_fission", True)
+        if "fission.autostart=true" in options.extra_prefs:
+            setattr(options, "disable_fission", False)
+
         return runjunit.run_test_harness(parser, options)
 
 

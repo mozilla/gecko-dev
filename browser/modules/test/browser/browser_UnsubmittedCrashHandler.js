@@ -137,9 +137,12 @@ function createPendingCrashReports(howMany, accessDate) {
  *
  * @param reportIDs (Array<string>)
  *        The IDs for the reports that we expect CrashSubmit to have sent.
+ * @param extraCheck (Function, optional)
+ *        A function that receives the annotations of the crash report and can
+ *        be used for checking them
  * @returns Promise
  */
-function waitForSubmittedReports(reportIDs) {
+function waitForSubmittedReports(reportIDs, extraCheck) {
   let promises = [];
   for (let reportID of reportIDs) {
     let promise = TestUtils.topicObserved(
@@ -149,23 +152,16 @@ function waitForSubmittedReports(reportIDs) {
           let propBag = subject.QueryInterface(Ci.nsIPropertyBag2);
           let dumpID = propBag.getPropertyAsAString("minidumpID");
           if (dumpID == reportID) {
+            if (extraCheck) {
+              let extra = propBag.getPropertyAsInterface(
+                "extra",
+                Ci.nsIPropertyBag2
+              );
+
+              extraCheck(extra);
+            }
+
             return true;
-          }
-          let extra = propBag.getPropertyAsInterface(
-            "extra",
-            Ci.nsIPropertyBag2
-          );
-          const blockedAnnotations = [
-            "ServerURL",
-            "TelemetryClientId",
-            "TelemetryServerURL",
-            "TelemetrySessionId",
-          ];
-          for (const key of blockedAnnotations) {
-            Assert.ok(
-              !extra.hasKey(key),
-              "The " + key + " annotation should have been stripped away"
-            );
           }
         }
         return false;
@@ -192,12 +188,12 @@ function waitForIgnoredReports(reportIDs) {
   for (let reportID of reportIDs) {
     let file = dir.clone();
     file.append(reportID + ".dmp.ignore");
-    promises.push(OS.File.exists(file.path));
+    promises.push(IOUtils.exists(file.path));
   }
   return Promise.all(promises);
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   // Pending crash reports are stored in the UAppData folder,
   // which exists outside of the profile folder. In order to
   // not overwrite / clear pending crash reports for the poor
@@ -361,6 +357,24 @@ add_task(async function test_several_pending() {
  * Tests that the notification can submit a report.
  */
 add_task(async function test_can_submit() {
+  function extraCheck(extra) {
+    const blockedAnnotations = [
+      "ServerURL",
+      "TelemetryClientId",
+      "TelemetryServerURL",
+      "TelemetrySessionId",
+    ];
+    for (const key of blockedAnnotations) {
+      Assert.ok(
+        !extra.hasKey(key),
+        "The " + key + " annotation should have been stripped away"
+      );
+    }
+
+    Assert.equal(extra.get("SubmittedFrom"), "Infobar");
+    Assert.equal(extra.get("Throttleable"), "1");
+  }
+
   let reportIDs = await createPendingCrashReports(1);
   let notification = await UnsubmittedCrashHandler.checkForUnsubmittedCrashReports();
   Assert.ok(notification, "There should be a notification");
@@ -372,8 +386,7 @@ add_task(async function test_can_submit() {
   );
   // ...which should be the first button.
   let submit = buttons[0];
-
-  let promiseReports = waitForSubmittedReports(reportIDs);
+  let promiseReports = waitForSubmittedReports(reportIDs, extraCheck);
   info("Sending crash report");
   submit.click();
   info("Sent!");
@@ -459,6 +472,17 @@ add_task(async function test_can_submit_always() {
     true,
     "The autoSubmit pref should have been set"
   );
+
+  // Create another report
+  reportIDs = await createPendingCrashReports(1);
+  let result = await UnsubmittedCrashHandler.checkForUnsubmittedCrashReports();
+
+  // Check that the crash was auto-submitted
+  Assert.equal(result, null, "The notification should not be shown");
+  promiseReports = await waitForSubmittedReports(reportIDs, extra => {
+    Assert.equal(extra.get("SubmittedFrom"), "Auto");
+    Assert.equal(extra.get("Throttleable"), "1");
+  });
 
   // And revert back to default now.
   Services.prefs.clearUserPref(pref);

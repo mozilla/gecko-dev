@@ -50,11 +50,15 @@ const ContentProcessTargetActor = TargetActorMixin(
   Targets.TYPES.PROCESS,
   contentProcessTargetSpec,
   {
-    initialize: function(connection, { isXpcShellTarget = false } = {}) {
+    initialize: function(
+      connection,
+      { isXpcShellTarget = false, sessionContext } = {}
+    ) {
       Actor.prototype.initialize.call(this, connection);
       this.conn = connection;
       this.threadActor = null;
       this.isXpcShellTarget = isXpcShellTarget;
+      this.sessionContext = sessionContext;
 
       // Use a see-everything debugger
       this.makeDebugger = makeDebugger.bind(null, {
@@ -152,10 +156,11 @@ const ContentProcessTargetActor = TargetActorMixin(
       return {
         actor: this.actorID,
         consoleActor: this._consoleActor.actorID,
-        threadActor: this.threadActor.actorID,
+        isXpcShellTarget: this.isXpcShellTarget,
         memoryActor: this.memoryActor.actorID,
         processID: Services.appinfo.processID,
         remoteType: Services.appinfo.remoteType,
+        threadActor: this.threadActor.actorID,
 
         traits: {
           networkMonitor: false,
@@ -212,7 +217,7 @@ const ContentProcessTargetActor = TargetActorMixin(
       if (this.isDestroyed()) {
         return;
       }
-      Resources.unwatchAllTargetResources(this);
+      Resources.unwatchAllResources(this);
 
       Actor.prototype.destroy.call(this);
 

@@ -689,8 +689,23 @@ void MediaDevices::OnDeviceChange() {
 
   // Do not fire event to content script when
   // privacy.resistFingerprinting is true.
-  if (nsContentUtils::ShouldResistFingerprinting()) {
-    return;
+
+  if (nsContentUtils::ShouldResistFingerprinting(
+          "Guarding the more expensive RFP check with a simple one")) {
+    nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
+    auto* wrapper = GetWrapper();
+    if (!window && wrapper) {
+      nsCOMPtr<nsIGlobalObject> global = xpc::NativeGlobal(wrapper);
+      window = do_QueryInterface(global);
+    }
+    if (!window) {
+      return;
+    }
+
+    Document* doc = window->GetExtantDoc();
+    if (nsContentUtils::ShouldResistFingerprinting(doc)) {
+      return;
+    }
   }
 
   mHaveUnprocessedDeviceListChange = true;

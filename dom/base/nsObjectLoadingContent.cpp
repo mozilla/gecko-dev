@@ -83,6 +83,7 @@
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/widget/IMEData.h"
 #include "mozilla/IntegerPrintfMacros.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
 #include "mozilla/dom/HTMLEmbedElement.h"
 #include "mozilla/dom/HTMLObjectElement.h"
@@ -361,6 +362,8 @@ already_AddRefed<nsIDocShell> nsObjectLoadingContent::SetupDocShell(
     mFrameLoader = nullptr;
     return nullptr;
   }
+
+  MaybeStoreCrossOriginFeaturePolicy();
 
   return docShell.forget();
 }
@@ -1758,6 +1761,15 @@ nsresult nsObjectLoadingContent::CloseChannel() {
   return NS_OK;
 }
 
+bool nsObjectLoadingContent::IsAboutBlankLoadOntoInitialAboutBlank(
+    nsIURI* aURI, bool aInheritPrincipal, nsIPrincipal* aPrincipalToInherit) {
+  return NS_IsAboutBlank(aURI) && aInheritPrincipal &&
+         (!mFrameLoader || !mFrameLoader->GetExistingDocShell() ||
+          mFrameLoader->GetExistingDocShell()
+              ->IsAboutBlankLoadOntoInitialAboutBlank(aURI, aInheritPrincipal,
+                                                      aPrincipalToInherit));
+}
+
 nsresult nsObjectLoadingContent::OpenChannel() {
   nsCOMPtr<nsIContent> thisContent =
       do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
@@ -1830,7 +1842,9 @@ nsresult nsObjectLoadingContent::OpenChannel() {
     loadInfo->SetCSPToInherit(cspToInherit);
   }
 
-  if (DocumentChannel::CanUseDocumentChannel(mURI)) {
+  if (DocumentChannel::CanUseDocumentChannel(mURI) &&
+      !IsAboutBlankLoadOntoInitialAboutBlank(mURI, inheritPrincipal,
+                                             thisContent->NodePrincipal())) {
     // --- Create LoadState
     RefPtr<nsDocShellLoadState> loadState = new nsDocShellLoadState(mURI);
     loadState->SetPrincipalToInherit(thisContent->NodePrincipal());
@@ -2351,5 +2365,33 @@ void nsObjectLoadingContent::SubdocumentIntrinsicSizeOrRatioChanged(
 
   if (nsSubDocumentFrame* sdf = do_QueryFrame(thisContent->GetPrimaryFrame())) {
     sdf->SubdocumentIntrinsicSizeOrRatioChanged();
+  }
+}
+
+void nsObjectLoadingContent::MaybeStoreCrossOriginFeaturePolicy() {
+  MOZ_DIAGNOSTIC_ASSERT(mFrameLoader);
+
+  // If the browsingContext is not ready (because docshell is dead), don't try
+  // to create one.
+  if (!mFrameLoader->IsRemoteFrame() && !mFrameLoader->GetExistingDocShell()) {
+    return;
+  }
+
+  RefPtr<BrowsingContext> browsingContext = mFrameLoader->GetBrowsingContext();
+
+  if (!browsingContext || !browsingContext->IsContentSubframe()) {
+    return;
+  }
+
+  nsCOMPtr<nsIContent> thisContent = AsContent();
+
+  if (!thisContent->IsInComposedDoc()) {
+    return;
+  }
+
+  FeaturePolicy* featurePolicy = thisContent->OwnerDoc()->FeaturePolicy();
+
+  if (ContentChild* cc = ContentChild::GetSingleton()) {
+    Unused << cc->SendSetContainerFeaturePolicy(browsingContext, featurePolicy);
   }
 }

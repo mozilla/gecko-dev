@@ -66,11 +66,10 @@
  * and its size is lower than 1Mb, we are able to recreate the stream completely
  * on the parent side. This happens, basically with any kind of child-to-parent
  * stream except for huge memory streams. In this case we end up using
- * PChildToParentStream. See more information in IPCStreamUtils.h.
+ * DataPipe. See more information in IPCStreamUtils.h.
  *
- * In order to populate IPCStream correctly, we use AutoIPCStream as documented
- * in IPCStreamUtils.h. Note that we use the 'delayed start' feature because,
- * often, the stream doesn't need to be read on the parent side.
+ * In order to populate IPCStream correctly, we use SerializeIPCStream as
+ * documented in IPCStreamUtils.h.
  *
  * Parent to Child Blob Serialization
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -285,10 +284,10 @@ namespace ipc {
 // __always make sure to handle null!__
 template <>
 struct IPDLParamTraits<mozilla::dom::BlobImpl*> {
-  static void Write(IPC::Message* aMsg, IProtocol* aActor,
+  static void Write(IPC::MessageWriter* aWriter, IProtocol* aActor,
                     mozilla::dom::BlobImpl* aParam);
-  static bool Read(const IPC::Message* aMsg, PickleIterator* aIter,
-                   IProtocol* aActor, RefPtr<mozilla::dom::BlobImpl>* aResult);
+  static bool Read(IPC::MessageReader* aReader, IProtocol* aActor,
+                   RefPtr<mozilla::dom::BlobImpl>* aResult);
 };
 }  // namespace ipc
 }  // namespace mozilla

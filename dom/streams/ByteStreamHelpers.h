@@ -9,9 +9,12 @@
 
 #include "js/TypeDecls.h"
 #include "mozilla/ErrorResult.h"
+#include "UnderlyingSourceCallbackHelpers.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
+
+class ReadableStream;
+class BodyStreamHolder;
 
 // https://streams.spec.whatwg.org/#transfer-array-buffer
 //
@@ -25,9 +28,13 @@ bool CanTransferArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObject,
 // If this returns null, it will leave a pending exception on aCx which
 // must be handled by the caller (in the spec this is always the case
 // currently).
-JSObject* CloneAsUint8Array(JSContext* aCx, JS::HandleObject O);
+JSObject* CloneAsUint8Array(JSContext* aCx, JS::Handle<JSObject*> aObject);
 
-}  // namespace dom
-}  // namespace mozilla
+MOZ_CAN_RUN_SCRIPT void
+SetUpReadableByteStreamControllerFromBodyStreamUnderlyingSource(
+    JSContext* aCx, ReadableStream* aStream,
+    BodyStreamHolder* aUnderlyingSource, ErrorResult& aRv);
+
+}  // namespace mozilla::dom
 
 #endif

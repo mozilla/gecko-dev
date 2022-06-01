@@ -32,7 +32,7 @@ if (window.googletag?.apiReady === undefined) {
       requestAnimationFrame(() => {
         const size = [0, 0];
         for (const cb of eventCallbacks.get(name) || []) {
-          cb({ isEmpty: true, size, slot });
+          cb({ isEmpty: false, size, slot });
         }
         resolve();
       });
@@ -47,8 +47,16 @@ if (window.googletag?.apiReady === undefined) {
       const f = document.createElement("iframe");
       f.id = eid;
       f.srcdoc = "<body></body>";
-      f.style = "unset: all; position: absolute; z-index: -1; border: 0";
+      f.style =
+        "position:absolute; width:0; height:0; left:0; right:0; z-index:-1; border:0";
       node.appendChild(f);
+    }
+  };
+
+  const emptySlotElement = slot => {
+    const node = document.getElementById(slot.getSlotElementId());
+    while (node?.lastChild) {
+      node.lastChild.remove();
     }
   };
 
@@ -57,6 +65,7 @@ if (window.googletag?.apiReady === undefined) {
     if (!slot || !refreshedSlots.has(id) || !displayedSlots.has(id)) {
       return;
     }
+    emptySlotElement(slot);
     recreateIframeForSlot(slot);
     await fireSlotEvent("slotRenderEnded", slot);
     await fireSlotEvent("slotRequested", slot);

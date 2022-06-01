@@ -608,6 +608,15 @@
     offset: RawInt32Field
     val: ValueField
 
+- name: LoadDynamicSlot
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    result: ValId
+    obj: ObjId
+    slot: RawInt32Field
+
 - name: GuardNoAllocationMetadataBuilder
   shared: true
   transpile: true
@@ -933,6 +942,16 @@
   args:
     templateObject: ObjectField
     array: ObjId
+    begin: Int32Id
+    end: Int32Id
+
+- name: ArgumentsSliceResult
+  shared: false
+  transpile: true
+  cost_estimate: 5
+  args:
+    templateObject: ObjectField
+    args: ObjId
     begin: Int32Id
     end: Int32Id
 
@@ -1827,6 +1846,14 @@
   cost_estimate: 1
   args:
     obj: ObjId
+
+- name: LoadArgumentsObjectLength
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    obj: ObjId
+    result: Int32Id
 
 - name: LoadFunctionLengthResult
   shared: true

@@ -183,6 +183,139 @@ def midir_support(target, midir_linux_support):
 
 set_config("MOZ_WEBMIDI_MIDIR_IMPL", midir_support)
 
+# Enable various cubeb backends
+# ==============================================================
+@depends(target)
+def audio_backends_default(target):
+    if target.os == "Android":
+        return (
+            "aaudio",
+            "opensl",
+        )
+    elif target.os in ("DragonFly", "FreeBSD", "SunOS"):
+        return ("oss",)
+    elif target.os == "OpenBSD":
+        return ("sndio",)
+    elif target.os == "OSX":
+        return ("audiounit",)
+    elif target.os == "WINNT":
+        return ("wasapi",)
+    else:
+        return ("pulseaudio",)
+
+
+option(
+    "--enable-audio-backends",
+    nargs="+",
+    choices=(
+        "aaudio",
+        "alsa",
+        "audiounit",
+        "jack",
+        "opensl",
+        "oss",
+        "pulseaudio",
+        "sndio",
+        "wasapi",
+    ),
+    default=audio_backends_default,
+    help="{Enable|Disable} various cubeb backends",
+)
+
+
+@depends("--enable-audio-backends", target)
+def imply_aaudio(values, target):
+    if any("aaudio" in value for value in values) and target.os != "Android":
+        die("Cannot enable AAudio on %s", target.os)
+    return any("aaudio" in value for value in values) or None
+
+
+@depends("--enable-audio-backends", target)
+def imply_alsa(values, target):
+    if (
+        any("alsa" in value for value in values)
+        and target.kernel != "Linux"
+        and target.os != "FreeBSD"
+    ):
+        die("Cannot enable ALSA on %s", target.os)
+    return any("alsa" in value for value in values) or None
+
+
+@depends("--enable-audio-backends", target)
+def imply_audiounit(values, target):
+    if (
+        any("audiounit" in value for value in values)
+        and target.os != "OSX"
+        and target.kernel != "Darwin"
+    ):
+        die("Cannot enable AudioUnit on %s", target.os)
+    return any("audiounit" in value for value in values) or None
+
+
+@depends("--enable-audio-backends")
+def imply_jack(values):
+    return any("jack" in value for value in values) or None
+
+
+@depends("--enable-audio-backends", target)
+def imply_opensl(values, target):
+    if any("opensl" in value for value in values) and target.os != "Android":
+        die("Cannot enable OpenSL on %s", target.os)
+    return any("opensl" in value for value in values) or None
+
+
+@depends("--enable-audio-backends", target)
+def imply_oss(values, target):
+    if any("oss" in value for value in values) and (
+        target.os == "Android" or target.os == "OSX" or target.os == "WINNT"
+    ):
+        die("Cannot enable OSS on %s", target.os)
+    return any("oss" in value for value in values) or None
+
+
+@depends("--enable-audio-backends", target)
+def imply_pulseaudio(values, target):
+    if any("pulseaudio" in value for value in values) and (
+        target.os == "Android" or target.os == "OSX" or target.os == "WINNT"
+    ):
+        die("Cannot enable PulseAudio on %s", target.os)
+    return any("pulseaudio" in value for value in values) or None
+
+
+@depends("--enable-audio-backends", target)
+def imply_sndio(values, target):
+    if any("sndio" in value for value in values) and (
+        target.os == "Android" or target.os == "OSX" or target.os == "WINNT"
+    ):
+        die("Cannot enable sndio on %s", target.os)
+    return any("sndio" in value for value in values) or None
+
+
+@depends("--enable-audio-backends", target)
+def imply_wasapi(values, target):
+    if any("wasapi" in value for value in values) and target.os != "WINNT":
+        die("Cannot enable WASAPI on %s", target.os)
+    return any("wasapi" in value for value in values) or None
+
+
+set_config("MOZ_AAUDIO", imply_aaudio, when="--enable-audio-backends")
+
+imply_option("--enable-alsa", imply_alsa, reason="--enable-audio-backends")
+
+set_config("MOZ_AUDIOUNIT_RUST", imply_audiounit, when="--enable-audio-backends")
+
+imply_option("--enable-jack", imply_jack, reason="--enable-audio-backends")
+
+set_config("MOZ_OPENSL", imply_opensl, when="--enable-audio-backends")
+
+set_config("MOZ_OSS", imply_oss, when="--enable-audio-backends")
+
+imply_option("--enable-pulseaudio", imply_pulseaudio, reason="--enable-audio-backends")
+
+imply_option("--enable-sndio", imply_sndio, reason="--enable-audio-backends")
+
+set_config("MOZ_WASAPI", imply_wasapi, when="--enable-audio-backends")
+
 # ALSA cubeb backend
 # ==============================================================
 option("--enable-alsa", env="MOZ_ALSA", help="Enable ALSA audio backend.")
@@ -196,7 +329,6 @@ def enable_alsa_or_midir_linux_support(alsa_enabled, midir_linux_support):
 pkg_check_modules("MOZ_ALSA", "alsa", when=enable_alsa_or_midir_linux_support)
 
 set_config("MOZ_ALSA", True, when="--enable-alsa")
-set_define("MOZ_ALSA", True, when="--enable-alsa")
 
 # JACK cubeb backend
 # ==============================================================
@@ -205,36 +337,26 @@ system_lib_option("--enable-jack", env="MOZ_JACK", help="Enable JACK audio backe
 jack = pkg_check_modules("MOZ_JACK", "jack", when="--enable-jack")
 
 set_config("MOZ_JACK", depends_if(jack)(lambda _: True))
-set_define("MOZ_JACK", depends_if(jack)(lambda _: True))
 
 # PulseAudio cubeb backend
 # ==============================================================
-@depends(target)
-def pulseaudio_default(target):
-    return target.os not in ("WINNT", "OSX", "Android", "OpenBSD")
-
-
 option(
     "--enable-pulseaudio",
     env="MOZ_PULSEAUDIO",
-    default=pulseaudio_default,
     help="{Enable|Disable} PulseAudio audio backend.",
 )
 
 pulseaudio = pkg_check_modules("MOZ_PULSEAUDIO", "libpulse", when="--enable-pulseaudio")
 
 set_config("MOZ_PULSEAUDIO", depends_if(pulseaudio)(lambda _: True))
-set_define("MOZ_PULSEAUDIO", depends_if(pulseaudio)(lambda _: True))
 
-# AudioUnit cubeb Rust backend
+# sndio cubeb backend
 # ==============================================================
-@depends(target)
-def enable_audiounit_rust(target):
-    return target.os == "OSX" and target.kernel == "Darwin"
+system_lib_option("--enable-sndio", env="MOZ_SNDIO", help="Enable sndio audio backend.")
 
+sndio = pkg_check_modules("MOZ_SNDIO", "sndio", when="--enable-sndio")
 
-set_config("MOZ_AUDIOUNIT_RUST", True, when=enable_audiounit_rust)
-set_define("MOZ_AUDIOUNIT_RUST", True, when=enable_audiounit_rust)
+set_config("MOZ_SNDIO", depends_if(sndio)(lambda _: True))
 
 # Javascript engine
 # ==============================================================
@@ -285,7 +407,12 @@ def toolkit_choices(target):
     elif target.os == "Android":
         return ("cairo-android",)
     else:
-        return ("cairo-gtk3", "cairo-gtk3-wayland")
+        return (
+            "cairo-gtk3",
+            "cairo-gtk3-wayland",
+            "cairo-gtk3-wayland-only",
+            "cairo-gtk3-x11-wayland",
+        )
 
 
 @depends(toolkit_choices)
@@ -341,7 +468,7 @@ wayland_headers = pkg_check_modules(
     "MOZ_WAYLAND",
     "gtk+-wayland-3.0 >= 3.14 xkbcommon >= 0.4.1 libdrm >= 2.4",
     allow_missing=depends(full_toolkit)(lambda t: t == "cairo-gtk3"),
-    when=depends(full_toolkit)(lambda t: t in ("cairo-gtk3", "cairo-gtk3-wayland")),
+    when=toolkit_gtk,
 )
 
 
@@ -710,6 +837,44 @@ def packager_format(value):
 
 set_config("MOZ_PACKAGER_FORMAT", packager_format)
 
+# The packager minifies two different types of files: non-JS (mostly property
+# files for l10n), and JS.  Setting MOZ_PACKAGER_MINIFY only minifies the
+# former.  Firefox doesn't yet minify JS, due to concerns about debuggability.
+#
+# Also, the JS minification setup really only works correctly on Android:
+# we need extra setup to use the newly-built shell for Linux and Windows,
+# and cross-compilation for macOS requires some extra care.
+
+
+@depends(target_is_android, "--enable-debug", milestone.is_nightly)
+def enable_minify_default(is_android, debug, is_nightly):
+    if is_android and not debug and not is_nightly:
+        return ("properties", "js")
+    return ("properties",)
+
+
+option(
+    name="--enable-minify",
+    help="Select types of files to minify during packaging.",
+    nargs="*",
+    choices=("properties", "js"),
+    default=enable_minify_default,
+)
+
+
+@depends("--enable-minify")
+def enable_minify(value):
+    if "js" in value and "properties" not in value:
+        die("--enable-minify=js requires --enable-minify=properties.")
+    return namespace(
+        properties="properties" in value,
+        js="js" in value,
+    )
+
+
+set_config("MOZ_PACKAGER_MINIFY", True, when=enable_minify.properties)
+set_config("MOZ_PACKAGER_MINIFY_JS", True, when=enable_minify.js)
+
 
 @depends(host, build_project)
 def jar_maker_format(host, build_project):
@@ -799,7 +964,7 @@ set_define("MOZ_TELEMETRY_ON_BY_DEFAULT", True, when=telemetry_on_by_default)
 
 # gpsd support
 # ==============================================================
-option("--enable-gpsd", env="MOZ_GPSD", help="Enable gpsd support")
+system_lib_option("--enable-gpsd", env="MOZ_GPSD", help="Enable gpsd support")
 
 
 @depends("--enable-gpsd")
@@ -929,12 +1094,6 @@ def webspeech_test_backend(value):
 
 set_config("MOZ_WEBSPEECH_TEST_BACKEND", webspeech_test_backend)
 set_define("MOZ_WEBSPEECH_TEST_BACKEND", webspeech_test_backend)
-
-# Enable IPDL's "expensive" unit tests
-# ==============================================================
-option("--enable-ipdl-tests", help="Enable expensive IPDL tests")
-
-set_config("MOZ_IPDL_TESTS", depends_if("--enable-ipdl-tests")(lambda _: True))
 
 # Graphics
 # ==============================================================
@@ -1195,10 +1354,6 @@ set_define("MOZ_RAW", depends_if("--enable-raw")(lambda _: True))
 
 # X11
 # ==============================================================
-set_config("MOZ_X11", True, when=toolkit_gtk)
-set_define("MOZ_X11", True, when=toolkit_gtk)
-
-
 @depends(webrtc, when=toolkit_gtk)
 def x11_libs(webrtc):
     libs = [
@@ -1223,8 +1378,28 @@ def x11_libs(webrtc):
     return libs
 
 
-pkg_check_modules("MOZ_X11", x11_libs, when=toolkit_gtk)
-pkg_check_modules("MOZ_X11_SM", ["ice", "sm"], cflags_only=True, when=toolkit_gtk)
+x11_headers = pkg_check_modules(
+    "MOZ_X11",
+    x11_libs,
+    allow_missing=depends(full_toolkit)(lambda t: t == "cairo-gtk3-wayland"),
+    when=depends(full_toolkit)(
+        lambda t: t in ("cairo-gtk3", "cairo-gtk3-wayland", "cairo-gtk3-x11-wayland")
+    ),
+)
+
+
+set_config("MOZ_X11", True, when=x11_headers)
+set_define("MOZ_X11", True, when=x11_headers)
+
+pkg_check_modules(
+    "MOZ_X11_SM",
+    ["ice", "sm"],
+    cflags_only=True,
+    allow_missing=depends(full_toolkit)(lambda t: t == "cairo-gtk3-wayland"),
+    when=depends(full_toolkit)(
+        lambda t: t in ("cairo-gtk3", "cairo-gtk3-wayland", "cairo-gtk3-x11-wayland")
+    ),
+)
 
 
 # ASan Reporter Addon
@@ -1349,7 +1524,14 @@ def check_for_midl(target, compile_environment):
 
 
 midl = check_prog(
-    "MIDL", midl_names, when=check_for_midl, allow_missing=True, paths=sdk_bin_path
+    "MIDL",
+    midl_names,
+    when=check_for_midl,
+    allow_missing=True,
+    paths=sdk_bin_path,
+    # MIDL being used from a python wrapper script, we can live with it
+    # having spaces.
+    allow_spaces=True,
 )
 
 option(env="MIDL_FLAGS", nargs=1, help="Extra flags to pass to MIDL")
@@ -1658,6 +1840,9 @@ with only_when(compile_environment):
         ("fxc.exe", "fxc2.exe"),
         when=depends(target)(lambda t: t.kernel == "WINNT"),
         paths=sdk_bin_path,
+        # FXC being used from a python wrapper script, we can live with it
+        # having spaces.
+        allow_spaces=True,
     )
 
 
@@ -2607,13 +2792,9 @@ wine = check_prog(
 
 # DOM Streams
 # ==============================================================
-option(
-    "--disable-dom-streams",
-    help="Disable DOM Streams (use JS Streams)",
-)
-
-set_config("MOZ_DOM_STREAMS", True, when="--enable-dom-streams")
-set_define("MOZ_DOM_STREAMS", True, when="--enable-dom-streams")
+# Set this to true so the JS engine knows we're doing a browser build.
+set_config("MOZ_DOM_STREAMS", True)
+set_define("MOZ_DOM_STREAMS", True)
 
 # libevent
 # ==============================================================

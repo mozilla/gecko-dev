@@ -1,0 +1,100 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+job-defaults:
+    description: "minidump-stackwalk toolchain build"
+    attributes:
+        local-toolchain: true
+    worker-type: b-linux
+    worker:
+        max-run-time: 1800
+    run:
+        script: build-minidump-stackwalk.sh
+        toolchain-artifact: public/build/minidump-stackwalk.tar.zst
+    fetches:
+        fetch:
+            - rust-minidump
+
+linux64-minidump-stackwalk:
+    treeherder:
+        symbol: TL(stackwalk)
+    run:
+        arguments: ['x86_64-unknown-linux-gnu']
+    fetches:
+        toolchain:
+            - linux64-binutils
+            - linux64-clang-toolchain
+            - linux64-rust-toolchain
+            - sysroot-x86_64-linux-gnu
+
+macosx64-minidump-stackwalk:
+    treeherder:
+        symbol: TM(stackwalk)
+    run:
+        arguments: ['x86_64-apple-darwin']
+    fetches:
+        toolchain:
+            - linux64-rust-macos-toolchain
+            - linux64-clang-toolchain
+            - linux64-cctools-port
+            - macosx64-sdk-11.0
+
+macosx64-aarch64-minidump-stackwalk:
+    treeherder:
+        symbol: TM(stackwalk-arm64)
+    run:
+        arguments: ['aarch64-apple-darwin']
+    fetches:
+        toolchain:
+            - linux64-rust-macos-toolchain
+            - linux64-clang-toolchain
+            - linux64-cctools-port
+            - macosx64-sdk-11.0
+
+win32-minidump-stackwalk:
+    treeherder:
+        symbol: TW32(stackwalk)
+    run:
+        arguments: ['i686-pc-windows-msvc']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-liblowercase
+            - linux64-rust-windows-toolchain
+            - win64-vs2017
+
+win64-minidump-stackwalk:
+    treeherder:
+        symbol: TW64(stackwalk)
+    run:
+        arguments: ['x86_64-pc-windows-msvc']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-liblowercase
+            - linux64-rust-windows-toolchain
+            - win64-vs2017
+
+# This is a totally different thing but it used to share common code with
+# minidump-stackwalk, so it lives here for historical reasons.
+linux64-breakpad-injector:
+    description: "breakpad injector toolchain build"
+    run:
+        script: build-breakpad-injector.sh
+        toolchain-artifact: public/build/injector.tar.zst
+        sparse-profile: null
+        resources:
+            - 'build/moz.configure'
+            - 'config/external/zlib'
+            - 'moz.configure'
+            - 'toolkit/crashreporter'
+            - 'toolkit/crashreporter/google-breakpad/src/processor'
+            - 'tools/crashreporter/'
+    treeherder:
+        symbol: TL(injector)
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-binutils
+            - linux64-toolchain-sysroot

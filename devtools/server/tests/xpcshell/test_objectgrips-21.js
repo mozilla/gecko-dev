@@ -183,6 +183,7 @@ const nullPrincipalTests = [
     hasOwnPropertyNames: true,
     hasOwnPropertySymbols: true,
     property: descriptor({ value: "SecurityError" }),
+    previewUrl: "about:blank",
   },
   {
     // Cross-origin Location objects do expose some properties and have a preview.
@@ -208,15 +209,15 @@ function descriptor(descr) {
 }
 
 async function test_unsafe_grips(
-  { threadFront, debuggee, client },
-  tests,
-  principal
+  { threadFront, debuggee, isWorkerServer },
+  tests
 ) {
   debuggee.eval(
     function stopMe(arg1, arg2) {
       debugger;
     }.toString()
   );
+
   for (let data of tests) {
     data = { ...defaults, ...data };
 
@@ -243,15 +244,15 @@ async function test_unsafe_grips(
       // Otherwise, the grip will refer to `inherits`, an ordinary object which
       // inherits from `obj`. Then all checks are hardcoded because in every test
       // all methods are expected to work the same on `inheritsGrip`.
-      check_grip(grip, data, isUnsafe);
+      check_grip(grip, data, isUnsafe, isWorkerServer);
 
-      let objClient = threadFront.pauseGrip(grip);
+      const objClient = threadFront.pauseGrip(grip);
       let response, slice;
 
       response = await objClient.getPrototypeAndProperties();
       check_properties(response.ownProperties, data, isUnsafe);
       check_symbols(response.ownSymbols, data, isUnsafe);
-      check_prototype(response.prototype, data, isUnsafe);
+      check_prototype(response.prototype, data, isUnsafe, isWorkerServer);
 
       response = await objClient.enumProperties({
         ignoreIndexedProperties: true,
@@ -262,9 +263,6 @@ async function test_unsafe_grips(
       response = await objClient.enumProperties({});
       slice = await response.slice(0, response.count);
       check_properties(slice.ownProperties, data, isUnsafe);
-
-      response = await objClient.getOwnPropertyNames();
-      check_property_names(response.ownPropertyNames, data, isUnsafe);
 
       response = await objClient.getProperty("x");
       check_property(response.descriptor, data, isUnsafe);
@@ -277,35 +275,8 @@ async function test_unsafe_grips(
       check_symbol(response.descriptor, data, isUnsafe);
 
       response = await objClient.getPrototype();
-      check_prototype(response.prototype, data, isUnsafe);
+      check_prototype(response.prototype, data, isUnsafe, isWorkerServer);
 
-      response = await objClient.getDisplayString();
-      check_display_string(response.displayString, data, isUnsafe);
-
-      if (data.isFunction && isUnsafe) {
-        // For function-related methods, the object front checks that the class
-        // of the grip is "Function", and if it's not, the method in object.js
-        // is not called. But some tests have a grip with a class that is not
-        // "Function" (e.g. it's "Proxy") but the DebuggerObject has a "Function"
-        // class because the object is callable (despite not being a Function object).
-        // So the grip class is changed in order to test the object.js method.
-        grip.class = "Function";
-        objClient = threadFront.pauseGrip(grip);
-        try {
-          response = await objClient.getParameterNames();
-          ok(
-            true,
-            "getParameterNames passed. DebuggerObject.class is 'Function'" +
-              "on the object actor"
-          );
-        } catch (e) {
-          ok(
-            false,
-            "getParameterNames failed. DebuggerObject.class may not be" +
-              " 'Function' on the object actor"
-          );
-        }
-      }
       await objClient.release();
     }
 
@@ -315,10 +286,19 @@ async function test_unsafe_grips(
   }
 }
 
-function check_grip(grip, data, isUnsafe) {
+function check_grip(grip, data, isUnsafe, isWorkerServer) {
   if (isUnsafe) {
     strictEqual(grip.class, data.class, "The grip has the proper class.");
     strictEqual("preview" in grip, data.hasPreview, "Check preview presence.");
+    // preview.url isn't populated on worker server.
+    if (data.previewUrl && !isWorkerServer) {
+      console.trace();
+      strictEqual(
+        grip.preview.url,
+        data.previewUrl,
+        `Check preview.url for "${data.code}".`
+      );
+    }
   } else {
     strictEqual(grip.class, "Object", "The grip has 'Object' class.");
     ok("preview" in grip, "The grip has a preview.");
@@ -388,20 +368,12 @@ function check_symbol(descr, data, isUnsafe) {
   }
 }
 
-function check_prototype(proto, data, isUnsafe) {
+function check_prototype(proto, data, isUnsafe, isWorkerServer) {
   const protoGrip = proto && proto.getGrip ? proto.getGrip() : proto;
   if (isUnsafe) {
     deepEqual(protoGrip.type, data.protoType, "Got the right prototype type.");
   } else {
-    check_grip(protoGrip, data, true);
-  }
-}
-
-function check_display_string(str, data, isUnsafe) {
-  if (isUnsafe) {
-    strictEqual(str, data.string, "The object stringifies correctly.");
-  } else {
-    strictEqual(str, "[object Object]", "The object stringifies correctly.");
+    check_grip(protoGrip, data, true, isWorkerServer);
   }
 }
 

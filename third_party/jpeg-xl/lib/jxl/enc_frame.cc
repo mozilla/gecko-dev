@@ -114,7 +114,6 @@ void ClusterGroups(PassesEncoderState* enc_state) {
     return token_cost(tokens, num_contexts) - costs[i] - costs[j];
   };
   std::vector<size_t> out{max};
-  std::vector<size_t> old_map(ac.size());
   std::vector<float> dists(ac.size());
   size_t farthest = 0;
   for (size_t i = 0; i < ac.size(); i++) {
@@ -133,7 +132,6 @@ void ClusterGroups(PassesEncoderState* enc_state) {
       float d = dist(out.back(), i);
       if (d < dists[i]) {
         dists[i] = d;
-        old_map[i] = enc_state->histogram_idx[i];
         enc_state->histogram_idx[i] = out.size() - 1;
       }
       if (dists[i] > dists[farthest]) {
@@ -215,7 +213,8 @@ uint64_t FrameFlagsFromParams(const CompressParams& cparams) {
   // noise is stored within the compressed image and adding noise makes things
   // worse.
   if (ApplyOverride(cparams.noise, dist >= kMinButteraugliForNoise) ||
-      cparams.photon_noise_iso > 0) {
+      cparams.photon_noise_iso > 0 ||
+      cparams.manual_noise.size() == NoiseParams::kNumNoisePoints) {
     flags |= FrameHeader::kNoise;
   }
 
@@ -255,10 +254,9 @@ Status LoopFilterFromParams(const CompressParams& cparams,
   }
   // Strength of EPF in modular mode.
   if (frame_header->encoding == FrameEncoding::kModular &&
-      cparams.quality_pair.first < 100) {
+      !cparams.IsLossless()) {
     // TODO(veluca): this formula is nonsense.
-    loop_filter->epf_sigma_for_modular =
-        20.0f * (1.0f - cparams.quality_pair.first / 100);
+    loop_filter->epf_sigma_for_modular = cparams.butteraugli_distance;
   }
   if (frame_header->encoding == FrameEncoding::kModular &&
       cparams.lossy_palette) {
@@ -305,7 +303,7 @@ Status MakeFrameHeader(const CompressParams& cparams,
   frame_header->flags = FrameFlagsFromParams(cparams);
   // Non-photon noise is not supported in the Modular encoder for now.
   if (frame_header->encoding != FrameEncoding::kVarDCT &&
-      cparams.photon_noise_iso == 0) {
+      cparams.photon_noise_iso == 0 && cparams.manual_noise.empty()) {
     frame_header->UpdateFlag(false, FrameHeader::Flags::kNoise);
   }
 
@@ -507,12 +505,17 @@ class LossyFrameEncoder {
     PassesSharedState& shared = enc_state_->shared;
 
     if (!enc_state_->cparams.max_error_mode) {
-      float x_qm_scale_steps[3] = {0.65f, 1.25f, 9.0f};
-      shared.frame_header.x_qm_scale = 1;
+      float x_qm_scale_steps[2] = {1.25f, 9.0f};
+      shared.frame_header.x_qm_scale = 2;
       for (float x_qm_scale_step : x_qm_scale_steps) {
         if (enc_state_->cparams.butteraugli_distance > x_qm_scale_step) {
           shared.frame_header.x_qm_scale++;
         }
+      }
+      if (enc_state_->cparams.butteraugli_distance < 0.299f) {
+        // Favor chromacity preservation for making images appear more
+        // faithful to original even with extreme (5-10x) zooming.
+        shared.frame_header.x_qm_scale++;
       }
     }
 
@@ -1039,6 +1042,30 @@ class LossyFrameEncoder {
   bool doing_jpeg_recompression = false;
 };
 
+Status ParamsPostInit(CompressParams* p) {
+  if (!p->manual_noise.empty() &&
+      p->manual_noise.size() != NoiseParams::kNumNoisePoints) {
+    return JXL_FAILURE("Invalid number of noise lut entries");
+  }
+  if (!p->manual_xyb_factors.empty() && p->manual_xyb_factors.size() != 3) {
+    return JXL_FAILURE("Invalid number of XYB quantization factors");
+  }
+  if (p->resampling <= 0) {
+    p->resampling = 1;
+    // For very low bit rates, using 2x2 resampling gives better results on
+    // most photographic images, with an adjusted butteraugli score chosen to
+    // give roughly the same amount of bits per pixel.
+    if (!p->already_downsampled && p->butteraugli_distance >= 20) {
+      p->resampling = 2;
+      p->butteraugli_distance = 6 + ((p->butteraugli_distance - 20) * 0.25);
+    }
+  }
+  if (p->ec_resampling <= 0) {
+    p->ec_resampling = p->resampling;
+  }
+  return true;
+}
+
 Status EncodeFrame(const CompressParams& cparams_orig,
                    const FrameInfo& frame_info, const CodecMetadata* metadata,
                    const ImageBundle& ib, PassesEncoderState* passes_enc_state,
@@ -1049,6 +1076,7 @@ Status EncodeFrame(const CompressParams& cparams_orig,
   passes_enc_state->special_frames.clear();
 
   CompressParams cparams = cparams_orig;
+  JXL_RETURN_IF_ERROR(ParamsPostInit(&cparams));
 
   if (cparams.progressive_dc < 0) {
     if (cparams.progressive_dc != -1) {
@@ -1075,12 +1103,6 @@ Status EncodeFrame(const CompressParams& cparams_orig,
       cparams.butteraugli_distance < kMinButteraugliDistance) {
     return JXL_FAILURE("Butteraugli distance is too low (%f)",
                        cparams.butteraugli_distance);
-  }
-  if (cparams.butteraugli_distance > 0.9f && cparams.modular_mode == false &&
-      cparams.quality_pair.first == 100) {
-    // in case the color image is lossy, make the alpha slightly lossy too
-    cparams.quality_pair.first =
-        std::max(90.f, 99.f - 0.3f * cparams.butteraugli_distance);
   }
 
   if (ib.IsJPEG()) {
@@ -1199,8 +1221,7 @@ Status EncodeFrame(const CompressParams& cparams_orig,
               // input is already in XYB.
       CopyImageTo(ib.color(), &opsin);
     }
-    bool lossless = (frame_header->encoding == FrameEncoding::kModular &&
-                     cparams.quality_pair.first == 100);
+    bool lossless = cparams.IsLossless();
     if (ib.HasAlpha() && !ib.AlphaIsPremultiplied() &&
         frame_header->frame_type == FrameType::kRegularFrame &&
         !ApplyOverride(cparams.keep_invisible, lossless) &&
@@ -1286,6 +1307,12 @@ Status EncodeFrame(const CompressParams& cparams_orig,
   if (cparams.photon_noise_iso > 0) {
     lossy_frame_encoder.State()->shared.image_features.noise_params =
         SimulatePhotonNoise(ib.xsize(), ib.ysize(), cparams.photon_noise_iso);
+  }
+  if (cparams.manual_noise.size() == NoiseParams::kNumNoisePoints) {
+    for (size_t i = 0; i < NoiseParams::kNumNoisePoints; i++) {
+      lossy_frame_encoder.State()->shared.image_features.noise_params.lut[i] =
+          cparams.manual_noise[i];
+    }
   }
   if (frame_header->flags & FrameHeader::kNoise) {
     EncodeNoise(lossy_frame_encoder.State()->shared.image_features.noise_params,

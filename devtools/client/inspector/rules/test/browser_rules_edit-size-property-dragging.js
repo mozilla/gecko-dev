@@ -33,12 +33,22 @@ const TEST_URI = `
 const DRAGGABLE_VALUE_CLASSNAME = "ruleview-propertyvalue-draggable";
 
 add_task(async function() {
+  await pushPref("devtools.inspector.draggable_properties", true);
+
   await addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));
 
   const { inspector, view } = await openRuleView();
   await selectNode("#test", inspector);
 
   testDraggingClassIsAddedWhenNeeded(view);
+
+  // Check that toggling the feature updates the UI immediately.
+  await pushPref("devtools.inspector.draggable_properties", false);
+  testDraggingClassIsRemovedAfterPrefChange(view);
+
+  await pushPref("devtools.inspector.draggable_properties", true);
+  testDraggingClassIsAddedWhenNeeded(view);
+
   await testIncrementAngleValue(view);
   await testPressingEscapeWhileDragging(view);
   await testUpdateDisabledValue(view);
@@ -46,71 +56,84 @@ add_task(async function() {
   await testDraggingClassIsAddedOnValueUpdate(view);
 });
 
+const PROPERTIES = [
+  {
+    name: "border",
+    value: "1px solid red",
+    shouldBeDraggable: false,
+  },
+  {
+    name: "line-height",
+    value: "2",
+    shouldBeDraggable: false,
+  },
+  {
+    name: "border-width",
+    value: "var(--12px)",
+    shouldBeDraggable: false,
+  },
+  {
+    name: "transform",
+    value: "rotate(45deg)",
+    shouldBeDraggable: false,
+  },
+  {
+    name: "max-height",
+    value: "+10.2e3vmin",
+    shouldBeDraggable: true,
+  },
+  {
+    name: "min-height",
+    value: "1%",
+    shouldBeDraggable: true,
+  },
+  {
+    name: "font-size",
+    value: "10Q",
+    shouldBeDraggable: true,
+  },
+  {
+    name: "margin-left",
+    value: "28.3em",
+    shouldBeDraggable: true,
+  },
+  {
+    name: "animation-delay",
+    value: "+15s",
+    shouldBeDraggable: true,
+  },
+  {
+    name: "margin-right",
+    value: "-2px",
+    shouldBeDraggable: true,
+  },
+  {
+    name: "padding-bottom",
+    value: ".9px",
+    shouldBeDraggable: true,
+  },
+  {
+    name: "rotate",
+    value: "90deg",
+    shouldBeDraggable: true,
+  },
+];
+
 function testDraggingClassIsAddedWhenNeeded(view) {
   info("Testing class is added or not on different property values");
-  const properties = [
-    {
-      name: "border",
-      value: "1px solid red",
-      shouldBeDraggable: false,
-    },
-    {
-      name: "line-height",
-      value: "2",
-      shouldBeDraggable: false,
-    },
-    {
-      name: "border-width",
-      value: "var(--12px)",
-      shouldBeDraggable: false,
-    },
-    {
-      name: "transform",
-      value: "rotate(45deg)",
-      shouldBeDraggable: false,
-    },
-    {
-      name: "max-height",
-      value: "+10.2e3vmin",
-      shouldBeDraggable: true,
-    },
-    {
-      name: "min-height",
-      value: "1%",
-      shouldBeDraggable: true,
-    },
-    {
-      name: "font-size",
-      value: "10Q",
-      shouldBeDraggable: true,
-    },
-    {
-      name: "margin-left",
-      value: "28.3em",
-      shouldBeDraggable: true,
-    },
-    {
-      name: "animation-delay",
-      value: "+15s",
-      shouldBeDraggable: true,
-    },
-    {
-      name: "margin-right",
-      value: "-2px",
-      shouldBeDraggable: true,
-    },
-    {
-      name: "padding-bottom",
-      value: ".9px",
-      shouldBeDraggable: true,
-    },
-    {
-      name: "rotate",
-      value: "90deg",
-      shouldBeDraggable: true,
-    },
-  ];
-  runIsDraggableTest(view, properties);
+  runIsDraggableTest(view, PROPERTIES);
+}
+
+function testDraggingClassIsRemovedAfterPrefChange(view) {
+  info("Testing class is removed if the feature is disabled");
+  runIsDraggableTest(
+    view,
+    // Create a temporary copy of the test PROPERTIES, where shouldBeDraggable is
+    // always false.
+    PROPERTIES.map(prop =>
+      Object.assign({}, prop, { shouldBeDraggable: false })
+    )
+  );
 }
 
 async function testIncrementAngleValue(view) {
@@ -201,6 +224,34 @@ async function testWidthIncrements(view) {
       distance: 200,
       description: "Increasing value with long distance",
     },
+    {
+      startValue: "402px",
+      expectedEndValue: "402px",
+      distance: marginPropEditor._DRAGGING_DEADZONE_DISTANCE - 1,
+      description: "No change in the deadzone (positive value)",
+      deadzoneIncluded: true,
+    },
+    {
+      startValue: "402px",
+      expectedEndValue: "402px",
+      distance: -1 * (marginPropEditor._DRAGGING_DEADZONE_DISTANCE - 1),
+      description: "No change in the deadzone (negative value)",
+      deadzoneIncluded: true,
+    },
+    {
+      startValue: "402px",
+      expectedEndValue: "403px",
+      distance: marginPropEditor._DRAGGING_DEADZONE_DISTANCE + 1,
+      description: "Changed by 1 when leaving the deadzone (positive value)",
+      deadzoneIncluded: true,
+    },
+    {
+      startValue: "403px",
+      expectedEndValue: "402px",
+      distance: -1 * (marginPropEditor._DRAGGING_DEADZONE_DISTANCE + 1),
+      description: "Changed by 1 when leaving the deadzone (negative value)",
+      deadzoneIncluded: true,
+    },
   ]);
 }
 
@@ -283,6 +334,9 @@ async function runIncrementTest(editor, view, tests) {
  * @param  {String} options.description
  * @param  {Boolean} options.ctrl Small increment key
  * @param  {Boolean} options.alt Small increment key for macosx
+ * @param  {Boolean} option.deadzoneIncluded True if the provided distance
+ *         accounts for the deadzone. When false, the deadzone will automatically
+ *         be added to the distance.
  * @param  {CSSRuleView} view
  */
 async function testIncrement(editor, options, view) {
@@ -325,6 +379,7 @@ async function testIncrement(editor, options, view) {
  * @param {Boolean} option.alt
  * @param {Boolean} option.shift
  * @param {Boolean} option.ctrl
+ * @param {Boolean} option.deadzoneIncluded
  */
 async function synthesizeMouseDragging(editor, distance, options = {}) {
   info(`Start to synthesize mouse dragging (from ${1} to ${1 + distance})`);
@@ -332,6 +387,16 @@ async function synthesizeMouseDragging(editor, distance, options = {}) {
   const styleWindow = editor.ruleView.styleWindow;
   const elm = editor.valueSpan;
   const startPosition = [1, 1];
+
+  // Handle the pixel based deadzone.
+  const deadzone = editor._DRAGGING_DEADZONE_DISTANCE;
+  if (!options.deadzoneIncluded) {
+    // Most tests do not care about the deadzone and the provided distance does
+    // not account for the deadzone. Add it automatically.
+    distance = distance + Math.sign(distance) * deadzone;
+  }
+  const updateExpected = Math.abs(options.distance) > deadzone;
+
   const endPosition = [startPosition[0] + distance, startPosition[1]];
 
   EventUtils.synthesizeMouse(
@@ -342,9 +407,11 @@ async function synthesizeMouseDragging(editor, distance, options = {}) {
     styleWindow
   );
 
-  const onPropertyUpdated = editor.ruleView.once(
-    "property-updated-by-dragging"
-  );
+  // If the drag will not trigger any update, simply wait for 100ms.
+  // Otherwise, wait for the next property-updated-by-dragging event.
+  const updated = updateExpected
+    ? editor.ruleView.once("property-updated-by-dragging")
+    : wait(100);
 
   EventUtils.synthesizeMouse(
     elm,
@@ -362,7 +429,7 @@ async function synthesizeMouseDragging(editor, distance, options = {}) {
   // We wait because the mousemove event listener is throttled to 30ms
   // in the TextPropertyEditor class
   info("waiting for event property-updated-by-dragging");
-  await onPropertyUpdated;
+  await updated;
   ok(true, "received event property-updated-by-dragging");
 
   if (options.escape) {
@@ -374,7 +441,11 @@ async function synthesizeMouseDragging(editor, distance, options = {}) {
     EventUtils.synthesizeKey("VK_ESCAPE", {}, styleWindow);
   }
 
-  const ruleviewChanged = editor.ruleView.once("ruleview-changed");
+  // If the drag will not trigger any update, simply wait for 100ms.
+  // Otherwise, wait for the next ruleview-changed event.
+  const done = updateExpected
+    ? editor.ruleView.once("ruleview-changed")
+    : wait(100);
 
   EventUtils.synthesizeMouse(
     elm,
@@ -385,7 +456,19 @@ async function synthesizeMouseDragging(editor, distance, options = {}) {
     },
     styleWindow
   );
-  await ruleviewChanged;
+  await done;
+
+  // If the drag did not trigger any update, mouseup might open an inline editor.
+  // Leave the editor.
+  const inplaceEditor = styleWindow.document.querySelector(
+    ".styleinspector-propertyeditor"
+  );
+  if (inplaceEditor) {
+    const onBlur = once(inplaceEditor, "blur");
+    EventUtils.synthesizeKey("VK_ESCAPE", {}, styleWindow);
+    await onBlur;
+  }
+
   info("Finish to synthesize mouse dragging");
 }
 

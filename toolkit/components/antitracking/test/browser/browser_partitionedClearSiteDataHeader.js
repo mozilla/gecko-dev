@@ -27,7 +27,9 @@ const STORAGE_KEY = "testKey";
 // Skip localStorage tests when using legacy localStorage. The legacy
 // localStorage implementation does not support clearing data by principal. See
 // Bug 1688221, Bug 1688665.
-let skipLocalStorageTests = !Services.prefs.getBoolPref("dom.storage.next_gen");
+const skipLocalStorageTests = Services.prefs.getBoolPref(
+  "dom.storage.enable_unsupported_legacy_implementation"
+);
 
 /**
  * Creates an iframe in the passed browser and waits for it to load.
@@ -369,7 +371,7 @@ async function setupInitialStorageState(storageType) {
   );
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   info("Starting ClearSiteData test");
 
   await SpecialPowers.flushPrefEnv();

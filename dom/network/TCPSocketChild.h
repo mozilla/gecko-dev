@@ -20,8 +20,7 @@ bool DeserializeArrayBuffer(JSContext* cx, const nsTArray<uint8_t>& aBuffer,
                             JS::MutableHandle<JS::Value> aVal);
 }
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class TCPSocket;
 
@@ -58,7 +57,7 @@ class TCPSocketChild : public mozilla::net::PTCPSocketChild,
   void SetSocket(TCPSocket* aSocket);
 
   void GetHost(nsAString& aHost);
-  void GetPort(uint16_t* aPort);
+  void GetPort(uint16_t* aPort) const;
 
   mozilla::ipc::IPCResult RecvCallback(const nsString& aType,
                                        const CallbackData& aData,
@@ -73,7 +72,6 @@ class TCPSocketChild : public mozilla::net::PTCPSocketChild,
   nsCOMPtr<nsISerialEventTarget> mIPCEventTarget;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
+"use strict";
+
 add_task(async function() {
   await pushPref(
     "devtools.debugger.features.event-listeners-breakpoints",
@@ -10,17 +12,18 @@ add_task(async function() {
 
   const dbg = await initDebugger(
     "doc-event-breakpoints.html",
-    "event-breakpoints"
+    "event-breakpoints.js"
   );
-  await selectSource(dbg, "event-breakpoints");
-  await waitForSelectedSource(dbg, "event-breakpoints");
+  await selectSource(dbg, "event-breakpoints.js");
+  await waitForSelectedSource(dbg, "event-breakpoints.js");
+  const eventBreakpointsSource = findSource(dbg, "event-breakpoints.js");
 
   // We want to set each breakpoint individually to test adding/removing breakpoints, see Bug 1748589.
   await toggleEventBreakpoint(dbg, "Mouse", "event.mouse.click");
 
   invokeInTab("clickHandler");
   await waitForPaused(dbg);
-  assertPauseLocation(dbg, 12);
+  assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 12);
 
   const whyPaused = await waitFor(
     () => dbg.win.document.querySelector(".why-paused")?.innerText
@@ -35,42 +38,42 @@ add_task(async function() {
   await toggleEventBreakpoint(dbg, "XHR", "event.xhr.load");
   invokeInTab("xhrHandler");
   await waitForPaused(dbg);
-  assertPauseLocation(dbg, 20);
+  assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 20);
   await resume(dbg);
 
   await toggleEventBreakpoint(dbg, "Timer", "timer.timeout.set");
   await toggleEventBreakpoint(dbg, "Timer", "timer.timeout.fire");
   invokeInTab("timerHandler");
   await waitForPaused(dbg);
-  assertPauseLocation(dbg, 27);
+  assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 27);
   await resume(dbg);
 
   await waitForPaused(dbg);
-  assertPauseLocation(dbg, 28);
+  assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 28);
   await resume(dbg);
 
   await toggleEventBreakpoint(dbg, "Script", "script.source.firstStatement");
   invokeInTab("evalHandler");
   await waitForPaused(dbg);
-  assertPauseLocation(dbg, 2, "https://example.com/eval-test.js");
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "eval-test.js").id, 2);
   await resume(dbg);
 
   await toggleEventBreakpoint(dbg, "Control", "event.control.focusin");
   await toggleEventBreakpoint(dbg, "Control", "event.control.focusout");
   invokeOnElement("#focus-text", "focus");
   await waitForPaused(dbg);
-  assertPauseLocation(dbg, 43);
+  assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 43);
   await resume(dbg);
 
   // wait for focus-out event to fire
   await waitForPaused(dbg);
-  assertPauseLocation(dbg, 48);
+  assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 48);
   await resume(dbg);
 
   info("Check that the click event breakpoint is still enabled");
   invokeInTab("clickHandler");
   await waitForPaused(dbg);
-  assertPauseLocation(dbg, 12);
+  assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 12);
   await resume(dbg);
 
   info("Check that disabling an event breakpoint works");
@@ -84,7 +87,7 @@ add_task(async function() {
   await toggleEventBreakpoint(dbg, "Mouse", "event.mouse.click");
   invokeInTab("clickHandler");
   await waitForPaused(dbg);
-  assertPauseLocation(dbg, 12);
+  assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 12);
   await resume(dbg);
 
   info(
@@ -157,17 +160,6 @@ async function toggleEventBreakpoint(
   );
   eventCheckbox.click();
   await onEventListenersUpdate;
-}
-
-function assertPauseLocation(dbg, line, url = "event-breakpoints.js") {
-  const { location } = dbg.selectors.getVisibleSelectedFrame();
-
-  const source = findSource(dbg, url);
-
-  is(location.sourceId, source.id, `correct sourceId`);
-  is(location.line, line, `correct line`);
-
-  assertPausedLocation(dbg);
 }
 
 async function invokeOnElement(selector, action) {

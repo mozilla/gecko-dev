@@ -13,6 +13,9 @@ const CERTDB_CONTRACTID = "@mozilla.org/security/x509certdb;1";
 
 Cu.importGlobalProperties(["fetch"]);
 
+const { AddonManager, AddonManagerPrivate } = ChromeUtils.import(
+  "resource://gre/modules/AddonManager.jsm"
+);
 const { AsyncShutdown } = ChromeUtils.import(
   "resource://gre/modules/AsyncShutdown.jsm"
 );
@@ -21,11 +24,9 @@ const { FileUtils } = ChromeUtils.import(
 );
 const { NetUtil } = ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-
 const { EventEmitter } = ChromeUtils.import(
   "resource://gre/modules/EventEmitter.jsm"
 );
@@ -34,10 +35,12 @@ const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetters(this, {
   AMTelemetry: "resource://gre/modules/AddonManager.jsm",
   ExtensionTestCommon: "resource://testing-common/ExtensionTestCommon.jsm",
+  getAppInfo: "resource://testing-common/AppInfo.jsm",
   Management: "resource://gre/modules/Extension.jsm",
   ExtensionAddonObserver: "resource://gre/modules/Extension.jsm",
   FileTestUtils: "resource://testing-common/FileTestUtils.jsm",
   MockRegistrar: "resource://testing-common/MockRegistrar.jsm",
+  updateAppInfo: "resource://testing-common/AppInfo.jsm",
   XPCShellContentUtils: "resource://testing-common/XPCShellContentUtils.jsm",
 });
 
@@ -46,12 +49,6 @@ XPCOMUtils.defineLazyServiceGetters(this, {
     "@mozilla.org/addons/addon-manager-startup;1",
     "amIAddonManagerStartup",
   ],
-});
-
-XPCOMUtils.defineLazyGetter(this, "AppInfo", () => {
-  let AppInfo = {};
-  ChromeUtils.import("resource://testing-common/AppInfo.jsm", AppInfo);
-  return AppInfo;
 });
 
 const PREF_DISABLE_SECURITY =
@@ -85,13 +82,6 @@ const ZipWriter = Components.Constructor(
 function isRegExp(val) {
   return val && typeof val === "object" && typeof val.test === "function";
 }
-
-// We need some internal bits of AddonManager
-var AMscope = ChromeUtils.import(
-  "resource://gre/modules/AddonManager.jsm",
-  null
-);
-var { AddonManager, AddonManagerPrivate } = AMscope;
 
 class MockBarrier {
   constructor(name) {
@@ -135,81 +125,7 @@ var MockAsyncShutdown = {
   Barrier: AsyncShutdown.Barrier,
 };
 
-AMscope.AsyncShutdown = MockAsyncShutdown;
-
-class MockBlocklist {
-  constructor(addons) {
-    if (ChromeUtils.getClassName(addons) === "Object") {
-      addons = new Map(Object.entries(addons));
-    }
-    this.addons = addons;
-    this.wrappedJSObject = this;
-
-    // Copy blocklist constants.
-    for (let [k, v] of Object.entries(Ci.nsIBlocklistService)) {
-      if (typeof v === "number") {
-        this[k] = v;
-      }
-    }
-
-    this._xpidb = ChromeUtils.import(
-      "resource://gre/modules/addons/XPIDatabase.jsm",
-      null
-    );
-  }
-
-  get contractID() {
-    return "@mozilla.org/extensions/blocklist;1";
-  }
-
-  _reLazifyService() {
-    XPCOMUtils.defineLazyServiceGetter(Services, "blocklist", this.contractID);
-    ChromeUtils.defineModuleGetter(
-      this._xpidb,
-      "Blocklist",
-      "resource://gre/modules/Blocklist.jsm"
-    );
-  }
-
-  register() {
-    this.originalCID = MockRegistrar.register(this.contractID, this);
-    this._reLazifyService();
-    this._xpidb.Blocklist = this;
-  }
-
-  unregister() {
-    MockRegistrar.unregister(this.originalCID);
-    this._reLazifyService();
-  }
-
-  async getAddonBlocklistState(addon, appVersion, toolkitVersion) {
-    await new Promise(r => setTimeout(r, 150));
-    return (
-      this.addons.get(addon.id) || Ci.nsIBlocklistService.STATE_NOT_BLOCKED
-    );
-  }
-
-  async getAddonBlocklistEntry(addon, appVersion, toolkitVersion) {
-    let state = await this.getAddonBlocklistState(
-      addon,
-      appVersion,
-      toolkitVersion
-    );
-    if (state != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
-      return {
-        state,
-        url: "http://example.com/",
-      };
-    }
-    return null;
-  }
-
-  recordAddonBlockChangeTelemetry(addon, reason) {}
-}
-
-MockBlocklist.prototype.QueryInterface = ChromeUtils.generateQI([
-  "nsIBlocklistService",
-]);
+AddonManagerPrivate.overrideAsyncShutdown(MockAsyncShutdown);
 
 class AddonsList {
   constructor(file) {
@@ -390,6 +306,12 @@ var AddonTestUtils = {
     }
 
     testScope.registerCleanupFunction(() => {
+      // Force a GC to ensure that anything holding a ref to temp file releases it.
+      // XXX This shouldn't be needed here, since cleanupTempXPIs() does a GC if
+      // something fails; see bug 1761255
+      this.info(`Force a GC`);
+      Cu.forceGC();
+
       this.cleanupTempXPIs();
 
       let ignoreEntries = new Set();
@@ -566,14 +488,14 @@ var AddonTestUtils = {
   },
 
   createAppInfo(ID, name, version, platformVersion = "1.0") {
-    AppInfo.updateAppInfo({
+    updateAppInfo({
       ID,
       name,
       version,
       platformVersion,
       crashReporter: true,
     });
-    this.appInfo = AppInfo.getAppInfo();
+    this.appInfo = getAppInfo();
   },
 
   getManifestURI(file) {
@@ -720,22 +642,6 @@ var AddonTestUtils = {
   },
 
   /**
-   * Overrides the blocklist service, and returns the given blocklist
-   * states for the given add-ons.
-   *
-   * @param {object|Map} addons
-   *        A mapping of add-on IDs to their blocklist states.
-   * @returns {MockBlocklist}
-   *        A mock blocklist service, which should be unregistered when
-   *        the test is complete.
-   */
-  overrideBlocklist(addons) {
-    let mock = new MockBlocklist(addons);
-    mock.register();
-    return mock;
-  },
-
-  /**
    * Load the data from the specified files into the *real* blocklist providers.
    * Loads using loadBlocklistRawData, which will treat this as an update.
    *
@@ -765,9 +671,7 @@ var AddonTestUtils = {
 
   /**
    * Load the following data into the *real* blocklist providers.
-   * While `overrideBlocklist` replaces the blocklist entirely with a mock
-   * that returns dummy data, this method instead loads data into the actual
-   * blocklist, fires update methods as would happen if this data came from
+   * Fires update methods as would happen if this data came from
    * an actual blocklist update, etc.
    *
    * @param {object} data
@@ -781,21 +685,6 @@ var AddonTestUtils = {
       extensions: BlocklistPrivate.ExtensionBlocklistRS,
       extensionsMLBF: BlocklistPrivate.ExtensionBlocklistMLBF,
     };
-
-    // Since we load the specified test data, we shouldn't let the
-    // packaged JSON dumps to interfere.
-    const pref = "services.settings.load_dump";
-    const backup = Services.prefs.getBoolPref(pref, null);
-    Services.prefs.setBoolPref(pref, false);
-    if (this.testScope) {
-      this.testScope.registerCleanupFunction(() => {
-        if (backup === null) {
-          Services.prefs.clearUserPref(pref);
-        } else {
-          Services.prefs.setBoolPref(pref, backup);
-        }
-      });
-    }
 
     for (const [dataProp, blocklistObj] of Object.entries(blocklistMapping)) {
       let newData = data[dataProp];
@@ -834,27 +723,36 @@ var AddonTestUtils = {
   /**
    * Starts up the add-on manager as if it was started by the application.
    *
-   * @param {string} [newVersion]
+   * @param {Object} params
+   *        The new params are in an object and new code should use that.
+   * @param {boolean} params.earlyStartup
+   *        Notifies early startup phase. default is true
+   * @param {boolean} params.lateStartup
+   *        Notifies late startup phase which ensures addons are started or
+   *        listeners are primed. default is true
+   * @param {boolean} params.newVersion
    *        If provided, the application version is changed to this string
    *        before the AddonManager is started.
-   * @param {string} [newPlatformVersion]
-   *        If provided, the platform version is changed to this string
-   *        before the AddonManager is started.  It will default to the appVersion
-   *        as that is how Firefox currently builds (app === platform).
    */
-  async promiseStartupManager(newVersion, newPlatformVersion = newVersion) {
+  async promiseStartupManager(params) {
     if (this.addonIntegrationService) {
       throw new Error(
         "Attempting to startup manager that was already started."
       );
     }
+    // Support old arguments
+    if (typeof params != "object") {
+      params = {
+        newVersion: arguments[0],
+      };
+    }
+    let { earlyStartup = true, lateStartup = true, newVersion } = params;
+
+    lateStartup = earlyStartup && lateStartup;
 
     if (newVersion) {
       this.appInfo.version = newVersion;
-    }
-
-    if (newPlatformVersion) {
-      this.appInfo.platformVersion = newPlatformVersion;
+      this.appInfo.platformVersion = newVersion;
     }
 
     // AddonListeners are removed when the addonManager is shutdown,
@@ -862,13 +760,12 @@ var AddonTestUtils = {
     // promiseShutdown to allow re-initialization.
     ExtensionAddonObserver.init();
 
-    let XPIScope = ChromeUtils.import(
-      "resource://gre/modules/addons/XPIProvider.jsm",
-      null
+    const { XPIInternal, XPIProvider } = ChromeUtils.import(
+      "resource://gre/modules/addons/XPIProvider.jsm"
     );
-    XPIScope.AsyncShutdown = MockAsyncShutdown;
+    XPIInternal.overrideAsyncShutdown(MockAsyncShutdown);
 
-    XPIScope.XPIInternal.BootstrapScope.prototype._beforeCallBootstrapMethod = (
+    XPIInternal.BootstrapScope.prototype._beforeCallBootstrapMethod = (
       method,
       params,
       reason
@@ -892,21 +789,24 @@ var AddonTestUtils = {
 
     this.emit("addon-manager-started");
 
-    await Promise.all(XPIScope.XPIProvider.startupPromises);
+    await Promise.all(XPIProvider.startupPromises);
 
     // Load the add-ons list as it was after extension registration
     await this.loadAddonsList(true);
 
     // Wait for all add-ons to finish starting up before resolving.
-    const { XPIProvider } = ChromeUtils.import(
-      "resource://gre/modules/addons/XPIProvider.jsm"
-    );
     await Promise.all(
       Array.from(
         XPIProvider.activeAddons.values(),
         addon => addon.startupPromise
       )
     );
+    if (earlyStartup) {
+      ExtensionTestCommon.notifyEarlyStartup();
+    }
+    if (lateStartup) {
+      ExtensionTestCommon.notifyLateStartup();
+    }
   },
 
   async promiseShutdownManager({
@@ -922,9 +822,11 @@ var AddonTestUtils = {
       this.overrideEntry = null;
     }
 
-    const XPIscope = ChromeUtils.import(
-      "resource://gre/modules/addons/XPIProvider.jsm",
-      null
+    const { XPIProvider } = ChromeUtils.import(
+      "resource://gre/modules/addons/XPIProvider.jsm"
+    );
+    const { XPIDatabase } = ChromeUtils.import(
+      "resource://gre/modules/addons/XPIDatabase.jsm"
     );
 
     // Ensure some startup observers in XPIProvider are released.
@@ -937,7 +839,7 @@ var AddonTestUtils = {
     // a promise, potentially still pending. Wait for it to settle before
     // triggering profileBeforeChange, because the latter can trigger errors in
     // the pending asyncLoadDB() by an indirect call to XPIDatabase.shutdown().
-    await XPIscope.XPIDatabase._dbPromise;
+    await XPIDatabase._dbPromise;
 
     await MockAsyncShutdown.profileBeforeChange.trigger();
     await MockAsyncShutdown.profileChangeTeardown.trigger();
@@ -968,23 +870,16 @@ var AddonTestUtils = {
 
     // This would be cleaner if I could get it as the rejection reason from
     // the AddonManagerInternal.shutdown() promise
-    let shutdownError = XPIscope.XPIDatabase._saveError;
+    let shutdownError = XPIDatabase._saveError;
 
-    AddonManagerPrivate.unregisterProvider(XPIscope.XPIProvider);
+    AddonManagerPrivate.unregisterProvider(XPIProvider);
     Cu.unload("resource://gre/modules/addons/XPIProvider.jsm");
     Cu.unload("resource://gre/modules/addons/XPIDatabase.jsm");
     Cu.unload("resource://gre/modules/addons/XPIInstall.jsm");
 
-    let ExtensionScope = ChromeUtils.import(
-      "resource://gre/modules/Extension.jsm",
-      null
-    );
     ExtensionAddonObserver.uninit();
-    ChromeUtils.defineModuleGetter(
-      ExtensionScope,
-      "XPIProvider",
-      "resource://gre/modules/addons/XPIProvider.jsm"
-    );
+
+    ExtensionTestCommon.resetStartupPromises();
 
     if (shutdownError) {
       throw shutdownError;
@@ -998,23 +893,43 @@ var AddonTestUtils = {
    * simulate an application upgrade (or downgrade) where the version
    * is changed to newVersion when re-started.
    *
-   * @param {string} [newVersion]
-   *        If provided, the application version is changed to this string
-   *        after the AddonManager is shut down, before it is re-started.
+   * @param {Object} params
+   *        The new params are in an object and new code should use that.
+   *        See promiseStartupManager for param details.
    */
-  async promiseRestartManager(newVersion) {
+  async promiseRestartManager(params) {
     await this.promiseShutdownManager({ clearOverrides: false });
-    await this.promiseStartupManager(newVersion);
+    await this.promiseStartupManager(params);
+  },
+
+  /**
+   * If promiseStartupManager is called with earlyStartup: false, then
+   * use this to notify early startup.
+   *
+   * @returns {Promise} resolves when notification is complete
+   */
+  notifyEarlyStartup() {
+    return ExtensionTestCommon.notifyEarlyStartup();
+  },
+
+  /**
+   * If promiseStartupManager is called with lateStartup: false, then
+   * use this to notify late startup.  You should also call early startup
+   * if necessary.
+   *
+   * @returns {Promise} resolves when notification is complete
+   */
+  notifyLateStartup() {
+    return ExtensionTestCommon.notifyLateStartup();
   },
 
   async loadAddonsList(flush = false) {
     if (flush) {
-      let XPIScope = ChromeUtils.import(
-        "resource://gre/modules/addons/XPIProvider.jsm",
-        null
+      const { XPIInternal } = ChromeUtils.import(
+        "resource://gre/modules/addons/XPIProvider.jsm"
       );
-      XPIScope.XPIStates.save();
-      await XPIScope.XPIStates._jsonFile._save();
+      XPIInternal.XPIStates.save();
+      await XPIInternal.XPIStates._jsonFile._save();
     }
 
     this.addonsList = new AddonsList(this.addonStartup);
@@ -1714,6 +1629,19 @@ var AddonTestUtils = {
       return true;
     }
 
+    function validateOptionFormat(optionName, optionValue) {
+      for (let item of optionValue) {
+        if (!item || typeof item !== "object" || isRegExp(item)) {
+          throw new Error(
+            `Unexpected format in AddonTestUtils.checkMessages "${optionName}" parameter`
+          );
+        }
+      }
+    }
+
+    validateOptionFormat("expected", expected);
+    validateOptionFormat("forbidden", forbidden);
+
     let i = 0;
     for (let msg of messages) {
       if (forbidden.some(pat => msgMatches(msg, pat))) {
@@ -1745,10 +1673,14 @@ var AddonTestUtils = {
    * @param {Object} expectedInstallInfo
    *        The expected installTelemetryInfo properties
    *        (every property can be a primitive value or a regular expression).
+   * @param {string} [msg]
+   *        Optional assertion message suffix.
    */
-  checkInstallInfo(addonOrInstall, expectedInstallInfo) {
+  checkInstallInfo(addonOrInstall, expectedInstallInfo, msg = undefined) {
     const installInfo = addonOrInstall.installTelemetryInfo;
     const { Assert } = this.testScope;
+
+    msg = msg ? ` ${msg}` : "";
 
     for (const key of Object.keys(expectedInstallInfo)) {
       const actual = installInfo[key];
@@ -1758,10 +1690,14 @@ var AddonTestUtils = {
       if (expected && typeof expected.test == "function") {
         Assert.ok(
           expected.test(actual),
-          `${key} value "${actual}" has the value expected: "${expected}"`
+          `${key} value "${actual}" has the value expected "${expected}"${msg}`
         );
       } else {
-        Assert.deepEqual(actual, expected, `Got the expected value for ${key}`);
+        Assert.deepEqual(
+          actual,
+          expected,
+          `Got the expected value for ${key}${msg}`
+        );
       }
     }
   },

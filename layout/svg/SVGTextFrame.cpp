@@ -48,6 +48,7 @@
 #include "mozilla/dom/Text.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/PatternHelpers.h"
+#include "nsDisplayList.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -125,13 +126,7 @@ static void GetAscentAndDescentInAppUnits(nsTextFrame* aFrame,
   gfxTextRun::Range range = ConvertOriginalToSkipped(
       it, aFrame->GetContentOffset(), aFrame->GetContentLength());
 
-  // We pass in null for the PropertyProvider since letter-spacing and
-  // word-spacing should not affect the ascent and descent values we get.
-  gfxTextRun::Metrics metrics =
-      textRun->MeasureText(range, gfxFont::LOOSE_INK_EXTENTS, nullptr, nullptr);
-
-  aAscent = metrics.mAscent;
-  aDescent = metrics.mDescent;
+  textRun->GetLineHeightMetrics(range, aAscent, aDescent);
 }
 
 /**
@@ -278,26 +273,23 @@ static nscoord GetBaselinePosition(nsTextFrame* aFrame, gfxTextRun* aTextRun,
                                    StyleDominantBaseline aDominantBaseline,
                                    float aFontSizeScaleFactor) {
   WritingMode writingMode = aFrame->GetWritingMode();
-  // We pass in null for the PropertyProvider since letter-spacing and
-  // word-spacing should not affect the ascent and descent values we get.
-  gfxTextRun::Metrics metrics =
-      aTextRun->MeasureText(gfxFont::LOOSE_INK_EXTENTS, nullptr);
+  gfxFloat ascent, descent;
+  aTextRun->GetLineHeightMetrics(ascent, descent);
 
   auto convertIfVerticalRL = [&](gfxFloat dominantBaseline) {
-    return writingMode.IsVerticalRL()
-               ? metrics.mAscent + metrics.mDescent - dominantBaseline
-               : dominantBaseline;
+    return writingMode.IsVerticalRL() ? ascent + descent - dominantBaseline
+                                      : dominantBaseline;
   };
 
   switch (aDominantBaseline) {
     case StyleDominantBaseline::Hanging:
-      return convertIfVerticalRL(metrics.mAscent * 0.2);
+      return convertIfVerticalRL(ascent * 0.2);
     case StyleDominantBaseline::TextBeforeEdge:
       return convertIfVerticalRL(0);
 
     case StyleDominantBaseline::Alphabetic:
       return writingMode.IsVerticalRL()
-                 ? metrics.mAscent * 0.5
+                 ? ascent * 0.5
                  : aFrame->GetLogicalBaseline(writingMode);
 
     case StyleDominantBaseline::Auto:
@@ -311,13 +303,12 @@ static nscoord GetBaselinePosition(nsTextFrame* aFrame, gfxTextRun* aTextRun,
 
     case StyleDominantBaseline::TextAfterEdge:
     case StyleDominantBaseline::Ideographic:
-      return writingMode.IsVerticalLR() ? 0
-                                        : metrics.mAscent + metrics.mDescent;
+      return writingMode.IsVerticalLR() ? 0 : ascent + descent;
 
     case StyleDominantBaseline::Central:
-      return (metrics.mAscent + metrics.mDescent) / 2.0;
+      return (ascent + descent) / 2.0;
     case StyleDominantBaseline::Mathematical:
-      return convertIfVerticalRL(metrics.mAscent / 2.0);
+      return convertIfVerticalRL(ascent / 2.0);
   }
 
   MOZ_ASSERT_UNREACHABLE("unexpected dominant-baseline value");
@@ -850,7 +841,8 @@ SVGBBox TextRenderedRun::GetRunUserSpaceRect(nsPresContext* aContext,
   // Determine the rectangle that covers the rendered run's fill,
   // taking into account the measured vertical overflow due to
   // decorations.
-  nscoord baseline = metrics.mBoundingBox.y + metrics.mAscent;
+  nscoord baseline =
+      NSToCoordRoundWithClamp(metrics.mBoundingBox.y + metrics.mAscent);
   gfxFloat x, width;
   if (aFlags & eNoHorizontalOverflow) {
     x = 0.0;
@@ -863,8 +855,10 @@ SVGBBox TextRenderedRun::GetRunUserSpaceRect(nsPresContext* aContext,
     x = metrics.mBoundingBox.x;
     width = metrics.mBoundingBox.width;
   }
-  nsRect fillInAppUnits(x, baseline - above, width,
-                        metrics.mBoundingBox.height + above + below);
+  nsRect fillInAppUnits(
+      NSToCoordRoundWithClamp(x), baseline - above,
+      NSToCoordRoundWithClamp(width),
+      NSToCoordRoundWithClamp(metrics.mBoundingBox.height) + above + below);
   if (textRun->IsVertical()) {
     // Swap line-relative textMetrics dimensions to physical coordinates.
     std::swap(fillInAppUnits.x, fillInAppUnits.y);
@@ -5185,6 +5179,9 @@ bool SVGTextFrame::UpdateFontSizeScaleFactor() {
     gfxMatrix m(GetCanvasTM());
     if (!m.IsSingular()) {
       contextScale = GetContextScale(m);
+      if (!std::isfinite(contextScale)) {
+        contextScale = 1.0f;
+      }
     }
   }
   mLastContextScale = contextScale;

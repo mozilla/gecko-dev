@@ -8,6 +8,8 @@ styleeditor-new-button =
 styleeditor-import-button =
     .tooltiptext = Import and append an existing style sheet to the document
     .accesskey = I
+styleeditor-filter-input =
+    .placeholder = Filter style sheets
 styleeditor-visibility-toggle =
     .tooltiptext = Toggle style sheet visibility
     .accesskey = S
@@ -25,3 +27,8 @@ styleeditor-open-link-new-tab =
     .label = Open Link in New Tab
 styleeditor-copy-url =
     .label = Copy URL
+styleeditor-go-to-line =
+    .label = Jump to Line…
+    .accesskey = J
+# Label displayed when searching a term that is not found in any stylesheet path
+styleeditor-stylesheet-all-filtered = No matching style sheet has been found.

@@ -3,12 +3,9 @@
 
 "use strict";
 
-var tmp = {};
-ChromeUtils.import(
-  "resource:///modules/translation/TranslationParent.jsm",
-  tmp
+const { Translation, TranslationTelemetry } = ChromeUtils.import(
+  "resource:///modules/translation/TranslationParent.jsm"
 );
-var { Translation, TranslationTelemetry } = tmp;
 const Telemetry = Services.telemetry;
 
 var MetricsChecker = {
@@ -170,7 +167,7 @@ function simulateUserSelectInMenulist(menulist, value) {
   menulist.doCommand();
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   const setupPrefs = prefs => {
     let prefsBackup = {};
     for (let p of prefs) {

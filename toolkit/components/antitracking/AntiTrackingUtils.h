@@ -8,6 +8,7 @@
 #define mozilla_antitrackingutils_h
 
 #include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/Maybe.h"
 #include "nsStringFwd.h"
 #include "ContentBlockingNotifier.h"
 
@@ -24,6 +25,7 @@ namespace mozilla {
 namespace dom {
 class BrowsingContext;
 class CanonicalBrowsingContext;
+class Document;
 class WindowGlobalParent;
 }  // namespace dom
 
@@ -59,6 +61,10 @@ class AntiTrackingUtils final {
                                      bool aIsInPrivateBrowsing,
                                      uint32_t* aRejectedReason,
                                      uint32_t aBlockedReason);
+
+  // Returns the number of sites that give this principal's origin storage
+  // access.
+  static Maybe<size_t> CountSitesAllowStorageAccess(nsIPrincipal* aPrincipal);
 
   // Returns the storage permission state for the given channel. And this is
   // meant to be called in the parent process. This only reflects the fact that
@@ -120,6 +126,12 @@ class AntiTrackingUtils final {
   // third-party with respect to the URI. The function returns if it's true.
   // Otherwise, it will continue to check if the window is third-party.
   static bool IsThirdPartyWindow(nsPIDOMWindowInner* aWindow, nsIURI* aURI);
+
+  // Given a Document, this function determines if this document
+  // is considered as a third party with respect to the top level context.
+  // This prefers to use the document's Channel's LoadInfo, but falls back to
+  // the BrowsingContext.
+  static bool IsThirdPartyDocument(dom::Document* aDocument);
 
   // Given a browsing context, this function determines if this browsing context
   // is considered as a third party in respect to the top-level context.

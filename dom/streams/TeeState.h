@@ -16,7 +16,7 @@
 
 namespace mozilla::dom {
 
-class ReadableStreamDefaultTeePullAlgorithm;
+class ReadableStreamDefaultTeeSourceAlgorithms;
 
 enum class TeeBranch : bool {
   Branch1,
@@ -38,8 +38,7 @@ struct TeeState : public nsISupports {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(TeeState)
 
-  static already_AddRefed<TeeState> Create(JSContext* aCx,
-                                           ReadableStream* aStream,
+  static already_AddRefed<TeeState> Create(ReadableStream* aStream,
                                            bool aCloneForBranch2,
                                            ErrorResult& aRv);
 
@@ -85,12 +84,12 @@ struct TeeState : public nsISupports {
   }
 
   JS::Value Reason1() const { return mReason1; }
-  void SetReason1(JS::HandleValue aReason1) { mReason1 = aReason1; }
+  void SetReason1(JS::Handle<JS::Value> aReason1) { mReason1 = aReason1; }
 
   JS::Value Reason2() const { return mReason2; }
-  void SetReason2(JS::HandleValue aReason2) { mReason2 = aReason2; }
+  void SetReason2(JS::Handle<JS::Value> aReason2) { mReason2 = aReason2; }
 
-  void SetReason(TeeBranch aBranch, JS::HandleValue aReason) {
+  void SetReason(TeeBranch aBranch, JS::Handle<JS::Value> aReason) {
     aBranch == TeeBranch::Branch1 ? SetReason1(aReason) : SetReason2(aReason);
   }
 
@@ -114,11 +113,6 @@ struct TeeState : public nsISupports {
     mCloneForBranch2 = aCloneForBranch2;
   }
 
-  void SetPullAlgorithm(ReadableStreamDefaultTeePullAlgorithm* aPullAlgorithm);
-  ReadableStreamDefaultTeePullAlgorithm* PullAlgorithm() {
-    return mPullAlgorithm;
-  }
-
   // Some code is better served by using an enum into various internal slots to
   // avoid duplication: Here we provide alternative accessors for that case.
   ReadableStream* Branch(TeeBranch aBranch) const {
@@ -133,8 +127,11 @@ struct TeeState : public nsISupports {
     SetReadAgainForBranch2(aValue);
   }
 
+  MOZ_CAN_RUN_SCRIPT void PullCallback(JSContext* aCx, nsIGlobalObject* aGlobal,
+                                       ErrorResult& aRv);
+
  private:
-  TeeState(JSContext* aCx, ReadableStream* aStream, bool aCloneForBranch2);
+  TeeState(ReadableStream* aStream, bool aCloneForBranch2);
 
   // Implicit:
   RefPtr<ReadableStream> mStream;
@@ -175,9 +172,6 @@ struct TeeState : public nsISupports {
 
   // Implicit:
   bool mCloneForBranch2 = false;
-
-  // Used as part of the recursive ChunkSteps call in the read request
-  RefPtr<ReadableStreamDefaultTeePullAlgorithm> mPullAlgorithm;
 
   virtual ~TeeState() { mozilla::DropJSObjects(this); }
 };

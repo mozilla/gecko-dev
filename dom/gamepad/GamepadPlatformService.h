@@ -16,8 +16,7 @@
 #include "mozilla/Vector.h"
 #include "mozilla/WeakPtr.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class GamepadAdded;
 class GamepadEventChannelParent;
@@ -141,12 +140,11 @@ class GamepadPlatformService final {
 
   // This mutex protects mChannelParents from race condition
   // between background and monitor thread
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
 
   std::map<GamepadHandle, GamepadAdded> mGamepadAdded;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif

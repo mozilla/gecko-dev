@@ -8,32 +8,99 @@
 #include "WMFUtils.h"
 #include "mozilla/Logging.h"
 #include "nsThreadUtils.h"
+#include "mozilla/mscom/COMWrappers.h"
 #include "mozilla/mscom/Utils.h"
 #include "PlatformDecoderModule.h"
 
 #define LOG(...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 
 namespace mozilla {
-
 MFTDecoder::MFTDecoder() {
   memset(&mInputStreamInfo, 0, sizeof(MFT_INPUT_STREAM_INFO));
   memset(&mOutputStreamInfo, 0, sizeof(MFT_OUTPUT_STREAM_INFO));
 }
 
-MFTDecoder::~MFTDecoder() {}
+MFTDecoder::~MFTDecoder() {
+  if (mActivate) {
+    // Releases all internal references to the created IMFTransform.
+    // https://docs.microsoft.com/en-us/windows/win32/api/mfobjects/nf-mfobjects-imfactivate-shutdownobject
+    mActivate->ShutdownObject();
+  }
+}
+
+HRESULT MFTDecoder::Create(const GUID& aCLSID) {
+  MOZ_ASSERT(mscom::IsCurrentThreadMTA());
+
+  HRESULT hr = mscom::wrapped::CoCreateInstance(
+      aCLSID, nullptr, CLSCTX_INPROC_SERVER,
+      IID_PPV_ARGS(static_cast<IMFTransform**>(getter_AddRefs(mDecoder))));
+  NS_WARNING_ASSERTION(SUCCEEDED(hr), "Failed to create MFT by CLSID");
+  return hr;
+}
 
 HRESULT
-MFTDecoder::Create(const GUID& aMFTClsID) {
+MFTDecoder::Create(const GUID& aCategory, const GUID& aInSubtype,
+                   const GUID& aOutSubtype) {
   // Note: IMFTransform is documented to only be safe on MTA threads.
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
-  // Create the IMFTransform to do the decoding.
-  HRESULT hr;
-  hr = CoCreateInstance(
-      aMFTClsID, nullptr, CLSCTX_INPROC_SERVER,
-      IID_PPV_ARGS(static_cast<IMFTransform**>(getter_AddRefs(mDecoder))));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
-  return S_OK;
+  // Use video by default, but select audio if necessary.
+  const GUID major = aCategory == MFT_CATEGORY_AUDIO_DECODER
+                         ? MFMediaType_Audio
+                         : MFMediaType_Video;
+
+  // Ignore null GUIDs to allow searching for all decoders supporting
+  // just one input or output type.
+  auto createInfo = [&major](const GUID& subtype) -> MFT_REGISTER_TYPE_INFO* {
+    if (IsEqualGUID(subtype, GUID_NULL)) {
+      return nullptr;
+    }
+
+    MFT_REGISTER_TYPE_INFO* info = new MFT_REGISTER_TYPE_INFO();
+    info->guidMajorType = major;
+    info->guidSubtype = subtype;
+    return info;
+  };
+  const MFT_REGISTER_TYPE_INFO* inInfo = createInfo(aInSubtype);
+  const MFT_REGISTER_TYPE_INFO* outInfo = createInfo(aOutSubtype);
+
+  // Request a decoder from the Windows API.
+  HRESULT hr;
+  IMFActivate** acts = nullptr;
+  UINT32 actsNum = 0;
+
+  hr = wmf::MFTEnumEx(aCategory, MFT_ENUM_FLAG_SORTANDFILTER, inInfo, outInfo,
+                      &acts, &actsNum);
+  delete inInfo;
+  delete outInfo;
+  if (FAILED(hr)) {
+    NS_WARNING(nsPrintfCString("MFTEnumEx failed with code %lx", hr).get());
+    return hr;
+  }
+  if (actsNum == 0) {
+    NS_WARNING("MFTEnumEx returned no IMFActivate instances");
+    return WINCODEC_ERR_COMPONENTNOTFOUND;
+  }
+  auto guard = MakeScopeExit([&] {
+    // Start from index 1, acts[0] will be stored as a RefPtr to release later.
+    for (UINT32 i = 1; i < actsNum; i++) {
+      acts[i]->Release();
+    }
+    CoTaskMemFree(acts);
+  });
+
+  // Create the IMFTransform to do the decoding.
+  // Note: Ideally we would cache the IMFActivate and call
+  // IMFActivate::DetachObject, but doing so causes the MFTs to fail on
+  // MFT_MESSAGE_SET_D3D_MANAGER.
+  mActivate = RefPtr<IMFActivate>(acts[0]);
+  hr = mActivate->ActivateObject(
+      IID_PPV_ARGS(static_cast<IMFTransform**>(getter_AddRefs(mDecoder))));
+  NS_WARNING_ASSERTION(
+      SUCCEEDED(hr),
+      nsPrintfCString("IMFActivate::ActivateObject failed with code %lx", hr)
+          .get());
+  return hr;
 }
 
 HRESULT
@@ -68,6 +135,14 @@ already_AddRefed<IMFAttributes> MFTDecoder::GetAttributes() {
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
   RefPtr<IMFAttributes> attr;
   HRESULT hr = mDecoder->GetAttributes(getter_AddRefs(attr));
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
+  return attr.forget();
+}
+
+already_AddRefed<IMFAttributes> MFTDecoder::GetOutputStreamAttributes() {
+  MOZ_ASSERT(mscom::IsCurrentThreadMTA());
+  RefPtr<IMFAttributes> attr;
+  HRESULT hr = mDecoder->GetOutputStreamAttributes(0, getter_AddRefs(attr));
   NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
   return attr.forget();
 }
@@ -337,10 +412,19 @@ MFTDecoder::Flush() {
 }
 
 HRESULT
+MFTDecoder::GetInputMediaType(RefPtr<IMFMediaType>& aMediaType) {
+  MOZ_ASSERT(mscom::IsCurrentThreadMTA());
+  NS_ENSURE_TRUE(mDecoder, E_POINTER);
+  return mDecoder->GetInputCurrentType(0, getter_AddRefs(aMediaType));
+}
+
+HRESULT
 MFTDecoder::GetOutputMediaType(RefPtr<IMFMediaType>& aMediaType) {
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
   NS_ENSURE_TRUE(mDecoder, E_POINTER);
   return mDecoder->GetOutputCurrentType(0, getter_AddRefs(aMediaType));
 }
+
+#undef LOG
 
 }  // namespace mozilla

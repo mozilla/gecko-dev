@@ -8,9 +8,6 @@
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.jsm",
-  UrlbarProviderQuickSuggest:
-    "resource:///modules/UrlbarProviderQuickSuggest.jsm",
-  UrlbarQuickSuggest: "resource:///modules/UrlbarQuickSuggest.jsm",
 });
 
 // We set the Merino timeout to a large value to avoid intermittent failures in
@@ -36,14 +33,14 @@ const FETCH_RESPONSE = {
   http_error: 3,
 };
 
-const REMOTE_SETTINGS_SEARCH_STRING = "frab";
+const SEARCH_STRING = "frab";
 
 const REMOTE_SETTINGS_DATA = [
   {
     id: 1,
     url: "http://test.com/q=frabbits",
     title: "frabbits",
-    keywords: [REMOTE_SETTINGS_SEARCH_STRING],
+    keywords: [SEARCH_STRING],
     click_url: "http://click.reporting.test.com/",
     impression_url: "http://impression.reporting.test.com/",
     advertiser: "TestAdvertiser",
@@ -55,9 +52,10 @@ const EXPECTED_REMOTE_SETTINGS_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
-    qsSuggestion: REMOTE_SETTINGS_SEARCH_STRING,
+    qsSuggestion: SEARCH_STRING,
     title: "frabbits",
     url: "http://test.com/q=frabbits",
+    originalUrl: "http://test.com/q=frabbits",
     icon: null,
     sponsoredImpressionUrl: "http://impression.reporting.test.com/",
     sponsoredClickUrl: "http://click.reporting.test.com/",
@@ -99,6 +97,7 @@ const EXPECTED_MERINO_RESULT = {
     qsSuggestion: "full_keyword",
     title: "title",
     url: "url",
+    originalUrl: "url",
     icon: "icon",
     sponsoredImpressionUrl: "impression_url",
     sponsoredClickUrl: "click_url",
@@ -135,9 +134,9 @@ add_task(async function init() {
   await QuickSuggestTestUtils.ensureQuickSuggestInit(REMOTE_SETTINGS_DATA);
 
   Assert.equal(
-    typeof UrlbarQuickSuggest.SUGGESTION_SCORE,
+    typeof UrlbarQuickSuggest.DEFAULT_SUGGESTION_SCORE,
     "number",
-    "Sanity check: UrlbarQuickSuggest.SUGGESTION_SCORE is defined"
+    "Sanity check: UrlbarQuickSuggest.DEFAULT_SUGGESTION_SCORE is defined"
   );
 });
 
@@ -152,9 +151,9 @@ add_task(async function oneEnabled_merino() {
   // Use a score lower than the remote settings score to make sure the
   // suggestion is included regardless.
   setMerinoResponse().body.suggestions[0].score =
-    UrlbarQuickSuggest.SUGGESTION_SCORE / 2;
+    UrlbarQuickSuggest.DEFAULT_SUGGESTION_SCORE / 2;
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -183,7 +182,7 @@ add_task(async function oneEnabled_remoteSettings() {
   // we don't fetch it.
   setMerinoResponse();
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -232,9 +231,9 @@ add_task(async function higherScore() {
   let histograms = getAndClearHistograms();
 
   setMerinoResponse().body.suggestions[0].score =
-    2 * UrlbarQuickSuggest.SUGGESTION_SCORE;
+    2 * UrlbarQuickSuggest.DEFAULT_SUGGESTION_SCORE;
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -261,9 +260,9 @@ add_task(async function lowerScore() {
   let histograms = getAndClearHistograms();
 
   setMerinoResponse().body.suggestions[0].score =
-    UrlbarQuickSuggest.SUGGESTION_SCORE / 2;
+    UrlbarQuickSuggest.DEFAULT_SUGGESTION_SCORE / 2;
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -290,9 +289,9 @@ add_task(async function sameScore() {
   let histograms = getAndClearHistograms();
 
   setMerinoResponse().body.suggestions[0].score =
-    UrlbarQuickSuggest.SUGGESTION_SCORE;
+    UrlbarQuickSuggest.DEFAULT_SUGGESTION_SCORE;
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -326,7 +325,7 @@ add_task(async function noMerinoScore() {
   );
   delete resp.body.suggestions[0].score;
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -387,7 +386,7 @@ add_task(async function noSuggestion_merino() {
     },
   });
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -416,7 +415,7 @@ add_task(async function bothDisabled() {
   // we don't fetch it.
   setMerinoResponse();
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -498,6 +497,7 @@ add_task(async function multipleMerinoSuggestions() {
           qsSuggestion: "multipleMerinoSuggestions 1 full_keyword",
           title: "multipleMerinoSuggestions 1 title",
           url: "multipleMerinoSuggestions 1 url",
+          originalUrl: "multipleMerinoSuggestions 1 url",
           icon: "multipleMerinoSuggestions 1 icon",
           sponsoredImpressionUrl: "multipleMerinoSuggestions 1 impression_url",
           sponsoredClickUrl: "multipleMerinoSuggestions 1 click_url",
@@ -673,7 +673,7 @@ async function doNetworkErrorTest(expectedResults) {
 
   let histograms = getAndClearHistograms();
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -733,7 +733,7 @@ async function doHTTPErrorTest(expectedResults) {
     status: 500,
   });
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -788,7 +788,7 @@ async function doSimpleTimeoutTest(expectedResults) {
   // Make the server return a delayed response so it times out.
   gMerinoResponse.delay = 2 * UrlbarPrefs.get("merinoTimeoutMs");
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -1017,7 +1017,8 @@ add_task(async function timestamps() {
   // Set up the Merino response with template URLs.
   let resp = setMerinoResponse();
   let suggestion = resp.body.suggestions[0];
-  let timestampTemplate = "%YYYYMMDDHH%";
+  let { timestampTemplate } = UrlbarProviderQuickSuggest;
+
   suggestion.url = `http://example.com/time-${timestampTemplate}`;
   suggestion.click_url = `http://example.com/time-${timestampTemplate}-foo`;
 
@@ -1079,7 +1080,7 @@ add_task(async function clientVariants_providers() {
     checksCalled += 1;
   };
 
-  let context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -1099,7 +1100,7 @@ add_task(async function clientVariants_providers() {
     checksCalled += 1;
   };
 
-  context = createContext(REMOTE_SETTINGS_SEARCH_STRING, {
+  context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -1206,6 +1207,65 @@ add_task(async function suggestedDisabled_dataCollectionEnabled_providers() {
 
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
+});
+
+// Test whether the blocking for Merino results works.
+add_task(async function block() {
+  UrlbarPrefs.set(PREF_MERINO_ENABLED, true);
+  UrlbarPrefs.set(PREF_REMOTE_SETTINGS_ENABLED, true);
+  UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
+
+  for (const suggestion of MERINO_RESPONSE.body.suggestions) {
+    await UrlbarProviderQuickSuggest.blockSuggestion(suggestion.url);
+  }
+
+  const context = createContext(SEARCH_STRING, {
+    providers: [UrlbarProviderQuickSuggest.name],
+    isPrivate: false,
+  });
+
+  await check_results({
+    context,
+    matches: [EXPECTED_REMOTE_SETTINGS_RESULT],
+  });
+
+  await UrlbarProviderQuickSuggest.clearBlockedSuggestions();
+});
+
+// Tests a Merino suggestion that is a best match.
+add_task(async function bestMatch() {
+  UrlbarPrefs.set(PREF_MERINO_ENABLED, true);
+  UrlbarPrefs.set(PREF_REMOTE_SETTINGS_ENABLED, false);
+  UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
+
+  // Simply enabling the best match feature should make the mock suggestion a
+  // best match because the search string length is greater than the required
+  // best match length.
+  UrlbarPrefs.set("bestMatch.enabled", true);
+  UrlbarPrefs.set("suggest.bestmatch", true);
+
+  setMerinoResponse();
+
+  let expectedResult = { ...EXPECTED_MERINO_RESULT };
+  expectedResult.payload = { ...EXPECTED_MERINO_RESULT.payload };
+  expectedResult.isBestMatch = true;
+  delete expectedResult.payload.qsSuggestion;
+
+  let context = createContext(SEARCH_STRING, {
+    providers: [UrlbarProviderQuickSuggest.name],
+    isPrivate: false,
+  });
+  await check_results({
+    context,
+    matches: [expectedResult],
+  });
+
+  // This isn't necessary since `check_results()` checks `isBestMatch`, but
+  // check it here explicitly for good measure.
+  Assert.ok(context.results[0].isBestMatch, "Result is a best match");
+
+  UrlbarPrefs.clear("bestMatch.enabled");
+  UrlbarPrefs.clear("suggest.bestmatch");
 });
 
 function makeMerinoServer(endpointPath) {

@@ -14,8 +14,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 
-namespace mozilla {
-namespace webgpu {
+namespace mozilla::webgpu {
 
 GPU_IMPL_CYCLE_COLLECTION(Adapter, mParent, mBridge, mFeatures, mLimits)
 GPU_IMPL_JS_WRAP(Adapter)
@@ -41,10 +40,10 @@ Maybe<uint32_t> Adapter::MakeFeatureBits(
   return Some(bits);
 }
 
-Adapter::Adapter(Instance* const aParent,
+Adapter::Adapter(Instance* const aParent, WebGPUChild* const aBridge,
                  const ffi::WGPUAdapterInformation& aInfo)
     : ChildOf(aParent),
-      mBridge(aParent->mBridge),
+      mBridge(aBridge),
       mId(aInfo.id),
       mFeatures(new SupportedFeatures(this)),
       mLimits(
@@ -69,7 +68,7 @@ Adapter::Adapter(Instance* const aParent,
 Adapter::~Adapter() { Cleanup(); }
 
 void Adapter::Cleanup() {
-  if (mValid && mBridge && mBridge->IsOpen()) {
+  if (mValid && mBridge && mBridge->CanSend()) {
     mValid = false;
     mBridge->SendAdapterDestroy(mId);
   }
@@ -83,6 +82,12 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
   RefPtr<dom::Promise> promise = dom::Promise::Create(GetParentObject(), aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
+  }
+
+  if (!mBridge->CanSend()) {
+    promise->MaybeRejectWithInvalidStateError(
+        "WebGPUChild cannot send, must recreate Adapter");
+    return promise.forget();
   }
 
   ffi::WGPULimits limits = {};
@@ -126,5 +131,4 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
   return promise.forget();
 }
 
-}  // namespace webgpu
-}  // namespace mozilla
+}  // namespace mozilla::webgpu

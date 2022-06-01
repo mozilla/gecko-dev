@@ -192,13 +192,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 XPCOMUtils.defineLazyGetter(this, "log", () => {
-  let scope = {};
-  ChromeUtils.import("resource://gre/modules/Console.jsm", scope);
+  let { ConsoleAPI } = ChromeUtils.import("resource://gre/modules/Console.jsm");
   let consoleOptions = {
     maxLogLevel: gDebuggingEnabled ? "all" : "log",
     prefix: "CustomizableUI",
   };
-  return new scope.ConsoleAPI(consoleOptions);
+  return new ConsoleAPI(consoleOptions);
 });
 
 var CustomizableUIInternal = {
@@ -273,11 +272,16 @@ var CustomizableUIInternal = {
       CustomizableUI.AREA_TABSTRIP,
       {
         type: CustomizableUI.TYPE_TOOLBAR,
-        defaultPlacements: [
-          "tabbrowser-tabs",
-          "new-tab-button",
-          "alltabs-button",
-        ],
+        defaultPlacements: Services.prefs.getBoolPref(
+          "browser.tabs.firefox-view"
+        )
+          ? [
+              "firefox-view-button",
+              "tabbrowser-tabs",
+              "new-tab-button",
+              "alltabs-button",
+            ]
+          : ["tabbrowser-tabs", "new-tab-button", "alltabs-button"],
         defaultCollapsed: null,
       },
       true
@@ -1783,7 +1787,7 @@ var CustomizableUIInternal = {
       if (aWidget.onBuild) {
         node = aWidget.onBuild(aDocument);
       }
-      if (!node || !(node instanceof aDocument.defaultView.XULElement)) {
+      if (!node || !aDocument.defaultView.XULElement.isInstance(node)) {
         log.error(
           "Custom widget with id " +
             aWidget.id +
@@ -1791,8 +1795,11 @@ var CustomizableUIInternal = {
         );
       }
     } else {
-      if (aWidget.onBeforeCreated) {
-        aWidget.onBeforeCreated(aDocument);
+      if (
+        aWidget.onBeforeCreated &&
+        aWidget.onBeforeCreated(aDocument) === false
+      ) {
+        return null;
       }
 
       let button = aDocument.createXULElement("toolbarbutton");
@@ -3915,7 +3922,8 @@ var CustomizableUI = {
    *                  constructed, passing the document in which that will happen.
    *                  This is useful especially for 'view' type widgets that need
    *                  to construct their views on the fly (e.g. from bootstrapped
-   *                  add-ons)
+   *                  add-ons). If the function returns `false`, the widget will
+   *                  not be created.
    * - onCreated(aNode): Attached to all widgets; a function that will be invoked
    *                  whenever the widget has a DOM node constructed, passing the
    *                  constructed node as an argument.
@@ -4628,6 +4636,47 @@ var CustomizableUI = {
 
   getCustomizationTarget(aElement) {
     return CustomizableUIInternal.getCustomizationTarget(aElement);
+  },
+
+  getTestOnlyInternalProp(aProp) {
+    if (!Cu.isInAutomation) {
+      return null;
+    }
+    switch (aProp) {
+      case "CustomizableUIInternal":
+        return CustomizableUIInternal;
+      case "gAreas":
+        return gAreas;
+      case "gFuturePlacements":
+        return gFuturePlacements;
+      case "gPalette":
+        return gPalette;
+      case "gPlacements":
+        return gPlacements;
+      case "gSavedState":
+        return gSavedState;
+      case "gSeenWidgets":
+        return gSeenWidgets;
+      case "kVersion":
+        return kVersion;
+    }
+    return null;
+  },
+  setTestOnlyInternalProp(aProp, aValue) {
+    if (!Cu.isInAutomation) {
+      return;
+    }
+    switch (aProp) {
+      case "gSavedState":
+        gSavedState = aValue;
+        break;
+      case "kVersion":
+        kVersion = aValue;
+        break;
+      case "gDirty":
+        gDirty = aValue;
+        break;
+    }
   },
 };
 Object.freeze(CustomizableUI);

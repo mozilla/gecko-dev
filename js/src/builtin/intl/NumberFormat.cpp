@@ -37,7 +37,7 @@
 #include "builtin/intl/LanguageTag.h"
 #include "builtin/intl/RelativeTimeFormat.h"
 #include "ds/Sort.h"
-#include "gc/FreeOp.h"
+#include "gc/GCContext.h"
 #include "js/CharacterEncoding.h"
 #include "js/PropertySpec.h"
 #include "js/RootingAPI.h"
@@ -72,7 +72,6 @@ const JSClassOps NumberFormatObject::classOps_ = {
     nullptr,                       // mayResolve
     NumberFormatObject::finalize,  // finalize
     nullptr,                       // call
-    nullptr,                       // hasInstance
     nullptr,                       // construct
     nullptr,                       // trace
 };
@@ -176,8 +175,8 @@ bool js::intl_NumberFormat(JSContext* cx, unsigned argc, Value* vp) {
   return NumberFormat(cx, args, true);
 }
 
-void js::NumberFormatObject::finalize(JSFreeOp* fop, JSObject* obj) {
-  MOZ_ASSERT(fop->onMainThread());
+void js::NumberFormatObject::finalize(JS::GCContext* gcx, JSObject* obj) {
+  MOZ_ASSERT(gcx->onMainThread());
 
   auto* numberFormat = &obj->as<NumberFormatObject>();
   mozilla::intl::NumberFormat* nf = numberFormat->getNumberFormatter();
@@ -185,14 +184,14 @@ void js::NumberFormatObject::finalize(JSFreeOp* fop, JSObject* obj) {
       numberFormat->getNumberRangeFormatter();
 
   if (nf) {
-    intl::RemoveICUCellMemory(fop, obj, NumberFormatObject::EstimatedMemoryUse);
+    intl::RemoveICUCellMemory(gcx, obj, NumberFormatObject::EstimatedMemoryUse);
     // This was allocated using `new` in mozilla::intl::NumberFormat, so we
     // delete here.
     delete nf;
   }
 
   if (nrf) {
-    intl::RemoveICUCellMemory(fop, obj, EstimatedRangeFormatterMemoryUse);
+    intl::RemoveICUCellMemory(gcx, obj, EstimatedRangeFormatterMemoryUse);
     // This was allocated using `new` in mozilla::intl::NumberRangeFormat, so we
     // delete here.
     delete nrf;
@@ -1022,11 +1021,8 @@ static bool ToIntlMathematicalValue(JSContext* cx, MutableHandleValue value,
     return false;
   }
 
-  // Call StringToNumber to validate the input can be parsed as a number.
-  double number;
-  if (!StringToNumber(cx, str, &number)) {
-    return false;
-  }
+  // Parse the string as a number.
+  double number = LinearStringToNumber(str);
   if (numberApproximation) {
     *numberApproximation = number;
   }
@@ -1316,13 +1312,13 @@ static bool ValidateNumberRange(JSContext* cx, MutableHandleValue start,
   if (isNaN(start)) {
     JS_ReportErrorNumberASCII(
         cx, GetErrorMessage, nullptr, JSMSG_NAN_NUMBER_RANGE, "start",
-        formatToParts ? "formatRangeToParts" : "formatRange");
+        "NumberFormat", formatToParts ? "formatRangeToParts" : "formatRange");
     return false;
   }
   if (isNaN(end)) {
     JS_ReportErrorNumberASCII(
         cx, GetErrorMessage, nullptr, JSMSG_NAN_NUMBER_RANGE, "end",
-        formatToParts ? "formatRangeToParts" : "formatRange");
+        "NumberFormat", formatToParts ? "formatRangeToParts" : "formatRange");
     return false;
   }
 

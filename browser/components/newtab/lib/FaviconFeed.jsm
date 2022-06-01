@@ -38,15 +38,13 @@ const MIN_FAVICON_SIZE = 96;
  * @returns A promise of an object (possibly null) containing the data
  */
 function getFaviconInfo(uri) {
-  // Use 0 to get the biggest width available
-  const preferredWidth = 0;
   return new Promise(resolve =>
     PlacesUtils.favicons.getFaviconDataForPage(
       uri,
       // Package up the icon data in an object if we have it; otherwise null
       (iconUri, faviconLength, favicon, mimeType, faviconSize) =>
         resolve(iconUri ? { iconUri, faviconSize } : null),
-      preferredWidth
+      NewTabUtils.activityStreamProvider.THUMB_FAVICON_SIZE
     )
   );
 }
@@ -131,7 +129,7 @@ async function fetchIconFromRedirects(url) {
   }
 }
 
-this.FaviconFeed = class FaviconFeed {
+class FaviconFeed {
   constructor() {
     this._queryForRedirects = new Set();
   }
@@ -208,6 +206,6 @@ this.FaviconFeed = class FaviconFeed {
         break;
     }
   }
-};
+}
 
 const EXPORTED_SYMBOLS = ["FaviconFeed", "fetchIconFromRedirects"];

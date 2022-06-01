@@ -71,6 +71,7 @@ HeadlessWidget::HeadlessWidget()
       mDestroyed(false),
       mTopLevel(nullptr),
       mCompositorWidget(nullptr),
+      mSizeMode(nsSizeMode_Normal),
       mLastSizeMode(nsSizeMode_Normal),
       mEffectiveSizeMode(nsSizeMode_Normal),
       mRestoreBounds(0, 0, 0, 0) {
@@ -243,7 +244,6 @@ void HeadlessWidget::Move(double aX, double aY) {
   }
 
   mBounds.MoveTo(x, y);
-  NotifyRollupGeometryChange();
 }
 
 LayoutDeviceIntPoint HeadlessWidget::WidgetToScreenOffset() {
@@ -300,7 +300,12 @@ void HeadlessWidget::SetSizeMode(nsSizeMode aMode) {
     return;
   }
 
-  nsBaseWidget::SetSizeMode(aMode);
+  if (aMode == nsSizeMode_Normal && mSizeMode == nsSizeMode_Fullscreen) {
+    MakeFullScreen(false);
+    return;
+  }
+
+  mSizeMode = aMode;
 
   // Normally in real widget backends a window event would be triggered that
   // would cause the window manager to handle resizing the window. In headless

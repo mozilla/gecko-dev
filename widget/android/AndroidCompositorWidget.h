@@ -15,6 +15,9 @@ namespace widget {
 
 class PlatformCompositorWidgetDelegate : public CompositorWidgetDelegate {
  public:
+  virtual void NotifyClientSizeChanged(
+      const LayoutDeviceIntSize& aClientSize) = 0;
+
   // CompositorWidgetDelegate Overrides
   PlatformCompositorWidgetDelegate* AsPlatformSpecificDelegate() override {
     return this;
@@ -28,10 +31,6 @@ class AndroidCompositorWidget : public CompositorWidget {
   AndroidCompositorWidget(const AndroidCompositorWidgetInitData& aInitData,
                           const layers::CompositorOptions& aOptions);
   ~AndroidCompositorWidget() override;
-
-  // Called whenever the compositor surface may have changed. The derived class
-  // should update mSurface to the new compositor surface.
-  virtual void OnCompositorSurfaceChanged() = 0;
 
   EGLNativeWindowType GetEGLNativeWindow();
 
@@ -57,6 +56,13 @@ class AndroidCompositorWidget : public CompositorWidget {
   ANativeWindow_Buffer mBuffer;
   int32_t mFormat;
   LayoutDeviceIntSize mClientSize;
+
+  void NotifyClientSizeChanged(const LayoutDeviceIntSize& aClientSize);
+
+ private:
+  // Called whenever the compositor surface may have changed. The derived class
+  // should update mSurface to the new compositor surface.
+  virtual void OnCompositorSurfaceChanged() = 0;
 };
 
 }  // namespace widget

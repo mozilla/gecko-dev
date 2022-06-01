@@ -2,10 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var EXPORTED_SYMBOLS = ["BuiltInThemeConfig"];
+"use strict";
+
+const EXPORTED_SYMBOLS = ["_applyColorwayConfig", "BuiltInThemeConfig"];
+
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 /**
- * A Map of themes built in to the browser. Params for the objects contained
+ * A Map of themes built in to the browser, alongwith a Map of collections those themes belong to. Params for the objects contained
  * within the map:
  * @param {string} id
  *   The unique identifier for the theme. The map's key.
@@ -14,8 +21,10 @@ var EXPORTED_SYMBOLS = ["BuiltInThemeConfig"];
  * @param {string} path
  *   Path to the add-on files.
  * @param {string} [expiry]
- *  Date in YYYY-MM-DD format. Optional. If defined, the theme can no longer be
+ *  Date in YYYY-MM-DD format. Optional. If defined, the themes in the collection can no longer be
  *  used after this date, unless the user has permission to retain it.
+ * @param {string} [collection]
+ *  The collection id that the theme is a part of. Optional.
  */
 const BuiltInThemeConfig = new Map([
   [
@@ -44,7 +53,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/2022red/",
-      expiry: "2022-05-03",
+      collection: "true-colors",
     },
   ],
   [
@@ -52,7 +61,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/2022orange/",
-      expiry: "2022-05-03",
+      collection: "true-colors",
     },
   ],
   [
@@ -60,7 +69,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/2022green/",
-      expiry: "2022-05-03",
+      collection: "true-colors",
     },
   ],
   [
@@ -68,7 +77,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/2022yellow/",
-      expiry: "2022-05-03",
+      collection: "true-colors",
     },
   ],
   [
@@ -76,7 +85,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/2022purple/",
-      expiry: "2022-05-03",
+      collection: "true-colors",
     },
   ],
   [
@@ -84,7 +93,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/2022blue/",
-      expiry: "2022-05-03",
+      collection: "true-colors",
     },
   ],
   [
@@ -92,7 +101,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/lush/soft/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -100,7 +109,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/lush/balanced/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -108,7 +117,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/lush/bold/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -116,7 +125,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/abstract/soft/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -124,7 +133,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/abstract/balanced/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -132,7 +141,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/abstract/bold/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -140,7 +149,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/elemental/soft/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -148,7 +157,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/elemental/balanced/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -156,7 +165,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/elemental/bold/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -164,7 +173,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/cheers/soft/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -172,7 +181,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/cheers/balanced/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -180,7 +189,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/cheers/bold/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -188,7 +197,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/graffiti/soft/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -196,7 +205,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/graffiti/balanced/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -204,7 +213,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/graffiti/bold/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -212,7 +221,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/foto/soft/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -220,7 +229,7 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/foto/balanced/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
     },
   ],
   [
@@ -228,7 +237,220 @@ const BuiltInThemeConfig = new Map([
     {
       version: "1.0",
       path: "resource://builtin-themes/monochromatic/foto/bold/",
-      expiry: "2022-02-08",
+      collection: "life-in-color",
+    },
+  ],
+  [
+    "playmaker-soft-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022playmaker/soft/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "playmaker-balanced-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022playmaker/balanced/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "playmaker-bold-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022playmaker/bold/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "expressionist-soft-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022expressionist/soft/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "expressionist-balanced-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path:
+        "resource://builtin-themes/monochromatic/2022expressionist/balanced/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "expressionist-bold-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022expressionist/bold/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "visionary-soft-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022visionary/soft/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "visionary-balanced-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022visionary/balanced/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "visionary-bold-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022visionary/bold/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "activist-soft-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022activist/soft/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "activist-balanced-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022activist/balanced/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "activist-bold-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022activist/bold/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "dreamer-soft-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022dreamer/soft/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "dreamer-balanced-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022dreamer/balanced/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "dreamer-bold-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022dreamer/bold/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "innovator-soft-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022innovator/soft/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "innovator-balanced-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022innovator/balanced/",
+      collection: "independent-voices",
+    },
+  ],
+  [
+    "innovator-bold-colorway@mozilla.org",
+    {
+      version: "1.0",
+      path: "resource://builtin-themes/monochromatic/2022innovator/bold/",
+      collection: "independent-voices",
     },
   ],
 ]);
+
+const colorwayClosetEnabled = Services.prefs.getBoolPref(
+  "browser.theme.colorway-closet"
+);
+
+const ColorwayCollections = [
+  {
+    id: "life-in-color",
+    expiry: "2022-02-08",
+    l10nId: "colorway-collection-life-in-color",
+  },
+  {
+    id: "true-colors",
+    expiry: "2022-05-03",
+    l10nId: "colorway-collection-true-colors",
+  },
+  {
+    id: "independent-voices",
+    expiry:
+      colorwayClosetEnabled && AppConstants.NIGHTLY_BUILD
+        ? "2022-12-31"
+        : "1970-01-01",
+    l10nId: "colorway-collection-independent-voices",
+  },
+];
+
+function _applyColorwayConfig(collections) {
+  const collectionsSorted = collections
+    .map(({ expiry, ...rest }) => ({
+      expiry: new Date(expiry),
+      ...rest,
+    }))
+    .sort((a, b) => a.expiry - b.expiry);
+  const collectionsMap = collectionsSorted.reduce((map, c) => {
+    map.set(c.id, c);
+    return map;
+  }, new Map());
+  for (let [key, value] of BuiltInThemeConfig.entries()) {
+    if (value.collection) {
+      const collectionConfig = collectionsMap.get(value.collection);
+      BuiltInThemeConfig.set(key, {
+        ...value,
+        ...collectionConfig,
+      });
+    }
+  }
+  BuiltInThemeConfig.findActiveColorwayCollection = now => {
+    let collection = null;
+    let start = 0;
+    let end = collectionsSorted.length - 1;
+    while (start <= end) {
+      const mid = Math.floor((start + end) / 2);
+      const c = collectionsSorted[mid];
+      const diff = c.expiry - now;
+      if (diff < 0) {
+        // collection expired, look for newer one
+        start = mid + 1;
+      } else {
+        // collection not expired, check for older one
+        collection = c;
+        end = mid - 1;
+      }
+    }
+    return collection;
+  };
+}
+
+_applyColorwayConfig(ColorwayCollections);

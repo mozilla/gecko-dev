@@ -20,11 +20,11 @@ origin:
 
   # Human-readable identifier for this version/release
   # Generally "version NNN", "tag SSS", "bookmark SSS"
-  release: commit 1f09a9119fb794ab41b1e527d848c2a210ca43d4 (2022-02-04T23:02:17.000-03:00).
+  release: ffb59680356fd210816cf9e46d9d023ade1f4d5a (2022-04-24T20:58:00.000+02:00).
 
   # Revision to pull in
   # Must be a long or short commit SHA (long preferred)
-  revision: 1f09a9119fb794ab41b1e527d848c2a210ca43d4
+  revision: ffb59680356fd210816cf9e46d9d023ade1f4d5a
 
   # The package's license, where possible using the mnemonic from
   # https://spdx.org/licenses/
@@ -35,8 +35,8 @@ origin:
   license-file: COPYING
 
 updatebot:
-    maintainer-phab: jbauman
-    maintainer-bz: jbauman@mozilla.com
+    maintainer-phab: chunmin
+    maintainer-bz: cchang@mozilla.com
     tasks:
       - type: vendoring
         enabled: true
@@ -55,6 +55,10 @@ vendoring:
     - package
     - tools
 
+  generated:
+    - '{yaml_dir}/vcs_version.h'
+    - '{yaml_dir}/version.h'
+
   update-actions:
     - action: copy-file
       from: include/vcs_version.h.in
@@ -63,6 +67,7 @@ vendoring:
       pattern: '@VCS_TAG@'
       with: '{revision}'
       file: '{yaml_dir}/vcs_version.h'
-
-
-
+    - action: run-script
+      script: '{yaml_dir}/update-version.sh'
+      cwd: '{vendor_dir}'
+      args: ['{yaml_dir}/version.h']

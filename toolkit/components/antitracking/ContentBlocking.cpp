@@ -540,9 +540,9 @@ ContentBlocking::CompleteAllowAccessFor(
 
     if (XRE_IsParentProcess()) {
       LOG(("Saving the permission: trackingOrigin=%s", trackingOrigin.get()));
-      return SaveAccessForOriginOnParentProcess(
-                 aTopLevelWindowId, aParentContext, trackingPrincipal,
-                 trackingOrigin, aAllowMode)
+      return SaveAccessForOriginOnParentProcess(aTopLevelWindowId,
+                                                aParentContext,
+                                                trackingPrincipal, aAllowMode)
           ->Then(
               GetCurrentSerialEventTarget(), __func__,
               [aReason, trackingPrincipal](
@@ -679,9 +679,23 @@ ContentBlocking::CompleteAllowAccessFor(
 RefPtr<mozilla::ContentBlocking::ParentAccessGrantPromise>
 ContentBlocking::SaveAccessForOriginOnParentProcess(
     uint64_t aTopLevelWindowId, BrowsingContext* aParentContext,
-    nsIPrincipal* aTrackingPrincipal, const nsCString& aTrackingOrigin,
-    int aAllowMode, uint64_t aExpirationTime) {
+    nsIPrincipal* aTrackingPrincipal, int aAllowMode,
+    uint64_t aExpirationTime) {
   MOZ_ASSERT(aTopLevelWindowId != 0);
+  MOZ_ASSERT(aTrackingPrincipal);
+
+  if (!aTrackingPrincipal || aTrackingPrincipal->IsSystemPrincipal() ||
+      aTrackingPrincipal->GetIsNullPrincipal() ||
+      aTrackingPrincipal->GetIsExpandedPrincipal()) {
+    LOG(("aTrackingPrincipal is of invalid principal type"));
+    return ParentAccessGrantPromise::CreateAndReject(false, __func__);
+  }
+
+  nsAutoCString trackingOrigin;
+  nsresult rv = aTrackingPrincipal->GetOriginNoSuffix(trackingOrigin);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return ParentAccessGrantPromise::CreateAndReject(false, __func__);
+  }
 
   RefPtr<WindowGlobalParent> wgp =
       WindowGlobalParent::GetByInnerWindowId(aTopLevelWindowId);
@@ -694,10 +708,10 @@ ContentBlocking::SaveAccessForOriginOnParentProcess(
   // the permission to all the other windows with the same tracking origin (in
   // the same tab), if any.
   ContentBlocking::UpdateAllowAccessOnParentProcess(aParentContext,
-                                                    aTrackingOrigin);
+                                                    trackingOrigin);
 
   return ContentBlocking::SaveAccessForOriginOnParentProcess(
-      wgp->DocumentPrincipal(), aTrackingPrincipal, aTrackingOrigin, aAllowMode,
+      wgp->DocumentPrincipal(), aTrackingPrincipal, aAllowMode,
       aExpirationTime);
 }
 
@@ -705,8 +719,7 @@ ContentBlocking::SaveAccessForOriginOnParentProcess(
 RefPtr<mozilla::ContentBlocking::ParentAccessGrantPromise>
 ContentBlocking::SaveAccessForOriginOnParentProcess(
     nsIPrincipal* aParentPrincipal, nsIPrincipal* aTrackingPrincipal,
-    const nsCString& aTrackingOrigin, int aAllowMode,
-    uint64_t aExpirationTime) {
+    int aAllowMode, uint64_t aExpirationTime) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(aAllowMode == eAllow || aAllowMode == eAllowAutoGrant);
 
@@ -715,9 +728,22 @@ ContentBlocking::SaveAccessForOriginOnParentProcess(
     return ParentAccessGrantPromise::CreateAndReject(false, __func__);
   };
 
+  if (aTrackingPrincipal->IsSystemPrincipal() ||
+      aTrackingPrincipal->GetIsNullPrincipal() ||
+      aTrackingPrincipal->GetIsExpandedPrincipal()) {
+    LOG(("aTrackingPrincipal is of invalid principal type"));
+    return ParentAccessGrantPromise::CreateAndReject(false, __func__);
+  }
+
+  nsAutoCString trackingOrigin;
+  nsresult rv = aTrackingPrincipal->GetOriginNoSuffix(trackingOrigin);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return ParentAccessGrantPromise::CreateAndReject(false, __func__);
+  }
+
   LOG_PRIN(("Saving a first-party storage permission on %s for "
             "trackingOrigin=%s",
-            _spec, aTrackingOrigin.get()),
+            _spec, trackingOrigin.get()),
            aParentPrincipal);
 
   if (NS_WARN_IF(!aParentPrincipal)) {
@@ -738,7 +764,7 @@ ContentBlocking::SaveAccessForOriginOnParentProcess(
   int64_t when = (PR_Now() / PR_USEC_PER_MSEC) + expirationTime;
 
   uint32_t privateBrowsingId = 0;
-  nsresult rv = aParentPrincipal->GetPrivateBrowsingId(&privateBrowsingId);
+  rv = aParentPrincipal->GetPrivateBrowsingId(&privateBrowsingId);
   if ((!NS_WARN_IF(NS_FAILED(rv)) && privateBrowsingId > 0) ||
       (aAllowMode == eAllowAutoGrant)) {
     // If we are coming from a private window or are automatically granting a
@@ -749,7 +775,7 @@ ContentBlocking::SaveAccessForOriginOnParentProcess(
   }
 
   nsAutoCString type;
-  AntiTrackingUtils::CreateStoragePermissionKey(aTrackingOrigin, type);
+  AntiTrackingUtils::CreateStoragePermissionKey(trackingOrigin, type);
 
   LOG(
       ("Computed permission key: %s, expiry: %u, proceeding to save in the "
@@ -774,6 +800,169 @@ ContentBlocking::SaveAccessForOriginOnParentProcess(
 
   LOG(("Result: %s", NS_SUCCEEDED(rv) ? "success" : "failure"));
   return ParentAccessGrantPromise::CreateAndResolve(rv, __func__);
+}
+
+// static
+Maybe<bool> ContentBlocking::CheckCookiesPermittedDecidesStorageAccessAPI(
+    nsICookieJarSettings* aCookieJarSettings,
+    nsIPrincipal* aRequestingPrincipal) {
+  MOZ_ASSERT(aCookieJarSettings);
+  MOZ_ASSERT(aRequestingPrincipal);
+  uint32_t cookiePermission = CheckCookiePermissionForPrincipal(
+      aCookieJarSettings, aRequestingPrincipal);
+  if (cookiePermission == nsICookiePermission::ACCESS_ALLOW ||
+      cookiePermission == nsICookiePermission::ACCESS_SESSION) {
+    return Some(true);
+  } else if (cookiePermission == nsICookiePermission::ACCESS_DENY) {
+    return Some(false);
+  }
+
+  if (ContentBlockingAllowList::Check(aCookieJarSettings)) {
+    return Some(true);
+  }
+  return Nothing();
+}
+
+// static
+Maybe<bool> ContentBlocking::CheckBrowserSettingsDecidesStorageAccessAPI(
+    nsICookieJarSettings* aCookieJarSettings, bool aThirdParty) {
+  MOZ_ASSERT(aCookieJarSettings);
+  if (aCookieJarSettings->GetBlockingAllContexts() ||
+      (aCookieJarSettings->GetBlockingAllThirdPartyContexts() && aThirdParty)) {
+    return Some(false);
+  }
+  if (!aCookieJarSettings->GetRejectThirdPartyContexts()) {
+    return Some(true);
+  }
+  return Nothing();
+}
+
+// static
+Maybe<bool> ContentBlocking::CheckCallingContextDecidesStorageAccessAPI(
+    Document* aDocument, bool aRequestingStorageAccess) {
+  MOZ_ASSERT(aDocument);
+  // Window doesn't have user activation and we are asking for access -> reject.
+  if (aRequestingStorageAccess) {
+    if (!aDocument->HasValidTransientUserGestureActivation()) {
+      // Report an error to the console for this case
+      nsContentUtils::ReportToConsole(
+          nsIScriptError::errorFlag, nsLiteralCString("requestStorageAccess"),
+          aDocument, nsContentUtils::eDOM_PROPERTIES,
+          "RequestStorageAccessUserGesture");
+      return Some(false);
+    }
+  }
+
+  if (aDocument->IsTopLevelContentDocument()) {
+    return Some(true);
+  }
+
+  RefPtr<BrowsingContext> bc = aDocument->GetBrowsingContext();
+  if (!bc) {
+    return Some(false);
+  }
+
+  // We check if the document is a first-party document here by testing if the
+  // top-level window is same-origin. In non-Fission mode, we can directly get
+  // the top-level window through the top browsing context since it should be
+  // in-process. And test their principals.
+  //
+  // In fission, if the sub frame's origin differs from the main frame's
+  // origin, they will be in different processes. We use IsInProcess()
+  // check here to deterimine whether they have the same origin. In
+  // non-fission mode, it is always in-process so we need to compare their
+  // principals.
+  if (bc->Top()->IsInProcess()) {
+    nsCOMPtr<nsPIDOMWindowOuter> topOuter = bc->Top()->GetDOMWindow();
+    if (!topOuter) {
+      return Some(false);
+    }
+    nsCOMPtr<Document> topLevelDoc = topOuter->GetExtantDoc();
+    if (!topLevelDoc) {
+      return Some(false);
+    }
+
+    if (topLevelDoc->NodePrincipal()->Equals(aDocument->NodePrincipal())) {
+      return Some(true);
+    }
+  }
+
+  // If the document has a null origin, reject.
+  if (aDocument->NodePrincipal()->GetIsNullPrincipal()) {
+    // Report an error to the console for this case
+    nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
+                                    nsLiteralCString("requestStorageAccess"),
+                                    aDocument, nsContentUtils::eDOM_PROPERTIES,
+                                    "RequestStorageAccessNullPrincipal");
+    return Some(false);
+  }
+
+  if (aRequestingStorageAccess) {
+    if (aDocument->StorageAccessSandboxed()) {
+      nsContentUtils::ReportToConsole(
+          nsIScriptError::errorFlag, nsLiteralCString("requestStorageAccess"),
+          aDocument, nsContentUtils::eDOM_PROPERTIES,
+          "RequestStorageAccessSandboxed");
+      return Some(false);
+    }
+  }
+  return Nothing();
+}
+
+// static
+Maybe<bool> ContentBlocking::CheckSameSiteCallingContextDecidesStorageAccessAPI(
+    dom::Document* aDocument, bool aRequireUserActivation) {
+  MOZ_ASSERT(aDocument);
+  if (aRequireUserActivation) {
+    if (!aDocument->HasValidTransientUserGestureActivation()) {
+      // Report an error to the console for this case
+      nsContentUtils::ReportToConsole(
+          nsIScriptError::errorFlag, nsLiteralCString("requestStorageAccess"),
+          aDocument, nsContentUtils::eDOM_PROPERTIES,
+          "RequestStorageAccessUserGesture");
+      return Some(false);
+    }
+  }
+
+  nsIChannel* chan = aDocument->GetChannel();
+  if (!chan) {
+    return Some(false);
+  }
+  nsCOMPtr<nsILoadInfo> loadInfo = chan->LoadInfo();
+  if (loadInfo->GetIsThirdPartyContextToTopWindow()) {
+    return Some(false);
+  }
+
+  // If the document has a null origin, reject.
+  if (aDocument->NodePrincipal()->GetIsNullPrincipal()) {
+    // Report an error to the console for this case
+    nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
+                                    nsLiteralCString("requestStorageAccess"),
+                                    aDocument, nsContentUtils::eDOM_PROPERTIES,
+                                    "RequestStorageAccessNullPrincipal");
+    return Some(false);
+  }
+  return Maybe<bool>();
+}
+
+// static
+Maybe<bool> ContentBlocking::CheckExistingPermissionDecidesStorageAccessAPI(
+    dom::Document* aDocument) {
+  MOZ_ASSERT(aDocument);
+  nsPIDOMWindowInner* inner = aDocument->GetInnerWindow();
+  if (!inner) {
+    return Some(false);
+  }
+  nsGlobalWindowOuter* outer =
+      nsGlobalWindowOuter::Cast(inner->GetOuterWindow());
+  if (!outer) {
+    return Some(false);
+  }
+  bool explicitPermissionGranted = outer->IsStorageAccessPermissionGranted();
+  if (explicitPermissionGranted) {
+    return Some(true);
+  }
+  return Nothing();
 }
 
 // There are two methods to handle permission update:

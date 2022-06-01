@@ -38,10 +38,6 @@ interface PeerConnectionObserver
   /* Notification of one of several types of state changed */
   void onStateChange(PCObserverStateType state);
 
-  /* Transceiver management; called when setRemoteDescription causes a
-     transceiver to be created on the C++ side */
-  void onTransceiverNeeded(DOMString kind, TransceiverImpl transceiverImpl);
-
   /*
     Lets PeerConnectionImpl fire track events on the RTCPeerConnection
   */
@@ -52,10 +48,9 @@ interface PeerConnectionObserver
   */
   void fireStreamEvent(MediaStream stream);
 
+  void fireNegotiationNeededEvent();
+
   /* Packet dump callback */
   void onPacket(unsigned long level, mozPacketDumpType type, boolean sending,
                 ArrayBuffer packet);
-
-  /* Transceiver sync */
-  void syncTransceivers();
 };

@@ -18,6 +18,7 @@ const {
 const { DevToolsServer } = require("devtools/server/devtools-server");
 const protocol = require("devtools/shared/protocol");
 const { rootSpec } = require("devtools/shared/specs/root");
+const Resources = require("devtools/server/actors/resources/index");
 
 loader.lazyRequireGetter(
   this,
@@ -112,14 +113,25 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       this
     );
     this._onProcessListChanged = this.onProcessListChanged.bind(this);
+    this.notifyResourceAvailable = this.notifyResourceAvailable.bind(this);
+    this.notifyResourceDestroyed = this.notifyResourceDestroyed.bind(this);
+
     this._extraActors = {};
 
     this._globalActorPool = new LazyPool(this.conn);
 
     this.applicationType = "browser";
 
+    // Compute the list of all supported Root Resources
+    const supportedResources = {};
+    for (const resourceType in Resources.RootResources) {
+      supportedResources[resourceType] = true;
+    }
+
     this.traits = {
       networkMonitor: true,
+      resources: supportedResources,
+
       // @backward-compat { version 84 } Expose the pref value to the client.
       // Services.prefs is undefined in xpcshell tests.
       workerConsoleApiMessagesDispatchedToMainThread: Services.prefs
@@ -127,14 +139,6 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
             "dom.worker.console.dispatch_events_to_main_thread"
           )
         : true,
-      // @backward-compat { version 86 } ThreadActor.attach no longer pauses the thread,
-      //                                 so that we no longer have to resume.
-      noPauseOnThreadActorAttach: true,
-      // @backward-compat { version 98 }
-      // Starting version 98, we stopped disabling the profiler if the user has
-      // a window with private browsing enabled. This trait helps to detect this
-      // so that different code paths can be called.
-      noDisablingOnPrivateBrowsing: true,
     };
   },
 
@@ -163,6 +167,8 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
    * Destroys the actor from the browser window.
    */
   destroy: function() {
+    Resources.unwatchAllResources(this);
+
     protocol.Actor.prototype.destroy.call(this);
 
     /* Tell the live lists we aren't watching any more. */
@@ -272,7 +278,13 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     return tabDescriptorActors;
   },
 
-  getTab: async function({ outerWindowID, tabId }) {
+  /**
+   * Return the tab descriptor actor for the tab identified by one of the IDs
+   * passed as argument.
+   *
+   * See BrowserTabList.prototype.getTab for the definition of these IDs.
+   */
+  getTab: async function({ browserId }) {
     const tabList = this._parameters.tabList;
     if (!tabList) {
       throw {
@@ -289,7 +301,9 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
 
     let descriptorActor;
     try {
-      descriptorActor = await tabList.getTab({ outerWindowID, tabId });
+      descriptorActor = await tabList.getTab({
+        browserId,
+      });
     } catch (error) {
       if (error.error) {
         // Pipe expected errors as-is to the client
@@ -510,33 +524,6 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     return null;
   },
 
-  _getParentProcessDescriptor() {
-    if (!this._processDescriptorActorPool) {
-      this._processDescriptorActorPool = new Pool(
-        this.conn,
-        "process-descriptors"
-      );
-      const options = { id: 0, parent: true };
-      const descriptor = new ProcessDescriptorActor(this.conn, options);
-      this._processDescriptorActorPool.manage(descriptor);
-      return descriptor;
-    }
-    for (const descriptor of this._processDescriptorActorPool.poolChildren()) {
-      if (descriptor.isParent) {
-        return descriptor;
-      }
-    }
-    return null;
-  },
-
-  _isParentBrowsingContext(id) {
-    // TODO: We may stop making the parent process codepath so special
-    const window = Services.wm.getMostRecentWindow(
-      DevToolsServer.chromeWindowType
-    );
-    return id == window.docShell.browsingContext.id;
-  },
-
   /**
    * Remove the extra actor (added by ActorRegistry.addGlobalActor or
    * ActorRegistry.addTargetScopedActor) name |name|.
@@ -556,6 +543,52 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       }
       delete this._extraActors[name];
     }
+  },
+
+  /**
+   * Start watching for a list of resource types.
+   *
+   * See WatcherActor.watchResources.
+   */
+  async watchResources(resourceTypes) {
+    await Resources.watchResources(this, resourceTypes);
+  },
+
+  /**
+   * Stop watching for a list of resource types.
+   *
+   * See WatcherActor.unwatchResources.
+   */
+  unwatchResources(resourceTypes) {
+    Resources.unwatchResources(
+      this,
+      Resources.getParentProcessResourceTypes(resourceTypes)
+    );
+  },
+  /**
+   * Called by Resource Watchers, when new resources are available.
+   *
+   * @param Array<json> resources
+   *        List of all available resources. A resource is a JSON object piped over to the client.
+   *        It may contain actor IDs, actor forms, to be manually marshalled by the client.
+   */
+  notifyResourceAvailable(resources) {
+    this._emitResourcesForm("resource-available-form", resources);
+  },
+
+  notifyResourceDestroyed(resources) {
+    this._emitResourcesForm("resource-destroyed-form", resources);
+  },
+
+  /**
+   * Wrapper around emit for resource forms.
+   */
+  _emitResourcesForm(name, resources) {
+    if (resources.length === 0) {
+      // Don't try to emit if the resources array is empty.
+      return;
+    }
+    this.emit(name, resources);
   },
 });
 

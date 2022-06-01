@@ -296,6 +296,24 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     "help": "treat harness level timeout as a pass",
                 },
             ],
+            [
+                ["--disable-fission"],
+                {
+                    "action": "store_true",
+                    "default": False,
+                    "dest": "disable_fission",
+                    "help": "do not run tests with fission enabled.",
+                },
+            ],
+            [
+                ["--conditioned-profile"],
+                {
+                    "action": "store_true",
+                    "default": False,
+                    "dest": "conditioned_profile",
+                    "help": "run tests with a conditioned profile",
+                },
+            ],
         ]
         + copy.deepcopy(testing_config_options)
         + copy.deepcopy(code_coverage_config_options)
@@ -580,6 +598,14 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                         level=WARNING,
                     )
 
+            # do not add --disable fission if we don't have --disable-e10s
+            if c["disable_fission"] and suite_category not in [
+                "gtest",
+                "cppunittest",
+                "jittest",
+            ]:
+                base_cmd.append("--disable-fission")
+
             # Ignore chunking if we have user specified test paths
             if not (self.verify_enabled or self.per_test_coverage):
                 test_paths = self._get_mozharness_test_paths(suite_category, suite)
@@ -627,6 +653,9 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
 
             if c["crash_as_pass"]:
                 base_cmd.append("--crash-as-pass")
+
+            if c["conditioned_profile"]:
+                base_cmd.append("--conditioned-profile")
 
             # set pluginsPath
             abs_res_plugins_dir = os.path.join(abs_res_dir, "plugins")

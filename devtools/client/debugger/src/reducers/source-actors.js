@@ -2,14 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-import {
-  createInitial,
-  insertResources,
-  updateResources,
-  removeResources,
-  hasResource,
-} from "../utils/resource";
-
 import { asyncActionAsValue } from "../actions/utils/middleware/promise";
 
 /**
@@ -22,29 +14,35 @@ import { asyncActionAsValue } from "../actions/utils/middleware/promise";
  * - breakableLines: { state: <"pending"|"fulfilled">, value: Array<Number> }
  *   List of all lines where breakpoints can be set
  */
-export const initial = createInitial();
+export const initial = new Map();
 
 export default function update(state = initial, action) {
   switch (action.type) {
     case "INSERT_SOURCE_ACTORS": {
       const { items } = action;
       // The `item` objects are defined from create.js: `createSource` method.
-      state = insertResources(
-        state,
-        items.map(item => ({
-          ...item,
+      state = new Map(state);
+      for (const sourceActor of items) {
+        state.set(sourceActor.id, {
+          ...sourceActor,
           breakableLines: null,
-        }))
-      );
-      break;
-    }
-    case "REMOVE_SOURCE_ACTORS": {
-      state = removeResources(state, action.items);
+        });
+      }
       break;
     }
 
     case "NAVIGATE": {
       state = initial;
+      break;
+    }
+
+    case "REMOVE_THREAD": {
+      state = new Map(state);
+      for (const sourceActor of state.values()) {
+        if (sourceActor.thread == action.threadActorID) {
+          state.delete(sourceActor.id);
+        }
+      }
       break;
     }
 
@@ -61,25 +59,30 @@ export default function update(state = initial, action) {
 }
 
 function clearSourceActorMapURL(state, id) {
-  if (!hasResource(state, id)) {
+  if (!state.has(id)) {
     return state;
   }
 
-  return updateResources(state, [
-    {
-      id,
-      sourceMapURL: "",
-    },
-  ]);
+  const newMap = new Map(state);
+  newMap.set(id, {
+    ...state.get(id),
+    sourceMapURL: "",
+  });
+  return newMap;
 }
 
 function updateBreakableLines(state, action) {
   const value = asyncActionAsValue(action);
   const { sourceId } = action;
 
-  if (!hasResource(state, sourceId)) {
+  if (!state.has(sourceId)) {
     return state;
   }
 
-  return updateResources(state, [{ id: sourceId, breakableLines: value }]);
+  const newMap = new Map(state);
+  newMap.set(sourceId, {
+    ...state.get(sourceId),
+    breakableLines: value,
+  });
+  return newMap;
 }

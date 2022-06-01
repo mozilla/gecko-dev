@@ -219,7 +219,7 @@ class MinidumpWriter {
   bool Dump() {
     // A minidump file contains a number of tagged streams. This is the number
     // of stream which we write.
-    unsigned kNumWriters = 13;
+    unsigned kNumWriters = 14;
 
     TypedMDRVA<MDRawDirectory> dir(&minidump_writer_);
     {
@@ -245,6 +245,10 @@ class MinidumpWriter {
     MDRawDirectory dirent;
 
     if (!WriteThreadListStream(&dirent))
+      return false;
+    dir.CopyIndex(dir_index++, &dirent);
+
+    if (!WriteThreadNamesStream(&dirent))
       return false;
     dir.CopyIndex(dir_index++, &dirent);
 
@@ -513,6 +517,52 @@ class MinidumpWriter {
     return true;
   }
 
+  bool WriteThreadName(pid_t tid, char* name, MDRawThreadName *thread_name) {
+    MDLocationDescriptor string_location;
+
+    if (!minidump_writer_.WriteString(name, 0, &string_location))
+      return false;
+
+    thread_name->thread_id = tid;
+    thread_name->rva_of_thread_name = string_location.rva;
+    return true;
+  }
+
+  // Write the threads' names.
+  bool WriteThreadNamesStream(MDRawDirectory* thread_names_stream) {
+    TypedMDRVA<MDRawThreadNamesList> list(&minidump_writer_);
+    const unsigned num_threads = dumper_->threads().size();
+
+    if (!list.AllocateObjectAndArray(num_threads, sizeof(MDRawThreadName))) {
+      return false;
+    }
+
+    thread_names_stream->stream_type = MD_THREAD_NAMES_STREAM;
+    thread_names_stream->location = list.location();
+    list.get()->number_of_thread_names = num_threads;
+
+    MDRawThreadName thread_name;
+    int thread_idx = 0;
+
+    for (unsigned int i = 0; i < num_threads; ++i) {
+      const pid_t tid = dumper_->threads()[i];
+      // This is a constant from the Linux kernel, documented in man 5 proc.
+      // The comm entries in /proc are no longer than this.
+      static const size_t TASK_COMM_LEN = 16;
+      char name[TASK_COMM_LEN];
+      memset(&thread_name, 0, sizeof(MDRawThreadName));
+
+      if (dumper_->GetThreadNameByIndex(i, name, sizeof(name))) {
+        if (WriteThreadName(tid, name, &thread_name)) {
+          list.CopyIndexAfterObject(thread_idx++, &thread_name,
+                                  sizeof(MDRawThreadName));
+        }
+      }
+    }
+
+    return true;
+  }
+
   // Write application-provided memory regions.
   bool WriteAppMemory() {
     for (AppMemoryList::const_iterator iter = app_memory_list_.begin();
@@ -757,7 +807,7 @@ class MinidumpWriter {
     ElfW(Addr) dyn_addr = 0;
     for (; phnum >= 0; phnum--, phdr++) {
       ElfW(Phdr) ph;
-      if (!dumper_->CopyFromProcess(&ph, GetCrashThread(), phdr, sizeof(ph)))
+      if (!dumper_->CopyFromProcess(&ph, dumper_->pid(), phdr, sizeof(ph)))
         return false;
 
       // Adjust base address with the virtual address of the PT_LOAD segment
@@ -783,8 +833,7 @@ class MinidumpWriter {
     for (int i = 0; ; ++i) {
       ElfW(Dyn) dyn;
       dynamic_length += sizeof(dyn);
-      if (!dumper_->CopyFromProcess(&dyn, GetCrashThread(), dynamic + i,
-                                    sizeof(dyn))) {
+      if (!dumper_->CopyFromProcess(&dyn, dumper_->pid(), dynamic + i, sizeof(dyn))) {
         return false;
       }
 
@@ -812,13 +861,13 @@ class MinidumpWriter {
     // Count the number of loaded DSOs
     int dso_count = 0;
     struct r_debug debug_entry;
-    if (!dumper_->CopyFromProcess(&debug_entry, GetCrashThread(), r_debug,
+    if (!dumper_->CopyFromProcess(&debug_entry, dumper_->pid(), r_debug,
                                   sizeof(debug_entry))) {
       return false;
     }
     for (struct link_map* ptr = debug_entry.r_map; ptr; ) {
       struct link_map map;
-      if (!dumper_->CopyFromProcess(&map, GetCrashThread(), ptr, sizeof(map)))
+      if (!dumper_->CopyFromProcess(&map, dumper_->pid(), ptr, sizeof(map)))
         return false;
 
       ptr = map.l_next;
@@ -838,13 +887,13 @@ class MinidumpWriter {
       // Iterate over DSOs and write their information to mini dump
       for (struct link_map* ptr = debug_entry.r_map; ptr; ) {
         struct link_map map;
-        if (!dumper_->CopyFromProcess(&map, GetCrashThread(), ptr, sizeof(map)))
+        if (!dumper_->CopyFromProcess(&map, dumper_->pid(), ptr, sizeof(map)))
           return  false;
 
         ptr = map.l_next;
         char filename[257] = { 0 };
         if (map.l_name) {
-          dumper_->CopyFromProcess(filename, GetCrashThread(), map.l_name,
+          dumper_->CopyFromProcess(filename, dumper_->pid(), map.l_name,
                                    sizeof(filename) - 1);
         }
         MDLocationDescriptor location;
@@ -877,7 +926,7 @@ class MinidumpWriter {
     // The passed-in size to the constructor (above) is only a hint.
     // Must call .resize() to do actual initialization of the elements.
     dso_debug_data.resize(dynamic_length);
-    dumper_->CopyFromProcess(&dso_debug_data[0], GetCrashThread(), dynamic,
+    dumper_->CopyFromProcess(&dso_debug_data[0], dumper_->pid(), dynamic,
                              dynamic_length);
     debug.CopyIndexAfterObject(0, &dso_debug_data[0], dynamic_length);
 

@@ -49,7 +49,7 @@ class CompositorVsyncScheduler {
    * Notify this class of a vsync. This will trigger a composite if one is
    * needed. This must be called from the vsync dispatch thread.
    */
-  bool NotifyVsync(const VsyncEvent& aVsync);
+  void NotifyVsync(const VsyncEvent& aVsync);
 
   /**
    * Do cleanup. This must be called on the compositor thread.
@@ -144,13 +144,13 @@ class CompositorVsyncScheduler {
 
    public:
     explicit Observer(CompositorVsyncScheduler* aOwner);
-    bool NotifyVsync(const VsyncEvent& aVsync) override;
+    void NotifyVsync(const VsyncEvent& aVsync) override;
     void Destroy();
 
    private:
     virtual ~Observer();
 
-    Mutex mMutex;
+    Mutex mMutex MOZ_UNANNOTATED;
     // Hold raw pointer to avoid mutual reference.
     CompositorVsyncScheduler* mOwner;
   };
@@ -170,12 +170,12 @@ class CompositorVsyncScheduler {
   widget::CompositorWidget* mWidget;
   RefPtr<CompositorVsyncScheduler::Observer> mVsyncObserver;
 
-  mozilla::Monitor mCurrentCompositeTaskMonitor;
+  mozilla::Monitor mCurrentCompositeTaskMonitor MOZ_UNANNOTATED;
   RefPtr<CancelableRunnable> mCurrentCompositeTask;
   // Accessed on multiple threads, guarded by mCurrentCompositeTaskMonitor.
   wr::RenderReasons mCurrentCompositeTaskReasons;
 
-  mozilla::Monitor mCurrentVRTaskMonitor;
+  mozilla::Monitor mCurrentVRTaskMonitor MOZ_UNANNOTATED;
   RefPtr<CancelableRunnable> mCurrentVRTask;
 };
 

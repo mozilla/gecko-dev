@@ -9,7 +9,6 @@ module.exports = {
     module: true,
     reportError: true,
     require: true,
-    rootURI: true,
   },
   rules: {
     "no-unused-vars": ["error", { args: "none", vars: "all" }],
@@ -22,6 +21,5 @@ module.exports = {
     // See bug 1224289.
     "mozilla/reject-importGlobalProperties": ["error", "everything"],
     "mozilla/var-only-at-top-level": "error",
-    "mozilla/use-chromeutils-import": ["error", { allowCu: true }],
   },
 };

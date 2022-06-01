@@ -33,6 +33,10 @@
 #  include "nsILocalFileMac.h"
 #endif
 
+#ifdef MOZ_WIDGET_GTK
+#  include "mozilla/WidgetUtilsGtk.h"
+#endif
+
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsNetCID.h"
@@ -1906,16 +1910,11 @@ nsToolkitProfileService::CreateProfile(nsIFile* aRootDir,
  * get essentially the same benefits as dedicated profiles provides.
  */
 bool nsToolkitProfileService::IsSnapEnvironment() {
-  const char* snapName = mozilla::widget::WidgetUtils::GetSnapInstanceName();
-
-  // return early if not set.
-  if (snapName == nullptr) {
-    return false;
-  }
-
-  // snapName as defined on e.g.
-  // https://snapcraft.io/firefox or https://snapcraft.io/thunderbird
-  return (strcmp(snapName, MOZ_APP_NAME) == 0);
+#ifdef MOZ_WIDGET_GTK
+  return widget::IsRunningUnderSnap();
+#else
+  return false;
+#endif
 }
 
 /**
@@ -2056,8 +2055,7 @@ nsToolkitProfileService::Flush() {
       fclose(writeFile);
     } else {
       rv = mInstallDBFile->Remove(false);
-      if (NS_FAILED(rv) && rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-          rv != NS_ERROR_FILE_NOT_FOUND) {
+      if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND) {
         return rv;
       }
     }
@@ -2076,10 +2074,7 @@ nsToolkitProfileService::Flush() {
 NS_IMPL_ISUPPORTS(nsToolkitProfileFactory, nsIFactory)
 
 NS_IMETHODIMP
-nsToolkitProfileFactory::CreateInstance(nsISupports* aOuter, const nsID& aIID,
-                                        void** aResult) {
-  if (aOuter) return NS_ERROR_NO_AGGREGATION;
-
+nsToolkitProfileFactory::CreateInstance(const nsID& aIID, void** aResult) {
   RefPtr<nsToolkitProfileService> profileService =
       nsToolkitProfileService::gService;
   if (!profileService) {
@@ -2088,9 +2083,6 @@ nsToolkitProfileFactory::CreateInstance(nsISupports* aOuter, const nsID& aIID,
   }
   return profileService->QueryInterface(aIID, aResult);
 }
-
-NS_IMETHODIMP
-nsToolkitProfileFactory::LockFactory(bool aVal) { return NS_OK; }
 
 nsresult NS_NewToolkitProfileFactory(nsIFactory** aResult) {
   *aResult = new nsToolkitProfileFactory();

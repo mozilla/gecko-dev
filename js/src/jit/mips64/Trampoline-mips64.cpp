@@ -173,7 +173,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.movePtr(StackPointer, s4);
 
   // Save stack pointer as baseline frame.
-  masm.movePtr(StackPointer, BaselineFrameReg);
+  masm.movePtr(StackPointer, FramePointer);
 
   // Load the number of actual arguments into s3.
   masm.unboxInt32(Address(reg_vp, 0), s3);
@@ -238,15 +238,14 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.push(s4);  // descriptor
 
   CodeLabel returnLabel;
-  CodeLabel oomReturnLabel;
+  Label oomReturnLabel;
   {
     // Handle Interpreter -> Baseline OSR.
     AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
+    MOZ_ASSERT(!regs.has(FramePointer));
     regs.take(OsrFrameReg);
-    regs.take(BaselineFrameReg);
     regs.take(reg_code);
     regs.take(ReturnReg);
-    regs.take(JSReturnOperand);
 
     Label notOsr;
     masm.ma_b(OsrFrameReg, OsrFrameReg, &notOsr, Assembler::Zero, ShortJump);
@@ -262,10 +261,10 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
     // Push previous frame pointer.
     masm.subPtr(Imm32(sizeof(uintptr_t)), StackPointer);
-    masm.storePtr(BaselineFrameReg, Address(StackPointer, 0));
+    masm.storePtr(FramePointer, Address(StackPointer, 0));
 
     // Reserve frame.
-    Register framePtr = BaselineFrameReg;
+    Register framePtr = FramePointer;
     masm.subPtr(Imm32(BaselineFrame::Size()), StackPointer);
     masm.movePtr(StackPointer, framePtr);
 
@@ -298,8 +297,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     using Fn = bool (*)(BaselineFrame * frame, InterpreterFrame * interpFrame,
                         uint32_t numStackValues);
     masm.setupUnalignedABICall(scratch);
-    masm.passABIArg(BaselineFrameReg);  // BaselineFrame
-    masm.passABIArg(OsrFrameReg);       // InterpreterFrame
+    masm.passABIArg(FramePointer);  // BaselineFrame
+    masm.passABIArg(OsrFrameReg);   // InterpreterFrame
     masm.passABIArg(numStackValues);
     masm.callWithABI<Fn, jit::InitBaselineFrameForOsr>(
         MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
@@ -337,8 +336,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.movePtr(framePtr, StackPointer);
     masm.addPtr(Imm32(2 * sizeof(uintptr_t)), StackPointer);
     masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
-    masm.ma_li(scratch, &oomReturnLabel);
-    masm.jump(scratch);
+    masm.jump(&oomReturnLabel);
 
     masm.bind(&notOsr);
     // Load the scope chain in R1.
@@ -358,7 +356,6 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.bind(&returnLabel);
     masm.addCodeLabel(returnLabel);
     masm.bind(&oomReturnLabel);
-    masm.addCodeLabel(oomReturnLabel);
   }
 
   // s0 <- 8*argc (size of all arguments we pushed on the stack)
@@ -467,9 +464,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       calleeTokenReg);
   masm.mov(calleeTokenReg, numArgsReg);
   masm.andPtr(Imm32(uint32_t(CalleeTokenMask)), numArgsReg);
-  masm.load32(Address(numArgsReg, JSFunction::offsetOfFlagsAndArgCount()),
-              numArgsReg);
-  masm.rshift32(Imm32(JSFunction::ArgCountShift), numArgsReg);
+  masm.loadFunctionArgCount(numArgsReg, numArgsReg);
 
   // Stash another copy in t3, since we are going to do destructive operations
   // on numArgsReg

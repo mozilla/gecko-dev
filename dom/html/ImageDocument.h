@@ -11,8 +11,7 @@
 #include "MediaDocument.h"
 #include "nsIDOMEventListener.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class HTMLImageElement;
 
@@ -85,7 +84,7 @@ class ImageDocument final : public MediaDocument,
 
   void ScrollImageTo(int32_t aX, int32_t aY);
 
-  float GetRatio() {
+  float GetRatio() const {
     return std::min(mVisibleWidth / mImageWidth, mVisibleHeight / mImageHeight);
   }
 
@@ -130,7 +129,6 @@ class ImageDocument final : public MediaDocument,
   float mOriginalResolution;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif /* mozilla_dom_ImageDocument_h */

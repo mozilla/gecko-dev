@@ -21,6 +21,9 @@ const { LocalizationHelper } = require("devtools/shared/l10n");
 const L10N = new LocalizationHelper(
   "devtools/client/locales/toolbox.properties"
 );
+const env = Cc["@mozilla.org/process/environment;1"].getService(
+  Ci.nsIEnvironment
+);
 loader.lazyImporter(
   this,
   "BrowserToolboxLauncher",
@@ -64,9 +67,6 @@ function hideStatusMessage() {
 
 var connect = async function() {
   // Initiate the connection
-  const env = Cc["@mozilla.org/process/environment;1"].getService(
-    Ci.nsIEnvironment
-  );
 
   // MOZ_BROWSER_TOOLBOX_FISSION_PREF is set by the target Firefox instance
   // before opening the Browser Toolbox.
@@ -114,10 +114,6 @@ var connect = async function() {
 function setPrefDefaults() {
   Services.prefs.setBoolPref("devtools.inspector.showUserAgentStyles", true);
   Services.prefs.setBoolPref(
-    "devtools.performance.ui.show-platform-data",
-    true
-  );
-  Services.prefs.setBoolPref(
     "devtools.inspector.showAllAnonymousContent",
     true
   );
@@ -127,10 +123,10 @@ function setPrefDefaults() {
     "devtools.command-button-noautohide.enabled",
     true
   );
-  Services.prefs.setBoolPref("devtools.performance.new-panel-enabled", false);
   Services.prefs.setBoolPref("layout.css.emulate-moz-box-with-flex", false);
 
-  Services.prefs.setBoolPref("devtools.performance.enabled", false);
+  // We force enabling the performance panel in the browser toolbox.
+  Services.prefs.setBoolPref("devtools.performance.enabled", true);
 }
 
 window.addEventListener(
@@ -216,6 +212,19 @@ async function openToolbox(descriptorFront) {
   ) {
     // setup a server so that the test can evaluate messages in this process.
     installTestingServer();
+  }
+
+  // Warn the user if we started recording this browser toolbox via MOZ_BROWSER_TOOLBOX_PROFILER_STARTUP=1
+  if (env.get("MOZ_PROFILER_STARTUP") === "1") {
+    const notificationBox = gToolbox.getNotificationBox();
+    const text =
+      "The profiler started recording this toolbox, open another browser toolbox to open the profile via the performance panel";
+    notificationBox.appendNotification(
+      text,
+      null,
+      null,
+      notificationBox.PRIORITY_INFO_HIGH
+    );
   }
 }
 

@@ -14,25 +14,30 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Log: "resource://gre/modules/Log.jsm",
   Sanitizer: "resource:///modules/Sanitizer.jsm",
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
-  fxAccounts: "resource://gre/modules/FxAccounts.jsm",
   setTimeout: "resource://gre/modules/Timer.jsm",
   Utils: "resource://services-sync/util.js",
 });
 
-XPCOMUtils.defineLazyGetter(this, "FxAccountsCommon", function() {
-  return ChromeUtils.import("resource://gre/modules/FxAccountsCommon.js", {});
+XPCOMUtils.defineLazyGetter(this, "fxAccounts", () => {
+  return ChromeUtils.import(
+    "resource://gre/modules/FxAccounts.jsm"
+  ).getFxAccountsSingleton();
 });
 
-this.EXPORTED_SYMBOLS = ["SyncDisconnectInternal", "SyncDisconnect"];
+XPCOMUtils.defineLazyGetter(this, "FxAccountsCommon", function() {
+  return ChromeUtils.import("resource://gre/modules/FxAccountsCommon.js");
+});
 
-this.SyncDisconnectInternal = {
+const EXPORTED_SYMBOLS = ["SyncDisconnectInternal", "SyncDisconnect"];
+
+const SyncDisconnectInternal = {
   lockRetryInterval: 1000, // wait 1 seconds before trying for the lock again.
   lockRetryCount: 120, // Try 120 times (==2 mins) before giving up in disgust.
   promiseDisconnectFinished: null, // If we are sanitizing, a promise for completion.
 
   // mocked by tests.
   getWeave() {
-    return ChromeUtils.import("resource://services-sync/main.js", {}).Weave;
+    return ChromeUtils.import("resource://services-sync/main.js").Weave;
   },
 
   // Returns a promise that resolves when we are not syncing, waiting until
@@ -226,7 +231,7 @@ this.SyncDisconnectInternal = {
   },
 };
 
-this.SyncDisconnect = {
+const SyncDisconnect = {
   get promiseDisconnectFinished() {
     return SyncDisconnectInternal.promiseDisconnectFinished;
   },

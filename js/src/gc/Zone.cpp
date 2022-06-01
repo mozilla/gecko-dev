@@ -9,8 +9,8 @@
 
 #include <type_traits>
 
-#include "gc/FinalizationRegistry.h"
-#include "gc/FreeOp.h"
+#include "gc/FinalizationObservers.h"
+#include "gc/GCContext.h"
 #include "gc/GCLock.h"
 #include "gc/Policy.h"
 #include "gc/PublicIterators.h"
@@ -139,9 +139,9 @@ void ZoneAllocPolicy::decMemory(size_t nbytes) {
   // Unfortunately we don't have enough context here to know whether we're being
   // called on behalf of the collector so we have to do a TLS lookup to find
   // out.
-  JSContext* cx = TlsContext.get();
+  JS::GCContext* gcx = TlsGCContext.get();
   zone_->decNonGCMemory(this, nbytes, MemoryUse::ZoneAllocPolicy,
-                        cx->defaultFreeOp()->isCollecting());
+                        gcx->isCollecting());
 }
 
 JS::Zone::Zone(JSRuntime* rt, Kind kind)
@@ -174,7 +174,7 @@ JS::Zone::Zone(JSRuntime* rt, Kind kind)
       externalStringCache_(this),
       functionToStringCache_(this),
       shapeZone_(this, this),
-      finalizationRegistryZone_(this),
+      finalizationObservers_(this),
       jitZone_(this, nullptr),
       gcScheduled_(false),
       gcScheduledSaved_(false),
@@ -182,7 +182,6 @@ JS::Zone::Zone(JSRuntime* rt, Kind kind)
       keepPropMapTables_(this, false),
       wasCollected_(false),
       listNext_(NotOnList),
-      weakRefMap_(this, this),
       keptObjects(this, this) {
   /* Ensure that there are no vtables to mess us up here. */
   MOZ_ASSERT(reinterpret_cast<JS::shadow::Zone*>(this) ==
@@ -198,6 +197,7 @@ Zone::~Zone() {
   MOZ_ASSERT_IF(regExps_.ref(), regExps().empty());
 
   DebugAPI::deleteDebugScriptMap(debugScriptMap);
+  js_delete(finalizationObservers_.ref().release());
 
   MOZ_ASSERT(gcWeakMapList().isEmpty());
 
@@ -390,7 +390,7 @@ void Zone::checkStringWrappersAfterMovingGC() {
 }
 #endif
 
-void Zone::discardJitCode(JSFreeOp* fop, const DiscardOptions& options) {
+void Zone::discardJitCode(JS::GCContext* gcx, const DiscardOptions& options) {
   if (!jitZone()) {
     return;
   }
@@ -419,7 +419,7 @@ void Zone::discardJitCode(JSFreeOp* fop, const DiscardOptions& options) {
   }
 
   // Invalidate all Ion code in this zone.
-  jit::InvalidateAll(fop, this);
+  jit::InvalidateAll(gcx, this);
 
   for (auto base = cellIterUnsafe<BaseScript>(); !base.done(); base.next()) {
     jit::JitScript* jitScript = base->maybeJitScript();
@@ -428,12 +428,12 @@ void Zone::discardJitCode(JSFreeOp* fop, const DiscardOptions& options) {
     }
 
     JSScript* script = base->asJSScript();
-    jit::FinishInvalidation(fop, script);
+    jit::FinishInvalidation(gcx, script);
 
     // Discard baseline script if it's not marked as active.
     if (options.discardBaselineCode) {
       if (jitScript->hasBaselineScript() && !jitScript->active()) {
-        jit::FinishDiscardBaselineScript(fop, script);
+        jit::FinishDiscardBaselineScript(gcx, script);
       }
     }
 
@@ -450,12 +450,12 @@ void Zone::discardJitCode(JSFreeOp* fop, const DiscardOptions& options) {
     // releasing JIT code because we can't do this when the script still has
     // JIT code.
     if (options.discardJitScripts) {
-      script->maybeReleaseJitScript(fop);
+      script->maybeReleaseJitScript(gcx);
       jitScript = script->maybeJitScript();
       if (!jitScript) {
         // Try to discard the ScriptCounts too.
         if (!script->realm()->collectCoverageForDebug() &&
-            !fop->runtime()->profilingScripts) {
+            !gcx->runtime()->profilingScripts) {
           script->destroyScriptCounts();
         }
         continue;
@@ -760,6 +760,20 @@ JS_PUBLIC_API void JS::shadow::RegisterWeakCache(
   zone->registerWeakCache(cachep);
 }
 
+void Zone::traceRootsInMajorGC(JSTracer* trc) {
+  if (trc->isMarkingTracer() && !isGCMarking()) {
+    return;
+  }
+
+  // Trace zone script-table roots. See comment below for justification re:
+  // calling this only during major (non-nursery) collections.
+  traceScriptTableRoots(trc);
+
+  if (FinalizationObservers* observers = finalizationObservers()) {
+    observers->traceRoots(trc);
+  }
+}
+
 void Zone::traceScriptTableRoots(JSTracer* trc) {
   static_assert(std::is_convertible_v<BaseScript*, gc::TenuredCell*>,
                 "BaseScript must not be nursery-allocated for script-table "
@@ -768,9 +782,7 @@ void Zone::traceScriptTableRoots(JSTracer* trc) {
   // Performance optimization: the script-table keys are JSScripts, which
   // cannot be in the nursery, so we can skip this tracing if we are only in a
   // minor collection. We static-assert this fact above.
-  if (JS::RuntimeHeapIsMinorCollecting()) {
-    return;
-  }
+  MOZ_ASSERT(!JS::RuntimeHeapIsMinorCollecting());
 
   // N.B.: the script-table keys are weak *except* in an exceptional case: when
   // then --dump-bytecode command line option or the PCCount JSFriend API is
@@ -904,8 +916,8 @@ void Zone::clearScriptLCov(Realm* realm) {
 
 void Zone::clearRootsForShutdownGC() {
   // Finalization callbacks are not called if we're shutting down.
-  if (finalizationRegistryZone()) {
-    finalizationRegistryZone()->clearRecords();
+  if (finalizationObservers()) {
+    finalizationObservers()->clearRecords();
   }
 
   clearKeptObjects();
@@ -925,11 +937,11 @@ bool Zone::keepDuringJob(HandleObject target) {
 
 void Zone::clearKeptObjects() { keptObjects.ref().clear(); }
 
-bool Zone::ensureFinalizationRegistryZone() {
-  if (finalizationRegistryZone_.ref()) {
+bool Zone::ensureFinalizationObservers() {
+  if (finalizationObservers_.ref()) {
     return true;
   }
 
-  finalizationRegistryZone_ = js::MakeUnique<FinalizationRegistryZone>(this);
-  return bool(finalizationRegistryZone_.ref());
+  finalizationObservers_ = js::MakeUnique<FinalizationObservers>(this);
+  return bool(finalizationObservers_.ref());
 }

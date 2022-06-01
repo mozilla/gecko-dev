@@ -11,6 +11,9 @@ const {
   NimbusFeatures,
   ExperimentAPI,
 } = ChromeUtils.import("resource://nimbus/ExperimentAPI.jsm");
+const { ExperimentTestUtils } = ChromeUtils.import(
+  "resource://testing-common/NimbusTestUtils.jsm"
+);
 const { ExperimentManager } = ChromeUtils.import(
   "resource://nimbus/lib/ExperimentManager.jsm"
 );
@@ -28,7 +31,7 @@ const FOO_FAKE_FEATURE_MANIFEST = {
   isEarlyStartup: true,
   variables: {
     remoteValue: {
-      type: "boolean",
+      type: "int",
     },
     enabled: {
       type: "boolean",
@@ -40,7 +43,7 @@ const BAR_FAKE_FEATURE_MANIFEST = {
   isEarlyStartup: true,
   variables: {
     remoteValue: {
-      type: "boolean",
+      type: "int",
     },
     enabled: {
       type: "boolean",
@@ -64,6 +67,7 @@ const REMOTE_CONFIGURATION_FOO = ExperimentFakes.recipe("foo-rollout", {
   branches: [
     {
       slug: "foo-rollout-branch",
+      ratio: 1,
       features: [
         {
           featureId: "foo",
@@ -81,6 +85,7 @@ const REMOTE_CONFIGURATION_BAR = ExperimentFakes.recipe("bar-rollout", {
   branches: [
     {
       slug: "bar-rollout-branch",
+      ratio: 1,
       features: [
         {
           featureId: "bar",
@@ -100,7 +105,7 @@ async function setup(configuration) {
   const client = RemoteSettings("nimbus-desktop-experiments");
   await client.db.importChanges(
     {},
-    42,
+    Date.now(),
     configuration || [REMOTE_CONFIGURATION_FOO, REMOTE_CONFIGURATION_BAR],
     {
       clear: true,
@@ -125,6 +130,10 @@ add_task(async function test_remote_fetch_and_ready() {
   const setExperimentInactiveStub = sandbox.stub(
     TelemetryEnvironment,
     "setExperimentInactive"
+  );
+
+  registerCleanupFunction(
+    ExperimentTestUtils.addTestFeatures(fooInstance, barInstance)
   );
 
   Assert.equal(
@@ -198,6 +207,18 @@ add_task(async function test_remote_fetch_and_ready() {
       }
     ),
     "should call setExperimentActive with `bar` feature"
+  );
+
+  // Test Glean experiment API interaction
+  Assert.equal(
+    Services.fog.testGetExperimentData(REMOTE_CONFIGURATION_FOO.slug).branch,
+    REMOTE_CONFIGURATION_FOO.branches[0].slug,
+    "Glean.setExperimentActive called with `foo` feature"
+  );
+  Assert.equal(
+    Services.fog.testGetExperimentData(REMOTE_CONFIGURATION_BAR.slug).branch,
+    REMOTE_CONFIGURATION_BAR.branches[0].slug,
+    "Glean.setExperimentActive called with `bar` feature"
   );
 
   Assert.equal(fooInstance.getVariable("remoteValue"), 42, "Has rollout value");
@@ -287,11 +308,18 @@ add_task(async function test_remote_fetch_on_updateRecipes() {
 
 add_task(async function test_finalizeRemoteConfigs_cleanup() {
   const featureFoo = new ExperimentFeature("foo", {
-    foo: { description: "mochitests" },
+    description: "mochitests",
+    variables: {},
   });
   const featureBar = new ExperimentFeature("bar", {
-    foo: { description: "mochitests" },
+    description: "mochitests",
+    variables: {},
   });
+
+  registerCleanupFunction(
+    ExperimentTestUtils.addTestFeatures(featureFoo, featureBar)
+  );
+
   let fooCleanup = await ExperimentFakes.enrollWithRollout(
     {
       featureId: "foo",

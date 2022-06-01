@@ -282,22 +282,22 @@ const TestCasesNewMimetypesPrefEnabled = [
 
 const TestCasesDeletedFile = [
   {
-    name: "Deleted PDF download with improvements pref enabled",
+    name: "Download with file deleted and improvements pref enabled",
     prefEnabled: true,
-    deleted: true,
     downloads: [
       {
         state: DownloadsCommon.DOWNLOAD_FINISHED,
-        contentType: "application/pdf",
+        contentType: "text/plain",
         target: {},
         source: {
           referrerInfo: exampleRefInfo,
         },
+        deleted: true,
       },
     ],
     expected: {
       menu: [
-        MENU_ITEMS.alwaysOpenInSystemViewer,
+        MENU_ITEMS.alwaysOpenSimilarFiles,
         MENU_ITEMS.openReferrer,
         MENU_ITEMS.copyLocation,
         MENU_ITEMS.separator,
@@ -305,6 +305,43 @@ const TestCasesDeletedFile = [
         MENU_ITEMS.clearList,
       ],
     },
+  },
+];
+
+const TestCasesMultipleFiles = [
+  {
+    name: "Multiple files",
+    prefEnabled: true,
+    downloads: [
+      {
+        state: DownloadsCommon.DOWNLOAD_FINISHED,
+        contentType: "text/plain",
+        target: {},
+        source: {
+          referrerInfo: exampleRefInfo,
+        },
+      },
+      {
+        state: DownloadsCommon.DOWNLOAD_FINISHED,
+        contentType: "text/plain",
+        target: {},
+        source: {
+          referrerInfo: exampleRefInfo,
+        },
+        deleted: true,
+      },
+    ],
+    expected: {
+      menu: [
+        MENU_ITEMS.alwaysOpenSimilarFiles,
+        MENU_ITEMS.openReferrer,
+        MENU_ITEMS.copyLocation,
+        MENU_ITEMS.separator,
+        MENU_ITEMS.delete,
+        MENU_ITEMS.clearList,
+      ],
+    },
+    itemIndex: 1,
   },
 ];
 
@@ -338,6 +375,12 @@ add_task(async function test_setUp() {
   info(
     "Created downloaded unknownExtension file at:" +
       TestFiles.unknownExtension.path
+  );
+  TestFiles.nonexistentFile = new FileUtils.File(
+    PathUtils.join(gDownloadDir, "nonexistent")
+  );
+  info(
+    "Created nonexistent downloaded file at:" + TestFiles.nonexistentFile.path
   );
 });
 
@@ -404,12 +447,27 @@ for (let testData of TestCasesDeletedFile) {
   add_task(tmp[testData.name]);
 }
 
+for (let testData of TestCasesMultipleFiles) {
+  if (testData.skip) {
+    info("Skipping test:" + testData.name);
+    continue;
+  }
+  // use the 'name' property of each test case as the test function name
+  // so we get useful logs
+  let tmp = {
+    async [testData.name]() {
+      await testDownloadContextMenu(testData);
+    },
+  };
+  add_task(tmp[testData.name]);
+}
+
 async function testDownloadContextMenu({
   overrideExtension = null,
   downloads = [],
   expected,
   prefEnabled,
-  deleted,
+  itemIndex = 0,
 }) {
   info(
     `Setting browser.download.improvements_to_download_panel to ${prefEnabled}`
@@ -421,19 +479,9 @@ async function testDownloadContextMenu({
   // prepare downloads
   await prepareDownloads(downloads, overrideExtension);
   let downloadList = await Downloads.getList(Downloads.PUBLIC);
-  let all = await downloadList.getAll();
-  for (let dl of all) {
-    info("Download succeeded? " + dl.succeeded);
-    if (deleted) {
-      let { path } = dl.target;
-      await IOUtils.setPermissions(path, 0o660);
-      await IOUtils.remove(path, { ignoreAbsent: true });
-      await dl.removePartialData();
-      await dl.refresh();
-      await dl.finalize();
-    }
-    info("Download target exists? " + dl.target.exists);
-  }
+  let download = (await downloadList.getAll())[itemIndex];
+  info("Download succeeded? " + download.succeeded);
+  info("Download target exists? " + download.target.exists);
 
   // open panel
   await task_openPanel();
@@ -443,12 +491,28 @@ async function testDownloadContextMenu({
     return downloadsListBox.childElementCount == downloads.length;
   });
 
-  info("trigger the context menu");
-  let itemTarget = document.querySelector(
-    "#downloadsListBox richlistitem .downloadMainArea"
+  let itemTarget = document
+    .querySelectorAll("#downloadsListBox richlistitem")
+    [itemIndex].querySelector(".downloadMainArea");
+  EventUtils.synthesizeMouse(itemTarget, 1, 1, { type: "mousemove" });
+  is(
+    DownloadsView.richListBox.selectedIndex,
+    0,
+    "moving the mouse resets the richlistbox's selected index"
   );
 
+  info("trigger the context menu");
   let contextMenu = await openContextMenu(itemTarget);
+
+  // FIXME: This works in practice, but simulating the context menu opening
+  // doesn't seem to automatically set the selected index.
+  DownloadsView.richListBox.selectedIndex = itemIndex;
+  EventUtils.synthesizeMouse(itemTarget, 1, 1, { type: "mousemove" });
+  is(
+    DownloadsView.richListBox.selectedIndex,
+    itemIndex,
+    "selected index after opening the context menu and moving the mouse"
+  );
 
   info("context menu should be open, verify its menu items");
   let result = verifyContextMenu(contextMenu, expected.menu);
@@ -508,6 +572,10 @@ async function prepareDownloads(downloads, overrideExtension = null) {
   for (let props of downloads) {
     info(JSON.stringify(props));
     if (props.state !== DownloadsCommon.DOWNLOAD_FINISHED) {
+      continue;
+    }
+    if (props.deleted) {
+      props.target = TestFiles.nonexistentFile;
       continue;
     }
     switch (props.contentType) {

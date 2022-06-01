@@ -29,7 +29,7 @@ ChromeUtils.defineModuleGetter(
 );
 
 /** @type {any} */
-const global = this;
+const global = globalThis;
 
 // This module obtains symbol tables for binaries.
 // It does so with the help of a WASM module which gets pulled in from the
@@ -139,7 +139,7 @@ async function getResultFromWorker(workerURL, initialMessageToWorker) {
     worker.onerror = errorEvent => {
       gActiveWorkers.delete(worker);
       worker.terminate();
-      if (errorEvent instanceof ErrorEvent) {
+      if (ErrorEvent.isInstance(errorEvent)) {
         const { message, filename, lineno } = errorEvent;
         const error = new Error(`${message} at ${filename}:${lineno}`);
         error.name = "WorkerError";
@@ -152,17 +152,10 @@ async function getResultFromWorker(workerURL, initialMessageToWorker) {
     // Handle errors from messages that cannot be deserialized. I'm not sure
     // how to get into such a state, but having this handler seems like a good
     // idea.
-    worker.onmessageerror = errorEvent => {
+    worker.onmessageerror = () => {
       gActiveWorkers.delete(worker);
       worker.terminate();
-      if (errorEvent instanceof ErrorEvent) {
-        const { message, filename, lineno } = errorEvent;
-        const error = new Error(`${message} at ${filename}:${lineno}`);
-        error.name = "WorkerMessageError";
-        reject(error);
-      } else {
-        reject(new Error("Error in worker"));
-      }
+      reject(new Error("Error in worker"));
     };
 
     worker.postMessage(initialMessageToWorker);
@@ -362,7 +355,8 @@ function createLocalSymbolicationService(sharedLibraries, objdirs, perfFront) {
 }
 
 // Provide an exports object for the JSM to be properly read by TypeScript.
-/** @type {any} */ (this).module = {};
+/** @type {any} */
+var module = {};
 
 module.exports = {
   createLocalSymbolicationService,

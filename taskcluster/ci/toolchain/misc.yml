@@ -48,7 +48,7 @@ linux64-cctools-port:
         toolchain-artifact: public/build/cctools.tar.zst
     fetches:
         toolchain:
-            - linux64-clang
+            - linux64-clang-toolchain
             - linux64-binutils
             - linux64-toolchain-sysroot
         fetch:
@@ -160,7 +160,7 @@ browsertime:
         toolchain-artifact: public/build/browsertime.tar.zst
     fetches:
         toolchain:
-            - linux64-node
+            - linux64-node-16
 
 wrench-deps:
     description: "Downloads all the crates needed for building wrench"
@@ -177,9 +177,9 @@ wrench-deps:
         toolchain-artifact: public/build/wrench-deps.tar.zst
     fetches:
         fetch:
-            - android-rs-glue
+            - android-ndk-rs
         toolchain:
-            - linux64-rust-1.47  # whatever m-c is built with
+            - linux64-rust  # whatever m-c is built with
 
 linux64-liblowercase:
     description: "liblowercase"
@@ -193,7 +193,7 @@ linux64-liblowercase:
             - build/liblowercase/
     fetches:
         toolchain:
-            - linux64-rust-1.47
+            - linux64-rust-toolchain
 
 linux64-wine:
     description: "Wine build for Windows Cross Compile"
@@ -204,7 +204,6 @@ linux64-wine:
         tier: 1
     worker:
         max-run-time: 10800
-    run-on-projects: [trunk]
     run:
         script: build-wine.sh
         toolchain-artifact: public/build/wine.tar.zst
@@ -239,7 +238,6 @@ win64-pdbstr:
             - name: project/gecko/pdbstr/pdbstr.tar.zst
               path: pdbstr.tar.zst
               type: file
-    run-on-projects: [trunk]
     run:
         script: exfiltrate-pdbstr.sh
         arguments: ['x64']
@@ -251,9 +249,9 @@ linux64-winchecksec:
         local-toolchain: true
     treeherder:
         symbol: TL(winchecksec)
-    run-on-projects: [trunk]
     run:
         script: build-winchecksec.sh
+        arguments: ['x86_64-unknown-linux-gnu']
         toolchain-artifact: public/build/winchecksec.tar.zst
         tooltool-downloads: internal
     fetches:
@@ -266,12 +264,9 @@ win64-winchecksec:
         local-toolchain: true
     treeherder:
         symbol: TW64(winchecksec)
-    worker:
-        env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.9.manifest"
-    run-on-projects: [trunk]
     run:
         script: build-winchecksec.sh
+        arguments: ['x86_64-pc-windows-msvc']
         toolchain-artifact: public/build/winchecksec.tar.zst
         tooltool-downloads: internal
     fetches:
@@ -280,6 +275,7 @@ win64-winchecksec:
         toolchain:
             - linux64-clang-toolchain
             - linux64-liblowercase
+            - win64-vs2017
 
 linux64-makecab:
     description: "makecab toolchain build"
@@ -292,7 +288,7 @@ linux64-makecab:
         fetch:
             - makecab
         toolchain:
-            - linux64-rust-1.57
+            - linux64-rust-toolchain
 
 win64-mozmake:
     description: "mozmake for Windows"
@@ -300,11 +296,7 @@ win64-mozmake:
         local-toolchain: true
     treeherder:
         symbol: TW64(mozmake)
-    worker:
-        env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.9.manifest"
     worker-type: b-win2012
-    run-on-projects: [trunk]
     run:
         script: build-mozmake.sh
         toolchain-artifact: public/build/mozmake.tar.zst
@@ -312,6 +304,8 @@ win64-mozmake:
     fetches:
         fetch:
             - gnumake
+        toolchain:
+            - win64-vs2017
 
 nsis:
     description: "NSIS for Linux and Windows"
@@ -319,7 +313,6 @@ nsis:
         local-toolchain: true
     treeherder:
         symbol: TL(nsis)
-    run-on-projects: [trunk]
     run:
         script: build-nsis.sh
         toolchain-artifact: public/build/nsis.tar.zst
@@ -330,3 +323,55 @@ nsis:
         toolchain:
             - linux64-clang-toolchain
             - sysroot-x86_64-linux-gnu
+
+win64-vs2017:
+    description: "VS 2017"
+    attributes:
+        artifact_prefix: project/gecko/vs
+    treeherder:
+        symbol: TW64(msvc2017)
+    worker:
+        env:
+            MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE: system
+    run:
+        script: pack-vs.sh
+        arguments:
+            - build/vs/vs2017.yaml
+        resources:
+            - build/vs/pack_vs.py
+            - build/vs/vs2017.yaml
+        toolchain-artifact: project/gecko/vs/vs.tar.zst
+
+win64-vs2019:
+    description: "VS 2019"
+    attributes:
+        artifact_prefix: project/gecko/vs
+    treeherder:
+        symbol: TW64(msvc2019)
+    worker:
+        env:
+            MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE: system
+    run:
+        script: pack-vs.sh
+        arguments:
+            - build/vs/vs2019.yaml
+        resources:
+            - build/vs/pack_vs.py
+            - build/vs/vs2019.yaml
+        toolchain-artifact: project/gecko/vs/vs.tar.zst
+
+linux64-afl-instrumentation-4.0:
+    description: "AFL++ instrumentation toolchain build"
+    treeherder:
+        symbol: TL(afl++)
+    worker:
+        max-run-time: 3600
+    run:
+        script: build-afl.sh
+        toolchain-artifact: public/build/afl-instrumentation.tar.zst
+        toolchain-alias: linux64-afl-instrumentation
+    fetches:
+        fetch:
+            - aflplusplus-4.0
+        toolchain:
+            - linux64-clang

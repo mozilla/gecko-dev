@@ -22,7 +22,16 @@
         "template": {
           "type": "string",
           "description": "Specify the layout template for the Spotlight",
-          "enum": ["logo-and-content"]
+          "enum": ["logo-and-content", "multistage"]
+        },
+        "backdrop": {
+          "type": "string",
+          "description": "Background css behind modal content"
+        },
+        "logoImageURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "(Deprecated by logo.imageURL)"
         },
         "logo": {
           "type": "object",
@@ -40,19 +49,7 @@
               "description": "The logo size."
             }
           },
-          "oneOf": [
-            {
-              "required": ["imageURL"]
-            },
-            {
-              "required": ["imageId"]
-            }
-          ],
-          "additionalProperties": false
-        },
-        "logoImageURL": {
-          "type": "string",
-          "description": "URL for image to use with the content"
+          "additionalProperties": true
         },
         "body": {
           "properties": {
@@ -140,7 +137,7 @@
                     }
                   },
                   "required": ["type"],
-                  "additionalProperties": false
+                  "additionalProperties": true
                 }
               },
               "required": ["label", "action"]
@@ -171,7 +168,7 @@
               "required": ["label", "action"]
             }
           },
-          "additionalProperties": false,
+          "additionalProperties": true,
           "required": ["title", "text", "primary", "secondary"]
         },
         "extra": {
@@ -202,11 +199,38 @@
               "required": ["label"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
+        },
+        "screens": {
+          "type": "array",
+          "description": "Collection of individual screen content"
+        },
+        "transitions": {
+          "type": "boolean",
+          "description": "Show transitions within and between screens"
         }
       },
-      "additionalProperties": false,
-      "required": ["body", "template"]
+      "additionalProperties": true,
+      "if": {
+        "properties": {
+          "logoImageURL": { "type": "null" }
+        }
+      },
+      "then": {
+        "properties": {
+          "logo": {
+            "oneOf": [
+              {
+                "required": ["imageURL"]
+              },
+              {
+                "required": ["imageId"]
+              }
+            ]
+          }
+        }
+      },
+      "required": ["template"]
     },
     "frequency": {
       "type": "object",

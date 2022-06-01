@@ -41,7 +41,7 @@ class GraphRunner final : public Runnable {
   /**
    * Runs mGraph until it shuts down.
    */
-  NS_IMETHOD Run();
+  NS_IMETHOD Run() override;
 
   /**
    * Returns true if called on mThread.
@@ -86,9 +86,9 @@ class GraphRunner final : public Runnable {
   MediaTrackGraphImpl* const mGraph;
   // State being handed over to the graph through OneIteration. Protected by
   // mMonitor.
-  Maybe<IterationState> mIterationState;
+  Maybe<IterationState> mIterationState GUARDED_BY(mMonitor);
   // Result from mGraph's OneIteration. Protected by mMonitor.
-  IterationResult mIterationResult;
+  IterationResult mIterationResult GUARDED_BY(mMonitor);
 
   enum class ThreadState {
     Wait,      // Waiting for a message.  This is the initial state.
@@ -100,7 +100,7 @@ class GraphRunner final : public Runnable {
   };
   // Protected by mMonitor until set to Shutdown, after which this is not
   // modified.
-  ThreadState mThreadState;
+  ThreadState mThreadState GUARDED_BY(mMonitor);
 
   // The thread running mGraph.  Set on construction, after other members are
   // initialized.  Cleared at the end of Shutdown().

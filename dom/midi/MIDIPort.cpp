@@ -14,6 +14,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/Unused.h"
+#include "nsContentUtils.h"
 #include "nsISupportsImpl.h"  // for MOZ_COUNT_CTOR, MOZ_COUNT_DTOR
 #include "MIDILog.h"
 
@@ -63,8 +64,17 @@ MIDIPort::~MIDIPort() {
 }
 
 bool MIDIPort::Initialize(const MIDIPortInfo& aPortInfo, bool aSysexEnabled) {
+  nsIURI* uri = GetDocumentIfCurrent()->GetDocumentURI();
+  nsAutoCString origin;
+  nsresult rv = nsContentUtils::GetASCIIOrigin(uri, origin);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
   RefPtr<MIDIPortChild> port =
       new MIDIPortChild(aPortInfo, aSysexEnabled, this);
+  if (NS_FAILED(port->GenerateStableId(origin))) {
+    return false;
+  }
   PBackgroundChild* b = BackgroundChild::GetForCurrentThread();
   MOZ_ASSERT(b,
              "Should always have a valid BackgroundChild when creating a port "
@@ -91,7 +101,7 @@ void MIDIPort::UnsetIPCPort() {
 
 void MIDIPort::GetId(nsString& aRetVal) const {
   MOZ_ASSERT(mPort);
-  aRetVal = mPort->MIDIPortInterface::Id();
+  aRetVal = mPort->StableId();
 }
 
 void MIDIPort::GetManufacturer(nsString& aRetVal) const {
@@ -129,7 +139,7 @@ bool MIDIPort::SysexEnabled() const {
   return mPort->SysexEnabled();
 }
 
-already_AddRefed<Promise> MIDIPort::Open() {
+already_AddRefed<Promise> MIDIPort::Open(ErrorResult& aError) {
   LOG("MIDIPort::Open");
   MOZ_ASSERT(mPort);
   RefPtr<Promise> p;
@@ -137,10 +147,9 @@ already_AddRefed<Promise> MIDIPort::Open() {
     p = mOpeningPromise;
     return p.forget();
   }
-  ErrorResult rv;
   nsCOMPtr<nsIGlobalObject> go = do_QueryInterface(GetOwner());
-  p = Promise::Create(go, rv);
-  if (rv.Failed()) {
+  p = Promise::Create(go, aError);
+  if (aError.Failed()) {
     return nullptr;
   }
   mOpeningPromise = p;
@@ -148,7 +157,7 @@ already_AddRefed<Promise> MIDIPort::Open() {
   return p.forget();
 }
 
-already_AddRefed<Promise> MIDIPort::Close() {
+already_AddRefed<Promise> MIDIPort::Close(ErrorResult& aError) {
   LOG("MIDIPort::Close");
   MOZ_ASSERT(mPort);
   RefPtr<Promise> p;
@@ -156,10 +165,9 @@ already_AddRefed<Promise> MIDIPort::Close() {
     p = mClosingPromise;
     return p.forget();
   }
-  ErrorResult rv;
   nsCOMPtr<nsIGlobalObject> go = do_QueryInterface(GetOwner());
-  p = Promise::Create(go, rv);
-  if (rv.Failed()) {
+  p = Promise::Create(go, aError);
+  if (aError.Failed()) {
     return nullptr;
   }
   mClosingPromise = p;
@@ -251,5 +259,7 @@ void MIDIPort::DontKeepAliveOnStatechange() {
     mKeepAlive = false;
   }
 }
+
+const nsString& MIDIPort::StableId() { return mPort->StableId(); }
 
 }  // namespace mozilla::dom

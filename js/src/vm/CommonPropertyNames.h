@@ -132,6 +132,7 @@
   MACRO_(dotFieldKeys, dotFieldKeys, ".fieldKeys")                             \
   MACRO_(dotGenerator, dotGenerator, ".generator")                             \
   MACRO_(dotInitializers, dotInitializers, ".initializers")                    \
+  MACRO_(dotNewTarget, dotNewTarget, ".newTarget")                             \
   MACRO_(dotPrivateBrand, dotPrivateBrand, ".privateBrand")                    \
   MACRO_(dotStaticFieldKeys, dotStaticFieldKeys, ".staticFieldKeys")           \
   MACRO_(dotStaticInitializers, dotStaticInitializers, ".staticInitializers")  \
@@ -458,7 +459,6 @@
   MACRO_(state, state, "state")                                                \
   MACRO_(static, static_, "static")                                            \
   MACRO_(status, status, "status")                                             \
-  MACRO_(std_Function_apply, std_Function_apply, "std_Function_apply")         \
   MACRO_(sticky, sticky, "sticky")                                             \
   MACRO_(StringIterator, StringIterator, "String Iterator")                    \
   MACRO_(strings, strings, "strings")                                          \
@@ -554,10 +554,9 @@
   MACRO_(weekend, weekend, "weekend")                                          \
   MACRO_(while, while_, "while")                                               \
   MACRO_(with, with, "with")                                                   \
-  MACRO_(withAt, withAt, "withAt")                                             \
-  MACRO_(withReversed, withReversed, "withReversed")                           \
-  MACRO_(withSorted, withSorted, "withSorted")                                 \
-  MACRO_(withSpliced, withSpliced, "withSpliced")                              \
+  MACRO_(toReversed, toReversed, "toReversed")                                 \
+  MACRO_(toSorted, toSorted, "toSorted")                                       \
+  MACRO_(toSpliced, toSpliced, "toSpliced")                                    \
   MACRO_(writable, writable, "writable")                                       \
   MACRO_(write, write, "write")                                                \
   MACRO_(year, year, "year")                                                   \

@@ -6815,14 +6815,12 @@ var gCSSProperties = {
       "auto",
       "scroll",
       "hidden",
-      "-moz-hidden-unscrollable",
       "clip",
       "auto auto",
       "auto scroll",
       "hidden scroll",
       "auto hidden",
       "clip clip",
-      "-moz-hidden-unscrollable -moz-hidden-unscrollable",
     ],
     invalid_values: [
       "clip -moz-scrollbars-none",
@@ -6842,13 +6840,7 @@ var gCSSProperties = {
       contain: "none",
     },
     initial_values: ["visible"],
-    other_values: [
-      "auto",
-      "scroll",
-      "hidden",
-      "clip",
-      "-moz-hidden-unscrollable",
-    ],
+    other_values: ["auto", "scroll", "hidden", "clip"],
     invalid_values: [],
   },
   "overflow-y": {
@@ -6862,13 +6854,7 @@ var gCSSProperties = {
       contain: "none",
     },
     initial_values: ["visible"],
-    other_values: [
-      "auto",
-      "scroll",
-      "hidden",
-      "clip",
-      "-moz-hidden-unscrollable",
-    ],
+    other_values: ["auto", "scroll", "hidden", "clip"],
     invalid_values: [],
   },
   "overflow-inline": {
@@ -6883,7 +6869,7 @@ var gCSSProperties = {
       contain: "none",
     },
     initial_values: ["visible"],
-    other_values: ["auto", "scroll", "hidden", "-moz-hidden-unscrollable"],
+    other_values: ["auto", "scroll", "hidden", "clip"],
     invalid_values: [],
   },
   "overflow-block": {
@@ -6898,8 +6884,16 @@ var gCSSProperties = {
       contain: "none",
     },
     initial_values: ["visible"],
-    other_values: ["auto", "scroll", "hidden", "-moz-hidden-unscrollable"],
+    other_values: ["auto", "scroll", "hidden", "clip"],
     invalid_values: [],
+  },
+  "overflow-clip-margin": {
+    domProp: "overflowClipMargin",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["0px"],
+    other_values: ["1px", "2em", "calc(10px + 1vh)"],
+    invalid_values: ["-10px"],
   },
   padding: {
     domProp: "padding",
@@ -7227,6 +7221,14 @@ var gCSSProperties = {
     initial_values: ["auto"],
     other_values: ["smooth"],
     invalid_values: ["none", "1px"],
+  },
+  "scroll-snap-stop": {
+    domProp: "scrollSnapStop",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["normal"],
+    other_values: ["always"],
+    invalid_values: ["auto", "none", "1px"],
   },
   "scroll-snap-type": {
     domProp: "scrollSnapType",
@@ -11639,6 +11641,20 @@ if (IsCSSPropertyPrefEnabled("layout.css.caption-side-non-standard.enabled")) {
   );
 }
 
+{
+  const enabled = IsCSSPropertyPrefEnabled(
+    "layout.css.overflow-moz-hidden-unscrollable.enabled"
+  );
+  for (let p of ["overflow", "overflow-x", "overflow-y"]) {
+    let prop = gCSSProperties[p];
+    let values = enabled ? prop.other_values : prop.invalid_values;
+    values.push("-moz-hidden-unscrollable");
+    if (p == "overflow") {
+      values.push("-moz-hidden-unscrollable -moz-hidden-unscrollable");
+    }
+  }
+}
+
 if (IsCSSPropertyPrefEnabled("layout.css.individual-transform.enabled")) {
   gCSSProperties.rotate = {
     domProp: "rotate",
@@ -12878,6 +12894,63 @@ if (IsCSSPropertyPrefEnabled("layout.css.hyphenate-character.enabled")) {
   };
 }
 
+if (IsCSSPropertyPrefEnabled("layout.css.content-visibility.enabled")) {
+  gCSSProperties["content-visibility"] = {
+    domProp: "contentVisibility",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["visible"],
+    other_values: ["auto", "invisible"],
+    invalid_values: ["partially-visible", "auto auto", "visible invisible"],
+  };
+}
+
+if (IsCSSPropertyPrefEnabled("layout.css.container-queries.enabled")) {
+  gCSSProperties["container-type"] = {
+    domProp: "containerType",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["none"],
+    other_values: [
+      "style",
+      "inline-size",
+      "block-size",
+      "size",
+      "style inline-size",
+      "block-size style",
+      "size style",
+    ],
+    invalid_values: [
+      "none style",
+      "none inline-size",
+      "inline-size none",
+      "style none",
+      "style style",
+      "inline-size style inline-size",
+      "inline-size block-size",
+      "size inline-size",
+      "size block-size",
+    ],
+  };
+  gCSSProperties["container-name"] = {
+    domProp: "containerName",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["none"],
+    other_values: ["foo bar", "foo", "baz bazz", "foo foo"],
+    invalid_values: ["foo unset", "none bar", "foo initial", "initial foo"],
+  };
+  gCSSProperties["container"] = {
+    domProp: "container",
+    inherited: false,
+    type: CSS_TYPE_TRUE_SHORTHAND,
+    subproperties: ["container-type", "container-name"],
+    initial_values: ["none"],
+    other_values: ["size", "size / foo bar", "inline-size style / foo"],
+    invalid_values: ["foo / size", "foo bar / size"],
+  };
+}
+
 if (false) {
   // TODO These properties are chrome-only, and are not exposed via CSSOM.
   // We may still want to find a way to test them. See bug 1206999.
@@ -13476,6 +13549,15 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-linked-animations.enabled")) {
       "-\\32 0bounce",
       "\\2bounce",
       "-\\2bounce",
+      "scroll()",
+      "scroll(block)",
+      "scroll(inline)",
+      "scroll(horizontal)",
+      "scroll(vertical)",
+      "scroll(root)",
+      "scroll(nearest)",
+      "scroll(inline nearest)",
+      "scroll(vertical root)",
     ],
     invalid_values: [
       "bounce, initial",

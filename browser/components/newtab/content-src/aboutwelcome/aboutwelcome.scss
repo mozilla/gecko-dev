@@ -8,7 +8,10 @@
 $break-point-small: 570px;
 $break-point-medium: 610px;
 $break-point-large: 866px;
+$container-min-width: 700px;
 $logo-size: 80px;
+$main-section-width: 504px;
+$noodle-buffer: 106px;
 
 html {
   height: 100%;
@@ -30,16 +33,46 @@ body {
   }
 }
 
+// Styling for content rendered in a Spotlight messaging surface.
+:root {
+  &[dialogroot] {
+    background-color: transparent;
+
+    body {
+      padding: 0;
+    }
+
+    .onboardingContainer {
+      &:dir(rtl) {
+        transform: unset;
+      }
+
+      .screen {
+        background-color: transparent;
+
+        &:dir(rtl) {
+          transform: unset;
+        }
+      }
+    }
+  }
+}
+
+// Styling for about:welcome background container
+.welcome-container {
+  .onboardingContainer {
+    min-width: $container-min-width;
+    min-height: $break-point-medium;
+  }
+}
+
 .onboardingContainer {
   text-align: center;
-  overflow-x: auto;
   height: 100vh;
 
   @media (prefers-contrast: more) {
     background-color: var(--in-content-page-background);
   }
-
-  --main-content-min-height: 271px;
 
   // Transition all of these and reduced motion effectively only does opacity.
   --transition: 0.6s opacity, 0.6s scale, 0.6s rotate, 0.6s translate;
@@ -75,16 +108,14 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-
-    &.with-noodles {
-      height: 503px;
-      width: 504px;
-    }
+    width: $main-section-width;
+    flex-shrink: 0;
   }
 
   .main-content {
     background-color: var(--in-content-page-background);
     border-radius: 20px;
+    box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -105,6 +136,7 @@ body {
   }
 
   .screen {
+    background-color: rgba(21, 20, 26, 0.5);
     display: flex;
     position: relative;
     flex-flow: row nowrap;
@@ -112,15 +144,74 @@ body {
     min-height: 500px;
     overflow: hidden;
 
+    &:is(.UPGRADE_PIN_FIREFOX, .UPGRADE_ONLY_DEFAULT, .UPGRADE_GET_STARTED) {
+      .brand-logo {
+        margin-top: 120px;
+
+        @media (prefers-reduced-motion: reduce) {
+          // sass-lint:disable-block no-important
+          background-image: url('chrome://activity-stream/content/data/content/assets/heart.svg') !important;
+        }
+      }
+
+      .no-steps {
+        padding-bottom: 12px;
+      }
+    }
+
+    &.light-text {
+      --in-content-page-color: rgb(251, 251, 254);
+      --in-content-primary-button-text-color: rgb(43, 42, 51);
+      --in-content-primary-button-text-color-hover: rgb(43, 42, 51);
+      --in-content-primary-button-background: rgb(0, 221, 255);
+      --in-content-primary-button-background-hover: rgb(128, 235, 255);
+      --in-content-primary-button-background-active: rgb(170, 242, 255);
+      --in-content-link-color: var(--in-content-primary-button-background);
+      --in-content-link-color-hover: var(--in-content-primary-button-background-hover);
+      --in-content-link-color-active: var(--in-content-primary-button-background-active);
+      --in-content-link-color-visited: var(--in-content-link-color);
+      --checkbox-checked-bgcolor: var(--in-content-primary-button-background);
+      --in-content-button-text-color: var(--in-content-page-color);
+    }
+
+    &.dark-text {
+      --in-content-page-color: rgb(21,  20,  26);
+      --in-content-primary-button-text-color: rgb(251, 251, 254);
+      --in-content-primary-button-text-color-hover: rgb(251, 251, 254);
+      --in-content-primary-button-background: #0061E0;
+      --in-content-primary-button-background-hover: #0250BB;
+      --in-content-primary-button-background-active: #053E94;
+      --in-content-primary-button-border-color: transparent;
+      --in-content-primary-button-border-hover: transparent;
+      --in-content-link-color: var(--blue-60);
+      --in-content-link-color-hover: var(--blue-70);
+      --in-content-link-color-active: var(--blue-80);
+      --in-content-link-color-visited: var(--blue-60);
+      --checkbox-checked-bgcolor: var(--in-content-primary-button-background);
+      --in-content-button-text-color: var(--in-content-page-color);
+    }
+
     &:dir(rtl) {
       transform: rotateY(180deg);
+    }
+
+    &[pos='center'] {
+      min-width: $main-section-width;
+
+      &.with-noodles {
+        // Adjust for noodles partially extending out from the square modal
+        min-width: $main-section-width + $noodle-buffer;
+        min-height: $main-section-width + $noodle-buffer;
+
+        .section-main {
+          height: $main-section-width;
+        }
+      }
     }
   }
 
   .brand-logo {
-    background: url('chrome://branding/content/about-logo.svg') top center / $logo-size no-repeat;
-    padding: $logo-size 0 10px;
-    margin-top: 60px;
+    margin-block: 60px 10px;
     transition: var(--transition);
 
     &.cta-top {
@@ -150,21 +241,20 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    margin-bottom: 5px;
+    margin: 0.5em 1em;
     transition: var(--transition);
 
     h1,
     h2 {
       color: var(--in-content-page-color);
+      line-height: 1.5;
     }
 
     h1 {
       font-size: 24px;
-      line-height: 36px;
       font-weight: 600;
       margin: 0 6px;
       letter-spacing: -0.02em;
-      width: 283px;
       outline: none;
     }
 
@@ -172,10 +262,45 @@ body {
       font-size: 16px;
       font-weight: normal;
       margin: 10px 6px 0;
-      line-height: 24px;
       max-width: 750px;
       letter-spacing: -0.01em;
     }
+
+    &.fancy {
+      h1 {
+        background-image: linear-gradient(90deg, #9059FF, #FF4AA2, #FF8C00, #FF4AA2, #9059FF);
+        background-clip: text;
+        background-size: 200%;
+        @media (prefers-contrast: no-preference) {
+          color: transparent;
+        }
+        @media (prefers-color-scheme: dark) {
+          background-image: linear-gradient(90deg, #C688FF, #FF84C0, #FFBD4F, #FF84C0, #C688FF);
+        }
+      }
+    }
+
+    &.shine {
+      h1 {
+        animation: shine 50s linear infinite;
+        background-size: 400%;
+      }
+
+      @keyframes shine {
+        to {
+          background-position: 400%;
+        }
+      }
+    }
+  }
+
+  // Override light and dark mode fancy title colors for use over light and dark backgrounds
+  .screen.light-text .welcome-text.fancy h1 {
+    background-image: linear-gradient(90deg, #C688FF, #FF84C0, #FFBD4F, #FF84C0, #C688FF);
+  }
+
+  .screen.dark-text .welcome-text.fancy h1 {
+    background-image: linear-gradient(90deg, #9059FF, #FF4AA2, #FF8C00, #FF4AA2, #9059FF);
   }
 
   .welcomeZap {
@@ -197,6 +322,7 @@ body {
         height: 0.3em;
         left: 0;
         z-index: -1;
+        transform: scaleY(3);
       }
 
       &.short::after {
@@ -206,6 +332,22 @@ body {
       &.long::after {
         background-image:  url('chrome://activity-stream/content/data/content/assets/long-zap.svg');
       }
+    }
+  }
+
+  .language-loader {
+    filter: invert(1);
+    margin-inline-end: 10px;
+    position: relative;
+    top: 3px;
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .language-loader {
+      filter: invert(0);
     }
   }
 
@@ -588,6 +730,145 @@ body {
     animation: fadein 0.4s;
   }
 
+  .mobile-downloads {
+
+    .qr-code-image {
+      margin: 24px 0 10px;
+      width: 113px;
+      height: 113px;
+    }
+
+    .email-link {
+      font-size: 16px;
+      font-weight: 400;
+      text-decoration: underline;
+      color: var(--in-content-link-color);
+
+      &:hover {
+        background: none;
+      }
+    }
+
+    .ios button {
+      background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/en/ios.svg');
+    }
+
+    .android button {
+      background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/en/android.png');
+    }
+
+    @at-root:root {
+
+      &[lang|='de'] {
+
+        .ios button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/de/ios.svg');
+        }
+
+        .android button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/de/android.png');
+        }
+      }
+
+      &[lang|='es'] {
+
+        .ios button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/es/ios.svg');
+        }
+
+        .android button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/es/android.png');
+        }
+      }
+
+      &[lang|='fr'] {
+
+        .ios button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/fr/ios.svg');
+        }
+
+        .android button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/fr/android.png');
+        }
+      }
+
+      &[lang|='pt'] {
+
+        .ios button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/pt/ios.svg');
+        }
+
+        .android button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/pt/android.png');
+        }
+      }
+
+      &[lang|='ru'] {
+
+        .ios button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/ru/ios.svg');
+        }
+
+        .android button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/ru/android.png');
+        }
+      }
+
+      &[lang|='zh'] {
+
+        .ios button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/zh/ios.svg');
+        }
+
+        .android button {
+          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/zh/android.png');
+        }
+      }
+    }
+  }
+
+  .mobile-download-buttons {
+    list-style: none;
+    padding: 10px 0;
+    margin: 0;
+
+    li {
+      display: inline-block;
+
+      button {
+        display: inline-block;
+        height: 45px;
+        width: 152px;
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: center;
+        box-shadow: none;
+        border: 0;
+      }
+
+      &:not(:first-child) {
+        margin-inline: 5px 0;
+      }
+    }
+  }
+
+  .dismiss-button {
+    padding: 0;
+    margin-block: 30px -45px;
+    margin-inline: 0 30px;
+    display: block;
+    float: inline-end;
+    background: url('chrome://global/skin/icons/close.svg') no-repeat center / cover;
+    height: 15px;
+    width: 15px;
+    align-self: end;
+    // override default min-height and min-width for buttons
+    min-height: 15px;
+    min-width: 15px;
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
+
   @keyframes fadein {
     from { opacity: 0; }
   }
@@ -610,7 +891,7 @@ body {
 
     &.top {
       justify-content: end;
-      padding-inline-end: 30px;
+      padding-inline-end: min(150px, 500px - 70vh);
       padding-top: 4px;
       position: absolute;
       top: 10px;
@@ -621,18 +902,7 @@ body {
         color: #FFF;
 
         &:hover {
-          background-color: #5B5B66;
           color: #E0E0E6;
-        }
-
-        @media (max-height: $break-point-small) {
-          color: var(--in-content-link-color);
-
-          &:hover {
-            background-color: #5B5B66;
-            color: var(--in-content-link-color-hover);
-            text-decoration: underline;
-          }
         }
       }
     }
@@ -716,7 +986,8 @@ body {
     }
   }
 
-  .primary {
+  .primary,
+  .secondary {
     font-size: 13px;
     line-height: 16px;
     padding: 11px 15px;
@@ -725,6 +996,11 @@ body {
     &.rtamo {
       margin-top: 24px;
     }
+  }
+
+  .secondary {
+    background-color: var(--in-content-button-background);
+    color: var(--in-content-button-text-color);
   }
 
   // Styles specific to background noodles, with screen-by-screen positions
@@ -738,29 +1014,6 @@ body {
     // Flip noodles in a way that combines individual transforms.
     &:dir(rtl) {
       scale: -1 1;
-    }
-  }
-
-  .confetti {
-    display: block;
-    margin: auto;
-    background-image: url('chrome://activity-stream/content/data/content/assets/confetti.svg');
-    background-position: top;
-    background-size: 100%;
-    background-repeat: no-repeat;
-    height: 438px;
-    width: 504px;
-    position: absolute;
-    z-index: -1;
-
-    @media (max-width: $break-point-large) {
-      height: 400px;
-      width: 450px;
-    }
-
-    @media (max-width: $break-point-medium) {
-      height: 370px;
-      width: 420px;
     }
   }
 
@@ -787,7 +1040,8 @@ body {
   }
 
   [pos='corner'] {
-    min-width: 700px;
+    background-color: transparent;
+    min-width: $container-min-width;
 
     .section-left {
       display: flex;
@@ -801,7 +1055,7 @@ body {
         justify-content: center;
 
         .spacer-top {
-          flex: 2;
+          flex: 1;
         }
 
         .spacer-bottom {
@@ -817,6 +1071,7 @@ body {
           max-width: 5em;
           text-align: initial;
           white-space: pre-wrap;
+          text-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
         }
       }
 
@@ -833,17 +1088,18 @@ body {
     }
 
     .section-main {
-      flex-shrink: 0;
-      width: 490px;
       z-index: 1;
 
       .main-content {
         background: transparent;
-        display: block;
+        box-shadow: none;
+        display: flex;
         position: absolute;
-        height: 350px;
-        bottom: -60px;
-        inset-inline-end: 80px;
+        height: auto;
+        width: 350px;
+        bottom: 0;
+        inset-inline-end: 30px;
+        overflow: visible;
         transition: var(--transition);
       }
 
@@ -863,6 +1119,10 @@ body {
 
       .welcome-text {
         transition-delay: 1.2s;
+
+        h2 {
+          margin: 10px 6px;
+        }
       }
     }
 
@@ -895,25 +1155,9 @@ body {
   }
 
   .screen-1 {
-    background-color: rgba(21, 20, 26, 0.5);
-
     .section-main {
       z-index: 1;
       margin: auto;
-
-      .main-content-inner {
-        min-height: var(--main-content-min-height);
-      }
-
-      @media (max-width: $break-point-large) {
-        width: 450px;
-        height: auto;
-      }
-
-      @media (max-width: $break-point-medium) {
-        width: 420px;
-        height: auto;
-      }
     }
 
     //Position of noodles on second screen
@@ -930,24 +1174,12 @@ body {
       height: 660px;
       transform: rotate(-155deg) translate(11%, -18%);
       transition-delay: 0.2s;
-
-      @media (max-width: $break-point-large) {
-        width: 448px;
-        height: 568px;
-        transform: rotate(-155deg) translate(12%, -21%);
-      }
     }
 
     .purple-C {
       width: 310px;
       height: 260px;
       transform: translate(-18%, -67%);
-
-      @media (max-width: $break-point-large) {
-        width: 294px;
-        height: 254px;
-        transform: translate(-20%, -62%);
-      }
     }
 
     .yellow-circle {
@@ -957,14 +1189,6 @@ body {
       transform: translate(230%, -5%);
       background: #952BB9;
       transition-delay: -0.2s;
-
-      @media (max-width: $break-point-large) {
-        transform: translate(205%, -5%);
-      }
-
-      @media (max-width: $break-point-medium) {
-        transform: translate(185%, -5%);
-      }
     }
   }
 
@@ -985,6 +1209,7 @@ body {
     }
 
     .primary,
+    .secondary,
     .secondary-cta,
     .steps {
       transition-delay: 1s;
@@ -999,31 +1224,16 @@ body {
     }
 
     .primary,
+    .secondary,
     .secondary-cta {
       transition-delay: 0.4s;
     }
   }
 
   .screen-2 {
-    background-color: rgba(21, 20, 26, 0.5);
-
     .section-main {
       z-index: 1;
       margin: auto;
-
-      .main-content-inner {
-        min-height: var(--main-content-min-height);
-      }
-
-      @media (max-width: $break-point-large) {
-        width: 450px;
-        height: auto;
-      }
-
-      @media (max-width: $break-point-medium) {
-        width: 420px;
-        height: auto;
-      }
     }
 
     // Position of noodles on third screen
@@ -1033,10 +1243,6 @@ body {
       transform: rotate(250deg) translate(-420%, 425%);
       transition-delay: 0.2s;
       z-index: 2;
-
-      @media (max-width: $break-point-large) {
-        transform: rotate(250deg) translate(-400%, 280%);
-      }
     }
 
     .orange-L {
@@ -1044,11 +1250,6 @@ body {
       width: 660px;
       transform: rotate(35deg) translate(-10%, -7%);
       transition-delay: -0.4s;
-
-      @media (max-width: $break-point-large) {
-        height: 740px;
-        width: 600px;
-      }
     }
 
     .purple-C {
@@ -1068,37 +1269,6 @@ body {
     }
   }
 
-  .fancy-headings {
-    h1 {
-      font-size: 36px;
-      line-height: unset;
-      width: 410px;
-      padding-bottom: 16px;
-      position: relative;
-      text-align: center;
-      background-image: linear-gradient(90deg, #6173FF, #ED1D5F, #F6901E, #6173FF);
-      background-size: 400% auto;
-      color: #000;
-      background-clip: text;
-      -webkit-background-clip: text;
-      animation: shine 50s linear infinite;
-
-      @media (prefers-contrast: no-preference) {
-        -webkit-text-fill-color: transparent;
-      }
-    }
-
-    @keyframes shine {
-      to {
-        background-position: 400% center;
-      }
-    }
-
-    h2 {
-      margin: 10px 30px 0;
-    }
-  }
-
   &.transition-in {
     .noodle {
       opacity: 0;
@@ -1110,6 +1280,7 @@ body {
       .brand-logo,
       .welcome-text,
       .primary,
+      .secondary,
       .secondary-cta:not(.top),
       .message-text {
         opacity: 0;
@@ -1145,6 +1316,7 @@ body {
       .colorway-variations,
       .tiles-theme-section,
       .primary,
+      .secondary,
       .secondary-cta:not(.top) {
         opacity: 0;
         translate: 0 calc(-1 * var(--translate));
@@ -1203,6 +1375,7 @@ body {
       }
 
       .primary,
+      .secondary,
       .secondary-cta:not(.top) {
         opacity: 0;
         translate: 0 var(--translate);

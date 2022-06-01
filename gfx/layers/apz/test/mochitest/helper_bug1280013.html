@@ -14,11 +14,11 @@ async function test() {
   // Scroll down to the iframe. Do it in two drags instead of one in case the
   // device screen is short.
   let transformEnd = promiseTransformEnd();
-  synthesizeNativeTouchDrag(window, 10, 200, 0, -175);
+  await synthesizeNativeTouchDrag(window, 10, 200, 0, -175);
   await transformEnd;
 
   transformEnd = promiseTransformEnd();
-  synthesizeNativeTouchDrag(window, 10, 200, 0, -175);
+  await synthesizeNativeTouchDrag(window, 10, 200, 0, -175);
   await transformEnd;
 
   // Now the top of the visible area should be at y=350 of the top-level page,
@@ -35,7 +35,7 @@ async function test() {
   // Scroll the iframe by 150px.
   var subframe = document.getElementById("subframe");
   transformEnd = promiseTransformEnd();
-  synthesizeNativeTouchDrag(subframe, 10, 100, 0, -150);
+  await synthesizeNativeTouchDrag(subframe, 10, 100, 0, -150);
   await transformEnd;
 
   // Flush any pending paints on the APZ side, and wait for the main thread
@@ -52,7 +52,7 @@ async function test() {
         (lastPaint[scrollId].contentDescription.includes("tall_html"))) {
       var dp = getPropertyAsRect(lastPaint, scrollId, "displayport");
       ok(dp.y <= 0, "The displayport top should be less than or equal to zero to cover the visible part of the subframe; it is " + dp.y);
-      ok(dp.y + dp.h >= subframe.clientHeight, "The displayport bottom should be greater than the clientHeight; it is " + (dp.y + dp.h));
+      ok(dp.y + dp.height >= subframe.clientHeight, "The displayport bottom should be greater than the clientHeight; it is " + (dp.y + dp.height));
       foundIt++;
     }
   }

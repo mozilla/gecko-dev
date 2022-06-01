@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-this.MAIN_MESSAGE_TYPE = "ActivityStream:Main";
-this.CONTENT_MESSAGE_TYPE = "ActivityStream:Content";
-this.PRELOAD_MESSAGE_TYPE = "ActivityStream:PreloadedBrowser";
-this.UI_CODE = 1;
-this.BACKGROUND_PROCESS = 2;
+const MAIN_MESSAGE_TYPE = "ActivityStream:Main";
+const CONTENT_MESSAGE_TYPE = "ActivityStream:Content";
+const PRELOAD_MESSAGE_TYPE = "ActivityStream:PreloadedBrowser";
+const UI_CODE = 1;
+const BACKGROUND_PROCESS = 2;
 
 /**
  * globalImportContext - Are we in UI code (i.e. react, a dom) or some kind of background process?
@@ -16,8 +16,6 @@ this.BACKGROUND_PROCESS = 2;
  */
 const globalImportContext =
   typeof Window === "undefined" ? BACKGROUND_PROCESS : UI_CODE;
-// Export for tests
-this.globalImportContext = globalImportContext;
 
 // Create an object that avoids accidental differing key/value pairs:
 // {
@@ -367,9 +365,7 @@ function WebExtEvent(type, data, importContext = globalImportContext) {
   return importContext === UI_CODE ? AlsoToMain(action) : action;
 }
 
-this.actionTypes = actionTypes;
-
-this.actionCreators = {
+const actionCreators = {
   BroadcastToContent,
   UserEvent,
   ASRouterUserEvent,
@@ -386,7 +382,7 @@ this.actionCreators = {
 };
 
 // These are helpers to test for certain kinds of actions
-this.actionUtils = {
+const actionUtils = {
   isSendToMain(action) {
     if (!action.meta) {
       return false;

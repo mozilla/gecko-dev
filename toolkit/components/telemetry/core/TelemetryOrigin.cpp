@@ -4,10 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "Telemetry.h"
 #include "TelemetryOrigin.h"
 
-#include "nsTHashMap.h"
 #include "nsIObserverService.h"
 #include "nsPrintfCString.h"
 #include "nsTArray.h"
@@ -108,7 +106,7 @@ namespace {
 // that, due to the nature of Telemetry, we cannot rely on having a
 // mutex initialized in InitializeGlobalState. Unfortunately, we
 // cannot make sure that no other function is called before this point.
-static StaticMutex gTelemetryOriginMutex;
+static StaticMutex gTelemetryOriginMutex MOZ_UNANNOTATED;
 
 typedef nsTArray<Tuple<const char*, const char*>> OriginHashesList;
 UniquePtr<OriginHashesList> gOriginHashesList;
@@ -604,7 +602,7 @@ size_t TelemetryOrigin::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) {
   n += gMetricToOriginBag->ShallowSizeOfIncludingThis(aMallocSizeOf);
   for (const auto& origins : gMetricToOriginBag->Values()) {
     // The string hashkey and count should both be contained by the hashtable.
-    n += origins.ShallowSizeOfIncludingThis(aMallocSizeOf);
+    n += origins.ShallowSizeOfExcludingThis(aMallocSizeOf);
   }
 
   // The string hashkey and ID should both be contained within the hashtable.

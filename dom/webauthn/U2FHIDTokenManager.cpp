@@ -10,10 +10,9 @@
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/StaticMutex.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
-static StaticMutex gInstanceMutex;
+static StaticMutex gInstanceMutex MOZ_UNANNOTATED;
 static U2FHIDTokenManager* gInstance;
 static nsIThread* gPBackgroundThread;
 
@@ -415,5 +414,4 @@ void U2FHIDTokenManager::HandleSignResult(UniquePtr<U2FResult>&& aResult) {
   mSignPromise.Resolve(std::move(result), __func__);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

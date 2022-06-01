@@ -622,7 +622,7 @@ void Statistics::log(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   if (gcDebugFile) {
-    TimeDuration sinceStart = TimeStamp::Now() - TimeStamp::ProcessCreation();
+    TimeDuration sinceStart = TimeStamp::Now() - TimeStamp::FirstTimeStamp();
     fprintf(gcDebugFile, "%12.3f: ", sinceStart.ToMicroseconds());
     vfprintf(gcDebugFile, fmt, args);
     fprintf(gcDebugFile, "\n");
@@ -998,13 +998,6 @@ void Statistics::measureInitialHeapSize() {
   for (GCZonesIter zone(gc); !zone.done(); zone.next()) {
     preCollectedHeapBytes += zone->gcHeapSize.bytes();
   }
-}
-
-void Statistics::adoptHeapSizeDuringIncrementalGC(Zone* mergedZone) {
-  // A zone is being merged into a zone that's currently being collected so we
-  // need to adjust our record of the total size of heap for collected zones.
-  MOZ_ASSERT(gc->isIncrementalGCInProgress());
-  preCollectedHeapBytes += mergedZone->gcHeapSize.bytes();
 }
 
 void Statistics::endGC() {
@@ -1427,9 +1420,9 @@ void Statistics::recordPhaseEnd(Phase phase) {
     if (phaseEndTimes[kid] > now) {
       fprintf(stderr,
               "Parent %s ended at %.3fms, before child %s ended at %.3fms?\n",
-              phases[phase].name, t(now - TimeStamp::ProcessCreation()),
+              phases[phase].name, t(now - TimeStamp::FirstTimeStamp()),
               phases[kid].name,
-              t(phaseEndTimes[kid] - TimeStamp::ProcessCreation()));
+              t(phaseEndTimes[kid] - TimeStamp::FirstTimeStamp()));
     }
     MOZ_ASSERT(phaseEndTimes[kid] <= now,
                "Inconsistent time data; see bug 1400153");

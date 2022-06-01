@@ -2,85 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
-// 22.1.3.14 Array.prototype.indexOf ( searchElement [ , fromIndex ] )
-function ArrayIndexOf(searchElement/*, fromIndex*/) {
-    // Step 1.
-    var O = ToObject(this);
-
-    // Step 2.
-    var len = ToLength(O.length);
-
-    // Step 3.
-    if (len === 0)
-        return -1;
-
-    // Steps 4-5.
-    var n = arguments.length > 1 ? ToInteger(arguments[1]) : 0;
-
-    // Step 6.
-    if (n >= len)
-        return -1;
-
-    // Steps 7-8.
-    var k;
-    if (n >= 0) {
-        // Step 7.a.
-        k = n;
-    } else {
-        // Step 8.a.
-        k = len + n;
-
-        // Step 8.b.
-        if (k < 0)
-            k = 0;
-    }
-
-    // Step 9.
-    for (; k < len; k++) {
-        if (k in O && O[k] === searchElement)
-            return k;
-    }
-
-    // Step 10.
-    return -1;
-}
-
-// ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
-// 22.1.3.17 Array.prototype.lastIndexOf ( searchElement [ , fromIndex ] )
-function ArrayLastIndexOf(searchElement/*, fromIndex*/) {
-    // Step 1.
-    var O = ToObject(this);
-
-    // Step 2.
-    var len = ToLength(O.length);
-
-    // Step 3.
-    if (len === 0)
-        return -1;
-
-    // Step 4.
-    var n = arguments.length > 1 ? ToInteger(arguments[1]) : len - 1;
-
-    // Steps 5-6.
-    var k;
-    if (n > len - 1)
-        k = len - 1;
-    else if (n < 0)
-        k = len + n;
-    else
-        k = n;
-
-    // Step 7.
-    for (; k >= 0; k--) {
-        if (k in O && O[k] === searchElement)
-            return k;
-    }
-
-    // Step 8.
-    return -1;
-}
-
 /* ES5 15.4.4.16. */
 function ArrayEvery(callbackfn/*, thisArg*/) {
     /* Step 1. */
@@ -730,50 +651,6 @@ function ArrayFill(value, start = 0, end = undefined) {
     return O;
 }
 
-// ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
-// 22.1.3.13 Array.prototype.includes ( searchElement [ , fromIndex ] )
-function ArrayIncludes(searchElement, fromIndex = 0) {
-    // Step 1.
-    var O = ToObject(this);
-
-    // Step 2.
-    var len = ToLength(O.length);
-
-    // Step 3.
-    if (len === 0)
-        return false;
-
-    // Steps 4-5.
-    var n = ToInteger(fromIndex);
-
-    // Steps 6-7.
-    var k;
-    if (n >= 0) {
-        // Step 6.a.
-        k = n;
-    } else {
-        // Step 7.a.
-        k = len + n;
-
-        // Step 7.b.
-        if (k < 0)
-            k = 0;
-    }
-
-    // Step 8.
-    while (k < len) {
-        // Steps 8.a-c.
-        if (SameValueZero(searchElement, O[k]))
-            return true;
-
-        // Step 8.d.
-        k++;
-    }
-
-    // Step 9.
-    return false;
-}
-
 // ES6 draft specification, section 22.1.5.1, version 2013-09-05.
 function CreateArrayIterator(obj, kind) {
     var iteratedObject = ToObject(obj);
@@ -788,8 +665,8 @@ function CreateArrayIterator(obj, kind) {
 // http://www.ecma-international.org/ecma-262/6.0/index.html#sec-%arrayiteratorprototype%.next
 function ArrayIteratorNext() {
     // Step 1-3.
-    var obj;
-    if (!IsObject(this) || (obj = GuardToArrayIterator(this)) === null) {
+    var obj = this;
+    if (!IsObject(obj) || (obj = GuardToArrayIterator(obj)) === null) {
         return callFunction(CallArrayIteratorMethodIfWrapped, this,
                             "ArrayIteratorNext");
     }
@@ -1099,23 +976,14 @@ function ArraySpeciesCreate(originalArray, length) {
 
 // ES 2017 draft (April 8, 2016) 22.1.3.1.1
 function IsConcatSpreadable(O) {
-    /* Use an intermediate var in order to evade a lint error for
-     * unreachable code (the linter doesn't recognize preprocessor
-     * directives) */
-    var maybeSpreadable = true;
-
     // Step 1.
-    if (!IsObject(O)) {
-        maybeSpreadable = false;
+    if (!IsObject(O)
 #ifdef ENABLE_RECORD_TUPLE
-        // This check ensures that unboxed Tuples are spreadable
-        if (IsTuple(O)) {
-            return true;
-        }
+        && !IsTuple(O)
 #endif
-    }
-    if (!maybeSpreadable)
+    ) {
         return false;
+    }
 
     // Step 2.
     var spreadable = O[GetBuiltinSymbol("isConcatSpreadable")];
@@ -1124,13 +992,13 @@ function IsConcatSpreadable(O) {
     if (spreadable !== undefined)
         return ToBoolean(spreadable);
 
-    // Step 4.
-    spreadable |= IsArray(O);
 #ifdef ENABLE_RECORD_TUPLE
-    // This check ensures that Tuple object wrappers are spreadable
-    spreadable |= IsTuple(O);
+    if (IsTuple(O))
+        return true;
 #endif
-    return spreadable;
+
+    // Step 4.
+    return IsArray(O);
 }
 
 // ES 2016 draft Mar 25, 2016 22.1.3.1.
@@ -1157,6 +1025,11 @@ function ArrayConcat(arg1) {
     while (true) {
         // Steps 5.b-c.
         if (IsConcatSpreadable(E)) {
+#ifdef ENABLE_RECORD_TUPLE
+            // FIXME: spec bug - steps below expect that |E| is an object.
+            E = ToObject(E);
+#endif
+
             // Step 5.c.ii.
             len = ToLength(E.length);
 
@@ -1352,62 +1225,67 @@ SetIsInlinableLargeFunction(ArrayAt);
 #ifdef ENABLE_CHANGE_ARRAY_BY_COPY
 
 // https://github.com/tc39/proposal-change-array-by-copy
-// Array.prototype.withReversed()
-function ArrayWithReversed() {
+// Array.prototype.toReversed()
+function ArrayToReversed() {
 
-    /* Step 1. */
+    /* Step 1. Let O be ? ToObject(this value). */
     var O = ToObject(this);
 
-    /* Step 2. */
+    /* Step 2. Let len be ? LengthOfArrayLike(O). */
     var len = ToLength(O.length);
 
-    /* Step 3. */
+    /* Step 3. Let A be ArrayCreate(𝔽(len)). */
     var A = std_Array(len);
 
-    /* Steps 4-5. */
+    /* Step 4. Let k be 0. */
+    /* Step 5. Repeat, while k < len, */
     for (var k = 0; k < len; k++) {
-        /* Step 5a. */
+        /* Step 5a. Let from be ! ToString(𝔽(len - k - 1)). */
         var from = len - k - 1;
-        /* Step 5b - not necessary. */
-        /* Step 5c. */
+        /* Skip Step 5b. Let Pk be ToString(𝔽(k)).
+         * k is coerced into a string through the property access. */
+        /* Step 5c. Let fromValue be ? Get(O, from).  */
         var fromValue = O[from];
-        /* Step 5d. */
+        /* Step 5d. Perform ! CreateDataPropertyOrThrow(A, 𝔽(k), fromValue. */
         DefineDataProperty(A, k, fromValue);
     }
 
-    /* Step 6. */
+    /* Step 6. Return A. */
     return A;
 }
 
 // https://github.com/tc39/proposal-change-array-by-copy
-// Array.prototype.withSorted()
-function ArrayWithSorted(comparefn) {
+// Array.prototype.toSorted()
+function ArrayToSorted(comparefn) {
 
-    /* Step 1. */
-
+    /* Step 1.  If comparefn is not undefined and IsCallable(comparefn) is
+     * false, throw a TypeError exception.
+     */
     if (comparefn !== undefined && !IsCallable(comparefn)) {
-        ThrowTypeError(JSMSG_BAD_WITHSORTED_ARG);
+        ThrowTypeError(JSMSG_BAD_TOSORTED_ARG);
     }
 
-    /* Step 2. */
+    /* Step 2. Let O be ? ToObject(this value). */
     var O = ToObject(this);
 
-    /* Step 3. */
+    /* Step 3. Let len be ? LengthOfArrayLike(O) */
     var len = ToLength(O.length);
 
-    /* Step 4. */
+    /* Step 4. Let A be ? ArrayCreate(𝔽(len)). */
     var items = std_Array(len);
 
-    /* Steps 5-6. */
+    /* We depart from steps 5-8 of the spec for performance reasons, as
+     * following the spec would require copying the input array twice.
+     * Instead, we create a new array that replaces holes with undefined,
+     * and sort this array.
+     */
     for (var k = 0; k < len; k++) {
         DefineDataProperty(items, k, O[k]);
     }
 
-    /* Step 7. */
     SortArray(items, comparefn);
 
-    /* Steps 8-10 unnecessary */
-    /* Step 11. */
+    /* Step 9. Return A */
     return items;
 }
 

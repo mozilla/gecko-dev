@@ -42,16 +42,18 @@ bitflags! {
         const IS_BACKFACE_VISIBLE = 1 << 0;
         /// If set, this primitive represents a scroll bar container
         const IS_SCROLLBAR_CONTAINER = 1 << 1;
-        /// If set, this primitive represents a scroll bar thumb
-        const IS_SCROLLBAR_THUMB = 1 << 2;
         /// This is used as a performance hint - this primitive may be promoted to a native
         /// compositor surface under certain (implementation specific) conditions. This
         /// is typically used for large videos, and canvas elements.
-        const PREFER_COMPOSITOR_SURFACE = 1 << 3;
+        const PREFER_COMPOSITOR_SURFACE = 1 << 2;
         /// If set, this primitive can be passed directly to the compositor via its
         /// ExternalImageId, and the compositor will use the native image directly.
         /// Used as a further extension on top of PREFER_COMPOSITOR_SURFACE.
-        const SUPPORTS_EXTERNAL_COMPOSITOR_SURFACE = 1 << 4;
+        const SUPPORTS_EXTERNAL_COMPOSITOR_SURFACE = 1 << 3;
+        /// This flags disables snapping and forces anti-aliasing even if the primitive is axis-aligned.
+        const ANTIALISED = 1 << 4;
+        /// If true, this primitive is used as a background for checkerboarding
+        const CHECKERBOARD_BACKGROUND = 1 << 5;
     }
 }
 
@@ -940,12 +942,13 @@ bitflags! {
     #[repr(C)]
     #[derive(Deserialize, MallocSizeOf, Serialize, PeekPoke)]
     pub struct StackingContextFlags: u8 {
-        /// If true, this stacking context represents a backdrop root, per the CSS
-        /// filter-effects specification (see https://drafts.fxtf.org/filter-effects-2/#BackdropRoot).
-        const IS_BACKDROP_ROOT = 1 << 0;
         /// If true, this stacking context is a blend container than contains
         /// mix-blend-mode children (and should thus be isolated).
-        const IS_BLEND_CONTAINER = 1 << 1;
+        const IS_BLEND_CONTAINER = 1 << 0;
+        /// If true, this stacking context is a wrapper around a backdrop-filter (e.g. for
+        /// a clip-mask). This is needed to allow the correct selection of a backdrop root
+        /// since a clip-mask stacking context creates a parent surface.
+        const WRAPS_BACKDROP_FILTER = 1 << 1;
     }
 }
 
@@ -1434,6 +1437,7 @@ impl YuvColorSpace {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, PeekPoke)]
 pub enum YuvData {
     NV12(ImageKey, ImageKey), // (Y channel, CbCr interleaved channel)
+    P010(ImageKey, ImageKey), // (Y channel, CbCr interleaved channel)
     PlanarYCbCr(ImageKey, ImageKey, ImageKey), // (Y channel, Cb channel, Cr Channel)
     InterleavedYCbCr(ImageKey), // (YCbCr interleaved channel)
 }
@@ -1442,6 +1446,7 @@ impl YuvData {
     pub fn get_format(&self) -> YuvFormat {
         match *self {
             YuvData::NV12(..) => YuvFormat::NV12,
+            YuvData::P010(..) => YuvFormat::P010,
             YuvData::PlanarYCbCr(..) => YuvFormat::PlanarYCbCr,
             YuvData::InterleavedYCbCr(..) => YuvFormat::InterleavedYCbCr,
         }
@@ -1451,14 +1456,15 @@ impl YuvData {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize, PeekPoke)]
 pub enum YuvFormat {
     NV12 = 0,
-    PlanarYCbCr = 1,
-    InterleavedYCbCr = 2,
+    P010 = 1,
+    PlanarYCbCr = 2,
+    InterleavedYCbCr = 3,
 }
 
 impl YuvFormat {
     pub fn get_plane_num(self) -> usize {
         match self {
-            YuvFormat::NV12 => 2,
+            YuvFormat::NV12 | YuvFormat::P010 => 2,
             YuvFormat::PlanarYCbCr => 3,
             YuvFormat::InterleavedYCbCr => 1,
         }
@@ -1596,7 +1602,7 @@ impl ComplexClipRegion {
     }
 }
 
-pub const POLYGON_CLIP_VERTEX_MAX: usize = 16;
+pub const POLYGON_CLIP_VERTEX_MAX: usize = 32;
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, Eq, Hash, PeekPoke)]

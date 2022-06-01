@@ -3,14 +3,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifdef MOZ_WMF
+  include protocol PMFMediaEngine;
+#endif
 include protocol PTexture;
 include protocol PRemoteDecoder;
 include LayersSurfaces;
 include "mozilla/dom/MediaIPCUtils.h";
 include "mozilla/layers/LayersMessageUtils.h";
 
-using VideoInfo from "MediaInfo.h";
-using AudioInfo from "MediaInfo.h";
+using mozilla::VideoInfo from "MediaInfo.h";
+using mozilla::AudioInfo from "MediaInfo.h";
 using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/CompositorTypes.h";
 using mozilla::CreateDecoderParams::OptionSet from "PlatformDecoderModule.h";
 using mozilla::DecoderDoctorDiagnostics from "DecoderDoctorDiagnostics.h";
@@ -33,11 +36,18 @@ union RemoteDecoderInfoIPDL
 sync protocol PRemoteDecoderManager
 {
   manages PRemoteDecoder;
+#ifdef MOZ_WMF
+  manages PMFMediaEngine;
+#endif
 
 parent:
+#ifdef MOZ_WMF
+  async PMFMediaEngine();
+#endif
   async PRemoteDecoder(RemoteDecoderInfoIPDL info,
                        OptionSet options,
-                       TextureFactoryIdentifier? identifier);
+                       TextureFactoryIdentifier? identifier,
+                       uint64_t? mediaEngineId);
 
   sync Readback(SurfaceDescriptorGPUVideo sd) returns (SurfaceDescriptor aResult);
 

@@ -516,11 +516,6 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
     // fromMarkedLocation() is safe because the string is interned.
     return JS::HandleId::fromMarkedLocation(&mStrIDs[index]);
   }
-  JS::HandleValue GetStringJSVal(unsigned index) const {
-    MOZ_ASSERT(index < XPCJSContext::IDX_TOTAL_COUNT, "index out of range");
-    // fromMarkedLocation() is safe because the string is interned.
-    return JS::HandleValue::fromMarkedLocation(&mStrJSVals[index]);
-  }
   const char* GetStringName(unsigned index) const {
     MOZ_ASSERT(index < XPCJSContext::IDX_TOTAL_COUNT, "index out of range");
     return mStrings[index];
@@ -545,7 +540,7 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   static void GCSliceCallback(JSContext* cx, JS::GCProgress progress,
                               const JS::GCDescription& desc);
   static void DoCycleCollectionCallback(JSContext* cx);
-  static void FinalizeCallback(JSFreeOp* fop, JSFinalizeStatus status,
+  static void FinalizeCallback(JS::GCContext* gcx, JSFinalizeStatus status,
                                void* data);
   static void WeakPointerZonesCallback(JSTracer* trc, void* data);
   static void WeakPointerCompartmentCallback(JSTracer* trc,
@@ -601,7 +596,6 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
 
   static const char* const mStrings[XPCJSContext::IDX_TOTAL_COUNT];
   jsid mStrIDs[XPCJSContext::IDX_TOTAL_COUNT];
-  JS::Value mStrJSVals[XPCJSContext::IDX_TOTAL_COUNT];
 
   struct Hasher {
     using Key = RefPtr<mozilla::BasePrincipal>;
@@ -674,7 +668,7 @@ inline const char* XPCJSContext::GetStringName(unsigned index) const {
 
 class MOZ_STACK_CLASS XPCCallContext final {
  public:
-  enum { NO_ARGS = (unsigned)-1 };
+  enum : unsigned { NO_ARGS = (unsigned)-1 };
 
   explicit XPCCallContext(JSContext* cx, JS::HandleObject obj = nullptr,
                           JS::HandleObject funobj = nullptr,
@@ -1240,7 +1234,7 @@ class XPCWrappedNativeProto final {
 
   nsIXPCScriptable* GetScriptable() const { return mScriptable; }
 
-  void JSProtoObjectFinalized(JSFreeOp* fop, JSObject* obj);
+  void JSProtoObjectFinalized(JS::GCContext* gcx, JSObject* obj);
   void JSProtoObjectMoved(JSObject* obj, const JSObject* old);
 
   static XPCWrappedNativeProto* Get(JSObject* obj);
@@ -2261,9 +2255,7 @@ struct GlobalProperties {
   bool WebSocket : 1;
   bool Window : 1;
   bool XMLSerializer : 1;
-#ifdef MOZ_DOM_STREAMS
   bool ReadableStream : 1;
-#endif
 
   // Ad-hoc property names we implement.
   bool atob : 1;

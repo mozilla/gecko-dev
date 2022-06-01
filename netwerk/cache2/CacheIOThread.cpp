@@ -172,7 +172,7 @@ void BlockingIOWatcher::WatchAndCancel(Monitor& aMonitor) {
       LOG(("  cancelation signal succeeded"));
     } else {
       DWORD error = GetLastError();
-      LOG(("  cancelation signal failed with GetLastError=%u", error));
+      LOG(("  cancelation signal failed with GetLastError=%lu", error));
     }
   }
 }
@@ -493,6 +493,7 @@ void CacheIOThread::ThreadFunc() {
 }
 
 void CacheIOThread::LoopOneLevel(uint32_t aLevel) {
+  mMonitor.AssertCurrentThreadOwns();
   EventQueue events = std::move(mEventQueue[aLevel]);
   EventQueue::size_type length = events.Length();
 

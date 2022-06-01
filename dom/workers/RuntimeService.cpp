@@ -111,12 +111,6 @@ namespace workerinternals {
 static_assert(MAX_WORKERS_PER_DOMAIN >= 1,
               "We should allow at least one worker per domain.");
 
-// The number of seconds that idle threads can hang around before being killed.
-#define IDLE_THREAD_TIMEOUT_SEC 30
-
-// The maximum number of threads that can be idle at one time.
-#define MAX_IDLE_THREADS 20
-
 #define PREF_WORKERS_PREFIX "dom.workers."
 #define PREF_WORKERS_MAX_PER_DOMAIN PREF_WORKERS_PREFIX "maxPerDomain"
 
@@ -141,7 +135,7 @@ const uint32_t kNoIndex = uint32_t(-1);
 uint32_t gMaxWorkersPerDomain = MAX_WORKERS_PER_DOMAIN;
 
 // Does not hold an owning reference.
-RuntimeService* gRuntimeService = nullptr;
+Atomic<RuntimeService*> gRuntimeService(nullptr);
 
 // Only true during the call to Init.
 bool gRuntimeServiceDuringInit = false;
@@ -454,17 +448,20 @@ bool InterruptCallback(JSContext* aCx) {
 }
 
 class LogViolationDetailsRunnable final : public WorkerMainThreadRunnable {
+  uint16_t mViolationType;
   nsString mFileName;
   uint32_t mLineNum;
   uint32_t mColumnNum;
   nsString mScriptSample;
 
  public:
-  LogViolationDetailsRunnable(WorkerPrivate* aWorker, const nsString& aFileName,
-                              uint32_t aLineNum, uint32_t aColumnNum,
+  LogViolationDetailsRunnable(WorkerPrivate* aWorker, uint16_t aViolationType,
+                              const nsString& aFileName, uint32_t aLineNum,
+                              uint32_t aColumnNum,
                               const nsAString& aScriptSample)
       : WorkerMainThreadRunnable(aWorker,
                                  "RuntimeService :: LogViolationDetails"_ns),
+        mViolationType(aViolationType),
         mFileName(aFileName),
         mLineNum(aLineNum),
         mColumnNum(aColumnNum),
@@ -478,22 +475,36 @@ class LogViolationDetailsRunnable final : public WorkerMainThreadRunnable {
   ~LogViolationDetailsRunnable() = default;
 };
 
-bool ContentSecurityPolicyAllows(JSContext* aCx, JS::HandleString aCode) {
+bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
+                                 JS::Handle<JSString*> aCode) {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   worker->AssertIsOnWorkerThread();
 
+  bool evalOK;
+  bool reportViolation;
+  uint16_t violationType;
   nsAutoJSString scriptSample;
-  if (NS_WARN_IF(!scriptSample.init(aCx, aCode))) {
-    JS_ClearPendingException(aCx);
-    return false;
+  if (aKind == JS::RuntimeCode::JS) {
+    if (NS_WARN_IF(!scriptSample.init(aCx, aCode))) {
+      JS_ClearPendingException(aCx);
+      return false;
+    }
+
+    if (!nsContentSecurityUtils::IsEvalAllowed(
+            aCx, worker->UsesSystemPrincipal(), scriptSample)) {
+      return false;
+    }
+
+    evalOK = worker->IsEvalAllowed();
+    reportViolation = worker->GetReportEvalCSPViolations();
+    violationType = nsIContentSecurityPolicy::VIOLATION_TYPE_EVAL;
+  } else {
+    evalOK = worker->IsWasmEvalAllowed();
+    reportViolation = worker->GetReportWasmEvalCSPViolations();
+    violationType = nsIContentSecurityPolicy::VIOLATION_TYPE_WASM_EVAL;
   }
 
-  if (!nsContentSecurityUtils::IsEvalAllowed(aCx, worker->UsesSystemPrincipal(),
-                                             scriptSample)) {
-    return false;
-  }
-
-  if (worker->GetReportCSPViolations()) {
+  if (reportViolation) {
     nsString fileName;
     uint32_t lineNum = 0;
     uint32_t columnNum = 0;
@@ -507,8 +518,8 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::HandleString aCode) {
     }
 
     RefPtr<LogViolationDetailsRunnable> runnable =
-        new LogViolationDetailsRunnable(worker, fileName, lineNum, columnNum,
-                                        scriptSample);
+        new LogViolationDetailsRunnable(worker, violationType, fileName,
+                                        lineNum, columnNum, scriptSample);
 
     ErrorResult rv;
     runnable->Dispatch(Killing, rv);
@@ -517,7 +528,7 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::HandleString aCode) {
     }
   }
 
-  return worker->IsEvalAllowed();
+  return evalOK;
 }
 
 void CTypesActivityCallback(JSContext* aCx, JS::CTypesActivityType aType) {
@@ -633,7 +644,7 @@ static bool DispatchToEventLoop(void* aClosure,
   return r->Dispatch();
 }
 
-static bool ConsumeStream(JSContext* aCx, JS::HandleObject aObj,
+static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
                           JS::MimeType aMimeType,
                           JS::StreamConsumer* aConsumer) {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
@@ -701,7 +712,7 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
   return true;
 }
 
-static bool PreserveWrapper(JSContext* cx, JS::HandleObject obj) {
+static bool PreserveWrapper(JSContext* cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(cx);
   MOZ_ASSERT(obj);
   MOZ_ASSERT(mozilla::dom::IsDOMObject(obj));
@@ -709,15 +720,16 @@ static bool PreserveWrapper(JSContext* cx, JS::HandleObject obj) {
   return mozilla::dom::TryPreserveWrapper(obj);
 }
 
-static bool IsWorkerDebuggerGlobalOrSandbox(JS::HandleObject aGlobal) {
+static bool IsWorkerDebuggerGlobalOrSandbox(JS::Handle<JSObject*> aGlobal) {
   return IsWorkerDebuggerGlobal(aGlobal) || IsWorkerDebuggerSandbox(aGlobal);
 }
 
-JSObject* Wrap(JSContext* cx, JS::HandleObject existing, JS::HandleObject obj) {
-  JS::RootedObject targetGlobal(cx, JS::CurrentGlobalOrNull(cx));
+JSObject* Wrap(JSContext* cx, JS::Handle<JSObject*> existing,
+               JS::Handle<JSObject*> obj) {
+  JS::Rooted<JSObject*> targetGlobal(cx, JS::CurrentGlobalOrNull(cx));
 
   // Note: the JS engine unwraps CCWs before calling this callback.
-  JS::RootedObject originGlobal(cx, JS::GetNonCCWObjectGlobal(obj));
+  JS::Rooted<JSObject*> originGlobal(cx, JS::GetNonCCWObjectGlobal(obj));
 
   const js::Wrapper* wrapper = nullptr;
   if (IsWorkerDebuggerGlobalOrSandbox(targetGlobal) &&
@@ -833,14 +845,11 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
       return;  // Initialize() must have failed
     }
 
-    // The worker global should be unrooted and the shutdown cycle collection
-    // should break all remaining cycles. The superclass destructor will run
-    // the GC one final time and finalize any JSObjects that were participating
-    // in cycles that were broken during CC shutdown.
-    nsCycleCollector_shutdown();
-
-    // The CC is shut down, and the superclass destructor will GC, so make sure
-    // we don't try to CC again.
+    // We expect to come here with the cycle collector already shut down.
+    // The superclass destructor will run the GC one final time and finalize any
+    // JSObjects that were participating in cycles that were broken during CC
+    // shutdown.
+    // Make sure we don't try to CC again.
     mWorkerPrivate = nullptr;
   }
 
@@ -1024,15 +1033,14 @@ RuntimeService::RuntimeService()
       mShuttingDown(false),
       mNavigatorPropertiesLoaded(false) {
   AssertIsOnMainThread();
-  NS_ASSERTION(!gRuntimeService, "More than one service!");
+  MOZ_ASSERT(!GetService(), "More than one service!");
 }
 
 RuntimeService::~RuntimeService() {
   AssertIsOnMainThread();
 
   // gRuntimeService can be null if Init() fails.
-  NS_ASSERTION(!gRuntimeService || gRuntimeService == this,
-               "More than one service!");
+  MOZ_ASSERT(!GetService() || GetService() == this, "More than one service!");
 
   gRuntimeService = nullptr;
 }
@@ -1044,9 +1052,9 @@ RuntimeService* RuntimeService::GetOrCreateService() {
   if (!gRuntimeService) {
     // The observer service now owns us until shutdown.
     gRuntimeService = new RuntimeService();
-    if (NS_FAILED(gRuntimeService->Init())) {
+    if (NS_FAILED((*gRuntimeService).Init())) {
       NS_WARNING("Failed to initialize!");
-      gRuntimeService->Cleanup();
+      (*gRuntimeService).Cleanup();
       gRuntimeService = nullptr;
       return nullptr;
     }
@@ -1311,22 +1319,12 @@ bool RuntimeService::ScheduleWorker(WorkerPrivate& aWorkerPrivate) {
     return true;
   }
 
-  SafeRefPtr<WorkerThread> thread;
-  {
-    MutexAutoLock lock(mMutex);
-    if (!mIdleThreadArray.IsEmpty()) {
-      thread = std::move(mIdleThreadArray.PopLastElement().mThread);
-    }
-  }
-
   const WorkerThreadFriendKey friendKey;
 
+  SafeRefPtr<WorkerThread> thread = WorkerThread::Create(friendKey);
   if (!thread) {
-    thread = WorkerThread::Create(friendKey);
-    if (!thread) {
-      UnregisterWorker(aWorkerPrivate);
-      return false;
-    }
+    UnregisterWorker(aWorkerPrivate);
+    return false;
   }
 
   if (NS_FAILED(thread->SetPriority(nsISupportsPriority::PRIORITY_NORMAL))) {
@@ -1346,54 +1344,6 @@ bool RuntimeService::ScheduleWorker(WorkerPrivate& aWorkerPrivate) {
   return true;
 }
 
-// static
-void RuntimeService::ShutdownIdleThreads(nsITimer* aTimer,
-                                         void* /* aClosure */) {
-  AssertIsOnMainThread();
-
-  RuntimeService* runtime = RuntimeService::GetService();
-  NS_ASSERTION(runtime, "This should never be null!");
-
-  NS_ASSERTION(aTimer == runtime->mIdleThreadTimer, "Wrong timer!");
-
-  // Cheat a little and grab all threads that expire within one second of now.
-  const TimeStamp now = TimeStamp::NowLoRes() + TimeDuration::FromSeconds(1);
-
-  TimeStamp nextExpiration;
-
-  AutoTArray<SafeRefPtr<WorkerThread>, 20> expiredThreads;
-  {
-    MutexAutoLock lock(runtime->mMutex);
-
-    for (auto& info : runtime->mIdleThreadArray) {
-      if (info.mExpirationTime > now) {
-        nextExpiration = info.mExpirationTime;
-        break;
-      }
-
-      expiredThreads.AppendElement(std::move(info.mThread));
-    }
-
-    runtime->mIdleThreadArray.RemoveElementsAt(0, expiredThreads.Length());
-  }
-
-  if (!nextExpiration.IsNull()) {
-    const TimeDuration delta = nextExpiration - TimeStamp::NowLoRes();
-    const uint32_t delay = delta > TimeDuration{} ? delta.ToMilliseconds() : 0;
-
-    // Reschedule the timer.
-    MOZ_ALWAYS_SUCCEEDS(aTimer->InitWithNamedFuncCallback(
-        ShutdownIdleThreads, nullptr, delay, nsITimer::TYPE_ONE_SHOT,
-        "RuntimeService::ShutdownIdleThreads"));
-  }
-
-  for (const auto& expiredThread : expiredThreads) {
-    if (NS_FAILED(expiredThread->Shutdown())) {
-      NS_WARNING("Failed to shutdown thread!");
-    }
-  }
-}
-
 nsresult RuntimeService::Init() {
   AssertIsOnMainThread();
 
@@ -1411,9 +1361,6 @@ nsresult RuntimeService::Init() {
   nsCOMPtr<nsIStreamTransportService> sts =
       do_GetService(kStreamTransportServiceCID, &rv);
   NS_ENSURE_TRUE(sts, NS_ERROR_FAILURE);
-
-  mIdleThreadTimer = NS_NewTimer();
-  NS_ENSURE_STATE(mIdleThreadTimer);
 
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   NS_ENSURE_TRUE(obs, NS_ERROR_FAILURE);
@@ -1587,7 +1534,7 @@ class CrashIfHangingRunnable : public WorkerControlRunnable {
   void PostDispatch(WorkerPrivate* aWorkerPrivate,
                     bool aDispatchResult) override {}
 
-  Monitor mMonitor;
+  Monitor mMonitor MOZ_UNANNOTATED;
   nsCString mMsg;
   FlippedOnce<false> mHasMsg;
 };
@@ -1619,6 +1566,11 @@ struct ActiveWorkerStats {
 
 void RuntimeService::CrashIfHanging() {
   MutexAutoLock lock(mMutex);
+
+  // If we never wanted to shut down we cannot hang.
+  if (!mShuttingDown) {
+    return;
+  }
 
   ActiveWorkerStats activeStats;
   uint32_t inactiveWorkers = 0;
@@ -1663,13 +1615,6 @@ void RuntimeService::Cleanup() {
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   NS_WARNING_ASSERTION(obs, "Failed to get observer service?!");
 
-  if (mIdleThreadTimer) {
-    if (NS_FAILED(mIdleThreadTimer->Cancel())) {
-      NS_WARNING("Failed to cancel idle timer!");
-    }
-    mIdleThreadTimer = nullptr;
-  }
-
   {
     MutexAutoLock lock(mMutex);
 
@@ -1679,33 +1624,6 @@ void RuntimeService::Cleanup() {
     if (!workers.IsEmpty()) {
       nsIThread* currentThread = NS_GetCurrentThread();
       NS_ASSERTION(currentThread, "This should never be null!");
-
-      // Shut down any idle threads.
-      if (!mIdleThreadArray.IsEmpty()) {
-        AutoTArray<SafeRefPtr<WorkerThread>, 20> idleThreads;
-        idleThreads.SetCapacity(mIdleThreadArray.Length());
-
-#ifdef DEBUG
-        const bool anyNullThread = std::any_of(
-            mIdleThreadArray.begin(), mIdleThreadArray.end(),
-            [](const auto& entry) { return entry.mThread == nullptr; });
-        MOZ_ASSERT(!anyNullThread);
-#endif
-
-        std::transform(mIdleThreadArray.begin(), mIdleThreadArray.end(),
-                       MakeBackInserter(idleThreads),
-                       [](auto& entry) { return std::move(entry.mThread); });
-
-        mIdleThreadArray.Clear();
-
-        MutexAutoUnlock unlock(mMutex);
-
-        for (const auto& idleThread : idleThreads) {
-          if (NS_FAILED(idleThread->Shutdown())) {
-            NS_WARNING("Failed to shutdown thread!");
-          }
-        }
-      }
 
       // And make sure all their final messages have run and all their threads
       // have joined.
@@ -1865,47 +1783,6 @@ void RuntimeService::PropagateStorageAccessPermissionGranted(
   }
 }
 
-void RuntimeService::NoteIdleThread(SafeRefPtr<WorkerThread> aThread) {
-  AssertIsOnMainThread();
-  MOZ_ASSERT(aThread);
-
-  bool shutdownThread = mShuttingDown;
-  bool scheduleTimer = false;
-
-  if (!shutdownThread) {
-    static TimeDuration timeout =
-        TimeDuration::FromSeconds(IDLE_THREAD_TIMEOUT_SEC);
-
-    const TimeStamp expirationTime = TimeStamp::NowLoRes() + timeout;
-
-    MutexAutoLock lock(mMutex);
-
-    const uint32_t previousIdleCount = mIdleThreadArray.Length();
-
-    if (previousIdleCount < MAX_IDLE_THREADS) {
-      IdleThreadInfo* const info = mIdleThreadArray.AppendElement();
-      info->mThread = std::move(aThread);
-      info->mExpirationTime = expirationTime;
-
-      scheduleTimer = previousIdleCount == 0;
-    } else {
-      shutdownThread = true;
-    }
-  }
-
-  MOZ_ASSERT_IF(shutdownThread, !scheduleTimer);
-  MOZ_ASSERT_IF(scheduleTimer, !shutdownThread);
-
-  // Too many idle threads, just shut this one down.
-  if (shutdownThread) {
-    MOZ_ALWAYS_SUCCEEDS(aThread->Shutdown());
-  } else if (scheduleTimer) {
-    MOZ_ALWAYS_SUCCEEDS(mIdleThreadTimer->InitWithNamedFuncCallback(
-        ShutdownIdleThreads, nullptr, IDLE_THREAD_TIMEOUT_SEC * 1000,
-        nsITimer::TYPE_ONE_SHOT, "RuntimeService::ShutdownIdleThreads"));
-  }
-}
-
 template <typename Func>
 void RuntimeService::BroadcastAllWorkers(const Func& aFunc) {
   AssertIsOnMainThread();
@@ -1993,11 +1870,12 @@ void RuntimeService::MemoryPressureAllWorkers() {
   BroadcastAllWorkers([](auto& worker) { worker.MemoryPressure(); });
 }
 
-uint32_t RuntimeService::ClampedHardwareConcurrency() const {
+uint32_t RuntimeService::ClampedHardwareConcurrency(
+    bool aShouldResistFingerprinting) const {
   // The Firefox Hardware Report says 70% of Firefox users have exactly 2 cores.
   // When the resistFingerprinting pref is set, we want to blend into the crowd
   // so spoof navigator.hardwareConcurrency = 2 to reduce user uniqueness.
-  if (MOZ_UNLIKELY(nsContentUtils::ShouldResistFingerprinting())) {
+  if (MOZ_UNLIKELY(aShouldResistFingerprinting)) {
     return 2;
   }
 
@@ -2088,13 +1966,11 @@ bool LogViolationDetailsRunnable::MainThreadRun() {
 
   nsIContentSecurityPolicy* csp = mWorkerPrivate->GetCSP();
   if (csp) {
-    if (mWorkerPrivate->GetReportCSPViolations()) {
-      csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_EVAL,
-                               nullptr,  // triggering element
-                               mWorkerPrivate->CSPEventListener(), mFileName,
-                               mScriptSample, mLineNum, mColumnNum, u""_ns,
-                               u""_ns);
-    }
+    csp->LogViolationDetails(mViolationType,
+                             nullptr,  // triggering element
+                             mWorkerPrivate->CSPEventListener(), mFileName,
+                             mScriptSample, mLineNum, mColumnNum, u""_ns,
+                             u""_ns);
   }
 
   return true;
@@ -2179,7 +2055,28 @@ WorkerThreadPrimaryRunnable::Run() {
       // visible to the cycle collector, so we need to make sure to clear the
       // debugger event queue before we try to destroy the context. If we don't,
       // the garbage collector will crash.
+      // Note that this just releases the runnables and does not execute them.
       mWorkerPrivate->ClearDebuggerEventQueue();
+
+      // Before shutting down the cycle collector we need to do one more pass
+      // through the event loop to clean up any C++ objects that need deferred
+      // cleanup.
+      NS_ProcessPendingEvents(nullptr);
+
+      // At this point we expect the scopes to be alive if they were ever
+      // created successfully, keep weak references.
+      nsWeakPtr globalScopeSentinel =
+          do_GetWeakReference(mWorkerPrivate->GlobalScope());
+      nsWeakPtr debuggerScopeSentinel =
+          do_GetWeakReference(mWorkerPrivate->DebuggerGlobalScope());
+      MOZ_ASSERT(!mWorkerPrivate->GlobalScope() || globalScopeSentinel);
+      MOZ_ASSERT(!mWorkerPrivate->DebuggerGlobalScope() ||
+                 debuggerScopeSentinel);
+
+      // To our best knowledge nobody should need a reference to our globals
+      // now (NS_ProcessPendingEvents is the last expected potential usage)
+      // and we can unroot them.
+      mWorkerPrivate->UnrootGlobalScopes();
 
       // Perform a full GC. This will collect the main worker global and CC,
       // which should break all cycles that touch JS.
@@ -2187,14 +2084,32 @@ WorkerThreadPrimaryRunnable::Run() {
       JS::NonIncrementalGC(cx, JS::GCOptions::Shutdown,
                            JS::GCReason::WORKER_SHUTDOWN);
 
-      // Before shutting down the cycle collector we need to do one more pass
-      // through the event loop to clean up any C++ objects that need deferred
-      // cleanup.
-      mWorkerPrivate->ClearMainEventQueue(WorkerPrivate::WorkerRan);
+      // The worker global should be unrooted and the shutdown of cycle
+      // collection should break all the remaining cycles.
+      nsCycleCollector_shutdown();
 
-      // Now WorkerJSContext goes out of scope and its destructor will shut
-      // down the cycle collector. This breaks any remaining cycles and collects
-      // any remaining C++ objects.
+      // Check sentinels if we actually removed all global scope references.
+      nsCOMPtr<DOMEventTargetHelper> globalScopeAlive =
+          do_QueryReferent(globalScopeSentinel);
+      MOZ_ASSERT(!globalScopeAlive);
+      nsCOMPtr<DOMEventTargetHelper> debuggerScopeAlive =
+          do_QueryReferent(debuggerScopeSentinel);
+      MOZ_ASSERT(!debuggerScopeAlive);
+
+      // Guard us against further usage of scopes' mWorkerPrivate in non-debug.
+      if (globalScopeAlive) {
+        static_cast<WorkerGlobalScopeBase*>(globalScopeAlive.get())
+            ->NoteWorkerTerminated();
+        globalScopeAlive = nullptr;
+      }
+      if (debuggerScopeAlive) {
+        static_cast<WorkerGlobalScopeBase*>(debuggerScopeAlive.get())
+            ->NoteWorkerTerminated();
+        debuggerScopeAlive = nullptr;
+      }
+
+      // Now WorkerJSContext goes out of scope. Do not use any cycle
+      // collectable objects nor JS after this point!
     }
   }
 
@@ -2220,11 +2135,7 @@ WorkerThreadPrimaryRunnable::FinishedRunnable::Run() {
   AssertIsOnMainThread();
 
   SafeRefPtr<WorkerThread> thread = std::move(mThread);
-
-  RuntimeService* rts = RuntimeService::GetService();
-  if (rts) {
-    rts->NoteIdleThread(std::move(thread));
-  } else if (thread->ShutdownRequired()) {
+  if (thread->ShutdownRequired()) {
     MOZ_ALWAYS_SUCCEEDS(thread->Shutdown());
   }
 

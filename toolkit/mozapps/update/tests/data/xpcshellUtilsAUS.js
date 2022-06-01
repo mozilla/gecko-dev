@@ -19,9 +19,6 @@
  * error are due to not having a profile when running some of the xpcshell
  * tests. Since most xpcshell tests also log these errors these tests don't
  * call do_get_profile unless necessary for the test.
- * The "This method is lossy. Use GetCanonicalPath !" warning on Windows in
- * nsLocalFileWin.cpp is from the call to GetNSSProfilePath in
- * nsNSSComponent.cpp due to it using GetNativeCanonicalPath.
  * "!mMainThread" in nsThreadManager.cpp are due to using timers and it might be
  * possible to fix some or all of these in the test itself.
  * "NS_FAILED(rv)" in nsThreadUtils.cpp are due to using timers and it might be
@@ -113,6 +110,8 @@ const ERR_BGTASK_EXCLUSIVE =
   "failed to exclusively open executable file from background task: ";
 
 const LOG_SVC_SUCCESSFUL_LAUNCH = "Process was started... waiting on result.";
+const LOG_SVC_UNSUCCESSFUL_LAUNCH =
+  "The install directory path is not valid for this application.";
 
 // Typical end of a message when calling assert
 const MSG_SHOULD_EQUAL = " should equal the expected value";
@@ -167,6 +166,7 @@ var gShouldResetEnv = undefined;
 var gAddedEnvXRENoWindowsCrashDialog = false;
 var gEnvXPCOMDebugBreak;
 var gEnvXPCOMMemLeakLog;
+var gEnvForceServiceFallback = false;
 
 const URL_HTTP_UPDATE_SJS = "http://test_details/";
 const DATA_URI_SPEC = Services.io.newFileURI(do_get_file("", false)).spec;
@@ -2139,7 +2139,15 @@ function runUpdate(
       "the contents of the maintenanceservice.log should not " +
         "be the same as the original contents"
     );
-    if (!isInvalidArgTest) {
+    if (gEnvForceServiceFallback) {
+      // If we are forcing the service to fail and fall back to update without
+      // the service, the service log should reflect that we failed in that way.
+      Assert.ok(
+        contents.includes(LOG_SVC_UNSUCCESSFUL_LAUNCH),
+        "the contents of the maintenanceservice.log should " +
+          "contain the unsuccessful launch string"
+      );
+    } else if (!isInvalidArgTest) {
       Assert.notEqual(
         contents.indexOf(LOG_SVC_SUCCESSFUL_LAUNCH),
         -1,
@@ -4732,7 +4740,12 @@ function setEnvironment() {
 
   gEnv.set("XPCOM_DEBUG_BREAK", "warn");
 
-  if (gIsServiceTest) {
+  if (gEnvForceServiceFallback) {
+    // This env variable forces the updater to use the service in an invalid
+    // way, so that it has to fall back to updating without the service.
+    debugDump("setting MOZ_FORCE_SERVICE_FALLBACK environment variable to 1");
+    gEnv.set("MOZ_FORCE_SERVICE_FALLBACK", "1");
+  } else if (gIsServiceTest) {
     debugDump("setting MOZ_NO_SERVICE_FALLBACK environment variable to 1");
     gEnv.set("MOZ_NO_SERVICE_FALLBACK", "1");
   }
@@ -4774,7 +4787,10 @@ function resetEnvironment() {
     gEnv.set("XRE_NO_WINDOWS_CRASH_DIALOG", "");
   }
 
-  if (gIsServiceTest) {
+  if (gEnvForceServiceFallback) {
+    debugDump("removing MOZ_FORCE_SERVICE_FALLBACK environment variable");
+    gEnv.set("MOZ_FORCE_SERVICE_FALLBACK", "");
+  } else if (gIsServiceTest) {
     debugDump("removing MOZ_NO_SERVICE_FALLBACK environment variable");
     gEnv.set("MOZ_NO_SERVICE_FALLBACK", "");
   }

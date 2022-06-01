@@ -437,7 +437,7 @@ if use_minidump:
     }.get(platform.system())
 
     injector_lib = resolve_path((DIR.fetches,), "injector", injector_basename)
-    stackwalk = resolve_path((DIR.fetches,), "minidump_stackwalk", "minidump_stackwalk")
+    stackwalk = resolve_path((DIR.fetches,), "minidump-stackwalk", "minidump-stackwalk")
     if stackwalk is not None:
         env.setdefault("MINIDUMP_STACKWALK", stackwalk)
     dump_syms = resolve_path((DIR.fetches,), "dump_syms", "dump_syms")
@@ -648,6 +648,15 @@ if args.variant == "msan":
         os.path.join(env["MOZ_UPLOAD_DIR"], "%s.tar.gz" % args.variant),
     ]
     command += files
+    subprocess.call(command)
+
+# Upload dist/bin/js as js.wasm for the WASI build.
+if args.variant == "wasi":
+    command = [
+        "cp",
+        os.path.join(OBJDIR, "dist/bin/js"),
+        os.path.join(env["MOZ_UPLOAD_DIR"], "js.wasm"),
+    ]
     subprocess.call(command)
 
 # Generate stacks from minidumps.

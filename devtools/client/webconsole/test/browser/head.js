@@ -16,16 +16,15 @@ Services.scriptloader.loadSubScript(
 );
 
 // Import helpers for the new debugger
-/* import-globals-from ../../../debugger/test/mochitest/helpers/context.js */
+/* import-globals-from ../../../debugger/test/mochitest/shared-head.js */
 Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/helpers/context.js",
+  "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/shared-head.js",
   this
 );
 
-// Import helpers for the new debugger
-/* import-globals-from ../../../debugger/test/mochitest/helpers.js*/
+/* import-globals-from ./shared-head.js */
 Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/helpers.js",
+  "chrome://mochitests/content/browser/devtools/client/webconsole/test/browser/shared-head.js",
   this
 );
 
@@ -152,7 +151,9 @@ function logAllStoreChanges(hud) {
   // Adding logging each time the store is modified in order to check
   // the store state in case of failure.
   store.subscribe(() => {
-    const messages = [...store.getState().messages.messagesById.values()];
+    const messages = [
+      ...store.getState().messages.mutableMessagesById.values(),
+    ];
     const debugMessages = messages.map(
       ({ id, type, parameters, messageText }) => {
         return { id, type, parameters, messageText };
@@ -171,17 +172,20 @@ function logAllStoreChanges(hud) {
 }
 
 /**
- * Wait for messages in the web console output, resolving once they are received.
+ * Wait for messages with given message type in the web console output,
+ * resolving once they are received.
  *
  * @param object options
  *        - hud: the webconsole
  *        - messages: Array[Object]. An array of messages to match.
-            Current supported options:
- *            - text: Partial text match in .message-body
- *        - selector: {String} a selector that should match the message node. Defaults to
- *                             ".message".
+ *          Current supported options:
+ *            - text: {String} Partial text match in .message-body
+ *            - typeSelector: {String} A part of selector for the message, to
+ *                                     specify the message type.
+ * @return promise
+ *         A promise that is resolved to an array of the message nodes
  */
-function waitForMessages({ hud, messages, selector = ".message" }) {
+function waitForMessagesByType({ hud, messages }) {
   return new Promise(resolve => {
     const matchedMessages = [];
     hud.ui.on("new-messages", function messagesReceived(newMessages) {
@@ -189,6 +193,17 @@ function waitForMessages({ hud, messages, selector = ".message" }) {
         if (message.matched) {
           continue;
         }
+
+        const typeSelector = message.typeSelector;
+        if (!typeSelector) {
+          throw new Error("typeSelector property is required");
+        }
+        if (!typeSelector.startsWith(".")) {
+          throw new Error(
+            "typeSelector property start with a dot e.g. `.result`"
+          );
+        }
+        const selector = ".message" + typeSelector;
 
         for (const newMessage of newMessages) {
           const messageBody = newMessage.node.querySelector(`.message-body`);
@@ -225,12 +240,14 @@ function waitForMessages({ hud, messages, selector = ".message" }) {
  *
  * @param {Object} hud : the webconsole
  * @param {String} text : text included in .message-body
+ * @param {String} typeSelector : A part of selector for the message, to
+ *                                specify the message type.
  * @param {Number} repeat : expected repeat count in .message-repeats
  */
-function waitForRepeatedMessage(hud, text, repeat) {
+function waitForRepeatedMessageByType(hud, text, typeSelector, repeat) {
   return waitFor(() => {
     // Wait for a message matching the provided text.
-    const node = findMessage(hud, text);
+    const node = findMessageByType(hud, text, typeSelector);
     if (!node) {
       return false;
     }
@@ -246,17 +263,20 @@ function waitForRepeatedMessage(hud, text, repeat) {
 }
 
 /**
- * Wait for a single message in the web console output, resolving once it is received.
+ * Wait for a single message with given message type in the web console output,
+ * resolving with the first message that matches the query once it is received.
  *
  * @param {Object} hud : the webconsole
  * @param {String} text : text included in .message-body
- * @param {String} selector : A selector that should match the message node.
+ * @param {String} typeSelector : A part of selector for the message, to
+ *                                specify the message type.
+ * @return promise
+ *         A promise that is resolved to the message node
  */
-async function waitForMessage(hud, text, selector) {
-  const messages = await waitForMessages({
+async function waitForMessageByType(hud, text, typeSelector) {
+  const messages = await waitForMessagesByType({
     hud,
-    messages: [{ text }],
-    selector,
+    messages: [{ text, typeSelector }],
   });
   return messages[0];
 }
@@ -272,44 +292,63 @@ function execute(hud, input) {
 }
 
 /**
- * Execute an input expression and wait for a message with the expected text (and an
- * optional selector) to be displayed in the output.
+ * Execute an input expression and wait for a message with the expected text
+ * with given message type to be displayed in the output.
  *
  * @param {Object} hud : The webconsole.
  * @param {String} input : The input expression to execute.
- * @param {String} matchingText : A string that should match the message body content.
- * @param {String} selector : A selector that should match the message node.
+ * @param {String} matchingText : A string that should match the message body content.
+ * @param {String} typeSelector : A part of selector for the message, to
+ *                                specify the message type.
  */
-function executeAndWaitForMessage(
+function executeAndWaitForMessageByType(
   hud,
   input,
   matchingText,
-  selector = ".message"
+  typeSelector
 ) {
-  const onMessage = waitForMessage(hud, matchingText, selector);
+  const onMessage = waitForMessageByType(hud, matchingText, typeSelector);
   execute(hud, input);
   return onMessage;
 }
 
 /**
- * Set the input value, simulates the right keyboard event to evaluate it, depending on
- * if the console is in editor mode or not, and wait for a message with the expected text
- * (and an optional selector) to be displayed in the output.
+ * Type-specific wrappers for executeAndWaitForMessageByType
  *
  * @param {Object} hud : The webconsole.
  * @param {String} input : The input expression to execute.
- * @param {String} matchingText : A string that should match the message body content.
- * @param {String} selector : A selector that should match the message node.
+ * @param {String} matchingText : A string that should match the message body
+ *                                content.
  */
-function keyboardExecuteAndWaitForMessage(
+function executeAndWaitForResultMessage(hud, input, matchingText) {
+  return executeAndWaitForMessageByType(hud, input, matchingText, ".result");
+}
+
+function executeAndWaitForErrorMessage(hud, input, matchingText) {
+  return executeAndWaitForMessageByType(hud, input, matchingText, ".error");
+}
+
+/**
+ * Set the input value, simulates the right keyboard event to evaluate it,
+ * depending on if the console is in editor mode or not, and wait for a message
+ * with the expected text with given message type to be displayed in the output.
+ *
+ * @param {Object} hud : The webconsole.
+ * @param {String} input : The input expression to execute.
+ * @param {String} matchingText : A string that should match the message body
+ *                                content.
+ * @param {String} typeSelector : A part of selector for the message, to
+ *                                specify the message type.
+ */
+function keyboardExecuteAndWaitForMessageByType(
   hud,
   input,
   matchingText,
-  selector = ".message"
+  typeSelector
 ) {
   hud.jsterm.focus();
   setInputValue(hud, input);
-  const onMessage = waitForMessage(hud, matchingText, selector);
+  const onMessage = waitForMessageByType(hud, matchingText, typeSelector);
   if (isEditorModeEnabled(hud)) {
     EventUtils.synthesizeKey("KEY_Enter", {
       [Services.appinfo.OS === "Darwin" ? "metaKey" : "ctrlKey"]: true,
@@ -321,38 +360,22 @@ function keyboardExecuteAndWaitForMessage(
 }
 
 /**
- * Find a message in the output.
+ * Type-specific wrappers for keyboardExecuteAndWaitForMessageByType
  *
- * @param object hud
- *        The web console.
- * @param string text
- *        A substring that can be found in the message.
- * @param selector [optional]
- *        The selector to use in finding the message.
- * @return {Node} the node corresponding the found message
+ * @param {Object} hud : The webconsole.
+ * @param {String} input : The input expression to execute.
+ * @param {String} matchingText : A string that should match the message body
+ *                                content.
  */
-function findMessage(hud, text, selector = ".message") {
-  const elements = findMessages(hud, text, selector);
-  return elements.pop();
+function keyboardExecuteAndWaitForResultMessage(hud, input, matchingText) {
+  return keyboardExecuteAndWaitForMessageByType(
+    hud,
+    input,
+    matchingText,
+    ".result"
+  );
 }
 
-/**
- * Find multiple messages in the output.
- *
- * @param object hud
- *        The web console.
- * @param string text
- *        A substring that can be found in the message.
- * @param selector [optional]
- *        The selector to use in finding the message.
- */
-function findMessages(hud, text, selector = ".message") {
-  const messages = hud.ui.outputNode.querySelectorAll(selector);
-  const elements = Array.prototype.filter.call(messages, el =>
-    el.textContent.includes(text)
-  );
-  return elements;
-}
 /**
  * Wait for a message to be logged and ensure it is logged only once.
  *
@@ -360,16 +383,20 @@ function findMessages(hud, text, selector = ".message") {
  *        The web console.
  * @param string text
  *        A substring that can be found in the message.
- * @param selector [optional]
- *        The selector to use in finding the message.
+ * @param string typeSelector
+ *        A part of selector for the message, to specify the message type.
  * @return {Node} the node corresponding the found message
  */
-async function checkUniqueMessageExists(hud, msg, selector) {
+async function checkUniqueMessageExists(hud, msg, typeSelector) {
   info(`Checking "${msg}" was logged`);
   let messages;
   try {
-    messages = await waitFor(() => {
-      const msgs = findMessages(hud, msg, selector);
+    messages = await waitFor(async () => {
+      const msgs = await findMessagesVirtualizedByType({
+        hud,
+        text: msg,
+        typeSelector,
+      });
       return msgs.length > 0 ? msgs : null;
     });
   } catch (e) {
@@ -477,40 +504,42 @@ function waitForNodeMutation(node, observeConfig = {}) {
  *
  * @param {Object} hud
  *        The webconsole
- * @param {Object} toolbox
- *        The toolbox
- * @param {String} text
- *        The text to search for. This should be contained in the
- *        message. The searching is done with @see findMessage.
- * @param {boolean} expectUrl
- *        Whether the URL in the opened source should match the link, or whether
- *        it is expected to be null.
- * @param {boolean} expectLine
- *        It indicates if there is the need to check the line.
- * @param {boolean} expectColumn
- *        It indicates if there is the need to check the column.
- * @param {String} logPointExpr
- *        The logpoint expression
+ * @param {Object} options
+ *        - text: {String} The text to search for. This should be contained in
+ *                         the message. The searching is done with
+ *                         @see findMessageByType.
+ *        - typeSelector: {string} A part of selector for the message, to
+ *                                 specify the message type.
+ *        - expectUrl: {boolean} Whether the URL in the opened source should
+ *                               match the link, or whether it is expected to
+ *                               be null.
+ *        - expectLine: {boolean} It indicates if there is the need to check
+ *                                the line.
+ *        - expectColumn: {boolean} It indicates if there is the need to check
+ *                                the column.
+ *        - logPointExpr: {String} The logpoint expression
  */
 async function testOpenInDebugger(
   hud,
-  toolbox,
-  text,
-  expectUrl = true,
-  expectLine = true,
-  expectColumn = true,
-  logPointExpr = undefined
+  {
+    text,
+    typeSelector,
+    expectUrl = true,
+    expectLine = true,
+    expectColumn = true,
+    logPointExpr = undefined,
+  }
 ) {
   info(`Finding message for open-in-debugger test; text is "${text}"`);
-  const messageNode = await waitFor(() => findMessage(hud, text));
-  const frameLinkNode = messageNode.querySelector(
-    ".message-location .frame-link"
+  const messageNode = await waitFor(() =>
+    findMessageByType(hud, text, typeSelector)
   );
-  ok(frameLinkNode, "The message does have a location link");
+  const locationNode = messageNode.querySelector(".message-location");
+  ok(locationNode, "The message does have a location link");
   await checkClickOnNode(
     hud,
-    toolbox,
-    frameLinkNode,
+    hud.toolbox,
+    locationNode,
     expectUrl,
     expectLine,
     expectColumn,
@@ -1000,7 +1029,7 @@ async function openMessageInNetmonitor(toolbox, hud, url, urlInConsole) {
   urlInConsole = urlInConsole || url;
 
   const message = await waitFor(() =>
-    findMessage(hud, urlInConsole, ".network")
+    findMessageByType(hud, urlInConsole, ".network")
   );
 
   const onNetmonitorSelected = toolbox.once(
@@ -1523,8 +1552,8 @@ function isScrolledToBottom(container) {
  *                        Start the string with "|︎ " to indicate that the message is
  *                        inside a group and should be indented.
  */
-function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
-  const messages = findMessages(hud, "");
+async function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
+  const messages = await findAllMessagesVirtualized(hud);
   is(
     messages.length,
     expectedMessages.length,
@@ -1547,8 +1576,12 @@ function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
     return groups[0].startsWith("▶︎⚠") || groups[0].startsWith("▼⚠");
   };
 
-  expectedMessages.forEach((expectedMessage, i) => {
-    const message = messages[i];
+  for (let [i, expectedMessage] of expectedMessages.entries()) {
+    // Refresh the reference to the message, as it may have been scrolled out of existence.
+    const message = await findMessageVirtualizedById({
+      hud,
+      messageId: messages[i].getAttribute("data-message-id"),
+    });
     info(`Checking "${expectedMessage}"`);
 
     // Collapsed Warning group
@@ -1559,7 +1592,7 @@ function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
         "There's a collapsed arrow"
       );
       is(
-        message.querySelector(".indent").getAttribute("data-indent"),
+        message.getAttribute("data-indent"),
         "0",
         "The warningGroup has the expected indent"
       );
@@ -1574,7 +1607,7 @@ function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
         "There's an expanded arrow"
       );
       is(
-        message.querySelector(".indent").getAttribute("data-indent"),
+        message.getAttribute("data-indent"),
         "0",
         "The warningGroup has the expected indent"
       );
@@ -1605,9 +1638,7 @@ function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
     if (expectedMessage.startsWith("|")) {
       if (isInWarningGroup(i)) {
         is(
-          message
-            .querySelector(".indent.warning-indent")
-            .getAttribute("data-indent"),
+          message.getAttribute("data-indent"),
           "1",
           "The message has the expected indent"
         );
@@ -1616,7 +1647,7 @@ function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
       expectedMessage = expectedMessage.replace("| ", "");
     } else {
       is(
-        message.querySelector(".indent").getAttribute("data-indent"),
+        message.getAttribute("data-indent"),
         "0",
         "The message has the expected indent"
       );
@@ -1627,7 +1658,7 @@ function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
       `Message includes ` +
         `the expected "${expectedMessage}" content - "${message.textContent.trim()}"`
     );
-  });
+  }
 }
 
 /**
@@ -1642,7 +1673,7 @@ function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
 async function checkMessageStack(hud, text, expectedFrameLines) {
   info(`Checking message stack for "${text}"`);
   const msgNode = await waitFor(
-    () => findMessage(hud, text),
+    () => findErrorMessage(hud, text),
     `Couln't find message including "${text}"`
   );
   ok(!msgNode.classList.contains("open"), `Error logged not expanded`);

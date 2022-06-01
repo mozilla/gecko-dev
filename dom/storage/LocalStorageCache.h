@@ -16,8 +16,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/Atomics.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class LocalStorage;
 class LocalStorageCacheChild;
@@ -244,7 +243,7 @@ class LocalStorageCache : public LocalStorageCacheBridge {
   Data mData[kDataSetCount];
 
   // This monitor is used to wait for full load of data.
-  mozilla::Monitor mMonitor;
+  mozilla::Monitor mMonitor MOZ_UNANNOTATED;
 
   // Flag that is initially false.  When the cache is about to work with
   // the database (i.e. it is persistent) this flags is set to true after
@@ -302,7 +301,6 @@ class StorageUsage : public StorageUsageBridge {
   int64_t mUsage[LocalStorageCache::kDataSetCount];
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_LocalStorageCache_h

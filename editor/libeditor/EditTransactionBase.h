@@ -6,6 +6,8 @@
 #ifndef mozilla_EditTransactionBase_h
 #define mozilla_EditTransactionBase_h
 
+#include "mozilla/EditorForwards.h"
+
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupportsImpl.h"
 #include "nsITransaction.h"
@@ -21,22 +23,7 @@ nsITransaction::GetAsEditTransactionBase() {
 }
 
 namespace mozilla {
-
-class ChangeAttributeTransaction;
-class ChangeStyleTransaction;
-class CompositionTransaction;
-class CreateElementTransaction;
-class DeleteNodeTransaction;
-class DeleteRangeTransaction;
-class DeleteTextTransaction;
-class EditAggregateTransaction;
-class InsertNodeTransaction;
-class InsertTextTransaction;
-class JoinNodeTransaction;
 class LogModule;
-class PlaceholderTransaction;
-class ReplaceTextTransaction;
-class SplitNodeTransaction;
 
 #define NS_DECL_GETASTRANSACTION_BASE(aClass) \
   virtual aClass* GetAs##aClass();            \
@@ -64,14 +51,14 @@ class EditTransactionBase : public nsITransaction {
   NS_DECL_GETASTRANSACTION_BASE(ChangeAttributeTransaction)
   NS_DECL_GETASTRANSACTION_BASE(ChangeStyleTransaction)
   NS_DECL_GETASTRANSACTION_BASE(CompositionTransaction)
-  NS_DECL_GETASTRANSACTION_BASE(CreateElementTransaction)
   NS_DECL_GETASTRANSACTION_BASE(DeleteNodeTransaction)
   NS_DECL_GETASTRANSACTION_BASE(DeleteRangeTransaction)
   NS_DECL_GETASTRANSACTION_BASE(DeleteTextTransaction)
   NS_DECL_GETASTRANSACTION_BASE(EditAggregateTransaction)
   NS_DECL_GETASTRANSACTION_BASE(InsertNodeTransaction)
   NS_DECL_GETASTRANSACTION_BASE(InsertTextTransaction)
-  NS_DECL_GETASTRANSACTION_BASE(JoinNodeTransaction)
+  NS_DECL_GETASTRANSACTION_BASE(JoinNodesTransaction)
+  NS_DECL_GETASTRANSACTION_BASE(MoveNodeTransaction)
   NS_DECL_GETASTRANSACTION_BASE(PlaceholderTransaction)
   NS_DECL_GETASTRANSACTION_BASE(ReplaceTextTransaction)
   NS_DECL_GETASTRANSACTION_BASE(SplitNodeTransaction)

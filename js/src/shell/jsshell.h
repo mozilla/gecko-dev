@@ -12,6 +12,7 @@
 #include "mozilla/TimeStamp.h"
 
 #include "builtin/MapObject.h"
+#include "js/CompileOptions.h"
 #include "js/GCVector.h"
 #include "shell/ModuleLoader.h"
 #include "threading/ConditionVariable.h"
@@ -105,6 +106,7 @@ extern bool encodeSelfHostedCode;
 extern bool enableCodeCoverage;
 extern bool enableDisassemblyDumps;
 extern bool offthreadCompilation;
+extern JS::DelazificationOption defaultDelazificationMode;
 extern bool enableAsmJS;
 extern bool enableWasm;
 extern bool enableSharedMemory;
@@ -126,7 +128,7 @@ extern bool enableAsyncStackCaptureDebuggeeOnly;
 extern bool enableStreams;
 extern bool enableReadableByteStreams;
 extern bool enableBYOBStreamReaders;
-extern bool enableWritableStreams;
+
 extern bool enableReadableStreamPipeTo;
 extern bool enableWeakRefs;
 extern bool enableToSource;
@@ -229,7 +231,7 @@ struct ShellContext {
   /*
    * Watchdog thread state.
    */
-  js::Mutex watchdogLock;
+  js::Mutex watchdogLock MOZ_UNANNOTATED;
   js::ConditionVariable watchdogWakeup;
   mozilla::Maybe<js::Thread> watchdogThread;
   mozilla::Maybe<mozilla::TimeStamp> watchdogTimeout;
@@ -252,7 +254,7 @@ struct ShellContext {
   UniquePtr<MarkBitObservers> markObservers;
 
   // Off-thread parse state.
-  js::Monitor offThreadMonitor;
+  js::Monitor offThreadMonitor MOZ_UNANNOTATED;
   Vector<OffThreadJob*, 0, SystemAllocPolicy> offThreadJobs;
 
   // Queued finalization registry cleanup jobs.

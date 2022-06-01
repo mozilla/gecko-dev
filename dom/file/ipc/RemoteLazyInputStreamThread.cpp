@@ -6,6 +6,7 @@
 
 #include "RemoteLazyInputStreamThread.h"
 
+#include "ErrorList.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
@@ -37,57 +38,9 @@ class ThreadInitializeRunnable final : public Runnable {
   }
 };
 
-class MigrateActorRunnable final : public Runnable {
- public:
-  explicit MigrateActorRunnable(RemoteLazyInputStreamChild* aActor)
-      : Runnable("dom::MigrateActorRunnable"), mActor(aActor) {
-    MOZ_ASSERT(mActor);
-  }
-
-  NS_IMETHOD
-  Run() override {
-    MOZ_ASSERT(mActor->State() ==
-               RemoteLazyInputStreamChild::eInactiveMigrating);
-
-    PBackgroundChild* actorChild =
-        BackgroundChild::GetOrCreateForCurrentThread();
-    if (!actorChild) {
-      return NS_OK;
-    }
-
-    if (actorChild->SendPRemoteLazyInputStreamConstructor(mActor, mActor->ID(),
-                                                          mActor->Size())) {
-      mActor->Migrated();
-    }
-
-    return NS_OK;
-  }
-
- private:
-  ~MigrateActorRunnable() = default;
-
-  RefPtr<RemoteLazyInputStreamChild> mActor;
-};
-
 }  // namespace
 
 NS_IMPL_ISUPPORTS(RemoteLazyInputStreamThread, nsIObserver, nsIEventTarget)
-
-/* static */
-bool RemoteLazyInputStreamThread::IsOnFileEventTarget(
-    nsIEventTarget* aEventTarget) {
-  MOZ_ASSERT(aEventTarget);
-
-  // Note that we don't migrate actors when we are on the socket process
-  // because, on that process, we don't have complex life-time contexts such
-  // as workers and documents.
-  if (XRE_IsSocketProcess()) {
-    return true;
-  }
-
-  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
-  return gRemoteLazyThread && aEventTarget == gRemoteLazyThread->mThread;
-}
 
 /* static */
 RemoteLazyInputStreamThread* RemoteLazyInputStreamThread::Get() {
@@ -126,14 +79,6 @@ bool RemoteLazyInputStreamThread::Initialize() {
   }
 
   mThread = thread;
-
-  if (!mPendingActors.IsEmpty()) {
-    for (uint32_t i = 0; i < mPendingActors.Length(); ++i) {
-      MigrateActorInternal(mPendingActors[i]);
-    }
-
-    mPendingActors.Clear();
-  }
 
   if (!NS_IsMainThread()) {
     RefPtr<Runnable> runnable = new ThreadInitializeRunnable();
@@ -178,31 +123,6 @@ RemoteLazyInputStreamThread::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_OK;
 }
 
-void RemoteLazyInputStreamThread::MigrateActor(
-    RemoteLazyInputStreamChild* aActor) {
-  MOZ_ASSERT(aActor->State() == RemoteLazyInputStreamChild::eInactiveMigrating);
-
-  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
-
-  if (gShutdownHasStarted) {
-    return;
-  }
-
-  if (!mThread) {
-    // The thread is not initialized yet.
-    mPendingActors.AppendElement(aActor);
-    return;
-  }
-
-  MigrateActorInternal(aActor);
-}
-
-void RemoteLazyInputStreamThread::MigrateActorInternal(
-    RemoteLazyInputStreamChild* aActor) {
-  RefPtr<Runnable> runnable = new MigrateActorRunnable(aActor);
-  mThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
-}
-
 // nsIEventTarget
 
 NS_IMETHODIMP_(bool)
@@ -239,6 +159,16 @@ RemoteLazyInputStreamThread::DispatchFromScript(nsIRunnable* aRunnable,
 NS_IMETHODIMP
 RemoteLazyInputStreamThread::DelayedDispatch(already_AddRefed<nsIRunnable>,
                                              uint32_t) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+RemoteLazyInputStreamThread::RegisterShutdownTask(nsITargetShutdownTask*) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+RemoteLazyInputStreamThread::UnregisterShutdownTask(nsITargetShutdownTask*) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

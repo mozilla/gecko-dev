@@ -18,8 +18,7 @@
 
 struct JSContext;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class DocumentTimeline final : public AnimationTimeline,
                                public nsARefreshObserver,
@@ -68,6 +67,8 @@ class DocumentTimeline final : public AnimationTimeline,
 
   Document* GetDocument() const override { return mDocument; }
 
+  void UpdateLastRefreshDriverTime();
+
   bool IsMonotonicallyIncreasing() const override { return true; }
 
  protected:
@@ -83,13 +84,12 @@ class DocumentTimeline final : public AnimationTimeline,
   // The most recently used refresh driver time. This is used in cases where
   // we don't have a refresh driver (e.g. because we are in a display:none
   // iframe).
-  mutable TimeStamp mLastRefreshDriverTime;
+  TimeStamp mLastRefreshDriverTime;
   bool mIsObservingRefreshDriver;
 
   TimeDuration mOriginTime;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_DocumentTimeline_h

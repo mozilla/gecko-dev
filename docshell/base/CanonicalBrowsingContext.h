@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_CanonicalBrowsingContext_h
 #define mozilla_dom_CanonicalBrowsingContext_h
 
+#include "mozilla/net/EarlyHintsService.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/MediaControlKeySource.h"
 #include "mozilla/dom/BrowsingContextWebProgress.h"
@@ -25,6 +26,7 @@
 #include "nsHashKeys.h"
 #include "nsISecureBrowserUI.h"
 
+class nsIBrowserDOMWindow;
 class nsISHistory;
 class nsIWidget;
 class nsIPrintSettings;
@@ -55,6 +57,8 @@ class MediaController;
 struct LoadingSessionHistoryInfo;
 class SSCacheCopy;
 class WindowGlobalParent;
+class SessionStoreFormData;
+class SessionStoreScrollData;
 
 // CanonicalBrowsingContext is a BrowsingContext living in the parent
 // process, with whatever extra data that a BrowsingContext in the
@@ -109,6 +113,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   WindowGlobalParent* GetTopWindowContext();
 
   already_AddRefed<nsIWidget> GetParentProcessWidgetContaining();
+  already_AddRefed<nsIBrowserDOMWindow> GetBrowserDOMWindow();
 
   // Same as `GetParentWindowContext`, but will also cross <browser> and
   // content/chrome boundaries.
@@ -127,11 +132,11 @@ class CanonicalBrowsingContext final : public BrowsingContext {
       nsDocShellLoadState* aLoadState, nsIChannel* aChannel);
 
   UniquePtr<LoadingSessionHistoryInfo> ReplaceLoadingSessionHistoryEntryForLoad(
-      LoadingSessionHistoryInfo* aInfo, nsIChannel* aOldChannel,
-      nsIChannel* aNewChannel);
+      LoadingSessionHistoryInfo* aInfo, nsIChannel* aNewChannel);
 
-  already_AddRefed<Promise> Print(nsIPrintSettings* aPrintSettings,
-                                  ErrorResult& aRv);
+  using PrintPromise = MozPromise</* unused */ bool, nsresult, false>;
+  RefPtr<PrintPromise> Print(nsIPrintSettings*);
+  already_AddRefed<Promise> PrintJS(nsIPrintSettings*, ErrorResult&);
 
   // Call the given callback on all top-level descendant BrowsingContexts.
   // Return Callstate::Stop from the callback to stop calling
@@ -281,6 +286,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   void HistoryCommitIndexAndLength();
 
+  void SynchronizeLayoutHistoryState();
+
   void ResetScalingZoom();
 
   void SetContainerFeaturePolicy(FeaturePolicy* aContainerFeaturePolicy);
@@ -323,6 +330,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   }
 
   void SetTouchEventsOverride(dom::TouchEventsOverride, ErrorResult& aRv);
+  void SetTargetTopLevelLinkClicksToBlank(bool aTargetTopLevelLinkClicksToBlank,
+                                          ErrorResult& aRv);
 
   bool IsReplaced() const { return mIsReplaced; }
 
@@ -353,6 +362,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   void StopApzAutoscroll(nsViewID aScrollId, uint32_t aPresShellId);
 
   void AddFinalDiscardListener(std::function<void(uint64_t)>&& aListener);
+
+  net::EarlyHintsService* GetEarlyHintsService();
 
  protected:
   // Called when the browsing context is being discarded.
@@ -436,7 +447,10 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   // Called once DocumentLoadListener completes handling a load, and it
   // is either complete, or handed off to the final channel to deliver
   // data to the destination docshell.
-  void EndDocumentLoad(bool aForProcessSwitch);
+  // If aContinueNavigating it set, the reference to the DocumentLoadListener
+  // will be cleared to prevent it being cancelled, however the current load ID
+  // will be preserved until `EndDocumentLoad` is called again.
+  void EndDocumentLoad(bool aContinueNavigating);
 
   bool SupportsLoadingInParent(nsDocShellLoadState* aLoadState,
                                uint64_t* aOuterWindowId);
@@ -465,7 +479,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   bool ShouldAddEntryForRefresh(const SessionHistoryEntry* aEntry) {
     return ShouldAddEntryForRefresh(aEntry->Info().GetURI(),
-                                    aEntry->Info().GetPostData());
+                                    aEntry->Info().HasPostData());
   }
   bool ShouldAddEntryForRefresh(nsIURI* aNewURI, bool aHasPostData) {
     nsCOMPtr<nsIURI> currentURI = GetCurrentURI();
@@ -523,6 +537,17 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   RefPtr<FeaturePolicy> mContainerFeaturePolicy;
 
+  friend class BrowserSessionStore;
+  WeakPtr<SessionStoreFormData>& GetSessionStoreFormDataRef() {
+    return mFormdata;
+  }
+  WeakPtr<SessionStoreScrollData>& GetSessionStoreScrollDataRef() {
+    return mScroll;
+  }
+
+  WeakPtr<SessionStoreFormData> mFormdata;
+  WeakPtr<SessionStoreScrollData> mScroll;
+
   RefPtr<RestoreState> mRestoreState;
 
   // If this is a top level context, this is true if our browser ID is marked as
@@ -543,6 +568,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   bool mFullyDiscarded = false;
 
   nsTArray<std::function<void(uint64_t)>> mFullyDiscardedListeners;
+
+  net::EarlyHintsService mEarlyHintsService;
 };
 
 }  // namespace dom

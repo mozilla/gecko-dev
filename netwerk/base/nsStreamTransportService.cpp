@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsStreamTransportService.h"
+#include "ErrorList.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsNetSegmentUtils.h"
 #include "nsTransportUtils.h"
@@ -16,7 +17,6 @@
 #include "nsITransport.h"
 #include "nsIObserverService.h"
 #include "nsThreadPool.h"
-#include "mozilla/DelayedRunnable.h"
 #include "mozilla/Services.h"
 
 namespace mozilla {
@@ -48,7 +48,7 @@ class nsInputStreamTransport : public nsITransport,
  private:
   virtual ~nsInputStreamTransport() = default;
 
-  Mutex mMutex{"nsInputStreamTransport::mMutex"};
+  Mutex mMutex MOZ_UNANNOTATED{"nsInputStreamTransport::mMutex"};
 
   // This value is protected by mutex.
   nsCOMPtr<nsIInputStreamCallback> mAsyncWaitCallback;
@@ -207,7 +207,8 @@ nsInputStreamTransport::AsyncWait(nsIInputStreamCallback* aCallback,
   {
     MutexAutoLock lock(mMutex);
 
-    if (mAsyncWaitCallback && aCallback) {
+    if (NS_WARN_IF(mAsyncWaitCallback && aCallback &&
+                   mAsyncWaitCallback != aCallback)) {
       return NS_ERROR_FAILURE;
     }
 
@@ -242,15 +243,16 @@ nsInputStreamTransport::OnInputStreamReady(nsIAsyncInputStream* aStream) {
 // nsStreamTransportService
 //-----------------------------------------------------------------------------
 
-nsStreamTransportService::nsStreamTransportService()
-    : mScheduledDelayedRunnables(
-          "nsStreamTransportService.mScheduledDelayedRunnables") {}
+nsStreamTransportService::nsStreamTransportService() = default;
 
 nsStreamTransportService::~nsStreamTransportService() {
   NS_ASSERTION(!mPool, "thread pool wasn't shutdown");
 }
 
 nsresult nsStreamTransportService::Init() {
+  // Can't be used multithreaded before this
+  PUSH_IGNORE_THREAD_SAFETY
+  MOZ_ASSERT(!mPool);
   mPool = new nsThreadPool();
 
   // Configure the pool
@@ -259,31 +261,15 @@ nsresult nsStreamTransportService::Init() {
   mPool->SetIdleThreadLimit(5);
   mPool->SetIdleThreadTimeoutRegressive(true);
   mPool->SetIdleThreadTimeout(PR_SecondsToInterval(30));
+  POP_THREAD_SAFETY
 
   nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
   if (obsSvc) obsSvc->AddObserver(this, "xpcom-shutdown-threads", false);
   return NS_OK;
 }
 
-void nsStreamTransportService::OnDelayedRunnableCreated(
-    DelayedRunnable* aRunnable) {}
-
-void nsStreamTransportService::OnDelayedRunnableScheduled(
-    DelayedRunnable* aRunnable) {
-  MOZ_ASSERT(IsOnCurrentThread());
-  auto delayedRunnables = mScheduledDelayedRunnables.Lock();
-  delayedRunnables->AppendElement(aRunnable);
-}
-
-void nsStreamTransportService::OnDelayedRunnableRan(
-    DelayedRunnable* aRunnable) {
-  MOZ_ASSERT(IsOnCurrentThread());
-  auto delayedRunnables = mScheduledDelayedRunnables.Lock();
-  Unused << delayedRunnables->RemoveElement(aRunnable);
-}
-
 NS_IMPL_ISUPPORTS(nsStreamTransportService, nsIStreamTransportService,
-                  nsIEventTarget, nsIDelayedRunnableObserver, nsIObserver)
+                  nsIEventTarget, nsIObserver)
 
 NS_IMETHODIMP
 nsStreamTransportService::DispatchFromScript(nsIRunnable* task,
@@ -311,15 +297,17 @@ nsStreamTransportService::Dispatch(already_AddRefed<nsIRunnable> task,
 NS_IMETHODIMP
 nsStreamTransportService::DelayedDispatch(already_AddRefed<nsIRunnable> aEvent,
                                           uint32_t aDelayMs) {
-  nsCOMPtr<nsIRunnable> event = aEvent;
-  NS_ENSURE_TRUE(!!aDelayMs, NS_ERROR_UNEXPECTED);
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
 
-  RefPtr<DelayedRunnable> r =
-      new DelayedRunnable(do_AddRef(this), event.forget(), aDelayMs);
-  nsresult rv = r->Init();
-  NS_ENSURE_SUCCESS(rv, rv);
+NS_IMETHODIMP
+nsStreamTransportService::RegisterShutdownTask(nsITargetShutdownTask*) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
 
-  return Dispatch(r.forget(), NS_DISPATCH_NORMAL);
+NS_IMETHODIMP
+nsStreamTransportService::UnregisterShutdownTask(nsITargetShutdownTask*) {
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP_(bool)
@@ -365,38 +353,16 @@ nsStreamTransportService::Observe(nsISupports* subject, const char* topic,
   NS_ASSERTION(strcmp(topic, "xpcom-shutdown-threads") == 0, "oops");
 
   {
-    mozilla::MutexAutoLock lock(mShutdownLock);
-    mIsShutdown = true;
-  }
+    nsCOMPtr<nsIThreadPool> pool;
+    {
+      mozilla::MutexAutoLock lock(mShutdownLock);
+      mIsShutdown = true;
+      pool = mPool.forget();
+    }
 
-  if (mPool) {
-    mPool->Shutdown();
-    mPool = nullptr;
-  }
-
-  // Because the DelayedRunnables are run by a thread pool, no guarantee is
-  // given to which thread they run or get released on. Releasing them on the
-  // thread pool or on the background target thus doesn't really matter. We are
-  // forced to do it on the background target after the thread pool has finished
-  // processing all events, since doing it on the thread pool would allow the
-  // shutdown task to race with scheduling new DelayedRunnables, possibly
-  // missing the cleanup of some of them.
-  nsTArray<RefPtr<DelayedRunnable>> delayedRunnables;
-  {
-    auto sdrs = mScheduledDelayedRunnables.Lock();
-    std::swap(*sdrs, delayedRunnables);
-    MOZ_ASSERT(sdrs->IsEmpty());
-  }
-  if (!delayedRunnables.IsEmpty()) {
-    NS_DispatchBackgroundTask(
-        NS_NewRunnableFunction(
-            "nsStreamTransportService::mScheduledDelayedRunnables Cancel",
-            [delayedRunnables = std::move(delayedRunnables)] {
-              for (const auto& r : delayedRunnables) {
-                r->CancelTimer();
-              }
-            }),
-        NS_DISPATCH_SYNC);
+    if (pool) {
+      pool->Shutdown();
+    }
   }
   return NS_OK;
 }

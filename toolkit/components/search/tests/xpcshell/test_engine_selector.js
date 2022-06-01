@@ -21,8 +21,30 @@ const TEST_CONFIG = [
       {
         included: { regions: ["us"] },
         webExtension: {
+          locales: ["baz-$USER_LOCALE"],
+        },
+        telemetryId: "foo-$USER_LOCALE",
+      },
+      {
+        included: { regions: ["fr"] },
+        webExtension: {
+          locales: ["region-$USER_REGION"],
+        },
+        telemetryId: "bar-$USER_REGION",
+      },
+      {
+        included: { regions: ["be"] },
+        webExtension: {
           locales: ["$USER_LOCALE"],
         },
+        telemetryId: "$USER_LOCALE",
+      },
+      {
+        included: { regions: ["au"] },
+        webExtension: {
+          locales: ["$USER_REGION"],
+        },
+        telemetryId: "$USER_REGION",
       },
     ],
   },
@@ -71,10 +93,12 @@ const TEST_CONFIG = [
 
 const engineSelector = new SearchEngineSelector();
 
-add_task(async function() {
+add_task(async function setup() {
   const settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
   sinon.stub(settings, "get").returns(TEST_CONFIG);
+});
 
+add_task(async function test_engine_selector() {
   let {
     engines,
     privateDefault,
@@ -91,7 +115,7 @@ add_task(async function() {
   Assert.deepEqual(names, ["lycos", "altavista", "aol"], "Correct order");
   Assert.equal(
     engines[2].webExtension.locale,
-    "en-US",
+    "baz-en-US",
     "Subsequent matches in applies to can override default"
   );
 
@@ -133,5 +157,87 @@ add_task(async function() {
     privateDefault.engineName,
     "altavista",
     "Should set altavista as privateDefault"
+  );
+});
+
+add_task(async function test_locale_region_replacement() {
+  let { engines } = await engineSelector.fetchEngineConfiguration({
+    locale: "en-US",
+    region: "us",
+  });
+  let engine = engines.find(e => e.engineName == "aol");
+  Assert.equal(
+    engine.webExtension.locale,
+    "baz-en-US",
+    "The locale is correctly inserted into the locale field"
+  );
+  Assert.equal(
+    engine.telemetryId,
+    "foo-en-US",
+    "The locale is correctly inserted into the telemetryId"
+  );
+
+  ({ engines } = await engineSelector.fetchEngineConfiguration({
+    locale: "it",
+    region: "us",
+  }));
+  engine = engines.find(e => e.engineName == "aol");
+
+  Assert.equal(
+    engines.find(e => e.engineName == "aol").webExtension.locale,
+    "baz-it",
+    "The locale is correctly inserted into the locale field"
+  );
+  Assert.equal(
+    engine.telemetryId,
+    "foo-it",
+    "The locale is correctly inserted into the telemetryId"
+  );
+
+  ({ engines } = await engineSelector.fetchEngineConfiguration({
+    locale: "en-CA",
+    region: "fr",
+  }));
+  engine = engines.find(e => e.engineName == "aol");
+  Assert.equal(
+    engine.webExtension.locale,
+    "region-fr",
+    "The region is correctly inserted into the locale field"
+  );
+  Assert.equal(
+    engine.telemetryId,
+    "bar-fr",
+    "The region is correctly inserted into the telemetryId"
+  );
+
+  ({ engines } = await engineSelector.fetchEngineConfiguration({
+    locale: "fy-NL",
+    region: "be",
+  }));
+  engine = engines.find(e => e.engineName == "aol");
+  Assert.equal(
+    engine.webExtension.locale,
+    "fy-NL",
+    "The locale is correctly inserted into the locale field"
+  );
+  Assert.equal(
+    engine.telemetryId,
+    "fy-NL",
+    "The locale is correctly inserted into the telemetryId"
+  );
+  ({ engines } = await engineSelector.fetchEngineConfiguration({
+    locale: "en-US",
+    region: "au",
+  }));
+  engine = engines.find(e => e.engineName == "aol");
+  Assert.equal(
+    engine.webExtension.locale,
+    "au",
+    "The region is correctly inserted into the locale field"
+  );
+  Assert.equal(
+    engine.telemetryId,
+    "au",
+    "The region is correctly inserted into the telemetryId"
   );
 });

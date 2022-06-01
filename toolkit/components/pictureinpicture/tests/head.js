@@ -89,27 +89,51 @@ const DEFAULT_TOGGLE_STYLES = {
  * Picture-in-Picture for that <video>, and resolves with the
  * Picture-in-Picture window once it is ready to be used.
  *
+ * If triggerFn is not specified, then open using the
+ * MozTogglePictureInPicture event.
+ *
  * @param {Element,BrowsingContext} browser The <xul:browser> or
  * BrowsingContext hosting the <video>
  *
  * @param {String} videoID The ID of the video to trigger
  * Picture-in-Picture on.
  *
+ * @param {boolean} triggerFn Use the given function to open the pip window,
+ *                  which runs in the parent process.
+ *
  * @return Promise
  * @resolves With the Picture-in-Picture window when ready.
  */
-async function triggerPictureInPicture(browser, videoID) {
+async function triggerPictureInPicture(browser, videoID, triggerFn) {
   let domWindowOpened = BrowserTestUtils.domWindowOpenedAndLoaded(null);
-  let videoReady = SpecialPowers.spawn(browser, [videoID], async videoID => {
-    let video = content.document.getElementById(videoID);
-    let event = new content.CustomEvent("MozTogglePictureInPicture", {
-      bubbles: true,
+
+  let videoReady = null;
+  if (triggerFn) {
+    await SpecialPowers.spawn(browser, [videoID], async videoID => {
+      let video = content.document.getElementById(videoID);
+      video.focus();
     });
-    video.dispatchEvent(event);
-    await ContentTaskUtils.waitForCondition(() => {
-      return video.isCloningElementVisually;
-    }, "Video is being cloned visually.");
-  });
+
+    triggerFn();
+
+    videoReady = SpecialPowers.spawn(browser, [videoID], async videoID => {
+      let video = content.document.getElementById(videoID);
+      await ContentTaskUtils.waitForCondition(() => {
+        return video.isCloningElementVisually;
+      }, "Video is being cloned visually.");
+    });
+  } else {
+    videoReady = SpecialPowers.spawn(browser, [videoID], async videoID => {
+      let video = content.document.getElementById(videoID);
+      let event = new content.CustomEvent("MozTogglePictureInPicture", {
+        bubbles: true,
+      });
+      video.dispatchEvent(event);
+      await ContentTaskUtils.waitForCondition(() => {
+        return video.isCloningElementVisually;
+      }, "Video is being cloned visually.");
+    });
+  }
   let win = await domWindowOpened;
   await Promise.all([
     SimpleTest.promiseFocus(win),

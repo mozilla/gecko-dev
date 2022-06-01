@@ -8,7 +8,6 @@
 set(JPEGXL_INTERNAL_SOURCES_GBENCH
   extras/tone_mapping_gbench.cc
   jxl/dec_external_image_gbench.cc
-  jxl/dec_reconstruct_gbench.cc
   jxl/enc_external_image_gbench.cc
   jxl/gauss_blur_gbench.cc
   jxl/splines_gbench.cc
@@ -35,7 +34,7 @@ if(benchmark_FOUND)
   add_executable(jxl_gbench "${JPEGXL_INTERNAL_SOURCES_GBENCH}" gbench_main.cc)
 
   target_compile_definitions(jxl_gbench PRIVATE
-    -DTEST_DATA_PATH="${PROJECT_SOURCE_DIR}/third_party/testdata")
+    -DTEST_DATA_PATH="${JPEGXL_TEST_DATA_PATH}")
   target_link_libraries(jxl_gbench
     jxl_extras-static
     jxl-static

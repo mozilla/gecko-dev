@@ -11,11 +11,9 @@
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/media/MediaUtils.h"
 
-namespace mozilla {
-namespace ipc {
+namespace mozilla::ipc {
 class SharedPreferenceSerializer;
-}
-}  // namespace mozilla
+}  // namespace mozilla::ipc
 class nsITimer;
 
 namespace mozilla {
@@ -88,7 +86,7 @@ class RDDProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
   TimeStamp GetLaunchTime() const { return mLaunchTime; }
 
   // Called on the IO thread.
-  void OnChannelConnected(int32_t peer_pid) override;
+  void OnChannelConnected(base::ProcessId peer_pid) override;
   void OnChannelError() override;
 
   void SetListener(Listener* aListener);

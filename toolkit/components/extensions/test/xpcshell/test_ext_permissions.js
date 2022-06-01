@@ -31,11 +31,6 @@ AddonTestUtils.createAppInfo(
   "42"
 );
 
-Services.prefs.setBoolPref(
-  "extensions.webextensions.background-delayed-startup",
-  false
-);
-
 add_task(async function setup() {
   // Bug 1646182: Force ExtensionPermissions to run in rkv mode, the legacy
   // storage mode will run in xpcshell-legacy-ep.ini
@@ -107,10 +102,17 @@ add_task(async function test_permissions_on_startup() {
   await extension.unload();
 });
 
-async function test_permissions(manifest_version) {
+async function test_permissions({
+  manifest_version,
+  granted_host_permissions,
+  useAddonManager,
+  expectAllGranted,
+}) {
   const REQUIRED_PERMISSIONS = ["downloads"];
   const REQUIRED_ORIGINS = ["*://site.com/", "*://*.domain.com/"];
-  const REQUIRED_ORIGINS_NORMALIZED = ["*://site.com/*", "*://*.domain.com/*"];
+  const REQUIRED_ORIGINS_EXPECTED = expectAllGranted
+    ? ["*://site.com/*", "*://*.domain.com/*"]
+    : [];
 
   const OPTIONAL_PERMISSIONS = ["idle", "clipboardWrite"];
   const OPTIONAL_ORIGINS = [
@@ -159,8 +161,9 @@ async function test_permissions(manifest_version) {
       permissions: REQUIRED_PERMISSIONS,
       host_permissions: REQUIRED_ORIGINS,
       optional_permissions: [...OPTIONAL_PERMISSIONS, ...OPTIONAL_ORIGINS],
+      granted_host_permissions,
     },
-    useAddonManager: "permanent",
+    useAddonManager,
   });
 
   await extension.startup();
@@ -172,7 +175,7 @@ async function test_permissions(manifest_version) {
 
   let result = await call("getAll");
   deepEqual(result.permissions, REQUIRED_PERMISSIONS);
-  deepEqual(result.origins, REQUIRED_ORIGINS_NORMALIZED);
+  deepEqual(result.origins, REQUIRED_ORIGINS_EXPECTED);
 
   for (let perm of REQUIRED_PERMISSIONS) {
     result = await call("contains", { permissions: [perm] });
@@ -180,7 +183,11 @@ async function test_permissions(manifest_version) {
   }
   for (let origin of REQUIRED_ORIGINS) {
     result = await call("contains", { origins: [origin] });
-    equal(result, true, `contains() returns true for fixed origin ${origin}`);
+    equal(
+      result,
+      expectAllGranted,
+      `contains() returns true for fixed origin ${origin}`
+    );
   }
 
   // None of the optional permissions should be available yet
@@ -296,7 +303,7 @@ async function test_permissions(manifest_version) {
 
   let allPermissions = {
     permissions: [...REQUIRED_PERMISSIONS, ...OPTIONAL_PERMISSIONS],
-    origins: [...REQUIRED_ORIGINS_NORMALIZED, ...OPTIONAL_ORIGINS_NORMALIZED],
+    origins: [...REQUIRED_ORIGINS_EXPECTED, ...OPTIONAL_ORIGINS_NORMALIZED],
   };
 
   result = await call("getAll");
@@ -313,9 +320,14 @@ async function test_permissions(manifest_version) {
     "contains() returns true for runtime requested permissions"
   );
 
-  // Restart, verify permissions are still present
-  await AddonTestUtils.promiseRestartManager();
-  await extension.awaitStartup();
+  // Restart extension, verify permissions are still present.
+  if (useAddonManager === "permanent") {
+    await AddonTestUtils.promiseRestartManager();
+  } else {
+    // Manually reload for temporarily loaded.
+    await extension.addon.reload();
+  }
+  await extension.awaitBackgroundStarted();
 
   result = await call("getAll");
   deepEqual(
@@ -330,22 +342,70 @@ async function test_permissions(manifest_version) {
 
   let perms = {
     permissions: REQUIRED_PERMISSIONS,
-    origins: [...REQUIRED_ORIGINS_NORMALIZED, ...OPTIONAL_ORIGINS_NORMALIZED],
+    origins: [...REQUIRED_ORIGINS_EXPECTED, ...OPTIONAL_ORIGINS_NORMALIZED],
   };
+
   result = await call("getAll");
   deepEqual(result, perms, "Expected permissions remain after removing some");
 
   result = await call("remove", { origins: OPTIONAL_ORIGINS });
   equal(result, true, "remove() succeeded");
 
-  perms.origins = REQUIRED_ORIGINS_NORMALIZED;
+  perms.origins = REQUIRED_ORIGINS_EXPECTED;
   result = await call("getAll");
   deepEqual(result, perms, "Back to default permissions after removing more");
 
   await extension.unload();
 }
-add_task(() => test_permissions(2));
-add_task(() => test_permissions(3));
+
+add_task(function test_normal_mv2() {
+  return test_permissions({
+    manifest_version: 2,
+    useAddonManager: "permanent",
+    expectAllGranted: true,
+  });
+});
+
+add_task(function test_normal_mv3() {
+  return test_permissions({
+    manifest_version: 3,
+    useAddonManager: "permanent",
+    expectAllGranted: false,
+  });
+});
+
+add_task(function test_granted_for_temporary_mv3() {
+  return test_permissions({
+    manifest_version: 3,
+    granted_host_permissions: true,
+    useAddonManager: "temporary",
+    expectAllGranted: true,
+  });
+});
+
+add_task(async function test_granted_only_for_privileged_mv3() {
+  try {
+    // For permanent non-privileged, granted_host_permissions does nothing.
+    await test_permissions({
+      manifest_version: 3,
+      granted_host_permissions: true,
+      useAddonManager: "permanent",
+      expectAllGranted: false,
+    });
+
+    // Make extensions loaded with addon manager privileged.
+    AddonTestUtils.usePrivilegedSignatures = true;
+
+    await test_permissions({
+      manifest_version: 3,
+      granted_host_permissions: true,
+      useAddonManager: "permanent",
+      expectAllGranted: true,
+    });
+  } finally {
+    AddonTestUtils.usePrivilegedSignatures = false;
+  }
+});
 
 add_task(async function test_startup() {
   async function background() {
@@ -459,7 +519,9 @@ async function test_alreadyGranted(manifest_version) {
       permissions: REQUIRED_PERMISSIONS,
       host_permissions: REQUIRED_ORIGINS,
       optional_permissions: OPTIONAL_PERMISSIONS,
+      granted_host_permissions: true,
     },
+    temporarilyInstalled: true,
 
     files: {
       "page.html": `<html><head>
@@ -547,8 +609,12 @@ async function test_alreadyGranted(manifest_version) {
 
   await extension.unload();
 }
-add_task(() => test_alreadyGranted(2));
-add_task(() => test_alreadyGranted(3));
+add_task(async function test_alreadyGranted_mv2() {
+  return test_alreadyGranted(2);
+});
+add_task(async function test_alreadyGranted_mv3() {
+  return test_alreadyGranted(3);
+});
 
 // IMPORTANT: Do not change this list without review from a Web Extensions peer!
 
@@ -585,6 +651,7 @@ add_task(function test_permissions_have_localization_strings() {
   let noPromptNames = Schemas.getPermissionNames([
     "PermissionNoPrompt",
     "OptionalPermissionNoPrompt",
+    "PermissionPrivileged",
   ]);
   Assert.deepEqual(
     GRANTED_WITHOUT_USER_PROMPT,
@@ -650,6 +717,76 @@ add_task(async function test_optional_all_urls() {
   await extension.unload();
 });
 
+// Check when content_script match patterns are treated as optional origins.
+async function test_content_script_is_optional(manifest_version) {
+  function background() {
+    browser.test.onMessage.addListener(async (msg, arg) => {
+      if (msg == "request") {
+        try {
+          let result = await browser.permissions.request(arg);
+          browser.test.sendMessage("result", result);
+        } catch (e) {
+          browser.test.sendMessage("result", e.message);
+        }
+      }
+      if (msg === "getAll") {
+        let result = await browser.permissions.getAll(arg);
+        browser.test.sendMessage("granted", result);
+      }
+    });
+  }
+
+  const CS_ORIGIN = "https://test2.example.com/*";
+
+  let extension = ExtensionTestUtils.loadExtension({
+    background,
+    manifest: {
+      manifest_version,
+      content_scripts: [
+        {
+          matches: [CS_ORIGIN],
+          js: [],
+        },
+      ],
+    },
+  });
+
+  await extension.startup();
+
+  extension.sendMessage("getAll");
+  let initial = await extension.awaitMessage("granted");
+  deepEqual(initial.origins, [], "Nothing granted on install.");
+
+  await withHandlingUserInput(extension, async () => {
+    extension.sendMessage("request", {
+      permissions: [],
+      origins: [CS_ORIGIN],
+    });
+    let result = await extension.awaitMessage("result");
+    if (manifest_version < 3) {
+      equal(
+        result,
+        `Cannot request origin permission for ${CS_ORIGIN} since it was not declared in the manifest`,
+        "Content script match pattern is not a requestable optional origin in MV2"
+      );
+    } else {
+      equal(result, true, "request() for optional permissions succeeded");
+    }
+  });
+
+  extension.sendMessage("getAll");
+  let granted = await extension.awaitMessage("granted");
+  deepEqual(
+    granted.origins,
+    manifest_version < 3 ? [] : [CS_ORIGIN],
+    "Granted content script origin in MV3."
+  );
+
+  await extension.unload();
+}
+add_task(() => test_content_script_is_optional(2));
+add_task(() => test_content_script_is_optional(3));
+
 // Check that optional permissions are not included in update prompts
 async function test_permissions_prompt(manifest_version) {
   function background() {
@@ -657,6 +794,10 @@ async function test_permissions_prompt(manifest_version) {
       if (msg == "request") {
         let result = await browser.permissions.request(arg);
         browser.test.sendMessage("result", result);
+      }
+      if (msg === "getAll") {
+        let result = await browser.permissions.getAll(arg);
+        browser.test.sendMessage("granted", result);
       }
     });
   }
@@ -693,6 +834,16 @@ async function test_permissions_prompt(manifest_version) {
     let result = await extension.awaitMessage("result");
     equal(result, true, "request() for optional permissions succeeded");
   });
+
+  if (manifest_version >= 3) {
+    await withHandlingUserInput(extension, async () => {
+      extension.sendMessage("request", {
+        origins: ["https://test1.example.com/*"],
+      });
+      let result = await extension.awaitMessage("result");
+      equal(result, true, "request() for host_permissions in mv3 succeeded");
+    });
+  }
 
   const PERMS = ["history", "tabs"];
   const ORIGINS = ["https://test1.example.com/*", "https://test3.example.com/"];
@@ -732,14 +883,31 @@ async function test_permissions_prompt(manifest_version) {
   );
   deepEqual(
     perms.origins,
-    ORIGINS,
+    manifest_version < 3 ? ORIGINS : [],
     "Update details includes only manifest origin permissions"
+  );
+
+  let EXPECTED = ["https://test1.example.com/*", "https://test2.example.com/*"];
+  if (manifest_version < 3) {
+    EXPECTED.push("https://test3.example.com/*");
+  }
+
+  extension.sendMessage("getAll");
+  let granted = await extension.awaitMessage("granted");
+  deepEqual(
+    granted.origins.sort(),
+    EXPECTED,
+    "Granted origins persisted after update."
   );
 
   await extension.unload();
 }
-add_task(() => test_permissions_prompt(2));
-add_task(() => test_permissions_prompt(3));
+add_task(async function test_permissions_prompt_mv2() {
+  return test_permissions_prompt(2);
+});
+add_task(async function test_permissions_prompt_mv3() {
+  return test_permissions_prompt(3);
+});
 
 // Check that internal permissions can not be set and are not returned by the API.
 add_task(async function test_internal_permissions() {

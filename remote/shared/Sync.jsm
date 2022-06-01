@@ -6,6 +6,7 @@
 
 var EXPORTED_SYMBOLS = [
   "AnimationFramePromise",
+  "Deferred",
   "EventPromise",
   "executeSoon",
   "PollPromise",
@@ -17,12 +18,77 @@ var { XPCOMUtils } = ChromeUtils.import(
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   Services: "resource://gre/modules/Services.jsm",
+
+  Log: "chrome://remote/content/shared/Log.jsm",
 });
 
 const { TYPE_REPEATING_SLACK } = Ci.nsITimer;
 
+XPCOMUtils.defineLazyGetter(this, "logger", () =>
+  Log.get(Log.TYPES.REMOTE_AGENT)
+);
+
 /**
- * Wait for a single event to be fired on a specific EventListener.
+ * Throttle until the `window` has performed an animation frame.
+ *
+ * @param {ChromeWindow} win
+ *     Window to request the animation frame from.
+ *
+ * @return {Promise}
+ */
+function AnimationFramePromise(win) {
+  const animationFramePromise = new Promise(resolve => {
+    win.requestAnimationFrame(resolve);
+  });
+
+  // Abort if the underlying window gets closed
+  const windowClosedPromise = new PollPromise(resolve => {
+    if (win.closed) {
+      resolve();
+    }
+  });
+
+  return Promise.race([animationFramePromise, windowClosedPromise]);
+}
+
+/**
+ * Create a helper object to defer a promise.
+ *
+ * @returns {Object}
+ *     An object that returns the following properties:
+ *       - fulfilled Flag that indicates that the promise got resolved
+ *       - pending Flag that indicates a not yet fulfilled/rejected promise
+ *       - promise The actual promise
+ *       - reject Callback to reject the promise
+ *       - rejected Flag that indicates that the promise got rejected
+ *       - resolve Callback to resolve the promise
+ */
+function Deferred() {
+  const deferred = {};
+
+  deferred.promise = new Promise((resolve, reject) => {
+    deferred.fulfilled = false;
+    deferred.pending = true;
+    deferred.rejected = false;
+
+    deferred.resolve = (...args) => {
+      deferred.fulfilled = true;
+      deferred.pending = false;
+      resolve(...args);
+    };
+
+    deferred.reject = (...args) => {
+      deferred.pending = false;
+      deferred.rejected = true;
+      reject(...args);
+    };
+  });
+
+  return deferred;
+}
+
+/**
+ * Wait for an event to be fired on a specified element.
  *
  * The returned promise is guaranteed to not be called before the
  * next event tick after the event listener is called, so that all
@@ -34,58 +100,70 @@ const { TYPE_REPEATING_SLACK } = Ci.nsITimer;
  *     await promise;
  *     // next event tick here
  *
- * @param {EventListener} listener
- *     Object which receives a notification (an object that implements
- *     the Event interface) when an event of the specificed type occurs.
- * @param {string} type
- *     Case-sensitive string representing the event type to listen for.
- * @param {boolean?} [false] options.capture
+ * @param {Element} subject
+ *     The element that should receive the event.
+ * @param {string} eventName
+ *     Case-sensitive string representing the event name to listen for.
+ * @param {Object=} options
+ * @param {boolean=} [false] options.capture
  *     Indicates the event will be despatched to this subject,
  *     before it bubbles down to any EventTarget beneath it in the
  *     DOM tree.
- * @param {boolean?} [false] options.wantsUntrusted
- *     Receive synthetic events despatched by web content.
- * @param {boolean?} [false] options.mozSystemGroup
+ * @param {function=} checkFn
+ *     Called with the Event object as argument, should return true if the
+ *     event is the expected one, or false if it should be ignored and
+ *     listening should continue. If not specified, the first event with
+ *     the specified name resolves the returned promise.
+ * @param {boolean=} [false] options.mozSystemGroup
  *     Determines whether to add listener to the system group.
+ * @param {boolean=} [false] options.wantUntrusted
+ *     Receive synthetic events despatched by web content.
  *
  * @return {Promise.<Event>}
  *
  * @throws {TypeError}
  */
-function EventPromise(
-  listener,
-  type,
-  options = {
-    capture: false,
-    wantsUntrusted: false,
-    mozSystemGroup: false,
-  }
-) {
-  if (!listener || !("addEventListener" in listener)) {
-    throw new TypeError();
-  }
-  if (typeof type != "string") {
-    throw new TypeError();
-  }
+function EventPromise(subject, eventName, options = {}) {
+  const {
+    capture = false,
+    checkFn = null,
+    mozSystemGroup = false,
+    wantUntrusted = false,
+  } = options;
+
   if (
-    ("capture" in options && typeof options.capture != "boolean") ||
-    ("wantsUntrusted" in options &&
-      typeof options.wantsUntrusted != "boolean") ||
-    ("mozSystemGroup" in options && typeof options.mozSystemGroup != "boolean")
+    !subject ||
+    !("addEventListener" in subject) ||
+    typeof eventName != "string" ||
+    typeof capture != "boolean" ||
+    (checkFn && typeof checkFn != "function") ||
+    typeof mozSystemGroup != "boolean" ||
+    typeof wantUntrusted != "boolean"
   ) {
     throw new TypeError();
   }
 
-  options.once = true;
+  return new Promise((resolve, reject) => {
+    function listener(event) {
+      logger.trace(`Received DOM event ${event.type} for ${event.target}`);
+      try {
+        if (checkFn && !checkFn(event)) {
+          return;
+        }
+      } catch (e) {
+        // Treat an exception in the callback as a falsy value
+        logger.warn(`Event check failed: ${e.message}`);
+      }
 
-  return new Promise(resolve => {
-    listener.addEventListener(
-      type,
-      event => {
-        executeSoon(() => resolve(event));
-      },
-      options
-    );
+      subject.removeEventListener(eventName, listener, capture);
+      executeSoon(() => resolve(event));
+    }
+
+    subject.addEventListener(eventName, listener, {
+      capture,
+      mozSystemGroup,
+      wantUntrusted,
+    });
   });
 }
 
@@ -101,29 +179,6 @@ function executeSoon(fn) {
   }
 
   Services.tm.dispatchToMainThread(fn);
-}
-
-/**
- * Throttle until the `window` has performed an animation frame.
- *
- * @param {ChromeWindow} win
- *     Window to request the animation frame from.
- *
- * @return {Promise
- */
-function AnimationFramePromise(win) {
-  const animationFramePromise = new Promise(resolve => {
-    win.requestAnimationFrame(resolve);
-  });
-
-  // Abort if the underlying window gets closed
-  const windowClosedPromise = new PollPromise(resolve => {
-    if (win.closed) {
-      resolve();
-    }
-  });
-
-  return Promise.race([animationFramePromise, windowClosedPromise]);
 }
 
 /**

@@ -135,7 +135,11 @@ var DownloadHistory = {
       }
     }
 
-    let metaData = { state, endTime: download.endTime };
+    let metaData = {
+      state,
+      deleted: download.deleted,
+      endTime: download.endTime,
+    };
     if (download.succeeded) {
       metaData.fileSize = download.target.size;
     }
@@ -236,7 +240,7 @@ var DownloadCache = {
    *                       an object containing the meta data. The meta data
    *                       will look like:
    *
-   * { targetFileSpec, state, endTime, fileSize, ... }
+   * { targetFileSpec, state, deleted, endTime, fileSize, ... }
    *
    * The targetFileSpec property is the value of "downloads/destinationFileURI",
    * while the other properties are taken from "downloads/metaData". Any of the
@@ -398,6 +402,7 @@ HistoryDownload.prototype = {
         metaData.state == METADATA_STATE_CANCELED ||
         metaData.state == METADATA_STATE_PAUSED;
       this.endTime = metaData.endTime;
+      this.deleted = metaData.deleted;
 
       // Recreate partial error information from the state saved in history.
       if (metaData.state == METADATA_STATE_FAILED) {
@@ -431,6 +436,7 @@ HistoryDownload.prototype = {
       this.succeeded = !this.target.path;
       this.error = this.target.path ? { message: "Unstarted download." } : null;
       this.canceled = false;
+      this.deleted = false;
 
       // These properties may be updated if the user interface is refreshed.
       this.target.exists = false;
@@ -475,6 +481,22 @@ HistoryDownload.prototype = {
     }
 
     this.slot.list._notifyAllViews("onDownloadChanged", this);
+  },
+
+  /**
+   * This method mimicks the "manuallyRemoveData" method of session downloads.
+   */
+  async manuallyRemoveData() {
+    let { path } = this.target;
+    if (this.target.path && this.succeeded) {
+      // Temp files are made "read-only" by DownloadIntegration.downloadDone, so
+      // reset the permission bits to read/write. This won't be necessary after
+      // bug 1733587 since Downloads won't ever be temporary.
+      await IOUtils.setPermissions(path, 0o660);
+      await IOUtils.remove(path, { ignoreAbsent: true });
+    }
+    this.deleted = true;
+    await this.refresh();
   },
 };
 

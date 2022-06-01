@@ -9,7 +9,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
     RwLock,
 };
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use super::{CommonMetricData, MetricId, TimeUnit};
 use glean::{DistributionData, ErrorType, TimerId};
@@ -24,7 +24,7 @@ pub enum TimingDistributionMetric {
     Parent {
         /// The metric's ID.
         ///
-        /// **TEST-ONLY** - Do not use unless gated with `#[cfg(test)]`.
+        /// No longer test-only, is also used for GIFFT.
         id: MetricId,
         inner: glean::private::TimingDistributionMetric,
     },
@@ -79,6 +79,74 @@ impl TimingDistributionMetric {
             }
         }
     }
+
+    /// Accumulates a time duration sample for the provided metric.
+    ///
+    /// Adds a count to the corresponding bucket in the timing distribution.
+    /// Saturates at u64::MAX nanoseconds.
+    ///
+    /// Prefer start() and stop_and_accumulate() where possible.
+    ///
+    /// Users of this API are responsible for ensuring the timing source used
+    /// to calculate the duration is monotonic and consistent across platforms.
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The [`Duration`] of the accumulated sample.
+    pub fn accumulate_raw_duration(&self, duration: Duration) {
+        let sample = duration.as_nanos().try_into().unwrap_or_else(|_| {
+            // TODO: Instrument this error
+            log::warn!(
+                "Elapsed nanoseconds larger than fits into 64-bytes. Saturating at u64::MAX."
+            );
+            u64::MAX
+        });
+        // May be unused in builds without gecko.
+        let _sample_ms = duration.as_millis().try_into().unwrap_or_else(|_| {
+            // TODO: Instrument this error
+            log::warn!(
+                "Elapsed milliseconds larger than fits into 32-bytes. Saturating at u32::MAX."
+            );
+            u32::MAX
+        });
+        match self {
+            TimingDistributionMetric::Parent {
+                id: _metric_id,
+                inner,
+            } => {
+                #[cfg(feature = "with_gecko")]
+                {
+                    extern "C" {
+                        fn GIFFT_TimingDistributionAccumulateRawMillis(metric_id: u32, sample: u32);
+                    }
+                    // SAFETY: using only primitives, no return value.
+                    unsafe {
+                        GIFFT_TimingDistributionAccumulateRawMillis(_metric_id.0, _sample_ms);
+                    }
+                }
+                inner.accumulate_raw_samples_nanos(vec![sample]);
+            }
+            TimingDistributionMetric::Child(c) => {
+                #[cfg(feature = "with_gecko")]
+                {
+                    extern "C" {
+                        fn GIFFT_TimingDistributionAccumulateRawMillis(metric_id: u32, sample: u32);
+                    }
+                    // SAFETY: using only primitives, no return value.
+                    unsafe {
+                        GIFFT_TimingDistributionAccumulateRawMillis(c.metric_id.0, _sample_ms);
+                    }
+                }
+                with_ipc_payload(move |payload| {
+                    if let Some(v) = payload.timing_samples.get_mut(&c.metric_id) {
+                        v.push(sample);
+                    } else {
+                        payload.timing_samples.insert(c.metric_id, vec![sample]);
+                    }
+                });
+            }
+        }
+    }
 }
 
 #[inherent(pub)]
@@ -95,7 +163,20 @@ impl TimingDistribution for TimingDistributionMetric {
     /// A unique [`TimerId`] for the new timer.
     fn start(&self) -> TimerId {
         match self {
-            TimingDistributionMetric::Parent { inner, .. } => inner.start(),
+            TimingDistributionMetric::Parent { id: _id, inner } => {
+                let timer_id = inner.start();
+                #[cfg(feature = "with_gecko")]
+                {
+                    extern "C" {
+                        fn GIFFT_TimingDistributionStart(metric_id: u32, timer_id: u64);
+                    }
+                    // SAFETY: using only primitives, no return value.
+                    unsafe {
+                        GIFFT_TimingDistributionStart(_id.0, timer_id);
+                    }
+                }
+                timer_id
+            }
             TimingDistributionMetric::Child(c) => {
                 // There is no glean-core on this process to give us a TimerId,
                 // so we'll have to make our own and do our own bookkeeping.
@@ -110,6 +191,16 @@ impl TimingDistribution for TimingDistributionMetric {
                     .expect("lock of instants map was poisoned");
                 if let Some(_v) = map.insert(id, Instant::now()) {
                     // TODO: report an error and find a different TimerId.
+                }
+                #[cfg(feature = "with_gecko")]
+                {
+                    extern "C" {
+                        fn GIFFT_TimingDistributionStart(metric_id: u32, timer_id: u64);
+                    }
+                    // SAFETY: using only primitives, no return value.
+                    unsafe {
+                        GIFFT_TimingDistributionStart(c.metric_id.0, id);
+                    }
                 }
                 id
             }
@@ -129,10 +220,33 @@ impl TimingDistribution for TimingDistributionMetric {
     ///   same timespan metric.
     fn stop_and_accumulate(&self, id: TimerId) {
         match self {
-            TimingDistributionMetric::Parent { inner, .. } => {
+            TimingDistributionMetric::Parent {
+                id: _metric_id,
+                inner,
+            } => {
+                #[cfg(feature = "with_gecko")]
+                {
+                    extern "C" {
+                        fn GIFFT_TimingDistributionStopAndAccumulate(metric_id: u32, timer_id: u64);
+                    }
+                    // SAFETY: using only primitives, no return value.
+                    unsafe {
+                        GIFFT_TimingDistributionStopAndAccumulate(_metric_id.0, id);
+                    }
+                }
                 inner.stop_and_accumulate(id);
             }
             TimingDistributionMetric::Child(c) => {
+                #[cfg(feature = "with_gecko")]
+                {
+                    extern "C" {
+                        fn GIFFT_TimingDistributionStopAndAccumulate(metric_id: u32, timer_id: u64);
+                    }
+                    // SAFETY: using only primitives, no return value.
+                    unsafe {
+                        GIFFT_TimingDistributionStopAndAccumulate(c.metric_id.0, id);
+                    }
+                }
                 let mut map = c
                     .instants
                     .write()
@@ -179,7 +293,20 @@ impl TimingDistribution for TimingDistributionMetric {
     ///   same timing distribution metric.
     fn cancel(&self, id: TimerId) {
         match self {
-            TimingDistributionMetric::Parent { inner, .. } => {
+            TimingDistributionMetric::Parent {
+                id: _metric_id,
+                inner,
+            } => {
+                #[cfg(feature = "with_gecko")]
+                {
+                    extern "C" {
+                        fn GIFFT_TimingDistributionCancel(metric_id: u32, timer_id: u64);
+                    }
+                    // SAFETY: using only primitives, no return value.
+                    unsafe {
+                        GIFFT_TimingDistributionCancel(_metric_id.0, id);
+                    }
+                }
                 inner.cancel(id);
             }
             TimingDistributionMetric::Child(c) => {
@@ -189,6 +316,16 @@ impl TimingDistribution for TimingDistributionMetric {
                     .expect("Write lock must've been poisoned.");
                 if map.remove(&id).is_none() {
                     // TODO: report an error (cancelled a non-started id).
+                }
+                #[cfg(feature = "with_gecko")]
+                {
+                    extern "C" {
+                        fn GIFFT_TimingDistributionCancel(metric_id: u32, timer_id: u64);
+                    }
+                    // SAFETY: using only primitives, no return value.
+                    unsafe {
+                        GIFFT_TimingDistributionCancel(c.metric_id.0, id);
+                    }
                 }
             }
         }

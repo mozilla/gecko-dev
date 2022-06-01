@@ -133,6 +133,20 @@ bool ContentCacheInChild::CacheSelection(nsIWidget* aWidget,
         sContentCacheLog, LogLevel::Error,
         ("0x%p CacheSelection(), FAILED, couldn't retrieve the selected text",
          this));
+  }
+  // ContentCache should store only editable content.  Therefore, if current
+  // selection root is not editable, we don't need to store the selection, i.e.,
+  // let's treat it as there is no selection.  However, if we already have
+  // previously editable text, let's store the selection even if it becomes
+  // uneditable because not doing so would create odd situation.  E.g., IME may
+  // fail only querying selection after succeeded querying text.
+  else if (NS_WARN_IF(mText.isNothing() &&
+                      !querySelectedTextEvent.mReply->mIsEditableContent)) {
+    MOZ_LOG(sContentCacheLog, LogLevel::Error,
+            ("0x%p CacheSelection(), FAILED, editable content had already been "
+             "blurred",
+             this));
+    return false;
   } else {
     mSelection.emplace(querySelectedTextEvent);
   }
@@ -193,6 +207,16 @@ bool ContentCacheInChild::CacheEditorRect(
          this));
     return false;
   }
+  // ContentCache should store only editable content.  Therefore, if current
+  // selection root is not editable, we don't need to store the editor rect,
+  // i.e., let's treat it as there is no focused editor.
+  if (NS_WARN_IF(!queryEditorRectEvent.mReply->mIsEditableContent)) {
+    MOZ_LOG(sContentCacheLog, LogLevel::Error,
+            ("0x%p   CacheText(), FAILED, editable content had already been "
+             "blurred",
+             this));
+    return false;
+  }
   mEditorRect = queryEditorRectEvent.mReply->mRect;
   MOZ_LOG(sContentCacheLog, LogLevel::Info,
           ("0x%p   CacheEditorRect(), Succeeded, mEditorRect=%s", this,
@@ -214,6 +238,16 @@ bool ContentCacheInChild::CacheText(nsIWidget* aWidget,
   if (NS_WARN_IF(queryTextContentEvent.Failed())) {
     MOZ_LOG(sContentCacheLog, LogLevel::Error,
             ("0x%p   CacheText(), FAILED, couldn't retrieve whole text", this));
+    mText.reset();
+  }
+  // ContentCache should store only editable content.  Therefore, if current
+  // selection root is not editable, we don't need to store the text, i.e.,
+  // let's treat it as there is no editable text.
+  else if (NS_WARN_IF(!queryTextContentEvent.mReply->mIsEditableContent)) {
+    MOZ_LOG(sContentCacheLog, LogLevel::Error,
+            ("0x%p   CacheText(), FAILED, editable content had already been "
+             "blurred",
+             this));
     mText.reset();
   } else {
     mText = Some(nsString(queryTextContentEvent.mReply->DataRef()));
@@ -241,8 +275,18 @@ bool ContentCacheInChild::CacheText(nsIWidget* aWidget,
     mLastCommit.reset();
   }
 
-  const bool selectionCached = CacheSelection(aWidget, aNotification);
-  return selectionCached || queryTextContentEvent.Succeeded();
+  // If we fail to get editable text content, it must mean that there is no
+  // focused element anymore or focused element is not editable.  In this case,
+  // we should not get selection of non-editable content
+  if (MOZ_UNLIKELY(queryTextContentEvent.Failed() ||
+                   !queryTextContentEvent.mReply->mIsEditableContent)) {
+    mSelection.reset();
+    mCaret.reset();
+    mTextRectArray.reset();
+    return false;
+  }
+
+  return CacheSelection(aWidget, aNotification);
 }
 
 bool ContentCacheInChild::QueryCharRect(nsIWidget* aWidget, uint32_t aOffset,
@@ -880,6 +924,8 @@ bool ContentCacheInParent::HandleQueryContentEvent(
               ("0x%p HandleQueryContentEvent(aEvent={ "
                "mMessage=eQueryEditorRect }, aWidget=0x%p)",
                this, aWidget));
+      // XXX This query should fail if no editable elmenet has focus.  Or,
+      //     perhaps, should return rect of the window instead.
       aEvent.EmplaceReply();
       aEvent.mReply->mFocusedWidget = aWidget;
       aEvent.mReply->mRect = mEditorRect;
@@ -968,8 +1014,13 @@ bool ContentCacheInParent::GetTextRect(uint32_t aOffset,
 
   if (mTextRectArray.isNothing() || !mTextRectArray->HasRects()) {
     // If there are no rects in mTextRectArray, we should refer the start of
-    // the selection because IME must query a char rect around it if there is
-    // no composition.
+    // the selection if there is because IME must query a char rect around it if
+    // there is no composition.
+    if (mSelection.isNothing()) {
+      // Unfortunately, there is no data about text rect...
+      aTextRect.SetEmpty();
+      return false;
+    }
     aTextRect = mSelection->StartCharRect();
     return !aTextRect.IsEmpty();
   }

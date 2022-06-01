@@ -47,11 +47,6 @@ using namespace js::wasm;
 #  else
 #    define WASM_SIMD_OP(code) break
 #  endif
-#  ifdef ENABLE_WASM_EXCEPTIONS
-#    define WASM_EXN_OP(code) return code
-#  else
-#    define WASM_EXN_OP(code) break
-#  endif
 
 OpKind wasm::Classify(OpBytes op) {
   switch (Op(op.b0)) {
@@ -267,20 +262,18 @@ OpKind wasm::Classify(OpBytes op) {
       return OpKind::Else;
     case Op::End:
       return OpKind::End;
-#  ifdef ENABLE_WASM_EXCEPTIONS
     case Op::Catch:
-      WASM_EXN_OP(OpKind::Catch);
+      return OpKind::Catch;
     case Op::CatchAll:
-      WASM_EXN_OP(OpKind::CatchAll);
+      return OpKind::CatchAll;
     case Op::Delegate:
-      WASM_EXN_OP(OpKind::Delegate);
+      return OpKind::Delegate;
     case Op::Throw:
-      WASM_EXN_OP(OpKind::Throw);
+      return OpKind::Throw;
     case Op::Rethrow:
-      WASM_EXN_OP(OpKind::Rethrow);
+      return OpKind::Rethrow;
     case Op::Try:
-      WASM_EXN_OP(OpKind::Try);
-#  endif
+      return OpKind::Try;
     case Op::MemorySize:
       return OpKind::MemorySize;
     case Op::MemoryGrow:
@@ -297,8 +290,6 @@ OpKind wasm::Classify(OpBytes op) {
       WASM_FUNCTION_REFERENCES_OP(OpKind::BrOnNull);
     case Op::RefEq:
       WASM_GC_OP(OpKind::Comparison);
-    case Op::IntrinsicPrefix:
-      return OpKind::Intrinsic;
     case Op::GcPrefix: {
       switch (GcOp(op.b1)) {
         case GcOp::Limit:
@@ -500,7 +491,9 @@ OpKind wasm::Classify(OpBytes op) {
         case SimdOp::F32x4RelaxedMax:
         case SimdOp::F64x2RelaxedMin:
         case SimdOp::F64x2RelaxedMax:
-        case SimdOp::V8x16RelaxedSwizzle:
+        case SimdOp::I8x16RelaxedSwizzle:
+        case SimdOp::I16x8RelaxedQ15MulrS:
+        case SimdOp::I16x8DotI8x16I7x16S:
           WASM_SIMD_OP(OpKind::Binary);
         case SimdOp::I8x16Neg:
         case SimdOp::I16x8Neg:
@@ -606,10 +599,11 @@ OpKind wasm::Classify(OpBytes op) {
         case SimdOp::F32x4RelaxedFms:
         case SimdOp::F64x2RelaxedFma:
         case SimdOp::F64x2RelaxedFms:
-        case SimdOp::I8x16LaneSelect:
-        case SimdOp::I16x8LaneSelect:
-        case SimdOp::I32x4LaneSelect:
-        case SimdOp::I64x2LaneSelect:
+        case SimdOp::I8x16RelaxedLaneSelect:
+        case SimdOp::I16x8RelaxedLaneSelect:
+        case SimdOp::I32x4RelaxedLaneSelect:
+        case SimdOp::I64x2RelaxedLaneSelect:
+        case SimdOp::I32x4DotI8x16I7x16AddS:
           WASM_SIMD_OP(OpKind::Ternary);
 #  ifdef ENABLE_WASM_SIMD_WORMHOLE
         case SimdOp::MozWHSELFTEST:
@@ -780,14 +774,17 @@ OpKind wasm::Classify(OpBytes op) {
           return OpKind::OldCallDirect;
         case MozOp::OldCallIndirect:
           return OpKind::OldCallIndirect;
+        case MozOp::Intrinsic:
+          return OpKind::Intrinsic;
       }
       break;
     }
+    case Op::FirstPrefix:
+      break;
   }
   MOZ_CRASH("unimplemented opcode");
 }
 
-#  undef WASM_EXN_OP
 #  undef WASM_GC_OP
 #  undef WASM_REF_OP
 

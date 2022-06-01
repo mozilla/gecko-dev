@@ -6,14 +6,12 @@
 
 // Pass an empty scope object to the import to prevent "leaked window property"
 // errors in tests.
-var Preferences = ChromeUtils.import(
-  "resource://gre/modules/Preferences.jsm",
-  {}
-).Preferences;
-var TelemetryReportingPolicy = ChromeUtils.import(
-  "resource://gre/modules/TelemetryReportingPolicy.jsm",
-  {}
-).TelemetryReportingPolicy;
+var { Preferences } = ChromeUtils.import(
+  "resource://gre/modules/Preferences.jsm"
+);
+var { TelemetryReportingPolicy } = ChromeUtils.import(
+  "resource://gre/modules/TelemetryReportingPolicy.jsm"
+);
 
 const PREF_BRANCH = "datareporting.policy.";
 const PREF_FIRST_RUN = "toolkit.telemetry.reportingpolicy.firstRun";
@@ -115,7 +113,7 @@ var checkInfobarButton = async function(aNotification) {
   await promiseNextTick();
 };
 
-add_task(async function setup() {
+add_setup(async function() {
   const isFirstRun = Preferences.get(PREF_FIRST_RUN, true);
   const bypassNotification = Preferences.get(PREF_BYPASS_NOTIFICATION, true);
   const currentPolicyVersion = Preferences.get(PREF_CURRENT_POLICY_VERSION, 1);

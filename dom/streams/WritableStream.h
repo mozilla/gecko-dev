@@ -19,15 +19,14 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 
-#ifndef MOZ_DOM_STREAMS
-#  error "Shouldn't be compiling with this header without MOZ_DOM_STREAMS set"
-#endif
-
 namespace mozilla::dom {
 
 class Promise;
 class WritableStreamDefaultController;
 class WritableStreamDefaultWriter;
+class UnderlyingSinkAlgorithmsBase;
+class UniqueMessagePortId;
+class MessagePort;
 
 class WritableStream : public nsISupports, public nsWrapperCache {
  public:
@@ -44,17 +43,18 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   enum class WriterState { Writable, Closed, Erroring, Errored };
 
   // Slot Getter/Setters:
- public:
   bool Backpressure() const { return mBackpressure; }
   void SetBackpressure(bool aBackpressure) { mBackpressure = aBackpressure; }
 
   Promise* GetCloseRequest() { return mCloseRequest; }
   void SetCloseRequest(Promise* aRequest) { mCloseRequest = aRequest; }
 
-  WritableStreamDefaultController* Controller() { return mController; }
-  void SetController(WritableStreamDefaultController* aController) {
-    MOZ_ASSERT(aController);
-    mController = aController;
+  MOZ_KNOWN_LIVE WritableStreamDefaultController* Controller() {
+    return mController;
+  }
+  void SetController(WritableStreamDefaultController& aController) {
+    MOZ_ASSERT(!mController);
+    mController = &aController;
   }
 
   Promise* GetInFlightWriteRequest() const { return mInFlightWriteRequest; }
@@ -77,7 +77,7 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   void SetState(const WriterState& aState) { mState = aState; }
 
   JS::Value StoredError() const { return mStoredError; }
-  void SetStoredError(JS::HandleValue aStoredError) {
+  void SetStoredError(JS::Handle<JS::Value> aStoredError) {
     mStoredError = aStoredError;
   }
 
@@ -134,7 +134,15 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   // WritableStreamUpdateBackpressure
   void UpdateBackpressure(bool aBackpressure, ErrorResult& aRv);
 
- public:
+  // [Transferable]
+  // https://html.spec.whatwg.org/multipage/structured-data.html#transfer-steps
+  MOZ_CAN_RUN_SCRIPT bool Transfer(JSContext* aCx,
+                                   UniqueMessagePortId& aPortId);
+  // https://html.spec.whatwg.org/multipage/structured-data.html#transfer-receiving-steps
+  static MOZ_CAN_RUN_SCRIPT bool ReceiveTransfer(
+      JSContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
+      JS::MutableHandle<JSObject*> aReturnObject);
+
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
   JSObject* WrapObject(JSContext* aCx,
@@ -180,19 +188,27 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   nsCOMPtr<nsIGlobalObject> mGlobal;
 };
 
+MOZ_CAN_RUN_SCRIPT already_AddRefed<WritableStream> CreateWritableStream(
+    JSContext* aCx, nsIGlobalObject* aGlobal,
+    UnderlyingSinkAlgorithmsBase* aAlgorithms, double aHighWaterMark,
+    QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv);
+
 inline bool IsWritableStreamLocked(WritableStream* aStream) {
   return aStream->Locked();
 }
 
-MOZ_CAN_RUN_SCRIPT extern already_AddRefed<Promise> WritableStreamAbort(
+MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> WritableStreamAbort(
     JSContext* aCx, WritableStream* aStream, JS::Handle<JS::Value> aReason,
     ErrorResult& aRv);
 
-MOZ_CAN_RUN_SCRIPT extern already_AddRefed<Promise> WritableStreamClose(
+MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> WritableStreamClose(
     JSContext* aCx, WritableStream* aStream, ErrorResult& aRv);
 
-extern already_AddRefed<Promise> WritableStreamAddWriteRequest(
-    WritableStream* aStream, ErrorResult& aRv);
+already_AddRefed<Promise> WritableStreamAddWriteRequest(WritableStream* aStream,
+                                                        ErrorResult& aRv);
+
+already_AddRefed<WritableStreamDefaultWriter>
+AcquireWritableStreamDefaultWriter(WritableStream* aStream, ErrorResult& aRv);
 
 }  // namespace mozilla::dom
 

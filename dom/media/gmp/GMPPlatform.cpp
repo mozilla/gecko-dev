@@ -86,7 +86,7 @@ class GMPSyncRunnable final {
   bool mDone;
   GMPTask* mTask;
   MessageLoop* mMessageLoop;
-  Monitor mMonitor;
+  Monitor mMonitor MOZ_UNANNOTATED;
 };
 
 class GMPThreadImpl : public GMPThread {
@@ -99,7 +99,7 @@ class GMPThreadImpl : public GMPThread {
   void Join() override;
 
  private:
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
   base::Thread mThread;
 };
 
@@ -148,7 +148,7 @@ class GMPMutexImpl : public GMPMutex {
   void Destroy() override;
 
  private:
-  ReentrantMonitor mMonitor;
+  ReentrantMonitor mMonitor MOZ_UNANNOTATED;
 };
 
 GMPErr CreateMutex(GMPMutex** aMutex) {
@@ -257,9 +257,11 @@ GMPMutexImpl::~GMPMutexImpl() { MOZ_COUNT_DTOR(GMPMutexImpl); }
 
 void GMPMutexImpl::Destroy() { delete this; }
 
+PUSH_IGNORE_THREAD_SAFETY
 void GMPMutexImpl::Acquire() { mMonitor.Enter(); }
 
 void GMPMutexImpl::Release() { mMonitor.Exit(); }
+POP_THREAD_SAFETY
 
 GMPTask* NewGMPTask(std::function<void()>&& aFunction) {
   class Task : public GMPTask {

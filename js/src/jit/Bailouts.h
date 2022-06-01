@@ -15,8 +15,9 @@
 #include "jstypes.h"
 
 #include "jit/IonTypes.h"  // js::jit::Bailout{Id,Kind}, js::jit::SnapshotOffset
-#include "jit/Registers.h"  // js::jit::MachineState
-#include "js/TypeDecls.h"   // jsbytecode
+#include "jit/MachineState.h"  // js::jit::MachineState
+#include "js/TypeDecls.h"      // jsbytecode
+#include "vm/JSContext.h"      // JSContext
 
 namespace js {
 
@@ -192,13 +193,25 @@ class ExceptionBailoutInfo {
   size_t frameNo_;
   jsbytecode* resumePC_;
   size_t numExprSlots_;
+  bool isFinally_ = false;
+  RootedValue finallyException_;
+  bool forcedReturn_;
 
  public:
-  ExceptionBailoutInfo(size_t frameNo, jsbytecode* resumePC,
+  ExceptionBailoutInfo(JSContext* cx, size_t frameNo, jsbytecode* resumePC,
                        size_t numExprSlots)
-      : frameNo_(frameNo), resumePC_(resumePC), numExprSlots_(numExprSlots) {}
+      : frameNo_(frameNo),
+        resumePC_(resumePC),
+        numExprSlots_(numExprSlots),
+        finallyException_(cx),
+        forcedReturn_(cx->isPropagatingForcedReturn()) {}
 
-  ExceptionBailoutInfo() : frameNo_(0), resumePC_(nullptr), numExprSlots_(0) {}
+  explicit ExceptionBailoutInfo(JSContext* cx)
+      : frameNo_(0),
+        resumePC_(nullptr),
+        numExprSlots_(0),
+        finallyException_(cx),
+        forcedReturn_(cx->isPropagatingForcedReturn()) {}
 
   bool catchingException() const { return !!resumePC_; }
   bool propagatingIonExceptionForDebugMode() const { return !resumePC_; }
@@ -215,6 +228,19 @@ class ExceptionBailoutInfo {
     MOZ_ASSERT(catchingException());
     return numExprSlots_;
   }
+
+  bool isFinally() const { return isFinally_; }
+  void setFinallyException(JS::Value& exception) {
+    MOZ_ASSERT(!isFinally());
+    isFinally_ = true;
+    finallyException_ = exception;
+  }
+  HandleValue finallyException() const {
+    MOZ_ASSERT(isFinally());
+    return finallyException_;
+  }
+
+  bool forcedReturn() const { return forcedReturn_; }
 };
 
 // Called from the exception handler to enter a catch or finally block.
@@ -224,6 +250,12 @@ class ExceptionBailoutInfo {
                                            const ExceptionBailoutInfo& excInfo);
 
 [[nodiscard]] bool FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg);
+
+#ifdef DEBUG
+[[nodiscard]] bool AssertBailoutStackDepth(JSContext* cx, JSScript* script,
+                                           jsbytecode* pc, ResumeMode mode,
+                                           uint32_t exprStackSlots);
+#endif
 
 }  // namespace jit
 }  // namespace js

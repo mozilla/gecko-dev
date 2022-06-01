@@ -25,6 +25,18 @@ const DomainGroupBuilder = new (class DomainGroupBuilder {
   #currentGroups = null;
 
   /**
+   * @type {string}
+   * The name of the builder recorded in the groups.
+   */
+  name = "domain";
+
+  /**
+   * @type {boolean}
+   * This will cause the minimum snapshot size check to be enforced.
+   */
+  skipMinimumSize = false;
+
+  /**
    * Rebuilds the domain groups from the complete list of snapshots.
    *
    * @param {Snapshot[]} snapshots
@@ -59,12 +71,15 @@ const DomainGroupBuilder = new (class DomainGroupBuilder {
       }
     }
 
-    for (let domain of [
-      ...changedDomains.values(),
-      // Untouched domains are ones which have no-urls, and therefore should
-      // be deleted.
-      ...untouchedDomains.values(),
-    ]) {
+    // Untouched domains are ones which have no-urls, and therefore should
+    // be deleted.
+    for (let domain of [...untouchedDomains.values()]) {
+      let group = this.#currentGroups.get(domain);
+      await SnapshotGroups.delete(group.id);
+      this.#currentGroups.delete(domain);
+    }
+
+    for (let domain of [...changedDomains.values()]) {
       await this.#checkDomain(domain);
     }
   }
@@ -73,17 +88,17 @@ const DomainGroupBuilder = new (class DomainGroupBuilder {
    * Updates the domain snapshot groups based on the added and removed urls.
    *
    * @param {object} options
-   * @param {Set<string>} options.addedUrls
-   *   The added urls to handle in this update.
+   * @param {Set<object>} options.addedItems
+   *   The added items (url, userPersisted) to handle in this update.
    * @param {Set<string>} options.removedUrls
    *   The removed urls to handle in this update.
    */
-  async update({ addedUrls, removedUrls }) {
+  async update({ addedItems, removedUrls }) {
     await this.#maybeLoadGroups();
     // Update the groups with the changes, and keep a note of the changed
     // domains.
     let changedDomains = new Set();
-    for (let url of addedUrls.values()) {
+    for (let { url } of addedItems.values()) {
       let domain = this.#getDomain(url);
       if (!domain) {
         continue;
@@ -156,14 +171,16 @@ const DomainGroupBuilder = new (class DomainGroupBuilder {
     this.#currentGroups = new Map();
 
     let groups = await SnapshotGroups.query({
-      builder: "domain",
+      builder: this.name,
       limit: -1,
       skipMinimum: true,
     });
 
     for (let group of groups) {
       this.#currentGroups.set(group.builderMetadata.domain, group);
-      group.urls = new Set(await SnapshotGroups.getUrls(group.id));
+      group.urls = new Set(
+        await SnapshotGroups.getUrls({ id: group.id, hidden: true })
+      );
     }
   }
 
@@ -179,7 +196,7 @@ const DomainGroupBuilder = new (class DomainGroupBuilder {
   #generateDomainData(domain, url) {
     return {
       title: CommonNames.getURLName(new URL(url)),
-      builder: "domain",
+      builder: this.name,
       builderMetadata: {
         domain,
       },

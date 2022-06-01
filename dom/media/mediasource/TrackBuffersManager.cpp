@@ -27,21 +27,20 @@
 
 extern mozilla::LogModule* GetMediaSourceLog();
 
-#define MSE_DEBUG(arg, ...)                                                  \
-  DDMOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, "(%s)::%s: " arg, \
-            mType.OriginalString().Data(), __func__, ##__VA_ARGS__)
-#define MSE_DEBUGV(arg, ...)                                                   \
-  DDMOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Verbose, "(%s)::%s: " arg, \
-            mType.OriginalString().Data(), __func__, ##__VA_ARGS__)
+#define MSE_DEBUG(arg, ...)                                              \
+  DDMOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, "::%s: " arg, \
+            __func__, ##__VA_ARGS__)
+#define MSE_DEBUGV(arg, ...)                                               \
+  DDMOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Verbose, "::%s: " arg, \
+            __func__, ##__VA_ARGS__)
 
 mozilla::LogModule* GetMediaSourceSamplesLog() {
   static mozilla::LazyLogModule sLogModule("MediaSourceSamples");
   return sLogModule;
 }
-#define SAMPLE_DEBUG(arg, ...)                                         \
-  DDMOZ_LOG(GetMediaSourceSamplesLog(), mozilla::LogLevel::Debug,      \
-            "(%s)::%s: " arg, mType.OriginalString().Data(), __func__, \
-            ##__VA_ARGS__)
+#define SAMPLE_DEBUG(arg, ...)                                    \
+  DDMOZ_LOG(GetMediaSourceSamplesLog(), mozilla::LogLevel::Debug, \
+            "::%s: " arg, __func__, ##__VA_ARGS__)
 
 namespace mozilla {
 
@@ -216,9 +215,28 @@ void TrackBuffersManager::ProcessTasks() {
         // Note: we reset mInputBuffer here to ensure it doesn't grow unbounded.
         mInputBuffer.reset();
         mInputBuffer = Some(MediaSpan(task->As<AppendBufferTask>()->mBuffer));
-      } else if (!mInputBuffer->Append(task->As<AppendBufferTask>()->mBuffer)) {
-        RejectAppend(NS_ERROR_OUT_OF_MEMORY, __func__);
-        return;
+      } else {
+        // mInputBuffer wasn't empty, so we can't just reset it, but we move
+        // the data into a new buffer to clear out data no longer in the span.
+        MSE_DEBUG(
+            "mInputBuffer not empty during append -- data will be copied to "
+            "new buffer. mInputBuffer->Length()=%zu "
+            "mInputBuffer->Buffer()->Length()=%zu",
+            mInputBuffer->Length(), mInputBuffer->Buffer()->Length());
+        const RefPtr<MediaByteBuffer> newBuffer{new MediaByteBuffer()};
+        // Set capacity outside of ctor to let us explicitly handle OOM.
+        const size_t newCapacity =
+            mInputBuffer->Length() +
+            task->As<AppendBufferTask>()->mBuffer->Length();
+        if (!newBuffer->SetCapacity(newCapacity, fallible)) {
+          RejectAppend(NS_ERROR_OUT_OF_MEMORY, __func__);
+          return;
+        }
+        // Use infallible appends as we've already set capacity above.
+        newBuffer->AppendElements(mInputBuffer->Elements(),
+                                  mInputBuffer->Length());
+        newBuffer->AppendElements(*task->As<AppendBufferTask>()->mBuffer);
+        mInputBuffer = Some(MediaSpan(newBuffer));
       }
       mSourceBufferAttributes = MakeUnique<SourceBufferAttributes>(
           task->As<AppendBufferTask>()->mAttributes);
@@ -254,6 +272,9 @@ void TrackBuffersManager::ProcessTasks() {
       return;
     case Type::ChangeType:
       MOZ_RELEASE_ASSERT(!mCurrentTask);
+      MSE_DEBUG("Processing type change from %s -> %s",
+                mType.OriginalString().get(),
+                task->As<ChangeTypeTask>()->mType.OriginalString().get());
       mType = task->As<ChangeTypeTask>()->mType;
       mChangeTypeReceived = true;
       mInitData = nullptr;
@@ -1004,6 +1025,8 @@ void TrackBuffersManager::ShutdownDemuxers() {
 }
 
 void TrackBuffersManager::CreateDemuxerforMIMEType() {
+  MOZ_ASSERT(OnTaskQueue());
+  MSE_DEBUG("mType.OriginalString=%s", mType.OriginalString().get());
   ShutdownDemuxers();
 
   if (mType.Type() == MEDIAMIMETYPE(VIDEO_WEBM) ||
@@ -2961,8 +2984,28 @@ void TrackBuffersManager::TrackData::AddSizeOfResources(
   }
 }
 
+RefPtr<GenericPromise> TrackBuffersManager::RequestDebugInfo(
+    dom::TrackBuffersManagerDebugInfo& aInfo) const {
+  const RefPtr<TaskQueue> taskQueue = GetTaskQueueSafe();
+  if (!taskQueue) {
+    return GenericPromise::CreateAndResolve(true, __func__);
+  }
+  if (!taskQueue->IsCurrentThreadIn()) {
+    // Run the request on the task queue if it's not already.
+    return InvokeAsync(taskQueue.get(), __func__,
+                       [this, self = RefPtr{this}, &aInfo] {
+                         return RequestDebugInfo(aInfo);
+                       });
+  }
+  GetDebugInfo(aInfo);
+  return GenericPromise::CreateAndResolve(true, __func__);
+}
+
 void TrackBuffersManager::GetDebugInfo(
-    dom::TrackBuffersManagerDebugInfo& aInfo) {
+    dom::TrackBuffersManagerDebugInfo& aInfo) const {
+  MOZ_ASSERT(OnTaskQueue(),
+             "This shouldn't be called off the task queue because we're about "
+             "to touch a lot of data that is used on the task queue");
   CopyUTF8toUTF16(mType.Type().AsString(), aInfo.mType);
 
   if (HasAudio()) {
@@ -3009,6 +3052,25 @@ void TrackBuffersManager::GetDebugInfo(
 void TrackBuffersManager::AddSizeOfResources(
     MediaSourceDecoder::ResourceSizes* aSizes) const {
   MOZ_ASSERT(OnTaskQueue());
+
+  if (mInputBuffer.isSome() && mInputBuffer->Buffer()) {
+    // mInputBuffer should be the sole owner of the underlying buffer, so this
+    // won't double count.
+    aSizes->mByteSize += mInputBuffer->Buffer()->ShallowSizeOfIncludingThis(
+        aSizes->mMallocSizeOf);
+  }
+  if (mInitData) {
+    aSizes->mByteSize +=
+        mInitData->ShallowSizeOfIncludingThis(aSizes->mMallocSizeOf);
+  }
+  if (mPendingInputBuffer.isSome() && mPendingInputBuffer->Buffer()) {
+    // mPendingInputBuffer should be the sole owner of the underlying buffer, so
+    // this won't double count.
+    aSizes->mByteSize +=
+        mPendingInputBuffer->Buffer()->ShallowSizeOfIncludingThis(
+            aSizes->mMallocSizeOf);
+  }
+
   mVideoTracks.AddSizeOfResources(aSizes);
   mAudioTracks.AddSizeOfResources(aSizes);
 }

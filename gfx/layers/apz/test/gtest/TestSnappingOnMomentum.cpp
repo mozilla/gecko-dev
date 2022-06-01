@@ -17,8 +17,8 @@ class APZCSnappingOnMomentumTesterMock : public APZCTreeManagerTester {
 
 TEST_F(APZCSnappingOnMomentumTesterMock, Snap_On_Momentum) {
   const char* treeShape = "x";
-  nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(IntRect(0, 0, 100, 100)),
+  LayerIntRegion layerVisibleRegion[] = {
+      LayerIntRect(0, 0, 100, 100),
   };
   CreateScrollData(treeShape, layerVisibleRegion);
   SetScrollableFrameMetrics(root, ScrollableLayerGuid::START_SCROLL_ID,
@@ -27,9 +27,15 @@ TEST_F(APZCSnappingOnMomentumTesterMock, Snap_On_Momentum) {
   // Set up some basic scroll snapping
   ScrollSnapInfo snap;
   snap.mScrollSnapStrictnessY = StyleScrollSnapStrictness::Mandatory;
-
-  snap.mSnapPositionY.AppendElement(0 * AppUnitsPerCSSPixel());
-  snap.mSnapPositionY.AppendElement(100 * AppUnitsPerCSSPixel());
+  snap.mSnapportSize = CSSSize::ToAppUnits(
+      layerVisibleRegion[0].GetBounds().Size() * LayerToCSSScale(1.0));
+  snap.mSnapTargets.AppendElement(ScrollSnapInfo::SnapTarget(
+      Nothing(), Some(0 * AppUnitsPerCSSPixel()),
+      CSSRect::ToAppUnits(CSSRect(0, 0, 10, 10)), StyleScrollSnapStop::Normal));
+  snap.mSnapTargets.AppendElement(
+      ScrollSnapInfo::SnapTarget(Nothing(), Some(100 * AppUnitsPerCSSPixel()),
+                                 CSSRect::ToAppUnits(CSSRect(0, 100, 10, 10)),
+                                 StyleScrollSnapStop::Normal));
 
   ModifyFrameMetrics(root, [&](ScrollMetadata& aSm, FrameMetrics&) {
     aSm.SetSnapInfo(ScrollSnapInfo(snap));
@@ -66,8 +72,10 @@ TEST_F(APZCSnappingOnMomentumTesterMock, Snap_On_Momentum) {
   PanGesture(PanGestureInput::PANGESTURE_END, manager, ScreenIntPoint(50, 80),
              ScreenPoint(0, 0), mcc->Time());
 
-  // After lifting the fingers, the velocity should still be positive.
-  EXPECT_GT(apzc->GetVelocityVector().y, 3.0);
+  // After lifting the fingers, the velocity should be zero and a smooth
+  // animation should have been triggered for scroll snap.
+  EXPECT_EQ(apzc->GetVelocityVector().y, 0);
+  apzc->AssertStateIsSmoothMsdScroll();
 
   mcc->AdvanceByMillis(5);
 

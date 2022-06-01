@@ -47,10 +47,17 @@ BlobSurfaceProvider::~BlobSurfaceProvider() {
 /* static */ void BlobSurfaceProvider::DestroyKeys(
     const AutoTArray<BlobImageKeyData, 1>& aKeys) {
   for (const auto& entry : aKeys) {
-    if (!entry.mManager->IsDestroyed()) {
-      entry.mManager->GetRenderRootStateManager()->AddBlobImageKeyForDiscard(
-          entry.mBlobKey);
+    if (entry.mManager->IsDestroyed()) {
+      continue;
     }
+
+    WebRenderBridgeChild* wrBridge = entry.mManager->WrBridge();
+    if (!wrBridge || !wrBridge->MatchesNamespace(entry.mBlobKey)) {
+      continue;
+    }
+
+    entry.mManager->GetRenderRootStateManager()->AddBlobImageKeyForDiscard(
+        entry.mBlobKey);
   }
 }
 
@@ -163,7 +170,7 @@ Maybe<BlobImageKeyData> BlobSurfaceProvider::RecordDrawing(
 
             for (auto& scaled : aScaledFonts) {
               Maybe<wr::FontInstanceKey> key =
-                  wrBridge->GetFontKeyForScaledFont(scaled, &aResources);
+                  wrBridge->GetFontKeyForScaledFont(scaled, aResources);
               if (key.isNothing()) {
                 validFonts = false;
                 break;

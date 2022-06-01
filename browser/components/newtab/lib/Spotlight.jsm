@@ -8,15 +8,25 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
+  AboutWelcomeTelemetry:
+    "resource://activity-stream/aboutwelcome/lib/AboutWelcomeTelemetry.jsm",
   RemoteImages: "resource://activity-stream/lib/RemoteImages.jsm",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.jsm",
 });
 
+XPCOMUtils.defineLazyGetter(
+  this,
+  "AWTelemetry",
+  () => new AboutWelcomeTelemetry()
+);
+
 const Spotlight = {
   sendUserEventTelemetry(event, message, dispatch) {
+    const message_id =
+      message.template === "multistage" ? message.content.id : message.id;
     const ping = {
-      message_id: message.id,
+      message_id,
       event,
     };
     dispatch({
@@ -25,12 +35,30 @@ const Spotlight = {
     });
   },
 
-  async showSpotlightDialog(browser, message, dispatchCFRAction) {
+  defaultDispatch(message) {
+    if (message.type === "SPOTLIGHT_TELEMETRY") {
+      const { message_id, event } = message.data;
+      AWTelemetry.sendTelemetry({ message_id, event });
+    }
+  },
+
+  /**
+   * Shows spotlight tab or window modal specific to the given browser
+   * @param browser             The browser for spotlight display
+   * @param message             Message containing content to show
+   * @param dispatchCFRAction   A function to dispatch resulting actions
+   * @return                    boolean value capturing if spotlight was displayed
+   */
+  async showSpotlightDialog(browser, message, dispatch = this.defaultDispatch) {
     const win = browser.ownerGlobal;
     if (win.gDialogBox.isOpen) {
       return false;
     }
+    const spotlight_url = "chrome://browser/content/spotlight.html";
 
+    const dispatchCFRAction =
+      // This also blocks CFR impressions, which is fine for current use cases.
+      message.content?.metrics === "block" ? () => {} : dispatch;
     let params = { primaryBtn: false, secondaryBtn: false };
 
     // There are two events named `IMPRESSION` the first one refers to telemetry
@@ -40,10 +68,19 @@ const Spotlight = {
 
     const unload = await RemoteImages.patchMessage(message.content.logo);
 
-    await win.gDialogBox.open("chrome://browser/content/spotlight.html", [
-      message.content,
-      params,
-    ]);
+    if (message.content?.modal === "tab") {
+      let { closedPromise } = win.gBrowser.getTabDialogBox(browser).open(
+        spotlight_url,
+        {
+          features: "resizable=no",
+          allowDuplicateDialogs: false,
+        },
+        [message.content, params]
+      );
+      await closedPromise;
+    } else {
+      await win.gDialogBox.open(spotlight_url, [message.content, params]);
+    }
 
     if (unload) {
       unload();
@@ -74,7 +111,5 @@ const Spotlight = {
     return true;
   },
 };
-
-this.Spotlight = Spotlight;
 
 const EXPORTED_SYMBOLS = ["Spotlight"];

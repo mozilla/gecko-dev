@@ -20,7 +20,7 @@ class kYCbCrStage : public RenderPipelineStage {
 
   void ProcessRow(const RowInfo& input_rows, const RowInfo& output_rows,
                   size_t xextra, size_t xsize, size_t xpos, size_t ypos,
-                  float* JXL_RESTRICT temp) const final {
+                  size_t thread_id) const final {
     PROFILER_ZONE("UndoYCbCr");
 
     const HWY_FULL(float) df;
@@ -53,6 +53,8 @@ class kYCbCrStage : public RenderPipelineStage {
     return c < 3 ? RenderPipelineChannelMode::kInPlace
                  : RenderPipelineChannelMode::kIgnored;
   }
+
+  const char* GetName() const override { return "YCbCr"; }
 };
 
 std::unique_ptr<RenderPipelineStage> GetYCbCrStage() {

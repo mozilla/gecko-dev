@@ -140,7 +140,6 @@ UNIFIED_SOURCES += [
     "CreateAppData.cpp",
     "nsAppStartupNotifier.cpp",
     "nsConsoleWriter.cpp",
-    "nsEmbeddingModule.cpp",
     "nsNativeAppSupportBase.cpp",
     "nsSigHandlers.cpp",
     "nsXREDirProvider.cpp",
@@ -156,7 +155,7 @@ SOURCES += [
     "ProfileReset.cpp",
 ]
 
-if CONFIG["MOZ_X11"]:
+if CONFIG["MOZ_X11"] or CONFIG["MOZ_WAYLAND"]:
     UNIFIED_SOURCES += [
         "glxtest.cpp",
     ]
@@ -187,7 +186,7 @@ include("/ipc/chromium/chromium-config.mozbuild")
 
 FINAL_LIBRARY = "xul"
 
-if CONFIG["MOZ_X11"]:
+if CONFIG["MOZ_X11"] or CONFIG["MOZ_WAYLAND"]:
     DEFINES["USE_GLX_TEST"] = True
 
 for var in (
@@ -277,9 +276,6 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
 
 DEFINES["TOPOBJDIR"] = TOPOBJDIR
 FINAL_TARGET_PP_FILES += ["platform.ini"]
-
-if CONFIG["MOZ_IPDL_TESTS"]:
-    DEFINES["MOZ_IPDL_TESTS"] = True
 
 if CONFIG["ENABLE_TESTS"]:
     DIRS += ["test/gtest"]

@@ -103,8 +103,8 @@ fuzzy-if(cocoaWidget,0-1,0-5) == decoration-color-override-quirks.html decoratio
 != inline-baseline-almost-standards.html inline-baseline-almost-standards-ref.html
 != inline-baseline-quirks.html inline-baseline-quirks-ref.html
 == 676538-1.html 676538-1-ref.html
-fuzzy-if(OSX==1010,0-1,0-4) == underline-button-1.html underline-button-1-ref.html
-fuzzy-if(OSX==1010,0-1,0-2) == underline-button-2.html underline-button-2-ref.html
+== underline-button-1.html underline-button-1-ref.html
+== underline-button-2.html underline-button-2-ref.html
 fuzzy(0-4,0-2) == underline-select-1.html underline-select-1-ref.html
 == underline-select-2.html underline-select-2-ref.html
 == 1133392.html 1133392-ref.html
@@ -113,7 +113,7 @@ fuzzy(0-4,0-2) == underline-select-1.html underline-select-1-ref.html
 == vertical-mode-decorations-1.html vertical-mode-decorations-1-ref.html
 fuzzy-if(Android,0-238,0-36) == vertical-mode-decorations-2.html vertical-mode-decorations-2-ref.html
 != 1415214.html 1415214-notref.html
-skip-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) HTTP(..) == skip-ink-multiline-position.html skip-ink-multiline-position-ref.html  # not reliable on Win7 (bug 1499459)
+HTTP(..) == skip-ink-multiline-position.html skip-ink-multiline-position-ref.html
 == skip-ink-vertical-align.html skip-ink-vertical-align-ref.html
 != skip-ink-vertical-align-2.html skip-ink-vertical-align-2-notref.html
 fuzzy(0-94,0-4) == skip-ink-cjk-1.html skip-ink-cjk-1-ref.html

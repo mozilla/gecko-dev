@@ -75,7 +75,7 @@ const INPUT_TYPES_NO_EVENT = new Set([
 ]);
 
 /** @namespace */
-this.interaction = {};
+const interaction = {};
 
 /**
  * Interact with an element by clicking it.
@@ -642,7 +642,7 @@ async function webdriverSendKeysToElement(
   } else if (el.type == "date" || el.type == "time") {
     interaction.setFormControlValue(el, value);
   } else {
-    event.sendKeysToElement(value, el, win);
+    event.sendKeys(value, win);
   }
 }
 
@@ -672,7 +672,7 @@ async function legacySendKeysToElement(el, value, a11y) {
 
     interaction.moveCaretToEnd(el);
     el.focus();
-    event.sendKeysToElement(value, el, win);
+    event.sendKeys(value, win);
   }
 }
 

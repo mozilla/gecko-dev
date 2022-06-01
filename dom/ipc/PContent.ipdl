@@ -13,12 +13,11 @@ include protocol PDocumentChannel;
 include protocol PExtensions;
 include protocol PExternalHelperApp;
 include protocol PHandlerService;
-include protocol PFileDescriptorSet;
 include protocol PHal;
 include protocol PHeapSnapshotTempFileHelper;
 include protocol PProcessHangMonitor;
 include protocol PImageBridge;
-include protocol PRemoteLazyInputStream;
+include protocol PRemotePrintJob;
 include protocol PLoginReputation;
 include protocol PMedia;
 include protocol PNecko;
@@ -26,9 +25,6 @@ include protocol PStreamFilter;
 include protocol PGMPContent;
 include protocol PGMPService;
 include protocol PGMP;
-include protocol PPrinting;
-include protocol PChildToParentStream;
-include protocol PParentToChildStream;
 #ifdef MOZ_WEBSPEECH
 include protocol PSpeechSynthesis;
 #endif
@@ -95,9 +91,12 @@ using mozilla::a11y::IHandlerControlHolder from "mozilla/a11y/IPCTypes.h";
 using mozilla::dom::NativeThreadId from "mozilla/dom/NativeThreadId.h";
 using mozilla::hal::ProcessPriority from "mozilla/HalTypes.h";
 using mozilla::gfx::IntSize from "mozilla/gfx/2D.h";
+using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
 using mozilla::dom::TabId from "mozilla/dom/ipc/IdType.h";
 using mozilla::dom::ContentParentId from "mozilla/dom/ipc/IdType.h";
 using mozilla::LayoutDeviceIntPoint from "Units.h";
+using mozilla::ImagePoint from "Units.h";
+using mozilla::ImageIntSize from "Units.h";
 using mozilla::widget::ThemeChangeKind from "mozilla/widget/WidgetMessageUtils.h";
 using class mozilla::dom::MessagePort from "mozilla/dom/MessagePort.h";
 using class mozilla::dom::ipc::StructuredCloneData from "mozilla/dom/ipc/StructuredCloneData.h";
@@ -425,6 +424,28 @@ union BlobURLDataRequestResult
   nsresult;
 };
 
+struct TextRecognitionQuad {
+    float confidence;
+    nsString string;
+    ImagePoint[] points;
+};
+
+struct TextRecognitionResult {
+    TextRecognitionQuad[] quads;
+};
+
+union TextRecognitionResultOrError {
+    TextRecognitionResult;
+    nsCString;
+};
+
+struct ShmemImage {
+    Shmem data;
+    uint32_t stride;
+    SurfaceFormat format;
+    ImageIntSize size;
+};
+
 /**
  * The PContent protocol is a top-level protocol between the UI process
  * and a content process. There is exactly one PContentParent/PContentChild pair
@@ -438,16 +459,12 @@ sync protocol PContent
     manages PCycleCollectWithLogs;
     manages PExtensions;
     manages PExternalHelperApp;
-    manages PFileDescriptorSet;
     manages PHal;
     manages PHandlerService;
     manages PHeapSnapshotTempFileHelper;
-    manages PRemoteLazyInputStream;
+    manages PRemotePrintJob;
     manages PMedia;
     manages PNecko;
-    manages PPrinting;
-    manages PChildToParentStream;
-    manages PParentToChildStream;
 #ifdef MOZ_WEBSPEECH
     manages PSpeechSynthesis;
 #endif
@@ -518,8 +535,6 @@ child:
                            bool isForBrowser, bool isTopLevel);
 
 both:
-    async PFileDescriptorSet(FileDescriptor fd);
-
     // For parent->child, aBrowser must be non-null; aContext can
     // be null to indicate the browser's current root document, or non-null
     // to persist a subdocument.  For child->parent, arguments are
@@ -554,6 +569,7 @@ child:
       uint32_t[] namespaces);
 
     async NetworkLinkTypeChange(uint32_t type);
+    async SocketProcessCrashed();
 
     // Re-create the rendering stack for a device reset.
     async ReinitRenderingForDeviceReset();
@@ -579,6 +595,13 @@ child:
      * to pull data from content processes.
      */
     async GetUntrustedModulesData() returns (UntrustedModulesData? data);
+
+    /**
+    * This method is used to notifty a child process to start
+    * processing module loading events in UntrustedModulesProcessor.
+    * This should be called when the parent process has gone idle.
+    */
+    async UnblockUntrustedModulesThread();
 #endif  // defined(XP_WIN)
 
     /**
@@ -749,7 +772,8 @@ child:
                                     SystemFontList systemFontList,
                                     SharedMemoryHandle? sharedUASheetHandle,
                                     uintptr_t sharedUASheetAddress,
-                                    SharedMemoryHandle[] sharedFontListBlocks);
+                                    SharedMemoryHandle[] sharedFontListBlocks,
+                                    bool aIsStartingUp);
 
     // Notify child that last-pb-context-exited notification was observed
     async LastPrivateDocShellDestroyed();
@@ -776,6 +800,12 @@ child:
                          uint32_t aKeyModifiers);
 
     async DomainSetChanged(uint32_t aSetType, uint32_t aChangeType, nsIURI aDomain);
+
+    /**
+     * Notify the child that it will soon be asked to shutdown.
+     * This is sent with high priority right before the normal shutdown.
+     */
+    [Priority=control] async ShutdownConfirmedHP();
 
     /**
      * Notify the child to shutdown. The child will in turn call FinishShutdown
@@ -823,15 +853,11 @@ child:
     async GMPsChanged(GMPCapabilityData[] capabilities);
 
 
-    async PParentToChildStream();
-
     async ProvideAnonymousTemporaryFile(uint64_t aID, FileDescOrError aFD);
 
     async SetPermissionsWithKey(nsCString aPermissionKey, Permission[] aPermissions);
 
     async RefreshScreens(ScreenDetails[] aScreens);
-
-    async PRemoteLazyInputStream(nsID aID, uint64_t aSize);
 
     async ShareCodeCoverageMutex(CrossProcessMutexHandle handle);
     async FlushCodeCoverageCounters() returns (bool unused);
@@ -976,27 +1002,29 @@ child:
                                       uint32_t aIndex, uint32_t aLength,
                                       nsID aChangeID);
 
-   async DispatchLocationChangeEvent(MaybeDiscardedBrowsingContext aContext);
+    async GetLayoutHistoryState(MaybeDiscardedBrowsingContext aContext)
+        returns (nsILayoutHistoryState aState);
 
-  // Dispatches a "beforeunload" event to each in-process content window in the
-  // subtree beginning at `aStartingAt`, and returns the result as documented in
-  // the `PermitUnloadResult` enum.
-  async DispatchBeforeUnloadToSubtree(MaybeDiscardedBrowsingContext aStartingAt)
-      returns (PermitUnloadResult result);
+    async DispatchLocationChangeEvent(MaybeDiscardedBrowsingContext aContext);
 
-  // Update the cached list of codec supported in the given process.
-  async UpdateMediaCodecsSupported(RemoteDecodeIn aLocation, MediaCodecsSupported aSupported);
+    // Dispatches a "beforeunload" event to each in-process content window in the
+    // subtree beginning at `aStartingAt`, and returns the result as documented in
+    // the `PermitUnloadResult` enum.
+    async DispatchBeforeUnloadToSubtree(MaybeDiscardedBrowsingContext aStartingAt)
+        returns (PermitUnloadResult result);
 
-  async FlushTabState(MaybeDiscardedBrowsingContext aBrowsingContext)
-      returns(bool aHadContext);
+    // Update the cached list of codec supported in the given process.
+    async UpdateMediaCodecsSupported(RemoteDecodeIn aLocation, MediaCodecsSupported aSupported);
 
-  // Send the list of the supported mimetypes in the given process. GeckoView-specific
-  async DecoderSupportedMimeTypes(nsCString[] supportedTypes);
+    // Send the list of the supported mimetypes in the given process. GeckoView-specific
+    async DecoderSupportedMimeTypes(nsCString[] supportedTypes);
 
-  // Used to initialize the global variable in content processes with the
-  // latched value in the parent process. See dom/LocalStorageCommon.h for more
-  // details.
-  async InitNextGenLocalStorageEnabled(bool enabled);
+    // Used to initialize the global variable in content processes with the
+    // latched value in the parent process. See dom/LocalStorageCommon.h for more
+    // details.
+    async InitNextGenLocalStorageEnabled(bool enabled);
+
+  async PRemotePrintJob();
 
 parent:
 
@@ -1036,8 +1064,7 @@ parent:
 
     async InitCrashReporter(NativeThreadId tid);
 
-    sync IsSecureURI(nsIURI aURI, uint32_t aFlags,
-                     OriginAttributes aOriginAttributes)
+    sync IsSecureURI(nsIURI aURI, OriginAttributes aOriginAttributes)
         returns (bool isSecureURI);
 
     async AccumulateMixedContentHSTS(nsIURI aURI, bool aActive,
@@ -1048,10 +1075,6 @@ parent:
     async PHeapSnapshotTempFileHelper();
 
     async PNecko();
-
-    async PPrinting();
-
-    async PChildToParentStream();
 
 #ifdef MOZ_WEBSPEECH
     async PSpeechSynthesis();
@@ -1085,7 +1108,8 @@ parent:
                           nsIPrincipal triggeringPrincipal,
                           nsIPrincipal redirectPrincipal,
                           MaybeDiscardedBrowsingContext browsingContext,
-                          bool wasExternallyTriggered);
+                          bool wasExternallyTriggered,
+                          bool hasValidUserGestureActivation);
     async ExtProtocolChannelConnectParent(uint64_t registrarId);
 
     // PrefService message
@@ -1178,6 +1202,10 @@ parent:
     // Returns a list of formats supported by the clipboard
     sync GetExternalClipboardFormats(int32_t aWhichClipboard, bool aPlainTextOnly) returns (nsCString[] aTypes);
 
+    // Given a list of supported types, returns the clipboard data for the
+    // first type that matches.
+    async GetClipboardAsync(nsCString[] aTypes, int32_t aWhichClipboard) returns (IPCDataTransfer dataTransfer);
+
     // Clears the clipboard.
     async EmptyClipboard(int32_t aWhichClipboard);
 
@@ -1200,6 +1228,8 @@ parent:
     async DeviceReset();
 
     async CopyFavicon(nsIURI oldURI, nsIURI newURI, bool isPrivate);
+
+    async FindImageText(ShmemImage image) returns (TextRecognitionResultOrError result);
 
     /**
      * Notifies the parent about a recording device is starting or shutdown.
@@ -1885,6 +1915,13 @@ parent:
     // format.  Not supported (or needed) on all platforms; see the
     // implementation in ContentParent::RecvGetSystemIcon for details.
     async GetSystemIcon(nsIURI aURI) returns (nsresult aResult, ByteBuf? aData);
+
+#ifdef FUZZING_SNAPSHOT
+    // Used by the child process to signal that it is ready to start fuzzing.
+    // This can in particular be used to wait for a particular event in a
+    // test document before taking the snapshot and starting e.g. IPC fuzzing.
+    async SignalFuzzingReady();
+#endif
 };
 
 }

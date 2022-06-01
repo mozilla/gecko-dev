@@ -6,6 +6,9 @@
 
 ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
 var { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { TestUtils } = ChromeUtils.import(
+  "resource://testing-common/TestUtils.jsm"
+);
 
 let h2Port;
 let trrServer;
@@ -18,7 +21,11 @@ const dns = Cc["@mozilla.org/network/dns-service;1"].getService(
   Ci.nsIDNSService
 );
 
-function setup() {
+add_setup(async function setup() {
+  if (inChildProcess()) {
+    return;
+  }
+
   trr_test_setup();
   let env = Cc["@mozilla.org/process/environment;1"].getService(
     Ci.nsIEnvironment
@@ -27,16 +34,18 @@ function setup() {
   Assert.notEqual(h2Port, null);
   Assert.notEqual(h2Port, "");
 
-  Services.prefs.setIntPref("network.trr.mode", 3);
-}
-
-if (!inChildProcess()) {
-  setup();
   registerCleanupFunction(async () => {
     trr_clear_prefs();
+    Services.prefs.clearUserPref("network.dns.port_prefixed_qname_https_rr");
     await trrServer.stop();
   });
-}
+
+  if (mozinfo.socketprocess_networking) {
+    await TestUtils.waitForCondition(() => Services.io.socketProcessLaunched);
+  }
+
+  Services.prefs.setIntPref("network.trr.mode", 3);
+});
 
 add_task(async function testHTTPSSVC() {
   // use the h2 server as DOH provider
@@ -610,5 +619,49 @@ add_task(async function testNegativeResponse() {
   let answer = inRecord.QueryInterface(Ci.nsIDNSHTTPSSVCRecord).records;
   Assert.equal(answer[0].priority, 1);
   Assert.equal(answer[0].name, "negative_test.com");
+});
+
+add_task(async function testPortPrefixedName() {
+  if (inChildProcess()) {
+    do_send_remote_message("set-port-prefixed-pref");
+    await do_await_remote_message("set-port-prefixed-pref-done");
+  } else {
+    Services.prefs.setBoolPref(
+      "network.dns.port_prefixed_qname_https_rr",
+      true
+    );
+  }
+
+  await trrServer.registerDoHAnswers(
+    "_4433._https.port_prefix.test.com",
+    "HTTPS",
+    {
+      answers: [
+        {
+          name: "_4433._https.port_prefix.test.com",
+          ttl: 55,
+          type: "HTTPS",
+          flush: false,
+          data: {
+            priority: 1,
+            name: "port_prefix.test1.com",
+            values: [{ key: "alpn", value: ["h2", "h3"] }],
+          },
+        },
+      ],
+    }
+  );
+
+  let { inRecord, inStatus } = await new TRRDNSListener(
+    "port_prefix.test.com",
+    {
+      type: dns.RESOLVE_TYPE_HTTPSSVC,
+      port: 4433,
+    }
+  );
+  Assert.ok(Components.isSuccessCode(inStatus), `${inStatus} should work`);
+  let answer = inRecord.QueryInterface(Ci.nsIDNSHTTPSSVCRecord).records;
+  Assert.equal(answer[0].priority, 1);
+  Assert.equal(answer[0].name, "port_prefix.test1.com");
   await trrServer.stop();
 });

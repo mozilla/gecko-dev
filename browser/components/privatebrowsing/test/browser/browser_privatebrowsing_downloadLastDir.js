@@ -6,12 +6,12 @@
 function test() {
   waitForExplicitFinish();
 
-  let FileUtils = ChromeUtils.import("resource://gre/modules/FileUtils.jsm", {})
-    .FileUtils;
-  let DownloadLastDir = ChromeUtils.import(
-    "resource://gre/modules/DownloadLastDir.jsm",
-    {}
-  ).DownloadLastDir;
+  let { FileUtils } = ChromeUtils.import(
+    "resource://gre/modules/FileUtils.jsm"
+  );
+  let { DownloadLastDir } = ChromeUtils.import(
+    "resource://gre/modules/DownloadLastDir.jsm"
+  );
   let MockFilePicker = SpecialPowers.MockFilePicker;
   let launcher = {
     source: Services.io.newURI("http://test1.com/file"),
@@ -100,7 +100,7 @@ function test() {
       aCallback();
     };
 
-    launcherDialog.promptForSaveToFileAsync(launcher, aWin, null, null, null);
+    launcherDialog.promptForSaveToFileAsync(launcher, aWin, "", "", false);
   }
 
   testOnWindow(false, function(win, downloadDir) {

@@ -236,16 +236,8 @@ bool TakeMinidump(nsIFile** aResult, bool aMoveToPending) { return false; }
 bool CreateMinidumpsAndPair(ProcessHandle aTargetPid,
                             ThreadId aTargetBlamedThread,
                             const nsACString& aIncomingPairName,
-                            nsIFile* aIncomingDumpToPair,
                             AnnotationTable& aTargetAnnotations,
                             nsIFile** aTargetDumpOut) {
-  return false;
-}
-
-bool CreateAdditionalChildMinidump(ProcessHandle childPid,
-                                   ThreadId childBlamedThread,
-                                   nsIFile* parentMinidump,
-                                   const nsACString& name) {
   return false;
 }
 
@@ -259,16 +251,5 @@ void SetCrashAnnotationPipeForChild(FileHandle childCrashAnnotationFd) {}
 void AddLibraryMapping(const char* library_name, uintptr_t start_address,
                        size_t mapping_length, size_t file_offset) {}
 #endif
-
-// From ThreadAnnotation.cpp
-
-void InitThreadAnnotation() {}
-
-void SetCurrentThreadName(const char* aName) {}
-
-void GetFlatThreadAnnotation(
-    const std::function<void(const char*)>& aCallback) {}
-
-void ShutdownThreadAnnotation() {}
 
 }  // namespace CrashReporter

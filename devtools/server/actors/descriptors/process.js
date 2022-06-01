@@ -10,6 +10,7 @@ const { Cc, Ci } = require("chrome");
 
 const {
   createBrowserSessionContext,
+  createContentProcessSessionContext,
 } = require("devtools/server/actors/watcher/session-context");
 const { ActorClassWithSpec, Actor } = require("devtools/shared/protocol");
 const {
@@ -61,7 +62,7 @@ const ProcessDescriptorActor = ActorClassWithSpec(processDescriptorSpec, {
   },
 
   get isWindowlessParent() {
-    return this.isParent && this.isXpcshell;
+    return this.isParent && (this.isXpcshell || this.isBackgroundTaskMode);
   },
 
   get isXpcshell() {
@@ -71,16 +72,24 @@ const ProcessDescriptorActor = ActorClassWithSpec(processDescriptorSpec, {
     return env.exists("XPCSHELL_TEST_PROFILE_DIR");
   },
 
+  get isBackgroundTaskMode() {
+    const bts = Cc["@mozilla.org/backgroundtasks;1"]?.getService(
+      Ci.nsIBackgroundTasks
+    );
+    return bts && bts.isBackgroundTaskMode;
+  },
+
   _parentProcessConnect() {
     let targetActor;
-    if (this.isXpcshell) {
-      // Check if we are running on xpcshell.
-      // When running on xpcshell, there is no valid browsing context to attach to
+    if (this.isWindowlessParent) {
+      // Check if we are running on xpcshell or in background task mode.
+      // In these modes, there is no valid browsing context to attach to
       // and so ParentProcessTargetActor doesn't make sense as it inherits from
       // WindowGlobalTargetActor. So instead use ContentProcessTargetActor, which
-      // matches xpcshell needs.
+      // matches the needs of these modes.
       targetActor = new ContentProcessTargetActor(this.conn, {
         isXpcShellTarget: true,
+        sessionContext: createContentProcessSessionContext(),
       });
     } else {
       // Create the target actor for the parent process, which is in the same process

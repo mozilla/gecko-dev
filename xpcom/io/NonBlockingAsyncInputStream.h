@@ -45,12 +45,6 @@ class NonBlockingAsyncInputStream final : public nsIAsyncInputStream,
       already_AddRefed<nsIInputStream> aInputStream);
   ~NonBlockingAsyncInputStream();
 
-  template <typename M>
-  void SerializeInternal(mozilla::ipc::InputStreamParams& aParams,
-                         FileDescriptorArray& aFileDescriptors,
-                         bool aDelayedStart, uint32_t aMaxSize,
-                         uint32_t* aSizeUsed, M* aManager);
-
   class AsyncWaitRunnable;
 
   void RunAsyncWaitCallback(AsyncWaitRunnable* aRunnable,
@@ -77,13 +71,13 @@ class NonBlockingAsyncInputStream final : public nsIAsyncInputStream,
   // This is set when AsyncWait is called with a callback and with
   // WAIT_CLOSURE_ONLY as flag.
   // This is protected by mLock.
-  Maybe<WaitClosureOnly> mWaitClosureOnly;
+  Maybe<WaitClosureOnly> mWaitClosureOnly GUARDED_BY(mLock);
 
   // This is protected by mLock.
-  RefPtr<AsyncWaitRunnable> mAsyncWaitCallback;
+  RefPtr<AsyncWaitRunnable> mAsyncWaitCallback GUARDED_BY(mLock);
 
   // This is protected by mLock.
-  bool mClosed;
+  bool mClosed GUARDED_BY(mLock);
 };
 
 }  // namespace mozilla

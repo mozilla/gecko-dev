@@ -96,13 +96,11 @@ void RDDProcessManager::OnPreferenceChange(const char16_t* aData) {
   // We know prefs are ASCII here.
   NS_LossyConvertUTF16toASCII strData(aData);
 
-  // A pref changed. If it is useful to do so, inform child processes.
-  if (!dom::ContentParent::ShouldSyncPreference(strData.Data())) {
-    return;
-  }
+  mozilla::dom::Pref pref(strData, /* isLocked */ false,
+                          /* isSanitized */ false, Nothing(), Nothing());
 
-  mozilla::dom::Pref pref(strData, /* isLocked */ false, Nothing(), Nothing());
-  Preferences::GetPreference(&pref);
+  Preferences::GetPreference(&pref, GeckoProcessType_RDD,
+                             /* remoteType */ ""_ns);
   if (!!mRDDChild) {
     MOZ_ASSERT(mQueuedPrefs.IsEmpty());
     mRDDChild->SendPreferenceUpdate(pref);
@@ -294,8 +292,7 @@ bool RDDProcessManager::CreateContentBridge(
     return false;
   }
 
-  mRDDChild->SendNewContentRemoteDecoderManager(std::move(parentPipe),
-      /* aAllowHardwareDecoding */ mNumUnexpectedCrashes == 0);
+  mRDDChild->SendNewContentRemoteDecoderManager(std::move(parentPipe));
 
   *aOutRemoteDecoderManager = std::move(childPipe);
   return true;
@@ -307,7 +304,8 @@ bool RDDProcessManager::CreateVideoBridge() {
   ipc::Endpoint<PVideoBridgeChild> childPipe;
 
   GPUProcessManager* gpuManager = GPUProcessManager::Get();
-  base::ProcessId gpuProcessPid = gpuManager ? gpuManager->GPUProcessPid() : -1;
+  base::ProcessId gpuProcessPid =
+      gpuManager ? gpuManager->GPUProcessPid() : base::kInvalidProcessId;
 
   // Build content device data first; this ensure that the GPU process is fully
   // ready.
@@ -317,8 +315,9 @@ bool RDDProcessManager::CreateVideoBridge() {
   // The child end is the producer of video frames; the parent end is the
   // consumer.
   base::ProcessId childPid = RDDProcessPid();
-  base::ProcessId parentPid =
-      gpuProcessPid != -1 ? gpuProcessPid : base::GetCurrentProcId();
+  base::ProcessId parentPid = gpuProcessPid != base::kInvalidProcessId
+                                  ? gpuProcessPid
+                                  : base::GetCurrentProcId();
 
   nsresult rv = PVideoBridge::CreateEndpoints(parentPid, childPid, &parentPipe,
                                               &childPipe);
@@ -330,7 +329,7 @@ bool RDDProcessManager::CreateVideoBridge() {
 
   mRDDChild->SendInitVideoBridge(std::move(childPipe),
                                  mNumUnexpectedCrashes == 0, contentDeviceData);
-  if (gpuProcessPid != -1) {
+  if (gpuProcessPid != base::kInvalidProcessId) {
     gpuManager->InitVideoBridge(std::move(parentPipe));
   } else {
     VideoBridgeParent::Open(std::move(parentPipe),
@@ -342,7 +341,8 @@ bool RDDProcessManager::CreateVideoBridge() {
 
 base::ProcessId RDDProcessManager::RDDProcessPid() {
   MOZ_ASSERT(NS_IsMainThread());
-  base::ProcessId rddPid = mRDDChild ? mRDDChild->OtherPid() : -1;
+  base::ProcessId rddPid =
+      mRDDChild ? mRDDChild->OtherPid() : base::kInvalidProcessId;
   return rddPid;
 }
 

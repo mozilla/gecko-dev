@@ -622,7 +622,8 @@ static IntrinsicSize ComputeIntrinsicSize(imgIContainer* aImage,
                                           nsImageFrame::Kind aKind,
                                           const nsImageFrame& aFrame) {
   const ComputedStyle& style = *aFrame.Style();
-  if (style.StyleDisplay()->IsContainSize()) {
+  const auto containAxes = style.StyleDisplay()->GetContainSizeAxes();
+  if (containAxes.IsBoth()) {
     return IntrinsicSize(0, 0);
   }
 
@@ -648,19 +649,23 @@ static IntrinsicSize ComputeIntrinsicSize(imgIContainer* aImage,
       ScaleIntrinsicSizeForDensity(intrinsicSize,
                                    aFrame.GetImageFromStyle()->GetResolution());
     }
-    return intrinsicSize;
+    return containAxes.ContainIntrinsicSize(intrinsicSize,
+                                            aFrame.GetWritingMode());
   }
 
   if (aKind == nsImageFrame::Kind::ListStyleImage) {
     // Note: images are handled above, this handles gradients etc.
     nscoord defaultLength = ListImageDefaultLength(aFrame);
-    return IntrinsicSize(defaultLength, defaultLength);
+    return containAxes.ContainIntrinsicSize(
+        IntrinsicSize(defaultLength, defaultLength), aFrame.GetWritingMode());
   }
 
   if (aFrame.ShouldShowBrokenImageIcon()) {
     nscoord edgeLengthToUse = nsPresContext::CSSPixelsToAppUnits(
         ICON_SIZE + (2 * (ICON_PADDING + ALT_BORDER_WIDTH)));
-    return IntrinsicSize(edgeLengthToUse, edgeLengthToUse);
+    return containAxes.ContainIntrinsicSize(
+        IntrinsicSize(edgeLengthToUse, edgeLengthToUse),
+        aFrame.GetWritingMode());
   }
 
   if (aUseMappedRatio && style.StylePosition()->mAspectRatio.HasRatio()) {
@@ -700,7 +705,7 @@ static AspectRatio ComputeIntrinsicRatio(imgIContainer* aImage,
                                          bool aUseMappedRatio,
                                          const nsImageFrame& aFrame) {
   const ComputedStyle& style = *aFrame.Style();
-  if (style.StyleDisplay()->IsContainSize()) {
+  if (style.StyleDisplay()->GetContainSizeAxes().IsAny()) {
     return AspectRatio();
   }
 
@@ -1075,14 +1080,18 @@ void nsImageFrame::MaybeDecodeForPredictedSize() {
 
   // OK, we're ready to decode. Compute the scale to the screen...
   mozilla::PresShell* presShell = PresContext()->PresShell();
-  LayoutDeviceToScreenScale2D resolutionToScreen(
-      presShell->GetCumulativeResolution() *
-      nsLayoutUtils::GetTransformToAncestorScaleExcludingAnimated(this));
+  MatrixScalesDouble scale =
+      ScaleFactor<UnknownUnits, UnknownUnits>(
+          presShell->GetCumulativeResolution()) *
+      nsLayoutUtils::GetTransformToAncestorScaleExcludingAnimated(this);
+  auto resolutionToScreen =
+      ViewAs<LayoutDeviceToScreenScale2D>(scale.ConvertTo<float>());
 
   // If we are in a remote browser, then apply scaling from ancestor browsers
   if (BrowserChild* browserChild = BrowserChild::GetFrom(presShell)) {
-    resolutionToScreen.xScale *= browserChild->GetEffectsInfo().mScaleX;
-    resolutionToScreen.yScale *= browserChild->GetEffectsInfo().mScaleY;
+    resolutionToScreen =
+        resolutionToScreen * ViewAs<ScreenToScreenScale2D>(
+                                 browserChild->GetEffectsInfo().mRasterScale);
   }
 
   // ...and this frame's content box...
@@ -1137,7 +1146,7 @@ bool nsImageFrame::IsForMarkerPseudo() const {
 }
 
 void nsImageFrame::EnsureIntrinsicSizeAndRatio() {
-  if (StyleDisplay()->IsContainSize()) {
+  if (StyleDisplay()->GetContainSizeAxes().IsBoth()) {
     // If we have 'contain:size', then our intrinsic size and ratio are 0,0
     // regardless of what our underlying image may think.
     mIntrinsicSize = IntrinsicSize(0, 0);
@@ -1207,6 +1216,31 @@ nscoord nsImageFrame::GetPrefISize(gfxContext* aRenderingContext) {
                                                     : mIntrinsicSize.width;
   // convert from normal twips to scaled twips (printing...)
   return iSize.valueOr(0);
+}
+
+void nsImageFrame::ReflowChildren(nsPresContext* aPresContext,
+                                  const ReflowInput& aReflowInput,
+                                  const LogicalSize& aImageSize) {
+  for (nsIFrame* child : mFrames) {
+    ReflowOutput childDesiredSize(aReflowInput);
+    WritingMode wm = GetWritingMode();
+    // Shouldn't be hard to support if we want, but why bother.
+    MOZ_ASSERT(
+        wm == child->GetWritingMode(),
+        "We don't expect mismatched writing-modes in content we control");
+    nsReflowStatus childStatus;
+
+    LogicalPoint childOffset(wm);
+    ReflowInput childReflowInput(aPresContext, aReflowInput, child, aImageSize);
+    const nsSize containerSize = aImageSize.GetPhysicalSize(wm);
+    ReflowChild(child, aPresContext, childDesiredSize, childReflowInput, wm,
+                childOffset, containerSize, ReflowChildFlags::Default,
+                childStatus);
+
+    FinishReflowChild(child, aPresContext, childDesiredSize, &childReflowInput,
+                      wm, childOffset, containerSize,
+                      ReflowChildFlags::Default);
+  }
 }
 
 void nsImageFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
@@ -1295,6 +1329,9 @@ void nsImageFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
     MaybeDecodeForPredictedSize();
   }
   FinishAndStoreOverflow(&aMetrics, aReflowInput.mStyleDisplay);
+
+  // Reflow the child frames. Our children can't affect our size in any way.
+  ReflowChildren(aPresContext, aReflowInput, aMetrics.Size(GetWritingMode()));
 
   if (HasAnyStateBits(NS_FRAME_FIRST_REFLOW) && !mReflowCallbackPosted) {
     mReflowCallbackPosted = true;
@@ -2256,9 +2293,17 @@ already_AddRefed<imgIRequest> nsImageFrame::GetCurrentRequest() const {
 
 void nsImageFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                     const nsDisplayListSet& aLists) {
-  if (!IsVisibleForPainting()) return;
+  if (!IsVisibleForPainting()) {
+    return;
+  }
 
   DisplayBorderBackgroundOutline(aBuilder, aLists);
+
+  if (IsContentHidden()) {
+    DisplaySelectionOverlay(aBuilder, aLists.Content(),
+                            nsISelectionDisplay::DISPLAY_IMAGES);
+    return;
+  }
 
   uint32_t clipFlags =
       nsStyleUtil::ObjectPropsMightCauseOverflow(StylePosition())
@@ -2326,6 +2371,8 @@ void nsImageFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     DisplaySelectionOverlay(aBuilder, aLists.Content(),
                             nsISelectionDisplay::DISPLAY_IMAGES);
   }
+
+  BuildDisplayListForNonBlockChildren(aBuilder, aLists);
 }
 
 bool nsImageFrame::ShouldDisplaySelection() {
@@ -2373,7 +2420,6 @@ CSSIntPoint nsImageFrame::TranslateEventCoords(const nsPoint& aPoint) {
 
 bool nsImageFrame::GetAnchorHREFTargetAndNode(nsIURI** aHref, nsString& aTarget,
                                               nsIContent** aNode) {
-  bool status = false;
   aTarget.Truncate();
   *aHref = nullptr;
   *aNode = nullptr;
@@ -2381,23 +2427,34 @@ bool nsImageFrame::GetAnchorHREFTargetAndNode(nsIURI** aHref, nsString& aTarget,
   // Walk up the content tree, looking for an nsIDOMAnchorElement
   for (nsIContent* content = mContent->GetParent(); content;
        content = content->GetParent()) {
-    nsCOMPtr<dom::Link> link(do_QueryInterface(content));
-    if (link) {
-      nsCOMPtr<nsIURI> href = content->GetHrefURI();
-      if (href) {
-        href.forget(aHref);
-      }
-      status = (*aHref != nullptr);
-
-      RefPtr<HTMLAnchorElement> anchor = HTMLAnchorElement::FromNode(content);
-      if (anchor) {
-        anchor->GetTarget(aTarget);
-      }
-      NS_ADDREF(*aNode = content);
-      break;
+    nsCOMPtr<dom::Link> link = do_QueryInterface(content);
+    if (!link) {
+      continue;
     }
+    if (nsCOMPtr<nsIURI> href = link->GetURI()) {
+      href.forget(aHref);
+    }
+
+    if (auto* anchor = HTMLAnchorElement::FromNode(content)) {
+      anchor->GetTarget(aTarget);
+    }
+    NS_ADDREF(*aNode = content);
+    return *aHref != nullptr;
   }
-  return status;
+  return false;
+}
+
+bool nsImageFrame::IsLeafDynamic() const {
+  if (mKind != Kind::ImageElement) {
+    // Image frames created for "content: url()" could have an author-controlled
+    // shadow root, we want to be a regular leaf for those.
+    return true;
+  }
+  // For elements that create image frames, calling attachShadow() will throw,
+  // so the only ShadowRoot we could ever have is a UA widget.
+  const auto* shadow = mContent->AsElement()->GetShadowRoot();
+  MOZ_ASSERT_IF(shadow, shadow->IsUAWidget());
+  return !shadow;
 }
 
 nsresult nsImageFrame::GetContentForEvent(WidgetEvent* aEvent,

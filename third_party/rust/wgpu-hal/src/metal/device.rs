@@ -1,5 +1,6 @@
 use parking_lot::Mutex;
 use std::{
+    num::NonZeroU32,
     ptr,
     sync::{atomic, Arc},
     thread, time,
@@ -73,8 +74,19 @@ impl super::Device {
         )
         .map_err(|e| crate::PipelineError::Linkage(stage_bit, format!("MSL: {:?}", e)))?;
 
+        log::debug!(
+            "Naga generated shader for entry point '{}' and stage {:?}\n{}",
+            stage.entry_point,
+            naga_stage,
+            &source
+        );
+
         let options = mtl::CompileOptions::new();
         options.set_language_version(self.shared.private_caps.msl_version);
+
+        if self.shared.private_caps.supports_preserve_invariance {
+            options.set_preserve_invariance(true);
+        }
 
         let library = self
             .shared
@@ -112,43 +124,46 @@ impl super::Device {
         let mut sized_bindings = Vec::new();
         let mut immutable_buffer_mask = 0;
         for (var_handle, var) in module.global_variables.iter() {
-            if var.class == naga::StorageClass::WorkGroup {
-                let size = module.types[var.ty].inner.span(&module.constants);
-                wg_memory_sizes.push(size);
-            }
-
-            if let naga::TypeInner::Struct { ref members, .. } = module.types[var.ty].inner {
-                let br = match var.binding {
-                    Some(ref br) => br.clone(),
-                    None => continue,
-                };
-
-                if !ep_info[var_handle].is_empty() {
-                    let storage_access_store = match var.class {
-                        naga::StorageClass::Storage { access } => {
+            match var.space {
+                naga::AddressSpace::WorkGroup => {
+                    if !ep_info[var_handle].is_empty() {
+                        let size = module.types[var.ty].inner.size(&module.constants);
+                        wg_memory_sizes.push(size);
+                    }
+                }
+                naga::AddressSpace::Uniform | naga::AddressSpace::Storage { .. } => {
+                    let br = match var.binding {
+                        Some(ref br) => br.clone(),
+                        None => continue,
+                    };
+                    let storage_access_store = match var.space {
+                        naga::AddressSpace::Storage { access } => {
                             access.contains(naga::StorageAccess::STORE)
                         }
                         _ => false,
                     };
+
                     // check for an immutable buffer
-                    if !storage_access_store {
+                    if !ep_info[var_handle].is_empty() && !storage_access_store {
                         let psm = &layout.naga_options.per_stage_map[naga_stage];
                         let slot = psm.resources[&br].buffer.unwrap();
                         immutable_buffer_mask |= 1 << slot;
                     }
-                }
 
-                // check for the unsized buffer
-                if let Some(member) = members.last() {
+                    let mut dynamic_array_container_ty = var.ty;
+                    if let naga::TypeInner::Struct { ref members, .. } = module.types[var.ty].inner
+                    {
+                        dynamic_array_container_ty = members.last().unwrap().ty;
+                    }
                     if let naga::TypeInner::Array {
                         size: naga::ArraySize::Dynamic,
                         ..
-                    } = module.types[member.ty].inner
+                    } = module.types[dynamic_array_container_ty].inner
                     {
-                        // Note: unwraps are fine, since the MSL is already generated
                         sized_bindings.push(br);
                     }
                 }
+                _ => {}
             }
         }
 
@@ -388,14 +403,14 @@ impl crate::Device<super::Api> for super::Device {
             wgt::FilterMode::Linear => mtl::MTLSamplerMipFilter::Linear,
         });
 
-        if let Some(aniso) = desc.anisotropy_clamp {
-            descriptor.set_max_anisotropy(aniso.get() as _);
-        }
-
         let [s, t, r] = desc.address_modes;
         descriptor.set_address_mode_s(conv::map_address_mode(s));
         descriptor.set_address_mode_t(conv::map_address_mode(t));
         descriptor.set_address_mode_r(conv::map_address_mode(r));
+
+        if let Some(aniso) = desc.anisotropy_clamp {
+            descriptor.set_max_anisotropy(aniso.get() as _);
+        }
 
         if let Some(ref range) = desc.lod_clamp {
             descriptor.set_lod_min_clamp(range.start);
@@ -409,8 +424,23 @@ impl crate::Device<super::Api> for super::Device {
         if let Some(fun) = desc.compare {
             descriptor.set_compare_function(conv::map_compare_function(fun));
         }
+
         if let Some(border_color) = desc.border_color {
-            descriptor.set_border_color(conv::map_border_color(border_color));
+            if let wgt::SamplerBorderColor::Zero = border_color {
+                if s == wgt::AddressMode::ClampToBorder {
+                    descriptor.set_address_mode_s(mtl::MTLSamplerAddressMode::ClampToZero);
+                }
+
+                if t == wgt::AddressMode::ClampToBorder {
+                    descriptor.set_address_mode_t(mtl::MTLSamplerAddressMode::ClampToZero);
+                }
+
+                if r == wgt::AddressMode::ClampToBorder {
+                    descriptor.set_address_mode_r(mtl::MTLSamplerAddressMode::ClampToZero);
+                }
+            } else {
+                descriptor.set_border_color(conv::map_border_color(border_color));
+            }
         }
 
         if let Some(label) = desc.label {
@@ -536,10 +566,12 @@ impl crate::Device<super::Api> for super::Device {
                     }
 
                     let mut target = naga::back::msl::BindTarget::default();
+                    let count = entry.count.map_or(1, NonZeroU32::get);
+                    target.binding_array_size = entry.count.map(NonZeroU32::get);
                     match entry.ty {
                         wgt::BindingType::Buffer { ty, .. } => {
                             target.buffer = Some(info.counters.buffers as _);
-                            info.counters.buffers += 1;
+                            info.counters.buffers += count;
                             if let wgt::BufferBindingType::Storage { read_only } = ty {
                                 target.mutable = !read_only;
                             }
@@ -548,15 +580,15 @@ impl crate::Device<super::Api> for super::Device {
                             target.sampler = Some(naga::back::msl::BindSamplerTarget::Resource(
                                 info.counters.samplers as _,
                             ));
-                            info.counters.samplers += 1;
+                            info.counters.samplers += count;
                         }
                         wgt::BindingType::Texture { .. } => {
                             target.texture = Some(info.counters.textures as _);
-                            info.counters.textures += 1;
+                            info.counters.textures += count;
                         }
                         wgt::BindingType::StorageTexture { access, .. } => {
                             target.texture = Some(info.counters.textures as _);
-                            info.counters.textures += 1;
+                            info.counters.textures += count;
                             target.mutable = match access {
                                 wgt::StorageTextureAccess::ReadOnly => false,
                                 wgt::StorageTextureAccess::WriteOnly => true,
@@ -622,6 +654,7 @@ impl crate::Device<super::Api> for super::Device {
                     mtl::MTLLanguageVersion::V2_1 => (2, 1),
                     mtl::MTLLanguageVersion::V2_2 => (2, 2),
                     mtl::MTLLanguageVersion::V2_3 => (2, 3),
+                    mtl::MTLLanguageVersion::V2_4 => (2, 4),
                 },
                 inline_samplers: Default::default(),
                 spirv_cross_compatibility: false,
@@ -644,6 +677,8 @@ impl crate::Device<super::Api> for super::Device {
                     index: naga::proc::BoundsCheckPolicy::ReadZeroSkipWrite,
                     buffer: naga::proc::BoundsCheckPolicy::ReadZeroSkipWrite,
                     image: naga::proc::BoundsCheckPolicy::ReadZeroSkipWrite,
+                    // TODO: support bounds checks on binding arrays
+                    binding_array: naga::proc::BoundsCheckPolicy::Unchecked,
                 },
             },
             total_push_constants,
@@ -666,7 +701,7 @@ impl crate::Device<super::Api> for super::Device {
                     ..
                 } = layout.ty
                 {
-                    dynamic_offsets_count += 1;
+                    dynamic_offsets_count += size;
                 }
                 if !layout.visibility.contains(stage_bit) {
                     continue;
@@ -677,39 +712,44 @@ impl crate::Device<super::Api> for super::Device {
                         has_dynamic_offset,
                         ..
                     } => {
-                        debug_assert_eq!(size, 1);
-                        let source = &desc.buffers[entry.resource_index as usize];
-                        let remaining_size =
-                            wgt::BufferSize::new(source.buffer.size - source.offset);
-                        let binding_size = match ty {
-                            wgt::BufferBindingType::Storage { .. } => {
-                                source.size.or(remaining_size)
-                            }
-                            _ => None,
-                        };
-                        bg.buffers.push(super::BufferResource {
-                            ptr: source.buffer.as_raw(),
-                            offset: source.offset,
-                            dynamic_index: if has_dynamic_offset {
-                                Some(dynamic_offsets_count - 1)
-                            } else {
-                                None
-                            },
-                            binding_size,
-                            binding_location: layout.binding,
-                        });
+                        let start = entry.resource_index as usize;
+                        let end = start + size as usize;
+                        bg.buffers
+                            .extend(desc.buffers[start..end].iter().map(|source| {
+                                let remaining_size =
+                                    wgt::BufferSize::new(source.buffer.size - source.offset);
+                                let binding_size = match ty {
+                                    wgt::BufferBindingType::Storage { .. } => {
+                                        source.size.or(remaining_size)
+                                    }
+                                    _ => None,
+                                };
+                                super::BufferResource {
+                                    ptr: source.buffer.as_raw(),
+                                    offset: source.offset,
+                                    dynamic_index: if has_dynamic_offset {
+                                        Some(dynamic_offsets_count - 1)
+                                    } else {
+                                        None
+                                    },
+                                    binding_size,
+                                    binding_location: layout.binding,
+                                }
+                            }));
                         counter.buffers += 1;
                     }
                     wgt::BindingType::Sampler { .. } => {
-                        let res = desc.samplers[entry.resource_index as usize].as_raw();
-                        bg.samplers.push(res);
-                        counter.samplers += 1;
+                        let start = entry.resource_index as usize;
+                        let end = start + size as usize;
+                        bg.samplers
+                            .extend(desc.samplers[start..end].iter().map(|samp| samp.as_raw()));
+                        counter.samplers += size;
                     }
                     wgt::BindingType::Texture { .. } | wgt::BindingType::StorageTexture { .. } => {
-                        let start = entry.resource_index;
-                        let end = start + size;
+                        let start = entry.resource_index as usize;
+                        let end = start + size as usize;
                         bg.textures.extend(
-                            desc.textures[start as usize..end as usize]
+                            desc.textures[start..end]
                                 .iter()
                                 .map(|tex| tex.view.as_raw()),
                         );

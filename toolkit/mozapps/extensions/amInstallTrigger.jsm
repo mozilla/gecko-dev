@@ -9,6 +9,13 @@ const { Preferences } = ChromeUtils.import(
   "resource://gre/modules/Preferences.jsm"
 );
 const { Log } = ChromeUtils.import("resource://gre/modules/Log.jsm");
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
+XPCOMUtils.defineLazyServiceGetters(this, {
+  ThirdPartyUtil: ["@mozilla.org/thirdpartyutil;1", "mozIThirdPartyUtil"],
+});
 
 const XPINSTALL_MIMETYPE = "application/x-xpinstall";
 
@@ -121,6 +128,14 @@ InstallTrigger.prototype = {
   },
 
   install(installs, callback) {
+    if (Services.prefs.getBoolPref("xpinstall.userActivation.required", true)) {
+      if (!this._window.windowUtils.isHandlingUserInput) {
+        throw new this._window.Error(
+          "InstallTrigger.install can only be called from a user input handler"
+        );
+      }
+    }
+
     let keys = Object.keys(installs);
     if (keys.length > 1) {
       throw new this._window.Error("Only one XPI may be installed at a time");
@@ -164,14 +179,56 @@ InstallTrigger.prototype = {
       }
     }
 
+    const getTriggeringSource = () => {
+      let url;
+      let host;
+      try {
+        if (this._url?.schemeIs("http") || this._url?.schemeIs("https")) {
+          url = this._url.spec;
+          host = this._url.host;
+        } else if (this._url?.schemeIs("blob")) {
+          // For a blob url, we keep the blob url as the sourceURL and
+          // we pick the related sourceHost from either the principal
+          // or the precursorPrincipal (if the principal is a null principal
+          // and the precursor one is defined).
+          url = this._url.spec;
+          host =
+            this._principal.isNullPrincipal &&
+            this._principal.precursorPrincipal
+              ? this._principal.precursorPrincipal.host
+              : this._principal.host;
+        } else if (!this._principal.isNullPrincipal) {
+          url = this._principal.exposableSpec;
+          host = this._principal.host;
+        } else if (this._principal.precursorPrincipal) {
+          url = this._principal.precursorPrincipal.exposableSpec;
+          host = this._principal.precursorPrincipal.host;
+        } else {
+          // Fallback to this._url as last resort.
+          url = this._url.spec;
+          host = this._url.host;
+        }
+      } catch (err) {
+        Cu.reportError(err);
+      }
+      // Fallback to an empty string if url and host are still undefined.
+      return {
+        sourceURL: url || "",
+        sourceHost: host || "",
+      };
+    };
+
+    const { sourceHost, sourceURL } = getTriggeringSource();
+
     let installData = {
       uri: url.spec,
       hash: item.Hash || null,
       name: item.name,
       icon: iconUrl ? iconUrl.spec : null,
       method: "installTrigger",
-      sourceHost: this._window.location?.host,
-      sourceURL: this._window.location?.href,
+      sourceHost,
+      sourceURL,
+      hasCrossOriginAncestor: ThirdPartyUtil.isThirdPartyWindow(this._window),
     };
 
     return this._mediator.install(

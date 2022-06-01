@@ -1,9 +1,9 @@
-use std::fmt;
+use std::{borrow::Cow, fmt};
 
 use super::{builtins::MacroCall, context::ExprPos, Span};
 use crate::{
-    BinaryOperator, Binding, Constant, Expression, Function, GlobalVariable, Handle, Interpolation,
-    Sampling, StorageAccess, StorageClass, Type, UnaryOperator,
+    AddressSpace, BinaryOperator, Binding, Constant, Expression, Function, GlobalVariable, Handle,
+    Interpolation, Sampling, StorageAccess, Type, UnaryOperator,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -23,8 +23,8 @@ pub struct GlobalLookup {
 #[derive(Debug, Clone)]
 pub struct ParameterInfo {
     pub qualifier: ParameterQualifier,
-    /// Wether the parameter should be treated as a depth image instead of a
-    /// sampled image
+    /// Whether the parameter should be treated as a depth image instead of a
+    /// sampled image.
     pub depth: bool,
 }
 
@@ -33,7 +33,7 @@ pub struct ParameterInfo {
 pub enum FunctionKind {
     /// The function is user defined
     Call(Handle<Function>),
-    /// The function is a buitin
+    /// The function is a builtin
     Macro(MacroCall),
 }
 
@@ -53,20 +53,37 @@ pub struct Overload {
     pub parameters_info: Vec<ParameterInfo>,
     /// How the function is implemented
     pub kind: FunctionKind,
-    /// Wheter this function was already defined or is just a prototype
+    /// Whether this function was already defined or is just a prototype
     pub defined: bool,
-    /// Wheter or not this function returns void (nothing)
+    /// Whether this overload is the one provided by the language or has
+    /// been redeclared by the user (builtins only)
+    pub internal: bool,
+    /// Whether or not this function returns void (nothing)
     pub void: bool,
+}
+
+bitflags::bitflags! {
+    /// Tracks the variations of the builtin already generated, this is needed because some
+    /// builtins overloads can't be generated unless explicitly used, since they might cause
+    /// unneeded capabilities to be requested
+    #[derive(Default)]
+    pub struct BuiltinVariations: u32 {
+        /// Request the standard overloads
+        const STANDARD = 1 << 0;
+        /// Request overloads that use the double type
+        const DOUBLE = 1 << 1;
+        /// Request overloads that use samplerCubeArray(Shadow)
+        const CUBE_TEXTURES_ARRAY = 1 << 2;
+        /// Request overloads that use sampler2DMSArray
+        const D2_MULTI_TEXTURES_ARRAY = 1 << 3;
+    }
 }
 
 #[derive(Debug, Default)]
 pub struct FunctionDeclaration {
     pub overloads: Vec<Overload>,
-    /// Wether or not this function has the name of a builtin
-    pub builtin: bool,
-    /// In case [`builtin`](Self::builtin) is true, this field indicates wether
-    /// this function already has double overloads added or not, otherwise is unused
-    pub double: bool,
+    /// Tracks the builtin overload variations that were already generated
+    pub variations: BuiltinVariations,
 }
 
 #[derive(Debug)]
@@ -80,7 +97,9 @@ pub struct EntryArg {
 #[derive(Debug, Clone)]
 pub struct VariableReference {
     pub expr: Handle<Expression>,
+    /// Wether the variable is of a pointer type (and needs loading) or not
     pub load: bool,
+    /// Wether the value of the variable can be changed or not
     pub mutable: bool,
     pub constant: Option<(Handle<Constant>, Handle<Type>)>,
     pub entry_arg: Option<usize>,
@@ -134,19 +153,133 @@ pub enum HirExprKind {
     },
 }
 
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub enum QualifierKey<'a> {
+    String(Cow<'a, str>),
+    /// Used for `std140` and `std430` layout qualifiers
+    Layout,
+    /// Used for image formats
+    Format,
+}
+
 #[derive(Debug)]
-pub enum TypeQualifier {
-    StorageQualifier(StorageQualifier),
-    Interpolation(Interpolation),
-    Set(u32),
-    Binding(u32),
-    Location(u32),
-    WorkGroupSize(usize, u32),
-    Sampling(Sampling),
+pub enum QualifierValue {
+    None,
+    Uint(u32),
     Layout(StructLayout),
-    Precision(Precision),
-    EarlyFragmentTests,
-    StorageAccess(StorageAccess),
+    Format(crate::StorageFormat),
+}
+
+#[derive(Debug, Default)]
+pub struct TypeQualifiers<'a> {
+    pub span: Span,
+    pub storage: (StorageQualifier, Span),
+    pub invariant: Option<Span>,
+    pub interpolation: Option<(Interpolation, Span)>,
+    pub precision: Option<(Precision, Span)>,
+    pub sampling: Option<(Sampling, Span)>,
+    /// Memory qualifiers used in the declaration to set the storage access to be used
+    /// in declarations that support it (storage images and buffers)
+    pub storage_access: Option<(StorageAccess, Span)>,
+    pub layout_qualifiers: crate::FastHashMap<QualifierKey<'a>, (QualifierValue, Span)>,
+}
+
+impl<'a> TypeQualifiers<'a> {
+    /// Appends `errors` with errors for all unused qualifiers
+    pub fn unused_errors(&self, errors: &mut Vec<super::Error>) {
+        if let Some(meta) = self.invariant {
+            errors.push(super::Error {
+                kind: super::ErrorKind::SemanticError(
+                    "Invariant qualifier can only be used in in/out variables".into(),
+                ),
+                meta,
+            });
+        }
+
+        if let Some((_, meta)) = self.interpolation {
+            errors.push(super::Error {
+                kind: super::ErrorKind::SemanticError(
+                    "Interpolation qualifiers can only be used in in/out variables".into(),
+                ),
+                meta,
+            });
+        }
+
+        if let Some((_, meta)) = self.sampling {
+            errors.push(super::Error {
+                kind: super::ErrorKind::SemanticError(
+                    "Sampling qualifiers can only be used in in/out variables".into(),
+                ),
+                meta,
+            });
+        }
+
+        if let Some((_, meta)) = self.storage_access {
+            errors.push(super::Error {
+                kind: super::ErrorKind::SemanticError(
+                    "Memory qualifiers can only be used in storage variables".into(),
+                ),
+                meta,
+            });
+        }
+
+        for &(_, meta) in self.layout_qualifiers.values() {
+            errors.push(super::Error {
+                kind: super::ErrorKind::SemanticError("Unexpected qualifier".into()),
+                meta,
+            });
+        }
+    }
+
+    /// Removes the layout qualifier with `name`, if it exists and adds an error if it isn't
+    /// a [`QualifierValue::Uint`]
+    pub fn uint_layout_qualifier(
+        &mut self,
+        name: &'a str,
+        errors: &mut Vec<super::Error>,
+    ) -> Option<u32> {
+        match self
+            .layout_qualifiers
+            .remove(&QualifierKey::String(name.into()))
+        {
+            Some((QualifierValue::Uint(v), _)) => Some(v),
+            Some((_, meta)) => {
+                errors.push(super::Error {
+                    kind: super::ErrorKind::SemanticError("Qualifier expects a uint value".into()),
+                    meta,
+                });
+                // Return a dummy value instead of `None` to differentiate from
+                // the qualifier not existing, since some parts might require the
+                // qualifier to exist and throwing another error that it doesn't
+                // exist would be unhelpful
+                Some(0)
+            }
+            _ => None,
+        }
+    }
+
+    /// Removes the layout qualifier with `name`, if it exists and adds an error if it isn't
+    /// a [`QualifierValue::None`]
+    pub fn none_layout_qualifier(&mut self, name: &'a str, errors: &mut Vec<super::Error>) -> bool {
+        match self
+            .layout_qualifiers
+            .remove(&QualifierKey::String(name.into()))
+        {
+            Some((QualifierValue::None, _)) => true,
+            Some((_, meta)) => {
+                errors.push(super::Error {
+                    kind: super::ErrorKind::SemanticError(
+                        "Qualifier doesn't expect a value".into(),
+                    ),
+                    meta,
+                });
+                // Return a `true` to since the qualifier is defined and adding
+                // another error for it not being defined would be unhelpful
+                true
+            }
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -163,10 +296,16 @@ pub struct FunctionCall {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StorageQualifier {
-    StorageClass(StorageClass),
+    AddressSpace(AddressSpace),
     Input,
     Output,
     Const,
+}
+
+impl Default for StorageQualifier {
+    fn default() -> Self {
+        StorageQualifier::AddressSpace(AddressSpace::Function)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -176,7 +315,7 @@ pub enum StructLayout {
 }
 
 // TODO: Encode precision hints in the IR
-/// A precision hint used in glsl declarations
+/// A precision hint used in GLSL declarations.
 ///
 /// Precision hints can be used to either speed up shader execution or control
 /// the precision of arithmetic operations.
@@ -213,7 +352,7 @@ pub enum ParameterQualifier {
 
 impl ParameterQualifier {
     /// Returns true if the argument should be passed as a lhs expression
-    pub fn is_lhs(&self) -> bool {
+    pub const fn is_lhs(&self) -> bool {
         match *self {
             ParameterQualifier::Out | ParameterQualifier::InOut => true,
             _ => false,
@@ -221,7 +360,7 @@ impl ParameterQualifier {
     }
 
     /// Converts from a parameter qualifier into a [`ExprPos`](ExprPos)
-    pub fn as_pos(&self) -> ExprPos {
+    pub const fn as_pos(&self) -> ExprPos {
         match *self {
             ParameterQualifier::Out | ParameterQualifier::InOut => ExprPos::Lhs,
             _ => ExprPos::Rhs,
@@ -229,7 +368,7 @@ impl ParameterQualifier {
     }
 }
 
-/// The glsl profile used by a shader
+/// The GLSL profile used by a shader.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Profile {
     /// The `core` profile, default when no profile is specified.

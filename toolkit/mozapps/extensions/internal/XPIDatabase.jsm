@@ -20,12 +20,17 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
+XPCOMUtils.defineLazyServiceGetters(this, {
+  ThirdPartyUtil: ["@mozilla.org/thirdpartyutil;1", "mozIThirdPartyUtil"],
+});
+
 XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   AddonManagerPrivate: "resource://gre/modules/AddonManager.jsm",
   AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   AddonSettings: "resource://gre/modules/addons/AddonSettings.jsm",
   DeferredTask: "resource://gre/modules/DeferredTask.jsm",
+  ExtensionData: "resource://gre/modules/Extension.jsm",
   ExtensionUtils: "resource://gre/modules/ExtensionUtils.jsm",
   FileUtils: "resource://gre/modules/FileUtils.jsm",
   PermissionsUtils: "resource://gre/modules/PermissionsUtils.jsm",
@@ -339,14 +344,17 @@ class AddonInternal {
   }
 
   /**
-   * Validate a list of origins are contained in the installOrigins array (defined in manifest.json)
+   * Validate a list of origins are contained in the installOrigins array (defined in manifest.json).
    *
-   * @param {Object} origins A map of origins to validate using the addon installOrigins
-   *                         (keys are arbitrary strings meant to briefly describe the
-   *                         kind of source being validated, values are nsIURI).
+   * SitePermission addons are a special case, where the triggering install site may be a subdomain
+   * of a valid xpi origin.
+   *
+   * @param {Object}  origins             Object containing URIs related to install.
+   * @params {nsIURI} origins.installFrom The nsIURI of the website that has triggered the install flow.
+   * @params {nsIURI} origins.source      The nsIURI where the xpi is hosted.
    * @returns {boolean}
    */
-  validInstallOrigins(origins = {}) {
+  validInstallOrigins({ installFrom, source }) {
     if (
       !Services.prefs.getBoolPref("extensions.install_origins.enabled", true)
     ) {
@@ -365,10 +373,40 @@ class AddonInternal {
       return false;
     }
 
-    for (const [name, source] of Object.entries(origins)) {
+    if (this.type == "sitepermission") {
+      // NOTE: This may move into a check for all addons later.
+      for (let origin of installOrigins) {
+        let host = new URL(origin).host;
+        // install_origin cannot be on a known etld (e.g. github.io).
+        if (Services.eTLD.getKnownPublicSuffixFromHost(host) == host) {
+          logger.warn(
+            `Addon ${this.id} Installation not allowed from the install_origin ${host} that is an eTLD`
+          );
+          return false;
+        }
+      }
+
       if (!installOrigins.includes(new URL(source.spec).origin)) {
         logger.warn(
-          `Addon ${this.id} Installation not allowed, ${name} "${source.spec}" is not included in the Addon install_origins`
+          `Addon ${this.id} Installation not allowed, "${source.spec}" is not included in the Addon install_origins`
+        );
+        return false;
+      }
+
+      if (ThirdPartyUtil.isThirdPartyURI(source, installFrom)) {
+        logger.warn(
+          `Addon ${this.id} Installation not allowed, installFrom "${installFrom.spec}" is third party to the Addon install_origins`
+        );
+        return false;
+      }
+
+      return true;
+    }
+
+    for (const [name, uri] of Object.entries({ installFrom, source })) {
+      if (!installOrigins.includes(new URL(uri.spec).origin)) {
+        logger.warn(
+          `Addon ${this.id} Installation not allowed, ${name} "${uri.spec}" is not included in the Addon install_origins`
         );
         return false;
       }
@@ -480,17 +518,22 @@ class AddonInternal {
     return this.isCompatibleWith();
   }
 
-  // This matches Extension.isPrivileged with the exception of temporarily installed extensions.
   get isPrivileged() {
-    return (
-      this.signedState === AddonManager.SIGNEDSTATE_PRIVILEGED ||
-      this.signedState === AddonManager.SIGNEDSTATE_SYSTEM ||
-      this.location.isBuiltin
-    );
+    return ExtensionData.getIsPrivileged({
+      signedState: this.signedState,
+      builtIn: this.location.isBuiltin,
+      temporarilyInstalled: this.location.isTemporary,
+    });
   }
 
   get hidden() {
-    return this.location.hidden || (this._hidden && this.isPrivileged) || false;
+    return (
+      this.location.hidden ||
+      // The hidden flag is intended to only be used for features that are part
+      // of the application. Temporary add-ons should not be hidden.
+      (this._hidden && this.isPrivileged && !this.location.isTemporary) ||
+      false
+    );
   }
 
   set hidden(val) {
@@ -1612,7 +1655,7 @@ function _filterDB(addonDB, aFilter) {
   return Array.from(addonDB.values()).filter(aFilter);
 }
 
-this.XPIDatabase = {
+const XPIDatabase = {
   // true if the database connection has been opened
   initialized: false,
   // The database file
@@ -1664,7 +1707,7 @@ this.XPIDatabase = {
       logger.warn("Failed to save XPI database", error);
       this._saveError = error;
 
-      if (!(error instanceof DOMException) || error.name !== "AbortError") {
+      if (!DOMException.isInstance(error) || error.name !== "AbortError") {
         throw error;
       }
     }
@@ -1874,7 +1917,7 @@ this.XPIDatabase = {
         await this.maybeIdleDispatch();
         await this.parseDB(json, true);
       } catch (error) {
-        if (error instanceof DOMException && error.name === "NotFoundError") {
+        if (DOMException.isInstance(error) && error.name === "NotFoundError") {
           if (Services.prefs.getIntPref(PREF_DB_SCHEMA, 0)) {
             this._recordStartupError("dbMissing");
           }
@@ -2792,7 +2835,7 @@ this.XPIDatabase = {
   },
 };
 
-this.XPIDatabaseReconcile = {
+const XPIDatabaseReconcile = {
   /**
    * Returns a map of ID -> add-on. When the same add-on ID exists in multiple
    * install locations the highest priority location is chosen.

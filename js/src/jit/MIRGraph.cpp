@@ -190,6 +190,9 @@ MBasicBlock* MBasicBlock::NewSplitEdge(MIRGraph& graph, MBasicBlock* pred,
     if (!split) {
       return nullptr;
     }
+
+    // Insert the split edge block in-between.
+    split->end(MGoto::New(graph.alloc(), succ));
   } else {
     // The predecessor has a PC, this is a Warp compilation.
     MResumePoint* succEntry = succ->entryResumePoint();
@@ -219,11 +222,14 @@ MBasicBlock* MBasicBlock::NewSplitEdge(MIRGraph& graph, MBasicBlock* pred,
 
     // Create a resume point using our initial stack position.
     MResumePoint* splitEntry = new (graph.alloc())
-        MResumePoint(split, succEntry->pc(), MResumePoint::ResumeAt);
+        MResumePoint(split, succEntry->pc(), ResumeMode::ResumeAt);
     if (!splitEntry->init(graph.alloc())) {
       return nullptr;
     }
     split->entryResumePoint_ = splitEntry;
+
+    // Insert the split edge block in-between.
+    split->end(MGoto::New(graph.alloc(), succ));
 
     // The target entry resume point might have phi operands, keep the
     // operands of the phi coming from our edge.
@@ -233,9 +239,16 @@ MBasicBlock* MBasicBlock::NewSplitEdge(MIRGraph& graph, MBasicBlock* pred,
       MDefinition* def = succEntry->getOperand(i);
       // This early in the pipeline, we have no recover instructions in
       // any entry resume point.
-      MOZ_ASSERT_IF(def->block() == succ, def->isPhi());
       if (def->block() == succ) {
-        def = def->toPhi()->getOperand(succEdgeIdx);
+        if (def->isPhi()) {
+          def = def->toPhi()->getOperand(succEdgeIdx);
+        } else {
+          // The phi-operand may already have been optimized out.
+          MOZ_ASSERT(def->isConstant());
+          MOZ_ASSERT(def->type() == MIRType::MagicOptimizedOut);
+
+          def = split->optimizedOutConstant(graph.alloc());
+        }
       }
 
       splitEntry->initOperand(i, def);
@@ -249,9 +262,6 @@ MBasicBlock* MBasicBlock::NewSplitEdge(MIRGraph& graph, MBasicBlock* pred,
   }
 
   split->setLoopDepth(succ->loopDepth());
-
-  // Insert the split edge block in-between.
-  split->end(MGoto::New(graph.alloc(), succ));
 
   graph.insertBlockAfter(pred, split);
 
@@ -462,7 +472,7 @@ bool MBasicBlock::inherit(TempAllocator& alloc, size_t stackDepth,
 
   // Create a resume point using our initial stack state.
   entryResumePoint_ =
-      new (alloc) MResumePoint(this, pc(), MResumePoint::ResumeAt);
+      new (alloc) MResumePoint(this, pc(), ResumeMode::ResumeAt);
   if (!entryResumePoint_->init(alloc)) {
     return false;
   }
@@ -512,7 +522,7 @@ bool MBasicBlock::initEntrySlots(TempAllocator& alloc) {
 
   // Create a resume point using our initial stack state.
   entryResumePoint_ =
-      MResumePoint::New(alloc, this, pc(), MResumePoint::ResumeAt);
+      MResumePoint::New(alloc, this, pc(), ResumeMode::ResumeAt);
   if (!entryResumePoint_) {
     return false;
   }
@@ -616,6 +626,7 @@ void MBasicBlock::discardResumePoint(
   if (refType & RefType_DiscardOperands) {
     rp->releaseUses();
   }
+  rp->setDiscarded();
 #ifdef DEBUG
   MResumePointIterator iter = resumePointsBegin();
   while (*iter != rp) {
@@ -668,14 +679,6 @@ void MBasicBlock::discardIgnoreOperands(MInstruction* ins) {
 
   prepareForDiscard(ins, RefType_IgnoreOperands);
   instructions_.remove(ins);
-}
-
-void MBasicBlock::discardDef(MDefinition* at) {
-  if (at->isPhi()) {
-    at->block()->discardPhi(at->toPhi());
-  } else {
-    at->block()->discard(at->toInstruction());
-  }
 }
 
 void MBasicBlock::discardAllInstructions() {

@@ -32,6 +32,7 @@
 #include "mozilla/PreferenceSheet.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/widget/WidgetMessageUtils.h"
+#include "mozilla/RelativeLuminanceUtils.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryScalarEnums.h"
 
@@ -109,7 +110,7 @@ static EnumeratedCache<FontID, widget::LookAndFeelFont, FontID::End> sFontCache;
 //
 // This needs to be of the same length and in the same order as
 // LookAndFeel::IntID values.
-static const char sIntPrefs[][43] = {
+static const char sIntPrefs[][45] = {
     "ui.caretBlinkTime",
     "ui.caretBlinkCount",
     "ui.caretWidth",
@@ -176,6 +177,8 @@ static const char sIntPrefs[][43] = {
     "ui.touchDeviceSupportPresent",
     "ui.titlebarRadius",
     "ui.GtkMenuRadius",
+    "ui.dynamicRange",
+    "ui.videoDynamicRange",
 };
 
 static_assert(ArrayLength(sIntPrefs) == size_t(LookAndFeel::IntID::End),
@@ -285,8 +288,6 @@ static const char sColorPrefs[][41] = {
     "ui.-moz-mac-menutextselect",
     "ui.-moz_mac_disabledtoolbartext",
     "ui.-moz-mac-secondaryhighlight",
-    "ui.-moz-mac-vibrant-titlebar-light",
-    "ui.-moz-mac-vibrant-titlebar-dark",
     "ui.-moz-mac-menupopup",
     "ui.-moz-mac-menuitem",
     "ui.-moz-mac-active-menuitem",
@@ -375,10 +376,14 @@ void nsXPLookAndFeel::Shutdown() {
   widget::Theme::Shutdown();
 }
 
-static void IntPrefChanged() {
-  // Int prefs can't change our system colors or fonts.
-  LookAndFeel::NotifyChangedAllWindows(
-      widget::ThemeChangeKind::MediaQueriesOnly);
+static void IntPrefChanged(const nsACString& aPref) {
+  // Most Int prefs can't change our system colors or fonts, but
+  // ui.systemUsesDarkTheme can, since it affects the effective color-scheme
+  // (affecting system colors).
+  auto changeKind = aPref.EqualsLiteral("ui.systemUsesDarkTheme")
+                        ? widget::ThemeChangeKind::Style
+                        : widget::ThemeChangeKind::MediaQueriesOnly;
+  LookAndFeel::NotifyChangedAllWindows(changeKind);
 }
 
 static void FloatPrefChanged() {
@@ -397,7 +402,7 @@ void nsXPLookAndFeel::OnPrefChanged(const char* aPref, void* aClosure) {
   nsDependentCString prefName(aPref);
   for (const char* pref : sIntPrefs) {
     if (prefName.Equals(pref)) {
-      IntPrefChanged();
+      IntPrefChanged(prefName);
       return;
     }
   }
@@ -424,8 +429,9 @@ static constexpr struct {
       widget::ThemeChangeKind::MediaQueriesOnly;
 } kMediaQueryPrefs[] = {
     {"browser.display.windows.native_menus"_ns},
-    {"browser.proton.places-tooltip.enabled"_ns},
-    {"layout.css.prefers-color-scheme.content-override"_ns},
+    // Affects env().
+    {"layout.css.prefers-color-scheme.content-override"_ns,
+     widget::ThemeChangeKind::Style},
     // Affects media queries and scrollbar sizes, so gotta relayout.
     {"widget.gtk.overlay-scrollbars.enabled"_ns,
      widget::ThemeChangeKind::StyleAndLayout},
@@ -615,8 +621,6 @@ nscolor nsXPLookAndFeel::GetStandinForNativeColor(ColorID aID,
       COLOR(MozMacMenutextselect, 0xFF, 0xFF, 0xFF)
       COLOR(MozMacDisabledtoolbartext, 0x3F, 0x3F, 0x3F)
       COLOR(MozMacSecondaryhighlight, 0xD4, 0xD4, 0xD4)
-      COLOR(MozMacVibrantTitlebarLight, 0xf7, 0xf7, 0xf7)
-      COLOR(MozMacVibrantTitlebarDark, 0x28, 0x28, 0x28)
       COLOR(MozMacMenupopup, 0xe6, 0xe6, 0xe6)
       COLOR(MozMacMenuitem, 0xe6, 0xe6, 0xe6)
       COLOR(MozMacActiveMenuitem, 0x0a, 0x64, 0xdc)
@@ -664,6 +668,8 @@ Maybe<nscolor> nsXPLookAndFeel::GenericDarkColor(ColorID aID) {
     case ColorID::MozButtonactivetext:
       color = kWindowText;
       break;
+    case ColorID::Buttonshadow:
+    case ColorID::Threedshadow:
     case ColorID::Threedlightshadow:  // --in-content-box-border-color computed
                                       // with kWindowText above
                                       // kWindowBackground.
@@ -1098,7 +1104,8 @@ void LookAndFeel::DoHandleGlobalThemeChange() {
 }
 
 static bool ShouldUseStandinsForNativeColorForNonNativeTheme(
-    const dom::Document& aDoc, LookAndFeel::ColorID aColor) {
+    const dom::Document& aDoc, LookAndFeel::ColorID aColor,
+    const PreferenceSheet::Prefs& aPrefs) {
   using ColorID = LookAndFeel::ColorID;
   if (!aDoc.ShouldAvoidNativeTheme()) {
     return false;
@@ -1128,9 +1135,7 @@ static bool ShouldUseStandinsForNativeColorForNonNativeTheme(
     case ColorID::Fieldtext:
 
     case ColorID::Graytext:
-
-      return !PreferenceSheet::PrefsFor(aDoc)
-                  .NonNativeThemeShouldBeHighContrast();
+      return !aPrefs.NonNativeThemeShouldBeHighContrast();
 
     default:
       break;
@@ -1144,6 +1149,28 @@ ColorScheme LookAndFeel::sContentColorScheme;
 bool LookAndFeel::sColorSchemeInitialized;
 bool LookAndFeel::sGlobalThemeChanged;
 
+bool LookAndFeel::IsDarkColor(nscolor aColor) {
+  // Given https://www.w3.org/TR/WCAG20/#contrast-ratiodef, this is the
+  // threshold that tells us whether contrast is better against white or black.
+  //
+  // Contrast ratio against black is: (L + 0.05) / 0.05
+  // Contrast ratio against white is: 1.05 / (L + 0.05)
+  //
+  // So the intersection is:
+  //
+  //   (L + 0.05) / 0.05 = 1.05 / (L + 0.05)
+  //
+  // And the solution to that equation is:
+  //
+  //   sqrt(1.05 * 0.05) - 0.05
+  //
+  // So we consider a color dark if the contrast is below this threshold, and
+  // it's at least half-opaque.
+  constexpr float kThreshold = 0.179129;
+  return NS_GET_A(aColor) > 127 &&
+         RelativeLuminanceUtils::Compute(aColor) < kThreshold;
+}
+
 auto LookAndFeel::ColorSchemeSettingForChrome() -> ChromeColorSchemeSetting {
   switch (StaticPrefs::browser_theme_toolbar_theme()) {
     case 0:  // Dark
@@ -1152,6 +1179,17 @@ auto LookAndFeel::ColorSchemeSettingForChrome() -> ChromeColorSchemeSetting {
       return ChromeColorSchemeSetting::Light;
     default:
       return ChromeColorSchemeSetting::System;
+  }
+}
+
+ColorScheme LookAndFeel::ThemeDerivedColorSchemeForContent() {
+  switch (StaticPrefs::browser_theme_content_theme()) {
+    case 0:  // Dark
+      return ColorScheme::Dark;
+    case 1:  // Light
+      return ColorScheme::Light;
+    default:
+      return SystemColorScheme();
   }
 }
 
@@ -1179,41 +1217,25 @@ void LookAndFeel::RecomputeColorSchemes() {
       case 2:
         return SystemColorScheme();
       default:
-        break;  // Use the browser theme.
-    }
-
-    switch (StaticPrefs::browser_theme_content_theme()) {
-      case 0:  // Dark
-        return ColorScheme::Dark;
-      case 1:  // Light
-        return ColorScheme::Light;
-      default:
-        return ColorSchemeForChrome();
+        return ThemeDerivedColorSchemeForContent();
     }
   }();
 }
 
 ColorScheme LookAndFeel::ColorSchemeForStyle(
     const dom::Document& aDoc, const StyleColorSchemeFlags& aFlags) {
-  if (PreferenceSheet::MayForceColors()) {
-    auto& prefs = PreferenceSheet::PrefsFor(aDoc);
-    if (!prefs.mUseDocumentColors) {
-      // When forcing colors, we can use our preferred color-scheme. Do this
-      // only if we're using system colors, as dark preference colors are not
-      // exposed on the UI.
-      //
-      // Also, use light if we're using a high-contrast-theme on Windows, since
-      // Windows overrides the light colors with HCM colors when HCM is active.
-#ifdef XP_WIN
-      if (prefs.mUseAccessibilityTheme) {
-        return ColorScheme::Light;
-      }
-#endif
-      if (StaticPrefs::browser_display_use_system_colors()) {
-        return aDoc.PreferredColorScheme();
-      }
+  using Choice = PreferenceSheet::Prefs::ColorSchemeChoice;
+
+  const auto& prefs = PreferenceSheet::PrefsFor(aDoc);
+  switch (prefs.mColorSchemeChoice) {
+    case Choice::Standard:
+      break;
+    case Choice::UserPreferred:
+      return aDoc.PreferredColorScheme();
+    case Choice::Light:
       return ColorScheme::Light;
-    }
+    case Choice::Dark:
+      return ColorScheme::Dark;
   }
 
   StyleColorSchemeFlags style(aFlags);
@@ -1297,15 +1319,11 @@ static bool ColorIsCSSAccessible(LookAndFeel::ColorID aId) {
 
 LookAndFeel::UseStandins LookAndFeel::ShouldUseStandins(
     const dom::Document& aDoc, ColorID aId) {
-  if (ShouldUseStandinsForNativeColorForNonNativeTheme(aDoc, aId)) {
+  const auto& prefs = PreferenceSheet::PrefsFor(aDoc);
+  if (ShouldUseStandinsForNativeColorForNonNativeTheme(aDoc, aId, prefs)) {
     return UseStandins::Yes;
   }
-  if (nsContentUtils::UseStandinsForNativeColors() &&
-      ColorIsCSSAccessible(aId) && !nsContentUtils::IsChromeDoc(&aDoc)) {
-    return UseStandins::Yes;
-  }
-  if (aDoc.IsStaticDocument() &&
-      !PreferenceSheet::ContentPrefs().mUseDocumentColors) {
+  if (prefs.mUseStandins && ColorIsCSSAccessible(aId)) {
     return UseStandins::Yes;
   }
   return UseStandins::No;

@@ -39,9 +39,9 @@ set(JPEGXL_INTERNAL_SOURCES_DEC
   jxl/base/profiler.h
   jxl/base/random.cc
   jxl/base/random.h
+  jxl/base/sanitizer_definitions.h
   jxl/base/scope_guard.h
   jxl/base/span.h
-  jxl/base/status.cc
   jxl/base/status.h
   jxl/base/thread_pool_internal.h
   jxl/blending.cc
@@ -93,11 +93,7 @@ set(JPEGXL_INTERNAL_SOURCES_DEC
   jxl/dec_params.h
   jxl/dec_patch_dictionary.cc
   jxl/dec_patch_dictionary.h
-  jxl/dec_reconstruct.cc
-  jxl/dec_reconstruct.h
   jxl/dec_transforms-inl.h
-  jxl/dec_upsample.cc
-  jxl/dec_upsample.h
   jxl/dec_xyb-inl.h
   jxl/dec_xyb.cc
   jxl/dec_xyb.h
@@ -110,6 +106,8 @@ set(JPEGXL_INTERNAL_SOURCES_DEC
   jxl/entropy_coder.h
   jxl/epf.cc
   jxl/epf.h
+  jxl/exif.cc
+  jxl/exif.h
   jxl/fast_dct-inl.h
   jxl/fast_dct.cc
   jxl/fast_dct.h
@@ -123,9 +121,6 @@ set(JPEGXL_INTERNAL_SOURCES_DEC
   jxl/field_encodings.h
   jxl/fields.cc
   jxl/fields.h
-  jxl/filters.cc
-  jxl/filters.h
-  jxl/filters_internal.h
   jxl/frame_header.cc
   jxl/frame_header.h
   jxl/gauss_blur.cc
@@ -351,6 +346,8 @@ set(JPEGXL_DEC_INTERNAL_LIBS
   brotlidec-static
   brotlicommon-static
   hwy
+  Threads::Threads
+  ${ATOMICS_LIBRARIES}
 )
 
 if(JPEGXL_ENABLE_PROFILER)
@@ -360,7 +357,6 @@ endif()
 set(JPEGXL_INTERNAL_LIBS
   ${JPEGXL_DEC_INTERNAL_LIBS}
   brotlienc-static
-  Threads::Threads
 )
 
 # strips the -static suffix from all the elements in LIST
@@ -472,7 +468,7 @@ add_library(jxl_dec-static STATIC
   $<TARGET_OBJECTS:jxl_dec-obj>
 )
 target_link_libraries(jxl_dec-static
-  PUBLIC ${JPEGXL_COVERAGE_FLAGS} ${JPEGXL_DEC_INTERNAL_LIBS} hwy)
+  PUBLIC ${JPEGXL_COVERAGE_FLAGS} ${JPEGXL_DEC_INTERNAL_LIBS})
 target_include_directories(jxl_dec-static PUBLIC
   "${PROJECT_SOURCE_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -493,7 +489,7 @@ endif()
 # to do, remove $<TARGET_OBJECTS:jxl_dec-obj> here and depend on jxl_dec-static
 add_library(jxl-static STATIC ${JPEGXL_INTERNAL_OBJECTS})
 target_link_libraries(jxl-static
-  PUBLIC ${JPEGXL_COVERAGE_FLAGS} ${JPEGXL_INTERNAL_LIBS} hwy)
+  PUBLIC ${JPEGXL_COVERAGE_FLAGS} ${JPEGXL_INTERNAL_LIBS})
 target_include_directories(jxl-static PUBLIC
   "${PROJECT_SOURCE_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/include"

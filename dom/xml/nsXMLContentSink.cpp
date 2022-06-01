@@ -52,6 +52,7 @@
 #include "mozilla/dom/txMozillaXSLTProcessor.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/LoadInfo.h"
+#include "mozilla/UseCounter.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -566,11 +567,16 @@ nsresult nsXMLContentSink::CloseElement(nsIContent* aContent) {
     // Now tell the script that it's ready to go. This may execute the script
     // or return true, or neither if the script doesn't need executing.
     bool block = sele->AttemptToExecute();
+    if (mParser) {
+      if (block) {
+        GetParser()->BlockParser();
+      }
 
-    // If the parser got blocked, make sure to return the appropriate rv.
-    // I'm not sure if this is actually needed or not.
-    if (mParser && !mParser->IsParserEnabled()) {
-      block = true;
+      // If the parser got blocked, make sure to return the appropriate rv.
+      // I'm not sure if this is actually needed or not.
+      if (!mParser->IsParserEnabled()) {
+        block = true;
+      }
     }
 
     return block ? NS_ERROR_HTMLPARSER_BLOCK : NS_OK;
@@ -625,6 +631,7 @@ nsresult nsXMLContentSink::AddContentAsLeaf(nsIContent* aContent) {
 // the XSL stylesheet located at the given URI.
 nsresult nsXMLContentSink::LoadXSLStyleSheet(nsIURI* aUrl) {
   nsCOMPtr<nsIDocumentTransformer> processor = new txMozillaXSLTProcessor();
+  mDocument->SetUseCounter(eUseCounter_custom_XSLStylesheet);
 
   processor->SetTransformObserver(this);
 

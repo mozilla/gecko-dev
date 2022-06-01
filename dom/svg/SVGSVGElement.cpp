@@ -32,8 +32,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT_CHECK_PARSER(SVG)
 
 using namespace mozilla::gfx;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 using namespace SVGPreserveAspectRatio_Binding;
 using namespace SVGSVGElement_Binding;
@@ -200,7 +199,7 @@ void SVGSVGElement::SetCurrentTime(float seconds) {
     double fMilliseconds = double(seconds) * PR_MSEC_PER_SEC;
     // Round to nearest whole number before converting, to avoid precision
     // errors
-    SMILTime lMilliseconds = int64_t(NS_round(fMilliseconds));
+    SMILTime lMilliseconds = SVGUtils::ClampToInt64(NS_round(fMilliseconds));
     mTimedDocumentRoot->SetCurrentTime(lMilliseconds);
     AnimationNeedsResample();
     // Trigger synchronous sample now, to:
@@ -585,5 +584,4 @@ SVGAnimatedTransformList* SVGSVGElement::GetTransformInternal() const {
                                              : mTransforms.get();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

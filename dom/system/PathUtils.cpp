@@ -30,8 +30,7 @@
 #include "nsString.h"
 #include "xpcpublic.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 static constexpr auto ERROR_EMPTY_PATH =
     "PathUtils does not support empty paths"_ns;
@@ -71,10 +70,12 @@ static bool DoWindowsPathCheck() {
 #ifdef XP_WIN
 #  ifdef DEBUG
   return true;
-#  endif  // DEBUG
+#  else   // DEBUG
   return xpc::IsInAutomation();
-#endif  // XP_WIN
+#  endif  // DEBUG
+#else     // XP_WIN
   return false;
+#endif    // XP_WIN
 }
 
 /* static */
@@ -374,9 +375,18 @@ void PathUtils::GetTempDirSync(const GlobalObject&, nsString& aResult,
       .GetDirectorySync(aResult, aErr, DirectoryCache::Directory::Temp);
 }
 
+void PathUtils::GetOSTempDirSync(const GlobalObject&, nsString& aResult,
+                                 ErrorResult& aErr) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  auto guard = sDirCache.Lock();
+  DirectoryCache::Ensure(guard.ref())
+      .GetDirectorySync(aResult, aErr, DirectoryCache::Directory::OSTemp);
+}
+
 already_AddRefed<Promise> PathUtils::GetProfileDirAsync(
     const GlobalObject& aGlobal, ErrorResult& aErr) {
-  // NB: This will eventually be off-main-thread only.
+  MOZ_ASSERT(!NS_IsMainThread());
 
   auto guard = sDirCache.Lock();
   return DirectoryCache::Ensure(guard.ref())
@@ -385,7 +395,7 @@ already_AddRefed<Promise> PathUtils::GetProfileDirAsync(
 
 already_AddRefed<Promise> PathUtils::GetLocalProfileDirAsync(
     const GlobalObject& aGlobal, ErrorResult& aErr) {
-  // NB: This will eventually be off-main-thread only.
+  MOZ_ASSERT(!NS_IsMainThread());
 
   auto guard = sDirCache.Lock();
   return DirectoryCache::Ensure(guard.ref())
@@ -395,11 +405,20 @@ already_AddRefed<Promise> PathUtils::GetLocalProfileDirAsync(
 
 already_AddRefed<Promise> PathUtils::GetTempDirAsync(
     const GlobalObject& aGlobal, ErrorResult& aErr) {
-  // NB: This will eventually be off-main-thread only.
+  MOZ_ASSERT(!NS_IsMainThread());
 
   auto guard = sDirCache.Lock();
   return DirectoryCache::Ensure(guard.ref())
       .GetDirectoryAsync(aGlobal, aErr, DirectoryCache::Directory::Temp);
+}
+
+already_AddRefed<Promise> PathUtils::GetOSTempDirAsync(
+    const GlobalObject& aGlobal, ErrorResult& aErr) {
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  auto guard = sDirCache.Lock();
+  return DirectoryCache::Ensure(guard.ref())
+      .GetDirectoryAsync(aGlobal, aErr, DirectoryCache::Directory::OSTemp);
 }
 
 PathUtils::DirectoryCache::DirectoryCache() {
@@ -491,9 +510,9 @@ PathUtils::DirectoryCache::PopulateDirectories(
 
   // If we have already resolved the requested directory, we can return
   // immediately.
-  // Otherwise, if we have already fired off a request to populate the entry, so
-  // we can return the corresponding promise immediately. caller will queue a
-  // Thenable onto that promise to resolve/reject the request.
+  // Otherwise, if we have already fired off a request to populate the entry,
+  // so we can return the corresponding promise immediately. caller will queue
+  // a Thenable onto that promise to resolve/reject the request.
   if (!mDirectories[aRequestedDir].IsVoid()) {
     return nullptr;
   }
@@ -538,8 +557,8 @@ nsresult PathUtils::DirectoryCache::PopulateDirectoriesImpl(
 
   if (!mDirectories[aRequestedDir].IsVoid()) {
     // In between when this promise was dispatched to the main thread and now,
-    // the directory cache has had this entry populated (via the on-main-thread
-    // sync method).
+    // the directory cache has had this entry populated (via the
+    // on-main-thread sync method).
     return NS_OK;
   }
 
@@ -552,5 +571,4 @@ nsresult PathUtils::DirectoryCache::PopulateDirectoriesImpl(
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

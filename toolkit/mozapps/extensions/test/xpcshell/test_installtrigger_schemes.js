@@ -23,7 +23,16 @@ async function assertInstallTriggetRejected(page, xpi_url, expectedError) {
 }
 
 add_task(
-  async function test_InstallTriggerThrows_on_unsupported_xpi_schemesì_blob() {
+  {
+    // Once InstallTrigger is removed, this test should be removed as well.
+    pref_set: [
+      ["extensions.InstallTrigger.enabled", true],
+      ["extensions.InstallTriggerImpl.enabled", true],
+      // Relax the user input requirements while running this test.
+      ["xpinstall.userActivation.required", false],
+    ],
+  },
+  async function test_InstallTriggerThrows_on_unsupported_xpi_schemes_blob() {
     const page = await ExtensionTestUtils.loadContentPage("http://example.com");
     const blob_url = await page.spawn([], () => {
       return this.content.eval(`(function () {
@@ -37,6 +46,15 @@ add_task(
 );
 
 add_task(
+  {
+    // Once InstallTrigger is removed, this test should be removed as well.
+    pref_set: [
+      ["extensions.InstallTrigger.enabled", true],
+      ["extensions.InstallTriggerImpl.enabled", true],
+      // Relax the user input requirements while running this test.
+      ["xpinstall.userActivation.required", false],
+    ],
+  },
   async function test_InstallTriggerThrows_on_unsupported_xpi_schemes_data() {
     const page = await ExtensionTestUtils.loadContentPage("http://example.com");
     const data_url = "data:;,fakexpicontent";

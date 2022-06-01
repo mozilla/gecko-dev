@@ -190,12 +190,6 @@ class NetworkObserver {
   }
 
   _onRequest(channel, topic) {
-    try {
-      channel.QueryInterface(Ci.nsIHttpChannel);
-    } catch (ex) {
-      return;
-    }
-
     const httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
     const loadContext = getLoadContext(httpChannel);
     const browser = loadContext?.topFrameElement;
@@ -636,4 +630,3 @@ function getNetworkErrorStatusText(status) {
 }
 
 var EXPORTED_SYMBOLS = ["NetworkObserver"];
-this.NetworkObserver = NetworkObserver;

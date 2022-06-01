@@ -23,6 +23,10 @@ XPCOMUtils.defineLazyServiceGetters(this, {
   WindowsUIUtils: ["@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils"],
 });
 
+const { Rect, Point } = ChromeUtils.import(
+  "resource://gre/modules/Geometry.jsm"
+);
+
 const PLAYER_URI = "chrome://global/content/pictureinpicture/player.xhtml";
 var PLAYER_FEATURES =
   "chrome,titlebar=yes,alwaysontop,lockaspectratio,resizable";
@@ -38,14 +42,7 @@ const TOGGLE_POSITION_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.position";
 const TOGGLE_POSITION_RIGHT = "right";
 const TOGGLE_POSITION_LEFT = "left";
-
-/**
- * If closing the Picture-in-Picture player window occurred for a reason that
- * we can easily detect (user clicked on the close button, originating tab unloaded,
- * user clicked on the unpip button), that will be stashed in gCloseReasons so that
- * we can note it in Telemetry when the window finally unloads.
- */
-let gCloseReasons = new WeakMap();
+const RESIZE_MARGIN_PX = 16;
 
 /**
  * Tracks the number of currently open player windows for Telemetry tracking
@@ -147,13 +144,16 @@ var PictureInPicture = {
   // Maps PiP player windows to their originating content's browser
   weakWinToBrowser: new WeakMap(),
 
+  // Maps a browser to the number of PiP windows it has
+  browserWeakMap: new WeakMap(),
+
   /**
    * Returns the player window if one exists and if it hasn't yet been closed.
    *
    * @param {PictureInPictureParent} pipActorRef
-   * 	Reference to the calling PictureInPictureParent actor
+   *   Reference to the calling PictureInPictureParent actor
    *
-   * @return {DOM Window} the player window if it exists and is not in the
+   * @returns {Window} the player window if it exists and is not in the
    * process of being closed. Returns null otherwise.
    */
   getWeakPipPlayer(pipActorRef) {
@@ -172,12 +172,39 @@ var PictureInPicture = {
     }
   },
 
+  /**
+   * Increase the count of PiP windows for a given browser
+   * @param browser The browser to increase PiP count in browserWeakMap
+   */
+  addPiPBrowserToWeakMap(browser) {
+    let count = this.browserWeakMap.has(browser)
+      ? this.browserWeakMap.get(browser)
+      : 0;
+    this.browserWeakMap.set(browser, count + 1);
+  },
+
+  /**
+   * Decrease the count of PiP windows for a given browser.
+   * If the count becomes 0, we will remove the browser from the WeakMap
+   * @param browser The browser to decrease PiP count in browserWeakMap
+   */
+  removePiPBrowserFromWeakMap(browser) {
+    let count = this.browserWeakMap.get(browser);
+    if (count <= 1) {
+      this.browserWeakMap.delete(browser);
+    } else {
+      this.browserWeakMap.set(browser, count - 1);
+    }
+  },
+
   onPipSwappedBrowsers(event) {
     let otherTab = event.detail;
     if (otherTab) {
       for (let win of Services.wm.getEnumerator(WINDOW_TYPE)) {
         if (this.weakWinToBrowser.get(win) === event.target.linkedBrowser) {
           this.weakWinToBrowser.set(win, otherTab.linkedBrowser);
+          this.removePiPBrowserFromWeakMap(event.target.linkedBrowser);
+          this.addPiPBrowserToWeakMap(otherTab.linkedBrowser);
         }
       }
       otherTab.addEventListener("TabSwapPictureInPicture", this);
@@ -196,28 +223,10 @@ var PictureInPicture = {
     }
 
     let win = event.target.ownerGlobal;
-    let browser = win.gBrowser.selectedBrowser;
-    let actor = browser.browsingContext.currentWindowGlobal.getActor(
-      "PictureInPictureLauncher"
-    );
-    actor.sendAsyncMessage("PictureInPicture:KeyToggle");
-  },
-
-  _focusPipBrowserWindow(win) {
-    let browser = this.weakWinToBrowser.get(win);
-    let gBrowser = browser?.ownerGlobal?.gBrowser;
-
-    // In some cases, gBrowser can be null. One example is if the parent browser
-    // was already closed.
-    if (!gBrowser) {
-      return;
-    }
-
-    let tab = gBrowser.getTabForBrowser(browser);
-
-    // focus the tab's window
-    if (tab) {
-      tab.ownerGlobal.focus();
+    let bc = Services.focus.focusedContentBrowsingContext;
+    if (bc.top == win.gBrowser.selectedBrowser.browsingContext) {
+      let actor = bc.currentWindowGlobal.getActor("PictureInPictureLauncher");
+      actor.sendAsyncMessage("PictureInPicture:KeyToggle");
     }
   },
 
@@ -302,9 +311,17 @@ var PictureInPicture = {
     if (!win) {
       return;
     }
-    this._focusPipBrowserWindow(win);
+    this.removePiPBrowserFromWeakMap(this.weakWinToBrowser.get(win));
+
+    let args = { reason };
+    Services.telemetry.recordEvent(
+      "pictureinpicture",
+      "closed_method",
+      "method",
+      null,
+      args
+    );
     await this.closePipWindow(win);
-    gCloseReasons.set(win, reason);
   },
 
   /**
@@ -349,14 +366,33 @@ var PictureInPicture = {
 
     tab.addEventListener("TabSwapPictureInPicture", this);
 
-    win.setupPlayer(gNextWindowID.toString(), wgp, videoData.videoRef);
+    let pipId = gNextWindowID.toString();
+    win.setupPlayer(pipId, wgp, videoData.videoRef);
     gNextWindowID++;
 
     this.weakWinToBrowser.set(win, browser);
+    this.addPiPBrowserToWeakMap(browser);
 
     Services.prefs.setBoolPref(
       "media.videocontrols.picture-in-picture.video-toggle.has-used",
       true
+    );
+
+    let args = {
+      width: win.innerWidth.toString(),
+      height: win.innerHeight.toString(),
+      screenX: win.screenX.toString(),
+      screenY: win.screenY.toString(),
+      ccEnabled: videoData.ccEnabled.toString(),
+      webVTTSubtitles: videoData.webVTTSubtitles.toString(),
+    };
+
+    Services.telemetry.recordEvent(
+      "pictureinpicture",
+      "create",
+      "player",
+      pipId,
+      args
     );
   },
 
@@ -367,12 +403,11 @@ var PictureInPicture = {
    * @param {Window} window
    */
   unload(window) {
-    let reason = gCloseReasons.get(window) || "other";
-    Services.telemetry.keyedScalarAdd(
-      "pictureinpicture.closed_method",
-      reason,
-      1
+    TelemetryStopwatch.finish(
+      "FX_PICTURE_IN_PICTURE_WINDOW_OPEN_DURATION",
+      window
     );
+
     gCurrentPlayerCount -= 1;
     // Saves the location of the Picture in Picture window
     this.savePosition(window);
@@ -397,7 +432,7 @@ var PictureInPicture = {
    *     The preferred width of the video.
    *
    * @param {PictureInPictureParent} actorReference
-   * 	Reference to the calling PictureInPictureParent
+   *   Reference to the calling PictureInPictureParent
    *
    * @returns {Promise}
    *   Resolves once the window has opened and loaded the player component.
@@ -405,9 +440,21 @@ var PictureInPicture = {
   async openPipWindow(parentWin, videoData) {
     let { top, left, width, height } = this.fitToScreen(parentWin, videoData);
 
+    let { left: resolvedLeft, top: resolvedTop } = this.resolveOverlapConflicts(
+      left,
+      top,
+      width,
+      height
+    );
+
+    top = Math.round(resolvedTop);
+    left = Math.round(resolvedLeft);
+    width = Math.round(width);
+    height = Math.round(height);
+
     let features =
-      `${PLAYER_FEATURES},top=${top},left=${left},` +
-      `outerWidth=${width},outerHeight=${height}`;
+      `${PLAYER_FEATURES},top=${top},left=${left},outerWidth=${width},` +
+      `outerHeight=${height}`;
 
     let pipWindow = Services.ww.openWindow(
       parentWin,
@@ -416,6 +463,16 @@ var PictureInPicture = {
       features,
       null
     );
+
+    TelemetryStopwatch.start(
+      "FX_PICTURE_IN_PICTURE_WINDOW_OPEN_DURATION",
+      pipWindow,
+      {
+        inSeconds: true,
+      }
+    );
+
+    pipWindow.windowUtils.setResizeMargin(RESIZE_MARGIN_PX);
 
     if (Services.appinfo.OS == "WINNT") {
       WindowsUIUtils.setWindowIconNoData(pipWindow);
@@ -453,7 +510,8 @@ var PictureInPicture = {
    *     The preferred width of the video.
    *
    * @returns {object}
-   *   The size and position for the player window.
+   *   The size and position for the player window, in CSS pixels relative to
+   *   requestingWin.
    *
    *   top (int):
    *     The top position for the player window.
@@ -472,29 +530,34 @@ var PictureInPicture = {
 
     const isPlayer = requestingWin.document.location.href == PLAYER_URI;
 
+    let requestingCssToDesktopScale =
+      requestingWin.devicePixelRatio / requestingWin.desktopToDeviceScale;
+
     let top, left, width, height;
     if (isPlayer) {
       // requestingWin is a PiP player, conserve its dimensions in this case
-      left = requestingWin.screenX;
-      top = requestingWin.screenY;
-      width = requestingWin.innerWidth;
-      height = requestingWin.innerHeight;
+      left = requestingWin.screenX * requestingCssToDesktopScale;
+      top = requestingWin.screenY * requestingCssToDesktopScale;
+      width = requestingWin.outerWidth;
+      height = requestingWin.outerHeight;
     } else {
       // requestingWin is a content window, load last PiP's dimensions
       ({ top, left, width, height } = this.loadPosition());
     }
 
-    // Check that previous location and size were loaded
+    // Check that previous location and size were loaded.
+    // Note that at this point left and top are in desktop pixels, while width
+    // and height are in CSS pixels.
     if (!isNaN(top) && !isNaN(left) && !isNaN(width) && !isNaN(height)) {
-      // Center position of PiP window
-      let centerX = left + width / 2;
-      let centerY = top + height / 2;
+      // Get the screen of the last PiP window. PiP screen will be the default
+      // screen if the point was not on a screen.
+      let PiPScreen = this.getWorkingScreen(left, top);
 
-      // Get the screen of the last PiP using the center of the PiP
-      // window to check.
-      // PiP screen will be the default screen if the center was
-      // not on a screen.
-      let PiPScreen = this.getWorkingScreen(centerX, centerY);
+      // Center position of PiP window.
+      let PipScreenCssToDesktopScale =
+        PiPScreen.defaultCSSScaleFactor / PiPScreen.contentsScaleFactor;
+      let centerX = left + (width * PipScreenCssToDesktopScale) / 2;
+      let centerY = top + (height * PipScreenCssToDesktopScale) / 2;
 
       // We have the screen, now we will get the dimensions of the screen
       let [
@@ -560,6 +623,9 @@ var PictureInPicture = {
           // slide up
           top += PiPScreenTop + PiPScreenHeight - top - height;
         }
+        // Convert top / left from desktop to requestingWin-relative CSS pixels.
+        top /= requestingCssToDesktopScale;
+        left /= requestingCssToDesktopScale;
         return { top, left, width, height };
       }
     }
@@ -567,10 +633,10 @@ var PictureInPicture = {
     // We don't have the size or position of the last PiP window, so fall
     // back to calculating the default location.
     let screen = this.getWorkingScreen(
-      requestingWin.screenX,
-      requestingWin.screenY,
-      requestingWin.innerWidth,
-      requestingWin.innerHeight
+      requestingWin.screenX * requestingCssToDesktopScale,
+      requestingWin.screenY * requestingCssToDesktopScale,
+      requestingWin.outerWidth * requestingCssToDesktopScale,
+      requestingWin.outerHeight * requestingCssToDesktopScale
     );
     let [
       screenLeft,
@@ -579,13 +645,16 @@ var PictureInPicture = {
       screenHeight,
     ] = this.getAvailScreenSize(screen);
 
+    let screenCssToDesktopScale =
+      screen.defaultCSSScaleFactor / screen.contentsScaleFactor;
+
     // The Picture in Picture window will be a maximum of a quarter of
     // the screen height, and a third of the screen width.
     const MAX_HEIGHT = screenHeight / 4;
     const MAX_WIDTH = screenWidth / 3;
 
-    width = videoWidth;
-    height = videoHeight;
+    width = videoWidth * screenCssToDesktopScale;
+    height = videoHeight * screenCssToDesktopScale;
     let aspectRatio = videoWidth / videoHeight;
 
     if (videoHeight > MAX_HEIGHT || videoWidth > MAX_WIDTH) {
@@ -627,7 +696,166 @@ var PictureInPicture = {
     left = isRTL ? screenLeft : screenLeft + screenWidth - width;
     top = screenTop + screenHeight - height;
 
+    // Convert top/left from desktop pixels to requestingWin-relative CSS
+    // pixels, and width / height to the target screen's CSS pixels, which is
+    // what we've made the size calculation against.
+    top /= requestingCssToDesktopScale;
+    left /= requestingCssToDesktopScale;
+    width /= screenCssToDesktopScale;
+    height /= screenCssToDesktopScale;
+
     return { top, left, width, height };
+  },
+
+  /**
+   * This function will take the size and potential location of a new
+   * Picture-in-Picture player window, and try to return the location
+   * coordinates that will best ensure that the player window will not overlap
+   * with other pre-existing player windows.
+   *
+   * @param {int} left
+   *  x position of left edge for Picture-in-Picture window that is being
+   *  opened
+   * @param {int} top
+   *  y position of top edge for Picture-in-Picture window that is being
+   *  opened
+   * @param {int} width
+   *  Width of Picture-in-Picture window that is being opened
+   * @param {int} height
+   *  Height of Picture-in-Picture window that is being opened
+   *
+   * @returns {object}
+   *  An object with the following properties:
+   *
+   *   top (int):
+   *     The recommended top position for the player window.
+   *
+   *   left (int):
+   *     The recommended left position for the player window.
+   */
+  resolveOverlapConflicts(left, top, width, height) {
+    // This algorithm works by first identifying the possible candidate
+    // locations that the new player window could be placed without overlapping
+    // other player windows (assuming that a confict is discovered at all of
+    // course). The optimal candidate is then selected by its distance to the
+    // original conflict, shorter distances are better.
+    //
+    // Candidates are discovered by iterating over each of the sides of every
+    // pre-existing player window. One candidate is collected for each side.
+    // This is done to ensure that the new player window will be opened to
+    // tightly fit along the edge of another player window.
+    //
+    // These candidates are then pruned for candidates that will introduce
+    // further conflicts. Finally the ideal candidate is selected from this
+    // pool of remaining candidates, optimized for minimizing distance to
+    // the original conflict.
+    let playerRects = [];
+
+    for (let playerWin of Services.wm.getEnumerator(WINDOW_TYPE)) {
+      playerRects.push(
+        new Rect(
+          playerWin.screenX,
+          playerWin.screenY,
+          playerWin.outerWidth,
+          playerWin.outerHeight
+        )
+      );
+    }
+
+    const newPlayerRect = new Rect(left, top, width, height);
+    let conflictingPipRect = playerRects.find(rect =>
+      rect.intersects(newPlayerRect)
+    );
+
+    if (!conflictingPipRect) {
+      // no conflicts found
+      return { left, top };
+    }
+
+    const conflictLoc = conflictingPipRect.center();
+
+    // Will try to resolve a better placement only on the screen where
+    // the conflict occurred
+    const conflictScreen = this.getWorkingScreen(conflictLoc.x, conflictLoc.y);
+
+    const [
+      screenTop,
+      screenLeft,
+      screenWidth,
+      screenHeight,
+    ] = this.getAvailScreenSize(conflictScreen);
+
+    const screenRect = new Rect(
+      screenTop,
+      screenLeft,
+      screenWidth,
+      screenHeight
+    );
+
+    const getEdgeCandidates = rect => {
+      return [
+        // left edge's candidate
+        new Point(rect.left - newPlayerRect.width, rect.top),
+        // top edge's candidate
+        new Point(rect.left, rect.top - newPlayerRect.height),
+        // right edge's candidate
+        new Point(rect.right + newPlayerRect.width, rect.top),
+        // bottom edge's candidate
+        new Point(rect.left, rect.bottom),
+      ];
+    };
+
+    let candidateLocations = [];
+    for (const playerRect of playerRects) {
+      for (let candidateLoc of getEdgeCandidates(playerRect)) {
+        const candidateRect = new Rect(
+          candidateLoc.x,
+          candidateLoc.y,
+          width,
+          height
+        );
+
+        if (!screenRect.contains(candidateRect)) {
+          continue;
+        }
+
+        // test that no PiPs conflict with this candidate box
+        if (playerRects.some(rect => rect.intersects(candidateRect))) {
+          continue;
+        }
+
+        const candidateCenter = candidateRect.center();
+        const candidateDistanceToConflict =
+          Math.abs(conflictLoc.x - candidateCenter.x) +
+          Math.abs(conflictLoc.y - candidateCenter.y);
+
+        candidateLocations.push({
+          distanceToConflict: candidateDistanceToConflict,
+          location: candidateLoc,
+        });
+      }
+    }
+
+    if (!candidateLocations.length) {
+      // if no suitable candidates can be found, return the original location
+      return { left, top };
+    }
+
+    // sort candidates by distance to the conflict, select the closest
+    const closestCandidate = candidateLocations.sort(
+      (firstCand, secondCand) =>
+        firstCand.distanceToConflict - secondCand.distanceToConflict
+    )[0];
+
+    if (!closestCandidate) {
+      // can occur if there were no valid candidates, return original location
+      return { left, top };
+    }
+
+    const resolvedX = closestCandidate.location.x;
+    const resolvedY = closestCandidate.location.y;
+
+    return { left: resolvedX, top: resolvedY };
   },
 
   /**
@@ -687,14 +915,16 @@ var PictureInPicture = {
     // We synthesize a new MouseEvent to propagate the inputSource to the
     // subsequently triggered popupshowing event.
     let newEvent = document.createEvent("MouseEvent");
+    let screenX = data.screenXDevPx / window.devicePixelRatio;
+    let screenY = data.screenYDevPx / window.devicePixelRatio;
     newEvent.initNSMouseEvent(
       "contextmenu",
       true,
       true,
       null,
       0,
-      data.screenX,
-      data.screenY,
+      screenX,
+      screenY,
       0,
       0,
       false,
@@ -711,6 +941,18 @@ var PictureInPicture = {
 
   hideToggle() {
     Services.prefs.setBoolPref(TOGGLE_ENABLED_PREF, false);
+  },
+
+  /**
+   * This is used in AsyncTabSwitcher.jsm and tabbrowser.js to check if the browser
+   * currently has a PiP window.
+   * If the browser has a PiP window we want to keep the browser in an active state because
+   * the browser is still partially visible.
+   * @param browser The browser to check if it has a PiP window
+   * @returns true if browser has PiP window else false
+   */
+  isOriginatingBrowser(browser) {
+    return this.browserWeakMap.has(browser);
   },
 
   moveToggle() {
@@ -738,10 +980,10 @@ var PictureInPicture = {
    * This function takes a screen and will return the left, top, width and
    * height of the screen
    * @param {Screen} screen
-   * The screen we need to get the sizec and coordinates of
+   * The screen we need to get the size and coordinates of
    *
    * @returns {array}
-   * Size and location of screen
+   * Size and location of screen in desktop pixels.
    *
    *   screenLeft.value (int):
    *     The left position for the screen.
@@ -766,23 +1008,6 @@ var PictureInPicture = {
       screenWidth,
       screenHeight
     );
-    let fullLeft = {},
-      fullTop = {},
-      fullWidth = {},
-      fullHeight = {};
-    screen.GetRectDisplayPix(fullLeft, fullTop, fullWidth, fullHeight);
-
-    // We have to divide these dimensions by the CSS scale factor for the
-    // display in order for the video to be positioned correctly on displays
-    // that are not at a 1.0 scaling.
-    let scaleFactor = screen.contentsScaleFactor / screen.defaultCSSScaleFactor;
-    screenWidth.value *= scaleFactor;
-    screenHeight.value *= scaleFactor;
-    screenLeft.value =
-      (screenLeft.value - fullLeft.value) * scaleFactor + fullLeft.value;
-    screenTop.value =
-      (screenTop.value - fullTop.value) * scaleFactor + fullTop.value;
-
     return [
       screenLeft.value,
       screenTop.value,
@@ -792,16 +1017,22 @@ var PictureInPicture = {
   },
 
   /**
-   * This function takes in a left and top value and returns the screen they
-   * are located on.
+   * This function takes in a rect in desktop pixels, and returns the screen it
+   * is located on.
    *
-   * If the left and top are not on any screen, it will return the
-   * default screen
+   * If the left and top are not on any screen, it will return the default
+   * screen.
    *
    * @param {int} left
    *  left or x coordinate
    *
    * @param {int} top
+   *  top or y coordinate
+   *
+   * @param {int} width
+   *  top or y coordinate
+   *
+   * @param {int} height
    *  top or y coordinate
    *
    * @returns {Screen} screen
@@ -815,9 +1046,7 @@ var PictureInPicture = {
     // use screenForRect to get screen
     // this returns the default screen if left and top are not
     // on any screen
-    let screen = screenManager.screenForRect(left, top, width, height);
-
-    return screen;
+    return screenManager.screenForRect(left, top, width, height);
   },
 
   /**
@@ -827,10 +1056,15 @@ var PictureInPicture = {
   savePosition(win) {
     let xulStore = Services.xulStore;
 
-    let left = win.screenX;
-    let top = win.screenY;
-    let width = win.innerWidth;
-    let height = win.innerHeight;
+    // We store left / top position in desktop pixels, like SessionStore does,
+    // so that we can restore them properly (as CSS pixels need to be relative
+    // to a screen, and we won't have a target screen to restore).
+    let cssToDesktopScale = win.devicePixelRatio / win.desktopToDeviceScale;
+
+    let left = win.screenX * cssToDesktopScale;
+    let top = win.screenY * cssToDesktopScale;
+    let width = win.outerWidth;
+    let height = win.outerHeight;
 
     xulStore.setValue(PLAYER_URI, "picture-in-picture", "left", left);
     xulStore.setValue(PLAYER_URI, "picture-in-picture", "top", top);

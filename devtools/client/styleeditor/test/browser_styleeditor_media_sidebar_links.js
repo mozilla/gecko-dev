@@ -37,7 +37,11 @@ add_task(async function() {
   await testMediaLink(editor, tab, ui, 2, "width", 550);
   await testMediaLink(editor, tab, ui, 3, "height", 300);
 
-  await closeRDM(tab, ui);
+  const onMediaChange = waitForManyEvents(ui, 1000);
+  await closeRDM(tab);
+
+  info("Wait for media-list-changed events to settle on StyleEditorUI");
+  await onMediaChange;
   doFinalChecks(editor);
 });
 
@@ -76,9 +80,11 @@ async function testMediaLink(editor, tab, ui, itemIndex, type, value) {
   conditions[itemIndex].querySelector(responsiveModeToggleClass).click();
   await onRDMOpened;
   const rdmUI = ResponsiveUIManager.getResponsiveUIForTab(tab);
-
   await waitForResizeTo(rdmUI, type, value);
   rdmUI.transitionsEnabled = false;
+
+  info("Wait for RDM ui to be fully loaded");
+  await waitForRDMLoaded(rdmUI);
 
   info("Waiting for the @media list to update");
   await onMediaChange;
@@ -99,20 +105,6 @@ async function testMediaLink(editor, tab, ui, itemIndex, type, value) {
 
   const dimension = (await getSizing(rdmUI))[type];
   is(dimension, value, `${type} should be properly set.`);
-}
-
-async function closeRDM(tab, ui) {
-  info("Closing responsive mode");
-  ResponsiveUIManager.toggle(window, tab);
-  const onMediaChange = waitForManyEvents(ui, 1000);
-  await once(ResponsiveUIManager, "off");
-
-  info("Wait for media-list-changed events to settle on StyleEditorUI");
-  await onMediaChange;
-  ok(
-    !ResponsiveUIManager.isActiveForTab(tab),
-    "Responsive mode should no longer be active."
-  );
 }
 
 function doFinalChecks(editor) {

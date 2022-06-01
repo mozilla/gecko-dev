@@ -21,7 +21,6 @@ const mappings = {
   "devtools-services": "Services",
   "wasmparser/dist/cjs/WasmParser": "devtools/client/shared/vendor/WasmParser",
   "wasmparser/dist/cjs/WasmDis": "devtools/client/shared/vendor/WasmDis",
-  "whatwg-url": "devtools/client/shared/vendor/whatwg-url",
   "framework-actions": "devtools/client/framework/actions/index",
   "inspector-shared-utils": "devtools/client/inspector/shared/utils",
 };
@@ -41,7 +40,6 @@ function isRequire(t, node) {
 const VENDORS = [
   "classnames",
   "devtools-environment",
-  "devtools-utils",
   "fuzzaldrin-plus",
   "react-aria-components/src/tabs",
   "react-transition-group/Transition",

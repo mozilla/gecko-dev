@@ -4,6 +4,9 @@
 
 // Test basic windowless worker functionality: the main thread and worker can be
 // separately controlled from the same debugger.
+
+"use strict";
+
 add_task(async function() {
   await pushPref("devtools.debugger.features.windowless-workers", true);
   await pushPref("devtools.debugger.workers-visible", true);
@@ -20,7 +23,6 @@ add_task(async function() {
   const mainThreadSource = findSource(dbg, "doc-windowless-workers.html");
 
   await waitForSource(dbg, "simple-worker.js");
-  const workerSource = findSource(dbg, "simple-worker.js");
 
   info("Pause in the main thread");
   assertNotPaused(dbg);
@@ -35,7 +37,7 @@ add_task(async function() {
   await dbg.actions.breakOnNext(getThreadContext(dbg));
   await waitForPaused(dbg, "simple-worker.js");
   threadIsSelected(dbg, 2);
-  const workerSource2 = dbg.selectors.getSelectedSourceWithContent();
+  const workerSource2 = dbg.selectors.getSelectedSource();
   assertPausedAtSourceAndLine(dbg, workerSource2.id, 3);
 
   info("Add a watch expression and view the value");
@@ -68,7 +70,7 @@ add_task(async function() {
   assertNotPaused(dbg);
 
   info("Pause in both workers");
-  await addBreakpoint(dbg, "simple-worker", 10);
+  await addBreakpoint(dbg, "simple-worker.js", 10);
   invokeInTab("sayHello");
 
   info("Wait for both workers to pause");
@@ -88,7 +90,7 @@ add_task(async function() {
   await dbg.actions.selectThread(getContext(dbg), thread2);
   threadIsSelected(dbg, 3);
   await waitForPaused(dbg);
-  const workerSource3 = dbg.selectors.getSelectedSourceWithContent();
+  const workerSource3 = dbg.selectors.getSelectedSource();
   assertPausedAtSourceAndLine(dbg, workerSource3.id, 10);
 
   info("StepOver in second worker and not the first");

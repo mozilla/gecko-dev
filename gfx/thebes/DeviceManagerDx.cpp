@@ -276,7 +276,7 @@ bool DeviceManagerDx::CreateCompositorDevices() {
 
   if (int32_t sleepSec =
           StaticPrefs::gfx_direct3d11_sleep_on_create_device_AtStartup()) {
-    printf_stderr("Attach to PID: %d\n", GetCurrentProcessId());
+    printf_stderr("Attach to PID: %lu\n", GetCurrentProcessId());
     Sleep(sleepSec * 1000);
   }
 
@@ -862,7 +862,8 @@ FeatureStatus DeviceManagerDx::CreateContentDevice() {
   return FeatureStatus::Available;
 }
 
-RefPtr<ID3D11Device> DeviceManagerDx::CreateDecoderDevice() {
+RefPtr<ID3D11Device> DeviceManagerDx::CreateDecoderDevice(
+    bool aHardwareWebRender) {
   bool isAMD = false;
   {
     MutexAutoLock lock(mDeviceLock);
@@ -884,8 +885,9 @@ RefPtr<ID3D11Device> DeviceManagerDx::CreateDecoderDevice() {
   }
 
   if (reuseDevice) {
-    if (mCompositorDevice && mCompositorDeviceSupportsVideo &&
-        !mDecoderDevice) {
+    // Use mCompositorDevice for decoder device only for hardware WebRender.
+    if (aHardwareWebRender && mCompositorDevice &&
+        mCompositorDeviceSupportsVideo && !mDecoderDevice) {
       mDecoderDevice = mCompositorDevice;
 
       RefPtr<ID3D10Multithread> multi;

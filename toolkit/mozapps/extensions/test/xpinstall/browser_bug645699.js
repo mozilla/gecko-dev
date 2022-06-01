@@ -3,9 +3,26 @@
 // content. This should be blocked by the whitelist check.
 // This verifies bug 645699
 function test() {
+  if (
+    !SpecialPowers.Services.prefs.getBoolPref(
+      "extensions.InstallTrigger.enabled"
+    ) ||
+    !SpecialPowers.Services.prefs.getBoolPref(
+      "extensions.InstallTriggerImpl.enabled"
+    )
+  ) {
+    ok(true, "InstallTrigger is not enabled");
+    return;
+  }
+
   // prompt prior to download
   SpecialPowers.pushPrefEnv({
-    set: [["extensions.postDownloadThirdPartyPrompt", false]],
+    set: [
+      ["extensions.postDownloadThirdPartyPrompt", false],
+      ["extensions.InstallTrigger.requireUserInput", false],
+      // Relax the user input requirements while running this test.
+      ["xpinstall.userActivation.required", false],
+    ],
   });
 
   Harness.installConfirmCallback = confirm_install;

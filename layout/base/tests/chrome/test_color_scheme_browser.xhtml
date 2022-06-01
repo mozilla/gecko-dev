@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <head>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="chrome://mochikit/content/chrome-harness.js"></script>
+    <style>
+      #light { color-scheme: light }
+      #dark { color-scheme: dark }
+    </style>
+  </head>
+  <body>
+    <div id="dynamic-test">
+      <xul:browser type="content" remote="true" nodefaultsrc="true" class="remote" />
+      <xul:browser type="content" src="about:blank" class="nonremote" />
+    </div>
+    <div id="light">
+      <xul:browser type="content" remote="true" nodefaultsrc="true" class="remote" />
+      <xul:browser type="content" src="about:blank" class="nonremote" />
+    </div>
+    <div id="dark">
+      <xul:browser type="content" remote="true" nodefaultsrc="true" class="remote" />
+      <xul:browser type="content" src="about:blank" class="nonremote" />
+    </div>
+    <script><![CDATA[
+      // FIXME: This shouldn't be needed if remote browsers would block the load event.
+      add_task(async function ensureBrowsersLoaded() {
+        const triggeringPrincipal = document.nodePrincipal;
+        for (let b of document.querySelectorAll("browser[remote=true]")) {
+          let loaded = new Promise(resolve => {
+            b.addProgressListener({
+              onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
+                if (
+                  aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW &&
+                  aStateFlags & Ci.nsIWebProgressListener.STATE_STOP
+                ) {
+                  resolve();
+                  b.removeProgressListener(this);
+                }
+              },
+              QueryInterface: ChromeUtils.generateQI([
+                "nsIWebProgressListener",
+                "nsISupportsWeakReference",
+              ]),
+            });
+          });
+          b.loadURI("about:blank", { triggeringPrincipal });
+          await loaded;
+        }
+      });
+      async function getBrowserColorScheme(browser) {
+        return SpecialPowers.spawn(browser, [], () => {
+          return content.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        });
+      }
+      async function tick() {
+        return new Promise(resolve => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
+      }
+      async function testElement(id, expectedIfTop, expectedIfNonTop) {
+        let element = document.getElementById(id);
+        for (let browser of element.querySelectorAll("browser")) {
+          let scheme = await getBrowserColorScheme(browser);
+          let expected = browser.browsingContext.top == browser.browsingContext ? expectedIfTop : expectedIfNonTop;
+          is(scheme, expected, `${id}: ${browser.className} should be ${expected}`);
+        }
+      }
+      add_task(async function test_browser_color_scheme() {
+        let current = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        for (let id of ["dynamic-test", "light", "dark"]) {
+          let expected = id == "dynamic-test" ? current : id;
+          await testElement(id, expected, current);
+        }
+      });
+
+      add_task(async function test_browser_color_scheme_dynamic_style() {
+        let current = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        let dynamicTest = document.getElementById("dynamic-test");
+        for (let value of ["light", "dark"]) {
+          await tick();
+          dynamicTest.style.colorScheme = value;
+          await testElement("dynamic-test", value,  current);
+        }
+        dynamicTest.style.colorScheme = "";
+        await tick();
+      });
+
+      add_task(async function test_browser_color_scheme_dynamic_system() {
+        for (let dark of [true, false]) {
+          await SpecialPowers.pushPrefEnv({
+            set: [
+              ["layout.css.prefers-color-scheme.content-override", 2],
+              ["ui.systemUsesDarkTheme", dark ? 1 : 0],
+            ]
+          });
+          await tick();
+          let expected = dark ? "dark" : "light";
+          await testElement("dynamic-test", expected, expected);
+          await SpecialPowers.popPrefEnv();
+        }
+      });
+    ]]></script>
+  </body>
+</html>
+

@@ -1,6 +1,6 @@
 use super::utils::{
     test_get_all_devices, test_get_all_onwed_devices, test_get_default_device,
-    test_get_drift_compensations, test_get_master_device, Scope,
+    test_get_drift_compensations, test_get_master_device, DeviceFilter, Scope,
 };
 use super::*;
 
@@ -42,7 +42,7 @@ fn test_aggregate_set_sub_devices_for_unknown_devices() {
 // application and print out the sub devices of them!
 #[test]
 fn test_aggregate_get_sub_devices() {
-    let devices = test_get_all_devices();
+    let devices = test_get_all_devices(DeviceFilter::ExcludeCubebAggregate);
     for device in devices {
         // `AggregateDevice::get_sub_devices(device)` will return a single-element vector
         // containing `device` itself if it's not an aggregate device. This test assumes devices
@@ -66,7 +66,7 @@ fn test_aggregate_get_sub_devices_for_a_unknown_device() {
 #[test]
 #[should_panic]
 fn test_aggregate_set_master_device_for_an_unknown_aggregate_device() {
-    assert!(AggregateDevice::set_master_device(kAudioObjectUnknown).is_err());
+    assert!(AggregateDevice::set_master_device(kAudioObjectUnknown, kAudioObjectUnknown).is_err());
 }
 
 // AggregateDevice::activate_clock_drift_compensation
@@ -108,7 +108,7 @@ fn test_aggregate_create_blank_device() {
     // TODO: Test this when there is no available devices.
     let plugin = AggregateDevice::get_system_plugin_id().unwrap();
     let device = AggregateDevice::create_blank_device_sync(plugin).unwrap();
-    let devices = test_get_all_devices();
+    let devices = test_get_all_devices(DeviceFilter::IncludeCubebAggregate);
     let device = devices.into_iter().find(|dev| dev == &device).unwrap();
     let uid = get_device_global_uid(device).unwrap().into_string();
     assert!(uid.contains(PRIVATE_AGGREGATE_DEVICE_NAME));
@@ -243,10 +243,9 @@ fn test_aggregate_set_master_device() {
     let plugin = AggregateDevice::get_system_plugin_id().unwrap();
     let device = AggregateDevice::create_blank_device_sync(plugin).unwrap();
     assert!(AggregateDevice::set_sub_devices_sync(device, input_device, output_device).is_ok());
-    assert!(AggregateDevice::set_master_device(device).is_ok());
+    assert!(AggregateDevice::set_master_device(device, output_device).is_ok());
 
     // Check if master is set to the first sub device of the default output device.
-    // TODO: What if the output device in the aggregate device is not the default output device?
     let first_output_sub_device_uid =
         get_device_uid(AggregateDevice::get_sub_devices(device).unwrap()[0]);
     let master_device_uid = test_get_master_device(device);
@@ -266,7 +265,7 @@ fn test_aggregate_set_master_device_for_a_blank_aggregate_device() {
 
     let plugin = AggregateDevice::get_system_plugin_id().unwrap();
     let device = AggregateDevice::create_blank_device_sync(plugin).unwrap();
-    assert!(AggregateDevice::set_master_device(device).is_ok());
+    assert!(AggregateDevice::set_master_device(device, output_device.unwrap()).is_ok());
 
     // TODO: it's really weird the aggregate device actually own nothing
     //       but its master device can be set successfully!
@@ -301,7 +300,7 @@ fn test_aggregate_activate_clock_drift_compensation() {
     let plugin = AggregateDevice::get_system_plugin_id().unwrap();
     let device = AggregateDevice::create_blank_device_sync(plugin).unwrap();
     assert!(AggregateDevice::set_sub_devices_sync(device, input_device, output_device).is_ok());
-    assert!(AggregateDevice::set_master_device(device).is_ok());
+    assert!(AggregateDevice::set_master_device(device, output_device).is_ok());
     assert!(AggregateDevice::activate_clock_drift_compensation(device).is_ok());
 
     // Check the compensations.

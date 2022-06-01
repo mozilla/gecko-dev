@@ -54,6 +54,7 @@ registerCleanupFunction(async () => {
   Services.prefs.clearUserPref("network.dns.http3_echconfig.enabled");
   Services.prefs.clearUserPref("network.dns.echconfig.fallback_to_origin");
   Services.prefs.clearUserPref("network.http.speculative-parallel-limit");
+  Services.prefs.clearUserPref("network.dns.port_prefixed_qname_https_rr");
   if (trrServer) {
     await trrServer.stop();
   }
@@ -112,6 +113,37 @@ ActivityObserver.prototype = {
     this.activites.push({ host: aHost, subType: aActivitySubtype });
   },
 };
+
+function checkHttpActivities(activites) {
+  let foundDNSAndSocket = false;
+  let foundSettingECH = false;
+  let foundConnectionCreated = false;
+  for (let activity of activites) {
+    switch (activity.subType) {
+      case Ci.nsIHttpActivityObserver.ACTIVITY_SUBTYPE_DNSANDSOCKET_CREATED:
+      case Ci.nsIHttpActivityObserver
+        .ACTIVITY_SUBTYPE_SPECULATIVE_DNSANDSOCKET_CREATED:
+        foundDNSAndSocket = true;
+        break;
+      case Ci.nsIHttpActivityDistributor.ACTIVITY_SUBTYPE_ECH_SET:
+        foundSettingECH = true;
+        break;
+      case Ci.nsIHttpActivityDistributor.ACTIVITY_SUBTYPE_CONNECTION_CREATED:
+        foundConnectionCreated = true;
+        break;
+      default:
+        break;
+    }
+  }
+
+  Assert.equal(foundDNSAndSocket, true, "Should have one DnsAndSock created");
+  Assert.equal(foundSettingECH, true, "Should have echConfig");
+  Assert.equal(
+    foundConnectionCreated,
+    true,
+    "Should have one connection created"
+  );
+}
 
 add_task(async function testConnectWithECH() {
   const ECH_CONFIG_FIXED =
@@ -187,23 +219,7 @@ add_task(async function testConnectWithECH() {
   let filtered = observer.activites.filter(
     activity => activity.host === "ech-private.example.com"
   );
-  Assert.equal(filtered.length, 3);
-  Assert.equal(
-    filtered[0].subType,
-    Ci.nsIHttpActivityObserver
-      .ACTIVITY_SUBTYPE_SPECULATIVE_DNSANDSOCKET_CREATED,
-    "Should have only one speculative DnsAndSock created"
-  );
-  Assert.equal(
-    filtered[1].subType,
-    Ci.nsIHttpActivityObserver.ACTIVITY_SUBTYPE_ECH_SET,
-    "Should have echConfig"
-  );
-  Assert.equal(
-    filtered[2].subType,
-    Ci.nsIHttpActivityObserver.ACTIVITY_SUBTYPE_CONNECTION_CREATED,
-    "Should have one connection created"
-  );
+  checkHttpActivities(filtered);
 });
 
 add_task(async function testEchRetry() {
@@ -284,12 +300,21 @@ async function H3ECHTest(echConfig) {
     "network.trr.uri",
     `https://foo.example.com:${trrServer.port}/dns-query`
   );
+  Services.prefs.setBoolPref("network.dns.port_prefixed_qname_https_rr", true);
 
+  let observerService = Cc[
+    "@mozilla.org/network/http-activity-distributor;1"
+  ].getService(Ci.nsIHttpActivityDistributor);
+  let observer = new ActivityObserver();
+  observerService.addObserver(observer);
+  observerService.observeConnection = true;
+
+  let portPrefixedName = `_${h3Port}._https.public.example.com`;
   // Only the last record is valid to use.
-  await trrServer.registerDoHAnswers("public.example.com", "HTTPS", {
+  await trrServer.registerDoHAnswers(portPrefixedName, "HTTPS", {
     answers: [
       {
-        name: "public.example.com",
+        name: portPrefixedName,
         ttl: 55,
         type: "HTTPS",
         flush: false,
@@ -324,9 +349,10 @@ async function H3ECHTest(echConfig) {
 
   await new TRRDNSListener("public.example.com", {
     type: Ci.nsIDNSService.RESOLVE_TYPE_HTTPSSVC,
+    port: h3Port,
   });
 
-  let chan = makeChan(`https://public.example.com`);
+  let chan = makeChan(`https://public.example.com:${h3Port}`);
   let [req] = await channelOpenPromise(chan, CL_ALLOW_UNKNOWN_CL);
   req.QueryInterface(Ci.nsIHttpChannel);
   Assert.equal(req.protocolVersion, "h3-29");
@@ -336,6 +362,14 @@ async function H3ECHTest(echConfig) {
   Assert.ok(securityInfo.isAcceptedEch, "This host should have accepted ECH");
 
   await trrServer.stop();
+
+  observerService.removeObserver(observer);
+  observerService.observeConnection = false;
+
+  let filtered = observer.activites.filter(
+    activity => activity.host === "public.example.com"
+  );
+  checkHttpActivities(filtered);
 }
 
 add_task(async function testH3ConnectWithECH() {

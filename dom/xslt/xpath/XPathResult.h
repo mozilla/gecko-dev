@@ -19,35 +19,12 @@
 
 class txAExprResult;
 
-// {662f2c9a-c7cd-4cab-9349-e733df5a838c}
-#define NS_IXPATHRESULT_IID                          \
-  {                                                  \
-    0x662f2c9a, 0xc7cd, 0x4cab, {                    \
-      0x93, 0x49, 0xe7, 0x33, 0xdf, 0x5a, 0x83, 0x8c \
-    }                                                \
-  }
-
-class nsIXPathResult : public nsISupports {
- public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IXPATHRESULT_IID)
-  virtual void SetExprResult(txAExprResult* aExprResult, uint16_t aResultType,
-                             nsINode* aContextNode,
-                             mozilla::ErrorResult& aRv) = 0;
-  virtual nsresult GetExprResult(txAExprResult** aExprResult) = 0;
-  virtual nsresult Clone(nsIXPathResult** aResult) = 0;
-};
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPathResult, NS_IXPATHRESULT_IID)
-
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 /**
  * A class for evaluating an XPath expression string
  */
-class XPathResult final : public nsIXPathResult,
-                          public nsStubMutationObserver,
-                          public nsWrapperCache {
+class XPathResult final : public nsStubMutationObserver, public nsWrapperCache {
   ~XPathResult();
 
  public:
@@ -69,12 +46,7 @@ class XPathResult final : public nsIXPathResult,
 
   // nsISupports interface
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(XPathResult,
-                                                         nsIXPathResult)
-
-  static XPathResult* FromSupports(nsISupports* aSupports) {
-    return static_cast<XPathResult*>(static_cast<nsIXPathResult*>(aSupports));
-  }
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(XPathResult)
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
@@ -142,9 +114,9 @@ class XPathResult final : public nsIXPathResult,
   NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
 
   void SetExprResult(txAExprResult* aExprResult, uint16_t aResultType,
-                     nsINode* aContextNode, ErrorResult& aRv) override;
-  nsresult GetExprResult(txAExprResult** aExprResult) override;
-  nsresult Clone(nsIXPathResult** aResult) override;
+                     nsINode* aContextNode, ErrorResult& aRv);
+  nsresult GetExprResult(txAExprResult** aExprResult);
+  already_AddRefed<XPathResult> Clone(ErrorResult& aError);
   void RemoveObserver();
 
  private:
@@ -179,7 +151,6 @@ class XPathResult final : public nsIXPathResult,
   nsString mStringResult;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif /* mozilla_dom_XPathResult_h */

@@ -353,8 +353,11 @@ impl From<BindingIndex> for usize {
 
 #[derive(Debug)]
 struct PossiblyAnnexBFunction {
+    #[allow(dead_code)]
     name: SourceAtomSetIndex,
+    #[allow(dead_code)]
     owner_scope_index: ScopeIndex,
+    #[allow(dead_code)]
     binding_index: BindingIndex,
 
     /// Index of the script in the list of `functions` in the
@@ -3448,6 +3451,12 @@ impl ScopeDataMapBuilder {
     pub fn on_switch(&mut self) {
         // FIXME: NewDeclarativeEnvironment in for case block
         self.set_error(ScopeBuildError::NotImplemented("switch"));
+    }
+
+    pub fn on_new_target(&mut self) {
+        if let Some(fun_stencil) = self.function_stencil_builder.maybe_current_mut() {
+            fun_stencil.set_function_has_new_target_binding()
+        }
     }
 }
 

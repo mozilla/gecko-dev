@@ -5,11 +5,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Platform.h"
-#include "RemoteAccessibleWrap.h"
 #include "DocAccessibleWrap.h"
 #include "SessionAccessibility.h"
 #include "mozilla/a11y/RemoteAccessible.h"
 #include "mozilla/Components.h"
+#include "mozilla/StaticPrefs_accessibility.h"
 #include "nsIAccessibleEvent.h"
 #include "nsIAccessiblePivot.h"
 #include "nsIStringBundle.h"
@@ -19,38 +19,70 @@
 using namespace mozilla;
 using namespace mozilla::a11y;
 
-static nsIStringBundle* sStringBundle;
+static nsTHashMap<nsStringHashKey, nsString> sLocalizedStrings;
 
-void a11y::PlatformInit() {}
+void a11y::PlatformInit() {
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsIStringBundleService> stringBundleService =
+      components::StringBundle::Service();
+  if (!stringBundleService) return;
 
-void a11y::PlatformShutdown() { NS_IF_RELEASE(sStringBundle); }
-
-void a11y::ProxyCreated(RemoteAccessible* aProxy) {
-  AccessibleWrap* wrapper = nullptr;
-  if (aProxy->IsDoc()) {
-    wrapper = new DocRemoteAccessibleWrap(aProxy->AsDoc());
-  } else {
-    wrapper = new RemoteAccessibleWrap(aProxy);
-  }
-
-  wrapper->AddRef();
-  aProxy->SetWrapper(reinterpret_cast<uintptr_t>(wrapper));
-}
-
-void a11y::ProxyDestroyed(RemoteAccessible* aProxy) {
-  AccessibleWrap* wrapper =
-      reinterpret_cast<AccessibleWrap*>(aProxy->GetWrapper());
-
-  // If aProxy is a document that was created, but
-  // RecvPDocAccessibleConstructor failed then aProxy->GetWrapper() will be
-  // null.
-  if (!wrapper) {
+  nsCOMPtr<nsIStringBundle> stringBundle;
+  nsCOMPtr<nsIStringBundleService> sbs = components::StringBundle::Service();
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to get string bundle service");
     return;
   }
 
-  wrapper->Shutdown();
-  aProxy->SetWrapper(0);
-  wrapper->Release();
+  rv = sbs->CreateBundle(ROLE_STRINGS_URL, getter_AddRefs(stringBundle));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to get string bundle");
+    return;
+  }
+
+  nsString localizedStr;
+  // Preload the state required localized string.
+  rv = stringBundle->GetStringFromName("stateRequired", localizedStr);
+  if (NS_SUCCEEDED(rv)) {
+    sLocalizedStrings.InsertOrUpdate(u"stateRequired"_ns, localizedStr);
+  }
+
+  // Preload heading level localized descriptions 1 thru 6.
+  for (int32_t level = 1; level <= 6; level++) {
+    nsAutoString token;
+    token.AppendPrintf("heading-%d", level);
+
+    nsAutoString formatString;
+    formatString.AppendInt(level);
+    AutoTArray<nsString, 1> formatParams;
+    formatParams.AppendElement(formatString);
+    rv = stringBundle->FormatStringFromName("headingLevel", formatParams,
+                                            localizedStr);
+    if (NS_SUCCEEDED(rv)) {
+      sLocalizedStrings.InsertOrUpdate(token, localizedStr);
+    }
+  }
+
+  // Preload any roles that have localized versions
+#define ROLE(geckoRole, stringRole, atkRole, macRole, macSubrole, msaaRole, \
+             ia2Role, androidClass, nameRule)                               \
+  rv = stringBundle->GetStringFromName(stringRole, localizedStr);           \
+  if (NS_SUCCEEDED(rv)) {                                                   \
+    sLocalizedStrings.InsertOrUpdate(u##stringRole##_ns, localizedStr);     \
+  }
+
+#include "RoleMap.h"
+#undef ROLE
+}
+
+void a11y::PlatformShutdown() { sLocalizedStrings.Clear(); }
+
+void a11y::ProxyCreated(RemoteAccessible* aProxy) {
+  SessionAccessibility::RegisterAccessible(aProxy);
+}
+
+void a11y::ProxyDestroyed(RemoteAccessible* aProxy) {
+  SessionAccessibility::UnregisterAccessible(aProxy);
 }
 
 void a11y::ProxyEvent(RemoteAccessible* aTarget, uint32_t aEventType) {
@@ -62,7 +94,14 @@ void a11y::ProxyEvent(RemoteAccessible* aTarget, uint32_t aEventType) {
 
   switch (aEventType) {
     case nsIAccessibleEvent::EVENT_FOCUS:
-      sessionAcc->SendFocusEvent(WrapperFor(aTarget));
+      sessionAcc->SendFocusEvent(aTarget);
+      break;
+    case nsIAccessibleEvent::EVENT_REORDER:
+      if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+        sessionAcc->SendWindowContentChangedEvent();
+      }
+      break;
+    default:
       break;
   }
 }
@@ -78,34 +117,34 @@ void a11y::ProxyStateChangeEvent(RemoteAccessible* aTarget, uint64_t aState,
 
   if (aState & states::CHECKED) {
     sessionAcc->SendClickedEvent(
-        WrapperFor(aTarget),
-        java::SessionAccessibility::FLAG_CHECKABLE |
-            (aEnabled ? java::SessionAccessibility::FLAG_CHECKED : 0));
+        aTarget, java::SessionAccessibility::FLAG_CHECKABLE |
+                     (aEnabled ? java::SessionAccessibility::FLAG_CHECKED : 0));
   }
 
   if (aState & states::EXPANDED) {
     sessionAcc->SendClickedEvent(
-        WrapperFor(aTarget),
+        aTarget,
         java::SessionAccessibility::FLAG_EXPANDABLE |
             (aEnabled ? java::SessionAccessibility::FLAG_EXPANDED : 0));
   }
 
   if (aState & states::SELECTED) {
-    sessionAcc->SendSelectedEvent(WrapperFor(aTarget), aEnabled);
+    sessionAcc->SendSelectedEvent(aTarget, aEnabled);
   }
 
   if (aState & states::BUSY) {
-    sessionAcc->SendWindowStateChangedEvent(WrapperFor(aTarget));
+    sessionAcc->SendWindowStateChangedEvent(aTarget);
   }
 }
 
 void a11y::ProxyCaretMoveEvent(RemoteAccessible* aTarget, int32_t aOffset,
-                               bool aIsSelectionCollapsed) {
+                               bool aIsSelectionCollapsed,
+                               int32_t aGranularity) {
   RefPtr<SessionAccessibility> sessionAcc =
       SessionAccessibility::GetInstanceFor(aTarget);
 
   if (sessionAcc) {
-    sessionAcc->SendTextSelectionChangedEvent(WrapperFor(aTarget), aOffset);
+    sessionAcc->SendTextSelectionChangedEvent(aTarget, aOffset);
   }
 }
 
@@ -116,8 +155,8 @@ void a11y::ProxyTextChangeEvent(RemoteAccessible* aTarget, const nsString& aStr,
       SessionAccessibility::GetInstanceFor(aTarget);
 
   if (sessionAcc) {
-    sessionAcc->SendTextChangedEvent(WrapperFor(aTarget), aStr, aStart, aLen,
-                                     aIsInsert, aFromUser);
+    sessionAcc->SendTextChangedEvent(aTarget, aStr, aStart, aLen, aIsInsert,
+                                     aFromUser);
   }
 }
 
@@ -149,15 +188,14 @@ void a11y::ProxyVirtualCursorChangeEvent(
   }
 
   if (aReason == nsIAccessiblePivot::REASON_POINT) {
-    sessionAcc->SendHoverEnterEvent(WrapperFor(aNewPosition));
+    sessionAcc->SendHoverEnterEvent(aNewPosition);
   } else if (aBoundaryType == nsIAccessiblePivot::NO_BOUNDARY) {
-    RefPtr<AccessibleWrap> wrapperForNewPosition = WrapperFor(aNewPosition);
-    sessionAcc->SendAccessibilityFocusedEvent(wrapperForNewPosition);
+    sessionAcc->SendAccessibilityFocusedEvent(aNewPosition);
   }
 
   if (aBoundaryType != nsIAccessiblePivot::NO_BOUNDARY) {
-    sessionAcc->SendTextTraversedEvent(WrapperFor(aNewPosition),
-                                       aNewStartOffset, aNewEndOffset);
+    sessionAcc->SendTextTraversedEvent(aNewPosition, aNewStartOffset,
+                                       aNewEndOffset);
   }
 }
 
@@ -169,8 +207,8 @@ void a11y::ProxyScrollingEvent(RemoteAccessible* aTarget, uint32_t aEventType,
         SessionAccessibility::GetInstanceFor(aTarget);
 
     if (sessionAcc) {
-      sessionAcc->SendScrollingEvent(WrapperFor(aTarget), aScrollX, aScrollY,
-                                     aMaxScrollX, aMaxScrollY);
+      sessionAcc->SendScrollingEvent(aTarget, aScrollX, aScrollY, aMaxScrollX,
+                                     aMaxScrollY);
     }
   }
 }
@@ -182,8 +220,7 @@ void a11y::ProxyAnnouncementEvent(RemoteAccessible* aTarget,
       SessionAccessibility::GetInstanceFor(aTarget);
 
   if (sessionAcc) {
-    sessionAcc->SendAnnouncementEvent(WrapperFor(aTarget), aAnnouncement,
-                                      aPriority);
+    sessionAcc->SendAnnouncementEvent(aTarget, aAnnouncement, aPriority);
   }
 }
 
@@ -196,20 +233,20 @@ void a11y::ProxyBatch(RemoteAccessible* aDocument, const uint64_t aBatchType,
     return;
   }
 
-  nsTArray<AccessibleWrap*> accWraps(aAccessibles.Length());
+  nsTArray<Accessible*> accessibles(aAccessibles.Length());
   for (size_t i = 0; i < aAccessibles.Length(); i++) {
-    accWraps.AppendElement(WrapperFor(aAccessibles.ElementAt(i)));
+    accessibles.AppendElement(aAccessibles.ElementAt(i));
   }
 
   switch (aBatchType) {
     case DocAccessibleWrap::eBatch_Viewport:
-      sessionAcc->ReplaceViewportCache(accWraps, aData);
+      sessionAcc->ReplaceViewportCache(accessibles, aData);
       break;
     case DocAccessibleWrap::eBatch_FocusPath:
-      sessionAcc->ReplaceFocusPathCache(accWraps, aData);
+      sessionAcc->ReplaceFocusPathCache(accessibles, aData);
       break;
     case DocAccessibleWrap::eBatch_BoundsUpdate:
-      sessionAcc->UpdateCachedBounds(accWraps, aData);
+      sessionAcc->UpdateCachedBounds(accessibles, aData);
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unknown batch type.");
@@ -217,42 +254,14 @@ void a11y::ProxyBatch(RemoteAccessible* aDocument, const uint64_t aBatchType,
   }
 }
 
-bool a11y::LocalizeString(const char* aToken, nsAString& aLocalized,
-                          const nsTArray<nsString>& aFormatString) {
+bool a11y::LocalizeString(const nsAString& aToken, nsAString& aLocalized) {
   MOZ_ASSERT(XRE_IsParentProcess());
-  nsresult rv = NS_OK;
-  if (!sStringBundle) {
-    nsCOMPtr<nsIStringBundleService> sbs = components::StringBundle::Service();
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Failed to get string bundle service");
-      return false;
-    }
 
-    nsCOMPtr<nsIStringBundle> sb;
-    rv = sbs->CreateBundle(ROLE_STRINGS_URL, getter_AddRefs(sb));
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Failed to get string bundle");
-      return false;
-    }
-
-    sb.forget(&sStringBundle);
-  }
-
-  MOZ_ASSERT(sStringBundle);
-
-  if (aFormatString.Length()) {
-    rv = sStringBundle->FormatStringFromName(aToken, aFormatString, aLocalized);
-    if (NS_SUCCEEDED(rv)) {
-      return true;
-    }
+  auto str = sLocalizedStrings.Lookup(aToken);
+  if (str) {
+    aLocalized.Assign(*str);
   } else {
-    rv = sStringBundle->GetStringFromName(aToken, aLocalized);
-    if (NS_SUCCEEDED(rv)) {
-      return true;
-    }
   }
 
-  NS_WARNING("Failed to localize string");
-  aLocalized.AssignLiteral("");
-  return false;
+  return !!str;
 }

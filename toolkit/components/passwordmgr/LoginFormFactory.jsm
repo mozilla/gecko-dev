@@ -30,7 +30,7 @@ XPCOMUtils.defineLazyGetter(this, "log", () => {
   return LoginHelper.createLogger("LoginFormFactory");
 });
 
-this.LoginFormFactory = {
+const LoginFormFactory = {
   /**
    * WeakMap of the root element of a LoginForm to the LoginForm representing its fields.
    *
@@ -94,7 +94,7 @@ this.LoginFormFactory = {
    */
   createFromField(aField) {
     if (
-      ChromeUtils.getClassName(aField) !== "HTMLInputElement" ||
+      !HTMLInputElement.isInstance(aField) ||
       (!aField.hasBeenTypePassword &&
         !LoginHelper.isUsernameFieldType(aField)) ||
       !aField.ownerDocument

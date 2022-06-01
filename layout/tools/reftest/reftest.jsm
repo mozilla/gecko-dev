@@ -10,21 +10,61 @@ var EXPORTED_SYMBOLS = [
     "OnRefTestUnload",
 ];
 
-Cu.import("resource://gre/modules/FileUtils.jsm");
-Cu.import("resource://reftest/globals.jsm", this);
-Cu.import("resource://reftest/httpd.jsm", this);
-Cu.import("resource://reftest/manifest.jsm", this);
-Cu.import("resource://reftest/StructuredLog.jsm", this);
-Cu.import("resource://reftest/PerTestCoverageUtils.jsm", this);
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+const { FileUtils } = ChromeUtils.import(
+    "resource://gre/modules/FileUtils.jsm"
+);
+const {
+    XHTML_NS,
+    XUL_NS,
+
+    IO_SERVICE_CONTRACTID,
+    DEBUG_CONTRACTID,
+    NS_DIRECTORY_SERVICE_CONTRACTID,
+    NS_OBSERVER_SERVICE_CONTRACTID,
+
+    TYPE_REFTEST_EQUAL,
+    TYPE_REFTEST_NOTEQUAL,
+    TYPE_LOAD,
+    TYPE_SCRIPT,
+    TYPE_PRINT,
+
+    URL_TARGET_TYPE_TEST,
+    URL_TARGET_TYPE_REFERENCE,
+
+    EXPECTED_PASS,
+    EXPECTED_FAIL,
+    EXPECTED_RANDOM,
+    EXPECTED_FUZZY,
+
+    PREF_BOOLEAN,
+    PREF_STRING,
+    PREF_INTEGER,
+
+    FOCUS_FILTER_NON_NEEDS_FOCUS_TESTS,
+
+    g,
+} = ChromeUtils.import("resource://reftest/globals.jsm");
+const { HttpServer } = ChromeUtils.import("resource://reftest/httpd.jsm");
+const { ReadTopManifest, CreateUrls } = ChromeUtils.import(
+    "resource://reftest/manifest.jsm"
+);
+const { StructuredLogger } = ChromeUtils.import(
+    "resource://reftest/StructuredLog.jsm"
+);
+const { PerTestCoverageUtils } = ChromeUtils.import(
+    "resource://reftest/PerTestCoverageUtils.jsm"
+);
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { XPCOMUtils } = ChromeUtils.import(
+    "resource://gre/modules/XPCOMUtils.jsm"
+);
 
 const { E10SUtils } = ChromeUtils.import(
   "resource://gre/modules/E10SUtils.jsm"
 );
 
 XPCOMUtils.defineLazyGetter(this, "OS", function() {
-    const { OS } = Cu.import("resource://gre/modules/osfile.jsm");
+    const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
     return OS;
 });
 
@@ -182,7 +222,7 @@ function OnRefTestLoad(win)
     g.browser.setAttribute("remote", g.browserIsRemote ? "true" : "false");
     // Make sure the browser element is exactly 800x1000, no matter
     // what size our window is
-    g.browser.setAttribute("style", "padding: 0px; margin: 0px; border:none; min-width: 800px; min-height: 1000px; max-width: 800px; max-height: 1000px");
+    g.browser.setAttribute("style", "padding: 0px; margin: 0px; border:none; min-width: 800px; min-height: 1000px; max-width: 800px; max-height: 1000px; color-scheme: env(-moz-content-preferred-color-scheme)");
 
     if (Services.appinfo.OS == "Android") {
       let doc = g.containingWindow.document.getElementById('main-window');
@@ -1713,7 +1753,7 @@ function RecvStartPrint(isPrintSelection, printRange)
     file.append(fileName);
 
     let PSSVC = Cc["@mozilla.org/gfx/printsettings-service;1"].getService(Ci.nsIPrintSettingsService);
-    let ps = PSSVC.newPrintSettings;
+    let ps = PSSVC.createNewPrintSettings();
     ps.printSilent = true;
     ps.printBGImages = true;
     ps.printBGColors = true;
@@ -1721,7 +1761,7 @@ function RecvStartPrint(isPrintSelection, printRange)
     ps.unwriteableMarginRight = 0;
     ps.unwriteableMarginLeft = 0;
     ps.unwriteableMarginBottom = 0;
-    ps.printToFile = true;
+    ps.outputDestination = Ci.nsIPrintSettings.kOutputDestinationFile;
     ps.toFileName = file.path;
     ps.outputFormat = Ci.nsIPrintSettings.kOutputFormatPDF;
     ps.printSelectionOnly = isPrintSelection;

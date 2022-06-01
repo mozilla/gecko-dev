@@ -8,6 +8,8 @@
 #define mozilla_fuzzing_Nyx_h
 
 #include <stdint.h>
+#include <atomic>
+#include <list>
 
 #ifndef NYX_DISALLOW_COPY_AND_ASSIGN
 #  define NYX_DISALLOW_COPY_AND_ASSIGN(T) \
@@ -16,6 +18,11 @@
 #endif
 
 namespace mozilla {
+
+class MallocAllocPolicy;
+template <class T, size_t MinInlineCapacity, class AllocPolicy>
+class Vector;
+
 namespace fuzzing {
 
 class Nyx {
@@ -23,14 +30,19 @@ class Nyx {
   static Nyx& instance();
 
   void start(void);
+  bool started(void);
   bool is_enabled(const char* identifier);
+  bool is_replay();
   uint32_t get_data(uint8_t* data, uint32_t size);
-  void release(void);
+  void release(uint32_t iterations = 1);
   void handle_event(const char* type, const char* file, int line,
                     const char* reason);
 
  private:
-  bool mInited = false;
+  std::atomic<bool> mInited;
+
+  std::atomic<bool> mReplayMode;
+  std::list<Vector<uint8_t, 0, MallocAllocPolicy>*> mReplayBuffers;
 
   Nyx();
   NYX_DISALLOW_COPY_AND_ASSIGN(Nyx);

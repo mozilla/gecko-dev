@@ -2,18 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
+import { createBreakpoint } from "../../client/firefox/create";
 import {
   makeBreakpointLocation,
   makeBreakpointId,
-  getASTLocation,
 } from "../../utils/breakpoint";
-
 import {
   getBreakpoint,
   getBreakpointPositionsForLocation,
   getFirstBreakpointPosition,
-  getSymbols,
-  getSource,
+  getLocationSource,
   getSourceContent,
   getBreakpointsList,
   getPendingBreakpointList,
@@ -34,7 +32,7 @@ import { validateNavigateContext } from "../../utils/context";
 // and keep them in sync with the breakpoints installed on server threads. These
 // are collected here to make it easier to preserve the following invariant:
 //
-// Breakpoints are included in reducer state iff they are disabled or requests
+// Breakpoints are included in reducer state if they are disabled or requests
 // have been dispatched to set them in all server threads.
 //
 // To maintain this property, updates to the reducer and installed breakpoints
@@ -66,7 +64,7 @@ async function clientSetBreakpoint(
   );
   const shouldMapBreakpointExpressions =
     isMapScopesEnabled(getState()) &&
-    getSource(getState(), breakpoint.location?.sourceId).isOriginal &&
+    getLocationSource(getState(), breakpoint.location).isOriginal &&
     (breakpoint.options.logValue || breakpoint.options.condition);
 
   if (shouldMapBreakpointExpressions) {
@@ -92,7 +90,7 @@ export function enableBreakpoint(cx, initialBreakpoint) {
     return dispatch({
       type: "SET_BREAKPOINT",
       cx,
-      breakpoint: { ...breakpoint, disabled: false },
+      breakpoint: createBreakpoint({ ...breakpoint, disabled: false }),
       [PROMISE]: clientSetBreakpoint(client, cx, thunkArgs, breakpoint),
     });
   };
@@ -102,36 +100,38 @@ export function addBreakpoint(
   cx,
   initialLocation,
   options = {},
-  disabled = false,
+  disabled,
   shouldCancel = () => false
 ) {
   return async thunkArgs => {
     const { dispatch, getState, client } = thunkArgs;
     recordEvent("add_breakpoint");
 
-    const { sourceId, column, line } = initialLocation;
+    const { column, line } = initialLocation;
+    const initialSource = getLocationSource(getState(), initialLocation);
 
-    await dispatch(setBreakpointPositions({ cx, sourceId, line }));
+    await dispatch(
+      setBreakpointPositions({ cx, sourceId: initialSource.id, line })
+    );
 
     const position = column
       ? getBreakpointPositionsForLocation(getState(), initialLocation)
       : getFirstBreakpointPosition(getState(), initialLocation);
 
+    // No position is found if the `initialLocation` is on a non-breakable line or
+    // the line no longer exists.
     if (!position) {
       return;
     }
 
     const { location, generatedLocation } = position;
 
-    const source = getSource(getState(), location.sourceId);
-    const generatedSource = getSource(getState(), generatedLocation.sourceId);
+    const source = getLocationSource(getState(), location);
+    const generatedSource = getLocationSource(getState(), generatedLocation);
 
     if (!source || !generatedSource) {
       return;
     }
-
-    const symbols = getSymbols(getState(), source);
-    const astLocation = getASTLocation(source, symbols, location);
 
     const originalContent = getSourceContent(getState(), source.id);
     const originalText = getTextAtPosition(
@@ -148,16 +148,16 @@ export function addBreakpoint(
     );
 
     const id = makeBreakpointId(location);
-    const breakpoint = {
+    const breakpoint = createBreakpoint({
       id,
+      thread: generatedSource.thread,
       disabled,
       options,
       location,
-      astLocation,
       generatedLocation,
       text,
       originalText,
-    };
+    });
 
     if (shouldCancel()) {
       return;
@@ -277,7 +277,7 @@ export function disableBreakpoint(cx, initialBreakpoint) {
     return dispatch({
       type: "SET_BREAKPOINT",
       cx,
-      breakpoint: { ...breakpoint, disabled: true },
+      breakpoint: createBreakpoint({ ...breakpoint, disabled: true }),
       [PROMISE]: clientRemoveBreakpoint(
         client,
         getState(),
@@ -307,7 +307,7 @@ export function setBreakpointOptions(cx, location, options = {}) {
     }
 
     // Note: setting a breakpoint's options implicitly enables it.
-    breakpoint = { ...breakpoint, disabled: false, options };
+    breakpoint = createBreakpoint({ ...breakpoint, disabled: false, options });
 
     return dispatch({
       type: "SET_BREAKPOINT",

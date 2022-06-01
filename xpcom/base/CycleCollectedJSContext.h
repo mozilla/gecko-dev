@@ -46,6 +46,7 @@ struct CycleCollectorResults {
 
   void Init() {
     mForcedGC = false;
+    mSuspectedAtCCStart = 0;
     mMergedZones = false;
     mAnyManual = false;
     mVisitedRefCounted = 0;
@@ -62,6 +63,7 @@ struct CycleCollectorResults {
   bool mMergedZones;
   // mAnyManual is true if any slice was manually triggered, and at shutdown.
   bool mAnyManual;
+  uint32_t mSuspectedAtCCStart;
   uint32_t mVisitedRefCounted;
   uint32_t mVisitedGCed;
   uint32_t mFreedRefCounted;
@@ -146,7 +148,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
 
  private:
   static void PromiseRejectionTrackerCallback(
-      JSContext* aCx, bool aMutedErrors, JS::HandleObject aPromise,
+      JSContext* aCx, bool aMutedErrors, JS::Handle<JSObject*> aPromise,
       JS::PromiseRejectionHandlingState state, void* aData);
 
   void AfterProcessMicrotasks();
@@ -244,8 +246,6 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
     }
   }
 
-  bool IsInMicroTask() const { return mMicroTaskLevel != 0; }
-
   uint32_t MicroTaskLevel() const { return mMicroTaskLevel; }
 
   void SetMicroTaskLevel(uint32_t aLevel) { mMicroTaskLevel = aLevel; }
@@ -290,9 +290,10 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   // interruptions; see the comments on JS::AutoDebuggerJobQueueInterruption for
   // details.
   JSObject* getIncumbentGlobal(JSContext* cx) override;
-  bool enqueuePromiseJob(JSContext* cx, JS::HandleObject promise,
-                         JS::HandleObject job, JS::HandleObject allocationSite,
-                         JS::HandleObject incumbentGlobal) override;
+  bool enqueuePromiseJob(JSContext* cx, JS::Handle<JSObject*> promise,
+                         JS::Handle<JSObject*> job,
+                         JS::Handle<JSObject*> allocationSite,
+                         JS::Handle<JSObject*> incumbentGlobal) override;
   // MOZ_CAN_RUN_SCRIPT_BOUNDARY for now so we don't have to change SpiderMonkey
   // headers.  The caller presumably knows this can run script (like everything
   // in SpiderMonkey!) and will deal.

@@ -122,12 +122,6 @@ class nsBaseDragService : public nsIDragService, public nsIDragSession {
                             RefPtr<SourceSurface>* aSurface);
 
   /**
-   * Convert aScreenPosition from CSS pixels into unscaled device pixels.
-   */
-  mozilla::LayoutDeviceIntPoint ConvertToUnscaledDevPixels(
-      nsPresContext* aPresContext, mozilla::CSSIntPoint aScreenPosition);
-
-  /**
    * If the drag image is a popup, open the popup when the drag begins.
    */
   void OpenDragPopup();
@@ -202,7 +196,7 @@ class nsBaseDragService : public nsIDragService, public nsIDragSession {
   // drag image.
   mozilla::CSSIntPoint mScreenPosition;
 
-  // the screen position where the drag ended
+  // The position relative to the top level widget where the drag ended.
   mozilla::LayoutDeviceIntPoint mEndDragPoint;
 
   uint32_t mSuppressLevel;

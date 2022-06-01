@@ -11,8 +11,7 @@
 #include "WebGPUTypes.h"
 #include "base/timer.h"
 
-namespace mozilla {
-namespace webgpu {
+namespace mozilla::webgpu {
 class ErrorBuffer;
 class PresentationData;
 
@@ -67,11 +66,11 @@ class WebGPUParent final : public PWebGPUParent {
   ipc::IPCResult RecvDeviceCreateSwapChain(RawId aSelfId, RawId aQueueId,
                                            const layers::RGBDescriptor& aDesc,
                                            const nsTArray<RawId>& aBufferIds,
-                                           ExternalImageId aExternalId);
-  ipc::IPCResult RecvSwapChainPresent(wr::ExternalImageId aExternalId,
-                                      RawId aTextureId, RawId aCommandEncoderId,
-                                      SwapChainPresentResolver&& aResolver);
-  ipc::IPCResult RecvSwapChainDestroy(wr::ExternalImageId aExternalId);
+                                           const CompositableHandle& aHandle);
+  ipc::IPCResult RecvSwapChainPresent(const CompositableHandle& aHandle,
+                                      RawId aTextureId,
+                                      RawId aCommandEncoderId);
+  ipc::IPCResult RecvSwapChainDestroy(const CompositableHandle& aHandle);
 
   ipc::IPCResult RecvDeviceAction(RawId aSelf, const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvDeviceActionWithAck(
@@ -89,6 +88,12 @@ class WebGPUParent final : public PWebGPUParent {
   ipc::IPCResult RecvDevicePushErrorScope(RawId aSelfId);
   ipc::IPCResult RecvDevicePopErrorScope(
       RawId aSelfId, DevicePopErrorScopeResolver&& aResolver);
+  ipc::IPCResult RecvGenerateError(RawId aDeviceId, const nsCString& message);
+
+  ipc::IPCResult GetFrontBufferSnapshot(IProtocol* aProtocol,
+                                        const CompositableHandle& aHandle,
+                                        Maybe<Shmem>& aShmem,
+                                        gfx::IntSize& aSize);
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
@@ -96,8 +101,9 @@ class WebGPUParent final : public PWebGPUParent {
   virtual ~WebGPUParent();
   void MaintainDevices();
   bool ForwardError(RawId aDeviceID, ErrorBuffer& aError);
+  void ReportError(RawId aDeviceId, const nsCString& message);
 
-  const ffi::WGPUGlobal* const mContext;
+  UniquePtr<ffi::WGPUGlobal> mContext;
   base::RepeatingTimer<WebGPUParent> mTimer;
   /// Shmem associated with a mappable buffer has to be owned by one of the
   /// processes. We keep it here for every mappable buffer while the buffer is
@@ -109,7 +115,6 @@ class WebGPUParent final : public PWebGPUParent {
   std::unordered_map<uint64_t, ErrorScopeStack> mErrorScopeMap;
 };
 
-}  // namespace webgpu
-}  // namespace mozilla
+}  // namespace mozilla::webgpu
 
 #endif  // WEBGPU_PARENT_H_

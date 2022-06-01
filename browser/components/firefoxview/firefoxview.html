@@ -1,0 +1,115 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src chrome:; object-src 'none'; img-src data: chrome:;">
+    <meta name="color-scheme" content="light dark">
+    <title data-l10n-id="firefoxview-page-title"></title>
+    <link rel="localization" href="branding/brand.ftl">
+    <link rel="localization" href="preview/firefoxView.ftl"/>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+    <link rel="stylesheet" href="chrome://browser/content/firefoxview.css">
+    <script type="module" src="chrome://browser/content/tabs-pickup.js"></script>
+    <script type="module" src="chrome://browser/content/firefoxview.js"></script>
+    <script type="module" src="chrome://browser/content/recently-closed-tabs.js"></script>
+  </head>
+
+  <body>
+    <nav>
+      <div class="brand-logo"></div>
+    </nav>
+    <main>
+      <template id="sync-setup-template">
+        <named-deck class="sync-setup-container" data-prefix="id:">
+          <div name="sync-setup-view0" data-prefix="id:-view0" class="card setup-step" data-prefix="aria-labelledby:-view0-header">
+            <h2 data-prefix="id:-view0-header" data-l10n-id="firefoxview-tabpickup-step-signin-header" class="card-header"></h2>
+            <section class="step-body">
+              <p class="step-content" data-l10n-id="firefoxview-tabpickup-step-signin-description"></p>
+              <button class="primary" data-action="view0-primary-action" data-l10n-id="firefoxview-tabpickup-step-signin-primarybutton"></button>
+            </section>
+            <footer>
+              <progress data-prefix="id:-view0-progress" class="step-progress" max="100" value="11"></progress>
+              <label
+                data-prefix="for:-view0-progress"
+                data-l10n-id="firefoxview-tabpickup-progress-label"
+                data-l10n-args='{"percentValue":"11"}'></label>
+            </footer>
+          </div>
+          <div name="sync-setup-view1" data-prefix="id:-view1" class="card setup-step" data-prefix="aria-labelledby:-view1-header">
+            <h2 data-prefix="id:-view1-header" data-l10n-id="firefoxview-tabpickup-adddevice-header" class="card-header"></h2>
+            <section class="step-body">
+              <p class="step-content" data-l10n-id="firefoxview-tabpickup-adddevice-description"></p>
+              <button class="primary" data-action="view1-primary-action" data-l10n-id="firefoxview-tabpickup-adddevice-primarybutton"></button>
+            </section>
+            <footer>
+              <progress data-prefix="id:-view1-progress" class="step-progress" max="100" value="33"></progress>
+              <label
+                data-prefix="for:-view1-progress"
+                data-l10n-id="firefoxview-tabpickup-progress-label"
+                data-l10n-args='{"percentValue":"33"}'></label>
+            </footer>
+          </div>
+          <div name="sync-setup-view2" data-prefix="id:-view2" class="card setup-step" data-prefix="aria-labelledby:-view2-header">
+            <h2 data-prefix="id:-view2-header" data-l10n-id="firefoxview-tabpickup-synctabs-header" class="card-header"></h2>
+            <section class="step-body">
+              <p class="step-content" data-l10n-id="firefoxview-tabpickup-synctabs-description"></p>
+              <button class="primary" data-action="view2-primary-action" data-l10n-id="firefoxview-tabpickup-synctabs-primarybutton"></button>
+            </section>
+            <footer>
+              <progress data-prefix="id:-view2-progress" class="step-progress" max="100" value="66"></progress>
+              <label
+                data-prefix="for:-view2-progress"
+                data-l10n-id="firefoxview-tabpickup-progress-label"
+                data-l10n-args='{"percentValue":"66"}'></label>
+            </footer>
+          </div>
+          <div name="sync-setup-view3" data-prefix="id:-view3" class="card setup-step" data-prefix="aria-labelledby:-view3-header">
+            <h2 data-prefix="id:-view2-header" data-l10n-id="firefoxview-tabpickup-setupsuccess-header" class="card-header"></h2>
+            <section class="step-body">
+              <p class="step-content" data-l10n-id="firefoxview-tabpickup-setupsuccess-description"></p>
+              <button class="primary" data-action="view3-primary-action" data-l10n-id="firefoxview-tabpickup-setupsuccess-primarybutton"></button>
+            </section>
+          </div>
+        </named-deck>
+      </template>
+      <template id="synced-tabs-template">
+        <div class="synced-tabs-container" data-prefix="id:" hidden>
+          <div class="card">
+            <h2 data-l10n-id="firefoxview-tabpickup-recenttabs-description"></h2>
+          </div>
+        </div>
+      </template>
+
+      <section is="tabs-pickup-container" id="tabs-pickup-container">
+        <h1 data-l10n-id="firefoxview-tabpickup-header"></h1>
+        <p data-l10n-id="firefoxview-tabpickup-description"></p>
+      </section>
+      <aside id="colorways">
+        <div>
+          <button data-l10n-id="firefoxview-colorways-button" id="colorways-button"></button>
+          <div id="colorways-no-collection-message" data-l10n-id="firefoxview-colorways-no-collection-label"></div>
+        </div>
+      </aside>
+      <section is="recently-closed-tabs-container" id="recently-closed-tabs-container">
+        <header class="page-section-header">
+          <h1 data-l10n-id="firefoxview-closed-tabs-title" ></h1>
+          <button data-l10n-id="firefoxview-closed-tabs-collapse-button" id="collapsible-tabs-button" class="ghost-button twisty icon arrow-up"></button>
+          <p class="section-description" data-l10n-id="firefoxview-closed-tabs-description"></p>
+        </header>
+        <div id="collapsible-tabs-container">
+          <recently-closed-tabs-list>
+            <ol hidden="true" class="closed-tabs-list"></ol>
+          </recently-closed-tabs-list>
+          <div hidden="true" id="recently-closed-tabs-placeholder" class="placeholder-content">
+            <icon class="icon history"></icon>
+            <p data-l10n-id="firefoxview-closed-tabs-placeholder"></p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

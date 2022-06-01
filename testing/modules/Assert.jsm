@@ -31,14 +31,14 @@ const { ObjectUtils } = ChromeUtils.import(
  * test-only modules. This is false when the reporter is set by content scripts,
  * because they may still run in the parent process.
  */
-var Assert = (this.Assert = function(reporterFunc, isDefault) {
+function Assert(reporterFunc, isDefault) {
   if (reporterFunc) {
     this.setReporter(reporterFunc);
   }
   if (isDefault) {
     Assert.setReporter(reporterFunc);
   }
-});
+}
 
 // This allows using the Assert object as an additional global instance.
 Object.setPrototypeOf(Assert, Assert.prototype);
@@ -515,8 +515,8 @@ proto.rejects = function(promise, expected, message) {
 };
 
 function compareNumbers(expression, lhs, rhs, message, operator) {
-  let lhsIsNumber = typeof lhs == "number";
-  let rhsIsNumber = typeof rhs == "number";
+  let lhsIsNumber = typeof lhs == "number" && !Number.isNaN(lhs);
+  let rhsIsNumber = typeof rhs == "number" && !Number.isNaN(rhs);
 
   if (lhsIsNumber && rhsIsNumber) {
     this.report(expression, lhs, rhs, message, operator);

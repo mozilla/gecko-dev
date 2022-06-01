@@ -18,6 +18,7 @@
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/EventStateManager.h"
+#include "mozilla/FormAutofillNative.h"
 #include "mozilla/IntentionalCrash.h"
 #include "mozilla/PerformanceMetricsCollector.h"
 #include "mozilla/PerfStats.h"
@@ -44,6 +45,9 @@
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
+#include "mozilla/ipc/UtilityProcessSandboxing.h"
+#include "mozilla/ipc/UtilityProcessManager.h"
+#include "mozilla/ipc/UtilityProcessHost.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "IOActivityMonitor.h"
 #include "nsThreadUtils.h"
@@ -51,6 +55,7 @@
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "nsIException.h"
+#include "VsyncSource.h"
 
 namespace mozilla::dom {
 
@@ -520,26 +525,21 @@ void ChromeUtils::IdleDispatch(const GlobalObject& aGlobal,
 
 /* static */
 void ChromeUtils::Import(const GlobalObject& aGlobal,
-                         const nsAString& aResourceURI,
+                         const nsACString& aResourceURI,
                          const Optional<JS::Handle<JSObject*>>& aTargetObj,
                          JS::MutableHandle<JSObject*> aRetval,
                          ErrorResult& aRv) {
   RefPtr<mozJSComponentLoader> moduleloader = mozJSComponentLoader::Get();
   MOZ_ASSERT(moduleloader);
 
-  NS_ConvertUTF16toUTF8 registryLocation(aResourceURI);
-
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_NONSENSITIVE("ChromeUtils::Import",
-                                                     OTHER, registryLocation);
+                                                     OTHER, aResourceURI);
 
   JSContext* cx = aGlobal.Context();
 
-  bool ignoreExports = aTargetObj.WasPassed() && !aTargetObj.Value();
-
   JS::RootedObject global(cx);
   JS::RootedObject exports(cx);
-  nsresult rv = moduleloader->Import(cx, registryLocation, &global, &exports,
-                                     ignoreExports);
+  nsresult rv = moduleloader->Import(cx, aResourceURI, &global, &exports);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return;
@@ -549,20 +549,6 @@ void ChromeUtils::Import(const GlobalObject& aGlobal,
   // exception on the JSContext.  Check for that case.
   if (JS_IsExceptionPending(cx)) {
     aRv.NoteJSContextException(cx);
-    return;
-  }
-
-  if (ignoreExports) {
-    // Since we're ignoring exported symbols, return the module global rather
-    // than an exports object.
-    //
-    // Note: This behavior is deprecated, since it is incompatible with ES6
-    // module semantics, which don't include any such global object.
-    if (!JS_WrapObject(cx, &global)) {
-      aRv.Throw(NS_ERROR_FAILURE);
-      return;
-    }
-    aRetval.set(global);
     return;
   }
 
@@ -870,7 +856,7 @@ static WebIDLProcType ProcTypeToWebIDL(mozilla::ProcType aType) {
     PROCTYPE_TO_WEBIDL_CASE(PrivilegedMozilla, Privilegedmozilla);
     PROCTYPE_TO_WEBIDL_CASE(WebCOOPCOEP, WithCoopCoep);
     PROCTYPE_TO_WEBIDL_CASE(WebServiceWorker, WebServiceWorker);
-    PROCTYPE_TO_WEBIDL_CASE(WebLargeAllocation, WebLargeAllocation);
+
 #define GECKO_PROCESS_TYPE(enum_value, enum_name, string_name, proc_typename, \
                            process_bin_type, procinfo_typename,               \
                            webidl_typename, allcaps_name)                     \
@@ -885,6 +871,7 @@ static WebIDLProcType ProcTypeToWebIDL(mozilla::ProcType aType) {
 #  undef SKIP_PROCESS_TYPE_FORKSERVER
 #endif  // MOZ_ENABLE_FORKSERVER
 #undef GECKO_PROCESS_TYPE
+
     PROCTYPE_TO_WEBIDL_CASE(Preallocated, Preallocated);
     PROCTYPE_TO_WEBIDL_CASE(Unknown, Unknown);
   }
@@ -894,6 +881,30 @@ static WebIDLProcType ProcTypeToWebIDL(mozilla::ProcType aType) {
 }
 
 #undef PROCTYPE_TO_WEBIDL_CASE
+
+#define UTILITYACTORNAME_TO_WEBIDL_CASE(_utilityActorName, _webidl) \
+  case mozilla::UtilityActorName::_utilityActorName:                \
+    return WebIDLUtilityActorName::_webidl
+
+static WebIDLUtilityActorName UtilityActorNameToWebIDL(
+    mozilla::UtilityActorName aType) {
+  // Max is the value of the last enum, not the length, so add one.
+  static_assert(WebIDLUtilityActorNameValues::Count ==
+                    static_cast<size_t>(UtilityActorName::AudioDecoder) + 1,
+                "In order for this static cast to be okay, "
+                "UtilityActorName must match UtilityActorName exactly");
+
+  // These must match the similar ones in ProcInfo.h and ChromeUtils.webidl
+  switch (aType) {
+    UTILITYACTORNAME_TO_WEBIDL_CASE(Unknown, Unknown);
+    UTILITYACTORNAME_TO_WEBIDL_CASE(AudioDecoder, AudioDecoder);
+  }
+
+  MOZ_ASSERT(false, "Unhandled case in WebIDLUtilityActorName");
+  return WebIDLUtilityActorName::Unknown;
+}
+
+#undef UTILITYACTORNAME_TO_WEBIDL_CASE
 
 /* static */
 already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
@@ -936,7 +947,8 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
       /* aPid = */ base::GetCurrentProcId(),
       /* aProcessType = */ ProcType::Browser,
       /* aOrigin = */ ""_ns,
-      /* aWindowInfo = */ nsTArray<WindowInfo>());
+      /* aWindowInfo = */ nsTArray<WindowInfo>(),
+      /* aUtilityInfo = */ nsTArray<UtilityInfo>());
 
   // First handle non-ContentParent processes.
   mozilla::ipc::GeckoChildProcessHost::GetAll(
@@ -955,6 +967,7 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
             // These processes are handled separately.
             return;
           }
+
 #define GECKO_PROCESS_TYPE(enum_value, enum_name, string_name, proc_typename, \
                            process_bin_type, procinfo_typename,               \
                            webidl_typename, allcaps_name)                     \
@@ -977,6 +990,19 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
             break;
         }
 
+        // Attach utility actor information to the process.
+        nsTArray<UtilityInfo> utilityActors;
+        if (aGeckoProcess->GetProcessType() ==
+            GeckoProcessType::GeckoProcessType_Utility) {
+          RefPtr<mozilla::ipc::UtilityProcessManager> upm =
+              mozilla::ipc::UtilityProcessManager::GetSingleton();
+          if (!utilityActors.AppendElements(upm->GetActors(aGeckoProcess),
+                                            fallible)) {
+            NS_WARNING("Error adding actors");
+            return;
+          }
+        }
+
         requests.EmplaceBack(
             /* aPid = */ childPid,
             /* aProcessType = */ type,
@@ -984,6 +1010,7 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
             /* aWindowInfo = */ nsTArray<WindowInfo>(),  // Without a
                                                          // ContentProcess, no
                                                          // DOM windows.
+            /* aUtilityInfo = */ std::move(utilityActors),
             /* aChild = */ 0  // Without a ContentProcess, no ChildId.
 #ifdef XP_MACOSX
             ,
@@ -1036,8 +1063,6 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
       type = mozilla::ProcType::PrivilegedAbout;
     } else if (remoteType == PRIVILEGEDMOZILLA_REMOTE_TYPE) {
       type = mozilla::ProcType::PrivilegedMozilla;
-    } else if (remoteType == LARGE_ALLOCATION_REMOTE_TYPE) {
-      type = mozilla::ProcType::WebLargeAllocation;
     } else if (remoteType == PREALLOC_REMOTE_TYPE) {
       type = mozilla::ProcType::Preallocated;
     } else if (StringBeginsWith(remoteType, DEFAULT_REMOTE_TYPE)) {
@@ -1087,6 +1112,7 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
         /* aProcessType = */ type,
         /* aOrigin = */ origin,
         /* aWindowInfo = */ std::move(windows),
+        /* aUtilityInfo = */ nsTArray<UtilityInfo>(),
         /* aChild = */ contentParent->ChildID()
 #ifdef XP_MACOSX
             ,
@@ -1154,6 +1180,20 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
                   dest->mIsProcessRoot = source.isProcessRoot;
                   dest->mIsInProcess = source.isInProcess;
                 }
+
+                if (sysProcInfo.type == ProcType::Utility) {
+                  for (const auto& source : sysProcInfo.utilityActors) {
+                    auto* dest =
+                        childInfo->mUtilityActors.AppendElement(fallible);
+                    if (!dest) {
+                      domPromise->MaybeReject(NS_ERROR_OUT_OF_MEMORY);
+                      return;
+                    }
+
+                    dest->mActorName =
+                        UtilityActorNameToWebIDL(source.actorName);
+                  }
+                }
               }
             }
 
@@ -1172,11 +1212,7 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
 
 /* static */
 bool ChromeUtils::VsyncEnabled(GlobalObject& aGlobal) {
-  mozilla::gfx::VsyncSource* vsyncSource =
-      gfxPlatform::GetPlatform()->GetHardwareVsync();
-  MOZ_ASSERT(vsyncSource != nullptr);
-
-  return vsyncSource->GetGlobalDisplay().IsVsyncEnabled();
+  return mozilla::gfx::VsyncSource::GetFastestVsyncRate().isSome();
 }
 
 /* static */
@@ -1522,4 +1558,11 @@ already_AddRefed<Promise> ChromeUtils::CollectScrollingData(
   return promise.forget();
 }
 
+/* static */
+void ChromeUtils::GetFormAutofillConfidences(
+    GlobalObject& aGlobal, const Sequence<OwningNonNull<Element>>& aElements,
+    nsTArray<FormAutofillConfidences>& aResults, ErrorResult& aRv) {
+  FormAutofillNative::GetFormAutofillConfidences(aGlobal, aElements, aResults,
+                                                 aRv);
+}
 }  // namespace mozilla::dom

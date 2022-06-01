@@ -13,13 +13,18 @@
 #include <stdint.h>
 
 #include "jit/CalleeToken.h"
+#include "jit/MachineState.h"
 #include "jit/Registers.h"
 #include "js/Id.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
-#include "wasm/WasmTlsData.h"
 
 namespace js {
+
+namespace wasm {
+class Instance;
+}
+
 namespace jit {
 
 enum class FrameType;
@@ -148,21 +153,46 @@ class FrameSizeClass {
 
 struct BaselineBailoutInfo;
 
+enum class ExceptionResumeKind : int32_t {
+  // There is no exception handler in this activation.
+  // Return from the entry frame.
+  EntryFrame,
+
+  // The exception was caught in baseline.
+  // Restore state and jump to the catch block.
+  Catch,
+
+  // A finally block must be executed in baseline.
+  // Stash the exception on the stack and jump to the finally block.
+  Finally,
+
+  // We are forcing an early return with a specific return value.
+  // This is used by the debugger and when closing generators.
+  // Immediately return from the current frame with the given value.
+  ForcedReturnBaseline,
+  ForcedReturnIon,
+
+  // This frame is currently executing in Ion, but we must bail out
+  // to baseline before handling the exception.
+  // Jump to the bailout tail stub.
+  Bailout,
+
+  // The innermost frame was a wasm frame.
+  // Return to the wasm entry frame.
+  Wasm,
+
+  // The exception was caught by a wasm catch handler.
+  // Restore state and jump to it.
+  WasmCatch
+};
+
 // Data needed to recover from an exception.
 struct ResumeFromException {
-  static const uint32_t RESUME_ENTRY_FRAME = 0;
-  static const uint32_t RESUME_CATCH = 1;
-  static const uint32_t RESUME_FINALLY = 2;
-  static const uint32_t RESUME_FORCED_RETURN = 3;
-  static const uint32_t RESUME_BAILOUT = 4;
-  static const uint32_t RESUME_WASM = 5;
-  static const uint32_t RESUME_WASM_CATCH = 6;
-
   uint8_t* framePointer;
   uint8_t* stackPointer;
   uint8_t* target;
-  uint32_t kind;
-  wasm::TlsData* tlsData;
+  ExceptionResumeKind kind;
+  wasm::Instance* instance;
 
   // Value to push when resuming into a |finally| block.
   // Also used by Wasm to send the exception object to the throw stub.
@@ -173,6 +203,26 @@ struct ResumeFromException {
 #if defined(JS_CODEGEN_ARM64)
   uint64_t padding_;
 #endif
+
+  static size_t offsetOfFramePointer() {
+    return offsetof(ResumeFromException, framePointer);
+  }
+  static size_t offsetOfStackPointer() {
+    return offsetof(ResumeFromException, stackPointer);
+  }
+  static size_t offsetOfTarget() {
+    return offsetof(ResumeFromException, target);
+  }
+  static size_t offsetOfKind() { return offsetof(ResumeFromException, kind); }
+  static size_t offsetOfInstance() {
+    return offsetof(ResumeFromException, instance);
+  }
+  static size_t offsetOfException() {
+    return offsetof(ResumeFromException, exception);
+  }
+  static size_t offsetOfBailoutInfo() {
+    return offsetof(ResumeFromException, bailoutInfo);
+  }
 };
 
 #if defined(JS_CODEGEN_ARM64)
@@ -207,11 +257,11 @@ static inline uint32_t MakeFrameDescriptor(uint32_t frameSize, FrameType type,
 // Returns the JSScript associated with the topmost JIT frame.
 JSScript* GetTopJitJSScript(JSContext* cx);
 
-#ifdef JS_CODEGEN_MIPS32
+#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_ARM64)
 uint8_t* alignDoubleSpill(uint8_t* pointer);
 #else
 inline uint8_t* alignDoubleSpill(uint8_t* pointer) {
-  // This is NO-OP on non-MIPS platforms.
+  // This is a no-op on most platforms.
   return pointer;
 }
 #endif
@@ -266,7 +316,6 @@ class JitFrameLayout : public CommonFrameLayout {
     return offsetof(JitFrameLayout, numActualArgs_);
   }
   static size_t offsetOfThis() { return sizeof(JitFrameLayout); }
-  static size_t offsetOfEvalNewTarget() { return sizeof(JitFrameLayout); }
   static size_t offsetOfActualArgs() {
     return offsetOfThis() + sizeof(JS::Value);
   }

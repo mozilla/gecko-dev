@@ -25,9 +25,9 @@ repackage_signing_description_schema = schema.extend(
 )
 
 SIGNING_FORMATS = {
-    "target.installer.exe": ["autograph_authenticode_stub"],
-    "target.stub-installer.exe": ["autograph_authenticode_stub"],
-    "target.installer.msi": ["autograph_authenticode"],
+    "target.installer.exe": ["autograph_authenticode_sha2_stub"],
+    "target.stub-installer.exe": ["autograph_authenticode_sha2_stub"],
+    "target.installer.msi": ["autograph_authenticode_sha2"],
     "target.installer.msix": ["autograph_authenticode_sha2"],
 }
 
@@ -105,7 +105,7 @@ def make_repackage_signing_description(config, jobs):
         scopes = [signing_cert_scope]
 
         upstream_artifacts = []
-        for artifact in sorted(dep_job.release_artifacts):
+        for artifact in sorted(dep_job.attributes.get("release_artifacts")):
             basename = os.path.basename(artifact)
             if basename in SIGNING_FORMATS:
                 upstream_artifacts.append(

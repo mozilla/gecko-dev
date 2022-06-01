@@ -57,7 +57,6 @@ void GPUChild::Init() {
   devicePrefs.oglCompositing() =
       gfxConfig::GetValue(Feature::OPENGL_COMPOSITING);
   devicePrefs.useD2D1() = gfxConfig::GetValue(Feature::DIRECT2D);
-  devicePrefs.webGPU() = gfxConfig::GetValue(Feature::WEBGPU);
   devicePrefs.d3d11HwAngle() = gfxConfig::GetValue(Feature::D3D11_HW_ANGLE);
 
   nsTArray<LayerTreeIdMapping> mappings;
@@ -73,7 +72,8 @@ void GPUChild::Init() {
     features = gfxInfoRaw->GetAllFeatures();
   }
 
-  SendInit(updates, devicePrefs, mappings, features);
+  SendInit(updates, devicePrefs, mappings, features,
+           GPUProcessManager::Get()->AllocateNamespace());
 
   gfxVars::AddReceiver(this);
 
@@ -218,6 +218,12 @@ mozilla::ipc::IPCResult GPUChild::RecvNotifyDeviceReset(
     const GPUDeviceData& aData) {
   gfxPlatform::GetPlatform()->ImportGPUDeviceData(aData);
   mHost->mListener->OnRemoteProcessDeviceReset(mHost);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult GPUChild::RecvNotifyOverlayInfo(
+    const OverlayInfo aInfo) {
+  gfxPlatform::GetPlatform()->SetOverlayInfo(aInfo);
   return IPC_OK();
 }
 

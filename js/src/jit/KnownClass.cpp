@@ -24,6 +24,9 @@ KnownClass jit::GetObjectKnownClass(const MDefinition* def) {
     case MDefinition::Opcode::NewArrayDynamicLength:
     case MDefinition::Opcode::NewArrayObject:
     case MDefinition::Opcode::Rest:
+    case MDefinition::Opcode::ArgumentsSlice:
+    case MDefinition::Opcode::FrameArgumentsSlice:
+    case MDefinition::Opcode::InlineArgumentsSlice:
       return KnownClass::Array;
 
     case MDefinition::Opcode::NewObject:
@@ -32,7 +35,6 @@ KnownClass jit::GetObjectKnownClass(const MDefinition* def) {
       return KnownClass::PlainObject;
 
     case MDefinition::Opcode::Lambda:
-    case MDefinition::Opcode::LambdaArrow:
     case MDefinition::Opcode::FunctionWithProto:
       return KnownClass::Function;
 

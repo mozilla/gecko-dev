@@ -252,4 +252,12 @@ void AppDateTimeFormat::Shutdown() {
   delete sLocale;
 }
 
+/*static*/
+void AppDateTimeFormat::ClearLocaleCache() {
+  MOZ_ASSERT(NS_IsMainThread());
+  DeleteCache();
+  delete sLocale;
+  sLocale = nullptr;
+}
+
 }  // namespace mozilla::intl

@@ -95,7 +95,6 @@
 
 #include <cstring>
 
-#include "BRNameMatchingPolicy.h"
 #include "CertVerifier.h"
 #include "CryptoTask.h"
 #include "ExtendedValidation.h"
@@ -372,10 +371,6 @@ SECStatus DetermineCertOverrideErrors(const nsCOMPtr<nsIX509Cert>& cert,
       PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
     }
-    // Use a lax policy so as to not generate potentially spurious name
-    // mismatch "hints".
-    BRNameMatchingPolicy nameMatchingPolicy(
-        BRNameMatchingPolicy::Mode::DoNotEnforce);
     // CheckCertHostname expects that its input represents a certificate that
     // has already been successfully validated by BuildCertChain. This is
     // obviously not the case, however, because we're in the error path of
@@ -383,7 +378,7 @@ SECStatus DetermineCertOverrideErrors(const nsCOMPtr<nsIX509Cert>& cert,
     // would be nice to remove this optimistic additional error checking and
     // simply punt to the front-end, which can more easily (and safely) perform
     // extra checks to give the user hints as to why verification failed.
-    result = CheckCertHostname(certInput, hostnameInput, nameMatchingPolicy);
+    result = CheckCertHostname(certInput, hostnameInput);
     // Treat malformed name information as a domain mismatch.
     if (result == Result::ERROR_BAD_DER ||
         result == Result::ERROR_BAD_CERT_DOMAIN) {
@@ -408,8 +403,7 @@ SECStatus DetermineCertOverrideErrors(const nsCOMPtr<nsIX509Cert>& cert,
 // pinning information.
 static nsresult OverrideAllowedForHost(
     uint64_t aPtrForLog, const nsACString& aHostname,
-    const OriginAttributes& aOriginAttributes, uint32_t aProviderFlags,
-    /*out*/ bool& aOverrideAllowed) {
+    const OriginAttributes& aOriginAttributes, /*out*/ bool& aOverrideAllowed) {
   aOverrideAllowed = false;
 
   // If this is an IP address, overrides are allowed, because an IP address is
@@ -444,8 +438,8 @@ static nsresult OverrideAllowedForHost(
     return rv;
   }
 
-  rv = sss->IsSecureURI(uri, aProviderFlags, aOriginAttributes, nullptr,
-                        nullptr, &strictTransportSecurityEnabled);
+  rv = sss->IsSecureURI(uri, aOriginAttributes, nullptr, nullptr,
+                        &strictTransportSecurityEnabled);
   if (NS_FAILED(rv)) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("[0x%" PRIx64 "] checking for HSTS failed", aPtrForLog));
@@ -735,8 +729,8 @@ Result AuthCertificate(
 PRErrorCode AuthCertificateParseResults(
     uint64_t aPtrForLog, const nsACString& aHostName, int32_t aPort,
     const OriginAttributes& aOriginAttributes,
-    const nsCOMPtr<nsIX509Cert>& aCert, uint32_t aProviderFlags,
-    mozilla::pkix::Time aTime, PRErrorCode aDefaultErrorCodeToReport,
+    const nsCOMPtr<nsIX509Cert>& aCert, mozilla::pkix::Time aTime,
+    PRErrorCode aDefaultErrorCodeToReport,
     /* out */ uint32_t& aCollectedErrors) {
   if (aDefaultErrorCodeToReport == 0) {
     MOZ_ASSERT_UNREACHABLE(
@@ -771,7 +765,7 @@ PRErrorCode AuthCertificateParseResults(
 
   bool overrideAllowed = false;
   if (NS_FAILED(OverrideAllowedForHost(aPtrForLog, aHostName, aOriginAttributes,
-                                       aProviderFlags, overrideAllowed))) {
+                                       overrideAllowed))) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("[0x%" PRIx64 "] AuthCertificateParseResults - "
              "OverrideAllowedForHost failed\n",
@@ -949,8 +943,8 @@ SSLServerCertVerificationJob::Run() {
   uint32_t collectedErrors = 0;
   nsCOMPtr<nsIX509Cert> cert(new nsNSSCertificate(std::move(certBytes)));
   PRErrorCode finalError = AuthCertificateParseResults(
-      mAddrForLogging, mHostName, mPort, mOriginAttributes, cert,
-      mProviderFlags, mTime, error, collectedErrors);
+      mAddrForLogging, mHostName, mPort, mOriginAttributes, cert, mTime, error,
+      collectedErrors);
 
   // NB: finalError may be 0 here, in which the connection will continue.
   mResultTask->Dispatch(

@@ -18,8 +18,7 @@
 class nsGlobalWindowInner;
 class nsDocShell;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class BrowsingContext;
 class FeaturePolicy;
@@ -28,7 +27,6 @@ class WindowGlobalParent;
 class JSWindowActorChild;
 class JSActorMessageMeta;
 class BrowserChild;
-class SessionStoreDataCollector;
 
 /**
  * Actor for a single nsGlobalWindowInner. This actor is used to communicate
@@ -133,16 +131,13 @@ class WindowGlobalChild final : public WindowGlobalActor,
     return mContainerFeaturePolicy;
   }
 
-  void SetSessionStoreDataCollector(SessionStoreDataCollector* aCollector);
-  SessionStoreDataCollector* GetSessionStoreDataCollector() const;
-
   void UnblockBFCacheFor(BFCacheStatus aStatus);
   void BlockBFCacheFor(BFCacheStatus aStatus);
 
  protected:
   const nsACString& GetRemoteType() override;
 
-  already_AddRefed<JSActor> InitJSActor(JS::HandleObject aMaybeActor,
+  already_AddRefed<JSActor> InitJSActor(JS::Handle<JSObject*> aMaybeActor,
                                         const nsACString& aName,
                                         ErrorResult& aRv) override;
   mozilla::ipc::IProtocol* AsNativeActor() override { return this; }
@@ -205,11 +200,9 @@ class WindowGlobalChild final : public WindowGlobalActor,
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;
   RefPtr<dom::FeaturePolicy> mContainerFeaturePolicy;
   nsCOMPtr<nsIURI> mDocumentURI;
-  RefPtr<SessionStoreDataCollector> mSessionStoreDataCollector;
   int64_t mBeforeUnloadListeners = 0;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // !defined(mozilla_dom_WindowGlobalChild_h)

@@ -27,6 +27,10 @@
 #  include "mozilla/Sandbox.h"
 #endif
 
+#if defined(XP_WIN)
+#  include "mozilla/WinDllServices.h"
+#endif
+
 using namespace mozilla::ipc;
 
 namespace mozilla {
@@ -64,9 +68,9 @@ bool SocketProcessHost::Launch() {
   std::vector<std::string> extraArgs;
   ProcessChild::AddPlatformBuildID(extraArgs);
 
-  SharedPreferenceSerializer prefSerializer(
-      mozilla::dom::ContentParent::ShouldSyncPreference);
-  if (!prefSerializer.SerializeToSharedMemory()) {
+  SharedPreferenceSerializer prefSerializer;
+  if (!prefSerializer.SerializeToSharedMemory(GeckoProcessType_VR,
+                                              /* remoteType */ ""_ns)) {
     return false;
   }
   prefSerializer.AddSharedPrefCmdLineArgs(*this, extraArgs);
@@ -92,7 +96,7 @@ static void HandleErrorAfterDestroy(
       }));
 }
 
-void SocketProcessHost::OnChannelConnected(int32_t peer_pid) {
+void SocketProcessHost::OnChannelConnected(base::ProcessId peer_pid) {
   MOZ_ASSERT(!NS_IsMainThread());
 
   GeckoChildProcessHost::OnChannelConnected(peer_pid);
@@ -175,6 +179,12 @@ void SocketProcessHost::InitAfterConnect(bool aSucceeded) {
   MOZ_ASSERT(NS_SUCCEEDED(result), "Failed getting connectivity?");
 
   attributes.mInitSandbox() = false;
+
+#if defined(XP_WIN)
+  RefPtr<DllServices> dllSvc(DllServices::Get());
+  attributes.mIsReadyForBackgroundProcessing() =
+      dllSvc->IsReadyForBackgroundProcessing();
+#endif
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   if (GetEffectiveSocketProcessSandboxLevel() > 0) {

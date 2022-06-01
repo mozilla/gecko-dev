@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var EXPORTED_SYMBOLS = ["PrefsEngine", "PrefRec", "PREFS_GUID"];
+var EXPORTED_SYMBOLS = ["PrefsEngine", "PrefRec", "getPrefsGUIDForTest"];
 
 const PREF_SYNC_PREFS_PREFIX = "services.sync.prefs.sync.";
 
@@ -62,7 +62,7 @@ XPCOMUtils.defineLazyGetter(this, "PREFS_DOC_URL", () =>
 );
 
 // Check for a local control pref or PREF_SYNC_PREFS_ARBITRARY
-this.isAllowedPrefName = function(prefName) {
+function isAllowedPrefName(prefName) {
   if (prefName == PREF_SYNC_PREFS_ARBITRARY) {
     return false; // never allow this.
   }
@@ -80,7 +80,7 @@ this.isAllowedPrefName = function(prefName) {
   } catch (_) {
     return false;
   }
-};
+}
 
 function PrefRec(collection, id) {
   CryptoWrapper.call(this, collection, id);
@@ -434,3 +434,7 @@ PrefTracker.prototype = {
     }
   },
 };
+
+function getPrefsGUIDForTest() {
+  return PREFS_GUID;
+}

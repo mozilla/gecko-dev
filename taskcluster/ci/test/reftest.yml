@@ -84,25 +84,25 @@ crashtest:
                     default: []
     max-run-time: 3600
     tier:
-        by-variant:
-            fission: default
-            default:
-                by-test-platform:
-                    windows10-aarch64-qr.*: 2
-                    android-hw-.*-qr/.*: 2
-                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
-                    default: default
+        by-test-platform:
+            windows10-aarch64-qr.*: 2
+            android-hw-.*-qr/.*: 2
+            android-em-7.0-x86_64-qr/debug-isolated-process: 3
+            default: default
 
 crashtest-qr:
     description: "Crashtest Webrender run"
     schedules-component: crashtest
     treeherder-symbol: R(C)
     chunks: 1
-    variants: ['fission']
+    variants:
+        - fission
+        - no-fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             fission: []
-            default: built-projects
+            no-fission: built-projects
     max-run-time: 1200
     tier: 2
     virtualization: virtual
@@ -224,29 +224,28 @@ reftest:
                 windows10-64-2004.*/opt: false
                 default: true
     tier:
-        by-variant:
-            fission: default
-            default:
-                by-test-platform:
-                    windows10-aarch64-qr.*: 2
-                    android-hw-.*-qr/.*: 2
-                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
-                    default: default
+        by-test-platform:
+            windows10-aarch64-qr.*: 2
+            android-hw-.*-qr/.*: 2
+            android-em-7.0-x86_64-qr/debug-isolated-process: 3
+            default: default
 
 reftest-qr:
     description: "Reftest webrender run"
     treeherder-symbol: R(R)
     chunks: 2
     variants:
-        - webrender-sw
+        - no-fission
+        - webrender-sw+no-fission
+    run-without-variant: false
     run-on-projects:
         by-variant:
             fission: []
-            webrender-sw:
+            webrender-sw+no-fission:
                 by-test-platform:
                     android-hw-p2-8-0-android-aarch64-qr/debug: built-projects
                     default: []
-            default: built-projects
+            no-fission: built-projects
     max-run-time: 2400
     mozharness:
         chunked: true

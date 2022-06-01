@@ -790,6 +790,13 @@ interface TestInterface {
   Promise<any> receivePromise();
   Promise<any> receiveAddrefedPromise();
 
+  // ObservableArray types
+  attribute ObservableArray<boolean> booleanObservableArray;
+  attribute ObservableArray<object> objectObservableArray;
+  attribute ObservableArray<any> anyObservableArray;
+  attribute ObservableArray<TestInterface> interfaceObservableArray;
+  attribute ObservableArray<long?> nullableObservableArray;
+
   // binaryNames tests
   [BinaryName="methodRenamedTo"]
   void methodRenamedFrom();
@@ -962,6 +969,10 @@ interface TestInterface {
   void prefable19();
   [Pref="dom.webidl.test1", Func="TestFuncControlledMember", ChromeOnly]
   void prefable20();
+  [Trial="TestTrial"]
+  void prefable21();
+  [Pref="dom.webidl.test1", Trial="TestTrial"]
+  void prefable22();
 
   // Conditionally exposed methods/attributes involving [SecureContext]
   [SecureContext]
@@ -980,6 +991,10 @@ interface TestInterface {
   void conditionalOnSecureContext7();
   [SecureContext, Pref="dom.webidl.test1", Func="TestFuncControlledMember"]
   void conditionalOnSecureContext8();
+  [SecureContext, Trial="TestTrial"]
+  readonly attribute boolean conditionalOnSecureContext9;
+  [SecureContext, Pref="dom.webidl.test1", Func="TestFuncControlledMember", Trial="TestTrial"]
+  void conditionalOnSecureContext10();
 
   // Miscellania
   [LegacyLenientThis] attribute long attrWithLenientThis;

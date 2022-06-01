@@ -46,6 +46,7 @@
 #include "VideoConduit.h"
 #include "api/video/video_frame_type.h"
 #include "modules/video_coding/include/video_codec_interface.h"
+#include "common_video/h264/h264_bitstream_parser.h"
 
 #include "gmp-video-host.h"
 #include "GMPVideoDecoderProxy.h"
@@ -144,6 +145,8 @@ class RefCountedWebrtcVideoEncoder {
 
   virtual MediaEventSource<uint64_t>* ReleasePluginEvent() = 0;
 
+  virtual WebrtcVideoEncoder::EncoderInfo GetEncoderInfo() const = 0;
+
  protected:
   virtual ~RefCountedWebrtcVideoEncoder() = default;
 };
@@ -169,6 +172,8 @@ class WebrtcGmpVideoEncoder : public GMPVideoEncoderCallbackProxy,
 
   int32_t SetRates(
       const webrtc::VideoEncoder::RateControlParameters& aParameters) override;
+
+  WebrtcVideoEncoder::EncoderInfo GetEncoderInfo() const override;
 
   MediaEventSource<uint64_t>* InitPluginEvent() override {
     return &mInitPluginEvent;
@@ -278,8 +283,9 @@ class WebrtcGmpVideoEncoder : public GMPVideoEncoderCallbackProxy,
   GMPVideoCodec mCodecParams;
   uint32_t mMaxPayloadSize;
   webrtc::CodecSpecificInfo mCodecSpecificInfo;
+  webrtc::H264BitstreamParser mH264BitstreamParser;
   // Protects mCallback
-  Mutex mCallbackMutex;
+  Mutex mCallbackMutex MOZ_UNANNOTATED;
   webrtc::EncodedImageCallback* mCallback;
   Maybe<uint64_t> mCachedPluginId;
   const std::string mPCHandle;
@@ -337,6 +343,10 @@ class WebrtcVideoEncoderProxy : public WebrtcVideoEncoder {
 
   void SetRates(const RateControlParameters& aParameters) override {
     mEncoderImpl->SetRates(aParameters);
+  }
+
+  EncoderInfo GetEncoderInfo() const override {
+    return mEncoderImpl->GetEncoderInfo();
   }
 
  private:
@@ -430,7 +440,7 @@ class WebrtcGmpVideoDecoder : public GMPVideoDecoderCallbackProxy {
   nsTArray<UniquePtr<GMPDecodeData>> mQueuedFrames;
   GMPVideoHost* mHost;
   // Protects mCallback
-  Mutex mCallbackMutex;
+  Mutex mCallbackMutex MOZ_UNANNOTATED;
   webrtc::DecodedImageCallback* mCallback;
   Maybe<uint64_t> mCachedPluginId;
   Atomic<GMPErr, ReleaseAcquire> mDecoderStatus;

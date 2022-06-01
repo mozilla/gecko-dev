@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import errno
 import json
 import os
@@ -86,12 +88,12 @@ class ProxyLoggingContext:
         self.logging_thread.join(1)
 
 
-class TestEnvironment(object):
+class TestEnvironment:
     """Context manager that owns the test environment i.e. the http and
     websockets servers"""
     def __init__(self, test_paths, testharness_timeout_multipler,
                  pause_after_test, debug_test, debug_info, options, ssl_config, env_extras,
-                 enable_webtransport=False, mojojs_path=None):
+                 enable_webtransport=False, mojojs_path=None, inject_script=None):
 
         self.test_paths = test_paths
         self.server = None
@@ -114,6 +116,7 @@ class TestEnvironment(object):
         self.ssl_config = ssl_config
         self.enable_webtransport = enable_webtransport
         self.mojojs_path = mojojs_path
+        self.inject_script = inject_script
 
     def __enter__(self):
         server_log_handler = self.server_logging_ctx.__enter__()
@@ -212,7 +215,7 @@ class TestEnvironment(object):
         return config
 
     def get_routes(self):
-        route_builder = serve.RoutesBuilder()
+        route_builder = serve.RoutesBuilder(inject_script=self.inject_script)
 
         for path, format_args, content_type, route in [
                 ("testharness_runner.html", {}, "text/html", "/testharness_runner.html"),
@@ -268,8 +271,8 @@ class TestEnvironment(object):
             if not pending:
                 return
             time.sleep(each_sleep_secs)
-        raise EnvironmentError("Servers failed to start: %s" %
-                               ", ".join("%s:%s" % item for item in failed))
+        raise OSError("Servers failed to start: %s" %
+                      ", ".join("%s:%s" % item for item in failed))
 
     def test_servers(self):
         failed = []
@@ -284,7 +287,7 @@ class TestEnvironment(object):
             for scheme, servers in self.servers.items():
                 for port, server in servers:
                     if scheme == "webtransport-h3":
-                        if not webtranport_h3_server_is_running(host, port, timeout=1.0):
+                        if not webtranport_h3_server_is_running(host, port, timeout=5.0):
                             # TODO(bashi): Consider supporting retry.
                             failed.append((host, port))
                         continue
@@ -313,7 +316,7 @@ def wait_for_service(logger, host, port, timeout=60):
             so.connect(addr)
         except socket.timeout:
             pass
-        except socket.error as e:
+        except OSError as e:
             if e.errno != errno.ECONNREFUSED:
                 raise
         else:
@@ -322,4 +325,4 @@ def wait_for_service(logger, host, port, timeout=60):
         finally:
             so.close()
         time.sleep(0.5)
-    raise socket.error("Service is unavailable: %s:%i" % addr)
+    raise OSError("Service is unavailable: %s:%i" % addr)

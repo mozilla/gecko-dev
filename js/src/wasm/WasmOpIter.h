@@ -39,11 +39,9 @@ enum class LabelKind : uint8_t {
   Loop,
   Then,
   Else,
-#ifdef ENABLE_WASM_EXCEPTIONS
   Try,
   Catch,
   CatchAll,
-#endif
 };
 
 // The type of values on the operand stack during validation.  This is either a
@@ -201,14 +199,12 @@ enum class OpKind {
   VectorShift,
   VectorShuffle,
 #  endif
-#  ifdef ENABLE_WASM_EXCEPTIONS
   Catch,
   CatchAll,
   Delegate,
   Throw,
   Rethrow,
   Try,
-#  endif
   Intrinsic,
 };
 
@@ -268,7 +264,6 @@ class ControlStackEntry {
     polymorphicBase_ = false;
   }
 
-#ifdef ENABLE_WASM_EXCEPTIONS
   void switchToCatch() {
     MOZ_ASSERT(kind() == LabelKind::Try);
     kind_ = LabelKind::Catch;
@@ -280,7 +275,6 @@ class ControlStackEntry {
     kind_ = LabelKind::CatchAll;
     polymorphicBase_ = false;
   }
-#endif
 };
 
 template <typename Value>
@@ -511,7 +505,6 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   [[nodiscard]] bool readBrTable(Uint32Vector* depths, uint32_t* defaultDepth,
                                  ResultType* defaultBranchType,
                                  ValueVector* branchValues, Value* index);
-#ifdef ENABLE_WASM_EXCEPTIONS
   [[nodiscard]] bool readTry(ResultType* type);
   [[nodiscard]] bool readCatch(LabelKind* kind, uint32_t* tagIndex,
                                ResultType* paramType, ResultType* resultType,
@@ -525,7 +518,6 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   void popDelegate();
   [[nodiscard]] bool readThrow(uint32_t* tagIndex, ValueVector* argValues);
   [[nodiscard]] bool readRethrow(uint32_t* relativeDepth);
-#endif
   [[nodiscard]] bool readUnreachable();
   [[nodiscard]] bool readDrop();
   [[nodiscard]] bool readUnary(ValType operandType, Value* input);
@@ -662,7 +654,7 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                    uint32_t* laneIndex, Value* input);
 #endif
 
-  [[nodiscard]] bool readIntrinsic(const Intrinsic& intrinsic,
+  [[nodiscard]] bool readIntrinsic(const Intrinsic** intrinsic,
                                    ValueVector* params);
 
   // At a location where readOp is allowed, peek at the next opcode
@@ -1553,7 +1545,6 @@ inline bool OpIter<Policy>::readBrTable(Uint32Vector* depths,
 
 #undef UNKNOWN_ARITY
 
-#ifdef ENABLE_WASM_EXCEPTIONS
 template <typename Policy>
 inline bool OpIter<Policy>::readTry(ResultType* paramType) {
   MOZ_ASSERT(Classify(op_) == OpKind::Try);
@@ -1600,7 +1591,7 @@ inline bool OpIter<Policy>::readCatch(LabelKind* kind, uint32_t* tagIndex,
     block.switchToCatch();
   }
 
-  return push(env_.tags[*tagIndex].type.resultType());
+  return push(env_.tags[*tagIndex].type->resultType());
 }
 
 template <typename Policy>
@@ -1674,7 +1665,7 @@ inline bool OpIter<Policy>::readThrow(uint32_t* tagIndex,
     return fail("tag index out of range");
   }
 
-  if (!popWithType(env_.tags[*tagIndex].type.resultType(), argValues)) {
+  if (!popWithType(env_.tags[*tagIndex].type->resultType(), argValues)) {
     return false;
   }
 
@@ -1701,7 +1692,6 @@ inline bool OpIter<Policy>::readRethrow(uint32_t* relativeDepth) {
   afterUnconditionalBranch();
   return true;
 }
-#endif
 
 template <typename Policy>
 inline bool OpIter<Policy>::readUnreachable() {
@@ -3471,13 +3461,25 @@ inline bool OpIter<Policy>::readStoreLane(uint32_t byteSize,
 #endif  // ENABLE_WASM_SIMD
 
 template <typename Policy>
-inline bool OpIter<Policy>::readIntrinsic(const Intrinsic& intrinsic,
+inline bool OpIter<Policy>::readIntrinsic(const Intrinsic** intrinsic,
                                           ValueVector* params) {
   MOZ_ASSERT(Classify(op_) == OpKind::Intrinsic);
+
+  uint32_t id;
+  if (!d_.readVarU32(&id)) {
+    return false;
+  }
+
+  if (id >= uint32_t(IntrinsicId::Limit)) {
+    return fail("intrinsic index out of range");
+  }
+
+  *intrinsic = &Intrinsic::getFromId(IntrinsicId(id));
+
   if (!env_.usesMemory()) {
     return fail("can't touch memory without memory");
   }
-  return popWithTypes(intrinsic.params, params);
+  return popWithTypes((*intrinsic)->params, params);
 }
 
 }  // namespace wasm

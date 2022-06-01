@@ -21,7 +21,6 @@
 #include "nsXULAppAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/dom/MediaStreamBinding.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
@@ -218,7 +217,6 @@ class MediaManager final : public nsIMediaManagerService,
   NS_DECL_NSIMEDIAMANAGERSERVICE
 
   media::Parent<media::NonE10s>* GetNonE10sParent();
-  MediaEngine* GetBackend();
 
   // If the window has not been destroyed, then return the
   // GetUserMediaWindowListener for this window.
@@ -302,7 +300,6 @@ class MediaManager final : public nsIMediaManagerService,
 
  private:
   static nsresult GenerateUUID(nsAString& aResult);
-  static nsresult AnonymizeId(nsAString& aId, const nsACString& aOriginKey);
 
  public:
   /**
@@ -366,6 +363,9 @@ class MediaManager final : public nsIMediaManagerService,
   void NotifyAllowed(const nsString& aCallID,
                      const LocalMediaDeviceSet& aDevices);
 
+  // Media thread only
+  MediaEngine* GetBackend();
+
   MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf);
 
   // ONLY access from MainThread so we don't need to lock
@@ -390,8 +390,10 @@ class MediaManager final : public nsIMediaManagerService,
   // ONLY accessed from MediaManagerThread
   RefPtr<MediaEngine> mBackend;
 
+  // Accessed only on main thread and mMediaThread.
+  // Set before mMediaThread is created, and cleared on main thread after last
+  // mMediaThread task is run.
   static StaticRefPtr<MediaManager> sSingleton;
-  static StaticMutex sSingletonMutex;
 
   // Connect/Disconnect on media thread only
   MediaEventListener mDeviceListChangeListener;

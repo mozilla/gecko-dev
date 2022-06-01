@@ -77,22 +77,16 @@ enum class AsmJSOption : uint8_t {
   _(OnDemandOnly)                                                              \
                                                                                \
   /*                                                                           \
-   * Delazifiy functions in a depth first traversal of the functions. (not     \
-   * implemented yet)                                                          \
+   * Compare the stencil produced by concurrent depth first delazification and \
+   * on-demand delazification. Any differences would crash SpiderMonkey with   \
+   * an assertion.                                                             \
+   */                                                                          \
+  _(CheckConcurrentWithOnDemand)                                               \
+                                                                               \
+  /*                                                                           \
+   * Delazifiy functions in a depth first traversal of the functions.          \
    */                                                                          \
   _(ConcurrentDepthFirst)                                                      \
-                                                                               \
-  /*                                                                           \
-   * Delazify functions in a breath first traversal of the code. (not          \
-   * implemented yet)                                                          \
-   */                                                                          \
-  _(ConcurrentBreathFirst)                                                     \
-                                                                               \
-  /*                                                                           \
-   * Delazify functions based on the frequency of names across all scripts     \
-   * pending for delazifications. (not implemented yet)                        \
-   */                                                                          \
-  _(ConcurrentMostFrequentNameFirst)                                           \
                                                                                \
   /*                                                                           \
    * Parse everything eagerly, from the first parse.                           \
@@ -185,10 +179,10 @@ class JS_PUBLIC_API TransitiveCompileOptions {
   bool allowHTMLComments = true;
   bool nonSyntacticScope = false;
 
-  bool privateClassFields = false;
-  bool privateClassMethods = false;
+  // Top-level await is enabled by default but is not supported for chrome
+  // modules loaded with ChromeUtils.importModule.
   bool topLevelAwait = true;
-  bool classStaticBlocks = false;
+
   bool useFdlibmForSinCosTan = false;
 
   bool importAssertions = false;
@@ -222,6 +216,16 @@ class JS_PUBLIC_API TransitiveCompileOptions {
   // main thread allocation.
   bool allocateInstantiationStorage = false;
 
+  // De-optimize ES module's top-level `var`s, in order to define all of them
+  // on the ModuleEnvironmentObject, instead of local slot.
+  //
+  // This is used for providing all global variables in Cu.import return value
+  // (see bug 1766761 for more details), and this is temporary solution until
+  // ESM-ification finishes.
+  //
+  // WARNING: This option will eventually be removed.
+  bool deoptimizeModuleGlobalVars = false;
+
   /**
    * |introductionType| is a statically allocated C string: one of "eval",
    * "Function", or "GeneratorFunction".
@@ -242,15 +246,41 @@ class JS_PUBLIC_API TransitiveCompileOptions {
   // rooting, or other hand-holding) to their values in |rhs|.
   void copyPODTransitiveOptions(const TransitiveCompileOptions& rhs);
 
+  bool isEagerDelazificationEqualTo(DelazificationOption val) const {
+    return eagerDelazificationStrategy() == val;
+  }
+
+  template <DelazificationOption... Values>
+  bool eagerDelazificationIsOneOf() const {
+    return (isEagerDelazificationEqualTo(Values) || ...);
+  }
+
  public:
   // Read-only accessors for non-POD options. The proper way to set these
   // depends on the derived type.
   bool mutedErrors() const { return mutedErrors_; }
   bool forceFullParse() const {
-    return eagerDelazificationStrategy_ ==
-           DelazificationOption::ParseEverythingEagerly;
+    return eagerDelazificationIsOneOf<
+      DelazificationOption::ParseEverythingEagerly>();
   }
   bool forceStrictMode() const { return forceStrictMode_; }
+  bool consumeDelazificationCache() const {
+    return eagerDelazificationIsOneOf<
+      DelazificationOption::ConcurrentDepthFirst>();
+  }
+  bool populateDelazificationCache() const {
+    return eagerDelazificationIsOneOf<
+      DelazificationOption::CheckConcurrentWithOnDemand,
+      DelazificationOption::ConcurrentDepthFirst>();
+  }
+  bool waitForDelazificationCache() const {
+    return eagerDelazificationIsOneOf<
+      DelazificationOption::CheckConcurrentWithOnDemand>();
+  }
+  bool checkDelazificationCache() const {
+    return eagerDelazificationIsOneOf<
+      DelazificationOption::CheckConcurrentWithOnDemand>();
+  }
   DelazificationOption eagerDelazificationStrategy() const {
     return eagerDelazificationStrategy_;
   }
@@ -261,6 +291,43 @@ class JS_PUBLIC_API TransitiveCompileOptions {
 
   TransitiveCompileOptions(const TransitiveCompileOptions&) = delete;
   TransitiveCompileOptions& operator=(const TransitiveCompileOptions&) = delete;
+
+#if defined(DEBUG) || defined(JS_JITSPEW)
+  template <typename Printer>
+  void dumpWith(Printer& print) const {
+#  define PrintFields_(Name) print(#  Name, Name)
+    PrintFields_(filename_);
+    PrintFields_(introducerFilename_);
+    PrintFields_(sourceMapURL_);
+    PrintFields_(mutedErrors_);
+    PrintFields_(forceStrictMode_);
+    PrintFields_(sourcePragmas_);
+    PrintFields_(skipFilenameValidation_);
+    PrintFields_(hideScriptFromDebugger_);
+    PrintFields_(deferDebugMetadata_);
+    PrintFields_(eagerDelazificationStrategy_);
+    PrintFields_(selfHostingMode);
+    PrintFields_(asmJSOption);
+    PrintFields_(throwOnAsmJSValidationFailureOption);
+    PrintFields_(forceAsync);
+    PrintFields_(discardSource);
+    PrintFields_(sourceIsLazy);
+    PrintFields_(allowHTMLComments);
+    PrintFields_(nonSyntacticScope);
+    PrintFields_(topLevelAwait);
+    PrintFields_(useFdlibmForSinCosTan);
+    PrintFields_(importAssertions);
+    PrintFields_(borrowBuffer);
+    PrintFields_(usePinnedBytecode);
+    PrintFields_(allocateInstantiationStorage);
+    PrintFields_(deoptimizeModuleGlobalVars);
+    PrintFields_(introductionType);
+    PrintFields_(introductionLineno);
+    PrintFields_(introductionOffset);
+    PrintFields_(hasIntroductionInfo);
+#  undef PrintFields_
+  }
+#endif  // defined(DEBUG) || defined(JS_JITSPEW)
 };
 
 /**
@@ -301,6 +368,21 @@ class JS_PUBLIC_API ReadOnlyCompileOptions : public TransitiveCompileOptions {
 
   ReadOnlyCompileOptions(const ReadOnlyCompileOptions&) = delete;
   ReadOnlyCompileOptions& operator=(const ReadOnlyCompileOptions&) = delete;
+
+ public:
+#if defined(DEBUG) || defined(JS_JITSPEW)
+  template <typename Printer>
+  void dumpWith(Printer& print) const {
+    this->TransitiveCompileOptions::dumpWith(print);
+#  define PrintFields_(Name) print(#  Name, Name)
+    PrintFields_(lineno);
+    PrintFields_(column);
+    PrintFields_(scriptSourceOffset);
+    PrintFields_(isRunOnce);
+    PrintFields_(noScriptRval);
+#  undef PrintFields_
+  }
+#endif  // defined(DEBUG) || defined(JS_JITSPEW)
 };
 
 /**

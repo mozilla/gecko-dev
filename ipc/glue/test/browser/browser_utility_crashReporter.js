@@ -3,25 +3,9 @@
 
 "use strict";
 
-var utilityPid = undefined;
-const utilityProcessTest = Cc[
-  "@mozilla.org/utility-process-test;1"
-].createInstance(Ci.nsIUtilityProcessTest);
-
-add_task(async () => {
-  await utilityProcessTest
-    .startProcess()
-    .then(async pid => {
-      utilityPid = pid;
-      ok(true, "Could start Utility process: " + pid);
-    })
-    .catch(async () => {
-      ok(false, "Cannot start Utility process?");
-    });
-});
-
 add_task(async () => {
   SimpleTest.expectChildProcessCrash();
+  const utilityPid = await startUtilityProcess();
 
   const crashMan = Services.crashmanager;
   const utilityProcessGone = TestUtils.topicObserved("ipc:utility-shutdown");
@@ -62,6 +46,11 @@ add_task(async () => {
       "Record should be a utility process crash"
     );
     ok(crash.id === dumpID, "Record should have an ID");
+    ok(
+      parseInt(crash.metadata.UtilityProcessSandboxingKind, 10) ===
+        kGenericUtility,
+      "Record should have the sandboxing kind value"
+    );
   });
 
   let minidumpDirectory = Services.dirsvc.get("ProfD", Ci.nsIFile);

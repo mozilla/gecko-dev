@@ -4,7 +4,16 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["ESEDBReader"]; /* exported ESEDBReader */
+var EXPORTED_SYMBOLS = [
+  "ESEDBReader",
+  // The items below are exported for test purposes.
+  "ESE",
+  "KERNEL",
+  "gLibs",
+  "COLUMN_TYPES",
+  "declareESEFunction",
+  "loadLibraries",
+];
 
 const { ctypes } = ChromeUtils.import("resource://gre/modules/ctypes.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
@@ -12,8 +21,7 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyGetter(this, "log", () => {
-  let ConsoleAPI = ChromeUtils.import("resource://gre/modules/Console.jsm", {})
-    .ConsoleAPI;
+  let { ConsoleAPI } = ChromeUtils.import("resource://gre/modules/Console.jsm");
   let consoleOptions = {
     maxLogLevelPref: "browser.esedbreader.loglevel",
     prefix: "ESEDBReader",
@@ -110,9 +118,6 @@ let gOpenDBs = new Map();
 
 // Track open libraries
 let gLibs = {};
-this.ESE = ESE; // Required for tests.
-this.KERNEL = KERNEL; // ditto
-this.gLibs = gLibs; // ditto
 
 function convertESEError(errorCode) {
   switch (errorCode) {

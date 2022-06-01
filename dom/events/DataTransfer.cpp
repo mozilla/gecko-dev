@@ -38,9 +38,11 @@
 #include "mozilla/dom/Directory.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/FileList.h"
+#include "mozilla/dom/IPCBlobUtils.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/OSFileSystem.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/Unused.h"
 #include "nsComponentManagerUtils.h"
 #include "nsNetUtil.h"
 #include "nsReadableUtils.h"
@@ -604,6 +606,12 @@ already_AddRefed<DataTransfer> DataTransfer::MozCloneForEvent(
   return dt.forget();
 }
 
+// The order of the types matters. `kFileMime` needs to be one of the first two
+// types.
+static const char* kNonPlainTextExternalFormats[] = {
+    kCustomTypesMime, kFileMime,    kHTMLMime,    kRTFMime,
+    kURLMime,         kURLDataMime, kUnicodeMime, kPNGImageMime};
+
 /* static */
 void DataTransfer::GetExternalClipboardFormats(const int32_t& aWhichClipboard,
                                                const bool& aPlainTextOnly,
@@ -633,18 +641,16 @@ void DataTransfer::GetExternalClipboardFormats(const int32_t& aWhichClipboard,
   }
 
   // If not plain text only, then instead check all the other types
-  static const char* formats[] = {kCustomTypesMime, kFileMime,    kHTMLMime,
-                                  kRTFMime,         kURLMime,     kURLDataMime,
-                                  kUnicodeMime,     kPNGImageMime};
-
-  for (uint32_t f = 0; f < mozilla::ArrayLength(formats); ++f) {
+  for (uint32_t f = 0; f < mozilla::ArrayLength(kNonPlainTextExternalFormats);
+       ++f) {
     bool hasType;
-    AutoTArray<nsCString, 1> format = {nsDependentCString(formats[f])};
+    AutoTArray<nsCString, 1> format = {
+        nsDependentCString(kNonPlainTextExternalFormats[f])};
     nsresult rv =
         clipboard->HasDataMatchingFlavors(format, aWhichClipboard, &hasType);
     NS_SUCCEEDED(rv);
     if (hasType) {
-      aResult->AppendElement(formats[f]);
+      aResult->AppendElement(kNonPlainTextExternalFormats[f]);
     }
   }
 }
@@ -674,11 +680,7 @@ void DataTransfer::GetExternalTransferableFormats(
   }
 
   // If not plain text only, then instead check all the other types
-  static const char* formats[] = {kCustomTypesMime, kFileMime,    kHTMLMime,
-                                  kRTFMime,         kURLMime,     kURLDataMime,
-                                  kUnicodeMime,     kPNGImageMime};
-
-  for (const char* format : formats) {
+  for (const char* format : kNonPlainTextExternalFormats) {
     auto index = flavors.IndexOf(nsCString(format));
     if (index != flavors.NoIndex) {
       aResult->AppendElement(nsCString(format));
@@ -800,48 +802,6 @@ void DataTransfer::UpdateDragImage(Element& aImage, int32_t aX, int32_t aY) {
   if (dragSession) {
     dragSession->UpdateDragImage(&aImage, aX, aY);
   }
-}
-
-already_AddRefed<Promise> DataTransfer::GetFilesAndDirectories(
-    nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv) {
-  nsCOMPtr<nsINode> parentNode = do_QueryInterface(mParent);
-  if (!parentNode) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
-  }
-
-  nsCOMPtr<nsIGlobalObject> global = parentNode->OwnerDoc()->GetScopeObject();
-  MOZ_ASSERT(global);
-  if (!global) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
-  }
-
-  RefPtr<Promise> p = Promise::Create(global, aRv);
-  if (NS_WARN_IF(aRv.Failed())) {
-    return nullptr;
-  }
-
-  RefPtr<FileList> files = mItems->Files(&aSubjectPrincipal);
-  if (NS_WARN_IF(!files)) {
-    return nullptr;
-  }
-
-  Sequence<RefPtr<File>> filesSeq;
-  files->ToSequence(filesSeq, aRv);
-  if (NS_WARN_IF(aRv.Failed())) {
-    return nullptr;
-  }
-
-  p->MaybeResolve(filesSeq);
-
-  return p.forget();
-}
-
-already_AddRefed<Promise> DataTransfer::GetFiles(
-    bool aRecursiveFlag, nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv) {
-  // Currently we don't support directories.
-  return GetFilesAndDirectories(aSubjectPrincipal, aRv);
 }
 
 void DataTransfer::AddElement(Element& aElement, ErrorResult& aRv) {
@@ -1340,8 +1300,9 @@ void DataTransfer::CacheExternalDragFormats() {
   // all platforms, so just check for the types that can actually be imported
   // XXXndeakin there are some other formats but those are platform specific.
   // NOTE: kFileMime must have index 0
-  const char* formats[] = {kFileMime,    kHTMLMime,    kURLMime,
-                           kURLDataMime, kUnicodeMime, kPNGImageMime};
+  // TODO: should this be `kNonPlainTextExternalFormats` instead?
+  static const char* formats[] = {kFileMime,    kHTMLMime,    kURLMime,
+                                  kURLDataMime, kUnicodeMime, kPNGImageMime};
 
   uint32_t count;
   dragSession->GetNumDropItems(&count);
@@ -1528,6 +1489,29 @@ void DataTransfer::SetMode(DataTransfer::Mode aMode) {
     mMode = Mode::ReadOnly;
   } else {
     mMode = aMode;
+  }
+}
+
+/* static */
+void DataTransfer::IPCDataTransferTextItemsToDataTransfer(
+    const IPCDataTransfer& aIpcDataTransfer, const bool aHidden,
+    DataTransfer& aDataTransfer) {
+  MOZ_ASSERT(XRE_IsContentProcess());
+  MOZ_ASSERT(aDataTransfer.Items()->Length() == 0);
+
+  uint32_t i = 0;
+  for (const IPCDataTransferItem& item : aIpcDataTransfer.items()) {
+    MOZ_ASSERT(item.data().type() == IPCDataTransferData::TnsString);
+    RefPtr<nsVariantCC> variant = new nsVariantCC();
+    nsresult rv = nsContentUtils::IPCTransferableItemToVariant(
+        item, variant, ContentChild::GetSingleton());
+    if (NS_FAILED(rv)) {
+      continue;
+    }
+
+    aDataTransfer.SetDataWithPrincipalFromOtherProcess(
+        NS_ConvertUTF8toUTF16(item.flavor()), variant, i,
+        nsContentUtils::GetSystemPrincipal(), aHidden);
   }
 }
 

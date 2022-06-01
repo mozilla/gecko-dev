@@ -21,7 +21,7 @@ const { ExperimentManager } = ChromeUtils.import(
 
 async function setup(recipes) {
   const client = RemoteSettings("nimbus-desktop-experiments");
-  await client.db.importChanges({}, 42, recipes, {
+  await client.db.importChanges({}, Date.now(), recipes, {
     clear: true,
   });
 
@@ -37,7 +37,7 @@ async function setup(recipes) {
   return client;
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["messaging-system.log", "all"],

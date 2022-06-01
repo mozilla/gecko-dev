@@ -6,36 +6,25 @@
 #include "Instance.h"
 
 #include "Adapter.h"
-#include "gfxConfig.h"
 #include "nsIGlobalObject.h"
 #include "ipc/WebGPUChild.h"
 #include "ipc/WebGPUTypes.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/gfx/CanvasManagerChild.h"
+#include "mozilla/gfx/gfxVars.h"
 
-namespace mozilla {
-namespace webgpu {
+namespace mozilla::webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(Instance, mBridge, mOwner)
+GPU_IMPL_CYCLE_COLLECTION(Instance, mOwner)
 
 /*static*/
 already_AddRefed<Instance> Instance::Create(nsIGlobalObject* aOwner) {
-  RefPtr<WebGPUChild> bridge;
-
-  if (gfx::gfxConfig::IsEnabled(gfx::Feature::WEBGPU)) {
-    bridge = gfx::CanvasManagerChild::Get()->GetWebGPUChild();
-    if (NS_WARN_IF(!bridge)) {
-      MOZ_CRASH("Failed to create an IPDL bridge for WebGPU!");
-    }
-  }
-
-  RefPtr<Instance> result = new Instance(aOwner, bridge);
+  RefPtr<Instance> result = new Instance(aOwner);
   return result.forget();
 }
 
-Instance::Instance(nsIGlobalObject* aOwner, WebGPUChild* aBridge)
-    : mBridge(aBridge), mOwner(aOwner) {}
+Instance::Instance(nsIGlobalObject* aOwner) : mOwner(aOwner) {}
 
 Instance::~Instance() { Cleanup(); }
 
@@ -52,20 +41,34 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
-  if (!mBridge) {
-    promise->MaybeRejectWithInvalidStateError("WebGPU is not enabled!");
+
+  if (!gfx::gfxVars::AllowWebGPU()) {
+    promise->MaybeRejectWithNotSupportedError("WebGPU is not enabled!");
+    return promise.forget();
+  }
+
+  auto* const canvasManager = gfx::CanvasManagerChild::Get();
+  if (!canvasManager) {
+    promise->MaybeRejectWithInvalidStateError(
+        "Failed to create CanavasManagerChild");
+    return promise.forget();
+  }
+
+  RefPtr<WebGPUChild> bridge = canvasManager->GetWebGPUChild();
+  if (!bridge) {
+    promise->MaybeRejectWithInvalidStateError("Failed to create WebGPUChild");
     return promise.forget();
   }
 
   RefPtr<Instance> instance = this;
 
-  mBridge->InstanceRequestAdapter(aOptions)->Then(
+  bridge->InstanceRequestAdapter(aOptions)->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [promise, instance](ipc::ByteBuf aInfoBuf) {
+      [promise, instance, bridge](ipc::ByteBuf aInfoBuf) {
         ffi::WGPUAdapterInformation info = {};
         ffi::wgpu_client_adapter_extract_info(ToFFI(&aInfoBuf), &info);
         MOZ_ASSERT(info.id != 0);
-        RefPtr<Adapter> adapter = new Adapter(instance, info);
+        RefPtr<Adapter> adapter = new Adapter(instance, bridge, info);
         promise->MaybeResolve(adapter);
       },
       [promise](const Maybe<ipc::ResponseRejectReason>& aResponseReason) {
@@ -79,5 +82,4 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
   return promise.forget();
 }
 
-}  // namespace webgpu
-}  // namespace mozilla
+}  // namespace mozilla::webgpu

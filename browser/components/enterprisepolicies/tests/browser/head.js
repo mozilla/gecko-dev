@@ -172,7 +172,7 @@ async function check_homepage({
   await BrowserTestUtils.removeTab(tab);
 }
 
-add_task(async function policies_headjs_startWithCleanSlate() {
+add_setup(async function policies_headjs_startWithCleanSlate() {
   if (Services.policies.status != Ci.nsIEnterprisePolicies.INACTIVE) {
     await setupPolicyEngineWithJson("");
   }
@@ -230,4 +230,26 @@ function waitForAddonUninstall(addonId) {
     };
     AddonManager.addAddonListener(listener);
   });
+}
+
+async function testPageBlockedByPolicy(page, policyJSON) {
+  if (policyJSON) {
+    await EnterprisePolicyTesting.setupPolicyEngineWithJson(policyJSON);
+  }
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:blank" },
+    async browser => {
+      BrowserTestUtils.loadURI(browser, page);
+      await BrowserTestUtils.browserLoaded(browser, false, page, true);
+      await SpecialPowers.spawn(browser, [page], async function(innerPage) {
+        ok(
+          content.document.documentURI.startsWith(
+            "about:neterror?e=blockedByPolicy"
+          ),
+          content.document.documentURI +
+            " should start with about:neterror?e=blockedByPolicy"
+        );
+      });
+    }
+  );
 }

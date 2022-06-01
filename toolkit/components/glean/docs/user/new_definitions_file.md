@@ -31,7 +31,9 @@ you get to choose where to start them!
 We recommend adding them in the root of your component, next to a `moz.build`.
 Be sure to link to this document at the top of the file!
 It contains many useful tidbits of information that anyone adding new metrics should know.
-Preferably, use this blank template to get started:
+Preferably, use this blank template to get started,
+substituting your component's `product :: component` tag from
+[the list](https://searchfox.org/mozilla-central/source/toolkit/components/glean/tags.yaml):
 
 ```yaml
 # This Source Code Form is subject to the terms of the Mozilla Public
@@ -43,6 +45,8 @@ Preferably, use this blank template to get started:
 
 ---
 $schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Your Product :: Your Component'
 
 ```
 
@@ -81,7 +85,8 @@ There are three values accepted in the `expires` field of `metrics.yaml`s for FO
 * `expired` - For marking a metric as manually expired.
   Not usually used, but sometimes helpful for internal tests.
 * `never` - For marking a metric as part of a permanent data collection.
-  Metrics marked with `never` must have [instrumentation tests](../dev/testing.md).
+  Metrics marked with `never` must have
+  [instrumentation tests](instrumentation_tests).
 
 For more information on what expiry means and the
 `metrics.yaml` format, see

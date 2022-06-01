@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
   "title": "UpdateActionMessage",
   "description": "A template for messages that execute predetermined actions.",
   "version": "1.0.0",
@@ -27,6 +28,7 @@
             },
             "data": {
               "type": "object",
+              "description": "Additional data provided as argument when executing the action",
               "properties": {
                 "url": {
                   "type": "string",
@@ -37,16 +39,14 @@
                   "description": "Expiration timestamp to be used as argument to the action"
                 }
               }
-            },
-            "description": "Additional data provided as argument when executing the action"
+            }
           },
-          "additionalProperties": false,
-          "description": "Optional action to take in addition to showing the notification"
-        },
-        "additionalProperties": false,
-        "required": ["id", "action"]
+          "additionalProperties": true,
+          "description": "Optional action to take in addition to showing the notification",
+          "required": ["id", "data"]
+        }
       },
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": ["action"]
     },
     "targeting": {

@@ -327,26 +327,59 @@ add_task(function test_normalize() {
   );
   card.expirationMonth = "0";
   ok(isNaN(card.expirationMonth), "Months below 1 are blocked");
-
   card.expirationMonth = card.expirationYear = undefined;
   card.expirationString = "2022/01";
   Assert.equal(card.expirationMonth, 1, "Month should be parsed correctly");
   Assert.equal(card.expirationYear, 2022, "Year should be parsed correctly");
+
+  card.expirationString = "2028 / 05";
+  Assert.equal(card.expirationMonth, 5, "Month should be parsed correctly");
+  Assert.equal(card.expirationYear, 2028, "Year should be parsed correctly");
+
   card.expirationString = "2023-02";
   Assert.equal(card.expirationMonth, 2, "Month should be parsed correctly");
   Assert.equal(card.expirationYear, 2023, "Year should be parsed correctly");
+
+  card.expirationString = "2029 - 09";
+  Assert.equal(card.expirationMonth, 9, "Month should be parsed correctly");
+  Assert.equal(card.expirationYear, 2029, "Year should be parsed correctly");
+
   card.expirationString = "03-2024";
   Assert.equal(card.expirationMonth, 3, "Month should be parsed correctly");
   Assert.equal(card.expirationYear, 2024, "Year should be parsed correctly");
+
+  card.expirationString = "08 - 2024";
+  Assert.equal(card.expirationMonth, 8, "Month should be parsed correctly");
+  Assert.equal(card.expirationYear, 2024, "Year should be parsed correctly");
+
   card.expirationString = "04/2025";
   Assert.equal(card.expirationMonth, 4, "Month should be parsed correctly");
   Assert.equal(card.expirationYear, 2025, "Year should be parsed correctly");
+
+  card.expirationString = "01 / 2023";
+  Assert.equal(card.expirationMonth, 1, "Month should be parsed correctly");
+  Assert.equal(card.expirationYear, 2023, "Year should be parsed correctly");
+
   card.expirationString = "05/26";
   Assert.equal(card.expirationMonth, 5, "Month should be parsed correctly");
   Assert.equal(card.expirationYear, 2026, "Year should be parsed correctly");
+
+  card.expirationString = "   06 /  27 ";
+  Assert.equal(card.expirationMonth, 6, "Month should be parsed correctly");
+  Assert.equal(card.expirationYear, 2027, "Year should be parsed correctly");
+
+  card.expirationString = "04 / 25";
+  Assert.equal(card.expirationMonth, 4, "Month should be parsed correctly");
+  Assert.equal(card.expirationYear, 2025, "Year should be parsed correctly");
+
   card.expirationString = "27-6";
   Assert.equal(card.expirationMonth, 6, "Month should be parsed correctly");
   Assert.equal(card.expirationYear, 2027, "Year should be parsed correctly");
+
+  card.expirationString = "26 - 5";
+  Assert.equal(card.expirationMonth, 5, "Month should be parsed correctly");
+  Assert.equal(card.expirationYear, 2026, "Year should be parsed correctly");
+
   card.expirationString = "07/11";
   Assert.equal(
     card.expirationMonth,
@@ -356,6 +389,18 @@ add_task(function test_normalize() {
   Assert.equal(
     card.expirationYear,
     2011,
+    "Ambiguous year should be parsed correctly"
+  );
+
+  card.expirationString = "08 / 12";
+  Assert.equal(
+    card.expirationMonth,
+    8,
+    "Ambiguous month should be parsed correctly"
+  );
+  Assert.equal(
+    card.expirationYear,
+    2012,
     "Ambiguous year should be parsed correctly"
   );
 
@@ -402,7 +447,7 @@ add_task(async function test_label() {
 });
 
 add_task(async function test_network() {
-  let supportedNetworks = CreditCard.SUPPORTED_NETWORKS;
+  let supportedNetworks = CreditCard.getSupportedNetworks();
   Assert.ok(
     supportedNetworks.length,
     "There are > 0 supported credit card networks"
@@ -435,7 +480,7 @@ add_task(async function test_network() {
 });
 
 add_task(async function test_isValidNetwork() {
-  for (let network of CreditCard.SUPPORTED_NETWORKS) {
+  for (let network of CreditCard.getSupportedNetworks()) {
     Assert.ok(CreditCard.isValidNetwork(network), "supported network is valid");
   }
   Assert.ok(!CreditCard.isValidNetwork(), "undefined is not a valid network");
@@ -553,6 +598,26 @@ add_task(async function test_getNetworkFromName() {
       CreditCard.getNetworkFromName(value),
       type,
       `Expected ${value} to be recognized as ${type}`
+    );
+  }
+});
+
+add_task(async function test_normalizeCardNumber() {
+  let testCases = [
+    ["5495770093313616", "5495770093313616"],
+    ["5495 7700 9331 3616", "5495770093313616"],
+    [" 549 57700 93313 616 ", "5495770093313616"],
+    ["5495-7700-9331-3616", "5495770093313616"],
+    ["", null],
+    [undefined, null],
+    [null, null],
+  ];
+  for (let [input, expected] of testCases) {
+    let actual = CreditCard.normalizeCardNumber(input);
+    Assert.equal(
+      actual,
+      expected,
+      `Expected ${input} to normalize to ${expected}`
     );
   }
 });

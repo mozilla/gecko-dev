@@ -28,7 +28,7 @@ use std::{hash, ops, u32, usize};
 #[cfg(debug_assertions)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::util::Recycler;
-use crate::internal_types::LayoutPrimitiveInfo;
+use crate::internal_types::{FastHashSet, LayoutPrimitiveInfo};
 #[cfg(debug_assertions)]
 use crate::internal_types::FrameId;
 use crate::visibility::PrimitiveVisibility;
@@ -44,7 +44,7 @@ pub mod interned;
 
 mod storage;
 
-use backdrop::BackdropDataHandle;
+use backdrop::{BackdropCaptureDataHandle, BackdropRenderDataHandle};
 use borders::{ImageBorderDataHandle, NormalBorderDataHandle};
 use gradient::{LinearGradientPrimitive, LinearGradientDataHandle, RadialGradientDataHandle, ConicGradientDataHandle};
 use image::{ImageDataHandle, ImageInstance, YuvImageDataHandle};
@@ -123,6 +123,10 @@ impl ClipTaskIndex {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct PictureIndex(pub usize);
+
+impl PictureIndex {
+    pub const INVALID: PictureIndex = PictureIndex(!0);
+}
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -546,6 +550,12 @@ pub struct PrimTemplateCommonData {
     /// also remains valid, which reduces the number of updates to the GPU
     /// cache when a new display list is processed.
     pub gpu_cache_handle: GpuCacheHandle,
+    /// Specifies the edges that are *allowed* to have anti-aliasing.
+    /// In other words EdgeAaSegmentFlags::all() does not necessarily mean all edges will
+    /// be anti-aliased, only that they could be.
+    ///
+    /// Use this to force disable anti-alasing on edges of the primitives.
+    pub edge_aa_mask: EdgeAaSegmentMask,
 }
 
 impl PrimTemplateCommonData {
@@ -556,6 +566,7 @@ impl PrimTemplateCommonData {
             prim_rect: common.prim_rect.into(),
             gpu_cache_handle: GpuCacheHandle::new(),
             opacity: PrimitiveOpacity::translucent(),
+            edge_aa_mask: EdgeAaSegmentMask::all(),
         }
     }
 }
@@ -1053,10 +1064,28 @@ pub enum PrimitiveInstanceKind {
         data_handle: PrimitiveDataHandle,
     },
     /// Render a portion of a specified backdrop.
-    Backdrop {
-        data_handle: BackdropDataHandle,
+    BackdropCapture {
+        data_handle: BackdropCaptureDataHandle,
+    },
+    BackdropRender {
+        data_handle: BackdropRenderDataHandle,
+        pic_index: PictureIndex,
     },
 }
+
+impl PrimitiveInstanceKind {
+    pub fn as_pic(&self) -> PictureIndex {
+        match self {
+            PrimitiveInstanceKind::Picture { pic_index, .. } => *pic_index,
+            _ => panic!("bug: as_pic called on a prim that is not a picture"),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct PrimitiveInstanceIndex(pub u32);
 
 #[derive(Debug)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -1083,6 +1112,7 @@ pub struct PrimitiveInstance {
     // TODO(gw): Currently built each frame, but can be retained.
     // TODO(gw): Remove clipped_world_rect (use tile bounds to determine vis flags)
     pub vis: PrimitiveVisibility,
+    pub anti_aliased: bool,
 }
 
 impl PrimitiveInstance {
@@ -1102,6 +1132,7 @@ impl PrimitiveInstance {
                 local_clip_rect,
                 clip_chain_id,
             },
+            anti_aliased: false,
         }
     }
 
@@ -1169,7 +1200,10 @@ impl PrimitiveInstance {
             PrimitiveInstanceKind::YuvImage { data_handle, .. } => {
                 data_handle.uid()
             }
-            PrimitiveInstanceKind::Backdrop { data_handle, .. } => {
+            PrimitiveInstanceKind::BackdropCapture { data_handle, .. } => {
+                data_handle.uid()
+            }
+            PrimitiveInstanceKind::BackdropRender { data_handle, .. } => {
                 data_handle.uid()
             }
         }
@@ -1234,6 +1268,9 @@ pub struct PrimitiveScratchBuffer {
 
     /// List of current debug messages to log on screen
     messages: Vec<DebugMessage>,
+
+    /// Set of sub-graphs that are required, determined during visibility pass
+    pub required_sub_graphs: FastHashSet<PictureIndex>,
 }
 
 impl Default for PrimitiveScratchBuffer {
@@ -1247,6 +1284,7 @@ impl Default for PrimitiveScratchBuffer {
             gradient_tiles: GradientTileStorage::new(0),
             debug_items: Vec::new(),
             messages: Vec::new(),
+            required_sub_graphs: FastHashSet::default(),
         }
     }
 }
@@ -1276,6 +1314,8 @@ impl PrimitiveScratchBuffer {
         //           every frame. This maintains the existing behavior, but we
         //           should fix this in the future to retain handles.
         self.gradient_tiles.clear();
+
+        self.required_sub_graphs.clear();
 
         self.debug_items.clear();
     }

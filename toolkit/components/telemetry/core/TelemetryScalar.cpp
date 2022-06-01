@@ -7,28 +7,25 @@
 #include "TelemetryScalar.h"
 
 #include "geckoview/streaming/GeckoViewStreamingTelemetry.h"
-#include "ipc/TelemetryComms.h"
 #include "ipc/TelemetryIPCAccumulator.h"
 #include "js/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
 #include "mozilla/dom/ContentParent.h"
-#include "mozilla/dom/PContent.h"
 #include "mozilla/JSONWriter.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/TelemetryComms.h"
 #include "mozilla/Unused.h"
 #include "nsBaseHashtable.h"
 #include "nsClassHashtable.h"
 #include "nsContentUtils.h"
-#include "nsTHashMap.h"
 #include "nsHashKeys.h"
 #include "nsITelemetry.h"
 #include "nsIVariant.h"
 #include "nsIXPConnect.h"
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
-#include "nsThreadUtils.h"
 #include "nsVariant.h"
 #include "TelemetryScalarData.h"
 
@@ -2429,7 +2426,7 @@ void internal_ApplyPendingOperations(const StaticMutexAutoLock& lock) {
 // that, due to the nature of Telemetry, we cannot rely on having a
 // mutex initialized in InitializeGlobalState. Unfortunately, we
 // cannot make sure that no other function is called before this point.
-static StaticMutex gTelemetryScalarsMutex;
+static StaticMutex gTelemetryScalarsMutex MOZ_UNANNOTATED;
 
 void TelemetryScalar::InitializeGlobalState(bool aCanRecordBase,
                                             bool aCanRecordExtended) {

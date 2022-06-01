@@ -1035,14 +1035,33 @@ bool nsIContent::IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) {
   return false;
 }
 
-bool FragmentOrElement::IsLink(nsIURI** aURI) const {
-  *aURI = nullptr;
-  return false;
-}
-
 void nsIContent::SetAssignedSlot(HTMLSlotElement* aSlot) {
   MOZ_ASSERT(aSlot || GetExistingExtendedContentSlots());
   ExtendedContentSlots()->mAssignedSlot = aSlot;
+}
+
+Maybe<uint32_t> nsIContent::ComputeFlatTreeIndexOf(
+    const nsINode* aPossibleChild) const {
+  if (!aPossibleChild) {
+    return Nothing();
+  }
+
+  if (aPossibleChild->GetFlattenedTreeParentNode() != this) {
+    return Nothing();
+  }
+
+  FlattenedChildIterator iter(this);
+  uint32_t index = 0u;
+  for (nsIContent* child = iter.GetNextChild(); child;
+       child = iter.GetNextChild()) {
+    if (child == aPossibleChild) {
+      return Some(index);
+    }
+
+    ++index;
+  }
+
+  return Nothing();
 }
 
 #ifdef MOZ_DOM_LIST

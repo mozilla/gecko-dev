@@ -7,25 +7,14 @@
 #include "nsUrlClassifierDBService.h"
 #include "nsISupports.h"
 
-#if defined(XP_WIN)
-#  include "NativeFileWatcherWin.h"
-#else
-#  include "NativeFileWatcherNotSupported.h"
-
-NS_IMPL_ISUPPORTS(mozilla::NativeFileWatcherService,
-                  nsINativeFileWatcherService);
-#endif  // (XP_WIN)
-
 using namespace mozilla;
 
 /////////////////////////////////////////////////////////////////////////////
 
-nsresult nsUrlClassifierDBServiceConstructor(nsISupports* aOuter,
-                                             const nsIID& aIID,
+nsresult nsUrlClassifierDBServiceConstructor(const nsIID& aIID,
                                              void** aResult) {
   nsresult rv;
   NS_ENSURE_ARG_POINTER(aResult);
-  NS_ENSURE_NO_AGGREGATION(aOuter);
 
   RefPtr<nsUrlClassifierDBService> inst =
       nsUrlClassifierDBService::GetInstance(&rv);

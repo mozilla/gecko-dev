@@ -61,9 +61,9 @@ class nsWifiMonitor final : nsIRunnable, nsIWifiMonitor, nsIObserver {
 
   mozilla::Atomic<bool> mKeepGoing;
   mozilla::Atomic<bool> mThreadComplete;
-  nsCOMPtr<nsIThread> mThread;
+  nsCOMPtr<nsIThread> mThread;  // only accessed on MainThread
 
-  nsTArray<nsWifiListener> mListeners;
+  nsTArray<nsWifiListener> mListeners GUARDED_BY(mReentrantMonitor);
 
   mozilla::ReentrantMonitor mReentrantMonitor;
 

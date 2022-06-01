@@ -31,8 +31,7 @@ function trr_test_setup() {
   // Set to allow the cert presented by our H2 server
   do_get_profile();
 
-  Services.prefs.setBoolPref("network.http.spdy.enabled", true);
-  Services.prefs.setBoolPref("network.http.spdy.enabled.http2", true);
+  Services.prefs.setBoolPref("network.http.http2.enabled", true);
   // the TRR server is on 127.0.0.1
   if (AppConstants.platform == "android") {
     Services.prefs.setCharPref("network.trr.bootstrapAddr", "10.0.2.2");
@@ -92,8 +91,7 @@ function trr_clear_prefs() {
   Services.prefs.clearUserPref("network.trr.fetch_off_main_thread");
   Services.prefs.clearUserPref("captivedetect.canonicalURL");
 
-  Services.prefs.clearUserPref("network.http.spdy.enabled");
-  Services.prefs.clearUserPref("network.http.spdy.enabled.http2");
+  Services.prefs.clearUserPref("network.http.http2.enabled");
   Services.prefs.clearUserPref("network.dns.localDomains");
   Services.prefs.clearUserPref("network.dns.native-is-localhost");
   Services.prefs.clearUserPref(
@@ -122,6 +120,7 @@ class TRRDNSListener {
         expectEarlyFail: args[5] ?? "",
         flags: args[6] ?? 0,
         type: args[7] ?? Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT,
+        port: args[8] ?? -1,
       };
     }
     this.expectedAnswer = this.options.expectedAnswer ?? undefined;
@@ -132,6 +131,7 @@ class TRRDNSListener {
     });
     this.type = this.options.type ?? Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT;
     let trrServer = this.options.trrServer || "";
+    let port = this.options.port || -1;
 
     // This may be called in a child process that doesn't have Services available.
     // eslint-disable-next-line mozilla/use-services
@@ -146,21 +146,23 @@ class TRRDNSListener {
       );
     }
 
-    this.resolverInfo =
-      trrServer == "" ? null : gDNS.newTRRResolverInfo(trrServer);
+    this.additionalInfo =
+      trrServer == "" && port == -1
+        ? null
+        : gDNS.newAdditionalInfo(trrServer, port);
     try {
       this.request = gDNS.asyncResolve(
         this.name,
         this.type,
         this.options.flags || 0,
-        this.resolverInfo,
+        this.additionalInfo,
         this,
         currentThread,
         {} // defaultOriginAttributes
       );
-      Assert.ok(!this.options.expectEarlyFail);
+      Assert.ok(!this.options.expectEarlyFail, "asyncResolve ok");
     } catch (e) {
-      Assert.ok(this.options.expectEarlyFail);
+      Assert.ok(this.options.expectEarlyFail, "asyncResolve fail");
       this.resolve({ error: e });
     }
   }

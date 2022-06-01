@@ -10,6 +10,7 @@
 #include "mozilla/ipc/DataPipe.h"
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
+#include "nsNetUtil.h"
 #include "nsStreamUtils.h"
 
 namespace mozilla::ipc {
@@ -136,6 +137,56 @@ TEST(DataPipe, SegmentedReadWrite)
   ConsumeAndValidateStream(reader, inputData2);
 }
 
+TEST(DataPipe, SegmentedPartialRead)
+{
+  RefPtr<DataPipeReceiver> reader;
+  RefPtr<DataPipeSender> writer;
+
+  nsresult rv =
+      NewDataPipe(1024, getter_AddRefs(writer), getter_AddRefs(reader));
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  nsCString inputData1;
+  CreateData(512, inputData1);
+
+  uint32_t numWritten = 0;
+  rv = writer->Write(inputData1.BeginReading(), inputData1.Length(),
+                     &numWritten);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+  EXPECT_EQ(numWritten, 512u);
+
+  uint64_t available = 0;
+  rv = reader->Available(&available);
+  EXPECT_EQ(available, 512u);
+  ConsumeAndValidateStream(reader, inputData1);
+
+  nsCString inputData2;
+  CreateData(1024, inputData2);
+
+  rv = writer->Write(inputData2.BeginReading(), inputData2.Length(),
+                     &numWritten);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+  EXPECT_EQ(numWritten, 1024u);
+
+  rv = reader->Available(&available);
+  EXPECT_EQ(available, 1024u);
+
+  nsAutoCString outputData;
+  rv = NS_ReadInputStreamToString(reader, outputData, 768);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+  ASSERT_EQ(768u, outputData.Length());
+  ASSERT_TRUE(Substring(inputData2, 0, 768).Equals(outputData));
+
+  rv = reader->Available(&available);
+  EXPECT_EQ(available, 256u);
+
+  nsAutoCString outputData2;
+  rv = NS_ReadInputStreamToString(reader, outputData2, 256);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+  ASSERT_EQ(256u, outputData2.Length());
+  ASSERT_TRUE(Substring(inputData2, 768).Equals(outputData2));
+}
+
 TEST(DataPipe, Write_AsyncWait)
 {
   RefPtr<DataPipeReceiver> reader;
@@ -212,6 +263,79 @@ TEST(DataPipe, Read_AsyncWait)
   ConsumeAndValidateStream(reader, inputData);
 }
 
+TEST(DataPipe, Write_AsyncWait_Cancel)
+{
+  RefPtr<DataPipeReceiver> reader;
+  RefPtr<DataPipeSender> writer;
+
+  const uint32_t segmentSize = 1024;
+
+  nsresult rv =
+      NewDataPipe(segmentSize, getter_AddRefs(writer), getter_AddRefs(reader));
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  nsCString inputData;
+  CreateData(segmentSize, inputData);
+
+  uint32_t numWritten = 0;
+  rv = writer->Write(inputData.BeginReading(), inputData.Length(), &numWritten);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+  EXPECT_EQ(numWritten, segmentSize);
+
+  rv = writer->Write(inputData.BeginReading(), inputData.Length(), &numWritten);
+  ASSERT_EQ(NS_BASE_STREAM_WOULD_BLOCK, rv);
+
+  RefPtr<OutputStreamCallback> cb = new OutputStreamCallback();
+
+  // Register a callback and immediately cancel it.
+  rv = writer->AsyncWait(cb, 0, 0, GetCurrentSerialEventTarget());
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+  rv = writer->AsyncWait(nullptr, 0, 0, nullptr);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  // Even after consuming the stream and processing pending events, the callback
+  // shouldn't be called as it was cancelled.
+  ConsumeAndValidateStream(reader, inputData);
+  NS_ProcessPendingEvents(nullptr);
+  ASSERT_FALSE(cb->Called());
+}
+
+TEST(DataPipe, Read_AsyncWait_Cancel)
+{
+  RefPtr<DataPipeReceiver> reader;
+  RefPtr<DataPipeSender> writer;
+
+  const uint32_t segmentSize = 1024;
+
+  nsresult rv =
+      NewDataPipe(segmentSize, getter_AddRefs(writer), getter_AddRefs(reader));
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  nsCString inputData;
+  CreateData(segmentSize, inputData);
+
+  RefPtr<InputStreamCallback> cb = new InputStreamCallback();
+
+  // Register a callback and immediately cancel it.
+  rv = reader->AsyncWait(cb, 0, 0, GetCurrentSerialEventTarget());
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  rv = reader->AsyncWait(nullptr, 0, 0, nullptr);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  // Write data into the pipe to make the callback become ready.
+  uint32_t numWritten = 0;
+  rv = writer->Write(inputData.BeginReading(), inputData.Length(), &numWritten);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  // Even after processing pending events, the callback shouldn't be called as
+  // it was cancelled.
+  NS_ProcessPendingEvents(nullptr);
+  ASSERT_FALSE(cb->Called());
+
+  ConsumeAndValidateStream(reader, inputData);
+}
+
 TEST(DataPipe, SerializeReader)
 {
   RefPtr<DataPipeReceiver> reader;
@@ -221,7 +345,8 @@ TEST(DataPipe, SerializeReader)
   ASSERT_TRUE(NS_SUCCEEDED(rv));
 
   IPC::Message msg(MSG_ROUTING_NONE, 0);
-  WriteParam(&msg, reader);
+  IPC::MessageWriter msgWriter(msg);
+  IPC::WriteParam(&msgWriter, reader);
 
   uint64_t available = 0;
   rv = reader->Available(&available);
@@ -235,8 +360,8 @@ TEST(DataPipe, SerializeReader)
   ASSERT_TRUE(NS_SUCCEEDED(rv));
 
   RefPtr<DataPipeReceiver> reader2;
-  PickleIterator iter(msg);
-  ASSERT_TRUE(ReadParam(&msg, &iter, &reader2));
+  IPC::MessageReader msgReader(msg);
+  ASSERT_TRUE(IPC::ReadParam(&msgReader, &reader2));
   ASSERT_TRUE(reader2);
 
   rv = reader2->Available(&available);

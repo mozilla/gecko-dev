@@ -159,8 +159,6 @@
  *     The formula above is correct for the next instruction. The jump target
  *     has a stack depth that is 1 less.
  *
- * -   See `JSOp::Gosub` for another special case.
- *
  * -   The `JSOp::JumpTarget` instruction immediately following a `JSTRY_CATCH`
  *     or `JSTRY_FINALLY` span has the same stack depth as the `JSOp::Try`
  *     instruction that precedes the span.
@@ -750,6 +748,16 @@
      */ \
     MACRO(ToString, to_string, NULL, 1, 1, 1, JOF_BYTE) \
     /*
+     * Test whether the value on top of the stack is `NullValue` or
+     * `UndefinedValue` and push the boolean result.
+     *
+     *   Category: Expressions
+     *   Type: Other expressions
+     *   Operands:
+     *   Stack: val => val, IsNullOrUndefined(val)
+     */ \
+    MACRO(IsNullOrUndefined, is_null_or_undefined, NULL, 1, 1, 2, JOF_BYTE) \
+    /*
      * Push the global `this` value. Not to be confused with the `globalThis`
      * property on the global.
      *
@@ -780,9 +788,7 @@
      *
      * The result is a constructor or `undefined`.
      *
-     * This must be used only in scripts where `new.target` is allowed:
-     * non-arrow function scripts and other scripts that have a non-arrow
-     * function script on the scope chain.
+     * This must be used only in non-arrow function scripts.
      *
      * Implements: [GetNewTarget][1].
      *
@@ -1624,10 +1630,8 @@
      *
      * The new function inherits the current environment chain.
      *
-     * Used to create most JS functions. Notable exceptions are arrow functions
-     * and derived or default class constructors.
-     *
-     * The function indicated by `funcIndex` must be a non-arrow function.
+     * Used to create most JS functions. Notable exceptions are derived or
+     * default class constructors.
      *
      * Implements: [InstantiateFunctionObject][1], [Evaluation for
      * *FunctionExpression*][2], and so on.
@@ -1641,22 +1645,6 @@
      *   Stack: => fn
      */ \
     MACRO(Lambda, lambda, NULL, 5, 0, 1, JOF_OBJECT) \
-    /*
-     * Push a new arrow function.
-     *
-     * `newTarget` matters only if the arrow function uses the expression
-     * `new.target`. It should be the current value of `new.target`, so that
-     * the arrow function inherits `new.target` from the enclosing scope. (If
-     * `new.target` is illegal here, the value doesn't matter; use `null`.)
-     *
-     * The function indicated by `funcIndex` must be an arrow function.
-     *
-     *   Category: Functions
-     *   Type: Creating functions
-     *   Operands: uint32_t funcIndex
-     *   Stack: newTarget => arrowFn
-     */ \
-    MACRO(LambdaArrow, lambda_arrow, NULL, 5, 1, 1, JOF_OBJECT) \
     /*
      * Set the name of a function.
      *
@@ -1741,12 +1729,6 @@
      * iterable") rather than `JSMSG_NOT_FUNCTION` ("x[Symbol.iterator] is not
      * a function"). The `argc` operand must be 0 for this variation.
      *
-     * `JSOp::FunApply` hints to the VM that this is likely a call to the
-     * builtin method `Function.prototype.apply`, an easy optimization target.
-     *
-     * `JSOp::FunCall` similarly hints to the VM that the callee is likely
-     * `Function.prototype.call`.
-     *
      * `JSOp::CallIgnoresRv` hints to the VM that the return value is ignored.
      * This allows alternate faster implementations to be used that avoid
      * unnecesary allocations.
@@ -1762,8 +1744,6 @@
      */ \
     MACRO(Call, call, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_IC) \
     MACRO(CallIter, call_iter, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_IC) \
-    MACRO(FunApply, fun_apply, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_IC) \
-    MACRO(FunCall, fun_call, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_IC) \
     MACRO(CallIgnoresRv, call_ignores_rv, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_IC) \
     /*
      * Like `JSOp::Call`, but the arguments are provided in an array rather than
@@ -2630,97 +2610,14 @@
      */ \
     MACRO(Exception, exception, NULL, 1, 0, 1, JOF_BYTE) \
     /*
-     * Push `resumeIndex`.
-     *
-     * This value must be used only by `JSOp::Gosub`, `JSOp::Finally`, and `JSOp::Retsub`.
-     *
-     *   Category: Control flow
-     *   Type: Exceptions
-     *   Operands: uint24_t resumeIndex
-     *   Stack: => resumeIndex
-     */ \
-    MACRO(ResumeIndex, resume_index, NULL, 4, 0, 1, JOF_RESUMEINDEX) \
-    /*
-     * Jump to the start of a `finally` block.
-     *
-     * `JSOp::Gosub` is unusual: if the finally block finishes normally, it will
-     * reach the `JSOp::Retsub` instruction at the end, and control then
-     * "returns" to the `JSOp::Gosub` and picks up at the next instruction, like
-     * a function call but within a single script and stack frame. (It's named
-     * after the thing in BASIC.)
-     *
-     * We need this because a `try` block can terminate in several different
-     * ways: control can flow off the end, return, throw an exception, `break`
-     * with or without a label, or `continue`. Exceptions are handled
-     * separately; but all those success paths are written as bytecode, and
-     * each one needs to run the `finally` block before continuing with
-     * whatever they were doing. They use `JSOp::Gosub` for this. It is thus
-     * normal for multiple `Gosub` instructions in a script to target the same
-     * `finally` block.
-     *
-     * Rules: `forwardOffset` must be positive and must target a
-     * `JSOp::JumpTarget` instruction followed by `JSOp::Finally`. The
-     * instruction immediately following `JSOp::Gosub` in the script must be a
-     * `JSOp::JumpTarget` instruction, and `resumeIndex` must be the index into
-     * `script->resumeOffsets()` that points to that instruction.
-     *
-     * Note: This op doesn't actually push or pop any values. Its use count of
-     * 2 is a lie to make the stack depth math work for this very odd control
-     * flow instruction.
-     *
-     * `JSOp::Gosub` is considered to have two "successors": the target of
-     * `offset`, which is the actual next instruction to run; and the
-     * instruction immediately following `JSOp::Gosub`, even though it won't run
-     * until later. We define the successor graph this way in order to support
-     * knowing the stack depth at that instruction without first reading the
-     * whole `finally` block.
-     *
-     * The stack depth at that instruction is, as it happens, the current stack
-     * depth minus 2. So this instruction gets nuses == 2.
-     *
-     * Unfortunately there is a price to be paid in horribleness. When
-     * `JSOp::Gosub` runs, it leaves two values on the stack that the stack
-     * depth math doesn't know about. It jumps to the finally block, where
-     * `JSOp::Finally` again does nothing to the stack, but with a bogus def
-     * count of 2, restoring balance to the accounting. If `JSOp::Retsub` is
-     * reached, it pops the two values (for real this time) and control
-     * resumes at the instruction that follows JSOp::Gosub in memory.
-     *
-     *   Category: Control flow
-     *   Type: Exceptions
-     *   Operands: int32_t forwardOffset
-     *   Stack: false, resumeIndex =>
-     */ \
-    MACRO(Gosub, gosub, NULL, 5, 2, 0, JOF_JUMP) \
-    /*
-     * No-op instruction that marks the start of a `finally` block. This has a
-     * def count of 2, but the values are already on the stack (they're
-     * actually left on the stack by `JSOp::Gosub`).
-     *
-     * These two values must not be used except by `JSOp::Retsub`.
+     * No-op instruction that marks the start of a `finally` block.
      *
      *   Category: Control flow
      *   Type: Exceptions
      *   Operands:
-     *   Stack: => false, resumeIndex
+     *   Stack: =>
      */ \
-    MACRO(Finally, finally, NULL, 1, 0, 2, JOF_BYTE) \
-    /*
-     * Jump back to the next instruction, or rethrow an exception, at the end
-     * of a `finally` block. See `JSOp::Gosub` for the explanation.
-     *
-     * If `throwing` is true, throw `v`. Otherwise, `v` must be a resume index;
-     * jump to the corresponding offset within the script.
-     *
-     * The two values popped must be the ones notionally pushed by
-     * `JSOp::Finally`.
-     *
-     *   Category: Control flow
-     *   Type: Exceptions
-     *   Operands:
-     *   Stack: throwing, v =>
-     */ \
-    MACRO(Retsub, retsub, NULL, 1, 2, 0, JOF_BYTE) \
+    MACRO(Finally, finally, NULL, 1, 0, 0, JOF_BYTE) \
     /*
      * Push `MagicValue(JS_UNINITIALIZED_LEXICAL)`, a magic value used to mark
      * a binding as uninitialized.
@@ -3602,13 +3499,18 @@
  * a power of two.  Use this macro to do so.
  */
 #define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
+  IF_RECORD_TUPLE(/* empty */, MACRO(223))     \
+  IF_RECORD_TUPLE(/* empty */, MACRO(224))     \
+  IF_RECORD_TUPLE(/* empty */, MACRO(225))     \
+  IF_RECORD_TUPLE(/* empty */, MACRO(226))     \
+  IF_RECORD_TUPLE(/* empty */, MACRO(227))     \
   IF_RECORD_TUPLE(/* empty */, MACRO(228))     \
   IF_RECORD_TUPLE(/* empty */, MACRO(229))     \
-  IF_RECORD_TUPLE(/* empty */, MACRO(230))     \
-  IF_RECORD_TUPLE(/* empty */, MACRO(231))     \
-  IF_RECORD_TUPLE(/* empty */, MACRO(232))     \
-  IF_RECORD_TUPLE(/* empty */, MACRO(233))     \
-  IF_RECORD_TUPLE(/* empty */, MACRO(234))     \
+  MACRO(230)                                   \
+  MACRO(231)                                   \
+  MACRO(232)                                   \
+  MACRO(233)                                   \
+  MACRO(234)                                   \
   MACRO(235)                                   \
   MACRO(236)                                   \
   MACRO(237)                                   \

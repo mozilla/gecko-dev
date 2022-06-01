@@ -124,9 +124,12 @@ aboutprivatebrowsing:
     record_in_processes: ["content"]
     description: >
       This is recorded when a user clicks a link on the private browsing newtab.
-    bug_numbers: [1709344]
-    notification_emails: ["dmosedale@mozilla.com", "omc@mozilla.com"]
-    expiry_version: "100"
+    bug_numbers: [1709344, 1754635]
+    notification_emails:
+      - "dmosedale@mozilla.com"
+      - "barret@mozilla.com"
+      - "omc@mozilla.com"
+    expiry_version: "106"
     products:
       - "firefox"
 
@@ -430,11 +433,11 @@ blocklist:
         This field is documented in more detail in the definition of the blocklist.mlbf_source scalar.
         Possible values are "dump_match", "cache_match", "remote_match", "dump_fallback", "cache_fallback", "unknown".
     notification_emails: ["addons-dev-internal@mozilla.com", "rwu@mozilla.com"]
-    expiry_version: "102"
+    expiry_version: "112"
     products:
       - "firefox"
     record_in_processes: ["main"]
-    bug_numbers: [1662857, 1730037]
+    bug_numbers: [1662857, 1730037, 1763529]
     release_channel_collection: opt-out
 
 downloads:
@@ -454,7 +457,7 @@ downloads:
     description: >
       Sent when a content type is handed off the external helper app service for handling because it cannot
       be displayed directly.
-    bug_numbers: [1736864]
+    bug_numbers: [1736864, 1754636]
     extra_keys:
       reason: The value "attachment", "sniffed" or "other"
       type: The value "pdf", "octetstream" or "other"
@@ -464,7 +467,7 @@ downloads:
       - "firefox"
     record_in_processes: ["main"]
     release_channel_collection: opt-out
-    expiry_version: "100"
+    expiry_version: "109"
 
 form_autocomplete:
   show:
@@ -504,9 +507,9 @@ creditcard:
       - "update"
       - "cancel"
       - "disable"
-    bug_numbers: [1653073, 1653083, 1720608]
-    notification_emails: ["tgiles@mozilla.com", "dlee@mozilla.com"]
-    expiry_version: "103"
+    bug_numbers: [1653073, 1653083, 1720608, 1767907]
+    notification_emails: ["sgalich@mozilla.com", "dlee@mozilla.com"]
+    expiry_version: never
     products:
       - "firefox"
     record_in_processes: ["main"]
@@ -522,9 +525,9 @@ creditcard:
       - "delete"
       - "show_entry"
       - "edit"
-    bug_numbers: [1653073, 1654167, 1720608]
-    notification_emails: ["tgiles@mozilla.com", "dlee@mozilla.com"]
-    expiry_version: "103"
+    bug_numbers: [1653073, 1654167, 1720608, 1767907]
+    notification_emails: ["sgalich@mozilla.com", "dlee@mozilla.com"]
+    expiry_version: never
     products:
       - "firefox"
     record_in_processes: ["main"]
@@ -540,9 +543,9 @@ creditcard:
       - "filled"
       - "filled_modified"
       - "submitted"
-    bug_numbers: [1653073, 1653162, 1720608]
-    notification_emails: ["tgiles@mozilla.com", "dlee@mozilla.com"]
-    expiry_version: "103"
+    bug_numbers: [1653073, 1653162, 1720608, 1767907]
+    notification_emails: ["sgalich@mozilla.com", "dlee@mozilla.com"]
+    expiry_version: never
     products:
       - "firefox"
     record_in_processes: ["content"]
@@ -561,6 +564,44 @@ creditcard:
         Additionally, it may include input elements that are not rendered as user-modifiable, such as hidden fields as well as <button> elements.
       fields_auto: Number of fields in the `submitted` event that were autofilled
       fields_modified: Number of fields in a `submitted` event that were autofilled and later modified
+  cc_form_v2:
+    description: >-
+      User interactions for credit card autofill forms
+      Expected values are store in extra_keys and are varies depends on the methods
+        'detected': Recorded when a form is recognized as a credit card form.
+                    "True" when the field is identified in the form, "False" otherwise
+        'popup_shown': Recorded when autofill popup is shown. Using field_name to record the field
+                       that triggers this event
+        'filled': Recorded when a form is autofiled. Possible values are
+                  `filled`, `not_filled`, `user_filled` or `unavailable`
+        'filled_modified': Recorded when a field is autofilled and then modified by the user.
+                           Using field_name to record the field that triggers this event.
+        'submitted': Recorded when a form is submitted. Possible values are `autofilled`, `user_filled` or `unavailable`
+        'cleared' Recorded when a form is cleared . Using field_name to record the field that triggers this event
+    objects:
+      - "cc_form_v2"
+    methods:
+      - "detected"
+      - "popup_shown"
+      - "filled"
+      - "filled_modified"
+      - "submitted"
+      - "cleared"
+    bug_numbers: [1757731]
+    notification_emails: ["tgiles@mozilla.com", "dlee@mozilla.com"]
+    expiry_version: never
+    products:
+      - "firefox"
+    record_in_processes: ["content"]
+    release_channel_collection: opt-out
+    extra_keys:
+      cc_name: cardholder name field result. Used by `detected`, `filled`, and `filled_modified` methods.
+      cc_number: credit card number field result
+      cc_type: credit card type result
+      cc_exp: credit card expiration date
+      cc_exp_month: credit card expiration month
+      cc_exp_year: credit card expiration year
+      field_name: Name of the field being affected by the method. Used by `popup_shown` and `filled_modified` methods.
 
 extensions.data:
   migrateResult:
@@ -588,9 +629,9 @@ extensions.data:
       the value of this event is the addon id.
   storageLocalError:
     objects: ["get", "set", "remove", "clear"]
-    bug_numbers: [1606903, 1649948, 1689255, 1730038]
+    bug_numbers: [1606903, 1649948, 1689255, 1730038, 1763523]
     notification_emails: ["addons-dev-internal@mozilla.com"]
-    expiry_version: "102"
+    expiry_version: "112"
     products:
       - "firefox"
     record_in_processes: ["main", "content"]
@@ -651,21 +692,6 @@ navigation:
       engine: The id of the search engine used.
 
 upgrade_dialog:
-  content:
-    objects: ["show", "close", "button", "theme"]
-    bug_numbers: [1697222]
-    description: >
-      Content page behaviors of the upgrade dialog. Value for each object
-      indicates a custom interaction.
-        show: total screens count, button string id, compact mode
-        close: dismissed reason string
-        button: clicked string id (upgradeDialog.ftl -button)
-        theme: clicked theme index
-    expiry_version: never
-    notification_emails: ["edilee@mozilla.com"]
-    products: ["firefox"]
-    record_in_processes: ["main"]
-    release_channel_collection: opt-out
   trigger:
     objects: ["reason"]
     bug_numbers: [1697222]
@@ -725,7 +751,7 @@ urlbar:
           "autofill", "visit", "bookmark", "history", "keyword", "search",
           "searchsuggestion", "switchtab", "remotetab", "extension", "oneoff",
           "keywordoffer", "canonized", "tip", "tiphelp", "formhistory",
-          "tabtosearch", "none"
+          "tabtosearch", "quicksuggest", "none"
       provider: The name of the provider that presented the result.
   abandonment:
     objects: ["blur"]
@@ -1318,7 +1344,7 @@ telemetry.test:
       - "firefox"
       - "fennec"
       - "thunderbird"
-    record_in_processes: ["main"]
+    record_in_processes: ["main", "content"]
     expiry_version: "999"
   main_only:
     objects: ["object1"]
@@ -1402,6 +1428,7 @@ telemetry.test:
       extra1: "This must be kept in-sync"
       extra2: "With the extra_keys in the Glean metric"
     products: ["firefox", "thunderbird"]
+    release_channel_collection: opt-out
 
 # This is a secondary category used for Telemetry tests.
 # The events here will not be sent out with any pings.
@@ -2499,6 +2526,8 @@ pictureinpicture:
       height: The height that the window was created at
       screenX: The screen X coordinate that the window was created at
       screenY: The screen Y coordinate that the window was created at
+      ccEnabled: Are subtitles enabled for PiP
+      webVTTSubtitles: Are the subtitles WebVTT
     notification_emails:
       - mconley@mozilla.com
     products:
@@ -2509,6 +2538,7 @@ pictureinpicture:
       - 1560590
       - 1678202
       - 1730039
+      - 1756703
     expiry_version: "never"
     release_channel_collection: opt-out
   resize:
@@ -2518,25 +2548,6 @@ pictureinpicture:
     extra_keys:
       width: The width that the window was resized to
       height: The height that the window was resize to
-    notification_emails:
-      - mconley@mozilla.com
-    products:
-      - "firefox"
-    record_in_processes:
-      - main
-    bug_numbers:
-      - 1560590
-      - 1678202
-      - 1730039
-    expiry_version: "never"
-    release_channel_collection: opt-out
-  move:
-    objects: ["player"]
-    description: >
-      Recorded when the Picture-in-Picture player window is moved.
-    extra_keys:
-      screenX: The screen X coordinate that the window was moved to
-      screenY: The screen Y coordinate that the window was moved to
     notification_emails:
       - mconley@mozilla.com
     products:
@@ -2580,6 +2591,24 @@ pictureinpicture:
       - 1749585
     expiry_version: "never"
     release_channel_collection: opt-out
+  closed_method:
+    objects: ["method"]
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+    extra_keys:
+      reason: Will be "close-button", "unpip", "pagehide", "fullscreen", "setup-failure", "close-player-shortcut", "context-menu", "video-el-remove", or "video-el-emptied"
+    notification_emails:
+      - mconley@mozilla.com
+      - mtigley@mozilla.com
+      - mhowell@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes:
+      - "main"
+    bug_numbers:
+      - 1756703
+    expiry_version: "never"
+    release_channel_collection: opt-out
 
 pictureinpicture.settings:
   enable:
@@ -2594,6 +2623,7 @@ pictureinpicture.settings:
     bug_numbers:
       - 1639774
     expiry_version: "never"
+    release_channel_collection: opt-out
   disable:
     objects: ["player"]
     description: Recorded when Picture-in-Picture is disabled.
@@ -2606,6 +2636,7 @@ pictureinpicture.settings:
     bug_numbers:
       - 1639774
     expiry_version: "never"
+    release_channel_collection: opt-out
 
 doh:
   evaluate_v2:
@@ -2832,6 +2863,28 @@ slow_script_warning:
       uri_type: The kind of script URL that hung.
       uptime: How long the notification was up (ms).
 
+page_load:
+  toplevel:
+    bug_numbers:
+      - 1759744
+    description: >
+      Recorded when a top level content document has been loaded.
+    products:
+      - "firefox"
+    record_in_processes: ["content"]
+    release_channel_collection: opt-out
+    expiry_version: "never"
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    objects: ["content"]
+    extra_keys:
+      load_time: Time between loadEventStart and navigationStart, in ms.
+      response_time: Time between responseStart and navigationStart, in ms.
+      fcp_time: Time between firstContentfulPaint and navigationStart, in ms.
+      js_exec_time: Time spent executing JS during page load, in ms.
+      load_type: One of normal,reload,stop,link,history,error or other.
+
 webrtc.ui:
   show_indicator:
     objects: ["show_indicator"]
@@ -3010,11 +3063,11 @@ installation:
       silent: '(optional, present if object is "full") Whether this was a silent install'
       from_msi: '(optional, present if object is "full") Whether this was an MSI install'
       default_path: '(optional, present if object is "full") Whether the default path was used'
-    bug_numbers: [1660198, 1725295, 1743465]
+    bug_numbers: [1660198, 1725295, 1743465, 1754638]
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
       - rtestard@mozilla.com
-    expiry_version: "100"
+    expiry_version: never
 
 contextservices.quicksuggest:
   data_collect_toggled:
@@ -3062,7 +3115,7 @@ contextservices.quicksuggest:
       - adw@mozilla.com
     expiry_version: never
   opt_in_dialog:
-    objects: ["accept_2", "reject_2", "learn_more_2", "close_1", "not_now_2", "dismiss_1", "dismiss_2"]
+    objects: ["accept_2", "reject_2", "learn_more_1", "learn_more_2", "close_1", "not_now_2", "dismiss_1", "dismiss_2"]
     release_channel_collection: opt-out
     products:
       - "firefox"
@@ -3071,15 +3124,92 @@ contextservices.quicksuggest:
       This is recorded when the user responds to the Firefox Suggest opt-in
       onboarding dialog. 'accept_2' is recorded when the user accepts the dialog
       and opts in, 'reject_2' is recorded when the user rejects the dialog and
-      opts out, 'learn_more_2' is recorded when the user clicks "Learn more"
-      (the user remains opted out), 'close_1' is recorded when the user clicks
-      close button on introduction section (the user remains opted out),
-      'not_now_2' is recorded when the user clicks "Not now" link on main section
-      (the user remains opted out), 'dismiss_1' recorded when the user dismisses
-      the dialog on introduction section (the user remains opted out),
-      'dismiss_2' recorded when the user dismisses the dialog on main (the user
-      remains opted out),
-    bug_numbers: [1723860, 1745026]
+      opts out, 'learn_more_1' is recorded when the user clicks "Learn more"
+      on the introduction section (the user remains opted out), 'learn_more_2' is
+      recorded when the user clicks "Learn more" on the main section (the user
+      remains opted out), 'close_1' is recorded when the user clicks close button
+      on the introduction section (the user remains opted out), 'not_now_2' is
+      recorded when the user clicks "Not now" link on main section (the user
+      remains opted out), 'dismiss_1' recorded when the user dismisses the dialog
+      on the introduction section (the user remains opted out), 'dismiss_2'
+      recorded when the user dismisses the dialog on main (the user remains opted
+      out),
+    bug_numbers: [1723860, 1745026, 1761171]
+    notification_emails:
+      - fx-search@mozilla.com
+      - adw@mozilla.com
+    expiry_version: never
+  impression_cap:
+    description: >
+      This is recorded when an event related to an impression cap occurs. "hit"
+      is recorded when an impression cap is hit. "reset" is recorded when a
+      cap's counter is reset because its interval period has elapsed.
+    objects: ["hit", "reset"]
+    extra_keys:
+      type: >
+        The type of cap, one of: "sponsored", "nonsponsored"
+      intervalSeconds: >
+        The number of seconds in the cap's interval period. For lifetime caps,
+        this value will be "Infinity".
+      maxCount: >
+        The maximum number of impressions allowed in the cap's interval period.
+      startDate: >
+        The timestamp at which the cap's interval period started, in number of
+        seconds since Unix epoch.
+      count: >
+        The number of impressions in the cap's interval period.
+      impressionDate: >
+        The timestamp of the cap's most recent impression, in number of
+        milliseconds since Unix epoch.
+      eventDate: >
+        The event's timestamp, in number of milliseconds since Unix epoch. For
+        "reset" events, this is the timestamp at which the cap's interval period
+        ended. If eventCount is greater than 1, it's the timestamp at which the
+        last interval period ended. For "hit" events, this is the timestamp at
+        which the cap was hit.
+      eventCount: >
+        The number of impression cap events reported in the telemetry event.
+        This is necessary because the implementation may batch multiple
+        consecutive "reset" events for a cap in a single telemetry event. When
+        that occurs, this value will be greater than 1, startDate will be the
+        timestamp at which the first event's interval period started, eventDate
+        will be the timestamp at which the last event's interval period ended,
+        and count will be the number of impressions during the first event's
+        interval period. (The implementation guarantees that reset events are
+        batched only when the number of impressions for all subsequent interval
+        periods is zero.) For "hit" events, eventCount will always be 1.
+    release_channel_collection: opt-out
+    products:
+      - "firefox"
+    record_in_processes: ["main"]
+    bug_numbers: [1761058]
+    notification_emails:
+      - fx-search@mozilla.com
+      - adw@mozilla.com
+    expiry_version: never
+  engagement:
+    description: >
+      This event is recorded when an engagement occurs in the address bar while
+      a Firefox Suggest suggestion is present. The event's objects are the
+      following possible values:
+      "block": The user dismissed ("blocked") the suggestion.
+      "click": The user picked the suggestion.
+      "help": The user picked the suggestion's help button.
+      "impression_only": The user picked some other row.
+    objects: ["block", "click", "help", "impression_only"]
+    extra_keys:
+      match_type: >
+        "best-match" if the suggestion was a best match or "firefox-suggest" if
+        it was a non-best-match suggestion.
+      position: >
+        The index of the suggestion in the list of results (1-based).
+      suggestion_type: >
+        The type of suggestion, one of: "sponsored", "nonsponsored"
+    release_channel_collection: opt-out
+    products:
+      - "firefox"
+    record_in_processes: ["main"]
+    bug_numbers: [1761059]
     notification_emails:
       - fx-search@mozilla.com
       - adw@mozilla.com
@@ -3160,3 +3290,23 @@ privacy_segmentation:
       - rtestard@mozilla.com
     expiry_version: "106"
     products: ["firefox"]
+
+synced_tabs:
+  click:
+    objects: [
+      "fxa_avatar_menu",
+      "fxa_app_menu",
+      "synced_tabs_sidebar",
+      ]
+    methods: ["click"]
+    release_channel_collection: opt-out
+    products:
+      - "firefox"
+    record_in_processes: ["main"]
+    description: Record how users access and use synced tabs component
+    bug_numbers: [1756252]
+    notification_emails: ["sync-dev@mozilla.org"]
+    expiry_version: "never"
+    extra_keys:
+      tab_pos: position of the tab clicked
+      filter: was there a filter enabled

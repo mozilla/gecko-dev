@@ -56,11 +56,7 @@ from contextlib import contextmanager
 from io import BufferedReader
 
 import pylru
-from gecko_taskgraph.util.taskcluster import (
-    find_task_id,
-    get_artifact_url,
-    list_artifacts,
-)
+from taskgraph.util.taskcluster import find_task_id, get_artifact_url, list_artifacts
 
 from mach.util import UserError
 
@@ -108,6 +104,7 @@ class ArtifactJob(object):
     # The list below list should be updated when we have new ESRs.
     esr_candidate_trees = [
         "releases/mozilla-esr91",
+        "releases/mozilla-esr102",
     ]
     try_tree = "try"
 
@@ -776,6 +773,7 @@ class ThunderbirdMixin(object):
     # The list below list should be updated when we have new ESRs.
     esr_candidate_trees = [
         "releases/comm-esr91",
+        "releases/comm-esr102",
     ]
 
 

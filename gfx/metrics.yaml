@@ -2,24 +2,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# This file defines the metrics that are recorded by the Glean SDK. They are
-# automatically converted to platform-specific code at build time using the
-# `glean_parser` PyPI package.
-
 # Adding a new metric? We have docs for that!
 # https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
 
 ---
 $schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Graphics'
 
 paint:
   build_displaylist_time:
     type: timing_distribution
     description: >
       The time to build a Gecko display list.
-    metadata: &metadata
-      tags:
-        - "Core :: Graphics"
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1728423
     data_reviews:
@@ -31,3 +26,85 @@ paint:
       - mwoodrow@mozilla.com
     expires: never
     telemetry_mirror: PAINT_BUILD_DISPLAYLIST_TIME
+
+wr:
+  rasterize_glyphs_time:
+    type: timing_distribution
+    description: >
+      The time to rasterize glyphs for consumption by WebRender.
+    time_unit: microsecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1728423
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1728423
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WR_RASTERIZE_GLYPHS_TIME
+  rasterize_blobs_time:
+    type: timing_distribution
+    description: >
+      The time to rasterize blobs for consumption by WebRender.
+    time_unit: microsecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1770974
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1770974
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WR_RASTERIZE_BLOBS_TIME
+  framebuild_time:
+    type: timing_distribution
+    description: >
+      The time to rasterize glyphs for consumption by WebRender.
+    time_unit: microsecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1470901
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1470901
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - jmuizelaar@mozilla.com
+    expires: never
+    telemetry_mirror: WR_FRAMEBUILD_TIME
+  scenebuild_time:
+    type: timing_distribution
+    description: >
+      WebRender scene build time.
+    time_unit: microsecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1470901
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1470901
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - jmuizelaar@mozilla.com
+    expires: never
+    telemetry_mirror: WR_SCENEBUILD_TIME
+  sceneswap_time:
+    type: timing_distribution
+    description: >
+      WebRender scene swap time.
+    time_unit: microsecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1470901
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1470901
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - jmuizelaar@mozilla.com
+    expires: never
+    telemetry_mirror: WR_SCENESWAP_TIME

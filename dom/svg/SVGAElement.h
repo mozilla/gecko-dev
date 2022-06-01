@@ -50,20 +50,20 @@ class SVGAElement final : public SVGAElementBase, public Link {
   virtual nsresult BindToTree(BindContext&, nsINode& aParent) override;
   virtual void UnbindFromTree(bool aNullParent = true) override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-  virtual int32_t TabIndexDefault() override;
+
+  int32_t TabIndexDefault() override;
   bool IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) override;
-  virtual bool IsLink(nsIURI** aURI) const override;
-  virtual void GetLinkTarget(nsAString& aTarget) override;
-  virtual already_AddRefed<nsIURI> GetHrefURI() const override;
+
+  void GetLinkTarget(nsAString& aTarget) override;
+  already_AddRefed<nsIURI> GetHrefURI() const override;
+  bool HasHref() const;
+
   virtual EventStates IntrinsicState() const override;
   virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
                                 const nsAttrValue* aOldValue,
                                 nsIPrincipal* aMaybeScriptedPrincipal,
                                 bool aNotify) override;
-
-  // Link
-  virtual bool ElementHasHref() const override;
 
   // WebIDL
   already_AddRefed<DOMSVGAnimatedString> Href();
@@ -88,6 +88,8 @@ class SVGAElement final : public SVGAElementBase, public Link {
     ClearHasPendingLinkUpdate();
     SVGAElementBase::NodeInfoChanged(aOldDoc);
   }
+
+  NS_IMPL_FROMNODE_WITH_TAG(SVGAElement, kNameSpaceID_SVG, nsGkAtoms::a);
 
  protected:
   virtual ~SVGAElement() = default;

@@ -7,6 +7,8 @@
 
 #include "nsNetUtil.h"
 
+using namespace mozilla::net;
+
 LinkHeader LinkHeaderSetAll(nsAString const& v) {
   LinkHeader l;
   l.mHref = v;
@@ -239,5 +241,5 @@ const SimpleParseTestData simple_parse_tests[] = {
      u"prefetch"_ns, u""_ns},
 };
 
-INSTANTIATE_TEST_CASE_P(TestLinkHeader, SimpleParseTest,
-                        testing::ValuesIn(simple_parse_tests));
+INSTANTIATE_TEST_SUITE_P(TestLinkHeader, SimpleParseTest,
+                         testing::ValuesIn(simple_parse_tests));

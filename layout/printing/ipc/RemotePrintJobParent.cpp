@@ -31,10 +31,9 @@ RemotePrintJobParent::RemotePrintJobParent(nsIPrintSettings* aPrintSettings)
 }
 
 mozilla::ipc::IPCResult RemotePrintJobParent::RecvInitializePrint(
-    const nsString& aDocumentTitle, const nsString& aPrintToFile,
-    const int32_t& aStartPage, const int32_t& aEndPage) {
-  nsresult rv =
-      InitializePrintDevice(aDocumentTitle, aPrintToFile, aStartPage, aEndPage);
+    const nsString& aDocumentTitle, const int32_t& aStartPage,
+    const int32_t& aEndPage) {
+  nsresult rv = InitializePrintDevice(aDocumentTitle, aStartPage, aEndPage);
   if (NS_FAILED(rv)) {
     Unused << SendPrintInitializationResult(rv, FileDescriptor());
     // Let any listeners know about the failure before we delete.
@@ -59,8 +58,8 @@ mozilla::ipc::IPCResult RemotePrintJobParent::RecvInitializePrint(
 }
 
 nsresult RemotePrintJobParent::InitializePrintDevice(
-    const nsString& aDocumentTitle, const nsString& aPrintToFile,
-    const int32_t& aStartPage, const int32_t& aEndPage) {
+    const nsString& aDocumentTitle, const int32_t& aStartPage,
+    const int32_t& aEndPage) {
   nsresult rv;
   nsCOMPtr<nsIDeviceContextSpec> deviceContextSpec =
       do_CreateInstance("@mozilla.org/gfx/devicecontextspec;1", &rv);
@@ -68,7 +67,7 @@ nsresult RemotePrintJobParent::InitializePrintDevice(
     return rv;
   }
 
-  rv = deviceContextSpec->Init(nullptr, mPrintSettings, false);
+  rv = deviceContextSpec->Init(mPrintSettings, false);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -79,17 +78,15 @@ nsresult RemotePrintJobParent::InitializePrintDevice(
     return rv;
   }
 
-  rv = mPrintDeviceContext->BeginDocument(aDocumentTitle, aPrintToFile,
-                                          aStartPage, aEndPage);
+  nsAutoString fileName;
+  mPrintSettings->GetToFileName(fileName);
+
+  rv = mPrintDeviceContext->BeginDocument(aDocumentTitle, fileName, aStartPage,
+                                          aEndPage);
   if (NS_FAILED(rv)) {
     NS_WARNING_ASSERTION(rv == NS_ERROR_ABORT,
                          "Failed to initialize print device");
     return rv;
-  }
-
-  if (!mPrintDeviceContext->IsSyncPagePrinting()) {
-    mPrintDeviceContext->RegisterPageDoneCallback(
-        [self = RefPtr{this}](nsresult aResult) { self->PageDone(aResult); });
   }
 
   mIsDoingPrinting = true;
@@ -147,9 +144,7 @@ void RemotePrintJobParent::FinishProcessingPage(
 
   mCurrentPageStream.Close();
 
-  if (mPrintDeviceContext->IsSyncPagePrinting()) {
-    PageDone(rv);
-  }
+  PageDone(rv);
 }
 
 nsresult RemotePrintJobParent::PrintPage(
@@ -202,11 +197,6 @@ mozilla::ipc::IPCResult RemotePrintJobParent::RecvFinalizePrint() {
 
     // Too late to abort the child just log.
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "EndDocument failed");
-
-    // Since RecvFinalizePrint is called after all page printed, there should
-    // be no more page-done callbacks after that, in theory. Unregistering
-    // page-done callback is not must have, but we still do this for safety.
-    mPrintDeviceContext->UnregisterPageDoneCallback();
   }
 
   mIsDoingPrinting = false;
@@ -219,7 +209,6 @@ mozilla::ipc::IPCResult RemotePrintJobParent::RecvAbortPrint(
     const nsresult& aRv) {
   if (mPrintDeviceContext) {
     Unused << mPrintDeviceContext->AbortDocument();
-    mPrintDeviceContext->UnregisterPageDoneCallback();
   }
 
   mIsDoingPrinting = false;
@@ -281,16 +270,14 @@ RemotePrintJobParent::~RemotePrintJobParent() {
 }
 
 void RemotePrintJobParent::ActorDestroy(ActorDestroyReason aWhy) {
-  if (mPrintDeviceContext) {
-    mPrintDeviceContext->UnregisterPageDoneCallback();
-  }
-
   mIsDoingPrinting = false;
 
   // If progress dialog is opened, notify closing it.
   for (auto listener : mPrintProgressListeners) {
     listener->OnStateChange(nullptr, nullptr,
-                            nsIWebProgressListener::STATE_STOP, NS_OK);
+                            nsIWebProgressListener::STATE_STOP |
+                                nsIWebProgressListener::STATE_IS_DOCUMENT,
+                            NS_OK);
   }
 }
 

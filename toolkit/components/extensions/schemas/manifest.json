@@ -250,6 +250,12 @@
             ]
           },
 
+          "granted_host_permissions": {
+            "type": "boolean",
+            "optional": true,
+            "default": false
+          },
+
           "host_permissions": {
             "min_manifest_version": 3,
             "type": "array",
@@ -488,14 +494,25 @@
         ]
       },
       {
+        "id": "PermissionPrivileged",
+        "choices": [
+          {
+            "type": "string",
+            "enum": [
+              "mozillaAddons"
+            ]
+          }
+        ]
+      },
+      {
         "id": "PermissionNoPrompt",
         "choices": [
-          { "$ref": "OptionalPermission" },
+          { "$ref": "OptionalPermissionNoPrompt" },
+          { "$ref": "PermissionPrivileged" },
           {
             "type": "string",
             "enum": [
               "alarms",
-              "mozillaAddons",
               "storage",
               "unlimitedStorage"
             ]

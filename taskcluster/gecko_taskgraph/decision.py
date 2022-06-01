@@ -7,12 +7,15 @@ import os
 import json
 import logging
 import time
+import shutil
 import sys
 from collections import defaultdict
 
 import yaml
 from redo import retry
 from taskgraph.parameters import Parameters
+from taskgraph.taskgraph import TaskGraph
+from taskgraph.util.taskcluster import get_artifact
 from taskgraph.util.yaml import load_yaml
 from voluptuous import Required, Optional, Any
 
@@ -21,7 +24,6 @@ from .actions import render_actions_json
 from .create import create_tasks
 from .generator import TaskGraphGenerator
 from .parameters import get_version, get_app_version
-from .taskgraph import TaskGraph
 from .try_option_syntax import parse_message
 from .util.backstop import is_backstop, BACKSTOP_INDEX
 from .util.bugbug import push_schedules
@@ -30,7 +32,7 @@ from .util.hg import get_hg_revision_branch, get_hg_commit_message
 from .util.partials import populate_release_history
 from .util.python_path import find_object
 from .util.schema import validate_schema, Schema
-from .util.taskcluster import get_artifact, insert_index
+from .util.taskcluster import insert_index
 from .util.taskgraph import find_decision_task, find_existing_tasks_from_previous_kinds
 
 
@@ -80,6 +82,10 @@ PER_PROJECT_PARAMETERS = {
     "mozilla-esr91": {
         "target_tasks_method": "mozilla_esr91_tasks",
         "release_type": "esr91",
+    },
+    "mozilla-esr102": {
+        "target_tasks_method": "mozilla_esr102_tasks",
+        "release_type": "esr102",
     },
     "pine": {
         "target_tasks_method": "pine_tasks",
@@ -249,6 +255,15 @@ def taskgraph_decision(options, parameters=None):
     # write bugbug scheduling information if it was invoked
     if len(push_schedules) > 0:
         write_artifact("bugbug-push-schedules.json", push_schedules.popitem()[1])
+
+    # cache run-task & misc/fetch-content
+    scripts_root_dir = os.path.join(
+        "/builds/worker/checkouts/gecko/taskcluster/scripts"
+    )
+    run_task_file_path = os.path.join(scripts_root_dir, "run-task")
+    fetch_content_file_path = os.path.join(scripts_root_dir, "misc/fetch-content")
+    shutil.copy2(run_task_file_path, ARTIFACTS_DIR)
+    shutil.copy2(fetch_content_file_path, ARTIFACTS_DIR)
 
     # actually create the graph
     create_tasks(

@@ -41,10 +41,11 @@ class CSSWarning extends Component {
       inWarningGroup: PropTypes.bool.isRequired,
       message: PropTypes.object.isRequired,
       open: PropTypes.bool,
-      payload: PropTypes.object,
+      cssMatchingElements: PropTypes.object,
       repeat: PropTypes.any,
       serviceContainer: PropTypes.object,
       timestampsVisible: PropTypes.bool.isRequired,
+      setExpanded: PropTypes.func,
     };
   }
 
@@ -64,22 +65,20 @@ class CSSWarning extends Component {
   }
 
   onToggle(messageId) {
-    const { dispatch, message, payload, open } = this.props;
-
-    const { cssSelectors } = message;
+    const { dispatch, message, cssMatchingElements, open } = this.props;
 
     if (open) {
       dispatch(actions.messageClose(messageId));
-    } else if (payload) {
+    } else if (cssMatchingElements) {
       // If the message already has information about the elements matching
       // the selectors associated with this CSS warning, just open the message.
       dispatch(actions.messageOpen(messageId));
     } else {
       // Query the server for elements matching the CSS selectors associated
-      // with this CSS warning and populate the message's additional data payload with
+      // with this CSS warning and populate the message's additional cssMatchingElements with
       // the result. It's an async operation and potentially expensive, so we only do it
       // on demand, once, when the component is first expanded.
-      dispatch(actions.messageGetMatchingElements(messageId, cssSelectors));
+      dispatch(actions.messageGetMatchingElements(message));
       dispatch(actions.messageOpen(messageId));
     }
   }
@@ -89,11 +88,12 @@ class CSSWarning extends Component {
       dispatch,
       message,
       open,
-      payload,
+      cssMatchingElements,
       repeat,
       serviceContainer,
       timestampsVisible,
       inWarningGroup,
+      setExpanded,
     } = this.props;
 
     const {
@@ -124,7 +124,7 @@ class CSSWarning extends Component {
     // to the query for elements matching the CSS selectors associated with the message.
     const attachment =
       open &&
-      payload !== undefined &&
+      cssMatchingElements !== undefined &&
       dom.div(
         { className: "devtools-monospace" },
         dom.div(
@@ -136,8 +136,9 @@ class CSSWarning extends Component {
         GripMessageBody({
           dispatch,
           escapeWhitespace: false,
-          grip: payload,
+          grip: cssMatchingElements,
           serviceContainer,
+          setExpanded,
         })
       );
 

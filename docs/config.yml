@@ -45,9 +45,12 @@ categories:
     testing_doc:
         - testing/testing-policy
         - testing/ci-configs
+        - testing/chrome-tests
         - testing/marionette
         - testing/geckodriver
         - testing/test-verification
+        - testing/webrender
+        - testing/mochitest-plain
         - testing/xpcshell
         - web-platform
         - gtest

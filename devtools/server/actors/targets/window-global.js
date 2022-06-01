@@ -36,6 +36,9 @@ const Targets = require("devtools/server/actors/targets/index");
 const { TargetActorRegistry } = ChromeUtils.import(
   "resource://devtools/server/actors/targets/target-actor-registry.jsm"
 );
+const { PrivateBrowsingUtils } = ChromeUtils.import(
+  "resource://gre/modules/PrivateBrowsingUtils.jsm"
+);
 
 const EXTENSION_CONTENT_JSM = "resource://gre/modules/ExtensionContent.jsm";
 
@@ -281,6 +284,8 @@ const windowGlobalTargetPrototype = {
     // Save references to the original document we attached to
     this._originalWindow = this.window;
 
+    this.isPrivate = PrivateBrowsingUtils.isContentWindowPrivate(this.window);
+
     this.followWindowGlobalLifeCycle = followWindowGlobalLifeCycle;
     this.isTopLevelTarget = !!isTopLevelTarget;
     this.ignoreSubFrames = ignoreSubFrames;
@@ -307,9 +312,6 @@ const windowGlobalTargetPrototype = {
     // Flag eventually overloaded by sub classes in order to watch new docshells
     // Used by the ParentProcessTargetActor to list all frames in the Browser Toolbox
     this.watchNewDocShells = false;
-
-    // Flag which should be updated by the toolbox startup.
-    this._isNewPerfPanelEnabled = false;
 
     this._workerDescriptorActorList = null;
     this._workerDescriptorActorPool = null;
@@ -596,6 +598,7 @@ const windowGlobalTargetPrototype = {
     const response = {
       actor: this.actorID,
       browsingContextID,
+      processID: Services.appinfo.processID,
       // True for targets created by JSWindowActors, see constructor JSDoc.
       followWindowGlobalLifeCycle: this.followWindowGlobalLifeCycle,
       innerWindowId,
@@ -604,6 +607,7 @@ const windowGlobalTargetPrototype = {
       isTopLevelTarget: this.isTopLevelTarget,
       ignoreSubFrames: this.ignoreSubFrames,
       isPopup,
+      isPrivate: this.isPrivate,
       traits: {
         // @backward-compat { version 64 } Exposes a new trait to help identify
         // BrowsingContextActor's inherited actors from the client side.
@@ -727,7 +731,7 @@ const windowGlobalTargetPrototype = {
 
     Actor.prototype.destroy.call(this);
     TargetActorRegistry.unregisterTargetActor(this);
-    Resources.unwatchAllTargetResources(this);
+    Resources.unwatchAllResources(this);
   },
 
   /**
@@ -900,20 +904,16 @@ const windowGlobalTargetPrototype = {
     // in the same process as this target. We should filter irrelevant events,
     // but console-api-profiler currently doesn't emit any information to identify
     // the origin of the event. See Bug 1731033.
-    if (this._isNewPerfPanelEnabled) {
-      // When the _isNewPerfPanelEnabled flag was set, this browsing target is
-      // used by a toolbox using the new performance panel, which is not
-      // compatible with console.profile().
-      const warningFlag = 1;
-      this.logInPage({
-        text:
-          "console.profile is not compatible with the new Performance recorder. " +
-          "The new Performance recorder can be disabled in the advanced section of the Settings panel. " +
-          "See https://bugzilla.mozilla.org/show_bug.cgi?id=1730896",
-        category: "console.profile unavailable",
-        flags: warningFlag,
-      });
-    }
+
+    // The new performance panel is not compatible with console.profile().
+    const warningFlag = 1;
+    this.logInPage({
+      text:
+        "console.profile is not compatible with the new Performance recorder. " +
+        "See https://bugzilla.mozilla.org/show_bug.cgi?id=1730896",
+      category: "console.profile unavailable",
+      flags: warningFlag,
+    });
   },
 
   observe(subject, topic, data) {
@@ -1309,10 +1309,6 @@ const windowGlobalTargetPrototype = {
       }
     }
 
-    if (typeof options.isNewPerfPanelEnabled == "boolean") {
-      this._isNewPerfPanelEnabled = options.isNewPerfPanelEnabled;
-    }
-
     if (!this.isTopLevelTarget) {
       // Following DevTools target options should only apply to the top target and be
       // propagated through the window global tree via the platform.
@@ -1406,11 +1402,10 @@ const windowGlobalTargetPrototype = {
    * DebuggerProgressListener.
    */
   _windowReady(window, { isFrameSwitching, isBFCache } = {}) {
-    const isTopLevel = window == this.window;
-
-    if (this.ignoreSubFrames && !this.isTopLevel) {
+    if (this.ignoreSubFrames) {
       return;
     }
+    const isTopLevel = window == this.window;
 
     // We just reset iframe list on WillNavigate, so we now list all existing
     // frames when we load a new document in the original window
@@ -1440,11 +1435,10 @@ const windowGlobalTargetPrototype = {
     window,
     { id = null, isFrozen = false, isFrameSwitching = false }
   ) {
-    const isTopLevel = window == this.window;
-
-    if (this.ignoreSubFrames && !this.isTopLevel) {
+    if (this.ignoreSubFrames) {
       return;
     }
+    const isTopLevel = window == this.window;
 
     // If this follows WindowGlobal lifecycle, this target will be destroyed, alongside its top level document.
     // Only notify about in-process iframes.
@@ -1474,11 +1468,10 @@ const windowGlobalTargetPrototype = {
     isFrameSwitching = false,
     navigationStart,
   }) {
-    let isTopLevel = window == this.window;
-
-    if (this.ignoreSubFrames && !this.isTopLevel) {
+    if (this.ignoreSubFrames) {
       return;
     }
+    let isTopLevel = window == this.window;
 
     let reset = false;
     if (window == this._originalWindow && !isFrameSwitching) {
@@ -1533,11 +1526,10 @@ const windowGlobalTargetPrototype = {
    * targeted window global.
    */
   _navigate(window, isFrameSwitching = false) {
-    const isTopLevel = window == this.window;
-
-    if (this.ignoreSubFrames && !this.isTopLevel) {
+    if (this.ignoreSubFrames) {
       return;
     }
+    const isTopLevel = window == this.window;
 
     // navigate event needs to be dispatched synchronously,
     // by calling the listeners in the order or registration.

@@ -25,8 +25,7 @@ class MediaPipelineReceive;
 class MediaSessionConduit;
 class MediaTransportHandler;
 class JsepTransceiver;
-class RTCStatsIdGenerator;
-class TransceiverImpl;
+class PeerConnectionImpl;
 
 namespace dom {
 class MediaStreamTrack;
@@ -34,18 +33,17 @@ class Promise;
 class RTCDtlsTransport;
 struct RTCRtpContributingSource;
 struct RTCRtpSynchronizationSource;
+class RTCRtpTransceiver;
 
 class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
  public:
   RTCRtpReceiver(nsPIDOMWindowInner* aWindow, bool aPrivacyNeeded,
-                 const std::string& aPCHandle,
+                 PeerConnectionImpl* aPc,
                  MediaTransportHandler* aTransportHandler,
-                 JsepTransceiver* aJsepTransceiver,
-                 nsISerialEventTarget* aMainThread, AbstractThread* aCallThread,
+                 JsepTransceiver* aJsepTransceiver, AbstractThread* aCallThread,
                  nsISerialEventTarget* aStsThread,
                  MediaSessionConduit* aConduit,
-                 RTCStatsIdGenerator* aIdGenerator,
-                 TransceiverImpl* aTransceiverImpl);
+                 RTCRtpTransceiver* aTransceiver);
 
   // nsISupports
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -57,7 +55,7 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
   // webidl
   MediaStreamTrack* Track() const { return mTrack; }
   RTCDtlsTransport* GetTransport() const;
-  already_AddRefed<Promise> GetStats();
+  already_AddRefed<Promise> GetStats(ErrorResult& aError);
   void GetContributingSources(
       nsTArray<dom::RTCRtpContributingSource>& aSources);
   void GetSynchronizationSources(
@@ -94,7 +92,7 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
 
   // This is called when we set an answer (ie; when the transport is finalized).
   void UpdateTransport();
-  nsresult UpdateConduit();
+  void UpdateConduit();
 
   // This is called when we set a remote description; may be an offer or answer.
   void UpdateStreams(StreamAssociationChanges* aChanges);
@@ -120,28 +118,27 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
   AbstractCanonical<Maybe<RtpRtcpConfig>>* CanonicalVideoRtpRtcpConfig() {
     return &mVideoRtpRtcpConfig;
   }
+  AbstractCanonical<bool>* CanonicalReceiving() { return &mReceiving; }
 
  private:
   virtual ~RTCRtpReceiver();
 
-  nsresult UpdateVideoConduit();
-  nsresult UpdateAudioConduit();
+  void UpdateVideoConduit();
+  void UpdateAudioConduit();
 
   std::string GetMid() const;
 
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
-  const std::string mPCHandle;
+  RefPtr<PeerConnectionImpl> mPc;
   const RefPtr<JsepTransceiver> mJsepTransceiver;
   bool mHaveStartedReceiving = false;
   bool mHaveSetupTransport = false;
-  nsCOMPtr<nsISerialEventTarget> mMainThread;
   RefPtr<AbstractThread> mCallThread;
   nsCOMPtr<nsISerialEventTarget> mStsThread;
   RefPtr<dom::MediaStreamTrack> mTrack;
   RefPtr<MediaPipelineReceive> mPipeline;
   RefPtr<MediaTransportHandler> mTransportHandler;
-  RefPtr<RTCStatsIdGenerator> mIdGenerator;
-  RefPtr<TransceiverImpl> mTransceiverImpl;
+  RefPtr<RTCRtpTransceiver> mTransceiver;
   // This is [[AssociatedRemoteMediaStreams]], basically. We do not keep the
   // streams themselves here, because that would require this object to know
   // where the stream list for the whole RTCPeerConnection lives..
@@ -159,6 +156,7 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
 
   Canonical<std::vector<VideoCodecConfig>> mVideoCodecs;
   Canonical<Maybe<RtpRtcpConfig>> mVideoRtpRtcpConfig;
+  Canonical<bool> mReceiving;
 };
 
 }  // namespace dom

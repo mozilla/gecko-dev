@@ -304,6 +304,10 @@ nsAccessibilityService::ListenersChanged(nsIArray* aEventChanges) {
 
       if (document) {
         LocalAccessible* acc = document->GetAccessible(content);
+        if (!acc && (content == document->GetContent() ||
+                     content == document->DocumentNode()->GetRootElement())) {
+          acc = document;
+        }
         if (!acc && nsCoreUtils::HasClickListener(content)) {
           // Create an accessible for a inaccessible element having click event
           // handler.
@@ -392,9 +396,24 @@ void nsAccessibilityService::NotifyOfResolutionChange(
   if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     DocAccessible* document = GetDocAccessible(aPresShell);
     if (document && document->IPCDoc()) {
-      nsTArray<mozilla::a11y::CacheData> data(1);
+      AutoTArray<mozilla::a11y::CacheData, 1> data;
       RefPtr<AccAttributes> fields = new AccAttributes();
       fields->SetAttribute(nsGkAtoms::resolution, aResolution);
+      data.AppendElement(mozilla::a11y::CacheData(0, fields));
+      document->IPCDoc()->SendCache(CacheUpdateType::Update, data, true);
+    }
+  }
+}
+
+void nsAccessibilityService::NotifyOfDevPixelRatioChange(
+    mozilla::PresShell* aPresShell, int32_t aAppUnitsPerDevPixel) {
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    DocAccessible* document = GetDocAccessible(aPresShell);
+    if (document && document->IPCDoc()) {
+      AutoTArray<mozilla::a11y::CacheData, 1> data;
+      RefPtr<AccAttributes> fields = new AccAttributes();
+      fields->SetAttribute(nsGkAtoms::_moz_device_pixel_ratio,
+                           aAppUnitsPerDevPixel);
       data.AppendElement(mozilla::a11y::CacheData(0, fields));
       document->IPCDoc()->SendCache(CacheUpdateType::Update, data, true);
     }
@@ -1536,6 +1555,21 @@ void nsAccessibilityService::MarkupAttributes(
     aAttributes->SetAttribute(info->name, info->value);
   }
 }
+
+#if defined(ANDROID)
+#  include "mozilla/Monitor.h"
+#  include "mozilla/Maybe.h"
+
+static Maybe<Monitor> sAndroidMonitor;
+
+mozilla::Monitor& nsAccessibilityService::GetAndroidMonitor() {
+  if (!sAndroidMonitor.isSome()) {
+    sAndroidMonitor.emplace("nsAccessibility::sAndroidMonitor");
+  }
+
+  return *sAndroidMonitor;
+}
+#endif
 
 LocalAccessible* nsAccessibilityService::AddNativeRootAccessible(
     void* aAtkAccessible) {

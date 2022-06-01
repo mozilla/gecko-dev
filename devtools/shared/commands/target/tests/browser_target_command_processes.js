@@ -26,9 +26,7 @@ add_task(async function() {
   targetCommand.destroy();
   // Wait for all the targets to be fully attached so we don't have pending requests.
   await Promise.all(
-    targetCommand
-      .getAllTargets(targetCommand.ALL_TYPES)
-      .map(t => t.attachAndInitThread(targetCommand))
+    targetCommand.getAllTargets(targetCommand.ALL_TYPES).map(t => t.initialized)
   );
 
   await commands.destroy();
@@ -69,9 +67,7 @@ add_task(async function() {
   targetCommand.destroy();
   // Wait for all the targets to be fully attached so we don't have pending requests.
   await Promise.all(
-    targetCommand
-      .getAllTargets(targetCommand.ALL_TYPES)
-      .map(t => t.attachAndInitThread(targetCommand))
+    targetCommand.getAllTargets(targetCommand.ALL_TYPES).map(t => t.initialized)
   );
 
   await commands.destroy();
@@ -107,6 +103,9 @@ async function testProcesses(targetCommand, target) {
 
   // Assert that watchTargets will call the create callback for all existing frames
   const targets = new Set();
+
+  const pidRegExp = /^\d+$/;
+
   const onAvailable = ({ targetFront }) => {
     if (targets.has(targetFront)) {
       ok(false, "The same target is notified multiple times via onAvailable");
@@ -119,6 +118,10 @@ async function testProcesses(targetCommand, target) {
     ok(
       targetFront == target ? targetFront.isTopLevel : !targetFront.isTopLevel,
       "isTopLevel property is correct"
+    );
+    ok(
+      pidRegExp.test(targetFront.processID),
+      `Target has processID of expected shape (${targetFront.processID})`
     );
     targets.add(targetFront);
   };

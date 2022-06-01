@@ -15,6 +15,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -33,10 +34,11 @@ class nsPresContext;
 
 namespace IPC {
 class Message;
+class MessageReader;
+class MessageWriter;
 }  // namespace IPC
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class BeforeUnloadEvent;
 class CustomEvent;
@@ -49,6 +51,7 @@ class EventMessageAutoOverride;
 class ExtendableEvent;
 class KeyboardEvent;
 class MouseEvent;
+class MessageEvent;
 class TimeEvent;
 class UIEvent;
 class WantsPopupControlCheck;
@@ -125,6 +128,9 @@ class Event : public nsISupports, public nsWrapperCache {
   // CustomEvent has a non-autogeneratable initCustomEvent.
   virtual CustomEvent* AsCustomEvent() { return nullptr; }
 
+  // MessageEvent has a non-autogeneratable initMessageEvent and more.
+  virtual MessageEvent* AsMessageEvent() { return nullptr; }
+
   void InitEvent(const nsAString& aEventTypeArg, bool aCanBubble,
                  bool aCancelable) {
     InitEvent(aEventTypeArg, aCanBubble ? CanBubble::eYes : CanBubble::eNo,
@@ -142,8 +148,9 @@ class Event : public nsISupports, public nsWrapperCache {
   const WidgetEvent* WidgetEventPtr() const {
     return const_cast<Event*>(this)->WidgetEventPtr();
   }
-  virtual void Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType);
-  virtual bool Deserialize(const IPC::Message* aMsg, PickleIterator* aIter);
+  virtual void Serialize(IPC::MessageWriter* aWriter,
+                         bool aSerializeInterfaceType);
+  virtual bool Deserialize(IPC::MessageReader* aReader);
   void SetOwner(EventTarget* aOwner);
   void StopCrossProcessForwarding();
   void SetTrusted(bool aTrusted);
@@ -168,9 +175,9 @@ class Event : public nsISupports, public nsWrapperCache {
                                    WidgetEvent* aEvent,
                                    LayoutDeviceIntPoint aPoint,
                                    CSSIntPoint aDefaultPoint);
-  static CSSIntPoint GetScreenCoords(nsPresContext* aPresContext,
-                                     WidgetEvent* aEvent,
-                                     LayoutDeviceIntPoint aPoint);
+  static Maybe<CSSIntPoint> GetScreenCoords(nsPresContext* aPresContext,
+                                            WidgetEvent* aEvent,
+                                            LayoutDeviceIntPoint aPoint);
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   static CSSIntPoint GetOffsetCoords(nsPresContext* aPresContext,
                                      WidgetEvent* aEvent,
@@ -393,8 +400,7 @@ class MOZ_STACK_CLASS WantsPopupControlCheck {
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Event, NS_EVENT_IID)
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 already_AddRefed<mozilla::dom::Event> NS_NewDOMEvent(
     mozilla::dom::EventTarget* aOwner, nsPresContext* aPresContext,

@@ -32,12 +32,10 @@ using mozilla::dom::Selection;
 //---------------------------------------------------
 nsPrintObject::nsPrintObject()
     : mContent(nullptr),
-      mFrameType(eFrame),
+      mFrameType(eDoc),
       mParent(nullptr),
       mHasBeenPrinted(false),
-      mInvisible(false),
-      mShrinkRatio(1.0),
-      mZoomRatio(1.0) {
+      mInvisible(false) {
   MOZ_COUNT_CTOR(nsPrintObject);
 }
 
@@ -80,15 +78,8 @@ nsresult nsPrintObject::InitAsNestedObject(nsIDocShell* aDocShell,
   nsCOMPtr<nsPIDOMWindowOuter> window = aDoc->GetWindow();
   mContent = window->GetFrameElementInternal();
 
-  // "frame" elements not in a frameset context should be treated
-  // as iframes
-  if (mContent->IsHTMLElement(nsGkAtoms::frame) &&
-      mParent->mFrameType == eFrameSet) {
-    mFrameType = eFrame;
-  } else {
-    // Assume something iframe-like, i.e. iframe, object, or embed
-    mFrameType = eIFrame;
-  }
+  mFrameType = eIFrame;
+
   return NS_OK;
 }
 

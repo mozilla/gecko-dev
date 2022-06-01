@@ -124,7 +124,7 @@ class ProfileAgeImpl {
       );
     } catch (e) {
       if (
-        !(e instanceof DOMException) ||
+        !DOMException.isInstance(e) ||
         e.name !== "AbortError" ||
         e.message !== "IOUtils: Shutting down and refusing additional I/O tasks"
       ) {
@@ -192,9 +192,9 @@ async function initProfileAge(profile) {
  * @param {string} profile The path to the profile directory.
  * @return {Promise<ProfileAgeImpl>} Resolves to the ProfileAgeImpl.
  */
-async function ProfileAge(profile) {
+function ProfileAge(profile) {
   if (!profile) {
-    profile = await PathUtils.getProfileDir();
+    profile = PathUtils.profileDir;
   }
 
   if (PROFILES.has(profile)) {

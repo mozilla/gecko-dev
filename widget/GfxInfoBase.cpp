@@ -23,7 +23,6 @@
 #include "mozilla/Observer.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
-#include "nsIScreenManager.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
 #include "nsIXULAppInfo.h"
@@ -34,6 +33,8 @@
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "mozilla/widget/ScreenManager.h"
+#include "mozilla/widget/Screen.h"
 
 #include "gfxPlatform.h"
 #include "gfxConfig.h"
@@ -209,9 +210,10 @@ static const char* GetPrefNameForFeature(int32_t aFeature) {
       name = BLOCKLIST_PREF_BRANCH "dx.p016";
       break;
     case nsIGfxInfo::FEATURE_VP8_HW_DECODE:
+      name = BLOCKLIST_PREF_BRANCH "vp8.hw-decode";
+      break;
     case nsIGfxInfo::FEATURE_VP9_HW_DECODE:
-      // We don't provide prefs for these features as these are
-      // not handling downloadable blocklist.
+      name = BLOCKLIST_PREF_BRANCH "vp9.hw-decode";
       break;
     case nsIGfxInfo::FEATURE_GL_SWIZZLE:
       name = BLOCKLIST_PREF_BRANCH "gl.swizzle";
@@ -233,6 +235,18 @@ static const char* GetPrefNameForFeature(int32_t aFeature) {
       break;
     case nsIGfxInfo::FEATURE_DMABUF:
       name = BLOCKLIST_PREF_BRANCH "dmabuf";
+      break;
+    case nsIGfxInfo::FEATURE_VAAPI:
+      name = BLOCKLIST_PREF_BRANCH "vaapi";
+      break;
+    case nsIGfxInfo::FEATURE_WEBGPU:
+      name = BLOCKLIST_PREF_BRANCH "webgpu";
+      break;
+    case nsIGfxInfo::FEATURE_VIDEO_OVERLAY:
+      name = BLOCKLIST_PREF_BRANCH "video-overlay";
+      break;
+    case nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY:
+      name = BLOCKLIST_PREF_BRANCH "hw-video-zero-copy";
       break;
     case nsIGfxInfo::FEATURE_WEBRENDER_SHADER_CACHE:
       name = BLOCKLIST_PREF_BRANCH "webrender.program-binary-disk";
@@ -466,8 +480,12 @@ static int32_t BlocklistFeatureToGfxFeature(const nsAString& aFeature) {
   if (aFeature.EqualsLiteral("DX_NV12")) {
     return nsIGfxInfo::FEATURE_DX_NV12;
   }
-  // We do not support FEATURE_VP8_HW_DECODE and FEATURE_VP9_HW_DECODE
-  // in downloadable blocklist.
+  if (aFeature.EqualsLiteral("VP8_HW_DECODE")) {
+    return nsIGfxInfo::FEATURE_VP8_HW_DECODE;
+  }
+  if (aFeature.EqualsLiteral("VP9_HW_DECODE")) {
+    return nsIGfxInfo::FEATURE_VP9_HW_DECODE;
+  }
   if (aFeature.EqualsLiteral("GL_SWIZZLE")) {
     return nsIGfxInfo::FEATURE_GL_SWIZZLE;
   }
@@ -485,6 +503,18 @@ static int32_t BlocklistFeatureToGfxFeature(const nsAString& aFeature) {
   }
   if (aFeature.EqualsLiteral("DMABUF")) {
     return nsIGfxInfo::FEATURE_DMABUF;
+  }
+  if (aFeature.EqualsLiteral("VAAPI")) {
+    return nsIGfxInfo::FEATURE_VAAPI;
+  }
+  if (aFeature.EqualsLiteral("WEBGPU")) {
+    return nsIGfxInfo::FEATURE_WEBGPU;
+  }
+  if (aFeature.EqualsLiteral("VIDEO_OVERLAY")) {
+    return nsIGfxInfo::FEATURE_VIDEO_OVERLAY;
+  }
+  if (aFeature.EqualsLiteral("HW_DECODED_VIDEO_ZERO_COPY")) {
+    return nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY;
   }
   if (aFeature.EqualsLiteral("WEBRENDER_PARTIAL_PRESENT")) {
     return nsIGfxInfo::FEATURE_WEBRENDER_PARTIAL_PRESENT;
@@ -744,14 +774,7 @@ void GfxInfoBase::GetData() {
     return;
   }
 
-  nsCOMPtr<nsIScreenManager> manager =
-      do_GetService("@mozilla.org/gfx/screenmanager;1");
-  if (!manager) {
-    MOZ_ASSERT_UNREACHABLE("failed to get nsIScreenManager");
-    return;
-  }
-
-  manager->GetTotalScreenPixels(&mScreenPixels);
+  ScreenManager::GetSingleton().GetTotalScreenPixels(&mScreenPixels);
 }
 
 NS_IMETHODIMP
@@ -1230,7 +1253,9 @@ bool GfxInfoBase::DoesDriverVendorMatch(const nsAString& aBlocklistVendor,
 }
 
 bool GfxInfoBase::IsFeatureAllowlisted(int32_t aFeature) const {
-  return aFeature == nsIGfxInfo::FEATURE_WEBRENDER;
+  return aFeature == nsIGfxInfo::FEATURE_WEBRENDER ||
+         aFeature == nsIGfxInfo::FEATURE_VIDEO_OVERLAY ||
+         aFeature == nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY;
 }
 
 nsresult GfxInfoBase::GetFeatureStatusImpl(
@@ -1370,6 +1395,10 @@ void GfxInfoBase::EvaluateDownloadedBlocklist(
                         nsIGfxInfo::FEATURE_ALLOW_WEBGL_OUT_OF_PROCESS,
                         nsIGfxInfo::FEATURE_X11_EGL,
                         nsIGfxInfo::FEATURE_DMABUF,
+                        nsIGfxInfo::FEATURE_VAAPI,
+                        nsIGfxInfo::FEATURE_WEBGPU,
+                        nsIGfxInfo::FEATURE_VIDEO_OVERLAY,
+                        nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY,
                         nsIGfxInfo::FEATURE_WEBRENDER_PARTIAL_PRESENT,
                         0};
 
@@ -1516,17 +1545,11 @@ void GfxInfoBase::RemoveCollector(GfxInfoCollectorBase* collector) {
   }
 }
 
-nsresult GfxInfoBase::FindMonitors(JSContext* aCx, JS::HandleObject aOutArray) {
-  // If we have no platform specific implementation for detecting monitors, we
-  // can just get the screen size from gfxPlatform as the best guess.
-  if (!gfxPlatform::Initialized()) {
-    return NS_OK;
-  }
-
-  // If the screen size is empty, we are probably in xpcshell.
-  gfx::IntSize screenSize = gfxPlatform::GetPlatform()->GetScreenSize();
-
+static void AppendMonitor(JSContext* aCx, widget::Screen& aScreen,
+                          JS::HandleObject aOutArray, int32_t aIndex) {
   JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+
+  auto screenSize = aScreen.GetRect().Size();
 
   JS::Rooted<JS::Value> screenWidth(aCx, JS::Int32Value(screenSize.width));
   JS_SetProperty(aCx, obj, "screenWidth", screenWidth);
@@ -1534,8 +1557,40 @@ nsresult GfxInfoBase::FindMonitors(JSContext* aCx, JS::HandleObject aOutArray) {
   JS::Rooted<JS::Value> screenHeight(aCx, JS::Int32Value(screenSize.height));
   JS_SetProperty(aCx, obj, "screenHeight", screenHeight);
 
+  // XXX Just preserving behavior since this is exposed to telemetry, but we
+  // could consider including this everywhere.
+#ifdef XP_MACOSX
+  JS::Rooted<JS::Value> scale(
+      aCx, JS::NumberValue(aScreen.GetContentsScaleFactor()));
+  JS_SetProperty(aCx, obj, "scale", scale);
+#endif
+
+#ifdef XP_WIN
+  JS::Rooted<JS::Value> refreshRate(aCx,
+                                    JS::Int32Value(aScreen.GetRefreshRate()));
+  JS_SetProperty(aCx, obj, "refreshRate", refreshRate);
+
+  JS::Rooted<JS::Value> pseudoDisplay(
+      aCx, JS::BooleanValue(aScreen.GetIsPseudoDisplay()));
+  JS_SetProperty(aCx, obj, "pseudoDisplay", pseudoDisplay);
+#endif
+
   JS::Rooted<JS::Value> element(aCx, JS::ObjectValue(*obj));
-  JS_SetElement(aCx, aOutArray, 0, element);
+  JS_SetElement(aCx, aOutArray, aIndex, element);
+}
+
+nsresult GfxInfoBase::FindMonitors(JSContext* aCx, JS::HandleObject aOutArray) {
+  int32_t index = 0;
+  auto& sm = ScreenManager::GetSingleton();
+  for (auto& screen : sm.CurrentScreenList()) {
+    AppendMonitor(aCx, *screen, aOutArray, index++);
+  }
+
+  if (index == 0) {
+    // Ensure we return at least one monitor, this is needed for xpcshell.
+    RefPtr<Screen> screen = sm.GetPrimaryScreen();
+    AppendMonitor(aCx, *screen, aOutArray, index++);
+  }
 
   return NS_OK;
 }
@@ -1552,9 +1607,6 @@ GfxInfoBase::GetMonitors(JSContext* aCx, JS::MutableHandleValue aResult) {
   aResult.setObject(*array);
   return NS_OK;
 }
-
-NS_IMETHODIMP
-GfxInfoBase::RefreshMonitors() { return NS_ERROR_NOT_IMPLEMENTED; }
 
 static inline bool SetJSPropertyString(JSContext* aCx,
                                        JS::Handle<JSObject*> aObj,
@@ -1868,6 +1920,24 @@ GfxInfoBase::GetUsingGPUProcess(bool* aOutValue) {
   return NS_OK;
 }
 
+NS_IMETHODIMP_(int32_t)
+GfxInfoBase::GetMaxRefreshRate(bool* aMixed) {
+  if (aMixed) {
+    *aMixed = false;
+  }
+
+  int32_t maxRefreshRate = 0;
+  for (auto& screen : ScreenManager::GetSingleton().CurrentScreenList()) {
+    int32_t refreshRate = screen->GetRefreshRate();
+    if (aMixed && maxRefreshRate > 0 && maxRefreshRate != refreshRate) {
+      *aMixed = true;
+    }
+    maxRefreshRate = std::max(maxRefreshRate, refreshRate);
+  }
+
+  return maxRefreshRate > 0 ? maxRefreshRate : -1;
+}
+
 NS_IMETHODIMP
 GfxInfoBase::ControlGPUProcessForXPCShell(bool aEnable, bool* _retval) {
   gfxPlatform::GetPlatform();
@@ -1877,7 +1947,6 @@ GfxInfoBase::ControlGPUProcessForXPCShell(bool aEnable, bool* _retval) {
     if (!gfxConfig::IsEnabled(gfx::Feature::GPU_PROCESS)) {
       gfxConfig::UserForceEnable(gfx::Feature::GPU_PROCESS, "xpcshell-test");
     }
-    gpm->LaunchGPUProcess();
     gpm->EnsureGPUReady();
   } else {
     gfxConfig::UserDisable(gfx::Feature::GPU_PROCESS, "xpcshell-test");

@@ -5,6 +5,8 @@
 // Tests that clicking the DOM node button in any ObjectInspect
 // opens the Inspector panel
 
+"use strict";
+
 add_task(async function() {
   // Ensures the end panel is wide enough to show the inspector icon
   await pushPref("devtools.debugger.end-panel-size", 600);
@@ -26,7 +28,7 @@ add_task(async function() {
   // TODO: Remove when Bug 1562165 lands.
   await onWhyPausedDisplayed;
   // TODO: Remove when Bug 1562165 lands.
-  waitUntil(() => !dbg.win.document.querySelector(".why-paused"));
+  await waitUntil(() => !dbg.win.document.querySelector(".why-paused"));
 
   info(
     "Check that hovering over DOM element highlights the node in content panel"
@@ -34,9 +36,7 @@ add_task(async function() {
   let onNodeHighlight = highlighter.waitForHighlighterShown();
 
   info("Mouseover the open in inspector button");
-  const inspectorNode = await waitUntilPredicate(() =>
-    findElement(dbg, "openInspector")
-  );
+  const inspectorNode = await waitFor(() => findElement(dbg, "openInspector"));
   const view = inspectorNode.ownerDocument.defaultView;
   EventUtils.synthesizeMouseAtCenter(
     inspectorNode,

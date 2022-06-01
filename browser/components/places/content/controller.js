@@ -447,6 +447,13 @@ PlacesController.prototype = {
       return false;
     }
 
+    if (
+      aMenuItem.hasAttribute("hide-if-usercontext-disabled") &&
+      !Services.prefs.getBoolPref("privacy.userContext.enabled", false)
+    ) {
+      return false;
+    }
+
     let selectiontype =
       aMenuItem.getAttribute("selection-type") || "single|multiple";
 
@@ -1383,7 +1390,21 @@ PlacesController.prototype = {
 
   showInFolder(aBookmarkGuid) {
     // Open containing folder in left pane/sidebar bookmark tree
-    if (this._view.parentElement.id.includes("Panel")) {
+    if (
+      this._view._rootElt &&
+      this._view._rootElt.id.includes("bookmarksMenu")
+    ) {
+      // We're in the toolbar bookmarks menu
+      window.SidebarUI._show("viewBookmarksSidebar").then(() => {
+        let theSidebar = document.getElementById("sidebar");
+        theSidebar.contentDocument
+          .getElementById("bookmarks-view")
+          .selectItems([aBookmarkGuid]);
+      });
+    } else if (
+      this._view.parentElement &&
+      this._view.parentElement.id.includes("Panel")
+    ) {
       // We're in the sidebar - clear the search box first
       let searchBox = document.getElementById("search-box");
       searchBox.value = "";
@@ -1392,6 +1413,7 @@ PlacesController.prototype = {
       // And go to the node
       this._view.selectItems([aBookmarkGuid], true);
     } else {
+      // We're in the bookmark library/manager
       PlacesUtils.bookmarks
         .fetch(aBookmarkGuid, null, { includePath: true })
         .then(b => {

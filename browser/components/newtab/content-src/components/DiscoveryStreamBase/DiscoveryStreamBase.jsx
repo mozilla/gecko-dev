@@ -191,6 +191,7 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             type={component.type}
             items={component.properties.items}
             cta_variant={component.cta_variant}
+            pocket_button_enabled={component.pocketButtonEnabled}
             display_engagement_labels={ENGAGEMENT_LABEL_ENABLED}
             dismissible={this.props.DiscoveryStream.isCollectionDismissible}
             dispatch={this.props.dispatch}
@@ -206,6 +207,7 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             display_variant={component.properties.display_variant}
             data={component.data}
             feed={component.feed}
+            widgets={component.widgets}
             border={component.properties.border}
             type={component.type}
             dispatch={this.props.dispatch}
@@ -227,6 +229,7 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             lastCardMessageEnabled={component.lastCardMessageEnabled}
             saveToPocketCard={component.saveToPocketCard}
             cta_variant={component.cta_variant}
+            pocket_button_enabled={component.pocketButtonEnabled}
             display_engagement_labels={ENGAGEMENT_LABEL_ENABLED}
           />
         );

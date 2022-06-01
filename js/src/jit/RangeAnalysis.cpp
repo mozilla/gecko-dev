@@ -310,22 +310,10 @@ bool RangeAnalysis::addBetaNodes() {
         }
         break;
       case JSOp::StrictEq:
-        // A strict comparison can test for things other than numeric value.
-        if (!compare->isNumericComparison()) {
-          continue;
-        }
-        // Otherwise fall through to handle JSOp::StrictEq the same as JSOp::Eq.
-        [[fallthrough]];
       case JSOp::Eq:
         comp.setDouble(bound, bound);
         break;
       case JSOp::StrictNe:
-        // A strict comparison can test for things other than numeric value.
-        if (!compare->isNumericComparison()) {
-          continue;
-        }
-        // Otherwise fall through to handle JSOp::StrictNe the same as JSOp::Ne.
-        [[fallthrough]];
       case JSOp::Ne:
         // Negative zero is not not-equal to zero.
         if (bound == 0) {
@@ -367,11 +355,12 @@ bool RangeAnalysis::removeBetaNodes() {
     for (MDefinitionIterator iter(*i); iter;) {
       MDefinition* def = *iter++;
       if (def->isBeta()) {
-        MDefinition* op = def->getOperand(0);
-        JitSpew(JitSpew_Range, "  Removing beta node %u for %u", def->id(),
+        auto* beta = def->toBeta();
+        MDefinition* op = beta->input();
+        JitSpew(JitSpew_Range, "  Removing beta node %u for %u", beta->id(),
                 op->id());
-        def->justReplaceAllUsesWith(op);
-        block->discardDef(def);
+        beta->justReplaceAllUsesWith(op);
+        block->discard(beta);
       } else {
         // We only place Beta nodes at the beginning of basic
         // blocks, so if we see something else, we can move on
@@ -2971,6 +2960,7 @@ static TruncateKind ComputeRequestedTruncateKind(MDefinition* candidate,
       false;  // Check if it can be read from another frame.
   bool isRecoverableResult = true;  // Check if it can safely be reconstructed.
   bool isImplicitlyUsed = candidate->isImplicitlyUsed();
+  bool hasTryBlock = candidate->block()->graph().hasTryBlock();
 
   TruncateKind kind = TruncateKind::Truncate;
   for (MUseIterator use(candidate->usesBegin()); use != candidate->usesEnd();
@@ -3022,9 +3012,11 @@ static TruncateKind ComputeRequestedTruncateKind(MDefinition* candidate,
   // instruction operating on this instruction is going to be a no-op.
   //
   // Note, that if the result can be observed from another frame, then this
-  // optimization is not safe.
+  // optimization is not safe. Similarly, if this function contains a try
+  // block, the result could be observed from a catch block, which we do
+  // not compile.
   bool safeToConvert = kind == TruncateKind::Truncate && !isImplicitlyUsed &&
-                       !isObservableResult;
+                       !isObservableResult && !hasTryBlock;
 
   // If the candidate instruction appears as operand of a resume point or a
   // recover instruction, and we have to truncate its result, then we might
@@ -3398,6 +3390,10 @@ void MDiv::collectRangeInfoPreTrunc() {
   if (rhsRange.isFiniteNonNegative()) {
     canBeNegativeZero_ = false;
   }
+
+  if (fallible()) {
+    setGuardRangeBailoutsUnchecked();
+  }
 }
 
 void MMul::collectRangeInfoPreTrunc() {
@@ -3434,6 +3430,9 @@ void MMod::collectRangeInfoPreTrunc() {
   }
   if (!rhsRange.canBeZero()) {
     canBeDivideByZero_ = false;
+  }
+  if (type() == MIRType::Int32 && fallible()) {
+    setGuardRangeBailoutsUnchecked();
   }
 }
 

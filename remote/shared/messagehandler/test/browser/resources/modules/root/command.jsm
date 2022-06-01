@@ -6,7 +6,7 @@
 
 const EXPORTED_SYMBOLS = ["command"];
 
-const { CONTEXT_DESCRIPTOR_TYPES } = ChromeUtils.import(
+const { ContextDescriptorType } = ChromeUtils.import(
   "chrome://remote/content/shared/messagehandler/MessageHandler.jsm"
 );
 
@@ -14,7 +14,7 @@ const { Module } = ChromeUtils.import(
   "chrome://remote/content/shared/messagehandler/Module.jsm"
 );
 
-class Command extends Module {
+class CommandModule extends Module {
   destroy() {}
 
   /**
@@ -26,7 +26,7 @@ class Command extends Module {
       moduleName: "command",
       category: "testCategory",
       contextDescriptor: {
-        type: CONTEXT_DESCRIPTOR_TYPES.ALL,
+        type: ContextDescriptorType.All,
       },
       values: params.values,
     });
@@ -37,7 +37,7 @@ class Command extends Module {
       moduleName: "command",
       category: "testCategory",
       contextDescriptor: {
-        type: CONTEXT_DESCRIPTOR_TYPES.ALL,
+        type: ContextDescriptorType.All,
       },
       values: params.values,
     });
@@ -46,6 +46,16 @@ class Command extends Module {
   testRootModule() {
     return "root-value";
   }
+
+  testMissingIntermediaryMethod(params, destination) {
+    // Spawn a new internal command, but with a commandName which doesn't match
+    // any method.
+    return this.messageHandler.handleCommand({
+      moduleName: "command",
+      commandName: "missingMethod",
+      destination,
+    });
+  }
 }
 
-const command = Command;
+const command = CommandModule;

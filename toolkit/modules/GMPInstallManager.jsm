@@ -12,9 +12,7 @@ const { PromiseUtils } = ChromeUtils.import(
   "resource://gre/modules/PromiseUtils.jsm"
 );
 const { Log } = ChromeUtils.import("resource://gre/modules/Log.jsm");
-// These symbols are, unfortunately, accessed via the module global from
-// tests, and therefore cannot be lexical definitions.
-var { GMPPrefs, GMPUtils, GMP_PLUGIN_IDS } = ChromeUtils.import(
+const { GMPPrefs, GMPUtils, GMP_PLUGIN_IDS, WIDEVINE_ID } = ChromeUtils.import(
   "resource://gre/modules/GMPUtils.jsm"
 );
 const { ProductAddonChecker } = ChromeUtils.import(
@@ -170,34 +168,116 @@ GMPInstallManager.prototype = {
 
   /**
    * Records telemetry results on if fetching update.xml from Balrog succeeded
-   * and the method that was used to verify the response from Balrog.
+   * when content signature was used to verify the response from Balrog.
    * @param didGetAddonList
    *        A boolean indicating if an update.xml containing the addon list was
    *        successfully fetched (true) or not (false).
-   * @param checkContentSignature
-   *        If the update.xml response was verified using a content signature.
-   *        If this is false, then it's assumed that response was
-   *        verified using cert pinning.
+   * @param err
+   *        The error that was thrown (if it exists) for the failure case. This
+   *        is expected to have a addonCheckerErr member which provides further
+   *        information on why the addon checker failed.
    */
-  recordUpdateXmlTelemetry(didGetAddonList, checkContentSignature) {
-    let log = getScopedLogger("GMPInstallManager.recordUpdateXmlTelemetry");
-
+  recordUpdateXmlTelemetryForContentSignature(didGetAddonList, err = null) {
+    let log = getScopedLogger(
+      "GMPInstallManager.recordUpdateXmlTelemetryForContentSignature"
+    );
     try {
       let updateResultHistogram = Services.telemetry.getHistogramById(
         "MEDIA_GMP_UPDATE_XML_FETCH_RESULT"
       );
 
+      // The non-glean telemetry used here will be removed in future and just
+      // the glean data will be gathered.
       if (didGetAddonList) {
-        if (checkContentSignature) {
-          updateResultHistogram.add("content_sig_ok");
-        } else {
-          updateResultHistogram.add("cert_pinning_ok");
-        }
-      } else if (checkContentSignature) {
-        updateResultHistogram.add("content_sig_fail");
-      } else {
-        updateResultHistogram.add("cert_pinning_fail");
+        updateResultHistogram.add("content_sig_ok");
+        Glean.gmp.updateXmlFetchResult.content_sig_success.add(1);
+        return;
       }
+      // All remaining cases are failure cases.
+      updateResultHistogram.add("content_sig_fail");
+      if (!err?.addonCheckerErr) {
+        // Unknown error case. If this is happening we should audit error paths
+        // to identify why we're not getting an error, or not getting it
+        // labelled.
+        Glean.gmp.updateXmlFetchResult.content_sig_unknown_error.add(1);
+        return;
+      }
+      const errorToHistogramMap = {
+        [ProductAddonChecker.NETWORK_REQUEST_ERR]:
+          "content_sig_net_request_error",
+        [ProductAddonChecker.NETWORK_TIMEOUT_ERR]: "content_sig_net_timeout",
+        [ProductAddonChecker.ABORT_ERR]: "content_sig_abort",
+        [ProductAddonChecker.VERIFICATION_MISSING_DATA_ERR]:
+          "content_sig_missing_data",
+        [ProductAddonChecker.VERIFICATION_FAILED_ERR]: "content_sig_failed",
+        [ProductAddonChecker.VERIFICATION_INVALID_ERR]: "content_sig_invalid",
+        [ProductAddonChecker.XML_PARSE_ERR]: "content_sig_xml_parse_error",
+      };
+      let metricID =
+        errorToHistogramMap[err.addonCheckerErr] ?? "content_sig_unknown_error";
+      let metric = Glean.gmp.updateXmlFetchResult[metricID];
+      metric.add(1);
+    } catch (e) {
+      // We don't expect this path to be hit, but we don't want telemetry
+      // failures to break GMP updates, so catch any issues here and let the
+      // update machinery continue.
+      log.error(
+        `Failed to record telemetry result of getProductAddonList, got error: ${e}`
+      );
+    }
+  },
+
+  /**
+   * Records telemetry results on if fetching update.xml from Balrog succeeded
+   * when cert pinning was used to verify the response from Balrog. This
+   * should be removed once we're no longer using cert pinning.
+   * @param didGetAddonList
+   *        A boolean indicating if an update.xml containing the addon list was
+   *        successfully fetched (true) or not (false).
+   * @param err
+   *        The error that was thrown (if it exists) for the failure case. This
+   *        is expected to have a addonCheckerErr member which provides further
+   *        information on why the addon checker failed.
+   */
+  recordUpdateXmlTelemetryForCertPinning(didGetAddonList, err = null) {
+    let log = getScopedLogger(
+      "GMPInstallManager.recordUpdateXmlTelemetryForCertPinning"
+    );
+    try {
+      let updateResultHistogram = Services.telemetry.getHistogramById(
+        "MEDIA_GMP_UPDATE_XML_FETCH_RESULT"
+      );
+
+      // The non-glean telemetry used here will be removed in future and just
+      // the glean data will be gathered.
+      if (didGetAddonList) {
+        updateResultHistogram.add("cert_pinning_ok");
+        Glean.gmp.updateXmlFetchResult.cert_pin_success.add(1);
+        return;
+      }
+      // All remaining cases are failure cases.
+      updateResultHistogram.add("cert_pinning_fail");
+      if (!err?.addonCheckerErr) {
+        // Unknown error case. If this is happening we should audit error paths
+        // to identify why we're not getting an error, or not getting it
+        // labelled.
+        Glean.gmp.updateXmlFetchResult.cert_pin_unknown_error.add(1);
+        return;
+      }
+      const errorToHistogramMap = {
+        [ProductAddonChecker.NETWORK_REQUEST_ERR]: "cert_pin_net_request_error",
+        [ProductAddonChecker.NETWORK_TIMEOUT_ERR]: "cert_pin_net_timeout",
+        [ProductAddonChecker.ABORT_ERR]: "cert_pin_abort",
+        [ProductAddonChecker.VERIFICATION_MISSING_DATA_ERR]:
+          "cert_pin_missing_data",
+        [ProductAddonChecker.VERIFICATION_FAILED_ERR]: "cert_pin_failed",
+        [ProductAddonChecker.VERIFICATION_INVALID_ERR]: "cert_pin_invalid",
+        [ProductAddonChecker.XML_PARSE_ERR]: "cert_pin_xml_parse_error",
+      };
+      let metricID =
+        errorToHistogramMap[err.addonCheckerErr] ?? "cert_pin_unknown_error";
+      let metric = Glean.gmp.updateXmlFetchResult[metricID];
+      metric.add(1);
     } catch (e) {
       // We don't expect this path to be hit, but we don't want telemetry
       // failures to break GMP updates, so catch any issues here and let the
@@ -238,7 +318,7 @@ GMPInstallManager.prototype = {
     // will be done instead of the older cert pinning method.
     let checkContentSignature = GMPPrefs.getBool(
       GMPPrefs.KEY_CHECK_CONTENT_SIGNATURE,
-      false
+      true
     );
 
     let allowNonBuiltIn = true;
@@ -270,11 +350,19 @@ GMPInstallManager.prototype = {
       checkContentSignature
     )
       .then(res => {
-        this.recordUpdateXmlTelemetry(true, checkContentSignature);
+        if (checkContentSignature) {
+          this.recordUpdateXmlTelemetryForContentSignature(true);
+        } else {
+          this.recordUpdateXmlTelemetryForCertPinning(true);
+        }
         return res;
       })
-      .catch(() => {
-        this.recordUpdateXmlTelemetry(false, checkContentSignature);
+      .catch(err => {
+        if (checkContentSignature) {
+          this.recordUpdateXmlTelemetryForContentSignature(false, err);
+        } else {
+          this.recordUpdateXmlTelemetryForCertPinning(false, err);
+        }
         return downloadLocalConfig();
       });
 
@@ -446,6 +534,8 @@ GMPInstallManager.prototype = {
       }, this);
 
       if (!addonsToInstall.length) {
+        let now = Math.round(Date.now() / 1000);
+        GMPPrefs.setInt(GMPPrefs.KEY_UPDATE_LAST_EMPTY_CHECK, now);
         log.info("No new addons to install, returning");
         return { status: "nothing-new-to-install" };
       }
@@ -557,7 +647,7 @@ GMPAddon.prototype = {
     );
   },
   get isEME() {
-    return this.id == "gmp-widevinecdm" || this.id.indexOf("gmp-eme-") == 0;
+    return this.id == WIDEVINE_ID;
   },
   get isOpenH264() {
     return this.id == "gmp-gmpopenh264";
@@ -639,6 +729,8 @@ GMPDownloader.prototype = {
   start() {
     let log = getScopedLogger("GMPDownloader");
     let gmpAddon = this._gmpAddon;
+    let now = Math.round(Date.now() / 1000);
+    GMPPrefs.setInt(GMPPrefs.KEY_PLUGIN_LAST_INSTALL_START, now, gmpAddon.id);
 
     if (!gmpAddon.isValid) {
       log.info("gmpAddon is not valid, will not continue");
@@ -655,6 +747,8 @@ GMPDownloader.prototype = {
     };
     return ProductAddonChecker.downloadAddon(gmpAddon, downloadOptions).then(
       zipPath => {
+        let now = Math.round(Date.now() / 1000);
+        GMPPrefs.setInt(GMPPrefs.KEY_PLUGIN_LAST_DOWNLOAD, now, gmpAddon.id);
         log.info(
           `install to directory path: ${gmpAddon.id}/${gmpAddon.version}`
         );
@@ -663,25 +757,50 @@ GMPDownloader.prototype = {
           gmpAddon.version,
         ]);
         let installPromise = gmpInstaller.install();
-        return installPromise.then(extractedPaths => {
-          // Success, set the prefs
-          let now = Math.round(Date.now() / 1000);
-          GMPPrefs.setInt(GMPPrefs.KEY_PLUGIN_LAST_UPDATE, now, gmpAddon.id);
-          // Remember our ABI, so that if the profile is migrated to another
-          // platform or from 32 -> 64 bit, we notice and don't try to load the
-          // unexecutable plugin library.
-          let abi = GMPUtils._expectedABI(gmpAddon);
-          log.info("Setting ABI to '" + abi + "' for " + gmpAddon.id);
-          GMPPrefs.setString(GMPPrefs.KEY_PLUGIN_ABI, abi, gmpAddon.id);
-          // Setting the version pref signals installation completion to consumers,
-          // if you need to set other prefs etc. do it before this.
-          GMPPrefs.setString(
-            GMPPrefs.KEY_PLUGIN_VERSION,
-            gmpAddon.version,
-            gmpAddon.id
-          );
-          return extractedPaths;
-        });
+        return installPromise.then(
+          extractedPaths => {
+            // Success, set the prefs
+            let now = Math.round(Date.now() / 1000);
+            GMPPrefs.setInt(GMPPrefs.KEY_PLUGIN_LAST_UPDATE, now, gmpAddon.id);
+            // Remember our ABI, so that if the profile is migrated to another
+            // platform or from 32 -> 64 bit, we notice and don't try to load the
+            // unexecutable plugin library.
+            let abi = GMPUtils._expectedABI(gmpAddon);
+            log.info("Setting ABI to '" + abi + "' for " + gmpAddon.id);
+            GMPPrefs.setString(GMPPrefs.KEY_PLUGIN_ABI, abi, gmpAddon.id);
+            // Setting the version pref signals installation completion to consumers,
+            // if you need to set other prefs etc. do it before this.
+            GMPPrefs.setString(
+              GMPPrefs.KEY_PLUGIN_VERSION,
+              gmpAddon.version,
+              gmpAddon.id
+            );
+            return extractedPaths;
+          },
+          reason => {
+            let now = Math.round(Date.now() / 1000);
+            GMPPrefs.setInt(
+              GMPPrefs.KEY_PLUGIN_LAST_INSTALL_FAILED,
+              now,
+              gmpAddon.id
+            );
+            throw reason;
+          }
+        );
+      },
+      reason => {
+        GMPPrefs.setString(
+          GMPPrefs.KEY_PLUGIN_LAST_DOWNLOAD_FAIL_REASON,
+          reason,
+          gmpAddon.id
+        );
+        let now = Math.round(Date.now() / 1000);
+        GMPPrefs.setInt(
+          GMPPrefs.KEY_PLUGIN_LAST_DOWNLOAD_FAILED,
+          now,
+          gmpAddon.id
+        );
+        throw reason;
       }
     );
   },

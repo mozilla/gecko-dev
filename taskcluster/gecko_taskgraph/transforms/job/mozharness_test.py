@@ -7,16 +7,15 @@ import json
 import os
 import re
 
+from taskgraph.util.taskcluster import get_artifact_path, get_artifact_url
 from voluptuous import Extra, Optional, Required
 
-from gecko_taskgraph.util.taskcluster import get_artifact_url
 from gecko_taskgraph.transforms.job import (
     configure_taskdesc_for_run,
     run_job_using,
 )
 from gecko_taskgraph.util.attributes import is_try
 from gecko_taskgraph.util.schema import Schema
-from gecko_taskgraph.util.taskcluster import get_artifact_path
 from gecko_taskgraph.transforms.test import test_description_schema, normpath
 from gecko_taskgraph.transforms.job.common import support_vcs_checkout
 

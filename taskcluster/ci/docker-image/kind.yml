@@ -115,9 +115,9 @@ jobs:
         symbol: I(deb10-raw)
         definition: debian-raw
         args:
-            BASE_IMAGE: debian:buster-20210816
+            BASE_IMAGE: debian:buster-20220509
             DIST: buster
-            SNAPSHOT: '20210816T214117Z'
+            SNAPSHOT: '20220509T214601Z'
     debian10-packages:
         symbol: I(deb10-pkg)
         definition: debian-packages
@@ -143,9 +143,9 @@ jobs:
         symbol: I(deb11-raw)
         definition: debian-raw
         args:
-            BASE_IMAGE: debian:bullseye-20210816
+            BASE_IMAGE: debian:bullseye-20220509
             DIST: bullseye
-            SNAPSHOT: '20210816T214117Z'
+            SNAPSHOT: '20220509T214601Z'
     debian11-packages:
         symbol: I(deb11-pkg)
         definition: debian-packages
@@ -210,9 +210,6 @@ jobs:
     condprof:
         symbol: I(condprof)
         parent: ubuntu1804-test
-    visual-metrics:
-        symbol: I(visual-metrics)
-        parent: debian10-base
     github-sync:
         symbol: I(github-sync)
         parent: debian10-base
@@ -230,4 +227,4 @@ jobs:
         parent: debian10-base
     decision:
         symbol: I(decision)
-        parent: ubuntu1804-base
+        parent: ubuntu2004-base

@@ -34,7 +34,7 @@
 //! up the scissor, are accepting already transformed coordinates, which we can get by
 //! calling `DrawTarget::to_framebuffer_rect`
 
-use api::{BlobImageHandler, ColorF, ColorU, MixBlendMode};
+use api::{BlobImageHandler, ColorF, ColorU, MixBlendMode, IdNamespace};
 use api::{DocumentId, Epoch, ExternalImageHandler, RenderReasons};
 use api::CrashAnnotator;
 #[cfg(feature = "replay")]
@@ -42,7 +42,7 @@ use api::ExternalImageId;
 use api::{ExternalImageSource, ExternalImageType, FontRenderMode, ImageFormat};
 use api::{PipelineId, ImageRendering, Checkpoint, NotificationRequest};
 use api::{VoidPtrToSizeFn, PremultipliedColorF};
-use api::{RenderNotifier, ImageBufferKind, SharedFontInstanceMap};
+use api::{RenderNotifier, ImageBufferKind};
 #[cfg(feature = "replay")]
 use api::ExternalImage;
 use api::units::*;
@@ -68,7 +68,7 @@ use crate::device::FBOId;
 use crate::debug_item::DebugItem;
 use crate::frame_builder::{Frame, ChasePrimitive, FrameBuilderConfig};
 use crate::glyph_cache::GlyphCache;
-use crate::glyph_rasterizer::{GlyphFormat, GlyphRasterizer};
+use crate::glyph_rasterizer::{GlyphFormat, GlyphRasterizer, SharedFontResources};
 use crate::gpu_cache::{GpuCacheUpdate, GpuCacheUpdateList};
 use crate::gpu_cache::{GpuCacheDebugChunk, GpuCacheDebugCmd};
 use crate::gpu_types::{PrimitiveInstanceData, ScalingInstance, SvgFilterInstance, CopyInstance};
@@ -85,12 +85,13 @@ use crate::profiler::{self, GpuProfileTag, TransactionProfile};
 use crate::profiler::{Profiler, add_event_marker, add_text_marker, thread_is_being_profiled};
 use crate::device::query::{GpuProfiler, GpuDebugMethod};
 use crate::render_backend::RenderBackend;
+use crate::render_target::ResolveOp;
 use crate::render_task_graph::RenderTaskGraph;
 use crate::render_task::{RenderTask, RenderTaskKind, ReadbackTask};
 use crate::resource_cache::ResourceCache;
 use crate::scene_builder_thread::{SceneBuilderThread, SceneBuilderThreadChannels, LowPrioritySceneBuilderThread};
 use crate::screen_capture::AsyncScreenshotGrabber;
-use crate::render_target::{AlphaRenderTarget, ColorRenderTarget, PictureCacheTarget};
+use crate::render_target::{AlphaRenderTarget, ColorRenderTarget, PictureCacheTarget, PictureCacheTargetKind};
 use crate::render_target::{RenderTarget, TextureCacheRenderTarget};
 use crate::render_target::{RenderTargetKind, BlitJob};
 use crate::texture_cache::{TextureCache, TextureCacheConfig};
@@ -1180,6 +1181,7 @@ impl Renderer {
             background_color: Some(options.clear_color),
             compositor_kind,
             tile_size_override: None,
+            max_surface_override: None,
             max_depth_ids: device.max_depth_ids(),
             max_target_size: max_internal_texture_size,
             force_invalidation: false,
@@ -1212,7 +1214,14 @@ impl Renderer {
         let sampler = options.sampler;
         let namespace_alloc_by_client = options.namespace_alloc_by_client;
 
-        let font_instances = SharedFontInstanceMap::new();
+        // Ensure shared font keys exist within their own unique namespace so
+        // that they don't accidentally collide across Renderer instances.
+        let font_namespace = if namespace_alloc_by_client {
+            options.shared_font_namespace.expect("Shared font namespace must be allocated by client")
+        } else {
+            RenderBackend::next_namespace_id()
+        };
+        let fonts = SharedFontResources::new(font_namespace);
 
         let blob_image_handler = options.blob_image_handler.take();
         let scene_builder_hooks = options.scene_builder_hooks;
@@ -1224,7 +1233,7 @@ impl Renderer {
         let (scene_builder_channels, scene_tx) =
             SceneBuilderThreadChannels::new(api_tx.clone());
 
-        let sb_font_instances = font_instances.clone();
+        let sb_fonts = fonts.clone();
 
         thread::Builder::new().name(scene_thread_name.clone()).spawn(move || {
             register_thread_with_profiler(scene_thread_name.clone());
@@ -1232,7 +1241,7 @@ impl Renderer {
 
             let mut scene_builder = SceneBuilderThread::new(
                 config,
-                sb_font_instances,
+                sb_fonts,
                 make_size_of_ops(),
                 scene_builder_hooks,
                 scene_builder_channels,
@@ -1264,7 +1273,7 @@ impl Renderer {
             scene_tx.clone()
         };
 
-        let backend_blob_handler = blob_image_handler
+        let rb_blob_handler = blob_image_handler
             .as_ref()
             .map(|handler| handler.create_similar());
 
@@ -1281,7 +1290,7 @@ impl Renderer {
         };
 
         let rb_scene_tx = scene_tx.clone();
-        let rb_font_instances = font_instances.clone();
+        let rb_fonts = fonts.clone();
         let enable_multithreading = options.enable_multithreading;
         thread::Builder::new().name(rb_thread_name.clone()).spawn(move || {
             register_thread_with_profiler(rb_thread_name.clone());
@@ -1307,7 +1316,8 @@ impl Renderer {
                 picture_textures,
                 glyph_rasterizer,
                 glyph_cache,
-                rb_font_instances,
+                rb_fonts,
+                rb_blob_handler,
             );
 
             resource_cache.enable_multithreading(enable_multithreading);
@@ -1318,7 +1328,6 @@ impl Renderer {
                 rb_scene_tx,
                 resource_cache,
                 backend_notifier,
-                backend_blob_handler,
                 config,
                 sampler,
                 make_size_of_ops(),
@@ -1423,7 +1432,7 @@ impl Renderer {
             scene_tx,
             low_priority_scene_tx,
             blob_image_handler,
-            font_instances,
+            fonts,
         );
         Ok((renderer, sender))
     }
@@ -1657,7 +1666,8 @@ impl Renderer {
     fn handle_debug_command(&mut self, command: DebugCommand) {
         match command {
             DebugCommand::EnableDualSourceBlending(_) |
-            DebugCommand::SetPictureTileSize(_) => {
+            DebugCommand::SetPictureTileSize(_) |
+            DebugCommand::SetMaximumSurfaceSize(_) => {
                 panic!("Should be handled by render backend");
             }
             DebugCommand::SaveCapture(..) |
@@ -2622,6 +2632,30 @@ impl Renderer {
         }
     }
 
+    fn handle_resolves(
+        &mut self,
+        resolve_ops: &[ResolveOp],
+        render_tasks: &RenderTaskGraph,
+        draw_target: DrawTarget,
+    ) {
+        if resolve_ops.is_empty() {
+            return;
+        }
+
+        let _timer = self.gpu_profiler.start_timer(GPU_TAG_BLIT);
+
+        for resolve_op in resolve_ops {
+            self.handle_resolve(
+                resolve_op,
+                render_tasks,
+                draw_target,
+            );
+        }
+
+        self.device.reset_read_target();
+    }
+
+
     fn handle_blits(
         &mut self,
         blits: &[BlitJob],
@@ -2736,6 +2770,90 @@ impl Renderer {
         );
     }
 
+    fn handle_resolve(
+        &mut self,
+        resolve_op: &ResolveOp,
+        render_tasks: &RenderTaskGraph,
+        draw_target: DrawTarget,
+    ) {
+        for src_task_id in &resolve_op.src_task_ids {
+            let src_task = &render_tasks[*src_task_id];
+            let src_info = match src_task.kind {
+                RenderTaskKind::Picture(ref info) => info,
+                _ => panic!("bug: not a picture"),
+            };
+            let src_task_rect = src_task.get_target_rect().to_f32();
+
+            let dest_task = &render_tasks[resolve_op.dest_task_id];
+            let dest_info = match dest_task.kind {
+                RenderTaskKind::Picture(ref info) => info,
+                _ => panic!("bug: not a picture"),
+            };
+            let dest_task_rect = dest_task.get_target_rect().to_f32();
+
+            // Get the rect that we ideally want, in space of the parent surface
+            let wanted_rect = DeviceRect::from_origin_and_size(
+                dest_info.content_origin,
+                dest_task_rect.size().to_f32(),
+            ).cast_unit() * dest_info.device_pixel_scale.inverse();
+
+            // Get the rect that is available on the parent surface. It may be smaller
+            // than desired because this is a picture cache tile covering only part of
+            // the wanted rect and/or because the parent surface was clipped.
+            let avail_rect = DeviceRect::from_origin_and_size(
+                src_info.content_origin,
+                src_task_rect.size().to_f32(),
+            ).cast_unit() * src_info.device_pixel_scale.inverse();
+
+            if let Some(device_int_rect) = wanted_rect.intersection(&avail_rect) {
+                let src_int_rect = (device_int_rect * src_info.device_pixel_scale).cast_unit();
+                let dest_int_rect = (device_int_rect * dest_info.device_pixel_scale).cast_unit();
+
+                // If there is a valid intersection, work out the correct origins and
+                // sizes of the copy rects, and do the blit.
+
+                let src_origin = src_task_rect.min.to_f32() +
+                    src_int_rect.min.to_vector() -
+                    src_info.content_origin.to_vector();
+
+                let src = DeviceIntRect::from_origin_and_size(
+                    src_origin.to_i32(),
+                    src_int_rect.size().round().to_i32(),
+                );
+
+                let dest_origin = dest_task_rect.min.to_f32() +
+                    dest_int_rect.min.to_vector() -
+                    dest_info.content_origin.to_vector();
+
+                let dest = DeviceIntRect::from_origin_and_size(
+                    dest_origin.to_i32(),
+                    dest_int_rect.size().round().to_i32(),
+                );
+
+                let texture_source = TextureSource::TextureCache(
+                    src_task.get_target_texture(),
+                    Swizzle::default(),
+                );
+                let (cache_texture, _) = self.texture_resolver
+                    .resolve(&texture_source).expect("bug: no source texture");
+
+                let read_target = ReadTarget::from_texture(cache_texture);
+
+                // Should always be drawing to picture cache tiles or off-screen surface!
+                debug_assert!(!draw_target.is_default());
+                let device_to_framebuffer = Scale::new(1i32);
+
+                self.device.blit_render_target(
+                    read_target,
+                    src * device_to_framebuffer,
+                    draw_target,
+                    dest * device_to_framebuffer,
+                    TextureFilter::Linear,
+                );
+            }
+        }
+    }
+
     fn draw_picture_cache_target(
         &mut self,
         target: &PictureCacheTarget,
@@ -2758,7 +2876,7 @@ impl Renderer {
 
             let clear_color = target.clear_color.map(|c| c.to_array());
             let scissor_rect = if self.device.get_capabilities().supports_render_target_partial_update {
-                target.alpha_batch_container.task_scissor_rect
+                Some(target.dirty_rect)
             } else {
                 None
             };
@@ -2808,14 +2926,46 @@ impl Renderer {
             self.device.disable_depth_write();
         }
 
-        self.draw_alpha_batch_container(
-            &target.alpha_batch_container,
-            draw_target,
-            framebuffer_kind,
-            projection,
-            render_tasks,
-            stats,
-        );
+        match target.kind {
+            PictureCacheTargetKind::Draw { ref alpha_batch_container } => {
+                self.draw_alpha_batch_container(
+                    alpha_batch_container,
+                    draw_target,
+                    framebuffer_kind,
+                    projection,
+                    render_tasks,
+                    stats,
+                );
+            }
+            PictureCacheTargetKind::Blit { task_id, sub_rect_offset } => {
+                let src_task = &render_tasks[task_id];
+                let (texture, _swizzle) = self.texture_resolver
+                    .resolve(&src_task.get_texture_source())
+                    .expect("BUG: invalid source texture");
+
+                let src_task_rect = src_task.get_target_rect();
+
+                let p0 = src_task_rect.min + sub_rect_offset;
+                let p1 = p0 + target.dirty_rect.size();
+                let src_rect = DeviceIntRect::new(p0, p1);
+
+                // TODO(gw): In future, it'd be tidier to have the draw target offset
+                //           for DC surfaces handled by `blit_render_target`. However,
+                //           for now they are only ever written to here.
+                let target_rect = target
+                    .dirty_rect
+                    .translate(draw_target.offset().to_vector())
+                    .cast_unit();
+
+                self.device.blit_render_target(
+                    ReadTarget::from_texture(texture),
+                    src_rect.cast_unit(),
+                    draw_target,
+                    target_rect,
+                    TextureFilter::Nearest,
+                );
+            }
+        }
 
         self.device.invalidate_depth_target();
     }
@@ -3569,7 +3719,6 @@ impl Renderer {
         &mut self,
         draw_target: DrawTarget,
         target: &ColorRenderTarget,
-        clear_color: Option<[f32; 4]>,
         clear_depth: Option<f32>,
         render_tasks: &RenderTaskGraph,
         projection: &default::Transform3D<f32>,
@@ -3600,6 +3749,10 @@ impl Renderer {
             if clear_depth.is_some() {
                 self.device.enable_depth_write();
             }
+
+            let clear_color = target
+                .clear_color
+                .map(|color| color.to_array());
 
             let clear_rect = match draw_target {
                 DrawTarget::NativeSurface { .. } => {
@@ -3640,6 +3793,13 @@ impl Renderer {
                 self.device.disable_depth_write();
             }
         }
+
+        // Handle any resolves from parent pictures to this target
+        self.handle_resolves(
+            &target.resolve_ops,
+            render_tasks,
+            draw_target,
+        );
 
         // Handle any blits from the texture cache to this target.
         self.handle_blits(
@@ -4794,7 +4954,6 @@ impl Renderer {
                 self.draw_color_target(
                     draw_target,
                     target,
-                    Some([0.0, 0.0, 0.0, 0.0]),
                     clear_depth,
                     &frame.render_tasks,
                     &projection,
@@ -5490,11 +5649,11 @@ pub trait SceneBuilderHooks {
     /// This is called before each scene build starts.
     fn pre_scene_build(&self);
     /// This is called before each scene swap occurs.
-    fn pre_scene_swap(&self, scenebuild_time: u64);
+    fn pre_scene_swap(&self);
     /// This is called after each scene swap occurs. The PipelineInfo contains
     /// the updated epochs and pipelines removed in the new scene compared to
     /// the old scene.
-    fn post_scene_swap(&self, document_id: &Vec<DocumentId>, info: PipelineInfo, sceneswap_time: u64);
+    fn post_scene_swap(&self, document_id: &Vec<DocumentId>, info: PipelineInfo);
     /// This is called after a resource update operation on the scene builder
     /// thread, in the case where resource updates were applied without a scene
     /// build.
@@ -5579,6 +5738,10 @@ pub struct RendererOptions {
     pub chase_primitive: ChasePrimitive,
     pub support_low_priority_transactions: bool,
     pub namespace_alloc_by_client: bool,
+    /// If namespaces are allocated by the client, then the namespace for fonts
+    /// must also be allocated by the client to avoid namespace collisions with
+    /// the backend.
+    pub shared_font_namespace: Option<IdNamespace>,
     pub testing: bool,
     /// Set to true if this GPU supports hardware fast clears as a performance
     /// optimization. Likely requires benchmarking on various GPUs to see if
@@ -5673,6 +5836,7 @@ impl Default for RendererOptions {
             chase_primitive: ChasePrimitive::Nothing,
             support_low_priority_transactions: false,
             namespace_alloc_by_client: false,
+            shared_font_namespace: None,
             testing: false,
             gpu_supports_fast_clears: false,
             allow_dual_source_blending: true,

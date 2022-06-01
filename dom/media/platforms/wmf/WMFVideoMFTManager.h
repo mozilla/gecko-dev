@@ -10,6 +10,7 @@
 #  include "MFTDecoder.h"
 #  include "MediaResult.h"
 #  include "WMF.h"
+#  include "WMFDecoderModule.h"
 #  include "WMFMediaDataDecoder.h"
 #  include "mozilla/Atomics.h"
 #  include "mozilla/RefPtr.h"
@@ -43,7 +44,7 @@ class WMFVideoMFTManager : public MFTManager {
   nsCString GetDescriptionName() const override;
 
   MediaDataDecoder::ConversionRequired NeedsConversion() const override {
-    return mStreamType == H264
+    return mStreamType == WMFStreamType::H264
                ? MediaDataDecoder::ConversionRequired::kNeedAnnexB
                : MediaDataDecoder::ConversionRequired::kNeedNone;
   }
@@ -63,7 +64,7 @@ class WMFVideoMFTManager : public MFTManager {
 
   HRESULT SetDecoderMediaTypes();
 
-  bool CanUseDXVA(IMFMediaType* aType, float aFramerate);
+  bool CanUseDXVA(IMFMediaType* aInputType, IMFMediaType* aOutputType);
 
   // Gets the duration from aSample, and if an unknown or invalid duration is
   // returned from WMF, this instead returns the last known input duration.
@@ -79,6 +80,7 @@ class WMFVideoMFTManager : public MFTManager {
   // Video frame geometry.
   const VideoInfo mVideoInfo;
   const gfx::IntSize mImageSize;
+  const WMFStreamType mStreamType;
   gfx::IntSize mDecodedImageSize;
   uint32_t mVideoStride;
   Maybe<gfx::YUVColorSpace> mColorSpace;
@@ -93,28 +95,10 @@ class WMFVideoMFTManager : public MFTManager {
   bool mDXVAEnabled;
   bool mUseHwAccel;
 
+  bool mZeroCopyNV12Texture;
+
   nsCString mDXVAFailureReason;
 
-  enum StreamType { Unknown, H264, VP8, VP9 };
-
-  StreamType mStreamType;
-
-  // Get a string representation of the stream type. Useful for logging.
-  inline const char* StreamTypeString() const {
-    switch (mStreamType) {
-      case StreamType::H264:
-        return "H264";
-      case StreamType::VP8:
-        return "VP8";
-      case StreamType::VP9:
-        return "VP9";
-      default:
-        MOZ_ASSERT(mStreamType == StreamType::Unknown);
-        return "Unknown";
-    }
-  }
-
-  const GUID& GetMFTGUID();
   const GUID& GetMediaSubtypeGUID();
 
   uint32_t mNullOutputCount = 0;

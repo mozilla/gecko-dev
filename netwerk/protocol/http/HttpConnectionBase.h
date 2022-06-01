@@ -12,7 +12,7 @@
 #include "nsCOMPtr.h"
 #include "nsProxyRelease.h"
 #include "prinrval.h"
-#include "TunnelUtils.h"
+#include "TLSFilterTransaction.h"
 #include "mozilla/Mutex.h"
 #include "ARefBase.h"
 #include "TimingStruct.h"
@@ -136,6 +136,7 @@ class HttpConnectionBase : public nsSupportsWeakReference {
   virtual nsresult GetPeerAddr(NetAddr* addr) = 0;
   virtual bool ResolvedByTRR() = 0;
   virtual bool GetEchConfigUsed() = 0;
+  virtual PRIntervalTime LastWriteTime() = 0;
 
  protected:
   // The capabailities associated with the most recent transaction
@@ -148,7 +149,7 @@ class HttpConnectionBase : public nsSupportsWeakReference {
   bool mBootstrappedTimingsSet{false};
   TimingStruct mBootstrappedTimings;
 
-  Mutex mCallbacksLock{"nsHttpConnection::mCallbacksLock"};
+  Mutex mCallbacksLock MOZ_UNANNOTATED{"nsHttpConnection::mCallbacksLock"};
   nsMainThreadPtrHandle<nsIInterfaceRequestor> mCallbacks;
 
   nsTArray<HttpTrafficCategory> mTrafficCategory;
@@ -189,7 +190,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(HttpConnectionBase, HTTPCONNECTIONBASE_IID)
   bool IsReused() override;                                                    \
   [[nodiscard]] nsresult PushBack(const char* data, uint32_t length) override; \
   void SetEvent(nsresult aStatus) override;                                    \
-  virtual nsAHttpTransaction* Transaction() override;
+  virtual nsAHttpTransaction* Transaction() override;                          \
+  PRIntervalTime LastWriteTime() override;
 
 }  // namespace net
 }  // namespace mozilla

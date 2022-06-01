@@ -30,8 +30,7 @@ class AutoSetInstantiatingToFalse;
 class nsIPrincipal;
 class nsFrameLoader;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 struct BindContext;
 template <typename T>
 class Sequence;
@@ -41,8 +40,7 @@ template <typename T>
 struct Nullable;
 class WindowProxyHolder;
 class XULFrameElement;
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 class nsObjectLoadingContent : public nsImageLoadingContent,
                                public nsIStreamListener,
@@ -373,6 +371,12 @@ class nsObjectLoadingContent : public nsImageLoadingContent,
    */
   void QueueCheckPluginStopEvent();
 
+ public:
+  bool IsAboutBlankLoadOntoInitialAboutBlank(nsIURI* aURI,
+                                             bool aInheritPrincipal,
+                                             nsIPrincipal* aPrincipalToInherit);
+
+ private:
   /**
    * Opens the channel pointed to by mURI into mChannel.
    */
@@ -485,6 +489,12 @@ class nsObjectLoadingContent : public nsImageLoadingContent,
 
   // Utility for firing an error event, if we're an <object>.
   void MaybeFireErrorEvent();
+
+  /**
+   * Store feature policy in container browsing context so that it can be
+   * accessed cross process.
+   */
+  void MaybeStoreCrossOriginFeaturePolicy();
 
   // The final listener for mChannel (uriloader, pluginstreamlistener, etc.)
   nsCOMPtr<nsIStreamListener> mFinalListener;

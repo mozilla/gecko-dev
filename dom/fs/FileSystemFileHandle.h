@@ -9,7 +9,11 @@
 
 #include "mozilla/dom/FileSystemHandle.h"
 
-namespace mozilla::dom {
+namespace mozilla {
+
+class ErrorResult;
+
+namespace dom {
 
 struct FileSystemCreateWritableOptions;
 
@@ -26,19 +30,18 @@ class FileSystemFileHandle final : public FileSystemHandle {
   // WebIDL interface
   FileSystemHandleKind Kind() override;
 
-  already_AddRefed<Promise> GetFile();
+  already_AddRefed<Promise> GetFile(ErrorResult& aError);
 
-#ifdef MOZ_DOM_STREAMS
   already_AddRefed<Promise> CreateWritable(
-      const FileSystemCreateWritableOptions& aOptions);
-#endif
+      const FileSystemCreateWritableOptions& aOptions, ErrorResult& aError);
 
-  already_AddRefed<Promise> CreateSyncAccessHandle();
+  already_AddRefed<Promise> CreateSyncAccessHandle(ErrorResult& aError);
 
  private:
   ~FileSystemFileHandle() = default;
 };
 
-}  // namespace mozilla::dom
+}  // namespace dom
+}  // namespace mozilla
 
 #endif  // DOM_FS_FILESYSTEMFILEHANDLE_H_

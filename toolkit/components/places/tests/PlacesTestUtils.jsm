@@ -24,7 +24,7 @@ var PlacesTestUtils = Object.freeze({
    *        visits to add more fully than URLs/URIs alone and look like this:
    *
    *          {
-   *            uri: href, URL or nsIURI of the page,
+   *            uri|url: href, URL or nsIURI of the page,
    *            [optional] transition: one of the TRANSITION_* from nsINavHistoryService,
    *            [optional] title: title of the page,
    *            [optional] visitDate: visit date, either in microseconds from the epoch or as a date object
@@ -51,26 +51,27 @@ var PlacesTestUtils = Object.freeze({
       let place;
       if (
         obj instanceof Ci.nsIURI ||
-        obj instanceof URL ||
+        URL.isInstance(obj) ||
         typeof obj == "string"
       ) {
         place = { uri: obj };
-      } else if (typeof obj == "object" && obj.uri) {
+      } else if (typeof obj == "object" && (obj.uri || obj.url)) {
         place = obj;
       } else {
         throw new Error("Unsupported type passed to addVisits");
       }
 
-      let info = { url: place.uri };
+      let referrer;
+      let info = { url: place.uri || place.url };
       let spec =
-        place.uri instanceof Ci.nsIURI
-          ? place.uri.spec
-          : new URL(place.uri).href;
+        info.url instanceof Ci.nsIURI ? info.url.spec : new URL(info.url).href;
       info.title = "title" in place ? place.title : "test visit for " + spec;
       if (typeof place.referrer == "string") {
-        place.referrer = Services.io.newURI(place.referrer);
-      } else if (place.referrer && place.referrer instanceof URL) {
-        place.referrer = Services.io.newURI(place.referrer.href);
+        referrer = Services.io.newURI(place.referrer);
+      } else if (place.referrer) {
+        referrer = URL.isInstance(place.referrer)
+          ? Services.io.newURI(place.referrer.href)
+          : place.referrer;
       }
       let visitDate = place.visitDate;
       if (visitDate) {
@@ -94,7 +95,7 @@ var PlacesTestUtils = Object.freeze({
         {
           transition: place.transition,
           date: visitDate,
-          referrer: place.referrer,
+          referrer,
         },
       ];
       infos.push(info);
@@ -507,6 +508,15 @@ var PlacesTestUtils = Object.freeze({
         PlacesUtils.metadata.cache.clear();
       }
     );
+  },
+
+  /**
+   * Clear moz_inputhistory table.
+   */
+  async clearInputHistory() {
+    await PlacesUtils.withConnectionWrapper("test:clearInputHistory", db => {
+      return db.executeCached("DELETE FROM moz_inputhistory");
+    });
   },
 
   /**

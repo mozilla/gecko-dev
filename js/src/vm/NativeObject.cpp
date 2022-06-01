@@ -368,9 +368,10 @@ bool NativeObject::addDenseElementPure(JSContext* cx, NativeObject* obj) {
 
 static inline void FreeSlots(JSContext* cx, NativeObject* obj,
                              ObjectSlots* slots, size_t nbytes) {
-  if (cx->isHelperThreadContext()) {
-    js_free(slots);
-  } else if (obj->isTenured()) {
+  // Note: this is called when shrinking slots, not from the finalizer.
+  MOZ_ASSERT(cx->isMainThreadContext());
+
+  if (obj->isTenured()) {
     MOZ_ASSERT(!cx->nursery().isInside(slots));
     js_free(slots);
   } else {
@@ -422,6 +423,17 @@ void NativeObject::shrinkSlots(JSContext* cx, uint32_t oldCapacity,
   auto* newHeaderSlots =
       new (allocation) ObjectSlots(newCapacity, dictionarySpan);
   slots_ = newHeaderSlots->slots();
+}
+
+void NativeObject::initFixedElements(gc::AllocKind kind, uint32_t length) {
+  uint32_t capacity =
+      gc::GetGCKindSlots(kind) - ObjectElements::VALUES_PER_HEADER;
+
+  setFixedElements();
+  new (getElementsHeader()) ObjectElements(capacity, length);
+  getElementsHeader()->flags |= ObjectElements::FIXED;
+
+  MOZ_ASSERT(hasFixedElements());
 }
 
 bool NativeObject::willBeSparseElements(uint32_t requiredCapacity,
@@ -851,6 +863,7 @@ bool NativeObject::growElements(JSContext* cx, uint32_t reqCapacity) {
 
   ObjectElements* newheader = reinterpret_cast<ObjectElements*>(newHeaderSlots);
   elements_ = newheader->elements() + numShifted;
+  getElementsHeader()->flags &= ~ObjectElements::FIXED;
   getElementsHeader()->capacity = newCapacity;
 
   Debug_SetSlotRangeToCrashOnTouch(elements_ + initlen, newCapacity - initlen);
@@ -2088,12 +2101,8 @@ static inline bool GeneralizedGetProperty(JSContext* cx, JSObject* obj, jsid id,
 
 bool js::GetSparseElementHelper(JSContext* cx, HandleArrayObject obj,
                                 int32_t int_id, MutableHandleValue result) {
-  // Callers should have ensured that this object has a static prototype.
-  MOZ_ASSERT(obj->hasStaticPrototype());
-
   // Indexed properties can not exist on the prototype chain.
-  MOZ_ASSERT_IF(obj->staticPrototype() != nullptr,
-                !ObjectMayHaveExtraIndexedProperties(obj->staticPrototype()));
+  MOZ_ASSERT(!PrototypeMayHaveIndexedProperties(obj));
 
   MOZ_ASSERT(PropertyKey::fitsInInt(int_id));
   RootedId id(cx, PropertyKey::Int(int_id));

@@ -1,3 +1,7 @@
+/*!
+Shader validator.
+*/
+
 mod analyzer;
 mod compose;
 mod expression;
@@ -9,8 +13,8 @@ mod r#type;
 use crate::arena::{Arena, UniqueArena};
 
 use crate::{
-    arena::Handle,
-    proc::{InvalidBaseType, Layouter},
+    arena::{BadHandle, Handle},
+    proc::{LayoutError, Layouter},
     FastHashSet,
 };
 use bit_set::BitSet;
@@ -29,6 +33,21 @@ pub use r#type::{Disalignment, TypeError, TypeFlags};
 
 bitflags::bitflags! {
     /// Validation flags.
+    ///
+    /// If you are working with trusted shaders, then you may be able
+    /// to save some time by skipping validation.
+    ///
+    /// If you do not perform full validation, invalid shaders may
+    /// cause Naga to panic. If you do perform full validation and
+    /// [`Validator::validate`] returns `Ok`, then Naga promises that
+    /// code generation will either succeed or return an error; it
+    /// should never panic.
+    ///
+    /// The default value for `ValidationFlags` is
+    /// `ValidationFlags::all()`. If Naga's `"validate"` feature is
+    /// enabled, this requests full validation; otherwise, this
+    /// requests no validation. (The `"validate"` feature is disabled
+    /// by default.)
     #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
     #[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
     pub struct ValidationFlags: u8 {
@@ -63,12 +82,18 @@ bitflags::bitflags! {
     #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
     #[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
     pub struct Capabilities: u8 {
-        /// Support for `StorageClass:PushConstant`.
+        /// Support for `AddressSpace:PushConstant`.
         const PUSH_CONSTANT = 0x1;
         /// Float values with width = 8.
         const FLOAT64 = 0x2;
         /// Support for `Builtin:PrimitiveIndex`.
         const PRIMITIVE_INDEX = 0x4;
+        /// Support for non-uniform indexing of sampled textures and storage buffer arrays.
+        const SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING = 0x8;
+        /// Support for non-uniform indexing of uniform buffers and storage texture arrays.
+        const UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING = 0x10;
+        /// Support for non-uniform indexing of samplers.
+        const SAMPLER_NON_UNIFORM_INDEXING = 0x11;
     }
 }
 
@@ -114,6 +139,8 @@ pub struct Validator {
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum ConstantError {
+    #[error(transparent)]
+    BadHandle(#[from] BadHandle),
     #[error("The type doesn't match the constant")]
     InvalidType,
     #[error("The component handle {0:?} can not be resolved")]
@@ -127,7 +154,7 @@ pub enum ConstantError {
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum ValidationError {
     #[error(transparent)]
-    Layouter(#[from] InvalidBaseType),
+    Layouter(#[from] LayoutError),
     #[error("Type {handle:?} '{name}' is invalid")]
     Type {
         handle: Handle<crate::Type>,
@@ -169,7 +196,7 @@ pub enum ValidationError {
 
 impl crate::TypeInner {
     #[cfg(feature = "validate")]
-    fn is_sized(&self) -> bool {
+    const fn is_sized(&self) -> bool {
         match *self {
             Self::Scalar { .. }
             | Self::Vector { .. }
@@ -182,13 +209,16 @@ impl crate::TypeInner {
             | Self::Pointer { .. }
             | Self::ValuePointer { .. }
             | Self::Struct { .. } => true,
-            Self::Array { .. } | Self::Image { .. } | Self::Sampler { .. } => false,
+            Self::Array { .. }
+            | Self::Image { .. }
+            | Self::Sampler { .. }
+            | Self::BindingArray { .. } => false,
         }
     }
 
     /// Return the `ImageDimension` for which `self` is an appropriate coordinate.
     #[cfg(feature = "validate")]
-    fn image_storage_coordinates(&self) -> Option<crate::ImageDimension> {
+    const fn image_storage_coordinates(&self) -> Option<crate::ImageDimension> {
         match *self {
             Self::Scalar {
                 kind: crate::ScalarKind::Sint,
@@ -225,6 +255,17 @@ impl Validator {
         }
     }
 
+    /// Reset the validator internals
+    pub fn reset(&mut self) {
+        self.types.clear();
+        self.layouter.clear();
+        self.location_mask.clear();
+        self.bind_group_masks.clear();
+        self.select_cases.clear();
+        self.valid_expression_list.clear();
+        self.valid_expression_set.clear();
+    }
+
     #[cfg(feature = "validate")]
     fn validate_constant(
         &self,
@@ -240,7 +281,7 @@ impl Validator {
                 }
             }
             crate::ConstantInner::Composite { ty, ref components } => {
-                match types[ty].inner {
+                match types.get_handle(ty)?.inner {
                     crate::TypeInner::Array {
                         size: crate::ArraySize::Constant(size_handle),
                         ..
@@ -270,11 +311,13 @@ impl Validator {
         &mut self,
         module: &crate::Module,
     ) -> Result<ModuleInfo, WithSpan<ValidationError>> {
+        self.reset();
         self.reset_types(module.types.len());
+
         self.layouter
             .update(&module.types, &module.constants)
             .map_err(|e| {
-                let InvalidBaseType(handle) = e;
+                let handle = e.ty;
                 ValidationError::from(e).with_span_handle(handle, &module.types)
             })?;
 

@@ -11,12 +11,9 @@
 #include "nsIChannel.h"
 #include "nsIURI.h"
 #include "nsIProtocolHandler.h"
-#include "mozilla/ArrayUtils.h"
-#include "mozilla/StaticPrefs_browser.h"
-#include "mozilla/Preferences.h"
 #include "nsServiceManagerUtils.h"
+#include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/dom/ContentChild.h"
-#include "mozilla/dom/ContentParent.h"
 
 namespace mozilla {
 namespace browser {
@@ -73,9 +70,9 @@ static const RedirEntry kRedirMap[] = {
          nsIAboutModule::URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS |
          nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::IS_SECURE_CHROME_UI},
-    {"tabcrashed", "chrome://browser/content/aboutTabCrashed.xhtml",
-     nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
-         nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::HIDE_FROM_ABOUTABOUT},
+    {"firefoxview", "chrome://browser/content/firefoxview.html",
+     nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI |
+         nsIAboutModule::HIDE_FROM_ABOUTABOUT},
     {"policies", "chrome://browser/content/policies/aboutPolicies.html",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI},
     {"privatebrowsing", "chrome://browser/content/aboutPrivateBrowsing.html",
@@ -94,6 +91,9 @@ static const RedirEntry kRedirMap[] = {
     {"sessionrestore", "chrome://browser/content/aboutSessionRestore.xhtml",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::HIDE_FROM_ABOUTABOUT |
          nsIAboutModule::IS_SECURE_CHROME_UI},
+    {"tabcrashed", "chrome://browser/content/aboutTabCrashed.xhtml",
+     nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
+         nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::HIDE_FROM_ABOUTABOUT},
     {"welcomeback", "chrome://browser/content/aboutWelcomeBack.xhtml",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::HIDE_FROM_ABOUTABOUT |
          nsIAboutModule::IS_SECURE_CHROME_UI},
@@ -277,8 +277,7 @@ AboutRedirector::GetChromeURI(nsIURI* aURI, nsIURI** chromeURI) {
   return NS_ERROR_ILLEGAL_VALUE;
 }
 
-nsresult AboutRedirector::Create(nsISupports* aOuter, REFNSIID aIID,
-                                 void** result) {
+nsresult AboutRedirector::Create(REFNSIID aIID, void** result) {
   AboutRedirector* about = new AboutRedirector();
   if (about == nullptr) return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(about);

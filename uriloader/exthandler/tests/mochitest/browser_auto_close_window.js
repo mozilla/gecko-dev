@@ -44,7 +44,7 @@ function promiseHelperAppDialog() {
 
 let mockHelperAppService;
 
-add_task(async function setup() {
+add_setup(async function() {
   // Replace the real helper app dialog with our own.
   mockHelperAppService = ComponentUtils._getFactory(HelperAppLauncherDialog);
   registrar.registerFactory(
@@ -67,8 +67,22 @@ add_task(async function setup() {
   mimeInfo.alwaysAskBeforeHandling = true;
   HandlerService.store(mimeInfo);
 
+  // On Mac, .bin is application/macbinary
+  let mimeInfoMac;
+  if (AppConstants.platform == "macosx") {
+    mimeInfoMac = MIMEService.getFromTypeAndExtension(
+      "application/macbinary",
+      "bin"
+    );
+    mimeInfoMac.alwaysAskBeforeHandling = true;
+    HandlerService.store(mimeInfoMac);
+  }
+
   registerCleanupFunction(() => {
     HandlerService.remove(mimeInfo);
+    if (mimeInfoMac) {
+      HandlerService.remove(mimeInfoMac);
+    }
   });
 });
 

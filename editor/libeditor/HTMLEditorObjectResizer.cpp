@@ -323,7 +323,9 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     return NS_ERROR_FAILURE;
   }
 
-  if (NS_WARN_IF(!IsDescendantOfEditorRoot(&aResizedElement))) {
+  const RefPtr<Element> editingHost = ComputeEditingHost();
+  if (NS_WARN_IF(!editingHost) ||
+      NS_WARN_IF(!aResizedElement.IsInclusiveDescendantOf(editingHost))) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -1021,7 +1023,7 @@ nsresult HTMLEditor::SetShadowPosition(Element& aShadowElement,
 }
 
 int32_t HTMLEditor::GetNewResizingIncrement(int32_t aX, int32_t aY,
-                                            ResizeAt aResizeAt) {
+                                            ResizeAt aResizeAt) const {
   int32_t result = 0;
   if (!mPreserveRatio) {
     switch (aResizeAt) {
@@ -1260,8 +1262,8 @@ nsresult HTMLEditor::SetFinalSizeWithTransaction(int32_t aX, int32_t aY) {
                  : 0);
 
   // we want one transaction only from a user's point of view
-  AutoPlaceholderBatch treatAsOneTransaction(*this,
-                                             ScrollSelectionIntoView::Yes);
+  AutoPlaceholderBatch treatAsOneTransaction(
+      *this, ScrollSelectionIntoView::Yes, __FUNCTION__);
   RefPtr<Element> resizedElement(mResizedObject);
   RefPtr<nsStyledElement> resizedStyleElement =
       nsStyledElement::FromNodeOrNull(mResizedObject);

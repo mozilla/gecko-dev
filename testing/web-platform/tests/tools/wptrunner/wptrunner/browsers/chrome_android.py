@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import mozprocess
 import subprocess
 
@@ -6,7 +8,9 @@ from .base import get_timeout_multiplier   # noqa: F401
 from .base import WebDriverBrowser  # noqa: F401
 from .chrome import executor_kwargs as chrome_executor_kwargs
 from ..executors.base import WdspecExecutor  # noqa: F401
-from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
+from ..executors.executorchrome import ChromeDriverPrintRefTestExecutor  # noqa: F401
+from ..executors.executorwebdriver import (WebDriverCrashtestExecutor,  # noqa: F401
+                                           WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor)  # noqa: F401
 
 
@@ -15,7 +19,9 @@ __wptrunner__ = {"product": "chrome_android",
                  "browser": "ChromeAndroidBrowser",
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
-                              "wdspec": "WdspecExecutor"},
+                              "print-reftest": "ChromeDriverPrintRefTestExecutor",
+                              "wdspec": "WdspecExecutor",
+                              "crashtest": "WebDriverCrashtestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -32,6 +38,7 @@ def check_args(**kwargs):
 
 def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"package_name": kwargs["package_name"],
+            "adb_binary": kwargs["adb_binary"],
             "device_serial": kwargs["device_serial"],
             "webdriver_binary": kwargs["webdriver_binary"],
             "webdriver_args": kwargs.get("webdriver_args"),
@@ -71,7 +78,7 @@ def env_options():
     return {"server_host": "127.0.0.1"}
 
 
-class LogcatRunner(object):
+class LogcatRunner:
     def __init__(self, logger, browser, remote_queue):
         self.logger = logger
         self.browser = browser
@@ -127,6 +134,7 @@ class ChromeAndroidBrowserBase(WebDriverBrowser):
     def __init__(self,
                  logger,
                  webdriver_binary="chromedriver",
+                 adb_binary=None,
                  remote_queue=None,
                  device_serial=None,
                  webdriver_args=None,
@@ -136,6 +144,7 @@ class ChromeAndroidBrowserBase(WebDriverBrowser):
                          binary=None,
                          webdriver_binary=webdriver_binary,
                          webdriver_args=webdriver_args,)
+        self.adb_binary = adb_binary or "adb"
         self.device_serial = device_serial
         self.stackwalk_binary = stackwalk_binary
         self.symbols_path = symbols_path
@@ -150,7 +159,7 @@ class ChromeAndroidBrowserBase(WebDriverBrowser):
             self.logcat_runner.start()
 
     def _adb_run(self, args):
-        cmd = ['adb']
+        cmd = [self.adb_binary]
         if self.device_serial:
             cmd.extend(['-s', self.device_serial])
         cmd.extend(args)
@@ -183,7 +192,7 @@ class ChromeAndroidBrowserBase(WebDriverBrowser):
         self._adb_run(['logcat', '-c'])
 
     def logcat_cmd(self):
-        cmd = ['adb']
+        cmd = [self.adb_binary]
         if self.device_serial:
             cmd.extend(['-s', self.device_serial])
         cmd.extend(['logcat', '*:D'])
@@ -221,13 +230,15 @@ class ChromeAndroidBrowser(ChromeAndroidBrowserBase):
 
     def __init__(self, logger, package_name,
                  webdriver_binary="chromedriver",
+                 adb_binary=None,
                  remote_queue = None,
                  device_serial=None,
                  webdriver_args=None,
                  stackwalk_binary=None,
                  symbols_path=None):
         super().__init__(logger,
-                         webdriver_binary, remote_queue, device_serial,
-                         webdriver_args, stackwalk_binary, symbols_path)
+                         webdriver_binary, adb_binary, remote_queue,
+                         device_serial, webdriver_args, stackwalk_binary,
+                         symbols_path)
         self.package_name = package_name
         self.wptserver_ports = _wptserve_ports

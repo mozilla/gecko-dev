@@ -39,10 +39,7 @@ async function createDownloadFile() {
   info("Setting path for download file");
   // Set target for download file. Otherwise, file will default to .file instead of txt
   // when we prepare our downloads - particularly in task_addDownloads().
-  let targetPath = PathUtils.join(
-    await PathUtils.getTempDir(),
-    "downloaded.txt"
-  );
+  let targetPath = PathUtils.join(PathUtils.tempDir, "downloaded.txt");
   let target = new FileUtils.File(targetPath);
   target.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
   downloads.push({
@@ -60,9 +57,12 @@ async function prepareDownloadFiles(downloadList) {
   info("Download target exists? " + download.target.exists);
 }
 
-add_task(async function setup() {
+add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.download.improvements_to_download_panel", true]],
+    set: [
+      ["browser.download.improvements_to_download_panel", true],
+      ["browser.download.always_ask_before_handling_new_types", false],
+    ],
   });
   const originalOpenDownload = DownloadsCommon.openDownload;
   // overwrite DownloadsCommon.openDownload to prevent file from opening during tests

@@ -56,6 +56,7 @@
 #include "frontend/BytecodeCompiler.h"  // frontend::ParseModuleToExtensibleStencil
 #include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
 #include "gc/Allocator.h"
+#include "gc/GC.h"
 #include "gc/Zone.h"
 #include "jit/BaselineJIT.h"
 #include "jit/Disassemble.h"
@@ -142,6 +143,7 @@
 #include "vm/NativeObject-inl.h"
 #include "vm/ObjectFlags-inl.h"
 #include "vm/StringType-inl.h"
+#include "wasm/WasmInstance-inl.h"
 
 using namespace js;
 
@@ -187,18 +189,6 @@ static bool GetRealmConfiguration(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   RootedObject info(cx, JS_NewPlainObject(cx));
   if (!info) {
-    return false;
-  }
-
-  bool privateFields = cx->options().privateClassFields();
-  if (!JS_SetProperty(cx, info, "privateFields",
-                      privateFields ? TrueHandleValue : FalseHandleValue)) {
-    return false;
-  }
-  bool privateMethods = cx->options().privateClassMethods();
-  if (!JS_SetProperty(cx, info, "privateMethods",
-                      privateFields && privateMethods ? TrueHandleValue
-                                                      : FalseHandleValue)) {
     return false;
   }
 
@@ -466,6 +456,24 @@ static bool GetBuildConfiguration(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+#ifdef JS_CODEGEN_LOONG64
+  value = BooleanValue(true);
+#else
+  value = BooleanValue(false);
+#endif
+  if (!JS_SetProperty(cx, info, "loong64", value)) {
+    return false;
+  }
+
+#ifdef JS_SIMULATOR_LOONG64
+  value = BooleanValue(true);
+#else
+  value = BooleanValue(false);
+#endif
+  if (!JS_SetProperty(cx, info, "loong64-simulator", value)) {
+    return false;
+  }
+
 #ifdef MOZ_ASAN
   value = BooleanValue(true);
 #else
@@ -576,6 +584,15 @@ static bool GetBuildConfiguration(JSContext* cx, unsigned argc, Value* vp) {
   value = BooleanValue(false);
 #endif
   if (!JS_SetProperty(cx, info, "new-set-methods", value)) {
+    return false;
+  }
+
+#ifdef FUZZING
+  value = BooleanValue(true);
+#else
+  value = BooleanValue(false);
+#endif
+  if (!JS_SetProperty(cx, info, "fuzzing-defined", value)) {
     return false;
   }
 
@@ -700,63 +717,6 @@ static bool MinorGC(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-#define FOR_EACH_GC_PARAM(_)                                               \
-  _("maxBytes", JSGC_MAX_BYTES, true)                                      \
-  _("minNurseryBytes", JSGC_MIN_NURSERY_BYTES, true)                       \
-  _("maxNurseryBytes", JSGC_MAX_NURSERY_BYTES, true)                       \
-  _("gcBytes", JSGC_BYTES, false)                                          \
-  _("nurseryBytes", JSGC_NURSERY_BYTES, false)                             \
-  _("gcNumber", JSGC_NUMBER, false)                                        \
-  _("majorGCNumber", JSGC_MAJOR_GC_NUMBER, false)                          \
-  _("minorGCNumber", JSGC_MINOR_GC_NUMBER, false)                          \
-  _("incrementalGCEnabled", JSGC_INCREMENTAL_GC_ENABLED, true)             \
-  _("perZoneGCEnabled", JSGC_PER_ZONE_GC_ENABLED, true)                    \
-  _("unusedChunks", JSGC_UNUSED_CHUNKS, false)                             \
-  _("totalChunks", JSGC_TOTAL_CHUNKS, false)                               \
-  _("sliceTimeBudgetMS", JSGC_SLICE_TIME_BUDGET_MS, true)                  \
-  _("markStackLimit", JSGC_MARK_STACK_LIMIT, true)                         \
-  _("highFrequencyTimeLimit", JSGC_HIGH_FREQUENCY_TIME_LIMIT, true)        \
-  _("smallHeapSizeMax", JSGC_SMALL_HEAP_SIZE_MAX, true)                    \
-  _("largeHeapSizeMin", JSGC_LARGE_HEAP_SIZE_MIN, true)                    \
-  _("highFrequencySmallHeapGrowth", JSGC_HIGH_FREQUENCY_SMALL_HEAP_GROWTH, \
-    true)                                                                  \
-  _("highFrequencyLargeHeapGrowth", JSGC_HIGH_FREQUENCY_LARGE_HEAP_GROWTH, \
-    true)                                                                  \
-  _("lowFrequencyHeapGrowth", JSGC_LOW_FREQUENCY_HEAP_GROWTH, true)        \
-  _("allocationThreshold", JSGC_ALLOCATION_THRESHOLD, true)                \
-  _("smallHeapIncrementalLimit", JSGC_SMALL_HEAP_INCREMENTAL_LIMIT, true)  \
-  _("largeHeapIncrementalLimit", JSGC_LARGE_HEAP_INCREMENTAL_LIMIT, true)  \
-  _("minEmptyChunkCount", JSGC_MIN_EMPTY_CHUNK_COUNT, true)                \
-  _("maxEmptyChunkCount", JSGC_MAX_EMPTY_CHUNK_COUNT, true)                \
-  _("compactingEnabled", JSGC_COMPACTING_ENABLED, true)                    \
-  _("minLastDitchGCPeriod", JSGC_MIN_LAST_DITCH_GC_PERIOD, true)           \
-  _("nurseryFreeThresholdForIdleCollection",                               \
-    JSGC_NURSERY_FREE_THRESHOLD_FOR_IDLE_COLLECTION, true)                 \
-  _("nurseryFreeThresholdForIdleCollectionPercent",                        \
-    JSGC_NURSERY_FREE_THRESHOLD_FOR_IDLE_COLLECTION_PERCENT, true)         \
-  _("nurseryTimeoutForIdleCollectionMS",                                   \
-    JSGC_NURSERY_TIMEOUT_FOR_IDLE_COLLECTION_MS, true)                     \
-  _("pretenureThreshold", JSGC_PRETENURE_THRESHOLD, true)                  \
-  _("pretenureGroupThreshold", JSGC_PRETENURE_GROUP_THRESHOLD, true)       \
-  _("zoneAllocDelayKB", JSGC_ZONE_ALLOC_DELAY_KB, true)                    \
-  _("mallocThresholdBase", JSGC_MALLOC_THRESHOLD_BASE, true)               \
-  _("urgentThreshold", JSGC_URGENT_THRESHOLD_MB, true)                     \
-  _("chunkBytes", JSGC_CHUNK_BYTES, false)                                 \
-  _("helperThreadRatio", JSGC_HELPER_THREAD_RATIO, true)                   \
-  _("maxHelperThreads", JSGC_MAX_HELPER_THREADS, true)                     \
-  _("helperThreadCount", JSGC_HELPER_THREAD_COUNT, false)                  \
-  _("systemPageSizeKB", JSGC_SYSTEM_PAGE_SIZE_KB, false)
-
-static const struct ParamInfo {
-  const char* name;
-  JSGCParamKey param;
-  bool writable;
-} paramMap[] = {
-#define DEFINE_PARAM_INFO(name, key, writable) {name, key, writable},
-    FOR_EACH_GC_PARAM(DEFINE_PARAM_INFO)
-#undef DEFINE_PARAM_INFO
-};
-
 #define PARAM_NAME_LIST_ENTRY(name, key, writable) " " name
 #define GC_PARAMETER_ARGS_LIST FOR_EACH_GC_PARAM(PARAM_NAME_LIST_ENTRY)
 
@@ -768,23 +728,18 @@ static bool GCParameter(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  JSLinearString* linearStr = JS_EnsureLinearString(cx, str);
-  if (!linearStr) {
+  UniqueChars name = EncodeLatin1(cx, str);
+  if (!name) {
     return false;
   }
 
-  const auto* ptr = std::find_if(
-      std::begin(paramMap), std::end(paramMap), [&](const auto& param) {
-        return JS_LinearStringEqualsAscii(linearStr, param.name);
-      });
-  if (ptr == std::end(paramMap)) {
+  JSGCParamKey param;
+  bool writable;
+  if (!GetGCParameterInfo(name.get(), &param, &writable)) {
     JS_ReportErrorASCII(
         cx, "the first argument must be one of:" GC_PARAMETER_ARGS_LIST);
     return false;
   }
-
-  const ParamInfo& info = *ptr;
-  JSGCParamKey param = info.param;
 
   // Request mode.
   if (args.length() == 1) {
@@ -793,9 +748,9 @@ static bool GCParameter(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  if (!info.writable) {
+  if (!writable) {
     JS_ReportErrorASCII(cx, "Attempt to change read-only parameter %s",
-                        info.name);
+                        name.get());
     return false;
   }
 
@@ -1039,6 +994,26 @@ static bool WasmCompileMode(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
   return false;
+}
+
+static bool WasmBaselineDisabledByFeatures(JSContext* cx, unsigned argc,
+                                           Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  bool isDisabled = false;
+  JSStringBuilder reason(cx);
+  if (!wasm::BaselineDisabledByFeatures(cx, &isDisabled, &reason)) {
+    return false;
+  }
+  if (isDisabled) {
+    JSString* result = reason.finishString();
+    if (!result) {
+      return false;
+    }
+    args.rval().setString(result);
+  } else {
+    args.rval().setBoolean(false);
+  }
+  return true;
 }
 
 static bool WasmCraneliftDisabledByFeatures(JSContext* cx, unsigned argc,
@@ -1727,7 +1702,7 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     const Value& v2 =
-        fun->getExtendedSlot(FunctionExtended::WASM_INSTANCE_SLOT);
+        fun->getExtendedSlot(FunctionExtended::WASM_INSTANCE_OBJ_SLOT);
 
     WasmInstanceObject* instobj = &v2.toObject().as<WasmInstanceObject>();
     js::wasm::Instance& inst = instobj->instance();
@@ -2049,9 +2024,9 @@ static bool WasmIntrinsicI8VecMul(JSContext* cx, unsigned argc, Value* vp) {
 
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  wasm::IntrinsicOp ops[] = {wasm::IntrinsicOp::I8VecMul};
+  wasm::IntrinsicId ids[] = {wasm::IntrinsicId::I8VecMul};
   RootedWasmModuleObject module(cx);
-  if (!wasm::CompileIntrinsicModule(cx, ops, wasm::Shareable::False, &module)) {
+  if (!wasm::CompileIntrinsicModule(cx, ids, wasm::Shareable::False, &module)) {
     return false;
   }
   args.rval().set(ObjectValue(*module.get()));
@@ -3015,7 +2990,6 @@ static bool NewObjectWithAddPropertyHook(JSContext* cx, unsigned argc,
       nullptr,      // mayResolve
       nullptr,      // finalize
       nullptr,      // call
-      nullptr,      // hasInstance
       nullptr,      // construct
       nullptr,      // trace
   };
@@ -3906,7 +3880,7 @@ static bool StreamsAreEnabled(JSContext* cx, unsigned argc, Value* vp) {
 
 static unsigned finalizeCount = 0;
 
-static void finalize_counter_finalize(JSFreeOp* fop, JSObject* obj) {
+static void finalize_counter_finalize(JS::GCContext* gcx, JSObject* obj) {
   ++finalizeCount;
 }
 
@@ -3919,7 +3893,6 @@ static const JSClassOps FinalizeCounterClassOps = {
     nullptr,                    // mayResolve
     finalize_counter_finalize,  // finalize
     nullptr,                    // call
-    nullptr,                    // hasInstance
     nullptr,                    // construct
     nullptr,                    // trace
 };
@@ -4287,7 +4260,7 @@ static bool testingFunc_bailAfter(JSContext* cx, unsigned argc, Value* vp) {
     bool enableBailAfter = bailAfter > 0;
     if (jitRuntime->ionBailAfterEnabled() != enableBailAfter) {
       // Force JIT code to be recompiled with (or without) instrumentation.
-      ReleaseAllJITCode(cx->defaultFreeOp());
+      ReleaseAllJITCode(cx->gcContext());
       jitRuntime->setIonBailAfterEnabled(enableBailAfter);
     }
     jitRuntime->setIonBailAfterCounter(bailAfter);
@@ -4675,7 +4648,7 @@ class CloneBufferObject : public NativeObject {
     return CallNonGenericMethod<is, getCloneBufferAsArrayBuffer_impl>(cx, args);
   }
 
-  static void Finalize(JSFreeOp* fop, JSObject* obj) {
+  static void Finalize(JS::GCContext* gcx, JSObject* obj) {
     obj->as<CloneBufferObject>().discard();
   }
 };
@@ -4689,7 +4662,6 @@ static const JSClassOps CloneBufferObjectClassOps = {
     nullptr,                      // mayResolve
     CloneBufferObject::Finalize,  // finalize
     nullptr,                      // call
-    nullptr,                      // hasInstance
     nullptr,                      // construct
     nullptr,                      // trace
 };
@@ -5038,7 +5010,7 @@ class ShapeSnapshotObject : public NativeObject {
 
   static ShapeSnapshotObject* create(JSContext* cx, HandleObject obj);
 
-  static void finalize(JSFreeOp* fop, JSObject* obj) {
+  static void finalize(JS::GCContext* gcx, JSObject* obj) {
     if (obj->as<ShapeSnapshotObject>().hasSnapshot()) {
       js_delete(&obj->as<ShapeSnapshotObject>().snapshot());
     }
@@ -5059,7 +5031,6 @@ class ShapeSnapshotObject : public NativeObject {
     nullptr,                        // mayResolve
     ShapeSnapshotObject::finalize,  // finalize
     nullptr,                        // call
-    nullptr,                        // hasInstance
     nullptr,                        // construct
     ShapeSnapshotObject::trace,     // trace
 };
@@ -6277,169 +6248,6 @@ static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
       cx, js::StencilObject::create(cx, std::move(stencil)));
   if (!stencilObj) {
     return false;
-  }
-
-  args.rval().setObject(*stencilObj);
-  return true;
-}
-
-static bool CompileAndDelazifyAllToStencil(JSContext* cx, uint32_t argc,
-                                           Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  if (!args.requireAtLeast(cx, "CompileAndDelazifyAllToStencil", 1)) {
-    return false;
-  }
-
-  RootedString src(cx, ToString<CanGC>(cx, args[0]));
-  if (!src) {
-    return false;
-  }
-
-  /* Linearize the string to obtain a char16_t* range. */
-  AutoStableStringChars linearChars(cx);
-  if (!linearChars.initTwoByte(cx, src)) {
-    return false;
-  }
-  JS::SourceText<char16_t> srcBuf;
-  if (!srcBuf.init(cx, linearChars.twoByteChars(), src->length(),
-                   JS::SourceOwnership::Borrowed)) {
-    return false;
-  }
-
-  CompileOptions options(cx);
-  UniqueChars fileNameBytes;
-  bool fillRuntimeCache = false;
-  if (args.length() == 2) {
-    if (!args[1].isObject()) {
-      JS_ReportErrorASCII(
-          cx, "compileAllToStencil: The 2nd argument must be an object");
-      return false;
-    }
-
-    RootedObject opts(cx, &args[1].toObject());
-
-    if (!js::ParseCompileOptions(cx, options, opts, &fileNameBytes)) {
-      return false;
-    }
-
-    // fillRuntimeCache is currently unique to this function, as this is not yet
-    // a generic method used for parsing inner functions.
-    RootedValue v(cx);
-    if (!JS_GetProperty(cx, opts, "fillRuntimeCache", &v)) {
-      return false;
-    }
-    if (v.isBoolean() && v.toBoolean()) {
-      fillRuntimeCache = true;
-    }
-  }
-  if (options.forceFullParse()) {
-    JS_ReportErrorASCII(
-        cx,
-        "compileAndDelazifyAll: forceFullParse inhibit the delazify-all part.");
-    return false;
-  }
-
-  ScopeKind scopeKind =
-      options.nonSyntacticScope ? ScopeKind::NonSyntactic : ScopeKind::Global;
-
-  using namespace frontend;
-  Rooted<CompilationInput> input(cx, CompilationInput(options));
-
-  UniquePtr<ExtensibleCompilationStencil> topLevelStencil =
-      CompileGlobalScriptToExtensibleStencil(cx, input.get(), srcBuf,
-                                             scopeKind);
-  if (!topLevelStencil) {
-    return false;
-  }
-
-  Rooted<js::StencilObject*> stencilObj(cx);
-  if (fillRuntimeCache) {
-    StencilCache& cache = cx->runtime()->caches().delazificationCache;
-    RefPtr<ScriptSource> source(input.get().source);
-    if (!cache.startCaching(std::move(source))) {
-      return false;
-    }
-
-    // We clone the topLevelStencil, as a extensible stencil, as we will need
-    // one for delazifying all inner functions.
-    UniquePtr<ExtensibleCompilationStencil> tempResult =
-        cx->make_unique<ExtensibleCompilationStencil>(cx, input.get());
-    if (!tempResult) {
-      return false;
-    }
-    if (!tempResult->cloneFrom(cx, *topLevelStencil)) {
-      return false;
-    }
-
-    // Move it to a CompilationStencil for storage.
-    RefPtr<CompilationStencil> result =
-        cx->new_<CompilationStencil>(std::move(tempResult));
-    if (!result) {
-      return false;
-    }
-
-    stencilObj = js::StencilObject::create(cx, result);
-    if (!stencilObj) {
-      return false;
-    }
-  }
-
-  // Iterate over all inner functions and compile them to stencil as well.
-  uint32_t nScripts = topLevelStencil->scriptData.length();
-  CompilationStencilMerger merger;
-  if (!merger.setInitial(cx, std::move(topLevelStencil))) {
-    return false;
-  }
-
-  // Start at 1, as the script 0 is the top-level.
-  for (uint32_t index = 1; index < nScripts; index++) {
-    RefPtr<CompilationStencil> innerStencil;
-    {
-      BorrowingCompilationStencil borrow(merger.getResult());
-      ScriptIndex scriptIndex{index};
-      ScriptStencilRef scriptRef{borrow, scriptIndex};
-      if (scriptRef.scriptData().isGhost()) {
-        // Skip artifact introduced when parsing arrow functions.
-        continue;
-      }
-      if (scriptRef.scriptData().hasSharedData()) {
-        // Skip eagerly compiled inner functions.
-        continue;
-      }
-
-      innerStencil = DelazifyCanonicalScriptedFunction(cx, borrow, scriptIndex);
-      if (!innerStencil) {
-        return false;
-      }
-
-      if (fillRuntimeCache) {
-        StencilCache& cache = cx->runtime()->caches().delazificationCache;
-        StencilContext key(input.get().source, scriptRef.scriptExtra().extent);
-        if (auto guard = cache.isSourceCached(input.get().source)) {
-          if (!cache.putNew(guard, key, innerStencil.get())) {
-            return false;
-          }
-        }
-      }
-    }
-
-    if (!merger.addDelazification(cx, *innerStencil)) {
-      return false;
-    }
-  }
-
-  if (!fillRuntimeCache) {
-    RefPtr<CompilationStencil> result =
-        cx->new_<CompilationStencil>(merger.takeResult());
-    if (!result) {
-      return false;
-    }
-
-    stencilObj = js::StencilObject::create(cx, result);
-    if (!stencilObj) {
-      return false;
-    }
   }
 
   args.rval().setObject(*stencilObj);
@@ -8567,6 +8375,12 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE, WASM_FEATURE, WASM_FEATURE)
 "  or runtime conditions.  At most one baseline and one optimizing compiler can\n"
 "  be available."),
 
+    JS_FN_HELP("wasmBaselineDisabledByFeatures", WasmBaselineDisabledByFeatures, 0, 0,
+"wasmBaselineDisabledByFeatures()",
+"  If some feature is enabled at compile-time or run-time that prevents baseline\n"
+"  from being used then this returns a truthy string describing the features that\n."
+"  are disabling it.  Otherwise it returns false."),
+
     JS_FN_HELP("wasmCraneliftDisabledByFeatures", WasmCraneliftDisabledByFeatures, 0, 0,
 "wasmCraneliftDisabledByFeatures()",
 "  If some feature is enabled at compile-time or run-time that prevents Cranelift\n"
@@ -9048,12 +8862,6 @@ JS_FN_HELP("isSmallFunction", IsSmallFunction, 1, 0,
 "  Parses the given string argument as js script, produces the stencil"
 "  for it, XDR-encodes the stencil, and returns an object that contains the"
 "  XDR buffer."),
-
-    JS_FN_HELP("compileAndDelazifyAllToStencil",
-               CompileAndDelazifyAllToStencil, 1, 0,
-"compileAndDelazifyAllToStencil(string)",
-"  Parses the given string argument as js script, returns the stencil"
-"  for the top-level and all delazified inner functions."),
 
     JS_FN_HELP("evalStencilXDR", EvalStencilXDR, 1, 0,
 "evalStencilXDR(stencilXDR, [options])",

@@ -27,8 +27,10 @@
 #  include "mozilla/PreXULSkeletonUI.h"
 #  include "freestanding/SharedSection.h"
 #  include "LauncherProcessWin.h"
+#  include "mozilla/GeckoArgs.h"
 #  include "mozilla/WindowsDllBlocklist.h"
 #  include "mozilla/WindowsDpiInitialization.h"
+#  include "mozilla/WindowsProcessMitigations.h"
 
 #  define XRE_WANT_ENVIRON
 #  define strcasecmp _stricmp
@@ -297,6 +299,23 @@ int main(int argc, char* argv[], char* envp[]) {
     DllBlocklist_Initialize(gBlocklistInitFlags |
                             eDllBlocklistInitFlagIsChildProcess);
 #  endif
+#  if defined(XP_WIN) && defined(MOZ_SANDBOX)
+    // We need to set whether our process is supposed to have win32k locked down
+    // from the command line setting before GetInitializedTargetServices and
+    // WindowsDpiInitialization.
+    Maybe<bool> win32kLockedDown =
+        mozilla::geckoargs::sWin32kLockedDown.Get(argc, argv);
+    if (win32kLockedDown.isSome() && *win32kLockedDown) {
+      mozilla::SetWin32kLockedDownInPolicy();
+    }
+
+    // We need to initialize the sandbox TargetServices before InitXPCOMGlue
+    // because we might need the sandbox broker to give access to some files.
+    if (IsSandboxedProcess() && !sandboxing::GetInitializedTargetServices()) {
+      Output("Failed to initialize the sandbox target services.");
+      return 255;
+    }
+#  endif
 #  if defined(XP_WIN)
     // Ideally, we would be able to set our DPI awareness in
     // firefox.exe.manifest Unfortunately, that would cause Win32k calls when
@@ -308,14 +327,6 @@ int main(int argc, char* argv[], char* envp[]) {
     {
       auto result = mozilla::WindowsDpiInitialization();
       (void)result;  // Ignore errors since some tools block DPI calls
-    }
-#  endif
-#  if defined(XP_WIN) && defined(MOZ_SANDBOX)
-    // We need to initialize the sandbox TargetServices before InitXPCOMGlue
-    // because we might need the sandbox broker to give access to some files.
-    if (IsSandboxedProcess() && !sandboxing::GetInitializedTargetServices()) {
-      Output("Failed to initialize the sandbox target services.");
-      return 255;
     }
 #  endif
 

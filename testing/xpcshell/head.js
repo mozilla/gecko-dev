@@ -302,14 +302,8 @@ var _fakeIdleService = {
 
   factory: {
     // nsIFactory
-    createInstance(aOuter, aIID) {
-      if (aOuter) {
-        throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
-      }
+    createInstance(aIID) {
       return _fakeIdleService.QueryInterface(aIID);
-    },
-    lockFactory(aLock) {
-      throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
     },
     QueryInterface: ChromeUtils.generateQI(["nsIFactory"]),
   },
@@ -562,8 +556,7 @@ function _execute_test() {
   let coverageCollector = null;
   if (typeof _JSCOV_DIR === "string") {
     let _CoverageCollector = ChromeUtils.import(
-      "resource://testing-common/CoverageUtils.jsm",
-      {}
+      "resource://testing-common/CoverageUtils.jsm"
     ).CoverageCollector;
     coverageCollector = new _CoverageCollector(_JSCOV_DIR);
   }
@@ -1529,10 +1522,14 @@ async function schedulePreciseGCAndForceCC(maxCount) {
  *        Supported properties:
  *          skip_if : An arrow function which has an expression to be
  *                    evaluated whether the test is skipped or not.
+ *          pref_set: An array of preferences to set for the test, reset at end of test.
  * @param func
  *        A function to be run only if the funcOrProperies is not a function.
  * @param isTask
  *        Optional flag that indicates whether `func` is a task. Defaults to `false`.
+ * @param isSetup
+ *        Optional flag that indicates whether `func` is a setup task. Defaults to `false`.
+ *        Implies isTask.
  *
  * Each test function must call run_next_test() when it's done. Test files
  * should call run_next_test() in their run_test function to execute all
@@ -1540,14 +1537,30 @@ async function schedulePreciseGCAndForceCC(maxCount) {
  *
  * @return the test function that was passed in.
  */
+var _gSupportedProperties = ["skip_if", "pref_set"];
 var _gTests = [];
 var _gRunOnlyThisTest = null;
-function add_test(properties, func = properties, isTask = false) {
+function add_test(
+  properties,
+  func = properties,
+  isTask = false,
+  isSetup = false
+) {
+  if (isSetup) {
+    isTask = true;
+  }
   if (typeof properties == "function") {
-    properties = { isTask };
+    properties = { isTask, isSetup };
     _gTests.push([properties, func]);
   } else if (typeof properties == "object") {
+    // Ensure only documented properties are in the object.
+    for (let prop of Object.keys(properties)) {
+      if (!_gSupportedProperties.includes(prop)) {
+        do_throw(`Task property is not supported: ${prop}`);
+      }
+    }
     properties.isTask = isTask;
+    properties.isSetup = isSetup;
     _gTests.push([properties, func]);
   } else {
     do_throw("add_test() should take a function or an object and a function");
@@ -1615,6 +1628,13 @@ function add_task(properties, func = properties) {
   return add_test(properties, func, true);
 }
 
+/**
+ * add_setup is like add_task, but creates setup tasks.
+ */
+function add_setup(properties, func = properties) {
+  return add_test(properties, func, true, true);
+}
+
 const _setTaskPrefs = prefs => {
   for (let [pref, value] of prefs) {
     if (value === undefined) {
@@ -1667,11 +1687,20 @@ const _getTaskPrefs = prefs => {
 var _gRunningTest = null;
 var _gTestIndex = 0; // The index of the currently running test.
 var _gTaskRunning = false;
+var _gSetupRunning = false;
 function run_next_test() {
   if (_gTaskRunning) {
     throw new Error(
       "run_next_test() called from an add_task() test function. " +
-        "run_next_test() should not be called from inside add_task() " +
+        "run_next_test() should not be called from inside add_setup() or add_task() " +
+        "under any circumstances!"
+    );
+  }
+
+  if (_gSetupRunning) {
+    throw new Error(
+      "run_next_test() called from an add_setup() test function. " +
+        "run_next_test() should not be called from inside add_setup() or add_task() " +
         "under any circumstances!"
     );
   }
@@ -1685,12 +1714,18 @@ function run_next_test() {
 
       // Must set to pending before we check for skip, so that we keep the
       // running counts correct.
-      _testLogger.info(_TEST_NAME + " | Starting " + _gRunningTest.name);
+      _testLogger.info(
+        `${_TEST_NAME} | Starting ${_properties.isSetup ? "setup " : ""}${
+          _gRunningTest.name
+        }`
+      );
       do_test_pending(_gRunningTest.name);
 
       if (
         (typeof _properties.skip_if == "function" && _properties.skip_if()) ||
-        (_gRunOnlyThisTest && _gRunningTest != _gRunOnlyThisTest)
+        (_gRunOnlyThisTest &&
+          _gRunningTest != _gRunOnlyThisTest &&
+          !_properties.isSetup)
       ) {
         let _condition = _gRunOnlyThisTest
           ? "only one task may run."
@@ -1722,11 +1757,15 @@ function run_next_test() {
       }
 
       if (_properties.isTask) {
-        _gTaskRunning = true;
+        if (_properties.isSetup) {
+          _gSetupRunning = true;
+        } else {
+          _gTaskRunning = true;
+        }
         let startTime = Cu.now();
         (async () => _gRunningTest())().then(
           result => {
-            _gTaskRunning = false;
+            _gTaskRunning = _gSetupRunning = false;
             ChromeUtils.addProfilerMarker(
               "task",
               { category: "Test", startTime },
@@ -1739,7 +1778,7 @@ function run_next_test() {
             run_next_test();
           },
           ex => {
-            _gTaskRunning = false;
+            _gTaskRunning = _gSetupRunning = false;
             ChromeUtils.addProfilerMarker(
               "task",
               { category: "Test", startTime },
@@ -1771,6 +1810,16 @@ function run_next_test() {
         }
       }
     }
+  }
+
+  function frontLoadSetups() {
+    _gTests.sort(([propsA, funcA], [propsB, funcB]) => {
+      return propsB.isSetup ? 1 : 0;
+    });
+  }
+
+  if (!_gTestIndex) {
+    frontLoadSetups();
   }
 
   // For sane stacks during failures, we execute this code soon, but not now.

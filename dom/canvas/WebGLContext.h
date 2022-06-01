@@ -467,8 +467,6 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
 
   WebGLTexture* GetActiveTex(const GLenum texTarget) const;
 
-  Maybe<ICRData> InitializeCanvasRenderer(layers::LayersBackend backend);
-
   gl::GLContext* GL() const { return gl; }
 
   bool IsPremultAlpha() const { return mOptions.premultipliedAlpha; }
@@ -479,11 +477,35 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
 
   // Present to compositor
  private:
-  bool PresentInto(gl::SwapChain& swapChain, WebGLFramebuffer* srcFb = nullptr);
+  bool PresentInto(gl::SwapChain& swapChain);
   bool PresentIntoXR(gl::SwapChain& swapChain, const gl::MozFramebuffer& xrFb);
 
  public:
+  // Present swaps the front and back buffers of the swap chain for compositing.
+  // This assumes the framebuffer may directly alias with the back buffer,
+  // dependent on remoting state or other concerns. Framebuffer and swap chain
+  // surface formats are assumed to be similar to enable this aliasing. As such,
+  // the back buffer may be invalidated by this swap with the front buffer,
+  // unless overriden by explicitly setting the preserveDrawingBuffer option,
+  // which may incur a further copy to preserve the back buffer.
   void Present(WebGLFramebuffer*, layers::TextureType, const bool webvr);
+  // CopyToSwapChain forces a copy from the supplied framebuffer into the back
+  // buffer before swapping the front and back buffers of the swap chain for
+  // compositing. The formats of the framebuffer and the swap chain buffers
+  // may differ subject to available format conversion options. Since this
+  // operation uses an explicit copy, it inherently preserves the framebuffer
+  // without need to set the preserveDrawingBuffer option.
+  void CopyToSwapChain(
+      WebGLFramebuffer*, layers::TextureType,
+      const webgl::SwapChainOptions& options = webgl::SwapChainOptions());
+  // In use cases where a framebuffer is used as an offscreen framebuffer and
+  // does not need to be committed to the swap chain, it may still be useful
+  // for the implementation to delineate distinct frames, such as when sharing
+  // a single WebGLContext amongst many distinct users. EndOfFrame signals that
+  // frame rendering is complete so that any implementation side-effects such
+  // as resetting internal profile counters or resource queues may be handled
+  // appropriately.
+  void EndOfFrame();
   RefPtr<gfx::DataSourceSurface> GetFrontBufferSnapshot();
   Maybe<uvec2> FrontBufferSnapshotInto(Maybe<Range<uint8_t>>);
   Maybe<layers::SurfaceDescriptor> GetFrontBuffer(WebGLFramebuffer*,
@@ -1125,7 +1147,7 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
   CacheInvalidator mGenericVertexAttribTypeInvalidator;
 
   GLuint mFakeVertexAttrib0BufferObject = 0;
-  size_t mFakeVertexAttrib0BufferObjectSize = 0;
+  intptr_t mFakeVertexAttrib0BufferObjectSize = 0;
   bool mFakeVertexAttrib0DataDefined = false;
   alignas(alignof(float)) uint8_t
       mGenericVertexAttrib0Data[sizeof(float) * 4] = {};
@@ -1211,10 +1233,11 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
       const webgl::FormatUsageInfo** out_format, uint32_t* out_width,
       uint32_t* out_height,
       GLenum incompleteFbError = LOCAL_GL_INVALID_FRAMEBUFFER_OPERATION);
-  void DoColorMask(uint8_t bitmask) const;
+  void DoColorMask(Maybe<GLuint> i, uint8_t bitmask) const;
   void BlitBackbufferToCurDriverFB(
       WebGLFramebuffer* const srcAsWebglFb = nullptr,
-      const gl::MozFramebuffer* const srcAsMozFb = nullptr) const;
+      const gl::MozFramebuffer* const srcAsMozFb = nullptr,
+      bool srcIsBGRA = false) const;
   bool BindDefaultFBForRead();
 
   // --

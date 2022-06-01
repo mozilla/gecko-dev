@@ -4,9 +4,8 @@
 
 /* import-globals-from ../../../../../toolkit/components/satchel/test/satchel_common.js */
 
-const { LoginTestUtils } = SpecialPowers.Cu.import(
-  "resource://testing-common/LoginTestUtils.jsm",
-  {}
+const { LoginTestUtils } = SpecialPowers.ChromeUtils.import(
+  "resource://testing-common/LoginTestUtils.jsm"
 );
 
 // Setup LoginTestUtils to report assertions to the mochitest harness.
@@ -16,13 +15,11 @@ LoginTestUtils.setAssertReporter(
   })
 );
 
-const { LoginHelper } = SpecialPowers.Cu.import(
-  "resource://gre/modules/LoginHelper.jsm",
-  {}
+const { LoginHelper } = SpecialPowers.ChromeUtils.import(
+  "resource://gre/modules/LoginHelper.jsm"
 );
-const { Services } = SpecialPowers.Cu.import(
-  "resource://gre/modules/Services.jsm",
-  {}
+const { Services } = SpecialPowers.ChromeUtils.import(
+  "resource://gre/modules/Services.jsm"
 );
 
 const {
@@ -516,24 +513,24 @@ function registerRunTests(existingPasswordFieldsCount = 0) {
   });
 }
 
-function enableMasterPassword() {
-  setMasterPassword(true);
+function enablePrimaryPassword() {
+  setPrimaryPassword(true);
 }
 
-function disableMasterPassword() {
-  setMasterPassword(false);
+function disablePrimaryPassword() {
+  setPrimaryPassword(false);
 }
 
-function setMasterPassword(enable) {
-  PWMGR_COMMON_PARENT.sendAsyncMessage("setMasterPassword", { enable });
+function setPrimaryPassword(enable) {
+  PWMGR_COMMON_PARENT.sendAsyncMessage("setPrimaryPassword", { enable });
 }
 
 function isLoggedIn() {
   return PWMGR_COMMON_PARENT.sendQuery("isLoggedIn");
 }
 
-function logoutMasterPassword() {
-  runInParent(function parent_logoutMasterPassword() {
+function logoutPrimaryPassword() {
+  runInParent(function parent_logoutPrimaryPassword() {
     var sdr = Cc["@mozilla.org/security/sdr;1"].getService(
       Ci.nsISecretDecoderRing
     );

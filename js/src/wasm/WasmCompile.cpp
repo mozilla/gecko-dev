@@ -50,6 +50,7 @@ uint32_t wasm::ObservedCPUFeatures() {
     MIPS = 0x4,
     MIPS64 = 0x5,
     ARM64 = 0x6,
+    LOONG64 = 0x7,
     ARCH_BITS = 3
   };
 
@@ -70,6 +71,9 @@ uint32_t wasm::ObservedCPUFeatures() {
 #elif defined(JS_CODEGEN_MIPS64)
   MOZ_ASSERT(jit::GetMIPSFlags() <= (UINT32_MAX >> ARCH_BITS));
   return MIPS64 | (jit::GetMIPSFlags() << ARCH_BITS);
+#elif defined(JS_CODEGEN_LOONG64)
+  MOZ_ASSERT(jit::GetLOONG64Flags() <= (UINT32_MAX >> ARCH_BITS));
+  return LOONG64 | (jit::GetLOONG64Flags() << ARCH_BITS);
 #elif defined(JS_CODEGEN_NONE)
   return 0;
 #else
@@ -103,7 +107,8 @@ FeatureArgs FeatureArgs::build(JSContext* cx, const FeatureOptions& options) {
 
 SharedCompileArgs CompileArgs::build(JSContext* cx,
                                      ScriptedCaller&& scriptedCaller,
-                                     const FeatureOptions& options) {
+                                     const FeatureOptions& options,
+                                     CompileArgsError* error) {
   bool baseline = BaselineAvailable(cx);
   bool ion = IonAvailable(cx);
   bool cranelift = CraneliftAvailable(cx);
@@ -115,7 +120,7 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
   // additional memory and permanently stay in baseline code, so we try to
   // only enable it when a developer actually cares: when the debugger tab
   // is open.
-  bool debug = cx->realm() && cx->realm()->debuggerObservesAsmJS();
+  bool debug = cx->realm() && cx->realm()->debuggerObservesWasm();
 
   bool forceTiering =
       cx->options().testWasmAwaitTier2() || JitOptions.wasmDelayTier2;
@@ -124,7 +129,7 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
   // when we're fuzzing we allow inconsistent switches and the check may thus
   // fail.  Let it go to a run-time error instead of crashing.
   if (debug && (ion || cranelift)) {
-    JS_ReportErrorASCII(cx, "no WebAssembly compiler available");
+    *error = CompileArgsError::NoCompiler;
     return nullptr;
   }
 
@@ -136,12 +141,13 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
   }
 
   if (!(baseline || ion || cranelift)) {
-    JS_ReportErrorASCII(cx, "no WebAssembly compiler available");
+    *error = CompileArgsError::NoCompiler;
     return nullptr;
   }
 
   CompileArgs* target = cx->new_<CompileArgs>(std::move(scriptedCaller));
   if (!target) {
+    *error = CompileArgsError::OutOfMemory;
     return nullptr;
   }
 
@@ -152,11 +158,34 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
   target->forceTiering = forceTiering;
   target->features = FeatureArgs::build(cx, options);
 
-  Log(cx, "available wasm compilers: tier1=%s tier2=%s",
-      baseline ? "baseline" : "none",
-      ion ? "ion" : (cranelift ? "cranelift" : "none"));
-
   return target;
+}
+
+SharedCompileArgs CompileArgs::buildAndReport(JSContext* cx,
+                                              ScriptedCaller&& scriptedCaller,
+                                              const FeatureOptions& options) {
+  CompileArgsError error;
+  SharedCompileArgs args =
+      CompileArgs::build(cx, std::move(scriptedCaller), options, &error);
+  if (args) {
+    Log(cx, "available wasm compilers: tier1=%s tier2=%s",
+        args->baselineEnabled ? "baseline" : "none",
+        args->ionEnabled ? "ion"
+                         : (args->craneliftEnabled ? "cranelift" : "none"));
+    return args;
+  }
+
+  switch (error) {
+    case CompileArgsError::NoCompiler: {
+      JS_ReportErrorASCII(cx, "no WebAssembly compiler available");
+      break;
+    }
+    case CompileArgsError::OutOfMemory: {
+      // Intentionally do not report the OOM, as callers expect this behavior
+      break;
+    }
+  }
+  return nullptr;
 }
 
 /*
@@ -233,28 +262,28 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
  *   To do better, we need OSR.
  *
  * - Wasm Table entries are never patched during tier-up.  A Table of funcref
- *   holds not a JSFunction pointer, but a (code*,Tls*) pair of pointers.  When
- *   a table.set operation is performed, the JSFunction value is decomposed and
- *   its code and Tls pointers are stored in the table; subsequently, when a
- *   table.get operation is performed, the JSFunction value is reconstituted
- *   from its code pointer using fairly elaborate machinery.  (The mechanics are
- *   the same also for the reflected JS operations on a WebAssembly.Table.  For
- *   everything, see WasmTable.{cpp,h}.)  The code pointer in the Table will
- *   always be the code pointer belonging to the best tier that was active at
- *   the time when that function was stored in that Table slot; in many cases,
- *   it will be tier-1 code.  As a consequence, a call through a table will
- *   first enter tier-1 code and then jump to tier-2 code.
+ *   holds not a JSFunction pointer, but a (code*,instance*) pair of pointers.
+ * When a table.set operation is performed, the JSFunction value is decomposed
+ * and its code and instance pointers are stored in the table; subsequently,
+ * when a table.get operation is performed, the JSFunction value is
+ * reconstituted from its code pointer using fairly elaborate machinery.  (The
+ * mechanics are the same also for the reflected JS operations on a
+ * WebAssembly.Table.  For everything, see WasmTable.{cpp,h}.)  The code pointer
+ * in the Table will always be the code pointer belonging to the best tier that
+ * was active at the time when that function was stored in that Table slot; in
+ * many cases, it will be tier-1 code.  As a consequence, a call through a table
+ * will first enter tier-1 code and then jump to tier-2 code.
  *
  *   To do better, we must update all the tables in the system when an instance
  *   tiers up.  This is expected to be very hard.
  *
  * - Imported Wasm functions are never patched during tier-up.  Imports are held
- *   in FuncImportTls values in the instance's Tls, and for a wasm callee,
- *   what's stored is the raw code pointer into the best tier of the callee that
- *   was active at the time the import was resolved.  That could be baseline
- *   code, and if it is, the situation is as for Table entries: a call to an
- *   import will always go via that import's tier-1 code, which will tier up
- *   with an indirect jump.
+ *   in FuncImportInstanceData values in the instance, and for a wasm
+ *   callee, what's stored is the raw code pointer into the best tier of the
+ *   callee that was active at the time the import was resolved.  That could be
+ *   baseline code, and if it is, the situation is as for Table entries: a call
+ *   to an import will always go via that import's tier-1 code, which will tier
+ * up with an indirect jump.
  *
  *   To do better, we must update all the import tables in the system that
  *   import functions from instances whose modules have tiered up.  This is

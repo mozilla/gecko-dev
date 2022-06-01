@@ -497,7 +497,7 @@ nsresult AccessibleCaretManager::PressCaret(const nsPoint& aPoint,
     mOffsetYToCaretLogicalPosition =
         mActiveCaret->LogicalPosition().y - aPoint.y;
     SetSelectionDragState(true);
-    DispatchCaretStateChangedEvent(CaretChangedReason::Presscaret);
+    DispatchCaretStateChangedEvent(CaretChangedReason::Presscaret, &aPoint);
     rv = NS_OK;
   }
 
@@ -518,6 +518,10 @@ nsresult AccessibleCaretManager::DragCaret(const nsPoint& aPoint) {
   // We want to scroll the page even if we failed to drag the caret.
   StartSelectionAutoScrollTimer(aPoint);
   UpdateCarets();
+
+  if (StaticPrefs::layout_accessiblecaret_magnifier_enabled()) {
+    DispatchCaretStateChangedEvent(CaretChangedReason::Dragcaret, &aPoint);
+  }
   return NS_OK;
 }
 
@@ -537,7 +541,7 @@ nsresult AccessibleCaretManager::TapCaret(const nsPoint& aPoint) {
   nsresult rv = NS_ERROR_FAILURE;
 
   if (GetCaretMode() == CaretMode::Cursor) {
-    DispatchCaretStateChangedEvent(CaretChangedReason::Taponcaret);
+    DispatchCaretStateChangedEvent(CaretChangedReason::Taponcaret, &aPoint);
     rv = NS_OK;
   }
 
@@ -914,12 +918,10 @@ void AccessibleCaretManager::ChangeFocusToOrClearOldFocus(
     MOZ_ASSERT(focusableContent, "Focusable frame must have content!");
     RefPtr<Element> focusableElement = Element::FromNode(focusableContent);
     fm->SetFocus(focusableElement, nsIFocusManager::FLAG_BYLONGPRESS);
-  } else {
-    nsPIDOMWindowOuter* win = mPresShell->GetDocument()->GetWindow();
-    if (win) {
-      fm->ClearFocus(win);
-      fm->SetFocusedWindow(win);
-    }
+  } else if (nsCOMPtr<nsPIDOMWindowOuter> win =
+                 mPresShell->GetDocument()->GetWindow()) {
+    fm->ClearFocus(win);
+    fm->SetFocusedWindow(win);
   }
 }
 
@@ -1427,7 +1429,7 @@ void AccessibleCaretManager::StopSelectionAutoScrollTimer() const {
 }
 
 void AccessibleCaretManager::DispatchCaretStateChangedEvent(
-    CaretChangedReason aReason) {
+    CaretChangedReason aReason, const nsPoint* aPoint) {
   if (MaybeFlushLayout() == Terminated::Yes) {
     return;
   }
@@ -1487,6 +1489,12 @@ void AccessibleCaretManager::DispatchCaretStateChangedEvent(
   init.mCaretVisible = mCarets.HasLogicallyVisibleCaret();
   init.mCaretVisuallyVisible = mCarets.HasVisuallyVisibleCaret();
   init.mSelectedTextContent = StringifiedSelection();
+
+  if (aPoint) {
+    CSSIntPoint pt = CSSPixel::FromAppUnitsRounded(*aPoint);
+    init.mClientX = pt.x;
+    init.mClientY = pt.y;
+  }
 
   RefPtr<CaretStateChangedEvent> event = CaretStateChangedEvent::Constructor(
       doc, u"mozcaretstatechanged"_ns, init);

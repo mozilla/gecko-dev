@@ -33,6 +33,7 @@
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ipc/CrashReporterClient.h"
 #include "mozilla/ipc/ProcessChild.h"
+#include "mozilla/StaticPrefs_media.h"
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 #  include "mozilla/Sandbox.h"
@@ -108,7 +109,10 @@ bool RDDParent::Init(base::ProcessId aParentPid, const char* aParentBuildID,
   gfxVars::Initialize();
 #ifdef XP_WIN
   DeviceManagerDx::Init();
-  wmf::MFStartup();
+  auto rv = wmf::MediaFoundationInitializer::HasInitialized();
+  if (!rv) {
+    NS_WARNING("Failed to init Media Foundation in the RDD process");
+  }
 #endif
 
   mozilla::ipc::SetThisProcessName("RDD Process");
@@ -124,7 +128,8 @@ void CGSShutdownServerConnections();
 
 mozilla::ipc::IPCResult RDDParent::RecvInit(
     nsTArray<GfxVarUpdate>&& vars, const Maybe<FileDescriptor>& aBrokerFd,
-    const bool& aCanRecordReleaseTelemetry) {
+    const bool& aCanRecordReleaseTelemetry,
+    const bool& aIsReadyForBackgroundProcessing) {
   for (const auto& var : vars) {
     gfxVars::ApplyUpdate(var);
   }
@@ -151,7 +156,7 @@ mozilla::ipc::IPCResult RDDParent::RecvInit(
 #if defined(XP_WIN)
   if (aCanRecordReleaseTelemetry) {
     RefPtr<DllServices> dllSvc(DllServices::Get());
-    dllSvc->StartUntrustedModulesProcessor();
+    dllSvc->StartUntrustedModulesProcessor(aIsReadyForBackgroundProcessing);
   }
 #endif  // defined(XP_WIN)
   return IPC_OK();
@@ -181,10 +186,8 @@ mozilla::ipc::IPCResult RDDParent::RecvInitProfiler(
 }
 
 mozilla::ipc::IPCResult RDDParent::RecvNewContentRemoteDecoderManager(
-    Endpoint<PRemoteDecoderManagerParent>&& aEndpoint,
-    const bool& aAllowHardwareDecoding) {
-  if (!RemoteDecoderManagerParent::CreateForContent(std::move(aEndpoint),
-                                                    aAllowHardwareDecoding)) {
+    Endpoint<PRemoteDecoderManagerParent>&& aEndpoint) {
+  if (!RemoteDecoderManagerParent::CreateForContent(std::move(aEndpoint))) {
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
@@ -204,7 +207,6 @@ mozilla::ipc::IPCResult RDDParent::RecvInitVideoBridge(
           Feature::D3D11_COMPOSITING,
           Feature::OPENGL_COMPOSITING,
           Feature::DIRECT2D,
-          Feature::WEBGPU,
       },
       aContentDeviceData.prefs());
 #ifdef XP_WIN
@@ -247,6 +249,14 @@ mozilla::ipc::IPCResult RDDParent::RecvGetUntrustedModulesData(
         aResolver(std::move(aData));
       },
       [aResolver](nsresult aReason) { aResolver(Nothing()); });
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult RDDParent::RecvUnblockUntrustedModulesThread() {
+  if (nsCOMPtr<nsIObserverService> obs =
+          mozilla::services::GetObserverService()) {
+    obs->NotifyObservers(nullptr, "unblock-untrusted-modules-thread", nullptr);
+  }
   return IPC_OK();
 }
 #endif  // defined(XP_WIN)
@@ -292,9 +302,6 @@ void RDDParent::ActorDestroy(ActorDestroyReason aWhy) {
       [](ByteBuf&& aBuf) { glean::SendFOGData(std::move(aBuf)); });
 
 #ifndef NS_FREE_PERMANENT_DATA
-#  ifdef XP_WIN
-  wmf::MFShutdown();
-#  endif
   // No point in going through XPCOM shutdown because we don't keep persistent
   // state.
   ProcessChild::QuickExit();
@@ -303,10 +310,6 @@ void RDDParent::ActorDestroy(ActorDestroyReason aWhy) {
   // Wait until all RemoteDecoderManagerParent have closed.
   mShutdownBlockers.WaitUntilClear(10 * 1000 /* 10s timeout*/)
       ->Then(GetCurrentSerialEventTarget(), __func__, [&]() {
-
-#ifdef XP_WIN
-        wmf::MFShutdown();
-#endif
 
 #if defined(XP_WIN)
         RefPtr<DllServices> dllSvc(DllServices::Get());

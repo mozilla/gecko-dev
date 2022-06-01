@@ -200,6 +200,8 @@ struct NotLostData final {
              UnderlyingValue(WebGLExtensionID::Max)>
       extensions;
 
+  RefPtr<layers::CanvasRenderer> mCanvasRenderer;
+
   explicit NotLostData(ClientWebGLContext& context);
   ~NotLostData();
 };
@@ -682,8 +684,9 @@ struct TexImageSourceAdapter final : public TexImageSource {
   }
 
   TexImageSourceAdapter(const dom::OffscreenCanvas* offscreenCanvas,
-                        ErrorResult*) {
+                        ErrorResult* const out_error) {
     mOffscreenCanvas = offscreenCanvas;
+    mOut_error = out_error;
   }
 
   TexImageSourceAdapter(const dom::Element* domElem,
@@ -1014,9 +1017,14 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   }
   void GetContextAttributes(dom::Nullable<dom::WebGLContextAttributes>& retval);
 
+  layers::TextureType GetTexTypeForSwapChain() const;
   void Present(WebGLFramebufferJS*, const bool webvr = false);
   void Present(WebGLFramebufferJS*, layers::TextureType,
                const bool webvr = false);
+  void CopyToSwapChain(
+      WebGLFramebufferJS*,
+      const webgl::SwapChainOptions& options = webgl::SwapChainOptions());
+  void EndOfFrame();
   Maybe<layers::SurfaceDescriptor> GetFrontBuffer(
       WebGLFramebufferJS*, const bool webvr = false) override;
   Maybe<layers::SurfaceDescriptor> PresentFrontBuffer(
@@ -1029,7 +1037,8 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
 
  private:
   RefPtr<gfx::DataSourceSurface> BackBufferSnapshot();
-  void DoReadPixels(const webgl::ReadPixelsDesc&, Range<uint8_t>) const;
+  [[nodiscard]] bool DoReadPixels(const webgl::ReadPixelsDesc&,
+                                  Range<uint8_t>) const;
   uvec2 DrawingBufferSize();
 
   // -

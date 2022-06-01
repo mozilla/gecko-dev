@@ -34,7 +34,7 @@ jobs:
             env_stack_size: 1
             max_stack: 3000
             # Conformance tooling test requires numpy.
-            apt_pkgs: python3-numpy
+            apt_pkgs: graphviz python3-numpy
           - name: lowprecision
             mode: release
             test_in_pr: true
@@ -46,7 +46,7 @@ jobs:
           # Build scalar-only hwy instructions.
           - name: scalar
             mode: release
-            cxxflags: -DHWY_DISABLED_TARGETS=~HWY_SCALAR
+            cxxflags: -DHWY_COMPILE_ONLY_SCALAR
           # Disabling optional features to speed up msan build a little bit.
           - name: msan
             skip_install: true
@@ -59,8 +59,6 @@ jobs:
             apt_pkgs: gcovr
             # Coverage builds require a bit more RAM.
             env_test_stack_size: 2048
-            # Exclude roundtrip tests from the unittest coverage.
-            ctest_args: -E '^JxlTest'
           # Build with support for decoding to JPEG bytes disabled. Produces a
           # smaller build if only decoding to pixels is needed.
           - name: release-nojpeg
@@ -149,6 +147,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-${{ steps.git-env.outputs.parent }}-${{ matrix.name }}
     - name: Build
+      if: matrix.name != 'coverage' || env.WILL_RUN_TESTS == 'true'
       run: |
         mkdir -p ${CCACHE_DIR}
         echo "max_size = 200M" > ${CCACHE_DIR}/ccache.conf
@@ -216,10 +215,10 @@ jobs:
         files: build/coverage.xml
     - name: Fast benchmark ${{ matrix.mode }}
       if: |
-        github.event_name == 'push' ||
+        matrix.name != 'coverage' && (github.event_name == 'push' ||
         (github.event_name == 'pull_request' && (
          matrix.test_in_pr ||
-         contains(github.event.pull_request.labels.*.names, 'CI:full')))
+         contains(github.event.pull_request.labels.*.names, 'CI:full'))))
       run: |
         STORE_IMAGES=0 ./ci.sh fast_benchmark
     # Run gbench once, just to make sure it runs, not for actual benchmarking.
@@ -256,10 +255,12 @@ jobs:
 
           - arch: i386
             lowprecision:
+            test_in_pr: true
             build_target: i686-linux-gnu
 
     env:
       BUILD_DIR: build
+      WILL_RUN_TESTS: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && (matrix.test_in_pr || contains(github.event.pull_request.labels.*.names, 'CI:full'))) }}
 
     steps:
     - name: Setup apt
@@ -308,7 +309,6 @@ jobs:
           # Build dependencies
           cmake
           doxygen
-          libgtest-dev:${{ matrix.arch }}
           ninja-build
           pkg-config
           qemu-user-static
@@ -381,13 +381,7 @@ jobs:
           cjxl djxl libjxl.so libjxl_dec.so
     # Run the tests on push and when requested in pull_request.
     - name: Test
-      # Some tests have a small floating point error on i686.
-      # TODO(deymo): Re-enable i686 tests.
-      if: |
-        matrix.build_target != 'i686-linux-gnu' && (
-          github.event_name == 'push' ||
-          (github.event_name == 'pull_request' &&
-           contains(github.event.pull_request.labels.*.names, 'CI:full')))
+      if: env.WILL_RUN_TESTS == 'true'
       run: |
         ./ci.sh test
       env:
@@ -461,8 +455,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
-      EM_VERSION: 2.0.23
-      V8_VERSION: 9.3.22
+      EM_VERSION: 3.1.4
+      V8_VERSION: 9.8.177
       V8: ${{ github.workspace }}/.jsvu/v8
       BUILD_TARGET: wasm32
 
@@ -506,7 +500,7 @@ jobs:
           ${{ runner.os }}-${{ steps.git-env.outputs.parent }}-${{ matrix.variant }}
 
     - name: Install emsdk
-      uses: mymindstorm/setup-emsdk@v10
+      uses: mymindstorm/setup-emsdk@v11
       # TODO(deymo): We could cache this action but it doesn't work when running
       # in a matrix.
       with:

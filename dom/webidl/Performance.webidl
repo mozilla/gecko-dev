@@ -66,13 +66,27 @@ partial interface Performance {
 };
 
 // https://w3c.github.io/user-timing/#extensions-performance-interface
+dictionary PerformanceMarkOptions {
+  any detail;
+  DOMHighResTimeStamp startTime;
+};
+
+// https://w3c.github.io/user-timing/#extensions-performance-interface
+dictionary PerformanceMeasureOptions {
+  any detail;
+  (DOMString or DOMHighResTimeStamp) start;
+  DOMHighResTimeStamp duration;
+  (DOMString or DOMHighResTimeStamp) end;
+};
+
+// https://w3c.github.io/user-timing/#extensions-performance-interface
 [Exposed=(Window,Worker)]
 partial interface Performance {
   [Throws]
-  void mark(DOMString markName);
+  PerformanceMark mark(DOMString markName, optional PerformanceMarkOptions markOptions = {});
   void clearMarks(optional DOMString markName);
   [Throws]
-  void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
+  PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions) startOrMeasureOptions = {}, optional DOMString endMark);
   void clearMeasures(optional DOMString measureName);
 };
 
@@ -81,4 +95,3 @@ partial interface Performance {
   [Pref="dom.enable_event_timing", SameObject]
   readonly attribute EventCounts eventCounts;
 };
-

@@ -13,8 +13,7 @@
 #include "js/TypeDecls.h"
 #include "js/PropertyAndElement.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_INHERITED(ByteLengthQueuingStrategy,
                                                 BaseQueuingStrategy)
@@ -45,7 +44,7 @@ static bool ByteLengthQueuingStrategySize(JSContext* cx, unsigned argc,
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1: Return ? GetV(chunk, "byteLength").
-  JS::RootedObject chunkObj(cx, JS::ToObject(cx, args.get(0)));
+  JS::Rooted<JSObject*> chunkObj(cx, JS::ToObject(cx, args.get(0)));
   if (!chunkObj) {
     return false;
   }
@@ -98,5 +97,4 @@ already_AddRefed<Function> ByteLengthQueuingStrategy::GetSize(
   return function.forget();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

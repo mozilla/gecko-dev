@@ -66,6 +66,15 @@ partial interface Storage {
   void beginExplicitSnapshot();
 
   /**
+   * Checkpoints the explicitly begun snapshot. This is only useful for testing
+   * of snapshot re-using when multiple checkpoints are involved. There's no
+   * need to call this before `endExplicitSnapshot` because it checkpoints the
+   * snapshot before it's ended.
+   */
+  [Throws, NeedsSubjectPrincipal, Pref="dom.storage.testing"]
+  void checkpointExplicitSnapshot();
+
+  /**
    * Ends the explicitly begun snapshot and retains the underlying database.
    * Compare with `close` which also drops the reference to the database.
    */
@@ -73,9 +82,20 @@ partial interface Storage {
   void endExplicitSnapshot();
 
   /**
-   * Returns true if the underlying database has been opened and it has an
-   * active snapshot (initialized implicitly or explicitly).
+   * Returns true if the underlying database has been opened, the database is
+   * not being closed and it has a snapshot (initialized implicitly or
+   * explicitly).
    */
   [Throws, NeedsSubjectPrincipal, Pref="dom.storage.testing"]
-  readonly attribute boolean hasActiveSnapshot;
+  readonly attribute boolean hasSnapshot;
+
+  /**
+   * Returns snapshot usage.
+   *
+   * @throws NS_ERROR_NOT_AVAILABLE if the underlying database hasn't been
+   *         opened or the database is being closed or it doesn't have a
+   *         snapshot.
+   */
+  [Throws, NeedsSubjectPrincipal, Pref="dom.storage.testing"]
+  readonly attribute long long snapshotUsage;
 };

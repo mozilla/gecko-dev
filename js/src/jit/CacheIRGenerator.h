@@ -387,8 +387,9 @@ class MOZ_RAII CheckPrivateFieldIRGenerator : public IRGenerator {
   HandleValue val_;
   HandleValue idVal_;
 
-  AttachDecision tryAttachNative(JSObject* obj, ObjOperandId objId, jsid key,
-                                 ValOperandId keyId, bool hasOwn);
+  AttachDecision tryAttachNative(NativeObject* obj, ObjOperandId objId,
+                                 jsid key, ValOperandId keyId,
+                                 PropertyResult prop);
 
   void trackAttached(const char* name);
 
@@ -472,135 +473,19 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
   HandleValue newTarget_;
   HandleValueArray args_;
 
+  friend class InlinableNativeIRGenerator;
+
   ScriptedThisResult getThisShapeForScripted(HandleFunction calleeFunc,
                                              MutableHandleShape result);
 
-  void emitNativeCalleeGuard(JSFunction* callee);
   void emitCalleeGuard(ObjOperandId calleeId, JSFunction* callee);
-
-  bool canAttachAtomicsReadWriteModify();
-
-  struct AtomicsReadWriteModifyOperands {
-    ObjOperandId objId;
-    IntPtrOperandId intPtrIndexId;
-    OperandId numericValueId;
-  };
-
-  AtomicsReadWriteModifyOperands emitAtomicsReadWriteModifyOperands(
-      HandleFunction callee);
-
-  AttachDecision tryAttachArrayPush(HandleFunction callee);
-  AttachDecision tryAttachArrayPopShift(HandleFunction callee,
-                                        InlinableNative native);
-  AttachDecision tryAttachArrayJoin(HandleFunction callee);
-  AttachDecision tryAttachArraySlice(HandleFunction callee);
-  AttachDecision tryAttachArrayIsArray(HandleFunction callee);
-  AttachDecision tryAttachDataViewGet(HandleFunction callee, Scalar::Type type);
-  AttachDecision tryAttachDataViewSet(HandleFunction callee, Scalar::Type type);
-  AttachDecision tryAttachUnsafeGetReservedSlot(HandleFunction callee,
-                                                InlinableNative native);
-  AttachDecision tryAttachUnsafeSetReservedSlot(HandleFunction callee);
-  AttachDecision tryAttachIsSuspendedGenerator(HandleFunction callee);
-  AttachDecision tryAttachToObject(HandleFunction callee,
-                                   InlinableNative native);
-  AttachDecision tryAttachToInteger(HandleFunction callee);
-  AttachDecision tryAttachToLength(HandleFunction callee);
-  AttachDecision tryAttachIsObject(HandleFunction callee);
-  AttachDecision tryAttachIsPackedArray(HandleFunction callee);
-  AttachDecision tryAttachIsCallable(HandleFunction callee);
-  AttachDecision tryAttachIsConstructor(HandleFunction callee);
-  AttachDecision tryAttachIsCrossRealmArrayConstructor(HandleFunction callee);
-  AttachDecision tryAttachGuardToClass(HandleFunction callee,
-                                       InlinableNative native);
-  AttachDecision tryAttachHasClass(HandleFunction callee, const JSClass* clasp,
-                                   bool isPossiblyWrapped);
-  AttachDecision tryAttachRegExpMatcherSearcherTester(HandleFunction callee,
-                                                      InlinableNative native);
-  AttachDecision tryAttachRegExpPrototypeOptimizable(HandleFunction callee);
-  AttachDecision tryAttachRegExpInstanceOptimizable(HandleFunction callee);
-  AttachDecision tryAttachGetFirstDollarIndex(HandleFunction callee);
-  AttachDecision tryAttachSubstringKernel(HandleFunction callee);
-  AttachDecision tryAttachObjectHasPrototype(HandleFunction callee);
-  AttachDecision tryAttachString(HandleFunction callee);
-  AttachDecision tryAttachStringConstructor(HandleFunction callee);
-  AttachDecision tryAttachStringToStringValueOf(HandleFunction callee);
-  AttachDecision tryAttachStringChar(HandleFunction callee, StringChar kind);
-  AttachDecision tryAttachStringCharCodeAt(HandleFunction callee);
-  AttachDecision tryAttachStringCharAt(HandleFunction callee);
-  AttachDecision tryAttachStringFromCharCode(HandleFunction callee);
-  AttachDecision tryAttachStringFromCodePoint(HandleFunction callee);
-  AttachDecision tryAttachStringToLowerCase(HandleFunction callee);
-  AttachDecision tryAttachStringToUpperCase(HandleFunction callee);
-  AttachDecision tryAttachStringReplaceString(HandleFunction callee);
-  AttachDecision tryAttachStringSplitString(HandleFunction callee);
-  AttachDecision tryAttachMathRandom(HandleFunction callee);
-  AttachDecision tryAttachMathAbs(HandleFunction callee);
-  AttachDecision tryAttachMathClz32(HandleFunction callee);
-  AttachDecision tryAttachMathSign(HandleFunction callee);
-  AttachDecision tryAttachMathImul(HandleFunction callee);
-  AttachDecision tryAttachMathFloor(HandleFunction callee);
-  AttachDecision tryAttachMathCeil(HandleFunction callee);
-  AttachDecision tryAttachMathTrunc(HandleFunction callee);
-  AttachDecision tryAttachMathRound(HandleFunction callee);
-  AttachDecision tryAttachMathSqrt(HandleFunction callee);
-  AttachDecision tryAttachMathFRound(HandleFunction callee);
-  AttachDecision tryAttachMathHypot(HandleFunction callee);
-  AttachDecision tryAttachMathATan2(HandleFunction callee);
-  AttachDecision tryAttachMathFunction(HandleFunction callee,
-                                       UnaryMathFunction fun);
-  AttachDecision tryAttachMathPow(HandleFunction callee);
-  AttachDecision tryAttachMathMinMax(HandleFunction callee, bool isMax);
-  AttachDecision tryAttachSpreadMathMinMax(HandleFunction callee, bool isMax);
-  AttachDecision tryAttachIsTypedArray(HandleFunction callee,
-                                       bool isPossiblyWrapped);
-  AttachDecision tryAttachIsTypedArrayConstructor(HandleFunction callee);
-  AttachDecision tryAttachTypedArrayByteOffset(HandleFunction callee);
-  AttachDecision tryAttachTypedArrayElementSize(HandleFunction callee);
-  AttachDecision tryAttachTypedArrayLength(HandleFunction callee,
-                                           bool isPossiblyWrapped);
-  AttachDecision tryAttachArrayBufferByteLength(HandleFunction callee,
-                                                bool isPossiblyWrapped);
-  AttachDecision tryAttachIsConstructing(HandleFunction callee);
-  AttachDecision tryAttachGetNextMapSetEntryForIterator(HandleFunction callee,
-                                                        bool isMap);
-  AttachDecision tryAttachFinishBoundFunctionInit(HandleFunction callee);
-  AttachDecision tryAttachNewArrayIterator(HandleFunction callee);
-  AttachDecision tryAttachNewStringIterator(HandleFunction callee);
-  AttachDecision tryAttachNewRegExpStringIterator(HandleFunction callee);
-  AttachDecision tryAttachArrayIteratorPrototypeOptimizable(
-      HandleFunction callee);
-  AttachDecision tryAttachObjectCreate(HandleFunction callee);
-  AttachDecision tryAttachArrayConstructor(HandleFunction callee);
-  AttachDecision tryAttachTypedArrayConstructor(HandleFunction callee);
-  AttachDecision tryAttachNumberToString(HandleFunction callee);
-  AttachDecision tryAttachReflectGetPrototypeOf(HandleFunction callee);
-  AttachDecision tryAttachAtomicsCompareExchange(HandleFunction callee);
-  AttachDecision tryAttachAtomicsExchange(HandleFunction callee);
-  AttachDecision tryAttachAtomicsAdd(HandleFunction callee);
-  AttachDecision tryAttachAtomicsSub(HandleFunction callee);
-  AttachDecision tryAttachAtomicsAnd(HandleFunction callee);
-  AttachDecision tryAttachAtomicsOr(HandleFunction callee);
-  AttachDecision tryAttachAtomicsXor(HandleFunction callee);
-  AttachDecision tryAttachAtomicsLoad(HandleFunction callee);
-  AttachDecision tryAttachAtomicsStore(HandleFunction callee);
-  AttachDecision tryAttachAtomicsIsLockFree(HandleFunction callee);
-  AttachDecision tryAttachBoolean(HandleFunction callee);
-  AttachDecision tryAttachBailout(HandleFunction callee);
-  AttachDecision tryAttachAssertFloat32(HandleFunction callee);
-  AttachDecision tryAttachAssertRecoveredOnBailout(HandleFunction callee);
-  AttachDecision tryAttachObjectIs(HandleFunction callee);
-  AttachDecision tryAttachObjectIsPrototypeOf(HandleFunction callee);
-  AttachDecision tryAttachObjectToString(HandleFunction callee);
-  AttachDecision tryAttachBigIntAsIntN(HandleFunction callee);
-  AttachDecision tryAttachBigIntAsUintN(HandleFunction callee);
-  AttachDecision tryAttachSetHas(HandleFunction callee);
-  AttachDecision tryAttachMapHas(HandleFunction callee);
-  AttachDecision tryAttachMapGet(HandleFunction callee);
+  ObjOperandId emitFunCallGuard(Int32OperandId argcId);
 
   AttachDecision tryAttachFunCall(HandleFunction calleeFunc);
   AttachDecision tryAttachFunApply(HandleFunction calleeFunc);
   AttachDecision tryAttachCallScripted(HandleFunction calleeFunc);
-  AttachDecision tryAttachInlinableNative(HandleFunction calleeFunc);
+  AttachDecision tryAttachInlinableNative(HandleFunction calleeFunc,
+                                          CallFlags flags);
   AttachDecision tryAttachWasmCall(HandleFunction calleeFunc);
   AttachDecision tryAttachCallNative(HandleFunction calleeFunc);
   AttachDecision tryAttachCallHook(HandleObject calleeObj);
@@ -612,6 +497,173 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
                   ICState state, uint32_t argc, HandleValue callee,
                   HandleValue thisval, HandleValue newTarget,
                   HandleValueArray args);
+
+  AttachDecision tryAttachStub();
+};
+
+class MOZ_RAII InlinableNativeIRGenerator {
+  CallIRGenerator& generator_;
+  CacheIRWriter& writer;
+  JSContext* cx_;
+
+  HandleFunction callee_;
+  HandleValue newTarget_;
+  HandleValue thisval_;
+  HandleValueArray args_;
+  uint32_t argc_;
+  CallFlags flags_;
+
+  HandleScript script() const { return generator_.script_; }
+  bool isFirstStub() const { return generator_.isFirstStub_; }
+  bool ignoresResult() const { return generator_.op_ == JSOp::CallIgnoresRv; }
+
+  void emitNativeCalleeGuard();
+
+  void initializeInputOperand() {
+    // The input operand is already initialized for FunCall.
+    if (flags_.getArgFormat() == CallFlags::FunCall) {
+      return;
+    }
+    (void)writer.setInputOperandId(0);
+  }
+
+  auto emitToStringGuard(ValOperandId id, const Value& v) {
+    return generator_.emitToStringGuard(id, v);
+  }
+
+  auto emitNumericGuard(ValOperandId valId, Scalar::Type type) {
+    return generator_.emitNumericGuard(valId, type);
+  }
+
+  auto guardToIntPtrIndex(const Value& index, ValOperandId indexId,
+                          bool supportOOB) {
+    return generator_.guardToIntPtrIndex(index, indexId, supportOOB);
+  }
+
+  bool canAttachAtomicsReadWriteModify();
+
+  struct AtomicsReadWriteModifyOperands {
+    ObjOperandId objId;
+    IntPtrOperandId intPtrIndexId;
+    OperandId numericValueId;
+  };
+
+  AtomicsReadWriteModifyOperands emitAtomicsReadWriteModifyOperands();
+
+  AttachDecision tryAttachArrayPush();
+  AttachDecision tryAttachArrayPopShift(InlinableNative native);
+  AttachDecision tryAttachArrayJoin();
+  AttachDecision tryAttachArraySlice();
+  AttachDecision tryAttachArrayIsArray();
+  AttachDecision tryAttachDataViewGet(Scalar::Type type);
+  AttachDecision tryAttachDataViewSet(Scalar::Type type);
+  AttachDecision tryAttachUnsafeGetReservedSlot(InlinableNative native);
+  AttachDecision tryAttachUnsafeSetReservedSlot();
+  AttachDecision tryAttachIsSuspendedGenerator();
+  AttachDecision tryAttachToObject(InlinableNative native);
+  AttachDecision tryAttachToInteger();
+  AttachDecision tryAttachToLength();
+  AttachDecision tryAttachIsObject();
+  AttachDecision tryAttachIsPackedArray();
+  AttachDecision tryAttachIsCallable();
+  AttachDecision tryAttachIsConstructor();
+  AttachDecision tryAttachIsCrossRealmArrayConstructor();
+  AttachDecision tryAttachGuardToClass(InlinableNative native);
+  AttachDecision tryAttachHasClass(const JSClass* clasp,
+                                   bool isPossiblyWrapped);
+  AttachDecision tryAttachRegExpMatcherSearcherTester(InlinableNative native);
+  AttachDecision tryAttachRegExpPrototypeOptimizable();
+  AttachDecision tryAttachRegExpInstanceOptimizable();
+  AttachDecision tryAttachGetFirstDollarIndex();
+  AttachDecision tryAttachSubstringKernel();
+  AttachDecision tryAttachObjectHasPrototype();
+  AttachDecision tryAttachString();
+  AttachDecision tryAttachStringConstructor();
+  AttachDecision tryAttachStringToStringValueOf();
+  AttachDecision tryAttachStringChar(StringChar kind);
+  AttachDecision tryAttachStringCharCodeAt();
+  AttachDecision tryAttachStringCharAt();
+  AttachDecision tryAttachStringFromCharCode();
+  AttachDecision tryAttachStringFromCodePoint();
+  AttachDecision tryAttachStringToLowerCase();
+  AttachDecision tryAttachStringToUpperCase();
+  AttachDecision tryAttachStringReplaceString();
+  AttachDecision tryAttachStringSplitString();
+  AttachDecision tryAttachMathRandom();
+  AttachDecision tryAttachMathAbs();
+  AttachDecision tryAttachMathClz32();
+  AttachDecision tryAttachMathSign();
+  AttachDecision tryAttachMathImul();
+  AttachDecision tryAttachMathFloor();
+  AttachDecision tryAttachMathCeil();
+  AttachDecision tryAttachMathTrunc();
+  AttachDecision tryAttachMathRound();
+  AttachDecision tryAttachMathSqrt();
+  AttachDecision tryAttachMathFRound();
+  AttachDecision tryAttachMathHypot();
+  AttachDecision tryAttachMathATan2();
+  AttachDecision tryAttachMathFunction(UnaryMathFunction fun);
+  AttachDecision tryAttachMathPow();
+  AttachDecision tryAttachMathMinMax(bool isMax);
+  AttachDecision tryAttachSpreadMathMinMax(bool isMax);
+  AttachDecision tryAttachIsTypedArray(bool isPossiblyWrapped);
+  AttachDecision tryAttachIsTypedArrayConstructor();
+  AttachDecision tryAttachTypedArrayByteOffset();
+  AttachDecision tryAttachTypedArrayElementSize();
+  AttachDecision tryAttachTypedArrayLength(bool isPossiblyWrapped);
+  AttachDecision tryAttachArrayBufferByteLength(bool isPossiblyWrapped);
+  AttachDecision tryAttachIsConstructing();
+  AttachDecision tryAttachGetNextMapSetEntryForIterator(bool isMap);
+  AttachDecision tryAttachFinishBoundFunctionInit();
+  AttachDecision tryAttachNewArrayIterator();
+  AttachDecision tryAttachNewStringIterator();
+  AttachDecision tryAttachNewRegExpStringIterator();
+  AttachDecision tryAttachArrayIteratorPrototypeOptimizable();
+  AttachDecision tryAttachObjectCreate();
+  AttachDecision tryAttachArrayConstructor();
+  AttachDecision tryAttachTypedArrayConstructor();
+  AttachDecision tryAttachNumberToString();
+  AttachDecision tryAttachReflectGetPrototypeOf();
+  AttachDecision tryAttachAtomicsCompareExchange();
+  AttachDecision tryAttachAtomicsExchange();
+  AttachDecision tryAttachAtomicsAdd();
+  AttachDecision tryAttachAtomicsSub();
+  AttachDecision tryAttachAtomicsAnd();
+  AttachDecision tryAttachAtomicsOr();
+  AttachDecision tryAttachAtomicsXor();
+  AttachDecision tryAttachAtomicsLoad();
+  AttachDecision tryAttachAtomicsStore();
+  AttachDecision tryAttachAtomicsIsLockFree();
+  AttachDecision tryAttachBoolean();
+  AttachDecision tryAttachBailout();
+  AttachDecision tryAttachAssertFloat32();
+  AttachDecision tryAttachAssertRecoveredOnBailout();
+  AttachDecision tryAttachObjectIs();
+  AttachDecision tryAttachObjectIsPrototypeOf();
+  AttachDecision tryAttachObjectToString();
+  AttachDecision tryAttachBigIntAsIntN();
+  AttachDecision tryAttachBigIntAsUintN();
+  AttachDecision tryAttachSetHas();
+  AttachDecision tryAttachMapHas();
+  AttachDecision tryAttachMapGet();
+
+  void trackAttached(const char* name) {
+    return generator_.trackAttached(name);
+  }
+
+ public:
+  InlinableNativeIRGenerator(CallIRGenerator& generator, HandleFunction callee,
+                             HandleValue newTarget, HandleValue thisValue,
+                             HandleValueArray args, CallFlags flags)
+      : generator_(generator),
+        writer(generator.writer),
+        cx_(generator.cx_),
+        callee_(callee),
+        newTarget_(newTarget),
+        thisval_(thisValue),
+        args_(args),
+        argc_(args.length()),
+        flags_(flags) {}
 
   AttachDecision tryAttachStub();
 };

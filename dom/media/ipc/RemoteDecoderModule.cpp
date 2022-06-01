@@ -38,21 +38,28 @@ already_AddRefed<PlatformDecoderModule> RemoteDecoderModule::Create(
 RemoteDecoderModule::RemoteDecoderModule(RemoteDecodeIn aLocation)
     : mLocation(aLocation) {}
 
-bool RemoteDecoderModule::SupportsMimeType(
+media::DecodeSupportSet RemoteDecoderModule::SupportsMimeType(
     const nsACString& aMimeType, DecoderDoctorDiagnostics* aDiagnostics) const {
   MOZ_CRASH("Deprecated: Use RemoteDecoderModule::Supports");
 }  // namespace mozilla
 
-bool RemoteDecoderModule::Supports(
+media::DecodeSupportSet RemoteDecoderModule::Supports(
     const SupportDecoderParams& aParams,
     DecoderDoctorDiagnostics* aDiagnostics) const {
   bool supports =
       RemoteDecoderManagerChild::Supports(mLocation, aParams, aDiagnostics);
   MOZ_LOG(sPDMLog, LogLevel::Debug,
           ("Sandbox %s decoder %s requested type",
-           mLocation == RemoteDecodeIn::GpuProcess ? "GPU" : "RDD",
+           mLocation == RemoteDecodeIn::GpuProcess
+               ? "GPU"
+               : (mLocation == RemoteDecodeIn::RddProcess ? "RDD" : "Utility"),
            supports ? "supports" : "rejects"));
-  return supports;
+  if (supports) {
+    // TODO: Note that we do not yet distinguish between SW/HW decode support.
+    //       Will be done in bug 1754239.
+    return media::DecodeSupport::SoftwareDecode;
+  }
+  return media::DecodeSupport::Unsupported;
 }
 
 RefPtr<RemoteDecoderModule::CreateDecoderPromise>
@@ -66,9 +73,9 @@ RemoteDecoderModule::AsyncCreateDecoder(const CreateDecoderParams& aParams) {
         IsDefaultPlaybackDeviceMono()) {
       CreateDecoderParams params = aParams;
       params.mOptions += CreateDecoderParams::Option::DefaultPlaybackDeviceMono;
-      return RemoteDecoderManagerChild::CreateAudioDecoder(params);
+      return RemoteDecoderManagerChild::CreateAudioDecoder(params, mLocation);
     }
-    return RemoteDecoderManagerChild::CreateAudioDecoder(aParams);
+    return RemoteDecoderManagerChild::CreateAudioDecoder(aParams, mLocation);
   }
   return RemoteDecoderManagerChild::CreateVideoDecoder(aParams, mLocation);
 }

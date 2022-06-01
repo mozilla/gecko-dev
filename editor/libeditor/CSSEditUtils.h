@@ -7,7 +7,8 @@
 #define mozilla_CSSEditUtils_h
 
 #include "mozilla/ChangeStyleTransaction.h"  // for ChangeStyleTransaction
-#include "nsCOMPtr.h"                        // for already_AddRefed
+#include "mozilla/EditorForwards.h"
+#include "nsCOMPtr.h"  // for already_AddRefed
 #include "nsStringFwd.h"
 #include "nsTArray.h"  // for nsTArray
 #include "nscore.h"    // for nsAString, nsresult, nullptr
@@ -21,8 +22,6 @@ class nsStaticAtom;
 class nsStyledElement;
 
 namespace mozilla {
-
-class HTMLEditor;
 namespace dom {
 class Element;
 }  // namespace dom
@@ -200,14 +199,16 @@ class CSSEditUtils final {
    * @return               A boolean being true if the css properties are
    *                       not same as initial value.
    */
-  MOZ_CAN_RUN_SCRIPT static bool IsComputedCSSEquivalentToHTMLInlineStyleSet(
-      nsIContent& aContent, nsAtom* aHTMLProperty, nsAtom* aAttribute,
-      nsAString& aValue) {
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<bool, nsresult>
+  IsComputedCSSEquivalentToHTMLInlineStyleSet(nsIContent& aContent,
+                                              nsAtom* aHTMLProperty,
+                                              nsAtom* aAttribute,
+                                              nsAString& aValue) {
     MOZ_ASSERT(aHTMLProperty || aAttribute);
     return IsCSSEquivalentToHTMLInlineStyleSetInternal(
         aContent, aHTMLProperty, aAttribute, aValue, StyleType::Computed);
   }
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY static bool
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT_BOUNDARY Result<bool, nsresult>
   IsSpecifiedCSSEquivalentToHTMLInlineStyleSet(nsIContent& aContent,
                                                nsAtom* aHTMLProperty,
                                                nsAtom* aAttribute,
@@ -233,14 +234,16 @@ class CSSEditUtils final {
    * @return               A boolean being true if the css properties are
    *                       not set.
    */
-  MOZ_CAN_RUN_SCRIPT static bool HaveComputedCSSEquivalentStyles(
-      nsIContent& aContent, nsAtom* aHTMLProperty, nsAtom* aAttribute) {
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<bool, nsresult>
+  HaveComputedCSSEquivalentStyles(nsIContent& aContent, nsAtom* aHTMLProperty,
+                                  nsAtom* aAttribute) {
     MOZ_ASSERT(aHTMLProperty || aAttribute);
     return HaveCSSEquivalentStylesInternal(aContent, aHTMLProperty, aAttribute,
                                            StyleType::Computed);
   }
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY static bool HaveSpecifiedCSSEquivalentStyles(
-      nsIContent& aContent, nsAtom* aHTMLProperty, nsAtom* aAttribute) {
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT_BOUNDARY Result<bool, nsresult>
+  HaveSpecifiedCSSEquivalentStyles(nsIContent& aContent, nsAtom* aHTMLProperty,
+                                   nsAtom* aAttribute) {
     MOZ_ASSERT(aHTMLProperty || aAttribute);
     return HaveCSSEquivalentStylesInternal(aContent, aHTMLProperty, aAttribute,
                                            StyleType::Specified);
@@ -424,12 +427,15 @@ class CSSEditUtils final {
                                                nsAtom* aAttribute,
                                                nsAString& aValue,
                                                StyleType aStyleType);
-  MOZ_CAN_RUN_SCRIPT static bool IsCSSEquivalentToHTMLInlineStyleSetInternal(
-      nsIContent& aContent, nsAtom* aHTMLProperty, nsAtom* aAttribute,
-      nsAString& aValue, StyleType aStyleType);
-  MOZ_CAN_RUN_SCRIPT static bool HaveCSSEquivalentStylesInternal(
-      nsIContent& aContent, nsAtom* aHTMLProperty, nsAtom* aAttribute,
-      StyleType aStyleType);
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<bool, nsresult>
+  IsCSSEquivalentToHTMLInlineStyleSetInternal(nsIContent& aContent,
+                                              nsAtom* aHTMLProperty,
+                                              nsAtom* aAttribute,
+                                              nsAString& aValue,
+                                              StyleType aStyleType);
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<bool, nsresult>
+  HaveCSSEquivalentStylesInternal(nsIContent& aContent, nsAtom* aHTMLProperty,
+                                  nsAtom* aAttribute, StyleType aStyleType);
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult RemoveCSSPropertyInternal(
       nsStyledElement& aStyledElement, nsAtom& aProperty,

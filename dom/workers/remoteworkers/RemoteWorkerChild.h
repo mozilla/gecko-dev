@@ -22,8 +22,7 @@
 class nsISerialEventTarget;
 class nsIConsoleReportCollector;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class ErrorValue;
 class FetchEventOpProxyChild;
@@ -49,8 +48,6 @@ class RemoteWorkerChild final
   friend class ServiceWorkerOp;
 
  public:
-  MOZ_DECLARE_THREADSAFEWEAKREFERENCE_TYPENAME(RemoteWorkerChild)
-
   MOZ_DECLARE_REFCOUNTED_TYPENAME(RemoteWorkerChild)
 
   explicit RemoteWorkerChild(const RemoteWorkerData& aData);
@@ -175,7 +172,6 @@ class RemoteWorkerChild final
   ThreadBound<LauncherBoundData> mLauncherData;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_RemoteWorkerChild_h

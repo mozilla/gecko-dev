@@ -11,12 +11,15 @@
 #include "nsAccessibilityService.h"
 #include "nsCoreUtils.h"
 #include "DocAccessible.h"
+#include "DocAccessibleParent.h"
 #include "HyperTextAccessible.h"
 #include "nsIAccessibleTypes.h"
 #include "Role.h"
 #include "States.h"
 #include "TextLeafAccessible.h"
 
+#include "nsIBaseWindow.h"
+#include "nsIDocShellTreeOwner.h"
 #include "nsIDOMXULContainerElement.h"
 #include "nsISimpleEnumerator.h"
 #include "mozilla/a11y/PDocAccessibleChild.h"
@@ -204,16 +207,16 @@ bool nsAccUtils::IsDOMAttrTrue(const LocalAccessible* aAccessible,
                                eCaseMatters);
 }
 
-LocalAccessible* nsAccUtils::TableFor(LocalAccessible* aRow) {
+Accessible* nsAccUtils::TableFor(Accessible* aRow) {
   if (aRow) {
-    LocalAccessible* table = aRow->LocalParent();
+    Accessible* table = aRow->Parent();
     if (table) {
       roles::Role tableRole = table->Role();
       const nsRoleMapEntry* roleMapEntry = table->ARIARoleMap();
       if (tableRole == roles::GROUPING ||  // if there's a rowgroup.
           (table->IsGenericHyperText() && !roleMapEntry &&
            !table->IsTable())) {  // or there is a wrapping text container
-        table = table->LocalParent();
+        table = table->Parent();
         if (table) tableRole = table->Role();
       }
 
@@ -225,6 +228,11 @@ LocalAccessible* nsAccUtils::TableFor(LocalAccessible* aRow) {
   }
 
   return nullptr;
+}
+
+LocalAccessible* nsAccUtils::TableFor(LocalAccessible* aRow) {
+  Accessible* table = TableFor(static_cast<Accessible*>(aRow));
+  return table ? table->AsLocal() : nullptr;
 }
 
 HyperTextAccessible* nsAccUtils::GetTextContainer(nsINode* aNode) {
@@ -245,16 +253,17 @@ HyperTextAccessible* nsAccUtils::GetTextContainer(nsINode* aNode) {
 }
 
 LayoutDeviceIntPoint nsAccUtils::ConvertToScreenCoords(
-    int32_t aX, int32_t aY, uint32_t aCoordinateType,
-    LocalAccessible* aAccessible) {
+    int32_t aX, int32_t aY, uint32_t aCoordinateType, Accessible* aAccessible) {
   LayoutDeviceIntPoint coords(aX, aY);
 
   switch (aCoordinateType) {
+    // Regardless of coordinate type, the coords returned
+    // are in dev pixels.
     case nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE:
       break;
 
     case nsIAccessibleCoordinateType::COORDTYPE_WINDOW_RELATIVE: {
-      coords += nsCoreUtils::GetScreenCoordsForWindow(aAccessible->GetNode());
+      coords += GetScreenCoordsForWindow(aAccessible);
       break;
     }
 
@@ -272,14 +281,15 @@ LayoutDeviceIntPoint nsAccUtils::ConvertToScreenCoords(
 
 void nsAccUtils::ConvertScreenCoordsTo(int32_t* aX, int32_t* aY,
                                        uint32_t aCoordinateType,
-                                       LocalAccessible* aAccessible) {
+                                       Accessible* aAccessible) {
   switch (aCoordinateType) {
+    // Regardless of coordinate type, the values returned for
+    // aX and aY are in dev pixels.
     case nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE:
       break;
 
     case nsIAccessibleCoordinateType::COORDTYPE_WINDOW_RELATIVE: {
-      LayoutDeviceIntPoint coords =
-          nsCoreUtils::GetScreenCoordsForWindow(aAccessible->GetNode());
+      LayoutDeviceIntPoint coords = GetScreenCoordsForWindow(aAccessible);
       *aX -= coords.x;
       *aY -= coords.y;
       break;
@@ -298,17 +308,41 @@ void nsAccUtils::ConvertScreenCoordsTo(int32_t* aX, int32_t* aY,
 }
 
 LayoutDeviceIntPoint nsAccUtils::GetScreenCoordsForParent(
-    LocalAccessible* aAccessible) {
-  LocalAccessible* parent = aAccessible->LocalParent();
-  if (!parent) return LayoutDeviceIntPoint(0, 0);
+    Accessible* aAccessible) {
+  if (!aAccessible) return LayoutDeviceIntPoint();
 
-  nsIFrame* parentFrame = parent->GetFrame();
-  if (!parentFrame) return LayoutDeviceIntPoint(0, 0);
+  if (Accessible* parent = aAccessible->Parent()) {
+    LayoutDeviceIntRect parentBounds = parent->Bounds();
+    // The rect returned from Bounds() is already in dev
+    // pixels, so we don't need to do any conversion here.
+    return parentBounds.TopLeft();
+  }
 
-  nsRect rect = parentFrame->GetScreenRectInAppUnits();
-  nscoord appUnitsRatio = parentFrame->PresContext()->AppUnitsPerDevPixel();
-  return LayoutDeviceIntPoint::FromAppUnitsToNearest(
-      nsPoint(rect.X(), rect.Y()), appUnitsRatio);
+  return LayoutDeviceIntPoint();
+}
+
+LayoutDeviceIntPoint nsAccUtils::GetScreenCoordsForWindow(
+    Accessible* aAccessible) {
+  a11y::LocalAccessible* localAcc = aAccessible->AsLocal();
+  if (!localAcc) {
+    localAcc = aAccessible->AsRemote()->OuterDocOfRemoteBrowser();
+  }
+
+  LayoutDeviceIntPoint coords(0, 0);
+  nsCOMPtr<nsIDocShellTreeItem> treeItem(
+      nsCoreUtils::GetDocShellFor(localAcc->GetNode()));
+  if (!treeItem) return coords;
+
+  nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
+  treeItem->GetTreeOwner(getter_AddRefs(treeOwner));
+  if (!treeOwner) return coords;
+
+  nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(treeOwner);
+  if (baseWindow) {
+    baseWindow->GetPosition(&coords.x, &coords.y);  // in device pixels
+  }
+
+  return coords;
 }
 
 bool nsAccUtils::GetLiveAttrValue(uint32_t aRule, nsAString& aValue) {
@@ -451,4 +485,29 @@ bool nsAccUtils::IsARIALive(const LocalAccessible* aAccessible) {
   }
 
   return false;
+}
+
+Accessible* nsAccUtils::DocumentFor(Accessible* aAcc) {
+  if (!aAcc) {
+    return nullptr;
+  }
+  if (LocalAccessible* localAcc = aAcc->AsLocal()) {
+    return localAcc->Document();
+  }
+  return aAcc->AsRemote()->Document();
+}
+
+Accessible* nsAccUtils::GetAccessibleByID(Accessible* aDoc, uint64_t aID) {
+  if (!aDoc) {
+    return nullptr;
+  }
+  if (LocalAccessible* localAcc = aDoc->AsLocal()) {
+    if (DocAccessible* doc = localAcc->AsDoc()) {
+      return doc->GetAccessibleByUniqueID(
+          reinterpret_cast<void*>(static_cast<uintptr_t>(aID)));
+    }
+  } else if (DocAccessibleParent* doc = aDoc->AsRemote()->AsDoc()) {
+    return doc->GetAccessible(aID);
+  }
+  return nullptr;
 }

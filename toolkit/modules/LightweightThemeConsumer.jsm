@@ -6,6 +6,10 @@ var EXPORTED_SYMBOLS = ["LightweightThemeConsumer"];
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
 ChromeUtils.defineModuleGetter(
   this,
   "AppConstants",
@@ -27,6 +31,15 @@ ChromeUtils.defineModuleGetter(
   this,
   "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm"
+);
+
+// Whether the content and chrome areas should always use the same color
+// scheme (unless user-overridden). Thunderbird uses this.
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "BROWSER_THEME_UNIFIED_COLOR_SCHEME",
+  "browser.theme.unified-color-scheme",
+  false
 );
 
 const DEFAULT_THEME_ID = "default-theme@mozilla.org";
@@ -60,10 +73,6 @@ const toolkitVariableMap = [
         }
         // Remove the alpha channel
         const { r, g, b } = rgbaChannels;
-        element.setAttribute(
-          "lwthemetextcolor",
-          _isColorDark(r, g, b) ? "dark" : "bright"
-        );
         return `rgba(${r}, ${g}, ${b})`;
       },
     },
@@ -239,9 +248,10 @@ LightweightThemeConsumer.prototype = {
   _update(themeData) {
     this._lastData = themeData;
 
+    const hasDarkTheme = !!themeData.darkTheme;
     let updateGlobalThemeData = true;
     let useDarkTheme = (() => {
-      if (!themeData.darkTheme) {
+      if (!hasDarkTheme) {
         return false;
       }
       if (this.darkThemeMediaQuery?.matches) {
@@ -311,13 +321,17 @@ LightweightThemeConsumer.prototype = {
 
     if (theme.id != DEFAULT_THEME_ID || useDarkTheme) {
       if (updateGlobalThemeData) {
-        _determineToolbarAndContentTheme(this._doc, theme._processedColors);
+        _determineToolbarAndContentTheme(
+          this._doc,
+          theme,
+          hasDarkTheme,
+          useDarkTheme
+        );
       }
       root.setAttribute("lwtheme", "true");
     } else {
       _determineToolbarAndContentTheme(this._doc, null);
       root.removeAttribute("lwtheme");
-      root.removeAttribute("lwthemetextcolor");
     }
     if (theme.id == DEFAULT_THEME_ID && useDarkTheme) {
       root.setAttribute("lwt-default-theme-in-dark-mode", "true");
@@ -435,54 +449,95 @@ function _setProperty(elem, active, variableName, value) {
   }
 }
 
-function _determineToolbarAndContentTheme(aDoc, aColors) {
+function _determineToolbarAndContentTheme(
+  aDoc,
+  aTheme,
+  aHasDarkTheme = false,
+  aIsDarkTheme = false
+) {
+  const kDark = 0;
+  const kLight = 1;
+  const kSystem = 2;
+
+  const colors = aTheme?._processedColors;
   function prefValue(aColor, aIsForeground = false) {
     if (typeof aColor != "object") {
       aColor = _cssColorToRGBA(aDoc, aColor);
     }
-    return _isColorDark(aColor.r, aColor.g, aColor.b) == aIsForeground ? 1 : 0;
+    return _isColorDark(aColor.r, aColor.g, aColor.b) == aIsForeground
+      ? kLight
+      : kDark;
+  }
+
+  function colorSchemeValue(aColorScheme) {
+    if (!aColorScheme) {
+      return null;
+    }
+    switch (aColorScheme) {
+      case "light":
+        return kLight;
+      case "dark":
+        return kDark;
+      case "system":
+        return kSystem;
+      case "auto":
+      default:
+        break;
+    }
+    return null;
   }
 
   let toolbarTheme = (function() {
-    if (!aColors) {
+    if (!aTheme) {
       if (!DEFAULT_THEME_RESPECTS_SYSTEM_COLOR_SCHEME) {
-        return 1;
+        return kLight;
       }
-      return 2;
+      return kSystem;
+    }
+    let themeValue = colorSchemeValue(aTheme.color_scheme);
+    if (themeValue !== null) {
+      return themeValue;
+    }
+    if (aHasDarkTheme) {
+      return aIsDarkTheme ? kDark : kLight;
     }
     // We prefer looking at toolbar background first (if it's opaque) because
     // some text colors can be dark enough for our heuristics, but still
     // contrast well enough with a dark background, see bug 1743010.
-    if (aColors.toolbarColor) {
-      let color = _cssColorToRGBA(aDoc, aColors.toolbarColor);
+    if (colors.toolbarColor) {
+      let color = _cssColorToRGBA(aDoc, colors.toolbarColor);
       if (color.a == 1) {
         return prefValue(color);
       }
     }
-    if (aColors.toolbar_text) {
-      return prefValue(aColors.toolbar_text, /* aIsForeground = */ true);
+    if (colors.toolbar_text) {
+      return prefValue(colors.toolbar_text, /* aIsForeground = */ true);
     }
     // It'd seem sensible to try looking at the "frame" background (accentcolor),
     // but we don't because some themes that use background images leave it to
     // black, see bug 1741931.
     //
     // Fall back to black as per the textcolor processing above.
-    return prefValue(aColors.textcolor || "black", /* aIsForeground = */ true);
+    return prefValue(colors.textcolor || "black", /* aIsForeground = */ true);
   })();
 
   let contentTheme = (function() {
-    if (!aColors) {
-      return 2;
+    if (BROWSER_THEME_UNIFIED_COLOR_SCHEME) {
+      return toolbarTheme;
     }
-    if (aColors.ntp_background) {
-      // We don't care about transparency here as ntp background can't have
-      // transparency (alpha channel is dropped).
-      return prefValue(aColors.ntp_background);
+    if (!aTheme) {
+      if (!DEFAULT_THEME_RESPECTS_SYSTEM_COLOR_SCHEME) {
+        return kLight;
+      }
+      return kSystem;
     }
-    if (aColors.ntp_text) {
-      return prefValue(aColors.ntp_text, /* aIsForeground = */ true);
+    let themeValue = colorSchemeValue(
+      aTheme.content_color_scheme || aTheme.color_scheme
+    );
+    if (themeValue !== null) {
+      return themeValue;
     }
-    return 2;
+    return kSystem;
   })();
 
   Services.prefs.setIntPref("browser.theme.toolbar-theme", toolbarTheme);
@@ -499,6 +554,15 @@ function _determineToolbarAndContentTheme(aDoc, aColors) {
  *   The `_processedColors` object from the object created for our theme.
  */
 function _setDarkModeAttributes(doc, root, colors) {
+  {
+    let textColor = _cssColorToRGBA(doc, colors.textcolor);
+    if (textColor && !_isColorDark(textColor.r, textColor.g, textColor.b)) {
+      root.setAttribute("lwtheme-brighttext", "true");
+    } else {
+      root.removeAttribute("lwtheme-brighttext");
+    }
+  }
+
   if (
     _determineIfColorPairIsDark(
       doc,

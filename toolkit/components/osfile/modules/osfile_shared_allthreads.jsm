@@ -38,9 +38,10 @@ if (typeof Components != "undefined") {
   this.exports = {};
   ({ Services } = ChromeUtils.import("resource://gre/modules/Services.jsm"));
   this.Services = Services;
-  Meta = ChromeUtils.import("resource://gre/modules/PromiseWorker.jsm", {})
+  Meta = ChromeUtils.import("resource://gre/modules/PromiseWorker.jsm")
     .BasePromiseWorker.Meta;
 } else {
+  /* import-globals-from /toolkit/components/workerloader/require.js */
   importScripts("resource://gre/modules/workers/require.js");
   Meta = require("resource://gre/modules/workers/PromiseWorker.js").Meta;
 }

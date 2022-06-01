@@ -9,10 +9,13 @@
 #include "nsDocShell.h"
 #include "nsDocShellLoadState.h"
 #include "nsFrameLoader.h"
+#include "nsIFormPOSTActionChannel.h"
 #include "nsIHttpChannel.h"
+#include "nsIUploadChannel2.h"
 #include "nsIXULRuntime.h"
 #include "nsSHEntryShared.h"
 #include "nsSHistory.h"
+#include "nsStreamUtils.h"
 #include "nsStructuredCloneContainer.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/PresState.h"
@@ -42,7 +45,6 @@ SessionHistoryInfo::SessionHistoryInfo(nsDocShellLoadState* aLoadState,
     : mURI(aLoadState->URI()),
       mOriginalURI(aLoadState->OriginalURI()),
       mResultPrincipalURI(aLoadState->ResultPrincipalURI()),
-      mPostData(aLoadState->PostDataStream()),
       mLoadType(aLoadState->LoadType()),
       mSrcdocData(aLoadState->SrcdocData().IsVoid()
                       ? Nothing()
@@ -56,6 +58,15 @@ SessionHistoryInfo::SessionHistoryInfo(nsDocShellLoadState* aLoadState,
           aLoadState->PartitionedPrincipalToInherit(), aLoadState->Csp(),
           /* FIXME Is this correct? */
           aLoadState->TypeHint())) {
+  // Pull the upload stream off of the channel instead of the load state, as
+  // ownership has already been transferred from the load state to the channel.
+  if (nsCOMPtr<nsIUploadChannel2> postChannel = do_QueryInterface(aChannel)) {
+    int64_t contentLength;
+    MOZ_ALWAYS_SUCCEEDS(postChannel->CloneUploadStream(
+        &contentLength, getter_AddRefs(mPostData)));
+    MOZ_ASSERT_IF(mPostData, NS_InputStreamIsCloneable(mPostData));
+  }
+
   if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel)) {
     mReferrerInfo = httpChannel->GetReferrerInfo();
   }
@@ -82,14 +93,14 @@ SessionHistoryInfo::SessionHistoryInfo(
 }
 
 SessionHistoryInfo::SessionHistoryInfo(
-    nsIChannel* aOldChannel, nsIChannel* aNewChannel, uint32_t aLoadType,
+    nsIChannel* aChannel, uint32_t aLoadType,
     nsIPrincipal* aPartitionedPrincipalToInherit,
     nsIContentSecurityPolicy* aCsp) {
-  aNewChannel->GetURI(getter_AddRefs(mURI));
+  aChannel->GetURI(getter_AddRefs(mURI));
   mLoadType = aLoadType;
 
   nsCOMPtr<nsILoadInfo> loadInfo;
-  aNewChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+  aChannel->GetLoadInfo(getter_AddRefs(loadInfo));
 
   loadInfo->GetResultPrincipalURI(getter_AddRefs(mResultPrincipalURI));
   loadInfo->GetTriggeringPrincipal(
@@ -100,16 +111,16 @@ SessionHistoryInfo::SessionHistoryInfo(
   mSharedState.Get()->mPartitionedPrincipalToInherit =
       aPartitionedPrincipalToInherit;
   mSharedState.Get()->mCsp = aCsp;
-  aNewChannel->GetContentType(mSharedState.Get()->mContentType);
-  aOldChannel->GetOriginalURI(getter_AddRefs(mOriginalURI));
+  aChannel->GetContentType(mSharedState.Get()->mContentType);
+  aChannel->GetOriginalURI(getter_AddRefs(mOriginalURI));
 
   uint32_t loadFlags;
-  aNewChannel->GetLoadFlags(&loadFlags);
+  aChannel->GetLoadFlags(&loadFlags);
   mLoadReplace = !!(loadFlags & nsIChannel::LOAD_REPLACE);
 
   MaybeUpdateTitleFromURI();
 
-  if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aNewChannel)) {
+  if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel)) {
     mReferrerInfo = httpChannel->GetReferrerInfo();
   }
 }
@@ -163,6 +174,24 @@ void SessionHistoryInfo::MaybeUpdateTitleFromURI() {
   }
 }
 
+already_AddRefed<nsIInputStream> SessionHistoryInfo::GetPostData() const {
+  // Return a clone of our post data stream. Our caller will either be
+  // transferring this stream to a different SessionHistoryInfo, or passing it
+  // off to necko/another process which will consume it, and we want to preserve
+  // our local instance.
+  nsCOMPtr<nsIInputStream> postData;
+  if (mPostData) {
+    MOZ_ALWAYS_SUCCEEDS(
+        NS_CloneInputStream(mPostData, getter_AddRefs(postData)));
+  }
+  return postData.forget();
+}
+
+void SessionHistoryInfo::SetPostData(nsIInputStream* aPostData) {
+  MOZ_ASSERT_IF(aPostData, NS_InputStreamIsCloneable(aPostData));
+  mPostData = aPostData;
+}
+
 uint64_t SessionHistoryInfo::SharedId() const {
   return mSharedState.Get()->mId;
 }
@@ -173,6 +202,10 @@ nsILayoutHistoryState* SessionHistoryInfo::GetLayoutHistoryState() {
 
 void SessionHistoryInfo::SetLayoutHistoryState(nsILayoutHistoryState* aState) {
   mSharedState.Get()->mLayoutHistoryState = aState;
+  if (mSharedState.Get()->mLayoutHistoryState) {
+    mSharedState.Get()->mLayoutHistoryState->SetScrollPositionOnly(
+        !mSharedState.Get()->mSaveLayoutState);
+  }
 }
 
 nsIPrincipal* SessionHistoryInfo::GetTriggeringPrincipal() const {
@@ -213,7 +246,8 @@ void SessionHistoryInfo::FillLoadInfo(nsDocShellLoadState& aLoadState) const {
   aLoadState.SetOriginalURI(mOriginalURI);
   aLoadState.SetMaybeResultPrincipalURI(Some(mResultPrincipalURI));
   aLoadState.SetLoadReplace(mLoadReplace);
-  aLoadState.SetPostDataStream(mPostData);
+  nsCOMPtr<nsIInputStream> postData = GetPostData();
+  aLoadState.SetPostDataStream(postData);
   aLoadState.SetReferrerInfo(mReferrerInfo);
 
   aLoadState.SetTypeHint(mSharedState.Get()->mContentType);
@@ -360,6 +394,10 @@ LoadingSessionHistoryInfo::LoadingSessionHistoryInfo(
   MOZ_ASSERT(SessionHistoryEntry::sLoadIdToEntry &&
              SessionHistoryEntry::sLoadIdToEntry->Get(mLoadId) == aEntry);
 }
+
+LoadingSessionHistoryInfo::LoadingSessionHistoryInfo(
+    const SessionHistoryInfo& aInfo)
+    : mInfo(aInfo), mLoadId(UINT64_MAX) {}
 
 already_AddRefed<nsDocShellLoadState>
 LoadingSessionHistoryInfo::CreateLoadInfo() const {
@@ -645,14 +683,13 @@ SessionHistoryEntry::SetRefreshURIList(nsIMutableArray* aRefreshURIList) {
 
 NS_IMETHODIMP
 SessionHistoryEntry::GetPostData(nsIInputStream** aPostData) {
-  nsCOMPtr<nsIInputStream> postData = mInfo->mPostData;
-  postData.forget(aPostData);
+  *aPostData = mInfo->GetPostData().take();
   return NS_OK;
 }
 
 NS_IMETHODIMP
 SessionHistoryEntry::SetPostData(nsIInputStream* aPostData) {
-  mInfo->mPostData = aPostData;
+  mInfo->SetPostData(aPostData);
   return NS_OK;
 }
 
@@ -1215,7 +1252,7 @@ void SessionHistoryEntry::AddChild(SessionHistoryEntry* aChild, int32_t aOffset,
       // This should ideally stop being an issue once the Fission-aware
       // session history rewrite is complete.
       NS_ASSERTION(
-          aUseRemoteSubframes,
+          aUseRemoteSubframes || NS_IsAboutBlank(oldChild->Info().GetURI()),
           "Adding a child where we already have a child? This may misbehave");
       oldChild->SetParent(nullptr);
     }
@@ -1363,6 +1400,22 @@ SessionHistoryEntry::GetWireframe(JSContext* aCx, JS::MutableHandleValue aOut) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+SessionHistoryEntry::SetWireframe(JSContext* aCx, JS::HandleValue aArg) {
+  if (aArg.isNullOrUndefined()) {
+    mWireframe = Nothing();
+    return NS_OK;
+  }
+
+  Wireframe wireframe;
+  if (aArg.isObject() && wireframe.Init(aCx, aArg)) {
+    mWireframe = Some(std::move(wireframe));
+    return NS_OK;
+  }
+
+  return NS_ERROR_INVALID_ARG;
+}
+
 NS_IMETHODIMP_(void)
 SessionHistoryEntry::SyncTreesForSubframeNavigation(
     nsISHEntry* aEntry, mozilla::dom::BrowsingContext* aTopBC,
@@ -1441,8 +1494,10 @@ void SessionHistoryEntry::SetInfo(SessionHistoryInfo* aInfo) {
 namespace ipc {
 
 void IPDLParamTraits<dom::SessionHistoryInfo>::Write(
-    IPC::Message* aMsg, IProtocol* aActor,
+    IPC::MessageWriter* aWriter, IProtocol* aActor,
     const dom::SessionHistoryInfo& aParam) {
+  nsCOMPtr<nsIInputStream> postData = aParam.GetPostData();
+
   Maybe<Tuple<uint32_t, dom::ClonedMessageData>> stateData;
   if (aParam.mStateData) {
     stateData.emplace();
@@ -1467,63 +1522,67 @@ void IPDLParamTraits<dom::SessionHistoryInfo>::Write(
     }
   }
 
-  WriteIPDLParam(aMsg, aActor, aParam.mURI);
-  WriteIPDLParam(aMsg, aActor, aParam.mOriginalURI);
-  WriteIPDLParam(aMsg, aActor, aParam.mResultPrincipalURI);
-  WriteIPDLParam(aMsg, aActor, aParam.mReferrerInfo);
-  WriteIPDLParam(aMsg, aActor, aParam.mTitle);
-  WriteIPDLParam(aMsg, aActor, aParam.mName);
-  WriteIPDLParam(aMsg, aActor, aParam.mPostData);
-  WriteIPDLParam(aMsg, aActor, aParam.mLoadType);
-  WriteIPDLParam(aMsg, aActor, aParam.mScrollPositionX);
-  WriteIPDLParam(aMsg, aActor, aParam.mScrollPositionY);
-  WriteIPDLParam(aMsg, aActor, stateData);
-  WriteIPDLParam(aMsg, aActor, aParam.mSrcdocData);
-  WriteIPDLParam(aMsg, aActor, aParam.mBaseURI);
-  WriteIPDLParam(aMsg, aActor, aParam.mLoadReplace);
-  WriteIPDLParam(aMsg, aActor, aParam.mURIWasModified);
-  WriteIPDLParam(aMsg, aActor, aParam.mScrollRestorationIsManual);
-  WriteIPDLParam(aMsg, aActor, aParam.mPersist);
-  WriteIPDLParam(aMsg, aActor, aParam.mHasUserInteraction);
-  WriteIPDLParam(aMsg, aActor, aParam.mHasUserActivation);
-  WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mId);
-  WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mTriggeringPrincipal);
-  WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mPrincipalToInherit);
-  WriteIPDLParam(aMsg, aActor,
+  WriteIPDLParam(aWriter, aActor, aParam.mURI);
+  WriteIPDLParam(aWriter, aActor, aParam.mOriginalURI);
+  WriteIPDLParam(aWriter, aActor, aParam.mResultPrincipalURI);
+  WriteIPDLParam(aWriter, aActor, aParam.mReferrerInfo);
+  WriteIPDLParam(aWriter, aActor, aParam.mTitle);
+  WriteIPDLParam(aWriter, aActor, aParam.mName);
+  WriteIPDLParam(aWriter, aActor, postData);
+  WriteIPDLParam(aWriter, aActor, aParam.mLoadType);
+  WriteIPDLParam(aWriter, aActor, aParam.mScrollPositionX);
+  WriteIPDLParam(aWriter, aActor, aParam.mScrollPositionY);
+  WriteIPDLParam(aWriter, aActor, stateData);
+  WriteIPDLParam(aWriter, aActor, aParam.mSrcdocData);
+  WriteIPDLParam(aWriter, aActor, aParam.mBaseURI);
+  WriteIPDLParam(aWriter, aActor, aParam.mLoadReplace);
+  WriteIPDLParam(aWriter, aActor, aParam.mURIWasModified);
+  WriteIPDLParam(aWriter, aActor, aParam.mScrollRestorationIsManual);
+  WriteIPDLParam(aWriter, aActor, aParam.mPersist);
+  WriteIPDLParam(aWriter, aActor, aParam.mHasUserInteraction);
+  WriteIPDLParam(aWriter, aActor, aParam.mHasUserActivation);
+  WriteIPDLParam(aWriter, aActor, aParam.mSharedState.Get()->mId);
+  WriteIPDLParam(aWriter, aActor,
+                 aParam.mSharedState.Get()->mTriggeringPrincipal);
+  WriteIPDLParam(aWriter, aActor,
+                 aParam.mSharedState.Get()->mPrincipalToInherit);
+  WriteIPDLParam(aWriter, aActor,
                  aParam.mSharedState.Get()->mPartitionedPrincipalToInherit);
-  WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mCsp);
-  WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mContentType);
-  WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mLayoutHistoryState);
-  WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mCacheKey);
-  WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mIsFrameNavigation);
+  WriteIPDLParam(aWriter, aActor, aParam.mSharedState.Get()->mCsp);
+  WriteIPDLParam(aWriter, aActor, aParam.mSharedState.Get()->mContentType);
+  WriteIPDLParam(aWriter, aActor,
+                 aParam.mSharedState.Get()->mLayoutHistoryState);
+  WriteIPDLParam(aWriter, aActor, aParam.mSharedState.Get()->mCacheKey);
+  WriteIPDLParam(aWriter, aActor,
+                 aParam.mSharedState.Get()->mIsFrameNavigation);
+  WriteIPDLParam(aWriter, aActor, aParam.mSharedState.Get()->mSaveLayoutState);
 }
 
 bool IPDLParamTraits<dom::SessionHistoryInfo>::Read(
-    const IPC::Message* aMsg, PickleIterator* aIter, IProtocol* aActor,
+    IPC::MessageReader* aReader, IProtocol* aActor,
     dom::SessionHistoryInfo* aResult) {
   Maybe<Tuple<uint32_t, dom::ClonedMessageData>> stateData;
   uint64_t sharedId;
-  if (!ReadIPDLParam(aMsg, aIter, aActor, &aResult->mURI) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mOriginalURI) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mResultPrincipalURI) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mReferrerInfo) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mTitle) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mName) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mPostData) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mLoadType) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mScrollPositionX) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mScrollPositionY) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &stateData) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mSrcdocData) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mBaseURI) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mLoadReplace) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mURIWasModified) ||
-      !ReadIPDLParam(aMsg, aIter, aActor,
-                     &aResult->mScrollRestorationIsManual) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mPersist) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mHasUserInteraction) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mHasUserActivation) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &sharedId)) {
+  if (!ReadIPDLParam(aReader, aActor, &aResult->mURI) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mOriginalURI) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mResultPrincipalURI) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mReferrerInfo) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mTitle) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mName) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mPostData) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mLoadType) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mScrollPositionX) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mScrollPositionY) ||
+      !ReadIPDLParam(aReader, aActor, &stateData) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mSrcdocData) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mBaseURI) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mLoadReplace) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mURIWasModified) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mScrollRestorationIsManual) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mPersist) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mHasUserInteraction) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mHasUserActivation) ||
+      !ReadIPDLParam(aReader, aActor, &sharedId)) {
     aActor->FatalError("Error reading fields for SessionHistoryInfo");
     return false;
   }
@@ -1533,12 +1592,23 @@ bool IPDLParamTraits<dom::SessionHistoryInfo>::Read(
   nsCOMPtr<nsIPrincipal> partitionedPrincipalToInherit;
   nsCOMPtr<nsIContentSecurityPolicy> csp;
   nsCString contentType;
-  if (!ReadIPDLParam(aMsg, aIter, aActor, &triggeringPrincipal) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &principalToInherit) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &partitionedPrincipalToInherit) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &csp) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &contentType)) {
+  if (!ReadIPDLParam(aReader, aActor, &triggeringPrincipal) ||
+      !ReadIPDLParam(aReader, aActor, &principalToInherit) ||
+      !ReadIPDLParam(aReader, aActor, &partitionedPrincipalToInherit) ||
+      !ReadIPDLParam(aReader, aActor, &csp) ||
+      !ReadIPDLParam(aReader, aActor, &contentType)) {
     aActor->FatalError("Error reading fields for SessionHistoryInfo");
+    return false;
+  }
+
+  // We should always see a cloneable input stream passed to SessionHistoryInfo.
+  // This is because it will be cloneable when first read in the parent process
+  // from the nsHttpChannel (which forces streams to be cloneable), and future
+  // streams in content will be wrapped in
+  // nsMIMEInputStream(RemoteLazyInputStream) which is also cloneable.
+  if (aResult->mPostData && !NS_InputStreamIsCloneable(aResult->mPostData)) {
+    aActor->FatalError(
+        "Unexpected non-cloneable postData for SessionHistoryInfo");
     return false;
   }
 
@@ -1584,12 +1654,14 @@ bool IPDLParamTraits<dom::SessionHistoryInfo>::Read(
     aResult->mSharedState.Get()->mContentType = contentType;
   }
 
-  if (!ReadIPDLParam(aMsg, aIter, aActor,
+  if (!ReadIPDLParam(aReader, aActor,
                      &aResult->mSharedState.Get()->mLayoutHistoryState) ||
-      !ReadIPDLParam(aMsg, aIter, aActor,
+      !ReadIPDLParam(aReader, aActor,
                      &aResult->mSharedState.Get()->mCacheKey) ||
-      !ReadIPDLParam(aMsg, aIter, aActor,
-                     &aResult->mSharedState.Get()->mIsFrameNavigation)) {
+      !ReadIPDLParam(aReader, aActor,
+                     &aResult->mSharedState.Get()->mIsFrameNavigation) ||
+      !ReadIPDLParam(aReader, aActor,
+                     &aResult->mSharedState.Get()->mSaveLayoutState)) {
     aActor->FatalError("Error reading fields for SessionHistoryInfo");
     return false;
   }
@@ -1610,26 +1682,25 @@ bool IPDLParamTraits<dom::SessionHistoryInfo>::Read(
 }
 
 void IPDLParamTraits<dom::LoadingSessionHistoryInfo>::Write(
-    IPC::Message* aMsg, IProtocol* aActor,
+    IPC::MessageWriter* aWriter, IProtocol* aActor,
     const dom::LoadingSessionHistoryInfo& aParam) {
-  WriteIPDLParam(aMsg, aActor, aParam.mInfo);
-  WriteIPDLParam(aMsg, aActor, aParam.mLoadId);
-  WriteIPDLParam(aMsg, aActor, aParam.mLoadIsFromSessionHistory);
-  WriteIPDLParam(aMsg, aActor, aParam.mOffset);
-  WriteIPDLParam(aMsg, aActor, aParam.mLoadingCurrentEntry);
-  WriteIPDLParam(aMsg, aActor, aParam.mForceMaybeResetName);
+  WriteIPDLParam(aWriter, aActor, aParam.mInfo);
+  WriteIPDLParam(aWriter, aActor, aParam.mLoadId);
+  WriteIPDLParam(aWriter, aActor, aParam.mLoadIsFromSessionHistory);
+  WriteIPDLParam(aWriter, aActor, aParam.mOffset);
+  WriteIPDLParam(aWriter, aActor, aParam.mLoadingCurrentEntry);
+  WriteIPDLParam(aWriter, aActor, aParam.mForceMaybeResetName);
 }
 
 bool IPDLParamTraits<dom::LoadingSessionHistoryInfo>::Read(
-    const IPC::Message* aMsg, PickleIterator* aIter, IProtocol* aActor,
+    IPC::MessageReader* aReader, IProtocol* aActor,
     dom::LoadingSessionHistoryInfo* aResult) {
-  if (!ReadIPDLParam(aMsg, aIter, aActor, &aResult->mInfo) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mLoadId) ||
-      !ReadIPDLParam(aMsg, aIter, aActor,
-                     &aResult->mLoadIsFromSessionHistory) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mOffset) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mLoadingCurrentEntry) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mForceMaybeResetName)) {
+  if (!ReadIPDLParam(aReader, aActor, &aResult->mInfo) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mLoadId) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mLoadIsFromSessionHistory) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mOffset) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mLoadingCurrentEntry) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mForceMaybeResetName)) {
     aActor->FatalError("Error reading fields for LoadingSessionHistoryInfo");
     return false;
   }
@@ -1638,26 +1709,27 @@ bool IPDLParamTraits<dom::LoadingSessionHistoryInfo>::Read(
 }
 
 void IPDLParamTraits<nsILayoutHistoryState*>::Write(
-    IPC::Message* aMsg, IProtocol* aActor, nsILayoutHistoryState* aParam) {
+    IPC::MessageWriter* aWriter, IProtocol* aActor,
+    nsILayoutHistoryState* aParam) {
   if (aParam) {
-    WriteIPDLParam(aMsg, aActor, true);
+    WriteIPDLParam(aWriter, aActor, true);
     bool scrollPositionOnly = false;
     nsTArray<nsCString> keys;
     nsTArray<mozilla::PresState> states;
     aParam->GetContents(&scrollPositionOnly, keys, states);
-    WriteIPDLParam(aMsg, aActor, scrollPositionOnly);
-    WriteIPDLParam(aMsg, aActor, keys);
-    WriteIPDLParam(aMsg, aActor, states);
+    WriteIPDLParam(aWriter, aActor, scrollPositionOnly);
+    WriteIPDLParam(aWriter, aActor, keys);
+    WriteIPDLParam(aWriter, aActor, states);
   } else {
-    WriteIPDLParam(aMsg, aActor, false);
+    WriteIPDLParam(aWriter, aActor, false);
   }
 }
 
 bool IPDLParamTraits<nsILayoutHistoryState*>::Read(
-    const IPC::Message* aMsg, PickleIterator* aIter, IProtocol* aActor,
+    IPC::MessageReader* aReader, IProtocol* aActor,
     RefPtr<nsILayoutHistoryState>* aResult) {
   bool hasLayoutHistoryState = false;
-  if (!ReadIPDLParam(aMsg, aIter, aActor, &hasLayoutHistoryState)) {
+  if (!ReadIPDLParam(aReader, aActor, &hasLayoutHistoryState)) {
     aActor->FatalError("Error reading fields for nsILayoutHistoryState");
     return false;
   }
@@ -1666,9 +1738,9 @@ bool IPDLParamTraits<nsILayoutHistoryState*>::Read(
     bool scrollPositionOnly = false;
     nsTArray<nsCString> keys;
     nsTArray<mozilla::PresState> states;
-    if (!ReadIPDLParam(aMsg, aIter, aActor, &scrollPositionOnly) ||
-        !ReadIPDLParam(aMsg, aIter, aActor, &keys) ||
-        !ReadIPDLParam(aMsg, aIter, aActor, &states)) {
+    if (!ReadIPDLParam(aReader, aActor, &scrollPositionOnly) ||
+        !ReadIPDLParam(aReader, aActor, &keys) ||
+        !ReadIPDLParam(aReader, aActor, &states)) {
       aActor->FatalError("Error reading fields for nsILayoutHistoryState");
     }
 
@@ -1689,17 +1761,17 @@ bool IPDLParamTraits<nsILayoutHistoryState*>::Read(
 }
 
 void IPDLParamTraits<mozilla::dom::Wireframe>::Write(
-    IPC::Message* aMsg, IProtocol* aActor,
+    IPC::MessageWriter* aWriter, IProtocol* aActor,
     const mozilla::dom::Wireframe& aParam) {
-  WriteParam(aMsg, aParam.mCanvasBackground);
-  WriteParam(aMsg, aParam.mRects);
+  WriteParam(aWriter, aParam.mCanvasBackground);
+  WriteParam(aWriter, aParam.mRects);
 }
 
 bool IPDLParamTraits<mozilla::dom::Wireframe>::Read(
-    const IPC::Message* aMsg, PickleIterator* aIter, IProtocol* aActor,
+    IPC::MessageReader* aReader, IProtocol* aActor,
     mozilla::dom::Wireframe* aResult) {
-  return ReadParam(aMsg, aIter, &aResult->mCanvasBackground) &&
-         ReadParam(aMsg, aIter, &aResult->mRects);
+  return ReadParam(aReader, &aResult->mCanvasBackground) &&
+         ReadParam(aReader, &aResult->mRects);
 }
 
 }  // namespace ipc
@@ -1716,30 +1788,28 @@ struct ParamTraits<mozilla::dom::WireframeRectType>
 
 template <>
 struct ParamTraits<mozilla::dom::WireframeTaggedRect> {
-  static void Write(Message* aMsg,
+  static void Write(MessageWriter* aWriter,
                     const mozilla::dom::WireframeTaggedRect& aParam);
-  static bool Read(const Message* aMsg, PickleIterator* aIter,
+  static bool Read(MessageReader* aReader,
                    mozilla::dom::WireframeTaggedRect* aResult);
 };
 
 void ParamTraits<mozilla::dom::WireframeTaggedRect>::Write(
-    Message* aMsg, const mozilla::dom::WireframeTaggedRect& aParam) {
-  WriteParam(aMsg, aParam.mColor);
-  WriteParam(aMsg, aParam.mType);
-  WriteParam(aMsg, aParam.mX);
-  WriteParam(aMsg, aParam.mY);
-  WriteParam(aMsg, aParam.mWidth);
-  WriteParam(aMsg, aParam.mHeight);
+    MessageWriter* aWriter, const mozilla::dom::WireframeTaggedRect& aParam) {
+  WriteParam(aWriter, aParam.mColor);
+  WriteParam(aWriter, aParam.mType);
+  WriteParam(aWriter, aParam.mX);
+  WriteParam(aWriter, aParam.mY);
+  WriteParam(aWriter, aParam.mWidth);
+  WriteParam(aWriter, aParam.mHeight);
 }
 
 bool ParamTraits<mozilla::dom::WireframeTaggedRect>::Read(
-    const IPC::Message* aMsg, PickleIterator* aIter,
-    mozilla::dom::WireframeTaggedRect* aResult) {
-  return ReadParam(aMsg, aIter, &aResult->mColor) &&
-         ReadParam(aMsg, aIter, &aResult->mType) &&
-         ReadParam(aMsg, aIter, &aResult->mX) &&
-         ReadParam(aMsg, aIter, &aResult->mY) &&
-         ReadParam(aMsg, aIter, &aResult->mWidth) &&
-         ReadParam(aMsg, aIter, &aResult->mHeight);
+    IPC::MessageReader* aReader, mozilla::dom::WireframeTaggedRect* aResult) {
+  return ReadParam(aReader, &aResult->mColor) &&
+         ReadParam(aReader, &aResult->mType) &&
+         ReadParam(aReader, &aResult->mX) && ReadParam(aReader, &aResult->mY) &&
+         ReadParam(aReader, &aResult->mWidth) &&
+         ReadParam(aReader, &aResult->mHeight);
 }
 }  // namespace IPC

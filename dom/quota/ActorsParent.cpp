@@ -13,6 +13,7 @@
 #include "QuotaCommon.h"
 #include "QuotaManager.h"
 #include "QuotaObject.h"
+#include "ScopedLogExtraInfo.h"
 #include "UsageInfo.h"
 
 // Global includes
@@ -177,7 +178,7 @@
  * If shutdown takes this long, kill actors of a quota client, to avoid reaching
  * the crash timeout.
  */
-#define SHUTDOWN_FORCE_KILL_TIMEOUT_MS 5000
+#define SHUTDOWN_KILL_ACTORS_TIMEOUT_MS 5000
 
 /**
  * Automatically crash the browser if shutdown of a quota client takes this
@@ -189,7 +190,11 @@
  * not hide them. On the other hand this value is less than 60 seconds which is
  * used by nsTerminator to crash a hung main process.
  */
-#define SHUTDOWN_FORCE_CRASH_TIMEOUT_MS 45000
+#define SHUTDOWN_CRASH_BROWSER_TIMEOUT_MS 45000
+
+static_assert(
+    SHUTDOWN_CRASH_BROWSER_TIMEOUT_MS > SHUTDOWN_KILL_ACTORS_TIMEOUT_MS,
+    "The kill actors timeout must be shorter than the crash browser one.");
 
 // profile-before-change, when we need to shut down quota manager
 #define PROFILE_BEFORE_CHANGE_QM_OBSERVER_ID "profile-before-change-qm"
@@ -572,7 +577,8 @@ Result<nsCOMPtr<mozIStorageConnection>, nsresult> CreateWebAppsStoreConnection(
                      // Expression.
                      MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
                          nsCOMPtr<mozIStorageConnection>, aStorageService,
-                         OpenUnsharedDatabase, &aWebAppsStoreFile),
+                         OpenUnsharedDatabase, &aWebAppsStoreFile,
+                         mozIStorageService::CONNECTION_DEFAULT),
                      // Predicate.
                      IsDatabaseCorruptionError,
                      // Fallback. Don't throw an error, leave a corrupted
@@ -589,14 +595,15 @@ Result<nsCOMPtr<mozIStorageConnection>, nsresult> CreateWebAppsStoreConnection(
   return connection;
 }
 
-Result<nsCOMPtr<nsIFile>, nsresult> GetLocalStorageArchiveFile(
+Result<nsCOMPtr<nsIFile>, QMResult> GetLocalStorageArchiveFile(
     const nsAString& aDirectoryPath) {
   AssertIsOnIOThread();
   MOZ_ASSERT(!aDirectoryPath.IsEmpty());
 
-  QM_TRY_UNWRAP(auto lsArchiveFile, QM_NewLocalFile(aDirectoryPath));
+  QM_TRY_UNWRAP(auto lsArchiveFile,
+                QM_TO_RESULT_TRANSFORM(QM_NewLocalFile(aDirectoryPath)));
 
-  QM_TRY(MOZ_TO_RESULT(
+  QM_TRY(QM_TO_RESULT(
       lsArchiveFile->Append(nsLiteralString(LS_ARCHIVE_FILE_NAME))));
 
   return lsArchiveFile;
@@ -1065,10 +1072,10 @@ class OriginOperationBase : public BackgroundThreadObject, public Runnable {
   }
 
  protected:
-  explicit OriginOperationBase(
-      nsIEventTarget* aOwningThread = GetCurrentEventTarget())
+  explicit OriginOperationBase(nsIEventTarget* aOwningThread,
+                               const char* aRunnableName)
       : BackgroundThreadObject(aOwningThread),
-        Runnable("dom::quota::OriginOperationBase"),
+        Runnable(aRunnableName),
         mResultCode(NS_OK),
         mState(State_Initial),
         mActorDestroyed(false),
@@ -1136,7 +1143,9 @@ class FinalizeOriginEvictionOp : public OriginOperationBase {
  public:
   FinalizeOriginEvictionOp(nsIEventTarget* aBackgroundThread,
                            nsTArray<RefPtr<OriginDirectoryLock>>&& aLocks)
-      : OriginOperationBase(aBackgroundThread), mLocks(std::move(aLocks)) {
+      : OriginOperationBase(aBackgroundThread,
+                            "dom::quota::FinalizeOriginEvictionOp"),
+        mLocks(std::move(aLocks)) {
     MOZ_ASSERT(!NS_IsMainThread());
   }
 
@@ -1175,9 +1184,11 @@ class NormalOriginOperationBase
   }
 
  protected:
-  NormalOriginOperationBase(const Nullable<PersistenceType>& aPersistenceType,
+  NormalOriginOperationBase(const char* aRunnableName,
+                            const Nullable<PersistenceType>& aPersistenceType,
                             const OriginScope& aOriginScope, bool aExclusive)
-      : mPersistenceType(aPersistenceType),
+      : OriginOperationBase(GetCurrentEventTarget(), aRunnableName),
+        mPersistenceType(aPersistenceType),
         mOriginScope(aOriginScope),
         mExclusive(aExclusive) {
     AssertIsOnOwningThread();
@@ -1211,7 +1222,8 @@ class SaveOriginAccessTimeOp : public NormalOriginOperationBase {
  public:
   SaveOriginAccessTimeOp(PersistenceType aPersistenceType,
                          const nsACString& aOrigin, int64_t aTimestamp)
-      : NormalOriginOperationBase(Nullable<PersistenceType>(aPersistenceType),
+      : NormalOriginOperationBase("dom::quota::SaveOriginAccessTimeOp",
+                                  Nullable<PersistenceType>(aPersistenceType),
                                   OriginScope::FromOrigin(aOrigin),
                                   /* aExclusive */ false),
         mTimestamp(aTimestamp) {
@@ -1284,8 +1296,8 @@ class QuotaUsageRequestBase : public NormalOriginOperationBase,
   virtual void Init(Quota& aQuota);
 
  protected:
-  QuotaUsageRequestBase()
-      : NormalOriginOperationBase(Nullable<PersistenceType>(),
+  QuotaUsageRequestBase(const char* aRunnableName)
+      : NormalOriginOperationBase(aRunnableName, Nullable<PersistenceType>(),
                                   OriginScope::FromNull(),
                                   /* aExclusive */ false) {}
 
@@ -1392,8 +1404,8 @@ class QuotaRequestBase : public NormalOriginOperationBase,
   virtual void Init(Quota& aQuota);
 
  protected:
-  explicit QuotaRequestBase(bool aExclusive)
-      : NormalOriginOperationBase(Nullable<PersistenceType>(),
+  explicit QuotaRequestBase(const char* aRunnableName, bool aExclusive)
+      : NormalOriginOperationBase(aRunnableName, Nullable<PersistenceType>(),
                                   OriginScope::FromNull(), aExclusive) {}
 
   // Subclasses use this override to set the IPDL response value.
@@ -1432,13 +1444,17 @@ class InitializedRequestBase : public QuotaRequestBase {
   void Init(Quota& aQuota) override;
 
  protected:
-  InitializedRequestBase();
+  InitializedRequestBase(const char* aRunnableName);
 
  private:
   RefPtr<DirectoryLock> CreateDirectoryLock() override;
 };
 
 class StorageInitializedOp final : public InitializedRequestBase {
+ public:
+  StorageInitializedOp()
+      : InitializedRequestBase("dom::quota::StorageInitializedOp") {}
+
  private:
   ~StorageInitializedOp() = default;
 
@@ -1448,6 +1464,10 @@ class StorageInitializedOp final : public InitializedRequestBase {
 };
 
 class TemporaryStorageInitializedOp final : public InitializedRequestBase {
+ public:
+  TemporaryStorageInitializedOp()
+      : InitializedRequestBase("dom::quota::StorageInitializedOp") {}
+
  private:
   ~TemporaryStorageInitializedOp() = default;
 
@@ -1494,7 +1514,8 @@ class InitializeOriginRequestBase : public QuotaRequestBase {
   void Init(Quota& aQuota) override;
 
  protected:
-  InitializeOriginRequestBase(PersistenceType aPersistenceType,
+  InitializeOriginRequestBase(const char* aRunnableName,
+                              PersistenceType aPersistenceType,
                               const PrincipalInfo& aPrincipalInfo);
 };
 
@@ -1559,7 +1580,8 @@ class ResetOrClearOp final : public QuotaRequestBase {
 
 class ClearRequestBase : public QuotaRequestBase {
  protected:
-  explicit ClearRequestBase(bool aExclusive) : QuotaRequestBase(aExclusive) {
+  explicit ClearRequestBase(const char* aRunnableName, bool aExclusive)
+      : QuotaRequestBase(aRunnableName, aExclusive) {
     AssertIsOnOwningThread();
   }
 
@@ -2894,8 +2916,6 @@ QuotaManager::Observer::Observe(nsISupports* aSubject, const char* aTopic,
       return rv;
     }
 
-    MaybeEnableNextGenLocalStorage();
-
     return NS_OK;
   }
 
@@ -3684,13 +3704,6 @@ nsresult QuotaManager::Init() {
                     nsCOMPtr<nsIThread>, MOZ_SELECT_OVERLOAD(NS_NewNamedThread),
                     "QuotaManager IO"));
 
-  // Make a timer here to avoid potential failures later. We don't actually
-  // initialize the timer until shutdown.
-  nsCOMPtr shutdownTimer = NS_NewTimer();
-  QM_TRY(OkIf(shutdownTimer), Err(NS_ERROR_FAILURE));
-
-  mShutdownTimer.init(WrapNotNullUnchecked(std::move(shutdownTimer)));
-
   static_assert(Client::IDB == 0 && Client::DOMCACHE == 1 && Client::SDB == 2 &&
                     Client::LS == 3 && Client::TYPE_MAX == 4,
                 "Fix the registration!");
@@ -3728,7 +3741,7 @@ void QuotaManager::MaybeRecordQuotaClientShutdownStep(
   auto* const quotaManager = QuotaManager::Get();
   MOZ_DIAGNOSTIC_ASSERT(quotaManager);
 
-  if (quotaManager->ShutdownStarted()) {
+  if (quotaManager->IsShuttingDown()) {
     quotaManager->RecordShutdownStep(Some(aClientType), aStepDescription);
   }
 }
@@ -3740,25 +3753,31 @@ void QuotaManager::SafeMaybeRecordQuotaClientShutdownStep(
 
   auto* const quotaManager = QuotaManager::Get();
 
-  if (quotaManager && quotaManager->ShutdownStarted()) {
+  if (quotaManager && quotaManager->IsShuttingDown()) {
     quotaManager->RecordShutdownStep(Some(aClientType), aStepDescription);
   }
+}
+
+void QuotaManager::RecordQuotaManagerShutdownStep(
+    const nsACString& aStepDescription) {
+  // Callable on any thread.
+  MOZ_ASSERT(mShutdownStarted);
+
+  RecordShutdownStep(Nothing{}, aStepDescription);
 }
 
 void QuotaManager::MaybeRecordQuotaManagerShutdownStep(
     const nsACString& aStepDescription) {
   // Callable on any thread.
 
-  if (ShutdownStarted()) {
-    RecordShutdownStep(Nothing{}, aStepDescription);
+  if (IsShuttingDown()) {
+    RecordQuotaManagerShutdownStep(aStepDescription);
   }
 }
 
-bool QuotaManager::ShutdownStarted() const { return mShutdownStarted; }
-
 void QuotaManager::RecordShutdownStep(const Maybe<Client::Type> aClientType,
                                       const nsACString& aStepDescription) {
-  MOZ_ASSERT(mShutdownStarted);
+  MOZ_ASSERT(IsShuttingDown());
 
   const TimeDuration elapsedSinceShutdownStart =
       TimeStamp::NowLoRes() - *mShutdownStartedAt;
@@ -3792,135 +3811,211 @@ void QuotaManager::RecordShutdownStep(const Maybe<Client::Type> aClientType,
 
 void QuotaManager::Shutdown() {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(!mShutdownStarted);
   MOZ_DIAGNOSTIC_ASSERT(!gShutdown);
 
-  // Setting this flag prevents the service from being recreated and prevents
-  // further storagess from being created.
-  gShutdown = true;
+  // Define some local helper functions
 
+  auto flagShutdownStarted = [this]() {
+    // Setting this flag prevents the service from being recreated and prevents
+    // further storages from being created.
+    // XXX: Harmonize QM shutdown flags, see bug 1726714
+    gShutdown = true;
+
+    // StopIdleMaintenance used to happen before mShutdownStarted is set true
+    // but it is just an internal flag for the recording of shutdown steps
+    // and not evaluated elsewhere.
+
+    mShutdownStartedAt.init(TimeStamp::NowLoRes());
+    mShutdownStarted = true;
+  };
+
+  nsCOMPtr<nsITimer> crashBrowserTimer;
+
+  auto crashBrowserTimerCallback = [](nsITimer* aTimer, void* aClosure) {
+    auto* const quotaManager = static_cast<QuotaManager*>(aClosure);
+
+    nsCString annotation;
+
+    for (Client::Type type : quotaManager->AllClientTypes()) {
+      auto& quotaClient = *(*quotaManager->mClients)[type];
+
+      if (!quotaClient.IsShutdownCompleted()) {
+        annotation.AppendPrintf("%s: %s\nIntermediate steps:\n%s\n\n",
+                                Client::TypeToText(type).get(),
+                                quotaClient.GetShutdownStatus().get(),
+                                quotaManager->mShutdownSteps[type].get());
+      }
+    }
+
+    if (gNormalOriginOps) {
+      annotation.AppendPrintf("QM: %zu normal origin ops pending\n",
+                              gNormalOriginOps->Length());
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+      for (const auto& op : *gNormalOriginOps) {
+        nsCString name;
+        op->GetName(name);
+        annotation.AppendPrintf("Op: %s pending\n", name.get());
+      }
+#endif
+    }
+    {
+      MutexAutoLock lock(quotaManager->mQuotaMutex);
+
+      annotation.AppendPrintf("Intermediate steps:\n%s\n",
+                              quotaManager->mQuotaManagerShutdownSteps.get());
+    }
+
+    CrashReporter::AnnotateCrashReport(
+        CrashReporter::Annotation::QuotaManagerShutdownTimeout, annotation);
+
+    MOZ_CRASH("Quota manager shutdown timed out");
+  };
+
+  auto startCrashBrowserTimer = [&]() {
+    crashBrowserTimer = NS_NewTimer();
+    MOZ_ASSERT(crashBrowserTimer);
+    if (crashBrowserTimer) {
+      RecordQuotaManagerShutdownStep("startCrashBrowserTimer"_ns);
+      MOZ_ALWAYS_SUCCEEDS(crashBrowserTimer->InitWithNamedFuncCallback(
+          crashBrowserTimerCallback, this, SHUTDOWN_CRASH_BROWSER_TIMEOUT_MS,
+          nsITimer::TYPE_ONE_SHOT,
+          "quota::QuotaManager::Shutdown::crashBrowserTimer"));
+    }
+  };
+
+  auto stopCrashBrowserTimer = [&]() {
+    if (crashBrowserTimer) {
+      RecordQuotaManagerShutdownStep("stopCrashBrowserTimer"_ns);
+      QM_WARNONLY_TRY(QM_TO_RESULT(crashBrowserTimer->Cancel()));
+    }
+  };
+
+  auto initiateShutdownWorkThreads = [this]() {
+    RecordQuotaManagerShutdownStep("initiateShutdownWorkThreads"_ns);
+    bool needsToWait = false;
+    for (Client::Type type : AllClientTypes()) {
+      // Clients are supposed to also AbortAllOperations from this point on
+      // to speed up shutdown, if possible. Thus pending operations
+      // might not be executed anymore.
+      needsToWait |= (*mClients)[type]->InitiateShutdownWorkThreads();
+    }
+
+    return needsToWait;
+  };
+
+  nsCOMPtr<nsITimer> killActorsTimer;
+
+  auto killActorsTimerCallback = [](nsITimer* aTimer, void* aClosure) {
+    auto* const quotaManager = static_cast<QuotaManager*>(aClosure);
+
+    quotaManager->RecordQuotaManagerShutdownStep("killActorsTimerCallback"_ns);
+
+    // XXX: This abort is a workaround to unblock shutdown, which
+    // ought to be removed by bug 1682326. We probably need more
+    // checks to immediately abort new operations during
+    // shutdown.
+    quotaManager->GetClient(Client::IDB)->AbortAllOperations();
+
+    for (Client::Type type : quotaManager->AllClientTypes()) {
+      quotaManager->GetClient(type)->ForceKillActors();
+    }
+  };
+
+  auto startKillActorsTimer = [&]() {
+    killActorsTimer = NS_NewTimer();
+    MOZ_ASSERT(killActorsTimer);
+    if (killActorsTimer) {
+      RecordQuotaManagerShutdownStep("startKillActorsTimer"_ns);
+      MOZ_ALWAYS_SUCCEEDS(killActorsTimer->InitWithNamedFuncCallback(
+          killActorsTimerCallback, this, SHUTDOWN_KILL_ACTORS_TIMEOUT_MS,
+          nsITimer::TYPE_ONE_SHOT,
+          "quota::QuotaManager::Shutdown::killActorsTimer"));
+    }
+  };
+
+  auto stopKillActorsTimer = [&]() {
+    if (killActorsTimer) {
+      RecordQuotaManagerShutdownStep("stopKillActorsTimer"_ns);
+      QM_WARNONLY_TRY(QM_TO_RESULT(killActorsTimer->Cancel()));
+    }
+  };
+
+  auto isAllClientsShutdownComplete = [this] {
+    return std::all_of(AllClientTypes().cbegin(), AllClientTypes().cend(),
+                       [&self = *this](const auto type) {
+                         return (*self.mClients)[type]->IsShutdownCompleted();
+                       });
+  };
+
+  auto shutdownAndJoinWorkThreads = [this]() {
+    RecordQuotaManagerShutdownStep("shutdownAndJoinWorkThreads"_ns);
+    for (Client::Type type : AllClientTypes()) {
+      (*mClients)[type]->FinalizeShutdownWorkThreads();
+    }
+  };
+
+  auto shutdownAndJoinIOThread = [this]() {
+    RecordQuotaManagerShutdownStep("shutdownAndJoinIOThread"_ns);
+    // NB: It's very important that runnable is destroyed on this thread
+    // (i.e. after we join the IO thread) because we can't release the
+    // QuotaManager on the IO thread. This should probably use
+    // NewNonOwningRunnableMethod ...
+    RefPtr<Runnable> runnable =
+        NewRunnableMethod("dom::quota::QuotaManager::ShutdownStorage", this,
+                          &QuotaManager::ShutdownStorage);
+    MOZ_ASSERT(runnable);
+
+    // Give clients a chance to cleanup IO thread only objects.
+    QM_WARNONLY_TRY(
+        QM_TO_RESULT((*mIOThread)->Dispatch(runnable, NS_DISPATCH_NORMAL)));
+
+    // Make sure to join with our IO thread.
+    QM_WARNONLY_TRY(QM_TO_RESULT((*mIOThread)->Shutdown()));
+  };
+
+  auto invalidatePendingDirectoryLocks = [this]() {
+    RecordQuotaManagerShutdownStep("invalidatePendingDirectoryLocks"_ns);
+    for (RefPtr<DirectoryLockImpl>& lock : mPendingDirectoryLocks) {
+      lock->Invalidate();
+    }
+  };
+
+  // Body of the function
+  ScopedLogExtraInfo scope{ScopedLogExtraInfo::kTagContext,
+                           "dom::quota::QuotaManager::Shutdown"_ns};
+
+  flagShutdownStarted();
+
+  startCrashBrowserTimer();
+
+  // XXX: StopIdleMaintenance now just notifies all clients to abort any
+  // maintenance work.
+  // This could be done as part of QuotaClient::AbortAllOperations.
   StopIdleMaintenance();
 
-  mShutdownStartedAt.init(TimeStamp::NowLoRes());
-  mShutdownStarted = true;
-
-  const auto& allClientTypes = AllClientTypes();
-
-  bool needsToWait = false;
-  for (Client::Type type : allClientTypes) {
-    needsToWait |= (*mClients)[type]->InitiateShutdownWorkThreads();
-  }
-  needsToWait |= static_cast<bool>(gNormalOriginOps);
+  const bool needsToWait =
+      initiateShutdownWorkThreads() || static_cast<bool>(gNormalOriginOps);
 
   // If any clients cannot shutdown immediately, spin the event loop while we
-  // wait on all the threads to close. Our timer may fire during that loop.
+  // wait on all the threads to close.
   if (needsToWait) {
-    MOZ_ALWAYS_SUCCEEDS(
-        (*mShutdownTimer)
-            ->InitWithNamedFuncCallback(
-                [](nsITimer* aTimer, void* aClosure) {
-                  auto* const quotaManager =
-                      static_cast<QuotaManager*>(aClosure);
-
-                  for (Client::Type type : quotaManager->AllClientTypes()) {
-                    // XXX This is a workaround to unblock shutdown, which ought
-                    // to be removed by Bug 1682326.
-                    if (type == Client::IDB) {
-                      (*quotaManager->mClients)[type]->AbortAllOperations();
-                    }
-
-                    (*quotaManager->mClients)[type]->ForceKillActors();
-                  }
-
-                  MOZ_ALWAYS_SUCCEEDS(aTimer->InitWithNamedFuncCallback(
-                      [](nsITimer* aTimer, void* aClosure) {
-                        auto* const quotaManager =
-                            static_cast<QuotaManager*>(aClosure);
-
-                        nsCString annotation;
-
-                        {
-                          for (Client::Type type :
-                               quotaManager->AllClientTypes()) {
-                            auto& quotaClient =
-                                *(*quotaManager->mClients)[type];
-
-                            if (!quotaClient.IsShutdownCompleted()) {
-                              annotation.AppendPrintf(
-                                  "%s: %s\nIntermediate steps:\n%s\n\n",
-                                  Client::TypeToText(type).get(),
-                                  quotaClient.GetShutdownStatus().get(),
-                                  quotaManager->mShutdownSteps[type].get());
-                            }
-                          }
-
-                          if (gNormalOriginOps) {
-                            MutexAutoLock lock(quotaManager->mQuotaMutex);
-
-                            annotation.AppendPrintf(
-                                "QM: %zu normal origin ops "
-                                "pending\nIntermediate "
-                                "steps:\n%s\n",
-                                gNormalOriginOps->Length(),
-                                quotaManager->mQuotaManagerShutdownSteps.get());
-                          }
-                        }
-
-                        // We expect that at least one quota client didn't
-                        // complete its shutdown.
-                        MOZ_DIAGNOSTIC_ASSERT(!annotation.IsEmpty());
-
-                        CrashReporter::AnnotateCrashReport(
-                            CrashReporter::Annotation::
-                                QuotaManagerShutdownTimeout,
-                            annotation);
-
-                        MOZ_CRASH("Quota manager shutdown timed out");
-                      },
-                      aClosure, SHUTDOWN_FORCE_CRASH_TIMEOUT_MS,
-                      nsITimer::TYPE_ONE_SHOT,
-                      "quota::QuotaManager::ForceCrashTimer"));
-                },
-                this, SHUTDOWN_FORCE_KILL_TIMEOUT_MS, nsITimer::TYPE_ONE_SHOT,
-                "quota::QuotaManager::ForceKillTimer"));
+    startKillActorsTimer();
 
     MOZ_ALWAYS_TRUE(SpinEventLoopUntil(
-        "QuotaManager::Shutdown"_ns, [this, &allClientTypes] {
-          return !gNormalOriginOps &&
-                 std::all_of(
-                     allClientTypes.cbegin(), allClientTypes.cend(),
-                     [&self = *this](const auto type) {
-                       return (*self.mClients)[type]->IsShutdownCompleted();
-                     });
+        "QuotaManager::Shutdown"_ns, [isAllClientsShutdownComplete]() {
+          return !gNormalOriginOps && isAllClientsShutdownComplete();
         }));
+
+    stopKillActorsTimer();
   }
 
-  for (Client::Type type : allClientTypes) {
-    (*mClients)[type]->FinalizeShutdownWorkThreads();
-  }
+  shutdownAndJoinWorkThreads();
 
-  // Cancel the timer regardless of whether it actually fired.
-  QM_WARNONLY_TRY(QM_TO_RESULT((*mShutdownTimer)->Cancel()));
+  shutdownAndJoinIOThread();
 
-  // NB: It's very important that runnable is destroyed on this thread
-  // (i.e. after we join the IO thread) because we can't release the
-  // QuotaManager on the IO thread. This should probably use
-  // NewNonOwningRunnableMethod ...
-  RefPtr<Runnable> runnable =
-      NewRunnableMethod("dom::quota::QuotaManager::ShutdownStorage", this,
-                        &QuotaManager::ShutdownStorage);
-  MOZ_ASSERT(runnable);
+  invalidatePendingDirectoryLocks();
 
-  // Give clients a chance to cleanup IO thread only objects.
-  QM_WARNONLY_TRY(
-      QM_TO_RESULT((*mIOThread)->Dispatch(runnable, NS_DISPATCH_NORMAL)));
-
-  // Make sure to join with our IO thread.
-  QM_WARNONLY_TRY(QM_TO_RESULT((*mIOThread)->Shutdown()));
-
-  for (RefPtr<DirectoryLockImpl>& lock : mPendingDirectoryLocks) {
-    lock->Invalidate();
-  }
+  stopCrashBrowserTimer();
 }
 
 void QuotaManager::InitQuotaForOrigin(
@@ -5669,10 +5764,11 @@ Result<Ok, nsresult> QuotaManager::CopyLocalStorageArchiveFromWebAppsStore(
                    GetLocalStorageArchiveTmpFile(*mStoragePath));
 
     if (journalMode.EqualsLiteral("wal")) {
-      QM_TRY_INSPECT(const auto& lsArchiveTmpConnection,
-                     MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
-                         nsCOMPtr<mozIStorageConnection>, ss,
-                         OpenUnsharedDatabase, lsArchiveTmpFile));
+      QM_TRY_INSPECT(
+          const auto& lsArchiveTmpConnection,
+          MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
+              nsCOMPtr<mozIStorageConnection>, ss, OpenUnsharedDatabase,
+              lsArchiveTmpFile, mozIStorageService::CONNECTION_DEFAULT));
 
       // The archive will only be used for lazy data migration. There won't be
       // any concurrent readers and writers that could benefit from Write-Ahead
@@ -5715,10 +5811,10 @@ Result<Ok, nsresult> QuotaManager::CopyLocalStorageArchiveFromWebAppsStore(
 
   Unused << created;
 
-  QM_TRY_UNWRAP(
-      auto lsArchiveConnection,
-      MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(nsCOMPtr<mozIStorageConnection>, ss,
-                                        OpenUnsharedDatabase, &aLsArchiveFile));
+  QM_TRY_UNWRAP(auto lsArchiveConnection,
+                MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
+                    nsCOMPtr<mozIStorageConnection>, ss, OpenUnsharedDatabase,
+                    &aLsArchiveFile, mozIStorageService::CONNECTION_DEFAULT));
 
   QM_TRY(MOZ_TO_RESULT(
       StorageDBUpdater::CreateCurrentSchema(lsArchiveConnection)));
@@ -5753,9 +5849,10 @@ QuotaManager::CreateLocalStorageArchiveConnection(
                                          MOZ_STORAGE_SERVICE_CONTRACTID));
 
   // This may return NS_ERROR_FILE_CORRUPTED too.
-  QM_TRY_UNWRAP(auto connection, MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
-                                     nsCOMPtr<mozIStorageConnection>, ss,
-                                     OpenUnsharedDatabase, &aLsArchiveFile));
+  QM_TRY_UNWRAP(auto connection,
+                MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
+                    nsCOMPtr<mozIStorageConnection>, ss, OpenUnsharedDatabase,
+                    &aLsArchiveFile, mozIStorageService::CONNECTION_DEFAULT));
 
   // The legacy LS implementation removes the database and creates an empty one
   // when the schema can't be updated. The same effect can be achieved here by
@@ -6122,10 +6219,10 @@ Result<Ok, nsresult> QuotaManager::CreateEmptyLocalStorageArchive(
                                          MOZ_SELECT_OVERLOAD(do_GetService),
                                          MOZ_STORAGE_SERVICE_CONTRACTID));
 
-  QM_TRY_UNWRAP(
-      const auto connection,
-      MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(nsCOMPtr<mozIStorageConnection>, ss,
-                                        OpenUnsharedDatabase, &aLsArchiveFile));
+  QM_TRY_UNWRAP(const auto connection,
+                MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
+                    nsCOMPtr<mozIStorageConnection>, ss, OpenUnsharedDatabase,
+                    &aLsArchiveFile, mozIStorageService::CONNECTION_DEFAULT));
 
   QM_TRY(MOZ_TO_RESULT(StorageDBUpdater::CreateCurrentSchema(connection)));
 
@@ -6157,16 +6254,17 @@ nsresult QuotaManager::EnsureStorageIsInitialized() {
                                            MOZ_SELECT_OVERLOAD(do_GetService),
                                            MOZ_STORAGE_SERVICE_CONTRACTID));
 
-    QM_TRY_UNWRAP(auto connection,
-                  QM_OR_ELSE_WARN_IF(
-                      // Expression.
-                      MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
-                          nsCOMPtr<mozIStorageConnection>, ss,
-                          OpenUnsharedDatabase, storageFile),
-                      // Predicate.
-                      IsDatabaseCorruptionError,
-                      // Fallback.
-                      ErrToDefaultOk<nsCOMPtr<mozIStorageConnection>>));
+    QM_TRY_UNWRAP(
+        auto connection,
+        QM_OR_ELSE_WARN_IF(
+            // Expression.
+            MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
+                nsCOMPtr<mozIStorageConnection>, ss, OpenUnsharedDatabase,
+                storageFile, mozIStorageService::CONNECTION_DEFAULT),
+            // Predicate.
+            IsDatabaseCorruptionError,
+            // Fallback.
+            ErrToDefaultOk<nsCOMPtr<mozIStorageConnection>>));
 
     if (!connection) {
       // Nuke the database file.
@@ -6174,7 +6272,8 @@ nsresult QuotaManager::EnsureStorageIsInitialized() {
 
       QM_TRY_UNWRAP(connection, MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
                                     nsCOMPtr<mozIStorageConnection>, ss,
-                                    OpenUnsharedDatabase, storageFile));
+                                    OpenUnsharedDatabase, storageFile,
+                                    mozIStorageService::CONNECTION_DEFAULT));
     }
 
     // We want extra durability for this important file.
@@ -7087,7 +7186,7 @@ void QuotaManager::ClearOrigins(
 
   // XXX Does this need to be done a) in order and/or b) sequentially?
   for (const auto& doomedOriginInfo :
-       Flatten<OriginInfosFlatTraversable::elem_type>(aDoomedOriginInfos)) {
+       Flatten<OriginInfosFlatTraversable::value_type>(aDoomedOriginInfos)) {
 #ifdef DEBUG
     {
       MutexAutoLock lock(mQuotaMutex);
@@ -7110,7 +7209,7 @@ void QuotaManager::ClearOrigins(
     MutexAutoLock lock(mQuotaMutex);
 
     for (const auto& doomedOriginInfo :
-         Flatten<OriginInfosFlatTraversable::elem_type>(aDoomedOriginInfos)) {
+         Flatten<OriginInfosFlatTraversable::value_type>(aDoomedOriginInfos)) {
       // LockedRemoveQuotaForOrigin might remove the group info;
       // OriginInfo::mGroupInfo is only a raw pointer, so we need to store the
       // information for calling OriginClearCompleted below in a separate array.
@@ -7150,8 +7249,7 @@ void QuotaManager::DeleteFilesForOrigin(PersistenceType aPersistenceType,
                  GetDirectoryForOrigin(aPersistenceType, aOrigin), QM_VOID);
 
   nsresult rv = directory->Remove(true);
-  if (rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-      rv != NS_ERROR_FILE_NOT_FOUND && NS_FAILED(rv)) {
+  if (rv != NS_ERROR_FILE_NOT_FOUND && NS_FAILED(rv)) {
     // This should never fail if we've closed all storage connections
     // correctly...
     NS_ERROR("Failed to remove directory!");
@@ -7217,23 +7315,21 @@ Result<Ok, nsresult> QuotaManager::ArchiveOrigins(
                                          fullOriginMetadata.mOrigin));
 
     // The origin could have been removed, for example due to corruption.
-    QM_TRY_INSPECT(const auto& moved,
-                   QM_OR_ELSE_WARN_IF(
-                       // Expression.
-                       MOZ_TO_RESULT(directory->MoveTo(
-                                         fullOriginMetadata.mPersistenceType ==
-                                                 PERSISTENCE_TYPE_DEFAULT
-                                             ? defaultStorageArchiveDir
-                                             : temporaryStorageArchiveDir,
-                                         u""_ns))
-                           .map([](Ok) { return true; }),
-                       // Predicate.
-                       ([](const nsresult rv) {
-                         return rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST ||
-                                rv == NS_ERROR_FILE_NOT_FOUND;
-                       }),
-                       // Fallback.
-                       ErrToOk<false>));
+    QM_TRY_INSPECT(
+        const auto& moved,
+        QM_OR_ELSE_WARN_IF(
+            // Expression.
+            MOZ_TO_RESULT(
+                directory->MoveTo(fullOriginMetadata.mPersistenceType ==
+                                          PERSISTENCE_TYPE_DEFAULT
+                                      ? defaultStorageArchiveDir
+                                      : temporaryStorageArchiveDir,
+                                  u""_ns))
+                .map([](Ok) { return true; }),
+            // Predicate.
+            ([](const nsresult rv) { return rv == NS_ERROR_FILE_NOT_FOUND; }),
+            // Fallback.
+            ErrToOk<false>));
 
     if (moved) {
       RemoveQuotaForOrigin(fullOriginMetadata.mPersistenceType,
@@ -8407,7 +8503,7 @@ mozilla::ipc::IPCResult Quota::RecvStartIdleMaintenance() {
 
   if (BackgroundParent::IsOtherProcessActor(actor)) {
     MOZ_CRASH_UNLESS_FUZZING();
-    return IPC_FAIL_NO_REASON(this);
+    return IPC_FAIL(this, "Wrong actor");
   }
 
   if (QuotaManager::IsShuttingDown()) {
@@ -8432,7 +8528,7 @@ mozilla::ipc::IPCResult Quota::RecvStopIdleMaintenance() {
 
   if (BackgroundParent::IsOtherProcessActor(actor)) {
     MOZ_CRASH_UNLESS_FUZZING();
-    return IPC_FAIL_NO_REASON(this);
+    return IPC_FAIL(this, "Wrong actor");
   }
 
   if (QuotaManager::IsShuttingDown()) {
@@ -8458,7 +8554,7 @@ mozilla::ipc::IPCResult Quota::RecvAbortOperationsForProcess(
 
   if (BackgroundParent::IsOtherProcessActor(actor)) {
     MOZ_CRASH_UNLESS_FUZZING();
-    return IPC_FAIL_NO_REASON(this);
+    return IPC_FAIL(this, "Wrong actor");
   }
 
   if (QuotaManager::IsShuttingDown()) {
@@ -8620,7 +8716,7 @@ mozilla::ipc::IPCResult QuotaUsageRequestBase::RecvCancel() {
 
   if (mCanceled.exchange(true)) {
     NS_WARNING("Canceled more than once?!");
-    return IPC_FAIL_NO_REASON(this);
+    return IPC_FAIL(this, "Request canceled more than once");
   }
 
   return IPC_OK();
@@ -8680,7 +8776,8 @@ nsresult TraverseRepositoryHelper::TraverseRepository(
 }
 
 GetUsageOp::GetUsageOp(const UsageRequestParams& aParams)
-    : mGetAll(aParams.get_AllUsageParams().getAll()) {
+    : QuotaUsageRequestBase("dom::quota::GetUsageOp"),
+      mGetAll(aParams.get_AllUsageParams().getAll()) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aParams.type() == UsageRequestParams::TAllUsageParams);
 }
@@ -8786,7 +8883,9 @@ void GetUsageOp::GetResponse(UsageRequestResponse& aResponse) {
 }
 
 GetOriginUsageOp::GetOriginUsageOp(const UsageRequestParams& aParams)
-    : mUsage(0), mFileUsage(0) {
+    : QuotaUsageRequestBase("dom::quota::GetOriginUsageOp"),
+      mUsage(0),
+      mFileUsage(0) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aParams.type() == UsageRequestParams::TOriginUsageParams);
 
@@ -8904,7 +9003,8 @@ void QuotaRequestBase::ActorDestroy(ActorDestroyReason aWhy) {
   NoteActorDestroyed();
 }
 
-StorageNameOp::StorageNameOp() : QuotaRequestBase(/* aExclusive */ false) {
+StorageNameOp::StorageNameOp()
+    : QuotaRequestBase("dom::quota::StorageNameOp", /* aExclusive */ false) {
   AssertIsOnOwningThread();
 
   // Overwrite OriginOperationBase default values.
@@ -8936,8 +9036,9 @@ void StorageNameOp::GetResponse(RequestResponse& aResponse) {
   aResponse = storageNameResponse;
 }
 
-InitializedRequestBase::InitializedRequestBase()
-    : QuotaRequestBase(/* aExclusive */ false), mInitialized(false) {
+InitializedRequestBase::InitializedRequestBase(const char* aRunnableName)
+    : QuotaRequestBase(aRunnableName, /* aExclusive */ false),
+      mInitialized(false) {
   AssertIsOnOwningThread();
 
   // Overwrite OriginOperationBase default values.
@@ -8992,7 +9093,8 @@ void TemporaryStorageInitializedOp::GetResponse(RequestResponse& aResponse) {
   aResponse = temporaryStorageInitializedResponse;
 }
 
-InitOp::InitOp() : QuotaRequestBase(/* aExclusive */ false) {
+InitOp::InitOp()
+    : QuotaRequestBase("dom::quota::InitOp", /* aExclusive */ false) {
   AssertIsOnOwningThread();
 
   // Overwrite OriginOperationBase default values.
@@ -9019,7 +9121,8 @@ void InitOp::GetResponse(RequestResponse& aResponse) {
 }
 
 InitTemporaryStorageOp::InitTemporaryStorageOp()
-    : QuotaRequestBase(/* aExclusive */ false) {
+    : QuotaRequestBase("dom::quota::InitTemporaryStorageOp",
+                       /* aExclusive */ false) {
   AssertIsOnOwningThread();
 
   // Overwrite OriginOperationBase default values.
@@ -9034,7 +9137,7 @@ nsresult InitTemporaryStorageOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
 
   AUTO_PROFILER_LABEL("InitTemporaryStorageOp::DoDirectoryWork", OTHER);
 
-  QM_TRY(OkIf(aQuotaManager.IsStorageInitialized()), NS_ERROR_FAILURE;);
+  QM_TRY(OkIf(aQuotaManager.IsStorageInitialized()), NS_ERROR_FAILURE);
 
   QM_TRY(MOZ_TO_RESULT(aQuotaManager.EnsureTemporaryStorageIsInitialized()));
 
@@ -9048,8 +9151,11 @@ void InitTemporaryStorageOp::GetResponse(RequestResponse& aResponse) {
 }
 
 InitializeOriginRequestBase::InitializeOriginRequestBase(
-    const PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo)
-    : QuotaRequestBase(/* aExclusive */ false), mCreated(false) {
+    const char* aRunnableName, const PersistenceType aPersistenceType,
+    const PrincipalInfo& aPrincipalInfo)
+    : QuotaRequestBase(aRunnableName,
+                       /* aExclusive */ false),
+      mCreated(false) {
   AssertIsOnOwningThread();
 
   auto principalMetadata =
@@ -9075,6 +9181,7 @@ void InitializeOriginRequestBase::Init(Quota& aQuota) {
 InitializePersistentOriginOp::InitializePersistentOriginOp(
     const RequestParams& aParams)
     : InitializeOriginRequestBase(
+          "dom::quota::InitializePersistentOriginOp",
           PERSISTENCE_TYPE_PERSISTENT,
           aParams.get_InitializePersistentOriginParams().principalInfo()) {
   AssertIsOnOwningThread();
@@ -9110,6 +9217,7 @@ void InitializePersistentOriginOp::GetResponse(RequestResponse& aResponse) {
 InitializeTemporaryOriginOp::InitializeTemporaryOriginOp(
     const RequestParams& aParams)
     : InitializeOriginRequestBase(
+          "dom::quota::InitializeTemporaryOriginOp",
           aParams.get_InitializeTemporaryOriginParams().persistenceType(),
           aParams.get_InitializeTemporaryOriginParams().principalInfo()) {
   AssertIsOnOwningThread();
@@ -9147,7 +9255,8 @@ void InitializeTemporaryOriginOp::GetResponse(RequestResponse& aResponse) {
 
 GetFullOriginMetadataOp::GetFullOriginMetadataOp(
     const GetFullOriginMetadataParams& aParams)
-    : QuotaRequestBase(/* aExclusive */ false),
+    : QuotaRequestBase("dom::quota::GetFullOriginMetadataOp",
+                       /* aExclusive */ false),
       mOriginMetadata(QuotaManager::GetInfoFromValidatedPrincipalInfo(
                           aParams.principalInfo()),
                       aParams.persistenceType()) {
@@ -9185,7 +9294,8 @@ void GetFullOriginMetadataOp::GetResponse(RequestResponse& aResponse) {
 }
 
 ResetOrClearOp::ResetOrClearOp(bool aClear)
-    : QuotaRequestBase(/* aExclusive */ true), mClear(aClear) {
+    : QuotaRequestBase("dom::quota::ResetOrClearOp", /* aExclusive */ true),
+      mClear(aClear) {
   AssertIsOnOwningThread();
 
   // Overwrite OriginOperationBase default values.
@@ -9213,8 +9323,7 @@ void ResetOrClearOp::DeleteFiles(QuotaManager& aQuotaManager) {
   nsCOMPtr<nsIFile> directory = directoryOrErr.unwrap();
 
   rv = directory->Remove(true);
-  if (rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-      rv != NS_ERROR_FILE_NOT_FOUND && NS_FAILED(rv)) {
+  if (rv != NS_ERROR_FILE_NOT_FOUND && NS_FAILED(rv)) {
     // This should never fail if we've closed all storage connections
     // correctly...
     MOZ_ASSERT(false, "Failed to remove storage directory!");
@@ -9232,8 +9341,7 @@ void ResetOrClearOp::DeleteStorageFile(QuotaManager& aQuotaManager) {
          QM_VOID);
 
   const nsresult rv = storageFile->Remove(true);
-  if (rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
-      rv != NS_ERROR_FILE_NOT_FOUND && NS_FAILED(rv)) {
+  if (rv != NS_ERROR_FILE_NOT_FOUND && NS_FAILED(rv)) {
     // This should never fail if we've closed the storage connection
     // correctly...
     MOZ_ASSERT(false, "Failed to remove storage file!");
@@ -9281,6 +9389,13 @@ void ClearRequestBase::DeleteFiles(QuotaManager& aQuotaManager,
   QM_TRY_INSPECT(
       const auto& directory,
       QM_NewLocalFile(aQuotaManager.GetStoragePath(aPersistenceType)), QM_VOID);
+
+  QM_TRY_INSPECT(const bool& exists,
+                 MOZ_TO_RESULT_INVOKE_MEMBER(directory, Exists), QM_VOID);
+
+  if (!exists) {
+    return;
+  }
 
   nsTArray<nsCOMPtr<nsIFile>> directoriesForRemovalRetry;
 
@@ -9458,7 +9573,7 @@ nsresult ClearRequestBase::DoDirectoryWork(QuotaManager& aQuotaManager) {
 }
 
 ClearOriginOp::ClearOriginOp(const RequestParams& aParams)
-    : ClearRequestBase(/* aExclusive */ true),
+    : ClearRequestBase("dom::quota::ClearOriginOp", /* aExclusive */ true),
       mParams(aParams.get_ClearOriginParams().commonParams()),
       mMatchAll(aParams.get_ClearOriginParams().matchAll()) {
   MOZ_ASSERT(aParams.type() == RequestParams::TClearOriginParams);
@@ -9495,7 +9610,8 @@ void ClearOriginOp::GetResponse(RequestResponse& aResponse) {
 }
 
 ClearDataOp::ClearDataOp(const RequestParams& aParams)
-    : ClearRequestBase(/* aExclusive */ true), mParams(aParams) {
+    : ClearRequestBase("dom::quota::ClearDataOp", /* aExclusive */ true),
+      mParams(aParams) {
   MOZ_ASSERT(aParams.type() == RequestParams::TClearDataParams);
 }
 
@@ -9514,7 +9630,7 @@ void ClearDataOp::GetResponse(RequestResponse& aResponse) {
 }
 
 ResetOriginOp::ResetOriginOp(const RequestParams& aParams)
-    : QuotaRequestBase(/* aExclusive */ true) {
+    : QuotaRequestBase("dom::quota::ResetOriginOp", /* aExclusive */ true) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aParams.type() == RequestParams::TResetOriginParams);
 
@@ -9561,7 +9677,9 @@ void ResetOriginOp::GetResponse(RequestResponse& aResponse) {
 }
 
 PersistRequestBase::PersistRequestBase(const PrincipalInfo& aPrincipalInfo)
-    : QuotaRequestBase(/* aExclusive */ false), mPrincipalInfo(aPrincipalInfo) {
+    : QuotaRequestBase("dom::quota::PersistRequestBase",
+                       /* aExclusive */ false),
+      mPrincipalInfo(aPrincipalInfo) {
   AssertIsOnOwningThread();
 }
 
@@ -9720,7 +9838,7 @@ void PersistOp::GetResponse(RequestResponse& aResponse) {
 }
 
 EstimateOp::EstimateOp(const EstimateParams& aParams)
-    : QuotaRequestBase(/* aExclusive */ false),
+    : QuotaRequestBase("dom::quota::EstimateOp", /* aExclusive */ false),
       mOriginMetadata(QuotaManager::GetInfoFromValidatedPrincipalInfo(
                           aParams.principalInfo()),
                       PERSISTENCE_TYPE_DEFAULT) {
@@ -9763,7 +9881,8 @@ void EstimateOp::GetResponse(RequestResponse& aResponse) {
 }
 
 ListOriginsOp::ListOriginsOp()
-    : QuotaRequestBase(/* aExclusive */ false), TraverseRepositoryHelper() {
+    : QuotaRequestBase("dom::quota::ListOriginsOp", /* aExclusive */ false),
+      TraverseRepositoryHelper() {
   AssertIsOnOwningThread();
 }
 

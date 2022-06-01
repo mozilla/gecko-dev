@@ -36,7 +36,9 @@ nsresult HTMLEditor::ShowInlineTableEditingUIInternal(Element& aCellElement) {
     return NS_OK;
   }
 
-  if (NS_WARN_IF(!IsDescendantOfEditorRoot(&aCellElement))) {
+  const RefPtr<Element> editingHost = ComputeEditingHost();
+  if (NS_WARN_IF(!editingHost) ||
+      NS_WARN_IF(!aCellElement.IsInclusiveDescendantOf(editingHost))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -209,7 +211,10 @@ nsresult HTMLEditor::DoInlineTableEditingAction(const Element& aElement) {
     return NS_OK;
   }
 
-  if (NS_WARN_IF(!mInlineEditedCell)) {
+  if (NS_WARN_IF(!mInlineEditedCell) ||
+      NS_WARN_IF(!mInlineEditedCell->IsInComposedDoc()) ||
+      NS_WARN_IF(
+          !HTMLEditUtils::IsTableRow(mInlineEditedCell->GetParentNode()))) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -244,12 +249,13 @@ nsresult HTMLEditor::DoInlineTableEditingAction(const Element& aElement) {
           "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
       return EditorBase::ToGenericNSResult(rv);
     }
-    DebugOnly<nsresult> rvIgnored = InsertTableColumnsWithTransaction(
-        1, InsertPosition::eBeforeSelectedCell);
+
+    DebugOnly<nsresult> rvIgnored =
+        InsertTableColumnsWithTransaction(EditorDOMPoint(mInlineEditedCell), 1);
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),
-        "HTMLEditor::InsertTableColumnsWithTransaction(1, "
-        "InsertPosition::eBeforeSelectedCell) failed, but ignored");
+        "HTMLEditor::InsertTableColumnsWithTransaction("
+        "EditorDOMPoint(mInlineEditedCell), 1) failed, but ignored");
   } else if (anonclass.EqualsLiteral("mozTableAddColumnAfter")) {
     AutoEditActionDataSetter editActionData(*this,
                                             EditAction::eInsertTableColumn);
@@ -260,12 +266,24 @@ nsresult HTMLEditor::DoInlineTableEditingAction(const Element& aElement) {
           "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
       return EditorBase::ToGenericNSResult(rv);
     }
+    Element* nextCellElement = nullptr;
+    for (nsIContent* maybeNextCellElement = mInlineEditedCell->GetNextSibling();
+         maybeNextCellElement;
+         maybeNextCellElement = maybeNextCellElement->GetNextSibling()) {
+      if (HTMLEditUtils::IsTableCell(maybeNextCellElement)) {
+        nextCellElement = maybeNextCellElement->AsElement();
+        break;
+      }
+    }
     DebugOnly<nsresult> rvIgnored = InsertTableColumnsWithTransaction(
-        1, InsertPosition::eAfterSelectedCell);
+        nextCellElement
+            ? EditorDOMPoint(nextCellElement)
+            : EditorDOMPoint::AtEndOf(*mInlineEditedCell->GetParentElement()),
+        1);
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),
-        "HTMLEditor::InsertTableColumnsWithTransaction(1, "
-        "InsertPosition::eAfterSelectedCell) failed, but ignored");
+        "HTMLEditor::InsertTableColumnsWithTransaction("
+        "EditorDOMPoint(nextCellElement), 1) failed, but ignored");
   } else if (anonclass.EqualsLiteral("mozTableAddRowBefore")) {
     AutoEditActionDataSetter editActionData(*this,
                                             EditAction::eInsertTableRowElement);
@@ -276,11 +294,12 @@ nsresult HTMLEditor::DoInlineTableEditingAction(const Element& aElement) {
           "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
       return EditorBase::ToGenericNSResult(rv);
     }
-    DebugOnly<nsresult> rvIgnored =
-        InsertTableRowsWithTransaction(1, InsertPosition::eBeforeSelectedCell);
+    OwningNonNull<Element> targetCellElement(*mInlineEditedCell);
+    DebugOnly<nsresult> rvIgnored = InsertTableRowsWithTransaction(
+        targetCellElement, 1, InsertPosition::eBeforeSelectedCell);
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),
-        "HTMLEditor::InsertTableRowsWithTransaction(1, "
+        "HTMLEditor::InsertTableRowsWithTransaction(targetCellElement, 1, "
         "InsertPosition::eBeforeSelectedCell) failed, but ignored");
   } else if (anonclass.EqualsLiteral("mozTableAddRowAfter")) {
     AutoEditActionDataSetter editActionData(*this,
@@ -292,11 +311,12 @@ nsresult HTMLEditor::DoInlineTableEditingAction(const Element& aElement) {
           "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
       return EditorBase::ToGenericNSResult(rv);
     }
-    DebugOnly<nsresult> rvIgnored =
-        InsertTableRowsWithTransaction(1, InsertPosition::eAfterSelectedCell);
+    OwningNonNull<Element> targetCellElement(*mInlineEditedCell);
+    DebugOnly<nsresult> rvIgnored = InsertTableRowsWithTransaction(
+        targetCellElement, 1, InsertPosition::eAfterSelectedCell);
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),
-        "HTMLEditor::InsertTableRowsWithTransaction(1, "
+        "HTMLEditor::InsertTableRowsWithTransaction(targetCellElement, 1, "
         "InsertPosition::eAfterSelectedCell) failed, but ignored");
   } else if (anonclass.EqualsLiteral("mozTableRemoveColumn")) {
     AutoEditActionDataSetter editActionData(*this,
@@ -334,7 +354,6 @@ nsresult HTMLEditor::DoInlineTableEditingAction(const Element& aElement) {
     return NS_OK;
   }
 
-  // InsertTableRowsWithTransaction() might causes reframe.
   if (NS_WARN_IF(Destroyed())) {
     return NS_OK;
   }

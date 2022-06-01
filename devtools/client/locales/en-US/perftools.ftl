@@ -20,6 +20,7 @@ perftools-heading-features-default = Features (Recommended on by default)
 perftools-heading-features-disabled = Disabled Features
 perftools-heading-features-experimental = Experimental
 perftools-heading-threads = Threads
+perftools-heading-threads-jvm = JVM Threads
 perftools-heading-local-build = Local build
 
 ##
@@ -50,9 +51,6 @@ perftools-devtools-settings-label = Settings
 
 ## Various statuses that affect the current state of profiling, not typically displayed.
 
-perftools-status-private-browsing-notice =
-  The profiler is disabled when Private Browsing is enabled.
-  Close all Private Windows to re-enable the profiler
 perftools-status-recording-stopped-by-another-tool = The recording was stopped by another tool.
 perftools-status-restart-required = The browser must be restarted to enable this feature.
 
@@ -98,6 +96,18 @@ perftools-thread-dns-resolver =
   .title = DNS resolution happens on this thread
 perftools-thread-task-controller =
   .title = TaskController thread pool threads
+perftools-thread-jvm-gecko =
+  .title = The main Gecko JVM thread
+perftools-thread-jvm-nimbus =
+  .title = The main threads for the Nimbus experiments SDK
+perftools-thread-jvm-default-dispatcher =
+  .title = The Default dispatcher for the Kotlin coroutines library
+perftools-thread-jvm-glean =
+  .title = The main threads for the Glean telemetry SDK
+perftools-thread-jvm-arch-disk-io =
+  .title = The IO dispatcher for the Kotlin coroutines library
+perftools-thread-jvm-pool =
+  .title = Threads created in an unnamed thread pool
 
 ##
 
@@ -108,13 +118,9 @@ perftools-tools-threads-input-label =
   .title = These thread names are a comma separated list that is used to enable profiling of the threads in the profiler. The name needs to be only a partial match of the thread name to be included. It is whitespace sensitive.
 
 ## Onboarding UI labels. These labels are displayed in the new performance panel UI, when
-## both devtools.performance.new-panel-onboarding & devtools.performance.new-panel-enabled
-## preferences are true.
+## devtools.performance.new-panel-onboarding preference is true.
 
 perftools-onboarding-message = <b>New</b>: { -profiler-brand-name } is now integrated into Developer Tools. <a>Learn more</a> about this powerful new tool.
-
-# `options-context-advanced-settings` is defined in toolbox-options.ftl
-perftools-onboarding-reenable-old-panel = (For a limited time, you can access the original Performance panel via <a>{ options-context-advanced-settings }</a>)
 
 perftools-onboarding-close-button =
   .aria-label = Close the onboarding message

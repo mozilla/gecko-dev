@@ -56,8 +56,8 @@ class MainThreadIOLoggerImpl final : public mozilla::IOInterposeObserver {
   const char* mFileName;
   PRThread* mIOThread;
   mozilla::IOInterposer::Monitor mMonitor;
-  bool mShutdownRequired;
-  std::vector<ObservationWithStack> mObservations;
+  bool mShutdownRequired GUARDED_BY(mMonitor);
+  std::vector<ObservationWithStack> mObservations GUARDED_BY(mMonitor);
 };
 
 static mozilla::StaticAutoPtr<MainThreadIOLoggerImpl> sImpl;
@@ -73,7 +73,7 @@ MainThreadIOLoggerImpl::~MainThreadIOLoggerImpl() {
     // Scope for lock
     mozilla::IOInterposer::MonitorAutoLock lock(mMonitor);
     mShutdownRequired = true;
-    lock.Notify();
+    mMonitor.Notify();
   }
   PR_JoinThread(mIOThread);
   mIOThread = nullptr;
@@ -122,7 +122,7 @@ void MainThreadIOLoggerImpl::IOThreadFunc() {
     mozilla::IOInterposer::MonitorAutoLock lock(mMonitor);
     while (true) {
       while (!mShutdownRequired && mObservations.empty()) {
-        lock.Wait();
+        mMonitor.Wait();
       }
       if (mShutdownRequired) {
         break;
@@ -182,7 +182,7 @@ void MainThreadIOLoggerImpl::Observe(Observation& aObservation) {
   }
   // Passing nullptr as aStack parameter for now
   mObservations.push_back(ObservationWithStack(aObservation, nullptr));
-  lock.Notify();
+  mMonitor.Notify();
 }
 
 }  // namespace

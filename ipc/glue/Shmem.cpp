@@ -9,6 +9,7 @@
 #include "ProtocolUtils.h"
 #include "SharedMemoryBasic.h"
 #include "ShmemMessageUtils.h"
+#include "chrome/common/ipc_message_utils.h"
 #include "mozilla/Unused.h"
 
 namespace mozilla {
@@ -25,17 +26,17 @@ class ShmemCreated : public IPC::Message {
                      HeaderFlags(NESTED_INSIDE_CPOW)) {
     MOZ_RELEASE_ASSERT(aSize < std::numeric_limits<uint32_t>::max(),
                        "Tried to create Shmem with size larger than 4GB");
-    IPC::WriteParam(this, aIPDLId);
-    IPC::WriteParam(this, uint32_t(aSize));
-    IPC::WriteParam(this, int32_t(aType));
+    IPC::MessageWriter writer(*this);
+    IPC::WriteParam(&writer, aIPDLId);
+    IPC::WriteParam(&writer, uint32_t(aSize));
+    IPC::WriteParam(&writer, int32_t(aType));
   }
 
-  static bool ReadInfo(const Message* msg, PickleIterator* iter, id_t* aIPDLId,
+  static bool ReadInfo(IPC::MessageReader* aReader, id_t* aIPDLId,
                        size_t* aSize, SharedMemory::SharedMemoryType* aType) {
     uint32_t size = 0;
-    if (!IPC::ReadParam(msg, iter, aIPDLId) ||
-        !IPC::ReadParam(msg, iter, &size) ||
-        !IPC::ReadParam(msg, iter, reinterpret_cast<int32_t*>(aType))) {
+    if (!IPC::ReadParam(aReader, aIPDLId) || !IPC::ReadParam(aReader, &size) ||
+        !IPC::ReadParam(aReader, reinterpret_cast<int32_t*>(aType))) {
       return false;
     }
     *aSize = size;
@@ -54,7 +55,8 @@ class ShmemDestroyed : public IPC::Message {
  public:
   ShmemDestroyed(int32_t routingId, id_t aIPDLId)
       : IPC::Message(routingId, SHMEM_DESTROYED_MESSAGE_TYPE) {
-    IPC::WriteParam(this, aIPDLId);
+    IPC::MessageWriter writer(*this);
+    IPC::WriteParam(&writer, aIPDLId);
   }
 };
 
@@ -88,19 +90,19 @@ static already_AddRefed<SharedMemory> ReadSegment(
     return nullptr;
   }
   SharedMemory::SharedMemoryType type;
-  PickleIterator iter(aDescriptor);
-  if (!ShmemCreated::ReadInfo(&aDescriptor, &iter, aId, aNBytes, &type)) {
+  IPC::MessageReader reader(aDescriptor);
+  if (!ShmemCreated::ReadInfo(&reader, aId, aNBytes, &type)) {
     return nullptr;
   }
   RefPtr<SharedMemory> segment = NewSegment(type);
   if (!segment) {
     return nullptr;
   }
-  if (!segment->ReadHandle(&aDescriptor, &iter)) {
+  if (!segment->ReadHandle(&reader)) {
     NS_ERROR("trying to open invalid handle");
     return nullptr;
   }
-  aDescriptor.EndRead(iter);
+  reader.EndRead();
   size_t size = SharedMemory::PageAlignedSize(*aNBytes + aExtraSize);
   if (!segment->Map(size)) {
     return nullptr;
@@ -241,6 +243,9 @@ Shmem::Shmem(PrivateIPDLCaller, SharedMemory* aSegment, id_t aId)
   mSize = static_cast<size_t>(header->mSize);
 
   size_t pageSize = SharedMemory::SystemPageSize();
+  MOZ_ASSERT(mSegment->Size() - (2 * pageSize) >= mSize,
+             "illegal size in shared memory segment");
+
   // transition into the "mapped" state by protecting the front and
   // back sentinels (which guard against buffer under/overflows)
   mSegment->Protect(frontSentinel, pageSize, RightsNone);
@@ -373,6 +378,13 @@ void Shmem::Dealloc(PrivateIPDLCaller, SharedMemory* aSegment) {
 
 #else  // !defined(DEBUG)
 
+Shmem::Shmem(PrivateIPDLCaller, SharedMemory* aSegment, id_t aId)
+    : mSegment(aSegment), mData(aSegment->memory()), mSize(0), mId(aId) {
+  mSize = static_cast<size_t>(*PtrToSize(mSegment));
+  MOZ_RELEASE_ASSERT(mSegment->Size() - sizeof(uint32_t) >= mSize,
+                     "illegal size in shared memory segment");
+}
+
 // static
 already_AddRefed<Shmem::SharedMemory> Shmem::Alloc(PrivateIPDLCaller,
                                                    size_t aNBytes,
@@ -421,7 +433,8 @@ UniquePtr<IPC::Message> Shmem::MkCreatedMessage(PrivateIPDLCaller,
   AssertInvariants();
 
   auto msg = MakeUnique<ShmemCreated>(routingId, mId, mSize, mSegment->Type());
-  if (!mSegment->WriteHandle(msg.get())) {
+  IPC::MessageWriter writer(*msg);
+  if (!mSegment->WriteHandle(&writer)) {
     return nullptr;
   }
   // close the handle to the segment after it is shared
@@ -435,19 +448,18 @@ UniquePtr<IPC::Message> Shmem::MkDestroyedMessage(PrivateIPDLCaller,
   return MakeUnique<ShmemDestroyed>(routingId, mId);
 }
 
-void IPDLParamTraits<Shmem>::Write(IPC::Message* aMsg, IProtocol* aActor,
-                                   Shmem&& aParam) {
-  WriteIPDLParam(aMsg, aActor, aParam.mId);
+void IPDLParamTraits<Shmem>::Write(IPC::MessageWriter* aWriter,
+                                   IProtocol* aActor, Shmem&& aParam) {
+  WriteIPDLParam(aWriter, aActor, aParam.mId);
 
   aParam.RevokeRights(Shmem::PrivateIPDLCaller());
   aParam.forget(Shmem::PrivateIPDLCaller());
 }
 
-bool IPDLParamTraits<Shmem>::Read(const IPC::Message* aMsg,
-                                  PickleIterator* aIter, IProtocol* aActor,
-                                  paramType* aResult) {
+bool IPDLParamTraits<Shmem>::Read(IPC::MessageReader* aReader,
+                                  IProtocol* aActor, paramType* aResult) {
   paramType::id_t id;
-  if (!ReadIPDLParam(aMsg, aIter, aActor, &id)) {
+  if (!ReadIPDLParam(aReader, aActor, &id)) {
     return false;
   }
 

@@ -5,6 +5,8 @@ Some parts of this process, including cloning and compiling, can take a long tim
 If at any point you get stuck, please don't hesitate to ask at `https://chat.mozilla.org <https://chat.mozilla.org>`__
 in the `#introduction <https://chat.mozilla.org/#/room/#introduction:mozilla.org>`__ channel.
 
+Don’t hesitate to look at the :ref:`Getting Set Up To Work On The Firefox Codebase<Getting Set Up To Work On The Firefox Codebase>` for a more detailed tutorial.
+
 Before you start
 ----------------
 Please register and create your account for
@@ -14,39 +16,6 @@ To register with Phabricator, make sure you enable Two-Factor Authentication (My
 
 `Phabricator <https://phabricator.services.mozilla.com/>`__: web-based software development collaboration tools, mainly for code review.
 Please obtain an API Token (Settings >> Conduit API Tokens)
-
-Clone the sources
------------------
-
-You can use either mercurial or git. `Mercurial <https://www.mercurial-scm.org/downloads>`__ is the canonical version control system.
-
-.. code-block:: shell
-
-    $ hg clone https://hg.mozilla.org/mozilla-central/
-
-For git, see the `git cinnabar documentation <https://github.com/glandium/git-cinnabar/wiki/Mozilla:-A-git-workflow-for-Gecko-development>`__
-
-The clone can take from 40 minutes to two hours (depending on your connection) and
-the repository should be less than 5GB (~ 20GB after the build).
-
-If you have any network connection issues and cannot clone with command, try :ref:`Mercurial bundles <Mercurial bundles>`.
-
-:ref:`More information <Mercurial Overview>`
-
-Install dependencies (non-Windows)
-----------------------------------
-
-Firefox provides a mechanism to install all dependencies; in the source tree:
-
-.. code-block:: shell
-
-     $ ./mach bootstrap
-
-The default options are recommended.
-If you're not planning to write C++ or Rust code, select :ref:`Artifact Mode <Understanding Artifact Builds>`
-and follow the instructions at the end of the bootstrap for creating a mozconfig file.
-
-More information :ref:`for Linux <Building Firefox On Linux>` and :ref:`for MacOS <Building Firefox On MacOS>`
 
 Windows dependencies
 --------------------
@@ -67,14 +36,49 @@ Windows dependencies
 
 :ref:`More information <Building Firefox On Windows>`
 
-To build & run
---------------
+Bootstrap a copy of the Firefox source code
+-------------------------------------------
 
-Once all the dependencies have been installed, run:
+You can download the source code and have Firefox automatically download and install the other dependencies it needs. The below command as per your Operating System, will download a lot of data (years of Firefox history!) then guide you through the interactive setup process.
+
+Downloading can take from 40 minutes to two hours (depending on your connection) and the repository should be less than 5GB (~ 20GB after the build).
+
+The default options are recommended.
+If you're not planning to write C++ or Rust code, select :ref:`Artifact Mode <Understanding Artifact Builds>`
+and follow the instructions at the end of the bootstrap for creating a mozconfig file.
+
+To Setup Firefox On Windows
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: shell
 
-     $ ./mach build
+    $ cd c:/
+    $ mkdir mozilla-source
+    $ cd mozilla-source
+    $ wget https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py
+    $ python3 bootstrap.py
+
+More information :ref:`for Windows <Building Firefox On Windows>`
+
+To Setup Firefox On macOS and Linux
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: shell
+
+    $ curl https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
+    $ python3 bootstrap.py
+
+More information :ref:`for Linux <Building Firefox On Linux>` and :ref:`for MacOS <Building Firefox On MacOS>`
+
+To build & run
+--------------
+
+Once the System is bootstrapped, run:
+
+.. code-block:: shell
+
+    $ cd mozilla-unified
+    $ ./mach build
 
 which will check for dependencies and start the build.
 This will take a while; a few minutes to a few hours depending on your hardware.
@@ -178,17 +182,26 @@ To test a change remotely
 
 Running all the tests for Firefox takes a very long time and requires multiple
 operating systems with various configurations. To build Firefox and run its
-tests on continuous integration servers (CI), two commands are available:
+tests on continuous integration servers (CI), multiple :ref:`options to select tasks <Selectors>`
+are available.
+
+To automatically select the tasks that are most likely to be affected by your changes, run:
 
 .. code-block:: shell
 
-    $ ./mach try chooser
+    $ ./mach try auto
 
-To select jobs running a fuzzy search:
+To select tasks manually using a fuzzy search interface, run:
 
 .. code-block:: shell
 
     $ ./mach try fuzzy
+
+To rerun the same tasks:
+
+.. code-block:: shell
+
+    $ ./mach try again
 
 From `Treeherder <https://treeherder.mozilla.org/>`__ (our continuous integration system), it is also possible to attach new jobs. As every review has
 a try CI run associated, it makes this work easier. See :ref:`attach-job-review` for

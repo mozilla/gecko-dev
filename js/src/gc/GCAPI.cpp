@@ -89,15 +89,15 @@ void PreventGCDuringInteractiveDebug() { TlsContext.get()->suppressGC++; }
 
 #endif
 
-void js::ReleaseAllJITCode(JSFreeOp* fop) {
-  js::CancelOffThreadIonCompile(fop->runtime());
+void js::ReleaseAllJITCode(JS::GCContext* gcx) {
+  js::CancelOffThreadIonCompile(gcx->runtime());
 
-  for (ZonesIter zone(fop->runtime(), SkipAtoms); !zone.done(); zone.next()) {
+  for (ZonesIter zone(gcx->runtime(), SkipAtoms); !zone.done(); zone.next()) {
     zone->setPreservingCode(false);
-    zone->discardJitCode(fop);
+    zone->discardJitCode(gcx);
   }
 
-  for (RealmsIter realm(fop->runtime()); !realm.done(); realm.next()) {
+  for (RealmsIter realm(gcx->runtime()); !realm.done(); realm.next()) {
     if (jit::JitRealm* jitRealm = realm->jitRealm()) {
       jitRealm->discardStubs();
     }
@@ -144,8 +144,14 @@ JS_PUBLIC_API void js::gc::AssertGCThingHasType(js::gc::Cell* cell,
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
 
-JS::AutoAssertNoGC::AutoAssertNoGC(JSContext* maybecx)
-    : cx_(maybecx ? maybecx : TlsContext.get()) {
+JS::AutoAssertNoGC::AutoAssertNoGC(JSContext* maybecx) {
+  if (maybecx) {
+    cx_ = maybecx;
+  } else if (TlsContext.initialized()) {
+    cx_ = TlsContext.get();
+  } else {
+    cx_ = nullptr;
+  }
   if (cx_) {
     cx_->inUnsafeRegion++;
   }
@@ -468,6 +474,33 @@ uint64_t js::gc::NextCellUniqueId(JSRuntime* rt) {
 }
 
 namespace js {
+
+static const struct GCParamInfo {
+  const char* name;
+  JSGCParamKey key;
+  bool writable;
+} GCParameters[] = {
+#define DEFINE_PARAM_INFO(name, key, writable) {name, key, writable},
+    FOR_EACH_GC_PARAM(DEFINE_PARAM_INFO)
+#undef DEFINE_PARAM_INFO
+};
+
+bool GetGCParameterInfo(const char* name, JSGCParamKey* keyOut,
+                        bool* writableOut) {
+  MOZ_ASSERT(keyOut);
+  MOZ_ASSERT(writableOut);
+
+  for (const GCParamInfo& info : GCParameters) {
+    if (strcmp(name, info.name) == 0) {
+      *keyOut = info.key;
+      *writableOut = info.writable;
+      return true;
+    }
+  }
+
+  return false;
+}
+
 namespace gc {
 namespace MemInfo {
 
@@ -714,7 +747,7 @@ JS_PUBLIC_API void js::gc::FinalizeDeadNurseryObject(JSContext* cx,
   MOZ_ASSERT(!IsForwarded(obj));
 
   const JSClass* jsClass = JS::GetClass(obj);
-  jsClass->doFinalize(cx->defaultFreeOp(), obj);
+  jsClass->doFinalize(cx->gcContext(), obj);
 }
 
 JS_PUBLIC_API void js::gc::SetPerformanceHint(JSContext* cx,

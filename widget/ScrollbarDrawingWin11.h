@@ -15,8 +15,11 @@ namespace mozilla::widget {
 
 class ScrollbarDrawingWin11 final : public ScrollbarDrawingWin {
  public:
-  ScrollbarDrawingWin11() = default;
+  ScrollbarDrawingWin11() : ScrollbarDrawingWin(Kind::Win11) {}
   virtual ~ScrollbarDrawingWin11() = default;
+
+  ScrollbarSizes GetScrollbarSizes(nsPresContext*, StyleScrollbarWidth,
+                                   Overlay) override;
 
   LayoutDeviceIntSize GetMinimumWidgetSize(nsPresContext*,
                                            StyleAppearance aAppearance,
@@ -30,8 +33,6 @@ class ScrollbarDrawingWin11 final : public ScrollbarDrawingWin {
                                        const EventStates& aDocumentState,
                                        const Colors&) override;
 
-  static bool UseOverlayStyle(nsPresContext*);
-
   // Returned colors are button, arrow.
   std::pair<sRGBColor, sRGBColor> ComputeScrollbarButtonColors(
       nsIFrame*, StyleAppearance, const ComputedStyle&,
@@ -39,7 +40,7 @@ class ScrollbarDrawingWin11 final : public ScrollbarDrawingWin {
       const Colors&) override;
 
   bool PaintScrollbarButton(DrawTarget&, StyleAppearance,
-                            const LayoutDeviceRect&, nsIFrame*,
+                            const LayoutDeviceRect&, ScrollbarKind, nsIFrame*,
                             const ComputedStyle&,
                             const EventStates& aElementState,
                             const EventStates& aDocumentState, const Colors&,
@@ -47,17 +48,17 @@ class ScrollbarDrawingWin11 final : public ScrollbarDrawingWin {
 
   template <typename PaintBackendData>
   bool DoPaintScrollbarThumb(PaintBackendData&, const LayoutDeviceRect&,
-                             bool aHorizontal, nsIFrame*, const ComputedStyle&,
+                             ScrollbarKind, nsIFrame*, const ComputedStyle&,
                              const EventStates& aElementState,
                              const EventStates& aDocumentState, const Colors&,
                              const DPIRatio&);
-  bool PaintScrollbarThumb(DrawTarget&, const LayoutDeviceRect&,
-                           bool aHorizontal, nsIFrame*, const ComputedStyle&,
+  bool PaintScrollbarThumb(DrawTarget&, const LayoutDeviceRect&, ScrollbarKind,
+                           nsIFrame*, const ComputedStyle&,
                            const EventStates& aElementState,
                            const EventStates& aDocumentState, const Colors&,
                            const DPIRatio&) override;
   bool PaintScrollbarThumb(WebRenderBackendData&, const LayoutDeviceRect&,
-                           bool aHorizontal, nsIFrame*, const ComputedStyle&,
+                           ScrollbarKind, nsIFrame*, const ComputedStyle&,
                            const EventStates& aElementState,
                            const EventStates& aDocumentState, const Colors&,
                            const DPIRatio&) override;

@@ -541,6 +541,13 @@ audiounit_input_callback(void * user_ptr, AudioUnitRenderActionFlags * flags,
   long outframes = cubeb_resampler_fill(stm->resampler.get(),
                                         stm->input_linear_buffer->data(),
                                         &total_input_frames, NULL, 0);
+  if (outframes < 0) {
+    stm->shutdown = true;
+    OSStatus r = AudioOutputUnitStop(stm->input_unit);
+    assert(r == 0);
+    stm->state_callback(stm, stm->user_ptr, CUBEB_STATE_ERROR);
+    return noErr;
+  }
   stm->draining = outframes < total_input_frames;
 
   // Reset input buffer
@@ -1441,6 +1448,13 @@ audiounit_destroy(cubeb * ctx)
       LOG("(%p) API misuse, %d streams active when context destroyed!", ctx,
           audiounit_active_streams(ctx));
     }
+
+    // Destroying a cubeb context with device collection callbacks registered
+    // is misuse of the API, assert then attempt to clean up.
+    assert(!ctx->input_collection_changed_callback &&
+           !ctx->input_collection_changed_user_ptr &&
+           !ctx->output_collection_changed_callback &&
+           !ctx->output_collection_changed_user_ptr);
 
     /* Unregister the callback if necessary. */
     if (ctx->input_collection_changed_callback) {
@@ -2700,7 +2714,8 @@ audiounit_setup_stream(cubeb_stream * stm)
   stm->resampler.reset(cubeb_resampler_create(
       stm, has_input(stm) ? &input_unconverted_params : NULL,
       has_output(stm) ? &stm->output_stream_params : NULL, target_sample_rate,
-      stm->data_callback, stm->user_ptr, CUBEB_RESAMPLER_QUALITY_DESKTOP));
+      stm->data_callback, stm->user_ptr, CUBEB_RESAMPLER_QUALITY_DESKTOP,
+      CUBEB_RESAMPLER_RECLOCK_NONE));
   if (!stm->resampler) {
     LOG("(%p) Could not create resampler.", stm);
     return CUBEB_ERROR;

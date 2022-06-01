@@ -140,6 +140,7 @@ const char* const XPCJSRuntime::mStrings[] = {
 class AsyncFreeSnowWhite : public Runnable {
  public:
   NS_IMETHOD Run() override {
+    AUTO_PROFILER_LABEL_RELEVANT_FOR_JS("Incremental CC", GCCC);
     AUTO_PROFILER_LABEL("AsyncFreeSnowWhite::Run", GCCC_FreeSnowWhite);
 
     TimeStamp start = TimeStamp::Now();
@@ -496,6 +497,12 @@ void Scriptability::SetWindowAllowsScript(bool aAllowed) {
 }
 
 /* static */
+bool Scriptability::AllowedIfExists(JSObject* aScope) {
+  RealmPrivate* realmPrivate = RealmPrivate::Get(aScope);
+  return realmPrivate ? realmPrivate->scriptability.Allowed() : true;
+}
+
+/* static */
 Scriptability& Scriptability::Get(JSObject* aScope) {
   return RealmPrivate::Get(aScope)->scriptability;
 }
@@ -656,7 +663,7 @@ void NukeAllWrappersForRealm(
 
 }  // namespace xpc
 
-static void CompartmentDestroyedCallback(JSFreeOp* fop,
+static void CompartmentDestroyedCallback(JS::GCContext* gcx,
                                          JS::Compartment* compartment) {
   // NB - This callback may be called in JS_DestroyContext, which happens
   // after the XPCJSRuntime has been torn down.
@@ -831,7 +838,7 @@ void XPCJSRuntime::CustomGCCallback(JSGCStatus status) {
 }
 
 /* static */
-void XPCJSRuntime::FinalizeCallback(JSFreeOp* fop, JSFinalizeStatus status,
+void XPCJSRuntime::FinalizeCallback(JS::GCContext* gcx, JSFinalizeStatus status,
                                     void* data) {
   XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
   if (!self) {
@@ -993,7 +1000,7 @@ void XPCJSRuntime::OnLargeAllocationFailure() {
 }
 
 class LargeAllocationFailureRunnable final : public Runnable {
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
   CondVar mCondVar;
   bool mWaiting;
 
@@ -2728,7 +2735,7 @@ static void GetRealmNameCallback(JSContext* cx, Realm* realm, char* buf,
   memcpy(buf, name.get(), name.Length() + 1);
 }
 
-static void DestroyRealm(JSFreeOp* fop, JS::Realm* realm) {
+static void DestroyRealm(JS::GCContext* gcx, JS::Realm* realm) {
   // Get the current compartment private into an AutoPtr (which will do the
   // cleanup for us), and null out the private field.
   mozilla::UniquePtr<RealmPrivate> priv(RealmPrivate::Get(realm));
@@ -3013,19 +3020,6 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
 
   js::SetWindowProxyClass(cx, &OuterWindowProxyClass);
 
-#ifndef MOZ_DOM_STREAMS
-  {
-    JS::AbortSignalIsAborted isAborted = [](JSObject* obj) {
-      dom::AbortSignal* domObj = dom::UnwrapDOMObject<dom::AbortSignal>(obj);
-      MOZ_ASSERT(domObj);
-      return domObj->Aborted();
-    };
-
-    JS::InitPipeToHandling(dom::AbortSignal_Binding::GetJSClass(), isAborted,
-                           cx);
-  }
-#endif
-
   JS::SetXrayJitInfo(&gXrayJitInfo);
   JS::SetProcessLargeAllocationFailureCallback(
       OnLargeAllocationFailureCallback);
@@ -3087,7 +3081,6 @@ bool XPCJSRuntime::InitializeStrings(JSContext* cx) {
         return false;
       }
       mStrIDs[i] = PropertyKey::fromPinnedString(str);
-      mStrJSVals[i].setString(str);
     }
 
     if (!mozilla::dom::DefineStaticJSVals(cx)) {

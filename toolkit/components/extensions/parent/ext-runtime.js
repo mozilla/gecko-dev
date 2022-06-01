@@ -7,90 +7,157 @@
 var { ExtensionParent } = ChromeUtils.import(
   "resource://gre/modules/ExtensionParent.jsm"
 );
+XPCOMUtils.defineLazyModuleGetters(this, {
+  AddonManager: "resource://gre/modules/AddonManager.jsm",
+  AddonManagerPrivate: "resource://gre/modules/AddonManager.jsm",
+  DevToolsShim: "chrome://devtools-startup/content/DevToolsShim.jsm",
+});
 
-ChromeUtils.defineModuleGetter(
+XPCOMUtils.defineLazyPreferenceGetter(
   this,
-  "AddonManager",
-  "resource://gre/modules/AddonManager.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "AddonManagerPrivate",
-  "resource://gre/modules/AddonManager.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "DevToolsShim",
-  "chrome://devtools-startup/content/DevToolsShim.jsm"
+  "gRuntimeTimeout",
+  "extensions.webextensions.runtime.timeout",
+  5000
 );
 
-this.runtime = class extends ExtensionAPI {
+this.runtime = class extends ExtensionAPIPersistent {
+  PERSISTENT_EVENTS = {
+    onInstalled({ fire }) {
+      let { extension } = this;
+      let temporary = !!extension.addonData.temporarilyInstalled;
+
+      let listener = () => {
+        switch (extension.startupReason) {
+          case "APP_STARTUP":
+            if (AddonManagerPrivate.browserUpdated) {
+              fire.sync({ reason: "browser_update", temporary });
+            }
+            break;
+          case "ADDON_INSTALL":
+            fire.sync({ reason: "install", temporary });
+            break;
+          case "ADDON_UPGRADE":
+            fire.sync({
+              reason: "update",
+              previousVersion: extension.addonData.oldVersion,
+              temporary,
+            });
+            break;
+        }
+      };
+      extension.on("background-first-run", listener);
+      return {
+        unregister() {
+          extension.off("background-first-run", listener);
+        },
+        convert(_fire) {
+          fire = _fire;
+        },
+      };
+    },
+    onUpdateAvailable({ fire }) {
+      let { extension } = this;
+      let instanceID = extension.addonData.instanceID;
+      AddonManager.addUpgradeListener(instanceID, upgrade => {
+        extension.upgrade = upgrade;
+        let details = {
+          version: upgrade.version,
+        };
+        fire.sync(details);
+      });
+      return {
+        unregister() {
+          AddonManager.removeUpgradeListener(instanceID);
+        },
+        convert(_fire) {
+          fire = _fire;
+        },
+      };
+    },
+  };
+
   getAPI(context) {
     let { extension } = context;
     return {
       runtime: {
+        // onStartup is special-cased in ext-backgroundPages to cause
+        // an immediate startup.  We do not prime onStartup.
         onStartup: new EventManager({
           context,
-          name: "runtime.onStartup",
+          module: "runtime",
+          event: "onStartup",
           register: fire => {
             if (context.incognito || extension.startupReason != "APP_STARTUP") {
               // This event should not fire if we are operating in a private profile.
               return () => {};
             }
-            let listener = () => fire.sync();
-            extension.on("background-script-started", listener);
+            let listener = () => {
+              return fire.sync();
+            };
+
+            extension.on("background-first-run", listener);
+
             return () => {
-              extension.off("background-script-started", listener);
+              extension.off("background-first-run", listener);
             };
           },
         }).api(),
 
         onInstalled: new EventManager({
           context,
-          name: "runtime.onInstalled",
-          register: fire => {
-            let temporary = !!extension.addonData.temporarilyInstalled;
-
-            let listener = () => {
-              switch (extension.startupReason) {
-                case "APP_STARTUP":
-                  if (AddonManagerPrivate.browserUpdated) {
-                    fire.sync({ reason: "browser_update", temporary });
-                  }
-                  break;
-                case "ADDON_INSTALL":
-                  fire.sync({ reason: "install", temporary });
-                  break;
-                case "ADDON_UPGRADE":
-                  fire.sync({
-                    reason: "update",
-                    previousVersion: extension.addonData.oldVersion,
-                    temporary,
-                  });
-                  break;
-              }
-            };
-            extension.on("background-script-started", listener);
-            return () => {
-              extension.off("background-script-started", listener);
-            };
-          },
+          module: "runtime",
+          event: "onInstalled",
+          extensionApi: this,
         }).api(),
 
         onUpdateAvailable: new EventManager({
           context,
-          name: "runtime.onUpdateAvailable",
+          module: "runtime",
+          event: "onUpdateAvailable",
+          extensionApi: this,
+        }).api(),
+
+        onSuspend: new EventManager({
+          context,
+          name: "runtime.onSuspend",
+          resetIdleOnEvent: false,
           register: fire => {
-            let instanceID = extension.addonData.instanceID;
-            AddonManager.addUpgradeListener(instanceID, upgrade => {
-              extension.upgrade = upgrade;
-              let details = {
-                version: upgrade.version,
-              };
-              fire.sync(details);
-            });
+            let listener = async () => {
+              let timedOut = false;
+              async function promiseFire() {
+                try {
+                  await fire.async();
+                } catch (e) {}
+              }
+              await Promise.race([
+                promiseFire(),
+                ExtensionUtils.promiseTimeout(gRuntimeTimeout).then(() => {
+                  timedOut = true;
+                }),
+              ]);
+              if (timedOut) {
+                Cu.reportError(
+                  `runtime.onSuspend in ${extension.id} took too long`
+                );
+              }
+            };
+            extension.on("background-script-suspend", listener);
             return () => {
-              AddonManager.removeUpgradeListener(instanceID);
+              extension.off("background-script-suspend", listener);
+            };
+          },
+        }).api(),
+
+        onSuspendCanceled: new EventManager({
+          context,
+          name: "runtime.onSuspendCanceled",
+          register: fire => {
+            let listener = () => {
+              fire.async();
+            };
+            extension.on("background-script-suspend-canceled", listener);
+            return () => {
+              extension.off("background-script-suspend-canceled", listener);
             };
           },
         }).api(),
@@ -165,6 +232,16 @@ this.runtime = class extends ExtensionAPI {
         openBrowserConsole() {
           if (AppConstants.platform !== "android") {
             DevToolsShim.openBrowserConsole();
+          }
+        },
+
+        async internalWakeupBackground() {
+          if (
+            extension.manifest.background &&
+            !extension.manifest.background.service_worker &&
+            !extension.persistentBackground
+          ) {
+            await extension.wakeupBackground();
           }
         },
       },

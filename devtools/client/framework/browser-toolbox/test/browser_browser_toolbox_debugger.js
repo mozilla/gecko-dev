@@ -18,20 +18,10 @@ requestLongerTimeout(4);
 const { fetch } = require("devtools/shared/DevToolsUtils");
 
 const debuggerHeadURL =
-  CHROME_URL_ROOT + "../../../debugger/test/mochitest/head.js";
-const helpersURL =
-  CHROME_URL_ROOT + "../../../debugger/test/mochitest/helpers.js";
-const helpersContextURL =
-  CHROME_URL_ROOT + "../../../debugger/test/mochitest/helpers/context.js";
+  CHROME_URL_ROOT + "../../../debugger/test/mochitest/shared-head.js";
 
 add_task(async function runTest() {
   let { content: debuggerHead } = await fetch(debuggerHeadURL);
-
-  // Also include the debugger helpers which are separated from debugger's head to be
-  // reused in other modules.
-  const { content: debuggerHelpers } = await fetch(helpersURL);
-  const { content: debuggerContextHelpers } = await fetch(helpersContextURL);
-  debuggerHead = debuggerHead + debuggerContextHelpers + debuggerHelpers;
 
   // We remove its import of shared-head, which isn't available in browser toolbox process
   // And isn't needed thanks to testHead's symbols
@@ -65,13 +55,10 @@ add_task(async function runTest() {
   // But it won't try to fetch this url and use sandbox content as expected.
   const testUrl = `http://mozilla.org/browser-toolbox-test-${id}.js`;
   Cu.evalInSandbox(
-    "(" +
-      function() {
-        this.plop = function plop() {
-          return 1;
-        };
-      } +
-      ").call(this)",
+    `this.plop = function plop() {
+  const foo = 1;
+  return foo;
+};`,
     s,
     "1.8",
     testUrl,
@@ -84,7 +71,8 @@ add_task(async function runTest() {
   await ToolboxTask.spawn(`"${testUrl}"`, async _testUrl => {
     /* global gToolbox, createDebuggerContext, waitForSources, waitForPaused,
           addBreakpoint, assertPausedAtSourceAndLine, stepIn, findSource,
-          removeBreakpoint, resume, selectSource, assertNotPaused, assertBreakpoint */
+          removeBreakpoint, resume, selectSource, assertNotPaused, assertBreakpoint,
+          assertTextContentOnLine */
     const { Services } = ChromeUtils.import(
       "resource://gre/modules/Services.jsm"
     );
@@ -133,6 +121,7 @@ add_task(async function runTest() {
 
     const source = findSource(dbg, fileName);
     assertPausedAtSourceAndLine(dbg, source.id, 2);
+    assertTextContentOnLine(dbg, 2, "const foo = 1;");
     is(
       dbg.selectors.getBreakpointCount(),
       1,
@@ -142,6 +131,7 @@ add_task(async function runTest() {
     await stepIn(dbg);
 
     assertPausedAtSourceAndLine(dbg, source.id, 3);
+    assertTextContentOnLine(dbg, 3, "return foo;");
     is(
       dbg.selectors.getBreakpointCount(),
       1,
@@ -170,13 +160,10 @@ add_task(async function runTest() {
     // Use a sandbox in order to have a URL to set a breakpoint
     const s = Cu.Sandbox("http://mozilla.org");
     Cu.evalInSandbox(
-      "(" +
-        function() {
-          this.foo = function foo() {
-            return 1;
-          };
-        } +
-        ").call(this)",
+      `this.foo = function foo() {
+  const plop = 1;
+  return plop;
+};`,
       s,
       "1.8",
       testUrl,
@@ -198,12 +185,14 @@ add_task(async function runTest() {
 
     const source = findSource(dbg, fileName);
     assertPausedAtSourceAndLine(dbg, source.id, 2);
+    assertTextContentOnLine(dbg, 2, "const plop = 1;");
     await assertBreakpoint(dbg, 2);
     is(dbg.selectors.getBreakpointCount(), 1, "We have exactly one breakpoint");
 
     await stepIn(dbg);
 
     assertPausedAtSourceAndLine(dbg, source.id, 3);
+    assertTextContentOnLine(dbg, 3, "return plop;");
     is(
       dbg.selectors.getBreakpointCount(),
       1,

@@ -33,7 +33,17 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
+  "Assert",
+  "resource://testing-common/Assert.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "Extension",
+  "resource://gre/modules/Extension.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "ExtensionData",
   "resource://gre/modules/Extension.jsm"
 );
 ChromeUtils.defineModuleGetter(
@@ -220,6 +230,18 @@ class MockExtension {
         return OS.File.remove(this.file.path);
       });
   }
+
+  terminateBackground() {
+    return this._extensionPromise.then(extension => {
+      return extension.terminateBackground();
+    });
+  }
+
+  wakeupBackground() {
+    return this._extensionPromise.then(extension => {
+      return extension.wakeupBackground();
+    });
+  }
 }
 
 function provide(obj, keys, value, override = false) {
@@ -235,7 +257,102 @@ function provide(obj, keys, value, override = false) {
   }
 }
 
+// Some test assertions to work in both mochitest and xpcshell.  This
+// will be revisited later.
+const ExtensionTestAssertions = {
+  getPersistentListeners(extWrapper, apiNs, apiEvent) {
+    let policy = WebExtensionPolicy.getByID(extWrapper.id);
+    const extension = policy?.extension || extWrapper.extension;
+
+    if (!extension || !(extension instanceof Extension)) {
+      throw new Error(
+        `Unable to retrieve the Extension class instance for ${extWrapper.id}`
+      );
+    }
+
+    const { persistentListeners } = extension;
+    if (
+      !persistentListeners?.size > 0 ||
+      !persistentListeners.get(apiNs)?.has(apiEvent)
+    ) {
+      return [];
+    }
+
+    return Array.from(
+      persistentListeners
+        .get(apiNs)
+        .get(apiEvent)
+        .values()
+    );
+  },
+
+  assertPersistentListeners(
+    extWrapper,
+    apiNs,
+    apiEvent,
+    { primed, persisted = true }
+  ) {
+    if (primed && !persisted) {
+      throw new Error(
+        "Inconsistent assertion, can't assert a primed listener if it is not persisted"
+      );
+    }
+
+    let listenersInfo = ExtensionTestAssertions.getPersistentListeners(
+      extWrapper,
+      apiNs,
+      apiEvent
+    );
+    Assert.equal(
+      persisted,
+      !!listenersInfo?.length,
+      `Got a persistent listener for ${apiNs}.${apiEvent}`
+    );
+    for (const info of listenersInfo) {
+      if (primed) {
+        Assert.ok(
+          info.primed,
+          `${apiNs}.${apiEvent} listener expected to be primed`
+        );
+      } else {
+        Assert.equal(
+          info.primed,
+          undefined,
+          `${apiNs}.${apiEvent} listener expected to not be primed`
+        );
+      }
+    }
+  },
+};
+
 ExtensionTestCommon = class ExtensionTestCommon {
+  static get testAssertions() {
+    return ExtensionTestAssertions;
+  }
+
+  // Called by AddonTestUtils.promiseShutdownManager to reset startup promises
+  static resetStartupPromises() {
+    ExtensionParent._resetStartupPromises();
+  }
+
+  // Called to notify "browser-delayed-startup-finished", which resolves
+  // ExtensionParent.browserPaintedPromise.  Thus must be resolved for
+  // primed listeners to be able to wake the extension.
+  static notifyEarlyStartup() {
+    Services.obs.notifyObservers(null, "browser-delayed-startup-finished");
+    return ExtensionParent.browserPaintedPromise;
+  }
+
+  // Called to notify "extensions-late-startup", which resolves
+  // ExtensionParent.browserStartupPromise.  Normally, in Firefox, the
+  // notification would be "sessionstore-windows-restored", however
+  // mobile listens for "extensions-late-startup" so that is more useful
+  // in testing.
+  static notifyLateStartup() {
+    Services.obs.notifyObservers(null, "extensions-late-startup");
+    return ExtensionParent.browserStartupPromise;
+  }
+
   /**
    * Shortcut to more easily access WebExtensionPolicy.backgroundServiceWorkerEnabled
    * from mochitest-plain tests.
@@ -552,6 +669,12 @@ ExtensionTestCommon = class ExtensionTestCommon {
       signedState = AddonManager.SIGNEDSTATE_SYSTEM;
     }
 
+    let isPrivileged = ExtensionData.getIsPrivileged({
+      signedState,
+      builtIn: false,
+      temporarilyInstalled: !!data.temporarilyInstalled,
+    });
+
     return new Extension(
       {
         id,
@@ -560,7 +683,10 @@ ExtensionTestCommon = class ExtensionTestCommon {
         signedState,
         incognitoOverride: data.incognitoOverride,
         temporarilyInstalled: !!data.temporarilyInstalled,
+        isPrivileged,
         TEST_NO_ADDON_MANAGER: true,
+        // By default we set TEST_NO_DELAYED_STARTUP to true
+        TEST_NO_DELAYED_STARTUP: !data.delayedStartup,
       },
       data.startupReason
     );

@@ -36,8 +36,12 @@ add_task(async function testContentBlockingMessage() {
   const hud = await openNewTabAndConsole(TEST_URI);
 
   info("Log a console.group");
-  const onGroupMessage = waitForMessage(hud, "myGroup");
-  let onInGroupMessage = waitForMessage(hud, "log in group");
+  const onGroupMessage = waitForMessageByType(hud, "myGroup", ".console-api");
+  let onInGroupMessage = waitForMessageByType(
+    hud,
+    "log in group",
+    ".console-api"
+  );
   SpecialPowers.spawn(gBrowser.selectedBrowser, [], function() {
     content.wrappedJSObject.console.group("myGroup");
     content.wrappedJSObject.console.log("log in group");
@@ -45,13 +49,13 @@ add_task(async function testContentBlockingMessage() {
   const { node: consoleGroupMessageNode } = await onGroupMessage;
   await onInGroupMessage;
 
-  checkConsoleOutputForWarningGroup(hud, [`▼ myGroup`, `| log in group`]);
+  await checkConsoleOutputForWarningGroup(hud, [`▼ myGroup`, `| log in group`]);
 
   info(
     "Log a tracking protection message to check a single message isn't grouped"
   );
   const now = Date.now();
-  let onContentBlockingWarningMessage = waitForMessage(
+  let onContentBlockingWarningMessage = waitForMessageByType(
     hud,
     BLOCKED_URL,
     ".warn"
@@ -59,7 +63,7 @@ add_task(async function testContentBlockingMessage() {
   emitContentBlockedMessage(now);
   await onContentBlockingWarningMessage;
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▼ myGroup`,
     `| log in group`,
     `| ${BLOCKED_URL}?${now}-1`,
@@ -67,15 +71,15 @@ add_task(async function testContentBlockingMessage() {
 
   info("Collapse the console.group");
   consoleGroupMessageNode.querySelector(".arrow").click();
-  await waitFor(() => !findMessage(hud, "log in group"));
+  await waitFor(() => !findConsoleAPIMessage(hud, "log in group"));
 
-  checkConsoleOutputForWarningGroup(hud, [`▶︎ myGroup`]);
+  await checkConsoleOutputForWarningGroup(hud, [`▶︎ myGroup`]);
 
   info("Expand the console.group");
   consoleGroupMessageNode.querySelector(".arrow").click();
-  await waitFor(() => findMessage(hud, "log in group"));
+  await waitFor(() => findConsoleAPIMessage(hud, "log in group"));
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▼ myGroup`,
     `| log in group`,
     `| ${BLOCKED_URL}?${now}-1`,
@@ -84,7 +88,7 @@ add_task(async function testContentBlockingMessage() {
   info(
     "Log a second tracking protection message to check that it causes the grouping"
   );
-  const onContentBlockingWarningGroupMessage = waitForMessage(
+  const onContentBlockingWarningGroupMessage = waitForMessageByType(
     hud,
     CONTENT_BLOCKING_GROUP_LABEL,
     ".warn"
@@ -92,7 +96,7 @@ add_task(async function testContentBlockingMessage() {
   emitContentBlockedMessage(now);
   const { node: warningGroupNode } = await onContentBlockingWarningGroupMessage;
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▶︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
     `▼ myGroup`,
     `| log in group`,
@@ -100,9 +104,9 @@ add_task(async function testContentBlockingMessage() {
 
   info("Open the warning group");
   warningGroupNode.querySelector(".arrow").click();
-  await waitFor(() => findMessage(hud, BLOCKED_URL));
+  await waitFor(() => findWarningMessage(hud, BLOCKED_URL));
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
     `| ${BLOCKED_URL}?${now}-1`,
     `| ${BLOCKED_URL}?${now}-2`,
@@ -113,12 +117,16 @@ add_task(async function testContentBlockingMessage() {
   info(
     "Log a new tracking protection message to check it appears inside the group"
   );
-  onContentBlockingWarningMessage = waitForMessage(hud, BLOCKED_URL, ".warn");
+  onContentBlockingWarningMessage = waitForMessageByType(
+    hud,
+    BLOCKED_URL,
+    ".warn"
+  );
   emitContentBlockedMessage(now);
   await onContentBlockingWarningMessage;
   ok(true, "The new tracking protection message is displayed");
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
     `| ${BLOCKED_URL}?${now}-1`,
     `| ${BLOCKED_URL}?${now}-2`,
@@ -128,13 +136,13 @@ add_task(async function testContentBlockingMessage() {
   ]);
 
   info("Log a simple message to check if it goes into the console.group");
-  onInGroupMessage = waitForMessage(hud, "log in group");
+  onInGroupMessage = waitForMessageByType(hud, "log in group", ".console-api");
   SpecialPowers.spawn(gBrowser.selectedBrowser, [], function() {
     content.wrappedJSObject.console.log("second log in group");
   });
   await onInGroupMessage;
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
     `| ${BLOCKED_URL}?${now}-1`,
     `| ${BLOCKED_URL}?${now}-2`,
@@ -146,9 +154,9 @@ add_task(async function testContentBlockingMessage() {
 
   info("Collapse the console.group");
   consoleGroupMessageNode.querySelector(".arrow").click();
-  await waitFor(() => !findMessage(hud, "log in group"));
+  await waitFor(() => !findConsoleAPIMessage(hud, "log in group"));
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
     `| ${BLOCKED_URL}?${now}-1`,
     `| ${BLOCKED_URL}?${now}-2`,
@@ -158,18 +166,18 @@ add_task(async function testContentBlockingMessage() {
 
   info("Close the warning group");
   warningGroupNode.querySelector(".arrow").click();
-  await waitFor(() => !findMessage(hud, BLOCKED_URL));
+  await waitFor(() => !findWarningMessage(hud, BLOCKED_URL));
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▶︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
     `▶︎ myGroup`,
   ]);
 
   info("Open the console group");
   consoleGroupMessageNode.querySelector(".arrow").click();
-  await waitFor(() => findMessage(hud, "log in group"));
+  await waitFor(() => findConsoleAPIMessage(hud, "log in group"));
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▶︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
     `▼ myGroup`,
     `| log in group`,
@@ -178,18 +186,18 @@ add_task(async function testContentBlockingMessage() {
 
   info("Collapse the console.group");
   consoleGroupMessageNode.querySelector(".arrow").click();
-  await waitFor(() => !findMessage(hud, "log in group"));
+  await waitFor(() => !findConsoleAPIMessage(hud, "log in group"));
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▶︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
     `▶︎ myGroup`,
   ]);
 
   info("Open the warning group");
   warningGroupNode.querySelector(".arrow").click();
-  await waitFor(() => findMessage(hud, BLOCKED_URL));
+  await waitFor(() => findWarningMessage(hud, BLOCKED_URL));
 
-  checkConsoleOutputForWarningGroup(hud, [
+  await checkConsoleOutputForWarningGroup(hud, [
     `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
     `| ${BLOCKED_URL}?${now}-1`,
     `| ${BLOCKED_URL}?${now}-2`,

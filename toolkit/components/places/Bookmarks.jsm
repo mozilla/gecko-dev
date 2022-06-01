@@ -633,7 +633,7 @@ var Bookmarks = Object.freeze({
 
         let url = "";
         if (item.type == Bookmarks.TYPE_BOOKMARK) {
-          url = item.url instanceof URL ? item.url.href : item.url;
+          url = URL.isInstance(item.url) ? item.url.href : item.url;
         }
 
         notifications.push(
@@ -1327,6 +1327,7 @@ var Bookmarks = Object.freeze({
           new PlacesBookmarkRemoved({
             id: item._id,
             url,
+            title: item.title,
             itemType: item.type,
             parentId: item._parentId,
             index: item.index,
@@ -1434,7 +1435,7 @@ var Bookmarks = Object.freeze({
     if (numberOfItems === undefined) {
       throw new Error("numberOfItems argument is required");
     }
-    if (!typeof numberOfItems === "number" || numberOfItems % 1 !== 0) {
+    if (typeof numberOfItems !== "number" || numberOfItems % 1 !== 0) {
       throw new Error("numberOfItems argument must be an integer");
     }
     if (numberOfItems <= 0) {
@@ -1844,7 +1845,7 @@ var Bookmarks = Object.freeze({
     }
 
     if (query.url) {
-      if (typeof query.url === "string" || query.url instanceof URL) {
+      if (typeof query.url === "string" || URL.isInstance(query.url)) {
         query.url = new URL(query.url).href;
       } else if (query.url instanceof Ci.nsIURI) {
         query.url = query.url.spec;
@@ -2243,7 +2244,7 @@ function insertBookmarkTree(items, source, parent, urls, lastAddedForParent) {
         for (let chunk of PlacesUtils.chunkArray(items, db.variableLimit)) {
           await db.executeCached(
             `DELETE FROM moz_bookmarks_deleted
-             WHERE guid IN (${sqlBindPlaceholders(chunk)})`,
+             WHERE guid IN (${PlacesUtils.sqlBindPlaceholders(chunk)})`,
             chunk.map(item => item.guid)
           );
         }
@@ -2687,7 +2688,7 @@ function removeBookmarks(items, options) {
           // Remove the bookmarks.
           await db.executeCached(
             `DELETE FROM moz_bookmarks
-             WHERE guid IN (${sqlBindPlaceholders(chunk)})`,
+             WHERE guid IN (${PlacesUtils.sqlBindPlaceholders(chunk)})`,
             chunk.map(item => item.guid)
           );
         }
@@ -3070,7 +3071,11 @@ var updateFrecency = async function(db, urls) {
       `UPDATE moz_places
        SET hidden = (url_hash BETWEEN hash("place", "prefix_lo") AND hash("place", "prefix_hi")),
            frecency = CALCULATE_FRECENCY(id)
-       WHERE url_hash IN (${sqlBindPlaceholders(chunk, "hash(", ")")})`,
+       WHERE url_hash IN (${PlacesUtils.sqlBindPlaceholders(
+         chunk,
+         "hash(",
+         ")"
+       )})`,
       chunk
     );
   }
@@ -3118,7 +3123,7 @@ var removeAnnotationsForItems = async function(db, items) {
   let itemIds = items.map(item => item._id);
   await db.executeCached(
     `DELETE FROM moz_items_annos
-     WHERE item_id IN (${sqlBindPlaceholders(itemIds)})`,
+     WHERE item_id IN (${PlacesUtils.sqlBindPlaceholders(itemIds)})`,
     itemIds
   );
   await db.executeCached(
@@ -3271,6 +3276,7 @@ var removeFoldersContents = async function(db, folderGuids, options) {
       new PlacesBookmarkRemoved({
         id: item._id,
         url,
+        title: item.title,
         parentId: item._parentId,
         index: item.index,
         itemType: item.type,
@@ -3434,18 +3440,6 @@ function adjustSeparatorsSyncCounter(
       item_type: Bookmarks.TYPE_SEPARATOR,
     }
   );
-}
-
-/**
- * Generates a list of "?" SQL bindings based on input array length.
- * @param {array} values an array of values.
- * @param {string} [prefix] a string to prefix to the placeholder.
- * @param {string} [suffix] a string to suffix to the placeholder.
- * @returns {string} placeholders is a string made of question marks and commas,
- *          one per value.
- */
-function sqlBindPlaceholders(values, prefix = "", suffix = "") {
-  return new Array(values.length).fill(prefix + "?" + suffix).join(",");
 }
 
 /**

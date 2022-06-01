@@ -1,4 +1,6 @@
-//! Implementations for `BlockContext` methods.
+/*!
+Implementations for `BlockContext` methods.
+*/
 
 use super::{
     index::BoundsCheckResult, make_local, selection::Selection, Block, BlockContext, Dimension,
@@ -49,7 +51,7 @@ impl Writer {
             vector_size: None,
             kind: crate::ScalarKind::Float,
             width: 4,
-            pointer_class: Some(spirv::StorageClass::Output),
+            pointer_space: Some(spirv::StorageClass::Output),
         }));
         let index_y_id = self.get_index_constant(1);
         let access_id = self.id_gen.next();
@@ -64,7 +66,7 @@ impl Writer {
             vector_size: None,
             kind: crate::ScalarKind::Float,
             width: 4,
-            pointer_class: None,
+            pointer_space: None,
         }));
         let load_id = self.id_gen.next();
         body.push(Instruction::load(float_type_id, load_id, access_id, None));
@@ -91,7 +93,7 @@ impl Writer {
             vector_size: None,
             kind: crate::ScalarKind::Float,
             width: 4,
-            pointer_class: None,
+            pointer_space: None,
         }));
         let value0_id = self.get_constant_scalar(crate::ScalarValue::Float(0.0), 4);
         let value1_id = self.get_constant_scalar(crate::ScalarValue::Float(1.0), 4);
@@ -142,7 +144,7 @@ impl Writer {
             body.push(Instruction::store(res_member.id, member_value_id, None));
 
             match res_member.built_in {
-                Some(crate::BuiltIn::Position)
+                Some(crate::BuiltIn::Position { .. })
                     if self.flags.contains(WriterFlags::ADJUST_COORDINATE_SPACE) =>
                 {
                     self.write_epilogue_position_y_flip(res_member.id, body)?;
@@ -171,10 +173,17 @@ impl<'w> BlockContext<'w> {
     /// thing in one fell swoop.
     fn is_intermediate(&self, expr_handle: Handle<crate::Expression>) -> bool {
         match self.ir_function.expressions[expr_handle] {
-            crate::Expression::GlobalVariable(_) | crate::Expression::LocalVariable(_) => true,
+            crate::Expression::GlobalVariable(handle) => {
+                let ty = self.ir_module.global_variables[handle].ty;
+                match self.ir_module.types[ty].inner {
+                    crate::TypeInner::BindingArray { .. } => false,
+                    _ => true,
+                }
+            }
+            crate::Expression::LocalVariable(_) => true,
             crate::Expression::FunctionArgument(index) => {
                 let arg = &self.ir_function.arguments[index as usize];
-                self.ir_module.types[arg.ty].inner.pointer_class().is_some()
+                self.ir_module.types[arg.ty].inner.pointer_space().is_some()
             }
 
             // The chain rule: if this `Access...`'s `base` operand was
@@ -198,9 +207,53 @@ impl<'w> BlockContext<'w> {
                 0
             }
             crate::Expression::Access { base, index } => {
-                let base_ty = self.fun_info[base].ty.inner_with(&self.ir_module.types);
-                match *base_ty {
-                    crate::TypeInner::Vector { .. } => (),
+                let base_ty_inner = self.fun_info[base].ty.inner_with(&self.ir_module.types);
+                match *base_ty_inner {
+                    crate::TypeInner::Vector { .. } => {
+                        self.write_vector_access(expr_handle, base, index, block)?
+                    }
+                    crate::TypeInner::BindingArray {
+                        base: binding_type, ..
+                    } => {
+                        let binding_array_false_pointer = LookupType::Local(LocalType::Pointer {
+                            base: binding_type,
+                            class: spirv::StorageClass::UniformConstant,
+                        });
+
+                        let result_id = match self.write_expression_pointer(
+                            expr_handle,
+                            block,
+                            Some(binding_array_false_pointer),
+                        )? {
+                            ExpressionPointer::Ready { pointer_id } => pointer_id,
+                            ExpressionPointer::Conditional { .. } => {
+                                return Err(Error::FeatureNotImplemented(
+                                    "Texture array out-of-bounds handling",
+                                ));
+                            }
+                        };
+
+                        let binding_type_id = self.get_type_id(LookupType::Handle(binding_type));
+
+                        let load_id = self.gen_id();
+                        block.body.push(Instruction::load(
+                            binding_type_id,
+                            load_id,
+                            result_id,
+                            None,
+                        ));
+
+                        if self.fun_info[index].uniformity.non_uniform_result.is_some() {
+                            self.writer.require_any(
+                                "NonUniformEXT",
+                                &[spirv::Capability::ShaderNonUniform],
+                            )?;
+                            self.writer.use_extension("SPV_EXT_descriptor_indexing");
+                            self.writer
+                                .decorate(load_id, spirv::Decoration::NonUniform, &[]);
+                        }
+                        load_id
+                    }
                     ref other => {
                         log::error!(
                             "Unable to access base {:?} of type {:?}",
@@ -211,9 +264,7 @@ impl<'w> BlockContext<'w> {
                             "only vectors may be dynamically indexed by value",
                         ));
                     }
-                };
-
-                self.write_vector_access(expr_handle, base, index, block)?
+                }
             }
             crate::Expression::AccessIndex { base, index: _ } if self.is_intermediate(base) => {
                 // See `is_intermediate`; we'll handle this later in
@@ -239,6 +290,39 @@ impl<'w> BlockContext<'w> {
                             &[index],
                         ));
                         id
+                    }
+                    crate::TypeInner::BindingArray {
+                        base: binding_type, ..
+                    } => {
+                        let binding_array_false_pointer = LookupType::Local(LocalType::Pointer {
+                            base: binding_type,
+                            class: spirv::StorageClass::UniformConstant,
+                        });
+
+                        let result_id = match self.write_expression_pointer(
+                            expr_handle,
+                            block,
+                            Some(binding_array_false_pointer),
+                        )? {
+                            ExpressionPointer::Ready { pointer_id } => pointer_id,
+                            ExpressionPointer::Conditional { .. } => {
+                                return Err(Error::FeatureNotImplemented(
+                                    "Texture array out-of-bounds handling",
+                                ));
+                            }
+                        };
+
+                        let binding_type_id = self.get_type_id(LookupType::Handle(binding_type));
+
+                        let load_id = self.gen_id();
+                        block.body.push(Instruction::load(
+                            binding_type_id,
+                            load_id,
+                            result_id,
+                            None,
+                        ));
+
+                        load_id
                     }
                     ref other => {
                         log::error!("Unable to access index of {:?}", other);
@@ -335,7 +419,7 @@ impl<'w> BlockContext<'w> {
                 let left_dimension = get_dimension(left_ty_inner);
                 let right_dimension = get_dimension(right_ty_inner);
 
-                let mut preserve_order = true;
+                let mut reverse_operands = false;
 
                 let spirv_op = match op {
                     crate::BinaryOperator::Add => match *left_ty_inner {
@@ -344,6 +428,26 @@ impl<'w> BlockContext<'w> {
                             crate::ScalarKind::Float => spirv::Op::FAdd,
                             _ => spirv::Op::IAdd,
                         },
+                        crate::TypeInner::Matrix {
+                            columns,
+                            rows,
+                            width,
+                        } => {
+                            self.write_matrix_matrix_column_op(
+                                block,
+                                id,
+                                result_type_id,
+                                left_id,
+                                right_id,
+                                columns,
+                                rows,
+                                width,
+                                spirv::Op::FAdd,
+                            );
+
+                            self.cached[expr_handle] = id;
+                            return Ok(());
+                        }
                         _ => unimplemented!(),
                     },
                     crate::BinaryOperator::Subtract => match *left_ty_inner {
@@ -352,22 +456,59 @@ impl<'w> BlockContext<'w> {
                             crate::ScalarKind::Float => spirv::Op::FSub,
                             _ => spirv::Op::ISub,
                         },
+                        crate::TypeInner::Matrix {
+                            columns,
+                            rows,
+                            width,
+                        } => {
+                            self.write_matrix_matrix_column_op(
+                                block,
+                                id,
+                                result_type_id,
+                                left_id,
+                                right_id,
+                                columns,
+                                rows,
+                                width,
+                                spirv::Op::FSub,
+                            );
+
+                            self.cached[expr_handle] = id;
+                            return Ok(());
+                        }
                         _ => unimplemented!(),
                     },
                     crate::BinaryOperator::Multiply => match (left_dimension, right_dimension) {
-                        (Dimension::Scalar, Dimension::Vector { .. }) => {
-                            preserve_order = false;
-                            spirv::Op::VectorTimesScalar
+                        (Dimension::Scalar, Dimension::Vector) => {
+                            self.write_vector_scalar_mult(
+                                block,
+                                id,
+                                result_type_id,
+                                right_id,
+                                left_id,
+                                right_ty_inner,
+                            );
+
+                            self.cached[expr_handle] = id;
+                            return Ok(());
                         }
-                        (Dimension::Vector, Dimension::Scalar { .. }) => {
-                            spirv::Op::VectorTimesScalar
+                        (Dimension::Vector, Dimension::Scalar) => {
+                            self.write_vector_scalar_mult(
+                                block,
+                                id,
+                                result_type_id,
+                                left_id,
+                                right_id,
+                                left_ty_inner,
+                            );
+
+                            self.cached[expr_handle] = id;
+                            return Ok(());
                         }
                         (Dimension::Vector, Dimension::Matrix) => spirv::Op::VectorTimesMatrix,
-                        (Dimension::Matrix, Dimension::Scalar { .. }) => {
-                            spirv::Op::MatrixTimesScalar
-                        }
-                        (Dimension::Scalar, Dimension::Matrix { .. }) => {
-                            preserve_order = false;
+                        (Dimension::Matrix, Dimension::Scalar) => spirv::Op::MatrixTimesScalar,
+                        (Dimension::Scalar, Dimension::Matrix) => {
+                            reverse_operands = true;
                             spirv::Op::MatrixTimesScalar
                         }
                         (Dimension::Matrix, Dimension::Vector) => spirv::Op::MatrixTimesVector,
@@ -394,7 +535,7 @@ impl<'w> BlockContext<'w> {
                         _ => unimplemented!(),
                     },
                     crate::BinaryOperator::Equal => match left_ty_inner.scalar_kind() {
-                        Some(crate::ScalarKind::Sint) | Some(crate::ScalarKind::Uint) => {
+                        Some(crate::ScalarKind::Sint | crate::ScalarKind::Uint) => {
                             spirv::Op::IEqual
                         }
                         Some(crate::ScalarKind::Float) => spirv::Op::FOrdEqual,
@@ -402,7 +543,7 @@ impl<'w> BlockContext<'w> {
                         _ => unimplemented!(),
                     },
                     crate::BinaryOperator::NotEqual => match left_ty_inner.scalar_kind() {
-                        Some(crate::ScalarKind::Sint) | Some(crate::ScalarKind::Uint) => {
+                        Some(crate::ScalarKind::Sint | crate::ScalarKind::Uint) => {
                             spirv::Op::INotEqual
                         }
                         Some(crate::ScalarKind::Float) => spirv::Op::FOrdNotEqual,
@@ -456,8 +597,8 @@ impl<'w> BlockContext<'w> {
                     spirv_op,
                     result_type_id,
                     id,
-                    if preserve_order { left_id } else { right_id },
-                    if preserve_order { right_id } else { left_id },
+                    if reverse_operands { right_id } else { left_id },
+                    if reverse_operands { left_id } else { right_id },
                 ));
                 id
             }
@@ -552,13 +693,34 @@ impl<'w> BlockContext<'w> {
                     Mf::Frexp => MathOp::Ext(spirv::GLOp::Frexp),
                     Mf::Ldexp => MathOp::Ext(spirv::GLOp::Ldexp),
                     // geometry
-                    Mf::Dot => MathOp::Custom(Instruction::binary(
-                        spirv::Op::Dot,
-                        result_type_id,
-                        id,
-                        arg0_id,
-                        arg1_id,
-                    )),
+                    Mf::Dot => match *self.fun_info[arg].ty.inner_with(&self.ir_module.types) {
+                        crate::TypeInner::Vector {
+                            kind: crate::ScalarKind::Float,
+                            ..
+                        } => MathOp::Custom(Instruction::binary(
+                            spirv::Op::Dot,
+                            result_type_id,
+                            id,
+                            arg0_id,
+                            arg1_id,
+                        )),
+                        // TODO: consider using integer dot product if VK_KHR_shader_integer_dot_product is available
+                        crate::TypeInner::Vector { size, .. } => {
+                            self.write_dot_product(
+                                id,
+                                result_type_id,
+                                arg0_id,
+                                arg1_id,
+                                size as u32,
+                                block,
+                            );
+                            self.cached[expr_handle] = id;
+                            return Ok(());
+                        }
+                        _ => unreachable!(
+                            "Correct TypeInner for dot product should be already validated"
+                        ),
+                    },
                     Mf::Outer => MathOp::Custom(Instruction::binary(
                         spirv::Op::OuterProduct,
                         result_type_id,
@@ -601,7 +763,7 @@ impl<'w> BlockContext<'w> {
                                         vector_size: Some(size),
                                         kind,
                                         width,
-                                        pointer_class: None,
+                                        pointer_space: None,
                                     }));
                                 self.temp_list.clear();
                                 self.temp_list.resize(size as usize, arg2_id);
@@ -696,21 +858,21 @@ impl<'w> BlockContext<'w> {
             }
             crate::Expression::LocalVariable(variable) => self.function.variables[&variable].id,
             crate::Expression::Load { pointer } => {
-                match self.write_expression_pointer(pointer, block)? {
+                match self.write_expression_pointer(pointer, block, None)? {
                     ExpressionPointer::Ready { pointer_id } => {
                         let id = self.gen_id();
-                        let atomic_class =
+                        let atomic_space =
                             match *self.fun_info[pointer].ty.inner_with(&self.ir_module.types) {
-                                crate::TypeInner::Pointer { base, class } => {
+                                crate::TypeInner::Pointer { base, space } => {
                                     match self.ir_module.types[base].inner {
-                                        crate::TypeInner::Atomic { .. } => Some(class),
+                                        crate::TypeInner::Atomic { .. } => Some(space),
                                         _ => None,
                                     }
                                 }
                                 _ => None,
                             };
-                        let instruction = if let Some(class) = atomic_class {
-                            let (semantics, scope) = class.to_spirv_semantics_and_scope();
+                        let instruction = if let Some(space) = atomic_space {
+                            let (semantics, scope) = space.to_spirv_semantics_and_scope();
                             let scope_constant_id = self.get_scope_constant(scope as u32);
                             let semantics_id = self.get_index_constant(semantics.bits());
                             Instruction::atomic_load(
@@ -797,7 +959,7 @@ impl<'w> BlockContext<'w> {
                                         vector_size: Some(size),
                                         kind: src_kind,
                                         width: src_width,
-                                        pointer_class: None,
+                                        pointer_space: None,
                                     }));
                                 let components = [zero_scalar_id; 4];
 
@@ -834,7 +996,7 @@ impl<'w> BlockContext<'w> {
                                         vector_size: Some(size),
                                         kind,
                                         width: dst_width,
-                                        pointer_class: None,
+                                        pointer_space: None,
                                     }));
                                 let components0 = [scalar0_id; 4];
                                 let components1 = [scalar1_id; 4];
@@ -892,10 +1054,17 @@ impl<'w> BlockContext<'w> {
                 image,
                 coordinate,
                 array_index,
-                index,
-            } => {
-                self.write_image_load(result_type_id, image, coordinate, array_index, index, block)?
-            }
+                sample,
+                level,
+            } => self.write_image_load(
+                result_type_id,
+                image,
+                coordinate,
+                array_index,
+                level,
+                sample,
+                block,
+            )?,
             crate::Expression::ImageSample {
                 image,
                 sampler,
@@ -948,7 +1117,7 @@ impl<'w> BlockContext<'w> {
                             vector_size: Some(size),
                             kind: crate::ScalarKind::Bool,
                             width,
-                            pointer_class: None,
+                            pointer_space: None,
                         }));
 
                     let id = self.gen_id();
@@ -1013,15 +1182,26 @@ impl<'w> BlockContext<'w> {
     ///
     /// Emit any needed bounds-checking expressions to `block`.
     ///
+    /// Some cases we need to generate a different return type than what the IR gives us.
+    /// This is because pointers to binding arrays don't exist in the IR, but we need to
+    /// create them to create an access chain in SPIRV.
+    ///
     /// On success, the return value is an [`ExpressionPointer`] value; see the
     /// documentation for that type.
     fn write_expression_pointer(
         &mut self,
         mut expr_handle: Handle<crate::Expression>,
         block: &mut Block,
+        return_type_override: Option<LookupType>,
     ) -> Result<ExpressionPointer, Error> {
         let result_lookup_ty = match self.fun_info[expr_handle].ty {
-            TypeResolution::Handle(ty_handle) => LookupType::Handle(ty_handle),
+            TypeResolution::Handle(ty_handle) => match return_type_override {
+                // We use the return type override as a special case for binding arrays as the OpAccessChain
+                // needs to return a pointer, but indexing into a binding array just gives you the type of
+                // the binding in the IR.
+                Some(ty) => ty,
+                None => LookupType::Handle(ty_handle),
+            },
             TypeResolution::Value(ref inner) => LookupType::Local(make_local(inner).unwrap()),
         };
         let result_type_id = self.get_type_id(result_lookup_ty);
@@ -1118,6 +1298,165 @@ impl<'w> BlockContext<'w> {
         };
 
         Ok(pointer)
+    }
+
+    /// Build the instructions for matrix - matrix column operations
+    #[allow(clippy::too_many_arguments)]
+    fn write_matrix_matrix_column_op(
+        &mut self,
+        block: &mut Block,
+        result_id: Word,
+        result_type_id: Word,
+        left_id: Word,
+        right_id: Word,
+        columns: crate::VectorSize,
+        rows: crate::VectorSize,
+        width: u8,
+        op: spirv::Op,
+    ) {
+        self.temp_list.clear();
+
+        let vector_type_id = self.get_type_id(LookupType::Local(LocalType::Value {
+            vector_size: Some(rows),
+            kind: crate::ScalarKind::Float,
+            width,
+            pointer_space: None,
+        }));
+
+        for index in 0..columns as u32 {
+            let column_id_left = self.gen_id();
+            let column_id_right = self.gen_id();
+            let column_id_res = self.gen_id();
+
+            block.body.push(Instruction::composite_extract(
+                vector_type_id,
+                column_id_left,
+                left_id,
+                &[index],
+            ));
+            block.body.push(Instruction::composite_extract(
+                vector_type_id,
+                column_id_right,
+                right_id,
+                &[index],
+            ));
+            block.body.push(Instruction::binary(
+                op,
+                vector_type_id,
+                column_id_res,
+                column_id_left,
+                column_id_right,
+            ));
+
+            self.temp_list.push(column_id_res);
+        }
+
+        block.body.push(Instruction::composite_construct(
+            result_type_id,
+            result_id,
+            &self.temp_list,
+        ));
+    }
+
+    /// Build the instructions for vector - scalar multiplication
+    fn write_vector_scalar_mult(
+        &mut self,
+        block: &mut Block,
+        result_id: Word,
+        result_type_id: Word,
+        vector_id: Word,
+        scalar_id: Word,
+        vector: &crate::TypeInner,
+    ) {
+        let (size, kind) = match *vector {
+            crate::TypeInner::Vector { size, kind, .. } => (size, kind),
+            _ => unreachable!(),
+        };
+
+        let (op, operand_id) = match kind {
+            crate::ScalarKind::Float => (spirv::Op::VectorTimesScalar, scalar_id),
+            _ => {
+                let operand_id = self.gen_id();
+                self.temp_list.clear();
+                self.temp_list.resize(size as usize, scalar_id);
+                block.body.push(Instruction::composite_construct(
+                    result_type_id,
+                    operand_id,
+                    &self.temp_list,
+                ));
+                (spirv::Op::IMul, operand_id)
+            }
+        };
+
+        block.body.push(Instruction::binary(
+            op,
+            result_type_id,
+            result_id,
+            vector_id,
+            operand_id,
+        ));
+    }
+
+    /// Build the instructions for the arithmetic expression of a dot product
+    fn write_dot_product(
+        &mut self,
+        result_id: Word,
+        result_type_id: Word,
+        arg0_id: Word,
+        arg1_id: Word,
+        size: u32,
+        block: &mut Block,
+    ) {
+        let const_null = self.gen_id();
+        block
+            .body
+            .push(Instruction::constant_null(result_type_id, const_null));
+
+        let mut partial_sum = const_null;
+        let last_component = size - 1;
+        for index in 0..=last_component {
+            // compute the product of the current components
+            let a_id = self.gen_id();
+            block.body.push(Instruction::composite_extract(
+                result_type_id,
+                a_id,
+                arg0_id,
+                &[index],
+            ));
+            let b_id = self.gen_id();
+            block.body.push(Instruction::composite_extract(
+                result_type_id,
+                b_id,
+                arg1_id,
+                &[index],
+            ));
+            let prod_id = self.gen_id();
+            block.body.push(Instruction::binary(
+                spirv::Op::IMul,
+                result_type_id,
+                prod_id,
+                a_id,
+                b_id,
+            ));
+
+            // choose the id for the next sum, depending on current index
+            let id = if index == last_component {
+                result_id
+            } else {
+                self.gen_id()
+            };
+
+            // sum the computed product with the partial sum
+            block.body.push(Instruction::binary(
+                spirv::Op::IAdd,
+                result_type_id,
+                id,
+                partial_sum,
+                prod_id,
+            ));
+            // set the id of the result as the previous partial sum
+            partial_sum = id;
+        }
     }
 
     pub(super) fn write_block(
@@ -1366,22 +1705,22 @@ impl<'w> BlockContext<'w> {
                 }
                 crate::Statement::Store { pointer, value } => {
                     let value_id = self.cached[value];
-                    match self.write_expression_pointer(pointer, &mut block)? {
+                    match self.write_expression_pointer(pointer, &mut block, None)? {
                         ExpressionPointer::Ready { pointer_id } => {
-                            let atomic_class = match *self.fun_info[pointer]
+                            let atomic_space = match *self.fun_info[pointer]
                                 .ty
                                 .inner_with(&self.ir_module.types)
                             {
-                                crate::TypeInner::Pointer { base, class } => {
+                                crate::TypeInner::Pointer { base, space } => {
                                     match self.ir_module.types[base].inner {
-                                        crate::TypeInner::Atomic { .. } => Some(class),
+                                        crate::TypeInner::Atomic { .. } => Some(space),
                                         _ => None,
                                     }
                                 }
                                 _ => None,
                             };
-                            let instruction = if let Some(class) = atomic_class {
-                                let (semantics, scope) = class.to_spirv_semantics_and_scope();
+                            let instruction = if let Some(space) = atomic_space {
+                                let (semantics, scope) = space.to_spirv_semantics_and_scope();
                                 let scope_constant_id = self.get_scope_constant(scope as u32);
                                 let semantics_id = self.get_index_constant(semantics.bits());
                                 Instruction::atomic_store(
@@ -1456,20 +1795,22 @@ impl<'w> BlockContext<'w> {
 
                     self.cached[result] = id;
 
-                    let pointer_id = match self.write_expression_pointer(pointer, &mut block)? {
-                        ExpressionPointer::Ready { pointer_id } => pointer_id,
-                        ExpressionPointer::Conditional { .. } => {
-                            return Err(Error::FeatureNotImplemented(
-                                "Atomics out-of-bounds handling",
-                            ));
-                        }
-                    };
+                    let pointer_id =
+                        match self.write_expression_pointer(pointer, &mut block, None)? {
+                            ExpressionPointer::Ready { pointer_id } => pointer_id,
+                            ExpressionPointer::Conditional { .. } => {
+                                return Err(Error::FeatureNotImplemented(
+                                    "Atomics out-of-bounds handling",
+                                ));
+                            }
+                        };
 
-                    let class = match *self.fun_info[pointer].ty.inner_with(&self.ir_module.types) {
-                        crate::TypeInner::Pointer { base: _, class } => class,
-                        _ => unimplemented!(),
-                    };
-                    let (semantics, scope) = class.to_spirv_semantics_and_scope();
+                    let space = self.fun_info[pointer]
+                        .ty
+                        .inner_with(&self.ir_module.types)
+                        .pointer_space()
+                        .unwrap();
+                    let (semantics, scope) = space.to_spirv_semantics_and_scope();
                     let scope_constant_id = self.get_scope_constant(scope as u32);
                     let semantics_id = self.get_index_constant(semantics.bits());
                     let value_id = self.cached[value];

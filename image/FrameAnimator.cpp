@@ -332,19 +332,23 @@ void FrameAnimator::ResetAnimation(AnimationState& aState) {
 
   // Our surface provider is synchronized to our state, so we need to reset its
   // state as well, if we still have one.
-  LookupResult result = SurfaceCache::Lookup(
+  SurfaceCache::ResetAnimation(
       ImageKey(mImage),
-      RasterSurfaceKey(mSize, DefaultSurfaceFlags(), PlaybackType::eAnimated),
-      /* aMarkUsed = */ false);
-  if (!result) {
-    return;
-  }
-
-  result.Surface().Reset();
+      RasterSurfaceKey(mSize, DefaultSurfaceFlags(), PlaybackType::eAnimated));
 
   // Calling Reset on the surface of the animation can cause discarding surface
   // providers to throw out all their frames so refresh our state.
-  aState.UpdateStateInternal(result, mSize);
+  OrientedIntRect rect =
+      OrientedIntRect::FromUnknownRect(aState.UpdateState(mImage, mSize));
+
+  if (!rect.IsEmpty()) {
+    nsCOMPtr<nsIEventTarget> eventTarget = do_GetMainThread();
+    RefPtr<RasterImage> image = mImage;
+    nsCOMPtr<nsIRunnable> ev = NS_NewRunnableFunction(
+        "FrameAnimator::ResetAnimation",
+        [=]() -> void { image->NotifyProgress(NoProgress, rect); });
+    eventTarget->Dispatch(ev.forget(), NS_DISPATCH_NORMAL);
+  }
 }
 
 RefreshResult FrameAnimator::RequestRefresh(AnimationState& aState,

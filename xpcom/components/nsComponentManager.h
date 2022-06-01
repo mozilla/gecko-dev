@@ -79,7 +79,7 @@ class nsComponentManagerImpl final : public nsIComponentManager,
   NS_DECL_NSICOMPONENTREGISTRAR
   NS_DECL_NSIMEMORYREPORTER
 
-  static nsresult Create(nsISupports* aOuter, REFNSIID aIID, void** aResult);
+  static nsresult Create(REFNSIID aIID, void** aResult);
 
   nsresult RegistryLocationForFile(nsIFile* aFile, nsCString& aResult);
   nsresult FileForRegistryLocation(const nsCString& aLocation, nsIFile** aSpec);
@@ -105,7 +105,7 @@ class nsComponentManagerImpl final : public nsIComponentManager,
   nsTHashMap<nsIDPointerHashKey, nsFactoryEntry*> mFactories;
   nsTHashMap<nsCStringHashKey, nsFactoryEntry*> mContractIDs;
 
-  mozilla::Monitor mLock;
+  mozilla::Monitor mLock MOZ_UNANNOTATED;
 
   mozilla::Maybe<EntryWrapper> LookupByCID(const nsID& aCID);
   mozilla::Maybe<EntryWrapper> LookupByCID(const mozilla::MonitorAutoLock&,
@@ -264,8 +264,7 @@ struct nsFactoryEntry {
 
   already_AddRefed<nsIFactory> GetFactory();
 
-  nsresult CreateInstance(nsISupports* aOuter, const nsIID& aIID,
-                          void** aResult);
+  nsresult CreateInstance(const nsIID& aIID, void** aResult);
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 

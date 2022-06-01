@@ -94,7 +94,8 @@ interface nsIXULRuntime : nsISupports
     EnabledByTreatmentGroup =
         13,  // The user is in the Treatment Group, so it is enabled
     DisabledByDefault = 14,  // The default value of the pref is false
-    EnabledByDefault = 15    // The default value of the pref is true
+    EnabledByDefault = 15,    // The default value of the pref is true
+    DecodersArentRemote = 16
   };
 
   // This is the current value of the experiment for the session
@@ -125,9 +126,6 @@ interface nsIXULRuntime : nsISupports
     // Fission is disabled because the `MOZ_FORCE_DISABLE_FISSION` environment
     // variable is set.
     eFissionDisabledByEnv = 5,
-    // Fission is disabled because the current session is running in safe
-    // mode.
-    eFissionDisabledBySafeMode = 6,
     // Fission is enabled because the "fission.autostart" preference is true
     // by default.
     eFissionEnabledByDefault = 7,
@@ -346,6 +344,9 @@ interface nsIXULRuntime : nsISupports
 
   /** Whether the chrome color-scheme is dark */
   readonly attribute boolean chromeColorSchemeIsDark;
+
+  /** Whether the content color-scheme derived from the app theme is dark */
+  readonly attribute boolean contentThemeDerivedColorSchemeIsDark;
 
   /** Whether we should draw over the titlebar */
   readonly attribute boolean drawInTitlebar;

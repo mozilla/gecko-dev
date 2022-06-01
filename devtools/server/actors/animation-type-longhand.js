@@ -140,6 +140,7 @@ exports.ANIMATION_TYPE_FOR_LONGHANDS = [
       "ruby-position",
       "scroll-behavior",
       "scroll-snap-align",
+      "scroll-snap-stop",
       "scroll-snap-type",
       "shape-rendering",
       "scrollbar-gutter",
@@ -206,6 +207,9 @@ exports.ANIMATION_TYPE_FOR_LONGHANDS = [
       "border-inline-start-color",
       "border-inline-start-style",
       "border-inline-start-width",
+      "container-name",
+      "container-type",
+      "content-visibility",
       "-moz-context-properties",
       "-moz-control-character-visibility",
       "-moz-default-appearance",
@@ -401,5 +405,13 @@ exports.ANIMATION_TYPE_FOR_LONGHANDS = [
   ],
   ["shadow", new Set(["box-shadow", "text-shadow"])],
   ["paintServer", new Set(["fill", "stroke"])],
-  ["length", new Set(["font-size", "outline-offset", "outline-width"])],
+  [
+    "length",
+    new Set([
+      "font-size",
+      "outline-offset",
+      "outline-width",
+      "overflow-clip-margin",
+    ]),
+  ],
 ];

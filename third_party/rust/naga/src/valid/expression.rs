@@ -4,8 +4,8 @@ use super::{compose::validate_compose, FunctionInfo, ShaderStages, TypeFlags};
 use crate::arena::UniqueArena;
 
 use crate::{
-    arena::Handle,
-    proc::{ProcError, ResolveError},
+    arena::{BadHandle, Handle},
+    proc::{IndexableLengthError, ResolveError},
 };
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -17,6 +17,8 @@ pub enum ExpressionError {
     NotInScope,
     #[error("Depends on {0:?}, which has not been processed yet")]
     ForwardDependency(Handle<crate::Expression>),
+    #[error(transparent)]
+    BadDependency(#[from] BadHandle),
     #[error("Base type {0:?} is not compatible with this expression")]
     InvalidBaseType(Handle<crate::Expression>),
     #[error("Accessing with index {0:?} can't be done")]
@@ -27,12 +29,6 @@ pub enum ExpressionError {
     IndexMustBeConstant(Handle<crate::Expression>),
     #[error("Function argument {0:?} doesn't exist")]
     FunctionArgumentDoesntExist(u32),
-    #[error("Constant {0:?} doesn't exist")]
-    ConstantDoesntExist(Handle<crate::Constant>),
-    #[error("Global variable {0:?} doesn't exist")]
-    GlobalVarDoesntExist(Handle<crate::GlobalVariable>),
-    #[error("Local variable {0:?} doesn't exist")]
-    LocalVarDoesntExist(Handle<crate::LocalVariable>),
     #[error("Loading of {0:?} can't be done")]
     InvalidPointerType(Handle<crate::Expression>),
     #[error("Array length of {0:?} can't be done")]
@@ -46,7 +42,7 @@ pub enum ExpressionError {
     #[error(transparent)]
     Compose(#[from] super::ComposeError),
     #[error(transparent)]
-    Proc(#[from] ProcError),
+    IndexableLength(#[from] IndexableLengthError),
     #[error("Operation {0:?} can't work with {1:?}")]
     InvalidUnaryOperandType(crate::UnaryOperator, Handle<crate::Expression>),
     #[error("Operation {0:?} can't work with {1:?} and {2:?}")]
@@ -69,6 +65,8 @@ pub enum ExpressionError {
     ExpectedGlobalOrArgument,
     #[error("Calling an undeclared function {0:?}")]
     CallToUndeclaredFunction(Handle<crate::Function>),
+    #[error("Needs to be an binding array instead of {0:?}")]
+    ExpectedBindingArrayType(Handle<crate::Type>),
     #[error("Needs to be an image instead of {0:?}")]
     ExpectedImageType(Handle<crate::Type>),
     #[error("Needs to be an image instead of {0:?}")]
@@ -79,11 +77,11 @@ pub enum ExpressionError {
     InvalidDerivative,
     #[error("Image array index parameter is misplaced")]
     InvalidImageArrayIndex,
-    #[error("Image other index parameter is misplaced")]
+    #[error("Inappropriate sample or level-of-detail index for texel access")]
     InvalidImageOtherIndex,
     #[error("Image array index type of {0:?} is not an integer scalar")]
     InvalidImageArrayIndexType(Handle<crate::Expression>),
-    #[error("Image other index type of {0:?} is not an integer scalar")]
+    #[error("Image sample or level-of-detail index's type of {0:?} is not an integer scalar")]
     InvalidImageOtherIndexType(Handle<crate::Expression>),
     #[error("Image coordinate type of {1:?} does not match dimension {0:?}")]
     InvalidImageCoordinateType(crate::ImageDimension, Handle<crate::Expression>),
@@ -119,6 +117,8 @@ pub enum ExpressionError {
     InvalidArgumentType(crate::MathFunction, u32, Handle<crate::Expression>),
     #[error("Atomic result type can't be {0:?} of {1} bytes")]
     InvalidAtomicResultType(crate::ScalarKind, crate::Bytes),
+    #[error("Shader requires capability {0:?}")]
+    MissingCapabilities(super::Capabilities),
 }
 
 #[cfg(feature = "validate")]
@@ -168,7 +168,9 @@ impl super::Validator {
                 let dynamic_indexing_restricted = match *base_type {
                     Ti::Vector { .. } => false,
                     Ti::Matrix { .. } | Ti::Array { .. } => true,
-                    Ti::Pointer { .. } | Ti::ValuePointer { size: Some(_), .. } => false,
+                    Ti::Pointer { .. }
+                    | Ti::ValuePointer { size: Some(_), .. }
+                    | Ti::BindingArray { .. } => false,
                     ref other => {
                         log::error!("Indexing of {:?}", other);
                         return Err(ExpressionError::InvalidBaseType(base));
@@ -177,11 +179,7 @@ impl super::Validator {
                 match *resolver.resolve(index)? {
                     //TODO: only allow one of these
                     Ti::Scalar {
-                        kind: Sk::Sint,
-                        width: _,
-                    }
-                    | Ti::Scalar {
-                        kind: Sk::Uint,
+                        kind: Sk::Sint | Sk::Uint,
                         width: _,
                     } => {}
                     ref other => {
@@ -243,7 +241,7 @@ impl super::Validator {
                             size: crate::ArraySize::Constant(handle),
                             ..
                         } => module.constants[handle].to_array_length().unwrap(),
-                        Ti::Array { .. } => !0, // can't statically know, but need run-time checks
+                        Ti::Array { .. } | Ti::BindingArray { .. } => !0, // can't statically know, but need run-time checks
                         Ti::Pointer { base, .. } if top_level => {
                             resolve_index_limit(module, top, &module.types[base].inner, false)?
                         }
@@ -266,10 +264,7 @@ impl super::Validator {
                 ShaderStages::all()
             }
             E::Constant(handle) => {
-                let _ = module
-                    .constants
-                    .try_get(handle)
-                    .ok_or(ExpressionError::ConstantDoesntExist(handle))?;
+                let _ = module.constants.try_get(handle)?;
                 ShaderStages::all()
             }
             E::Splat { size: _, value } => match *resolver.resolve(value)? {
@@ -319,17 +314,11 @@ impl super::Validator {
                 ShaderStages::all()
             }
             E::GlobalVariable(handle) => {
-                let _ = module
-                    .global_variables
-                    .try_get(handle)
-                    .ok_or(ExpressionError::GlobalVarDoesntExist(handle))?;
+                let _ = module.global_variables.try_get(handle)?;
                 ShaderStages::all()
             }
             E::LocalVariable(handle) => {
-                let _ = function
-                    .local_variables
-                    .try_get(handle)
-                    .ok_or(ExpressionError::LocalVarDoesntExist(handle))?;
+                let _ = function.local_variables.try_get(handle)?;
                 ShaderStages::all()
             }
             E::Load { pointer } => {
@@ -362,13 +351,50 @@ impl super::Validator {
                         module.global_variables[var_handle].ty
                     }
                     crate::Expression::FunctionArgument(i) => function.arguments[i as usize].ty,
+                    crate::Expression::Access { base, .. }
+                    | crate::Expression::AccessIndex { base, .. } => {
+                        match function.expressions[base] {
+                            crate::Expression::GlobalVariable(var_handle) => {
+                                let array_ty = module.global_variables[var_handle].ty;
+
+                                match module.types[array_ty].inner {
+                                    Ti::BindingArray { base, .. } => base,
+                                    _ => {
+                                        return Err(ExpressionError::ExpectedBindingArrayType(
+                                            array_ty,
+                                        ))
+                                    }
+                                }
+                            }
+                            _ => return Err(ExpressionError::ExpectedGlobalVariable),
+                        }
+                    }
                     _ => return Err(ExpressionError::ExpectedGlobalVariable),
                 };
+
                 let sampler_ty = match function.expressions[sampler] {
                     crate::Expression::GlobalVariable(var_handle) => {
                         module.global_variables[var_handle].ty
                     }
                     crate::Expression::FunctionArgument(i) => function.arguments[i as usize].ty,
+                    crate::Expression::Access { base, .. }
+                    | crate::Expression::AccessIndex { base, .. } => {
+                        match function.expressions[base] {
+                            crate::Expression::GlobalVariable(var_handle) => {
+                                let array_ty = module.global_variables[var_handle].ty;
+
+                                match module.types[array_ty].inner {
+                                    Ti::BindingArray { base, .. } => base,
+                                    _ => {
+                                        return Err(ExpressionError::ExpectedBindingArrayType(
+                                            array_ty,
+                                        ))
+                                    }
+                                }
+                            }
+                            _ => return Err(ExpressionError::ExpectedGlobalVariable),
+                        }
+                    }
                     _ => return Err(ExpressionError::ExpectedGlobalVariable),
                 };
                 let comparison = match module.types[sampler_ty].inner {
@@ -550,13 +576,32 @@ impl super::Validator {
                 image,
                 coordinate,
                 array_index,
-                index,
+                sample,
+                level,
             } => {
                 let ty = match function.expressions[image] {
                     crate::Expression::GlobalVariable(var_handle) => {
                         module.global_variables[var_handle].ty
                     }
                     crate::Expression::FunctionArgument(i) => function.arguments[i as usize].ty,
+                    crate::Expression::Access { base, .. }
+                    | crate::Expression::AccessIndex { base, .. } => {
+                        match function.expressions[base] {
+                            crate::Expression::GlobalVariable(var_handle) => {
+                                let array_ty = module.global_variables[var_handle].ty;
+
+                                match module.types[array_ty].inner {
+                                    Ti::BindingArray { base, .. } => base,
+                                    _ => {
+                                        return Err(ExpressionError::ExpectedBindingArrayType(
+                                            array_ty,
+                                        ))
+                                    }
+                                }
+                            }
+                            _ => return Err(ExpressionError::ExpectedGlobalVariable),
+                        }
+                    }
                     _ => return Err(ExpressionError::ExpectedGlobalVariable),
                 };
                 match module.types[ty].inner {
@@ -573,15 +618,8 @@ impl super::Validator {
                                 ))
                             }
                         };
-                        let needs_index = match class {
-                            crate::ImageClass::Storage { .. } => false,
-                            _ => true,
-                        };
                         if arrayed != array_index.is_some() {
                             return Err(ExpressionError::InvalidImageArrayIndex);
-                        }
-                        if needs_index != index.is_some() {
-                            return Err(ExpressionError::InvalidImageOtherIndex);
                         }
                         if let Some(expr) = array_index {
                             match *resolver.resolve(expr)? {
@@ -592,13 +630,30 @@ impl super::Validator {
                                 _ => return Err(ExpressionError::InvalidImageArrayIndexType(expr)),
                             }
                         }
-                        if let Some(expr) = index {
-                            match *resolver.resolve(expr)? {
-                                Ti::Scalar {
-                                    kind: Sk::Sint,
-                                    width: _,
-                                } => {}
-                                _ => return Err(ExpressionError::InvalidImageOtherIndexType(expr)),
+
+                        match (sample, class.is_multisampled()) {
+                            (None, false) => {}
+                            (Some(sample), true) => {
+                                if resolver.resolve(sample)?.scalar_kind() != Some(Sk::Sint) {
+                                    return Err(ExpressionError::InvalidImageOtherIndexType(
+                                        sample,
+                                    ));
+                                }
+                            }
+                            _ => {
+                                return Err(ExpressionError::InvalidImageOtherIndex);
+                            }
+                        }
+
+                        match (level, class.is_mipmapped()) {
+                            (None, false) => {}
+                            (Some(level), true) => {
+                                if resolver.resolve(level)?.scalar_kind() != Some(Sk::Sint) {
+                                    return Err(ExpressionError::InvalidImageOtherIndexType(level));
+                                }
+                            }
+                            _ => {
+                                return Err(ExpressionError::InvalidImageOtherIndex);
                             }
                         }
                     }
@@ -612,22 +667,34 @@ impl super::Validator {
                         module.global_variables[var_handle].ty
                     }
                     crate::Expression::FunctionArgument(i) => function.arguments[i as usize].ty,
+                    crate::Expression::Access { base, .. }
+                    | crate::Expression::AccessIndex { base, .. } => {
+                        match function.expressions[base] {
+                            crate::Expression::GlobalVariable(var_handle) => {
+                                let array_ty = module.global_variables[var_handle].ty;
+
+                                match module.types[array_ty].inner {
+                                    Ti::BindingArray { base, .. } => base,
+                                    _ => {
+                                        return Err(ExpressionError::ExpectedBindingArrayType(
+                                            array_ty,
+                                        ))
+                                    }
+                                }
+                            }
+                            _ => return Err(ExpressionError::ExpectedGlobalVariable),
+                        }
+                    }
                     _ => return Err(ExpressionError::ExpectedGlobalVariable),
                 };
                 match module.types[ty].inner {
                     Ti::Image { class, arrayed, .. } => {
-                        let can_level = match class {
-                            crate::ImageClass::Sampled { multi, .. } => !multi,
-                            crate::ImageClass::Depth { multi } => !multi,
-                            crate::ImageClass::Storage { .. } => false,
-                        };
                         let good = match query {
                             crate::ImageQuery::NumLayers => arrayed,
                             crate::ImageQuery::Size { level: None } => true,
                             crate::ImageQuery::Size { level: Some(_) }
-                            | crate::ImageQuery::NumLevels => can_level,
-                            //TODO: forbid on storage images
-                            crate::ImageQuery::NumSamples => !can_level,
+                            | crate::ImageQuery::NumLevels => class.is_mipmapped(),
+                            crate::ImageQuery::NumSamples => class.is_multisampled(),
                         };
                         if !good {
                             return Err(ExpressionError::InvalidImageClass(class));
@@ -641,8 +708,7 @@ impl super::Validator {
                 use crate::UnaryOperator as Uo;
                 let inner = resolver.resolve(expr)?;
                 match (op, inner.scalar_kind()) {
-                    (_, Some(Sk::Sint))
-                    | (_, Some(Sk::Bool))
+                    (_, Some(Sk::Sint | Sk::Bool))
                     //TODO: restrict Negate for bools?
                     | (Uo::Negate, Some(Sk::Float))
                     | (Uo::Not, Some(Sk::Uint)) => {}
@@ -675,10 +741,9 @@ impl super::Validator {
                     },
                     Bo::Multiply => {
                         let kind_match = match left_inner.scalar_kind() {
-                            Some(Sk::Uint) | Some(Sk::Sint) | Some(Sk::Float) => true,
+                            Some(Sk::Uint | Sk::Sint | Sk::Float) => true,
                             Some(Sk::Bool) | None => false,
                         };
-                        //TODO: should we be more restrictive here? I.e. expect scalar only to the left.
                         let types_match = match (left_inner, right_inner) {
                             (&Ti::Scalar { kind: kind1, .. }, &Ti::Scalar { kind: kind2, .. })
                             | (&Ti::Vector { kind: kind1, .. }, &Ti::Scalar { kind: kind2, .. })
@@ -1055,12 +1120,12 @@ impl super::Validator {
                             _ => return Err(ExpressionError::InvalidArgumentType(fun, 0, arg)),
                         };
                         let good = match *arg1_ty {
-                            Ti::Pointer { base, class: _ } => module.types[base].inner == *arg_ty,
+                            Ti::Pointer { base, space: _ } => module.types[base].inner == *arg_ty,
                             Ti::ValuePointer {
                                 size,
                                 kind: Sk::Float,
                                 width,
-                                class: _,
+                                space: _,
                             } => size == size0 && width == width0,
                             _ => false,
                         };
@@ -1072,7 +1137,27 @@ impl super::Validator {
                             ));
                         }
                     }
-                    Mf::Dot | Mf::Outer | Mf::Cross | Mf::Reflect => {
+                    Mf::Dot => {
+                        let arg1_ty = match (arg1_ty, arg2_ty, arg3_ty) {
+                            (Some(ty1), None, None) => ty1,
+                            _ => return Err(ExpressionError::WrongArgumentCount(fun)),
+                        };
+                        match *arg_ty {
+                            Ti::Vector {
+                                kind: Sk::Float | Sk::Sint | Sk::Uint,
+                                ..
+                            } => {}
+                            _ => return Err(ExpressionError::InvalidArgumentType(fun, 0, arg)),
+                        }
+                        if arg1_ty != arg_ty {
+                            return Err(ExpressionError::InvalidArgumentType(
+                                fun,
+                                1,
+                                arg1.unwrap(),
+                            ));
+                        }
+                    }
+                    Mf::Outer | Mf::Cross | Mf::Reflect => {
                         let arg1_ty = match (arg1_ty, arg2_ty, arg3_ty) {
                             (Some(ty1), None, None) => ty1,
                             _ => return Err(ExpressionError::WrongArgumentCount(fun)),
@@ -1238,10 +1323,14 @@ impl super::Validator {
                             return Err(ExpressionError::WrongArgumentCount(fun));
                         }
                         match *arg_ty {
-                            Ti::Scalar { kind: Sk::Sint, .. }
-                            | Ti::Scalar { kind: Sk::Uint, .. }
-                            | Ti::Vector { kind: Sk::Sint, .. }
-                            | Ti::Vector { kind: Sk::Uint, .. } => {}
+                            Ti::Scalar {
+                                kind: Sk::Sint | Sk::Uint,
+                                ..
+                            }
+                            | Ti::Vector {
+                                kind: Sk::Sint | Sk::Uint,
+                                ..
+                            } => {}
                             _ => return Err(ExpressionError::InvalidArgumentType(fun, 0, arg)),
                         }
                     }
@@ -1251,10 +1340,14 @@ impl super::Validator {
                             _ => return Err(ExpressionError::WrongArgumentCount(fun)),
                         };
                         match *arg_ty {
-                            Ti::Scalar { kind: Sk::Sint, .. }
-                            | Ti::Scalar { kind: Sk::Uint, .. }
-                            | Ti::Vector { kind: Sk::Sint, .. }
-                            | Ti::Vector { kind: Sk::Uint, .. } => {}
+                            Ti::Scalar {
+                                kind: Sk::Sint | Sk::Uint,
+                                ..
+                            }
+                            | Ti::Vector {
+                                kind: Sk::Sint | Sk::Uint,
+                                ..
+                            } => {}
                             _ => return Err(ExpressionError::InvalidArgumentType(fun, 0, arg)),
                         }
                         if arg1_ty != arg_ty {
@@ -1291,10 +1384,14 @@ impl super::Validator {
                             _ => return Err(ExpressionError::WrongArgumentCount(fun)),
                         };
                         match *arg_ty {
-                            Ti::Scalar { kind: Sk::Sint, .. }
-                            | Ti::Scalar { kind: Sk::Uint, .. }
-                            | Ti::Vector { kind: Sk::Sint, .. }
-                            | Ti::Vector { kind: Sk::Uint, .. } => {}
+                            Ti::Scalar {
+                                kind: Sk::Sint | Sk::Uint,
+                                ..
+                            }
+                            | Ti::Vector {
+                                kind: Sk::Sint | Sk::Uint,
+                                ..
+                            } => {}
                             _ => return Err(ExpressionError::InvalidArgumentType(fun, 0, arg)),
                         }
                         match *arg1_ty {
@@ -1396,10 +1493,11 @@ impl super::Validator {
             }
             E::ArrayLength(expr) => match *resolver.resolve(expr)? {
                 Ti::Pointer { base, .. } => {
-                    if let Some(&Ti::Array {
+                    let base_ty = resolver.types.get_handle(base)?;
+                    if let Ti::Array {
                         size: crate::ArraySize::Dynamic,
                         ..
-                    }) = resolver.types.get_handle(base).map(|ty| &ty.inner)
+                    } = base_ty.inner
                     {
                         ShaderStages::all()
                     } else {

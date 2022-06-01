@@ -558,9 +558,9 @@ JSObject* TCPSocket::WrapObject(JSContext* aCx,
 
 void TCPSocket::GetHost(nsAString& aHost) { aHost.Assign(mHost); }
 
-uint32_t TCPSocket::Port() { return mPort; }
+uint32_t TCPSocket::Port() const { return mPort; }
 
-bool TCPSocket::Ssl() { return mSsl; }
+bool TCPSocket::Ssl() const { return mSsl; }
 
 void TCPSocket::Suspend() {
   if (mSocketBridgeChild) {
@@ -846,7 +846,7 @@ bool TCPSocket::Send(nsIInputStream* aStream, uint32_t aByteLength) {
 
 TCPReadyState TCPSocket::ReadyState() { return mReadyState; }
 
-TCPSocketBinaryType TCPSocket::BinaryType() {
+TCPSocketBinaryType TCPSocket::BinaryType() const {
   if (mUseArrayBuffers) {
     return TCPSocketBinaryType::Arraybuffer;
   }
@@ -971,7 +971,7 @@ NS_IMETHODIMP
 TCPSocket::OnTransportStatus(nsITransport* aTransport, nsresult aStatus,
                              int64_t aProgress, int64_t aProgressMax) {
   if (static_cast<uint32_t>(aStatus) !=
-      nsISocketTransport::STATUS_CONNECTED_TO) {
+      static_cast<uint32_t>(nsISocketTransport::STATUS_CONNECTED_TO)) {
     return NS_OK;
   }
 

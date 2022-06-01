@@ -447,10 +447,10 @@ class MacroAssemblerX86Shared : public Assembler {
   void extractLaneInt8x16(FloatRegister input, Register output, unsigned lane,
                           SimdSign sign);
 
-  void replaceLaneFloat32x4(FloatRegister rhs, FloatRegister lhsDest,
-                            unsigned lane);
-  void replaceLaneFloat64x2(FloatRegister rhs, FloatRegister lhsDest,
-                            unsigned lane);
+  void replaceLaneFloat32x4(unsigned lane, FloatRegister lhs, FloatRegister rhs,
+                            FloatRegister dest);
+  void replaceLaneFloat64x2(unsigned lane, FloatRegister lhs, FloatRegister rhs,
+                            FloatRegister dest);
 
   void shuffleInt8x16(FloatRegister lhs, FloatRegister rhs,
                       FloatRegister output, const uint8_t lanes[16]);
@@ -479,6 +479,9 @@ class MacroAssemblerX86Shared : public Assembler {
   void compareForOrderingInt64x2(FloatRegister lhs, Operand rhs,
                                  Assembler::Condition cond, FloatRegister temp1,
                                  FloatRegister temp2, FloatRegister output);
+  void compareForOrderingInt64x2AVX(FloatRegister lhs, FloatRegister rhs,
+                                    Assembler::Condition cond,
+                                    FloatRegister output);
   void compareFloat32x4(FloatRegister lhs, Operand rhs,
                         Assembler::Condition cond, FloatRegister output);
   void compareFloat32x4(Assembler::Condition cond, FloatRegister lhs,
@@ -491,17 +494,23 @@ class MacroAssemblerX86Shared : public Assembler {
   void minMaxFloat32x4(bool isMin, FloatRegister lhs, Operand rhs,
                        FloatRegister temp1, FloatRegister temp2,
                        FloatRegister output);
+  void minMaxFloat32x4AVX(bool isMin, FloatRegister lhs, FloatRegister rhs,
+                          FloatRegister temp1, FloatRegister temp2,
+                          FloatRegister output);
   void minMaxFloat64x2(bool isMin, FloatRegister lhs, Operand rhs,
                        FloatRegister temp1, FloatRegister temp2,
                        FloatRegister output);
-  void minFloat32x4(FloatRegister lhs, Operand rhs, FloatRegister temp1,
+  void minMaxFloat64x2AVX(bool isMin, FloatRegister lhs, FloatRegister rhs,
+                          FloatRegister temp1, FloatRegister temp2,
+                          FloatRegister output);
+  void minFloat32x4(FloatRegister lhs, FloatRegister rhs, FloatRegister temp1,
                     FloatRegister temp2, FloatRegister output);
-  void maxFloat32x4(FloatRegister lhs, Operand rhs, FloatRegister temp1,
+  void maxFloat32x4(FloatRegister lhs, FloatRegister rhs, FloatRegister temp1,
                     FloatRegister temp2, FloatRegister output);
 
-  void minFloat64x2(FloatRegister lhs, Operand rhs, FloatRegister temp1,
+  void minFloat64x2(FloatRegister lhs, FloatRegister rhs, FloatRegister temp1,
                     FloatRegister temp2, FloatRegister output);
-  void maxFloat64x2(FloatRegister lhs, Operand rhs, FloatRegister temp1,
+  void maxFloat64x2(FloatRegister lhs, FloatRegister rhs, FloatRegister temp1,
                     FloatRegister temp2, FloatRegister output);
 
   void packedShiftByScalarInt8x16(
@@ -552,9 +561,6 @@ class MacroAssemblerX86Shared : public Assembler {
                      FloatRegister output);
 
   // SIMD inline methods private to the implementation, that appear to be used.
-
-  void zeroSimd128Float(FloatRegister dest) { vxorps(dest, dest, dest); }
-  void zeroSimd128Int(FloatRegister dest) { vpxor(dest, dest, dest); }
 
   template <class T, class Reg>
   inline void loadScalar(const Operand& src, Reg dest);
@@ -653,6 +659,15 @@ class MacroAssemblerX86Shared : public Assembler {
                                          FloatRegister dest) {
     MOZ_ASSERT(src.isSimd128() && dest.isSimd128());
     if (HasAVX()) {
+      return src;
+    }
+    moveSimd128Float(src, dest);
+    return dest;
+  }
+  FloatRegister moveSimd128FloatIfEqual(FloatRegister src, FloatRegister dest,
+                                        FloatRegister other) {
+    MOZ_ASSERT(src.isSimd128() && dest.isSimd128());
+    if (src != other) {
       return src;
     }
     moveSimd128Float(src, dest);
@@ -814,7 +829,7 @@ class MacroAssemblerX86Shared : public Assembler {
 
   bool maybeInlineSimd128Int(const SimdConstant& v, const FloatRegister& dest) {
     if (v.isZeroBits()) {
-      zeroSimd128Int(dest);
+      vpxor(dest, dest, dest);
       return true;
     }
     if (v.isOneBits()) {
@@ -826,7 +841,7 @@ class MacroAssemblerX86Shared : public Assembler {
   bool maybeInlineSimd128Float(const SimdConstant& v,
                                const FloatRegister& dest) {
     if (v.isZeroBits()) {
-      zeroSimd128Float(dest);
+      vxorps(dest, dest, dest);
       return true;
     }
     return false;
@@ -875,16 +890,16 @@ class MacroAssemblerX86Shared : public Assembler {
     }
   }
 
-  void emitSetRegisterIfZero(Register dest) {
+  void emitSetRegisterIf(AssemblerX86Shared::Condition cond, Register dest) {
     if (AllocatableGeneralRegisterSet(Registers::SingleByteRegs).has(dest)) {
       // If the register we're defining is a single byte register,
       // take advantage of the setCC instruction
-      setCC(AssemblerX86Shared::Zero, dest);
+      setCC(cond, dest);
       movzbl(dest, dest);
     } else {
       Label end;
       movl(Imm32(1), dest);
-      j(AssemblerX86Shared::Zero, &end);
+      j(cond, &end);
       mov(ImmWord(0), dest);
       bind(&end);
     }

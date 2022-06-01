@@ -261,15 +261,6 @@ bool Gecko_IsRootElement(const Element* aElement) {
   return aElement->OwnerDoc()->GetRootElement() == aElement;
 }
 
-// Dirtiness tracking.
-void Gecko_SetNodeFlags(const nsINode* aNode, uint32_t aFlags) {
-  const_cast<nsINode*>(aNode)->SetFlags(aFlags);
-}
-
-void Gecko_UnsetNodeFlags(const nsINode* aNode, uint32_t aFlags) {
-  const_cast<nsINode*>(aNode)->UnsetFlags(aFlags);
-}
-
 void Gecko_NoteDirtyElement(const Element* aElement) {
   MOZ_ASSERT(NS_IsMainThread());
   const_cast<Element*>(aElement)->NoteDirtyForServo();
@@ -1177,8 +1168,7 @@ static Keyframe* GetOrCreateKeyframe(nsTArray<Keyframe>* aKeyframes,
       aInsertPosition == KeyframeInsertPosition::Prepend ? 0 : keyframeIndex);
   keyframe->mOffset.emplace(aOffset);
   if (!aTimingFunction->IsLinear()) {
-    keyframe->mTimingFunction.emplace();
-    keyframe->mTimingFunction->Init(*aTimingFunction);
+    keyframe->mTimingFunction.emplace(*aTimingFunction);
   }
 
   return keyframe;

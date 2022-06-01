@@ -10,61 +10,53 @@
 
 "use strict";
 
-// -----------------------------------------------------------------------------
-// Rule Definition
-// -----------------------------------------------------------------------------
-
 function isIdentifier(node, id) {
   return node && node.type === "Identifier" && node.name === id;
 }
 
-module.exports = function(context) {
-  // ---------------------------------------------------------------------------
-  // Public
-  //  --------------------------------------------------------------------------
+function getRangeAfterArgToEnd(context, argNumber, args) {
+  let sourceCode = context.getSourceCode();
+  return [
+    sourceCode.getTokenAfter(args[argNumber]).range[0],
+    args[args.length - 1].range[1],
+  ];
+}
 
-  return {
-    CallExpression(node) {
-      let { callee } = node;
-      if (
-        isIdentifier(callee.object, "ChromeUtils") &&
-        isIdentifier(callee.property, "import") &&
-        node.arguments.length >= 2
-      ) {
+module.exports = {
+  meta: {
+    docs: {
+      url:
+        "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/reject-chromeutils-import-params.html",
+    },
+    hasSuggestions: true,
+    type: "problem",
+  },
+
+  create(context) {
+    return {
+      CallExpression(node) {
+        let { callee } = node;
         if (
-          node.arguments[1].type == "Literal" &&
-          node.arguments[1].raw == "null"
+          isIdentifier(callee.object, "ChromeUtils") &&
+          isIdentifier(callee.property, "import") &&
+          node.arguments.length >= 2
         ) {
-          context.report(
-            node,
-            "ChromeUtils.import should not be called with (..., null) to " +
-              "retrieve the JSM global object. Rely on explicit exports instead."
-          );
-        } else if (node.arguments[1].type == "ThisExpression") {
           context.report({
             node,
-            message:
-              "ChromeUtils.import should not be called with (..., this) to " +
-              "retrieve the JSM global object. Use destructuring instead.",
+            message: "ChromeUtils.import only takes one argument.",
             suggest: [
               {
-                desc: "Use destructuring for imports.",
+                desc: "Remove the unnecessary parameters.",
                 fix: fixer => {
-                  let source = context.getSourceCode().getText(node);
-                  let match = source.match(
-                    /ChromeUtils.import\(\s*(".*\/(.*).jsm?")/m
-                  );
-
-                  return fixer.replaceText(
-                    node,
-                    `const { ${match[2]} } = ChromeUtils.import(${match[1]})`
+                  return fixer.removeRange(
+                    getRangeAfterArgToEnd(context, 0, node.arguments)
                   );
                 },
               },
             ],
           });
         }
-      }
-    },
-  };
+      },
+    };
+  },
 };

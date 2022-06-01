@@ -86,7 +86,7 @@ class nsJSContext : public nsIScriptContext {
 
   static void BeginCycleCollectionCallback(mozilla::CCReason aReason);
   static void EndCycleCollectionCallback(
-      mozilla::CycleCollectorResults& aResults);
+      const mozilla::CycleCollectorResults& aResults);
 
   // Return the longest CC slice time since ClearMaxCCSliceTime() was last
   // called.
@@ -154,8 +154,7 @@ class nsJSContext : public nsIScriptContext {
   static bool DOMOperationCallback(JSContext* cx);
 };
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class SerializedStackHolder;
 
@@ -179,7 +178,7 @@ class AsyncErrorReporter final : public mozilla::Runnable {
   NS_IMETHOD Run() override;
 
   // This is only used on main thread!
-  JS::PersistentRootedValue mException;
+  JS::PersistentRooted<JS::Value> mException;
   bool mHasException = false;
 
   RefPtr<xpc::ErrorReport> mReport;
@@ -188,8 +187,7 @@ class AsyncErrorReporter final : public mozilla::Runnable {
   UniquePtr<SerializedStackHolder> mStackHolder;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 // An interface for fast and native conversion to/from nsIArray. If an object
 // supports this interface, JS can reach directly in for the argv, and avoid

@@ -764,18 +764,20 @@ void WebGLContext::LinkProgram(WebGLProgram& prog) {
 
   prog.LinkProgram();
 
-  if (!prog.IsLinked()) {
-    // If we failed to link, but `prog == mCurrentProgram`, we are *not*
-    // supposed to null out mActiveProgramLinkInfo.
-    return;
-  }
-
   if (&prog == mCurrentProgram) {
-    mActiveProgramLinkInfo = prog.LinkInfo();
-
-    if (gl->WorkAroundDriverBugs() && gl->Vendor() == gl::GLVendor::NVIDIA) {
-      gl->fUseProgram(prog.mGLName);
+    if (!prog.IsLinked()) {
+      // We use to simply early-out here, and preserve the GL behavior that
+      // failed relink doesn't invalidate the current active program link info.
+      // The new behavior was changed for WebGL here:
+      // https://github.com/KhronosGroup/WebGL/pull/3371
+      mActiveProgramLinkInfo = nullptr;
+      gl->fUseProgram(0);  // Shouldn't be needed, but let's be safe.
+      return;
     }
+    mActiveProgramLinkInfo = prog.LinkInfo();
+    gl->fUseProgram(prog.mGLName);  // Uncontionally re-use.
+    // Previously, we needed this re-use on nvidia as a driver workaround,
+    // but we might as well do it unconditionally.
   }
 }
 
@@ -1185,13 +1187,20 @@ webgl::ReadPixelsResult WebGLContext::ReadPixelsImpl(
     desc2.srcOffset = {readX, readY};
     desc2.size = {rwSize.x, 1};
 
-    auto row = dest + writeX * explicitPacking.metrics.bytesPerPixel;
-    row += writeY * rowStride;
-    for (const auto j : IntegerRange(size.y)) {
+    const auto skipBytes = writeX * explicitPacking.metrics.bytesPerPixel;
+    const auto usedRowBytes = rwSize.x * explicitPacking.metrics.bytesPerPixel;
+    for (const auto j : IntegerRange(rwSize.y)) {
       desc2.srcOffset.y = readY + j;
-      DoReadPixelsAndConvert(srcFormat->format, desc2, row, bytesNeeded,
-                             rowStride);
-      row += rowStride;
+      const auto destWriteBegin = dest + skipBytes + (writeY + j) * rowStride;
+      MOZ_RELEASE_ASSERT(dest <= destWriteBegin);
+      MOZ_RELEASE_ASSERT(destWriteBegin <= dest + availBytes);
+
+      const auto destWriteEnd = destWriteBegin + usedRowBytes;
+      MOZ_RELEASE_ASSERT(dest <= destWriteEnd);
+      MOZ_RELEASE_ASSERT(destWriteEnd <= dest + availBytes);
+
+      DoReadPixelsAndConvert(srcFormat->format, desc2, destWriteBegin,
+                             destWriteEnd - destWriteBegin, rowStride);
     }
   }
 

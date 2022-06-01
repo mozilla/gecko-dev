@@ -26,7 +26,7 @@
 #  include "mozilla/UniquePtr.h"
 
 #  if defined(MOZILLA_INTERNAL_API)
-#    include "GeckoProfiler.h"
+#    include "mozilla/ProfilerThreadSleep.h"
 #  endif  // MOZILLA_INTERNAL_API
 
 #endif  // ifdef DEBUG
@@ -94,14 +94,14 @@ static bool PrintCycle(
   fputs("=== Cyclical dependency starts at\n", stderr);
   aOut += "Cyclical dependency starts at\n";
 
-  const BlockingResourceBase::DDT::ResourceAcquisitionArray::elem_type res =
+  const BlockingResourceBase::DDT::ResourceAcquisitionArray::value_type res =
       aCycle.ElementAt(0);
   maybeImminent &= res->Print(aOut);
 
   BlockingResourceBase::DDT::ResourceAcquisitionArray::index_type i;
   BlockingResourceBase::DDT::ResourceAcquisitionArray::size_type len =
       aCycle.Length();
-  const BlockingResourceBase::DDT::ResourceAcquisitionArray::elem_type* it =
+  const BlockingResourceBase::DDT::ResourceAcquisitionArray::value_type* it =
       1 + aCycle.Elements();
   for (i = 1; i < len - 1; ++i, ++it) {
     fputs("\n--- Next dependency:\n", stderr);
@@ -337,7 +337,7 @@ void OffTheBooksMutex::AssertCurrentThreadOwns() const {
 //
 
 bool RWLock::TryReadLock() {
-  bool locked = this->TryReadLockInternal();
+  bool locked = this->detail::RWLockImpl::tryReadLock();
   MOZ_ASSERT_IF(locked, mOwningThread == nullptr);
   return locked;
 }
@@ -346,17 +346,17 @@ void RWLock::ReadLock() {
   // All we want to ensure here is that we're not attempting to acquire the
   // read lock while this thread is holding the write lock.
   CheckAcquire();
-  this->ReadLockInternal();
+  this->detail::RWLockImpl::readLock();
   MOZ_ASSERT(mOwningThread == nullptr);
 }
 
 void RWLock::ReadUnlock() {
   MOZ_ASSERT(mOwningThread == nullptr);
-  this->ReadUnlockInternal();
+  this->detail::RWLockImpl::readUnlock();
 }
 
 bool RWLock::TryWriteLock() {
-  bool locked = this->TryWriteLockInternal();
+  bool locked = this->detail::RWLockImpl::tryWriteLock();
   if (locked) {
     mOwningThread = PR_GetCurrentThread();
     Acquire();
@@ -366,7 +366,7 @@ bool RWLock::TryWriteLock() {
 
 void RWLock::WriteLock() {
   CheckAcquire();
-  this->WriteLockInternal();
+  this->detail::RWLockImpl::writeLock();
   mOwningThread = PR_GetCurrentThread();
   Acquire();
 }
@@ -374,7 +374,7 @@ void RWLock::WriteLock() {
 void RWLock::WriteUnlock() {
   Release();
   mOwningThread = nullptr;
-  this->WriteUnlockInternal();
+  this->detail::RWLockImpl::writeUnlock();
 }
 
 //
@@ -502,7 +502,7 @@ void RecursiveMutex::Unlock() {
   UnlockInternal();
 }
 
-void RecursiveMutex::AssertCurrentThreadIn() {
+void RecursiveMutex::AssertCurrentThreadIn() const {
   MOZ_ASSERT(IsAcquired() && mOwningThread == PR_GetCurrentThread());
 }
 

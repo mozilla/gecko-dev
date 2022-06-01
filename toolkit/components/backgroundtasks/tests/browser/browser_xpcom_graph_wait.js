@@ -35,6 +35,7 @@ const backgroundtaskPhases = {
         "resource://gre/modules/AppConstants.jsm",
         "resource://gre/modules/AsyncShutdown.jsm",
         "resource://gre/modules/BackgroundTasksManager.jsm",
+        "resource://gre/modules/Console.jsm",
         "resource://gre/modules/EnterprisePolicies.jsm",
         "resource://gre/modules/EnterprisePoliciesParent.jsm",
         "resource://gre/modules/PromiseUtils.jsm",
@@ -51,6 +52,8 @@ const backgroundtaskPhases = {
       // to read and modify.
       services: [
         "@mozilla.org/async-shutdown-service;1",
+        "@mozilla.org/backgroundtasks;1",
+        "@mozilla.org/backgroundtasksmanager;1",
         "@mozilla.org/base/telemetry;1",
         "@mozilla.org/categorymanager;1",
         "@mozilla.org/chrome/chrome-registry;1",
@@ -97,6 +100,19 @@ const backgroundtaskPhases = {
         },
         "@mozilla.org/xpcom/debug;1",
         "@mozilla.org/xre/app-info;1",
+        "@mozilla.org/mime;1",
+        {
+          name: "@mozilla.org/gfx/info;1",
+          condition: WIN,
+        },
+        {
+          name: "@mozilla.org/image/tools;1",
+          condition: WIN,
+        },
+        {
+          name: "@mozilla.org/gfx/screenmanager;1",
+          condition: WIN,
+        },
       ],
     },
   },
@@ -106,9 +122,6 @@ const backgroundtaskPhases = {
       modules: [
         // We have a profile marker for this, even though it failed to load!
         "resource:///modules/backgroundtasks/BackgroundTask_wait.jsm",
-        {
-          name: "resource://gre/modules/Console.jsm",
-        },
         "resource://gre/modules/ConsoleAPIStorage.jsm",
         "resource://gre/modules/Timer.jsm",
         // We have a profile marker for this, even though it failed to load!

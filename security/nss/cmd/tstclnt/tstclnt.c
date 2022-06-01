@@ -233,6 +233,7 @@ PrintUsageHeader()
             "  [-I groups] [-J signatureschemes]\n"
             "  [-A requestfile] [-L totalconnections] [-P {client,server}]\n"
             "  [-N echConfigs] [-Q] [-z externalPsk]\n"
+            "  [-i echGreaseSize]\n"
             "\n",
             progName);
 }
@@ -317,6 +318,7 @@ PrintParameterUsage()
     fprintf(stderr, "%-20s Use DTLS\n", "-P {client, server}");
     fprintf(stderr, "%-20s Exit after handshake\n", "-Q");
     fprintf(stderr, "%-20s Use Encrypted Client Hello with the given Base64-encoded ECHConfigs\n", "-N");
+    fprintf(stderr, "%-20s Enable Encrypted Client Hello GREASEing with the given padding size (0-255) \n", "-i");
     fprintf(stderr, "%-20s Enable post-handshake authentication\n"
                     "%-20s for TLS 1.3; need to specify -n\n",
             "-E", "");
@@ -1013,6 +1015,7 @@ PRBool requestToExit = PR_FALSE;
 char *versionString = NULL;
 PRBool handshakeComplete = PR_FALSE;
 char *echConfigs = NULL;
+PRUint16 echGreaseSize = 0;
 PRBool enablePostHandshakeAuth = PR_FALSE;
 PRBool enableDelegatedCredentials = PR_FALSE;
 const secuExporter *enabledExporters = NULL;
@@ -1571,6 +1574,21 @@ run()
         }
     }
 
+    if (echGreaseSize) {
+        rv = SSL_EnableTls13GreaseEch(s, PR_TRUE);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "SSL_EnableTls13GreaseEch failed");
+            error = 1;
+            goto done;
+        }
+        rv = SSL_SetTls13GreaseEchSize(s, echGreaseSize);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "SSL_SetTls13GreaseEchSize failed");
+            error = 1;
+            goto done;
+        }
+    }
+
     if (psk.data) {
         rv = importPsk(s);
         if (rv != SECSuccess) {
@@ -1838,7 +1856,7 @@ main(int argc, char **argv)
     }
 
     optstate = PL_CreateOptState(argc, argv,
-                                 "46A:BCDEFGHI:J:KL:M:N:OP:QR:STUV:W:X:YZa:bc:d:efgh:m:n:op:qr:st:uvw:x:z:");
+                                 "46A:BCDEFGHI:J:KL:M:N:OP:QR:STUV:W:X:YZa:bc:d:efgh:i:m:n:op:qr:st:uvw:x:z:");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
@@ -1925,6 +1943,14 @@ main(int argc, char **argv)
 
             case 'N':
                 echConfigs = PORT_Strdup(optstate->value);
+                break;
+
+            case 'i':
+                echGreaseSize = PORT_Atoi(optstate->value);
+                if (!echGreaseSize || echGreaseSize > 255) {
+                    fprintf(stderr, "ECH Grease size must be within 1..255 (inclusive).\n");
+                    exit(-1);
+                }
                 break;
 
             case 'P':
@@ -2164,32 +2190,45 @@ main(int argc, char **argv)
     if (status == PR_SUCCESS) {
         addr.inet.port = PR_htons(portno);
     } else {
-        /* Lookup host */
-        PRAddrInfo *addrInfo;
-        void *enumPtr = NULL;
+        PRBool gotLoopbackIP = PR_FALSE;
+        if ((!strcmp(host, "localhost") || !strcmp(host, "localhost.localdomain"))
+            /* only check for preference if both types are allowed */
+            && allowIPv4 && allowIPv6) {
+            /* make a decision which IP to prefer */
+            status = PR_GetPrefLoopbackAddrInfo(&addr, portno);
+            if (status != PR_FAILURE) {
+                gotLoopbackIP = PR_TRUE;
+            }
+        }
 
-        addrInfo = PR_GetAddrInfoByName(host, PR_AF_UNSPEC,
-                                        PR_AI_ADDRCONFIG | PR_AI_NOCANONNAME);
-        if (!addrInfo) {
-            fprintf(stderr, "HOSTNAME=%s\n", host);
-            SECU_PrintError(progName, "error looking up host");
-            error = 1;
-            goto done;
-        }
-        for (;;) {
-            enumPtr = PR_EnumerateAddrInfo(enumPtr, addrInfo, portno, &addr);
-            if (enumPtr == NULL)
-                break;
-            if (addr.raw.family == PR_AF_INET && allowIPv4)
-                break;
-            if (addr.raw.family == PR_AF_INET6 && allowIPv6)
-                break;
-        }
-        PR_FreeAddrInfo(addrInfo);
-        if (enumPtr == NULL) {
-            SECU_PrintError(progName, "error looking up host address");
-            error = 1;
-            goto done;
+        if (!gotLoopbackIP) {
+            /* Lookup host */
+            PRAddrInfo *addrInfo;
+            void *enumPtr = NULL;
+
+            addrInfo = PR_GetAddrInfoByName(host, PR_AF_UNSPEC,
+                                            PR_AI_ADDRCONFIG | PR_AI_NOCANONNAME);
+            if (!addrInfo) {
+                fprintf(stderr, "HOSTNAME=%s\n", host);
+                SECU_PrintError(progName, "error looking up host");
+                error = 1;
+                goto done;
+            }
+            for (;;) {
+                enumPtr = PR_EnumerateAddrInfo(enumPtr, addrInfo, portno, &addr);
+                if (enumPtr == NULL)
+                    break;
+                if (addr.raw.family == PR_AF_INET && allowIPv4)
+                    break;
+                if (addr.raw.family == PR_AF_INET6 && allowIPv6)
+                    break;
+            }
+            PR_FreeAddrInfo(addrInfo);
+            if (enumPtr == NULL) {
+                SECU_PrintError(progName, "error looking up host address");
+                error = 1;
+                goto done;
+            }
         }
     }
 

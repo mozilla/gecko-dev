@@ -612,11 +612,7 @@ struct RoleDescrComparator {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   nsAutoString value;
-  if (LocalAccessible* acc = mGeckoAccessible->AsLocal()) {
-    acc->Value(value);
-  } else {
-    mGeckoAccessible->AsRemote()->Value(value);
-  }
+  mGeckoAccessible->Value(value);
 
   return nsCocoaUtils::ToNSString(value);
 
@@ -745,13 +741,7 @@ struct RoleDescrComparator {
   MOZ_ASSERT(mGeckoAccessible);
 
   nsAutoString id;
-  if (LocalAccessible* acc = mGeckoAccessible->AsLocal()) {
-    if (acc->GetContent()) {
-      nsCoreUtils::GetID(acc->GetContent(), id);
-    }
-  } else {
-    mGeckoAccessible->AsRemote()->DOMNodeID(id);
-  }
+  mGeckoAccessible->DOMNodeID(id);
 
   return nsCocoaUtils::ToNSString(id);
 }
@@ -891,15 +881,7 @@ struct RoleDescrComparator {
 
 - (void)moxPerformScrollToVisible {
   MOZ_ASSERT(mGeckoAccessible);
-
-  if (mGeckoAccessible->IsLocal()) {
-    // Need strong ref because of MOZ_CAN_RUN_SCRIPT
-    RefPtr<LocalAccessible> acc = mGeckoAccessible->AsLocal();
-    acc->ScrollTo(nsIAccessibleScrollType::SCROLL_TYPE_ANYWHERE);
-  } else {
-    mGeckoAccessible->AsRemote()->ScrollTo(
-        nsIAccessibleScrollType::SCROLL_TYPE_ANYWHERE);
-  }
+  mGeckoAccessible->ScrollTo(nsIAccessibleScrollType::SCROLL_TYPE_ANYWHERE);
 }
 
 - (void)moxPerformShowMenu {

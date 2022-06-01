@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include "gfxipc/ShadowLayerUtils.h";
+include "mozilla/GfxMessageUtils.h";
 
 using gfxPoint from "gfxPoint.h";
 using nsIntRegion from "nsRegion.h";
@@ -10,8 +11,10 @@ using mozilla::StereoMode from "ImageTypes.h";
 using struct mozilla::null_t from "mozilla/ipc/IPCCore.h";
 using mozilla::WindowsHandle from "mozilla/ipc/IPCTypes.h";
 using mozilla::gfx::YUVColorSpace from "mozilla/gfx/Types.h";
+using mozilla::gfx::ChromaSubsampling from "mozilla/gfx/Types.h";
 using mozilla::gfx::ColorDepth from "mozilla/gfx/Types.h";
 using mozilla::gfx::ColorRange from "mozilla/gfx/Types.h";
+using mozilla::gfx::ColorSpace2 from "mozilla/gfx/Types.h";
 using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
 using mozilla::gfx::IntRect from "mozilla/gfx/Rect.h";
 using mozilla::gfx::IntSize from "mozilla/gfx/Point.h";
@@ -24,6 +27,8 @@ namespace layers {
 
 [Comparable] struct SurfaceDescriptorD3D10 {
   WindowsHandle handle;
+  uint64_t? gpuProcessTextureId;
+  uint32_t arrayIndex;
   SurfaceFormat format;
   IntSize size;
   YUVColorSpace yUVColorSpace;
@@ -55,6 +60,8 @@ namespace layers {
   FileDescriptor[] fds;
   uint32_t[] width;
   uint32_t[] height;
+  uint32_t[] widthAligned;
+  uint32_t[] heightAligned;
   uint32_t[] format;
   uint32_t[] strides;
   uint32_t[] offsets;
@@ -132,6 +139,7 @@ namespace layers {
   ColorDepth colorDepth;
   YUVColorSpace yUVColorSpace;
   ColorRange colorRange;
+  ChromaSubsampling chromaSubsampling;
 };
 
 [Comparable] union BufferDescriptor {

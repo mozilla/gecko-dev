@@ -473,9 +473,13 @@ HTMLCanvasElement::HTMLCanvasElement(
       mMaybeModified(false),
       mWriteOnly(false) {}
 
-HTMLCanvasElement::~HTMLCanvasElement() {
+HTMLCanvasElement::~HTMLCanvasElement() { Destroy(); }
+
+void HTMLCanvasElement::Destroy() {
   if (mOffscreenDisplay) {
     mOffscreenDisplay->Destroy();
+    mOffscreenDisplay = nullptr;
+    mImageContainer = nullptr;
   }
 
   if (mContextObserver) {
@@ -486,12 +490,25 @@ HTMLCanvasElement::~HTMLCanvasElement() {
   ResetPrintCallback();
   if (mRequestedFrameRefreshObserver) {
     mRequestedFrameRefreshObserver->DetachFromRefreshDriver();
+    mRequestedFrameRefreshObserver = nullptr;
   }
 }
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLCanvasElement, nsGenericHTMLElement,
-                                   mCurrentContext, mPrintCallback, mPrintState,
-                                   mOriginalCanvas, mOffscreenCanvas)
+NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLCanvasElement)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLCanvasElement,
+                                                nsGenericHTMLElement)
+  tmp->Destroy();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCurrentContext, mPrintCallback, mPrintState,
+                                  mOriginalCanvas, mOffscreenCanvas)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLCanvasElement,
+                                                  nsGenericHTMLElement)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCurrentContext, mPrintCallback,
+                                    mPrintState, mOriginalCanvas,
+                                    mOffscreenCanvas)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(HTMLCanvasElement,
                                                nsGenericHTMLElement)
@@ -1001,53 +1018,6 @@ OffscreenCanvas* HTMLCanvasElement::TransferControlToOffscreen(
   return mOffscreenCanvas;
 }
 
-already_AddRefed<File> HTMLCanvasElement::MozGetAsFile(
-    const nsAString& aName, const nsAString& aType,
-    nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv) {
-  // do a trust check if this is a write-only canvas
-  if (mWriteOnly && !aSubjectPrincipal.IsSystemPrincipal()) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return nullptr;
-  }
-
-  RefPtr<File> file;
-  aRv = MozGetAsFileImpl(aName, aType, aSubjectPrincipal, getter_AddRefs(file));
-  if (NS_WARN_IF(aRv.Failed())) {
-    return nullptr;
-  }
-  return file.forget();
-}
-
-nsresult HTMLCanvasElement::MozGetAsFileImpl(const nsAString& aName,
-                                             const nsAString& aType,
-                                             nsIPrincipal& aSubjectPrincipal,
-                                             File** aResult) {
-  nsCOMPtr<nsIInputStream> stream;
-  nsAutoString type(aType);
-  nsresult rv =
-      ExtractData(nsContentUtils::GetCurrentJSContext(), aSubjectPrincipal,
-                  type, u""_ns, getter_AddRefs(stream));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  uint64_t imgSize;
-  void* imgData = nullptr;
-  rv = NS_ReadInputStreamToBuffer(stream, &imgData, -1, &imgSize);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsPIDOMWindowInner> win =
-      do_QueryInterface(OwnerDoc()->GetScopeObject());
-
-  // The File takes ownership of the buffer
-  RefPtr<File> file = File::CreateMemoryFileWithLastModifiedNow(
-      win->AsGlobal(), imgData, imgSize, aName, type);
-  if (NS_WARN_IF(!file)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  file.forget(aResult);
-  return NS_OK;
-}
-
 nsresult HTMLCanvasElement::GetContext(const nsAString& aContextId,
                                        nsISupports** aContext) {
   ErrorResult rv;
@@ -1123,17 +1093,16 @@ nsIntSize HTMLCanvasElement::GetSize() { return GetWidthHeight(); }
 
 bool HTMLCanvasElement::IsWriteOnly() const { return mWriteOnly; }
 
-void HTMLCanvasElement::SetWriteOnly() {
-  mExpandedReader = nullptr;
-  mWriteOnly = true;
-}
-
-void HTMLCanvasElement::SetWriteOnly(nsIPrincipal* aExpandedReader) {
+void HTMLCanvasElement::SetWriteOnly(
+    nsIPrincipal* aExpandedReader /* = nullptr */) {
   mExpandedReader = aExpandedReader;
   mWriteOnly = true;
+  if (mOffscreenCanvas) {
+    mOffscreenCanvas->SetWriteOnly();
+  }
 }
 
-bool HTMLCanvasElement::CallerCanRead(JSContext* aCx) {
+bool HTMLCanvasElement::CallerCanRead(JSContext* aCx) const {
   if (!mWriteOnly) {
     return true;
   }
@@ -1175,14 +1144,6 @@ void HTMLCanvasElement::SetHeight(uint32_t aHeight, ErrorResult& aRv) {
 
 void HTMLCanvasElement::InvalidateCanvasPlaceholder(uint32_t aWidth,
                                                     uint32_t aHeight) {
-  // We need to keep our placeholder canvas dimensions in sync with the actual
-  // offscreen canvas. It is only a placeholder if we transferred the object to
-  // a worker thread.
-  if (mOffscreenCanvas->IsNeutered()) {
-    mOffscreenCanvas->UpdateNeuteredSize(aWidth, aHeight);
-  }
-
-  // We always need to update the canvas element itself however.
   ErrorResult rv;
   SetUnsignedIntAttr(nsGkAtoms::width, aWidth, DEFAULT_CANVAS_WIDTH, rv);
   MOZ_ASSERT(!rv.Failed());
@@ -1191,6 +1152,11 @@ void HTMLCanvasElement::InvalidateCanvasPlaceholder(uint32_t aWidth,
 }
 
 void HTMLCanvasElement::InvalidateCanvasContent(const gfx::Rect* damageRect) {
+  // Cache the current ImageContainer to avoid contention on the mutex.
+  if (mOffscreenDisplay) {
+    mImageContainer = mOffscreenDisplay->GetImageContainer();
+  }
+
   // We don't need to flush anything here; if there's no frame or if
   // we plan to reframe we don't need to invalidate it anyway.
   nsIFrame* frame = GetPrimaryFrame();
@@ -1201,18 +1167,13 @@ void HTMLCanvasElement::InvalidateCanvasContent(const gfx::Rect* damageRect) {
   // an empty transaction which is effectively equivalent.
   CanvasRenderer* renderer = nullptr;
   const auto key = static_cast<uint32_t>(DisplayItemType::TYPE_CANVAS);
-  RefPtr<WebRenderLocalCanvasData> localData =
-      GetWebRenderUserData<WebRenderLocalCanvasData>(frame, key);
   RefPtr<WebRenderCanvasData> data =
       GetWebRenderUserData<WebRenderCanvasData>(frame, key);
   if (data) {
     renderer = data->GetCanvasRenderer();
   }
 
-  if (localData && wr::AsUint64(localData->mImageKey)) {
-    // When the readback is complete, we will schedule a resource update.
-    localData->RequestFrameReadback();
-  } else if (renderer) {
+  if (renderer) {
     renderer->SetDirty();
     frame->SchedulePaint(nsIFrame::PAINT_COMPOSITE_ONLY);
   } else {
@@ -1269,8 +1230,9 @@ bool HTMLCanvasElement::GetOpaqueAttr() {
 }
 
 CanvasContextType HTMLCanvasElement::GetCurrentContextType() {
-  if (mOffscreenDisplay) {
-    return mOffscreenDisplay->GetContextType();
+  if (mCurrentContextType == CanvasContextType::NoContext &&
+      mOffscreenDisplay) {
+    mCurrentContextType = mOffscreenDisplay->GetContextType();
   }
   return mCurrentContextType;
 }
@@ -1469,11 +1431,11 @@ webgpu::CanvasContext* HTMLCanvasElement::GetWebGPUContext() {
   return static_cast<webgpu::CanvasContext*>(GetCurrentContext());
 }
 
-RefPtr<ImageContainer> HTMLCanvasElement::GetImageContainer() {
+CompositableHandle HTMLCanvasElement::GetCompositableHandle() const {
   if (mOffscreenDisplay) {
-    return mOffscreenDisplay->GetImageContainer();
+    return mOffscreenDisplay->GetCompositableHandle();
   }
-  return nullptr;
+  return CompositableHandle();
 }
 
 }  // namespace mozilla::dom

@@ -46,7 +46,7 @@ class CookiePersistentStorage final : public CookieStorage {
 
   void Close() override;
 
-  void EnsureReadComplete();
+  void EnsureInitialized() override;
 
   void CleanupCachedStatements();
   void CleanupDBConnection();
@@ -56,7 +56,7 @@ class CookiePersistentStorage final : public CookieStorage {
   void RebuildCorruptDB();
   void HandleDBClosed();
 
-  nsresult RunInTransaction(nsICookieTransactionCallback* aCallback);
+  nsresult RunInTransaction(nsICookieTransactionCallback* aCallback) override;
 
   // State of the database connection.
   enum CorruptFlag {
@@ -128,7 +128,7 @@ class CookiePersistentStorage final : public CookieStorage {
   TimeStamp mEndInitDBConn;
   nsTArray<CookieDomainTuple> mReadArray;
 
-  Monitor mMonitor;
+  Monitor mMonitor MOZ_UNANNOTATED;
 
   Atomic<bool> mInitialized;
   Atomic<bool> mInitializedDBConn;

@@ -51,7 +51,16 @@ void DocAccessibleChildBase::SerializeTree(nsTArray<LocalAccessible*>& aTree,
       // XXX: We need to do this because this requires a state check.
       genericTypes |= eNumericValue;
     }
-    if (acc->ActionCount()) {
+    if (acc->IsTextLeaf() || acc->IsImage()) {
+      // Ideally, we'd set eActionable for any Accessible with an ancedstor
+      // action. However, that requires an ancestor walk which is too expensive
+      // here. eActionable is only used by ATK. For now, we only expose ancestor
+      // actions on text leaf and image Accessibles. This means that we don't
+      // support "click ancestor" for ATK.
+      if (acc->ActionCount()) {
+        genericTypes |= eActionable;
+      }
+    } else if (acc->HasPrimaryAction()) {
       genericTypes |= eActionable;
     }
 
@@ -111,6 +120,38 @@ mozilla::ipc::IPCResult DocAccessibleChildBase::RecvTakeFocus(
   if (acc) {
     acc->TakeFocus();
   }
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult DocAccessibleChildBase::RecvScrollTo(
+    const uint64_t& aID, const uint32_t& aScrollType) {
+  LocalAccessible* acc = IdToAccessible(aID);
+  if (acc) {
+    RefPtr<PresShell> presShell = acc->Document()->PresShellPtr();
+    nsCOMPtr<nsIContent> content = acc->GetContent();
+    nsCoreUtils::ScrollTo(presShell, content, aScrollType);
+  }
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult DocAccessibleChildBase::RecvTakeSelection(
+    const uint64_t& aID) {
+  LocalAccessible* acc = IdToAccessible(aID);
+  if (acc) {
+    acc->TakeSelection();
+  }
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult DocAccessibleChildBase::RecvSetSelected(
+    const uint64_t& aID, const bool& aSelect) {
+  LocalAccessible* acc = IdToAccessible(aID);
+  if (acc) {
+    acc->SetSelected(aSelect);
+  }
+
   return IPC_OK();
 }
 

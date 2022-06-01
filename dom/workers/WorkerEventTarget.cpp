@@ -10,8 +10,7 @@
 
 #include "mozilla/dom/ReferrerInfo.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 namespace {
 
@@ -119,6 +118,16 @@ WorkerEventTarget::DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+NS_IMETHODIMP
+WorkerEventTarget::RegisterShutdownTask(nsITargetShutdownTask*) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WorkerEventTarget::UnregisterShutdownTask(nsITargetShutdownTask*) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 NS_IMETHODIMP_(bool)
 WorkerEventTarget::IsOnCurrentThreadInfallible() {
   MutexAutoLock lock(mMutex);
@@ -137,5 +146,4 @@ WorkerEventTarget::IsOnCurrentThread(bool* aIsOnCurrentThread) {
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

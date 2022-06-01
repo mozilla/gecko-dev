@@ -13,10 +13,11 @@ import * as asyncValue from "./async-value";
 
 import { initialState } from "../reducers/index";
 
-function makeMockSource(url = "url", id = "source") {
+function makeMockSource(url = "url", id = "source", thread = "FakeThread") {
   return {
     id,
     url,
+    thread,
     isBlackBoxed: false,
     isPrettyPrinted: false,
     relativeUrl: url,
@@ -87,6 +88,7 @@ function makeMockWasmSource() {
   return {
     id: "wasm-source-id",
     url: "url",
+    thread: "FakeThread",
     isBlackBoxed: false,
     isPrettyPrinted: false,
     relativeUrl: "url",
@@ -138,7 +140,6 @@ function makeMockBreakpoint(source = makeMockSource(), line = 1, column) {
   return {
     id: "breakpoint",
     location,
-    astLocation: null,
     generatedLocation: location,
     disabled: false,
     text: "text",

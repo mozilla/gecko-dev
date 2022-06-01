@@ -109,10 +109,11 @@ class GeckoChildProcessHost : public ChildProcessHost,
   bool SyncLaunch(StringVector aExtraOpts = StringVector(),
                   int32_t timeoutMs = 0);
 
-  virtual void OnChannelConnected(int32_t peer_pid) override;
-  virtual void OnMessageReceived(IPC::Message&& aMsg) override;
+  virtual void OnChannelConnected(base::ProcessId peer_pid) override;
+  virtual void OnMessageReceived(UniquePtr<IPC::Message> aMsg) override;
   virtual void OnChannelError() override;
-  virtual void GetQueuedMessages(std::queue<IPC::Message>& queue) override;
+  virtual void GetQueuedMessages(
+      std::queue<UniquePtr<IPC::Message>>& queue) override;
 
   // Resolves to the process handle when it's available (see
   // LaunchAndWaitForProcessHandle); use with AsyncLaunch.
@@ -152,7 +153,7 @@ class GeckoChildProcessHost : public ChildProcessHost,
   // For bug 943174: Skip the EnsureProcessTerminated call in the destructor.
   void SetAlreadyDead();
 
-#if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
+#if defined(MOZ_SANDBOX) && defined(XP_MACOSX)
   // Start the sandbox from the child process.
   static bool StartMacSandbox(int aArgc, char** aArgv,
                               std::string& aErrorMessage);
@@ -171,7 +172,7 @@ class GeckoChildProcessHost : public ChildProcessHost,
   // disabled to avoid connection attempts to diagnosticd(8) which are
   // blocked in child processes due to sandboxing.
   void DisableOSActivityMode();
-#endif
+#endif  // defined(MOZ_SANDBOX) && defined(XP_MACOSX)
   typedef std::function<void(GeckoChildProcessHost*)> GeckoProcessCallback;
 
   // Iterates over all instances and calls aCallback with each one of them.
@@ -215,7 +216,7 @@ class GeckoChildProcessHost : public ChildProcessHost,
     // is well.
     PROCESS_CONNECTED,
     PROCESS_ERROR
-  } mProcessState;
+  } mProcessState GUARDED_BY(mMonitor);
 
   void PrepareLaunch();
 
@@ -275,7 +276,7 @@ class GeckoChildProcessHost : public ChildProcessHost,
   // them here until we hand off the eventual listener.
   //
   // FIXME/cjones: this strongly indicates bad design.  Shame on us.
-  std::queue<IPC::Message> mQueue;
+  std::queue<UniquePtr<IPC::Message>> mQueue;
 
   // Linux-Only. Set this up before we're called from a different thread.
   nsCString mTmpDirName;
@@ -286,7 +287,7 @@ class GeckoChildProcessHost : public ChildProcessHost,
 
   static uint32_t sNextUniqueID;
   static StaticAutoPtr<LinkedList<GeckoChildProcessHost>>
-      sGeckoChildProcessHosts;
+      sGeckoChildProcessHosts GUARDED_BY(sMutex);
   static StaticMutex sMutex;
 };
 

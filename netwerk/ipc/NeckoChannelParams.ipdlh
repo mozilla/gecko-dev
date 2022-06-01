@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PHttpChannel;
-include protocol PChildToParentStream;
-include BlobTypes;
 include ClientIPCTypes;
 include URIParams;
 include IPCServiceWorkerDescriptor;
@@ -21,6 +19,7 @@ include "mozilla/dom/ReferrerInfoUtils.h";
 include "mozilla/ipc/URIUtils.h";
 include "mozilla/net/CacheInfoIPCTypes.h";
 include "mozilla/AntiTrackingIPCUtils.h";
+include "mozilla/net/ClassOfService.h";
 
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using RequestHeaderTuples from "mozilla/net/PHttpChannelParams.h";
@@ -109,7 +108,7 @@ struct LoadInfoArgs
   uint64_t                    frameBrowsingContextID;
   bool                        initialSecurityCheckDone;
   bool                        isInThirdPartyContext;
-  bool                        isThirdPartyContextToTopWindow;
+  bool?                       isThirdPartyContextToTopWindow;
   bool                        isFormSubmission;
   bool                        sendCSPViolationEvents;
   OriginAttributes            originAttributes;
@@ -231,7 +230,7 @@ struct ParentLoadInfoForwarderArgs
 
   bool isMetaRefresh;
 
-  bool isThirdPartyContextToTopWindow;
+  bool? isThirdPartyContextToTopWindow;
 
   bool isInThirdPartyContext;
 
@@ -289,7 +288,7 @@ struct HttpChannelOpenArgs
   IPCStream?                  uploadStream;
   bool                        uploadStreamHasHeaders;
   int16_t                     priority;
-  uint32_t                    classOfService;
+  ClassOfService              classOfService;
   uint8_t                     redirectionLimit;
   bool                        allowSTS;
   uint32_t                    thirdPartyFlags;

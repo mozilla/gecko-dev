@@ -723,6 +723,15 @@ class SpecialPowersParent extends JSWindowActorParent {
             !AppConstants.ASAN &&
             !AppConstants.TSAN
           ) {
+            if (Services.profiler.IsActive()) {
+              let filename = Cc["@mozilla.org/process/environment;1"]
+                .getService(Ci.nsIEnvironment)
+                .get("MOZ_PROFILER_SHUTDOWN");
+              if (filename) {
+                await Services.profiler.dumpProfileToFileAsync(filename);
+                await Services.profiler.StopProfiler();
+              }
+            }
             Cu.exitIfInAutomation();
           } else {
             Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
@@ -1049,12 +1058,11 @@ class SpecialPowersParent extends JSWindowActorParent {
 
         case "SPCleanUpSTSData": {
           let origin = aMessage.data.origin;
-          let flags = aMessage.data.flags;
           let uri = Services.io.newURI(origin);
           let sss = Cc["@mozilla.org/ssservice;1"].getService(
             Ci.nsISiteSecurityService
           );
-          sss.resetState(uri, flags);
+          sss.resetState(uri);
           return undefined;
         }
 
@@ -1097,6 +1105,13 @@ class SpecialPowersParent extends JSWindowActorParent {
               ext.useAddonManager = "android-only";
             }
           }
+          // delayedStartup is only supported in xpcshell
+          if (ext.delayedStartup !== undefined) {
+            throw new Error(
+              `delayedStartup is only supported in xpcshell, use "useAddonManager".`
+            );
+          }
+
           let extension = ExtensionTestCommon.generate(ext);
 
           let resultListener = (...args) => {
@@ -1207,6 +1222,18 @@ class SpecialPowersParent extends JSWindowActorParent {
           return extension.shutdown().then(() => {
             return extension._uninstallPromise;
           });
+        }
+
+        case "SPExtensionTerminateBackground": {
+          let id = aMessage.data.id;
+          let extension = this._extensions.get(id);
+          return extension.terminateBackground();
+        }
+
+        case "SPExtensionWakeupBackground": {
+          let id = aMessage.data.id;
+          let extension = this._extensions.get(id);
+          return extension.wakeupBackground();
         }
 
         case "SetAsDefaultAssertHandler": {

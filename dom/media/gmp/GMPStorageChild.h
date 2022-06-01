@@ -14,8 +14,7 @@
 
 #include <queue>
 
-namespace mozilla {
-namespace gmp {
+namespace mozilla::gmp {
 
 class GMPChild;
 class GMPStorageChild;
@@ -84,13 +83,12 @@ class GMPStorageChild : public PGMPStorageChild {
   mozilla::ipc::IPCResult RecvShutdown();
 
  private:
-  Monitor mMonitor;
+  Monitor mMonitor MOZ_UNANNOTATED;
   nsRefPtrHashtable<nsCStringHashKey, GMPRecordImpl> mRecords;
   GMPChild* mPlugin;
   bool mShutdown;
 };
 
-}  // namespace gmp
-}  // namespace mozilla
+}  // namespace mozilla::gmp
 
 #endif  // GMPStorageChild_h_

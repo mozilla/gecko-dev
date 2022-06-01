@@ -284,14 +284,10 @@ NS_IMPL_ISUPPORTS(nsLocalFile, nsILocalFileMac, nsIFile)
 NS_IMPL_ISUPPORTS(nsLocalFile, nsIFile)
 #endif
 
-nsresult nsLocalFile::nsLocalFileConstructor(nsISupports* aOuter,
-                                             const nsIID& aIID,
+nsresult nsLocalFile::nsLocalFileConstructor(const nsIID& aIID,
                                              void** aInstancePtr) {
   if (NS_WARN_IF(!aInstancePtr)) {
     return NS_ERROR_INVALID_ARG;
-  }
-  if (NS_WARN_IF(aOuter)) {
-    return NS_ERROR_NO_AGGREGATION;
   }
 
   *aInstancePtr = nullptr;
@@ -560,9 +556,10 @@ nsLocalFile::AppendNative(const nsACString& aFragment) {
     return NS_OK;
   }
 
-  // only one component of path can be appended
+  // only one component of path can be appended and cannot append ".."
   nsACString::const_iterator begin, end;
-  if (FindCharInReadable('/', aFragment.BeginReading(begin),
+  if (aFragment.EqualsASCII("..") ||
+      FindCharInReadable('/', aFragment.BeginReading(begin),
                          aFragment.EndReading(end))) {
     return NS_ERROR_FILE_UNRECOGNIZED_PATH;
   }
@@ -576,9 +573,33 @@ nsLocalFile::AppendRelativeNativePath(const nsACString& aFragment) {
     return NS_OK;
   }
 
-  // No leading '/'
-  if (aFragment.First() == '/') {
+  // No leading '/' and cannot be ".."
+  if (aFragment.First() == '/' || aFragment.EqualsASCII("..")) {
     return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+  }
+
+  if (aFragment.Contains('/')) {
+    // can't contain .. as a path component. Ensure that the valid components
+    // "foo..foo", "..foo", and "foo.." are not falsely detected,
+    // but the invalid paths "../", "foo/..", "foo/../foo",
+    // "../foo", etc are.
+    constexpr auto doubleDot = "/.."_ns;
+    nsACString::const_iterator start, end, offset;
+    aFragment.BeginReading(start);
+    aFragment.EndReading(end);
+    offset = end;
+    while (FindInReadable(doubleDot, start, offset)) {
+      if (offset == end || *offset == '/') {
+        return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+      }
+      start = offset;
+      offset = end;
+    }
+
+    // catches the remaining cases of prefixes
+    if (StringBeginsWith(aFragment, "../"_ns)) {
+      return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+    }
   }
 
   if (!mPath.EqualsLiteral("/")) {
@@ -643,6 +664,11 @@ nsLocalFile::SetNativeLeafName(const nsACString& aLeafName) {
   LocateNativeLeafName(begin, end);
   mPath.Replace(begin.get() - mPath.get(), Distance(begin, end), aLeafName);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsLocalFile::GetDisplayName(nsAString& aLeafName) {
+  return GetLeafName(aLeafName);
 }
 
 nsCString nsLocalFile::NativePath() { return mPath; }
@@ -1130,7 +1156,7 @@ nsLocalFile::Remove(bool aRecursive) {
 
 #ifdef ANDROID
       // See bug 580434 - Bionic gives us just deleted files
-      if (rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST) {
+      if (rv == NS_ERROR_FILE_NOT_FOUND) {
         continue;
       }
 #endif
@@ -2080,28 +2106,7 @@ nsLocalFile::Reveal() {
   if (!giovfs) {
     return NS_ERROR_FAILURE;
   }
-
-  bool isDirectory;
-  if (NS_FAILED(IsDirectory(&isDirectory))) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (isDirectory) {
-    return giovfs->ShowURIForInput(mPath);
-  }
-  if (NS_SUCCEEDED(giovfs->OrgFreedesktopFileManager1ShowItems(mPath))) {
-    return NS_OK;
-  }
-  nsCOMPtr<nsIFile> parentDir;
-  nsAutoCString dirPath;
-  if (NS_FAILED(GetParent(getter_AddRefs(parentDir)))) {
-    return NS_ERROR_FAILURE;
-  }
-  if (NS_FAILED(parentDir->GetNativePath(dirPath))) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return giovfs->ShowURIForInput(dirPath);
+  return giovfs->RevealFile(this);
 #elif defined(MOZ_WIDGET_COCOA)
   CFURLRef url;
   if (NS_SUCCEEDED(GetCFURL(&url))) {
@@ -2127,7 +2132,7 @@ nsLocalFile::Launch() {
     return NS_ERROR_FAILURE;
   }
 
-  return giovfs->ShowURIForInput(mPath);
+  return giovfs->LaunchFile(mPath);
 #elif defined(MOZ_WIDGET_ANDROID)
   // Not supported on GeckoView
   return NS_ERROR_NOT_IMPLEMENTED;

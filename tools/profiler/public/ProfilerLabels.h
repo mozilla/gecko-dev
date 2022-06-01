@@ -19,6 +19,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/BaseProfilerRAIIMacro.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ProfilerThreadRegistration.h"
 #include "mozilla/ThreadLocal.h"
@@ -27,11 +28,6 @@
 #include <stdint.h>
 
 struct JSContext;
-
-// Macros used by the AUTO_PROFILER_* macros below.
-#define PROFILER_RAII_PASTE(id, line) id##line
-#define PROFILER_RAII_EXPAND(id, line) PROFILER_RAII_PASTE(id, line)
-#define PROFILER_RAII PROFILER_RAII_EXPAND(raiiObject, __LINE__)
 
 // Insert an RAII object in this scope to enter a label stack frame. Any
 // samples collected in this scope will contain this label in their stack.
@@ -47,6 +43,12 @@ struct JSContext;
   mozilla::AutoProfilerLabel PROFILER_RAII(      \
       label, nullptr, JS::ProfilingCategoryPair::categoryPair)
 
+// Similar to AUTO_PROFILER_LABEL, but that adds the RELEVANT_FOR_JS flag.
+#define AUTO_PROFILER_LABEL_RELEVANT_FOR_JS(label, categoryPair) \
+  mozilla::AutoProfilerLabel PROFILER_RAII(                      \
+      label, nullptr, JS::ProfilingCategoryPair::categoryPair,   \
+      uint32_t(js::ProfilingStackFrame::Flags::RELEVANT_FOR_JS))
+
 // Similar to AUTO_PROFILER_LABEL, but with only one argument: the category
 // pair. The label string is taken from the category pair. This is convenient
 // for labels like AUTO_PROFILER_LABEL_CATEGORY_PAIR(GRAPHICS_LayerBuilding)
@@ -56,6 +58,15 @@ struct JSContext;
       "", nullptr, JS::ProfilingCategoryPair::categoryPair, \
       uint32_t(                                             \
           js::ProfilingStackFrame::Flags::LABEL_DETERMINED_BY_CATEGORY_PAIR))
+
+// Similar to AUTO_PROFILER_LABEL_CATEGORY_PAIR but adding the RELEVANT_FOR_JS
+// flag.
+#define AUTO_PROFILER_LABEL_CATEGORY_PAIR_RELEVANT_FOR_JS(categoryPair)        \
+  mozilla::AutoProfilerLabel PROFILER_RAII(                                    \
+      "", nullptr, JS::ProfilingCategoryPair::categoryPair,                    \
+      uint32_t(                                                                \
+          js::ProfilingStackFrame::Flags::LABEL_DETERMINED_BY_CATEGORY_PAIR) | \
+          uint32_t(js::ProfilingStackFrame::Flags::RELEVANT_FOR_JS))
 
 // Similar to AUTO_PROFILER_LABEL, but with an additional string. The inserted
 // RAII object stores the cStr pointer in a field; it does not copy the string.
@@ -103,6 +114,17 @@ struct JSContext;
     autoCStr.emplace(nsCStr);                                              \
     raiiObjectNsCString.emplace(label, autoCStr->get(),                    \
                                 JS::ProfilingCategoryPair::categoryPair);  \
+  }
+
+#define AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_RELEVANT_FOR_JS(           \
+    label, categoryPair, nsCStr)                                         \
+  mozilla::Maybe<nsAutoCString> autoCStr;                                \
+  mozilla::Maybe<mozilla::AutoProfilerLabel> raiiObjectNsCString;        \
+  if (profiler_is_active()) {                                            \
+    autoCStr.emplace(nsCStr);                                            \
+    raiiObjectNsCString.emplace(                                         \
+        label, autoCStr->get(), JS::ProfilingCategoryPair::categoryPair, \
+        uint32_t(js::ProfilingStackFrame::Flags::RELEVANT_FOR_JS));      \
   }
 
 // Match the conditions for MOZ_ENABLE_BACKGROUND_HANG_MONITOR

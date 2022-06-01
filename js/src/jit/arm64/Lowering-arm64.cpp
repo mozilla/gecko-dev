@@ -220,14 +220,14 @@ void LIRGeneratorARM64::lowerWasmBuiltinTruncateToInt32(
 
   if (opd->type() == MIRType::Double) {
     define(new (alloc()) LWasmBuiltinTruncateDToInt32(
-               useRegister(opd), useFixed(ins->tls(), WasmTlsReg),
+               useRegister(opd), useFixed(ins->instance(), InstanceReg),
                LDefinition::BogusTemp()),
            ins);
     return;
   }
 
   define(new (alloc()) LWasmBuiltinTruncateFToInt32(
-             useRegister(opd), useFixed(ins->tls(), WasmTlsReg),
+             useRegister(opd), useFixed(ins->instance(), InstanceReg),
              LDefinition::BogusTemp()),
          ins);
 }
@@ -983,8 +983,12 @@ void LIRGenerator::visitCopySign(MCopySign* ins) {
   }
 
   lir->setOperand(0, useRegisterAtStart(lhs));
-  lir->setOperand(1, useRegisterAtStart(rhs));
-  define(lir, ins);
+  lir->setOperand(1, willHaveDifferentLIRNodes(lhs, rhs)
+                         ? useRegister(rhs)
+                         : useRegisterAtStart(rhs));
+  // The copySignDouble and copySignFloat32 are optimized for lhs == output.
+  // It also prevents rhs == output when lhs != output, avoids clobbering.
+  defineReuseInput(lir, ins, 0);
 }
 
 void LIRGenerator::visitExtendInt32ToInt64(MExtendInt32ToInt64* ins) {
@@ -1024,10 +1028,17 @@ void LIRGenerator::visitWasmTernarySimd128(MWasmTernarySimd128* ins) {
       defineReuseInput(lir, ins, LWasmTernarySimd128::V0);
       break;
     }
-    case wasm::SimdOp::I8x16LaneSelect:
-    case wasm::SimdOp::I16x8LaneSelect:
-    case wasm::SimdOp::I32x4LaneSelect:
-    case wasm::SimdOp::I64x2LaneSelect: {
+    case wasm::SimdOp::I32x4DotI8x16I7x16AddS: {
+      auto* lir = new (alloc()) LWasmTernarySimd128(
+          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
+          useRegisterAtStart(ins->v2()), tempSimd128());
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
+      break;
+    }
+    case wasm::SimdOp::I8x16RelaxedLaneSelect:
+    case wasm::SimdOp::I16x8RelaxedLaneSelect:
+    case wasm::SimdOp::I32x4RelaxedLaneSelect:
+    case wasm::SimdOp::I64x2RelaxedLaneSelect: {
       auto* lir = new (alloc()) LWasmTernarySimd128(
           ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
           useRegisterAtStart(ins->v2()));

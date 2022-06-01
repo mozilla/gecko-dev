@@ -35,7 +35,9 @@ mochitest-webgpu:
 talos:
     - talos-bcv
     - talos-chrome
-    - talos-damp
+    - talos-damp-inspector
+    - talos-damp-webconsole
+    - talos-damp-other
     - talos-dromaeojs
     - talos-g1
     - talos-g3
@@ -131,8 +133,7 @@ linux32-tests:
 linux1804-tests:
     - cppunit
     - crashtest
-    - firefox-ui-functional-local
-    - firefox-ui-functional-remote
+    - firefox-ui-functional
     - gtest
     # - jittest  # See comment in linux1804-ccov-tests set.
     - jsreftest
@@ -182,8 +183,7 @@ windows32-2004-tests:
     - cppunit
     - crashtest
     - gtest
-    - firefox-ui-functional-local
-    - firefox-ui-functional-remote
+    - firefox-ui-functional
     - jsreftest
     - marionette
     - mochitest-a11y
@@ -201,8 +201,7 @@ windows32-2004-tests:
 windows10-2004-tests:
     - cppunit
     - crashtest
-    - firefox-ui-functional-local
-    - firefox-ui-functional-remote
+    - firefox-ui-functional
     - gtest
     - jsreftest
     - marionette
@@ -239,8 +238,7 @@ windows10-64-2004-ccov-tests:
 
 mingwclang-tests-debug:
     - cppunit
-    - firefox-ui-functional-local
-    - firefox-ui-functional-remote
+    - firefox-ui-functional
     - mochitest-a11y
     - mochitest-chrome-gpu
     - mochitest-plain-gpu
@@ -257,8 +255,7 @@ mingwclang-tests-debug:
 # for re-enabling.
 mingwclang-win32-tests-debug:
     - cppunit
-    - firefox-ui-functional-local
-    - firefox-ui-functional-remote
+    - firefox-ui-functional
     - mochitest-a11y
     - mochitest-chrome-gpu
     - mochitest-plain-gpu
@@ -281,7 +278,9 @@ windows-aarch64-tests:
 windows-talos:
     - talos-bcv
     - talos-chrome
-    - talos-damp
+    - talos-damp-inspector
+    - talos-damp-webconsole
+    - talos-damp-other
     - talos-dromaeojs
     - talos-g1
     - talos-g4
@@ -322,8 +321,7 @@ macosx1100-64-qr-tests:
 macosx1015-64-qr-tests:
     - cppunit
     - crashtest
-    - firefox-ui-functional-local
-    - firefox-ui-functional-remote
+    - firefox-ui-functional
     - gtest
     - jittest
     - jsreftest
@@ -353,7 +351,9 @@ macosx1015-64-qr-tests:
 macosx64-talos:
     - talos-bcv
     - talos-chrome
-    - talos-damp
+    - talos-damp-inspector
+    - talos-damp-webconsole
+    - talos-damp-other
     - talos-dromaeojs
     - talos-g1
     - talos-g4
@@ -388,6 +388,7 @@ android-x86_64-tests:
     - web-platform-tests
     - web-platform-tests-crashtest
     - web-platform-tests-reftest
+    - web-platform-tests-wdspec
     - xpcshell
 
 android-hw-aarch64-opt-unittests:
@@ -444,6 +445,13 @@ android-hw-aarch64-raptor-cpu-memory-power:
 android-hw-browsertime-power:
     - browsertime-power
 
+android-hw-browsertime-a51:
+    - browsertime-tp6m-essential
+    - browsertime-speedometer-mobile
+    - browsertime-youtube-playback-mobile
+    - browsertime-unity-webgl-mobile
+    # not live, or tp6 proper
+
 android-hw-browsertime:
     - browsertime-tp6m
     - browsertime-tp6m-essential
@@ -466,13 +474,4 @@ linux-tsan-tests:
     - reftest
     - web-platform-tests
     - web-platform-tests-reftest
-    - xpcshell
-
-domstreams-tests:
-    - crashtest
-    - mochitest-plain
-    - test-verify
-    - test-verify-wpt
-    - web-platform-tests
-    - web-platform-tests-crashtest
     - xpcshell

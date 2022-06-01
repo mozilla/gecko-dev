@@ -5,7 +5,6 @@
 loader: gecko_taskgraph.loader.transform:loader
 
 transforms:
-    - gecko_taskgraph.transforms.release:run_on_releases
     - gecko_taskgraph.transforms.release_deps:transforms
     - gecko_taskgraph.transforms.scriptworker:add_balrog_scopes
     - gecko_taskgraph.transforms.task:transforms
@@ -36,12 +35,14 @@ jobs:
                             beta: [32]
                             release: [145]
                             esr91: [17638]
+                            esr102: [17770]
                             default: []
                     staging:
                         by-release-type:
                             beta: [32]
                             release: [145]
                             esr91: [889]
+                            esr102: [902]
                             default: []
             background-rate:
                 by-release-type:

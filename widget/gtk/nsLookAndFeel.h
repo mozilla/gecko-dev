@@ -106,6 +106,8 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
     nscolor mTextSelectedBackground = kWhite;
     nscolor mAccentColor = kWhite;
     nscolor mAccentColorForeground = kWhite;
+    nscolor mSelectedItem = kWhite;
+    nscolor mSelectedItemText = kBlack;
     nscolor mMozColHeaderText = kBlack;
     nscolor mMozColHeaderHoverText = kBlack;
     nscolor mTitlebarText = kBlack;
@@ -150,7 +152,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
     return mSystemThemeOverridden ? mAltTheme : mSystemTheme;
   }
 
-  GDBusProxy* mDBusSettingsProxy = nullptr;
+  RefPtr<GDBusProxy> mDBusSettingsProxy;
   mozilla::Maybe<ColorScheme> mColorSchemePreference;
   int32_t mCaretBlinkTime = 0;
   int32_t mCaretBlinkCount = -1;

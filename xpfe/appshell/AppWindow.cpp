@@ -450,6 +450,19 @@ AppWindow::GetPrimaryRemoteTab(nsIRemoteTab** aTab) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+AppWindow::GetPrimaryContentBrowsingContext(
+    mozilla::dom::BrowsingContext** aBc) {
+  if (mPrimaryBrowserParent) {
+    return mPrimaryBrowserParent->GetBrowsingContext(aBc);
+  }
+  if (mPrimaryContentShell) {
+    return mPrimaryContentShell->GetBrowsingContextXPCOM(aBc);
+  }
+  *aBc = nullptr;
+  return NS_OK;
+}
+
 static LayoutDeviceIntSize GetOuterToInnerSizeDifference(nsIWidget* aWindow) {
   if (!aWindow) {
     return LayoutDeviceIntSize();
@@ -1897,7 +1910,7 @@ nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
     return NS_ERROR_FAILURE;
   }
   mozilla::Vector<CSSPixelSpan> springs;
-  for (int i = 0; i < toolbarSprings->Length(); i++) {
+  for (size_t i = 0; i < toolbarSprings->Length(); i++) {
     RefPtr<Element> springEl = toolbarSprings->Item(i);
     RefPtr<dom::DOMRect> springRect;
     rv = utils->GetBoundsWithoutFlushing(springEl, getter_AddRefs(springRect));
@@ -2580,6 +2593,16 @@ AppWindow::LockAspectRatio(bool aShouldLock) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+AppWindow::NeedFastSnaphot() {
+  MOZ_ASSERT(mWindow);
+  if (!mWindow) {
+    return NS_ERROR_FAILURE;
+  }
+  mWindow->SetNeedFastSnaphot();
+  return NS_OK;
+}
+
 void AppWindow::LoadPersistentWindowState() {
   nsCOMPtr<dom::Element> docShellElement = GetWindowDOMElement();
   if (!docShellElement) {
@@ -2630,7 +2653,9 @@ void AppWindow::SizeShell() {
 
   // If we're using fingerprint resistance, we're going to resize the window
   // once we have primary content.
-  if (nsContentUtils::ShouldResistFingerprinting() &&
+  if (nsContentUtils::ShouldResistFingerprinting(
+          "if RFP is enabled we want to round the dimensions of the new"
+          "new pop up window regardless of their origin") &&
       windowType.EqualsLiteral("navigator:browser")) {
     // Once we've got primary content, force dimensions.
     if (mPrimaryContentShell || mPrimaryBrowserParent) {
@@ -2999,11 +3024,12 @@ void AppWindow::WindowActivated() {
   nsCOMPtr<nsIAppWindow> appWindow(this);
 
   // focusing the window could cause it to close, so keep a reference to it
-  nsCOMPtr<nsPIDOMWindowOuter> window =
-      mDocShell ? mDocShell->GetWindow() : nullptr;
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm && window) {
-    fm->WindowRaised(window, nsFocusManager::GenerateFocusActionId());
+  if (mDocShell) {
+    if (nsCOMPtr<nsPIDOMWindowOuter> window = mDocShell->GetWindow()) {
+      if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
+        fm->WindowRaised(window, nsFocusManager::GenerateFocusActionId());
+      }
+    }
   }
 
   if (mChromeLoaded) {
@@ -3015,11 +3041,14 @@ void AppWindow::WindowActivated() {
 void AppWindow::WindowDeactivated() {
   nsCOMPtr<nsIAppWindow> appWindow(this);
 
-  nsCOMPtr<nsPIDOMWindowOuter> window =
-      mDocShell ? mDocShell->GetWindow() : nullptr;
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm && window && !fm->IsTestMode()) {
-    fm->WindowLowered(window, nsFocusManager::GenerateFocusActionId());
+  if (mDocShell) {
+    if (nsCOMPtr<nsPIDOMWindowOuter> window = mDocShell->GetWindow()) {
+      if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
+        if (!fm->IsTestMode()) {
+          fm->WindowLowered(window, nsFocusManager::GenerateFocusActionId());
+        }
+      }
+    }
   }
 }
 

@@ -8,6 +8,12 @@ them.
 
 .. note::
 
+    Visual Studio Code is the recommended editor for Firefox development.
+    Not because it is better than the other editors but because we decided to
+    focus our energy on a single editor.
+
+.. note::
+
     This page is a work in progress. Please enhance this page with instructions
     for your favourite editor.
 
@@ -22,8 +28,6 @@ Visual Studio Code
 
 
 Go to :doc:`Visual Studio Code <vscode>` dedicated page.
-
-.. _VIM:
 
 VIM
 ---

@@ -36,9 +36,6 @@ class SharedSSLState {
   void SetSignedCertTimestampsEnabled(bool signedCertTimestampsEnabled) {
     mSignedCertTimestampsEnabled = signedCertTimestampsEnabled;
   }
-  void SetNameMatchingMode(BRNameMatchingPolicy::Mode aMode) {
-    mNameMatchingMode = aMode;
-  }
 
   // The following methods may be called from any thread
   bool SocketCreated();
@@ -49,7 +46,6 @@ class SharedSSLState {
   bool IsSignedCertTimestampsEnabled() const {
     return mSignedCertTimestampsEnabled;
   }
-  BRNameMatchingPolicy::Mode NameMatchingMode() { return mNameMatchingMode; }
 
  private:
   ~SharedSSLState();
@@ -62,12 +58,11 @@ class SharedSSLState {
   // True if any sockets have been created that use this shared data.
   // Requires synchronization between the socket and main threads for
   // reading/writing.
-  Mutex mMutex;
+  Mutex mMutex MOZ_UNANNOTATED;
   bool mSocketCreated;
   bool mOCSPStaplingEnabled;
   bool mOCSPMustStapleEnabled;
   bool mSignedCertTimestampsEnabled;
-  BRNameMatchingPolicy::Mode mNameMatchingMode;
 };
 
 SharedSSLState* PublicSSLState();

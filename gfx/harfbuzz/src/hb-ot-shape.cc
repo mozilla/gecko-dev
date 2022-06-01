@@ -628,7 +628,20 @@ hb_ensure_native_direction (hb_buffer_t *buffer)
       (HB_DIRECTION_IS_VERTICAL   (direction) &&
        direction != HB_DIRECTION_TTB))
   {
-    _hb_ot_layout_reverse_graphemes (buffer);
+
+    if (buffer->cluster_level == HB_BUFFER_CLUSTER_LEVEL_MONOTONE_CHARACTERS)
+      foreach_grapheme (buffer, start, end)
+      {
+	buffer->merge_clusters (start, end);
+	buffer->reverse_range (start, end);
+      }
+    else
+      foreach_grapheme (buffer, start, end)
+	/* form_clusters() merged clusters already, we don't merge. */
+	buffer->reverse_range (start, end);
+
+    buffer->reverse ();
+
     buffer->props.direction = HB_DIRECTION_REVERSE (buffer->props.direction);
   }
 }
@@ -935,16 +948,22 @@ hb_ot_substitute_pre (const hb_ot_shape_context_t *c)
   _hb_buffer_allocate_gsubgpos_vars (c->buffer);
 
   hb_ot_substitute_complex (c);
+
+#ifndef HB_NO_AAT_SHAPE
+  if (c->plan->apply_morx && c->plan->apply_gpos)
+    hb_aat_layout_remove_deleted_glyphs (c->buffer);
+#endif
 }
 
 static inline void
 hb_ot_substitute_post (const hb_ot_shape_context_t *c)
 {
-  hb_ot_hide_default_ignorables (c->buffer, c->font);
 #ifndef HB_NO_AAT_SHAPE
-  if (c->plan->apply_morx)
+  if (c->plan->apply_morx && !c->plan->apply_gpos)
     hb_aat_layout_remove_deleted_glyphs (c->buffer);
 #endif
+
+  hb_ot_hide_default_ignorables (c->buffer, c->font);
 
   if (c->plan->shaper->postprocess_glyphs &&
     c->buffer->message(c->font, "start postprocess-glyphs")) {

@@ -11,8 +11,6 @@
 #include <new>
 #include <utility>
 #include "gfxPlatform.h"
-#include "ipc/IPCMessageUtils.h"
-#include "ipc/IPCMessageUtilsSpecializations.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Casting.h"
@@ -51,6 +49,11 @@ typedef struct hb_blob_t hb_blob_t;
 
 class SharedBitSet;
 
+namespace IPC {
+template <typename T>
+struct ParamTraits;
+}
+
 class gfxSparseBitSet {
  private:
   friend class SharedBitSet;
@@ -65,6 +68,9 @@ class gfxSparseBitSet {
     }
     uint8_t mBits[BLOCK_SIZE];
   };
+
+  friend struct IPC::ParamTraits<gfxSparseBitSet>;
+  friend struct IPC::ParamTraits<Block>;
 
  public:
   gfxSparseBitSet() = default;
@@ -331,39 +337,9 @@ class gfxSparseBitSet {
   }
 
  private:
-  friend struct IPC::ParamTraits<gfxSparseBitSet>;
-  friend struct IPC::ParamTraits<gfxSparseBitSet::Block>;
   CopyableTArray<uint16_t> mBlockIndex;
   CopyableTArray<Block> mBlocks;
 };
-
-namespace IPC {
-template <>
-struct ParamTraits<gfxSparseBitSet> {
-  typedef gfxSparseBitSet paramType;
-  static void Write(Message* aMsg, const paramType& aParam) {
-    WriteParam(aMsg, aParam.mBlockIndex);
-    WriteParam(aMsg, aParam.mBlocks);
-  }
-  static bool Read(const Message* aMsg, PickleIterator* aIter,
-                   paramType* aResult) {
-    return ReadParam(aMsg, aIter, &aResult->mBlockIndex) &&
-           ReadParam(aMsg, aIter, &aResult->mBlocks);
-  }
-};
-
-template <>
-struct ParamTraits<gfxSparseBitSet::Block> {
-  typedef gfxSparseBitSet::Block paramType;
-  static void Write(Message* aMsg, const paramType& aParam) {
-    aMsg->WriteBytes(&aParam, sizeof(aParam));
-  }
-  static bool Read(const Message* aMsg, PickleIterator* aIter,
-                   paramType* aResult) {
-    return aMsg->ReadBytesInto(aIter, aResult, sizeof(*aResult));
-  }
-};
-}  // namespace IPC
 
 /**
  * SharedBitSet is a version of gfxSparseBitSet that is intended to be used
@@ -980,15 +956,17 @@ class gfxFontUtils {
                                             gfxSparseBitSet& aCharacterMap);
 
   static nsresult ReadCMAPTableFormat4(const uint8_t* aBuf, uint32_t aLength,
-                                       gfxSparseBitSet& aCharacterMap);
+                                       gfxSparseBitSet& aCharacterMap,
+                                       bool aIsSymbolFont);
 
   static nsresult ReadCMAPTableFormat14(const uint8_t* aBuf, uint32_t aLength,
-                                        mozilla::UniquePtr<uint8_t[]>& aTable);
+                                        const uint8_t*& aTable);
 
   static uint32_t FindPreferredSubtable(const uint8_t* aBuf,
                                         uint32_t aBufLength,
                                         uint32_t* aTableOffset,
-                                        uint32_t* aUVSTableOffset);
+                                        uint32_t* aUVSTableOffset,
+                                        bool* aIsSymbolFont);
 
   static nsresult ReadCMAP(const uint8_t* aBuf, uint32_t aBufLength,
                            gfxSparseBitSet& aCharacterMap,
@@ -1014,6 +992,12 @@ class gfxFontUtils {
 
   static uint32_t MapCharToGlyph(const uint8_t* aCmapBuf, uint32_t aBufLength,
                                  uint32_t aUnicode, uint32_t aVarSelector = 0);
+
+  // For legacy MS Symbol fonts, we try mapping 8-bit character codes to the
+  // Private Use range at U+F0xx used by the cmaps in these fonts.
+  static MOZ_ALWAYS_INLINE uint32_t MapLegacySymbolFontCharToPUA(uint32_t aCh) {
+    return aCh >= 0x20 && aCh <= 0xff ? 0xf000 + aCh : 0;
+  }
 
 #ifdef XP_WIN
   // determine whether a font (which has already been sanitized, so is known
@@ -1158,12 +1142,7 @@ class gfxFontUtils {
   static void ParseFontList(const nsACString& aFamilyList,
                             nsTArray<nsCString>& aFontList);
 
-  // for a given font list pref name, append list of font names
-  static void AppendPrefsFontList(const char* aPrefName,
-                                  nsTArray<nsCString>& aFontList,
-                                  bool aLocalized = false);
-
-  // for a given font list pref name, initialize a list of font names
+  // for a given pref name, initialize a list of font names
   static void GetPrefsFontList(const char* aPrefName,
                                nsTArray<nsCString>& aFontList,
                                bool aLocalized = false);

@@ -91,6 +91,9 @@
 #include "mozilla/layers/APZThreadUtils.h"
 #include "MobileViewportManager.h"
 #include "mozilla/dom/ImageTracker.h"
+#ifdef ACCESSIBILITY
+#  include "mozilla/a11y/DocAccessible.h"
+#endif
 
 // Needed for Start/Stop of Image Animation
 #include "imgIContainer.h"
@@ -285,7 +288,7 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
 #ifdef DEBUG
       mInitialized(false),
 #endif
-      mColorSchemeOverride(dom::PrefersColorSchemeOverride::None) {
+      mOverriddenOrEmbedderColorScheme(dom::PrefersColorSchemeOverride::None) {
 #ifdef DEBUG
   PodZero(&mLayoutPhaseCount);
 #endif
@@ -304,7 +307,7 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
     mTextPerf = MakeUnique<gfxTextPerfMetrics>();
   }
 
-  if (Preferences::GetBool(GFX_MISSING_FONTS_NOTIFY_PREF)) {
+  if (StaticPrefs::gfx_missing_fonts_notify()) {
     mMissingFonts = MakeUnique<gfxMissingFontRecorder>();
   }
 
@@ -330,6 +333,7 @@ static const char* gExactCallbackPrefs[] = {
     "layout.css.dpi",
     "privacy.resistFingerprinting",
     "privacy.trackingprotection.enabled",
+    "ui.use_standins_for_native_colors",
     nullptr,
 };
 
@@ -491,6 +495,15 @@ void nsPresContext::AppUnitsPerDevPixelChanged() {
 
   mCurAppUnitsPerDevPixel = mDeviceContext->AppUnitsPerDevPixel();
 
+#ifdef ACCESSIBILITY
+  if (mCurAppUnitsPerDevPixel != oldAppUnitsPerDevPixel) {
+    if (nsAccessibilityService* accService = GetAccService()) {
+      accService->NotifyOfDevPixelRatioChange(mPresShell,
+                                              mCurAppUnitsPerDevPixel);
+    }
+  }
+#endif
+
   // Recompute the size for vh units since it's changed by the dynamic toolbar
   // max height which is stored in screen coord.
   if (IsRootContentDocumentCrossProcess()) {
@@ -579,7 +592,7 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
                               MediaFeatureChangePropagation::JustThisDocument);
   }
   if (prefName.EqualsLiteral(GFX_MISSING_FONTS_NOTIFY_PREF)) {
-    if (Preferences::GetBool(GFX_MISSING_FONTS_NOTIFY_PREF)) {
+    if (StaticPrefs::gfx_missing_fonts_notify()) {
       if (!mMissingFonts) {
         mMissingFonts = MakeUnique<gfxMissingFontRecorder>();
         // trigger reflow to detect missing fonts on the current page
@@ -868,12 +881,12 @@ void nsPresContext::AttachPresShell(mozilla::PresShell* aPresShell) {
   UpdateCharSet(doc->GetDocumentCharacterSet());
 }
 
-Maybe<ColorScheme> nsPresContext::GetOverriddenColorScheme() const {
+Maybe<ColorScheme> nsPresContext::GetOverriddenOrEmbedderColorScheme() const {
   if (IsPrintingOrPrintPreview()) {
     return Some(ColorScheme::Light);
   }
 
-  switch (mColorSchemeOverride) {
+  switch (mOverriddenOrEmbedderColorScheme) {
     case dom::PrefersColorSchemeOverride::Dark:
       return Some(ColorScheme::Dark);
     case dom::PrefersColorSchemeOverride::Light:
@@ -884,6 +897,22 @@ Maybe<ColorScheme> nsPresContext::GetOverriddenColorScheme() const {
   }
 
   return Nothing();
+}
+
+void nsPresContext::SetColorSchemeOverride(
+    PrefersColorSchemeOverride aOverride) {
+  auto oldScheme = mDocument->PreferredColorScheme();
+
+  mOverriddenOrEmbedderColorScheme = aOverride;
+
+  if (mDocument->PreferredColorScheme() != oldScheme) {
+    // We need to restyle because not only media queries have changed, system
+    // colors may as well via the prefers-color-scheme meta tag / effective
+    // color-scheme property value.
+    MediaFeatureValuesChanged({RestyleHint::RecascadeSubtree(), nsChangeHint(0),
+                               MediaFeatureChangeReason::SystemMetricsChange},
+                              MediaFeatureChangePropagation::JustThisDocument);
+  }
 }
 
 void nsPresContext::RecomputeBrowsingContextDependentData() {
@@ -904,20 +933,20 @@ void nsPresContext::RecomputeBrowsingContextDependentData() {
   SetTextZoom(browsingContext->TextZoom());
   SetOverrideDPPX(browsingContext->OverrideDPPX());
 
-  auto oldOverride = mColorSchemeOverride;
-  mColorSchemeOverride = browsingContext->Top()->PrefersColorSchemeOverride();
-  if (oldOverride != mColorSchemeOverride) {
-    // We need to restyle because not only media queries have changed, system
-    // colors may as well via the prefers-color-scheme meta tag / effective
-    // color-scheme property value.
-    MediaFeatureValuesChanged({RestyleHint::RecascadeSubtree(), nsChangeHint(0),
-                               MediaFeatureChangeReason::SystemMetricsChange},
-                              MediaFeatureChangePropagation::JustThisDocument);
-  }
+  auto* top = browsingContext->Top();
+  SetColorSchemeOverride([&] {
+    auto overriden = top->PrefersColorSchemeOverride();
+    if (overriden != PrefersColorSchemeOverride::None) {
+      return overriden;
+    }
+    // We only use the top embedder color-scheme for now, see
+    // https://github.com/w3c/csswg-drafts/issues/7213 for a more general
+    // proposal.
+    return top->GetEmbedderColorScheme();
+  }());
 
   if (doc == mDocument) {
     // Medium doesn't apply to resource documents, etc.
-    auto* top = browsingContext->Top();
     RefPtr<nsAtom> mediumToEmulate;
     if (MOZ_UNLIKELY(!top->GetMediumOverride().IsEmpty())) {
       nsAutoString lower;
@@ -2752,6 +2781,9 @@ void nsPresContext::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
           mPresShell->GetMobileViewportManager()) {
     mvm->UpdateVisualViewportSizeByDynamicToolbar(-aOffset);
   }
+
+  mPresShell->StyleSet()->InvalidateForViewportUnits(
+      ServoStyleSet::OnlyDynamic::Yes);
 }
 
 DynamicToolbarState nsPresContext::GetDynamicToolbarState() const {

@@ -305,15 +305,12 @@ void DrawTargetD2D1::DrawFilter(FilterNode* aNode, const Rect& aSourceRect,
 
 void DrawTargetD2D1::DrawSurfaceWithShadow(SourceSurface* aSurface,
                                            const Point& aDest,
-                                           const DeviceColor& aColor,
-                                           const Point& aOffset, Float aSigma,
+                                           const ShadowOptions& aShadow,
                                            CompositionOp aOperator) {
   if (!EnsureInitialized()) {
     return;
   }
   MarkChanged();
-  mDC->SetTransform(D2D1::IdentityMatrix());
-  mTransformDirty = true;
 
   Matrix mat;
   RefPtr<ID2D1Image> image =
@@ -331,35 +328,47 @@ void DrawTargetD2D1::DrawSurfaceWithShadow(SourceSurface* aSurface,
     return;
   }
 
-  // Step 1, create the shadow effect.
+  if (!PrepareForDrawing(aOperator, ColorPattern(aShadow.mColor))) {
+    return;
+  }
+
+  mDC->SetTransform(D2D1::IdentityMatrix());
+  mTransformDirty = true;
+
   RefPtr<ID2D1Effect> shadowEffect;
   HRESULT hr = mDC->CreateEffect(
       mFormat == SurfaceFormat::A8 ? CLSID_D2D1GaussianBlur : CLSID_D2D1Shadow,
       getter_AddRefs(shadowEffect));
-  if (FAILED(hr) || !shadowEffect) {
-    gfxWarning() << "Failed to create shadow effect. Code: " << hexa(hr);
-    return;
-  }
-  shadowEffect->SetInput(0, image);
-  if (mFormat == SurfaceFormat::A8) {
-    shadowEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, aSigma);
-    shadowEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE,
-                           D2D1_BORDER_MODE_HARD);
-  } else {
-    shadowEffect->SetValue(D2D1_SHADOW_PROP_BLUR_STANDARD_DEVIATION, aSigma);
-    D2D1_VECTOR_4F color = {aColor.r, aColor.g, aColor.b, aColor.a};
-    shadowEffect->SetValue(D2D1_SHADOW_PROP_COLOR, color);
-  }
+  if (SUCCEEDED(hr) && shadowEffect) {
+    shadowEffect->SetInput(0, image);
+    if (mFormat == SurfaceFormat::A8) {
+      shadowEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION,
+                             aShadow.mSigma);
+      shadowEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE,
+                             D2D1_BORDER_MODE_HARD);
+    } else {
+      shadowEffect->SetValue(D2D1_SHADOW_PROP_BLUR_STANDARD_DEVIATION,
+                             aShadow.mSigma);
+      D2D1_VECTOR_4F color = {aShadow.mColor.r, aShadow.mColor.g,
+                              aShadow.mColor.b, aShadow.mColor.a};
+      shadowEffect->SetValue(D2D1_SHADOW_PROP_COLOR, color);
+    }
 
-  D2D1_POINT_2F shadowPoint = D2DPoint(aDest + aOffset);
-  mDC->DrawImage(shadowEffect, &shadowPoint, nullptr,
-                 D2D1_INTERPOLATION_MODE_LINEAR, D2DCompositionMode(aOperator));
+    D2D1_POINT_2F shadowPoint = D2DPoint(aDest + aShadow.mOffset);
+    mDC->DrawImage(shadowEffect, &shadowPoint, nullptr,
+                   D2D1_INTERPOLATION_MODE_LINEAR,
+                   D2D1_COMPOSITE_MODE_SOURCE_OVER);
+  } else {
+    gfxWarning() << "Failed to create shadow effect. Code: " << hexa(hr);
+  }
 
   if (aSurface->GetFormat() != SurfaceFormat::A8) {
     D2D1_POINT_2F imgPoint = D2DPoint(aDest);
     mDC->DrawImage(image, &imgPoint, nullptr, D2D1_INTERPOLATION_MODE_LINEAR,
-                   D2DCompositionMode(aOperator));
+                   D2D1_COMPOSITE_MODE_SOURCE_OVER);
   }
+
+  FinalizeDrawing(aOperator, ColorPattern(aShadow.mColor));
 }
 
 void DrawTargetD2D1::ClearRect(const Rect& aRect) {
@@ -1633,21 +1642,38 @@ void DrawTargetD2D1::FinalizeDrawing(CompositionOp aOp,
       return;
     }
 
-    // We don't need to preserve the current content of this layer as the output
-    // of the blend effect should completely replace it.
-    RefPtr<ID2D1Image> tmpImage = GetImageForLayerContent(false);
+    IntRect bounds(IntPoint(), mSize);
+    RefPtr<ID2D1Geometry> geom;
+    if (CurrentLayer().mPushedClips.size() > 0) {
+      geom = GetClippedGeometry(&bounds);
+    }
+    RefPtr<ID2D1Image> tmpImage = GetImageForLayerContent(&bounds, bool(geom));
     if (!tmpImage) {
       return;
     }
-
-    PushAllClips();
 
     blendEffect->SetInput(0, tmpImage);
     blendEffect->SetInput(1, source);
     blendEffect->SetValue(D2D1_BLEND_PROP_MODE, D2DBlendMode(aOp));
 
-    mDC->DrawImage(blendEffect, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
-                   D2D1_COMPOSITE_MODE_BOUNDED_SOURCE_COPY);
+    if (geom) {
+      RefPtr<ID2D1Image> blendOutput;
+      blendEffect->GetOutput(getter_AddRefs(blendOutput));
+
+      RefPtr<ID2D1ImageBrush> brush;
+      mDC->CreateImageBrush(
+          blendOutput, D2D1::ImageBrushProperties(D2DRect(bounds)),
+          D2D1::BrushProperties(
+              1.0f, D2D1::Matrix3x2F::Translation(bounds.x, bounds.y)),
+          getter_AddRefs(brush));
+
+      mDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
+      mDC->FillGeometry(geom, brush);
+      mDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_SOURCE_OVER);
+    } else {
+      mDC->DrawImage(blendEffect, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
+                     D2D1_COMPOSITE_MODE_BOUNDED_SOURCE_COPY);
+    }
 
     mComplexBlendsWithListInList++;
     return;
@@ -1792,18 +1818,20 @@ bool DrawTargetD2D1::GetDeviceSpaceClipRect(D2D1_RECT_F& aClipRect,
 static const uint32_t sComplexBlendsWithListAllowedInList = 4;
 
 already_AddRefed<ID2D1Image> DrawTargetD2D1::GetImageForLayerContent(
-    bool aShouldPreserveContent) {
+    const IntRect* aBounds, bool aShouldPreserveContent) {
   PopAllClips();
 
+  IntRect bounds = aBounds ? *aBounds : IntRect(IntPoint(), mSize);
+  IntSize size(bounds.XMost(), bounds.YMost());
   if (!CurrentLayer().mCurrentList) {
     RefPtr<ID2D1Bitmap> tmpBitmap;
     HRESULT hr = mDC->CreateBitmap(
-        D2DIntSize(mSize), D2D1::BitmapProperties(D2DPixelFormat(mFormat)),
+        D2DIntSize(size), D2D1::BitmapProperties(D2DPixelFormat(mFormat)),
         getter_AddRefs(tmpBitmap));
     if (FAILED(hr)) {
       gfxCriticalError(
-          CriticalLog::DefaultOptions(Factory::ReasonableSurfaceSize(mSize)))
-          << "[D2D1.1] 6CreateBitmap failure " << mSize << " Code: " << hexa(hr)
+          CriticalLog::DefaultOptions(Factory::ReasonableSurfaceSize(size)))
+          << "[D2D1.1] 6CreateBitmap failure " << size << " Code: " << hexa(hr)
           << " format " << (int)mFormat;
       // If it's a recreate target error, return and handle it elsewhere.
       if (hr == D2DERR_RECREATE_TARGET) {
@@ -1815,7 +1843,10 @@ already_AddRefed<ID2D1Image> DrawTargetD2D1::GetImageForLayerContent(
     }
     mDC->Flush();
 
-    tmpBitmap->CopyFromBitmap(nullptr, mBitmap, nullptr);
+    D2D1_POINT_2U destOffset = D2D1::Point2U(bounds.x, bounds.y);
+    D2D1_RECT_U srcRect =
+        D2D1::RectU(bounds.x, bounds.y, bounds.width, bounds.height);
+    tmpBitmap->CopyFromBitmap(&destOffset, mBitmap, &srcRect);
     return tmpBitmap.forget();
   } else {
     RefPtr<ID2D1CommandList> list = CurrentLayer().mCurrentList;
@@ -1829,9 +1860,10 @@ already_AddRefed<ID2D1Image> DrawTargetD2D1::GetImageForLayerContent(
           D2D1_BITMAP_OPTIONS_TARGET,
           D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
                             D2D1_ALPHA_MODE_PREMULTIPLIED));
-      mDC->CreateBitmap(mBitmap->GetPixelSize(), nullptr, 0, &props,
+      mDC->CreateBitmap(D2DIntSize(size), nullptr, 0, &props,
                         getter_AddRefs(tmpBitmap));
       mDC->SetTransform(D2D1::IdentityMatrix());
+      mTransformDirty = true;
       mDC->SetTarget(tmpBitmap);
       mDC->DrawImage(list, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
                      D2D1_COMPOSITE_MODE_BOUNDED_SOURCE_COPY);
@@ -1843,7 +1875,6 @@ already_AddRefed<ID2D1Image> DrawTargetD2D1::GetImageForLayerContent(
 
     if (aShouldPreserveContent) {
       list->Stream(&sink);
-      PushAllClips();
     }
 
     if (tmpBitmap) {

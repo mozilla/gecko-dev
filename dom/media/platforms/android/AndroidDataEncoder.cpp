@@ -115,8 +115,9 @@ AndroidDataEncoder<ConfigType>::ProcessInit() {
   AssertOnTaskQueue();
   MOZ_ASSERT(!mJavaEncoder);
 
-  java::sdk::BufferInfo::LocalRef bufferInfo;
-  if (NS_FAILED(java::sdk::BufferInfo::New(&bufferInfo)) || !bufferInfo) {
+  java::sdk::MediaCodec::BufferInfo::LocalRef bufferInfo;
+  if (NS_FAILED(java::sdk::MediaCodec::BufferInfo::New(&bufferInfo)) ||
+      !bufferInfo) {
     return InitPromise::CreateAndReject(NS_ERROR_OUT_OF_MEMORY, __func__);
   }
   mInputBufferInfo = bufferInfo;
@@ -172,20 +173,22 @@ static jni::ByteBuffer::LocalRef ConvertI420ToNV12Buffer(
   const PlanarYCbCrImage* image = aSample->mImage->AsPlanarYCbCrImage();
   MOZ_ASSERT(image);
   const PlanarYCbCrData* yuv = image->GetData();
-  size_t ySize = yuv->mYStride * yuv->mYSize.height;
-  size_t size = ySize + (yuv->mCbCrStride * yuv->mCbCrSize.height * 2);
-  if (!aYUVBuffer || aYUVBuffer->Capacity() < size) {
-    aYUVBuffer = MakeRefPtr<MediaByteBuffer>(size);
-    aYUVBuffer->SetLength(size);
+  auto ySize = yuv->YDataSize();
+  auto cbcrSize = yuv->CbCrDataSize();
+  size_t yLength = yuv->mYStride * ySize.height;
+  size_t length = yLength + (yuv->mCbCrStride * cbcrSize.height * 2);
+  if (!aYUVBuffer || aYUVBuffer->Capacity() < length) {
+    aYUVBuffer = MakeRefPtr<MediaByteBuffer>(length);
+    aYUVBuffer->SetLength(length);
   } else {
-    MOZ_ASSERT(aYUVBuffer->Length() >= size);
+    MOZ_ASSERT(aYUVBuffer->Length() >= length);
   }
 
   if (libyuv::I420ToNV12(yuv->mYChannel, yuv->mYStride, yuv->mCbChannel,
                          yuv->mCbCrStride, yuv->mCrChannel, yuv->mCbCrStride,
                          aYUVBuffer->Elements(), yuv->mYStride,
-                         aYUVBuffer->Elements() + ySize, yuv->mCbCrStride * 2,
-                         yuv->mYSize.width, yuv->mYSize.height) != 0) {
+                         aYUVBuffer->Elements() + yLength, yuv->mCbCrStride * 2,
+                         ySize.width, ySize.height) != 0) {
     return nullptr;
   }
 
@@ -289,7 +292,7 @@ void AndroidDataEncoder<ConfigType>::ProcessOutput(
 
   AutoRelease releaseSample(mJavaEncoder, aSample);
 
-  java::sdk::BufferInfo::LocalRef info = aSample->Info();
+  java::sdk::MediaCodec::BufferInfo::LocalRef info = aSample->Info();
   MOZ_ASSERT(info);
 
   int32_t flags;

@@ -322,7 +322,8 @@ nscoord nsComboboxControlFrame::GetIntrinsicISize(gfxContext* aRenderingContext,
                                                   IntrinsicISizeType aType) {
   nscoord displayISize = mDisplayFrame->IntrinsicISizeOffsets().padding;
 
-  if (!StyleDisplay()->IsContainSize() && !StyleContent()->mContent.IsNone()) {
+  if (!StyleDisplay()->GetContainSizeAxes().mIContained &&
+      !StyleContent()->mContent.IsNone()) {
     // Compute the width of each option's (potentially text-transformed) text,
     // and use the widest one as part of our intrinsic size.
     nscoord maxOptionSize = 0;
@@ -353,18 +354,17 @@ nscoord nsComboboxControlFrame::GetIntrinsicISize(gfxContext* aRenderingContext,
           maxOptionSize, nsLayoutUtils::AppUnitWidthOfStringBidi(
                              *stringToUse, this, *fm, *aRenderingContext));
     }
-
+    if (maxOptionSize) {
+      // HACK: Add one app unit to workaround silly Netgear router styling, see
+      // bug 1769580. In practice since this comes from font metrics is unlikely
+      // to be perceivable.
+      maxOptionSize += 1;
+    }
     displayISize += maxOptionSize;
   }
 
-  // Add room for the dropmarker button (if there is one) and scrollbar on the
-  // popup.
+  // Add room for the dropmarker button (if there is one).
   displayISize += DropDownButtonISize();
-  nsPresContext* pc = PresContext();
-  if (!pc->UseOverlayScrollbars()) {
-    displayISize += nsIScrollableFrame::GetNondisappearingScrollbarWidth(
-        pc, GetWritingMode());
-  }
 
   return displayISize;
 }
@@ -411,7 +411,7 @@ void nsComboboxControlFrame::Reflow(nsPresContext* aPresContext,
   // 4) Inline size of display area is whatever is left over from our
   //    inline size after allocating inline size for the button.
 
-  if (!mDisplayFrame || !mButtonFrame) {
+  if (!mDisplayFrame) {
     NS_ERROR("Why did the frame constructor allow this to happen?  Fix it!!");
     return;
   }
@@ -440,15 +440,17 @@ void nsComboboxControlFrame::Reflow(nsPresContext* aPresContext,
 
   // The button should occupy the same space as a scrollbar, and its position
   // starts from the border edge.
-  LogicalRect buttonRect(wm);
-  buttonRect.IStart(wm) = borderPadding.IStart(wm) + mMaxDisplayISize;
-  buttonRect.BStart(wm) = border.BStart(wm);
+  if (mButtonFrame) {
+    LogicalRect buttonRect(wm);
+    buttonRect.IStart(wm) = borderPadding.IStart(wm) + mMaxDisplayISize;
+    buttonRect.BStart(wm) = border.BStart(wm);
 
-  buttonRect.ISize(wm) = buttonISize;
-  buttonRect.BSize(wm) = mDisplayFrame->BSize(wm) + padding.BStartEnd(wm);
+    buttonRect.ISize(wm) = buttonISize;
+    buttonRect.BSize(wm) = mDisplayFrame->BSize(wm) + padding.BStartEnd(wm);
 
-  const nsSize containerSize = aDesiredSize.PhysicalSize();
-  mButtonFrame->SetRect(buttonRect, containerSize);
+    const nsSize containerSize = aDesiredSize.PhysicalSize();
+    mButtonFrame->SetRect(buttonRect, containerSize);
+  }
 
   if (!aStatus.IsInlineBreakBefore() && !aStatus.IsFullyComplete()) {
     // This frame didn't fit inside a fragmentation container.  Splitting
@@ -686,30 +688,21 @@ nsresult nsComboboxControlFrame::CreateAnonymousContent(
   }
   ActuallyDisplayText(false);
 
-  // XXX(Bug 1631371) Check if this should use a fallible operation as it
-  // pretended earlier.
   aElements.AppendElement(mDisplayContent);
+  if (HasDropDownButton()) {
+    mButtonContent = mContent->OwnerDoc()->CreateHTMLElement(nsGkAtoms::button);
+    if (!mButtonContent) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
 
-  mButtonContent = mContent->OwnerDoc()->CreateHTMLElement(nsGkAtoms::button);
-  if (!mButtonContent) return NS_ERROR_OUT_OF_MEMORY;
-
-  // make someone to listen to the button.
-  mButtonContent->SetAttr(kNameSpaceID_None, nsGkAtoms::type, u"button"_ns,
-                          false);
-  // Set tabindex="-1" so that the button is not tabbable
-  mButtonContent->SetAttr(kNameSpaceID_None, nsGkAtoms::tabindex, u"-1"_ns,
-                          false);
-
-  WritingMode wm = GetWritingMode();
-  if (wm.IsVertical()) {
-    mButtonContent->SetAttr(kNameSpaceID_None, nsGkAtoms::orientation,
-                            wm.IsVerticalRL() ? u"left"_ns : u"right"_ns,
+    // make someone to listen to the button.
+    mButtonContent->SetAttr(kNameSpaceID_None, nsGkAtoms::type, u"button"_ns,
                             false);
+    // Set tabindex="-1" so that the button is not tabbable
+    mButtonContent->SetAttr(kNameSpaceID_None, nsGkAtoms::tabindex, u"-1"_ns,
+                            false);
+    aElements.AppendElement(mButtonContent);
   }
-
-  // XXX(Bug 1631371) Check if this should use a fallible operation as it
-  // pretended earlier.
-  aElements.AppendElement(mButtonContent);
 
   return NS_OK;
 }
@@ -855,7 +848,6 @@ void nsComboboxControlFrame::DestroyFrom(nsIFrame* aDestructRoot,
   mEventListener->Detach();
 
   // Cleanup frames in popup child list
-  mPopupFrames.DestroyFramesFrom(aDestructRoot, aPostDestroyData);
   aPostDestroyData.AddAnonymousContent(mDisplayContent.forget());
   aPostDestroyData.AddAnonymousContent(mButtonContent.forget());
   nsBlockFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
@@ -863,15 +855,11 @@ void nsComboboxControlFrame::DestroyFrom(nsIFrame* aDestructRoot,
 
 const nsFrameList& nsComboboxControlFrame::GetChildList(
     ChildListID aListID) const {
-  if (kSelectPopupList == aListID) {
-    return mPopupFrames;
-  }
   return nsBlockFrame::GetChildList(aListID);
 }
 
 void nsComboboxControlFrame::GetChildLists(nsTArray<ChildList>* aLists) const {
   nsBlockFrame::GetChildLists(aLists);
-  mPopupFrames.AppendIfNonempty(aLists, kSelectPopupList);
 }
 
 void nsComboboxControlFrame::SetInitialChildList(ChildListID aListID,
@@ -881,21 +869,16 @@ void nsComboboxControlFrame::SetInitialChildList(ChildListID aListID,
     MOZ_ASSERT(f->GetParent() == this, "Unexpected parent");
   }
 #endif
-  if (kSelectPopupList == aListID) {
-    mPopupFrames.SetFrames(aChildList);
-  } else {
-    for (nsFrameList::Enumerator e(aChildList); !e.AtEnd(); e.Next()) {
-      nsCOMPtr<nsIFormControl> formControl =
-          do_QueryInterface(e.get()->GetContent());
-      if (formControl &&
-          formControl->ControlType() == FormControlType::ButtonButton) {
-        mButtonFrame = e.get();
-        break;
-      }
+  for (nsFrameList::Enumerator e(aChildList); !e.AtEnd(); e.Next()) {
+    nsCOMPtr<nsIFormControl> formControl =
+        do_QueryInterface(e.get()->GetContent());
+    if (formControl &&
+        formControl->ControlType() == FormControlType::ButtonButton) {
+      mButtonFrame = e.get();
+      break;
     }
-    NS_ASSERTION(mButtonFrame, "missing button frame in initial child list");
-    nsBlockFrame::SetInitialChildList(aListID, aChildList);
   }
+  nsBlockFrame::SetInitialChildList(aListID, aChildList);
 }
 
 namespace mozilla {

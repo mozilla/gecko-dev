@@ -4,7 +4,8 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["ExtensionStorageIDB"];
+const EXPORTED_SYMBOLS = ["ExtensionStorageIDB"];
+let ExtensionStorageIDB;
 
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
@@ -78,7 +79,7 @@ var ErrorsTelemetry = {
     }
 
     if (
-      error instanceof DOMException ||
+      DOMException.isInstance(error) ||
       error instanceof DataMigrationAbortedError
     ) {
       if (error.name.length > 80) {
@@ -570,7 +571,7 @@ async function migrateJSONFileData(extension, storagePrincipal) {
  * This ExtensionStorage class implements a backend for the storage.local API which
  * uses IndexedDB to store the data.
  */
-this.ExtensionStorageIDB = {
+ExtensionStorageIDB = {
   BACKEND_ENABLED_PREF,
   IDB_MIGRATED_PREF_BRANCH,
   IDB_MIGRATE_RESULT_HISTOGRAM,
@@ -809,7 +810,7 @@ this.ExtensionStorageIDB = {
 
     let errorMessage;
 
-    if (error instanceof DOMException) {
+    if (DOMException.isInstance(error)) {
       switch (error.name) {
         case "DataCloneError":
           errorMessage = String(error);

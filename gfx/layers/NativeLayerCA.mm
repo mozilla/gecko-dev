@@ -29,6 +29,7 @@
 #include "mozilla/webrender/RenderMacIOSurfaceTextureHost.h"
 #include "nsCocoaFeatures.h"
 #include "ScopedGLHelpers.h"
+#include "SDKDeclarations.h"
 
 @interface CALayer (PrivateSetContentsOpaque)
 - (void)setContentsOpaque:(BOOL)opaque;
@@ -350,16 +351,35 @@ void NativeLayerRootCA::Representation::Commit(WhichRepresentation aRepresentati
     }
   }
 
-  // We're going to do a full update now, which requires a transaction.
+  // We're going to do a full update now, which requires a transaction. Update all of the
+  // sublayers. Afterwards, only continue processing the sublayers which have an extent.
   AutoCATransaction transaction;
+  nsTArray<NativeLayerCA*> sublayersWithExtent;
   for (auto layer : aSublayers) {
     mustRebuild |= layer->WillUpdateAffectLayers(aRepresentation);
     layer->ApplyChanges(aRepresentation, NativeLayerCA::UpdateType::All);
+    CALayer* caLayer = layer->UnderlyingCALayer(aRepresentation);
+    if (!caLayer.masksToBounds || !NSIsEmptyRect(caLayer.bounds)) {
+      // This layer has an extent. If it didn't before, we need to rebuild.
+      mustRebuild |= !layer->HasExtent();
+      layer->SetHasExtent(true);
+      sublayersWithExtent.AppendElement(layer);
+    } else {
+      // This layer has no extent. If it did before, we need to rebuild.
+      mustRebuild |= layer->HasExtent();
+      layer->SetHasExtent(false);
+    }
+
+    // One other reason we may need to rebuild is if the caLayer is not part of the
+    // root layer's sublayers. This might happen if the caLayer was rebuilt.
+    // We construct this check in a way that maximizes the boolean short-circuit,
+    // because we don't want to call containsObject unless absolutely necessary.
+    mustRebuild = mustRebuild || ![mRootCALayer.sublayers containsObject:caLayer];
   }
 
   if (mustRebuild) {
     // Bug 1731821 should eliminate this most of this logic and allow us to unconditionally
-    // accept aSublayers.
+    // accept sublayersWithExtent.
 
     // We're going to check for an opportunity to isolate the topmost video layer. We'll avoid
     // modifying mRootCALayer.sublayers unless we absolutely must, which will avoid flickering
@@ -371,11 +391,13 @@ void NativeLayerRootCA::Representation::Commit(WhichRepresentation aRepresentati
     //    video might have changed in some way that doesn't prevent isolation, so ignore them.
     //    Leave our sublayers unchanged.
 
+    uint32_t sublayersCount = sublayersWithExtent.Length();
+
     // Define a block we'll use to accept the provided sublayers if we must. In the different
     // cases, we'll call this at different times.
-    void (^acceptProvidedSublayers)() = ^() {
-      NSMutableArray<CALayer*>* sublayers = [NSMutableArray arrayWithCapacity:aSublayers.Length()];
-      for (auto layer : aSublayers) {
+    auto acceptProvidedSublayers = [&]() {
+      NSMutableArray<CALayer*>* sublayers = [NSMutableArray arrayWithCapacity:sublayersCount];
+      for (auto layer : sublayersWithExtent) {
         [sublayers addObject:layer->UnderlyingCALayer(aRepresentation)];
       }
       mRootCALayer.sublayers = sublayers;
@@ -384,8 +406,9 @@ void NativeLayerRootCA::Representation::Commit(WhichRepresentation aRepresentati
     // See if the top layer is already rooted in our mRootCALayer. If it is, then we can check
     // for isolation without first disrupting our sublayers.
     bool topLayerIsRooted =
-        aSublayers.Length() &&
-        (aSublayers.LastElement()->UnderlyingCALayer(aRepresentation).superlayer == mRootCALayer);
+        sublayersCount &&
+        (sublayersWithExtent.LastElement()->UnderlyingCALayer(aRepresentation).superlayer ==
+         mRootCALayer);
 
     if (!topLayerIsRooted) {
       // We have to accept the provided sublayers. We may still isolate, but it's because the
@@ -398,14 +421,14 @@ void NativeLayerRootCA::Representation::Commit(WhichRepresentation aRepresentati
     // them and isolate a single video layer. It's important that the topmost layer is a
     // child of mRootCALayer for this logic to work.
     MOZ_DIAGNOSTIC_ASSERT(
-        !aSublayers.Length() ||
-            (aSublayers.LastElement()->UnderlyingCALayer(aRepresentation).superlayer ==
+        !sublayersCount ||
+            (sublayersWithExtent.LastElement()->UnderlyingCALayer(aRepresentation).superlayer ==
              mRootCALayer),
         "The topmost layer must be a child of mRootCALayer.");
 
     bool didIsolate = false;
     if (mightIsolate && aWindowIsFullscreen && !aMouseMovedRecently) {
-      CALayer* isolatedLayer = FindVideoLayerToIsolate(aRepresentation, aSublayers);
+      CALayer* isolatedLayer = FindVideoLayerToIsolate(aRepresentation, sublayersWithExtent);
       if (isolatedLayer) {
         // No matter what happens next, we did choose to isolate.
         didIsolate = true;
@@ -444,7 +467,7 @@ void NativeLayerRootCA::Representation::Commit(WhichRepresentation aRepresentati
 }
 
 CALayer* NativeLayerRootCA::Representation::FindVideoLayerToIsolate(
-    WhichRepresentation aRepresentation, const nsTArray<RefPtr<NativeLayerCA>>& aSublayers) {
+    WhichRepresentation aRepresentation, const nsTArray<NativeLayerCA*>& aSublayers) {
   // Run a heuristic to determine if any one of aSublayers is a video layer that should be
   // isolated. These layers are ordered back-to-front. This function will return a candidate
   // CALayer if all of the following are true:
@@ -781,9 +804,51 @@ bool NativeLayerCA::IsVideoAndLocked(const MutexAutoLock& aProofOfLock) {
 }
 
 bool NativeLayerCA::ShouldSpecializeVideo(const MutexAutoLock& aProofOfLock) {
-  return StaticPrefs::gfx_core_animation_specialize_video() &&
-         nsCocoaFeatures::OnHighSierraOrLater() && mRootWindowIsFullscreen &&
-         IsVideoAndLocked(aProofOfLock);
+  if (!IsVideoAndLocked(aProofOfLock)) {
+    // Only videos are eligible.
+    return false;
+  }
+
+  if (!nsCocoaFeatures::OnHighSierraOrLater()) {
+    // We must be on a modern-enough macOS.
+    return false;
+  }
+
+  // Beyond this point, we need to know about the format of the video.
+
+  MOZ_ASSERT(mTextureHost);
+  MacIOSurface* macIOSurface = mTextureHost->GetSurface();
+  if (macIOSurface->GetYUVColorSpace() == gfx::YUVColorSpace::BT2020) {
+    // BT2020 is a signifier of HDR color space, whether or not the bit depth
+    // is expanded to cover that color space. This video needs a specialized
+    // video layer.
+    return true;
+  }
+
+  CFTypeRefPtr<IOSurfaceRef> surface = macIOSurface->GetIOSurfaceRef();
+  OSType pixelFormat = IOSurfaceGetPixelFormat(surface.get());
+  if (pixelFormat == kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange ||
+      pixelFormat == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange) {
+    // HDR videos require specialized video layers.
+    return true;
+  }
+
+  // Beyond this point, we return true if-and-only-if we think we can achieve
+  // the power-saving "detached mode" of the macOS compositor.
+
+  if (!StaticPrefs::gfx_core_animation_specialize_video()) {
+    // Pref must be set.
+    return false;
+  }
+
+  if (pixelFormat != kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange &&
+      pixelFormat != kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) {
+    // The video is not in one of the formats that qualifies for detachment.
+    return false;
+  }
+
+  // It will only detach if we're fullscreen.
+  return mRootWindowIsFullscreen;
 }
 
 void NativeLayerCA::SetRootWindowIsFullscreen(bool aFullscreen) {
@@ -1244,6 +1309,10 @@ static NSString* NSStringForOSType(OSType type) {
   CGColorSpaceRef colorSpace = CVImageBufferGetColorSpace(aBuffer);
   NSLog(@"ColorSpace is %@.\n", colorSpace);
 
+  CFDictionaryRef bufferAttachments =
+      CVBufferGetAttachments(aBuffer, kCVAttachmentMode_ShouldPropagate);
+  NSLog(@"Buffer attachments are %@.\n", bufferAttachments);
+
   OSType codec = CMFormatDescriptionGetMediaSubType(aFormat);
   NSLog(@"Codec is %@.\n", NSStringForOSType(codec));
 
@@ -1275,8 +1344,6 @@ bool NativeLayerCA::Representation::EnqueueSurface(IOSurfaceRef aSurfaceRef) {
     CFTypeRefPtr<CGColorSpaceRef> colorSpace =
         CFTypeRefPtr<CGColorSpaceRef>::WrapUnderGetRule(CVImageBufferGetColorSpace(pixelBuffer));
     if (!colorSpace) {
-      printf("VIDEO_LOG: pixel buffer created by EnqueueSurface has no color space.\n");
-
       // Use our main display color space.
       colorSpace = CFTypeRefPtr<CGColorSpaceRef>::WrapUnderCreateRule(
           CGDisplayCopyColorSpace(CGMainDisplayID()));
@@ -1380,13 +1447,10 @@ bool NativeLayerCA::Representation::ApplyChanges(
     bool updateSucceeded = false;
     if (aSpecializeVideo) {
       IOSurfaceRef surface = aFrontSurface.get();
-      if (CanSpecializeSurface(surface)) {
-        IOSurfaceRef surface = aFrontSurface.get();
-        updateSucceeded = EnqueueSurface(surface);
+      updateSucceeded = EnqueueSurface(surface);
 
-        if (updateSucceeded) {
-          mMutatedFrontSurface = false;
-        }
+      if (updateSucceeded) {
+        mMutatedFrontSurface = false;
       }
     }
 
@@ -1540,7 +1604,7 @@ bool NativeLayerCA::Representation::ApplyChanges(
   if (mMutatedFrontSurface) {
     bool isEnqueued = false;
     IOSurfaceRef surface = aFrontSurface.get();
-    if (aSpecializeVideo && CanSpecializeSurface(surface)) {
+    if (aSpecializeVideo) {
       // Attempt to enqueue this as a video frame. If we fail, we'll fall back to image case.
       isEnqueued = EnqueueSurface(surface);
     }
@@ -1599,16 +1663,8 @@ NativeLayerCA::UpdateType NativeLayerCA::Representation::HasUpdate(bool aIsVideo
 
 bool NativeLayerCA::WillUpdateAffectLayers(WhichRepresentation aRepresentation) {
   MutexAutoLock lock(mMutex);
-  return GetRepresentation(aRepresentation).mMutatedSpecializeVideo;
-}
-
-bool NativeLayerCA::Representation::CanSpecializeSurface(IOSurfaceRef surface) {
-  // Software decoded videos can't achieve detached mode. Until Bug 1731691 is fixed,
-  // there's no benefit to specializing these videos. For now, only allow 420v or 420f,
-  // which we get from hardware decode.
-  OSType pixelFormat = IOSurfaceGetPixelFormat(surface);
-  return (pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange ||
-          pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange);
+  auto& r = GetRepresentation(aRepresentation);
+  return r.mMutatedSpecializeVideo || !r.UnderlyingCALayer();
 }
 
 // Called when mMutex is already being held by the current thread.

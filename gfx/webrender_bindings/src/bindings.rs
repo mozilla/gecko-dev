@@ -46,11 +46,6 @@ use webrender::{
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
-#[cfg(target_os = "macos")]
-use core_foundation::string::CFString;
-#[cfg(target_os = "macos")]
-use core_graphics::font::CGFont;
-
 extern "C" {
     #[cfg(target_os = "android")]
     fn __android_log_write(prio: c_int, tag: *const c_char, text: *const c_char) -> c_int;
@@ -517,7 +512,6 @@ extern "C" {
     #[allow(dead_code)]
     fn gfx_critical_error(msg: *const c_char);
     fn gfx_critical_note(msg: *const c_char);
-    fn record_telemetry_time(probe: TelemetryProbe, time_ns: u64);
     fn gfx_wr_set_crash_annotation(annotation: CrashAnnotation, value: *const c_char);
     fn gfx_wr_clear_crash_annotation(annotation: CrashAnnotation);
 }
@@ -553,11 +547,8 @@ impl RenderNotifier for CppNotifier {
         }
     }
 
-    fn new_frame_ready(&self, _: DocumentId, _scrolled: bool, composite_needed: bool, render_time_ns: Option<u64>) {
+    fn new_frame_ready(&self, _: DocumentId, _scrolled: bool, composite_needed: bool) {
         unsafe {
-            if let Some(time) = render_time_ns {
-                record_telemetry_time(TelemetryProbe::FrameBuildTime, time);
-            }
             if composite_needed {
                 wr_notifier_new_frame_ready(self.window_id);
             } else {
@@ -993,17 +984,15 @@ impl SceneBuilderHooks for APZCallbacks {
         gecko_profiler_start_marker("SceneBuilding");
     }
 
-    fn pre_scene_swap(&self, scenebuild_time: u64) {
+    fn pre_scene_swap(&self) {
         unsafe {
-            record_telemetry_time(TelemetryProbe::SceneBuildTime, scenebuild_time);
             apz_pre_scene_swap(self.window_id);
         }
     }
 
-    fn post_scene_swap(&self, _document_ids: &Vec<DocumentId>, info: PipelineInfo, sceneswap_time: u64) {
+    fn post_scene_swap(&self, _document_ids: &Vec<DocumentId>, info: PipelineInfo) {
         let mut info = WrPipelineInfo::new(&info);
         unsafe {
-            record_telemetry_time(TelemetryProbe::SceneSwapTime, sceneswap_time);
             apz_post_scene_swap(self.window_id, &info);
         }
 
@@ -1086,10 +1075,14 @@ pub struct WrThreadPool(Arc<rayon::ThreadPool>);
 
 #[no_mangle]
 pub extern "C" fn wr_thread_pool_new(low_priority: bool) -> *mut WrThreadPool {
-    // Clamp the number of workers between 1 and 8. We get diminishing returns
+    // Clamp the number of workers between 1 and 4/8. We get diminishing returns
     // with high worker counts and extra overhead because of rayon and font
     // management.
-    let num_threads = num_cpus::get().max(2).min(8);
+
+    // We clamp to 4 high priority threads because contention and memory usage
+    // make it not worth going higher
+    let max = if low_priority { 8 } else { 4 };
+    let num_threads = num_cpus::get().min(max);
 
     let priority_tag = if low_priority { "LP" } else { "" };
 
@@ -1110,13 +1103,6 @@ pub extern "C" fn wr_thread_pool_new(low_priority: bool) -> *mut WrThreadPool {
         .build();
 
     let workers = Arc::new(worker.unwrap());
-
-    // This effectively leaks the thread pool. Not great but we only create one and it lives
-    // for as long as the browser.
-    // Do this to avoid intermittent race conditions with nsThreadManager shutdown.
-    // A better fix would involve removing the dependency between implicit nsThreadManager
-    // and webrender's threads, or be able to synchronously terminate rayon's thread pool.
-    mem::forget(Arc::clone(&workers));
 
     Box::into_raw(Box::new(WrThreadPool(workers)))
 }
@@ -1670,6 +1656,8 @@ pub extern "C" fn wr_window_new(
         clear_color: color,
         precache_flags,
         namespace_alloc_by_client: true,
+        // Font namespace must be allocated by the client
+        shared_font_namespace: Some(next_namespace_id()),
         // SWGL doesn't support the GL_ALWAYS depth comparison function used by
         // `clear_caches_with_quads`, but scissored clears work well.
         clear_caches_with_quads: !software && !allow_scissored_cache_clears,
@@ -2298,20 +2286,9 @@ fn read_font_descriptor(bytes: &mut WrVecU8, index: u32) -> NativeFontHandle {
 #[cfg(target_os = "macos")]
 fn read_font_descriptor(bytes: &mut WrVecU8, _index: u32) -> NativeFontHandle {
     let chars = bytes.flush_into_vec();
-    let name = String::from_utf8(chars).unwrap();
-    let font = match CGFont::from_name(&CFString::new(&*name)) {
-        Ok(font) => font,
-        Err(_) => {
-            // If for some reason we failed to load a font descriptor, then our
-            // only options are to either abort or substitute a fallback font.
-            // It is preferable to use a fallback font instead so that rendering
-            // can at least still proceed in some fashion without erroring.
-            // Lucida Grande is the fallback font in Gecko, so use that here.
-            CGFont::from_name(&CFString::from_static_string("Lucida Grande"))
-                .expect("Failed reading font descriptor and could not load fallback font")
-        },
-    };
-    NativeFontHandle(font)
+    NativeFontHandle {
+        name: String::from_utf8(chars).unwrap()
+    }
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -2895,12 +2872,20 @@ pub extern "C" fn wr_dp_push_rect(
     rect: LayoutRect,
     clip: LayoutRect,
     is_backface_visible: bool,
+    force_antialiasing: bool,
+    is_checkerboard: bool,
     parent: &WrSpaceAndClipChain,
     color: ColorF,
 ) {
     debug_assert!(unsafe { !is_in_render_thread() });
 
-    let prim_info = common_item_properties_for_rect(state, clip, is_backface_visible, parent);
+    let mut prim_info = common_item_properties_for_rect(state, clip, is_backface_visible, parent);
+    if force_antialiasing {
+        prim_info.flags |= PrimitiveFlags::ANTIALISED;
+    }
+    if is_checkerboard {
+        prim_info.flags |= PrimitiveFlags::CHECKERBOARD_BACKGROUND;
+    }
 
     state.frame_builder.dl_builder.push_rect(&prim_info, rect, color);
 }
@@ -3042,6 +3027,7 @@ pub extern "C" fn wr_dp_push_image(
     bounds: LayoutRect,
     clip: LayoutRect,
     is_backface_visible: bool,
+    force_antialiasing: bool,
     parent: &WrSpaceAndClipChain,
     image_rendering: ImageRendering,
     key: WrImageKey,
@@ -3054,15 +3040,21 @@ pub extern "C" fn wr_dp_push_image(
 
     let space_and_clip = parent.to_webrender(state.pipeline_id);
 
+    let mut flags = prim_flags2(
+        is_backface_visible,
+        prefer_compositor_surface,
+        supports_external_compositing,
+    );
+
+    if force_antialiasing {
+        flags |= PrimitiveFlags::ANTIALISED;
+    }
+
     let prim_info = CommonItemProperties {
         clip_rect: clip,
         clip_id: space_and_clip.clip_id,
         spatial_id: space_and_clip.spatial_id,
-        flags: prim_flags2(
-            is_backface_visible,
-            prefer_compositor_surface,
-            supports_external_compositing,
-        ),
+        flags,
     };
 
     let alpha_type = if premultiplied_alpha {
@@ -3200,6 +3192,49 @@ pub extern "C" fn wr_dp_push_yuv_NV12_image(
         &prim_info,
         bounds,
         YuvData::NV12(image_key_0, image_key_1),
+        color_depth,
+        color_space,
+        color_range,
+        image_rendering,
+    );
+}
+
+/// Push a 2 planar P010 image.
+#[no_mangle]
+pub extern "C" fn wr_dp_push_yuv_P010_image(
+    state: &mut WrState,
+    bounds: LayoutRect,
+    clip: LayoutRect,
+    is_backface_visible: bool,
+    parent: &WrSpaceAndClipChain,
+    image_key_0: WrImageKey,
+    image_key_1: WrImageKey,
+    color_depth: WrColorDepth,
+    color_space: WrYuvColorSpace,
+    color_range: WrColorRange,
+    image_rendering: ImageRendering,
+    prefer_compositor_surface: bool,
+    supports_external_compositing: bool,
+) {
+    debug_assert!(unsafe { is_in_main_thread() || is_in_compositor_thread() });
+
+    let space_and_clip = parent.to_webrender(state.pipeline_id);
+
+    let prim_info = CommonItemProperties {
+        clip_rect: clip,
+        clip_id: space_and_clip.clip_id,
+        spatial_id: space_and_clip.spatial_id,
+        flags: prim_flags2(
+            is_backface_visible,
+            prefer_compositor_surface,
+            supports_external_compositing,
+        ),
+    };
+
+    state.frame_builder.dl_builder.push_yuv_image(
+        &prim_info,
+        bounds,
+        YuvData::P010(image_key_0, image_key_1),
         color_depth,
         color_space,
         color_range,

@@ -8,12 +8,14 @@
 #include "cairo.h"
 #include "cairo-pdf.h"
 #include "mozilla/AppShutdown.h"
+#include "nsContentUtils.h"
+#include "nsString.h"
 
 namespace mozilla::gfx {
 
 static cairo_status_t write_func(void* closure, const unsigned char* data,
                                  unsigned int length) {
-  if (AppShutdown::IsShuttingDown()) {
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
     return CAIRO_STATUS_SUCCESS;
   }
   nsCOMPtr<nsIOutputStream> out = reinterpret_cast<nsIOutputStream*>(closure);
@@ -47,10 +49,22 @@ PrintTargetPDF::~PrintTargetPDF() {
 /* static */
 already_AddRefed<PrintTargetPDF> PrintTargetPDF::CreateOrNull(
     nsIOutputStream* aStream, const IntSize& aSizeInPoints) {
+  if (NS_WARN_IF(!aStream)) {
+    return nullptr;
+  }
+
   cairo_surface_t* surface = cairo_pdf_surface_create_for_stream(
       write_func, (void*)aStream, aSizeInPoints.width, aSizeInPoints.height);
   if (cairo_surface_status(surface)) {
     return nullptr;
+  }
+
+  nsAutoString creatorName;
+  if (NS_SUCCEEDED(nsContentUtils::GetLocalizedString(
+          nsContentUtils::eBRAND_PROPERTIES, "brandFullName", creatorName)) &&
+      !creatorName.IsEmpty()) {
+    cairo_pdf_surface_set_metadata(surface, CAIRO_PDF_METADATA_CREATOR,
+                                   NS_ConvertUTF16toUTF8(creatorName).get());
   }
 
   // The new object takes ownership of our surface reference.
@@ -65,7 +79,8 @@ nsresult PrintTargetPDF::EndPage() {
 }
 
 void PrintTargetPDF::Finish() {
-  if (mIsFinished || AppShutdown::IsShuttingDown()) {
+  if (mIsFinished ||
+      AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
     // We don't want to call Close() on mStream more than once, and we don't
     // want to block shutdown if for some reason the user shuts down the
     // browser mid print.

@@ -4,6 +4,8 @@
 
 // Tests pretty-printing a source that is currently paused.
 
+"use strict";
+
 add_task(async function() {
   const dbg = await initDebugger("doc-minified.html", "math.min.js");
   const thread = dbg.selectors.getCurrentThread();
@@ -13,7 +15,7 @@ add_task(async function() {
 
   invokeInTab("arithmetic");
   await waitForPaused(dbg, "math.min.js");
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "math.min.js").id, 2);
 
   clickElement(dbg, "prettyPrintButton");
   await waitForSelectedSource(dbg, "math.min.js:formatted");
@@ -21,7 +23,11 @@ add_task(async function() {
     dbg,
     state => dbg.selectors.getSelectedFrame(thread).location.line == 18
   );
-  assertPausedLocation(dbg);
+  assertPausedAtSourceAndLine(
+    dbg,
+    findSource(dbg, "math.min.js:formatted").id,
+    18
+  );
   await waitForBreakpoint(dbg, "math.min.js:formatted", 18);
   await assertBreakpoint(dbg, 18);
 

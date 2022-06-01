@@ -95,7 +95,7 @@ const CHROME_FLAGS_MAP = [
     "close=0",
   ],
   [Ci.nsIWebBrowserChrome.CHROME_WINDOW_LOWERED, "alwayslowered"],
-  [Ci.nsIWebBrowserChrome.HROME_WINDOW_RAISED, "alwaysraised"],
+  [Ci.nsIWebBrowserChrome.CHROME_WINDOW_RAISED, "alwaysraised"],
   // "chrome" and "suppressanimation" are always set.
   //[Ci.nsIWebBrowserChrome.CHROME_SUPPRESS_ANIMATION, "suppressanimation"],
   [Ci.nsIWebBrowserChrome.CHROME_ALWAYS_ON_TOP, "alwaysontop"],
@@ -1081,6 +1081,7 @@ var SessionStoreInternal = {
           // Non-SHIP code calls this when the frame script is unloaded.
           this.onFinalTabStateUpdateComplete(aSubject);
         }
+        this._notifyOfClosedObjectsChange();
         break;
     }
   },
@@ -1376,8 +1377,11 @@ var SessionStoreInternal = {
 
         this.onTabStateUpdate(browser.permanentKey, browser.ownerGlobal, data);
 
+        // SHIP code will call this when it receives "browser-shutdown-tabstate-updated"
         if (data.isFinal) {
-          this.onFinalTabStateUpdateComplete(browser);
+          if (!Services.appinfo.sessionHistoryInParent) {
+            this.onFinalTabStateUpdateComplete(browser);
+          }
         } else if (data.flushID) {
           // This is an update kicked off by an async flush request. Notify the
           // TabStateFlusher so that it can finish the request and notify its
@@ -2531,6 +2535,9 @@ var SessionStoreInternal = {
     if (!isPrivateWindow && tabState.isPrivate) {
       return;
     }
+    if (aTab == aWindow.gFirefoxViewTab) {
+      return;
+    }
 
     let permanentKey = aTab.linkedBrowser.permanentKey;
 
@@ -2588,19 +2595,30 @@ var SessionStoreInternal = {
     gBrowser.tabContainer.updateTabIndicatorAttr(aTab);
 
     let { userTypedValue = null, userTypedClear = 0 } = browser;
+    let hasStartedLoad = browser.didStartLoadSinceLastUserTyping();
 
     let cacheState = TabStateCache.get(browser.permanentKey);
 
-    // cache the userTypedValue either if the there is no cache state at all
-    // (e.g. if it was already discarded before we got to cache its state) or
+    // Cache the browser userTypedValue either if there is no cache state
+    // at all (e.g. if it was already discarded before we got to cache its state)
     // or it may have been created but not including a userTypedValue (e.g.
     // for a private tab we will cache `isPrivate: true` as soon as the tab
     // is opened).
     //
-    // In both cases we want to be sure that we are caching the userTypedValue
-    // if the browser element has one, otherwise the lazy tab will not be
-    // restored with the expected url once activated again (e.g. See Bug 1724205).
-    if (userTypedValue && !cacheState?.userTypedValue) {
+    // But only if:
+    //
+    // - if there is no cache state yet (which is unfortunately required
+    //   for tabs discarded immediately after creation by extensions, see
+    //   Bug 1422588).
+    //
+    // - or the user typed value was already being loaded (otherwise the lazy
+    //   tab will not be restored with the expected url once activated again,
+    //   see Bug 1724205).
+    let shouldUpdateCacheState =
+      userTypedValue &&
+      (!cacheState || (hasStartedLoad && !cacheState.userTypedValue));
+
+    if (shouldUpdateCacheState) {
       // Discard was likely called before state can be cached.  Update
       // the persistent tab state cache with browser information so a
       // restore will be successful.  This information is necessary for
@@ -3110,6 +3128,7 @@ var SessionStoreInternal = {
         ? { relatedToCurrent: true, ownerTab: aTab }
         : {}),
       skipLoad: true,
+      preferredRemoteType: aTab.linkedBrowser.remoteType,
     };
     let newTab = aWindow.gBrowser.addTrustedTab(null, tabOptions);
 
@@ -3246,12 +3265,35 @@ var SessionStoreInternal = {
       aIndex
     );
 
+    // Predict the remote type to use for the load to avoid unnecessary process
+    // switches.
+    let preferredRemoteType = E10SUtils.DEFAULT_REMOTE_TYPE;
+    if (state.entries?.length) {
+      let activeIndex = (state.index || state.entries.length) - 1;
+      activeIndex = Math.min(activeIndex, state.entries.length - 1);
+      activeIndex = Math.max(activeIndex, 0);
+
+      preferredRemoteType = E10SUtils.getRemoteTypeForURI(
+        state.entries[activeIndex].url,
+        aWindow.gMultiProcessBrowser,
+        aWindow.gFissionBrowser,
+        E10SUtils.DEFAULT_REMOTE_TYPE,
+        null,
+        E10SUtils.predictOriginAttributes({
+          window: aWindow,
+          userContextId: state.userContextId,
+        })
+      );
+    }
+
     // create a new tab
     let tabbrowser = aWindow.gBrowser;
     let tab = (tabbrowser.selectedTab = tabbrowser.addTrustedTab(null, {
       index: pos,
       pinned: state.pinned,
       userContextId: state.userContextId,
+      skipLoad: true,
+      preferredRemoteType,
     }));
 
     // restore tab content
@@ -4076,6 +4118,9 @@ var SessionStoreInternal = {
 
     // update the internal state data for this window
     for (let tab of tabs) {
+      if (tab == aWindow.gFirefoxViewTab) {
+        continue;
+      }
       let tabData = TabState.collect(tab, TAB_CUSTOM_VALUES.get(tab));
       tabMap.set(tab, tabData);
       tabsData.push(tabData);
@@ -4306,7 +4351,7 @@ var SessionStoreInternal = {
    * @returns a flag indicates whether a connection has been made
    */
   prepareConnectionToHost(tab, url) {
-    if (!url.startsWith("about:")) {
+    if (url && !url.startsWith("about:")) {
       let principal = Services.scriptSecurityManager.createNullPrincipal({
         userContextId: tab.userContextId,
       });
@@ -4876,13 +4921,13 @@ var SessionStoreInternal = {
   /**
    * Restore a window's dimensions
    * @param aWidth
-   *        Window width
+   *        Window width in desktop pixels
    * @param aHeight
-   *        Window height
+   *        Window height in desktop pixels
    * @param aLeft
-   *        Window left
+   *        Window left in desktop pixels
    * @param aTop
-   *        Window top
+   *        Window top in desktop pixels
    * @param aSizeMode
    *        Window size mode (eg: maximized)
    * @param aSizeModeBeforeMinimized
@@ -4920,46 +4965,56 @@ var SessionStoreInternal = {
         screenWidth,
         screenHeight
       );
-      // screenX/Y are based on the origin of the screen's desktop-pixel coordinate space
-      let screenLeftCss = screenLeft.value;
-      let screenTopCss = screenTop.value;
-      // convert screen's device pixel dimensions to CSS px dimensions
-      screen.GetAvailRect(screenLeft, screenTop, screenWidth, screenHeight);
-      let cssToDevScale = screen.defaultCSSScaleFactor;
-      let screenRightCss = screenLeftCss + screenWidth.value / cssToDevScale;
-      let screenBottomCss = screenTopCss + screenHeight.value / cssToDevScale;
+
+      // We store aLeft / aTop (screenX/Y) in desktop pixels, see
+      // _getWindowDimension.
+      screenLeft = screenLeft.value;
+      screenTop = screenTop.value;
+      screenWidth = screenWidth.value;
+      screenHeight = screenHeight.value;
+
+      let screenBottom = screenTop + screenHeight;
+      let screenRight = screenLeft + screenWidth;
+
+      // NOTE: contentsScaleFactor is the desktopToDeviceScale of the screen.
+      // Naming could be more consistent here.
+      let cssToDesktopScale =
+        screen.defaultCSSScaleFactor / screen.contentsScaleFactor;
+
+      let slop = SCREEN_EDGE_SLOP * cssToDesktopScale;
 
       // Pull the window within the screen's bounds (allowing a little slop
       // for windows that may be deliberately placed with their border off-screen
       // as when Win10 "snaps" a window to the left/right edge -- bug 1276516).
       // First, ensure the left edge is large enough...
-      if (aLeft < screenLeftCss - SCREEN_EDGE_SLOP) {
-        aLeft = screenLeftCss;
+      if (aLeft < screenLeft - slop) {
+        aLeft = screenLeft;
       }
       // Then check the resulting right edge, and reduce it if necessary.
-      let right = aLeft + aWidth;
-      if (right > screenRightCss + SCREEN_EDGE_SLOP) {
-        right = screenRightCss;
+      let right = aLeft + aWidth * cssToDesktopScale;
+      if (right > screenRight + slop) {
+        right = screenRight;
         // See if we can move the left edge leftwards to maintain width.
-        if (aLeft > screenLeftCss) {
-          aLeft = Math.max(right - aWidth, screenLeftCss);
+        if (aLeft > screenLeft) {
+          aLeft = Math.max(right - aWidth * cssToDesktopScale, screenLeft);
         }
       }
-      // Finally, update aWidth to account for the adjusted left and right edges.
-      aWidth = right - aLeft;
+      // Finally, update aWidth to account for the adjusted left and right
+      // edges, and convert it back to CSS pixels on the target screen.
+      aWidth = (right - aLeft) / cssToDesktopScale;
 
       // And do the same in the vertical dimension.
-      if (aTop < screenTopCss - SCREEN_EDGE_SLOP) {
-        aTop = screenTopCss;
+      if (aTop < screenTop - slop) {
+        aTop = screenTop;
       }
-      let bottom = aTop + aHeight;
-      if (bottom > screenBottomCss + SCREEN_EDGE_SLOP) {
-        bottom = screenBottomCss;
-        if (aTop > screenTopCss) {
-          aTop = Math.max(bottom - aHeight, screenTopCss);
+      let bottom = aTop + aHeight * cssToDesktopScale;
+      if (bottom > screenBottom + slop) {
+        bottom = screenBottom;
+        if (aTop > screenTop) {
+          aTop = Math.max(bottom - aHeight * cssToDesktopScale, screenTop);
         }
       }
-      aHeight = bottom - aTop;
+      aHeight = (bottom - aTop) / cssToDesktopScale;
     }
 
     // Suppress animations.
@@ -4973,7 +5028,12 @@ var SessionStoreInternal = {
         !isNaN(aTop) &&
         (aLeft != win_("screenX") || aTop != win_("screenY"))
       ) {
-        aWindow.moveTo(aLeft, aTop);
+        // moveTo uses CSS pixels relative to aWindow, while aLeft and aRight
+        // are on desktop pixels, undo the conversion we do in
+        // _getWindowDimension.
+        let desktopToCssScale =
+          aWindow.desktopToDeviceScale / aWindow.devicePixelRatio;
+        aWindow.moveTo(aLeft * desktopToCssScale, aTop * desktopToCssScale);
       }
       if (
         aWidth &&
@@ -5339,6 +5399,17 @@ var SessionStoreInternal = {
         return aWindow.outerWidth;
       case "height":
         return aWindow.outerHeight;
+      case "screenX":
+      case "screenY":
+        // We use desktop pixels rather than CSS pixels to store window
+        // positions, see bug 1247335.  This allows proper multi-monitor
+        // positioning in mixed-DPI situations.
+        // screenX/Y are in CSS pixels for the current window, so, convert them
+        // to desktop pixels.
+        return (
+          (aWindow[aAttribute] * aWindow.devicePixelRatio) /
+          aWindow.desktopToDeviceScale
+        );
       default:
         return aAttribute in aWindow ? aWindow[aAttribute] : "";
     }
@@ -5440,7 +5511,6 @@ var SessionStoreInternal = {
         aTabState.entries.length == 1 &&
         (aTabState.entries[0].url == "about:blank" ||
           aTabState.entries[0].url == "about:newtab" ||
-          aTabState.entries[0].url == "about:printpreview" ||
           aTabState.entries[0].url == "about:privatebrowsing") &&
         !aTabState.userTypedValue
       )
@@ -5465,10 +5535,7 @@ var SessionStoreInternal = {
       aTabState.userTypedValue ||
       (aTabState.attributes && aTabState.attributes.customizemode == "true") ||
       (aTabState.entries.length &&
-        !(
-          aTabState.entries[0].url == "about:printpreview" ||
-          aTabState.entries[0].url == "about:privatebrowsing"
-        ))
+        aTabState.entries[0].url != "about:privatebrowsing")
     );
   },
 
@@ -6228,27 +6295,6 @@ var SessionStoreInternal = {
 
     // Notify the tabbrowser that the tab chrome has been restored.
     let tabData = TabState.collect(tab, TAB_CUSTOM_VALUES.get(tab));
-
-    // wall-paper fix for bug 439675: make sure that the URL to be loaded
-    // is always visible in the address bar if no other value is present
-    let activePageData = tabData.entries[tabData.index - 1] || null;
-    let uri = activePageData ? activePageData.url || null : null;
-    // NB: we won't set initial URIs (about:home, about:newtab, etc.) here
-    // because their load will not normally trigger a location bar clearing
-    // when they finish loading (to avoid race conditions where we then
-    // clear user input instead), so we shouldn't set them here either.
-    // They also don't fall under the issues in bug 439675 where user input
-    // needs to be preserved if the load doesn't succeed.
-    // We also don't do this for remoteness updates, where it should not
-    // be necessary.
-    if (
-      !browser.userTypedValue &&
-      uri &&
-      !data.isRemotenessUpdate &&
-      !win.gInitialPages.includes(uri)
-    ) {
-      browser.userTypedValue = uri;
-    }
 
     // Update tab label and icon again after the tab history was updated.
     this.updateTabLabelAndIcon(tab, tabData);

@@ -25,15 +25,6 @@ nsPrintSettingsX::nsPrintSettingsX() {
 
   mDestination = kPMDestinationInvalid;
 
-  /*
-   * Don't save print settings after the user cancels out of the
-   * print dialog. For saving print settings after a cancellation
-   * to work properly, in addition to changing |mSaveOnCancel|,
-   * the print dialog implementation must be updated to save changed
-   * settings and serialize them back to the child process.
-   */
-  mSaveOnCancel = false;
-
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
@@ -180,7 +171,9 @@ NSPrintInfo* nsPrintSettingsX::CreateOrCopyPrintInfo(bool aWithScaling) {
   }
 
   if (mDisposition.IsEmpty()) {
-    if (mPrintToFile) {
+    // NOTE: It's unclear what to do for kOutputDestinationStream but this is
+    // only for the native print dialog where that can't happen.
+    if (mOutputDestination == kOutputDestinationFile) {
       [printInfo setJobDisposition:NSPrintSaveJob];
     } else {
       [printInfo setJobDisposition:NSPrintSpoolJob];
@@ -292,7 +285,12 @@ void nsPrintSettingsX::SetFromPrintInfo(NSPrintInfo* aPrintInfo, bool aAdoptPrin
     mScaling = round(double([aPrintInfo scalingFactor]) * 100.0) / 100.0;
   }
 
-  mPrintToFile = [aPrintInfo jobDisposition] == NSPrintSaveJob;
+  mOutputDestination = [&] {
+    if ([aPrintInfo jobDisposition] == NSPrintSaveJob) {
+      return kOutputDestinationFile;
+    }
+    return kOutputDestinationPrinter;
+  }();
 
   NSDictionary* dict = [aPrintInfo dictionary];
   const char* filePath = [[dict objectForKey:NSPrintJobSavingURL] fileSystemRepresentation];

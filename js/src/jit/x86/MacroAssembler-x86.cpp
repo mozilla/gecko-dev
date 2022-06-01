@@ -310,6 +310,16 @@ void MacroAssemblerX86::vmulpdSimd128(const SimdConstant& v, FloatRegister lhs,
   vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vmulpd_mr);
 }
 
+void MacroAssemblerX86::vandpdSimd128(const SimdConstant& v, FloatRegister lhs,
+                                      FloatRegister dest) {
+  vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vandpd_mr);
+}
+
+void MacroAssemblerX86::vminpdSimd128(const SimdConstant& v, FloatRegister lhs,
+                                      FloatRegister dest) {
+  vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vminpd_mr);
+}
+
 void MacroAssemblerX86::vpacksswbSimd128(const SimdConstant& v,
                                          FloatRegister lhs,
                                          FloatRegister dest) {
@@ -332,6 +342,18 @@ void MacroAssemblerX86::vpackusdwSimd128(const SimdConstant& v,
                                          FloatRegister lhs,
                                          FloatRegister dest) {
   vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vpackusdw_mr);
+}
+
+void MacroAssemblerX86::vpunpckldqSimd128(const SimdConstant& v,
+                                          FloatRegister lhs,
+                                          FloatRegister dest) {
+  vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vpunpckldq_mr);
+}
+
+void MacroAssemblerX86::vunpcklpsSimd128(const SimdConstant& v,
+                                         FloatRegister lhs,
+                                         FloatRegister dest) {
+  vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vunpcklps_mr);
 }
 
 void MacroAssemblerX86::vpshufbSimd128(const SimdConstant& v, FloatRegister lhs,
@@ -400,6 +422,11 @@ void MacroAssemblerX86::vcmplepsSimd128(const SimdConstant& v,
   vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vcmpleps_mr);
 }
 
+void MacroAssemblerX86::vcmpgepsSimd128(const SimdConstant& v,
+                                        FloatRegister lhs, FloatRegister dest) {
+  vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vcmpgeps_mr);
+}
+
 void MacroAssemblerX86::vcmpeqpdSimd128(const SimdConstant& v,
                                         FloatRegister lhs, FloatRegister dest) {
   vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vcmpeqpd_mr);
@@ -425,6 +452,11 @@ void MacroAssemblerX86::vpmaddubswSimd128(const SimdConstant& v,
                                           FloatRegister lhs,
                                           FloatRegister dest) {
   vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vpmaddubsw_mr);
+}
+
+void MacroAssemblerX86::vpmuludqSimd128(const SimdConstant& v,
+                                        FloatRegister lhs, FloatRegister dest) {
+  vpPatchOpSimd128(v, lhs, dest, &X86Encoding::BaseAssemblerX86::vpmuludq_mr);
 }
 
 void MacroAssemblerX86::finish() {
@@ -492,27 +524,30 @@ void MacroAssemblerX86::handleFailureWithHandlerTail(Label* profilerExitTail) {
   Label entryFrame;
   Label catch_;
   Label finally;
-  Label return_;
+  Label returnBaseline;
+  Label returnIon;
   Label bailout;
   Label wasm;
   Label wasmCatch;
 
-  loadPtr(Address(esp, offsetof(ResumeFromException, kind)), eax);
+  loadPtr(Address(esp, ResumeFromException::offsetOfKind()), eax);
   asMasm().branch32(Assembler::Equal, eax,
-                    Imm32(ResumeFromException::RESUME_ENTRY_FRAME),
-                    &entryFrame);
+                    Imm32(ExceptionResumeKind::EntryFrame), &entryFrame);
+  asMasm().branch32(Assembler::Equal, eax, Imm32(ExceptionResumeKind::Catch),
+                    &catch_);
+  asMasm().branch32(Assembler::Equal, eax, Imm32(ExceptionResumeKind::Finally),
+                    &finally);
   asMasm().branch32(Assembler::Equal, eax,
-                    Imm32(ResumeFromException::RESUME_CATCH), &catch_);
+                    Imm32(ExceptionResumeKind::ForcedReturnBaseline),
+                    &returnBaseline);
   asMasm().branch32(Assembler::Equal, eax,
-                    Imm32(ResumeFromException::RESUME_FINALLY), &finally);
+                    Imm32(ExceptionResumeKind::ForcedReturnIon), &returnIon);
+  asMasm().branch32(Assembler::Equal, eax, Imm32(ExceptionResumeKind::Bailout),
+                    &bailout);
+  asMasm().branch32(Assembler::Equal, eax, Imm32(ExceptionResumeKind::Wasm),
+                    &wasm);
   asMasm().branch32(Assembler::Equal, eax,
-                    Imm32(ResumeFromException::RESUME_FORCED_RETURN), &return_);
-  asMasm().branch32(Assembler::Equal, eax,
-                    Imm32(ResumeFromException::RESUME_BAILOUT), &bailout);
-  asMasm().branch32(Assembler::Equal, eax,
-                    Imm32(ResumeFromException::RESUME_WASM), &wasm);
-  asMasm().branch32(Assembler::Equal, eax,
-                    Imm32(ResumeFromException::RESUME_WASM_CATCH), &wasmCatch);
+                    Imm32(ExceptionResumeKind::WasmCatch), &wasmCatch);
 
   breakpoint();  // Invalid kind.
 
@@ -520,43 +555,53 @@ void MacroAssemblerX86::handleFailureWithHandlerTail(Label* profilerExitTail) {
   // and return from the entry frame.
   bind(&entryFrame);
   asMasm().moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
-  loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfStackPointer()), esp);
   ret();
 
   // If we found a catch handler, this must be a baseline frame. Restore state
   // and jump to the catch block.
   bind(&catch_);
-  loadPtr(Address(esp, offsetof(ResumeFromException, target)), eax);
-  loadPtr(Address(esp, offsetof(ResumeFromException, framePointer)), ebp);
-  loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfTarget()), eax);
+  loadPtr(Address(esp, ResumeFromException::offsetOfFramePointer()), ebp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfStackPointer()), esp);
   jmp(Operand(eax));
 
-  // If we found a finally block, this must be a baseline frame. Push
-  // two values expected by JSOp::Retsub: BooleanValue(true) and the
-  // exception.
+  // If we found a finally block, this must be a baseline frame. Push two
+  // values expected by the finally block: the exception and BooleanValue(true).
   bind(&finally);
   ValueOperand exception = ValueOperand(ecx, edx);
-  loadValue(Address(esp, offsetof(ResumeFromException, exception)), exception);
+  loadValue(Address(esp, ResumeFromException::offsetOfException()), exception);
 
-  loadPtr(Address(esp, offsetof(ResumeFromException, target)), eax);
-  loadPtr(Address(esp, offsetof(ResumeFromException, framePointer)), ebp);
-  loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfTarget()), eax);
+  loadPtr(Address(esp, ResumeFromException::offsetOfFramePointer()), ebp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfStackPointer()), esp);
 
-  pushValue(BooleanValue(true));
   pushValue(exception);
+  pushValue(BooleanValue(true));
   jmp(Operand(eax));
 
-  // Only used in debug mode. Return BaselineFrame->returnValue() to the caller.
-  bind(&return_);
-  loadPtr(Address(esp, offsetof(ResumeFromException, framePointer)), ebp);
-  loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
+  // Return BaselineFrame->returnValue() to the caller.
+  // Used in debug mode and for GeneratorReturn.
+  Label profilingInstrumentation;
+  bind(&returnBaseline);
+  loadPtr(Address(esp, ResumeFromException::offsetOfFramePointer()), ebp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfStackPointer()), esp);
   loadValue(Address(ebp, BaselineFrame::reverseOffsetOfReturnValue()),
             JSReturnOperand);
   movl(ebp, esp);
   pop(ebp);
+  jump(&profilingInstrumentation);
+
+  // Return the given value to the caller.
+  bind(&returnIon);
+  loadValue(Address(esp, ResumeFromException::offsetOfException()),
+            JSReturnOperand);
+  loadPtr(Address(esp, ResumeFromException::offsetOfFramePointer()), esp);
 
   // If profiling is enabled, then update the lastProfilingFrame to refer to
-  // caller frame before returning.
+  // caller frame before returning. This code is shared by ForcedReturnIon
+  // and ForcedReturnBaseline.
+  bind(&profilingInstrumentation);
   {
     Label skipProfilingInstrumentation;
     // Test if profiler enabled.
@@ -573,23 +618,23 @@ void MacroAssemblerX86::handleFailureWithHandlerTail(Label* profilerExitTail) {
   // If we are bailing out to baseline to handle an exception, jump to the
   // bailout tail stub. Load 1 (true) in ReturnReg to indicate success.
   bind(&bailout);
-  loadPtr(Address(esp, offsetof(ResumeFromException, bailoutInfo)), ecx);
+  loadPtr(Address(esp, ResumeFromException::offsetOfBailoutInfo()), ecx);
   move32(Imm32(1), ReturnReg);
-  jmp(Operand(esp, offsetof(ResumeFromException, target)));
+  jmp(Operand(esp, ResumeFromException::offsetOfTarget()));
 
   // If we are throwing and the innermost frame was a wasm frame, reset SP and
   // FP; SP is pointing to the unwound return address to the wasm entry, so
   // we can just ret().
   bind(&wasm);
-  loadPtr(Address(esp, offsetof(ResumeFromException, framePointer)), ebp);
-  loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfFramePointer()), ebp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfStackPointer()), esp);
   masm.ret();
 
   // Found a wasm catch handler, restore state and jump to it.
   bind(&wasmCatch);
-  loadPtr(Address(esp, offsetof(ResumeFromException, target)), eax);
-  loadPtr(Address(esp, offsetof(ResumeFromException, framePointer)), ebp);
-  loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfTarget()), eax);
+  loadPtr(Address(esp, ResumeFromException::offsetOfFramePointer()), ebp);
+  loadPtr(Address(esp, ResumeFromException::offsetOfStackPointer()), esp);
   jmp(Operand(eax));
 }
 
@@ -1619,8 +1664,6 @@ void MacroAssembler::convertUInt64ToDouble(Register64 src, FloatRegister dest,
     return;
   }
 
-  ScratchSimd128Scope scratch(*this);
-
   // Following operation uses entire 128-bit of dest XMM register.
   // Currently higher 64-bit is free when we have access to lower 64-bit.
   MOZ_ASSERT(dest.size() == 8);
@@ -1630,15 +1673,18 @@ void MacroAssembler::convertUInt64ToDouble(Register64 src, FloatRegister dest,
   // Assume that src is represented as following:
   //   src      = 0x HHHHHHHH LLLLLLLL
 
-  // Move src to dest (=dest128) and ScratchInt32x4Reg (=scratch):
-  //   dest     = 0x 00000000 00000000  00000000 LLLLLLLL
-  //   scratch  = 0x 00000000 00000000  00000000 HHHHHHHH
-  vmovd(src.low, dest128);
-  vmovd(src.high, scratch);
+  {
+    // Move src to dest (=dest128) and ScratchInt32x4Reg (=scratch):
+    //   dest     = 0x 00000000 00000000  00000000 LLLLLLLL
+    //   scratch  = 0x 00000000 00000000  00000000 HHHHHHHH
+    ScratchSimd128Scope scratch(*this);
+    vmovd(src.low, dest128);
+    vmovd(src.high, scratch);
 
-  // Unpack and interleave dest and scratch to dest:
-  //   dest     = 0x 00000000 00000000  HHHHHHHH LLLLLLLL
-  vpunpckldq(scratch, dest128, dest128);
+    // Unpack and interleave dest and scratch to dest:
+    //   dest     = 0x 00000000 00000000  HHHHHHHH LLLLLLLL
+    vpunpckldq(scratch, dest128, dest128);
+  }
 
   // Unpack and interleave dest and a constant C1 to dest:
   //   C1       = 0x 00000000 00000000  45300000 43300000
@@ -1654,8 +1700,7 @@ void MacroAssembler::convertUInt64ToDouble(Register64 src, FloatRegister dest,
       0x0,
   };
 
-  loadConstantSimd128Int(SimdConstant::CreateX4(CST1), scratch);
-  vpunpckldq(scratch, dest128, dest128);
+  vpunpckldqSimd128(SimdConstant::CreateX4(CST1), dest128, dest128);
 
   // Subtract a constant C2 from dest, for each 64-bit part:
   //   C2       = 0x 45300000 00000000  43300000 00000000
@@ -1672,8 +1717,7 @@ void MacroAssembler::convertUInt64ToDouble(Register64 src, FloatRegister dest,
       0x45300000,
   };
 
-  loadConstantSimd128Int(SimdConstant::CreateX4(CST2), scratch);
-  vsubpd(Operand(scratch), dest128, dest128);
+  vsubpdSimd128(SimdConstant::CreateX4(CST2), dest128, dest128);
 
   // Add HI(dest) and LO(dest) in double and store it into LO(dest),
   //   LO(dest) = double(0x HHHHHHHH 00000000) + double(0x 00000000 LLLLLLLL)

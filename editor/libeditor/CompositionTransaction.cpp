@@ -49,11 +49,6 @@ already_AddRefed<CompositionTransaction> CompositionTransaction::Create(
   }
   RefPtr<CompositionTransaction> transaction =
       new CompositionTransaction(aEditorBase, aStringToInsert, pointToInsert);
-  // XXX Now, it might be better to modify the text node information of
-  //     the TextComposition instance in DoTransaction() because updating
-  //     the information before changing actual DOM tree is pretty odd.
-  composition->OnCreateCompositionTransaction(
-      aStringToInsert, pointToInsert.ContainerAsText(), pointToInsert.Offset());
   return transaction.forget();
 }
 
@@ -125,6 +120,13 @@ NS_IMETHODIMP CompositionTransaction::DoTransaction() {
     // If composition string is split to multiple text nodes, we should put
     // whole new composition string to the first text node and remove the
     // compostion string in other nodes.
+    // TODO: This should be handled by `TextComposition` because this assumes
+    //       that composition string has never touched by JS.  However, it
+    //       would occur if the web app is a corrabolation software which
+    //       multiple users can modify anyware in an editor.
+    // TODO: And if composition starts from a following text node, the offset
+    //       here is outdated and it will cause inserting composition string
+    //       **before** the proper point from point of view of the users.
     uint32_t replaceableLength = textNode->TextLength() - mOffset;
     ErrorResult error;
     editorBase->DoReplaceText(textNode, mOffset, mReplaceLength,
@@ -175,6 +177,12 @@ NS_IMETHODIMP CompositionTransaction::DoTransaction() {
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rv),
       "CompositionTransaction::SetSelectionForRanges() failed");
+
+  if (TextComposition* composition = editorBase->GetComposition()) {
+    composition->OnUpdateCompositionInEditor(mStringToInsert, textNode,
+                                             mOffset);
+  }
+
   return rv;
 }
 
@@ -183,30 +191,23 @@ NS_IMETHODIMP CompositionTransaction::UndoTransaction() {
           ("%p CompositionTransaction::%s this=%s", this, __FUNCTION__,
            ToString(*this).c_str()));
 
-  if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode)) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  // Get the selection first so we'll fail before making any changes if we
-  // can't get it
-  RefPtr<Selection> selection = mEditorBase->GetSelection();
-  if (NS_WARN_IF(!selection)) {
+  if (MOZ_UNLIKELY(NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode))) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
   OwningNonNull<EditorBase> editorBase = *mEditorBase;
   OwningNonNull<Text> textNode = *mTextNode;
-  ErrorResult error;
+  IgnoredErrorResult error;
   editorBase->DoDeleteText(textNode, mOffset, mStringToInsert.Length(), error);
-  if (error.Failed()) {
+  if (MOZ_UNLIKELY(error.Failed())) {
     NS_WARNING("EditorBase::DoDeleteText() failed");
     return error.StealNSResult();
   }
 
   // set the selection to the insertion point where the string was removed
-  nsresult rv = selection->CollapseInLimiter(textNode, mOffset);
-  NS_ASSERTION(NS_SUCCEEDED(rv), "Selection::CollapseInLimiter() failed");
-  return rv;
+  editorBase->CollapseSelectionTo(EditorRawDOMPoint(textNode, mOffset), error);
+  NS_ASSERTION(!error.Failed(), "EditorBase::CollapseSelectionTo() failed");
+  return error.StealNSResult();
 }
 
 NS_IMETHODIMP CompositionTransaction::RedoTransaction() {
@@ -288,7 +289,7 @@ nsresult CompositionTransaction::SetIMESelection(
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  SelectionBatcher selectionBatcher(selection);
+  SelectionBatcher selectionBatcher(selection, __FUNCTION__);
 
   // First, remove all selections of IME composition.
   static const RawSelectionType kIMESelections[] = {

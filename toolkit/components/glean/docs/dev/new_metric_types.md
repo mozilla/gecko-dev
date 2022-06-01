@@ -66,6 +66,25 @@ If you add a GIFFT mirror, don't forget to test that the mirror works.
 You should be able to do this by adding a task to
 [`toolkit/components/glean/tests/xpcshell/test_GIFFT.js`](https://hg.mozilla.org/mozilla-central/file/tip/toolkit/components/glean/tests/xpcshell/test_GIFFT.js).
 
+### GIFFT C++ State: Typical Locking and Shutdown
+
+Some metric types (`labeled_*`, `timespan`, `timing_distribution`)
+require holding state in C++ to make GIFFT work.
+Pings also hold state to support `testBeforeNextSubmit()`.
+If your new metric type requires state in C++,
+the current state-of-the-art is a `StaticDataMutex`-locked `UniquePtr` to a `nsTHashTable`.
+Access to the inner map is guarded by the lock and is controlled and lazily-instantiated through a single access function.
+[See Ping's `GetCallbackMapLock()`](https://searchfox.org/mozilla-central/source/toolkit/components/glean/bindings/private/Ping.cpp)
+for example.
+
+It is important to clear this state to avoid leaks.
+(See [bug 1752417](https://bugzilla.mozilla.org/show_bug.cgi?id=1752417).)
+However, instrumentation may call metrics APIs at any time.
+
+Therefore, GIFFT explicitly stops supporting these state-requiring operations after the
+[`AppShutdownTelemetry` shutdown phase](https://searchfox.org/mozilla-central/source/xpcom/base/ShutdownPhase.h).
+This is because during the next phase (`XPCOMWillShutdown`) we clear the state.
+
 ## Rust
 
 FOG uses the Rust Language Binding APIs (the `glean` crate) with a layer of IPC on top.
@@ -86,6 +105,25 @@ Every method on the metric type is public for now,
 including test methods,
 and is at least all the methods exposed via the
 [metric traits](https://github.com/mozilla/glean/tree/main/glean-core/src/traits).
+
+To support IPC and the MLA FFI (see below)
+we identify metric instances by MetricId and store them in maps in
+[the `__glean_metric_maps` mod of `metrics.rs`](https://hg.mozilla.org/mozilla-central/toolkit/components/glean/api/src/metrics.rs).
+This work is done by the `rust.py` and `rust(_pings).jinja2` extensions to `glean_parser` found
+[in the `build_scripts/glean_parser_ext/` folder](https://searchfox.org/mozilla-central/source/toolkit/components/glean/build_scripts/glean_parser_ext).
+
+You shouldn't have to edit these files for new metric types,
+as the original modifications to `glean_parser` for this type should already be generating correct code.
+
+### Dealing with Clippy
+
+[Clippy](https://github.com/rust-lang/rust-clippy)
+cannot find the generated Rust metrics maps in `__glean_metric_maps`
+(see [bug 1674728](https://bugzilla.mozilla.org/show_bug.cgi?id=1674728)).
+This means any new metric type that is generating structures via `glean_parser`
+extensions requires you to add a copy of the new map to the clippy-only
+`__glean_metric_maps` at the bottom of
+[the non-generated `metrics.rs`](https://searchfox.org/mozilla-central/source/toolkit/components/glean/api/src/metrics.rs).
 
 ### Rust Tests
 

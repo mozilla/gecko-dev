@@ -179,8 +179,8 @@ class TabDescriptorFront extends DescriptorMixin(
     return this._form.isZombieTab;
   }
 
-  get outerWindowID() {
-    return this._form.outerWindowID;
+  get browserId() {
+    return this._form.browserId;
   }
 
   get selected() {

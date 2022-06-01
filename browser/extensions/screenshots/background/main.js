@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* globals browser, getStrings, selectorLoader, analytics, communication, catcher, log, auth, senderror, startBackground, blobConverters, startSelectionWithOnboarding */
+/* globals browser, getStrings, selectorLoader, analytics, communication, catcher, log, senderror, startBackground, blobConverters, startSelectionWithOnboarding */
 
 "use strict";
 
 this.main = (function() {
   const exports = {};
 
-  const { sendEvent, incrementCount } = analytics;
+  const { incrementCount } = analytics;
 
   const manifest = browser.runtime.getManifest();
   let backend;
@@ -77,17 +77,9 @@ this.main = (function() {
     }
 
     catcher.watchPromise(
-      toggleSelector(tab)
-        .then(active => {
-          let event = "start-shot";
-          if (inputType !== "context-menu") {
-            event = active ? "start-shot" : "cancel-shot";
-          }
-          sendEvent(event, inputType, { incognito: tab.incognito });
-        })
-        .catch(error => {
-          throw error;
-        })
+      toggleSelector(tab).catch(error => {
+        throw error;
+      })
     );
   };
 
@@ -139,12 +131,6 @@ this.main = (function() {
 
   communication.register("getStrings", (sender, ids) => {
     return getStrings(ids.map(id => ({ id })));
-  });
-
-  communication.register("sendEvent", (sender, ...args) => {
-    catcher.watchPromise(sendEvent(...args));
-    // We don't wait for it to complete:
-    return null;
   });
 
   communication.register("captureTelemetry", (sender, ...args) => {

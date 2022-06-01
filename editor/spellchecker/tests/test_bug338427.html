@@ -20,10 +20,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=338427
 
 /** Test for Bug 338427 **/
 function init() {
-    var onSpellCheck =
-      SpecialPowers.Cu.import(
-        "resource://testing-common/AsyncSpellCheckTestHelper.jsm")
-                   .onSpellCheck;
+    var { onSpellCheck } = SpecialPowers.ChromeUtils.import(
+      "resource://testing-common/AsyncSpellCheckTestHelper.jsm"
+    );
     var textarea = document.getElementById("editor");
     var editor = SpecialPowers.wrap(textarea).editor;
     var spellchecker = editor.getInlineSpellChecker(true);
@@ -35,18 +34,20 @@ function init() {
         ok(list.length > 0, "At least one dictionary should be present");
 
         var lang = list[0];
-        spellchecker.spellChecker.SetCurrentDictionary(lang);
-
-        onSpellCheck(textarea, function() {
+        spellchecker.spellChecker.setCurrentDictionaries([lang]).then(() => {
+          onSpellCheck(textarea, function() {
             try {
-                var dictionary =
-                    spellchecker.spellChecker.GetCurrentDictionary();
+                var dictionaries =
+                    spellchecker.spellChecker.getCurrentDictionaries();
             } catch (e) {}
-            is(dictionary, lang, "Unexpected spell check dictionary");
+            is(dictionaries.length, 1, "Expected one dictionary");
+            is(dictionaries[0], lang, "Unexpected spell check dictionary");
 
             // This will clear the content preferences and reset "spellchecker.dictionary".
-            spellchecker.spellChecker.SetCurrentDictionary("");
-            SimpleTest.finish();
+            spellchecker.spellChecker.setCurrentDictionaries([]).then(() => {
+              SimpleTest.finish();
+            });
+          });
         });
     });
 }

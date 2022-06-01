@@ -560,6 +560,29 @@ final class BasicGeckoViewPrompt implements GeckoSession.PromptDelegate {
       throw new UnsupportedOperationException();
     }
     dialog.show();
+
+    prompt.setDelegate(
+        new PromptInstanceDelegate() {
+          @Override
+          public void onPromptDismiss(final BasePrompt prompt) {
+            dialog.dismiss();
+          }
+
+          @Override
+          public void onPromptUpdate(final BasePrompt prompt) {
+            dialog.setOnDismissListener(null);
+            dialog.dismiss();
+            final ChoicePrompt newPrompt = (ChoicePrompt) prompt;
+            onChoicePromptImpl(
+                session,
+                newPrompt.title,
+                newPrompt.message,
+                newPrompt.type,
+                newPrompt.choices,
+                newPrompt,
+                res);
+          }
+        });
   }
 
   @Override

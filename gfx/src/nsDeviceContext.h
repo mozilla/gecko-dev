@@ -110,7 +110,7 @@ class nsDeviceContext final {
   /**
    * Return the bit depth of the device.
    */
-  nsresult GetDepth(uint32_t& aDepth);
+  uint32_t GetDepth();
 
   /**
    * Get the size of the displayable area of the output device
@@ -229,13 +229,9 @@ class nsDeviceContext final {
   /**
    * True if this device context was created for printing.
    */
-  bool IsPrinterContext();
+  bool IsPrinterContext() const { return !!mPrintTarget; }
 
   mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale();
-
-  bool IsSyncPagePrinting() const;
-  void RegisterPageDoneCallback(PrintTarget::PageDoneCallback&& aCallback);
-  void UnregisterPageDoneCallback();
 
  private:
   // Private destructor, to discourage deletion outside of Release():

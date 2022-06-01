@@ -4,7 +4,7 @@
 
 use api::{
     ColorU, MixBlendMode, FilterPrimitiveInput, FilterPrimitiveKind, ColorSpace,
-    PropertyBinding, PropertyBindingId, CompositeOperator,
+    PropertyBinding, PropertyBindingId, CompositeOperator, RasterSpace,
 };
 use api::units::{Au, LayoutVector2D};
 use crate::scene_building::IsVisible;
@@ -79,7 +79,7 @@ pub enum PictureCompositeKey {
     Identity,
 
     // FilterOp
-    Blur(Au, Au),
+    Blur(Au, Au, bool),
     Brightness(Au),
     Contrast(Au),
     Grayscale(Au),
@@ -142,8 +142,8 @@ impl From<Option<PictureCompositeMode>> for PictureCompositeKey {
             }
             Some(PictureCompositeMode::Filter(op)) => {
                 match op {
-                    Filter::Blur(width, height) =>
-                        PictureCompositeKey::Blur(Au::from_f32_px(width), Au::from_f32_px(height)),
+                    Filter::Blur { width, height, should_inflate } =>
+                        PictureCompositeKey::Blur(Au::from_f32_px(width), Au::from_f32_px(height), should_inflate),
                     Filter::Brightness(value) => PictureCompositeKey::Brightness(Au::from_f32_px(value)),
                     Filter::Contrast(value) => PictureCompositeKey::Contrast(Au::from_f32_px(value)),
                     Filter::Grayscale(value) => PictureCompositeKey::Grayscale(Au::from_f32_px(value)),
@@ -224,6 +224,7 @@ impl From<Option<PictureCompositeMode>> for PictureCompositeKey {
             }
             Some(PictureCompositeMode::Blit(_)) |
             Some(PictureCompositeMode::TileCache { .. }) |
+            Some(PictureCompositeMode::IntermediateSurface) |
             None => {
                 PictureCompositeKey::Identity
             }
@@ -236,6 +237,7 @@ impl From<Option<PictureCompositeMode>> for PictureCompositeKey {
 #[derive(Debug, Clone, Eq, MallocSizeOf, PartialEq, Hash)]
 pub struct Picture {
     pub composite_mode_key: PictureCompositeKey,
+    pub raster_space: RasterSpace,
 }
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -243,6 +245,7 @@ pub struct Picture {
 #[derive(Debug, Clone, Eq, MallocSizeOf, PartialEq, Hash)]
 pub struct PictureKey {
     pub composite_mode_key: PictureCompositeKey,
+    pub raster_space: RasterSpace,
 }
 
 impl PictureKey {
@@ -251,6 +254,7 @@ impl PictureKey {
     ) -> Self {
         PictureKey {
             composite_mode_key: pic.composite_mode_key,
+            raster_space: pic.raster_space,
         }
     }
 }
@@ -318,7 +322,7 @@ fn test_struct_sizes() {
     //     test expectations and move on.
     // (b) You made a structure larger. This is not necessarily a problem, but should only
     //     be done with care, and after checking if talos performance regresses badly.
-    assert_eq!(mem::size_of::<Picture>(), 88, "Picture size changed");
+    assert_eq!(mem::size_of::<Picture>(), 96, "Picture size changed");
     assert_eq!(mem::size_of::<PictureTemplate>(), 0, "PictureTemplate size changed");
-    assert_eq!(mem::size_of::<PictureKey>(), 88, "PictureKey size changed");
+    assert_eq!(mem::size_of::<PictureKey>(), 96, "PictureKey size changed");
 }

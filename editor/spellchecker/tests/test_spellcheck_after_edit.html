@@ -8,8 +8,9 @@
 </head>
 <body>
 <script>
-let {onSpellCheck} =
-  SpecialPowers.Cu.import("resource://testing-common/AsyncSpellCheckTestHelper.jsm", {});
+let { maybeOnSpellCheck } = SpecialPowers.ChromeUtils.import(
+  "resource://testing-common/AsyncSpellCheckTestHelper.jsm"
+);
 
 function waitForTick() {
   return new Promise(resolve =>
@@ -30,7 +31,7 @@ async function waitForOnSpellCheck(
   info(`Waiting for onSpellCheck (${aWhen})...`);
   for (let retry = 0; retry < 100; retry++) {
     await waitForTick();
-    await new Promise(resolve => onSpellCheck(aEditingHost, resolve));
+    await new Promise(resolve => maybeOnSpellCheck(aEditingHost, resolve));
     if (aWaitForNumberOfMisspelledWords === 0) {
       if (aSpellCheckSelection.rangeCount === 0) {
         break;

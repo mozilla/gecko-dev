@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,12 +11,9 @@
 
 #include "jsapi.h"
 
-#include "builtin/Array.h"  // IsArray()
 #include "builtin/TupleObject.h"
 #include "gc/Allocator.h"
 #include "gc/AllocKind.h"
-#include "gc/Nursery.h"
-#include "gc/Tracer.h"
 
 #include "js/TypeDecls.h"
 #include "js/Value.h"
@@ -24,6 +21,7 @@
 #include "vm/EqualityOperations.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"
+#include "vm/RecordTupleShared.h"
 #include "vm/RecordType.h"
 #include "vm/SelfHosting.h"
 #include "vm/ToSource.h"
@@ -100,8 +98,6 @@ bool js::tuple_with(JSContext* cx, unsigned argc, Value* vp) {
   Rooted<TupleType*> tuple(cx, &(*maybeTuple));
 
   /* Step 2. */
-  HeapSlotArray t = tuple->getDenseElements();
-
   uint64_t length = tuple->getDenseInitializedLength();
   TupleType* list = TupleType::createUninitialized(cx, length);
   if (!list) {
@@ -129,10 +125,11 @@ bool js::tuple_with(JSContext* cx, unsigned argc, Value* vp) {
   /* Step 7 */
   uint64_t before = index;
   uint64_t after = length - index - 1;
-  list->copyDenseElements(0, t, before);
+  list->copyDenseElements(0, tuple->getDenseElements(), before);
   list->setDenseInitializedLength(index + 1);
   list->initDenseElement(index, value);
-  list->copyDenseElements(index + 1, t + uint32_t(index + 1), after);
+  list->copyDenseElements(
+      index + 1, tuple->getDenseElements() + uint32_t(index + 1), after);
   list->setDenseInitializedLength(length);
   list->finishInitialization(cx);
   /* Step 8 */
@@ -230,6 +227,31 @@ bool js::tuple_value_of(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+bool TupleType::copy(JSContext* cx, Handle<TupleType*> in,
+                     MutableHandle<TupleType*> out) {
+  out.set(TupleType::createUninitialized(cx, in->length()));
+  if (!out) {
+    return false;
+  }
+  RootedValue v(cx), vCopy(cx);
+  for (uint32_t i = 0; i < in->length(); i++) {
+    // Let v = in[i]
+    v.set(in->getDenseElement(i));
+
+    // Copy v
+    if (!CopyRecordTupleElement(cx, v, &vCopy)) {
+      return false;
+    }
+
+    // Set result[i] to v
+    if (!out->initializeNextElement(cx, vCopy)) {
+      return false;
+    }
+  }
+  out->finishInitialization(cx);
+  return true;
+}
+
 TupleType* TupleType::create(JSContext* cx, uint32_t length,
                              const Value* elements) {
   for (uint32_t index = 0; index < length; index++) {
@@ -266,7 +288,7 @@ static TupleType* allocate(JSContext* cx, gc::AllocKind allocKind) {
   TupleType* tup = static_cast<TupleType*>(obj);
   tup->initShape(shape);
   tup->initEmptyDynamicSlots();
-  tup->setFixedElements(0);
+  tup->initFixedElements(allocKind, 0);
   return tup;
 }
 
@@ -277,11 +299,6 @@ TupleType* TupleType::createUninitialized(JSContext* cx, uint32_t length) {
   if (!tup) {
     return nullptr;
   }
-
-  uint32_t capacity =
-      gc::GetGCKindSlots(allocKind) - ObjectElements::VALUES_PER_HEADER;
-
-  new (tup->getElementsHeader()) ObjectElements(capacity, length);
 
   if (!tup->ensureElements(cx, length)) {
     return nullptr;
@@ -512,7 +529,10 @@ static bool ArrayToTuple(JSContext* cx, const CallArgs& args) {
 }
 
 // Takes an array as a single argument and returns a tuple of the
-// array elements, without copying the array
+// array elements. This method copies the array, because the callee
+// may still hold a pointer to it and it would break garbage collection
+// to change the type of the object from ArrayObject to TupleType (which
+// is the only way to re-use the same object if it has fixed elements.)
 // Should only be called from self-hosted tuple methods;
 // assumes all elements are non-objects and the array is packed
 bool js::tuple_construct(JSContext* cx, unsigned argc, Value* vp) {
@@ -530,33 +550,13 @@ bool js::tuple_is_tuple(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 TupleType* TupleType::createUnchecked(JSContext* cx, HandleArrayObject aObj) {
-  gc::AllocKind allocKind = GuessArrayGCKind(aObj->getDenseInitializedLength());
-
-  RootedShape shape(cx, TupleType::getInitialShape(cx));
-  if (!shape) {
-    return nullptr;
-  }
-
-  JSObject* obj =
-      js::AllocateObject(cx, allocKind, 0, gc::DefaultHeap, &TupleType::class_);
-
-  if (!obj) {
-    return nullptr;
-  }
-
-  TupleType* tup = static_cast<TupleType*>(obj);
-  tup->initShape(shape);
-  tup->initEmptyDynamicSlots();
-  tup->setFixedElements(0);
-
+  size_t len = aObj->getDenseInitializedLength();
+  MOZ_ASSERT(aObj->getElementsHeader()->numShiftedElements() == 0);
+  TupleType* tup = createUninitialized(cx, len);
   if (!tup) {
     return nullptr;
   }
-
-  tup->elements_ = aObj->getElementsHeader()->elements();
-
-  aObj->shrinkCapacityToInitializedLength(cx);
-
+  tup->initDenseElements(aObj, 0, len);
   tup->finishInitialization(cx);
   return tup;
 }

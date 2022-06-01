@@ -64,6 +64,20 @@ fn get_safearea_inset_right(device: &Device) -> VariableValue {
     VariableValue::pixels(device.safe_area_insets().right)
 }
 
+fn get_content_preferred_color_scheme(device: &Device) -> VariableValue {
+    use crate::gecko::media_features::PrefersColorScheme;
+    let prefers_color_scheme = unsafe {
+        crate::gecko_bindings::bindings::Gecko_MediaFeatures_PrefersColorScheme(
+            device.document(),
+            /* use_content = */ true,
+        )
+    };
+    VariableValue::ident(match prefers_color_scheme {
+        PrefersColorScheme::Light => "light",
+        PrefersColorScheme::Dark => "dark",
+    })
+}
+
 static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
     make_variable!(atom!("safe-area-inset-top"), get_safearea_inset_top),
     make_variable!(atom!("safe-area-inset-bottom"), get_safearea_inset_bottom),
@@ -90,7 +104,7 @@ macro_rules! lnf_int_variable {
     }};
 }
 
-static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 5] = [
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 6] = [
     lnf_int_variable!(
         atom!("-moz-gtk-csd-titlebar-radius"),
         TitlebarRadius,
@@ -112,6 +126,7 @@ static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 5] = [
         GTKCSDMaximizeButtonPosition,
         integer
     ),
+    make_variable!(atom!("-moz-content-preferred-color-scheme"), get_content_preferred_color_scheme),
 ];
 
 impl CssEnvironment {
@@ -317,6 +332,11 @@ impl VariableValue {
             value: number as f32,
             int_value: Some(number),
         })
+    }
+
+    /// Create VariableValue from an int.
+    fn ident(ident: &'static str) -> Self {
+        Self::from_token(Token::Ident(ident.into()))
     }
 
     /// Create VariableValue from a float amount of CSS pixels.
@@ -714,6 +734,22 @@ impl<'a> CustomPropertiesBuilder<'a> {
         true
     }
 
+    fn inherited_properties_match(&self, map: &CustomPropertiesMap) -> bool {
+        let inherited = match self.inherited {
+            Some(inherited) => inherited,
+            None => return false,
+        };
+        if inherited.len() != map.len() {
+            return false;
+        }
+        for name in self.seen.iter() {
+            if inherited.get(*name) != map.get(*name) {
+                return false;
+            }
+        }
+        true
+    }
+
     /// Returns the final map of applicable custom properties.
     ///
     /// If there was any specified property, we've created a new map and now we
@@ -725,9 +761,19 @@ impl<'a> CustomPropertiesBuilder<'a> {
             Some(m) => m,
             None => return self.inherited.cloned(),
         };
+
         if self.may_have_cycles {
-            substitute_all(&mut map, self.device);
+            substitute_all(&mut map, &self.seen, self.device);
         }
+
+        // Some pages apply a lot of redundant custom properties, see e.g.
+        // bug 1758974 comment 5. Try to detect the case where the values
+        // haven't really changed, and save some memory by reusing the inherited
+        // map in that case.
+        if self.inherited_properties_match(&map) {
+            return self.inherited.cloned();
+        }
+
         map.shrink_to_fit();
         Some(Arc::new(map))
     }
@@ -737,7 +783,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
 /// (meaning we should use the inherited value).
 ///
 /// It does cycle dependencies removal at the same time as substitution.
-fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Device) {
+fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, seen: &PrecomputedHashSet<&Name>, device: &Device) {
     // The cycle dependencies removal in this function is a variant
     // of Tarjan's algorithm. It is mostly based on the pseudo-code
     // listed in
@@ -795,10 +841,10 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
     ///   doesn't have reference at all in specified value, or it has
     ///   been completely resolved.
     /// * There is no such variable at all.
-    fn traverse<'a>(name: Name, context: &mut Context<'a>) -> Option<usize> {
+    fn traverse<'a>(name: &Name, context: &mut Context<'a>) -> Option<usize> {
         // Some shortcut checks.
         let (name, value) = {
-            let value = context.map.get(&name)?;
+            let value = context.map.get(name)?;
 
             // Nothing to resolve.
             if value.references.is_empty() {
@@ -811,7 +857,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
 
             // Whether this variable has been visited in this traversal.
             let key;
-            match context.index_map.entry(name) {
+            match context.index_map.entry(name.clone()) {
                 Entry::Occupied(entry) => {
                     return Some(*entry.get());
                 },
@@ -839,7 +885,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
         let mut self_ref = false;
         let mut lowlink = index;
         for next in value.references.iter() {
-            let next_index = match traverse(next.clone(), context) {
+            let next_index = match traverse(next, context) {
                 Some(index) => index,
                 // There is nothing to do if the next variable has been
                 // fully resolved at this point.
@@ -924,10 +970,10 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
         None
     }
 
-    // We have to clone the names so that we can mutably borrow the map
-    // in the context we create for traversal.
-    let names: Vec<_> = custom_properties_map.keys().cloned().collect();
-    for name in names.into_iter() {
+    // Note that `seen` doesn't contain names inherited from our parent, but
+    // those can't have variable references (since we inherit the computed
+    // variables) so we don't want to spend cycles traversing them anyway.
+    for name in seen {
         let mut context = Context {
             count: 0,
             index_map: PrecomputedHashMap::default(),

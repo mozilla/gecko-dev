@@ -64,10 +64,14 @@ dictionary RTCReceivedRtpStreamStats: RTCRtpStreamStats {
 dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
   DOMString remoteId;
   unsigned long framesDecoded;
+  unsigned long frameWidth;
+  unsigned long frameHeight;
   unsigned long long bytesReceived;
   unsigned long nackCount;
   unsigned long firCount;
   unsigned long pliCount;
+  double framesPerSecond;
+  unsigned long framesReceived;
 };
 
 dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
@@ -87,6 +91,15 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
   unsigned long nackCount;
   unsigned long firCount;
   unsigned long pliCount;
+  unsigned long long headerBytesSent;
+  unsigned long long retransmittedPacketsSent;
+  unsigned long long retransmittedBytesSent;
+  unsigned long long totalEncodedBytesTarget;
+  unsigned long frameWidth;
+  unsigned long frameHeight;
+  unsigned long framesSent;
+  unsigned long hugeFramesSent;
+  double totalEncodeTime;
 };
 
 dictionary RTCRemoteOutboundRtpStreamStats : RTCSentRtpStreamStats {

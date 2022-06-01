@@ -7,7 +7,7 @@
  * https://streams.spec.whatwg.org/#ts-class-definition
  */
 
-[Exposed=(Window,Worker,Worklet),
+[Exposed=*,
  //Transferable See Bug 1734240
  Pref="dom.streams.transform_streams.enabled"]
 interface TransformStream {
@@ -16,6 +16,6 @@ interface TransformStream {
               optional QueuingStrategy writableStrategy = {},
               optional QueuingStrategy readableStrategy = {});
 
-  [GetterThrows /* skeleton only */] readonly attribute ReadableStream readable;
-  [GetterThrows /* skeleton only */] readonly attribute WritableStream writable;
+  readonly attribute ReadableStream readable;
+  readonly attribute WritableStream writable;
 };

@@ -14,6 +14,7 @@
 #include "mozilla/Variant.h"
 #include "NamespaceImports.h"
 
+#include "js/experimental/JSStencil.h"
 #include "js/OffThreadScriptCompilation.h"
 #include "js/Transcoding.h"
 #include "js/UniquePtr.h"
@@ -60,7 +61,7 @@ using UniqueTier2GeneratorTask = UniquePtr<Tier2GeneratorTask>;
  * Lock protecting all mutable shared state accessed by helper threads, and used
  * by all condition variables.
  */
-extern Mutex gHelperThreadLock;
+extern Mutex gHelperThreadLock MOZ_UNANNOTATED;
 
 class MOZ_RAII AutoLockHelperThreadState : public LockGuard<Mutex> {
   using Base = LockGuard<Mutex>;
@@ -205,6 +206,11 @@ void CancelOffThreadParses(JSRuntime* runtime);
 void CancelOffThreadDelazify(JSRuntime* runtime);
 
 /*
+ * Wait for all delazification to complete.
+ */
+void WaitForAllDelazifyTasks(JSRuntime* rt);
+
+/*
  * Start a parse/emit cycle for a stream of source. The characters must stay
  * alive until the compilation finishes.
  */
@@ -236,6 +242,12 @@ JS::OffThreadToken* StartOffThreadDecodeMultiStencils(
     JSContext* cx, const JS::DecodeOptions& options,
     JS::TranscodeSources& sources, JS::OffThreadCompileCallback callback,
     void* callbackData);
+
+// Start off-thread delazification task, to race the delazification of inner
+// functions.
+[[nodiscard]] bool StartOffThreadDelazification(
+    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    const frontend::CompilationStencil& stencil);
 
 // Drain the task queues and wait for all helper threads to finish running.
 //

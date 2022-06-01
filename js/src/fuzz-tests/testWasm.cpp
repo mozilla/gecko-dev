@@ -109,11 +109,18 @@ static bool assignImportKind(const Import& import, HandleObject obj,
   return true;
 }
 
+static bool FuzzerBuildId(JS::BuildIdCharVector* buildId) {
+  const char buildid[] = "testWasmFuzz";
+  return buildId->append(buildid, sizeof(buildid));
+}
+
 static int testWasmFuzz(const uint8_t* buf, size_t size) {
   auto gcGuard = mozilla::MakeScopeExit([&] {
     JS::PrepareForFullGC(gCx);
     JS::NonIncrementalGC(gCx, JS::GCOptions::Normal, JS::GCReason::API);
   });
+
+  JS::SetProcessBuildIdOp(FuzzerBuildId);
 
   const size_t MINIMUM_MODULE_SIZE = 8;
 
@@ -255,7 +262,7 @@ static int testWasmFuzz(const uint8_t* buf, size_t size) {
     ScriptedCaller scriptedCaller;
     FeatureOptions options;
     SharedCompileArgs compileArgs =
-        CompileArgs::build(gCx, std::move(scriptedCaller), options);
+        CompileArgs::buildAndReport(gCx, std::move(scriptedCaller), options);
     if (!compileArgs) {
       return 0;
     }
@@ -296,9 +303,7 @@ static int testWasmFuzz(const uint8_t* buf, size_t size) {
     size_t currentTableExportId = 0;
     size_t currentMemoryExportId = 0;
     size_t currentGlobalExportId = 0;
-#ifdef ENABLE_WASM_EXCEPTIONS
     size_t currentTagExportId = 0;
-#endif
 
     for (const Import& import : importVec) {
       // First try to get the namespace object, create one if this is the
@@ -369,7 +374,6 @@ static int testWasmFuzz(const uint8_t* buf, size_t size) {
             }
             break;
 
-#ifdef ENABLE_WASM_EXCEPTIONS
           case DefinitionKind::Tag:
             // TODO: Pass a dummy defaultValue
             if (!assignImportKind<WasmTagObject>(
@@ -378,7 +382,6 @@ static int testWasmFuzz(const uint8_t* buf, size_t size) {
               return 0;
             }
             break;
-#endif
         }
       }
     }

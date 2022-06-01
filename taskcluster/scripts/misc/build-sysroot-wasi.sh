@@ -28,7 +28,6 @@ make \
   PREFIX=/wasi \
   build/wasi-libc.BUILT \
   build/libcxx.BUILT \
-  build/libcxxabi.BUILT \
   -j$(nproc)
 
 mv build/install/wasi/share/wasi-sysroot $sysroot

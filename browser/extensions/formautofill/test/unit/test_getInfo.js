@@ -1,9 +1,18 @@
 "use strict";
 
-var FormAutofillHeuristics, LabelUtils;
+const { FieldScanner } = ChromeUtils.import(
+  "resource://autofill/FormAutofillHeuristics.jsm"
+);
+var FormAutofillHeuristics, LabelUtils, FormAutofill;
 add_task(async function() {
-  ({ FormAutofillHeuristics, LabelUtils } = ChromeUtils.import(
+  ({ FormAutofillHeuristics } = ChromeUtils.import(
     "resource://autofill/FormAutofillHeuristics.jsm"
+  ));
+  ({ LabelUtils } = ChromeUtils.import(
+    "resource://autofill/FormAutofillUtils.jsm"
+  ));
+  ({ FormAutofill } = ChromeUtils.import(
+    "resource://autofill/FormAutofill.jsm"
   ));
 });
 
@@ -253,6 +262,58 @@ const TESTCASES = [
       contactType: "",
     },
   },
+  {
+    description: `Identify address field when contained in a form with autocomplete="off"`,
+    document: `<form autocomplete="off">
+                <input id="given-name">
+               </form>`,
+    elementId: "given-name",
+    expectedReturnValue: {
+      fieldName: "given-name",
+      section: "",
+      addressType: "",
+      contactType: "",
+    },
+  },
+  {
+    description: `Identify address field that has a placeholder but no label associated with it`,
+    document: `<form>
+                <input id="targetElement" placeholder="Name">
+               </form>`,
+    elementId: "targetElement",
+    expectedReturnValue: {
+      fieldName: "name",
+      section: "",
+      addressType: "",
+      contactType: "",
+    },
+  },
+  {
+    description: `Identify address field that has a placeholder, no associated label, and its autocomplete attribute is "off"`,
+    document: `<form>
+                <input id="targetElement" placeholder="Address" autocomplete="off">
+               </form>`,
+    elementId: "targetElement",
+    expectedReturnValue: {
+      fieldName: "street-address",
+      section: "",
+      addressType: "",
+      contactType: "",
+    },
+  },
+  {
+    description: `Identify address field that has a placeholder, no associated label, and the form's autocomplete attribute is "off"`,
+    document: `<form autocomplete="off">
+                <input id="targetElement" placeholder="Country">
+               </form>`,
+    elementId: "targetElement",
+    expectedReturnValue: {
+      fieldName: "country",
+      section: "",
+      addressType: "",
+      contactType: "",
+    },
+  },
 ];
 
 TESTCASES.forEach(testcase => {
@@ -265,7 +326,10 @@ TESTCASES.forEach(testcase => {
     );
 
     let element = doc.getElementById(testcase.elementId);
-    let value = FormAutofillHeuristics.getInfo(element);
+    let value = FormAutofillHeuristics.getInfo(
+      element,
+      new FieldScanner([element], {})
+    );
 
     Assert.deepEqual(value, testcase.expectedReturnValue);
     LabelUtils.clearLabelMap();
@@ -318,9 +382,118 @@ add_task(async function test_regexp_list() {
     );
 
     let element = doc.getElementById(testcase.elementId);
-    let value = FormAutofillHeuristics.getInfo(element);
+    let value = FormAutofillHeuristics.getInfo(
+      element,
+      new FieldScanner([element], {})
+    );
 
     Assert.deepEqual(value, testcase.expectedReturnValue, label);
   }
   LabelUtils.clearLabelMap();
+});
+
+add_task(async function test_autofill_creditCards_autocomplete_off_pref() {
+  let document = `<form autocomplete="off">
+                    <label for="targetElement"> Card Number</label>
+                    <input id="targetElement" type="text">
+                  </form>`;
+  let expected = null;
+  info(`Set pref so that credit card autofill respects autocomplete="off"`);
+  Services.prefs.setBoolPref(
+    FormAutofill.AUTOFILL_CREDITCARDS_AUTOCOMPLETE_OFF_PREF,
+    false
+  );
+  let doc = MockDocument.createTestDocument(
+    "http://localhost:8080/test/",
+    document
+  );
+  let element = doc.getElementById("targetElement");
+  let value = FormAutofillHeuristics.getInfo(
+    element,
+    new FieldScanner([element], {})
+  );
+
+  Assert.deepEqual(value, expected);
+  document = `<form>
+                <label for="targetElement"> Card Number</label>
+                <input id="targetElement" type="text">
+              </form>`;
+  expected = {
+    fieldName: "cc-number",
+    section: "",
+    addressType: "",
+    contactType: "",
+  };
+  info(
+    `Set pref so that credit card autofill does not respect autocomplete="off"`
+  );
+  Services.prefs.setBoolPref(
+    FormAutofill.AUTOFILL_CREDITCARDS_AUTOCOMPLETE_OFF_PREF,
+    true
+  );
+  doc = MockDocument.createTestDocument(
+    "http://localhost:8080/test/",
+    document
+  );
+  element = doc.getElementById("targetElement");
+  value = FormAutofillHeuristics.getInfo(
+    element,
+    new FieldScanner([element], {})
+  );
+
+  Assert.deepEqual(value, expected);
+  Services.prefs.clearUserPref(
+    FormAutofill.AUTOFILL_CREDITCARDS_AUTOCOMPLETE_OFF_PREF
+  );
+});
+
+add_task(async function test_autofill_addresses_autocomplete_off_pref() {
+  let document = `<form autocomplete="off">
+                    <input id="given-name">
+                  </form>`;
+  let expected = null;
+  info(`Set pref so that address autofill respects autocomplete="off"`);
+  Services.prefs.setBoolPref(
+    FormAutofill.AUTOFILL_ADDRESSES_AUTOCOMPLETE_OFF_PREF,
+    false
+  );
+  let doc = MockDocument.createTestDocument(
+    "http://localhost:8080/test/",
+    document
+  );
+  let element = doc.getElementById("given-name");
+  let value = FormAutofillHeuristics.getInfo(
+    element,
+    new FieldScanner([element], {})
+  );
+
+  Assert.deepEqual(value, expected);
+  document = `<form>
+                <input id="given-name">
+              </form>`;
+  expected = {
+    fieldName: "given-name",
+    section: "",
+    addressType: "",
+    contactType: "",
+  };
+  info(`Set pref so that address autofill does not respect autocomplete="off"`);
+  Services.prefs.setBoolPref(
+    FormAutofill.AUTOFILL_ADDRESSES_AUTOCOMPLETE_OFF_PREF,
+    true
+  );
+  doc = MockDocument.createTestDocument(
+    "http://localhost:8080/test/",
+    document
+  );
+  element = doc.getElementById("given-name");
+  value = FormAutofillHeuristics.getInfo(
+    element,
+    new FieldScanner([element], {})
+  );
+
+  Assert.deepEqual(value, expected);
+  Services.prefs.clearUserPref(
+    FormAutofill.AUTOFILL_ADDRESSES_AUTOCOMPLETE_OFF_PREF
+  );
 });

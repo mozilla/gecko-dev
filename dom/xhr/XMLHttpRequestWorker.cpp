@@ -44,9 +44,7 @@
 
 #include "mozilla/UniquePtr.h"
 
-namespace mozilla {
-
-namespace dom {
+namespace mozilla::dom {
 
 /**
  *  XMLHttpRequest in workers
@@ -2171,7 +2169,8 @@ void XMLHttpRequestWorker::GetResponse(JSContext* aCx,
             Blob::Create(GetOwnerGlobal(), mResponseData->mResponseBlobImpl);
       }
 
-      if (!GetOrCreateDOMReflector(aCx, mResponseBlob, aResponse)) {
+      if (!mResponseBlob ||
+          !GetOrCreateDOMReflector(aCx, mResponseBlob, aResponse)) {
         aResponse.setNull();
       }
 
@@ -2246,5 +2245,4 @@ void XMLHttpRequestWorker::ResetResponseData() {
   mResponseJSONValue.setUndefined();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

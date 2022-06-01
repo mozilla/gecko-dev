@@ -86,6 +86,7 @@ PuppetWidget::PuppetWidget(BrowserChild* aBrowserChild)
       mDefaultScale(-1),
       mEnabled(false),
       mVisible(false),
+      mSizeMode(nsSizeMode_Normal),
       mNeedIMEStateInit(false),
       mIgnoreCompositionEvents(false) {
   // Setting 'Unknown' means "not yet cached".
@@ -515,12 +516,15 @@ nsresult PuppetWidget::SynthesizeNativeTouchpadDoubleTap(
 
 nsresult PuppetWidget::SynthesizeNativeTouchpadPan(
     TouchpadGesturePhase aEventPhase, LayoutDeviceIntPoint aPoint,
-    double aDeltaX, double aDeltaY, int32_t aModifierFlags) {
+    double aDeltaX, double aDeltaY, int32_t aModifierFlags,
+    nsIObserver* aObserver) {
+  AutoObserverNotifier notifier(aObserver, "touchpadpanevent");
   if (!mBrowserChild) {
     return NS_ERROR_FAILURE;
   }
   mBrowserChild->SendSynthesizeNativeTouchpadPan(aEventPhase, aPoint, aDeltaX,
-                                                 aDeltaY, aModifierFlags);
+                                                 aDeltaY, aModifierFlags,
+                                                 notifier.SaveObserver());
   return NS_OK;
 }
 
@@ -752,7 +756,8 @@ nsresult PuppetWidget::NotifyIMEOfFocusChange(
   bool gotFocus = aIMENotification.mMessage == NOTIFY_IME_OF_FOCUS;
   if (gotFocus) {
     // When IME gets focus, we should initialize all information of the
-    // content.
+    // content, however, it may fail to get it because the editor may have
+    // already been blurred.
     if (NS_WARN_IF(!mContentCache.CacheAll(this, &aIMENotification))) {
       return NS_ERROR_FAILURE;
     }
@@ -926,8 +931,8 @@ void PuppetWidget::SetCursor(const Cursor& aCursor) {
     if (surface) {
       if (RefPtr<DataSourceSurface> dataSurface = surface->GetDataSurface()) {
         hasCustomCursor = true;
-        customCursorData = nsContentUtils::GetSurfaceData(
-            WrapNotNull(dataSurface), &length, &stride);
+        customCursorData =
+            nsContentUtils::GetSurfaceData(*dataSurface, &length, &stride);
         customCursorSize = dataSurface->GetSize();
         format = dataSurface->GetFormat();
       }
@@ -944,6 +949,7 @@ void PuppetWidget::SetCursor(const Cursor& aCursor) {
     return;
   }
   mCursor = aCursor;
+  mUpdateCursor = false;
 }
 
 void PuppetWidget::SetChild(PuppetWidget* aChild) {
@@ -1018,11 +1024,7 @@ LayoutDeviceIntPoint PuppetWidget::GetChromeOffset() {
 }
 
 LayoutDeviceIntPoint PuppetWidget::WidgetToScreenOffset() {
-  auto positionRalativeToWindow =
-      WidgetToTopLevelWidgetTransform().TransformPoint(LayoutDevicePoint());
-
-  return GetWindowPosition() +
-         LayoutDeviceIntPoint::Round(positionRalativeToWindow);
+  return GetWindowPosition() + WidgetToTopLevelWidgetOffset();
 }
 
 LayoutDeviceIntPoint PuppetWidget::GetWindowPosition() {

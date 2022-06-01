@@ -14,7 +14,7 @@ function CallModuleResolveHook(module, moduleRequest, expectedMinimumStatus)
 
 // https://tc39.es/ecma262/#sec-getexportednames
 // ES2020 15.2.1.17.2 GetExportedNames
-function ModuleGetExportedNames(exportStarSet = [])
+function ModuleGetExportedNames(exportStarSet = new_List())
 {
     if (!IsObject(this) || !IsModule(this)) {
         return callFunction(CallModuleMethodIfWrapped, this, exportStarSet,
@@ -25,14 +25,14 @@ function ModuleGetExportedNames(exportStarSet = [])
     let module = this;
 
     // Step 4
-    if (callFunction(ArrayIncludes, exportStarSet, module))
-        return [];
+    if (callFunction(std_Array_includes, exportStarSet, module))
+        return new_List();
 
     // Step 5
     DefineDataProperty(exportStarSet, exportStarSet.length, module);
 
     // Step 6
-    let exportedNames = [];
+    let exportedNames = new_List();
     let namesCount = 0;
 
     // Step 7
@@ -59,7 +59,7 @@ function ModuleGetExportedNames(exportStarSet = [])
                                      exportStarSet);
         for (let j = 0; j < starNames.length; j++) {
             let n = starNames[j];
-            if (n !== "default" && !callFunction(ArrayIncludes, exportedNames, n))
+            if (n !== "default" && !callFunction(std_Array_includes, exportedNames, n))
                 DefineDataProperty(exportedNames, namesCount++, n);
         }
     }
@@ -99,7 +99,7 @@ function ModuleSetStatus(module, newStatus)
 //  - If the request is found to be ambiguous, the string `"ambiguous"` is
 //    returned.
 //
-function ModuleResolveExport(exportName, resolveSet = [])
+function ModuleResolveExport(exportName, resolveSet = new_List())
 {
     assert(typeof exportName === "string", "ModuleResolveExport");
 
@@ -206,7 +206,7 @@ function GetModuleNamespace(module)
     // Step 4
     if (typeof namespace === "undefined") {
         let exportedNames = callFunction(module.getExportedNames, module);
-        let unambiguousNames = [];
+        let unambiguousNames = new_List();
         for (let i = 0; i < exportedNames.length; i++) {
             let name = exportedNames[i];
             let resolution = callFunction(module.resolveExport, module, name);
@@ -312,7 +312,7 @@ function ModuleInstantiate()
     }
 
     // Step 3
-    let stack = [];
+    let stack = new_List();
 
     // Steps 4-5
     try {
@@ -601,7 +601,7 @@ function ModuleEvaluate()
     const capability = CreateTopLevelCapability(module);
 
     // Step 4
-    let stack = [];
+    let stack = new_List();
 
     // Steps 5-6
     try {
@@ -746,7 +746,7 @@ function InnerModuleEvaluation(module, stack, index)
 }
 
 // https://tc39.es/proposal-top-level-await/#sec-gather-async-parent-completions
-function GatherAsyncParentCompletions(module, execList = []) {
+function GatherAsyncParentCompletions(module, execList = new_List()) {
   assert(module.status == MODULE_STATUS_EVALUATED, "bad status for async module");
 
   // Step 5.
@@ -756,7 +756,7 @@ function GatherAsyncParentCompletions(module, execList = []) {
   while (module.asyncParentModules[i]) {
     const m = module.asyncParentModules[i];
     if (GetCycleRoot(m).status != MODULE_STATUS_EVALUATED_ERROR &&
-        !callFunction(ArrayIncludes, execList, m)) {
+        !callFunction(std_Array_includes, execList, m)) {
       assert(!m.evaluationError, "should not have evaluation error");
       assert(m.pendingAsyncDependencies > 0, "should have at least one dependency");
       UnsafeSetReservedSlot(m,
