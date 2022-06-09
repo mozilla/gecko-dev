@@ -22,11 +22,6 @@ git = "https://github.com/mozilla/mp4parse-rust"
 replace-with = "vendored-sources"
 rev = "3bfc47d9a571d0842676043ba60716318e946c06"
 
-[source."https://github.com/mozilla/l10nregistry-rs.git"]
-git = "https://github.com/mozilla/l10nregistry-rs.git"
-replace-with = "vendored-sources"
-rev = "9da98c6e5325a5f2997191727eaa82c0ebc2004c"
-
 [source."https://github.com/mozilla/cubeb-pulse-rs"]
 git = "https://github.com/mozilla/cubeb-pulse-rs"
 replace-with = "vendored-sources"
