@@ -1,6 +1,5 @@
 extern crate libc;
 extern crate alsa;
-extern crate nix;
 
 use std::mem;
 use std::thread::{Builder, JoinHandle};
@@ -589,6 +588,13 @@ impl Drop for MidiOutputConnection {
 fn handle_input<T>(mut data: HandlerData<T>, user_data: &mut T) -> HandlerData<T> {
     use self::alsa::PollDescriptors;
     use self::alsa::seq::Connect;
+    use self::libc::pollfd;
+
+    const INVALID_POLLFD: pollfd = pollfd {
+        fd: -1,
+        events: 0,
+        revents: 0,
+    };
 
     let mut continue_sysex: bool = false;
     
@@ -597,22 +603,17 @@ fn handle_input<T>(mut data: HandlerData<T>, user_data: &mut T) -> HandlerData<T
     let mut buffer = [0; 12];
     
     let mut coder = helpers::EventDecoder::new(false);
-    
-    let mut poll_fds: Box<[self::libc::pollfd]>;
-    {
-        let poll_desc_info = (&data.seq, Some(Direction::Capture));
-        let poll_fd_count = poll_desc_info.count() + 1;
-        let mut vec = Vec::with_capacity(poll_fd_count);
-        unsafe {    
-            vec.set_len(poll_fd_count);
-            poll_fds = vec.into_boxed_slice();
-        }
-        poll_desc_info.fill(&mut poll_fds[1..]).unwrap();
-    }
-    poll_fds[0].fd = data.trigger_rcv_fd;
-    poll_fds[0].events = self::libc::POLLIN;
 
-            
+    let poll_desc_info = (&data.seq, Some(Direction::Capture));
+    let mut poll_fds = vec![INVALID_POLLFD; poll_desc_info.count() + 1];
+    poll_fds[0] = pollfd {
+        fd: data.trigger_rcv_fd,
+        events: self::libc::POLLIN,
+        revents: 0,
+    };
+
+    poll_desc_info.fill(&mut poll_fds[1..]).unwrap();
+
     let mut message = MidiMessage::new();
 
     { // open scope where we can borrow data.seq
@@ -651,11 +652,11 @@ fn handle_input<T>(mut data: HandlerData<T>, user_data: &mut T) -> HandlerData<T
         // If here, there should be data.
         let mut ev = match seq_input.event_input() {
             Ok(ev) => ev,
-            Err(ref e) if e.errno() == Some(self::nix::errno::Errno::ENOSPC) => {
+            Err(ref e) if e.errno() == alsa::nix::errno::Errno::ENOSPC => {
                 let _ = writeln!(stderr(), "\nError in handle_input: ALSA MIDI input buffer overrun!\n");
                 continue;
             },
-            Err(ref e) if e.errno() == Some(self::nix::errno::Errno::EAGAIN) => {
+            Err(ref e) if e.errno() == alsa::nix::errno::Errno::EAGAIN => {
                 let _ = writeln!(stderr(), "\nError in handle_input: no input event from ALSA MIDI input buffer!\n");
                 continue;
             },

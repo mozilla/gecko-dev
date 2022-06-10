@@ -12,10 +12,6 @@ mod t {
     /// race condition.
     #[test]
     #[should_panic(expected = "Closing an invalid file descriptor!")]
-    // In Travis on i686-unknown-linux-musl, this test gets SIGABRT.  I don't
-    // know why.  It doesn't happen on any other target, and it doesn't happen
-    // on my PC.
-    #[cfg_attr(all(target_env = "musl", target_arch = "x86"), ignore)]
     fn test_double_close() {
         let m = posix_openpt(OFlag::O_RDWR).unwrap();
         close(m.as_raw_fd()).unwrap();

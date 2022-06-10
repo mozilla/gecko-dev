@@ -1,6 +1,6 @@
 //! Get filesystem statistics
 //!
-//! See [the man pages](http://pubs.opengroup.org/onlinepubs/9699919799/functions/fstatvfs.html)
+//! See [the man pages](https://pubs.opengroup.org/onlinepubs/9699919799/functions/fstatvfs.html)
 //! for more details.
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -54,7 +54,7 @@ libc_bitflags!(
 
 /// Wrapper around the POSIX `statvfs` struct
 ///
-/// For more information see the [`statvfs(3)` man pages](http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_statvfs.h.html).
+/// For more information see the [`statvfs(3)` man pages](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_statvfs.h.html).
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Statvfs(libc::statvfs);
@@ -150,7 +150,7 @@ mod test {
 
     #[test]
     fn statvfs_call() {
-        statvfs("/".as_bytes()).unwrap();
+        statvfs(&b"/"[..]).unwrap();
     }
 
     #[test]

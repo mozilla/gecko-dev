@@ -8,5 +8,5 @@ const LOOPBACK: &[u8] = b"lo0";
 
 #[test]
 fn test_if_nametoindex() {
-    assert!(if_nametoindex(&LOOPBACK[..]).is_ok());
+    assert!(if_nametoindex(LOOPBACK).is_ok());
 }

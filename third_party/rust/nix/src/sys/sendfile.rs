@@ -1,3 +1,5 @@
+//! Send data from a file to a socket, bypassing userland.
+
 use cfg_if::cfg_if;
 use std::os::unix::io::RawFd;
 use std::ptr;
@@ -18,7 +20,7 @@ use crate::errno::Errno;
 ///
 /// `in_fd` must support `mmap`-like operations and therefore cannot be a socket.
 ///
-/// For more information, see [the sendfile(2) man page.](http://man7.org/linux/man-pages/man2/sendfile.2.html)
+/// For more information, see [the sendfile(2) man page.](https://man7.org/linux/man-pages/man2/sendfile.2.html)
 #[cfg(any(target_os = "android", target_os = "linux"))]
 pub fn sendfile(
     out_fd: RawFd,
@@ -30,6 +32,32 @@ pub fn sendfile(
         .map(|offset| offset as *mut _)
         .unwrap_or(ptr::null_mut());
     let ret = unsafe { libc::sendfile(out_fd, in_fd, offset, count) };
+    Errno::result(ret).map(|r| r as usize)
+}
+
+/// Copy up to `count` bytes to `out_fd` from `in_fd` starting at `offset`.
+///
+/// Returns a `Result` with the number of bytes written.
+///
+/// If `offset` is `None`, `sendfile` will begin reading at the current offset of `in_fd`and will
+/// update the offset of `in_fd`. If `offset` is `Some`, `sendfile` will begin at the specified
+/// offset and will not update the offset of `in_fd`. Instead, it will mutate `offset` to point to
+/// the byte after the last byte copied.
+///
+/// `in_fd` must support `mmap`-like operations and therefore cannot be a socket.
+///
+/// For more information, see [the sendfile(2) man page.](https://man7.org/linux/man-pages/man2/sendfile.2.html)
+#[cfg(target_os = "linux")]
+pub fn sendfile64(
+    out_fd: RawFd,
+    in_fd: RawFd,
+    offset: Option<&mut libc::off64_t>,
+    count: usize,
+) -> Result<usize> {
+    let offset = offset
+        .map(|offset| offset as *mut _)
+        .unwrap_or(ptr::null_mut());
+    let ret = unsafe { libc::sendfile64(out_fd, in_fd, offset, count) };
     Errno::result(ret).map(|r| r as usize)
 }
 

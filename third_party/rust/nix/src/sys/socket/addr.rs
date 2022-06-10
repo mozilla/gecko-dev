@@ -1,5 +1,5 @@
 use super::sa_family_t;
-use crate::{Error, Result, NixPath};
+use crate::{Result, NixPath};
 use crate::errno::Errno;
 use memoffset::offset_of;
 use std::{fmt, mem, net, ptr, slice};
@@ -21,6 +21,7 @@ use crate::sys::socket::addr::sys_control::SysControlAddr;
           target_os = "ios",
           target_os = "linux",
           target_os = "macos",
+          target_os = "illumos",
           target_os = "netbsd",
           target_os = "openbsd",
           target_os = "fuchsia"))]
@@ -31,19 +32,24 @@ pub use self::vsock::VsockAddr;
 /// These constants specify the protocol family to be used
 /// in [`socket`](fn.socket.html) and [`socketpair`](fn.socketpair.html)
 #[repr(i32)]
+#[non_exhaustive]
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum AddressFamily {
-    /// Local communication (see [`unix(7)`](http://man7.org/linux/man-pages/man7/unix.7.html))
+    /// Local communication (see [`unix(7)`](https://man7.org/linux/man-pages/man7/unix.7.html))
     Unix = libc::AF_UNIX,
-    /// IPv4 Internet protocols (see [`ip(7)`](http://man7.org/linux/man-pages/man7/ip.7.html))
+    /// IPv4 Internet protocols (see [`ip(7)`](https://man7.org/linux/man-pages/man7/ip.7.html))
     Inet = libc::AF_INET,
-    /// IPv6 Internet protocols (see [`ipv6(7)`](http://man7.org/linux/man-pages/man7/ipv6.7.html))
+    /// IPv6 Internet protocols (see [`ipv6(7)`](https://man7.org/linux/man-pages/man7/ipv6.7.html))
     Inet6 = libc::AF_INET6,
-    /// Kernel user interface device (see [`netlink(7)`](http://man7.org/linux/man-pages/man7/netlink.7.html))
+    /// Kernel user interface device (see [`netlink(7)`](https://man7.org/linux/man-pages/man7/netlink.7.html))
     #[cfg(any(target_os = "android", target_os = "linux"))]
     Netlink = libc::AF_NETLINK,
-    /// Low level packet interface (see [`packet(7)`](http://man7.org/linux/man-pages/man7/packet.7.html))
-    #[cfg(any(target_os = "android", target_os = "linux", target_os = "fuchsia"))]
+    /// Low level packet interface (see [`packet(7)`](https://man7.org/linux/man-pages/man7/packet.7.html))
+    #[cfg(any(target_os = "android",
+              target_os = "linux",
+              target_os = "illumos",
+              target_os = "fuchsia",
+              target_os = "solaris"))]
     Packet = libc::AF_PACKET,
     /// KEXT Controls and Notifications
     #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -62,7 +68,7 @@ pub enum AddressFamily {
     /// Access to raw ATM PVCs
     #[cfg(any(target_os = "android", target_os = "linux"))]
     AtmPvc = libc::AF_ATMPVC,
-    /// ITU-T X.25 / ISO-8208 protocol (see [`x25(7)`](http://man7.org/linux/man-pages/man7/x25.7.html))
+    /// ITU-T X.25 / ISO-8208 protocol (see [`x25(7)`](https://man7.org/linux/man-pages/man7/x25.7.html))
     #[cfg(any(target_os = "android", target_os = "linux"))]
     X25 = libc::AF_X25,
     #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -99,12 +105,16 @@ pub enum AddressFamily {
     Can = libc::AF_CAN,
     #[cfg(any(target_os = "android", target_os = "linux"))]
     Tipc = libc::AF_TIPC,
-    #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+    #[cfg(not(any(target_os = "illumos",
+                  target_os = "ios",
+                  target_os = "macos",
+                  target_os = "solaris")))]
     Bluetooth = libc::AF_BLUETOOTH,
     #[cfg(any(target_os = "android", target_os = "linux"))]
     Iucv = libc::AF_IUCV,
     #[cfg(any(target_os = "android", target_os = "linux"))]
     RxRpc = libc::AF_RXRPC,
+    #[cfg(not(any(target_os = "illumos", target_os = "solaris")))]
     Isdn = libc::AF_ISDN,
     #[cfg(any(target_os = "android", target_os = "linux"))]
     Phonet = libc::AF_PHONET,
@@ -191,6 +201,7 @@ pub enum AddressFamily {
               target_os = "freebsd",
               target_os = "ios",
               target_os = "macos",
+              target_os = "illumos",
               target_os = "netbsd",
               target_os = "openbsd"))]
     Link = libc::AF_LINK,
@@ -215,7 +226,7 @@ pub enum AddressFamily {
               target_os = "netbsd",
               target_os = "openbsd"))]
     Natm = libc::AF_NATM,
-    /// Unspecified address family, (see [`getaddrinfo(3)`](http://man7.org/linux/man-pages/man3/getaddrinfo.3.html))
+    /// Unspecified address family, (see [`getaddrinfo(3)`](https://man7.org/linux/man-pages/man3/getaddrinfo.3.html))
     #[cfg(any(target_os = "android", target_os = "linux"))]
     Unspec = libc::AF_UNSPEC,
 }
@@ -226,7 +237,7 @@ impl AddressFamily {
     ///
     /// Currently only supports these address families: Unix, Inet (v4 & v6), Netlink, Link/Packet
     /// and System. Returns None for unsupported or unknown address families.
-    pub fn from_i32(family: i32) -> Option<AddressFamily> {
+    pub const fn from_i32(family: i32) -> Option<AddressFamily> {
         match family {
             libc::AF_UNIX => Some(AddressFamily::Unix),
             libc::AF_INET => Some(AddressFamily::Inet),
@@ -242,6 +253,7 @@ impl AddressFamily {
                       target_os = "ios",
                       target_os = "macos",
                       target_os = "netbsd",
+                      target_os = "illumos",
                       target_os = "openbsd"))]
             libc::AF_LINK => Some(AddressFamily::Link),
             #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -258,6 +270,7 @@ pub enum InetAddr {
 }
 
 impl InetAddr {
+    #[allow(clippy::needless_update)]   // It isn't needless on all OSes
     pub fn from_std(std: &net::SocketAddr) -> InetAddr {
         match *std {
             net::SocketAddr::V4(ref addr) => {
@@ -281,6 +294,7 @@ impl InetAddr {
         }
     }
 
+    #[allow(clippy::needless_update)]   // It isn't needless on all OSes
     pub fn new(ip: IpAddr, port: u16) -> InetAddr {
         match ip {
             IpAddr::V4(ref ip) => {
@@ -302,7 +316,7 @@ impl InetAddr {
         }
     }
     /// Gets the IP address associated with this socket address.
-    pub fn ip(&self) -> IpAddr {
+    pub const fn ip(&self) -> IpAddr {
         match *self {
             InetAddr::V4(ref sa) => IpAddr::V4(Ipv4Addr(sa.sin_addr)),
             InetAddr::V6(ref sa) => IpAddr::V6(Ipv6Addr(sa.sin6_addr)),
@@ -310,7 +324,7 @@ impl InetAddr {
     }
 
     /// Gets the port number associated with this socket address
-    pub fn port(&self) -> u16 {
+    pub const fn port(&self) -> u16 {
         match *self {
             InetAddr::V6(ref sa) => u16::from_be(sa.sin6_port),
             InetAddr::V4(ref sa) => u16::from_be(sa.sin_port),
@@ -332,6 +346,7 @@ impl InetAddr {
         }
     }
 
+    #[deprecated(since = "0.23.0", note = "use .to_string() instead")]
     pub fn to_str(&self) -> String {
         format!("{}", self)
     }
@@ -361,7 +376,7 @@ impl IpAddr {
     /// Create a new IpAddr that contains an IPv4 address.
     ///
     /// The result will represent the IP address a.b.c.d
-    pub fn new_v4(a: u8, b: u8, c: u8, d: u8) -> IpAddr {
+    pub const fn new_v4(a: u8, b: u8, c: u8, d: u8) -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(a, b, c, d))
     }
 
@@ -370,7 +385,7 @@ impl IpAddr {
     /// The result will represent the IP address a:b:c:d:e:f
     #[allow(clippy::many_single_char_names)]
     #[allow(clippy::too_many_arguments)]
-    pub fn new_v6(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> IpAddr {
+    pub const fn new_v6(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> IpAddr {
         IpAddr::V6(Ipv6Addr::new(a, b, c, d, e, f, g, h))
     }
 
@@ -381,7 +396,7 @@ impl IpAddr {
         }
     }
 
-    pub fn to_std(&self) -> net::IpAddr {
+    pub const fn to_std(&self) -> net::IpAddr {
         match *self {
             IpAddr::V4(ref ip) => net::IpAddr::V4(ip.to_std()),
             IpAddr::V6(ref ip) => net::IpAddr::V6(ip.to_std()),
@@ -409,11 +424,11 @@ pub struct Ipv4Addr(pub libc::in_addr);
 
 impl Ipv4Addr {
     #[allow(clippy::identity_op)]   // More readable this way
-    pub fn new(a: u8, b: u8, c: u8, d: u8) -> Ipv4Addr {
-        let ip = ((u32::from(a) << 24) |
-                  (u32::from(b) << 16) |
-                  (u32::from(c) <<  8) |
-                  (u32::from(d) <<  0)).to_be();
+    pub const fn new(a: u8, b: u8, c: u8, d: u8) -> Ipv4Addr {
+        let ip = (((a as u32) << 24) |
+                  ((b as u32) << 16) |
+                  ((c as u32) <<  8) |
+                  ((d as u32) <<  0)).to_be();
 
         Ipv4Addr(libc::in_addr { s_addr: ip })
     }
@@ -425,16 +440,16 @@ impl Ipv4Addr {
         Ipv4Addr::new(bits[0], bits[1], bits[2], bits[3])
     }
 
-    pub fn any() -> Ipv4Addr {
+    pub const fn any() -> Ipv4Addr {
         Ipv4Addr(libc::in_addr { s_addr: libc::INADDR_ANY })
     }
 
-    pub fn octets(self) -> [u8; 4] {
+    pub const fn octets(self) -> [u8; 4] {
         let bits = u32::from_be(self.0.s_addr);
         [(bits >> 24) as u8, (bits >> 16) as u8, (bits >> 8) as u8, bits as u8]
     }
 
-    pub fn to_std(self) -> net::Ipv4Addr {
+    pub const fn to_std(self) -> net::Ipv4Addr {
         let bits = self.octets();
         net::Ipv4Addr::new(bits[0], bits[1], bits[2], bits[3])
     }
@@ -475,7 +490,7 @@ macro_rules! to_u16_array {
 impl Ipv6Addr {
     #[allow(clippy::many_single_char_names)]
     #[allow(clippy::too_many_arguments)]
-    pub fn new(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> Ipv6Addr {
+    pub const fn new(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> Ipv6Addr {
         Ipv6Addr(libc::in6_addr{s6_addr: to_u8_array!(a,b,c,d,e,f,g,h)})
     }
 
@@ -485,11 +500,11 @@ impl Ipv6Addr {
     }
 
     /// Return the eight 16-bit segments that make up this address
-    pub fn segments(&self) -> [u16; 8] {
+    pub const fn segments(&self) -> [u16; 8] {
         to_u16_array!(self, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
     }
 
-    pub fn to_std(&self) -> net::Ipv6Addr {
+    pub const fn to_std(&self) -> net::Ipv6Addr {
         let s = self.segments();
         net::Ipv6Addr::new(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7])
     }
@@ -502,15 +517,42 @@ impl fmt::Display for Ipv6Addr {
 }
 
 /// A wrapper around `sockaddr_un`.
-///
-/// This also tracks the length of `sun_path` address (excluding
-/// a terminating null), because it may not be null-terminated.  For example,
-/// unconnected and Linux abstract sockets are never null-terminated, and POSIX
-/// does not require that `sun_len` include the terminating null even for normal
-/// sockets.  Note that the actual sockaddr length is greater by
-/// `offset_of!(libc::sockaddr_un, sun_path)`
 #[derive(Clone, Copy, Debug)]
-pub struct UnixAddr(pub libc::sockaddr_un, pub usize);
+pub struct UnixAddr {
+    // INVARIANT: sun & path_len are valid as defined by docs for from_raw_parts
+    sun: libc::sockaddr_un,
+    path_len: usize,
+}
+
+// linux man page unix(7) says there are 3 kinds of unix socket:
+// pathname: addrlen = offsetof(struct sockaddr_un, sun_path) + strlen(sun_path) + 1
+// unnamed: addrlen = sizeof(sa_family_t)
+// abstract: addren > sizeof(sa_family_t), name = sun_path[..(addrlen - sizeof(sa_family_t))]
+//
+// what we call path_len = addrlen - offsetof(struct sockaddr_un, sun_path)
+#[derive(PartialEq, Eq, Hash)]
+enum UnixAddrKind<'a> {
+    Pathname(&'a Path),
+    Unnamed,
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Abstract(&'a [u8]),
+}
+impl<'a> UnixAddrKind<'a> {
+    /// Safety: sun & path_len must be valid
+    unsafe fn get(sun: &'a libc::sockaddr_un, path_len: usize) -> Self {
+        if path_len == 0 {
+            return Self::Unnamed;
+        }
+        #[cfg(any(target_os = "android", target_os = "linux"))]
+        if sun.sun_path[0] == 0 {
+            let name =
+                slice::from_raw_parts(sun.sun_path.as_ptr().add(1) as *const u8, path_len - 1);
+            return Self::Abstract(name);
+        }
+        let pathname = slice::from_raw_parts(sun.sun_path.as_ptr() as *const u8, path_len - 1);
+        Self::Pathname(Path::new(OsStr::from_bytes(pathname)))
+    }
+}
 
 impl UnixAddr {
     /// Create a new sockaddr_un representing a filesystem path.
@@ -524,15 +566,15 @@ impl UnixAddr {
 
                 let bytes = cstr.to_bytes();
 
-                if bytes.len() > ret.sun_path.len() {
-                    return Err(Error::Sys(Errno::ENAMETOOLONG));
+                if bytes.len() >= ret.sun_path.len() {
+                    return Err(Errno::ENAMETOOLONG);
                 }
 
                 ptr::copy_nonoverlapping(bytes.as_ptr(),
                                          ret.sun_path.as_mut_ptr() as *mut u8,
                                          bytes.len());
 
-                Ok(UnixAddr(ret, bytes.len()))
+                Ok(UnixAddr::from_raw_parts(ret, bytes.len() + 1))
             }
         })?
     }
@@ -551,8 +593,8 @@ impl UnixAddr {
                 .. mem::zeroed()
             };
 
-            if path.len() + 1 > ret.sun_path.len() {
-                return Err(Error::Sys(Errno::ENAMETOOLONG));
+            if path.len() >= ret.sun_path.len() {
+                return Err(Errno::ENAMETOOLONG);
             }
 
             // Abstract addresses are represented by sun_path[0] ==
@@ -561,28 +603,39 @@ impl UnixAddr {
                                      ret.sun_path.as_mut_ptr().offset(1) as *mut u8,
                                      path.len());
 
-            Ok(UnixAddr(ret, path.len() + 1))
+            Ok(UnixAddr::from_raw_parts(ret, path.len() + 1))
         }
     }
 
-    fn sun_path(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts(self.0.sun_path.as_ptr() as *const u8, self.1) }
+    /// Create a UnixAddr from a raw `sockaddr_un` struct and a size. `path_len` is the "addrlen"
+    /// of this address, but minus `offsetof(struct sockaddr_un, sun_path)`. Basically the length
+    /// of the data in `sun_path`.
+    ///
+    /// # Safety
+    /// This pair of sockaddr_un & path_len must be a valid unix addr, which means:
+    /// - path_len <= sockaddr_un.sun_path.len()
+    /// - if this is a unix addr with a pathname, sun.sun_path is a nul-terminated fs path and
+    ///   sun.sun_path[path_len - 1] == 0 || sun.sun_path[path_len] == 0
+    pub(crate) unsafe fn from_raw_parts(sun: libc::sockaddr_un, mut path_len: usize) -> UnixAddr {
+        if let UnixAddrKind::Pathname(_) = UnixAddrKind::get(&sun, path_len) {
+            if sun.sun_path[path_len - 1] != 0 {
+                assert_eq!(sun.sun_path[path_len], 0);
+                path_len += 1
+            }
+        }
+        UnixAddr { sun, path_len }
+    }
+
+    fn kind(&self) -> UnixAddrKind<'_> {
+        // SAFETY: our sockaddr is always valid because of the invariant on the struct
+        unsafe { UnixAddrKind::get(&self.sun, self.path_len) }
     }
 
     /// If this address represents a filesystem path, return that path.
     pub fn path(&self) -> Option<&Path> {
-        if self.1 == 0 || self.0.sun_path[0] == 0 {
-            // unnamed or abstract
-            None
-        } else {
-            let p = self.sun_path();
-            // POSIX only requires that `sun_len` be at least long enough to
-            // contain the pathname, and it need not be null-terminated.  So we
-            // need to create a string that is the shorter of the
-            // null-terminated length or the full length.
-            let ptr = &self.0.sun_path as *const libc::c_char;
-            let reallen = unsafe { libc::strnlen(ptr, p.len()) };
-            Some(Path::new(<OsStr as OsStrExt>::from_bytes(&p[..reallen])))
+        match self.kind() {
+            UnixAddrKind::Pathname(path) => Some(path),
+            _ => None,
         }
     }
 
@@ -592,31 +645,55 @@ impl UnixAddr {
     /// leading null byte. `None` is returned for unnamed or path-backed sockets.
     #[cfg(any(target_os = "android", target_os = "linux"))]
     pub fn as_abstract(&self) -> Option<&[u8]> {
-        if self.1 >= 1 && self.0.sun_path[0] == 0 {
-            Some(&self.sun_path()[1..])
-        } else {
-            // unnamed or filesystem path
-            None
+        match self.kind() {
+            UnixAddrKind::Abstract(name) => Some(name),
+            _ => None,
         }
     }
+
+    /// Returns the addrlen of this socket - `offsetof(struct sockaddr_un, sun_path)`
+    #[inline]
+    pub fn path_len(&self) -> usize {
+        self.path_len
+    }
+    /// Returns a pointer to the raw `sockaddr_un` struct
+    #[inline]
+    pub fn as_ptr(&self) -> *const libc::sockaddr_un {
+        &self.sun
+    }
+    /// Returns a mutable pointer to the raw `sockaddr_un` struct
+    #[inline]
+    pub fn as_mut_ptr(&mut self) -> *mut libc::sockaddr_un {
+        &mut self.sun
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+fn fmt_abstract(abs: &[u8], f: &mut fmt::Formatter) -> fmt::Result {
+    use fmt::Write;
+    f.write_str("@\"")?;
+    for &b in abs {
+        use fmt::Display;
+        char::from(b).escape_default().fmt(f)?;
+    }
+    f.write_char('"')?;
+    Ok(())
 }
 
 impl fmt::Display for UnixAddr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.1 == 0 {
-            f.write_str("<unbound UNIX socket>")
-        } else if let Some(path) = self.path() {
-            path.display().fmt(f)
-        } else {
-            let display = String::from_utf8_lossy(&self.sun_path()[1..]);
-            write!(f, "@{}", display)
+        match self.kind() {
+            UnixAddrKind::Pathname(path) => path.display().fmt(f),
+            UnixAddrKind::Unnamed => f.pad("<unbound UNIX socket>"),
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            UnixAddrKind::Abstract(name) => fmt_abstract(name, f),
         }
     }
 }
 
 impl PartialEq for UnixAddr {
     fn eq(&self, other: &UnixAddr) -> bool {
-        self.sun_path() == other.sun_path()
+        self.kind() == other.kind()
     }
 }
 
@@ -624,12 +701,13 @@ impl Eq for UnixAddr {}
 
 impl Hash for UnixAddr {
     fn hash<H: Hasher>(&self, s: &mut H) {
-        ( self.0.sun_family, self.sun_path() ).hash(s)
+        self.kind().hash(s)
     }
 }
 
 /// Represents a socket address
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
 pub enum SockAddr {
     Inet(InetAddr),
     Unix(UnixAddr),
@@ -646,6 +724,7 @@ pub enum SockAddr {
               target_os = "ios",
               target_os = "linux",
               target_os = "macos",
+              target_os = "illumos",
               target_os = "netbsd",
               target_os = "openbsd"))]
     Link(LinkAddr),
@@ -674,7 +753,7 @@ impl SockAddr {
 
     #[cfg(any(target_os = "ios", target_os = "macos"))]
     pub fn new_sys_control(sockfd: RawFd, name: &str, unit: u32) -> Result<SockAddr> {
-        SysControlAddr::from_name(sockfd, name, unit).map(|a| SockAddr::SysControl(a))
+        SysControlAddr::from_name(sockfd, name, unit).map(SockAddr::SysControl)
     }
 
     #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -700,6 +779,7 @@ impl SockAddr {
                       target_os = "ios",
                       target_os = "macos",
                       target_os = "netbsd",
+                      target_os = "illumos",
                       target_os = "openbsd"))]
             SockAddr::Link(..) => AddressFamily::Link,
             #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -707,6 +787,7 @@ impl SockAddr {
         }
     }
 
+    #[deprecated(since = "0.23.0", note = "use .to_string() instead")]
     pub fn to_str(&self) -> String {
         format!("{}", self)
     }
@@ -745,6 +826,7 @@ impl SockAddr {
                           target_os = "ios",
                           target_os = "macos",
                           target_os = "netbsd",
+                          target_os = "illumos",
                           target_os = "openbsd"))]
                 Some(AddressFamily::Link) => {
                     let ether_addr = LinkAddr(*(addr as *const libc::sockaddr_dl));
@@ -787,12 +869,12 @@ impl SockAddr {
                 },
                 mem::size_of_val(addr) as libc::socklen_t
             ),
-            SockAddr::Unix(UnixAddr(ref addr, len)) => (
+            SockAddr::Unix(UnixAddr { ref sun, path_len }) => (
                 // This cast is always allowed in C
                 unsafe {
-                    &*(addr as *const libc::sockaddr_un as *const libc::sockaddr)
+                    &*(sun as *const libc::sockaddr_un as *const libc::sockaddr)
                 },
-                (len + offset_of!(libc::sockaddr_un, sun_path)) as libc::socklen_t
+                (path_len + offset_of!(libc::sockaddr_un, sun_path)) as libc::socklen_t
             ),
             #[cfg(any(target_os = "android", target_os = "linux"))]
             SockAddr::Netlink(NetlinkAddr(ref sa)) => (
@@ -831,6 +913,7 @@ impl SockAddr {
                       target_os = "freebsd",
                       target_os = "ios",
                       target_os = "macos",
+                      target_os = "illumos",
                       target_os = "netbsd",
                       target_os = "openbsd"))]
             SockAddr::Link(LinkAddr(ref addr)) => (
@@ -870,6 +953,7 @@ impl fmt::Display for SockAddr {
                       target_os = "linux",
                       target_os = "macos",
                       target_os = "netbsd",
+                      target_os = "illumos",
                       target_os = "openbsd"))]
             SockAddr::Link(ref ether_addr) => ether_addr.fmt(f),
             #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -897,11 +981,11 @@ pub mod netlink {
             NetlinkAddr(addr)
         }
 
-        pub fn pid(&self) -> u32 {
+        pub const fn pid(&self) -> u32 {
             self.0.nl_pid
         }
 
-        pub fn groups(&self) -> u32 {
+        pub const fn groups(&self) -> u32 {
             self.0.nl_groups
         }
     }
@@ -982,7 +1066,7 @@ pub mod sys_control {
     use libc::{self, c_uchar};
     use std::{fmt, mem};
     use std::os::unix::io::RawFd;
-    use crate::{Errno, Error, Result};
+    use crate::{Errno, Result};
 
     // FIXME: Move type into `libc`
     #[repr(C)]
@@ -993,7 +1077,7 @@ pub mod sys_control {
         pub ctl_name: [c_uchar; MAX_KCTL_NAME],
     }
 
-    const CTL_IOC_MAGIC: u8 = 'N' as u8;
+    const CTL_IOC_MAGIC: u8 = b'N';
     const CTL_IOC_INFO: u8 = 3;
     const MAX_KCTL_NAME: usize = 96;
 
@@ -1004,7 +1088,7 @@ pub mod sys_control {
     pub struct SysControlAddr(pub libc::sockaddr_ctl);
 
     impl SysControlAddr {
-        pub fn new(id: u32, unit: u32) -> SysControlAddr {
+        pub const fn new(id: u32, unit: u32) -> SysControlAddr {
             let addr = libc::sockaddr_ctl {
                 sc_len: mem::size_of::<libc::sockaddr_ctl>() as c_uchar,
                 sc_family: AddressFamily::System as c_uchar,
@@ -1019,7 +1103,7 @@ pub mod sys_control {
 
         pub fn from_name(sockfd: RawFd, name: &str, unit: u32) -> Result<SysControlAddr> {
             if name.len() > MAX_KCTL_NAME {
-                return Err(Error::Sys(Errno::ENAMETOOLONG));
+                return Err(Errno::ENAMETOOLONG);
             }
 
             let mut ctl_name = [0; MAX_KCTL_NAME];
@@ -1031,11 +1115,11 @@ pub mod sys_control {
             Ok(SysControlAddr::new(info.ctl_id, unit))
         }
 
-        pub fn id(&self) -> u32 {
+        pub const fn id(&self) -> u32 {
             self.0.sc_id
         }
 
-        pub fn unit(&self) -> u32 {
+        pub const fn unit(&self) -> u32 {
             self.0.sc_unit
         }
     }
@@ -1119,6 +1203,7 @@ mod datalink {
           target_os = "freebsd",
           target_os = "ios",
           target_os = "macos",
+          target_os = "illumos",
           target_os = "netbsd",
           target_os = "openbsd"))]
 mod datalink {
@@ -1130,6 +1215,7 @@ mod datalink {
 
     impl LinkAddr {
         /// Total length of sockaddr
+        #[cfg(not(target_os = "illumos"))]
         pub fn len(&self) -> usize {
             self.0.sdl_len as usize
         }
@@ -1281,6 +1367,7 @@ mod tests {
               target_os = "linux",
               target_os = "macos",
               target_os = "netbsd",
+              target_os = "illumos",
               target_os = "openbsd"))]
     use super::*;
 
@@ -1325,17 +1412,36 @@ mod tests {
         };
     }
 
+    #[cfg(target_os = "illumos")]
+    #[test]
+    fn test_illumos_tap_datalink_addr() {
+        let bytes = [25u8, 0, 0, 0, 6, 0, 6, 0, 24, 101, 144, 221, 76, 176];
+        let ptr = bytes.as_ptr();
+        let sa = ptr as *const libc::sockaddr;
+        let _sock_addr = unsafe { SockAddr::from_libc_sockaddr(sa) };
+
+        assert!(_sock_addr.is_some());
+
+        let sock_addr = _sock_addr.unwrap();
+
+        assert_eq!(sock_addr.family(), AddressFamily::Link);
+
+        match sock_addr {
+            SockAddr::Link(ether_addr) => {
+                assert_eq!(ether_addr.addr(), [24u8, 101, 144, 221, 76, 176]);
+            },
+            _ => { unreachable!() }
+        };
+    }
+
     #[cfg(any(target_os = "android", target_os = "linux"))]
     #[test]
     fn test_abstract_sun_path() {
         let name = String::from("nix\0abstract\0test");
         let addr = UnixAddr::new_abstract(name.as_bytes()).unwrap();
 
-        let sun_path1 = addr.sun_path();
-        let sun_path2 = [0u8, 110, 105, 120, 0, 97, 98, 115, 116, 114, 97, 99, 116, 0, 116, 101, 115, 116];
-        assert_eq!(sun_path1.len(), sun_path2.len());
-        for i in 0..sun_path1.len() {
-            assert_eq!(sun_path1[i], sun_path2[i]);
-        }
+        let sun_path1 = unsafe { &(*addr.as_ptr()).sun_path[..addr.path_len()] };
+        let sun_path2 = [0, 110, 105, 120, 0, 97, 98, 115, 116, 114, 97, 99, 116, 0, 116, 101, 115, 116];
+        assert_eq!(sun_path1, sun_path2);
     }
 }

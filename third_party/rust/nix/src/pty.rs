@@ -10,7 +10,7 @@ use std::os::unix::prelude::*;
 
 use crate::sys::termios::Termios;
 use crate::unistd::{self, ForkResult, Pid};
-use crate::{Result, Error, fcntl};
+use crate::{Result, fcntl};
 use crate::errno::Errno;
 
 /// Representation of a master/slave pty pair
@@ -70,7 +70,7 @@ impl Drop for PtyMaster {
         // condition, which can cause confusing errors for future I/O
         // operations.
         let e = unistd::close(self.0);
-        if e == Err(Error::Sys(Errno::EBADF)) {
+        if e == Err(Errno::EBADF) {
             panic!("Closing an invalid file descriptor!");
         };
     }
@@ -78,13 +78,13 @@ impl Drop for PtyMaster {
 
 impl io::Read for PtyMaster {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        unistd::read(self.0, buf).map_err(|e| e.as_errno().unwrap().into())
+        unistd::read(self.0, buf).map_err(io::Error::from)
     }
 }
 
 impl io::Write for PtyMaster {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        unistd::write(self.0, buf).map_err(|e| e.as_errno().unwrap().into())
+        unistd::write(self.0, buf).map_err(io::Error::from)
     }
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
@@ -92,21 +92,21 @@ impl io::Write for PtyMaster {
 }
 
 /// Grant access to a slave pseudoterminal (see
-/// [`grantpt(3)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/grantpt.html))
+/// [`grantpt(3)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/grantpt.html))
 ///
 /// `grantpt()` changes the mode and owner of the slave pseudoterminal device corresponding to the
 /// master pseudoterminal referred to by `fd`. This is a necessary step towards opening the slave.
 #[inline]
 pub fn grantpt(fd: &PtyMaster) -> Result<()> {
     if unsafe { libc::grantpt(fd.as_raw_fd()) } < 0 {
-        return Err(Error::last());
+        return Err(Errno::last());
     }
 
     Ok(())
 }
 
 /// Open a pseudoterminal device (see
-/// [`posix_openpt(3)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/posix_openpt.html))
+/// [`posix_openpt(3)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/posix_openpt.html))
 ///
 /// `posix_openpt()` returns a file descriptor to an existing unused pseuterminal master device.
 ///
@@ -145,14 +145,14 @@ pub fn posix_openpt(flags: fcntl::OFlag) -> Result<PtyMaster> {
     };
 
     if fd < 0 {
-        return Err(Error::last());
+        return Err(Errno::last());
     }
 
     Ok(PtyMaster(fd))
 }
 
 /// Get the name of the slave pseudoterminal (see
-/// [`ptsname(3)`](http://man7.org/linux/man-pages/man3/ptsname.3.html))
+/// [`ptsname(3)`](https://man7.org/linux/man-pages/man3/ptsname.3.html))
 ///
 /// `ptsname()` returns the name of the slave pseudoterminal device corresponding to the master
 /// referred to by `fd`.
@@ -171,7 +171,7 @@ pub fn posix_openpt(flags: fcntl::OFlag) -> Result<PtyMaster> {
 pub unsafe fn ptsname(fd: &PtyMaster) -> Result<String> {
     let name_ptr = libc::ptsname(fd.as_raw_fd());
     if name_ptr.is_null() {
-        return Err(Error::last());
+        return Err(Errno::last());
     }
 
     let name = CStr::from_ptr(name_ptr);
@@ -179,7 +179,7 @@ pub unsafe fn ptsname(fd: &PtyMaster) -> Result<String> {
 }
 
 /// Get the name of the slave pseudoterminal (see
-/// [`ptsname(3)`](http://man7.org/linux/man-pages/man3/ptsname.3.html))
+/// [`ptsname(3)`](https://man7.org/linux/man-pages/man3/ptsname.3.html))
 ///
 /// `ptsname_r()` returns the name of the slave pseudoterminal device corresponding to the master
 /// referred to by `fd`. This is the threadsafe version of `ptsname()`, but it is not part of the
@@ -190,23 +190,22 @@ pub unsafe fn ptsname(fd: &PtyMaster) -> Result<String> {
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[inline]
 pub fn ptsname_r(fd: &PtyMaster) -> Result<String> {
-    let mut name_buf = vec![0u8; 64];
-    let name_buf_ptr = name_buf.as_mut_ptr() as *mut libc::c_char;
-    if unsafe { libc::ptsname_r(fd.as_raw_fd(), name_buf_ptr, name_buf.capacity()) } != 0 {
-        return Err(Error::last());
-    }
+    let mut name_buf = Vec::<libc::c_char>::with_capacity(64);
+    let name_buf_ptr = name_buf.as_mut_ptr();
+    let cname = unsafe {
+        let cap = name_buf.capacity();
+        if libc::ptsname_r(fd.as_raw_fd(), name_buf_ptr, cap) != 0 {
+            return Err(crate::Error::last());
+        }
+        CStr::from_ptr(name_buf.as_ptr())
+    };
 
-    // Find the first null-character terminating this string. This is guaranteed to succeed if the
-    // return value of `libc::ptsname_r` is 0.
-    let null_index = name_buf.iter().position(|c| *c == b'\0').unwrap();
-    name_buf.truncate(null_index);
-
-    let name = String::from_utf8(name_buf)?;
+    let name = cname.to_string_lossy().into_owned();
     Ok(name)
 }
 
 /// Unlock a pseudoterminal master/slave pseudoterminal pair (see
-/// [`unlockpt(3)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/unlockpt.html))
+/// [`unlockpt(3)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/unlockpt.html))
 ///
 /// `unlockpt()` unlocks the slave pseudoterminal device corresponding to the master pseudoterminal
 /// referred to by `fd`. This must be called before trying to open the slave side of a
@@ -214,7 +213,7 @@ pub fn ptsname_r(fd: &PtyMaster) -> Result<String> {
 #[inline]
 pub fn unlockpt(fd: &PtyMaster) -> Result<()> {
     if unsafe { libc::unlockpt(fd.as_raw_fd()) } < 0 {
-        return Err(Error::last());
+        return Err(Errno::last());
     }
 
     Ok(())
@@ -223,7 +222,7 @@ pub fn unlockpt(fd: &PtyMaster) -> Result<()> {
 
 /// Create a new pseudoterminal, returning the slave and master file descriptors
 /// in `OpenptyResult`
-/// (see [`openpty`](http://man7.org/linux/man-pages/man3/openpty.3.html)).
+/// (see [`openpty`](https://man7.org/linux/man-pages/man3/openpty.3.html)).
 ///
 /// If `winsize` is not `None`, the window size of the slave will be set to
 /// the values in `winsize`. If `termios` is not `None`, the pseudoterminal's
@@ -297,12 +296,24 @@ pub fn openpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>
 
 /// Create a new pseudoterminal, returning the master file descriptor and forked pid.
 /// in `ForkptyResult`
-/// (see [`forkpty`](http://man7.org/linux/man-pages/man3/forkpty.3.html)).
+/// (see [`forkpty`](https://man7.org/linux/man-pages/man3/forkpty.3.html)).
 ///
 /// If `winsize` is not `None`, the window size of the slave will be set to
 /// the values in `winsize`. If `termios` is not `None`, the pseudoterminal's
 /// terminal settings of the slave will be set to the values in `termios`.
-pub fn forkpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>>>(
+///
+/// # Safety
+///
+/// In a multithreaded program, only [async-signal-safe] functions like `pause`
+/// and `_exit` may be called by the child (the parent isn't restricted). Note
+/// that memory allocation may **not** be async-signal-safe and thus must be
+/// prevented.
+///
+/// Those functions are only a small subset of your operating system's API, so
+/// special care must be taken to only invoke code you can control and audit.
+///
+/// [async-signal-safe]: https://man7.org/linux/man-pages/man7/signal-safety.7.html
+pub unsafe fn forkpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>>>(
     winsize: T,
     termios: U,
 ) -> Result<ForkptyResult> {
@@ -323,20 +334,15 @@ pub fn forkpty<'a, 'b, T: Into<Option<&'a Winsize>>, U: Into<Option<&'b Termios>
         .map(|ws| ws as *const Winsize as *mut _)
         .unwrap_or(ptr::null_mut());
 
-    let res = unsafe {
-        libc::forkpty(master.as_mut_ptr(), ptr::null_mut(), term, win)
-    };
+    let res = libc::forkpty(master.as_mut_ptr(), ptr::null_mut(), term, win);
 
     let fork_result = Errno::result(res).map(|res| match res {
         0 => ForkResult::Child,
         res => ForkResult::Parent { child: Pid::from_raw(res) },
     })?;
 
-    unsafe {
-        Ok(ForkptyResult {
-            master: master.assume_init(),
-            fork_result,
-        })
-    }
+    Ok(ForkptyResult {
+        master: master.assume_init(),
+        fork_result,
+    })
 }
-

@@ -1,6 +1,6 @@
 //! Posix Message Queue functions
 //!
-//! [Further reading and details on the C API](http://man7.org/linux/man-pages/man7/mq_overview.7.html)
+//! [Further reading and details on the C API](https://man7.org/linux/man-pages/man7/mq_overview.7.html)
 
 use crate::Result;
 use crate::errno::Errno;
@@ -59,7 +59,7 @@ impl MqAttr {
         }
     }
 
-    pub fn flags(&self) -> mq_attr_member_t {
+    pub const fn flags(&self) -> mq_attr_member_t {
         self.mq_attr.mq_flags
     }
 }
@@ -67,7 +67,7 @@ impl MqAttr {
 
 /// Open a message queue
 ///
-/// See also [`mq_open(2)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_open.html)
+/// See also [`mq_open(2)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_open.html)
 // The mode.bits cast is only lossless on some OSes
 #[allow(clippy::cast_lossless)]
 pub fn mq_open(name: &CString,
@@ -89,7 +89,7 @@ pub fn mq_open(name: &CString,
 
 /// Remove a message queue
 ///
-/// See also [`mq_unlink(2)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_unlink.html)
+/// See also [`mq_unlink(2)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_unlink.html)
 pub fn mq_unlink(name: &CString) -> Result<()> {
     let res = unsafe { libc::mq_unlink(name.as_ptr()) };
     Errno::result(res).map(drop)
@@ -97,7 +97,7 @@ pub fn mq_unlink(name: &CString) -> Result<()> {
 
 /// Close a message queue
 ///
-/// See also [`mq_close(2)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_close.html)
+/// See also [`mq_close(2)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_close.html)
 pub fn mq_close(mqdes: mqd_t) -> Result<()> {
     let res = unsafe { libc::mq_close(mqdes) };
     Errno::result(res).map(drop)
@@ -105,7 +105,7 @@ pub fn mq_close(mqdes: mqd_t) -> Result<()> {
 
 /// Receive a message from a message queue
 ///
-/// See also [`mq_receive(2)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_receive.html)
+/// See also [`mq_receive(2)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_receive.html)
 pub fn mq_receive(mqdes: mqd_t, message: &mut [u8], msg_prio: &mut u32) -> Result<usize> {
     let len = message.len() as size_t;
     let res = unsafe {
@@ -119,7 +119,7 @@ pub fn mq_receive(mqdes: mqd_t, message: &mut [u8], msg_prio: &mut u32) -> Resul
 
 /// Send a message to a message queue
 ///
-/// See also [`mq_send(2)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_send.html)
+/// See also [`mq_send(2)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_send.html)
 pub fn mq_send(mqdes: mqd_t, message: &[u8], msq_prio: u32) -> Result<()> {
     let res = unsafe {
         libc::mq_send(mqdes,
@@ -132,7 +132,7 @@ pub fn mq_send(mqdes: mqd_t, message: &[u8], msq_prio: u32) -> Result<()> {
 
 /// Get message queue attributes
 ///
-/// See also [`mq_getattr(2)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_getattr.html)
+/// See also [`mq_getattr(2)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_getattr.html)
 pub fn mq_getattr(mqd: mqd_t) -> Result<MqAttr> {
     let mut attr = mem::MaybeUninit::<libc::mq_attr>::uninit();
     let res = unsafe { libc::mq_getattr(mqd, attr.as_mut_ptr()) };
@@ -143,7 +143,7 @@ pub fn mq_getattr(mqd: mqd_t) -> Result<MqAttr> {
 /// Returns the old attributes
 /// It is recommend to use the `mq_set_nonblock()` and `mq_remove_nonblock()` convenience functions as they are easier to use
 ///
-/// [Further reading](http://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_setattr.html)
+/// [Further reading](https://pubs.opengroup.org/onlinepubs/9699919799/functions/mq_setattr.html)
 pub fn mq_setattr(mqd: mqd_t, newattr: &MqAttr) -> Result<MqAttr> {
     let mut attr = mem::MaybeUninit::<libc::mq_attr>::uninit();
     let res = unsafe {
@@ -155,6 +155,7 @@ pub fn mq_setattr(mqd: mqd_t, newattr: &MqAttr) -> Result<MqAttr> {
 /// Convenience function.
 /// Sets the `O_NONBLOCK` attribute for a given message queue descriptor
 /// Returns the old attributes
+#[allow(clippy::useless_conversion)]    // Not useless on all OSes
 pub fn mq_set_nonblock(mqd: mqd_t) -> Result<MqAttr> {
     let oldattr = mq_getattr(mqd)?;
     let newattr = MqAttr::new(mq_attr_member_t::from(MQ_OFlag::O_NONBLOCK.bits()),

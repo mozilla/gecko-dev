@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-midir = "0.7.0"
+midir = "0.8.0"
 nsstring = { path = "../../../xpcom/rust/nsstring/" }
 uuid = { version = "0.8", features = ["v4"] }
 thin-vec = { version = "0.2.1", features = ["gecko-ffi"] }

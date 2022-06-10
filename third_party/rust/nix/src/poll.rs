@@ -3,7 +3,7 @@
 use crate::sys::time::TimeSpec;
 #[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd", target_os = "linux"))]
 use crate::sys::signal::SigSet;
-use std::os::unix::io::RawFd;
+use std::os::unix::io::{AsRawFd, RawFd};
 
 use crate::Result;
 use crate::errno::Errno;
@@ -25,7 +25,7 @@ pub struct PollFd {
 impl PollFd {
     /// Creates a new `PollFd` specifying the events of interest
     /// for a given file descriptor.
-    pub fn new(fd: RawFd, events: PollFlags) -> PollFd {
+    pub const fn new(fd: RawFd, events: PollFlags) -> PollFd {
         PollFd {
             pollfd: libc::pollfd {
                 fd,
@@ -35,9 +35,26 @@ impl PollFd {
         }
     }
 
-    /// Returns the events that occured in the last call to `poll` or `ppoll`.
+    /// Returns the events that occured in the last call to `poll` or `ppoll`.  Will only return
+    /// `None` if the kernel provides status flags that Nix does not know about.
     pub fn revents(self) -> Option<PollFlags> {
         PollFlags::from_bits(self.pollfd.revents)
+    }
+
+    /// The events of interest for this `PollFd`.
+    pub fn events(self) -> PollFlags {
+        PollFlags::from_bits(self.pollfd.events).unwrap()
+    }
+
+    /// Modify the events of interest for this `PollFd`.
+    pub fn set_events(&mut self, events: PollFlags) {
+        self.pollfd.events = events.bits();
+    }
+}
+
+impl AsRawFd for PollFd {
+    fn as_raw_fd(&self) -> RawFd {
+        self.pollfd.fd
     }
 }
 
@@ -51,12 +68,12 @@ libc_bitflags! {
         /// Possibilities include:
         ///
         /// *  There is out-of-band data on a TCP socket (see
-        ///    [tcp(7)](http://man7.org/linux/man-pages/man7/tcp.7.html)).
+        ///    [tcp(7)](https://man7.org/linux/man-pages/man7/tcp.7.html)).
         /// *  A pseudoterminal master in packet mode has seen a state
         ///    change on the slave (see
-        ///    [ioctl_tty(2)](http://man7.org/linux/man-pages/man2/ioctl_tty.2.html)).
+        ///    [ioctl_tty(2)](https://man7.org/linux/man-pages/man2/ioctl_tty.2.html)).
         /// *  A cgroup.events file has been modified (see
-        ///    [cgroups(7)](http://man7.org/linux/man-pages/man7/cgroups.7.html)).
+        ///    [cgroups(7)](https://man7.org/linux/man-pages/man7/cgroups.7.html)).
         POLLPRI;
         /// Writing is now possible, though a write larger that the
         /// available space in a socket or pipe will still block (unless
@@ -96,7 +113,7 @@ libc_bitflags! {
 }
 
 /// `poll` waits for one of a set of file descriptors to become ready to perform I/O.
-/// ([`poll(2)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/poll.html))
+/// ([`poll(2)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/poll.html))
 ///
 /// `fds` contains all [`PollFd`](struct.PollFd.html) to poll.
 /// The function will return as soon as any event occur for any of these `PollFd`s.
@@ -127,7 +144,7 @@ pub fn poll(fds: &mut [PollFd], timeout: libc::c_int) -> Result<libc::c_int> {
 
 /// `ppoll()` allows an application to safely wait until either a file
 /// descriptor becomes ready or until a signal is caught.
-/// ([`poll(2)`](http://man7.org/linux/man-pages/man2/poll.2.html))
+/// ([`poll(2)`](https://man7.org/linux/man-pages/man2/poll.2.html))
 ///
 /// `ppoll` behaves like `poll`, but let you specify what signals may interrupt it
 /// with the `sigmask` argument. If you want `ppoll` to block indefinitely,

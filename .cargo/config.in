@@ -32,6 +32,11 @@ git = "https://github.com/mozilla/cubeb-coreaudio-rs"
 replace-with = "vendored-sources"
 rev = "44eca95823bb57e964cf7b6d9791ed2ccb4b2108"
 
+[source."https://github.com/mozilla/authenticator-rs"]
+git = "https://github.com/mozilla/authenticator-rs"
+replace-with = "vendored-sources"
+rev = "b85bccf0527e42c877573029e8d35ff13ef06f9d"
+
 [source."https://github.com/mozilla/audioipc"]
 git = "https://github.com/mozilla/audioipc"
 replace-with = "vendored-sources"
@@ -46,16 +51,6 @@ rev = "2689788cecf24c385e6b7440e3aa1a89c511f14a"
 git = "https://github.com/mozilla-spidermonkey/jsparagus"
 replace-with = "vendored-sources"
 rev = "20d01b2c01a5be01d3dea3ec7a1ede2fdda3d9d2"
-
-[source."https://github.com/makotokato/midir.git"]
-git = "https://github.com/makotokato/midir.git"
-replace-with = "vendored-sources"
-rev = "6140b2825dd4dc2b40e49e154ca7596e7b9a131a"
-
-[source."https://github.com/makotokato/authenticator-rs"]
-git = "https://github.com/makotokato/authenticator-rs"
-replace-with = "vendored-sources"
-rev = "eed8919d50559f4959e2d7d2af7b4d48869b5366"
 
 [source."https://github.com/kinetiknz/mio-named-pipes"]
 git = "https://github.com/kinetiknz/mio-named-pipes"

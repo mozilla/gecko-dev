@@ -39,7 +39,7 @@ pub fn get() -> Result<Persona> {
         libc::personality(0xFFFFFFFF)
     };
 
-    Errno::result(res).map(|r| Persona::from_bits_truncate(r))
+    Errno::result(res).map(Persona::from_bits_truncate)
 }
 
 /// Set the current process personality.
@@ -66,5 +66,5 @@ pub fn set(persona: Persona) -> Result<Persona> {
         libc::personality(persona.bits() as c_ulong)
     };
 
-    Errno::result(res).map(|r| Persona::from_bits_truncate(r))
+    Errno::result(res).map(Persona::from_bits_truncate)
 }

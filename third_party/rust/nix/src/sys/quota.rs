@@ -42,6 +42,7 @@ libc_enum!{
 libc_enum!{
     /// The scope of the quota.
     #[repr(i32)]
+    #[non_exhaustive]
     pub enum QuotaType {
         /// Specify a user quota
         USRQUOTA,
@@ -53,6 +54,7 @@ libc_enum!{
 libc_enum!{
     /// The type of quota format to use.
     #[repr(i32)]
+    #[non_exhaustive]
     pub enum QuotaFmt {
         /// Use the original quota format.
         QFMT_VFS_OLD,

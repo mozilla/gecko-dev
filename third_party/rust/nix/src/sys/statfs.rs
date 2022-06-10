@@ -1,3 +1,6 @@
+//! Get filesystem statistics, non-portably
+//!
+//! See [`statvfs`](crate::sys::statvfs) for a portable alternative.
 use std::fmt::{self, Debug};
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -6,11 +9,14 @@ use std::ffi::CStr;
 
 use crate::{NixPath, Result, errno::Errno};
 
+/// Identifies a mounted file system
 #[cfg(target_os = "android")]
 pub type fsid_t = libc::__fsid_t;
+/// Identifies a mounted file system
 #[cfg(not(target_os = "android"))]
 pub type fsid_t = libc::fsid_t;
 
+/// Describes a mounted file system
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct Statfs(libc::statfs);
@@ -26,6 +32,7 @@ type fs_type_t = libc::c_ulong;
 #[cfg(all(target_os = "linux", not(any(target_arch = "s390x", target_env = "musl"))))]
 type fs_type_t = libc::__fsword_t;
 
+/// Describes the file system type as known by the operating system.
 #[cfg(any(
     target_os = "freebsd",
     target_os = "android",
@@ -36,63 +43,94 @@ type fs_type_t = libc::__fsword_t;
 #[derive(Eq, Copy, Clone, PartialEq, Debug)]
 pub struct FsType(pub fs_type_t);
 
+// These constants are defined without documentation in the Linux headers, so we
+// can't very well document them here.
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const ADFS_SUPER_MAGIC: FsType = FsType(libc::ADFS_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const AFFS_SUPER_MAGIC: FsType = FsType(libc::AFFS_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const CODA_SUPER_MAGIC: FsType = FsType(libc::CODA_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const CRAMFS_MAGIC: FsType = FsType(libc::CRAMFS_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const EFS_SUPER_MAGIC: FsType = FsType(libc::EFS_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const EXT2_SUPER_MAGIC: FsType = FsType(libc::EXT2_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const EXT3_SUPER_MAGIC: FsType = FsType(libc::EXT3_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const EXT4_SUPER_MAGIC: FsType = FsType(libc::EXT4_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const HPFS_SUPER_MAGIC: FsType = FsType(libc::HPFS_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const HUGETLBFS_MAGIC: FsType = FsType(libc::HUGETLBFS_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const ISOFS_SUPER_MAGIC: FsType = FsType(libc::ISOFS_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const JFFS2_SUPER_MAGIC: FsType = FsType(libc::JFFS2_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const MINIX_SUPER_MAGIC: FsType = FsType(libc::MINIX_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const MINIX_SUPER_MAGIC2: FsType = FsType(libc::MINIX_SUPER_MAGIC2 as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const MINIX2_SUPER_MAGIC: FsType = FsType(libc::MINIX2_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const MINIX2_SUPER_MAGIC2: FsType = FsType(libc::MINIX2_SUPER_MAGIC2 as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const MSDOS_SUPER_MAGIC: FsType = FsType(libc::MSDOS_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const NCP_SUPER_MAGIC: FsType = FsType(libc::NCP_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const NFS_SUPER_MAGIC: FsType = FsType(libc::NFS_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const OPENPROM_SUPER_MAGIC: FsType = FsType(libc::OPENPROM_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const OVERLAYFS_SUPER_MAGIC: FsType = FsType(libc::OVERLAYFS_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const PROC_SUPER_MAGIC: FsType = FsType(libc::PROC_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const QNX4_SUPER_MAGIC: FsType = FsType(libc::QNX4_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const REISERFS_SUPER_MAGIC: FsType = FsType(libc::REISERFS_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const SMB_SUPER_MAGIC: FsType = FsType(libc::SMB_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const TMPFS_MAGIC: FsType = FsType(libc::TMPFS_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const USBDEVICE_SUPER_MAGIC: FsType = FsType(libc::USBDEVICE_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const CGROUP_SUPER_MAGIC: FsType = FsType(libc::CGROUP_SUPER_MAGIC as fs_type_t);
 #[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[allow(missing_docs)]
 pub const CGROUP2_SUPER_MAGIC: FsType = FsType(libc::CGROUP2_SUPER_MAGIC as fs_type_t);
 
 
@@ -451,6 +489,14 @@ impl Debug for Statfs {
     }
 }
 
+/// Describes a mounted file system.
+///
+/// The result is OS-dependent.  For a portabable alternative, see
+/// [`statvfs`](crate::sys::statvfs::statvfs).
+///
+/// # Arguments
+///
+/// `path` - Path to any file within the file system to describe
 pub fn statfs<P: ?Sized + NixPath>(path: &P) -> Result<Statfs> {
     unsafe {
         let mut stat = mem::MaybeUninit::<libc::statfs>::uninit();
@@ -459,6 +505,14 @@ pub fn statfs<P: ?Sized + NixPath>(path: &P) -> Result<Statfs> {
     }
 }
 
+/// Describes a mounted file system.
+///
+/// The result is OS-dependent.  For a portabable alternative, see
+/// [`fstatvfs`](crate::sys::statvfs::fstatvfs).
+///
+/// # Arguments
+///
+/// `fd` - File descriptor of any open file within the file system to describe
 pub fn fstatfs<T: AsRawFd>(fd: &T) -> Result<Statfs> {
     unsafe {
         let mut stat = mem::MaybeUninit::<libc::statfs>::uninit();

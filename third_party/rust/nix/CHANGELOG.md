@@ -1,29 +1,216 @@
 # Change Log
 
 All notable changes to this project will be documented in this file.
-This project adheres to [Semantic Versioning](http://semver.org/).
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.20.2] - 28 September 2021
+## [0.23.1] - 2021-12-16
+
 ### Added
 ### Changed
+
+- Relaxed the bitflags requirement from 1.3.1 to 1.1.  This partially reverts
+  #1492.  From now on, the MSRV is not guaranteed to work with all versions of
+  all dependencies, just with some version of all dependencies.
+  (#[1607](https://github.com/nix-rust/nix/pull/1607))
+
 ### Fixed
 
+- Fixed soundness issues in `FdSet::insert`, `FdSet::remove`, and
+  `FdSet::contains` involving file descriptors outside of the range
+  `0..FD_SETSIZE`.
+  (#[1575](https://github.com/nix-rust/nix/pull/1575))
+
+### Removed
+
+## [0.23.0] - 2021-09-28
+### Added
+
+- Added the `LocalPeerCred` sockopt.
+  (#[1482](https://github.com/nix-rust/nix/pull/1482))
+- Added `TimeSpec::from_duration` and `TimeSpec::from_timespec`
+  (#[1465](https://github.com/nix-rust/nix/pull/1465))
+- Added `IPV6_V6ONLY` sockopt.
+  (#[1470](https://github.com/nix-rust/nix/pull/1470))
+- Added `impl From<User> for libc::passwd` trait implementation to convert a `User`
+  into a `libc::passwd`. Consumes the `User` struct to give ownership over
+  the member pointers.
+  (#[1471](https://github.com/nix-rust/nix/pull/1471))
+- Added `pthread_kill`.
+  (#[1472](https://github.com/nix-rust/nix/pull/1472))
+- Added `mknodat`.
+  (#[1473](https://github.com/nix-rust/nix/pull/1473))
+- Added `setrlimit` and `getrlimit`.
+  (#[1302](https://github.com/nix-rust/nix/pull/1302))
+- Added `ptrace::interrupt` method for platforms that support `PTRACE_INTERRUPT`
+  (#[1422](https://github.com/nix-rust/nix/pull/1422))
+- Added `IP6T_SO_ORIGINAL_DST` sockopt.
+  (#[1490](https://github.com/nix-rust/nix/pull/1490))
+- Added the `PTRACE_EVENT_STOP` variant to the `sys::ptrace::Event` enum
+  (#[1335](https://github.com/nix-rust/nix/pull/1335))
+- Exposed `SockAddr::from_raw_sockaddr`
+  (#[1447](https://github.com/nix-rust/nix/pull/1447))
+- Added `TcpRepair`
+  (#[1503](https://github.com/nix-rust/nix/pull/1503))
+- Enabled `pwritev` and `preadv` for more operating systems.
+  (#[1511](https://github.com/nix-rust/nix/pull/1511))
+- Added support for `TCP_MAXSEG` TCP Maximum Segment Size socket options
+  (#[1292](https://github.com/nix-rust/nix/pull/1292))
+- Added `Ipv4RecvErr` and `Ipv6RecvErr` sockopts and associated control messages.
+  (#[1514](https://github.com/nix-rust/nix/pull/1514))
+- Added `AsRawFd` implementation on `PollFd`.
+  (#[1516](https://github.com/nix-rust/nix/pull/1516))
+- Added `Ipv4Ttl` and `Ipv6Ttl` sockopts.
+  (#[1515](https://github.com/nix-rust/nix/pull/1515))
+- Added `MAP_EXCL`, `MAP_ALIGNED_SUPER`, and `MAP_CONCEAL` mmap flags, and
+  exposed `MAP_ANONYMOUS` for all operating systems.
+  (#[1522](https://github.com/nix-rust/nix/pull/1522))
+  (#[1525](https://github.com/nix-rust/nix/pull/1525))
+  (#[1531](https://github.com/nix-rust/nix/pull/1531))
+  (#[1534](https://github.com/nix-rust/nix/pull/1534))
+- Added read/write accessors for 'events' on `PollFd`.
+  (#[1517](https://github.com/nix-rust/nix/pull/1517))
+
+### Changed
+
+- `FdSet::{contains, highest, fds}` no longer require a mutable reference.
+  (#[1464](https://github.com/nix-rust/nix/pull/1464))
+- `User::gecos` and corresponding `libc::passwd::pw_gecos` are supported on
+  64-bit Android, change conditional compilation to include the field in
+  64-bit Android builds
+  (#[1471](https://github.com/nix-rust/nix/pull/1471))
+- `eventfd`s are supported on Android, change conditional compilation to
+  include `sys::eventfd::eventfd` and `sys::eventfd::EfdFlags`for Android
+  builds.
+  (#[1481](https://github.com/nix-rust/nix/pull/1481))
+- Most enums that come from C, for example `Errno`, are now marked as
+  `#[non_exhaustive]`.
+  (#[1474](https://github.com/nix-rust/nix/pull/1474))
+- Many more functions, mostly contructors, are now `const`.
+  (#[1476](https://github.com/nix-rust/nix/pull/1476))
+  (#[1492](https://github.com/nix-rust/nix/pull/1492))
+- `sys::event::KEvent::filter` now returns a `Result` instead of being
+  infalliable.  The only cases where it will now return an error are cases
+  where it previously would've had undefined behavior.
+  (#[1484](https://github.com/nix-rust/nix/pull/1484))
+- Minimum supported Rust version is now 1.46.0.
+  ([#1492](https://github.com/nix-rust/nix/pull/1492))
+- Rework `UnixAddr` to encapsulate internals better in order to fix soundness
+  issues. No longer allows creating a `UnixAddr` from a raw `sockaddr_un`.
+  ([#1496](https://github.com/nix-rust/nix/pull/1496))
+- Raised bitflags to 1.3.0 and the MSRV to 1.46.0.
+  ([#1492](https://github.com/nix-rust/nix/pull/1492))
+
+### Fixed
+
+- `posix_fadvise` now returns errors in the conventional way, rather than as a
+  non-zero value in `Ok()`.
+  (#[1538](https://github.com/nix-rust/nix/pull/1538))
+- Added more errno definitions for better backwards compatibility with
+  Nix 0.21.0.
+  (#[1467](https://github.com/nix-rust/nix/pull/1467))
+- Fixed potential undefined behavior in `Signal::try_from` on some platforms.
+  (#[1484](https://github.com/nix-rust/nix/pull/1484))
 - Fixed buffer overflow in `unistd::getgrouplist`.
   (#[1545](https://github.com/nix-rust/nix/pull/1545))
 
-## [0.20.1] - 13 August 2021
-### Added
-### Changed
-### Fixed
-
-- Locked bitflags to < 1.3.0 to fix the build with rust < 1.46.0.
 
 ### Removed
 
 - Removed a couple of termios constants on redox that were never actually
   supported.
   (#[1483](https://github.com/nix-rust/nix/pull/1483))
+- Removed `nix::sys::signal::NSIG`.  It was of dubious utility, and not correct
+  for all platforms.
+  (#[1484](https://github.com/nix-rust/nix/pull/1484))
+- Removed support for 32-bit Apple targets, since they've been dropped by both
+  Rustc and Xcode.
+  (#[1492](https://github.com/nix-rust/nix/pull/1492))
+- Deprecated `SockAddr/InetAddr::to_str` in favor of `ToString::to_string`
+  (#[1495](https://github.com/nix-rust/nix/pull/1495))
+- Removed `SigevNotify` on OpenBSD and Redox.
+  (#[1511](https://github.com/nix-rust/nix/pull/1511))
+
+## [0.22.0] - 9 July 2021
+### Added
+- Added `if_nameindex` (#[1445](https://github.com/nix-rust/nix/pull/1445))
+- Added `nmount` for FreeBSD.
+  (#[1453](https://github.com/nix-rust/nix/pull/1453))
+- Added `IpFreebind` socket option (sockopt) on Linux, Fuchsia and Android.
+  (#[1456](https://github.com/nix-rust/nix/pull/1456))
+- Added `TcpUserTimeout` socket option (sockopt) on Linux and Fuchsia.
+  (#[1457](https://github.com/nix-rust/nix/pull/1457))
+- Added `renameat2` for Linux
+  (#[1458](https://github.com/nix-rust/nix/pull/1458))
+- Added `RxqOvfl` support on Linux, Fuchsia and Android.
+  (#[1455](https://github.com/nix-rust/nix/pull/1455))
+
+### Changed
+- `ptsname_r` now returns a lossily-converted string in the event of bad UTF,
+  just like `ptsname`.
+  ([#1446](https://github.com/nix-rust/nix/pull/1446))
+- Nix's error type is now a simple wrapper around the platform's Errno.  This
+  means it is now `Into<std::io::Error>`.  It's also `Clone`, `Copy`, `Eq`, and
+  has a small fixed size.  It also requires less typing.  For example, the old
+  enum variant `nix::Error::Sys(nix::errno::Errno::EINVAL)` is now simply
+  `nix::Error::EINVAL`.
+  ([#1446](https://github.com/nix-rust/nix/pull/1446))
+
+### Fixed
+### Removed
+
+## [0.21.0] - 31 May 2021
+### Added
+- Added `getresuid` and `getresgid`
+  (#[1430](https://github.com/nix-rust/nix/pull/1430))
+- Added TIMESTAMPNS support for linux
+  (#[1402](https://github.com/nix-rust/nix/pull/1402))
+- Added `sendfile64` (#[1439](https://github.com/nix-rust/nix/pull/1439))
+- Added `MS_LAZYTIME` to `MsFlags`
+  (#[1437](https://github.com/nix-rust/nix/pull/1437))
+
+### Changed
+- Made `forkpty` unsafe, like `fork`
+  (#[1390](https://github.com/nix-rust/nix/pull/1390))
+- Made `Uid`, `Gid` and `Pid` methods `from_raw` and `as_raw` a `const fn`
+  (#[1429](https://github.com/nix-rust/nix/pull/1429))
+- Made `Uid::is_root` a `const fn`
+  (#[1429](https://github.com/nix-rust/nix/pull/1429))
+- `AioCb` is now always pinned.  Once a `libc::aiocb` gets sent to the kernel,
+  its address in memory must not change.  Nix now enforces that by using
+  `std::pin`.  Most users won't need to change anything, except when using
+  `aio_suspend`.  See that method's documentation for the new usage.
+  (#[1440](https://github.com/nix-rust/nix/pull/1440))
+- `LioCb` is now constructed using a distinct `LioCbBuilder` struct.  This
+  avoids a soundness issue with the old `LioCb`.  Usage is similar but
+  construction now uses the builder pattern.  See the documentation for
+  details.
+  (#[1440](https://github.com/nix-rust/nix/pull/1440))
+- Minimum supported Rust version is now 1.41.0.
+  ([#1440](https://github.com/nix-rust/nix/pull/1440))
+- Errno aliases are now associated consts on `Errno`, instead of consts in the
+  `errno` module.
+  (#[1452](https://github.com/nix-rust/nix/pull/1452))
+
+### Fixed
+- Allow `sockaddr_ll` size, as reported by the Linux kernel, to be smaller then it's definition
+  (#[1395](https://github.com/nix-rust/nix/pull/1395))
+- Fix spurious errors using `sendmmsg` with multiple cmsgs
+  (#[1414](https://github.com/nix-rust/nix/pull/1414))
+- Added `Errno::EOPNOTSUPP` to FreeBSD, where it was missing.
+  (#[1452](https://github.com/nix-rust/nix/pull/1452))
+
+### Removed
+
+- Removed `sys::socket::accept4` from Android arm because libc removed it in
+  version 0.2.87.
+  ([#1399](https://github.com/nix-rust/nix/pull/1399))
+- `AioCb::from_boxed_slice` and `AioCb::from_boxed_mut_slice` have been
+  removed.  They were useful with earlier versions of Rust, but should no
+  longer be needed now that async/await are available.  `AioCb`s now work
+  exclusively with borrowed buffers, not owned ones.
+  (#[1440](https://github.com/nix-rust/nix/pull/1440))
+- Removed some Errno values from platforms where they aren't actually defined.
+  (#[1452](https://github.com/nix-rust/nix/pull/1452))
 
 ## [0.20.0] - 20 February 2021
 ### Added

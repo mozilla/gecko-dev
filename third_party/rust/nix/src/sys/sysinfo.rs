@@ -71,7 +71,7 @@ impl SysInfo {
 
 /// Returns system information.
 ///
-/// [See `sysinfo(2)`](http://man7.org/linux/man-pages/man2/sysinfo.2.html).
+/// [See `sysinfo(2)`](https://man7.org/linux/man-pages/man2/sysinfo.2.html).
 pub fn sysinfo() -> Result<SysInfo> {
     let mut info = mem::MaybeUninit::uninit();
     let res = unsafe { libc::sysinfo(info.as_mut_ptr()) };

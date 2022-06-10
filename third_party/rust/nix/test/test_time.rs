@@ -6,11 +6,12 @@
     target_os = "emscripten",
 ))]
 use nix::time::clock_getcpuclockid;
-use nix::time::{clock_getres, clock_gettime, ClockId};
+use nix::time::{clock_gettime, ClockId};
 
+#[cfg(not(target_os = "redox"))]
 #[test]
 pub fn test_clock_getres() {
-    assert!(clock_getres(ClockId::CLOCK_REALTIME).is_ok());
+    assert!(nix::time::clock_getres(ClockId::CLOCK_REALTIME).is_ok());
 }
 
 #[test]
@@ -31,6 +32,7 @@ pub fn test_clock_getcpuclockid() {
     assert!(clock_gettime(clock_id).is_ok());
 }
 
+#[cfg(not(target_os = "redox"))]
 #[test]
 pub fn test_clock_id_res() {
     assert!(ClockId::CLOCK_REALTIME.res().is_ok());

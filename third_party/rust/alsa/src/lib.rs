@@ -1,6 +1,6 @@
-//! Thin but safe wrappers for [ALSA](http://http://alsa-project.org).
+//! Thin but safe wrappers for [ALSA](https://alsa-project.org).
 //!
-//! [Github repo](https://github.com/diwic/alsa-rs)
+//! [GitHub repo](https://github.com/diwic/alsa-rs)
 //!
 //! [Crates.io](https://crates.io/crates/alsa)
 //!
@@ -8,10 +8,13 @@
 //! functions and structs might be added as requested.
 //!
 //! Most functions map 1-to-1 to alsa-lib functions, e g, `ctl::CardInfo::get_id()` is a wrapper around
-//! `snd_ctl_card_info_get_id` and the [alsa-lib documentation](http://www.alsa-project.org/alsa-doc/alsa-lib/)
+//! `snd_ctl_card_info_get_id` and the [alsa-lib documentation](https://www.alsa-project.org/alsa-doc/alsa-lib/)
 //! can be consulted for additional information.
 //!
 //! Enjoy!
+
+#![allow(clippy::all)]
+#![warn(clippy::correctness, clippy::suspicious, clippy::perf)]
 
 extern crate alsa_sys as alsa;
 extern crate libc;
@@ -127,6 +130,10 @@ mod chmap;
 pub mod direct;
 
 /// Re-exports from the nix crate.
+///
+/// Use these re-exports instead of also depending on the nix crate. There
+/// is no guarantee that these will match a specific nix version, it may
+/// change between minor updates of the library.
 pub mod nix {
     pub use nix_the_crate::Error;
     pub use nix_the_crate::errno;

@@ -11,6 +11,8 @@ mod test_signal;
           target_os = "macos",
           target_os = "netbsd"))]
 mod test_aio;
+#[cfg(not(target_os = "redox"))]
+mod test_mman;
 #[cfg(target_os = "linux")]
 mod test_signalfd;
 #[cfg(not(target_os = "redox"))]

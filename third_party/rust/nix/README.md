@@ -1,7 +1,7 @@
 # Rust bindings to *nix APIs
 
 [![Cirrus Build Status](https://api.cirrus-ci.com/github/nix-rust/nix.svg)](https://cirrus-ci.com/github/nix-rust/nix)
-[![crates.io](http://meritbadge.herokuapp.com/nix)](https://crates.io/crates/nix)
+[![crates.io](https://img.shields.io/crates/v/nix.svg)](https://crates.io/crates/nix)
 
 [Documentation (Releases)](https://docs.rs/nix/)
 
@@ -17,7 +17,7 @@ usage.
 
 As an example of what Nix provides, examine the differences between what is
 exposed by libc and nix for the
-[gethostname](http://man7.org/linux/man-pages/man2/gethostname.2.html) system
+[gethostname](https://man7.org/linux/man-pages/man2/gethostname.2.html) system
 call:
 
 ```rust,ignore
@@ -68,33 +68,26 @@ Tier 2:
   * aarch64-linux-android
   * arm-linux-androideabi
   * arm-unknown-linux-musleabi
-  * armv7-apple-ios
   * armv7-linux-androideabi
-  * armv7s-apple-ios
-  * i386-apple-ios
-  * i686-apple-darwin
   * i686-linux-android
   * powerpc-unknown-linux-gnu
   * s390x-unknown-linux-gnu
   * x86_64-apple-ios
   * x86_64-linux-android
+  * x86_64-unknown-illumos
   * x86_64-unknown-netbsd
 
 Tier 3:
   * x86_64-fuchsia
-  * x86_64-unknown-redox
+  * x86_64-unknown-dragonfly
   * x86_64-unknown-linux-gnux32
+  * x86_64-unknown-openbsd
+  * x86_64-unknown-redox
 
-## Usage
+## Minimum Supported Rust Version (MSRV)
 
-`nix` requires Rust 1.40.0 or newer.
-
-To use `nix`, add this to your `Cargo.toml`:
-
-```toml
-[dependencies]
-nix = "0.20.2"
-```
+nix is supported on Rust 1.46.0 and higher.  It's MSRV will not be
+changed in the future without bumping the major or minor version.
 
 ## Contributing
 

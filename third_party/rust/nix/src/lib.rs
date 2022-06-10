@@ -5,15 +5,13 @@
 #![crate_name = "nix"]
 #![cfg(unix)]
 #![allow(non_camel_case_types)]
-// latest bitflags triggers a rustc bug with cross-crate macro expansions causing dead_code
-// warnings even though the macro expands into something with allow(dead_code)
-#![allow(dead_code)]
 #![cfg_attr(test, deny(warnings))]
 #![recursion_limit = "500"]
 #![deny(unused)]
 #![deny(unstable_features)]
 #![deny(missing_copy_implementations)]
 #![deny(missing_debug_implementations)]
+#![warn(missing_docs)]
 
 // Re-exported external crates
 pub use libc;
@@ -23,13 +21,14 @@ pub use libc;
 
 // Public crates
 #[cfg(not(target_os = "redox"))]
+#[allow(missing_docs)]
 pub mod dir;
 pub mod env;
+#[allow(missing_docs)]
 pub mod errno;
-#[deny(missing_docs)]
 pub mod features;
+#[allow(missing_docs)]
 pub mod fcntl;
-#[deny(missing_docs)]
 #[cfg(any(target_os = "android",
           target_os = "dragonfly",
           target_os = "freebsd",
@@ -37,12 +36,15 @@ pub mod fcntl;
           target_os = "linux",
           target_os = "macos",
           target_os = "netbsd",
+          target_os = "illumos",
           target_os = "openbsd"))]
 pub mod ifaddrs;
 #[cfg(any(target_os = "android",
           target_os = "linux"))]
+#[allow(missing_docs)]
 pub mod kmod;
 #[cfg(any(target_os = "android",
+          target_os = "freebsd",
           target_os = "linux"))]
 pub mod mount;
 #[cfg(any(target_os = "dragonfly",
@@ -50,23 +52,24 @@ pub mod mount;
           target_os = "fushsia",
           target_os = "linux",
           target_os = "netbsd"))]
+#[allow(missing_docs)]
 pub mod mqueue;
-#[deny(missing_docs)]
 #[cfg(not(target_os = "redox"))]
 pub mod net;
-#[deny(missing_docs)]
 pub mod poll;
-#[deny(missing_docs)]
 #[cfg(not(any(target_os = "redox", target_os = "fuchsia")))]
 pub mod pty;
 pub mod sched;
 pub mod sys;
+#[allow(missing_docs)]
 pub mod time;
 // This can be implemented for other platforms as soon as libc
 // provides bindings for them.
 #[cfg(all(target_os = "linux",
           any(target_arch = "x86", target_arch = "x86_64")))]
+#[allow(missing_docs)]
 pub mod ucontext;
+#[allow(missing_docs)]
 pub mod unistd;
 
 /*
@@ -77,7 +80,7 @@ pub mod unistd;
 
 use libc::{c_char, PATH_MAX};
 
-use std::{error, fmt, ptr, result};
+use std::{ptr, result};
 use std::ffi::{CStr, OsStr};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
@@ -85,89 +88,31 @@ use std::path::{Path, PathBuf};
 use errno::Errno;
 
 /// Nix Result Type
-pub type Result<T> = result::Result<T, Error>;
+pub type Result<T> = result::Result<T, Errno>;
 
-/// Nix Error Type
+/// Nix's main error type.
 ///
-/// The nix error type provides a common way of dealing with
-/// various system system/libc calls that might fail.  Each
-/// error has a corresponding errno (usually the one from the
-/// underlying OS) to which it can be mapped in addition to
-/// implementing other common traits.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Error {
-    Sys(Errno),
-    InvalidPath,
-    /// The operation involved a conversion to Rust's native String type, which failed because the
-    /// string did not contain all valid UTF-8.
-    InvalidUtf8,
-    /// The operation is not supported by Nix, in this instance either use the libc bindings or
-    /// consult the module documentation to see if there is a more appropriate interface available.
-    UnsupportedOperation,
-}
+/// It's a wrapper around Errno.  As such, it's very interoperable with
+/// [`std::io::Error`], but it has the advantages of:
+/// * `Clone`
+/// * `Copy`
+/// * `Eq`
+/// * Small size
+/// * Represents all of the system's errnos, instead of just the most common
+/// ones.
+pub type Error = Errno;
 
-impl Error {
-    /// Convert this `Error` to an [`Errno`](enum.Errno.html).
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use nix::Error;
-    /// # use nix::errno::Errno;
-    /// let e = Error::from(Errno::EPERM);
-    /// assert_eq!(Some(Errno::EPERM), e.as_errno());
-    /// ```
-    pub fn as_errno(self) -> Option<Errno> {
-        if let Error::Sys(e) = self {
-            Some(e)
-        } else {
-            None
-        }
-    }
-
-    /// Create a nix Error from a given errno
-    pub fn from_errno(errno: Errno) -> Error {
-        Error::Sys(errno)
-    }
-
-    /// Get the current errno and convert it to a nix Error
-    pub fn last() -> Error {
-        Error::Sys(Errno::last())
-    }
-
-    /// Create a new invalid argument error (`EINVAL`)
-    pub fn invalid_argument() -> Error {
-        Error::Sys(Errno::EINVAL)
-    }
-
-}
-
-impl From<Errno> for Error {
-    fn from(errno: Errno) -> Error { Error::from_errno(errno) }
-}
-
-impl From<std::string::FromUtf8Error> for Error {
-    fn from(_: std::string::FromUtf8Error) -> Error { Error::InvalidUtf8 }
-}
-
-impl error::Error for Error {}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::InvalidPath => write!(f, "Invalid path"),
-            Error::InvalidUtf8 => write!(f, "Invalid UTF-8 string"),
-            Error::UnsupportedOperation => write!(f, "Unsupported Operation"),
-            Error::Sys(errno) => write!(f, "{:?}: {}", errno, errno.desc()),
-        }
-    }
-}
-
+/// Common trait used to represent file system paths by many Nix functions.
 pub trait NixPath {
+    /// Is the path empty?
     fn is_empty(&self) -> bool;
 
+    /// Length of the path in bytes
     fn len(&self) -> usize;
 
+    /// Execute a function with this path as a `CStr`.
+    ///
+    /// Mostly used internally by Nix.
     fn with_nix_path<T, F>(&self, f: F) -> Result<T>
         where F: FnOnce(&CStr) -> T;
 }
@@ -215,7 +160,7 @@ impl NixPath for CStr {
             where F: FnOnce(&CStr) -> T {
         // Equivalence with the [u8] impl.
         if self.len() >= PATH_MAX as usize {
-            return Err(Error::InvalidPath);
+            return Err(Errno::ENAMETOOLONG)
         }
 
         Ok(f(self))
@@ -236,11 +181,11 @@ impl NixPath for [u8] {
         let mut buf = [0u8; PATH_MAX as usize];
 
         if self.len() >= PATH_MAX as usize {
-            return Err(Error::InvalidPath);
+            return Err(Errno::ENAMETOOLONG)
         }
 
         match self.iter().position(|b| *b == 0) {
-            Some(_) => Err(Error::InvalidPath),
+            Some(_) => Err(Errno::EINVAL),
             None => {
                 unsafe {
                     // TODO: Replace with bytes::copy_memory. rust-lang/rust#24028

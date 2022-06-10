@@ -29,7 +29,7 @@ fn test_explicit_close() {
 #[test]
 #[cfg(any(target_os = "android", target_os = "linux"))]
 fn test_ptsname_equivalence() {
-    let _m = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::PTSNAME_MTX.lock();
 
     // Open a new PTTY master
     let master_fd = posix_openpt(OFlag::O_RDWR).unwrap();
@@ -46,7 +46,7 @@ fn test_ptsname_equivalence() {
 #[test]
 #[cfg(any(target_os = "android", target_os = "linux"))]
 fn test_ptsname_copy() {
-    let _m = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::PTSNAME_MTX.lock();
 
     // Open a new PTTY master
     let master_fd = posix_openpt(OFlag::O_RDWR).unwrap();
@@ -80,7 +80,7 @@ fn test_ptsname_r_copy() {
 #[test]
 #[cfg(any(target_os = "android", target_os = "linux"))]
 fn test_ptsname_unique() {
-    let _m = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::PTSNAME_MTX.lock();
 
     // Open a new PTTY master
     let master1_fd = posix_openpt(OFlag::O_RDWR).unwrap();
@@ -98,7 +98,7 @@ fn test_ptsname_unique() {
 
 /// Common setup for testing PTTY pairs
 fn open_ptty_pair() -> (PtyMaster, File) {
-    let _m = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::PTSNAME_MTX.lock();
 
     // Open a new PTTY master
     let master = posix_openpt(OFlag::O_RDWR).expect("posix_openpt failed");
@@ -112,6 +112,30 @@ fn open_ptty_pair() -> (PtyMaster, File) {
 
     // Open the slave device
     let slave_fd = open(Path::new(&slave_name), OFlag::O_RDWR, stat::Mode::empty()).unwrap();
+
+    #[cfg(target_os = "illumos")]
+    // TODO: rewrite using ioctl!
+    #[allow(clippy::comparison_chain)]
+    {
+        use libc::{ioctl, I_FIND, I_PUSH};
+
+        // On illumos systems, as per pts(7D), one must push STREAMS modules
+        // after opening a device path returned from ptsname().
+        let ptem = b"ptem\0";
+        let ldterm = b"ldterm\0";
+        let r = unsafe { ioctl(slave_fd, I_FIND, ldterm.as_ptr()) };
+        if r < 0 {
+            panic!("I_FIND failure");
+        } else if r == 0 {
+            if unsafe { ioctl(slave_fd, I_PUSH, ptem.as_ptr()) } < 0 {
+                panic!("I_PUSH ptem failure");
+            }
+            if unsafe { ioctl(slave_fd, I_PUSH, ldterm.as_ptr()) } < 0 {
+                panic!("I_PUSH ldterm failure");
+            }
+        }
+    }
+
     let slave = unsafe { File::from_raw_fd(slave_fd) };
 
     (master, slave)
@@ -163,7 +187,7 @@ fn test_write_ptty_pair() {
 #[test]
 fn test_openpty() {
     // openpty uses ptname(3) internally
-    let _m = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::PTSNAME_MTX.lock();
 
     let pty = openpty(None, None).unwrap();
     assert!(pty.master > 0);
@@ -198,7 +222,7 @@ fn test_openpty() {
 #[test]
 fn test_openpty_with_termios() {
     // openpty uses ptname(3) internally
-    let _m = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::PTSNAME_MTX.lock();
 
     // Open one pty to get attributes for the second one
     let mut termios = {
@@ -249,13 +273,15 @@ fn test_forkpty() {
     use nix::sys::signal::*;
     use nix::sys::wait::wait;
     // forkpty calls openpty which uses ptname(3) internally.
-    let _m0 = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m0 = crate::PTSNAME_MTX.lock();
     // forkpty spawns a child process
-    let _m1 = crate::FORK_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m1 = crate::FORK_MTX.lock();
 
     let string = "naninani\n";
     let echoed_string = "naninani\r\n";
-    let pty = forkpty(None, None).unwrap();
+    let pty = unsafe {
+        forkpty(None, None).unwrap()
+    };
     match pty.fork_result {
         Child => {
             write(STDOUT_FILENO, string.as_bytes()).unwrap();

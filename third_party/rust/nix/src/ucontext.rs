@@ -1,4 +1,3 @@
-use libc;
 #[cfg(not(target_env = "musl"))]
 use crate::Result;
 #[cfg(not(target_env = "musl"))]

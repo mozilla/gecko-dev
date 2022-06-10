@@ -13,6 +13,8 @@ mod test_fcntl;
 #[cfg(any(target_os = "android",
           target_os = "linux"))]
 mod test_kmod;
+#[cfg(target_os = "freebsd")]
+mod test_nmount;
 #[cfg(any(target_os = "dragonfly",
           target_os = "freebsd",
           target_os = "fushsia",
@@ -22,6 +24,7 @@ mod test_mq;
 #[cfg(not(target_os = "redox"))]
 mod test_net;
 mod test_nix_path;
+mod test_resource;
 mod test_poll;
 #[cfg(not(any(target_os = "redox", target_os = "fuchsia")))]
 mod test_pty;
@@ -40,7 +43,7 @@ mod test_unistd;
 
 use std::os::unix::io::RawFd;
 use std::path::PathBuf;
-use std::sync::{Mutex, RwLock, RwLockWriteGuard};
+use parking_lot::{Mutex, RwLock, RwLockWriteGuard};
 use nix::unistd::{chdir, getcwd, read};
 
 
@@ -81,8 +84,7 @@ struct DirRestore<'a> {
 
 impl<'a> DirRestore<'a> {
     fn new() -> Self {
-        let guard = crate::CWD_LOCK.write()
-            .expect("Lock got poisoned by another test");
+        let guard = crate::CWD_LOCK.write();
         DirRestore{
             _g: guard,
             d: getcwd().unwrap(),

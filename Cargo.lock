@@ -30,14 +30,14 @@ dependencies = [
 
 [[package]]
 name = "alsa"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75c4da790adcb2ce5e758c064b4f3ec17a30349f9961d3e5e6c9688b052a9e18"
+checksum = "5915f52fe2cf65e83924d037b6c5290b7cee097c6b5c8700746e6168a343fd6b"
 dependencies = [
  "alsa-sys",
  "bitflags",
  "libc",
- "nix 0.20.2",
+ "nix 0.23.1",
 ]
 
 [[package]]
@@ -359,8 +359,8 @@ dependencies = [
 
 [[package]]
 name = "authenticator"
-version = "0.3.1"
-source = "git+https://github.com/makotokato/authenticator-rs?rev=eed8919d50559f4959e2d7d2af7b4d48869b5366#eed8919d50559f4959e2d7d2af7b4d48869b5366"
+version = "0.3.2"
+source = "git+https://github.com/mozilla/authenticator-rs?rev=b85bccf0527e42c877573029e8d35ff13ef06f9d#b85bccf0527e42c877573029e8d35ff13ef06f9d"
 dependencies = [
  "bitflags",
  "core-foundation",
@@ -368,7 +368,7 @@ dependencies = [
  "libc",
  "libudev",
  "log",
- "rand 0.7.999",
+ "rand 0.8.5",
  "runloop",
  "winapi",
 ]
@@ -462,9 +462,9 @@ checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
 
 [[package]]
 name = "bitflags"
-version = "1.2.1"
+version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
+checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags_serde_shim"
@@ -2183,6 +2183,7 @@ dependencies = [
  "log",
  "mapped_hyph",
  "mdns_service",
+ "midir",
  "midir_impl",
  "mio 0.8.0",
  "moz_asserts",
@@ -3251,8 +3252,9 @@ dependencies = [
 
 [[package]]
 name = "midir"
-version = "0.7.0"
-source = "git+https://github.com/makotokato/midir.git?rev=6140b2825dd4dc2b40e49e154ca7596e7b9a131a#6140b2825dd4dc2b40e49e154ca7596e7b9a131a"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c1c68e2b589cce71b14a10d7d1599a845673f9decde80fa9e8500fdccd50dca"
 dependencies = [
  "alsa",
  "bitflags",
@@ -3260,10 +3262,9 @@ dependencies = [
  "js-sys",
  "libc",
  "memalloc",
- "nix 0.20.2",
  "wasm-bindgen",
  "web-sys",
- "winapi",
+ "windows",
 ]
 
 [[package]]
@@ -3715,9 +3716,9 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.20.2"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5e06129fb611568ef4e868c14b326274959aa70ff7776e9d55323531c374945"
+checksum = "9f866317acbd3a240710c63f065ffb1e4fd466259045ccb504130b7f668f35c6"
 dependencies = [
  "bitflags",
  "cc",
@@ -6191,6 +6192,49 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "windows"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbedf6db9096bc2364adce0ae0aa636dcd89f3c3f2cd67947062aaf0ca2a10ec"
+dependencies = [
+ "windows_aarch64_msvc",
+ "windows_i686_gnu",
+ "windows_i686_msvc",
+ "windows_x86_64_gnu",
+ "windows_x86_64_msvc",
+]
+
+[[package]]
+name = "windows_aarch64_msvc"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8e92753b1c443191654ec532f14c199742964a061be25d77d7a96f09db20bf5"
+
+[[package]]
+name = "windows_i686_gnu"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a711c68811799e017b6038e0922cb27a5e2f43a2ddb609fe0b6f3eeda9de615"
+
+[[package]]
+name = "windows_i686_msvc"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "146c11bb1a02615db74680b32a68e2d61f553cc24c4eb5b4ca10311740e44172"
+
+[[package]]
+name = "windows_x86_64_gnu"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c912b12f7454c6620635bbff3450962753834be2a594819bd5e945af18ec64bc"
+
+[[package]]
+name = "windows_x86_64_msvc"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "504a2476202769977a040c6364301a3f65d0cc9e3fb08600b2bda150a0488316"
 
 [[package]]
 name = "wineventlog"

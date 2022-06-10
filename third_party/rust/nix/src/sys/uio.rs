@@ -1,5 +1,4 @@
-// Silence invalid warnings due to rust-lang/rust#16719
-#![allow(improper_ctypes)]
+//! Vectored I/O
 
 use crate::Result;
 use crate::errno::Errno;
@@ -7,12 +6,18 @@ use libc::{self, c_int, c_void, size_t, off_t};
 use std::marker::PhantomData;
 use std::os::unix::io::RawFd;
 
+/// Low-level vectored write to a raw file descriptor
+///
+/// See also [writev(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/writev.html)
 pub fn writev(fd: RawFd, iov: &[IoVec<&[u8]>]) -> Result<usize> {
     let res = unsafe { libc::writev(fd, iov.as_ptr() as *const libc::iovec, iov.len() as c_int) };
 
     Errno::result(res).map(|r| r as usize)
 }
 
+/// Low-level vectored read from a raw file descriptor
+///
+/// See also [readv(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/readv.html)
 pub fn readv(fd: RawFd, iov: &mut [IoVec<&mut [u8]>]) -> Result<usize> {
     let res = unsafe { libc::readv(fd, iov.as_ptr() as *const libc::iovec, iov.len() as c_int) };
 
@@ -25,11 +30,7 @@ pub fn readv(fd: RawFd, iov: &mut [IoVec<&mut [u8]>]) -> Result<usize> {
 /// or an error occurs. The file offset is not changed.
 ///
 /// See also: [`writev`](fn.writev.html) and [`pwrite`](fn.pwrite.html)
-#[cfg(any(target_os = "dragonfly",
-          target_os = "freebsd",
-          target_os = "linux",
-          target_os = "netbsd",
-          target_os = "openbsd"))]
+#[cfg(not(target_os = "redox"))]
 pub fn pwritev(fd: RawFd, iov: &[IoVec<&[u8]>],
                offset: off_t) -> Result<usize> {
     let res = unsafe {
@@ -46,11 +47,7 @@ pub fn pwritev(fd: RawFd, iov: &[IoVec<&[u8]>],
 /// changed.
 ///
 /// See also: [`readv`](fn.readv.html) and [`pread`](fn.pread.html)
-#[cfg(any(target_os = "dragonfly",
-          target_os = "freebsd",
-          target_os = "linux",
-          target_os = "netbsd",
-          target_os = "openbsd"))]
+#[cfg(not(target_os = "redox"))]
 pub fn preadv(fd: RawFd, iov: &[IoVec<&mut [u8]>],
               offset: off_t) -> Result<usize> {
     let res = unsafe {
@@ -60,6 +57,10 @@ pub fn preadv(fd: RawFd, iov: &[IoVec<&mut [u8]>],
     Errno::result(res).map(|r| r as usize)
 }
 
+/// Low-level write to a file, with specified offset.
+///
+/// See also [pwrite(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/pwrite.html)
+// TODO: move to unistd
 pub fn pwrite(fd: RawFd, buf: &[u8], offset: off_t) -> Result<usize> {
     let res = unsafe {
         libc::pwrite(fd, buf.as_ptr() as *const c_void, buf.len() as size_t,
@@ -69,6 +70,10 @@ pub fn pwrite(fd: RawFd, buf: &[u8], offset: off_t) -> Result<usize> {
     Errno::result(res).map(|r| r as usize)
 }
 
+/// Low-level write to a file, with specified offset.
+///
+/// See also [pread(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/pread.html)
+// TODO: move to unistd
 pub fn pread(fd: RawFd, buf: &mut [u8], offset: off_t) -> Result<usize>{
     let res = unsafe {
         libc::pread(fd, buf.as_mut_ptr() as *mut c_void, buf.len() as size_t,
@@ -112,7 +117,7 @@ pub struct RemoteIoVec {
 ///
 /// This function is only available on Linux.
 ///
-/// [`process_vm_writev`(2)]: http://man7.org/linux/man-pages/man2/process_vm_writev.2.html
+/// [`process_vm_writev`(2)]: https://man7.org/linux/man-pages/man2/process_vm_writev.2.html
 /// [ptrace]: ../ptrace/index.html
 /// [`IoVec`]: struct.IoVec.html
 /// [`RemoteIoVec`]: struct.RemoteIoVec.html
@@ -147,7 +152,7 @@ pub fn process_vm_writev(
 ///
 /// This function is only available on Linux.
 ///
-/// [`process_vm_readv`(2)]: http://man7.org/linux/man-pages/man2/process_vm_readv.2.html
+/// [`process_vm_readv`(2)]: https://man7.org/linux/man-pages/man2/process_vm_readv.2.html
 /// [`ptrace`]: ../ptrace/index.html
 /// [`IoVec`]: struct.IoVec.html
 /// [`RemoteIoVec`]: struct.RemoteIoVec.html
@@ -166,11 +171,17 @@ pub fn process_vm_readv(
     Errno::result(res).map(|r| r as usize)
 }
 
+/// A vector of buffers.
+///
+/// Vectored I/O methods like [`writev`] and [`readv`] use this structure for
+/// both reading and writing.  Each `IoVec` specifies the base address and
+/// length of an area in memory.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct IoVec<T>(libc::iovec, PhantomData<T>);
+pub struct IoVec<T>(pub(crate) libc::iovec, PhantomData<T>);
 
 impl<T> IoVec<T> {
+    /// View the `IoVec` as a Rust slice.
     #[inline]
     pub fn as_slice(&self) -> &[u8] {
         use std::slice;
@@ -184,6 +195,15 @@ impl<T> IoVec<T> {
 }
 
 impl<'a> IoVec<&'a [u8]> {
+    #[cfg(target_os = "freebsd")]
+    pub(crate) fn from_raw_parts(base: *mut c_void, len: usize) -> Self {
+        IoVec(libc::iovec {
+            iov_base: base,
+            iov_len: len
+        }, PhantomData)
+    }
+
+    /// Create an `IoVec` from a Rust slice.
     pub fn from_slice(buf: &'a [u8]) -> IoVec<&'a [u8]> {
         IoVec(libc::iovec {
             iov_base: buf.as_ptr() as *mut c_void,
@@ -193,6 +213,7 @@ impl<'a> IoVec<&'a [u8]> {
 }
 
 impl<'a> IoVec<&'a mut [u8]> {
+    /// Create an `IoVec` from a mutable Rust slice.
     pub fn from_mut_slice(buf: &'a mut [u8]) -> IoVec<&'a mut [u8]> {
         IoVec(libc::iovec {
             iov_base: buf.as_ptr() as *mut c_void,

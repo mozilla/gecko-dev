@@ -1,6 +1,12 @@
 /// The datatype used for the ioctl number
 #[doc(hidden)]
+#[cfg(not(target_os = "illumos"))]
 pub type ioctl_num_type = ::libc::c_ulong;
+
+#[doc(hidden)]
+#[cfg(target_os = "illumos")]
+pub type ioctl_num_type = ::libc::c_int;
+
 /// The datatype used for the 3rd argument
 #[doc(hidden)]
 pub type ioctl_param_type = ::libc::c_int;
@@ -12,6 +18,7 @@ mod consts {
     #[doc(hidden)]
     pub const OUT: ioctl_num_type = 0x4000_0000;
     #[doc(hidden)]
+    #[allow(overflowing_literals)]
     pub const IN: ioctl_num_type = 0x8000_0000;
     #[doc(hidden)]
     pub const INOUT: ioctl_num_type = IN|OUT;

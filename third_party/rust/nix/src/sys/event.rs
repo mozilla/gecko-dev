@@ -6,9 +6,9 @@ use crate::{Errno, Result};
 use libc::{timespec, time_t, c_int, c_long, intptr_t, uintptr_t};
 #[cfg(target_os = "netbsd")]
 use libc::{timespec, time_t, c_long, intptr_t, uintptr_t, size_t};
+use std::convert::TryInto;
 use std::os::unix::io::RawFd;
 use std::ptr;
-use std::mem;
 
 // Redefine kevent in terms of programmer-friendly enums and bitfields.
 #[repr(C)]
@@ -36,6 +36,7 @@ type type_of_event_filter = i16;
 libc_enum! {
     #[cfg_attr(target_os = "netbsd", repr(u32))]
     #[cfg_attr(not(target_os = "netbsd"), repr(i16))]
+    #[non_exhaustive]
     pub enum EventFilter {
         EVFILT_AIO,
         /// Returns whenever there is no remaining data in the write buffer
@@ -75,6 +76,7 @@ libc_enum! {
         EVFILT_VNODE,
         EVFILT_WRITE,
     }
+    impl TryFrom<type_of_event_filter>
 }
 
 #[cfg(any(target_os = "dragonfly", target_os = "freebsd",
@@ -232,8 +234,8 @@ impl KEvent {
         self.kevent.ident
     }
 
-    pub fn filter(&self) -> EventFilter {
-        unsafe { mem::transmute(self.kevent.filter as type_of_event_filter) }
+    pub fn filter(&self) -> Result<EventFilter> {
+        self.kevent.filter.try_into()
     }
 
     pub fn flags(&self) -> EventFlag {
@@ -312,6 +314,8 @@ pub fn ev_set(ev: &mut KEvent,
 
 #[test]
 fn test_struct_kevent() {
+    use std::mem;
+
     let udata : intptr_t = 12345;
 
     let actual = KEvent::new(0xdead_beef,
@@ -321,10 +325,24 @@ fn test_struct_kevent() {
                              0x1337,
                              udata);
     assert_eq!(0xdead_beef, actual.ident());
-    assert_eq!(libc::EVFILT_READ, actual.filter() as type_of_event_filter);
+    let filter = actual.kevent.filter;
+    assert_eq!(libc::EVFILT_READ, filter);
     assert_eq!(libc::EV_ONESHOT | libc::EV_ADD, actual.flags().bits());
     assert_eq!(libc::NOTE_CHILD | libc::NOTE_EXIT, actual.fflags().bits());
     assert_eq!(0x1337, actual.data() as type_of_data);
     assert_eq!(udata as type_of_udata, actual.udata() as type_of_udata);
     assert_eq!(mem::size_of::<libc::kevent>(), mem::size_of::<KEvent>());
+}
+
+#[test]
+fn test_kevent_filter() {
+    let udata : intptr_t = 12345;
+
+    let actual = KEvent::new(0xdead_beef,
+                             EventFilter::EVFILT_READ,
+                             EventFlag::EV_ONESHOT | EventFlag::EV_ADD,
+                             FilterFlag::NOTE_CHILD | FilterFlag::NOTE_EXIT,
+                             0x1337,
+                             udata);
+    assert_eq!(EventFilter::EVFILT_READ, actual.filter().unwrap());
 }

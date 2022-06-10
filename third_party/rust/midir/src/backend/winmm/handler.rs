@@ -1,11 +1,15 @@
 use std::{mem, slice};
 use std::io::{Write, stderr};
 
-use super::winapi::shared::basetsd::DWORD_PTR;
-use super::winapi::shared::minwindef::{DWORD, UINT};
-use super::winapi::um::mmeapi::midiInAddBuffer;
-use super::winapi::um::mmsystem::{HMIDIIN, MIDIHDR, MMSYSERR_NOERROR, MM_MIM_DATA,
-                                  MM_MIM_LONGDATA, MM_MIM_LONGERROR};
+use windows::Win32::Media::{
+    MMSYSERR_NOERROR, MM_MIM_DATA, MM_MIM_LONGDATA, MM_MIM_LONGERROR
+};
+use windows::Win32::Media::Audio::{
+    midiInAddBuffer, HMIDIIN, MIDIHDR
+};
+
+use super::{DWORD, UINT, DWORD_PTR};
+
 use super::HandlerData;
 use Ignore;
 
@@ -51,9 +55,9 @@ pub extern "system" fn handle_input<T>(_: HMIDIIN,
         let sysex = unsafe { &*(midi_message as *const MIDIHDR) };
         if !data.ignore_flags.contains(Ignore::Sysex) && input_status != MM_MIM_LONGERROR {
             // Sysex message and we're not ignoring it
-            let bytes: &[u8] = unsafe { slice::from_raw_parts(sysex.lpData as *const u8, sysex.dwBytesRecorded as usize) };
+            let bytes: &[u8] = unsafe { slice::from_raw_parts(sysex.lpData.0, sysex.dwBytesRecorded as usize) };
             data.message.bytes.extend_from_slice(bytes);
-            // TODO: If sysex messages are longer than RT_SYSEX_BUFFER_SIZE, they
+            // TODO: If sysex messages are longer than MIDIR_SYSEX_BUFFER_SIZE, they
             //       are split in chunks. We could reassemble a single message.
         }
     

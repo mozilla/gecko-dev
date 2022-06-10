@@ -1,4 +1,6 @@
-use crate::{Error, Result};
+//! Memory management declarations.
+
+use crate::Result;
 #[cfg(not(target_os = "android"))]
 use crate::NixPath;
 use crate::errno::Errno;
@@ -30,7 +32,7 @@ libc_bitflags!{
 }
 
 libc_bitflags!{
-    /// Additional parameters for `mmap()`.
+    /// Additional parameters for [`mmap`].
     pub struct MapFlags: c_int {
         /// Compatibility flag. Ignored.
         MAP_FILE;
@@ -40,10 +42,13 @@ libc_bitflags!{
         MAP_PRIVATE;
         /// Place the mapping at exactly the address specified in `addr`.
         MAP_FIXED;
+        /// To be used with `MAP_FIXED`, to forbid the system
+        /// to select a different address than the one specified.
+        #[cfg(target_os = "freebsd")]
+        MAP_EXCL;
         /// Synonym for `MAP_ANONYMOUS`.
         MAP_ANON;
         /// The mapping is not backed by any file.
-        #[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
         MAP_ANONYMOUS;
         /// Put the mapping into the first 2GB of the process address space.
         #[cfg(any(all(any(target_os = "android", target_os = "linux"),
@@ -65,8 +70,8 @@ libc_bitflags!{
         MAP_LOCKED;
         /// Do not reserve swap space for this mapping.
         ///
-        /// This was removed in FreeBSD 11.
-        #[cfg(not(target_os = "freebsd"))]
+        /// This was removed in FreeBSD 11 and is unused in DragonFlyBSD.
+        #[cfg(not(any(target_os = "dragonfly", target_os = "freebsd")))]
         MAP_NORESERVE;
         /// Populate page tables for a mapping.
         #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -122,39 +127,55 @@ libc_bitflags!{
         MAP_NOSYNC;
         /// Rename private pages to a file.
         ///
-        /// This was removed in FreeBSD 11.
-        #[cfg(any(target_os = "dragonfly", target_os = "netbsd", target_os = "openbsd"))]
+        /// This was removed in FreeBSD 11 and is unused in DragonFlyBSD.
+        #[cfg(any(target_os = "netbsd", target_os = "openbsd"))]
         MAP_RENAME;
         /// Region may contain semaphores.
         #[cfg(any(target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
         MAP_HASSEMAPHORE;
         /// Region grows down, like a stack.
-        #[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd", target_os = "linux"))]
+        #[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd", target_os = "linux", target_os = "openbsd"))]
         MAP_STACK;
         /// Pages in this mapping are not retained in the kernel's memory cache.
         #[cfg(any(target_os = "ios", target_os = "macos"))]
         MAP_NOCACHE;
+        /// Allows the W/X bit on the page, it's necessary on aarch64 architecture.
         #[cfg(any(target_os = "ios", target_os = "macos"))]
         MAP_JIT;
+        /// Allows to use large pages, underlying alignment based on size.
+        #[cfg(target_os = "freebsd")]
+        MAP_ALIGNED_SUPER;
+        /// Pages will be discarded in the core dumps.
+        #[cfg(target_os = "openbsd")]
+        MAP_CONCEAL;
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "netbsd"))]
 libc_bitflags!{
-    /// Options for `mremap()`.
+    /// Options for [`mremap`].
     pub struct MRemapFlags: c_int {
         /// Permit the kernel to relocate the mapping to a new virtual address, if necessary.
+        #[cfg(target_os = "linux")]
         MREMAP_MAYMOVE;
         /// Place the mapping at exactly the address specified in `new_address`.
+        #[cfg(target_os = "linux")]
         MREMAP_FIXED;
+        /// Permits to use the old and new address as hints to relocate the mapping.
+        #[cfg(target_os = "netbsd")]
+        MAP_FIXED;
+        /// Allows to duplicate the mapping to be able to apply different flags on the copy.
+        #[cfg(target_os = "netbsd")]
+        MAP_REMAPDUP;
     }
 }
 
 libc_enum!{
     /// Usage information for a range of memory to allow for performance optimizations by the kernel.
     ///
-    /// Used by [`madvise`](./fn.madvise.html).
+    /// Used by [`madvise`].
     #[repr(i32)]
+    #[non_exhaustive]
     pub enum MmapAdvise {
         /// No further special treatment. This is the default.
         MADV_NORMAL,
@@ -191,7 +212,8 @@ libc_enum!{
             all(target_os = "linux", any(
                 target_arch = "aarch64",
                 target_arch = "arm",
-                target_arch = "ppc",
+                target_arch = "powerpc",
+                target_arch = "powerpc64",
                 target_arch = "s390x",
                 target_arch = "x86",
                 target_arch = "x86_64",
@@ -244,7 +266,7 @@ libc_enum!{
 }
 
 libc_bitflags!{
-    /// Configuration flags for `msync`.
+    /// Configuration flags for [`msync`].
     pub struct MsFlags: c_int {
         /// Schedule an update but return immediately.
         MS_ASYNC;
@@ -262,7 +284,7 @@ libc_bitflags!{
 }
 
 libc_bitflags!{
-    /// Flags for `mlockall`.
+    /// Flags for [`mlockall`].
     pub struct MlockAllFlags: c_int {
         /// Lock pages that are currently mapped into the address space of the process.
         MCL_CURRENT;
@@ -278,7 +300,9 @@ libc_bitflags!{
 ///
 /// # Safety
 ///
-/// `addr` must meet all the requirements described in the `mlock(2)` man page.
+/// `addr` must meet all the requirements described in the [`mlock(2)`] man page.
+///
+/// [`mlock(2)`]: https://man7.org/linux/man-pages/man2/mlock.2.html
 pub unsafe fn mlock(addr: *const c_void, length: size_t) -> Result<()> {
     Errno::result(libc::mlock(addr, length)).map(drop)
 }
@@ -288,25 +312,28 @@ pub unsafe fn mlock(addr: *const c_void, length: size_t) -> Result<()> {
 ///
 /// # Safety
 ///
-/// `addr` must meet all the requirements described in the `munlock(2)` man
+/// `addr` must meet all the requirements described in the [`munlock(2)`] man
 /// page.
+///
+/// [`munlock(2)`]: https://man7.org/linux/man-pages/man2/munlock.2.html
 pub unsafe fn munlock(addr: *const c_void, length: size_t) -> Result<()> {
     Errno::result(libc::munlock(addr, length)).map(drop)
 }
 
 /// Locks all memory pages mapped into this process' address space.
 ///
-/// Locked pages never move to the swap area.
+/// Locked pages never move to the swap area. For more information, see [`mlockall(2)`].
 ///
-/// # Safety
-///
-/// `addr` must meet all the requirements described in the `mlockall(2)` man
-/// page.
+/// [`mlockall(2)`]: https://man7.org/linux/man-pages/man2/mlockall.2.html
 pub fn mlockall(flags: MlockAllFlags) -> Result<()> {
     unsafe { Errno::result(libc::mlockall(flags.bits())) }.map(drop)
 }
 
 /// Unlocks all memory pages mapped into this process' address space.
+///
+/// For more information, see [`munlockall(2)`].
+///
+/// [`munlockall(2)`]: https://man7.org/linux/man-pages/man2/munlockall.2.html
 pub fn munlockall() -> Result<()> {
     unsafe { Errno::result(libc::munlockall()) }.map(drop)
 }
@@ -315,12 +342,14 @@ pub fn munlockall() -> Result<()> {
 ///
 /// # Safety
 ///
-/// See the `mmap(2)` man page for detailed requirements.
+/// See the [`mmap(2)`] man page for detailed requirements.
+///
+/// [`mmap(2)`]: https://man7.org/linux/man-pages/man2/mmap.2.html
 pub unsafe fn mmap(addr: *mut c_void, length: size_t, prot: ProtFlags, flags: MapFlags, fd: RawFd, offset: off_t) -> Result<*mut c_void> {
     let ret = libc::mmap(addr, length, prot.bits(), flags.bits(), fd, offset);
 
     if ret == libc::MAP_FAILED {
-        Err(Error::Sys(Errno::last()))
+        Err(Errno::last())
     } else {
         Ok(ret)
     }
@@ -333,7 +362,7 @@ pub unsafe fn mmap(addr: *mut c_void, length: size_t, prot: ProtFlags, flags: Ma
 ///
 /// See the `mremap(2)` [man page](https://man7.org/linux/man-pages/man2/mremap.2.html) for
 /// detailed requirements.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "netbsd"))]
 pub unsafe fn mremap(
     addr: *mut c_void,
     old_size: size_t,
@@ -341,10 +370,19 @@ pub unsafe fn mremap(
     flags: MRemapFlags,
     new_address: Option<* mut c_void>,
 ) -> Result<*mut c_void> {
+    #[cfg(target_os = "linux")]
     let ret = libc::mremap(addr, old_size, new_size, flags.bits(), new_address.unwrap_or(std::ptr::null_mut()));
+    #[cfg(target_os = "netbsd")]
+    let ret = libc::mremap(
+        addr,
+        old_size,
+        new_address.unwrap_or(std::ptr::null_mut()),
+        new_size,
+        flags.bits(),
+        );
 
     if ret == libc::MAP_FAILED {
-        Err(Error::Sys(Errno::last()))
+        Err(Errno::last())
     } else {
         Ok(ret)
     }
@@ -354,8 +392,10 @@ pub unsafe fn mremap(
 ///
 /// # Safety
 ///
-/// `addr` must meet all the requirements described in the `munmap(2)` man
+/// `addr` must meet all the requirements described in the [`munmap(2)`] man
 /// page.
+///
+/// [`munmap(2)`]: https://man7.org/linux/man-pages/man2/munmap.2.html
 pub unsafe fn munmap(addr: *mut c_void, len: size_t) -> Result<()> {
     Errno::result(libc::munmap(addr, len)).map(drop)
 }
@@ -364,15 +404,17 @@ pub unsafe fn munmap(addr: *mut c_void, len: size_t) -> Result<()> {
 ///
 /// # Safety
 ///
-/// See the `madvise(2)` man page.  Take special care when using
-/// `MmapAdvise::MADV_FREE`.
+/// See the [`madvise(2)`] man page.  Take special care when using
+/// [`MmapAdvise::MADV_FREE`].
+///
+/// [`madvise(2)`]: https://man7.org/linux/man-pages/man2/madvise.2.html
 pub unsafe fn madvise(addr: *mut c_void, length: size_t, advise: MmapAdvise) -> Result<()> {
     Errno::result(libc::madvise(addr, length, advise as i32)).map(drop)
 }
 
 /// Set protection of memory mapping.
 ///
-/// See [`mprotect(3)`](http://pubs.opengroup.org/onlinepubs/9699919799/functions/mprotect.html) for
+/// See [`mprotect(3)`](https://pubs.opengroup.org/onlinepubs/9699919799/functions/mprotect.html) for
 /// details.
 ///
 /// # Safety
@@ -403,12 +445,19 @@ pub unsafe fn mprotect(addr: *mut c_void, length: size_t, prot: ProtFlags) -> Re
 ///
 /// # Safety
 ///
-/// `addr` must meet all the requirements described in the `msync(2)` man
+/// `addr` must meet all the requirements described in the [`msync(2)`] man
 /// page.
+///
+/// [`msync(2)`]: https://man7.org/linux/man-pages/man2/msync.2.html
 pub unsafe fn msync(addr: *mut c_void, length: size_t, flags: MsFlags) -> Result<()> {
     Errno::result(libc::msync(addr, length, flags.bits())).map(drop)
 }
 
+/// Creates and opens a new, or opens an existing, POSIX shared memory object.
+///
+/// For more information, see [`shm_open(3)`].
+///
+/// [`shm_open(3)`]: https://man7.org/linux/man-pages/man3/shm_open.3.html
 #[cfg(not(target_os = "android"))]
 pub fn shm_open<P: ?Sized + NixPath>(name: &P, flag: OFlag, mode: Mode) -> Result<RawFd> {
     let ret = name.with_nix_path(|cstr| {
@@ -425,6 +474,11 @@ pub fn shm_open<P: ?Sized + NixPath>(name: &P, flag: OFlag, mode: Mode) -> Resul
     Errno::result(ret)
 }
 
+/// Performs the converse of [`shm_open`], removing an object previously created.
+///
+/// For more information, see [`shm_unlink(3)`].
+///
+/// [`shm_unlink(3)`]: https://man7.org/linux/man-pages/man3/shm_unlink.3.html
 #[cfg(not(target_os = "android"))]
 pub fn shm_unlink<P: ?Sized + NixPath>(name: &P) -> Result<()> {
     let ret = name.with_nix_path(|cstr| {

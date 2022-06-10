@@ -83,9 +83,9 @@ macro_rules! libc_bitflags {
 macro_rules! libc_enum {
     // Exit rule.
     (@make_enum
+        name: $BitFlags:ident,
         {
             $v:vis
-            name: $BitFlags:ident,
             attrs: [$($attrs:tt)*],
             entries: [$($entries:tt)*],
         }
@@ -97,37 +97,97 @@ macro_rules! libc_enum {
         }
     };
 
-    // Done accumulating.
-    (@accumulate_entries
+    // Exit rule including TryFrom
+    (@make_enum
+        name: $BitFlags:ident,
         {
             $v:vis
-            name: $BitFlags:ident,
+            attrs: [$($attrs:tt)*],
+            entries: [$($entries:tt)*],
+            from_type: $repr:path,
+            try_froms: [$($try_froms:tt)*]
+        }
+    ) => {
+        $($attrs)*
+        #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        $v enum $BitFlags {
+            $($entries)*
+        }
+        impl ::std::convert::TryFrom<$repr> for $BitFlags {
+            type Error = $crate::Error;
+            #[allow(unused_doc_comments)]
+            fn try_from(x: $repr) -> $crate::Result<Self> {
+                match x {
+                    $($try_froms)*
+                    _ => Err($crate::Error::EINVAL)
+                }
+            }
+        }
+    };
+
+    // Done accumulating.
+    (@accumulate_entries
+        name: $BitFlags:ident,
+        {
+            $v:vis
             attrs: $attrs:tt,
         },
-        $entries:tt;
+        $entries:tt,
+        $try_froms:tt;
     ) => {
         libc_enum! {
             @make_enum
+            name: $BitFlags,
             {
                 $v
-                name: $BitFlags,
                 attrs: $attrs,
                 entries: $entries,
             }
         }
     };
 
+    // Done accumulating and want TryFrom
+    (@accumulate_entries
+        name: $BitFlags:ident,
+        {
+            $v:vis
+            attrs: $attrs:tt,
+            from_type: $repr:path,
+        },
+        $entries:tt,
+        $try_froms:tt;
+    ) => {
+        libc_enum! {
+            @make_enum
+            name: $BitFlags,
+            {
+                $v
+                attrs: $attrs,
+                entries: $entries,
+                from_type: $repr,
+                try_froms: $try_froms
+            }
+        }
+    };
+
     // Munch an attr.
     (@accumulate_entries
+        name: $BitFlags:ident,
         $prefix:tt,
-        [$($entries:tt)*];
+        [$($entries:tt)*],
+        [$($try_froms:tt)*];
         #[$attr:meta] $($tail:tt)*
     ) => {
         libc_enum! {
             @accumulate_entries
+            name: $BitFlags,
             $prefix,
             [
                 $($entries)*
+                #[$attr]
+            ],
+            [
+                $($try_froms)*
                 #[$attr]
             ];
             $($tail)*
@@ -136,32 +196,47 @@ macro_rules! libc_enum {
 
     // Munch last ident if not followed by a comma.
     (@accumulate_entries
+        name: $BitFlags:ident,
         $prefix:tt,
-        [$($entries:tt)*];
+        [$($entries:tt)*],
+        [$($try_froms:tt)*];
         $entry:ident
     ) => {
         libc_enum! {
             @accumulate_entries
+            name: $BitFlags,
             $prefix,
             [
                 $($entries)*
                 $entry = libc::$entry,
+            ],
+            [
+                $($try_froms)*
+                libc::$entry => Ok($BitFlags::$entry),
             ];
         }
     };
 
     // Munch an ident; covers terminating comma case.
     (@accumulate_entries
+        name: $BitFlags:ident,
         $prefix:tt,
-        [$($entries:tt)*];
-        $entry:ident, $($tail:tt)*
+        [$($entries:tt)*],
+        [$($try_froms:tt)*];
+        $entry:ident,
+        $($tail:tt)*
     ) => {
         libc_enum! {
             @accumulate_entries
+            name: $BitFlags,
             $prefix,
             [
                 $($entries)*
                 $entry = libc::$entry,
+            ],
+            [
+                $($try_froms)*
+                libc::$entry => Ok($BitFlags::$entry),
             ];
             $($tail)*
         }
@@ -169,16 +244,24 @@ macro_rules! libc_enum {
 
     // Munch an ident and cast it to the given type; covers terminating comma.
     (@accumulate_entries
+        name: $BitFlags:ident,
         $prefix:tt,
-        [$($entries:tt)*];
-        $entry:ident as $ty:ty, $($tail:tt)*
+        [$($entries:tt)*],
+        [$($try_froms:tt)*];
+        $entry:ident as $ty:ty,
+        $($tail:tt)*
     ) => {
         libc_enum! {
             @accumulate_entries
+            name: $BitFlags,
             $prefix,
             [
                 $($entries)*
                 $entry = libc::$entry as $ty,
+            ],
+            [
+                $($try_froms)*
+                libc::$entry as $ty => Ok($BitFlags::$entry),
             ];
             $($tail)*
         }
@@ -193,11 +276,34 @@ macro_rules! libc_enum {
     ) => {
         libc_enum! {
             @accumulate_entries
+            name: $BitFlags,
             {
                 $v
-                name: $BitFlags,
                 attrs: [$(#[$attr])*],
             },
+            [],
+            [];
+            $($vals)*
+        }
+    };
+
+    // Entry rule including TryFrom
+    (
+        $(#[$attr:meta])*
+        $v:vis enum $BitFlags:ident {
+            $($vals:tt)*
+        }
+        impl TryFrom<$repr:path>
+    ) => {
+        libc_enum! {
+            @accumulate_entries
+            name: $BitFlags,
+            {
+                $v
+                attrs: [$(#[$attr])*],
+                from_type: $repr,
+            },
+            [],
             [];
             $($vals)*
         }

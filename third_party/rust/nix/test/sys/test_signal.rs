@@ -1,6 +1,5 @@
-use libc;
 #[cfg(not(target_os = "redox"))]
-use nix::Error;
+use nix::errno::Errno;
 use nix::sys::signal::*;
 use nix::unistd::*;
 use std::convert::TryFrom;
@@ -20,7 +19,7 @@ fn test_killpg_none() {
 
 #[test]
 fn test_old_sigaction_flags() {
-    let _m = crate::SIGNAL_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::SIGNAL_MTX.lock();
 
     extern "C" fn handler(_: ::libc::c_int) {}
     let act = SigAction::new(
@@ -42,7 +41,7 @@ fn test_sigprocmask_noop() {
 
 #[test]
 fn test_sigprocmask() {
-    let _m = crate::SIGNAL_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::SIGNAL_MTX.lock();
 
     // This needs to be a signal that rust doesn't use in the test harness.
     const SIGNAL: Signal = Signal::SIGCHLD;
@@ -53,9 +52,9 @@ fn test_sigprocmask() {
 
     // Make sure the old set doesn't contain the signal, otherwise the following
     // test don't make sense.
-    assert_eq!(old_signal_set.contains(SIGNAL), false,
-               "the {:?} signal is already blocked, please change to a \
-                different one", SIGNAL);
+    assert!(!old_signal_set.contains(SIGNAL),
+            "the {:?} signal is already blocked, please change to a \
+             different one", SIGNAL);
 
     // Now block the signal.
     let mut signal_set = SigSet::empty();
@@ -67,8 +66,8 @@ fn test_sigprocmask() {
     old_signal_set.clear();
     sigprocmask(SigmaskHow::SIG_BLOCK, None, Some(&mut old_signal_set))
         .expect("expect to be able to retrieve old signals");
-    assert_eq!(old_signal_set.contains(SIGNAL), true,
-               "expected the {:?} to be blocked", SIGNAL);
+    assert!(old_signal_set.contains(SIGNAL),
+            "expected the {:?} to be blocked", SIGNAL);
 
     // Reset the signal.
     sigprocmask(SigmaskHow::SIG_UNBLOCK, Some(&signal_set), None)
@@ -90,15 +89,15 @@ extern fn test_sigaction_action(_: libc::c_int, _: *mut libc::siginfo_t, _: *mut
 #[test]
 #[cfg(not(target_os = "redox"))]
 fn test_signal_sigaction() {
-    let _m = crate::SIGNAL_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::SIGNAL_MTX.lock();
 
     let action_handler = SigHandler::SigAction(test_sigaction_action);
-    assert_eq!(unsafe { signal(Signal::SIGINT, action_handler) }.unwrap_err(), Error::UnsupportedOperation);
+    assert_eq!(unsafe { signal(Signal::SIGINT, action_handler) }.unwrap_err(), Errno::ENOTSUP);
 }
 
 #[test]
 fn test_signal() {
-    let _m = crate::SIGNAL_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::SIGNAL_MTX.lock();
 
     unsafe { signal(Signal::SIGINT, SigHandler::SigIgn) }.unwrap();
     raise(Signal::SIGINT).unwrap();
@@ -108,7 +107,14 @@ fn test_signal() {
     assert_eq!(unsafe { signal(Signal::SIGINT, handler) }.unwrap(), SigHandler::SigDfl);
     raise(Signal::SIGINT).unwrap();
     assert!(SIGNALED.load(Ordering::Relaxed));
+
+    #[cfg(not(any(target_os = "illumos", target_os = "solaris")))]
     assert_eq!(unsafe { signal(Signal::SIGINT, SigHandler::SigDfl) }.unwrap(), handler);
+
+    // System V based OSes (e.g. illumos and Solaris) always resets the
+    // disposition to SIG_DFL prior to calling the signal handler
+    #[cfg(any(target_os = "illumos", target_os = "solaris"))]
+    assert_eq!(unsafe { signal(Signal::SIGINT, SigHandler::SigDfl) }.unwrap(), SigHandler::SigDfl);
 
     // Restore default signal handler
     unsafe { signal(Signal::SIGINT, SigHandler::SigDfl) }.unwrap();

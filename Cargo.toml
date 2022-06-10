@@ -146,7 +146,6 @@ web-sys = { path = "build/rust/dummy-web/web-sys" }
 moz_asserts = { path = "mozglue/static/rust/moz_asserts" }
 
 # Other overrides
-authenticator = { git = "https://github.com/makotokato/authenticator-rs", rev="eed8919d50559f4959e2d7d2af7b4d48869b5366" }
 async-task = { git = "https://github.com/smol-rs/async-task", rev="f6488e35beccb26eb6e85847b02aa78a42cd3d0e" }
 chardetng = { git = "https://github.com/hsivonen/chardetng", rev="3484d3e3ebdc8931493aa5df4d7ee9360a90e76b" }
 chardetng_c = { git = "https://github.com/hsivonen/chardetng_c", rev="ed8a4c6f900a90d4dbc1d64b856e61490a1c3570" }
@@ -154,7 +153,6 @@ coremidi = { git = "https://github.com/chris-zen/coremidi.git", rev="fc68464b544
 fog = { path = "toolkit/components/glean/api" }
 libudev-sys = { path = "dom/webauthn/libudev-sys" }
 packed_simd = { package = "packed_simd_2", git = "https://github.com/hsivonen/packed_simd", rev="c149d0a519bf878567c7630096737669ec2ff15f" }
-midir = { git = "https://github.com/makotokato/midir.git", rev = "6140b2825dd4dc2b40e49e154ca7596e7b9a131a" }
 minidump_writer_linux = { git = "https://github.com/rust-minidump/minidump-writer.git", rev = "75ada456c92a429704691a85e1cb42fef8cafc0d" }
 
 # application-services overrides to make updating them all simpler.

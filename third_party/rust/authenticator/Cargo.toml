@@ -1,6 +1,6 @@
 [package]
 name = "authenticator"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["J.C. Jones <jc@mozilla.com>", "Tim Taubert <ttaubert@mozilla.com>", "Kyle Machulis <kyle@nonpolynomial.com>"]
 keywords = ["ctap2", "u2f", "fido", "webauthn"]
 categories = ["cryptography", "hardware-support", "os"]
@@ -40,7 +40,7 @@ features = [
 bindgen = { version = "^0.58.1", optional = true }
 
 [dependencies]
-rand = "0.7"
+rand = "0.8"
 log = "0.4"
 libc = "0.2"
 runloop = "0.1.0"

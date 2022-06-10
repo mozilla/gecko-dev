@@ -4,7 +4,6 @@
 // we must disable the test here rather than in Cargo.toml
 #![cfg(target_os = "freebsd")]
 
-use nix::Error;
 use nix::errno::*;
 use nix::libc::off_t;
 use nix::sys::aio::*;
@@ -20,12 +19,12 @@ const BYTES_PER_OP: usize = 512;
 /// Attempt to collect final status for all of `liocb`'s operations, freeing
 /// system resources
 fn finish_liocb(liocb: &mut LioCb) {
-    for j in 0..liocb.aiocbs.len() {
+    for j in 0..liocb.len() {
         loop {
             let e = liocb.error(j);
             match e {
                 Ok(()) => break,
-                Err(Error::Sys(Errno::EINPROGRESS)) =>
+                Err(Errno::EINPROGRESS) =>
                     thread::sleep(time::Duration::from_millis(10)),
                 Err(x) => panic!("aio_error({:?})", x)
             }
@@ -70,21 +69,21 @@ fn test_lio_listio_resubmit() {
     }).collect::<Vec<_>>();
 
     let mut liocbs = (0..num_listios).map(|i| {
-        let mut liocb = LioCb::with_capacity(ops_per_listio);
+        let mut builder = LioCbBuilder::with_capacity(ops_per_listio);
         for j in 0..ops_per_listio {
             let offset = (BYTES_PER_OP * (i * ops_per_listio + j)) as off_t;
-            let wcb = AioCb::from_slice( f.as_raw_fd(),
-                                   offset,
-                                   &buffer_set[i][j][..],
-                                   0,   //priority
-                                   SigevNotify::SigevNone,
-                                   LioOpcode::LIO_WRITE);
-            liocb.aiocbs.push(wcb);
+            builder = builder.emplace_slice(f.as_raw_fd(),
+                                offset,
+                                &buffer_set[i][j][..],
+                                0,   //priority
+                                SigevNotify::SigevNone,
+                                LioOpcode::LIO_WRITE);
         }
+        let mut liocb = builder.finish();
         let mut err = liocb.listio(LioMode::LIO_NOWAIT, SigevNotify::SigevNone);
-        while err == Err(Error::Sys(Errno::EIO)) ||
-              err == Err(Error::Sys(Errno::EAGAIN)) ||
-              err == Err(Error::Sys(Errno::EINTR)) {
+        while err == Err(Errno::EIO) ||
+              err == Err(Errno::EAGAIN) ||
+              err == Err(Errno::EINTR) {
             // 
             thread::sleep(time::Duration::from_millis(10));
             resubmit_count += 1;

@@ -3,7 +3,7 @@
 //! Timer FD is a Linux-only API to create timers and get expiration
 //! notifications through file descriptors.
 //!
-//! For more documentation, please read [timerfd_create(2)](http://man7.org/linux/man-pages/man2/timerfd_create.2.html).
+//! For more documentation, please read [timerfd_create(2)](https://man7.org/linux/man-pages/man2/timerfd_create.2.html).
 //!
 //! # Examples
 //!
@@ -30,7 +30,7 @@
 //! ```
 use crate::sys::time::TimeSpec;
 use crate::unistd::read;
-use crate::{errno::Errno, Error, Result};
+use crate::{errno::Errno, Result};
 use bitflags::bitflags;
 use libc::c_int;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
@@ -56,8 +56,9 @@ impl FromRawFd for TimerFd {
 
 libc_enum! {
     /// The type of the clock used to mark the progress of the timer. For more
-    /// details on each kind of clock, please refer to [timerfd_create(2)](http://man7.org/linux/man-pages/man2/timerfd_create.2.html).
+    /// details on each kind of clock, please refer to [timerfd_create(2)](https://man7.org/linux/man-pages/man2/timerfd_create.2.html).
     #[repr(i32)]
+    #[non_exhaustive]
     pub enum ClockId {
         CLOCK_REALTIME,
         CLOCK_MONOTONIC,
@@ -87,7 +88,7 @@ bitflags! {
 struct TimerSpec(libc::itimerspec);
 
 impl TimerSpec {
-    pub fn none() -> Self {
+    pub const fn none() -> Self {
         Self(libc::itimerspec {
             it_interval: libc::timespec {
                 tv_sec: 0,
@@ -256,14 +257,9 @@ impl TimerFd {
     ///
     /// Note: If the alarm is unset, then you will wait forever.
     pub fn wait(&self) -> Result<()> {
-        loop {
-            if let Err(e) = read(self.fd, &mut [0u8; 8]) {
-                match e {
-                    Error::Sys(Errno::EINTR) => continue,
-                    _ => return Err(e),
-                }
-            } else {
-                break;
+        while let Err(e) = read(self.fd, &mut [0u8; 8]) {
+            if e != Errno::EINTR {
+                return Err(e)
             }
         }
 
@@ -277,7 +273,7 @@ impl Drop for TimerFd {
             let result = Errno::result(unsafe {
                 libc::close(self.fd)
             });
-            if let Err(Error::Sys(Errno::EBADF)) = result {
+            if let Err(Errno::EBADF) = result {
                 panic!("close of TimerFd encountered EBADF");
             }
         }

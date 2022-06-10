@@ -3,6 +3,9 @@ extern crate memalloc;
 #[cfg(feature = "jack")]
 #[macro_use] extern crate bitflags;
 
+#[cfg(target_os = "windows")]
+extern crate windows;
+
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// An enum that is used to specify what kind of MIDI messages should

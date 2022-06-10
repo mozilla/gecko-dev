@@ -12,12 +12,12 @@ jobs:
 - template: azure-pipelines-template.yml
   parameters:
     name: Windows
-    vmImage: vs2017-win2016
+    vmImage: windows-latest
     target: x86_64-pc-windows-msvc
 - template: azure-pipelines-template.yml
   parameters:
     name: Windows_GNU
-    vmImage: vs2017-win2016
+    vmImage: windows-latest
     target: i686-pc-windows-gnu
 - template: azure-pipelines-template.yml
   parameters:

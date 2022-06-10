@@ -9,6 +9,7 @@ use std::os::unix::io::RawFd;
 use crate::sys::time::{TimeSpec, TimeVal};
 
 libc_bitflags!(
+    /// "File type" flags for `mknod` and related functions.
     pub struct SFlag: mode_t {
         S_IFIFO;
         S_IFCHR;
@@ -22,6 +23,7 @@ libc_bitflags!(
 );
 
 libc_bitflags! {
+    /// "File mode / permissions" flags.
     pub struct Mode: mode_t {
         S_IRWXU;
         S_IRUSR;
@@ -41,30 +43,45 @@ libc_bitflags! {
     }
 }
 
+/// Create a special or ordinary file, by pathname.
 pub fn mknod<P: ?Sized + NixPath>(path: &P, kind: SFlag, perm: Mode, dev: dev_t) -> Result<()> {
-    let res = path.with_nix_path(|cstr| {
-        unsafe {
-            libc::mknod(cstr.as_ptr(), kind.bits | perm.bits() as mode_t, dev)
-        }
+    let res = path.with_nix_path(|cstr| unsafe {
+        libc::mknod(cstr.as_ptr(), kind.bits | perm.bits() as mode_t, dev)
+    })?;
+
+    Errno::result(res).map(drop)
+}
+
+/// Create a special or ordinary file, relative to a given directory.
+#[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "redox")))]
+pub fn mknodat<P: ?Sized + NixPath>(
+    dirfd: RawFd,
+    path: &P,
+    kind: SFlag,
+    perm: Mode,
+    dev: dev_t,
+) -> Result<()> {
+    let res = path.with_nix_path(|cstr| unsafe {
+        libc::mknodat(dirfd, cstr.as_ptr(), kind.bits | perm.bits() as mode_t, dev)
     })?;
 
     Errno::result(res).map(drop)
 }
 
 #[cfg(target_os = "linux")]
-pub fn major(dev: dev_t) -> u64 {
+pub const fn major(dev: dev_t) -> u64 {
     ((dev >> 32) & 0xffff_f000) |
     ((dev >>  8) & 0x0000_0fff)
 }
 
 #[cfg(target_os = "linux")]
-pub fn minor(dev: dev_t) -> u64 {
+pub const fn minor(dev: dev_t) -> u64 {
     ((dev >> 12) & 0xffff_ff00) |
     ((dev      ) & 0x0000_00ff)
 }
 
 #[cfg(target_os = "linux")]
-pub fn makedev(major: u64, minor: u64) -> dev_t {
+pub const fn makedev(major: u64, minor: u64) -> dev_t {
     ((major & 0xffff_f000) << 32) |
     ((major & 0x0000_0fff) <<  8) |
     ((minor & 0xffff_ff00) << 12) |
@@ -127,7 +144,7 @@ pub fn fstatat<P: ?Sized + NixPath>(dirfd: RawFd, pathname: &P, f: AtFlags) -> R
 ///
 /// # References
 ///
-/// [fchmod(2)](http://pubs.opengroup.org/onlinepubs/9699919799/functions/fchmod.html).
+/// [fchmod(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/fchmod.html).
 pub fn fchmod(fd: RawFd, mode: Mode) -> Result<()> {
     let res = unsafe { libc::fchmod(fd, mode.bits() as mode_t) };
 
@@ -156,7 +173,7 @@ pub enum FchmodatFlags {
 ///
 /// # References
 ///
-/// [fchmodat(2)](http://pubs.opengroup.org/onlinepubs/9699919799/functions/fchmodat.html).
+/// [fchmodat(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/fchmodat.html).
 #[cfg(not(target_os = "redox"))]
 pub fn fchmodat<P: ?Sized + NixPath>(
     dirfd: Option<RawFd>,
@@ -190,7 +207,7 @@ pub fn fchmodat<P: ?Sized + NixPath>(
 ///
 /// # References
 ///
-/// [utimes(2)](http://pubs.opengroup.org/onlinepubs/9699919799/functions/utimes.html).
+/// [utimes(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/utimes.html).
 pub fn utimes<P: ?Sized + NixPath>(path: &P, atime: &TimeVal, mtime: &TimeVal) -> Result<()> {
     let times: [libc::timeval; 2] = [*atime.as_ref(), *mtime.as_ref()];
     let res = path.with_nix_path(|cstr| unsafe {
@@ -209,7 +226,7 @@ pub fn utimes<P: ?Sized + NixPath>(path: &P, atime: &TimeVal, mtime: &TimeVal) -
 ///
 /// # References
 ///
-/// [lutimes(2)](http://pubs.opengroup.org/onlinepubs/9699919799/functions/lutimes.html).
+/// [lutimes(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/lutimes.html).
 #[cfg(any(target_os = "linux",
           target_os = "haiku",
           target_os = "ios",
@@ -229,7 +246,7 @@ pub fn lutimes<P: ?Sized + NixPath>(path: &P, atime: &TimeVal, mtime: &TimeVal) 
 ///
 /// # References
 ///
-/// [futimens(2)](http://pubs.opengroup.org/onlinepubs/9699919799/functions/futimens.html).
+/// [futimens(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/futimens.html).
 #[inline]
 pub fn futimens(fd: RawFd, atime: &TimeSpec, mtime: &TimeSpec) -> Result<()> {
     let times: [libc::timespec; 2] = [*atime.as_ref(), *mtime.as_ref()];
@@ -239,6 +256,7 @@ pub fn futimens(fd: RawFd, atime: &TimeSpec, mtime: &TimeSpec) -> Result<()> {
 }
 
 /// Flags for `utimensat` function.
+// TODO: replace with fcntl::AtFlags
 #[derive(Clone, Copy, Debug)]
 pub enum UtimensatFlags {
     FollowSymlink,
@@ -260,7 +278,7 @@ pub enum UtimensatFlags {
 ///
 /// # References
 ///
-/// [utimensat(2)](http://pubs.opengroup.org/onlinepubs/9699919799/functions/utimens.html).
+/// [utimensat(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/utimens.html).
 #[cfg(not(target_os = "redox"))]
 pub fn utimensat<P: ?Sized + NixPath>(
     dirfd: Option<RawFd>,

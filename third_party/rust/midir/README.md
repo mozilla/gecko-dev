@@ -1,8 +1,6 @@
 # midir [![crates.io](https://img.shields.io/crates/v/midir.svg)](https://crates.io/crates/midir) [![Build Status](https://dev.azure.com/Boddlnagg/midir/_apis/build/status/Boddlnagg.midir?branchName=master)](https://dev.azure.com/Boddlnagg/midir/_build/latest?definitionId=1)
 
-Cross-platform, realtime MIDI processing in Rust. This is a friendly fork with
-small changes required for vendoring the crate in Firefox. It will go away as
-soon as we will be able to vendor the upstream crate.
+Cross-platform, realtime MIDI processing in Rust.
 
 ## Features
 **midir** is inspired by [RtMidi](https://github.com/thestk/rtmidi) and supports the same features*, including virtual ports (except on Windows) and full SysEx support – but with a rust-y API!

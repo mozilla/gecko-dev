@@ -36,6 +36,28 @@ fn test_sendfile_linux() {
     close(wr).unwrap();
 }
 
+#[cfg(target_os = "linux")]
+#[test]
+fn test_sendfile64_linux() {
+    const CONTENTS: &[u8] = b"abcdef123456";
+    let mut tmp = tempfile().unwrap();
+    tmp.write_all(CONTENTS).unwrap();
+
+    let (rd, wr) = pipe().unwrap();
+    let mut offset: libc::off64_t = 5;
+    let res = sendfile64(wr, tmp.as_raw_fd(), Some(&mut offset), 2).unwrap();
+
+    assert_eq!(2, res);
+
+    let mut buf = [0u8; 1024];
+    assert_eq!(2, read(rd, &mut buf).unwrap());
+    assert_eq!(b"f1", &buf[0..2]);
+    assert_eq!(7, offset);
+
+    close(rd).unwrap();
+    close(wr).unwrap();
+}
+
 #[cfg(target_os = "freebsd")]
 #[test]
 fn test_sendfile_freebsd() {

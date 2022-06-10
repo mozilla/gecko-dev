@@ -5,9 +5,7 @@ use tempfile::{tempdir, TempDir};
 use crate::*;
 
 fn compile_kernel_module() -> (PathBuf, String, TempDir) {
-    let _m = crate::FORK_MTX
-        .lock()
-        .expect("Mutex got poisoned by another test");
+    let _m = crate::FORK_MTX.lock();
 
     let tmp_dir = tempdir().expect("unable to create temporary build directory");
 
@@ -34,16 +32,15 @@ fn compile_kernel_module() -> (PathBuf, String, TempDir) {
 use nix::errno::Errno;
 use nix::kmod::{delete_module, DeleteModuleFlags};
 use nix::kmod::{finit_module, init_module, ModuleInitFlags};
-use nix::Error;
 use std::ffi::CString;
 use std::fs::File;
 use std::io::Read;
 
 #[test]
 fn test_finit_and_delete_module() {
-    require_capability!(CAP_SYS_MODULE);
-    let _m0 = crate::KMOD_MTX.lock().expect("Mutex got poisoned by another test");
-    let _m1 = crate::CWD_LOCK.read().expect("Mutex got poisoned by another test");
+    require_capability!("test_finit_and_delete_module", CAP_SYS_MODULE);
+    let _m0 = crate::KMOD_MTX.lock();
+    let _m1 = crate::CWD_LOCK.read();
 
     let (kmod_path, kmod_name, _kmod_dir) = compile_kernel_module();
 
@@ -58,10 +55,10 @@ fn test_finit_and_delete_module() {
 }
 
 #[test]
-fn test_finit_and_delete_modul_with_params() {
-    require_capability!(CAP_SYS_MODULE);
-    let _m0 = crate::KMOD_MTX.lock().expect("Mutex got poisoned by another test");
-    let _m1 = crate::CWD_LOCK.read().expect("Mutex got poisoned by another test");
+fn test_finit_and_delete_module_with_params() {
+    require_capability!("test_finit_and_delete_module_with_params", CAP_SYS_MODULE);
+    let _m0 = crate::KMOD_MTX.lock();
+    let _m1 = crate::CWD_LOCK.read();
 
     let (kmod_path, kmod_name, _kmod_dir) = compile_kernel_module();
 
@@ -80,9 +77,9 @@ fn test_finit_and_delete_modul_with_params() {
 
 #[test]
 fn test_init_and_delete_module() {
-    require_capability!(CAP_SYS_MODULE);
-    let _m0 = crate::KMOD_MTX.lock().expect("Mutex got poisoned by another test");
-    let _m1 = crate::CWD_LOCK.read().expect("Mutex got poisoned by another test");
+    require_capability!("test_init_and_delete_module", CAP_SYS_MODULE);
+    let _m0 = crate::KMOD_MTX.lock();
+    let _m1 = crate::CWD_LOCK.read();
 
     let (kmod_path, kmod_name, _kmod_dir) = compile_kernel_module();
 
@@ -90,7 +87,7 @@ fn test_init_and_delete_module() {
     let mut contents: Vec<u8> = Vec::new();
     f.read_to_end(&mut contents)
         .expect("unable to read kernel module content to buffer");
-    init_module(&mut contents, &CString::new("").unwrap()).expect("unable to load kernel module");
+    init_module(&contents, &CString::new("").unwrap()).expect("unable to load kernel module");
 
     delete_module(
         &CString::new(kmod_name).unwrap(),
@@ -100,9 +97,9 @@ fn test_init_and_delete_module() {
 
 #[test]
 fn test_init_and_delete_module_with_params() {
-    require_capability!(CAP_SYS_MODULE);
-    let _m0 = crate::KMOD_MTX.lock().expect("Mutex got poisoned by another test");
-    let _m1 = crate::CWD_LOCK.read().expect("Mutex got poisoned by another test");
+    require_capability!("test_init_and_delete_module_with_params", CAP_SYS_MODULE);
+    let _m0 = crate::KMOD_MTX.lock();
+    let _m1 = crate::CWD_LOCK.read();
 
     let (kmod_path, kmod_name, _kmod_dir) = compile_kernel_module();
 
@@ -110,7 +107,7 @@ fn test_init_and_delete_module_with_params() {
     let mut contents: Vec<u8> = Vec::new();
     f.read_to_end(&mut contents)
         .expect("unable to read kernel module content to buffer");
-    init_module(&mut contents, &CString::new("who=Nix number=2015").unwrap())
+    init_module(&contents, &CString::new("who=Nix number=2015").unwrap())
         .expect("unable to load kernel module");
 
     delete_module(
@@ -121,23 +118,23 @@ fn test_init_and_delete_module_with_params() {
 
 #[test]
 fn test_finit_module_invalid() {
-    require_capability!(CAP_SYS_MODULE);
-    let _m0 = crate::KMOD_MTX.lock().expect("Mutex got poisoned by another test");
-    let _m1 = crate::CWD_LOCK.read().expect("Mutex got poisoned by another test");
+    require_capability!("test_finit_module_invalid", CAP_SYS_MODULE);
+    let _m0 = crate::KMOD_MTX.lock();
+    let _m1 = crate::CWD_LOCK.read();
 
     let kmod_path = "/dev/zero";
 
     let f = File::open(kmod_path).expect("unable to open kernel module");
     let result = finit_module(&f, &CString::new("").unwrap(), ModuleInitFlags::empty());
 
-    assert_eq!(result.unwrap_err(), Error::Sys(Errno::EINVAL));
+    assert_eq!(result.unwrap_err(), Errno::EINVAL);
 }
 
 #[test]
 fn test_finit_module_twice_and_delete_module() {
-    require_capability!(CAP_SYS_MODULE);
-    let _m0 = crate::KMOD_MTX.lock().expect("Mutex got poisoned by another test");
-    let _m1 = crate::CWD_LOCK.read().expect("Mutex got poisoned by another test");
+    require_capability!("test_finit_module_twice_and_delete_module", CAP_SYS_MODULE);
+    let _m0 = crate::KMOD_MTX.lock();
+    let _m1 = crate::CWD_LOCK.read();
 
     let (kmod_path, kmod_name, _kmod_dir) = compile_kernel_module();
 
@@ -147,7 +144,7 @@ fn test_finit_module_twice_and_delete_module() {
 
     let result = finit_module(&f, &CString::new("").unwrap(), ModuleInitFlags::empty());
 
-    assert_eq!(result.unwrap_err(), Error::Sys(Errno::EEXIST));
+    assert_eq!(result.unwrap_err(), Errno::EEXIST);
 
     delete_module(
         &CString::new(kmod_name).unwrap(),
@@ -157,11 +154,11 @@ fn test_finit_module_twice_and_delete_module() {
 
 #[test]
 fn test_delete_module_not_loaded() {
-    require_capability!(CAP_SYS_MODULE);
-    let _m0 = crate::KMOD_MTX.lock().expect("Mutex got poisoned by another test");
-    let _m1 = crate::CWD_LOCK.read().expect("Mutex got poisoned by another test");
+    require_capability!("test_delete_module_not_loaded", CAP_SYS_MODULE);
+    let _m0 = crate::KMOD_MTX.lock();
+    let _m1 = crate::CWD_LOCK.read();
 
     let result = delete_module(&CString::new("hello").unwrap(), DeleteModuleFlags::empty());
 
-    assert_eq!(result.unwrap_err(), Error::Sys(Errno::ENOENT));
+    assert_eq!(result.unwrap_err(), Errno::ENOENT);
 }

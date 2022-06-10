@@ -1,5 +1,4 @@
 use nix::{
-    Error,
     errno::Errno,
     poll::{PollFlags, poll, PollFd},
     unistd::{write, pipe}
@@ -10,7 +9,7 @@ macro_rules! loop_while_eintr {
         loop {
             match $poll_expr {
                 Ok(nfds) => break nfds,
-                Err(Error::Sys(Errno::EINTR)) => (),
+                Err(Errno::EINTR) => (),
                 Err(e) => panic!("{}", e)
             }
         }
@@ -64,4 +63,20 @@ fn test_ppoll() {
     let nfds = ppoll(&mut fds, Some(timeout), SigSet::empty()).unwrap();
     assert_eq!(nfds, 1);
     assert!(fds[0].revents().unwrap().contains(PollFlags::POLLIN));
+}
+
+#[test]
+fn test_pollfd_fd() {
+    use std::os::unix::io::AsRawFd;
+
+    let pfd = PollFd::new(0x1234, PollFlags::empty());
+    assert_eq!(pfd.as_raw_fd(), 0x1234);
+}
+
+#[test]
+fn test_pollfd_events() {
+    let mut pfd = PollFd::new(-1, PollFlags::POLLIN);
+    assert_eq!(pfd.events(), PollFlags::POLLIN);
+    pfd.set_events(PollFlags::POLLOUT);
+    assert_eq!(pfd.events(), PollFlags::POLLOUT);
 }

@@ -2,7 +2,7 @@
 
 use cfg_if::cfg_if;
 use std::{mem, ptr};
-use crate::{Error, Result};
+use crate::Result;
 use crate::errno::Errno;
 use libc::{self, c_void, c_long, siginfo_t};
 use crate::unistd::Pid;
@@ -33,6 +33,7 @@ libc_enum!{
     #[cfg_attr(not(any(target_env = "musl", target_os = "android")), repr(u32))]
     #[cfg_attr(any(target_env = "musl", target_os = "android"), repr(i32))]
     /// Ptrace Request enum defining the action to be taken.
+    #[non_exhaustive]
     pub enum Request {
         PTRACE_TRACEME,
         PTRACE_PEEKTEXT,
@@ -97,11 +98,9 @@ libc_enum!{
         #[cfg(all(target_os = "linux", not(any(target_arch = "mips",
                                                target_arch = "mips64"))))]
         PTRACE_SETREGSET,
-        #[cfg(all(target_os = "linux", not(any(target_arch = "mips",
-                                               target_arch = "mips64"))))]
+        #[cfg(target_os = "linux")]
         PTRACE_SEIZE,
-        #[cfg(all(target_os = "linux", not(any(target_arch = "mips",
-                                               target_arch = "mips64"))))]
+        #[cfg(target_os = "linux")]
         PTRACE_INTERRUPT,
         #[cfg(all(target_os = "linux", not(any(target_arch = "mips",
                                                target_arch = "mips64"))))]
@@ -123,6 +122,7 @@ libc_enum!{
     /// Using the ptrace options the tracer can configure the tracee to stop
     /// at certain events. This enum is used to define those events as defined
     /// in `man ptrace`.
+    #[non_exhaustive]
     pub enum Event {
         /// Event that stops before a return from fork or clone.
         PTRACE_EVENT_FORK,
@@ -137,9 +137,11 @@ libc_enum!{
         /// Event for a stop before an exit. Unlike the waitpid Exit status program.
         /// registers can still be examined
         PTRACE_EVENT_EXIT,
-        /// STop triggered by a seccomp rule on a tracee.
+        /// Stop triggered by a seccomp rule on a tracee.
         PTRACE_EVENT_SECCOMP,
-        // PTRACE_EVENT_STOP not provided by libc because it's defined in glibc 2.26
+        /// Stop triggered by the `INTERRUPT` syscall, or a group stop,
+        /// or when a new child is attached.
+        PTRACE_EVENT_STOP,
     }
 }
 
@@ -180,7 +182,7 @@ fn ptrace_peek(request: Request, pid: Pid, addr: AddressType, data: *mut c_void)
         libc::ptrace(request as RequestType, libc::pid_t::from(pid), addr, data)
     };
     match Errno::result(ret) {
-        Ok(..) | Err(Error::Sys(Errno::UnknownErrno)) => Ok(ret),
+        Ok(..) | Err(Errno::UnknownErrno) => Ok(ret),
         err @ Err(..) => err,
     }
 }
@@ -337,7 +339,7 @@ pub fn attach(pid: Pid) -> Result<()> {
 /// Attach to a running process, as with `ptrace(PTRACE_SEIZE, ...)`
 ///
 /// Attaches to the process specified in pid, making it a tracee of the calling process.
-#[cfg(all(target_os = "linux", not(any(target_arch = "mips", target_arch = "mips64"))))]
+#[cfg(target_os = "linux")]
 pub fn seize(pid: Pid, options: Options) -> Result<()> {
     unsafe {
         ptrace_other(
@@ -382,6 +384,16 @@ pub fn cont<T: Into<Option<Signal>>>(pid: Pid, sig: T) -> Result<()> {
     }
 }
 
+/// Stop a tracee, as with `ptrace(PTRACE_INTERRUPT, ...)`
+///
+/// This request is equivalent to `ptrace(PTRACE_INTERRUPT, ...)`
+#[cfg(target_os = "linux")]
+pub fn interrupt(pid: Pid) -> Result<()> {
+    unsafe {
+        ptrace_other(Request::PTRACE_INTERRUPT, pid, ptr::null_mut(), ptr::null_mut()).map(drop)
+    }
+}
+
 /// Issues a kill request as with `ptrace(PTRACE_KILL, ...)`
 ///
 /// This request is equivalent to `ptrace(PTRACE_CONT, ..., SIGKILL);`
@@ -391,7 +403,7 @@ pub fn kill(pid: Pid) -> Result<()> {
     }
 }
 
-/// Move the stopped tracee process forward by a single step as with 
+/// Move the stopped tracee process forward by a single step as with
 /// `ptrace(PTRACE_SINGLESTEP, ...)`
 ///
 /// Advances the execution of the process with PID `pid` by a single step optionally delivering a
@@ -401,18 +413,17 @@ pub fn kill(pid: Pid) -> Result<()> {
 /// ```rust
 /// use nix::sys::ptrace::step;
 /// use nix::unistd::Pid;
-/// use nix::sys::signal::Signal; 
+/// use nix::sys::signal::Signal;
 /// use nix::sys::wait::*;
-/// fn main() {
-///     // If a process changes state to the stopped state because of a SIGUSR1 
-///     // signal, this will step the process forward and forward the user 
-///     // signal to the stopped process
-///     match waitpid(Pid::from_raw(-1), None) {
-///         Ok(WaitStatus::Stopped(pid, Signal::SIGUSR1)) => {
-///             let _ = step(pid, Signal::SIGUSR1);
-///         }
-///         _ => {},
+///
+/// // If a process changes state to the stopped state because of a SIGUSR1
+/// // signal, this will step the process forward and forward the user
+/// // signal to the stopped process
+/// match waitpid(Pid::from_raw(-1), None) {
+///     Ok(WaitStatus::Stopped(pid, Signal::SIGUSR1)) => {
+///         let _ = step(pid, Signal::SIGUSR1);
 ///     }
+///     _ => {},
 /// }
 /// ```
 pub fn step<T: Into<Option<Signal>>>(pid: Pid, sig: T) -> Result<()> {

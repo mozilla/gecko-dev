@@ -2,8 +2,8 @@
 //!
 //! Inotify is a Linux-only API to monitor filesystems events.
 //!
-//! For more documentation, please read [inotify(7)](http://man7.org/linux/man-pages/man7/inotify.7.html).
-//! 
+//! For more documentation, please read [inotify(7)](https://man7.org/linux/man-pages/man7/inotify.7.html).
+//!
 //! # Examples
 //!
 //! Monitor all events happening in directory "test":
@@ -86,7 +86,7 @@ pub struct Inotify {
 
 /// This object is returned when you create a new watch on an inotify instance.
 /// It is then returned as part of an event once triggered. It allows you to
-/// know which watch triggered which event. 
+/// know which watch triggered which event.
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct WatchDescriptor {
     wd: i32
@@ -94,18 +94,18 @@ pub struct WatchDescriptor {
 
 /// A single inotify event.
 ///
-/// For more documentation see, [inotify(7)](http://man7.org/linux/man-pages/man7/inotify.7.html).
+/// For more documentation see, [inotify(7)](https://man7.org/linux/man-pages/man7/inotify.7.html).
 #[derive(Debug)]
 pub struct InotifyEvent {
     /// Watch descriptor. This field corresponds to the watch descriptor you
     /// were issued when calling add_watch. It allows you to know which watch
-    /// this event comes from. 
+    /// this event comes from.
     pub wd: WatchDescriptor,
     /// Event mask. This field is a bitfield describing the exact event that
     /// occured.
     pub mask: AddWatchFlags,
     /// This cookie is a number that allows you to connect related events. For
-    /// now only IN_MOVED_FROM and IN_MOVED_TO can be connected. 
+    /// now only IN_MOVED_FROM and IN_MOVED_TO can be connected.
     pub cookie: u32,
     /// Filename. This field exists only if the event was triggered for a file
     /// inside the watched directory.
@@ -117,7 +117,7 @@ impl Inotify {
     ///
     /// Returns a Result containing an inotify instance.
     ///
-    /// For more information see, [inotify_init(2)](http://man7.org/linux/man-pages/man2/inotify_init.2.html).
+    /// For more information see, [inotify_init(2)](https://man7.org/linux/man-pages/man2/inotify_init.2.html).
     pub fn init(flags: InitFlags) -> Result<Inotify> {
         let res = Errno::result(unsafe {
             libc::inotify_init1(flags.bits())
@@ -126,14 +126,14 @@ impl Inotify {
         res.map(|fd| Inotify { fd })
     }
 
-    /// Adds a new watch on the target file or directory. 
+    /// Adds a new watch on the target file or directory.
     ///
-    /// Returns a watch descriptor. This is not a File Descriptor! 
+    /// Returns a watch descriptor. This is not a File Descriptor!
     ///
-    /// For more information see, [inotify_add_watch(2)](http://man7.org/linux/man-pages/man2/inotify_add_watch.2.html).
+    /// For more information see, [inotify_add_watch(2)](https://man7.org/linux/man-pages/man2/inotify_add_watch.2.html).
     pub fn add_watch<P: ?Sized + NixPath>(self,
                                           path: &P,
-                                          mask: AddWatchFlags) 
+                                          mask: AddWatchFlags)
                                             -> Result<WatchDescriptor>
     {
         let res = path.with_nix_path(|cstr| {
@@ -150,7 +150,7 @@ impl Inotify {
     ///
     /// Returns an EINVAL error if the watch descriptor is invalid.
     ///
-    /// For more information see, [inotify_rm_watch(2)](http://man7.org/linux/man-pages/man2/inotify_rm_watch.2.html).
+    /// For more information see, [inotify_rm_watch(2)](https://man7.org/linux/man-pages/man2/inotify_rm_watch.2.html).
     #[cfg(target_os = "linux")]
     pub fn rm_watch(self, wd: WatchDescriptor) -> Result<()> {
         let res = unsafe { libc::inotify_rm_watch(self.fd, wd.wd) };
@@ -167,8 +167,8 @@ impl Inotify {
 
     /// Reads a collection of events from the inotify file descriptor. This call
     /// can either be blocking or non blocking depending on whether IN_NONBLOCK
-    /// was set at initialization. 
-    /// 
+    /// was set at initialization.
+    ///
     /// Returns as many events as available. If the call was non blocking and no
     /// events could be read then the EAGAIN error is returned.
     pub fn read_events(self) -> Result<Vec<InotifyEvent>> {
@@ -194,14 +194,14 @@ impl Inotify {
             let name = match event.len {
                 0 => None,
                 _ => {
-                    let ptr = unsafe { 
+                    let ptr = unsafe {
                         buffer
                             .as_ptr()
                             .add(offset + header_size)
                             as *const c_char
                     };
                     let cstr = unsafe { CStr::from_ptr(ptr) };
-                
+
                     Some(OsStr::from_bytes(cstr.to_bytes()).to_owned())
                 }
             };

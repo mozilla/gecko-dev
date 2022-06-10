@@ -1,7 +1,7 @@
 use std::os::unix::prelude::*;
 use tempfile::tempfile;
 
-use nix::{Error, fcntl};
+use nix::fcntl;
 use nix::errno::Errno;
 use nix::pty::openpty;
 use nix::sys::termios::{self, LocalFlags, OutputFlags, tcgetattr};
@@ -19,7 +19,7 @@ fn write_all(f: RawFd, buf: &[u8]) {
 #[test]
 fn test_tcgetattr_pty() {
     // openpty uses ptname(3) internally
-    let _m = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::PTSNAME_MTX.lock();
 
     let pty = openpty(None, None).expect("openpty failed");
     assert!(termios::tcgetattr(pty.slave).is_ok());
@@ -32,21 +32,21 @@ fn test_tcgetattr_pty() {
 fn test_tcgetattr_enotty() {
     let file = tempfile().unwrap();
     assert_eq!(termios::tcgetattr(file.as_raw_fd()).err(),
-               Some(Error::Sys(Errno::ENOTTY)));
+               Some(Errno::ENOTTY));
 }
 
 // Test tcgetattr on an invalid file descriptor
 #[test]
 fn test_tcgetattr_ebadf() {
     assert_eq!(termios::tcgetattr(-1).err(),
-               Some(Error::Sys(Errno::EBADF)));
+               Some(Errno::EBADF));
 }
 
 // Test modifying output flags
 #[test]
 fn test_output_flags() {
     // openpty uses ptname(3) internally
-    let _m = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::PTSNAME_MTX.lock();
 
     // Open one pty to get attributes for the second one
     let mut termios = {
@@ -88,7 +88,7 @@ fn test_output_flags() {
 #[test]
 fn test_local_flags() {
     // openpty uses ptname(3) internally
-    let _m = crate::PTSNAME_MTX.lock().expect("Mutex got poisoned by another test");
+    let _m = crate::PTSNAME_MTX.lock();
 
     // Open one pty to get attributes for the second one
     let mut termios = {
@@ -126,5 +126,5 @@ fn test_local_flags() {
     let read = read(pty.master, &mut buf).unwrap_err();
     close(pty.master).unwrap();
     close(pty.slave).unwrap();
-    assert_eq!(read, Error::Sys(Errno::EAGAIN));
+    assert_eq!(read, Errno::EAGAIN);
 }
