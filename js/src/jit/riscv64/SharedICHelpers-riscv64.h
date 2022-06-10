@@ -7,6 +7,9 @@
 #ifndef jit_riscv64_SharedICHelpers_riscv64_h
 #define jit_riscv64_SharedICHelpers_riscv64_h
 
+#include "jit/MacroAssembler.h"
+#include "jit/SharedICRegisters.h"
+
 namespace js {
 namespace jit {
 

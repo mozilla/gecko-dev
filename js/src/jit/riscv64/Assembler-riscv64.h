@@ -11,9 +11,9 @@
 
 #include <stdint.h>
 
-#include "jit/riscv64/Architecture-riscv64.h"
 #include "jit/Registers.h"
 #include "jit/RegisterSets.h"
+#include "jit/riscv64/Architecture-riscv64.h"
 #include "jit/shared/Assembler-shared.h"
 
 namespace js {

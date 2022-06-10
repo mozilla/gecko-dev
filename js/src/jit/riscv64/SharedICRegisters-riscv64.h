@@ -7,9 +7,9 @@
 #ifndef jit_riscv64_SharedICRegisters_riscv64_h
 #define jit_riscv64_SharedICRegisters_riscv64_h
 
-#include "jit/riscv64/MacroAssembler-riscv64.h"
 #include "jit/Registers.h"
 #include "jit/RegisterSets.h"
+#include "jit/riscv64/MacroAssembler-riscv64.h"
 
 namespace js {
 namespace jit {
