@@ -1080,6 +1080,10 @@ nsDOMWindowUtils::SendNativeTouchPoint(uint32_t aPointerId,
                                        int32_t aScreenY, double aPressure,
                                        uint32_t aOrientation,
                                        nsIObserver* aObserver) {
+  // FYI: This was designed for automated tests, but currently, this is used by
+  //      DevTools to emulate touch events from mouse events in the responsive
+  //      design mode.
+
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
     return NS_ERROR_FAILURE;
@@ -3382,7 +3386,7 @@ nsDOMWindowUtils::GetFileId(JS::Handle<JS::Value> aFile, JSContext* aCx,
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetFilePath(JS::HandleValue aFile, JSContext* aCx,
+nsDOMWindowUtils::GetFilePath(JS::Handle<JS::Value> aFile, JSContext* aCx,
                               nsAString& _retval) {
   if (aFile.isPrimitive()) {
     _retval.Truncate();
@@ -4071,7 +4075,7 @@ nsDOMWindowUtils::IsKeyboardEventUserActivity(Event* aEvent, bool* aResult) {
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetContentAPZTestData(
-    JSContext* aContext, JS::MutableHandleValue aOutContentTestData) {
+    JSContext* aContext, JS::MutableHandle<JS::Value> aOutContentTestData) {
   if (nsIWidget* widget = GetWidget()) {
     WindowRenderer* renderer = widget->GetWindowRenderer();
     if (!renderer) {
@@ -4089,7 +4093,7 @@ nsDOMWindowUtils::GetContentAPZTestData(
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetCompositorAPZTestData(
-    JSContext* aContext, JS::MutableHandleValue aOutCompositorTestData) {
+    JSContext* aContext, JS::MutableHandle<JS::Value> aOutCompositorTestData) {
   if (nsIWidget* widget = GetWidget()) {
     WindowRenderer* renderer = widget->GetWindowRenderer();
     if (!renderer) {
@@ -4165,7 +4169,7 @@ nsDOMWindowUtils::SetResizeMargin(int32_t aResizeMargin) {
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetFrameUniformityTestData(
-    JSContext* aContext, JS::MutableHandleValue aOutFrameUniformity) {
+    JSContext* aContext, JS::MutableHandle<JS::Value> aOutFrameUniformity) {
   nsIWidget* widget = GetWidget();
   if (!widget) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -4318,15 +4322,15 @@ nsDOMWindowUtils::GetGpuProcessPid(int32_t* aPid) {
 
 struct StateTableEntry {
   const char* mStateString;
-  EventStates mState;
+  ElementState mState;
 };
 
 static constexpr StateTableEntry kManuallyManagedStates[] = {
-    {"autofill", NS_EVENT_STATE_AUTOFILL},
+    {"autofill", ElementState::AUTOFILL},
     // :-moz-autofill-preview implies :autofill.
     {"-moz-autofill-preview",
-     NS_EVENT_STATE_AUTOFILL_PREVIEW | NS_EVENT_STATE_AUTOFILL},
-    {nullptr, EventStates()},
+     ElementState::AUTOFILL_PREVIEW | ElementState::AUTOFILL},
+    {nullptr, ElementState()},
 };
 
 static_assert(!kManuallyManagedStates[ArrayLength(kManuallyManagedStates) - 1]
@@ -4334,14 +4338,14 @@ static_assert(!kManuallyManagedStates[ArrayLength(kManuallyManagedStates) - 1]
               "last kManuallyManagedStates entry must be a sentinel with "
               "mStateString == nullptr");
 
-static EventStates GetEventStateForString(const nsAString& aStateString) {
+static ElementState GetEventStateForString(const nsAString& aStateString) {
   for (const StateTableEntry* entry = kManuallyManagedStates;
        entry->mStateString; ++entry) {
     if (aStateString.EqualsASCII(entry->mStateString)) {
       return entry->mState;
     }
   }
-  return EventStates();
+  return ElementState();
 }
 
 NS_IMETHODIMP
@@ -4351,7 +4355,7 @@ nsDOMWindowUtils::AddManuallyManagedState(Element* aElement,
     return NS_ERROR_INVALID_ARG;
   }
 
-  EventStates state = GetEventStateForString(aStateString);
+  ElementState state = GetEventStateForString(aStateString);
   if (state.IsEmpty()) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -4367,7 +4371,7 @@ nsDOMWindowUtils::RemoveManuallyManagedState(Element* aElement,
     return NS_ERROR_INVALID_ARG;
   }
 
-  EventStates state = GetEventStateForString(aStateString);
+  ElementState state = GetEventStateForString(aStateString);
   if (state.IsEmpty()) {
     return NS_ERROR_INVALID_ARG;
   }

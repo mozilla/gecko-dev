@@ -6,13 +6,14 @@
 
 var EXPORTED_SYMBOLS = ["JSONHandler"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
+const lazy = {};
 
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   HTTP_404: "chrome://remote/content/server/HTTPD.jsm",
   HTTP_505: "chrome://remote/content/server/HTTPD.jsm",
   Log: "chrome://remote/content/shared/Log.jsm",
@@ -48,7 +49,7 @@ class JSONHandler {
   }
 
   getProtocol() {
-    return Protocol.Description;
+    return lazy.Protocol.Description;
   }
 
   getTargetList() {
@@ -59,23 +60,27 @@ class JSONHandler {
 
   handle(request, response) {
     if (request.method != "GET") {
-      throw HTTP_404;
+      throw lazy.HTTP_404;
     }
 
     if (!(request.path in this.routes)) {
-      throw HTTP_404;
+      throw lazy.HTTP_404;
     }
 
     try {
       const body = this.routes[request.path]();
-      const payload = JSON.stringify(body, null, Log.verbose ? "\t" : null);
+      const payload = JSON.stringify(
+        body,
+        null,
+        lazy.Log.verbose ? "\t" : null
+      );
 
       response.setStatusLine(request.httpVersion, 200, "OK");
       response.setHeader("Content-Type", "application/json");
       response.write(payload);
     } catch (e) {
-      new RemoteAgentError(e).notify();
-      throw HTTP_505;
+      new lazy.RemoteAgentError(e).notify();
+      throw lazy.HTTP_505;
     }
   }
 

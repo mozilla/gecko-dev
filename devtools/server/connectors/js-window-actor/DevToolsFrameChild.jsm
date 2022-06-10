@@ -16,7 +16,8 @@ const Loader = ChromeUtils.import(
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   isWindowGlobalPartOfContext:
     "resource://devtools/server/actors/watcher/browsing-context-helpers.jsm",
   TargetActorRegistry:
@@ -39,7 +40,7 @@ function logWindowGlobal(windowGlobal, message) {
   if (!DEBUG) {
     return;
   }
-  WindowGlobalLogger.logWindowGlobal(windowGlobal, message);
+  lazy.WindowGlobalLogger.logWindowGlobal(windowGlobal, message);
 }
 
 class DevToolsFrameChild extends JSWindowActorChild {
@@ -52,7 +53,6 @@ class DevToolsFrameChild extends JSWindowActorChild {
     // - actor: the WindowGlobalTargetActor instance
     this._connections = new Map();
 
-    this._onConnectionChange = this._onConnectionChange.bind(this);
     EventEmitter.decorate(this);
 
     // Set the following preference on the constructor, so that we can easily
@@ -110,7 +110,7 @@ class DevToolsFrameChild extends JSWindowActorChild {
         isBFCache && this.isBfcacheInParentEnabled;
       if (
         sessionData.targets.includes("frame") &&
-        isWindowGlobalPartOfContext(this.manager, sessionContext, {
+        lazy.isWindowGlobalPartOfContext(this.manager, sessionContext, {
           forceAcceptTopLevelTarget,
         })
       ) {
@@ -314,12 +314,10 @@ class DevToolsFrameChild extends JSWindowActorChild {
   _createConnectionAndActor(forwardingPrefix, sessionData) {
     this.useCustomLoader = this.document.nodePrincipal.isSystemPrincipal;
 
-    // When debugging chrome pages, use a new dedicated loader, using a distinct chrome compartment.
     if (!this.loader) {
+      // When debugging chrome pages, use a new dedicated loader, using a distinct chrome compartment.
       this.loader = this.useCustomLoader
-        ? new Loader.DevToolsLoader({
-            invisibleToDebugger: true,
-          })
+        ? Loader.useDistinctSystemPrincipalLoader(this)
         : Loader;
     }
     const { DevToolsServer } = this.loader.require(
@@ -336,7 +334,6 @@ class DevToolsFrameChild extends JSWindowActorChild {
     // We are going to spawn a WindowGlobalTargetActor instance in the next few lines,
     // it is going to act like a root actor without being one.
     DevToolsServer.registerActors({ target: true });
-    DevToolsServer.on("connectionchange", this._onConnectionChange);
 
     const connection = DevToolsServer.connectToParentWindowActor(
       this,
@@ -368,30 +365,6 @@ class DevToolsFrameChild extends JSWindowActorChild {
     targetActor.createdFromJsWindowActor = true;
 
     return { connection, targetActor };
-  }
-
-  /**
-   * Destroy the server once its last connection closes. Note that multiple
-   * frame scripts may be running in parallel and reuse the same server.
-   */
-  _onConnectionChange() {
-    const { DevToolsServer } = this.loader.require(
-      "devtools/server/devtools-server"
-    );
-
-    // Only destroy the server if there is no more connections to it. It may be
-    // used to debug another tab running in the same process.
-    if (DevToolsServer.hasConnection() || DevToolsServer.keepAlive) {
-      return;
-    }
-
-    if (this._destroyed) {
-      return;
-    }
-    this._destroyed = true;
-
-    DevToolsServer.off("connectionchange", this._onConnectionChange);
-    DevToolsServer.destroy();
   }
 
   /**
@@ -429,7 +402,7 @@ class DevToolsFrameChild extends JSWindowActorChild {
       // on what should or should not be watched.
       if (
         this.manager.browsingContext.browserId != browserId &&
-        !isWindowGlobalPartOfContext(
+        !lazy.isWindowGlobalPartOfContext(
           this.manager,
           message.data.sessionContext,
           {
@@ -516,7 +489,7 @@ class DevToolsFrameChild extends JSWindowActorChild {
     // This might be the case if we're navigating to a new page with server side target
     // enabled and we want to retrieve the target of the page we're navigating from.
     if (
-      isWindowGlobalPartOfContext(this.manager, sessionContext, {
+      lazy.isWindowGlobalPartOfContext(this.manager, sessionContext, {
         forceAcceptTopLevelTarget: true,
       })
     ) {
@@ -524,7 +497,7 @@ class DevToolsFrameChild extends JSWindowActorChild {
       // This allows to distinguish actors created for various toolboxes.
       // For ex, regular toolbox versus browser console versus browser toolbox
       const connectionPrefix = watcherActorID.replace(/watcher\d+$/, "");
-      const targetActors = TargetActorRegistry.getTargetActors(
+      const targetActors = lazy.TargetActorRegistry.getTargetActors(
         sessionContext,
         connectionPrefix
       );
@@ -706,23 +679,12 @@ class DevToolsFrameChild extends JSWindowActorChild {
       connectionInfo.connection.close();
     }
     this._connections.clear();
-    // If we spawned a loader, we bootstrap a server, from which we should
-    // unregister the listener in order to prevent leaking the JSWindow Actor.
-    if (this.loader) {
-      const { DevToolsServer } = this.loader.require(
-        "devtools/server/devtools-server"
-      );
-      DevToolsServer.off("connectionchange", this._onConnectionChange);
 
-      // The connections closed just before may emit "connectionchange"
-      // only on following events loops. So that we may avoid destroying the DevToolsServer
-      // when all connections are closed.
-      // So, force checking for the number of connections right away.
-      // browser_debugger_server.js used to track this edgecase.
-      this._onConnectionChange();
-    }
-    if (this.useCustomLoader) {
-      this.loader.destroy();
+    if (this.loader) {
+      if (this.useCustomLoader) {
+        Loader.releaseDistinctSystemPrincipalLoader(this);
+      }
+      this.loader = null;
     }
   }
 }

@@ -6,13 +6,15 @@
 
 const EXPORTED_SYMBOLS = ["BrowsingContextListener"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   EventEmitter: "resource://gre/modules/EventEmitter.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
 const OBSERVER_TOPIC_ATTACHED = "browsing-context-attached";
@@ -50,7 +52,7 @@ class BrowsingContextListener {
    * Create a new BrowsingContextListener instance.
    */
   constructor() {
-    EventEmitter.decorate(this);
+    lazy.EventEmitter.decorate(this);
 
     this.#listening = false;
   }

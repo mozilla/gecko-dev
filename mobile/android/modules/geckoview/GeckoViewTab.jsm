@@ -12,15 +12,17 @@ const { GeckoViewModule } = ChromeUtils.import(
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { ExtensionUtils } = ChromeUtils.import(
   "resource://gre/modules/ExtensionUtils.jsm"
 );
 
 const { ExtensionError } = ExtensionUtils;
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
-  Services: "resource://gre/modules/Services.jsm",
   mobileWindowTracker: "resource://gre/modules/GeckoViewWebExtension.jsm",
 });
 
@@ -86,7 +88,7 @@ const GeckoViewTabBridge = {
     debug`openOptionsPage for extensionId ${extensionId}`;
 
     try {
-      await EventDispatcher.instance.sendRequestForResult({
+      await lazy.EventDispatcher.instance.sendRequestForResult({
         type: "GeckoView:WebExtension:OpenOptionsPage",
         extensionId,
       });
@@ -140,12 +142,14 @@ const GeckoViewTabBridge = {
 
     let didOpenSession = false;
     try {
-      didOpenSession = await EventDispatcher.instance.sendRequestForResult({
-        type: "GeckoView:WebExtension:NewTab",
-        extensionId,
-        createProperties,
-        newSessionId,
-      });
+      didOpenSession = await lazy.EventDispatcher.instance.sendRequestForResult(
+        {
+          type: "GeckoView:WebExtension:NewTab",
+          extensionId,
+          createProperties,
+          newSessionId,
+        }
+      );
     } catch (errorMessage) {
       // The error message coming from GeckoView is about :NewTab not being
       // registered so we need to have one that's extension friendly here.
@@ -216,7 +220,7 @@ class GeckoViewTab extends GeckoViewModule {
     switch (aEvent) {
       case "GeckoView:WebExtension:SetTabActive": {
         const { active } = aData;
-        mobileWindowTracker.setTabActive(this.window, active);
+        lazy.mobileWindowTracker.setTabActive(this.window, active);
         break;
       }
     }

@@ -929,7 +929,7 @@ void js::Nursery::printProfileHeader() {
   fprintf(
       file,
       "MinorGC: PID     Runtime        Timestamp  Reason               PRate  "
-      "OldSz  NewSz  Dedup ");
+      "OldKB  NewKB  Dedup ");
 #define PRINT_HEADER(name, text) fprintf(file, " %-6.6s", text);
   FOR_EACH_NURSERY_PROFILE_TIME(PRINT_HEADER)
 #undef PRINT_HEADER
@@ -1103,6 +1103,7 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
   previousGC.nurseryUsedBytes = usedSpace();
   previousGC.nurseryCapacity = capacity();
   previousGC.nurseryCommitted = committed();
+  previousGC.nurseryUsedChunkCount = currentChunk_ + 1;
   previousGC.tenuredBytes = 0;
   previousGC.tenuredCells = 0;
 
@@ -1112,10 +1113,16 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
   bool wasEmpty = isEmpty();
   if (!wasEmpty) {
     CollectionResult result = doCollection(reason);
-    MOZ_ASSERT(result.tenuredBytes <= previousGC.nurseryUsedBytes);
+    // Don't include chunk headers when calculating nursery space, since this
+    // space does not represent data that can be tenured
+    MOZ_ASSERT(result.tenuredBytes <=
+               (previousGC.nurseryUsedBytes -
+                (sizeof(ChunkBase) * previousGC.nurseryUsedChunkCount)));
+
     previousGC.reason = reason;
     previousGC.tenuredBytes = result.tenuredBytes;
     previousGC.tenuredCells = result.tenuredCells;
+    previousGC.nurseryUsedChunkCount = currentChunk_ + 1;
   }
 
   // Resize the nursery.
@@ -1222,7 +1229,7 @@ void js::Nursery::printDeduplicationData(js::StringStats& prev,
 js::Nursery::CollectionResult js::Nursery::doCollection(JS::GCReason reason) {
   JSRuntime* rt = runtime();
   AutoGCSession session(gc, JS::HeapState::MinorCollecting);
-  AutoSetThreadIsPerformingGC performingGC;
+  AutoSetThreadIsPerformingGC performingGC(rt->gcContext());
   AutoStopVerifyingBarriers av(rt, false);
   AutoDisableProxyCheck disableStrictProxyChecking;
   mozilla::DebugOnly<AutoEnterOOMUnsafeRegion> oomUnsafeRegion;
@@ -1449,6 +1456,11 @@ bool js::Nursery::registerMallocedBuffer(void* buffer, size_t nbytes) {
 }
 
 void js::Nursery::sweep() {
+  // It's important that the context's GCUse is not Finalizing at this point,
+  // otherwise we will miscount memory attached to nursery objects with
+  // CellAllocPolicy.
+  AutoSetThreadIsSweeping setThreadSweeping(runtime()->gcContext());
+
   MinorSweepingTracer trc(runtime());
 
   // Sweep unique IDs first before we sweep any tables that may be keyed based

@@ -121,7 +121,6 @@
 #include "mozilla/EffectSet.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStateManager.h"
-#include "mozilla/EventStates.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
@@ -444,7 +443,7 @@ void nsIFrame::FindCloserFrameForSelection(
   }
 }
 
-void nsIFrame::ContentStatesChanged(mozilla::EventStates aStates) {}
+void nsIFrame::ElementStateChanged(mozilla::dom::ElementState aStates) {}
 
 void WeakFrame::Clear(mozilla::PresShell* aPresShell) {
   if (aPresShell) {
@@ -8322,7 +8321,8 @@ nsresult nsIFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
   aPos->mAttach = aPos->mDirection == eDirNext ? CARET_ASSOCIATE_AFTER
                                                : CARET_ASSOCIATE_BEFORE;
 
-  nsAutoLineIterator it = aBlockFrame->GetLineIterator();
+  AutoAssertNoDomMutations guard;
+  nsILineIterator* it = aBlockFrame->GetLineIterator();
   if (!it) {
     return NS_ERROR_FAILURE;
   }
@@ -8896,10 +8896,40 @@ nsresult nsIFrame::PeekOffsetForWord(nsPeekOffsetStruct* aPos,
   return NS_OK;
 }
 
+static nsIFrame* GetFirstSelectableDescendantWithLineIterator(
+    nsIFrame* aParentFrame, bool aForceEditableRegion) {
+  auto FoundValidFrame = [aForceEditableRegion](const nsIFrame* aFrame) {
+    if (!aFrame->IsSelectable(nullptr)) {
+      return false;
+    }
+    if (aForceEditableRegion && !aFrame->GetContent()->IsEditable()) {
+      return false;
+    }
+    return true;
+  };
+
+  for (nsIFrame* child : aParentFrame->PrincipalChildList()) {
+    // some children may not be selectable, e.g. :before / :after pseudoelements
+    // content with user-select: none, or contenteditable="false"
+    // we need to skip them
+    if (child->CanProvideLineIterator() && FoundValidFrame(child)) {
+      return child;
+    }
+    if (nsIFrame* nested = GetFirstSelectableDescendantWithLineIterator(
+            child, aForceEditableRegion)) {
+      return nested;
+    }
+  }
+  return nullptr;
+}
+
 nsresult nsIFrame::PeekOffsetForLine(nsPeekOffsetStruct* aPos) {
   nsIFrame* blockFrame = this;
   nsresult result = NS_ERROR_FAILURE;
 
+  // outer loop
+  // moving to a next block when no more blocks are available in a subtree
+  AutoAssertNoDomMutations guard;
   while (NS_FAILED(result)) {
     auto [newBlock, lineFrame] =
         blockFrame->GetContainingBlockForLine(aPos->mScrollViewStop);
@@ -8907,7 +8937,7 @@ nsresult nsIFrame::PeekOffsetForLine(nsPeekOffsetStruct* aPos) {
       return NS_ERROR_FAILURE;
     }
     blockFrame = newBlock;
-    nsAutoLineIterator iter = blockFrame->GetLineIterator();
+    nsILineIterator* iter = blockFrame->GetLineIterator();
     int32_t thisLine = iter->FindLineContaining(lineFrame);
     if (NS_WARN_IF(thisLine < 0)) {
       return NS_ERROR_FAILURE;
@@ -8920,6 +8950,8 @@ nsresult nsIFrame::PeekOffsetForLine(nsPeekOffsetStruct* aPos) {
     // it will "drill down" to find a viable frame or it will return an
     // error.
     nsIFrame* lastFrame = this;
+
+    // inner loop - crawling the frames within a specific block subtree
     do {
       result = nsIFrame::GetNextPrevLineFromeBlockFrame(
           PresContext(), aPos, blockFrame, thisLine,
@@ -8943,56 +8975,50 @@ nsresult nsIFrame::PeekOffsetForLine(nsPeekOffsetStruct* aPos) {
       // make sure block element is not the same as the one we had before
       if (NS_SUCCEEDED(result) && aPos->mResultFrame &&
           blockFrame != aPos->mResultFrame) {
-        /* SPECIAL CHECK FOR TABLE NAVIGATION
-            tables need to navigate also and the frame that supports it is
-            nsTableRowGroupFrame which is INSIDE nsTableWrapperFrame.
-            If we have stumbled onto an nsTableWrapperFrame we need to drill
-            into nsTableRowGroup if we hit a header or footer that's ok just
-            go into them.
-          */
-        bool searchTableBool = false;
-        if (aPos->mResultFrame->IsTableWrapperFrame() ||
-            aPos->mResultFrame->IsTableCellFrame()) {
-          nsIFrame* frame =
-              aPos->mResultFrame->PrincipalChildList().FirstChild();
-          // got the table frame now
-          // ok time to drill down to find iterator
-          while (frame) {
-            if (frame->CanProvideLineIterator()) {
-              aPos->mResultFrame = frame;
-              searchTableBool = true;
-              result = NS_OK;
-              break;  // while(frame)
-            }
-            result = NS_ERROR_FAILURE;
-            frame = frame->PrincipalChildList().FirstChild();
+        /* SPECIAL CHECK FOR NAVIGATION INTO FRAMES WITHOUT LINE ITERATOR
+         * when we hit a frame which doesn't have line iterator, we need to
+         * drill down and find a child with the line iterator to prevent the
+         * crawling process to prematurely finish
+         *
+         * So far known cases are:
+         * 1) table wrapper (drill down into table row group)
+         * 2) table cell (drill down into its content)
+         * 3) flex/grid container which don't provide line iterator
+         *    (drill down into its content)
+         * See
+         * https://bugzilla.mozilla.org/show_bug.cgi?id=1216483
+         * https://bugzilla.mozilla.org/show_bug.cgi?id=1475232
+         */
+        bool shouldDrillIntoChildren =
+            aPos->mResultFrame->IsTableWrapperFrame() ||
+            aPos->mResultFrame->IsTableCellFrame() ||
+            aPos->mResultFrame->IsFlexContainerFrame() ||
+            aPos->mResultFrame->IsGridContainerFrame();
+
+        if (shouldDrillIntoChildren) {
+          nsIFrame* child = GetFirstSelectableDescendantWithLineIterator(
+              aPos->mResultFrame, aPos->mForceEditableRegion);
+          if (child) {
+            aPos->mResultFrame = child;
           }
         }
 
-        if (!searchTableBool) {
-          result = aPos->mResultFrame->CanProvideLineIterator()
-                       ? NS_OK
-                       : NS_ERROR_FAILURE;
-        }
-
-        // we've struck another block element!
-        if (NS_SUCCEEDED(result)) {
-          doneLooping = false;
-          if (aPos->mDirection == eDirPrevious) {
-            edgeCase = 1;  // far edge, search from end backwards
-          } else {
-            edgeCase = -1;  // near edge search from beginning onwards
-          }
-          thisLine = 0;  // this line means nothing now.
-          // everything else means something so keep looking "inside" the
-          // block
-          blockFrame = aPos->mResultFrame;
-        } else {
-          // THIS is to mean that everything is ok to the containing while
-          // loop
-          result = NS_OK;
+        if (!aPos->mResultFrame->CanProvideLineIterator()) {
+          // no more selectable content at this level
           break;
         }
+
+        // we've struck another block element with selectable content!
+        doneLooping = false;
+        if (aPos->mDirection == eDirPrevious) {
+          edgeCase = 1;  // far edge, search from end backwards
+        } else {
+          edgeCase = -1;  // near edge search from beginning onwards
+        }
+        thisLine = 0;  // this line means nothing now.
+        // everything else means something so keep looking "inside" the
+        // block
+        blockFrame = aPos->mResultFrame;
       }
     } while (!doneLooping);
   }
@@ -9009,7 +9035,8 @@ nsresult nsIFrame::PeekOffsetForLineEdge(nsPeekOffsetStruct* aPos) {
   if (!blockFrame) {
     return NS_ERROR_FAILURE;
   }
-  nsAutoLineIterator it = blockFrame->GetLineIterator();
+  AutoAssertNoDomMutations guard;
+  nsILineIterator* it = blockFrame->GetLineIterator();
   int32_t thisLine = it->FindLineContaining(lineFrame);
   if (thisLine < 0) {
     return NS_ERROR_FAILURE;
@@ -9313,6 +9340,7 @@ nsIFrame::SelectablePeekReport nsIFrame::GetFrameFromDirection(
   // Find the prev/next selectable frame
   bool selectable = false;
   nsIFrame* traversedFrame = this;
+  AutoAssertNoDomMutations guard;
   while (!selectable) {
     auto [blockFrame, lineFrame] =
         traversedFrame->GetContainingBlockForLine(aScrollViewStop);
@@ -9320,7 +9348,7 @@ nsIFrame::SelectablePeekReport nsIFrame::GetFrameFromDirection(
       return result;
     }
 
-    nsAutoLineIterator it = blockFrame->GetLineIterator();
+    nsILineIterator* it = blockFrame->GetLineIterator();
     int32_t thisLine = it->FindLineContaining(lineFrame);
     if (thisLine < 0) {
       return result;
@@ -10008,7 +10036,8 @@ void nsIFrame::ComputePreserve3DChildrenOverflow(
 }
 
 bool nsIFrame::ZIndexApplies() const {
-  return StyleDisplay()->IsPositionedStyle() || IsFlexOrGridItem();
+  return StyleDisplay()->IsPositionedStyle() || IsFlexOrGridItem() ||
+         IsMenuPopupFrame();
 }
 
 Maybe<int32_t> nsIFrame::ZIndex() const {
@@ -10518,7 +10547,8 @@ nsIFrame::RefreshSizeCache(nsBoxLayoutState& aState) {
     metrics->mBlockMinSize.height = 0;
     // ok we need the max ascent of the items on the line. So to do this
     // ask the block for its line iterator. Get the max ascent.
-    nsAutoLineIterator lines = GetLineIterator();
+    AutoAssertNoDomMutations guard;
+    nsILineIterator* lines = GetLineIterator();
     if (lines) {
       metrics->mBlockMinSize.height = 0;
       int32_t lineCount = lines->GetNumLines();

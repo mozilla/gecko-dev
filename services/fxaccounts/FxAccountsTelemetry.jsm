@@ -12,12 +12,14 @@
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   // We use this observers module because we leverage its support for richer
   // "subject" data.
   Observers: "resource://services-common/observers.js",
-  Services: "resource://gre/modules/Services.jsm",
   CryptoUtils: "resource://services-crypto/utils.js",
 });
 
@@ -27,7 +29,7 @@ const { PREF_ACCOUNT_ROOT, log } = ChromeUtils.import(
 
 const PREF_SANITIZED_UID = PREF_ACCOUNT_ROOT + "telemetry.sanitized_uid";
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "pref_sanitizedUid",
   PREF_SANITIZED_UID,
   ""
@@ -44,7 +46,12 @@ class FxAccountsTelemetry {
     // We need to ensure the telemetry module is loaded.
     ChromeUtils.import("resource://services-sync/telemetry.js");
     // Now it will be listening for the notifications...
-    Observers.notify("fxa:telemetry:event", { object, method, value, extra });
+    lazy.Observers.notify("fxa:telemetry:event", {
+      object,
+      method,
+      value,
+      extra,
+    });
   }
 
   generateUUID() {
@@ -76,7 +83,7 @@ class FxAccountsTelemetry {
 
   getSanitizedUID() {
     // Sadly, we can only currently obtain this value if the user has enabled sync.
-    return pref_sanitizedUid || null;
+    return lazy.pref_sanitizedUid || null;
   }
 
   // Sanitize the ID of a device into something suitable for including in the
@@ -92,7 +99,7 @@ class FxAccountsTelemetry {
     // identity without knowing the metrics HMAC key.
     // The result is 64 bytes long, which in retrospect is probably excessive,
     // but it's already shipping...
-    return CryptoUtils.sha256(deviceId + uid);
+    return lazy.CryptoUtils.sha256(deviceId + uid);
   }
 
   // Record the connection of FxA or one of its services.

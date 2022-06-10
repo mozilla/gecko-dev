@@ -188,6 +188,17 @@
     "bug_numbers": [1172689, 1531034],
     "description": "Recorded when application reputation remote lookup is performed, `true` is recorded if the lookup times out."
   },
+  "ADDON_SIGNATURE_VERIFICATION_STATUS": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec"],
+    "alert_emails": ["seceng-telemetry@mozilla.com"],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "enumerated",
+    "n_values": 32,
+    "bug_numbers": [1771523],
+    "description": "Records the result of App Signature Verification. See the comments in OpenSignedAppFile. "
+  },
   "BACKGROUNDFILESAVER_THREAD_COUNT": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
@@ -12881,14 +12892,6 @@
     "n_values": 4,
     "description": "Does enforcing a larger minimum RSA key size cause verification failures? 1 = no, 2 = yes, 3 = another error prevented finding a verified chain"
   },
-  "CERT_CHAIN_SHA1_POLICY_STATUS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "default",
-    "kind": "enumerated",
-    "n_values": 6,
-    "description": "1 = No SHA1 signatures, 2 = SHA1 certificates issued by an imported root, 3 = SHA1 certificates issued before 2016, 4 = SHA1 certificates issued after 2015, 5 = another error prevented successful verification"
-  },
   "WEAVE_START_COUNT": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
@@ -16087,6 +16090,28 @@
     "labels": ["NoOverflow", "Desktop", "ButNotMinScaleSize", "MinScaleSize"],
     "description": "How common are different types of out-of-reach viewport overflow?"
   },
+  "WR_GPU_WAIT_TIME": {
+    "record_in_processes": [ "main", "gpu" ],
+    "products": [ "firefox", "fennec", "geckoview_streaming" ],
+    "alert_emails": [ "gfx-telemetry-alerts@mozilla.com" ],
+    "bug_numbers": [ 1772216 ],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 1000,
+    "n_buckets": 50,
+    "description": "The time spent waiting for the GPU to complete previously issued drawing commands in milliseconds"
+  },
+    "WR_RENDERER_TIME": {
+    "record_in_processes": [ "main", "gpu" ],
+    "products": [ "firefox" ],
+    "alert_emails": [ "gfx-telemetry-alerts@mozilla.com" ],
+    "bug_numbers": [ 1772223 ],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 1000,
+    "n_buckets": 50,
+    "description": "The time spent by WebRender in the Renderer in milliseconds."
+  },
   "WR_SCENEBUILD_TIME": {
     "record_in_processes": ["main", "gpu"],
     "products": ["firefox", "fennec", "geckoview_streaming"],
@@ -16141,6 +16166,17 @@
     "high": 500,
     "n_buckets": 50,
     "description": "Time taken by WebRender to rasterize blobs"
+  },
+  "WR_TEXTURE_CACHE_UPDATE_TIME": {
+    "record_in_processes": [ "main", "gpu" ],
+    "products": [ "firefox" ],
+    "alert_emails": [ "gfx-telemetry-alerts@mozilla.com" ],
+    "bug_numbers": [ 1772223 ],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 1000,
+    "n_buckets": 50,
+    "description": "Time taken by WebRender to update the texture cache in milliseconds."
   },
   "WEB_AUDIO_BECOMES_AUDIBLE_TIME": {
     "record_in_processes": ["content"],

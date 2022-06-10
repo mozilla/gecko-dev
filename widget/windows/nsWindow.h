@@ -182,7 +182,7 @@ class nsWindow final : public nsBaseWidget {
   void SetSizeConstraints(const SizeConstraints& aConstraints) override;
   void LockAspectRatio(bool aShouldLock) override;
   const SizeConstraints GetSizeConstraints() override;
-  void SetWindowMouseTransparent(bool aIsTransparent) override;
+  void SetInputRegion(const InputRegion&) override;
   void Move(double aX, double aY) override;
   void Resize(double aWidth, double aHeight, bool aRepaint) override;
   void Resize(double aX, double aY, double aWidth, double aHeight,
@@ -311,8 +311,6 @@ class nsWindow final : public nsBaseWidget {
   WNDPROC GetPrevWindowProc() { return mPrevWndProc; }
   WindowHook& GetWindowHook() { return mWindowHook; }
   nsWindow* GetParentWindow(bool aIncludeOwner);
-  // Get an array of all nsWindow*s on the main thread.
-  static nsTArray<nsWindow*> EnumAllWindows();
 
   /**
    * Misc.
@@ -479,6 +477,9 @@ class nsWindow final : public nsBaseWidget {
     nsWindow* mWindow;
   };
 
+  // Manager for taskbar-hiding. No persistent state.
+  class TaskbarConcealer;
+
   // A magic number to identify the FAKETRACKPOINTSCROLLABLE window created
   // when the trackpoint hack is enabled.
   enum { eFakeTrackPointScrollableID = 0x46545053 };
@@ -514,8 +515,6 @@ class nsWindow final : public nsBaseWidget {
                                               LPARAM lParam);
   static VOID CALLBACK HookTimerForPopups(HWND hwnd, UINT uMsg, UINT idEvent,
                                           DWORD dwTime);
-  static BOOL CALLBACK EnumAllChildWindProc(HWND aWnd, LPARAM aParam);
-  static BOOL CALLBACK EnumAllThreadWindowProc(HWND aWnd, LPARAM aParam);
 
   /**
    * Window utilities
@@ -545,6 +544,7 @@ class nsWindow final : public nsBaseWidget {
     return owner && owner == ::GetForegroundWindow();
   }
   bool IsPopup() const { return mWindowType == eWindowType_popup; }
+  bool IsCloaked() const { return mIsCloaked; }
 
   /**
    * Event processing helpers
@@ -690,6 +690,9 @@ class nsWindow final : public nsBaseWidget {
   void OnFullscreenWillChange(bool aFullScreen);
   void OnFullscreenChanged(bool aFullScreen);
 
+  static void OnCloakEvent(HWND aWnd, bool aCloaked);
+  void OnCloakChanged(bool aCloaked);
+
   static bool sTouchInjectInitialized;
   static InjectTouchInputPtr sInjectTouchFuncPtr;
   static bool sDropShadowEnabled;
@@ -751,6 +754,7 @@ class nsWindow final : public nsBaseWidget {
   bool mIsTopWidgetWindow = false;
   bool mInDtor = false;
   bool mIsVisible = false;
+  bool mIsCloaked = false;
   bool mPainting = false;
   bool mTouchWindow = false;
   bool mDisplayPanFeedback = false;
@@ -825,13 +829,15 @@ class nsWindow final : public nsBaseWidget {
 
   // Weak ref to the nsITaskbarWindowPreview associated with this window
   nsWeakPtr mTaskbarPreview = nullptr;
+
+  // The input region that determines whether mouse events should be ignored
+  // and pass through to the window below. This is currently only used for
+  // popups.
+  InputRegion mInputRegion;
+
   // True if the taskbar (possibly through the tab preview) tells us that the
   // icon has been created on the taskbar.
   bool mHasTaskbarIconBeenCreated = false;
-
-  // Indicates that mouse events should be ignored and pass through to the
-  // window below. This is currently only used for popups.
-  bool mMouseTransparent = false;
 
   // Whether we're in the process of sending a WM_SETTEXT ourselves
   bool mSendingSetText = false;
@@ -848,8 +854,8 @@ class nsWindow final : public nsBaseWidget {
   // The location of the window buttons in the window.
   mozilla::Maybe<LayoutDeviceIntRect> mWindowButtonsRect;
 
-  // Caching for hit test results
-  POINT mCachedHitTestPoint = {0, 0};
+  // Caching for hit test results (in client coordinates)
+  LayoutDeviceIntPoint mCachedHitTestPoint;
   TimeStamp mCachedHitTestTime;
 
   RefPtr<mozilla::widget::InProcessWinCompositorWidget> mBasicLayersSurface;

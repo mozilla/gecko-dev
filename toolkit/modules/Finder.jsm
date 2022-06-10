@@ -15,26 +15,26 @@ const { XPCOMUtils } = ChromeUtils.import(
 const { Rect } = ChromeUtils.import("resource://gre/modules/Geometry.jsm");
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "AppConstants",
+const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
 
+const lazy = {};
+
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "FinderIterator",
   "resource://gre/modules/FinderIterator.jsm"
 );
 
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm"
 );
 
 XPCOMUtils.defineLazyServiceGetter(
-  this,
+  lazy,
   "ClipboardHelper",
   "@mozilla.org/widget/clipboardhelper;1",
   "nsIClipboardHelper"
@@ -75,7 +75,7 @@ Finder.isFindbarVisible = function(docShell) {
 Finder.prototype = {
   get iterator() {
     if (!this._iterator) {
-      this._iterator = new FinderIterator();
+      this._iterator = new lazy.FinderIterator();
     }
     return this._iterator;
   },
@@ -155,7 +155,7 @@ Finder.prototype = {
   },
 
   set clipboardSearchString(aSearchString) {
-    if (!PrivateBrowsingUtils.isContentWindowPrivate(this._getWindow())) {
+    if (!lazy.PrivateBrowsingUtils.isContentWindowPrivate(this._getWindow())) {
       SetClipboardSearchString(aSearchString);
     }
   },
@@ -854,7 +854,7 @@ function SetClipboardSearchString(aSearchString) {
     return;
   }
 
-  ClipboardHelper.copyStringToClipboard(
+  lazy.ClipboardHelper.copyStringToClipboard(
     aSearchString,
     Ci.nsIClipboard.kFindClipboard
   );

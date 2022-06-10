@@ -58,9 +58,6 @@
 
 var EXPORTED_SYMBOLS = ["BookmarkHTMLUtils"];
 
-const { XPCOMUtils } = ChromeUtils.import(
-  "resource://gre/modules/XPCOMUtils.jsm"
-);
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { NetUtil } = ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
 const { FileUtils } = ChromeUtils.import(
@@ -70,10 +67,10 @@ const { PlacesUtils } = ChromeUtils.import(
   "resource://gre/modules/PlacesUtils.jsm"
 );
 
-XPCOMUtils.defineLazyGlobalGetters(this, ["XMLHttpRequest"]);
+const lazy = {};
 
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "PlacesBackups",
   "resource://gre/modules/PlacesBackups.jsm"
 );
@@ -238,7 +235,7 @@ var BookmarkHTMLUtils = Object.freeze({
    * @rejects JavaScript exception.
    */
   async exportToFile(aFilePath) {
-    let [bookmarks, count] = await PlacesBackups.getBookmarksTree();
+    let [bookmarks, count] = await lazy.PlacesBackups.getBookmarksTree();
     let startTime = Date.now();
 
     // Report the time taken to convert the tree to HTML.

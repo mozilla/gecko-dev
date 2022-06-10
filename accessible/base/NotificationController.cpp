@@ -5,7 +5,6 @@
 
 #include "NotificationController.h"
 
-#include "CacheConstants.h"
 #include "DocAccessible-inl.h"
 #include "DocAccessibleChild.h"
 #include "nsEventShell.h"
@@ -658,9 +657,12 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
 
   // Initial accessible tree construction.
   if (!mDocument->HasLoadState(DocAccessible::eTreeConstructed)) {
-    // If document is not bound to parent at this point then the document is not
-    // ready yet (process notifications later).
-    if (!mDocument->IsBoundToParent()) {
+    // (1) If document is not bound to parent at this point, or
+    // (2) the PresShell is not initialized (and it isn't about:blank),
+    // then the document is not ready yet (process notifications later).
+    if (!mDocument->IsBoundToParent() ||
+        (!mPresShell->DidInitialize() &&
+         !mDocument->DocumentNode()->IsInitialDocument())) {
       mObservingState = eRefreshObserving;
       return;
     }
@@ -745,10 +747,6 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
 #endif
 
       TextUpdater::Run(mDocument, textAcc->AsTextLeaf(), text.mString);
-      if (IPCAccessibilityActive() &&
-          StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-        mDocument->QueueCacheUpdate(textAcc, CacheDomain::Text);
-      }
       continue;
     }
 
@@ -965,7 +963,9 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
           do_GetInterface(mDocument->DocumentNode()->GetDocShell());
       if (browserChild) {
         static_cast<BrowserChild*>(browserChild.get())
-            ->SendPDocAccessibleConstructor(ipcDoc, parentIPCDoc, id, 0, 0);
+            ->SendPDocAccessibleConstructor(
+                ipcDoc, parentIPCDoc, id,
+                childDoc->DocumentNode()->GetBrowsingContext(), 0, 0);
         ipcDoc->SendPDocAccessiblePlatformExtConstructor();
       }
 #endif

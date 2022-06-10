@@ -73,8 +73,6 @@ struct WrPipelineInfo;
 struct WrPipelineIdAndEpoch;
 using WrPipelineIdEpochs = nsTArray<WrPipelineIdAndEpoch>;
 
-const uint64_t ROOT_CLIP_CHAIN = ~0;
-
 }  // namespace wr
 }  // namespace mozilla
 
@@ -97,7 +95,8 @@ void omta_sample(mozilla::wr::WrWindowId aWindowId,
 void omta_deregister_sampler(mozilla::wr::WrWindowId aWindowId);
 }  // extern "C"
 
-// Work-around wingdi.h define which conflcits with WR color constant
+// Work-around Solaris define which conflcits with WR color constant, see
+// bug 1773491.
 #pragma push_macro("TRANSPARENT")
 #undef TRANSPARENT
 

@@ -22,37 +22,52 @@ const { CryptoWrapper } = ChromeUtils.import(
   "resource://services-sync/record.js"
 );
 const { Svc, Utils } = ChromeUtils.import("resource://services-sync/util.js");
-const { SCORE_INCREMENT_SMALL, URI_LENGTH_MAX } = ChromeUtils.import(
-  "resource://services-sync/constants.js"
+const {
+  LOGIN_SUCCEEDED,
+  SCORE_INCREMENT_SMALL,
+  STATUS_OK,
+  URI_LENGTH_MAX,
+} = ChromeUtils.import("resource://services-sync/constants.js");
+const { CommonUtils } = ChromeUtils.import(
+  "resource://services-common/utils.js"
+);
+const { Async } = ChromeUtils.import("resource://services-common/async.js");
+
+const { SyncRecord, SyncTelemetry } = ChromeUtils.import(
+  "resource://services-sync/telemetry.js"
 );
 
+const FAR_FUTURE = 4102405200000; // 2100/01/01
+
+const lazy = {};
+
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "SessionStore",
   "resource:///modules/sessionstore/SessionStore.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
 });
 
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "ExperimentAPI",
   "resource://nimbus/ExperimentAPI.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "TABS_FILTERED_SCHEMES",
   "services.sync.engine.tabs.filteredSchemes",
   "",
@@ -138,6 +153,132 @@ TabEngine.prototype = {
       this._tracker.modified = true;
     }
   },
+
+  async _onRecordsWritten(succeeded, failed, serverModifiedTime) {
+    await super._onRecordsWritten(succeeded, failed, serverModifiedTime);
+    if (failed.length) {
+      // This should be impossible, so make a note. Maybe upgrade to `.error`?
+      this._log.warn("the server rejected our tabs record");
+    }
+  },
+
+  // Support for "quick writes"
+  _engineLock: Utils.lock,
+  _engineLocked: false,
+
+  // Tabs has a special lock to help support its "quick write"
+  get locked() {
+    return this._engineLocked;
+  },
+  lock() {
+    if (this._engineLocked) {
+      return false;
+    }
+    this._engineLocked = true;
+    return true;
+  },
+  unlock() {
+    this._engineLocked = false;
+  },
+
+  // Quickly do a POST of our current tabs if possible.
+  // This does things that would be dangerous for other engines - eg, posting
+  // without checking what's on the server could cause data-loss for other
+  // engines, but because each device exclusively owns exactly 1 tabs record
+  // with a known ID, it's safe here.
+  async quickWrite() {
+    if (!this.enabled) {
+      // this should be very rare, and only if tabs are disabled after the
+      // timer is created.
+      this._log.info("Can't do a quick-sync as tabs is disabled");
+      return;
+    }
+    // This quick-sync doesn't drive the login state correctly, so just
+    // decline to sync if out status is bad
+    if (this.service.status.checkSetup() != STATUS_OK) {
+      this._log.info(
+        "Can't do a quick-sync due to the service status",
+        this.service.status.toString()
+      );
+      return;
+    }
+    if (!this.service.serverConfiguration) {
+      this._log.info("Can't do a quick sync before the first full sync");
+      return;
+    }
+    try {
+      await this._engineLock("tabs.js: quickWrite", async () => {
+        // We want to restore the lastSync timestamp when complete so next sync
+        // takes tabs written by other devices since our last real sync.
+        // And for this POST we don't want the protections offered by
+        // X-If-Unmodified-Since - we want the POST to work even if the remote
+        // has moved on and we will catch back up next full sync.
+        const origLastSync = await this.getLastSync();
+        await this.setLastSync(FAR_FUTURE);
+        try {
+          await this._doQuickWrite();
+        } finally {
+          await this.setLastSync(origLastSync);
+        }
+      })();
+    } catch (ex) {
+      if (!Utils.isLockException(ex)) {
+        throw ex;
+      }
+      this._log.info(
+        "Can't do a quick-write as another tab sync is in progress"
+      );
+    }
+  },
+
+  // The guts of the quick-write sync, after we've taken the lock, checked
+  // the service status etc.
+  async _doQuickWrite() {
+    // We need to track telemetry for these syncs too!
+    const name = "tabs";
+    let telemetryRecord = new SyncRecord(
+      SyncTelemetry.allowedEngines,
+      "quick-write"
+    );
+    telemetryRecord.onEngineStart(name);
+    try {
+      Async.checkAppReady();
+      // tracking the modified items is normally done by _syncStartup(),
+      // but we don't call that so we don't do the meta/global dances -
+      // these dances would be very important for any other engine, but
+      // we can avoid it for tabs because of the lack of reconcilliation.
+      this._modified.replace(await this.pullChanges());
+      this._tracker.clearChangedIDs();
+      this._tracker.resetScore();
+
+      // now just the "upload" part of a sync.
+      Async.checkAppReady();
+      await this._uploadOutgoing();
+      telemetryRecord.onEngineApplied(name, 1);
+      telemetryRecord.onEngineStop(name, null);
+    } catch (ex) {
+      telemetryRecord.onEngineStop(name, ex);
+    } finally {
+      // The top-level sync is never considered to fail here, just the engine
+      telemetryRecord.finished(null);
+      SyncTelemetry.takeTelemetryRecord(telemetryRecord);
+    }
+  },
+
+  async _sync() {
+    try {
+      await this._engineLock("tabs.js: fullSync", async () => {
+        await super._sync();
+      })();
+    } catch (ex) {
+      if (!Utils.isLockException(ex)) {
+        throw ex;
+      }
+      this._log.info(
+        "Can't do full tabs sync as a quick-write is currently running"
+      );
+    }
+  },
 };
 
 function TabStore(name, engine) {
@@ -155,11 +296,11 @@ TabStore.prototype = {
   },
 
   shouldSkipWindow(win) {
-    return win.closed || PrivateBrowsingUtils.isWindowPrivate(win);
+    return win.closed || lazy.PrivateBrowsingUtils.isWindowPrivate(win);
   },
 
   getTabState(tab) {
-    return JSON.parse(SessionStore.getTabState(tab));
+    return JSON.parse(lazy.SessionStore.getTabState(tab));
   },
 
   async getAllTabs(filter) {
@@ -190,7 +331,8 @@ TabStore.prototype = {
         let acceptable = !filter
           ? url => url
           : url =>
-              url && !TABS_FILTERED_SCHEMES.has(Services.io.extractScheme(url));
+              url &&
+              !lazy.TABS_FILTERED_SCHEMES.has(Services.io.extractScheme(url));
 
         let entries = tabState.entries;
         let index = tabState.index;
@@ -226,7 +368,7 @@ TabStore.prototype = {
         // tabState has .image, but it's a large data: url. So we ask the favicon service for the url.
         let icon = "";
         try {
-          let iconData = await PlacesUtils.promiseFaviconData(urls[0]);
+          let iconData = await lazy.PlacesUtils.promiseFaviconData(urls[0]);
           icon = iconData.uri.spec;
         } catch (ex) {
           this._log.trace(`Failed to fetch favicon for ${urls[0]}`, ex);
@@ -276,7 +418,7 @@ TabStore.prototype = {
     let ids = {};
     let allWindowsArePrivate = false;
     for (let win of Services.wm.getEnumerator("navigator:browser")) {
-      if (PrivateBrowsingUtils.isWindowPrivate(win)) {
+      if (lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
         // Ensure that at least there is a private window.
         allWindowsArePrivate = true;
       } else {
@@ -288,7 +430,7 @@ TabStore.prototype = {
 
     if (
       allWindowsArePrivate &&
-      !PrivateBrowsingUtils.permanentPrivateBrowsing
+      !lazy.PrivateBrowsingUtils.permanentPrivateBrowsing
     ) {
       return ids;
     }
@@ -391,8 +533,8 @@ TabTracker.prototype = {
     if (event.originalTarget.linkedBrowser) {
       let browser = event.originalTarget.linkedBrowser;
       if (
-        PrivateBrowsingUtils.isBrowserPrivate(browser) &&
-        !PrivateBrowsingUtils.permanentPrivateBrowsing
+        lazy.PrivateBrowsingUtils.isBrowserPrivate(browser) &&
+        !lazy.PrivateBrowsingUtils.permanentPrivateBrowsing
       ) {
         this._log.trace("Ignoring tab event from private browsing.");
         return;
@@ -417,7 +559,7 @@ TabTracker.prototype = {
 
     // Synced tabs do not sync certain urls, we should ignore scheduling a sync
     // if we have navigate to one of those urls
-    if (TABS_FILTERED_SCHEMES.has(locationURI.scheme)) {
+    if (lazy.TABS_FILTERED_SCHEMES.has(locationURI.scheme)) {
       return;
     }
 
@@ -426,21 +568,43 @@ TabTracker.prototype = {
 
   callScheduleSync(scoreIncrement) {
     this.modified = true;
-
-    const delayInMs = NimbusFeatures.syncAfterTabChange.getVariable(
+    let { scheduler } = this.engine.service;
+    const delayInMs = lazy.NimbusFeatures.syncAfterTabChange.getVariable(
       "syncDelayAfterTabChange"
     );
 
     // If we are part of the experiment don't use score here
     // and instead schedule a sync once we detect a tab change
-    //  to ensure the server always has the most up to date tabs
-    if (delayInMs > 0) {
+    // to ensure the server always has the most up to date tabs
+    if (
+      delayInMs > 0 &&
+      scheduler.numClients > 1 // Don't constantly schedule syncs for single client users
+    ) {
+      if (this.tabsQuickWriteTimer) {
+        this._log.debug(
+          "Detected a tab change, but a quick-write is already scheduled"
+        );
+        return;
+      }
       this._log.debug(
-        "Detected a tab change: scheduling a sync in " + delayInMs + "ms"
+        "Detected a tab change: scheduling a quick-write in " + delayInMs + "ms"
       );
-      this.engine.service.scheduler.scheduleNextSync(delayInMs, {
-        why: "tabschanged",
-      });
+      CommonUtils.namedTimer(
+        () => {
+          this._log.trace("tab quick-sync timer fired.");
+          this.engine
+            .quickWrite()
+            .then(() => {
+              this._log.trace("tab quick-sync done.");
+            })
+            .catch(ex => {
+              this._log.error("tab quick-sync failed.", ex);
+            });
+        },
+        delayInMs,
+        this,
+        "tabsQuickWriteTimer"
+      );
     } else if (scoreIncrement) {
       this.score += scoreIncrement;
     }

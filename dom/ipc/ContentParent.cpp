@@ -55,7 +55,6 @@
 #include "gfxPlatformFontList.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/AutoRestore.h"
-#include "mozilla/ContentBlocking.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/BenchmarkStorageParent.h"
 #include "mozilla/ContentBlockingUserInteraction.h"
@@ -83,6 +82,7 @@
 #include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/StorageAccessAPIHelper.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/Telemetry.h"
@@ -2937,7 +2937,7 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
       if (NS_WARN_IF(!jsapi.Init(xpc::PrivilegedJunkScope()))) {
         MOZ_CRASH();
       }
-      JS::RootedValue init(jsapi.cx());
+      JS::Rooted<JS::Value> init(jsapi.cx());
       // We'll crash on failure, so use a IgnoredErrorResult (which also
       // auto-suppresses exceptions).
       IgnoredErrorResult rv;
@@ -3194,7 +3194,7 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
           }
 
           IPCBlob ipcBlob;
-          nsresult rv = IPCBlobUtils::Serialize(aBlobImpl, this, ipcBlob);
+          nsresult rv = IPCBlobUtils::Serialize(aBlobImpl, ipcBlob);
           if (NS_WARN_IF(NS_FAILED(rv))) {
             return false;
           }
@@ -4606,7 +4606,7 @@ mozilla::ipc::IPCResult ContentParent::RecvSyncMessage(
   RefPtr<nsFrameMessageManager> ppm = mMessageManager;
   if (ppm) {
     ipc::StructuredCloneData data;
-    ipc::UnpackClonedMessageDataForParent(aData, data);
+    ipc::UnpackClonedMessageData(aData, data);
 
     ppm->ReceiveMessage(ppm, nullptr, aMsg, true, &data, aRetvals,
                         IgnoreErrors());
@@ -4623,7 +4623,7 @@ mozilla::ipc::IPCResult ContentParent::RecvAsyncMessage(
   RefPtr<nsFrameMessageManager> ppm = mMessageManager;
   if (ppm) {
     ipc::StructuredCloneData data;
-    ipc::UnpackClonedMessageDataForParent(aData, data);
+    ipc::UnpackClonedMessageData(aData, data);
 
     ppm->ReceiveMessage(ppm, nullptr, aMsg, false, &data, nullptr,
                         IgnoreErrors());
@@ -4760,7 +4760,7 @@ mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
 
   if (aStack) {
     StructuredCloneData data;
-    UnpackClonedMessageDataForParent(*aStack, data);
+    UnpackClonedMessageData(*aStack, data);
 
     AutoJSAPI jsapi;
     if (NS_WARN_IF(!jsapi.Init(xpc::PrivilegedJunkScope()))) {
@@ -4768,7 +4768,7 @@ mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
     }
     JSContext* cx = jsapi.cx();
 
-    JS::RootedValue stack(cx);
+    JS::Rooted<JS::Value> stack(cx);
     ErrorResult rv;
     data.Read(cx, &stack, rv);
     if (rv.Failed() || !stack.isObject()) {
@@ -4776,10 +4776,10 @@ mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
       return IPC_OK();
     }
 
-    JS::RootedObject stackObj(cx, &stack.toObject());
+    JS::Rooted<JSObject*> stackObj(cx, &stack.toObject());
     MOZ_ASSERT(JS::IsUnwrappedSavedFrame(stackObj));
 
-    JS::RootedObject stackGlobal(cx, JS::GetNonCCWObjectGlobal(stackObj));
+    JS::Rooted<JSObject*> stackGlobal(cx, JS::GetNonCCWObjectGlobal(stackObj));
     msg = new nsScriptErrorWithStack(JS::NothingHandleValue, stackObj,
                                      stackGlobal);
   } else {
@@ -4806,7 +4806,7 @@ bool ContentParent::DoLoadMessageManagerScript(const nsAString& aURL,
 nsresult ContentParent::DoSendAsyncMessage(const nsAString& aMessage,
                                            StructuredCloneData& aHelper) {
   ClonedMessageData data;
-  if (!BuildClonedMessageDataForParent(this, aHelper, data)) {
+  if (!BuildClonedMessageData(aHelper, data)) {
     return NS_ERROR_DOM_DATA_CLONE_ERR;
   }
   if (!SendAsyncMessage(nsString(aMessage), data)) {
@@ -5776,7 +5776,7 @@ void ContentParent::BroadcastBlobURLRegistration(
       }
 
       IPCBlob ipcBlob;
-      rv = IPCBlobUtils::Serialize(aBlobImpl, cp, ipcBlob);
+      rv = IPCBlobUtils::Serialize(aBlobImpl, ipcBlob);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         break;
       }
@@ -6091,7 +6091,7 @@ void ContentParent::TransmitBlobURLsForPrincipal(nsIPrincipal* aPrincipal) {
           }
 
           IPCBlob ipcBlob;
-          nsresult rv = IPCBlobUtils::Serialize(aBlobImpl, this, ipcBlob);
+          nsresult rv = IPCBlobUtils::Serialize(aBlobImpl, ipcBlob);
           if (NS_WARN_IF(NS_FAILED(rv))) {
             return false;
           }
@@ -6406,18 +6406,17 @@ ContentParent::RecvStorageAccessPermissionGrantedForOrigin(
         aReason.value());
   }
 
-  ContentBlocking::SaveAccessForOriginOnParentProcess(
+  StorageAccessAPIHelper::SaveAccessForOriginOnParentProcess(
       aTopLevelWindowId, aParentContext.get_canonical(), aTrackingPrincipal,
       aAllowMode)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aResolver = std::move(aResolver)](
-              ContentBlocking::ParentAccessGrantPromise::ResolveOrRejectValue&&
-                  aValue) {
-            bool success =
-                aValue.IsResolve() && NS_SUCCEEDED(aValue.ResolveValue());
-            aResolver(success);
-          });
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [aResolver = std::move(aResolver)](
+                 StorageAccessAPIHelper::ParentAccessGrantPromise::
+                     ResolveOrRejectValue&& aValue) {
+               bool success =
+                   aValue.IsResolve() && NS_SUCCEEDED(aValue.ResolveValue());
+               aResolver(success);
+             });
   return IPC_OK();
 }
 
@@ -6432,12 +6431,12 @@ mozilla::ipc::IPCResult ContentParent::RecvCompleteAllowAccessFor(
     return IPC_OK();
   }
 
-  ContentBlocking::CompleteAllowAccessFor(
+  StorageAccessAPIHelper::CompleteAllowAccessFor(
       aParentContext.get_canonical(), aTopLevelWindowId, aTrackingPrincipal,
       aTrackingOrigin, aCookieBehavior, aReason, nullptr)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [aResolver = std::move(aResolver)](
-                 ContentBlocking::StorageAccessPermissionGrantPromise::
+                 StorageAccessAPIHelper::StorageAccessPermissionGrantPromise::
                      ResolveOrRejectValue&& aValue) {
                Maybe<StorageAccessPromptChoices> choice;
                if (aValue.IsResolve()) {
@@ -6458,25 +6457,22 @@ mozilla::ipc::IPCResult ContentParent::RecvStoreUserInteractionAsPermission(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentParent::RecvAsyncShouldAllowAccessFor(
-    const MaybeDiscarded<BrowsingContext>& aTopContext,
+mozilla::ipc::IPCResult ContentParent::RecvTestCookiePermissionDecided(
+    const MaybeDiscarded<BrowsingContext>& aContext,
     const Principal& aPrincipal,
-    const AsyncShouldAllowAccessForResolver&& aResolver) {
-  if (aTopContext.IsNullOrDiscarded()) {
+    const TestCookiePermissionDecidedResolver&& aResolver) {
+  if (aContext.IsNullOrDiscarded()) {
     return IPC_OK();
   }
 
-  ContentBlocking::AsyncShouldAllowAccessFor(aTopContext.get_canonical(),
-                                             aPrincipal)
-      ->Then(GetCurrentSerialEventTarget(), __func__,
-             [aResolver](ContentBlocking::AsyncShouldAllowAccessForPromise::
-                             ResolveOrRejectValue&& aValue) {
-               bool allowed = aValue.IsResolve();
+  RefPtr<WindowGlobalParent> wgp =
+      aContext.get_canonical()->GetCurrentWindowGlobal();
+  nsCOMPtr<nsICookieJarSettings> cjs = wgp->CookieJarSettings();
 
-               aResolver(Tuple<const bool&, const uint32_t&>(
-                   allowed, allowed ? 0 : aValue.RejectValue()));
-             });
-
+  Maybe<bool> result =
+      StorageAccessAPIHelper::CheckCookiesPermittedDecidesStorageAccessAPI(
+          cjs, aPrincipal);
+  aResolver(result);
   return IPC_OK();
 }
 
@@ -7179,11 +7175,10 @@ mozilla::ipc::IPCResult ContentParent::RecvWindowPostMessage(
   ClonedOrErrorMessageData message;
   StructuredCloneData messageFromChild;
   if (aMessage.type() == ClonedOrErrorMessageData::TClonedMessageData) {
-    UnpackClonedMessageDataForParent(aMessage, messageFromChild);
+    UnpackClonedMessageData(aMessage, messageFromChild);
 
     ClonedMessageData clonedMessageData;
-    if (BuildClonedMessageDataForParent(cp, messageFromChild,
-                                        clonedMessageData)) {
+    if (BuildClonedMessageData(messageFromChild, clonedMessageData)) {
       message = std::move(clonedMessageData);
     } else {
       // FIXME Logging?
@@ -7253,7 +7248,7 @@ mozilla::ipc::IPCResult ContentParent::RecvBlobURLDataRequest(
   }
 
   IPCBlob ipcBlob;
-  nsresult rv = IPCBlobUtils::Serialize(blobImpl, this, ipcBlob);
+  nsresult rv = IPCBlobUtils::Serialize(blobImpl, ipcBlob);
 
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aResolver(rv);
@@ -7578,12 +7573,12 @@ IPCResult ContentParent::RecvRawMessage(
   Maybe<StructuredCloneData> data;
   if (aData) {
     data.emplace();
-    data->BorrowFromClonedMessageDataForParent(*aData);
+    data->BorrowFromClonedMessageData(*aData);
   }
   Maybe<StructuredCloneData> stack;
   if (aStack) {
     stack.emplace();
-    stack->BorrowFromClonedMessageDataForParent(*aStack);
+    stack->BorrowFromClonedMessageData(*aStack);
   }
   ReceiveRawMessage(aMeta, std::move(data), std::move(stack));
   return IPC_OK();
@@ -7611,7 +7606,8 @@ NS_IMETHODIMP ContentParent::GetExistingActor(const nsACString& aName,
 }
 
 already_AddRefed<JSActor> ContentParent::InitJSActor(
-    JS::HandleObject aMaybeActor, const nsACString& aName, ErrorResult& aRv) {
+    JS::Handle<JSObject*> aMaybeActor, const nsACString& aName,
+    ErrorResult& aRv) {
   RefPtr<JSProcessActorParent> actor;
   if (aMaybeActor.get()) {
     aRv = UNWRAP_OBJECT(JSProcessActorParent, aMaybeActor.get(), actor);

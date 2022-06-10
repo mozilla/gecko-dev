@@ -46,6 +46,15 @@ let AVAILABLE_PIP_OVERRIDES;
       },
     },
 
+    bbc: {
+      "https://*.bbc.com/*": {
+        videoWrapperScriptPath: "video-wrappers/bbc.js",
+      },
+      "https://*.bbc.co.uk/*": {
+        videoWrapperScriptPath: "video-wrappers/bbc.js",
+      },
+    },
+
     dailymotion: {
       "https://*.dailymotion.com/*": {
         videoWrapperScriptPath: "video-wrappers/dailymotion.js",
@@ -55,6 +64,12 @@ let AVAILABLE_PIP_OVERRIDES;
     funimation: {
       "https://*.funimation.com/*": {
         videoWrapperScriptPath: "video-wrappers/funimation.js",
+      },
+    },
+
+    hbomax: {
+      "https://play.hbomax.com/feature/*": {
+        videoWrapperScriptPath: "video-wrappers/hbomax.js",
       },
     },
 
@@ -76,6 +91,12 @@ let AVAILABLE_PIP_OVERRIDES;
 
     laracasts: {
       "https://*.laracasts.com/*": { policy: TOGGLE_POLICIES.ONE_QUARTER },
+    },
+
+    nebula: {
+      "https://*.nebula.app/*": {
+        videoWrapperScriptPath: "video-wrappers/nebula.js",
+      },
     },
 
     netflix: {
@@ -123,6 +144,10 @@ let AVAILABLE_PIP_OVERRIDES;
 
     youtube: {
       "https://*.youtube.com/*": {
+        visibilityThreshold: 0.9,
+        videoWrapperScriptPath: "video-wrappers/youtube.js",
+      },
+      "https://*.youtube-nocookie.com/*": {
         visibilityThreshold: 0.9,
         videoWrapperScriptPath: "video-wrappers/youtube.js",
       },

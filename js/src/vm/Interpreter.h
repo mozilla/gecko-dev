@@ -580,7 +580,7 @@ bool ThrowMsgOperation(JSContext* cx, const unsigned throwMsgKind);
 bool GetAndClearException(JSContext* cx, MutableHandleValue res);
 
 bool GetAndClearExceptionAndStack(JSContext* cx, MutableHandleValue res,
-                                  MutableHandleSavedFrame stack);
+                                  MutableHandle<SavedFrame*> stack);
 
 bool DeleteNameOperation(JSContext* cx, HandlePropertyName name,
                          HandleObject scopeObj, MutableHandleValue res);
@@ -681,6 +681,8 @@ bool SetElementSuper(JSContext* cx, HandleValue lval, HandleValue receiver,
 
 bool LoadAliasedDebugVar(JSContext* cx, JSObject* env, jsbytecode* pc,
                          MutableHandleValue result);
+
+bool CloseIterOperation(JSContext* cx, HandleObject iter, CompletionKind kind);
 } /* namespace js */
 
 #endif /* vm_Interpreter_h */

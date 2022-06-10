@@ -25,27 +25,27 @@ rev = "3bfc47d9a571d0842676043ba60716318e946c06"
 [source."https://github.com/mozilla/cubeb-pulse-rs"]
 git = "https://github.com/mozilla/cubeb-pulse-rs"
 replace-with = "vendored-sources"
-rev = "df4dc0288b07b865440f4c7e41ca49ca9ccffc63"
+rev = "1f1fe1e08e01a9a534ec7f079702a583a0899ce7"
 
 [source."https://github.com/mozilla/cubeb-coreaudio-rs"]
 git = "https://github.com/mozilla/cubeb-coreaudio-rs"
 replace-with = "vendored-sources"
 rev = "44eca95823bb57e964cf7b6d9791ed2ccb4b2108"
 
-[source."https://github.com/mozilla/audioipc-2"]
-git = "https://github.com/mozilla/audioipc-2"
+[source."https://github.com/mozilla/audioipc"]
+git = "https://github.com/mozilla/audioipc"
 replace-with = "vendored-sources"
-rev = "c144368c4e084ec0f076af6262970655c2d99e8d"
+rev = "6848974a4a91ebd3e18333c9a96a421d619a2dc8"
 
 [source."https://github.com/mozilla/application-services"]
 git = "https://github.com/mozilla/application-services"
 replace-with = "vendored-sources"
-rev = "c51b63595a27a6ef45161012323e0261475c10c9"
+rev = "2689788cecf24c385e6b7440e3aa1a89c511f14a"
 
 [source."https://github.com/mozilla-spidermonkey/jsparagus"]
 git = "https://github.com/mozilla-spidermonkey/jsparagus"
 replace-with = "vendored-sources"
-rev = "b86a26dee550081fa49bf34e3a5e6d7a673ea7a9"
+rev = "20d01b2c01a5be01d3dea3ec7a1ede2fdda3d9d2"
 
 [source."https://github.com/makotokato/midir.git"]
 git = "https://github.com/makotokato/midir.git"
@@ -90,12 +90,12 @@ rev = "3484d3e3ebdc8931493aa5df4d7ee9360a90e76b"
 [source."https://github.com/gfx-rs/wgpu"]
 git = "https://github.com/gfx-rs/wgpu"
 replace-with = "vendored-sources"
-rev = "b51fd851"
+rev = "32af4f56"
 
 [source."https://github.com/gfx-rs/naga"]
 git = "https://github.com/gfx-rs/naga"
 replace-with = "vendored-sources"
-rev = "1aa91549"
+rev = "571302e"
 
 [source."https://github.com/gfx-rs/metal-rs"]
 git = "https://github.com/gfx-rs/metal-rs"

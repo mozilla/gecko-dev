@@ -15,7 +15,9 @@ const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   HeadlessShell: "resource:///modules/HeadlessShell.jsm",
   HomePage: "resource:///modules/HomePage.jsm",
@@ -26,16 +28,15 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   ShellService: "resource:///modules/ShellService.jsm",
   UpdatePing: "resource://gre/modules/UpdatePing.jsm",
 });
-XPCOMUtils.defineLazyServiceGetters(this, {
+XPCOMUtils.defineLazyServiceGetters(lazy, {
   UpdateManager: ["@mozilla.org/updates/update-manager;1", "nsIUpdateManager"],
   WinTaskbar: ["@mozilla.org/windows-taskbar;1", "nsIWinTaskbar"],
   WindowsUIUtils: ["@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils"],
 });
 
-XPCOMUtils.defineLazyGetter(this, "gSystemPrincipal", () =>
+XPCOMUtils.defineLazyGetter(lazy, "gSystemPrincipal", () =>
   Services.scriptSecurityManager.getSystemPrincipal()
 );
-XPCOMUtils.defineLazyGlobalGetters(this, ["URL"]);
 
 // One-time startup homepage override configurations
 const ONCE_DOMAINS = ["mozilla.org", "firefox.com"];
@@ -228,7 +229,10 @@ function openBrowserWindow(
   } else if (Array.isArray(urlOrUrlList)) {
     // There isn't an explicit way to pass a principal here, so we load multiple URLs
     // with system principal when we get to actually loading them.
-    if (!triggeringPrincipal || !triggeringPrincipal.equals(gSystemPrincipal)) {
+    if (
+      !triggeringPrincipal ||
+      !triggeringPrincipal.equals(lazy.gSystemPrincipal)
+    ) {
       throw new Error(
         "Can't open multiple URLs with something other than system principal."
       );
@@ -279,8 +283,11 @@ function openBrowserWindow(
           // change Taskbar icons if the original one had a different AUMID.
           // This must stay pref'ed off until this is resolved.
           // https://bugzilla.mozilla.org/show_bug.cgi?id=1751010
-          WinTaskbar.setGroupIdForWindow(win, WinTaskbar.defaultPrivateGroupId);
-          WindowsUIUtils.setWindowIconFromExe(
+          lazy.WinTaskbar.setGroupIdForWindow(
+            win,
+            lazy.WinTaskbar.defaultPrivateGroupId
+          );
+          lazy.WindowsUIUtils.setWindowIconFromExe(
             win,
             Services.dirsvc.get("XREExeF", Ci.nsIFile).path,
             // This corresponds to the definitions in
@@ -334,7 +341,7 @@ function openBrowserWindow(
 }
 
 function openPreferences(cmdLine, extraArgs) {
-  openBrowserWindow(cmdLine, gSystemPrincipal, "about:preferences");
+  openBrowserWindow(cmdLine, lazy.gSystemPrincipal, "about:preferences");
 }
 
 async function doSearch(searchTerm, cmdLine) {
@@ -343,7 +350,7 @@ async function doSearch(searchTerm, cmdLine) {
   // Open the window immediately as BrowserContentHandler needs to
   // be handled synchronously. Then load the search URI when the
   // SearchService has loaded.
-  let win = openBrowserWindow(cmdLine, gSystemPrincipal, "about:blank");
+  let win = openBrowserWindow(cmdLine, lazy.gSystemPrincipal, "about:blank");
   await new Promise(resolve => {
     Services.obs.addObserver(function observe(subject) {
       if (subject == win) {
@@ -358,9 +365,9 @@ async function doSearch(searchTerm, cmdLine) {
 
   win.BrowserSearch.loadSearchFromCommandLine(
     searchTerm,
-    PrivateBrowsingUtils.isInTemporaryAutoStartMode ||
-      PrivateBrowsingUtils.isWindowPrivate(win),
-    gSystemPrincipal,
+    lazy.PrivateBrowsingUtils.isInTemporaryAutoStartMode ||
+      lazy.PrivateBrowsingUtils.isWindowPrivate(win),
+    lazy.gSystemPrincipal,
     win.gBrowser.selectedBrowser.csp
   ).catch(Cu.reportError);
 }
@@ -399,7 +406,7 @@ nsBrowserContentHandler.prototype = {
       Services.prefs.lockPref("browser.gesture.pinch.out.shift");
     }
     if (cmdLine.handleFlag("browser", false)) {
-      openBrowserWindow(cmdLine, gSystemPrincipal);
+      openBrowserWindow(cmdLine, lazy.gSystemPrincipal);
       cmdLine.preventDefault = true;
     }
 
@@ -421,7 +428,7 @@ nsBrowserContentHandler.prototype = {
         if (!shouldLoadURI(uri)) {
           continue;
         }
-        openBrowserWindow(cmdLine, gSystemPrincipal, uri.spec);
+        openBrowserWindow(cmdLine, lazy.gSystemPrincipal, uri.spec);
         cmdLine.preventDefault = true;
       }
     } catch (e) {
@@ -436,7 +443,7 @@ nsBrowserContentHandler.prototype = {
           Ci.nsIBrowserDOMWindow.OPEN_NEWTAB,
           cmdLine,
           false,
-          gSystemPrincipal
+          lazy.gSystemPrincipal
         );
         cmdLine.preventDefault = true;
       }
@@ -507,7 +514,7 @@ nsBrowserContentHandler.prototype = {
       if (privateWindowParam) {
         let forcePrivate = true;
         let resolvedURI;
-        if (!PrivateBrowsingUtils.enabled) {
+        if (!lazy.PrivateBrowsingUtils.enabled) {
           // Load about:privatebrowsing in a normal tab, which will display an error indicating
           // access to private browsing has been disabled.
           forcePrivate = false;
@@ -520,7 +527,7 @@ nsBrowserContentHandler.prototype = {
           Ci.nsIBrowserDOMWindow.OPEN_NEWTAB,
           cmdLine,
           forcePrivate,
-          gSystemPrincipal
+          lazy.gSystemPrincipal
         );
         cmdLine.preventDefault = true;
       }
@@ -532,10 +539,10 @@ nsBrowserContentHandler.prototype = {
       if (cmdLine.handleFlag("private-window", false)) {
         openBrowserWindow(
           cmdLine,
-          gSystemPrincipal,
+          lazy.gSystemPrincipal,
           "about:privatebrowsing",
           null,
-          PrivateBrowsingUtils.enabled
+          lazy.PrivateBrowsingUtils.enabled
         );
         cmdLine.preventDefault = true;
       }
@@ -549,8 +556,11 @@ nsBrowserContentHandler.prototype = {
 
     // The global PB Service consumes this flag, so only eat it in per-window
     // PB builds.
-    if (cmdLine.handleFlag("private", false) && PrivateBrowsingUtils.enabled) {
-      PrivateBrowsingUtils.enterTemporaryAutoStartMode();
+    if (
+      cmdLine.handleFlag("private", false) &&
+      lazy.PrivateBrowsingUtils.enabled
+    ) {
+      lazy.PrivateBrowsingUtils.enterTemporaryAutoStartMode();
       if (cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
         let win = Services.wm.getMostRecentWindow("navigator:blank");
         if (win) {
@@ -561,18 +571,18 @@ nsBrowserContentHandler.prototype = {
       }
     }
     if (cmdLine.handleFlag("setDefaultBrowser", false)) {
-      ShellService.setDefaultBrowser(true, true);
+      lazy.ShellService.setDefaultBrowser(true, true);
     }
 
     if (cmdLine.handleFlag("first-startup", false)) {
-      FirstStartup.init();
+      lazy.FirstStartup.init();
     }
 
     var fileParam = cmdLine.handleFlagWithParam("file", false);
     if (fileParam) {
       var file = cmdLine.resolveFile(fileParam);
       var fileURI = Services.io.newFileURI(file);
-      openBrowserWindow(cmdLine, gSystemPrincipal, fileURI.spec);
+      openBrowserWindow(cmdLine, lazy.gSystemPrincipal, fileURI.spec);
       cmdLine.preventDefault = true;
     }
 
@@ -628,7 +638,7 @@ nsBrowserContentHandler.prototype = {
 
     if (!gFirstWindow) {
       gFirstWindow = true;
-      if (PrivateBrowsingUtils.isInTemporaryAutoStartMode) {
+      if (lazy.PrivateBrowsingUtils.isInTemporaryAutoStartMode) {
         return "about:privatebrowsing";
       }
     }
@@ -663,7 +673,7 @@ nsBrowserContentHandler.prototype = {
               "startup.homepage_welcome_url.additional"
             );
             // Turn on 'later run' pages for new profiles.
-            LaterRun.enabled = true;
+            lazy.LaterRun.enabled = true;
             break;
           case OVERRIDE_NEW_MSTONE:
             // Check whether we will restore a session. If we will, we assume
@@ -671,27 +681,27 @@ nsBrowserContentHandler.prototype = {
             // into account because that requires waiting for the session file
             // to be read. If a crash occurs after updating, before restarting,
             // we may open the startPage in addition to restoring the session.
-            willRestoreSession = SessionStartup.isAutomaticRestoreEnabled();
+            willRestoreSession = lazy.SessionStartup.isAutomaticRestoreEnabled();
 
             overridePage = Services.urlFormatter.formatURLPref(
               "startup.homepage_override_url"
             );
-            let update = UpdateManager.readyUpdate;
+            let update = lazy.UpdateManager.readyUpdate;
             if (
               update &&
               Services.vc.compare(update.appVersion, old_mstone) > 0
             ) {
               overridePage = getPostUpdateOverridePage(update, overridePage);
               // Send the update ping to signal that the update was successful.
-              UpdatePing.handleUpdateSuccess(old_mstone, old_buildId);
+              lazy.UpdatePing.handleUpdateSuccess(old_mstone, old_buildId);
             }
 
             overridePage = overridePage.replace("%OLD_VERSION%", old_mstone);
             break;
           case OVERRIDE_NEW_BUILD_ID:
-            if (UpdateManager.readyUpdate) {
+            if (lazy.UpdateManager.readyUpdate) {
               // Send the update ping to signal that the update was successful.
-              UpdatePing.handleUpdateSuccess(old_mstone, old_buildId);
+              lazy.UpdatePing.handleUpdateSuccess(old_mstone, old_buildId);
             }
             break;
         }
@@ -748,7 +758,7 @@ nsBrowserContentHandler.prototype = {
     }
 
     if (!additionalPage) {
-      additionalPage = LaterRun.getURL() || "";
+      additionalPage = lazy.LaterRun.getURL() || "";
     }
 
     if (additionalPage && additionalPage != "about:blank") {
@@ -763,7 +773,7 @@ nsBrowserContentHandler.prototype = {
     try {
       var choice = prefb.getIntPref("browser.startup.page");
       if (choice == 1 || choice == 3) {
-        startPage = HomePage.get();
+        startPage = lazy.HomePage.get();
       }
     } catch (e) {
       Cu.reportError(e);
@@ -815,7 +825,7 @@ nsBrowserContentHandler.prototype = {
 
       // The global PB Service consumes this flag, so only eat it in per-window
       // PB builds.
-      if (PrivateBrowsingUtils.isInTemporaryAutoStartMode) {
+      if (lazy.PrivateBrowsingUtils.isInTemporaryAutoStartMode) {
         this.mFeatures += ",private";
       }
 
@@ -889,7 +899,7 @@ nsBrowserContentHandler.prototype = {
           Services.urlFormatter.formatURLPref("app.support.baseURL") +
           "win10-default-browser";
         if (urlParam == url) {
-          isDefault = ShellService.isDefaultBrowser(false, false);
+          isDefault = lazy.ShellService.isDefaultBrowser(false, false);
         }
       } catch (ex) {}
       if (isDefault) {
@@ -916,8 +926,10 @@ function handURIToExistingBrowser(
   // Unless using a private window is forced, open external links in private
   // windows only if we're in perma-private mode.
   var allowPrivate =
-    forcePrivate || PrivateBrowsingUtils.permanentPrivateBrowsing;
-  var navWin = BrowserWindowTracker.getTopWindow({ private: allowPrivate });
+    forcePrivate || lazy.PrivateBrowsingUtils.permanentPrivateBrowsing;
+  var navWin = lazy.BrowserWindowTracker.getTopWindow({
+    private: allowPrivate,
+  });
   if (!navWin) {
     // if we couldn't load it in an existing window, open a new one
     openBrowserWindow(
@@ -1066,7 +1078,7 @@ nsDefaultCommandLineHandler.prototype = {
     }
 
     if (cmdLine.findFlag("screenshot", true) != -1) {
-      HeadlessShell.handleCmdLineArgs(
+      lazy.HeadlessShell.handleCmdLineArgs(
         cmdLine,
         urilist.filter(shouldLoadURI).map(u => u.spec)
       );
@@ -1110,7 +1122,7 @@ nsDefaultCommandLineHandler.prototype = {
             Ci.nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
             cmdLine,
             false,
-            gSystemPrincipal
+            lazy.gSystemPrincipal
           );
           return;
         } catch (e) {}
@@ -1118,22 +1130,22 @@ nsDefaultCommandLineHandler.prototype = {
 
       var URLlist = urilist.filter(shouldLoadURI).map(u => u.spec);
       if (URLlist.length) {
-        openBrowserWindow(cmdLine, gSystemPrincipal, URLlist);
+        openBrowserWindow(cmdLine, lazy.gSystemPrincipal, URLlist);
       }
     } else if (!cmdLine.preventDefault) {
       if (
         AppConstants.isPlatformAndVersionAtLeast("win", "10") &&
         cmdLine.state != Ci.nsICommandLine.STATE_INITIAL_LAUNCH &&
-        WindowsUIUtils.inTabletMode
+        lazy.WindowsUIUtils.inTabletMode
       ) {
         // In windows 10 tablet mode, do not create a new window, but reuse the existing one.
-        let win = BrowserWindowTracker.getTopWindow();
+        let win = lazy.BrowserWindowTracker.getTopWindow();
         if (win) {
           win.focus();
           return;
         }
       }
-      openBrowserWindow(cmdLine, gSystemPrincipal);
+      openBrowserWindow(cmdLine, lazy.gSystemPrincipal);
     } else {
       // Need a better solution in the future to avoid opening the blank window
       // when command line parameters say we are not going to show a browser

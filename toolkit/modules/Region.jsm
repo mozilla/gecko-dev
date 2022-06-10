@@ -9,29 +9,33 @@ const EXPORTED_SYMBOLS = ["Region"];
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 
 const { RemoteSettings } = ChromeUtils.import(
   "resource://services-settings/remote-settings.js"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AppConstants: "resource://gre/modules/AppConstants.jsm",
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   LocationHelper: "resource://gre/modules/LocationHelper.jsm",
-  Services: "resource://gre/modules/Services.jsm",
   setTimeout: "resource://gre/modules/Timer.jsm",
 });
 
-XPCOMUtils.defineLazyGlobalGetters(this, ["fetch"]);
+XPCOMUtils.defineLazyGlobalGetters(lazy, ["fetch"]);
 
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "wifiScanningEnabled",
   "browser.region.network.scan",
   true
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "networkTimeout",
   "browser.region.timeout",
   5000
@@ -41,49 +45,49 @@ XPCOMUtils.defineLazyPreferenceGetter(
 // is likely to be a service failure so this gives the
 // service some time to restore. Setting to 0 disabled retries.
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "retryTimeout",
   "browser.region.retry-timeout",
   60 * 60 * 1000
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "loggingEnabled",
   "browser.region.log",
   false
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "cacheBustEnabled",
   "browser.region.update.enabled",
   false
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "updateDebounce",
   "browser.region.update.debounce",
   60 * 60 * 24
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "lastUpdated",
   "browser.region.update.updated",
   0
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "localGeocodingEnabled",
   "browser.region.local-geocoding",
   false
 );
 
 XPCOMUtils.defineLazyServiceGetter(
-  this,
+  lazy,
   "timerManager",
   "@mozilla.org/updates/timer-manager;1",
   "nsIUpdateTimerManager"
@@ -91,7 +95,7 @@ XPCOMUtils.defineLazyServiceGetter(
 
 const log = console.createInstance({
   prefix: "Region.jsm",
-  maxLogLevel: loggingEnabled ? "All" : "Warn",
+  maxLogLevel: lazy.loggingEnabled ? "All" : "Warn",
 });
 
 const REGION_PREF = "browser.search.region";
@@ -155,9 +159,9 @@ class RegionDetector {
     if (this._initPromise) {
       return this._initPromise;
     }
-    if (cacheBustEnabled && !inChildProcess) {
+    if (lazy.cacheBustEnabled && !inChildProcess) {
       Services.tm.idleDispatchToMainThread(() => {
-        timerManager.registerTimer(
+        lazy.timerManager.registerTimer(
           UPDATE_CHECK_NAME,
           () => this._updateTimer(),
           UPDATE_CHECK_INTERVAL
@@ -169,7 +173,7 @@ class RegionDetector {
     if (!this._home && !inChildProcess) {
       promises.push(this._idleDispatch(() => this._fetchRegion()));
     }
-    if (localGeocodingEnabled && !inChildProcess) {
+    if (lazy.localGeocodingEnabled && !inChildProcess) {
       promises.push(this._idleDispatch(() => this._setupRemoteSettings()));
     }
     return (this._initPromise = Promise.all(promises));
@@ -214,11 +218,11 @@ class RegionDetector {
     } catch (err) {
       telemetryResult = this.TELEMETRY[err.message] || this.TELEMETRY.ERROR;
       log.error("Failed to fetch region", err);
-      if (retryTimeout) {
+      if (lazy.retryTimeout) {
         this._retryCount++;
-        setTimeout(() => {
+        lazy.setTimeout(() => {
           Services.tm.idleDispatchToMainThread(this._fetchRegion.bind(this));
-        }, retryTimeout);
+        }, lazy.retryTimeout);
       }
     }
 
@@ -392,7 +396,7 @@ class RegionDetector {
       headers: { "Content-Type": "application/json" },
       credentials: "omit",
     };
-    if (wifiScanningEnabled) {
+    if (lazy.wifiScanningEnabled) {
       let wifiData = await this._fetchWifiData();
       if (wifiData) {
         let postData = JSON.stringify({ wifiAccessPoints: wifiData });
@@ -409,7 +413,7 @@ class RegionDetector {
     }
 
     try {
-      let req = await this._fetchTimeout(url, fetchOpts, networkTimeout);
+      let req = await this._fetchTimeout(url, fetchOpts, lazy.networkTimeout);
       let res = await req.json();
       log.info("_getRegion returning ", res.country_code);
       return res.country_code;
@@ -509,7 +513,7 @@ class RegionDetector {
     log.info("_getLocation called");
     let fetchOpts = { headers: { "Content-Type": "application/json" } };
     let url = Services.urlFormatter.formatURLPref("geo.provider.network.url");
-    let req = await this._fetchTimeout(url, fetchOpts, networkTimeout);
+    let req = await this._fetchTimeout(url, fetchOpts, lazy.networkTimeout);
     let result = await req.json();
     log.info("_getLocation returning", result);
     return result;
@@ -743,7 +747,10 @@ class RegionDetector {
   async _fetchTimeout(url, opts, timeout) {
     let controller = new AbortController();
     opts.signal = controller.signal;
-    return Promise.race([fetch(url, opts), this._timeout(timeout, controller)]);
+    return Promise.race([
+      lazy.fetch(url, opts),
+      this._timeout(timeout, controller),
+    ]);
   }
 
   /**
@@ -758,11 +765,11 @@ class RegionDetector {
    *   allows us to abort the request.
    */
   async _timeout(timeout, controller) {
-    await new Promise(resolve => setTimeout(resolve, timeout));
+    await new Promise(resolve => lazy.setTimeout(resolve, timeout));
     if (controller) {
       // Yield so it is the TIMEOUT that is returned and not
       // the result of the abort().
-      setTimeout(() => controller.abort(), 0);
+      lazy.setTimeout(() => controller.abort(), 0);
     }
     throw new Error("TIMEOUT");
   }
@@ -787,8 +794,8 @@ class RegionDetector {
    *   Whether we should continue the update check.
    */
   _needsUpdateCheck() {
-    let sinceUpdate = Math.round(Date.now() / 1000) - lastUpdated;
-    let needsUpdate = sinceUpdate >= updateDebounce;
+    let sinceUpdate = Math.round(Date.now() / 1000) - lazy.lastUpdated;
+    let needsUpdate = sinceUpdate >= lazy.updateDebounce;
     if (!needsUpdate) {
       log.info(`Ignoring update check, last seen ${sinceUpdate} seconds ago`);
     }
@@ -845,7 +852,7 @@ class RegionDetector {
     }
 
     if (this._wifiDataPromise) {
-      let data = LocationHelper.formatWifiAccessPoints(accessPoints);
+      let data = lazy.LocationHelper.formatWifiAccessPoints(accessPoints);
       this._wifiDataPromise(data);
       this._wifiDataPromise = null;
     }

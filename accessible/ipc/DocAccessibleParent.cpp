@@ -9,6 +9,7 @@
 #include "mozilla/a11y/Platform.h"
 #include "mozilla/dom/BrowserBridgeParent.h"
 #include "mozilla/dom/BrowserParent.h"
+#include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/StaticPrefs_accessibility.h"
 #include "xpcAccessibleDocument.h"
 #include "xpcAccEvents.h"
@@ -52,6 +53,36 @@ struct VTableSizer<IAccessible> {
 
 namespace a11y {
 uint64_t DocAccessibleParent::sMaxDocID = 0;
+
+DocAccessibleParent::DocAccessibleParent()
+    : RemoteAccessible(this),
+      mParentDoc(kNoParentDoc),
+#if defined(XP_WIN)
+      mEmulatedWindowHandle(nullptr),
+#endif  // defined(XP_WIN)
+      mTopLevel(false),
+      mTopLevelInContentProcess(false),
+      mShutdown(false),
+      mFocus(0),
+      mCaretId(0),
+      mCaretOffset(-1),
+      mIsCaretAtEndOfLine(false) {
+  sMaxDocID++;
+  mActorID = sMaxDocID;
+  MOZ_ASSERT(!LiveDocs().Get(mActorID));
+  LiveDocs().InsertOrUpdate(mActorID, this);
+}
+
+DocAccessibleParent::~DocAccessibleParent() {
+  LiveDocs().Remove(mActorID);
+  MOZ_ASSERT(mChildDocs.Length() == 0);
+  MOZ_ASSERT(!ParentDoc());
+}
+
+void DocAccessibleParent::SetBrowsingContext(
+    dom::CanonicalBrowsingContext* aBrowsingContext) {
+  mBrowsingContext = aBrowsingContext;
+}
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvShowEvent(
     const ShowEventData& aData, const bool& aFromUser) {
@@ -687,6 +718,7 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvRoleChangedEvent(
 
 mozilla::ipc::IPCResult DocAccessibleParent::RecvBindChildDoc(
     PDocAccessibleParent* aChildDoc, const uint64_t& aID) {
+  ACQUIRE_ANDROID_LOCK
   // One document should never directly be the child of another.
   // We should always have at least an outer doc accessible in between.
   MOZ_ASSERT(aID);
@@ -895,8 +927,12 @@ void DocAccessibleParent::Destroy() {
   }
 
   for (auto iter = mAccessibles.Iter(); !iter.Done(); iter.Next()) {
-    MOZ_ASSERT(iter.Get()->mProxy != this);
-    ProxyDestroyed(iter.Get()->mProxy);
+    RemoteAccessible* acc = iter.Get()->mProxy;
+    MOZ_ASSERT(acc != this);
+    if (acc->IsTable()) {
+      CachedTableAccessible::Invalidate(acc);
+    }
+    ProxyDestroyed(acc);
     iter.Remove();
   }
 
@@ -929,6 +965,14 @@ void DocAccessibleParent::Destroy() {
     parentDoc->RemoveChildDoc(thisDoc);
   } else if (IsTopLevel()) {
     GetAccService()->RemoteDocShutdown(this);
+  }
+}
+
+void DocAccessibleParent::ActorDestroy(ActorDestroyReason aWhy) {
+  MOZ_ASSERT(CheckDocTree());
+  if (!mShutdown) {
+    ACQUIRE_ANDROID_LOCK
+    Destroy();
   }
 }
 
@@ -1153,6 +1197,19 @@ void DocAccessibleParent::SelectionRanges(nsTArray<TextRange>* aRanges) const {
                   const_cast<RemoteAccessible*>(GetAccessible(data.EndID())),
                   data.EndOffset()));
   }
+}
+
+void DocAccessibleParent::URL(nsAString& aURL) const {
+  if (!mBrowsingContext) {
+    return;
+  }
+  nsAutoCString url;
+  nsCOMPtr<nsIURI> uri = mBrowsingContext->GetCurrentURI();
+  if (!uri) {
+    return;
+  }
+  uri->GetSpec(url);
+  CopyUTF8toUTF16(url, aURL);
 }
 
 }  // namespace a11y

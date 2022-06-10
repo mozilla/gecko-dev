@@ -20,7 +20,6 @@
 #include "mozilla/EffectSet.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
-#include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RestyleManager.h"
@@ -195,7 +194,7 @@ nsIContent::IMEState nsIContent::GetDesiredIMEState() {
     // Check for the special case where we're dealing with elements which don't
     // have the editable flag set, but are readwrite (such as text controls).
     if (!IsElement() ||
-        !AsElement()->State().HasState(NS_EVENT_STATE_READWRITE)) {
+        !AsElement()->State().HasState(ElementState::READWRITE)) {
       return IMEState(IMEEnabled::Disabled);
     }
   }
@@ -1040,20 +1039,15 @@ void nsIContent::SetAssignedSlot(HTMLSlotElement* aSlot) {
   ExtendedContentSlots()->mAssignedSlot = aSlot;
 }
 
-Maybe<uint32_t> nsIContent::ComputeFlatTreeIndexOf(
-    const nsINode* aPossibleChild) const {
-  if (!aPossibleChild) {
+static Maybe<uint32_t> DoComputeFlatTreeIndexOf(FlattenedChildIterator& aIter,
+                                                const nsINode* aPossibleChild) {
+  if (aPossibleChild->GetFlattenedTreeParentNode() != aIter.Parent()) {
     return Nothing();
   }
 
-  if (aPossibleChild->GetFlattenedTreeParentNode() != this) {
-    return Nothing();
-  }
-
-  FlattenedChildIterator iter(this);
   uint32_t index = 0u;
-  for (nsIContent* child = iter.GetNextChild(); child;
-       child = iter.GetNextChild()) {
+  for (nsIContent* child = aIter.GetNextChild(); child;
+       child = aIter.GetNextChild()) {
     if (child == aPossibleChild) {
       return Some(index);
     }
@@ -1062,6 +1056,22 @@ Maybe<uint32_t> nsIContent::ComputeFlatTreeIndexOf(
   }
 
   return Nothing();
+}
+
+Maybe<uint32_t> nsIContent::ComputeFlatTreeIndexOf(
+    const nsINode* aPossibleChild) const {
+  if (!aPossibleChild) {
+    return Nothing();
+  }
+
+  FlattenedChildIterator iter(this);
+  if (!iter.ShadowDOMInvolved()) {
+    auto index = ComputeIndexOf(aPossibleChild);
+    MOZ_ASSERT(DoComputeFlatTreeIndexOf(iter, aPossibleChild) == index);
+    return index;
+  }
+
+  return DoComputeFlatTreeIndexOf(iter, aPossibleChild);
 }
 
 #ifdef MOZ_DOM_LIST

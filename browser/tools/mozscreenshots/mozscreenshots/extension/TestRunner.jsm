@@ -17,17 +17,18 @@ const { AppConstants } = ChromeUtils.import(
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
-const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { Rect } = ChromeUtils.import("resource://gre/modules/Geometry.jsm");
 
+const lazy = {};
+
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "BrowserTestUtils",
   "resource://testing-common/BrowserTestUtils.jsm"
 );
 // Screenshot.jsm must be imported this way for xpcshell tests to work
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "Screenshot",
   "resource://mozscreenshots/Screenshot.jsm"
 );
@@ -108,7 +109,7 @@ var TestRunner = {
       screenshotPrefix += "-" + jobName;
     }
     screenshotPrefix += "_";
-    Screenshot.init(screenshotPath, this._extensionPath, screenshotPrefix);
+    lazy.Screenshot.init(screenshotPath, this._extensionPath, screenshotPrefix);
     this._libDir = this._extensionPath
       .QueryInterface(Ci.nsIFileURL)
       .file.clone();
@@ -149,8 +150,8 @@ var TestRunner = {
       .removeAttribute("remotecontrol");
 
     let selectedBrowser = browserWindow.gBrowser.selectedBrowser;
-    BrowserTestUtils.loadURI(selectedBrowser, HOME_PAGE);
-    await BrowserTestUtils.browserLoaded(selectedBrowser);
+    lazy.BrowserTestUtils.loadURI(selectedBrowser, HOME_PAGE);
+    await lazy.BrowserTestUtils.browserLoaded(selectedBrowser);
 
     for (let i = 0; i < this.combos.length; i++) {
       this.currentComboIndex = i;
@@ -243,7 +244,7 @@ var TestRunner = {
       gBrowser.removeTab(gBrowser.selectedTab, { animate: false });
     }
     gBrowser.unpinTab(gBrowser.selectedTab);
-    BrowserTestUtils.loadURI(
+    lazy.BrowserTestUtils.loadURI(
       gBrowser.selectedBrowser,
       "data:text/html;charset=utf-8,<h1>Done!"
     );
@@ -473,12 +474,12 @@ var TestRunner = {
     let filename =
       padLeft(this.currentComboIndex + 1, String(this.combos.length).length) +
       this._comboName(combo);
-    const imagePath = await Screenshot.captureExternal(filename);
+    const imagePath = await lazy.Screenshot.captureExternal(filename);
 
     let browserWindow = Services.wm.getMostRecentWindow("navigator:browser");
     await this._cropImage(
       browserWindow,
-      OS.Path.toFileURI(imagePath),
+      PathUtils.toFileURI(imagePath),
       bounds,
       rects,
       imagePath
@@ -557,7 +558,7 @@ var TestRunner = {
           fr.onload = e => {
             const buffer = new Uint8Array(e.target.result);
             // Save the file and complete the promise
-            OS.File.writeAtomic(targetPath, buffer, {}).then(resolve);
+            IOUtils.write(targetPath, buffer).then(resolve);
           };
           // Do the conversion
           fr.readAsArrayBuffer(blob);

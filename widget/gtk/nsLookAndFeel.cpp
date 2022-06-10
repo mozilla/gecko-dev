@@ -862,9 +862,6 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       aResult = ConvertGTKStepperStyleToMozillaScrollArrowStyle(scrollbar);
       break;
     }
-    case IntID::ScrollSliderStyle:
-      aResult = eScrollThumbStyle_Proportional;
-      break;
     case IntID::TreeOpenDelay:
       aResult = 1000;
       break;
@@ -1734,10 +1731,10 @@ void nsLookAndFeel::PerThemeData::Init() {
     }
 
     mThemedScrollbarThumbHover = ThemeColors::AdjustUnthemedScrollbarThumbColor(
-        mThemedScrollbarThumb, NS_EVENT_STATE_HOVER);
+        mThemedScrollbarThumb, dom::ElementState::HOVER);
     mThemedScrollbarThumbActive =
-        ThemeColors::AdjustUnthemedScrollbarThumbColor(mThemedScrollbarThumb,
-                                                       NS_EVENT_STATE_ACTIVE);
+        ThemeColors::AdjustUnthemedScrollbarThumbColor(
+            mThemedScrollbarThumb, dom::ElementState::ACTIVE);
   }
 
   // The label is not added to a parent widget, but shared for constructing

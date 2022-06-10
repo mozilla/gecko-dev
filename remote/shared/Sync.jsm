@@ -12,20 +12,22 @@ var EXPORTED_SYMBOLS = [
   "PollPromise",
 ];
 
-var { XPCOMUtils } = ChromeUtils.import(
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
+const lazy = {};
 
+XPCOMUtils.defineLazyModuleGetters(lazy, {
+  error: "chrome://remote/content/shared/webdriver/Errors.jsm",
   Log: "chrome://remote/content/shared/Log.jsm",
 });
 
-const { TYPE_REPEATING_SLACK } = Ci.nsITimer;
+const { TYPE_ONE_SHOT, TYPE_REPEATING_SLACK } = Ci.nsITimer;
 
-XPCOMUtils.defineLazyGetter(this, "logger", () =>
-  Log.get(Log.TYPES.REMOTE_AGENT)
+XPCOMUtils.defineLazyGetter(lazy, "logger", () =>
+  lazy.Log.get(lazy.Log.TYPES.REMOTE_AGENT)
 );
 
 /**
@@ -90,7 +92,7 @@ function Deferred() {
 /**
  * Wait for an event to be fired on a specified element.
  *
- * The returned promise is guaranteed to not be called before the
+ * The returned promise is guaranteed to not resolve before the
  * next event tick after the event listener is called, so that all
  * other event listeners for the element are executed before the
  * handler is executed.  For example:
@@ -109,53 +111,73 @@ function Deferred() {
  *     Indicates the event will be despatched to this subject,
  *     before it bubbles down to any EventTarget beneath it in the
  *     DOM tree.
- * @param {function=} checkFn
+ * @param {function=} [null] options.checkFn
  *     Called with the Event object as argument, should return true if the
  *     event is the expected one, or false if it should be ignored and
  *     listening should continue. If not specified, the first event with
  *     the specified name resolves the returned promise.
+ * @param {number=} [null] options.timeout
+ *     Timeout duration in milliseconds, if provided.
+ *     If specified, then the returned promise will be rejected with
+ *     TimeoutError, if not already resolved, after this duration has elapsed.
+ *     If not specified, then no timeout is used.
  * @param {boolean=} [false] options.mozSystemGroup
  *     Determines whether to add listener to the system group.
  * @param {boolean=} [false] options.wantUntrusted
  *     Receive synthetic events despatched by web content.
  *
- * @return {Promise.<Event>}
+ * @return {Promise<Event>}
+ *     Either fulfilled with the first described event, satisfying
+ *     options.checkFn if specified, or rejected with TimeoutError after
+ *     options.timeout milliseconds if specified.
  *
  * @throws {TypeError}
+ * @throws {RangeError}
  */
 function EventPromise(subject, eventName, options = {}) {
   const {
     capture = false,
     checkFn = null,
+    timeout = null,
     mozSystemGroup = false,
     wantUntrusted = false,
   } = options;
-
   if (
     !subject ||
     !("addEventListener" in subject) ||
     typeof eventName != "string" ||
     typeof capture != "boolean" ||
     (checkFn && typeof checkFn != "function") ||
+    (timeout !== null && typeof timeout != "number") ||
     typeof mozSystemGroup != "boolean" ||
     typeof wantUntrusted != "boolean"
   ) {
     throw new TypeError();
   }
+  if (timeout < 0) {
+    throw new RangeError();
+  }
 
   return new Promise((resolve, reject) => {
+    let timer;
+
+    function cleanUp() {
+      subject.removeEventListener(eventName, listener, capture);
+      timer?.cancel();
+    }
+
     function listener(event) {
-      logger.trace(`Received DOM event ${event.type} for ${event.target}`);
+      lazy.logger.trace(`Received DOM event ${event.type} for ${event.target}`);
       try {
         if (checkFn && !checkFn(event)) {
           return;
         }
       } catch (e) {
         // Treat an exception in the callback as a falsy value
-        logger.warn(`Event check failed: ${e.message}`);
+        lazy.logger.warn(`Event check failed: ${e.message}`);
       }
 
-      subject.removeEventListener(eventName, listener, capture);
+      cleanUp();
       executeSoon(() => resolve(event));
     }
 
@@ -164,6 +186,22 @@ function EventPromise(subject, eventName, options = {}) {
       mozSystemGroup,
       wantUntrusted,
     });
+
+    if (timeout !== null) {
+      timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      timer.init(
+        () => {
+          cleanUp();
+          reject(
+            new lazy.error.TimeoutError(
+              `EventPromise timed out after ${timeout} ms`
+            )
+          );
+        },
+        timeout,
+        TYPE_ONE_SHOT
+      );
+    }
   });
 }
 

@@ -468,15 +468,28 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   }
   masm.pushReturnAddress();
 
+  // Frame prologue. Push extra padding to ensure proper stack alignment.
+  //
+  // NOTE: if this changes, fix the Baseline bailout code too!
+  // See BaselineStackBuilder::calculatePrevFramePtr and
+  // BaselineStackBuilder::buildRectifierFrame (in BaselineBailouts.cpp).
+  static_assert(sizeof(Value) == 2 * sizeof(void*));
+  static_assert(JitStackAlignment == sizeof(Value));
+  masm.push(FramePointer);
+  masm.mov(StackPointer, FramePointer);
+  masm.push(FramePointer);  // Padding.
+
   // Copy number of actual arguments into r0 and r8.
-  masm.ma_ldr(
-      DTRAddr(sp, DtrOffImm(RectifierFrameLayout::offsetOfNumActualArgs())),
-      r0);
+  constexpr size_t FrameOffset = 2 * sizeof(void*);  // Frame pointer + padding.
+  constexpr size_t NargsOffset =
+      FrameOffset + RectifierFrameLayout::offsetOfNumActualArgs();
+  masm.ma_ldr(DTRAddr(sp, DtrOffImm(NargsOffset)), r0);
   masm.mov(r0, r8);
 
   // Load the number of |undefined|s to push into r6.
-  masm.ma_ldr(
-      DTRAddr(sp, DtrOffImm(RectifierFrameLayout::offsetOfCalleeToken())), r1);
+  constexpr size_t TokenOffset =
+      FrameOffset + RectifierFrameLayout::offsetOfCalleeToken();
+  masm.ma_ldr(DTRAddr(sp, DtrOffImm(TokenOffset)), r1);
   {
     ScratchRegisterScope scratch(masm);
     masm.ma_and(Imm32(CalleeTokenMask), r1, r6, scratch);
@@ -488,8 +501,9 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   // Get the topmost argument.
   {
     ScratchRegisterScope scratch(masm);
-    masm.ma_alu(sp, lsl(r8, 3), r3, OpAdd);  // r3 <- r3 + nargs * 8
-    masm.ma_add(r3, Imm32(sizeof(RectifierFrameLayout)), r3, scratch);
+    masm.ma_alu(sp, lsl(r8, 3), r3, OpAdd);  // r3 <- sp + nargs * 8
+    masm.ma_add(r3, Imm32(FrameOffset + sizeof(RectifierFrameLayout)), r3,
+                scratch);
   }
 
   {
@@ -537,7 +551,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   }
 
   // translate the framesize from values into bytes
-  masm.as_add(r6, r6, Imm8(1));
+  masm.as_add(r6, r6, Imm8(2));  // 2 for |this| + frame pointer and padding
   masm.ma_lsl(Imm32(3), r6, r6);
 
   // Construct sizeDescriptor.
@@ -569,46 +583,15 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       break;
   }
 
-  // arg1
-  //  ...
-  // argN
-  // num actual args
-  // callee token
-  // sizeDescriptor     <- sp now
-  // return address
-
-  // Remove the rectifier frame.
-  {
-    ScratchRegisterScope scratch(masm);
-    masm.ma_dtr(IsLoad, sp, Imm32(12), r4, scratch, PostIndex);
-  }
-
-  // arg1
-  //  ...
-  // argN               <- sp now; r4 <- frame descriptor
-  // num actual args
-  // callee token
-  // sizeDescriptor
-  // return address
-
-  // Discard pushed arguments.
-  masm.ma_alu(sp, lsr(r4, FRAMESIZE_SHIFT), sp, OpAdd);
-
+  masm.mov(FramePointer, StackPointer);
+  masm.pop(FramePointer);
   masm.ret();
 }
 
-static void PushBailoutFrame(MacroAssembler& masm, uint32_t frameClass,
-                             Register spArg) {
+static void PushBailoutFrame(MacroAssembler& masm, Register spArg) {
 #ifdef ENABLE_WASM_SIMD
 #  error "Needs more careful logic if SIMD is enabled"
 #endif
-
-  // the stack should look like:
-  // [IonFrame]
-  // bailoutFrame.registersnapshot
-  // bailoutFrame.fpsnapshot
-  // bailoutFrame.snapshotOffset
-  // bailoutFrame.frameSize
 
   // STEP 1a: Save our register sets to the stack so Bailout() can read
   // everything.
@@ -638,113 +621,41 @@ static void PushBailoutFrame(MacroAssembler& masm, uint32_t frameClass,
   }
   masm.finishFloatTransfer();
 
-  // STEP 1b: Push both the "return address" of the function call (the address
-  //          of the instruction after the call that we used to get here) as
-  //          well as the callee token onto the stack. The return address is
-  //          currently in r14. We will proceed by loading the callee token
-  //          into a sacrificial register <= r14, then pushing both onto the
-  //          stack.
-
-  // Now place the frameClass onto the stack, via a register.
-  masm.ma_mov(Imm32(frameClass), r4);
-  // And onto the stack. Since the stack is full, we need to put this one past
-  // the end of the current stack. Sadly, the ABI says that we need to always
-  // point to the lowest place that has been written. The OS is free to do
-  // whatever it wants below sp.
-  masm.startDataTransferM(IsStore, sp, DB, WriteBack);
-  // Set frameClassId_.
-  masm.transferReg(r4);
-  // Set tableOffset_; higher registers are stored at higher locations on the
-  // stack.
-  masm.transferReg(lr);
-  masm.finishDataTransfer();
-
+  // The current stack pointer is the first argument to jit::Bailout.
   masm.ma_mov(sp, spArg);
 }
 
-static void GenerateBailoutThunk(MacroAssembler& masm, uint32_t frameClass,
-                                 Label* bailoutTail) {
-  PushBailoutFrame(masm, frameClass, r0);
+static void GenerateBailoutThunk(MacroAssembler& masm, Label* bailoutTail) {
+  PushBailoutFrame(masm, r0);
 
-  // SP % 8 == 4
-  // STEP 1c: Call the bailout function, giving a pointer to the
-  //          structure we just blitted onto the stack.
-  const int sizeOfBailoutInfo = sizeof(void*) * 2;
-  masm.reserveStack(sizeOfBailoutInfo);
+  // Make space for Bailout's bailoutInfo outparam.
+  masm.reserveStack(sizeof(void*));
   masm.mov(sp, r1);
   using Fn = bool (*)(BailoutStack * sp, BaselineBailoutInfo * *info);
   masm.setupAlignedABICall();
 
-  // Decrement sp by another 4, so we keep alignment. Not Anymore! Pushing
-  // both the snapshotoffset as well as the: masm.as_sub(sp, sp, Imm8(4));
-
-  // Set the old (4-byte aligned) value of the sp as the first argument.
   masm.passABIArg(r0);
   masm.passABIArg(r1);
 
-  // Sp % 8 == 0
   masm.callWithABI<Fn, Bailout>(MoveOp::GENERAL,
                                 CheckUnsafeCallWithABI::DontCheckOther);
-  masm.ma_ldr(DTRAddr(sp, DtrOffImm(0)), r2);
-  {
-    ScratchRegisterScope scratch(masm);
-    masm.ma_add(sp, Imm32(sizeOfBailoutInfo), sp, scratch);
-  }
+  masm.pop(r2);  // Get the bailoutInfo outparam.
 
-  // Common size of a bailout frame.
-  uint32_t bailoutFrameSize = 0 + sizeof(void*)  // frameClass
-                              + sizeof(RegisterDump);
-
-  if (frameClass == NO_FRAME_SIZE_CLASS_ID) {
-    // Make sure the bailout frame size fits into the offset for a load.
-    masm.as_dtr(IsLoad, 32, Offset, r4, DTRAddr(sp, DtrOffImm(4)));
-    // Used to be: offsetof(BailoutStack, frameSize_)
-    // This structure is no longer available to us :(
-    // We add 12 to the bailoutFrameSize because:
-    // sizeof(uint32_t) for the tableOffset that was pushed onto the stack
-    // sizeof(uintptr_t) for the snapshotOffset;
-    // alignment to round the uintptr_t up to a multiple of 8 bytes.
-    ScratchRegisterScope scratch(masm);
-    masm.ma_add(sp, Imm32(bailoutFrameSize + 12), sp, scratch);
-    masm.as_add(sp, sp, O2Reg(r4));
-  } else {
-    ScratchRegisterScope scratch(masm);
-    uint32_t frameSize = FrameSizeClass::FromClass(frameClass).frameSize();
-    masm.ma_add(Imm32(  // The frame that was added when we entered the most
-                        // recent function.
-                    frameSize
-                    // The size of the "return address" that was dumped on
-                    // the stack.
-                    + sizeof(void*)
-                    // Everything else that was pushed on the stack.
-                    + bailoutFrameSize),
-                sp, scratch);
-  }
+  // Stack is:
+  //    [frame]
+  //    snapshotOffset
+  //    frameSize
+  //    [bailoutFrame]
+  //
+  // Remove both the bailout frame and the topmost Ion frame's stack.
+  static constexpr uint32_t BailoutDataSize = sizeof(RegisterDump);
+  masm.addPtr(Imm32(BailoutDataSize), StackPointer);
+  masm.pop(r4);                                     // frameSize
+  masm.addPtr(Imm32(sizeof(void*)), StackPointer);  // snapshotOffset
+  masm.addPtr(r4, StackPointer);
 
   // Jump to shared bailout tail. The BailoutInfo pointer has to be in r2.
   masm.jump(bailoutTail);
-}
-
-JitRuntime::BailoutTable JitRuntime::generateBailoutTable(MacroAssembler& masm,
-                                                          Label* bailoutTail,
-                                                          uint32_t frameClass) {
-  AutoCreatedBy acb(masm, "JitRuntime::generateBailoutTable");
-
-  uint32_t offset = startTrampolineCode(masm);
-
-  {
-    // Emit the table without any pools being inserted.
-    Label bailout;
-    AutoForbidPoolsAndNops afp(&masm, BAILOUT_TABLE_SIZE);
-    for (size_t i = 0; i < BAILOUT_TABLE_SIZE; i++) {
-      masm.ma_bl(&bailout);
-    }
-    masm.bind(&bailout);
-  }
-
-  GenerateBailoutThunk(masm, frameClass, bailoutTail);
-
-  return BailoutTable(offset, masm.currentOffset() - offset);
 }
 
 void JitRuntime::generateBailoutHandler(MacroAssembler& masm,
@@ -753,7 +664,7 @@ void JitRuntime::generateBailoutHandler(MacroAssembler& masm,
 
   bailoutHandlerOffset_ = startTrampolineCode(masm);
 
-  GenerateBailoutThunk(masm, NO_FRAME_SIZE_CLASS_ID, bailoutTail);
+  GenerateBailoutThunk(masm, bailoutTail);
 }
 
 bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,

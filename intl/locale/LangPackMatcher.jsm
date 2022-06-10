@@ -6,11 +6,13 @@
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   AddonManager: "resource://gre/modules/AddonManager.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
 if (Services.appinfo.processType !== Services.appinfo.PROCESS_TYPE_DEFAULT) {
@@ -148,7 +150,7 @@ const mockable = {
    */
   async getAvailableLangpacks() {
     try {
-      return AddonRepository.getAvailableLangpacks();
+      return lazy.AddonRepository.getAvailableLangpacks();
     } catch (error) {
       Cu.reportError(
         `Failed to get the list of available language packs: ${error?.message}`
@@ -164,7 +166,7 @@ const mockable = {
   async installLangPack(langPack) {
     let install;
     try {
-      install = await AddonManager.getInstallForURL(langPack.url, {
+      install = await lazy.AddonManager.getInstallForURL(langPack.url, {
         hash: langPack.hash,
         telemetryInfo: {
           source: "about:welcome",
@@ -371,7 +373,9 @@ async function getAvailableLocales() {
   // for lastFallbackLocale for it to be useful.
   if (defaultLocale != lastFallbackLocale) {
     let lastFallbackId = `langpack-${lastFallbackLocale}@firefox.mozilla.org`;
-    let lastFallbackInstalled = await AddonManager.getAddonByID(lastFallbackId);
+    let lastFallbackInstalled = await lazy.AddonManager.getAddonByID(
+      lastFallbackId
+    );
     if (!lastFallbackInstalled) {
       return availableLocales.filter(locale => locale != lastFallbackLocale);
     }

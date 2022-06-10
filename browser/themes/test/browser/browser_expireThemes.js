@@ -29,16 +29,16 @@ add_task(async function retainExpiredActiveTheme() {
     [
       kLushSoftID,
       {
-        version: "1.0",
-        path: "resource://builtin-themes/monochromatic/lush/soft/",
+        version: "1.1",
+        path: "resource://builtin-themes/colorways/2021lush/soft/",
         expiry: tomorrow,
       },
     ],
     [
       kLushBoldID,
       {
-        version: "1.0",
-        path: "resource://builtin-themes/monochromatic/lush/bold/",
+        version: "1.1",
+        path: "resource://builtin-themes/colorways/2021lush/bold/",
         expiry: tomorrow,
       },
     ],

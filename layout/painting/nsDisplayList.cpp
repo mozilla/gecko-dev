@@ -68,7 +68,6 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/EffectCompositor.h"
 #include "mozilla/EffectSet.h"
-#include "mozilla/EventStates.h"
 #include "mozilla/HashTable.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/OperatorNewExtensions.h"
@@ -2071,6 +2070,15 @@ void nsDisplayListBuilder::ReuseDisplayItem(nsDisplayItem* aItem) {
   aItem->SetReusedItem();
 }
 
+void nsDisplayListSet::CopyTo(const nsDisplayListSet& aDestination) const {
+  for (size_t i = 0; i < mLists.size(); ++i) {
+    auto* from = mLists[i];
+    auto* to = aDestination.mLists[i];
+
+    from->CopyTo(to);
+  }
+}
+
 void nsDisplayListSet::MoveTo(const nsDisplayListSet& aDestination) const {
   aDestination.BorderBackground()->AppendToTop(BorderBackground());
   aDestination.BlockBorderBackgrounds()->AppendToTop(BlockBorderBackgrounds());
@@ -3760,8 +3768,8 @@ bool nsDisplayThemedBackground::CreateWebRenderCommands(
 }
 
 bool nsDisplayThemedBackground::IsWindowActive() const {
-  EventStates docState = mFrame->GetContent()->OwnerDoc()->GetDocumentState();
-  return !docState.HasState(NS_DOCUMENT_STATE_WINDOW_INACTIVE);
+  DocumentState docState = mFrame->GetContent()->OwnerDoc()->GetDocumentState();
+  return !docState.HasState(DocumentState::WINDOW_INACTIVE);
 }
 
 void nsDisplayThemedBackground::ComputeInvalidationRegion(
@@ -5538,7 +5546,8 @@ nsDisplayStickyPosition::nsDisplayStickyPosition(
     const ActiveScrolledRoot* aContainerASR, bool aClippedToDisplayPort)
     : nsDisplayOwnLayer(aBuilder, aFrame, aList, aActiveScrolledRoot),
       mContainerASR(aContainerASR),
-      mClippedToDisplayPort(aClippedToDisplayPort) {
+      mClippedToDisplayPort(aClippedToDisplayPort),
+      mShouldFlatten(false) {
   MOZ_COUNT_CTOR(nsDisplayStickyPosition);
 }
 

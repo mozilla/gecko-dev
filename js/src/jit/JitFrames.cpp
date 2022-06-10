@@ -862,7 +862,7 @@ CalleeToken TraceCalleeToken(JSTracer* trc, CalleeToken token) {
 
 uintptr_t* JitFrameLayout::slotRef(SafepointSlotEntry where) {
   if (where.stack) {
-    return (uintptr_t*)((uint8_t*)this - where.slot);
+    return (uintptr_t*)((uint8_t*)this - IonFirstSlotOffset - where.slot);
   }
   return (uintptr_t*)((uint8_t*)argv() + where.slot);
 }
@@ -2468,10 +2468,7 @@ void AssertJitStackInvariants(JSContext* cx) {
                              "The rectifier frame should keep the alignment");
 
           size_t expectedFrameSize =
-              0
-#if defined(JS_CODEGEN_X86)
-              + sizeof(void*) /* frame pointer */
-#endif
+              sizeof(void*) /* frame pointer */
               + sizeof(Value) *
                     (frames.callee()->nargs() + 1 /* |this| argument */ +
                      frames.isConstructing() /* new.target */) +

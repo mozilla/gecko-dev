@@ -245,6 +245,8 @@ include = [
   "ScrollbarGutter",
   "ScrollDirection",
   "HyphenateCharacter",
+  "ComputedLinearStop",
+  "PiecewiseLinearFunction"
 ]
 item_types = ["enums", "structs", "unions", "typedefs", "functions", "constants"]
 renaming_overrides_prefixing = true
@@ -512,7 +514,6 @@ renaming_overrides_prefixing = true
 """
 
 "GenericColor" = """
-  static inline StyleGenericColor CurrentColor();
   static inline StyleGenericColor FromColor(nscolor);
   static inline StyleGenericColor Black();
   static inline StyleGenericColor White();

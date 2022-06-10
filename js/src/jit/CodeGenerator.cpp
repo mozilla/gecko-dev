@@ -926,6 +926,24 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       masm.jump(ool->rejoin());
       return;
     }
+    case CacheKind::CloseIter: {
+      IonCloseIterIC* closeIterIC = ic->asCloseIterIC();
+
+      saveLive(lir);
+
+      pushArg(closeIterIC->iter());
+      icInfo_[cacheInfoIndex].icOffsetForPush = pushArgWithPatch(ImmWord(-1));
+      pushArg(ImmGCPtr(gen->outerInfo().script()));
+
+      using Fn =
+          bool (*)(JSContext*, HandleScript, IonCloseIterIC*, HandleObject);
+      callVM<Fn, IonCloseIterIC::update>(lir);
+
+      restoreLive(lir);
+
+      masm.jump(ool->rejoin());
+      return;
+    }
     case CacheKind::Call:
     case CacheKind::TypeOf:
     case CacheKind::ToBool:
@@ -3719,10 +3737,15 @@ void CodeGenerator::visitOsrEntry(LOsrEntry* lir) {
   MOZ_ASSERT(masm.framePushed() == frameSize());
   masm.setFramePushed(0);
 
+  // Frame prologue.
+  masm.Push(FramePointer);
+  masm.moveStackPtrTo(FramePointer);
+
+  masm.reserveStack(frameSize() - sizeof(uintptr_t));
+  MOZ_ASSERT(masm.framePushed() == frameSize());
+
   // Ensure that the Ion frames is properly aligned.
   masm.assertStackAlignment(JitStackAlignment, 0);
-
-  masm.reserveStack(frameSize());
 }
 
 void CodeGenerator::visitOsrEnvironmentChain(LOsrEnvironmentChain* lir) {
@@ -6585,13 +6608,6 @@ bool CodeGenerator::generateBody() {
 
   const bool compilingWasm = gen->compilingWasm();
 
-#if defined(JS_ION_PERF)
-  PerfSpewer* perfSpewer = &perfSpewer_;
-  if (compilingWasm) {
-    perfSpewer = &gen->perfSpewer();
-  }
-#endif
-
   for (size_t i = 0; i < graph.numBlocks(); i++) {
     current = graph.getBlock(i);
 
@@ -6638,18 +6654,15 @@ bool CodeGenerator::generateBody() {
       }
     }
 
-#if defined(JS_ION_PERF)
-    if (!perfSpewer->startBasicBlock(current->mir(), masm)) {
-      return false;
-    }
-#endif
-
     for (LInstructionIterator iter = current->begin(); iter != current->end();
          iter++) {
       if (!alloc().ensureBallast()) {
         return false;
       }
 
+#ifdef JS_ION_PERF
+      perfSpewer_.recordInstruction(masm, iter->op());
+#endif
 #ifdef JS_JITSPEW
       JitSpewStart(JitSpew_Codegen, "                                # LIR=%s",
                    iter->opName());
@@ -6706,10 +6719,6 @@ bool CodeGenerator::generateBody() {
     if (masm.oom()) {
       return false;
     }
-
-#if defined(JS_ION_PERF)
-    perfSpewer->endBasicBlock(masm);
-#endif
   }
 
   JitSpew(JitSpew_Codegen, "==== END CodeGenerator::generateBody ====\n");
@@ -8071,13 +8080,13 @@ void CodeGenerator::visitWasmRegisterResult(LWasmRegisterResult* lir) {
 void CodeGenerator::visitWasmCall(LWasmCall* lir) {
   const MWasmCallBase* callBase = lir->callBase();
 
-  // If this call is in Wasm try code block, initialise a WasmTryNote for this
+  // If this call is in Wasm try code block, initialise a wasm::TryNote for this
   // call.
   bool inTry = callBase->inTry();
   if (inTry) {
     size_t tryNoteIndex = callBase->tryNoteIndex();
-    wasm::WasmTryNoteVector& tryNotes = masm.tryNotes();
-    wasm::WasmTryNote& tryNote = tryNotes[tryNoteIndex];
+    wasm::TryNoteVector& tryNotes = masm.tryNotes();
+    wasm::TryNote& tryNote = tryNotes[tryNoteIndex];
     tryNote.setTryBodyBegin(masm.currentOffset());
   }
 
@@ -8200,8 +8209,8 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
   if (inTry) {
     // Set the end of the try note range
     size_t tryNoteIndex = callBase->tryNoteIndex();
-    wasm::WasmTryNoteVector& tryNotes = masm.tryNotes();
-    wasm::WasmTryNote& tryNote = tryNotes[tryNoteIndex];
+    wasm::TryNoteVector& tryNotes = masm.tryNotes();
+    wasm::TryNote& tryNote = tryNotes[tryNoteIndex];
     tryNote.setTryBodyEnd(masm.currentOffset());
 
     // This instruction or the adjunct safepoint must be the last instruction
@@ -8233,8 +8242,8 @@ void CodeGenerator::visitWasmCallLandingPrePad(LWasmCallLandingPrePad* lir) {
   MOZ_RELEASE_ASSERT(*block->begin() == lir || (block->begin()->isMoveGroup() &&
                                                 *(++block->begin()) == lir));
 
-  wasm::WasmTryNoteVector& tryNotes = masm.tryNotes();
-  wasm::WasmTryNote& tryNote = tryNotes[mir->tryNoteIndex()];
+  wasm::TryNoteVector& tryNotes = masm.tryNotes();
+  wasm::TryNote& tryNote = tryNotes[mir->tryNoteIndex()];
   // Set the entry point for the call try note to be the beginning of this
   // block. The above assertions (and assertions in visitWasmCall) guarantee
   // that we are not skipping over instructions that should be executed.
@@ -12144,6 +12153,16 @@ void CodeGenerator::visitOptimizeSpreadCallCache(
   addIC(lir, allocateIC(ic));
 }
 
+void CodeGenerator::visitCloseIterCache(LCloseIterCache* lir) {
+  LiveRegisterSet liveRegs = lir->safepoint()->liveRegs();
+  Register iter = ToRegister(lir->iter());
+  Register temp = ToRegister(lir->temp0());
+  CompletionKind kind = CompletionKind(lir->mir()->completionKind());
+
+  IonCloseIterIC ic(liveRegs, iter, temp, kind);
+  addIC(lir, allocateIC(ic));
+}
+
 void CodeGenerator::visitIteratorMore(LIteratorMore* lir) {
   const Register obj = ToRegister(lir->iterator());
   const ValueOperand output = ToOutValue(lir);
@@ -12494,11 +12513,6 @@ bool CodeGenerator::generateWasm(
   masm.bind(&returnLabel_);
   wasm::GenerateFunctionEpilogue(masm, frameSize(), offsets);
 
-#if defined(JS_ION_PERF)
-  // Note the end of the inline code and start of the OOL code.
-  gen->perfSpewer().noteEndInlineCode(masm);
-#endif
-
   if (!generateOutOfLineCode()) {
     return false;
   }
@@ -12514,7 +12528,6 @@ bool CodeGenerator::generateWasm(
   MOZ_ASSERT(snapshots_.listSize() == 0);
   MOZ_ASSERT(snapshots_.RVATableSize() == 0);
   MOZ_ASSERT(recovers_.size() == 0);
-  MOZ_ASSERT(bailouts_.empty());
   MOZ_ASSERT(graph.numConstants() == 0);
   MOZ_ASSERT(osiIndices_.empty());
   MOZ_ASSERT(icList_.empty());
@@ -12571,10 +12584,6 @@ bool CodeGenerator::generate() {
     return false;
   }
 
-  if (frameClass_ != FrameSizeClass::None()) {
-    deoptTable_.emplace(gen->jitRuntime()->getBailoutTable(frameClass_));
-  }
-
   // Reset native => bytecode map table with top-level script and startPc.
   if (!addNativeToBytecodeEntry(startSite)) {
     return false;
@@ -12599,10 +12608,6 @@ bool CodeGenerator::generate() {
   }
 
   generateInvalidateEpilogue();
-#if defined(JS_ION_PERF)
-  // Note the end of the inline code and start of the OOL code.
-  perfSpewer_.noteEndInlineCode(masm);
-#endif
 
   // native => bytecode entries for OOL code will be added
   // by CodeGeneratorShared::generateOutOfLineCode
@@ -12711,10 +12716,6 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
   }
 
   uint32_t argumentSlots = (gen->outerInfo().nargs() + 1) * sizeof(Value);
-  uint32_t scriptFrameSize =
-      frameClass_ == FrameSizeClass::None()
-          ? frameDepth_
-          : FrameSizeClass::FromDepth(frameDepth_).frameSize();
 
   // We encode safepoints after the OSI-point offsets have been determined.
   if (!encodeSafepoints()) {
@@ -12724,11 +12725,11 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
   size_t numNurseryObjects = snapshot->nurseryObjects().length();
 
   IonScript* ionScript = IonScript::New(
-      cx, compilationId, graph.totalSlotCount(), argumentSlots, scriptFrameSize,
+      cx, compilationId, graph.localSlotsSize(), argumentSlots, frameDepth_,
       snapshots_.listSize(), snapshots_.RVATableSize(), recovers_.size(),
-      bailouts_.length(), graph.numConstants(), numNurseryObjects,
-      safepointIndices_.length(), osiIndices_.length(), icList_.length(),
-      runtimeData_.length(), safepoints_.size());
+      graph.numConstants(), numNurseryObjects, safepointIndices_.length(),
+      osiIndices_.length(), icList_.length(), runtimeData_.length(),
+      safepoints_.size());
   if (!ionScript) {
     return false;
   }
@@ -12886,7 +12887,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
 
 #if defined(JS_ION_PERF)
   if (PerfEnabled()) {
-    perfSpewer_.writeProfile(script, code, masm);
+    perfSpewer_.writeProfile(script, code);
   }
 #endif
 
@@ -12902,10 +12903,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
     ionScript->copySafepoints(&safepoints_);
   }
 
-  // for reconvering from an Ion Frame.
-  if (bailouts_.length()) {
-    ionScript->copyBailoutTable(&bailouts_[0]);
-  }
+  // for recovering from an Ion Frame.
   if (osiIndices_.length()) {
     ionScript->copyOsiIndices(&osiIndices_[0]);
   }

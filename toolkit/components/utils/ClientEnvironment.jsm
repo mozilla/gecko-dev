@@ -5,17 +5,21 @@
 "use strict";
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
+
+const lazy = {};
 
 /* eslint-disable prettier/prettier */
-ChromeUtils.defineModuleGetter(this, "ShellService", "resource:///modules/ShellService.jsm");
-ChromeUtils.defineModuleGetter(this, "AddonManager", "resource://gre/modules/AddonManager.jsm");
-ChromeUtils.defineModuleGetter(this, "TelemetryArchive", "resource://gre/modules/TelemetryArchive.jsm");
-ChromeUtils.defineModuleGetter(this, "TelemetryController", "resource://gre/modules/TelemetryController.jsm");
-ChromeUtils.defineModuleGetter(this, "UpdateUtils", "resource://gre/modules/UpdateUtils.jsm");
-ChromeUtils.defineModuleGetter(this, "AppConstants", "resource://gre/modules/AppConstants.jsm");
-ChromeUtils.defineModuleGetter(this, "AttributionCode", "resource:///modules/AttributionCode.jsm");
-ChromeUtils.defineModuleGetter(this, "WindowsVersionInfo", "resource://gre/modules/components-utils/WindowsVersionInfo.jsm");
-ChromeUtils.defineModuleGetter(this, "NormandyUtils", "resource://normandy/lib/NormandyUtils.jsm");
+ChromeUtils.defineModuleGetter(lazy, "ShellService", "resource:///modules/ShellService.jsm");
+ChromeUtils.defineModuleGetter(lazy, "AddonManager", "resource://gre/modules/AddonManager.jsm");
+ChromeUtils.defineModuleGetter(lazy, "TelemetryArchive", "resource://gre/modules/TelemetryArchive.jsm");
+ChromeUtils.defineModuleGetter(lazy, "TelemetryController", "resource://gre/modules/TelemetryController.jsm");
+ChromeUtils.defineModuleGetter(lazy, "UpdateUtils", "resource://gre/modules/UpdateUtils.jsm");
+ChromeUtils.defineModuleGetter(lazy, "AttributionCode", "resource:///modules/AttributionCode.jsm");
+ChromeUtils.defineModuleGetter(lazy, "WindowsVersionInfo", "resource://gre/modules/components-utils/WindowsVersionInfo.jsm");
+ChromeUtils.defineModuleGetter(lazy, "NormandyUtils", "resource://normandy/lib/NormandyUtils.jsm");
 /* eslint-enable prettier/prettier */
 
 var EXPORTED_SYMBOLS = ["ClientEnvironmentBase"];
@@ -39,7 +43,7 @@ class ClientEnvironmentBase {
 
   static get telemetry() {
     return (async () => {
-      const pings = await TelemetryArchive.promiseArchivedPingList();
+      const pings = await lazy.TelemetryArchive.promiseArchivedPingList();
 
       // get most recent ping per type
       const mostRecentPings = {};
@@ -58,9 +62,9 @@ class ClientEnvironmentBase {
       const telemetry = {};
       for (const key in mostRecentPings) {
         const ping = mostRecentPings[key];
-        telemetry[ping.type] = await TelemetryArchive.promiseArchivedPingById(
-          ping.id
-        );
+        telemetry[
+          ping.type
+        ] = await lazy.TelemetryArchive.promiseArchivedPingById(ping.id);
       }
       return telemetry;
     })();
@@ -73,7 +77,7 @@ class ClientEnvironmentBase {
     // the wrong telemetry types are accessed.
     let target = {};
     try {
-      target.main = TelemetryController.getCurrentPingData();
+      target.main = lazy.TelemetryController.getCurrentPingData();
     } catch (err) {
       Cu.reportError(err);
     }
@@ -101,7 +105,7 @@ class ClientEnvironmentBase {
   static get randomizationId() {
     let id = Services.prefs.getCharPref("app.normandy.user_id", "");
     if (!id) {
-      id = NormandyUtils.generateUuid();
+      id = lazy.NormandyUtils.generateUuid();
       Services.prefs.setCharPref("app.normandy.user_id", id);
     }
     return id;
@@ -112,11 +116,11 @@ class ClientEnvironmentBase {
   }
 
   static get channel() {
-    return UpdateUtils.getUpdateChannel(false);
+    return lazy.UpdateUtils.getUpdateChannel(false);
   }
 
   static get isDefaultBrowser() {
-    return ShellService.isDefaultBrowser();
+    return lazy.ShellService.isDefaultBrowser();
   }
 
   static get searchEngine() {
@@ -147,7 +151,7 @@ class ClientEnvironmentBase {
 
   static get addons() {
     return (async () => {
-      const addons = await AddonManager.getAllAddons();
+      const addons = await lazy.AddonManager.getAllAddons();
       return addons.reduce((acc, addon) => {
         const {
           id,
@@ -166,7 +170,7 @@ class ClientEnvironmentBase {
 
   static get plugins() {
     return (async () => {
-      const plugins = await AddonManager.getAddonsByTypes(["plugin"]);
+      const plugins = await lazy.AddonManager.getAddonsByTypes(["plugin"]);
       return plugins.reduce((acc, plugin) => {
         const { name, description, version } = plugin;
         acc[name] = { name, description, version };
@@ -227,7 +231,7 @@ class ClientEnvironmentBase {
           return null;
         }
 
-        return WindowsVersionInfo.get({ throwOnError: false }).buildNumber;
+        return lazy.WindowsVersionInfo.get({ throwOnError: false }).buildNumber;
       },
 
       get macVersion() {
@@ -256,7 +260,7 @@ class ClientEnvironmentBase {
   }
 
   static get attribution() {
-    return AttributionCode.getAttrDataAsync();
+    return lazy.AttributionCode.getAttrDataAsync();
   }
 
   static get appinfo() {

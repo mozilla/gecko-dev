@@ -1,12 +1,10 @@
-#[macro_use]
-extern crate nom;
-
 use nom::{
-  IResult,
+  bytes::complete::{is_a, tag, take_till, take_while},
+  character::complete::{alphanumeric1 as alphanumeric, char, space0 as space},
   combinator::opt,
-  bytes::complete::{take_while, is_a},
-  sequence::{delimited, terminated},
-  character::complete::{char, alphanumeric1 as alphanumeric, space0 as space}
+  multi::many0,
+  sequence::{delimited, pair, terminated, tuple},
+  IResult,
 };
 
 use std::collections::HashMap;
@@ -24,24 +22,26 @@ fn space_or_line_ending(i: &str) -> IResult<&str, &str> {
 }
 
 fn category(i: &str) -> IResult<&str, &str> {
-  terminated(delimited(char('['), take_while(|c| c != ']'), char(']')), opt(is_a(" \r\n")))(i)
+  terminated(
+    delimited(char('['), take_while(|c| c != ']'), char(']')),
+    opt(is_a(" \r\n")),
+  )(i)
 }
 
-named!(key_value    <&str,(&str,&str)>,
-  do_parse!(
-    key: alphanumeric                              >>
-         opt!(space)                               >>
-         tag!("=")                               >>
-         opt!(space)                               >>
-    val: take_till!(is_line_ending_or_comment)   >>
-         opt!(space)                               >>
-         opt!(pair!(tag!(";"), not_line_ending)) >>
-         opt!(space_or_line_ending)                >>
-    (key, val)
-  )
-);
+fn key_value(i: &str) -> IResult<&str, (&str, &str)> {
+  let (i, key) = alphanumeric(i)?;
+  let (i, _) = tuple((opt(space), tag("="), opt(space)))(i)?;
+  let (i, val) = take_till(is_line_ending_or_comment)(i)?;
+  let (i, _) = opt(space)(i)?;
+  let (i, _) = opt(pair(tag(";"), not_line_ending))(i)?;
+  let (i, _) = opt(space_or_line_ending)(i)?;
 
-named!(keys_and_values_aggregator<&str, Vec<(&str, &str)> >, many0!(key_value));
+  Ok((i, (key, val)))
+}
+
+fn keys_and_values_aggregator(i: &str) -> IResult<&str, Vec<(&str, &str)>> {
+  many0(key_value)(i)
+}
 
 fn keys_and_values(input: &str) -> IResult<&str, HashMap<&str, &str>> {
   match keys_and_values_aggregator(input) {
@@ -50,11 +50,13 @@ fn keys_and_values(input: &str) -> IResult<&str, HashMap<&str, &str>> {
   }
 }
 
-named!(category_and_keys<&str,(&str,HashMap<&str,&str>)>,
-  pair!(category, keys_and_values)
-);
+fn category_and_keys(i: &str) -> IResult<&str, (&str, HashMap<&str, &str>)> {
+  pair(category, keys_and_values)(i)
+}
 
-named!(categories_aggregator<&str, Vec<(&str, HashMap<&str,&str>)> >, many0!(category_and_keys));
+fn categories_aggregator(i: &str) -> IResult<&str, Vec<(&str, HashMap<&str, &str>)>> {
+  many0(category_and_keys)(i)
+}
 
 fn categories(input: &str) -> IResult<&str, HashMap<&str, HashMap<&str, &str>>> {
   match categories_aggregator(input) {

@@ -1379,7 +1379,7 @@ static bool BoundToAsyncStack(JSContext* cx, unsigned argc, Value* vp) {
   RootedObject options(
       cx, &GetFunctionNativeReserved(&args.callee(), 1).toObject());
 
-  RootedSavedFrame stack(cx, nullptr);
+  Rooted<SavedFrame*> stack(cx, nullptr);
   bool isExplicit;
 
   RootedValue v(cx);
@@ -3281,7 +3281,7 @@ static const char* TryNoteName(TryNoteKind kind) {
     return false;
   }
 
-  for (const TryNote& tn : script->trynotes()) {
+  for (const js::TryNote& tn : script->trynotes()) {
     if (!sp->jsprintf(" %-16s %6u %8u %8u\n", TryNoteName(tn.kind()),
                       tn.stackDepth, tn.start, tn.start + tn.length)) {
       return false;
@@ -4523,11 +4523,9 @@ static void WorkerMain(UniquePtr<WorkerInput> input) {
     }
 
     JS::CompileOptions options(cx);
-    options
-        .setFileAndLine("<string>", 1)
+    options.setFileAndLine("<string>", 1)
         .setIsRunOnce(true)
         .setEagerDelazificationStrategy(defaultDelazificationMode);
-
 
     AutoReportException are(cx);
     JS::SourceText<char16_t> srcBuf;
@@ -5559,7 +5557,7 @@ static bool RegisterModule(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   ShellContext* sc = GetShellContext(cx);
-  RootedModuleObject module(
+  Rooted<ModuleObject*> module(
       cx, args[1].toObject().as<ShellModuleObjectWrapper>().get());
 
   RootedAtom specifier(cx, AtomizeString(cx, args[0].toString()));
@@ -5587,10 +5585,10 @@ static bool RegisterModule(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 static ModuleEnvironmentObject* GetModuleInitialEnvironment(
-    JSContext* cx, HandleModuleObject module) {
+    JSContext* cx, Handle<ModuleObject*> module) {
   // Use the initial environment so that tests can check bindings exists
   // before they have been instantiated.
-  RootedModuleEnvironmentObject env(cx, &module->initialEnvironment());
+  Rooted<ModuleEnvironmentObject*> env(cx, &module->initialEnvironment());
   MOZ_ASSERT(env);
   return env;
 }
@@ -5609,15 +5607,15 @@ static bool GetModuleEnvironmentNames(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedModuleObject module(
+  Rooted<ModuleObject*> module(
       cx, args[0].toObject().as<ShellModuleObjectWrapper>().get());
   if (module->hadEvaluationError()) {
     JS_ReportErrorASCII(cx, "Module environment unavailable");
     return false;
   }
 
-  RootedModuleEnvironmentObject env(cx,
-                                    GetModuleInitialEnvironment(cx, module));
+  Rooted<ModuleEnvironmentObject*> env(cx,
+                                       GetModuleInitialEnvironment(cx, module));
   Rooted<IdVector> ids(cx, IdVector(cx));
   if (!JS_Enumerate(cx, env, &ids)) {
     return false;
@@ -5661,15 +5659,15 @@ static bool GetModuleEnvironmentValue(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedModuleObject module(
+  Rooted<ModuleObject*> module(
       cx, args[0].toObject().as<ShellModuleObjectWrapper>().get());
   if (module->hadEvaluationError()) {
     JS_ReportErrorASCII(cx, "Module environment unavailable");
     return false;
   }
 
-  RootedModuleEnvironmentObject env(cx,
-                                    GetModuleInitialEnvironment(cx, module));
+  Rooted<ModuleEnvironmentObject*> env(cx,
+                                       GetModuleInitialEnvironment(cx, module));
   RootedString name(cx, args[1].toString());
   RootedId id(cx);
   if (!JS_StringToId(cx, name, &id)) {
@@ -7028,6 +7026,13 @@ static bool NewGlobal(JSContext* cx, unsigned argc, Value* vp) {
     }
     if (v.isBoolean()) {
       creationOptions.setCoopAndCoepEnabled(v.toBoolean());
+    }
+
+    if (!JS_GetProperty(cx, opts, "freezeBuiltins", &v)) {
+      return false;
+    }
+    if (v.isBoolean()) {
+      creationOptions.setFreezeBuiltins(v.toBoolean());
     }
 
     // On the web, the SharedArrayBuffer constructor is not installed as a
@@ -9508,6 +9513,9 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "         (default false).\n"
 "      useWindowProxy: the global will be created with a WindowProxy attached. In this\n"
 "          case, the WindowProxy will be returned.\n"
+"      freezeBuiltins: certain builtin constructors will be frozen when created and\n"
+"          their prototypes will be sealed. These constructors will be defined on the\n"
+"          global as non-configurable and non-writable.\n"
 "      immutablePrototype: whether the global's prototype is immutable.\n"
 "      principal: if present, its value converted to a number must be an\n"
 "         integer that fits in 32 bits; use that as the new realm's\n"
@@ -10911,8 +10919,8 @@ static bool OptionFailure(const char* option, const char* str) {
       const char* code = codeChunks.front();
 
       JS::CompileOptions opts(cx);
-      opts.setFileAndLine("-e", 1)
-          .setEagerDelazificationStrategy(defaultDelazificationMode);
+      opts.setFileAndLine("-e", 1).setEagerDelazificationStrategy(
+          defaultDelazificationMode);
 
       JS::SourceText<Utf8Unit> srcBuf;
       if (!srcBuf.init(cx, code, strlen(code), JS::SourceOwnership::Borrowed)) {

@@ -5552,8 +5552,7 @@ bool nsContentUtils::SchemeIs(nsIURI* aURI, const char* aScheme) {
 }
 
 bool nsContentUtils::IsExpandedPrincipal(nsIPrincipal* aPrincipal) {
-  nsCOMPtr<nsIExpandedPrincipal> ep = do_QueryInterface(aPrincipal);
-  return !!ep;
+  return aPrincipal && aPrincipal->GetIsExpandedPrincipal();
 }
 
 bool nsContentUtils::IsSystemOrExpandedPrincipal(nsIPrincipal* aPrincipal) {
@@ -6813,12 +6812,12 @@ static void ReportPatternCompileFailure(nsAString& aPattern,
                                         JS::MutableHandle<JS::Value> error,
                                         JSContext* cx) {
   JS::AutoSaveExceptionState savedExc(cx);
-  JS::RootedObject exnObj(cx, &error.toObject());
-  JS::RootedValue messageVal(cx);
+  JS::Rooted<JSObject*> exnObj(cx, &error.toObject());
+  JS::Rooted<JS::Value> messageVal(cx);
   if (!JS_GetProperty(cx, exnObj, "message", &messageVal)) {
     return;
   }
-  JS::RootedString messageStr(cx, messageVal.toString());
+  JS::Rooted<JSString*> messageStr(cx, messageVal.toString());
   MOZ_ASSERT(messageStr);
 
   AutoTArray<nsString, 2> strings;
@@ -6854,7 +6853,7 @@ Maybe<bool> nsContentUtils::IsPatternMatching(nsAString& aValue,
 
   // Check if the pattern by itself is valid first, and not that it only becomes
   // valid once we add ^(?: and )$.
-  JS::RootedValue error(cx);
+  JS::Rooted<JS::Value> error(cx);
   if (!JS::CheckRegExpSyntax(
           cx, static_cast<char16_t*>(aPattern.BeginWriting()),
           aPattern.Length(), JS::RegExpFlag::Unicode, &error)) {
@@ -6991,7 +6990,8 @@ void nsContentUtils::FireMutationEventsForDirectParsing(
 }
 
 /* static */
-const Document* nsContentUtils::GetInProcessSubtreeRootDocument(const Document* aDoc) {
+const Document* nsContentUtils::GetInProcessSubtreeRootDocument(
+    const Document* aDoc) {
   if (!aDoc) {
     return nullptr;
   }
@@ -8121,31 +8121,18 @@ void nsContentUtils::TransferableToIPCTransferable(
       }
 
       if (blobImpl) {
-        IPCDataTransferData data;
-        IPCBlob ipcBlob;
-
         // If we failed to create the blob actor, then this blob probably
         // can't get the file size for the underlying file, ignore it for
         // now. TODO pass this through anyway.
-        if (aChild) {
-          nsresult rv = IPCBlobUtils::Serialize(blobImpl, aChild, ipcBlob);
-          if (NS_WARN_IF(NS_FAILED(rv))) {
-            continue;
-          }
-
-          data = ipcBlob;
-        } else if (aParent) {
-          nsresult rv = IPCBlobUtils::Serialize(blobImpl, aParent, ipcBlob);
-          if (NS_WARN_IF(NS_FAILED(rv))) {
-            continue;
-          }
-
-          data = ipcBlob;
+        IPCBlob ipcBlob;
+        nsresult rv = IPCBlobUtils::Serialize(blobImpl, ipcBlob);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          continue;
         }
 
         IPCDataTransferItem* item = aIPCDataTransfer->items().AppendElement();
         item->flavor() = flavorStr;
-        item->data() = data;
+        item->data() = ipcBlob;
         item->dataType() = TransferableDataType::Blob;
       }
     }
@@ -10002,8 +9989,11 @@ void nsContentUtils::StructuredClone(JSContext* aCx, nsIGlobalObject* aGlobal,
   }
 
   JS::CloneDataPolicy clonePolicy;
+  // We are definitely staying in the same agent cluster.
   clonePolicy.allowIntraClusterClonableSharedObjects();
-  clonePolicy.allowSharedMemoryObjects();
+  if (aGlobal->IsSharedMemoryAllowed()) {
+    clonePolicy.allowSharedMemoryObjects();
+  }
 
   StructuredCloneHolder holder(StructuredCloneHolder::CloningSupported,
                                StructuredCloneHolder::TransferringSupported,
@@ -10376,7 +10366,7 @@ bool nsContentUtils::IsOverridingWindowName(const nsAString& aName) {
 
 template <prototypes::ID PrototypeID, class NativeType, typename T>
 static Result<Ok, nsresult> ExtractExceptionValues(
-    JSContext* aCx, JS::HandleObject aObj, nsAString& aSourceSpecOut,
+    JSContext* aCx, JS::Handle<JSObject*> aObj, nsAString& aSourceSpecOut,
     uint32_t* aLineOut, uint32_t* aColumnOut, nsString& aMessageOut) {
   AssertStaticUnwrapOK<PrototypeID>();
   RefPtr<T> exn;
@@ -10525,7 +10515,7 @@ bool nsContentUtils::StringifyJSON(JSContext* aCx,
                                    nsAString& aOutStr) {
   MOZ_ASSERT(aCx);
   aOutStr.Truncate();
-  JS::RootedValue value(aCx, aValue.get());
+  JS::Rooted<JS::Value> value(aCx, aValue.get());
   nsAutoString serializedValue;
   NS_ENSURE_TRUE(JS_Stringify(aCx, &value, nullptr, JS::NullHandleValue,
                               JSONCreator, &serializedValue),

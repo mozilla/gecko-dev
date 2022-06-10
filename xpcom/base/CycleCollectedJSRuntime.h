@@ -368,14 +368,15 @@ class CycleCollectedJSRuntime {
 
   void RunIdleTimeGCTask() {
     if (HasPendingIdleGCTask()) {
-      JS::RunIdleTimeGCTask(Runtime());
+      JS::MaybeRunNurseryCollection(Runtime(),
+                                    JS::GCReason::EAGER_NURSERY_COLLECTION);
       ClearPendingIdleGCTask();
     }
   }
 
   bool IsIdleGCTaskNeeded() {
     return !HasPendingIdleGCTask() && Runtime() &&
-           JS::IsIdleGCTaskNeeded(Runtime());
+           JS::WantEagerMinorGC(Runtime()) != JS::GCReason::NO_REASON;
   }
 
  public:

@@ -6,13 +6,15 @@
 
 var EXPORTED_SYMBOLS = ["DialogHandler"];
 
-var { XPCOMUtils } = ChromeUtils.import(
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   EventEmitter: "resource://gre/modules/EventEmitter.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
 const DIALOG_TYPES = {
@@ -34,7 +36,7 @@ const DIALOG_TYPES = {
  */
 class DialogHandler {
   constructor(browser) {
-    EventEmitter.decorate(this);
+    lazy.EventEmitter.decorate(this);
     this._dialog = null;
     this._browser = browser;
 

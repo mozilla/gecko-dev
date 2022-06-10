@@ -12,10 +12,12 @@ var EXPORTED_SYMBOLS = ["Logger"];
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   ObjectUtils: "resource://gre/modules/ObjectUtils.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
 var Logger = {
@@ -86,7 +88,7 @@ var Logger = {
   },
 
   AssertEqual(got, expected, msg) {
-    if (!ObjectUtils.deepEqual(got, expected)) {
+    if (!lazy.ObjectUtils.deepEqual(got, expected)) {
       throw new Error(
         "ASSERTION FAILED! " +
           msg +

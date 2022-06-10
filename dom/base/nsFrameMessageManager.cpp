@@ -224,26 +224,14 @@ void MessageManagerCallback::DoGetRemoteType(nsACString& aRemoteType,
   parent->GetRemoteType(aRemoteType, aError);
 }
 
-bool MessageManagerCallback::BuildClonedMessageDataForParent(
-    ContentParent* aParent, StructuredCloneData& aData,
-    ClonedMessageData& aClonedData) {
-  return aData.BuildClonedMessageDataForParent(aParent, aClonedData);
+bool MessageManagerCallback::BuildClonedMessageData(
+    StructuredCloneData& aData, ClonedMessageData& aClonedData) {
+  return aData.BuildClonedMessageData(aClonedData);
 }
 
-bool MessageManagerCallback::BuildClonedMessageDataForChild(
-    ContentChild* aChild, StructuredCloneData& aData,
-    ClonedMessageData& aClonedData) {
-  return aData.BuildClonedMessageDataForChild(aChild, aClonedData);
-}
-
-void mozilla::dom::ipc::UnpackClonedMessageDataForParent(
+void mozilla::dom::ipc::UnpackClonedMessageData(
     const ClonedMessageData& aClonedData, StructuredCloneData& aData) {
-  aData.BorrowFromClonedMessageDataForParent(aClonedData);
-}
-
-void mozilla::dom::ipc::UnpackClonedMessageDataForChild(
-    const ClonedMessageData& aClonedData, StructuredCloneData& aData) {
-  aData.BorrowFromClonedMessageDataForChild(aClonedData);
+  aData.BorrowFromClonedMessageData(aClonedData);
 }
 
 void nsFrameMessageManager::AddMessageListener(const nsAString& aMessageName,
@@ -429,8 +417,8 @@ bool nsFrameMessageManager::GetParamsForMessage(JSContext* aCx,
                                                 const JS::Value& aTransfer,
                                                 StructuredCloneData& aData) {
   // First try to use structured clone on the whole thing.
-  JS::RootedValue v(aCx, aValue);
-  JS::RootedValue t(aCx, aTransfer);
+  JS::Rooted<JS::Value> v(aCx, aValue);
+  JS::Rooted<JS::Value> t(aCx, aTransfer);
   ErrorResult rv;
   aData.Write(aCx, v, t, JS::CloneDataPolicy(), rv);
   if (!rv.Failed()) {
@@ -896,7 +884,7 @@ void nsFrameMessageManager::Disconnect(bool aRemoveFromParent) {
 }
 
 void nsFrameMessageManager::SetInitialProcessData(
-    JS::HandleValue aInitialData) {
+    JS::Handle<JS::Value> aInitialData) {
   MOZ_ASSERT(!mChrome);
   MOZ_ASSERT(mIsProcessManager);
   MOZ_ASSERT(aInitialData.isObject());
@@ -909,14 +897,14 @@ void nsFrameMessageManager::GetInitialProcessData(
   MOZ_ASSERT(mIsProcessManager);
   MOZ_ASSERT_IF(mChrome, IsBroadcaster());
 
-  JS::RootedValue init(aCx, mInitialProcessData);
+  JS::Rooted<JS::Value> init(aCx, mInitialProcessData);
   if (mChrome && init.isUndefined()) {
     // We create the initial object in the junk scope. If we created it in a
     // normal realm, that realm would leak until shutdown.
-    JS::RootedObject global(aCx, xpc::PrivilegedJunkScope());
+    JS::Rooted<JSObject*> global(aCx, xpc::PrivilegedJunkScope());
     JSAutoRealm ar(aCx, global);
 
-    JS::RootedObject obj(aCx, JS_NewPlainObject(aCx));
+    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
     if (!obj) {
       aError.NoteJSContextException(aCx);
       return;
@@ -1218,7 +1206,7 @@ void nsMessageManagerScriptExecutor::LoadScriptInternal(
           mAnonymousGlobalScopes.AppendElement(scope);
         }
       } else {
-        JS::RootedValue rval(cx);
+        JS::Rooted<JS::Value> rval(cx);
         JS::RootedVector<JSObject*> envChain(cx);
         if (!envChain.append(aMessageManager)) {
           return;
@@ -1471,7 +1459,7 @@ class ChildProcessMessageManagerCallback : public MessageManagerCallback {
       return true;
     }
     ClonedMessageData data;
-    if (!BuildClonedMessageDataForChild(cc, aData, data)) {
+    if (!BuildClonedMessageData(aData, data)) {
       return false;
     }
     return cc->SendSyncMessage(PromiseFlatString(aMessage), data, aRetVal);
@@ -1484,7 +1472,7 @@ class ChildProcessMessageManagerCallback : public MessageManagerCallback {
       return NS_OK;
     }
     ClonedMessageData data;
-    if (!BuildClonedMessageDataForChild(cc, aData, data)) {
+    if (!BuildClonedMessageData(aData, data)) {
       return NS_ERROR_DOM_DATA_CLONE_ERR;
     }
     if (!cc->SendAsyncMessage(PromiseFlatString(aMessage), data)) {

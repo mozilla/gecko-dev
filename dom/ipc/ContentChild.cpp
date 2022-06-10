@@ -18,7 +18,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/BenchmarkStorageChild.h"
-#include "mozilla/ContentBlocking.h"
 #include "mozilla/FOGIPC.h"
 #include "GMPServiceChild.h"
 #include "Geolocation.h"
@@ -49,6 +48,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/StorageAccessAPIHelper.h"
 #include "mozilla/TelemetryIPC.h"
 #include "mozilla/Unused.h"
 #include "mozilla/WebBrowserPersistDocumentChild.h"
@@ -526,14 +526,14 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage) {
       jsapi.Init();
       JSContext* cx = jsapi.cx();
 
-      JS::RootedValue stack(cx);
+      JS::Rooted<JS::Value> stack(cx);
       rv = scriptError->GetStack(&stack);
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (stack.isObject()) {
         // Because |stack| might be a cross-compartment wrapper, we can't use it
         // with JSAutoRealm. Use the stackGlobal for that.
-        JS::RootedValue stackGlobal(cx);
+        JS::Rooted<JS::Value> stackGlobal(cx);
         rv = scriptError->GetStackGlobal(&stackGlobal);
         NS_ENSURE_SUCCESS(rv, rv);
 
@@ -547,7 +547,7 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage) {
         }
 
         ClonedMessageData cloned;
-        if (!data.BuildClonedMessageDataForChild(mChild, cloned)) {
+        if (!data.BuildClonedMessageData(cloned)) {
           return NS_ERROR_FAILURE;
         }
 
@@ -1389,7 +1389,7 @@ void ContentChild::InitXPCOM(
       MOZ_CRASH();
     }
     ErrorResult rv;
-    JS::RootedValue data(jsapi.cx());
+    JS::Rooted<JS::Value> data(jsapi.cx());
     mozilla::dom::ipc::StructuredCloneData id;
     id.Copy(aInitialData);
     id.Read(jsapi.cx(), &data, rv);
@@ -2342,7 +2342,7 @@ mozilla::ipc::IPCResult ContentChild::RecvAsyncMessage(
       nsFrameMessageManager::GetChildProcessManager();
   if (cpm) {
     StructuredCloneData data;
-    ipc::UnpackClonedMessageDataForChild(aData, data);
+    ipc::UnpackClonedMessageData(aData, data);
     cpm->ReceiveMessage(cpm, nullptr, aMsg, false, &data, nullptr,
                         IgnoreErrors());
   }
@@ -3621,8 +3621,8 @@ mozilla::ipc::IPCResult ContentChild::RecvOnAllowAccessFor(
         aReason) {
   MOZ_ASSERT(!aContext.IsNull(), "Browsing context cannot be null");
 
-  ContentBlocking::OnAllowAccessFor(aContext.GetMaybeDiscarded(),
-                                    aTrackingOrigin, aCookieBehavior, aReason);
+  StorageAccessAPIHelper::OnAllowAccessFor(
+      aContext.GetMaybeDiscarded(), aTrackingOrigin, aCookieBehavior, aReason);
 
   return IPC_OK();
 }
@@ -4571,7 +4571,8 @@ NS_IMETHODIMP ContentChild::GetExistingActor(const nsACString& aName,
 }
 
 already_AddRefed<JSActor> ContentChild::InitJSActor(
-    JS::HandleObject aMaybeActor, const nsACString& aName, ErrorResult& aRv) {
+    JS::Handle<JSObject*> aMaybeActor, const nsACString& aName,
+    ErrorResult& aRv) {
   RefPtr<JSProcessActorChild> actor;
   if (aMaybeActor.get()) {
     aRv = UNWRAP_OBJECT(JSProcessActorChild, aMaybeActor.get(), actor);
@@ -4594,12 +4595,12 @@ IPCResult ContentChild::RecvRawMessage(const JSActorMessageMeta& aMeta,
   Maybe<StructuredCloneData> data;
   if (aData) {
     data.emplace();
-    data->BorrowFromClonedMessageDataForChild(*aData);
+    data->BorrowFromClonedMessageData(*aData);
   }
   Maybe<StructuredCloneData> stack;
   if (aStack) {
     stack.emplace();
-    stack->BorrowFromClonedMessageDataForChild(*aStack);
+    stack->BorrowFromClonedMessageData(*aStack);
   }
   ReceiveRawMessage(aMeta, std::move(data), std::move(stack));
   return IPC_OK();

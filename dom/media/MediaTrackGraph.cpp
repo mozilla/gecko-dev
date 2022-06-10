@@ -3092,6 +3092,16 @@ void MediaInputPort::Disconnect() {
   mGraph->SetTrackOrderDirty();
 }
 
+MediaTrack* MediaInputPort::GetSource() const {
+  mGraph->AssertOnGraphThreadOrNotRunning();
+  return mSource;
+}
+
+ProcessedMediaTrack* MediaInputPort::GetDestination() const {
+  mGraph->AssertOnGraphThreadOrNotRunning();
+  return mDest;
+}
+
 MediaInputPort::InputInterval MediaInputPort::GetNextInputInterval(
     MediaInputPort const* aPort, GraphTime aTime) {
   InputInterval result = {GRAPH_TIME_MAX, GRAPH_TIME_MAX, false};
@@ -3169,7 +3179,7 @@ already_AddRefed<MediaInputPort> ProcessedMediaTrack::AllocateInputPort(
   class Message : public ControlMessage {
    public:
     explicit Message(MediaInputPort* aPort)
-        : ControlMessage(aPort->GetDestination()), mPort(aPort) {}
+        : ControlMessage(aPort->mDest), mPort(aPort) {}
     void Run() override {
       TRACE("ProcessedMediaTrack::AllocateInputPort ControlMessage");
       mPort->Init();
@@ -3800,14 +3810,9 @@ void MediaTrackGraphImpl::PendingResumeOperation::Apply(
 
 void MediaTrackGraphImpl::PendingResumeOperation::Abort() {
   // The graph is shutting down before the operation completed.
-#ifdef DEBUG
-  {
-    MonitorAutoLock lock(mDestinationTrack->GraphImpl()->mMonitor);
-    MOZ_ASSERT(!mDestinationTrack->GraphImpl() ||
-               mDestinationTrack->GraphImpl()->mLifecycleState ==
-                   MediaTrackGraphImpl::LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN);
-  }
-#endif
+  MOZ_ASSERT(!mDestinationTrack->GraphImpl() ||
+             mDestinationTrack->GraphImpl()->LifecycleStateRef() ==
+                 MediaTrackGraphImpl::LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN);
   mHolder.Reject(false, __func__);
 }
 

@@ -146,7 +146,6 @@ nsBaseWidget::nsBaseWidget(nsBorderStyle aBorderStyle)
       mPopupLevel(ePopupLevelTop),
       mPopupType(ePopupTypeAny),
       mHasRemoteContent(false),
-      mFissionWindow(false),
       mUpdateCursor(true),
       mUseAttachedEvents(false),
       mIMEHasFocus(false),
@@ -414,14 +413,12 @@ nsBaseWidget::~nsBaseWidget() {
 //
 //-------------------------------------------------------------------------
 void nsBaseWidget::BaseCreate(nsIWidget* aParent, nsWidgetInitData* aInitData) {
-  // keep a reference to the device context
-  if (nullptr != aInitData) {
+  if (aInitData) {
     mWindowType = aInitData->mWindowType;
     mBorderStyle = aInitData->mBorderStyle;
     mPopupLevel = aInitData->mPopupLevel;
     mPopupType = aInitData->mPopupHint;
     mHasRemoteContent = aInitData->mHasRemoteContent;
-    mFissionWindow = aInitData->mFissionWindow;
   }
 
   if (aParent) {
@@ -1924,6 +1921,9 @@ void nsIWidget::OnLongTapTimerCallback(nsITimer* aTimer, void* aClosure) {
 nsresult nsIWidget::ClearNativeTouchSequence(nsIObserver* aObserver) {
   AutoObserverNotifier notifier(aObserver, "cleartouch");
 
+  // XXX This is odd.  This is called by the constructor of nsIWidget.  However,
+  //     at that point, nsIWidget::mLongTapTimer must be nullptr.  Therefore,
+  //     this must do nothing at initializing the instance.
   if (!mLongTapTimer) {
     return NS_OK;
   }

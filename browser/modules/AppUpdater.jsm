@@ -9,9 +9,12 @@ var EXPORTED_SYMBOLS = ["AppUpdater"];
 var { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AppConstants: "resource://gre/modules/AppConstants.jsm",
-  Services: "resource://gre/modules/Services.jsm",
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
+const lazy = {};
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   UpdateUtils: "resource://gre/modules/UpdateUtils.jsm",
 });
 
@@ -91,7 +94,7 @@ class AppUpdater {
     }
 
     // We might need this value later, so start loading it from the disk now.
-    this.promiseAutoUpdateSetting = UpdateUtils.getAppUpdateAutoEnabled();
+    this.promiseAutoUpdateSetting = lazy.UpdateUtils.getAppUpdateAutoEnabled();
 
     // That leaves the options
     // "Check for updates, but let me choose whether to install them", and
@@ -249,7 +252,7 @@ class AppUpdater {
           }
 
           if (!this.promiseAutoUpdateSetting) {
-            this.promiseAutoUpdateSetting = UpdateUtils.getAppUpdateAutoEnabled();
+            this.promiseAutoUpdateSetting = lazy.UpdateUtils.getAppUpdateAutoEnabled();
           }
           this.promiseAutoUpdateSetting.then(updateAuto => {
             if (updateAuto && !this.aus.manualUpdateOnly) {

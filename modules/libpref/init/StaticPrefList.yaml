@@ -222,7 +222,7 @@
 - name: accessibility.cache.enabled
   type: bool
 #ifdef ANDROID
-  value: true
+  value: @IS_NOT_RELEASE_OR_BETA@
 #else
   value: false
 #endif
@@ -1968,17 +1968,9 @@
 # This used to be necessary long ago to prevent terrible UX when using stuff
 # like TypeAheadFind (bug 258917), but it also causes compat issues on mobile
 # (bug 1570566).
-#
-# So for now disable it on Android and Desktop Nightly, to see if we have any
-# desktop regression before removing it completely. Note that this means that
-# non-nightly RDM behaves different than Android in this case.
 - name: dom.block_reload_from_resize_event_handler
   type: bool
-#if defined(MOZ_WIDGET_ANDROID) || defined(NIGHTLY_BUILD)
   value: false
-#else
-  value: true
-#endif
   mirror: always
 
 # SW Cache API
@@ -7523,7 +7515,7 @@
 # Is support for CSS backdrop-filter enabled?
 - name: layout.css.backdrop-filter.enabled
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # Should stray control characters be rendered visibly?
@@ -7547,6 +7539,12 @@
   mirror: always
 
 - name: layout.css.cross-fade.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
+- name: layout.css.linear-easing-function.enabled
   type: RelaxedAtomicBool
   value: false
   mirror: always
@@ -8378,6 +8376,12 @@
 
 # Whether to draw images in CSS backgrounds if we only have a partial frame.
 - name: layout.display_partial_background_images
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
+# Controls whether nsRefreshDriver::IsInHighRateMode() may ever return true.
+- name: layout.expose_high_rate_mode_from_refreshdriver
   type: bool
   value: true
   mirror: always
@@ -9388,6 +9392,11 @@
 #else
   value: false
 #endif
+  mirror: always
+
+- name: media.av1.new-thread-count-strategy
+  type: RelaxedAtomicBool
+  value: false
   mirror: always
 
 - name: media.flac.enabled
@@ -11173,6 +11182,11 @@
   value: 1
   mirror: always
 
+- name: network.allow_raw_sockets_in_content_processes
+  type: bool
+  value: false
+  mirror: once
+
 #---------------------------------------------------------------------------
 # Prefs starting with "nglayout."
 #---------------------------------------------------------------------------
@@ -12243,14 +12257,6 @@
 - name: security.pki.cert_short_lifetime_in_days
   type: RelaxedAtomicUint32
   value: 10
-  mirror: always
-
-# NB: Changes to this pref affect CERT_CHAIN_SHA1_POLICY_STATUS telemetry.
-# See the comment in CertVerifier.cpp.
-# 1 = forbid sha1 in certificate signatures, even for imported roots
-- name: security.pki.sha1_enforcement_level
-  type: RelaxedAtomicUint32
-  value: 1
   mirror: always
 
 # security.pki.netscape_step_up_policy controls how the platform handles the
@@ -13672,6 +13678,26 @@
 - name: widget.windows.hide_cursor_when_typing
   type: bool
   value: true
+  mirror: always
+
+# Whether to apply logic intended to improve taskbar behavior involving
+# non-foreground fullscreen windows. (See bug 1732517.)
+- name: widget.windows.alternate_fullscreen_heuristics
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# Whether to apply a workaround intended to prevent Windows from treating
+# non-foreground-marked fullscreen windows as fullscreen on Windows 7 and
+# earlier. (See bug 1732517.)
+#
+# Valid values:
+#  * -1: the workaround is never used.
+#  *  1: the workaround is always used.
+#  *  0: the workaround is used if we think it should be. (Default.)
+- name: widget.windows.fullscreen_marking_workaround
+  type: RelaxedAtomicInt32
+  value: 0
   mirror: always
 #endif
 

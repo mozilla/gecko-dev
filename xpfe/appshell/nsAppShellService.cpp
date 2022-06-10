@@ -604,9 +604,6 @@ nsresult nsAppShellService::JustCreateTopWindow(
   if (aChromeMask & nsIWebBrowserChrome::CHROME_ALWAYS_ON_TOP)
     widgetInitData.mAlwaysOnTop = true;
 
-  if (aChromeMask & nsIWebBrowserChrome::CHROME_FISSION_WINDOW)
-    widgetInitData.mFissionWindow = true;
-
   if (aChromeMask & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW)
     widgetInitData.mHasRemoteContent = true;
 
@@ -657,7 +654,7 @@ nsresult nsAppShellService::JustCreateTopWindow(
 #if defined(XP_WIN)
   if (widgetInitData.mWindowType == eWindowType_toplevel ||
       widgetInitData.mWindowType == eWindowType_dialog)
-    widgetInitData.clipChildren = true;
+    widgetInitData.mClipChildren = true;
 #endif
 
   // note default chrome overrides other OS chrome settings, but

@@ -19,7 +19,6 @@
 #include "ClientWebGLContext.h"
 
 #include "gfxPlatform.h"
-#include "gfxUtils.h"
 
 namespace mozilla::gfx {
 
@@ -190,7 +189,7 @@ inline void DrawTargetWebgl::SharedContext::ClearLastTexture() {
 // this target, then it should simply be destroyed. If it is a WebGL surface in
 // use by something else, then special cleanup such as reusing the texture or
 // copy-on-write may be possible.
-void DrawTargetWebgl::ClearSnapshot(bool aCopyOnWrite) {
+void DrawTargetWebgl::ClearSnapshot(bool aCopyOnWrite, bool aNeedHandle) {
   if (!mSnapshot) {
     return;
   }
@@ -204,7 +203,7 @@ void DrawTargetWebgl::ClearSnapshot(bool aCopyOnWrite) {
   if (aCopyOnWrite) {
     // WebGL snapshots must be notified that the framebuffer contents will be
     // changing so that it can copy the data.
-    snapshot->DrawTargetWillChange();
+    snapshot->DrawTargetWillChange(aNeedHandle);
   } else {
     // If not copying, then give the backing texture to the surface for reuse.
     snapshot->GiveTexture(
@@ -769,7 +768,8 @@ void DrawTargetWebgl::DetachAllSnapshots() {
 // framebuffer.
 bool DrawTargetWebgl::MarkChanged() {
   if (mSnapshot) {
-    ClearSnapshot();
+    // Try to copy the target into a new texture if possible.
+    ClearSnapshot(true, true);
   }
   if (!mWebglValid && !FlushFromSkia()) {
     return false;
@@ -2326,12 +2326,35 @@ void DrawTargetWebgl::Stroke(const Path* aPath, const Pattern& aPattern,
   }
 }
 
+bool DrawTargetWebgl::ShouldUseSubpixelAA(ScaledFont* aFont,
+                                          const DrawOptions& aOptions) {
+  AntialiasMode aaMode = aFont->GetDefaultAAMode();
+  if (aOptions.mAntialiasMode != AntialiasMode::DEFAULT) {
+    aaMode = aOptions.mAntialiasMode;
+  }
+  return GetPermitSubpixelAA() &&
+         (aaMode == AntialiasMode::DEFAULT ||
+          aaMode == AntialiasMode::SUBPIXEL) &&
+         aOptions.mCompositionOp == CompositionOp::OP_OVER;
+}
+
 void DrawTargetWebgl::StrokeGlyphs(ScaledFont* aFont,
                                    const GlyphBuffer& aBuffer,
                                    const Pattern& aPattern,
                                    const StrokeOptions& aStrokeOptions,
                                    const DrawOptions& aOptions) {
-  MarkSkiaChanged(aOptions);
+  if (!aFont || !aBuffer.mNumGlyphs) {
+    return;
+  }
+
+  bool useSubpixelAA = ShouldUseSubpixelAA(aFont, aOptions);
+  if (useSubpixelAA) {
+    // Subpixel AA does not support layering because the subpixel masks can't
+    // blend with the over op.
+    MarkSkiaChanged();
+  } else {
+    MarkSkiaChanged(aOptions);
+  }
   mSkia->StrokeGlyphs(aFont, aBuffer, aPattern, aStrokeOptions, aOptions);
 }
 
@@ -2616,14 +2639,7 @@ void DrawTargetWebgl::FillGlyphs(ScaledFont* aFont, const GlyphBuffer& aBuffer,
     return;
   }
 
-  AntialiasMode aaMode = aFont->GetDefaultAAMode();
-  if (aOptions.mAntialiasMode != AntialiasMode::DEFAULT) {
-    aaMode = aOptions.mAntialiasMode;
-  }
-  bool useSubpixelAA =
-      GetPermitSubpixelAA() &&
-      (aaMode == AntialiasMode::DEFAULT || aaMode == AntialiasMode::SUBPIXEL) &&
-      aOptions.mCompositionOp == CompositionOp::OP_OVER;
+  bool useSubpixelAA = ShouldUseSubpixelAA(aFont, aOptions);
 
   if (mWebglValid && SupportsDrawOptions(aOptions) &&
       aPattern.GetType() == PatternType::COLOR && PrepareContext() &&

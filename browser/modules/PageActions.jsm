@@ -15,12 +15,14 @@ var EXPORTED_SYMBOLS = [
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
   BinarySearch: "resource://gre/modules/BinarySearch.jsm",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
 const ACTION_ID_BOOKMARK = "bookmark";
@@ -80,7 +82,7 @@ var PageActions = {
       // re-added while the app is running will have their urlbar placement and
       // other state remembered and restored.  This happens for upgraded and
       // downgraded extensions, for example.
-      AsyncShutdown.profileBeforeChange.addBlocker(
+      lazy.AsyncShutdown.profileBeforeChange.addBlocker(
         "PageActions: purging unregistered actions from cache",
         () => this._purgeUnregisteredPersistedActions()
       );
@@ -242,7 +244,7 @@ var PageActions = {
     } else {
       // A non-built-in action, like a non-bundled extension potentially.
       // Keep this list sorted by title.
-      let index = BinarySearch.insertionIndexOf(
+      let index = lazy.BinarySearch.insertionIndexOf(
         (a1, a2) => {
           return a1.getTitle().localeCompare(a2.getTitle());
         },
@@ -676,7 +678,7 @@ Action.prototype = {
     }
     return !(
       this.disablePrivateBrowsing &&
-      PrivateBrowsingUtils.isWindowPrivate(browserWindow)
+      lazy.PrivateBrowsingUtils.isWindowPrivate(browserWindow)
     );
   },
 

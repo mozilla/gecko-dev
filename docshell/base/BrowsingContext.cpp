@@ -2471,7 +2471,7 @@ void BrowsingContext::PostMessageMoz(JSContext* aCx,
     if (message.CloneScope() ==
         StructuredCloneHolder::StructuredCloneScope::DifferentProcess) {
       ClonedMessageData clonedMessageData;
-      if (!message.BuildClonedMessageDataForChild(cc, clonedMessageData)) {
+      if (!message.BuildClonedMessageData(clonedMessageData)) {
         aError.Throw(NS_ERROR_FAILURE);
         return;
       }
@@ -2495,7 +2495,7 @@ void BrowsingContext::PostMessageMoz(JSContext* aCx,
     if (message.CloneScope() ==
         StructuredCloneHolder::StructuredCloneScope::DifferentProcess) {
       ClonedMessageData clonedMessageData;
-      if (!message.BuildClonedMessageDataForParent(cp, clonedMessageData)) {
+      if (!message.BuildClonedMessageData(clonedMessageData)) {
         aError.Throw(NS_ERROR_FAILURE);
         return;
       }
@@ -2993,7 +2993,7 @@ void BrowsingContext::DidSet(FieldIndex<IDX_IsActiveBrowserWindowInternal>,
   // for all in-process documents.
   PreOrderWalk([isActivateEvent](BrowsingContext* aContext) {
     if (RefPtr<Document> doc = aContext->GetExtantDocument()) {
-      doc->UpdateDocumentStates(NS_DOCUMENT_STATE_WINDOW_INACTIVE, true);
+      doc->UpdateDocumentStates(DocumentState::WINDOW_INACTIVE, true);
 
       RefPtr<nsPIDOMWindowInner> win = doc->GetInnerWindow();
       RefPtr<MediaDevices> devices;

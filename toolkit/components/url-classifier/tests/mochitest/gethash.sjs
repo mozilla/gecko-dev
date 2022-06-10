@@ -28,7 +28,7 @@ function handleRequest(request, response) {
     setState(list, hashes);
 
     let lists = getState("lists");
-    if (lists.indexOf(list) == -1) {
+    if (!lists.includes(list)) {
       lists += list + "\n";
       setState("lists", lists);
     }
@@ -37,18 +37,18 @@ function handleRequest(request, response) {
     // gethash count return how many gethash request received.
     // This is used by client to know if a gethash request is triggered by gecko
   } else if ("gethashcount" == request.queryString) {
-    var counter = getState("counter");
+    let counter = getState("counter");
     responseBody = counter == "" ? "0" : counter;
   } else {
-    var body = new BinaryInputStream(request.bodyInputStream);
-    var avail;
-    var bytes = [];
+    let body = new BinaryInputStream(request.bodyInputStream);
+    let avail;
+    let bytes = [];
 
     while ((avail = body.available()) > 0) {
       Array.prototype.push.apply(bytes, body.readByteArray(avail));
     }
 
-    var counter = getState("counter");
+    let counter = getState("counter");
     counter = counter == "" ? "1" : (parseInt(counter) + 1).toString();
     setState("counter", counter);
 
@@ -75,7 +75,7 @@ function parseV2Request(bytes) {
 
         for (var completion of completions) {
           if (completion.indexOf(PREFIXES.substr(start, PREFIXSIZE)) == 0) {
-            ret += list + ":" + "1" + ":" + "32" + "\n";
+            ret += list + ":1:32\n";
             ret += completion;
           }
         }

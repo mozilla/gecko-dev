@@ -94,63 +94,6 @@ static const uintptr_t FRAMESIZE_SHIFT =
 static const uintptr_t FRAMESIZE_BITS = 32 - FRAMESIZE_SHIFT;
 static const uintptr_t FRAMESIZE_MASK = (1 << FRAMESIZE_BITS) - 1;
 
-// Ion frames have a few important numbers associated with them:
-//      Local depth:    The number of bytes required to spill local variables.
-//      Argument depth: The number of bytes required to push arguments and make
-//                      a function call.
-//      Slack:          A frame may temporarily use extra stack to resolve
-//                      cycles.
-//
-// The (local + argument) depth determines the "fixed frame size". The fixed
-// frame size is the distance between the stack pointer and the frame header.
-// Thus, fixed >= (local + argument).
-//
-// In order to compress guards, we create shared jump tables that recover the
-// script from the stack and recover a snapshot pointer based on which jump was
-// taken. Thus, we create a jump table for each fixed frame size.
-//
-// Jump tables are big. To control the amount of jump tables we generate, each
-// platform chooses how to segregate stack size classes based on its
-// architecture.
-//
-// On some architectures, these jump tables are not used at all, or frame
-// size segregation is not needed. Thus, there is an option for a frame to not
-// have any frame size class, and to be totally dynamic.
-static const uint32_t NO_FRAME_SIZE_CLASS_ID = uint32_t(-1);
-
-class FrameSizeClass {
-  uint32_t class_;
-
-  explicit FrameSizeClass(uint32_t class_) : class_(class_) {}
-
- public:
-  FrameSizeClass() = delete;
-
-  static FrameSizeClass None() {
-    return FrameSizeClass(NO_FRAME_SIZE_CLASS_ID);
-  }
-  static FrameSizeClass FromClass(uint32_t class_) {
-    return FrameSizeClass(class_);
-  }
-
-  // These functions are implemented in specific CodeGenerator-* files.
-  static FrameSizeClass FromDepth(uint32_t frameDepth);
-  static FrameSizeClass ClassLimit();
-  uint32_t frameSize() const;
-
-  uint32_t classId() const {
-    MOZ_ASSERT(class_ != NO_FRAME_SIZE_CLASS_ID);
-    return class_;
-  }
-
-  bool operator==(const FrameSizeClass& other) const {
-    return class_ == other.class_;
-  }
-  bool operator!=(const FrameSizeClass& other) const {
-    return class_ != other.class_;
-  }
-};
-
 struct BaselineBailoutInfo;
 
 enum class ExceptionResumeKind : int32_t {
@@ -309,17 +252,17 @@ class JitFrameLayout : public CommonFrameLayout {
     calleeToken_ = calleeToken;
   }
 
-  static size_t offsetOfCalleeToken() {
+  static constexpr size_t offsetOfCalleeToken() {
     return offsetof(JitFrameLayout, calleeToken_);
   }
-  static size_t offsetOfNumActualArgs() {
+  static constexpr size_t offsetOfNumActualArgs() {
     return offsetof(JitFrameLayout, numActualArgs_);
   }
-  static size_t offsetOfThis() { return sizeof(JitFrameLayout); }
-  static size_t offsetOfActualArgs() {
+  static constexpr size_t offsetOfThis() { return sizeof(JitFrameLayout); }
+  static constexpr size_t offsetOfActualArgs() {
     return offsetOfThis() + sizeof(JS::Value);
   }
-  static size_t offsetOfActualArg(size_t arg) {
+  static constexpr size_t offsetOfActualArg(size_t arg) {
     return offsetOfActualArgs() + arg * sizeof(JS::Value);
   }
 
@@ -332,6 +275,17 @@ class JitFrameLayout : public CommonFrameLayout {
     return (JS::Value*)(this + 1);
   }
   uintptr_t numActualArgs() const { return numActualArgs_; }
+
+  void* callerFramePtr() const {
+    // The caller's frame pointer is pushed after the JitFrameLayout.
+    auto* p = reinterpret_cast<const uintptr_t*>(this) - 1;
+    return reinterpret_cast<void*>(*p);
+  }
+
+  // For IonJS frames: the distance from the JitFrameLayout to the first local
+  // slot. The caller's frame pointer is stored in this space. 32-bit platforms
+  // have 4 bytes of padding to ensure doubles are properly aligned.
+  static constexpr size_t IonFirstSlotOffset = 8;
 
   // Computes a reference to a stack or argument slot, where a slot is a
   // distance from the base frame pointer, as would be used for LStackSlot

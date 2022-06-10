@@ -6533,7 +6533,7 @@ static bool GetExceptionInfo(JSContext* cx, uint32_t argc, Value* vp) {
   }
 
   RootedValue excVal(cx);
-  RootedSavedFrame stack(cx);
+  Rooted<SavedFrame*> stack(cx);
   if (!GetAndClearExceptionAndStack(cx, &excVal, &stack)) {
     return false;
   }

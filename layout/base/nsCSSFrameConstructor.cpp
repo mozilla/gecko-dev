@@ -23,7 +23,6 @@
 #include "mozilla/dom/HTMLSelectElement.h"
 #include "mozilla/dom/HTMLSharedListElement.h"
 #include "mozilla/dom/HTMLSummaryElement.h"
-#include "mozilla/EventStates.h"
 #include "mozilla/Likely.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
@@ -241,10 +240,6 @@ nsIFrame* NS_NewMenuFrame(PresShell* aPresShell, ComputedStyle* aStyle,
 nsIFrame* NS_NewMenuBarFrame(PresShell* aPresShell, ComputedStyle* aStyle);
 
 nsIFrame* NS_NewTreeBodyFrame(PresShell* aPresShell, ComputedStyle* aStyle);
-
-nsIFrame* NS_NewTitleBarFrame(PresShell* aPresShell, ComputedStyle* aStyle);
-
-nsIFrame* NS_NewResizerFrame(PresShell* aPresShell, ComputedStyle* aStyle);
 
 nsHTMLScrollFrame* NS_NewHTMLScrollFrame(PresShell* aPresShell,
                                          ComputedStyle* aStyle, bool aIsRoot);
@@ -3619,7 +3614,7 @@ nsCSSFrameConstructor::FindObjectData(const Element& aElement,
   // cases when the object is broken/suppressed/etc (e.g. a broken image), but
   // we want to treat those cases as TYPE_NULL
   uint32_t type;
-  if (aElement.State().HasState(NS_EVENT_STATE_BROKEN)) {
+  if (aElement.State().HasState(ElementState::BROKEN)) {
     type = nsIObjectLoadingContent::TYPE_NULL;
   } else {
     nsCOMPtr<nsIObjectLoadingContent> objContent =
@@ -4126,8 +4121,6 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
       SCROLLABLE_XUL_CREATE(thumb, NS_NewButtonBoxFrame),
       SCROLLABLE_XUL_CREATE(checkbox, NS_NewButtonBoxFrame),
       SCROLLABLE_XUL_CREATE(radio, NS_NewButtonBoxFrame),
-      SCROLLABLE_XUL_CREATE(titlebar, NS_NewTitleBarFrame),
-      SCROLLABLE_XUL_CREATE(resizer, NS_NewResizerFrame),
       SCROLLABLE_XUL_CREATE(toolbarpaletteitem, NS_NewBoxFrame),
       SCROLLABLE_XUL_CREATE(treecolpicker, NS_NewButtonBoxFrame),
       SIMPLE_XUL_CREATE(image, NS_NewImageBoxFrame),

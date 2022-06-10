@@ -12,6 +12,7 @@
 #include <uxtheme.h>
 #include <dwmapi.h>
 #include <unordered_map>
+#include <utility>
 
 // Undo the windows.h damage
 #undef GetMessage
@@ -89,6 +90,36 @@ namespace a11y {
 class LocalAccessible;
 }  // namespace a11y
 #endif  // defined(ACCESSIBILITY)
+
+// Helper function: enumerate all the toplevel HWNDs attached to the current
+// thread via ::EnumThreadWindows().
+//
+// Note that this use of ::EnumThreadWindows() is, unfortunately, not an
+// abstract implementation detail.
+template <typename F>
+void EnumerateThreadWindows(F&& f)
+// requires requires(F f, HWND h) { f(h); }
+{
+  class Impl {
+   public:
+    F f;
+    explicit Impl(F&& f) : f(std::forward<F>(f)) {}
+
+    void invoke() {
+      WNDENUMPROC proc = &Impl::Callback;
+      ::EnumThreadWindows(::GetCurrentThreadId(), proc,
+                          reinterpret_cast<LPARAM>(&f));
+    }
+
+   private:
+    static BOOL CALLBACK Callback(HWND hwnd, LPARAM lp) {
+      (*reinterpret_cast<F*>(lp))(hwnd);
+      return TRUE;
+    }
+  };
+
+  Impl(std::forward<F>(f)).invoke();
+}
 
 namespace widget {
 
@@ -315,14 +346,18 @@ class WinUtils {
                               bool aStopIfNotPopup = true);
 
   /**
-   * SetNSWindowBasePtr() associates an nsWindow to aWnd.  If aWidget is
-   * nullptr, it dissociate any nsBaseWidget pointer from aWnd.
-   * GetNSWindowBasePtr() returns an nsWindow pointer which was associated
-   * by SetNSWindowBasePtr(). GetNSWindowPtr() is a legacy api for win32
-   * nsWindow and should be avoided outside of nsWindow src.
+   * SetNSWindowPtr() associates aWindow with aWnd. If aWidget is nullptr, it
+   * instead dissociates any nsWindow from aWnd.
+   *
+   * No AddRef is performed. May not be used off of the main thread.
    */
-  static bool SetNSWindowBasePtr(HWND aWnd, nsWindow* aWidget);
-  static nsWindow* GetNSWindowBasePtr(HWND aWnd);
+  static void SetNSWindowPtr(HWND aWnd, nsWindow* aWindow);
+  /**
+   * GetNSWindowPtr() returns a pointer to the associated nsWindow pointer, if
+   * one exists, or nullptr, if not.
+   *
+   * No AddRef is performed. May not be used off of the main thread.
+   */
   static nsWindow* GetNSWindowPtr(HWND aWnd);
 
   /**

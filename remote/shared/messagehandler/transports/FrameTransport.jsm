@@ -6,19 +6,27 @@
 
 const EXPORTED_SYMBOLS = ["FrameTransport"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   ContextDescriptorType:
     "chrome://remote/content/shared/messagehandler/MessageHandler.jsm",
   isBrowsingContextCompatible:
     "chrome://remote/content/shared/messagehandler/transports/FrameContextUtils.jsm",
+  Log: "chrome://remote/content/shared/Log.jsm",
   MessageHandlerFrameActor:
     "chrome://remote/content/shared/messagehandler/transports/js-window-actors/MessageHandlerFrameActor.jsm",
   TabManager: "chrome://remote/content/shared/TabManager.jsm",
 });
+
+XPCOMUtils.defineLazyGetter(this, "logger", () => lazy.Log.get());
+
+const MAX_RETRY_ATTEMPTS = 10;
 
 /**
  * FrameTransport is intended to be used from a ROOT MessageHandler to communicate
@@ -35,7 +43,7 @@ class FrameTransport {
 
     // FrameTransport will rely on the MessageHandlerFrame JSWindow actors.
     // Make sure they are registered when instanciating a FrameTransport.
-    MessageHandlerFrameActor.register();
+    lazy.MessageHandlerFrameActor.register();
   }
 
   /**
@@ -100,10 +108,44 @@ class FrameTransport {
     );
   }
 
-  _sendCommandToBrowsingContext(command, browsingContext) {
-    return browsingContext.currentWindowGlobal
-      .getActor("MessageHandlerFrame")
-      .sendCommand(command, this._messageHandler.sessionId);
+  async _sendCommandToBrowsingContext(command, browsingContext) {
+    const name = `${command.moduleName}.${command.commandName}`;
+
+    // The browsing context might be destroyed by a navigation. Keep a reference
+    // to the webProgress, which will persist, and always use it to retrieve the
+    // currently valid browsing context.
+    const webProgress = browsingContext.webProgress;
+
+    const { retryOnAbort = false } = command;
+
+    let attempts = 0;
+    while (true) {
+      try {
+        return await webProgress.browsingContext.currentWindowGlobal
+          .getActor("MessageHandlerFrame")
+          .sendCommand(command, this._messageHandler.sessionId);
+      } catch (e) {
+        if (!retryOnAbort || e.name != "AbortError") {
+          // Only retry if the command supports retryOnAbort and when the
+          // JSWindowActor pair gets destroyed.
+          throw e;
+        }
+
+        if (++attempts > MAX_RETRY_ATTEMPTS) {
+          logger.trace(
+            `FrameTransport reached the limit of retry attempts (${MAX_RETRY_ATTEMPTS})` +
+              ` for command ${name} and browsing context ${webProgress.browsingContext.id}.`
+          );
+          throw e;
+        }
+
+        logger.trace(
+          `FrameTransport retrying command ${name} for ` +
+            `browsing context ${webProgress.browsingContext.id}, attempt: ${attempts}.`
+        );
+        await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
+      }
+    }
   }
 
   toString() {
@@ -113,11 +155,11 @@ class FrameTransport {
   _getBrowsingContextsForDescriptor(contextDescriptor) {
     const { id, type } = contextDescriptor;
 
-    if (type === ContextDescriptorType.All) {
+    if (type === lazy.ContextDescriptorType.All) {
       return this._getBrowsingContexts();
     }
 
-    if (type === ContextDescriptorType.TopBrowsingContext) {
+    if (type === lazy.ContextDescriptorType.TopBrowsingContext) {
       return this._getBrowsingContexts({ browserId: id });
     }
 
@@ -143,8 +185,8 @@ class FrameTransport {
     let browsingContexts = [];
 
     // Fetch all tab related browsing contexts for top-level windows.
-    for (const { browsingContext } of TabManager.browsers) {
-      if (isBrowsingContextCompatible(browsingContext, { browserId })) {
+    for (const { browsingContext } of lazy.TabManager.browsers) {
+      if (lazy.isBrowsingContextCompatible(browsingContext, { browserId })) {
         browsingContexts = browsingContexts.concat(
           browsingContext.getAllBrowsingContextsInSubtree()
         );

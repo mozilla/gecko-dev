@@ -333,7 +333,7 @@ MethodStatus BaselineCompiler::compile() {
   script->jitScript()->setBaselineScript(script, baselineScript.release());
 
 #ifdef JS_ION_PERF
-  writePerfSpewerBaselineProfile(script, code);
+  perfSpewer_.writeProfile(script, code);
 #endif
 
 #ifdef MOZ_VTUNE
@@ -1446,7 +1446,8 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
 
     // Restore the stack pointer so that the return address is on top of
     // the stack.
-    masm.addToStackPtr(Imm32(frame.frameSize()));
+    masm.moveToStackPtr(FramePointer);
+    masm.pop(FramePointer);
 
 #ifdef DEBUG
     // Get a scratch register that's not osrDataReg or OsrFrameReg.
@@ -5293,6 +5294,16 @@ bool BaselineCodeGen<Handler>::emit_EndIter() {
 }
 
 template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_CloseIter() {
+  frame.popRegsAndSync(1);
+
+  Register iter = R0.scratchReg();
+  masm.unboxObject(R0, iter);
+
+  return emitNextIC();
+}
+
+template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_IsGenClosing() {
   return emitIsMagicValue();
 }
@@ -6005,25 +6016,7 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
     return false;
   }
 
-  Label afterFrameRestore;
-  masm.jump(&afterFrameRestore);
   masm.bind(&returnTarget);
-
-  // When we call into a function which may end up in Warp/Ion,
-  // we need to account for the possibility that FramePointer
-  // is clobbered. So we recompute it based on the frame descriptor.
-
-  // Load the frame descriptor into FramePointer.
-  masm.loadPtr(Address(masm.getStackPointer(), 0), FramePointer);
-  // Compute Frame Size.
-  masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), FramePointer);
-  // Add stack pointer.
-  masm.addStackPtrTo(FramePointer);
-
-  // This magic constant corresponds to the callee token and
-  // actualArgc pushed before the frame descriptor was pushed.
-  masm.addPtr(Imm32(2 * sizeof(void*)), FramePointer);
-  masm.bind(&afterFrameRestore);
 
   // Restore Stack pointer
   masm.computeEffectiveAddress(frame.addressOfStackValue(-1),
@@ -6272,7 +6265,7 @@ bool BaselineCompilerCodeGen::emit_ImportMeta() {
   // Note: this is like the interpreter implementation, but optimized a bit by
   // calling GetModuleObjectForScript at compile-time.
 
-  RootedModuleObject module(cx, GetModuleObjectForScript(handler.script()));
+  Rooted<ModuleObject*> module(cx, GetModuleObjectForScript(handler.script()));
   MOZ_ASSERT(module);
 
   frame.syncStack(0);
@@ -6497,6 +6490,10 @@ MethodStatus BaselineCompiler::emitBody() {
     if (MOZ_UNLIKELY(compileDebugInstrumentation()) && !emitDebugTrap()) {
       return Method_Error;
     }
+
+#ifdef JS_ION_PERF
+    perfSpewer_.recordInstruction(masm, op);
+#endif
 
 #define EMIT_OP(OP, ...)                                       \
   case JSOp::OP: {                                             \

@@ -12,18 +12,13 @@ var EXPORTED_SYMBOLS = [
   "WIDEVINE_ID",
 ];
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "Services",
-  "resource://gre/modules/Services.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "AppConstants",
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
+const lazy = {};
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "UpdateUtils",
   "resource://gre/modules/UpdateUtils.jsm"
 );
@@ -105,11 +100,13 @@ var GMPUtils = {
   },
 
   _isWindowsOnARM64() {
-    return AppConstants.platform == "win" && UpdateUtils.ABI.match(/aarch64/);
+    return (
+      AppConstants.platform == "win" && lazy.UpdateUtils.ABI.match(/aarch64/)
+    );
   },
 
   _expectedABI(aPlugin) {
-    let defaultABI = UpdateUtils.ABI;
+    let defaultABI = lazy.UpdateUtils.ABI;
     if (aPlugin.id == WIDEVINE_ID && this._isWindowsOnARM64()) {
       // On Windows on aarch64, we need the x86 plugin,
       // as there's no native aarch64 plugins yet.

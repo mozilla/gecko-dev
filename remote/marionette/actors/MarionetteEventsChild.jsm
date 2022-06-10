@@ -8,19 +8,20 @@
 
 const EXPORTED_SYMBOLS = ["MarionetteEventsChild"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
+const lazy = {};
 
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   event: "chrome://remote/content/marionette/event.js",
   Log: "chrome://remote/content/shared/Log.jsm",
 });
 
-XPCOMUtils.defineLazyGetter(this, "logger", () =>
-  Log.get(Log.TYPES.MARIONETTE)
+XPCOMUtils.defineLazyGetter(lazy, "logger", () =>
+  lazy.Log.get(lazy.Log.TYPES.MARIONETTE)
 );
 
 class MarionetteEventsChild extends JSWindowActorChild {
@@ -32,8 +33,8 @@ class MarionetteEventsChild extends JSWindowActorChild {
     // Prevent the logger from being created if the current log level
     // isn't set to 'trace'. This is important for a faster content process
     // creation when Marionette is running.
-    if (Log.isTraceLevel) {
-      logger.trace(
+    if (lazy.Log.isTraceLevel) {
+      lazy.logger.trace(
         `[${this.browsingContext.id}] MarionetteEvents actor created ` +
           `for window id ${this.innerWindowId}`
       );
@@ -53,7 +54,7 @@ class MarionetteEventsChild extends JSWindowActorChild {
       (type === "DOMContentLoaded" && target.readyState != "interactive") ||
       (type === "pageshow" && target.readyState != "complete")
     ) {
-      logger.warn(
+      lazy.logger.warn(
         `Ignoring event '${type}' because document has an invalid ` +
           `readyState of '${target.readyState}'.`
       );
@@ -79,11 +80,11 @@ class MarionetteEventsChild extends JSWindowActorChild {
       // Listen for click event to indicate one click has happened, so actions
       // code can send dblclick event
       case "click":
-        event.DoubleClickTracker.setClick();
+        lazy.event.DoubleClickTracker.setClick();
         break;
       case "dblclick":
       case "unload":
-        event.DoubleClickTracker.resetClick();
+        lazy.event.DoubleClickTracker.resetClick();
         break;
     }
   }

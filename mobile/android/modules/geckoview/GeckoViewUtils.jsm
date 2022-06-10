@@ -6,12 +6,14 @@
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   AndroidLog: "resource://gre/modules/AndroidLog.jsm",
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
   Log: "resource://gre/modules/Log.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
 var EXPORTED_SYMBOLS = ["GeckoViewUtils"];
@@ -20,7 +22,7 @@ var EXPORTED_SYMBOLS = ["GeckoViewUtils"];
  * A formatter that does not prepend time/name/level information to messages,
  * because those fields are logged separately when using the Android logger.
  */
-class AndroidFormatter extends Log.BasicFormatter {
+class AndroidFormatter extends lazy.Log.BasicFormatter {
   format(message) {
     return this.formatText(message);
   }
@@ -30,20 +32,20 @@ class AndroidFormatter extends Log.BasicFormatter {
  * AndroidAppender
  * Logs to Android logcat using AndroidLog.jsm
  */
-class AndroidAppender extends Log.Appender {
+class AndroidAppender extends lazy.Log.Appender {
   constructor(aFormatter) {
     super(aFormatter || new AndroidFormatter());
     this._name = "AndroidAppender";
 
     // Map log level to AndroidLog.foo method.
     this._mapping = {
-      [Log.Level.Fatal]: "e",
-      [Log.Level.Error]: "e",
-      [Log.Level.Warn]: "w",
-      [Log.Level.Info]: "i",
-      [Log.Level.Config]: "d",
-      [Log.Level.Debug]: "d",
-      [Log.Level.Trace]: "v",
+      [lazy.Log.Level.Fatal]: "e",
+      [lazy.Log.Level.Error]: "e",
+      [lazy.Log.Level.Warn]: "w",
+      [lazy.Log.Level.Info]: "i",
+      [lazy.Log.Level.Config]: "d",
+      [lazy.Log.Level.Debug]: "d",
+      [lazy.Log.Level.Trace]: "v",
     };
   }
 
@@ -56,7 +58,7 @@ class AndroidAppender extends Log.Appender {
     // leading "Gecko" here. Also strip dots to save space.
     const tag = aMessage.loggerName.replace(/^Gecko|\./g, "");
     const msg = this._formatter.format(aMessage);
-    AndroidLog[this._mapping[aMessage.level]](tag, msg);
+    lazy.AndroidLog[this._mapping[aMessage.level]](tag, msg);
   }
 }
 
@@ -142,13 +144,13 @@ var GeckoViewUtils = {
 
     if (ged) {
       const listener = (event, data, callback) => {
-        EventDispatcher.instance.unregisterListener(listener, event);
+        lazy.EventDispatcher.instance.unregisterListener(listener, event);
         if (!once) {
-          EventDispatcher.instance.registerListener(scope[name], event);
+          lazy.EventDispatcher.instance.registerListener(scope[name], event);
         }
         scope[name].onEvent(event, data, callback);
       };
-      EventDispatcher.instance.registerListener(listener, ged);
+      lazy.EventDispatcher.instance.registerListener(listener, ged);
     }
   },
 
@@ -314,11 +316,11 @@ var GeckoViewUtils = {
     try {
       if (!this.IS_PARENT_PROCESS) {
         const mm = this.getContentFrameMessageManager(aWin.top || aWin);
-        return mm && EventDispatcher.forMessageManager(mm);
+        return mm && lazy.EventDispatcher.forMessageManager(mm);
       }
       const win = this.getChromeWindow(aWin.top || aWin);
       if (!win.closed) {
-        return win.WindowEventDispatcher || EventDispatcher.for(win);
+        return win.WindowEventDispatcher || lazy.EventDispatcher.for(win);
       }
     } catch (e) {}
     return null;
@@ -356,7 +358,7 @@ var GeckoViewUtils = {
         this._log(log.logger, level, strings, exprs);
 
       XPCOMUtils.defineLazyGetter(log, "logger", _ => {
-        const logger = Log.repository.getLogger(tag);
+        const logger = lazy.Log.repository.getLogger(tag);
         logger.parent = this.rootLogger;
         return logger;
       });
@@ -370,7 +372,7 @@ var GeckoViewUtils = {
 
   get rootLogger() {
     if (!this._rootLogger) {
-      this._rootLogger = Log.repository.getLogger("GeckoView");
+      this._rootLogger = lazy.Log.repository.getLogger("GeckoView");
       this._rootLogger.addAppender(new AndroidAppender());
       this._rootLogger.manageLevelFromPref("geckoview.logging");
     }
@@ -387,7 +389,7 @@ var GeckoViewUtils = {
       );
     }
 
-    if (aLogger.level > Log.Level.Numbers[aLevel]) {
+    if (aLogger.level > lazy.Log.Level.Numbers[aLevel]) {
       // Log disabled.
       return;
     }

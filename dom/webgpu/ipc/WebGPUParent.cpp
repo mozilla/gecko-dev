@@ -47,6 +47,11 @@ class ErrorBuffer {
     return errorBuf;
   }
 
+  // If an error message was stored in this buffer, return Some(m)
+  // where m is the message as a UTF-8 nsCString. Otherwise, return Nothing.
+  //
+  // Mark this ErrorBuffer as having been handled, so its destructor
+  // won't assert.
   Maybe<nsCString> GetError() {
     mGuard = false;
     if (!mUtf8[0]) {
@@ -244,6 +249,8 @@ bool WebGPUParent::ForwardError(RawId aDeviceId, ErrorBuffer& aError) {
   return true;
 }
 
+// Generate an error on the Device timeline of aDeviceId.
+// aMessage is interpreted as UTF-8.
 void WebGPUParent::ReportError(RawId aDeviceId, const nsCString& aMessage) {
   // find the appropriate error scope
   const auto& lookup = mErrorScopeMap.find(aDeviceId);
@@ -327,6 +334,22 @@ ipc::IPCResult WebGPUParent::RecvDeviceDestroy(RawId aSelfId) {
   return IPC_OK();
 }
 
+ipc::IPCResult WebGPUParent::RecvCreateBuffer(
+    RawId aSelfId, RawId aBufferId, dom::GPUBufferDescriptor&& aDesc) {
+  nsCString label;
+  const char* labelOrNull = nullptr;
+  if (aDesc.mLabel.WasPassed()) {
+    LossyCopyUTF16toASCII(aDesc.mLabel.Value(), label);
+    labelOrNull = label.get();
+  }
+  ErrorBuffer error;
+  ffi::wgpu_server_device_create_buffer(mContext.get(), aSelfId, aBufferId,
+                                        labelOrNull, aDesc.mSize, aDesc.mUsage,
+                                        aDesc.mMappedAtCreation, error.ToFFI());
+  ForwardError(aSelfId, error);
+  return IPC_OK();
+}
+
 ipc::IPCResult WebGPUParent::RecvBufferReturnShmem(RawId aSelfId,
                                                    Shmem&& aShmem) {
   MOZ_LOG(sLogger, LogLevel::Info,
@@ -383,10 +406,10 @@ ipc::IPCResult WebGPUParent::RecvBufferMap(RawId aSelfId,
 
   auto* request = new MapRequest(mContext.get(), aSelfId, aHostMap, aOffset,
                                  std::move(shmem), std::move(aResolver));
-  ffi::WGPUBufferMapOperation mapOperation = {
-      aHostMap, &MapCallback, reinterpret_cast<uint8_t*>(request)};
-  ffi::wgpu_server_buffer_map(mContext.get(), aSelfId, aOffset, aSize,
-                              mapOperation);
+  ffi::WGPUBufferMapCallbackC callback = {&MapCallback,
+                                          reinterpret_cast<uint8_t*>(request)};
+  ffi::wgpu_server_buffer_map(mContext.get(), aSelfId, aOffset, aSize, aHostMap,
+                              callback);
   return IPC_OK();
 }
 
@@ -737,13 +760,11 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
 
       ffi::WGPUBufferUsages usage =
           WGPUBufferUsages_COPY_DST | WGPUBufferUsages_MAP_READ;
-      ffi::WGPUBufferDescriptor desc = {};
-      desc.size = bufferSize;
-      desc.usage = usage;
 
       ErrorBuffer error;
       ffi::wgpu_server_device_create_buffer(mContext.get(), data->mDeviceId,
-                                            &desc, bufferId, error.ToFFI());
+                                            bufferId, nullptr, bufferSize,
+                                            usage, false, error.ToFFI());
       if (ForwardError(data->mDeviceId, error)) {
         return IPC_OK();
       }
@@ -823,11 +844,10 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
       data,
   };
 
-  ffi::WGPUBufferMapOperation mapOperation = {
-      ffi::WGPUHostMap_Read, &PresentCallback,
-      reinterpret_cast<uint8_t*>(presentRequest)};
+  ffi::WGPUBufferMapCallbackC callback = {
+      &PresentCallback, reinterpret_cast<uint8_t*>(presentRequest)};
   ffi::wgpu_server_buffer_map(mContext.get(), bufferId, 0, bufferSize,
-                              mapOperation);
+                              ffi::WGPUHostMap_Read, callback);
 
   return IPC_OK();
 }

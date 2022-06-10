@@ -1,13 +1,24 @@
-//|jit-test| --delazification-mode=concurrent-df; skip-if: isLcovEnabled() || helperThreadCount() === 0 || ('gczeal' in this && (gczeal(0), false))
-//
-// Note, we have to execute gczeal in the skip-if condition, before the current
-// script gets parsed and scheduled for delazification, as changing gc settings
-// while the helper thread is making allocation could cause intermittents.
+//|jit-test| skip-if: isLcovEnabled() || helperThreadCount() === 0
 
-function foo() {
-    return "foo";
+// GCs might trash the stencil cache. Prevent us from scheduling too many GCs.
+if ('gczeal' in this) {
+    gczeal(0);
 }
 
-waitForStencilCache(foo);
-// false would be expected if threads are disabled.
-assertEq(isInStencilCache(foo), true);
+let source = `
+  function foo() {
+    return "foo";
+  }
+
+  waitForStencilCache(foo);
+  // false would be expected if threads are disabled.
+  assertEq(isInStencilCache(foo), true);
+`;
+
+const options = {
+    fileName: "inner-01.js",
+    lineNumber: 1,
+    eagerDelazificationStrategy: "CheckConcurrentWithOnDemand",
+    newContext: true,
+};
+evaluate(source, options);

@@ -16,7 +16,9 @@ const { AppConstants } = ChromeUtils.import(
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyServiceGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyServiceGetters(lazy, {
   WinTaskSvc: [
     "@mozilla.org/win-task-scheduler-service;1",
     "nsIWinTaskSchedulerService",
@@ -26,8 +28,6 @@ XPCOMUtils.defineLazyServiceGetters(this, {
     "nsIXREDirProvider",
   ],
 });
-
-XPCOMUtils.defineLazyGlobalGetters(this, ["XMLSerializer"]);
 
 /**
  * Task generation and management for Windows, using Task Scheduler 2.0 (taskschd).
@@ -48,7 +48,7 @@ var _TaskSchedulerWinImpl = {
     );
     const updateExisting = true;
 
-    WinTaskSvc.registerTask(
+    lazy.WinTaskSvc.registerTask(
       this._taskFolderName(),
       this._formatTaskName(id),
       xml,
@@ -57,7 +57,10 @@ var _TaskSchedulerWinImpl = {
   },
 
   deleteTask(id) {
-    WinTaskSvc.deleteTask(this._taskFolderName(), this._formatTaskName(id));
+    lazy.WinTaskSvc.deleteTask(
+      this._taskFolderName(),
+      this._formatTaskName(id)
+    );
   },
 
   /**
@@ -73,7 +76,7 @@ var _TaskSchedulerWinImpl = {
 
     let allTasks;
     try {
-      allTasks = WinTaskSvc.getFolderTasks(taskFolderName);
+      allTasks = lazy.WinTaskSvc.getFolderTasks(taskFolderName);
     } catch (ex) {
       if (ex.result == Cr.NS_ERROR_FILE_NOT_FOUND) {
         // Folder doesn't exist, nothing to delete.
@@ -90,7 +93,7 @@ var _TaskSchedulerWinImpl = {
     const defaultBrowserAgentTaskName =
       AppConstants.MOZ_APP_DISPLAYNAME_DO_NOT_USE +
       " Default Browser Agent " +
-      XreDirProvider.getInstallHash();
+      lazy.XreDirProvider.getInstallHash();
     for (const taskName of tasksToDelete) {
       if (taskName == defaultBrowserAgentTaskName) {
         // Skip the Windows Default Browser Agent task.
@@ -98,7 +101,7 @@ var _TaskSchedulerWinImpl = {
       }
 
       try {
-        WinTaskSvc.deleteTask(taskFolderName, taskName);
+        lazy.WinTaskSvc.deleteTask(taskFolderName, taskName);
         numberDeleted += 1;
       } catch (e) {
         lastFailedTaskName = taskName;
@@ -110,7 +113,7 @@ var _TaskSchedulerWinImpl = {
       // which should fail and throw again.  It's possible this isn't idempotent
       // but we're expecting failures to be due to permission errors, which are
       // likely to be static.
-      WinTaskSvc.deleteTask(taskFolderName, lastFailedTaskName);
+      lazy.WinTaskSvc.deleteTask(taskFolderName, lastFailedTaskName);
     }
 
     if (allTasks.length == numberDeleted) {
@@ -124,7 +127,7 @@ var _TaskSchedulerWinImpl = {
 
     let allTasks;
     try {
-      allTasks = WinTaskSvc.getFolderTasks(taskFolderName);
+      allTasks = lazy.WinTaskSvc.getFolderTasks(taskFolderName);
     } catch (ex) {
       if (ex.result == Cr.NS_ERROR_FILE_NOT_FOUND) {
         // Folder doesn't exist, so neither do tasks within it.
@@ -217,7 +220,7 @@ var _TaskSchedulerWinImpl = {
     const { parentName, subName } = this._taskFolderNameParts();
 
     try {
-      WinTaskSvc.createFolder(parentName, subName);
+      lazy.WinTaskSvc.createFolder(parentName, subName);
     } catch (e) {
       if (e.result != Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
         throw e;
@@ -229,7 +232,7 @@ var _TaskSchedulerWinImpl = {
     const { parentName, subName } = this._taskFolderNameParts();
 
     try {
-      WinTaskSvc.deleteFolder(parentName, subName);
+      lazy.WinTaskSvc.deleteFolder(parentName, subName);
     } catch (e) {
       // Missed one somehow, possibly a subfolder?
       if (e.result != Cr.NS_ERROR_FILE_DIR_NOT_EMPTY) {
@@ -278,12 +281,12 @@ var _TaskSchedulerWinImpl = {
   },
 
   _formatTaskName(id) {
-    const installHash = XreDirProvider.getInstallHash();
+    const installHash = lazy.XreDirProvider.getInstallHash();
     return `${id} ${installHash}`;
   },
 
   _matchAppTaskName(name) {
-    const installHash = XreDirProvider.getInstallHash();
+    const installHash = lazy.XreDirProvider.getInstallHash();
     return name.endsWith(` ${installHash}`);
   },
 };

@@ -149,6 +149,25 @@ const AVAILABLE_SHIMS = [
     onlyIfBlockedByETP: true,
   },
   {
+    id: "AdSafeProtectedFavIcon",
+    platform: "all",
+    name: "Ad Safe Protected favicon",
+    bug: "1717806",
+    matches: [
+      {
+        patterns: ["*://static.adsafeprotected.com/favicon.ico"],
+        target: "https://redirect.firefox.etp/adsafeprotected_favicon",
+        types: ["image", "imageset", "xmlhttprequest"],
+      },
+      {
+        patterns: ["https://redirect.firefox.etp/adsafeprotected_favicon"],
+        target: "tracking-pixel.png",
+        types: ["image", "imageset", "xmlhttprequest"],
+      },
+    ],
+    onlyIfDFPIActive: true,
+  },
+  {
     id: "AdSafeProtectedGoogleIMAAdapter",
     platform: "all",
     branches: ["nightly:android"],
@@ -165,6 +184,15 @@ const AVAILABLE_SHIMS = [
     bug: "1713726",
     file: "google-ads.js",
     matches: ["*://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"],
+    onlyIfBlockedByETP: true,
+  },
+  {
+    id: "Branch",
+    platform: "all",
+    name: "Branch Web SDK",
+    bug: "1716220",
+    file: "branch.js",
+    matches: ["*://cdn.branch.io/branch-latest.min.js*"],
     onlyIfBlockedByETP: true,
   },
   {
@@ -477,6 +505,28 @@ const AVAILABLE_SHIMS = [
         allFrames: true,
       },
     ],
+  },
+  {
+    id: "StickyAdsTV",
+    platform: "all",
+    name: "StickyAdsTV",
+    bug: "1717806",
+    matches: [
+      {
+        patterns: [
+          "*://ads.stickyadstv.com/auto-user-sync*",
+          "*://ads.stickyadstv.com/user-matching*",
+        ],
+        target: "https://redirect.firefox.etp/stickadstv",
+        types: ["image", "imageset", "xmlhttprequest"],
+      },
+      {
+        patterns: ["https://redirect.firefox.etp/stickadstv"],
+        target: "tracking-pixel.png",
+        types: ["image", "imageset", "xmlhttprequest"],
+      },
+    ],
+    onlyIfDFPIActive: true,
   },
   {
     id: "Vidible",

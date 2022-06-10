@@ -77,28 +77,25 @@ void AutoStubFrame::enter(MacroAssembler& masm, Register scratch,
   framePushedAtEnterStubFrame_ = masm.framePushed();
 #endif
 
-  MOZ_ASSERT(!compiler.preparedForVMCall_);
-  compiler.preparedForVMCall_ = true;
+  MOZ_ASSERT(!compiler.enteredStubFrame_);
+  compiler.enteredStubFrame_ = true;
   if (canGC == CallCanGC::CanGC) {
     compiler.makesGCCalls_ = true;
   }
 }
-void AutoStubFrame::leave(MacroAssembler& masm, bool calledIntoIon) {
-  MOZ_ASSERT(compiler.preparedForVMCall_);
-  compiler.preparedForVMCall_ = false;
+void AutoStubFrame::leave(MacroAssembler& masm) {
+  MOZ_ASSERT(compiler.enteredStubFrame_);
+  compiler.enteredStubFrame_ = false;
 
 #ifdef DEBUG
   masm.setFramePushed(framePushedAtEnterStubFrame_);
-  if (calledIntoIon) {
-    masm.adjustFrame(sizeof(intptr_t));  // Calls into ion have this extra.
-  }
 #endif
 
-  EmitBaselineLeaveStubFrame(masm, calledIntoIon);
+  EmitBaselineLeaveStubFrame(masm);
 }
 
 #ifdef DEBUG
-AutoStubFrame::~AutoStubFrame() { MOZ_ASSERT(!compiler.preparedForVMCall_); }
+AutoStubFrame::~AutoStubFrame() { MOZ_ASSERT(!compiler.enteredStubFrame_); }
 #endif
 
 }  // namespace jit
@@ -124,7 +121,7 @@ void BaselineCacheIRCompiler::tailCallVM(MacroAssembler& masm) {
 
 void BaselineCacheIRCompiler::tailCallVMInternal(MacroAssembler& masm,
                                                  TailCallVMFunctionId id) {
-  MOZ_ASSERT(!preparedForVMCall_);
+  MOZ_ASSERT(!enteredStubFrame_);
 
   TrampolinePtr code = cx_->runtime()->jitRuntime()->getVMWrapper(id);
   const VMFunctionData& fun = GetVMFunction(id);
@@ -152,7 +149,11 @@ JitCode* BaselineCacheIRCompiler::compile() {
 
   CacheIRReader reader(writer_);
   do {
-    switch (reader.readOp()) {
+    CacheOp op = reader.readOp();
+#ifdef JS_ION_PERF
+    perfSpewer_.recordInstruction(masm, op);
+#endif
+    switch (op) {
 #define DEFINE_OP(op, ...)                 \
   case CacheOp::op:                        \
     if (!emit##op(reader)) return nullptr; \
@@ -166,7 +167,7 @@ JitCode* BaselineCacheIRCompiler::compile() {
     allocator.nextOp();
   } while (reader.more());
 
-  MOZ_ASSERT(!preparedForVMCall_);
+  MOZ_ASSERT(!enteredStubFrame_);
   masm.assumeUnreachable("Should have returned from IC");
 
   // Done emitting the main IC code. Now emit the failure paths.
@@ -516,7 +517,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
   masm.bind(&noUnderflow);
   masm.callJit(code);
 
-  stubFrame.leave(masm, true);
+  stubFrame.leave(masm);
 
   if (!sameRealm) {
     masm.switchToBaselineFrameRealm(R1.scratchReg());
@@ -1625,7 +1626,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
   masm.bind(&noUnderflow);
   masm.callJit(code);
 
-  stubFrame.leave(masm, true);
+  stubFrame.leave(masm);
 
   if (!sameRealm) {
     masm.switchToBaselineFrameRealm(R1.scratchReg());
@@ -2069,6 +2070,10 @@ bool BaselineCacheIRCompiler::init(CacheKind kind) {
 #endif
       outputUnchecked_.emplace(R0);
       break;
+    case CacheKind::CloseIter:
+      MOZ_ASSERT(numInputs == 1);
+      allocator.initInputLocation(0, R0.scratchReg(), JSVAL_TYPE_OBJECT);
+      break;
   }
 
   // Baseline doesn't allocate float registers so none of them are live.
@@ -2099,7 +2104,8 @@ static ICStubSpace* StubSpaceForStub(bool makesGCCalls, JSScript* script,
 
 ICAttachResult js::jit::AttachBaselineCacheIRStub(
     JSContext* cx, const CacheIRWriter& writer, CacheKind kind,
-    JSScript* outerScript, ICScript* icScript, ICFallbackStub* stub) {
+    JSScript* outerScript, ICScript* icScript, ICFallbackStub* stub,
+    const char* name) {
   // We shouldn't GC or report OOM (or any other exception) here.
   AutoAssertNoPendingException aanpe(cx);
   JS::AutoCheckCannotGC nogc;
@@ -2143,6 +2149,9 @@ ICAttachResult js::jit::AttachBaselineCacheIRStub(
       return ICAttachResult::OOM;
     }
 
+#ifdef JS_ION_PERF
+    comp.perfSpewer().writeProfile(code, name);
+#endif
     // Allocate the shared CacheIRStubInfo. Note that the
     // putBaselineCacheIRStubCode call below will transfer ownership
     // to the stub code HashMap, so we don't have to worry about freeing
@@ -2919,7 +2928,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
     updateReturnValue();
   }
 
-  stubFrame.leave(masm, true);
+  stubFrame.leave(masm);
 
   if (!isSameRealm) {
     masm.switchToBaselineFrameRealm(scratch2);
@@ -3029,7 +3038,7 @@ bool BaselineCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
     updateReturnValue();
   }
 
-  stubFrame.leave(masm, true);
+  stubFrame.leave(masm);
 
   if (!isSameRealm) {
     masm.switchToBaselineFrameRealm(codeReg);
@@ -3154,5 +3163,51 @@ bool BaselineCacheIRCompiler::emitNewPlainObjectResult(uint32_t numFixedSlots,
 
   masm.bind(&done);
   masm.tagValue(JSVAL_TYPE_OBJECT, obj, output.valueReg());
+  return true;
+}
+
+bool BaselineCacheIRCompiler::emitCloseIterScriptedResult(
+    ObjOperandId iterId, ObjOperandId calleeId, CompletionKind kind,
+    uint32_t calleeNargs) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+  Register iter = allocator.useRegister(masm, iterId);
+  Register callee = allocator.useRegister(masm, calleeId);
+
+  AutoScratchRegister code(allocator, masm);
+  AutoScratchRegister scratch(allocator, masm);
+
+  masm.loadJitCodeRaw(callee, code);
+
+  allocator.discardStack(masm);
+
+  AutoStubFrame stubFrame(*this);
+  stubFrame.enter(masm, scratch);
+
+  // Call the return method.
+  masm.alignJitStackBasedOnNArgs(calleeNargs);
+  for (uint32_t i = 0; i < calleeNargs; i++) {
+    masm.pushValue(UndefinedValue());
+  }
+  masm.Push(TypedOrValueRegister(MIRType::Object, AnyRegister(iter)));
+  EmitBaselineCreateStubFrameDescriptor(masm, scratch, JitFrameLayout::Size());
+  masm.Push(Imm32(0));  // argc is 0
+  masm.Push(callee);
+  masm.Push(scratch);
+
+  masm.callJit(code);
+
+  if (kind != CompletionKind::Throw) {
+    // Verify that the return value is an object.
+    Label success;
+    masm.branchTestObject(Assembler::Equal, JSReturnOperand, &success);
+
+    masm.Push(Imm32(int32_t(CheckIsObjectKind::IteratorReturn)));
+    using Fn = bool (*)(JSContext*, CheckIsObjectKind);
+    callVM<Fn, ThrowCheckIsObject>(masm);
+
+    masm.bind(&success);
+  }
+
+  stubFrame.leave(masm);
   return true;
 }

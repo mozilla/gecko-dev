@@ -27,6 +27,7 @@
 #include "nsIDOMEventListener.h"
 #include "nsIRemoteTab.h"
 #include "nsIWidget.h"
+#include "nsTArray.h"
 #include "nsWeakReference.h"
 
 class imgIContainer;
@@ -276,7 +277,7 @@ class BrowserParent final : public PBrowserParent,
 
   // TODO: Use MOZ_CAN_RUN_SCRIPT when it gains IPDL support (bug 1539864)
   MOZ_CAN_RUN_SCRIPT_BOUNDARY mozilla::ipc::IPCResult RecvReplyKeyEvent(
-      const WidgetKeyboardEvent& aEvent);
+      const WidgetKeyboardEvent& aEvent, const nsID& aUUID);
 
   // TODO: Use MOZ_CAN_RUN_SCRIPT when it gains IPDL support (bug 1539864)
   MOZ_CAN_RUN_SCRIPT_BOUNDARY mozilla::ipc::IPCResult RecvAccessKeyNotHandled(
@@ -432,15 +433,16 @@ class BrowserParent final : public PBrowserParent,
   bool DeallocPVsyncParent(PVsyncParent* aActor);
 
 #ifdef ACCESSIBILITY
-  PDocAccessibleParent* AllocPDocAccessibleParent(PDocAccessibleParent*,
-                                                  const uint64_t&,
-                                                  const uint32_t&,
-                                                  const IAccessibleHolder&);
+  PDocAccessibleParent* AllocPDocAccessibleParent(
+      PDocAccessibleParent*, const uint64_t&,
+      const MaybeDiscardedBrowsingContext&, const uint32_t&,
+      const IAccessibleHolder&);
   bool DeallocPDocAccessibleParent(PDocAccessibleParent*);
   virtual mozilla::ipc::IPCResult RecvPDocAccessibleConstructor(
       PDocAccessibleParent* aDoc, PDocAccessibleParent* aParentDoc,
-      const uint64_t& aParentID, const uint32_t& aMsaaID,
-      const IAccessibleHolder& aDocCOMProxy) override;
+      const uint64_t& aParentID,
+      const MaybeDiscardedBrowsingContext& aBrowsingContext,
+      const uint32_t& aMsaaID, const IAccessibleHolder& aDocCOMProxy) override;
 #endif
 
   already_AddRefed<PSessionStoreParent> AllocPSessionStoreParent();
@@ -897,6 +899,22 @@ class BrowserParent final : public PBrowserParent,
 
   Maybe<LayoutDeviceToLayoutDeviceMatrix4x4> mChildToParentConversionMatrix;
   Maybe<ScreenRect> mRemoteDocumentRect;
+
+  // mWaitingReplyKeyboardEvents stores keyboard events which are sent from
+  // SendRealKeyEvent and the event will be back as a reply event.  They are
+  // removed when RecvReplyKeyEvent receives corresponding event or newer event.
+  // Note that reply event will be used for handling non-reserved shortcut keys.
+  // Therefore, we need to store only important data for GlobalKeyHandler.
+  struct SentKeyEventData {
+    uint32_t mKeyCode;
+    uint32_t mCharCode;
+    uint32_t mPseudoCharCode;
+    KeyNameIndex mKeyNameIndex;
+    CodeNameIndex mCodeNameIndex;
+    Modifiers mModifiers;
+    nsID mUUID;
+  };
+  nsTArray<SentKeyEventData> mWaitingReplyKeyboardEvents;
 
   nsIntRect mRect;
   ScreenIntSize mDimensions;

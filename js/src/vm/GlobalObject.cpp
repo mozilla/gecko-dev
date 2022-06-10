@@ -214,6 +214,27 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
   }
 }
 
+static bool ShouldFreezeBuiltin(JSProtoKey key) {
+  switch (key) {
+    case JSProto_Object:
+    case JSProto_Array:
+    case JSProto_Function:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static unsigned GetAttrsForResolvedGlobal(GlobalObject* global,
+                                          JSProtoKey key) {
+  unsigned attrs = JSPROP_RESOLVING;
+  if (global->realm()->creationOptions().freezeBuiltins() &&
+      ShouldFreezeBuiltin(key)) {
+    attrs |= JSPROP_PERMANENT | JSPROP_READONLY;
+  }
+  return attrs;
+}
+
 /* static*/
 bool GlobalObject::resolveConstructor(JSContext* cx,
                                       Handle<GlobalObject*> global,
@@ -326,7 +347,8 @@ bool GlobalObject::resolveConstructor(JSContext* cx,
   if (isObjectOrFunction) {
     if (clasp->specShouldDefineConstructor()) {
       RootedValue ctorValue(cx, ObjectValue(*ctor));
-      if (!DefineDataProperty(cx, global, id, ctorValue, JSPROP_RESOLVING)) {
+      unsigned attrs = GetAttrsForResolvedGlobal(global, key);
+      if (!DefineDataProperty(cx, global, id, ctorValue, attrs)) {
         return false;
       }
     }
@@ -367,6 +389,12 @@ bool GlobalObject::resolveConstructor(JSContext* cx,
     }
   }
 
+  if (ShouldFreezeBuiltin(key)) {
+    if (!JS::MaybeFreezeCtorAndPrototype(cx, ctor, proto)) {
+      return false;
+    }
+  }
+
   if (!isObjectOrFunction) {
     // Any operations that modifies the global object should be placed
     // after any other fallible operations.
@@ -392,7 +420,8 @@ bool GlobalObject::resolveConstructor(JSContext* cx,
 
       if (shouldReallyDefine) {
         RootedValue ctorValue(cx, ObjectValue(*ctor));
-        if (!DefineDataProperty(cx, global, id, ctorValue, JSPROP_RESOLVING)) {
+        unsigned attrs = GetAttrsForResolvedGlobal(global, key);
+        if (!DefineDataProperty(cx, global, id, ctorValue, attrs)) {
           return false;
         }
       }
@@ -458,29 +487,6 @@ JSObject* GlobalObject::createBuiltinProto(JSContext* cx,
   }
 
   return &global->getBuiltinProto(kind);
-}
-
-/* static */
-bool GlobalObject::initBuiltinConstructor(JSContext* cx,
-                                          Handle<GlobalObject*> global,
-                                          JSProtoKey key, HandleObject ctor,
-                                          HandleObject proto) {
-  MOZ_ASSERT(!global->empty());  // reserved slots already allocated
-  MOZ_ASSERT(key != JSProto_Null);
-  MOZ_ASSERT(ctor);
-  MOZ_ASSERT(proto);
-
-  RootedId id(cx, NameToId(ClassName(key, cx)));
-  MOZ_ASSERT(!global->lookup(cx, id));
-
-  RootedValue ctorValue(cx, ObjectValue(*ctor));
-  if (!DefineDataProperty(cx, global, id, ctorValue, JSPROP_RESOLVING)) {
-    return false;
-  }
-
-  global->setConstructor(key, ctor);
-  global->setPrototype(key, proto);
-  return true;
 }
 
 static bool ThrowTypeError(JSContext* cx, unsigned argc, Value* vp) {

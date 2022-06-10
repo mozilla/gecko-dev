@@ -14,41 +14,39 @@ const { XPCShellContentUtils } = ChromeUtils.import(
   "resource://testing-common/XPCShellContentUtils.jsm"
 );
 
+const lazy = {};
+
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "AddonManager",
   "resource://gre/modules/AddonManager.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "AddonTestUtils",
   "resource://testing-common/AddonTestUtils.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "ExtensionTestCommon",
   "resource://testing-common/ExtensionTestCommon.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "FileUtils",
   "resource://gre/modules/FileUtils.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "Management",
   "resource://gre/modules/Extension.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "Schemas",
   "resource://gre/modules/Schemas.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "Services",
-  "resource://gre/modules/Services.jsm"
-);
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 let BASE_MANIFEST = Object.freeze({
   applications: Object.freeze({
@@ -218,7 +216,7 @@ class ExtensionWrapper {
     }
     this.state = "pending";
 
-    await ExtensionTestCommon.setIncognitoOverride(this.extension);
+    await lazy.ExtensionTestCommon.setIncognitoOverride(this.extension);
 
     this.startupPromise = this.extension.startup().then(
       result => {
@@ -335,28 +333,28 @@ class AOMExtensionWrapper extends ExtensionWrapper {
 
     this.onEvent = this.onEvent.bind(this);
 
-    Management.on("ready", this.onEvent);
-    Management.on("shutdown", this.onEvent);
-    Management.on("startup", this.onEvent);
+    lazy.Management.on("ready", this.onEvent);
+    lazy.Management.on("shutdown", this.onEvent);
+    lazy.Management.on("startup", this.onEvent);
 
-    AddonTestUtils.on("addon-manager-shutdown", this.onEvent);
-    AddonTestUtils.on("addon-manager-started", this.onEvent);
+    lazy.AddonTestUtils.on("addon-manager-shutdown", this.onEvent);
+    lazy.AddonTestUtils.on("addon-manager-started", this.onEvent);
 
-    AddonManager.addAddonListener(this);
+    lazy.AddonManager.addAddonListener(this);
   }
 
   destroy() {
     this.id = null;
     this.addon = null;
 
-    Management.off("ready", this.onEvent);
-    Management.off("shutdown", this.onEvent);
-    Management.off("startup", this.onEvent);
+    lazy.Management.off("ready", this.onEvent);
+    lazy.Management.off("shutdown", this.onEvent);
+    lazy.Management.off("startup", this.onEvent);
 
-    AddonTestUtils.off("addon-manager-shutdown", this.onEvent);
-    AddonTestUtils.off("addon-manager-started", this.onEvent);
+    lazy.AddonTestUtils.off("addon-manager-shutdown", this.onEvent);
+    lazy.AddonTestUtils.off("addon-manager-started", this.onEvent);
 
-    AddonManager.removeAddonListener(this);
+    lazy.AddonManager.removeAddonListener(this);
   }
 
   setRestarting() {
@@ -402,10 +400,12 @@ class AOMExtensionWrapper extends ExtensionWrapper {
           // startup() not called yet, ignore AddonManager startup notification.
           return;
         }
-        this.addonPromise = AddonManager.getAddonByID(this.id).then(addon => {
-          this.addon = addon;
-          this.addonPromise = null;
-        });
+        this.addonPromise = lazy.AddonManager.getAddonByID(this.id).then(
+          addon => {
+            this.addon = addon;
+            this.addonPromise = null;
+          }
+        );
       // FALLTHROUGH
       case "addon-manager-shutdown":
         if (this.state === "uninitialized") {
@@ -483,7 +483,7 @@ class AOMExtensionWrapper extends ExtensionWrapper {
 
     await this._flushCache();
 
-    let xpiFile = ExtensionTestCommon.generateXPI(data);
+    let xpiFile = lazy.ExtensionTestCommon.generateXPI(data);
 
     this.cleanupFiles.push(xpiFile);
 
@@ -534,7 +534,10 @@ class InstallableWrapper extends AOMExtensionWrapper {
       try {
         let { id } = addonData.manifest.applications.gecko;
         if (id) {
-          return ExtensionTestCommon.setIncognitoOverride({ id, addonData });
+          return lazy.ExtensionTestCommon.setIncognitoOverride({
+            id,
+            addonData,
+          });
         }
       } catch (e) {}
       throw new Error(
@@ -547,7 +550,7 @@ class InstallableWrapper extends AOMExtensionWrapper {
     await this._setIncognitoOverride();
 
     if (this.installType === "temporary") {
-      return AddonManager.installTemporaryAddon(xpiFile)
+      return lazy.AddonManager.installTemporaryAddon(xpiFile)
         .then(addon => {
           this.id = addon.id;
           this.addon = addon;
@@ -559,7 +562,7 @@ class InstallableWrapper extends AOMExtensionWrapper {
           return Promise.reject(e);
         });
     } else if (this.installType === "permanent") {
-      return AddonManager.getInstallForFile(
+      return lazy.AddonManager.getInstallForFile(
         xpiFile,
         null,
         this.installTelemetryInfo
@@ -620,19 +623,19 @@ var ExtensionTestUtils = {
   BASE_MANIFEST,
 
   get testAssertions() {
-    return ExtensionTestCommon.testAssertions;
+    return lazy.ExtensionTestCommon.testAssertions;
   },
 
   // Shortcut to more easily access WebExtensionPolicy.backgroundServiceWorkerEnabled
   // from mochitest-plain tests.
   getBackgroundServiceWorkerEnabled() {
-    return ExtensionTestCommon.getBackgroundServiceWorkerEnabled();
+    return lazy.ExtensionTestCommon.getBackgroundServiceWorkerEnabled();
   },
 
   // A test helper used to check if the pref "extension.backgroundServiceWorker.forceInTestExtension"
   // is set to true.
   isInBackgroundServiceWorkerTests() {
-    return ExtensionTestCommon.isInBackgroundServiceWorkerTests();
+    return lazy.ExtensionTestCommon.isInBackgroundServiceWorkerTests();
   },
 
   async normalizeManifest(
@@ -640,7 +643,7 @@ var ExtensionTestUtils = {
     manifestType = "manifest.WebExtensionManifest",
     baseManifest = BASE_MANIFEST
   ) {
-    await Management.lazyInit();
+    await lazy.Management.lazyInit();
 
     manifest = Object.assign({}, baseManifest, manifest);
 
@@ -656,7 +659,7 @@ var ExtensionTestUtils = {
       preprocessors: {},
     };
 
-    let normalized = Schemas.normalize(manifest, manifestType, context);
+    let normalized = lazy.Schemas.normalize(manifest, manifestType, context);
     normalized.errors = errors;
 
     return normalized;
@@ -675,7 +678,7 @@ var ExtensionTestUtils = {
 
     let tmpD = this.profileDir.clone();
     tmpD.append("tmp");
-    tmpD.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+    tmpD.create(Ci.nsIFile.DIRECTORY_TYPE, lazy.FileUtils.PERMS_DIRECTORY);
 
     let dirProvider = {
       getFile(prop, persistent) {
@@ -705,7 +708,7 @@ var ExtensionTestUtils = {
   addonManagerStarted: false,
 
   mockAppInfo() {
-    AddonTestUtils.createAppInfo(
+    lazy.AddonTestUtils.createAppInfo(
       "xpcshell@tests.mozilla.org",
       "XPCShell",
       "48",
@@ -720,7 +723,7 @@ var ExtensionTestUtils = {
     this.addonManagerStarted = true;
     this.mockAppInfo();
 
-    return AddonTestUtils.promiseStartupManager();
+    return lazy.AddonTestUtils.promiseStartupManager();
   },
 
   loadExtension(data) {
@@ -728,14 +731,14 @@ var ExtensionTestUtils = {
       // If we're using incognitoOverride, we'll need to ensure
       // an ID is available before generating the XPI.
       if (data.incognitoOverride) {
-        ExtensionTestCommon.setExtensionID(data);
+        lazy.ExtensionTestCommon.setExtensionID(data);
       }
-      let xpiFile = ExtensionTestCommon.generateXPI(data);
+      let xpiFile = lazy.ExtensionTestCommon.generateXPI(data);
 
       return this.loadExtensionXPI(xpiFile, data);
     }
 
-    let extension = ExtensionTestCommon.generate(data);
+    let extension = lazy.ExtensionTestCommon.generate(data);
 
     return new ExtensionWrapper(this.currentScope, extension);
   },

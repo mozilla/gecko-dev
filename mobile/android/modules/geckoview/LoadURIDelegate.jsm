@@ -6,16 +6,10 @@
 
 var EXPORTED_SYMBOLS = ["LoadURIDelegate"];
 
-const { XPCOMUtils } = ChromeUtils.import(
-  "resource://gre/modules/XPCOMUtils.jsm"
-);
 const { GeckoViewUtils } = ChromeUtils.import(
   "resource://gre/modules/GeckoViewUtils.jsm"
 );
-
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
-});
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 const { debug, warn } = GeckoViewUtils.initLogging("LoadURIDelegate");
 

@@ -351,10 +351,10 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
                                             nsIContentSecurityPolicy* aCsp);
 
   mozilla::ipc::IPCResult RecvRealKeyEvent(
-      const mozilla::WidgetKeyboardEvent& aEvent);
+      const mozilla::WidgetKeyboardEvent& aEvent, const nsID& aUUID);
 
   mozilla::ipc::IPCResult RecvNormalPriorityRealKeyEvent(
-      const mozilla::WidgetKeyboardEvent& aEvent);
+      const mozilla::WidgetKeyboardEvent& aEvent, const nsID& aUUID);
 
   mozilla::ipc::IPCResult RecvMouseWheelEvent(
       const mozilla::WidgetWheelEvent& aEvent, const ScrollableLayerGuid& aGuid,
@@ -440,10 +440,10 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
       const mozilla::ScreenIntMargin& aSafeAreaInsets);
 
 #ifdef ACCESSIBILITY
-  PDocAccessibleChild* AllocPDocAccessibleChild(PDocAccessibleChild*,
-                                                const uint64_t&,
-                                                const uint32_t&,
-                                                const IAccessibleHolder&);
+  PDocAccessibleChild* AllocPDocAccessibleChild(
+      PDocAccessibleChild*, const uint64_t&,
+      const MaybeDiscardedBrowsingContext&, const uint32_t&,
+      const IAccessibleHolder&);
   bool DeallocPDocAccessibleChild(PDocAccessibleChild*);
 #endif
 

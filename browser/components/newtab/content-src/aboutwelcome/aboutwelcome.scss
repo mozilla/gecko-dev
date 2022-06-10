@@ -276,6 +276,11 @@ body {
         }
         @media (prefers-color-scheme: dark) {
           background-image: linear-gradient(90deg, #C688FF, #FF84C0, #FFBD4F, #FF84C0, #C688FF);
+
+          &::selection {
+            color: #FFF;
+            background-color: #696977;
+          }
         }
       }
     }
@@ -455,7 +460,7 @@ body {
 
     &.abstract .variations-disc,
     &[next='abstract']::after {
-      background-image: url('resource://builtin-themes/monochromatic/abstract/balanced/icon.svg');
+      background-image: url('resource://builtin-themes/colorways/2021abstract/balanced/icon.svg');
     }
 
     &.abstract::before {
@@ -464,7 +469,7 @@ body {
 
     &.cheers .variations-disc,
     &[next='cheers']::after {
-      background-image: url('resource://builtin-themes/monochromatic/cheers/balanced/icon.svg');
+      background-image: url('resource://builtin-themes/colorways/2021cheers/balanced/icon.svg');
     }
 
     &.cheers::before {
@@ -473,7 +478,7 @@ body {
 
     &.elemental .variations-disc,
     &[next='elemental']::after {
-      background-image: url('resource://builtin-themes/monochromatic/elemental/balanced/icon.svg');
+      background-image: url('resource://builtin-themes/colorways/2021elemental/balanced/icon.svg');
     }
 
     &.elemental::before {
@@ -482,7 +487,7 @@ body {
 
     &.foto .variations-disc,
     &[next='foto']::after {
-      background-image: url('resource://builtin-themes/monochromatic/foto/balanced/icon.svg');
+      background-image: url('resource://builtin-themes/colorways/2021foto/balanced/icon.svg');
     }
 
     &.foto::before {
@@ -491,7 +496,7 @@ body {
 
     &.graffiti .variations-disc,
     &[next='graffiti']::after {
-      background-image: url('resource://builtin-themes/monochromatic/graffiti/balanced/icon.svg');
+      background-image: url('resource://builtin-themes/colorways/2021graffiti/balanced/icon.svg');
     }
 
     &.graffiti::before {
@@ -500,7 +505,7 @@ body {
 
     &.lush .variations-disc,
     &[next='lush']::after {
-      background-image: url('resource://builtin-themes/monochromatic/lush/balanced/icon.svg');
+      background-image: url('resource://builtin-themes/colorways/2021lush/balanced/icon.svg');
     }
 
     &.lush::before {
@@ -672,27 +677,27 @@ body {
         }
 
         &.abstract {
-          background-image: url('resource://builtin-themes/monochromatic/abstract/balanced/icon.svg');
+          background-image: url('resource://builtin-themes/colorways/2021abstract/balanced/icon.svg');
         }
 
         &.cheers {
-          background-image: url('resource://builtin-themes/monochromatic/cheers/balanced/icon.svg');
+          background-image: url('resource://builtin-themes/colorways/2021cheers/balanced/icon.svg');
         }
 
         &.elemental {
-          background-image: url('resource://builtin-themes/monochromatic/elemental/balanced/icon.svg');
+          background-image: url('resource://builtin-themes/colorways/2021elemental/balanced/icon.svg');
         }
 
         &.foto {
-          background-image: url('resource://builtin-themes/monochromatic/foto/balanced/icon.svg');
+          background-image: url('resource://builtin-themes/colorways/2021foto/balanced/icon.svg');
         }
 
         &.graffiti {
-          background-image: url('resource://builtin-themes/monochromatic/graffiti/balanced/icon.svg');
+          background-image: url('resource://builtin-themes/colorways/2021graffiti/balanced/icon.svg');
         }
 
         &.lush {
-          background-image: url('resource://builtin-themes/monochromatic/lush/balanced/icon.svg');
+          background-image: url('resource://builtin-themes/colorways/2021lush/balanced/icon.svg');
         }
       }
 
@@ -750,80 +755,11 @@ body {
     }
 
     .ios button {
-      background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/en/ios.svg');
+      background-image: url('chrome://app-marketplace-icons/locale/ios.svg');
     }
 
     .android button {
-      background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/en/android.png');
-    }
-
-    @at-root:root {
-
-      &[lang|='de'] {
-
-        .ios button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/de/ios.svg');
-        }
-
-        .android button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/de/android.png');
-        }
-      }
-
-      &[lang|='es'] {
-
-        .ios button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/es/ios.svg');
-        }
-
-        .android button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/es/android.png');
-        }
-      }
-
-      &[lang|='fr'] {
-
-        .ios button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/fr/ios.svg');
-        }
-
-        .android button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/fr/android.png');
-        }
-      }
-
-      &[lang|='pt'] {
-
-        .ios button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/pt/ios.svg');
-        }
-
-        .android button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/pt/android.png');
-        }
-      }
-
-      &[lang|='ru'] {
-
-        .ios button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/ru/ios.svg');
-        }
-
-        .android button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/ru/android.png');
-        }
-      }
-
-      &[lang|='zh'] {
-
-        .ios button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/zh/ios.svg');
-        }
-
-        .android button {
-          background-image: url('chrome://activity-stream/content/data/content/assets/app-marketplace-icons/zh/android.png');
-        }
-      }
+      background-image: url('chrome://app-marketplace-icons/locale/android.png');
     }
   }
 

@@ -8,15 +8,17 @@ const EXPORTED_SYMBOLS = ["AsanReporter"];
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AppConstants: "resource://gre/modules/AppConstants.jsm",
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   Log: "resource://gre/modules/Log.jsm",
   OS: "resource://gre/modules/osfile.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
-
-XPCOMUtils.defineLazyGlobalGetters(this, ["TextDecoder", "XMLHttpRequest"]);
 
 // Define our prefs
 const PREF_CLIENT_ID = "asanreporter.clientid";
@@ -34,9 +36,9 @@ const LOGGER_NAME = "asanreporter";
 
 let logger;
 
-XPCOMUtils.defineLazyGetter(this, "asanDumpDir", () => {
+XPCOMUtils.defineLazyGetter(lazy, "asanDumpDir", () => {
   let profileDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
-  return OS.Path.join(profileDir.path, "asan");
+  return lazy.OS.Path.join(profileDir.path, "asan");
 });
 
 const AsanReporter = {
@@ -47,10 +49,17 @@ const AsanReporter = {
     this.initialized = true;
 
     // Setup logging
-    logger = Log.repository.getLogger(LOGGER_NAME);
-    logger.addAppender(new Log.ConsoleAppender(new Log.BasicFormatter()));
-    logger.addAppender(new Log.DumpAppender(new Log.BasicFormatter()));
-    logger.level = Services.prefs.getIntPref(PREF_LOG_LEVEL, Log.Level.Info);
+    logger = lazy.Log.repository.getLogger(LOGGER_NAME);
+    logger.addAppender(
+      new lazy.Log.ConsoleAppender(new lazy.Log.BasicFormatter())
+    );
+    logger.addAppender(
+      new lazy.Log.DumpAppender(new lazy.Log.BasicFormatter())
+    );
+    logger.level = Services.prefs.getIntPref(
+      PREF_LOG_LEVEL,
+      lazy.Log.Level.Info
+    );
 
     logger.info("Starting up...");
 
@@ -73,7 +82,7 @@ const AsanReporter = {
 };
 
 function processDirectory() {
-  let iterator = new OS.File.DirectoryIterator(asanDumpDir);
+  let iterator = new lazy.OS.File.DirectoryIterator(lazy.asanDumpDir);
   let results = [];
 
   // Scan the directory for any ASan logs that we haven't
@@ -127,11 +136,11 @@ function processDirectory() {
 
 function submitReport(reportFile) {
   logger.info("Processing " + reportFile);
-  return OS.File.read(reportFile)
+  return lazy.OS.File.read(reportFile)
     .then(submitToServer)
     .then(() => {
       // Mark as submitted only if we successfully submitted it to the server.
-      return OS.File.move(reportFile, reportFile + ".submitted");
+      return lazy.OS.File.move(reportFile, reportFile + ".submitted");
     });
 }
 

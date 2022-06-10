@@ -35,7 +35,7 @@
  * Blocks should be split out into separate files if they
  * become unmanageable.
  *
- * Related source:
+ * Notable related sources:
  *
  *  nsWindowDefs.h     - Definitions, macros, structs, enums
  *                       and general setup.
@@ -76,6 +76,7 @@
 #include <limits>
 
 #include "nsWindow.h"
+#include "nsWindowTaskbarConcealer.h"
 #include "nsAppRunner.h"
 
 #include <shellapi.h>
@@ -186,9 +187,6 @@
 #  endif  // !defined(WINABLEAPI)
 #endif    // defined(ACCESSIBILITY)
 
-#include "nsIWinTaskbar.h"
-#define NS_TASKBAR_CONTRACTID "@mozilla.org/windows-taskbar;1"
-
 #include "WindowsUIUtils.h"
 
 #include "nsWindowDefs.h"
@@ -215,8 +213,15 @@
 #  define SM_CONVERTIBLESLATEMODE 0x2003
 #endif
 
+// Win 8.1+ (_WIN32_WINNT_WINBLUE)
 #if !defined(WM_DPICHANGED)
 #  define WM_DPICHANGED 0x02E0
+#endif
+
+// Win 8+ (_WIN32_WINNT_WIN8)
+#if !defined(EVENT_OBJECT_CLOAKED)
+#  define EVENT_OBJECT_CLOAKED 0x8017
+#  define EVENT_OBJECT_UNCLOAKED 0x8018
 #endif
 
 #include "mozilla/gfx/DeviceManagerDx.h"
@@ -302,6 +307,13 @@ static SystemTimeConverter<DWORD>& TimeConverter() {
   static SystemTimeConverter<DWORD> timeConverterSingleton;
   return timeConverterSingleton;
 }
+
+// Global event hook for window cloaking. Never deregistered.
+//  - `Nothing` if not yet set.
+//  - `Some(nullptr)` if no attempt should be made to set it.
+static mozilla::Maybe<HWINEVENTHOOK> sWinCloakEventHook =
+    IsWin8OrLater() ? Nothing() : Some(HWINEVENTHOOK(nullptr));
+static mozilla::LazyLogModule sCloakingLog("DWMCloaking");
 
 namespace mozilla {
 
@@ -536,12 +548,10 @@ class TIPMessageHandler {
                                                 PDWORD_PTR aMsgResult) {
     // We don't want to handle this unless the message is a WM_GETOBJECT that we
     // want to block, and the aHwnd is a nsWindow that belongs to the current
-    // thread.
+    // (i.e., main) thread.
     if (!aMsgResult || aMsgCode != WM_GETOBJECT ||
-        static_cast<LONG>(aLParam) != OBJID_CLIENT ||
-        !WinUtils::GetNSWindowPtr(aHwnd) ||
-        ::GetWindowThreadProcessId(aHwnd, nullptr) != ::GetCurrentThreadId() ||
-        !IsA11yBlocked()) {
+        static_cast<LONG>(aLParam) != OBJID_CLIENT || !::NS_IsMainThread() ||
+        !WinUtils::GetNSWindowPtr(aHwnd) || !IsA11yBlocked()) {
       return sSendMessageTimeoutWStub(aHwnd, aMsgCode, aWParam, aLParam, aFlags,
                                       aTimeout, aMsgResult);
     }
@@ -673,14 +683,13 @@ static bool IsMouseVanishKey(WPARAM aVirtKey) {
  * Hide/unhide the cursor if the correct Windows and Firefox settings are set.
  */
 static void MaybeHideCursor(bool aShouldHide) {
-  static bool sMouseExists =
-      []{
-        // Before the first call to ShowCursor, the visibility count is 0
-        // if there is a mouse installed and -1 if not.
-        int count = ::ShowCursor(FALSE);
-        ::ShowCursor(TRUE);
-        return count == -1;
-      }();
+  static bool sMouseExists = [] {
+    // Before the first call to ShowCursor, the visibility count is 0
+    // if there is a mouse installed and -1 if not.
+    int count = ::ShowCursor(FALSE);
+    ::ShowCursor(TRUE);
+    return count == -1;
+  }();
 
   if (!sMouseExists) {
     return;
@@ -696,6 +705,21 @@ static void MaybeHideCursor(bool aShouldHide) {
     MOZ_ASSERT(count == (aShouldHide ? -1 : 0));
     sIsHidden = shouldHide;
   }
+}
+
+// Ground-truth query: does Windows claim the window is cloaked right now?
+static bool IsCloaked(HWND hwnd) {
+  DWORD cloakedState;
+  HRESULT hr = ::DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, &cloakedState,
+                                       sizeof(cloakedState));
+
+  if (FAILED(hr)) {
+    MOZ_LOG(sCloakingLog, LogLevel::Warning,
+            ("failed (%08lX) to query cloaking state for HWND %p", hr, hwnd));
+    return false;
+  }
+
+  return cloakedState != 0;
 }
 
 }  // namespace mozilla
@@ -917,6 +941,11 @@ void nsWindow::DestroyDirectManipulation() {
 nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                           const LayoutDeviceIntRect& aRect,
                           nsWidgetInitData* aInitData) {
+  // Historical note: there was once some belief and/or intent that nsWindows
+  // could be created on arbitrary threads, and this may still be reflected in
+  // some comments.
+  MOZ_ASSERT(NS_IsMainThread());
+
   nsWidgetInitData defaultInitData;
   if (!aInitData) aInitData = &defaultInitData;
 
@@ -971,23 +1000,17 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
         ShouldUseOffMainThreadCompositing()) {
       extendedStyle |= WS_EX_COMPOSITED;
     }
-
-    if (aInitData->mMouseTransparent) {
-      // This flag makes the window transparent to mouse events
-      mMouseTransparent = true;
-      extendedStyle |= WS_EX_TRANSPARENT;
-    }
   } else if (mWindowType == eWindowType_invisible) {
     // Make sure CreateWindowEx succeeds at creating a toplevel window
     style &= ~0x40000000;  // WS_CHILDWINDOW
   } else {
     // See if the caller wants to explictly set clip children and clip siblings
-    if (aInitData->clipChildren) {
+    if (aInitData->mClipChildren) {
       style |= WS_CLIPCHILDREN;
     } else {
       style &= ~WS_CLIPCHILDREN;
     }
-    if (aInitData->clipSiblings) {
+    if (aInitData->mClipSiblings) {
       style |= WS_CLIPSIBLINGS;
     }
   }
@@ -1018,11 +1041,16 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       MOZ_ASSERT(extendedStyle == kPreXULSkeletonUIWindowStyleEx,
                  "The skeleton UI window extended style should match the "
                  "expected extended style for the first window created");
+      MOZ_ASSERT(
+          ::GetWindowThreadProcessId(mWnd, nullptr) == ::GetCurrentThreadId(),
+          "The skeleton UI window should be created on the same thread as "
+          "other windows");
       mIsShowingPreXULSkeletonUI = true;
 
       // If we successfully consumed the pre-XUL skeleton UI, just update
       // our internal state to match what is currently being displayed.
       mIsVisible = true;
+      mIsCloaked = mozilla::IsCloaked(mWnd);
       mFrameState->ConsumePreXULSkeletonState(WasPreXULSkeletonUIMaximized());
 
       // These match the margins set in browser-tabsintitlebar.js with
@@ -1052,6 +1080,35 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   if (!mWnd) {
     NS_WARNING("nsWindow CreateWindowEx failed.");
     return NS_ERROR_FAILURE;
+  }
+
+  if (!sWinCloakEventHook) {
+    MOZ_LOG(sCloakingLog, LogLevel::Info, ("Registering cloaking event hook"));
+
+    // C++03 lambda approximation until P2173R1 is available (-std=c++2b)
+    struct StdcallLambda {
+      static void CALLBACK OnCloakUncloakHook(HWINEVENTHOOK hWinEventHook,
+                                              DWORD event, HWND hwnd,
+                                              LONG idObject, LONG idChild,
+                                              DWORD idEventThread,
+                                              DWORD dwmsEventTime) {
+        const bool isCloaked = event == EVENT_OBJECT_CLOAKED ? true : false;
+        nsWindow::OnCloakEvent(hwnd, isCloaked);
+      }
+    };
+
+    const HWINEVENTHOOK hook = ::SetWinEventHook(
+        EVENT_OBJECT_CLOAKED, EVENT_OBJECT_UNCLOAKED, HMODULE(nullptr),
+        &StdcallLambda::OnCloakUncloakHook, ::GetCurrentProcessId(),
+        ::GetCurrentThreadId(), WINEVENT_OUTOFCONTEXT);
+    sWinCloakEventHook = Some(hook);
+
+    if (!hook) {
+      const DWORD err = ::GetLastError();
+      MOZ_LOG(sCloakingLog, LogLevel::Error,
+              ("Failed to register cloaking event hook! GLE = %lu (0x%lX)", err,
+               err));
+    }
   }
 
   if (aInitData->mIsPrivate) {
@@ -1453,13 +1510,13 @@ void nsWindow::SubclassWindow(BOOL bState) {
         mWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(nsWindow::WindowProc)));
     NS_ASSERTION(mPrevWndProc, "Null standard window procedure");
     // connect the this pointer to the nsWindow handle
-    WinUtils::SetNSWindowBasePtr(mWnd, this);
+    WinUtils::SetNSWindowPtr(mWnd, this);
   } else {
     if (IsWindow(mWnd)) {
       SetWindowLongPtrW(mWnd, GWLP_WNDPROC,
                         reinterpret_cast<LONG_PTR>(mPrevWndProc));
     }
-    WinUtils::SetNSWindowBasePtr(mWnd, nullptr);
+    WinUtils::SetNSWindowPtr(mWnd, nullptr);
     mPrevWndProc = nullptr;
   }
 }
@@ -1587,31 +1644,6 @@ nsWindow* nsWindow::GetParentWindowBase(bool aIncludeOwner) {
   }
 
   return widget;
-}
-
-BOOL CALLBACK nsWindow::EnumAllChildWindProc(HWND aWnd, LPARAM aParam) {
-  nsWindow* wnd = WinUtils::GetNSWindowPtr(aWnd);
-  if (wnd) {
-    reinterpret_cast<nsTArray<nsWindow*>*>(aParam)->AppendElement(wnd);
-  }
-  return TRUE;
-}
-
-BOOL CALLBACK nsWindow::EnumAllThreadWindowProc(HWND aWnd, LPARAM aParam) {
-  nsWindow* wnd = WinUtils::GetNSWindowPtr(aWnd);
-  if (wnd) {
-    reinterpret_cast<nsTArray<nsWindow*>*>(aParam)->AppendElement(wnd);
-  }
-  EnumChildWindows(aWnd, EnumAllChildWindProc, aParam);
-  return TRUE;
-}
-
-/* static*/
-nsTArray<nsWindow*> nsWindow::EnumAllWindows() {
-  nsTArray<nsWindow*> windows;
-  EnumThreadWindows(GetCurrentThreadId(), EnumAllThreadWindowProc,
-                    reinterpret_cast<LPARAM>(&windows));
-  return windows;
 }
 
 /**************************************************************
@@ -1799,7 +1831,9 @@ void nsWindow::Show(bool bState) {
  *
  **************************************************************/
 
-// Return true if the whether the component is visible, false otherwise
+// Return true if the component is visible, false otherwise.
+//
+// This does not take cloaking into account.
 bool nsWindow::IsVisible() const { return mIsVisible; }
 
 /**************************************************************
@@ -1853,21 +1887,23 @@ void nsWindow::LockAspectRatio(bool aShouldLock) {
 
 /**************************************************************
  *
- * SECTION: nsIWidget::SetWindowMouseTransparent
+ * SECTION: nsIWidget::SetInputRegion
  *
  * Sets whether the window should ignore mouse events.
  *
  **************************************************************/
-void nsWindow::SetWindowMouseTransparent(bool aIsTransparent) {
+void nsWindow::SetInputRegion(const InputRegion& aInputRegion) {
+  mInputRegion = aInputRegion;
+
   if (!mWnd) {
     return;
   }
 
+  const bool transparent = aInputRegion.mFullyTransparent;
   LONG_PTR oldStyle = ::GetWindowLongPtrW(mWnd, GWL_EXSTYLE);
-  LONG_PTR newStyle = aIsTransparent ? (oldStyle | WS_EX_TRANSPARENT)
-                                     : (oldStyle & ~WS_EX_TRANSPARENT);
+  LONG_PTR newStyle = transparent ? (oldStyle | WS_EX_TRANSPARENT)
+                                  : (oldStyle & ~WS_EX_TRANSPARENT);
   ::SetWindowLongPtrW(mWnd, GWL_EXSTYLE, newStyle);
-  mMouseTransparent = aIsTransparent;
 }
 
 /**************************************************************
@@ -2689,7 +2725,9 @@ void nsWindow::ResetLayout() {
                    SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
 
   // If hidden, just send the frame changed event for now.
-  if (!mIsVisible) return;
+  if (!mIsVisible) {
+    return;
+  }
 
   // Send a gecko size event to trigger reflow.
   RECT clientRc = {0};
@@ -2781,7 +2819,9 @@ void nsWindow::UpdateDarkModeToolbar() {
  * or removed entirely.
  */
 bool nsWindow::UpdateNonClientMargins(int32_t aSizeMode, bool aReflowWindow) {
-  if (!mCustomNonClient) return false;
+  if (!mCustomNonClient) {
+    return false;
+  }
 
   if (aSizeMode == -1) {
     aSizeMode = mFrameState->GetSizeMode();
@@ -3664,14 +3704,6 @@ void nsWindow::OnFullscreenWillChange(bool aFullScreen) {
 }
 
 void nsWindow::OnFullscreenChanged(bool aFullScreen) {
-  // taskbarInfo will be nullptr pre Windows 7 until Bug 680227 is resolved.
-  nsCOMPtr<nsIWinTaskbar> taskbarInfo = do_GetService(NS_TASKBAR_CONTRACTID);
-
-  // Notify the taskbar that we will be entering full screen mode.
-  if (aFullScreen && taskbarInfo) {
-    taskbarInfo->PrepareFullScreenHWND(mWnd, TRUE);
-  }
-
   // If we are going fullscreen, the window size continues to change
   // and the window will be reflow again then.
   UpdateNonClientMargins(mFrameState->GetSizeMode(), /* Reflow */ !aFullScreen);
@@ -3688,16 +3720,14 @@ void nsWindow::OnFullscreenChanged(bool aFullScreen) {
     DispatchFocusToTopLevelWindow(true);
   }
 
-  // Notify the taskbar that we have exited full screen mode.
-  if (!aFullScreen && taskbarInfo) {
-    taskbarInfo->PrepareFullScreenHWND(mWnd, FALSE);
-  }
-
   OnSizeModeChange(mFrameState->GetSizeMode());
 
   if (mWidgetListener) {
     mWidgetListener->FullscreenChanged(aFullScreen);
   }
+
+  // Possibly notify the taskbar that we have changed our fullscreen mode.
+  TaskbarConcealer::OnFullscreenChanged(this, aFullScreen);
 }
 
 nsresult nsWindow::MakeFullScreen(bool aFullScreen) {
@@ -5278,11 +5308,23 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
     }
 
     case WM_NCHITTEST: {
-      if (mMouseTransparent) {
+      if (mInputRegion.mFullyTransparent) {
         // Treat this window as transparent.
         *aRetValue = HTTRANSPARENT;
         result = true;
         break;
+      }
+
+      if (mInputRegion.mMargin) {
+        const LayoutDeviceIntPoint screenPoint(GET_X_LPARAM(lParam),
+                                               GET_Y_LPARAM(lParam));
+        LayoutDeviceIntRect screenRect = GetScreenBounds();
+        screenRect.Deflate(mInputRegion.mMargin);
+        if (!screenRect.Contains(screenPoint)) {
+          *aRetValue = HTTRANSPARENT;
+          result = true;
+          break;
+        }
       }
 
       /*
@@ -5293,7 +5335,9 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
        * composited desktop.
        */
 
-      if (!mCustomNonClient) break;
+      if (!mCustomNonClient) {
+        break;
+      }
 
       *aRetValue =
           ClientMarginHitTestPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
@@ -5343,7 +5387,9 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
        */
       UpdateGetWindowInfoCaptionStatus(FALSE != wParam);
 
-      if (!mCustomNonClient) break;
+      if (!mCustomNonClient) {
+        break;
+      }
 
       // There is a case that rendered result is not kept. Bug 1237617
       if (wParam == TRUE && !gfxEnv::DisableForcePresent() &&
@@ -6040,6 +6086,7 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       if (sJustGotActivate) {
         DispatchFocusToTopLevelWindow(true);
       }
+      TaskbarConcealer::OnFocusAcquired(this);
       break;
 
     case WM_KILLFOCUS:
@@ -6053,6 +6100,7 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
     case WM_WINDOWPOSCHANGED: {
       WINDOWPOS* wp = (LPWINDOWPOS)lParam;
       OnWindowPosChanged(wp);
+      TaskbarConcealer::OnWindowPosChanged(this);
       result = true;
     } break;
 
@@ -6343,15 +6391,15 @@ BOOL CALLBACK nsWindow::BroadcastMsg(HWND aTopWindow, LPARAM aMsg) {
  *
  **************************************************************/
 
-int32_t nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my) {
-  if (mFrameState->GetSizeMode() == nsSizeMode_Minimized ||
-      mFrameState->GetSizeMode() == nsSizeMode_Fullscreen) {
+int32_t nsWindow::ClientMarginHitTestPoint(int32_t aX, int32_t aY) {
+  const nsSizeMode sizeMode = mFrameState->GetSizeMode();
+  if (sizeMode == nsSizeMode_Minimized || sizeMode == nsSizeMode_Fullscreen) {
     return HTCLIENT;
   }
 
   // Calculations are done in screen coords
-  RECT winRect;
-  GetWindowRect(mWnd, &winRect);
+  const LayoutDeviceIntRect winRect = GetScreenBounds();
+  const LayoutDeviceIntPoint point(aX, aY);
 
   // hit return constants:
   // HTBORDER                     - non-resizable border
@@ -6365,16 +6413,14 @@ int32_t nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my) {
   // HTMINBUTTON                  - minimize button
 
   int32_t testResult = HTCLIENT;
-
-  bool isResizable = (mBorderStyle & (eBorderStyle_all | eBorderStyle_resizeh |
-                                      eBorderStyle_default)) > 0
-                         ? true
-                         : false;
-  if (mFrameState->GetSizeMode() == nsSizeMode_Maximized) isResizable = false;
+  const bool isResizable =
+      sizeMode != nsSizeMode_Maximized &&
+      (mBorderStyle &
+       (eBorderStyle_all | eBorderStyle_resizeh | eBorderStyle_default));
 
   // Ensure being accessible to borders of window.  Even if contents are in
   // this area, the area must behave as border.
-  nsIntMargin nonClientSize(
+  const LayoutDeviceIntMargin nonClientSizeMargin(
       std::max(mCaptionHeight - mNonClientOffset.top, kResizableBorderMinSize),
       std::max(mHorResizeMargin - mNonClientOffset.right,
                kResizableBorderMinSize),
@@ -6383,41 +6429,41 @@ int32_t nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my) {
       std::max(mHorResizeMargin - mNonClientOffset.left,
                kResizableBorderMinSize));
 
-  bool allowContentOverride =
-      mFrameState->GetSizeMode() == nsSizeMode_Maximized ||
-      (mx >= winRect.left + nonClientSize.left &&
-       mx <= winRect.right - nonClientSize.right &&
-       my >= winRect.top + nonClientSize.top &&
-       my <= winRect.bottom - nonClientSize.bottom);
+  LayoutDeviceIntRect clientRect = winRect;
+  clientRect.Deflate(nonClientSizeMargin);
+
+  const bool allowContentOverride =
+      sizeMode == nsSizeMode_Maximized || clientRect.Contains(point);
 
   // The border size.  If there is no content under mouse cursor, the border
   // size should be larger than the values in system settings.  Otherwise,
   // contents under the mouse cursor should be able to override the behavior.
   // E.g., user must expect that Firefox button always opens the popup menu
   // even when the user clicks on the above edge of it.
-  nsIntMargin borderSize(std::max(nonClientSize.top, mVertResizeMargin),
-                         std::max(nonClientSize.right, mHorResizeMargin),
-                         std::max(nonClientSize.bottom, mVertResizeMargin),
-                         std::max(nonClientSize.left, mHorResizeMargin));
+  LayoutDeviceIntMargin borderSize = nonClientSizeMargin;
+  borderSize.EnsureAtLeast(
+      LayoutDeviceIntMargin(mVertResizeMargin, mHorResizeMargin,
+                            mVertResizeMargin, mHorResizeMargin));
 
   bool top = false;
   bool bottom = false;
   bool left = false;
   bool right = false;
 
-  if (my >= winRect.top && my < winRect.top + borderSize.top) {
+  if (point.y >= winRect.y && point.y < winRect.y + borderSize.top) {
     top = true;
-  } else if (my <= winRect.bottom && my > winRect.bottom - borderSize.bottom) {
+  } else if (point.y <= winRect.YMost() &&
+             point.y > winRect.YMost() - borderSize.bottom) {
     bottom = true;
   }
 
   // (the 2x case here doubles the resize area for corners)
   int multiplier = (top || bottom) ? 2 : 1;
-  if (mx >= winRect.left &&
-      mx < winRect.left + (multiplier * borderSize.left)) {
+  if (point.x >= winRect.x &&
+      point.x < winRect.x + (multiplier * borderSize.left)) {
     left = true;
-  } else if (mx <= winRect.right &&
-             mx > winRect.right - (multiplier * borderSize.right)) {
+  } else if (point.x <= winRect.XMost() &&
+             point.x > winRect.XMost() - (multiplier * borderSize.right)) {
     right = true;
   }
 
@@ -6425,53 +6471,63 @@ int32_t nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my) {
   if (isResizable) {
     if (top) {
       testResult = HTTOP;
-      if (left)
+      if (left) {
         testResult = HTTOPLEFT;
-      else if (right)
+      } else if (right) {
         testResult = HTTOPRIGHT;
+      }
     } else if (bottom) {
       testResult = HTBOTTOM;
-      if (left)
+      if (left) {
         testResult = HTBOTTOMLEFT;
-      else if (right)
+      } else if (right) {
         testResult = HTBOTTOMRIGHT;
+      }
     } else {
-      if (left) testResult = HTLEFT;
-      if (right) testResult = HTRIGHT;
+      if (left) {
+        testResult = HTLEFT;
+      }
+      if (right) {
+        testResult = HTRIGHT;
+      }
     }
     inResizeRegion = (testResult != HTCLIENT);
   } else {
-    if (top)
+    if (top) {
       testResult = HTCAPTION;
-    else if (bottom || left || right)
+    } else if (bottom || left || right) {
       testResult = HTBORDER;
+    }
   }
 
   if (!sIsInMouseCapture && allowContentOverride) {
-    POINT pt = {mx, my};
-    ::ScreenToClient(mWnd, &pt);
+    {
+      POINT pt = {aX, aY};
+      ::ScreenToClient(mWnd, &pt);
 
-    if (pt.x == mCachedHitTestPoint.x && pt.y == mCachedHitTestPoint.y &&
-        TimeStamp::Now() - mCachedHitTestTime <
-            TimeDuration::FromMilliseconds(HITTEST_CACHE_LIFETIME_MS)) {
-      return mCachedHitTestResult;
+      if (pt.x == mCachedHitTestPoint.x && pt.y == mCachedHitTestPoint.y &&
+          TimeStamp::Now() - mCachedHitTestTime <
+              TimeDuration::FromMilliseconds(HITTEST_CACHE_LIFETIME_MS)) {
+        return mCachedHitTestResult;
+      }
+
+      mCachedHitTestPoint = {pt.x, pt.y};
+      mCachedHitTestTime = TimeStamp::Now();
     }
 
-    mCachedHitTestPoint = {pt.x, pt.y};
-    mCachedHitTestTime = TimeStamp::Now();
+    auto pt = mCachedHitTestPoint;
 
-    if (mWindowBtnRect[WindowButtonType::Minimize].Contains(pt.x, pt.y)) {
+    if (mWindowBtnRect[WindowButtonType::Minimize].Contains(pt)) {
       testResult = HTMINBUTTON;
-    } else if (mWindowBtnRect[WindowButtonType::Maximize].Contains(pt.x,
-                                                                   pt.y)) {
+    } else if (mWindowBtnRect[WindowButtonType::Maximize].Contains(pt)) {
       testResult = HTMAXBUTTON;
-    } else if (mWindowBtnRect[WindowButtonType::Close].Contains(pt.x, pt.y)) {
+    } else if (mWindowBtnRect[WindowButtonType::Close].Contains(pt)) {
       testResult = HTCLOSE;
     } else if (!inResizeRegion) {
       // If we're in the resize region, avoid overriding that with either a
       // drag or a client result; resize takes priority over either (but not
       // over the window controls, which is why we check this after those).
-      if (mDraggableRegion.Contains(pt.x, pt.y)) {
+      if (mDraggableRegion.Contains(pt)) {
         testResult = HTCAPTION;
       } else {
         testResult = HTCLIENT;
@@ -7272,6 +7328,12 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam) {
 void nsWindow::OnDestroy() {
   mOnDestroyCalled = true;
 
+  // If this is a toplevel window, notify the taskbar concealer to clean up any
+  // relevant state.
+  if (!mParent) {
+    TaskbarConcealer::OnWindowDestroyed(mWnd);
+  }
+
   // Make sure we don't get destroyed in the process of tearing down.
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
 
@@ -7290,8 +7352,8 @@ void nsWindow::OnDestroy() {
   // Unregister notifications from terminal services
   ::WTSUnRegisterSessionNotification(mWnd);
 
-  // Free our subclass and clear |this| stored in the window props. We will no
-  // longer receive events from Windows after this point.
+  // Free our subclass and clear the |this|-pointer associated with our HWND. We
+  // will no longer receive events from Windows after this point.
   SubclassWindow(FALSE);
 
   // Once mWidgetListener is cleared and the subclass is reset, sCurrentWindow
@@ -7501,6 +7563,73 @@ void nsWindow::OnDPIChanged(int32_t x, int32_t y, int32_t width,
   UpdateNonClientMargins();
   ChangedDPI();
   ResetLayout();
+}
+
+// Callback to generate OnCloakChanged pseudo-events.
+/* static */
+void nsWindow::OnCloakEvent(HWND aWnd, bool aCloaked) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(IsWin8OrLater());
+
+  const char* const kEventName = aCloaked ? "CLOAKED" : "UNCLOAKED";
+  nsWindow* pWin = WinUtils::GetNSWindowPtr(aWnd);
+  if (!pWin) {
+    MOZ_LOG(
+        sCloakingLog, LogLevel::Debug,
+        ("Received %s event for HWND %p (not an nsWindow)", kEventName, aWnd));
+    return;
+  }
+
+  const char* const kWasCloakedStr = pWin->mIsCloaked ? "cloaked" : "uncloaked";
+  if (mozilla::IsCloaked(aWnd) == pWin->mIsCloaked) {
+    MOZ_LOG(sCloakingLog, LogLevel::Debug,
+            ("Received redundant %s event for %s HWND %p; discarding",
+             kEventName, kWasCloakedStr, aWnd));
+    return;
+  }
+
+  MOZ_LOG(
+      sCloakingLog, LogLevel::Info,
+      ("Received %s event for %s HWND %p", kEventName, kWasCloakedStr, aWnd));
+
+  // Cloaking events like the one we've just received are sent asynchronously.
+  // Rather than process them one-by-one, we jump the gun a bit and perform
+  // updates on all newly cloaked/uncloaked nsWindows at once. This also lets us
+  // batch operations that consider more than one window's state.
+  struct Item {
+    nsWindow* win;
+    bool nowCloaked;
+  };
+  nsTArray<Item> changedWindows;
+
+  mozilla::EnumerateThreadWindows([&](HWND hwnd) {
+    nsWindow* pWin = WinUtils::GetNSWindowPtr(hwnd);
+    if (!pWin) {
+      return;
+    }
+
+    const bool isCloaked = mozilla::IsCloaked(hwnd);
+    if (isCloaked != pWin->mIsCloaked) {
+      changedWindows.AppendElement(Item{pWin, isCloaked});
+    }
+  });
+
+  if (changedWindows.IsEmpty()) {
+    return;
+  }
+
+  for (const Item& item : changedWindows) {
+    item.win->OnCloakChanged(item.nowCloaked);
+  }
+
+  nsWindow::TaskbarConcealer::OnCloakChanged();
+}
+
+void nsWindow::OnCloakChanged(bool aCloaked) {
+  MOZ_LOG(sCloakingLog, LogLevel::Info,
+          ("Calling OnCloakChanged(): HWND %p, aCloaked %s", mWnd,
+           aCloaked ? "true" : "false"));
+  mIsCloaked = aCloaked;
 }
 
 /**************************************************************
@@ -7914,6 +8043,14 @@ bool nsWindow::EventIsInsideWindow(nsWindow* aWindow,
     DWORD pos = ::GetMessagePos();
     mp.x = GET_X_LPARAM(pos);
     mp.y = GET_Y_LPARAM(pos);
+  }
+
+  auto margin = aWindow->mInputRegion.mMargin;
+  if (margin > 0) {
+    r.top += margin;
+    r.bottom -= margin;
+    r.left += margin;
+    r.right -= margin;
   }
 
   // was the event inside this window?

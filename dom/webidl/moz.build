@@ -359,7 +359,7 @@ with Files("WebGL*"):
     BUG_COMPONENT = ("Core", "Canvas: WebGL")
 
 with Files("WebGPU*"):
-    BUG_COMPONENT = ("Core", "Canvas: WebGL")
+    BUG_COMPONENT = ("Core", "Graphics: WebGPU")
 
 with Files("Webrtc*"):
     BUG_COMPONENT = ("Core", "WebRTC")
@@ -1012,6 +1012,7 @@ WEBIDL_FILES = [
     "XULCommandEvent.webidl",
     "XULElement.webidl",
     "XULPopupElement.webidl",
+    "XULResizerElement.webidl",
 ]
 
 if CONFIG["MOZ_DOM_STREAMS"]:

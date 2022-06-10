@@ -11,12 +11,14 @@ const { XPCOMUtils } = ChromeUtils.import(
 const { GeckoViewUtils } = ChromeUtils.import(
   "resource://gre/modules/GeckoViewUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   ActorManagerParent: "resource://gre/modules/ActorManagerParent.jsm",
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
   Preferences: "resource://gre/modules/Preferences.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
 const { debug, warn } = GeckoViewUtils.initLogging("Startup");
@@ -137,8 +139,8 @@ class GeckoViewStartup {
         if (
           Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_DEFAULT
         ) {
-          ActorManagerParent.addJSWindowActors(JSWINDOWACTORS);
-          ActorManagerParent.addJSProcessActors(JSPROCESSACTORS);
+          lazy.ActorManagerParent.addJSWindowActors(JSWINDOWACTORS);
+          lazy.ActorManagerParent.addJSProcessActors(JSPROCESSACTORS);
 
           GeckoViewUtils.addLazyGetter(this, "GeckoViewWebExtension", {
             module: "resource://gre/modules/GeckoViewWebExtension.jsm",
@@ -174,7 +176,7 @@ class GeckoViewStartup {
             observers: ["ipc:content-shutdown", "compositor:process-aborted"],
           });
 
-          EventDispatcher.instance.registerListener(this, [
+          lazy.EventDispatcher.instance.registerListener(this, [
             "GeckoView:StorageDelegate:Attached",
           ]);
         }
@@ -205,7 +207,7 @@ class GeckoViewStartup {
         ChromeUtils.import("resource://gre/modules/NotificationDB.jsm");
 
         // Listen for global EventDispatcher messages
-        EventDispatcher.instance.registerListener(this, [
+        lazy.EventDispatcher.instance.registerListener(this, [
           "GeckoView:ResetUserPrefs",
           "GeckoView:SetDefaultPrefs",
           "GeckoView:SetLocale",
@@ -234,12 +236,12 @@ class GeckoViewStartup {
 
     switch (aEvent) {
       case "GeckoView:ResetUserPrefs": {
-        const prefs = new Preferences();
+        const prefs = new lazy.Preferences();
         prefs.reset(aData.names);
         break;
       }
       case "GeckoView:SetDefaultPrefs": {
-        const prefs = new Preferences({ defaultBranch: true });
+        const prefs = new lazy.Preferences({ defaultBranch: true });
         for (const name of Object.keys(aData)) {
           try {
             prefs.set(name, aData[name]);

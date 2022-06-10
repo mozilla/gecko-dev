@@ -1,9 +1,11 @@
 //! An immutable set constructed at compile time.
-use core::borrow::Borrow;
-use core::iter::IntoIterator;
 use core::fmt;
+use core::iter::FusedIterator;
+use core::iter::IntoIterator;
 
-use crate::{map, Map, PhfHash};
+use phf_shared::{PhfBorrow, PhfHash};
+
+use crate::{map, Map};
 
 /// An immutable set constructed at compile time.
 ///
@@ -17,20 +19,25 @@ pub struct Set<T: 'static> {
     pub map: Map<T, ()>,
 }
 
-impl<T> fmt::Debug for Set<T> where T: fmt::Debug {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl<T> fmt::Debug for Set<T>
+where
+    T: fmt::Debug,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_set().entries(self).finish()
     }
 }
 
 impl<T> Set<T> {
     /// Returns the number of elements in the `Set`.
-    pub fn len(&self) -> usize {
+    #[inline]
+    pub const fn len(&self) -> usize {
         self.map.len()
     }
 
     /// Returns true if the `Set` contains no elements.
-    pub fn is_empty(&self) -> bool {
+    #[inline]
+    pub const fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
@@ -39,16 +46,18 @@ impl<T> Set<T> {
     ///
     /// This can be useful for interning schemes.
     pub fn get_key<U: ?Sized>(&self, key: &U) -> Option<&T>
-        where U: Eq + PhfHash,
-              T: Borrow<U>
+    where
+        U: Eq + PhfHash,
+        T: PhfBorrow<U>,
     {
         self.map.get_key(key)
     }
 
     /// Returns true if `value` is in the `Set`.
     pub fn contains<U: ?Sized>(&self, value: &U) -> bool
-        where U: Eq + PhfHash,
-              T: Borrow<U>
+    where
+        U: Eq + PhfHash,
+        T: PhfBorrow<U>,
     {
         self.map.contains_key(value)
     }
@@ -56,12 +65,17 @@ impl<T> Set<T> {
     /// Returns an iterator over the values in the set.
     ///
     /// Values are returned in an arbitrary but fixed order.
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
-        Iter { iter: self.map.keys() }
+    pub fn iter(&self) -> Iter<'_, T> {
+        Iter {
+            iter: self.map.keys(),
+        }
     }
 }
 
-impl<T> Set<T> where T: Eq + PhfHash {
+impl<T> Set<T>
+where
+    T: Eq + PhfHash + PhfBorrow<T>,
+{
     /// Returns true if `other` shares no elements with `self`.
     pub fn is_disjoint(&self, other: &Set<T>) -> bool {
         !self.iter().any(|value| other.contains(value))
@@ -92,6 +106,24 @@ pub struct Iter<'a, T: 'static> {
     iter: map::Keys<'a, T, ()>,
 }
 
+impl<'a, T> Clone for Iter<'a, T> {
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            iter: self.iter.clone(),
+        }
+    }
+}
+
+impl<'a, T> fmt::Debug for Iter<'a, T>
+where
+    T: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_list().entries(self.clone()).finish()
+    }
+}
+
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
@@ -111,3 +143,5 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
 }
 
 impl<'a, T> ExactSizeIterator for Iter<'a, T> {}
+
+impl<'a, T> FusedIterator for Iter<'a, T> {}

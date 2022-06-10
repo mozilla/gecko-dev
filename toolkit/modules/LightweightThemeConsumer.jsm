@@ -10,25 +10,24 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "AppConstants",
+const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
+const lazy = {};
 // Get the theme variables from the app resource directory.
 // This allows per-app variables.
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "ThemeContentPropertyList",
   "resource:///modules/ThemeVariableMap.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "ThemeVariableMap",
   "resource:///modules/ThemeVariableMap.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm"
 );
@@ -36,7 +35,7 @@ ChromeUtils.defineModuleGetter(
 // Whether the content and chrome areas should always use the same color
 // scheme (unless user-overridden). Thunderbird uses this.
 XPCOMUtils.defineLazyPreferenceGetter(
-  this,
+  lazy,
   "BROWSER_THEME_UNIFIED_COLOR_SCHEME",
   "browser.theme.unified-color-scheme",
   false
@@ -267,8 +266,8 @@ LightweightThemeConsumer.prototype = {
           "browser.theme.dark-private-windows",
           false
         ) ||
-        !PrivateBrowsingUtils.isWindowPrivate(this._win) ||
-        PrivateBrowsingUtils.permanentPrivateBrowsing
+        !lazy.PrivateBrowsingUtils.isWindowPrivate(this._win) ||
+        lazy.PrivateBrowsingUtils.permanentPrivateBrowsing
       ) {
         return false;
       }
@@ -422,7 +421,7 @@ function _getContentProperties(doc, active, data) {
   }
   let properties = {};
   for (let property in data) {
-    if (ThemeContentPropertyList.includes(property)) {
+    if (lazy.ThemeContentPropertyList.includes(property)) {
       properties[property] = _cssColorToRGBA(doc, data[property]);
     }
   }
@@ -522,7 +521,7 @@ function _determineToolbarAndContentTheme(
   })();
 
   let contentTheme = (function() {
-    if (BROWSER_THEME_UNIFIED_COLOR_SCHEME) {
+    if (lazy.BROWSER_THEME_UNIFIED_COLOR_SCHEME) {
       return toolbarTheme;
     }
     if (!aTheme) {
@@ -646,7 +645,7 @@ function _setProperties(root, active, themeData) {
   // _processedColors. Copying means _processedColors will contain irrelevant
   // properties like `id`. There aren't too many, so that's OK.
   themeData._processedColors = { ...themeData };
-  for (let map of [toolkitVariableMap, ThemeVariableMap]) {
+  for (let map of [toolkitVariableMap, lazy.ThemeVariableMap]) {
     for (let [cssVarName, definition] of map) {
       const {
         lwtProperty,

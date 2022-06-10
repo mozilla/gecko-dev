@@ -1073,11 +1073,17 @@ class nsIWidget : public nsISupports {
   virtual void SetColorScheme(const mozilla::Maybe<mozilla::ColorScheme>&) {}
 
   /**
-   * Set whether the window should ignore mouse events or not.
+   * Set whether the window should ignore mouse events or not, and if it should
+   * not, what input margin should it use.
    *
-   * This is only used on popup windows.
+   * This is only used on popup windows. The margin is only implemented on
+   * Linux.
    */
-  virtual void SetWindowMouseTransparent(bool aIsTransparent) {}
+  struct InputRegion {
+    bool mFullyTransparent = false;
+    mozilla::LayoutDeviceIntCoord mMargin = 0;
+  };
+  virtual void SetInputRegion(const InputRegion&) {}
 
   /*
    * On macOS, this method shows or hides the pill button in the titlebar
@@ -1193,10 +1199,17 @@ class nsIWidget : public nsISupports {
   };
 
   /**
-   * Return the widget's LayerManager. The layer tree for that
-   * LayerManager is what gets rendered to the widget.
+   * Return the widget's LayerManager. The layer tree for that LayerManager is
+   * what gets rendered to the widget.
+   *
+   * Note that this tries to create a renderer if it doesn't exist.
    */
   virtual WindowRenderer* GetWindowRenderer() = 0;
+
+  /**
+   * Returns whether there's an existing window renderer.
+   */
+  virtual bool HasWindowRenderer() const = 0;
 
   /**
    * Called before each layer manager transaction to allow any preparation

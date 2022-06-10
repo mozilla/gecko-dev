@@ -12,14 +12,16 @@ const { GeckoViewModule } = ChromeUtils.import(
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
   LoadURIDelegate: "resource://gre/modules/LoadURIDelegate.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
-XPCOMUtils.defineLazyGetter(this, "ReferrerInfo", () =>
+XPCOMUtils.defineLazyGetter(lazy, "ReferrerInfo", () =>
   Components.Constructor(
     "@mozilla.org/referrer-info;1",
     "nsIReferrerInfo",
@@ -48,7 +50,7 @@ const createReferrerInfo = aReferrer => {
     referrerUri = Services.io.newURI(aReferrer);
   } catch (ignored) {}
 
-  return new ReferrerInfo(Ci.nsIReferrerInfo.EMPTY, true, referrerUri);
+  return new lazy.ReferrerInfo(Ci.nsIReferrerInfo.EMPTY, true, referrerUri);
 };
 
 function convertFlags(aFlags) {
@@ -196,7 +198,7 @@ class GeckoViewNavigation extends GeckoViewModule {
             ? referrerWindow.browser.referrerInfo.referrerPolicy
             : Ci.nsIReferrerInfo.EMPTY;
 
-          referrerInfo = new ReferrerInfo(
+          referrerInfo = new lazy.ReferrerInfo(
             referrerPolicy,
             true,
             referrerWindow.browser.documentURI
@@ -235,7 +237,9 @@ class GeckoViewNavigation extends GeckoViewModule {
           }
 
           if (additionalHeaders != "") {
-            additionalHeaders = E10SUtils.makeInputStream(additionalHeaders);
+            additionalHeaders = lazy.E10SUtils.makeInputStream(
+              additionalHeaders
+            );
           } else {
             additionalHeaders = null;
           }
@@ -388,7 +392,7 @@ class GeckoViewNavigation extends GeckoViewModule {
                                 where=${aWhere} flags=${aFlags}`;
 
     if (
-      LoadURIDelegate.load(
+      lazy.LoadURIDelegate.load(
         this.window,
         this.eventDispatcher,
         aUri,
@@ -428,7 +432,7 @@ class GeckoViewNavigation extends GeckoViewModule {
     }
 
     if (
-      LoadURIDelegate.load(
+      lazy.LoadURIDelegate.load(
         this.window,
         this.eventDispatcher,
         aUri,
@@ -471,7 +475,7 @@ class GeckoViewNavigation extends GeckoViewModule {
                           where=${where} flags=${flags}`;
 
     if (
-      LoadURIDelegate.load(
+      lazy.LoadURIDelegate.load(
         this.window,
         this.eventDispatcher,
         uri,
@@ -565,7 +569,7 @@ class GeckoViewNavigation extends GeckoViewModule {
     const { URI, originAttributes, privateBrowsingId } = principal;
     return {
       uri: Services.io.createExposableURI(URI).displaySpec,
-      principal: E10SUtils.serializePrincipal(principal),
+      principal: lazy.E10SUtils.serializePrincipal(principal),
       perm: type,
       value: capability,
       contextId: originAttributes.geckoViewSessionContextId,

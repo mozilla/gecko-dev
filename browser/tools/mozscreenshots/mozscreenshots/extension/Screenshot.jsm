@@ -11,12 +11,12 @@ const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 
 // Create a new instance of the ConsoleAPI so we can control the maxLogLevel with a pref.
 // See LOG_LEVELS in Console.jsm. Common examples: "All", "Info", "Warn", & "Error".
 const PREF_LOG_LEVEL = "extensions.mozscreenshots@mozilla.org.loglevel";
-XPCOMUtils.defineLazyGetter(this, "log", () => {
+const lazy = {};
+XPCOMUtils.defineLazyGetter(lazy, "log", () => {
   let { ConsoleAPI } = ChromeUtils.import("resource://gre/modules/Console.jsm");
   let consoleOptions = {
     maxLogLevel: "info",
@@ -60,7 +60,7 @@ var Screenshot = {
   },
 
   _buildImagePath(baseName) {
-    return OS.Path.join(
+    return PathUtils.join(
       this._path,
       this._imagePrefix + baseName + this._imageExtension
     );
@@ -70,7 +70,7 @@ var Screenshot = {
   async captureExternal(filename) {
     let imagePath = this._buildImagePath(filename);
     await this._screenshotFunction(imagePath);
-    log.debug("saved screenshot: " + filename);
+    lazy.log.debug("saved screenshot: " + filename);
     return imagePath;
   },
 
@@ -123,11 +123,7 @@ var Screenshot = {
     };
 
     function readWindowID() {
-      let decoder = new TextDecoder();
-      let promise = OS.File.read("/tmp/mozscreenshots-windowid");
-      return promise.then(function onSuccess(array) {
-        return decoder.decode(array);
-      });
+      return IOUtils.readUTF8("/tmp/mozscreenshots-windowid");
     }
 
     let promiseWindowID = () => {

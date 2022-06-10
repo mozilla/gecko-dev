@@ -12,27 +12,30 @@ const { XPCOMUtils } = ChromeUtils.import(
 const { GeckoViewUtils } = ChromeUtils.import(
   "resource://gre/modules/GeckoViewUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AppConstants: "resource://gre/modules/AppConstants.jsm",
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
-  Services: "resource://gre/modules/Services.jsm",
+  OS: "resource://gre/modules/osfile.jsm",
 });
-
-ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 
 const { debug, warn } = GeckoViewUtils.initLogging("ChildCrashHandler");
 
 function getDir(name) {
   const uAppDataPath = Services.dirsvc.get("UAppData", Ci.nsIFile).path;
-  return OS.Path.join(uAppDataPath, "Crash Reports", name);
+  return lazy.OS.Path.join(uAppDataPath, "Crash Reports", name);
 }
 
 function getPendingMinidump(id) {
   const pendingDir = getDir("pending");
 
   return [".dmp", ".extra"].map(suffix => {
-    return OS.Path.join(pendingDir, `${id}${suffix}`);
+    return lazy.OS.Path.join(pendingDir, `${id}${suffix}`);
   });
 }
 
@@ -79,7 +82,7 @@ var ChildCrashHandler = {
         ? "BACKGROUND_CHILD"
         : "FOREGROUND_CHILD";
 
-    EventDispatcher.instance.sendRequest({
+    lazy.EventDispatcher.instance.sendRequest({
       type: "GeckoView:ChildCrashReport",
       minidumpPath,
       extrasPath,

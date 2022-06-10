@@ -6,17 +6,18 @@
 
 var EXPORTED_SYMBOLS = ["pprint", "truncate"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
+const lazy = {};
 
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   Log: "chrome://remote/content/shared/Log.jsm",
 });
 
-XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
+XPCOMUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
 const ELEMENT_NODE = 1;
 const MAX_STRING_LENGTH = 250;
@@ -102,7 +103,7 @@ function pprint(ss, ...values) {
       try {
         s = pretty(values[i]);
       } catch (e) {
-        logger.warn("Problem pretty printing:", e);
+        lazy.logger.warn("Problem pretty printing:", e);
         s = typeof values[i];
       }
       res.push(s);

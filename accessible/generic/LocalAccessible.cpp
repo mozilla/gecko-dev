@@ -75,7 +75,6 @@
 #include "mozilla/BasicEvents.h"
 #include "mozilla/Components.h"
 #include "mozilla/ErrorResult.h"
-#include "mozilla/EventStates.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/PresShell.h"
@@ -393,11 +392,13 @@ uint64_t LocalAccessible::NativeState() const {
   if (!IsInDocument()) state |= states::STALE;
 
   if (HasOwnContent() && mContent->IsElement()) {
-    EventStates elementState = mContent->AsElement()->State();
+    dom::ElementState elementState = mContent->AsElement()->State();
 
-    if (elementState.HasState(NS_EVENT_STATE_INVALID)) state |= states::INVALID;
+    if (elementState.HasState(dom::ElementState::INVALID)) {
+      state |= states::INVALID;
+    }
 
-    if (elementState.HasState(NS_EVENT_STATE_REQUIRED)) {
+    if (elementState.HasState(dom::ElementState::REQUIRED)) {
       state |= states::REQUIRED;
     }
 
@@ -2360,6 +2361,13 @@ void LocalAccessible::Shutdown() {
   // parent
   mStateFlags |= eIsDefunct;
 
+  // Usually, when a subtree is removed, we do this in
+  // DocAccessible::UncacheChildrenInSubtree. However, that won't get called
+  // when the document is shut down, so we handle that here.
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup() && IsTable()) {
+    CachedTableAccessible::Invalidate(this);
+  }
+
   int32_t childCount = mChildren.Length();
   for (int32_t childIdx = 0; childIdx < childCount; childIdx++) {
     mChildren.ElementAt(childIdx)->UnbindFromParent();
@@ -2535,12 +2543,6 @@ void LocalAccessible::BindToParent(LocalAccessible* aParent,
 
 // LocalAccessible protected
 void LocalAccessible::UnbindFromParent() {
-  // Usually, when a subtree is removed, we do this in
-  // DocAccessible::UncacheChildrenInSubtree. However, that won't get called
-  // when the document is shut down, so we handle that here.
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup() && IsTable()) {
-    CachedTableAccessible::Invalidate(this);
-  }
   mParent = nullptr;
   mIndexInParent = -1;
   mIndexOfEmbeddedChild = -1;
@@ -3446,13 +3448,15 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       // This is because of things like rowspan="0" which depend on knowing
       // about thead, tbody, etc., which is info we don't have in the a11y tree.
       int32_t value = static_cast<int32_t>(cell->RowExtent());
-      if (value != 1) {
+      MOZ_ASSERT(value > 0);
+      if (value > 1) {
         fields->SetAttribute(nsGkAtoms::rowspan, value);
       } else if (aUpdateType == CacheUpdateType::Update) {
         fields->SetAttribute(nsGkAtoms::rowspan, DeleteEntry());
       }
       value = static_cast<int32_t>(cell->ColExtent());
-      if (value != 1) {
+      MOZ_ASSERT(value > 0);
+      if (value > 1) {
         fields->SetAttribute(nsGkAtoms::colspan, value);
       } else if (aUpdateType == CacheUpdateType::Update) {
         fields->SetAttribute(nsGkAtoms::colspan, DeleteEntry());

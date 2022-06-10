@@ -13,7 +13,6 @@
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
 #include "jit/mips-shared/SharedICHelpers-mips-shared.h"
-#include "jit/mips32/Bailouts-mips32.h"
 #ifdef JS_ION_PERF
 #  include "jit/PerfSpewer.h"
 #endif
@@ -433,6 +432,8 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   }
   masm.pushReturnAddress();
 
+#error "Port changes from bug 1772506"
+
   Register numActArgsReg = t6;
   Register calleeTokenReg = t7;
   Register numArgsReg = t5;
@@ -555,33 +556,8 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       break;
   }
 
-  // arg1
-  //  ...
-  // argN
-  // num actual args
-  // callee token
-  // sizeDescriptor     <- sp now
-  // return address
-
-  // Remove the rectifier frame.
-  // t0 <- descriptor with FrameType.
-  masm.loadPtr(Address(StackPointer, 0), t0);
-  masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), t0);  // t0 <- descriptor.
-
-  // Discard descriptor, calleeToken and number of actual arguments.
-  masm.addPtr(Imm32(3 * sizeof(uintptr_t)), StackPointer);
-
-  // arg1
-  //  ...
-  // argN               <- sp now; t0 <- frame descriptor
-  // num actual args
-  // callee token
-  // sizeDescriptor
-  // return address
-
-  // Discard pushed arguments.
-  masm.addPtr(t0, StackPointer);
-
+  masm.mov(FramePointer, StackPointer);
+  masm.pop(FramePointer);
   masm.ret();
 }
 
@@ -604,12 +580,9 @@ static const uint32_t bailoutInfoOutParamSize = 2 * sizeof(uintptr_t);
  * In this case frame size is stored in $ra (look at
  * CodeGeneratorMIPS::generateOutOfLineCode()) and thunk code should save it
  * on stack. Other difference is that members snapshotOffset_ and padding_ are
- * pushed to the stack by CodeGeneratorMIPS::visitOutOfLineBailout(). Field
- * frameClassId_ is forced to be NO_FRAME_SIZE_CLASS_ID
- * (See: JitRuntime::generateBailoutHandler).
+ * pushed to the stack by CodeGeneratorMIPS::visitOutOfLineBailout().
  */
-static void PushBailoutFrame(MacroAssembler& masm, uint32_t frameClass,
-                             Register spArg) {
+static void PushBailoutFrame(MacroAssembler& masm, Register spArg) {
   // Make sure that alignment is proper.
   masm.checkStackAlignment();
 
@@ -635,22 +608,19 @@ static void PushBailoutFrame(MacroAssembler& masm, uint32_t frameClass,
                  BailoutStack::offsetOfFpRegs() + i * sizeof(double));
   }
 
-  // Store the frameSize_ or tableOffset_ stored in ra
+  // Store the frameSize_ stored in ra
   // See: JitRuntime::generateBailoutTable()
   // See: CodeGeneratorMIPS::generateOutOfLineCode()
   masm.storePtr(ra, Address(StackPointer, BailoutStack::offsetOfFrameSize()));
 
-  // Put frame class to stack
-  masm.storePtr(ImmWord(frameClass),
-                Address(StackPointer, BailoutStack::offsetOfFrameClass()));
+#error "Code needs to be updated"
 
   // Put pointer to BailoutStack as first argument to the Bailout()
   masm.movePtr(StackPointer, spArg);
 }
 
-static void GenerateBailoutThunk(MacroAssembler& masm, uint32_t frameClass,
-                                 Label* bailoutTail) {
-  PushBailoutFrame(masm, frameClass, a0);
+static void GenerateBailoutThunk(MacroAssembler& masm, Label* bailoutTail) {
+  PushBailoutFrame(masm, a0);
 
   // Put pointer to BailoutInfo
   masm.subPtr(Imm32(bailoutInfoOutParamSize), StackPointer);
@@ -668,23 +638,17 @@ static void GenerateBailoutThunk(MacroAssembler& masm, uint32_t frameClass,
   masm.loadPtr(Address(StackPointer, 0), a2);
 
   // Remove both the bailout frame and the topmost Ion frame's stack.
-  if (frameClass == NO_FRAME_SIZE_CLASS_ID) {
-    // Load frameSize from stack
-    masm.loadPtr(Address(StackPointer, bailoutInfoOutParamSize +
-                                           BailoutStack::offsetOfFrameSize()),
-                 a1);
 
-    // Remove complete BailoutStack class and data after it
-    masm.addPtr(Imm32(sizeof(BailoutStack) + bailoutInfoOutParamSize),
-                StackPointer);
-    // Remove frame size srom stack
-    masm.addPtr(a1, StackPointer);
-  } else {
-    uint32_t frameSize = FrameSizeClass::FromClass(frameClass).frameSize();
-    // Remove the data this fuction added and frame size.
-    masm.addPtr(Imm32(bailoutDataSize + bailoutInfoOutParamSize + frameSize),
-                StackPointer);
-  }
+  // Load frameSize from stack
+  masm.loadPtr(Address(StackPointer, bailoutInfoOutParamSize +
+                                         BailoutStack::offsetOfFrameSize()),
+               a1);
+
+  // Remove complete BailoutStack class and data after it
+  masm.addPtr(Imm32(sizeof(BailoutStack) + bailoutInfoOutParamSize),
+              StackPointer);
+  // Remove frame size srom stack
+  masm.addPtr(a1, StackPointer);
 
   // Jump to shared bailout tail. The BailoutInfo pointer has to be in a2.
   masm.jump(bailoutTail);

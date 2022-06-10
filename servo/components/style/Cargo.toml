@@ -28,12 +28,13 @@ gecko_refcount_logging = []
 
 [dependencies]
 app_units = "0.7"
-arrayvec = "0.5"
+arrayvec = "0.7"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
 cssparser = "0.29"
 derive_more = "0.99"
+dom = { path = "../../../dom/base/rust" }
 new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.8", optional = true}
 euclid = "0.22"
@@ -72,7 +73,7 @@ servo_url = {path = "../url", optional = true}
 to_shmem = {path = "../to_shmem"}
 to_shmem_derive = {path = "../to_shmem_derive"}
 time = "0.1"
-uluru = "1.1"
+uluru = "3.0"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 void = "1.0.2"

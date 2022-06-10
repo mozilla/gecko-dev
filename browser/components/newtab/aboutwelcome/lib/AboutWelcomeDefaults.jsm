@@ -8,12 +8,16 @@ const EXPORTED_SYMBOLS = ["AboutWelcomeDefaults", "DEFAULT_WELCOME_CONTENT"];
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
-  AppConstants: "resource://gre/modules/AppConstants.jsm",
   AttributionCode: "resource:///modules/AttributionCode.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
 const DEFAULT_WELCOME_CONTENT = {
@@ -246,7 +250,7 @@ const DEFAULT_WELCOME_CONTENT = {
 };
 
 async function getAddonFromRepository(data) {
-  const [addonInfo] = await AddonRepository.getAddonsByIDs([data]);
+  const [addonInfo] = await lazy.AddonRepository.getAddonsByIDs([data]);
   if (addonInfo.sourceURI.scheme !== "https") {
     return null;
   }
@@ -292,7 +296,7 @@ async function getAddonInfo(attrbObj) {
 }
 
 async function getAttributionContent() {
-  let attribution = await AttributionCode.getAttrDataAsync();
+  let attribution = await lazy.AttributionCode.getAttrDataAsync();
   if (attribution?.source === "addons.mozilla.org") {
     let addonInfo = await getAddonInfo(attribution);
     if (addonInfo) {

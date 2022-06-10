@@ -145,6 +145,7 @@ add_task(async function test_delete_snapshot() {
     url: TEST_URL1,
     documentType: Interactions.DOCUMENT_TYPE.MEDIA,
     removedAt,
+    removedReason: Snapshots.REMOVED_REASON.DISMISS,
   });
 
   info("Attempt to re-add non-user persisted snapshot");
@@ -155,6 +156,7 @@ add_task(async function test_delete_snapshot() {
     url: TEST_URL1,
     documentType: Interactions.DOCUMENT_TYPE.MEDIA,
     removedAt,
+    removedReason: Snapshots.REMOVED_REASON.DISMISS,
   });
 
   info("Re-add user persisted snapshot");
@@ -225,4 +227,31 @@ add_task(async function test_update_untitled_snapshot() {
     HISTORY_TITLE,
     "Title should revert to the history one"
   );
+});
+
+add_task(async function test_removed_reason() {
+  let reasons = Object.keys(Snapshots.REMOVED_REASON);
+  for (let reason of reasons) {
+    let expectedReason = Snapshots.REMOVED_REASON[reason];
+    info(`Testing removed reason ${reason} (${expectedReason})`);
+    Assert.equal(typeof expectedReason, "number");
+    await Snapshots.reset();
+    await Snapshots.add({ url: TEST_URL1 });
+    await assertUrlNotification(TOPIC_DELETED, [TEST_URL1], () =>
+      Snapshots.delete(TEST_URL1, expectedReason)
+    );
+    let db = await PlacesUtils.promiseDBConnection();
+    let rows = await db.execute(
+      "SELECT removed_at, removed_reason FROM moz_places_metadata_snapshots"
+    );
+    if (reason == "EXPIRED") {
+      Assert.equal(rows.length, 0);
+    } else {
+      Assert.equal(rows.length, 1);
+      Assert.greater(rows[0].getResultByName("removed_at"), 0);
+      Assert.equal(rows[0].getResultByName("removed_reason"), expectedReason);
+      let snapshot = await Snapshots.get(TEST_URL1, true);
+      Assert.equal(snapshot.removedReason, expectedReason);
+    }
+  }
 });

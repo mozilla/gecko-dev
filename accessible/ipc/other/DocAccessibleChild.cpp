@@ -39,12 +39,6 @@ LocalAccessible* DocAccessibleChild::IdToAccessibleSelect(
   return acc && acc->IsSelect() ? acc : nullptr;
 }
 
-HyperTextAccessible* DocAccessibleChild::IdToHyperTextAccessible(
-    const uint64_t& aID) const {
-  LocalAccessible* acc = IdToAccessible(aID);
-  return acc && acc->IsHyperText() ? acc->AsHyperText() : nullptr;
-}
-
 TextLeafAccessible* DocAccessibleChild::IdToTextLeafAccessible(
     const uint64_t& aID) const {
   LocalAccessible* acc = IdToAccessible(aID);
@@ -274,15 +268,6 @@ mozilla::ipc::IPCResult DocAccessibleChild::RecvCaretOffset(const uint64_t& aID,
                                                             int32_t* aOffset) {
   HyperTextAccessible* acc = IdToHyperTextAccessible(aID);
   *aOffset = acc && acc->IsTextRole() ? acc->CaretOffset() : 0;
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult DocAccessibleChild::RecvSetCaretOffset(
-    const uint64_t& aID, const int32_t& aOffset) {
-  HyperTextAccessible* acc = IdToHyperTextAccessible(aID);
-  if (acc && acc->IsTextRole() && acc->IsValidOffset(aOffset)) {
-    acc->SetCaretOffset(aOffset);
-  }
   return IPC_OK();
 }
 
@@ -1515,16 +1500,6 @@ mozilla::ipc::IPCResult DocAccessibleChild::RecvTitle(const uint64_t& aID,
   if (acc) {
     mozilla::ErrorResult rv;
     acc->GetContent()->GetTextContent(*aTitle, rv);
-  }
-
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult DocAccessibleChild::RecvURL(const uint64_t& aID,
-                                                    nsString* aURL) {
-  LocalAccessible* acc = IdToAccessible(aID);
-  if (acc && acc->IsDoc()) {
-    acc->AsDoc()->URL(*aURL);
   }
 
   return IPC_OK();

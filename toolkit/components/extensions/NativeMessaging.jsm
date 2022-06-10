@@ -10,6 +10,10 @@ var EXPORTED_SYMBOLS = ["NativeApp"];
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 
 const { EventEmitter } = ChromeUtils.import(
   "resource://gre/modules/EventEmitter.jsm"
@@ -19,12 +23,12 @@ const {
   ExtensionUtils: { ExtensionError, promiseTimeout },
 } = ChromeUtils.import("resource://gre/modules/ExtensionUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AppConstants: "resource://gre/modules/AppConstants.jsm",
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
   NativeManifests: "resource://gre/modules/NativeManifests.jsm",
   OS: "resource://gre/modules/osfile.jsm",
-  Services: "resource://gre/modules/Services.jsm",
   Subprocess: "resource://gre/modules/Subprocess.jsm",
 });
 
@@ -69,7 +73,7 @@ var NativeApp = class extends EventEmitter {
     this.writePromise = null;
     this.cleanupStarted = false;
 
-    this.startupPromise = NativeManifests.lookupManifest(
+    this.startupPromise = lazy.NativeManifests.lookupManifest(
       "stdio",
       application,
       context
@@ -86,18 +90,21 @@ var NativeApp = class extends EventEmitter {
           // OS.Path.join() ignores anything before the last absolute path
           // it sees, so if command is already absolute, it remains unchanged
           // here.  If it is relative, we get the proper absolute path here.
-          command = OS.Path.join(OS.Path.dirname(hostInfo.path), command);
+          command = lazy.OS.Path.join(
+            lazy.OS.Path.dirname(hostInfo.path),
+            command
+          );
         }
 
         let subprocessOpts = {
           command: command,
           arguments: [hostInfo.path, context.extension.id],
-          workdir: OS.Path.dirname(command),
+          workdir: lazy.OS.Path.dirname(command),
           stderr: "pipe",
           disclaim: true,
         };
 
-        return Subprocess.call(subprocessOpts);
+        return lazy.Subprocess.call(subprocessOpts);
       })
       .then(proc => {
         this.startupPromise = null;
@@ -175,7 +182,7 @@ var NativeApp = class extends EventEmitter {
         this._startRead();
       })
       .catch(err => {
-        if (err.errorCode != Subprocess.ERROR_END_OF_FILE) {
+        if (err.errorCode != lazy.Subprocess.ERROR_END_OF_FILE) {
           Cu.reportError(err instanceof Error ? err : err.message);
         }
         this._cleanup(err);
@@ -273,7 +280,7 @@ var NativeApp = class extends EventEmitter {
     this.context.forgetOnClose(this);
 
     if (!fromExtension) {
-      if (err && err.errorCode == Subprocess.ERROR_END_OF_FILE) {
+      if (err && err.errorCode == lazy.Subprocess.ERROR_END_OF_FILE) {
         err = null;
       }
       this.emit("disconnect", err);
@@ -297,7 +304,7 @@ var NativeApp = class extends EventEmitter {
     // Close the stdin stream and allow the process to exit on its own.
     // proc.wait() below will resolve once the process has exited gracefully.
     this.proc.stdin.close().catch(err => {
-      if (err.errorCode != Subprocess.ERROR_END_OF_FILE) {
+      if (err.errorCode != lazy.Subprocess.ERROR_END_OF_FILE) {
         Cu.reportError(err);
       }
     });
@@ -322,7 +329,7 @@ var NativeApp = class extends EventEmitter {
       }),
     ]);
 
-    AsyncShutdown.profileBeforeChange.addBlocker(
+    lazy.AsyncShutdown.profileBeforeChange.addBlocker(
       `Native Messaging: Wait for application ${this.name} to exit`,
       exitPromise
     );

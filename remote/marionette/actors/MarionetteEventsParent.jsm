@@ -11,25 +11,26 @@ const EXPORTED_SYMBOLS = [
   "MarionetteEventsParent",
 ];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
+const lazy = {};
 
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   EventEmitter: "resource://gre/modules/EventEmitter.jsm",
   Log: "chrome://remote/content/shared/Log.jsm",
 });
 
-XPCOMUtils.defineLazyGetter(this, "logger", () =>
-  Log.get(Log.TYPES.MARIONETTE)
+XPCOMUtils.defineLazyGetter(lazy, "logger", () =>
+  lazy.Log.get(lazy.Log.TYPES.MARIONETTE)
 );
 
 // Singleton to allow forwarding events to registered listeners.
 const EventDispatcher = {
   init() {
-    EventEmitter.decorate(this);
+    lazy.EventEmitter.decorate(this);
   },
 };
 EventDispatcher.init();
@@ -93,7 +94,7 @@ function registerEventsActor() {
     eventsActorRegistered = true;
   } catch (e) {
     if (e.name === "NotSupportedError") {
-      logger.warn(`MarionetteEvents actor is already registered!`);
+      lazy.logger.warn(`MarionetteEvents actor is already registered!`);
     } else {
       throw e;
     }

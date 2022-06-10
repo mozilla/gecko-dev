@@ -13,26 +13,25 @@ const { GeckoViewModule } = ChromeUtils.import(
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
-});
+const lazy = {};
 
-XPCOMUtils.defineLazyGetter(this, "MOBILE_USER_AGENT", function() {
+XPCOMUtils.defineLazyGetter(lazy, "MOBILE_USER_AGENT", function() {
   return Cc["@mozilla.org/network/protocol;1?name=http"].getService(
     Ci.nsIHttpProtocolHandler
   ).userAgent;
 });
 
-XPCOMUtils.defineLazyGetter(this, "DESKTOP_USER_AGENT", function() {
-  return MOBILE_USER_AGENT.replace(
+XPCOMUtils.defineLazyGetter(lazy, "DESKTOP_USER_AGENT", function() {
+  return lazy.MOBILE_USER_AGENT.replace(
     /Android \d.+?; [a-zA-Z]+/,
     "X11; Linux x86_64"
   ).replace(/Gecko\/[0-9\.]+/, "Gecko/20100101");
 });
 
-XPCOMUtils.defineLazyGetter(this, "VR_USER_AGENT", function() {
-  return MOBILE_USER_AGENT.replace(/Mobile/, "Mobile VR");
+XPCOMUtils.defineLazyGetter(lazy, "VR_USER_AGENT", function() {
+  return lazy.MOBILE_USER_AGENT.replace(/Mobile/, "Mobile VR");
 });
 
 // This needs to match GeckoSessionSettings.java
@@ -62,7 +61,7 @@ class GeckoViewSettings extends GeckoViewModule {
 
     switch (aEvent) {
       case "GeckoView:GetUserAgent": {
-        aCallback.onSuccess(this.customUserAgent ?? MOBILE_USER_AGENT);
+        aCallback.onSuccess(this.customUserAgent ?? lazy.MOBILE_USER_AGENT);
       }
     }
   }
@@ -101,10 +100,10 @@ class GeckoViewSettings extends GeckoViewModule {
       return this.userAgentOverride;
     }
     if (this.userAgentMode === USER_AGENT_MODE_DESKTOP) {
-      return DESKTOP_USER_AGENT;
+      return lazy.DESKTOP_USER_AGENT;
     }
     if (this.userAgentMode === USER_AGENT_MODE_VR) {
-      return VR_USER_AGENT;
+      return lazy.VR_USER_AGENT;
     }
     return null;
   }

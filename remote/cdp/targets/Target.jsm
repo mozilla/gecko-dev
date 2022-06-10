@@ -6,13 +6,15 @@
 
 var EXPORTED_SYMBOLS = ["Target"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   CDPConnection: "chrome://remote/content/cdp/CDPConnection.jsm",
-  Services: "resource://gre/modules/Services.jsm",
   WebSocketHandshake: "chrome://remote/content/server/WebSocketHandshake.jsm",
 });
 
@@ -55,8 +57,8 @@ class Target {
   // nsIHttpRequestHandler
 
   async handle(request, response) {
-    const webSocket = await WebSocketHandshake.upgrade(request, response);
-    const conn = new CDPConnection(webSocket, response._connection);
+    const webSocket = await lazy.WebSocketHandshake.upgrade(request, response);
+    const conn = new lazy.CDPConnection(webSocket, response._connection);
     const session = new this.sessionClass(conn, this);
     conn.registerSession(session);
     this.connections.add(conn);

@@ -11,13 +11,11 @@
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "Services",
-  "resource://gre/modules/Services.jsm"
-);
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "SearchUIUtilsL10n", () => {
+const lazy = {};
+
+XPCOMUtils.defineLazyGetter(lazy, "SearchUIUtilsL10n", () => {
   return new Localization(["browser/search.ftl", "branding/brand.ftl"]);
 });
 
@@ -58,7 +56,7 @@ var SearchUIUtils = {
           break;
       }
 
-      let [title, text] = await SearchUIUtilsL10n.formatValues([
+      let [title, text] = await lazy.SearchUIUtilsL10n.formatValues([
         {
           id: titleMsgName,
         },

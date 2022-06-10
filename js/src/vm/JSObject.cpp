@@ -3275,10 +3275,6 @@ JS_PUBLIC_API void js::DumpBacktrace(JSContext* cx) {
 
 /* * */
 
-bool JSObject::canHaveFixedElements() const {
-  return (is<ArrayObject>() || IF_RECORD_TUPLE(is<TupleType>(), false));
-}
-
 js::gc::AllocKind JSObject::allocKindForTenure(
     const js::Nursery& nursery) const {
   using namespace js::gc;
@@ -3593,6 +3589,28 @@ bool js::Unbox(JSContext* cx, HandleObject obj, MutableHandleValue vp) {
 }
 
 #ifdef DEBUG
+void js::AssertJSClassInvariants(const JSClass* clasp) {
+  MOZ_ASSERT(JS::StringIsASCII(clasp->name));
+
+  // Native objects shouldn't use the property operation hooks in ObjectOps.
+  // Doing so could violate JIT invariants.
+  //
+  // Environment objects unfortunately use these hooks, but environment objects
+  // are not exposed directly to script so they're generally less of an issue.
+  if (clasp->isNativeObject() && clasp != &WithEnvironmentObject::class_ &&
+      clasp != &ModuleEnvironmentObject::class_ &&
+      clasp != &RuntimeLexicalErrorObject::class_) {
+    MOZ_ASSERT(!clasp->getOpsLookupProperty());
+    MOZ_ASSERT_IF(clasp != &MappedArgumentsObject::class_,
+                  !clasp->getOpsDefineProperty());
+    MOZ_ASSERT(!clasp->getOpsHasProperty());
+    MOZ_ASSERT(!clasp->getOpsGetProperty());
+    MOZ_ASSERT(!clasp->getOpsSetProperty());
+    MOZ_ASSERT(!clasp->getOpsGetOwnPropertyDescriptor());
+    MOZ_ASSERT(!clasp->getOpsDeleteProperty());
+  }
+}
+
 /* static */
 void JSObject::debugCheckNewObject(Shape* shape, js::gc::AllocKind allocKind,
                                    js::gc::InitialHeap heap) {

@@ -62,6 +62,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "COLORWAY_CLOSET_ENABLED",
+  "browser.theme.colorway-closet",
+  false
+);
+
 const UPDATES_RECENT_TIMESPAN = 2 * 24 * 3600000; // 2 days (in milliseconds)
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -103,6 +110,14 @@ const PRIVATE_BROWSING_PERMS = {
   permissions: [PRIVATE_BROWSING_PERM_NAME],
   origins: [],
 };
+
+const L10N_ID_MAPPING = {
+  "theme-disabled-heading": "theme-disabled-heading2",
+};
+
+function getL10nIdMapping(id) {
+  return L10N_ID_MAPPING[id] || id;
+}
 
 function shouldSkipAnimations() {
   return (
@@ -2691,11 +2706,13 @@ class AddonDetails extends HTMLElement {
       this.render();
     }
     this.deck.addEventListener("view-changed", this);
+    this.descriptionShowMoreButton.addEventListener("click", this);
   }
 
   disconnectedCallback() {
     this.inlineOptions.destroyBrowser();
     this.deck.removeEventListener("view-changed", this);
+    this.descriptionShowMoreButton.removeEventListener("click", this);
   }
 
   handleEvent(e) {
@@ -2725,6 +2742,11 @@ class AddonDetails extends HTMLElement {
       // unconditionally shown. So if any other tab is selected, do not save
       // the current scroll offset, but start at the top of the page instead.
       ScrollOffsets.canRestore = this.deck.selectedViewName === "details";
+    } else if (
+      e.type == "click" &&
+      e.target == this.descriptionShowMoreButton
+    ) {
+      this.toggleDescription();
     }
   }
 
@@ -2754,6 +2776,23 @@ class AddonDetails extends HTMLElement {
     if (this.deck.selectedViewName === "preferences") {
       this.inlineOptions.ensureBrowserCreated();
     }
+  }
+
+  toggleDescription() {
+    this.descriptionCollapsed = !this.descriptionCollapsed;
+
+    this.descriptionWrapper.classList.toggle(
+      "addon-detail-description-collapse",
+      this.descriptionCollapsed
+    );
+
+    this.descriptionShowMoreButton.hidden = false;
+    document.l10n.setAttributes(
+      this.descriptionShowMoreButton,
+      this.descriptionCollapsed
+        ? "addon-detail-description-expand"
+        : "addon-detail-description-collapse"
+    );
   }
 
   get releaseNotesUri() {
@@ -2808,6 +2847,36 @@ class AddonDetails extends HTMLElement {
     }
   }
 
+  renderDescription(addon) {
+    this.descriptionWrapper = this.querySelector(
+      ".addon-detail-description-wrapper"
+    );
+    this.descriptionContents = this.querySelector(".addon-detail-description");
+    this.descriptionShowMoreButton = this.querySelector(
+      ".addon-detail-description-toggle"
+    );
+
+    if (addon.getFullDescription) {
+      this.descriptionContents.appendChild(addon.getFullDescription(document));
+    } else if (addon.fullDescription) {
+      this.descriptionContents.appendChild(nl2br(addon.fullDescription));
+    }
+
+    this.descriptionCollapsed = false;
+
+    requestAnimationFrame(() => {
+      const remSize = parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+      );
+      const { height } = this.descriptionContents.getBoundingClientRect();
+
+      // collapse description if there are too many lines,i.e. height > (20 rem)
+      if (height > 20 * remSize) {
+        this.toggleDescription();
+      }
+    });
+  }
+
   async render() {
     let { addon } = this;
     if (!addon) {
@@ -2837,13 +2906,7 @@ class AddonDetails extends HTMLElement {
     this.inlineOptions.setAddon(addon);
 
     // Full description.
-    let description = this.querySelector(".addon-detail-description");
-    if (addon.getFullDescription) {
-      description.appendChild(addon.getFullDescription(document));
-    } else if (addon.fullDescription) {
-      description.appendChild(nl2br(addon.fullDescription));
-    }
-
+    this.renderDescription(addon);
     this.querySelector(
       ".addon-detail-contribute"
     ).hidden = !addon.contributionURL;
@@ -4306,11 +4369,21 @@ class AddonList extends HTMLElement {
   }
 
   renderSection(addons, index) {
+    const { sectionClass, sectionPreambleCustomElement } = this.sections[index];
+
     let section = document.createElement("section");
     section.setAttribute("section", index);
+    if (sectionClass) {
+      section.setAttribute("class", sectionClass);
+    }
 
     // Render the heading and add-ons if there are any.
     if (addons.length) {
+      if (sectionPreambleCustomElement) {
+        section.appendChild(
+          document.createElement(sectionPreambleCustomElement)
+        );
+      }
       section.appendChild(this.createSectionHeading(index));
 
       for (let addon of addons) {
@@ -4734,6 +4807,12 @@ gViewController.defineView("list", async type => {
 
   // If monochromatic themes are enabled and any are builtin to Firefox, we
   // display those themes together in a separate subsection.
+  const areColorwayThemesInstalled = async () =>
+    (await AddonManager.getAllAddons()).some(
+      addon =>
+        BuiltInThemes.isMonochromaticTheme(addon.id) &&
+        !BuiltInThemes.themeIsExpired(addon.id)
+    );
 
   let frag = document.createDocumentFragment();
   let list = document.createElement("addon-list");
@@ -4742,11 +4821,13 @@ gViewController.defineView("list", async type => {
   let sections = [
     {
       headingId: type + "-enabled-heading",
+      sectionClass: `${type}-enabled-section`,
       filterFn: addon =>
         !addon.hidden && addon.isActive && !isPending(addon, "uninstall"),
     },
     {
-      headingId: type + "-disabled-heading",
+      headingId: getL10nIdMapping(`${type}-disabled-heading`),
+      sectionClass: `${type}-disabled-section`,
       filterFn: addon =>
         !addon.hidden &&
         !addon.isActive &&
@@ -4757,16 +4838,21 @@ gViewController.defineView("list", async type => {
           BuiltInThemes.isRetainedExpiredTheme(addon.id)),
     },
   ];
+
+  let colorwaysThemeInstalled;
+  if (type == "theme") {
+    colorwaysThemeInstalled = await areColorwayThemesInstalled();
+    if (colorwaysThemeInstalled && COLORWAY_CLOSET_ENABLED) {
+      // Insert colorway closet card as the first element so that
+      // it is positioned between the enabled and disabled sections.
+      sections[1].sectionPreambleCustomElement = "colorways-list";
+    }
+  }
+
   list.setSections(sections);
   frag.appendChild(list);
 
-  const areColorwayThemesInstalled = async () =>
-    (await AddonManager.getAllAddons()).some(
-      addon =>
-        BuiltInThemes.isMonochromaticTheme(addon.id) &&
-        !BuiltInThemes.themeIsExpired(addon.id)
-    );
-  if (type == "theme" && (await areColorwayThemesInstalled())) {
+  if (type == "theme" && colorwaysThemeInstalled) {
     let monochromaticList = document.createElement("addon-list");
     monochromaticList.classList.add("monochromatic-addon-list");
     monochromaticList.type = type;
@@ -4787,14 +4873,6 @@ gViewController.defineView("list", async type => {
       },
     ]);
     frag.appendChild(monochromaticList);
-
-    const colorwayClosetPrefEnabled = Services.prefs.getBoolPref(
-      "browser.theme.colorway-closet"
-    );
-    if (colorwayClosetPrefEnabled) {
-      let colorwayClosetList = document.createElement("colorways-list");
-      frag.appendChild(colorwayClosetList);
-    }
   }
 
   // Show recommendations for themes and extensions.

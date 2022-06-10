@@ -7,6 +7,7 @@ use super::stylesheet_loader::{AsyncStylesheetParser, StylesheetLoader};
 use bincode::{deserialize, serialize};
 use cssparser::ToCss as ParserToCss;
 use cssparser::{ParseErrorKind, Parser, ParserInput, SourceLocation, UnicodeRange};
+use dom::{DocumentState, ElementState};
 use malloc_size_of::MallocSizeOfOps;
 use nsstring::{nsCString, nsString};
 use selectors::{NthIndexCache, SelectorList};
@@ -26,7 +27,6 @@ use style::counter_style;
 use style::data::{self, ElementStyles};
 use style::dom::{ShowSubtreeData, TDocument, TElement, TNode};
 use style::driver;
-use style::element_state::{DocumentState, ElementState};
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::font_face::{self, ComputedFontStyleDescriptor, FontFaceSourceListComponent, Source};
 use style::font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
@@ -104,6 +104,7 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::invalidation::stylesheets::RuleChangeKind;
 use style::media_queries::MediaList;
 use style::parser::{self, Parse, ParserContext};
+use style::piecewise_linear::PiecewiseLinearFunction;
 use style::properties::animated_properties::{AnimationValue, AnimationValueMap};
 use style::properties::{parse_one_declaration_into, parse_style_attribute};
 use style::properties::{ComputedValues, CountedUnknownProperty, Importance, NonCustomPropertyId};
@@ -135,6 +136,7 @@ use style::traversal::DomTraversal;
 use style::traversal_flags::{self, TraversalFlags};
 use style::use_counters::UseCounters;
 use style::values::animated::{Animate, Procedure, ToAnimatedZero};
+use style::values::computed::easing::ComputedLinearStop;
 use style::values::computed::font::{FontFamily, FontFamilyList, GenericFontFamily};
 use style::values::computed::{self, Context, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
@@ -755,10 +757,10 @@ pub extern "C" fn Servo_AnimationValue_GetColor(
 
     let value = AnimationValue::as_arc(&value);
     match **value {
-        AnimationValue::BackgroundColor(color) => {
-            let computed: ComputedColor = ToAnimatedValue::from_animated_value(color);
+        AnimationValue::BackgroundColor(ref color) => {
+            let computed: ComputedColor = ToAnimatedValue::from_animated_value(color.clone());
             let foreground_color = convert_nscolor_to_rgba(foreground_color);
-            convert_rgba_to_nscolor(&computed.to_rgba(foreground_color))
+            convert_rgba_to_nscolor(&computed.into_rgba(foreground_color))
         },
         _ => panic!("Other color properties are not supported yet"),
     }
@@ -768,7 +770,7 @@ pub extern "C" fn Servo_AnimationValue_GetColor(
 pub extern "C" fn Servo_AnimationValue_IsCurrentColor(value: &RawServoAnimationValue) -> bool {
     let value = AnimationValue::as_arc(&value);
     match **value {
-        AnimationValue::BackgroundColor(color) => color.is_currentcolor(),
+        AnimationValue::BackgroundColor(ref color) => color.is_currentcolor(),
         _ => {
             debug_assert!(false, "Other color properties are not supported yet");
             false
@@ -797,14 +799,14 @@ pub extern "C" fn Servo_AnimationValue_Color(
     color: structs::nscolor,
 ) -> Strong<RawServoAnimationValue> {
     use style::gecko::values::convert_nscolor_to_rgba;
-    use style::values::animated::color::RGBA as AnimatedRGBA;
+    use style::values::animated::color::{Color, RGBA as AnimatedRGBA};
 
     let property = LonghandId::from_nscsspropertyid(color_property)
         .expect("We don't have shorthand property animation value");
 
     let rgba = convert_nscolor_to_rgba(color);
 
-    let animatedRGBA = AnimatedRGBA::new(
+    let animated = AnimatedRGBA::new(
         rgba.red_f32(),
         rgba.green_f32(),
         rgba.blue_f32(),
@@ -812,7 +814,7 @@ pub extern "C" fn Servo_AnimationValue_Color(
     );
     match property {
         LonghandId::BackgroundColor => {
-            Arc::new(AnimationValue::BackgroundColor(animatedRGBA.into())).into_strong()
+            Arc::new(AnimationValue::BackgroundColor(Color::rgba(animated))).into_strong()
         },
         _ => panic!("Should be background-color property"),
     }
@@ -4192,6 +4194,11 @@ fn dump_properties_and_rules(cv: &ComputedValues, properties: &LonghandIdSet) {
         cv.get_resolved_value(p, &mut v).unwrap();
         println_stderr!("    {:?}: {}", p, v);
     }
+    dump_rules(cv);
+}
+
+#[cfg(feature = "gecko_debug")]
+fn dump_rules(cv: &ComputedValues) {
     println_stderr!("  Rules:");
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -4252,6 +4259,12 @@ pub extern "C" fn Servo_ComputedValues_EqualForCachedAnonymousContentStyle(
     }
 
     differing_properties.is_empty()
+}
+
+#[cfg(feature = "gecko_debug")]
+#[no_mangle]
+pub extern "C" fn Servo_ComputedValues_DumpMatchedRules(s: &ComputedValues) {
+    dump_rules(s);
 }
 
 #[no_mangle]
@@ -6279,7 +6292,7 @@ pub unsafe extern "C" fn Servo_StyleSet_GetKeyframesForName(
         let timing_function = nsTimingFunction {
             mTiming: match step.get_animation_timing_function(&guard) {
                 Some(val) => val.to_computed_value_without_context(),
-                None => (*inherited_timing_function).mTiming,
+                None => (*inherited_timing_function).mTiming.clone(),
             },
         };
 
@@ -6903,14 +6916,23 @@ pub unsafe extern "C" fn Servo_ComputeColor(
         None => return false,
     };
 
-    let rgba = computed_color.to_rgba(current_color);
-    *result_color = gecko::values::convert_rgba_to_nscolor(&rgba);
-
     if !was_current_color.is_null() {
         *was_current_color = computed_color.is_currentcolor();
     }
 
+    let rgba = computed_color.into_rgba(current_color);
+    *result_color = gecko::values::convert_rgba_to_nscolor(&rgba);
+
     true
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ResolveColor(
+    color: &computed::Color,
+    foreground: &style::values::RGBA,
+) -> structs::nscolor {
+    use style::gecko::values::convert_rgba_to_nscolor;
+    convert_rgba_to_nscolor(&color.clone().into_rgba(*foreground))
 }
 
 #[no_mangle]
@@ -7455,4 +7477,24 @@ pub unsafe extern "C" fn Servo_InvalidateForViewportUnits(
         // to tell the Gecko restyle root machinery about it.
         bindings::Gecko_NoteDirtySubtreeForInvalidation(root);
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_CreatePiecewiseLinearFunction(
+    entries: &style::OwnedSlice<ComputedLinearStop>,
+    result: &mut PiecewiseLinearFunction,
+) {
+    *result = PiecewiseLinearFunction::from_iter(
+        entries
+            .iter()
+            .map(ComputedLinearStop::to_piecewise_linear_build_parameters),
+    );
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_PiecewiseLinearFunctionAt(
+    function: &PiecewiseLinearFunction,
+    progress: f32,
+) -> f32 {
+    function.at(progress)
 }

@@ -338,13 +338,11 @@ nsContentList::nsContentList(nsINode* aRootNode, int32_t aMatchNameSpaceId,
       mMatchNameSpaceId(aMatchNameSpaceId),
       mHTMLMatchAtom(aHTMLMatchAtom),
       mXMLMatchAtom(aXMLMatchAtom),
-      mFunc(nullptr),
-      mDestroyFunc(nullptr),
-      mData(nullptr),
-      mState(LIST_DIRTY),
+      mState(State::Dirty),
       mDeep(aDeep),
       mFuncMayDependOnAttr(false),
       mIsHTMLDocument(aRootNode->OwnerDoc()->IsHTMLDocument()),
+      mNamedItemsCacheValid(false),
       mIsLiveList(aLiveList) {
   NS_ASSERTION(mRootNode, "Must have root");
   if (nsGkAtoms::_asterisk == mHTMLMatchAtom) {
@@ -380,11 +378,12 @@ nsContentList::nsContentList(nsINode* aRootNode, nsContentListMatchFunc aFunc,
       mFunc(aFunc),
       mDestroyFunc(aDestroyFunc),
       mData(aData),
-      mState(LIST_DIRTY),
+      mState(State::Dirty),
       mMatchAll(false),
       mDeep(aDeep),
       mFuncMayDependOnAttr(aFuncMayDependOnAttr),
       mIsHTMLDocument(false),
+      mNamedItemsCacheValid(false),
       mIsLiveList(aLiveList) {
   NS_ASSERTION(mRootNode, "Must have root");
   if (mIsLiveList) {
@@ -436,14 +435,94 @@ nsIContent* nsContentList::Item(uint32_t aIndex, bool aDoFlush) {
     }
   }
 
-  if (mState != LIST_UP_TO_DATE)
+  if (mState != State::UpToDate) {
     PopulateSelf(std::min(aIndex, UINT32_MAX - 1) + 1);
+  }
 
   ASSERT_IN_SYNC;
-  NS_ASSERTION(!mRootNode || mState != LIST_DIRTY,
+  NS_ASSERTION(!mRootNode || mState != State::Dirty,
                "PopulateSelf left the list in a dirty (useless) state!");
 
   return mElements.SafeElementAt(aIndex);
+}
+
+inline void nsContentList::InsertElementInNamedItemsCache(
+    nsIContent& aContent) {
+  const bool hasName = aContent.HasName();
+  const bool hasId = aContent.HasID();
+  if (!hasName && !hasId) {
+    return;
+  }
+
+  Element* el = aContent.AsElement();
+  MOZ_ASSERT_IF(hasName, el->IsHTMLElement());
+
+  uint32_t i = 0;
+  while (BorrowedAttrInfo info = el->GetAttrInfoAt(i++)) {
+    const bool valid = (info.mName->Equals(nsGkAtoms::name) && hasName) ||
+                       (info.mName->Equals(nsGkAtoms::id) && hasId);
+    if (!valid) {
+      continue;
+    }
+
+    if (!mNamedItemsCache) {
+      mNamedItemsCache = MakeUnique<NamedItemsCache>();
+    }
+
+    nsAtom* name = info.mValue->GetAtomValue();
+    // NOTE: LookupOrInsert makes sure we keep the first element we find for a
+    // given name.
+    mNamedItemsCache->LookupOrInsert(name, el);
+  }
+}
+
+inline void nsContentList::InvalidateNamedItemsCacheForAttributeChange(
+    int32_t aNamespaceID, nsAtom* aAttribute) {
+  if (!mNamedItemsCacheValid) {
+    return;
+  }
+  if ((aAttribute == nsGkAtoms::id || aAttribute == nsGkAtoms::name) &&
+      aNamespaceID == kNameSpaceID_None) {
+    InvalidateNamedItemsCache();
+  }
+}
+
+inline void nsContentList::InvalidateNamedItemsCacheForInsertion(
+    Element& aElement) {
+  if (!mNamedItemsCacheValid) {
+    return;
+  }
+
+  InsertElementInNamedItemsCache(aElement);
+}
+
+inline void nsContentList::InvalidateNamedItemsCacheForDeletion(
+    Element& aElement) {
+  if (!mNamedItemsCacheValid) {
+    return;
+  }
+  if (aElement.HasName() || aElement.HasID()) {
+    InvalidateNamedItemsCache();
+  }
+}
+
+void nsContentList::EnsureNamedItemsCacheValid(bool aDoFlush) {
+  BringSelfUpToDate(aDoFlush);
+
+  if (mNamedItemsCacheValid) {
+    return;
+  }
+
+  MOZ_ASSERT(!mNamedItemsCache);
+
+  // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem-key
+  // XXX: Blink/WebKit don't follow the spec here, and searches first-by-id,
+  // then by name.
+  for (const nsCOMPtr<nsIContent>& content : mElements) {
+    InsertElementInNamedItemsCache(*content);
+  }
+
+  mNamedItemsCacheValid = true;
 }
 
 Element* nsContentList::NamedItem(const nsAString& aName, bool aDoFlush) {
@@ -451,9 +530,9 @@ Element* nsContentList::NamedItem(const nsAString& aName, bool aDoFlush) {
     return nullptr;
   }
 
-  BringSelfUpToDate(aDoFlush);
+  EnsureNamedItemsCacheValid(aDoFlush);
 
-  if (mElements.IsEmpty()) {
+  if (!mNamedItemsCache) {
     return nullptr;
   }
 
@@ -461,25 +540,7 @@ Element* nsContentList::NamedItem(const nsAString& aName, bool aDoFlush) {
   RefPtr<nsAtom> name = NS_Atomize(aName);
   NS_ENSURE_TRUE(name, nullptr);
 
-  for (const nsCOMPtr<nsIContent>& content : mElements) {
-    if (!content->HasName() && !content->HasID()) {
-      continue;
-    }
-
-    Element* el = content->AsElement();
-    uint32_t i = 0;
-    while (BorrowedAttrInfo info = el->GetAttrInfoAt(i++)) {
-      if ((info.mName->Equals(nsGkAtoms::name) && el->IsHTMLElement()) ||
-          info.mName->Equals(nsGkAtoms::id)) {
-        // XXX should this pass eIgnoreCase?
-        if (info.mValue->Equals(name, eCaseMatters)) {
-          return el;
-        }
-      }
-    }
-  }
-
-  return nullptr;
+  return mNamedItemsCache->Get(name);
 }
 
 void nsContentList::GetSupportedNames(nsTArray<nsString>& aNames) {
@@ -563,11 +624,18 @@ void nsContentList::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
                                      const nsAttrValue* aOldValue) {
   MOZ_ASSERT(aElement, "Must have a content node to work with");
 
-  if (!mFunc || !mFuncMayDependOnAttr || mState == LIST_DIRTY ||
+  if (mState == State::Dirty ||
       !MayContainRelevantNodes(aElement->GetParentNode()) ||
       !nsContentUtils::IsInSameAnonymousTree(mRootNode, aElement)) {
-    // Either we're already dirty or this notification doesn't affect
-    // whether we might match aElement.
+    // Either we're already dirty or aElement will never match us.
+    return;
+  }
+
+  InvalidateNamedItemsCacheForAttributeChange(aNameSpaceID, aAttribute);
+
+  if (!mFunc || !mFuncMayDependOnAttr) {
+    // aElement might be relevant but the attribute change doesn't affect
+    // whether we match it.
     return;
   }
 
@@ -583,7 +651,9 @@ void nsContentList::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
     // already not there, this is a no-op (though a potentially
     // expensive one).  Either way, no change of mState is required
     // here.
-    mElements.RemoveElement(aElement);
+    if (mElements.RemoveElement(aElement)) {
+      InvalidateNamedItemsCacheForDeletion(*aElement);
+    }
   }
 }
 
@@ -592,7 +662,7 @@ void nsContentList::ContentAppended(nsIContent* aFirstNewContent) {
   MOZ_ASSERT(container, "Can't get at the new content if no container!");
 
   /*
-   * If the state is LIST_DIRTY then we have no useful information in our list
+   * If the state is State::Dirty then we have no useful information in our list
    * and we want to put off doing work as much as possible.
    *
    * Also, if container is anonymous from our point of view, we know that we
@@ -601,7 +671,7 @@ void nsContentList::ContentAppended(nsIContent* aFirstNewContent) {
    * Optimize out also the common case when just one new node is appended and
    * it doesn't match us.
    */
-  if (mState == LIST_DIRTY ||
+  if (mState == State::Dirty ||
       !nsContentUtils::IsInSameAnonymousTree(mRootNode, container) ||
       !MayContainRelevantNodes(container) ||
       (!aFirstNewContent->HasChildren() &&
@@ -612,7 +682,7 @@ void nsContentList::ContentAppended(nsIContent* aFirstNewContent) {
   /*
    * We want to handle the case of ContentAppended by sometimes
    * appending the content to our list, not just setting state to
-   * LIST_DIRTY, since most of our ContentAppended notifications
+   * State::Dirty, since most of our ContentAppended notifications
    * should come during pageload and be at the end of the document.
    * Do a bit of work to see whether we could just append to what we
    * already have.
@@ -652,7 +722,7 @@ void nsContentList::ContentAppended(nsIContent* aFirstNewContent) {
    * content that we never picked up due to being lazy.  Further, we
    * may never get asked for this content... so don't grab it yet.
    */
-  if (mState == LIST_LAZY) {
+  if (mState == State::Lazy) {
     return;
   }
 
@@ -665,12 +735,14 @@ void nsContentList::ContentAppended(nsIContent* aFirstNewContent) {
          cur = cur->GetNextNode(container)) {
       if (cur->IsElement() && Match(cur->AsElement())) {
         mElements.AppendElement(cur);
+        InvalidateNamedItemsCacheForInsertion(*cur->AsElement());
       }
     }
   } else {
     for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
       if (cur->IsElement() && Match(cur->AsElement())) {
         mElements.AppendElement(cur);
+        InvalidateNamedItemsCacheForInsertion(*cur->AsElement());
       }
     }
   }
@@ -682,7 +754,7 @@ void nsContentList::ContentInserted(nsIContent* aChild) {
   // Note that aChild->GetParentNode() can be null here if we are inserting into
   // the document itself; any attempted optimizations to this method should deal
   // with that.
-  if (mState != LIST_DIRTY &&
+  if (mState != State::Dirty &&
       MayContainRelevantNodes(aChild->GetParentNode()) &&
       nsContentUtils::IsInSameAnonymousTree(mRootNode, aChild) &&
       MatchSelf(aChild)) {
@@ -694,7 +766,7 @@ void nsContentList::ContentInserted(nsIContent* aChild) {
 
 void nsContentList::ContentRemoved(nsIContent* aChild,
                                    nsIContent* aPreviousSibling) {
-  if (mState != LIST_DIRTY &&
+  if (mState != State::Dirty &&
       MayContainRelevantNodes(aChild->GetParentNode()) &&
       nsContentUtils::IsInSameAnonymousTree(mRootNode, aChild) &&
       MatchSelf(aChild)) {
@@ -768,8 +840,8 @@ void nsContentList::PopulateSelf(uint32_t aNeededLength,
   ASSERT_IN_SYNC;
 
   uint32_t count = mElements.Length();
-  NS_ASSERTION(mState != LIST_DIRTY || count == aExpectedElementsIfDirty,
-               "Reset() not called when setting state to LIST_DIRTY?");
+  NS_ASSERTION(mState != State::Dirty || count == aExpectedElementsIfDirty,
+               "Reset() not called when setting state to State::Dirty?");
 
   if (count >= aNeededLength)  // We're all set
     return;
@@ -808,10 +880,11 @@ void nsContentList::PopulateSelf(uint32_t aNeededLength,
   NS_ASSERTION(elementsToAppend + mElements.Length() == invariant,
                "Something is awry!");
 
-  if (elementsToAppend != 0)
-    mState = LIST_UP_TO_DATE;
-  else
-    mState = LIST_LAZY;
+  if (elementsToAppend != 0) {
+    mState = State::UpToDate;
+  } else {
+    mState = State::Lazy;
+  }
 
   ASSERT_IN_SYNC;
 }
@@ -837,19 +910,20 @@ void nsContentList::RemoveFromHashtable() {
 }
 
 void nsContentList::BringSelfUpToDate(bool aDoFlush) {
-  if (mRootNode && aDoFlush && mFlushesNeeded) {
+  if (mFlushesNeeded && mRootNode && aDoFlush) {
     // XXX sXBL/XBL2 issue
-    Document* doc = mRootNode->GetUncomposedDoc();
-    if (doc) {
+    if (Document* doc = mRootNode->GetUncomposedDoc()) {
       // Flush pending content changes Bug 4891.
       doc->FlushPendingNotifications(FlushType::ContentAndNotify);
     }
   }
 
-  if (mState != LIST_UP_TO_DATE) PopulateSelf(uint32_t(-1));
+  if (mState != State::UpToDate) {
+    PopulateSelf(uint32_t(-1));
+  }
 
   ASSERT_IN_SYNC;
-  NS_ASSERTION(!mRootNode || mState == LIST_UP_TO_DATE,
+  NS_ASSERTION(!mRootNode || mState == State::UpToDate,
                "PopulateSelf dod not bring content list up to date!");
 }
 
@@ -873,12 +947,12 @@ void nsCacheableFuncStringContentList::RemoveFromFuncStringHashtable() {
 
 #ifdef DEBUG_CONTENT_LIST
 void nsContentList::AssertInSync() {
-  if (mState == LIST_DIRTY) {
+  if (mState == State::Dirty) {
     return;
   }
 
   if (!mRootNode) {
-    NS_ASSERTION(mElements.Length() == 0 && mState == LIST_DIRTY,
+    NS_ASSERTION(mElements.Length() == 0 && mState == State::Dirty,
                  "Empty iterator isn't quite empty?");
     return;
   }
@@ -897,7 +971,7 @@ void nsContentList::AssertInSync() {
 
   uint32_t cnt = 0, index = 0;
   while (true) {
-    if (cnt == mElements.Length() && mState == LIST_LAZY) {
+    if (cnt == mElements.Length() && mState == State::Lazy) {
       break;
     }
 
@@ -936,6 +1010,7 @@ void nsCachableElementsByNameNodeList::AttributeChanged(
   // No need to rebuild the list if the changed attribute is not the name
   // attribute.
   if (aAttribute != nsGkAtoms::name) {
+    InvalidateNamedItemsCacheForAttributeChange(aNameSpaceID, aAttribute);
     return;
   }
 
@@ -963,10 +1038,12 @@ void nsLabelsNodeList::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
                                         nsAtom* aAttribute, int32_t aModType,
                                         const nsAttrValue* aOldValue) {
   MOZ_ASSERT(aElement, "Must have a content node to work with");
-  if (mState == LIST_DIRTY ||
+  if (mState == State::Dirty ||
       !nsContentUtils::IsInSameAnonymousTree(mRootNode, aElement)) {
     return;
   }
+
+  InvalidateNamedItemsCacheForAttributeChange(aNameSpaceID, aAttribute);
 
   // We need to handle input type changes to or from "hidden".
   if (aElement->IsHTMLElement(nsGkAtoms::input) &&
@@ -981,7 +1058,7 @@ void nsLabelsNodeList::ContentAppended(nsIContent* aFirstNewContent) {
   // If a labelable element is moved to outside or inside of
   // nested associated labels, we're gonna have to modify
   // the content list.
-  if (mState != LIST_DIRTY ||
+  if (mState != State::Dirty ||
       nsContentUtils::IsInSameAnonymousTree(mRootNode, container)) {
     SetDirty();
     return;
@@ -992,7 +1069,7 @@ void nsLabelsNodeList::ContentInserted(nsIContent* aChild) {
   // If a labelable element is moved to outside or inside of
   // nested associated labels, we're gonna have to modify
   // the content list.
-  if (mState != LIST_DIRTY ||
+  if (mState != State::Dirty ||
       nsContentUtils::IsInSameAnonymousTree(mRootNode, aChild)) {
     SetDirty();
     return;
@@ -1003,7 +1080,7 @@ void nsLabelsNodeList::ContentRemoved(nsIContent* aChild,
                                       nsIContent* aPreviousSibling) {
   // If a labelable element is removed, we're gonna have to clean
   // the content list.
-  if (mState != LIST_DIRTY ||
+  if (mState != State::Dirty ||
       nsContentUtils::IsInSameAnonymousTree(mRootNode, aChild)) {
     SetDirty();
     return;

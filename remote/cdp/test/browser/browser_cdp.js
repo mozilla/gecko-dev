@@ -17,7 +17,8 @@ add_task(async function testCDP({ client }) {
   );
   is(
     version.product,
-    isHeadless ? "Headless Firefox" : Services.appinfo.name,
+    (isHeadless ? "Headless" : "") +
+      `${Services.appinfo.name}/${Services.appinfo.version}`,
     "Browser.getVersion works and depends on headless mode"
   );
   is(
@@ -26,6 +27,11 @@ add_task(async function testCDP({ client }) {
     "Browser.getVersion().userAgent is correct"
   );
 
+  is(
+    version.revision,
+    Services.appinfo.sourceURL.split("/").pop(),
+    "Browser.getVersion().revision is correct"
+  );
   // receive console.log messages and print them
   let result = await Log.enable();
   info("Log domain has been enabled");

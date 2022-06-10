@@ -38,7 +38,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/BinarySearch.h"
 #include "mozilla/EditorBase.h"
-#include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/MathAlgorithms.h"
@@ -188,7 +187,7 @@ role HyperTextAccessible::NativeRole() const {
 uint64_t HyperTextAccessible::NativeState() const {
   uint64_t states = AccessibleWrap::NativeState();
 
-  if (mContent->AsElement()->State().HasState(NS_EVENT_STATE_READWRITE)) {
+  if (mContent->AsElement()->State().HasState(dom::ElementState::READWRITE)) {
     states |= states::EDITABLE;
 
   } else if (mContent->IsHTMLElement(nsGkAtoms::article)) {
@@ -1718,8 +1717,10 @@ int32_t HyperTextAccessible::CaretLineNumber() {
       caretContent, caretOffset, hint, &returnOffsetUnused);
   NS_ENSURE_TRUE(caretFrame, -1);
 
+  AutoAssertNoDomMutations guard;  // The nsILineIterators below will break if
+                                   // the DOM is modified while they're in use!
   int32_t lineNumber = 1;
-  nsAutoLineIterator lineIterForCaret;
+  nsILineIterator* lineIterForCaret = nullptr;
   nsIContent* hyperTextContent = IsContent() ? mContent.get() : nullptr;
   while (caretFrame) {
     if (hyperTextContent == caretFrame->GetContent()) {
@@ -1732,7 +1733,7 @@ int32_t HyperTextAccessible::CaretLineNumber() {
     // Add lines for the sibling frames before the caret
     nsIFrame* sibling = parentFrame->PrincipalChildList().FirstChild();
     while (sibling && sibling != caretFrame) {
-      nsAutoLineIterator lineIterForSibling = sibling->GetLineIterator();
+      nsILineIterator* lineIterForSibling = sibling->GetLineIterator();
       if (lineIterForSibling) {
         // For the frames before that grab all the lines
         int32_t addLines = lineIterForSibling->GetNumLines();

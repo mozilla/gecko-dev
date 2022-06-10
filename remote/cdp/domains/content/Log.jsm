@@ -6,13 +6,14 @@
 
 var EXPORTED_SYMBOLS = ["Log"];
 
-var { XPCOMUtils } = ChromeUtils.import(
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
+const lazy = {};
 
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   ContentProcessDomain:
     "chrome://remote/content/cdp/domains/ContentProcessDomain.jsm",
 });
@@ -24,7 +25,7 @@ const CONSOLE_MESSAGE_LEVEL_MAP = {
   [Ci.nsIConsoleMessage.error]: "error",
 };
 
-class Log extends ContentProcessDomain {
+class Log extends lazy.ContentProcessDomain {
   constructor(session) {
     super(session);
     this.enabled = false;

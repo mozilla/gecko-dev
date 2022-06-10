@@ -28,6 +28,9 @@ const { GMPPrefs, OPEN_H264_ID } = ChromeUtils.import(
 const { ProductAddonCheckerTestUtils } = ChromeUtils.import(
   "resource://gre/modules/addons/ProductAddonChecker.jsm"
 );
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 
 Services.prefs.setBoolPref("security.allow_eval_with_system_principal", true);
 Services.prefs.setBoolPref("media.gmp-manager.updateEnabled", true);
@@ -529,9 +532,6 @@ add_task(async function test_checkForAddons_contentSignatureSuccess() {
   const previousUrlOverride = setupContentSigTestPrefs();
 
   const xmlFetchResultHistogram = resetGmpTelemetryAndGetHistogram();
-
-  // Override our root so that test cert chains will be valid.
-  setCertRoot("content_signing_root.pem");
 
   const testServerInfo = getTestServerForContentSignatureTests();
   Preferences.set(GMPPrefs.KEY_URL_OVERRIDE, testServerInfo.validUpdateUri);
@@ -1151,6 +1151,9 @@ add_test(function test_installAddon_noServer() {
 /***
  * Tests GMPExtractor (an internal component of GMPInstallManager) to ensure
  * it handles paths with certain characters.
+ *
+ * On Mac, test that the com.apple.quarantine extended attribute is removed
+ * from installed plugin files.
  */
 
 add_task(async function test_GMPExtractor_paths() {
@@ -1207,6 +1210,13 @@ add_task(async function test_GMPExtractor_paths() {
     await IOUtils.exists(extractedFile),
     "Extraction should have created dummy_file.txt"
   );
+  if (AppConstants.platform == "macosx") {
+    await Assert.rejects(
+      IOUtils.getMacXAttr(extractedFile, "com.apple.quarantine"),
+      /NotFoundError: The file `.+' does not have an extended attribute `com.apple.quarantine'/,
+      "The 'com.apple.quarantine' attribute should not be present"
+    );
+  }
   let unextractedFile = PathUtils.join(
     PathUtils.profileDir,
     relativeExtractPath,
@@ -1245,42 +1255,6 @@ function readStringFromFile(file) {
   );
   fis.init(file, FileUtils.MODE_RDONLY, FileUtils.PERMS_FILE, 0);
   return readStringFromInputStream(fis);
-}
-
-/**
- * Set the root certificate used by Firefox. Used to allow test certificate
- * chains to be valid.
- * @param {string} filename the name of the file containing the root cert.
- */
-function setCertRoot(filename) {
-  // Commonly certificates are represented as PEM. The format is roughly as
-  // follows:
-  //
-  // -----BEGIN CERTIFICATE-----
-  // [some lines of base64, each typically 64 characters long]
-  // -----END CERTIFICATE-----
-  //
-  // However, nsIX509CertDB.constructX509FromBase64 and related functions do not
-  // handle input of this form. Instead, they require a single string of base64
-  // with no newlines or BEGIN/END headers. This is a helper function to convert
-  // PEM to the format that nsIX509CertDB requires.
-  function pemToBase64(pem) {
-    return pem
-      .replace(/-----BEGIN CERTIFICATE-----/, "")
-      .replace(/-----END CERTIFICATE-----/, "")
-      .replace(/[\r\n]/g, "");
-  }
-
-  let certBytes = readStringFromFile(do_get_file(filename));
-  let certdb = Cc["@mozilla.org/security/x509certdb;1"].getService(
-    Ci.nsIX509CertDB
-  );
-  // Certs should always be in .pem format, don't bother with .dem handling.
-  let cert = certdb.constructX509FromBase64(pemToBase64(certBytes));
-  Services.prefs.setCharPref(
-    "security.content.signature.root_hash",
-    cert.sha256Fingerprint
-  );
 }
 
 /**
@@ -1569,7 +1543,6 @@ function getTestServerForContentSignatureTests() {
   const validCertChain = [
     readStringFromFile(do_get_file("content_signing_aus_ee.pem")),
     readStringFromFile(do_get_file("content_signing_int.pem")),
-    readStringFromFile(do_get_file("content_signing_root.pem")),
   ];
   testServer.registerPathHandler(validX5uPath, (req, res) => {
     res.write(validCertChain.join("\n"));

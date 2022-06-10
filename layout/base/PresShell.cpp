@@ -18,7 +18,6 @@
 #include "mozilla/DisplayPortUtils.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStateManager.h"
-#include "mozilla/EventStates.h"
 #include "mozilla/GeckoMVMContext.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/IntegerRange.h"
@@ -3163,7 +3162,7 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll,
   // code-path as "top"!
   if (aAnchorName.IsEmpty()) {
     NS_ASSERTION(!aScroll, "can't scroll to empty anchor name");
-    esm->SetContentState(nullptr, NS_EVENT_STATE_URLTARGET);
+    esm->SetContentState(nullptr, ElementState::URLTARGET);
     return NS_OK;
   }
 
@@ -3226,7 +3225,7 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll,
   //    target element to null.
   // 2.1. Set the Document's target element to null.
   // 3.2. Set the Document's target element to target.
-  esm->SetContentState(target, NS_EVENT_STATE_URLTARGET);
+  esm->SetContentState(target, ElementState::URLTARGET);
 
   // TODO: Spec probably needs a section to account for this.
   if (nsIScrollableFrame* rootScroll = GetRootScrollFrameAsScrollable()) {
@@ -3381,8 +3380,7 @@ static void AccumulateFrameBounds(nsIFrame* aContainerFrame, nsIFrame* aFrame,
                                   bool aUseWholeLineHeightForInlines,
                                   nsRect& aRect, bool& aHaveRect,
                                   nsIFrame*& aPrevBlock,
-                                  nsAutoLineIterator& aLines,
-                                  int32_t& aCurLine) {
+                                  nsILineIterator*& aLines, int32_t& aCurLine) {
   nsIFrame* frame = aFrame;
   nsRect frameBounds = nsRect(nsPoint(0, 0), aFrame->GetSize());
 
@@ -3571,9 +3569,7 @@ static void ScrollToShowRect(nsIScrollableFrame* aFrameAsScrollable,
   nsIFrame* frame = do_QueryFrame(aFrameAsScrollable);
   AutoWeakFrame weakFrame(frame);
   aFrameAsScrollable->ScrollTo(scrollPt, scrollMode, &allowedRange,
-                               aScrollFlags & ScrollFlags::ScrollSnap
-                                   ? ScrollSnapFlags::IntendedEndPosition
-                                   : ScrollSnapFlags::Disabled,
+                               ScrollSnapFlags::IntendedEndPosition,
                                aScrollFlags & ScrollFlags::TriggeredByScript
                                    ? ScrollTriggeredByScript::Yes
                                    : ScrollTriggeredByScript::No);
@@ -3712,10 +3708,11 @@ void PresShell::DoScrollContentIntoView() {
   bool useWholeLineHeightForInlines = data->mContentScrollVAxis.mWhenToScroll !=
                                       WhenToScroll::IfNotFullyVisible;
   {
+    AutoAssertNoDomMutations guard;  // Ensure use of nsILineIterators is safe.
     nsIFrame* prevBlock = nullptr;
     // Reuse the same line iterator across calls to AccumulateFrameBounds.
     // We set it every time we detect a new block (stored in prevBlock).
-    nsAutoLineIterator lines;
+    nsILineIterator* lines = nullptr;
     // The last line we found a continuation on in |lines|.  We assume that
     // later continuations cannot come on earlier lines.
     int32_t curLine = 0;
@@ -4428,19 +4425,19 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::CharacterDataChanged(
   mFrameConstructor->CharacterDataChanged(aContent, aInfo);
 }
 
-MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ContentStateChanged(
-    Document* aDocument, nsIContent* aContent, EventStates aStateMask) {
+MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ElementStateChanged(
+    Document* aDocument, Element* aElement, ElementState aStateMask) {
   MOZ_ASSERT(!nsContentUtils::IsSafeToRunScript());
   MOZ_ASSERT(!mIsDocumentGone, "Unexpected ContentStateChanged");
   MOZ_ASSERT(aDocument == mDocument, "Unexpected aDocument");
 
   if (mDidInitialize) {
     nsAutoCauseReflowNotifier crNotifier(this);
-    mPresContext->RestyleManager()->ContentStateChanged(aContent, aStateMask);
+    mPresContext->RestyleManager()->ElementStateChanged(aElement, aStateMask);
   }
 }
 
-void PresShell::DocumentStatesChanged(EventStates aStateMask) {
+void PresShell::DocumentStatesChanged(DocumentState aStateMask) {
   MOZ_ASSERT(!mIsDocumentGone, "Unexpected DocumentStatesChanged");
   MOZ_ASSERT(mDocument);
   MOZ_ASSERT(!aStateMask.IsEmpty());
@@ -4449,7 +4446,7 @@ void PresShell::DocumentStatesChanged(EventStates aStateMask) {
     StyleSet()->InvalidateStyleForDocumentStateChanges(aStateMask);
   }
 
-  if (aStateMask.HasState(NS_DOCUMENT_STATE_WINDOW_INACTIVE)) {
+  if (aStateMask.HasState(DocumentState::WINDOW_INACTIVE)) {
     if (nsIFrame* root = mFrameConstructor->GetRootFrame()) {
       root->SchedulePaint();
     }

@@ -8,13 +8,14 @@
 
 const EXPORTED_SYMBOLS = ["MarionetteCommandsChild", "clearActionInputState"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
+const lazy = {};
 
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   action: "chrome://remote/content/marionette/action.js",
   atom: "chrome://remote/content/marionette/atom.js",
   element: "chrome://remote/content/marionette/element.js",
@@ -28,8 +29,8 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Sandboxes: "chrome://remote/content/marionette/evaluate.js",
 });
 
-XPCOMUtils.defineLazyGetter(this, "logger", () =>
-  Log.get(Log.TYPES.MARIONETTE)
+XPCOMUtils.defineLazyGetter(lazy, "logger", () =>
+  lazy.Log.get(lazy.Log.TYPES.MARIONETTE)
 );
 
 let inputStateIsDirty = false;
@@ -39,7 +40,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
     super();
 
     // sandbox storage and name of the current sandbox
-    this.sandboxes = new Sandboxes(() => this.document.defaultView);
+    this.sandboxes = new lazy.Sandboxes(() => this.document.defaultView);
   }
 
   get innerWindowId() {
@@ -51,14 +52,14 @@ class MarionetteCommandsChild extends JSWindowActorChild {
    */
   get legacyactions() {
     if (!this._legacyactions) {
-      this._legacyactions = new legacyaction.Chain();
+      this._legacyactions = new lazy.legacyaction.Chain();
     }
 
     return this._legacyactions;
   }
 
   actorCreated() {
-    logger.trace(
+    lazy.logger.trace(
       `[${this.browsingContext.id}] MarionetteCommands actor created ` +
         `for window id ${this.innerWindowId}`
     );
@@ -76,7 +77,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
       let waitForNextTick = false;
 
       const { name, data: serializedData } = msg;
-      const data = evaluate.fromJSON({
+      const data = lazy.evaluate.fromJSON({
         obj: serializedData,
         seenEls: null,
         win: this.document.defaultView,
@@ -174,10 +175,10 @@ class MarionetteCommandsChild extends JSWindowActorChild {
       // The element reference store lives in the parent process. Calling
       // toJSON() without a second argument here passes element reference ids
       // of DOM nodes to the parent frame.
-      return { data: evaluate.toJSON(result) };
+      return { data: lazy.evaluate.toJSON(result) };
     } catch (e) {
       // Always wrap errors as WebDriverError
-      return { error: error.wrap(e).toJSON() };
+      return { error: lazy.error.wrap(e).toJSON() };
     }
   }
 
@@ -191,7 +192,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   clearElement(options = {}) {
     const { elem } = options;
 
-    interaction.clearElement(elem);
+    lazy.interaction.clearElement(elem);
   }
 
   /**
@@ -200,7 +201,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   async clickElement(options = {}) {
     const { capabilities, elem } = options;
 
-    return interaction.clickElement(
+    return lazy.interaction.clickElement(
       elem,
       capabilities["moz:accessibilityChecks"],
       capabilities["moz:webdriverClick"]
@@ -217,10 +218,10 @@ class MarionetteCommandsChild extends JSWindowActorChild {
     if (opts.sandboxName) {
       sb = this.sandboxes.get(opts.sandboxName, opts.newSandbox);
     } else {
-      sb = sandbox.createMutable(this.document.defaultView);
+      sb = lazy.sandbox.createMutable(this.document.defaultView);
     }
 
-    return evaluate.sandbox(sb, script, args, opts);
+    return lazy.evaluate.sandbox(sb, script, args, opts);
   }
 
   /**
@@ -240,7 +241,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
     opts.all = false;
 
     const container = { frame: this.document.defaultView };
-    return element.find(container, strategy, selector, opts);
+    return lazy.element.find(container, strategy, selector, opts);
   }
 
   /**
@@ -260,7 +261,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
     opts.all = true;
 
     const container = { frame: this.document.defaultView };
-    return element.find(container, strategy, selector, opts);
+    return lazy.element.find(container, strategy, selector, opts);
   }
 
   /**
@@ -269,7 +270,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   async getActiveElement() {
     let elem = this.document.activeElement;
     if (!elem) {
-      throw new error.NoSuchElementError();
+      throw new lazy.error.NoSuchElementError();
     }
 
     return elem;
@@ -281,7 +282,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   async getElementAttribute(options = {}) {
     const { name, elem } = options;
 
-    if (element.isBooleanAttribute(elem, name)) {
+    if (lazy.element.isBooleanAttribute(elem, name)) {
       if (elem.hasAttribute(name)) {
         return "true";
       }
@@ -329,7 +330,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   async getElementText(options = {}) {
     const { elem } = options;
 
-    return atom.getElementText(elem, this.document.defaultView);
+    return lazy.atom.getElementText(elem, this.document.defaultView);
   }
 
   /**
@@ -380,7 +381,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
 
     if (elem) {
       if (scroll) {
-        element.scrollIntoView(elem);
+        lazy.element.scrollIntoView(elem);
       }
       rect = this.getElementRect({ elem });
     } else if (full) {
@@ -405,7 +406,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   async getShadowRoot(options = {}) {
     const { elem } = options;
 
-    return element.getShadowRoot(elem);
+    return lazy.element.getShadowRoot(elem);
   }
 
   /**
@@ -414,7 +415,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   async isElementDisplayed(options = {}) {
     const { capabilities, elem } = options;
 
-    return interaction.isElementDisplayed(
+    return lazy.interaction.isElementDisplayed(
       elem,
       capabilities["moz:accessibilityChecks"]
     );
@@ -426,7 +427,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   async isElementEnabled(options = {}) {
     const { capabilities, elem } = options;
 
-    return interaction.isElementEnabled(
+    return lazy.interaction.isElementEnabled(
       elem,
       capabilities["moz:accessibilityChecks"]
     );
@@ -438,7 +439,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   async isElementSelected(options = {}) {
     const { capabilities, elem } = options;
 
-    return interaction.isElementSelected(
+    return lazy.interaction.isElementSelected(
       elem,
       capabilities["moz:accessibilityChecks"]
     );
@@ -456,13 +457,13 @@ class MarionetteCommandsChild extends JSWindowActorChild {
   async performActions(options = {}) {
     const { actions, capabilities } = options;
 
-    await action.dispatch(
-      action.Chain.fromJSON(actions),
+    await lazy.action.dispatch(
+      lazy.action.Chain.fromJSON(actions),
       this.document.defaultView,
       !capabilities["moz:useNonSpecCompliantPointerOrigin"]
     );
     inputStateIsDirty =
-      action.inputsToCancel.length || action.inputStateMap.size;
+      lazy.action.inputsToCancel.length || lazy.action.inputStateMap.size;
   }
 
   /**
@@ -472,14 +473,14 @@ class MarionetteCommandsChild extends JSWindowActorChild {
    * clears all the internal state of the virtual devices.
    */
   async releaseActions() {
-    await action.dispatchTickActions(
-      action.inputsToCancel.reverse(),
+    await lazy.action.dispatchTickActions(
+      lazy.action.inputsToCancel.reverse(),
       0,
       this.document.defaultView
     );
     clearActionInputState();
 
-    event.DoubleClickTracker.resetClick();
+    lazy.event.DoubleClickTracker.resetClick();
   }
 
   /*
@@ -494,7 +495,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
       webdriverClick: capabilities["moz:webdriverClick"],
     };
 
-    return interaction.sendKeysToElement(elem, text, opts);
+    return lazy.interaction.sendKeysToElement(elem, text, opts);
   }
 
   /**
@@ -524,7 +525,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
       browsingContext = this.browsingContext.top;
     } else if (typeof id == "number") {
       if (id < 0 || id >= childContexts.length) {
-        throw new error.NoSuchFrameError(
+        throw new lazy.error.NoSuchFrameError(
           `Unable to locate frame with index: ${id}`
         );
       }
@@ -534,7 +535,7 @@ class MarionetteCommandsChild extends JSWindowActorChild {
         return context.embedderElement === id;
       });
       if (!context) {
-        throw new error.NoSuchFrameError(
+        throw new lazy.error.NoSuchFrameError(
           `Unable to locate frame for element: ${id}`
         );
       }
@@ -565,8 +566,8 @@ class MarionetteCommandsChild extends JSWindowActorChild {
 function clearActionInputState() {
   // Avoid loading the action module before it is needed by a command
   if (inputStateIsDirty) {
-    action.inputStateMap.clear();
-    action.inputsToCancel.length = 0;
+    lazy.action.inputStateMap.clear();
+    lazy.action.inputsToCancel.length = 0;
     inputStateIsDirty = false;
   }
 }

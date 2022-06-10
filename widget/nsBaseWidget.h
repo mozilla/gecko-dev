@@ -212,6 +212,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   void InfallibleMakeFullScreen(bool aFullScreen);
 
   WindowRenderer* GetWindowRenderer() override;
+  bool HasWindowRenderer() const final { return !!mWindowRenderer; }
 
   // A remote compositor session tied to this window has been lost and IPC
   // messages will no longer work. The widget must clean up any lingering
@@ -714,7 +715,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   nsPopupType mPopupType;
   SizeConstraints mSizeConstraints;
   bool mHasRemoteContent;
-  bool mFissionWindow;
 
   bool mUpdateCursor;
   bool mUseAttachedEvents;

@@ -159,15 +159,14 @@ var DevToolsServer = {
     if (!this._initialized) {
       return;
     }
+    this._initialized = false;
 
     for (const connection of Object.values(this._connections)) {
       connection.close();
     }
 
     ActorRegistry.destroy();
-
     this.closeAllSocketListeners();
-    this._initialized = false;
 
     // Unregister all listeners
     this.off("connectionchange");
@@ -419,6 +418,18 @@ var DevToolsServer = {
   _connectionClosed(connection) {
     delete this._connections[connection.prefix];
     this.emit("connectionchange", "closed", connection);
+
+    // If keepAlive isn't explicitely set to true, destroy the server once its
+    // last connection closes. Multiple JSWindowActor may use the same DevToolsServer
+    // and in this case, let the server destroy itself once the last connection closes.
+    // Otherwise we set keepAlive to true when starting a listening server, receiving
+    // client connections. Typically when running server on phones, or on desktop
+    // via `--start-debugger-server`.
+    if (this.hasConnection() || this.keepAlive) {
+      return;
+    }
+
+    this.destroy();
   },
 
   // DevToolsServer extension API.

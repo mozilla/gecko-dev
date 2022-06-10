@@ -9,6 +9,7 @@ const EXPORTED_SYMBOLS = ["ONBOARDING_CHOICE", "UrlbarQuickSuggest"];
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
@@ -16,14 +17,11 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
   QUICK_SUGGEST_SOURCE: "resource:///modules/UrlbarProviderQuickSuggest.jsm",
   RemoteSettings: "resource://services-settings/remote-settings.js",
-  Services: "resource://gre/modules/Services.jsm",
   TaskQueue: "resource:///modules/UrlbarUtils.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
   UrlbarProviderQuickSuggest:
     "resource:///modules/UrlbarProviderQuickSuggest.jsm",
 });
-
-XPCOMUtils.defineLazyGlobalGetters(this, ["TextDecoder"]);
 
 const log = console.createInstance({
   prefix: "QuickSuggest",
@@ -62,6 +60,10 @@ const ONBOARDING_URI =
 // suggestion does not have one, it's assigned this value. We choose a low value
 // to allow Merino to experiment with a broad range of scores server side.
 const DEFAULT_SUGGESTION_SCORE = 0.2;
+
+// Entries are added to the `_resultsByKeyword` map in chunks, and each chunk
+// will add at most this many entries.
+const ADD_RESULTS_CHUNK_SIZE = 1000;
 
 /**
  * Fetches the suggestions data from RemoteSettings and builds the structures
@@ -392,6 +394,9 @@ class QuickSuggest extends EventEmitter {
   // in memory all the time, we want to save as much memory as possible.
   _resultsByKeyword = new Map();
 
+  // This is only defined as a property so that tests can override it.
+  _addResultsChunkSize = ADD_RESULTS_CHUNK_SIZE;
+
   /**
    * Queues a task to ensure our remote settings client is initialized or torn
    * down as appropriate.
@@ -462,7 +467,7 @@ class QuickSuggest extends EventEmitter {
         let { buffer } = await this._rs.attachments.download(record);
         let results = JSON.parse(new TextDecoder("utf-8").decode(buffer));
         log.debug(`Adding ${results.length} results`);
-        this._addResults(results);
+        await this._addResults(results);
       }
     });
   }
@@ -484,21 +489,51 @@ class QuickSuggest extends EventEmitter {
    * @param {array} results
    *   Array of result objects.
    */
-  _addResults(results) {
-    for (let result of results) {
-      for (let keyword of result.keywords) {
-        // If the keyword's only result is `result`, store it directly as the
-        // value. Otherwise store an array of results. For details, see the
-        // `_resultsByKeyword` comment.
-        let object = this._resultsByKeyword.get(keyword);
-        if (!object) {
-          this._resultsByKeyword.set(keyword, result);
-        } else if (!Array.isArray(object)) {
-          this._resultsByKeyword.set(keyword, [object, result]);
-        } else {
-          object.push(result);
-        }
-      }
+  async _addResults(results) {
+    // There can be many results, and each result can have many keywords. To
+    // avoid blocking the main thread for too long, update the map in chunks,
+    // and to avoid blocking the UI and other higher priority work, do each
+    // chunk only when the main thread is idle. During each chunk, we'll add at
+    // most `_addResultsChunkSize` entries to the map.
+    let resultIndex = 0;
+    let keywordIndex = 0;
+
+    // Keep adding chunks until all results have been fully added.
+    while (resultIndex < results.length) {
+      await new Promise(resolve => {
+        Services.tm.idleDispatchToMainThread(() => {
+          // Keep updating the map until the current chunk is done.
+          let indexInChunk = 0;
+          while (
+            indexInChunk < this._addResultsChunkSize &&
+            resultIndex < results.length
+          ) {
+            let result = results[resultIndex];
+            if (keywordIndex == result.keywords.length) {
+              resultIndex++;
+              keywordIndex = 0;
+              continue;
+            }
+            // If the keyword's only result is `result`, store it directly as
+            // the value. Otherwise store an array of results. For details, see
+            // the `_resultsByKeyword` comment.
+            let keyword = result.keywords[keywordIndex];
+            let object = this._resultsByKeyword.get(keyword);
+            if (!object) {
+              this._resultsByKeyword.set(keyword, result);
+            } else if (!Array.isArray(object)) {
+              this._resultsByKeyword.set(keyword, [object, result]);
+            } else {
+              object.push(result);
+            }
+            keywordIndex++;
+            indexInChunk++;
+          }
+
+          // The current chunk is done.
+          resolve();
+        });
+      });
     }
   }
 
