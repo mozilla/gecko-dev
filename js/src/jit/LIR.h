@@ -1926,6 +1926,8 @@ AnyRegister LAllocation::toRegister() const {
 #  include "jit/arm64/LIR-arm64.h"
 #elif defined(JS_CODEGEN_LOONG64)
 #  include "jit/loong64/LIR-loong64.h"
+#elif defined(JS_CODEGEN_RISCV64)
+#  include "jit/riscv64/LIR-riscv64.h"
 #elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
 #  if defined(JS_CODEGEN_MIPS32)
 #    include "jit/mips32/LIR-mips32.h"

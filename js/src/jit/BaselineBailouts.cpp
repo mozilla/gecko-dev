@@ -9,7 +9,6 @@
 
 #include "builtin/ModuleObject.h"
 #include "debugger/DebugAPI.h"
-#include "jit/arm/Simulator-arm.h"
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
@@ -21,11 +20,9 @@
 #include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
-#include "jit/loong64/Simulator-loong64.h"
-#include "jit/mips32/Simulator-mips32.h"
-#include "jit/mips64/Simulator-mips64.h"
 #include "jit/RematerializedFrame.h"
 #include "jit/SharedICRegisters.h"
+#include "jit/Simulator.h"
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit, js::ReportOverRecursed
 #include "js/Utility.h"
 #include "util/Memory.h"
