@@ -95,7 +95,7 @@ typedef FloatRegister FPURegister;
   }
 
 int ToNumber(Register reg);
-Register ToRegister(int num);
+Register ToRegister(uint32_t num);
 
 class AssemblerRiscvBase {
  protected:

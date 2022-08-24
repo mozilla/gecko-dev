@@ -2437,19 +2437,19 @@ void Simulator::callInternal(uint8_t* entry) {
   }
 
   // Check that the callee-saved registers have been preserved.
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::fp));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s1));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s2));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s3));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s4));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s5));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s6));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s7));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s8));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s9));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s10));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::s11));
-  MOZ_ASSERT(callee_saved_value, getRegister(Simulator::Register::gp));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::fp));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s1));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s2));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s3));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s4));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s5));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s6));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s7));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s8));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s9));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s10));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::s11));
+  MOZ_ASSERT(callee_saved_value == getRegister(Simulator::Register::gp));
 
   // Restore callee-saved registers with the original value.
   setRegister(Simulator::Register::fp, s0_val);

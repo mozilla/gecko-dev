@@ -175,22 +175,22 @@ void AssemblerRISCVI::and_(Register rd, Register rs1, Register rs2) {
 void AssemblerRISCVI::fence(uint8_t pred, uint8_t succ) {
   MOZ_ASSERT(is_uint4(pred) && is_uint4(succ));
   uint16_t imm12 = succ | (pred << 4) | (0b0000 << 8);
-  GenInstrI(0b000, MISC_MEM, ToRegister(0), ToRegister(0), imm12);
+  GenInstrI(0b000, MISC_MEM, ToRegister(0UL), ToRegister(0UL), imm12);
 }
 
 void AssemblerRISCVI::fence_tso() {
   uint16_t imm12 = (0b0011) | (0b0011 << 4) | (0b1000 << 8);
-  GenInstrI(0b000, MISC_MEM, ToRegister(0), ToRegister(0), imm12);
+  GenInstrI(0b000, MISC_MEM, ToRegister(0UL), ToRegister(0UL), imm12);
 }
 
 // Environment call / break
 
 void AssemblerRISCVI::ecall() {
-  GenInstrI(0b000, SYSTEM, ToRegister(0), ToRegister(0), 0);
+  GenInstrI(0b000, SYSTEM, ToRegister(0UL), ToRegister(0UL), 0);
 }
 
 void AssemblerRISCVI::ebreak() {
-  GenInstrI(0b000, SYSTEM, ToRegister(0), ToRegister(0), 1);
+  GenInstrI(0b000, SYSTEM, ToRegister(0UL), ToRegister(0UL), 1);
 }
 
 // This is a de facto standard (as set by GNU binutils) 32-bit unimplemented

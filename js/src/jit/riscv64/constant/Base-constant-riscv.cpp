@@ -86,7 +86,7 @@ uint32_t InstructionGetters<T>::Rvvzimm() const {
     return zimm >> kRvvZimmShift;
   } else {
     MOZ_ASSERT(
-        this->InstructionBits() & (kBaseOpcodeMask | kFunct3Mask | 0xC0000000) ==
+        (this->InstructionBits() & (kBaseOpcodeMask | kFunct3Mask | 0xC0000000)) ==
         RO_V_VSETIVLI);
     uint32_t Bits = this->InstructionBits();
     uint32_t zimm = Bits & kRvvZimmMask;
@@ -97,7 +97,7 @@ uint32_t InstructionGetters<T>::Rvvzimm() const {
 template <class T>
 uint32_t InstructionGetters<T>::Rvvuimm() const {
   MOZ_ASSERT(
-      this->InstructionBits() & (kBaseOpcodeMask | kFunct3Mask | 0xC0000000) ==
+      (this->InstructionBits() & (kBaseOpcodeMask | kFunct3Mask | 0xC0000000)) ==
       RO_V_VSETIVLI);
   uint32_t Bits = this->InstructionBits();
   uint32_t uimm = Bits & kRvvUimmMask;

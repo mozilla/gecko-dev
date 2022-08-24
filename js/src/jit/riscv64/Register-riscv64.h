@@ -89,15 +89,18 @@ static constexpr FloatRegister ft11{FloatRegisters::f31};
 static constexpr Register StackPointer{Registers::sp};
 static constexpr Register FramePointer{Registers::fp};
 static constexpr Register ReturnReg{Registers::a0};
+static constexpr Register64 ReturnReg64(ReturnReg);
 
 static constexpr Register ScratchRegister{Registers::t5};
 static constexpr Register SecondScratchReg{Registers::t6};
 
 static constexpr FloatRegister ReturnFloat32Reg{FloatRegisters::fa0};
 static constexpr FloatRegister ReturnDoubleReg{FloatRegisters::fa0};
+#ifdef ENABLE_WASM_SIMD
 static constexpr FloatRegister ReturnSimd128Reg{FloatRegisters::invalid_reg};
 static constexpr FloatRegister ScratchSimd128Reg{FloatRegisters::invalid_reg};
-static constexpr FloatRegister InvalidFloatReg{FloatRegisters::invalid_reg};
+#endif
+static constexpr FloatRegister InvalidFloatReg{};
 
 static constexpr FloatRegister ScratchFloat32Reg{FloatRegisters::ft10};
 static constexpr FloatRegister ScratchDoubleReg{FloatRegisters::ft10};
@@ -138,6 +141,7 @@ static constexpr Register RegExpMatcherStickyReg{Registers::invalid_reg};
 static constexpr Register JSReturnReg_Type{Registers::a3};
 static constexpr Register JSReturnReg_Data{Registers::s2};
 static constexpr Register JSReturnReg{Registers::a2};
+static constexpr ValueOperand JSReturnOperand = ValueOperand(JSReturnReg);
 
 // These registers may be volatile or nonvolatile.
 static constexpr Register ABINonArgReg0{Registers::t0};
@@ -156,8 +160,9 @@ static constexpr Register ABINonVolatileReg{Registers::s1};
 // and non-volatile registers.
 static constexpr Register ABINonArgReturnVolatileReg{Registers::ra};
 
-static constexpr FloatRegister ABINonArgDoubleReg = {
-    FloatRegisters::invalid_reg};
+// This register may be volatile or nonvolatile.
+// Avoid f23 which is the scratch register.
+static constexpr FloatRegister ABINonArgDoubleReg{FloatRegisters::ft11};
 
 static constexpr Register WasmTableCallScratchReg0{ABINonArgReg0};
 static constexpr Register WasmTableCallScratchReg1{ABINonArgReg1};

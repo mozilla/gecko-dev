@@ -18,6 +18,7 @@ namespace jit {
 
 class CompactBufferReader;
 
+enum JumpKind { LongJump = 0, ShortJump = 1 };
 class ScratchTagScope {
  public:
   ScratchTagScope(MacroAssembler&, const ValueOperand) {}
@@ -33,7 +34,7 @@ class ScratchTagScopeRelease {
 
 class MacroAssemblerRiscv64 : public Assembler {
  public:
-  MacroAssemblerRiscv64() { MOZ_CRASH(); }
+  MacroAssemblerRiscv64() {}
 
   MoveResolver moveResolver_;
 
@@ -59,9 +60,9 @@ class MacroAssemblerRiscv64 : public Assembler {
     MOZ_CRASH();
   }
 
-  static bool SupportsFloatingPoint() { return false; }
-  static bool SupportsUnalignedAccesses() { return false; }
-  static bool SupportsFastUnalignedFPAccesses() { return false; }
+  static bool SupportsFloatingPoint() { return true; }
+  static bool SupportsUnalignedAccesses() { return true; }
+  static bool SupportsFastUnalignedFPAccesses() { return true; }
 
   void executableCopy(void*, bool = true) { MOZ_CRASH(); }
   void copyJumpRelocationTable(uint8_t*) { MOZ_CRASH(); }
@@ -71,10 +72,6 @@ class MacroAssemblerRiscv64 : public Assembler {
 
   void flushBuffer() { MOZ_CRASH(); }
 
-  template <typename T>
-  void bind(T) {
-    MOZ_CRASH();
-  }
   template <typename T>
   void j(Condition, T) {
     MOZ_CRASH();
@@ -98,12 +95,57 @@ class MacroAssemblerRiscv64 : public Assembler {
   CodeOffset toggledCall(JitCode*, bool) { MOZ_CRASH(); }
   static size_t ToggledCallSize(uint8_t*) { MOZ_CRASH(); }
 
+
+  // TODO(RISCV) Reorder parameters so out parameters come last.
+  bool CalculateOffset(Label* L, int32_t* offset, OffsetSize bits);
+  int32_t GetOffset(int32_t offset, Label* L, OffsetSize bits);
+
   void finish() { MOZ_CRASH(); }
   
+  inline void GenPCRelativeJump(Register rd, int32_t imm32) {
+    MOZ_ASSERT(is_int32(imm32 + 0x800));
+    int32_t Hi20 = ((imm32 + 0x800) >> 12);
+    int32_t Lo12 = imm32 << 20 >> 20;
+    auipc(rd, Hi20);  // Read PC + Hi20 into scratch.
+    jr(rd, Lo12);     // jump PC + Hi20 + Lo12
+  }
+
   void ma_li(Register dest, ImmGCPtr ptr){ MOZ_CRASH(); }
   void ma_li(Register dest, Imm32 imm) { MOZ_CRASH(); }
   void ma_li(Register dest, CodeLabel* label) { MOZ_CRASH(); }
   void ma_li(Register dest, ImmWord imm) { MOZ_CRASH(); }
+  void ma_li(Register dest, Operand op);
+
+  // branches when done from within la-specific code
+  void ma_b(Register lhs, Register rhs, Label* l, Condition c,
+            JumpKind jumpKind = LongJump);
+  void ma_b(Register lhs, Imm32 imm, Label* l, Condition c,
+            JumpKind jumpKind = LongJump);
+
+  void BranchShort(Label* L);
+
+  void BranchShort(int32_t offset,
+                   Condition cond,
+                   Register rs,
+                   const Operand& rt);
+  void BranchShort(Label* L, Condition cond, Register rs, const Operand& rt);
+  void BranchShortHelper(int32_t offset, Label* L);
+  bool BranchShortHelper(int32_t offset,
+                         Label* L,
+                         Condition cond,
+                         Register rs,
+                         const Operand& rt);
+  bool BranchShortCheck(int32_t offset,
+                        Label* L,
+                        Condition cond,
+                        Register rs,
+                        const Operand& rt);
+  void BranchLong(Label* L);
+  void ma_branch(Label* target,
+                 Condition cond,
+                 Register r1,
+                 const Operand& r2,
+                 JumpKind jumpKind = LongJump);
 
   template <typename T, typename S>
   void moveValue(T, S) {
@@ -442,7 +484,6 @@ class MacroAssemblerRiscv64 : public Assembler {
   Operand ToPayload(Operand base) { MOZ_CRASH(); }
   Address ToPayload(Address) { MOZ_CRASH(); }
 
-  Register getStackPointer() const { MOZ_CRASH(); }
 
   // Instrumentation for entering and leaving the profiler.
   void profilerEnterFrame(Register, Register) { MOZ_CRASH(); }

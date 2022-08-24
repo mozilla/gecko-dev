@@ -77,7 +77,7 @@ int ToNumber(Register reg) {
   return kNumbers[reg.code()];
 }
 
-Register ToRegister(int num) {
+Register ToRegister(uint32_t num) {
   MOZ_ASSERT(num >= 0 && num < Registers::Total);
   const Register kRegisters[] = {
       zero_reg, ra, sp, gp, tp, t0, t1, t2, fp, s1, a0,  a1,  a2, a3, a4, a5,
@@ -576,7 +576,7 @@ void AssemblerRiscvBase::GenInstrALUW_rr(uint8_t funct7,
 void AssemblerRiscvBase::GenInstrPriv(uint8_t funct7,
                                       Register rs1,
                                       Register rs2) {
-  GenInstrR(funct7, 0b000, SYSTEM, ToRegister(0), rs1, rs2);
+  GenInstrR(funct7, 0b000, SYSTEM, ToRegister(0UL), rs1, rs2);
 }
 
 void AssemblerRiscvBase::GenInstrLoadFP_ri(uint8_t funct3,

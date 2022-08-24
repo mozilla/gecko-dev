@@ -14,17 +14,24 @@
 namespace js {
 namespace jit {
 
-static constexpr ValueOperand R0 = JSReturnOperand;
-static constexpr ValueOperand R1 = JSReturnOperand;
-static constexpr ValueOperand R2 = JSReturnOperand;
+// ValueOperands R0, R1, and R2.
+// R0 == JSReturnReg, and R2 uses registers not preserved across calls. R1 value
+// should be preserved across calls.
+static constexpr ValueOperand R0(a2);
+static constexpr ValueOperand R1(s1);
+static constexpr ValueOperand R2(a0);
 
-static constexpr Register ICTailCallReg{Registers::invalid_reg};
-static constexpr Register ICStubReg{Registers::invalid_reg};
 
-static constexpr FloatRegister FloatReg0 = {FloatRegisters::invalid_reg};
-static constexpr FloatRegister FloatReg1 = {FloatRegisters::invalid_reg};
-static constexpr FloatRegister FloatReg2 = {FloatRegisters::invalid_reg};
-static constexpr FloatRegister FloatReg3 = {FloatRegisters::invalid_reg};
+// ICTailCallReg and ICStubReg
+// These use registers that are not preserved across calls.
+static constexpr Register ICTailCallReg = ra;
+static constexpr Register ICStubReg = t0;
+
+// FloatReg0 must be equal to ReturnFloatReg.
+static constexpr FloatRegister FloatReg0 = fa0;
+static constexpr FloatRegister FloatReg1 = fa1;
+static constexpr FloatRegister FloatReg2 = fa2;
+static constexpr FloatRegister FloatReg3 = fa3;
 
 }  // namespace jit
 }  // namespace js

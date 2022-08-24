@@ -5,9 +5,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/Bailouts.h"
-#include "jit/BaselineIC.h"
+#include "jit/BaselineFrame.h"
+#include "jit/CalleeToken.h"
+#include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
-#include "vm/Realm.h"
+#ifdef JS_ION_PERF
+#  include "jit/PerfSpewer.h"
+#endif
+#include "jit/VMFunctions.h"
+#include "vm/JitActivation.h"  // js::jit::JitActivation
+#include "vm/JSContext.h"
+
+#include "jit/MacroAssembler-inl.h"
 
 using namespace js;
 using namespace js::jit;
@@ -33,8 +42,12 @@ void JitRuntime::generateBailoutHandler(MacroAssembler&, Label*) {
 uint32_t JitRuntime::generatePreBarrier(JSContext*, MacroAssembler&, MIRType) {
   MOZ_CRASH();
 }
-void JitRuntime::generateBailoutTailStub(MacroAssembler&, Label*) {
-  MOZ_CRASH();
+void JitRuntime::generateBailoutTailStub(MacroAssembler& masm,
+                                         Label* bailoutTail) {
+  AutoCreatedBy acb(masm, "JitRuntime::generateBailoutTailStub");
+
+  masm.bind(bailoutTail);
+  masm.generateBailoutTail(a1, a2);
 }
 
 bool JitRuntime::generateVMWrapper(JSContext*, MacroAssembler&,

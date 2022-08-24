@@ -997,7 +997,16 @@ void MacroAssembler::branchTest32(Condition cond,
                                   Register lhs,
                                   Register rhs,
                                   L label) {
-  MOZ_CRASH();
+  MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
+             cond == NotSigned);
+  if (lhs == rhs) {
+    ma_b(lhs, rhs, label, cond);
+  } else {
+    UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
+    and_(scratch, lhs, rhs);
+    ma_b(scratch, scratch, label, cond);
+  }
 }
 
 template <class L>
@@ -1005,7 +1014,7 @@ void MacroAssembler::branchTest32(Condition cond,
                                   Register lhs,
                                   Imm32 rhs,
                                   L label) {
-  MOZ_CRASH();
+
 }
 
 void MacroAssembler::branchTest32(Condition cond,
