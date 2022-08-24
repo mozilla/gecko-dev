@@ -23,7 +23,7 @@ class AssemblerRISCVM : public AssemblerRiscvBase {
   void divu(Register rd, Register rs1, Register rs2);
   void rem(Register rd, Register rs1, Register rs2);
   void remu(Register rd, Register rs1, Register rs2);
-#ifdef V8_TARGET_ARCH_RISCV64
+#ifdef JS_CODEGEN_RISCV64
   // RV64M Standard Extension (in addition to RV32M)
   void mulw(Register rd, Register rs1, Register rs2);
   void divw(Register rd, Register rs1, Register rs2);

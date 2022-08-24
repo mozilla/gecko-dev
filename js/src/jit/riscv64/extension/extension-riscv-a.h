@@ -26,7 +26,7 @@ class AssemblerRISCVA : public AssemblerRiscvBase {
   void amominu_w(bool aq, bool rl, Register rd, Register rs1, Register rs2);
   void amomaxu_w(bool aq, bool rl, Register rd, Register rs1, Register rs2);
 
-#ifdef V8_TARGET_ARCH_RISCV64
+#ifdef JS_CODEGEN_RISCV64
   // RV64A Standard Extension (in addition to RV32A)
   void lr_d(bool aq, bool rl, Register rd, Register rs1);
   void sc_d(bool aq, bool rl, Register rd, Register rs1, Register rs2);

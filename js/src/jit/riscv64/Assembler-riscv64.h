@@ -97,7 +97,6 @@ class Assembler : public AssemblerShared,
                   public AssemblerRISCVC,
                   public AssemblerRISCVZicsr,
                   public AssemblerRISCVZifencei {
- Buffer m_buffer;
  CompactBufferWriter jumpRelocations_;
  CompactBufferWriter dataRelocations_;
  GeneralRegisterSet scratch_register_list_;
@@ -175,9 +174,26 @@ class Assembler : public AssemblerShared,
 #endif
 
  protected:
+  Buffer m_buffer;
   bool isFinished = false;
   int32_t get_trampoline_entry(int32_t pos);
   Instruction* editSrc(BufferOffset bo) { return m_buffer.getInst(bo); }
+
+  InstImm invertBranch(InstImm branch, BOffImm16 skipOffset);
+  void addPendingJump(BufferOffset src, ImmPtr target, RelocationKind kind) {
+    enoughMemory_ &= jumps_.append(RelativePatch(src, target.value, kind));
+    if (kind == RelocationKind::JITCODE) {
+      jumpRelocations_.writeUnsigned(src.getOffset());
+    }
+  }
+
+  void addLongJump(BufferOffset src, BufferOffset dst) {
+    CodeLabel cl;
+    cl.patchAt()->bind(src.getOffset());
+    cl.target()->bind(dst.getOffset());
+    cl.setLinkMode(CodeLabel::JumpImmediate);
+    addCodeLabel(std::move(cl));
+  }
 
  public:
 
@@ -185,7 +201,7 @@ class Assembler : public AssemblerShared,
 
   Assembler()
       : m_buffer(),
-        scratch_register_list_((1 << t3.code()) | (1 << t5.code()) |
+        scratch_register_list_((1 << t5.code()) | (1 << s9.code()) |
                                (1 << s10.code()) | (1 << s11.code())),
 #ifdef JS_JITSPEW
         printer(nullptr),
@@ -203,7 +219,7 @@ class Assembler : public AssemblerShared,
   }
   bool oom() const;
   BufferOffset nextOffset() { return m_buffer.nextOffset(); }
-
+  
 #ifdef JS_JITSPEW
   inline void spew(const char* fmt, ...) MOZ_FORMAT_PRINTF(2, 3) {
     if (MOZ_UNLIKELY(printer || JitSpewEnabled(JitSpew_Codegen))) {
@@ -366,6 +382,38 @@ class Assembler : public AssemblerShared,
   void EmitConstPoolWithJumpIfNeeded(size_t margin = 0) {
     
   }
+
+  // As opposed to x86/x64 version, the data relocation has to be executed
+  // before to recover the pointer, and not after.
+  void writeDataRelocation(ImmGCPtr ptr) {
+    // Raw GC pointer relocations and Value relocations both end up in
+    // TraceOneDataRelocation.
+    if (ptr.value) {
+      if (gc::IsInsideNursery(ptr.value)) {
+        embedsNurseryPointers_ = true;
+      }
+      dataRelocations_.writeUnsigned(nextOffset().getOffset());
+    }
+  }
+
+  void assertNoGCThings() const {
+#ifdef DEBUG
+    MOZ_ASSERT(dataRelocations_.length() == 0);
+    for (auto& j : jumps_) {
+      MOZ_ASSERT(j.kind == RelocationKind::HARDCODED);
+    }
+#endif
+  }
+
+  // Assembler Pseudo Instructions (Tables 25.2, 25.3, RISC-V Unprivileged ISA)
+  void nop();
+  void RV_li(Register rd, intptr_t imm);
+  // Returns the number of instructions required to load the immediate
+  static int li_estimate(intptr_t imm, bool is_get_temp_reg = false);
+  // Loads an immediate, always using 8 instructions, regardless of the value,
+  // so that it can be modified later.
+  void li_constant(Register rd, intptr_t imm);
+  void li_ptr(Register rd, intptr_t imm);
 };
 
 

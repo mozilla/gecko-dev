@@ -41,7 +41,7 @@ void AssemblerRISCVM::remu(Register rd, Register rs1, Register rs2) {
   GenInstrALU_rr(0b0000001, 0b111, rd, rs1, rs2);
 }
 
-#ifdef V8_TARGET_ARCH_RISCV64
+#ifdef JS_CODEGEN_RISCV64
 // RV64M Standard Extension (in addition to RV32M)
 
 void AssemblerRISCVM::mulw(Register rd, Register rs1, Register rs2) {

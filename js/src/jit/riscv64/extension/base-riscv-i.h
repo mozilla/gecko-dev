@@ -167,7 +167,6 @@ class AssemblerRISCVI : public AssemblerRiscvBase {
   void jr(Register rs, int32_t imm12) { jalr(zero_reg, rs, imm12); }
   void jalr(Register rs, int32_t imm12) { jalr(ra, rs, imm12); }
   void jalr(Register rs) { jalr(ra, rs, 0); }
-  void ret() { jalr(zero_reg, ra, 0); }
   void call(int32_t offset) {
     auipc(ra, (offset >> 12) + ((offset & 0x800) >> 11));
     jalr(ra, ra, offset << 20 >> 20);
@@ -181,7 +180,7 @@ class AssemblerRISCVI : public AssemblerRiscvBase {
   void sltz(Register rd, Register rs) { slt(rd, rs, zero_reg); }
   void sgtz(Register rd, Register rs) { slt(rd, zero_reg, rs); }
 
-#if V8_TARGET_ARCH_RISCV64
+#if JS_CODEGEN_RISCV64
   void lwu(Register rd, Register rs1, int16_t imm12);
   void ld(Register rd, Register rs1, int16_t imm12);
   void sd(Register source, Register base, int16_t imm12);

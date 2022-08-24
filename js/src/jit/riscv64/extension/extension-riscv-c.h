@@ -46,7 +46,7 @@ class AssemblerRISCVC : public AssemblerRiscvBase {
   void c_fsd(FPURegister rs2, Register rs1, uint16_t uimm8);
   void c_fldsp(FPURegister rd, uint16_t uimm9);
   void c_fsdsp(FPURegister rs2, uint16_t uimm9);
-#ifdef V8_TARGET_ARCH_RISCV64
+#ifdef JS_CODEGEN_RISCV64
   void c_ld(Register rd, Register rs1, uint16_t uimm8);
   void c_sd(Register rs2, Register rs1, uint16_t uimm8);
   void c_subw(Register rd, Register rs2);

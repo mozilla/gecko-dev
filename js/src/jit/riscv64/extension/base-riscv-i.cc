@@ -259,7 +259,7 @@ bool AssemblerRISCVI::IsLw(Instr instr) {
 }
 
 int AssemblerRISCVI::LoadOffset(Instr instr) {
-#if V8_TARGET_ARCH_RISCV64
+#if JS_CODEGEN_RISCV64
   MOZ_ASSERT(IsLd(instr));
 #elif V8_TARGET_ARCH_RISCV32
   MOZ_ASSERT(IsLw(instr));
@@ -268,7 +268,7 @@ int AssemblerRISCVI::LoadOffset(Instr instr) {
   return imm12;
 }
 
-#ifdef V8_TARGET_ARCH_RISCV64
+#ifdef JS_CODEGEN_RISCV64
 
 bool AssemblerRISCVI::IsAddiw(Instr instr) {
   return (instr & (kBaseOpcodeMask | kFunct3Mask)) == RO_ADDIW;

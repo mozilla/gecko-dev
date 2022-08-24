@@ -1020,6 +1020,7 @@ class MacroAssemblerLOONG64Compat : public MacroAssemblerLOONG64 {
   void profilerExitFrame();
 };
 
+
 typedef MacroAssemblerLOONG64Compat MacroAssemblerSpecific;
 
 }  // namespace jit

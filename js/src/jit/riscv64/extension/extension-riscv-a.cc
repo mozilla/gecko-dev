@@ -64,7 +64,7 @@ void AssemblerRISCVA::amomaxu_w(bool aq, bool rl, Register rd, Register rs1,
 }
 
 // RV64A Standard Extension (in addition to RV32A)
-#ifdef V8_TARGET_ARCH_RISCV64
+#ifdef JS_CODEGEN_RISCV64
 void AssemblerRISCVA::lr_d(bool aq, bool rl, Register rd, Register rs1) {
   GenInstrRAtomic(0b00010, aq, rl, 0b011, rd, rs1, zero_reg);
 }

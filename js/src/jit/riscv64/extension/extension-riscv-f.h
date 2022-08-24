@@ -49,7 +49,7 @@ class AssemblerRISCVF : public AssemblerRiscvBase {
   void fcvt_s_wu(FPURegister rd, Register rs1, FPURoundingMode frm = RNE);
   void fmv_w_x(FPURegister rd, Register rs1);
 
-#ifdef V8_TARGET_ARCH_RISCV64
+#ifdef JS_CODEGEN_RISCV64
   // RV64F Standard Extension (in addition to RV32F)
   void fcvt_l_s(Register rd, FPURegister rs1, FPURoundingMode frm = RNE);
   void fcvt_lu_s(Register rd, FPURegister rs1, FPURoundingMode frm = RNE);

@@ -131,7 +131,7 @@ void AssemblerRISCVD::fcvt_d_wu(FPURegister rd, Register rs1,
   GenInstrALUFP_rr(0b1101001, frm, rd, rs1, ToRegister(1));
 }
 
-#ifdef V8_TARGET_ARCH_RISCV64
+#ifdef JS_CODEGEN_RISCV64
 // RV64D Standard Extension (in addition to RV32D)
 
 void AssemblerRISCVD::fcvt_l_d(Register rd, FPURegister rs1,

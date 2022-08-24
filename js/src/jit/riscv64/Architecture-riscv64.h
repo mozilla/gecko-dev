@@ -184,7 +184,8 @@ class Registers {
   static const SetType NonAllocatableMask =
       (1 << Registers::zero) |  // Always be zero.
       (1 << Registers::t5) |    // Scratch reg
-      (1 << Registers::t6) |    // Scratch reg
+      (1 << Registers::t6) |    // call reg
+      (1 << Registers::s9) |    // Scratch reg
       (1 << Registers::s10) |    // Scratch reg
       (1 << Registers::s11) |    // Scratch reg
       (1 << Registers::ra) | (1 << Registers::tp) | (1 << Registers::sp) |
