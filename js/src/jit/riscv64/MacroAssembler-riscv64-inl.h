@@ -1654,6 +1654,7 @@ inline void MacroAssembler::cmp32Set(Assembler::Condition cond,
   MOZ_CRASH();
 }
 
+
 }  // namespace jit
 }  // namespace js
 

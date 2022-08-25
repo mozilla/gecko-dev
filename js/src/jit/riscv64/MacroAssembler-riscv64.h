@@ -33,6 +33,7 @@ enum LoadStoreSize {
 
 enum LoadStoreExtension { ZeroExtend = 0, SignExtend = 1 };
 enum JumpKind { LongJump = 0, ShortJump = 1 };
+enum FloatFormat { SingleFloat, DoubleFloat };
 class ScratchTagScope {
  public:
   ScratchTagScope(MacroAssembler&, const ValueOperand) {}
@@ -46,9 +47,17 @@ class ScratchTagScopeRelease {
   explicit ScratchTagScopeRelease(ScratchTagScope*) {}
 };
 
+struct ImmTag : public Imm32 {
+  ImmTag(JSValueTag mask) : Imm32(int32_t(mask)) {}
+};
+
 class MacroAssemblerRiscv64 : public Assembler {
  public:
   MacroAssemblerRiscv64() {}
+
+  // Perform a downcast. Should be removed by Bug 996602.
+  MacroAssembler& asMasm();
+  const MacroAssembler& asMasm() const;
 
   MoveResolver moveResolver_;
 
@@ -116,10 +125,18 @@ class MacroAssemblerRiscv64 : public Assembler {
                const BaseIndex& src,
                LoadStoreSize size = SizeWord,
                LoadStoreExtension extension = SignExtend);
+  void ma_loadDouble(FloatRegister dest, Address address);
+  void ma_loadFloat(FloatRegister dest, Address address);
   // store
   void ma_store(Register data,
                 Address address,
                 LoadStoreSize size = SizeWord,
+                LoadStoreExtension extension = SignExtend);
+  void ma_store(Register data, const BaseIndex& dest, LoadStoreSize size = SizeWord,
+                LoadStoreExtension extension = SignExtend);
+  void ma_store(Imm32 imm, const BaseIndex& dest, LoadStoreSize size = SizeWord,
+                LoadStoreExtension extension = SignExtend);
+  void ma_store(Imm32 imm, Address address, LoadStoreSize size = SizeWord,
                 LoadStoreExtension extension = SignExtend);
   void ma_liPatchable(Register dest, ImmPtr imm);
   void ma_liPatchable(Register dest, ImmWord imm, LiFlags flags = Li48);
@@ -142,7 +159,8 @@ class MacroAssemblerRiscv64 : public Assembler {
 
   // arithmetic based ops
   // add
-  void ma_add_d(Register rd, Register rj, Imm32 imm);
+  void ma_add64(Register rd, Register rj, Imm32 imm);
+  void ma_sub64(Register rd, Register rj, Imm32 imm);
   void ma_add32TestOverflow(Register rd,
                             Register rj,
                             Register rk,
@@ -205,8 +223,6 @@ class MacroAssemblerRiscv64 : public Assembler {
   // stack
   void ma_pop(Register r);
   void ma_push(Register r);
-
-  void branchWithCode(InstImm code, Label* label, JumpKind jumpKind);
   // branches when done from within la-specific code
   void ma_b(Register lhs,
             ImmWord imm,
@@ -236,17 +252,19 @@ class MacroAssemblerRiscv64 : public Assembler {
     UseScratchRegisterScope temps(this);
     Register scratch = temps.Acquire();
     MOZ_ASSERT(rhs != scratch);
-    ma_ld_d(scratch, addr);
+    ma_load(scratch, addr, SizeDouble);
     ma_b(scratch, rhs, l, c, jumpKind);
   }
 
   void ma_branch(Label* target,
                  Condition cond,
-                 Register r1,
-                 const Operand& r2,
+                 Register r1 = InvalidReg,
+                 const Operand& r2 = InvalidReg,
                  JumpKind jumpKind = LongJump);
 
-  void ma_bl(Label* l);
+  void ma_branch(Label* target, JumpKind jumpKind = LongJump) {
+    ma_branch(target, Always, InvalidReg, InvalidReg, jumpKind);
+  }
 
   // fp instructions
   void ma_lid(FloatRegister dest, double value);
@@ -278,11 +296,13 @@ class MacroAssemblerRiscv64 : public Assembler {
                 FloatRegister fj,
                 Register rk);
 
-  void ma_and(Register rd, Register rj, Imm32 imm, bool bit32 = false);
+  void ma_and(Register rd, Register rj, Imm32 imm);
+  void ma_and(Register rd, Imm32 imm);
+  void ma_and(Register rd, Register rs);
 
-  void ma_or(Register rd, Register rj, Imm32 imm, bool bit32 = false);
+  void ma_or(Register rd, Register rj, Imm32 imm);
 
-  void ma_xor(Register rd, Register rj, Imm32 imm, bool bit32 = false);
+  void ma_xor(Register rd, Register rj, Imm32 imm);
 
   // arithmetic based ops
   // add
@@ -347,18 +367,10 @@ class MacroAssemblerRiscv64 : public Assembler {
   void ma_fld_s(FloatRegister dest, const BaseIndex& src);
 
   // FP branches
-  void ma_bc_s(FloatRegister lhs,
-               FloatRegister rhs,
-               Label* label,
-               DoubleCondition c,
-               JumpKind jumpKind = LongJump,
-               FPConditionBit fcc = FCC0);
-  void ma_bc_d(FloatRegister lhs,
-               FloatRegister rhs,
-               Label* label,
-               DoubleCondition c,
-               JumpKind jumpKind = LongJump,
-               FPConditionBit fcc = FCC0);
+  void ma_compareF32(Register rd, DoubleCondition cc, FloatRegister cmp1,
+                  FloatRegister cmp2);
+  void ma_compareF64(Register rd, DoubleCondition cc, FloatRegister cmp1,
+                  FloatRegister cmp2);
 
   void ma_call(ImmPtr dest);
 
@@ -366,14 +378,8 @@ class MacroAssemblerRiscv64 : public Assembler {
 
   void ma_cmp_set(Register dst, Register lhs, Register rhs, Condition c);
   void ma_cmp_set(Register dst, Register lhs, Imm32 imm, Condition c);
-  void ma_cmp_set_double(Register dst,
-                         FloatRegister lhs,
-                         FloatRegister rhs,
-                         DoubleCondition c);
-  void ma_cmp_set_float32(Register dst,
-                          FloatRegister lhs,
-                          FloatRegister rhs,
-                          DoubleCondition c);
+
+  void computeScaledAddress(const BaseIndex& address, Register dest);
 
   void BranchShort(Label* L);
 
@@ -410,6 +416,71 @@ class MacroAssemblerRiscv64 : public Assembler {
 
   // Insert bits [0, size) of source to bits [pos, pos+size) of dest
   void InsertBits(Register dest, Register source, int pos, int size);
+
+  template <typename F_TYPE>
+  void RoundHelper(FPURegister dst, FPURegister src, FPURegister fpu_scratch,
+                   FPURoundingMode mode);
+
+  template <typename TruncFunc>
+  void RoundFloatingPointToInteger(Register rd, FPURegister fs, Register result,
+                                   TruncFunc trunc);
+
+  // Convert double to unsigned word.
+  void Trunc_uw_d(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Convert double to signed word.
+  void Trunc_w_d(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Convert double to unsigned long.
+  void Trunc_ul_d(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Convert singled to signed long.
+  void Trunc_l_d(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Convert single to signed word.
+  void Trunc_w_s(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Convert single to unsigned word.
+  void Trunc_uw_s(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Convert single to unsigned long.
+  void Trunc_ul_s(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Convert singled to signed long.
+  void Trunc_l_s(Register rd, FPURegister fs, Register result = InvalidReg);
+  
+  // Round double functions
+  void Trunc_d_d(FPURegister fd, FPURegister fs, FPURegister fpu_scratch);
+  void Round_d_d(FPURegister fd, FPURegister fs, FPURegister fpu_scratch);
+  void Floor_d_d(FPURegister fd, FPURegister fs, FPURegister fpu_scratch);
+  void Ceil_d_d(FPURegister fd, FPURegister fs, FPURegister fpu_scratch);
+
+  // Round float functions
+  void Trunc_s_s(FPURegister fd, FPURegister fs, FPURegister fpu_scratch);
+  void Round_s_s(FPURegister fd, FPURegister fs, FPURegister fpu_scratch);
+  void Floor_s_s(FPURegister fd, FPURegister fs, FPURegister fpu_scratch);
+  void Ceil_s_s(FPURegister fd, FPURegister fs, FPURegister fpu_scratch);
+
+  
+  // Round single to signed word.
+  void Round_w_s(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Round double to signed word.
+  void Round_w_d(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Ceil single to signed word.
+  void Ceil_w_s(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Ceil double to signed word.
+  void Ceil_w_d(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Floor single to signed word.
+  void Floor_w_s(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  // Floor double to signed word.
+  void Floor_w_d(Register rd, FPURegister fs, Register result = InvalidReg);
+
+  inline void NegateBool(Register rd, Register rs) { xori(rd, rs, 1); }
 };
 
 class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
@@ -460,20 +531,18 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
 
   void movq(Register rj, Register rd);
 
-  void computeScaledAddress(const BaseIndex& address, Register dest);
-
   void computeEffectiveAddress(const Address& address, Register dest) {
-    ma_add_d(dest, address.base, Imm32(address.offset));
+    ma_add64(dest, address.base, Imm32(address.offset));
   }
 
   void computeEffectiveAddress(const BaseIndex& address, Register dest) {
     computeScaledAddress(address, dest);
     if (address.offset) {
-      ma_add_d(dest, dest, Imm32(address.offset));
+      ma_add64(dest, dest, Imm32(address.offset));
     }
   }
 
-  void j(Label* dest) { ma_b(dest); }
+  void j(Label* dest) { ma_branch(dest, Always); }
 
   void mov(Register src, Register dest) { addi(dest, src, 0); }
   void mov(ImmWord imm, Register dest) { ma_li(dest, imm); }
@@ -529,9 +598,10 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     ma_push(scratch);
   }
   void push(const Address& address) {
-    SecondScratchRegisterScope scratch2(asMasm());
-    loadPtr(address, scratch2);
-    ma_push(scratch2);
+    UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
+    loadPtr(address, scratch);
+    ma_push(scratch);
   }
   void push(Register reg) { ma_push(reg); }
   void push(FloatRegister reg) { ma_push(reg); }
@@ -578,7 +648,7 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     emit(uint64_t(-1));
   }
 
-  void jump(Label* label) { ma_b(label); }
+  void jump(Label* label) { ma_branch(label, Always); }
   void jump(Register reg) { jr(reg); }
   void jump(const Address& address) {
     UseScratchRegisterScope temps(this);
@@ -650,10 +720,10 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
 
   void unboxGCThingForGCBarrier(const Address& src, Register dest) {
     loadPtr(src, dest);
-    as_bstrpick_d(dest, dest, JSVAL_TAG_SHIFT - 1, 0);
+    ExtractBits(dest, dest, JSVAL_TAG_SHIFT - 1, 0);
   }
   void unboxGCThingForGCBarrier(const ValueOperand& src, Register dest) {
-    as_bstrpick_d(dest, src.valueReg(), JSVAL_TAG_SHIFT - 1, 0);
+    ExtractBits(dest, src.valueReg(), JSVAL_TAG_SHIFT - 1, 0);
   }
 
   void unboxInt32(const ValueOperand& operand, Register dest);
@@ -686,7 +756,7 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
   void unboxValue(const ValueOperand& src, AnyRegister dest, JSValueType type);
 
   void notBoolean(const ValueOperand& val) {
-    as_xori(val.valueReg(), val.valueReg(), 1);
+    xori(val.valueReg(), val.valueReg(), 1);
   }
 
   // boxing code
@@ -731,7 +801,7 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     return scratch;
   }
 
-  inline void ensureDouble(const ValueOperand& source,
+  void ensureDouble(const ValueOperand& source,
                            FloatRegister dest,
                            Label* failure);
 
@@ -773,14 +843,14 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
       case 8: {
         UseScratchRegisterScope temps(this);
         Register scratch = temps.Acquire();
-        SecondScratchRegisterScope scratch2(asMasm());
+        Register scratch2 = temps.Acquire();
         if (type == JSVAL_TYPE_OBJECT) {
           unboxObjectOrNull(value, scratch2);
         } else {
           unboxNonDouble(value, scratch2, type);
         }
         computeEffectiveAddress(address, scratch);
-        as_st_d(scratch2, scratch, 0);
+        sd(scratch2, scratch, 0);
         return;
       }
       case 4:
@@ -800,13 +870,14 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
                            JSValueType type) {
     switch (nbytes) {
       case 8: {
-        SecondScratchRegisterScope scratch2(asMasm());
+        UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
         if (type == JSVAL_TYPE_OBJECT) {
-          unboxObjectOrNull(value, scratch2);
+          unboxObjectOrNull(value, scratch);
         } else {
-          unboxNonDouble(value, scratch2, type);
+          unboxNonDouble(value, scratch, type);
         }
-        storePtr(scratch2, address);
+        storePtr(scratch, address);
         return;
       }
       case 4:
@@ -821,26 +892,15 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
   }
 
   void boxValue(JSValueType type, Register src, Register dest) {
-    UseScratchRegisterScope temps(this);
-    Register scratch = temps.Acquire();
-    if (src == dest) {
-      as_ori(scratch, src, 0);
-      src = scratch;
-    }
-#ifdef DEBUG
+    MOZ_ASSERT(src != dest);
+
+    JSValueTag tag = (JSValueTag)JSVAL_TYPE_TO_TAG(type);
+    ma_li(dest, Imm32(tag));
+    slli(dest, dest, JSVAL_TAG_SHIFT);
     if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
-      Label upper32BitsSignExtended;
-      as_slli_w(dest, src, 0);
-      ma_b(src, dest, &upper32BitsSignExtended, Equal, ShortJump);
-      breakpoint();
-      bind(&upper32BitsSignExtended);
-    }
-#endif
-    ma_li(dest, ImmWord(JSVAL_TYPE_TO_SHIFTED_TAG(type)));
-    if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
-      as_bstrins_d(dest, src, 31, 0);
+      InsertBits(dest, src, 0, 32);
     } else {
-      as_bstrins_d(dest, src, JSVAL_TAG_SHIFT - 1, 0);
+      InsertBits(dest, src, 0, JSVAL_TAG_SHIFT);
     }
   }
 
@@ -885,9 +945,10 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     }
   }
   void pushValue(JSValueType type, Register reg) {
-    SecondScratchRegisterScope scratch2(asMasm());
-    boxValue(type, reg, scratch2);
-    push(scratch2);
+    UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
+    boxValue(type, reg, scratch);
+    push(scratch);
   }
   void pushValue(const Address& addr);
 
@@ -948,6 +1009,26 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
   }
   void load64(const BaseIndex& address, Register64 dest) {
     loadPtr(address, dest.reg);
+  }
+
+  void loadDouble(const Address& addr, FloatRegister dest) {
+    ma_loadDouble(dest, addr);
+  }
+  void loadDouble(const BaseIndex& src, FloatRegister dest) {
+    UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
+    computeScaledAddress(src, scratch);
+    fld(dest, scratch, 0);
+  }
+
+  void loadFloat32(const Address& addr, FloatRegister dest) {
+    ma_loadFloat(dest, addr);
+  }
+  void loadFloat32(const BaseIndex& src, FloatRegister dest) {
+    UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
+    computeScaledAddress(src, scratch);
+    flw(dest, scratch, 0);
   }
 
   template <typename S>
@@ -1024,11 +1105,11 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
   void storePtr(Register src, AbsoluteAddress dest);
 
   void moveDouble(FloatRegister src, FloatRegister dest) {
-    as_fmov_d(dest, src);
+    fmv_d(dest, src);
   }
 
   void zeroDouble(FloatRegister reg) {
-    moveToDouble(zero, reg);
+    fmv_d_x(reg, zero);
   }
 
   void convertUInt64ToDouble(Register src, FloatRegister dest);
@@ -1040,7 +1121,7 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     Label aligned;
     UseScratchRegisterScope temps(this);
     Register scratch = temps.Acquire();
-    as_andi(scratch, sp, ABIStackAlignment - 1);
+    andi(scratch, sp, ABIStackAlignment - 1);
     ma_b(scratch, zero, &aligned, Equal, ShortJump);
     breakpoint();
     bind(&aligned);
@@ -1084,16 +1165,12 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
                         Register tmp);
 
  public:
-  void lea(Operand addr, Register dest) {
-    ma_add_d(dest, addr.baseReg(), Imm32(addr.disp()));
-  }
-
   void abiret() {
-    as_jirl(zero, ra, BOffImm16(0));
+    jr(ra);
   }
 
   void moveFloat32(FloatRegister src, FloatRegister dest) {
-    as_fmov_s(dest, src);
+    fmv_s(dest, src);
   }
 
   // Instrumentation for entering and leaving the profiler.

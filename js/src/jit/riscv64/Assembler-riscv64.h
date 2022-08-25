@@ -76,6 +76,8 @@ struct ScratchDoubleScope : public AutoFloatRegisterScope {
 
 class MacroAssembler;
 
+inline Imm32 Imm64::secondHalf() const { return hi(); }
+inline Imm32 Imm64::firstHalf() const { return low(); }
 
 static constexpr uint32_t ABIStackAlignment = 16;
 static constexpr uint32_t CodeAlignment = 16;
@@ -97,8 +99,7 @@ class Assembler : public AssemblerShared,
                   public AssemblerRISCVC,
                   public AssemblerRISCVZicsr,
                   public AssemblerRISCVZifencei {
- CompactBufferWriter jumpRelocations_;
- CompactBufferWriter dataRelocations_;
+
  GeneralRegisterSet scratch_register_list_;
 
   // One trampoline consists of:
@@ -174,12 +175,26 @@ class Assembler : public AssemblerShared,
 #endif
 
  protected:
+  CompactBufferWriter jumpRelocations_;
+  CompactBufferWriter dataRelocations_;
   Buffer m_buffer;
   bool isFinished = false;
   int32_t get_trampoline_entry(int32_t pos);
   Instruction* editSrc(BufferOffset bo) { return m_buffer.getInst(bo); }
 
-  InstImm invertBranch(InstImm branch, BOffImm16 skipOffset);
+  struct RelativePatch {
+    // the offset within the code buffer where the value is loaded that
+    // we want to fix-up
+    BufferOffset offset;
+    void* target;
+    RelocationKind kind;
+
+    RelativePatch(BufferOffset offset, void* target, RelocationKind kind)
+        : offset(offset), target(target), kind(kind) {}
+  };
+
+  js::Vector<RelativePatch, 8, SystemAllocPolicy> jumps_;
+
   void addPendingJump(BufferOffset src, ImmPtr target, RelocationKind kind) {
     enoughMemory_ &= jumps_.append(RelativePatch(src, target.value, kind));
     if (kind == RelocationKind::JITCODE) {
@@ -200,12 +215,12 @@ class Assembler : public AssemblerShared,
   static bool FLAG_riscv_debug;
 
   Assembler()
-      : m_buffer(),
-        scratch_register_list_((1 << t5.code()) | (1 << s9.code()) |
+      : scratch_register_list_((1 << t5.code()) | (1 << s9.code()) |
                                (1 << s10.code()) | (1 << s11.code())),
 #ifdef JS_JITSPEW
         printer(nullptr),
 #endif
+        m_buffer(),
         isFinished(false) {
     last_trampoline_pool_end_ = 0;
     no_trampoline_pool_before_ = 0;
@@ -218,6 +233,11 @@ class Assembler : public AssemblerShared,
     block_buffer_growth_ = false;
   }
   bool oom() const;
+  void setPrinter(Sprinter* sp) {
+#ifdef JS_JITSPEW
+    printer = sp;
+#endif
+  }
   BufferOffset nextOffset() { return m_buffer.nextOffset(); }
   
 #ifdef JS_JITSPEW
@@ -503,13 +523,13 @@ class Operand {
   Operand(FloatRegister freg) : tag(FREG), rm_(freg.code()) {}
 
   explicit Operand(Register base, Imm32 off)
-      : tag(MEM), rm_(base.code()), offset(off.value) {}
+      : tag(MEM), rm_(base.code()), offset_(off.value) {}
 
   explicit Operand(Register base, int32_t off)
-      : tag(MEM), rm_(base.code()), offset(off) {}
+      : tag(MEM), rm_(base.code()), offset_(off) {}
 
   explicit Operand(const Address& addr)
-      : tag(MEM), rm_(addr.base.code()), offset(addr.offset) {}
+      : tag(MEM), rm_(addr.base.code()), offset_(addr.offset) {}
 
   explicit Operand(intptr_t immediate) : tag(IMM), rm_() { value_ = immediate; }
   // Register.
@@ -525,11 +545,15 @@ class Operand {
   }
   bool IsImmediate() const { return !is_reg(); }
   Register rm() const { return Register::FromCode(rm_); }
+  int32_t offset() const { 
+    MOZ_ASSERT(is_mem());
+    return offset_; 
+  }
 
  private:
   Tag tag;
   uint32_t rm_;
-  int32_t offset;
+  int32_t offset_;
   intptr_t value_;                                 // valid if rm_ == no_reg
 
   friend class Assembler;
