@@ -43,11 +43,23 @@ class MoveEmitterRiscv64 {
         pushedAtSpill_(-1),
         spilledReg_(InvalidReg),
         spilledFloatReg_(InvalidFloatReg) {
-    MOZ_CRASH();
+    MOZ_CRASH("Unimplement on riscv");
   }
-  void emit(const MoveResolver&) { MOZ_CRASH(); }
-  void finish() { MOZ_CRASH(); }
-  void setScratchRegister(Register) { MOZ_CRASH(); }
+  void emit(const MoveResolver&);
+  void finish();
+  void assertDone();
+  void setScratchRegister(Register) { MOZ_CRASH("Unimplement on riscv"); }
+  Address cycleSlot(uint32_t slot, uint32_t subslot = 0) const;
+  int32_t getAdjustedOffset(const MoveOperand& operand);
+  Address getAdjustedAddress(const MoveOperand& operand);
+
+  void breakCycle(const MoveOperand& from,
+                                    const MoveOperand& to,
+                                    MoveOp::Type type,
+                                    uint32_t slotId);
+  void emitDoubleMove(const MoveOperand& from, const MoveOperand& to);
+  void completeCycle(const MoveOperand& from, const MoveOperand& to,
+                     MoveOp::Type type, uint32_t slot);
 };
 
 typedef MoveEmitterRiscv64 MoveEmitter;

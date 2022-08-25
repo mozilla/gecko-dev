@@ -431,6 +431,10 @@ static const int32_t NUNBOX32_TYPE_OFFSET = 4;
 static const int32_t NUNBOX32_PAYLOAD_OFFSET = 0;
 #endif
 
+static const uint32_t SpillSlotSize =
+    std::max(sizeof(Registers::RegisterContent),
+             sizeof(FloatRegisters::RegisterContent));
+
 inline uint32_t GetRISCV64Flags() { MOZ_CRASH(); }
 
 }  // namespace jit
