@@ -31,11 +31,11 @@ static constexpr uint32_t WasmCheckedTailEntryOffset = 1u;
 // RISCV INT Register Convention:
 // Name          Alias          Usage
 // x0            zero           hardwired to 0, ignores writes
-// x1            ra             return address for jumps 
+// x1            ra             return address for jumps
 // x2            sp             stack pointer
 // x3            gp             global pointer
 // x4            tp             thread pointer
-// x5-x7         t0-t2          temporary register 0 
+// x5-x7         t0-t2          temporary register 0
 // x8            fp/s0          saved register 0 or frame pointer
 // x9            s1             saved register 1
 // x10-x11       a0-a1          return value or function argument
@@ -315,8 +315,8 @@ class FloatRegisters {
               (1 << FloatRegisters::fs8) | (1 << FloatRegisters::fs9) |
               (1 << FloatRegisters::fs10) | (1 << FloatRegisters::fs11));
   static const SetType VolatileMask = AllMask & ~NonVolatileMask;
-  
-  static const SetType NonAllocatableMask = 
+
+  static const SetType NonAllocatableMask =
         SetType((1 << FloatRegisters::ft10) | (1 << FloatRegisters::ft11));
 
   static const SetType AllocatableMask = AllMask & ~NonAllocatableMask;

@@ -242,7 +242,6 @@ set_define("JS_SIMULATOR_MIPS64", simulator.mips64)
 set_define("JS_SIMULATOR_LOONG64", simulator.loong64)
 set_define("JS_SIMULATOR_RISCV64", simulator.riscv64)
 
-
 @depends("--enable-jit", simulator, target)
 def jit_codegen(jit_enabled, simulator, target):
     if not jit_enabled:
@@ -269,6 +268,7 @@ set_config("JS_CODEGEN_RISCV64", jit_codegen.riscv64)
 set_config("JS_CODEGEN_X86", jit_codegen.x86)
 set_config("JS_CODEGEN_X64", jit_codegen.x64)
 set_config("JS_CODEGEN_WASM32", jit_codegen.wasm32)
+
 set_define("JS_CODEGEN_NONE", jit_codegen.none)
 set_define("JS_CODEGEN_ARM", jit_codegen.arm)
 set_define("JS_CODEGEN_ARM64", jit_codegen.arm64)
@@ -279,6 +279,7 @@ set_define("JS_CODEGEN_RISCV64", jit_codegen.riscv64)
 set_define("JS_CODEGEN_X86", jit_codegen.x86)
 set_define("JS_CODEGEN_X64", jit_codegen.x64)
 set_define("JS_CODEGEN_WASM32", jit_codegen.wasm32)
+
 
 # Profiling
 # =======================================================

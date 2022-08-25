@@ -255,6 +255,18 @@ elif CONFIG["JS_CODEGEN_WASM32"]:
         "wasm32/MacroAssembler-wasm32.cpp",
         "wasm32/Trampoline-wasm32.cpp",
     ]
+elif CONFIG["JS_CODEGEN_RISCV64"]:
+    UNIFIED_SOURCES += [
+        "riscv64/Architecture-riscv64.cpp",
+        "riscv64/Assembler-riscv64.cpp",
+        "riscv64/CodeGenerator-riscv64.cpp",
+        "riscv64/Lowering-riscv64.cpp",
+        "riscv64/MacroAssembler-riscv64.cpp",
+        "riscv64/MoveEmitter-riscv64.cpp",
+        "riscv64/Trampoline-riscv64.cpp",
+    ]
+    if CONFIG["JS_SIMULATOR_RISCV64"]:
+        UNIFIED_SOURCES += ["riscv64/Simulator-riscv64.cpp"]
 
 # Generate jit/MIROpsGenerated.h from jit/MIROps.yaml
 GeneratedFile(
